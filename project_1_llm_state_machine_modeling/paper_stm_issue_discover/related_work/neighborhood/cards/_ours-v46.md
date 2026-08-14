@@ -123,7 +123,9 @@
 
 ## E. 对 M1 的意义
 
-1. ⭐ **可取**：⭐ 闭合词表 + 自动选类这个形状本身是对的，⛔ 出问题的是**词表内容**（`occupancy_after` 的 `nl_cue` 逐字在教模型别用 `edge_declared`，⛔ 324 格里 `edge_declared` 被问 **0.0%**；⭐ 修掉后 0 → 4/6）。
+1. ⛔⛔ **两件事并列，⛔ 不是「形状对、内容错」。**（⚠️ **本条 2026-08-14 就地改写** —— ⭐ 原文断言「闭合词表 + 自动选类**这个形状本身是对的**」，⛔ 而 [issue #189](https://github.com/HansBug/research_ideas/issues/189) §4.2 已把词表从「闭合词表 + 门」**降级为「常见形状库 + worked example」、不再是准入条件**；⭐ 判据见 [`../CRITERIA_MIGRATION.md`](../CRITERIA_MIGRATION.md)）
+   - ⭐ **词表内容确有缺陷，且已实测**：`occupancy_after` 的 `nl_cue` 逐字在教模型别用 `edge_declared`，⛔ 324 格里 `edge_declared` 被问 **0.0%**；⭐ 30 格三臂事前登记的干预实测 **0 → 4/6**。⭐ 同形态的第二例（`occupancy_after` 的 `trigger` 字段说明吸收了 `event_consumed`）见 [`predicate_routing_defects.md`](../../../discover_matrix/docs/findings/predicate_routing_defects.md)。
+   - ⛔ **而形状本身已被降级**：⭐ 新口径下 19 条谓词的角色从「准入词表」变为「**领域公认普遍检查的下界** —— 自由表达层必须能表达全部」。⭐⭐ **这两条互不抵消**：⛔ 内容缺陷是这一版实现的 bug，⛔ 形状降级是问题定义变更的后果。
 2. ⛔ **不可取**：⛔ **两个 LLM 自评 reviewer 应当拆掉或改形态** —— ⭐ 它们零收益却吃 79% 的 token。
 3. ⚠️ **关键差别（待外部工作回答）**：⭐ 我们把 sound oracle 放在**求值端**；⛔ 别人放在哪？⭐ **这正是 L3 要去数的那一格。**
 

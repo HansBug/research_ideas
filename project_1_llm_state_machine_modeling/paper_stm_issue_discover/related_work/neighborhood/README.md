@@ -6,6 +6,8 @@
 
 ⛔ **它的服务对象是 M1（方法重构），不是论文。** 见下面 §3 的防火墙。
 
+⚠️⚠️⚠️ **口径已变（2026-08-14）** —— [issue #189](https://github.com/HansBug/research_ideas/issues/189) 把 paper1 的问题从「**NL 对齐**」改为「**NL 满足性**」，并立 $L \times W \times D$ 三轴（层级 / 见证 / 规范性，其中 $D$ 兼作前置门）。⛔⛔ **本轨的结论**（[SUMMARY.md](./SUMMARY.md) · [design_evidence.md](./design_evidence.md) · [m1_recommendations.md](./m1_recommendations.md)）**已就地迁移**，⭐ 映射真源是 [CRITERIA_MIGRATION.md](./CRITERIA_MIGRATION.md)。⭐ 该表登记了 **三条反而升值** 与 **一条方向反转**（结论 ⑥ 现在是**对新设计走向不利**的一条待答问题，⛔ 不再是支持我们的旁证）。⭐⭐ **卡片的外部事实底座（§A–D，11,707 行）不受影响** —— 全轨 63 处 §E 命中里，与新口径直接冲突的**只有 1 处**，已改。
+
 ---
 
 ## 1. 为什么要做这一轨
@@ -57,6 +59,7 @@ X1（[#184](https://github.com/HansBug/research_ideas/pull/184)）跑完之后�
 | 文件 | 内容 | 谁该读 |
 | :-- | :-- | :-- |
 | [README.md](./README.md) | 本文件：定位、硬门、防火墙 | ⭐ 所有人先读 |
+| ⭐⭐⭐ [CRITERIA_MIGRATION.md](./CRITERIA_MIGRATION.md) | ⭐⭐ **口径迁移表**：旧对象 → 新状态。⛔ **凡读到 `hit@k` / 「闭合词表」/「19 条谓词」/ `−15.82pp` / 「台账 98 条分母」，先查这里** | ⭐ **所有人第二读** |
 | [EXTRACTION_SCHEMA.md](./EXTRACTION_SCHEMA.md) | ⭐ 每篇抽什么（卡片字段定义） | 要加新条目的人 |
 | [SUMMARY.md](./SUMMARY.md) | ⭐⭐ **主读物**：结论、分布、对照表 | ⭐ 只想知道结论的人读这个 |
 | [pipeline_forms.md](./pipeline_forms.md) | ⭐ 流水线形态对照表（逐篇一行） | M1 |
@@ -72,7 +75,7 @@ X1（[#184](https://github.com/HansBug/research_ideas/pull/184)）跑完之后�
 | 轨 | 问题 | 产物 | 边界门 |
 | :-- | :-- | :-- | :-: |
 | **L1**（[landscape/](../landscape/)） | 我们在版图的哪个位置？有没有外部可比数字？ | 五问落档 | ⭐ 过 |
-| **L2**（[provenance/](../provenance/)） | 我们的 19 条谓词凭什么成立？ | 三类分级 | ⭐ 过 |
+| **L2**（[provenance/](../provenance/)） | ⚠️⛔ **命题 2026-08-14 升级** —— ⭐ 原为「我们的 19 条谓词凭什么成立？」；⭐ [issue #189](https://github.com/HansBug/research_ideas/issues/189) §4.2 把词表降为形状库后，⭐⭐ 该问的是「**这 19 项是领域公认普遍的检查，我们的自由表达层必须能表达全部**」。⭐⭐⭐ **那轨的取证工作全部保留**（74 路检索 / 送审 782 条 / 存活 418 条 / 按出版物去重 **360 独立来源** / **17 of 19 达 ≥6 源**），⭐ 只换命题：从「够用」升级为「**至少等于领域公认那一套，且严格更多**」。⚠️ **改动落在本轨之外** | 三类分级 | ⭐ 过 |
 | **第三类**（[assertion_output_form_evidence.md](../assertion_output_form_evidence.md)） | 「可机械求值断言」这种输出形态有什么证据？ | 六形态 × 五维 | ⚠️ 部分 |
 | ⭐ **L3**（本目录） | ⭐ **LLM 具体怎么被搭进流水线的？** | 形态对照 + 资产 + M1 建议 | ⛔ **不过**（但标注） |
 

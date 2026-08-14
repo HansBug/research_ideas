@@ -8,6 +8,8 @@
 
 ---
 
+⚠️ **口径注(2026-08-14)**:⭐⭐ **本文件的分类结果不受 [issue #189](https://github.com/HansBug/research_ideas/issues/189) 的口径转向影响**,⛔ 但它**纠了 issue #189 §3 一处**:⭐ §3 把三道闸门并列说「叠在一起」,⛔ 而逐行核实后**只有闸门 B(`REQUIREMENT_SPLITTER_PROMPT`)承重** —— 闸门 C 所在的 `ASSERTION_REVIEWER_PROMPT` **收不到** `inspect_digest`(`render_assertion_review_input` 无该键),⭐ 而 §3 **漏了** `ASSERTION_CONVERTER_PROMPT` 既收到 digest 又逐字要求用它(§1.2)。⭐⭐ **纠正让 §3 更锋利**:断言是逐需求生成的,⛔ 需求不诞生下游再宽也无从发起义务。⭐ 文内「19 条谓词」指 v46 的实现事实,⛔ 其方法论地位已变(见 [`CRITERIA_MIGRATION.md`](./CRITERIA_MIGRATION.md))。
+
 ## 1. ⭐⭐ 我们自己(v46)—— **从源码分类,不是从卡**
 
 ⭐ 这一格用源码而非卡片作依据,⛔ 因为卡是摘要。⭐ 若某 agent 从卡分类的结果与本节不一致,**以本节为准并把差异记入 §1.2**。

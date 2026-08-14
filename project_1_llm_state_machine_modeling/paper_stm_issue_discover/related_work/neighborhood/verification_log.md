@@ -332,7 +332,7 @@ python -m tools.pdf_extractor -i S1.pdf -o S1.txt -m text   # 49 页
 
 ⭐ 正文逐字：`Model Validation papers discuss approach limitations in all cases (100%) and also discuss LLM limitations at a comparatively high rate (91%)`。
 
-⭐ 而 `Code Generation` 那一类 `report low reproducibility support (20%)`。⭐ **做验证的人对自己方法的局限更诚实** —— ⭐ 这对我们怎么写 −15.82pp 是个正面信号：⛔ 这一类的读者预期本来就包含「你要讲清局限」。
+⭐ 而 `Code Generation` 那一类 `report low reproducibility support (20%)`。⭐ **做验证的人对自己方法的局限更诚实** —— ⭐ 这对我们怎么写 −15.82pp 是个正面信号：⛔ 这一类的读者预期本来就包含「你要讲清局限」。⚠️ **`−15.82pp` 的归因已作废**（[issue #189](https://github.com/HansBug/research_ideas/issues/189) §2.7 的三重混淆），⭐ 但数字仍真 —— ⭐⭐ **而「要讲清局限」这条读者预期在新口径下只会更强**，因为那三重混淆本身就是要讲的局限之一。
 
 ### 6.3 ⚠️ **成本几乎没人评**：`only 21 papers evaluate the computational or financial cost of their approach, whereas 65 do not`
 

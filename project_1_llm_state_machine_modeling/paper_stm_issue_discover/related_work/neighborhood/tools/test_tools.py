@@ -328,3 +328,77 @@ def test_recency_reference_point_is_earlier_arm_model():
     assert (_REF.year, _REF.month) == (2026, 4)
     assert _months_behind("gpt-3.5-turbo") == 37
     assert _months_behind("gpt-5.1") == 5
+
+
+# ---------------------------------------------------------------------------
+# 口径迁移检查器 —— ⭐ 三条钉的都是本轮**实际踩到**的陷阱
+# ---------------------------------------------------------------------------
+
+
+def test_migration_exemption_is_root_invariant():
+    """⛔⛔ 同一份文件在两种扫根下必须同判。
+
+    ⭐ 本脚本支持从 `neighborhood/` 也从 `paper_stm_issue_discover/` 扫。
+    ⛔ 首版只做前缀匹配，于是 `cards/x.md` 被豁免、
+    `related_work/neighborhood/cards/x.md` **没有** —— ⭐ 换个根就换个结论。
+    ⭐ 判据：豁免必须只由「文件是谁」决定，⛔ 不由「从哪扫」决定。
+    """
+    from tools.check_criteria_migration import _is_exempt
+
+    short = _is_exempt("cards/atlas-layered-constraints.md")
+    long = _is_exempt("related_work/neighborhood/cards/atlas-layered-constraints.md")
+    assert short is not None and short == long
+    # ⭐ 边界限定：`cards/**` ⛔ 不得误命中 `flashcards/`
+    assert _is_exempt("flashcards/y.md") is None
+
+
+def test_migration_exempts_every_preregistration_variant():
+    """⛔⛔ 事前登记一份都不许漏 —— ⭐ 漏了会指使人去改事前登记。
+
+    ⭐ 按仓库 `CLAUDE.md` §3.5.1，事前登记的全部价值来自「写在看到结果之前」，
+    ⛔ 就地改写会毁掉证据链。⚠️ 实测仓库里有三种命名，⛔ 只挂精确名会漏两种。
+    """
+    from tools.check_criteria_migration import _is_exempt
+
+    for name in (
+        "baseline_arm/preregistered.md",
+        "baseline_arm/preregistered_actionability.md",
+        "discover_matrix/docs/generations/v21/preregistered_calibre.md",
+        "discover_matrix/v46/preregistered.md",
+    ):
+        why = _is_exempt(name)
+        assert why is not None, name
+        assert "写在看到结果之前" in why, name
+
+
+def test_migration_section_flag_does_not_leak_across_files():
+    """⛔⛔ 这条钉的是一个**统计口径**错误，⭐ 不是代码风格问题。
+
+    ⭐ 用 **一次** ``awk '/^## E\\./{e=1} /^## F\\./{e=0} e && /标志物/' cards/*.md``
+    统计时，``e`` 跨文件不重置 —— ⛔ 某卡缺 ``## F.`` 就会让后续所有文件被算进 §E。
+    ⭐⭐ 本轨首次统计因此得 **62**，逐文件重跑后是 **63**。
+    ⭐ 判据：一份没有 §E 的文本，其 §E 命中必须是 0，⛔ 与上一次调用无关。
+    """
+    from tools.check_criteria_migration import iter_section_hits
+
+    with_e = "## E. 意义\n我们的 19 条谓词如何\n"          # ⭐ 有 §E 且不闭合（无 §F）
+    without_e = "## A. 元信息\n我们的 19 条谓词如何\n"     # ⛔ 无 §E
+
+    assert len(iter_section_hits(with_e, "E")) == 1
+    # ⭐ 紧接着调用一份无 §E 的文本 —— ⛔ 若 flag 泄漏，这里会是 1
+    assert iter_section_hits(without_e, "E") == []
+    # ⭐ 反向再确认一次，⛔ 排除「恰好顺序对了」
+    assert iter_section_hits(with_e, "E") != []
+
+
+def test_migration_counts_lines_not_occurrences():
+    """⛔ 计数单位必须是**行**。
+
+    ⭐ 出现次数会聚集在少数行上 —— ⛔ 本轨曾按次数报「53 处」，
+    ⭐ 而那实际只有 27 行，读起来像 53 个独立地点。⭐ 行数才是迁移工作量。
+    """
+    from tools.check_criteria_migration import scan_text
+
+    one_line_many_hits = "hit@1 与 hit@3 与 hit@all 三口径\n"
+    counts = scan_text(one_line_many_hits)
+    assert sum(counts.values()) == 1, counts
