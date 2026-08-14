@@ -1,0 +1,469 @@
+--- Page 1 ---
+SWARM-SLR AIssistant: A Unified Framework for
+Scalable Systematic Literature Review Automation
+Tim Wittenborg∗, Allard Oelen†, Manuel Prinz†
+∗L3S Research Center, Leibniz University Hanover, Hanover, Germany
+tim.wittenborg@l3s.uni-hannover.de
+†TIB - Leibniz Information Centre for Science and Technology, Hanover, Germany
+{allard.oelen, manuel.prinz}@tib.eu
+Abstract—Despite a growing ecosystem of tools supporting
+Systematic Literature Reviews (SLRs), integrating them into
+user-friendly workflows remains challenging. The Streamlined
+Workflow for Automating Machine-Actionable Systematic Lit-
+erature Reviews (SWARM-SLR) unified the tool annotation
+and provided a cohesive yet modular workflow, but faced
+scalability and usability issues. We introduce the SWARM-SLR
+AIssistant, a unified framework that combines the SWARM-
+SLR’s structured methodology with an agent-based assistant
+that integrates research tools in a modular interface. The first
+SWARM-SLR stage is integrated, enabling conversational, LLM-
+guided support and persistent data storage. To address the tool
+assessment bottleneck, we propose a centralized tool registry that
+allows developers to annotate and register tools autonomously
+using a shared metadata schema. Preliminary evaluation shows
+improved usability, but challenges remain in balancing efficiency,
+accessibility, and transparency. Further development is needed to
+realize scalable SLR automation.
+Index Terms—literature review, workflow automation, tool
+registry, research software, AI, LLM, crowdsourcing
+I. INTRODUCTION
+Despite the increasing availability of research tools tailored
+to various stages of Systematic Literature Reviews (SLRs),
+their integration into a coherent workflow remains a major
+hurdle. The Streamlined Workflow for Automating Machine-
+Actionable Systematic Literature Reviews (SWARM-SLR)
+provided a complete, structured SLR process [1], and a first
+complete application of the workflow showed its capabili-
+ties [2]. Yet, the practical adoption of the tool annotation and
+utilization has been slow due to usability challenges, from
+setting up the workflow to navigating the Jupyter notebook
+environment to installing and switching between several tools.
+We developed the AI supported research assistant (i.e.,
+AIssistant), which provides LLM-based guidance throughout
+different tasks and workflows, calling external, configurable
+tools where needed. SWARM-SLR and the AIssistant face
+integration bottlenecks, the AIssistant relying on JSON schema
+annotations of available tools and the SWARM-SLR on filled
+out surveys positioning tools capacities over the workflow.
+Neither approach scales well into an autonomous solution.
+This work proposes a unified tool registry to utilize the
+synergistic potential of aligning SWARM-SLR and AIssis-
+tant tool annotation, providing a unified framework enabling
+This work was funded by the DFG SE2A Excellence Cluster.developers to contribute their solutions and assists users to
+customize and utilize the system. Our contributions include:
+1)The first stage of the SWARM-SLR integration into the
+AIssistant, providing workflow guidance in a uniform interface
+with a persistent storage layer that allows human and machine
+shared access to intermediate and final results.2)A conceptual
+design of an AIssistant tool registry, centralizing the tool
+annotation for both approaches and allowing developers to
+annotate tools autonomously for future user selection.3)A
+preliminary evaluation of the current implementation, with 18
+survey respondents providing feedback on the implementation
+of the first 5 SWARM-SLR steps and potential future work.
+This work is structured as follows: Section II details the
+background required for our approach in section III. The
+evaluation design and results are detailed in section IV.
+These findings and future work are discussed in section V,
+concluding in section VI.
+II. BACKGROUND ANDRELATED WORK
+1) SWARM-SLR:The original SWARM-SLR workflow
+provided a structured methodology to conduct machine-
+actionable SLRs, identifying 65 requirements that are mapped
+to 19 steps. These steps are part of the 8 major tasks making
+up an SLR, which are categorized into 4 Stages. This classifi-
+cation allows mapping tools to the requirements and hence for-
+malizing their potential strengths and weaknesses over the SLR
+stages, tasks and steps. However, practical uptake suffered due
+to configuration overhead and decentralized tooling. Despite
+SWARM-SLR being presented at several workshops, the tool
+adding process never picked up. There were frequent questions
+about the efficiency of collaboration with others and how
+to prevent moving between the many different applications.
+The AIssistant has the potential to address these challenges
+by providing an integrated platform where different tools are
+operated without leaving the environment.
+2) ORKG Ecosystem:The modular SWARM-SLR was
+designed to utilize the Open Research Knowledge Graph
+(ORKG) [3]. Since SWARM-SLRs publication, ORKG
+ASK [4] was released, a natural-language interface to literature
+search over a predefined corpus of more than 70,000,000
+papers. Similarly, the support for local corpus creation and
+processing was further developed by John et al. [5]. Each time
+a new tool such as ORKG ASK [4] is developed, it needs toarXiv:2603.05177v1  [cs.DL]  5 Mar 2026
+
+--- Page 2 ---
+be integrated into the workflow as well, potentially with new
+frontends with which users need to familiarize themselves.
+3) Research Tool Ecosystem:The previous SWARM-SLR
+tool annotation aimed to improve upon previous works from
+Bosman and Kramer [6], [7] or lists such as the Systematic
+Review Toolbox1. The latter temporarily ceased to exist right
+before the SWARM-SLR paper was published, revealing a
+gaping flaw in any such system: If the central hub breaks
+down, the system becomes unusable. An analysis of similar
+crowdsourced tool annotation approaches [8], from tool or
+package hosting services like Python Package Index (PyPI)2to
+others just hosting information about them, such as awesome
+lists3, revealed similar issues, yet also several solutions: De-
+signing a standardized annotation format that can be harvested
+asynchronously and by anyone. Instead of centralizing all
+metadata, annotations can exist alongside the tool itself (e.g.,
+in a GitHub repository), allowing communities to retain con-
+trol over the information infrastructure. Especially tool registry
+approaches have proven effective, such as the Visual Studio
+Code (VS Code) Marketplace4, the Obsidian Community
+Plugins5or bio.tools [9]. These extension-based environments
+streamline tool distribution and integration. Containerized so-
+lutions such as Docker6and orchestration frameworks like Ku-
+bernetes7address a different layer of the ecosystem, providing
+consistent runtime environments and scalable deployment.
+III. PROPOSEDSYSTEM
+We seek to integrate the SWARM-SLR workflow into the
+AIssistant and improve both systems’ modular tool annotation
+with a uniform tool registry, as illustrated in Figure 1.
+1) AIssistant:The AIssistant provides a workspace for
+human-machine collaboration. It integrates tools into work-
+flows via a modular interface, storing intermediate and final
+assets, such as text or documents. While several agents are
+1https://systematicreviewtools.com/
+2https://pypi.org/
+3https://github.com/sindresorhus/awesome
+4https://marketplace.visualstudio.com/vscode
+5https://obsidian.md/plugins
+6https://www.docker.com/
+7https://kubernetes.io/predefined in the default setup, integrating services such as
+ORKG ASK, Semantic Scholar, and arXiv queries, is one
+of the core design aspects is the modular tool customization.
+Tools are defined in modular files, describing their functional-
+ities and parameters textually, in addition to a tool execution
+functionality. The textual description of the function interfaces
+ensures its compatibility with LLM tool callings, allowing the
+LLM to invoke tools when deemed necessary. The function
+calling process varies among tools, but generally includes
+calling specific REST endpoints to gather information, often
+based on user specified input. Tool executions are kept simple
+to decouple systems, ensuring that the tool executing, and in
+turn, tool integration, is easy.
+2) SWARM-SLR AIsssitant:The SWARM-SLR steps are
+integrated as separate agents in the interface. Each has it own
+system prompts, list of enabled tools, and list of input/output
+assets. Separating the different steps into different agents has
+as benefit that the user is more in control, and that it is easier to
+modify intermediate data. In the end, our goal is not to provide
+a fully automated approach, but instead provide AI-supported
+guidance to users in the SWARM-SLR process.
+In its current layout, this integration requires forking the
+open-source code, then a merge request, requiring review and
+confirmation from the maintainers. This approach still warrants
+improvements, as discussed in the Tool Registry section, but
+is sufficient for an early SWARM-SLR integration test.
+As shown in Figure 1, we integrated the first stage of
+the SWARM-SLR workflow into the AIssistant, using the
+manual JSON configuration for the first 5 steps. Steps such as
+”Formulate Search Query” may be split into multiple steps (see
+”Synthesize keywords”), if their separation reduces confusion
+for both human and machine due to nested task descriptions.
+Others, such as ”Step 2.5 Re-evaluate with domain experts”
+concluding stage I, are inherently not automatable, and hence
+not implemented. Beyond that, several other stages are already
+supported by the AIssistant, such as literature search and
+corpus creation. Succeeding these steps into the installation
+of further tools, such as the custom python package8or
+Obsidian, warranted a further rethinking of the workflow. In
+8https://pypi.org/project/bnw-tools/
+metadata schemacustomized workflow in the AIssistant (e.g. SW ARM- SLR workflow)local data (e.g. SLR corpus and intermediate results) tool r egistrySWARM- SLR
+requir ements
+SWARM- SLR
+tooldocument corpus
+annotationproperty
+catalogue
+tool
+catalogueresearch interest
+research questions
+keywords
+search queriesrelated work
+search results
+document annotation
+evidence
+answers
+Fig. 1. Overview of the SWARM-SLR AIssistant. The SWARM-SLR requirements are mapped to tool registry properties, which are used to annotate tools.
+The resulting tool catalogue can be used from within the AIssistant, providing a uniform interface for human and machine to access tools and data.
+
+--- Page 3 ---
+AIssistant
+SWARM- SLR
+requir ements
+metadata schemaCustomized User W orkflow
+(e.g. SW ARM- SLR workflow)
+AIssistant
+(default setup)
+AIssistant tools
+(custom selected)
+additional
+local tools
+local datatool registry
+categories:
+officially supported ,
+verfied , submitted
+metadata schema:
+input, process,
+output,
+specifications, ...SWARM- SLR tools
+metadataFig. 2. The conceptual design of the AIssistant tool registry provides a central
+tool curation point, mapping requirements to metadata schema. Users can
+browse task-specific tools similar to an extension marketplace.
+the current design, the SWARM-SLR AIssistant is not capable
+of integrating these tools into the same interface. To still
+reduce the barrier to a complete workflow, we redesigned the
+tool curation.
+3) Tool Registry:Our concept displayed in Figure 2 is built
+on the example of bio.tools [9], which successfully facilitated
+the crowdsourcing of over 30,000 tools in the past decade. The
+conceptual design is a centralized tool registry, asynchronously
+populated with data autonomously provided by users. Tool
+developers can annotate their tools by providing a uniformly
+structured metadata, for example, using the SWARM-SLR
+requirement schema. This allows users to provide and access
+tool annotation data via a central system, while at the same
+time not putting their work at risk in case of the central system
+failure. Synergistic effects can be utilized by merging the
+SWARM-SLR tool annotation into the larger ecosystem of the
+AIssistant, allowing the SWARM-systematic literature review
+to be one of several layouts the AIssistant may support. These
+changes simplify tool onboarding and lower the technical
+threshold for contributing tools and workflows.
+IV. EVALUATION
+The current iteration of SWARM-SLR was tested over
+a year in the Aerospace Engineering SLR use-case. Since
+the AIssistant itself is in its early development stages and
+not released yet, there is no public, large-scale test of it
+or its SWARM-SLR layout. The tool integration required
+for a complete a SWARM-SLR workflow is increasingly
+complicated with tool capabilities, reaching from simple LLM
+queries to tools processing, analyzing, restructuring, creating
+and deleting thousands of documents on the local hard drive.
+The required workflow coordination and guard railing of tools
+so heterogenous promises to be very time consuming.
+1) Design:The entire survey design is available online9
+by clicking on SWARM-SLR AIssistant Survey (view only).
+Its pages include data protection, general information, and
+questions regarding steps 1.1 to 2.4., demographic data, and
+future work. The general information explains the survey
+context, design, and limitation to screenshots. The following
+9http://github.com/borgnetzwerk/tools/tree/main/scripts/SWARM-SLR/data5 pages depict the SWARM-SLR, first in its original Jupyter
+Notebook design, then implemented in the AIssistant. Below
+these screenshots, two question types were presented, a se-
+mantic differential UEQ-S [10] in randomized order and a
+free text field for any other comment. All questions were
+optional, and the ”no answer” option was always available.
+The demographic data page inquired the highest completed
+level of education and their prior experience with subjects such
+as literature reviews. Future Work explained the proposed tool
+registry using Figure 1 and text, followed by two questions on
+future motivation to develop and utilize the system.
+2) Results:18 participants (10 PhDs, 8 Masters) completed
+the survey (avg. 22 min,σ: 14:20 min, median: 18:34 min).
+The UEQ-S results are visualized in Figure 3. Evidently,
+the AIssistant is an improvement upon the previous Jupyter
+Notebook implementation. Seven participants used the text
+fields to provide additional feedback, reaching from UI sug-
+gestions to elaborate advice. One respondent suggested that the
+Model Context Protocol (MCP) in a local IDE could achieve
+comparable results ”and still retain all your working envi-
+ronment, extensions, and not needed to know the terminology
+and ”workflows” of the assistant.” Since the main goal of the
+SWARM-SLR AIssistant is to provide more guidance to users,
+it may be less relevant if an equal result could be reached
+through a process that is more complicated to set up. The
+general sentiment was very positive: ”The AIssistant is a very
+nice simplification of the Notebook UI, which should make
+the tool easier to use and therefor more accessible.” Eleven
+participants would like to use the SWARM-SLR AIssistant,
+three of which would also use the Jupiter Notebook approach.
+Two would like to add their own tools to the workflow, two
+others their own steps. At the same time, remarks were made
+regarding additional energy consumption and other costs, as
+well as AI-inherent transparency, hallucination, and repro-
+ducibility issues. The evaluation highlights a very valuable
+perspective: The further research work is abstracted away, the
+less oversight humans have over quality and reliability. At a
+certain tipping point, the time saved automatically synthesizing
+information is spent ensuring the process and its resulting
+knowledge is reliable. The future of accessible, reliable SLR
+automation will scale first and foremost with its ability to
+efficiently communicate its process.
+3) Threats to Validity:There are some noteworthy limi-
+tations that may affect the generalizability of our work. The
+small sample size of 18 participants is inherently limiting, and
+despite the overwhelmingly positive results, a selection bias in
+the participants or similar could have influenced this outcome.
+Rejecting this possibility requires upscaling of the evaluation,
+which is inhibited due to the unreleased state of the AIssistant.
+Our work presents an evaluation in an early stage of devel-
+opment, aiding similar developments in the rapidly changing
+field of human-AI collaboration, yet does not equate a full
+evaluation of our future system. Evaluating this full system is
+going to be excessively time-intensive, however, and may need
+to be divided into task-based benchmarks to allow comparison
+with existing SLR systems. Simultaneously, effects from real-
+
+--- Page 4 ---
+Step 1.1: Formulate research interest
+Step 2.1: Check related research questions
+Step 2.2: Refine scientific interest
+Step 2.3: Formulate search query
+Step 2.4: Refine with related literature4
+1
+3| obstructive  supportive
+1 3 6 3
+1 3 8 5
+6 5 6
+1 5 6 4
+2 9 32
+1
+4
+3| complicated  easy
+21 3 5 3
+1 5 6 4
+2 4 7
+11 2 4 6
+4 6 7
+Step 1.1Step 2.1Step 2.2Step 2.3Step 2.44
+1
+2
+3
+1| inefficient  efficient
+3 7 2
+1 6 6 3
+1 4 6 4
+5 5 4
+4 8 41
+2
+3
+3
+1| confusing  clear
+111 5 6 1
+1 4 6 3
+1 2 6 5
+11 3 6 3
+1 2 9 44
+3
+3
+6
+3| boring  exciting
+1 4 5 2
+1 6 6 1
+1 3 5 5
+3 5 3
+4 6 4
+5
+ 0 5 10 15Step 1.1Step 2.1Step 2.2Step 2.3Step 2.42
+1
+5| not interesting  interesting
+1 4 6 3
+21 12 2
+1 4 5 6
+6 3 3
+6 8 3
+5
+ 0 5 10 155
+4
+2
+3
+2| conventional  inventive
+2 4 4 1
+6 6 1
+8 6 1
+6 7 1
+7 4 4
+5
+ 0 5 10 153
+1
+1
+3
+3| usual  leading edge
+11 6 5 1
+1 6 8 1
+1 6 7 2
+1 5 6 2
+5 6 3Compared to the JupyterNotebook guided step ... completion, I find the AIssistant approach to be ...
+A1 A2 A3 A4 A5 A6 A7Fig. 3. UEQ Results (N=18). The sentiment is noteworthy positive. Commulative over every step, each metric has 2-8 reported negative and 62-74 positive
+leanings.Confusing — clearhas the most negative votes (8), with the sole strong negative vote, except for 3 strongusualvotes.Obstructive — supportivehas
+the most positive votes total (74), with 21 of them being strong.Complicated — easyhas 6 more strong positive votes (27), whereconventional — inventive
+has the least (8).
+world deployment and long-term usage feedback are currently
+not available and are required for a complete assessment of
+our contribution’s practical utility.
+V. DISCUSSION ANDFUTUREWORK
+The evaluation of SWARM-SLR and SLR automation in
+general remains difficult to scale. It is either too time intensive
+if completed, or oversimplified and lacking context when
+segmented. The SWARM-SLR AIssistant implementation is
+particularly suited for agentic or API-based tools, such as
+ORKG ASK or Zotero, has limited support for Python package
+wrapped solutions, such as SWARM-SLR’s bnw-tools, and
+requires future work towards integrating more heterogeneous
+software, such as Miro or Obsidian. The AIssistant is envi-
+sioned to be a uniform framework supporting any scholarly
+workflow. Yet, severe limitations arise in the multi-objective
+optimization between energy/time/financial costs, efficiency,
+transparency, interoperability and reusability, clearness and
+many other factors mentioned in the UEQ and beyond.
+VI. CONCLUSION
+We presented the SWARM-SLR AIssistant, a modular
+agent-based framework integrating the SWARM-SLR work-
+flow guidance. Using a persistent data layer, we demonstrated
+the feasibility of aligning conversational LLM frameworks
+with the systematic literature review requirements of stage
+I. Additionally, we proposed a tool registry to simplify tool
+annotation, enable decentralized contribution, and lower the
+threshold for extending research workflows. 18 respondents
+contributed to our preliminary evaluation, highlighting im-
+proved usability and accessibility, as well as challenges remain
+regarding tool transparency and resource efficiency. While the
+SWARM-SLR AIssistant is a step towards accessible, modular
+SLR automation, achieving this goal will require significant
+future work towards a crowdsourced research software ecosys-
+tem facilitating accessible, yet transparent workflows.ACKNOWLEDGMENT
+During the preparation of this work, the author(s) used
+GPT-4.1 (GitHub Copilot),DeepL,Grammarly (Browser
+Plugin),LanguageTool (Browser Plugin)in order to:trans-
+late text,grammar and spelling check,paraphrase and
+reword, according to the CEUR GenAI Usage Taxonomy10.
+REFERENCES
+[1] T. Wittenborg, O. Karras, and S. Auer, “SWARM-SLR - Streamlined
+Workflow Automation for Machine-Actionable Systematic Literature
+Reviews,” inLinking Theory and Practice of Digital Libraries(A. An-
+tonacopoulos, A. Hinze, B. Piwowarski, M. Coustaty, G. M. Di Nunzio,
+F. Gelati, and N. Vanderschantz, eds.), (Cham), pp. 20–40, Springer
+Nature Switzerland, 2024.
+[2] T. Wittenborg, I. Baimuratov, L. K. Franz ´en, I. Staack, U. R ¨omer, and
+S. Auer, “Knowledge-Based Aerospace Engineering – A Systematic
+Literature Review,” May 2025. arXiv:2505.10142 [cs].
+[3] S. Auer, A. Oelen, M. Haris, M. Stocker, J. D’Souza, K. E. Farfar,
+L. V ogt, M. Prinz, V . Wiens, and M. Y . Jaradeh, “Improving access to
+scientific literature with knowledge graphs,”Bibliothek Forschung und
+Praxis, vol. 44, no. 3, pp. 516–529, 2020.
+[4] A. Oelen, M. Y . Jaradeh, and S. Auer, “Orkg ask: A neuro-symbolic
+scholarly search and exploration system,”Joint Proceedings of Posters,
+Demos, Workshops, and Tutorials of the 20th International Conference
+on Semantic Systems, 2024.
+[5] L. John, T. Wittenborg, S. Auer, and O. Karras, “Human-In-The-Loop
+Workflow for Neuro- Symbolic Scholarly Knowledge Organization,”
+June 2025. arXiv:2506.03221 [cs].
+[6] J. Bosman and B. Kramer, “Tools that love to be together - template
+per tool,” 2023.
+[7] J. Bosman and B. Kramer, “400+ Tools and innovations in scholarly
+communication - data collection forms,” 2023.
+[8] T. Wittenborg, R. Gey, O. Karras, D. Mietchen, and A. Struck, “Research
+Software Discovery: How do we Want to Search Research Software and
+Where do we Want to Find it?,” tech. rep., Zenodo, May 2025.
+[9] J. Ison, K. Rapacki, H. M ´enager, M. Kala ˇs,et al., “Tools and data
+services registry: a community effort to document bioinformatics re-
+sources,”Nucleic Acids Research, vol. 44, pp. D38–D47, Jan. 2016.
+[10] M. Schrepp, J. T. Chewski, and A. Hinderks, “Design and Evaluation of
+a Short Version of the User Experience Questionnaire (UEQ-S),” Dec.
+2017. Accepted: 2021-09-13T10:56:52Z Publisher: International Journal
+of Interactive Multimedia and Artificial Intelligence (IJIMAI).
+10https://ceur-ws.org/GenAI/Taxonomy.html

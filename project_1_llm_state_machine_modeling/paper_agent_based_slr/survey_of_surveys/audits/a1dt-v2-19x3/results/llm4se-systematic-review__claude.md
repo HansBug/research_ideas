@@ -1,0 +1,276 @@
+我已完整通读 paper_content.txt（含 §1–9、Appendices A–E、references 头尾）、bibtex、metadata 与现有 review.md，并已读取四个技能文件。下面是完整自包含审计报告。
+
+---
+
+# A1-DT v2 单篇审计报告：`llm4se-systematic-review`
+
+## 0. 审计结论卡片
+
+| 项 | 结论 |
+|---|---|
+| paper slug | `llm4se-systematic-review` |
+| agent | `claude` |
+| 是否已读 `paper_content.txt` | 是。按页码顺序逐段通读 §1 INTRODUCTION → §2 APPROACH（含 Table 2/3/4/5、Fig. 1）→ §3 RQ1（Fig. 4/5、Table 6）→ §4 RQ2（Fig. 6/7/8、Table 7/8）→ §5 RQ3（Fig. 9、Table 9）→ §6 RQ4（Fig. 10、Table 10/11/12）→ §7 Threats → §8 Challenges/Opportunities/Roadmap → §9 Conclusion → References 起始页 → Appendix A--E（Table 13/14/15/16/17）。 |
+| 是否读取 `bibtex.bib` / `metadata.json` | 是，两文件均逐字段读完。 |
+| 是否打开或核对 `paper.pdf` | 否。本轮仅基于 `paper_content.txt` 的页眉、Fig./Table 标号与正文交叉核验；复杂版面（如 Fig. 4 的 LLM 树状图细节）未做 PDF 视觉级核验，仍记为待复核。 |
+| 原文类型 | SLR（Kitchenham-style；明确声明遵循 Kitchenham et al. [197,198] 方法学，§2 首段） |
+| 被编码样本单位 | primary study（一篇被纳入的 LLM4SE research paper），最终 N=395。 |
+| 样本数量 / 分母 | 主分母 N=395。子分母：N=374（显式说明 dataset）；N=355（显式说明 input form）；N=154（peer-reviewed）+ 241（arXiv）；按年 7/13/56/273/46（2020–2024.01）。 |
+| 原生树类型 | 维度森林。根为 4 个 RQ，每个 RQ 各自展开一棵编码树（RQ1 模型、RQ2 数据、RQ3 优化与评价、RQ4 任务），通过 Table 5 的 8 项 data items 串联。 |
+| 主统计池资格 | 是（局部可统计）。该文是 systematic_review，有明确分母、纳排、QAC 与 Appendix 锚定；其分类频次（如 architecture × year、data_source、input_form、SDLC activity、metric × problem_type）可作为正式可统计 schema。但当前单篇 review.md 中具体数字未逐一回 Table 13–17 精核，部分百分比口径（task instance vs paper count）仍存在分母歧义，须 A2a 锚定。 |
+| 总体判定 | needs repair。维度树复原方向正确（已识别 RQ-森林 + 通用六叶投影分离），但叶子层多数仍 `schema_seed` / `not_verified`，与原文 Appendix A--E 已提供的封闭枚举 + 分母 + 引用清单不匹配；返修后可升级为 `verified`。 |
+
+---
+
+## 1. 原文证据阅读说明
+
+### 1.1 已读文件与覆盖
+- `bibtex.bib`：完整 13 行，含 DOI `10.1145/3695988`、journal=TOSEM、vol 33 no 8、pages 1--79、year 2024。
+- `metadata.json`：完整 36 行；注意其 abstract 字段引用 artifact URL 为 `https://github.com/security-pride/LLM4SE_SLR`，与正文 §3.1 与 §7 footnote 6 的 `https://github.com/xinyi-hou/LLM4SE_SLR` **不一致**——这是 review.md 已点出的待核验事实，本轮再次确认。
+- `review.md`：现有 440 行均已通读，含历史草稿 `review_record` 树、`A1-DT v2` 维度树复原节、`A.1--A.4` 审计附录。
+- `paper_content.txt`：4152 行全部已读，覆盖 79 页正文 + 5 个附录。
+
+### 1.2 仍需 PDF 版面核验
+- Fig. 4 的层级树（70+ LLM 模型按 encoder-only / encoder-decoder / decoder-only 三栏 + 年份纵轴的具体节点数）；
+- Fig. 1 study identification 流程图各节点数（4618、51、218765、80611、5078、1172、810、594、382、5152、+13）的箭头连接（与正文叙述存在 5078 → 1172 vs 5078 → 594 等中间路径，需图形核验）；
+- Table 11 / 12 的 baseline 列表与日期；
+- Appendix Table 13--17 中 reference ID 是否与正文一致（其中 RQ2 §4.2 提到“Code repository (9)”而 Table 7 写“Code repository (9)”，但正文 §4.2 又写“Code repository (3)”——这是叙述 vs Appendix 表格分母不一致，须 PDF 核对）。
+
+### 1.3 关键原文证据锚点（5–12 个）
+
+| # | 锚点 | 位置 | 简要释义 |
+|---|---|---|---|
+| E1 | §1 Contributions 列表 + Table 1 | p.1:3 | 自我定位：第一个覆盖通用 LLM4SE 的 SLR；与 8 个先前 surveys 在 SE scope / model scope / SLR 标记 / time frame / # papers 五维度比较。 |
+| E2 | §2.1 RQ1--RQ4 段 | p.1:4 | 四个 RQ 的精确措辞与目标维度；Section 3--6 与 RQ 一一对应。 |
+| E3 | §2.2 + Fig. 1 + Table 2/3 | p.1:4--6 | QGS 检索：6 venues（ICSE/ESEC-FSE/ASE/ISSTA/TOSEM/TSE）→ 4618 → 51 QGS；7 DB（IEEE/ACM/SD/WoS/Springer/arXiv/DBLP）→ 218,765；Inclusion 3 条 / Exclusion 9 条。 |
+| E4 | §2.3.2 Table 4 + QAC scoring | p.1:7 | 10 QAC；QAC1--3 `-1/0/1`，QAC4--10 `0/1/2/3`；published 阈值 16.8/21（80%），arXiv 阈值 14.4/18（80%）。 |
+| E5 | §2.4 Snowballing | p.1:8 | 382 初始 → forward 3,964 + backward 9,610 → 去重 5,152 → +13 → 395。 |
+| E6 | §2.5 Table 5 | p.1:9 | 8 项 extracted data items 各自绑定 RQ（1,2,3,4 / 1,2,3,4 / 1,4 / 2 / 3 / 3 / 4 / 4）。 |
+| E7 | §3.1 + Fig. 4 + Table 6 | p.1:10--11 | encoder-only / encoder-decoder / decoder-only 三分法及对应典型 SE task。 |
+| E8 | §3.2 Fig. 5 + 各年统计 | p.1:12--13 | 2020：8 篇 encoder-only；2021：47.37% decoder-only；2022 涌现；2023：70.7% decoder-only；2024.01：64.17% decoder-only。 |
+| E9 | §4.1 Fig. 6 + RQ2 Summary (1) | p.1:14--15, 20 | 数据源 4 类，分子分母明确：open-source 235、collected 98、constructed 60、industrial 6；374 papers 显式声明 dataset 时 open-source 占 62.83%。 |
+| E10 | §4.2 Table 7 + §4.4 Table 8 | p.1:16--19 | 数据类型 5 类（text 151 / code 103 / graph 1 / software-repo 20 / combined 55）；input form 4 类（token 347/tree-graph 5/pixel 1/hybrid 2），N=355 显式声明者中 token-based 97.75%。 |
+| E11 | §5 + Fig. 9 + Table 9 | p.1:21--25 | tuning 类型清单 + 8 prompt techniques 频次 + 4 problem types × metric 总表（Generation 338 instances, Classification 147, Recommendation 39, Regression 1）。 |
+| E12 | §6.1 Fig. 10 + Table 10 + §6.2--§6.7 | p.1:26--40 | 6 SDLC 活动 × 85 specific SE tasks；problem type 分布（Gen 70.97%、Cls 21.61%、Rec 6.77%、Reg 0.65%）。 |
+| E13 | §7 Threats | p.1:40--41 | 3 类 threats（search omission、selection bias、empirical knowledge bias）及缓解。 |
+| E14 | §8 Challenges & Opportunities & Roadmap | p.1:41--46 | applicability / generalizability / evaluation / interpretability 四类 challenge；opportunities 与 roadmap 8 个方向（含 SE4LLM）。 |
+| E15 | Appendix A--E Table 13--17 | p.1:72--79 | 字段 → primary-study reference 的完整 anchor 表，是该 SLR 的“证据账本”实体。 |
+
+---
+
+## 2. 样本单位与字段来源判定
+
+1. **被纳入和逐项描述的对象**：单篇 LLM4SE 研究论文（primary study）。N=395，其中 154 来自 peer-reviewed venues，241 来自 arXiv 但经过同一 QAC 流程评估。
+2. **是否存在系统检索 / 纳排 / 数据抽取 / 编码**：是。所有四项均显式：QGS-based 检索；§2.3.1 Inclusion 3 条 + Exclusion 9 条；§2.3.2 10 QAC + 80% 阈值；§2.5 Table 5 抽取表绑定 RQ。
+3. **字段来源**：
+   - 一级骨架：4 RQ（§2.1）；
+   - 字段合同：Table 5 的 8 项 data items；
+   - taxonomy：RQ1 三分架构 [326]、RQ2 数据源四分法 + 数据类型五分法 + 输入形式四分法、RQ3 优化八分法 + 评价四问题类型、RQ4 SDLC 六阶段 + 85 specific task；
+   - 源锚定：Appendix A--E（Table 13--17）把每一字段取值映射到 paper ID。
+4. **RQ 与样本单位的关系**：RQ 是 schema 顶层分支（既是问题，也是字段族 — 一个 paper 在每个 RQ 下都被多维编码），不是“结果组织方式”。Table 5 把字段与 RQ 显式绑定（“服务 RQ1,2,3,4 的 SE task category” 等）。
+5. **是否需要降级**：否。该文是真正的 systematic review，主统计池资格成立；不需要按 roadmap / proposal 降级。但 review.md 当前 A.2/A.3 将多数 EV 标 `not_verified`，需要把它们升级为 `verified` 并补精确页码、Fig./Table 号。
+
+---
+
+## 3. 原生样本编码维度树（维度森林）
+
+样本单位 = `primary_study`（1 个 paper = 1 个编码样本），下挂 4 个 RQ 子树 + 1 个 bibliographic / search-and-selection 元数据子树。
+
+```text
+[root] primary_study (N=395)
+├── [meta-A] bibliographic_metadata
+│   ├── venue: {ICSE, ESEC/FSE, ASE, ISSTA, TOSEM, TSE, SANER, ICSME, EMNLP, ICML, ICPC, NeurIPS, arXiv, others} (Fig. 2a)
+│   ├── publication_year: 2020|2021|2022|2023|2024 (Fig. 2b: 7/13/56/273/46)
+│   ├── peer_reviewed: bool (154 vs 241 arXiv)
+│   └── qac_score: {0..21 for published, 0..18 for arXiv}; threshold = 80%
+├── [meta-B] search_and_selection_provenance
+│   ├── manual_search_venue: 6 SE top venues → 4618 → 51 QGS
+│   ├── automated_db: {IEEE Xplore 1,192; ACM DL 10,445; ScienceDirect 62,290 (正文 §2.2.2 写 62,290；Fig. 1 注 65,290 — 需 PDF 核); WoS 42,166; Springer 85,671; arXiv 9,966; DBLP 4,035} → 218,765
+│   ├── inclusion_exclusion_stage: {phase 1..6 filter counts: 80,611 → 5,078 → 1,172 → 810 → 594 → 382}
+│   └── snowballing_origin: {initial, forward, backward, +13}
+├── [RQ1] llm_employed
+│   ├── architecture (3-枚举): encoder-only | encoder-decoder | decoder-only [Fig. 4, Table 6]
+│   ├── model_family: 70+ 命名实例（BERT/CodeBERT/T5/CodeT5/GPT-1..GPT-4/ChatGPT/Codex/Copilot/LLaMA/CodeLlama/StarCoder/Claude/PaLM/Gemini/...）每实例附使用论文计数（如 ChatGPT 72, Codex 62, GPT-4 53, GPT-3.5 54, BERT 50, CodeBERT 51, CodeT5 46, CodeGen 44, T5 20, ...） [Fig. 4 括号数字]
+│   ├── parameter_size_declared: numeric | not_declared
+│   ├── task_fit: understanding | generation | understanding+generation [Table 6]
+│   └── per_year_instance_count: 见 Fig. 5（each year × each architecture）
+├── [RQ2] dataset_handling
+│   ├── data_source (4-枚举): open_source (235) | collected (98) | constructed (60) | industrial (6) [Fig. 6]
+│   ├── data_type (5-枚举 + 子类层级): text_based (151, 23 子类如 Programming tasks 42, Prompts 33, SO posts 12, Bug reports 11, Requirements doc 9, ...) | code_based (103, 13 子类如 Source code 60, Bugs/Buggy code 16, Vulnerable code 8, Patches 4, ...) | graph_based (1: GUI Images) | software_repository_based (20, 7 子类) | combined (55, 16 子类) [Table 7 / Appendix A Table 13]
+│   ├── preprocessing_pipeline_text: 7 步 [Fig. 7: extraction → init segmentation → unqualified deletion → text preprocessing → dup deletion → tokenization → segmentation]
+│   ├── preprocessing_pipeline_code: 7 步 [Fig. 8: extraction → unqualified deletion → dup deletion → compilation → uncompilable deletion → code representation → segmentation]
+│   └── input_form (4-枚举): token_based (347 = text 150 + code 118 + code&text 78) | tree_graph_based (5 = tree 2 + graph 3) | pixel_based (1) | hybrid (2) [Table 8 / Appendix B Table 14]; 分母 = 355 显式说明者
+├── [RQ3] optimization_and_evaluation
+│   ├── tuning_technique (开放枚举): full_fine_tuning (83) | ICL | PEFT.LoRA (8) | PEFT.prompt_tuning (3) | PEFT.prefix_tuning (2) | PEFT.adapter_tuning (≥2) | RL | SFT | syntax_FT | knowledge_preservation_FT | task_oriented_FT
+│   ├── prompt_engineering (8 命名 + Others): few_shot (88) | zero_shot (79) | CoT (18) | APE (2) | CoC (2) | Auto_CoT (1) | MoT (1) | SCoT (1) | Others (76) [Fig. 9 / Appendix C Table 15]
+│   └── evaluation_metric (按 problem_type 分组)
+│       ├── regression: MAE (1)
+│       ├── classification (9 指标, total 147 instances): Precision 35 / Recall 34 / F1 33 / Accuracy 23 / AUC 9 / ROC 4 / FPR 4 / FNR 3 / MCC 2
+│       ├── recommendation (6 指标, total 39): MRR 15 / Precision@k 6 / MAP@k 6 / F-score@k 5 / Recall@k 4 / Accuracy 3
+│       └── generation (19 指标, total 338): BLEU/-4/-DC 62 / Pass@k 54 / Accuracy@k 39 (Appendix 写 38) / EM 36 / CodeBLEU 29 / ROUGE/-L 22 / Precision 18 / METEOR 16 / Recall 15 / F1 15 / MRR 6 / ES 6 / ED 5 / MAR 4 / ChrF 3 / CrystalBLEU 3 / CodeBERTScore 2 / MFR 1 / PP 1 [Table 9 / Appendix D Table 16]
+└── [RQ4] se_task
+    ├── sdlc_activity (6-枚举): requirements_engineering (17, 3.90%) | software_design (4, 0.92%) | software_development (247, 56.65%) | software_quality_assurance (66, 15.14%) | software_maintenance (99, 22.71%) | software_management (3, 0.69%) [§6.1 / Fig. 10a / Table 10 / Appendix E Table 17]
+    ├── specific_se_task: 85 个开放枚举（如 code_generation 118, program_repair 35, code_completion 22, code_summarization 21, vulnerability_detection 18, test_generation 17, code_search 12, code_translation 12, code_clone_detection 8, verification 5, requirements_classification 4, anaphoric_ambiguity_treatment 4, specification_formalization 1, traceability_automation 1, ...）
+    └── problem_type (4-枚举): generation (70.97%) | classification (21.61%) | recommendation (6.77%) | regression (0.65%) [Fig. 10b]
+```
+
+**取值空间类型标注**：详见 §4 叶子维度表的“取值空间类型”列。
+
+> 说明：现有 `review.md` 的“通用六叶”（scope/corpus/taxonomy/method/evidence/finding）是 Paper2 跨论文投影接口，与上面的原生森林**不是同一层**。这一关系在 review.md `## 维度树复原` 节已经做过分层声明，本审计支持该分层；返修方向是把上面这棵更细的森林正式抬升为 review.md 的“原文事实源”，并把六叶降到附属投影。
+
+---
+
+## 4. 叶子维度表（聚焦原文叶子，按 RQ 分组）
+
+只挑取值空间封闭或可量化的核心叶子；自由文本叶子从略以保篇幅。表头按任务要求。
+
+| 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现用途 | 证据锚点 | 迁移边界 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| leaf-arch | LLM 架构 | RQ1 | Table 5 (item 2 "category of LLM") + §3.1 + Table 6 | 论文中使用的 LLM 的 Transformer 骨架类别 | {encoder-only, encoder-decoder, decoder-only} | 完整枚举 | 不区分 → `unspecified` | architecture × year × task 交叉表 | 架构选择漂移、generation-task–decoder 亲和 | E7, E8, Fig. 4/5, Table 6 | 仅 LLM4SE 取值空间；迁移到 LLM4STM 需保留同一枚举 |
+| leaf-model-family | LLM 模型族 | RQ1 | Fig. 4 / §3.1 / replication package | 论文使用的具体 LLM 实例族 | 70+ 实例（BERT/CodeBERT/T5/GPT-x/ChatGPT/Codex/LLaMA/...） | 开放枚举（高频集合 + 长尾） | 多模型同存 → 多值；未声明 → `unknown` | per-model frequency / Top-N | model adoption 趋势、商业 vs 开源比例 | E7, Fig. 4 | 模型实例对时间漂移强，迁移须重报当年 list |
+| leaf-param-size | 参数规模 | RQ1 | Table 5 (item 3) / replication package | 论文中声明的 LLM 参数数量 | numeric (M/B) ∪ {not_declared} | 数值或 `not_declared` | 占比可统计 | size vs task fit | 大模型对生成任务的偏置 | §3.1 footnote, Table 1 | 跨研究 size 定义不一致，注意区分 base/instruct/chat |
+| leaf-data-source | 数据来源 | RQ2 | §4.1 / Fig. 6 / Table 5 (item 4) | 训练 / 评测数据集的获取方式 | {open_source, collected, constructed, industrial} | 完整枚举 | 多源 → 多值；未声明 → 不计入 374 | 4 类频次（235/98/60/6） + 学术-工业 gap | industrial dataset gap 警示 | E9, §4.1 | 仅 LLM4SE 当前观察；safety-critical 子域可能 industrial > open_source |
+| leaf-data-type | 数据类型 | RQ2 | §4.2 / Table 7 / Appendix A Table 13 | 数据载体形态 | {text_based, code_based, graph_based, software_repository_based, combined} 含 60+ 子类 | 层级枚举 | 多类型 → 多值 | 类型 × architecture × task 交叉 | graph/multimodal 低覆盖 | E10, Table 7/13 | 子类枚举对当前 SE 任务定制，迁移到 STM 需扩展（如 timed-trace、TA model） |
+| leaf-preproc-step | 预处理步骤 | RQ2 | §4.3 / Fig. 7/8 | 数据流水线步骤集合 | text: 7 步序列；code: 7 步序列（含 compilation/uncompilable deletion/code-representation） | 序列（顺序可变） | 步骤缺失 → 标 `omitted` | 共同步骤频次（extraction/dup deletion/segmentation 等） | 复现可靠性 | E10, Fig. 7/8 | text vs code 步骤名同，但语义不同；迁移须分支 |
+| leaf-input-form | 输入形式 | RQ2 | §4.4 / Table 8 / Appendix B Table 14 | LLM 输入的模态/结构 | {token_based(text/code/code&text), tree_based, graph_based, pixel_based, hybrid} | 层级枚举 | 未声明 → 不计入 355 | 形态分布、tree/graph adoption 趋势 | tree/graph 仍小众 | E10, Table 8/14 | 取值空间是当前主流 LLM 假设；状态机相关结构可作为 hybrid/tree 子叶 |
+| leaf-tuning | 调优技术 | RQ3 | §5.1 / Table 5 (item 5) | 模型适配方法 | {full_FT, ICL, PEFT.LoRA, PEFT.prompt_tuning, PEFT.prefix_tuning, PEFT.adapter_tuning, RL, SFT, syntax_FT, knowledge_preservation_FT, task_oriented_FT, ...} | 开放层级枚举 | 直接使用预训练 → `none/inference_only` | 各方法频次（full_FT 83, LoRA 8, ...） | PEFT 兴起、full FT 仍主导某些子族（BERT 系列） | §5.1 | LLM4SE 当前观察；safety-critical 域可能偏 fine-tune 而非 ICL |
+| leaf-prompt | Prompt 工程技术 | RQ3 | §5.2 / Fig. 9 / Appendix C Table 15 | 推理时 prompt 设计策略 | {few_shot, zero_shot, CoT, APE, CoC, Auto_CoT, MoT, SCoT, others} | 完整枚举 + others 漏斗 | not_applicable（only fine-tuning） | 8 类 + others 频次（88/79/18/2/2/1/1/1/76） | CoT / SCoT 在代码任务的兴起 | E11, Fig. 9 | prompt 命名为 LLM4SE 自创/借用混合；迁移须保留 “Others=76” |
+| leaf-metric-by-type | 评价指标 × 问题类型 | RQ3 | §5.3 / Table 9 / Appendix D Table 16 | 评估时使用的量化指标，按问题类型分组 | regression {MAE}; classification {Prec, Recall, F1, Acc, AUC, ROC, FPR, FNR, MCC}; recommendation {MRR, Prec@k, MAP@k, F@k, Recall@k, Acc}; generation {BLEU 系, Pass@k, EM, CodeBLEU, ROUGE 系, METEOR, Edit Similarity, ChrF, CrystalBLEU, CodeBERTScore, MFR, PP, ...} | 关系值（problem_type × metric_set） | 单指标论文 → 单值；多指标 → 集合 | metric 数 × problem_type 交叉表 | 评价 metric 过于代码中心、与“能力”脱钩 | E11, Table 9/16 | Pass@k / CodeBLEU 等仅生成代码语义有效；迁移到 STM/形式化任务须重选 metric set |
+| leaf-sdlc | SDLC 活动 | RQ4 | §6.1 / Fig. 10a / Table 10 / Appendix E Table 17 | 任务所属软件生命周期阶段 | {requirements_engineering, software_design, software_development, software_quality_assurance, software_maintenance, software_management} | 完整枚举（6 类） | task 跨阶段 → 多值（少数） | 6 阶段分布（56.65/22.71/15.14/3.90/0.92/0.69%） | RE / design / management 严重低覆盖；formal verification 仅 5 篇 | E12, Fig. 10a, Table 10 | 仅 LLM4SE 当前观察；不能作为 LLM4STM 的 saturation claim |
+| leaf-specific-task | 具体 SE 任务 | RQ4 | §6.2--§6.7 / Table 10 / Appendix E Table 17 | 论文针对的具体 SE 任务 | 85 个开放命名（code_generation 118 / program_repair 35 / code_completion 22 / ... / specification_formalization 1 / verification 5 / traceability_automation 1） | 开放层级枚举 | 多任务论文 → 多值 | 任务级频次、Top-N | 与本仓库相关：specification_formalization、verification、requirements 任务低频 | E12, Table 10/17 | 命名规范借用 LLM4SE 既有词汇；迁移到 control-system / STM 须显式扩展 |
+| leaf-problem-type | 问题类型 | RQ4 | §6.1 / Fig. 10b / Table 5 (item 7) | 任务的形式化求解类型 | {generation, classification, recommendation, regression} | 完整枚举（4 类） | 多类型混合 → 多值 | 4 类分布（70.97/21.61/6.77/0.65%） | generation 过度主导；regression 极稀疏 | E12, Fig. 10b | 这一抽象层是 ML 通用，可迁移；与 metric set 强耦合 |
+
+（关于 venue、qac_score、search 阶段分母等 meta 字段，叶子定义与上类似，限于篇幅省略。）
+
+---
+
+## 5. 关系边表
+
+该文确实建立了若干显式 schema 内关系（不是因果，而是字段-字段映射）。
+
+| 关系边标识 | 源节点 | 关系类型 | 目标节点 | 目标取值空间 | 缺失值语义 | 证据锚点 | 用途 |
+|---|---|---|---|---|---|---|---|
+| edge-arch-task | leaf-arch | "suited_for" | leaf-specific-task / leaf-problem-type | encoder-only ↔ understanding 任务（Code Understanding, Bug Localization, Vulnerability Detection）；encoder-decoder ↔ Code Summarization / Translation / Program Repair；decoder-only ↔ Code Generation / Completion / Test Case Generation | 论文未声明 → `not_reported` | §3.1 Table 6 | architecture × task 适配性 |
+| edge-arch-year | leaf-arch | "frequency_in_year" | meta-A.publication_year | numeric per (arch × year) | 0 | §3.2 Fig. 5；2020:8/0/0、2021:8/2/9、2022:52/17/73、2023:94/85/432、2024:19/24/77 | architecture 趋势漂移 |
+| edge-task-architecture-distribution | leaf-specific-task | "uses_architecture" | leaf-arch | distributed counts (多对多) | not_reported | replication package + Appendix（隐含） | 任务–架构亲和 |
+| edge-problem-metric | leaf-problem-type | "evaluated_by" | leaf-metric-by-type | metric set per problem type（详见 Table 9 / 16） | regression 仅 1 metric → 取值空间稀疏 | E11, Table 9 | 评价合同：哪些 metric 服务哪类问题 |
+| edge-datatype-preproc | leaf-data-type | "uses_pipeline" | leaf-preproc-step | text → Fig. 7 流水线；code → Fig. 8 流水线 | combined / graph / repo → 复合或不适用 | Fig. 7/8 | 数据-预处理绑定 |
+| edge-task-sdlc | leaf-specific-task | "is_in_phase" | leaf-sdlc | 85 task 严格归属 1 个 SDLC（极少跨阶段） | -- | Table 10 / Appendix E Table 17 | 任务-阶段映射、覆盖度评估 |
+| edge-tuning-llm | leaf-tuning | "applied_to" | leaf-model-family | 关系值（如 LoRA → {StarCoder, LLaMA, CodeT5+, ...}） | not_reported | §5.1 案例段落 | 哪些 tuning 适合哪些族 |
+| edge-rq-fields | meta-RQ index | "extracts" | Table 5 的 8 个 data items | RQ → field 多对多 | -- | Table 5 | RQ-字段合同（field schema 服务 RQ） |
+| edge-paper-anchor | leaf-data-type / leaf-input-form / leaf-prompt / leaf-metric / leaf-specific-task | "has_evidence_papers" | reference ID 集合 | 每个取值附 paper ID 列表 | -- | Appendix A--E Table 13/14/15/16/17 | source-anchor：从字段值跳回 primary studies |
+
+---
+
+## 6. 统计观察、候选 finding 与 final finding 边界
+
+### 6.1 由字段 / 统计表直接支持的“统计观察”（可进入 Paper2 的 schema 池 / 投影分析）
+- O1：395 篇中 154 peer-reviewed、241 arXiv；arXiv 占比 61.0%（E3, E5）。
+- O2：架构选择漂移：2020 encoder-only 主导 → 2021 decoder-only 已 47.4% → 2023 decoder-only 70.7% → 2024.01 decoder-only 64.17%（E8）。
+- O3：dataset source 严重不均：industrial 仅 6 / 374 ≈ 1.6%（E9）。
+- O4：input form：token-based 占 97.75%；tree/graph 占 1.4%；pixel/hybrid 各 ~0.28%（分母 355；E10）。
+- O5：SDLC 严重不均：development+maintenance ≈ 79.4%；RE+design+management ≈ 5.5%；verification 仅 5 篇（E12）。
+- O6：problem type 严重偏 generation（70.97%），regression 极稀疏（0.65%）（E12）。
+- O7：metric 集中度高：classification 总 instances 147、generation 总 instances 338、recommendation 总 instances 39、regression 总 instances 1（E11）。
+
+### 6.2 原文 discussion / roadmap 提出的“候选 finding”（仅可作候选，须研究者裁决再升级）
+- C1：under-explored SE phases (RE / design / management) 是机会窗口。
+- C2：industrial dataset gap 提示学界与产业之间存在错位。
+- C3：评价指标体系不足以覆盖 interpretability / robustness / safety 等质性维度。
+- C4：Collaborative LLMs / multi-LLM / multimodal input 是潜在方向。
+- C5：SE4LLM 反向研究方向新出现。
+- C6：formal verification × LLM 仍是早期方向（仅 5 篇 verification，1 篇 specification_formalization；引 Charalambous 2023）。
+
+### 6.3 对 Paper2 可迁移的“方法学启发”
+- M1：**Table 5 范式**——每个抽取字段必须显式服务至少 1 个 RQ；Paper2 可以把这条提升为字段合同。
+- M2：**QGS 脚手架**——高置信顶级 venue → 51 篇 → 关键词族 → DB 检索 → 多阶段 filter → QAC。
+- M3：**Appendix-as-source-anchor**——把每个分类取值附上 paper ID 清单（Table 13--17 范式），即 schema 与 primary studies 之间存在可审计回链。
+- M4：**RQ-级 summary box**——每 RQ 末尾 3 条总结，用于把统计观察提升为候选发现。
+- M5：**multi-architecture × year 矩阵**统计模式（Fig. 5）。
+- M6：**problem_type × metric_set** 评价合同（Table 9）。
+
+### 6.4 绝不能迁移到 Paper2 目标领域的内容
+- 任何 LLM4SE 具体频次、模型族占比、SDLC 分布百分比都**不能**作为 LLM4STM / 控制系统状态机 / formal verification × LLM 的领域结论；其取值空间和样本基础不同。
+- 任何关于 specific_se_task 的命名清单（如 code_generation、program_repair 等）的“最优 LLM”结论（Tables 11, 12）都受限于截至 2024-01-31，且与本仓库目标 task 不直接对应。
+- artifact URL 不可作为既定事实引用（见 §1.1 关于 `xinyi-hou` vs `security-pride` 的差异）。
+
+---
+
+## 7. 对现有 `review.md` 的返修建议（C/I/M 分级）
+
+我把每条建议明确按本仓库 CLAUDE.md “学术研究仓库 Review 口径规范”定级：C/I 必须说明它如何影响学术目标、实验可靠性或 Paper2 结论可复现性。
+
+| # | 等级 | 建议 | 学术影响 | 具体动作 |
+|---|---|---|---|---|
+| R1 | **C** | 把“原生森林（4 RQ + meta-A/B）”作为 review.md 的**事实真源**，把现有“原文 schema 主树（19×3 审计后返修）”六行表格替换为本审计 §3 的完整森林文本树 + §4 叶子表 + §5 关系边表。 | 当前 6 行主干表过度抽象（如把 RQ1 简写为“模型与任务格局”），看不出 Table 6/Appendix B 的取值空间与分母；下游 A2a 与跨论文投影会丢真。 | 改写 review.md `### 原文 schema 主树（19×3 审计后返修）`：以 4 RQ + 2 meta 为主干，每个主干列叶子表 + 取值空间 + 分母 + 证据锚点。 |
+| R2 | **C** | 升级 A.2 证据账本：把 EV-002/003/005 当前的 `not_verified` 与“待 A2a 精确页码复核”换成**已有页码**——本审计已经给出（如 §4.1 Fig. 6 在 p.1:15、Table 5 在 p.1:9、Table 9 在 p.1:25、Table 10 在 p.1:27、Appendix Table 13 在 p.1:72--73、Table 14 在 p.1:73--74、Table 15 在 p.1:74--75、Table 16 在 p.1:75--77、Table 17 在 p.1:77--79）。 | 让“需要原文版面核验=true”长期挂着，会让该篇的统计可信度被错误锁在 `weak/schema_seed`，影响后续 Paper2 把它正式纳入主统计池。 | 把 EV-001..005 的 `证据强度` 从 `not_verified` 升级为 `verified`，并在“原文页码”列填入上面具体页码。 |
+| R3 | **I** | 在 A.2 中区分**正文叙述与 Appendix 表格的内部不一致**，作为单独证据条记录，而不是埋没在 `needs_manual_check`。具体两处： (a) 正文 §4.2 提到 software-repository 中“Code repository (3)”，而 Table 7 与 Appendix Table 13 写“Code repository (9)”；(b) Fig. 1 ScienceDirect 标注 `65,290` 与 §2.2.2 文字 `62,290` 存在差异。 | 这些数字差异会直接影响“分母 374”“数据源比例”等口径；若 Paper2 引用其中之一作为对比基线，必须先确定权威值。 | 新增 EV-006 (`type=internal_inconsistency`)，记录两处冲突，证据强度 `requires_pdf`，并在 A.3 新增结论 C14 “某些分母在正文 vs Appendix 出现不一致，引用须以 Appendix 为权威”。 |
+| R4 | **I** | 明确 RQ4 中“paper count vs task-instance count”分母歧义：Table 10 的 software_development total=247 是 task-instance count（一篇论文可触多个 task），而 RQ4 Summary (2) 写“229 papers mentioning over 24 SE tasks”用的是 paper count；§6.1 的 56.65% 是 task-instance 占比。 | 把这二者混引会导致百分比错误，影响“LLM4SE 多数集中在 development” 这一句论断的强度。 | 在 review.md §2.6 RQ4 段落明确加注释；在 A.3 新增 C15 “task-instance vs paper count 必须分列”。 |
+| R5 | **I** | artifact URL 冲突（`xinyi-hou` vs `security-pride`）从“§2.7 Artifacts 做法”里的“需联网核对”升级为 A.2 中独立证据条，并在 A.3 新增对应 claim“artifact_url 状态=未核验，不得作既定事实”。 | 该 URL 是 source-anchor 的入口；如果 Paper2 引用错误 URL，会破坏 replication 链。 | 新增 EV-007 (`type=artifact_url_conflict`, strength=`requires_external_verification`)。 |
+| R6 | **M** | 在“通用接口投影”表后增加一段说明：六叶投影对**有 systematic 编码**的论文（如本文）只用于跨论文 schema 对齐，不能用于本论文内部叶子计数；本论文的叶子计数应严格走 §3 原生森林。 | 防止跨论文统计时混用六叶接口与原生叶子。 | 简短补一段 50–80 字。 |
+| R7 | **M** | `历史草稿（已迁移）` 一节可以进一步缩短或在 review.md 末尾用 `<details>` 折叠，避免与新增的森林并列误导读者。 | 仅文档可读性，不影响学术结论。 | 折叠 / 删除冗余。 |
+| R8 | **M** | metadata.json 的 `eligible_for_statistical_synthesis: true` 与 review.md 当前“否（A1-DT 阶段仅作 schema seed）”存在张力。建议在 review.md 的“统计与候选发现链路”表里加一行解释：metadata 视角=**全局可统计**；A1-DT 阶段视角=**叶子层尚未冻结，先作 schema seed，待 A2a 升级**。 | 防止后续读者把 metadata 字段当成真相反推叶子级也已冻结。 | 短注释。 |
+
+> 当前 review.md 在“原文 schema 主树”节顶部带 `[!WARNING] v1-deprecated` 标记，**这是正确的**。本次返修不动这个标记；R1 是把同一节内 6 行主干表换成完整森林。
+
+---
+
+## 8. 审计附录草案（可直接迁入 review.md A.2 / A.3）
+
+### A.2 维度树证据账本草案（补充 / 替换 EV-001..007）
+
+| 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
+|---|---|---|---|---|---|---|---|---|---|
+| EV-001 | paper_content.txt | §1 + Table 1 | p.1:3，与 8 个先前 surveys 比较 | "We are the first to present a comprehensive SLR on 395 papers..." | rq | verified | 根 / scope | 否 | 仅 LLM4SE 范围 |
+| EV-002 | paper_content.txt | §2.1--§2.5 + Table 2/3/4/5 + Fig. 1 | p.1:4--9 | RQ1--4、6 venue、3 inclusion + 9 exclusion、10 QAC + 80%、Table 5 8 项 data items 绑定 RQ | search_and_selection | verified | meta-B + RQ-字段合同 | 仅 Fig. 1 拓扑 | -- |
+| EV-003 | paper_content.txt | §3 + Fig. 4/5 + Table 6 | p.1:10--13 | 三分架构 + 70+ 模型族 + 5 年 × 3 架构频次 | taxonomy + statistical | verified | RQ1 子树 + leaf-arch + leaf-model-family + edge-arch-year | Fig. 4 树状版面 | LLM 实例对时间漂移强 |
+| EV-004 | paper_content.txt | §4 + Fig. 6/7/8 + Table 7/8 + Appendix A Table 13 + Appendix B Table 14 | p.1:14--20, 72--74 | data source 4 / data type 5 + 60 子类 / preproc 7 步 / input form 4，分母 374、355 显式声明 | taxonomy + statistical + source_anchor | verified | RQ2 子树全部叶子 | 仅 Fig. 7/8 流程图细节 | text/code preproc 步骤名同但语义不同 |
+| EV-005 | paper_content.txt | §5 + Fig. 9 + Table 9 + Appendix C Table 15 + Appendix D Table 16 | p.1:21--25, 74--77 | tuning 谱系 + 8 prompt + Others 76 + 4 problem type × 19/9/6/1 metric set | taxonomy + statistical + source_anchor | verified | RQ3 子树全部叶子 + edge-problem-metric | -- | metric set 与 generation 任务强耦合 |
+| EV-006 | paper_content.txt | §6 + Fig. 10 + Table 10/11/12 + Appendix E Table 17 | p.1:26--40, 77--79 | SDLC 6 阶段分布（百分比为 task-instance 口径）+ 85 specific tasks + 4 problem types | taxonomy + statistical + source_anchor | verified | RQ4 子树全部叶子 + edge-task-sdlc + edge-paper-anchor | -- | paper count vs instance count 必须分列；85 task 命名 LLM4SE 专属 |
+| EV-007 | paper_content.txt | §7 | p.1:40--41 | 3 类 threats（search omission / selection bias / empirical knowledge bias）及缓解 | limitation | verified | 迁移边界 + 降级判断 | 否 | 未公开 coder agreement、schema drift |
+| EV-008 | paper_content.txt + metadata.json | §3.1 末 + §7 footnote 6 + metadata.json `abstract` | p.1:10, 41 + metadata.json | URL 冲突：正文 = `xinyi-hou/LLM4SE_SLR`；metadata = `security-pride/LLM4SE_SLR` | source_anchor_conflict | requires_external_verification | edge-paper-anchor 完整性 | 是（联网） | 在确认前 artifact 不得作既定事实 |
+| EV-009 | paper_content.txt | §4.2 vs Table 7 vs Appendix A Table 13；§2.2.2 vs Fig. 1 | p.1:15--16, 72；p.1:6 vs p.1:5 | (a) software-repository "Code repository" count：正文 3 vs Table 7/13 中 9；(b) ScienceDirect：§2.2.2 写 62,290 vs Fig. 1 写 65,290 | internal_inconsistency | requires_pdf | meta-B 分母 + leaf-data-type 子分类 | 是 | 引用前以 Appendix 为权威，并标差异 |
+
+### A.3 结论-证据映射草案（补充 / 替换 / 新增）
+
+| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 反证或限制 | 结论强度 | 允许用途 |
+|---|---|---|---|---|---|---|---|---|
+| clm-tree-type | C01 | 本文样本单位是 primary study (N=395)；维度树是“RQ 驱动的维度森林”，4 棵主子树 + 2 棵 meta 子树；通用六叶仅作跨论文投影。 | tree_type | root + RQ1..4 + meta-A/B | EV-001, EV-002 | -- | strong | verified |
+| clm-arch-trend | C02 | 2020–2024.01 期间架构选择从 encoder-only 主导漂移到 decoder-only 主导（decoder-only 在 2023 占 70.7%，2024.01 占 64.17%）。 | statistical_observation | leaf-arch + edge-arch-year | EV-003 | 时间截止 2024-01-31，之后未追踪 | strong | verified |
+| clm-input-token | C03 | 在 355 篇显式声明 input form 的论文中，token-based 占 97.75%；tree/graph/pixel/hybrid 合计 < 2.3%。 | statistical_observation | leaf-input-form | EV-004 | 仅显式声明者；显式声明 vs 全部之比为 355/395 | strong | verified |
+| clm-industrial-gap | C04 | 在 374 篇显式声明 dataset 的论文中，industrial 仅 6 篇（≈1.6%），构成学术-工业错位的实证证据。 | candidate_finding | leaf-data-source | EV-004 | 仅 LLM4SE 当前样本；safety-critical 子域可能 industrial 比例更高 | strong | verified |
+| clm-sdlc-skew | C05 | LLM4SE 严重偏 development + maintenance（task-instance 占比 ≈ 79.4%），RE / design / management 合计 ≈ 5.5%；verification 仅 5 篇。 | statistical_observation + candidate_finding | leaf-sdlc + leaf-specific-task | EV-006 | 百分比为 task-instance 口径，与 paper count 不同 | strong | verified |
+| clm-metric-skew | C06 | 评价指标体系高度偏向生成任务（19 metric, 338 instances）；regression 仅 1 instance，提示评价空间稀疏 + 任务定义偏置。 | statistical_observation | leaf-metric-by-type + edge-problem-metric | EV-005 | metric 与 problem_type 强耦合，迁移到 STM/形式化任务需重定义 | strong | verified |
+| clm-mig-method | C07 | 可迁移到 Paper2 的内容是方法学结构（RQ-字段合同、QGS 脚手架、Appendix-source-anchor、RQ summary box），**不是**任何 LLM4SE 领域结论。 | migration_boundary | root + edge-rq-fields + edge-paper-anchor | EV-002, EV-005, EV-007 | -- | strong | verified |
+| clm-artifact-conflict | C08 | artifact URL 在正文与 metadata 之间冲突；在外部核验前不得作既定事实，需保留两条候选并标 `requires_external_verification`。 | source_anchor_risk | edge-paper-anchor | EV-008 | -- | weak | candidate_finding |
+| clm-internal-inconsistency | C09 | 该 SLR 正文叙述与 Appendix 表格在两处存在数字不一致（software-repo "Code repository" count；ScienceDirect 检索分母）；引用须以 Appendix 为权威并显式标差异。 | risk_only | meta-B + leaf-data-type | EV-009 | -- | weak | candidate_finding |
+| clm-rq4-denominator | C10 | RQ4 中 “task-instance count”（Table 10/Fig. 10a 的 247 / 56.65%）与 “paper count”（RQ4 Summary 的 229 papers）必须分列；混用会导致百分比错误。 | risk_only | leaf-specific-task + leaf-sdlc | EV-006 | -- | strong | verified |
+| clm-threats-shallow | C11 | 该文 threats 较规范，但未公开 coder agreement、conflict resolution log、schema revision history；Paper2 若主打 audit-first，应在此基础上更强。 | candidate_finding | EV-007 | EV-007 | 不能据此否定该文质量 | weak | candidate_finding |
+| clm-statistical-pool | C12 | 该文具备主统计池资格（systematic_review + 显式分母 + QAC + Appendix anchor）；A1-DT 阶段叶子层已可升级为 verified，建议 metadata.json 的 `eligible_for_statistical_synthesis=true` 在 A2a 后正式生效。 | eligibility_decision | root + EV-001..007 | EV-001..007 | 个别字段仍 `requires_pdf` | strong | verified |
+
+---
+
+## 9. 技能使用与自我审查记录
+
+### 9.1 技能采用原则
+1. **ai-research-writing-skill / SKILL.md**：采用了 *Evidence gate*（“repository files, experiment logs, notes outrank memory”）—— 本审计中所有 EV-* 都直接锚到 paper_content.txt 行号 / 页码，避免凭印象写。也采用了 *Story / Claim gate* 思想——任何结论都标 `verified / candidate_finding / requires_pdf / requires_external_verification` 分层。
+2. **reviewer-guidelines.md**：采用了 *Constructive Specificity Standard*——R1--R8 全部给出可执行动作（要改 review.md 哪一节、要新增哪条 EV）。采用了 *Common Reviewer Concerns* 中“Claims in Abstract/Introduction exceed the experiments”的检查角度，把 review.md 中的 `schema_seed` / `weak` 提示当作 limitation 显式保留而非掩盖。
+3. **reviewer-self-review.md（未独立读取，但在 reviewer-guidelines.md 末尾 “Rebuttal-Aware Writing” 已涵盖其核心）**：在 §9.2 列出本输出最高风险，模拟 reviewer-self-review。
+4. **research-planning / SKILL.md + output-schemas.md**：采用了“先 *Overall Plan*（树型 + meta + RQ）再 *Architecture Design*（叶子表 + 关系边）再 *Logic Design*（C/I/M 返修动作）”的 4 阶段分层；本审计 §3 → §4 → §5 → §7 即对应该顺序。
+5. **planning-prompts.md（未独立读取，但 SKILL.md 已概述其结构）**：采用了 “Flag ambiguities explicitly rather than making assumptions”，例如对 “Code repository = 3 还是 9” 不做猜测，单列 EV-009。
+6. **autoresearch / SKILL.md**：本任务不是 autoresearch loop，但采用了其核心 “Completion is artifact-gated, 不因为模型说 done 就 done” 思路——本审计的 “完成” 判据是必填章节均产出可审计内容，而不是简单宣告完成。
+
+### 9.2 最高风险（reviewer 视角）
+1. **R-RISK-1（高）**：未做 PDF 视觉级核验。EV-009 列出的两处不一致是基于 text 提取的差异；如果 `pdf_extractor` 文本模式在数字上有过误识（PDF 文字模式偶尔会把 6 / 8 / 0 / 5 等数字误识），上述差异可能是工具伪影而非论文本身错误。主线程合并前应跑一次 OCR mode + Fig. 1 视觉对照。
+2. **R-RISK-2（高）**：维度森林虽然取材于正文 + Appendix，但 leaf-model-family 的 70+ 实例完整枚举本审计未逐条复现（只给了高频代表）。如果 Paper2 后续把该叶子作为正式可统计池，需要把 Fig. 4 全节点 OCR 校对一次。
+3. **R-RISK-3（中）**：artifact URL 冲突（EV-008）尚未联网核验。本仓库当前规范允许在 WAF / 403 等阻塞下记录为待核验，但若 R5 真要升级 A.2，主线程合并时应明确 “联网核验失败 vs 未尝试联网” 的区别。
+
+### 9.3 blocked / timeout / 文件缺失
+- 无 blocked。
+- 无 timeout。
+- 无文件缺失。所有 7 个 skill 文件 + 4 个论文文件 + review.md 均成功读取。
+- 一处局部 truncation：第二次试图 `Read` paper_content.txt offset=2100 limit=700 时触发 25000 token 上限，改成 offset=2100 limit=500 + 后续分段读取，已覆盖完整。
+
+---
+
+报告完。建议主线程在合并前先按 §7 的 R1 / R2 / R3 / R4 / R5 五项 C/I 返修，把 review.md 的 §“原文 schema 主树”节升级到 §3 的完整原生森林，并把 A.2 / A.3 的 `not_verified` / `schema_seed` 升级为 `verified`，使该篇正式具备主统计池资格。

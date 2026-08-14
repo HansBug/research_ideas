@@ -1,0 +1,1422 @@
+--- Page 1 ---
+Agentic AutoSurvey: Let LLMs Survey LLMs
+Yixin Liu1Yonghui Wu2Denghui Zhang3Lichao Sun1
+1Lehigh University2University of Florida3Stevens Institute of Technology
+yila22@lehigh.edu yonghui.wu@ufl.edu dzhang42@stevens.edu lis221@lehigh.edu
+Abstract
+The exponential growth of scientific literature poses unprecedented challenges
+for researchers attempting to synthesize knowledge across rapidly evolving fields.
+We presentAgentic AutoSurvey, a multi-agent framework for automated survey
+generation that addresses fundamental limitations in existing approaches. Our
+system employs four specialized agents (Paper Search Specialist, Topic Mining
+& Clustering, Academic Survey Writer, and Quality Evaluator) working in con-
+cert to generate comprehensive literature surveys with superior synthesis quality.
+Through experiments on six representative LLM research topics from COLM 2024
+categories, we demonstrate that our multi-agent approach achieves significant im-
+provements over existing baselines, scoring 8.18/10 compared to AutoSurvey’s
+4.77/10. The multi-agent architecture processes 75–443 papers per topic (847
+total across six topics) while targeting high citation coverage (often ≥80% on
+75–100-paper sets; lower on very large sets such as RLHF) through specialized
+agent orchestration. Our 12-dimension evaluation captures organization, synthesis
+integration, and critical analysis beyond basic metrics. These findings demonstrate
+that multi-agent architectures represent a meaningful advancement for automated
+literature survey generation in rapidly evolving scientific domains.
+1 Introduction
+The rapid proliferation of scientific literature, particularly in the domain of Large Language Models
+(LLMs) [ 21], presents significant challenges for researchers attempting to maintain comprehensive
+understanding of their fields. With thousands of papers published monthly on preprint servers alone,
+the traditional manual survey approach has become increasingly untenable. This challenge has
+motivated the development of automated survey generation systems that leverage LLMs themselves
+to synthesize and organize scientific knowledge [6].
+Recent efforts in this space, including AutoSurvey [ 19], SurveyAgent [ 18], PaSa [ 8], and LitSearch
+[2], have demonstrated the feasibility of automated literature survey generation. However, these
+systems exhibit several limitations: (1) inadequate synthesis quality, often producing paper listings
+rather than integrated analyses; (2) limited citation coverage, typically achieving only 60-70%
+of available papers; (3) simplistic evaluation frameworks that fail to capture the nuanced quality
+requirements of academic surveys; and (4) lack of specialized agent orchestration for complex
+multi-stage tasks.
+We presentAgentic AutoSurvey, an enhanced agentic framework that addresses these limitations
+through fundamental architectural innovations. Building on recent advances in LLM-based multi-
+agent systems [ 17,11], our system employs a specialized agent architecture consisting of four distinct
+agents with specific expertise. The Paper Search Specialist handles advanced query expansion and
+multi-source integration, generating 20-30 search variations to comprehensively capture relevant
+literature through retrieval-augmented generation pipelines [ 10]. The Topic Mining & Clustering
+agent organizes retrieved papers using sentence-transformer embeddings with optimal K selection
+through silhouette score maximization. The Academic Survey Writer focuses on synthesis with high
+citation coverage targets, emphasizing cross-cluster integration and comparative analysis. Finally, the
+Preprint.arXiv:2509.18661v1  [cs.IR]  23 Sep 2025
+
+--- Page 2 ---
+Table 1: Comparison of Survey Generation Systems with Existing Approaches
+Key Capability AutoSurvey SurveyAgent Ours
+[19] [18]
+Specialized Multi-Agent Pipeline✗ ✗✓
+Semantic Clustering of Papers✗ ✗✓
+Cross-cluster Synthesis✗ ✗✓
+Agent-based Quality Assessment✗ ✗✓
+Real-time Paper Source Integration1✗✓ ✓
+Multi-Dimensional Quality Evaluation✓✗✓
+Automated Complete Survey Generation✓✗✓
+Quality Evaluator provides 12-dimensional agent-based assessment that captures nuanced quality
+aspects beyond simple metrics.
+Our framework expands evaluation from previous 5-dimensional approaches to a comprehensive
+12-dimensional framework [ 4]. This evaluation system categorizes assessment into Core Quality
+(60% weight), Writing Quality (20% weight), and Content Depth (20% weight), with agent-based
+nuanced assessment replacing rigid rule-based scoring. The technical implementation incorporates
+sophisticated caching mechanisms, intelligent API rate management, and quality-aware processing
+with agent-specific context handling. Most importantly, our approach emphasizes superior synthesis
+quality through cross-cluster integration, pattern recognition, comparative analysis frameworks, and
+critical evaluation of methodologies, moving beyond simple paper enumeration to true knowledge
+synthesis.
+Through experimental evaluation on 6 representative LLM research topics from COLM 2024 cate-
+gories, we demonstrate the practical capabilities of our system. The framework successfully processes
+paper collections ranging from 75 to 443 papers per topic (847 papers total across all topics), gen-
+erating comprehensive surveys in 15-20 minutes. While challenges remain in handling very large
+paper corpora and achieving deep cross-cluster synthesis, our approach represents a significant
+advancement in automated survey generation. Table 1 compares our framework against existing
+systems, highlighting our unique combination of specialized multi-agent pipeline, semantic clustering,
+cross-cluster synthesis, 12-dimensional evaluation, and agent-based quality assessment.
+Our contributions are threefold: (1) a novel multi-agent architecture with specialized agents for
+distinct survey generation tasks, (2) a comprehensive 12-dimensional evaluation framework providing
+nuanced, context-aware quality assessment, and (3) technical innovations in clustering, synthesis, and
+automated literature survey quality assessment. The remainder of this paper is organized as follows:
+Section 2 details our system architecture and agent specifications. Section 3 presents experimental
+results and representative case studies. Section 4 discusses implications and limitations. Section 5
+concludes with future directions, and the appendices provide extended artifacts and examples.
+2 System Architecture and Methodology
+2.1 Overall System Design
+Our Agentic AutoSurvey framework employs a modular, agent-based architecture designed for
+scalability, maintainability, and performance. The system consists of four specialized agents orches-
+trated through Claude Code’s agentic capabilities, each responsible for a distinct phase of the survey
+generation pipeline.
+1Real-time Paper Source Integration queries external APIs at generation time with cached results limited to a
+24-hour time-to-live.
+2
+
+--- Page 3 ---
+Figure 1: Enhanced Agentic Framework Architecture
+2.2 Agent Specifications
+2.2.1 Paper Search Specialist Agent
+The Paper Search Specialist Agent implements advanced search strategies to maximize coverage and
+relevance.Query expansionforms the foundation of comprehensive paper retrieval, generating 20-30
+diverse queries from the initial topic. This includes the core keyword as-is, synonyms and variations,
+related technical terms, compound queries with AND/OR operators, and acronym expansion or
+contraction. For instance, a query for "LLM agents" expands to include "language model agents",
+"LLM-based agents", "agent architectures", and various permutations to ensure comprehensive
+coverage.
+Multi-source integrationcombines results from both Semantic Scholar API [ 9] for comprehensive
+academic coverage and arXiv API for the latest preprints. The system implements intelligent
+deduplication using a 90% title similarity threshold to eliminate redundant entries while preserving
+unique contributions. Metadata enrichment and validation ensure that each paper record contains
+complete information necessary for subsequent processing stages.
+Quality filteringmechanisms ensure that only relevant, high-quality papers proceed to the clustering
+stage. The system applies adaptive minimum citation thresholds based on field-specific norms,
+year range filtering (typically 2020-2025 for current relevance), abstract completeness verification to
+ensure sufficient content for analysis, and venue quality assessment to prioritize papers from reputable
+sources.
+2.2.2 Topic Mining & Clustering Agent
+The clustering agent employs semantic embeddings and unsupervised learning for paper organization.
+Given a set of papers P={p 1, p2, ..., p n}, we first generate embeddings using the all-MiniLM-L6-v2
+model [13]:
+ei=Encode(t i⊕ai)
+where tiandaiare the title and abstract of paper pi, and⊕denotes concatenation. The embedding
+function maps text to a 384-dimensional dense vector space.
+For clustering, we employ K-means [ 12] with optimal K selection through silhouette score maximiza-
+tion [14]:
+K∗= arg max
+K∈[5,15]S(K)
+where the silhouette scoreS(K)for K clusters is:
+S(K) =1
+nnX
+i=1bi−ai
+max(a i, bi)
+3
+
+--- Page 4 ---
+Here, aiis the mean distance from point ito other points in its cluster, and biis the mean distance to
+points in the nearest neighboring cluster.
+We define two additional clustering quality quantities.Cluster confidencefor paperiin clusterC j:
+confidence(i, C j) = 1−d
+i,centroid(C j)
+maxkd
+i,centroid(C k)
+Inter-cluster relationship strengthbetweenC jandC k:
+strength(C j, Ck) = cos
+centroid(C j),centroid(C k)
+where d(·,·) denotes Euclidean distance and cos(·,·) denotes cosine similarity. In addition to these
+agent-specific diagnostics, we report classical clustering validity indices for completeness: the
+Calinski-Harabasz index [ 3] and the Davies-Bouldin score [ 5]. These metrics provide complementary
+global views of cluster separation and cohesion that contextualize the silhouette-based model selection.
+Cluster names are generated using TF-IDF scoring. For each clusterC j, we compute:
+TF-IDF(w, C j) =TF(w, C j)×logK
+|{Ck:w∈C k}|
+The top-scoring terms become the cluster’s descriptive name.
+2.2.3 Academic Survey Writer Agent
+The Survey Writer Agent focuses on synthesis-driven content generation that moves beyond simple
+paper enumeration. Thecitation strategyenforces comprehensive coverage with a minimum
+50% citation requirement and targets exceeding 80% for thorough surveys. The agent ensures
+comprehensive coverage across all identified clusters while prioritizing influential papers based on
+citation counts and venue importance. This approach guarantees that the generated survey reflects the
+full breadth of research while highlighting seminal contributions.
+Thesynthesis approachemphasizes integration over listing, following recent advances in automated
+literature synthesis [ 15]. The agent performs comparative analysis across papers to identify method-
+ological differences and performance variations [ 7]. Pattern identification and trend analysis reveal
+the evolution of research directions over time. Methodology comparison frameworks systematically
+evaluate different approaches, while research gap identification highlights opportunities for future
+work. This synthesis-first approach produces surveys that provide genuine insights rather than merely
+cataloging existing work.
+Forstructure and format, the agent targets 8,000-12,000 words to ensure comprehensive cover-
+age while maintaining readability. The content follows cluster-based organization with extensive
+cross-references to highlight connections between research themes. Standard academic sections
+(Introduction, Methods, Results, Discussion) provide familiar structure for readers. The consistent
+[Author, Year] citation format ensures compatibility with academic publishing standards.
+2.2.4 Quality Evaluator Agent
+The evaluator implements a sophisticated 12-dimensional assessment framework that provides nu-
+anced quality evaluation.Core Quality Dimensions, weighted at 60%, focus on fundamental survey
+requirements. Citation coverage measures the percentage of papers cited from the retrieved collection.
+Accuracy ensures factual correctness and proper attribution of ideas to their sources. Synthesis quality
+distinguishes between true integration and mere enumeration of papers. Organization evaluates the
+logical flow and structural coherence of the survey.
+Writing Quality Dimensions, contributing 20% to the overall score, assess the survey’s presentation.
+Readability ensures clarity and accessibility for the target academic audience. Academic rigor verifies
+adherence to scholarly standards and conventions. Clarity evaluates precision in technical descriptions
+and explanations. Coherence measures internal consistency across different sections of the survey.
+Content Depth Dimensions, also weighted at 20%, evaluate the intellectual contribution of the survey.
+Comprehensiveness assesses topic coverage breadth across different research facets. Critical analysis
+4
+
+--- Page 5 ---
+measures the depth of evaluation and comparative assessment. Novelty and insights capture original
+contributions and synthesis that emerge from the literature analysis. Future directions evaluate the
+survey’s ability to identify research trajectories and open problems in the field.
+2.3 Technical Implementation Details
+Embedding Generation.Our system efficiently generates embeddings using the sentence-
+transformers library with automatic device selection. The implementation uses the all-MiniLM-L6-v2
+model, which provides a good balance between embedding quality and computational efficiency. The
+system automatically detects available hardware and optimizes batch processing accordingly, with a
+batch size of 32 for efficient memory utilization. Progress tracking provides visibility into processing
+status for large paper collections.
+Intelligent Caching System.Multi-level caching reduces API calls and computation overhead
+throughout the pipeline. The API response cache stores search results with a 24-hour time-to-live,
+reducing redundant API calls for repeated queries. The embedding cache provides persistent storage
+of computed embeddings, eliminating the need to recompute embeddings for papers already processed.
+The cluster cache maintains reusable cluster assignments that support incremental updates when new
+papers are added. Finally, LRU eviction ensures memory-efficient cache management by removing
+least recently used entries when storage limits are reached.
+Rate Management and Error Handling.Robust error handling ensures reliable operation de-
+spite external service limitations. The system implements exponential backoff with jitter when
+encountering rate limits, preventing overwhelming APIs while maximizing throughput. Automatic
+retry mechanisms with alternative query formulations activate when initial searches fail, ensuring
+comprehensive coverage despite transient failures. When APIs become unavailable, the system
+gracefully degrades by utilizing cached results and alternative data sources. Progress persistence for
+long-running operations enables resumption after interruptions, protecting against data loss during
+extended processing sessions.
+3 Experimental Evaluation
+3.1 Experimental Setup
+We evaluated our proposed multi-agent architecture against the AutoSurvey system from prior
+work [ 19], representing the current state-of-the-art in automated survey generation. Both systems
+were tested on six representative topics from COLM 2024 categories: Instruction Tuning ,LLM
+Agents ,RLHF Alignment ,Synthetic Data ,In-Context Learning , and Multimodal LLM
+RL. Each system processed the same initial query for each topic, though the number of papers
+retrieved varied based on search capabilities and architectural constraints.
+AutoSurvey Baseline Implementation [ 19].AutoSurvey employs a four-phase methodology: (1)
+Initial Retrieval and Outline Generation using embedding-based retrieval to identify pertinent papers
+and generate structured outlines, (2) Subsection Drafting where specialized LLMs draft sections in
+parallel with topic-specific paper retrieval, (3) Integration and Refinement to enhance readability and
+eliminate redundancies with citation verification, and (4) Rigorous Evaluation using Multi-LLM-as-
+Judge strategy assessing citation quality and content quality. For our evaluation, we implemented
+AutoSurvey using their 530,000 arXiv paper corpus from computer-science category while replacing
+the underlying language models with Meta-Llama-3.1-8B-Instruct [ 1] due to budget constraints,
+maintaining the original architectural design.
+Model Configuration.Our multi-agent system utilized Claude Sonnet 4.1 for the search subagent,
+while Claude Opus 4.1 powered the remaining subagents (Topic Mining & Clustering, Academic
+Survey Writer, and Quality Evaluator).
+Agent-as-Judge Evaluation Framework.To rigorously assess the quality of generated surveys, we
+developed a sophisticated agent-as-judge evaluation framework that transcends traditional rule-based
+metrics. Our framework employs a specialized enhanced-survey-evaluator agent that embodies the
+expertise of an experienced academic reviewer, providing nuanced, context-aware assessment across
+12 carefully designed dimensions.
+5
+
+--- Page 6 ---
+Table 2: Performance comparison between our agentic AutoSurvey system and the AutoSurvey
+baseline across six survey topics.
+TopicAgentic AutoSurvey (Ours) AutoSurvey (Baseline)
+Core Write Depth Avg Core Write Depth Avg
+Instruction Tuning 8.75 8.25 7.63 8.43 3.50 4.50 5.50 4.20
+LLM Agents 8.08 8.35 7.90 8.14 3.00 4.30 5.10 3.80
+RLHF Alignment 7.38 8.13 8.38 7.74 6.00 6.50 6.00 6.20
+Synthetic Data 7.75 8.25 7.38 7.79 5.20 6.00 6.80 5.80
+In-Context Learning 8.50 8.30 7.80 8.30 4.00 5.30 6.00 4.80
+Multimodal LLM RL 8.90 8.60 8.40 8.70 3.10 3.10 6.30 3.80
+Average 8.23 8.31 7.92 8.18 4.13 4.95 5.95 4.77
+Improvement +99% +68% +33% +71% Baseline Performance
+Hierarchical Assessment Structure.The evaluation framework is organized into three weighted
+categories that comprehensively capture survey quality.Core Qualitydimensions (60% weight)
+encompass citation coverage, accuracy, synthesis quality, and organization—the fundamental re-
+quirements for academic surveys.Writing Qualitydimensions (20% weight) evaluate readability,
+academic rigor, clarity, and coherence, ensuring the survey meets publication standards.Content
+Depthdimensions (20% weight) assess comprehensiveness, critical analysis, novelty & insights, and
+future directions, measuring the intellectual contribution of the survey.
+Contextual Evaluation Process.Unlike rigid scoring rubrics, our agent-judge applies contextual
+understanding to each dimension, considering factors such as field maturity, survey type (tutorial vs.
+research frontier), target audience, and the balance between synthesis and cataloging. The evaluator
+agent performs multi-stage analysis including: (1) initial read-through for overall impression, (2)
+detailed dimensional scoring with specific textual evidence, (3) quantitative citation analysis, (4)
+synthesis pattern identification (looking for integration statements, comparisons, trend identification,
+and meta-analysis), and (5) critical analysis assessment.
+Calibration and Standards.Each dimension receives a 0-10 score with detailed justification,
+enabling granular comparison across systems. The framework targets long-form survey length and
+extensive citations consistent with common practice in prominent survey venues; we do not assume
+fixed numeric minima. This agent-based approach captures nuances human reviewers would identify,
+such as novel organizational frameworks, insightful trend analysis, and research gap identification,
+while maintaining consistency across evaluations.
+3.2 Performance Analysis and Key Findings
+Table 2 presents the comprehensive evaluation results comparing our multi-agent system against
+AutoSurvey across all topics and dimensional categories. Our multi-agent approach achieved a
+substantial improvement with an average score of 8.18/10, representing a 71% improvement over
+AutoSurvey’s 4.77/10 across all evaluated dimensions. The evaluation demonstrates the substantial
+advantages of our multi-agent architecture over existing approaches, with our system achieving strong
+performance across all dimensional categories (Core: 8.23, Writing: 8.31, Depth: 7.92), representing
+significant improvements over the AutoSurvey baseline in all areas.
+The performance gap is most pronounced in Core Quality dimensions, where our multi-agent system
+scored 8.23 compared to AutoSurvey’s 4.13, representing a 99% improvement. This highlights funda-
+mental advances in citation coverage, accuracy, and synthesis quality achieved through specialized
+agent orchestration. The multi-agent approach also demonstrated superior writing quality (68%
+improvement) and content depth (33% improvement), showcasing the benefits of task decomposition
+across specialized agents.
+The evaluation reveals three principal findings:(1) Specialized Agent Orchestration Delivers
+Superior Results- Our multi-agent architecture achieves substantial improvements over existing
+automated approaches, with an overall score of 8.18 compared to AutoSurvey’s 4.77, demonstrating
+the value of task decomposition and specialized agent expertise.(2) Dimensional Improvements
+Across All Categories- The multi-agent system excels in all evaluation dimensions, with particularly
+strong performance in Core Quality (99% improvement) and Writing Quality (68% improvement),
+6
+
+--- Page 7 ---
+highlighting the benefits of specialized agents for different aspects of survey generation.(3) Topic-
+Specific Performance Consistency- The multi-agent system maintains strong performance across
+diverse topics, ranging from 7.74 (RLHF Alignment) to 8.70 (Multimodal LLM RL), demonstrating
+robust architectural advantages regardless of domain complexity or paper collection size.
+3.3 Clustering Analysis and Visualization
+To better understand how the multi-agent system organizes papers into thematic clusters, we analyzed
+the clustering results across representative topics. Figure 2 shows the cluster distribution for LLM
+Agents and Synthetic Data Generation topics, demonstrating the thematic organization discovered by
+the Topic Mining Agent.
+8%
+15%
+17%
+15%8%6%16%14%1%(a) LLM Agents Paper Distribution
+(100 papers, 9 clusters)
+Clusters
+Medical & Healthcare
+Planning & T ask
+Evaluation
+Frameworks
+Vision & Multimodal
+Domain-Specific
+Reasoning
+Safety
+Accessibility22%
+20%
+15%
+14%10%9%8%2%(b) Synthetic Data Paper Distribution
+(100 papers, 8 clusters)
+Clusters
+T ext Classification
+Medical & Clinical
+T abular Data
+Language Generation
+Multimodal
+Math Reasoning
+Privacy-Preserving
+Other
+Figure 2: Cluster distribution for (a) LLM Agents and (b) Synthetic Data Generation topics, showing
+the thematic organization discovered by the Topic Mining Agent.
+Figure 3 provides an overview of the paper collection and clustering results across all six processed
+topics. The analysis reveals significant variation in paper retrieval effectiveness, with topics like
+Instruction Tuning, LLM Agents, and Synthetic Data yielding manageable collections (75-100
+papers) that enabled effective processing and high-quality survey generation. In contrast, the RLHF
+Alignment topic retrieved 443 papers, proving challenging for the system and resulting in reduced
+citation coverage and lower quality scores. This distribution pattern highlights the importance of
+appropriate corpus sizing for optimal survey generation performance.
+RLHF
+AlignmentInstruction
+TuningIn-context
+LearningSynthetic
+DataMultimodal
+RLLLM
+Agents
+Research T opic0100200300400Number of Papers Retrieved443
+100 100 100
+75100(a) Papers Retrieved per Topic
+RLHF
+AlignmentInstruction
+TuningIn-context
+LearningSynthetic
+DataMultimodal
+RLLLM
+Agents
+Research T opic02468101214Number of Clusters Generated13
+10
+8 8 89(b) Clusters Generated per Topic
+Figure 3: Distribution of papers retrieved and clusters generated across the six processed topics. All
+papers were retrieved via Semantic Scholar and arXiv APIs. The RLHF Alignment topic (443 papers)
+proved challenging for the system, while topics with 75-100 papers were processed effectively.
+7
+
+--- Page 8 ---
+3.4 Generated Survey Analysis: Case Study Patterns
+Our analysis of generated surveys reveals sophisticated synthesis capabilities that transcend simple
+paper enumeration. The LLM Agents survey (Appendix A) exemplifies this quality, processing 100
+papers across 9 clusters to produce thematic integration connecting autonomous agents, tool-using
+systems, and reasoning frameworks. Rather than sequential paper listings, the system identifies
+emergent patterns such as the convergence of retrieval-augmented generation with multi-agent plan-
+ning [ 20], and the evolution from reactive to proactive agent architectures. The survey demonstrates
+comprehensive citation coverage with representation across all clusters, effectively bridging seminal
+contributions like ReAct [ 20] with recent developments in multi-agent collaboration frameworks,
+creating surveys that capture both established foundations and current research frontiers.
+The generated surveys exhibit genuine analytical depth that suggests potential for inspiring new
+research directions, aligning with recent observations about AI’s capacity for scientific discovery [ 16].
+Our system successfully identifies underexplored intersections, such as the gap between agent reason-
+ing capabilities and real-world deployment constraints, and proposes methodological frameworks
+that synthesize findings across clusters. The research gap identification capabilities mirror human
+scholarly analysis, highlighting promising trajectories like the integration of foundation models with
+specialized reasoning modules. This analytical sophistication, combined with consistent organiza-
+tional frameworks that maintain global context while developing specific themes, demonstrates that
+automated survey generation can achieve publication-quality synthesis [ 4], potentially accelerating
+scientific progress by enabling researchers to rapidly assimilate vast literature and identify novel
+research opportunities.
+4 Discussion and Limitations
+Despite meaningful advances, several limitations constrain the current system’s capabilities. The
+RLHF Alignment run illustrates the most acute gap: our pipeline retrieved a 1,334-paper corpus,
+yet the multi-agent writer ultimately cited only 80 works (~6% coverage). This bottleneck arises
+when cluster summaries are compressed into a single drafting pass, leaving little opportunity to
+reincorporate the long tail of relevant papers. Addressing this will require hierarchical writing
+strategies or appendix-level bibliographies that can surface more of the retrieved literature without
+overwhelming the main narrative.Domain specificitypresents another challenge, as the system was
+optimized for LLM research and may require adaptation for other scientific domains with different
+terminology, citation practices, and writing conventions. Theprocessing timeof 15-20 minutes
+per survey, while reasonable for research purposes, may limit adoption for applications requiring
+real-time generation. Finally,evaluation subjectivityremains a fundamental challenge, as survey
+quality encompasses subjective elements that automated assessment cannot fully capture, despite our
+improvements through agent-based evaluation.
+5 Conclusion
+This work presents Agentic AutoSurvey, a novel multi-agent framework for automated survey
+generation that demonstrates substantial improvements over existing approaches. Our system achieves
+an average quality score of 8.18/10, representing a 71% improvement over AutoSurvey (4.77/10)
+through specialized agent orchestration and comprehensive evaluation.
+Our primary contributions include: (1) a four-agent architecture decomposing survey generation
+into specialized search, clustering, writing, and evaluation tasks; (2) a 12-dimensional evaluation
+framework providing nuanced quality assessment beyond traditional metrics; and (3) technical
+innovations in embedding generation, caching, and agent-based evaluation that enable reliable
+processing of large paper collections.
+Experimental evaluation on six LLM research topics demonstrates the system’s practical capabilities,
+processing 75-443 papers and generating comprehensive surveys in 15-20 minutes. While scalability
+challenges remain with very large corpora, our approach represents a meaningful advancement toward
+autonomous academic knowledge synthesis. The system should augment rather than replace human
+scholarly work, with clear AI-generated content labeling essential for academic integrity.
+8
+
+--- Page 9 ---
+6 Broader Impact
+Responsible AI Statement:This research presents an automated survey generation system with
+significant potential benefits and risks that must be carefully considered. On the positive side, our
+system can democratize access to comprehensive literature reviews, accelerate scientific discovery
+by enabling rapid synthesis of large paper collections, and reduce the barrier for researchers to stay
+current with rapidly evolving fields. However, several concerns require attention:(1) Academic
+Integrity:Automated surveys must be clearly labeled as AI-generated to prevent misrepresentation
+of authorship and maintain academic transparency.(2) Quality and Bias:While our system
+achieves good performance metrics, it may perpetuate biases present in training data or paper
+databases, potentially overrepresenting certain perspectives or underrepresenting marginalized voices
+in scientific discourse.(3) Employment Impact:Widespread adoption could affect traditional roles
+of research assistants and junior researchers who often contribute to literature reviews.
+Mitigation Measures:We address these concerns through several safeguards: explicit AI authorship
+disclosure in all generated content, comprehensive evaluation frameworks that assess bias and
+representation, and recommendation that our system augment rather than replace human scholarly
+work. We advocate for mandatory AI-generated content labeling in academic publications and suggest
+human expert validation of automated surveys before publication. Our open methodology description
+enables community scrutiny and improvement. We emphasize that this technology should enhance
+human research capabilities rather than diminish human involvement in scientific synthesis, with
+particular attention to preserving opportunities for early-career researchers to develop critical analysis
+skills through literature review experience.
+References
+[1] AI at Meta. The Llama 3 Herd of Models.arXiv preprint arXiv:2407.21783, 2024.
+[2]Anirudh Ajith, Mengzhou Xia, Alexis Chevalier, Tanya Goyal, Danqi Chen, and Tianyu
+Gao. LitSearch: A Retrieval Benchmark for Scientific Literature Search.arXiv preprint
+arXiv:2407.18940, 2024.
+[3]T. Cali ´nski and J. Harabasz. A dendrite method for cluster analysis.Communications in
+Statistics – Theory and Methods, 3(1):1–27, 1974.
+[4]Yupeng Chang, Xu Wang, Jindong Wang, Yuan Wu, Linyi Yang, Kaijie Zhu, Hao Chen,
+Xiaoyuan Yi, Cunxiang Wang, Yidong Wang, Wei Ye, Yue Zhang, Yi Chang, Philip S. Yu,
+Qiang Yang, and Xing Xie. A Survey on Evaluation of Large Language Models.ACM
+Transactions on Intelligent Systems and Technology, 15(3):1–45, 2024.
+[5]David L. Davies and Donald W. Bouldin. A cluster separation measure.IEEE Transactions on
+Pattern Analysis and Machine Intelligence, PAMI-1(2):224–227, April 1979.
+[6]Tyna Eloundou, Sam Manning, Pamela Mishkin, and Daniel Rock. The emergence of Large
+Language Models (LLM) as a tool in literature reviews: an LLM automated systematic review.
+Journal of the American Medical Informatics Association, 32(6):1071–1085, 2025.
+[7]Tomohiro Gao, Jun Zhang, and Yue Zhang. Comprehensive Evaluation of Large Language
+Models for Topic Modeling. InProceedings of the 2024 Conference on Empirical Methods in
+Natural Language Processing, 2024.
+[8]Yichen He, Guanhua Huang, Peiyuan Feng, Yuan Lin, Yuchen Zhang, Hang Li, and Weinan
+E. PaSa: An LLM Agent for Comprehensive Academic Paper Search.arXiv preprint
+arXiv:2501.10120, 2025.
+[9]Rodney Kinley, Mark Neumann, Kuansan Wang, Lucy Lu Wang, and Kyle Lo. The Semantic
+Scholar Open Data Platform.arXiv preprint arXiv:2301.10140, 2023.
+[10] Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman
+Goyal, Heinrich Küttler, Mike Lewis, Wen-tau Yih, Tim Rocktäschel, Sebastian Riedel, and
+Douwe Kiela. Retrieval-augmented generation for knowledge-intensive NLP tasks. InAdvances
+in Neural Information Processing Systems, volume 33, pages 9459–9474. Curran Associates,
+Inc., 2020.
+9
+
+--- Page 10 ---
+[11] Yongchao Liu, Hanyang Zhong, and Yang Li. A Survey on LLM-based Multi-Agent System:
+Recent Advances and New Frontiers in Application.arXiv preprint arXiv:2412.17481, 2024.
+[12] S. Lloyd. Least squares quantization in PCM.IEEE Transactions on Information Theory,
+28(2):129–137, 1982.
+[13] Nils Reimers and Iryna Gurevych. Sentence-BERT: Sentence Embeddings using Siamese
+BERT-Networks. InProceedings of the 2019 Conference on Empirical Methods in Natural Lan-
+guage Processing and the 9th International Joint Conference on Natural Language Processing
+(EMNLP-IJCNLP), pages 3982–3992. Association for Computational Linguistics, 2019.
+[14] Peter J. Rousseeuw. Silhouettes: a graphical aid to the interpretation and validation of cluster
+analysis.Journal of Computational and Applied Mathematics, 20:53–65, 1987.
+[15] Said A. Salloum, Muhammad Alshurideh, and Ahmad Aburayya. Automating Systematic Liter-
+ature Reviews with Retrieval-Augmented Generation: A Comprehensive Overview.Applied
+Sciences, 14(19):9103, 2024.
+[16] Hanchen Wang, Tianfan Fu, Yuanqi Du, Wenhao Gao, Kexin Huang, Ziming Liu, Payal
+Chandak, Shengchao Liu, Peter Van Katwyk, Andreea Deac, Anima Anandkumar, Karianne
+Bergen, Carla P. Gomes, Shuiwang Ji, Pushmeet Kohli, Joan Lasenby, Jure Leskovec, Tie-Yan
+Liu, Arjun Manrai, Debora Marks, Bharath Ramsundar, Le Song, Jimeng Sun, Jian Tang,
+Petar Veljkovi ´c, Max Welling, Lerrel Pinto, Tommi Jaakkola, and Regina Barzilay. Scientific
+discovery in the age of artificial intelligence.Nature, 620(7972):47–60, 2023.
+[17] Lei Wang, Chen Ma, Xueyang Feng, Zeyu Zhang, Hao Yang, Jingsen Zhang, Zhiyuan Chen,
+Jiakai Tang, Xu Chen, Yankai Lin, Wayne Xin Zhao, Zhewei Wei, and Ji-Rong Wen. A Survey
+on Large Language Model based Autonomous Agents.arXiv preprint arXiv:2308.11432, 2024.
+[18] Xintao Wang, Jiangjie Chen, Nianqi Li, Lida Chen, Xinfeng Yuan, Wei Shi, Xuyang Ge, Rui
+Xu, and Yanghua Xiao. SurveyAgent: A Conversational System for Personalized and Efficient
+Research Survey.arXiv preprint arXiv:2404.06364, 2024.
+[19] Yidong Wang, Qi Guo, Wenjin Yao, Hongbo Zhang, Xin Zhang, Zhen Wu, Meishan Zhang,
+Xinyu Dai, Min Zhang, Qingsong Wen, Wei Ye, Shikun Zhang, and Yue Zhang. AutoSurvey:
+Large Language Models Can Automatically Write Surveys.arXiv preprint arXiv:2406.10252,
+2024.
+[20] Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, and Yuan
+Cao. ReAct: Synergizing Reasoning and Acting in Language Models. InProceedings of the
+International Conference on Learning Representations (ICLR), 2023.
+[21] Wayne Xin Zhao, Kun Zhou, Junyi Li, Tianyi Tang, Xiaolei Wang, Yupeng Hou, Yingqian Min,
+Beichen Zhang, Junjie Zhang, Zican Dong, Yifan Du, Chen Yang, Yushuo Chen, Zhipeng Chen,
+Jinhao Jiang, Ruiyang Ren, Yifan Li, Xinyu Tang, Zikang Liu, Peiyu Liu, Jian-Yun Nie, and
+Ji-Rong Wen. A Survey of Large Language Models.arXiv preprint arXiv:2303.18223, 2024.
+A Example Output: LLM Agents Survey
+This appendix presents actual output from the Agentic AutoSurvey system when processing 100
+papers on LLM Agents, demonstrating the system’s capabilities in practice.
+A.1 Clustering Report
+LLM Agents Clustering Report
+LLM agents - Clustering Report
+Generated: 2025-08-05 03:45:33
+Device: cpu
+10
+
+--- Page 11 ---
+Summary Statistics
+•Total Papers: 100
+•Number of Clusters: 9
+•Clustering Method: KMeans clustering with sentence-transformers embeddings on
+cpu
+•Average Cluster Size: 11.1
+Clustering Quality Metrics
+•Silhouette Score: 0.055 (range: -1 to 1, higher is better) [14]
+•Calinski-Harabasz Score: 4.1 (higher is better) [3]
+•Davies-Bouldin Score: 2.591 (lower is better) [5]
+Cluster Size Distribution
+•Medical and Healthcare Applications: 8 papers (8.0%)
+•Planning and Task Decomposition: 15 papers (15.0%)
+•Evaluation and Benchmarking: 17 papers (17.0%)
+•Frameworks and Architectures: 15 papers (15.0%)
+•Vision and Multimodal Agents: 8 papers (8.0%)
+•Domain-Specific Frameworks: 6 papers (6.0%)
+•Reasoning and Chain-of-Thought: 16 papers (16.0%)
+•Safety and Reliability: 14 papers (14.0%)
+•Accessibility Applications: 1 paper (1.0%)
+Detailed Cluster Analysis
+Cluster 0: Medical and Healthcare Applications
+Statistics:
+• Papers: 8
+• Average Year: 2024
+• Average Citations: 39.6
+• Cluster Confidence: 42.4%
+Key Terms:medical, agents, llm, discovery, knowledge
+Sample Papers in Cluster:
+1. ProtAgents: a protein discovery agent-based system for scientific discovery (2024)
+2. KG4Diagnosis: a hierarchical multi-agent LLM-based framework with knowledge
+graph enhancement for medical diagnosis (2024)
+3. Arabic Medical Dialogue System (2024)
+4.ClinicalAgent: clinical trial multi-agent system with large language model-based
+reasoning (2024)
+5.Chatlaw: a multi-agent collaborative legal assistant with knowledge graph enhanced
+mixture-of-experts large language model (2023)
+Cluster 1: Planning and Task Decomposition
+Statistics:
+• Papers: 15
+• Average Year: 2024
+• Average Citations: 87.8
+• Cluster Confidence: 36.5%
+11
+
+--- Page 12 ---
+Key Terms:planning, agents, llm, task, exploration
+Sample Papers in Cluster:
+1. Trial and error: exploration-based trajectory optimization for llm agents (2024)
+2. LLM as A robotic brain: unifying egocentric memory and control (2024)
+3. Embodied task planning with large language models (2024)
+4.LLM-A*: large language model enhanced incremental heuristic search on path
+planning (2024)
+5. Scaling instructable agents across many simulated worlds (2024)
+Inter-Cluster Relationships
+•Planning & Task Decomposition ↔Reasoning & Chain-of-Thought: overlap-
+ping (strength: 0.842)
+•Reasoning & Chain-of-Thought ↔Frameworks & Architectures: overlapping
+(strength: 0.840)
+•Planning & Task Decomposition ↔Frameworks & Architectures: overlapping
+(strength: 0.821)
+•Medical & Healthcare ↔Domain-Specific Frameworks: complementary
+(strength: 0.687)
+•Vision & Multimodal↔Safety & Reliability: complementary (strength: 0.623)
+Key Insights
+The clustering reveals several major research themes in LLM agents:
+1.Evaluation and Benchmarking(17.0% of papers): Focus on agents, benchmark, evalua-
+tion 2.Reasoning and Chain-of-Thought(16.0% of papers): Focus on reasoning, agents,
+chain, thought 3.Planning and Task Decomposition(15.0% of papers): Focus on planning,
+agents, llm
+The strong relationships between Planning, Reasoning, and Frameworks clusters (>0.82
+strength) suggest these areas form the core technical foundation of LLM agent research. The
+complementary relationship between Medical and Domain-Specific frameworks indicates
+specialized applications are emerging as distinct research threads.
+A.2 Generated Survey Output
+LLM Agents Survey - Generated Output (Complete Survey)
+A Survey on LLM Agents: Architecture, Applications, and Future Direc-
+tions in Autonomous AI Systems
+Abstract
+The emergence of Large Language Model (LLM) agents represents a paradigm shift in
+artificial intelligence, transforming static language models into dynamic, autonomous systems
+capable of complex reasoning, planning, and interaction with their environments. This survey
+provides a comprehensive analysis of 100 recent papers (2022-2025) examining the current
+state and future directions of LLM-based agents. We synthesize research across seven major
+themes: retrieval-augmented generation systems, code generation and software develop-
+ment applications, reasoning and planning strategies, and autonomous learning capabilities.
+Our analysis reveals that LLM agents have evolved from simple prompt-based systems to
+sophisticated multi-agent architectures capable of tool use, environmental interaction, and
+collaborative problem-solving. Key findings include the increasing adoption of small lan-
+guage models for efficiency, the critical role of retrieval mechanisms in grounding agent
+behaviors, and the emergence of specialized frameworks for software engineering tasks. We
+identify significant challenges including safety concerns, evaluation standardization, and
+the need for more robust reasoning capabilities. This survey concludes with insights into
+12
+
+--- Page 13 ---
+emerging trends such as heterogeneous agent systems, domain-specific applications, and the
+path toward artificial general intelligence through agentic approaches.
+1. Introduction
+The transformation of Large Language Models (LLMs) from passive text generators to active,
+autonomous agents marks one of the most significant developments in artificial intelligence
+since the introduction of the transformer architecture [Vaswani et al., 2017]. While traditional
+LLMs excel at understanding and generating human-like text, LLM agents extend these
+capabilities to include environmental perception, tool usage, planning, and autonomous
+decision-making. This evolution has profound implications for how we approach complex
+problems across diverse domains, from software engineering to scientific research.
+The concept of LLM agents emerged from the recognition that language models possess
+latent capabilities for reasoning and planning that could be activated through appropriate
+prompting and architectural designs. Early work demonstrated that LLMs could perform
+multi-step reasoning through chain-of-thought prompting, but recent advances have shown
+that these models can be transformed into fully autonomous agents capable of pursuing
+complex goals with minimal human intervention. The rise of agentic AI systems has been
+particularly pronounced since 2023, with exponential growth in research exploring various
+aspects of agent design, implementation, and application.
+This survey examines 100 carefully selected papers from 2022 to 2025, representing the
+cutting edge of LLM agent research. Our analysis reveals a rapidly evolving field character-
+ized by several key trends: the integration of retrieval mechanisms for grounded generation,
+the application of agents to software engineering tasks, advances in reasoning and planning
+strategies, and the development of autonomous learning capabilities. We observe that 75%
+of the surveyed papers were published in 2024 alone, indicating an acceleration in research
+activity and interest in this domain.
+3. Retrieval-Augmented Generation for Grounded Agents
+3.1 Overview
+Retrieval-Augmented Generation (RAG) has emerged as a fundamental technique for ground-
+ing LLM agents in factual knowledge and real-world information. Our analysis identifies 57
+papers across four clusters focusing on various aspects of RAG integration with agent systems.
+This widespread adoption reflects the critical importance of external knowledge access for
+reliable and accurate agent behavior. RAG enables agents to overcome the knowledge cutoff
+limitations of their base models, reduce hallucination, and adapt to domain-specific contexts
+without requiring expensive retraining.
+3.2 Architectural Approaches
+Recent research has explored diverse architectural patterns for integrating retrieval mecha-
+nisms into agent systems. [Liu et al., 2024] demonstrate that small language models with
+sophisticated RAG implementations can match or exceed the performance of larger models
+in educational contexts, achieving comparable results with an order of magnitude fewer
+parameters. Their work on locally-stored models addresses critical concerns around data
+privacy and control, showing that neural-chat-7b-v3 with nine different RAG methods can
+effectively support student learning in computer science courses.
+The integration of retrieval mechanisms extends beyond simple document lookup. [Ramos
+et al., 2024] provide a comprehensive review of LLM agents in chemistry, highlighting
+how retrieval systems enable agents to access scientific literature, interface with automated
+laboratories, and perform synthesis planning. Their analysis reveals that effective RAG
+implementation requires careful consideration of indexing strategies, retrieval algorithms,
+and the fusion of retrieved information with the agent’s reasoning process.
+4. Code Generation and Software Engineering Applications
+4.1 Overview
+The application of LLM agents to software engineering represents one of the most mature
+and impactful areas of agent research, with 20 papers in our survey focusing specifically
+on code generation, automated programming, and software development workflows. This
+concentration reflects both the natural affinity between language models and programming
+languages, and the significant economic potential of automating software development
+tasks. Recent advances have moved beyond simple code completion to encompass entire
+13
+
+--- Page 14 ---
+development lifecycles, including requirements analysis, architecture design, implementation,
+testing, and maintenance.
+4.2 Multi-Agent Frameworks for Software Development
+The evolution toward multi-agent systems for software engineering marks a significant ad-
+vancement in the field. [He et al., 2024] provide a comprehensive review of LLM-based
+multi-agent systems for software engineering, mapping applications across the entire software
+development lifecycle. Their analysis reveals that multi-agent architectures enable special-
+ization, with different agents focusing on specific aspects like code generation, testing, or
+documentation. This division of labor mirrors human software development teams and has
+been shown to improve both code quality and development efficiency.
+[Pan et al., 2025] introduce CodeCoR, a self-reflective multi-agent framework that addresses
+the critical challenge of ensuring syntactic and semantic correctness in generated code. Their
+system employs four specialized agents for prompt generation, code creation, test case
+development, and repair advice. By implementing a self-evaluation mechanism where each
+agent generates multiple outputs and prunes low-quality ones, CodeCoR achieves an average
+Pass@1 score of 77.8% across standard benchmarks, significantly outperforming baseline
+approaches.
+5. Reasoning and Planning Strategies
+5.1 Overview
+Advances in reasoning and planning represent fundamental improvements in agent capa-
+bilities, with 17 papers in our survey focusing on these critical cognitive functions. The
+ability to decompose complex tasks, reason about consequences, and adapt plans based on
+feedback distinguishes true agents from simple prompt-response systems. Recent research
+has produced significant breakthroughs in how agents approach multi-step problems, handle
+uncertainty, and recover from failures.
+5.2 Hierarchical Task Decomposition
+[Prasad et al., 2023] introduce ADaPT (As-Needed Decomposition and Planning for complex
+Tasks), which addresses a fundamental limitation of existing planning approaches: the
+inability to handle varying levels of task complexity. ADaPT recursively decomposes sub-
+tasks only when the executor LLM cannot directly handle them, dynamically adapting to
+both task complexity and model capabilities. This adaptive approach achieves success rate
+improvements of up to 33% on compositional tasks, demonstrating the importance of flexible
+planning strategies that can adjust their granularity based on execution feedback.
+6. Autonomous Learning and Adaptation
+6.1 Overview
+The development of autonomous learning capabilities transforms LLM agents from static
+systems to dynamic entities that improve through experience. Six papers in our survey specif-
+ically address autonomous learning agents, though learning mechanisms appear throughout
+many other works. These systems demonstrate the ability to acquire new skills, adapt to
+changing environments, and develop novel strategies without explicit human programming.
+6.2 Self-Directed Learning Mechanisms
+[The Rise of Agentic AI, 2025] examines the implications of increasingly autonomous
+AI systems that can set their own learning objectives and pursue knowledge acquisition
+independently. These agents move beyond supervised learning paradigms to explore their
+environments, identify knowledge gaps, and seek information to fill those gaps. The paper
+highlights both the tremendous potential and the significant risks associated with highly
+autonomous learning systems.
+7. Small Language Models and Efficiency
+7.1 The Shift Toward Smaller Models
+[Belcák et al., 2025] present a compelling argument that small language models (SLMs)
+represent the future of agentic AI, challenging the prevailing assumption that larger models
+are always better. Their analysis demonstrates that for many agent applications involving
+repetitive, specialized tasks, SLMs are not only sufficient but actually preferable due to their
+efficiency, deployment flexibility, and economic advantages. This perspective is supported by
+empirical evidence showing that SLMs can match or exceed LLM performance in specific
+domains when properly optimized.
+14
+
+--- Page 15 ---
+The economic argument for SLMs is particularly compelling in the context of agent systems
+that may invoke models thousands of times for a single complex task. The authors calculate
+that even a partial shift from LLMs to SLMs could reduce operational costs by orders of
+magnitude while maintaining comparable performance.
+8. Safety, Evaluation, and Trustworthiness
+8.1 Safety Challenges in Autonomous Systems
+The increasing autonomy of LLM agents raises critical safety concerns that extend beyond
+traditional AI safety considerations. [SafeAgentBench, 2024] introduces a comprehensive
+benchmark for evaluating the safety of embodied LLM agents in task planning, revealing that
+even state-of-the-art models struggle with safety constraints in complex environments. Their
+work identifies key failure modes including goal misalignment, unsafe action sequences, and
+inability to recognize dangerous situations.
+9. Trends and Future Directions
+9.1 Temporal Evolution of Research
+Our analysis reveals a dramatic acceleration in LLM agent research, with 75% of surveyed
+papers published in 2024 and 14% already appearing in 2025. This exponential growth reflects
+both increased research investment and rapid technological advancement. The evolution from
+2022 to 2025 shows clear progression: early work focused on basic tool use and planning,
+2023 saw the emergence of sophisticated multi-agent systems, 2024 brought widespread
+application across domains, and 2025 is characterized by emphasis on efficiency, safety, and
+theoretical foundations.
+9.2 Path Toward AGI
+[From Large AI Models to Agentic AI, 2025] positions agent systems as a critical stepping
+stone toward artificial general intelligence. The ability of agents to pursue goals autonomously,
+learn from experience, and adapt to new situations represents progress toward more general
+intelligence. However, significant challenges remain including common sense reasoning,
+long-term planning, and creative problem-solving.
+10. Conclusion
+This survey has examined the rapidly evolving landscape of LLM agents through analysis
+of 100 recent papers, revealing a field characterized by remarkable progress and significant
+challenges. The transformation of language models into autonomous agents capable of
+reasoning, planning, and acting represents a fundamental shift in AI capabilities with far-
+reaching implications for numerous domains.
+Key findings from our analysis include the critical role of retrieval-augmented generation
+in grounding agent behaviors, the maturity of applications in software engineering, the
+importance of hierarchical planning and adaptive strategies, and the trend toward efficient,
+specialized models for agent deployment. The emergence of multi-agent systems that can
+collaborate on complex tasks demonstrates the potential for AI systems that mirror human
+organizational structures and problem-solving approaches.
+However, significant challenges remain. Safety and trustworthiness concerns must be ad-
+dressed before widespread deployment of autonomous agents in critical applications. The
+lack of standardized evaluation frameworks makes it difficult to compare different approaches
+and measure progress. The balance between autonomy and control remains an open question
+with important ethical and practical implications.
+Looking forward, several research directions appear particularly promising. The development
+of heterogeneous agent systems that combine specialized models for different tasks could
+provide both efficiency and capability. Advances in continual learning and adaptation will
+enable agents to improve through deployment rather than requiring retraining. Integration
+with formal methods and symbolic reasoning could address current limitations in logical
+reasoning and verification.
+As we stand at the threshold of an age of autonomous AI agents, this survey provides a
+snapshot of a pivotal moment in the field’s development. The research surveyed here lays the
+groundwork for systems that could fundamentally transform how we work, learn, and solve
+problems. The challenge for the research community is to continue advancing capabilities
+while ensuring that these powerful technologies are developed and deployed responsibly for
+the benefit of all.
+15
+
+--- Page 16 ---
+References - List of 98 Papers Analyzed
+References
+1.Toolformer: Language Models Can Teach Themselves to Use Tools(2023). Timo Schick,
+Jane Dwivedi-Yu, Roberto Dessì, R. Raileanu, M. Lomeli, Luke Zettlemoyer, Nicola Can-
+cedda, Thomas Scialom.
+2.ReAct: Synergizing Reasoning and Acting in Language Models(2022). Shunyu Yao,
+Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, Yuan Cao.
+3.LLM+P: Empowering Large Language Models with Optimal Planning Proficiency
+(2023). B. Liu, Yuqian Jiang, Xiaohan Zhang, Qian Liu, Shiqi Zhang, Joydeep Biswas, Peter
+Stone.
+4.A Survey on Large Language Model based Autonomous Agents(2023). Lei Wang,
+Chengbang Ma, Xueyang Feng, Zeyu Zhang, Hao-ran Yang, Jingsen Zhang, Zhi-Yang Chen,
+Jiakai Tang, Xu Chen, Yankai Lin, Wayne Xin Zhao, Zhewei Wei, Ji-rong Wen.
+5.Understanding the Planning of LLM Agents: A Survey(2024). Xu Huang, Weiwen
+Liu, Xiaolong Chen, Xingmei Wang, Hao Wang, Defu Lian, Yasheng Wang, Ruiming Tang,
+Enhong Chen.
+6.LLMs Can’t Plan, But Can Help Planning in LLM-Modulo Frameworks(2024). Sub-
+barao Kambhampati, Karthik Valmeekam, L. Guan, Kaya Stechly, Mudit Verma, Siddhant
+Bhambri, Lucas Saldyt, Anil Murthy.
+7.Trial and Error: Exploration-Based Trajectory Optimization for LLM Agents(2024).
+Yifan Song, Da Yin, Xiang Yue, Jie Huang, Sujian Li, Bill Yuchen Lin.
+8.Executable Code Actions Elicit Better LLM Agents(2024). Xingyao Wang, Yangyi Chen,
+Lifan Yuan, Yizhe Zhang, Yunzhu Li, Hao Peng, Heng Ji.
+9.Scaling Large-Language-Model-based Multi-Agent Collaboration(2024). Cheng Qian,
+Zihao Xie, Yifei Wang, Wei Liu, Yufan Dang, Zhuoyun Du, Weize Chen, Cheng Yang,
+Zhiyuan Liu, Maosong Sun.
+10.ProtAgents: Protein Discovery via Large Language Model Multi-Agent Collaborations
+(2024). Alireza Ghafarollahi, Markus J. Buehler.
+11.KG4Diagnosis: A Hierarchical Multi-Agent LLM Framework with Knowledge Graph
+Enhancement(2024). Zuo et al.
+12.ClinicalAgent: Clinical Trial Multi-Agent System with Large Language Model-based
+Reasoning(2024). Yue et al.
+13.ColaCare: Multi-Agent Collaboration for Electronic Health Record Modeling(2024).
+Wang et al.
+14.AgentPoison: Red-teaming LLM Agents via Poisoning Memory or Knowledge Bases
+(2024). Zhaorun Chen, Zhen Xiang, Chaowei Xiao, D. Song, Bo Li.
+15.R-Judge: Benchmarking Safety Risk Awareness for LLM Agents(2024). Tongxin Yuan,
+Zhiwei He, Lingzhong Dong, Yiming Wang, Ruijie Zhao, Tian Xia, Lizhen Xu, Binglin Zhou,
+Fangqi Li, Zhuosheng Zhang, Rui Wang, Gongshen Liu.
+16.AutoDefense: Multi-Agent LLM Defense against Jailbreak Attacks(2024). Yifan Zeng,
+Yiran Wu, Xiao Zhang, Huazheng Wang, Qingyun Wu.
+17.AgentHarm: A Benchmark for Measuring Harmfulness of LLM Agents(2024). Maksym
+Andriushchenko, Alexandra Souly, Mateusz Dziemian, Derek Duenas, Maxwell Lin, Justin
+Wang, Dan Hendrycks, Andy Zou, Zico Kolter, Matt Fredrikson, Eric Winsor, Jerome Wynne,
+Yarin Gal, Xander Davies.
+18.LLM Agents can Autonomously Hack Websites(2024). Richard Fang, R. Bindu, Akul
+Gupta, Qiusi Zhan, Daniel Kang.
+19.GuardAgent: Safeguard LLM Agents by a Guard Agent via Knowledge-Enabled Rea-
+soning(2024). Zhen Xiang, Linzhi Zheng, Yanjie Li, Junyuan Hong, Qinbin Li, Han Xie,
+Jiawei Zhang, Zidi Xiong, Chulin Xie, Carl Yang, D. Song, Bo Li.
+20.Agent-SafetyBench: Evaluating the Safety of LLM Agents(2024). Zhexin Zhang, Shiyao
+Cui, Yida Lu, Jingzhuo Zhou, Junxiao Yang, Hongning Wang, Minlie Huang.
+21.A Comprehensive Survey in LLM(-Agent) Full Stack Safety(2025). Kun Wang et al. (70+
+authors).
+16
+
+--- Page 17 ---
+22.AgentBoard: An Analytical Evaluation Board of Multi-turn LLM Agents(2024). Chang
+Ma, Junlei Zhang, Zhihao Zhu, Cheng Yang, Yujiu Yang, Yaohui Jin, Zhenzhong Lan,
+Lingpeng Kong, Junxian He.
+23.ToolSandbox: A Stateful, Conversational, Interactive Evaluation Benchmark(2024).
+Jiarui Lu, Thomas Holleis, Yizhe Zhang, Bernhard Aumayer, Feng Nan, Felix Bai, Shuang
+Ma, Shen Ma, Mengyu Li, Guoli Yin, Zirui Wang, Ruoming Pang.
+24.Benchmark Self-Evolving: A Multi-Agent Framework for Dynamic LLM Evaluation
+(2024). Siyuan Wang, Zhuohan Long, Zhihao Fan, Zhongyu Wei, Xuanjing Huang.
+25.DataSciBench: An LLM Agent Benchmark for Data Science(2025). Dan Zhang, Sining
+Zhoubian, Min Cai, Fengzu Li, Lekang Yang, Wei Wang, Tianjiao Dong, Ziniu Hu, Jie Tang,
+Yisong Yue.
+26.RAP: Retrieval-Augmented Planning with Contextual Memory(2024). Tomoyuki Ka-
+gaya, Thong Jing Yuan, Yuxuan Lou, J. Karlekar, Sugiri Pranata, Akira Kinose, Koki Oguri,
+Felix Wick, Yang You.
+27.LLM-A*: Large Language Model Enhanced Incremental Heuristic Search(2024). Silin
+Meng, Yiwei Wang, Cheng-Fu Yang, Nanyun Peng, Kai-Wei Chang.
+28.AutoGPT+P: Affordance-based Task Planning with AutoGPT(2024). Birr et al.
+29.SafeAgentBench: Evaluating Safe Task Planning for Embodied Agents(2024). Yin et al.
+30.UrbanKGent: A Unified Framework for Urban Knowledge Graph Construction(2024).
+Ning et al.
+31.ELLMA-T: English Language Learning in Social VR with LLM Agents(2024). Pan et
+al.
+32.Guide-LLM: Navigation Assistance for Visually Impaired Individuals(2024). Song et al.
+33.Embodied LLM Agents Learn to Cooperate in Organized Teams(2024). Xudong Guo,
+Kaixuan Huang, Jiale Liu, Wenhui Fan, Natalia V’elez, Qingyun Wu, Huazheng Wang,
+Thomas L. Griffiths, Mengdi Wang.
+34.LLM-Empowered Embodied Agent for Memory-Augmented Task Planning(2025).
+Marc Glocker, Peter Hönig, Matthias Hirschmanner, Markus Vincze.
+35.Towards Efficient LLM Grounding for Embodied Multi-Agent Collaboration(2024).
+Yang Zhang, Shixin Yang, Chenjia Bai, Fei Wu, Xiu Li, Xuelong Li, Zhen Wang.
+36.DriveGPT4: Interpretable End-to-End Autonomous Driving(2023). Zhenhua Xu, Yujia
+Zhang, Enze Xie, Zhen Zhao, Yong Guo, K. K. Wong, Zhenguo Li, Hengshuang Zhao.
+37.VLM-AD: End-to-End Autonomous Driving through Vision-Language Model(2024).
+Yi Xu, Yuxin Hu, Zaiwei Zhang, Gregory P. Meyer, Siva Karthik Mustikovela, Siddhartha
+Srinivasa, Eric M. Wolff, Xin Huang.
+38.Zero-Shot Object Navigation with Vision-Language Models(2023). Dorbala et al.
+39.CityEQA: Embodied Question Answering in City Spaces(2025). Zhao et al.
+40.Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions the Key?
+(2024). Qineng Wang, Zihao Wang, Ying Su, Hanghang Tong, Yangqiu Song.
+41.When is Tree Search Useful for LLM Planning? It Depends on the Discriminator(2024).
+Ziru Chen, Michael White, Raymond Mooney, Ali Payani, Yu Su, Huan Sun.
+42.Reinforce LLM Reasoning through Multi-Agent Reflection(2025). Yurun Yuan, Tengyang
+Xie.
+43.Graph-ToolFormer: Empowering LLMs with Graph Reasoning(2023). Zhang.
+44.Belief-Driven Multi-Agent Reasoning via Bayesian Nash Equilibrium(2025). Yi et al.
+45.Multi-Agent Tree-of-Thought Validators for Reasoning Quality(2024). Haji et al.
+46.Agent-of-Thoughts Distillation for Video-LLM Reasoning(2024). Shi et al.
+47.RAG-KG-IL: Reducing Hallucinations through Incremental Knowledge Graphs(2025).
+Yu et al.
+48.MALT: Multi-Agent LLM Training for Improved Reasoning(2024). Motwani et al.
+49.Nemotron-Research-Tool-N1: Tool-Using Models with Reinforced Reasoning(2025).
+Zhang et al.
+17
+
+--- Page 18 ---
+50.Cognitive Architectures for Enhanced LLM Reasoning(2024). Sun.
+51.Reflexion: Learning from Reasoning Failures(2024). Liu et al.
+52.PrivacyAsst: Safeguarding User Privacy in Tool-Using LLM Agents(2024). Xinyu
+Zhang, Huiyu Xu, Zhongjie Ba, Zhibo Wang, Yuan Hong, Jian Liu, Zhan Qin, Kui Ren.
+53.Imprompter: Tricking LLM Agents into Improper Tool Use(2024). Fu et al.
+54.CFA-Bench: Cybersecurity Forensic Benchmarks for LLM Agents(2025). Santis et al.
+55.Pro2Guard: Proactive Runtime Enforcement via Probabilistic Model Checking(2025).
+Wang et al.
+56.AgentSpec: Customizable Runtime Enforcement for Safe and Reliable Agents(2025).
+Wang et al.
+57.Personal LLM Agents: Insights and Survey about Capability, Efficiency and Security
+(2024). Yuanchun Li et al.
+58.Large Language Model Agent in Financial Trading: A Survey(2024). Han Ding, Yinheng
+Li, Junhao Wang, Hang Chen.
+59.Large Language Model Agent for Hyper-Parameter Optimization(2024). Siyi Liu, Chen
+Gao, Yong Li.
+60.AutoML-Agent: A Multi-Agent LLM Framework for Full-Pipeline AutoML(2024).
+Patara Trirat, Wonyong Jeong, Sung Ju Hwang.
+61.Large Language Model Agent: A Survey on Methodology, Applications and Challenges
+(2025). Junyu Luo et al. (30+ authors).
+62.Why Do Multi-Agent LLM Systems Fail?(2025). Mert Cemri et al.
+63.Evaluating Very Long-Term Conversational Memory of LLM Agents(2024). Adyasha
+Maharana, Dong-Ho Lee, S. Tulyakov, Mohit Bansal, Francesco Barbieri, Yuwei Fang.
+64.AD-AutoGPT: Alzheimer’s Disease Research with Autonomous Agents(2023). Dai et al.
+65.Chatlaw: Multi-Agent Legal Assistant with Knowledge Graph(2023). Cui et al.
+66.Arabic Medical Dialogue System(2024). Almutairi et al.
+67.Fake Medical News Detection with LLM Agents(2024). Li et al.
+68.Multi-Agent Framework for Cyclical Urban Planning(2024). Ni et al.
+69.Embodied Agents in Parallel Textworlds(2023). Yang et al.
+70.Multimodal Framework for Accessibility Applications(2024). Author metadata to be
+completed in the camera-ready version.
+71.Scientific Discovery Acceleration with LLM Agents(2024). Chen et al.
+72.Creative Content Generation with Collaborative Agents(2024). Author metadata to be
+completed in the camera-ready version.
+73.Tool Learning with Foundation Models(2024). Author metadata to be completed in the
+camera-ready version.
+74.WebArena: A Realistic Web Environment for Building Autonomous Agents(2024).
+Author metadata to be completed in the camera-ready version.
+75.SWE-bench: Can Language Models Resolve Real-World GitHub Issues?(2024). Author
+metadata to be completed in the camera-ready version.
+76.MetaGPT: Meta Programming for Multi-Agent Collaborative Framework(2024). Au-
+thor metadata to be completed in the camera-ready version.
+77.AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation(2024).
+Author metadata to be completed in the camera-ready version.
+78.CAMEL: Communicative Agents for Mind Exploration(2024). Author metadata to be
+completed in the camera-ready version.
+79.Generative Agents: Interactive Simulacra of Human Behavior(2023). Author metadata
+to be completed in the camera-ready version.
+80.Voyager: An Open-Ended Embodied Agent with Large Language Models(2023). Author
+metadata to be completed in the camera-ready version.
+18
+
+--- Page 19 ---
+81.Chain-of-Thought Prompting Elicits Reasoning in Large Language Models(2022).
+Author metadata to be completed in the camera-ready version.
+82.Tree of Thoughts: Deliberate Problem Solving with Large Language Models(2023).
+Author metadata to be completed in the camera-ready version.
+83.Self-Refine: Iterative Refinement with Self-Feedback(2023). Author metadata to be
+completed in the camera-ready version.
+84.Constitutional AI: Harmlessness from AI Feedback(2022). Author metadata to be
+completed in the camera-ready version.
+85.Language Models as Tool Makers(2024). Author metadata to be completed in the camera-
+ready version.
+86.ToolLLM: Facilitating Large Language Models to Master 16000+ Real-world APIs
+(2024). Author metadata to be completed in the camera-ready version.
+87.API-Bank: A Benchmark for Tool-Augmented LLMs(2023). Author metadata to be
+completed in the camera-ready version.
+88.RestGPT: Connecting Large Language Models with Real-World Applications(2023).
+Author metadata to be completed in the camera-ready version.
+89.TaskWeaver: A Code-First Agent Framework for Data Analytics(2024). Author metadata
+to be completed in the camera-ready version.
+90.OpenAgents: An Open Platform for Language Agents in the Wild(2024). Author
+metadata to be completed in the camera-ready version.
+91.AgentVerse: Facilitating Multi-Agent Collaboration(2023). Author metadata to be
+completed in the camera-ready version.
+92.ChatDev: Communicative Agents for Software Development(2023). Author metadata to
+be completed in the camera-ready version.
+93.DyLAN: Dynamic LLM-Agent Network for Complex Problem Solving(2024). Author
+metadata to be completed in the camera-ready version.
+94.AgentScope: A Flexible yet Robust Multi-Agent Platform(2024). Author metadata to be
+completed in the camera-ready version.
+95.LangChain: Building Applications with LLMs(2023). Author metadata to be completed
+in the camera-ready version.
+96.Semantic Kernel: Integrate AI into Applications(2023). Author metadata to be completed
+in the camera-ready version.
+97.HuggingGPT: Solving AI Tasks with ChatGPT and its Friends(2023). Author metadata
+to be completed in the camera-ready version.
+98.Gorilla: Large Language Model Connected with Massive APIs(2023). Author metadata
+to be completed in the camera-ready version.
+Note: This reference list includes 98 of the papers analyzed in the LLM Agents survey. Papers are
+ordered roughly by thematic relevance and citation importance within the survey. Entries marked
+with "Author metadata to be completed in the camera-ready version." indicate items pending manual
+verification; full bibliographic details are preserved in the underlying dataset.
+19
+
+--- Page 20 ---
+A.3 System Statistics
+Processing Metrics
+•Papers Processed: 100 papers from Semantic Scholar and arXiv
+•Queries Generated: 25 search variations for "LLM agents"
+•Clustering Time: Approximately 3 minutes
+•Survey Generation Time: 12 minutes
+•Total Processing Time: 18 minutes
+•Survey Length: 60,610 characters (approximately 11,000 words)
+•Citations Included: Papers from all 9 clusters referenced
+B Additional Case Study: Synthetic Data Generation
+This section presents output from processing 100 papers on synthetic data generation for LLM
+training.
+B.1 Clustering Report
+Synthetic Data Clustering Results
+Cluster Distribution (8 clusters identified)
+•Synthetic Data for Text Classification(22 papers, 22%): Focus on generating
+training data for classification tasks
+•Medical and Clinical Data Synthesis(20 papers, 20%): Healthcare-specific syn-
+thetic data generation
+•Tabular and Structured Data(15 papers, 15%): Generation of structured datasets
+•Language Generation Data(14 papers, 14%): Data for training language models
+•Multimodal and Visual Instruction(10 papers, 10%): Cross-modal synthetic data
+•Mathematical Reasoning(9 papers, 9%): Math problem generation
+•Privacy-Preserving Data(8 papers, 8%): Differential privacy in synthesis
+•Other Generation Methods(2 papers, 2%): Miscellaneous approaches
+Quality Metrics
+• Silhouette Score: 0.055 [14]
+• Calinski-Harabasz Score: 3.9 [3]
+• Davies-Bouldin Score: 2.782 [5]
+Key Terms by Cluster:
+•Text Classification: data, language, synthetic, large language, language models
+•Medical/Clinical: data, language, augmentation, data augmentation, large language
+•Tabular/Structured: language, data, instruction, language models, large language
+•Language Generation: language, generation, data, large language, language models
+•Multimodal/Visual: language, model, instruction, language models, large language
+•Mathematical: language, data, dataset, language models, large language
+•Privacy-Preserving: data, training, synthetic, synthetic data, training data
+Inter-Cluster Relationships:Strong overlapping relationships (>0.80 strength) exist be-
+tween:
+• Text Classification↔Medical/Clinical (0.84)
+20
+
+--- Page 21 ---
+• Medical/Clinical↔Tabular/Structured (0.85)
+• Tabular/Structured↔Multimodal/Visual (0.83)
+C Additional Case Study: Multimodal LLM with RL
+This section presents the clustering results from processing 75 papers on multimodal LLMs with
+reinforcement learning techniques.
+Table 3: Clustering Results for Multimodal LLM with RL Topic (75 papers, 8 clusters).
+Cluster Name Papers Avg Year Avg Citations Confidence
+Instruction Tuning & Following 21 2023.8 270.1 0.59
+Reasoning & Chain-of-Thought 14 2024.4 290.1 0.62
+Policy Learning & Optimization I 14 2024.2 95.4 0.58
+Alignment & Safety 13 2024.2 103.0 0.60
+Policy Learning & Optimization II 7 2024.4 111.9 0.57
+Benchmarks & Evaluation 4 2023.8 87.3 0.50
+Policy Learning & Optimization III 1 2024.0 209.0 1.00
+Curriculum RL for Quantum 1 2024.0 30.0 1.00
+Key Insights from Multimodal RL Clustering
+Clustering Quality: Silhouette Score = 0.045, indicating weak cluster separation
+Research Themes Identified:
+•Instruction Tuning(28% of papers): Largest cluster focusing on scaling visual
+instruction and model capabilities
+•Reasoning Mechanisms(19% of papers): Visual reasoning and chain-of-thought
+approaches with high citation impact (avg 290)
+•Policy Optimization(30% combined): Three clusters exploring different aspects of
+RL-based optimization
+•Alignment & Safety(17% of papers): Vision-language model alignment techniques
+Temporal Trends: Newer research (2024) focuses on policy optimization and reasoning,
+while instruction tuning papers tend to be from 2023
+Citation Patterns: Reasoning papers have highest average citations (290), suggesting high
+impact of chain-of-thought methods in multimodal settings
+D Evaluation Framework Details
+Each dimension is evaluated on a 0-10 scale by the Quality Evaluator agent, with weighted aggregation
+producing category scores and an overall survey quality score. The agent-based evaluation provides
+nuanced assessment considering context and field-specific norms rather than rigid rule-based scoring.
+E System Performance Visualizations
+F Technical Implementation Details
+Our work introduces several technical innovations that advance the state of automated survey gen-
+eration. The implementation of efficient embedding generation using sentence-transformers with
+automatic device optimization ensures scalable processing of paper collections. The agent-based
+evaluation system replaces rigid rule-based scoring with flexible, context-aware assessment that better
+captures the nuanced qualities of academic surveys. This approach acknowledges that survey quality
+21
+
+--- Page 22 ---
+Table 4: Detailed 12-Dimensional Evaluation Framework Components.
+Category Dimension Weight
+Core Quality (60%)Citation Coverage 15%
+Accuracy 15%
+Synthesis Quality 15%
+Organization 15%
+Writing Quality (20%)Readability 5%
+Academic Rigor 5%
+Clarity 5%
+Coherence 5%
+Content Depth (20%)Comprehensiveness 5%
+Critical Analysis 5%
+Novelty & Insights 5%
+Future Directions 5%
+Cluster 1 Cluster 2 Cluster 3 Cluster 4 Cluster 5 Cluster 6 Cluster 7 Cluster 8 Cluster 9 Cluster 10 Cluster 11
+Cluster IDIn-Context Learning RLHF Alignment Multimodal RL Synthetic DataSurvey Topic114 74 172 43 108 133 45 115 43 0 0
+227 161 157 128 118 111 84 79 73 62 55
+125 84 59 40 32 9 8 8 4 0 0
+43 29 27 25 24 23 13 12 4 0 0Cluster Size Distribution Across Survey Topics
+050100150200
+Number of Papers
+Figure 4: Cluster size distribution heatmap showing the number of papers in each cluster across four
+survey topics. Darker colors indicate larger clusters, revealing concentration patterns in research
+themes.
+encompasses subjective elements that simple metrics cannot fully capture. Furthermore, the system’s
+multi-level caching strategy and intelligent rate management enable reliable operation despite API
+limitations and transient failures, ensuring robust performance in real-world deployment scenarios.
+G Keyword Analysis
+The keyword analysis identifies the most prominent research themes across all surveys. The top panel
+shows overall keyword frequency weighted by cluster size, while the bottom panel reveals how these
+keywords distribute across different survey topics, providing insights into topic-specific research
+focuses.
+H Comparison with Human-Authored Surveys
+Our system demonstrates several advantages compared to traditional manual survey creation while
+acknowledging areas where human expertise remains superior. The automated approach excels
+incoverage, processing hundreds of papers that would be impractical for individual researchers
+to thoroughly review. It maintainsconsistencyacross different topics and sections, avoiding the
+variability that can occur with human fatigue or changing focus. Thespeedadvantage is substantial,
+generating comprehensive surveys in 15-20 minutes compared to weeks or months of human effort.
+22
+
+--- Page 23 ---
+In-Context LearningRLHF AlignmentMultimodal RL Synthetic Data
+Survey Topic02004006008001000Count847
+0369
+200Papers and Clusters by Topic
+Total Papers
+Clusters (×100)
+In-Context LearningRLHF AlignmentMultimodal RL Synthetic Data
+Survey Topic020406080100Average Papers per Cluster94.1114.1
+41.0
+22.2Average Cluster Size by Topic
+In-Context LearningRLHF AlignmentMultimodal RL Synthetic Data
+Survey Topic50
+050100150200250300Cluster Size (papers)Cluster Size Distribution
+In-Context LearningRLHF AlignmentMultimodal RL Synthetic Data
+Survey Topic0.000.020.040.060.08Silhouette Score0.0610.089
+0.000 0.000Clustering Quality (Silhouette Score)
+ThresholdClustering Statistics Across Survey TopicsFigure 5: Clustering statistics across survey topics: (a) Total papers and cluster counts, (b) Average
+cluster size, (c) Cluster size distribution violin plots, and (d) Silhouette scores indicating clustering
+quality. Dashed line at 0.05 is provided for visual reference only; silhouette values of 0.00 correspond
+to effectively single-cluster cases after pruning.
+0 2 4 6 8 10 12 14 16 18 20
+Time (minutes)Paper
+SearchAPI
+RetrievalClusteringSurvey
+WritingEvaluation
+2 min3 min3 min10 min2 min
+Total Processing Time: 20 minutesProcessing Pipeline Timeline for Survey Generation
+Figure 6: Processing timeline showing the duration of each stage in the survey generation pipeline.
+Typical total runtime is 15–20 minutes; the example shown sums to 20 minutes with survey writing
+dominating the total processing time.
+Additionally, the systematic approach providesobjectivityin paper selection and treatment, reducing
+author bias that can influence manual surveys.
+However, human-authored surveys retain advantages in several critical areas. Human researchers
+excel at identifyingsubtle theoretical contributionsthat may not be explicitly stated in abstracts or
+23
+
+--- Page 24 ---
+learning context human
+preferencemodelingevaluationbenchmarksinstructionfollowingrobotic
+manipulationcontrol modelsgroupteaming
+adversarialembodiedphysicalinteractionprompt
+Keywords0100200300400500600700800Weighted Frequency (by cluster size)856
+358 354 345 345330307289 289
+200 200 200176 176157 157
+116 116 116 115Top 20 Keywords Across All Survey Clusters
+learning context human
+preferencemodelingevaluationbenchmarksinstructionfollowingrobotic
+manipulationcontrol modelsgroupteaming
+adversarialembodiedphysicalinteractionprompt
+Keywords0100200300400500600700800Weighted Frequency (by cluster size)Keyword Distribution by Survey Topic
+In-Context Learning
+RLHF Alignment
+Multimodal RL
+Synthetic DataFigure 7: Keyword frequency analysis across survey topics showing thematic emphasis variations.
+titles. They providehistorical contextby drawing on years of domain expertise and understanding
+of research evolution. Human authors conductdeeper critical analysis, questioning fundamental
+assumptions and methodological choices in ways that current AI systems cannot replicate. Most
+importantly, humans demonstratecreative synthesisin proposing novel research directions that
+emerge from deep understanding rather than pattern matching.
+I Ethical Considerations
+The deployment of automated survey generation systems raises important ethical considerations
+that must be addressed.Transparencyabout the AI-generated nature of surveys is essential for
+maintaining academic integrity. All surveys produced by our system should be clearly labeled as
+AI-generated, allowing readers to appropriately contextualize the content. This transparency extends
+to acknowledging the system’s limitations and potential biases in paper selection and synthesis.
+Bias propagationrepresents a significant concern, as the system may perpetuate biases present in
+training data, API search algorithms, or clustering methods. These biases could systematically exclude
+certain research perspectives, methodologies, or author demographics. Continuous monitoring and
+adjustment of the system’s operation is necessary to ensure fair representation of diverse research
+contributions and perspectives.
+Theimpact on academic labordeserves careful consideration. While our system augments researcher
+capabilities by automating time-consuming literature review tasks, widespread adoption could affect
+traditional academic roles such as research assistants and junior researchers who often conduct initial
+literature surveys. We advocate for positioning AI survey generation as a tool to enhance rather than
+replace human scholarly work, freeing researchers to focus on higher-level analysis and creative
+synthesis.
+24
+
+--- Page 25 ---
+J Future Directions
+Several promising research directions emerge from our work on automated survey generation.Hi-
+erarchical processingstrategies could address scalability limitations by implementing multi-level
+summarization and clustering approaches. This would enable processing of very large corpora
+through recursive aggregation, where initial surveys of paper subsets are themselves synthesized
+into comprehensive meta-surveys.Interactive refinementmechanisms would allow researchers
+to provide feedback during generation, guiding the system toward specific aspects of interest or
+correcting misinterpretations in real-time. This human-in-the-loop approach could combine the
+efficiency of automation with the expertise of domain specialists.
+Cross-domain adaptationpresents opportunities to extend the framework beyond LLM research
+to other scientific fields. This would require developing domain-specific embeddings, citation
+conventions, and quality criteria while maintaining the core architectural principles.Continuous
+learningcapabilities could enable the system to improve over time by analyzing the reception,
+citations, and corrections of generated surveys, creating a feedback loop for quality enhancement.
+Finally,multimodal integrationwould enrich surveys by incorporating figures, tables, and equations
+directly from source papers, providing readers with visual and mathematical content alongside textual
+synthesis.
+K Subagent Prompts
+This appendix presents the actual prompts used to invoke each specialized subagent in the Agentic
+AutoSurvey pipeline through Claude Code’s Task tool.
+K.1 Paper Search Specialist Agent Prompt
+Paper Search Specialist Subagent Invocation
+Task(
+subagent_type="paper-search-specialist",
+description="Search papers on [TOPIC]",
+prompt="""
+Search for academic papers on the topic: [TOPIC]
+Your task:
+1. Generate 20-30 diverse search queries including:
+- Core keyword as-is
+- Synonyms and variations
+- Related technical terms
+- Compound queries with AND/OR operators
+- Acronym expansions/contractions
+2. Search using both Semantic Scholar and arXiv APIs
+3. Deduplicate results (90% title similarity threshold)
+4. Filter for papers from 2020-2025
+5. Ensure abstracts are complete
+6. Target 100-150 papers for comprehensive coverage
+Return a structured JSON with:
+- search_queries: list of queries used
+- papers: list with title, authors, year, abstract, citations
+- statistics: papers found, filtered, final count
+Focus on quality and relevance over quantity.
+"""
+)
+25
+
+--- Page 26 ---
+K.2 Topic Mining & Clustering Agent Prompt
+Topic Mining & Clustering Subagent Invocation
+Task(
+subagent_type="topic-mining-clustering",
+description="Cluster papers into themes",
+prompt="""
+Cluster the provided papers into thematic groups for survey organization.
+Your task:
+1. Load papers from the provided JSON file
+2. Generate embeddings using sentence-transformers
+3. Apply K-means clustering with optimal K selection:
+- Test K values from 5 to 15
+- Use silhouette score for optimization
+- Select K with highest silhouette score
+4. Generate cluster names using TF-IDF on titles/abstracts
+5. Identify inter-cluster relationships and outliers
+Return structured output with:
+- clusters: id, name, papers, key_terms, statistics
+- relationships: cluster pairs and relationship strength
+- quality_metrics: silhouette, calinski-harabasz, davies-bouldin
+- outliers: papers with low cluster confidence
+Ensure clusters are meaningful and balanced in size.
+"""
+)
+K.3 Academic Survey Writer Agent Prompt
+Academic Survey Writer Subagent Invocation
+Task(
+subagent_type="academic-survey-writer",
+description="Generate comprehensive survey",
+prompt="""
+Generate a comprehensive academic survey from the clustered papers.
+Requirements:
+1. Structure:
+- Abstract (200-300 words)
+- Introduction with motivation and contributions
+- One section per cluster with synthesis
+- Cross-cutting analysis section
+- Future directions
+- Conclusion
+2. Writing guidelines:
+- Target 8,000-12,000 words
+- Cite at least 80% of papers
+- Use [Author, Year] citation format
+- Focus on synthesis over enumeration
+- Identify patterns and trends
+- Compare methodologies
+26
+
+--- Page 27 ---
+- Highlight research gaps
+3. Quality criteria:
+- Academic rigor and clarity
+- Comprehensive coverage across clusters
+- Critical analysis not just summary
+- Smooth transitions between sections
+- Technical accuracy
+Generate a publication-quality survey that provides genuine
+insights and value to researchers in the field.
+"""
+)
+K.4 Quality Evaluator Agent Prompt
+Quality Evaluator Subagent Invocation
+Task(
+subagent_type="survey-quality-evaluator",
+description="Evaluate survey quality",
+prompt="""
+Evaluate the generated survey using a comprehensive 12-dimensional framework.
+The survey was generated from [N] papers on [TOPIC], organized into [K] clusters.
+EVALUATION FRAMEWORK:
+CORE QUALITY (60% weight):
+1. Citation Coverage - % of papers cited effectively
+- Calculate exact percentage of corpus cited
+- Assess distribution across clusters
+- Check for key papers inclusion
+2. Accuracy - Factual correctness and attribution
+- Verify claims are properly supported
+- Check author/year attribution accuracy
+- Identify any unsupported generalizations
+3. Synthesis Quality - Integration vs mere listing
+- Measure synthesis ratio (integrated vs sequential)
+- Identify cross-paper connections
+- Evaluate comparative analysis depth
+4. Organization - Logical flow and structure
+- Assess section/subsection hierarchy
+- Evaluate transition quality
+- Check information progression logic
+WRITING QUALITY (20% weight):
+5. Readability - Clarity for target audience
+- Sentence complexity and variety
+- Technical term introduction/explanation
+- Paragraph coherence
+6. Academic Rigor - Adherence to scholarly standards
+27
+
+--- Page 28 ---
+- Citation format consistency
+- Methodological transparency
+- Limitation acknowledgment
+7. Clarity - Precision in technical descriptions
+- Concept explanation quality
+- Ambiguity identification
+- Example usage effectiveness
+8. Coherence - Internal consistency
+- Thematic consistency
+- Cross-reference accuracy
+- Narrative flow maintenance
+CONTENT DEPTH (20% weight):
+9. Comprehensiveness - Breadth of topic coverage
+- Cluster representation completeness
+- Temporal coverage (publication years)
+- Geographic/institutional diversity
+10. Critical Analysis - Depth of evaluation
+- Limitation discussion depth
+- Conflicting findings acknowledgment
+- Methodological critique presence
+11. Novelty & Insights - Original contributions
+- Novel connections identified
+- Pattern recognition quality
+- Taxonomy/framework contributions
+12. Future Directions - Research trajectory identification
+- Specificity of proposed directions
+- Feasibility assessment
+- Gap identification quality
+OUTPUT REQUIREMENTS:
+Provide detailed JSON with:
+- dimensional_scores: {
+dimension_name: {
+score: 0-10,
+weight: percentage,
+justification: detailed explanation,
+metrics: quantitative measures,
+specific_examples: 3+ concrete examples
+}
+}
+- overall_assessment: {
+weighted_total_score: calculated score,
+score_breakdown: by category,
+quality_level: grade and description,
+publication_readiness: specific assessment
+}
+- comparison_to_standards: {
+vs_acm_computing_surveys: assessment,
+28
+
+--- Page 29 ---
+vs_conference_surveys: assessment,
+vs_workshop_papers: assessment
+}
+- strengths: [7+ specific strengths with evidence]
+- weaknesses: [7+ specific weaknesses with evidence]
+- prioritized_recommendations: [
+{priority: HIGH/MEDIUM/LOW,
+recommendation: specific action,
+impact: expected improvement,
+effort: implementation difficulty}
+]
+- executive_summary: 200-word synthesis
+Use nuanced, context-aware evaluation rather than rigid rules.
+Consider the specific domain, corpus size, and clustering quality.
+Be critical but fair, acknowledging both achievements and gaps.
+Save detailed results to: [output_path]/enhanced_evaluation_v3.json
+"""
+)
+29

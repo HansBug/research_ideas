@@ -1,0 +1,1475 @@
+--- Page 1 ---
+Accelerating Clinical Evidence Synthesis with Large Language Models
+Zifeng Wang1, Lang Cao1, Benjamin Danek1, Qiao Jin2, Zhiyong Lu2, Jimeng Sun1,3#
+1Department of Computer Science, University of Illinois Urbana-Champaign, Champaign,
+IL
+2National Center for Biotechnology Information, National Library of Medicine, Bethesda,
+MD
+3Carle Illinois College of Medicine, University of Illinois Urbana-Champaign, Champaign, IL
+#Corresponding authors. Emails: jimeng@illinois.edu
+Abstract
+Synthesizing clinical evidence largely relies on systematic reviews of clinical trials and
+retrospective analyses from medical literature. However, the rapid expansion of publi-
+cations presents challenges in efficiently identifying, summarizing, and updating clinical
+evidence. Here, we introduce TrialMind , a generative artificial intelligence (AI) pipeline
+for facilitating human-AI collaboration in three crucial tasks for evidence synthesis: study
+search, screening, and data extraction. To assess its performance, we chose published sys-
+tematic reviews to build the benchmark dataset, named TrialReviewBench , which con-
+tains 100 systematic reviews and the associated 2,220 clinical studies. Our results show
+that TrialMind excels across all three tasks. In study search, it generates diverse and
+comprehensive search queries to achieve high recall rates (Ours 0.711-0.834 v.s. Human
+baseline 0.138-0.232). For study screening, TrialMind surpasses traditional embedding-
+based methods by 30% to 160%. In data extraction, it outperforms a GPT-4 baseline
+by 29.6% to 61.5%. We further conducted user studies to confirm its practical utility.
+Compared to manual efforts, human-AI collaboration using TrialMind yielded a 71.4%
+recall lift and 44.2% time savings in study screening and a 23.5% accuracy lift and 63.4%
+time savings in data extraction. Additionally, when comparing synthesized clinical evi-
+dence presented in forest plots, medical experts favored TrialMind ’s outputs over GPT-4’s
+outputs in 62.5% to 100% of cases. These findings show the promise of LLM-based ap-
+proaches like TrialMind to accelerate clinical evidence synthesis via streamlining study
+search, screening, and data extraction from medical literature, with exceptional perfor-
+mance improvement when working with human experts.
+1arXiv:2406.17755v2  [cs.CL]  28 Oct 2024
+
+--- Page 2 ---
+Introduction
+Clinical evidence is crucial for supporting clinical practices and advancing new drug devel-
+opment and needs to be updated regularly.1It is primarily gathered through retrospective
+analysis of real-world data or through prospective clinical trials that assess new interven-
+tions on humans. Researchers usually conduct systematic reviews to consolidate evidence
+from various clinical studies in the literature.2,3However, this process is expensive and
+time-consuming, requiring an average of five experts and 67.3 weeks based on an analysis
+of 195 systematic reviews.4Moreover, the fast growth of clinical study databases means
+that the information in these published clinical reviews becomes outdated rapidly.5For
+instance, PubMed has indexed over 35M citations and gets over 1M new citations an-
+nually.6This situation underscores the urgent need to streamline the systematic review
+processes to document systematic and timely clinical evidence from the extensive medical
+literature.1,7
+Large language models (LLMs) excel at information processing and generating. They
+can be adapted to target tasks by providing the task definition and examples as the inputs
+(namely “prompts”).8Researchers have tried to adopt LLMs for many individual tasks
+in the evidence synthesis process, including generating searching queries,9,10extracting
+studies’ population, intervention, comparison, outcome (PICO) elements,11,12screening
+citations,13and summarizing findings from multiple studies.14–17However, few have inves-
+tigated LLMs’ effectiveness across the entire evidence synthesis process.18This is crucial
+because it ensures a seamless integration of AI in every step, potentially improving overall
+efficiency and accuracy. Understanding the strengths and limitations of LLMs in a holistic
+manner enables more effective automation and human-AI collaboration. To fill this gap,
+we created a testing dataset TrialReviewBench that covers major tasks in evidence syn-
+thesis, including study search, screening, and data extraction tasks. We chose published
+systematic reviews to create the dataset. As a result, the dataset includes 100 systematic
+reviews with 2,220 associated clinical studies. It also consists of manual annotations of
+1,334 study characteristics and 1,049 study results. Based on TrialReviewBench , we are
+able to assess cutting-edge LLMs, e.g., GPT-4,19in clinical evidence synthesis tasks.
+Furthermore, this study aims to fill the gap in adapting LLMs to evidence synthesis
+tasks, overcoming LLM’s limitations in (1) hallucinations, (2) weakness in reasoning with
+numerical data, (3) overly generic outputs, and (4) lack of transparency and reliability.20
+Specifically, we developed an AI-driven pipeline named TrialMind , which is optimized for
+(1) generating boolean queries to search citations from the literature; (2) building eligibil-
+ity criteria and screening through the found citations; and (3) extracting data, including
+study protocols, methods, participant baselines, study results, etc., from publications and
+reports. More importantly, TrialMind breaks down into subtasks that adhere to the es-
+tablished practice of systematic reviews,21which facilitates experts in the loop to monitor,
+edit, and verify intermediate outputs. It also has the flexibility to allow experts to begin
+at any intermediate step as needed.
+In this study, we show that the TrialMind is able to 1) retrieve a complete list of tar-
+get studies from the literature, 2) follow the specified eligibility criteria to rank the most
+relevant studies at the top, and 3) achieve high accuracy in extracting information and
+clinical outcomes from unstructured documents based on user requests. Beyond providing
+descriptive evidence, TrialMind can extract numerical clinical outcomes to be standard-
+ized as input for meta-analysis (e.g., forest plots). A human evaluation was conducted to
+assess the synthesized evidence. Finally, to validate the practical benefits, we developed
+an accessible web application based on TrialMind and conducted a user study compar-
+ing two approaches: AI-assisted experts versus standalone experts. We measured the
+time savings and evaluated the output quality of each approach. The results show that
+TrialMind significantly reduced the time required for study search, citation screening,
+and data extraction, while maintaining or improving the quality of the output compared
+to experts working alone.
+2
+
+--- Page 3 ---
+Literature screening
+• Eligibility criteria
+generation
+• Eligibility prediction
+• Study relevance ranking
+Ranked studiesLiterature search
+• Query generation
+• Query augmentation
+Identified studiesData extraction
+• Information extraction
+• Links to the sources
+Study characteristicsEvidence synthesis
+• Clinical outcome extraction
+• Clinical evidence
+synthesis
+Clinical evidence
+23
+4 Literature screening
+•Is a clinical study
+•Report on safety
+outcomes include neurotoxicity, …
+•Report on efficacy outcomes include
+overall response, …
+…
+List of eligibility criteria
+GenerateCheck,
+edit, and add
+Identified
+studies
+Scan and
+predictS1
+S2C#1 C#2 C#3……
+Criterion -level eligibility predictions
+Studies
+identified
+(n = 1000)Studies after
+first- round
+screening
+(n = 200)Studies ranked
+at the top
+(n = 20)
+Studies excluded (n = 800)
+•Not eligible to C#1
+•Not eligible to C#2
+•…Aggregate criterion-
+level
+predictionsEligibility criteria
+generation1
+Eligibility prediction2
+Study selection & ranking3Data extraction
+[
+    {        "name":"n ",
+        "desc":"Number  of samples",
+        "value":100,
+        "src": [0, 1]
+    },    ...
+]Content of the involved studies
+Extracted fields
+𝑁𝑁 Identified
+studiesDoc parsing and
+extraction
+Tables
+TextsFigures
+ExtractionRefer to the
+source
+1
+23Literature search
+Treatment terms
+Condition termsRetrieveCAR -T,
+Immunotherapy,
+T-cell transfer, …
+Lymphoma, Leukemia,
+Multiple
+Myeloma, …
+Outcome terms
+(optional)Overall response,
+complete response, …Generate
+and augment
+Identified studies 13
+Evidence extraction and synthesis
+#Overall Survival #Overall Response
+#Complete Remission #Objective Response Rate
+…Study #1 Study #2 Study #3
+#Overall ResponseExtract the results of target clinical endpoints
+Standardize the results and make aggregated analysis
+#Overall SurvivalBlood tumor
+Solid tumor
+Qualitative analysis and result summarizationResults : 20 studies (1000
+patients) were included.
+The pooled overall survival
+and overall response were
+…Conclusion : Our study
+suggests that CAR- T
+therapy has demonstrated
+efficacy and safety in blood
+cancer …
+1
+2
+31
+Check, edit, and add
+2
+Population
+Intervention
+Comparison
+Outcome
+×𝑁𝑁
+PICO
+elements
+a
+bFigure 1: The overview of TrialMind pipeline. a , it has four main steps: literature
+search, literature screening, data extraction, and evidence synthesis. b, (1) Utilizing input
+PICO elements, TrialMind generates key terms to construct Boolean queries for retrieving
+studies from literature databases. (2) TrialMind formulates eligibility criteria, which users can
+edit to provide context for LLMs during eligibility predictions. Users can then select studies
+based on these predictions and rank their relevance by aggregating them. (3) TrialMind
+processes the descriptions of target data fields to extract and output the required information
+as structured data. (4) TrialMind extracts findings from the studies and collaborates with
+users to synthesize the clinical evidence.
+3
+
+--- Page 4 ---
+Results
+Creating TrialReviewBench from medical literature
+A systematic understanding of cancer treatments is crucial for oncology drug discovery and
+development. We retrieved a list of cancer treatments from the National Cancer Institute’s
+introductory page as the keywords to search medical systematic reviews.22To ensure data
+quality, we crafted comprehensive queries with automatic filtering and manual screening.
+For each review, we obtained the list of studies with their PubMed IDs, retrieved their full
+content, and extracted study characteristics and clinical outcomes. We followed PubMed’s
+usage policy and guidelines during retrieval. Further manual checks were performed to
+correct inaccuracies, eliminate invalid and duplicate papers, and refine the text for clarity
+(Methods). The final TrialReviewBench dataset consists of 2,220 studies involved in 100
+reviews (Fig. 2a), covering four major topics: Immunotherapy, Radiation/Chemotherapy,
+Hormone Therapy, and Hyperthermia. We manually created three major evaluation tasks
+based on these reviews: study search, study screening, and data extraction.
+The study search task begins with the PICO (Population, Intervention, Comparison,
+Outcome) elements extracted from the abstract of a systematic review, which serve as the
+formal definition of the research question. The model being tested is tasked with generat-
+ing relevant keywords for the treatment and condition terms, as depicted in Fig. 2e. These
+keywords are then used to form Boolean queries, which are submitted to search citations
+in the PubMed database. The performance of the model is evaluated by checking whether
+the retrieved studies include those that were actually involved in the target systematic
+review. The recall rate is computed by measuring the proportion of actually involved
+studies identified through the search.
+For the study screening task, the input consists of the PICO elements defined in the
+target systematic review. A candidate set of 2,000 citations is created by combining the
+actual studies included in the review with additional citations retrieved during the search
+but not included in the review. The model being tested ranks these citations based on
+the likelihood that each citation should be included in the systematic review. To assess
+the model’s performance, we compute Recall@ k: the recall value indicating how many of
+the actual included studies appear in the top kranked candidates.
+The data extraction task focuses on retrieving specific information from the input
+study documents. In this case, we extract Table 1 from each systematic review, which
+typically details study characteristics such as study design, population demographics,
+and outcome measurements. These characteristics are matched to the individual studies
+and manually verified, yielding 1,334 study characteristic annotations. Additionally, we
+extract individual study results from the review’s reported analysis, often presented in
+forest plots, capturing metrics such as overall response and event rates, resulting in 1,049
+study result annotations. The model being tested is given a list of target data points to
+extract, and its output is evaluated by assessing the accuracy of the extracted information
+based on the annotated datasets.
+Build an LLM-driven system for clinical evidence synthesis
+Large language models (LLMs) excel in adapting to new tasks when provided with task-
+specific prompts while often struggling with complex tasks that require multiple steps of
+planning and reasoning. Additionally, interacting and collaborating with LLMs can be
+problematic due to their opaque nature and the complexity of debugging.23In this study,
+we developed TrialMind that decomposes the clinical evidence synthesis process into four
+main tasks (Fig. 1 and Methods). Initially, using the provided research question enriched
+with population, intervention, comparison, and outcome (PICO) elements, TrialMind
+conducts a comprehensive search from the literature. It also works with users to build the
+eligibility criteria for target studies and then automate screening and ranking identified
+citations. Next, TrialMind browses the study details to extract the study characteristics
+and pertinent findings. To ensure the accuracy and integrity of the data, each output is
+linked to the sources for manual inspection. In the final step, TrialMind standardizes the
+4
+
+--- Page 5 ---
+a
+List of generated terms
+subject to add, remove, or edit
+Call to expand to
+more termsCombine the terms to build
+search queriesb
+c
+d
+e
+Systematic review
+Title: Progression- Free Survival and Overall Survival
+of CDK 4/6 Inhibitors Plus Endocrine Therapy in
+Metastatic Breast Cancer: A Systematic Review and
+Meta -Analysis
+Abstract : The introduction of CDK4/6 inhibitors in
+combination with endocrine therapy (ET) represents the most relevant advance in the management of hormone receptor (HR) positive, HER2- negative
+metastatic breast cancer over the last few years.
+ […]
+Manual
+{    "Condition": ["HR -positive", "HER2 -negative",
+"metastatic breast cancer"],    "Treatment": ["CDK4/6 inhibitors", "endocrine
+therapy", "hormone therapy", "hormone receptors"],}{    "Condition": [        "metastatic breast cancer",
+        "HR- positive breast cancer",
+        "HER2 -negative breast cancer",
+        "hormone receptor positive breast cancer",
+        "visceral metastases",
+        "metastatic sites",
+        "treatment -free interval",
+        "aromatase inhibitor -sensitive",
+        "AI-sensitive",
+        "AI-resistant"],
+    "Treatment": [        "CDK4/6 inhibitors",
+        "endocrine therapy",
+        "palbociclib",
+        "ribociclib ",
+        "abemaciclib",
+        "progression- free survival",
+        "overall survival",
+        "objective response rate",
+        "aromatase inhibitors",
+        "hormonal therapy"]
+}GPT-4 TrialMind
+{    "Conditions": [        "advanced breast cancer",
+        "progressive breast cancer",
+        "HER2 - breast cancer",
+        "hormone receptor -positive breast cancer",
+        "HER2 -negative breast cancer",
+        "HR- positive breast cancer",
+        "locally advanced breast cancer",
+        "stage IV breast cancer",
+        "metastatic breast cancer",
+        "relapsed breast cancer"],
+    "Treatments": [        "palbociclib",
+        "Verzenio",
+        "Ibrance",
+        "Kisqali ",
+        "endocrine therapy",
+        "hormonal therapy",
+        "abemaciclib",
+        "ribociclib ",
+        "cyclin -dependent kinase 4/6 inhibitors",
+        "CDK4/6 inhibitors"],
+}Figure 2: Literature search experiment results. a , The total number of involved studies
+and the number of review papers across different topics. b, The TrialMind ’s interface for
+users to retrieve studies. c, the Recall of the search results for reviews across four topics. The
+bar heights indicate the Recall, and the star indicates the number of studies found. d, Scatter
+plots of the Recall against the number of ground-truth studies. Each scatter indicates the
+results of one review. Regression estimates are displayed with the 95% CIs in blue or purple.
+e, Example cases comparing the outputs of three methods.
+5
+
+--- Page 6 ---
+clinical outcomes for meta-analysis.
+TrialMind can make a comprehensive retrieval of studies from the
+literature
+Finding relevant studies from medical literature like PubMed, which contains over 35
+million entries, can be challenging. Typically, this requires the research expertise to
+craft complex queries that comprehensively cover pertinent studies. The challenge lies in
+balancing the specificity of queries: too stringent, and the search may miss relevant studies;
+too broad, and it becomes impractical to manually screen the overwhelming number of
+results. Previous approaches propose to prompt LLMs to generate the searching query
+directly,9which can induce incomplete searching results due to the limited knowledge of
+LLMs. In contrast, TrialMind is designed to produce comprehensive queries through a
+pipeline that includes query generation, augmentation, and refinement. It also provides
+users with the ability to make further adjustments (Fig. 2b).
+The dataset involving clinical studies spanning ten cancer treatment areas was used for
+evaluation (Fig. 2a). For each review, we collected the involved studies’ PubMed IDs as
+the ground-truth and measured the Recall, i.e., how many ground-truth studies are found
+in the search results. We created two baselines as the comparison: GPT-4 and Human.
+The GPT-4 baseline makes a guided prompt for LLMs to generate the boolean queries.9
+It represents the common way of prompting LLMs for literature search query generation.
+The Human baseline represents a way where the key terms from PICO elements are
+extracted manually and expanded, referring to UMLS,24to construct the search queries.
+Overall, TrialMind achieved a Recall of 0.782 on average for all reviews in TrialReviewBench ,
+meaning it can capture most of the target studies. By contrast, the GPT-4 baseline yielded
+Recall = 0.073, and the Human baseline yielded Recall = 0.187. We divided the search
+results across four topics determined by the treatments studied in each review (Fig. 2c).
+Our analysis showed that TrialMind can identify many more studies than the baselines.
+For instance, TrialMind achieved Recall = 0 .797 with identified studies N= 22,084 for
+Immunotherapy-related reviews, while the GPT-4 baseline got Recall = 0 .094 (Nstud-
+ies = 27), and the Human baseline got Recall = 0 .154 (Nstudies = 958), respectively.
+In Radiation/Chemotherapy, TrialMind achieved Recall = 0 .780, the GPT-4 baseline
+got Recall = 0 .020, and the Human baseline got Recall = 0 .138. In Hormone Therapy,
+TrialMind achieved Recall = 0 .711, the GPT-4 baseline got Recall = 0 .067, and the Hu-
+man baseline got Recall = 0 .232. In Hyperthermia, TrialMind achieved Recall = 0 .834,
+the GPT-4 baseline got Recall = 0 .106, and the Human baseline got Recall = 0 .202.
+These results demonstrate that regardless of the search task’s complexity, as indicated by
+the variability in the Human baseline, TrialMind consistently retrieves nearly all target
+studies from the PubMed database. This robust performance provides a solid foundation
+for accurately identifying target studies in the screening phase.
+Furthermore, we made scatter plots of Recall versus the number of target studies for
+each review (Fig. 2d). The hypothesis was that an increase in target studies correlates
+with the difficulty of achieving complete coverage. Our findings reveal that TrialMind
+consistently maintained a high Recall, significantly outperforming the best baselines across
+all 100 reviews. A trend of declining Recall with an increasing number of target studies was
+confirmed through regression analysis. It was found that the GPT-4 baseline struggled,
+showing Recall close to 0, and the Human baseline results varied, with most reviews below
+0.5. As the number of target studies increased, the Human and GPT-4 baselines’ Recall
+decreased to nearly zero. In contrast, TrialMind demonstrated remarkable resilience,
+showing minimal variation in performance despite the increasing number of target studies.
+For instance, in a review involving 141 studies, TrialMind achieved a Recall of 0.99, while
+the GPT-4 and Human baselines obtained a Recall of 0.02 and 0, respectively.
+TrialMind enhances literature screening and ranking
+Typically, human experts manually sift through thousands of retrieved studies to select
+relevant ones for inclusion in a systematic review. This process adheres to the PRISMA
+6
+
+--- Page 7 ---
+Fold Change * Random MedCPT MPNet TrialMind Metric To pi c
+1.7 0.010 0.229 0.258 0.431Recall @20
+Hormone Therapy
+1.5 0.025 0.456 0.460 0.674Recall @50
+1.4 0.010 0.358 0.317 0.518Recall @20
+Hyperthermia
+1.3 0.025 0.542 0.463 0.710Recall @50
+2.6 0.010 0.219 0.193 0.567Recall @20
+Immunotherapy
+2.1 0.025 0.321 0.336 0.713Recall @50
+1.8 0.010 0.202 0.226 0.416Recall @20Radiation /Chemother
+apy1.5 0.025 0.425 0.440 0.654Recall @50
+*TrialMind versus the bestbaseline (MPNet ,MedCPT , or Random )across the row
+Fold change compared to random performances Fold change compared to the best baseline0 >20 5 10 15 0 0.5 1 1.5 2 >2.5a b
+c
+d
+e
+List of eligibility criteria subject
+to add, remove, or edit Eligibility prediction: ineligible
+Eligibility prediction: unknownEligibility prediction: eligibleEligibility
+prediction
+Figure 3: Literature screen experiment results .a, Streamline study screening using
+TrialMind with human in the loop. b, Ranking performances for Recall@20/50 within across
+therapeutic areas. c, Recall@20 and Recall@50 for TrialMind and selected baselines. d,
+Effect of individual criterion on the ranking results. e, Ranking performance for Recall@ K
+with varying Kin four topics. Shaded areas are 95% confidence interval.
+7
+
+--- Page 8 ---
+statement,21which involves creating a list of eligibility criteria and assessing each study’s
+eligibility. TrialMind streamlines this task through a three-step approach: (1) it generates
+a set of inclusion criteria, which are subject to user’s adjustments; (2) it applies these
+criteria to evaluate the study’s eligibility, denoted by {−1,0,1}where −1 and 1 represent
+eligible and non-eligible, and 0 represents unknown/uncertain, respectively; and (3) it
+ranks the studies by aggregating the eligibility predictions, where the aggregation strategy
+can be specified by users (Fig. 3a). We took a summation of the criteria-level eligibility
+predictions as the study-level relevance prediction scores for ranking. As such, TrialMind
+provides a rationale for the relevance scores by detailing the eligibility predictions for each
+criterion.
+We chose MPNet25and MedCPT26as the general domain and medical domain ranking
+baselines, respectively. These methods compute study relevance by the cosine similarity
+between the encoded PICO elements as the query and the encoded study’s abstracts.
+We also set a Random baseline that randomly samples from candidates. We created the
+evaluation data based on the search results in the first stage. For each review, we mixed
+the target studies with the other found studies to build a candidate set of 2,000 studies
+for ranking. Discriminating the target studies from the other candidates is challenging
+since all candidates meet the search queries, meaning they most probably investigate
+the relevant therapies or conditions. We evaluated the ranking performance using the
+Recall@20 and Recall@50 metrics. The concatenation of the title and abstract of each
+study is used for all methods as inputs.
+We found that TrialMind greatly improved ranking performances, with the fold changes
+over the best baselines ranging from 1.3 to 2.6 across four topics (Table 3c). For in-
+stance, for the Hormone Therapy topic, TrialMind obtained Recall@20 = 0 .431 and
+Recall@50 = 0 .674. In the Hyperthermia topic, TrialMind obtained Recall@20 = 0 .518
+and Recall@50 = 0 .710. In the Immunotherapy topic, TrialMind obtained Recall@20 =
+0.567 and Recall@50 = 0 .713. In the Radiation/Chemotherapy topic, TrialMind obtained
+Recall@20 = 0 .416 and Recall@50 = 0 .654. In contrast, other baselines exhibit significant
+variability across different topics. The general domain baseline MPNet was the worst as
+it performed similarly to the Random baseline in Recall@20. MedCPT showed marginal
+improvement over MPNet in the last three topics, while both failed to capture enough
+target studies in all topics.
+Furthermore, TrialMind demonstrated significant improvements over the baselines
+across various therapeutic areas (Fig. 3b). For example, in “Cancer Vaccines” and “Hor-
+mone Therapy,” TrialMind substantially increased Recall@50, achieving 33.33-fold and
+10.53-fold improvements, respectively, compared to the best-performing baseline. TrialMind
+generally attained a fold change greater than 2 (ranging from 1.57 to 33.33). Despite the
+challenge of selecting from a large pool of candidates ( n= 2,000) where candidates were
+very similar, TrialMind identified an average of 43% of target studies within the top 50.
+We compared TrialMind to MedCPT and MPNet for Recall@ K(Kin 10 to 200) to
+gain insight into how Kinfluences the performances (Fig. 3e). We found TrialMind can
+capture most of the target studies (over 80%) when K= 100.
+To thoroughly assess the quality of these criteria and their impact on ranking perfor-
+mance, we conducted a leave-one-out analysis to calculate ∆Recall@200 for each criterion
+(Fig. 3d). The ∆Recall@200 metric measures the difference in ranking performance with
+and without a specific criterion, with a larger value indicating superior criterion quality.
+Our findings revealed that most criteria positively influenced ranking performances, as the
+negative influence criteria are n= 1 in Hormone Therapy, n= 1 in Hyperthermia, n= 5
+in Radiation/Chemotherapy, and n= 7 in Immunotherapy. Additionally, we identified
+redundancies among the generated criteria, as those with ∆Recall@200 = 0 were the most
+frequently observed. This redundancy likely stems from some criteria covering similar
+eligibility aspects, thus not impacting performance when one is omitted.
+8
+
+--- Page 9 ---
+ab
+FP: Hallucinations
+FN: Missing informationActuals:NullActuals:Not NullPredictions:NullPredictions:Not Null
+Study DesignPopulation CharacteristicsStudy ResultsAdd the description of the target study infoFields to be extracted
+Field extraction
+Linked to the sources for each extracted fieldc
+Define the target clinical endpointDefine the target cohort, e.g., by conditions and treatmentsd
+Resultextraction
+… (results in tabular format)e
+fgFigure 4: Data and result extraction experiment results .a, Streamline study informa-
+tion extraction using TrialMind .b, Data extraction accuracy within each field type across
+four topics. c, Confusion matrix showing the hallucination and missing rates in the data
+extraction results. d, Result extraction accuracy across topics. e, Result extraction accuracy
+across clinical endpoints. f, Error analysis of the result extraction. g, Streamline result ex-
+traction using TrialMind .
+9
+
+--- Page 10 ---
+TrialMind scales data and result extraction from unstructured doc-
+uments
+TrialMind leverages LLMs to streamline extracting study characteristics such as target
+therapies, study arm design, and participants’ baseline information from involved studies.
+Specifically, TrialMind refers to the field names and the descriptions from users and use
+the full content of the study documents in PDF or XML formats as inputs (Fig. 4a).
+When the free full content is unavailable, TrialMind accepts the user-uploaded content
+as the input. We developed an evaluation dataset by converting the study characteristic
+tables from each review paper into data points. Our dataset comprises 1,334 target data
+points, including 696 on study design, 353 on population features, and 285 on results. We
+assessed the data extraction performance using the Accuracy metric.
+TrialMind demonstrated strong extraction performance across various topics (Fig. 4b):
+it achieved an accuracy of ACC = 0 .78 (95% confidence interval (CI) = 0.75–0.81) in the
+Immunotherapy topic, ACC = 0 .77 (95% CI = 0.72-0.82) in the Radiation/Chemotherapy
+topic, ACC = 0 .72 (95% CI = 0.63-0.80) in the Hormone Therapy topic, and ACC = 0 .83
+(95% CI = 0.74-0.90) in the Hyperthermia topic. These results indicate that TrialMind
+can provide a solid initial data extraction, which human experts can refine. Importantly,
+each output can be cross-checked by the linked original sources, facilitating verification
+and further investigation.
+Diving deeper into the accuracy across different types of fields, we observed varying
+performance levels. It performed best in extracting study design information, followed by
+population details, and showed the lowest accuracy in extracting results (Fig. 4b). For
+example, in the Immunotherapy topic, TrialMind achieved an accuracy of ACC = 0 .95
+(95% CI = 0.92-0.96) for study design, ACC = 0 .74 (95% CI = 0.67-0.80) for population
+data, and ACC = 0 .42 (95% CI = 0.36-0.49) for results. This variance can be attributed
+to the prevalence of numerical data in the fields: fields with more numerical data are
+typically harder to extract accurately. Study design is mostly described in textual format
+and is directly presented in the documents, whereas population and results often include
+numerical data such as the number of patients or gender ratios. Results extraction is
+particularly challenging, often requiring reasoning and transformation to capture values
+accurately. Given these complexities, it is advisable to scrutinize the extracted numerical
+data more carefully.
+We also evaluated the robustness of TrialMind against hallucinations and missing
+information (Fig. 4c). We constructed a confusion matrix detailing instances of halluci-
+nations: false positives (FP) where TrialMind generated data not present in the input
+document and false negatives (FN) where it failed to extract available target field infor-
+mation. We observed that TrialMind achieved a precision of Precision = 0 .994 for study
+design, Precision = 0 .966 for population, and Precision = 0 .862 for study results. Miss-
+ing information was slightly more common than hallucinations, with TrialMind achiev-
+ing recall rates of Recall = 0 .946 for study design, Recall = 0 .889 for population, and
+Recall = 0 .930 for study results. The incidence of both hallucinations and missing infor-
+mation was generally low. However, hallucinations were notably more frequent in study
+results; this often occurred because LLMs could confuse definitions of clinical outcomes,
+for example, mistaking ‘overall response’ for ‘complete response.’ Nevertheless, such hal-
+lucinations are typically manageable, as human experts can easily identify and correct
+them while reviewing the referenced material.
+The challenges in extracting study results primarily stem from (1) identifying the lo-
+cations that describe the desired outcomes from lengthy papers, (2) accurately extracting
+relevant numerical values such as patient numbers, event counts, durations, and ratios
+from the appropriate patient groups, and (3) performing the correct calculations to stan-
+dardize these values for meta-analysis. In response to these complexities, we developed
+a specialized pipeline for result extraction (Fig. 4g), where users provide the interested
+outcome and the cohort definition. TrialMind offers a transparent extraction workflow,
+documenting the sources of results along with the intermediate reasoning and calculations.
+We compared TrialMind against two generalist LLM baselines, GPT-4 and Sonnet,
+which were prompted to extract the target outcomes from the full content of the study
+10
+
+--- Page 11 ---
+a
+b c dAggregated evidence
+in forest plotClinical studies
+Result extraction Result standardization
+ Scale to all involved studies
+{
+  "Group": "Patients with
+refractory or relapsed
+hematologic or solid
+malignancies treated by
+CAR- T therapy",
+  "N": 9,
+  "Complete Response
+Rate": 0.22}{
+  "Group": "Patients with
+refractory or relapsed
+hematologic or solid malignancies treated by CAR- T therapy",
+  "N": 9,
+  "Results": "6/9 patients
+showed objective clinical
+response; 2/9 achieved
+complete response"
+}
+Generate Python program
+to do the calculation
+e
+gRecall@10 Time spent (seconds)
+P1* P2* ΔRecall P1* P2* Time saving (%)
+Review1 1.000 0.000 1.00 258 594 56.6%
+Review2 0.600 0.600 0.00 1299 423 67.4%
+Review3 0.429 0.429 0.00 619 635 2.5%
+Review4 0.667 0.833 0.17 731 519 29.0%f
+AI+Human Human*P1,P2: short for participant 1 and 271.4%44.2%
+63.4%23.5%Figure 5: Results of human evaluation and user study .a,TrialMind ’s result extraction
+process. b, Winning rate of TrialMind against the GPT-4+Human baseline across studies.
+c, Violin plots of the ratings across studies. Each plot is tagged with the mean ratings (95%
+CI) from all the annotators. d,Violin plots of the ratings across annotators with different
+expertise levels. Each plot is tagged with the mean ratings (95% CI) from all the studies. e,
+Overall performance and time cost of study screening and data extraction tasks, respectively.
+f, Screening time cost and performance across reviews and participants. g, Data extraction
+accuracy across participants and different types of data.
+11
+
+--- Page 12 ---
+documents. Since the baselines can only make text extractions, we manually convert
+them into numbers suitable for meta-analysis.27This made very strong baselines since
+they combined LLM extraction with human post-processing. We assessed the performance
+using the Accuracy metric.
+The evaluation conducted across four topics demonstrated the superiority of TrialMind
+(Fig. 4d). Specifically, in Immunotherapy, TrialMind achieved an accuracy of ACC = 0 .70
+(95% CI 0.62-0.77), while GPT-4 scored ACC = 0 .54 (95% CI 0.45-0.62). In Radia-
+tion/Chemotherapy, TrialMind reached ACC = 0 .65 (95% CI 0.51-0.76), compared to
+GPT-4’s ACC = 0 .52 (95% CI 0.39-0.65). For Hormone Therapy, TrialMind achieved
+ACC = 0 .80 (95% CI 0.58-0.92), outperforming GPT-4, which scored ACC = 0 .50 (95%
+CI 0.30-0.70). In Hyperthermia, TrialMind obtained an accuracy of ACC = 0 .84 (95%
+CI 0.71-0.92), significantly higher than GPT-4’s ACC = 0 .52 (95% CI 0.39-0.65). The
+breakdowns of evaluation results by the most frequent types of clinical outcomes (Fig. 4e)
+showed TrialMind got fold changes in accuracy ranging from 1.05 to 2.83 and a me-
+dian of 1.50 over the best baselines. This enhanced effectiveness is largely attributable
+toTrialMind ’s ability to accurately identify the correct data locations and apply logical
+reasoning, while the baselines often produced erroneous initial extractions.
+We analyzed the error cases in our result extraction experiments and identified four
+primary error types (Fig. 4f). The most common error was ‘Inaccurate’ extraction (n=36),
+followed by ‘Extraction failure’ (n=27), ‘Unavailable data’ (n=10), and ‘Hallucinations’
+(n=3). ‘Inaccurate’ extractions often occurred due to multiple sections ambiguously de-
+scribing the same field. For example, a clinical study might report the total number of
+participants receiving CAR-T therapy early in the document and later provide outcomes
+for a subset with non-small cell lung cancer (NSCLC). The specific results for NSCLC
+patients are crucial for reviews focused on this subgroup, yet the presence of general data
+can lead to confusion and inaccuracies in extraction. ‘Extraction failure’ and ‘Unavail-
+able data’ both illustrate scenarios where TrialMind could not retrieve the information.
+The latter case particularly showcases TrialMind ’s robustness against hallucinations, as it
+failed to extract data outside the study’s main content, such as in appendices, which were
+not included in the inputs. Furthermore, errors caused by hallucinations were minor. The
+outputs were easy to identify and correct through manual inspection since no references
+were provided.
+TrialMind facilitates clinical evidence synthesis via human-AI col-
+laboration
+We selected five systematic review studies as benchmarks and referenced the clinical evi-
+dence reported in the target studies. The baseline used GPT-4 with a simple prompting
+to extract the relevant text pieces that report the target outcome of interest (Methods).
+Manual calculations were necessary to standardize the data for meta-analysis. In con-
+trast, TrialMind automated the extraction and standardization (Fig. 5a by (1) extracting
+the raw result description from the input document and (2) standardizing the results by
+generating a Python program to assist the calculation. The standardized results from all
+involved studies are then fed into the R program by human experts to make the aggregated
+evidence in a forest plot.
+We engaged with human annotators to assess the quality of synthesized clinical evi-
+dence presented in forest plots. Each annotator was asked to evaluate the evidence quality
+by comparing it against the evidence reported in the target review and deciding which
+method, TrialMind or the baseline, produced superior results (Extended Fig. 1). Ad-
+ditionally, they rated the quality of the synthesized clinical evidence on a scale of 1 to
+5. The assignment of our method and the baseline was randomized to ensure objectiv-
+ity. The results highlighted TrialMind ’s superior performance compared to the direct
+use of GPT-4 for clinical evidence synthesis (Fig. 5b). We calculated the winning rate of
+TrialMind versus the baseline across the five studies. The results indicate a consistent
+preference by annotators for the evidence synthesized by TrialMind over that of the base-
+line. Specifically, TrialMind achieved winning rates of 87.5%, 100%, 62.5%, 62.5%, and
+12
+
+--- Page 13 ---
+81.2%, respectively. The baseline’s primary shortcoming stemmed from the initial extrac-
+tion step, where GPT-4 often failed to identify the relevant sources without well-crafted
+prompting. Therefore, the subsequent manual post-processing was unable to rectify these
+initial errors.
+In addition, we illustrated the ratings of TrialMind and the baseline across studies
+(Fig. 5c). We found TrialMind was competent as the GPT-4+Human baseline and out-
+performed the baseline in many scenarios. For example, TrialMind obtained the mean
+rating of 4.25 (95% CI 3.93-4.57) in Study #1 while the baseline obtained 3.50 (95% CI
+3.13-3.87). In Study #2, TrialMind yielded 3.50 (95% CI 3.13-3.87) while the baseline
+yielded 1.25 (95% CI 0.93-1.57). The performance of the two methods was comparable
+in the remaining three studies. These results highlight TrialMind as a highly effective
+alternative to conventional LLM usage in evidence synthesis, streamlining data extraction
+and processing while maintaining the critical benefit of human oversight.
+We requested that annotators self-assess their expertise level in clinical studies, clas-
+sifying themselves into three categories: ‘Basic’, ‘Familiar’, and ‘Advanced’. The typical
+profile ranges from computer scientists at the basic level to medical doctors at the ad-
+vanced level. We then analyzed the ratings given to both methods across these varying
+expertise levels (Fig. 5d). We consistently observed higher ratings for TrialMind than
+the baseline across all groups. Annotators with basic knowledge tended to provide more
+conservative ratings, while those with more advanced expertise offered a wider range of
+evaluations. For instance, the ‘Basic’ group provided average ratings of 3.67 (95% CI
+3.34-3.39) for TrialMind compared to 3.22 (95% CI 2.79-3.66) for the baseline. The ‘Ad-
+vanced’ group rated TrialMind at an average of 3.40 (95% CI 3.16-3.64) and the baseline
+at 3.07 (95% CI 2.75-3.39).
+We conducted user studies to compare the quality and time efficiency between purely
+manual efforts and human-AI collaboration using TrialMind . Two participants were in-
+volved in both study screening and data extraction tasks. For the screening task, each
+participant was assigned 4 systematic review papers, with 100 candidate citations iden-
+tified for each review. The participants were asked to select the 10 most likely relevant
+citations from the candidate pool. Each participant was provided with 2 candidate sets
+pre-ranked by TrialMind and 2 unranked sets. The participants also recorded the time
+taken to complete the screening process for each set. For the data extraction task, each
+participant was given 10 clinical studies. They manually extracted the target information
+for 5 of these studies. For the other 5, TrialMind was first used to perform an initial
+extraction, and the participants were required to verify and correct the extracted results.
+The time taken for the extraction process was reported for each study.
+In Fig. 5e, we present the average performance and time cost for the AI+Human and
+Human-only approaches across both the study screening and data extraction tasks. The
+results demonstrate that the AI+Human approach consistently outperforms the Human-
+only approach. For the screening tasks, AI+Human achieved a 71.4% relative improve-
+ment in Recall, while reducing time by 44.2% compared to the Human-only arm. This
+underscores the significant advantage of TrialMind in accelerating the study screening
+process while also improving its quality. Similarly, for the data extraction tasks, the
+AI+Human approach improved extraction accuracy by 23.5% on average, with a 63.4%
+reduction in time required.
+Detailed results of screening time and performance are shown in Fig. 5f, where two
+reviews showed the AI+Human approach achieving the same Recall as the Human-only
+arm with notable time savings, and in two other reviews, AI+Human achieved higher
+Recall with less time. From Fig. 5g, we see that the AI+Human approach delivered
+better or comparable accuracy across all three types of data, with the smallest gap in
+“Study design”. This is likely because study design information is often readily available
+in the study abstract, making it relatively easier for humans to extract. In contrast, the
+other two data types are embedded deeper within the main content, which can sometimes
+make it challenging for human readers to locate the correct information.
+13
+
+--- Page 14 ---
+Discussion
+Clinical evidence forms the bedrock of evidence-based medicine, crucial for enhancing
+healthcare decisions and guiding the discovery and development of new therapies. It
+often comes from a systematic review of diverse studies found in the literature, encom-
+passing clinical trials and retrospective analyses of real-world data. Yet, the burgeoning
+expansion of literature databases presents formidable challenges in efficiently identifying,
+summarizing, and maintaining the currency of this evidence. For instance, a study by the
+US Agency for Healthcare Research and Quality (AHRQ) found that half of 17 clinical
+guidelines became outdated within a couple of years.28
+The rapid development of large language models (LLMs) and AI technologies has gener-
+ated considerable interest in their potential applications in clinical research.29,30However,
+most of them focused on an individual aspect of the clinical evidence synthesis process,
+such as literature search,31,32citation screening,33–35quality assessment,36or data ex-
+traction.37,38In addition, implementing these models in a manner that is collaborative,
+transparent, and trustworthy poses significant challenges, especially in critical areas such
+as medicine.39For instance, when utilizing LLMs to summarize evidence from multiple
+studies, the descriptive summaries often usually merely echo the findings verbatim, omit
+crucial details, and fail to adhere to established best practices.14Besides, when given a
+set of studies that are irrelevant to the research question, LLMs are prone to produce
+hallucinations and hence cause misleading evidence.40This challenge highlights the need
+for an integrated pipeline, involving the study search and screening stages, to strategically
+pick the target studies for analysis,41,42or enhanced with human-AI collaboration.43
+This study introduces a clinical evidence synthesis pipeline enhanced by LLMs, named
+TrialMind . This pipeline is structured in accordance with established medical systematic
+review protocols, involving steps such as study searching, screening, data/result extrac-
+tion, and evidence synthesis. At each stage, human experts have the capability to access,
+monitor, and modify intermediate outputs. This human oversight helps to eliminate er-
+rors and prevents their propagation through subsequent stages. Unlike approaches that
+solely depend on the knowledge of LLMs, TrialMind integrates human expertise through
+in-context learning and chain-of-thought prompting. Additionally, TrialMind extends
+external knowledge sources to its outputs through retrieval-augmented generation and
+leveraging external computational tools to enhance the LLM’s reasoning and analytical
+capabilities. Comparative evaluations of TrialMind and traditional LLM approaches have
+demonstrated the advantages of this system design in LLM-driven applications within the
+medical field.
+This study also has several limitations. First, despite incorporating multiple tech-
+niques, LLMs may still make errors at any stage. Therefore, human oversight and veri-
+fication remain crucial when implementing TrialMind in practical settings. Second, the
+prompts used in TrialMind were developed based on prompt engineering experience, sug-
+gesting potential for performance enhancement through advanced prompt optimization or
+by fine-tuning the underlying LLMs to suit specific tasks better. Third, while TrialMind
+demonstrated effectiveness in study search, screening, and data extraction, the dataset
+used was limited in size due to the high costs associated with human labeling. Future re-
+search could expand on these findings with larger datasets to further validate the method’s
+effectiveness. Fourth, the study coverage was restricted to publicly available sources from
+PubMed Central, which provides structured PDFs and XMLs. Many relevant studies are
+either not available on PubMed or are in formats that entail OCR algorithms as pre-
+processing, indicating a need for further engineering to incorporate broader data sources.
+Fifth, although TrialMind illustrated the potential of using advanced LLMs like GPT-
+4 to streamline clinical evidence synthesis, developing techniques to adapt the pipeline
+for use with other LLMs could increase its applicability. Finally, while the use of LLMs
+like GPT-4 can accelerate study screening and data extraction, the associated costs and
+processing times may present bottlenecks in some scenarios. Future enhancements that
+improve efficiency or utilize localized, specialized smaller models could increase practical
+utility.
+LLMs have made significant strides in AI applications. TrialMind exemplifies a crucial
+14
+
+--- Page 15 ---
+aspect of system engineering in LLM-driven pipelines, facilitating the practical, robust,
+and transparent use of LLMs. We anticipate that TrialMind will benefit the medical AI
+community by fostering the development of LLM-driven medical applications and empha-
+sizing the importance of human-AI collaboration.
+Methods
+Description of the TrialReviewBench Dataset
+The overall flowchart for the study identification and screening process in building TrialReviewBench
+is illustrated in Extended Fig. 2.
+Database search and initial filtering We undertook a comprehensive search on
+the PubMed database for meta-analysis papers related to cancer. The Boolean search
+terms were specifically chosen to encompass a broad spectrum of cancer-related top-
+ics. These terms included “cancer”, “oncology”, “neoplasm”, “carcinoma”, “melanoma”,
+“leukemia”, “lymphoma”, and “sarcoma”. Additionally, we incorporated terms related
+to various treatment modalities such as “therapy”, “treatment”, “chemotherapy”, “radi-
+ation therapy”, “immunotherapy”, “targeted therapy”, “surgical treatment”, and “hor-
+mone therapy”. To ensure that our search was exhaustive yet precise, we also included
+terms like “meta-analysis” and ”systematic review” in our search criteria.
+This initial search yielded an extensive pool of 46,192 results, reflecting the vast re-
+search conducted in these areas. We applied specific filters to refine these results and
+ensure relevance and quality. We focused on articles where PMC Full text was available
+and specifically categorized under “Meta-Analysis”. Further refinement was done by re-
+stricting the time frame of publications to those between January 1, 2020, and January
+1, 2023. We also narrowed our focus to studies conducted on humans and those available
+in English. This filtration process was critical in distilling the initial results into a more
+manageable and focused collection of 2,691 papers.
+Refinement Building upon our initial search, we employed further refinement tech-
+niques using both MeSH terms and specific keywords. The MeSH terms were carefully
+selected to target papers precisely relevant to various forms of cancer. These terms in-
+cluded “cancer”, “tumor”, “neoplasms”, “carcinoma”, “myeloma”, and “leukemia”. This
+focused approach using MeSH terms effectively reduced our selection to 1,967 papers.
+To further dive in on papers investigating cancer therapies, we utilized many keywords
+derived from the National Cancer Institute’s “Types of Cancer Treatment” list. This ap-
+proach was multi-faceted, with each set of keywords targeting a specific category of cancer
+therapy. For chemotherapy, we included terms like “chemotherapy”, “chemo”, and related
+variations. In the realm of hormone therapy, we searched for phrases such as ”hormone
+therapy”, ”hormonal therapy”, and similar terms. The keyword group for hyperther-
+mia encompassed terms like “hyperthermia”, “microwave”, “radiofrequency”, and related
+technologies. For cancer vaccines, we included keywords such as “cancer vaccines”, “can-
+cer vaccine”, and other related terms. The search for immune checkpoint inhibitors and
+immune system modulators was comprehensive, including terms like “immune checkpoint
+inhibitors”, “immunomodulators”, and various cytokines and growth factors. Lastly, our
+search for monoclonal antibodies and T-cell transfer therapy included relevant terms like
+“monoclonal antibodies”, “t-cell therapy”, “car-t”, and other related phrases.
+The careful application of keyword filtering played a crucial role in narrowing down our
+pool of research papers to a more focused and relevant set of 352. It represents a diverse
+and meaningful collection of studies in cancer therapy, highlighting a range of innovative
+and impactful research within this field.
+Manual screening of titles and abstracts Then, we manually screened titles
+and abstracts, applying a rigorous classification and sorting methodology. The remaining
+papers were first categorized based on the type of cancer treatment they explored. We
+15
+
+--- Page 16 ---
+then organized these papers by their citation count to gauge their impact and relevance
+in the field. Our selection criteria aimed to enhance the quality and relevance of our final
+dataset. We prioritized papers that focused on the study of treatment effects, such as
+safety and efficacy, of various cancer interventions. We preferred studies that compared
+individual treatments against a control group, as opposed to those examining the effects
+of combined therapies (e.g., Therapy A+B vs. A only). To build a list of representative
+meta-analyses, we needed to ensure diversity in the target conditions under each treatment
+category.
+Further, we favored studies that involved a larger number of individual studies, pro-
+viding a broader base of evidence. However, we excluded network analysis studies and
+meta-analyses that focused solely on prognostic and predictive effects, as they did not
+align with our primary research focus. To maintain a balanced representation, we limited
+our selection to a maximum of three papers per treatment category. This process culmi-
+nated in a final dataset comprising 100 systematic review papers. This curated collection
+forms the backbone of our analysis, ensuring a concentrated and pertinent selection of
+high-quality studies directly relevant to our research objectives.
+LLM Prompting
+Prompting steers LLMs to conduct the target task without training the underlying LLMs.
+TrialMind proceeds clinical evidence synthesis in multiple steps associated with a series
+of prompting techniques.
+In-context learning LLMs exhibit a profound ability to comprehend input requests
+and adhere to provided instructions during generation. The fundamental concept of in-
+context learning (ICL) is to enable LLMs to learn from examples and task instructions
+within a given context at inference time.8Formally, for a specific task, we define Tas the
+task prompt, which includes the task definition, input format, and desired output format.
+During a single inference session with input X, the LLM is prompted with P(T, X), where
+P(·) is a transformation function that restructures the task definition Tand input Xinto
+the prompt format. The output ˆXis then generated as ˆX= LLM( P(T, X)).
+Retrieval-augmented generation LLMs that rely solely on their internal knowl-
+edge often produce erroneous outputs, primarily due to outdated information and hallu-
+cinations. This issue can be mitigated through retrieval-augmented generation (RAG),
+which enhances LLMs by dynamically incorporating external knowledge into their prompts
+during generation.44We denote RK(·) as the retriever that utilizes the input Xto source
+relevant contextual information through semantic search. RK(·) enables the dynamic
+infusion of tailored knowledge into LLMs at inference time.
+Chain-of-thought Chain-of-though (CoT) guides LLMs in solving a target task in a
+step-by-step manner in one inference, hence handling complex or ambiguous tasks better
+and inducing more accurate outputs.45CoT employs the function PCoT(·) to structure
+the task Tinto a series of chain-of-thought steps {S1, S2, . . . , S T}. As a result, we obtain
+{ˆX1
+S, . . . , ˆXT
+S}= LLM( PCoT(T, X)), all produced in a single inference session. This is
+rather critical when we aim to elicit the thinking process of LLM and urge it in self-
+reflection to improve its response. For instance, we may ask LLM to draft the initial
+response in the first step and refine it in the second.
+LLM-driven pipeline Clinical evidence synthesis involves a multi-step workflow as
+outlined in the PRISMA statement.21It can be generally outlined as identifying and
+screening studies from databases, extracting characteristics and results from individual
+studies, and synthesizing the evidence. To enhance each step’s performance, task-specific
+prompts can be designed for an LLM to create an LLM-based module. This results in a
+chain of prompts that effectively addresses a complex problem, which we call LLM-driven
+workflow. Specifically, this approach breaks down the entire meta-analysis process into
+16
+
+--- Page 17 ---
+a sequence of Ntasks, denoted as T={T1, . . . , T N}. In the workflow, the output from
+one task, ˆXn, serves as the input for the next, ˆXn+1= LLM( P(Tn,ˆXn)). This modular
+decomposition improves LLM performance by dividing the workflow into more manageable
+segments, increases transparency, and facilitates user interaction at various stages.
+Incorporating these techniques, the formulation of TrialMind for any subtask can be
+represented as:
+ˆXn+1= LLM( P(Tn, Xn), RK(Xn)),∀n= 1, . . . , N, (1)
+where RK(·) are optional.
+Implementation of TrialMind
+All experiments were run in Python v.3.9. Detailed software versions are: pandas v2.2.2;
+numpy v1.26.4; scipy v1.13.0; scikit-learn v1.4.1.post1; openai v1.23.6; langchain v0.1.16;
+boto3 v1.34.94; pypdf v4.2.0; lxml v5.2.1 and chromadb v0.5.0 with Python v.3.9.
+LLMs We included GPT-4 and Sonnet in our experiments. GPT-419is regarded
+as a state-of-the-art LLM and has demonstrated strong performances in many natural
+language processing tasks (version: gpt-4-0125-preview). Sonnet46is an LLM devel-
+oped by Anthropic, representing a more lightweight but also very capable LLM (version:
+anthropic.claude-3-sonnet-20240229-v1:0 on AWS Bedrock). Both models support long
+context lengths (128K and 200K), enabling them to process the full content of a typical
+PubMed paper in a single inference session.
+Research question inputs TrialMind processes research question inputs using the
+PICO (Population, Intervention, Comparison, Outcome) framework to define the study’s
+research question. In our experiments, the title of the target review paper served as
+the general description. Subsequently, we extracted the PICO elements from the paper’s
+abstract to detail the specific aspects of the research question.
+Literature search TrialMind is tailored to adhere to the established guidelines21in
+conducting literature search and screening for clinical evidence synthesis. In the literature
+search stage, the key is formulating Boolean queries to retrieve a comprehensive set of can-
+didate studies from databases. These queries, in general, are a combination of treatment,
+medication, and outcome terms, which can be generated by LLM using in-context learn-
+ing. However, direct prompting can yield low recall queries due to the narrow range of user
+inputs and the LLMs’ tendency to produce incorrect queries, such as generating erroneous
+MeSH (Medical Subject Headings) terms.9To address these limitations, TrialMind incor-
+porates RAG to enrich the context with knowledge sourced from PubMed, and employs
+CoT processing to facilitate a more exhaustive generation of relevant terms.
+Specifically, the literature search component has two main steps: initial query genera-
+tion and then query refinement. In the first step, TrialMind prompts LLM to create the
+initial boolean queries derived from the input PICO to retrieve a group of studies (Prompt
+in Extended Fig. 4). The abstracts of these studies then enrich the context for refining
+the initial queries, working as RAG. In addition, we used CoT to enhance the refinement
+by urging LLMs to conduct multi-step reasoning for self-reflection enhancement (Prompt
+in Extended Fig. 5). This process can be described as
+{ˆX1
+S,ˆX2
+S,ˆX3
+S}= LLM( PCoT(TLS, X, R K(X))), (2)
+where Xdenotes the input PICO; RK(X) is the set of abstracts of the found studies; TLS
+is the definition of the query generation task for literature search. For the output, the first
+sub-step ˆX1
+Sindicates a complete set of terms identified in the found studies; the second
+ˆX2
+Sindicates the subset of ˆX1
+Sby filtering out the irrelevant; and the third ˆX3
+Sindicates
+the extension of ˆX2
+Sby self-reflection and adding more augmentations. In this process,
+LLM will produce the outputs for all three substeps in one pass, and TrialMind takes ˆX3
+S
+as the final queries to fetch the candidate studies.
+17
+
+--- Page 18 ---
+Study screening TrialMind follows PRISMA to take a transparent approach for
+study screening. It creates a set of eligibility criteria based on the input PICO as the
+basis for study selection (Prompt in Extended Fig. 6), produced by
+ˆXEC= LLM( P(TEC, X)), (3)
+where ˆXEC={E1, E2, . . . , E M}is the Mgenerated eligibility criteria; Xis the input
+PICO; and TECis the task definition of criteria generation. Users are given the opportunity
+to modify these generated criteria, further adjusting to their needs.
+Based on ˆXEC,TrialMind embarks the parallel processing for the candidate studies.
+Fori-th study Fi, the eligibility prediction is made by LLM as (Prompt in Extended
+Fig. 7)
+{I1
+i, . . . , IM
+i}= LLM( P(Fi, X, T SC,ˆXEC)), (4)
+where TSCis the task definition of study screening; Fiis the study i’s content; Im
+i∈
+{−1,0,1},∀m= 1, . . . , M is the prediction of study i’s eligibility to the m-th criterion.
+Here, −1 and 1 mean ineligible and eligible, 0 means uncertain, respectively. These
+predictions offer a convenient way for users to inspect the eligibility and select the target
+studies by altering the aggregation strategies. Im
+ican be aggregated to offer an overall
+relevance of each study, such as ˆIi=P
+mIm
+i. Users are also encouraged to extend the
+criteria set or block the predictions of some criteria to make customized rankings during
+the screening phase.
+Data extraction Study data extraction is an open information extraction task that
+requires the model to extract specific information based on user inputs and handle long
+inputs, such as the full content of a paper. LLMs are particularly well-suited for this task
+because (1) they can perform zero-shot learning via in-context learning, eliminating the
+need for labeled training data, and (2) the most advanced LLMs can process extremely
+long inputs. As such, the TrialMind framework is engineered to streamline data extraction
+from structured or unstructured study documents using LLMs.
+For the specified data fields to be extracted, TrialMind prompts LLMs to locate and
+extract the relevant information (Prompt in Extended Fig. 8). These data fields include
+(1) study characteristics such as study design, sample size, study type, and treatment
+arms; (2) population baselines; and (3) study findings. In general, the extraction process
+can be described as
+{ˆX1
+EX, . . . , ˆXK
+EX}= LLM( P(F, C, T EX)), (5)
+where Frepresents the full content of a study; TEXdefines the task of data extraction;
+andC={C1, C2, . . . , C K}comprises the series of data fields targeted for extraction.
+Ckis the user input natural language description of the target field, e.g., “the number
+of participants in the study”. The input content Fis segmented into distinct chunks,
+each marked by a unique identifier. The outputs, denoted as ˆXk
+EX={Vk, Bk}, include
+the extracted values Vand the indices Bthat link back to their respective locations in
+the source content. Hence, it is convenient to check and correct mistakes made in the
+extraction by sourcing the origin. The extraction can also be easily scaled by making
+paralleled calls of LLMs.
+Result extraction Our analysis indicates that data extraction generally performs well
+for study design and population-related fields; however, extracting study results presents
+challenges. Errors frequently arise due to the diverse presentation of results within stud-
+ies and subtle discrepancies between the target population and outcomes versus those
+reported. For instance, the target outcome is the risk ratios (treatment versus control)
+regarding the incidence of adverse events (AEs), while the study reports AEs among many
+groups separately. Or, the target outcome is the incidence of severe AEs, which implicitly
+correspond to those with grade III and more, while the study reports all grade AEs. To
+overcome these challenges, we have refined our data extraction process to create a special-
+ized result extraction pipeline that improves clinical evidence synthesis. This enhanced
+pipeline consists of three crucial steps: (1) identifying the relevant content within the
+18
+
+--- Page 19 ---
+study (Prompt in Extended Fig. 9), (2) extracting and logically processing this content
+to obtain numerical values (Prompt in Extended Fig. 10), and (3) converting these values
+into a standardized tabular format (Prompt in Extended Fig. 11).
+Steps (1) and (2) are conducted in one pass using CoT reasoning as
+{ˆX1
+RE,S,ˆX2
+RE,S}= LLM( PCoT(X, O, F, T RE)), (6)
+where Ois the natural language description of the clinical endpoint of interest and TREis
+the task definition of result extraction. In the outputs, ˆX1
+RE,Srepresents the raw content
+captured from the input content Fregarding the clinical outcomes; ˆX2
+RE,Srepresents
+the elicited numerical values from the raw content, such as the number of patients in
+the group, the ratio of patients encountering overall response, etc. In step (3), TrialMind
+writes Python code to make the final calculation to convert ˆX2
+RE,Sto the standard tabular
+format.
+ˆXRE=exec(LLM( P(X, O, T PY,ˆX2
+RE,S)),ˆX2
+RE,S). (7)
+In this process, TrialMind adheres to the instructions in TPYto generate code for data
+processing. This code is then executed, using ˆX2
+RE,Sas input, to produce the standardized
+result ˆXRE. An example code snippet made to do this transformation is shown in Extended
+Fig. 3. This approach facilitates verification of the extracted results by allowing for easy
+backtracking to ˆX1
+RE,S. Additionally, it ensures that the calculation process remains
+transparent, enhancing the reliability and reproducibility of the synthesized evidence.
+Experimental setup
+Literature search and screening In our literature search experiments, we assessed
+performance using the overall Recall, aiming to evaluate the effectiveness of different
+methods in identifying all relevant studies from the PubMed database using APIs.47For
+literature screening, we measured efficacy using Recall@20 and Recall@50, which gauge
+how well the methods can prioritize target studies at the top of the list, thereby facilitating
+quicker decisions about which studies to include in evidence synthesis. We constructed
+the ranking candidate set for each review paper by initially retrieving studies through
+TrialMind , then refining this list by ranking the relevance of these studies to the target
+review’s PICO elements using OpenAI embeddings. The top 2,000 relevant studies were
+kept. We then ensured all target papers were included in the candidate set to maintain
+the integrity of our ground-truth data. The final candidate set was then deduplicated to
+be ranked by the selected methods.
+In the criteria analysis experiment, we utilized Recall@200 to assess the impact of each
+criterion. This was done by first computing the relevance prediction using all eligibility
+predictions and then recalculating it without the eligibility prediction for the specific cri-
+terion in question. The difference in Recall@200 between these two relevance predictions,
+denoted as ∆Recall, indicates the criterion’s effect. A larger ∆Recall suggests that the
+criterion plays a more significant role in influencing the ranking results.
+Data extraction and result extraction To evaluate performance, we measured
+the accuracy of the values extracted by TrialMind against the groundtruth. We used the
+study characteristic tables from the review papers as our test set. Each table’s column
+names served as input field descriptions for TrialMind . We manually downloaded the full
+content for the studies listed in the characteristic table. To verify the accuracy of the
+extracted values, we enlisted three annotators who manually compared them against the
+data reported in the original tables.
+We also measured the performance of result extraction using accuracy. The annota-
+tors were asked to carefully read the extracted results and compare them to the results
+reported in the original review paper. For the error analysis of TrialMind , the anno-
+tators were asked to check the sources to categorize the errors for one of the reasons:
+inaccurate, extraction failure, unavailable data, or hallucination. We designed a vanilla
+19
+
+--- Page 20 ---
+prompting strategy for GPT-4 and Sonnet models to set the baselines for the result ex-
+traction. Specifically, the prompt was kept minimal, as “Based on the {paper}, tell me
+the{outcome }from the input study for the population {cohort }”, where {paper}is the
+placeholder for the paper’s content; {outcome }is the for the target endpoint; {cohort }is
+the for the target population’s descriptions, including conditions and characteristics. The
+responses from these prompts were typically in free text, from which annotators manually
+extracted result values to evaluate the baselines’ performance.
+Evidence synthesis In evidence synthesis, we processed the input data using R and
+the ‘meta’ package to make the forest plots and the pooled results based on the stan-
+dardized result values. This is for both TrialMind and the baselines. Nonetheless, for
+the baseline, the annotators also need to manually extract the result values and standard-
+ize the values to make them ready for meta-analysis, which forms the GPT-4+Human
+baseline in the experiments.
+We engaged two groups of annotators for our evaluation: (1) three computer scientists
+with expertise in AI applications for medicine, and (2) five medical doctors to assess the
+generated forest plots. Each annotator was asked to evaluate five review studies. For each
+review, we randomly presented forest plots generated by both the baseline and TrialMind .
+The annotators were required to determine how closely each generated plot aligned with
+a reference forest plot taken from the target review paper. Additionally, they were asked
+to judge which method, the baseline or TrialMind , produced better results in a win/lose
+assessment. Extended Fig. 1 demonstrates the user interface for this study, which was
+created with Google Forms.
+20
+
+--- Page 21 ---
+Study
+7Heterogeneity: I2=0%,2= 5.58 (p= 0.59)Common effect model 0.66
+Random effects model 0.66Naï k Vietti Violi
+Ashraf Abdelaziz
+Guo−Jun Qian
+Hideo Takahashi
+Aukje AJMvanTilborg
+Theodora APotretzke
+Lei Zhang
+Yingjun LiuOR
+0.50
+0.26
+1.26
+0.94
+0.93
+0.46
+0.87
+0.37
+0.1 0.5 12 10Odds RatioWeight
+95%−CI (random)
+[0.46; 0.93] .
+[0.46; 0.95] 100.0%[0.18; 1.39]
+[0.06; 1.07]
+[0.24; 6.47]
+[0.26; 3.46]
+[0.47; 1.84]
+[0.19; 1.09]
+[0.36; 2.12]
+[0.09; 1.42]12.3%
+6.5%
+4.8%
+7.6%
+28.0%
+17.4%
+16.4%
+7.0%
+Study
+7Heterogeneity: I2=61%, 2= 17.97 (p= 0.01)Common effect model 0.67
+Random effects model 0.67Naï k Vietti Violi
+Ashraf Abdelaziz
+Guo−Jun Qian
+Hideo Takahashi
+Aukje AJMvanTilborg
+Theodora APotretzke
+Lei Zhang
+Yingjun LiuOR
+0.50
+0.26
+1.26
+0.44
+3.02
+0.46
+0.87
+0.37
+0.1 0.5 12 10Odds RatioWeight
+95%−CI (random)
+[0.48; 0.94] .
+[0.38; 1.19] 100.0%[0.18; 1.39]
+[0.06; 1.07]
+[0.24; 6.47]
+[0.22; 0.90]
+[1.30; 7.02]
+[0.19; 1.09]
+[0.36; 2.12]
+[0.09; 1.42]12.9%
+9.4%
+7.8%
+16.3%
+14.8%
+14.6%
+14.3%
+9.8%Study
+10Heterogeneity: I2=56%, 2= 22.85 (p= 0.01)Common effect model 0.82
+Random effects model 0.79Abdelaziz 2014
+Vietti Violi 2018
+Qian 2012
+Takahashi 2018
+Shady 2018
+Xu 2017
+vanTilborg 2016
+Potretzke 2016
+Zhang L 2013
+Liu 2013
+Ding 2013OR
+0.26
+0.50
+1.26
+0.44
+0.93
+0.95
+2.34
+0.46
+0.85
+0.37
+2.24
+0.1 0.5 12 10Odds RatioWeight
+95%−CI (random)
+[0.64; 1.06] .
+[0.52; 1.19] 100.0%[0.06; 1.07]
+[0.18; 1.39]
+[0.24; 6.47]
+[0.22; 0.90]
+[0.47; 1.84]
+[0.50; 1.81]
+[1.17; 4.70]
+[0.19; 1.09]
+[0.35; 2.07]
+[0.12; 1.13]
+[0.78; 6.45]5.7%
+8.3%
+4.6%
+11.3%
+11.7%
+12.0%
+11.5%
+9.8%
+9.5%
+7.6%
+8.0%Research question : Microwave ablation (MWA) compared with radiofrequency ablation (RFA) for the treatment of liver cancer: a
+systematic review and meta -analysis
+Reference  conclusion  [Spiliotis  et al., 2021, PMID: 34167181]
+MWA showed promising results and demonstrated better oncological outcomes in terms
+of LTP compared to RFA in patients with HCC. MWA can be utilized as the ablation
+method of choice in patients with HCC.Local tumor progression (MWA v.s. RFA)
+[Spiliotis  et al., 2021, PMID: 34167181]
+Local tumor progression (MWA v.s. RFA )
+Method #1 (GPT -4 baseline )
+Local tumor progression (MWA v.s. RFA)
+Method #2 ( TrialMind )
+To which degree do you think the forest plots made by the Method #2 aligned with the
+forest plots from the source meta -analysis study?
+Not at all (worst )1 2 3 4 5
+Very well (best)To which degree do you think the forest plots made by the Method #1 aligned with the
+forest plots from the source meta -analysis study?
+Not at all (worst )1 2 3 4 5
+Very well (best)
+Which results do you think are in general better?
+Method #1 Method #2Extended Fig. 1: The study design compares the synthesized clinical evidence from the base-
+line and TrialMind via human evaluation.
+21
+
+--- Page 22 ---
+Boolean search query from
+the PubMed database
+(n = 46,192)
+Applying filters:  PMC Full text available, Meta -
+Analysis, 2020/1/1 -
+2023/1/1, Humans, English
+(n = 2,691)
+Mesh terms that contain "cancer", "tumor", "neoplasms", "carcinoma",
+"myeloma", or "leukemia"
+(n = 1,967)
+Find meta -analyses focusing
+on cancer therapies by
+keyword filtering
+(n = 352)
+Manual screening of titles and abstracts
+(n = 100) Boolean search query: ("cancer" OR "oncology" OR "neoplasm" OR "carcinoma" OR
+"melanoma" OR "leukemia" OR "lymphoma" OR "sarcoma") AND ("therapy" OR
+"treatment" OR "chemotherapy" OR "radiation therapy" OR "immunotherapy" OR "targeted therapy" OR "surgical treatment" OR "hormone therapy") AND ("meta- analysis"
+OR "systematic review")
+Chemotherapy: "chemotherapy",
+"chemo", "chemotherapies", " chemos “
+(n = 149)
+Hormone therapy:  "hormone therapy",
+"hormonal therapy", "hormone treatment", "endocrine therapy"
+(n = 17)
+Hyperthermia:  "hyperthermia",
+"microwave", "radiofrequency", "lasers", "ultrasound", "perfusion"
+(n = 17)
+Cancer vaccine:  "cancer vaccines",
+"cancer vaccine", "cancer treatment vaccines", "vaccine", "vaccines"
+(n = 8)Checkpoint inhibitors: "immune
+checkpoint inhibitors", "immune checkpoint inhibitor", "checkpoint inhibitors", "checkpoint inhibitor“
+ (n = 94)Immune modulators: "immune system
+modulators", "immune system modulator", "immunomodulators", "immunomodulator", "cytokines", "interferons", "interleukins", "BCG", "biological response modifiers", "Erythropoietin", "IL- 11", "Granulocyte-
+macrophage colony -stimulating factor",
+"granulocyte colony -stimulating factor",
+"GM-CSF", "G -CSF"
+(n = 7)
+Monoclonal antibodies: "monoclonal
+antibodies", "monoclonal antibody", "antibodies", "antibody", "targeted therapy", " targetd  cancer therapy",
+"targeted cancer therapies"
+(n = 23)
+T-cell transfer therapy: "t-cell therapy",
+"t cell therapy", "t -cell therapies", "t cell
+therapies", "adoptive cell therapy", "adoptive t -cell therapy", "adoptive t cell
+therapy", "adoptive t -cell therapies",
+"adoptive t cell therapies", "adoptive cell therapies", "car -t", "TIL therapy", "tumor
+infiltrating lymphocytes", "tumor -
+infiltrating lymphocytes", "tumor infiltrating lymphocyte", "tumor -infiltrating
+lymphocyte"
+(n = 10)Stem cell transplant: "stem cell
+transplant", "stem cell transplants", "stem cell transplantation", "stem cell transplantations", "bone marrow transplant", "bone marrow transplants"
+ (n = 2)
+Brachytherapy: "brachytherapy",
+"brachytherapies ", "brachytherapy“
+ (n = 4)
+Keywords used to select meta -analyses on different types of cancer therapies
+Manual screening guidelines:•Focus exclusively on papers that study the treatment effects (such as safety, efficacy) of cancer interventions.
+•Include only papers that compare a single treatment against a control group (e.g., placebo, standard of care), not multiple treatments.
+•Give preference to studies examining individual treatment vs. control over joint therapies (e.g., Therapy A+B vs. A only).
+•Prioritize diversity in target conditions treated by each intervention.
+•Favor studies that involve a larger number of individual studies.
+•Exclude papers that are network analyses.
+•Omit meta -analyses focused solely on prognostic and predictive effects.Extended Fig. 2: The flowchart of the screening process of meta-analyses involved in the
+TrialReviewBench dataset.
+22
+
+--- Page 23 ---
+Make a
+classification of
+the input data
+Consolidate the
+raw data to the
+target outcome
+Make the final calculation
+to get the standardized
+outcomesExtended Fig. 3: The example Python code made by TrialMind when converting the ex-
+tracted result values to standardized tabular form.
+23
+
+--- Page 24 ---
+You are a clinical specialist. You are conducting a clinical study meta-analysis.The research is defined by the following PICO elements:P (Patient, Problem or Population): {P}I (Intervention): {I}C (Comparison): {C}O (Outcome): {O}## TaskYour task is to identify the primary clinical term(s) in this research. The clinical terms should be specific medical conditions, treatments, or procedures. General terms such as 'patients', or 'therapy' should not be included.## Reply FormatYou should only reply with 1~3 primary term. Your output should be in JSON format, like this:{{    "terms": ["term1", "term2", "term3"]}}Prompt for initial query generationExtended Fig. 4: Prompt for generating initial search queries in the literature search.
+24
+
+--- Page 25 ---
+## BackgroundYou are a clinical specialist. You are conducting a clinical meta-analysis.The research is defined by the following PICO elements:P (Patient, Problem or Population): {P}I (Intervention): {I}C (Comparison): {C}O (Outcome): {O}## ReferenceYou've already gathered these related papers: {pubmed_reference_text}## TaskYour task is to further your literature search by these 3 steps:### Step 1Extract related term in the reference papers.Provide three lists of query terms: TREATMENTS, CONDITIONS, and OUTCOMES.CONDITIONS: words about any conditions or disease that is related to this meta-analysis (referring to Problem section)TREATMENTS: primary related clinical terms/keywords showed in these reference papers (referring to Intervention section)OUTCOMES: clinical endpoints or outcome measurements that are related to this meta-analysis (referring to Outcome section)### Step 2Double-check these query terms, remove the terms that is not directly related to the PICO elements of this research.Provide three lists of refined core terms: CORE_CONDITIONS, CORE_TREATMENTS, and CORE_OUTCOMES.CORE_CONDITIONS: refined terms of conditions or diseaseCORE_TREATMENTS: refined terms of primary related clinical terms/keywordsCORE_OUTCOMES: refined terms of clinical endpoints or outcome measurements### Step 3To expand the scope of query term searches, please extend each query term by: 1. Synonyms and other names/forms; 2. Possible abbreviations or full forms; 3. Split into elements for compound phrases. Provide three lists of expanded query terms: EXPAND_CONDITIONS, EXPAND_TREATMENTS, EXPAND_OUTCOMES.EXPAND_CONDITIONS: expanded terms of conditions or diseaseEXPAND_TREATMENTS: expanded terms of primary related clinical terms/keywordsEXPAND_OUTCOMES: expanded terms of clinical endpoints or outcome measurements## Reply formatThere should be no overlap between each pair of listsYour reply should be in a format like: {{"step 1": {{    "CONDITIONS": [condition1, condition2, ..] \\ (~10 items)    "TREATMENTS": [term1, term2 .. ] \\ (~10 items)    "OUTCOMES": [outcome1, outcome2, ..] \\ (~10 items)}},\\ Refine according to P (Patient, Problem or Population): {P} and I (Intervention): {I} and O (Outcome): {O}"step 2": {{    "CORE_CONDITIONS": [condition1, condition2, ..] \\ (~5 items)    "CORE_TREATMENTS": [term1, term2, .. ] \\ (~5 items)    "CORE_OUTCOMES" : [outcome1, outcome2 ..] \\ (~5 items)}},\\ Augmentation"step 3": {{    "EXPAND_CONDITIONS": [condition1, condition2, ..]  \\ (~10 items)    "EXPAND_TREATMENTS": [term1, term2 ..] \\ (~10 items)    "EXPAND_OUTCOMES": [outcome1, outcome2 ..] \\ (~10 items)    }}}}Prompt for query expansion and refinementExtended Fig. 5: Prompt for expanding and refining the initial search queries in the literature
+search.
+25
+
+--- Page 26 ---
+You are a clinical specialist. You are conducting a clinical meta-analysis.The research is defined by the following PICO elements:P (Patient, Problem or Population): {P}I (Intervention): {I}C (Comparison): {C}O (Outcome): {O}## TaskYour task is to design the eligibility criteria for selecting studies for this meta-analysis study following these 3 steps:### Step 1Based on the PRISMA guidelines and the PICO elements of this research, please identify five eligibility criteria for the studies to be included in the meta-analysis. Provide a rationale for each criterion.ELIGIBILITY_ANALYSIS: your items and reasons here...### Step 2Next, create {num_title_criteria} binary questions that will help you select studies based on their titles. These questions should be designed so that a "YES" answer indicates the study meets the criteria, while a "NO" answer means it doesn't. The information required to answer these questions should be general and easily found in the study title.TITLE_CRITERIA n: ...### Step 3Finally, develop {num_abstract_criteria} more binary questions to further filter the studies based on their content. These questions should also be designed for a "YES" or "NO" answer, but the information required to answer them will be more detailed and is expected to be found within the main content of the study.CONTENT_CRITERIA n: ...## Reply FormatYou should reply in a format like:{{    "ELIGIBILITY_ANALYSIS": ["rationale1", "rationale12", ...] \\ the bullet points of your analysis    "TITLE_CRITERIA": ["criterion1", "criterion2", "..."] \\ the {num_title_criteria} binary title-based criteria    "CONTENT_CRITERIA": ["criterion1", "criterion2", "..."] \\ the {num_abstract_criteria} binary content-based criteria}}Prompt for study eligibility criteria generationExtended Fig. 6: Prompt for study eligibility criteria generation in the literature screen.
+26
+
+--- Page 27 ---
+# CONTEXT #You are a clinical specialist tasked with assessing research papers for inclusion in a meta-analysis based on specific eligibility criteria.# OBJECTIVE #Evaluate each criterion of a given paper to determine its eligibility for inclusion in the meta-analysis. Provide a list of decisions ("YES", "NO", or "UNCERTAIN") for each eligibility criterion. You must deliver exactly {num_criteria} responses.# IMPORTANT NOTE #If the information within the provided paper content is insufficient to conclusively evaluate a criterion, you must opt for "UNCERTAIN" as your response. Avoid making assumptions or extrapolating beyond the provided data, as accurate and reliable responses are crucial, and fabricating information (hallucinations) could lead to serious errors in the meta-analysis.# PICO FRAMEWORK #- P (Patient, Problem or Population): {P}- I (Intervention): {I}- C (Comparison): {C}- O (Outcome): {O}# PAPER DETAILS #- Provided Paper: {paper_content}# EVALUATION CRITERIA #- Number of Criteria: {num_criteria}- Criteria for Inclusion: {criteria_text}# RESPONSE FORMAT #You are required to output a JSON object containing a list of decisions for each of the {num_criteria} eligibility criteria. Each decision should directly correspond to one of the criteria and be listed in the order they are presented. Ensure to use "UNCERTAIN" wherever the paper does not explicitly support a "YES" or "NO" decision.For example:```json{{    "evaluations": ["YES", "NO", "UNCERTAIN", "YES", "YES", ...] \\ List of {num_criteria} decisions}}```Prompt for study eligibility assessmentExtended Fig. 7: Prompt for study eligibility assessment in the literature screen.
+27
+
+--- Page 28 ---
+You are now the following python function: ```def extract_fields_from_input_study(inputs: Dict[str, Any]) -> str:    \"\"\"    This function is tasked with analyzing clinical trial study reports or papers to extract specific information as structured data    and provide citations for the extracted information.    The user will provide a list of fields they are interested in, along with a natural language description for each field to guide you on what content to look for and from which parts of the report to extract it.    IMPORTANT:    For each field described by the user, you need to:    1. Identify and extract the relevant information from the report based on the provided description.    2. Generate a field name that accurately represents the content of the field based on its description.    3. Structure the extracted information into a standard format whenever possible (e.g., integer, numerical values, dates, keywords, list of terms).         If standardization is not possible, the information should be presented in text format.        If the field is not found in the report, the extracted value should be "NP".    4. Provide a reference to the document ID from which this information was extracted.        This citation id should be restricted to be integers only.        You should NOT cite more than three sources for a single field.        You should try your best to provide the most relevant and specific citation for each field.        If two or more sources are equally relevant, you can just cite one of them.    The function returns a string representing a dictionary with each key representing a field and its extracted value. The format should be as follows:    Returns: A syntactically correct JSON string representing a list of dictionary with three keys: name, value, and source_id.        Format:        ```json        [            {{                "name":  \\ str, length <= 25 tokens                "value":  \\ str, length <= 25 tokens                "source_id":  \\ list[int], length <= 3 ids            }},            {{                "name":, \\ str, length <= 25 tokens                "value":  \\ str, length <= 25 tokens                "source_id":  \\ list[int], length <= 3 ids            }},            ...        ]        ```    \"\"\"```Respond exclusively with the generated JSON string wrapped ```json and ```.# User provided inputspaper_content = \"\"\"{paper_content}\"\"\"fields = \"\"\"{fields}\"\"\"inputs = {{    "paper_content": paper_content,    "fields": fields}}Prompt for study characteristics extractionExtended Fig. 8: Prompt for study characteristics extraction in the data extraction.
+28
+
+--- Page 29 ---
+You are now the following python function: ```def locate_evidence_in_study_about_the_request_for_results(inputs: Dict[str, Any]) -> str:    \"\"\"    This function is tasked with analyzing clinical trial study reports or papers to extract specific information as structured data.    Task Instructions:    1. Review the clinical trial paper, paying close attention to the sections discussing results related to the "{target_outcome}" for the defined cohort "{cohort}".    2. Summarize the findings for each cohort, emphasizing the collective data and general trends observed. Individual patient data should only be mentioned if highlighted as a significant exception or case study in the paper.    3. Present your summary in a table format with the following columns:    - 'Group Name': Name of the cohort.    - 'Number of Patients': Total participants in the cohort.    - 'Specified Outcome Measure': Key findings and metrics related to the "{target_outcome}".    Include aggregate values such as percentages, mean values, and other statistical summaries that reflect the overall results for the group.    Must contain quantitative data, such as hazard ratios, odds ratios, mean differences, count of events, etc.    Do not include qualitative or descriptive data that cannot be quantified, such as "statistically significant improvement" without specific values.    Here are the definitions of some common outcome measurements:    - overall survival/progression-free survival/etc.: usually defined by the hazard ratio or odds ratio, which is the ratio of hazard rate or odds of an event occurring in the treatment group to that in the control group.        it can also be expressed as the number of events in the target group of patients.    - toxicity/adverse events/etc.: defined by the rate of occurrence of adverse events in the target groups of patients.    - objective response rate/overall response/etc.: defined by the proportion of patients who respond to the treatment in the target groups, or number of patients with complete or partial response.    - disease control rate/relapse rate/etc.: defined by the proportion of patients who have stable disease or better in the target groups, or number of patients with disease control.        it can also be expressed by the number of patients who have disease progression, so the disease control rate is 1 minus the progression rate.        Returns:        A str representing a list of dictionary with three keys: Group Name, N, and Results.        Group Name: str - name of the cohort        N: int - number of participants in the cohort        Results: str - key findings and metrics related to the outcome measure, must be quantitative and concise            adhere to the input paper content.        Example format:        ```json        [            {{                "Group Name": str, \\ the name of the cohort                "N": int, \\ the number of participants in the cohort                "Results": str \\ key findings and metrics related to the outcome measure, must be quantitative and concise (<= 50 tokens)            }},            {{                ...            }},            ...        ]        ```    \"\"\"```Respond exclusively with the generated JSON string wrapped ```json and ```.# User provided inputspaper_content = \"\"\"{paper_content}\"\"\"cohort = \"\"\"{cohort}\"\"\"target_outcome = \"\"\"{target_outcome}\"\"\"inputs = {{    "paper_content": paper_content,    "cohort": cohort,    "target_outcome": target_outcome}}Prompt for initial result extraction and localizationExtended Fig. 9: Prompt for the initial result extraction in the evidence synthesis.
+29
+
+--- Page 30 ---
+You are now the following python function: ```def format_study_result_table(inputs: Dict[str, Any]) -> str:    \"\"\"    This function is used to transform raw data (with the content described in texts) from a clinical study paper into a structured table format.    IMPORTANT: Organize the extracted data into a structured table format. Ensure that each column represents a crucial numerical data point necessary for meta-analysis. This may include participant numbers (N), measurable outcomes,         and other quantifiable metrics related to the intervention or comparator.    IMPORTANT: The input groups are not mutually exclusive, you need to decide whether to combine them or        select the eligible groups based on the research question.    IMPORTANT: Drop the group if no outcome value is provided.            The function returns a string representing a list of dictionary, each dictionary has three keys:    ```json    [        {{            Group: str \\ the name of the group            N: int \\ the number of participants in the group            Outcome Value: float or int \\ the outcome value for the group, must be float or int values        }},        {{            ...        }},        ...    ]    ```    Example output 1:    ```json    [        {{            "Group": "Patient with irAEs",            "N": 100,            "Hazard Ratio": 0.5,        }},        {{            "Group": "Patient without irAEs",            "N": 150,            "Hazard Ratio": 0.3,        }},    ]    ```    [… some more examples]    Returns:        A str representing a list of dictionary with three keys: Groups, N, and Outcome.        Groups: str - the name of the group        N: int - the number of participants in the group        {outcome}: float or int - the outcome value for the group, must be float or int    \"\"\"```Respond exclusively with the generated JSON string wrapped ```json and ```.# User provided inputsresults = \"\"\"{results}\"\"\"outcome = \"\"\"{outcome}\"\"\"intervention = \"\"\"{intervention}\"\"\"comparator = \"\"\"{comparator}\"\"\"population = \"\"\"{population}\"\"\"inputs = {{    "results": results,    "outcome": outcome,    "intervention": intervention,    "comparator": comparator,    "population": population}}Prompt for the study result table formattingExtended Fig. 10: Prompt for the result formatting in the evidence synthesis.
+30
+
+--- Page 31 ---
+You are now the following python function: ```def generate_continuous_elegant_python_code(inputs: Dict[str, Any]) -> str:    \"\"\"    This function is used to generate python code to transform raw data into a structured format according to a specified schema.    The raw data is collected from a clinical study paper and needs to be organized to facilitate a meta-analysis study.    The target meta-analysis is driven by a specific research question, defined by the Population, Intervention, Comparator, and Outcome (PICO) elements.    The function takes a dictionary of `inputs` as an argument, which contains the following keys:    - 'research_question': contains the population, intervention, comparator, and outcome (PICO) elements of the targeted meta-analysis.        Based on the research question's intervention and comparator, you need to classify which arms in the raw data belong to the targeted        experimental and control groups.        Based on the research question's population, you need to consider which parts of the observations in the raw data are relevant to the targeted meta-analysis.    - 'raw_data': this is the markdown formatted input dataframe that contains the raw data to be transformed.    - 'desc': the description of the target dataframe the generated code needs to produce.    - 'target_output': the generated code needs produce a dataframe follows the structure of this target_output.    IMPORTANT: 'raw_data' does **NOT** need to be parsed or loaded into a dataframe. In your generated code,        just use `df` to represent the dataframe that contains the raw data.    IMPORTANT: NaN values should be treated with caution. If the raw data contains NaN values, ensure that your code handles them appropriately,        either by removing the row with any NaN values or by filling all NaN with zeros.    IMPORTANT: Never use `pd.DataFrame.append` to add data to pd.DataFrame. This method has been deprecated, and it is recommended to use `pd.concat` instead.        For example, to add a new row to a dataframe, you can use `df = pd.concat([df, new_row], ignore_index=True)`        Never use `df.append(new_row, ignore_index=True)`        The function returns a string of raw Python code, wrapped within <code> and </code> tags. For example:    <code>    # df    # Your generated python code here...    </code>    You should implemented three functions in your code, each of which takes a dataframe as input and returns a dataframe as output:    <code>    # Dataframe definition should be ignored and not show again    # df = ...    def classify_arms(df: pd.DataFrame):        # you need to define a new column in the dataframe to indicate which group each arm belongs to        # each arm should be classified as either experimental or control        # e.g., `df['Group'] = ['Experimental', 'Control', 'Experimental', ...]`        return df        def consolidate_data(df: pd.DataFrame):        # consolidate the data for each group        return df    def calculate_statistics(df: pd.DataFrame):        # calculate the statistics for each group        return df    # run these functions in sequence to get the final dataframe    df = classify_arms(df)    df = consolidate_data(df)    df = calculate_statistics(df)    </code>    Returns:        Executable Python code that will be used to transform the raw data into the structured format.    \"\"\"```Respond exclusively with the generated code wrapped <code></code>. Ensure that the code you generate is executable Python code that can be run directly in a Python environment, requiring no additional string encapsulation.# User provided inputsresearch_question = \"\"\"Population: {population}, Intervention: {intervention}, Comparator: {comparator}, Outcome: {outcome}\"\"\"raw_data = \"\"\"{raw_data}\"\"\"desc = \"\"\"{desc}\"\"\"target_output = \"\"\"{target_output}\"\"\"inputs = {{    "research_question": research_question,    "raw_data": raw_data,    "desc": desc    "target_output": target_output}}Prompt for the study result standardizationExtended Fig. 11: Prompt for the result standardization in the evidence synthesis.
+31
+
+--- Page 32 ---
+References
+[1] Elliott, J. et al. Decision makers need constantly updated evidence synthesis. Nature
+600, 383–385 (2021).
+[2] Field, A. P. & Gillett, R. How to do a meta-analysis. British Journal of Mathematical
+and Statistical Psychology 63, 665–694 (2010).
+[3] Concato, J., Shah, N. & Horwitz, R. I. Randomized, controlled trials, observational
+studies, and the hierarchy of research designs. In Research Ethics , 207–212 (Rout-
+ledge, 2017).
+[4] Borah, R., Brown, A. W., Capers, P. L. & Kaiser, K. A. Analysis of the time and
+workers needed to conduct systematic reviews of medical interventions using data
+from the prospero registry. BMJ open 7, e012545 (2017).
+[5] Hoffmeyer, B. D., Andersen, M. Z., Fonnes, S. & Rosenberg, J. Most cochrane reviews
+have not been updated for more than 5 years. Journal of evidence-based medicine
+14, 181–184 (2021).
+[6] Medline pubmed production statistics. https://www.nlm.nih.gov/bsd/medline_
+pubmed_production_stats.html . Accessed: 2024-09-11.
+[7] Marshall, I. J. & Wallace, B. C. Toward systematic review automation: a practical
+guide to using machine learning tools in research synthesis. Systematic reviews 8,
+1–10 (2019).
+[8] Brown, T. et al. Language models are few-shot learners. Advances in Neural Infor-
+mation Processing Systems 33, 1877–1901 (2020).
+[9] Wang, S., Scells, H., Koopman, B. & Zuccon, G. Can chatgpt write a good boolean
+query for systematic review literature search? In Proceedings of the 46th International
+ACM SIGIR Conference on Research and Development in Information Retrieval ,
+1426–1436 (2023).
+[10] Adam, G. P. et al. Literature search sandbox: a large language model that generates
+search queries for systematic reviews. JAMIA open 7, ooae098 (2024).
+[11] Wadhwa, S., DeYoung, J., Nye, B., Amir, S. & Wallace, B. C. Jointly extracting
+interventions, outcomes, and findings from rct reports with llms. In Machine Learning
+for Healthcare Conference , 754–771 (PMLR, 2023).
+[12] Zhang, G. et al. A span-based model for extracting overlapping pico entities from ran-
+domized controlled trial publications. Journal of the American Medical Informatics
+Association 31, 1163–1171 (2024).
+[13] Syriani, E., David, I. & Kumar, G. Assessing the ability of chatgpt to screen articles
+for systematic reviews. arXiv preprint arXiv:2307.06464 (2023).
+[14] Shaib, C. et al. Summarizing, simplifying, and synthesizing medical evidence using
+gpt-3 (with varying success). In The 61st Annual Meeting Of The Association For
+Computational Linguistics (2023).
+[15] Wallace, B. C., Saha, S., Soboczenski, F. & Marshall, I. J. Generating (factual?) nar-
+rative summaries of RCTs: Experiments with neural multi-document summarization.
+AMIA Summits on Translational Science Proceedings 2021 , 605 (2021).
+[16] Zhang, G. et al. Closing the gap between open source and commercial large language
+models for medical evidence summarization. npj Digital Medicine 7, 239 (2024).
+[17] Peng, Y., Rousseau, J. F., Shortliffe, E. H. & Weng, C. Ai-generated text may have
+a role in evidence-based medicine. Nature Medicine 29, 1593–1594 (2023).
+[18] Christopoulou, S. C. Towards automated meta-analysis of clinical trials: An overview.
+BioMedInformatics 3, 115–140 (2023).
+[19] OpenAI. Gpt-4 technical report (2024). 2303.08774 .
+[20] Yun, H., Marshall, I., Trikalinos, T. & Wallace, B. C. Appraising the potential uses
+and harms of llms for medical systematic reviews. In Proceedings of the 2023 Con-
+ference on Empirical Methods in Natural Language Processing , 10122–10139 (2023).
+32
+
+--- Page 33 ---
+[21] Page, M. J. et al. The prisma 2020 statement: an updated guideline for reporting
+systematic reviews. Bmj372(2021).
+[22] National Cancer Institute. Types of cancer treatment. https://www.cancer.gov/
+about-cancer/treatment/types . Accessed: 2024-04-24.
+[23] Wu, T., Terry, M. & Cai, C. J. Ai chains: Transparent and controllable human-ai
+interaction by chaining large language model prompts. In Proceedings of the 2022
+CHI conference on human factors in computing systems , 1–22 (2022).
+[24] Bodenreider, O. The unified medical language system (umls): integrating biomedical
+terminology. Nucleic acids research 32, D267–D270 (2004).
+[25] Song, K., Tan, X., Qin, T., Lu, J. & Liu, T.-Y. Mpnet: Masked and permuted
+pre-training for language understanding (2020). 2004.09297 .
+[26] Jin, Q. et al. Medcpt: Contrastive pre-trained transformers with large-scale pubmed
+search logs for zero-shot biomedical information retrieval. Bioinformatics 39, btad651
+(2023).
+[27] Deeks, J. J. & Higgins, J. P. Statistical algorithms in review manager 5. Statistical
+methods group of the Cochrane Collaboration 1(2010).
+[28] Shekelle, P. G. et al. Validity of the agency for healthcare research and quality
+clinical practice guidelines: how quickly do guidelines become outdated? JAMA
+286, 1461–1467 (2001).
+[29] Hutson, M. How ai is being used to accelerate clinical trials. Nature 627, S2–S5
+(2024).
+[30] Wang, Z., Theodorou, B., Fu, T., Xiao, C. & Sun, J. Pytrial: Machine learning soft-
+ware and benchmark for clinical trial applications. arXiv preprint arXiv:2306.04018
+(2023).
+[31] Jin, Q., Leaman, R. & Lu, Z. Pubmed and beyond: biomedical literature search in
+the age of artificial intelligence. Ebiomedicine 100(2024).
+[32] Scells, H. et al. A test collection for evaluating retrieval of studies for inclusion in
+systematic reviews. In Proceedings of the 40th International ACM SIGIR Conference
+on Research and Development in Information Retrieval , 1237–1240 (2017).
+[33] Wallace, B. C., Trikalinos, T. A., Lau, J., Brodley, C. & Schmid, C. H. Semi-
+automated screening of biomedical citations for systematic reviews. BMC Bioinfor-
+matics 11, 1–11 (2010).
+[34] Kanoulas, E., Li, D., Azzopardi, L. & Spijker, R. Clef 2018 technologically assisted
+reviews in empirical medicine overview. In CEUR workshop proceedings , vol. 2125
+(2018).
+[35] Trikalinos, T. et al. Large scale empirical evaluation of machine learning for semi-
+automating citation screening in systematic reviews. In 41st Annual Meeting of the
+Society for Medical Decision Making (SMDM, 2019).
+[36]ˇSuster, S. et al. Automating quality assessment of medical evidence in systematic re-
+views: model development and validation study. Journal of Medical Internet Research
+25, e35568 (2023).
+[37] Yun, H. S., Pogrebitskiy, D., Marshall, I. J. & Wallace, B. C. Automatically extract-
+ing numerical results from randomized controlled trials with large language models.
+arXiv preprint arXiv:2405.01686 (2024).
+[38] Schmidt, L. et al. Data extraction methods for systematic review (semi) automation:
+Update of a living systematic review. F1000Research 10(2021).
+[39] Zhang, G. et al. Leveraging generative ai for clinical evidence synthesis needs to
+ensure trustworthiness. Journal of Biomedical Informatics 104640 (2024).
+[40] Joseph, S. A. et al. Factpico: Factuality evaluation for plain language summarization
+of medical evidence. arXiv preprint arXiv:2402.11456 (2024).
+33
+
+--- Page 34 ---
+[41] Ramprasad, S., Mcinerney, J., Marshall, I. & Wallace, B. C. Automatically summa-
+rizing evidence from clinical trials: A prototype highlighting current challenges. In
+Proceedings of the 17th Conference of the European Chapter of the Association for
+Computational Linguistics: System Demonstrations , 236–247 (2023).
+[42] Chelli, M. et al. Hallucination rates and reference accuracy of chatgpt and bard for
+systematic reviews: Comparative analysis. Journal of Medical Internet Research 26,
+e53164 (2024).
+[43] Spillias, S. et al. Human-ai collaboration to identify literature for evidence synthesis
+(2023).
+[44] Lewis, P. et al. Retrieval-augmented generation for knowledge-intensive nlp tasks.
+Advances in Neural Information Processing Systems 33, 9459–9474 (2020).
+[45] Wei, J. et al. Chain-of-thought prompting elicits reasoning in large language models.
+Advances in Neural Information Processing Systems 35, 24824–24837 (2022).
+[46] Anthropic. Introducing the claude 3 family. https://www.anthropic.com/news/
+claude-3-family (2023). Accessed: 2024-04-24.
+[47] National Center for Biotechnology Information (NCBI). Entrez programming utilities
+help. https://www.ncbi.nlm.nih.gov/books/NBK25501/ (2008). Accessed: 2024-
+04-24.
+34

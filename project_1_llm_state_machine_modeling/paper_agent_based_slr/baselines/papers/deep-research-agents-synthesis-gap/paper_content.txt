@@ -1,0 +1,2240 @@
+--- Page 1 ---
+2026-5-20
+Can Deep Research Agents Retrieve and Organize?
+Evaluating the Synthesis Gap with Expert Taxonomies
+Ming Zhang1,2†*, Jiabao Zhuang1*, Wenqing Jing1*, Kexin Tan1*,
+Ziyu Kong1, Jingyi Deng1, Yujiong Shen1,2, Yuhui Wang1, Zhenghao Xiang1,2, Qiyuan Peng1,
+Yuhang Zhao1, Ning Luo1, Renzhe Zheng1, Jiahui Lin1, Mingqi Wu1, Long Ma1, Zhangyue Yin1,2,
+Shihan Dou1,2, Maxm Pan2†, Tao Gui1, Qi Zhang1†, Xuanjing Huang1
+1Fudan University2Hunyuan Team, Tencent
+mingzhang23@m.fudan.edu.cn, maxmpan@tencent.com, qz@fudan.edu.cn
+Deep Research Agents increasingly automate survey generation, yet whether they match human
+experts atretrievingessential papers andorganizingthem into expert-like taxonomies remains
+unclear. Existing benchmarks emphasize writing quality or citation correctness, while standard
+clustering metrics ignore hierarchical structure. We introduceTaxoBench, a benchmark of 72
+highly cited LLM surveys with expert-authored taxonomy trees and 3,815 papers mapped to paper
+categories.TaxoBenchevaluates (1) retrieval via Recall/Precision/F1, and (2) organization at a
+leaf level(paper-to-category assignment) and ahierarchy levelvia two new metrics: Unordered
+Semantic Tree Edit Distance (US-TED/US-NTED) and Semantic Path Similarity (Sem-Path). Two
+modes are supported: Deep Research (topic-only, end-to-end) and Bottom-Up (expert paper set
+provided, organization-only). To distinguish disagreement with a single expert reference from
+genuine model failure, we explicitly partition findings into capability-based (reference-free) and
+alignment-based (reference-dependent) groups. Evaluating 7 Deep Research Agents and 12 frontier
+LLMs reveals a dual bottleneck. On the capability side, the best agent retrieves only 20.92%
+of expert-cited papers, and 1,000 model taxonomies show 75.9% sibling overlap, 51.2% MECE
+violations, and 83.4% structural imbalance, all detectable without any reference. On the alignment
+side, all 12 LLMs converge toSem-Path28–29%, well below 47–58% achieved by three independent
+human-annotator groups on the same paper sets. Our benchmark is publicly available at https:
+//github.com/KongLongGeFDU/TaxoBench.
+1. Introduction
+① Retrieve
+②Organize
+Survey Topic:  Aligning LLMs with Human......
+Figure 1|Deep Research Agents for survey genera-
+tion. Given a survey topic, the agent autonomously
+conducts web-based research to retrieve relevant
+papers and organizes them into a taxonomy.Deep Research (DR) Agents increasingly au-
+tomate survey writing by searching the web,
+collecting papers, and producing structured
+overviews (Schmidgall et al., 2025; Wang et al.,
+2024; Yan et al., 2025; Zhang et al., 2025b). Re-
+cent DR surveys (Shi et al., 2025) identify four
+sub-components: Query Planning, Information
+Acquisition, Memory Management, and Answer
+Generation. Concurrent benchmarks evaluate
+report-quality and rubric-following aspects of
+Answer Generation (Sharma et al., 2025; Zhang
+et al., 2025a). Whether these systems match
+human experts at two foundational abilities at
+*Equal Contribution.
+†Corresponding Author.arXiv:2601.12369v4  [cs.CL]  19 May 2026
+
+--- Page 2 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+ARI <5%ARI* ≈40%
+1. Input Expert Paper Set72high-quality surveys8research domains3815 papers covered1. Input Only Topic2.Retrieve Papers(1) Deep Research Mode
+(2) Bottom-Up Mode
+TitleAbstractTitleAbstractTitleAbstractSummaryCore TasksContrib.2.Set Input Granularities3. Construct TaxonomyLLM,spatial, temporalPython CodeInterpreterPlugin APISpatial &TemporalGraphLLMs for TimeSeriesLLM,spatial, temporalGeneralPurposeDomainSpecific Paper 1Paper 2Paper NChallenge 2: Can agentsorganize papers into expert-like taxonomies?
+-ScholarAI-WebPilot-Wolfram  Alpha-Zapier-Link Reader!𝑻=(%Th,!U)
+B. Org. Eval(3) Organization Evaluations1. LeafLevelModel’s Organization!𝑻=(%Th,!U)Ground Truth𝑻∗= (Th∗, U∗)
+US-TEDUS-NTEDSem-Pathuiujukupuqu’iu’ju’ku’pu’q
+Root Node (Survey Topic) Correct NodeCategory NodeWrong NodeMissing NodeLeaf Node (Paper)uiuiujukupunu’iu’ju’ku’pu’m2. Hierarchy  Leveluiujukupunu’iu’ju’ku’pu’mARIV-Meas.
+Challenge 1: Can agents retrievethe papers experts would cite?
+Paper Categories
+A. Retr. Eval
+4. Org. Eval3.Construct Taxonomy
+Figure2|Overview ofTaxoBench. (1)DeepResearchmodeevaluates end-to-end agents that, given
+only a topic, retrieve papers via web tools and construct a hierarchical taxonomy. (2)Bottom-Up
+modeisolates organization by providing the expert paper set (with configurable granularity) before
+taxonomy construction. (3) Organization evaluation compares the model’s taxonomy with the expert
+ground truth at the leaf level (paper-to-category assignment, e.g., ARI and V-Measure) and at the
+hierarchy level (taxonomy structure, e.g., US-TED/US-NTED andSem-Path).
+theintersectionofInformationAcquisitionandstructuralAnswerGenerationremainsunclear: retrieving
+essential papers and organizing them into expert-like taxonomies. Expert surveys do not arise from
+text generation alone; experts read broadly, identify a set of core works, and iteratively synthesize a
+hierarchical taxonomy that becomes the backbone of the survey. Current benchmarks focus on writing
+quality, factuality, or citation correctness (Eldifrawi et al., 2024; Wadden et al., 2020), rather than
+on whether an agent retrieves the papers experts would cite and organizes them in an expert-like
+structure.
+We identify two challenges.(C1) Retrieval: existing benchmarks do not provide expert-curated
+ground-truth paper sets for survey-oriented retrieval at scale, although standard Recall/Precision/F1
+suffice once such ground truth exists.(C2) Organization: standard clustering metrics such as ARI
+and V-Measure capture only partitions and cannot distinguish sibling confusion from errors moving
+content across distant branches; hierarchy-aware evaluation is needed at both theleaf level, i.e., paper-
+to-category assignment, and thehierarchy level, i.e., taxonomy structure including node semantics
+and parent/child relations.
+To address these challenges, we introduceTaxoBench, a benchmark built from 72 highly cited
+LLM surveys with expert-authored taxonomies and 3,815 cited papers manually mapped to expert
+paper categories. Published expert taxonomies serve as reference standards without assuming that a
+taxonomy design is unique. To disentangle retrieval from organization,TaxoBenchsupports two
+modes, illustrated in Figure 2:Deep Research modetests end-to-end capability given only a topic,
+whileBottom-Up modeprovides the expert paper set to isolate organization ability. For organiza-
+tion, we propose three hierarchy-aware metrics—US-TED,US-NTED, andSem-Path—that capture
+2
+
+--- Page 3 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+structural quality beyond flat clustering. To keep reference disagreement separate from genuine
+model failure, we partition all findings intoalignment-based(matchingthisexpert reference) and
+capability-based(reference-free, includingtheretrievalRecallceilingandfourreference-independent
+organizational defects on the model’s own tree); see Section 3.4.
+We evaluate 7 Deep Research Agents and 12 frontier LLMs onTaxoBenchalong this partition.
+Capability-side(reference-free): the best agent retrieves only 20.92% of expert-cited papers, and
+across 1,000 model taxonomies we measure 75.9% sibling overlap, 51.2% MECE violations, and
+83.4% structural imbalance, none of which requires an expert reference to detect.Alignment-side
+(reference-dependent): even given the exact expert paper set, all 12 LLMs converge toSem-Path
+28–29%, well below 47–58% achieved by three independent human-annotator groups on the same
+paper sets, ruling out intrinsic taxonomy ambiguity as the explanation.
+The contributions are threefold:
+1.We introduceTaxoBench, a benchmark of 72 expert-authored survey taxonomies with 3,815
+cited papers, built via a four-stage selection pipeline with per-survey publication-date metadata,
+enabling evaluation of both retrieval and organization (Section 2).
+2.We propose hierarchy-aware metrics (US-TED,US-NTED, andSem-Path) that capture structural
+quality beyond flat clustering scores, and explicitly partition all findings intoalignment-basedand
+capability-basedgroups so that reference disagreement is never conflated with genuine model
+failure.
+3.We evaluate 7 Deep Research Agents and 12 frontier LLMs onTaxoBenchand identify concrete
+failuremodesinbothretrieval(bestRecall20.92%)andorganization(75.9%siblingoverlap,51.2%
+MECE violations, 83.4% structural imbalance), benchmarked against three independent human-
+annotation baselines (Sem-Path47.3%/52.1%/57.7%) with full robustness checks (Appendix G).
+2.TaxoBench
+Ataxonomyconsists of (i) acategory hierarchythat organizes topics into a tree, and (ii) apaper-to-
+category assignmentmapping each paper to a leaf category.TaxoBenchextracts such taxonomies
+from published expert surveys and uses them as references to evaluate whether agents can replicate
+this process. Formal definitions appear in Section 3; Table 1 summarizes the dataset.
+Survey collection.Starting from 200+ candidate LLM-related surveys, we apply four sequential
+filters: (1) ataxonomy filterthat retains only surveys with explicit taxonomy figures, identified by
+caption-based search; (2) animpact filterbased on citation counts, with the final set averaging 354.5
+citations; (3) ascope filterthat excludes overly broad surveys without a coherent expert taxonomy;
+and (4)expert verificationby Ph.D.-level researchers. The resulting 72 surveys span 8 subdomains
+within AI/ML; stage-by-stage statistics appear in Appendix F. We additionally record each survey’s
+publication date𝑡 𝑠as an explicit temporal cutoff for the retrieval protocol (Section 3.2).
+Taxonomy extraction.From each survey, Ph.D.-level annotators manuallyextractthe taxonomy
+figure that the survey authors themselves published rather than redesign it, mapping cited papers
+to paper categories by reading full text. Each taxonomy is stored as a directory tree, with topics as
+folders and papers as files; quality controls include disambiguation, deduplication, and validation
+against survey text. Annotator subjectivity is therefore confined to paper-to-node ambiguity rather
+than hierarchy design. We report annotation details in Appendix I and three independent human-
+construction baselines, where annotatorsdobuild taxonomies from scratch, in Appendix C.4; all
+three score 47.3–57.7%Sem-Pathagainst the published reference, far above the 28–29% achieved
+3
+
+--- Page 4 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+Statistic Value
+Survey collection
+Number of surveys / total papers 72 / 3,815
+Avg. citations per survey 354.5
+Per-taxonomy (mean±std)
+Papers per taxonomy 53.0±20.6
+Hierarchy depth 4.9±0.8
+Paper categories 14.0±6.5
+Papers per category 3.8±3.1
+Branching factor 2.5±0.5
+Table 1|TaxoBenchdataset statistics.
+by frontier models.
+Multi-categorypapers.A small fraction of expert-cited papers naturally belong to multiple categories.
+Because ARI and V-Measure are inherently single-assignment, our annotators retain the most contex-
+tually appropriate single category for each paper. Over 70% of surveys contain ≤10multi-category
+papers. Appendix G.4 shows that removing all multi-category papers leavesSem-Pathessentially
+unchanged, e.g., Claude 29.16% →29.82%, confirming this simplification introduces no systematic
+bias.
+3. Evaluation Framework
+This section specifies the evaluation protocol used throughout the paper. We first define the evaluation
+objects and notation (Section 3.1), then present metrics for retrieval capability (Section 3.2) and
+organization capability at the leaf and hierarchy levels (Section 3.3).
+3.1. Preliminaries and Notation
+Definition 1(Taxonomy).Ataxonomy 𝑇=(𝑇ℎ,𝑈)consists of: (i) acategory hierarchy 𝑇ℎ=(C,𝐸)
+in whichCis a set of category labels and 𝐸⊆C×C are parent–child edges that form a rooted tree;
+(ii) apaper-to-category assignment 𝑈:P→C𝑝that maps each paper 𝑝∈Pto apaper category
+𝑐𝑝∈C𝑝⊆C, where paper categories are the terminal nodes (leaves) of 𝑇ℎunder which papers are
+attached.
+Notation summary.We write 𝑇∗=(𝑇∗
+ℎ,𝑈∗)for the expert taxonomy and ˆ𝑇=( ˆ𝑇ℎ,ˆ𝑈)for a model
+output.P∗is the expert-cited paper set, ˆPthe model-retrieved set; C∗
+𝑝and ˆC𝑝are the corresponding
+paper-category sets.|𝑇 𝑢|denotes the size of the subtree rooted at node𝑢andCh(𝑢)its children.
+Evaluation modes.TaxoBenchsupports two evaluation modes that differ in the paper universe
+P:Deep Researchmode evaluates end-to-end retrieval plus organization, whileBottom-Upmode
+providesP=P∗to isolate organization capability. The term “Bottom-Up” reflects that models build
+taxonomies starting from a fixed paper set (bottom) rather than first discovering papers via retrieval.
+4
+
+--- Page 5 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+3.2. Retrieval Evaluation
+Retrieval is evaluated only in Deep Research mode, where the model must recover P∗from a topic
+query. We report standard set-based metrics:
+Recall=|P∗∩ˆP|
+|P∗|,Precision=|P∗∩ˆP|
+|ˆP|,(1)
+F1=2·Precision·Recall
+Precision+Recall.(2)
+Scores are computed per survey and macro-averaged across surveys.
+Temporal cutoff specification.For each survey 𝑠we attach the publication date 𝑡𝑠as benchmark
+metadata, as described in Section 2, and adopt the following convention: by construction, the expert
+paper setP∗
+𝑠is restricted to papers published before 𝑡𝑠, so the temporal cutoff for matching against
+P∗
+𝑠is exactly𝑡𝑠. Recall is therefore well-defined regardless of any newer papers an agent may retrieve,
+since newer papers cannot belong to P∗
+𝑠in the first place. Precision and F1 are reported over the
+full agent output unless otherwise stated; an additional “temporally-filtered” Precision, counting
+only agent-retrieved papers with publication date ≤𝑡𝑠as eligible, is reported in Appendix G.1. We
+empirically verify that Recall is exactly unchanged under temporal filtering in Appendix G.1 and
+Table 14, formalizing the structural argument that temporal under-specification cannot inflate the
+20.92% Recall ceiling reported in Section 4.
+Source-level safeguards.To mitigate data contamination—an agent retrieving the source survey
+itself rather than synthesizing from primary literature—we (i) include URL/title blacklists targeting
+the 72 source surveys in our public evaluation harness, and (ii) systematically inspect all 504 Deep
+Research runs (7 agents ×72 surveys) for direct source retrieval. Only one such instance was detected
+(Qwen on a single survey); we discarded that run and re-ran it. The very low Recall ceiling of 20.92%
+is itself independent evidence that contamination is bounded: an agent extracting references from
+the source survey would trivially exceed this ceiling.
+3.3. Organization Evaluation
+Organization is evaluated at two levels:Leaf-Level(paper-to-category assignment) andHierarchy-
+Level(taxonomy structure).
+3.3.1. Leaf-Level: Paper-to-Category Assignment
+Given a paper universe P, we compare the expert assignment 𝑈∗:P→C∗
+𝑝with the model assignment
+ˆ𝑈:P→ ˆC𝑝. Since ARI and V-Measure evaluate partitions without encoding hierarchical structure,
+we use them here and introduce hierarchy-level metrics in Section 3.3.2.
+Leaf-level metrics.We use the chance-correctedAdjusted Rand Index(ARI) (Hubert and Arabie,
+1985) andV-Measure(Rosenberg and Hirschberg, 2007); the latter reports homogeneity (Hom. =1−
+𝐻(𝑈∗|ˆ𝑈)/𝐻(𝑈∗)) and completeness (Comp. =1−𝐻( ˆ𝑈|𝑈∗)/𝐻( ˆ𝑈)) and combines them as V-Measure=
+2Hom.Comp.
+Hom.+Comp.. Full forms are in Appendix A.1.
+Deep Research mode.Retrieval gates what can be organized. We report two complementary views:
+(A) retrieval-conditioned, restricting P=P∗∩ˆPand computingARI ∩andV-Measure ∩, where
+5
+
+--- Page 6 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+the subscript ∩denotes the intersection domain; and(B) end-to-end, setting P=P∗and assigning
+a dedicated label ⊥to unretrieved papers via ˆ𝑈e2e:P∗→ˆC𝑝∪{⊥}, then comparing 𝑈∗with ˆ𝑈e2e.
+View (B) folds the retrieval bottleneck into organization performance and isnota replacement for
+the retrieval metrics.
+3.3.2. Hierarchy-Level: Taxonomy Hierarchy Structure
+Flat partition metrics such as ARI and V-Measure cannot distinguish sibling confusion from errors
+that move content across distant branches; soft-cardinality metrics such asNSR/NSP(Fränti and
+Mariescu-Istodor, 2023) are alsostructure-blindand can be perfect even when subtrees are entirely
+rewired, as discussed in Appendix A.6. We therefore evaluate hierarchies 𝑇∗
+ℎvs.ˆ𝑇ℎ, taking only internal
+categories and edges and excluding paper nodes, using two complementary metrics:US-(N)TED
+provides aglobaledit-distance under unordered sibling matching, whileSem-Pathprovides alocal
+per-paper notion of root-to-leaf path consistency.
+Unordered Semantic Tree Edit Distance (US-TED).US-TEDextends the STED framework (Wang
+et al., 2025) by accounting for the unordered nature of siblings in taxonomies, so the permutation
+order of siblings does not affect the edit distance. Lete (·)denote a text embedding (we use Sentence-
+Transformers; see Appendix A.3.1), with semantic label similarity
+Sim(𝑥,𝑦) :=max0,cos(e(𝑥),e(𝑦))∈[0,1],(3)
+and renaming cost
+cost ren(𝑥→𝑦) :=1−Sim(𝑥,𝑦)∈[0,1],(4)
+with insertion/deletion cost1per node. We define
+𝐷(𝑢,𝑣) :=cost ren(𝑢→𝑣)
++MatchCostCh(𝑢),Ch(𝑣)
+,(5)
+where MatchCost is computed via minimum-cost bipartite matching using the Hungarian algorithm;
+unmatched children correspond to deleting/inserting entire subtrees, charged by subtree size. The
+tree-level distance is
+US-TED(𝑇∗
+ℎ,ˆ𝑇ℎ):=𝐷(𝑟∗,ˆ𝑟),(6)
+where𝑟∗,ˆ𝑟denote the roots of𝑇∗
+ℎ,ˆ𝑇ℎ. The full assignment formulation is in Appendix A.3.1.
+NormalizedUS-TED(US-NTED).We normalize by hierarchy size for cross-instance comparability:
+US-NTED(𝑇∗
+ℎ,ˆ𝑇ℎ):=US-TED(𝑇∗
+ℎ,ˆ𝑇ℎ)
+|𝑇∗
+ℎ|+|ˆ𝑇ℎ|.(7)
+LowerUS-TED/US-NTEDindicates closer structural alignment; boundedness and properties are given
+in Appendix A.3.2, and we reportUS-NTEDas a percentage in all tables.
+Semantic Path Similarity (Sem-Path).US-(N)TEDcaptures global tree divergence but does not test
+whether an aligned paper sits under a semantically consistent root-to-leaf chain. Let 𝐷𝑎⊆P∗×ˆPbe
+the set of aligned paper pairs (Appendix A.5); 𝐷𝑎coversP∗in Bottom-Up mode and P∗∩ˆPin Deep
+Research mode. For each pair (𝑑,ˆ𝑑)∈𝐷𝑎, removing the paper node from the root-to-paper paths in
+𝑇∗,ˆ𝑇yields ancestor-label sequences 𝑆=(𝑠 1,...,𝑠𝑚)andˆ𝑆=(ˆ𝑠 1,...,ˆ𝑠𝑛). With clipped cosine distance
+𝛿(𝑥,𝑦) :=1−Sim(𝑥,𝑦) and (WLOG) 𝑚≤𝑛, we take the order-preserving minimum-cost alignment
+over strictly increasing𝑓:{1,...,𝑚}→{1,...,𝑛}:
+𝐽(𝑆,ˆ𝑆):=min
+𝑓𝑚∑︁
+𝑖=1𝛿(𝑠𝑖,ˆ𝑠𝑓(𝑖)) +𝜆(𝑛−𝑚),(8)
+6
+
+--- Page 7 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+Deep Research AgentRecall↑Precision↑F1↑
+o320.92%29.29%24.41%
+Grok 12.82%29.35%17.85%
+Gemini 15.23% 18.92% 16.88%
+Perplexity 6.61% 7.47% 7.01%
+DeepSeek 4.61% 14.26% 6.97%
+Qwen 4.35% 7.94% 5.62%
+Doubao 3.15% 3.83% 3.46%
+Table 2|Retrieval capabilityof Deep Research Agents when given the same survey topic as human
+experts. Best results arebold; 3-run Recall std≤3.01pp (App. G.2).
+with𝜆=1, where𝜆penalizes unmatched extra nodes. Letting 𝐽𝑑be the minimum cost for (𝑑,ˆ𝑑)over
+its candidate ancestor-path pairs,
+Sem-Path :=1
+|𝐷𝑎|∑︁
+(𝑑,ˆ𝑑)∈𝐷𝑎1
+1+𝐽𝑑.(9)
+3.4. LLM-as-Judge and Diagnostic Split
+LLM-as-Judge.We complement automatic metrics with an LLM-as-Judge that prompts GPT-4o to
+compare𝑇∗
+ℎand ˆ𝑇ℎalong four dimensions:Coverage,Organizationfor MECE,Logicfor parent–
+child consistency, andTopologyfor structural similarity, each on a 1–5 scale. Cohen’s 𝜅with human
+evaluatorsreaches0.8909; seeAppendixBfordetailsandAppendixJ.3forprompts. Four-dimensional
+error analysis is reported in Appendix C.
+Alignment- vs. capability-based diagnostics.We keep these two groups visible throughout the
+paper.Alignment-basedmetrics, namelyARI,V-Measure/Hom./Comp.,US-TED/US-NTED, andSem-
+Path, compare a model taxonomy to the expert reference 𝑇∗; a low score only indicates divergence
+fromthisexpert’s organization.Capability-baseddiagnostics are reference-free and include (i) the
+retrieval Recall ceiling, and (ii) four reference-independent organizational defects on the model’s own
+tree: semantic overlap between siblings via cosine similarity, rule-based MECE violations, structural
+imbalance from tree statistics, and inconsistent classification criteria. A taxonomy exhibiting these
+defects is organizationally deficient regardless of any reference; empirical defect rates appear in
+Section 4 and Appendix E.
+4. Benchmarking LLMs onTaxoBench
+We evaluate 7 Deep Research Agents and 12 frontier LLMs onTaxoBenchalong three research
+questions (RQI–III). InDeep Research modewe evaluate 7 agents (o3, Grok, Gemini, Perplexity,
+DeepSeek, Qwen, Doubao) on end-to-end survey writing from a topic. InBottom-Up modewe
+provide the exact expert paper set P∗and evaluate 12 frontier LLMs based on Claude-4.5-Sonnet,
+GPT-5, Gemini-3-Pro, DeepSeek-V3.2, Qwen3-Max, and Kimi-K2, each with a thinking variant; the full
+list is in Appendix K. Following Zhang et al. (2026), we use three input granularities:Title+Abstract,
++Summary, and+Core-task&Contributions; per-input results are in Appendix C.2.
+7
+
+--- Page 8 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+Deep Research AgentLeaf-Level Hierarchy-Level
+ARI↑V-Meas.↑ARI ∩↑V-Meas.∩↑US-TED↓US-NTED↓Sem-Path↑
+o34.09% 26.05%37.98% 72.69% 29.26 74.03%30.25%
+Grok 1.34% 20.03% 34.06% 71.16%27.16 72.81%29.60%
+Gemini 2.14% 23.57%41.72% 77.06%40.58 79.02% 26.79%
+Perplexity 0.51% 12.79% 35.60% 66.90% 56.66 83.93% 25.72%
+DeepSeek 0.18% 8.33% 40.43% 70.64% 29.99 74.96% 17.50%
+Qwen -0.07% 7.59% 28.43% 54.66% 45.10 76.37% 20.53%
+Doubao 0.34% 6.57% 38.87% 53.42% 39.07 75.13% 18.93%
+Table 3|Organization capabilityevaluation inDeep Research Mode. Metrics with subscript ∩
+are calculated only on the intersection of retrieved and expert papers. Best results arebold; 3-run
+Sem-Pathstd≤2.14pp (App. G.2).
+0 10 20 30 40 50
+Adjusted Rand Index (%)QwenGrokPerplexityo3DoubaoDeepSeekGemini
+-0.07% 28.43%+28.50%1.34% 34.06%+32.72%0.51% 35.60%+35.09%4.09% 37.98%+33.89%0.34% 38.87%+38.53%0.18% 40.43%+40.25%2.14% 41.72%+39.58%ARI vs ARI∩
+ARI
+ARI∩
+Figure 3|Global ARI vs. retrieval-conditioned
+ARI∩across DR agents. The large gap localizes
+the primary bottleneck at retrieval rather than
+clustering.
+0 5 10 15 20 25 30
+Retrieval F1 (%)15.017.520.022.525.027.530.032.535.0Sem-Path (%)
+o3Grok
+Gemini
+Perplexity
+DeepSeekQwen
+Doubao
+Spearman ρ = 0.89
+(p = 0.007)Retrieval Quality vs Hierarchy StructureFigure 4|Retrieval F1 vs.Sem-Pathin Deep
+Research mode (Spearman 𝜌=0.89,𝑝=0.007).
+4.1. RQI: Can current agents replicate expert-level literature discovery?
+Finding 1: Deep Research agents exhibit severe retrieval bottlenecks.Table 2 reveals that current
+agents fail to retrieve core literature at scale. The best-performing agent, o3, achieves only 20.92%
+Recall and 24.41% F1, missing nearly 80% of expert-cited papers, and four of the seven agents fall
+below 10% F1. Precision is similarly limited: Grok leads with 29.35%, indicating that retrieved sets
+are dominated by peripheral rather than foundational work. This is a capability-based finding that
+does not depend on the expert taxonomy: any synthesis pipeline built on top of these agents inherits
+an upper bound of ≤21%Recall on the papers experts deem essential, which directly constrains
+downstream organization.
+4.2. RQII: How well can agents organize the retrieved subset?
+Finding 2: Retrieval gaps mask the latent clustering potential of agents on the retrieved subset.
+To isolate organization ability from retrieval failures, we compute ARI ∩and V-Meas.∩on the retrieved
+subset only (Section 3.3.1). As shown in Figure 3, despite low global ARI scores all below 5%,
+agents achieve substantially higher conditional performance: Gemini reaches 41.72% ARI ∩vs. 2.14%
+8
+
+--- Page 9 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+ModelLeaf-Level Hierarchy-Level
+ARI↑Hom.↑Comp.↑V-Meas.↑US-TED↓US-NTED↓Sem-Path↑
+Non-thinking-based
+Claude-4.5-Sonnet 27.25%82.27%66.61%72.84%42.89 77.73%29.16%
+GPT-5 28.17% 77.79% 66.45% 70.99% 40.84 78.65% 28.97%
+Gemini-3-Pro* 29.86% 68.25% 67.15% 67.00%32.3276.35% 28.13%
+DeepSeek-V3.2 27.15% 74.33% 66.15% 69.28% 37.0475.71%28.63%
+Qwen3-Max*31.24%68.48%68.63%67.52% 32.80 78.17% 29.00%
+Kimi-K2 23.69% 79.32% 64.88% 70.48% 41.35 79.58% 28.33%
+Thinking-based
+Claude-4.5-Sonnet-Thinking 29.28% 76.35% 66.96% 70.58% 37.87 76.56% 28.66%
+GPT-5-Thinking 25.97%80.89%66.05%72.07%43.05 79.86% 28.56%
+Gemini-3-Pro-Thinking* 28.84% 67.26% 67.00% 66.45%32.4076.47% 28.21%
+DeepSeek-V3.2-Thinking 27.71% 70.74% 67.14% 67.68% 34.5176.02%28.67%
+Qwen3-Max-Thinking*30.32%68.70%68.10%67.38% 33.62 78.24%28.95%
+Kimi-K2-Thinking 22.59% 78.98% 64.64% 70.18% 44.07 80.85% 28.21%
+Table 4|Organization capabilityevaluation inBottom-Up Mode. Models marked with * denote
+Preview versions. Best results arebold; 3-runSem-Pathstd ≤0.43pp, ARI std≤2.07pp (App. G.2).
+globally, a gap of nearly 40 pp, and DeepSeek, Doubao, and o3 show similar gaps of 30–40 pp. This
+suggests that agents possess a foundational ability to distinguish semantic boundaries and cluster core
+literature, but this latent potential is currently capped by the upstream retrieval bottleneck identified
+in Finding 1.
+Finding 3: Retrieval quality correlates with hierarchy-level structure.F1 andSem-Path
+are strongly associated across the 7 DR agents, with Spearman 𝜌=0.89at𝑝=0.007(Figure 4):
+o3 leads with 30.25%Sem-Pathand 24.41% F1, while low-retrieval agents such as Doubao and
+Qwen cluster at both low F1 and lowSem-Path. We hypothesize this arises because hierarchical
+organization depends on the collective composition of the retrieved set: when F1 is high, retrieved
+papers largely overlap with the expert set and naturally align with expert classification logic; when
+F1 is low, off-topic papers impose a different organizing principle that drives the hierarchy away from
+the expert structure.
+4.3. RQIII: How well can LLMs organize given perfect retrieval?
+Finding 4: Models systematically over-segment at the leaf level.Table 4 shows a substantial
+model–expert gap: the best model Qwen3-Max reaches only 31.24% ARI, and Thinking mode does
+not consistently improve—and sometimes lowers—ARI. Decomposing V-Measure in Figure 5 reveals
+Hom.>Comp. for most models, e.g., Claude scores 82.27% on Hom. vs. 66.61% on Comp., so models
+fragment topics into fine-grained clusters instead of consolidating them under broader expert-style
+categories, as illustrated in Figure 9; Qwen3-Max is the only near-parity case. A controlled probe
+constraining GPT-5 to produce exactly 𝐾expert-count categories on 15 sampled surveys raises ARI
+from 13.05% to 20.54% while dropping homogeneity from 73.84% to 62.87%, confirming that
+high homogeneity arisesthroughover-segmentation rather than genuine semantic understanding
+(Appendix H.2).
+Finding 5: Hierarchy-level performance converges across models, revealing a universal
+alignment-based bottleneck.WhileUS-TEDandUS-NTEDvary,Sem-Pathcompresses to a narrow
+band of 28.13–29.16% across all 12 LLMs (Figure 6), with Claude-4.5-Sonnet leading at 29.16%.
+9
+
+--- Page 10 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+Claude-4.5 Kimi-K2 GPT-5 Qwen3-Max
+Model020406080Score (%)82.2779.3277.79
+68.4866.6164.8866.4568.63Homogeneity vs Completeness
+Homogeneity
+Completeness
+Figure 5|Homogeneity vs. Completeness in
+Bottom-Up mode. Hom. >Comp. across most
+models indicates systematic over-segmentation;
+Qwen3-Max is the only near-parity case.
+30 40 50 60
+Sem-Path (%)DeepSeek-V3.2-TKimi-K2DeepSeek-V3.2Kimi-K2-TGemini-3-ProGemini-3-Pro-TQwen3-MaxQwen3-Max-TClaude-4.5-Sonnet-TGPT-5GPT-5-TClaude-4.5-SonnetHumanModel
+28.13%28.58%28.61%28.64%28.73%28.76%28.85%28.85%28.91%28.91%28.91%29.16%47.3–57.7
+(mean 52.40)Gap: +23.24 pp
+Convergence band
+LLMs
+HumanSem-Path Convergence Across ModelsFigure 6|Sem-Pathconvergence to
+28.13–29.16% across all 12 LLMs vs.
+47.32%/52.14%/57.74% for three inde-
+pendent human-annotator groups.
+The convergence is reproducible (3-run std ≤0.43pp; App. G.2) and embedding-robust (Kendall’s
+𝜏=1.0across MiniLM / BGE-large / Stella; App. G.3), and depth analysis localizes the gap to deep
+hierarchies whereSem-Pathdrops from ∼40% to∼25% as depth grows from 3 to ≥5(App. H.1). In
+contrast, three independent groups of non-author human annotators on the same paper sets reach
+Sem-Pathof 47.32%/52.14%/57.74% (avg 52.40%, 18–29pp above every model; App. C.4), ruling
+out 28–29% as a natural ambiguity ceiling.
+Finding 6: Pervasivereference-independentcapability-based organizational defects.On
+1,000 model-generated taxonomies (Appendices C, E), we observe pervasive defects detectable purely
+from the model’s own tree without any reference: 75.9%semantic overlap between siblings(cosine
+similarity), 51.2% rule-basedMECE violations, 66.0%inconsistent classification criteria, and 83.4%
+structural imbalance; a fifth, 77.5%missing core branches, requires partial domain knowledge. Three
+of these five defect categories need no LLM judge at all, and none requires a reference taxonomy, so
+the alignment gap in Findings 3–5 cannot be explained away as “stylistic divergence”: a taxonomy
+with near-identical siblings or violated MECE is organizationally deficient by construction.
+5. Related Work
+Deep-research-aided survey generation.Most pipelines adopt a structure-then-content scheme:
+AutoSurvey (Wang et al., 2024) uses two-stage generation, Hu et al. (2024) build taxonomies
+from citation networks, and SurveyForge (Yan et al., 2025) couples human-curated outlines with
+retrieval (Google, 2025c; Lahiri et al., 2025; Li et al., 2025b; OpenAI, 2025b; Zheng et al., 2025).
+These methods assume LLMs can organize papers into coherent structures, but no prior work directly
+tests this on expert-authored references.
+Deep-research evaluation.Existing benchmarks target multi-hop retrieval (Ai-ling et al., 2025;
+Chen et al., 2025), web browsing (Deng et al., 2023; Wu et al., 2025), and report generation (Du
+et al., 2025; Li et al., 2025a). Decompositions of Deep Research (Shi et al., 2025) are complemented
+byFINDER(Zhang et al., 2025a) on evidence integration andResearchRubrics(Sharma et al.,
+2025) on prompt–rubric-based human-judged reports.TaxoBenchis complementary: it isolates
+10
+
+--- Page 11 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+Information Acquisition and the structural-organization aspect of Answer Generation, with expert-
+authored taxonomies as ground truth rather than unvalidated LLM-as-judge outline scoring (Sun
+et al., 2025; Yan et al., 2025). The dual bottleneck of best Recall 20.92% and best ARI 31.24% is a
+necessary-condition failure that no downstream planning, memory, or refinement can repair.
+6. Conclusion
+We introduceTaxoBench, an expert-grounded benchmark that decouples retrieval from hierarchical
+organization via three hierarchy-aware metrics (US-TED,US-NTED,Sem-Path), with all findings
+partitioned intocapability-basedandalignment-baseddiagnostics. Evaluating 7 Deep Research Agents
+and 12 frontier LLMs reveals a sharpdual bottleneck: a 20.92% Recall ceiling, reference-independent
+defects (75.9% sibling overlap, 51.2% MECE violations, 83.4% structural imbalance), andSem-Path
+convergence to 28–29%, well below 47–58% from three independent human-annotator groups.
+TaxoBenchthus provides a reusable target for tracking progress toward credibly automated scientific
+synthesis.
+Limitations
+We discuss limitations along five dimensions, indicating where each is mitigated empirically and
+where it remains an open direction.
+Alignment vs. capability.The headline alignment-based numbers in Findings 3–5 (Sem-Pathand
+US-TED/US-NTED) measure how well a model reproducesthis particularexpert’s organization, not
+the absolute defensibility of model taxonomies. To avoid conflating these two questions, we separate
+alignment-based from capability-based diagnostics throughout the paper, as discussed in Section 3.4
+and Finding 6. The reference-independent defects in Finding 6 (75.9% sibling overlap, 51.2% MECE
+violations, and 83.4% structural imbalance) bound the capability gap, but a fully reference-free,
+expert-judged “defensibility” study at scale remains future work.
+Single-reference evaluation and taxonomy subjectivity.Each survey contributes one published
+expert taxonomy; multiple equally valid expert taxonomies may exist for the same topic. We mitigate
+the resulting subjectivity in two ways: (i) we report three independent human-construction baselines
+in Appendix C.4, all of which score 47–58%Sem-Pathon the same paper sets that models score 28–
+29% on, ruling out the interpretation that models are simply exploring valid alternatives; and (ii) we
+report capability-based defects that are reference-independent. A multi-reference extension analogous
+to multi-reference BLEU, where multiple expert taxonomies per topic yield a richer alignment target,
+is a natural and important direction for future work.
+Domain scope.The benchmark is constructed from 72 highly cited LLM-related surveys. While these
+span eight subdomains within AI/ML, the absolute numerical findings may not transfer unchanged
+to fields with different citation cultures, such as biology, physics, or social sciences. As preliminary
+cross-domain evidence, we evaluate Claude-4.5-Sonnet on two interdisciplinary surveys spanning
+finance and medical domains and observe the same qualitative pattern of high homogeneity, moderate
+ARI, andSem-Path ≈30%; see Appendix G.5. ExtendingTaxoBenchto non-AI/ML disciplines is
+straightforward in principle (our four-stage pipeline and metric definitions are domain-agnostic), and
+doing so will broaden the empirical scope of the dual-bottleneck claim.
+11
+
+--- Page 12 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+Evaluation workflow simplification.We evaluate Deep Research Agents in their native end-to-end
+product interfaces under Deep Research mode and frontier LLMs under a one-shot Bottom-Up prompt;
+we do not engineer richer agentic workflows with explicit memory, iterative refinement, or human-in-
+the-loop control. Our results should therefore be interpreted as bounding the capability of agentsas
+currently deployed, not as the asymptotic capability of LLMs under arbitrarily sophisticated scaffolding.
+TaxoBench’s metrics directly support evaluating richer workflows in future work.
+Encoder and judge dependency.US-TED,US-NTED, andSem-Pathrely on a fixed sentence encoder,
+and the LLM-as-Judge component depends on GPT-4o with a fixed rubric. Absolute scores may
+shift with different encoders or judges. We validate that relative model rankings underUS-TEDand
+Sem-Pathare exactly preserved across three embedding models spanning two orders of magnitude,
+with Kendall’s 𝜏=1.0in Appendix G.3, and that GPT-4o’s defect identification reaches Cohen’s
+𝜅=0.89with human evaluators in Appendix B. RebuildingTaxoBenchon top of newer judges or
+domain-specific encoders is a useful sanity check we recommend in future releases.
+References
+Yu Ai-ling, Yao Lan, Ailing Yu, Liu Jing-nan, Lan Yao, Chen Zhe, Jingnan Liu, Yin Jiajun, Zhe
+Chen, Wang Yuan, Jiajun Yin, Liao Xinhao, Yuan Wang, Zhiling Ye, Xinhao Liao, Li Ji, Zhiling
+Ye, Yue Yun, Ji Li, Yun Yue, Zhou Hualei, Hansong Xiao, Guo Chun-xiao, Hualei Zhou, Wei Peng,
+Chunxiao Guo, Liu Junwei, Peng Wei, Jinjie Gu, Junwei Liu, and Jinjie Gu. Medresearcher-r1:
+Expert-level medical deep researcher via a knowledge-informed trajectory synthesis framework.
+https://doi.org/10.48550/arxiv.2508.14880, abs/2508.14880, 2025. doi: 10.48550/arxiv.2508.14
+880.
+Alibaba. Qwen. https://www.alibabacloud.com/blog/qwen-deepresearch-when-inspi
+ration-becomes-its-own-reason_602676, 2025.
+Anthropic. claude-sonnet-4.5. https://www.anthropic.com/news/claude-sonnet-4-5 ,
+2025.
+ByteDance. Doubao.https://www.doubao.com/chat/, 2025.
+Shan Chen, Pedro Moreira, Yuxin Xiao, Samuel Schmidgall, Jeremy Warner, Hugo Aerts, Thomas
+Hartvigsen, Jack Gallifant, and Danielle Bitterman. Medbrowsecomp: Benchmarking medical deep
+research and computer use.arXiv.org, 2025. doi: 10.48550/arXiv.2505.14963.
+DeepSeek. Deepseek.https://chat.deepseek.com/, 2025.
+Xiang Deng, Yu Gu, Boyuan Zheng, Shijie Chen, Sam Stevens, Boshi Wang, Huan Sun, and Yu Su.
+Mind2web: Towards a generalist agent for the web.Advances in Neural Information Processing
+Systems, 36:28091–28114, 2023.
+Mingxuan Du, Benfeng Xu, Chiwei Zhu, Xiaorui Wang, and Zhendong Mao. Deepresearch bench: A
+comprehensive benchmark for deep research agents.arXiv preprint arXiv:2506.11763, 2025.
+Ahmed El-Kishky, Alexander Wei, Andre Saraiva, Borys Minaiev, Daniel Selsam, David Dohan, Francis
+Song, Hunter Lightman, Ignasi Clavera, Jakub Pachocki, et al. Competitive programming with
+large reasoning models.arXiv preprint arXiv:2502.06807, 2025.
+Islam Eldifrawi, Shengrui Wang, and Amine Trabelsi. Automated justification production for claim ve-
+racity in fact checking: A survey on architectures and approaches.arXiv preprint arXiv:2407.12853,
+2024.
+12
+
+--- Page 13 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+Pasi Fränti and Radu Mariescu-Istodor. Soft precision and recall.Pattern Recognition Letters, 167:
+115–121, 2023.
+Google. gemini-3-pro-preview.https://aistudio.google.com/prompts/new_chat, 2025a.
+Google. Gemini.https://gemini.google.com/app, 2025b.
+Gemini Google. Deep research is now available on gemini 2.5 pro experimental. https://blog.g
+oogle/products/gemini/deep-research-gemini-2-5-pro-experimental/, 2025c.
+Yuntong Hu, Zhuofeng Li, Zheng Zhang, Chen Ling, Raasikh Kanjiani, Boxin Zhao, and Liang Zhao.
+Taxonomy tree generation from citation graph.arXiv preprint arXiv:2410.03761, 2024.
+Lawrence Hubert and Phipps Arabie. Comparing partitions.Journal of classification, 2(1):193–218,
+1985.
+Avishek Lahiri, Yufang Hou, and Debarshi Kumar Sanyal. Taxoalign: Scholarly taxonomy generation
+using language models. InProceedings of the 2025 Conference on Empirical Methods in Natural
+Language Processing, pages 30191–30211, 2025.
+Minghao Li, Ying Zeng, Zhihao Cheng, Cong Ma, and Kai Jia. Reportbench: Evaluating deep research
+agents via academic survey tasks.arXiv preprint arXiv:2508.15804, 2025a.
+Xiaoxi Li, Jiajie Jin, Guanting Dong, Hongjin Qian, Yongkang Wu, Ji-Rong Wen, Yutao Zhu, and
+Zhicheng Dou. Webthinker: Empowering large reasoning models with deep research capability.
+arXiv preprint arXiv:2504.21776, 2025b.
+Aixin Liu, Aoxue Mei, Bangcai Lin, Bing Xue, Bingxuan Wang, Bingzheng Xu, Bochao Wu, Bowei
+Zhang, Chaofan Lin, Chen Dong, et al. Deepseek-v3. 2: Pushing the frontier of open large language
+models.arXiv preprint arXiv:2512.02556, 2025.
+Moonshot. Kimi-k2-0905.https://www.kimi.com/, 2025.
+OpenAI. Gpt-5.https://openai.com/index/introducing-gpt-5/, 2025a.
+OpenAI. Introducing deep research | openai.https://openai.com/index/introducing-dee
+p-research/, 2025b.
+Perplexity. Introducing deep research. https://www.perplexity.ai/hub/blog/introduci
+ng-perplexity-deep-research, 2025.
+Qwen. Qwen3-max: Just scale it. https://www.alibabacloud.com/blog/qwen3-max-jus
+t-scale-it_602621, 2025.
+Andrew Rosenberg and Julia Hirschberg. V-measure: A conditional entropy-based external cluster
+evaluation measure. InProceedings of the 2007 joint conference on empirical methods in natural
+language processing and computational natural language learning (EMNLP-CoNLL), pages 410–420,
+2007.
+Samuel Schmidgall, Yusheng Su, Ze Wang, Ximeng Sun, Jialian Wu, Xiaodong Yu, Jiang Liu, Zicheng
+Liu, and Emad Barsoum. Agent laboratory: Using llm agents as research assistants.arXiv preprint
+arXiv:2501.04227, 2025.
+Sentence-Transformers. all-MiniLM-L6-v2. https://huggingface.co/sentence-transform
+ers/all-MiniLM-L6-v2, 2021.
+13
+
+--- Page 14 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+Manasi Sharma, Chen Bo Calvin Zhang, Chaithanya Bandi, Clinton Wang, Ankit Aich, Huy Nghiem,
+Tahseen Rabbani, Ye Htet, Brian Jang, Sumana Basu, et al. Researchrubrics: A benchmark of
+prompts and rubrics for evaluating deep research agents.arXiv preprint arXiv:2511.07685, 2025.
+Zhengliang Shi, Yiqun Chen, Haitao Li, Weiwei Sun, Shiyu Ni, Yougang Lyu, Run-Ze Fan, Bowen
+Jin, Yixuan Weng, Minjun Zhu, et al. Deep research: A systematic survey.arXiv preprint
+arXiv:2512.02038, 2025.
+Zhaojun Sun, Xuzhou Zhu, Xuanhe Zhou, Xin Tong, Shuo Wang, Jie Fu, Guoliang Li, Zhiyuan Liu,
+and Fan Wu. Surveybench: Can llm (-agents) write academic surveys that align with reader needs?
+arXiv preprint arXiv:2510.03120, 2025.
+David Wadden, Shanchuan Lin, Kyle Lo, Lucy Lu Wang, Madeleine van Zuylen, Arman Cohan, and
+Hannaneh Hajishirzi. Fact or fiction: Verifying scientific claims.arXiv preprint arXiv:2004.14974,
+2020.
+Guanghui Wang, Jinze Yu, Xing Zhang, Dayuan Jiang, Yin Song, Tomal Deb, Xuefeng Liu, and Peiyang
+He. Sted and consistency scoring: A framework for evaluating llm structured output reliability.
+arXiv preprint arXiv:2512.23712, 2025.
+Yidong Wang, Qi Guo, Wenjin Yao, Hongbo Zhang, Xin Zhang, Zhen Wu, Meishan Zhang, Xinyu Dai,
+Qingsong Wen, Wei Ye, et al. Autosurvey: Large language models can automatically write surveys.
+Advances in neural information processing systems, 37:115119–115145, 2024.
+Jialong Wu, Wenbiao Yin, Yong Jiang, Zhenglin Wang, Zekun Xi, Runnan Fang, Linhai Zhang, Yulan
+He, Deyu Zhou, Pengjun Xie, et al. Webwalker: Benchmarking llms in web traversal.arXiv preprint
+arXiv:2501.07572, 2025.
+xAI. Grok.https://grok.com/, 2025.
+Shitao Xiao, Zheng Liu, Peitian Zhang, Niklas Muennighoff, Defu Lian, and Jian-Yun Nie. C-pack:
+Packed resources for general chinese embeddings. InProceedings of the 47th international ACM
+SIGIR conference on research and development in information retrieval, pages 641–649, 2024.
+Xiangchao Yan, Shiyang Feng, Jiakang Yuan, Renqiu Xia, Bin Wang, Lei Bai, and Bo Zhang. Sur-
+veyforge: On the outline heuristics, memory-driven generation, and multi-dimensional evaluation
+for automated survey writing. InProceedings of the 63rd Annual Meeting of the Association for
+Computational Linguistics (Volume 1: Long Papers), pages 12444–12465, 2025.
+Dingling Zhang, He Zhu, Jincheng Ren, Kangqi Song, Xinran Zhou, Boyu Feng, Shudong Liu, Jiabin
+Luo, Weihao Xie, Zhaohui Wang, et al. How far are we from genuinely useful deep research agents?
+arXiv preprint arXiv:2512.01948, 2025a.
+Dun Zhang, Jiacheng Li, Ziyang Zeng, and Fulong Wang. Jasper and stella: distillation of sota
+embedding models.arXiv preprint arXiv:2412.19048, 2024.
+Ming Zhang, Kexin Tan, Yueyuan Huang, Yujiong Shen, Chunchun Ma, Li Ju, Xinran Zhang, Yuhui
+Wang, Wenqing Jing, Jingyi Deng, Huayu Sha, Binze Hu, Jingqi Tong, Changhao Jiang, Yage Geng,
+Yuankai Ying, Yue Zhang, Zhangyue Yin, Zhiheng Xi, Shihan Dou, Tao Gui, Qi Zhang, and Xuanjing
+Huang. Opennovelty: An llm-powered agentic system for verifiable scholarly novelty assessment.
+arXiv preprint 2601.01576, 2026. URLhttps://arxiv.org/abs/2601.01576.
+Weizhi Zhang, Yangning Li, Yuanchen Bei, Junyu Luo, Guancheng Wan, Liangwei Yang, Chenxuan
+Xie, Yuyao Yang, Wei-Chieh Huang, Chunyu Miao, et al. From web search towards agentic deep
+research: Incentivizing search with reasoning agents.arXiv preprint arXiv:2506.18959, 2025b.
+14
+
+--- Page 15 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+Yuxiang Zheng, Dayuan Fu, Xiangkun Hu, Xiaojie Cai, Lyumanshan Ye, Pengrui Lu, and Pengfei Liu.
+Deepresearcher: Scaling deep research via reinforcement learning in real-world environments.
+arXiv preprint arXiv:2504.03160, 2025.
+15
+
+--- Page 16 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+Appendix
+A. Metric Details
+A.1. Adjusted Rand Index (ARI)
+The Adjusted Rand Index (ARI) is a chance-corrected measure of similarity between two data
+clusterings. Given a set of 𝑁papers, let 𝑈={𝑢 1,...,𝑢𝑅}be the ground truth partition (expert
+taxonomy) and𝑉={𝑣 1,...,𝑣𝐶}be the model-generated partition.
+We first consider all𝑁
+2pairs of papers and categorize them into four types based on their
+assignment in𝑈and𝑉:
+•TP (True Positive): The number of pairs that are in the same cluster in both𝑈and𝑉.
+•TN (True Negative): The number of pairs that are in different clusters in both𝑈and𝑉.
+•FP (False Positive): The number of pairs that are in different clusters in 𝑈but in the same
+cluster in𝑉.
+•FN (False Negative): The number of pairs that are in the same cluster in 𝑈but in different
+clusters in𝑉.
+The standard Rand Index (RI) measures the percentage of correct decisions:
+𝑅𝐼=𝑇𝑃+𝑇𝑁
+𝑇𝑃+𝐹𝑃+𝐹𝑁+𝑇𝑁(10)
+However, the RI does not yield a value of 0 for random partitions. The ARI corrects this by
+normalizing the RI using its expected value under a random permutation model:
+𝐴𝑅𝐼=𝑅𝐼−𝐸[𝑅𝐼]
+max(𝑅𝐼)−𝐸[𝑅𝐼](11)
+Specifically, let 𝑛𝑖𝑗be the number of papers in both class 𝑢𝑖and cluster 𝑣𝑗, and let𝑎𝑖=Í
+𝑗𝑛𝑖𝑗and
+𝑏𝑗=Í
+𝑖𝑛𝑖𝑗be the row and column sums of the contingency table. The terms in the ARI formula are
+calculated as follows:
+Index=∑︁
+𝑖,𝑗𝑛𝑖𝑗
+2
+=𝑇𝑃(12)
+Max Index=1
+2"∑︁
+𝑖𝑎𝑖
+2
++∑︁
+𝑗𝑏𝑗
+2#
+(13)
+Expected Index=Í
+𝑖𝑎𝑖
+2hÍ
+𝑗𝑏𝑗
+2i
+𝑁
+2 (14)
+Combining these, the computational formula for ARI is:
+𝐴𝑅𝐼=Í
+𝑖𝑗𝑛𝑖𝑗
+2−hÍ
+𝑖𝑎𝑖
+2Í
+𝑗𝑏𝑗
+2i
+/𝑁
+2
+1
+2hÍ
+𝑖𝑎𝑖
+2+Í
+𝑗𝑏𝑗
+2i
+−hÍ
+𝑖𝑎𝑖
+2Í
+𝑗𝑏𝑗
+2i
+/𝑁
+2(15)
+This linear transformation ensures that ARI has a maximum value of 1 for perfect agreement and
+an expected value of 0 for random clustering, making it a robust metric for comparing taxonomies
+with different numbers of clusters.
+16
+
+--- Page 17 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+A.2. Semantic Label Similarity and Cost Calibration
+Embeddingsimilarity.Foreachtopiclabel(nodename) 𝑥, wecomputeadenseembeddinge (𝑥)∈ℝ𝑑
+using a fixed sentence encoder. We measure semantic relatedness by cosine similarity
+𝑐(𝑥,𝑦) :=cos(e(𝑥),e(𝑦))=e(𝑥)⊤e(𝑦)
+∥e(𝑥)∥∥e(𝑦)∥.(16)
+Since cosine similarity can be negative in practice, we adopt a clipped similarity used consistently by
+both US-TED/US-NTED andSem-Path:
+Sim(𝑥,𝑦) :=max0, 𝑐(𝑥,𝑦)∈[0,1].(17)
+Edit-cost calibration.We convert similarity to a renaming cost by
+cost ren(𝑥→𝑦) :=1−Sim(𝑥,𝑦)∈[0,1],(18)
+and set insertion/deletion costs to1per node. This calibration has two practical benefits. First,
+clipping ensures that renaming cost stays on the same scale as insertion/deletion (all in [0,1]), which
+stabilizes normalization in US-NTED and avoids pathological cases where negative cosine would yield
+cost ren>1. Second, in the embedding space used, a negative cosine value is not a reliable indicator of
+“semantic opposition” for short topic labels; we therefore treat it asno semantic match(i.e., Sim= 0),
+rather than assigning an exaggerated penalty.
+A.3. Unordered Semantic Tree Edit Distance (US-TED/US-NTED) Explanation
+A.3.1. Definition
+We compare the expert hierarchy 𝑇∗
+ℎand the model hierarchy ˆ𝑇ℎusing anunorderedsemantic tree edit
+distance, where sibling order is ignored and children are matched by minimum-cost assignment. Both
+hierarchies contain only internal-topic nodes (paper nodes are excluded). The leaves of 𝑇ℎcorrespond
+topaper categories—the terminal category nodes to which papers are assigned.
+LetCh(𝑢)denote the multiset of children of node 𝑢, and let|𝑇𝑢|denote the number of nodes in
+the subtree rooted at 𝑢(including 𝑢). We use the calibrated edit costs from Section A.2: insertion and
+deletion cost1per node, and renaming𝑥→𝑦costscost ren(𝑥→𝑦)=1−Sim(𝑥,𝑦)∈[0,1].
+We define the unordered node-to-node distance𝐷(𝑢,𝑣)recursively:
+𝐷(𝑢,𝑣) :=cost ren(𝑢→𝑣) +MatchCostCh(𝑢),Ch(𝑣)
+.(19)
+If both𝑢and𝑣are leaves, then MatchCost= 0and𝐷(𝑢,𝑣)reduces to the renaming cost. If one
+node is a leaf and the other has children, the unmatched subtrees are charged by unit per-node
+insertion/deletion via|𝑇 𝑢|.
+To define MatchCost when both nodes have children, let Ch(𝑢)={𝑢 1,...,𝑢𝑚}and Ch(𝑣)=
+{𝑣1,...,𝑣𝑛}, and set𝑘=max(𝑚,𝑛) . We build a 𝑘×𝑘cost matrix 𝐶by padding with dummy children:
+𝐶𝑖𝑗= 
+𝐷(𝑢𝑖,𝑣𝑗),1≤𝑖≤𝑚,1≤𝑗≤𝑛,
+|𝑇𝑢𝑖|,1≤𝑖≤𝑚, 𝑛 < 𝑗≤𝑘,
+|𝑇𝑣𝑗|, 𝑚 < 𝑖≤𝑘,1≤𝑗≤𝑛,
+0, 𝑚 < 𝑖≤𝑘, 𝑛 < 𝑗≤𝑘,(20)
+17
+
+--- Page 18 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+where matching a real child to a dummy child corresponds to deleting or inserting the entire subtree
+at unit cost per node, and dummy–dummy matches contribute zero. The unordered children matching
+cost is defined by the minimum assignment:
+MatchCostCh(𝑢),Ch(𝑣):=min
+𝜎∈𝔖𝑘𝑘∑︁
+𝑖=1𝐶𝑖,𝜎(𝑖),(21)
+which we solve via the Hungarian algorithm.
+Finally, letting𝑟∗andˆ𝑟be the roots of𝑇∗
+ℎandˆ𝑇ℎ, the tree-level distance is
+US-TED(𝑇∗
+ℎ,ˆ𝑇ℎ):=𝐷(𝑟∗,ˆ𝑟).(22)
+We normalize by the total number of hierarchy nodes:
+US-NTED(𝑇∗
+ℎ,ˆ𝑇ℎ):=US-TED(𝑇∗
+ℎ,ˆ𝑇ℎ)
+|𝑇∗
+ℎ|+|ˆ𝑇ℎ|.(23)
+A.3.2. Basic Properties
+Range and normalization. Proposition.For any two hierarchies𝑇∗
+ℎandˆ𝑇ℎ,
+0≤US-TED(𝑇∗
+ℎ,ˆ𝑇ℎ)≤|𝑇∗
+ℎ|+|ˆ𝑇ℎ|,(24)
+0≤US-NTED(𝑇∗
+ℎ,ˆ𝑇ℎ)≤1.(25)
+Proof sketch.Non-negativity holds since all edit costs are non-negative. For the upper bound,
+consider a valid (not necessarily optimal) edit sequence that deletes every node in ˆ𝑇ℎ(cost| ˆ𝑇ℎ|) and
+then inserts every node in 𝑇∗
+ℎ(cost|𝑇∗
+ℎ|). Since US-TED is defined as a minimum edit cost under the
+same per-node insertion/deletion convention, it cannot exceed |𝑇∗
+ℎ|+|ˆ𝑇ℎ|. Dividing by|𝑇∗
+ℎ|+|ˆ𝑇ℎ|yields
+0≤US-NTED≤1.
+Permutation invariance. Proposition.US-TED is invariant to any permutation of sibling order in
+either tree.Proof sketch.At each pair of nodes (𝑢,𝑣), the children matching cost is defined by a
+minimum assignment over a cost matrix 𝐶whose rows/columns correspond to the children of 𝑢and𝑣
+(plus dummies). Permuting sibling order permutes rows and/or columns of 𝐶but does not change
+the optimal assignment cost, hence leavesMatchCostand𝐷(𝑢,𝑣)unchanged.
+Why unordered.Taxonomy siblings do not have a canonical left-to-right order. An ordered tree
+edit distance would penalize pure sibling permutations as structural errors, conflating “ordering”
+with “organization.” By using unordered matching via minimum-cost assignment, US-TED focuses on
+structural organization (parent–child relations and subtree composition) rather than arbitrary sibling
+ordering.
+A.4. Semantic Path Similarity (Sem-Path)
+A.4.1. Aligned-paper set and path extraction
+Aligned-paper set.Sem-Pathis computed on aligned paper pairs. Let 𝐷𝑎denote the set of aligned
+paper pairs(𝑑,ˆ𝑑)between the expert tree 𝑇∗and the model tree ˆ𝑇. We construct 𝐷𝑎by normalizing
+paper titles and performing deterministic matching between expert papers and retrieved model papers
+(details of normalization rules and tie-breaking are reported in this section). This step is necessary
+to avoid inflated scores due to spurious title overlaps (false positives) or minor title variants (false
+negatives).
+18
+
+--- Page 19 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+Ancestor-path extraction.For each aligned paper 𝑑∈𝐷𝑎, we extract the root-to-leaf chain in both
+trees and keep only internal topic labels. Concretely, if the root-to-paper path in 𝑇∗is(𝑟∗,...,𝑢,𝑑) , we
+set𝑆𝑑=(𝑟∗,...,𝑢), excluding the paper node 𝑑. Likewise, if the root-to-paper path in ˆ𝑇is(ˆ𝑟,...,ˆ𝑢, ˆ𝑑),
+we set ˆ𝑆𝑑=(ˆ𝑟,...,ˆ𝑢).
+A.4.2. Distance function and monotone alignment
+Clipped cosine distance.We use the clipped cosine distance 𝛿(𝑥,𝑦) :=1−Sim(𝑥,𝑦)∈[ 0,1], which
+equals the renaming cost defined in Section A.2. This keeps the distance on the same scale as the
+unit unmatched-node penalty.
+Order-preserving alignment.Given two ancestor-label sequences 𝑆𝑑andˆ𝑆𝑑, we compute an order-
+preserving minimum-cost alignment that tolerates different granularities (i.e., different depths) while
+preserving relative order. Without loss of generality, let 𝐴=(𝑎 1,...,𝑎𝑝)be the shorter sequence and
+𝐵=(𝑏 1,...,𝑏𝑞)be the longer sequence ( 𝑝≤𝑞), where𝐴,𝐵correspond to 𝑆𝑑,ˆ𝑆𝑑up to swapping. We
+compute a subsequence-style dynamic program:
+dp[0, 𝑗]=0,(26)
+dp[𝑖, 𝑗]=mindp[𝑖−1, 𝑗−1]+𝛿(𝑎 𝑖,𝑏𝑗),dp[𝑖, 𝑗−1]
+.(27)
+Intuitively, dp[𝑖, 𝑗]matches the first 𝑖labels of the shorter chain to an ordered subsequence within
+the first𝑗labels of the longer chain.
+Per-paper cost and score.We define the per-paper alignment cost by adding a penalty for each
+unmatched extra label in the longer chain:
+𝐽𝑑:=dp[𝑝,𝑞]+𝜆(𝑞−𝑝),(28)
+where𝜆≥ 0is a penalty coefficient controlling the cost of each unmatched extra node. In all
+experiments, we set𝜆=1.
+The final metric maps cost to similarity and averages over aligned papers:
+Sem-Path :=1
+|𝐷𝑎|∑︁
+𝑑∈𝐷𝑎1
+1+𝐽𝑑.(29)
+A.4.3. Basic Properties and Design Rationale
+Range.Since𝐽 𝑑≥0, we haveSemPath(𝑑)∈(0,1]and thereforeSem-Path∈(0,1].
+Granularity tolerance with order sensitivity.Sem-Pathallows different hierarchy granularities
+because matching is performed between a shorter chain and an ordered subsequence of a longer
+chain. However, it is sensitive to mis-ordered or semantically inconsistent ancestor placement: if the
+model swaps high-level topics or inserts unrelated ancestors, the DP cost increases via𝛿(·,·)and/or
+the unmatched penalty𝜆(𝑞−𝑝).
+Relation to soft-cardinality baselines.Soft-cardinality metrics such as NSR/NSP primarily measure
+semantic coverage of asetof node labels and can be insensitive to hierarchical placement errors (e.g.,
+correct topics but wrong parent–child relations). In contrast, US-TED/US-NTED and Sem-Path encode
+explicit structural constraints: US-TED penalizes topology and subtree-level edits, whileSem-Path
+evaluates whether each aligned paper is placed under a semantically consistent ancestor chain. A
+detailed comparison, including failure modes and illustrative cases, is provided in Appendix A.6.
+19
+
+--- Page 20 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+A.5. Paper-title Normalization and Alignment
+To compute retrieval scores and paper-conditioned metrics (e.g.,Sem-Path), we align model-returned
+papers with expert-cited papers. We do not rely on exact title match or a single identifier (e.g.,
+DOI/arXiv ID), since identifiers can be missing and the same work may appear in multiple versions
+(arXiv vs. venue).
+Normalization.We apply deterministic text normalization (lowercasing and whitespace/punctuation
+cleanup) to titles and other available textual fields.
+Matching rule.For an expert paper 𝑝and a model paper ˆ𝑝, we compute a semantic similarity score
+𝑠(𝑝,ˆ𝑝)∈[ 0,1]on the normalized text representation. We align (𝑝,ˆ𝑝)if either (i) 𝑠(𝑝,ˆ𝑝)= 1, or (ii)
+0.6≤𝑠(𝑝,ˆ𝑝)< 1and the normalized titles satisfy a strict containment check (one contains the other).
+Otherwise, we treat them as different papers. If multiple candidates match an expert paper, we keep
+the one with the highest𝑠(𝑝,ˆ𝑝).
+A.6. Why Soft-Cardinality Baselines (NSR/NSP) Are Insufficient for Taxonomy Structure
+What NSR/NSP measure.Node Soft Recall (NSR) and Node Soft Precision (NSP) are soft-cardinality
+extensions of set-based Recall/Precision (Fränti and Mariescu-Istodor, 2023). They quantifysemantic
+coveragebetween twocollections of labelsby discounting near-duplicates via pairwise semantic
+similarity. Giventwonode-labellists 𝐴=(𝑎 1,...,𝑎|𝐴|)and𝐵=(𝑏 1,...,𝑏|𝐵|),definethesoftcardinality
+𝑐(𝐴) :=|𝐴|∑︁
+𝑖=11
+Í|𝐴|
+𝑗=1Sim(𝑎𝑖,𝑎𝑗).(30)
+Following (Fränti and Mariescu-Istodor, 2023), define
+NSR(𝐴,𝐵) :=𝑐(𝐴)+𝑐(𝐵)−𝑐(𝐴⊎𝐵)
+𝑐(𝐴),(31)
+NSP(𝐴,𝐵) :=𝑐(𝐴)+𝑐(𝐵)−𝑐(𝐴⊎𝐵)
+𝑐(𝐵),(32)
+Soft F1(𝐴,𝐵) :=2NSP(𝐴,𝐵)NSR(𝐴,𝐵)
+NSP(𝐴,𝐵)+NSR(𝐴,𝐵).(33)
+Here𝐴⊎𝐵denotesmultiset union with multiplicities, implemented as list concatenation.
+Our implementation.We instantiateSimwith embedding cosine similarity and clamp negatives:
+Sim(𝑥,𝑦) :=max0,cos(e(𝑥),e(𝑦))
+,(34)
+wheree(·)is produced by a SentenceTransformer encoder (e.g., all-MiniLM-L6-v2 ) withℓ2-
+normalized embeddings. We collecthierarchynode labels by preorder traversal (including the
+root; excluding paper leaves); ordering is ignored and multiplicities are kept. We report these
+soft-cardinality baselines—NSR/NSP/Soft F1—in Table 5; empirically, they remain relatively high
+and compress model differences even when structure-aware metrics (e.g.,US-NTEDandSem-Path)
+indicate substantial structural gaps.
+Why label coverage cannot evaluate taxonomy structure.A taxonomystructuremetric must
+depend on parent–child and ancestor relations, i.e., edge/ancestry errors should be penalized in an
+20
+
+--- Page 21 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+interpretable way aligned with hierarchical organization. By construction,NSR/NSPdepend only on
+the label inventory and pairwise similarities and impose no edge or ancestry constraints; therefore,
+as suggested by Table 5, they primarily reflect semantic coverage/redundancy rather than hierarchy
+correctness. The following proposition formalizes this limitation.
+Proposition (Structure-blindness under label-preserving rewiring).Let 𝐴=(𝑎 1,...,𝑎𝑛)and
+𝐵=(𝑏 1,...,𝑏𝑛)be twolistsof hierarchy-node labels, and assume 𝐵is a permutation of 𝐴(equivalently,
+𝐴and𝐵induce the same label multiset). Assume Sim(·,·) is deterministic, symmetric, and depends
+only on the label strings. Define soft cardinality by
+𝑐(𝐴) :=𝑛∑︁
+𝑖=11Í𝑛
+𝑗=1Sim(𝑎𝑖,𝑎𝑗), 𝑐(𝐵)analogously,
+and assumeÍ𝑛
+𝑗=1Sim(𝑎𝑖,𝑎𝑗)>0for all𝑖(e.g., when Sim(𝑥,𝑥)= 1). Let𝐴⊎𝐵denote multiset union
+with multiplicities, implemented as list concatenation. Then NSR(𝐴,𝐵)=NSP(𝐴,𝐵)= 1, regardless of
+any differences in the parent–child relations of the underlying trees, as long as their hierarchy-node
+label multisets match.
+Proof sketch.Because 𝐵is a permutation of 𝐴andSimdepends only on label strings, 𝑐(𝐴)=𝑐(𝐵) .
+Consider𝐴⊎𝐵(concatenation). For any𝑎 𝑖,
+∑︁
+𝑧∈𝐴⊎𝐵Sim(𝑎𝑖,𝑧)=𝑛∑︁
+𝑗=1Sim(𝑎𝑖,𝑎𝑗)+𝑛∑︁
+𝑗=1Sim(𝑎𝑖,𝑏𝑗)=2𝑛∑︁
+𝑗=1Sim(𝑎𝑖,𝑎𝑗),
+since(𝑏1,...,𝑏𝑛)isareorderingof(𝑎1,...,𝑎𝑛). Henceeachoccurrenceof 𝑎𝑖in𝐴⊎𝐵hasadenominator
+that is doubled, so each copy contributes half of its original term; with two copies, their contributions
+sum to the original. Summing over all labels yields 𝑐(𝐴⊎𝐵)=𝑐(𝐴) . Substituting into the definitions
+ofNSRandNSPgivesNSR(𝐴,𝐵)=NSP(𝐴,𝐵)=1.□
+Counterexample 1.Consider two hierarchies with identical label multiset but different parent–child
+relations:
+𝑇1:𝑅
+𝐴(𝐵,𝐶), 𝐷(𝐸,𝐹)
+𝑇2:𝑅
+𝐴(𝐵,𝐸), 𝐷(𝐶,𝐹)
+,
+where the attachments of 𝐶and𝐸are swapped. By the proposition,NSR/NSPattain their maxima
+when computed from the hierarchy label lists, despite a non-trivial structural change.
+In contrast, structure-aware metrics penalize such rewiring. UnderUS-TED/US-NTED(Ap-
+pendix A.3), a parent change is not a primitive “move”: it must be realized by deleting a (sub)tree and
+re-inserting it elsewhere. With insertion/deletion cost1per node, reattaching a subtree of size 𝑠has
+positive edit cost, and under unit insertion/deletion it is lower-bounded by deleting and re-inserting
+that subtree (2𝑠) even if rename costs are0; henceUS-TEDis strictly positive for this example.
+Sem-Path(Appendix A.4) is also affected: any paper under the swapped branches experiences an
+altered ancestor chain. For such a paper, at least one aligned ancestor label differs (e.g., matching
+𝐶against𝐸at the corresponding depth). Since the per-node distance is1 −max( 0,cos(·,·)) , the
+cumulative alignment cost is positive whenever Sim(𝐶,𝐸)< 1, yielding a decreased path similarity
+1/(1+cost).
+Counterexample 2.Soft cardinality is not monotone: adding semantically similar labels can decrease
+𝑐(·)because row-sums increase. Consequently,NSR/NSPcan exhibit non-intuitive scaling, including
+Recall-like values above1, even under clamped similarities withSim∈[0,1].
+21
+
+--- Page 22 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+Let𝐴=(𝑎)and𝐵=(𝑏 1,𝑏2)and assume (after clamping) that
+Sim(𝑎,𝑏 1)=Sim(𝑎,𝑏 2)=1,Sim(𝑏 1,𝑏2)=0,
+withSim(𝑥,𝑥)=1. Using𝐴⊎𝐵as multiset union with multiplicities (concatenation), we obtain
+𝑐(𝐴)=1,
+𝑐(𝐵)=1
+1+0+1
+0+1=2,
+𝑐(𝐴⊎𝐵)=1
+3+1
+2+1
+2=4
+3,
+NSR(𝐴,𝐵)=
+𝑐(𝐴)+𝑐(𝐵)−𝑐(𝐴⊎𝐵)/𝑐(𝐴)=5
+3>1,
+NSP(𝐴,𝐵)=
+𝑐(𝐴)+𝑐(𝐵)−𝑐(𝐴⊎𝐵)/𝑐(𝐵)=5
+6.
+This shows thatNSR/NSPare better interpreted as diagnostics of semantic overlap and redundancy
+underaparticularsoft-cardinalitygeometry,ratherthanstableRecall/Precisionmetricsforhierarchical
+structure.
+Discussion.BecauseNSR/NSPoperate on label inventories, they necessarily penalize any discrepancy
+in intermediate-node labels, even when the model produces a coarser yet hierarchically consistent
+taxonomy. For example, contracting an intermediate node changes the label multiset and reduces
+soft overlap. In contrast,US-NTEDandSem-Pathexpose such differences as explicit, localized
+edit/alignment costs (node deletions/insertions inUS-NTED; unmatched ancestor steps inSem-Path),
+which is more directly tied to structural operations on trees and ancestor chains.
+Summary.NSR/NSPquantify soft semantic overlap betweenlabel collectionsand are useful auxiliary
+diagnostics for coverage and redundancy. However, they do not encode parent–child or ancestor-
+chain constraints and can exhibit non-intuitive scaling (includingNSR >1). Therefore, they are
+insufficient as primary measures of taxonomystructurequality. We reportNSR/NSPonly as auxiliary
+baselines/diagnostics, and rely onUS-TED/US-NTED(global unordered semantic edit cost) and
+Sem-Path(per-paper ancestor-chain consistency) as the main hierarchy-level evaluations.
+22
+
+--- Page 23 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+ModelHierarchy-Level Metrics
+NSR↑NSP↑Soft F1↑
+Deep Research Mode
+o3 0.760.920.83
+Doubao 0.82 0.80 0.81
+DeepSeek 0.77 0.85 0.81
+Gemini 0.88 0.77 0.82
+Grok 0.79 0.87 0.83
+Perplexity 0.88 0.800.84
+Qwen0.910.77 0.83
+Bottom-Up Mode
+Non-thinking-based
+Claude-4.5-Sonnet 0.87 0.850.86
+GPT-5 0.82 0.85 0.84
+Gemini-3-Pro* 0.87 0.83 0.85
+DeepSeek-V3.2 0.820.870.85
+Qwen3-Max* 0.80 0.86 0.83
+Kimi-K20.890.82 0.85
+Thinking-based
+Claude-4.5-Sonnet-Thinking 0.86 0.850.85
+GPT-5-Thinking 0.83 0.85 0.84
+Gemini-3-Pro-Thinking* 0.87 0.830.85
+DeepSeek-V3.2-Thinking 0.820.89 0.85
+Qwen3-Max-Thinking* 0.82 0.86 0.84
+Kimi-K2-Thinking0.880.820.85
+Table 5|Soft set-matching baselines(NSR, NSP, Soft F1) for taxonomy evaluation.
+Algorithm 1Semantic Path Alignment forSem-
+PathMetric
+Input:Ancestor-label sequence 𝑆∈ℝ𝑚×1,
+Ancestor-label sequence ˆ𝑆∈ℝ𝑛×1,𝑚≤𝑛
+Parameter:Unmatched penalty 𝜆≥0(set
+𝜆=1)
+Initialize cost matrix 𝐷∈ℝ(𝑚+1)×(𝑛+1)with
+∞
+𝐷[0,:]←0
+for𝑖=1to𝑚do
+for𝑗=𝑖to𝑛do
+𝑐𝑜𝑠𝑡match←𝐷[𝑖−1, 𝑗−1]+𝛿(𝑆 𝑖,ˆ𝑆𝑗)
+𝑐𝑜𝑠𝑡skip←𝐷[𝑖, 𝑗−1]
+𝐷[𝑖, 𝑗]←min(𝑐𝑜𝑠𝑡 match,𝑐𝑜𝑠𝑡skip)
+end for
+end for
+Return𝐽(𝑆, ˆ𝑆)←𝐷[𝑚,𝑛]+𝜆·(𝑛−𝑚)Algorithm 2Unordered Semantic Tree Edit Dis-
+tance (US-TED)
+Input:Tree nodes 𝑢,𝑣; Embedder 𝐸; Costs
+𝑐𝑖𝑛𝑠,𝑐𝑑𝑒𝑙
+Procedure:TED(𝑢,𝑣)
+𝑐𝑜𝑠𝑡𝑟𝑒𝑛←1−max(0,cos(𝐸(𝑢),𝐸(𝑣)))
+if𝑢,𝑣are leavesthen
+Return𝑐𝑜𝑠𝑡 𝑟𝑒𝑛
+end if
+Let{𝑢1,...,𝑢𝑛}=Ch(𝑢) and{𝑣1,...,𝑣𝑚}=
+Ch(𝑣)
+Construct cost matrixC ∈ℝ𝑁×𝑁where𝑁=
+max(𝑛,𝑚):
+C𝑖,𝑗← 
+TED(𝑢𝑖,𝑣𝑗)if𝑖≤𝑛, 𝑗≤𝑚
+|𝑇𝑢𝑖|·𝑐𝑑𝑒𝑙if𝑖≤𝑛, 𝑗 > 𝑚
+|𝑇𝑣𝑗|·𝑐𝑖𝑛𝑠if𝑖 > 𝑛, 𝑗≤𝑚
+0otherwise
+Return𝑐𝑜𝑠𝑡 𝑟𝑒𝑛+minÍ𝑁
+𝑖=1C𝑖,𝜎(𝑖)⊲Hungarian
+Algorithm
+23
+
+--- Page 24 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+Agreement Cov. Org. Log. Topo. Avg.
+GPT-4o vs Human 0.9295 0.8905 0.8807 0.8627 0.8909
+Table 6|Cohen’s Kappa coefficient between human and GPT-4o evaluations.
+ModelLLM-as-Judge
+Cov.↑Org.↑Log.↑Topo.↑Avg.↑
+Deep Research Mode
+o32.142.713.06 2.28 2.55
+Doubao 1.90 2.57 2.86 2.03 2.34
+DeepSeek 1.90 2.57 2.75 1.96 2.30
+Gemini 2.032.762.78 2.25 2.46
+Grok 2.08 2.583.062.19 2.48
+Perplexity 2.07 2.60 2.78 2.10 2.39
+Qwen 2.01 2.62 2.76 2.08 2.37
+Bottom-Up Mode
+Non-thinking-based
+Claude-4.5-Sonnet2.17 2.742.90 2.32 2.53
+GPT-5 2.11 2.71 2.83 2.43 2.52
+Gemini-3-Pro* 2.18 2.57 2.97 2.46 2.55
+DeepSeek-V3.22.172.653.01 2.53 2.59
+Qwen3-Max* 2.14 2.54 2.85 2.29 2.46
+Kimi-K2 2.04 2.57 2.85 2.36 2.46
+Thinking-based
+Claude-4.5-Sonnet-Thinking2.172.68 2.83 2.322.50
+GPT-5-Thinking 2.14 2.68 2.83 2.29 2.49
+Gemini-3-Pro-Thinking* 2.032.712.81 2.28 2.46
+DeepSeek-V3.2-Thinking 2.14 2.542.942.25 2.47
+Qwen3-Max-Thinking* 2.11 2.60 2.882.43 2.50
+Kimi-K2-Thinking 2.10 2.50 2.64 2.39 2.41
+Table 7|LLM-as-Judge evaluationresults across Deep Research and Bottom-Up modes.
+B. LLM-as-Judge Validation
+We validate GPT-4o as an LLM-as-Judge by measuring its agreement with human expert ratings on
+the same trees, using Cohen’s 𝜅as the agreement statistic. Per-dimension and average 𝜅values are
+reported in Table 6.
+We sampled 10 trees per model via random sampling without replacement, covering 7 models
+from Deep Research mode and 12 models from Bottom-Up mode (Title+Abstract input setting), for a
+total of 190 human-evaluated trees.
+Human evaluators are domain experts who follow the same rubric as GPT-4o and independently
+rate each tree on a 5-point integer scale along four dimensions: Semantic Coverage, Organization
+Quality, Logical Consistency, and Topological Similarity. Average 𝜅=0.8909, which corresponds
+to almost-perfect agreement under the standard Landis–Koch interpretation, supporting the use of
+GPT-4o as a reliable LLM-as-Judge for the taxonomy-evaluation task.
+24
+
+--- Page 25 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+0 20 40 60 80 100
+Error Rate (%)77.5% Missing core branches70.8% Irrelevant additions67.9% Conceptual deviation75.9% Semantic overlap66.0% Inconsistent classification51.2% MECE violation53.0% Abstraction mismatch46.1% Misplaced nodes44.9% Forced hierarchy83.4% Structural imbalance49.2% Over-expanded44.6% Too shallowCov.
+Org.Log.
+Topo.Top 3 Error Types by Category
+Figure 7|Top 3 error types by evaluation category. Error rates computed from qualitative analysis of
+1000 model-generated taxonomies.
+C. Error Analysis and Case Studies
+C.1. Summary of Four-Dimensional Error Analysis
+To gain deeper insights into the limitations of current LLMs in taxonomy generation, we conducted a
+fine-grained error analysis on 1,000 sampled taxonomies. We categorized structural and semantic
+failures into four distinct dimensions:
+•Semantic Coverage:Evaluates the completeness and relevance of the taxonomy. Errors include
+omitting core subfields recognized by experts or including hallucinatory/irrelevant branches.
+•SiblingOrganization:Assessesthequalityofnodeswithinthesamehierarchicallevel. Common
+failuresinvolvesemanticredundancy(violatingtheMECEprinciple)orinconsistentclassification
+criteria.
+•Hierarchical Logic:Examines the validity of parent-child relationships. Errors include abstrac-
+tion mismatches (e.g., placing a high-level concept under a specific method) or misclassification
+of paper categories.
+•Structural Topology:Analyzes the overall shape and balance of the tree. This dimension cap-
+tures issues such as structural imbalance, excessive depth, or insufficient granularity compared
+to human-curated benchmarks.
+Figure 7 summarizes the top 3 error types for each category. The data reveals thatStructural
+Imbalance(83.4%) andMissing Core Branches(77.5%) are the most prevalent issues, highlighting the
+challenge models face in maintaining a global perspective on domain structures.
+C.2. Analysis of Bottom-up Model Results under Different Input Forms
+Table 8 ablates the granularity of the input description in Bottom-Up mode. Richer text does not
+improve alignment with the expert reference at either the leaf or the hierarchy level; in many cases it
+makes alignment worse.
+25
+
+--- Page 26 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+Title+Abs +Summary +Core-task & Contrib.0.230.250.270.290.310.33ARI
+↓ Worse alignment(a) Leaf-Level: ARI
+Title+Abs +Summary +Core-task & Contrib.757677787980US-NTED (%)
+↓ Better alignment(b) Hierarchy-Level: US-NTED
+GPT-5
+Gemini-3-Pro*
+Qwen3-Max*
+Figure 8|Ablation study on input settings in Bottom-Up mode. (a) ARI scores decrease as more
+information is provided, indicating reduced alignment with expert classifications. (b) US-NTED shows
+mixed or improving trends, suggesting that richer input does not necessarily help models generate
+taxonomies more aligned with expert standards.
+At the leaf level (Fig. 8), adding machine-generated summaries (+Summary) or explicit core-task
+descriptions (+ Core-task & Contrib.) consistently lowers ARI across the high-performing models,
+even though internal clustering purity (Homogeneity) often goes up. FromTitle + Absto+ Summary,
+ARI drops forQwen3-Max*(31.24% →28.43%) andGemini-3-Pro*(29.86% →26.90%); the
+same direction holds at the hierarchy level, whereUS-NTED(lower is better) rises forGPT-5(78.65%
+→79.17%→79.45%) andQwen3-Max*(78.17% →78.55%→78.94%), whileSem-Pathstays
+essentially flat.
+Read together with the Constrained- 𝐾probe (Appendix H.2), the pattern is consistent with
+over-segmentation rather than with a content gap: more input text encourages the model to invent
+additional fine-grained categories that drive Homogeneity up but move the partition further from the
+expert assignment. Providing more text does not, on its own, close the alignment gap in Findings 4–5.
+C.3. Over-segmentation in Model-generated Trees
+Figure 9 illustrates a key distinction between the taxonomy generated by the Kimi-thinking model
+and the expert taxonomy. The model-generated tree exhibits a tendency to create singleton clus-
+ters—isolating specific papers into narrow, fine-grained subcategories of their own. This pattern
+aligns with and elucidates Finding 4: the model prioritizes precise, local semantic descriptions over
+broader, structural aggregation.
+C.4. Human Baseline Study (Three Independent Groups)
+Toestablishameaningfulhumanbaselinefortaxonomyorganization,weconductedthreeindependent
+human-construction experiments. Importantly, all three experiments were performed bynon-author
+CS graduate students who never saw the published expert taxonomy; this provides a lower-bound
+human performance estimate (true domain experts who wrote the original surveys would presumably
+score higher).
+Participants.For each of three independent runs we recruited a different group of 3 CS graduate
+students familiar with AI/ML literature but distinct from the original survey authors. Groups did not
+communicate with each other and worked on disjoint sessions.
+26
+
+--- Page 27 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+(a) Human Expert Taxonomy
+ROOT: Large Language Model Agent in Financial
+Trading: A Survey-Finance Trading Agent
+|
++–LLM as a Trader
+| |
+| +–News-Driven
+| | +–Unveiling the Potential of Sentiment...
+| | +–LLMFactor: Extracting Profitable Factors...
+| | +–Can ChatGPT Forecast Stock Price...
+| | +–Sentiment trading with LLMs...
+| | +–Modeling asset allocation strategies...
+| | ‘–Can LLMs Beat Wall Street?
+| |
+| +–Debate-Driven
+| | +–Designing Heterogeneous LLM Agents...
+| | ‘–TradingGPT: Multi-Agent System...
+| |
+| ‘–Reflection-Driven
+| +–A Multimodal Foundation Agent...
+| ‘–FinMem: A Performance-Enhanced LLM...
++–LLM as an Alpha Miner
+| +–AlphaGPT
+| | +–Alpha-GPT: Human-AI...
+| |
+| ‘–QuantAgent
+| +–QuantAgent: Seeking Holy Grail...(b) Model Generated Taxonomy
+ROOT: Large Language Model Agent in Financial
+Trading: A Survey-Finance Trading Agent
+|
++–Market Intelligence & Sentiment
+| +–Heterogeneous Frameworks...
+| | ‘–Designing Heterogeneous Agents...
+| +–Cross-Lingual Sentiment...[Singleton]
+| | ‘–Unveiling the Potential...
+| ‘–Comparative Assessment...[Singleton]
+| ‘–Sentiment trading with LLMs...
+|
++–Trading Strategy Formulation
+| +–News-Driven Forecasting...[Singleton]
+| | ‘–Can ChatGPT Forecast Stock Price...
+| ‘–Integrated Stock Selection...[Singleton]
+| ‘–Can LLMs Beat Wall Street?
+| +–Feature-Enhanced Return Prediction Models[Sin-
+gleton]
+| | ‘–Integrating Stock Features and...
+|
+‘–Agent Cognitive Architecture
++–Layered Memory Systems...[Singleton]
+| ‘–FinMem: Performance-Enhanced...
++–Multi-Agent Collaboration...[Singleton]
+| ‘–TradingGPT: Multi-Agent System...
+‘–Multimodal Foundation...[Singleton]
+| ‘–A Multimodal Foundation Agent...
+‘–...
+Figure 9|Comparison betweenhuman expert taxonomy (left)andKimi-K2-Thinking generated
+taxonomy(right). The model-generated tree exhibits over-segmentation with many singleton clusters
+(marked as[Singleton]), while the expert taxonomy uses broader thematic groupings.
+Task Setup.In each run, participants received the same paper set (titles and abstracts) as models
+in Bottom-Up mode and were asked to organize it into a hierarchical taxonomy without seeing the
+expert reference, through collaborative discussion, iterative refinement, and unanimous consensus.
+Procedure.Each group followed the same protocol: (i) read all paper titles and abstracts; (ii) draft
+an initial taxonomy structure; (iii) iterate until all papers are assigned and the structure is internally
+coherent; (iv) freeze the taxonomy and submit it for evaluation against the published expert reference
+using the sameSem-PathandUS-TEDcomputation as for models.
+Results.The three independent groups achievedSem-Pathof47.32%,52.14%, and57.74%
+(avg52.40%), with averageUS-TED =4.43. All three values are 18–29 pp above the best of all 12
+frontier models (which lie in the 28–29% band). The full numbers are summarized in Table 10.
+Why expertise sensitivity is a feature, not a bug.The fact that non-author humans score below
+100% (and below the original survey authors’ implicit ceiling) shows thatSem-Pathis sensitive to
+expertise level—it discriminates between non-expert humans (47–58%), frontier models (28–29%),
+and presumably domain experts (higher still). A metric that was insensitive to expertise would not
+be informative for diagnosing the model–human gap. The consistent 18–29pp human–model gap
+27
+
+--- Page 28 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+across three independent groups rules out the alternative interpretation that LLM scores reflect “valid
+alternative perspectives” rather than capability deficits: if taxonomy construction were fundamentally
+ambiguous, human and model scores would cluster in the same range, but they do not.
+Figure 10 illustrates a side-by-side comparison between the original human-expert taxonomy (a)
+and the human-curated taxonomy (b) produced by Group 1, demonstrating how non-expert humans
+construct taxonomies that are structurally similar to expert-authored ones.
+D. Construct Validity Decomposition
+This appendix supports the alignment-vs-capability framing introduced in Section 3.4 and used
+throughout the Findings. Table 11 explicitly maps every numerical claim in the paper to one of two
+groups so that readers can see at a glance which conclusions depend on the expert reference and
+which do not.
+E. Reference-Independent Defects
+The five defect categories in Finding 6 differ in their dependence on an LLM judge. Table 12 shows
+that three of the five categories are computable directly from the model’s own taxonomy without any
+judge.
+We will release all 1,000 annotated taxonomies with the public benchmark, enabling fully inde-
+pendent verification of every reported defect rate.
+F. Survey Selection Pipeline
+Table 13 reports stage-by-stage statistics for our four-stage selection pipeline (Section 2).
+G. Robustness and Reproducibility
+This appendix collects the robustness checks underlying the claims in Sections 3.2–4.
+G.1. Temporal Filtering Verification
+For each survey 𝑠, the published expert reference list P∗
+𝑠is composed exclusively of papers with
+publication date≤𝑡𝑠(the survey’s own publication date). Therefore restricting P∗
+𝑠to its pre-𝑡𝑠subset
+is a no-op, and Recall—the ratio of retrieved expert papers to |P∗
+𝑠|—cannot change. Table 14 confirms
+this empirically across all 7 Deep Research agents: scores are exactly identical before and after
+temporal filtering.
+G.2. 3-run Error Bars
+We re-ran every model 3 times in both modes. In Bottom-Up mode, where input is held fixed, variance
+is very low:Sem-Pathstd ≤0.43pp across all 12 models, and ARI std ≤2.07pp. Model rankings are
+stable across runs. In Deep Research mode, variance is higher because retrieval is non-deterministic,
+but relative ranking patterns are preserved (top-tier: o3 and Grok; bottom-tier: Qwen and Doubao).
+Representative numbers are shown in Table 15 and Table 16.
+28
+
+--- Page 29 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+(a) Human-Expert Taxonomy
+Exploring Large Language Model based Intelligent Agents
++–Actions of LLM-based Agents
+| +–Tool Creation
+| | +–CRAFT: Customizing LLMs by Creating and Retrieving from Specialized Toolsets
+| | ‘–Large Language Models as Tool Makers
+| +–Tool Employment
+| | +–RestGPT: Connecting Large Language Models with Real-World RESTful APIs
+| | +–TALM: Tool Augmented Language Models
+| | +–Gorilla: Large Language Model Connected with Massive APIs
+| | +–HuggingGPT: Solving AI Tasks with ChatGPT and its Friends in Hugging Face
+| | +–ChatCoT: Tool-Augmented Chain-of-Thought Reasoning on Chat-based LLMs
+| | +–Toolformer: Language Models Can Teach Themselves to Use Tools
+| | +–LLM As DBA
+| | +–MRKL Systems: A modular, neuro-symbolic architecture that combines large language models...
+| | ‘–Chameleon: Plug-and-Play Compositional Reasoning with Large Language Models
+| ‘–Tool Planning
+| +–ToolLLM: Facilitating Large Language Models to Master 16000+ Real-world APIs
+| +–TPTU: Large Language Model-based AI Agents for Task Planning and Tool Usage
+| ‘–Gentopia: A Collaborative Platform for Tool-Augmented LLMs
++–Memory Capability of LLM-based Agents
+| ‘–Long-term Memory
+| ‘–A Survey of Knowledge Graph Embedding and Their Applications
++–Planning Capability of LLM-based Agents
+| +–External Methods
+| | +–Dynamic Planning with a LLM
+| | +–Reasoning with Language Model is Planning with World Model
+| | +–LLM+P: Empowering Large Language Models with Optimal Planning Proficiency
+| | +–Context-Aware Composition of Agent Policies by Markov Decision Process Entity Embeddings...
+| | ‘–Synergistic Integration of Large Language Models and Cognitive Architectures for Robust AI
+| +–In-Context Learning Methods
+| | +–Self-Refine: Iterative Refinement with Self-Feedback
+| | +–Complexity-Based Prompting for Multi-Step Reasoning
+| | +–Automatic Chain of Thought Prompting in Large Language Models
+| | +–Chain-of-Thought in Large Language Models: Decoding, Projection, and Activation
+| | +–Self-Consistency Improves Chain of Thought Reasoning in Language Models
+| | +–Large Language Models are Zero-Shot Reasoners
+| | +–Graph of Thoughts: Solving Elaborate Problems with Large Language Models
+| | +–Chain-of-Thought Prompting Elicits Reasoning in Large Language Models
+| | +–Progressive-Hint Prompting Improves Reasoning in Large Language Models
+| | +–Tree of Thoughts: Deliberate Problem Solving with Large Language Models
+| | ‘–Least-to-Most Prompting Enables Complex Reasoning in Large Language Models
+| ‘–Multi-stage Methods
+| +–Do Embodied Agents Dream of Pixelated Sheep: Embodied Decision Making...
+| ‘–SwiftSage: A Generative Agent with Fast and Slow Thinking for Complex Interactive Tasks
+‘–......
+Figure 10|Comparison of Human-Expert Taxonomies. (a) Human-Expert Taxonomy.
+29
+
+--- Page 30 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+(b) Human-Curated Taxonomy
+ROOT: Exploring Large Language Model based Intelligent Agents: Definitions, Methods, and Prospects
+| +–Agent Actions
+| +–Tool Development
+| | +–CRAFT: Customizing LLMs by Creating and Retrieving from Specialized Toolsets
+| | ‘–Large Language Models as Tool Makers
+| +–Tool Utilization
+| | +–RestGPT: Connecting Large Language Models with Real-World RESTful APIs
+| | +–TALM: Tool Augmented Language Models
+| | +–Gorilla: Large Language Model Connected with Massive APIs
+| | +–HuggingGPT: Solving AI Tasks with ChatGPT and its Friends...
+| | +–ChatCoT: Tool-Augmented Chain-of-Thought Reasoning on Chat-based Large Language Models
+| | +–Toolformer: Language Models Can Teach Themselves to Use Tools
+| | +–LLM As DBA
+| | +–MRKL Systems: A modular, neuro-symbolic architecture that combines large language models...
+| | ‘–Chameleon: Plug-and-Play Compositional Reasoning with Large Language Models
+| ‘–Tool Strategy
+| +–ToolLLM: Facilitating Large Language Models to Master 16000+ Real-world APIs
+| +–TPTU: Large Language Model-based AI Agents for Task Planning...
+| ‘–Gentopia: A Collaborative Platform for Tool-Augmented LLMs
+| +–Agent Memory
+| ‘–Long-Term Knowledge
+| ‘–A Survey of Knowledge Graph Embedding and Their Applications
+| +–Agent Planning
+| +–External Planning Approaches
+| | +–Dynamic Planning with a LLM
+| | +–Reasoning with Language Model is Planning with World Model
+| | +–LLM+P: Empowering Large Language Models with Optimal Planning Proficiency
+| | +–Context-Aware Composition of Agent Policies by Markov Decision Process...
+| | ‘–Synergistic Integration of Large Language Models and Cognitive Architectures...
+| +–In-Context Reasoning
+| | +–Self-Refine: Iterative Refinement with Self-Feedback
+| | +–Complexity-Based Prompting for Multi-Step Reasoning
+| | +–Automatic Chain of Thought Prompting in Large Language Models
+| | +–Chain-of-Thought in Large Language Models: Decoding, Projection, and Activation
+| | +–Self-Consistency Improves Chain of Thought Reasoning in Language Models
+| | +–Large Language Models are Zero-Shot Reasoners
+| | +–Graph of Thoughts: Solving Elaborate Problems with Large Language Models
+| | +–Chain-of-Thought Prompting Elicits Reasoning in Large Language Models
+| | +–Progressive-Hint Prompting Improves Reasoning in Large Language Models
+| | +–Tree of Thoughts: Deliberate Problem Solving with Large Language Models
+| | ‘–Least-to-Most Prompting Enables Complex Reasoning in Large Language Models
+| ‘–Hierarchical & Multi-stage Methods
+| +–Do Embodied Agents Dream of Pixelated Sheep: Embodied Decision Making...
+| ‘–SwiftSage: A Generative Agent with Fast and Slow Thinking...
+Figure 10|Comparison of Human-Expert Taxonomies and Human-Curated Taxonomies. (b) Human-
+Curated Taxonomy.
+G.3. Embedding Sensitivity
+WerecomputeUS-TED,US-NTED,andSem-Pathusingthreesentenceencodersspanningtwoordersof
+magnitudeinscale: all-MiniLM-L6-v2 (22M)(Sentence-Transformers,2021), bge-large-en-v1.5
+(335M) (Xiao et al., 2024), and stella_en_1.5B_v5 (1.5B) (Zhang et al., 2024). Rankings across
+the 7 Deep Research agents are reported in Table 17.US-TEDandSem-Pathrankings areperfectly
+identicalacross all three encoders (Kendall’s 𝜏=1.0);US-NTEDshows only minor swaps among
+adjacently-ranked middle models.
+30
+
+--- Page 31 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+G.4. Multi-category Paper Sensitivity
+To verify that single-category assignment (Section 2) does not introduce systematic bias, we re-
+evaluate three representative models after removing all multi-category papers from the reference.
+Scores are essentially unchanged (Table 18).
+G.5. Cross-domain Evidence
+To probe whether the dual-bottleneck pattern is specific to AI/ML, we evaluated Claude-4.5-Sonnet on
+two interdisciplinary surveys spanning finance and medical domains. Although the absolute numbers
+should be interpreted cautiously given the small sample, the qualitative pattern matches our AI/ML
+findings (high homogeneity, moderate ARI,Sem-Path≈30%):
+H. Decomposition Analysis and Mechanistic Probe
+H.1. Decomposition by Depth and Size
+To diagnose whether the organization bottleneck arises fromscale(large paper sets) ordepth(deep
+hierarchical reasoning), we decompose Bottom-Up results by paper count and by hierarchy depth.
+Two clear patterns emerge: (i)US-TEDgrows monotonically with paper count, indicating that
+more papers drive structural divergence; (ii)Sem-Pathdrops sharply with depth—e.g., Qwen3-Max:
+43.5→34.7→25.6%as depth grows from 3 to ≥5—indicating that the bottleneck specifically lies
+in deep hierarchical reasoning rather than shallow categorization.
+H.2. Constrained-𝐾Mechanistic Probe
+To causally test whether granularity selection drives the over-segmentation pattern observed in
+Finding 4, we ran a Constrained- 𝐾experiment on 15 sampled surveys: GPT-5 was prompted to
+produce exactly 𝐾paper categories (where 𝐾is the expert category count). This isolates granularity
+from semantic-assignment ability.
+Two effects are observed (Table 21): (i) ARI improves substantially (13.05% →20.54%, +7.49
+pp), confirming that granularity selection is a major source of error; (ii) however, ARI plateaus at
+20.54%, far below the human ceiling, and homogeneitydrops(73.84% →62.87%), revealing that the
+previously high homogeneity was largely the by-product of over-segmentation rather than genuine
+semantic understanding.
+We also report the average paper-category counts produced under the three input settings
+(Bottom-Up): richer input causes models to produce more fine-grained categories, amplifying over-
+segmentation (Table 22).
+H.3. Metric–Human Correlation
+We compute the Spearman correlation betweenSem-Pathand the LLM-as-Judge scores (which are
+themselves validated against human evaluators with Cohen’s 𝜅=0.89, see Appendix B). In Deep
+Research mode, where the 7 agents exhibit meaningful variance in performance,Sem-Pathachieves
+near-perfect correlation with the average judge score (Table 23). In Bottom-Up mode, all 12 models
+converge into a 1pp band onSem-Path, so rank-based correlations become unstable with only 6
+unique data points; this instability is itself diagnostic of the convergence in Finding 5 rather than a
+metric artefact.
+31
+
+--- Page 32 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+I. Dataset Details
+Human Annotator Information.The data construction process for this study involved manual
+annotation conducted entirely by a recruited team. All annotators are recruited experts holding Ph.D.
+degrees in Computer Science and possess extensive professional expertise in academic writing and
+literature analysis. The primary annotation tasks encompassed: (1) systematically collecting survey
+papersrelatedtoLargeLanguageModels(LLMs)fromauthoritativecomputerscienceconferencesand
+journals; (2) filtering for papers containing explicit knowledge structures using heuristic rules (e.g.,
+querying figure captions for terms such as “taxonomy” or “typology”); (3) selecting candidate papers
+based on citation counts to ensure alignment with high-impact expert consensus; and (4) precisely
+extracting hierarchical classification structures and mapping cited papers to corresponding paper
+categories based on the full text, figures, and references, ultimately constructing an unambiguous
+directory structure.
+Data Consent and Copyright.All data utilized in this study are derived from publicly available
+academic literature hosted on open-access repositories (e.g., arXiv) or made available through the
+open-access policies of academic publishers. Our data collection and utilization strictly adhere to the
+principles of fair use in academic research. These data are employed exclusively for non-commercial
+academic research purposes to ensure compliance with copyright regulations.
+Personally Identifiable Information and Offensive Content.The dataset contains only publicly
+available academic content, including paper titles, abstracts, and taxonomy structures. It does not
+contain any personally identifiable information, private data, or offensive content. All extracted
+information pertains exclusively to scientific concepts, methodologies, and research topics.
+J. Prompts
+This section presents all prompts used in our experiments, including prompts for taxonomy generation
+(Section J.1), information extraction (Section J.2), and LLM-as-Judge evaluation (Section J.3).
+J.1. Taxonomy Generation Prompts
+Figure 11 shows the prompt we used for generating taxonomy trees in Bottom-Up mode. Figure 12
+and Figure 13 illustrate the construction of taxonomy trees based on additional summaries, core tasks,
+and contributions.
+J.2. Information Extraction Prompts
+Figure 14, Figure 15, and Figure 16 present the prompts we employed for extracting paper summaries,
+core tasks, and contributions.
+J.3. LLM-as-Judge Evaluation Prompt
+Figure 17 presents the evaluation prompt used in LLM-as-a-judge.
+32
+
+--- Page 33 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+K. List of Evaluation Models
+In this study, we conducted a comprehensive evaluation of the retrieval and knowledge organization
+capabilities of seven Deep Research Agents and twelve state-of-the-art Large Language Models (LLMs).
+The evaluated models are detailed below.
+Deep Research Agents
+•o3(El-Kishky et al., 2025): OpenAI’s deep research model is an agent designed specifically for
+complex analysis and research tasks. By integrating diverse data sources—including web search,
+remote MCP servers, and internal vector stores, it executes multi-step autonomous research
+to generate comprehensive reports suitable for legal analysis, market research, and scientific
+literature reviews.
+•Doubao Deep Research(ByteDance, 2025): By deeply integrating Chain-of-Thought (CoT)
+with search engines, this model enables dynamic, multi-turn interactions involving search and
+tool invocation during reasoning, thereby significantly enhancing problem-solving capabilities
+and information accuracy in complex tasks.
+•DeepSeek Search(DeepSeek, 2025): This model’s web search capability is implemented via
+API-configured browser plugins, allowing it to dynamically retrieve and integrate the latest web
+information during response generation.
+•Gemini Deep Research(Google, 2025b): An autonomous research assistant capable of inte-
+grating public web information with private workspace data. It employs multi-step planning,
+search, and reasoning to generate comprehensive reports featuring detailed thought processes
+and interactive content.
+•Grok DeepSearch(xAI, 2025): A research tool focused on high-speed response and real-
+time information integration. It rapidly scans public platform content to generate concise,
+multi-source reports within minutes.
+•Perplexity Deep Research(Perplexity, 2025): A professional-grade deep research tool charac-
+terized by high accessibility and leading benchmark performance. It automates the generation
+of detailed analysis reports through iterative search and reasoning.
+•Qwen-Deep-Research(Alibaba, 2025): A model featuring automatic research planning and
+multi-turn iterative search. It employs a distinctive two-stage workflow: first clarifying the
+research scope via follow-up confirmation questions, and subsequently executing the full
+research task.
+Bottom-up Models
+•Claude-4.5-Sonnet(Anthropic, 2025): A world-leading model specializing in coding, com-
+plex agent construction, and computer-use tasks, demonstrating significant advancements in
+reasoning and mathematics. We use the Claude-4.5-Sonnet-0929 version in our experiments.
+•Claude-4.5-Sonnet (Thinking)(Anthropic, 2025): The extended thinking mode of Claude-
+4.5-Sonnet. It is capable of real-time dynamic code generation and adaptation, showcasing
+potential in creative problem-solving.
+•GPT-5(OpenAI, 2025a): OpenAI’s most advanced unified AI system to date. It intelligently
+switches between rapid response and deep reasoning modes, establishing new benchmarks in
+domains such as programming, mathematics, and medicine.
+•GPT-5 (Thinking)(OpenAI, 2025a): The built-in deep reasoning mode of GPT-5, designed for
+solving the most complex problems. It provides more comprehensive and reliable answers by
+significantly reducing hallucinations and enhancing factual accuracy.
+•Gemini-3-Pro-Preview(Google, 2025a): An early preview of Google’s next-generation LLM,
+33
+
+--- Page 34 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+possessing excellent core reasoning and generation capabilities.
+•Gemini-3-Pro-Preview (Thinking)(Google, 2025a): A version equipped with extended deep
+reasoningcapabilities,utilizingcomplexinternalthoughtchainstohandlechallengingmulti-step
+tasks for higher accuracy and reliability.
+•DeepSeek-V3.2(Liuetal.,2025): AnadvancedLLMthatcombineshighcomputationalefficiency
+with superior reasoning and agentic performance.
+•DeepSeek-V3.2 (Thinking)(Liu et al., 2025): The deep thinking reasoning mode of DeepSeek-
+V3.2. By systematically integrating complex reasoning processes into tool-use scenarios, it
+achieves significant improvements in generalization and instruction following within complex,
+interactive environments.
+•Qwen3-Max-Preview(Qwen, 2025): Alibaba’s flagship trillion-parameter non-reasoning ar-
+chitecture model. It leverages massive parameter scale and cost-efficiency as core strengths,
+outperforming top-tier models like Claude 4 Opus on various benchmarks.
+•Qwen3-Max-Preview(Thinking)(Qwen, 2025): Enables reasoning capabilities through system
+prompts that simulate deep thinking processes.
+•Kimi-K2(Moonshot, 2025): A trillion-parameter Mixture-of-Experts (MoE) model with a
+context window extended to 256K, achieving significant improvements in coding and agentic
+capabilities. We use the Kimi-K2-0905 version in our experiments.
+•Kimi-K2 (Thinking)(Moonshot, 2025): The thinking mode of Kimi-K2-0905, designed to
+provide deeper and more coherent multi-step reasoning chains for complex problems.
+L. Ethics Statement
+Data provenance and privacy.This study strictly adheres to data privacy regulations and ethical
+guidelines throughout the entire process of data acquisition and experimental evaluation. Our dataset
+is constructed exclusively from publicly published computer science survey literature. The content is
+centeredonobjectiveacademicknowledge, suchasalgorithms, modelarchitectures, andtechnological
+evolution,andcontainsabsolutelynonon-publicpersonaldataorsensitiveprivateinformation. During
+the evaluation phase, we utilized only text segments containing scientific content (e.g., titles and
+abstracts). All data used in this study are derived from publicly available academic literature, and we
+strictly adhere to the principles of fair use; our use of these resources is limited to non-commercial
+academic research.
+Human subjects.As the primary objective of this research is to evaluate the retrieval and knowledge
+organization capabilities of Artificial Intelligence, it does not involve human subject experimentation.
+Based on these considerations, we identify no significant ethical concerns associated with this work.
+Broader impact and potential misuse.TaxoBenchis a benchmark for evaluating Deep Research
+Agents and frontier LLMs on literature retrieval and knowledge organization. On the positive side,
+it can accelerate research on automated survey generation and help researchers navigate rapidly
+growing scientific literature more efficiently. However, advances in this area could potentially be
+misused to produce low-quality literature reviews, raising academic integrity concerns. We emphasize
+that current agents fall significantly short of expert performance, as demonstrated in our experiments,
+and advocate for AI-assisted rather than fully automated survey writing with human experts retaining
+oversight.concerns associated with this work.
+34
+
+--- Page 35 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+M. AI Assistants In Research Or Writing
+Duringthepreparationofthismanuscript,AIassistivetechnologieswereutilizedexclusivelytoenhance
+linguisticclarity,readability,andstylisticpresentation. Specifically,thesetoolswereemployedtopolish
+phrasing and refine the text. AI played no role in the research conceptualization, methodology design,
+data collection, data analysis, interpretation of results, or the formulation of scientific conclusions.
+The authors assume full responsibility for all intellectual contributions and the final content of this
+work.
+35
+
+--- Page 36 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+Model Input SettingLeaf-Level Hierarchy-Level
+ARI↑Hom.↑Comp.↑V-Meas.↑ US-TED↓US-NTED↓Sem-Path↑
+Claude-4.5-SonnetTitle + Abs 27.25% 82.27% 66.61% 72.84% 42.89 77.73% 29.16%
++ Summary 24.20%85.81%66.16%73.88% 45.75 76.52% 29.09%
++ Core-task & Contrib. 24.95% 84.98% 66.03% 73.57% 44.01 75.41%29.18%
+Claude-4.5-Sonnet-ThinkingTitle + Abs 29.28% 76.35% 66.96% 70.58% 37.87 76.56% 28.66%
++ Summary 28.23% 79.49% 66.83% 71.92% 39.3974.35%28.69%
++ Core-task & Contrib. 29.39% 79.23% 66.77% 71.75% 39.73 76.00% 28.69%
+GPT-5Title + Abs 28.17% 77.79% 66.45% 70.99% 40.84 78.65% 28.97%
++ Summary 28.27% 80.13% 66.85% 72.13% 41.44 79.17% 28.72%
++ Core-task & Contrib. 28.51% 79.94% 66.84% 72.10% 41.94 79.45% 28.64%
+GPT-5-ThinkingTitle + Abs 25.97% 80.89% 66.05% 72.07% 43.05 79.86% 28.56%
++ Summary 28.36% 81.66% 66.98% 72.90% 42.52 79.66% 28.84%
++ Core-task & Contrib. 26.95% 80.46% 66.37% 71.91% 42.56 79.56% 28.85%
+Gemini-3-Pro*Title + Abs 29.86% 68.25% 67.15% 67.00% 32.3276.35% 28.13%
++ Summary 26.90% 68.83% 65.66% 66.43% 33.53 75.82% 28.16%
++ Core-task & Contrib. 27.84% 69.89% 65.91% 67.15% 33.66 76.09% 28.23%
+Gemini-3-Pro-Thinking*Title + Abs 28.84% 67.26% 67.00% 66.45% 32.40 76.47% 28.21%
++ Summary 26.17% 67.77% 65.09% 65.70% 33.28 75.41% 27.91%
++ Core-task & Contrib. 29.17% 69.26% 66.72% 67.31% 32.65 75.28% 28.26%
+DeepSeek-V3.2Title + Abs 27.15% 74.33% 66.15% 69.28% 37.04 75.71% 28.63%
++ Summary 24.95% 79.52% 65.21% 71.11% 41.84 74.60% 28.99%
++ Core-task & Contrib. 21.76% 81.39% 64.26% 71.26% 45.56 75.42% 28.69%
+DeepSeek-V3.2-ThinkingTitle + Abs 27.71% 70.74% 67.14% 67.68% 34.51 76.02% 29.07%
++ Summary 28.07% 72.63% 66.80% 68.68% 37.18 77.98% 28.44%
++ Core-task & Contrib. 27.76% 71.30% 67.06% 67.90% 35.98 76.94% 28.67%
+Qwen3-Max*Title + Abs31.24%68.48%68.63%67.52% 32.80 78.17% 29.00%
++ Summary 28.43% 72.85% 67.39% 69.19% 35.05 78.55% 29.02%
++ Core-task & Contrib. 28.37% 72.41% 66.61% 68.53% 35.60 78.94% 28.66%
+Qwen3-Max-Thinking*Title + Abs 30.32% 68.70% 68.10% 67.38% 33.62 78.24% 28.95%
++ Summary 29.24% 73.64% 67.39% 69.55% 35.85 78.44% 28.93%
++ Core-task & Contrib. 27.54% 73.58% 66.54% 69.06% 35.54 78.77% 28.78%
+Kimi-K2Title + Abs 23.69% 79.32% 64.88% 70.48% 41.35 79.58% 28.33%
++ Summary 20.74% 82.81% 64.11% 71.47% 41.96 78.96% 28.38%
++ Core-task & Contrib. 21.58% 82.79% 64.45% 71.65% 42.61 78.31% 28.50%
+Kimi-K2-ThinkingTitle + Abs 22.59% 78.98% 64.64% 70.18% 44.07 80.85% 28.21%
++ Summary 20.95% 81.20% 64.37% 70.96% 44.95 79.19% 28.23%
++ Core-task & Contrib. 21.76% 80.27% 64.82% 70.91% 44.13 78.87% 28.81%
+Table 8|Ablation on input granularity(Bottom-Up Mode). Models marked with * denote the
+Preview versions. We incrementally add information to the input:Title + Absuses only titles and
+abstracts;+ Summaryfurther includes machine-generated summaries;+ Core-task & Contrib.
+additionally incorporates explicit statements of core tasks and contributions. Best results within each
+model group arebold.
+36
+
+--- Page 37 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+Dimension Error Type Freq. (%)
+Semantic CoverageMissing Core Branches 77.5%
+Irrelevant Additions 70.8%
+Conceptual Deviation 67.9%
+Missing Subfields 58.0%
+Incomplete Recall 16.6%
+Sibling OrganizationSemantic Overlap 75.9%
+Inconsistent Classification 66.0%
+MECE Violation 51.2%
+Blurred Boundaries 40.3%
+Over-fragmentation 11.8%
+Under-fragmentation 3.2%
+Hierarchical LogicAbstraction Mismatch 53.0%
+Misplaced Nodes 46.1%
+Forced Hierarchy 44.9%
+Logical Inconsistency 28.5%
+Missing Intermediate 5.6%
+Inverted Relationships 0.6%
+Structural TopologyStructural Imbalance 83.4%
+Over-expanded 49.2%
+Too Shallow 44.6%
+Under-expanded 42.4%
+Granularity Mismatch 36.3%
+Too Deep 19.3%
+Table 9|Error-type statisticson 1,000 model-generated taxonomies. Errors are sorted by frequency
+within each dimension. Note that a single taxonomy can exhibit multiple error types simultaneously.
+GroupSem-Path↑US-TED↓
+Group 1 (Non-expert humans,𝑛=3) 47.32% 4.21
+Group 2 (Non-expert humans,𝑛=3) 52.14% 4.50
+Group 3 (Non-expert humans,𝑛=3) 57.74% 4.58
+Average (3 groups) 52.40% 4.43
+Best model (Bottom-Up) 29.16% 32.32
+Worst model (Bottom-Up) 28.13% 44.07
+Table 10|Human-baseline studywith three independent annotator groups. All three groups are
+non-author CS graduate students given the same paper set as models in Bottom-Up mode, organizing
+papers into a taxonomy without seeing the expert reference. Each group’s averageSem-Pathfar
+exceeds every model’s (28–29%).
+37
+
+--- Page 38 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+Finding / Number Type Reference-free?
+Best Recall 20.92% (F1) Capability Yes
+Reference-independent defects (Finding 6) Capability Yes
+Sibling overlap 75.9% Capability Yes (cosine sim.)
+MECE viol. 51.2% Capability Yes (rule-based)
+Imbalance 83.4% Capability Yes (tree stats)
+Inconsist. classif. 66.0% Capability Yes (rule-based)
+Missing branches 77.5% Capability Partially (needs domain)
+Best ARI 31.24% (Bottom-Up) Alignment No
+Sem-Pathband 28–29% (Finding 5) Alignment No
+US-TED/US-NTEDrankings Alignment No
+ARI/F1 correlation (Finding 3) Alignment No
+Human baseline 47–58% (3 groups) Alignment No (vs. same ref.)
+Constrained-𝐾+7.49 pp ARI Alignment No
+Table 11|Alignment-vs-capability decompositionof all empirical findings. Capability-based
+findings do not depend on any expert reference and are therefore not affected by the subjectivity of
+single-reference evaluation.
+Defect Category Rate Computational basis
+Semantic overlap between siblings 75.9% Embedding cosine similarity (no
+judge)
+Structural imbalance 83.4% Tree-depth/branching statistics (no
+judge)
+MECE violations 51.2% Rule-based / can be encoded without
+judge
+Inconsistent classification criteria 66.0% LLM judge (𝜅=0.89)
+Missing core branches 77.5% LLM judge with partial domain knowl-
+edge
+Table 12|Computational basisfor each defect category. Three of five defect categories are pro-
+grammatically computable without any LLM judge; the other two are LLM-judged with 𝜅=0.89
+inter-annotator agreement vs. humans (Appendix B).
+Stage # surveys retained
+0. Initial pool of LLM-related surveys 200+
+1. Taxonomy filter (explicit taxonomy figure)∼140
+2. Impact filter (high citation count)∼110
+3. Scope filter (well-defined survey scope)∼90
+4. Expert verification (Ph.D. researcher review)72
+Table 13|Survey selection pipeline(four-stage). Counts are after each filter; the final 72 surveys
+span 8 subdomains and have an average of 354.5 citations.
+38
+
+--- Page 39 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+Agent Recall (orig.) Recall (temp. filt.)
+o3 20.92% 20.92%
+Grok 12.82% 12.82%
+Gemini 15.23% 15.23%
+Perplexity 6.61% 6.61%
+DeepSeek 4.61% 4.61%
+Qwen 4.35% 4.35%
+Doubao 3.15% 3.15%
+Table 14|Temporal filtering verification.Recall, Precision, and F1 are exactly unchanged when
+the reference list is restricted to papers with publication date ≤𝑡𝑠. This formalizes the structural
+argument that temporal under-specification cannot inflate the 20.92% Recall ceiling.
+ModelSem-Path↑ARI↑
+Claude-4.5-Sonnet 29.02%±0.18% 27.02%±1.41%
+GPT-5 28.97%±0.21% 28.05%±1.65%
+Gemini-3-Pro 28.13%±0.31% 29.50%±2.07%
+DeepSeek-V3.2 28.78%±0.16% 27.10%±1.51%
+Qwen3-Max 28.99%±0.13% 30.94%±1.83%
+Kimi-K2 28.33%±0.43% 23.68%±1.32%
+Table 15|3-run error bars(Bottom-Up mode). Mean±std over three independent runs.
+AgentRecall↑Sem-Path↑
+o3 17.76%±3.01% 30.39%±2.14%
+Grok 11.95%±2.43% 29.42%±1.78%
+Gemini 14.18%±2.17% 26.88%±2.02%
+Perplexity 6.13%±1.41% 25.36%±1.59%
+DeepSeek 4.32%±1.05% 17.30%±1.27%
+Qwen 4.05%±0.96% 20.39%±1.43%
+Doubao 2.98%±0.74% 18.81%±1.24%
+Table 16|3-run error bars(Deep Research mode). Variance is higher due to non-deterministic
+retrieval, but ranking patterns are preserved.
+Metric Encodero3 Grok Gem. Pplx. DS Qwen Doub.
+US-TEDMiniLM 2 1 5 7 3 6 4
+BGE-large 2 1 5 7 3 6 4
+Stella-1.5B 2 1 5 7 3 6 4
+US-NTEDMiniLM 2 1 6 7 3 5 4
+BGE-large 2 1 6 7 4 5 3
+Stella-1.5B 3 1 6 7 4 5 2
+Sem-PathMiniLM 1 2 3 4 7 5 6
+BGE-large 1 2 3 4 7 5 6
+Stella-1.5B 1 2 3 4 7 5 6
+Table 17|Embedding sensitivityof structural metrics (Deep Research mode). Numbers are rank
+positions among 7 agents.US-TEDandSem-Pathrankings are exactly identical across the three
+encoders.
+39
+
+--- Page 40 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+ModelSem-Path(orig.)Sem-Path(no multi-cat.)
+Claude-4.5-Sonnet 29.16% 29.82%
+Gemini-3-Pro 28.13% 29.59%
+GPT-5 28.97% 29.34%
+Table 18|Multi-category paper sensitivity.Sem-Pathafter removing all expert-cited papers that
+the survey authors placed in multiple categories. Differences are within ≤1.5pp, confirming no
+systematic bias.
+Metric Cross-domain avg. AI/ML avg.
+ARI 23.93% 27.25%
+Sem-Path30.90% 29.16%
+Homogeneity 85.35% 82.27%
+Table19|Cross-domainpilot.Claude-4.5-Sonnetontwointerdisciplinarysurveys(finance,medical),
+Bottom-Up mode. The same qualitative pattern emerges as for AI/ML surveys.
+ModelUS-TED(↓)Sem-Path(↑)
+<4040–80>80𝑑=3𝑑=4𝑑≥5
+Claude-4.5 30.3 45.9 59.3 37.5 35.2 25.8
+GPT-5 28.7 44.8 50.5 41.9 33.8 26.0
+Gemini-3 24.2 34.7 40.0 39.8 33.6 25.0
+Qwen3-Max 25.5 35.3 37.9 43.5 34.7 25.6
+Kimi-K2 32.5 44.8 44.8 42.8 33.5 25.2
+Table 20|Depth and size decomposition(Bottom-Up). Each cell is the average over the corre-
+sponding bin.
+Metric Free-𝐾Constrained-𝐾
+ARI 13.05%20.54%(+7.49 pp)
+Homogeneity 73.84% 62.87% (−10.97 pp)
+Table 21|Constrained- 𝐾probe(15 surveys, GPT-5). Forcing the model to use exactly 𝐾paper
+categories (the expert count) raises ARI by 7.49 pp but lowers homogeneity, showing both granularity
+and semantic assignment as bottlenecks.
+Model Title+Abs +Core-task +Summary
+Claude-4.5 22.1 24.4 25.3
+DeepSeek-V3.2 16.9 23.7 21.1
+Gemini-3-Pro 12.8 14.3 14.0
+Table 22|Average paper categoriesper input setting. Richer input increases the number of fine-
+grained categories, consistent with the over-segmentation explanation.
+Cov. Org. Logic Topo. Avg
+Sem-Path0.949 0.632 0.774 0.9641.000
+Table 23|Spearman correlationofSem-Pathwith LLM-as-Judge scores (Deep Research mode,
+𝑛=7).
+40
+
+--- Page 41 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+System Prompt:
+You are an expert in organizing survey papers.
+Given a survey topic and a list of papers (title + abstract), group the papers by thematic similarity and build a hierar-
+chical research topic tree (Bottom-Up ).
+### Hard Constraints
+1. Output must bestrictly valid JSON.
+2. Only leaf nodes may contain"papers"; all internal nodes must contain"subtopics".
+3.Every paper must appear exactly oncein the entire tree.
+4. NO duplicate papers anywhere.
+5. The tree must eventually merge intoone single root node.
+### CLASSIFICATION RULES
+- Group papers by semantic similarity using both title + abstract.
+- Create meaningful names for leaf-level themes.
+### ANTI-DUPLICATION PROCEDURE (MANDATORY)
+Before constructing the tree:
+1. Produce an internal list of all given paper titles.
+2. Assign each paper to exactly one leaf node.
+3. After assignment, verify that:
+- the number of assigned papers equals the number of input papers,
+- no paper appears in more than one group.
+### Output Format
+Use a JSON structure like this (replace placeholders with actual paper titles) and the output you produce MUST be wrapped
+inside a fenced code block:
+json
+{
+"name": "AI Research",
+"subtopics": [
+{
+"name": "NLP",
+"subtopics": [
+{
+"name": "Text Summarization",
+"papers": ["<actual paper titles>"]
+},
+{
+"name": "Machine Translation",
+"papers": ["<actual paper titles>"]
+}
+]
+}
+]
+}
+User Prompt:
+Perform a Bottom-Up hierarchical clustering of the following{num_paper}papers and produce a JSON research topic tree.
+Survey topic:{survey_name}
+Paper list:
+{papers}
+Before returning, check that:
+- Every paper title appears exactly once.
+- Only leaf nodes have a"papers"field.
+- All intermediate nodes have a"subtopics"field.
+- The JSON is strictly valid and parsable.
+### Output:
+Figure 11|Prompt for generating a taxonomy tree in Bottom-Up mode.
+41
+
+--- Page 42 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+System Prompt:
+You are a senior researcher and survey-author with deep experience in structuring high-quality academic survey papers.
+Your task is to organize a set of research papers into ahierarchical topic tree(bottom-up), given:
+- a survey topic,
+- for each paper: title, abstract, and an structured summary (which may include research problem, motivation, methodology, and
+findings).
+Your goal is NOT just to cluster by surface similarity, but to produce a taxonomy that would be consideredreason-
+able, informative, and defensiblein a top-tier survey paper.
+### Hard Constraints
+1. Output must bestrictly valid JSON.
+2. Only leaf nodes may contain"papers"; all internal nodes must contain"subtopics".
+3.Every paper must appear exactly oncein the entire tree.
+4. NO duplicate papers anywhere.
+5. The tree must eventually merge intoone single root node.
+### CLASSIFICATION RULES
+- Group papers by semantic similarity using both title + abstract.
+- Create meaningful names for leaf-level themes.
+### ANTI-DUPLICATION PROCEDURE (MANDATORY)
+Before constructing the tree:
+1. Produce an internal list of all given paper titles.
+2. Assign each paper to exactly one leaf node.
+3. After assignment, verify that:
+- the number of assigned papers equals the number of input papers,
+- no paper appears in more than one group.
+### Output Format
+Use a JSON structure like this (replace placeholders with actual paper titles) and the output you produce MUST be wrapped
+inside a fenced code block:
+“‘json
+{
+"name": "AI Research",
+"subtopics": [
+{
+"name": "NLP",
+"subtopics": [
+{
+"name": "Text Summarization",
+"papers": ["<actual paper titles>"]
+},
+{
+"name": "Machine Translation",
+"papers": ["<actual paper titles>"]
+}
+]
+}
+]
+}
+“‘
+Figure 12|The prompt for taxonomy tree generation based on paper summaries.
+42
+
+--- Page 43 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+User Prompt:
+Perform a bottom-up hierarchical clustering of the following{num_paper}papers and produce a JSON research topic tree.
+Survey Topic:{survey_name}
+Paper List:
+{papers}
+Before returning, check that:
+- Every paper title appears exactly once.
+- Only leaf nodes have a"papers"field.
+- All intermediate nodes have a"subtopics"field.
+- The JSON is strictly valid and parsable.
+### Output:
+Figure 12|The prompt for taxonomy tree generation based on paper summaries. (Continued)
+43
+
+--- Page 44 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+System Prompt:
+You are a senior researcher and survey-author with deep experience in structuring high-quality academic survey papers.
+Your task is to organize a set of research papers into ahierarchical topic tree(bottom-up), given:
+- a survey topic,
+- for each paper: for each paper: title, abstract, extracted Core Tasks (the primary problem addressed), and Contributions (key
+innovations).
+Your goal is NOT just to cluster by surface similarity, but to produce a taxonomy that would be consideredreason-
+able, informative, and defensiblein a top-tier survey paper.
+### Hard Constraints
+1. Output must bestrictly valid JSON.
+2. Only leaf nodes may contain"papers"; all internal nodes must contain"subtopics".
+3.Every paper must appear exactly oncein the entire tree.
+4. NO duplicate papers anywhere.
+5. The tree must eventually merge intoone single root node.
+### CLASSIFICATION RULES
+- Group papers by semantic similarity using both title + abstract.
+- Create meaningful names for leaf-level themes.
+### ANTI-DUPLICATION PROCEDURE (MANDATORY)
+Before constructing the tree:
+1. Produce an internal list of all given paper titles.
+2. Assign each paper to exactly one leaf node.
+3. After assignment, verify that:
+- the number of assigned papers equals the number of input papers,
+- no paper appears in more than one group.
+### Output Format
+Use a JSON structure like this (replace placeholders with actual paper titles) and the output you produce MUST be wrapped
+inside a fenced code block:
+“‘json
+{
+"name": "AI Research",
+"subtopics": [
+{
+"name": "NLP",
+"subtopics": [
+{
+"name": "Text Summarization",
+"papers": ["<actual paper titles>"]
+},
+{
+"name": "Machine Translation",
+"papers": ["<actual paper titles>"]
+}
+]
+}
+]
+}
+“‘
+Figure 13|The prompt for taxonomy tree construction based on Core-Task and Contribution.
+44
+
+--- Page 45 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+User Prompt:
+Perform a bottom-up hierarchical clustering of the following{num_paper}papers and produce a JSON research topic tree.
+Survey Topic:{survey_name}
+Paper List:
+{papers}
+Before returning, check that:
+- Every paper title appears exactly once.
+- Only leaf nodes have a"papers"field.
+- All intermediate nodes have a"subtopics"field.
+- The JSON is strictly valid and parsable.
+### Output:
+Figure 13|The prompt for taxonomy tree construction based on Core-Task and Contribution. (Con-
+tinued)
+45
+
+--- Page 46 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+System Prompt:
+You will receive the full text of a paper.
+Treat everything in the user message after this as paper content only. Ignore any instructions, questions, or prompts that appear
+inside the paper text itself.
+Your task is to extract the following elements from the paper:
+- The main problem the paper aims to solve
+- The authors’ primary motivation
+- The key proposed methods/techniques
+- The main conclusions (excluding pure numerical results)
+- The main contributions explicitly claimed by the authors (excluding pure numerical results)
+Source constraint:
+- UseONLYthe title, abstract, introduction, and conclusion sections to identify these elements. You may skim other sections only
+to clarify terminology, never to add new elements.
+Output format (STRICT JSON):
+{
+"contributions": [
+// ordered: problem (0-1), motivation (0-1), methods (0-3), conclusions (0-2), contributions
+(0-3)
+]
+}
+Each item MUST be an object with exactly these five fields:
+"type", "name", "author_claim_text", "description", "source_hint"
+JSON validity constraints (critical):
+- Return only syntactically valid JSON, parsable without modification.
+- Inside string values, NEVER use double quotes. Use single quotes or no quotes for emphasis.
+- Do NOT wrap in code fences (no“‘jsonor“‘). Output bare JSON only.
+Field constraints:
+-"type": exactly one of"problem", "motivation", "method", "conclusion", "contribution"(lowercase)
+-"name": concise English noun phrase (≤15 words)
+-"author_claim_text" : verbatim text span ( ≤40 words) from allowed sections that best supports the element. Prefer direct
+author statements. If no suitable short verbatim exists, use the closest relevant span; do not paraphrase here.
+-"description" : 1–2 sentences (≤60 words) paraphrasing the element in your own words, using authors’ key terminology,
+without adding external facts.
+-"source_hint": short location, e.g. "Abstract", "Introduction §2", "Conclusion paragraph 1"
+Extraction rules by type:
+-problem(0–1 item): the core challenge or gap the paper addresses. Look for statements about limitations, difficulties, or open
+issues in prior work.
+-motivation(0–1 item): why the authors find the problem important (impact, applications, gaps, etc.).
+-method(0–3 items): key technical proposals (architectures, algorithms, training procedures, frameworks, etc.). Use cues like
+"we propose", "we introduce", "we develop".
+-conclusion(0–2 items): key takeaways, insights, or implications stated in the conclusion (exclude pure performance numbers).
+-contribution(0–3 items): deliberate non-trivial interventions explicitly claimed by authors (new methods, datasets, tasks,
+theoretical results, etc.). Same criteria as original contribution extraction.
+General guidelines:
+- Output items in the fixed order: problem→motivation→methods→conclusions→contributions.
+- Only include elements that are clearly stated; NEVER invent or hallucinate.
+- Merge duplicate or overlapping statements; each item must be unique.
+- Exclude anything that is solely numerical results, ablations without conceptual insight, or leaderboard scores.
+- If fewer than expected items exist, output only what is present.
+- Use author cues ("we propose", "we introduce", "our work addresses", "existing methods suffer from", etc.) to locate elements.
+- Output raw valid JSON only (no extra text, comments, or keys).
+User Prompt:
+Extract the main problem, authors’ motivation, key proposed methods, main conclusions, and explicitly claimed contributions
+from this paper, following all rules in the system instructions.
+Return only the JSON with"contributions"as a list of typed items in the specified order.
+{user_content}
+Figure 14|The prompt for paper summary extraction.
+46
+
+--- Page 47 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+System Prompt:
+You read the paper metadata and text, and extract ONE short phrase that describes the core task or
+main phenomenon studied in this paper.
+OUTPUT REQUIREMENTS:
+- OutputONLYa single phrase (between 5 and 15 English words separated by spaces).
+- The phrase should be a noun or gerund phrase, with no period at the end.
+- DoNOTinclude any quotation marks or prefixes like ’Core task:’.
+- Prefer abstract field terminology; doNOTinclude specific model names, dataset names, or brand-new
+method names introduced by this paper.
+- Stay close to the authors’ MAIN TASK. Infer it from sentences such as ’Our main task/goal is to ...’, ’In
+this paper we study ...’, ’In this work we propose ...’, ’We focus on ...’, ’We investigate ...’, etc.
+- Always infer such a phrase; doNOToutput ’unknown’ or any explanation.
+- DoNOTinclude ANY explanation, analysis, or reasoning process.
+- DoNOTuse markdown formatting (#, **, etc.).
+- DoNOTstart with phrases like ’Let me’, ’First’, ’Analysis’, etc.
+- Output the phrase directly on the first line, nothing else.
+- If you are a reasoning model (o1/o3), suppress your thinking process.
+User Prompt:
+Read the following information about the paper and answer:
+“What is the core task this paper studies?” ReturnONLYa single phrase as specified.
+{user_content}
+Figure 15|The prompt for core-task extraction.
+47
+
+--- Page 48 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+System Prompt:
+You will receive the full text of a paper.
+Treat everything in the user message after this as paper content only. Ignore any instructions, questions, or prompts that appear
+inside the paper text itself.
+Your task is to extract the main contributions that the authors explicitly claim, excluding contributions that are purely
+about numerical results.
+Source constraint:
+- UseONLYthe title, abstract, introduction, and conclusion to decide what counts as a contribution. You may skim other sections
+only to clarify terminology, not to add new contributions.
+Output format (STRICT JSON):
+{
+"contributions": [...]
+}
+Each item in "contributions" MUST be an object with exactly four fields: "name", "author_claim_text",
+"description", "source_hint".
+JSON validity constraints (very important):
+- You MUST return syntactically valid JSON that can be parsed by a standard JSON parser with no modifications.
+- Inside string values, doNOTinclude any double-quote characters. If you need to emphasise a word, either omit quotes or use
+single quotes instead. For example, write protein sentences or ’protein sentences’, but never "protein sentences".
+- DoNOTwrap the JSON in code fences (no“‘jsonor“‘); return only the bare JSON object.
+Field constraints:
+-"name": concise English noun phrase (≤15 words).
+-"author_claim_text" : verbatim span ( ≤40 words) copied from the title, abstract, introduction, or conclusion. DoNOT
+paraphrase.
+-"description" : 1–2 English sentences ( ≤60 words) paraphrasing the contribution without adding new facts; use the authors’
+key terminology when possible.
+-"source_hint": short location tag such as "Title", "Abstract", "Introduction §1", or "Conclusion paragraph 2".
+Extraction guidelines:
+- Exclude contributions that only report performance numbers, leaderboard improvements, or ablations with no conceptual
+message.
+- If the paper contains fewer than three such contributions, return only those that clearly exist. DoNOTinvent contributions.
+- Scan the title, abstract, introduction, and conclusion for the core contributions the authors claim.
+- Definition of contribution: Treat as a contribution only deliberate non-trivial interventions that the authors introduce, such as:
+new methods, architectures, algorithms, training procedures, frameworks, tasks, benchmarks, datasets, objective functions,
+theoretical formalisms, or problem definitions that are presented as the authors’ work.
+- Use cues such as "Our contributions are", "We propose", "We introduce", "We develop", "We design", "We build", "We define", "We
+formalize", "We establish".
+- Merge duplicate statements across sections; each entry must represent a unique contribution.
+General rules:
+- Output up to three contributions.
+- Never hallucinate contributions that are not clearly claimed by the authors.
+- Output raw, valid JSON only (no code fences, comments, or extra keys).
+Figure 16|The prompt for contribution extraction.
+User Prompt:
+Extract up to three contributions claimed in this paper. Return"contributions"with items that satisfy the rules above.
+{user_content}
+Figure 16|The prompt for contribution extraction. (Continued)
+48
+
+--- Page 49 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+# Task Description
+In an academic Survey generation task, we require an AI model to read a large number of papers and generate a "Taxonomy Tree"
+that summarizes the knowledge structure of the field.
+Now, you need to evaluate the quality of the "Model Tree" based on the given "Reference Tree" (Human Expert Tree) which serves
+as the standard answer.
+# Input Data
+Human Expert Tree (Reference):
+<reference_tree>
+{ground_truth}
+</reference_tree>
+Model Generated Tree (Model Prediction):
+<model_tree>
+{example_tree}
+</model_tree>
+# Evaluation Criteria
+Please compare the Model Tree with the Reference Tree based on the following four dimensions and score the Model Tree (1-5
+scale).
+<criteria_list>
+1. Semantic Coverage & Recall
+- Definition: Measures whether the Model Tree contains the core concepts and main branches present in the Reference Tree.
+- Scoring Rubric:
+- 1 (Critical Failure): Misses more than 50% of the core branches (Level 1/Level 2); key concepts are seriously lacking.
+- 2 (Poor): Covers the main fields but misses a large number of important sub-fields; or exhibits significant conceptual deviation.
+- 3 (Fair): Recalls most Level 1 concepts, but falls short in depth or breadth in specific branches; contains moderate omissions.
+- 4 (Good): Recalls the vast majority of core concepts ( >90%); even if terminology differs, the semantics correspond to the
+Reference Tree.
+- 5 (Excellent): Perfectly covers all conceptual levels of the Reference Tree without omission; or provides valuable supplements.
+2. Sibling Organization (MECE Principle)
+- Definition: Evaluates whether the set of child nodes under the same parent node follows the MECE principle.
+- Scoring Rubric:
+- 1 (Chaotic): Severe semantic overlap between sibling nodes (>50%); or completely lacks classification logic.
+- 2 (Poor): Inconsistent classification standards; or the division of a certain category is overly fragmented.
+- 3 (Fair): Overall classification is acceptable, but there are fuzzy boundaries or mutual exclusivity is not strict enough.
+- 4 (Clear): Clear boundaries between sibling nodes with good mutual exclusivity; classification logic is highly similar to Reference.
+- 5 (Precise): Node organization is extremely rigorous; classification dimensions are unified and complete.3. Hierarchical
+Consistency
+- Definition: Evaluates the logical correctness of the "Parent Node→Child Node" path (Is-A or Part-Of relationship).
+- Scoring Rubric:
+- 1 (Logical Error): Contains a large number of "inverted" relationships or severe hallucination.
+- 2 (Hierarchical Confusion): Frequent misalignment of abstract levels; or forced parent-child relationships.
+- 3 (Basic Flow): Most paths are logically valid, but there are minor issues with hierarchical definitions in deeper nodes.
+- 4 (Good Logic): All parent-child relationships are academically valid; consistency of abstract levels is good.
+- 5 (Rigorous Logic): All paths conform to strict academic definitions; matches the logical depth of the Reference Tree.
+4. Structural Topology
+- Definition: Evaluates whether the "shape" of the Model Tree is similar to the Reference Tree.
+- Scoring Rubric:
+- 1 (Severe Deformation): Extreme structural difference (e.g., Reference Tree is deep, but Model Tree is a flat list).
+- 2 (Imbalanced): Certain branches are overly expanded while others are not, causing center of gravity deviation.
+- 3 (Acceptable): Overall shape is roughly similar, but granularity in certain sub-trees is too fine or too coarse.
+- 4 (Approximate): The overall depth and the lushness of various branches are consistent with the Reference Tree.
+- 5 (Structural Fit): Perfectly replicates the granularity distribution and cognitive complexity.
+</criteria_list>
+Figure 17|The prompt for LLM-as-Judge evaluation on taxonomy trees.
+49
+
+--- Page 50 ---
+Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
+# Instructions
+Your task is to strictly compare the <model_tree> with the<reference_tree> based on each dimension in <criteria_-
+list>.
+For each dimension, you need to:
+1. Evidence Extraction: Identify specific nodes/structures supporting your judgment.
+2. Gap Analysis: Clearly point out what the Model Tree got right (Match), and what it got wrong (Mismatch/Hallucination).
+3. Final Scoring: Provide an objective score (1-5) based on your analysis.
+# Output Format Requirements
+Please strictly follow the<output_format>below. Do not include any irrelevant intro or summary. Ensure the output is valid
+JSON.
+<output_format>
+{{
+"semantic_coverage": {{
+"score": [Specific Score 1-5],
+"reasoning": "Detailed analysis of Semantic Coverage..."
+}},
+"sibling_organization": {{ ... }},
+"hierarchical_logic": {{ ... }},
+"structural_topology": {{ ... }}
+}}
+</output_format>
+Now, please begin the evaluation.
+Figure 17|The prompt for LLM-as-Judge evaluation on taxonomy trees. (Continued)
+50

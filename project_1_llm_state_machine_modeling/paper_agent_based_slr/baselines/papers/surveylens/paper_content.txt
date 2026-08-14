@@ -1,0 +1,2605 @@
+--- Page 1 ---
+SurveyLens: A Discipline-Aware Benchmark for Automatic
+Survey Generation
+Beichen Guo1*, Zhiyuan Wen1*, Jia Gu1, Haochen Shi1, Jian Wang2,
+Senzhang Wang3,Haoyang Li1,Ruosong Yang1,Shuaiqi Liu4
+1The Hong Kong Polytechnic University
+2Sichuan University
+3Central South University
+4Alibaba Cloud
+beichen.guo@connect.polyu.hk,zhiyuan.wen@polyu.edu.hk
+Abstract
+Automatic Survey Generation (ASG) aims to
+produce comprehensive literature surveys by
+retrieving, organizing, and synthesizing aca-
+demic papers. Despite rapid progress in spe-
+cialized ASG frameworks and Deep Research
+agents, existing evaluations largely center on
+Computer Science or rely on generic crite-
+ria, leaving it unclear whether current sys-
+tems satisfy the survey standards of diverse
+disciplines. We introduceSurveyLens, the
+first discipline-aware ASG benchmark. Sur-
+veyLens comprises SurveyLens-1k, a curated
+dataset of 1,000 human-written surveys across
+10 disciplines, and a dual-lens framework that
+combines discipline-aware rubric scoring with
+reference-based alignment to human-written
+surveys. Evaluating 11 state-of-the-art systems
+across vanilla LLMs, ASG systems, and Deep
+Research agents (Figure 1), we find that Deep
+Research agents are the only paradigm robust
+across all 10 disciplines, ASG systems lead on
+structural planning, and all paradigms remain
+weak on reference quality, providing practical
+guidance for discipline-specific tool selection
+and future ASG design.1
+1 Introduction
+The rapid growth of scientific literature has made
+it increasingly difficult for researchers to keep up
+with new developments through manual literature
+review. Automatic Survey Generation (ASG) ad-
+dresses this challenge by combining Large Lan-
+guage Models (LLMs) with Retrieval-Augmented
+Generation (RAG) (Lewis et al., 2020) to re-
+trieve relevant papers and synthesize them into
+survey-style narratives. Existing ASG systems
+have evolved from pipeline-based approaches that
+streamline discrete literature review tasks (Wang
+*Both authors contributed equally to this research.
+1Dataset, code, results, and the annotation platform
+are released at https://github.com/TechnicolorGUO/
+SurveyLens.
+AutoSurvey2
+AutoSurveyGemini DR
+InteractiveSurvey
+LLMxMapReduce_V2Qwen DR
+SciSage
+SurveyForge
+SurveyX
+Gemini -3-pro-preview
+Qwen -3-max
+Bio
+Soc
+CS
+Edu
+Eng
+EnvMedPhyPsy
+BusFigure 1: Performance comparison of vanilla LLMs,
+ASG systems, and deep research agents in generating
+surveys across 10 research disciplines.
+et al., 2024c; Liang et al., 2025; Wang et al., 2025)
+to human-in-the-loop paradigms enabling iterative
+refinement (Wen et al., 2025; Chao et al., 2025;
+Zhang et al., 2025a), and finally to multi-agent
+systems that simulate collaborative survey work-
+flows (Liu et al., 2025; Shi et al., 2025). In paral-
+lel, commercial Deep Research products such as
+Gemini Deep Research (Google, 2025) and Qwen
+Deep Research (Alibaba Qwen Team, 2025) have
+emerged as general-purpose alternatives.
+Despite this progress, ASG evaluation remains
+inadequate along two axes:whatsurveys are eval-
+uated on andhowthey are evaluated. On the data
+side, existing benchmarks (Kasanishi et al., 2023;
+Wang et al., 2025; Yan et al., 2025; Shi et al., 2025;
+Sun et al., 2025; Su et al., 2026) are predomi-
+nantly restricted to Computer Science (CS) and
+overlook how writing conventions diverge across
+fields: a physics survey is anchored in equations
+and derivations, while a sociology review proceeds
+through qualitative narrative synthesis. General
+discipline-aware LLM benchmarks such as SuperG-
+PQA (Team et al., 2025) do not close this gap either,
+as they probe atomic knowledge through Question
+Answering (QA) rather than the planning and co-
+1arXiv:2602.11238v2  [cs.CL]  8 Jun 2026
+
+--- Page 2 ---
+Assessment Methods Disciplines #Surveys # SystemsAssessment ComponentsHuman
+Eval.Discipline-Aware
+Assessment Outline Content Reference
+Ref. Free Ref. Free Ref. Free
+SciReviewGen (Kasanishi et al., 2023) CS Only 10K 6✗ ✗ ✓ ✗ ✗ ✗ ✓ ✗
+LLM×MapReduce-V2 (Wang et al., 2025) CS Only 384 4✗ ✗ ✗ ✓ ✓ ✗ ✓ ✗
+SurveyForge (Yan et al., 2025) CS Only 100 3✗ ✓ ✗ ✓ ✓ ✗ ✓ ✗
+SciSage (Shi et al., 2025) CS Only 46 4✗ ✓ ✗ ✓ ✓ ✗ ✓ ✗
+SurveyGen (Bao et al., 2025) 4 Discip. 4.2K 3✓ ✓ ✓ ✗ ✓ ✗ ✓ ✗
+SurveyBench (Sun et al., 2025) CS Only 4.9K 4✗ ✓ ✓ ✓ ✗ ✗ ✗ ✗
+SurveyEval (Zhao et al., 2025) 7 Discip. N/A 7✗ ✓ ✗ ✓ ✓ ✗ ✗ ✗
+SurGE (Su et al., 2026) CS Only 205 3✓ ✓ ✓ ✓ ✗ ✓ ✗ ✗
+SurveyLens (Ours) 10 Discip. 1,000 11 ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓
+Table 1: Comparison ofSurveyLenswith existing ASG assessment methods.
+herent narrative construction required for survey
+writing. On the methodology side, semantic met-
+rics (Kasanishi et al., 2023) such as ROUGE (Lin,
+2004) and BERTScore (Zhang et al., 2020) fail to
+capture the structural diversity of survey writing,
+while recent approaches (Wang et al., 2024c, 2025)
+based on LLM-as-a-judge (Zheng et al., 2023) rely
+on generic criteria that lack interpretability and dis-
+ciplinary grounding.
+To bridge these gaps, we introduceSurveyLens,
+a discipline-aware benchmark for ASG. On the
+data side, we constructSurveyLens-1k, a dataset
+of 1,000 human-written surveys evenly spanning
+10 academic disciplines. On the methodology side,
+we design a dual-lens framework: (i)Discipline-
+Aware Rubric Evaluation(reference-free), which
+uses an LLM-as-a-judge with field-specific rubrics
+distilled bottom-up from SurveyLens-1k and as-
+pect weights calibrated to expert preferences via
+Bradley-Terry modeling; and (ii)Human-Reference
+Alignment Evaluation(reference-based), which
+compares against paired human-written surveys
+through two metrics, Redundancy-Aware Align-
+ment F1 (strict one-to-one Hungarian matching
+with a redundancy penalty, targeting paragraph
+bloat) and Thresholded MaxSim (margin-based
+max-similarity without the matching constraint,
+quantifying the degree of alignment).
+Our analysis reveals that no single paradigm
+dominates: Deep Research agents are the only
+paradigm robust across all 10 disciplines, ASG
+systems and DR agents split along a structure-vs-
+content axis, and reference quality remains a uni-
+versal bottleneck. We summarize our contributions
+as follows:
+•High-Quality Survey Dataset.We construct
+SurveyLens-1k, a curated dataset of 1,000
+human-written surveys evenly distributed
+across 10 academic disciplines, with each sur-
+vey decomposed into outline, content, and ref-
+erences for component-level evaluation.•Discipline-Aware ASG Evaluation.We pro-
+pose a dual-lens framework that combines
+reference-free discipline-aware rubrics with
+human-reference alignment metrics to assess
+both disciplinary writing norms and cover-
+age of human-written surveys, and validate
+it against judgments from 30 PhD-level do-
+main experts across all 10 disciplines.
+•Cross-Paradigm Empirical Analysis.We
+benchmark 11 ASG methods spanning vanilla
+LLMs, specialized ASG systems, and Deep
+Research Agents, and translate the resulting
+paradigm-level patterns into actionable guid-
+ance for discipline-aware system selection.
+2 Related Work
+Recent ASG systems span pipeline-based ap-
+proaches (Wang et al., 2024c; Liang et al., 2025;
+Yan et al., 2025; Wang et al., 2025; Wu et al.,
+2025), human-in-the-loop paradigms (Wen et al.,
+2025; Chao et al., 2025; Zhang et al., 2025a), multi-
+agent frameworks (Shi et al., 2025; Liu et al., 2025;
+Nguyen et al., 2025), and commercial Deep Re-
+search agents (OpenAI, 2025; Google, 2025; Al-
+ibaba Qwen Team, 2025), yet their training cor-
+pora, retrieval pools, and self-reported benchmarks
+are overwhelmingly CS-centered, leaving open
+whether architectural conclusions transfer across
+disciplines.
+Prior ASG assessment spans n-gram over-
+lap (Kasanishi et al., 2023), LLM-as-a-judge con-
+tent frameworks (Wang et al., 2024c; Liang et al.,
+2025), and structural metrics (Zhu et al., 2023;
+Lai et al., 2024; Bao et al., 2025; Su et al., 2026),
+with recent benchmarks (Wang et al., 2025; Yan
+et al., 2025; Su et al., 2026; Sun et al., 2025; Bao
+et al., 2025; Zhao et al., 2025; Guo et al., 2026)
+expanding scale and coverage. Two gaps persist:
+(i) they rely on discipline-agnostic criteria that
+overlook field-specific survey-writing conventions;
+2
+
+--- Page 3 ---
+(ii) human validation, when reported, draws ex-
+clusively on CS experts, leaving non-CS rubrics
+empirically unverified. As summarized in Table 1,
+prior benchmarks typically expand along a single
+axis such as scale, system coverage, or metric type,
+while leaving discipline-aware assessment incom-
+plete across survey components and evaluation set-
+tings. SurveyLens is the only benchmark covering
+all six (Outline/Content/Reference) ×(reference-
+free/reference-based) cells, while also spanning
+10 disciplines, 11 ASG baselines, and discipline-
+aware human evaluation.
+3 SurveyLens
+In this section, we introduce SurveyLens, covering
+(a) the construction of SurveyLens-1k, (b) Struc-
+tured Survey Representation, and (c) the dual-lens
+evaluation framework.
+3.1 SurveyLens-1k Construction
+To ensure robust field-aware assessment of ASG
+methods, we constructedSurveyLens-1k, a large-
+scale dataset capturing the structural and content
+variances inherent to different fields, comprising
+1,000 high-quality, human-written survey papers
+across 10 academic disciplines, with 100 surveys
+per field, as shown in Figure 3. Papers are sourced
+from Semantic Scholar via dual citation-based rank-
+ing (raw and influence-weighted) and validated
+through hybrid LLM-plus-human filtering; full con-
+struction details are in Appendix B.1.
+Per-paper structural statistics reveal substantial
+cross-disciplinary variation (Figure 2). Physics is
+the most technically dense field, leading on equa-
+tions ( 411.4 /paper), word count ( 23.4k), figures,
+and references. Tables are the only axis where
+CS overtakes Physics ( 8.7vs.3.1/paper), reflect-
+ing CS’s reliance on tabular comparisons. Vari-
+ance reaches up to an order of magnitude across
+the corpus (e.g., ∼16× on equations); the full
+per-discipline breakdown is given in Table 8 (Ap-
+pendix B.2). These systematic differences motivate
+our field-aware evaluation framework as well.
+3.2 Structured Survey Representation
+To enable component-wise evaluation (§3.3), we
+adopt a unifiedStructured Survey Representation
+for both human-written references in SurveyLens-
+1k and ASG system outputs, formally defined as
+the triplet
+S= (O,C,R),(1)
+PhyEngCSBioMedEnvBusPsyEduSoc0.00.51.0Img Tab Eq Word ReferenceFigure 2: Cross-disciplinary variance in SurveyLens-
+1k: per-paper averages of figures (Img), tables (Tab),
+equations (Eq), word count (Word), and references, each
+normalized to its per-metric maximum.
+where Odenotes the hierarchicaloutline(i.e.,
+nested section titles), Crepresents thecontent(in-
+cluding textual paragraphs, figures, tables, formu-
+las, and in-text citations), and Ris thereference
+list(containing bibliographic metadata such as ti-
+tles and publication venues). We obtain Sfrom
+raw PDFs via a four-stage pipeline: MinerU (Wang
+et al., 2024a) PDF parsing, rule-based hierar-
+chy and reference extraction, LLM-based normal-
+ization, and human verification (detailed in Ap-
+pendix B.3).
+3.3 Dual-Lens Evaluation Framework
+Each component of Sis scored by a reference-free
+rubric lens and a reference-based alignment lens.
+3.3.1 Discipline-Aware Rubric Evaluation
+Existing assessment methods apply universal crite-
+ria and overlook field-specific writing conventions.
+We therefore distill universal evaluation aspects
+from existing methods (Appendix A.1, Table 7; ag-
+gregation prompt in Figure 10), instantiate them
+intodiscipline-aware rubricsusing SurveyLens-1k,
+and learnpreference-aligned weightsfrom expert
+judgments to calibrate the relative importance of
+indicators.
+Discipline-Aware Rubric Generation.For each
+component c∈ {O,C,R} , we define a set of as-
+pectsAc(synthesized from existing assessments)
+and construct rubrics via a two-stage process:
+a∈ A cexpand− − − − − →
+per surveyK′
+d,c,amerge− − − − − − − →
+per disciplineKd,c,a.(2)
+The expand stage instantiates each aspect for
+human-written surveys in discipline d, while the
+merge stage consolidates them into shared rubric
+itemsKd,c,a. Prompts are shown in Figures 11
+and 12.
+3
+
+--- Page 4 ---
+Bio Env Soc Eng Psy
+Edu Phy CS Med BusSemantic
+Scholar
+10 Research FieldsData Source (2020-2025)
+Keyword
+Filter
+LLM
+Verify
+Initial
+Survey Pool
+(~3000 surveys)
+Candidate
+Surveys• "a survey of"
+• "a review"
+•......
+Citation
+Rank• citationCount
+• influentialCC
+•...... (~1100 surveys)
+Finalized
+Surveys
+      SurveyLens-1k Dataset
+PDF
+Files
+Metadata
+Topics
+Topics
+LLMs
+DR
+ASG
+Automatic Survey Generation
+Generated
+Surveys
+ Hybrid
+Cleaning
+pdf2mdContextual
+Splitting
+• Rule-based Filtering
+• LLM-assisted Refinement
+• Human V erificationGenerated
+Humanb) Structured Survey Representation Generation
+• Acoustofluidic Separation Technology in Biology
+• Endosymbiosis of W olbachia in Biology
+• Organoids as Host Models for Infection Biology
+......a) SurveyLens-1k Construction
+(1000 surveys)Human-written Surveys in SurveyLens-1k
+Novelty
+Coherence ScopeField-aware Rubrics
+Synthesis & Integration
+• R1: Identification of Cross-Domain and
+Cross-Modal  Connections
+• R2: Integration of Theoretical, Technical,
+and Ethical  Dimensions
+• R1: Integration of Biological ,
+Technological, or Methodological Systems
+• R2: Temporal, Evolutionary , and
+Developmental Integration
+Evaluation Aspects
+• Substantive Integrity
+• Structural Coherence
+• Formal Precision
+• Scholarly Communication
+• Coherence
+• Synthesis
+• Bibliometric Comprehensiveness
+• Evidential Integrity
+• Referential Pertinence
+Weighted Field-aware Rubrics
+Topics in SurveyLens-1kOutline
+Content
+Refs
+Human
+VerifyPost-processing
+Aspect
+Expansion
+Aspects
+Summarization
+InputRubric
+Merging
+Expert
+Judgementc) Dual-Lens Evaluation Framework
+Weight
+Assignment
+Preference Pairs
+ BT Optimization Human-written
+SurveyPreference
+FittingAssessment with
+Rubrics
+Scores
+Aspect Instantiation from Human-written Surveys
+Comparison
+  Outline
+• Hierarchy T ree
+• Section Headers
+• Logical Flow
+   Content
+   Reference
+• Full T ext
+• Figures&T ables
+• Formulas
+• Numbering
+• Authorship
+• Title&Y ear
+Structured
+Survey Represenation
+Input
+Existing
+Assessments
+c1) Discipline -aware Rubric Evaluation
+Weight
+Update
+• Novelty
+• Scope&Relevance
+Embedding
+ Matching
+ Comparison
+c2) Human-Reference Alignment Evaluation
+• Section Title
+• Content Text
+• Ref. TitleSurvey
+Entries
+Figure 3: Overview of the proposed SurveyLens framework.
+Expert-Preference-Aligned Weighting.We
+adopt the Bradley-Terry (BT) model to convert
+pairwise preferences into per-aspect weights,
+with preferences obtained from an LLM proxy
+(Gemini-3-Pro, double round-robin with position
+swapping; validated against genuine expert
+judgments in §4.3) (Zheng et al., 2023; Wang
+et al., 2024b). Given normalized aspect scores
+¯xi,k=x i,k/xmax∈[0.2,1] (xmax= 5, judge
+scores satisfy xi,k≥1) and pairwise preferences
+P={(s i, sj) :s i≻sj}, we estimate weights w
+by maximizing:
+ˆw= arg max
+w≥0X
+Plogσ
+w⊤(¯xi−¯xj)
+−α∥w∥2
+2(3)
+We solve Eq. (3) per (d, c) pair and normalize
+to˜wc,k= ˆw c,k/P
+k′ˆwc,k′. The final compliance
+score is SRUB
+d,c(si) = 5P
+k˜wc,k¯xi,k∈[1,5] , ex-
+pressed on a 1–5 scale (Appendix A.4). The re-
+sulting discipline-aware rubric is validated against
+judgments from 30PhD-level domain experts span-
+ning all10disciplines (§4.3; Appendix C.1, C.2).
+3.3.2 Human-Reference Alignment
+Evaluation
+We use each paired human-written survey as one
+valid reference among many for the same topic;
+this lens complements rubric scoring by mea-
+suring local semantic correspondence. Conven-
+tional reference-based metrics such as ROUGE
+and embedding-based F1 suffer from two limita-
+tions: (1) they rely on many-to-many matchingthat ignores redundancy in generated content, and
+(2) they apply uniform thresholds that do not ac-
+count for component-specific similarity distribu-
+tions (Bao et al., 2025; Zhao et al., 2025). To
+overcome these issues, we propose two entry-
+level semantic alignment scores adapted for long-
+form survey evaluation: RA-AlignF1 (Redundancy-
+Aware Alignment F1) and τ-MaxSim (Thresholded
+MaxSim). RA-AlignF1 follows the precision–
+recall–F1 tradition of semantic matching metrics
+such as BERTScore (Zhang et al., 2020), addition-
+ally enforcing one-to-one Hungarian assignment
+and applying a redundancy penalty to target the
+paragraph-bloat failure mode of ASG systems. τ-
+MaxSim adopts a MaxSim-style operator (Khattab
+and Zaharia, 2020) at the entry level, introducing
+a component-specific threshold margin that quan-
+tifies thedegreeof alignment rather than a binary
+threshold decision.
+Instead of taking the full component as the in-
+put, we split the components into entries for fine-
+grained comparison. For each component-topic
+pair(c, t) , we define the generated entry set Ec,t
+and ground-truth entry setG c,tas:
+Ec,t={e(1)
+c,t, e(2)
+c,t, . . . , e(mc,t)
+c,t},
+Gc,t={g(1)
+c,t, g(2)
+c,t, . . . , g(nc,t)
+c,t},(4)
+where mc,tandnc,tdenote the number of en-
+tries for the generated and ground-truth human-
+written surveys in SurveyLens-1k, respectively.
+Concretely, the similarity-bearing content of each
+4
+
+--- Page 5 ---
+entry is the section title for O, the section body for
+C, and the reference title for R; structural meta-
+data (hierarchical level, heading, additional biblio-
+graphic fields) is retained alongside each entry but
+does not enter the similarity computation.
+Redundancy-Aware Alignment F1 (RA-
+AlignF1).RA-AlignF1 measures overall
+coverage and faithfulness while penalizing
+repetition. It enforces a strict one-to-one mapping
+Mbetween Ec,tandGc,tvia the Hungarian
+algorithm on a thresholded similarity margin
+(full formulation in Appendix A.2). To target the
+paragraph bloat / information dumpingfailure
+mode where systems pad content without adding
+coverage, RA-AlignF1 further down-weights each
+generated entry by a redundancy weight ω(e)
+based on its maximum internal similarity to other
+generated entries. The Precision ( P) and Recall
+(R) are formulated as:
+P=1
+|Ec,t|X
+(e,g)∈Mω(e)·I[sim(e, g)≥τ c],
+R=1
+|Gc,t|X
+(e,g)∈MI[sim(e, g)≥τ c],(5)
+where I[·]is the indicator function and ω(e) is the
+redundancy penalty, defined as
+ω(e) = exp
+−λ·max
+e′∈Ec,t\{e}sim(e, e′)
+,(6)
+with hyperparameter λ >0 . The redundancy
+weight ω(e) applies only to the precision term be-
+cause paragraph bloat is a generation-side failure
+mode; the ground-truth side Gc,tis human-curated
+and assumed non-redundant by construction. The
+final RA-AlignF1 is the harmonic mean of Pand
+R:
+RA-AlignF1=2PR
+P+R.(7)
+Thresholded MaxSim ( τ-MaxSim).With cross-
+topic unions Ec=S
+tEc,tandGc=S
+tGc,t,τ-
+MaxSim replaces RA-AlignF1’s binary indicator
+with a similarity margin:
+τ-MaxSim=1
+|Ec|X
+e∈Ecmaxn
+0,max
+g∈Gcsim(e, g)−τ co
+.(8)
+Unlike binary precision, the margin quantifies the
+degreeof alignment, rewarding strong matches
+over those that barely surpass the threshold.4 Experiments and Result Analysis
+We apply SurveyLens to benchmark 11 representa-
+tive systems across three paradigms—ASG systems,
+Vanilla LLMs, andDeep Research Agents(DR)—
+on their ability to generate discipline-appropriate
+surveys.
+4.1 Experiment Setup
+Evaluated Systems.We first select seven repre-
+sentativeASG systems: AutoSurvey (Wang et al.,
+2024c), SurveyForge (Yan et al., 2025), AutoSur-
+vey2 (Wu et al., 2025), InteractiveSurvey (Wen
+et al., 2025), LLM ×MapReduce-V2 (Wang et al.,
+2025), SurveyX (Liang et al., 2025), and SciS-
+age (Shi et al., 2025). To provide a comprehensive
+comparison, we additionally evaluate twoVanilla
+LLMs(Qwen3-Max (Yang et al., 2025), Gemini-3-
+Pro) alongside their correspondingDeep Research
+Agents(Qwen DR (Alibaba Qwen Team, 2025),
+Gemini DR (Google, 2025)).
+Comparison Settings.Each system receives 100
+survey topics (10 per discipline), producing 1,062
+valid surveys ( 96.5% yield; per-system breakdown
+and stability analysis in Appendix D.3). To en-
+sure fair comparison within open-source ASG sys-
+tems, we run all of them on a unifiedQwen3-
+30B-A3B(Yang et al., 2025) backbone, which also
+serves as our primary LLM judge;Gemini-3-Pro
+is used for rubric aspect synthesis (Table 7) and
+as a secondary cross-judge (Appendix D.1), and
+Qwen3-Embedding-8B(Zhang et al., 2025b) for
+reference-based metrics. Each (system, topic) cell
+is averaged over three trials; per-cell standard de-
+viations are small (mean 0.015/0.007/0.028 for
+Outline/Content/Reference; max <0.05 ). Vanilla
+LLMs and DR agents are evaluated using their of-
+ficially deployed configurations(Appendix D.4); a
+leakage-controlled re-analysis is provided in Ap-
+pendix D.2.
+4.2 Results and Analysis
+We present our experimental results and analysis
+from two complementary perspectives:discipline-
+aware rubric evaluation(§4.2.1) andhuman-
+reference alignment analysis(§4.2.2).
+4.2.1 Discipline-Aware Rubric Evaluation
+Based on discipline-aware rubrics, we calculate
+scores for each ASG method at the discipline level,
+component level (outline, content, reference), and
+fine-grained aspect level, respectively.
+5
+
+--- Page 6 ---
+System Edu
+ ↑Med
+ ↑Bio
+ ↑Soc
+ ↑Phys
+ ↑Psy
+ ↑Eng
+ ↑Env
+ ↑CS
+ ↑Bus
+ ↑ Avg.↑
+ASG Systems
+AutoSurvey 3.29 +0.37 3.68 +0.47 3.63 +0.57 3.10 +0.38 3.44 +0.34 2.99 +0.16 3.61 +0.51 3.64 +0.60 3.64 +0.60 3.43 +0.60 3.45 +0.46
+SurveyForge 3.33 +0.41 3.84 +0.63 3.23 +0.17 3.23 +0.51 3.63 +0.53 3.38 +0.55 3.74 +0.64 3.52 +0.48 3.40 +0.36 3.41 +0.58 3.47 +0.48
+AutoSurvey2 2.38−0.54 2.45−0.76 1.90−1.16 2.21−0.51 2.56−0.54 2.07−0.76 2.56−0.54 2.35−0.69 2.45−0.59 2.32−0.51 2.33−0.66
+InteractiveSurvey 2.81−0.11 3.44 +0.23 2.79−0.27 1.62−1.10 3.42 +0.32 2.64−0.19 3.49 +0.39 2.98−0.06 3.39 +0.35 2.88 +0.05 2.95−0.04
+LLM×MapReduce-V2 3.11 +0.19 3.34 +0.13 3.11 +0.05 2.89 +0.17 3.14 +0.04 3.47 +0.64 3.24 +0.14 3.19 +0.15 3.24 +0.20 2.73−0.10 3.15 +0.16
+SurveyX 2.85−0.07 3.14−0.07 3.30 +0.24 2.57−0.15 3.04−0.06 2.97 +0.14 3.41 +0.31 3.05 +0.01 3.05 +0.01 2.74−0.09 3.01 +0.02
+SciSage 2.84−0.08 3.06−0.15 3.04−0.02 2.59−0.13 3.00−0.10 2.63−0.20 2.65−0.45 2.77−0.27 2.77−0.27 2.75−0.08 2.81−0.18
+Avg (ASG Systems) 2.94 +0.02 3.28 +0.07 3.00−0.06 2.60−0.12 3.18 +0.08 2.88 +0.05 3.24 +0.14 3.07 +0.03 3.13 +0.09 2.89 +0.06 3.02 +0.03
+Vanilla LLMs
+Qwen3-Max 2.67−0.25 2.78−0.43 2.52−0.54 2.58−0.14 2.44−0.66 2.29−0.54 2.06−1.04 2.72−0.32 2.13−0.91 2.46−0.37 2.47−0.52
+Gemini-3-Pro 2.28−0.64 2.46−0.75 2.75−0.31 2.46−0.26 2.41−0.69 2.15−0.68 2.46−0.64 2.40−0.64 2.60−0.44 2.01−0.82 2.40−0.59
+Avg (Vanilla LLMs) 2.48−0.44 2.62−0.59 2.64−0.42 2.52−0.20 2.43−0.67 2.22−0.61 2.26−0.84 2.56−0.48 2.37−0.67 2.24−0.59 2.43−0.56
+Deep Research Agents
+Qwen DR 2.85−0.07 3.30 +0.09 3.46 +0.40 3.09 +0.37 3.14 +0.04 3.00 +0.17 3.42 +0.32 3.17 +0.13 3.08 +0.04 2.93 +0.10 3.14 +0.15
+Gemini DR 3.67 +0.75 3.84 +0.63 3.95 +0.89 3.53 +0.81 3.88 +0.78 3.53 +0.70 3.43 +0.33 3.62 +0.58 3.71 +0.67 3.45 +0.62 3.66 +0.67
+Avg (Deep Research Agents) 3.26 +0.34 3.57 +0.36 3.71 +0.65 3.31 +0.59 3.51 +0.41 3.27 +0.44 3.43 +0.33 3.40 +0.36 3.40 +0.36 3.19 +0.36 3.41 +0.42
+Avg (All) 2.92 +0.00 3.21 +0.00 3.06 +0.00 2.72 +0.00 3.10 +0.00 2.83 +0.00 3.10 +0.00 3.04 +0.00 3.04 +0.00 2.83 +0.00 2.99 +0.00
+Table 2: Results of discipline-aware rubric evaluation scores (1–5), best performance is inbold, second best is
+underlined .Avg.denotes the macro-average of the main scores across the 10 disciplines. Subscripts ( +/−) indicate
+each system’s deviation from the per-column average across all systems (last row,Avg (All)).
+Finding 1: Deep Research Agents are the only
+paradigm that performs robustly across all 10
+disciplines.As shown in Table 2, Deep Research
+Agents are the only paradigm that exceeds the
+discipline-wise average in all ten fields, whereas
+every ASG system and vanilla LLM falls below the
+paradigm average on at least one discipline. This ro-
+bustness is quantitative: DR’s per-discipline scores
+span only 0.52 points, whereas ASG systems swing
+by0.68 points across disciplines. Strong ASG sys-
+tems do take discipline-specific top scores on fields
+(e.g., SurveyForge on Engineering and Medicine,
+AutoSurvey on Environmental Science), but no
+ASG or vanilla system matches DR’s breadth.
+Vanilla LLM underperformance is sharpest on Ref-
+erence, where scores collapse into a density spike at
+1.0(Figure 9), reflecting systematic citation-quality
+failure. This robustness is not an artefact of paired-
+survey leakage: excluding the 93 leaked DR sur-
+veys shifts the rubric mean by only 0.02 with no
+rank flips (Appendix D.2).Implication:for practi-
+tioners outside CS, DR agents are the safest default
+in the absence of discipline-specific tuning.
+Finding 2: Data-source quality dominates ar-
+chitectural sophistication.Within ASG sys-
+tems, top performers (AutoSurvey, SurveyForge,
+LLM×MapReduce-V2) share curated academic
+databases with rigorous filtering (e.g., Scholar Nav-
+igation Agent in SurveyForge (Yan et al., 2025)),
+while underperformers (SciSage, AutoSurvey2)
+rely on noisier web-crawled sources or less se-
+lective retrieval pipelines.Implication:optimize
+a Scholar-style, citation-aware retrieval pipelineSystem Outline↑Content↑
+ASG Systems
+SurveyForge4.483.95
+AutoSurvey 4.11 3.67
+Vanilla LLMs
+Qwen3-Max 2.03 4.30
+Gemini-3-Pro 2.30 3.73
+Deep Research Agents
+Qwen DR 2.78 4.30
+Gemini DR 4.24 4.31
+Table 3: Outline vs. Content averages (1–5) for represen-
+tative systems in each paradigm. Best inbold, second
+best underlined . Per-discipline results in Appendix E.
+(over generic web search) before iterating on plan-
+ner or writer architectures.
+Finding 3: ASG systems own the skeleton, DR
+agents own the flesh.As shown in Table 3 and
+Figure 4 (details in Appendix E), component-level
+analysis reveals a pronounced trade-off between
+structural rigor and content richness: ASG sys-
+tems concentrate strength in the A1–3 (outline)
+band whereas Deep Research Agents dominate A4–
+8 (content), and all paradigms remain weak on
+A9–11 (reference). ASG systems excel at outline
+generation: SurveyForge attains the highest Out-
+line average ( 4.48), ahead of every DR agent. In
+contrast, Deep Research Agents lead on content
+synthesis: Gemini DR tops Content ( 4.31, with the
+Content ranking unchanged after excluding leaked
+outputs; Appendix D.2) and Qwen DR ( 4.30) is
+close behind, whereas their Outline averages vary
+widely, reflecting heterogeneous structural reliabil-
+ity. Two backbone-controlled sub-comparisons iso-
+6
+
+--- Page 7 ---
+SystemRA-AlignF1↑ τ-MaxSim↑
+Avg.
+ Avg.
+ASG Systems
+AutoSurvey 0.05 0.06 0.07 0.05 0.05 0.06 0.09 0.06 0.09 0.05 0.06 0.25 0.19 0.28 0.22 0.18 0.20 0.31 0.20 0.36 0.24 0.24
+SurveyForge 0.09 0.11 0.10 0.08 0.08 0.10 0.12 0.11 0.14 0.08 0.10 0.25 0.24 0.25 0.23 0.21 0.22 0.27 0.22 0.34 0.24 0.25
+AutoSurvey2 0.12 0.09 0.01 0.12 0.07 0.09 0.12 0.12 0.14 0.12 0.10 0.29 0.24 0.21 0.26 0.26 0.27 0.32 0.26 0.38 0.30 0.28
+InteractiveSurvey 0.08 0.07 0.07 0.06 0.08 0.07 0.09 0.07 0.10 0.07 0.08 0.15 0.15 0.12 0.14 0.23 0.11 0.19 0.10 0.23 0.13 0.16
+LLM×MapReduce-V2 0.14 0.11 0.11 0.11 0.06 0.10 0.10 0.11 0.12 0.09 0.11 0.34 0.36 0.35 0.21 0.19 0.25 0.35 0.25 0.32 0.22 0.28
+SurveyX 0.09 0.10 0.09 0.10 0.10 0.09 0.12 0.11 0.14 0.10 0.10 0.18 0.19 0.18 0.22 0.28 0.17 0.26 0.22 0.27 0.22 0.22
+SciSage 0.18 0.140.160.160.10 0.14 0.17 0.15 0.180.15 0.15 0.42 0.400.43 0.340.41 0.36 0.45 0.39 0.48 0.43 0.41
+Vanilla LLMs
+Qwen3-Max 0.13 0.11 0.16 0.14 0.10 0.12 0.14 0.13 0.17 0.13 0.13 0.29 0.30 0.43 0.290.490.31 0.39 0.29 0.44 0.32 0.36
+Gemini-3-Pro 0.12 0.09 0.18 0.11 0.12 0.10 0.12 0.14 0.14 0.13 0.13 0.32 0.280.500.31 0.45 0.31 0.32 0.33 0.41 0.39 0.36
+Deep Research Agents
+Qwen DR 0.18 0.13 0.15 0.14 0.08 0.14 0.15 0.14 0.150.15 0.14 0.440.36 0.37 0.31 0.290.370.42 0.35 0.40 0.37 0.37
+Gemini DR 0.13 0.14 0.200.15 0.13 0.14 0.17 0.160.15 0.13 0.15 0.23 0.24 0.38 0.25 0.38 0.27 0.31 0.24 0.26 0.26 0.28
+Table 4: Human-reference alignment evaluation results in 10 disciplines, best performance is inbold, second best is
+underlined . RA-AlignF1 = Redundancy-Aware Alignment F1,τ-MaxSim = Thresholded MaxSim.
+late where these advantages originate. (i) Despite
+running on the smallerQwen3-30B-A3Bbackbone,
+SurveyForge’s Outline average ( 4.48) far exceeds
+the flagship vanilla Qwen3-Max ( 2.03) and Gemini-
+3-Pro ( 2.30), indicating that ASG outline strength
+is architectural rather than backbone-driven. (ii) At
+fixed backbone, Gemini DR scores 4.31 on Con-
+tent vs. 3.73 for Gemini-3-Pro Vanilla, attributing
+the gap to the DR retrieval-and-synthesis paradigm.
+The same comparison on the Qwen family yields
+no Content gap (Qwen DR 4.30 vs. Qwen3-Max
+Vanilla 4.30; Appendix E), indicating that the
+DR paradigm’s content-synthesis benefit is family-
+dependent rather than universal.Implication:the
+non-overlapping strengths point to an ASG-planner
++ DR-writer hybrid; reference quality remains a
+shared bottleneck neither paradigm currently solves
+(Appendix E.2).
+Finding 4: Paradigm ranking is not constant
+across disciplines.The paradigm rank is not
+constant across disciplines, and on social-science
+fields itreverses: Qwen3-Max Vanilla scores 2.58
+on Sociology, beating several ASG systems (Ta-
+ble 2). Two complementary biases drive this.
+ASG systemsshow a strong STEM bias: Auto-
+Survey drops from 3.64 (CS) to 2.99 (Psychol-
+ogy,−0.65 ), reflecting arXiv-heavy corpora and
+rigid hierarchies ill-suited for theoretical frame-
+works.Vanilla LLMsgo the other way: Qwen3-
+Max scores higher in Education ( 2.67) and Soci-
+ology than in STEM fields, where its descriptive
+output matches the qualitative style of those disci-
+plines. OnlyDeep Research Agentsavoid both bi-
+ases, as their agentic workflows adapt retrieval and
+structure per discipline.Implication:system selec-
+tion must be done per-target-discipline; CS-derived
+AutoSurveySurveyForgeAutoSurvey2
+InteractiveSurvey
+LLMxMapReduce_V2SurveyXSciSageQwen_DRGemini_DR
+gemini-3-pro-previewqwen3-maxBio
+Bus
+CS
+Edu
+Eng
+Env
+Med
+Phy
+Psy
+SocContent
+AutoSurveySurveyForgeAutoSurvey2
+InteractiveSurvey
+LLMxMapReduce_V2SurveyXSciSageQwen_DRGemini_DR
+gemini-3-pro-previewqwen3-maxOutline
+AutoSurveySurveyForgeAutoSurvey2
+InteractiveSurvey
+LLMxMapReduce_V2SurveyXSciSageQwen_DRGemini_DR
+gemini-3-pro-previewqwen3-maxReference
+1234Figure 4: Aspect-level performance across the eleven
+sub-metrics A1–11 (grouped into Outline: A1–3; Con-
+tent: A4–8; Reference: A9–11).
+rankings do not transfer, and discipline-aware eval-
+uation is a prerequisite.
+4.2.2 Human-Reference Alignment
+Evaluation
+To complement our field-aware compliance anal-
+ysis, we examine human-reference alignment
+through semantic similarity and structural statis-
+tics relative to paired human-written surveys.
+Finding 5: Models align with human surveys at
+the section level but fail at global organization.
+As shown in Table 4, human-reference align-
+ment metrics reveal a structural gap: τ-MaxSim
+(segment-level similarity to human text) is consis-
+tently higher than RA-AlignF1 (global coverage
+with redundancy penalty). For example, Gemini-3-
+Pro averages 0.36 vs.0.13 across the 10 disciplines,
+indicating local-but-not-global alignment. SciSage
+exemplifies this gap: high τ-MaxSim (correct fac-
+tual atoms) but low discipline-aware rubric score
+(generic template omitting the paired survey’s cen-
+tral contributions; full case study in Appendix F.2).
+This also explains why DR/Vanilla’s high Content
+rubric scores should be read as local proficiency
+rather than survey-level competence.Implication:
+7
+
+--- Page 8 ---
+System Img Tab Para Wrd
+ASG Systems
+AutoSurvey 0.11 0.027.11 4.00
+SurveyX0.52 0.324.09 2.16
+Vanilla LLMs
+Qwen3-Max 0.03 0.04 0.49 0.21
+Gemini-3-Pro 0.01 0.01 0.24 0.09
+Deep Research Agents
+Qwen DR 0.03 0.26 0.25 0.22
+Gemini DR 0.02 0.01 0.27 0.32
+Table 5: Structural ratios vs. human surveys (1.0 = par-
+ity). Best per column inbold, second best underlined .
+Full results in Table 19.
+future ASG and DR systems should treat global
+organization as an objective, not a byproduct of
+section-level synthesis.
+Finding 6: Pipeline ASG systems substitute tex-
+tual bloat for substantive coverage.Analysis
+of the “Richness Ratio” (Table 5) reveals a pattern
+ofInformation Dumping. Pipeline systems exhibit
+extreme textual bloat (AutoSurvey: 7.11× para-
+graphs, 4.00× words; SurveyX: 4.09× /2.16× vs.
+human surveys) without improving quality. Multi-
+modal synthesis remains weak even at best (Sur-
+veyX: 0.52× images, 0.32× tables; most other sys-
+tems≤0.05× ), producing a “Wall of Text” rather
+than expert condensation. Appendix F.1 provides
+a case study where AutoSurvey expands a paired
+human Introduction by 27× via paraphrastic re-
+dundancy across eight subsections.Implication:
+evaluation metrics that reward raw word or para-
+graph counts (e.g., naive ROUGE-recall) actively
+incentivize this failure mode; redundancy-aware
+metrics like RA-AlignF1 are required.
+4.3 Human Evaluation
+We validate the framework against human expert
+judgment through two complementary studies: (i) a
+method ablationon the CS subset (7 PhD-level CS
+researchers) isolating which design choices drive
+alignment, and (ii) across-discipline generaliza-
+tiontest on 9 non-CS disciplines (22 PhD-level do-
+main experts, dedicated annotation platform in Ap-
+pendix C.1). We anchor presentation on outline, the
+most reliable signal across both human and inter-
+LLM-judge agreement (Appendices C.4, D.1); full
+results are in Appendix C.2.
+Method Ablation.As shown in Table 6(a), holis-
+tic LLM scoring is essentially uncorrelated with
+human Outline judgment ( ρ=−0.13 ). Discipline-Settingρ↑Conc.%↑
+(a) Method ablation on CS (N= 7)
+Holistic -0.13 43.9
+Discipline-Prompted 0.69 75.0
+Aspect (equal wt) 0.70 77.3
+Rubric (equal wt)0.7780.2
+Rubric + BT-domain0.77 81.0
+(b) Cross-discipline pooled (Rubric + BT-domain)
+All non-CS (N= 22, 9 disciplines)0.90 83.2
+Table 6: Human evaluation: Spearman ρand pairwise
+concordance (Conc.%) of LLM-judge rankings against
+ELO rankings. Detailed breakdown in Appendix C.2.
+Prompted ( ρ= 0.69 ) helps but trails our rubric
+(ρ= 0.77 , Conc. = 80.2% ); BT-domain weighting
+yields a modest gain (81.0%).
+Cross-discipline Generalization.Without re-
+calibration, the same Rubric + BT-domain frame-
+work achieves a pooled ρ= 0.90 with83.2% Con-
+cordance across 9 non-CS disciplines, andevery
+individual disciplineattains ρ≥0.70 (Table 6(b)).
+Rubric Preference.In a parallel criterion-
+recognition study, experts chose our field-aware
+rubric as best-fitting the work 85.3% of the time
+(vs.33.3% chance; binomial p <0.001 , full per-
+component breakdown in Appendix C.3), indi-
+cating the rubric encodes substantive disciplinary
+norms rather than surface cues.
+5 Conclusion
+We introduce SurveyLens, a discipline-aware
+benchmark for ASG with a 1,000-survey corpus
+across 10 disciplines and a dual-lens framework.
+Benchmarking 11 state-of-the-art systems across 3
+paradigms, we reveal a structure-vs-content trade-
+off: Deep Research agents are the most robust
+default for non-CS disciplines, while specialized
+ASG systems remain preferable when outline rigor
+is critical. Reference quality also remains a univer-
+sal bottleneck across all surveyed paradigms. In
+the long term, these discipline-aware metrics can
+serve as optimization objectives for ASG model
+alignment, enabling systems to dynamically adapt
+to distinct disciplinary norms.
+8
+
+--- Page 9 ---
+Limitations
+We note four limitations of SurveyLens. (1) DR
+agents cite or reuse the paired human-written sur-
+vey on the queried topic far more often than ASG
+systems do; a leakage-controlled re-analysis (Ap-
+pendix D.2) preserves the qualitative paradigm-
+level conclusions, but reference-based metrics
+on DR outputs should be interpreted in light of
+this audit. (2) Rubric scores are conditioned
+on a single primary judge (Qwen3-30B-A3B;
+Gemini-3-Pro only as a secondary cross-judge, Ap-
+pendix D.1) and so carry residual judge-distribution
+bias; this is most pronounced on Content, where
+both cross-judge agreement and human alignment
+are markedly weaker than on Outline and Refer-
+ence (Appendix C.2), reflecting low intrinsic ex-
+pert consensus on long-form content quality and
+surface-level structural cues partially driving pair-
+wise Content judgments (Krishna et al., 2023). (3)
+Coverage is bounded by API cost: each discipline
+is evaluated on 10topics with three repeats (vari-
+ance is small, σ <0.05 ), the Discipline-Prompted
+ablation is conducted only on the CS subset, and
+SurveyLens-1k is a 2020 –2025 snapshot that will
+require periodic refresh as both ASG systems and
+the literature evolve. (4) External validity: even
+with 10 disciplines, our findings should be read as a
+representativerather than exhaustive characteriza-
+tion: performance on disciplines not covered here
+(e.g., humanities, law) may differ systematically,
+and these rankings reflect the late-2025 capability
+frontier with rapid LLM evolution likely to shift
+relative paradigm standings.
+Ethics Statement
+Data sourcing and license.All papers used to
+construct SurveyLens-1k are obtained through the
+official Semantic Scholar API and used in accor-
+dance with its Terms of Service. To avoid redis-
+tributing copyrighted full-text PDFs, our public
+release contains only (i) publicly available biblio-
+graphic metadata, (ii) the Structured Survey Rep-
+resentations we derive (outline, content segments,
+reference titles), and (iii) URLs / DOIs that point
+readers back to the original sources, following
+the precedent of S2ORC (Lo et al., 2020). We
+do not distribute the original PDFs. The released
+dataset and code are licensed for non-commercial
+academic research use only.Use of human annotators.The expert annota-
+tions described in §4.3 were collected from PhD-
+level researchers who participated voluntarily; a
+subset of participants received compensation at
+locally-competitive hourly rates, while the remain-
+der contributed time as a collegial courtesy within
+the authors’ professional networks. The annotation
+platform records no personally identifying infor-
+mation; the public annotations are de-identified
+to (anonymous expert ID, discipline) tuples (Ap-
+pendix C.1).
+Use of LLM proxy for preference labels.
+Bradley-Terry weights in our rubric are learned
+from LLM-generated pairwise preferences rather
+than from large-scale human labels, as motivated
+in §3.3.1. We disclose this proxy explicitly and
+validate it post-hoc against genuine expert prefer-
+ences in §4.3; readers should interpret the weights
+as expert-preference-aligned via an LLM proxy,
+not as human-aligned.
+Risks of misuse.Automatic survey generation
+systems produce text that is stylistically indistin-
+guishable from human-written surveys, and our
+results (§4.2.1) show that all evaluated paradigms
+remain weak on reference quality, including fab-
+ricated or mis-attributed citations. We intend Sur-
+veyLens as a diagnostic benchmark for system
+developers rather than an endorsement of using
+current ASG outputs as substitutes for human-
+authored literature reviews; downstream users
+should treat generated surveys, and especially their
+reference lists, as requiring expert verification be-
+fore any scholarly use.
+References
+Alibaba Qwen Team. 2025. Qwen deep research.
+https://chat.qwen.ai/. Accessed: 2026-01-14.
+Tong Bao, Mir Tafseer Nayeem, Davood Rafiei, and
+Chengzhi Zhang. 2025. SurveyGen: Quality-Aware
+Scientific Survey Generation with Large Language
+Models. InProceedings of the 2025 Conference on
+Empirical Methods in Natural Language Processing,
+pages 2712–2736, Suzhou, China. Association for
+Computational Linguistics.
+Yu Chao, Siyu Lin, Xiaorong Wang, Zhu Zhang, Zihan
+Zhou, Haoyu Wang, Shuo Wang, Jie Zhou, Zhiyuan
+Liu, and Maosong Sun. 2025. LLM ×MapReduce-
+V3: Enabling Interactive In-Depth Survey Genera-
+tion through a MCP-Driven Hierarchically Modular
+Agent System. InProceedings of the 2025 Confer-
+ence on Empirical Methods in Natural Language
+9
+
+--- Page 10 ---
+Processing: System Demonstrations, pages 688–695,
+Suzhou, China. Association for Computational Lin-
+guistics.
+Google. 2025. Gemini deep research. https://
+gemini.google/overview/deep-research/ . Ac-
+cessed: 2026-01-14.
+Beichen Guo, Zhiyuan Wen, Yu Yang, Peng Gao, Ru-
+osong Yang, and Jiaxing Shen. 2026. SGSimEval:
+A Comprehensive Multifaceted and Similarity-
+Enhanced Benchmark for Automatic Survey Genera-
+tion Systems. InAdvanced Data Mining and Appli-
+cations, pages 393–407, Singapore. Springer Nature
+Singapore.
+Tetsu Kasanishi, Masaru Isonuma, Junichiro Mori, and
+Ichiro Sakata. 2023. SciReviewGen: A Large-scale
+Dataset for Automatic Literature Review Generation.
+InFindings of the Association for Computational
+Linguistics: ACL 2023, pages 6695–6715, Toronto,
+Canada. Association for Computational Linguistics.
+Omar Khattab and Matei Zaharia. 2020. ColBERT:
+Efficient and Effective Passage Search via Contextu-
+alized Late Interaction over BERT. InProceedings
+of the 43rd International ACM SIGIR Conference on
+Research and Development in Information Retrieval,
+SIGIR ’20, pages 39–48, New York, NY , USA. Asso-
+ciation for Computing Machinery.
+Kalpesh Krishna, Erin Bransom, Bailey Kuehl, Mo-
+hit Iyyer, Pradeep Dasigi, Arman Cohan, and Kyle
+Lo. 2023. LongEval: Guidelines for Human Evalu-
+ation of Faithfulness in Long-form Summarization.
+InProceedings of the 17th Conference of the Euro-
+pean Chapter of the Association for Computational
+Linguistics, pages 1650–1669, Dubrovnik, Croatia.
+Association for Computational Linguistics.
+Yuxuan Lai, Yupeng Wu, Yidan Wang, Wenpeng Hu,
+and Chen Zheng. 2024. Instruct Large Language
+Models to Generate Scientific Literature Survey Step
+by Step.arXiv preprint. ArXiv:2408.07884 [cs].
+Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio
+Petroni, Vladimir Karpukhin, Naman Goyal, Hein-
+rich Küttler, Mike Lewis, Wen-tau Yih, Tim Rock-
+täschel, Sebastian Riedel, and Douwe Kiela. 2020.
+Retrieval-Augmented Generation for Knowledge-
+Intensive NLP Tasks. InAdvances in Neural Infor-
+mation Processing Systems, volume 33, pages 9459–
+9474. Curran Associates, Inc.
+Xun Liang, Jiawei Yang, Yezhaohui Wang, Chen Tang,
+Zifan Zheng, Shichao Song, Zehao Lin, Yebin Yang,
+Simin Niu, Hanyu Wang, Bo Tang, Feiyu Xiong,
+Keming Mao, and Zhiyu li. 2025. SurveyX: Aca-
+demic Survey Automation via Large Language Mod-
+els.arXiv preprint. ArXiv:2502.14776 [cs].
+Chin-Yew Lin. 2004. Rouge: A package for automatic
+evaluation of summaries. InText summarization
+branches out, pages 74–81.Yixin Liu, Yonghui Wu, Denghui Zhang, and Lichao
+Sun. 2025. Agentic AutoSurvey: Let LLMs Survey
+LLMs.arXiv preprint. ArXiv:2509.18661 [cs].
+Kyle Lo, Lucy Lu Wang, Mark Neumann, Rodney Kin-
+ney, and Daniel Weld. 2020. S2ORC: The semantic
+scholar open research corpus. InProceedings of the
+58th Annual Meeting of the Association for Compu-
+tational Linguistics, pages 4969–4983, Online. Asso-
+ciation for Computational Linguistics.
+Minh-Anh Nguyen, Minh-Duc Nguyen, Lan N. T. Ha,
+Kieu Hai Dang, Nguyen Tien Dong, and Dung D. Le.
+2025. SurveyG: A Multi-Agent LLM Framework
+with Hierarchical Citation Graph for Automated Sur-
+vey Generation.arXiv preprint. ArXiv:2510.07733
+[cs].
+OpenAI. 2025. Introducing deep re-
+search. https://openai.com/index/
+introducing-deep-research/ . Accessed:
+2026-01-14.
+Xiaofeng Shi, Qian Kou, Yuduo Li, Ning Tang, Jinxin
+Xie, Longbin Yu, Songjing Wang, and Hua Zhou.
+2025. SciSage: A Multi-Agent Framework for High-
+Quality Scientific Survey Generation.arXiv preprint.
+ArXiv:2506.12689 [cs].
+Weihang Su, Anzhe Xie, Qingyao Ai, Jianming
+Long, Jiaxin Mao, Ziyi Ye, and Yiqun Liu. 2026.
+SurGE: A Benchmark and Evaluation Framework
+for Scientific Survey Generation.arXiv preprint.
+ArXiv:2508.15658 [cs].
+Zhaojun Sun, Xuzhou Zhu, Xuanhe Zhou, Xin Tong,
+Shuo Wang, Jie Fu, Guoliang Li, Zhiyuan Liu, and
+Fan Wu. 2025. SurveyBench: Can LLM(-Agents)
+Write Academic Surveys that Align with Reader
+Needs?arXiv preprint. ArXiv:2510.03120 [cs].
+M.-A.-P. Team, Xinrun Du, Yifan Yao, Kaijing Ma,
+Bingli Wang, Tianyu Zheng, King Zhu, Minghao
+Liu, Yiming Liang, Xiaolong Jin, Zhenlin Wei, Chu-
+jie Zheng, Kaixin Deng, Shawn Gavin, Shian Jia,
+Sichao Jiang, Yiyan Liao, Rui Li, Qinrui Li, and 78
+others. 2025. SuperGPQA: Scaling LLM Evalua-
+tion across 285 Graduate Disciplines.arXiv preprint.
+ArXiv:2502.14739 [cs].
+Bertie Vidgen and Leon Derczynski. 2020. Direc-
+tions in abusive language training data, a system-
+atic review: Garbage in, garbage out.PLOS ONE,
+15(12):e0243300.
+Bin Wang, Chao Xu, Xiaomeng Zhao, Linke Ouyang,
+Fan Wu, Zhiyuan Zhao, Rui Xu, Kaiwen Liu, Yuan
+Qu, Fukai Shang, Bo Zhang, Liqun Wei, Zhihao
+Sui, Wei Li, Botian Shi, Yu Qiao, Dahua Lin, and
+Conghui He. 2024a. MinerU: An Open-Source Solu-
+tion for Precise Document Content Extraction.arXiv
+preprint. ArXiv:2409.18839 [cs].
+Haoyu Wang, Yujia Fu, Zhu Zhang, Shuo Wang,
+Zirui Ren, Xiaorong Wang, Zhili Li, Chaoqun He,
+Bo An, Zhiyuan Liu, and Maosong Sun. 2025.
+10
+
+--- Page 11 ---
+LLM×MapReduce-V2: Entropy-Driven Convolu-
+tional Test-Time Scaling for Generating Long-Form
+Articles from Extremely Long Resources.arXiv
+preprint. ArXiv:2504.05732 [cs].
+Peiyi Wang, Lei Li, Liang Chen, Zefan Cai, Dawei Zhu,
+Binghuai Lin, Yunbo Cao, Lingpeng Kong, Qi Liu,
+Tianyu Liu, and Zhifang Sui. 2024b. Large Lan-
+guage Models are not Fair Evaluators. InProceed-
+ings of the 62nd Annual Meeting of the Association
+for Computational Linguistics (Volume 1: Long Pa-
+pers), pages 9440–9450, Bangkok, Thailand. Associ-
+ation for Computational Linguistics.
+Yidong Wang, Qi Guo, Wenjin Yao, Hongbo Zhang, Xin
+Zhang, Zhen Wu, Meishan Zhang, Xinyu Dai, Min
+Zhang, Qingsong Wen, Wei Ye, Shikun Zhang, and
+Yue Zhang. 2024c. AutoSurvey: Large Language
+Models Can Automatically Write Surveys. InAd-
+vances in Neural Information Processing Systems,
+volume 37, pages 115119–115145. Curran Asso-
+ciates, Inc.
+Zhiyuan Wen, Jiannong Cao, Zian Wang, Beichen Guo,
+Ruosong Yang, and Shuaiqi Liu. 2025. Interac-
+tiveSurvey: An LLM-based Personalized and Interac-
+tive Survey Paper Generation System.arXiv preprint.
+ArXiv:2504.08762 [cs].
+Siyi Wu, Chiaxin Liang, Ziqian Bi, Leyi Zhao, Tianyang
+Wang, Junhao Song, Yichao Zhang, Keyu Chen,
+Benji Peng, and Xinyuan Song. 2025. AutoSur-
+vey2: Empowering Researchers with Next Level
+Automated Literature Surveys.arXiv preprint.
+ArXiv:2510.26012 [cs].
+Xiangchao Yan, Shiyang Feng, Jiakang Yuan, Renqiu
+Xia, Bin Wang, Lei Bai, and Bo Zhang. 2025. SUR-
+VEYFORGE : On the Outline Heuristics, Memory-
+Driven Generation, and Multi-dimensional Evalua-
+tion for Automated Survey Writing. InProceedings
+of the 63rd Annual Meeting of the Association for
+Computational Linguistics (Volume 1: Long Papers),
+pages 12444–12465, Vienna, Austria. Association
+for Computational Linguistics.
+An Yang, Anfeng Li, Baosong Yang, Beichen Zhang,
+Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao,
+Chengen Huang, Chenxu Lv, Chujie Zheng, Dayi-
+heng Liu, Fan Zhou, Fei Huang, Feng Hu, Hao Ge,
+Haoran Wei, Huan Lin, Jialong Tang, and 41 oth-
+ers. 2025. Qwen3 Technical Report.arXiv preprint.
+ArXiv:2505.09388 [cs].
+Hongbo Zhang, Han Cui, Yidong Wang, Yijian Tian,
+Qi Guo, Cunxiang Wang, Jian Wu, Chiyu Song,
+and Yue Zhang. 2025a. Deep Literature Survey Au-
+tomation with an Iterative Workflow.arXiv preprint.
+ArXiv:2510.21900 [cs].
+Tianyi Zhang, Varsha Kishore, Felix Wu, Kilian Q.
+Weinberger, and Yoav Artzi. 2020. BERTScore:
+Evaluating Text Generation with BERT.arXiv
+preprint. ArXiv:1904.09675 [cs].Yanzhao Zhang, Mingxin Li, Dingkun Long, Xin Zhang,
+Huan Lin, Baosong Yang, Pengjun Xie, An Yang,
+Dayiheng Liu, Junyang Lin, Fei Huang, and Jingren
+Zhou. 2025b. Qwen3 Embedding: Advancing Text
+Embedding and Reranking Through Foundation Mod-
+els.arXiv preprint. ArXiv:2506.05176 [cs].
+Jiahao Zhao, Shuaixing Zhang, Nan Xu, and Lei Wang.
+2025. SurveyEval: Towards Comprehensive Evalu-
+ation of LLM-Generated Academic Surveys.arXiv
+preprint. ArXiv:2512.02763 [cs].
+Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan
+Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin,
+Zhuohan Li, Dacheng Li, Eric Xing, Hao Zhang,
+Joseph E Gonzalez, and Ion Stoica. 2023. Judg-
+ing LLM-as-a-Judge with MT-Bench and Chatbot
+Arena. InAdvances in Neural Information Process-
+ing Systems, volume 36, pages 46595–46623. Curran
+Associates, Inc.
+Kun Zhu, Xiaocheng Feng, Xiachong Feng, Yingsheng
+Wu, and Bing Qin. 2023. Hierarchical Catalogue
+Generation for Literature Review: A Benchmark. In
+Findings of the Association for Computational Lin-
+guistics: EMNLP 2023, pages 6790–6804, Singapore.
+Association for Computational Linguistics.
+11
+
+--- Page 12 ---
+A Evaluation Methodology Details
+A.1 Aspect Catalog
+Table 7 lists the universal evaluation aspects
+AO,AC,ARsynthesized from prior survey assess-
+ment methods, before the discipline-aware expand-
+and-merge process described in §3.3.1. These as-
+pects serve as the seed set Acin Eq. (2) and un-
+derlie the eleven sub-metrics (A1–A11) reported in
+the heatmap analysis (Figure 4).
+A.2 RA-AlignF1 Algorithm
+Algorithm 1Calculation of RA-AlignF1
+1:Input:Generated entries {e(i)}m
+i=1, ground-
+truth entries {g(j)}n
+j=1, component threshold
+τc, penaltyλ
+2:Output:RA-AlignF1∈[0,1]
+3:Compute thresholded margin matrix:
+S[i, j]←max
+0,sim(e(i), g(j))−τ c
+4:Ifm̸=n , padSwith zero rows/columns to
+sizemax(m, n)×max(m, n)
+5:Find optimal matching: π∗←
+arg max πP
+(i,j)∈π S[i, j] via Hungarian;
+retain only pairs with i≤m andj≤n , so
+|π∗|= min(m, n)
+6:Fori= 1, . . . , m :ω(e(i))←exp
+−λ·
+max k̸=isim(e(i), e(k))
+ifm >1, else1
+7:P←1
+mP
+(i,j)∈π∗ω(e(i))·I[sim(e(i), g(j))≥
+τc]
+8:R←1
+nP
+(i,j)∈π∗I[sim(e(i), g(j))≥τ c]
+9:return RA-AlignF1←2PR/(P+R) ifP+
+R >0, else0
+Hyperparameter values.We instantiate Algo-
+rithm 1 with cosine similarity computed over
+Qwen3-Embedding-8Bembeddings (indexed in
+ChromaDB with hnsw:space=cosine ). The
+threshold is set to τc= 0.95 for all three compo-
+nents c∈ {O,C,R} , and the redundancy penalty
+isλ= 1.0 for all components. We choose
+τc= 0.95 as a conservative paraphrase filter: near-
+synonymous rewrites under Qwen3-Embedding-
+8B typically fall in the 0.93–0.97 cosine range, so
+0.95 sits at the upper end of that band and admits
+only substantive matches while filtering shallow
+lexical overlap. We use λ= 1.0 as a unit-scale
+default, which keeps the redundancy weight on the
+same dimensionless scale as the similarity itself.
+Both values are fixed before running the main eval-
+uation and not tuned against the human-alignmentdata, so reported numbers are not a function of
+hyperparameter search.
+A.3 Rubric Weight Learning
+The L2 regularization coefficient in Eq. (3) is set
+toα= 0.01 for all (discipline, component) pairs.
+Likeτcandλabove, this value is fixed before run-
+ning the main evaluation and not tuned against the
+human-alignment data.
+A.4 Scoring Example
+Per-aspect scores xi,kin the rubric evaluation are
+obtained via LLM-based assessment. Given the
+discipline-specific rubric Kd,c,aand the correspond-
+ing survey component, we prompt an LLM judge
+to assess compliance on a 5-point scale. To en-
+sure reliability, we adopt a structured output format
+requiring the judge to provide a rationale before as-
+signing each score. An illustrative scoring example
+is shown below.
+Scoring Example (CS, Outline)
+Aspect:Critical Insight
+Learned Weight:˜w O,k= 0.60
+Rubric Criterion:Identifies open problems
+& future directions
+Rubric Description:Articulates unresolved
+challenges and synthesizes limitations
+across methods
+Normalized Score:¯x i,k= 4.2/5.0 = 0.84
+Contribute SRUB
+d,O:5·˜wO,k·¯xi,k= 5×0.6×
+0.84 =2.52
+B SurveyLens-1k Dataset
+B.1 Construction Details
+To ensure a robust and fair evaluation across diverse
+academic fields, we constructedSurveyLens-1k.
+This dataset comprises1,000 high-quality survey
+papers, evenly distributed across10 disciplines
+(100 papers per field). This section details our data
+collection, filtering, and verification pipeline.
+We used the Semantic Scholar (S2) API2to ob-
+tain a comprehensive collection of survey papers
+published and corresponding metadata between
+2020 and 2025. To guarantee domain diversity,
+we targeted ten representative disciplines: Biology,
+2https://api.semanticscholar.org
+12
+
+--- Page 13 ---
+Components Aspects Descriptions
+OutlineSubstantive Integrity Evaluates depth, breadth, and scholarly merit of
+the content coverage.
+Structural Coherence Assesses logical architecture and organizational
+flow of the outline.
+Formal Precision Examines the technical execution of hierarchy
+and presentation.
+ContentScope and Relevance Evaluates breadth and alignment with the central
+research theme.
+Structural Coherence Assesses logical organization, transitions, and
+narrative consistency.
+Synthesis and Integration Measures the ability to construct cohesive frame-
+works.
+Critical Insight and Novelty Examines the depth of critique, original frame-
+works, and research gaps.
+Scholarly Communication Reviews clarity, terminology precision, and cita-
+tion standards.
+ReferenceBibliometric Comprehensiveness Evaluates coverage extent and inclusion of semi-
+nal works.
+Evidential Integrity Assesses the the reliability of claims and correct-
+ness of attributions.
+Referential Pertinence and Compliance Examines thematic alignment and citation for-
+matting standards.
+Table 7: Assessment Aspects of Survey Papers Synthesized from Existing Studies (Sun et al., 2025; Zhao et al.,
+2025; Yan et al., 2025; Wang et al., 2024c; Liang et al., 2025; Wang et al., 2025; Liu et al., 2025; Nguyen et al.,
+2025; Zhao et al., 2025; Sun et al., 2025; Guo et al., 2026).
+Business, Computer Science, Education, Engineer-
+ing, Environmental Science, Medicine, Physics,
+Psychology, and Sociology.
+To balance efficiency and accuracy, we restrict
+API queries to the "Review" document type for
+each discipline. Subsequently, we employ a hybrid
+filtering strategy to identify genuine surveys: pa-
+pers with standard keywords in their titles (e.g.,
+"survey," "review") are automatically accepted,
+while ambiguous entries undergo LLM-based bi-
+nary classification using their titles and abstracts.
+Following the initial retrieval and filtering pro-
+cess, we obtained an Initial Survey Pool con-
+sisting of approximately 3,000 papers. To en-
+sure the inclusion of high-quality and influen-
+tial works, we employed a citation-based selec-
+tion strategy. Specifically, we ranked the papers
+within each discipline in descending order based
+onboth(i) the raw citationCount and (ii) the
+influentialCitationCount metric returned by
+the Semantic Scholar API.3Combining these two
+signals avoids favoring merely old, highly-cited sur-
+veys while still privileging works of demonstrated
+impact. From this ranked list, we selected the top
+3Per the Semantic Scholar API documentation,
+influentialCitationCount weights citations by the
+influence of the citing paper, so this metric is not biased
+toward simply older surveys with longer accumulation
+windows.110 papers per discipline. This procedure resulted
+in a refined set of Candidate Surveys containing
+roughly 1,100 papers, which serves as the founda-
+tion for our subsequent analysis.
+To ensure the integrity and accessibility of the
+dataset, we implemented a rigorous two-step ver-
+ification process on the candidate surveys. First,
+we employed an LLM-based verification to defini-
+tively validate the paper type, filtering out any re-
+maining non-survey articles that passed the initial
+screening. Subsequently, we conducted a human
+verification phase focused on full-text acquisition.
+In this step, we manually inspected the candidates
+to ensure PDF accessibility, discarding entries with
+broken links, paywalls that could not be bypassed,
+or corrupted files. This process yielded a final-
+ized collection of 1,000 high-quality survey papers,
+constituting the SurveyLens-1k Dataset. Figure 5
+visualizes the resulting topical distribution: the 10
+disciplines form well-separated clusters in topic-
+embedding space, indicating balanced coverage
+rather than concentration in any single domain.
+B.2 Per-Discipline Structural Statistics
+Table 8 reports per-paper structural statistics aver-
+aged over the 100 human-written surveys in each
+of the 10 disciplines. These statistics quantify the
+cross-disciplinary variation summarized in §3.3.1
+and motivate the field-aware evaluation framework:
+13
+
+--- Page 14 ---
+Figure 5: t-SNE visualization of survey-paper topic
+distribution in SurveyLens-1k, colored by discipline.
+Discipline Img Tab Eq Para Word Sent Citation Reference
+Bio 4.8 1.7 71.6 174.9 13.7k 1.5k 113.50 188.97
+Bus 4.3 6.9 28.7 116.3 12.1k 1.1k 122.47 130.48
+CS 8.3 8.7 91.7 146.9 14.7k 1.2k 128.15 110.39
+Edu 4.7 6.7 35.3 95.8 10.5k 1.0k 98.61 80.71
+Eng 10.3 4.3 122.1 203.2 17.5k 1.9k 180.36 245.04
+Env 4.3 5.0 87.2 126.8 12.0k 1.2k 108.66 125.29
+Med 4.1 3.9 54.7 152.1 12.7k 1.3k 88.71 155.34
+Phy 13.3 3.1 411.4 256.3 23.4k 2.3k 233.03 261.26
+Psy 1.9 4.4 54.6 109.6 11.3k 1.1k 117.68 111.84
+Soc 1.4 2.4 25.8 92.9 9.4k 0.8k 115.57 98.81
+Avg 5.7 4.7 98.3 147.5 13.7k 1.3k 130.22 150.41
+Table 8: Per-paper structural statistics for SurveyLens-
+1k, averaged over the 100 human-written surveys in
+each discipline.Paradenotes paragraphs;Wordand
+Sentare reported in thousands.
+technical density (equations, words), evidence pre-
+sentation (images, tables), and citation practice all
+vary by an order of magnitude across disciplines.
+B.3 Structured Survey Representation
+Pipeline
+To convert raw PDFs of both generated and human-
+written surveys into the Structured Survey Rep-
+resentation S= (O,C,R) used throughout our
+evaluation, we apply a four-stage pipeline:
+1.PDF parsing.MinerU (Wang et al., 2024a)
+converts each PDF into structured Markdown,
+preserving font-size metadata, figure/table
+placement, and reference blocks.
+2.Rule-based filtering.We recover the sec-
+tion hierarchy from font-size metadata, dis-
+card sections with extreme length deviations
+from per-discipline norms, and parse the ref-
+erence list using discipline-aware heuristics
+(e.g., venue patterns, citation styles).
+3.LLM normalization.An LLM pass standard-
+izes section nesting levels across heteroge-
+neous formats and complements the heuristic
+parser for reference-title extraction, particu-
+larly on entries with non-standard formatting.4.Human verification.Annotators verify the
+resulting outlines and reference lists against
+the source PDFs to establish ground truth for
+the human-written corpus of SurveyLens-1k.
+B.4 Scalability and Maintenance
+A benchmark over 10 disciplines is only useful if
+it can be extended and refreshed. We summarize
+here the operational properties of SurveyLens that
+make this practical.
+Automated construction pipeline.The end-to-
+end pipeline is fully scripted: Semantic Scholar
+API retrieval, hybrid keyword + LLM survey-type
+filtering, dual-criterion (citation count + influential
+citation) ranking, and structured PDF parsing into
+Structured Survey Representations (Appendix B.1).
+Once configured for a new discipline, it requires
+only API access and standard compute, with no
+discipline-specific code changes.
+Human cost per new discipline.Across all 10
+disciplines in SurveyLens-1k, the only step that
+requires human attention is final verification of
+paper-type correctness and PDF accessibility. In
+our experience this consumes roughly 1–2person-
+days per new discipline, which is comparable to or
+below the human cost of adding a new task to most
+NLP benchmarks.
+Discipline-aware rubric extension.Adding a
+new discipline to the rubric evaluation does not re-
+quire manual rubric authoring: the discipline-aware
+rubric is produced by the same LLM-drivenex-
+pand→mergepipeline described in §3.3.1, instan-
+tiated on the new corpus. The downstream Bradley-
+Terry weighting step is also automated; only the op-
+tional human-alignment validation (§4.3) requires
+domain experts.
+Periodic refresh.SurveyLens-1k is currently a
+2020 –2025 snapshot. We plan to refresh it on an
+annual basis by re-running the same pipeline over
+a rolling window (e.g., 2020 –2026 in the next cy-
+cle), and to continue inviting domain experts to
+flag rubric items that no longer reflect current disci-
+plinary conventions. We do not commit to a fixed
+update cadence in this paper, but the cost of one re-
+fresh cycle is bounded by the per-discipline figure
+above scaled by the number of disciplines.
+14
+
+--- Page 15 ---
+C Human Annotation and Expert
+Validation
+C.1 Annotation Platform and Expert Study
+Protocol
+To support the cross-discipline expert validation
+described in §4.3, we built a dedicated web-based
+annotation platform. The platform, annotation in-
+terface screenshots, and anonymized raw annota-
+tions are all released at the project repository.4
+Expert Recruitment.We recruited30 PhD-level
+domain expertsin total covering all 10 disciplines:
+7 CS researchers (via the method-ablation study in
+§4.3) and 23 non-CS experts (via this platform),
+distributed as Biology (1), Business (4), Education
+(4 recruited; 3 in Part A), Engineering (3), Environ-
+mental Science (2), Medicine (3), Physics (1), Psy-
+chology (1), and Sociology (4). All experts hold (or
+are completing) a PhD in their listed field. Of the
+23non-CS experts, 22completed both annotation
+parts; one (Education) completed Part B (rubric
+preference) only and is therefore excluded from the
+Part A pairwise pool (so Part A has N= 22 , Part B
+hasN= 23).
+Annotation Tasks.Each expert completed two
+task types on surveys from their own discipline:
+•Rubric preference (criterion recognition).
+Given a survey and three rubric variants (Field-
+Aware, Cross-Discipline, Generic) presented
+in randomized order with blinded labels, the
+expert selects which rubric best fits the work.
+With23Part B participants and 3+5+3 = 11
+criteria per expert, the design called for 253
+annotations; we collected 252(Outline: 69 =
+3×23 , Content: 114of115— one response
+missing, Reference:69 = 3×23).
+•Pairwise system comparison.Given two
+anonymized system-generated surveys on the
+same topic, the expert selects the better one
+(with a no-preference option). For each ex-
+pert, the 50pairs are stratified by topic ( 5
+pairs per topic over the 10topics in their dis-
+cipline) and drawn from the11
+2
+= 55 sys-
+tem pairs; pair allocation is balanced across
+experts so that, pooled within a discipline,
+each system pair is compared in both A/B
+orderings (double round-robin), with partial
+coverage in single-expert disciplines (marked
+with†in Table 10). The resulting 1,100 pair-
+4https://github.com/TechnicolorGUO/SurveyLenswise judgments ( 22Part A experts ×50 pairs
+each) were aggregated into per-discipline
+ELO rankings,5which we compared against
+SurveyLens rubric-derived rankings (Table 6,
+panel b).
+Total expert workload was approximately 14
+person-hours.
+Platform.The annotation platform supports ran-
+domized presentation order, blinded labels for both
+rubrics and systems, session resume, and audit
+logging of all submitted judgments. Screenshots
+of the pairwise-comparison (Part A) and rubric-
+preference (Part B) interfaces are shown in Fig-
+ures 6 and 7.
+Figure 6: Part A: pairwise comparison interface. The
+shared survey topic is shown at the top; two anonymized
+system outputs are presented side-by-side under blinded
+labels (Response A,Response B), with model identities
+and any system-revealing metadata stripped. A per-pane
+“translate to Chinese” toggle is provided for non-English-
+native annotators. The annotator submits a judgment
+via one of three buttons at the bottom:A is Better,Tie,
+orB is Better.
+5ELO uses standard online updates: initial rating = 1500 ,
+K= 32 , expected score EA= 1/(1 + 10(RB−RA)/400),
+with win = 1 / loss = 0 / tie= 0.5 . Each comparison
+contributes one update to each of the three per-dimension
+ELOs (Outline / Content / Reference), scored independently.
+We perform a single sweep over a randomly shuffled pair
+list (no iterative convergence criterion), and randomize A/B
+presentation order per comparison to neutralize position bias
+(seed= 42).
+15
+
+--- Page 16 ---
+Figure 7: Part B: rubric preference interface (shown
+here for the Outline dimension). Each question header
+has the formQ k/N —CRITERION— Which rubric best
+matchesDISCIPLINE?, naming the criterion under evalu-
+ation and the annotator’s discipline (the example shown
+has 11 questions per session). The three rubric variants
+(Field-Aware, Cross-Discipline, Generic) are displayed
+as cards under blinded labelsOption A/B/Cin random-
+ized order, each expanding to its 5 constituent criteria;
+the annotator selects the variant that best matches their
+discipline’s academic standards.
+Ethics and Compensation.Participation was
+voluntary; a subset of experts received compen-
+sation at locally-competitive hourly rates, while the
+remainder contributed time as a collegial courtesy
+within the authors’ academic networks. No person-
+ally identifying information is released; the public
+annotations are de-identified to (anonymous expert
+ID, discipline) tuples.
+C.2 Full Human-Alignment Results (All
+Three Dimensions)
+The main paper (§4.3) anchors its human-
+alignment validation on the Outline dimension,
+where both human inter-rater agreement and inter-
+LLM-judge agreement are highest. Here we report
+the full results across Outline, Content, and Refer-
+ence.
+Method ablation (CS) across all dimensions.
+Table 9 reports Spearman ρand Pairwise Concor-
+dance for all three dimensions on the CS subset
+(N= 7 experts). The rubric-based methods domi-
+nate the holistic baseline on every dimension, but
+the absolute alignment level is uneven: Outline
+and Reference reach ρ≥0.47 under Rubric + BT-
+domain, whereas Content alignment is substantially
+weaker (ρ= 0.10, Conc.= 50.6%).
+Cross-discipline generalization (per-discipline
+breakdown).Table 10 reports the per-disciplineSetting Outline Content Reference
+ρConc.%ρConc.%ρConc.%
+Holistic -0.13 43.9 -0.17 35.6 0.18 56.9
+Discipline-Prompted 0.69 75.0 -0.21 41.7 0.37 61.1
+Aspect (equal wt) 0.70 77.30.20 52.6 0.5264.2
+Rubric (equal wt)0.7780.2 0.17 50.6 0.47 69.3
+Rubric + BT-domain0.77 81.00.10 50.6 0.4770.2
+Table 9: Ablation study on evaluation design choices.
+We report Spearman ρand Pairwise Concordance (%)
+between LLM-judge scores and human preference rank-
+ings (ELO) on the CS subset.Discipline-Prompted
+injects discipline-specific instructions into the judge
+prompt without using our rubric.
+Disciplineρ↑Conc.%↑
+Biology (1)†0.80 80.0
+Business (4) 0.70 78.7
+Education (3) 0.70 81.2
+Engineering (3) 1.00 84.0
+Environmental Science (2) 0.90 75.3
+Medicine (3) 1.00 89.3
+Physics (1)†0.90 84.0
+Psychology (1)†1.00 90.0
+Sociology (4) 0.90 86.6
+All non-CS pooled (N= 22) 0.90 83.2
+Table 10: Per-discipline human-alignment on Outline
+(Rubric + BT-domain). Numbers in parentheses are
+expert counts; ρis computed over the 11systems. Cells
+marked†are single-annotator disciplines; the reported ρ
+reflects rank agreement between one expert’s ELO and
+the LLM judge, and should be read as indicative rather
+than statistically aggregated.
+Spearman ρand Pairwise Concordance of the fi-
+nal framework (Rubric + BT-domain) on the Out-
+line dimension, with per-discipline expert counts in
+parentheses. The pooled non-CS result ( ρ= 0.90 ,
+Conc. = 83.2% overN= 22 experts), reported
+in Table 6(b), is supported by uniformly strong
+per-discipline alignment: no discipline falls below
+ρ= 0.70, and 6 of 9 disciplines reachρ≥0.90.
+Why Content alignment is intrinsically harder.
+The weaker Content alignment is not specific to our
+rubric: holistic scoring fares worse ( ρ=−0.17 ,
+Conc. = 35.6% ), and Discipline-Prompted does
+too (ρ=−0.21 , Conc. = 41.7% ). Two indepen-
+dent lines of evidence indicate that this gap reflects
+an intrinsic property of long-form content judgment
+rather than a deficiency of the rubric design: (i)
+Human inter-dimension concordance.Expert Con-
+tent judgments concord with Outline judgments
+at69.4% but with Reference judgments at only
+55.6% (Appendix C.4), pointing to structural-cue
+interference in how humans rate content on long
+16
+
+--- Page 17 ---
+Component Field-Aware Cross-Discipline Generic N Binomialp
+Outline (3 criteria)94.2%5.8% 0.0% 69<0.001
+Content (5 criteria)88.6%9.6% 1.8% 114<0.001
+Reference (3 criteria)71.0%24.6% 4.3% 69<0.001
+Overall 85.3%12.7% 2.0% 252<0.001
+Table 11: Rubric preference study across 9 non-CS
+disciplines ( N= 23 Part B experts). Experts judge
+which of three rubric variants best fits a given survey:
+Field-Aware(ours),Cross-Discipline(rubric from a
+different field), orGeneric(field-agnostic). Binomial
+test against the33.3%chance baseline.
+surveys. (ii)Inter-LLM-judge agreement.Replicat-
+ing with a second judge (Gemini-3-Pro) yields Out-
+line and Reference ρ≈0.88 but Content ρ= 0.34
+(Appendix D.1). The same Content gap is repro-
+duced across independent LLM judges, ruling out a
+rubric-side cause. We discuss mitigation strategies
+(content-only redaction protocols, instrument-level
+changes) in Limitations.
+We separately note that Discipline-Prompted
+fares worse than Holistic on Content ( ρ=−0.21
+vs.−0.17 ), despite improving Outline ( ρ= 0.69
+vs.−0.13 ) and Reference ( ρ= 0.37 vs.0.18). We
+tentatively attribute this to the discipline prompt
+steering the judge toward surface-level disciplinary
+cues (canonical structure, characteristic terminol-
+ogy), which aids judgment on Outline and Refer-
+ence but actively crowds out substantive content
+assessment when applied to long-form content. The
+rubric, in contrast, operationalizes per-aspect crite-
+ria that constrain the judge’s attention. We treat this
+as a hypothesis rather than a verified mechanism.
+C.3 Rubric Preference Study: Detailed
+Results
+Table 11 reports the per-component breakdown of
+the 252 rubric-preference annotations summarized
+in §4.3. Across all three components, the Field-
+Aware rubric was chosen substantially more of-
+ten than chance ( 33.3% ): Outline 94.2% , Content
+88.6% , Reference 71.0% , pooled 85.3% (binomial
+p <0.001 ). The relatively lower preference on
+Reference is consistent with citation-quality cri-
+teria being more universal across disciplines than
+outline conventions or content depth.
+C.4 Inter-dimension Concordance Analysis
+To diagnose why the Content dimension shows
+weaker alignment with expert judgment than Out-
+line or Reference (§4.3), we examine the consis-
+tency of human pairwise preferencesacrossthe
+three dimensions. For each pair of dimensions, weDimension Pair Concordance Spearmanρ
+Outline×Content 69.4% 0.450
+Outline×Reference 58.3% 0.267
+Content×Reference 55.6% 0.067
+Table 12: Inter-dimension concordance among human
+expert pairwise judgments. For each pair of dimensions,
+we report the rate at which expert preferences agree on
+the winning system (Concordance) and the Spearman
+ρbetween the per-system ELO rankings derived from
+each dimension.
+compute (i) the rate at which an expert who prefers
+system Aover system Bon one dimension also
+prefers AoverBon the other (Concordance), and
+(ii) the Spearman ρbetween the per-system ELO
+rankings derived independently from each dimen-
+sion.
+As shown in Table 12, Content judgments con-
+cord with Outline judgments at 69.4% (ρ= 0.450 ),
+substantially more than with Reference judgments
+(55.6% ,ρ= 0.067 ). If Content were judged in
+isolation, we would expect symmetric, near-chance
+concordance with both other dimensions. The
+observed asymmetry suggests that human raters,
+when making pairwise Content judgments on long-
+form surveys, are partially influenced by surface-
+level structural cues such as section titles and head-
+ings rather than purely by content quality, an effect
+documented in prior long-form generation stud-
+ies (Krishna et al., 2023). This structural-cue inter-
+ference, rather than a deficiency of the rubric itself,
+is the most plausible explanation for the residual
+Content alignment gap in Table 9; mitigating it
+likely requires content-only redaction protocols or
+instrument-level changes to the annotation proce-
+dure, which we leave to future work.
+D Evaluation Robustness and Audits
+D.1 Multi-Judge Robustness Check
+To assess whether our primary results are sensi-
+tive to the choice of LLM judge, we replicate
+the rubric evaluation with a second independent
+judge,Gemini-3-Pro, on the 4 directly compara-
+ble systems (Qwen3-Max, Qwen DR, Gemini-3-
+Pro, and Gemini DR) across all 10 disciplines.
+These four systems are chosen because they form
+two backbone-matched Vanilla ↔DR pairs, mak-
+ing them the most informative slice for diagnos-
+ing both inter-judge agreement and potential self-
+preference.
+17
+
+--- Page 18 ---
+Dimension Inter-judgeρConcordance
+Outline 0.88 91.7%
+Content 0.34 63.3%
+Reference 0.88 90.0%
+Average 0.84 88.3%
+Table 13: Inter-judge agreement between the primary
+judge (Qwen3-30B-A3B) and a second independent
+judge (Gemini-3-Pro) on 4 directly comparable systems
+(Qwen3-Max, Qwen DR, Gemini-3-Pro, Gemini DR)
+across 10 disciplines. Outline and Reference exhibit
+near-identical rankings; the lower Content ρmirrors the
+human-judge structural-cue interference reported in Ap-
+pendix C.4.
+Inter-judge agreement.Table 13 reports the
+per-dimension Spearman ρand Pairwise Concor-
+dance between the primary judge (Qwen3-30B-
+A3B) andGemini-3-Pro. Average agreement is
+high ( ρ= 0.84 , Concordance = 88.3% ). Outline
+and Reference rankings are near-identical across
+judges ( ρ= 0.88 on both), whereas Content shows
+lower agreement ( ρ= 0.34 ). This Content gap
+mirrors the structural-cue interference we observe
+in human expert judgments (Appendix C.4): long-
+form content judgments are intrinsically noisier
+across raters (LLM or human) than judgments an-
+chored on outline structure or citation evidence.
+We note that with N= 4 systems, Spearman ρ
+is sensitive to single rank flips; this check should
+therefore be read as evidence ofrank-stability un-
+der judge swap on backbone-matched pairsrather
+than as a population-level inter-judge agreement
+statistic.
+Absence of systematic self-preference.A nat-
+ural concern is that each judge might favor out-
+puts from systems sharing its model family (Qwen
+judge favoring Qwen3-Max/Qwen DR, Gemini
+judge favoring Gemini-3-Pro/Gemini DR). Exam-
+ining the two pairs in question, rank shifts between
+the two judges for Qwen3-Max and Gemini-3-Pro
+are bounded by ±1position. Crucially, the di-
+rection of any small shift is not consistent with
+self-preference (e.g., the Qwen judge does not uni-
+formly rank Qwen systems higher than the Gemini
+judge does). We therefore find no evidence of sys-
+tematic self-preference at the magnitude relevant
+to our paradigm-level conclusions.
+D.2 Retrieval Leakage Audit Protocol
+This appendix details a two-stage retrieval-leakage
+audit motivated by a concern about human-reference alignment metrics: for every gener-
+ated survey, we determine whether the system re-
+produced or directly retrieved the paired human-
+written survey on the queried topic, which would
+inflate human-reference alignment metrics in a way
+that does not reflect genuine synthesis ability.
+Stage 1: automatic candidate flagging.For
+each of the 1,062 generated outputs, we (i) extract
+the full reference list and (ii) scan the generated
+body text for occurrences of the paired survey title
+(matched both verbatim and under a normalized
+form that strips punctuation, case, and version suf-
+fixes). Any output that cites the paired survey title
+in either location is flagged as a candidate leak.
+Stage 2: manual verification.Every flagged out-
+put is then verified by hand to remove false posi-
+tives such as incidental citation of a same-topic but
+non-paired reference, or citation of a related sur-
+vey on a strictly different sub-topic. Only outputs
+that demonstrably ground a substantial portion of
+their content on the paired survey are counted as
+“confirmed leakage” in Table 14 (panel a).
+Coverage and per-paradigm rates.We apply
+the protocol uniformly across all 1,062 outputs.
+Confirmed leakage rates are 2/200 (1.00% ) for
+Vanilla LLMs, 46/665 (6.92% ) for ASG systems,
+and93/197 (47.21% ) for Deep Research Agents.
+The DR category is internally split: Qwen DR 8.2%
+vs. Gemini DR 85.9% . We report this asymmetry
+transparently rather than aggregate it away.
+Leakage-excluded re-analysis.Table 14 (panel
+b) repeats our human-reference alignment analy-
+sis with all confirmed-leaked DR outputs removed.
+On RA-AlignF1, the paradigm ordering DR ( 0.14)
+>Vanilla ( 0.13)>ASG ( 0.10) is preserved af-
+ter exclusion, indicating that the DR advantage
+over ASG is not an artifact of citing the paired
+survey; RA-AlignF1 is structurally robust to this
+form of leakage because its Hungarian one-to-one
+matching prevents repeated alignment with a single
+source paper. On τ-MaxSim, we note transpar-
+ently that Vanilla LLMs ( 0.36) edge out leakage-
+excluded DR ( 0.35), with both clearly above ASG
+(0.26). We attribute the Vanilla τ-MaxSim edge
+to output-length effects: Vanilla outputs are short
+and contain little textual bloat, so their per-segment
+maximum similarity to the paired survey is me-
+chanically inflated. We therefore read RA-AlignF1,
+which jointly penalizes redundancy and rewards
+coverage, as the more reliable human-reference
+18
+
+--- Page 19 ---
+(a) Confirmed leakage rate by paradigm
+Group N Leakage Rate↓
+Vanilla LLMs 2001.00%
+ASG Systems 6656.92%
+Deep Research Agents 19747.21%
+Overall 1,06213.29%
+(b) Human-reference alignment after leakage exclusion
+Group N RA-AlignF1↑τ-MaxSim↑
+DR (all) 197 0.15 0.32
+DR (w/o leakage) 104 0.14 0.35
+Vanilla LLM 200 0.130.36
+ASG 665 0.10 0.26
+(c) Rubric scores after leakage exclusion (DR)
+Group N Out. Cont. Ref. Mean
+DR (all) 197 3.53 4.32 2.43 3.43
+DR (clean) 104 3.50 4.29 2.42 3.40
+∆−0.03−0.03−0.01−0.02
+Qwen DR (all) 98 2.76 4.28 2.40 3.15
+Qwen DR (clean) 90 2.78 4.26 2.40 3.15
+Gemini DR (all) 99 4.30 4.36 2.47 3.71
+Gemini DR (clean)†14 4.23 4.32 2.44 3.66
+Table 14: Retrieval-leakage audit. (a) Confirmed leak-
+age rates by paradigm. (b) Human-reference alignment
+(RA-AlignF1/ τ-MaxSim) after removing leaked DR
+outputs. (c) Rubric scores (1–5) before and after leak-
+age exclusion. The DR aggregate is stable ( ∆ =−0.02
+on the mean, |∆| ≤0.03 on all three dimensions) and
+no per-discipline rank flipsare observed. Per-system
+splits are reported for completeness;†Gemini DR clean
+(n= 14 , covering 6 of 10 disciplines) has high vari-
+ance and should be read alongside the more robust DR
+aggregate. Gemini DR remains first on Content after
+exclusion ( 4.32), preserving the Finding 3 (Content) or-
+dering.
+alignment signal, on which the three-way ordering
+remains clean.
+Limitations of the audit.Our protocol detects
+leakage that surfaces as citation of, or near-
+verbatim reuse from, the paired survey title. It
+does not detect (i) paraphrased reuse without title
+citation, (ii) reuse of other same-topic surveys not
+designated as the paired reference, or (iii) reuse
+of underlying primary sources cited by the paired
+survey. A leakage-controlled evaluation protocol
+using post-cutoff topics is the natural next step,
+which we leave to future work.
+D.3 Per-System Generation Failure Analysis
+Of the 1,100 (11×100 ) system-topic genera-
+tion attempts, 1,062 produced valid outputs (yield
+96.5% ). Table 15 breaks down the 38missing
+outputs by system and cause. Failures fall intoSystem Missing Cause
+SurveyX 7 Three retries still failed;
+server-side issue confirmed
+by authors.
+AutoSurvey2 13 Biology outputs written to a
+wrong directory; generation
+itself succeeded.
+SciSage 10 Late re-runs not in initial
+counts; included in current
+results.
+Others 8 Intermittent LLM/retrieval
+API failures; no call-level
+logs retained.
+Total 38 Yield rate 1,062/1,100 =
+96.5%.
+Table 15: Per-system generation failure breakdown.
+Failures are concentrated in system-level issues and
+show no systematic correlation with discipline or topic.
+four buckets: persistent server-side failures (Sur-
+veyX, 7), output-handling mistakes on our side
+that did not affect generation itself (AutoSurvey2
+Biology directory misplacement, 13), late re-runs
+that are now included in the reported results (SciS-
+age,10), and intermittent third-party API failures
+without retained call-level logs (others, 8). None
+of these failure modes are correlated with specific
+disciplines or topics in a way that would bias the
+cross-discipline conclusions: missing outputs are
+distributed across disciplines roughly proportional
+to the per-system attempt count. The 8intermittent
+failures are sparsely scattered across affected sys-
+tems (≤2outputs each) and are not large enough
+to flip any per-discipline ranking at the resolution
+reported in §4.2.1.
+D.4 Comparison Scope
+Our benchmark compares three paradigms that
+differ not only in algorithmic design but also in
+deployment form, and we structure the compari-
+son accordingly. For the seven open-source ASG
+systems, we control backbone (a unifiedQwen3-
+30B-A3B) so that any performance gap among
+them isolates the architectural contribution of each
+pipeline. Vanilla LLMs and Deep Research agents,
+by contrast, are evaluated using their officially de-
+ployed configurations: their backbones are integral
+to the deployed product and not user-substitutable,
+so swapping them would no longer reflect how
+practitioners actually consume these systems. We
+therefore position the cross-paradigm results as a
+practitioner-oriented guide at the paradigm level.
+Where backbone-controlled architectural claims
+19
+
+--- Page 20 ---
+AutoSurvey SurveyForge AutoSurvey2 Interactive
+SurveyLLMxMapReduce SurveyX SciSage Qwen 3 Max Qwen (DR) Gemini 3 Pro Gemini (DR)012345Average ScoreQwen family Gemini familyOverall Content Outline ReferenceFigure 8: Dimension-level evaluation results of the 11
+systems across Overall, Outline, Content, and Refer-
+ence, highlighting the trade-offs between structural plan-
+ning and content synthesis.
+are made, they are supported by targeted sub-
+comparisons in the main text: Finding 3 (§4.2.1)
+isolates the ASG outline advantage by holding the
+backbone fixed at Qwen3-30B-A3B (e.g., Survey-
+Forge 4.48 vs. flagship Qwen3-Max 2.03), and
+the Vanilla ↔DR pairs at fixed backbone fam-
+ily (Qwen3-Max vs. Qwen DR; Gemini-3-Pro vs.
+Gemini DR) isolate the DR retrieval-and-synthesis
+contribution. Together, these within-family con-
+trols let us attribute the headline paradigm-level
+findings to architecture rather than backbone capac-
+ity, while keeping the deployment-form compari-
+son faithful to real usage.
+E Detailed Results
+In this section, we report the detailed performance
+of the evaluated systems. We first present a fine-
+grained visualization of aspect-wise metrics and
+then provide a breakdown of scores across different
+academic disciplines.
+E.1 Dimension-Level Grouped Comparison
+Figure 8 complements the aspect-level heatmap
+in the main text (Figure 4) by aggregating the
+eleven sub-metrics back into the three primary di-
+mensions (Outline, Content, Reference) plus the
+Overall score, giving a side-by-side view of the 11
+systems at the dimension granularity.
+For reference, the aspect grouping behind both
+figures is as follows. TheOutlinedimension
+covers A1–A3, evaluatingSubstantive Integrity,
+Structural Coherence, andFormal Precision.
+TheContentdimension spans A4–A8, assessing
+Scope and Relevance,Structural Coherence,
+Synthesis and Integration,Critical Insight and
+Novelty, andScholarly Communication. Finally,
+theReferencedimension includes A9–A11, exam-
+iningBibliometric Comprehensiveness,Eviden-
+tial Integrity, andReferential Pertinence and
+Compliance.
+1.0 1.5 2.0 2.5 3.0 3.5 4.0 4.5 5.0
+Score0.00.10.20.30.40.50.6DensityOutline
+ASG ( =3.38)
+Vanilla LLM ( =2.51)
+DR ( =3.54)
+Human ( =3.19)
+1.0 1.5 2.0 2.5 3.0 3.5 4.0 4.5 5.0
+Score0.00.20.40.60.81.01.2DensityContent
+ASG ( =3.52)
+Vanilla LLM ( =4.34)
+DR ( =4.31)
+Human ( =3.54)
+1.0 1.5 2.0 2.5 3.0 3.5 4.0 4.5 5.0
+Score0.000.250.500.751.001.251.501.75DensityReference
+ASG ( =2.24)
+Vanilla LLM ( =1.24)
+DR ( =2.43)
+Human ( =3.13)
+Figure 9: Paradigm-level score distributions on Outline,
+Content, and Reference for the three machine paradigms
+(ASG, Vanilla LLM, DR) and human-written surveys.
+The Reference panel exhibits a persistent human advan-
+tage absent from Outline and Content; Vanilla LLM
+exhibits a density spike at score 1.0on Reference; ASG
+Outline is bimodal at the paradigm level.
+E.2 Paradigm-Level Score Distributions
+To complement the system-level bar chart (Fig-
+ure 8) and the aspect-level heatmap (Figure 4), Fig-
+ure 9 reports score distributions of the three ma-
+chine paradigms (ASG, Vanilla LLM, DR) along-
+side human-written surveys on the three primary
+components. Three visualisation-level observa-
+tions support findings in the main text: (i) on Refer-
+ence, the human distribution ( µ= 3.13 ) sits clearly
+above all machine paradigms (DR µ= 2.43 , ASG
+µ= 2.24 , Vanilla LLM µ= 1.24 ), reinforc-
+ing Finding 3’s identification of Reference as the
+shared bottleneck; (ii) Vanilla LLM exhibits a den-
+sity spike at score 1.0on Reference, indicating a
+catastrophic citation-quality failure mode for sys-
+tems without external retrieval, consistent with
+Finding 1’s observation that vanilla LLMs consis-
+tently underperform; (iii) the ASG Outline distribu-
+tion is bimodal at the paradigm level (with modes
+near2.5and4.5), directly visualising the within-
+paradigm reliability split that Finding 2 attributes
+to data-source quality.
+E.3 Discipline-Specific Performance
+Tables 16, 17, and 18 list the Reference-Free scores
+(1–5) for the three key dimensions across ten dis-
+tinct disciplines.
+•Outline Quality (Table 16):This table com-
+pares the structural quality of the generated
+surveys. It includes scores for ASG Systems,
+Vanilla LLMs, and Deep Research Agents,
+highlighting the best and second-best perform-
+ing models in each field.
+•Content Quality (Table 17):This table eval-
+uates the coherence, relevance, and depth of
+the generated content. It allows for a compari-
+son of how well different approaches handle
+domain-specific knowledge generation.
+20
+
+--- Page 21 ---
+•Reference Quality (Table 18):This table
+assesses the accuracy and relevance of the ci-
+tations provided by the systems. It particularly
+highlights the significant performance gap
+between systems with retrieval capabilities
+(ASG Systems and Deep Research Agents)
+and Vanilla LLMs in terms of hallucination
+and citation correctness.
+21
+
+--- Page 22 ---
+System(Outline) Edu
+ Med
+ Bio
+ Soc
+ Phys
+ Psy
+ Eng
+ Env
+ CS
+ Bus
+ Avg
+ASG Systems
+AutoSurvey 4.28 3.92 4.43 3.62 3.99 3.75 4.27 4.38 4.463.95 4.11
+SurveyForge 4.65 4.73 4.58 4.16 4.54 4.60 4.784.29 4.24 4.24 4.48
+AutoSurvey2 1.43 1.37 1.23 1.80 1.88 1.35 2.33 1.51 1.73 1.30 1.59
+InteractiveSurvey 3.18 4.00 2.81 1.88 4.11 3.06 4.20 3.35 4.01 3.14 3.37
+LLM×MapReduce-V2 3.62 3.99 2.92 3.28 3.35 4.09 3.26 3.85 3.11 2.88 3.44
+SurveyX 4.06 4.19 4.24 3.36 4.02 4.10 4.12 3.98 3.99 3.28 3.93
+SciSage 2.28 2.35 2.38 2.10 2.17 2.28 2.51 2.13 1.64 2.11 2.20
+Vanilla LLMs
+Qwen3-Max 2.40 2.73 2.24 2.64 1.33 1.43 2.00 2.24 1.03 2.21 2.03
+Gemini-3-Pro 1.82 1.92 2.69 2.64 3.06 1.60 2.76 2.58 2.51 1.40 2.30
+Deep Research Agents
+Qwen DR 2.19 2.79 3.28 3.08 2.28 2.82 3.45 2.95 2.54 2.38 2.78
+Gemini DR 4.26 4.50 4.46 4.08 4.31 4.32 4.42 4.414.11 3.54 4.24
+Table 16: Results of discipline-aware rubric evaluation scores (1–5) in terms of Outline. Best performance is in
+bold, second best is underlined .
+22
+
+--- Page 23 ---
+System(Content) Edu
+ Med
+ Bio
+ Soc
+ Phys
+ Psy
+ Eng
+ Env
+ CS
+ Bus
+ Avg
+ASG Systems
+AutoSurvey 3.11 4.39 3.52 2.93 3.59 3.34 4.23 4.12 3.47 4.04 3.67
+SurveyForge 3.25 4.58 3.90 3.45 4.24 3.50 4.40 4.34 3.65 4.14 3.95
+AutoSurvey2 3.44 3.83 2.57 2.73 3.37 2.97 3.54 3.44 3.42 3.59 3.29
+InteractiveSurvey 3.22 4.13 3.31 1.98 3.59 2.99 3.97 3.74 3.43 3.67 3.40
+LLM×MapReduce-V2 3.18 3.74 3.59 2.84 3.52 2.90 3.42 3.67 3.17 3.51 3.35
+SurveyX 3.25 3.82 3.81 3.14 3.64 3.26 3.91 3.86 3.42 3.75 3.59
+SciSage 3.25 4.04 3.54 2.75 3.65 2.94 3.36 3.67 3.18 3.68 3.41
+Vanilla LLMs
+Qwen3-Max 4.534.25 4.224.16 4.83 4.483.274.76 4.324.22 4.30
+Gemini-3-Pro 3.79 4.33 4.34 3.41 2.89 3.76 3.56 3.49 4.11 3.63 3.73
+Deep Research Agents
+Qwen DR 3.994.614.38 3.84 4.69 4.014.534.57 4.11 4.25 4.30
+Gemini DR 4.35 4.524.553.98 4.63 4.22 3.75 4.22 4.30 4.58 4.31
+Table 17: Results of discipline-aware rubric evaluation scores (1–5) in terms of Content. Best performance is in
+bold, second best is underlined .
+23
+
+--- Page 24 ---
+System(Reference) Edu
+ Med
+ Bio
+ Soc
+ Phys
+ Psy
+ Eng
+ Env
+ CS
+ Bus
+ Avg
+ASG Systems
+AutoSurvey 2.47 2.74 2.96 2.76 2.76 1.87 2.34 2.41 3.00 2.30 2.56
+SurveyForge 2.09 2.20 1.20 2.08 2.10 2.04 2.04 1.93 2.32 1.86 1.99
+AutoSurvey2 2.28 2.16 1.90 2.11 2.44 1.88 1.80 2.10 2.18 2.08 2.09
+InteractiveSurvey 2.04 2.20 2.25 1.00 2.58 1.86 2.30 1.85 2.72 1.84 2.06
+LLM×MapReduce-V2 2.54 2.28 2.82 2.56 2.543.423.04 2.05 3.44 1.79 2.65
+SurveyX 1.24 1.40 1.84 1.20 1.47 1.53 2.20 1.30 1.74 1.20 1.51
+SciSage 2.982.80 3.182.92 3.182.68 2.08 2.51 3.482.48 2.83
+Vanilla LLMs
+Qwen3-Max 1.08 1.36 1.10 0.94 1.14 0.96 0.92 1.16 1.02 0.94 1.06
+Gemini-3-Pro 1.22 1.12 1.22 1.34 1.28 1.10 1.06 1.12 1.18 1.01 1.17
+Deep Research Agents
+Qwen DR 2.36 2.50 2.72 2.36 2.46 2.16 2.28 1.98 2.58 2.17 2.36
+Gemini DR 2.38 2.50 2.84 2.54 2.70 2.04 2.12 2.23 2.74 2.23 2.43
+Table 18: Results of discipline-aware rubric evaluation scores (1–5) in terms of Reference. Best performance is in
+bold, second best is underlined .
+24
+
+--- Page 25 ---
+System Img Tab Eq Para Wrd Sent Cite Ref Char
+ASG Systems
+AutoSurvey 0.11 0.02 0.04 7.11 4.00 2.18 1.03 0.994.64
+SurveyForge 0.04 0.01 0.01 1.51 0.73 0.35 0.27 0.24 0.87
+AutoSurvey2 0.04 0.00 0.00 0.18 0.14 0.07 0.11 0.10 0.16
+InteractiveSurvey 0.05 0.00 0.01 0.56 0.39 0.19 0.09 0.08 0.47
+LLM×MapReduce-V2 0.02 0.02 0.01 0.46 0.37 0.18 0.04 0.03 0.44
+SurveyX 0.52 0.32 0.14 4.09 2.16 0.850.25 0.222.42
+SciSage 0.01 0.00 0.00 0.25 0.13 0.08 0.07 0.07 0.16
+Vanilla LLMs
+Qwen3-Max 0.03 0.04 0.04 0.49 0.21 0.20 0.33 0.18 0.24
+Gemini-3-Pro 0.01 0.01 0.03 0.24 0.09 0.09 0.11 0.06 0.11
+Deep Research Agents
+Qwen DR 0.03 0.26 0.01 0.25 0.22 0.14 0.10 0.10 0.25
+Gemini DR 0.02 0.01 0.04 0.27 0.32 0.29 0.07 0.33 0.29
+Table 19: Full structural statistics of generated surveys relative to human-written references (1.0 = human parity).
+Compact four-column version used in the main text in Table 5. Highest value per column inbold, second highest
+underlined .
+25
+
+--- Page 26 ---
+F Qualitative Case Studies on ASG
+Failure Modes
+To make the abstract failure modes identified in
+Findings 5 and 6 concrete, we conduct two qualita-
+tive case studies on a single shared topic,“Abusive
+Language Training Data in Natural Language Pro-
+cessing”, for which a high-quality human-written
+survey (Vidgen and Derczynski, 2020) is available
+as the paired reference. We compare it against
+generated outputs from two representative ASG
+systems (AutoSurvey(Wang et al., 2024c) and
+SciSage(Shi et al., 2025)), which exemplify two
+opposite failure patterns at the structural level.
+F.1 Case A: Information Dumping in Pipeline
+ASG (Finding 6)
+Setup.Finding 6 observes that pipeline ASG sys-
+tems like AutoSurvey exhibit extreme textual bloat
+(7.11× paragraphs, 4.00× words relative to human
+surveys) without improving substantive coverage.
+We zoom into theIntroductionchapter of both sur-
+veys, which targets the same rhetorical goal: moti-
+vating the importance of the topic.
+Quantitative comparison.Table 20 reports per-
+section structural statistics. AutoSurvey expands
+the Introduction into 8 third-level subsections, each
+averaging ≈880 words. The whole AutoSurvey In-
+troduction occupies roughly7,001 words / 47,567
+characters, whereas the paired human Introduc-
+tion completes the same rhetorical function in259
+words / 1,851 characters, a 27× length expansion
+with no corresponding gain in coverage breadth
+(both introduce the same set of motivations).
+Section Words Chars Sents
+HumanIntroduction(full) 259 1,851 13
+AutoSurvey §1.1Importance974 6,733 35
+AutoSurvey §1.2Role of Data912 6,219 35
+AutoSurvey §1.3Societal Impact888 6,234 36
+AutoSurvey §1.4Curation Chal-
+lenges853 5,993 35
+AutoSurvey §1.5–1.8 (4 subsec.) 3,374 22,388 137
+AutoSurveyIntro.(full, 8 subsec.)7,001 47,567278
+Table 20: Per-section statistics for theIntroductionchap-
+ter of the human-written survey (Vidgen and Derczyn-
+ski, 2020) versus AutoSurvey’s generated output on the
+same topic.
+Qualitative excerpt.The contrast becomes
+sharper when reading opening sentences of each.The human introduction grounds claims in specific
+policies, venues, and counts:
+“. . . policy and regulatory developments, such
+as the EU’s Code of Conduct on Hate, the UK
+Government’s ‘Online Harms’ white paper, Ger-
+many’s NetzDG laws, the Public Pledge on Self-
+Discipline for the Chinese Internet Industry, and
+France’s anti-hate regulation. In 2020 alone, at
+least three computer science venues will host
+workshops on online hate (TRAC and STOC at
+LREC, and WOAH at EMNLP), and a shared task
+at 2019’s SemEval . . . reported that 800 teams
+downloaded the training data and 115 submit-
+ted detection systems. ” (Vidgen and Derczynski,
+2020)
+AutoSurvey’s §1.1, addressing the same motiva-
+tional goal, instead chains generic intensifiers with-
+out verifiable evidence:
+“Abusive language detection in Natural Language
+Processing (NLP) has emerged as a critical area
+of research . . . The significance of this task can-
+not be overstated, as it plays a vital role in cre-
+ating safer online environments and promoting
+the ethical development of AI systems. As on-
+line interactions become more frequent and di-
+verse, the need to identify and mitigate abusive
+language has become imperative to ensure that
+digital spaces remain inclusive and respectful for
+all users . . . ”
+The next three subsections (§1.2Role of Training
+Data, §1.3Societal Impact, §1.4Curation Chal-
+lenges) re-invoke near-identical hedges (“plays a
+critical role”,“cannot be overstated”,“it is es-
+sential to ensure”) and largely overlap in claim
+space, producing horizontal redundancy rather than
+incremental coverage.
+Takeaway.The case directly instantiates Find-
+ing 6: AutoSurvey produces a 27×-longer Intro-
+ductionby paraphrasing the same motivational
+claims across eight subsections, rather than by ex-
+pert condensation. This is also precisely the fail-
+ure mode the redundancy penalty ω(e) in our RA-
+AlignF1 metric (§4.2.2) is designed to surface.
+F.2 Case B: Local Alignment without Global
+Structure in SciSage (Finding 5)
+Setup.Finding 5 documents a systematic gap
+between high τ-MaxSim (local segment-level simi-
+larity to human text) and low RA-AlignF1/ rubric
+scores (global coverage and narrative organization).
+SciSage on this topic provides a particularly clean
+illustration: its individual paragraphs reference cor-
+rect facts, but its structural footprint is dominated
+by a generic “introduction →literature review →
+conclusion” template that omits the paired survey’s
+central contributions.
+26
+
+--- Page 27 ---
+Structural footprint.Table 21 contrasts the
+second-level outline coverage. The paired human-
+written survey (Vidgen and Derczynski, 2020)
+organizes its body around thefull life-cycleof
+an abusive-language training dataset: task for-
+mation, content properties, annotation process,
+annotator identity, annotation guidelines, dataset
+sharing, an open-science infrastructure proposal
+(hatespeechdata.com ), and an evidence-based
+best-practice checklist. SciSage’s outline collapses
+this seven-stage life cycle into a genericLiterature
+Reviewsection with two thematic subsections.
+Topical block in human survey Human SciSage
+Task formation & detection typology✓—
+Dataset content properties✓—
+Annotation process & methodology✓partial
+Annotator identity & demographics✓—
+Annotation guidelines✓—
+Dataset sharing & open science✓—
+Best-practice recommendations✓—
+Total L1 chapters 8 4
+Total L2 subsections 17 4
+Table 21: Outline-level coverage comparison on the
+same topic. SciSage retains a generic survey template,
+fully omitting six of the paired survey’s seven central
+contributions and only partially covering the seventh
+(annotation process).
+Local fidelity is preserved.Despite this struc-
+tural collapse, individual SciSage paragraphs are
+factually grounded and cite the same evidence that
+appears in the paired survey. For example, the
+Recent Advancementssubsection reads:
+“A systematic review of 63 publicly available
+datasets highlights the difficulties in producing
+large, diverse, and theoretically informed col-
+lections while minimizing biases . . . specialized
+datasets like L-HSAB . . . emphasize rigorous data
+collection procedures and annotation guidelines
+. . . inter-annotator agreement metrics like Co-
+hen’s Kappa and Krippendorff’s alpha to validate
+annotation quality. ”
+All three referenced facts (63-dataset systematic
+review, L-HSAB, Cohen’s κ/ Krippendorff’s α)
+align with the paired human-written paper, which
+explains why such outputs accumulate non-trivial
+token-level overlap ( τ-MaxSim) with the human
+reference.
+Global narrative is missing.However, this local
+fidelity does not survive aggregation. SciSage’s
+two thematic subsections (Recent Advancements,
+Current State of Research) collapse the paired pa-
+per’s distinct chapters on (i)who annotatedthedata, (ii)how the annotation guidelines treat irony,
+calumny, and intent, (iii)how datasets degrade un-
+der platform Terms-of-Service constraints, and (iv)
+the proposed data-trust infrastructure for sharing
+into a single undifferentiated “advances and chal-
+lenges” block. The paired survey’s central propos-
+als (the hatespeechdata.com repository, the four-
+stage best-practice checklist, and the open-science
+/ data-trust framework) have no corresponding sec-
+tion in SciSage’s output.
+Takeaway.The case operationalises thelocal-
+alignment / global-structure gapflagged in Find-
+ing 5: SciSage retrieves correct factual atoms (high
+τ-MaxSim), but the discipline-specific narrative
+scaffold that turns those atoms into a usable sur-
+vey is replaced by a one-size-fits-all template (low
+RA-AlignF1, low rubric Outline score). Together,
+Cases A and B show that ASG failure modes are
+not symmetric:AutoSurvey over-produces text
+without adding coverage, whereasSciSage re-
+trieves correct facts without producing the right
+structure, two opposite manifestations of the same
+underlying gap between local segment-level align-
+ment and global disciplinary organization.
+27
+
+--- Page 28 ---
+G Prompts
+To ensure reproducibility and provide a clear under-
+standing of our framework, we detail the specific
+prompts used in our experiments. These prompts
+were designed to guide the LLM effectively across
+different stages of the pipeline. They are catego-
+rized into three main functional phases:
+•Criteria Construction Phase:This phase
+focuses on establishing comprehensive eval-
+uation standards. Figures 10, 11, and 12 il-
+lustrate the prompts used to aggregate high-
+level aspects, expand them into detailed crite-
+ria based on survey content, and merge criteria
+from various sources, respectively. This pro-
+cess ensures that the resulting criteria are both
+diverse and specific to the domain.
+•Evaluation Phase:We adopt a modular strat-
+egy to evaluate the quality of the surveys.
+We present the prompts designed for the per-
+aspect evaluation of the survey’soutline(Fig-
+ure 13),content(Figure 14), andreferences
+(Figure 15). Evaluating these components in-
+dependently helps minimize interference and
+ensures a more accurate assessment.
+•Generation Phase:Figure 16 presents the
+prompt used for the automated generation of
+systematic literature reviews. This prompt
+guides the model to synthesize the collected
+references into a complete paper based on the
+topic provided by the user.
+28
+
+--- Page 29 ---
+Aggregate Aspects Prompt
+System prompt:You are an academic evaluation expert. I need you to aggregate the following
+evaluation criteria for {category_name} into {target_count} universal, highly aggregated aspects.
+Current aspects list:
+{formatted_aspects}
+Requirements:
+• Aggregate these {len(aspects_list)} aspects into {target_count} universal aspects
+• Each aggregated aspect should:
+–Be a highly abstract, universal concept
+–Cover multiple related original aspects
+–Have a concise and generalizable name
+–Have clear descriptions that reflect its universal nature
+•Maintain academic rigor, ensuring the aggregated aspects comprehensively cover the core content
+of the original aspects
+• The number of returned aspects must be exactly {target_count}
+Please return the result strictly in the following JSON array format, without any additional text:
+[
+{"Aspect Name 1": "Detailed description 1"},
+{"Aspect Name 2": "Detailed description 2"},
+...
+]
+Note:Return only the JSON array, without any markdown code block markers or other text.
+Figure 10: Prompt used to aggregate multiple evaluation aspects into a smaller set of universal, highly aggregated
+aspects. Used in thecall_llm_for_aggregationfunction.
+29
+
+--- Page 30 ---
+Expand Aspects Prompt
+System prompt:You are an academic survey expert. Now you are refining the writing guideline of
+survey writing.
+Given:
+1. Component Type: {component_name} (outline/content/reference)
+2. Component Content: The actual {component_name} from a survey paper
+3. Aspect: {aspect_name} - {aspect_description}
+4. Target Number: {n}
+Task:
+Expand the given aspect "{aspect_name}" into {n} specific, detailed criteria. Each criterion should:
+•Provide a clear, actionable explanation of what "{aspect_name}" means in the context of {com-
+ponent_name}
+•Include a concrete example from the provided component content that demonstrates this criterion
+•The example should be a summary/synthesis of relevant parts from the component content, NOT
+a direct verbatim quote
+• Be specific enough to guide evaluation of survey {component_name}
+Component Content:
+{component_content}
+Aspect to Expand:
+Name: {aspect_name}
+Description: {aspect_description}
+Please return the result in the following JSON format:
+{
+"aspect_name": "{aspect_name}",
+"expanded_criteria": [
+{
+"criterion_name": "Specific criterion name 1",
+"description": "Detailed explanation of what this criterion means",
+"example": "Summarized example from the component content that demonstrates
+this criterion"
+},
+{
+"criterion_name": "Specific criterion name 2",
+"description": "Detailed explanation of what this criterion means",
+"example": "Summarized example from the component content that demonstrates
+this criterion"
+},
+...
+]
+}
+Note:Return only the JSON object, without any markdown code block markers or additional text.
+Figure 11: Prompt used to expand a single aspect into detailed criteria using survey content. Each criterion includes
+description and example. Defined asEXPAND_ASPECT_PROMPT.
+30
+
+--- Page 31 ---
+Merge Aspect Criteria Prompt
+System prompt:You are an academic survey expert. Now you are merging multiple expanded criteria
+from the same aspect across multiple survey papers into a consolidated set.
+Given:
+1. Aspect Name: {aspect_name}
+2. Component Type: {component_name} (outline/content/reference)
+3.All Expanded Criteria: A list of criteria from the same aspect "{aspect_name}" collected from
+multiple survey papers
+4. Target Number: {n}
+Task:
+Merge all the given expanded criteria into {n} comprehensive, consolidated criteria. Each merged
+criterion should:
+• Synthesize related criteria from different survey papers into a unified, coherent criterion
+• Preserve the essential meaning and evaluation focus of the original criteria
+•Be general enough to apply across different survey papers while remaining specific enough to
+guide evaluation
+• Avoid redundancy while maintaining comprehensiveness
+• Each merged criterion should have a clear, distinct focus
+• Extract common patterns and best practices from the examples
+All Expanded Criteria:
+{all_criteria_json}
+Please return the result in the following JSON format:
+{
+"aspect_name": "{aspect_name}",
+"component_name": "{component_name}",
+"merged_expanded_criteria": [
+{
+"criterion_name": "Consolidated criterion name 1",
+"description": "Comprehensive description that synthesizes related
+criteria",
+"example": "Highly synthesized and aggregated example that demonstrates
+universally applicable criteria"
+},
+{
+"criterion_name": "Consolidated criterion name 2",
+"description": "Comprehensive description that synthesizes related
+criteria",
+"example": "Highly synthesized and aggregated example that demonstrates
+universally applicable criteria"
+},
+...
+]
+}
+Note:Return only the JSON object, without any markdown code block markers or additional text.
+Figure 12: Prompt used to merge criteria from multiple survey papers into consolidated criteria. Synthesizes
+common patterns across different examples. Defined asMERGE_ASPECT_CRITERIA_PROMPT.
+31
+
+--- Page 32 ---
+Per-Aspect Outline Evaluation Prompt
+System prompt:You are a domain reviewer for category: {category}.
+Domain-specific outline aspects and their criteria (JSON):
+{json.dumps(criteria_payload, ensure_ascii=False)}
+Survey outline (cleaned):
+{json.dumps(outline, ensure_ascii=False)}
+Instructions:
+For EACH aspect below, give:
+• an integer score from 1 to 5
+• a short justification in one sentence
+Return JSON exactly in this format:
+{"aspects": [
+{"aspect_name": "<string>", "score": <int>, "notes": "<string>"}
+]}
+Figure 13: Prompt for per-aspect evaluation of survey outline quality. Returns individual scores for each aspect,
+which are then averaged. Used in_build_prompt_per_aspectmethod for outline.
+Per-Aspect Content Evaluation Prompt
+System prompt:You are a domain reviewer for category: {category}.
+Domain-specific content aspects and their criteria (JSON):
+{json.dumps(criteria_payload, ensure_ascii=False)}
+Survey content sections (trimmed for length):
+{json.dumps(self._trim_sections(content), ensure_ascii=False)}
+Quick stats:
+{json.dumps(stats, ensure_ascii=False)}
+Instructions:
+For EACH aspect below, give:
+• an integer score from 1 to 5
+• a short justification in one sentence
+Return JSON exactly in this format:
+{"aspects": [
+{"aspect_name": "<string>", "score": <int>, "notes": "<string>"}
+]}
+Figure 14: Prompt for per-aspect evaluation of survey content quality. Returns individual scores for each aspect,
+which are then averaged. Used in_build_prompt_per_aspectmethod for content.
+32
+
+--- Page 33 ---
+Per-Aspect Reference Evaluation Prompt
+System prompt:You are a domain reviewer for category: {category}.
+Domain-specific reference aspects and their criteria (JSON):
+{json.dumps(criteria_payload, ensure_ascii=False)}
+Survey reference titles (cleaned):
+{json.dumps([r.get(’title’) for r in references], ensure_ascii=False)}
+Instructions:
+For EACH aspect below, give:
+• an integer score from 1 to 5
+• a short justification in one sentence
+Return JSON exactly in this format:
+{"aspects": [
+{"aspect_name": "<string>", "score": <int>, "notes": "<string>"}
+]}
+Figure 15: Prompt for per-aspect evaluation of survey reference quality. Returns individual scores for each aspect,
+which are then averaged. Used in_build_prompt_per_aspectmethod for reference.
+33
+
+--- Page 34 ---
+Deep Research Agent Survey Generation Prompt
+Given:
+1. Topic: {topic} (user-provided literature review topic)
+2. Output Style: Formal academic style suitable for a top-tier journal
+3. Output Format: A full systematic literature review with section headings and references
+Task (Step 1: Initial Request):
+Please write a comprehensive systematic literature review paper on: “{topic}”
+The review should cover:
+1. Introduction and background
+2. Key concepts and definitions
+3. Historical development and milestones
+4. Current state-of-the-art methods and techniques
+5. Applications and case studies
+6. Challenges and open problems
+7. Future research directions
+8. Conclusion
+Please write in a formal academic style suitable for a top-tier journal. Include section headings and
+provide references for all sources used.
+Task (Step 2: Full Paper Generation):
+Great. Now please proceed to write the complete literature review as outlined. The review should be
+comprehensive, well-structured, and rigorous.
+Please include:
+1. A clear title and abstract
+2. Introduction with research motivation and objectives
+3. Comprehensive review of existing literature organized by themes or chronology
+4. Critical analysis of the field’s strengths and weaknesses
+5. Identification of research gaps
+6. Conclusion summarizing key findings
+7. References section with all cited sources
+The review should be detailed enough for publication in a reputable academic journal, typically
+between 3000–8000 words. Please begin writing now.
+Notes:
+• The code sends a multi-turn message sequence:
+1. User: Step 1 initial request (above)
+2.Assistant: Model “clarification” (captured from Step 1 output; if missing, replaced by a
+short default acknowledgement)
+3. User: Step 2 full-paper instruction (above)
+Figure 16: Prompt for batch generation of systematic literature reviews. The script first issues an initial scope
+request, then prompts the model to produce a full paper for each user-provided topic; references returned by the
+deep-research model are collected and saved.
+34

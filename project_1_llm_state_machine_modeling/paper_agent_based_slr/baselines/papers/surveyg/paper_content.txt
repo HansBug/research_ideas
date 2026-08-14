@@ -1,0 +1,1281 @@
+--- Page 1 ---
+A Multi-Agent LLM Framework with Hierarchical Citation Graph
+for Automated Survey Generation
+Minh-Anh Nguyen∗
+CMC OpenAI, VinUniversity
+VietnamMinh-Duc Nguyen∗
+VinUniversity
+VietnamHa Lan N.T.∗
+VinUniversity
+Vietnam
+Kieu Hai Dang
+VinUniversity
+VietnamNguyen Tien Dong
+CMC OpenAI, VinUniversity
+VietnamDung D. Le
+VinUniversity
+Vietnam
+Abstract
+Large language models (LLMs) are increasingly being adopted to
+automate survey paper generation. Existing approaches typically
+extract content from a large collection of related papers and prompt
+LLMs to summarize them directly. However, such methods often
+overlook the structural relationships among papers, resulting in
+generated surveys that lack a coherent taxonomy and a deeper
+contextual understanding of research progress. To address these
+shortcomings, we proposeSurveyG, an LLM-based agent frame-
+work that integrateshierarchical citation graph, where nodes denote
+research papers and edges capture both citation dependencies and
+semantic relatedness between their contents, thereby embedding
+structural and contextual knowledge into the survey generation
+process. The graph is organized into three layers:Foundation,De-
+velopment, andFrontier, to capture the evolution of research from
+seminal works to incremental advances and emerging directions. By
+combining horizontal search within layers and vertical depth traver-
+sal across layers, the agent produces multi-level summaries, which
+are consolidated into a structured survey outline. A multi-agent
+validation stage then ensures consistency, coverage, and factual
+accuracy in generating the final survey. Experiments, including
+evaluations by human experts and LLM-as-a-judge, demonstrate
+that SurveyG outperforms state-of-the-art frameworks, producing
+surveys that are more comprehensive and better structured to the
+underlying knowledge taxonomy of a field. Our implementation
+can be found at https://github.com/akBear23/SurveyG.git.
+CCS Concepts
+•Computing methodologies→Information extraction.
+Keywords
+Automated Survey Generation, Literature Synthesis
+ACM Reference Format:
+Minh-Anh Nguyen, Minh-Duc Nguyen, Ha Lan N.T., Kieu Hai Dang, Nguyen
+Tien Dong, and Dung D. Le. 2026. A Multi-Agent LLM Framework with
+Hierarchical Citation Graph for Automated Survey Generation. In.ACM,
+New York, NY, USA, 14 pages. https://doi.org/10.1145/nnnnnnn.nnnnnnn
+1 Introduction
+The exponential growth of research publications, particularly in
+rapidly evolving fields such as Artificial Intelligence [ 7], has made it
+increasingly difficult for researchers to keep pace with new develop-
+ments [ 15,16]. While survey papers serve as invaluable resources by
+∗Both authors contributed equally to this research.
+DatabaseI want to find
+papers in topic
+Knowledge Graph
+Embedding
+Find rel evant
+paper Summarize
+paperStructured
+OutlineFull paper Evaluation
+Figure 1: Standard automated survey pipeline: (1) collect rel-
+evant papers, (2) build a structured outline, and (3) write the
+full survey.
+synthesizing existing knowledge and identifying emerging trends,
+their manual construction is costly, time-consuming, and often
+unable to keep up with the overwhelming influx of literature [ 9].
+Although large language models (LLMs) offer promising text gener-
+ation capabilities, they face critical limitations in handling massive
+reference sets, maintaining academic rigor, and providing up-to-
+date knowledge [ 6,18]. These challenges underscore the urgent
+need for an automated survey generation framework that can effi-
+ciently retrieve, organize, and synthesize literature into coherent,
+high-quality surveys tailored to users’ research interests.
+Some recent studies [ 9,10,15,20] have proposed autonomous
+survey generation frameworks based on user queries, following
+the basic pipeline illustrated in Figure 1. While these approaches
+represent promising progress, they exhibit two key limitations.
+Firstly,they neglect the relationships between papers, such as
+citation links, methodological connections, or subtopic dependen-
+cies, which are essential for understanding how works build upon
+one another, improve over foundational methods, and collectively
+shape research trends.Secondly,these frameworks employ a naive
+strategy for constructing structured outlines or full survey papers,
+simply concatenating summaries of individual papers. This not
+only exacerbates the long-context problem in LLMs but also fails
+to exploit the hierarchical organization of related works within
+subtopics.
+To address these limitations, we proposeSurveyG, an autonomous
+survey generation system that emphasizes knowledge represen-
+tation and hierarchical summarization. We design an LLM-based
+multi-agent framework that represents knowledge using a hierar-
+chical citation graph, where nodes correspond to papers and edges
+capture citation relationships and semantic similarity. The graph is
+organized into three layers:Foundation, Development, andFron-
+tier, reflecting research progression from seminal contributions toarXiv:2510.07733v3  [cs.AI]  7 Feb 2026
+
+--- Page 2 ---
+Conference’17, July 2017, Washington, DC, USA Minh-Anh et al.
+emerging directions. By combining horizontal searches within lay-
+ers and vertical traversals across layers, our framework generates
+multi-aspect summaries that are consolidated into structured sur-
+vey outlines. We evaluate SurveyG on 10 computer science topics
+from the SurGE benchmark [ 10], comparing against state-of-the-art
+frameworks [ 9,15,20] along five dimensions:Coverage,Structure,
+Relevance,Synthesis, andCritical Analysis. Our key contributions
+are: (1) a hierarchical citation graph representation modeling both
+citation and semantic relationships, (2) a graph-based traversal
+mechanism that produces diverse, multi-aspect summarizations
+capturing methodological foundations, developmental trends, and
+frontier directions, and (3) a multi-agent framework combining
+retrieval-augmented generation with hierarchical summaries as
+memory to construct coherent, evidence-grounded survey drafts.
+2 Methodology
+We introduceSurveyG, an automated survey generation frame-
+work with two phases: a preparation phase that retrieves and sum-
+marizes papers, builds a hierarchical citation graph, and extracts
+relationships, and a generation phase that creates a structured out-
+line and composes the full survey through instruction-prompted
+multi-agent collaboration (Figure 2).
+2.1 Preparation Phase
+We represent the relationships among papers using ahierarchical
+citation graph, where nodes correspond to academic papers and
+edges capture both citation links and semantic similarity, each
+weighted by a value 𝑤. Each node is further assigned to one of three
+layers:Foundation,Development, orFrontier, which reflect
+the role of the paper in the progression of research. Formally, the
+hierarchical citation graph is defined as 𝐺=(𝑉,𝐸,𝐿), where𝑉
+denotes the set of nodes (papers), 𝐸⊆𝑉×𝑉 is the set of directed or
+undirected edges encoding citation or semantic relationships, and
+𝐿:𝑉→{Foundation,Development,Frontier}
+is a layer assignment function. For each node 𝑣𝑖∈𝑉, we associate
+a corresponding document 𝑑𝑖∈𝐷, where𝐷is a database storing
+the complete content of all papers. In addition, each node 𝑣𝑖∈𝑉is
+equipped with attributes that include a summarization of 𝑑𝑖as well
+as metadata such as the paper’s title and publication year.
+2.1.1 Searching Relevant Paper.Given a user query 𝑞, our goal is
+to construct a hierarchical citation graph 𝐺that encompasses all
+relevant papers while capturing the evolutionary trends of research
+in the field. We first employ an LLM to expand the query into a set
+of diverse keywords {𝑘1,...,𝑘𝑛}=LLM(𝑞) . Using these keywords,
+we retrieve candidate papers through the crawling module. After
+collecting the relevant papers, we establish edges between them
+based on citation links and quantify their semantic relatedness
+through weighted connections. The weight 𝑤assigned to an edge
+connecting papers𝑣 𝑖and𝑣𝑗is defined as
+𝑤=simText_Encoder(𝑣 𝑖),Text_Encoder(𝑣 𝑗),(1)
+where sim(·) denotes the cosine similarity between the text embed-
+ding vectors of the two papers. We consider two embedding strate-
+gies: abstract-based embeddings, which are efficient and widely
+available but may be incomplete or overstated, and LLM-generatedsummary-based embeddings, which better capture methodological
+and empirical content but require full text and extra processing
+[22]. We use summary-based embeddings by default because our
+pipeline already produces content-focused summaries (as detailed
+in the paragraph below), enabling richer semantic representations
+of methods, tasks, and domain contributions, and falls back to
+abstract-based embeddings when full-text access is unavailable.
+To better leverage the key content of each paper for survey gen-
+eration, every node 𝑣𝑖is enriched with a summarization derived
+from its corresponding document 𝑑𝑖. We design specialized prompt
+templates tailored to different paper types [ 9] (e.g., surveys, method-
+ological contributions, benchmarks, theoretical works) to extract
+salient information, including research objectives, methodological
+approaches, key findings, and limitations. After this phase, we ob-
+tain a flat graph ˆ𝐺=(𝑉,𝐸) that encompasses the papers relevant
+to the user’s topic along with their relationships. Each node 𝑣𝑖∈𝑉
+is associated with a set of attributes defined as
+𝐴(𝑣𝑖)={metadata(𝑣 𝑖),summary(𝑑 𝑖)},
+where metadata(𝑣 𝑖)contains bibliographic information such as
+the paper’s title, authors, and publication year, and summary(𝑑 𝑖)
+represents the content-based summarization of the corresponding
+document. These attributes are also stored in the database 𝐷to
+facilitate efficient retrieval and analysis.
+2.1.2 Knowledge Representation.To reflect the developmental pro-
+gression of research within a topic, we assign each node in the flat
+graph ˆ𝐺=(𝑉,𝐸) to one of three hierarchical layers via a layer
+assignment function. (1)Foundation Layer: The foundation layer
+consists of seminal and high-impact works that form the intellec-
+tual backbone of the field. For each paper 𝑝, we define atrending
+scoreas
+trend score(𝑝)=citation_count(𝑝)
+1+year_published(𝑝),(2)
+where year_published(𝑝) denotes the number of years elapsed
+since the paper’s publication. Papers are ranked by this score, and
+the top-𝐾entries constitute the foundation set:
+𝑉foundation ={𝑣𝑖∈𝑉|trend score(𝑣𝑖)≤𝐾}.
+These papers are not only highly cited but also serve as conceptual
+anchors that establish key paradigms and problem formulations
+underpinning later research. (2)Development Layer:The devel-
+opment layer captures the historical evolution of the field before a
+time landmark 𝑇(eg, 2025), representing works that refine, extend,
+or challenge the foundations. Formally,
+𝑉development ={𝑣𝑖∈𝑉|year(𝑣 𝑖)<𝑇, 𝑣𝑖∉𝑉foundation},
+These works are often incremental yet essential: they consolidate
+methodological frameworks, validate empirical findings, and en-
+able the community to mature foundational ideas into established
+research threads. (3)Frontier Layer:The frontier layer reflects
+the cutting edge of inquiry, consisting of recent contributions that
+point toward emerging trends and open challenges. It is defined as
+𝑉frontier ={𝑣𝑖∈𝑉|year(𝑣 𝑖)≥𝑇, 𝑣𝑖∉𝑉foundation}.
+Unlike the development layer, frontier works are temporally close
+to the present and thus provide a window into the current momen-
+tum and future trajectories of the domain. After this mapping, the
+
+--- Page 3 ---
+A Multi-Agent LLM Framework with Hierarchical Citation Graph for Automated Survey Generation Conference’17, July 2017, Washington, DC, USA
+User Query
+I want a survey
+about Knowledge
+Graph Embedding
+Query  Rewriting
+Semantic
+Network
+Represent.Relation
+Embed.KG
+Embed.Search
+Filter
+{"title": , "author":, published_time, cited_by, number_cited,
+SUMMARY: text};{"title": , "author":, published_time, cited_by, number_cited,
+SUMMARY: text};{"title": , "author":, published_time, cited_by, number_cited,
+SUMMARY: text};{"title": A, "author":, published_time, cited_by B,
+number_cited, SUMMARY: text};
+Paper
+Meta -Data
+Knowledge Representation
+{B}
+{A cites  B}{A}
+Paper
+Meta -Data
+w
+G
+Traversal on
+Graph G
+Writing
+Structured
+OutlineFull
+Paper
+Vertical
+SummarizationHorizontal
+Summarization
+MemoryStore
+Database
+{Score,
+Assessment}
+Writing
+Agent
+ Outline
+Evaluation
+Agent
+SubsectionsWriting
+Agent Subsection
+Review
+RelatedAugmentEvaluation
+Agent
+[Score, Suggested Queries]
+ RAGDatabaseMemory
+Paper FulfillmentOutline
+Generation
+Horizontal
+Summarization
+Weighted BFS
+Quantile 1:
+Foundation
+Quantile 2:
+Development
+Quantile 3:
+Frontier
+Vertical
+Summarization
+Loop 𝑻𝒎𝒂𝒙
+times
+Summarizations
+w
+Semantic Weight
+𝑤=𝑇𝑒𝑥𝑡_𝐸𝑛𝑐𝑜𝑑𝑒𝑟 (𝐴,𝐵)
+
+Writing Agent
+ Evaluation Agent
+OutputLoop 𝑻𝒎𝒂𝒙
+times
+Figure 2: Starting from a user’s query, SurveyG retrieves and filters relevant papers (step 1-2), builds a hierarchical citation
+graph, and applies horizontal and vertical traversals to produce multi-aspect summaries (step 3). A multi-agent framework
+then leverages these pre-built summaries to produce a structured outline and a complete survey paper (step 4).
+Algorithm 1Vertical Traversal for Multi-Summarization
+1:Inp:Citation graph 𝐺=(𝑉,𝐸,𝐿) , foundation papers 𝑉foundation
+2:Out:{𝑇(1)
+path,...,𝑇(𝐾)
+path}, where𝐾=|𝑉 foundation|
+3:for all𝑠∈𝑉 foundation do
+4:𝑃 1←{Extract(𝑠)}
+5:𝑃 2←{Extract(𝑢)|𝑢∈WBFS(𝑠,Development)}
+6:𝑃 3←{Extract(𝑤)|𝑤∈WBFS(𝑃 2,Frontier)}
+7:𝑇 dev←GenerateSummarize(𝑃 1∪𝑃2)
+8:𝑇 path←GenerateSummarize(𝑇 dev,𝑃3)
+9:Store𝑇 pathas the summarization for seed𝑠
+10:end for
+11:return𝐾summarizations{𝑇(1)
+path,...,𝑇(𝐾)
+path}
+hierarchical citation graph is represented as
+𝐺=(𝑉,𝐸,𝐿), 𝑉=𝑉 foundation∪𝑉 development∪𝑉 frontier.
+Traversing𝐺along horizontal (intra-layer) and vertical (inter-layer)
+edges then enables the generation of multi-aspect summaries cov-
+ering methodologies, developmental trends, and future directions.
+2.1.3 Traversal on Graph Strategy.We propose a two-stage sum-
+marization framework designed to capture both the breadth and
+depth of the hierarchical citation graph. In thehorizontal stage, to
+capture the internal structure of each layer 𝑉𝑙, we partition it intoYou are a research analyst synthesizing papers on the topic
+[QUERY] .<think> Explain your reasoning for clustering
+papers into 2-3 subgroups based on methodology, contri-
+bution, or thematic focus.</think>
+For each subgroup, summarize the shared methodological
+approaches, thematic contributions, and provide a concise
+critique comparing the works. Finally, synthesize an overall
+perspective highlighting how these subgroups collectively
+operate in the field.
+Figure 3: Horizontal summarization short version prompt.
+communities using the Leiden algorithm [13], yielding
+C𝑙={𝐶𝑙,1,...,𝐶𝑙,𝑚 𝑙},𝑚𝑙Ø
+𝑗=1𝐶𝑙,𝑗=𝑉𝑙.
+Each community 𝐶𝑙,𝑗corresponds to a coherent research direction
+formed by citation and semantic proximity. For every community,
+we query an LLM using a carefully constructed prompt that in-
+tegrates Plan-and-Solve [ 14] strategies, along with paper-specific
+attributes, to generate a synthesized summary:
+𝑇𝑙,𝑗=LLM({𝐴(𝑣 𝑖)|𝑣𝑖∈𝐶𝑙,𝑗}),
+
+--- Page 4 ---
+Conference’17, July 2017, Washington, DC, USA Minh-Anh et al.
+Create a comprehensive literature review outline based on
+the following taxonomy summaries for three layers (Foun-
+dation, Development, Frontier) and vertical directions.
+Horizontal summary:{summary_layer}.
+Vertical direction:{summary_path}.
+Based on the above information, create a detailed outline
+for a literature review paper, organizing it into sections and
+subsections.Respond with the outline in JSON format
+with keys:
+[’section_outline’, ’subsection_focus’, ’proof_ids’].
+For each section: Put section and subsection titles in ’sec-
+tion_outline’; Add a paragraph in ’subsection_focus’ de-
+scribing the main focus of each subsection; Add ’proof_ids’
+from either taxonomy layer or vertical direction.
+Figure 4: Structured outline creation short version prompt.
+which emphasizes the methodologies and thematic scope of the
+papers while capturing key relationships among them. This process
+uncovers sub-directions within the topic and provides a global
+perspective of how research clusters evolve within each layer. The
+detailed prompts used for information extraction are provided in
+Figure 3.
+In thevertical stage, we model cross-layer dependencies by trac-
+ing the evolution of ideas from each foundation paper. For every
+seed𝑠∈𝑉 foundation , Algorithm 1 performs a weighted breadth-first
+search (WBFS) over the citation graph, prioritizing semantically rel-
+evant nodes via edge weights. The procedure first extracts the foun-
+dation paper ( 𝑃1), then collects Development-layer papers reachable
+from𝑠(𝑃2), and finally expands to Frontier-layer papers from 𝑃2
+(𝑃3). We summarize these papers hierarchically: an intermediate
+summary𝑇devis generated from 𝑃1∪𝑃2, which is then used to in-
+corporate𝑃3and produce the final path summary 𝑇path. This staged
+design leverages temporal progression to reduce long-context is-
+sues and improve insight extraction [ 21]. Repeating this process
+for all𝐾foundation papers yields 𝐾vertical summaries, which are
+combined with 𝑁horizontal layer summaries for a total of 𝐾+𝑁
+outputs.
+In contrast to earlier frameworks [ 9,15,16,20] that represent
+papers as isolated records in a flat database and depend exclusively
+on RAG-based retrieval, SurveyG organizes the literature within a
+hierarchical citation graph 𝐺. This representation integrates both ci-
+tation and semantic connections among papers, allowing the system
+to capture the logical progression of research topics over time. By
+traversing this hierarchy, SurveyG produces a series of summariza-
+tions across multiple layers, effectively revealing methodological
+developments, evolutionary patterns, and current research fron-
+tiers. Such a design provides a more coherent and interpretable
+knowledge foundation for automated survey generation.
+2.2 Generation Phase
+We use a multi-agent conversational framework [ 17] for survey gen-
+eration, consisting of a Writing Agent with memory initialized fromAlgorithm 2SurveyG Automated Survey Generation
+1:Input:Survey Topic 𝑄, Paper Database 𝐷, Max iterations 𝑇max,
+Summarizations{𝑇 1,...,𝑇𝐾+𝑁}
+2:Output:Survey Paper𝐹
+3:// Initialization
+4:Create Writing Agent (WA) and Evaluation Agent (EA)
+5:Initialize memory𝑀for WA with{𝑇 1,...,𝑇𝐾+𝑁}
+6:// Phase 1: Create Outline
+7:WA generates initial outlineO(0)from𝑀
+8:for𝑡=1to𝑇 maxdo
+9:O(𝑡)=WA(𝑀,EA(O(𝑡−1)))
+10:ifquality threshold metthen break
+11:end if
+12:end for
+13:O∗←O(𝑡)
+14:// Phase 2: Write Full Paper
+15:for allsubsection𝑂 𝑖∈O∗do
+16:WA produces an initial draft𝑂(0)
+𝑖
+17:Refine with EA’s feedback and suggested queries𝑄:
+18:for𝑡=1to𝑇 maxdo
+19:𝑂(𝑡)
+𝑖=WA(𝑀∪𝑅(𝑡)
+𝑖,𝐸𝐴(𝑂(𝑡−1)
+𝑖))
+20:where𝑅(𝑡)
+𝑖=Retrieve(𝑄(𝑡)
+𝑖,𝐷)
+21:ifquality threshold metthen break
+22:end if
+23:end for
+24:end for
+25:// Phase 3: Assemble Survey
+26:𝐹←Ð
+𝑖𝑂(𝑡)
+𝑖
+27:return𝐹
+𝐾+𝑁 graph-based summaries [ 11] and an Evaluation Agent that
+provides diversity-focused feedback using LLM reasoning. Through
+iterative interaction, the Writing Agent drafts content grounded in
+summaries, while the Evaluation Agent critiques and refines it for
+coherence and balance, enabling collaborative survey construction,
+detailed in Algorithm 2.
+2.2.1 Structured Outline Construction.The Writing Agent con-
+structs an initial structured outline by grounding each section and
+subsection in the 𝐾+𝑁 multi-aspect summarizations, ensuring
+both factual grounding and thematic coherence. The Evaluation
+Agent then reviews the draft, assessing logical flow and suggesting
+refinements without altering the overall structure. After the feed-
+back iterations, the outline converges into a coherent and evidence-
+supported framework. Detailed prompting for both agents is pro-
+vided in Figure 4 and Appendix D. The key innovation of SurveyG
+lies in its ability to manage long-context survey synthesis without
+concatenating all reference texts [ 9,15] or relying on pre-existing
+human-written surveys [ 20]. Instead, it leverages hierarchical sum-
+marization from the citation graph 𝐺as structured knowledge
+injected into the Writing Agent.
+2.2.2 Full Paper Completion.In the writing stage, theWriting
+Agentexpands each subsection based on the structured outline
+and its memory, utilizing grounded summaries to ensure factual
+consistency and contextual relevance. Meanwhile, theEvaluation
+
+--- Page 5 ---
+A Multi-Agent LLM Framework with Hierarchical Citation Graph for Automated Survey Generation Conference’17, July 2017, Washington, DC, USA
+LLM Model Coverage Structure Relevance Synthesis Critical Analysis
+ClaudeAutoSurvey73.6(±3.2)64.5(±4.1)80.2(±2.8)51.1(±5.3)45.8(±4.7)
+SurveyX74.2(±3.7)71.3(±4.3)82.3(±3.1)62.4(±4.9)52.7(±5.1)
+SurveyForge81.8(±2.9)78.4(±3.5)89.1(±2.1)75.4(±3.8)70.3(±4.2)
+SurveyG88.1(±2.4)87.9(±2.7)93.6(±1.9)80.2(±3.2)77.3(±3.5)
+GPTAutoSurvey90.7(±2.1)86.2(±2.8)89.3(±2.5)84.6(±3.1)82.3(±3.4)
+SurveyX89.3(±2.6)84.4(±3.2)88.5(±2.8)79.2(±3.9)78.4(±4.1)
+SurveyForge94.2(±1.8)87.3(±2.5)94.8(±1.6)88.6(±2.7)88.5(±2.9)
+SurveyG95.7(±1.5)88.5(±2.2)95.1(±1.4)92.2(±2.3)91.2(±2.6)
+DeepseekAutoSurvey86.5(±2.7)80.4(±3.6)87.8(±2.9)77.3(±4.2)72.4(±4.5)
+SurveyX85.4(±3.1)81.2(±3.8)89.4(±2.7)78.2(±4.3)75.6(±4.6)
+SurveyForge89.4(±2.3)86.5(±2.9)92.5(±2.0)84.1(±3.4)80.7(±3.7)
+SurveyG88.7(±2.5)85.7(±3.0)94.2(±1.8)86.3(±3.1)82.7(±3.5)
+GeminiAutoSurvey94.2(±1.9)70.8(±5.2)96.5(±1.5)83.6(±3.6)84.2(±3.8)
+SurveyX90.2(±2.8)71.2(±5.4)95.6(±1.8)82.8(±3.9)84.5(±4.0)
+SurveyForge94.9(±1.7)93.1(±2.1)98.7(±1.1)93.5(±2.4)94.2(±2.5)
+SurveyG96.2(±1.4)89.4(±2.6)98.6(±1.0)95.6(±2.1)96.2(±2.3)
+Table 1: LLM-as-a-judge evaluation of generated surveys using GPT-4o-mini backbone (mean (±std) over 10 trials per topic).
+Each LLM evaluates four generation models across content quality dimensions.
+Agentprovides critical feedback by offering broader perspectives
+and generating targeted retrieval queries to identify additional rel-
+evant papers from the database 𝐷. This iterative collaboration en-
+sures that the final text is coherent, comprehensive, and rigorously
+supported by the literature. The key novelty lies in combining RAG-
+based retrieval, guided by the Evaluation Agent’s global perspective,
+with pre-built hierarchical summaries that serve as localized knowl-
+edge, enabling the generation of well-balanced and contextually
+rich subsections.
+3 Experiments
+3.1 Experimental Setup
+3.1.1 Baselines.We compareSurveyGwith three state-of-the-art
+systems:AutoSurvey[ 15],SurveyX[ 9], andSurveyForge[ 20].
+Details on each baseline are provided in Appendix C.1.
+3.1.2 Dataset and Ground Truth Construction.We evaluateSur-
+veyGon ten diverse computer science topics from the SurGE bench-
+mark [ 10], which comprises 205 human-authored surveys and over
+one million papers. To establish high-quality ground truth, we
+recruited 20 domain experts: CS Ph.D. students from QS 5-star
+universities with 3+ years of research experience and senior AI
+research engineers with publication records in top-tier venues.
+The ground-truth selection followed a rigorous three-stage proto-
+col: (1)Topic Selection: Ten representative research areas covering
+diverse subfields; (2)Survey Selection: For each topic, 2-3 domain-
+matched experts independently reviewed available surveys based
+on four criteria: comprehensive coverage, structural clarity, recency
+(within 5 years), and citation impact, with disagreements resolved
+through consensus; (3)Reference Curation: Experts identified
+seminal works, key methodological contributions, and recent ad-
+vances essential for comprehensive coverage. The same experts
+served as human evaluators, assessing coherence, coverage, and
+factual accuracy. Complete details on topic descriptions, selectioncriteria, scoring rubrics, and inter-annotator agreement are in Ap-
+pendix C.
+3.1.3 Implementation Details.We adopt the experimental setup
+from prior studies [ 9,15,20]. Specifically, we retrieve 1,500 candi-
+date papers for outline construction, select 60 papers per chapter,
+and include 300 papers in each final survey. All methods, includ-
+ing SurveyG and the baselines, useGPT-4o-mini-2024-07-18as the
+main backbone model and share the same crawled paper data-
+base released with SurveyForge. To assess cross-model robustness,
+we additionally testGemini-2.5-Flash. For evaluation, we generate
+ten independent runs per topic (100 surveys in total). Four state-
+of-the-art LLMs:GPT-4o-2024-08-06,Claude-3.5-Sonnet-20241022,
+DeepSeek-V3.2-Exp, andGemini-2.5-Pro, are used as judges. We set
+𝑇MAX=3and DeBERTa-v3-large as our main text encoder model.
+3.1.4 Evaluation Metrics.We evaluate three dimensions: (1)Out-
+line Qualityfollowing [ 20]; (2)Content Qualityusing five met-
+rics (Coverage,Structure,Relevance,Synthesis,Critical Anal-
+ysis) rated 0-100 by LLM and human judges; (3)Citation Quality
+measuring factual consistency via NLI, reportingCitation Recall,
+Precision, andF1. Complete metric definitions and evaluation
+protocols are in Appendix C.3.
+3.2 LLMs-as-a-judge evaluation
+3.2.1 Evaluation on Content Quality.As shown in Table 1, SurveyG
+consistently achieves the highest scores across nearly all metrics
+and evaluation models, demonstrating strong generalization and
+robustness. SurveyG maintains low standard deviations (1.3-3.7
+points) compared to baselines (1.1-5.4 points), indicating stable per-
+formance across topics and judges. Cross-judge analysis reveals
+remarkable consistency: SurveyG achieves top-2 performance un-
+der all four judges and ranks first in 16 out of 20 metric-judge
+combinations (80%). In contrast, SurveyForge shows variable per-
+formance, ranking first under Gemini but dropping to third under
+
+--- Page 6 ---
+Conference’17, July 2017, Washington, DC, USA Minh-Anh et al.
+Visual
+TransformerHallucination
+in LLMOOD DetectionGraph Neural
+Network
+RL for
+Language Processing
+Deep
+Meta-Learning
+RAG
+for LLM
+Knowledge Graph
+EmbeddingExploration
+in RLStabilizing
+GANs7085100
+Coverage
+Visual
+TransformerHallucination
+in LLMOOD DetectionGraph Neural
+Network
+RL for
+Language Processing
+Deep
+Meta-Learning
+RAG
+for LLM
+Knowledge Graph
+EmbeddingExploration
+in RLStabilizing
+GANs
+Synthesis
+Visual
+TransformerHallucination
+in LLMOOD DetectionGraph Neural
+Network
+RL for
+Language Processing
+Deep
+Meta-Learning
+RAG
+for LLM
+Knowledge Graph
+EmbeddingExploration
+in RLStabilizing
+GANs
+Critical AnalysisSurveyForge SurveyG Human
+Figure 5: LLM-as-a-judge evaluation of human-written ground-truth surveys, SurveyForge, and SurveyG across ten topics using
+GPT-4o as the evaluator.
+Evaluation Type Model Score Win Rate Comparative Win Rate Human Eval
+Full PaperSurveyForge 38.85% 27.75% 36.00%
+SurveyG (ours)61.15% 72.25% 64.00%
+OutlineSurveyForge 45.00% 42.00% 45.00%
+SurveyG (ours)55.00% 58.00% 55.00%
+Table 2: Win-rate comparison of SurveyForge and SurveyG on full-paper and outline evaluations.Score Win Rateindicates
+higher absolute evaluation scores,Comparative Win Ratereflects pairwise LLM preferences, andHuman Evaldenotes human
+judgment win rate.
+Claude’s stricter assessment. The particularly great improvements
+inSynthesis(+2.9 to +4.6 points over SurveyForge) andCritical
+Analysis(+1.9 to +7.0 points) reflect the framework’s ability to in-
+tegrate information and identify research gaps through structured
+reasoning, achieving superior organization and analytical depth
+without requiring human-written survey inputs.
+3.2.2 Evaluation on Ground Truth.Figure 5 reveals distinct per-
+formance patterns among the three approaches. In Synthesis, Sur-
+veyG achieves the most balanced performance, closely matching
+human surveys and showing more consistent scores than Survey-
+Forge across metrics like OOD Detection and Hallucination in LLM.
+For Coverage, while human surveys lead with 90 scores, SurveyG
+demonstrates more stable cross-topic performance compared to
+SurveyForge’s variable results, particularly in specialized areas like
+Knowledge Graph Embedding and RL for Language Processing. In
+Critical Analysis, both automated methods score 70-85, but Sur-
+veyG shows less variation between metrics, indicating more reliable
+quality. Overall, while SurveyForge occasionally peaks higher in
+individual metrics, SurveyG’s consistently uniform polygon shapes
+across all three dimensions suggest superior robustness and gener-
+alization capability for diverse survey generation tasks.
+3.2.3 Evaluation on Citation Quality.As shown in Table 3,Sur-
+veyGachieves superior citation quality with the highest Recall
+(91.40±1.8) and F1 Score (83.49 ±2.0), significantly outperforming
+all baselines. The low standard deviation (1.8-2.0) indicates consis-
+tent performance across diverse topics. Notably, SurveyG’s Recallapproaches the Ground Truth (92.53), demonstrating highly effec-
+tive identification and linking of relevant literature. While SurveyX
+achieves the highest Precision (78.12 ±2.9), SurveyG’s substantially
+better F1 Score confirms its superior balance between citation com-
+pleteness and accuracy. This improvement stems from the hierar-
+chical citation graph structure, which enables systematic traversal
+of foundational and frontier papers, ensuring comprehensive yet
+relevant reference coverage.
+Model Recall Precision F1 Score
+AutoSurvey82.25(±2.8)77.41(±3.2)79.76(±2.5)
+SurveyForge88.34(±2.1)75.92(±3.5)81.66(±2.3)
+SurveyX85.23(±2.6)78.12(±2.9)81.52(±2.4)
+SurveyG (ours)91.40(±1.8)77.83(±2.7)83.49(±2.0)
+Ground Truth92.53(±1.5)86.42(±2.1)89.34(±1.7)
+Table 3: Citation quality comparison across models.
+Evaluation Pair AspectCohen𝜅
+LLM vs. Human Outline 0.6972
+LLM vs. Human Content 0.6062
+Human Cross-Validation Outline 0.7542
+Human Cross-Validation Content 0.7127
+Table 4: Inter-rater agreement between LLMs and humans
+
+--- Page 7 ---
+A Multi-Agent LLM Framework with Hierarchical Citation Graph for Automated Survey Generation Conference’17, July 2017, Washington, DC, USA
+1 2 3 4 5
+TMAX1.01.52.02.53.03.54.04.55.0Outline Quality Score(a) Outline Quality vs TMAX
+1 2 3 4 5
+TMAX7580859095Content Quality Score(b) Content Quality vs TMAX
+Figure 6: Ablation analysis of the number of evaluation loop𝑇 𝑀𝐴𝑋.
+6 8 10 12 14
+Number of Foundation Papers (K)7678808284868890Content Quality Score
+Structure
+Synthesis
+Critical Analysis
+Optimal Range
+Figure 7: Ablation analysis of the number of foundation pa-
+pers𝐾.
+3.3 Human Evaluation
+To validate our evaluation framework, we conducted win-rate com-
+parisons between SurveyG and the strongest baseline SurveyForge
+across ten topics, using three metrics:Score Win Rate(higher ab-
+solute scores),Comparative Win Rate(pairwise preferences), and
+Human Eval(expert judgments). As shown in Table 2, SurveyG
+substantially outperforms SurveyForge in full-paper generation
+(61.15% vs. 38.85% score win rate, 72.25% vs. 27.75% comparative
+win rate, 64.00% vs. 36.00% human preference). The particularly
+strong comparative win rate (72.25%) indicates that judges over-
+whelmingly prefer SurveyG in direct side-by-side comparisons. For
+outline generation, SurveyG maintains consistency, demonstrating
+that the hierarchical citation graph provides effective structured
+guidance from the earliest generation stage. The strong alignment
+between automated and human judgments (within 3-8%) validates
+our LLM-based evaluation framework’s reliability while maintain-
+ing scalability.
+3.3.1 Details of Human Evaluation.To evaluate reliability, we as-
+signed two domain experts to each of the ten SurGE topics. For
+every topic, we randomly sampled ten anonymized outputs from
+SurveyGand ten fromSurveyForge, each obtained from indepen-
+dent generation runs. All outputs were fully anonymized, ensuring
+that neither the human experts nor the LLM judge (GPT-4o) was
+aware of their system of origin. Both experts independently ratedall 20 outputs per topic using identical evaluation prompts and
+criteria, which covered five content metricsStructure,Coverage,
+Relevance,Synthesis, andCritical Analysisas well as an outline
+quality score (0 to 100). For each topic, we computed Cohen’s 𝜅to
+measure (i) agreement between the LLM and human raters, and
+(ii) agreement between human raters. Table 4 reports topic-wise
+and average 𝜅values. The mean Cohen’s 𝜅for the outline metric
+was 0.6972 (LLM-human) versus 0.7542 (human-human), and for
+content metrics, 0.6062 versus 0.7127, respectively. These results
+demonstrate substantial inter-rater reliability and confirm that the
+LLM-as-a-judge evaluations align closely with expert assessments.
+Variant Cov. Str. Rel. Syn. C.A
+Full 95.7 88.5 95.1 92.2 90.5
+w/o Vertical Traversal 89.8 84.8 93.9 84.8 84.6
+w/o Horizontal Clustering 91.5 85.2 93.6 83.7 86.8
+w/o MA 93.2 85.6 91.2 88.7 87.2
+Table 5: Ablation study on key components: (1)w/o Verti-
+cal Traversal: horizontal clustering only; (2)w/o Horizontal
+Clustering: vertical path traversal only; (3)w/o MA: no multi-
+agent refinement. Evaluated byGPT-4o.
+3.4 Ablation Studies
+Table 5 presents ablation results comparing our full model against
+variants with specific components removed. The full model achieves
+the best performance across all metrics, demonstrating that each
+component contributes meaningfully to survey quality. Removing
+vertical traversal causes the most significant degradation, particu-
+larly in Synthesis (-7.4 points) and Critical Analysis (-5.9 points),
+indicating that cross-layer exploration from foundational to frontier
+papers is crucial for integrative reasoning and identifying research
+gaps. The w/o horizontal clustering variant also shows substan-
+tial drops in Synthesis (-8.5 points), confirming that within-layer
+grouping of thematically related papers enables effective informa-
+tion organization. Removing the multi-agent refinement loop (w/o
+MA) decreases Relevance (-3.9 points) and Structure (-2.9 points),
+showing that iterative evaluation-agent feedback improves content
+focus and coherence. These results validate that the hierarchical
+citation graph’s bidirectional traversal mechanisms and multi-agent
+
+--- Page 8 ---
+Conference’17, July 2017, Washington, DC, USA Minh-Anh et al.
+refinement work synergistically to produce comprehensive, well-
+structured surveys.
+Ablation on number of 𝑇MAX. We investigate the impact of
+evaluation iterations 𝑇MAX on generation quality (Figure 6). For
+outline generation, performance improves from mean = 3.5 (std
+= 0.6) at𝑇MAX=1to mean = 4.8 (std = 0.30) at 𝑇MAX=3, where
+iterative feedback effectively addresses structural gaps. Similarly,
+section content quality increases from 82.5 (std = 3.2) at 𝑇MAX=1
+to 90.6 (std = 2.4) at 𝑇MAX=3, achieving full model performance
+(Structure = 88.5±2.2, Synthesis = 92.2 ±2.3, Critical Analysis =
+91.2±2.6). Beyond 𝑇MAX=3, improvements become marginal (<
+0.2 points) with increased variance, indicating diminishing returns.
+We therefore set 𝑇MAX=3as default, balancing quality, stability,
+and computational efficiency.
+Ablation on number of 𝐾. We examine how the number of
+foundation papers 𝐾affects vertical traversal across Structure, Syn-
+thesis, and Critical Analysis metrics (Figure 7). Performance is
+suboptimal at 𝐾=6(scores = 80.9-81.8, std = 3.5-4.0) due to insuffi-
+cient foundational coverage, improves at 𝐾=8(scores = 84.0-85.1),
+and peaks at 𝐾= 10(scores = 84.6-85.9, std = 2.6-2.8). Synthesis
+shows the highest sensitivity to 𝐾(5.0-point range), as compre-
+hensive foundation-to-frontier paths are critical for cross-paper
+integration. Optimal 𝐾varies by topic breadth: broader fields bene-
+fit from𝐾=10, while focused domains achieve comparable results
+with𝐾= 8. Beyond𝐾= 10, performance plateaus or declines
+with increased variance. We recommend 𝐾∈[ 8,10]based on topic
+characteristics.
+Cost Estimation. The SurveyG framework generates survey
+papers with an average length of approximately 64k tokens, compa-
+rable to expert-written surveys. Each subsection is produced using
+around 12k input tokens and 800 output tokens. The Evaluation
+Agent in the RAG loop performs one assessment per subsection,
+consuming approximately 3.7k input and 700 output tokens. Using
+GPT-4o-mini pricing ($0.150/1M input tokens, $0.600/1M output
+tokens), the total LLM cost for generating a full 64k-token survey
+is $1.5-$1.7, depending on the number of sections and revision
+iterations. We provide details about computational efficiency in
+Appendix E.
+More ablation studies. We compare SurveyG and SurveyForge
+under 2 different backbones: GPT-4o-mini and Gemni-2.5-Flash in
+Appendix B.
+4 Related works
+4.1 Long-form Text Generation
+LLMs have achieved remarkable progress, yet generating long-
+form, coherent, and logically structured documents remains a per-
+sistent challenge [ 2,3,6]. Recent works have explored different
+strategies to address the long-context problem. For example, Chain-
+of-Agents [ 21] introduces a multi-agent collaboration framework
+where worker agents process segmented portions of text and a man-
+ager agent synthesizes them into coherent outputs, alleviating focus
+issues in long contexts. LongAlign [ 1] proposes a recipe for long
+context alignment, combining instruction data construction, effi-
+cient batching, yielding strong gains on queries up to 100k tokens.
+Complementary to these, Xu et al. [ 19] systematically examine the
+trade-offs between retrieval-augmentation and context-windowextension, showing that hybrid approaches can outperform both
+strategies alone. However, existing approaches often rely on raw
+reference texts, leading to inefficient retrieval, limited context uti-
+lization, and poor structural coherence in survey-like outputs.
+4.2 Automatic Survey Generation
+The automatic generation of literature reviews has been studied
+for over a decade, starting with multi-document summarization
+techniques that produced unstructured related work sections. Early
+systems, such as IBM Science Summarizer [ 4], focused on summa-
+rizing scientific articles, while more recent LLM-based methods like
+ChatCite [ 8] and Susnjak et al. [ 12]’s domain-specific fine-tuning
+advanced the generation of comparative and knowledge-enriched
+reviews. Despite these advances, such methods primarily tackle
+summarization rather than the creation of fully structured survey
+papers. More recent systems, including AutoSurvey [ 15], Interac-
+tiveSurvey [ 16], SurveyForge [ 20], and SurveyX [ 9], propose end-to-
+end pipelines integrating RAG, clustering, or multi-agent strategies
+to automate survey construction. These methods improve structural
+coherence and formatting consistency while scaling to long-form
+survey content. Nevertheless, most frameworks still restrict users to
+fixed input-output modes, overlooking relationships among papers
+and limiting interactivity, which often results in surveys that lack
+flexibility, relational awareness, and depth.
+5 Limitations and Ethical Considerations
+Limitations.SurveyG requires substantial computational re-
+sources for graph construction and multi-agent refinement, which
+may limit accessibility for researchers with constrained budgets.
+The framework’s effectiveness depends on the availability and qual-
+ity of crawled papers, with access limitations to paywalled content
+potentially creating gaps in coverage. Our evaluation focuses ex-
+clusively on English-language computer science publications; gen-
+eralization to other disciplines or languages remains unexplored.
+Ethical Considerations.Automated survey generation raises
+concerns about attribution and academic integrity. Users must crit-
+ically review outputs to ensure proper credit and avoid inadvertent
+plagiarism. The citation graph inherently reflects existing biases in
+academic publishing, including systematic underrepresentation of
+work from marginalized researchers, non-prestigious institutions,
+and non-English publications.
+6 Conclusion
+In this work, we introduced SurveyG, an automated framework
+for survey generation that leverages hierarchical knowledge repre-
+sentation and multi-agent collaboration to address the limitations
+of existing LLM-based approaches. By modeling papers through a
+three-layer citation-similarity graph and employing both horizontal
+and vertical traversal strategies, SurveyG captures the structural
+relationships and evolutionary progress of research, enabling the
+creation of coherent and well-structured outlines. On the SurGE
+benchmark for autonomous computer science survey generation,
+both LLM-as-a-judge evaluations and human expert assessments
+demonstrate that SurveyG outperforms state-of-the-art frameworks
+across multiple dimensions.
+
+--- Page 9 ---
+A Multi-Agent LLM Framework with Hierarchical Citation Graph for Automated Survey Generation Conference’17, July 2017, Washington, DC, USA
+References
+[1]Yushi Bai, Xin Lv, Jiajie Zhang, Yuze He, Ji Qi, Lei Hou, Jie Tang, Yuxiao Dong,
+and Juanzi Li. [n. d.]. Longalign: A recipe for long context alignment of large
+language models, 2024.URL https://arxiv. org/abs/2401.18058([n. d.]).
+[2]Yushi Bai, Xin Lv, Jiajie Zhang, Hongchang Lyu, Jiankai Tang, Zhidian Huang,
+Zhengxiao Du, Xiao Liu, Aohan Zeng, Lei Hou, et al .2023. Longbench: A
+bilingual, multitask benchmark for long context understanding.arXiv preprint
+arXiv:2308.14508(2023).
+[3]Zican Dong, Tianyi Tang, Junyi Li, Wayne Xin Zhao, and Ji-Rong Wen. 2023. Bam-
+boo: A comprehensive benchmark for evaluating long text modeling capacities
+of large language models.arXiv preprint arXiv:2309.13345(2023).
+[4]Shai Erera, Michal Shmueli-Scheuer, Guy Feigenblat, Ora Peled Nakash, Odellia
+Boni, Haggai Roitman, Doron Cohen, Bar Weiner, Yosi Mass, Or Rivlin, et al .2019.
+A summarization system for scientific documents.arXiv preprint arXiv:1908.11152
+(2019).
+[5]Tianyu Gao, Howard Yen, Jiatong Yu, and Danqi Chen. 2023. Enabling large
+language models to generate text with citations.arXiv preprint arXiv:2305.14627
+(2023).
+[6]Shanshan Han, Qifan Zhang, Yuhang Yao, Weizhao Jin, and Zhaozhuo Xu.
+2024. LLM multi-agent systems: Challenges and open problems.arXiv preprint
+arXiv:2402.03578(2024).
+[7]Thien Huynh-The, Quoc-Viet Pham, Xuan-Qui Pham, Thanh Thi Nguyen, Zhu
+Han, and Dong-Seong Kim. 2023. Artificial intelligence for the metaverse: A
+survey.Engineering Applications of Artificial Intelligence117 (2023), 105581.
+[8]Yutong Li, Lu Chen, Aiwei Liu, Kai Yu, and Lijie Wen. 2024. ChatCite: LLM
+agent with human workflow guidance for comparative literature summary.arXiv
+preprint arXiv:2403.02574(2024).
+[9]Xun Liang, Jiawei Yang, Yezhaohui Wang, Chen Tang, Zifan Zheng, Shichao Song,
+Zehao Lin, Yebin Yang, Simin Niu, Hanyu Wang, et al .2025. Surveyx: Academic
+survey automation via large language models.arXiv preprint arXiv:2502.14776
+(2025).
+[10] Weihang Su, Anzhe Xie, Qingyao Ai, Jianming Long, Jiaxin Mao, Ziyi Ye, and
+Yiqun Liu. 2025. Benchmarking Computer Science Survey Generation.arXiv
+preprint arXiv:2508.15658(2025).
+[11] Theodore Sumers, Shunyu Yao, Karthik Narasimhan, and Thomas Griffiths. 2023.
+Cognitive architectures for language agents.Transactions on Machine Learning
+Research(2023).
+[12] Teo Susnjak, Peter Hwang, Napoleon Reyes, Andre LC Barczak, Timothy McIn-
+tosh, and Surangika Ranathunga. 2025. Automating research synthesis with
+domain-specific large language model fine-tuning.ACM Transactions on Knowl-
+edge Discovery from Data19, 3 (2025), 1–39.
+[13] Vincent A Traag, Ludo Waltman, and Nees Jan Van Eck. 2019. From Louvain to
+Leiden: guaranteeing well-connected communities.Scientific reports9, 1 (2019),
+1–12.
+[14] Lei Wang, Wanyu Xu, Yihuai Lan, Zhiqiang Hu, Yunshi Lan, Roy Ka-Wei Lee,
+and Ee-Peng Lim. 2023. Plan-and-solve prompting: Improving zero-shot chain-
+of-thought reasoning by large language models.arXiv preprint arXiv:2305.04091
+(2023).
+[15] Yidong Wang, Qi Guo, Wenjin Yao, Hongbo Zhang, Xin Zhang, Zhen Wu, Meis-
+han Zhang, Xinyu Dai, Min Zhang, Qingsong Wen, et al .[n. d.]. Autosurvey:
+Large language models can automatically write surveys, 2024.URL https://arxiv.
+org/abs/2406.10252([n. d.]).
+[16] Zhiyuan Wen, Jiannong Cao, Zian Wang, Beichen Guo, Ruosong Yang, and
+Shuaiqi Liu. 2025. Interactivesurvey: An llm-based personalized and interactive
+survey paper generation system.arXiv preprint arXiv:2504.08762(2025).
+[17] Qingyun Wu, Gagan Bansal, Jieyu Zhang, Yiran Wu, Beibin Li, Erkang Zhu, Li
+Jiang, Xiaoyun Zhang, Shaokun Zhang, Jiale Liu, et al .2024. Autogen: Enabling
+next-gen LLM applications via multi-agent conversations. InFirst Conference on
+Language Modeling.
+[18] Yangzhen Wu, Zhiqing Sun, Shanda Li, Sean Welleck, and Yiming Yang. 2025.
+Inference scaling laws: An empirical analysis of compute-optimal inference for
+LLM problem-solving. InThe Thirteenth International Conference on Learning
+Representations.
+[19] Peng Xu, Wei Ping, Xianchao Wu, Lawrence McAfee, Chen Zhu, Zihan Liu,
+Sandeep Subramanian, Evelina Bakhturina, Mohammad Shoeybi, and Bryan
+Catanzaro. 2023. Retrieval meets long context large language models.arXiv
+preprint arXiv:2310.03025(2023).
+[20] Xiangchao Yan, Shiyang Feng, Jiakang Yuan, Renqiu Xia, Bin Wang, Bo Zhang,
+and Lei Bai. 2025. Surveyforge: On the outline heuristics, memory-driven gener-
+ation, and multi-dimensional evaluation for automated survey writing.arXiv
+preprint arXiv:2503.04629(2025).
+[21] Yusen Zhang, Ruoxi Sun, Yanfei Chen, Tomas Pfister, Rui Zhang, and Sercan Arik.
+2024. Chain of agents: Large language models collaborating on long-context tasks.
+Advances in Neural Information Processing Systems37 (2024), 132208–132237.
+[22] Yunyi Zhang, Ruozhen Yang, Siqi Jiao, SeongKu Kang, and Jiawei Han. 2025.
+Scientific Paper Retrieval with LLM-Guided Semantic-Based Ranking.arXiv
+preprint arXiv:2505.21815(2025).Algorithm 3Weighted Breadth-First Search (WBFS)
+1:Input:Start node𝑠, target layerℓ
+2:Output:Set of nodes𝑅in layerℓ
+3:𝑣𝑖𝑠𝑖𝑡𝑒𝑑←{𝑠},𝑞𝑢𝑒𝑢𝑒←[𝑠],𝑅←∅
+4:while𝑞𝑢𝑒𝑢𝑒≠∅do
+5:𝑢←𝑞𝑢𝑒𝑢𝑒.Deqeue()
+6: for all𝑣∈Successors(𝑢) sorted by𝑤𝑒𝑖𝑔ℎ𝑡(𝑢,𝑣) desc do
+7:if𝑣∉𝑣𝑖𝑠𝑖𝑡𝑒𝑑then
+8:𝑣𝑖𝑠𝑖𝑡𝑒𝑑←𝑣𝑖𝑠𝑖𝑡𝑒𝑑∪{𝑣}
+9:if𝑣.𝑙𝑎𝑦𝑒𝑟=ℓthen
+10:𝑅←𝑅∪{𝑣}
+11:else
+12:𝑞𝑢𝑒𝑢𝑒.Enqeue(𝑣)
+13:end if
+14:end if
+15:end for
+16:end while
+17:return𝑅
+A Details about Traversal on Graph
+We provide a full algorithm of Weighted BFS in Algorithm 3.
+B More ablation study results
+Table 7 presents a systematic comparison of backbone models to
+isolate framework contributions from LLM capability effects. We
+evaluate both SurveyForge (current SOTA) and SurveyG with two
+different backbones: GPT-4o-mini and Gemini-2.5-Flash. The re-
+sults demonstrate that backbone selection has minimal impact on
+relative performance rankings. For SurveyForge, switching back-
+bones yields marginal differences (average ±0.5-0.8 points across
+metrics), while SurveyG shows similarly stable performance (aver-
+age variation <0.6 points). Critically, SurveyG maintains consistent
+superiority over SurveyForge regardless of backbone choice: under
+Claude’s evaluation, SurveyG outperforms SurveyForge by +5.0
+to +6.3 points in Coverage and +7.7 to +9.4 points in Structure
+across both backbones. This pattern holds across all four judges,
+with SurveyG achieving higher scores in 18 out of 20 model-metric
+combinations (90%). The consistency of performance gaps across
+different backbones confirms that SurveyG’s improvements stem
+from its hierarchical citation graph and multi-level summarization
+framework rather than simply leveraging more capable foundation
+models. These findings validate that our architectural innovations,
+not backbone selection, drive the observed quality improvements
+in automated survey generation.
+C Experimental Setting
+C.1 Baseline Systems
+AutoSurvey[ 15] represents an early multi-stage framework for au-
+tomated survey generation that combines literature retrieval with
+structured content synthesis.SurveyX[ 9] enhances AutoSurvey
+through structured knowledge extraction and outline optimiza-
+tion, introducing refinement mechanisms for improved coherence.
+SurveyForge[ 20] leverages human-written survey papers from
+related domains as prior knowledge for heuristic outline generation,
+
+--- Page 10 ---
+Conference’17, July 2017, Washington, DC, USA Minh-Anh et al.
+Topic Ground Truth Survey Citation
+Visual Transformer A Survey of Visual Transformers 405
+Hallucination in Large Language Models Siren’s Song in the AI Ocean: A Survey on Hallucination in LLMs 808
+Graph Neural Networks Graph Neural Networks: Taxonomy, Advances, and Trends 129
+Deep Meta-Learning A Survey of Deep Meta-Learning 459
+Knowledge Graph Embedding Knowledge graph embedding: A survey from the perspective of representation
+spaces130
+Generalized Out-of-Distribution Detection Generalized Out-of-Distribution Detection: A Survey 1406
+Reinforcement Learning for Language Processing Survey on reinforcement learning for language processing 206
+Exploration Methods in Reinforcement Learning Exploration in Deep Reinforcement Learning: From Single-Agent to Multi-
+Agent Domain194
+Stabilizing Generative Adversarial Networks Stabilizing Generative Adversarial Networks: A Survey 149
+Retrieval-Augmented Generation for LLMs Retrieval-Augmented Generation for Large Language Models: A Survey 953
+Table 6: Survey Papers Overview
+LLM Model Backbone Coverage Structure Relevance Synthesis Critical Analysis
+ClaudeSurveyForge GPT-4o-mini81.8(±2.9)78.4(±3.5)89.1(±2.1)75.4(±3.8)70.3(±4.2)
+SurveyForge Gemini-2.5-Flash82.5(±3.1)79.2(±3.7)89.8(±2.3)76.8(±3.9)72.1(±4.3)
+SurveyG GPT-4o-mini88.1(±2.4)87.9(±2.7)93.6(±1.9)80.2(±3.2)77.3(±3.5)
+SurveyG Gemini-2.5-Flash87.5,(±2.6)88.6(±2.5)93,2(±2.0)81.4(±3.1)76.9(±3.6)
+GPTSurveyForge GPT-4o-mini94.2(±1.8)87.3(±2.5)94.8(±1.6)88.6(±2.7)88.5(±2.9)
+SurveyForge Gemini-2.5-Flash94.8(±1.9)87.9(±2.6)95.2(±1.5)89.4(±2.8)89.3(±3.0)
+SurveyG GPT-4o-mini95.7(±1.5)88.5(±2.2)95.1(±1.4)92.2(±2.3)91.2(±2.6)
+SurveyG Gemini-2.5-Flash96.3(±1.4)88.2,(±2.4)95.7(±1.3)91.8(±2.5)90.5(±2.5)
+DeepseekSurveyForge GPT-4o-mini89.4(±2.3)86.5(±2.9)92.5(±2.0)84.1(±3.4)80.7(±3.7)
+SurveyForge Gemini-2.5-Flash88.9(±2.5)85.8(±3.1)93.1(±2.1)85.3(±3.5)81.5(±3.8)
+SurveyG GPT-4o-mini88.7(±2.5)85.7(±3.0)94.2(±1.8)86.3(±3.1)82.7(±3.5)
+SurveyG Gemini-2.5-Flash89.1(±2.4)86.1(±2.8)93.8(±1.9)86.8(±3.0)82.3(±3.7)
+GeminiSurveyForge GPT-4o-mini94.9(±1.7)93.1(±2.1)98.7(±1.1)93.5(±2.4)94.2(±2.5)
+SurveyForge Gemini-2.5-Flash95.4(±1.6)91.8(±2.3)98.3(±1.2)94.2(±2.5)95.1(±2.4)
+SurveyG GPT-4o-mini96.2(±1.4)89.4(±2.6)98.6(±1.0)95.6(±2.1)96.2(±2.3)
+SurveyG Gemini-2.5-Flash96.5(±1.3)90.1(±2.3)98.4(±1.1)95.2(±2.3)96.7(±2.1)
+Table 7: Backbone comparison: SurveyForge and SurveyG with GPT-4o-mini vs. Gemini-2.5-Flash (mean (±std) over 10 trials
+per topic). Each LLM evaluates both models with different backbones across content quality dimensions.
+guided by a memory-driven scholar navigation agent that retrieves
+high-quality references for composing new surveys.
+C.2 Survey Topics and Ground Truth
+Construction
+We compiled ten representative survey topics covering diverse
+research areas in machine learning and natural language processing,
+as summarized in Table 6. Each topic reflects an active line of
+inquiry, providing a strong foundation for evaluating automated
+survey generation.
+C.2.1 Expert Recruitment and Qualifications.Our 20 domain ex-
+perts comprised:
+•12 CS Ph.D. students from QS 5-star universities with 3-5
+years of research experience
+•8 senior AI research engineers from leading tech companies
+with 2+ publications in top-tier venues (NeurIPS, ICML, ICLR,
+ACL, EMNLP, KDD, etc.)Each expert was matched to topics within their domain expertise,
+ensuring a qualified assessment.
+C.2.2 Three-Stage Ground Truth Selection Protocol.Stage 1: Topic
+Selection.We identified ten topics ensuring coverage across di-
+verse AI/ML research areas: (a)foundational architectures(Vi-
+sual Transformer, Graph Neural Networks, Generative Adversarial
+Networks), (b)learning paradigms(Deep Meta-Learning, Rein-
+forcement Learning methods), (c)knowledge representation and
+retrieval(Knowledge Graph Embedding, Retrieval-Augmented
+Generation), and (d)reliability and robustness(Hallucination in
+LLMs, Generalized Out-of-Distribution Detection). This selection
+spans established methodologies, emerging challenges, and cross-
+domain techniques, ensuring comprehensive evaluation across the-
+oretical foundations, architectural innovations, and practical ap-
+plications. As shown in Table 6, selected ground-truth surveys are
+highly cited (mean: 484 citations), indicating strong community
+recognition.
+
+--- Page 11 ---
+A Multi-Agent LLM Framework with Hierarchical Citation Graph for Automated Survey Generation Conference’17, July 2017, Washington, DC, USA
+Stage 2: Survey Selection Criteria.For each topic, 2-3 domain-
+matched experts independently evaluated candidate surveys from
+SurGE using four weighted criteria:
+(1)Comprehensive Coverage (40%): Survey thoroughly dis-
+cusses field evolution, seminal works, major methodological
+branches, and current trends
+(2)Structural Clarity (25%): Well-organized sections with
+clear taxonomy, logical flow, and effective use of figures/ta-
+bles
+(3)Recency (20%): Published within the last 5 years (2019-2024)
+to reflect the current research landscape
+(4)Citation Impact (15%): Highly-cited work (top 20% within
+topic area) indicating community recognition
+Experts scored each criterion 0-10, with surveys scoring ≥7.0 aver-
+age advancing to consensus discussion. Inter-annotator agreement
+(Fleiss’s𝜅) averaged 0.73 across topics, indicating substantial agree-
+ment.
+Stage 3: Reference Curation.Selected experts curated 30-50
+essential papers per topic, categorized as: foundational works (sem-
+inal papers establishing the field), methodological milestones (key
+technical innovations), and recent advances (papers from the last
+2 years). This reference set serves as ground truth for coverage
+evaluation.
+C.3 Evaluation Metrics
+C.3.1 Outline Quality.Following [ 20], we evaluate outline struc-
+ture, logical coherence, topic coverage, and hierarchical organi-
+zation on a 0-100 scale. The evaluation prompt assesses whether
+the outline provides a clear roadmap for comprehensive survey
+development.
+C.3.2 Content Quality Metrics.A well-structured outline is essen-
+tial for maintaining clarity and organization. Full paper evaluation
+serves as a comprehensive benchmark to assess academic rigor and
+practical utility. Following [ 9,10,15,20], we assess five metrics on
+a 0-100 scale:
+Coveragemeasures how thoroughly the survey captures ma-
+jor concepts, foundational works, and emerging trends within the
+research area.
+Structureexamines logical organization, section coherence, and
+taxonomy quality, ensuring readers can navigate the field system-
+atically.
+Relevanceassesses alignment of content with the target re-
+search topic, penalizing off-topic discussions or tangential refer-
+ences.
+Synthesisevaluates integration of information from multiple
+sources into a cohesive, non-redundant narrative that reveals cross-
+paper insights.
+Critical Analysisreflects the survey’s ability to identify method-
+ological gaps, highlight comparative trends, and articulate open
+research challenges.
+Each metric is scored independently by both LLM judges and
+human experts, with final scores averaged across all evaluators.
+C.3.3 Citation Quality Metrics.Following [ 5,15], we measure ci-
+tation accuracy and contextual relevance. We extract factual claimsfrom generated surveys and verify support using a Natural Lan-
+guage Inference (NLI) model (DeBERTa-v3-large fine-tuned on
+ANLI).
+Citation Recall: Proportion of claims correctly supported by
+valid references, measuring whether surveys provide adequate cita-
+tion support.
+Citation Precision: Proportion of cited references that truly
+substantiate their associated claims, measuring citation accuracy.
+Citation F1: Harmonic mean of Recall and Precision, providing
+a balanced measure of citation quality.
+For each survey, we sample 100 claim-citation pairs and compute
+metrics across all samples.
+D Prompt Templates
+This section presents the prompt templates designed to guide each
+stage of automated literature review generation and evaluation.
+Each template specifies goals, inputs, and evaluation criteria to
+ensure consistency and quality across generated outputs.
+D.1 Prompt to generate structured outline
+We provide a short version of the prompt template (Figure 8) that
+instructs the model to construct a coherent, hierarchical outline
+that captures the logical flow of a literature review topic before
+detailed writing begins.
+D.2 Prompt to evaluate structured outline
+The prompt in Figure 9 guides the model to write complete, citation-
+based literature review subsections grounded in the provided focus,
+summaries, and development directions. The following evaluation
+prompt extends this process to assess individual sections for depth,
+synthesis, and analytical quality.
+D.3 Prompt to generate subsections
+This prompt guides the model to write complete, citation-based
+literature review subsections grounded in the provided focus, sum-
+maries, and development directions (Figure 10).
+D.4 Improve Section Quality
+As shown in Figure 11, this prompt systematically assesses litera-
+ture review sections across multiple dimensions, such as content
+coverage, synthesis, and critical analysis, while offering actionable
+feedback and retrieval suggestions for refinement.
+E Computational Efficiency
+We analyze computational overhead for the hierarchical citation
+graph operations on a standard workstation (1 NVIDIA RTX 4090,
+24GB VRAM):
+Paper Retrieval and Graph Construction:For a typical query
+retrieving 1,500 candidate papers, the process includes: (1) keyword
+expansion via LLM (2-3 seconds, $0.02), (2) Semantic Scholar API
+calls (15-20 seconds, free), (3) citation network construction (8-
+12 seconds), and (4) embedding generation using Deberta (45-60
+seconds on CPU, negligible GPU cost if available). Total: ∼70-95
+seconds, $0.02.
+Hierarchical Layer Assignment:Organizing 300 papers into
+Foundation/Development/Frontier layers using citation patterns
+
+--- Page 12 ---
+Conference’17, July 2017, Washington, DC, USA Minh-Anh et al.
+Goal: Generate a structured Literature Review Outline for:
+"[QUERY]"
+INPUT SYNTHESIS DATA
+•Communities:[PAPER_COMMUNITIES]
+•Directions:[DEVELOPMENT_DIRECTIONS]
+REQUIREMENTS & CONSTRAINTS
+1. Structure:
+•Progression: Follow Foundations →Core→Ad-
+vanced→Applications→Future.
+•Mandatory Sections: Must include Introduction,
+Foundational Concepts, and Conclusion.
+•Hierarchy: Use exactlyTWO levels(e.g., 2.1, 2.2).
+No deeper nesting.
+2. Content & Quality:
+•Create acoherent narrative(evolutionary story,
+not a list).
+•Group material bymethodological familiesand
+thematic depth.
+•Include dedicated sections for Applications and Fu-
+ture Trends/Challenges.
+3. Evidence & Output:
+•Proof IDs: Each subsectionMUSTbe grounded
+with 1-3 proof_ids (from layer ,community_X , or
+seedIDs).
+•Focus Synthesis: Provide section_focus (broad
+theme) andsubsection_focus(specific details).
+•Format: Return only aJSON ARRAYof main sec-
+tions and their hierarchical subsections.
+Figure 8: Generate Outline Prompt.
+Evaluate the quality and structure of the following liter-
+ature review outline. Assess whether the outline demon-
+strates meaningful organization of works rather than a sim-
+ple concatenation of summaries.Your feedback should
+include:
+•Strengths of the outline.
+•Weaknesses or issues (if any).
+•Specific suggestions for improvement (only if issues
+are found).
+•Final score (1-5, with 5 being the maximum) evalu-
+ate overall organization, coherence, and coverage.
+Outline to evaluate: {outline_text}
+Figure 9: Prompt to evaluate structured outline
+and temporal analysis requires 5-8 seconds (pure algorithmic pro-
+cessing, no API calls).Task:Write a comprehensive literature review subsection
+titled[SUBSECTION_TITLE]in LaTeX.
+Inputs:
+•Focus:[SUBSECTION_FOCUS]
+•Community summaries:[COMMU-
+NITY_SUMMARY]
+•Development directions:[DEVELOP-
+MENT_DIRECTION]
+•Papers (chronological):[PAPER_INFO]
+Guidelines:
+•Use LaTeX format with citations
+(\cite{citation_key}).
+•Minimum 400 words, no numbered subsection titles.
+•Focus strictly on the subsection topic.
+•Each paper: 2-3 sentences describing technical con-
+tributions.
+•Connect papers by showing how later work ad-
+dresses earlier limitations.
+•Conclude with remaining challenges or future di-
+rections.
+Avoid:sequential listing, vague critiques, unsupported
+claims, isolated descriptions, or ignoring contradictions.
+Figure 10: Generate Subsection Prompt
+Evaluate the quality of the following literature review sec-
+tion within the context of the overall survey outline. Your
+evaluation should address the following aspects, each rated
+from 1-5 (5 = excellent): (1) content coverage, (2) citation
+density, (3) academic rigor, (4) synthesis across works, (5)
+critical analysis, (6) coherence, (7) depth of discussion, and
+(8) specificity of scope.
+In addition to numeric ratings, provide:
+- A brief natural language summary of the section’s
+strengths and weaknesses,
+- An overall score (1-5) with justification,
+- Suggestions for improvement, focusing on areas that fall
+short,
+- A list of search queries that could retrieve additional
+relevant literature to strengthen the section.
+Figure 11: Section Quality and Retrieval Prompt
+Multi-Aspect Summarization:Generating layer-wise and cross-
+layer summaries involves: (1) horizontal clustering within layers
+(10-15 seconds for Leiden algorithm), (2) vertical path traversal (3-5
+seconds), and (3) LLM-based summarization of ∼15-20 paper groups
+($0.80-$1.20 depending on summary length). Total: ∼15-25 seconds
+computation, $0.80-$1.20 LLM cost.
+
+--- Page 13 ---
+A Multi-Agent LLM Framework with Hierarchical Citation Graph for Automated Survey Generation Conference’17, July 2017, Washington, DC, USA
+End-to-End Latency:The complete pipeline for generating one
+survey consists of: (1) Crawled data: 20-25 minutes, (2) Graph con-
+struction and traversal: 90-128 seconds, (2) Outline generation:
+120-180 seconds, (3) Full survey writing: 5-10 minutes (parallel gen-
+eration of 8-12 sections with evaluation loops).Total end-to-end
+latency: 28-38 minutes per survey, with the majority of time
+spent on crawled data rather than graph operations or content
+generation.
+F Case studies
+We provided a subsection generated bySurveyG(Figure 12) to
+illustrate its ability to synthesize complex research trends in mod-
+ular and agentic RAG. Overall, this subsection highlights a clearprogression in the RAG landscape from simple retrieval pipelines to-
+ward multi-stage, agentic, and modular architectures. The discussed
+works collectively show how LLMs are evolving from passive gen-
+erators to proactive reasoning agents capable of planning, coordi-
+nation, and self-optimization. The emergence of meta-frameworks
+such as AutoRAG and FlashRAG further reflects a shift toward au-
+tomated orchestration of RAG components, underscoring a broader
+trend toward unified, adaptive systems that integrate retrieval and
+reasoning for scalable knowledge synthesis.
+
+--- Page 14 ---
+Conference’17, July 2017, Washington, DC, USA Minh-Anh et al.
+Multi-stage and Modular RAG Frameworks
+The foundational paradigm of Retrieval-Augmented Generation (RAG) typically operates on a straightforward "retrieve-then-
+generate" sequence [lewis2020pwr]. However, as Large Language Models (LLMs) are increasingly tasked with complex, multi-faceted
+queries and dynamic information needs, this simple pipeline proves insufficient [huang2024a59, zhao2024931]. This has spurred
+the evolution of RAG into more sophisticated, multi-stage, and modular architectures, where the LLM transcends a passive role to
+become an intelligent agent capable of proactive planning, dynamic decision-making, and the orchestration of various sub-tasks
+[gao20238ea]. This section focuses on frameworks that empower LLMs to actively manage the information-seeking process through
+iterative planning, query decomposition, and the dynamic assembly of specialized modules. It is crucial to distinguish these proactive,
+agentic approaches from reactive or corrective mechanisms (e.g., self-correction, re-ranking) that primarily refine retrieval quality,
+which are discussed in detail in Section 3.
+A significant advancement in modular RAG involves empowering LLMs to act as sophisticated planning agents, iteratively refining
+their information-seeking process and orchestrating multi-round interactions. [lee2024hif] introduced PlanRAG, which extends
+the popular ReAct framework by incorporating explicit "Plan" and "Re-plan" steps. This allows LLMs to dynamically generate
+and iteratively refine analytical approaches based on intermediate retrieval results, effectively acting as decision-makers for
+complex data analysis tasks. Similarly, [yang20243nb] presented IM-RAG, a multi-round RAG system that leverages learned inner
+monologues and a multi-agent reinforcement learning approach. In IM-RAG, an LLM-based "Reasoner" dynamically switches
+between a "Questioner" role (crafting queries) and an "Answerer" role, guided by mid-step rewards from a "Progress Tracker, " leading
+to flexible and interpretable multi-round information gathering. Building on the concept of autonomous interaction, [yu2024c32]’s
+Auto-RAG enables LLMs to engage in multi-turn dialogues with the retriever, systematically planning retrievals and refining queries
+until sufficient external information is gathered. This framework highlights the LLM’s powerful decision-making capabilities,
+autonomously adjusting iterations based on query difficulty and knowledge utility. Another approach, [wang2024zt3]’s M-RAG,
+proposes a multi-partition paradigm for external memories, employing a multi-agent reinforcement learning framework with an
+"Agent-S" for dynamic partition selection and an "Agent-R" for memory refinement. This enables more fine-grained and focused
+retrieval by orchestrating memory access across different knowledge partitions. To further optimize the interaction between these
+modular components, [li20243nz]’s RAG-DDR (Differentiable Data Rewards) offers an end-to-end training method that aligns data
+preferences between different RAG modules (agents). By collecting rewards and evaluating the impact of perturbations on the
+entire system, RAG-DDR optimizes agents to produce outputs that enhance overall RAG performance, particularly for smaller LLMs.
+These agentic frameworks collectively transform RAG into a dynamic, adaptive system capable of tackling complex, multi-hop
+queries that require sophisticated reasoning and iterative information synthesis.
+...
+In conclusion, the evolution towards multi-stage and modular RAG frameworks marks a significant advancement, transforming RAG
+from a simple pipeline into an intelligent, adaptive system. By enabling LLMs to engage in iterative refinement, agentic planning,
+and dynamic orchestration of sub-tasks, these architectures enhance robustness, reduce hallucinations, and improve the depth and
+faithfulness of generated responses, particularly for complex, multi-hop queries [tang2024i5r]. However, this sophistication often
+introduces challenges related to increased computational overhead, the complexity of orchestrating multiple modules, and the need
+for robust evaluation methodologies that can accurately assess the contributions of each stage and the overall system performance.
+Benchmarks like [friel20241ct]’s RAGBench, [krishna2024qsh]’s FRAMES, and [tang2024i5r]’s MultiHop-RAG highlight these
+challenges, emphasizing the need for explainable metrics and unified frameworks to evaluate the intricate interplay of retrieval,
+reasoning, and generation in these advanced systems. Future research will likely focus on optimizing the efficiency of these
+multi-stage processes, developing more autonomous and self-correcting agents, and creating more generalized frameworks that
+can seamlessly integrate diverse knowledge sources and reasoning paradigms while addressing the inherent trade-offs between
+complexity and efficiency.
+Figure 12: Case studies about the result of the generated subsection.

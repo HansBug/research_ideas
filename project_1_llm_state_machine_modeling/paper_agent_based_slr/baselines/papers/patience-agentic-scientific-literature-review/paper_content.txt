@@ -1,0 +1,951 @@
+--- Page 1 ---
+PATIENCE IS ALL YOU NEED ! AN AGENTIC SYSTEM FOR
+PERFORMING SCIENTIFIC LITERATURE REVIEW
+A P REPRINT
+David Brett *1and Anniek Myatt†1
+1Recursion Pharmaceutical, Salt Lake City, UT 84101, USA
+April 15, 2025
+Abstract
+Large language models (LLMs) have grown in their usage to provide support for question answering across
+numerous disciplines. The models on their own have already shown promise for answering basic questions,
+however fail quickly where expert domain knowledge is required or the question is nuanced. Scientific research
+often involves searching for relevant literature, distilling pertinent information from that literature and analysing
+how the findings support or contradict one another. The information is often encapsulated in the full text body
+of research articles, rather than just in the abstracts. Statements within these articles frequently require the
+wider article context to be fully understood. We have built an LLM-based system that performs such search
+and distillation of information encapsulated in scientific literature, and we evaluate our keyword based search
+and information distillation system against a set of biology related questions from previously released literature
+benchmarks. We demonstrate sparse retrieval methods exhibit results close to state of the art without the need
+for dense retrieval, with its associated infrastructure and complexity overhead. We also show how to increase the
+coverage of relevant documents for literature review generation.
+1 Introduction
+The use of large language models (LLMs) has grown dra-
+matically in recent years with foundation models display-
+ing impressive capabilities across many applications [ 1,2],
+particularly in the context of agentic workflows for the
+orchestration of tools [ 3,4]. One of these applications is
+to make use of LLM augmented agents for search and dis-
+tillation of information for question answering (Q&A) in
+the biomedical domain [ 5,6]. The focus of building LLM
+applications for the biomedical domain is largely driven
+by free data availability via PubMed (titles and abstracts)
+and PubMed Central (full text journals), where as licensing
+terms for equivalent data sources for other domains, e.g.
+chemistry, are more restrictive.
+Including explicit information from data sources such
+as scientific literature in the LLM context for answering
+expert-level questions is crucial to reduce the likelihood
+of getting wrong answers ("hallucinations"), particularly
+*david.brett@recursion.com
+†anniek.myatt@recursion.comwhen specific details from complex scientific texts have to
+be considered that will not have appeared frequently in the
+LLMs training data. In addition, domain experts only have
+confidence in an answer if source attributions, in the form
+of literature references, are provided alongside the answer.
+This renders answers of raw LLMs useless, even if they
+are correct.
+Retrieval augmented generation (RAG) [ 7] has been widely
+employed to overcome these issues [ 8]. The approaches
+to retrieval and information distillation have to be tailored
+specifically to the characteristics of the data sources and
+problem statement. Recently FutureHouse, a company spe-
+cialising in AI-powered research tools, released a system
+for question answering on scientific literature using LLMs,
+LitQA2 [ 9,10], alongside a benchmark dataset to evaluate
+its performance.
+1.1 Limitations of existing benchmarks
+While benchmarks for biomedical question and answering
+have existed for a while, they typically evaluated a lan-
+guage model’s ability to answer multiple choice questionsarXiv:2504.08752v1  [cs.IR]  28 Mar 2025
+
+--- Page 2 ---
+Patience is all you need! An agentic system for performing scientific literature review A P REPRINT
+given a text extract (e.g PubMedQA [ 11]). Such bench-
+marks lack the scope to assess the retrieval capabilities of
+LLM augmented systems. The LitQA2 benchmark [ 12]
+has been developed to support evaluation of Q&A on liter-
+ature, testing both the retrieval and information extraction
+abilities of LLM augmented agents. It is still vulnerable
+to the issues presented by multiple-choice based bench-
+marks [ 13,14] and is necessarily a limited measure for the
+potential effectiveness of a system for real world applica-
+tions where long form answers are commonly required.
+Typically in scientific research questions tend to be open
+ended and reading a wide selection of literature as part of
+a review is more important than finding a specific piece
+of information contained in a single paper, which is what
+benchmarks such as PubMedQA and LitAQ2 are designed
+to evaluate. An inherent difficulty with considering the
+full text of articles in a benchmark is the licensing of those
+articles. For example not all the of papers used by LitQA2
+are openly licensed for machine reading which technically
+prevents reproducing the results without paying for the
+papers.
+Existing benchmarks do not attempt to consider the cov-
+erage of literature used to answer longer form answers/re-
+view generation. Typical review papers might have around
+100 references as part of answering a question while bench-
+marks to date are typically answered with a single paper.
+In this paper we present a benchmark of retrieval coverage
+not just for a single paper but for the set used within actual
+review articles.
+1.2 Agentic systems for retrieval
+We define an agentic system as one which is made up of
+multiple LLM-augmented agents which are orchestrated
+together to perform a task. There are a number of scientific
+literature agentic systems for different tasks[15, 10].
+Many retrieval systems perform a two stage retrieval with
+an initial search and then re-ranking of the results. In both
+stages dense retrieval (in which the whole document is
+encoded as a dense vector) [ 16,17] and sparse retrieval (in
+which the vocabulary of the document is encoded) [ 18,19]
+might be used.
+Considering the first stage of retrieval, a limitation of dense
+retrieval lies in its sensitivity to the chunk size of the em-
+bedded text as well as sensitivity to the choice of encoder.
+With respect to the former, the correlation of a mention of
+a term in one section of a paper with a mention in another
+section might be missed if the sections have been turned
+into separate text chunks and corresponding embedding
+vectors. Furthermore for large document corpus it can be
+expensive to index for dense retrieval.
+Sparse retrieval on the other hand lacks the semantic mean-
+ing between terms in the vocab of a document. Further-
+more it doesn’t explicitly handle the issue of synonyms,
+which query expansion aims to address [ 20]. Dense re-
+trieval effectively performs this query expansion withinin the embedding of the model used for encoding the text.
+In our system we make use of the LLM to perform the
+query expansion not just in terms of adding synonyms but
+also in understanding what vocabulary terms might be nec-
+essary in a document to find the answer, rather than just
+expanding on the question.
+Recent studies such as LongRAG [ 21] have demonstrated
+that the original techniques for retrieval augmented gener-
+ation to chunk text into short segments for both retrieval
+and to provide as prompts for zero shot Q&A [ 7] are of-
+ten no longer necessary given the increasing context size
+of models (for example Claude 3.5 Sonnet has a 200K
+token context length [ 22]). Previously, handling long con-
+texts was seen to be an issue for models such as GPT 3.5,
+which struggled with information retrieval from extended
+passages [ 23]. Retrieval across long contexts have been
+demonstrated to be fairly reliable [ 24,22], however the
+context size is still finite so putting 20-30 complete full text
+scientific articles in verbatim is still not feasible. This mo-
+tivates article chunking and re-ranking based on relevance
+to answering the question for our use case of literature
+review generation.
+The re-ranking of results is typically done using
+dense retrieval with powerful techniques such as cross-
+encoders [ 25,26] where a model encodes the semantic
+similarity of the question to the document. In our system
+we introduce a re-ranking based on sparse retrieval using
+BM25L [ 27] combining the ranks of multiple queries with
+expanded synonyms generated by an LLM.
+In a further stage for retrieval in our system we let the
+LLM decide whether to keep or reject a document for
+use in answering the question, and also summarising the
+document in context. A similar approach to this is used by
+PaperQA2 [10].
+Our agentic system for retrieval differs to many existing
+agentic systems in that it is solely based on sparse retrieval
+with query expansion performed by LLMs rather than mak-
+ing use of any dense retrieval techniques. This is chosen
+to enable better use of the large context sizes available in
+newer models [22].
+In addition, we introduce a method to expand the relevant
+literature that is included in an LLM-generated review.
+This approach involves generating a series of expansive
+questions based on the initial answer from a retrieval-and-
+answering round. This helps to uncover more detailed
+information and identify potentially contradicting research,
+which is particularly important for literature review gener-
+ation, where researchers synthesise a broad evidence base
+and contextualise findings. Often literature expansion has
+been done by navigating the citation network [ 15] however
+that can miss new papers and reinforces existing citation
+communities which might be guided by research group
+bias or narrow areas of research.
+We introduce an agentic system for literature review gen-
+eration and describe the specific techniques to select and
+process full-text literature articles to that aim. We present
+2
+
+--- Page 3 ---
+Patience is all you need! An agentic system for performing scientific literature review A P REPRINT
+detailed analysis of how each component contributes to the
+overall capability of the agentic system using published
+benchmarks (LitAQ2 and PubMedQA) as well as our own
+benchmark on literature expansion.
+2 Methodology
+Our methodology comprises several key components: doc-
+ument retrieval, information extraction, and verification
+and diversification. Each component is designed to en-
+hance the system’s ability to process and analyse scientific
+literature effectively. For all descriptions in this methodol-
+ogy the LLM used is Anthropic’s Claude 3.5 Sonnet [22].
+2.1 Document retrieval
+There are two primary sources of scientific articles used for
+this evaluation; PubMed [ 28] and PubMed Central open
+access subset [ 29]. PubMed provides citations for ∼37
+million for biomedical literature (for articles this typically
+consists of titles and abstract text). The PubMed Cen-
+tral open access contains ∼5 million full text biomedical
+literature entries which is available for machine reading.
+To index the PubMed citations we perform named entity
+recognition (NER) for diseases and genes and index the
+titles and abstracts in an Elasticsearch index [ 30]. Genes/-
+gene products often have poor standardisation in naming
+across literature. Not only can gene names be ambiguous
+with other entities but also with other genes. We use a
+citation network based approach called TrendyGenes [31]
+that was developed to handle these ambiguities in the NER
+step.
+To index the PubMed Central articles we perform NER
+using HunFlair [32,33] for genes and diseases. Hunflair
+provides the classification of spans from which we match
+the spans to the dictionaries used by TrendyGenes [31]
+PubMed PubMed Central
+Elastic index
+Elastic index
+Document
+retrieval
+RerankerNER agent
+Search terms
+LLMHunflair
+NER
+Question
+Summarise
+AnswerTrendyGenes NER
+Hunflair NER
+Figure 1: Data flow to support Q&Ain order to normalise to specific entities. Each article
+is indexed as a document with each section in an article
+handled as sub-document.
+In order to retrieve documents to support asking a question
+we perform the following steps (also see Figure 1):
+1.[NER agent] Run HunFlair [32,33] NER to identify
+any gene and disease mentions in the question.
+2.[Search terms agent] Use the LLM to generate a set of
+must and should keyword terms to search for matching
+documents. For should terms we give a boost measure
+of low, medium and high (see more in Appendix C). To
+increase robustness on how the user phrases a question,
+we generate a set of synonyms for each term which isn’t
+an identifier found by the [NER agent] .
+3.[Document retrieval agent] Using the generated
+search terms a search template is executed against the
+Elasticsearch index. This search template also boosts
+for more recent articles.
+4.[Re-ranking agent] To focus the LLM on more rele-
+vant text passages and reduce the amount of text that
+is included in the prompt, we first chunk each section
+of each retrieved article into chunks, preserving com-
+plete sentences with overlaps between chunks. Chunks
+are sized to ∼10000 words with ∼250 word overlaps
+between chunks.
+The LLM is used to generate a set of three diverse pro-
+posed answers with rationale and expanded synonyms
+on keywords (see examples in Appendix D). We then
+re-rank the article chunks using BM25L [ 27] with the
+scores for each proposed answer and the original ques-
+tion we take the combined ranking using the reciprocal
+rank fusion method [ 34]. The text is tokenized to lower-
+case, filtered for stop words and numbers, and stemmed
+using the Porter2 algorithm. This leads to article chunks
+with relevant information to answering the question be-
+ing prioritised, which allows to reduce the number of
+article chunks to be carried forward into the information
+extraction stage.
+2.2 Information extraction
+There are three stages applied for the information extrac-
+tion:
+1.The first stage takes the text chunk retrieved for each
+article and produces a summary of the key facts related
+to the question. If there are no relevant facts the article
+chunk is rejected.
+2.The second optional stage creates a prompt which takes
+subsets of summarised articles (typically in sets of 3)
+to deduplicate facts across them and then removes any
+article chunks that provides no new information when
+compared with the other article chunks in the set.
+3.The final stage is to pass the remaining summaries into
+the LLM context in order to get an answer to the ques-
+tion.
+3
+
+--- Page 4 ---
+Patience is all you need! An agentic system for performing scientific literature review A P REPRINT
+In all these stages the prompts are engineered such that the
+chain of thought technique is used to improve the model
+output [35].
+2.3 Verification and diversification
+Chain-of-Verification [ 36] (CoVe) was originally devel-
+oped for suppressing incorrect information through taking
+a draft response, planning and fact checking the draft in-
+dependently and then giving a final verified response. We
+extend this framework using the flow in figure 1 for the
+draft response and independent fact checking. The interme-
+diate responses are produced in a similar long form format
+to the original response. The planning stage identifies ∼10
+key statements in the original response, which are con-
+verted into questions to verify their validity. The generated
+answers, the verification of the original statements and the
+original response go into generating the final response. We
+find that the additional questions that are generated in the
+fact checking stage expand the literature coverage beyond
+that which was encountered in the original question.
+3 Results
+3.1 Document retrieval
+We evaluate the document retrieval by determining where
+in the search ranking the source documents for the bench-
+marks appear. For evaluating the retrieval on full text
+articles in the PubMed Central Open Access dataset we
+can only consider a subset of the LitQA2 benchmark [ 12]
+(for which only 103 out of 199 are found in the PubMed
+Central OA subset). Similarly for evaluating retrieval on
+PubMed we take the first 200 labelled questions from the
+PubMedQA benchmark [ 11] to see where their sources
+appear in the search ranking. We only consider up to the
+200thranked search result for both sources in this eval-
+uation. We compare our approach to a baseline using a
+simpler ‘More Like This’ query, which leverages TF-IDF
+to measure document similarity. For LitQA2, we include
+answer options in the query. In the PubMedQA case we
+only evaluated a small subset of the test set as it became
+evident there was little gain in using the LLM keyword
+approach versus the baseline approach. This is not very
+surprising given the questions are directly generated from
+the titles of the articles [ 11]. Figure 2 shows that for the
+LLM generated keyword approach LitQA2 benchmark
+63.6±1.2 source articles were found in the top 200 search
+hits out of the possible 103 compared with 52 for the sim-
+pler approach. For PubMedQA only 154 source articles
+were found out of the 200 questions tested. The top 200
+was chosen as a cutoff for performance reasons, to be able
+to do the re-ranking in memory.
+3.2 Re-ranking
+For the re-ranking we create a baseline by taking every
+section in all 200 full-text articles for a given question, as
+found in figure 2, and then chunk each section as described10010110200.20.40.60.81
+Search rank positionCumulative Probability
+of finding the source given a question
+PubMedQA - LLM Keyword PubMedQA - TF-IDF
+LitQA2 - LLM Keyword* LitQA2 - TF-IDF
+Figure 2: Search rank with search term agent for bench-
+mark sources in PubMed and PubMed Central (* with 95%
+CI)
+10010110210300.20.40.60.81
+Chunk rank positionCumulative Probability
+of finding the key passage across
+all chunks
+Reranked
+Baseline
+Figure 3: LitQA2 key passage location with re-ranking
+(with 95% CI)
+in 2. In the LitQA2 benchmark [ 12] there is a key pas-
+sage of text assigned to each question which is required to
+answer it. We find the position in the ranking of chunks
+at which the key passage appears. We contrast this with
+re-ranking each section across all publications in figure 3.
+It can be seen that within the first 30 chunks ∼83% of the
+key passages can be found with the re-ranking, this is in
+contrast to ∼900 chunks for the baseline.
+3.3 Information extraction
+For the LitQA2 benchmark [ 12] we consider the split
+between question sources which are available/not avail-
+able for machine reading within the PubMed Central OA
+4
+
+--- Page 5 ---
+Patience is all you need! An agentic system for performing scientific literature review A P REPRINT
+Step Recall of source article (% ±95% CI)
+LLM Keyword retrieval (top 200) 61.7 ±1.2
+Re-ranking (top 30 chunks) 57.3 ±1.9
+LLM context summarisation and retention 57.0 ±2.4
+Attribution to answer 50.5 ±0.8
+Table 1: LitQA2 source article recall
+dataset [ 29]. In the assessment of the benchmark we follow
+the same conventions as in the original paper [12]:
+• Accuracy = Total correct answers / Total questions
+• Coverage = Total attempted answers / Total questions
+•Precision = Total correct answers / Total attempted an-
+swers
+To get a better understanding of the LLM’s comprehension
+and potential information loss we evaluate how good the
+model is at answering the question given the source, by just
+feeding the original article source (table 2). We provide
+in the LLM context different levels of granularity: the
+key passage given by the benchmark, the section of the
+article which contains the key passage, the full article
+and a context specific summarisation of the full article.
+According to the LitQA2 benchmark paper the precision
+on these all exceed human levels, a finding which we
+recapitulate here.
+3.4 Question answering
+The LitQA2 benchmark [ 12] assumes that only the source
+paper contains the information to achieve the correct an-
+swer. We find that this assumption does not hold over our
+text corpus.
+The recall on the source paper for the open access subset
+is provided in Table 1, from which we can conclude that
+the highest loss in recall occurs in the initial paper retrieval
+stage. The LLM context summarisation and retention step
+allows for the LLM to choose to drop what it considers
+are irrelevant papers. The final answering stage allows the
+LLM to attribute the answer to a single paper and this is
+what leads to our 50.5% final recall. In the table the mean
+and 95% confidence intervals of the results of 3 repeats
+are provided. In our evaluated subset, ∼10 answers are
+correct with different paper attributions, suggesting that
+the assumption of specificity for the benchmark question
+might not be correct.
+Table 2 provides the evaluation for our agentic literature
+review system on the LitQA2 benchmark. The assumption
+of a single source paper containing the answer to a bench-
+mark question equates to a maximum potential accuracy of
+∼50% based on the open subset of the benchmark, assum-
+ing that the top 30 re-ranked chunks all equate to correct
+answers.
+The coverage is higher than that attributable to the source
+papers, however additional papers which allowed the LLM
+to answer the question increased the coverage in total
+60.4±0.6% questions with other papers used to answer
+the questions.Information provided in LLM context Accuracy Coverage Precision
+Key passage 0.955 0.990 0.965
+Key section (available) 0.983 1.000 0.982
+All sections (available) 0.990 1.000 0.990
+Summarised article (available) 0.970 1.000 0.970
+Our full agentic workflow (available)*0.604±0.006 0.668 ±0.007 0.903 ±0.019
+PaperQA2 (all) 0.66 0.78 0.852
+Table 2: Evaluation of information loss at different stages
+and comparison with LitQA2 benchmark (* with 95% CI)
+PMIDInitial
+recall (%)CoVe
+recall (%)Initial recall
+with secondary (%)CoVe recall
+with secondary (%)
+38570716 2 14 12 56
+37758888 3 15 33 48
+38418916 1 5 10 39
+37138108 1 15 2 34
+37344646 0 3 6 26
+37100941 0 6 3 19
+38326590 0 1 1 14
+38750233 0 0 1 5
+37316719 0 1 0 4
+37612393 1 2 1 3
+Table 3: Recall of references with CoVe
+3.5 Verification and diversification
+In order to benchmark this capability we consider 10 recent
+review articles published in Nature and the references used
+with in them. For each review we get an LLM to generate
+the key question being asked from the abstract of the paper
+and use that as our starting point (see more in Appendix B).
+We perform the retrieval with the date cutoffs set as the
+publication date of the reviews. The benchmark is then
+measured as the recall on the references on each paper.
+We consider the references which either come out of the
+draft response generation or in the fact checking retrieval
+process. We consider both the direct references used in
+the reviews and the secondary references (from which the
+primary research might come). Table 3 shows that the
+mean coverage of primary and secondary references on the
+Nature review articles improves with 6% to 25% with the
+CoVe approach.
+4 Discussion
+We have demonstrated that when compared with the Pa-
+perQA2 paper [ 10] we achieved a slightly higher attri-
+bution to original source for correct answers of 50.4%
+compared with 48.2%. When we consider the accuracy of
+answering the questions overall we achieved 60.4% com-
+pared with 66%. However, comparing for precision we
+exceed PaperQA2 achieving 90% compared with 85%.
+In the LAB-Bench [ 12] paper it can be seen that in an-
+swering the benchmark Claude 3.5 Sonnet is significantly
+more cautious at choosing whether to give an answer com-
+pared to GPT-4o (0.12 vs 0.58 coverage of the LitQA2
+benchmark). We hypothesise this baseline caution leads to
+our observed reduced coverage compared with PaperQA2,
+which is built on GPT-4o, this in part leads to our reduced
+accuracy overall, however, our precision comes out slightly
+higher. It should be possible to force the model to take a
+5
+
+--- Page 6 ---
+Patience is all you need! An agentic system for performing scientific literature review A P REPRINT
+guess to drive up coverage, but as the retrieval and attribu-
+tion of our system is similar to that of LitQA2, this would
+mean the model would make a guess that isn’t based on
+having appropriate information in the context. Given that
+there is a 25% chance of picking the correct answer in a
+multiple-choice test, we would be gaming the system rather
+than testing the system’s capability of answering questions
+based on information from the literature. Therefore, the
+key area for improvement on the benchmark lies in the
+initial retrieval stage, both for our system as well as Pa-
+perQA2 (We make further analysis of this in appendix A).
+The LitQA2 benchmark was designed for answering very
+specific questions with multiple-choice answers, whereas
+our literature review system was designed to summarise
+and contextualise a broad literature base around a given
+research question. Generating meaningful benchmarks
+is difficult, as was also shown in our results where the
+benchmark assumption of a question only being answer-
+able from a single paper was broken several times. This
+also leads to the concern that if more than one paper can
+provide a relevant answer, there could be papers with con-
+tradictory claims that affect the answer. Our system has
+been designed to include a verification and diversification
+step to handle such situation, by including a wider range
+of relevant papers for question answering. Furthermore
+with the query expansion and synonym handling (partic-
+ularly of genes/proteins) provided in our methods these
+are not particularly demonstrated well in the benchmark.
+The benchmark questions rarely deviate from the keywords
+used in the passages to generate them such that the retrieval
+systems are not particularly pushed hard to resolve semanti-
+cally similar terms. Despite benchmarks necessarily being
+limited compared to real-world applications, they serve a
+useful purpose for enabling comparisons and improving
+methods.
+While our methodology does not exceed the accuracy mea-
+surement of PaperQA2 [ 10] it does demonstrate a tech-
+nique which gets similar levels of attribution and retrieval
+without the need to exploit the citation network, and with-
+out the use of dense retrieval methods. This makes the
+technique transferable to document stores where this infor-
+mation is not available.
+For current agentic systems producing a well-referenced
+review article there is a strong trade-off between execution
+time and the quantity of literature processed in such sys-
+tems. The strength of LLMs to extract information from
+papers as displayed in table 2 is already very good and for
+a single paper faster than a typical human. Being able to
+benchmark the quality of a review for an area of literature
+is difficult as the generated text is often far larger than you
+might generate for bench-marking summarisation tasks
+and the quality is also far more based on human opinion.
+Furthermore, references used in a review article will be
+biased to the authors knowledge and affiliations which an
+agentic system like ours will not be able to reproduce. Even
+so we were able to demonstrate significant improvement
+to the literature coverage by use of the CoVe technique.In reality the end-to-end time to perform such agentic lit-
+erature reviews typically takes ∼10-30 minutes. This is
+significantly slower than many of the commercial chat apps
+(such as ChatGPT) however the quality and grounding of
+responses (as qualitatively accessed by users) is often a lot
+better. When compared with asking a human to perform
+a literature review our agentic literature review system is
+significantly faster.
+5 Conclusion
+We developed a methodology for answering questions
+from scientific literature and validated the retrieval and an-
+swering capabilities of these methods against the LitQA2
+benchmark. We have further demonstrated a method for ex-
+ploring a wider literature space when generating scientific
+literature reviews using CoVe. We validated this approach
+by assessing the coverage of relevant literature. Scaling
+these methods allows for scientists to explore more liter-
+ature in a shorter amount of time than would be possible
+previously.
+References
+[1]R. Bommasani, D. A. Hudson, E. Adeli, R. Alt-
+man, S. Arora, S. v. Arx, M. S. Bernstein, J. Bohg,
+A. Bosselut, E. Brunskill, E. Brynjolfsson, S. Buch,
+D. Card, R. Castellon, N. Chatterji, A. Chen, K. Creel,
+J. Q. Davis, D. Demszky, C. Donahue, M. Doum-
+bouya, E. Durmus, S. Ermon, J. Etchemendy, K. Etha-
+yarajh, L. Fei-Fei, C. Finn, T. Gale, L. Gillespie,
+K. Goel, N. Goodman, S. Grossman, N. Guha,
+T. Hashimoto, P. Henderson, J. Hewitt, D. E. Ho,
+J. Hong, K. Hsu, J. Huang, T. Icard, S. Jain, D. Juraf-
+sky, P. Kalluri, S. Karamcheti, G. Keeling, F. Khani,
+O. Khattab, P. W. Koh, M. Krass, R. Krishna, R. Ku-
+ditipudi, A. Kumar, F. Ladhak, M. Lee, T. Lee,
+J. Leskovec, I. Levent, X. L. Li, X. Li, T. Ma, A. Ma-
+lik, C. D. Manning, S. Mirchandani, E. Mitchell,
+Z. Munyikwa, S. Nair, A. Narayan, D. Narayanan,
+B. Newman, A. Nie, J. C. Niebles, H. Nilforoshan,
+J. Nyarko, G. Ogut, L. Orr, I. Papadimitriou, J. S.
+Park, C. Piech, E. Portelance, C. Potts, A. Raghu-
+nathan, R. Reich, H. Ren, F. Rong, Y . Roohani,
+C. Ruiz, J. Ryan, C. Ré, D. Sadigh, S. Sagawa,
+K. Santhanam, A. Shih, K. Srinivasan, A. Tamkin,
+R. Taori, A. W. Thomas, F. Tramèr, R. E. Wang,
+W. Wang, B. Wu, J. Wu, Y . Wu, S. M. Xie, M. Ya-
+sunaga, J. You, M. Zaharia, M. Zhang, T. Zhang,
+X. Zhang, Y . Zhang, L. Zheng, K. Zhou, and P. Liang,
+“On the Opportunities and Risks of Foundation Mod-
+els,” arXiv , 2021.
+[2]S. Bubeck, V . Chandrasekaran, R. Eldan, J. Gehrke,
+E. Horvitz, E. Kamar, P. Lee, Y . T. Lee, Y . Li,
+S. Lundberg, H. Nori, H. Palangi, M. T. Ribeiro, and
+Y . Zhang, “Sparks of Artificial General Intelligence:
+Early experiments with GPT-4,” arXiv , 2023.
+6
+
+--- Page 7 ---
+Patience is all you need! An agentic system for performing scientific literature review A P REPRINT
+[3]D. A. Boiko, R. MacKnight, B. Kline, and G. Gomes,
+“Autonomous chemical research with large language
+models,” Nature , vol. 624, no. 7992, pp. 570–578,
+2023.
+[4]A. M. Bran, S. Cox, O. Schilter, C. Baldassari, A. D.
+White, and P. Schwaller, “Chemcrow: Augmenting
+large-language models with chemistry tools,” 2023.
+[5]J. Lála, O. O’Donoghue, A. Shtedritski, S. Cox, S. G.
+Rodriques, and A. D. White, “Paperqa: Retrieval-
+augmented generative agent for scientific research,”
+arXiv preprint arXiv:2312.07559 , 2023.
+[6]C. Wang, Q. Long, M. Xiao, X. Cai, C. Wu,
+Z. Meng, X. Wang, and Y . Zhou, “BioRAG: A RAG-
+LLM Framework for Biological Question Reasoning,”
+arXiv , 2024.
+[7]P. Lewis, E. Perez, A. Piktus, F. Petroni,
+V . Karpukhin, N. Goyal, H. Küttler, M. Lewis, W.-
+t. Yih, T. Rocktäschel, S. Riedel, and D. Kiela,
+“Retrieval-augmented generation for knowledge-
+intensive nlp tasks,” in Advances in Neural Informa-
+tion Processing Systems (H. Larochelle, M. Ranzato,
+R. Hadsell, M. Balcan, and H. Lin, eds.), vol. 33,
+pp. 9459–9474, Curran Associates, Inc., 2020.
+[8]Y . Gao, Y . Xiong, X. Gao, K. Jia, J. Pan, Y . Bi,
+Y . Dai, J. Sun, M. Wang, and H. Wang, “Retrieval-
+augmented generation for large language models: A
+survey,” 2024.
+[9]J. Lála, O. O’Donoghue, A. Shtedritski, S. Cox,
+S. G. Rodriques, and A. D. White, “PaperQA:
+Retrieval-Augmented Generative Agent for Scientific
+Research,” arXiv , 2023.
+[10] M. D. Skarlinski, S. Cox, J. M. Laurent, J. D. Braza,
+M. Hinks, M. J. Hammerling, M. Ponnapati, S. G. Ro-
+driques, and A. D. White, “LANGUAGE AGENTS
+ACHIEVE SUPERHUMAN SYNTHESIS OF SCI-
+ENTIFIC KNOWLEDGE,” 9 2024.
+[11] Q. Jin, B. Dhingra, Z. Liu, W. W. Cohen, and X. Lu,
+“PubMedQA: A Dataset for Biomedical Research
+Question Answering,” arXiv , 2019.
+[12] J. M. Laurent, J. D. Janizek, M. Ruzo, M. M. Hinks,
+M. J. Hammerling, S. Narayanan, M. Ponnapati, A. D.
+White, and S. G. Rodriques, “LAB-Bench: Measur-
+ing Capabilities of Language Models for Biology
+Research,” arXiv , 2024.
+[13] W. Li, L. Li, T. Xiang, X. Liu, W. Deng, and N. Gar-
+cia, “Can multiple-choice questions really be useful
+in detecting the abilities of LLMs?,” arXiv , 2024.
+[14] A. Myrzakhan, S. M. Bsharat, and Z. Shen, “Open-
+LLM-Leaderboard: From Multi-choice to Open-style
+Questions for LLMs Evaluation, Benchmark, and
+Arena,” arXiv , 2024.
+[15] M. Glickman and Y . Zhang, “AI and Generative AI
+for Research Discovery and Summarization,” Har-
+vard Data Science Review , vol. 6, apr 30 2024.
+https://hdsr.mitpress.mit.edu/pub/xedo5giw.[16] A. Neelakantan, T. Xu, R. Puri, A. Radford, J. M.
+Han, J. Tworek, Q. Yuan, N. Tezak, J. W. Kim,
+C. Hallacy, J. Heidecke, P. Shyam, B. Power, T. E.
+Nekoul, G. Sastry, G. Krueger, D. Schnurr, F. P.
+Such, K. Hsu, M. Thompson, T. Khan, T. Sherbakov,
+J. Jang, P. Welinder, and L. Weng, “Text and code
+embeddings by contrastive pre-training,” 2022.
+[17] M. Douze, A. Guzhva, C. Deng, J. Johnson, G. Szil-
+vasy, P.-E. Mazaré, M. Lomeli, L. Hosseini, and H. Jé-
+gou, “The faiss library,” 2024.
+[18] S. Robertson and H. Zaragoza, “The probabilistic
+relevance framework: Bm25 and beyond,” Found.
+Trends Inf. Retr. , vol. 3, p. 333–389, Apr. 2009.
+[19] T. Formal, B. Piwowarski, and S. Clinchant, “Splade:
+Sparse lexical and expansion model for first stage
+ranking,” 2021.
+[20] A. R. Rivas, E. L. Iglesias, and L. Borrajo, “Study of
+query expansion techniques and their application in
+the biomedical information retrieval,” The Scientific
+World Journal , vol. 2014, no. 1, p. 132158, 2014.
+[21] Z. Jiang, X. Ma, and W. Chen, “Longrag: Enhanc-
+ing retrieval-augmented generation with long-context
+llms,” 2024.
+[22] Anthropic, “The claude 3 model family: Opus, son-
+net, haiku,” 2024.
+[23] N. F. Liu, K. Lin, J. Hewitt, A. Paranjape, M. Bevilac-
+qua, F. Petroni, and P. Liang, “Lost in the middle:
+How language models use long contexts,” Transac-
+tions of the Association for Computational Linguis-
+tics, vol. 12, pp. 157–173, 2024.
+[24] G. Kamradt, “I pressure tested
+gpt-4’s 128k context retrieval.”
+https://www.youtube.com/watch?v=KwRRuiCCdmc,
+November 2023.
+[25] I. Annamoradnejad and G. Zoghi, “Colbert: Using
+bert sentence embedding in parallel neural networks
+for computational humor,” Expert Systems with Ap-
+plications , vol. 249, p. 123685, 2024.
+[26] R. Patel, A. Brayne, R. Hintzen, D. Jaroslawicz,
+G. Neculae, and D. Corneil, “Retrieve to explain:
+Evidence-driven predictions with language models,”
+2024.
+[27] Y . Lv and C. Zhai, “When documents are very long,
+bm25 fails!,” in Proceedings of the 34th International
+ACM SIGIR Conference on Research and Develop-
+ment in Information Retrieval , SIGIR ’11, (New York,
+NY , USA), p. 1103–1104, Association for Computing
+Machinery, 2011.
+[28] Bethesda (MD): National Library of Medicine,
+“PubMed.” internet, August 2024.
+[29] Bethesda (MD): National Library of Medicine,
+“PMC Open Access Subset.” internet, August 2024.
+[30] Elastic NV, “Elasticsearch.” https://www.
+elastic.co/elasticsearch/ , 2024. Accessed:
+[2024/08/20].
+7
+
+--- Page 8 ---
+Patience is all you need! An agentic system for performing scientific literature review A P REPRINT
+[31] G. S. Nájera, D. N. Carlón, and D. J. Crowther,
+“TrendyGenes, a computational pipeline for the de-
+tection of literature trends in academia and drug dis-
+covery,” Scientific Reports , vol. 11, no. 1, p. 15747,
+2021.
+[32] L. Weber, M. Sänger, J. Münchmeyer, M. Habibi,
+U. Leser, and A. Akbik, “HunFlair: an easy-to-
+use tool for state-of-the-art biomedical named en-
+tity recognition,” Bioinformatics , vol. 37, no. 17,
+pp. 2792–2794, 2021.
+[33] M. Sänger, S. Garda, X. D. Wang, L. Weber-Genzel,
+P. Droop, B. Fuchs, A. Akbik, and U. Leser, “Hun-
+Flair2 in a cross-corpus evaluation of biomedical
+named entity recognition and normalization tools,”
+arXiv , 2024.
+[34] G. V . Cormack, C. L. A. Clarke, and S. Buettcher,
+“Reciprocal rank fusion outperforms condorcet and
+individual rank learning methods,” in Proceedings of
+the 32nd International ACM SIGIR Conference on
+Research and Development in Information Retrieval ,
+SIGIR ’09, (New York, NY , USA), p. 758–759, As-
+sociation for Computing Machinery, 2009.
+[35] Anthropic, “Prompt engineering guidance for
+claude.” https://docs.anthropic.com/en/docs/build-
+with-claude/prompt-engineering/overview, August
+2024.
+[36] S. Dhuliawala, M. Komeili, J. Xu, R. Raileanu,
+X. Li, A. Celikyilmaz, and J. Weston, “Chain-of-
+Verification Reduces Hallucination in Large Lan-
+guage Models,” arXiv , 2023.
+A Further benchmark analysis
+In both PaperQA2 and our methods we demonstrate similar
+initial retrieval. In figure 4 we explore the search rank up
+to the first 4000 entries. It can be seen that beyond the first
+100 entries there is a very long tail.
+In figure 5 the aggregated distribution of total search hits
+based on the generated keyword search are shown for 3
+repeats of the LitQA2 benchmark (considering only the
+available papers). It can be seen that the distribution has
+a long tail going out into millions of hits. Given both
+PaperQA2 (which relies on Semantic Scholar’s sparse re-
+trieval with a dense reranker) and our sparse retrieval tech-
+niques exhibit similar initial retrieval it would suggest that
+the retrieval issues don’t reside solely in the methods alone
+but potentially the specificity of the questions themselves.10010110210300.20.40.60.81
+Search rank positionCumulative Probability
+of finding the source given a questionLitQA2 - LLM Keyword*
+Figure 4: Search rank with search term agent for bench-
+mark sources in PubMed Central (* with 95% CI)
+100101102103104105106107
+Total search hits
+Figure 5: Total potential search hits across questions in
+LitQA2 with search term agent
+B Verification and diversification analysis
+For the analysis of the CoVe we use a set of recent Na-
+ture reviews to formulate a set of starting questions. The
+derived starting questions can be seen in table 4.
+In the CoVe planning step we get the LLM to propose a se-
+ries of follow up questions based on the initial answer. For
+the question How can the integration of cryo-EM and cryo-
+electron tomography bridge the gap between structural and
+cell biology to provide a comprehensive understanding of
+macromolecular interactions within their native cellular
+context? a subset of the resulting questions are:
+•What is the highest resolution achieved by single-particle cryo-
+EM for protein structures?
+•Can cryo-ET provide high-resolution structural details compa-
+rable to single-particle cryo-EM?
+•What specific cellular interactions or structures can be observed
+using integrated cryo-EM and cryo-ET that cannot be seen with
+traditional structural biology methods?
+•Are there any limitations or potential artifacts in fitting high-
+resolution cryo-EM structures into lower-resolution cryo-ET
+maps?
+8
+
+--- Page 9 ---
+Patience is all you need! An agentic system for performing scientific literature review A P REPRINT
+•Can you provide specific examples of transient cellular pro-
+cesses or interactions that have been uniquely revealed by
+cryo-EM or cryo-ET?
+•What is the typical thickness of lamellae prepared by FIB
+milling for cryo-ET, and how does this compare to the maxi-
+mum sample thickness for direct cryo-ET imaging?
+•What is the highest resolution achieved to date using subto-
+mogram averaging in cryo-ET, and how does it compare to
+single-particle cryo-EM?
+•How does the structural information obtained from the cry-
+oWriter system compare to that from traditional cryo-EM
+of purified complexes in terms of resolution and native state
+preservation?
+These questions are nuanced as they are based on infor-
+mation retrieved from the initial round of retrieval and
+summarisation.
+C Search term query expansion
+In the search term query expansion we ask the LLM to
+map to known identifiers found through NER and LLM
+identified keywords, for which it generates synonyms.
+For example, for the question Relative to wild type ze-
+brafish embryos, those with Kif9 knocked down display
+what ciliary phenotype? the following terms are gener-
+ated:
+< t e r m s >
+<must>
+< term > z e b r a f i s h < / term >
+< term >Danio r e r i o < / term >
+< / must>
+<must>
+< term > c i l i a < / term >
+< term > c i l i a r y < / term >
+< / must>
+<must>
+< term >ENSEMBL:ENSG00000088727< / term >
+< / must>
+< s h o u l d >
+< term >embryo< / term >
+< term >embryonic < / term >
+< b o o s t >MEDIUM< / b o o s t >
+< / s h o u l d >
+< s h o u l d >
+< term >knockdown< / term >
+< term >knocked down< / term >
+< term > s i l e n c i n g < / term >
+< term >gene s i l e n c i n g < / term >
+< b o o s t >HIGH< / b o o s t >
+< / s h o u l d >
+< s h o u l d >
+< term > phenotype < / term >
+< term >morphology < / term >
+< b o o s t >LOW< / b o o s t >
+< / s h o u l d >
+< s h o u l d >
+< term > w il d t y p e < / term >
+< term >WT< / term >
+< b o o s t >MEDIUM< / b o o s t >
+< / s h o u l d >
+< / t e r m s >
+where each <should> and <must> are the terms with their
+synonyms or the term matched by the NER. The XML
+structure uses <must> tags for required terms and <should>
+tags for optional terms that may improve search results.
+The <boost> values indicate a weighting to apply to should
+terms in the search scoring.D Initial answers for reranking
+In order to perform re-ranking in addition to the question
+we use 3 plausible answers making use of the LLMs own
+memory to get sample text in a form which is similar
+to what a long form answer might look like (even if not
+correct). These are then used to query the BM25L index.
+The outputs also include synonyms of key terms to try to
+overcome some of the semantic short comings typically
+associated to sparse retrieval.
+For example, for the question Relative to wild type ze-
+brafish embryos, those with Kif9 knocked down display
+what ciliary phenotype? the following answers are given:
+Kif9 knockdown zebrafish embryos likely display shorter cilia
+(synonyms/abbreviations: reduced-length cilia, truncated cilia,
+diminished cilia, abbreviated cilia, stunted cilia) as the ciliary
+phenotype. Kif9 is a kinesin motor protein (synonyms/abbrevia-
+tions: molecular motor, motor enzyme, KIF, kinesin-like protein,
+microtubule-associated motor) that plays a role in intraflagel-
+lar transport [synonyms/abbreviations: IFT, ciliary transport,
+flagellar transport, cilia protein trafficking, axonemal transport].
+Without Kif9, the transport of building materials to the ciliary
+tip may be impaired, resulting in shorter cilia due to insuffi-
+cient elongation during ciliogenesis (synonyms/abbreviations:
+cilia formation, ciliary assembly, cilia biogenesis, cilia growth,
+flagella formation).
+The ciliary phenotype observed in Kif9 knockdown zebrafish
+embryos is likely increased beat frequency (synonyms/abbre-
+viations: accelerated ciliary motion, enhanced ciliary beat-
+ing, rapid cilia oscillation, heightened ciliary activity, faster
+cilia movement). Kif9 may function as a regulatory protein
+[synonyms/abbreviations: modulator, control factor, regulator
+molecule, governing protein, homeostatic agent] that normally
+dampens ciliary beating. In its absence, the cilia might lack
+proper regulation, leading to increased beat frequency. This
+could result in altered fluid flow (synonyms/abbreviations: hy-
+drodynamic changes, fluid dynamics alteration, modified liquid
+current, shifted fluid movement, disrupted flow patterns) in the
+zebrafish embryo, potentially affecting development.
+Zebrafish embryos with Kif9 knocked down are likely to display
+wider cilia (synonyms/abbreviations: thicker cilia, enlarged cilia
+diameter, expanded cilia width, broadened cilia, increased cilia
+girth) as their ciliary phenotype. Kif9 might be involved in
+maintaining the structural integrity (synonyms/abbreviations:
+architectural stability, structural soundness, physical cohesion,
+conformational robustness, morphological consistency) of the
+ciliary axoneme (synonyms/abbreviations: ciliary core, cen-
+tral ciliary structure, microtubule scaffold, axonemal structure,
+ciliary skeleton). Without Kif9, the tight organization of the
+axonemal microtubules (synonyms/abbreviations: ciliary mi-
+crotubules, axonemal MTs, cilia structural filaments, flagellar
+microtubules, cytoskeletal tubules) may be compromised, lead-
+ing to a wider, less organized ciliary structure.
+These answers are obviously contradictory but identify the
+type of key terms which we might expect to see in the
+initial retrieved literature.
+9
+
+--- Page 10 ---
+Patience is all you need! An agentic system for performing scientific literature review A P REPRINT
+PMID Title Abstract derived question
+37758888 Molecular pathology of neurodegen-
+erative diseases by cryo-EM of amy-
+loids.What are the implications of recent cryo-electron microscopy
+findings on amyloid filament structures for understanding and
+addressing neurodegenerative diseases?
+37612393 From target discovery to clinical
+drug development with human ge-
+netics.To what extent have investments in human genetics and genomics
+over the past three decades resulted in innovative therapies, and
+what are the characteristics and timelines of these genetically-
+driven drug developments?
+37344646 Physiology and diseases of tissue-
+resident macrophages.What is the current understanding of tissue-resident macrophage
+physiology, and how does it relate to human health and disease?
+37316719 The neuroscience of cancer. What is the role of the nervous system in cancer development,
+progression, and metastasis, and how does cancer interact with
+and affect the nervous system?
+37138108 Reappraising the palaeobiology of
+Australopithecus.What is the significance of the genus Australopithecus in human
+evolution, and how has our understanding of its characteristics
+and role changed since its initial discovery?
+37100941 Computational approaches stream-
+lining drug discovery.How are recent advances in computational technologies, particu-
+larly in virtual screening and deep learning, reshaping the drug
+discovery process, and what are the challenges and opportunities
+associated with these developments?
+38750233 Decoding the interplay between ge-
+netic and non-genetic drivers of
+metastasis.How do genetic and non-genetic mechanisms contribute to the
+acquisition of metastatic competencies in cancer cells, and how
+can new technologies help us better understand these processes?
+38570716 Bridging structural and cell biology
+with cryo-electron microscopy.How can the integration of cryo-EM and cryo-electron tomogra-
+phy bridge the gap between structural and cell biology to provide
+a comprehensive understanding of macromolecular interactions
+within their native cellular context?
+38418916 Ion and lipid orchestration of sec-
+ondary active transport.How do secondary active transporters utilize ion gradients and
+lipid properties to facilitate the movement of small molecules
+across cell membranes, and what mechanisms enable their regu-
+lation and adaptation to different physiological needs?
+38326590 A break in mitochondrial endosym-
+biosis as a basis for inflammatory
+diseases.How does the breakdown of the endosymbiotic relationship be-
+tween mitochondria and host cells contribute to cellular signaling
+and the development of inflammatory and autoimmune diseases?
+Table 4: Nature reviews dataset
+10
