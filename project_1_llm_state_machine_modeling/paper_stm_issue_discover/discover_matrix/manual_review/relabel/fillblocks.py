@@ -64,14 +64,19 @@ def _template_fields(tpl):
 # 「深度」一栏 2026-08-13 删除：它是本目录自造的三分（台账没有这个字段），
 # 判据「读懂它需要看几个地方」要人做语义判断，却被摆成一个必填勾选行 ——
 # 判读者的注意力被从「这一条成不成立」拉到「它算中层还是深层」上。
-LEDGER_TEMPLATE = """裁决: [ ] 保留  [ ] 修正  [ ] 删除  [ ] 拆分
-理由:
-修正后的 statement:"""
+# ⚠️⚠️ **2026-08-14 两个模板合并简化成「采纳 / 不采纳 + 理由」。** 用户裁定：
+# ⛔ §4/§5 拆除后不再存在「拆分」「并入现有条目」这类动作，⭐ 判读者要回答的只剩
+# 一个 yes/no 加一句理由。⚠️ 旧模板的四个选项（保留/修正/删除/拆分）与候选侧的
+# 四个选项（采纳/不采纳/待议/并入）在**语义上是同一个问题的两套说法**，
+# ⛔ 两套并存的代价是同一条 issue 在台账侧与候选侧要用不同的词回答。
+#
+# ⭐ 「采纳」的含义在两侧统一：**这一条是一个成立的缺陷，应当在台账里**。
+# 台账侧的「不采纳」= 把这条从台账去掉；候选侧的「不采纳」= 不补进台账。
+# ⚠️ 旧的「修正」没有独立选项了 —— 事实成立但陈述要改写的，勾「采纳」并把改法写进理由。
+LEDGER_TEMPLATE = """裁决: [ ] 采纳  [ ] 不采纳
+理由:"""
 
-CANDIDATE_TEMPLATE = """裁决: [ ] 采纳(补入台账)  [ ] 不采纳  [ ] 待议  [ ] 并入现有条目
-并入到:
-理由:
-补入后的 statement:"""
+CANDIDATE_TEMPLATE = LEDGER_TEMPLATE
 
 # ⭐ 新增 issue 的字段与模板由 [newfields.py](./newfields.py) 定义 —— 那里同时放着
 # 枚举、填写指引和脚本推导，⛔ 不要在本文件里另开一份，两处会立刻走偏。
@@ -207,6 +212,15 @@ property_pattern:""")
 
 # 裁决块的历史模板（含已删除的「深度」一栏）。同样只为识别原样未填的旧块 ——
 # 不认出来的话，54 份工作单的 99 个裁决区会**永远**印着一个不再存在的字段。
+# ⭐ 2026-08-14 合并前的两个模板，按代次冻成字面量（见上面那段注释）。
+_PRE_MERGE_LEDGER = """裁决: [ ] 保留  [ ] 修正  [ ] 删除  [ ] 拆分
+理由:
+修正后的 statement:"""
+_PRE_MERGE_CANDIDATE = """裁决: [ ] 采纳(补入台账)  [ ] 不采纳  [ ] 待议  [ ] 并入现有条目
+并入到:
+理由:
+补入后的 statement:"""
+
 LEGACY_LEDGER_TEMPLATES = ["""裁决: [ ] 保留  [ ] 修正  [ ] 删除  [ ] 拆分
 深度: [ ] 表层(单点存在性/拼写)  [ ] 中层(单点关系)  [ ] 深层(跨状态推理/隐含冲突/运行时后果)
 理由:
@@ -217,6 +231,9 @@ LEGACY_CANDIDATE_TEMPLATES = ["""裁决: [ ] 采纳(补入台账)  [ ] 不采纳
 并入到:
 理由:
 补入后的 statement:"""]
+
+LEGACY_LEDGER_TEMPLATES.append(_PRE_MERGE_LEDGER)
+LEGACY_CANDIDATE_TEMPLATES.append(_PRE_MERGE_CANDIDATE)
 
 _LEGACY_BY_KIND = {
     "new": LEGACY_NEW_TEMPLATES,
@@ -256,6 +273,14 @@ def checklist_is_untouched(body):
     return True
 
 
+#: 预填体的尾标，⭐ 当前的与历史的都要列 —— ⛔ 只认当前的，旧预填会被永久钉住。
+#: ⚠️ 真源在 [dtier.py](./dtier.py) 的 `PREFILL_TAIL`；这里额外冻结历史值。
+PREFILL_TAILS = (
+    "（此为我方预填，删除此括号内的内容后即视为已处理）",
+    "（以上为我方预填，你确认或改写后即视为已处理）",   # 2026-08-14 上午的第一版
+)
+
+
 def is_stale_template(body, kind, pair=""):
     """该块是不是**原样未填**（因而可以安全换成当前材料 / 当前模板）。
 
@@ -266,8 +291,35 @@ def is_stale_template(body, kind, pair=""):
         return False
     if kind == "checklist":
         return checklist_is_untouched(body)
-    return any(body.strip() == t.format(pair=pair).strip()
-               for t in _LEGACY_BY_KIND.get(kind, ()))
+    if any(body.strip() == t.format(pair=pair).strip()
+           for t in _LEGACY_BY_KIND.get(kind, ())):
+        return True
+    # ⭐⭐ 2026-08-14 补两条，⛔ 缺了它们预填永远上不了线：
+    #
+    # ① **等于当前空模板**也算 stale。⚠️ 否则盘上那份空模板（非空字符串）会被
+    #    `render()` 当作「人工内容」保留，⛔ 而预填是作为 `default_body` 传进来的 ——
+    #    于是 380 个裁决区一个都不会被预填。实测：改完 prefill 后重跑，134 个块仍空白。
+    # ② **旧代次的预填体**也算 stale（按尾标识别）。⚠️ 预填文案会随 meta review 更新，
+    #    ⛔ 若不认旧的，第一版预填会被永久钉住，后续修订永远到不了工作单 ——
+    #    ⭐ 与 2026-08-13 「旧字段表被当人工内容永久保留」是同型 bug。
+    #    ⛔ 判据是尾标逐字命中且**人没在后面加东西**（加了就算人工内容，原样保留）。
+    cur = {"ledger": LEDGER_TEMPLATE, "candidate": CANDIDATE_TEMPLATE,
+           "new": None, "pair": PAIR_TEMPLATE}.get(kind)
+    if cur is not None and body.strip() == cur.strip():
+        return True
+    # ⛔⛔ **判据必须是结构性的，不能只看结尾。** ⚠️ 只看「以尾标结尾」会把
+    # 「预填 + 人在中间加了一行」也判成可替换 —— ⭐ 那会**吃掉人工填写**，
+    # 是本轮测试实际抓到的一个真 bug（`test_claim_1_only_content_inside_the_fence_survives_a_rerun`）。
+    #
+    # ⭐ 未经人动过的预填体有确定形状：**行数恰等于模板字段数**，且最后一行以尾标结尾。
+    # ⚠️ 人一旦加行、删行或改掉尾标，形状就变了 ⇒ 判为人工内容、原样保留。
+    lines = [ln for ln in body.strip().splitlines() if ln.strip()]
+    if cur is not None and len(lines) == len(
+            [ln for ln in cur.strip().splitlines() if ln.strip()]):
+        for tail in PREFILL_TAILS:
+            if lines[-1].rstrip().endswith(tail):
+                return True
+    return False
 
 PAIR_TEMPLATE = """本 pair 整体判断: [ ] 台账在本 pair 上够用  [ ] 偏浅但方向对  [ ] 有实质遗漏  [ ] 需推倒重写
 台账现有条目是否偏浅（整体）: [ ] 否  [ ] 部分  [ ] 是

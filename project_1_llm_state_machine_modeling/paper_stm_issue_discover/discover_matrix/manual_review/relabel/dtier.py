@@ -47,16 +47,15 @@ BUCKET_MARK = {
 }
 
 #: meta review 的四个字段：json 键 → 工作单里的中文抬头。⭐ 顺序即渲染顺序。
-META_FIELDS = (("recommend", "推荐"), ("reason", "理由"),
+META_FIELDS = (("recommend", "推荐"), ("brief", "一句话理由"), ("reason", "理由"),
                ("crux", "分歧点"), ("focus", "重点关注"))
 
 #: 人工归纳里 `recommend` 的合法取值 → 各 kind 的勾选项。
 #: ⛔ 只认这几个词：`prefill()` 要靠它机械决定勾哪个框，⚠️ 自由文本会静默勾错。
 REC_TO_CHOICE = {
-    "保留": {"ledger": "保留", "candidate": "采纳(补入台账)"},
-    "修正": {"ledger": "修正", "candidate": "采纳(补入台账)"},
-    "抛弃": {"ledger": "删除", "candidate": "不采纳"},
-    "待议": {"ledger": None, "candidate": "待议"},
+    "保留": "采纳",
+    "修正": "采纳",       # ⚠️ 合并后没有独立的「修正」选项：勾采纳、把改法写进理由
+    "抛弃": "不采纳",
 }
 
 _META_CACHE = None
@@ -99,7 +98,8 @@ def mark(rid):
     """条目标题后缀的标记。⭐ 只有需人处理的三桶有，⛔ 便于全文搜索定位。"""
     rec = load_rulings().get(rid)
     if not rec:
-        return ""
+        # ⭐ `UM-` 一族一律人工裁决，故一律打 🟠
+        return " 🟠" if rid in load_meta() else ""
     m = BUCKET_MARK.get(rec.get("bucket"))
     return (" " + m[0]) if m else ""
 
@@ -162,7 +162,18 @@ def block(rid):
     """一条条目的三方判读区块。⭐ 无争议的压到一行，⛔ 需人裁的才展开。"""
     rec = load_rulings().get(rid)
     if not rec:
-        return []
+        # ⭐ `UM-` 一族：无三方判定，只有人工 meta review。⛔ 一律人工裁决。
+        m = load_meta().get(rid)
+        if not m:
+            return []
+        out = ["**人工 meta review** 🟠 **本块无三方判读（不在判读包内），一律人工裁决**", ""]
+        for k, zh in META_FIELDS:
+            v = (m.get(k) or "").strip()
+            if not v:
+                continue
+            out.append(f"- {'**推荐**' if k == 'recommend' else zh}：{v}")
+        out.append("")
+        return out
     bucket = rec.get("bucket") or "?"
     combo = rec.get("combo")
     if bucket not in BUCKET_MARK:
@@ -205,14 +216,14 @@ def compact(rid):
 
 #: 预填体的尾标。⭐ 它是「这份是我方预填、你还没确认」的唯一判据，
 #: ⛔ 不许改动措辞 —— `fillblocks.is_untouched()` 靠逐字全等认它。
-PREFILL_TAIL = "（以上为我方预填，你确认或改写后即视为已处理）"
+PREFILL_TAIL = "（此为我方预填，删除此括号内的内容后即视为已处理）"
 
 
 def _choice_line(kind, choice):
     """把某个选项勾上，其余留空。⛔ 从 fillblocks 的模板取选项表，不另抄一份。"""
     import fillblocks as fb
-    tpl = fb.LEDGER_TEMPLATE if kind == "ledger" else fb.CANDIDATE_TEMPLATE
-    head = tpl.splitlines()[0]
+    # ⭐ 2026-08-14 起两个 kind 共用同一个模板（采纳 / 不采纳 + 理由），故不再分支。
+    head = fb.LEDGER_TEMPLATE.splitlines()[0]
     if not choice:
         return head
     out, hit = [], False
@@ -227,6 +238,48 @@ def _choice_line(kind, choice):
     return "裁决: " + "  ".join(out)
 
 
+def _auto_brief(rec, keep):
+    """无争议条目的一句话理由。⭐ 取三臂一致认定的那条义务出处，拼成人话。
+
+    ⛔ 不是套话：`nl_quote` / `obligation_sentence` / A0 出局口都是**这一条特有**的内容。
+    ⚠️ 三样都取不到时才退回一句概括，并明写「三臂未给出可引的出处」——
+    ⭐ 那本身是有信息的（说明这一条的判定没落在可复核的锚点上）。
+    """
+    arms = rec.get("arms") or {}
+    if keep:
+        for k in ("codex", "claude", "dsh"):
+            q = ((arms.get(k) or {}).get("nl_quote") or "").strip()
+            if q:
+                return (f"三臂一致认定它违反了 NL 里这句「{q[:90]}」，"
+                        f"且都找不出站得住的第二种读法 —— 是一条成立的缺陷。")
+        for k in ("codex", "claude", "dsh"):
+            o = ((arms.get(k) or {}).get("obligation_sentence") or "").strip()
+            if o:
+                return (f"三臂一致认定它违反了这条领域义务：{o[:110]}"
+                        f"；没人拿出站得住的第二种读法 —— 是一条成立的缺陷。")
+        g = {(arms.get(k) or {}).get("grounding") for k in arms}
+        if "impl" in g:
+            return ("三臂一致认定它是死锁（进去出不来），"
+                    "这一类免领域知识即可判为失效，且没人拿出合法终止的依据 —— 是一条成立的缺陷。")
+        return ("三臂一致判它成立，⚠️ 但都没给出可引的 NL 原句或领域义务 —— "
+                "建议你顺手核一眼它的义务出处。")
+    a0 = [(arms.get(k) or {}).get("a0") for k in ("codex", "claude", "dsh")]
+    a0 = [x for x in a0 if x]
+    if len(a0) == 3:
+        kinds = sorted(set(a0))
+        why = {"非主张": "它评的不是作者写的那份模型（而是参考模型或评测真值）",
+               "越界": "它涉及时钟、不变式或正交区并发，不在本研究的建模对象内",
+               "误报": "它声称的结构事实在作者源上不成立"}
+        return ("三臂一致认为它压根没进入缺陷判定：" +
+                "；".join(why.get(x, x) for x in kinds) + " —— 不该留在台账。")
+    for k in ("codex", "claude", "dsh"):
+        d = ((arms.get(k) or {}).get("design_rationale") or "").strip()
+        if d:
+            return (f"三臂一致认为作者可以正当地说「这就是设计」：{d[:110]}"
+                    f" —— 不构成缺陷。")
+    return ("三臂一致判它不成立（找不出被违反的义务，或作者的设计说法站得住） —— 不该留在台账。")
+
+
 def prefill(key, kind):
     """裁决区的预填体。无判定记录、或该桶不预填时返回 `None`（调用方回落到空模板）。
 
@@ -237,39 +290,41 @@ def prefill(key, kind):
     if kind not in ("ledger", "candidate"):
         return None
     rec = load_rulings().get(key)
-    if not rec:
-        return None
-    bucket = rec.get("bucket")
     meta = load_meta().get(key) or {}
+    # ⭐ `UM-` 一族没有三方 D 判定（它们不在判读包里），⛔ 但用户要求它们也必须有
+    # 推荐与理由，且**一律人工裁决**。⚠️ 故有 meta review 就照它预填，不看有没有 ruling。
+    if not rec:
+        if not meta:
+            return None
+        rv = (meta.get("recommend") or "").strip()
+        ch = REC_TO_CHOICE.get(rv) if rv else None
+        why = (meta.get("brief") or "").strip() or "人工 meta review 待补。"
+        lines = [_choice_line(kind, ch), f"理由: {why}{PREFILL_TAIL}"]
+        return "\n".join(lines)
+    bucket = rec.get("bucket")
     combo = rec.get("combo")
     src = f"三方独立判读票面 `{combo}`（{_arm_line(rec)}）"
 
-    if bucket == "auto_keep":
-        choice, why = "保留", f"{src}，三臂一致判「算缺陷」且无一臂指出第二读法。"
+    # ⭐⭐ 理由行必须是**一句自包含的人话**，说清为什么勾这个 yes/no。
+    # ⛔ 不许只引票面（`票面 D2+D2+D2`）—— 那不是理由，是出处；⚠️ 读者还得自己去推。
+    # ⭐ 需人裁的条目用人工 meta review 的 `brief`；⭐ 无争议的条目用三臂一致认定的
+    # 那条义务出处拼一句（`_auto_brief()`），⛔ 仍然是本条特有的内容，不是模板套话。
+    if bucket in BUCKET_MARK:
+        rv = (meta.get("recommend") or "").strip()
+        choice = rv or None
+        why = (meta.get("brief") or "").strip()
+        if not why:
+            why = ("人工 meta review 待补 —— 请对照上面三臂原话自行判断。")
+    elif bucket == "auto_keep":
+        choice, why = "保留", _auto_brief(rec, True)
     elif bucket == "auto_drop":
-        choice, why = "抛弃", f"{src}，三臂一致判「不算缺陷或出局」。"
-    elif bucket in BUCKET_MARK:
-        # ⭐ 2026-08-14 改：只要**人工 meta review 给了推荐**就勾上，不论哪个桶。
-        # ⚠️ 原先 `chaotic` 一律不勾，理由是「三方无偏向时勾一个等于替人决定」——
-        # ⛔ 但那条理由在人工归纳之后不成立了：偏向此时来自人读完三臂原话后的判断，
-        # ⭐ 不是机器投票。没给推荐（或给的是「待议」，它在 ledger 上没有对应选项）
-        # 才留空 —— 那才是真正的「我判不了」。
-        choice = (meta.get("recommend") or "").strip() or None
-        bits = [src]
-        for k, zh in META_FIELDS[1:]:
-            v = (meta.get(k) or "").strip()
-            if v:
-                bits.append(f"{zh}：{v}")
-        if not meta:
-            bits.append("人工 meta review 待补，请对照上面三臂原话自行判断。")
-        why = "；".join(bits) + "。"
+        choice, why = "抛弃", _auto_brief(rec, False)
     else:
         return None
 
-    ch = REC_TO_CHOICE.get(choice, {}).get(kind) if choice else None
+    ch = REC_TO_CHOICE.get(choice) if choice else None
     lines = [_choice_line(kind, ch)]
-    tpl_rest = ((__import__("fillblocks").LEDGER_TEMPLATE if kind == "ledger"
-                 else __import__("fillblocks").CANDIDATE_TEMPLATE).splitlines()[1:])
+    tpl_rest = __import__("fillblocks").LEDGER_TEMPLATE.splitlines()[1:]
     for ln in tpl_rest:
         field = ln.split(":", 1)[0]
         if field == "理由":
@@ -309,8 +364,15 @@ def stats():
     return dict(collections.Counter(v.get("bucket") for v in load_rulings().values()))
 
 
-def missing_meta():
-    """需人裁但 meta 还没写的条目 id（排序后）。⭐ 这是欠账清单。"""
+def missing_meta(extra_keys=()):
+    """需人裁但 meta 还没写的条目 id（排序后）。⭐ 这是欠账清单。
+
+    `extra_keys` 用来把**没有 D 判定**的键也纳进来（`UM-` 一族）——
+    ⛔ 用户明确要求「不允许有任何一个待裁决项缺少 meta review」，⚠️ 而它们不在判读包里，
+    ⭐ 只靠 `load_rulings()` 数不到。
+    """
     meta = load_meta()
-    return sorted(rid for rid, rec in load_rulings().items()
-                  if rec.get("bucket") in BUCKET_MARK and rid not in meta)
+    out = [rid for rid, rec in load_rulings().items()
+           if rec.get("bucket") in BUCKET_MARK and rid not in meta]
+    out += [k for k in extra_keys if k not in meta and k not in load_rulings()]
+    return sorted(set(out))

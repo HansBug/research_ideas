@@ -584,7 +584,8 @@ def section_ledger(pair, records, saved):
 
     keys = []
     lines.append(
-        f"本 pair 共 **{len(records)}** 条。裁决区留空由你填；自动风险标记只是**提示** —— "
+        f"本 pair 共 **{len(records)}** 条。裁决区已按三方判读与人工 meta review 预填"
+        f"（同意就删掉理由末尾那个括号，不同意直接改写）；自动风险标记只是**提示** —— "
         "**打了标记不等于该条不成立，没打标记也不等于它成立**（标记怎么打出来的见 "
         f"[{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §D.1）。"
     )
@@ -650,7 +651,8 @@ def section_candidates(pair, model, records, saved):
     lines.append("## §3 候选新增 issue（挖深的入口）")
     lines.append("")
     lines.append(
-        "本节把**已知但未入账**的线索集中在一处。它们都没有经过人工确认，裁决区留空 —— "
+        "本节把**已知但未入账**的线索集中在一处。它们都没有经过人工确认；"
+        "裁决区已按三方判读与人工 meta review 预填，你同意就删掉理由末尾那个括号 —— "
         f"六个来源的优先级与读法见 [{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §D.2。"
     )
     lines.append("")
@@ -897,7 +899,12 @@ def section_candidates(pair, model, records, saved):
         lines.append("")
         lines.extend(_fmt_mapping(CM.for_candidate(key), CANDIDATE_MAPPING_CAVEAT))
         lines.extend(inspect_supplement(key))
-        lines.append(fb.render(key, "candidate", fb.CANDIDATE_TEMPLATE, saved.get(key)))
+        # ⭐ `UM-` 块也预填。⛔ 它无三方 D 判定（不在判读包内），故 `DT.prefill()` 走的是
+        # 「只有人工 meta review」那条分支 —— ⚠️ 一律人工裁决，但推荐与理由照样给。
+        lines.extend(DT.block(key))
+        lines.append(fb.render(key, "candidate",
+                               DT.prefill(key, "candidate") or fb.CANDIDATE_TEMPLATE,
+                               saved.get(key)))
         lines.append("")
 
     # ---- §3.4 已裁定为非缺陷的多报簇

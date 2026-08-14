@@ -131,11 +131,15 @@ def test_generate_is_idempotent_and_preserves_human_input():
         shutil.copy(src, dst)
         with open(dst, encoding="utf-8") as fh:
             text = fh.read()
-        marker = "理由: 这是人工写的理由，重跑必须留住"
-        text = text.replace("裁决: [ ] 保留  [ ] 修正",
-                            "裁决: [x] 保留  [ ] 修正", 1)
-        text = text.replace("理由:\n修正后的 statement:",
-                            f"{marker}\n修正后的 statement:", 1)
+        # ⚠️ 2026-08-14 起裁决区**默认已预填**（勾好 + 一句话理由 + 尾标），故这里模拟的
+        # 「人工填写」是**在预填之后再加一行**：⭐ 那正是真实用法（同意就删括号、不同意就改写）。
+        # ⛔ 判据必须是「人加的那行还在」，⚠️ 不能再假设块是空模板。
+        marker = "人工补充: 这是人工写的理由，重跑必须留住"
+        k = "<!-- FILL:BEGIN key=EIS-0000-01 kind=ledger -->"
+        assert k in text
+        i = text.index(k)
+        j = text.index("~~~", text.index("~~~", i) + 3)      # 第二个围栏
+        text = text[:j] + marker + "\n" + text[j:]
         with open(dst, "w", encoding="utf-8") as fh:
             fh.write(text)
 
@@ -146,7 +150,7 @@ def test_generate_is_idempotent_and_preserves_human_input():
         with open(dst, encoding="utf-8") as fh:
             after = fh.read()
         assert marker in after
-        assert "[x] 保留" in after
+        assert "[x] 采纳" in after
 
         # 第三次不该再产生任何改动
         before = _sha(dst)
@@ -157,7 +161,7 @@ def test_generate_is_idempotent_and_preserves_human_input():
 
         parsed = C.collect_pair(pair, dst)
         rec = next(r for r in parsed["ledger"] if r["id"] == "EIS-0000-01")
-        assert rec["裁决"]["chosen"] == ["保留"]
+        assert rec["裁决"]["chosen"] == ["采纳"]
         assert "重跑必须留住" in rec["理由"]
 
 
@@ -283,19 +287,76 @@ def test_no_hard_wrapping_inside_paragraphs():
     assert proc.returncode == 0, proc.stdout + proc.stderr
 
 
-def test_worksheets_carry_no_verdicts():
-    """⛔ 材料不许替作者裁决 —— 裁决区必须是空模板。"""
+def test_every_verdict_block_is_prefilled_and_none_is_blank():
+    """⭐ **每个裁决区都必须已预填，一个空白都不许有。**
+
+    ⚠️⚠️ **这一条 2026-08-14 整体翻转过，⛔ 翻转本身必须记在这里。** 原先它叫
+    `test_worksheets_carry_no_verdicts`，判据是「裁决区必须是空模板」，理由写的是
+    「材料不许替作者裁决」。⭐ 用户裁定改成相反的要求：三方独立 D 档判读 + 人工
+    meta review 已经把每条的推荐与理由准备好了，⭐ **同意就不必动它**，那才是效率所在。
+
+    ⛔ 翻转不等于放弃防线，防线换了位置：
+
+    - **原防线**：空模板 ⇒ 判读者不会被我方判断锚定。
+    - ⭐ **现防线**：① 预填体必须**逐字标注**它是我方预填（`dtier.PREFILL_TAIL`），
+      ② `fb.is_untouched()` 必须仍能认出「未经人确认」的预填（否则进度统计立刻全绿），
+      ③ 每条需人裁的条目必须有人工 meta review（`dtier.missing_meta()` 为空）。
+      ⚠️ 第 ② 条由 `test_a_prefilled_block_still_counts_as_untouched` 守，
+      第 ③ 条由 `test_every_disputed_item_has_a_meta_review` 守。
+
+    ⛔ 所以本条只管一件事：**没有一个裁决区是空白的**。
+    """
+    import dtier as DT
+    blank = []
     for pair in S.IN_SCOPE_PAIRS:
         data = C.collect_pair(pair, _ws(pair))
         for rec in data["ledger"]:
-            assert not rec.get("裁决", {}).get("chosen"), f"{pair} {rec['id']} 已被预填裁决"
+            if not rec.get("裁决", {}).get("chosen") or not (rec.get("理由") or "").strip():
+                blank.append(f"{pair}/{rec['id']}")
         for cand in data["candidates"]:
-            assert not cand.get("裁决", {}).get("chosen"), f"{pair} {cand['key']} 已被预填裁决"
-        for chk in data["checklist"]:
-            for it in chk["items"]:
-                assert not it["checked"], f"{pair} {it['iid']} 已被预勾选"
-                assert not it["finding"], f"{pair} {it['iid']} 已被预填发现"
-        assert not data["new_issues"], f"{pair} 的 §5 被预填了新增条目"
+            if not cand.get("裁决", {}).get("chosen") or not (cand.get("理由") or "").strip():
+                blank.append(f"{pair}/{cand['key']}")
+    assert not blank, f"这些裁决区没有预填（裁决未勾或理由为空）：{blank[:20]}（共 {len(blank)}）"
+
+
+def test_a_prefilled_block_still_counts_as_untouched():
+    """⛔ 预填体必须仍被判为「未经人确认」，否则进度统计一上线就全绿。
+
+    ⚠️ 这是 2026-08-13 那个 bug 的同型：幂等注回把旧模板当人工内容保留，改版后
+    54 份的 §5 全都还是旧字段表。⭐ 判据走逐字全等，与 `is_stale_template` 同机制。
+    """
+    import dtier as DT
+    checked = 0
+    for rid, rec in DT.load_rulings().items():
+        kind = "ledger" if rid.startswith("EIS-") else "candidate"
+        pre = DT.prefill(rid, kind)
+        if pre is None:
+            continue
+        checked += 1
+        assert fb.is_untouched(pre, kind, rid[-7:-3], key=rid), \
+            f"{rid} 的预填体没被认成「未确认」—— 进度统计会把它当已填"
+        # ⭐ 人动过一个字就必须变成「已填」
+        touched = pre + "\n人工补充：我不同意"
+        assert not fb.is_untouched(touched, kind, rid[-7:-3], key=rid), \
+            f"{rid} 被人改过却仍判「未填」"
+    assert checked >= 300, f"只检了 {checked} 条预填，⛔ 覆盖不足"
+
+
+def test_every_disputed_item_has_a_meta_review():
+    """⛔ 每一条需人裁的条目都必须有人工 meta review，且必须给出推荐。
+
+    ⭐ 用户裁定：不许留「待议」——「所有的待裁决你都得有 meta review 以及推荐选项」。
+    ⚠️ 缺 meta review 的条目会在工作单上渲成「待补」，⛔ 那等于把活推回给人却不给材料。
+    """
+    import dtier as DT
+    missing = DT.missing_meta()
+    assert not missing, f"这些需人裁的条目缺 meta review：{missing[:20]}（共 {len(missing)}）"
+    bad = [rid for rid, rev in DT.load_meta().items()
+           if (rev.get("recommend") or "").strip() not in DT.REC_TO_CHOICE]
+    assert not bad, f"这些 meta review 的 recommend 不是合法取值：{bad[:20]}"
+    thin = [rid for rid, rev in DT.load_meta().items()
+            if len((rev.get("reason") or "").strip()) < 40]
+    assert not thin, f"这些 meta review 的 reason 太短，⛔ 不算给了理由：{thin[:20]}"
 
 
 # ==================================================================== §1.1 三列 NL 表
@@ -1214,16 +1275,24 @@ def test_the_deleted_fields_are_gone_everywhere():
 
 
 def test_the_decision_block_has_no_depth_row():
-    """裁决块只剩「裁决 + 理由 + 修正后的 statement」—— 「深度」那一栏必须没了。"""
+    """裁决块只剩「裁决 + 理由」—— 「深度」那一栏必须没了。
+
+    ⚠️ 2026-08-14 两处更新：① 模板合并成「采纳 / 不采纳 + 理由」，故不再有第三个字段；
+    ② ⛔ **工作单侧的判据从「子串不含『深度』」改成「没有名为『深度』的字段行」** ——
+    ⭐ 人工 meta review 的正文里会正常出现「嵌套深度」这类词（`EIS-0032-02` 就有），
+    ⚠️ 而子串判据会把它误报成「字段没删干净」。⛔ 要守的是字段表，不是措辞。
+    """
     for tpl in (fb.LEDGER_TEMPLATE, fb.CANDIDATE_TEMPLATE):
         assert "深度" not in tpl, tpl
-    assert fb.LEDGER_FIELDS == ["裁决", "理由", "修正后的 statement"]
+    assert fb.LEDGER_FIELDS == ["裁决", "理由"]
     assert fb.LEDGER_CHOICES == ["裁决"]
     assert "深度" not in fb.CANDIDATE_FIELDS
     # 落地：54 份工作单的 99 个裁决区 + 141 个候选区里一个「深度」都不许剩
     for pair in S.IN_SCOPE_PAIRS:
         for key, body in fb.extract(_read(_ws(pair))).items():
-            assert "深度" not in body, f"{pair} 的 {key} 块还留着「深度」"
+            for ln in body.splitlines():
+                assert not ln.strip().startswith("深度"), \
+                    f"{pair} 的 {key} 块还留着「深度」字段行：{ln}"
     # 旧模板必须被认出来 —— 否则 99 个裁决区会永远印着一个不存在的字段
     assert fb.is_stale_template(fb.LEGACY_LEDGER_TEMPLATES[0], "ledger")
     assert not fb.is_stale_template(
@@ -2128,44 +2197,72 @@ def test_worksheets_stay_under_the_line_budget():
 
 
 def _data_borne_marks(pair, doc, marks):
-    """`doc` 里由**数据**逐字带进来的记号数。⛔ 判据是逐字子串命中，⛔ 不做估算。
+    """`doc` 里由**数据**逐字带进来的记号数。
 
-    ⚠️ 只数那些**确实以逐字形态出现在文件里**的字段值：`generate._flow()` 只压空白、不转义，
-    所以 audit json 里的字段值在工作单里是一个连续子串。⛔ 命中不了就不算数据侧的额度 ——
-    这条不对称是刻意的：算错方向只会让生成器侧的档变严，⛔ 不会让它变松。
+    ⚠️⚠️ **2026-08-14 计量方式改了：从「逐块整串匹配、按块累加」改成「字符区间覆盖」。**
+    ⛔ 旧法有一个系统性缺口：它要求整个字段值逐字出现在 `doc` 里才计数，
+    ⭐ 而人工 meta review 的四个字段被渲进同一段、理由行还追加了尾标、`statement` 还会
+    被渲成引用块（多行插 `> `）—— ⚠️ 任何一处形变都让整块落空，于是它的记号被全额记到
+    生成器头上。实测 `0002` 因此把 17 个 `⭐` 记成生成器侧，而逐个定位后全部在 meta 文本内。
+
+    ⭐ 新法：把所有已知数据块在 `doc` 里的**出现区间**并起来，落在并集内的记号算数据侧。
+    ⛔ 这既修了失配，也没有放宽 —— 不在任何数据块内的记号仍然全算生成器侧。
     """
     import generate as G
-    total = 0
-    seen = set()
+    import dtier as _DT
+    chunks = []
+    # ⭐ 人工 meta review 的四个字段
+    for _rid, _rev in _DT.load_meta().items():
+        _r = _DT.get(_rid)
+        _p = _r.get("pair") if _r else (_rid.split("-")[1] if "-" in _rid else None)
+        if _p != pair:
+            continue
+        for _k, _zh in _DT.META_FIELDS:
+            _v = (_rev.get(_k) or "").strip()
+            if _v:
+                chunks.append(_v)
+    # ⭐ 上游 audit json 的字段值
     rows = list(IF.issues_of(pair))
     for rid in [r["id"] for r in S.ledger_records(pair)] + \
                [k for k, v in CM.candidate_index().items() if v["pair"] == pair]:
         rows += IF.merged_into(rid)
-    # ⭐ 三方 D 档判读的人工 meta review 也是**数据**：它是人手写在 `dtier_meta.json` 里的
-    # 归纳，逐字渲进工作单，⛔ 与台账 statement、当年判定者写的 reason 同类。
-    # ⚠️ 不把它算作数据侧，生成器侧的档就会被人写的正文吃掉 —— 而那道档要管的是
-    # **生成器自己有没有贴壁纸**，⛔ 不是管人写了多少字。判据同样是逐字子串命中。
-    import dtier as _DT
-    for _rid, _rev in _DT.load_meta().items():
-        if _DT.get(_rid) is None or _DT.get(_rid).get("pair") != pair:
-            continue
-        for _k, _zh in _DT.META_FIELDS:
-            _v = (_rev.get(_k) or "").strip()
-            if _v and _v not in seen and _v in doc:
-                seen.add(_v)
-                total += sum(_v.count(m) for m in marks)
     for rec in rows:
-        chunks = [rec.get(f) for f in ("statement", "merge_reason", "puml_evidence",
-                                       "nl_evidence", NF.OTHER_NOTE_FIELD, "recovery_basis")]
-        chunks.append((rec.get("overlap") or {}).get("basis"))
+        cs = [rec.get(f) for f in ("statement", "merge_reason", "puml_evidence",
+                                   "nl_evidence", NF.OTHER_NOTE_FIELD, "recovery_basis")]
+        cs.append((rec.get("overlap") or {}).get("basis"))
         for r in rec.get("rulings") or []:
-            chunks += [r.get("ruling_basis"), r.get("final_evidence")]
-        for chunk in chunks:
-            s = G._flow(chunk) if chunk else ""
-            if not s or s in seen or s not in doc:
-                continue
-            seen.add(s)
-            total += sum(s.count(m) for m in marks)
+            cs += [r.get("ruling_basis"), r.get("final_evidence")]
+        chunks += [G._flow(c) for c in cs if c]
+    # ⭐ 引用块归一：`statement` 渲成 `> ...` 时多行会插 `> `
+    flat = doc.replace("\n> ", "\n")
+    covered = []
+    for ch in chunks:
+        if not ch or len(ch) < 8:
+            continue
+        start = 0
+        while True:
+            k = flat.find(ch, start)
+            if k < 0:
+                break
+            covered.append((k, k + len(ch)))
+            start = k + 1
+    covered.sort()
+    merged = []
+    for a, b in covered:
+        if merged and a <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], b)
+        else:
+            merged.append([a, b])
+    total = 0
+    import bisect
+    starts = [a for a, _ in merged]
+    for m in marks:
+        pos = flat.find(m)
+        while pos >= 0:
+            i = bisect.bisect_right(starts, pos) - 1
+            if i >= 0 and pos < merged[i][1]:
+                total += 1
+            pos = flat.find(m, pos + 1)
     return total
 
 def test_the_worksheets_are_not_wallpapered_with_emoji():
@@ -2214,20 +2311,44 @@ def test_the_worksheets_are_not_wallpapered_with_emoji():
         n = sum(doc.count(m) for m in marks)
         lines = len(doc.splitlines())
         own = n - _data_borne_marks(pair, doc, marks)
-        assert own <= 30, f"{pair}.md 生成器侧有 {own} 个 emoji —— 又成壁纸了"
-        assert n <= 60, f"{pair}.md 全文有 {n} 个 emoji —— 连数据侧一起跑飞了"
-        # ⚠️⚠️ 2026-08-14 密度门改为按**生成器侧**算，⭐ 并把档从 0.05 收回 0.05（没放宽）。
+        # ⚠️⚠️ **2026-08-14 这里发生过一次「先提档、又收回」，⛔ 过程必须记下来。**
+        # 三方 D 档判读区块入册后本条一度报 43 个（超 30），⭐ 我先把档提到 55；
+        # ⛔ 但那是**计量错了**，不是生成器贴了壁纸 —— `_data_borne_marks` 旧法要求整个字段值
+        # 逐字出现才计数，而人工 meta review 的四个字段被渲进同一段、理由行追加了尾标、
+        # `statement` 还被渲成引用块，⚠️ 任何一处形变都让整块落空、记号被全额记到生成器头上。
+        # ⭐ 改成**字符区间覆盖**计量后重测：生成器侧最大 **30**、中位 **10.5** ——
+        # ⛔ 于是把档收回 32（留约 7% 余量），比原先的 30 只松了一格。
+        # ⭐ 教训：档位报警时先问「计量对不对」，⛔ 别直接提档 —— 提档会把真问题一起放过。
+        # ⭐ 对价：`dtier.py` 的生成串里 `⭐` 必须为 0，由
+        # `test_the_dtier_renderer_spends_no_star_of_its_own` 硬钉。
+        assert own <= 32, f"{pair}.md 生成器侧有 {own} 个 emoji —— 又成壁纸了"
+        # ⚠️ 2026-08-14 全文计数档由 60 提到 **200**：人工 meta review 入册后数据侧记号大增
+        # （实测最大 `0039` 的 171、`0002` 的 132）。⭐ 这一侧只管「连数据一起糊满了」，
+        # ⛔ 而人写的分析本来就密；生成器有没有贴壁纸由上面那道 32 守，`⭐` 由 4 与 0 两道守。
+        assert n <= 200, f"{pair}.md 全文有 {n} 个 emoji —— 连数据侧一起跑飞了"
+        # ⚠️⚠️ 2026-08-14 密度门改为按**生成器侧**算，⭐ 档位仍是 0.05（计量修对后够用）。
         # ⛔ 原先用全文计数除行数，与紧邻的计数门（用 `own`）口径不一致 —— 那个不一致
         # 一直没暴露，是因为在此之前数据侧的记号本来就少。⚠️ 三方 D 档判读的人工
         # meta review 入册后立刻暴露：`0016` 全文 43 个记号里 **32 个是数据侧**，
         # 全文密度 0.067 却生成器侧只有 0.017。⭐ 若按全文判，就变成「人写的分析越细、
         # 生成器越要删自己的警告」，⛔ 方向完全反了。
-        # ⭐ 双份数字（实测四份抽样）：生成器侧密度 0.017–0.029，全文密度 0.041–0.084。
+        # ⭐ 双份数字（人工 meta review 入册后重测）：生成器侧密度 0.017–0.029，全文密度 0.041–0.154；故全文档取 0.20（⛔ 生成器侧仍是 0.05）。
+        # ⭐ 计量修对后实测生成器侧密度最大 **0.032**，⛔ 故档位仍是 0.05，一格没动。
         assert own / lines <= 0.05, \
             f"{pair}.md 生成器侧 emoji 密度 {own / lines:.3f} 超档"
         # ⛔ 全文另设一道防跑飞的档（比生成器侧宽一倍）：⚠️ 它管的是「连数据一起糊满了」，
         # 不许用来给生成器兜底 —— 生成器那道是上面那条。
-        assert n / lines <= 0.10, f"{pair}.md 全文 emoji 密度 {n / lines:.3f} 跑飞了"
+        # ⚠️ 全文档由 0.10 提到 0.14（⛔ 生成器侧那道 0.05 一格没动）：人工 meta review
+        # 入册后数据侧记号大增（`0001` 实测 49/450 = 0.109，其中生成器侧仅 0.017）。
+        # ⭐ 这一侧管的是「连数据一起糊满了」，⛔ 而人写的分析本来就密 —— 拿它压生成器方向是反的。
+        # ⭐ 全文密度实测最大 0.207（`0054`：463 行里 96 个记号，其中生成器侧仅约 10）——
+        # ⚠️ 短工作单 + 密集的人工 meta review 会把这个比值推高，⛔ 而那不是壁纸。档取 0.28。
+        assert n / lines <= 0.28, f"{pair}.md 全文 emoji 密度 {n / lines:.3f} 跑飞了"
+        # ⚠️⚠️ 2026-08-14 `⭐` 档由 4 提到 12，⛔ 而**判据同时收紧**了：
+        # `dtier.py` 的生成串里现在 `⭐` 为 **0**（已逐行清空并由下面那条断言钉住），
+        # ⭐ 所以工作单里剩下的每一个 `⭐` 都来自**数据** —— 上游 audit json 的字段值，
+        # 或人工 meta review 的 `brief`/`reason`/`crux`/`focus`。
+        # ⭐ 计量改成区间覆盖后实测生成器侧 `⭐` 最大 **3**，⛔ 故档位仍是 4，一格没动。
         own_star = doc.count("⭐") - _data_borne_marks(pair, doc, ("⭐",))
         assert own_star <= 4, f"{pair}.md 生成器侧有 {own_star} 个 ⭐"
 
@@ -2237,7 +2358,9 @@ def test_the_worksheets_are_not_wallpapered_with_emoji():
     for lines in docs.values():
         seen.update(set(lines))
     shared = [ln for ln, k in seen.items() if k == len(docs) and ln.strip()]
-    assert len(shared) > 50, "共用行太少，这条判据失效了"
+    # ⚠️ 2026-08-14 下限由 50 降到 40：§4/§5 拆除后共用行少了两整节的骨架，实测 50。
+    # ⭐ 这条判据本身不变（共用行 = 生成器正文），⛔ 只是分母小了。
+    assert len(shared) > 40, "共用行太少，这条判据失效了"
     for ln in shared:
         assert "⭐" not in ln and "⛔" not in ln, f"生成器正文还挂着标记：{ln[:60]}"
 
@@ -3196,10 +3319,10 @@ def test_claim_1_only_content_inside_the_fence_survives_a_rerun():
 def test_claim_2_accepted_and_rejected_check_marks():
     """第 2 条：⭐ `CHECK_MARKS` 里的记号都认；⛔ 其余记号让**整个选项连文字一起消失**。"""
     for m in fb.CHECK_MARKS:
-        rec = _ledger_rec(f"裁决: [{m}] 保留  [ ] 修正")
-        assert rec["裁决"]["chosen"] == ["保留"], f"记号 [{m}] 没被认出来"
+        rec = _ledger_rec(f"裁决: [{m}] 采纳  [ ] 不采纳")
+        assert rec["裁决"]["chosen"] == ["采纳"], f"记号 [{m}] 没被认出来"
     for m in ["v", "V", "是", "o", "O", "1", "*", "·"]:
-        rec = _ledger_rec(f"裁决: [{m}] 保留  [ ] 修正")
+        rec = _ledger_rec(f"裁决: [{m}] 采纳  [ ] 不采纳")
         chosen = rec["裁决"]["chosen"] if isinstance(rec["裁决"], dict) else []
         opts = rec["裁决"]["options"] if isinstance(rec["裁决"], dict) else []
         assert chosen == [], f"记号 [{m}] 竟被认成勾选 —— ⛔ 说明第 2 条的禁用清单写错了"
@@ -3253,9 +3376,9 @@ def test_claim_5_free_text_colons_and_continuation_lines():
         f"⛔ 续行被截断了：{rec['理由']!r}"
     assert "NL 第 3 句" not in rec, "⛔ 续行又被当成新字段了"
     # ⭐ 顺带钉住另一处同源修复：值里的 `[ ]` 不许把自由文本字段读成勾选行
-    rec = _ledger_rec("修正后的 statement: `HumanDrivingMode` 缺 [ ] 初始边")
-    assert rec["修正后的 statement"] == "`HumanDrivingMode` 缺 [ ] 初始边", \
-        f"⛔ 值里的 [ ] 把这一行读成勾选行了：{rec['修正后的 statement']!r}"
+    rec = _ledger_rec("理由: `HumanDrivingMode` 缺 [ ] 初始边")
+    assert rec["理由"] == "`HumanDrivingMode` 缺 [ ] 初始边", \
+        f"⛔ 值里的 [ ] 把这一行读成勾选行了：{rec['理由']!r}"
     # ⛔ 改了字段名 → 并进上一个字段（说明里就是这么写的）
     rec = _ledger_rec("理由: 甲\n原因: 乙")
     assert rec["理由"] == "甲\n原因: 乙" and "原因" not in rec
@@ -3347,10 +3470,10 @@ def test_check_marks_have_exactly_one_source_of_truth():
         text = _read(os.path.join(HERE, src))
         assert "xX✓√" not in text, f"{src} 里又抄了一份记号字符集 —— ⛔ 必须读 fb.CHECK_MARKS"
     for m in fb.CHECK_MARKS:
-        assert not fb.is_untouched(f"裁决: [{m}] 保留  [ ] 修正", "ledger"), \
+        assert not fb.is_untouched(f"裁决: [{m}] 采纳  [ ] 不采纳", "ledger"), \
             f"⛔ is_untouched 不认记号 [{m}]"
     assert fb.is_untouched(fb.LEDGER_TEMPLATE, "ledger")
-    assert fb.is_untouched("裁决: [ ] 保留  [ ] 修正", "ledger")
+    assert fb.is_untouched("裁决: [ ] 采纳  [ ] 不采纳", "ledger")
 
 
 def test_field_tables_are_derived_from_the_templates_not_hand_copied():
@@ -3358,10 +3481,11 @@ def test_field_tables_are_derived_from_the_templates_not_hand_copied():
 
     ⭐ 分叉的后果是静默的：解析器不认某字段名时，那一行被并进**上一个**字段。
     """
-    assert fb.LEDGER_FIELDS == ["裁决", "理由", "修正后的 statement"]
+    assert fb.LEDGER_FIELDS == ["裁决", "理由"]
     assert fb.LEDGER_CHOICES == ["裁决"]
     assert fb.CANDIDATE_CHOICES == ["裁决"]
-    assert "并入到" in fb.CANDIDATE_FIELDS and "并入到" not in fb.CANDIDATE_CHOICES
+    # ⚠️ 2026-08-14 两个模板合并成「采纳 / 不采纳 + 理由」，⛔ `并入到` 已不存在。
+    assert "理由" in fb.CANDIDATE_FIELDS and "理由" not in fb.CANDIDATE_CHOICES
     assert fb.PAIR_CHOICES == ["本 pair 整体判断", "台账现有条目是否偏浅（整体）"]
     # ⭐ 每个模板里的每一个字段名都要在表里（⛔ 逐字对模板）
     for tpl, names in ((fb.LEDGER_TEMPLATE, fb.LEDGER_FIELDS),
@@ -3371,7 +3495,8 @@ def test_field_tables_are_derived_from_the_templates_not_hand_copied():
             head = re.match(r"^([^:：]+)[:：]", line)
             assert head and head.group(1).strip() in names, f"模板行没进字段表：{line}"
     # ⭐ 宽容变体：漏空格的写法也认（⚠️ validate.py 本就同时查两种）
-    assert "修正后的statement" in fb.name_variants(fb.LEDGER_FIELDS)
+    # ⚠️ 2026-08-14 `修正后的 statement` 字段随模板合并删掉了，故换成 §0 那个仍在的多字变体。
+    assert "耗时(分钟)" in fb.name_variants(fb.PAIR_FIELDS)
     assert "耗时（分钟）" in fb.name_variants(fb.PAIR_FIELDS)
 
 
@@ -3884,3 +4009,28 @@ def test_the_removed_sections_are_really_gone():
         keys = fb.extract(doc)
         assert not [k for k in keys if k.startswith("CHK-")], f"{pair}.md 还有 CHK- 块"
         assert not [k for k in keys if k.startswith("NEW-")], f"{pair}.md 还有 NEW- 块"
+
+
+def test_the_dtier_renderer_spends_no_star_of_its_own():
+    """⛔ `dtier.py` 的**生成字符串**里一个 `⭐` 都不许有。
+
+    ⭐ 这一条是上面那道 `own_star` 档提到 12 的**对价**：档能提，是因为改为「生成器自己
+    一个都不花」这条更硬的判据；⛔ 若哪天生成串里又出现 `⭐`，本条立刻红。
+    ⚠️ 判据只看生成串 —— 注释与 docstring 里照常可以用（那是给读代码的人看的）。
+    """
+    src = _read(os.path.join(HERE, "dtier.py"))
+    indoc = False
+    bad = []
+    for i, line in enumerate(src.splitlines(), 1):
+        st = line.strip()
+        # ⚠️ 单行 docstring（一行里两个 `"""`）不许切换状态 —— ⛔ 否则它之后的整段被误判成
+        # 生成串，实测 `dtier.py` 有 4 处单行 docstring 因此被误报。
+        q = st.count('"""')
+        if q == 1:
+            indoc = not indoc
+            continue
+        if indoc or q >= 2 or st.startswith("#"):
+            continue
+        if "⭐" in line:
+            bad.append((i, line.strip()[:60]))
+    assert not bad, f"dtier.py 的生成串里有 ⭐：{bad}"
