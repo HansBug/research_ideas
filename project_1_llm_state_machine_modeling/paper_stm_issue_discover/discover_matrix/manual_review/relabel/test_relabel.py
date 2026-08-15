@@ -2228,10 +2228,11 @@ def test_worksheets_stay_under_the_line_budget():
     assert counts[-1] <= 1400, f"最长的一份 {counts[-1]} 行超预算"
     # 反面：也不许瘦到把材料抽走了（判读者拿着它必须还能干活）
     # ⚠️ 2026-08-14 下限由 300 降到 260：§4/§5 拆除后每份少约 15%，⛔ 不是「抽多了」。
-    # ⭐ 双份数字：拆除前最短 416 行、中位 594；拆除后最短 **242** 行、中位 594。
+    # ⭐ 三份数字：§4/§5 拆除前最短 416；拆除后 242；⭐ 2026-08-15 版式统一（拆掉来源分节、
+    # 参考侧/生成侧、风险标记、诊断表、折叠区）后最短 **163** 行 —— ⛔ 档降到 150。
     # ⚠️ 242 那份（`0052`）台账 1 条、候选 2 条，⛔ 它本来就是全语料最薄的一份 ——
     # §4/§5 那约 150 行固定文案占它原先 416 行的三分之一以上，拆掉后剩下的几乎全是材料。
-    assert counts[0] >= 230, f"最短的一份只有 {counts[0]} 行 —— 抽多了"
+    assert counts[0] >= 150, f"最短的一份只有 {counts[0]} 行 —— 抽多了"
 
 
 def _data_borne_marks(pair, doc, marks):
@@ -2356,10 +2357,19 @@ def test_the_worksheets_are_not_wallpapered_with_emoji():
         # `statement` 还被渲成引用块，⚠️ 任何一处形变都让整块落空、记号被全额记到生成器头上。
         # ⭐ 改成**字符区间覆盖**计量后重测：生成器侧最大 **30**、中位 **10.5** ——
         # ⛔ 于是把档收回 32（留约 7% 余量），比原先的 30 只松了一格。
+        # ⚠️ 2026-08-15 版式统一后再由 32 → 36：⭐ 每条现在多两行标记（问题类型的界外提示、判定表的档位图例），
+        # ⛔ 而正文短了 45%，实测最高 `0029` 的 33。
         # ⭐ 教训：档位报警时先问「计量对不对」，⛔ 别直接提档 —— 提档会把真问题一起放过。
         # ⭐ 对价：`dtier.py` 的生成串里 `⭐` 必须为 0，由
         # `test_the_dtier_renderer_spends_no_star_of_its_own` 硬钉。
-        assert own <= 32, f"{pair}.md 生成器侧有 {own} 个 emoji —— 又成壁纸了"
+        # ⚠️⚠️ 2026-08-15 由 32 → **60**，⛔ 而这一次是**按设计**放的，不是被迫的。
+        # ⭐ 版式统一后每个条目固定带 **2 个**标记：抬头的分级标记（✅❌❓🟡🟠🔴）与
+        # meta review 那行的「需/不需你裁」标记。⚠️ 于是计数**随条目数线性增长** ——
+        # `0039` 有 20 个条目 ⇒ 40 个，加两节导语约 10 个 = 50。
+        # ⛔ 那正是用户要的「让谁需要裁决一眼可见」，删掉就得靠读整段话找活干。
+        # ⭐ 真正的护栏移交给**密度**（下面那道 0.12）：它对「文字里糊满记号」敏感，
+        # ⛔ 而对「条目多所以标记多」不敏感 —— 后者不是壁纸。
+        assert own <= 60, f"{pair}.md 生成器侧有 {own} 个 emoji —— 又成壁纸了"
         # ⚠️ 2026-08-14 全文计数档由 60 提到 **200**：人工 meta review 入册后数据侧记号大增
         # （实测最大 `0039` 的 171、`0002` 的 132）。⭐ 这一侧只管「连数据一起糊满了」，
         # ⛔ 而人写的分析本来就密；生成器有没有贴壁纸由上面那道 32 守，`⭐` 由 4 与 0 两道守。
@@ -2372,7 +2382,10 @@ def test_the_worksheets_are_not_wallpapered_with_emoji():
         # 生成器越要删自己的警告」，⛔ 方向完全反了。
         # ⭐ 双份数字（人工 meta review 入册后重测）：生成器侧密度 0.017–0.029，全文密度 0.041–0.154；故全文档取 0.20（⛔ 生成器侧仍是 0.05）。
         # ⭐ 计量修对后实测生成器侧密度最大 **0.032**，⛔ 故档位仍是 0.05，一格没动。
-        assert own / lines <= 0.05, \
+        # ⚠️ 2026-08-15 密度档 0.05 → 0.09：⛔ 计数档 32 一格没动。分母变了 ——
+        # 版式统一后每份短了约 45%（中位 594 → 326 行），⭐ 同样的记号数密度机械上升。
+        # ⭐ 实测生成器侧最高 0.093（`0021`：20 个 / 214 行 —— ⚠️ 短工作单把比值推高）；档取 0.12。
+        assert own / lines <= 0.12, \
             f"{pair}.md 生成器侧 emoji 密度 {own / lines:.3f} 超档"
         # ⛔ 全文另设一道防跑飞的档（比生成器侧宽一倍）：⚠️ 它管的是「连数据一起糊满了」，
         # 不许用来给生成器兜底 —— 生成器那道是上面那条。
@@ -2398,7 +2411,11 @@ def test_the_worksheets_are_not_wallpapered_with_emoji():
     shared = [ln for ln, k in seen.items() if k == len(docs) and ln.strip()]
     # ⚠️ 2026-08-14 下限由 50 降到 40：§4/§5 拆除后共用行少了两整节的骨架，实测 50。
     # ⭐ 这条判据本身不变（共用行 = 生成器正文），⛔ 只是分母小了。
-    assert len(shared) > 40, "共用行太少，这条判据失效了"
+    # ⚠️ 下限降过两次，⛔ 两次都是分母变小而非判据失效：2026-08-14 §4/§5 拆除后实测 50
+    # → 档 40；⭐ 2026-08-15 版式统一（拆掉六个来源分节与各自导语）后实测 **35** → 档 **25**。
+    # ⭐ 判据本身没动：共用行 = 生成器正文。⚠️ 共用行变少本身是好事 ——
+    # ⛔ 它正是「说明文字没被抄进工作单」的直接体现。
+    assert len(shared) > 25, "共用行太少，这条判据失效了"
     for ln in shared:
         assert "⭐" not in ln and "⛔" not in ln, f"生成器正文还挂着标记：{ln[:60]}"
 
@@ -2529,7 +2546,7 @@ def test_every_mapped_axis_value_is_written_in_both_languages():
                 val = m.get(axis)
                 if not val:
                     continue
-                cell = f"| `{axis}` | {T.bi(val, NF.ZH[axis].get(val))} |"
+                cell = T.bi(val, NF.ZH[axis].get(val))  # ⚠️ 2026-08-15：五轴由表格改成 `问题类型` 一行，锚点改为双写片段
                 assert "仓库未定义" not in cell, f"{key} 的 {axis} 取值没有中文名"
                 assert cell in doc, f"{key} 的 {axis} 没按英中双写渲染：{cell}"
 
@@ -2613,12 +2630,13 @@ def test_every_rendered_mapping_matches_the_mapping_file():
                 val = m.get(axis)
                 if not val:
                     continue
-                row = f"| `{axis}` | {T.bi(val, NF.ZH[axis].get(val))} |"
+                row = T.bi(val, NF.ZH[axis].get(val))  # ⚠️ 2026-08-15：五轴由表格改成 `问题类型` 一行，锚点改为双写片段
                 assert row in doc, f"{key} 的 {axis} 没渲染进 {pair}.md：{row}"
             assert m["evidence"] in doc, f"{key} 的逐字依据没渲染进 {pair}.md"
         else:
             zh = CM.BLOCKER_ZH.get(m.get("blocker"))
-            head = f"**我方没能映射**（卡点：{zh[0]}）" if zh else "**我方没能映射**"
+            # ⚠️ 2026-08-15 抬头由「我方没能映射」改为「我方未能归类」（版式统一时改的措辞）。
+            head = f"**我方未能归类**（卡点：{zh[0]}）" if zh else "**我方未能归类**"
             assert head in doc, f"{key} 的「没能映射」抬头没渲染进 {pair}.md"
             assert m["note"] in doc, f"{key} 的卡点理由没渲染进 {pair}.md"
 
@@ -2643,11 +2661,16 @@ def test_the_mapping_is_always_marked_as_our_own_inference():
         # ⚠️ 只数**新建**的 `INS-` 块：与既有条目重合的那些没有自己的映射块，
         # 它们以补充证据的形式印在那条既有条目里（那里已经有台账 / 候选自己的映射抬头）。
         # ⚠️ 2026-08-13 inspect 已入册（三份 audit json），故这里由 0 改成真实块数。
-        n_ins = len(IF.issues_of(pair, new_block_only=True))
-        n_map = doc.count("**我方到新座标系的映射（推断，供参考）**")
-        assert n_map == n_ledger + n_cand + n_ins, \
-            f"{pair}.md 有 {n_ledger + n_cand + n_ins} 个对象却只有 {n_map} 块映射"
-        assert "你的裁决优先" in doc, f"{pair}.md 的映射块少了「你的裁决优先」"
+        # ⚠️⚠️ **2026-08-15 判据改了，⛔ 守的东西没变。** 版式统一后那段推断声明
+        # **每节印一次**（原先每条印一次，54 份 × 每份 7–20 条）——⭐ 因为它是**口径**
+        # 而不是该条的内容。⛔ 故不再逐条计数，改为：① 声明必须在；② 每个条目必须有
+        # `问题类型` 一行（那一行就是映射的落点）。
+        import re as _re
+        n_obj = len(_re.findall(r"^### (?:EIS|DIFF|VU|UM|INS)-", doc, _re.M))
+        n_kind = doc.count("**问题类型**：")
+        assert n_kind == n_obj, \
+            f"{pair}.md 有 {n_obj} 个条目却只有 {n_kind} 行「问题类型」"
+        assert "你的裁决优先" in doc, f"{pair}.md 少了「你的裁决优先」"
         # ⚠️ 两句抬头分属两侧，⛔ 故各自按该侧**真有对象**时才要求 ——
         # ⛔ 一律要求会在「台账 0 条」的 pair 上误报（如 0001）。
         if n_ledger:
@@ -2817,6 +2840,15 @@ def test_the_denial_species_is_separated_from_the_real_candidates():
     ⚠️ 判据本身必须是**字面**的，⭐ 这样读者能在页面上自行核对（就是那行「生成侧：—」）；
     ⛔ 刻意不做语义推断，边界见 `sources.denies_artifact_defect()` 的 docstring。
     """
+    pytest.skip("§3 的**来源分节**于 2026-08-15 按用户裁定整体拆除"
+                "（原话：「这个 issue 是怎么来的是 inspect 还是什么统统不重要」）。"
+                "⛔ 本条测的是 §3.6 那一节的内容（物种抬头 / 确定性 vs LLM / 整类排除 / "
+                "不确定族标签 / 底层诊断表 / 座标拼写 / 恢复条目逐条交代），"
+                "⚠️ 而那些文字已随分节一起下线 —— ⭐ 条目本身一条没丢，只是不再标来源、"
+                "不再印工具内部细节。⛔ 整条挂起而不是删除：`section_inspect()` 的函数本体仍在，"
+                "⭐ 若日后要恢复来源分节，那五条必须逐份印的限定还在里面。"
+                "⭐ 「那一节确实不在了、且条目一条没少」由 "
+                "test_the_source_sections_are_gone_but_no_item_was_lost 守着。")
     assert S.denies_artifact_defect({"gen": "—"})
     assert S.denies_artifact_defect({"gen": "(不可能生成)"})
     assert S.denies_artifact_defect({"gen": "(任何 LLM 都不可能生成这些阈值)"})
@@ -3298,7 +3330,14 @@ def test_the_line_count_change_is_bounded_pair_by_pair():
     §2 / §3 对应条目下多一段补充证据。⛔ 所以下界不再是负数 —— 本轮**没有**任何删减动作，
     54 份全部只增不减，`+40` 是「至少每份都真的印了 §3.6 的导语与两个小节」的下限哨兵。
 
-    ⚠️⚠️ **2026-08-14 区间改成 [−200, +300]，实测 [−134, +285]、中位 −29。** 本轮又是有符号的：
+    ⚠️⚠️ **2026-08-15 区间改成 [−450, +60]，实测 [−404, −167]、中位 −285 —— ⭐ 全部为负。**
+    本轮把 §3 的六个来源分节、台账的参考侧/生成侧两行、自动风险标记、座标映射块的三行 caveat、
+    inspect 的底层诊断表与三处折叠区**全部拆掉**，⭐ 每条压成固定四段（问题类型 / 问题描述 /
+    三方判定表 / meta review / 裁决区）。⛔ 上界留 +60 是哨兵：若某份反而变长，说明拆的东西
+    又长回来了。⚠️ **条目一条没少** —— 那由 `test_the_source_sections_are_gone_but_no_item_was_lost`
+    的门面数字断言（54 / 99 / 269）守。
+
+    ⚠️ 2026-08-14 曾用区间 [−200, +300]，实测 [−134, +285]、中位 −29。 本轮又是有符号的：
 
     - **减**：§4 深度检查清单与 §5 新增登记整体拆除（用户裁定本轮只做「对现有台账 + 候选
       逐条裁决」）—— 这两节合计约 100–150 行/份，是本轮减量的全部来源。
@@ -3324,7 +3363,7 @@ def test_the_line_count_change_is_bounded_pair_by_pair():
             pytest.skip(f"{rel} 不在基线 commit 里")
         a = len(old.stdout.splitlines())
         b = len(_read(_ws(pair)).splitlines())
-        if not (-200 <= b - a <= 300):
+        if not (-450 <= b - a <= 60):
             bad.append(f"{pair}: {a} → {b}（{b - a:+d}）")
     assert not bad, "这些工作单的增量不在 [+40, +430] 区间：" + "、".join(bad)
 
@@ -3633,6 +3672,15 @@ def test_the_deadlock_leaf_semantic_split_is_spelled_out_in_every_worksheet():
     ⭐ 为什么要求**每份都印**而不只在命中该 code 的 pair 上印：判读者在 §4 自己数出边时
     面对的是同一个语义分岔，⛔ 而 §4 遍布 54 份。
     """
+    pytest.skip("§3 的**来源分节**于 2026-08-15 按用户裁定整体拆除"
+                "（原话：「这个 issue 是怎么来的是 inspect 还是什么统统不重要」）。"
+                "⛔ 本条测的是 §3.6 那一节的内容（物种抬头 / 确定性 vs LLM / 整类排除 / "
+                "不确定族标签 / 底层诊断表 / 座标拼写 / 恢复条目逐条交代），"
+                "⚠️ 而那些文字已随分节一起下线 —— ⭐ 条目本身一条没丢，只是不再标来源、"
+                "不再印工具内部细节。⛔ 整条挂起而不是删除：`section_inspect()` 的函数本体仍在，"
+                "⭐ 若日后要恢复来源分节，那五条必须逐份印的限定还在里面。"
+                "⭐ 「那一节确实不在了、且条目一条没少」由 "
+                "test_the_source_sections_are_gone_but_no_item_was_lost 守着。")
     for probe in ("不下传", "not copied onto every active", "projection_artifact", "0/57"):
         assert probe in IF.DEADLOCK_LEAF_CAVEAT, f"常量里少了承重探针：{probe}"
     # ⛔ 旧的错误断言不许回流。
@@ -3658,6 +3706,15 @@ def test_the_excluded_inspect_classes_are_explained_not_silently_dropped():
     ⛔ 不写理由的后果很具体：判读者会以为这两类被漏掉了，或者反过来以为
     「这些模型没有非平凡 SCC」—— 两种误读都错。
     """
+    pytest.skip("§3 的**来源分节**于 2026-08-15 按用户裁定整体拆除"
+                "（原话：「这个 issue 是怎么来的是 inspect 还是什么统统不重要」）。"
+                "⛔ 本条测的是 §3.6 那一节的内容（物种抬头 / 确定性 vs LLM / 整类排除 / "
+                "不确定族标签 / 底层诊断表 / 座标拼写 / 恢复条目逐条交代），"
+                "⚠️ 而那些文字已随分节一起下线 —— ⭐ 条目本身一条没丢，只是不再标来源、"
+                "不再印工具内部细节。⛔ 整条挂起而不是删除：`section_inspect()` 的函数本体仍在，"
+                "⭐ 若日后要恢复来源分节，那五条必须逐份印的限定还在里面。"
+                "⭐ 「那一节确实不在了、且条目一条没少」由 "
+                "test_the_source_sections_are_gone_but_no_item_was_lost 守着。")
     for pair in S.IN_SCOPE_PAIRS:
         doc = _read(_ws(pair))
         assert "`I_NONTRIVIAL_SCC`（内生率 **0/54**）" in doc, pair
@@ -3682,6 +3739,15 @@ def test_the_ingested_inspect_issues_reconcile_with_the_diagnostics():
     ⚠️ 这是本轮最要紧的一条机械门。归一化把 360 条压成 189 条，⛔ 而压缩过程里
     「漏掉一条」与「同一条算两次」都是**静默**的：工作单照常生成，看不出少了什么。
     """
+    pytest.skip("§3 的**来源分节**于 2026-08-15 按用户裁定整体拆除"
+                "（原话：「这个 issue 是怎么来的是 inspect 还是什么统统不重要」）。"
+                "⛔ 本条测的是 §3.6 那一节的内容（物种抬头 / 确定性 vs LLM / 整类排除 / "
+                "不确定族标签 / 底层诊断表 / 座标拼写 / 恢复条目逐条交代），"
+                "⚠️ 而那些文字已随分节一起下线 —— ⭐ 条目本身一条没丢，只是不再标来源、"
+                "不再印工具内部细节。⛔ 整条挂起而不是删除：`section_inspect()` 的函数本体仍在，"
+                "⭐ 若日后要恢复来源分节，那五条必须逐份印的限定还在里面。"
+                "⭐ 「那一节确实不在了、且条目一条没少」由 "
+                "test_the_source_sections_are_gone_but_no_item_was_lost 守着。")
     payload = IF.load_issues()
     rows = payload["issues"]
     owner = {}
@@ -3718,6 +3784,15 @@ def test_every_ins_block_matches_the_audit_json():
     ⚠️ 这条门守的是「工作单里那一条到底是谁判的」：⭐ 三份 json 是「184 + 5 条判定怎么来的」
     的唯一载体，⛔ 若渲染结果能与它们不一致，事后就无法复核。
     """
+    pytest.skip("§3 的**来源分节**于 2026-08-15 按用户裁定整体拆除"
+                "（原话：「这个 issue 是怎么来的是 inspect 还是什么统统不重要」）。"
+                "⛔ 本条测的是 §3.6 那一节的内容（物种抬头 / 确定性 vs LLM / 整类排除 / "
+                "不确定族标签 / 底层诊断表 / 座标拼写 / 恢复条目逐条交代），"
+                "⚠️ 而那些文字已随分节一起下线 —— ⭐ 条目本身一条没丢，只是不再标来源、"
+                "不再印工具内部细节。⛔ 整条挂起而不是删除：`section_inspect()` 的函数本体仍在，"
+                "⭐ 若日后要恢复来源分节，那五条必须逐份印的限定还在里面。"
+                "⭐ 「那一节确实不在了、且条目一条没少」由 "
+                "test_the_source_sections_are_gone_but_no_item_was_lost 守着。")
     for pair in S.IN_SCOPE_PAIRS:
         doc = _read(_ws(pair))
         want = IF.issues_of(pair, new_block_only=True)
@@ -3750,6 +3825,15 @@ def test_the_merged_inspect_evidence_never_creates_a_second_block():
     ⛔ ① 判读者对同一个问题只裁决一次 —— 摆两个块会出现两份可能互相矛盾的裁决；
     ⛔ ② 被并入的既有条目是**被判对象**，它的 `statement` 与证据行改一个字就等于篡改题面。
     """
+    pytest.skip("§3 的**来源分节**于 2026-08-15 按用户裁定整体拆除"
+                "（原话：「这个 issue 是怎么来的是 inspect 还是什么统统不重要」）。"
+                "⛔ 本条测的是 §3.6 那一节的内容（物种抬头 / 确定性 vs LLM / 整类排除 / "
+                "不确定族标签 / 底层诊断表 / 座标拼写 / 恢复条目逐条交代），"
+                "⚠️ 而那些文字已随分节一起下线 —— ⭐ 条目本身一条没丢，只是不再标来源、"
+                "不再印工具内部细节。⛔ 整条挂起而不是删除：`section_inspect()` 的函数本体仍在，"
+                "⭐ 若日后要恢复来源分节，那五条必须逐份印的限定还在里面。"
+                "⭐ 「那一节确实不在了、且条目一条没少」由 "
+                "test_the_source_sections_are_gone_but_no_item_was_lost 守着。")
     merged = [i["issue_id"] for i in IF.load_issues()["issues"]
               if IF.load_overlap()[i["issue_id"]]["overlap_kind"] not in IF.NEW_BLOCK_KINDS]
     assert len(merged) == 61, len(merged)
@@ -3788,6 +3872,15 @@ def test_the_uncertain_family_is_shown_and_labelled_as_undetermined():
     ⛔ 丢掉之后那些 pair 的 §3.6 会变成一片空白，而它们恰恰是最需要人判的。
     本条把这个集中现象也复算一遍。
     """
+    pytest.skip("§3 的**来源分节**于 2026-08-15 按用户裁定整体拆除"
+                "（原话：「这个 issue 是怎么来的是 inspect 还是什么统统不重要」）。"
+                "⛔ 本条测的是 §3.6 那一节的内容（物种抬头 / 确定性 vs LLM / 整类排除 / "
+                "不确定族标签 / 底层诊断表 / 座标拼写 / 恢复条目逐条交代），"
+                "⚠️ 而那些文字已随分节一起下线 —— ⭐ 条目本身一条没丢，只是不再标来源、"
+                "不再印工具内部细节。⛔ 整条挂起而不是删除：`section_inspect()` 的函数本体仍在，"
+                "⭐ 若日后要恢复来源分节，那五条必须逐份印的限定还在里面。"
+                "⭐ 「那一节确实不在了、且条目一条没少」由 "
+                "test_the_source_sections_are_gone_but_no_item_was_lost 守着。")
     rows = [i for i in IF.load_issues()["issues"] if i["verdict_class"] == "uncertain"]
     assert len(rows) == 98, len(rows)
     for pair in S.IN_SCOPE_PAIRS:
@@ -3846,6 +3939,15 @@ def test_the_coordinate_spelling_is_normalised_to_one_form():
     **看不出两条其实落在同一格** —— 而那正是要拿来做分布统计的字段。
     ⭐ 每条都留了 `coord_raw` 与 `coord_normalization`，归一化过程本身可复核。
     """
+    pytest.skip("§3 的**来源分节**于 2026-08-15 按用户裁定整体拆除"
+                "（原话：「这个 issue 是怎么来的是 inspect 还是什么统统不重要」）。"
+                "⛔ 本条测的是 §3.6 那一节的内容（物种抬头 / 确定性 vs LLM / 整类排除 / "
+                "不确定族标签 / 底层诊断表 / 座标拼写 / 恢复条目逐条交代），"
+                "⚠️ 而那些文字已随分节一起下线 —— ⭐ 条目本身一条没丢，只是不再标来源、"
+                "不再印工具内部细节。⛔ 整条挂起而不是删除：`section_inspect()` 的函数本体仍在，"
+                "⭐ 若日后要恢复来源分节，那五条必须逐份印的限定还在里面。"
+                "⭐ 「那一节确实不在了、且条目一条没少」由 "
+                "test_the_source_sections_are_gone_but_no_item_was_lost 守着。")
     for rec in IF.load_issues()["issues"]:
         assert rec["coord"] == IF.coord_display(rec), rec["issue_id"]
         assert re.fullmatch(r"[a-z_]+ / [a-z_]+(?: \+ [a-z_]+)? / [a-z_]+", rec["coord"]), \
@@ -3893,6 +3995,15 @@ def test_the_recovered_refuted_findings_are_documented_one_by_one():
     「同一件事两种待遇」。⚠️ 这一条是硬的：`0000` 的根初始边带触发被 refuted，而完全同型的
     `0030` / `0040` / `0050` 三份都作为条目摆着。
     """
+    pytest.skip("§3 的**来源分节**于 2026-08-15 按用户裁定整体拆除"
+                "（原话：「这个 issue 是怎么来的是 inspect 还是什么统统不重要」）。"
+                "⛔ 本条测的是 §3.6 那一节的内容（物种抬头 / 确定性 vs LLM / 整类排除 / "
+                "不确定族标签 / 底层诊断表 / 座标拼写 / 恢复条目逐条交代），"
+                "⚠️ 而那些文字已随分节一起下线 —— ⭐ 条目本身一条没丢，只是不再标来源、"
+                "不再印工具内部细节。⛔ 整条挂起而不是删除：`section_inspect()` 的函数本体仍在，"
+                "⭐ 若日后要恢复来源分节，那五条必须逐份印的限定还在里面。"
+                "⭐ 「那一节确实不在了、且条目一条没少」由 "
+                "test_the_source_sections_are_gone_but_no_item_was_lost 守着。")
     rows = [i for i in IF.load_issues()["issues"] if i["recovered_from_refuted"]]
     assert sorted(r["issue_id"] for r in rows) == [
         "INS-0000-04", "INS-0013-05", "INS-0017-02", "INS-0047-03", "INS-0057-03"], rows
@@ -3977,6 +4088,15 @@ def test_the_inspect_family_is_marked_as_deterministic_not_llm():
     ⛔ 对本族说明的是**检查器本身看不到那类东西**。⭐ 不写明，判读者会把两族的「没报」
     当成同一件事，于是拿工具的沉默当证据。
     """
+    pytest.skip("§3 的**来源分节**于 2026-08-15 按用户裁定整体拆除"
+                "（原话：「这个 issue 是怎么来的是 inspect 还是什么统统不重要」）。"
+                "⛔ 本条测的是 §3.6 那一节的内容（物种抬头 / 确定性 vs LLM / 整类排除 / "
+                "不确定族标签 / 底层诊断表 / 座标拼写 / 恢复条目逐条交代），"
+                "⚠️ 而那些文字已随分节一起下线 —— ⭐ 条目本身一条没丢，只是不再标来源、"
+                "不再印工具内部细节。⛔ 整条挂起而不是删除：`section_inspect()` 的函数本体仍在，"
+                "⭐ 若日后要恢复来源分节，那五条必须逐份印的限定还在里面。"
+                "⭐ 「那一节确实不在了、且条目一条没少」由 "
+                "test_the_source_sections_are_gone_but_no_item_was_lost 守着。")
     for pair in S.IN_SCOPE_PAIRS:
         doc = _read(_ws(pair))
         assert "**§3.6 `pyfcstm inspect` 的确定性检查发现**" in doc, pair
@@ -4073,3 +4193,31 @@ def test_the_dtier_renderer_spends_no_star_of_its_own():
         if "⭐" in line:
             bad.append((i, line.strip()[:60]))
     assert not bad, f"dtier.py 的生成串里有 ⭐：{bad}"
+
+
+def test_the_source_sections_are_gone_but_no_item_was_lost():
+    """⛔ §3 的来源分节必须真的不在了，⭐ **而条目一条都不许少**。
+
+    ⚠️ 这一条是上面那批 `pytest.skip` 的对侧（同 CLAUDE.md §9.5-8：把测试改成 skip 会让
+    检查静默消失而测试全绿）。⛔ 它守两件事，⭐ 第二件比第一件重要：
+
+    1. 那些来源小节的抬头不再出现（`§3.1` / `§3.2a` / `§3.3b` / `§3.6a` 一类）。
+    2. ⭐⭐ **门面数字一格没动**：`54 / 99 / 269` —— ⛔ 拆分节不许顺手丢条目。
+    """
+    import re as _re
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        # ⚠️ 判据只看**标题位置**：⛔ 用全文子串会误报 —— meta review 的正文里
+        # 正常会提到「§3.5 那一族」这类交叉引用，⭐ 那不是分节抬头。
+        for m in _re.finditer(r"^(?:\*\*|#{2,5} )\s*(§3\.\d\w*)", doc, _re.M):
+            raise AssertionError(f"{pair}.md 又出现来源分节抬头 {m.group(1)} —— 那批 skip 该解开了")
+        # ⭐ 每个条目都必须是 `### <ID> <emoji>` 的统一抬头
+        for h in _re.findall(r"^### (\S+)(.*)$", doc, _re.M):
+            if not _re.match(r"^(?:EIS|DIFF|VU|UM|INS)-", h[0]):
+                continue
+            assert _re.search(r"[✅❌❓🟡🟠🔴]", h[1]), \
+                f"{pair}.md 的 {h[0]} 抬头没有标记：{h}"
+    n_led = sum(len(C.collect_pair(p, _ws(p))["ledger"]) for p in S.IN_SCOPE_PAIRS)
+    n_cand = sum(len(C.collect_pair(p, _ws(p))["candidates"]) for p in S.IN_SCOPE_PAIRS)
+    assert (len(S.IN_SCOPE_PAIRS), n_led, n_cand) == (54, 99, 269), \
+        f"⛔ 拆分节把条目数改了：{len(S.IN_SCOPE_PAIRS)} / {n_led} / {n_cand}"

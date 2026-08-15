@@ -43,6 +43,7 @@ import checklist                                    # noqa: E402
 import dtier as DT                                  # noqa: E402
 import fillblocks as fb                             # noqa: E402
 import inspectfindings as IF                       # noqa: E402
+import itemblock as IB                              # noqa: E402
 import ledger_mapping as LM                         # noqa: E402
 import newfields as NF                              # noqa: E402
 import nl_zh                                        # noqa: E402
@@ -570,436 +571,196 @@ def _fmt_mapping(rec, caveat=MAPPING_CAVEAT):
     return out
 
 
-def section_ledger(pair, records, saved):
-    lines = []
-    lines.append("## §2 现有 expected issue 逐条裁决")
-    lines.append("")
-    if not records:
-        lines.append(
-            "**本 pair 台账 0 条。** 这不等于「本 pair 没问题」—— 请直接从 §3 与 §4 "
-            f"开始，把发现登记到 §5；理由见 [{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §D.1。"
-        )
-        lines.append("")
-        return "\n".join(lines), []
-
-    keys = []
-    lines.append(
-        f"本 pair 共 **{len(records)}** 条。裁决区已按三方判读与人工 meta review 预填"
-        f"（同意就删掉理由末尾那个括号，不同意直接改写）；自动风险标记只是**提示** —— "
-        "**打了标记不等于该条不成立，没打标记也不等于它成立**（标记怎么打出来的见 "
-        f"[{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §D.1）。"
-    )
-    lines.append("")
-    for rec in records:
-        rid = rec["id"]
-        keys.append(rid)
-        flags = S.risk_flags(rec)
-        lines.append(f"### {rid}{DT.mark(rid)}")
-        lines.append("")
-        # ⛔⛔ 这里**只印三样**：statement 原文、参考侧 / 生成侧证据行、以及我方到新座标
-        # 系的映射。2026-08-13 剥掉的十项（`layer` / `direction` / `element_of_M` /
-        # `decided_by` / `primary_predicate` / `nl_evidence` / `verdict` / `replay` /
-        # 同质组 / 上游）与整节断言组都**不再呈现**。
-        #
-        # ⚠️ 剥掉的理由不是嫌长，是**锚定**：那十项里有七项是我们自家框架给这一条贴的标签
-        # （四层归因、八方向、$M$ 分量、分层判定来源、主谓词……），⛔ 而本轮要判读者回答的
-        # 恰恰是「这套框架有没有漏掉东西」。⛔ 先把框架的答案印在题面上，判读者就只会在
-        # 那些格子之间挑一个。⛔ `verdict` / `replay` 更直接：它们是流水线的判定与复算结论，
-        # ⛔ 印出来等于先告诉判读者「标准答案」。
-        lines.append("**statement 原文**")
-        lines.append("")
-        lines.append("> " + (rec.get("statement") or "").replace("\n", "\n> "))
-        lines.append("")
-        if rec.get("reference_side") or rec.get("generated_side"):
-            lines.append(f"- 参考侧：{esc(rec.get('reference_side'))}")
-            lines.append(f"- 生成侧：{esc(rec.get('generated_side'))}")
-            lines.append("")
-        lines.extend(_fmt_mapping(LM.for_record(rid)))
-        # ⭐ 三方独立 D 档判读。⛔ 摆在映射之后、裁决区之前：它是判读材料，不是我方结论。
-        lines.extend(DT.block(rid))
-        # ⭐ 判为「与本条是同一个问题」的 inspect 发现挂在这里。⛔ 上面的 statement 与证据行
-        # 一个字都没改 —— 它们是**被判对象**；补充证据只进一个独立折叠区，且**不另设裁决区**。
-        lines.extend(inspect_supplement(rid))
-        if flags:
-            lines.append("**自动风险标记**")
-            lines.append("")
-            for _, msg in flags:
-                lines.append(f"- {msg}")
-            lines.append("")
-        lines.append(fb.render(rid, "ledger",
-                               DT.prefill(rid, "ledger") or fb.LEDGER_TEMPLATE,
-                               saved.get(rid)))
-        lines.append("")
-    return "\n".join(lines), keys
-
-
-# ------------------------------------------------------------------ §3 候选
-
-_DIFF_VERDICT_NOTE = {
-    "problem": "判定者当年**判为 problem**，却仍未进台账 —— 最值得优先看的一类。",
-    "extra": "判为 `extra`（生成方凭空新增）。台账的 8 类分类学**没有 `extra` 的槽位**，"
-             "整类 31 条 / 20% 被结构性漏掉（见 `docs/protocol/ground_truth_limitations.md` §3）。",
-    "uncertain": "判为 `uncertain`（当年未决）。",
-    "correct": "判为 `correct`（生成方在该点上正确）。",
-    "similar": "判为 `similar`（与参考侧等价）。",
-}
-
-
-def section_candidates(pair, model, records, saved):
-    lines = []
-    keys = []
-    lines.append("## §3 候选 issue 逐条裁决")
-    lines.append("")
-    lines.append(
-        "本节把**已知但未入账**的线索集中在一处。它们都没有经过人工确认；"
-        "裁决区已按三方判读与人工 meta review 预填，你同意就删掉理由末尾那个括号 —— "
-        f"六个来源的优先级与读法见 [{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §D.2。"
-    )
-    lines.append("")
-
-    # ---- §3.1 真漏记
-    vu = S.valid_unrecorded(pair)
-    lines.append("**§3.1 两臂多报侧判定的「真漏记」（`VALID_UNRECORDED`）**")
-    lines.append("")
-    if not vu:
-        lines.append("本 pair 无。（全语料 X1 侧 13 条、主臂侧 2 条。）")
-        lines.append("")
-    else:
-        lines.append(
-            f"**本 pair {len(vu)} 条 —— 最高优先级**（已过一轮独立复核）。"
-        )
-        lines.append("")
-        for i, r in enumerate(vu, 1):
-            key = f"VU-{pair}-{i:02d}"
-            keys.append(key)
-            lines.append(f"### {key}{DT.mark(key)} · 簇 `{r.get('cluster')}`（{r.get('_arm')} 臂，"
-                         f"子类 `{r.get('subclass')}`）")
-            lines.append("")
-            if r.get("claim"):
-                lines.append("**主张**：" + esc(r["claim"]))
-                lines.append("")
-            lines.append("**复核认定的事实**")
-            lines.append("")
-            lines.append("> " + (r.get("fact") or "").replace("\n", "\n> "))
-            lines.append("")
-            if r.get("nl"):
-                lines.append("**NL 侧说明**")
-                lines.append("")
-                lines.append("> " + (r.get("nl") or "").replace("\n", "\n> "))
-                lines.append("")
-            if r.get("note"):
-                lines.append("**备注**：" + esc(r["note"]))
-                lines.append("")
-            if r.get("members"):
-                lines.append(f"**出现在**：{len(r['members'])} 个格 —— "
-                             + "、".join(f"`{m}`" for m in r["members"][:8])
-                             + (" …" if len(r["members"]) > 8 else ""))
-                lines.append("")
-            lines.extend(_fmt_mapping(CM.for_candidate(key), CANDIDATE_MAPPING_CAVEAT))
-            lines.extend(inspect_supplement(key))
-            lines.extend(DT.block(key))
-            lines.append(fb.render(key, "candidate",
-                                   DT.prefill(key, "candidate") or fb.CANDIDATE_TEMPLATE,
-                                   saved.get(key)))
-            lines.append("")
-
-    # ---- §3.2 审阅 agent 未采纳的 diff
-    unadopted = S.unadopted_diffs(pair)
-    adopted = S.adopted_diff_ids(pair)
-    rv = S.review_json(pair)
-    total_diffs = len(rv.get("diffs") or []) if rv else 0
-    lines.append("**§3.2 审阅 agent 产出但未进台账的 diff**")
-    lines.append("")
-    if rv is None:
-        lines.append(f"无 `{pair}-review.json`。")
-        lines.append("")
-    else:
-        lines.append(
-            f"本 pair 审阅 agent 共产出 **{total_diffs}** 条 diff，进台账 **{len(adopted)}** 条，"
-            f"未进 **{len(unadopted)}** 条。当年没有单独记录「为什么不收」 —— "
-            f"证据缺口见 [{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §D.2。"
-        )
-        lines.append("")
-        priority = [(i, d) for i, d in unadopted
-                    if d.get("verdict") in ("problem", "extra", "uncertain")]
-        rest = [(i, d) for i, d in unadopted
-                if d.get("verdict") not in ("problem", "extra", "uncertain")]
-        # ⚠️⚠️ 这两族**不是同一个物种**，⛔ 故分成两节印，⛔ 不混在一张表里。
-        # 判据是字面的、可在页面上自行核对（就是下面那行「生成侧：—」），
-        # 定义与理由见 `sources.denies_artifact_defect()`。
-        claims = [(i, d) for i, d in priority if not S.denies_artifact_defect(d)]
-        denials = [(i, d) for i, d in priority if S.denies_artifact_defect(d)]
-
-        def _render_diff(i, d):
-            key = f"DIFF-{pair}-{i:02d}"
-            keys.append(key)
-            lines.append(f"### {key}{DT.mark(key)} · diff #{i} · `{d.get('verdict')}`")
-            lines.append("")
-            lines.append(f"- 参考侧：{esc(d.get('ref'))}")
-            lines.append(f"- 生成侧：{esc(d.get('gen'))}")
-            lines.append("")
-            lines.append("**判定者理由**")
-            lines.append("")
-            lines.append("> " + (d.get("reason") or "").replace("\n", "\n> "))
-            lines.append("")
-            aux = []
-            if d.get("assertable") is not None:
-                aux.append(f"`assertable` = `{d.get('assertable')}`")
-            if d.get("predicate_exists") is not None:
-                aux.append(f"`predicate_exists` = `{d.get('predicate_exists')}`")
-            if d.get("out_of_scope") is not None:
-                aux.append(f"`out_of_scope` = `{d.get('out_of_scope')}`")
-            if aux:
-                lines.append("排除相关字段：" + "；".join(aux))
-                lines.append("")
-            lines.extend(_fmt_mapping(CM.for_candidate(key), CANDIDATE_MAPPING_CAVEAT))
-            lines.extend(inspect_supplement(key))
-            lines.extend(DT.block(key))
-            lines.append(fb.render(key, "candidate",
-                                   DT.prefill(key, "candidate") or fb.CANDIDATE_TEMPLATE,
-                                   saved.get(key)))
-            lines.append("")
-
-        if claims:
-            lines.append(f"**§3.2a 判为 problem / extra / uncertain 的 {len(claims)} 条（设裁决区）**")
-            lines.append("")
-            for i, d in claims:
-                _render_diff(i, d)
-        if denials:
-            lines.append(f"**§3.2a-2 生成侧写「—」或「不可能生成」的 {len(denials)} 条"
-                         f"（另一个物种，设裁决区）")
-            lines.append("")
-            lines.append(
-                "这几条的**生成侧逐字否认作者制品在该处有东西**。它们真正主张的是"
-                "**参考模型 / 真值本身的有效性**（「参考侧含 NL 推不出的内容，"
-                "任何 LLM 都无法复现，却会被计成漏检」），而不是一种缺陷形态。"
-            )
-            lines.append("")
-            lines.append(
-                "分出来是因为它们与上面那些不可比：缺陷座标系的判定测试全部落在"
-                "**作者源 PlantUML** 上，而这类在制品内指不出任何一处。"
-                "所以它们映射不上**不能**算作「新座标系覆盖不到」—— "
-                "它们本来就不在座标系要描述的对象集合里。"
-            )
-            lines.append("")
-            lines.append(
-                "它们仍然值得判：若你认为某条其实指出了制品的真问题，照常走「采纳」；"
-                "若你认为它是对参考模型的质疑，那是另一回事，请在理由里写清楚。"
-            )
-            lines.append("")
-            for i, d in denials:
-                _render_diff(i, d)
-        if rest:
-            lines.append(f"**§3.2b 判为 correct / similar 的 {len(rest)} 条（备查，不设裁决区）**")
-            lines.append("")
-            lines.append(
-                f"<details><summary>展开 {len(rest)} 条备查 diff —— "
-                f"不是候选，只在 §4 发现同一处时用来查「是否已被判过没问题」"
-                f"（读法见 {S.WORKSHEET_HOWTO} §D.2）</summary>")
-            lines.append("")
-            lines.append("| # | 判定 | 参考侧 | 生成侧 | 理由（截断） |")
-            lines.append("| --: | :-- | :-- | :-- | :-- |")
-            for i, d in rest:
-                lines.append(f"| {i} | `{d.get('verdict')}` | {clip(d.get('ref'), 60)} | "
-                             f"{clip(d.get('gen'), 60)} | {clip(d.get('reason'), 140)} |")
-            lines.append("")
-            lines.append("</details>")
-            lines.append("")
-
-    # ---- §3.3 机械未匹配
-    um = S.unmatched_issues(pair)
-    lines.append("**§3.3 两臂产出中机械未匹配任何台账条目的 issue**")
-    lines.append("")
-    if um is None:
-        lines.append(
-            "**未导出。** 先跑 `python3 export_unmatched.py`（它读 `runs/` 下的原始 run "
-            "record；主臂 v46 的记录在姊妹 clone `research_ideas/` 里）。"
-        )
-        lines.append("")
-    elif not um:
-        lines.append("本 pair 无。")
-        lines.append("")
-    else:
-        x1 = regroup_unmatched([e for e in um if e["arm"] == "X1"], model)
-        v46 = regroup_unmatched([e for e in um if e["arm"] == "v46"], model)
-        raw_x1 = sum(e["cell_count"] for e in um if e["arm"] == "X1")
-        raw_v46 = sum(e["cell_count"] for e in um if e["arm"] == "v46")
-        lines.append(
-            f"X1 臂 **{raw_x1}** 条未认领 issue 并成 **{len(x1)}** 组；"
-            f"主臂 **{raw_v46}** 条机械未匹配 issue 并成 **{len(v46)}** 组。"
-            "**出现格数越多越值得看**；两臂既有裁定都可以推翻 —— 读法见 "
-            f"[{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §D.2。"
-        )
-        lines.append("")
-        if x1:
-            lines.append(f"**§3.3a X1 臂未认领 {len(x1)} 组**")
-            lines.append("")
-            lines.append(f"<details><summary>展开 {len(x1)} 组（已有的多报侧裁定"
-                         f"是另一轮判定者做的，你可以推翻）</summary>")
-            lines.append("")
-            lines.append("| 格数 | 裁定 | 子类 | 簇 | issue（组内各说法） |")
-            lines.append("| --: | :-- | :-- | :-- | :-- |")
-            for g in x1:
-                adj = g.get("adjudicated") or {}
-                texts = []
-                seen = set()
-                for m in g["members"]:
-                    t = clip(m.get("issue"), 110)
-                    if t not in seen:
-                        seen.add(t)
-                        texts.append(t)
-                body = "<br>".join(texts[:3]) + ("<br>…" if len(texts) > 3 else "")
-                lines.append(
-                    f"| {g['cell_count']} | `{adj.get('verdict') or '—'}` | "
-                    f"`{adj.get('subclass') or '—'}` | `{adj.get('cluster') or '—'}` | "
-                    f"{body} |")
-            lines.append("")
-            lines.append("</details>")
-            lines.append("")
-        if v46:
-            shown = v46[:30]
-            lines.append(f"**§3.3b 主臂 v46 机械未匹配 {len(v46)} 组"
-                         + (f"（列出出现格数最多的 {len(shown)} 组）"
-                            if len(v46) > len(shown) else ""))
-            lines.append("")
-            lines.append(f"<details><summary>展开 {len(shown)} 组（主臂多报簇没有逐条"
-                         f"回链到格，故这里标不出哪些已被裁定 —— 自行对照 §3.4）</summary>")
-            lines.append("")
-            lines.append("| 格数 | issue（组内各说法） | 需求 | rationale（截断） |")
-            lines.append("| --: | :-- | :-- | :-- |")
-            for g in shown:
-                texts, seen = [], set()
-                for m in g["members"]:
-                    t = clip(m.get("issue"), 100)
-                    if t not in seen:
-                        seen.add(t)
-                        texts.append(t)
-                body = "<br>".join(texts[:3]) + ("<br>…" if len(texts) > 3 else "")
-                rid = sorted({r for m in g["members"]
-                              for r in (m.get("requirement_ids") or [])})
-                lines.append(
-                    f"| {g['cell_count']} | {body} | {clip(','.join(rid), 30)} | "
-                    f"{clip(g['members'][0].get('reason'), 160)} |")
-            lines.append("")
-            lines.append("</details>")
-            lines.append("")
-        key = f"UM-{pair}"
-        keys.append(key)
-        # ⭐ §3 拉平后每个可裁决对象都要有自己的 `###` 抬头 —— ⛔ `UM-` 块此前只有小节标题，
-        # ⚠️ 于是它在目录里找不到，而它恰恰是一律需要人裁的一族。
-        lines.append(f"### {key}{DT.mark(key)} · 机械未匹配任何台账条目的多报簇（整表一块）")
-        lines.append("")
-        lines.append("上表里值得补入台账的，在这里点名（写行内的 issue 文本或格数+关键词即可）：")
-        lines.append("")
-        # ⚠️ 这一个填写块对应的是**整张表**，⛔ 不是一条线索 —— 与上面 `DIFF-` / `VU-`
-        # 那种「一条 = 一个主张」不同构。所以它的映射多数标「没能映射」，
-        # ⛔ 且卡点是**登记单位**而非座标系。不写明这一点，读者会把它读成覆盖度缺口。
-        lines.append(
-            f"注意这一块与上面的 `DIFF-` / `VU-` **不同构**：那些一条对应一个主张，"
-            f"而 `{key}` 一块对应上面**整张表**（本 pair 共 {len(x1) + len(v46)} 组）。"
-            "所以下面的映射多数是「没能映射」，卡点在**登记单位**（一格座标代表不了一整张表），"
-            "**不是**座标系给不出取值 —— 逐组拆开后各组基本都能落格。"
-        )
-        lines.append("")
-        lines.extend(_fmt_mapping(CM.for_candidate(key), CANDIDATE_MAPPING_CAVEAT))
-        lines.extend(inspect_supplement(key))
-        # ⭐ `UM-` 块也预填。⛔ 它无三方 D 判定（不在判读包内），故 `DT.prefill()` 走的是
-        # 「只有人工 meta review」那条分支 —— ⚠️ 一律人工裁决，但推荐与理由照样给。
-        lines.extend(DT.block(key))
-        lines.append(fb.render(key, "candidate",
-                               DT.prefill(key, "candidate") or fb.CANDIDATE_TEMPLATE,
-                               saved.get(key)))
-        lines.append("")
-
-    # ---- §3.4 已裁定为非缺陷的多报簇
-    other = S.other_unexpected(pair)
-    lines.append("**§3.4 本 pair 已被判为「非缺陷」的多报簇（备查）**")
-    lines.append("")
-    if not other:
-        lines.append("本 pair 无。")
-        lines.append("")
-    else:
-        lines.append(
-            f"<details><summary>展开 {len(other)} 簇 —— 它们**不是**候选，"
-            f"只用于在 §4 撞到同一形状时查既有裁定"
-            f"（读法见 {S.WORKSHEET_HOWTO} §D.2）</summary>")
-        lines.append("")
-        lines.append("| 簇 | 臂 | 裁定 | 子类 | 事实 / 理由（截断） |")
-        lines.append("| :-- | :-- | :-- | :-- | :-- |")
-        for r in other:
-            lines.append(
-                f"| `{r.get('cluster')}` | {r.get('_arm')} | `{r.get('verdict')}` | "
-                f"`{r.get('subclass') or '—'}` | "
-                f"{clip((r.get('claim') or '') + ' ‖ ' + (r.get('fact') or ''), 200)} |")
-        lines.append("")
-        lines.append("</details>")
-        lines.append("")
-
-    # ---- §3.5 同根但未归并
-    la = S.ledger_accounted().get(pair) or []
-    lines.append("**§3.5 与台账同根、但匹配器未归并的簇（「台账偏浅」的直接证据）**")
-    lines.append("")
-    if not la:
-        lines.append("本 pair 无。")
-        lines.append("")
-    else:
-        lines.append(
-            f"共 {len(la)} 簇 —— **同一个缺陷**换了谓词或措辞，台账那一条就没能覆盖，"
-            f"故对应条目适合走「修正」而不是「保留」（见 "
-            f"[{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §D.2）。"
-        )
-        lines.append("")
-        for r in la:
-            lines.append(f"- **`{r.get('cluster')}`**（{r.get('_arm')}）：{esc(r.get('fact'))}")
-            if r.get("note"):
-                lines.append(f"  - {esc(r.get('note'))}")
-        lines.append("")
-
-    return "\n".join(lines), keys
-
-
-# ------------------------------------------------------------------ §3.6 inspect 确定性发现
-
-#: ⛔⛔ **这一族与 §3.1–§3.5 不是同一个物种，抬头不许省。** 前者出自 LLM 产出（两臂的 issue、
-#: 审阅 agent 的 diff、多报簇），带采样噪声，同一个格重跑一次可能就没了；本节出自
-#: `pyfcstm inspect --format json --enable-verify`，是**确定性检查**，同一份 `model.fcstm`
-#: 永远给同一批诊断。⚠️ 这个差别直接改变「模型没提」这句话的含义：对前者是采样问题，
-#: ⛔ 对后者说明的是**检查器本身看不到那类东西**。
-INSPECT_SPECIES_CAVEAT = (
-    "**这一节与 §3.1–§3.5 不是同一个物种。** 上面五节的线索全部出自 **LLM 产出**"
-    "（两臂的 issue、审阅 agent 的 diff、多报簇），所以它们带采样噪声 —— 同一个格重跑一次"
-    "可能就没有了。本节出自 `pyfcstm inspect --format json --enable-verify`，是**确定性检查**："
-    "不采样、不过 LLM，同一份 `model.fcstm` 永远给同一批诊断。"
-    "⚠️ 这个差别会改变你的读法：上面那些「模型没提到」是采样问题，"
-    "本节的「检查器没报」说明的是**检查器本身看不到那类东西**。"
-)
-
-#: ⚠️ 确定性**不等于正确**。这一句同样不许省 —— 判读者若把「工具报的」当成「事实」，
-#: 整节的裁决都会失真。
-INSPECT_PROJECTION_CAVEAT = (
-    "**但确定性不等于正确。** `model.fcstm` 是从作者源 PlantUML **投影**来的，"
-    "投影会合成元素（root 复合态、缺初始时的占位态 `UnspecifiedInitial` 之类）。"
-    "所以每条诊断都先过了一轮「内生 / 投影产物 / 不确定」分拣加一轮对抗性复核："
-    "查明是投影产物的已经不在这里，本节只有**确认内生**与**分拣未能确定**两族。"
-)
-
-#: 整类排除的说明。⛔ 不写会让判读者以为这两类被漏掉了。
-INSPECT_EXCLUDED_NOTE = (
-    "**两个 code 整类不进本节主体**：`I_NONTRIVIAL_SCC`（内生率 **0/54**）与 "
-    "`I_TOPOLOGICAL_NON_TERMINATING`（内生率 **0/52**）。"
-    "理由不是嫌多，是它们对本语料不构成缺陷主张：反应式控制器本来就该有非平凡强连通分量、"
-    "本来就不该终止。⚠️ 但落在「不确定」那一族里的仍然摆在下面 —— "
-    "整类排除说的是「不当缺陷主张看」，不是「从材料里删掉」。"
-)
-
-
 def _flow(text):
     r"""把一段判定文字压成一行（段内不许硬折行，见 CLAUDE.md §2.2.1b）。
 
-    ⛔ 与 `esc()` 不同：**不转义 `|`**，因为这些文字印在引用块与 bullet 里而不是表格单元格里。
-    ⚠️ 转了反而会让「渲染结果与 audit json 逐字一致」这条对拍失效（`esc` 会把 `|` 变成 `\|`）。
+    ⛔ 与 `esc()` 不同：**不转义 `|`** —— 表格单元格里的转义由
+    [dtier.py](./dtier.py) 的 `_cell()` 负责，⚠️ 这里的产物进的是普通段落。
     """
-    return re.sub(r"\s+", " ", str(text or "")).strip()
+    return IB.safe_md(re.sub(r"\s+", " ", str(text or "")).strip())
+
+
+def _merged_ins(pair):
+    """本 pair 里**被并入别的条目**、因而不单独设裁决区的 `INS-` id → 宿主 id。
+
+    ⭐ 判读者对同一个问题只裁一次：裁决落在宿主条目上，⛔ 被并入的那条不另设裁决区。
+    ⚠️ 但它的事实**不许丢** —— 它作为「补充证据」印进宿主的问题描述里（见 `_desc_ledger`）。
+    """
+    out = {}
+    hosts = [r["id"] for r in S.ledger_records(pair)]
+    hosts += [k for k, v in CM.candidate_index().items() if v["pair"] == pair]
+    for host in hosts:
+        for rec in IF.merged_into(host):
+            out[rec["issue_id"]] = (host, rec)
+    return out
+
+
+def _supplements(target, pair):
+    """并入 `target` 的补充证据行。⭐ 只印事实，⛔ 不印工具名与诊断码。"""
+    out = []
+    for rec in IF.merged_into(target):
+        txt = _flow(rec.get("statement"))
+        if txt:
+            # ⭐ 必须是列表项：⛔ 两条并列的加粗段落挨在一起就是段内硬折行（CLAUDE.md §2.2.1b），
+            # ⚠️ `tools.unwrap_markdown --check` 会直接报，实测栽过一次。
+            out.append(f"- **补充证据（与本条是同一个问题）**：{txt}")
+    return out
+
+
+def _desc_ledger(rec, pair):
+    """台账条目的问题描述。⭐ 只取 `statement`，⛔ 不再印参考侧/生成侧两行。
+
+    ⚠️ 那两行用的是流水线内部术语（「参考侧」「生成侧」），⛔ 且与 `statement` 高度重复 ——
+    判读者要的是「这条主张的是什么」，不是「它是怎么被比出来的」。
+    """
+    return _flow(rec.get("statement"))
+
+
+def _desc_vu(r):
+    """`VU-` 的问题描述：主张 + 复核认定的事实（+ NL 侧说明）。"""
+    bits = []
+    if (r.get("claim") or "").strip():
+        bits.append(_flow(r["claim"]))
+    if (r.get("fact") or "").strip():
+        bits.append("复核认定的事实：" + _flow(r["fact"]))
+    if (r.get("nl") or "").strip():
+        bits.append("NL 侧：" + _flow(r["nl"]))
+    return "　".join(bits)
+
+
+def _desc_diff(d):
+    """`DIFF-` 的问题描述：两侧的差 + 当年判定者给的理由。"""
+    bits = []
+    ref, gen = _flow(d.get("ref")), _flow(d.get("gen"))
+    if ref or gen:
+        bits.append(f"参考模型里是「{ref or '—'}」，被判制品里是「{gen or '—'}」")
+    if (d.get("reason") or "").strip():
+        bits.append("差异说明：" + _flow(d["reason"]))
+    return "　".join(bits)
+
+
+def _desc_um(pair, x1, v46):
+    """`UM-` 的问题描述 —— ⭐ 本轮重写的重点。
+
+    ⛔⛔ **旧版只印一张原始表格，读者根本看不出问题是什么**（用户原话：「UM-0000 里面
+    到底是啥问题你都没说清楚啊，我都没看懂」）。⚠️ 原因是那张表按「多报簇」组织，
+    一行是一个簇、同一个底层事实按不同 `REQ-` id 出现好几行，⛔ 而表里没有任何一处
+    告诉读者「这些行合起来在说几件事」。
+
+    ⭐ 现在改成：**把同文的行去重后逐条列出，并标出各自出现在几个格里**。
+    ⚠️ 归一化（哪几行其实是一件事）由人工 meta review 给出 —— ⛔ 脚本不做那个判断。
+    """
+    seen, rows = set(), []
+    for g in x1 + v46:
+        for m in g["members"]:
+            t = _flow(m.get("issue"))
+            if not t or t in seen:
+                continue
+            seen.add(t)
+            reqs = sorted({r for r in (m.get("requirement_ids") or [])})  # 可能为空
+            rows.append((g["cell_count"], t, reqs))
+    rows.sort(key=lambda x: -x[0])
+    head = (f"本 pair 有 **{len(x1) + len(v46)}** 组多报簇没能机械匹配到任何台账条目，"
+            f"去重后共 **{len(rows)}** 种说法。⚠️ 其中不少是**同一个底层事实按不同需求 id "
+            f"重复登记**，⛔ 照条数补入台账会把一个缺陷记成好几条 —— "
+            f"归一化成几条事实由下面的 meta review 给出。")
+    detail = ["", "逐条说法（按出现格数降序）：", ""]
+    for n, t, reqs in rows[:24]:
+        tag = f"（{'、'.join(f'`{r}`' for r in reqs[:3])}）" if reqs else ""
+        detail.append(f"- **{n} 格**：{t}{tag}")
+    if len(rows) > 24:
+        detail.append(f"- …… 另有 {len(rows) - 24} 种说法，"
+                      f"逐条见 [unmatched_issues.json](../unmatched_issues.json)")
+    detail.append("")
+    return head, detail
+
+
+def section_ledger(pair, records, saved):
+    """§2 现有 expected issue 逐条裁决。⭐ 版式由 [itemblock.py](./itemblock.py) 统一。"""
+    lines = ["## §2 现有 expected issue 逐条裁决", ""]
+    if not records:
+        lines += ["**本 pair 台账 0 条。** 这不等于「本 pair 没问题」—— 请直接从 §3 开始；"
+                  f"理由见 [{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §D.1。", ""]
+        return "\n".join(lines), []
+    lines += [f"本 pair 共 **{len(records)}** 条。{IB.SECTION_NOTE}", ""]
+    keys = []
+    for rec in records:
+        rid = rec["id"]
+        keys.append(rid)
+        lines += IB.render(rid, _desc_ledger(rec, pair), LM.for_record(rid), saved,
+                           fb, DT, kind="ledger",
+                           extra=_supplements(rid, pair))
+    return "\n".join(lines), keys
+
+
+def section_candidates(pair, model, records, saved):
+    """§3 候选 issue 逐条裁决。
+
+    ⚠️⚠️ **2026-08-14 重构：⛔ 按来源分的小节全部拆掉。** 此前分成 §3.1 真漏记 /
+    §3.2 未采纳的 diff / §3.3 机械未匹配 / §3.4 已判非缺陷 / §3.5 同根未归并 /
+    §3.6 inspect 确定性发现，⛔ 六个小节各有一套版式与导语。
+    ⭐ 用户裁定：「这个 issue 是怎么来的是 inspect 还是什么统统不重要」——
+    故现在**一个平铺列表**，所有候选条目同一版式，⛔ 不再标注来源。
+    """
+    lines = ["## §3 候选 issue 逐条裁决", ""]
+    lines += ["本节是**已知但未入账**的线索，与 §2 同一版式、同一裁决口径。"
+              f"{IB.SECTION_NOTE}", ""]
+    keys = []
+    merged = _merged_ins(pair)
+    judged = DT.load_rulings()
+
+    def _skip(key):
+        """⭐ **只渲被三方判读过的条目。**
+
+        ⚠️⚠️ 这条过滤替代了旧的「按 verdict 分 §3.2a 设裁决区 / §3.2b 只备查」——
+        ⛔ 旧规则的判据是「当年判定者给了什么 verdict」，⚠️ 而那与「这一条现在该不该由你裁」
+        没有关系。⭐ 新判据自洽：**工作单上有裁决区的，就是有三方判定 + 人工 meta review 的**，
+        ⛔ 不会出现一个空白块让你对着它发呆（实测旧规则改版后一度渲出 374 个空白块）。
+        ⭐ `UM-` 一族例外：它不在判读包内，但有人工 meta review，故照渲。
+        """
+        return key not in judged and not key.startswith("UM-")
+
+    # ---- 真漏记
+    for i, r in enumerate(S.valid_unrecorded(pair), 1):
+        key = f"VU-{pair}-{i:02d}"
+        if _skip(key):
+            continue
+        keys.append(key)
+        lines += IB.render(key, _desc_vu(r), CM.for_candidate(key), saved, fb, DT,
+                           extra=_supplements(key, pair))
+    # ---- 未采纳的 diff
+    adopted = S.adopted_diff_ids(pair)
+    for i, d in S.unadopted_diffs(pair):
+        key = f"DIFF-{pair}-{i:02d}"
+        if _skip(key):
+            continue
+        keys.append(key)
+        lines += IB.render(key, _desc_diff(d), CM.for_candidate(key), saved, fb, DT,
+                           extra=_supplements(key, pair))
+    # ---- 机械未匹配的多报簇（整表一块）
+    um = regroup_unmatched(S.unmatched_issues(pair), model)
+    if um:
+        x1 = [e for e in um if e["arm"] == "X1"]
+        v46 = [e for e in um if e["arm"] == "v46"]
+        key = f"UM-{pair}"
+        keys.append(key)
+        head, detail = _desc_um(pair, x1, v46)
+        lines += IB.render(key, head, CM.for_candidate(key), saved, fb, DT,
+                           extra=detail + _supplements(key, pair))
+    # ---- 确定性检查发现（⛔ 不标来源；被并入别条的不单独设块）
+    for rec in IF.issues_of(pair):
+        rid = rec["issue_id"]
+        if rid in merged or _skip(rid):
+            continue
+        keys.append(rid)
+        # ⭐ `INS-` 的五轴直接挂在记录上（不像台账/候选走 mapping 文件），⛔ 就地包一层。
+        mp = {"mappable": True, "id": rid}
+        mp.update({k: rec.get(k) for k in IB.AXES})
+        mp[NF.OTHER_NOTE_FIELD] = rec.get(NF.OTHER_NOTE_FIELD)
+        lines += IB.render(rid, _flow(rec.get("statement")), mp, saved, fb, DT)
+    if len(keys) == 0:
+        lines += ["本 pair 无候选线索。", ""]
+    return "\n".join(lines), keys
 
 
 def _inspect_codes(rec):
@@ -1927,123 +1688,70 @@ def build_howto():
         "请直接从该份的 §3 与 §4 开始，把发现登记到 §5。"
     )
     lines.append("")
-    lines.append("### §D.2 §3 候选新增 issue 的六个来源")
+    lines.append("### §D.2 §3 候选 issue：与 §2 同一版式、同一口径")
     lines.append("")
     lines.append(
-        "本节把**已知但未入账**的线索集中在一处。它们都没有经过人工确认，"
-        "列在那里只是因为「有人说过这件事而台账没记」。裁决区留空。"
+        "⚠️ **先记一条已知证据缺口**：候选里那批「审阅 agent 产出但未进台账」的线索，"
+        "当年**没有单独记录「为什么不收」** —— 只留下了它被判成什么。 所以工作单里给的"
+        "是两侧的差与当年判定者写的理由，**不是一条真正的排除论证**。换言之："
+        "「它当年没被收」不构成「它不成立」的依据，️ 你可以直接推翻。"
     )
     lines.append("")
-    lines.append("| 小节 | 来源 | 优先级 |")
+    lines.append(
+        "️ **2026-08-14 本节整体重写， 旧的「六个来源」分节已拆除。** "
+        "此前 §3 按线索的来源分成六个小节（真漏记 / 未采纳的 diff / 机械未匹配 / "
+        "已判非缺陷 / 同根未归并 / 确定性检查发现）， 每节各有一套版式与导语。"
+    )
+    lines.append("")
+    lines.append(
+        "拆除的理由是**来源不影响判定**：一条主张成不成立，取决于它指的结构事实在不在、"
+        "被违反的义务能不能陈述、反驳站不站得住 ——  与「它是哪个工具报的」无关。"
+        "️ 而按来源分节的代价是实打实的：同一个问题在不同小节里长得不一样，"
+        "读者得先学会六套版式才能开始判。"
+    )
+    lines.append("")
+    lines.append(
+        "现在 §2 与 §3 的每一条都是**同一个四段式**："
+        "**问题类型 → 问题描述 → 三方判定 → meta review → 裁决区**。"
+        " 顺序固定不许改：先知道这是什么问题，再看三方怎么判，再看我方推荐，最后才动笔。"
+    )
+    lines.append("")
+    lines.append("| 段 | 内容 | 谁写的 |")
     lines.append("| :-- | :-- | :-- |")
-    lines.append("| §3.1 | 两臂多报侧判为 `VALID_UNRECORDED` 的「真漏记」 | "
-                 "最高 —— 已过一轮独立复核，事实部分通常可直接采信 |")
-    lines.append("| §3.2a | 审阅 agent 判为 `problem` / `extra` / `uncertain` 却没进台账的 diff | 高 |")
-    lines.append("| §3.2a-2 | 上述 diff 里**生成侧写「—」或「不可能生成」**的那一族 | "
-                 "另一个物种，见下 |")
-    lines.append("| §3.2b | 判为 `correct` / `similar` 的 diff | 备查，不设裁决区 |")
-    lines.append("| §3.3 | 两臂产出中机械未匹配任何台账条目的 issue | 中 —— 量大，按出现格数排序 |")
-    lines.append("| §3.4 | 已被判为「非缺陷」的多报簇 | 备查 —— 避免与既有裁定撞车 |")
-    lines.append("| §3.6 | `pyfcstm inspect` 的**确定性检查**发现（归一化后） | "
-                 "**另一个物种** —— 见下，不是 LLM 产出，没有采样噪声 |")
-    lines.append("| §3.5 | 与台账同根、但匹配器未归并的簇 | "
-                 "**「台账偏浅」的直接证据** —— 对应条目适合走「修正」 |")
+    lines.append("| **问题类型** | 五轴座标（`defect_locus` 起的那套），中英双写；"
+                 "界外取值当场标明不计分 | 我方推断， 不是定下来的分类 |")
+    lines.append("| **问题描述** | 这条主张的是什么 —— 台账取 `statement`，"
+                 "候选按各自材料成句 | 上游材料逐字 |")
+    lines.append("| **三方判定** | `claude` / `codex` / `dsh` 三行，各自的档位与"
+                 "**逐字理由**（含第二读法与设计意图主张） | 三个独立判读臂 |")
+    lines.append("| **meta review** | 推荐档位 · 一句话理由 · 展开理由 · 分歧点 · 重点关注 | "
+                 "**人工归纳**， 非计算结果 |")
+    lines.append("| **裁决区** | `按 D2 采纳` / `按 D1 采纳` / `不采纳` 三选一 + 理由 | "
+                 "你填（多数已预填） |")
     lines.append("")
     lines.append(
-        "**§3 的每一条也带一块「我方映射」**，读法同 §D.1，但多一层保留："
-        "候选**本身尚未被认定**，所以映射的是「**若这条线索成立**，它属于座标系的哪一格」，"
-        "**不代表它成立**。它是不是一条真缺陷，正是要你判的。"
+        "**`D2` 与 `D1` 都进台账，但必须分开记**：`D2` 是「有一条可陈述的被违反义务且"
+        "拿不出站得住的反驳」；`D1` 是「两读并立」—— 后者入账时必须把那个第二读法一起记，"
+        "️ 否则它会被后人读成一条确定的缺陷。"
     )
     lines.append("")
     lines.append(
-        "**三类候选的粒度不同构，别当成同一种东西。** `VU-` 与 `DIFF-` 是"
-        "「一条 = 一个主张」，映射成一格座标是有意义的。`UM-` 不是："
-        "一个 `UM-<pair>` 填写块对应 §3.3 **整张表**（全语料 619 组，中位 11 组/桶）。"
-        "所以它的映射多数写「我方没能映射」，而卡点是**登记单位**"
-        "（一格代表不了一整张表），**不是**座标系给不出取值 —— "
-        "逐组拆开后各组基本都能落格。"
+        "**标记的含义**：✅ 已定采纳 · ❌ 已定不采纳 · ❓ 三臂一致判两读并立 —— "
+        "这三种**不需你动**，裁决区已勾好且没有待填括号；"
+        "🟡 两读并立待你选 · 🟠 有偏向待你认可 · 🔴 三方无偏向待你亲裁 —— "
+        "这三种的裁决区留了一行待填理由，写一句话即可（哪怕一句）。"
     )
     lines.append("")
     lines.append(
-        "**§3.2a-2 是另一个物种，不要跟 §3.2a 混算。** 这一族的生成侧"
-        "**逐字否认作者制品在该处有东西**（写的就是「—」或「(不可能生成)」）。"
-        "它们真正主张的是**参考模型 / 真值本身的有效性**"
-        "（「参考侧含 NL 推不出的内容，任何 LLM 都无法复现，却会被计成漏检」），"
-        "而不是一种缺陷形态。缺陷座标系的判定测试全部落在**作者源 PlantUML** 上，"
-        "而这类在制品内指不出任何一处。所以它们映射不上**不能**算作"
-        "「新座标系覆盖不到」—— 它们本来就不在座标系要描述的对象集合里。"
-        "它们仍然值得判：若你认为某条其实指出了制品的真问题，照常走「采纳」；"
-        "若你认为它是对参考模型的质疑，请在理由里写清楚。"
+        "️ **`UM-` 一族与其它条目不同构**：那一块对应**整张多报簇表**（不是一条主张），"
+        "且它不在三方判读包内、无三臂意见。它的问题描述把去重后的各种说法逐条列出并标出"
+        "出现格数； 补入台账时必须先**归一化**（同一底层事实按不同需求 id 重复的合成一条），"
+        "️ 照条数补会把一个缺陷记成好几条。"
     )
     lines.append("")
     lines.append(
-        "**§3.2 的已知证据缺口**：当年**没有单独记录「为什么不收」**，"
-        "只留下了该 diff 被判成什么。所以「排除理由」给的是它的 `verdict` "
-        "与判定者写的 `reason`，不是一条真正的排除论证。"
-    )
-    lines.append("")
-    lines.append("| 判定 | 怎么读 |")
-    lines.append("| :-- | :-- |")
-    for verdict, note in _DIFF_VERDICT_NOTE.items():
-        lines.append(f"| `{verdict}` | {esc(note)} |")
-    lines.append("")
-    lines.append(
-        "§3.2b 的 `correct` / `similar` 列在工作单里是为了**自包含**：若你在 §4 发现某处确有问题，"
-        "可以先查它是不是已经被人看过并判过没问题。要推翻的话，直接在 §5 登记新条目。"
-    )
-    lines.append("")
-    lines.append(
-        "§3.3 的 X1 侧**全部已有多报侧裁定**（已归入 X1 的多报桶并给了 verdict）。"
-        "那些裁定是**另一轮**判定者做的，你可以推翻 —— "
-        "尤其 `NO_NL_BASIS`：它只说「NL 没有逐字依据」，"
-        "而合式性层的缺陷本来就不要求 NL 依据（台账自己有 30 条这样的记录）。"
-        "**出现格数越多越值得看** —— 六格里出现五六次的主张，不太可能是单次采样噪声。"
-    )
-    lines.append("")
-    lines.append(
-        "§3.3 的**主臂多报簇没有逐条回链到格**（`G*.jsonl` 只给 `cells_of_6` 计数、"
-        "不给成员清单），所以那一栏**无法**标出哪些已被裁定 —— 需自行对照同一份工作单的 §3.4。"
-        "全语料有 **102 条**主臂未匹配 issue 落在 6 个 pair"
-        "（`0005` `0015` `0025` `0035` `0042` `0045`）上却**零多报簇**，"
-        "即那 6 个 pair 的这一栏完全没有被裁定过。"
-    )
-    lines.append("")
-    lines.append(
-        "§3.4 列的是两臂报过、但复核判为不成立的主张。它们**不是**候选 —— "
-        "列出来是为了让你在 §4 发现同一形状时，能立刻看到「这条已经被判过，理由是这个」，"
-        "避免重复劳动或与既有裁定冲突。"
-    )
-    lines.append("")
-    # ⭐ §3.6 的读法必须写在这里 —— ⚠️ 它是六个来源里**唯一**不带采样噪声的那个，
-    # ⛔ 判读者若拿它跟前五个同样对待，会把「工具没报」当成「不存在」。
-    lines.append(
-        "**§3.6 与前五个来源不是同一个物种。** 前五个全部出自 **LLM 产出**（两臂的 issue、"
-        "审阅 agent 的 diff、多报簇），带采样噪声 —— 同一个格重跑一次可能就没了。"
-        "§3.6 出自 `pyfcstm inspect --format json --enable-verify`，是**确定性检查**："
-        "同一份 `model.fcstm` 永远给同一批诊断。于是「没报」这件事的含义也不同："
-        "前五个的沉默是采样问题，§3.6 的沉默说明**检查器本身看不到那类东西**。"
-    )
-    lines.append("")
-    lines.append(
-        "**§3.6 的四条读法。** ① 全语料 454 条原始诊断先经「内生 / 投影产物 / 不确定」分拣加"
-        "一轮对抗性复核，查明是**投影产物**的 84 条不在工作单里；② 余下的按**根因归一化**（360 条"
-        "诊断 → 189 条 issue，`0007` 一份就是 35 → 7），所以你看到的一条背后常常是好几条诊断，"
-        "折叠区里能展开原始 message；③ 判重后**与既有台账 / 候选是同一个问题的那 61 条不在 §3.6**，"
-        "它们作为补充证据挂在 §2 / §3 对应条目下面，同一个问题只裁一次；④ `§3.6b` 是"
-        "「分拣未能确定是内生还是投影产物」的一族，**事实本身还没定**，摆出来是因为不许静默丢掉。"
-    )
-    lines.append("")
-    lines.append(
-        "**§3.6 有一个必须先知道的工具缺陷**：`W_DEADLOCK_LEAF` 有**系统性假阳性** —— "
-        "pyfcstm 的 `analyzers/structural.py:75-93` 只数叶态自身的出边、完全不查外层，"
-        "于是「嵌在复合态里、而外层复合态有成组迁移」的叶态一律被误报成终止态"
-        "（顶层态没有外层，不受影响）。裁决这一族之前请先数一遍该叶态各级祖先的出边。"
-    )
-    lines.append("")
-    lines.append(
-        "§3.5 这类最能说明问题：**同一个缺陷**，两臂用了另一种谓词或另一种措辞表述，"
-        "台账那一条就没能覆盖。它们不算新增缺陷，但**它们说明台账那一条的 statement "
-        "写窄了** —— 对应的台账条目适合走「修正」而不是「保留」。"
+        " **被并入别条的确定性检查发现不单独设裁决区** —— 同一个问题只裁一次，"
+        "裁决落在宿主条目上；它的事实作为「补充证据」印在宿主的问题描述之后。"
     )
     lines.append("")
     lines.append("### §D.3 §4 深度检查清单")
@@ -2120,9 +1828,10 @@ def build_doc(pair, saved):
     body.append(s3)
     keys += k3
 
-    s36, k36 = section_inspect(pair, saved)
-    body.append(s36)
-    keys += k36
+    # ⚠️ `section_inspect` 于 2026-08-14 拆除：⛔ 「这条是 inspect 报的」不影响它成不成立，
+    # ⭐ 那些条目现在与其它候选同版式、平铺在 §3 里（见 `section_candidates`）。
+    # ⛔ 函数本体保留未删 —— 它带着五条必须逐份印的限定（确定性 vs LLM、压缩比、假阳性、
+    # 整类排除、不确定族也要给），⚠️ 若日后要恢复来源分节，那些文字还在。
 
     # ⛔⛔ **§4 深度检查清单与 §5 新增登记于 2026-08-14 整体拆除。**
     #

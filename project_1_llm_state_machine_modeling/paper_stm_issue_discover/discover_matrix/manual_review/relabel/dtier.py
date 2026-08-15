@@ -116,8 +116,24 @@ def mark(rid):
         return " 🟠" if rid in load_meta() else ""
     return " " + BUCKET_ICON.get(rec.get("bucket"), "")
 
+#: A0 三出口的中文名 → 一句话释义。⭐ 判读者不该为读懂一个出口名跳去别处。
+A0_ZH = {
+    "误报": "结构事实在作者源上指不出或不成立",
+    "非主张": "主张的对象不是作者写的那份模型（而是参考模型或评测真值）",
+    "越界": "涉及时钟变量、不变式或正交区并发，不在本研究的建模对象内",
+}
+
+#: 档位 → 一句话释义，印在表格下方一次。⛔ 不逐条重复。
+TIER_ZH = {
+    "D2": "有一条可陈述的被违反义务，且拿不出站得住的反驳",
+    "D1": "两读并立 —— 存在一种与结构事实相容的第二种称职读法",
+    "D0": "作者可正当地说「这就是设计」，或根本没有可陈述的被违反义务",
+    "A0": "在判定第 0 步就出局，⛔ 不是 D 的一档",
+}
+
+
 def _arm_line(rec):
-    """三臂档位的一行式摘要。⛔ 不用表格 —— 见模块 docstring 约束 ①。"""
+    """三臂档位的一行式摘要。⭐ 只给票面，⛔ 详细理由在 `verdict_table()` 的表格里。"""
     parts = []
     for key in ("codex", "claude", "dsh"):
         a = (rec.get("arms") or {}).get(key) or {}
@@ -126,108 +142,76 @@ def _arm_line(rec):
     return " / ".join(parts)
 
 
-def _readings(rec):
-    """第二种读法与设计意图主张，逐字。⭐ 这两样是「两读并立」的实体，⛔ 不许省。"""
-    out = []
-    for field, label in (("alternative_reading", "第二种读法"),
-                         ("design_rationale", "作者可主张的设计意图")):
-        for key in ("codex", "claude", "dsh"):
-            a = (rec.get("arms") or {}).get(key) or {}
-            v = (a.get(field) or "").strip().replace("\n", " ")
-            if v:
-                out.append(f"- {label}（{ARM_ZH[key][0]} 原话）：{v}")
-    return out
+def _cell(a):
+    """一臂的「理由」单元格：判定依据 + 第二读法 / 设计意图，⭐ 全部逐字。
 
-
-def _opinions(rec):
-    """三臂各自的判定依据，逐字，折叠。⭐ 每臂一行 —— 长文本不占额外行数。"""
-    out = ["<details><summary>三臂各自的判定依据（原话逐字）</summary>", ""]
-    for key in ("codex", "claude", "dsh"):
-        a = (rec.get("arms") or {}).get(key) or {}
-        b = (a.get("basis") or "").replace("\n", " ").strip()
-        out.append(f"- **{ARM_ZH[key][0]}**（判 `{a.get('tier')}`）：{b or '（未给）'}")
-    out += ["", "</details>", ""]
-    return out
-
-
-def _meta_lines(rid, bucket):
-    """人工 meta review。⛔ 缺失时如实说明，不编造。"""
-    m = load_meta().get(rid)
-    if not m:
-        return ["- 人工 meta review **待补** —— 本条属需人裁桶，推荐与分歧点必须人工归纳"
-                "（脚本不代劳，理由见 "
-                "[dtier_triage.md](../../../docs/protocol/dtier_triage.md) §5）。"]
-    out = []
-    rv = (m.get("recommend") or "").strip()
-    if rv:
-        out.append(f"- 人工归纳推荐：**{rv}**（已按此预填下面的裁决区）")
-    elif bucket == "chaotic":
-        out.append("- 人工归纳**不给推荐**，裁决区留空 —— 三方无偏向，硬给一个等于替你决定。")
-    for k, zh in META_FIELDS[1:]:
-        v = (m.get(k) or "").strip()
+    ⚠️ 第二读法与设计意图**并进同一格**，⛔ 不再另开折叠区 —— 它们是这一臂判定的组成部分，
+    拆到别处读者就得来回跳。⭐ 表格单元格里的 `|` 必须转义，否则整行表格错位。
+    """
+    bits = []
+    b = (a.get("basis") or "").strip()
+    if b:
+        bits.append(b)
+    for f, lb in (("alternative_reading", "**第二读法**"),
+                  ("design_rationale", "**作者可主张的设计意图**")):
+        v = (a.get(f) or "").strip()
         if v:
-            out.append(f"- {zh}：{v}")
-    return out
+            bits.append(f"{lb}：{v}")
+    txt = "；".join(bits) if bits else "（未给理由）"
+    # ⛔ 先转义表格分隔符，再包裸 `[*]`（见 itemblock.safe_md 的 docstring）。
+    import itemblock as IB
+    return IB.safe_md(txt.replace("|", "\\|").replace("\n", " "))
 
 
-def block(rid):
-    """一条条目的三方判读区块。⭐ 无争议的压到一行，⛔ 需人裁的才展开。"""
-    rec = load_rulings().get(rid)
-    if not rec:
-        # ⭐ `UM-` 一族：无三方判定，只有人工 meta review。⛔ 一律人工裁决。
-        m = load_meta().get(rid)
-        if not m:
-            return []
-        out = ["**人工 meta review** 🟠 **本块无三方判读（不在判读包内），一律人工裁决**", ""]
-        for k, zh in META_FIELDS:
-            v = (m.get(k) or "").strip()
-            if not v:
-                continue
-            out.append(f"- {'**推荐**' if k == 'recommend' else zh}：{v}")
-        out.append("")
-        return out
-    bucket = rec.get("bucket") or "?"
-    combo = rec.get("combo")
-    if bucket == "auto_d1":
-        return [f"**三方 D 档判读** ❓ **三臂一致判「两读并立」（`D1`）**：票面 `{combo}`。",
-                "",
-                "「这段内容本身就是模糊的」已是三方共识，⛔ 故不需你在两读之间选 —— "
-                "裁决区已按 `D1` 预填。⚠️ 但它**不是**一条确定的缺陷，"
-                "入账时必须带着那个第二读法一起记。", ""] + _readings(rec) + [""] + _opinions(rec)
-    if bucket not in BUCKET_MARK:
-        verdict = "保留" if bucket == "auto_keep" else "抛弃"
-        return [f"**三方 D 档判读**：票面 `{combo}`（{_arm_line(rec)}），"
-                f"三臂方向一致判「**{verdict}**」，裁决区已按此预填。", ""]
-    mk, desc = BUCKET_MARK[bucket]
-    out = [f"**三方 D 档判读** {mk} {desc}", "",
-           f"票面 `{combo}`：{_arm_line(rec)}。", ""]
-    out += _readings(rec)
-    out += _meta_lines(rid, bucket)
-    out.append("")
-    out += _opinions(rec)
-    return out
+def verdict_table(rid):
+    """三方判定表格。⭐ 固定三行（claude / codex / dsh），⛔ 顺序固定便于横向比对。
 
-
-def compact(rid):
-    """一行式摘要，给**没有自己裁决区**的条目用（inspect 补充证据那一族）。
-
-    ⛔ 不展开完整区块：那些条目按设计不设裁决区（同一个问题只裁一次，裁决落在宿主条目上），
-    ⚠️ 摆一整块「需你裁决」却没有可勾的地方，会让判读者以为漏了块。
+    ⚠️ `UM-` 一族不在三方判读包内，故不印表格 —— ⛔ 印一张空表会让人以为三臂都弃权了。
     """
     rec = load_rulings().get(rid)
     if not rec:
-        return []
-    m = BUCKET_MARK.get(rec.get("bucket"))
-    tail = ""
-    if m:
-        meta = load_meta().get(rid) or {}
-        rv = (meta.get("recommend") or "").strip()
-        crux = (meta.get("crux") or "").strip()
-        tail = (f" 人工归纳推荐**{rv}**。" if rv else " 人工 meta review 待补。")
-        if crux:
-            tail += f"分歧点：{crux}"
-    return [f"- 三方 D 档判读：票面 `{rec.get('combo')}`（{_arm_line(rec)}）。"
-            f"{m[1] + '（裁决落在本条的宿主条目上）。' if m else '三臂方向一致。'}{tail}", ""]
+        return ["**三方判定**：⚠️ 本条**不在三方判读范围内**（`UM-` 一族未进判读包），"
+                "⛔ 故无三臂意见 —— 下面的推荐与理由全部来自人工 meta review。", ""]
+    out = ["| 判读者 | 判定 | 理由（原话逐字） |", "| :-- | :-- | :-- |"]
+    for key in ("claude", "codex", "dsh"):
+        a = (rec.get("arms") or {}).get(key) or {}
+        t = a.get("tier") or "?"
+        v = f"`{t}`"
+        if a.get("a0"):
+            v = f"`A0`·{a['a0']}"
+        out.append(f"| {ARM_ZH[key][0]}（{ARM_ZH[key][1]}） | {v} | {_cell(a)} |")
+    out.append("")
+    seen = {(a or {}).get("tier") for a in (rec.get("arms") or {}).values()}
+    legend = "　".join(f"`{t}` = {TIER_ZH[t]}" for t in ("D2", "D1", "D0", "A0") if t in seen)
+    if legend:
+        out += [legend, ""]
+    return out
+
+
+def meta_block(rid):
+    """人工 meta review 块。⛔ 缺失时如实说明，不编造。"""
+    m = load_meta().get(rid)
+    if not m:
+        return ["**meta review**：⏳ **待补** —— ⛔ 推荐与理由必须人工归纳，脚本不代劳"
+                "（理由见 [dtier_triage.md](../../../docs/protocol/dtier_triage.md) §5）。", ""]
+    rec = load_rulings().get(rid)
+    bucket = (rec or {}).get("bucket")
+    need = bucket in BUCKET_MARK or rec is None
+    # ⚠️ 这两句抬头出现在**全部 54 份**里，⛔ 故一个 `⭐`/`⛔` 都不许带 ——
+    # `test_the_worksheets_are_not_wallpapered_with_emoji` 的末段判据是
+    # 「在 54 份里逐字相同的行」= 生成器正文，那里必须干净。⭐ `⚠️` 不在禁列。
+    tail = ("⚠️ **需你裁决** —— 同意就在下面理由栏写一句话；不同意直接改勾选。"
+            if need else "**无需你裁决** —— 三方方向一致，裁决区已按此预填。")
+    out = [f"**meta review**（人工归纳，非计算结果）　{tail}", ""]
+    for k, zh in META_FIELDS:
+        v = (m.get(k) or "").strip()
+        if not v:
+            continue
+        import itemblock as IB
+        out.append(f"- **{'推荐档位' if k == 'recommend' else zh}**："
+                   + (f"**{v}**" if k == "recommend" else IB.safe_md(v)))
+    out.append("")
+    return out
 
 
 # ------------------------------------------------------------------ 裁决区预填
