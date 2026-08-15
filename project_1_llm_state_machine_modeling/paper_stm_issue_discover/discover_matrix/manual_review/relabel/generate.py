@@ -737,16 +737,19 @@ def section_candidates(pair, model, records, saved):
         keys.append(key)
         lines += IB.render(key, _desc_diff(d), CM.for_candidate(key), saved, fb, DT,
                            extra=_supplements(key, pair))
-    # ---- 机械未匹配的多报簇（整表一块）
-    um = regroup_unmatched(S.unmatched_issues(pair), model)
-    if um:
-        x1 = [e for e in um if e["arm"] == "X1"]
-        v46 = [e for e in um if e["arm"] == "v46"]
-        key = f"UM-{pair}"
-        keys.append(key)
-        head, detail = _desc_um(pair, x1, v46)
-        lines += IB.render(key, head, CM.for_candidate(key), saved, fb, DT,
-                           extra=detail + _supplements(key, pair))
+    # ⛔⛔ **`UM-` 一族于 2026-08-16 整批撤除。** 裁定与全部证据见
+    # [docs/findings/um_residue_ruling.md](../../docs/findings/um_residue_ruling.md)。三条理由：
+    #   ① X1 那一半 333/334 条的簇号**精确**出现在 `sources.other_unexpected()` 的已裁定表里，
+    #      而那些裁定 96% 判的是「不是作者制品的缺陷」——⛔ 把它们放进工作单等于重审已结案的东西；
+    #      ⚠️ 其中 4% 真漏记早已提取成 `VU-` 系列，于是 UM 表与 VU 块**重复计数** 12 条。
+    #   ② v46 那一半的主体是 `REPRESENTATION_DEBT`（投影债务）——`0029-1` 簇的 merge_reason 逐字：
+    #      「损失通道唯一——R4.5 把整条标签压成一个原子事件名」。⛔ 按 P2 不算作者缺陷。
+    #   ③ 登记单位从头不对：47/49 块是 `unit_of_record` 卡点，单块最多承载 35 组，
+    #      ⚠️ 而 D 档判定程序判的是**一条可陈述的主张**，一张表没有单一 statement 可判。
+    # ⭐ 残余 143 条归一化事实另存 [unmatched_residue.json](../unmatched_residue.json)，
+    # ⛔ 不进工作单、不设裁决区、无 D 档判读。
+    # ⚠️ `S.unmatched_issues()` 与 `regroup_unmatched()` **未删** —— 恢复时要从残余清单里
+    # 逐条拆成独立候选再送三方判读，⛔ 一块对应一张表的形态不许再出现。
     # ---- 确定性检查发现（⛔ 不标来源；被并入别条的不单独设块）
     for rec in IF.issues_of(pair):
         rid = rec["issue_id"]
@@ -1743,10 +1746,11 @@ def build_howto():
     )
     lines.append("")
     lines.append(
-        "️ **`UM-` 一族与其它条目不同构**：那一块对应**整张多报簇表**（不是一条主张），"
-        "且它不在三方判读包内、无三臂意见。它的问题描述把去重后的各种说法逐条列出并标出"
-        "出现格数； 补入台账时必须先**归一化**（同一底层事实按不同需求 id 重复的合成一条），"
-        "️ 照条数补会把一个缺陷记成好几条。"
+        "⚠️ **`UM-` 一族（每 pair 一块的「机械未匹配多报簇」）已于 2026-08-16 整批撤出。** "
+        "裁定与全部证据见 [um_residue_ruling.md](../../docs/findings/um_residue_ruling.md)："
+        "X1 那一半 333/334 条的簇号精确出现在已裁定表里（96% 判为非缺陷、4% 真漏记已提取成 `VU-`），"
+        "v46 那一半的主体是投影债务（`REPRESENTATION_DEBT`）。残余 143 条归一化事实另存 "
+        "[unmatched_residue.json](./unmatched_residue.json)，不进工作单。"
     )
     lines.append("")
     lines.append(
@@ -1860,6 +1864,15 @@ def build_doc(pair, saved):
     def _orphan_kept(k, v):
         if k.startswith("CHK-"):
             return not fb.checklist_is_untouched(v)
+        # ⛔⛔ **必须先问 `is_stale_template`。** ⚠️ `is_untouched` 会先试
+        # `DT.prefill(key, kind)` 逐字比对，⛔ 而一旦某个 key 的判读记录 / meta review
+        # 被撤掉（`UM-` 一族 2026-08-16 即此），`prefill()` 返回 `None`，
+        # 于是它退回「有勾选记号 ⇒ 已填」——⭐ 把**我方预填、人从未动过**的块判成人工内容，
+        # 49 个 `UM-` 块因此全部落进 §9 孤儿区。
+        # ⭐ `is_stale_template` 走的是**结构判据**（行数 + 末行是占位或尾标），
+        # ⛔ 不依赖 prefill 能否重建 —— 那才是「这块原样未填」的正确判据。
+        if fb.is_stale_template(v, "candidate", pair):
+            return False
         return not fb.is_untouched(v, "candidate", pair, key=k)
 
     orphans = {k: v for k, v in saved.items()
