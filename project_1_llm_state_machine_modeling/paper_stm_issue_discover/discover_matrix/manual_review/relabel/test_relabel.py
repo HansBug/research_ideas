@@ -880,7 +880,15 @@ def test_zh_literal_drop_raises_at_load_time():
     # ⭐ `b7425c44`（nl_0009）段 3 的 zh 带着 `dist_to_front<25`，⛔ 抹掉它必须炸
     seg = dirty["b7425c44"][1]["segments"][2]
     assert "`dist_to_front<25`" in seg["zh"], "本测试前提要重定：段 3 的 zh 没有该表达式"
-    seg["zh"] = seg["zh"].replace("（`dist_to_front<25`）", "")
+    #
+    # ⚠️⚠️ **抹的必须就是前提断言查的那个串。** ⛔ 本行原先抹 `（`dist_to_front<25`）`
+    # （带全角括号），⭐ 而前提只查了裸的 `` `dist_to_front<25` `` —— 2026-08-16 重译后
+    # 该处写成 `` （`dist_to_front<25`（前车距离小于 25）） `` 的嵌套形态，
+    # ⛔ 于是 replace 成了**空操作**，门不响，测试静默失效（表现为 DID NOT RAISE）。
+    # ⭐ 现在改为抹字面量本身，并**断言抹除确有改动** —— ⛔ 空操作要当场炸，不许蒙过去。
+    before = seg["zh"]
+    seg["zh"] = seg["zh"].replace("`dist_to_front<25`", "")
+    assert seg["zh"] != before, "⛔ 抹除成了空操作 —— 门不会响，本测试等于没测"
     with _mock_raw(dirty):
         with pytest.raises(nl_zh.ZhLiteralDrop, match="丢了原文的字面量"):
             nl_zh._store.__wrapped__()                         # noqa: SLF001
@@ -906,8 +914,15 @@ def test_zh_fidelity_fixes_do_not_regress():
     p5 = payload("0005")
     en1 = next(s["en"] for s in p5["segments"] if s["seg"] == "1")
     assert "The microwave starts in the DoorShut state" in en1, "本测试前提要重定"
-    assert "微波炉起始于 DoorShut 状态" in zh(p5, "1")
-    assert "微波炉在 DoorShut 状态中启动" not in zh(p5, "1")
+    #
+    # ⭐ 断言的是**形式要求**，⛔ 不是措辞 —— 2026-08-16 重译把「微波炉起始于 DoorShut 状态」
+    # 改成了「微波炉起始于门关状态（DoorShut）」（新的 `中文（英文）` 形态）。⚠️ 钉死整句会把
+    # 旧形态锁在原地（CLAUDE.md §13.3）。⭐ 本条真正要守的事实只有两个：
+    #   ① `starts in` 译作「起始于」（初始状态），⛔ 而不是「启动」（通电）
+    #   ② 标识符 `DoorShut` 逐字活在译文里
+    z5 = zh(p5, "1")
+    assert "起始于" in z5 and "DoorShut" in z5
+    assert "启动" not in z5, "⛔ `starts in` 是「起始于（初始状态）」，不是「启动（通电）」"
 
     # ② nl_0009 段 4：`if` 必须是「如果」，⛔ 不许弱化成「…时」；`once` 必须是「一旦」
     p9 = payload("0009")

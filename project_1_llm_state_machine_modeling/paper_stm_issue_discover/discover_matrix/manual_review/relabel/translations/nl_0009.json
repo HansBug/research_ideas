@@ -1,85 +1,85 @@
 {
-  "nl_id": "0009",
-  "sha8": "b7425c44",
-  "segments": [
-    {
-      "seg": "1",
-      "en": "1. The system begins in the AutonomousMode state, which transitions into the InitialState substate, marking the starting point of the autonomous driving mode. ",
-      "zh": "1. 系统始于 AutonomousMode 状态，该状态转移进入 InitialState substate（子状态），标志着自动驾驶模式的起点。",
-      "note": "【约束元素】顶层初始点 → AutonomousMode；AutonomousMode 的默认进入 substate（子状态）→ InitialState。【歧义 1】\"which\" 的先行词字面上是 \"the AutonomousMode state\"，即「AutonomousMode 状态自身转移进入其子状态」；原文未说明这是经由 initial pseudostate（初始伪状态）的默认进入，还是一条显式迁移。判缺陷时，若采用默认进入（初始伪状态）而非一条显式迁移，不应据本句判为违反。【歧义 2】\"begins\" 未说明是「首次启动时」还是「每次进入 AutonomousMode 时」。【歧义 3】InitialState 是否为空状态、是否有内部行为，本句未约束。"
-    },
-    {
-      "seg": "2",
-      "en": "2. From the InitialState, the system can transition to either HighwayMode or UrbanMode based on conditions: `high_way=true` for HighwayMode or `urban_way=true` for UrbanMode. ",
-      "zh": "2. 从 InitialState 出发，系统可以基于条件转移到 HighwayMode 或 UrbanMode 二者之一：`high_way=true` 对应 HighwayMode，或 `urban_way=true` 对应 UrbanMode。",
-      "note": "【约束元素】两条迁移：InitialState → HighwayMode（`high_way=true`）、InitialState → UrbanMode（`urban_way=true`）。【歧义 1】\"either ... or\" 未说明两个条件同时为真时的优先级或不确定性解析方式。【歧义 2】原文称之为 \"conditions\"，未说明它们是 guard（守卫）还是 trigger（触发）事件——判读时若把它们建成 event 而非 guard，本句不足以判为违反。"
-    },
-    {
-      "seg": "3",
-      "en": "3. In the HighwayMode state, the system begins in the enter_hwy substate, and can transition to cruise or lane_change based on the distance to the front vehicle (`dist_to_front<25`) and the availability of an extra lane (`extra_lane=true`). ",
-      "zh": "3. 在 HighwayMode 状态中，系统始于 enter_hwy substate（子状态），并且可以基于与前车的距离（`dist_to_front<25`）和额外车道的可用性（`extra_lane=true`）转移到 cruise 或 lane_change。",
-      "note": "【约束元素】HighwayMode 的默认进入 substate（子状态）= enter_hwy；两条迁移 enter_hwy → cruise、enter_hwy → lane_change。【⚠️ 文字与守卫表达式不一致 · 第 1 处（守卫数与目标数不匹配）】一句话给出两个目标（cruise / lane_change），却只给出一组条件（`dist_to_front<25` 与 `extra_lane=true`），既未说明哪一组条件对应哪个目标，也**完全没有给出 cruise 分支的条件**。⛔ 因此凡为 cruise 分支写出的守卫表达式在整份 NL 中都没有任何文字依据 —— ⚠️ 原文在这里连一个数、一个变量名都没给，所以**任何**形状的 cruise 守卫都是补出来的，不存在「更接近原文」的写法。【⚠️ 文字与守卫表达式不一致 · 第 2 处（同一表达式两处描述详略不一）】本句的 `dist_to_front<25` **没有任何单位说明**，而第 5 句把同一个表达式描述为 \"less than 25 meters\"。【歧义】\"based on A and B\" 中的 \"and\" 未说明是两个目标各自受一个因素支配，还是两个因素合取后决定某一个目标。"
-    },
-    {
-      "seg": "4",
-      "en": "4. If the system is in lane_change, it can return to cruise once the lane change is completed or exit the highway if the distance to the exit is less than 2 kilometers (`dist_to_exit<2`). ",
-      "zh": "4. 如果系统处于 lane_change，它可以一旦变道完成就返回 cruise，或者如果到出口的距离小于 2 千米（`dist_to_exit<2`），则退出高速公路。",
-      "note": "【约束元素】迁移 lane_change → cruise（触发为「变道完成」，⛔ NL 既未给出表达式，也未给出事件名）；以及 lane_change 的一条离开迁移，条件 `dist_to_exit<2`。【⚠️ 目标状态未命名】\"exit the highway\" 没有给出目标状态名；这与第 8 句的城市对应句明确写出目标 `exit_urban` 形成**不对称**——同一种「驶离」动作，高速侧不命名、城市侧命名。【⚠️ 单位】\"2 kilometers\" 对应裸数字 `dist_to_exit<2`：⛔ 单位只出现在散文里，表达式本身不带单位。【歧义】\"return to cruise\" 中的 \"return\" 未说明是否要求 lane_change 必须由 cruise 进入——第 3 句已给出 enter_hwy → lane_change，故「返回」的起点在原文里并不唯一。"
-    },
-    {
-      "seg": "5",
-      "en": "5. In the cruise substate, if the distance to the front vehicle becomes less than 25 meters (`dist_to_front<25`) and there is an extra lane available, the system transitions to lane_change. The system can also exit the highway if the distance to the exit is less than 2 kilometers (`dist_to_exit<2`). ",
-      "zh": "5. 在 cruise substate（子状态）中，如果与前车的距离变得小于 25 米（`dist_to_front<25`）并且有一条额外车道可用，系统转移到 lane_change。如果到出口的距离小于 2 千米（`dist_to_exit<2`），系统也可以退出高速公路。",
-      "note": "【约束元素】迁移 cruise → lane_change（`dist_to_front<25` 且有额外车道）；以及 cruise 的一条离开迁移（`dist_to_exit<2`）。【⚠️ 文字与守卫表达式不一致 · 第 3 处（单位口径冲突，⭐ 最值得注意）】本句把 `dist_to_front<25` 读作「25 **米**」，而第 4 句与本句把 `dist_to_exit<2` 读作「2 **千米**」。两者同属 `dist_to_*` 命名族、在表达式里同为不带单位的裸数字（⛔ 单位只在散文里给出），**量纲无法从表达式本身判定**；⛔ 这一混用只在散文里可见，只比对表达式字符串会整个漏掉它。【⚠️】\"there is an extra lane available\" 在本句**没有给出对应表达式**，而第 3 句同一条件写作 `extra_lane=true`。【⚠️】\"exit the highway\" 的目标状态仍未命名（同第 4 句）。【歧义】\"becomes less than\" 用了变化动词，未说明是电平条件（guard）还是跨越阈值的边沿事件。"
-    },
-    {
-      "seg": "6",
-      "en": "6. The HighwayMode ends when the system transitions to FinishState, triggered by the `auto_finished=true` condition. ",
-      "zh": "6. 当系统转移到 FinishState 时 HighwayMode 结束，由 `auto_finished=true` 条件 triggered（触发）。",
-      "note": "【约束元素】迁移 HighwayMode → FinishState，条件 `auto_finished=true`。【⚠️ 挂靠歧义】分词短语 \"triggered by ...\" 的修饰对象不明：修饰「该条迁移」还是「HighwayMode 结束」这一事件。【⚠️ 层次未定】FinishState 的层级未说明——它是 HighwayMode 的 substate（子状态）、AutonomousMode 的 substate（子状态），还是顶层状态？第 10 句让 UrbanMode 也转向同一个 FinishState，暗示其层级高于两个模式，但 NL 从未明说。【⚠️】第 4、5 句的 `dist_to_exit<2` 离开迁移与本句的 `auto_finished=true` 离开迁移，NL 未说明二者的目标是否为同一个状态。"
-    },
-    {
-      "seg": "7",
-      "en": "7. In UrbanMode, the system begins in the enter_urban substate. From here, it can transition to lane_change_urban if the distance to the front vehicle is less than 15 meters (`dist_to_front<15`) and an extra lane is available, or straight if the road ahead is clear, or intersection if it detects an intersection (`intersection=true`). ",
-      "zh": "7. 在 UrbanMode 中，系统始于 enter_urban substate（子状态）。从这里出发，如果与前车的距离小于 15 米（`dist_to_front<15`）并且有一条额外车道可用，它可以转移到 lane_change_urban，或者转移到 straight，如果前方道路畅通，或者转移到 intersection，如果它检测到一个路口（`intersection=true`）。〔译者存疑：原文 \"or straight ...\" 与 \"or intersection ...\" 为省略式，未重复 \"transition to\"；中文补出了动词「转移到」以保持可读，原文的省略结构本身未在译文中保留〕",
-      "note": "【约束元素】UrbanMode 的默认进入 substate（子状态）= enter_urban；三条迁移 enter_urban → lane_change_urban（`dist_to_front<15` 且有额外车道）、enter_urban → straight（前方道路畅通，NL 未给表达式）、enter_urban → intersection（`intersection=true`）。【⚠️⚠️ 名字冲突】`intersection` 在**同一句内**既是状态名（\"or intersection\"）又是变量名（`intersection=true`），判读时必须区分二者，否则会把「变量为真」误判成「状态活动」。【⚠️ 阈值差异】城市侧用 15 米、高速侧（第 3、5 句）用 25 米——这属于有意的模式区分，**不是**错误。【⚠️ 省略式】\"or straight ...\" / \"or intersection ...\" 省略了 \"transition to\"，且各自后接的 if 从句位置与第一项不同，形成挂靠歧义。【⚠️ 欠定】\"if the road ahead is clear\" 没有对应表达式，⛔ 原文也未给出事件名。【⚠️ 死端】NL 此后再未描述 intersection 的任何出向迁移，intersection 在 NL 层面是死端状态。"
-    },
-    {
-      "seg": "8",
-      "en": "8. In the lane_change_urban substate, the system transitions to straight if the lane change is complete or to exit_urban if the distance to the urban exit is less than 0.7 kilometers (`dist_to_exit<0.7`). ",
-      "zh": "8. 在 lane_change_urban substate（子状态）中，如果变道完成，系统转移到 straight，或者如果到城市出口的距离小于 0.7 千米（`dist_to_exit<0.7`），则转移到 exit_urban。",
-      "note": "【约束元素】迁移 lane_change_urban → straight（变道完成）；以及 lane_change_urban → exit_urban（`dist_to_exit<0.7`）。【⚠️⚠️ 原文自身的不对称 · 第 4 处（⭐ 最强的一处）】`exit_urban` 是**本句唯一一次出现**的状态名：NL 其余十二句从未定义、进入或离开该状态。⭐ 这既可判为「NL 引入了一个孤立状态」，也可判为「一个 NL 明确点名的状态被丢掉了」——判缺陷时须先固定归属，⛔ 而「它在不在」必须自己到 §1.3 逐行核对。【⚠️ 单位】\"0.7 kilometers\" 对应 `dist_to_exit<0.7`；同一变量 `dist_to_exit` 在第 4 句阈值为 2（高速），本句为 0.7（城市），单位仍未声明。【⚠️】\"the urban exit\" 与第 4 句的 \"the exit\" 是否为同一语义对象，未说明，而二者共用同一个变量名 `dist_to_exit`。"
-    },
-    {
-      "seg": "9",
-      "en": "9. In the straight substate, if the system detects an intersection, it transitions to the intersection substate. If the distance to the front vehicle becomes less than 15 meters (`dist_to_front<15`) and an extra lane is available, it transitions to lane_change_urban. ",
-      "zh": "9. 在 straight substate（子状态）中，如果系统检测到一个路口，它转移到 intersection substate（子状态）。如果与前车的距离变得小于 15 米（`dist_to_front<15`）并且有一条额外车道可用，它转移到 lane_change_urban。",
-      "note": "【约束元素】迁移 straight → intersection（检测到路口）；straight → lane_change_urban（`dist_to_front<15` 且有额外车道）。【⭐ 层次确认】本句明确把 intersection 称为 substate（子状态），可用于确认它是 UrbanMode 的子状态而非顶层状态。【⚠️】\"detects an intersection\" 在本句**没有给出表达式**，而第 7 句的同一条件写作 `intersection=true`；同一条件两处写法不一致。【⚠️】本句给出 straight → lane_change_urban，与第 7 句 enter_urban → lane_change_urban 使用完全相同的条件，NL 未说明两者是否应合并为一条更高层迁移。"
-    },
-    {
-      "seg": "10",
-      "en": "10. The system exits the UrbanMode state by transitioning to FinishState once `auto_finished=true` is satisfied. ",
-      "zh": "10. 系统通过转移到 FinishState 退出 UrbanMode 状态，一旦 `auto_finished=true` 得到满足。",
-      "note": "【约束元素】迁移 UrbanMode → FinishState，条件 `auto_finished=true`。【⚠️】与第 6 句共用同一个 FinishState 与同一个条件，进一步暴露 FinishState 的层级问题（见第 6 句）。【歧义】\"exits the UrbanMode state by transitioning to FinishState\" 未说明该迁移的源端是 UrbanMode 这个 composite state（复合状态）整体，还是其各个 substate（子状态）。"
-    },
-    {
-      "seg": "11",
-      "en": "11. The system supports dynamic transitions between HighwayMode and UrbanMode based on the conditions `urban_way=true` and `high_way=true`, respectively, facilitating seamless mode shifts during the drive. ",
-      "zh": "11. 系统支持在 HighwayMode 和 UrbanMode 之间的动态转移，分别基于条件 `urban_way=true` 和 `high_way=true`，从而促成驾驶过程中无缝的模式切换。",
-      "note": "【约束元素】HighwayMode 与 UrbanMode 之间的两条模式级迁移。【⚠️⚠️ 文字与守卫表达式不一致 · 第 5 处（方向歧义，⭐ 直接决定迁移方向的判读）】\"respectively\"（分别）的配对方向不明：按字面顺序配对为 HighwayMode ↔ `urban_way=true`、UrbanMode ↔ `high_way=true`。读法 A：「**从** HighwayMode 出发、在 `urban_way=true` 时迁移」，即 HighwayMode → UrbanMode。读法 B：「**进入** HighwayMode 的条件是 `urban_way=true`」，即 UrbanMode → HighwayMode 用 `urban_way=true`。两种读法给出**方向相反**的迁移，判缺陷时必须先固定读法，否则同一条边既可判对也可判错。【⚠️】\"dynamic transitions\" 未说明源/目标是 composite state（复合状态）整体还是其 substate（子状态）；也未说明离开后再次进入时是否保留历史（无 history pseudostate（历史伪状态）的约定）。【⚠️】本句的条件与第 2 句 InitialState 出向迁移的条件完全相同，NL 未说明二者是否会冲突。"
-    },
-    {
-      "seg": "12",
-      "en": "12. The collision avoidance system is initially in the collision_avoidance_deactive state. It transitions to collision_avoidance_active when certain conditions are met, such as detecting pedestrians (`pedestrian_detected`), the rear distance being less than 5 meters with a velocity over 30 km/h (`dist_to_rear<5 & vel>30`), or the front distance being less than 15 meters in highway mode or 10 meters in urban mode. ",
-      "zh": "12. 碰撞避免系统最初处于 collision_avoidance_deactive 状态。当某些条件被满足时，它转移到 collision_avoidance_active，诸如检测到行人（`pedestrian_detected`）、后方距离小于 5 米且速度超过 30 km/h（`dist_to_rear<5 & vel>30`），或者前方距离在高速公路模式下小于 15 米、在城市模式下小于 10 米。〔原文如此：`dist_to_rear<5 & vel>30` 使用单个 `&` 而非 `&&`，且该表达式是全文唯一使用符号连接词的地方，其余并列条件用英文 \"and\" / \"or\" / \"with\" 或逗号连接〕〔译者存疑：\"in highway mode\" / \"in urban mode\" 译作「高速公路模式」/「城市模式」，但原文未说明这里指的是状态 HighwayMode / UrbanMode 处于活动，还是指变量 `high_way=true` / `urban_way=true`〕",
-      "note": "【约束元素】collision_avoidance_deactive 为该子系统的初始状态；迁移 collision_avoidance_deactive → collision_avoidance_active。【⚠️⚠️ 文字与守卫表达式不一致 · 第 6 处（表达式缺失，⭐ 列举内部不对称）】列举的三项条件中，前两项各配有括号表达式（`pedestrian_detected`、`dist_to_rear<5 & vel>30`），第三项「front distance being less than 15 meters in highway mode or 10 meters in urban mode」**完全没有给出任何表达式**；⛔ 因此凡为第三项写出的守卫都是补出来的。⚠️ 尤其注意一处**跨句借用**：原文第 2 句确实给过 `high_way=true` / `urban_way=true`，⛔ 但第 12 句这里写的是散文短语 \"in highway mode\" / \"in urban mode\"，原文本句并未说明二者等同 —— 把第 2 句的表达式搬到本句来当守卫是读者的推断，本句没有给出这层文字依据。【⚠️ 非穷尽列举】\"such as\"（诸如）使这份条件列表成为**非穷尽**的举例，因此无法据本句判断守卫是否「多加」了条件——只能判断是否「漏掉」了已列举的条件。【⚠️】\"in highway mode\" / \"in urban mode\" 未说明是指状态 HighwayMode / UrbanMode 处于活动，还是指变量 `high_way=true` / `urban_way=true`。【⚠️ 记法不一致】`pedestrian_detected` 是裸标识符，而 NL **前十一句**的布尔条件一律写作 `x=true`（`high_way=true`、`urban_way=true`、`extra_lane=true`、`intersection=true`、`auto_finished=true`）；⚠️ 第 13 句的三个条件与本句同样是裸标识符。【⚠️ 符号】`dist_to_rear<5 & vel>30` 用**单个** `&`，是全文唯一一处用符号写连接词。【⚠️ 状态名缺失】NL 从未给出这个「碰撞避免系统」整体所对应的状态名（只点了它的两个子状态），⛔ 因此凡出现的具名包裹状态都不是原文给的。【⛔ 建模对象边界之外】本句引入的碰撞避免子系统必须与 AutonomousMode **同时活动**（它有自己的初始状态、且第 12–13 句描述的行为与主驾驶模式无先后关系）。在 UML 语义下这需要 orthogonal region（正交区），而 $M = (S, E, V, Tr, A)$ 中没有正交区，⛔ 无论把它安置在哪一层都**无法**表达「两者同时活动」。并发语义不在本项目建模对象之内，因此「两者能否同时活动」既不应记为方法未检出，也不应反过来声称此处无问题。注：\"velocity over 30 km/h\" / `vel>30` 只是普通变量比较，属于 $V$，**不是**时钟约束，仍在边界之内。"
-    },
-    {
-      "seg": "13",
-      "en": "13. Once in the collision_avoidance_active state, the collision avoidance system returns to the collision_avoidance_deactive state when there is no active danger, as indicated by the conditions `front_inactive`, `rear_inactive`, and `pedestrian_inactive`.",
-      "zh": "13. 一旦处于 collision_avoidance_active 状态，当不存在活动的危险时，碰撞避免系统返回 collision_avoidance_deactive 状态，如由条件 `front_inactive`、`rear_inactive` 和 `pedestrian_inactive` 所指示。",
-      "note": "【约束元素】迁移 collision_avoidance_active → collision_avoidance_deactive。【⚠️ 连接词未给出】三个条件 `front_inactive`、`rear_inactive`、`pedestrian_inactive` 之间的逻辑连接词**只由自然语言的列举逗号与 \"and\" 表示**，表达式层未给出。\"the conditions A, B, and C\" 也可读作「由这些条件（共同或分别）指示」，⛔ NL 不足以唯一确定是合取还是析取，因此取合取还是取析取都是补出来的。【⚠️ 记法不一致】三者均为裸标识符，无 `=true`（同第 12 句）。【⚠️】\"as indicated by\" 未说明这三个条件本身就是 guard（守卫），还是仅仅是对 \"no active danger\" 的说明性举例——若是后者，真正的守卫是 \"no active danger\"，NL 未给其表达式。【⛔ 建模对象边界之外】同第 12 句：本句所属子系统需与 AutonomousMode 并发活动，并发语义不在 $M = (S, E, V, Tr, A)$ 之内。"
-    }
-  ],
-  "translator_notes": "## 一、标识符总表（译文中一律原样保留，未翻译、未加引号、未改大小写）\n状态名（15 个，按 NL 出现顺序）：AutonomousMode · InitialState · HighwayMode · enter_hwy · cruise · lane_change · FinishState · UrbanMode · enter_urban · lane_change_urban · straight · intersection · exit_urban · collision_avoidance_deactive · collision_avoidance_active。其中 exit_urban 只在第 8 句出现一次，NL 其余各句均未再提及。⛔ 另外本份 NL **没有**给出「碰撞避免系统」这一整体所对应的状态名（第 12、13 句只点了它的两个子状态）。\n变量 / 条件标识符：high_way · urban_way · dist_to_front · extra_lane · dist_to_exit · auto_finished · intersection · pedestrian_detected · dist_to_rear · vel · front_inactive · rear_inactive · pedestrian_inactive。\n守卫表达式（原样，含空格与大小写）：`high_way=true` · `urban_way=true` · `dist_to_front<25` · `extra_lane=true` · `dist_to_exit<2` · `dist_to_front<15` · `intersection=true` · `dist_to_exit<0.7` · `auto_finished=true` · `pedestrian_detected` · `dist_to_rear<5 & vel>30` · `front_inactive` · `rear_inactive` · `pedestrian_inactive`。\n\n## 二、建模术语译法（全份一致）\nsubstate（子状态）—— 出现于第 1、3、5、7、8、9 句，全份统一写作 `substate（子状态）`。本份 NL 未出现 simple state / sub machine state / orthogonal region / pseudostate / composite state / guard 的英文原词，故 note 中若使用这些术语（如 orthogonal region（正交区）、initial pseudostate（初始伪状态）、composite state（复合状态）、guard（守卫）、trigger（触发）），均为判读提示中的分析用语，非原文词。第 6 句原文出现 \"triggered\"，按术语规则译作 `triggered（触发）`。\n\n## 三、⭐ 文字与守卫表达式不一致 / 表达式缺失 / 单位口径冲突（本份最有判读价值的部分，共 6 处 + 3 项记法问题）\n**第 1 处（第 3 句）守卫数与目标数不匹配**：一句话给出 cruise 与 lane_change 两个目标，却只给出一组条件 `dist_to_front<25` + `extra_lane=true`，**cruise 分支的条件完全缺失**。⛔ 凡为 cruise 分支写出的条件表达式在整份 NL 中都不存在。\n**第 2 处（第 3 句 vs 第 5 句）同一表达式描述详略不一**：第 3 句的 `dist_to_front<25` 无任何单位说明，第 5 句同一表达式被描述为 \"less than 25 meters\"。\n**第 3 处（第 4、5、8 句）⭐ 单位口径冲突（最值得注意）**：`dist_to_front` 按「**米**」解读（25 米 / 15 米），`dist_to_exit` 按「**千米**」解读（2 千米 / 0.7 千米）。两者同属 `dist_to_*` 命名族、在表达式里同为不带单位的裸数字（⛔ 单位只在散文里给出，表达式侧一处也没有）。⛔ **这一混用只在散文里可见**——判读时若只比对表达式字符串，会漏掉这个量纲问题；反过来，也不能因为表达式里没有单位声明就判它违反 NL。\n**第 4 处（第 8 句）⭐ 状态名 exit_urban 悬空**：NL 唯一一次点名的目标状态，其余十二句均未再出现；而第 4 句的高速对应句只写 \"exit the highway\" 未命名目标，两侧写法不对称。\n**第 5 处（第 11 句）⭐ respectively 的配对方向歧义**：字面配对为 HighwayMode ↔ `urban_way=true`、UrbanMode ↔ `high_way=true`；可读作「从 HighwayMode 出发、`urban_way=true` 时迁移」，也可读作「进入 HighwayMode 的条件是 `urban_way=true`」。两种读法给出**方向相反**的迁移。\n**第 6 处（第 12 句）⭐ 列举内部表达式缺失**：三项条件中前两项各配括号表达式，第三项「15 meters in highway mode or 10 meters in urban mode」**完全没有表达式**；⛔ 凡为它补出的守卫都无逐字依据。⚠️ 这里有一处**跨句借用**的陷阱：原文第 2 句给过 `high_way=true` / `urban_way=true`，⛔ 而第 12 句只写散文短语 \"in highway mode\" / \"in urban mode\"，原文从未说明二者等同。\n**记法问题 A（第 12 句）**：`dist_to_rear<5 & vel>30` 使用**单个** `&`，是全文唯一使用符号连接词之处。已按 SPEC 加 〔原文如此〕。\n**记法问题 B（第 12、13 句）**：`pedestrian_detected` / `front_inactive` / `rear_inactive` / `pedestrian_inactive` 为**裸标识符**，而 NL 前十一句的布尔条件一律写作 `x=true`。同一份 NL 内两套记法。\n**记法问题 C（第 5、7、9 句）**：\"there is an extra lane available\" / \"an extra lane is available\" / \"detects an intersection\" 反复出现但**不再复述表达式**，只有第 3、7 句给出过 `extra_lane=true` / `intersection=true`。\n\n## 四、反复出现的歧义（跨句）\n1. **`intersection` 名字冲突**：既是 UrbanMode 的 substate（子状态）名，又是变量名（`intersection=true`），在第 7 句同句内两种角色并存。\n2. **FinishState 的层级未定**：第 4、5 句（`dist_to_exit<2` 离开）、第 6 句（HighwayMode 结束）、第 10 句（UrbanMode 结束）都指向「离开」，但 NL 从未说明 FinishState 属于哪一层，也未说明这些离开迁移的目标是否为同一个状态。\n3. **条件是 guard 还是 trigger 未区分**：全份 NL 只把它们称作 \"conditions\"（第 2、6、11、12、13 句）或直接以 if 从句给出，从未称作 event；只有第 6 句用了 \"triggered by\"。⛔ 因此把这些条件建成 event 而非 guard，不应仅凭本份 NL 判为违反。\n4. **进入语义未区分**：第 1、3、7 句的 \"begins in X\" 未说明是 initial pseudostate（初始伪状态）默认进入还是显式迁移。\n5. **死端状态**：intersection（第 7、9 句进入）在 NL 中没有任何出向迁移；exit_urban（第 8 句进入）同样没有。\n\n## 五、⛔ 落在本项目建模对象边界之外的部分（$M = (S, E, V, Tr, A)$，无时钟、无并发）\n**第 12、13 句整体涉及并发。** 这两句描述的「碰撞避免系统」拥有独立的初始状态与独立的状态迁移，且其行为与第 1–11 句的自动驾驶模式之间**没有任何先后或互斥关系**——它必须与 AutonomousMode 同时活动才有意义。在 UML 语义下这要求一个 orthogonal region（正交区），而 $M$ 中没有正交区，⛔ 无论安置在哪一层都**无法**表达二者同时活动。按本项目边界，并发语义不在建模对象之内，因此：\n- 不得把「两个子系统无法同时活动」记为方法未能检出的缺陷；\n- 也不得反过来声称此处没有问题。\n**不属于边界外的部分**：第 12 句的 \"velocity over 30 km/h\" / `vel>30` 是普通变量比较，属于 $V$，**不是**时钟约束；第 4、5、8 句的距离阈值同理。本份 NL **没有**出现任何秒级 / 时间量纲的约束。\n\n## 六、原文质量总评\n本份 NL 的主要质量问题不是语法或拼写（全份仅第 12 句的单个 `&` 值得标注 〔原文如此〕），而是**规约层面的欠定与不对称**：同一条件时而给表达式、时而不给（记法问题 C）；高速侧与城市侧的对称结构在目标状态命名上破缺（第 4 句 vs 第 8 句）；同一命名族的变量隐含不同量纲却都写成裸数字（第 3 处）；关键的模式切换方向依赖一个 \"respectively\" 的配对方向（第 5 处）。这些都会直接影响「是否违反规约」的判定，且其中若干处（第 3 处的单位、第 6 处的缺失表达式）**在只比对表达式字符串时完全不可见**。"
+ "nl_id": "0009",
+ "sha8": "b7425c44",
+ "segments": [
+  {
+   "seg": "1",
+   "en": "1. The system begins in the AutonomousMode state, which transitions into the InitialState substate, marking the starting point of the autonomous driving mode. ",
+   "zh": "1. 系统起始于自动驾驶模式（AutonomousMode）状态，其转入初始状态（InitialState）子状态，标志自动驾驶模式的起点。",
+   "note": "该句给出初始状态与初始点：系统起始于 AutonomousMode 状态，转入 InitialState 子状态，后者被标为自动驾驶模式的起点；InitialState 被表述为 AutonomousMode 的子状态（层次）。歧义：which 的先行词既可能是 the AutonomousMode state（语法上最近的先行词），也可能是 the system，「转入」的主体不明确。"
+  },
+  {
+   "seg": "2",
+   "en": "2. From the InitialState, the system can transition to either HighwayMode or UrbanMode based on conditions: `high_way=true` for HighwayMode or `urban_way=true` for UrbanMode. ",
+   "zh": "2. 从初始状态出发，系统可迁移到高速模式（HighwayMode）或城市模式（UrbanMode）之一，基于条件：`high_way=true` 对应高速模式，或 `urban_way=true` 对应城市模式。",
+   "note": "该句要求两条迁移：从 InitialState 到 HighwayMode、从 InitialState 到 UrbanMode，条件分别为 `high_way=true` 与 `urban_way=true`。原文未说明这两条迁移的触发事件，也未说明两个条件是否互斥、同时为真时如何取舍。"
+  },
+  {
+   "seg": "3",
+   "en": "3. In the HighwayMode state, the system begins in the enter_hwy substate, and can transition to cruise or lane_change based on the distance to the front vehicle (`dist_to_front<25`) and the availability of an extra lane (`extra_lane=true`). ",
+   "zh": "3. 在高速模式状态中，系统起始于进入高速（enter_hwy）子状态，且可迁移到巡航（cruise）或变道（lane_change），基于与前车的距离（`dist_to_front<25`（前车距离小于 25））以及额外车道的可用性（`extra_lane=true`）。",
+   "note": "该句要求 HighwayMode 的初始子状态为 enter_hwy，并要求从 enter_hwy 出发的两条迁移：到 cruise 与到 lane_change，条件是与前车的距离小于 25（`dist_to_front<25`）且存在可用额外车道（`extra_lane=true`）。原文未说明这两个条件是否共同约束两条迁移还是分别对应其中一条，也未说明触发事件。"
+  },
+  {
+   "seg": "4",
+   "en": "4. If the system is in lane_change, it can return to cruise once the lane change is completed or exit the highway if the distance to the exit is less than 2 kilometers (`dist_to_exit<2`). ",
+   "zh": "4. 如果系统处于变道中，它可返回巡航，一旦变道完成，或驶出高速公路，如果到出口的距离小于 2 千米（`dist_to_exit<2`）。",
+   "note": "该句要求从 lane_change 出发的两条迁移：其一返回 cruise，触发为「变道完成」（无形式化条件）；其二驶出高速公路，条件为到出口的距离小于 2 千米（`dist_to_exit<2`）。原文未给出「驶出高速公路」迁移的目标状态，也未说明触发事件。"
+  },
+  {
+   "seg": "5",
+   "en": "5. In the cruise substate, if the distance to the front vehicle becomes less than 25 meters (`dist_to_front<25`) and there is an extra lane available, the system transitions to lane_change. The system can also exit the highway if the distance to the exit is less than 2 kilometers (`dist_to_exit<2`). ",
+   "zh": "5. 在巡航子状态中，如果与前车的距离变得小于 25 米（`dist_to_front<25`）且存在可用额外车道，系统迁移到变道。系统也可驶出高速公路，如果到出口的距离小于 2 千米（`dist_to_exit<2`）。",
+   "note": "该句要求从 cruise 出发的两条迁移：其一，当前车距离小于 25 米（`dist_to_front<25`）且存在可用额外车道时，迁移到 lane_change；其二，当到出口的距离小于 2 千米（`dist_to_exit<2`）时，驶出高速公路。与第 4 句相同，原文未给出后者的目标状态，也未说明触发事件。"
+  },
+  {
+   "seg": "6",
+   "en": "6. The HighwayMode ends when the system transitions to FinishState, triggered by the `auto_finished=true` condition. ",
+   "zh": "6. 高速模式结束，当系统迁移到完成状态（FinishState）时，由 `auto_finished=true`（自动驾驶完成）条件触发。",
+   "note": "该句要求 HighwayMode 结束的迁移：目标为 FinishState，条件为 `auto_finished=true`。原文未点名该迁移的源状态（未说明是 HighwayMode 自身还是其内部某个子状态），也未说明触发事件。"
+  },
+  {
+   "seg": "7",
+   "en": "7. In UrbanMode, the system begins in the enter_urban substate. From here, it can transition to lane_change_urban if the distance to the front vehicle is less than 15 meters (`dist_to_front<15`) and an extra lane is available, or straight if the road ahead is clear, or intersection if it detects an intersection (`intersection=true`). ",
+   "zh": "7. 在城市模式中，系统起始于进入城区（enter_urban）子状态。从这里出发，它可迁移到城区变道（lane_change_urban），如果与前车的距离小于 15 米（`dist_to_front<15`）且存在可用额外车道，或直行（straight），如果前方道路畅通，或交叉口（intersection），如果它检测到交叉口（`intersection=true`）。〔译者存疑：原文「or straight ...」与「or intersection ...」为省略式，未重复「transition to」；译文「或直行」「或交叉口」同样承前省略了动词「迁移到」，未补出，省略结构与原文一致。〕",
+   "note": "该句要求 UrbanMode 的初始子状态为 enter_urban，并要求从该处出发的三条迁移：到 lane_change_urban（条件：前车距离小于 15 米（`dist_to_front<15`）且存在可用额外车道）；到 straight（条件：前方道路畅通，无形式化表达式）；到 intersection（条件：检测到交叉口（`intersection=true`））。「前方道路畅通」与「检测到交叉口」的判定标准原文未说明，三条迁移的触发事件也均未给出。"
+  },
+  {
+   "seg": "8",
+   "en": "8. In the lane_change_urban substate, the system transitions to straight if the lane change is complete or to exit_urban if the distance to the urban exit is less than 0.7 kilometers (`dist_to_exit<0.7`). ",
+   "zh": "8. 在城区变道子状态中，系统迁移到直行，如果变道完成，或到驶离城区（exit_urban），如果到城区出口的距离小于 0.7 千米（`dist_to_exit<0.7`）。",
+   "note": "该句要求从 lane_change_urban 出发的两条迁移：到 straight（触发为「变道完成」）与到 exit_urban（条件：到城区出口的距离小于 0.7 千米（`dist_to_exit<0.7`））。两条迁移的触发事件原文均未给出。"
+  },
+  {
+   "seg": "9",
+   "en": "9. In the straight substate, if the system detects an intersection, it transitions to the intersection substate. If the distance to the front vehicle becomes less than 15 meters (`dist_to_front<15`) and an extra lane is available, it transitions to lane_change_urban. ",
+   "zh": "9. 在直行子状态中，如果系统检测到交叉口，它迁移到交叉口子状态。如果与前车的距离变得小于 15 米（`dist_to_front<15`）且存在可用额外车道，它迁移到城区变道。",
+   "note": "该句要求从 straight 出发的两条迁移：检测到交叉口时迁移到 intersection 子状态；前车距离小于 15 米（`dist_to_front<15`）且存在可用额外车道时迁移到 lane_change_urban。两条迁移的触发事件原文均未给出。"
+  },
+  {
+   "seg": "10",
+   "en": "10. The system exits the UrbanMode state by transitioning to FinishState once `auto_finished=true` is satisfied. ",
+   "zh": "10. 系统驶出城市模式状态，通过迁移到完成状态，一旦 `auto_finished=true` 得到满足。",
+   "note": "该句要求 UrbanMode 结束的迁移：系统迁移到 FinishState，条件为 `auto_finished=true` 满足。与第 6 句相同，原文未点名该迁移在 UrbanMode 内的源子状态，也未说明触发事件。"
+  },
+  {
+   "seg": "11",
+   "en": "11. The system supports dynamic transitions between HighwayMode and UrbanMode based on the conditions `urban_way=true` and `high_way=true`, respectively, facilitating seamless mode shifts during the drive. ",
+   "zh": "11. 系统支持高速模式与城市模式之间的动态迁移，基于条件 `urban_way=true` 和 `high_way=true`，分别地，促成行驶期间的无缝模式切换。",
+   "note": "该句要求 HighwayMode 与 UrbanMode 之间的动态迁移，基于条件 `urban_way=true` 和 `high_way=true`。按 respectively 的字面顺序，`urban_way=true` 对应 HighwayMode、`high_way=true` 对应 UrbanMode，与第 2 句的显式对应（`high_way=true` 对应 HighwayMode、`urban_way=true` 对应 UrbanMode）相反。原文未说明这些迁移的方向（由哪个模式到哪个模式）与触发事件，也未定义「动态」的含义。"
+  },
+  {
+   "seg": "12",
+   "en": "12. The collision avoidance system is initially in the collision_avoidance_deactive state. It transitions to collision_avoidance_active when certain conditions are met, such as detecting pedestrians (`pedestrian_detected`), the rear distance being less than 5 meters with a velocity over 30 km/h (`dist_to_rear<5 & vel>30`), or the front distance being less than 15 meters in highway mode or 10 meters in urban mode. ",
+   "zh": "12. 防碰撞系统（collision avoidance system）初始处于防碰撞未激活（collision_avoidance_deactive）状态〔原文如此：deactive 非标准英语词，疑为 deactivated 或 inactive 之误〕。它迁移到防碰撞激活（collision_avoidance_active），当某些条件满足时，如检测到行人（`pedestrian_detected`）、后方距离小于 5 米且速度超过 30 km/h（`dist_to_rear<5 & vel>30`）、或前方距离小于 15 米（在高速模式下）或 10 米（在城市模式下）。〔原文如此：`dist_to_rear<5 & vel>30` 使用单个 `&` 而非 `&&`，且该表达式是全文唯一使用符号连接词的地方，其余并列条件用 and / or / with 或逗号连接〕〔译者存疑：原文「in highway mode」/「in urban mode」未说明指的是系统处于状态 HighwayMode / UrbanMode，还是指条件变量 `high_way=true` / `urban_way=true`；译文照字面译作「在高速模式下」/「在城市模式下」，未作取舍。〕",
+   "note": "该句要求：防碰撞系统初始处于 collision_avoidance_deactive 状态，当某些条件满足时迁移到 collision_avoidance_active 状态。原文列出三类条件：检测到行人（`pedestrian_detected`）；后方距离小于 5 米且速度超过 30 km/h（`dist_to_rear<5 & vel>30`）；前方距离在高速模式下小于 15 米、在城市模式下小于 10 米（该条无形式化表达式）。歧义与问题：①「速度超过 30 km/h」的速度归属未说明；②「某些条件满足」与三类条件的关系未说明（三类前有 such as，未说明是否穷举、满足其一还是全部）；③前方距离阈值（高速模式 15 米）与第 3、5 句的 `dist_to_front<25`（25 米）不一致。"
+  },
+  {
+   "seg": "13",
+   "en": "13. Once in the collision_avoidance_active state, the collision avoidance system returns to the collision_avoidance_deactive state when there is no active danger, as indicated by the conditions `front_inactive`, `rear_inactive`, and `pedestrian_inactive`.",
+   "zh": "13. 一旦处于防碰撞激活状态，防碰撞系统返回到防碰撞未激活状态〔原文如此：deactive 拼写异常，见第 12 句标注〕，当不存在活跃危险时，如条件 `front_inactive`（前方未激活）、`rear_inactive`（后方未激活）和 `pedestrian_inactive`（行人未激活）所示。",
+   "note": "该句要求从 collision_avoidance_active 返回 collision_avoidance_deactive 的迁移，条件为不存在活跃危险，由 `front_inactive`、`rear_inactive`、`pedestrian_inactive` 三个条件标示。原文未说明这三个条件须全部满足还是满足其一即可，也未说明触发事件。collision_avoidance_deactive 中 deactive 的拼写异常已在第 12 句标注。"
+  }
+ ],
+ "translator_notes": "对象名对照表（英→中，正文照此译名）：AutonomousMode→自动驾驶模式；InitialState→初始状态；HighwayMode→高速模式；UrbanMode→城市模式；enter_hwy→进入高速；cruise→巡航；lane_change→变道；FinishState→完成状态；enter_urban→进入城区；lane_change_urban→城区变道；straight→直行；intersection→交叉口；exit_urban→驶离城区；collision avoidance system→防碰撞系统；collision_avoidance_deactive→防碰撞未激活；collision_avoidance_active→防碰撞激活。\n通用术语：state→状态；substate→子状态；transition→迁移；condition→条件；mode→模式。守卫类表达式（`dist_to_front<25` 等）按原文逐字保留，不做改写。\n原文共 13 句；点名的状态/子状态对象 15 个；出现在条件中的变量/标志标识符 13 个（其中 intersection 同时是子状态名）。\n反复出现的欠指定：①全篇未出现显式命名的事件，各迁移的触发均以条件（守卫）或自然语言情形表述，事件槽位空缺；②多条迁移未点名源或目标状态（第 4、5 句「驶出高速公路」的目标状态、第 6、10 句结束迁移的源子状态、第 11 句模式间迁移的方向）；③第 11 句的 respectively 按字面顺序把 `urban_way=true` 对应 HighwayMode、`high_way=true` 对应 UrbanMode，与第 2 句的显式对应（`high_way=true` 对应 HighwayMode、`urban_way=true` 对应 UrbanMode）相反。\n原文质量问题：第 12、13 句的 collision_avoidance_deactive 中 deactive 非标准英语词（疑为 deactivated 或 inactive）；第 12 句「高速模式下前方距离小于 15 米」与第 3、5 句的 `dist_to_front<25`（25 米）不一致；第 1 句 which 的先行词不明确。\n边界外要素：原文不含时间与并发类约束（无秒级时间要求、无并发激活表述），全部要求落在状态、迁移、条件（守卫）与变量范围内。"
 }
