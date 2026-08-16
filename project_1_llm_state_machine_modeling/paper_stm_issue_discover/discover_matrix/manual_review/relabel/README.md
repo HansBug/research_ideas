@@ -24,15 +24,15 @@
 
 ## 二、四条硬边界（动手前先读）
 
-### 0. ⚠️ 条目数是 **323**，不是 380 —— 先读 [DEDUP_ACCOUNTING.md](./DEDUP_ACCOUNTING.md)
+### 0. ⚠️ 条目数是 **321**，不是 380 —— 先读 [DEDUP_ACCOUNTING.md](./DEDUP_ACCOUNTING.md)
 
-三方 D 档判读做过 **380** 条，**那个数没有去重**：其中 **57** 条被重叠分析判定为「与另一条是同一个问题」。工作单的条目数是 **`323 = 380 − 57`**。
+三方 D 档判读做过 **380** 条，**那个数没有去重**：其中 **59** 条最终判定为「与另一条是同一个问题」。工作单的条目数是 **`321 = 380 − 59`**。
 
 | 要什么 | 去哪 |
 | :-- | :-- |
-| 工作单范围内的 323 条（三臂判定 + 分桶） | [dtier_rulings.json](./dtier_rulings.json) |
-| 这 323 条的人工 meta review | [dtier_meta.json](./dtier_meta.json) |
-| 被判重复而移出的 57 条（含宿主与理由） | [dtier_rulings_deduped_out.json](./dtier_rulings_deduped_out.json) · [dtier_meta_deduped_out.json](./dtier_meta_deduped_out.json) |
+| 工作单范围内的 321 条（三臂判定 + 分桶） | [dtier_rulings.json](./dtier_rulings.json) |
+| 这 321 条的人工 meta review | [dtier_meta.json](./dtier_meta.json) |
+| 被判重复而移出的 59 条（含宿主与理由） | [dtier_rulings_deduped_out.json](./dtier_rulings_deduped_out.json) · [dtier_meta_deduped_out.json](./dtier_meta_deduped_out.json) |
 | `UM-` 撤出后 5 条孤儿的重新归属裁定 | [um_orphan_rehost.json](./um_orphan_rehost.json) |
 | **完整账目 + 两次改错的经过 + 改动前自检清单** | [DEDUP_ACCOUNTING.md](./DEDUP_ACCOUNTING.md) |
 
@@ -384,13 +384,13 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 | :-- | --: |
 | 工作单 | 54 份（9 个 NL 组 × 6） |
 | §2 台账条目裁决位 | **99**（98 `REPORTABLE` + `EIS-0043-02`，后者带边界裁定标记） |
-| §3 候选裁决位 | **224**（`VU-` 15 + `DIFF-` 77 + `INS-` 132）|
-| **合计裁决区** | **323** = 99 + 224 |
+| §3 候选裁决位 | **222**（`VU-` 15 + `DIFF-` 77 + `INS-` 130）|
+| **合计裁决区** | **321** = 99 + 222 |
 | 平均每 pair | 1.8 条台账 / **4.1** 个候选 / 合计 6.0 个裁决区 |
 
 ⚠️ **旧表里的「§4 清单条目 955」一行已删**：§4 深度检查清单与 §5 新增登记都已**整节拆除**（用户裁定：只保留对现有台账 + 候选的裁决）。⚠️ 留着那一行会把读者引向不存在的小节。
 
-⚠️⚠️ **本段 2026-08-16 就地更正。** 原文写「§3 的裁决位是 141 个，但 §3.3 的表里还有更多待看的行……它们共用每 pair 一个 `UM-<pair>` 裁决区」。那已不成立：`UM-` 一族（49 块）**整批撤出工作单**，裁定与全部证据见 [um_residue_ruling.md](../../docs/findings/um_residue_ruling.md)。现在 §3 的裁决位是 **224** 个（`VU-` 15 + `DIFF-` 77 + `INS-` 132），每一个都是**一条主张对一个裁决区**，不再有「一块对应整张表」的浏览量。连 §2 的 99 条一起，全工作单共 **323** 个裁决区 —— 口径与两次改错的经过见 [DEDUP_ACCOUNTING.md](./DEDUP_ACCOUNTING.md)。⚠️ `INS-` 由 128 涨到 132 的原因是 `UM-` 撤出后 5 条孤儿失去宿主、其中 4 条自立（1 条并入同伴），逐条裁定见 [um_orphan_rehost.json](./um_orphan_rehost.json)。
+⚠️⚠️ **本段 2026-08-16 就地更正。** 原文写「§3 的裁决位是 141 个，但 §3.3 的表里还有更多待看的行……它们共用每 pair 一个 `UM-<pair>` 裁决区」。那已不成立：`UM-` 一族（49 块）**整批撤出工作单**，裁定与全部证据见 [um_residue_ruling.md](../../docs/findings/um_residue_ruling.md)。随后 `INS-0053-03/04` 又按最终人工裁决并入 `INS-0053-02`。现在 §3 的裁决位是 **222** 个（`VU-` 15 + `DIFF-` 77 + `INS-` 130），每一个都是**一条主张对一个裁决区**，不再有「一块对应整张表」的浏览量。连 §2 的 99 条一起，全工作单共 **321** 个裁决区 —— 完整口径见 [DEDUP_ACCOUNTING.md](./DEDUP_ACCOUNTING.md)。
 
 按每条台账条目 5 分钟（要读 statement + 断言 + 核对作者源）、每个候选 4 分钟、每条清单 1.5 分钟、每 pair 另加 10 分钟通读 NL 与模型估算：
 
@@ -592,7 +592,7 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 
 ### 7.6.3 归一化与判重是**判断**，不许用脚本算
 
-⚠️ **454 条作为 inspect 输出是正常的，作为待裁决的 issue 条目不合理。** `0007` 一个 pair 就有 35 条待呈现诊断；原样摆进工作单，判读者要对同一件事按十几次。所以入册前先做了两步：**① 按根因归一化**（360 条诊断 → 189 条 issue，`0007` 是 35 → 7）；**② 与既有条目判重**（与台账 / 候选是同一个问题的 61 条并入那一条当补充证据、不新建块，判读者只裁一次）。
+⚠️ **454 条作为 inspect 输出是正常的，作为待裁决的 issue 条目不合理。** `0007` 一个 pair 就有 35 条待呈现诊断；原样摆进工作单，判读者要对同一件事按十几次。所以入册前先做了两步：**① 按根因归一化**（360 条诊断 → 189 条 issue，`0007` 是 35 → 7）；**② 与既有条目判重**（61 条并入既有台账 / 候选作补充证据、128 条作为 inspect 新块）。随后最终 D-tier 人工裁决又把 `INS-0053-03/04` 并入 `INS-0053-02`；这一步只改 D-tier 主数据与重复区，不回写 inspect 阶段的判重口径。
 
 **这两步都是判断，不许做成模式匹配。** 判「这 13 条 `W_UNREACHABLE_STATE` 是不是同一条错入边导致的」要理解**因果**；判「这条与 `EIS-0007-02` 是不是同一个问题」要比较两段描述的**语义**。做成规则就是 [CLAUDE.md](../../../../../CLAUDE.md) §11 划死的那条边界 —— 本仓库为此栽过一次（`named_elements` 的 validator 把语义判断实现成词法判断，190 行被拒且绝大多数是误伤，对某个 pair 系统性致命）。
 

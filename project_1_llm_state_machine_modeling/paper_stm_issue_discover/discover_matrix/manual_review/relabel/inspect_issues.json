@@ -3,7 +3,7 @@
  "what_this_is": "把 `inspect_findings.json` 里 336 条待呈现诊断（intrinsic 194 + uncertain 142）按根因归一化后的 issue 表，外加 5 条从 `refuted` 恢复的条目。⛔ 归一化是判断不是脚本 —— 每条都带 `merge_reason`（为什么判为同根因、指着制品说）与 `puml_evidence`（作者源逐字片段）。工作单 §3.6 从本文件渲染。",
  "how_it_was_made": [
   "① 逐 pair 读该 pair 的全部诊断 + 作者源 PlantUML + model.fcstm，按根因归一化，写出 statement / merge_reason / puml_evidence / 未合并说明（人判，一个 pair 一位判定者）。",
-  "② 一轮对抗性复核：对归一化结果、座标、判重逐条提挑战（224 条），推翻 64 处。",
+  "② 一轮对抗性复核：对归一化结果、座标、判重逐条提挑战（224 条），推翻 65 处。",
   "③ 对被挑战的座标出终局裁定（43 条，见 inspect_rulings.json），本文件的 `coord` 有裁定的取裁定、没有的取原判。",
   "④ 全量复查 34 条 `refuted`，按「推翻理由是否否掉了主张本身」+「同型形态在别的 pair 上是否被摆给了判读者」两条判据恢复 5 条（逐条见 `recovery_basis`），其余 29 条维持。",
   "⚠️ 上游的三份判定产物（norm_dedup / rejudge / rejudge_rulings）在 /tmp 下，不在仓库里；本文件是它们经**机械归一化**后的入库形态，归一化规则逐条记在 `coord_normalization` 里。"
@@ -83,8 +83,8 @@
    "group": "nl_0002",
    "issues": 21,
    "stats": "本组共 66 条诊断，其中 `verdict ∈ {intrinsic, uncertain}` 的 29 条进入归并（另 37 条为 `projection_artifact`/`refuted`，按任务要求跳过）。归一化后 21 条 issue。逐 pair：`0002` 9 条诊断（8 intrinsic + 1 uncertain）→ 6 条 issue（5 intrinsic + 1 uncertain）；`0013` 4 条诊断（0 intrinsic + 4 uncertain）→ 4 条 issue（全 uncertain，未发生合并）；`0023` 7 条诊断（6 intrinsic + 1 uncertain）→ 4 条 issue（3 intrinsic + 1 uncertain）；`0033` 1 条诊断（1 intrinsic）→ 1 条 issue；`0043` 2 条诊断（0 intrinsic + 2 uncertain）→ 2 条 issue（未发生合并）；`0053` 6 条诊断（6 intrinsic）→ 4 条 issue。合并只发生在 4 处：`0002` 的 3→1 与 2→1、`0023` 的三对 2→1、`0053` 的 3→1。机械对拍已跑：本组每个 diag_index 恰好出现在一条 issue 里，无重复分配、无遗漏，且 intrinsic 与 uncertain 无跨类合并。",
-   "not_merged": "**先交代同质组机制的复用结论。** 它的生成逻辑在 [build_expected_issue_set.py:284-313](../../build_expected_issue_set.py)：`key = (pair, primary 谓词, primary 元素集合)`，同 key 者归一个 `HG-<pair>-NN`；无 primary 断言的记录每条自成一组（注释里写明合并它们曾把 `0025`/`0034`/`0035` 上三个**不同**缺陷错并成一条）。源码注释自己划了边界：「**identical binding … is the machine-decidable half** of the 'same defect?' question; anything subtler stays a human call and is not grouped here.」\n\n**结论：判据可部分复用，机制不可直接套用。** 不可套用的原因是 inspect 诊断根本没有 `primary 谓词` 这个键——它们是 pyfcstm 的确定性检查输出，只有 `code` 与结构化 `refs`，没有断言组。若把 `code` 硬当成谓词、把 `refs` 里的路径硬当成元素集合去做并查集，得到的恰恰是 `inspectfindings.py:172-207` 里明确记载**已于 2026-08-13 撤掉的那一版自动实现**（`normalize()` 按「元素路径 + 父态闭包 + 事件消费源 + counterexample_kind」自动归组），撤掉的理由是它违反 [CLAUDE.md](../../../../../CLAUDE.md) §11 的边界。**我复用的是它的判据方向而不是它的算法**：凡元素集合不同者一律不并（本组里三处「看起来同类」的分裂全部据此保留，见下），凡语义判断（因果是否相连）一律逐条读作者源自己判。\n\n**保留为多条、未合并的四处，逐处说明。**\n\n1. **`0002` 的三条 `W_INITIAL_UNCONDITIONAL_MISSING`（INS-0002-03/04/05）。** 三条落在 `PumpState`(:7-:10)、`WaterState`(:14-:17)、`MethaneState`(:21-:24) 三个不同复合态上，问题边分别是 :8、:15、:22。它们是同一种写法（初始边挂触发事件）被重复三次，但**没有因果链**：改好任一条不会让另两条消失。同质组判据在此同判三组（元素集合不同）。\n\n2. **`0013` 的三条 `I_NONTRIVIAL_SCC`（INS-0013-01/02/03）与 `0043` 的两条（INS-0043-01/02）。** SCC 元素集合两两不交，环边分处作者用 `--` 显式划开的不同并发区（`0013`：:12-:19 / :26,:28 / :35,:37；`0043`：:7-:10 / :15,:16）。区边界是作者自己写下的，不是我们推断的。\n\n3. **`0023` 的三个死端（INS-0023-01/02/03）与 `0053` 的三个死端（INS-0053-02/03/04）。** 每份制品里三个叶态各自缺自己的出边，三处独立可修。⭐ 这一处我特意跟随了复核方自己的裁定——它在 `0023` 上逐字写下「三对共 6 条实为 3 个事实，不应计成 6 个独立缺陷」，即 6 → **3**，而不是 6 → 1。若把三个死端并成「这份制品是个桩」一条，判读者对三个状态就只按一次，而它们在台账口径下是三个元素上的三个缺陷。\n\n4. **`nontermination` 一族与它旁边那条（`0002` #14 / `0013` #6 / `0023` #6）。** 三条 `I_TOPOLOGICAL_NON_TERMINATING` 全部保留为独立 issue，都没有并入同一 pair 里主体相同的那条。⛔ 对 `0002`/`0023` 是**硬性**不能合：它们是 `uncertain`，旁边那条是 `intrinsic`，任务明令两类分别归并。⚠️ 对 `0013`（#6 与 SCC #0 同为 `uncertain`、`counterexample_path` 与 SCC 元素集合逐字相同）则是**判断**：我判不合，理由是 `I_TOPOLOGICAL_NON_TERMINATING` 的主体是**整张图**（「不强制**所有**从根可达的执行到达根终止态」），那三个态只是工具挑出来的代表性反例——证据是 `0013` 的区 2、区 3 同样出不去，工具却只报了一条本码。把它并进「区 1 那三个态成环」会让判读者对「环是不是常态」的一次裁决连带吃掉「整个模型没有终止出口」这条独立信息（`0013` 全文确实没有任何 `--> [*]`）。两者座标也不同（`other` vs `nontermination`），合并必须丢弃其一。按代价不对称口径：拿不准就不合。\n\n**唯一一处我认真考虑过合并、最终判不合的：`0002` 的 INS-0002-01（`PumpState` 进不去）与 INS-0002-02（`InitialState` 是死端）。** 诱惑很实在——补一条 `InitialState --> PumpState : <事件>` 会**同时**消掉两条，看上去像同一处漏写的两面。判不合的三条理由：① 两者是两个不同主体（`PumpState` 的入边缺失 vs `InitialState` 的出边缺失），修法并非唯一——把区 0 的默认入口改成 `[*] --> PumpState` 同样修好前者，却让 `InitialState` 变成不可达的孤儿而非死端，即两条并非必然同生共死；② 座标不同（`global+unreachable/language` vs `global+unintended_terminal/requirement`），类型学 §3.5 明确把「进不去」与「进得去但出不来」划成两个取值、两条判定测试；③ 参照物不同——前者不引用 NL 即可判定，后者必须回 NL 判「这是不是有意的终态」，合并会把一条 `language` 级的确定事实与一条需要人裁的 `requirement` 级判断捆在一起。\n\n**另需向判读者交代两处工具侧的坑（不影响归并，但影响裁决）。** ① `W_DEADLOCK_LEAF` 有系统性假阳性：pyfcstm 的 `analyzers/structural.py:75-93` 只数叶态自身出边、**完全不做外层检查**，对嵌在复合态里而外层有成组迁移的叶态会误报。本组涉及该码的 5 条（`0002` #9、`0023` #0/#1/#2、`0053` #3/#4/#5）**全部**已由复核方用箭头变体穷举确认三层祖先零出边，不落在假阳性面上——`0023` 与 `0053` 更是全文以具名状态为源的迁移为**零条**。② `0033` INS-0033-01 的工具修复建议 `first_child_name=InvalidFinaltr_0006` 指向投影合成态，**建议本身被污染**，finding 不受影响；同 pair 另 7 条诊断（含 3 条 `W_DEADLOCK_LEAF`）全落在 `InvalidInitialtr_*`/`InvalidFinaltr_*` 合成态上，已判 `projection_artifact`。",
-   "dedup_stats": "与台账重合 2 条（INS-0002-01→EIS-0002-02、INS-0053-01→EIS-0053-01）；与候选重合 0 条；suspect 1 条（INS-0002-02→EIS-0002-02）；none 18 条。本组台账基数：0002=3、0013=1、0023=0、0033=2、0043=2、0053=1，共 9 条。所用判据：同 pair + 同主体元素 + 同缺陷性质三者全中才判重合；只共用同一物理行、或只共用同一条底层结构事实而所主张的性质不同（典型：extraneous「这条边不该存在」vs language「初始边不得带触发」、unreachable「进不去」vs unintended_terminal「出不来」）一律判 none 并在 basis 里点名近似对象。",
+   "not_merged": "**先交代同质组机制的复用结论。** 它的生成逻辑在 [build_expected_issue_set.py:284-313](../../build_expected_issue_set.py)：`key = (pair, primary 谓词, primary 元素集合)`，同 key 者归一个 `HG-<pair>-NN`；无 primary 断言的记录每条自成一组（注释里写明合并它们曾把 `0025`/`0034`/`0035` 上三个**不同**缺陷错并成一条）。源码注释自己划了边界：「**identical binding … is the machine-decidable half** of the 'same defect?' question; anything subtler stays a human call and is not grouped here.」\n\n**结论：判据可部分复用，机制不可直接套用。** 不可套用的原因是 inspect 诊断根本没有 `primary 谓词` 这个键——它们是 pyfcstm 的确定性检查输出，只有 `code` 与结构化 `refs`，没有断言组。若把 `code` 硬当成谓词、把 `refs` 里的路径硬当成元素集合去做并查集，得到的恰恰是 `inspectfindings.py:172-207` 里明确记载**已于 2026-08-13 撤掉的那一版自动实现**（`normalize()` 按「元素路径 + 父态闭包 + 事件消费源 + counterexample_kind」自动归组），撤掉的理由是它违反 [CLAUDE.md](../../../../../CLAUDE.md) §11 的边界。**我复用的是它的判据方向而不是它的算法**：凡元素集合不同者一律不并（本组里三处「看起来同类」的分裂全部据此保留，见下），凡语义判断（因果是否相连）一律逐条读作者源自己判。\n\n**保留为多条、未合并的四处，逐处说明。**\n\n1. **`0002` 的三条 `W_INITIAL_UNCONDITIONAL_MISSING`（INS-0002-03/04/05）。** 三条落在 `PumpState`(:7-:10)、`WaterState`(:14-:17)、`MethaneState`(:21-:24) 三个不同复合态上，问题边分别是 :8、:15、:22。它们是同一种写法（初始边挂触发事件）被重复三次，但**没有因果链**：改好任一条不会让另两条消失。同质组判据在此同判三组（元素集合不同）。\n\n2. **`0013` 的三条 `I_NONTRIVIAL_SCC`（INS-0013-01/02/03）与 `0043` 的两条（INS-0043-01/02）。** SCC 元素集合两两不交，环边分处作者用 `--` 显式划开的不同并发区（`0013`：:12-:19 / :26,:28 / :35,:37；`0043`：:7-:10 / :15,:16）。区边界是作者自己写下的，不是我们推断的。\n\n3. **`0023` 与 `0053` 的三个死端。** inspect 初始归一化阶段按不同叶态保留为多条，因此三条底层 issue 与 diag 证据仍留在本文件；最终人工 D-tier 裁决对 `0053` 采用更高层根因单位：全文具名状态源迁移为零，三个叶态共同构成同一个‘零行为纯桩’，故 `INS-0053-03/04` 并入 `INS-0053-02`。`0023` 的既有三条处理不在本次裁决范围内，保持原样。\n\n4. **`nontermination` 一族与它旁边那条（`0002` #14 / `0013` #6 / `0023` #6）。** 三条 `I_TOPOLOGICAL_NON_TERMINATING` 全部保留为独立 issue，都没有并入同一 pair 里主体相同的那条。⛔ 对 `0002`/`0023` 是**硬性**不能合：它们是 `uncertain`，旁边那条是 `intrinsic`，任务明令两类分别归并。⚠️ 对 `0013`（#6 与 SCC #0 同为 `uncertain`、`counterexample_path` 与 SCC 元素集合逐字相同）则是**判断**：我判不合，理由是 `I_TOPOLOGICAL_NON_TERMINATING` 的主体是**整张图**（「不强制**所有**从根可达的执行到达根终止态」），那三个态只是工具挑出来的代表性反例——证据是 `0013` 的区 2、区 3 同样出不去，工具却只报了一条本码。把它并进「区 1 那三个态成环」会让判读者对「环是不是常态」的一次裁决连带吃掉「整个模型没有终止出口」这条独立信息（`0013` 全文确实没有任何 `--> [*]`）。两者座标也不同（`other` vs `nontermination`），合并必须丢弃其一。按代价不对称口径：拿不准就不合。\n\n**唯一一处我认真考虑过合并、最终判不合的：`0002` 的 INS-0002-01（`PumpState` 进不去）与 INS-0002-02（`InitialState` 是死端）。** 诱惑很实在——补一条 `InitialState --> PumpState : <事件>` 会**同时**消掉两条，看上去像同一处漏写的两面。判不合的三条理由：① 两者是两个不同主体（`PumpState` 的入边缺失 vs `InitialState` 的出边缺失），修法并非唯一——把区 0 的默认入口改成 `[*] --> PumpState` 同样修好前者，却让 `InitialState` 变成不可达的孤儿而非死端，即两条并非必然同生共死；② 座标不同（`global+unreachable/language` vs `global+unintended_terminal/requirement`），类型学 §3.5 明确把「进不去」与「进得去但出不来」划成两个取值、两条判定测试；③ 参照物不同——前者不引用 NL 即可判定，后者必须回 NL 判「这是不是有意的终态」，合并会把一条 `language` 级的确定事实与一条需要人裁的 `requirement` 级判断捆在一起。\n\n**另需向判读者交代两处工具侧的坑（不影响归并，但影响裁决）。** ① `W_DEADLOCK_LEAF` 有系统性假阳性：pyfcstm 的 `analyzers/structural.py:75-93` 只数叶态自身出边、**完全不做外层检查**，对嵌在复合态里而外层有成组迁移的叶态会误报。本组涉及该码的 5 条（`0002` #9、`0023` #0/#1/#2、`0053` #3/#4/#5）**全部**已由复核方用箭头变体穷举确认三层祖先零出边，不落在假阳性面上——`0023` 与 `0053` 更是全文以具名状态为源的迁移为**零条**。② `0033` INS-0033-01 的工具修复建议 `first_child_name=InvalidFinaltr_0006` 指向投影合成态，**建议本身被污染**，finding 不受影响；同 pair 另 7 条诊断（含 3 条 `W_DEADLOCK_LEAF`）全落在 `InvalidInitialtr_*`/`InvalidFinaltr_*` 合成态上，已判 `projection_artifact`。",
+   "dedup_stats": "inspect 阶段与台账重合 2 条（INS-0002-01→EIS-0002-02、INS-0053-01→EIS-0053-01）；与候选重合 0 条；suspect 1 条（INS-0002-02→EIS-0002-02）；none 18 条。本组台账基数：0002=3、0013=1、0023=0、0033=2、0043=2、0053=1，共 9 条。所用判据：同 pair + 同主体元素 + 同缺陷性质三者全中才判重合。最终人工 D-tier 裁决另按共同根因把 INS-0053-03/04 并入 INS-0053-02；该最终关系记录在 D-tier 重复区，不回写本文件所描述的 inspect 阶段判重统计。",
    "review": "逐条回到了六份作者源（0002/0013/0023/0033/0043/0053 的 stm0.puml）、expected_issue_set.json、inspect_findings.json（含每条 diag 的 verdict/refs/evidence/refutation_reason）与 docs/protocol/defect_taxonomy.md §3.3-§3.5/§3.8。行号引证 60/60 逐字命中，diag_index 覆盖在六个 pair 上完整且互不重叠，归并的因果链与判重的主体/性质比对基本站得住。但查出 5 处应当推翻：① 四条「初始边带触发」的座标 element+transition+missing 与类型学 §3.4 的「条数变多」判定测试相反——唯一合法修法是删触发词（条数不变/变少），而它自陈的修法「另补一条无条件 [*] -->」会违反类型学自己引的 region.MustNotHaveMultipleDefaultEntries；正确座标是 element+trigger+extraneous；② INS-0002-06 与 INS-0023-04 的反例是单个零出边状态（「停住不动」），按 §3.5 分界表属 unintended_terminal 而非 nontermination；③ 三条 nontermination 的 reference=requirement 无锚——我 grep 了 NL06 的 nl.txt，stop/terminat/shutdown/halt/final/deactivat/end 零命中，而 §3.5 把「NL 要求终会到达终止条件」写进了判定测试本身，故该取值根本不成立，应与 SCC 三条一样落 other/other；④ 三条 nontermination 把「NL 有没有终止义务」当开放问题交给判读者，却没告诉判读者同一份复核文件里已用这条 grep 推翻了 0013 的 #3/#4/#5；⑤ INS-0002-01 归并理由里「区 1/2 不可达确由投影压平造成」的对照论据不成立——diag #2 自己的 evidence 就带反向保留意见，且 #17/#18 的 refutation_reason 是 #15 的整段复制（文内讲的还是 Activate_Pump/consumer_count=1），那一段从未真正复核过 #17/#18。"
   },
   {
@@ -974,7 +974,7 @@
    "defect_qualifier": "extraneous",
    "defect_logic_kind": null,
    "defect_reference": "language",
-   "statement": "复合态 `PumpState` 的唯一默认入口边挂了触发事件 `Activate Pump`，因此它没有无条件默认入口。UML 2.5.1 规定初始伪状态的出边不得带 trigger/guard；pyfcstm 的 `is_unconditional` 同样要求 guard 与 event 皆空。改对是补一条无条件的 `[*] -->` 默认入口（或把触发词从这条边上挪走），编辑方向是新增一条边，故落 element+transition+missing。⚠️ 铰链供判读者留意：若认为 `: Activate Pump` 本意是注释或动作而非触发事件，本条即不成立；但该标签映射对全语料一致，不是针对本样本的读法。",
+   "statement": "复合态 `PumpState` 的唯一默认入口边挂了触发事件 `Activate Pump`。UML 2.5.1 规定初始伪状态的出边不得带 trigger/guard；pyfcstm 的 `is_unconditional` 同样要求 guard 与 event 皆空。改对是删除或重构这段标签（若本意是 effect，则应明确移入 effect 位置），而不是再补第二条初始出边；因此问题对象是多余的 trigger，落 element+trigger+extraneous。⚠️ 铰链供判读者留意：若认为 `: Activate Pump` 本意是注释或动作而非触发事件，本条即不成立；但本文件 :2/:5 的裸初始边与 :8/:15/:22 的带标签初始边构成同文件对照。",
    "merge_reason": "未与 INS-0002-04 / 05 合并：这三条 `W_INITIAL_UNCONDITIONAL_MISSING` 落在**三个互不相同的复合态**（`PumpState` :7-:10、`WaterState` :14-:17、`MethaneState` :21-:24）上，是三条互不相干的边（:8 / :15 / :22），改好其中任何一条都不会让另外两条消失——没有因果链，只有同一种写法被重复三次。台账既有的同质组机制（`build_expected_issue_set.py:286-306`：同 pair 上 primary 谓词与元素集合**完全相同**者才算同一缺陷）在此同样判为三组，因为元素集合不同。⛔ 也未与 INS-0002-01 合并：虽然主体元素同为 `PumpState`，但这一条是纯语法事实（初始边带触发），与可达性无关且在 `PumpState` 可达与否两种情形下都独立成立，反过来补上入边也不会消掉它。",
    "puml_evidence": "stm0.puml:7 `    state PumpState {`；stm0.puml:8 `        [*] --> RunningState : Activate Pump`（该复合态内唯一的初始边，`existing_conditional_count=1` 与之吻合）"
   },
@@ -986,18 +986,18 @@
    "diag_indices": [
     11
    ],
-   "coord": "element / transition + missing / language",
+   "coord": "element / trigger + extraneous / language",
    "coord_raw": "element + transition + missing / language",
-   "coord_before_ruling": null,
-   "coord_source": "original",
-   "coord_normalization": "原文 `element + transition + missing / language` 归一为 `element / transition + missing / language`",
+   "coord_before_ruling": "element + transition + missing / language",
+   "coord_source": "ruling",
+   "coord_normalization": "按 inspect_rulings 的终局裁定改为 `element / trigger + extraneous / language`：删除标签时 transition 条数不变、trigger 条数减少；另补初始边会制造多重默认入口。",
    "recovered_from_refuted": false,
    "defect_locus": "element",
-   "defect_element": "transition",
-   "defect_qualifier": "missing",
+   "defect_element": "trigger",
+   "defect_qualifier": "extraneous",
    "defect_logic_kind": null,
    "defect_reference": "language",
-   "statement": "复合态 `WaterState` 的唯一默认入口边挂了触发事件 `Start Monitoring`，因此它没有无条件默认入口，违反 UML 2.5.1 对初始伪状态出边的规定。改对是补一条无条件 `[*] -->` 默认入口。⚠️ 与本 pair 另一类判定不冲突：`WaterState` 自身的可达性受投影压平并发区影响（其子态不可达那条已被正确排除为投影产物），而「初始边带触发」是纯语法事实、与可达性无关，在作者源上独立成立。",
+   "statement": "复合态 `WaterState` 的唯一默认入口边挂了触发事件 `Start Monitoring`，违反 UML 2.5.1 对初始伪状态出边的规定。改对是删除或重构该标签（若本意是 effect，则应明确移入 effect 位置），而不是再补第二条初始出边；因此问题对象是多余的 trigger，落 element+trigger+extraneous。⚠️ 与本 pair 另一类判定不冲突：`WaterState` 自身的可达性受投影压平并发区影响，而「初始边带触发」是纯语法事实、与可达性无关，在作者源上独立成立。",
    "merge_reason": "单条未合并。理由同 INS-0002-03：主体是 `WaterState` 这一个复合态、问题边是 :15 这一条，与 `PumpState`(:8)、`MethaneState`(:22) 的对应问题各自独立可修，无因果相连；元素集合不同，按台账同质组判据也是三组。",
    "puml_evidence": "stm0.puml:14 `    state WaterState {`；stm0.puml:15 `        [*] --> MonitoringWaterFlow : Start Monitoring`"
   },
@@ -1009,18 +1009,18 @@
    "diag_indices": [
     12
    ],
-   "coord": "element / transition + missing / language",
+   "coord": "element / trigger + extraneous / language",
    "coord_raw": "element + transition + missing / language",
-   "coord_before_ruling": null,
-   "coord_source": "original",
-   "coord_normalization": "原文 `element + transition + missing / language` 归一为 `element / transition + missing / language`",
+   "coord_before_ruling": "element + transition + missing / language",
+   "coord_source": "ruling",
+   "coord_normalization": "按 inspect_rulings 的终局裁定改为 `element / trigger + extraneous / language`：删除标签时 transition 条数不变、trigger 条数减少；另补初始边会制造多重默认入口。",
    "recovered_from_refuted": false,
    "defect_locus": "element",
-   "defect_element": "transition",
-   "defect_qualifier": "missing",
+   "defect_element": "trigger",
+   "defect_qualifier": "extraneous",
    "defect_logic_kind": null,
    "defect_reference": "language",
-   "statement": "复合态 `MethaneState` 的唯一默认入口边挂了触发事件 `Start Monitoring`，因此它没有无条件默认入口，违反 UML 2.5.1 对初始伪状态出边的规定。改对是补一条无条件 `[*] -->` 默认入口。",
+   "statement": "复合态 `MethaneState` 的唯一默认入口边挂了触发事件 `Start Monitoring`，违反 UML 2.5.1 对初始伪状态出边的规定。改对是删除或重构该标签（若本意是 effect，则应明确移入 effect 位置），而不是再补第二条初始出边；因此问题对象是多余的 trigger，落 element+trigger+extraneous。",
    "merge_reason": "单条未合并。理由同 INS-0002-03/04：主体是 `MethaneState`、问题边是 :22 这一条，与 :8 / :15 各自独立可修，无因果相连；元素集合不同，按台账同质组判据也是三组。",
    "puml_evidence": "stm0.puml:21 `    state MethaneState {`；stm0.puml:22 `        [*] --> MonitoringMethaneFlow : Start Monitoring`"
   },
@@ -1357,9 +1357,9 @@
    "defect_qualifier": null,
    "defect_logic_kind": "unintended_terminal",
    "defect_reference": "requirement",
-   "statement": "`PumpState` 没有任何出边，且其各级祖先（`PumpRegion` :6-:9、`PumpControl` :5-:20、根层）也都没有出边或成组迁移——这份制品全文 4 条迁移（:3/:7/:12/:17）的源**全部**是 `[*]`，以具名状态为源的迁移是零条。故即便进入该状态也永远离不开。⚠️ 判读者需注意本条与 INS-0053-01 的关系：该状态同时是不可达的，所以「进不去」与「进去了也出不来」是这份制品同一片结构空缺的两面；两条并存不矛盾（死端判定不要求可达），但也**不宜当作两个彼此独立的设计缺陷计数**——这是复核方自己写下的提醒。",
-   "merge_reason": "单条未合并。⛔ 不与 INS-0053-01 合并：两者的编辑方向相反且互不替代——那一条缺的是**进入** `PumpRegion` 的边，本条缺的是**离开** `PumpState` 的边，补上任一条都不会消掉另一条；类型学 §3.5 也把二者划成两个取值（「进不去 → unreachable；进得去但出不来 → unintended_terminal」），座标不同，合并必须丢弃其一。⛔ 不与 INS-0053-03/04 合并：三条 `W_DEADLOCK_LEAF` 落在三个不同的叶态上（`PumpState`/`WaterState`/`MethaneState`），分处三个不同的子区，各自需要各自的出边，无因果相连——与 `0023` 上复核方「三对共 6 条实为 3 个事实」的裁定保持一致口径。⚠️ 假阳性排查：该码不做外层检查，但此处三层祖先均无出边已由「全文零条具名源迁移」这一穷举结果保证，不是逐层目测。",
-   "puml_evidence": "stm0.puml:6 `state PumpRegion {`；stm0.puml:7 `[*] --> PumpState`；stm0.puml:8 `PumpState : Pump activated or controlled`（状态体文字，非迁移）；stm0.puml:9 `}`"
+   "statement": "`PumpState`、`WaterState`、`MethaneState` 都没有任何出边，各自的祖先 `PumpRegion`(:6-:9)、`WaterRegion`(:11-:14)、`MethaneRegion`(:16-:19)、共同祖先 `PumpControl`(:5-:20) 与根层也都没有出边或成组迁移。全文 4 条迁移（:3/:7/:12/:17）的源**全部**是 `[*]`，以具名状态为源的迁移是零条，因此这不是三个互不相关的局部出口缺失，而是一个整体性的‘零行为纯桩’问题。最终人工裁决把原 `INS-0053-03`（WaterState）与 `INS-0053-04`（MethaneState）并入本条，只保留 `INS-0053-02` 一个裁决区；两条原始三方判读与 meta review 完整保存在 D-tier 重复区 JSON。原 `INS-0053-03` 的完整状态级事实：`WaterState` 没有任何出边，其祖先 `WaterRegion`(:11-:14)、`PumpControl`、根层也都没有出边或成组迁移，故进入后永远离不开。⚠️ 同 INS-0053-02：该状态同时不可达，二者反映同一片结构空缺的两面，不宜当作两个彼此独立的设计缺陷计数。原 `INS-0053-04` 的完整状态级事实：`MethaneState` 没有任何出边，其祖先 `MethaneRegion`(:16-:19)、`PumpControl`、根层也都没有出边或成组迁移，故进入后永远离不开。⚠️ 三条合起来说明这份制品是个纯桩：三个子区各声明一个状态，除三条区内默认入口边外没有任何行为。仍不与 `INS-0053-01` 合并：后者主张缺入口导致 unreachable，修复入口不会补出任何具名状态出边。",
+   "merge_reason": "最终人工裁决将 INS-0053-02/03/04 合并为一个问题，并由本条作为宿主。三条状态级诊断虽分别落在 PumpState、WaterState、MethaneState，承重事实却相同：全文四条迁移的源全是 [*]、具名状态源迁移为零，进入 :3 可达的 PumpControl 后没有任何可启用行为路径且无终止声明。按‘零行为纯桩’这一共同根因只计一次；03/04 的逐态事实保留为宿主补充证据。仍不与 INS-0053-01 合并：后者主张缺少进入三个 wrapper 的入口，属于 unreachable，修复入口不会补出任何具名状态出边。",
+   "puml_evidence": "stm0.puml:6 `state PumpRegion {`；:7 `[*] --> PumpState`；:8 `PumpState : Pump activated or controlled`；stm0.puml:11 `state WaterRegion {`；:12 `[*] --> WaterState`；:13 `WaterState : Water flow control/monitoring`；stm0.puml:16 `state MethaneRegion {`；:17 `[*] --> MethaneState`；:18 `MethaneState : Methane flow control/monitoring`。:8/:13/:18 都是状态体文字而非迁移；全文只有 :3/:7/:12/:17 四条以 `[*]` 为源的迁移。"
   },
   {
    "issue_id": "INS-0053-03",
@@ -1381,7 +1381,7 @@
    "defect_logic_kind": "unintended_terminal",
    "defect_reference": "requirement",
    "statement": "`WaterState` 没有任何出边，其祖先 `WaterRegion`(:11-:14)、`PumpControl`、根层也都没有出边或成组迁移，故进入后永远离不开。⚠️ 同 INS-0053-02：该状态同时不可达，二者反映同一片结构空缺的两面，不宜当作两个彼此独立的设计缺陷计数。",
-   "merge_reason": "单条未合并。理由同 INS-0053-02：主体是 `WaterState` 这一个叶态、缺的是它自己的出边，与 `PumpState`(:7-:8)、`MethaneState`(:17-:18) 的同类问题各自独立可修；与 INS-0053-01 的不可达是相反方向的编辑、且座标不同（`unintended_terminal` vs `unreachable`）。",
+   "merge_reason": "最终人工裁决并入 INS-0053-02：WaterState 的零出边是‘全文零条具名源迁移、PumpControl 为零行为纯桩’这一共同根因的状态级证据，不另设裁决区；其完整判读移入 D-tier 重复区，状态级事实已整合进宿主 statement。",
    "puml_evidence": "stm0.puml:11 `state WaterRegion {`；stm0.puml:12 `[*] --> WaterState`；stm0.puml:13 `WaterState : Water flow control/monitoring`（状态体文字，非迁移）；stm0.puml:14 `}`"
   },
   {
@@ -1404,7 +1404,7 @@
    "defect_logic_kind": "unintended_terminal",
    "defect_reference": "requirement",
    "statement": "`MethaneState` 没有任何出边，其祖先 `MethaneRegion`(:16-:19)、`PumpControl`、根层也都没有出边或成组迁移，故进入后永远离不开。⚠️ 三条合起来说明这份制品是个纯桩：三个子区各声明一个状态，除三条区内默认入口边外没有任何行为。",
-   "merge_reason": "单条未合并。理由同 INS-0053-02/03：主体是 `MethaneState` 这一个叶态，缺的是它自己的出边，与另两个叶态的同类问题无因果相连。⚠️ 合成元素排查：0053 的 fcstm 只有一个合成态 `UnspecifiedInitial`，与本条无关（同 pair 那条落在 `UnspecifiedInitial` 上的 `W_DEADLOCK_LEAF` 已被判为投影产物并排除）。",
+   "merge_reason": "最终人工裁决并入 INS-0053-02：MethaneState 的零出边与 PumpState、WaterState 共享‘全文零条具名源迁移、PumpControl 为零行为纯桩’这一共同根因，不另设裁决区；其完整判读移入 D-tier 重复区，状态级事实已整合进宿主 statement。",
    "puml_evidence": "stm0.puml:16 `state MethaneRegion {`；stm0.puml:17 `[*] --> MethaneState`；stm0.puml:18 `MethaneState : Methane flow control/monitoring`（状态体文字，非迁移）；stm0.puml:19 `}`"
   },
   {

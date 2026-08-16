@@ -1976,7 +1976,7 @@ def test_directory_layout_is_one_dir_per_nl():
     root_md = {f for f in os.listdir(HERE) if f.endswith(".md")}
     assert not {f for f in root_md if re.fullmatch(r"\d{4}\.md", f)}, \
         f"根目录还留着工作单：{sorted(root_md)}"
-    # ⭐ `DEDUP_ACCOUNTING.md` 2026-08-16 新增：条目数（323 vs 未去重的 380）的唯一权威账目，
+    # ⭐ `DEDUP_ACCOUNTING.md` 2026-08-16 新增：条目数（321 vs 未去重的 380）的唯一权威账目，
     # ⛔ 它是防止「把未去重的数当条目总数」再次发生的那一页，故属根目录常驻文档。
     assert root_md == {S.WORKSHEET_HOWTO, "README.md", "PROGRESS.md",
                        "DEDUP_ACCOUNTING.md"}, sorted(root_md)
@@ -2234,7 +2234,7 @@ def test_worksheets_stay_under_the_line_budget():
     档就是代码里的那两个数，表格跟着写。
 
     本轮上调的理由是**材料真的多了一批**，不是文字松了：360 条 inspect 诊断归一化成 189 条
-    issue，其中 128 条在工作单里各占一个块（事实陈述 + 逐字证据 + 归并理由 + 五轴映射 +
+    issue，其中 128 条在 inspect 判重阶段被判为新块（事实陈述 + 逐字证据 + 归并理由 + 五轴映射 +
     底层诊断折叠区 + 裁决区，约 20–30 行），另 61 条作为补充证据挂在 §2 / §3 的对应条目下。
     ⭐ 中位 606 → **776**，最长 `0029` 1258 行。
 
@@ -3624,13 +3624,13 @@ def test_field_tables_are_derived_from_the_templates_not_hand_copied():
 
 
 def test_the_four_headline_totals_are_unchanged_by_the_tolerance_fixes():
-    """⛔ 宽容化不许动门面数字：`54 / 99 / 224`（⚠️ 第四个 `955` 已归零，见下）。
+    """⛔ 宽容化不许动门面数字：`54 / 99 / 222`（⚠️ 第四个 `955` 已归零，见下）。
 
     ⚠️⚠️ **2026-08-14 第四个数字由 955 改为 0，⛔ 这不是丢数据。** 用户裁定本轮工作单
     只做「对现有台账 + 候选逐条裁决」，§4 深度检查清单与 §5 新增登记整体不再装进
     `build_doc`（`generate.py` 里那段注释写了理由与保留方式）。⭐ 故 `checklist_items`
     结构上为 0。⛔ 前三个数字**一格没动** —— 那正是本条要守的：拆节不许顺手丢条目。
-    ⭐ 双份数字都记在这里：拆除前 `54 / 99 / 269 / 955`，拆除后 `54 / 99 / 269 / 0`；⭐ `UM-` 撤除后 `54 / 99 / 220 / 0`；⭐ 全部出块后 `54 / 99 / 281 / 0`；⭐ 去重恢复后 `54 / 99 / **224** / 0`（合计 323 个裁决区，账目见 [DEDUP_ACCOUNTING.md](./DEDUP_ACCOUNTING.md)）。
+    ⭐ 双份数字都记在这里：拆除前 `54 / 99 / 269 / 955`，拆除后 `54 / 99 / 269 / 0`；⭐ `UM-` 撤除后 `54 / 99 / 220 / 0`；⭐ 全部出块后 `54 / 99 / 281 / 0`；⭐ 去重恢复后 `54 / 99 / 224 / 0`；⭐ 0053 三条死端合并后 `54 / 99 / **222** / 0`（合计 321 个裁决区，账目见 [DEDUP_ACCOUNTING.md](./DEDUP_ACCOUNTING.md)）。
 
     ⚠️ 这是本轮改 parser 的安全网：⭐ 宽容只该多认几种写法，
     ⛔ 不该让空模板被解析成别的东西。
@@ -3651,7 +3651,7 @@ def test_the_four_headline_totals_are_unchanged_by_the_tolerance_fixes():
     # ⛔ 三个不变的数字必须原样：`ledger_records_seen` 尤其 —— 台账是**被审计对象**，
     # ⚠️ inspect 的发现在判读者裁决之前只能是候选，⛔ 一条都不许并进台账。
     assert (tot["pairs"], tot["ledger_records_seen"],
-            tot["candidates_seen"], tot["checklist_items"]) == (54, 99, 224, 0), tot
+            tot["candidates_seen"], tot["checklist_items"]) == (54, 99, 222, 0), tot
     assert IF.has_judged_issues(), "三份 audit json 必须在树上，否则 §3.6 什么都不渲染"
     ov = IF.load_overlap()
     new_blocks = [i for i in IF.load_issues()["issues"]
@@ -3668,8 +3668,8 @@ def test_the_four_headline_totals_are_unchanged_by_the_tolerance_fixes():
                      if ov[i["issue_id"]]["overlap_kind"] not in IF.NEW_BLOCK_KINDS]
     assert len(new_blocks) + len(merged_blocks) == 189, \
         (len(new_blocks), len(merged_blocks))
-    # ⭐ 去重后：候选块 = 92（VU+DIFF）+ 132（在范围内的 INS）= 224
-    assert 92 + 132 == tot["candidates_seen"]
+    # ⭐ 去重后：候选块 = 92（VU+DIFF）+ 130（在范围内的 INS）= 222
+    assert 92 + 130 == tot["candidates_seen"]
 
 
 # ==================================================================== inspect 一族
@@ -3877,7 +3877,7 @@ def test_every_ins_block_matches_the_audit_json():
 
 
 def test_the_merged_inspect_evidence_never_creates_a_second_block():
-    """⛔⛔ 判为「与既有条目是同一个问题」的 61 条**不许新建块**，⚠️ 也不许改动被并入那条。
+    """⛔⛔ inspect 阶段判为「与既有条目是同一个问题」的 61 条**不许新建块**，⚠️ 也不许改动被并入那条。
 
     两条理由都很硬：
     ⛔ ① 判读者对同一个问题只裁决一次 —— 摆两个块会出现两份可能互相矛盾的裁决；
@@ -4183,15 +4183,15 @@ def test_the_two_inspect_species_stay_separable_after_collection():
     # ⭐ 故 `candidates_seen` 由 269 降到 220，⛔ 台账 99 一条没动。
     # ⭐ 再于同日改为全部出块，升到 281（61 条并入项各自出块）。
     assert got == {"valid_unrecorded": 15, "review_diff": 77,
-                   # ⭐ 2026-08-16 去重恢复后为 41 / 91（132 条在范围内的 INS）；
+                   # ⭐ 0053 三条死端合并后为 39 / 91（130 条在范围内的 INS）；
                    # ⚠️ 同日一度误改为 91 / 98（那是把未去重的 189 条全出块）
-                   "inspect_finding_intrinsic": 41, "inspect_finding_uncertain": 91}, got
-    assert sum(got.values()) == 224
+                   "inspect_finding_intrinsic": 39, "inspect_finding_uncertain": 91}, got
+    assert sum(got.values()) == 222
     # ⭐ 与 audit json 逐条对齐（⛔ 不是只对总数）。
     # ⭐⭐ 2026-08-16 起**并入项也各自出块**，⛔ 故此处不再按 `NEW_BLOCK_KINDS` 过滤 ——
     # ⚠️ 那层过滤正是「61 条并入项在 md 里一个块都没有」的镜像；⭐ 现在对齐**全部** INS。
-    # ⭐⭐ 判据是「在 dtier_rulings.json 的范围内」（去重后的 132 条 INS），
-    # ⛔ 不是全部 189 条（那是未去重的判读包），⛔ 也不是 NEW_BLOCK_KINDS 的 128 条
+    # ⭐⭐ 判据是「在 dtier_rulings.json 的范围内」（去重后的 130 条 INS），
+    # ⛔ 不是全部 189 条（那是未去重的判读包），⛔ 也不是 NEW_BLOCK_KINDS 的 126 条
     # （那是「UM- 撤出前的旧口径」）。⚠️ 三个数都出现过，账目见 DEDUP_ACCOUNTING.md。
     import dtier as _DT2
     _scope = _DT2.load_rulings()
@@ -4283,7 +4283,7 @@ def test_the_source_sections_are_gone_but_no_item_was_lost():
     检查静默消失而测试全绿）。⛔ 它守两件事，⭐ 第二件比第一件重要：
 
     1. 那些来源小节的抬头不再出现（`§3.1` / `§3.2a` / `§3.3b` / `§3.6a` 一类）。
-    2. ⭐⭐ **门面数字一格没动**：`54 / 99 / 224` —— ⛔ 拆分节不许顺手丢条目。
+    2. ⭐⭐ **门面数字一格没动**：`54 / 99 / 222` —— ⛔ 拆分节不许顺手丢条目。
     """
     import re as _re
     for pair in S.IN_SCOPE_PAIRS:
@@ -4300,18 +4300,18 @@ def test_the_source_sections_are_gone_but_no_item_was_lost():
                 f"{pair}.md 的 {h[0]} 抬头没有标记：{h}"
     n_led = sum(len(C.collect_pair(p, _ws(p))["ledger"]) for p in S.IN_SCOPE_PAIRS)
     n_cand = sum(len(C.collect_pair(p, _ws(p))["candidates"]) for p in S.IN_SCOPE_PAIRS)
-    assert (len(S.IN_SCOPE_PAIRS), n_led, n_cand) == (54, 99, 224), \
+    assert (len(S.IN_SCOPE_PAIRS), n_led, n_cand) == (54, 99, 222), \
         f"⛔ 拆分节把条目数改了：{len(S.IN_SCOPE_PAIRS)} / {n_led} / {n_cand}"
 
 def test_the_dedup_is_not_undone():
-    """⛔⛔ **工作单条目数恒为 323，⭐ 且被判重复的一条都不许出块。**
+    """⛔⛔ **工作单条目数恒为 321，⭐ 且被判重复的一条都不许出块。**
 
     ⚠️ 本测试守的是 2026-08-16 一天内**两次相反方向**的改错，判据故意做成双向的：
 
     | ⛔ 错法 | 后果 | 本测试哪一条抓 |
     | :-- | :-- | :-- |
     | 按「已并入」跳过全部 61 条 | 5 条宿主已撤的连块带宿主一起消失，按 id 搜不到 | `missing` + `id 可 grep` |
-    | 让块数等于判读包的 380 | 56 条真重复重新摆出（`0010` 同一缺陷出现三次） | `extra` + 总数 323 |
+    | 让块数等于判读包的 380 | 59 条真重复重新摆出（`0010` 同一缺陷出现三次） | `extra` + 总数 321 |
 
     ⭐ 完整账目与两次改错的经过见 [DEDUP_ACCOUNTING.md](./DEDUP_ACCOUNTING.md)。
     ⛔ 若哪天这里要改数字，**先读那一页**，⚠️ 先回答「我要对齐的那个数去重了吗」。
@@ -4339,14 +4339,14 @@ def test_the_dedup_is_not_undone():
 
     # ---- ② 总数与前缀分布钉死
     got = _c.Counter(k.split("-")[0] for k in blocks)
-    assert dict(got) == {"EIS": 99, "INS": 132, "DIFF": 77, "VU": 15}, dict(got)
-    assert sum(got.values()) == len(scope) == 323, (sum(got.values()), len(scope))
+    assert dict(got) == {"EIS": 99, "INS": 130, "DIFF": 77, "VU": 15}, dict(got)
+    assert sum(got.values()) == len(scope) == 321, (sum(got.values()), len(scope))
 
-    # ---- ③ ⭐ 被判重复的那 57 条：⛔ 不许有块，⭐ 但 id 必须能 grep 到
+    # ---- ③ ⭐ 被判重复的那 59 条：⛔ 不许有块，⭐ 但 id 必须能 grep 到
     import json as _j
     out = _j.loads(_read(os.path.join(HERE, "dtier_rulings_deduped_out.json")))
     dropped = out["rulings"]
-    assert len(dropped) == 57, len(dropped)
+    assert len(dropped) == 59, len(dropped)
     assert not (set(dropped) & set(blocks)), \
         f"⛔ 被判重复的条目又出块了：{sorted(set(dropped) & set(blocks))}"
     unfindable = [k for k in dropped if f"`{k}`" not in allmd]
