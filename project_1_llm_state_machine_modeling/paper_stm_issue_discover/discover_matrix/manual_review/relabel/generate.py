@@ -573,6 +573,18 @@ def _flow(text):
     return IB.safe_md(re.sub(r"\s+", " ", str(text or "")).strip())
 
 
+#: UM- 撤出后失去宿主的 5 条 `INS-` 的重新归属裁定（逐条理由见该文件）。
+REHOST = os.path.join(HERE, "um_orphan_rehost.json")
+
+
+def _rehost():
+    """读 UM- 孤儿的重新归属表。⭐ 缺文件返回空表，⛔ 不静默编造归属。"""
+    if not os.path.exists(REHOST):
+        return {}
+    with open(REHOST, encoding="utf-8") as fh:
+        return json.load(fh).get("decisions") or {}
+
+
 def _merged_ins(pair):
     """本 pair 里**被并入别的条目**、因而不单独设裁决区的 `INS-` id → 宿主 id。
 
@@ -585,18 +597,55 @@ def _merged_ins(pair):
     for host in hosts:
         for rec in IF.merged_into(host):
             out[rec["issue_id"]] = (host, rec)
+    # ⭐⭐ UM- 一族撤出后，原本并入 UM 桶的 5 条失去宿主。⛔ 那时的「重复」是相对 UM 桶成立的，
+    # ⚠️ 而 UM 一条 = 整张表，故「与 UM-0050 重复」只表示「落在那张表的某一组里」——
+    # ⛔ 不表示它与另一条独立候选重复。⭐ 真正要回答的是：这几条**彼此之间**有没有重复。
+    # 逐条裁定在 [um_orphan_rehost.json](./um_orphan_rehost.json)，⭐ 判据是「一次修复是否
+    # 同时消掉两条」。⛔ 本处只消费裁定，不自行推断。
+    for rid, d in _rehost().items():
+        if not rid.startswith(f"INS-{pair}-"):
+            continue
+        if d.get("role") == "merged":
+            rec = next((x for x in IF.issues_of(pair) if x["issue_id"] == rid), None)
+            if rec is not None:
+                out[rid] = (d["into"], rec)
+        else:                       # ⭐ role == "host"：自立门户，⛔ 从并入表里摘掉
+            out.pop(rid, None)
     return out
 
 
 def _supplements(target, pair):
-    """并入 `target` 的补充证据行。⭐ 只印事实，⛔ 不印工具名与诊断码。"""
+    """并入 `target` 的补充证据行。⭐ 只印事实，⛔ 不印工具名与诊断码。
+
+    ⭐⭐ **必须印出被并入条目的 id。** ⚠️ 不印时那 56 条并入项在整份 md 里一个字都不出现，
+    ⛔ 于是「按 id 搜不到」与「这条不存在」无法区分 —— 2026-08-16 用户就是这么发现
+    `INS-0050-01` 失踪的。⭐ 印了 id，`grep` 就找得到、账也对得上，⛔ 而**不需要**给它
+    另开裁决区（那会把去重掉的重复重新摆出来，实测一摆就是 56 条）。
+
+    ⚠️ 若并入项自己的三方判读结论与宿主**不同**，在同一行点出来 —— ⭐ 这是判读者在这一个
+    裁决点上唯一能看到该分歧的地方。⛔ 但仍然只裁一次：分歧是提示，不是第二个裁决区。
+    """
     out = []
-    for rec in IF.merged_into(target):
+    rows = list(IF.merged_into(target))
+    # ⭐ 宿主也可能是一条 `INS-`（UM- 撤出后重新归属的结果），⛔ 那种关系只在覆盖表里。
+    for rid_, d in _rehost().items():
+        if d.get("role") == "merged" and d.get("into") == target:
+            rec_ = next((x for x in IF.issues_of(pair) if x["issue_id"] == rid_), None)
+            if rec_ is not None:
+                rows.append(rec_)
+    for rec in rows:
         txt = _flow(rec.get("statement"))
-        if txt:
-            # ⭐ 必须是列表项：⛔ 两条并列的加粗段落挨在一起就是段内硬折行（CLAUDE.md §2.2.1b），
-            # ⚠️ `tools.unwrap_markdown --check` 会直接报，实测栽过一次。
-            out.append(f"- **补充证据（与本条是同一个问题）**：{txt}")
+        if not txt:
+            continue
+        rid = rec.get("issue_id")
+        note = ""
+        if rid:
+            _, why = DT.merged_needs_own_block(rid, target)
+            if why and not why.startswith("宿主已撤出"):
+                note = f"　⚠️ **它的独立判读与本条不同**：{why}。"
+        # ⭐ 必须是列表项：⛔ 两条并列的加粗段落挨在一起就是段内硬折行（CLAUDE.md §2.2.1b），
+        # ⚠️ `tools.unwrap_markdown --check` 会直接报，实测栽过一次。
+        out.append(f"- **补充证据（`{rid}`，与本条判为同一个问题）**：{txt}{note}")
     return out
 
 
@@ -748,34 +797,45 @@ def section_candidates(pair, model, records, saved):
         rid = rec["issue_id"]
         if _skip(rid):
             continue
-        # ⛔⛔ **进了三方判读的条目，一条都不许没有块。**
+        # ⛔⛔ **被判定为重复的条目一律不出块** —— ⭐ 用户裁定（2026-08-16）：
+        # 重复项不进台账、不进 md、**不拿去让人裁决**。
         #
-        # ⚠️ 此处**曾经**按「已并入宿主」跳过 61 条 `INS-`，理由是「同一个问题只裁一次」。
-        # ⛔ 那条理由有三个破口，实测全部发生过：
-        #   ① 宿主自己被撤了 —— `UM-` 一族 2026-08-16 整批撤出，5 条并入它们的 `INS-`
-        #      连宿主一起消失（`INS-0050-01` / `-02` / `-03` · `INS-0032-04` · `INS-0056-01`）
-        #   ② 三方对并入项与宿主**判出不同档**（8 条）—— 那就不是同一个问题，
-        #      并掉等于用宿主的裁决静默覆盖它自己的判读结果
-        #   ③ 并入项的 id 在整份 md 里**一个字都不出现** —— 按 id 去搜搜不到，
-        #      而速览行还点名说它「需你处理」
-        # ⭐ 现在的口径：**每条判读都出块**，⛔ 数量严格对账（见
-        # `test_every_ruling_has_exactly_one_block`）。⚠️ 并入关系不丢，写成块内一行说明。
-        why = None
+        # ⚠️ 这里 2026-08-16 内来回改过两次，两次都错，记下来免得再犯：
+        #
+        #   ⛔ **第一版**：按「已并入宿主」跳过全部 61 条。⚠️ 漏了一种情况 —— `UM-` 一族
+        #      整批撤出后，5 条并入它们的 `INS-` 连宿主一起消失，⛔ 于是既无块、也无宿主，
+        #      在整份 md 里一个字都不出现；⚠️ 而速览行还点名说它们「需你处理」，
+        #      用户按 id 去搜搜不到（`INS-0050-01`）。
+        #   ⛔ **第二版**：改成「每条判读都出块」，让块数等于判读包的 380。⛔⛔ 那是把块数
+        #      对到了一个**未去重**的数上 —— 按构造必然把 56 条真重复重新摆出来。实测
+        #      `0010` 上同一个缺陷出现三次（`EIS-0010-03` + `INS-0010-01` + `INS-0010-02`，
+        #      而后两条自己就写着「见 INS-0010-01」，补一条 `AutonomousFinal --> [*]`
+        #      三条一起消失）。
+        #
+        # ⭐ **正确的分界：「找得到 / 对得上账」与「有独立裁决区」是两件事。**
+        #   · 找得到 → 在宿主的补充证据行里印出被并入的 id（见 `_supplements`）
+        #   · 对得上账 → 324 = 380 − 56（见 `test_the_dedup_is_not_undone`）
+        #   · 有裁决区 → **只有去重后剩下的那 324 条**
+        #
+        # ⭐ 唯一例外是宿主已撤出的那 5 条：它们无处可并，**不是重复**，必须自己出块。
         if rid in merged:
-            _, why = DT.merged_needs_own_block(rid, merged[rid][0])
+            need, why = DT.merged_needs_own_block(rid, merged[rid][0])
+            if not (need and why and why.startswith("宿主已撤出")):
+                continue
         keys.append(rid)
         # ⭐ `INS-` 的五轴直接挂在记录上（不像台账/候选走 mapping 文件），⛔ 就地包一层。
         mp = {"mappable": True, "id": rid}
         mp.update({k: rec.get(k) for k in IB.AXES})
         mp[NF.OTHER_NOTE_FIELD] = rec.get(NF.OTHER_NOTE_FIELD)
-        # ⚠️ `extra` 是**行的可迭代**，⛔ 传字符串会被逐字符拆开
-        extra = ()
-        if rid in merged:
-            host = merged[rid][0]
-            tail = f"　⚠️ 但两者并不同判：{why}。" if why else                    "　⭐ 两者同判，故你只需在其中一处落裁决即可。"
-            extra = (f"⚠️ **本条与 `{host}` 曾被判为同一个问题**（事实也作补充证据"
-                     f"印在 `{host}` 的问题描述里）。{tail}",)
-        lines += IB.render(rid, _flow(rec.get("statement")), mp, saved, fb, DT, extra=extra)
+        # ⭐ 走到这里的条目都是**宿主条目**，⛔ 不加任何「曾被判为重复」的说明 ——
+        # ⚠️ 那种说明会让读者以为这一条的地位低于别的条目，而它并不低。
+        #
+        # ⭐⭐ 但**并入本条的事实必须印出来**：`INS-` 也可以当宿主（UM- 撤出后重新归属的
+        # 结果，如 `INS-0050-02` 收下了 `INS-0050-03`）。⛔ 此前 `_supplements` 只接在台账
+        # 描述上，⚠️ 于是 `INS-0050-03` 的事实在 md 里一个字都不剩 —— 那是把「不重复出块」
+        # 做成了「把证据删掉」，⛔ 两件事必须分开。
+        lines += IB.render(rid, _flow(rec.get("statement")), mp, saved, fb, DT,
+                           extra=_supplements(rid, pair))
     if len(keys) == 0:
         lines += ["本 pair 无候选线索。", ""]
     return "\n".join(lines), keys
@@ -1443,6 +1503,16 @@ def build_howto():
     lines.append(f"<!-- RELABEL schema={HOWTO_SCHEMA} -->")
     lines.append("# 工作单填写说明（54 份共用）")
     lines.append("")
+    # ⭐ 条目数口径放在最前面 —— ⛔ 填表的人第一眼就该看到正确的数，
+    # ⚠️ 免得再有人拿未去重的 380 当条目总数（2026-08-16 实测代价见 DEDUP_ACCOUNTING.md）。
+    lines.append(
+        "**条目数口径：工作单共 323 个裁决区**（§2 台账 99 + §3 候选 224 ="
+        " `VU` 15 + `DIFF` 77 + `INS` 132）。三方 D 档判读做过 **380** 条，"
+        "**那个数没有去重** —— 其中 57 条被判定为「与另一条是同一个问题」，"
+        "只作补充证据印在宿主条目的问题描述里、不设裁决区。"
+        "完整账目见 [DEDUP_ACCOUNTING.md](./DEDUP_ACCOUNTING.md)。"
+    )
+    lines.append("")
     lines.append(
         "本文件由 [generate.py](./generate.py) 生成，**没有任何填写区** —— 它是只读说明。"
         "要填的东西全在 `nl_XXXX/<pair>.md` 的 `FILL` 块里。"
@@ -1453,9 +1523,11 @@ def build_howto():
     lines.append("| 节 | 内容 | 工作单里从哪里跳过来 |")
     lines.append("| :-- | :-- | :-- |")
     lines.append("| §A | 两处只读材料的口径提醒 | §1.2 · §1.3 |")
-    lines.append("| §B | §5 登记的三件事与逐字段怎么填 | §5 开头 · §5.1 |")
-    lines.append("| §C | 座标系为什么长这样（背景，填表时可跳过） | §5.2 登记区 |")
-    lines.append("| §D | §2 / §3 / §4 三节的通用读法 | §2 · §3 · §4 开头 |")
+    # ⛔ §4 深度检查清单与 §5 新增登记已**整节拆除**（用户裁定：只保留对现有台账 + 候选的
+    # 裁决）。⚠️ 目录里再指它们就是把读者引向不存在的小节 —— 故 §B/§C 标注为背景材料。
+    lines.append("| §B | ⚠️ **§5 登记已拆除**，本节保留为历史背景 | —（不再有跳转来源）|")
+    lines.append("| §C | 座标系为什么长这样（背景，填表时可跳过） | —（不再有跳转来源）|")
+    lines.append("| §D | §2 / §3 两节的通用读法 | §2 · §3 开头 |")
     lines.append("")
 
     # ============================================================ §A 材料口径

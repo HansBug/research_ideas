@@ -46,7 +46,9 @@ venv/bin/python project_1_llm_state_machine_modeling/paper_stm_issue_discover/di
 
 ## ⭐ 人工全量重标：[relabel/](./relabel/)
 
-⛔ **上表的 126 条全部由 LLM agent 生成，人类校验 0 条**，双盲复审只覆盖 12/60 且是二元 case 级。[relabel/](./relabel/) 是为**逐 pair 人工重标**准备的工作区：54 份自包含工作单（原料 + 逐条裁决区 + 候选新增 + 逐 pair 深度检查清单）加生成 / 回收 / 校验工具，入口见 [relabel/README.md](./relabel/README.md)，进度见 [relabel/PROGRESS.md](./relabel/PROGRESS.md)。
+⛔ **上表的 126 条全部由 LLM agent 生成，人类校验 0 条**，双盲复审只覆盖 12/60 且是二元 case 级。[relabel/](./relabel/) 是为**逐 pair 人工重标**准备的工作区：54 份自包含工作单（判读原料 + 逐条裁决区）加生成 / 回收 / 校验工具，入口见 [relabel/README.md](./relabel/README.md)，进度见 [relabel/PROGRESS.md](./relabel/PROGRESS.md)。⚠️ 原先还有「候选新增登记」与「逐 pair 深度检查清单」两节，⛔ 已**整节拆除**（用户裁定：只保留对现有台账 + 候选的裁决）。
+
+⛔⛔ **条目数口径：工作单共 323 个裁决区**（台账 99 + 候选 224）。⚠️ 三方 D 档判读做过 **380** 条，⛔ **那个数没有去重** —— 其中 57 条被判定为「与另一条是同一个问题」，只作补充证据印在宿主条目里、⛔ 不设裁决区。⚠️ 历史上还出现过 `269` / `220` / `319` / `324` / `429` 几个数，⛔ **一个都不是当前口径**。⭐ 完整账目、每个数的来历、以及 2026-08-16 因混淆 `380` 与 `323` 而两次改错的经过，见 [relabel/DEDUP_ACCOUNTING.md](./relabel/DEDUP_ACCOUNTING.md) —— ⛔ 动任何与条目数有关的代码或统计前先读那一页。
 
 ⛔ **重标不修改本目录的台账。** [expected_issue_set.json](./expected_issue_set.json) 保持冻结 —— 它是 v46 与 X1 两轮判定所依据的比对对象；重标产物只落在 `relabel/` 内，合并回台账需要单独的裁定与 PR。
 

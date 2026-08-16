@@ -385,8 +385,19 @@ def pending_ids(pair):
     任何条目。⚠️ 在那之前速览会点名「已并入宿主、自己没有块」的条目 —— 实测用户按速览点名的
     `INS-0050-01` 去翻工作单翻不到，⛔ 那属于版式在骗人。
     """
-    return sorted(rid for rid, rec in load_rulings().items()
-                  if rec.get("pair") == pair and rec.get("bucket") in BUCKET_MARK)
+    import generate as G                  # 局部导入：顶层会成循环依赖
+    merged = G._merged_ins(pair)                                   # noqa: SLF001
+    out = []
+    for rid, rec in load_rulings().items():
+        if rec.get("pair") != pair or rec.get("bucket") not in BUCKET_MARK:
+            continue
+        if rid in merged:
+            need, why = merged_needs_own_block(rid, merged[rid][0])
+            # ⛔ 被判为重复的不点名 —— 它没有块，点名等于叫人去找一个不存在的小节
+            if not (need and why and why.startswith("宿主已撤出")):
+                continue
+        out.append(rid)
+    return sorted(out)
 
 
 def pair_overview(pair):
