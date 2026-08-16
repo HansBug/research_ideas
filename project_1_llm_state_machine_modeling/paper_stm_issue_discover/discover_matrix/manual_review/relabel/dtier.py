@@ -346,6 +346,49 @@ def prefill(key, kind):
 
 # ------------------------------------------------------------------ 速览与统计
 
+#: ⛔ 宿主前缀已整批撤出工作单的一族（见 `docs/findings/um_residue_ruling.md`）。
+#: ⚠️ 并入这些宿主的条目会**连宿主一起消失**，故必须自己出块。
+WITHDRAWN_HOST_PREFIXES = ("UM-",)
+
+
+def merged_needs_own_block(rid, host):
+    """并入项 `rid` 是否**必须自己设裁决区**。⭐ 返回 `(要不要, 原因)`；不需要时原因为 `None`。
+
+    ⭐ 合并的前提是「同一个问题只裁一次」，⛔ 前提破了就不能再并。⚠️ 三种破法：
+
+    1. ⛔⛔ **宿主已经不在工作单上。** ⚠️ `UM-` 一族 2026-08-16 整批撤出，⛔ 而并入它们的
+       5 条 `INS-` 仍被当作「已并入」跳过 —— 于是它们**一个块都没有**，按 id 去翻翻不到。
+       ⭐ `INS-0050-01` 就是这么被发现的。
+    2. ⛔ **两边推荐不同。** ⚠️ 三方是对**每条**独立判 D 档的；判出不同档就说明不是同一个
+       问题，⛔ 此时并掉等于用宿主的裁决静默覆盖它自己的判读结果（实测 8 条，如
+       `INS-0040-02` 推荐 `D1` 而宿主 `EIS-0040-03` 推荐 `D2`）。
+    3. ⚠️ **任一侧缺 meta review。** ⭐ 判不了就保守出块 —— ⛔ 宁可多一个块，也不静默吞掉。
+
+    ⚠️ 第 1 条**不用「宿主有没有 meta」当代理**：那是两件事，⭐ 代理会在别的原因导致缺
+    meta 时给出对的答案却是错的理由，⛔ 也会在撤出的宿主恰好有 meta 时漏掉。
+    """
+    if host.startswith(WITHDRAWN_HOST_PREFIXES):
+        return True, "宿主已撤出"
+    m = load_meta()
+    a, b = m.get(rid, {}).get("recommend"), m.get(host, {}).get("recommend")
+    if not a or not b:
+        return True, "缺 meta review"
+    if a != b:
+        return True, f"推荐与宿主 `{host}` 不同（本条 {a} · 宿主 {b}）"
+    return False, None
+
+
+def pending_ids(pair):
+    """本 pair 真正需要人处理、**且在工作单上确实有块**的 id。
+
+    ⭐ 2026-08-16 起**每条判读都出块**（见 `generate.py` 的候选循环），⛔ 故此处不再排除
+    任何条目。⚠️ 在那之前速览会点名「已并入宿主、自己没有块」的条目 —— 实测用户按速览点名的
+    `INS-0050-01` 去翻工作单翻不到，⛔ 那属于版式在骗人。
+    """
+    return sorted(rid for rid, rec in load_rulings().items()
+                  if rec.get("pair") == pair and rec.get("bucket") in BUCKET_MARK)
+
+
 def pair_overview(pair):
     """一份工作单顶部的待处理速览。⭐ 让人不必逐节翻就知道这份要花多少工夫。
 
@@ -355,16 +398,20 @@ def pair_overview(pair):
     R = {rid: rec for rid, rec in load_rulings().items() if rec.get("pair") == pair}
     if not R:
         return []
+    # ⛔ 只点名工作单上**确实有块**的那些（见 `pending_ids`）
+    pend = set(pending_ids(pair))
     need = []
     for b in ("chaotic", "leaning", "ambiguous"):
-        ids = sorted(rid for rid, rec in R.items() if rec.get("bucket") == b)
+        ids = sorted(rid for rid, rec in R.items()
+                     if rec.get("bucket") == b and rid in pend)
         if ids:
             need.append(f"{BUCKET_MARK[b][0]} {len(ids)} 条（" +
                         "、".join(f"`{i}`" for i in ids) + "）")
-    n = sum(1 for rec in R.values() if rec.get("bucket") in BUCKET_MARK)
+    n = len(pend)
     out = [f"**三方 D 档判读速览**：本 pair {len(R)} 条进了判读，其中 **{n} 条需你处理** —— "
            + ("；".join(need) if need else "无") +
-           f"。其余 {len(R) - n} 条三臂方向一致，裁决区已预填。"
+           f"。其余 {len(R) - n} 条或三臂方向一致（裁决区已预填）、或与既有条目判为同一个问题"
+           f"而并入其中（裁决落在宿主条目上，事实作补充证据印在宿主的问题描述里）。"
            f"标记含义与分桶判据见 "
            f"[dtier_triage.md](../../../docs/protocol/dtier_triage.md)。", ""]
     return out

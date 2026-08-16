@@ -746,14 +746,36 @@ def section_candidates(pair, model, records, saved):
     # ---- 确定性检查发现（⛔ 不标来源；被并入别条的不单独设块）
     for rec in IF.issues_of(pair):
         rid = rec["issue_id"]
-        if rid in merged or _skip(rid):
+        if _skip(rid):
             continue
+        # ⛔⛔ **进了三方判读的条目，一条都不许没有块。**
+        #
+        # ⚠️ 此处**曾经**按「已并入宿主」跳过 61 条 `INS-`，理由是「同一个问题只裁一次」。
+        # ⛔ 那条理由有三个破口，实测全部发生过：
+        #   ① 宿主自己被撤了 —— `UM-` 一族 2026-08-16 整批撤出，5 条并入它们的 `INS-`
+        #      连宿主一起消失（`INS-0050-01` / `-02` / `-03` · `INS-0032-04` · `INS-0056-01`）
+        #   ② 三方对并入项与宿主**判出不同档**（8 条）—— 那就不是同一个问题，
+        #      并掉等于用宿主的裁决静默覆盖它自己的判读结果
+        #   ③ 并入项的 id 在整份 md 里**一个字都不出现** —— 按 id 去搜搜不到，
+        #      而速览行还点名说它「需你处理」
+        # ⭐ 现在的口径：**每条判读都出块**，⛔ 数量严格对账（见
+        # `test_every_ruling_has_exactly_one_block`）。⚠️ 并入关系不丢，写成块内一行说明。
+        why = None
+        if rid in merged:
+            _, why = DT.merged_needs_own_block(rid, merged[rid][0])
         keys.append(rid)
         # ⭐ `INS-` 的五轴直接挂在记录上（不像台账/候选走 mapping 文件），⛔ 就地包一层。
         mp = {"mappable": True, "id": rid}
         mp.update({k: rec.get(k) for k in IB.AXES})
         mp[NF.OTHER_NOTE_FIELD] = rec.get(NF.OTHER_NOTE_FIELD)
-        lines += IB.render(rid, _flow(rec.get("statement")), mp, saved, fb, DT)
+        # ⚠️ `extra` 是**行的可迭代**，⛔ 传字符串会被逐字符拆开
+        extra = ()
+        if rid in merged:
+            host = merged[rid][0]
+            tail = f"　⚠️ 但两者并不同判：{why}。" if why else                    "　⭐ 两者同判，故你只需在其中一处落裁决即可。"
+            extra = (f"⚠️ **本条与 `{host}` 曾被判为同一个问题**（事实也作补充证据"
+                     f"印在 `{host}` 的问题描述里）。{tail}",)
+        lines += IB.render(rid, _flow(rec.get("statement")), mp, saved, fb, DT, extra=extra)
     if len(keys) == 0:
         lines += ["本 pair 无候选线索。", ""]
     return "\n".join(lines), keys

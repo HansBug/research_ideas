@@ -3613,13 +3613,13 @@ def test_field_tables_are_derived_from_the_templates_not_hand_copied():
 
 
 def test_the_four_headline_totals_are_unchanged_by_the_tolerance_fixes():
-    """⛔ 宽容化不许动门面数字：`54 / 99 / 220`（⚠️ 第四个 `955` 已归零，见下）。
+    """⛔ 宽容化不许动门面数字：`54 / 99 / 281`（⚠️ 第四个 `955` 已归零，见下）。
 
     ⚠️⚠️ **2026-08-14 第四个数字由 955 改为 0，⛔ 这不是丢数据。** 用户裁定本轮工作单
     只做「对现有台账 + 候选逐条裁决」，§4 深度检查清单与 §5 新增登记整体不再装进
     `build_doc`（`generate.py` 里那段注释写了理由与保留方式）。⭐ 故 `checklist_items`
     结构上为 0。⛔ 前三个数字**一格没动** —— 那正是本条要守的：拆节不许顺手丢条目。
-    ⭐ 双份数字都记在这里：拆除前 `54 / 99 / 269 / 955`，拆除后 `54 / 99 / 269 / 0`；⭐ `UM-` 撤除后 `54 / 99 / **220** / 0`。
+    ⭐ 双份数字都记在这里：拆除前 `54 / 99 / 269 / 955`，拆除后 `54 / 99 / 269 / 0`；⭐ `UM-` 撤除后 `54 / 99 / 220 / 0`；⭐ 全部出块后 `54 / 99 / **281** / 0`。
 
     ⚠️ 这是本轮改 parser 的安全网：⭐ 宽容只该多认几种写法，
     ⛔ 不该让空模板被解析成别的东西。
@@ -3632,13 +3632,15 @@ def test_the_four_headline_totals_are_unchanged_by_the_tolerance_fixes():
     # ⭐ 等式（每一项都可机械复算，见下面的断言）：
     #     269 = 141（VU 15 + DIFF 77 + UM 49）+ 128 新建 INS- 块
     # ⚠️ 2026-08-16 `UM-` 撤除后：220 = 92（VU 15 + DIFF 77）+ 128
+    # ⭐ 同日改为**每条判读都出块**后：281 = 92 + 189（INS 全量）。
+    # ⭐ 2026-08-16 起**每条判读都出块**（不再按「已并入宿主」跳过），⛔ 故 `candidates_seen` 由 220 升到 **281** —— ⚠️ 那 61 条并入项此前在 md 里**一个块都没有**，按 id 搜不到，而速览行还点名说它们「需你处理」。
     #         + 126（184 条归一化 issue 里判重结论为 `suspect` 24 + `none` 102 的那些）
     #         +   2（5 条恢复的 refuted 里判重结论为 `none` 的那两条 —— 另外 3 条并入了
     #               既有台账 / 候选，⛔ 并入的一律不新建块，故不进这个数）
     # ⛔ 三个不变的数字必须原样：`ledger_records_seen` 尤其 —— 台账是**被审计对象**，
     # ⚠️ inspect 的发现在判读者裁决之前只能是候选，⛔ 一条都不许并进台账。
     assert (tot["pairs"], tot["ledger_records_seen"],
-            tot["candidates_seen"], tot["checklist_items"]) == (54, 99, 220, 0), tot
+            tot["candidates_seen"], tot["checklist_items"]) == (54, 99, 281, 0), tot
     assert IF.has_judged_issues(), "三份 audit json 必须在树上，否则 §3.6 什么都不渲染"
     ov = IF.load_overlap()
     new_blocks = [i for i in IF.load_issues()["issues"]
@@ -3647,7 +3649,15 @@ def test_the_four_headline_totals_are_unchanged_by_the_tolerance_fixes():
     assert len(new_blocks) == 128 and len(recovered_new) == 2, \
         (len(new_blocks), len(recovered_new))
     # ⚠️ 2026-08-16 `UM-` 一族（49 条）整批撤出工作单（见 docs/findings/um_residue_ruling.md），⭐ 故渲染出的候选由 141 降到 **92**（VU 15 + DIFF 77）；⛔ candidate_mapping.json 里仍保留 UM 的 49 条映射记录（历史事实，不删），故它的 total 仍是 141。
-    assert 92 + len(new_blocks) == tot["candidates_seen"]
+    # ⭐⭐ 2026-08-16 起**并入项也各自出块**（见 `generate.py` 候选循环的长注释）。
+    # ⛔ 在那之前它们不出块，于是恒等式是 `92 + new_blocks`；⚠️ 而那正是 `INS-0050-01`
+    # 「按 id 搜不到」的成因 —— 61 条并入项在整份 md 里一个字都不出现。
+    # ⭐ 现在的恒等式把并入项也算进来：候选块 = 92（VU+DIFF）+ 全部 INS。
+    merged_blocks = [i for i in IF.load_issues()["issues"]
+                     if ov[i["issue_id"]]["overlap_kind"] not in IF.NEW_BLOCK_KINDS]
+    assert len(new_blocks) + len(merged_blocks) == 189, \
+        (len(new_blocks), len(merged_blocks))
+    assert 92 + len(new_blocks) + len(merged_blocks) == tot["candidates_seen"]
 
 
 # ==================================================================== inspect 一族
@@ -4159,14 +4169,16 @@ def test_the_two_inspect_species_stay_separable_after_collection():
     # 裁定与全部证据见 docs/findings/um_residue_ruling.md：X1 那一半 333/334 条的簇号精确
     # 出现在已裁定表里（96% 判为非缺陷），v46 那一半的主体是 REPRESENTATION_DEBT（投影债务）。
     # ⭐ 故 `candidates_seen` 由 269 降到 220，⛔ 台账 99 一条没动。
+    # ⭐ 再于同日改为全部出块，升到 281（61 条并入项各自出块）。
     assert got == {"valid_unrecorded": 15, "review_diff": 77,
-                   "inspect_finding_intrinsic": 38, "inspect_finding_uncertain": 90}, got
-    assert sum(got.values()) == 220
+                   # ⭐ 2026-08-16 全部出块后由 38 / 90 升到 91 / 98（并入项也各自出块）
+                   "inspect_finding_intrinsic": 91, "inspect_finding_uncertain": 98}, got
+    assert sum(got.values()) == 281
     # ⭐ 与 audit json 逐条对齐（⛔ 不是只对总数）。
+    # ⭐⭐ 2026-08-16 起**并入项也各自出块**，⛔ 故此处不再按 `NEW_BLOCK_KINDS` 过滤 ——
+    # ⚠️ 那层过滤正是「61 条并入项在 md 里一个块都没有」的镜像；⭐ 现在对齐**全部** INS。
     want = collections.Counter(
-        "inspect_finding_" + i["verdict_class"]
-        for i in IF.load_issues()["issues"]
-        if IF.load_overlap()[i["issue_id"]]["overlap_kind"] in IF.NEW_BLOCK_KINDS)
+        "inspect_finding_" + i["verdict_class"] for i in IF.load_issues()["issues"])
     assert got["inspect_finding_intrinsic"] == want["inspect_finding_intrinsic"]
     assert got["inspect_finding_uncertain"] == want["inspect_finding_uncertain"]
     # ⛔ `INSU-` 前缀不许再出现在任何工作单里。
@@ -4217,21 +4229,31 @@ def test_the_dtier_renderer_spends_no_star_of_its_own():
     一个都不花」这条更硬的判据；⛔ 若哪天生成串里又出现 `⭐`，本条立刻红。
     ⚠️ 判据只看生成串 —— 注释与 docstring 里照常可以用（那是给读代码的人看的）。
     """
+    # ⚠️⚠️ 判据用 `tokenize` 只看**字符串 token**，⛔ 不再按行做 docstring 状态机。
+    # ⭐ 旧实现漏了**行尾注释**：`x = 1  # ⭐ 说明` 会被判成生成串（实测 2026-08-16
+    # 因一句局部导入的行尾注释误报）。⛔ 而本测试自己的 docstring 写着「注释里照常可以用」——
+    # ⚠️ 检测器没实现它声明的判据，那是检测器的缺陷，不是被测代码的。
+    # ⭐ token 级判据顺带解决了单行 docstring、拼接字面量、f-string 等一切边角。
+    import io
+    import tokenize as _tk
     src = _read(os.path.join(HERE, "dtier.py"))
-    indoc = False
+    docstrings = set()
+    # ⭐ docstring = 模块 / 类 / 函数体里**独立成句**的字符串表达式；用 AST 精确取。
+    import ast
+    tree = ast.parse(src)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            b = getattr(node, "body", None)
+            if b and isinstance(b[0], ast.Expr) and isinstance(b[0].value, ast.Constant) \
+                    and isinstance(b[0].value.value, str):
+                docstrings.add((b[0].lineno, b[0].end_lineno))
     bad = []
-    for i, line in enumerate(src.splitlines(), 1):
-        st = line.strip()
-        # ⚠️ 单行 docstring（一行里两个 `"""`）不许切换状态 —— ⛔ 否则它之后的整段被误判成
-        # 生成串，实测 `dtier.py` 有 4 处单行 docstring 因此被误报。
-        q = st.count('"""')
-        if q == 1:
-            indoc = not indoc
+    for tok in _tk.generate_tokens(io.StringIO(src).readline):
+        if tok.type != _tk.STRING or "⭐" not in tok.string:
             continue
-        if indoc or q >= 2 or st.startswith("#"):
+        if any(a <= tok.start[0] and tok.end[0] <= b for a, b in docstrings):
             continue
-        if "⭐" in line:
-            bad.append((i, line.strip()[:60]))
+        bad.append((tok.start[0], tok.string.strip()[:60]))
     assert not bad, f"dtier.py 的生成串里有 ⭐：{bad}"
 
 
@@ -4242,7 +4264,7 @@ def test_the_source_sections_are_gone_but_no_item_was_lost():
     检查静默消失而测试全绿）。⛔ 它守两件事，⭐ 第二件比第一件重要：
 
     1. 那些来源小节的抬头不再出现（`§3.1` / `§3.2a` / `§3.3b` / `§3.6a` 一类）。
-    2. ⭐⭐ **门面数字一格没动**：`54 / 99 / 220` —— ⛔ 拆分节不许顺手丢条目。
+    2. ⭐⭐ **门面数字一格没动**：`54 / 99 / 281` —— ⛔ 拆分节不许顺手丢条目。
     """
     import re as _re
     for pair in S.IN_SCOPE_PAIRS:
@@ -4259,5 +4281,42 @@ def test_the_source_sections_are_gone_but_no_item_was_lost():
                 f"{pair}.md 的 {h[0]} 抬头没有标记：{h}"
     n_led = sum(len(C.collect_pair(p, _ws(p))["ledger"]) for p in S.IN_SCOPE_PAIRS)
     n_cand = sum(len(C.collect_pair(p, _ws(p))["candidates"]) for p in S.IN_SCOPE_PAIRS)
-    assert (len(S.IN_SCOPE_PAIRS), n_led, n_cand) == (54, 99, 220), \
+    assert (len(S.IN_SCOPE_PAIRS), n_led, n_cand) == (54, 99, 281), \
         f"⛔ 拆分节把条目数改了：{len(S.IN_SCOPE_PAIRS)} / {n_led} / {n_cand}"
+
+def test_every_ruling_has_exactly_one_block():
+    """⛔⛔ **进了三方判读的每一条，都必须在工作单里有且只有一个块。**
+
+    ⚠️ 这一条是 2026-08-16 实测事故的守门人。事故形态：`INS-0050-01` 在速览行被点名
+    「需你处理」，⛔ 而它在整份 md 里**一个字都不出现** —— 用户按 id 去搜搜不到。
+
+    ⭐ 成因是候选循环按「已并入宿主」跳过了 61 条 `INS-`，理由是「同一个问题只裁一次」。
+    ⛔ 那条理由有三个破口，实测全部发生过：
+
+    1. ⛔⛔ **宿主自己被撤了。** `UM-` 一族整批撤出后，5 条并入它们的 `INS-` 连宿主一起
+       消失（`INS-0050-01` / `-02` / `-03` · `INS-0032-04` · `INS-0056-01`）。
+    2. ⛔ **三方把并入项与宿主判成不同档**（8 条），那就不是同一个问题 —— 并掉等于
+       用宿主的裁决静默覆盖它自己的判读结果。
+    3. ⛔ **并入项的 id 根本不出现**，于是「找不到」与「不存在」无法区分。
+
+    ⭐ 判据故意做成**双向**的：既查缺块，也查多余块与重复块。⛔ 只查缺块的话，
+    某天多渲一个不在判读包里的 id 也会静默过去。
+    """
+    import collections as _c
+    import re as _re
+    import dtier as _DT            # ⭐ 本模块顶层未导入 dtier，⛔ 就地导入
+    rulings = _DT.load_rulings()
+    blocks = _c.Counter()
+    for pair in S.IN_SCOPE_PAIRS:
+        for h in _re.findall(r"^### ((?:EIS|INS|DIFF|VU|UM)-\S+)", _read(_ws(pair)), _re.M):
+            blocks[h] += 1
+    missing = sorted(set(rulings) - set(blocks))
+    extra = sorted(set(blocks) - set(rulings))
+    dup = sorted(k for k, v in blocks.items() if v > 1)
+    assert not missing, f"⛔ 判读了却没有块（按 id 搜不到）：{missing}"
+    assert not dup, f"⛔ 同一 id 出现多个块：{dup}"
+    assert not extra, f"⛔ 有块但不在判读包里：{extra}"
+    # ⭐ 前缀分布也钉住：⛔ 防「总数对了但族别串了」
+    got = _c.Counter(k.split("-")[0] for k in blocks)
+    assert dict(got) == {"EIS": 99, "INS": 189, "DIFF": 77, "VU": 15}, dict(got)
+    assert sum(got.values()) == len(rulings) == 380
