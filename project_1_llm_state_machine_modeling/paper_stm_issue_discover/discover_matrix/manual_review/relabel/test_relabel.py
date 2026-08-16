@@ -30,6 +30,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import urllib.parse as _urllib_parse
 
 import pytest
 
@@ -2017,7 +2018,11 @@ def test_every_relative_link_in_the_workspace_resolves():
     for rel in _all_md(HERE):
         path = os.path.join(HERE, rel)
         for target in re.findall(r"\]\((\.[^)#\s]*)\)", _read(path)):
-            resolved = os.path.normpath(os.path.join(os.path.dirname(path), target))
+            # ⚠️ 必须 URL 解码：⛔ Markdown 链接里空格写作 `%20`（GitHub 能解析），
+            # 而 `os.path.exists` 不认 —— 不解码会把合法链接误报成死链（实测栽在
+            # `Experiment%20Results.xlsx` 上）。⭐ 解码只影响判定，报错仍打原文。
+            resolved = os.path.normpath(os.path.join(
+                os.path.dirname(path), _urllib_parse.unquote(target)))
             if not os.path.exists(resolved):
                 bad.append(f"{rel} -> {target}")
     assert not bad, "断链：\n  " + "\n  ".join(bad)
@@ -3054,8 +3059,11 @@ def test_no_relative_link_in_any_generated_md_is_dead():
             target = m.group(1)
             if target.startswith(("http://", "https://", "#")):
                 continue
-            resolved = os.path.normpath(
-                os.path.join(os.path.dirname(path), target.split("#")[0]))
+            # ⚠️ 必须 URL 解码：⛔ Markdown 链接里空格写作 `%20`（GitHub 能解析），
+            # 而 `os.path.exists` 不认 —— 不解码会把合法链接误报成死链（实测栽在
+            # `Experiment%20Results.xlsx` 上）。⭐ 解码只影响判定，报错仍打原文。
+            resolved = os.path.normpath(os.path.join(
+                os.path.dirname(path), _urllib_parse.unquote(target.split("#")[0])))
             if not os.path.exists(resolved):
                 bad.append(f"{rel} -> {target}")
     assert not bad, "死链：\n" + "\n".join(sorted(set(bad)))

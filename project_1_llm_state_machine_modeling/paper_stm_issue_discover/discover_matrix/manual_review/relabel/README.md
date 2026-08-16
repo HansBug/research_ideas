@@ -101,7 +101,57 @@ relabel/
 
 若按末位数字分目录，`nl_0002/` 里会同时坐着两份**不同**的 NL，而该目录的 `NL.md` 只能对其中一半为真 —— 那正好复刻 §十 记的那起事故。判据由 [sources.py](./sources.py) 的 `_nl_dir_index()` 实现、由 `test_nl_grouping_follows_the_nl_text_not_the_last_digit` 钉住。
 
-目录名取该组**最小的 pair id**，与 [translations/](./translations/) 下的译文 JSON 文件名一一对应（`nl_0002/` ↔ `translations/nl_0002.json`）。
+#### 3.0.1 pair 号 / NL / 系统名 三者的完整对应关系
+
+⚠️ `nl_0002/` 里坐着 `0013` 看起来很怪，但把三层编号摊开就一目了然。以下每一条都在源表格上直接核过（不是从元数据转抄）。
+
+**第一层：pair 号 = 源 Excel 的行号。**
+
+真源是**上游论文原装数据集**里的 `Experiment Results.xlsx`，其 **`STM Results`** 工作表。论文：Wang, Ge, Liu, Cao, Chen, Hu，*Generating SysML Behavior Models via Large Language Models: an Empirical Study*，Internetware 2025，pp. 366–377，DOI [10.1145/3755881.3755926](https://doi.org/10.1145/3755881.3755926)（CC BY 4.0）。数据集由论文正文与脚注给出的 Google Drive 分发：[drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6](https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link)，本仓库于 2026-06-22 以 `gdown.download_folder` 取下，落在 [corpora/seed_library/llms-emp-stm-subset/assets/raw/drive_download/](../../../corpora/seed_library/llms-emp-stm-subset/assets/raw/drive_download/)（该目录含 `Experiment Results.xlsx` 与 `Dataset.xlsx` 两份，均为原装）；溯源与 hash 见 [artifacts.md](../../../corpora/seed_library/llms-emp-stm-subset/artifacts.md) 与 [google_drive_metadata.json](../../../corpora/seed_library/llms-emp-stm-subset/assets/raw/google_drive_metadata.json)。第 1 行是表头，数据占第 2–61 行，共 60 行。关键列：`A` = Model Source · `B` = Model Name · **`C` = Requirement Description（这就是 NL 正文）** · `H` = LLMs · `I` = Generation PlantUML · **`AE` = Result with Semantic Checking**（我们取的就是这一列，见各 pair 的 `source_meta.json` 的 `source_locator`）。
+
+对应关系是 **`pair 号 = excel 行号 − 2`**，60/60 无一例外。表格按 **每 10 行一段 = 一个 LLM** 排布：`0x` GPT-4o · `1x` GPT-4 · `2x` Llama · `3x` Kimi · `4x` DeepSeek · `5x` Claude；段内 10 行对应 10 个系统。
+
+**第二层：NL 由「系统」决定，不由 pair 号的个位决定。**
+
+同一个系统（`B` 列 Model Name）在 6 段里各出现一次，它的 `C` 列需求描述**逐字符相同**。已核：60 行里恰好 **10 份**不同的 `C`，每份出现 **6 次**；每份 `C` 只对应 **1 个** Model Name；每份 `C` 覆盖全部 **6 个** LLM。
+
+⚠️ **`nl_0002/` 装着 `0013` 的原因就在这里**：源表格里 GPT-4o 那一段把 Pump Control 排在段内第 2 位、HSUV 第 3 位，而其余五段一律反过来。
+
+| 段内位置 | `0x`（GPT-4o） | `1x`–`5x`（其余五个模型） |
+| :-- | :-- | :-- |
+| 第 2 位 | excel 行 4 → `0002` = **Pump Control** | excel 行 14/24/34/44/54 → `0012`… = HSUV |
+| 第 3 位 | excel 行 5 → `0003` = HSUV | excel 行 15/25/35/45/55 → `0013`… = **Pump Control** |
+
+直接核过的单元格：`C4` 与 `C15` 逐字符相同（sha256 前 8 位 `a391765d`，即两份 Pump Control 需求）；`C5` 与 `C14` 相同（`9fe426ba`，两份 HSUV）；`C4 ≠ C5`。其余 8 个系统在六段里位置一致，所以只有这一处看起来「交叉」。
+
+**这不是数据缺口。** NL06 与 NL09 各自仍有 6 个 pair、六个模型各一次，与其余 8 份 NL 完全对称。它只是**两个 pair 号的段内位置错位**，而错位来自源表格自身的行序。
+
+**第三层：`NLxx` 是本仓库自己的批次标签。**
+
+`NL01`–`NL10` 既不来自 `STM Results` 的行序，也不来自 [Dataset.xlsx](../../../corpora/seed_library/llms-emp-stm-subset/assets/raw/drive_download/Dataset.xlsx)的行序 —— 两者都核过，都不吻合（`Dataset.xlsx` 里 10 份需求出现在第 4/20/46/47/48/51/53/55/56/57 行，对应 NL02/03/08/05/07/09/10/04/01/06，非递增）。⚠️ `Dataset.xlsx` 是同一份 Drive 数据集里的全量表，含活动图 / 时序图等多种图型并带一个 `Selected` 标记列，10 份状态机需求可按 `C` 列正文逐字符在其中定位。它来自当初人工审阅那一轮的**批次文件名**：每个 `<pair>-review.json` 的 `_source_file` 字段逐字记着来源，如 `0002-review.json` 是 `NL06-a.json`。⚠️ 这套编号的**指派顺序没有记录**，故只保证一件事：一个标签对应一份不同的 NL 正文。
+
+**完整对照表（10 份 NL × 6 个模型 = 60 个 pair）**
+
+| NL 组 | `B` 列 Model Name | `A` 列 Source | `C` 列 sha8 | 6 个 pair（excel 行） | 工作单目录 |
+| :-- | :-- | :-- | :-- | :-- | :-- |
+| NL01 | state machine for Train Control | Real-Time Software Design… | `3110cbcf` | `0004`(6) `0014`(16) `0024`(26) `0034`(36) `0044`(46) `0054`(56) | [nl_0004/](./nl_0004/) |
+| NL02 | State machine diagram of the base braking | HSTBS | `abb20a21` | `0001`(3) `0011`(13) `0021`(23) `0031`(33) `0041`(43) `0051`(53) | [nl_0001/](./nl_0001/) |
+| NL03 | UAV swarm state machine diagram | DSCS | `a01c022f` | `0006`(8) `0016`(18) `0026`(28) `0036`(38) `0046`(48) `0056`(58) | [nl_0006/](./nl_0006/) |
+| NL04 | Digital camera state machine diagrams | DCS | `6af3966c` | `0008`(10) `0018`(20) `0028`(30) `0038`(40) `0048`(50) `0058`(60) | **无（永久排除，见 §2.2）** |
+| NL05 | autonomous mode | HLDCS | `b7425c44` | `0009`(11) `0019`(21) `0029`(31) `0039`(41) `0049`(51) `0059`(61) | [nl_0009/](./nl_0009/) |
+| NL06 | Pump Control state machine | Real-Time Software Design… | `a391765d` | `0002`(4) `0013`(15) `0023`(25) `0033`(35) `0043`(45) `0053`(55) | [nl_0002/](./nl_0002/) |
+| NL07 | Collision avoidance sub-machine | HLDCS | `49854d04` | `0007`(9) `0017`(19) `0027`(29) `0037`(39) `0047`(49) `0057`(59) | [nl_0007/](./nl_0007/) |
+| NL08 | high-level driving module | HLDCS | `f1c3dc88` | `0000`(2) `0010`(12) `0020`(22) `0030`(32) `0040`(42) `0050`(52) | [nl_0000/](./nl_0000/) |
+| NL09 | Hybrid Sport Utility Vehicle, HSUV | HSUV | `9fe426ba` | `0003`(5) `0012`(14) `0022`(24) `0032`(34) `0042`(44) `0052`(54) | [nl_0003/](./nl_0003/) |
+| NL10 | Microwave Oven Control with entry | MOCV | `934e19bd` | `0005`(7) `0015`(17) `0025`(27) `0035`(37) `0045`(47) `0055`(57) | [nl_0005/](./nl_0005/) |
+
+⚠️ 目录名取该组里**最小的 pair 号**，所以 NL06 的目录叫 `nl_0002/`、NL09 的叫 `nl_0003/` —— 目录名里的数字是个 pair 号，不是 NL 序号，两者没有对应关系。
+
+**为什么必须按 `C` 列正文的 sha8 分目录。**
+
+若改按 pair 号的个位分，`nl_0002/` 会同时装进 Pump Control（`0002`）与 HSUV（`0012`…`0052`）两份**不同**的 NL，而该目录只有一份 `NL.md`，它对其中 5 份工作单为假 —— 那正好复刻 §十 记的那起事故（一份材料被印到不属于它的工作单上）。判据由 [sources.py](./sources.py) 的 `_nl_dir_index()` 实现，由 `test_nl_grouping_follows_the_nl_text_not_the_last_digit` 与 [test_nl_scope_filter.py](../../test_nl_scope_filter.py) 钉住。
+
+**唯一仍未查实的一环。** 两份 xlsx 是论文原装数据集（出处见上），行号对应关系也已在表格上逐格复算；⚠️ 唯独 `NL01`–`NL10` 这套标签的**指派顺序**没有记录 —— 它来自本仓库人工审阅那一轮的批次文件名，与两份 xlsx 的任何行序都不吻合。故引用它时只依赖一条性质：一个标签对应一份不同的 NL 正文。
 
 ### 3.1 一份工作单长什么样
 
