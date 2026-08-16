@@ -22,6 +22,10 @@ PAPER = Path(
 # 属**第一版台账口径**，故 `MATRIX` 重定向到归档树；⭐ 当前口径的 X1v2 结果在
 # `discover_matrix/ledger_v2/X1V2_RESULTS.md`，与本处工装无关。
 MATRIX = PAPER / "archive" / "r10_ledger_v1_and_v46"
+#: 第一版台账（126 条）与 60 份逐 pair 复审。⚠️ 2026-08-17 随台账证据链从 `archive/…/manual_review/`
+#: 搬到 `discover_matrix/ledger_v2/provenance/`。⛔ 它已**不是**当前台账 —— 当前台账是
+#: `discover_matrix/ledger_v2/ledger.json` 的 145 条；本处只用它复现 588 网格的第一版口径分母。
+PROVENANCE = PAPER / "discover_matrix" / "ledger_v2" / "provenance"
 CORPUS = PAPER / "pipeline" / "representation" / "reports" / "llms_emp_r45_java_60" / "pairs"
 RUN_ROOT = Path("/home/zhangshaoang/oo-projects/research_ideas/runs/paper1/matrix-v46-full")
 OUT = Path("/tmp/x1reju/materials")
@@ -111,7 +115,7 @@ def main() -> None:
     rows = sample["sample_miss"] + sample["sample_hit"]
     ledger = {
         r["id"]: r
-        for r in json.loads((MATRIX / "manual_review" / "expected_issue_set.json").read_text())["records"]
+        for r in json.loads((PROVENANCE / "expected_issue_set.json").read_text())["records"]
     }
 
     by_pair: dict[str, list[dict]] = defaultdict(list)

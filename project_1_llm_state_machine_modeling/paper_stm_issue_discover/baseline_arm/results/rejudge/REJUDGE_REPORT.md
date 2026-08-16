@@ -27,9 +27,9 @@
 | 台账 `primary_predicate` / `layer` / `direction` | 有 | ⛔ 没有 | ⛔ 没有（与 X1 对齐） |
 | 原判定的 `hit` / 论证 | — | — | ⛔ 不给（判定者盲于原判、也盲于该位属哪个样本） |
 
-截断线的存在见 [present_for_judgment.py:84-88](/home/zhangshaoang/oo-projects/research_ideas-3/project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/present_for_judgment.py)（`LIM_LED = 170`、`LIM_MOD = 230`，`--full` 才解除）；`--compact` 下不打 rationale 见同文件第 140 行 `if det and not args.compact`。
+截断线的存在见 [present_for_judgment.py:84-88](../../../archive/r10_ledger_v1_and_v46/scripts/present_for_judgment.py)（`LIM_LED = 170`、`LIM_MOD = 230`，`--full` 才解除）；`--compact` 下不打 rationale 见同文件第 140 行 `if det and not args.compact`。
 
-**命中承载规则保持不变**（⛔ 不能连这个也改，否则混淆）：沿用主臂自己的 A 层定义（[verdict_tiers.py](/home/zhangshaoang/oo-projects/research_ideas-3/project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/verdict_tiers.py) docstring）——「**只看已发布 issue 引用的断言。被排除的发现不算命中 —— 它没有进入产物。**」这与 X1 侧「只有 `issues` 承载命中、`analysis` 不承载」是同一条规则。
+**命中承载规则保持不变**（⛔ 不能连这个也改，否则混淆）：沿用主臂自己的 A 层定义（[verdict_tiers.py](../../../archive/r10_ledger_v1_and_v46/scripts/verdict_tiers.py) docstring）——「**只看已发布 issue 引用的断言。被排除的发现不算命中 —— 它没有进入产物。**」这与 X1 侧「只有 `issues` 承载命中、`analysis` 不承载」是同一条规则。
 
 ---
 
@@ -78,7 +78,7 @@
 | `EIS-0010-05\|run3/0010-gpt` | `event_consumed` | 直接对应 | clear | 已发布 issue [7][8][9] 逐字对应台账点名的 AutonomousIdle / AutonomousActive / AutonomousFinal 三态「Power_Off 未结束运行」，一一齐全 |
 | `EIS-0010-05\|run1/0010-gpt` | `event_consumed` | 合取项之一 | defensible | issue [10]「Autonomous 和 auto final 中 Power_Off 未终止运行」证到台账三态合取里的 AutonomousFinal 一项，rationale 逐字给出同一根因「只声明了从 HumanDriving 发出的 Power_Off 边」 |
 | `EIS-0014-04\|run1/0014-gpt` | `action_declared` | 直接对应 | clear | issue [5] 的 rationale 逐字写「不能承载在 Approaching 中发送 **Send** 信号」+ issue [6]「Send 事件未声明」，与台账「Send 动作在全模型任何相位都不存在」同指 |
-| `EIS-0014-03\|run2/0014-gpt` | `state_declared` | 合取项之一 | defensible | issue [4]「EmergencyStopping 未声明 entry 动作」证到台账二元合取的前一项；[hit_criterion.md §4.2](/home/zhangshaoang/oo-projects/research_ideas-3/project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/protocol/hit_criterion.md) **逐字把这个 case 当作同源判据的实例**（`Entry` 在状态命名空间只出现一次） |
+| `EIS-0014-03\|run2/0014-gpt` | `state_declared` | 合取项之一 | defensible | issue [4]「EmergencyStopping 未声明 entry 动作」证到台账二元合取的前一项；[hit_criterion.md §4.2](../../../discover_matrix/docs/protocol/hit_criterion.md) **逐字把这个 case 当作同源判据的实例**（`Entry` 在状态命名空间只出现一次） |
 
 ### 5.3 逐条：5 个 hit→miss 反向翻转
 
@@ -136,7 +136,7 @@
 
 原论证：「台账主张多出虚假子状态 EmergencyStopping.Entry；该格报的是缺 entry 动作，**多与缺方向相反**。」
 
-但 [hit_criterion.md §4.2](/home/zhangshaoang/oo-projects/research_ideas-3/project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/protocol/hit_criterion.md) 把**这个 case 本身**当作同源判据的工作实例：「`0014` 的 `Entry` 作为状态同样只有第 25 行一处（第 7 行的 `Entry/Accelerate` 是迁移标签，属事件命名空间……）（`Entry: Emergency Stop`，一条语句同时隐式声明了状态、又没声明 entry 动作），故「多出虚假子状态」与「缺 entry 动作」**同样同源**。」⭐ 该条款于 `d9e6bb0d`（18:39）写入，而 `v46_human.json` 建于 11:27——**判定发生在判据存在之前**。
+但 [hit_criterion.md §4.2](../../../discover_matrix/docs/protocol/hit_criterion.md) 把**这个 case 本身**当作同源判据的工作实例：「`0014` 的 `Entry` 作为状态同样只有第 25 行一处（第 7 行的 `Entry/Accelerate` 是迁移标签，属事件命名空间……）（`Entry: Emergency Stop`，一条语句同时隐式声明了状态、又没声明 entry 动作），故「多出虚假子状态」与「缺 entry 动作」**同样同源**。」⭐ 该条款于 `d9e6bb0d`（18:39）写入，而 `v46_human.json` 建于 11:27——**判定发生在判据存在之前**。
 
 ### 6.4 判定沿用的证据面
 

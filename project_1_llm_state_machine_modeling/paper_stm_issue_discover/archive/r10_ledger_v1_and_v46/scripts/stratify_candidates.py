@@ -44,12 +44,17 @@ import sys
 from collections import Counter, defaultdict
 
 # ⚠️ 2026-08-17 归档：本文件原在 `discover_matrix/` 顶层，`HERE` 即指那一层；
-# ⛔ 归档到 `archive/r10_ledger_v1_and_v46/scripts/` 后深度多了两层，`HERE / "manual_review"`
+# ⛔ 归档到 `archive/r10_ledger_v1_and_v46/scripts/` 后深度多了两层，`_PROVENANCE`
 # 会解析到不存在的 `scripts/manual_review`。⭐ 故改为指向归档根（它保留了原 discover_matrix
 # 的内部布局：manual_review/ · v46/ · verdicts/ …），⛔ 不数层数、按目录名锚定。
 _F = pathlib.Path(__file__).resolve()
 HERE = next(p for p in _F.parents if p.name == "r10_ledger_v1_and_v46")
-REVIEWS = HERE / "manual_review"
+# ⚠️ 2026-08-17 第二次搬迁：`manual_review/`（第一版台账 + 60 份复审 + relabel）已随台账证据链
+# 搬到 `discover_matrix/ledger_v2/provenance/`，⛔ 不再是本归档的子目录。故单独锚一个常量，
+# ⛔ 不许再写 `_PROVENANCE` —— 那会解析到不存在的目录并被读成空数据。
+_PROVENANCE = (next(p for p in _F.parents if p.name == "paper_stm_issue_discover")
+               / "discover_matrix" / "ledger_v2" / "provenance")
+REVIEWS = _PROVENANCE
 
 #: Ordered: the first stratum whose pattern matches wins, because a reason can mention
 #: several things and the strongest ground should decide. Well-formedness first -- it

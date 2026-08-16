@@ -72,7 +72,7 @@
 
 **这是真缺口，不是问题定义边界**——多出的状态属于 FSM/HSM/EFSM 完全能表达的范围。
 
-**这一轮把这个缺口量化了：60 pair 的逐条审阅判出 31 条 `extra`**（生成方多出、参考与 NL 都没有），占 154 条计入问题的 **20%**。它们**完全可归因于生成模型**，因此在候选分层（[manual_review/STRATIFICATION.md](../../../archive/r10_ledger_v1_and_v46/manual_review/STRATIFICATION.md)）里单列为 `over_specification` 层并计入可入 E1。
+**这一轮把这个缺口量化了：60 pair 的逐条审阅判出 31 条 `extra`**（生成方多出、参考与 NL 都没有），占 154 条计入问题的 **20%**。它们**完全可归因于生成模型**，因此在候选分层（[manual_review/STRATIFICATION.md](../../ledger_v2/provenance/STRATIFICATION.md)）里单列为 `over_specification` 层并计入可入 E1。
 
 分层过程还暴露一个判据陷阱，值得记下来：`over_specification` 与 `reference_only` 有**完全相同的词法外形**（理由都写「NL 未要求 / NL 从未提及 / 参考独有」），区别只在**缺失方向**——
 

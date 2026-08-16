@@ -34,7 +34,9 @@ import check_false_positives  # noqa: E402
 
 LEDGER = json.loads((HERE / "known_false_positives.json").read_text())
 #: `paper_stm_issue_discover/discover_matrix` -> repo root is three levels up.
-ROOT = HERE.resolve().parents[2]
+# ⛔ 归档后深度多了两层，原先的 parents[N] 解析到 `paper_stm_issue_discover/`。
+# ⭐ 改为按仓库根标志物向上锚定（CLAUDE.md §9.5-3）。
+ROOT = next(_p for _p in pathlib.Path(__file__).resolve().parents if (_p / "CLAUDE.md").is_file() and (_p / ".git").exists())
 FEEDBACK_LOOP = ROOT / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/feedback_loop"
 
 
@@ -116,7 +118,11 @@ def test_the_hit_criterion_document_stays_wired_to_the_code():
 
     import re
 
-    doc = (HERE / "docs/protocol/hit_criterion.md").read_text()
+    # ⛔ `docs/` 没有归档，仍在活跃区 `discover_matrix/docs/`；⛔ 原先的 `HERE / "docs"`
+    # 在归档后指向不存在的 `scripts/docs`。⭐ 按目录名锚定到论文工作区再进 discover_matrix。
+    _paper = next(p for p in pathlib.Path(__file__).resolve().parents
+                  if p.name == "paper_stm_issue_discover")
+    doc = (_paper / "discover_matrix/docs/protocol/hit_criterion.md").read_text()
     src = (HERE / "build_gist.py").read_text()
 
     # The document's claim about the two branches has to match the code.

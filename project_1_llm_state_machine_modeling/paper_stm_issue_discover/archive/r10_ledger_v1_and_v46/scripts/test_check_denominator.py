@@ -15,7 +15,8 @@ from pathlib import Path
 
 import pytest
 
-MATRIX = Path(__file__).resolve().parent.parent / "discover_matrix"
+# ⛔ 归档后脚本与测试同在 `scripts/`，原先的 `…/ "discover_matrix"` 指向不存在的目录。
+MATRIX = Path(__file__).resolve().parent
 if str(MATRIX) not in sys.path:
     sys.path.insert(0, str(MATRIX))
 

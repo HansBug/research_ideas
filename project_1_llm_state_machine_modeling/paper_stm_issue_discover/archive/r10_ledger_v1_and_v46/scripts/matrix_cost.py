@@ -32,7 +32,9 @@ from pathlib import Path
 from typing import Any
 
 HERE = Path(__file__).resolve().parent
-REPO = HERE.parents[2]
+# ⛔ 归档后深度多了两层，原先的 parents[N] 解析到 `paper_stm_issue_discover/`。
+# ⭐ 改为按仓库根标志物向上锚定（CLAUDE.md §9.5-3）。
+REPO = next(_p for _p in Path(__file__).resolve().parents if (_p / "CLAUDE.md").is_file() and (_p / ".git").exists())
 RUNS = REPO / "runs" / "paper1"
 
 _CELL = re.compile(r"^(\d{4})-(claude|gpt)$")

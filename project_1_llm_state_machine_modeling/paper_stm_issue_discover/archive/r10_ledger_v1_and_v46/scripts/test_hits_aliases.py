@@ -15,7 +15,8 @@ import pathlib
 
 import pytest
 
-HERE = pathlib.Path(__file__).resolve().parents[1] / "discover_matrix"
+# ⛔ 归档后脚本与测试同在 `scripts/`，原先的 `…/ "discover_matrix"` 指向不存在的目录。
+HERE = pathlib.Path(__file__).resolve().parent
 
 
 def _load(name: str):

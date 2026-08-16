@@ -183,7 +183,7 @@ grep -cE "^[[:space:]]*--[[:space:]]*$" llms_emp_feedback_final_0056/stm0.puml  
 
 桶内统计的重建：改裁定**只能改** `unexpected_verdicts/G*.jsonl`，然后跑 `python3 ../rebuild_unexpected.py`——它会一并重建 [unexpected_tables.md](./unexpected_tables.md) 与全部派生 tsv，并在字段缺失、`merge_key` 跨 `verdict` / `subclass` / `pair` 时拒绝执行。
 
-台账权威源是 [manual_review/expected_issue_set.json](../manual_review/expected_issue_set.json)（126 条）；同目录 `expected_issues_reconstructed.json` 只覆盖 4 个 pair，[hit_criterion.md](../../../discover_matrix/docs/protocol/hit_criterion.md) §7 明令禁止用它算命中。
+台账权威源是 [manual_review/expected_issue_set.json](../../../discover_matrix/ledger_v2/provenance/expected_issue_set.json)（126 条）；同目录 `expected_issues_reconstructed.json` 只覆盖 4 个 pair，[hit_criterion.md](../../../discover_matrix/docs/protocol/hit_criterion.md) §7 明令禁止用它算命中。
 
 ## 七、本裁定自身的可靠性边界
 

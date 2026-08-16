@@ -23,12 +23,19 @@ import re
 import sys
 
 # ⚠️ 2026-08-17 归档：本文件原在 `discover_matrix/` 顶层，`HERE` 即指那一层；
-# ⛔ 归档到 `archive/r10_ledger_v1_and_v46/scripts/` 后深度多了两层，`HERE / "manual_review"`
+# ⛔ 归档到 `archive/r10_ledger_v1_and_v46/scripts/` 后深度多了两层，`_PROVENANCE`
 # 会解析到不存在的 `scripts/manual_review`。⭐ 故改为指向归档根（它保留了原 discover_matrix
 # 的内部布局：manual_review/ · v46/ · verdicts/ …），⛔ 不数层数、按目录名锚定。
 _F = pathlib.Path(__file__).resolve()
 HERE = next(p for p in _F.parents if p.name == "r10_ledger_v1_and_v46")
-ROOT = HERE.parents[2]
+# ⚠️ 2026-08-17 第二次搬迁：`manual_review/`（第一版台账 + 60 份复审 + relabel）已随台账证据链
+# 搬到 `discover_matrix/ledger_v2/provenance/`，⛔ 不再是本归档的子目录。故单独锚一个常量，
+# ⛔ 不许再写 `_PROVENANCE` —— 那会解析到不存在的目录并被读成空数据。
+_PROVENANCE = (next(p for p in _F.parents if p.name == "paper_stm_issue_discover")
+               / "discover_matrix" / "ledger_v2" / "provenance")
+# ⛔ 归档后深度多了两层，原先的 parents[N] 解析到 `paper_stm_issue_discover/`。
+# ⭐ 改为按仓库根标志物向上锚定（CLAUDE.md §9.5-3）。
+ROOT = next(_p for _p in pathlib.Path(__file__).resolve().parents if (_p / "CLAUDE.md").is_file() and (_p / ".git").exists())
 RUNS = ROOT / "runs" / "paper1"
 #: 格目录下最新文件在这个窗口内被改过，即判为「进行中」而非「失败」。
 #: 单格实测耗时 10–40 分钟（某格曾达 40 分钟，见 `docs/generations/v22/backlog.md` L-4），故取 45 分钟。

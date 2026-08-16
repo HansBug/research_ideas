@@ -27,8 +27,11 @@ import os
 import re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+
+#: 第一版台账与 60 份 `<pair>-review.json` 所在目录（本目录的上一级）。
+#: ⚠️ 历史上它叫 `manual_review/`，2026-08-17 随台账证据链搬到 `ledger_v2/provenance/`；
+#: 两处深度相同，故本模块与全部工作单里的相对路径都未变。
 MANUAL_REVIEW = os.path.dirname(HERE)
-DISCOVER_MATRIX = os.path.dirname(MANUAL_REVIEW)
 
 
 def _find_up(name):
@@ -55,7 +58,15 @@ PAPER = _find_up("paper_stm_issue_discover")
 SEEDS = os.path.join(PAPER, "selected_seed_examples")
 CORPORA = os.path.join(PAPER, "corpora")
 BASELINE_ARM = os.path.join(PAPER, "baseline_arm")
-V46 = os.path.join(DISCOVER_MATRIX, "v46")
+#: v46 主臂的未认领产出（`INS-` / `VU-` / `DIFF-` 三族条目的原始来源）。
+#: ⭐ v46 已停用并留在冷归档里，本目录搬走后它**不再是兄弟目录**，所以按仓库内的绝对位置锚定。
+#: ⛔ 不许写成相对本目录数层数 —— 读不到时评测代码会把空输入当成「没有命中」（CLAUDE.md §9.5-3）。
+V46 = os.path.join(PAPER, "archive", "r10_ledger_v1_and_v46", "v46")
+if not os.path.isdir(V46):
+    raise RuntimeError(
+        f"⛔ v46 归档目录不存在：{V46}\n"
+        "   它是 INS-/VU-/DIFF- 三族的原始来源；读不到会让 collect() 静默少收条目。"
+    )
 
 XLSX = os.path.join(
     CORPORA, "seed_library", "llms-emp-stm-subset", "assets", "raw",

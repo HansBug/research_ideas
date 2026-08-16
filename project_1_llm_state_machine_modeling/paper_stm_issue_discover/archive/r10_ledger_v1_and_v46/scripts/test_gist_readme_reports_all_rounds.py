@@ -23,7 +23,8 @@ import sys
 import pytest
 
 HERE = pathlib.Path(__file__).resolve().parent
-TOOL = HERE.parent / "discover_matrix" / "build_gist.py"
+# ⛔ 归档后脚本与测试同在 `scripts/`，原先的 `…/ "discover_matrix"` 指向不存在的目录。
+TOOL = HERE / "build_gist.py"
 
 
 def _cell(run: pathlib.Path, name: str, *, issues: int) -> None:

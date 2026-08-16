@@ -28,7 +28,8 @@ import re
 
 import pytest
 
-MATRIX = pathlib.Path(__file__).resolve().parent.parent / "discover_matrix"
+# ⛔ 归档后脚本与测试同在 `scripts/`，原先的 `…/ "discover_matrix"` 指向不存在的目录。
+MATRIX = pathlib.Path(__file__).resolve().parent
 
 #: 交给判定者的材料（白名单本身）。
 JUDGE_FACING = ("docs/judges/hit_criterion_for_judges.md",)

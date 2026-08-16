@@ -31,16 +31,22 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MANUAL_REVIEW = os.path.dirname(HERE)
-DISCOVER_MATRIX = os.path.dirname(MANUAL_REVIEW)
-PAPER = os.path.dirname(DISCOVER_MATRIX)
+
+sys.path.insert(0, HERE)
+
+# ⭐ 锚点一律复用 sources.py 的「按目录名向上找」，⛔ 不再数层数。
+# ⚠️ 本文件在 2026-08-17 之前写的是 `PAPER = dirname(dirname(MANUAL_REVIEW))`：
+# 归档进 `archive/r10_.../` 之后它实际解析到了 `archive/`，REPO 也随之偏移一层。
+# 这类错位不会报错，只会让下面两个 runs 目录读成空 —— 正是 CLAUDE.md §9.5-3 说的那种静默失败。
+from sources import PAPER  # noqa: E402
+
+# `<repo>/project_1_llm_state_machine_modeling/paper_stm_issue_discover` → 上两级即仓库根。
+# ⭐ 起点 PAPER 本身是按目录名找到的，所以这两级不随本文件搬家而变；⛔ 也不写死 checkout 目录名。
 REPO = os.path.dirname(os.path.dirname(PAPER))
 
 DEFAULT_X1_RUNS = os.path.join(REPO, "runs", "paper1", "x1-baseline-v1")
 DEFAULT_V46_RUNS = os.path.join(
     os.path.dirname(REPO), "research_ideas", "runs", "paper1", "matrix-v46-full")
-
-sys.path.insert(0, HERE)
-sys.path.insert(0, DISCOVER_MATRIX)
 
 
 def _read_json(path):

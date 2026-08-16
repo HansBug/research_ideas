@@ -48,11 +48,14 @@ import sys
 from collections import Counter, defaultdict
 
 HERE = pathlib.Path(__file__).resolve().parent
-_TOOLS = HERE.parents[2] / "tools"
+# ⛔ 原先是 `HERE.parents[2]`。归档后它解析到 `paper_stm_issue_discover/`，于是 `tools/` 与
+# `.omx/` 两处全部落空 —— 本模块因此连 import 都过不去。
+# ⭐ 改为按目录名向上锚定仓库根（CLAUDE.md §9.5-3）。
+ROOT = next(p for p in HERE.parents if (p / "CLAUDE.md").is_file() and (p / ".git").exists())
+_TOOLS = ROOT / "tools"
 if str(_TOOLS) not in sys.path:
     sys.path.insert(0, str(_TOOLS))
 from unwrap_markdown import unwrap as _unwrap  # noqa: E402
-ROOT = HERE.resolve().parents[2]
 LEDGER = (
     ROOT / ".omx/specs/autoresearch-paper1-llms-emp-60-expected-issues/ledger.json"
 )

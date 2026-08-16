@@ -20,7 +20,8 @@ import pathlib
 import pytest
 
 HERE = pathlib.Path(__file__).resolve().parent
-MATRIX = HERE.parent / "discover_matrix"
+# ⛔ 归档后脚本与测试同在 `scripts/`，原先的 `…/ "discover_matrix"` 指向不存在的目录。
+MATRIX = HERE
 SAMPLE_DIR = MATRIX / "onepass_sample"
 
 

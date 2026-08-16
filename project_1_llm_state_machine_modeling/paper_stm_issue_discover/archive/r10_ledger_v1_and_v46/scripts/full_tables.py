@@ -44,11 +44,16 @@ import sys  # noqa: E402
 ARMS_IN_TABLE = ("claude", "gpt")
 
 # ⚠️ 2026-08-17 归档：本文件原在 `discover_matrix/` 顶层，`HERE` 即指那一层；
-# ⛔ 归档到 `archive/r10_ledger_v1_and_v46/scripts/` 后深度多了两层，`HERE / "manual_review"`
+# ⛔ 归档到 `archive/r10_ledger_v1_and_v46/scripts/` 后深度多了两层，`_PROVENANCE`
 # 会解析到不存在的 `scripts/manual_review`。⭐ 故改为指向归档根（它保留了原 discover_matrix
 # 的内部布局：manual_review/ · v46/ · verdicts/ …），⛔ 不数层数、按目录名锚定。
 _F = pathlib.Path(__file__).resolve()
 HERE = next(p for p in _F.parents if p.name == "r10_ledger_v1_and_v46")
+# ⚠️ 2026-08-17 第二次搬迁：`manual_review/`（第一版台账 + 60 份复审 + relabel）已随台账证据链
+# 搬到 `discover_matrix/ledger_v2/provenance/`，⛔ 不再是本归档的子目录。故单独锚一个常量，
+# ⛔ 不许再写 `_PROVENANCE` —— 那会解析到不存在的目录并被读成空数据。
+_PROVENANCE = (next(p for p in _F.parents if p.name == "paper_stm_issue_discover")
+               / "discover_matrix" / "ledger_v2" / "provenance")
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 import metrics_at_k as mak  # noqa: E402  —— 比率闸门的**唯一归属地**，不在此重实现
@@ -73,7 +78,7 @@ RUNS = HERE.parents[2] / "runs" / "paper1"
 _PROXY = re.compile(r"瞬时伪状态|运行代理|以其后续|下游代理|代理|proxy|transient pseudo")
 
 def _ledger() -> dict[str, dict]:
-    payload = json.loads((HERE / "manual_review" / "expected_issue_set.json").read_text())
+    payload = json.loads((_PROVENANCE / "expected_issue_set.json").read_text())
     records = payload.get("records") or []
     return {str(r["id"]): r for r in records}
 

@@ -25,7 +25,8 @@ from pathlib import Path
 import pytest
 
 HERE = Path(__file__).resolve().parent
-MATRIX = HERE.parent / "discover_matrix"
+# ⛔ 归档后脚本与测试同在 `scripts/`，原先的 `…/ "discover_matrix"` 指向不存在的目录。
+MATRIX = HERE
 if str(MATRIX) not in sys.path:
     sys.path.insert(0, str(MATRIX))
 
@@ -97,11 +98,15 @@ def test_grid_file_tolerates_commas_and_newlines(runs) -> None:
 def test_corpus_is_never_reached_automatically(runs) -> None:
     """⭐ 负控：没有任何自动路径会返回全语料。
 
-    没有 runs、没有 holdout 时必须**抛错**而不是回落到语料 —— 猜格集正是本模块存在的理由。
+    没有 runs 时必须**抛错**而不是回落到语料 —— 猜格集正是本模块存在的理由。
+
+    ⛔ 本测试原先打桩的是 `from_frozen`，⚠️ 那个函数已在 `f3ea403c`（永久移除 hold-out 机制）
+    随 holdout 一起删掉，测试没跟着改，于是 `monkeypatch.setattr` 直接抛 `AttributeError`
+    —— **负控从此没有真正跑过**。⭐ 现在打桩仍然存在的自动来源 `from_runs`，意图不变。
     """
 
     monkey = pytest.MonkeyPatch()
-    monkey.setattr(run_grid, "from_frozen", lambda: [])
+    monkey.setattr(run_grid, "from_runs", lambda generation=None: [])
     try:
         with pytest.raises(SystemExit):
             run_grid.grid()

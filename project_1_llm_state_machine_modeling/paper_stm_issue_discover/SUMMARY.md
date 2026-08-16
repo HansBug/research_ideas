@@ -14,10 +14,10 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 | :-- | :-- | :-- |
 | 论文口径基准 | [README.md](./README.md) | 这篇论文做什么、**三条** contribution、建模对象边界、目录导航 |
 | 导师定调 | [../talks/](../talks/) | 最高优先级路线依据。⚠️ 2026-08-07 / 08-08 的收窄定调为口头，原话摘录在 [README.md](./README.md) §2 |
-| ⭐ **当前实验事实** | [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/) | **当前口径的唯一来源**：台账 145 条 + X1v2 在其上的精确命中 |
+| ⭐ **当前实验事实** | [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/) | **当前口径的唯一来源**：台账 **145** 条 + X1v2 在其上的精确命中 + ⭐ 台账的完整证据链 [`provenance/`](./discover_matrix/ledger_v2/provenance/)。⛔ 99 / 126 / 319 / 321 / 323 / 380 / 429 都不是台账条目数，来历见该目录 README §六 |
 | ⚠️ 历史实验事实（v46） | [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | 建立在**已归档的第一版台账**上，⛔ 不是当前口径 |
 | 判定口径 | [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/) | 命中判据、多报五类、方法出处、建模对象边界判据、规则出处纪律。**改它们等于改研究规则** |
-| 实验产地 | [discover_matrix/](./discover_matrix/) | 台账、判定表、代次记录、分析脚本、全量审计数据 |
+| 实验产地 | [discover_matrix/](./discover_matrix/) | 只有两个子目录：[ledger_v2/](./discover_matrix/ledger_v2/)（台账 + 判定协议 + X1v2 结果 + 证据链）与 [docs/](./discover_matrix/docs/)（学术口径与历代事前登记）|
 | 方法实现 | [pipeline/feedback_loop/](./pipeline/feedback_loop/) | 当前活的实现（八阶段 + 定向反馈循环） |
 | 语料 | [selected_seed_examples/](./selected_seed_examples/) | 60 个 pair，各含 `nl.txt`、`stm0.puml` 与溯源元数据 |
 | 论文叙事 | [story/](./story/) | thesis、章节结构与 RQ、claim-evidence、任务边界、建模对象、术语 |

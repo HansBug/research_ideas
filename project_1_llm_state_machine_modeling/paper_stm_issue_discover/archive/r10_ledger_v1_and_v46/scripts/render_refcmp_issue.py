@@ -25,7 +25,9 @@ import pathlib
 import sys
 from collections import Counter, defaultdict
 
-REPO = pathlib.Path(__file__).resolve().parents[3]
+# ⛔ 归档后深度多了两层，原先的 parents[N] 解析到 `paper_stm_issue_discover/`。
+# ⭐ 改为按仓库根标志物向上锚定（CLAUDE.md §9.5-3）。
+REPO = next(_p for _p in pathlib.Path(__file__).resolve().parents if (_p / "CLAUDE.md").is_file() and (_p / ".git").exists())
 LEDGER = REPO / ".omx/specs/autoresearch-paper1-llms-emp-60-expected-issues/ledger.json"
 PAPER = pathlib.Path(__file__).resolve().parent / "paper_reported_problems.json"
 CENSUS = pathlib.Path("/tmp/fcstm_stats.json")

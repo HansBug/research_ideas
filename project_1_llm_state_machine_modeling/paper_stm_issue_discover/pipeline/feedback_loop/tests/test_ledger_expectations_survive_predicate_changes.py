@@ -27,8 +27,13 @@ import pytest
 from paper_stm_feedback_loop.assertions.runtime import EvalEnvironment
 
 PROJECT = pathlib.Path(__file__).resolve().parents[4]   # project_1_llm_state_machine_modeling
-LEDGER = (PROJECT / "paper_stm_issue_discover" / "discover_matrix" / "manual_review"
-          / "expected_issue_set.json")
+# ⚠️ 这是**第一版**台账（126 条，带手写 `assertions`）。⛔ 它已不是当前台账 —— 当前台账是
+# `discover_matrix/ledger_v2/ledger.json` 的 145 条，且不带断言表达式。本测试守的是
+# 「改谓词实现不许悄悄改变这些既有断言的求值结果」，故仍读第一版。
+# ⛔ 路径两度搬迁：`discover_matrix/manual_review/` → `archive/…/manual_review/` →
+# 现在的 `discover_matrix/ledger_v2/provenance/`。读不到时下面的 `assert cases` 会响。
+LEDGER = (PROJECT / "paper_stm_issue_discover" / "discover_matrix" / "ledger_v2"
+          / "provenance" / "expected_issue_set.json")
 SEEDS = pathlib.Path(__file__).resolve().parents[3] / "selected_seed_examples"
 
 _GRID = ("0000", "0006", "0018", "0029", "0032",

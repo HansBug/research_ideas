@@ -3,7 +3,7 @@
 本文定义：三个独立判读臂各自给出 D 档判定后，**如何把一条台账 / 候选条目分到「抛弃 / 保留 / 需人裁」**。它是永久口径 —— 改它等于改这一轮重标注的研究规则。
 
 - D 档本身的定义与判定程序**不在本文**：见 [issue #189](https://github.com/HansBug/research_ideas/issues/189) §1.3.3 与 `D_PROTOCOL.md`（gist [0a3a085a](https://gist.github.com/HansBug/0a3a085a68b7e9d9966e5b1a21606f65)）。本文只管**聚合规则**。
-- 本轮的全量判定结果落在 [manual_review/relabel/dtier_rulings.json](../../../archive/r10_ledger_v1_and_v46/manual_review/relabel/dtier_rulings.json)；争议条目的人工 meta review 落在 [dtier_meta.json](../../../archive/r10_ledger_v1_and_v46/manual_review/relabel/dtier_meta.json)。
+- 本轮的全量判定结果落在 [manual_review/relabel/dtier_rulings.json](../../ledger_v2/provenance/relabel/dtier_rulings.json)；争议条目的人工 meta review 落在 [dtier_meta.json](../../ledger_v2/provenance/relabel/dtier_meta.json)。
 
 ## 1 · 四个档位与它们的攻击面
 
@@ -77,7 +77,7 @@
 
 ⛔ 任何条目的归纳都不得由脚本生成。理由：脚本能做的只有拼接与计票，⛔ 而「这两读的分歧点在哪」「为什么推荐这一侧」需要读懂三臂各自的 `basis` 并判断谁的理由更站得住 —— 那是判断，不是聚合。脚本若代劳，产出的是**看起来像结论的模板文本**，⛔ 比留空更坏。
 
-人工归纳的落点是 [dtier_meta.json](../../../archive/r10_ledger_v1_and_v46/manual_review/relabel/dtier_meta.json)；工作单里的对应段落必须标明它是人工归纳而非计算结果。
+人工归纳的落点是 [dtier_meta.json](../../ledger_v2/provenance/relabel/dtier_meta.json)；工作单里的对应段落必须标明它是人工归纳而非计算结果。
 
 ## 6 · 已知限制
 
@@ -86,8 +86,8 @@
    - **`380`** = 进过三方 D 档判读的条目（`EIS` 99 + `INS` 189 + `DIFF` 77 + `VU` 15）。⭐ 只在算**三臂一致率、票面分布、分桶比例**时用它。⛔⛔ **它没有去重** —— 其中 57 条被重叠分析判定为「与另一条是同一个问题」。
    - **`323`** = ⭐ **工作单条目数 = 380 − 57**（§2 台账 99 + §3 候选 224，后者 = `VU` 15 + `DIFF` 77 + `INS` 132）。⭐ 凡是「有多少条要人处理 / 有多少个裁决区 / md 里有多少个块」，一律用这个数。
    - ⛔ **`429` 这个数已作废**（旧口径 = 380 + `UM` 49）：`UM` 一族已于 2026-08-16 [整批撤出工作单](../findings/um_residue_ruling.md)，⛔ 不再有任何 `UM-` 块，也不再有 `UM-` 的 meta review。
-   - ⚠️ 历史上还出现过 `269` / `220` / `319` / `324` / `281` 几个数，⛔ **一个都不是当前口径**。⭐ 完整账目、每个数的来历、以及 2026-08-16 因混淆 `380` 与 `323` 而两次改错的经过，见 [DEDUP_ACCOUNTING.md](../../../archive/r10_ledger_v1_and_v46/manual_review/relabel/DEDUP_ACCOUNTING.md)。⛔⛔ **动任何与条目数有关的代码或统计前先读那一页。**
-   - ⭐ 数据落点：范围内 323 条在 [dtier_rulings.json](../../../archive/r10_ledger_v1_and_v46/manual_review/relabel/dtier_rulings.json)（meta review 在 [dtier_meta.json](../../../archive/r10_ledger_v1_and_v46/manual_review/relabel/dtier_meta.json)）；被判重复移出的 57 条在 [dtier_rulings_deduped_out.json](../../../archive/r10_ledger_v1_and_v46/manual_review/relabel/dtier_rulings_deduped_out.json)（含宿主与理由）。⛔ 守门测试 `test_the_dedup_is_not_undone` 双向钉住：既防丢条目，也防重复回潮。
+   - ⚠️ 历史上还出现过 `269` / `220` / `319` / `324` / `281` 几个数，⛔ **一个都不是当前口径**。⭐ 完整账目、每个数的来历、以及 2026-08-16 因混淆 `380` 与 `323` 而两次改错的经过，见 [DEDUP_ACCOUNTING.md](../../ledger_v2/provenance/relabel/DEDUP_ACCOUNTING.md)。⛔⛔ **动任何与条目数有关的代码或统计前先读那一页。**
+   - ⭐ 数据落点：范围内 323 条在 [dtier_rulings.json](../../ledger_v2/provenance/relabel/dtier_rulings.json)（meta review 在 [dtier_meta.json](../../ledger_v2/provenance/relabel/dtier_meta.json)）；被判重复移出的 57 条在 [dtier_rulings_deduped_out.json](../../ledger_v2/provenance/relabel/dtier_rulings_deduped_out.json)（含宿主与理由）。⛔ 守门测试 `test_the_dedup_is_not_undone` 双向钉住：既防丢条目，也防重复回潮。
 3. ⚠️ **本轮 schema 的 `grounding` 枚举不含空串**，故 `A0` 出口条目被迫填 `none`，造成 82 条违 G6。经核 **100% 是 A0 出口条目、无一条是判读者判错**；`D_PROTOCOL.md` §3 已据此补两条规则（枚举须含空串 · G6 加前置条件）。⛔ 这是 CLAUDE.md §13「多道门的审计单位是交集」的一个实例，记录在此以免后人误读那 82 条。
 4. ⚠️ **`dsh` 臂在 `D2` 上系统性偏高**（42% vs 另两臂 33–34%），差异**集中在 `D2` ↔ `D1` 一处**，而 `D0` 与三个 A0 出口三臂几乎完全一致。⭐ 但 `dsh` 当少数派的频次（31%）低于 `claude`（39%）—— ⛔ 故它是**方向性偏移**，不是随机离群。分桶规则对此的处置是：`D2+D2+D1` 与 `D2+D1+D1` 都进 `ambiguous` 由人裁，⛔ 不按多数径直判 `D2`。
 

@@ -56,7 +56,9 @@ $$ M = (S, E, V, Tr, A) $$
 
 ## 5. 当前进展
 
-⭐⭐ **2026-08-17 台账换代。** 当前唯一有效的台账是 [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/) 的 **145 条**（`D2` 98 + `D1` 47，每条逐条落定 `L0`/`L1`/`L2`）。它由 321 条三方 D 档判读 + 人工逐条 meta review + 人工逐条裁决产出。
+⭐⭐ **2026-08-17 台账换代。** 当前唯一有效的台账是 [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/) 的 **145 条**（`D2` 98 + `D1` 47，每条逐条落定 `L0`/`L1`/`L2`）。它由 321 条三方 D 档判读 + 人工逐条 meta review + 人工逐条裁决产出。⛔ **仓库里出现过的 99 / 126 / 319 / 321 / 323 / 380 / 429 一个都不是台账条目数** —— 逐个的来历钉在 [ledger_v2/README.md](./discover_matrix/ledger_v2/README.md) §六。
+
+⭐ **台账的完整证据链就在台账目录下**：[ledger_v2/provenance/](./discover_matrix/ledger_v2/provenance/) 装着第一版台账、60 份逐 pair 复审、54 份工作单（含全部人工裁决与逐条 meta review）、三方判读包与去重台账。⭐ 台账里每一条的 `worksheet` 字段直接指向它的那份工作单，所以「凭什么这么判」永远可以一跳查到。
 
 ⭐ 当前有结果的基线臂只有一条：**X1v2**（朴素基线，单次提示、无循环、无工具）。它在新台账上的精确命中为 `hit@1` **59.8%** · `hit@3` **70.3%** · `hit@all` **47.9%**（145 × 6 = 870 位），逐档拆分与全部限制见 [discover_matrix/ledger_v2/X1V2_RESULTS.md](./discover_matrix/ledger_v2/X1V2_RESULTS.md)。
 
@@ -69,7 +71,7 @@ $$ M = (S, E, V, Tr, A) $$
 | 目录 | 是什么 | 什么时候进去 |
 | :-- | :-- | :-- |
 | [pipeline/](./pipeline/) | **方法实现**。当前活的是 `feedback_loop/`（Requirement-to-Assertion 发现流水线）；`conversion/` 与 `representation/` 是输入准备与表示桥；`readiness_audit/` 是语料准入检查；`agent_loop/` 是上一版单 Agent 实现，已不在运行路径上 | 改方法、改谓词、改提示词 |
-| [discover_matrix/](./discover_matrix/) | **实验与评测**。缺陷台账、判定表、代次记录、判定口径文档、分析脚本全在这里 | 看结果、复算数字、查判定口径 |
+| ⭐ [discover_matrix/](./discover_matrix/) | **实验与评测**。只有两个子目录：[ledger_v2/](./discover_matrix/ledger_v2/) 是⭐ **唯一有效的台账**（145 条）+ 它的判定协议 + X1v2 结果 + [证据链 `provenance/`](./discover_matrix/ledger_v2/provenance/)（含 54 份工作单与全部人工裁决）；[docs/](./discover_matrix/docs/) 是学术口径（判定协议、边界裁定、出处政策、历代事前登记） | 看结果、复算数字、查判定口径、追溯某条缺陷怎么定的 |
 | [selected_seed_examples/](./selected_seed_examples/) | **60 个 pair 的人读镜像**，每个目录含 `nl.txt`、`stm0.puml` 与溯源元数据。⚠️ 它**不是**流水线的运行时输入根——真实输入是 `pipeline/representation/reports/llms_emp_r45_java_60/pairs/`，两者逐字节相同 | 查某个 pair 的原文 |
 | [corpora/](./corpora/) | 更广的语料库与候选集。⚠️ 其中 `nl_segmentation/overrides.json` **在运行路径上**（被 `feedback_loop/common/nl_segmentation.py` 运行时读取），不是纯资料 | 扩充语料、改分句覆盖 |
 | [evidence/](./evidence/) | 证据链：台账、审计、追溯矩阵 | 追溯某条结论的来源 |

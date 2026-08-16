@@ -35,12 +35,19 @@ from issue_compat import requirement_ids_of, requirement_label  # noqa: E402
 # worked on one machine, and it lives under version control now precisely so a
 # rebuilt machine still has it.
 # ⚠️ 2026-08-17 归档：本文件原在 `discover_matrix/` 顶层，`HERE` 即指那一层；
-# ⛔ 归档到 `archive/r10_ledger_v1_and_v46/scripts/` 后深度多了两层，`HERE / "manual_review"`
+# ⛔ 归档到 `archive/r10_ledger_v1_and_v46/scripts/` 后深度多了两层，`_PROVENANCE`
 # 会解析到不存在的 `scripts/manual_review`。⭐ 故改为指向归档根（它保留了原 discover_matrix
 # 的内部布局：manual_review/ · v46/ · verdicts/ …），⛔ 不数层数、按目录名锚定。
 _F = pathlib.Path(__file__).resolve()
 HERE = next(p for p in _F.parents if p.name == "r10_ledger_v1_and_v46")
-ROOT = pathlib.Path(__file__).resolve().parents[3]
+# ⚠️ 2026-08-17 第二次搬迁：`manual_review/`（第一版台账 + 60 份复审 + relabel）已随台账证据链
+# 搬到 `discover_matrix/ledger_v2/provenance/`，⛔ 不再是本归档的子目录。故单独锚一个常量，
+# ⛔ 不许再写 `_PROVENANCE` —— 那会解析到不存在的目录并被读成空数据。
+_PROVENANCE = (next(p for p in _F.parents if p.name == "paper_stm_issue_discover")
+               / "discover_matrix" / "ledger_v2" / "provenance")
+# ⛔ 归档后深度多了两层，原先的 parents[N] 解析到 `paper_stm_issue_discover/`。
+# ⭐ 改为按仓库根标志物向上锚定（CLAUDE.md §9.5-3）。
+ROOT = next(_p for _p in pathlib.Path(__file__).resolve().parents if (_p / "CLAUDE.md").is_file() and (_p / ".git").exists())
 REPORT = (
     ROOT
     / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/reports/llms_emp_r45_java_60"
@@ -257,7 +264,7 @@ def _overlap(bound: set[str], expected: frozenset[str]) -> int:
 
 #: 判定与记账两侧共用的那一份台账。发布层此前读的是另一份，见
 #: `expected_records_for_judgment` 的说明。
-EIS_LEDGER = HERE / "manual_review" / "expected_issue_set.json"
+EIS_LEDGER = _PROVENANCE / "expected_issue_set.json"
 
 
 def _eis_records() -> list[dict]:

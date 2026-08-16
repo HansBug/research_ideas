@@ -65,9 +65,14 @@ from pathlib import Path
 from typing import Any
 
 HERE = Path(__file__).resolve().parent
-REPO = HERE.parents[2]
+# ⛔ 原先是 `REPO = HERE.parents[2]` 与 `HERE / "manual_review"`，两处在归档后都错位了
+# （前者解析到 paper 工作区、后者解析到不存在的 `scripts/manual_review`）。
+# ⭐ 改为按目录名向上锚定：再搬只会报错，不会静默读空（CLAUDE.md §9.5-3）。
+_PAPER = next(p for p in HERE.parents if p.name == "paper_stm_issue_discover")
+REPO = _PAPER.parents[1]
 RUNS = REPO / "runs" / "paper1"
-LEDGER = HERE / "manual_review" / "expected_issue_set.json"
+#: ⚠️ 第一版台账。2026-08-17 随台账证据链搬到 `discover_matrix/ledger_v2/provenance/`。
+LEDGER = _PAPER / "discover_matrix" / "ledger_v2" / "provenance" / "expected_issue_set.json"
 
 _CELL = re.compile(r"^(\d{4})-(claude|gpt)$")
 

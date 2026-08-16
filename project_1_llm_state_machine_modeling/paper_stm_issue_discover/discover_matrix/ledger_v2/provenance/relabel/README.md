@@ -1,8 +1,12 @@
+> **本目录不是台账，是台账的证据链。** 重标已于 2026-08-17 完成，产物是当前唯一有效的台账 [../../ledger.json](../../ledger.json)（**145** 条 = `D2` 98 + `D1` 47）。台账里每一条的 `worksheet` 字段都指回这里的某份工作单。需要条目数、命中率、分档分布时读 [../../README.md](../../README.md)；⚠️ **不要从本目录的任何数字反推台账**——本目录的 321 / 323 / 380 说的都是别的东西。
+>
+> ⚠️ 本目录 2026-08-17 之前位于 `archive/r10_ledger_v1_and_v46/manual_review/relabel/`。搬迁保持了目录深度，故内部相对链接全部原样有效。
+
 # 人工全量重标工作区
 
-54 份逐 pair 的工作单（按 NL 组分在 9 个 `nl_XXXX/` 子目录里，见 §3.0）+ 生成 / 回收 / 校验工具。目标是让作者**逐 pair 人工裁决**三件事：现有 expected issue 是否成立、是否偏浅、以及台账遗漏了什么。
+54 份逐 pair 的工作单（按 NL 组分在 9 个 `nl_XXXX/` 子目录里，见 §3.0）+ 生成 / 回收 / 校验工具。目标是让作者**逐 pair 人工裁决**三件事：现有 expected issue 是否成立、是否偏浅、以及台账遗漏了什么。这三件事已全部裁决完毕。
 
-**本目录不修改台账。** [expected_issue_set.json](../expected_issue_set.json) 保持冻结 —— 它是 v46 与 X1 两轮判定所依据的 ground truth，事后改它比改结果更严重。重标产物只落在本目录内；合并回台账是另一件事，需要单独的裁定与 PR。
+**本目录不修改第一版台账。** [expected_issue_set.json](../expected_issue_set.json) 保持冻结 —— 它是 v46 与 X1 两轮判定所依据的 ground truth，事后改它比改结果更严重。重标产物落在本目录内，再由本目录汇出第二版台账 [../../ledger.json](../../ledger.json)；第一版台账自身没有被就地改写。
 
 ## 一、为什么要重标
 
@@ -149,7 +153,7 @@ relabel/
 
 **为什么必须按 `C` 列正文的 sha8 分目录。**
 
-若改按 pair 号的个位分，`nl_0002/` 会同时装进 Pump Control（`0002`）与 HSUV（`0012`…`0052`）两份**不同**的 NL，而该目录只有一份 `NL.md`，它对其中 5 份工作单为假 —— 那正好复刻 §十 记的那起事故（一份材料被印到不属于它的工作单上）。判据由 [sources.py](./sources.py) 的 `_nl_dir_index()` 实现，由 `test_nl_grouping_follows_the_nl_text_not_the_last_digit` 与 [test_nl_scope_filter.py](../../scripts/test_nl_scope_filter.py) 钉住。
+若改按 pair 号的个位分，`nl_0002/` 会同时装进 Pump Control（`0002`）与 HSUV（`0012`…`0052`）两份**不同**的 NL，而该目录只有一份 `NL.md`，它对其中 5 份工作单为假 —— 那正好复刻 §十 记的那起事故（一份材料被印到不属于它的工作单上）。判据由 [sources.py](./sources.py) 的 `_nl_dir_index()` 实现，由 `test_nl_grouping_follows_the_nl_text_not_the_last_digit` 与 [test_nl_scope_filter.py](../../../../archive/r10_ledger_v1_and_v46/scripts/test_nl_scope_filter.py) 钉住。
 
 **唯一仍未查实的一环。** 两份 xlsx 是论文原装数据集（出处见上），行号对应关系也已在表格上逐格复算；⚠️ 唯独 `NL01`–`NL10` 这套标签的**指派顺序**没有记录 —— 它来自本仓库人工审阅那一轮的批次文件名，与两份 xlsx 的任何行序都不吻合。故引用它时只依赖一条性质：一个标签对应一份不同的 NL 正文。
 

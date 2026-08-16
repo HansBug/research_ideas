@@ -21,7 +21,8 @@
 | 方法出处口径（按领域资料归纳表述；hold-out 永久移除） | 口径已完成，工程落地未完成（见 §3） | [discover_matrix/docs/protocol/method_provenance_policy.md](./discover_matrix/docs/protocol/method_provenance_policy.md) |
 | 语料（60 pair，逐 pair 溯源元数据含行列与 SHA-256） | 已完成 | [selected_seed_examples/](./selected_seed_examples/) |
 | ⭐ **缺陷台账（第二版，145 条 = `D2` 98 + `D1` 47，每条逐条落定 `L0`/`L1`/`L2`）** | **已完成，零欠账** | [discover_matrix/ledger_v2/ledger.json](./discover_matrix/ledger_v2/ledger.json)；已知缺口见 [ground_truth_limitations.md](./discover_matrix/docs/protocol/ground_truth_limitations.md) |
-| ⛔ 第一版台账（126 条，可判 98 条） | **已由第二版取代，整体归档** | [archive/r10_ledger_v1_and_v46/](./archive/r10_ledger_v1_and_v46/) |
+| ⭐ **台账的完整证据链**（第一版台账 126 条 · 60 份逐 pair 复审 · 54 份工作单含全部人工裁决与逐条 meta review · 三方 D 档判读包 · 去重台账） | **已完成，且与台账放在同一目录下** | [discover_matrix/ledger_v2/provenance/](./discover_matrix/ledger_v2/provenance/)；台账每条的 `worksheet` 字段直接指向对应工作单 |
+| ⛔ 第一版台账（126 条；扣 `00x8` 的 27 条后 99 条进入重标，能力分母 98 条） | **已由第二版取代**；⛔ 不再是任何分母，仅作证据链保留 | [discover_matrix/ledger_v2/provenance/expected_issue_set.json](./discover_matrix/ledger_v2/provenance/expected_issue_set.json) |
 | ⭐ **X1v2 基线在第二版台账上的精确命中** | **已完成**（145 × 6 = 870 位；56 条为本轮逐格人工新判） | [discover_matrix/ledger_v2/X1V2_RESULTS.md](./discover_matrix/ledger_v2/X1V2_RESULTS.md) |
 | 闭合谓词词表（19 个，三族） | 已冻结 | 报告 §4.3；实现在 [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
 | 方法实现（八阶段 + 定向反馈循环） | 已完成并跑通全量 | [pipeline/feedback_loop/](./pipeline/feedback_loop/) |

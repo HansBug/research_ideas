@@ -30,7 +30,9 @@ import subprocess
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parents[2]
+# ⛔ 归档后深度多了两层，原先的 parents[N] 解析到 `paper_stm_issue_discover/`。
+# ⭐ 改为按仓库根标志物向上锚定（CLAUDE.md §9.5-3）。
+ROOT = next(_p for _p in pathlib.Path(__file__).resolve().parents if (_p / "CLAUDE.md").is_file() and (_p / ".git").exists())
 SRC_GLOB = "*/pipeline/feedback_loop/src/*"
 MANIFEST = HERE / "run_manifests.json"
 
