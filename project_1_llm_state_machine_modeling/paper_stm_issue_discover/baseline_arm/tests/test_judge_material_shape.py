@@ -90,7 +90,7 @@ def test_materials_carry_no_main_arm_verdicts(built: dict[str, Path]) -> None:
     # 主臂判定表里的真实论证片段——若材料里出现任何一段，就是直接泄漏。
     human = json.loads(
         (
-            ARM.parent / "discover_matrix" / "v46" / "verdicts" / "v46_human.json"
+            ARM.parent / "archive" / "r10_ledger_v1_and_v46" / "v46" / "verdicts" / "v46_human.json"
         ).read_text(encoding="utf-8")
     )
     samples = [

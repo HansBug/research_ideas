@@ -16,7 +16,11 @@ Stages, deepest reached wins:
 import json, pathlib, sys, collections
 
 REPO = pathlib.Path("/home/zhangshaoang/oo-projects/research_ideas-3")
-DM = REPO / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix"
+# ⚠️ 2026-08-17：v46 时代脚本已归档到 archive/r10_ledger_v1_and_v46/scripts/，
+# ⛔ 加载路径随之改指归档；⭐ 按目录名锚定，不写死绝对路径、不数层数。
+_P = next(q for q in pathlib.Path(__file__).resolve().parents
+         if q.name == "paper_stm_issue_discover")
+DM = _P / "archive" / "r10_ledger_v1_and_v46" / "scripts"
 sys.path.insert(0, str(DM))
 import verdict_tiers as V
 

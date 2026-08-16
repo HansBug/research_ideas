@@ -56,7 +56,12 @@ import random
 import re
 import sys
 
-HERE = pathlib.Path(__file__).resolve().parent
+# ⚠️ 2026-08-17 归档：本文件原在 `discover_matrix/` 顶层，`HERE` 即指那一层；
+# ⛔ 归档到 `archive/r10_ledger_v1_and_v46/scripts/` 后深度多了两层，`HERE / "manual_review"`
+# 会解析到不存在的 `scripts/manual_review`。⭐ 故改为指向归档根（它保留了原 discover_matrix
+# 的内部布局：manual_review/ · v46/ · verdicts/ …），⛔ 不数层数、按目录名锚定。
+_F = pathlib.Path(__file__).resolve()
+HERE = next(p for p in _F.parents if p.name == "r10_ledger_v1_and_v46")
 OUT = HERE / "blind_sample"
 #: 四位 pair id 的任何出现形式，含 `EIS-0035-02` 与 `llms_emp_feedback_final_0035`。
 _LEAK = re.compile(r"\b\d{4}\b|EIS-|llms_emp_feedback_final")

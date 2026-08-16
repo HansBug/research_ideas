@@ -39,9 +39,14 @@ import pathlib
 import re
 import sys
 
+# ⚠️ 2026-08-17 归档实测：原先写 `parents[2] / "paper_stm_issue_discover"`，
+# ⛔ 本文件移到 `archive/r10_ledger_v1_and_v46/scripts/` 后 `parents[2]` 指错，
+# `SEED.glob(...)` 返回空 → `excluded_pairs()` 返回 `[]` → **`00x8` 那 27 条被永久排除的
+# 记录悄悄回到了能力分母里**。⛔⛔ 这正是「空输入被读成『没有命中』而不是『路径错了』」
+# 的活例（CLAUDE.md §9.5-3）。⭐ 改为按目录名锚定，⛔ 不数层数。
 SEED = (
-    pathlib.Path(__file__).resolve().parents[2]
-    / "paper_stm_issue_discover"
+    next(q for q in pathlib.Path(__file__).resolve().parents
+         if q.name == "paper_stm_issue_discover")
     / "selected_seed_examples"
 )
 
@@ -109,7 +114,19 @@ def classify() -> list[dict]:
 
 
 def excluded_pairs() -> list[str]:
-    return sorted(p for r in classify() if r["out_of_scope"] for p in r["pairs"])
+    """先验越界的 pair。⛔⛔ **空结果一律视为故障，直接抛。**
+
+    ⚠️ 这道断言是 2026-08-17 加的：归档改变目录深度后 `SEED` 指错、`classify()` 扫不到
+    任何 pair，函数于是返回 `[]` —— ⛔ 而调用方把「没有界外 pair」当成事实，把 `00x8`
+    那 27 条重新算进了能力分母。⭐ 先验排除是**恒为非空**的事实（`00x8` 六个 pair），
+    ⛔ 所以返回空只可能是读不到数据，必须炸而不是静默放行。
+    """
+    out = sorted(p for r in classify() if r["out_of_scope"] for p in r["pairs"])
+    if not out:
+        raise RuntimeError(
+            f"⛔ excluded_pairs() 为空 —— 先验排除恒为非空（00x8 六个 pair）。"
+            f"最可能的原因是语料路径读不到：SEED={SEED} exists={SEED.is_dir()}")
+    return out
 
 
 def _sensitivity(global_c: int = 11, global_t: int = 17) -> tuple[int, int, list[str]]:

@@ -26,7 +26,11 @@ from pathlib import Path
 ARM = Path(__file__).resolve().parents[1]
 PAPER = ARM.parent
 REPO_ROOT = ARM.parents[3]
-MATRIX = PAPER / "discover_matrix"
+# ⚠️⚠️ 2026-08-17：第一版台账、v46 与 v46 时代脚本已整体归档。
+# ⛔ 本臂的 588 网格工装（`expected_issue_set.json` 的 98 条分母、`metrics_at_k` 等）
+# 属**第一版台账口径**，故 `MATRIX` 重定向到归档树；⭐ 当前口径的 X1v2 结果在
+# `discover_matrix/ledger_v2/X1V2_RESULTS.md`，与本处工装无关。
+MATRIX = PAPER / "archive" / "r10_ledger_v1_and_v46"
 
 sys.path.insert(0, str(ARM / "analysis"))
 
@@ -39,7 +43,7 @@ def _authoritative_reportable() -> tuple[str, ...]:
 
     program = (
         "import sys, json\n"
-        f"sys.path.insert(0, {str(MATRIX)!r})\n"
+        f"sys.path.insert(0, {str(MATRIX / 'scripts')!r})\n"
         "import metrics_at_k as m\n"
         "print('REPORTABLE=' + json.dumps(list(m.REPORTABLE)))\n"
     )
@@ -105,7 +109,7 @@ def test_equivalence_forms_match_the_protocol_closed_set() -> None:
     ⚠️ 主臂的实现也钉着同一个闭集；两处若漂移，两臂的判定就不同口径了。
     """
 
-    protocol = (MATRIX / "docs" / "protocol" / "hit_criterion.md").read_text(encoding="utf-8")
+    protocol = ((PAPER / "discover_matrix" / "docs") / "protocol" / "hit_criterion.md").read_text(encoding="utf-8")
     for form in verdicts.EQUIVALENCE_FORMS:
         assert f"**{form}**" in protocol, (
             f"form {form!r} is not declared in hit_criterion.md §3 -- the closed set drifted"

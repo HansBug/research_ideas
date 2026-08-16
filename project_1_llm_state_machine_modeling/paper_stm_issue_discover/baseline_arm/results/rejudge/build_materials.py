@@ -17,7 +17,11 @@ PAPER = Path(
     "/home/zhangshaoang/oo-projects/research_ideas-3/project_1_llm_state_machine_modeling"
     "/paper_stm_issue_discover"
 )
-MATRIX = PAPER / "discover_matrix"
+# ⚠️⚠️ 2026-08-17：第一版台账、v46 与 v46 时代脚本已整体归档。
+# ⛔ 本臂的 588 网格工装（`expected_issue_set.json` 的 98 条分母、`metrics_at_k` 等）
+# 属**第一版台账口径**，故 `MATRIX` 重定向到归档树；⭐ 当前口径的 X1v2 结果在
+# `discover_matrix/ledger_v2/X1V2_RESULTS.md`，与本处工装无关。
+MATRIX = PAPER / "archive" / "r10_ledger_v1_and_v46"
 CORPUS = PAPER / "pipeline" / "representation" / "reports" / "llms_emp_r45_java_60" / "pairs"
 RUN_ROOT = Path("/home/zhangshaoang/oo-projects/research_ideas/runs/paper1/matrix-v46-full")
 OUT = Path("/tmp/x1reju/materials")
