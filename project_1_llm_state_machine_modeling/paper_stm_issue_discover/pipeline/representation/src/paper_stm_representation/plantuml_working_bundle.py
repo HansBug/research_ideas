@@ -163,6 +163,12 @@ def _artifact_path(evidence_dir: Path, relative: str) -> Path:
     return path
 
 
+#: `pairs/` 下**人工写的**说明文件名。⭐ 它们按自身声明不属于 PUBLICATION_SEAL.json 的
+#: derived_artifact_inventory，故这里与 `tools/build_llms_emp_pair_pages.py` 的
+#: `MANUAL_PAIR_NOTE_NAMES` 必须保持同一份名单 —— ⛔ 两处不一致会让封印永远判漂移。
+MANUAL_PAIR_NOTE_NAMES = frozenset({"SEGMENTATION_NOTE.md"})
+
+
 def _derived_publication_inventory(evidence_dir: Path) -> list[dict[str, str]]:
     paths = [
         evidence_dir / "MANUAL_REVIEW.jsonl",
@@ -177,6 +183,8 @@ def _derived_publication_inventory(evidence_dir: Path) -> list[dict[str, str]]:
                 f"publication artifact is a symlink: {path.relative_to(evidence_dir)}"
             )
         if path.is_file():
+            if path.name in MANUAL_PAIR_NOTE_NAMES:
+                continue
             inventory.append(
                 {
                     "path": path.relative_to(evidence_dir).as_posix(),
