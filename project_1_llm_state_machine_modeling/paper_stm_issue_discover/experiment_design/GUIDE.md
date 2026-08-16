@@ -22,7 +22,7 @@
 
 1. 判据、达标档位、回归红旗、机制判据的**全部价值来自「它们写在看到结果之前」**，而这一点只有**远端时间戳**能证明。写完放本地 = 把是否作弊的判断交给作者自述。
 2. **登记不得只写在 `runs/` 下**——`runs/` 全目录被 `.gitignore` 排除，写在那里既进不了仓库，PR comment 引用它的路径也是死链。
-3. 落点为 [../discover_matrix/docs/generations/](../discover_matrix/docs/generations/)`<vNN>/preregistered.md`。✅ 这与根 `CLAUDE.md` §3.5.1「开跑实验前必须先 push」里「**要一起推的不只是代码，还有事前登记。**」那一段**一致**——该处已明确规定「每代次一个子目录、登记文件名为 `preregistered.md`」，并写明「旧命名 `Vxx_PREREGISTERED.md`（平铺在实验目录根）**已于 2026-08-11 的文档树化中废弃**」。⚠️ 本条此前写的是「根 `CLAUDE.md` 写的是 `eval/discover_matrix/` 下的 `Vxx_PREREGISTERED.md`，该路径与命名在本仓库当前结构下都不存在」——**这条陈述在写下时就已过期**：同一个 commit `aab12c4c` 已经把根 `CLAUDE.md` 改好了。已更正。⚠️ 唯一残留的小口径差：v46 的登记实际在 [../discover_matrix/v46/preregistered.md](../discover_matrix/v46/preregistered.md) 而非 `docs/generations/v46/`。**新代次一律按上面的落点写**，不要沿用 v46 的位置。
+3. 落点为 [../discover_matrix/docs/generations/](../discover_matrix/docs/generations/)`<vNN>/preregistered.md`。✅ 这与根 `CLAUDE.md` §3.5.1「开跑实验前必须先 push」里「**要一起推的不只是代码，还有事前登记。**」那一段**一致**——该处已明确规定「每代次一个子目录、登记文件名为 `preregistered.md`」，并写明「旧命名 `Vxx_PREREGISTERED.md`（平铺在实验目录根）**已于 2026-08-11 的文档树化中废弃**」。⚠️ 本条此前写的是「根 `CLAUDE.md` 写的是 `eval/discover_matrix/` 下的 `Vxx_PREREGISTERED.md`，该路径与命名在本仓库当前结构下都不存在」——**这条陈述在写下时就已过期**：同一个 commit `aab12c4c` 已经把根 `CLAUDE.md` 改好了。已更正。⚠️ 唯一残留的小口径差：v46 的登记实际在 [../discover_matrix/v46/preregistered.md](../archive/r10_ledger_v1_and_v46/v46/preregistered.md) 而非 `docs/generations/v46/`。**新代次一律按上面的落点写**，不要沿用 v46 的位置。
 4. 事后补交的登记，**必须在文件头如实写明「运行后补交，提交动作本身不证明它写在运行之前」**，并附可查旁证。v46 的登记就是这么写的，照抄那个写法。
 
 **本目录的设计稿不是事前登记。** 从 `next_round.md` 里挑一项去跑时，必须另写一份该代次的 `preregistered.md` 并 push，不能拿设计稿顶替。
@@ -35,7 +35,7 @@
 - 多报侧：`over@1`（每轮平均多报数）/ `over@any`（三轮中出现过多报的条目数）。
 - 判据：`hit@3` 高而 `hit@all` 低 = 能力够、稳定性不足；两者都低才是能力问题。说「某条稳定命中」时，指的**必须**是 `hit@all = 1`。
 
-**计算一律走 [../discover_matrix/metrics_at_k.py](../discover_matrix/metrics_at_k.py)，不手搓。** v46 的呈现链是 `audit_to_verdicts.py` → `full_tables.py`，下一轮沿用。
+**计算一律走 [../discover_matrix/metrics_at_k.py](../archive/r10_ledger_v1_and_v46/scripts/metrics_at_k.py)，不手搓。** v46 的呈现链是 `audit_to_verdicts.py` → `full_tables.py`，下一轮沿用。
 
 ⚠️ **分母的两处永久裁定必须先读再动**，且**互不相干、不得混谈**：`00x8` 系列六个 pair 的先验排除（见 [../discover_matrix/docs/protocol/nl_scope_rule.md](../discover_matrix/docs/protocol/nl_scope_rule.md)），与**不设留出集**（见 [../discover_matrix/docs/protocol/method_provenance_policy.md](../discover_matrix/docs/protocol/method_provenance_policy.md)）。工具层由 `../discover_matrix/test_scope_vs_holdout_are_different.py` 钉住。
 

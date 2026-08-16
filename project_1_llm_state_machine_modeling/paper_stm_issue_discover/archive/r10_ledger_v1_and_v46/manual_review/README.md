@@ -1,6 +1,6 @@
 # 60 pair 人工审阅数据
 
-作者生成 STM_0 相对论文参考 STM_0 的逐条差异判定，**60/60 全覆盖**。判定原则见 [manual_review_spec.md](../docs/protocol/manual_review_spec.md)，命中判据见 [hit_criterion.md](../docs/protocol/hit_criterion.md)，分母的已知缺口见 [ground_truth_limitations.md](../docs/protocol/ground_truth_limitations.md)。
+作者生成 STM_0 相对论文参考 STM_0 的逐条差异判定，**60/60 全覆盖**。判定原则见 [manual_review_spec.md](../../../discover_matrix/docs/protocol/manual_review_spec.md)，命中判据见 [hit_criterion.md](../../../discover_matrix/docs/protocol/hit_criterion.md)，分母的已知缺口见 [ground_truth_limitations.md](../../../discover_matrix/docs/protocol/ground_truth_limitations.md)。
 
 完整报告与讨论：Issue [#171](https://github.com/HansBug/research_ideas/issues/171)。
 
@@ -15,11 +15,11 @@
 | 文件 | 性质 | 说明 |
 | --- | --- | --- |
 | `<case>-review.json` | **主档** | 单 case 完整判定。丢失不可恢复 |
-| `_summary.json` | 派生 | 由 [../aggregate_manual_review.py](../aggregate_manual_review.py) 汇总 |
+| `_summary.json` | 派生 | 由 [../aggregate_manual_review.py](../scripts/aggregate_manual_review.py) 汇总 |
 | `index.tsv` · `figure_data.tsv` | 派生 | 机读索引与图数据 |
-| `corpus_structure.json` | 主档 | 60 个 FCSTM STM_0 的结构统计，由 [../corpus_census.py](../corpus_census.py) 经 pyfcstm 读出 |
+| `corpus_structure.json` | 主档 | 60 个 FCSTM STM_0 的结构统计，由 [../corpus_census.py](../scripts/corpus_census.py) 经 pyfcstm 读出 |
 | `<case>-readable.md` | 派生 | **不入库**，由 `aggregate_manual_review.py` 的 `readable()` 从主档生成 |
-| issue 的全部表格与图 | 派生 | 由 [../render_refcmp_issue.py](../render_refcmp_issue.py) 生成，每个数字读自本目录 |
+| issue 的全部表格与图 | 派生 | 由 [../render_refcmp_issue.py](../scripts/render_refcmp_issue.py) 生成，每个数字读自本目录 |
 
 重算：
 
@@ -42,7 +42,7 @@ venv/bin/python project_1_llm_state_machine_modeling/paper_stm_issue_discover/di
 | [stratification.json](./stratification.json) | 🟡 仅历史 | 词法分层基线，区间 66 – 144 |
 | [STRATIFICATION.md](./STRATIFICATION.md) | 🔴 **已被取代** | 区间 47 – 136，且与 `stratification.json` 也已脱钩（缺 `over_specification` 层）。**不要引用其中任何数字**，见该文件顶部说明 |
 
-一句话：**数字读 JSON，读法读 `.md`。** 两份 `.md` 都是某一时刻的散文快照，重跑 [../stratify_candidates.py](../stratify_candidates.py) 或 [../merge_manual_stratification.py](../merge_manual_stratification.py) 不会更新它们。
+一句话：**数字读 JSON，读法读 `.md`。** 两份 `.md` 都是某一时刻的散文快照，重跑 [../stratify_candidates.py](../scripts/stratify_candidates.py) 或 [../merge_manual_stratification.py](../scripts/merge_manual_stratification.py) 不会更新它们。
 
 ## ⭐ 人工全量重标：[relabel/](./relabel/)
 
@@ -54,7 +54,7 @@ venv/bin/python project_1_llm_state_machine_modeling/paper_stm_issue_discover/di
 
 ## 组间信度（双盲复审）
 
-`reliability/` 下是 **12 例分层样本的双盲复审**，用于给出全量审阅结构上无法计算的组间信度（全量 60 case 零重叠，且 [../aggregate_manual_review.py](../aggregate_manual_review.py) 把重复审阅当作错误报出）。样本覆盖全部 10 个 NL 组、6 个 LLM、原审 `problem` 数 0–6 全区间；两个审阅者互不可见，也不可见原审结果与 `_summary.json`。
+`reliability/` 下是 **12 例分层样本的双盲复审**，用于给出全量审阅结构上无法计算的组间信度（全量 60 case 零重叠，且 [../aggregate_manual_review.py](../scripts/aggregate_manual_review.py) 把重复审阅当作错误报出）。样本覆盖全部 10 个 NL 组、6 个 LLM、原审 `problem` 数 0–6 全区间；两个审阅者互不可见，也不可见原审结果与 `_summary.json`。
 
 | 指标 | 结果 |
 | --- | --- |

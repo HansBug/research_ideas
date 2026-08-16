@@ -1,6 +1,6 @@
 # v22 跑完之后才能动的项
 
-`runs/paper1/matrix-v22` 在跑期间，pipeline 的 `src/` **冻结**：每个格子是一个新起的 `python -m` 进程，中途改源码会让后启动的格子用另一份代码，产出一次异质运行且没有任何提示。由 [check_run_homogeneity.py](../../../check_run_homogeneity.py) 守住。
+`runs/paper1/matrix-v22` 在跑期间，pipeline 的 `src/` **冻结**：每个格子是一个新起的 `python -m` 进程，中途改源码会让后启动的格子用另一份代码，产出一次异质运行且没有任何提示。由 [check_run_homogeneity.py](../../../../archive/r10_ledger_v1_and_v46/scripts/check_run_homogeneity.py) 守住。
 
 下列各项来自本轮三份 review，全部落在 `src/` 或依赖它，因此推迟到 v22 落盘之后。**推迟不等于降级** —— 每条都写明了它属于哪一级、以及为什么现在不做。
 

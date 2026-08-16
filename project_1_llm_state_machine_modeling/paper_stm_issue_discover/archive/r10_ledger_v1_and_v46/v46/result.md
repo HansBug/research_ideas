@@ -6,7 +6,7 @@
 
 ## 1. 结果
 
-代码 `ca41369e`（`src` 启动时零脏改动）｜54 pair × 2 模型 × 3 轮 = 324 格｜7h05m｜落盘 324/324、耗尽 0 分母：**98 条**台账记录 × 2 臂 × 3 轮 = **588 位**。扣除 28 条：27 条 `00x8` NL 越界（[nl_scope_rule.md](../docs/protocol/nl_scope_rule.md)）+ 1 条 `boundary_ruling: out_of_scope`（`EIS-0043-02`，独立边界裁定，见 [audit.md](./audit.md) §3）。
+代码 `ca41369e`（`src` 启动时零脏改动）｜54 pair × 2 模型 × 3 轮 = 324 格｜7h05m｜落盘 324/324、耗尽 0 分母：**98 条**台账记录 × 2 臂 × 3 轮 = **588 位**。扣除 28 条：27 条 `00x8` NL 越界（[nl_scope_rule.md](../../../discover_matrix/docs/protocol/nl_scope_rule.md)）+ 1 条 `boundary_ruling: out_of_scope`（`EIS-0043-02`，独立边界裁定，见 [audit.md](./audit.md) §3）。
 
 | 口径 | v37 | v46 |
 | :-- | --: | --: |
@@ -15,7 +15,7 @@
 | `hit@all` | 77/196 = 39.3% | **95/196 = 48.5%** |
 | claude / gpt `hit@1` | 44.9% / 48.3% | 62.6% / 58.2% |
 
-⚠️ **`hit@k` 只能作为上界读。** 命中侧尚未做与多报侧对称的表示债务审计（[representation_debt.md](../docs/findings/representation_debt.md) §4.7）。已量化的规模：**分母内带逐位判据的 340 个命中位中，51 位（15.0%）在判据里引用「变量未声明」，其中 10 位（2.9%）不依赖其它事实**。PlantUML 无变量声明语法、作者变量全语料 0/60，故「变量缺失」本身不能区分缺陷模型与忠实模型。逐位清单见 [verdicts/variable_grounded_hits.json](./verdicts/variable_grounded_hits.json)。
+⚠️ **`hit@k` 只能作为上界读。** 命中侧尚未做与多报侧对称的表示债务审计（[representation_debt.md](../../../discover_matrix/docs/findings/representation_debt.md) §4.7）。已量化的规模：**分母内带逐位判据的 340 个命中位中，51 位（15.0%）在判据里引用「变量未声明」，其中 10 位（2.9%）不依赖其它事实**。PlantUML 无变量声明语法、作者变量全语料 0/60，故「变量缺失」本身不能区分缺陷模型与忠实模型。逐位清单见 [verdicts/variable_grounded_hits.json](./verdicts/variable_grounded_hits.json)。
 
 📌 **另一条不经 prompt 的通道**：谓词拒答文案会进入生成者的下一轮上下文。实测 `predicate_api.py:1524` 的 `UnsupportedEvidence` 原文——「variable 'uav_count' is not observable in the simulation state. **If the NL requires a quantity this model has no variable for, assert that variable's existence as a `precondition`**」——出现在 `run1/0006-claude` 的 `findings` 里，而 `EIS-0006-02` 是 6/6。它交出的不是元素名（那是生产者自己先绑的），是 **极性**与**「把它发布出去」的指示**。计入上界的理由与变量缺失同源，故上界应按两条通道一起读，而不是只按 `variable_declared` 一条。
 
@@ -73,5 +73,5 @@ python adjudication_recheck.py --generation matrix-v46-full --audit <audit>
 ## 7. 残留缺陷（v47 入口）
 
 1. **需求集规模失控**——中位 15 条，最大 **99**；按末次修订计超 60 的 13 格里 **4 格降级**（30.8%，全局 2.8%），全部 gpt 臂，全部落在同一份 NL 的六个 pair（条件从句最密集）。因果链：NL 条件密集 → 每个原子条件拆成独立需求 → 需求数爆炸 → 每条都要凑 primary → 撞门概率随条数线性累积。**应加需求集规模约束或合并策略，而不是继续修单个门。**
-2. **schema 校验失败缺节点内原地重试**——`responder._retryable_error` 对 `ValueError` 返回 `False`，而 pydantic 的 `ValidationError` 是其子类，于是结构错误整格冷启动重跑；本代 7 次整格冷启动重跑里 **6 次**由此而来。⛔ **第 7 次是另一回事，必须分开记**：`run2/0019-gpt` 抛的是 `ValueError: no-progress gate rejected repeated AssertionScript semantics` ——内部阶段的配额/门耗尽，按 [CLAUDE.md](../../../../CLAUDE.md) §10 属**必须降级、不得抛出**的一类，与 schema 那条逃生口不同源。并进同一条统计会让它彻底看不见。违反 CLAUDE.md §10，不污染结果。
+2. **schema 校验失败缺节点内原地重试**——`responder._retryable_error` 对 `ValueError` 返回 `False`，而 pydantic 的 `ValidationError` 是其子类，于是结构错误整格冷启动重跑；本代 7 次整格冷启动重跑里 **6 次**由此而来。⛔ **第 7 次是另一回事，必须分开记**：`run2/0019-gpt` 抛的是 `ValueError: no-progress gate rejected repeated AssertionScript semantics` ——内部阶段的配额/门耗尽，按 [CLAUDE.md](../../../../../CLAUDE.md) §10 属**必须降级、不得抛出**的一类，与 schema 那条逃生口不同源。并进同一条统计会让它彻底看不见。违反 CLAUDE.md §10，不污染结果。
 3. **「多」与「缺」方向相反的系统性盲区**——模型看到异常却把「多余」读成「缺失」；9 处未命中同属此形态（`EIS-0014-03` / `0024-02` / `0024-04` / `0034-03`）。

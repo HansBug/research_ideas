@@ -5,7 +5,7 @@
 - 桶内 **288 条目 / 124 去重 / 43 个 pair**（去重单元 = `(pair, 根因)`）。
 - 分母闭合：`288 + 14 + 2 = 304`。14 条内容已被现有台账记录承载，按定义不属意外发现，物理存放在 [unexpected_verdicts/ledger_accounted.jsonl](./unexpected_verdicts/ledger_accounted.jsonl)；2 条的断言在冻结制品上求值为 **True**（模型满足该义务、正确地不产出 issue），属真阴性，存放在 [unexpected_verdicts/not_produced.jsonl](./unexpected_verdicts/not_produced.jsonl)。
 
-⛔ **全部交叉表只有一个产地**：[unexpected_tables.md](./unexpected_tables.md)（表 0 分母闭合 / 表 1 大类双分母 / 表 2 子类双分母 / 表 3 谓词族×裁定 / 表 4 稳定性 / 表 5 合并规模），由 [../rebuild_unexpected.py](../rebuild_unexpected.py) 从 `unexpected_verdicts/G*.jsonl` 机器生成。**本文件不保存任何一张交叉表的副本**，只写结论与判据；逐簇判据见 [unexpected_evidence.md](./unexpected_evidence.md)，裁定口径见 [unexpected_taxonomy.md](../docs/protocol/unexpected_taxonomy.md)。
+⛔ **全部交叉表只有一个产地**：[unexpected_tables.md](./unexpected_tables.md)（表 0 分母闭合 / 表 1 大类双分母 / 表 2 子类双分母 / 表 3 谓词族×裁定 / 表 4 稳定性 / 表 5 合并规模），由 [../rebuild_unexpected.py](../scripts/rebuild_unexpected.py) 从 `unexpected_verdicts/G*.jsonl` 机器生成。**本文件不保存任何一张交叉表的副本**，只写结论与判据；逐簇判据见 [unexpected_evidence.md](./unexpected_evidence.md)，裁定口径见 [unexpected_taxonomy.md](../../../discover_matrix/docs/protocol/unexpected_taxonomy.md)。
 
 ## 一、最重要的两条结论
 
@@ -24,7 +24,7 @@ collision_avoidance_deactive --> collision_avoidance_active :
     pedestrian_detected | dist_to_rear<5 & vel>30 | dist_to_front<15 & highway_mode | dist_to_front<10 & urban_mode
 ```
 
-作者写的是一条**完全合法的析取守卫**，NL 12 的四个激活源一个不缺。发现模型报的「四个激活源被压成一个融合事件、模型无法只凭其中一个激活」，指的是**下沉之后**的形态。[fused_event_policy.md](../docs/protocol/fused_event_policy.md) 对此已有既定裁定：断言阶段必须接受合并事件并记录表示限制，而**「表示限制被如实记录、但记录本身不构成发现」**。
+作者写的是一条**完全合法的析取守卫**，NL 12 的四个激活源一个不缺。发现模型报的「四个激活源被压成一个融合事件、模型无法只凭其中一个激活」，指的是**下沉之后**的形态。[fused_event_policy.md](../../../discover_matrix/docs/protocol/fused_event_policy.md) 对此已有既定裁定：断言阶段必须接受合并事件并记录表示限制，而**「表示限制被如实记录、但记录本身不构成发现」**。
 
 同理，`variable_declared(X)=False` 这一族**没有判别力**：PlantUML 无变量声明语法，全语料 **60 份** `model.fcstm` 中，33 份的唯一 `def` 是转换器注入的 `R45RouteToken`，另 27 份连一行 `def` 都没有，**作者变量 0/60**（`grep -h "^\s*def " */model.fcstm` 可复算）。既定分界是**作者源有没有表达该量**——0036 的 `/ UAV Count Decreased` 判表示债务，0006 的「作者源里连递减文本都没有」才判真缺陷。
 
@@ -56,7 +56,7 @@ R4.5 是 **PlantUML 表达力 > FCSTM 表达力** 时的有损编译。PlantUML 
 
 ⚠️ 该表是**制品级债务码清点**，不是本桶的交叉表，独立于 `G*.jsonl`，复算命令见 §七。⚠️ **该码是制品级存在标志，不是实例计数**——一份制品里发生了多少处损失不体现在此表。⚠️ 每个码在 `source_static_reason_codes` 与 `simulation_reason_codes` **两个数组里各列一次**，用 `uniq -c` 数会得到恰好 2 倍的数字。正确命令是 `grep -l <code> */fcstm_meta.json | wc -l`。
 
-所以「表示债务」这一裁定的准确含义是：**断言报告的现象在 `model.fcstm` 上客观为真，但它描述的是我们的编译损失，不是作者建模的缺陷。** 发现模型没做错——它看到什么报什么；错的是把这类报告计入「模型缺陷」。完整论述见 [representation_debt.md](../docs/findings/representation_debt.md)。
+所以「表示债务」这一裁定的准确含义是：**断言报告的现象在 `model.fcstm` 上客观为真，但它描述的是我们的编译损失，不是作者建模的缺陷。** 发现模型没做错——它看到什么报什么；错的是把这类报告计入「模型缺陷」。完整论述见 [representation_debt.md](../../../discover_matrix/docs/findings/representation_debt.md)。
 
 ## 二、终态分布：读表须知
 
@@ -150,7 +150,7 @@ state SearchState {
 2. **要求把复合条件 / 散文析取拆成独立元素（`N-SPLIT` + `N-SPLIT-PROSE`，49 条目 / 15 去重）** —— ⚠️ **这一支不是采样噪声**：`N-SPLIT` 的 ≥4 格簇数是全部子类里最高的，说明它是系统性读法偏差，属 prompt 侧可收敛项。`N-SPLIT-PROSE` 的条目/去重比 8.00 很高（全库最高的正是它），成因明确：NL 只给散文、不给标识符，报告者必须自己造名，**造名空间无上界**。
 3. **语境措辞与承载相位被过度指定（`N-CTX` + `N-FORM`，33 条目 / 20 去重）** —— 属 prompt 侧可收敛：NL 的统称词、语境状语、`indicating that…` / `where the … is …` 式语义注解都不构成元素义务。
 4. **范畴错置（`N-KIND`，8 条目 / 7 去重）** —— 属谓词选择问题：`dist_to_front` 是被比较的量不是信号，`Send` 是输出动作不是输入事件。
-5. **测量链侧待修项** —— 已登记于 [defects_registered.md](../docs/findings/predicates/defects_registered.md)，本桶内涉及 P-1（`0046-8`）、P-2 / P-3（`0044-4`）、P-4（`0054-5` 与 `0026-3`）。⚠️ 与「谓词词表保持不动」不冲突，两者范围不同：**冻结的是谓词词表**（不增删谓词、不改现有谓词族的语义），这些是**求值侧**的缺陷，另案登记于 [defects_registered.md](../docs/findings/predicates/defects_registered.md)，按「已实施 / 未实施」两栏维护，不通过改 prompt 绕过。
+5. **测量链侧待修项** —— 已登记于 [defects_registered.md](../../../discover_matrix/docs/findings/predicates/defects_registered.md)，本桶内涉及 P-1（`0046-8`）、P-2 / P-3（`0044-4`）、P-4（`0054-5` 与 `0026-3`）。⚠️ 与「谓词词表保持不动」不冲突，两者范围不同：**冻结的是谓词词表**（不增删谓词、不改现有谓词族的语义），这些是**求值侧**的缺陷，另案登记于 [defects_registered.md](../../../discover_matrix/docs/findings/predicates/defects_registered.md)，按「已实施 / 未实施」两栏维护，不通过改 prompt 绕过。
 
 ## 五、两条裁定规则
 
@@ -183,12 +183,12 @@ grep -cE "^[[:space:]]*--[[:space:]]*$" llms_emp_feedback_final_0056/stm0.puml  
 
 桶内统计的重建：改裁定**只能改** `unexpected_verdicts/G*.jsonl`，然后跑 `python3 ../rebuild_unexpected.py`——它会一并重建 [unexpected_tables.md](./unexpected_tables.md) 与全部派生 tsv，并在字段缺失、`merge_key` 跨 `verdict` / `subclass` / `pair` 时拒绝执行。
 
-台账权威源是 [manual_review/expected_issue_set.json](../manual_review/expected_issue_set.json)（126 条）；同目录 `expected_issues_reconstructed.json` 只覆盖 4 个 pair，[hit_criterion.md](../docs/protocol/hit_criterion.md) §7 明令禁止用它算命中。
+台账权威源是 [manual_review/expected_issue_set.json](../manual_review/expected_issue_set.json)（126 条）；同目录 `expected_issues_reconstructed.json` 只覆盖 4 个 pair，[hit_criterion.md](../../../discover_matrix/docs/protocol/hit_criterion.md) §7 明令禁止用它算命中。
 
 ## 七、本裁定自身的可靠性边界
 
 1. **`grep` 只能定位不能裁定。** 按 `front_distance` 检索 0010 的作者源会得出「作者源亦无、可能真缺陷」，而作者实写 `Front Distance > 10`（`stm0.puml:9,12,18`，大写、有空格）。**必须逐行读原文。** 本文件所有作者源判据都标了行号，可逐条复核。
-2. **`D1` / `D2` 分界有一处脆弱点。** `dist_to_front<15` 在本批 pair 里出现两次，清洗名极其形近（`dist_to_front_15_highway` vs `dist_to_front_15_extra_lane_true`），**不可从簇自身文本判定**，必须回读 `stm0.puml` 那一行并确认它对应哪句 NL。受影响 ≤4 条（占表示债务 134 条目的 3.0%），判据见 [unexpected_taxonomy.md](../docs/protocol/unexpected_taxonomy.md)。
+2. **`D1` / `D2` 分界有一处脆弱点。** `dist_to_front<15` 在本批 pair 里出现两次，清洗名极其形近（`dist_to_front_15_highway` vs `dist_to_front_15_extra_lane_true`），**不可从簇自身文本判定**，必须回读 `stm0.puml` 那一行并确认它对应哪句 NL。受影响 ≤4 条（占表示债务 134 条目的 3.0%），判据见 [unexpected_taxonomy.md](../../../discover_matrix/docs/protocol/unexpected_taxonomy.md)。
 3. **不设「待定」。** 证据不足不构成一个裁定类别——取不到证据就去取：静态读不动时直接实跑 `SimulationAPI` 投喂事件看机器动没动（`0044-4`），或用 `FBMCQAPI` 做 bound 扫描取反例 frames（`0044-2`）。⚠️ `FBMCQAPI` 在结构最破的制品上恰恰不可用，遇 `UnsupportedEvidence` 的下一跳按序是「降 bound → 转 `SimulationAPI` → 静态封裁」。
 4. **判定层本身是独立误差源，且是单向的。** 裁定越严，越倾向把真发现判成非发现。本文件的每一条非发现裁定都留了可机械复算的作者源行号或命令，正是为了让这个方向的误差可被外部翻案。
 

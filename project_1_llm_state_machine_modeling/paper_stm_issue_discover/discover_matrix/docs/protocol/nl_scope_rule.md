@@ -11,13 +11,13 @@
 
 则**该规约的忠实模型无法在 $M$ 中表示**，其 pair 族不进入本方法的评测分母。
 
-判定由 [nl_scope_filter.py](../../nl_scope_filter.py) 执行，**只读 `nl.txt`，不读任何模型、产物或结果**。
+判定由 [nl_scope_filter.py](../../../archive/r10_ledger_v1_and_v46/scripts/nl_scope_filter.py) 执行，**只读 `nl.txt`，不读任何模型、产物或结果**。
 
 ## 二、为什么筛选单位是 NL 而不是 pair
 
 60 个 pair 由 **10 份不同 NL** 各生成 6 个。**被排除的那份恰好是全部末位为 8 的 pair**，故可简称为「排除 `00x8`」。
 
-⚠️ 但不要把「NL 索引 = 末位数字」当规律：实测有**两个例外** —— `a391765d` = `0002 0013 0023 0033 0043 0053`、`9fe426ba` = `0003 0012 0022 0032 0042 0052`，即 `0012` 与 `0013` 在两份 NL 间互换。其余 8 份按末位对齐，**被排除的那份在干净的一侧**。这是实测事实，由 [test_nl_scope_filter.py](../../test_nl_scope_filter.py) 钉住。⭐ **成因已在源表格上查实**：pair 号 = `Experiment Results.xlsx` 的 `STM Results` 工作表行号 − 2，而该表按每 10 行一段（一个 LLM）排布，GPT-4o 那一段把 Pump Control 排在段内第 2 位、HSUV 第 3 位，其余五段一律反过来。⚠️ 所谓「个位对应哪份 NL」在源头**并不存在**，那是从结果反推出的假象。⭐ 三层编号（pair 号 / NL 正文 / `NLxx` 批次标签）的完整对应关系与逐格复算见 [relabel/README.md](../../manual_review/relabel/README.md) §3.0.1。⭐ **完整编号规则**（个位 = 哪份 NL 的固定置换、十位 = 哪个模型）与「这处互换并未破坏语料平衡」的核验，见 [relabel/README.md](../../manual_review/relabel/README.md) §3.0.1 —— ⚠️ 那里也写明 pair 编号继承自上游已发表语料、成因无从查证，⛔ 不要为它编理由。
+⚠️ 但不要把「NL 索引 = 末位数字」当规律：实测有**两个例外** —— `a391765d` = `0002 0013 0023 0033 0043 0053`、`9fe426ba` = `0003 0012 0022 0032 0042 0052`，即 `0012` 与 `0013` 在两份 NL 间互换。其余 8 份按末位对齐，**被排除的那份在干净的一侧**。这是实测事实，由 [test_nl_scope_filter.py](../../../archive/r10_ledger_v1_and_v46/scripts/test_nl_scope_filter.py) 钉住。⭐ **成因已在源表格上查实**：pair 号 = `Experiment Results.xlsx` 的 `STM Results` 工作表行号 − 2，而该表按每 10 行一段（一个 LLM）排布，GPT-4o 那一段把 Pump Control 排在段内第 2 位、HSUV 第 3 位，其余五段一律反过来。⚠️ 所谓「个位对应哪份 NL」在源头**并不存在**，那是从结果反推出的假象。⭐ 三层编号（pair 号 / NL 正文 / `NLxx` 批次标签）的完整对应关系与逐格复算见 [relabel/README.md](../../../archive/r10_ledger_v1_and_v46/manual_review/relabel/README.md) §3.0.1。⭐ **完整编号规则**（个位 = 哪份 NL 的固定置换、十位 = 哪个模型）与「这处互换并未破坏语料平衡」的核验，见 [relabel/README.md](../../../archive/r10_ledger_v1_and_v46/manual_review/relabel/README.md) §3.0.1 —— ⚠️ 那里也写明 pair 编号继承自上游已发表语料、成因无从查证，⛔ 不要为它编理由。
 
 | NL | pairs | 并发提及 | 计时提及 | 判定 |
 | :-- | :-- | --: | --: | :-- |
@@ -55,7 +55,7 @@
 
 📌 **论文口径**：谓词词表与 prompt 的由来一律陈述为**从真实设计与系统规约归纳**，不以任何 pair 为依据。因此论文里**不需要解释 hold-out**，也不需要为「为什么不留出」辩护 ——这个问题在本方法的论证结构里根本不出现。`00x8` 的排除则要写明，理由是建模对象边界（$M$ 无时钟、无不变式、无正交区），不是样本取舍。
 
-这条由 [test_scope_vs_holdout_are_different.py](../../test_scope_vs_holdout_are_different.py) 在工具层钉住：`metrics_at_k.REPORTABLE` 已扣除越界记录。⚠️ **`126 − 27 = 99` 是本条裁定单独作用的结果，不是能力分母**——`EIS-0043-02` 另按逐条 `boundary_ruling` 剔除，故实际分母为 **98**（该测试断言的正是 `OUT_OF_SCOPE == 28` 与 `REPORTABLE == 98`）。两种剔除来源不同、不可混谈，且两侧报错分开 —— 范围内记录缺失报「更改分母」，越界记录混入报「网格被改错」。
+这条由 [test_scope_vs_holdout_are_different.py](../../../archive/r10_ledger_v1_and_v46/scripts/test_scope_vs_holdout_are_different.py) 在工具层钉住：`metrics_at_k.REPORTABLE` 已扣除越界记录。⚠️ **`126 − 27 = 99` 是本条裁定单独作用的结果，不是能力分母**——`EIS-0043-02` 另按逐条 `boundary_ruling` 剔除，故实际分母为 **98**（该测试断言的正是 `OUT_OF_SCOPE == 28` 与 `REPORTABLE == 98`）。两种剔除来源不同、不可混谈，且两侧报错分开 —— 范围内记录缺失报「更改分母」，越界记录混入报「网格被改错」。
 
 ## 六、双份数字（报告义务，**仅适用于同时跑过两侧的代次**）
 
@@ -133,7 +133,7 @@
 > 1. There are three **region** in this diagram
 > 3. The **orthogonal regions** of the active mode of collision avoidance allow for **concurrent activation**    different of collision avoidance controls.
 
-该 NL 是 `49854d04`，覆盖 `0007` `0017` `0027` `0037` `0047` `0057`（又是一个干净的末位族）。本文件 §1 的规则意图一直是「要求正交区者超范围」，而 [nl_scope_filter.py](../../nl_scope_filter.py) 的实现 **只检测 `fork` / `join` 关键词**，漏了 `orthogonal region` / `concurrent activation` —— 这是实现不足。
+该 NL 是 `49854d04`，覆盖 `0007` `0017` `0027` `0037` `0047` `0057`（又是一个干净的末位族）。本文件 §1 的规则意图一直是「要求正交区者超范围」，而 [nl_scope_filter.py](../../../archive/r10_ledger_v1_and_v46/scripts/nl_scope_filter.py) 的实现 **只检测 `fork` / `join` 关键词**，漏了 `orthogonal region` / `concurrent activation` —— 这是实现不足。
 
 ### 裁定：**不排除**，`0047` 继续留在分母
 

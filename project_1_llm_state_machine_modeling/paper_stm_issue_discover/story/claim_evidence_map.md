@@ -316,7 +316,7 @@
 > - **为什么必须做**：这是 `TODO-O8` 清单的**第一优先**。没有它，60.4% **没有参照系**，  无法说明这套循环换来了什么，而这是审稿人第一个会问的。
 > - **代价**：一次小规模运行（同两个执行模型、同 54 pair、不走八阶段循环）。
 > - ⛔ **在它做完之前，论文里不得出现任何相对性表述**——不许写「优于」「提升」「相比之下」。  只能写绝对量，并如实声明无对照。
-> - **材料在哪**：报告 §9「必须补的对照与审计」第一行；  现有的机械对照脚手架见 [../discover_matrix/mechanical_diff_baseline.py](../discover_matrix/mechanical_diff_baseline.py)。
+> - **材料在哪**：报告 §9「必须补的对照与审计」第一行；  现有的机械对照脚手架见 [../discover_matrix/mechanical_diff_baseline.py](../archive/r10_ledger_v1_and_v46/scripts/mechanical_diff_baseline.py)。
 
 ---
 

@@ -2,15 +2,15 @@
 
 **日期**：2026-08-16　**范围**：`manual_review/relabel/` 的 49 个 `UM-<pair>` 填写块
 
-⛔ **裁定**：`UM-` 一族**全部撤出工作单**。残余部分另存为 [unmatched_residue.json](../../manual_review/relabel/unmatched_residue.json)，**不进工作单**、不设裁决区、无 D 档判读。
+⛔ **裁定**：`UM-` 一族**全部撤出工作单**。残余部分另存为 [unmatched_residue.json](../../../archive/r10_ledger_v1_and_v46/manual_review/relabel/unmatched_residue.json)，**不进工作单**、不设裁决区、无 D 档判读。
 
 ⚠️ 本文记录**为什么** —— 否则日后只能看到「候选数从 269 变成 220」而不知何故。
 
-⛔⛔ **本文里的 `220` 是 2026-08-16 撤 `UM-` 那一刻的数，⛔ 不是当前口径。** ⭐ 当前工作单条目数是 **323**（§2 台账 99 + §3 候选 224）—— 同日又发生两件事：① 撤 `UM-` 使 5 条原本并入 UM 桶的 `INS-` 失去宿主，⭐ 经逐条判重后 4 条自立、1 条并入同伴；② 一度误把未去重的判读包总数 `380` 当成条目数，⛔ 导致 56 条已去重的重复被重新摆出。⭐ 完整账目与每个历史数字的来历见 [DEDUP_ACCOUNTING.md](../../manual_review/relabel/DEDUP_ACCOUNTING.md)。
+⛔⛔ **本文里的 `220` 是 2026-08-16 撤 `UM-` 那一刻的数，⛔ 不是当前口径。** ⭐ 当前工作单条目数是 **323**（§2 台账 99 + §3 候选 224）—— 同日又发生两件事：① 撤 `UM-` 使 5 条原本并入 UM 桶的 `INS-` 失去宿主，⭐ 经逐条判重后 4 条自立、1 条并入同伴；② 一度误把未去重的判读包总数 `380` 当成条目数，⛔ 导致 56 条已去重的重复被重新摆出。⭐ 完整账目与每个历史数字的来历见 [DEDUP_ACCOUNTING.md](../../../archive/r10_ledger_v1_and_v46/manual_review/relabel/DEDUP_ACCOUNTING.md)。
 
 ## 一、`UM-` 是什么
 
-`UM` = **U**n**m**atched。它不是有人筛出来的候选集，而是**机械匹配器的兜底桶**：两个实验臂（X1 基线臂、v46 主臂）运行中报出的 issue，凡是匹配器没能链到任何台账条目的，全部倒进 [unmatched_issues.json](../../manual_review/relabel/unmatched_issues.json)。
+`UM` = **U**n**m**atched。它不是有人筛出来的候选集，而是**机械匹配器的兜底桶**：两个实验臂（X1 基线臂、v46 主臂）运行中报出的 issue，凡是匹配器没能链到任何台账条目的，全部倒进 [unmatched_issues.json](../../../archive/r10_ledger_v1_and_v46/manual_review/relabel/unmatched_issues.json)。
 
 出处（该文件 `sources` 字段逐字）：
 
@@ -57,7 +57,7 @@ v46 侧 729 条里 **409 条（56%）**能与该 pair 的 v46 已裁定簇对上
 
 ### 3. ⛔ 登记单位从头就不对
 
-[candidate_mapping.json](../../manual_review/relabel/candidate_mapping.json) 的 `unit_caveat` 逐字：
+[candidate_mapping.json](../../../archive/r10_ledger_v1_and_v46/manual_review/relabel/candidate_mapping.json) 的 `unit_caveat` 逐字：
 
 > ⛔ 三类候选不同构：VU / DIFF 一条 = 一个主张，**UM 一条 = 整张表**（一个 pair 的全部未匹配 issue）。UM 桶内各组座标不一致时一律 `mappable: false` 且 `blocker = unit_of_record`。
 
@@ -73,7 +73,7 @@ v46 侧 729 条里 **409 条（56%）**能与该 pair 的 v46 已裁定簇对上
 
 ## 四、残余清单里剩什么
 
-[unmatched_residue.json](../../manual_review/relabel/unmatched_residue.json)：**143 条**归一化事实（来自 320 条既对不上已裁定簇、又非 X1 已结案材料的 v46 条目）。
+[unmatched_residue.json](../../../archive/r10_ledger_v1_and_v46/manual_review/relabel/unmatched_residue.json)：**143 条**归一化事实（来自 320 条既对不上已裁定簇、又非 X1 已结案材料的 v46 条目）。
 
 | 项 | 数 |
 | :-- | --: |
@@ -97,4 +97,4 @@ v46 侧 729 条里 **409 条（56%）**能与该 pair 的 v46 已裁定簇对上
 
 ## 六、⭐ 若要恢复
 
-⛔ 恢复不该是「把 49 块加回来」。⭐ 正确做法是：从 [unmatched_residue.json](../../manual_review/relabel/unmatched_residue.json) 里挑出**确实是完整主张**的那些（判据：点得出元素名 · 出现 ≥2 格 · 能陈述一条被违反的义务而不只是「某个分支名没声明」），**逐条拆成独立候选**并送三方判读 —— ⚠️ 粗算符合前两条的约 **46 条**。⛔ 一块对应一张表的形态不许再出现。
+⛔ 恢复不该是「把 49 块加回来」。⭐ 正确做法是：从 [unmatched_residue.json](../../../archive/r10_ledger_v1_and_v46/manual_review/relabel/unmatched_residue.json) 里挑出**确实是完整主张**的那些（判据：点得出元素名 · 出现 ≥2 格 · 能陈述一条被违反的义务而不只是「某个分支名没声明」），**逐条拆成独立候选**并送三方判读 —— ⚠️ 粗算符合前两条的约 **46 条**。⛔ 一块对应一张表的形态不许再出现。

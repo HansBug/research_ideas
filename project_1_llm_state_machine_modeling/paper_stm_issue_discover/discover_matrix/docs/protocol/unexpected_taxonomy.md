@@ -6,9 +6,9 @@
 
 **内容已被现有台账记录承载的产出，按定义就不是意外发现，根本不进这个桶。**
 
-判据：台账中存在一条记录**与本条同根**——由同一处建模失误导致，哪怕表现面不同。判「同根」的硬判据见下方专节。命中者移入 [unexpected_verdicts/ledger_accounted.jsonl](../../v46/unexpected_verdicts/ledger_accounted.jsonl)，并在那里记录其 `disposition`（真漏配 / 冗余复述 / 同根但该格未建立记录 / 报的是已退役判据）。
+判据：台账中存在一条记录**与本条同根**——由同一处建模失误导致，哪怕表现面不同。判「同根」的硬判据见下方专节。命中者移入 [unexpected_verdicts/ledger_accounted.jsonl](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_verdicts/ledger_accounted.jsonl)，并在那里记录其 `disposition`（真漏配 / 冗余复述 / 同根但该格未建立记录 / 报的是已退役判据）。
 
-⚠️ **`MERGE_INTO_LEDGER` 是已作废的类别，不得复设为第六类。** 它回答的是「这条产出该不该在桶里」，与其余五类回答的「这条产出是什么」不是同一个问题；并列成第六类会让分母混入 14 条已被台账承载的簇（14/304，见 [unexpected_tables.md](../../v46/unexpected_tables.md) 表 0），并让人误以为「命中被大幅低估」——这 14 条无一产生新增命中，它们只是「不属于意外发现」。**桶内分母为 288。**
+⚠️ **`MERGE_INTO_LEDGER` 是已作废的类别，不得复设为第六类。** 它回答的是「这条产出该不该在桶里」，与其余五类回答的「这条产出是什么」不是同一个问题；并列成第六类会让分母混入 14 条已被台账承载的簇（14/304，见 [unexpected_tables.md](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_tables.md) 表 0），并让人误以为「命中被大幅低估」——这 14 条无一产生新增命中，它们只是「不属于意外发现」。**桶内分母为 288。**
 
 ### ⛔ 判「同根」的硬判据
 
@@ -41,7 +41,7 @@ v46 的两个反向实例，同一判据、同一基准：
 | `0049-10` | 不知 `dist_to_front_25` 是 `<25` 还是 `>=25` | 读 `model.fcstm:5` 的 `named` 串——比较符逐字保留 | 📄 无 NL 依据（`N-SPLIT`） |
 | `0049-22` | 同上 | 同上；作者从未单独写过裸 `<25`，它只是合取串的子串 | 📄 无 NL 依据（`N-SPLIT`） |
 | `0039-18` | 疑似依赖正交读法 | `grep -cE "^\s*--\s*$" stm0.puml` = **0**，源内无正交区 | 📄 无 NL 依据（`N-FUSE`） |
-| `0044-2` | 不知 False 来自制品还是谓词 | **实跑 `FBMCQAPI`** 做 bound 扫描看首个违反帧落在哪 | ✅ 真阴性——义务实为满足，移出桶（[not_produced.jsonl](../../v46/unexpected_verdicts/not_produced.jsonl)） |
+| `0044-2` | 不知 False 来自制品还是谓词 | **实跑 `FBMCQAPI`** 做 bound 扫描看首个违反帧落在哪 | ✅ 真阴性——义务实为满足，移出桶（[not_produced.jsonl](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_verdicts/not_produced.jsonl)） |
 | `0044-4` | 无法核验 `transition:7` | **实跑 `SimulationAPI`** 投喂事件看机器动没动 | ❌ 假阳性（`FP-0`，机器原地未动） |
 
 ⚠️ 后两条的方法值得单独记：**当静态阅读不足以裁定时，直接调 `FBMCQAPI` / `SimulationAPI` 把反例 trace 跑出来。**
@@ -55,7 +55,7 @@ v46 的两个反向实例，同一判据、同一基准：
 
 `UnsupportedEvidence` 时的下一跳（按序）：**降 bound → 转 `SimulationAPI` → 静态封裁**。⚠️ `is_ended()` 不是合法查询；`init cold;` 会被默认注入。`0044-2` 的三次 bound 扫描证明「首个违反帧永远在 release 之后」，据此把 False 归给谓词而非制品——**这是纯读代码得不出的结论**。
 
-本文件是裁定规范。**一切实测分布以机器产出的 [unexpected_tables.md](../../v46/unexpected_tables.md) 为唯一产地**，本文件不留副本；逐簇判据见 [unexpected_evidence.md](../../v46/unexpected_evidence.md)，真源是 [unexpected_verdicts/](../../v46/unexpected_verdicts) 下的 `G*.jsonl`。
+本文件是裁定规范。**一切实测分布以机器产出的 [unexpected_tables.md](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_tables.md) 为唯一产地**，本文件不留副本；逐簇判据见 [unexpected_evidence.md](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_evidence.md)，真源是 [unexpected_verdicts/](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_verdicts) 下的 `G*.jsonl`。
 
 ## 〇之一、⛔ 一切计数都必须给**两套分母**
 
@@ -63,9 +63,9 @@ v46 的两个反向实例，同一判据、同一基准：
 
 **去重单元定义**：`(pair, 根因)`。同一个 pair 内、指向**同一处建模失误或同一处编译损失**的簇，合并计为 1 个；**不同 pair 即使缺陷类型相同也不合并**——那是不同制品上的不同实例。
 
-实现：每条簇带一个自解释的 `merge_key` 字段（如 `0029-作者量与条件不可寻址`、`0017-三碰撞检测塌缩为单一泛化事件`），去重数 = 不同 `merge_key` 的个数。⛔ `merge_key` 不许用 `0029-A` 这类无意义编号，也不许跨 verdict / subclass / pair—— [rebuild_unexpected.py](../../rebuild_unexpected.py) 会把跨界的 key 判为「去重单元被破坏」并报错。全部 124 组及其合并理由见 [merge_groups.tsv](../../v46/unexpected_verdicts/merge_groups.tsv)。
+实现：每条簇带一个自解释的 `merge_key` 字段（如 `0029-作者量与条件不可寻址`、`0017-三碰撞检测塌缩为单一泛化事件`），去重数 = 不同 `merge_key` 的个数。⛔ `merge_key` 不许用 `0029-A` 这类无意义编号，也不许跨 verdict / subclass / pair—— [rebuild_unexpected.py](../../../archive/r10_ledger_v1_and_v46/scripts/rebuild_unexpected.py) 会把跨界的 key 判为「去重单元被破坏」并报错。全部 124 组及其合并理由见 [merge_groups.tsv](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_verdicts/merge_groups.tsv)。
 
-**为什么这条是硬要求**：同一处缺陷会以不同谓词、不同命名、不同 roll-up 粒度反复产出。只报条目数会把「一个缺陷被报了 11 次」读成「11 个缺陷」。实测：`0029` 一个 pair 的 11 条变量类簇讲的是同一件事（该制品作者变量数为零）；桶内 **288 个条目**归并后只剩 **124 处**不同内容，其中 `VALID_UNRECORDED` 归并后只有 **2 条根因**—— **论文里能说的净增量是 2。** 两套分母见 [unexpected_tables.md](../../v46/unexpected_tables.md) 表 1。
+**为什么这条是硬要求**：同一处缺陷会以不同谓词、不同命名、不同 roll-up 粒度反复产出。只报条目数会把「一个缺陷被报了 11 次」读成「11 个缺陷」。实测：`0029` 一个 pair 的 11 条变量类簇讲的是同一件事（该制品作者变量数为零）；桶内 **288 个条目**归并后只剩 **124 处**不同内容，其中 `VALID_UNRECORDED` 归并后只有 **2 条根因**—— **论文里能说的净增量是 2。** 两套分母见 [unexpected_tables.md](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_tables.md) 表 1。
 
 ⚠️ **条目/去重比本身是可分析的数据**，不只是修正因子。比值高有两种解释，必须分辨：
 - **该缺陷天然会被多个谓词命中**（如「零变量」会让每个 `variable_declared` 断言都为假）—— 这是缺陷的属性，不是产出的毛病。
@@ -119,7 +119,7 @@ v46 的两个反向实例，同一判据、同一基准：
 （⓪ 台账是否已承载 —— 在进入本流程**之前**判，命中者不进桶，见文首「先做零步」）
 ```
 
-⚠️ **③④ 必须前置于 ⑤，否则范畴错置（`N-KIND`）与合取拆分（`N-SPLIT`）会被短路成表示债务** ——这两类合计占「无 NL 依据」近半（[unexpected_tables.md](../../v46/unexpected_tables.md) 表 2）。最小实例：`0049-11`（「无独立 `extra_lane_true` 事件」）与 `0049-15`（「无 `extra_lane` 变量」）指向**同一处缺口**，作者在 `stm0.puml:11,14,21` 都写了 `dist_to_front<25 && extra_lane=true`，故 ⑤ 对两者同样为「是」。区分它们的是 ③—— NL 把 `extra_lane` 称作 condition，属 `V` 不属 `E`，索要事件是范畴错置；以及 ④——该缺口已由 `0049-15` 以变量框架承载，`0049-11` 只是同一缺口的错误框架，不再计一次。
+⚠️ **③④ 必须前置于 ⑤，否则范畴错置（`N-KIND`）与合取拆分（`N-SPLIT`）会被短路成表示债务** ——这两类合计占「无 NL 依据」近半（[unexpected_tables.md](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_tables.md) 表 2）。最小实例：`0049-11`（「无独立 `extra_lane_true` 事件」）与 `0049-15`（「无 `extra_lane` 变量」）指向**同一处缺口**，作者在 `stm0.puml:11,14,21` 都写了 `dist_to_front<25 && extra_lane=true`，故 ⑤ 对两者同样为「是」。区分它们的是 ③—— NL 把 `extra_lane` 称作 condition，属 `V` 不属 `E`，索要事件是范畴错置；以及 ④——该缺口已由 `0049-15` 以变量框架承载，`0049-11` 只是同一缺口的错误框架，不再计一次。
 
 ### ⛔ ③ 的子判据：合取 / 析取分岔
 
@@ -210,9 +210,9 @@ v46 的两个反向实例，同一判据、同一基准：
 | `D5` 跨通道打包 | 一簇同时跨 ≥2 个损失通道 |
 | `D4` 结构性下沉债务 | **谁是真正的初始态 / 层次深度** |
 
-条目数、去重数、条目/去重比与涉及 pair 数见 [unexpected_tables.md](../../v46/unexpected_tables.md) 表 2，**此处不留副本**。
+条目数、去重数、条目/去重比与涉及 pair 数见 [unexpected_tables.md](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_tables.md) 表 2，**此处不留副本**。
 
-⚠️ **去重数以 `merge_key` 为准。** `D5` 的 key 与同 pair 的 `D1`/`D2` key 指向同一批损失的再打包，但 `merge_key` 是本文件 §〇之一定义、并由 [rebuild_unexpected.py](../../rebuild_unexpected.py) 强制的去重单元（跨 verdict / subclass / pair 的 key 会被它判为破坏去重单元并报错）。论文若要说「这条链上有多少处编译损失被下游误记为模型缺陷」，该用 **27**：7 处析取标签融合 + 11 处作者量整体不可寻址 + 4 处槽位焊死 + 4 处跨通道打包 + 1 处结构注入。
+⚠️ **去重数以 `merge_key` 为准。** `D5` 的 key 与同 pair 的 `D1`/`D2` key 指向同一批损失的再打包，但 `merge_key` 是本文件 §〇之一定义、并由 [rebuild_unexpected.py](../../../archive/r10_ledger_v1_and_v46/scripts/rebuild_unexpected.py) 强制的去重单元（跨 verdict / subclass / pair 的 key 会被它判为破坏去重单元并报错）。论文若要说「这条链上有多少处编译损失被下游误记为模型缺陷」，该用 **27**：7 处析取标签融合 + 11 处作者量整体不可寻址 + 4 处槽位焊死 + 4 处跨通道打包 + 1 处结构注入。
 
 **关键分界线**：
 
@@ -235,7 +235,7 @@ v46 的两个反向实例，同一判据、同一基准：
 
 ### 十个子类
 
-⛔ 各子类的条目数 / 去重数 / 稳定性一律以 [unexpected_tables.md](../../v46/unexpected_tables.md) 表 2 为准，**本节不留副本**。本节只定义「怎么认出它」。
+⛔ 各子类的条目数 / 去重数 / 稳定性一律以 [unexpected_tables.md](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_tables.md) 表 2 为准，**本节不留副本**。本节只定义「怎么认出它」。
 
 **`N-CTX` 语境词当元素** —— 例 `0016-3` / `0026-2`
 > 把 NL 的**语境状语 / 状语从句 / 散文里的场景词**当成必须存在的同名元素。「During flight, if task assignment information is received」——`During flight` 是**状语背景**，整台机器全程在飞行，NL 中不存在与之对立的非飞行上下文；要求一个名为 `Flight` 的状态属过度规定。识别信号：被索要的名字在 NL 里只作时间 / 场景状语，从未作为被操作的对象出现。
@@ -295,7 +295,7 @@ v46 的两个反向实例，同一判据、同一基准：
 
 ### 四个子类
 
-⛔ 条目数 / 去重数以 [unexpected_tables.md](../../v46/unexpected_tables.md) 表 2 为准，**本节不留副本**。
+⛔ 条目数 / 去重数以 [unexpected_tables.md](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_tables.md) 表 2 为准，**本节不留副本**。
 
 **`FP-N` 命名变体 / 虚构标识符：元素已在，仅字面不同** —— 例 `0057-6` / `0032-3` / `0003-1`
 > `0057-6`：断言要求 `possible_frontend_collision`，制品已声明 `Frontend_collision_detected` ——正是 NL 2 对应的独立检测事件，只是字面名不同。`0032-3`：断言要求 `accelerating`，制品已声明 `event Accelerate`；NL 3 用 `like` 举例，未规定精确拼写。`0003-1/2`：断言用的 `power_on` 是虚构标识符，制品的入口边写作 `PoweredOff -> Operate : /start`。⚠️ 同一主张在不同 pair 上可能一真一假：0017 只有泛化 `collision_detected`，0057 已分立三事件。**命名类断言必须逐 pair 核对，不能按 NL 归并结论。**
@@ -370,4 +370,4 @@ v46 的两个反向实例，同一判据、同一基准：
 | 「某复合态下应恰好三个区」 | `OUT_OF_SCOPE`（`OOS-REGION`） | 区数量义务在 M 外 |
 | 「复合态内子态之间零迁移」而作者源用 `--` 写了并发区 | `OUT_OF_SCOPE`（`OOS-FLATTEN`） | 该现象是展平产物，参考模型同样如此 |
 | 断言的 scope 在模型里查不到 | `NO_NL_BASIS`（`N-ANCHOR`） | 自造前提导致的空洞真 |
-| 台账里有条记录讲的好像是同一件事 | **不进本桶** | 判「同根」：作者源上该元素是否**仅被**台账所指那条语句引用（`grep -c`）。移入 [ledger_accounted.jsonl](../../v46/unexpected_verdicts/ledger_accounted.jsonl) |
+| 台账里有条记录讲的好像是同一件事 | **不进本桶** | 判「同根」：作者源上该元素是否**仅被**台账所指那条语句引用（`grep -c`）。移入 [ledger_accounted.jsonl](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_verdicts/ledger_accounted.jsonl) |

@@ -1,7 +1,7 @@
 # v46 意外发现逐簇判据（全 288 条）
 
 [unexpected_adjudication.md](./unexpected_adjudication.md) 的证据附件。
-裁定口径见 [unexpected_taxonomy.md](../docs/protocol/unexpected_taxonomy.md)。
+裁定口径见 [unexpected_taxonomy.md](../../../discover_matrix/docs/protocol/unexpected_taxonomy.md)。
 
 ⚠️ **本文件由 `unexpected_verdicts/G*.jsonl` 生成（`../rebuild_unexpected.py`），jsonl 是真源。**
 改裁定请改 jsonl 再跑重建；直接编辑本文件会在下次重建时静默丢失。

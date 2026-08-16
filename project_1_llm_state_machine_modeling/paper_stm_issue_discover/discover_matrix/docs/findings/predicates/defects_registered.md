@@ -2,7 +2,7 @@
 
 > **本文件由两份原件合并**：`PREDICATE_DEFECTS_REGISTERED.md`（v46 活登记，P-1…P-4）与 `OCCUPANCY_HORIZON_BUG.md`（v23 纠出、已修的 `occupancy_after` 视界缺陷，现登记为 **P-0**）。两者同类：谓词求值实现缺陷、带双侧验收判据与影响面复算。合并只调整了标题层级与跨文件链接。
 
-v46 意外发现裁定中，有 4 个簇的 False **不是制品缺陷，而是测量链自身造成的**—— `0054-5`、`0046-8`、`0026-3`（裁定 `NO_NL_BASIS`）与 `0044-4`（裁定 `FALSE_POSITIVE`，因其主张与制品相反这一条更强更靠前）。裁定口径见 [docs/protocol/unexpected_taxonomy.md](../../protocol/unexpected_taxonomy.md)，逐簇判据见 [unexpected_evidence.md](../../../v46/unexpected_evidence.md)。
+v46 意外发现裁定中，有 4 个簇的 False **不是制品缺陷，而是测量链自身造成的**—— `0054-5`、`0046-8`、`0026-3`（裁定 `NO_NL_BASIS`）与 `0044-4`（裁定 `FALSE_POSITIVE`，因其主张与制品相反这一条更强更靠前）。裁定口径见 [docs/protocol/unexpected_taxonomy.md](../../protocol/unexpected_taxonomy.md)，逐簇判据见 [unexpected_evidence.md](../../../../archive/r10_ledger_v1_and_v46/v46/unexpected_evidence.md)。
 
 ## ⛔ 两个「不动」必须分开，不要混用
 
@@ -163,7 +163,7 @@ False 的唯一来源是 `within_cycles=5` 多跑了 4 个空 cycle，而 `TakeP
 
 **已知残留（一处 coverage gap，不是错误答案）**：`release` 在每条运行的第 0 帧就成立时，所有 `k >= 1` 的假设都不可行，谓词**拒绝作答**，而真值是 True。`check invariant <= 0` 被文法拒绝（bound 从 1 起），从引擎的失败消息反推「假设不可行」又是拿报错当裁定。按 [CLAUDE.md](../../../../../../CLAUDE.md) §10 记为 coverage gap；在这种模型上该 until 主张本来也什么都没断言。
 
-**关联簇**：`0044-2` 与 `0046-8` 都源于这条误读（把 NL 的 `continuously` / `remains` 当成状态驻留不变式）。`0044-2` 在修复后的实现上于冻结制品求值为 **True**，已裁为真阴性并移出多报桶，见 [not_produced.jsonl](../../../v46/unexpected_verdicts/not_produced.jsonl)；`0046-8` 仍留在桶内，裁定 `NO_NL_BASIS · N-MODAL`——它的问题在 NL 读法，不在求值。
+**关联簇**：`0044-2` 与 `0046-8` 都源于这条误读（把 NL 的 `continuously` / `remains` 当成状态驻留不变式）。`0044-2` 在修复后的实现上于冻结制品求值为 **True**，已裁为真阴性并移出多报桶，见 [not_produced.jsonl](../../../../archive/r10_ledger_v1_and_v46/v46/unexpected_verdicts/not_produced.jsonl)；`0046-8` 仍留在桶内，裁定 `NO_NL_BASIS · N-MODAL`——它的问题在 NL 读法，不在求值。
 
 ---
 
@@ -193,7 +193,7 @@ False 的唯一来源是 `within_cycles=5` 多跑了 4 个空 cycle，而 `TakeP
 
 **「缺自环」这个问题归谁**：不再归本谓词。行为侧问 `event_consumed(source, trigger)`，结构侧问 `edge_declared`。
 
-**关联簇**：`0044-4` 仍留在桶内，裁定 `FALSE_POSITIVE · FP-0`（它同时受 P-3 影响）。`0054-1` 在修复后的实现上于冻结制品求值为 **True**，已裁为真阴性并移出多报桶，见 [not_produced.jsonl](../../../v46/unexpected_verdicts/not_produced.jsonl)。
+**关联簇**：`0044-4` 仍留在桶内，裁定 `FALSE_POSITIVE · FP-0`（它同时受 P-3 影响）。`0054-1` 在修复后的实现上于冻结制品求值为 **True**，已裁为真阴性并移出多报桶，见 [not_produced.jsonl](../../../../archive/r10_ledger_v1_and_v46/v46/unexpected_verdicts/not_produced.jsonl)。
 
 ---
 

@@ -43,7 +43,7 @@ state Root {
 
 ### 1.1 由此更正一条曾被写成事实的错误断言
 
-⛔ 此前 [inspectfindings.py](../../manual_review/relabel/inspectfindings.py) 的 `DEADLOCK_LEAF_CAVEAT` 断言 `W_DEADLOCK_LEAF` 有「**系统性假阳性**」，理由是 `analyzers/structural.py` 只数叶态自身出边、不做祖先遍历。**前半（代码不做祖先遍历）为真，后半（因此会误报）为假**——因为 FCSTM 里根本不存在可供子态使用的祖先边。
+⛔ 此前 [inspectfindings.py](../../../archive/r10_ledger_v1_and_v46/manual_review/relabel/inspectfindings.py) 的 `DEADLOCK_LEAF_CAVEAT` 断言 `W_DEADLOCK_LEAF` 有「**系统性假阳性**」，理由是 `analyzers/structural.py` 只数叶态自身出边、不做祖先遍历。**前半（代码不做祖先遍历）为真，后半（因此会误报）为假**——因为 FCSTM 里根本不存在可供子态使用的祖先边。
 
 实测两侧都否掉它：
 
@@ -86,7 +86,7 @@ state Root {
 | 再加 `--max-complexity-tier smt_nonlinear_decidable` | 579（**零增**） |
 | 再加 `--max-call-count-scaling linear_in_leaves` | 579（**零增**） |
 
-⭐ **454 这个数与既有 [inspect_findings.json](../../manual_review/relabel/inspect_findings.json) 的 454 条逐码吻合**，故既有记录可复算；同时说明**该次运行漏了 SMT 档**。
+⭐ **454 这个数与既有 [inspect_findings.json](../../../archive/r10_ledger_v1_and_v46/manual_review/relabel/inspect_findings.json) 的 454 条逐码吻合**，故既有记录可复算；同时说明**该次运行漏了 SMT 档**。
 
 净增 125 条只来自三个码，⛔ 而三者价值差异极大，**不可合并成一个「+125」来报**：
 

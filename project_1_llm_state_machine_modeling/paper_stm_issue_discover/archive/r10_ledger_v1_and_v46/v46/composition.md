@@ -1,8 +1,8 @@
 # v46 意外发现成分分析：五大类的子类体系与划分维度
 
-**本文件只写「怎么分、每一类是什么意思、为什么这么分」。全部计数、占比与交叉表在唯一产地 [unexpected_tables.md](./unexpected_tables.md)** —— 它整份由 `unexpected_verdicts/G*.jsonl` 经 [../rebuild_unexpected.py](../rebuild_unexpected.py) 生成。本文件**不保存任何一份副本**：手工副本一旦与真源分岔，读者无从判断哪一份有效。
+**本文件只写「怎么分、每一类是什么意思、为什么这么分」。全部计数、占比与交叉表在唯一产地 [unexpected_tables.md](./unexpected_tables.md)** —— 它整份由 `unexpected_verdicts/G*.jsonl` 经 [../rebuild_unexpected.py](../scripts/rebuild_unexpected.py) 生成。本文件**不保存任何一份副本**：手工副本一旦与真源分岔，读者无从判断哪一份有效。
 
-全量 288 条目逐条阅读裁定，各大类由独立分析员分别负责，每类要求「不许有其他类」。裁定口径见 [unexpected_taxonomy.md](../docs/protocol/unexpected_taxonomy.md)；逐簇判据见 [unexpected_evidence.md](./unexpected_evidence.md)；机器可读真源在 [unexpected_verdicts/](./unexpected_verdicts/)，每簇带 `verdict` / `subclass` / `merge_key` / `merge_reason`。
+全量 288 条目逐条阅读裁定，各大类由独立分析员分别负责，每类要求「不许有其他类」。裁定口径见 [unexpected_taxonomy.md](../../../discover_matrix/docs/protocol/unexpected_taxonomy.md)；逐簇判据见 [unexpected_evidence.md](./unexpected_evidence.md)；机器可读真源在 [unexpected_verdicts/](./unexpected_verdicts/)，每簇带 `verdict` / `subclass` / `merge_key` / `merge_reason`。
 
 ## ⛔ 两套分母，必须同时读
 
@@ -17,7 +17,7 @@
 
 **审计入口**：[unexpected_verdicts/merge_groups.tsv](./unexpected_verdicts/merge_groups.tsv) —— **124 组 = 45 个多成员组 + 79 个单成员组**，字段 `merge_key | verdict | subclass | pair | 成员数 | 成员簇 | 累计格次 | merge_reason`。`merge_key` 列可直接与 [unexpected_verdicts/cluster_index.tsv](./unexpected_verdicts/cluster_index.tsv) 的同名列 **join**，逐簇追到它属于哪一组、为什么被判为重复。合并规模前 10 见 [unexpected_tables.md 表 5](./unexpected_tables.md)。
 
-⛔ **工具层三道硬门**（[../rebuild_unexpected.py](../rebuild_unexpected.py)）：`merge_key` / `merge_reason` / `subclass` 任一缺失即 `SystemExit`；`merge_key` 跨 `verdict` / `subclass` / `pair` 即报「去重单元被破坏」；裁定不在五类内即拒绝执行。配套测试见 [../test_rebuild_unexpected.py](../test_rebuild_unexpected.py)。
+⛔ **工具层三道硬门**（[../rebuild_unexpected.py](../scripts/rebuild_unexpected.py)）：`merge_key` / `merge_reason` / `subclass` 任一缺失即 `SystemExit`；`merge_key` 跨 `verdict` / `subclass` / `pair` 即报「去重单元被破坏」；裁定不在五类内即拒绝执行。配套测试见 [../test_rebuild_unexpected.py](../scripts/test_rebuild_unexpected.py)。
 
 ⚠️ **条目/去重比本身是数据**：比值高有两种解释——「该缺陷天然被多个谓词命中」（缺陷属性）与「产出侧在重复报同一件事」（产出质量问题）。**各大类的分析员独立判断，结论一致指向后者**，依据一致：膨胀集中在**同一个谓词**内部（`D1` 的 61 簇里 56 条挂 `event_declared`；`N-SPLIT` 的 33 簇里 32 条挂 `event_declared`），而非跨谓词发散。
 
@@ -86,7 +86,7 @@
 
 ## 🚫 越界 `OOS-*`
 
-**划分维度**：按「越的是哪条边界」切。边界定义见 [../nl_scope_rule.md](../docs/protocol/nl_scope_rule.md)。
+**划分维度**：按「越的是哪条边界」切。边界定义见 [../nl_scope_rule.md](../../../discover_matrix/docs/protocol/nl_scope_rule.md)。
 
 | 子类 | 含义 |
 | :-- | :-- |

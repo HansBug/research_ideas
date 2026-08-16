@@ -21,7 +21,7 @@
 | 缺陷台账（人工三方对照标注，全量 126 条，可判 98 条） | 已完成，但**有已知缺口** | [discover_matrix/docs/protocol/ground_truth_limitations.md](./discover_matrix/docs/protocol/ground_truth_limitations.md) |
 | 闭合谓词词表（19 个，三族） | 已冻结 | 报告 §4.3；实现在 [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
 | 方法实现（八阶段 + 定向反馈循环） | 已完成并跑通全量 | [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
-| **全量实验（$54 \times 2 \times 3 = 324$ 格）** | **已完成** | 报告 §5–§7；产地 [discover_matrix/v46/](./discover_matrix/v46/) |
+| **全量实验（$54 \times 2 \times 3 = 324$ 格）** | **已完成** | 报告 §5–§7；产地 [discover_matrix/v46/](archive/r10_ledger_v1_and_v46/v46) |
 | 命中判定（全部判定位逐位人工判定） | 已完成，但**判定者只有一位**，且少量位缺判据文字 | 报告 §5.3、§6.1；口径 [discover_matrix/docs/protocol/hit_criterion.md](./discover_matrix/docs/protocol/hit_criterion.md) |
 | 多报侧五类裁定（逐簇判据 + 逐组合并理由） | 已完成 | 报告 §7；口径 [discover_matrix/docs/protocol/unexpected_taxonomy.md](./discover_matrix/docs/protocol/unexpected_taxonomy.md) |
 | 表示债务的识别、子类划分与量化 | 已完成 | 报告 §7.5；[discover_matrix/docs/findings/representation_debt.md](./discover_matrix/docs/findings/representation_debt.md) |

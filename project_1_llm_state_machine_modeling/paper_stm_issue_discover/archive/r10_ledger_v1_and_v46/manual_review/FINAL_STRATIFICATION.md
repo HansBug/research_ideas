@@ -23,7 +23,7 @@ Issue [#171](https://github.com/HansBug/research_ideas/issues/171) 裁决点 1 �
 | 分布 case 数 | 48 |
 | **落在台帐无 E1 的 case 上**（裁决点 2 的补录增量） | **29** |
 
-逐行数据：[final_stratification.json](./final_stratification.json)。各批复核原始判定：[nl_review/](./nl_review/)。生成脚本：[../merge_manual_stratification.py](../merge_manual_stratification.py)（24 个测试）。
+逐行数据：[final_stratification.json](./final_stratification.json)。各批复核原始判定：[nl_review/](./nl_review/)。生成脚本：[../merge_manual_stratification.py](../scripts/merge_manual_stratification.py)（24 个测试）。
 
 ## 分层结果
 

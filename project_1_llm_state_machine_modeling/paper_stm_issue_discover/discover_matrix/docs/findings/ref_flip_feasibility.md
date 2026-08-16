@@ -14,7 +14,7 @@
 
 ## 0. ⭐ 最要紧的一条：台账断言**不是方法产出的断言**
 
-98 条台账记录上挂的 `assertions` 是**人工事后手写**的，⛔ 不是流水线产出。撰写规范在 [../../manual_review/predicate_coverage/BRIEF.md](../../manual_review/predicate_coverage/BRIEF.md)：
+98 条台账记录上挂的 `assertions` 是**人工事后手写**的，⛔ 不是流水线产出。撰写规范在 [../../manual_review/predicate_coverage/BRIEF.md](../../../archive/r10_ledger_v1_and_v46/manual_review/predicate_coverage/BRIEF.md)：
 
 - `BRIEF.md:7` 定义「可执行的正面断言」为「只用 19 个封闭谓词 + `all`/`any`/`not`/`len` 组成的表达式，描述**正确模型应当满足**」的性质 ✅ **已复算**（`grep -n` 命中该行）
 - `BRIEF.md:9` 逐字：「返回 `False` → 该缺陷可被断言捕获 ✓」 ✅ **已复算** —— ⭐ 即**以返回 False 为验收条件**

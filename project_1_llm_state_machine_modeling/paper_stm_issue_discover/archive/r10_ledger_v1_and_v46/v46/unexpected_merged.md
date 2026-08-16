@@ -1,6 +1,6 @@
 # v46 意外发现归并后的问题清单
 
-⚠️ **本文件的簇级数字由 [unexpected_verdicts/](./unexpected_verdicts/) 的 `G*.jsonl` 汇出，jsonl 是真源。** ⛔ **全部交叉表只有一个产地**：[unexpected_tables.md](./unexpected_tables.md)，由 [../rebuild_unexpected.py](../rebuild_unexpected.py) 机器生成。**本文件不保存任何一张交叉表的副本。**
+⚠️ **本文件的簇级数字由 [unexpected_verdicts/](./unexpected_verdicts/) 的 `G*.jsonl` 汇出，jsonl 是真源。** ⛔ **全部交叉表只有一个产地**：[unexpected_tables.md](./unexpected_tables.md)，由 [../rebuild_unexpected.py](../scripts/rebuild_unexpected.py) 机器生成。**本文件不保存任何一张交叉表的副本。**
 
 簇不是缺陷。同一个缺陷会以不同谓词、不同命名、不同 roll-up 粒度反复产出，因此一切计数都给两套分母：**条目数**（原始簇数）与**去重数**（不同 `merge_key` 的个数，去重单元 = `(pair, 根因)`；同 pair 同一处失误合并计 1，不同 pair 不合并）。
 
@@ -18,7 +18,7 @@
 
 ## 二、🔗 内容已被台账承载者：不属意外发现，不在分母内
 
-14 条经复核确认与现有台账记录**同根**，按定义不是意外发现，物理存放在 [unexpected_verdicts/ledger_accounted.jsonl](./unexpected_verdicts/ledger_accounted.jsonl)。判「同根」的硬判据（数作者源上的引用次数）见 [unexpected_taxonomy.md](../docs/protocol/unexpected_taxonomy.md) 「先做零步」。
+14 条经复核确认与现有台账记录**同根**，按定义不是意外发现，物理存放在 [unexpected_verdicts/ledger_accounted.jsonl](./unexpected_verdicts/ledger_accounted.jsonl)。判「同根」的硬判据（数作者源上的引用次数）见 [unexpected_taxonomy.md](../../../discover_matrix/docs/protocol/unexpected_taxonomy.md) 「先做零步」。
 
 按**对命中的影响**分三类（jsonl 的 `disposition` 字段）：
 
@@ -28,7 +28,7 @@
 | 冗余复述 | 10 | `0006-3` `0016-2` `0016-11` `0026-4` `0035-1` `0035-2` `0010-A1` `0020-A1` `0030-A1` `0040-A1` | 目标记录在全部 6 格已由同格另一条 issue 认领，无格可翻 |
 | 同根但该格未建立记录 | 3 | `0006-2` `0036-8` `0047-9` | 逐格复核维持未命中 |
 
-**移出 ≠ 记命中**：14 条全部只是「不属于意外发现」，无一产生新增命中。`0037-1` 的命中判定按 [hit_criterion.md](../docs/protocol/hit_criterion.md) §4.2 的引用次数判据裁定为未命中——模型点名的多余子是四个，含台账认定正确的 `Inactive`，是严格超集而非同一处失误。
+**移出 ≠ 记命中**：14 条全部只是「不属于意外发现」，无一产生新增命中。`0037-1` 的命中判定按 [hit_criterion.md](../../../discover_matrix/docs/protocol/hit_criterion.md) §4.2 的引用次数判据裁定为未命中——模型点名的多余子是四个，含台账认定正确的 `Inactive`，是严格超集而非同一处失误。
 
 ## 三、⚪ 断言在冻结制品上为真：真阴性，两侧都不存在
 
@@ -38,7 +38,7 @@
 
 ## 四、⚙️ 表示债务：按条目最大的一块
 
-**不是模型缺陷，是我们自己 R4.5 编译（PlantUML → FCSTM）的信息损失**——作者在源制品上已逐字表达，是中间表示装不下。机制见 [unexpected_adjudication.md §一之二](./unexpected_adjudication.md)，完整论述见 [representation_debt.md](../docs/findings/representation_debt.md)，条目 / 去重 / 稳定性见 [unexpected_tables.md](./unexpected_tables.md) 表 2。
+**不是模型缺陷，是我们自己 R4.5 编译（PlantUML → FCSTM）的信息损失**——作者在源制品上已逐字表达，是中间表示装不下。机制见 [unexpected_adjudication.md §一之二](./unexpected_adjudication.md)，完整论述见 [representation_debt.md](../../../discover_matrix/docs/findings/representation_debt.md)，条目 / 去重 / 稳定性见 [unexpected_tables.md](./unexpected_tables.md) 表 2。
 
 子类按「**丢失的是哪一条区分**」切，⛔ 谓词族不参与判类：
 
@@ -50,7 +50,7 @@
 | `D5` 跨通道打包 | 一簇同时跨 ≥2 个损失通道 | 索要串里既含析取支又含合取分量 |
 | `D4` 结构性下沉债务 | 谁是真正的初始态 / 层次深度 | 作者写了合法的区内 `[*]`，R4.5 另注入 `UnspecifiedInitial` |
 
-**关键分界线**（各自都踩过坑）：`D1` vs `D2` 看被指串**是不是一个完整析取支**；`D2` vs `D3` 看该量写在**守卫侧**还是 `/` **之后的效果槽**；`D5` 要通过正向计数测试（枚举分量归类结果 ≥2 种），**不是兜底类**。判定流程见 [unexpected_taxonomy.md](../docs/protocol/unexpected_taxonomy.md)。
+**关键分界线**（各自都踩过坑）：`D1` vs `D2` 看被指串**是不是一个完整析取支**；`D2` vs `D3` 看该量写在**守卫侧**还是 `/` **之后的效果槽**；`D5` 要通过正向计数测试（枚举分量归类结果 ≥2 种），**不是兜底类**。判定流程见 [unexpected_taxonomy.md](../../../discover_matrix/docs/protocol/unexpected_taxonomy.md)。
 
 ## 五、📄 无 NL 依据 / ❌ 假阳性 / 🚫 越界
 
@@ -64,7 +64,7 @@
 
 **越界（`OOS-*`）**三个子类：`OOS-FLATTEN`（`0023` 的正交区展平产物被当作作者缺失迁移——参考模型同样零事件零迁移，不可归因于被测模型）、`OOS-REGION`（`0056-1` / `0007-3` 的区数量义务，R-REGION 规则）、`OOS-INV`（`0017-7` / `0027-6` 的不变式 + 并发保持，双重越界）。判据与风险披露见 [unexpected_adjudication.md §三之二](./unexpected_adjudication.md)。
 
-**测量链侧待修项**已登记于 [defects_registered.md](../docs/findings/predicates/defects_registered.md)（本桶内涉及 `0046-8` / `0044-4` / `0054-5` / `0026-3`），登记区分**词表**与**实现**：谓词词表冻结（不增删谓词，否则作废跨代次可比性），求值实现的缺陷该修就修——P-1 / P-2 已实施，P-3 / P-4 未实施。
+**测量链侧待修项**已登记于 [defects_registered.md](../../../discover_matrix/docs/findings/predicates/defects_registered.md)（本桶内涉及 `0046-8` / `0044-4` / `0054-5` / `0026-3`），登记区分**词表**与**实现**：谓词词表冻结（不增删谓词，否则作废跨代次可比性），求值实现的缺陷该修就修——P-1 / P-2 已实施，P-3 / P-4 未实施。
 
 ## 六、相对上一版的改动
 
