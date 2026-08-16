@@ -8,7 +8,7 @@
 
 | 文件 / 目录 | 角色 | 内容 |
 | :-- | :-- | :-- |
-| [ledger.json](./ledger.json) | ⭐ **真源** | 145 条，每条内联 `D` / `L` / `L_basis` / `statement` / 五轴 / 出处族 / 人工裁决理由 / meta review / 工作单指针 |
+| [ledger.json](./ledger.json) | ⭐ **真源** | 145 条，**高度自包含**——只看 NL 与 PlantUML 源码即可完全读懂，逐字段见 [§2.3](#23-每条台账带什么) |
 | [l_tier.json](./l_tier.json) | 派生·可复算 | 逐条 L 档判定与依据（33 条人工逐条判 · 112 条按定义规则档），含已废止规则的记录 |
 | [JUDGING_PROTOCOL.md](./JUDGING_PROTOCOL.md) | ⭐ 口径 | 命中判定协议。**写定于判定开始之前，判定期间未改动** |
 | [x1v2_hits.json](./x1v2_hits.json) | 原始判定 | 本轮 56 条逐格人工新判，每条带 6 格布尔与中文判定依据 |
@@ -45,6 +45,47 @@
 | **L2 · 行为构造** | 必须给出或排除一条带时间维的行为（轨迹 / 可达性 / 有界检查） | Behavioral Verification Task「a sequence of system states as well as their transitions」· 非 invariant safety 需 finite path fragments（同上 §3.3.2） |
 
 ⛔ **旧的「`element/region` → 界外」规则已废止** —— 它把 scope 混进了 level。废止记录与逐条判定在 [l_tier.json](./l_tier.json)。
+
+### 2.3 每条台账带什么
+
+⭐ **判据是「只看 `nl.txt` 与 `stm0.puml` 就能把这条缺陷完全搞明白」**，不需要翻任何别的文件。
+
+| 字段 | 内容 |
+| :-- | :-- |
+| `id` · `pair` | 条目号与所属 pair |
+| `pair_context` | 该 pair 的完整定位：`nl_id`（NL01–NL10）· `nl_sha8`（NL 原文哈希，机械判同用）· `model_source` / `model_name`（上游 xlsx 的 A、B 列）· `generator_llm`（xlsx 的 H 列，即写出这份被评审制品的 6 个 LLM 之一）· `nl_file` / `stm0_file` 相对路径 |
+| ⭐ `summary` | **一句话版**：点名具体元素与行号，指出被违反的是哪一条义务 |
+| ⭐ `detail` | **长篇版**：现象落在哪几行 · 被违反的义务（逐字引 NL 原句或引建模语言的具体规定）· 后果 · 根因 · 已考虑并排除的第二读法 · 与同 pair 其它条目的分工 |
+| ⭐ `D_basis` | 为什么是这个 D 档。`D2` 要说明反驳为何不存活；`D1` 要写出那第二种读法**具体是什么** |
+| ⭐ `L_basis` | 为什么是这个 L 档：陈述这个错误具体需要什么（词项比对 / 静态结构导出 / 构造或排除带时间维的行为） |
+| `axes` · `origin_family` | 五轴分类与出处族 |
+| `worksheet` | 指向 `provenance/relabel/` 下该条裁决所在的工作单 |
+| `_source_text` | 原始判读文本**逐字保留**（`statement` / `verdict_reason` / `meta_review` / `L_basis_rule` / `L_decided_by`），供逐条对照审计改写是否忠实 |
+
+⛔ **四段自然语言里不使用只有内部才懂的代号** —— 不写 `D2-lit`、`A2`、`§6.5`、`同族既有处理`、`R45RouteToken` 这类简写；引外部依据一律写全（如 UML 2.5.1 的具体条款内容、issue #189 §1.3.1）。⭐ 这一条由 §五 的复验脚本机械检查。
+
+### 2.4 pair ↔ NL ↔ 生成模型的完整对应
+
+⭐ **pair 号 = 上游 xlsx 行号 − 2**（工作簿 [Experiment Results.xlsx](../../corpora/seed_library/llms-emp-stm-subset/assets/raw/drive_download/)，sheet `STM Results`，表头第 1 行、数据第 2–61 行）。60 个 pair 由 10 份 NL 各交给 6 个 LLM 生成而来。
+
+⛔ **NL 分组按 NL 原文的哈希判定，不按 pair 号末位。** `0002` 与 `0013/0023/0033/0043/0053` 同属 NL06，`0003` 与 `0012/0022/0032/0042/0052` 同属 NL09 —— 上游表在 GPT-4o 那一段把 Pump Control 与 HSUV 的顺序排反了，其余五段顺序一致。
+
+| NL | `nl_sha8` | Model Source | Model Name（xlsx B 列） | 6 个 pair | 台账条数 |
+| :-- | :-- | :-- | :-- | :-- | --: |
+| NL01 | `3110cbcf` | Real-Time Software Design… | state machine for Train Control | 0004 0014 0024 0034 0044 0054 | 26 |
+| NL02 | `abb20a21` | HSTBS | State machine diagram of the base brake subsystem | 0001 0011 0021 0031 0041 0051 | 4 |
+| NL03 | `a01c022f` | DSCS | UAV swarm state machine diagram | 0006 0016 0026 0036 0046 0056 | 15 |
+| ⛔ NL04 | `6af3966c` | DCS | Digital camera state machine diagrams | 0008 0018 0028 0038 0048 0058 | **0（先验越界，永久排除）** |
+| NL05 | `b7425c44` | HLDCS | autonomous mode | 0009 0019 0029 0039 0049 0059 | 31 |
+| NL06 | `a391765d` | Real-Time Software Design… | Pump Control state machine | 0002 0013 0023 0033 0043 0053 | 19 |
+| NL07 | `49854d04` | HLDCS | Collision avoidance sub-machine state diagram | 0007 0017 0027 0037 0047 0057 | 13 |
+| NL08 | `f1c3dc88` | HLDCS | high-level driving module | 0000 0010 0020 0030 0040 0050 | 20 |
+| NL09 | `9fe426ba` | HSUV | Hybrid Sport Utility Vehicle, HSUV | 0003 0012 0022 0032 0042 0052 | 5 |
+| NL10 | `934e19bd` | MOCV | Microwave Oven Control with entry and exit actions | 0005 0015 0025 0035 0045 0055 | 12 |
+
+**生成模型**按 pair 号末位所在的段落分：`0x` GPT-4o · `1x` GPT-4 · `2x` Llama · `3x` Kimi · `4x` DeepSeek · `5x` Claude（xlsx 的 H 列，每条台账的 `pair_context.generator_llm` 里逐条记着）。台账按生成模型分布：GPT-4o 27 · GPT-4 29 · Llama 25 · Kimi 26 · DeepSeek 20 · Claude 18。
+
+⭐ **NL04 恰好就是 `00x8` 那六个 pair** —— 它的 NL 要求 fork/join 与秒级时间约束，忠实模型在 $M = (S, E, V, Tr, A)$ 里无法表示，故先验永久排除（见 [§七](#七边界不随台账换代而变)）。⭐ 这一点有一条独立交叉验证：第一版台账 126 条里落在 NL04 上的恰好 27 条，与 `126 − 27 = 99` 那个扣除数逐个吻合。
 
 ## 三、X1v2 基线在该台账上的结果
 
@@ -107,6 +148,21 @@ assert collections.Counter(v['D'] for v in d.values()) == {'D2': 98, 'D1': 47}
 assert collections.Counter(v['L'] for v in d.values()) == {'L0': 71, 'L1': 35, 'L2': 39}
 assert not [k for k, v in d.items() if not os.path.exists(v['worksheet'])]
 print('✅ 145 条 · D 98/47 · L 71/35/39 · worksheet 全部存在')
+EOF
+
+# 自包含性：四段齐全、档位自洽、不含内部代号
+python3 - <<'EOF'
+import json, re, collections
+d = json.load(open('ledger.json', encoding='utf-8'))['items']
+F = ('summary', 'detail', 'D_basis', 'L_basis')
+assert all(v[f] and v[f].strip() for v in d.values() for f in F), '四段有空'
+assert all(v['D_basis'].startswith('判 ' + v['D']) for v in d.values()), 'D_basis 与 D 不符'
+assert all(v['L_basis'].startswith('判 ' + v['L']) for v in d.values()), 'L_basis 与 L 不符'
+JARGON = r'D2-(lit|lang|impl|dom|norm)|(?<![A-Za-z])(A2|B1|P3)(?![A-Za-z0-9])|同族既有处理|R45RouteToken|NL-[ML]\d|(?<![A-Za-z])E2[ab](?![A-Za-z])'
+bad = [(k, f) for k, v in d.items() for f in F if re.search(JARGON, v[f])]
+assert not bad, f'四段里残留内部代号: {bad[:5]}'
+assert all(re.search(r'`[^`]+`|:\d+|全篇|全文', v['summary']) for v in d.values()), 'summary 不够具体'
+print('✅ 145 条四段齐全 · 档位自洽 · 无内部代号')
 EOF
 
 # 证据链可重跑：54 份工作单重新渲染后应逐字节无变化
