@@ -247,7 +247,7 @@ v0 合成规则：
 | [src-model-scope] | `r56_model_scope` | [../../story/model_scope.md](../../story/model_scope.md) | md | T0/T0.5/T1、模型族、状态机抽象、禁止外推。 |
 | [src-r56-handoff] | `r56_to_r57_handoff` | [../scope/r5_6_to_r5_7_handoff_constraints.md](../scope/r5_6_to_r5_7_handoff_constraints.md) | md | R5.7 taxonomy 最低字段、candidate-only 纪律、scope 继承。 |
 | [src-taxonomy] | `r572_repair_target_taxonomy` | [repair_target_taxonomy.md](./repair_target_taxonomy.md) | md | 修复目标分类、字段合同、repair_action_allowed 单值纪律、折叠处理。 |
-| [src-case] | `llms_emp_case_matrix` | [../../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) | jsonl | 10×6 denominator、time level、conversion/readiness 当前事实。 |
+| [src-case] | `llms_emp_case_matrix` | [../../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../../../../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) | jsonl | 10×6 denominator、time level、conversion/readiness 当前事实。 |
 
 ### A.2 决策键清单
 

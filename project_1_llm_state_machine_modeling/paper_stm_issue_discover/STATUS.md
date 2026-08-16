@@ -1,6 +1,8 @@
 # STATUS.md — 当前状态
 
-> 本文件只记录**长期研究事实**的完成状态。⛔ PR 进度、review 状态、CI、子 PR 排期一律以 GitHub PR / issue 为准，本文件不维护。⛔ 数字不在此定义——全部实验数字的唯一来源是 [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md)（下称「报告」）。
+> 本文件只记录**长期研究事实**的完成状态。⛔ PR 进度、review 状态、CI、子 PR 排期一律以 GitHub PR / issue 为准，本文件不维护。⛔ 数字不在此定义。⭐ **当前口径的唯一来源**是 [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/)：台账 145 条见 `ledger.json`，X1v2 结果见 `X1V2_RESULTS.md`。⚠️ 旧的 v46 全量报告 [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) **是历史记录**，其数字建立在已归档的第一版台账上，⛔ 不得作为当前数字来源引用。
+
+⚠️ 下表中出现的「报告 §N」一律指那份 **v46 历史报告**，⛔ 只用于指路它记录的**方法性事实**（谓词词表、证据链形态、表示债务分类等，这些不随台账换代而失效）；⛔ **它里面的任何覆盖率数字都不是当前口径**。
 
 ## 1. 当前阶段
 
@@ -18,10 +20,12 @@
 | 建模对象边界（$M = (S, E, V, Tr, A)$，不含时钟 / 不变式 / 正交区） | 已完成，先验可判 | [story/model_scope.md](./story/model_scope.md)、[discover_matrix/docs/protocol/nl_scope_rule.md](./discover_matrix/docs/protocol/nl_scope_rule.md) |
 | 方法出处口径（按领域资料归纳表述；hold-out 永久移除） | 口径已完成，工程落地未完成（见 §3） | [discover_matrix/docs/protocol/method_provenance_policy.md](./discover_matrix/docs/protocol/method_provenance_policy.md) |
 | 语料（60 pair，逐 pair 溯源元数据含行列与 SHA-256） | 已完成 | [selected_seed_examples/](./selected_seed_examples/) |
-| 缺陷台账（人工三方对照标注，全量 126 条，可判 98 条） | 已完成，但**有已知缺口** | [discover_matrix/docs/protocol/ground_truth_limitations.md](./discover_matrix/docs/protocol/ground_truth_limitations.md) |
+| ⭐ **缺陷台账（第二版，145 条 = `D2` 98 + `D1` 47，每条逐条落定 `L0`/`L1`/`L2`）** | **已完成，零欠账** | [discover_matrix/ledger_v2/ledger.json](./discover_matrix/ledger_v2/ledger.json)；已知缺口见 [ground_truth_limitations.md](./discover_matrix/docs/protocol/ground_truth_limitations.md) |
+| ⛔ 第一版台账（126 条，可判 98 条） | **已由第二版取代，整体归档** | [archive/r10_ledger_v1_and_v46/](./archive/r10_ledger_v1_and_v46/) |
+| ⭐ **X1v2 基线在第二版台账上的精确命中** | **已完成**（145 × 6 = 870 位；56 条为本轮逐格人工新判） | [discover_matrix/ledger_v2/X1V2_RESULTS.md](./discover_matrix/ledger_v2/X1V2_RESULTS.md) |
 | 闭合谓词词表（19 个，三族） | 已冻结 | 报告 §4.3；实现在 [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
 | 方法实现（八阶段 + 定向反馈循环） | 已完成并跑通全量 | [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
-| **全量实验（$54 \times 2 \times 3 = 324$ 格）** | **已完成** | 报告 §5–§7；产地 [discover_matrix/v46/](archive/r10_ledger_v1_and_v46/v46) |
+| ⛔ 主臂 v46 全量实验（$54 \times 2 \times 3 = 324$ 格） | 已完成，但**建立在第一版台账上、已整体归档**；⚠️ 尚未在第二版台账上重测 | [archive/r10_ledger_v1_and_v46/v46/](./archive/r10_ledger_v1_and_v46/v46/) |
 | 命中判定（全部判定位逐位人工判定） | 已完成，但**判定者只有一位**，且少量位缺判据文字 | 报告 §5.3、§6.1；口径 [discover_matrix/docs/protocol/hit_criterion.md](./discover_matrix/docs/protocol/hit_criterion.md) |
 | 多报侧五类裁定（逐簇判据 + 逐组合并理由） | 已完成 | 报告 §7；口径 [discover_matrix/docs/protocol/unexpected_taxonomy.md](./discover_matrix/docs/protocol/unexpected_taxonomy.md) |
 | 表示债务的识别、子类划分与量化 | 已完成 | 报告 §7.5；[discover_matrix/docs/findings/representation_debt.md](./discover_matrix/docs/findings/representation_debt.md) |

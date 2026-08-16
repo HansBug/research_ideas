@@ -16,8 +16,8 @@
 
 | 上游 / 下游 | 关系 |
 |---|---|
-| [../../selected_seed_examples/](../../selected_seed_examples/) | R4 dry-run 固定复用的四个静态 `<NL, STM_0>` 冒烟样例；这是 smoke 迷你文库，不是最终实验集合、样本上限或论文主结果集合。当前四例为 `llms-emp-deepseek-microwave`、`llms-emp-gpt4o-hldcs`、`llms-emp-kimi-autonomous-collision`、`sefm-ssc7-umple`；TTool 与 `unified-uml-synthetic-0000` 已从 selected smoke 移除，只能作为历史 / 后续专项 / registry 线索。 |
-| [../conversion/](../conversion/) | R3 转换器 v0 与 R3.1 PlantUML recovery eligibility audit；R4 只能引用其 status / loss / canonical 裁决，不得改写 R3 转换语义。 |
+| [../../selected_seed_examples/](../../../../selected_seed_examples) | R4 dry-run 固定复用的四个静态 `<NL, STM_0>` 冒烟样例；这是 smoke 迷你文库，不是最终实验集合、样本上限或论文主结果集合。当前四例为 `llms-emp-deepseek-microwave`、`llms-emp-gpt4o-hldcs`、`llms-emp-kimi-autonomous-collision`、`sefm-ssc7-umple`；TTool 与 `unified-uml-synthetic-0000` 已从 selected smoke 移除，只能作为历史 / 后续专项 / registry 线索。 |
+| [../conversion/](../../../../pipeline/conversion) | R3 转换器 v0 与 R3.1 PlantUML recovery eligibility audit；R4 只能引用其 status / loss / canonical 裁决，不得改写 R3 转换语义。 |
 | [../../experiment_design/quality_model/better_stm_definition.md](../../experiment_design/quality_model/better_stm_definition.md) | Better STM 五条件的上游定义；本目录将其落成 checklist 与 schema。 |
 | [../../experiment_design/README.md](../../experiment_design/README.md) | 上游顺序约束：评价门必须先于真实修正预演冻结。 |
 | R5/R6/R7/R8 | R5/R6 复用本目录 schema 做 deterministic dry-run / loop skeleton；R7 才冻结正式实验 protocol；R8 才执行主实验。 |

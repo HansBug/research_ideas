@@ -4,7 +4,7 @@
 
 ## 0. 定位
 
-本文件集中说明 R4 对四个静态 `<NL, STM_0>` 冒烟样例的评价门 dry-run。四例来自 [../../../selected_seed_examples/](../../../selected_seed_examples/)，这是冒烟迷你文库，只用于验证 diagnostic / scenario / eligibility / Better STM checklist 字段能否被审计；它不调用真实 LLM，不执行修正循环，不产生主实验结果，也不构成最终实验集合或样本上限。当前四例为 `llms-emp-deepseek-microwave`、`llms-emp-gpt4o-hldcs`、`llms-emp-kimi-autonomous-collision`、`sefm-ssc7-umple`；TTool 与 `unified-uml-synthetic-0000` 已从 selected smoke 移除，只能作为历史 / 后续专项 / registry 线索。
+本文件集中说明 R4 对四个静态 `<NL, STM_0>` 冒烟样例的评价门 dry-run。四例来自 [../../../selected_seed_examples/](../../../../../selected_seed_examples)，这是冒烟迷你文库，只用于验证 diagnostic / scenario / eligibility / Better STM checklist 字段能否被审计；它不调用真实 LLM，不执行修正循环，不产生主实验结果，也不构成最终实验集合或样本上限。当前四例为 `llms-emp-deepseek-microwave`、`llms-emp-gpt4o-hldcs`、`llms-emp-kimi-autonomous-collision`、`sefm-ssc7-umple`；TTool 与 `unified-uml-synthetic-0000` 已从 selected smoke 移除，只能作为历史 / 后续专项 / registry 线索。
 
 四例的 machine-readable fixture 保存在 [dry_run_examples/](../dry_run_examples/) 下。每个样例目录只保留 JSON 证据包，不再单独维护 README，避免说明分散。每个 JSON 证据包顶层都必须直接给出 `source_nl_path`、`source_stm0_path`、`source_meta_path`、`canonical_output_path`，同时在 `traceability` 对象中保留同一组字段，确保本阶段 report 不需要间接解析 evidence locator 就能回到上游 NL 与原始 `STM_0`。
 
@@ -37,22 +37,22 @@
 |---|---|
 | R3 status | `converted` |
 | R3 code | `R3.STATUS.converted` |
-| canonical JSON | [llms-emp-deepseek-microwave.canonical_stm.json](../../conversion/reports/canonical/llms-emp-deepseek-microwave.canonical_stm.json) |
+| canonical JSON | [llms-emp-deepseek-microwave.canonical_stm.json](../../../../../pipeline/conversion/reports/canonical/llms-emp-deepseek-microwave.canonical_stm.json) |
 | R4 decision | `complete` |
 | model-level evaluation | `true` |
 | repair-loop contract dry-run eligibility | `true` |
 
 输入与证据：
 
-- NL: [../../../selected_seed_examples/llms-emp-deepseek-microwave/nl.txt](../../../selected_seed_examples/llms-emp-deepseek-microwave/nl.txt)
-- raw STM_0: [../../../selected_seed_examples/llms-emp-deepseek-microwave/stm0.puml](../../../selected_seed_examples/llms-emp-deepseek-microwave/stm0.puml)
-- R2 样例说明：[../../../selected_seed_examples/llms-emp-deepseek-microwave/README.md](../../../selected_seed_examples/llms-emp-deepseek-microwave/README.md)
-- R3 转换摘要：[../../conversion/reports/selected_seed_examples_summary.md](../../conversion/reports/selected_seed_examples_summary.md)
-- R3 转换 JSON：[../../conversion/reports/selected_seed_examples_conversion_report.json](../../conversion/reports/selected_seed_examples_conversion_report.json)
-- R3/R3.1 normalization 报告：[../../conversion/reports/plantuml_recovery_report.json](../../conversion/reports/plantuml_recovery_report.json)、[../../conversion/reports/plantuml_recovery_summary.md](../../conversion/reports/plantuml_recovery_summary.md)
+- NL: [../../../selected_seed_examples/llms-emp-deepseek-microwave/nl.txt](../../../../../pipeline/conversion/fixtures/r3_selected_seed_examples/llms-emp-deepseek-microwave/nl.txt)
+- raw STM_0: [../../../selected_seed_examples/llms-emp-deepseek-microwave/stm0.puml](../../../../../pipeline/conversion/fixtures/r3_selected_seed_examples/llms-emp-deepseek-microwave/stm0.puml)
+- R2 样例说明：[../../../selected_seed_examples/llms-emp-deepseek-microwave/README.md](../../../../../pipeline/conversion/fixtures/r3_selected_seed_examples/llms-emp-deepseek-microwave/README.md)
+- R3 转换摘要：[../../conversion/reports/selected_seed_examples_summary.md](../../../../../pipeline/conversion/reports/selected_seed_examples_summary.md)
+- R3 转换 JSON：[../../conversion/reports/selected_seed_examples_conversion_report.json](../../../../../pipeline/conversion/reports/selected_seed_examples_conversion_report.json)
+- R3/R3.1 normalization 报告：[../../conversion/reports/plantuml_recovery_report.json](../../../../../pipeline/conversion/reports/plantuml_recovery_report.json)、[../../conversion/reports/plantuml_recovery_summary.md](../../../../../pipeline/conversion/reports/plantuml_recovery_summary.md)
 - R4 fixture：[eligibility](../dry_run_examples/llms-emp-deepseek-microwave/eligibility_decision.json)、[diagnostic](../dry_run_examples/llms-emp-deepseek-microwave/diagnostic_draft.json)、[scenario](../dry_run_examples/llms-emp-deepseek-microwave/scenario_draft.json)、[checklist](../dry_run_examples/llms-emp-deepseek-microwave/better_stm_checklist.json)
 
-处理原因：该例替换历史 synthetic 冒烟，用于在当前四例中覆盖 R3.1 pre-SCXML normalization replay。R3 report 中 `canonical_output_path` 指向 replay 后官方 SCXML 派生的规范化中间表示；R4 只把它作为 conversion eligibility 证据。Caveats 是 raw [stm0.puml](../../../selected_seed_examples/llms-emp-deepseek-microwave/stm0.puml) 必须保持一手输入、不得覆盖；normalization / 转换 / 表示层带来的可解析性改善不能计入修正收益；microwave 标签中的时间 / guard 语义在当前阶段只作 dry-run caveat。
+处理原因：该例替换历史 synthetic 冒烟，用于在当前四例中覆盖 R3.1 pre-SCXML normalization replay。R3 report 中 `canonical_output_path` 指向 replay 后官方 SCXML 派生的规范化中间表示；R4 只把它作为 conversion eligibility 证据。Caveats 是 raw [stm0.puml](../../../../../pipeline/conversion/fixtures/r3_selected_seed_examples/llms-emp-deepseek-microwave/stm0.puml) 必须保持一手输入、不得覆盖；normalization / 转换 / 表示层带来的可解析性改善不能计入修正收益；microwave 标签中的时间 / guard 语义在当前阶段只作 dry-run caveat。
 
 ### 3.2 `llms-emp-gpt4o-hldcs`：高层驾驶模块 PlantUML 完整 dry-run
 
@@ -60,18 +60,18 @@
 |---|---|
 | R3 status | `converted` |
 | R3 code | `R3.STATUS.converted` |
-| canonical JSON | [llms-emp-gpt4o-hldcs.canonical_stm.json](../../conversion/reports/canonical/llms-emp-gpt4o-hldcs.canonical_stm.json) |
+| canonical JSON | [llms-emp-gpt4o-hldcs.canonical_stm.json](../../../../../pipeline/conversion/reports/canonical/llms-emp-gpt4o-hldcs.canonical_stm.json) |
 | R4 decision | `complete` |
 | model-level evaluation | `true` |
 | repair-loop contract dry-run eligibility | `true` |
 
 输入与证据：
 
-- NL: [../../../selected_seed_examples/llms-emp-gpt4o-hldcs/nl.txt](../../../selected_seed_examples/llms-emp-gpt4o-hldcs/nl.txt)
-- STM_0: [../../../selected_seed_examples/llms-emp-gpt4o-hldcs/stm0.puml](../../../selected_seed_examples/llms-emp-gpt4o-hldcs/stm0.puml)
-- R2 样例说明：[../../../selected_seed_examples/llms-emp-gpt4o-hldcs/README.md](../../../selected_seed_examples/llms-emp-gpt4o-hldcs/README.md)
-- R3 转换摘要：[../../conversion/reports/selected_seed_examples_summary.md](../../conversion/reports/selected_seed_examples_summary.md)
-- R3 转换 JSON：[../../conversion/reports/selected_seed_examples_conversion_report.json](../../conversion/reports/selected_seed_examples_conversion_report.json)
+- NL: [../../../selected_seed_examples/llms-emp-gpt4o-hldcs/nl.txt](../../../../../pipeline/conversion/fixtures/r3_selected_seed_examples/llms-emp-gpt4o-hldcs/nl.txt)
+- STM_0: [../../../selected_seed_examples/llms-emp-gpt4o-hldcs/stm0.puml](../../../../../pipeline/conversion/fixtures/r3_selected_seed_examples/llms-emp-gpt4o-hldcs/stm0.puml)
+- R2 样例说明：[../../../selected_seed_examples/llms-emp-gpt4o-hldcs/README.md](../../../../../pipeline/conversion/fixtures/r3_selected_seed_examples/llms-emp-gpt4o-hldcs/README.md)
+- R3 转换摘要：[../../conversion/reports/selected_seed_examples_summary.md](../../../../../pipeline/conversion/reports/selected_seed_examples_summary.md)
+- R3 转换 JSON：[../../conversion/reports/selected_seed_examples_conversion_report.json](../../../../../pipeline/conversion/reports/selected_seed_examples_conversion_report.json)
 - R4 fixture：[eligibility](../dry_run_examples/llms-emp-gpt4o-hldcs/eligibility_decision.json)、[diagnostic](../dry_run_examples/llms-emp-gpt4o-hldcs/diagnostic_draft.json)、[scenario](../dry_run_examples/llms-emp-gpt4o-hldcs/scenario_draft.json)、[checklist](../dry_run_examples/llms-emp-gpt4o-hldcs/better_stm_checklist.json)
 
 处理原因：R3 使用 PlantUML 官方 SCXML 导出生成 canonical JSON，status=converted 且 losses_count=0，可完整验证 R4 字段链路。Caveat 是 R4 只是 gate dry-run，没有 `STM_k` 或修正收益。
@@ -82,18 +82,18 @@
 |---|---|
 | R3 status | `converted` |
 | R3 code | `R3.STATUS.converted` |
-| canonical JSON | [llms-emp-kimi-autonomous-collision.canonical_stm.json](../../conversion/reports/canonical/llms-emp-kimi-autonomous-collision.canonical_stm.json) |
+| canonical JSON | [llms-emp-kimi-autonomous-collision.canonical_stm.json](../../../../../pipeline/conversion/reports/canonical/llms-emp-kimi-autonomous-collision.canonical_stm.json) |
 | R4 decision | `complete` |
 | model-level evaluation | `true` |
 | repair-loop contract dry-run eligibility | `true` |
 
 输入与证据：
 
-- NL: [../../../selected_seed_examples/llms-emp-kimi-autonomous-collision/nl.txt](../../../selected_seed_examples/llms-emp-kimi-autonomous-collision/nl.txt)
-- STM_0: [../../../selected_seed_examples/llms-emp-kimi-autonomous-collision/stm0.puml](../../../selected_seed_examples/llms-emp-kimi-autonomous-collision/stm0.puml)
-- R2 样例说明：[../../../selected_seed_examples/llms-emp-kimi-autonomous-collision/README.md](../../../selected_seed_examples/llms-emp-kimi-autonomous-collision/README.md)
-- R3 转换摘要：[../../conversion/reports/selected_seed_examples_summary.md](../../conversion/reports/selected_seed_examples_summary.md)
-- R3 转换 JSON：[../../conversion/reports/selected_seed_examples_conversion_report.json](../../conversion/reports/selected_seed_examples_conversion_report.json)
+- NL: [../../../selected_seed_examples/llms-emp-kimi-autonomous-collision/nl.txt](../../../../../pipeline/conversion/fixtures/r3_selected_seed_examples/llms-emp-kimi-autonomous-collision/nl.txt)
+- STM_0: [../../../selected_seed_examples/llms-emp-kimi-autonomous-collision/stm0.puml](../../../../../pipeline/conversion/fixtures/r3_selected_seed_examples/llms-emp-kimi-autonomous-collision/stm0.puml)
+- R2 样例说明：[../../../selected_seed_examples/llms-emp-kimi-autonomous-collision/README.md](../../../../../pipeline/conversion/fixtures/r3_selected_seed_examples/llms-emp-kimi-autonomous-collision/README.md)
+- R3 转换摘要：[../../conversion/reports/selected_seed_examples_summary.md](../../../../../pipeline/conversion/reports/selected_seed_examples_summary.md)
+- R3 转换 JSON：[../../conversion/reports/selected_seed_examples_conversion_report.json](../../../../../pipeline/conversion/reports/selected_seed_examples_conversion_report.json)
 - R4 fixture：[eligibility](../dry_run_examples/llms-emp-kimi-autonomous-collision/eligibility_decision.json)、[diagnostic](../dry_run_examples/llms-emp-kimi-autonomous-collision/diagnostic_draft.json)、[scenario](../dry_run_examples/llms-emp-kimi-autonomous-collision/scenario_draft.json)、[checklist](../dry_run_examples/llms-emp-kimi-autonomous-collision/better_stm_checklist.json)
 
 处理原因：Kimi 样例加入当前四例 selected 冒烟，用于覆盖较复杂 PlantUML HSM / 自动驾驶碰撞规避场景。R3 使用 PlantUML 官方 SCXML 导出生成 canonical JSON，status=converted 且 losses_count=0，可完整验证 R4 字段链路。Caveat 是 R4 只是 gate dry-run，没有 `STM_k` 或修正收益；PlantUML 条件标签不被自动包装成严格 guard 语义。
@@ -104,19 +104,19 @@
 |---|---|
 | R3 status | `partial` |
 | R3 code | `R3.STATUS.partial` |
-| canonical JSON | [sefm-ssc7-umple.canonical_stm.json](../../conversion/reports/canonical/sefm-ssc7-umple.canonical_stm.json) |
+| canonical JSON | [sefm-ssc7-umple.canonical_stm.json](../../../../../pipeline/conversion/reports/canonical/sefm-ssc7-umple.canonical_stm.json) |
 | R4 decision | `focused` |
 | model-level evaluation | `false` |
 | repair-loop contract dry-run eligibility | `false` |
 
 输入与证据：
 
-- NL: [../../../selected_seed_examples/sefm-ssc7-umple/nl.txt](../../../selected_seed_examples/sefm-ssc7-umple/nl.txt)
-- STM_0: [../../../selected_seed_examples/sefm-ssc7-umple/stm0.ump](../../../selected_seed_examples/sefm-ssc7-umple/stm0.ump)
-- R2 样例说明：[../../../selected_seed_examples/sefm-ssc7-umple/README.md](../../../selected_seed_examples/sefm-ssc7-umple/README.md)
-- R3 转换摘要：[../../conversion/reports/selected_seed_examples_summary.md](../../conversion/reports/selected_seed_examples_summary.md)
-- R3 转换 JSON：[../../conversion/reports/selected_seed_examples_conversion_report.json](../../conversion/reports/selected_seed_examples_conversion_report.json)
-- R3 loss ledger: [../../conversion/reports/selected_seed_examples_loss_ledger.jsonl](../../conversion/reports/selected_seed_examples_loss_ledger.jsonl)
+- NL: [../../../selected_seed_examples/sefm-ssc7-umple/nl.txt](../../../../../pipeline/conversion/fixtures/r3_selected_seed_examples/sefm-ssc7-umple/nl.txt)
+- STM_0: [../../../selected_seed_examples/sefm-ssc7-umple/stm0.ump](../../../../../pipeline/conversion/fixtures/r3_selected_seed_examples/sefm-ssc7-umple/stm0.ump)
+- R2 样例说明：[../../../selected_seed_examples/sefm-ssc7-umple/README.md](../../../../../pipeline/conversion/fixtures/r3_selected_seed_examples/sefm-ssc7-umple/README.md)
+- R3 转换摘要：[../../conversion/reports/selected_seed_examples_summary.md](../../../../../pipeline/conversion/reports/selected_seed_examples_summary.md)
+- R3 转换 JSON：[../../conversion/reports/selected_seed_examples_conversion_report.json](../../../../../pipeline/conversion/reports/selected_seed_examples_conversion_report.json)
+- R3 loss ledger: [../../conversion/reports/selected_seed_examples_loss_ledger.jsonl](../../../../../pipeline/conversion/reports/selected_seed_examples_loss_ledger.jsonl)
 - R4 fixture：[eligibility](../dry_run_examples/sefm-ssc7-umple/eligibility_decision.json)、[diagnostic](../dry_run_examples/sefm-ssc7-umple/diagnostic_draft.json)、[scenario](../dry_run_examples/sefm-ssc7-umple/scenario_draft.json)、[checklist](../dry_run_examples/sefm-ssc7-umple/better_stm_checklist.json)
 
 处理原因：R3 规范化中间表示结构可用但 status=partial；R4 focused dry-run 用于确保 timing loss 不被误计为 repair 目标或 Better STM 改善。Caveat 是 `R3.LOSS.timing.medium` 表示 raw Umple `after(60)` 未被 官方 SCXML 原样保留，因此只能验证 partial/loss caveat 表达，不能作为完整 timing semantics evaluation。
