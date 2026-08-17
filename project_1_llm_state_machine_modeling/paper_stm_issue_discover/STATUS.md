@@ -26,7 +26,7 @@
 | ⭐ **X1v2 基线在第二版台账上的精确命中** | **已完成**（145 × 6 = 870 位；56 条为本轮逐格人工新判） | [discover_matrix/ledger_v2/X1V2_RESULTS.md](./discover_matrix/ledger_v2/X1V2_RESULTS.md) |
 | 闭合谓词词表（19 个，三族） | 已冻结 | 报告 §4.3；实现在 [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
 | 方法实现（八阶段 + 定向反馈循环） | 已完成并跑通全量 | [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
-| ⛔ 主臂 v46 全量实验（$54 \times 2 \times 3 = 324$ 格） | 已完成，但**建立在第一版台账上、已整体归档**；⚠️ 尚未在第二版台账上重测 | [archive/r10_ledger_v1_and_v46/v46/](./archive/r10_ledger_v1_and_v46/v46/) |
+| ⛔ 主臂 v46 全量实验（$54 \times 2 \times 3 = 324$ 格） | 已完成，但**建立在第一版台账上、已整体归档**；⭐ **已裁定不在第二版台账上重测**（2026-08-17 用户裁定），故它不再是欠账，也不进当前结论 | [archive/r10_ledger_v1_and_v46/v46/](./archive/r10_ledger_v1_and_v46/v46/) |
 | 命中判定（全部判定位逐位人工判定） | 已完成，但**判定者只有一位**，且少量位缺判据文字 | 报告 §5.3、§6.1；口径 [discover_matrix/docs/protocol/hit_criterion.md](./discover_matrix/docs/protocol/hit_criterion.md) |
 | 多报侧五类裁定（逐簇判据 + 逐组合并理由） | 已完成 | 报告 §7；口径 [discover_matrix/docs/protocol/unexpected_taxonomy.md](./discover_matrix/docs/protocol/unexpected_taxonomy.md) |
 | 表示债务的识别、子类划分与量化 | 已完成 | 报告 §7.5；[discover_matrix/docs/findings/representation_debt.md](./discover_matrix/docs/findings/representation_debt.md) |
