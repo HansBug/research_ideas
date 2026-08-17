@@ -58,8 +58,16 @@ if str(_SRC) not in sys.path:
 from runner import REPORT_ROOT  # noqa: E402
 
 PAPER = _HERE.parents[1]
-MATRIX = PAPER / "discover_matrix"
-LEDGER = MATRIX / "manual_review" / "expected_issue_set.json"
+# ⚠️⚠️ 2026-08-17：第一版台账、v46 与 v46 时代脚本已整体归档。
+# ⛔ 本臂的 588 网格工装（`expected_issue_set.json` 的 98 条分母、`metrics_at_k` 等）
+# 属**第一版台账口径**，故 `MATRIX` 重定向到归档树；⭐ 当前口径的 X1v2 结果在
+# `discover_matrix/ledger_v2/X1V2_RESULTS.md`，与本处工装无关。
+MATRIX = PAPER / "archive" / "r10_ledger_v1_and_v46"
+#: 第一版台账（126 条）与 60 份逐 pair 复审。⚠️ 2026-08-17 随台账证据链从 `archive/…/manual_review/`
+#: 搬到 `discover_matrix/ledger_v2/provenance/`。⛔ 它已**不是**当前台账 —— 当前台账是
+#: `discover_matrix/ledger_v2/ledger.json` 的 145 条；本处只用它复现 588 网格的第一版口径分母。
+PROVENANCE = PAPER / "discover_matrix" / "ledger_v2" / "provenance"
+LEDGER = PROVENANCE / "expected_issue_set.json"
 #: ⚠️ 主臂判定表。**只用于算池以排顺序**，⛔ 其内容一个字都不进材料。
 MAIN_ARM_TIERS = MATRIX / "v46" / "verdicts" / "v46_tiers.json"
 

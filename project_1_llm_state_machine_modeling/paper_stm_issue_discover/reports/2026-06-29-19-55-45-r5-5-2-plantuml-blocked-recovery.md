@@ -432,7 +432,7 @@ state llms_emp_stm_results_0037 named "llms_emp_stm_results_0037" {
 ### 4.6 `llms_emp_stm_results_0039` — selected_guard_dense
 
 - LLM / NL cluster：`kimi` / `llms_emp_nl_09_hldcs_autonomous_mode`；时间等级 `T0`；结构族 `HSM`；当前状态 `partial`。
-- 文件入口：[selected_seed_examples/llms-emp-kimi-autonomous-collision/stm0.puml](../selected_seed_examples/llms-emp-kimi-autonomous-collision/stm0.puml) 与 [selected_seed_examples/llms-emp-kimi-autonomous-collision/model.fcstm](../selected_seed_examples/llms-emp-kimi-autonomous-collision/model.fcstm)。
+- 文件入口：[selected_seed_examples/llms-emp-kimi-autonomous-collision/stm0.puml](../pipeline/conversion/fixtures/r3_selected_seed_examples/llms-emp-kimi-autonomous-collision/stm0.puml) 与 [selected_seed_examples/llms-emp-kimi-autonomous-collision/model.fcstm](../pipeline/conversion/fixtures/r3_selected_seed_examples/llms-emp-kimi-autonomous-collision/model.fcstm)。
 - 解读：这是当前 smoke panel 中最适合说明 guard/event/action 问题的 committed pair。PlantUML 里多处 `dist_to_front<25 && extra_lane=true`、`auto_finished=true`、`pedestrian_detected || ...` 看起来像 guard；但在 `.fcstm` 中仍作为 `event ... named "原始条件文本"` 保留，R5.7 不能跳过逐例语义裁决直接把它们当作 guard。
 
 PlantUML `STM_0` 片段：

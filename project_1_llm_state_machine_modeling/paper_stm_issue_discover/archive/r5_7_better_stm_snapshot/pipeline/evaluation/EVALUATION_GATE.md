@@ -12,8 +12,8 @@ R4 可以声称：本目录定义并用四个静态样例 dry-run 了诊断、�
 
 | 等级 | 证据 | R4 用法 |
 |---|---|---|
-| A | [../conversion/reports/selected_seed_examples_conversion_report.json](../conversion/reports/selected_seed_examples_conversion_report.json)、规范化中间表示 JSON、loss ledger | R3 status / loss / 规范化中间表示事实真源。 |
-| A | [../../selected_seed_examples/](../../selected_seed_examples/) 中 `nl.txt`、`stm0.*`、`source_meta.json` | 四例 dry-run 输入事实真源。 |
+| A | [../conversion/reports/selected_seed_examples_conversion_report.json](../../../../pipeline/conversion/reports/selected_seed_examples_conversion_report.json)、规范化中间表示 JSON、loss ledger | R3 status / loss / 规范化中间表示事实真源。 |
+| A | [../../selected_seed_examples/](../../../../selected_seed_examples) 中 `nl.txt`、`stm0.*`、`source_meta.json` | 四例 dry-run 输入事实真源。 |
 | A | [../../experiment_design/quality_model/better_stm_definition.md](../../experiment_design/quality_model/better_stm_definition.md) | Better STM 五条件定义真源。 |
 | B | R3/R3.1 summary Markdown | 便于阅读的摘要；数字仍应回到 JSON / ledger 复核。 |
 | C | PR comment / review comment | 施工与审查线索；长期规则需抽象进仓库文档后才可作为仓库事实。 |

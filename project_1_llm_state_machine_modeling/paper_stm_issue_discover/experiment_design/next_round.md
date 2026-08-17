@@ -385,7 +385,7 @@ v46 §4.4 已经写了三类来源（现实需求 / 技术文档与规约 / 学�
 >   - ⚠️ **但「文件名已小写」只对 target 成立，对可见链接文字不成立**：上述永久裁定两条里写的仍是 `[NL_SCOPE_RULE.md](...nl_scope_rule.md)` 与 `[METHOD_PROVENANCE_POLICY.md](...method_provenance_policy.md)`——**链接文字是大写、target 是小写**，读者按可见文字去 grep 会找不到文件。这是根 `CLAUDE.md` 自己待修的点，⛔ 不在本目录的改动范围内，只在此登记。
 >   - 根 `CLAUDE.md` §3.5.1「开跑实验前必须先 push」里「**要一起推的不只是代码，还有事前登记。**」那一段明写：「⚠️ 旧命名 `Vxx_PREREGISTERED.md`（平铺在实验目录根）已于 2026-08-11 的文档树化中废弃，历史文件已迁入上述结构，不要沿用旧写法」。
 >   - 全文仅 §9.5「资产归属纪律：顶层只放公共资产」里「**为什么这条是纪律而不是偏好**」那一段仍出现 `eval/discover_matrix/`（同一自然段内两处：`eval/discover_matrix/manual_review/` 与 `eval/discover_matrix/` 的脚本），但那是**举历史漂移为反例**的说明文字，不是活引用。
-> - ⚠️ **仍存在一处小口径差**（不足以单列 TODO，记在这里）：根 `CLAUDE.md` 规定登记落点为   `discover_matrix/docs/generations/<vNN>/preregistered.md`，而 v46 的登记实际在   [../discover_matrix/v46/preregistered.md](../discover_matrix/v46/preregistered.md)   （`docs/generations/` 下目前只有 v21–v25、v40–v45）。下一代次按根 `CLAUDE.md` 的落点写即可。
+> - ⚠️ **仍存在一处小口径差**（不足以单列 TODO，记在这里）：根 `CLAUDE.md` 规定登记落点为   `discover_matrix/docs/generations/<vNN>/preregistered.md`，而 v46 的登记实际在   [../discover_matrix/v46/preregistered.md](../archive/r10_ledger_v1_and_v46/v46/preregistered.md)   （`docs/generations/` 下目前只有 v21–v25、v40–v45）。下一代次按根 `CLAUDE.md` 的落点写即可。
 
 > **TODO(后续PR)**：决定 `source_issue_ledger` schema 里已作废的 repair 侧字段怎么处理
 >

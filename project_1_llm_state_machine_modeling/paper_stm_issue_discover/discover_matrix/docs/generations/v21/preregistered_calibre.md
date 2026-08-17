@@ -328,7 +328,7 @@ v22 十一格逐 scope（全部子态数 → 作者声明数），共 16 个，`
 
 那 42 条候选一条都进不了重导出结果。所以这条被预注册为公平性控制的路径**只能把 v21 的分子往下调**，方向与它要控制的机制相反。§六 写「标为 v21 的下界」结论对（`v21' ≤ v21-under-current`），但理由不对：写的是「回测不模拟修订路径」，那是 §二.3 对 A1 这类**收紧**规则的论证；这里的主因更硬 —— 重导出器**没有任何机制**重新采信被排除项。
 
-新增 [rederive_admissibility.py](../../../rederive_admissibility.py) 补上这条路径。
+新增 [rederive_admissibility.py](../../../../archive/r10_ledger_v1_and_v46/scripts/rederive_admissibility.py) 补上这条路径。
 
 ## 10.2 答案：**0 / 42**
 

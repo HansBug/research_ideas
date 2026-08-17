@@ -52,11 +52,15 @@ if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
 PAPER = _HERE.parents[1]
-MATRIX = PAPER / "discover_matrix"
+# ⚠️⚠️ 2026-08-17：第一版台账、v46 与 v46 时代脚本已整体归档。
+# ⛔ 本臂的 588 网格工装（`expected_issue_set.json` 的 98 条分母、`metrics_at_k` 等）
+# 属**第一版台账口径**，故 `MATRIX` 重定向到归档树；⭐ 当前口径的 X1v2 结果在
+# `discover_matrix/ledger_v2/X1V2_RESULTS.md`，与本处工装无关。
+MATRIX = PAPER / "archive" / "r10_ledger_v1_and_v46"
 # ⭐ 判定链共用：`analysis/` 属**测量工具**，它与主臂共用尺子正是「同口径」的要求。
 # ⛔ 隔离约束的是 `src/`（被测对象），⛔ 不是这里。
-if str(MATRIX) not in sys.path:
-    sys.path.insert(0, str(MATRIX))
+if str(MATRIX / "scripts") not in sys.path:
+    sys.path.insert(0, str(MATRIX / "scripts"))
 
 import adjudication_recheck as A  # noqa: E402
 from verdicts import reportable_records  # noqa: E402

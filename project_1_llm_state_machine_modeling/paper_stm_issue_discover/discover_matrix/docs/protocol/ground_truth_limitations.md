@@ -2,7 +2,7 @@
 
 本文件记录 evaluator-side ground truth（Issue [#166](https://github.com/HansBug/research_ideas/issues/166) 的 47 条 E1）**系统性不覆盖**哪些问题类，以及每处缺口是"问题定义边界"还是"待补欠账"。它是论文 threats to validity 一节的直接材料。
 
-判定命中的原则见 [hit_criterion.md](./hit_criterion.md)。**评测语料本身的建模对象筛选见 [nl_scope_rule.md](./nl_scope_rule.md)** —— 10 份 NL 中 1 份（其 6 个 pair 末位均为 8）要求 fork/join 与秒级计时，而 $M = (S, E, V, Tr, A)$ 既无正交区也无时钟，故该规约族不进入评测分母；该文件同时给出全量 / 筛选后 / 被排除部分的三份数字。原论文逐 case 的问题记录见 [paper_reported_problems.json](../../paper_reported_problems.json)（由 [extract_paper_problems.py](../../extract_paper_problems.py) 从论文公开 workbook 提取，60/60 对齐）。
+判定命中的原则见 [hit_criterion.md](./hit_criterion.md)。**评测语料本身的建模对象筛选见 [nl_scope_rule.md](./nl_scope_rule.md)** —— 10 份 NL 中 1 份（其 6 个 pair 末位均为 8）要求 fork/join 与秒级计时，而 $M = (S, E, V, Tr, A)$ 既无正交区也无时钟，故该规约族不进入评测分母；该文件同时给出全量 / 筛选后 / 被排除部分的三份数字。原论文逐 case 的问题记录见 [paper_reported_problems.json](../../../archive/r10_ledger_v1_and_v46/scripts/paper_reported_problems.json)（由 [extract_paper_problems.py](../../../archive/r10_ledger_v1_and_v46/scripts/extract_paper_problems.py) 从论文公开 workbook 提取，60/60 对齐）。
 
 ---
 
@@ -72,7 +72,7 @@
 
 **这是真缺口，不是问题定义边界**——多出的状态属于 FSM/HSM/EFSM 完全能表达的范围。
 
-**这一轮把这个缺口量化了：60 pair 的逐条审阅判出 31 条 `extra`**（生成方多出、参考与 NL 都没有），占 154 条计入问题的 **20%**。它们**完全可归因于生成模型**，因此在候选分层（[manual_review/STRATIFICATION.md](../../manual_review/STRATIFICATION.md)）里单列为 `over_specification` 层并计入可入 E1。
+**这一轮把这个缺口量化了：60 pair 的逐条审阅判出 31 条 `extra`**（生成方多出、参考与 NL 都没有），占 154 条计入问题的 **20%**。它们**完全可归因于生成模型**，因此在候选分层（[manual_review/STRATIFICATION.md](../../ledger_v2/provenance/STRATIFICATION.md)）里单列为 `over_specification` 层并计入可入 E1。
 
 分层过程还暴露一个判据陷阱，值得记下来：`over_specification` 与 `reference_only` 有**完全相同的词法外形**（理由都写「NL 未要求 / NL 从未提及 / 参考独有」），区别只在**缺失方向**——
 
@@ -81,7 +81,7 @@
 | `problem` + 「NL 未要求」 | 参考有、NL 没点名、生成方缺 | ✗ |
 | `extra` + 「NL 未要求」 | 参考没有、NL 没点名、**生成方凭空造** | ✓ |
 
-只按词法判会把两者判反。首版分层正是如此：`0049`#4 与 `0056`#3 两条 `extra`（都是凭空新增）被归入 `reference_only` 并当作「不可归因」划掉。现由 `verdict` 短路决定，见 [stratify_candidates.py](../../stratify_candidates.py) 的 `classify`，并有专门的回归测试。
+只按词法判会把两者判反。首版分层正是如此：`0049`#4 与 `0056`#3 两条 `extra`（都是凭空新增）被归入 `reference_only` 并当作「不可归因」划掉。现由 `verdict` 短路决定，见 [stratify_candidates.py](../../../archive/r10_ledger_v1_and_v46/scripts/stratify_candidates.py) 的 `classify`，并有专门的回归测试。
 
 **处理方式**：台帐若要收这一类，需新增一个 `OS` 类（8 类 taxonomy 现无槽位、`UA` 明确拒绝该角色）；若不收，则应在 threats 中按 31 条 / 20% 的规模明确列为整类漏判，而不再只说「整类无槽位」。
 

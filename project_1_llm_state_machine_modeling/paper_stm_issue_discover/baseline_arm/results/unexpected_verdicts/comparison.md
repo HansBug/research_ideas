@@ -2,7 +2,7 @@
 
 > **一句话结论**：⛔ **主臂在精度上没有可主张的优势。** 逐条 issue 看 X1 明显更准（被台账认领 59.6% vs **31.4%**）；换成「去重后每命中位要读多少条不同的错」这个单位，主臂只在**过度规定**一项上领先（0.189 vs **0.316** 去重/位），而这点领先被它自己独有的 0.085 去重/位**表示债务**吃掉一大半，且是以 **212 倍 token 成本**换来的。⭐ 用户提的粗口径「命中效率」（**0.325** vs 0.329）⛔ **不成立**——它对「这条 issue 对不对」在数学上完全不敏感。
 
-⚠️ 本文件的每个数字都可复算。X1 侧真源是 [X1-J*.jsonl](./)，派生表由 [rebuild_unexpected_x1.py](../../analysis/rebuild_unexpected_x1.py) 机器生成；主臂侧真源是 [../../../discover_matrix/v46/unexpected_verdicts/](../../../discover_matrix/v46/unexpected_verdicts/)，⛔ **本轮一位未动**。
+⚠️ 本文件的每个数字都可复算。X1 侧真源是 [X1-J*.jsonl](./)，派生表由 [rebuild_unexpected_x1.py](../../analysis/rebuild_unexpected_x1.py) 机器生成；主臂侧真源是 [../../../discover_matrix/v46/unexpected_verdicts/](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_verdicts)，⛔ **本轮一位未动**。
 
 ---
 

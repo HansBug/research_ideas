@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`1c4f737b5fbf4f9cde73da5b29313ed59319389a4e00695e2d81aa9362a92601`
 - FCSTM SHA-256：`a591eac6f67541d4d83a205f251a4f1be0931cdea94bfd0432a515e63678172b`
 - review subject SHA-256：`84ce0c943e5114835c085fe68e7e88ddbfe190a38f8046aee83a89995cdc8c28`
-- working contract SHA-256：`58338ab0a723d064d0beb2f26e5fa981e6fe7b6436fe658c4dd37de1d89229b0`
+- working contract SHA-256：`301c1d42f9155a05776ac27695fac02a17dd2ce804bb445687c6bd842681be29`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`4` / `4`
 - mapped / blocked / silent drop：`4` / `0` / `0`
@@ -28,9 +28,9 @@
 - working bundle usage gate：`discover_input_with_capability_mask`
 - ownership source / compiler / agent：`14` / `5` / `0`
 - source macro / positive identity trace / conversion boundary trace：`10` / `14` / `0`
-- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `eligible_with_exclusions` / `eligible_with_exclusions`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0023 passes the current attribution-safe forward review; this does not assert global behavior equivalence, and unsupported runtime semantics remain fail-closed.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0023 passes the current attribution-safe forward review; this does not assert global behavior equivalence, and unsupported runtime semantics remain fail-closed. Amendment record: the substantive subject review remains the one recorded in review_context (first reviewed 2026-07-20T05:44:08Z by gpt-5.5 (session omx-1784393668980-pxpj3q), and it still binds because review_subject_sha256 is unchanged. A scoped re-check was performed 2026-08-17 by claude-opus-5 (main-session LLM, PR #185) because commit bbb04cb1 (2026-07-27) regenerated the 60 working contracts and commit 35eba126 (2026-08-11) renamed the paper workspace, and neither refreshed this registry. The re-review is scoped: a key-by-key diff shows the only contract changes are capability_eligibility.simulation, capability_eligibility.transition_trace and summary.simulation_status (bbb04cb1) plus the four artifact_bindings path strings (35eba126); the remaining 168 keys and the whole of canonical/fcstm/parse_inspect/source_traces are byte-identical, so review_subject_sha256 is unchanged and the original ownership, macro and correspondence findings still stand. The capability block was re-checked against seven invariants: eligible ids are source: only, excluded ids cover the compiler-owned set, the two sets are disjoint, claim_boundary and reason_codes are non-empty, main_result_conversion_artifact_limit is still 0, and usage_gate is unchanged.
 - source anchors：`source-ref:llms_emp_feedback_final_0023.puml:line:3\|state PumpControl {, source-ref:llms_emp_feedback_final_0023.puml:line:2\|[*] --> PumpControl`；FCSTM anchors：`element-ref:source:state:PumpControl@line:2\|state PumpControl named "PumpControl\n[PlantUML concurrent region 0] states=PumpControl.PumpState; transitions=tr_0002\n[PlantUML concurrent region 1] states=PumpControl.WaterState; transitions=tr_0003\n[PlantUML concurrent region 2] states=PumpControl.MethaneState; transitions=tr_0004\n[PlantUML concurrent separator] region 0 -> 1 at llms_emp_feedback_final_0023.puml:line:5\n[PlantUML concurrent separator] region 1 -> 2 at llms_emp_feedback_final_0023.puml:line:7" {, element-ref:compiler:transition_segment:tr_0001:segment:1@line:10\|[*] -> PumpControl;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0023.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0023.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0023.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0023.json) | [source trace](../../source_traces/llms_emp_feedback_final_0023.json) | [人工总账](../../MANUAL_REVIEW.md)

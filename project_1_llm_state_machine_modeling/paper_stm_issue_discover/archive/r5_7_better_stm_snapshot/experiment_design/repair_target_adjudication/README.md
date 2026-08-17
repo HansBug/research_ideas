@@ -43,11 +43,11 @@
 
 | 证据层 | 事实源 | 用途 |
 |---|---|---|
-| `NL` 与 raw `STM_0` | [../../corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl](../../corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl) | 判断候选问题是否有需求和 raw source 证据。 |
-| case matrix | [../../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) | 读取 time level、结构族、conversion status、parse / inspect 状态和 loss codes。 |
-| partial attribution ledger | [../../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl](../../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl) | 区分 candidate-only、pipeline artifact、conversion artifact 和 source defect。 |
-| record archive | [../../pipeline/readiness_audit/artifact_archives/archives/llms-emp-stm-subset_records.zip](../../pipeline/readiness_audit/artifact_archives/archives/llms-emp-stm-subset_records.zip) | 复核 record 级 hash、canonical / parse / inspect、loss reason codes。 |
-| selected smoke `.fcstm` | [../../selected_seed_examples/](../../selected_seed_examples/) | 0000 / 0045 的 standalone snapshot；这两个 selected hash 与 seed-sweep hash 属于不同转换运行，应保留为 audit trail。 |
+| `NL` 与 raw `STM_0` | [../../corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl](../../../../corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl) | 判断候选问题是否有需求和 raw source 证据。 |
+| case matrix | [../../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../../../../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) | 读取 time level、结构族、conversion status、parse / inspect 状态和 loss codes。 |
+| partial attribution ledger | [../../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl](../../../../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl) | 区分 candidate-only、pipeline artifact、conversion artifact 和 source defect。 |
+| record archive | [../../pipeline/readiness_audit/artifact_archives/archives/llms-emp-stm-subset_records.zip](../../../../pipeline/readiness_audit/artifact_archives/archives/llms-emp-stm-subset_records.zip) | 复核 record 级 hash、canonical / parse / inspect、loss reason codes。 |
+| selected smoke `.fcstm` | [../../selected_seed_examples/](../../../../selected_seed_examples) | 0000 / 0045 的 standalone snapshot；这两个 selected hash 与 seed-sweep hash 属于不同转换运行，应保留为 audit trail。 |
 | R5.7.4 adjudication `.fcstm` bundle | [../../pipeline/representation/reports/r5_7_4_adjudication_fcstm_exports/r5_7_4_adjudication_fcstm_export_report.json](../../pipeline/representation/reports/r5_7_4_adjudication_fcstm_exports/r5_7_4_adjudication_fcstm_export_report.json) | 0001 / 0018 的 standalone baseline bundle；`.fcstm_sha256` 与 seed-sweep hash 一致，parse / inspect 均 ok。 |
 | R5.7.4 四例 baseline 逻辑入口 | [../../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/README.md](../../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/README.md) / [bundle_index.json](../../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/bundle_index.json) | 用相对 symlink 把 `0000 / 0001 / 0018 / 0045` 四个 baseline bundle 收拢到同一入口；不移动权威产物，用于 R5.7.5 声明 authoritative baseline hash。 |
 

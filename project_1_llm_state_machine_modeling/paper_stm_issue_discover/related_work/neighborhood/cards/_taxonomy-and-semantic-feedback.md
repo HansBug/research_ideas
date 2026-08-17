@@ -533,7 +533,7 @@
 6. ⚠️ **T-C 代码是否足以复现 —— 我判 🟠，⛔ 但这是人裁不是机械判。** ⭐ 11 文件 / 7 源码 撑 48 配置 × 2 模型家族看起来不够，⛔ 但我没有逐文件读过内容。⭐ 复核方式：clone 后看有没有训练入口与 38 项指标实现（⛔ 或它是否 import 了 T-B 的 `bef4llm` 包 —— ⭐ 若是，则实际可复现性要连着 T-B 仓库一起判）。
 7. ⚠️ **Elsevier *Information Systems* 的 CCF 等级未核。** ⛔ 本仓库 [ccf_venues/](../../../../../ccf_venues/) 无该 venue 条目（⭐ `journal-b-ist` 是另一刊）。⛔ 我没有查 CCF 目录原件，⛔ 故留空而非填一个值。
 8. ⚠️ **T-C 的 venue 未定**：⭐ arXiv abs 页不列任何 venue，⛔ 只有 "21 pages, 5 figures"。⛔ 引用时只能按预印本引，⛔ 不得写成会议/期刊论文。
-9. ⚠️ **「我们只用到 15/19」中那 4 条的口径需与 G1 对齐。** ⭐ 本卡按 [../../../discover_matrix/manual_review/relabel/README.md](../../../discover_matrix/manual_review/relabel/README.md) 取「**从未作为 primary**」：`variable_declared` / `variable_delta_after` / `response_within` / `invariant`。⚠️ ⭐ 而 [predicate_provenance.md](../../provenance/predicate_provenance.md) 的「台账断言」列里**只有 `invariant` 是 0**（⭐ 其余三条有 1–2 条非 primary 断言）。⛔ **「15/19」说的是 primary 口径，⛔ 不是「出现过」口径** —— ⛔ 两个数不能互换引用。
+9. ⚠️ **「我们只用到 15/19」中那 4 条的口径需与 G1 对齐。** ⭐ 本卡按 [../../../archive/r10_ledger_v1_and_v46/manual_review/relabel/README.md](../../../discover_matrix/ledger_v2/provenance/relabel/README.md) 取「**从未作为 primary**」：`variable_declared` / `variable_delta_after` / `response_within` / `invariant`。⚠️ ⭐ 而 [predicate_provenance.md](../../provenance/predicate_provenance.md) 的「台账断言」列里**只有 `invariant` 是 0**（⭐ 其余三条有 1–2 条非 primary 断言）。⛔ **「15/19」说的是 primary 口径，⛔ 不是「出现过」口径** —— ⛔ 两个数不能互换引用。
 10. ⚠️ **T-A / T-B 都没有按缺陷子类拆的占比。** ⭐ T-A 只给聚合 `Con` 与 F1；⭐ T-B 给到维度级均值（⛔ 逐 metric 的分布在附录 Table 15–18，⛔ 本轮未逐表核）。⛔ **所以「哪一类缺陷最常见」这个问题，⛔ 邻域没有可直接引的答案。**
 11. ⚠️ **T-B 的 pragmatic 分组数在两篇里不一致**：⭐ T-B 写「六类删 cyclicity 剩五类」，⭐ T-C §3.3 直接写「five categories」。⛔ 不矛盾，⛔ 但引用时要注意别写成「T-B 有六类 pragmatic 指标」。
 

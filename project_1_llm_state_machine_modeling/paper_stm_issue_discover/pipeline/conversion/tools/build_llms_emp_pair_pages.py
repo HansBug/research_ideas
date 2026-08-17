@@ -554,6 +554,11 @@ def _atomic_publish(staging_dir: Path, evidence_dir: Path) -> None:
         shutil.rmtree(backup)
 
 
+#: `pairs/` 下**人工写的**说明文件名。⭐ 它们按自身声明不进 PUBLICATION_SEAL.json 的
+#: derived_artifact_inventory，但必须在重建 `pairs/` 时保留下来。
+MANUAL_PAIR_NOTE_NAMES = frozenset({"SEGMENTATION_NOTE.md"})
+
+
 def _derived_inventory(staging_dir: Path) -> list[dict[str, str]]:
     paths = [
         staging_dir / "MANUAL_REVIEW.jsonl",
@@ -568,6 +573,10 @@ def _derived_inventory(staging_dir: Path) -> list[dict[str, str]]:
                 f"derived publication artifact is a symlink: {path.relative_to(staging_dir)}"
             )
         if path.is_file():
+            if path.name in MANUAL_PAIR_NOTE_NAMES:
+                # ⛔ 人工说明不是派生产物：把它算进清单会让「重跑生成器结果是否一致」
+                # 这道漂移检查对人工编辑敏感，而那不是它要守的东西。
+                continue
             rows.append(
                 {
                     "path": path.relative_to(staging_dir).as_posix(),
@@ -622,7 +631,18 @@ def build_pair_pages(
     try:
         shutil.copytree(evidence_dir, staging_dir, symlinks=False)
         pages_dir = staging_dir / "pairs"
+        # ⛔ `pairs/` 会被整目录重建，所以先把**人工写的**说明文件收起来，重建后放回。
+        # ⚠️ 不这么做的话，跑一次生成器就会静默删掉它们 —— 2026-08-17 实测删掉了 6 份
+        # `SEGMENTATION_NOTE.md`，而 `test_affected_pair_directories_carry_a_visible_note`
+        # 恰好在守它们。这些文件按其自身末行的声明「不属于 PUBLICATION_SEAL.json 的
+        # derived_artifact_inventory」，故既要保留、又不进派生清单（见 _derived_inventory）。
+        manual_pair_notes: dict[str, bytes] = {}
         if pages_dir.exists():
+            for note in sorted(pages_dir.rglob("*")):
+                if note.is_file() and note.name in MANUAL_PAIR_NOTE_NAMES:
+                    manual_pair_notes[note.relative_to(pages_dir).as_posix()] = (
+                        note.read_bytes()
+                    )
             shutil.rmtree(pages_dir)
         pages_dir.mkdir()
         for stale in (
@@ -868,6 +888,11 @@ def build_pair_pages(
                     review=review["verdict"],
                 )
             )
+
+        for note_rel, note_bytes in sorted(manual_pair_notes.items()):
+            note_path = pages_dir / note_rel
+            note_path.parent.mkdir(parents=True, exist_ok=True)
+            note_path.write_bytes(note_bytes)
 
         (staging_dir / "PAIR_INDEX.md").write_text(
             "\n".join(index_lines) + "\n", encoding="utf-8"

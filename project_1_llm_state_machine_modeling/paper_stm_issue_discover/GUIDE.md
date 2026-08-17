@@ -24,7 +24,8 @@
 | 1 | 用户当前明确指令 | 一切 |
 | 2 | 2026-08-07 / 08-08 导师定调 | 论文收窄、**当时定的两条 contribution**、RQ 设计原则、修复不展开。⚠️ 这一行是**历史事实**，⛔ 不要改成三条——三条是 **2026-08-11** 由用户另行裁定的，见 [README.md](./README.md) §2 与 [story/paper_story.md](./story/paper_story.md) §7。⚠️ 口头，原话摘录在 [README.md](./README.md) §2 |
 | 3 | [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/) | 判定口径、方法出处口径、建模对象边界判据。**改它们等于改研究规则** |
-| 4 | [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | **全部实验数字的唯一来源** |
+| 4 | [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/) | ⭐ **当前口径的唯一来源**：台账 **145** 条（`ledger.json`）+ X1v2 精确结果（`X1V2_RESULTS.md`）+ 证据链（[`provenance/`](./discover_matrix/ledger_v2/provenance/)，含 54 份工作单与全部人工裁决）。⛔ 动任何与条目数有关的统计前先读该目录 [README.md](./discover_matrix/ledger_v2/README.md) §六 |
+| 4b | [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | ⚠️ v46 历史报告，建立在已归档的第一版台账上，⛔ 不是当前数字来源 |
 | 5 | [README.md](./README.md) / 本文件 / [STATUS.md](./STATUS.md) / [story/](./story/) | 口径、纪律、状态、叙事 |
 | 6 | [../talks/](../talks/) 的更早导师记录、[reports/](./reports/)、[archive/](./archive/) | 历史背景。被后续记录覆盖的部分不得作为 active 依据 |
 

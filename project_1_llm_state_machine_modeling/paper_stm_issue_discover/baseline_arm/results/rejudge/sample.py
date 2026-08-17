@@ -13,10 +13,15 @@ from collections import defaultdict
 from pathlib import Path
 
 SEED = 20260812
-MATRIX = Path(
-    "/home/zhangshaoang/oo-projects/research_ideas-3/project_1_llm_state_machine_modeling"
-    "/paper_stm_issue_discover/discover_matrix"
-)
+#: ⛔ 原先这里写死了一条绝对路径，⚠️ 它在 2026-08-17 的两次搬迁后都指向不存在的目录。
+#: ⭐ 改为按目录名向上锚定 —— 再搬只会报错，不会静默读空（CLAUDE.md §9.5-3）。
+PAPER = next(q for q in Path(__file__).resolve().parents
+             if q.name == "paper_stm_issue_discover")
+MATRIX = PAPER / "archive" / "r10_ledger_v1_and_v46"
+#: 第一版台账（126 条）与 60 份逐 pair 复审。⚠️ 2026-08-17 随台账证据链从 `archive/…/manual_review/`
+#: 搬到 `discover_matrix/ledger_v2/provenance/`。⛔ 它已**不是**当前台账 —— 当前台账是
+#: `discover_matrix/ledger_v2/ledger.json` 的 145 条；本处只用它复现 588 网格的第一版口径分母。
+PROVENANCE = PAPER / "discover_matrix" / "ledger_v2" / "provenance"
 OUT_OF_SCOPE = ("0008", "0018", "0028", "0038", "0048", "0058")
 BOUNDARY_RULED = ("EIS-0043-02",)
 N_MISS = 60
@@ -34,7 +39,7 @@ def primary_predicate(record: dict) -> str:
 def main() -> None:
     ledger = {
         r["id"]: r
-        for r in json.loads((MATRIX / "manual_review" / "expected_issue_set.json").read_text())["records"]
+        for r in json.loads((PROVENANCE / "expected_issue_set.json").read_text())["records"]
     }
     tiers = json.loads((MATRIX / "v46" / "verdicts" / "v46_tiers.json").read_text())["verdicts"]
     reportable = sorted(

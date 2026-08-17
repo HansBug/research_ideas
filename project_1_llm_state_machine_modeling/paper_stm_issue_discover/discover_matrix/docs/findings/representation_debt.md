@@ -1,6 +1,6 @@
 # 表示债务（representation debt）：现象、机理、以及在 paper 里怎么写
 
-本文件把 v46 意外发现裁定中最重要的一项结论固化为长期研究事实。实测数据与逐簇判据见 [unexpected_adjudication.md](../../v46/unexpected_adjudication.md)、[unexpected_evidence.md](../../v46/unexpected_evidence.md)、[unexpected_merged.md](../../v46/unexpected_merged.md)。
+本文件把 v46 意外发现裁定中最重要的一项结论固化为长期研究事实。实测数据与逐簇判据见 [unexpected_adjudication.md](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_adjudication.md)、[unexpected_evidence.md](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_evidence.md)、[unexpected_merged.md](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_merged.md)。
 
 ## 〇、定义
 
@@ -60,9 +60,9 @@
 
 ## 二、三个实例
 
-三个实例分别对应子类 `D1` / `D2` / `D3`，规模见 [unexpected_tables.md](../../v46/unexpected_tables.md) 表 2；判类规则见 [docs/protocol/unexpected_taxonomy.md](../protocol/unexpected_taxonomy.md) §2。
+三个实例分别对应子类 `D1` / `D2` / `D3`，规模见 [unexpected_tables.md](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_tables.md) 表 2；判类规则见 [docs/protocol/unexpected_taxonomy.md](../protocol/unexpected_taxonomy.md) §2。
 
-### 例 1：析取守卫 → 一个事件名（`D1`，规模见 [表 2](../../v46/unexpected_tables.md)，最大一块）
+### 例 1：析取守卫 → 一个事件名（`D1`，规模见 [表 2](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_tables.md)，最大一块）
 
 `llms_emp_feedback_final_0029/stm0.puml:33`，作者原文：
 
@@ -81,13 +81,13 @@ event pedestrian_detected_dist_to_rear_5_vel_30_dist_to_front_15_in_highway_dist
 
 discover 于是报告「四个激活源被压成一个融合事件，模型无法只凭检测到行人激活」。**这句话对 `model.fcstm` 字字属实，对作者的建模完全冤枉。**
 
-### 例 2：变量 → 烧进事件名（`D2`，规模见 [表 2](../../v46/unexpected_tables.md)）
+### 例 2：变量 → 烧进事件名（`D2`，规模见 [表 2](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_tables.md)）
 
 **PlantUML 没有变量声明语法**——无法写 `int front_distance;`，量只能写进守卫文本。0000 的作者写 `front_distance > 10`，下沉后成为 `event front_distance_10 named "front_distance > 10"`。（0010 的作者写的是大小写不同的 `Front Distance > 10`，下沉为 `Front_Distance_10_2`；两者是同一机理的两个实例，**不要把 0010 的作者文本与 0000 的下沉名拼成一条**。）
 
 后果：`variable_declared(front_distance)` 返回 False。而该谓词在**全语料 60 份制品上恒为 False** ——33 份的唯一 `def` 是转换器注入的 `R45RouteToken`，另 27 份连一行 `def` 都没有，**作者变量 0/60**。即它在本语料上不携带任何判别信息。
 
-### 例 3：`trigger / effect` 焊死（`D3`，规模见 [表 2](../../v46/unexpected_tables.md)）
+### 例 3：`trigger / effect` 焊死（`D3`，规模见 [表 2](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_tables.md)）
 
 作者写 `Attacking --> SearchMission : Attack Finished / Decrease UAV swarm count`。UML 记法里 `/` 前是触发、后是效果，**作者分得清清楚楚**。下沉未切分 `/`，产出 `event Attack_Finished_Decrease_UAV_swarm_count`。discover 报「触发与效果被焊在一个事件名里」——正是 R4.5 干的事。
 
@@ -124,7 +124,7 @@ discover 于是报告「四个激活源被压成一个融合事件，模型无�
 | **去重**（`merge_key` 数） | 30 / 124 | **24.2%** | 语料里真正不同的多报内容里，有多大比例是编译损失 |
 | 出现格次加权 | 224 / 483 | 46.5% | 逐格读报告的人会遇到多大比例的债务 |
 
-两套分母见 [unexpected_tables.md](../../v46/unexpected_tables.md) 表 1 与表 4。**按 issue 条数加权的份额本轮未计算，不得引用。** 条目份额高于去重份额，是因为债务的条目/去重比（4.78）远高于其余各类—— **同一处编译损失会被不同谓词、不同命名、不同 roll-up 粒度反复报出**。
+两套分母见 [unexpected_tables.md](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_tables.md) 表 1 与表 4。**按 issue 条数加权的份额本轮未计算，不得引用。** 条目份额高于去重份额，是因为债务的条目/去重比（4.78）远高于其余各类—— **同一处编译损失会被不同谓词、不同命名、不同 roll-up 粒度反复报出**。
 
 ### 4.2 导出一条方法论主张
 
@@ -138,9 +138,9 @@ discover 于是报告「四个激活源被压成一个融合事件，模型无�
 
 ### 4.3 ⚠️ 一条**待验证的假设**（不是可发表的设计准则）
 
-完整交叉表见 [unexpected_tables.md](../../v46/unexpected_tables.md) 表 3（一簇可挂多个谓词族，故行和大于条目数）。下面只摘出与本节论证相关的六行，**数字以表 3 为准，此处不作第二产地**：
+完整交叉表见 [unexpected_tables.md](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_tables.md) 表 3（一簇可挂多个谓词族，故行和大于条目数）。下面只摘出与本节论证相关的六行，**数字以表 3 为准，此处不作第二产地**：
 
-见 [表 3](../../v46/unexpected_tables.md)——本文件不保存副本。
+见 [表 3](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_tables.md)——本文件不保存副本。
 
 ⛔ **这张表不能支撑「应优先选用某谓词族」。三处硬伤：**
 
@@ -178,7 +178,7 @@ discover 于是报告「四个激活源被压成一个融合事件，模型无�
 
 ### 4.6 一并交代的负面结果
 
-[unexpected_tables.md](../../v46/unexpected_tables.md) 表 4：**两条真漏记分别只出现在 2/6 与 3/6 格；而全表仅有的三个 6/6 全满格（`0000-2` / `0010-1` / `0050-1`）都是表示债务。**
+[unexpected_tables.md](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_tables.md) 表 4：**两条真漏记分别只出现在 2/6 与 3/6 格；而全表仅有的三个 6/6 全满格（`0000-2` / `0010-1` / `0050-1`）都是表示债务。**
 
 > 模型确实能找到台账外的真缺陷，但**没有一条在两个臂上都稳定复现**；在全部六格里稳定重复报出的，反而只有编译债务。
 
@@ -192,7 +192,7 @@ discover 于是报告「四个激活源被压成一个融合事件，模型无�
 
 本轮的债务判定**只覆盖了未匹配的 288 个簇**。对称的问题是：**参与度量的台账记录中，是否有记录本身编码的是编译产物？** 若有，则相应的「命中」是命中在债务上，`hit@k` 的分子分母同时失真。
 
-**规模已量化**：人工表覆盖的 **346 个命中位**（分母内 340 位 + 剔出分母的 `EIS-0043-02` 六位）中，**51 位（15.0%，以分母内 340 为基）**的判据里引用了「变量未声明」，其中 **10 位（2.9%）**不依赖任何其它事实——即该命中完全建立在这一条上。逐位清单见 [variable_grounded_hits.json](../../v46/verdicts/variable_grounded_hits.json)。
+**规模已量化**：人工表覆盖的 **346 个命中位**（分母内 340 位 + 剔出分母的 `EIS-0043-02` 六位）中，**51 位（15.0%，以分母内 340 为基）**的判据里引用了「变量未声明」，其中 **10 位（2.9%）**不依赖任何其它事实——即该命中完全建立在这一条上。逐位清单见 [variable_grounded_hits.json](../../../archive/r10_ledger_v1_and_v46/v46/verdicts/variable_grounded_hits.json)。
 
 这三个数把张力从定性变成了定量：`variable_declared` 在本语料上恒为 False（作者变量 0/60），而 [docs/protocol/hit_criterion.md](../protocol/hit_criterion.md) 把「模型未声明某变量」列为合法命中形态。**一个在全语料恒为 False 的谓词，其 `False` 不能作为检出证据**——同一条断言在一个完美模型上也会「命中」。10 位是这条张力的下界受影响面，51 位是上界。
 
@@ -227,6 +227,6 @@ awk -F'\t' 'NR==1 || $3=="VALID_UNRECORDED" || $7=="6"' \
 
 ## 六、相对上一版的改动
 
-- §4.5 与 §4.6 的真漏记条数、以及 §4.6 的 6/6 全满格个数，改按真源 [final_rootcause.tsv](../../v46/unexpected_verdicts/final_rootcause.tsv)（两行）与 [cluster_index.tsv](../../v46/unexpected_verdicts/cluster_index.tsv)（`cells_of_6 == 6` 的簇为 `0000-2` / `0010-1` / `0050-1`）叙述。**理由**：v46r 整块替换新增了 `0010-2`，这两节的散文未随之更新，与同文件 §4.3 与 §4.6 末段自相矛盾。
+- §4.5 与 §4.6 的真漏记条数、以及 §4.6 的 6/6 全满格个数，改按真源 [final_rootcause.tsv](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_verdicts/final_rootcause.tsv)（两行）与 [cluster_index.tsv](../../../archive/r10_ledger_v1_and_v46/v46/unexpected_verdicts/cluster_index.tsv)（`cells_of_6 == 6` 的簇为 `0000-2` / `0010-1` / `0050-1`）叙述。**理由**：v46r 整块替换新增了 `0010-2`，这两节的散文未随之更新，与同文件 §4.3 与 §4.6 末段自相矛盾。
 - §4.5 的命中率敏感性**重算**而非改数字：结论方向（`hit@all` 只会下降）不变，但由定性变为确定值 −0.47pp；`hit@3` 因 `0014-4` 的逐格身份不可考而改为给区间（−0.42pp 至 +0.08pp），符号不再确定。
 - §4.6 的「找不稳」拆成两种机制：`0014-4` 是采样运气，`0010-2` 是臂间能力差（3 格全在 claude）。**理由**：`0010-2` 在 claude 臂上其实是满轮稳定的，原句会把可归因的臂间差异说成随机性。

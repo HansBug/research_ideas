@@ -1,6 +1,6 @@
 # 命中判定方法学：三层判定与审计口径
 
-本文件固定「一个运行结果是否命中某条 expected issue」这件事**由谁判、依据什么判、如何被复核**。它是判定的规范来源；工具实现在 [verdict_tiers.py](../../verdict_tiers.py)，命中的语义标准在 [hit_criterion.md](./hit_criterion.md)。
+本文件固定「一个运行结果是否命中某条 expected issue」这件事**由谁判、依据什么判、如何被复核**。它是判定的规范来源；工具实现在 [verdict_tiers.py](../../../archive/r10_ledger_v1_and_v46/scripts/verdict_tiers.py)，命中的语义标准在 [hit_criterion.md](./hit_criterion.md)。
 
 ## 一、为什么不是「全人工」也不是「全自动」
 

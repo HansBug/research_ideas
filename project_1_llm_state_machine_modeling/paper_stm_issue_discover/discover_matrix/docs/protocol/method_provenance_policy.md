@@ -17,7 +17,7 @@
 - 方法的迭代就在这批 pair 上进行；实验的作用是**判断改动是否有效**，不是充当样本外泛化证据。
 - 因此**跨代次的数字比较仍然必须同分母**（同格集、同判据），这一条不受影响，见 [verdict_methodology.md](./verdict_methodology.md) 与 `metrics_at_k.py`。
 
-⛔ **不要把这一条套到 `00x8` 上。** 「不设 hold-out」说的是*不许因样本表现或参与度改分母*；`00x8` 的排除是另一回事 —— 那 6 个 pair 的 NL 要求 fork/join 与秒级时间约束，其忠实模型在 $M = (S, E, V, Tr, A)$ 中**无法表示**，因而先验不属于本方法的建模对象，永久不进网格、不进分母。两者依据不同、结论不同，混谈过一次的代价是一次 360 格误启动。判据与证据见 [nl_scope_rule.md](./nl_scope_rule.md) §五，工具层由 [test_scope_vs_holdout_are_different.py](../../test_scope_vs_holdout_are_different.py) 钉住。
+⛔ **不要把这一条套到 `00x8` 上。** 「不设 hold-out」说的是*不许因样本表现或参与度改分母*；`00x8` 的排除是另一回事 —— 那 6 个 pair 的 NL 要求 fork/join 与秒级时间约束，其忠实模型在 $M = (S, E, V, Tr, A)$ 中**无法表示**，因而先验不属于本方法的建模对象，永久不进网格、不进分母。两者依据不同、结论不同，混谈过一次的代价是一次 360 格误启动。判据与证据见 [nl_scope_rule.md](./nl_scope_rule.md) §五，工具层由 [test_scope_vs_holdout_are_different.py](../../../archive/r10_ledger_v1_and_v46/scripts/test_scope_vs_holdout_are_different.py) 钉住。
 
 📌 **论文里不需要解释 hold-out。** 谓词词表与 prompt 的由来一律陈述为从真实设计与系统规约归纳，不以任何 pair 为依据 —— 「为什么不留出」这个问题在本方法的论证结构里根本不出现。需要写明的是 `00x8` 的排除，且理由是建模对象边界，不是样本取舍。
 

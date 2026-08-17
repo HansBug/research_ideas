@@ -5,9 +5,9 @@
 > | 你要找 | 真源在哪 |
 > | :-- | :-- |
 > | 命中判据、多报侧分类学、分母口径、语料筛选规则、方法出处口径 | [../discover_matrix/docs/protocol/](../discover_matrix/docs/protocol/)（11 份） |
-> | `hit@1` / `hit@3` / `hit@all` / `over@k` 的**计算实现** | [../discover_matrix/metrics_at_k.py](../discover_matrix/metrics_at_k.py) |
+> | `hit@1` / `hit@3` / `hit@all` / `over@k` 的**计算实现** | [../discover_matrix/metrics_at_k.py](../archive/r10_ledger_v1_and_v46/scripts/metrics_at_k.py) |
 > | 当前（v46）的实验结果、逐层分析与全部局限 | [../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) |
-> | 历代事前登记与代次记录 | [../discover_matrix/v46/preregistered.md](../discover_matrix/v46/preregistered.md)、[../discover_matrix/docs/generations/](../discover_matrix/docs/generations/) |
+> | 历代事前登记与代次记录 | [../discover_matrix/v46/preregistered.md](../archive/r10_ledger_v1_and_v46/v46/preregistered.md)、[../discover_matrix/docs/generations/](../discover_matrix/docs/generations/) |
 >
 > **本目录只服务一件事：设计下一轮尚未开跑的实验。** 一旦某条设计真的跑了、并产生了口径，那条口径的归宿是 `../discover_matrix/docs/protocol/`，不是这里。
 

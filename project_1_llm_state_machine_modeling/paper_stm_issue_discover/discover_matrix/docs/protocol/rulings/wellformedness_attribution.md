@@ -41,7 +41,7 @@
 > ### 确认它需要查什么
 >
 > 1. **口径是否落进代码**：`metrics_at_k.py` / `check_denominator.py` / `verdict_tiers.py` /    `build_expected_issue_set.py` 里有没有「投影合成占位符 → 移出分子分母」这一步，或等价的    `upstream_detectable` / 「上游可检出」标记。   📌 *一次 grep 未在 `discover_matrix/` 其它文件里找到「上游可检出」这个词——**但这不构成裁定**，   它完全可能以别的字段名或别的措辞落地（例如并进 `attribution_exclusions` 或某个 tag）。*
-> 2. **台账里那 9 条现在算不算**：[expected_issue_set.json](../../../manual_review/expected_issue_set.json)    里 `EIS-0035-01` / `EIS-0043-02` / `EIS-0038-06` / `EIS-0048-01` / `EIS-0032-01` /    `EIS-0047-01` / `EIS-0047-02` / `EIS-0048-02` / `EIS-0048-03` 是否仍参与度量。   ⚠️ 其中 `EIS-0043-02` 现已按**逐条 `boundary_ruling`** 剔除（见 `CLAUDE.md` 建模对象边界一节，   能力分母 98 = 99 − 1）——**那是另一条来源不同的剔除，不能当成本裁定已生效的证据。**
+> 2. **台账里那 9 条现在算不算**：[expected_issue_set.json](../../../ledger_v2/provenance/expected_issue_set.json)    里 `EIS-0035-01` / `EIS-0043-02` / `EIS-0038-06` / `EIS-0048-01` / `EIS-0032-01` /    `EIS-0047-01` / `EIS-0047-02` / `EIS-0048-02` / `EIS-0048-03` 是否仍参与度量。   ⚠️ 其中 `EIS-0043-02` 现已按**逐条 `boundary_ruling`** 剔除（见 `CLAUDE.md` 建模对象边界一节，   能力分母 98 = 99 − 1）——**那是另一条来源不同的剔除，不能当成本裁定已生效的证据。**
 > 3. **v22–v24 的已发布材料改了没有**：对应 PR comment 与 gist 里的 `wellformedness` 层数字，   与 §四.2 要求的「口径变更前后双份数字」。
 > 4. **§四.3 的独立核验做了没有**：该项明写本测量由单人完成、会下调能力主张，须独立方复算。
 > 5. **§四.4 的两个口径报了没有**：`InvalidInitial*` 并入 vs 只算 `UnspecifiedInitial`    （后者移出数为 6/12），原文要求**两个口径都报**。

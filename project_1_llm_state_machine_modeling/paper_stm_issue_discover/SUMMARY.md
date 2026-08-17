@@ -1,6 +1,6 @@
 # SUMMARY.md — 轻量总账与阅读入口
 
-> 本文件只做**入口与索引**，不做第二事实源。⛔ 实验数字一律回 [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) 核对；判定口径一律回 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/)；动态施工状态一律以 GitHub PR / issue 为准。
+> 本文件只做**入口与索引**，不做第二事实源。⭐ 当前口径的数字一律回 [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/) 核对（台账 `ledger.json`、X1v2 结果 `X1V2_RESULTS.md`）；⚠️ v46 报告是历史记录，⛔ 不是当前来源；判定口径一律回 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/)；动态施工状态一律以 GitHub PR / issue 为准。
 
 ## 1. 一句话状态
 
@@ -14,9 +14,10 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 | :-- | :-- | :-- |
 | 论文口径基准 | [README.md](./README.md) | 这篇论文做什么、**三条** contribution、建模对象边界、目录导航 |
 | 导师定调 | [../talks/](../talks/) | 最高优先级路线依据。⚠️ 2026-08-07 / 08-08 的收窄定调为口头，原话摘录在 [README.md](./README.md) §2 |
-| **实验事实** | [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | **全部实验数字的唯一来源**，自包含，读完不需跳转 |
+| ⭐ **当前实验事实** | [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/) | **当前口径的唯一来源**：台账 **145** 条 + X1v2 在其上的精确命中 + ⭐ 台账的完整证据链 [`provenance/`](./discover_matrix/ledger_v2/provenance/)。⛔ 99 / 126 / 319 / 321 / 323 / 380 / 429 都不是台账条目数，来历见该目录 README §六 |
+| ⚠️ 历史实验事实（v46） | [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | 建立在**已归档的第一版台账**上，⛔ 不是当前口径 |
 | 判定口径 | [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/) | 命中判据、多报五类、方法出处、建模对象边界判据、规则出处纪律。**改它们等于改研究规则** |
-| 实验产地 | [discover_matrix/](./discover_matrix/) | 台账、判定表、代次记录、分析脚本、全量审计数据 |
+| 实验产地 | [discover_matrix/](./discover_matrix/) | 只有两个子目录：[ledger_v2/](./discover_matrix/ledger_v2/)（台账 + 判定协议 + X1v2 结果 + 证据链）与 [docs/](./discover_matrix/docs/)（学术口径与历代事前登记）|
 | 方法实现 | [pipeline/feedback_loop/](./pipeline/feedback_loop/) | 当前活的实现（八阶段 + 定向反馈循环） |
 | 语料 | [selected_seed_examples/](./selected_seed_examples/) | 60 个 pair，各含 `nl.txt`、`stm0.puml` 与溯源元数据 |
 | 论文叙事 | [story/](./story/) | thesis、章节结构与 RQ、claim-evidence、任务边界、建模对象、术语 |
@@ -43,7 +44,7 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 | 方法实现 | active，已跑通全量 | [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
 | 输入准备与表示桥、语料准入检查 | active，作为 infrastructure | [pipeline/conversion/](./pipeline/conversion/)、[pipeline/representation/](./pipeline/representation/)、[pipeline/readiness_audit/](./pipeline/readiness_audit/) |
 | 上一版单 Agent 实现 | 已归档（2026-08-11），完整保留可复活 | [archive/r9_agent_loop_pipeline/](./archive/r9_agent_loop_pipeline/) |
-| 实验与评测 | active，v46 全量已完成 | [discover_matrix/](./discover_matrix/) |
+| 实验与评测 | active；⭐ 第二版台账（145 条）+ X1v2 精确结果已就位；⛔ v46 主臂已归档 | [discover_matrix/](./discover_matrix/) |
 | 语料与更广候选集 | active | [selected_seed_examples/](./selected_seed_examples/)、[corpora/](./corpora/) |
 | repair 期合同（issue lifecycle、source trace、资产地图） | **已随 repair 搁置**，只作历史背景与后续 repair 论文的迁移输入 | [experiment_design/](./experiment_design/)、[evidence/ledgers/](./evidence/ledgers/) |
 | R5.7 / Better STM-facing 资产 | 已归档，只作 historical / superseded / calibration-only 引用 | [archive/](./archive/) |
@@ -79,7 +80,7 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 | 改动 | 为什么 |
 | :-- | :-- |
 | §1 一句话状态从「资产清账完成、active 主线为 source-level issue discovery **and closure**、真实 repair loop 尚未运行」改为「已收窄为 discover 单独成篇、324 格全量实验已完成」 | 旧版写于实验之前，且口径已被 2026-08-07 / 08-08 定调取代 |
-| §2 事实源表把实验报告标为**全部数字的唯一来源**，并显式声明本文件不做第二事实源 | 旧版的事实源表指向 asset map、scan audit、issue ledger schema 等 repair 期合同；且旧版容易被当成数字来源 |
+| ⚠️（历史，已被 2026-08-17 台账换代取代）§2 事实源表把实验报告标为**全部数字的唯一来源**，并显式声明本文件不做第二事实源 | 旧版的事实源表指向 asset map、scan audit、issue ledger schema 等 repair 期合同；且旧版容易被当成数字来源 |
 | 新增 §3 按任务分叉的阅读入口 | 旧版只有一条线性阅读顺序，实际使用中「写论文」「复算数字」「改方法」三类任务读的东西完全不同 |
 | §4 资产状态表新增「repair 期合同已搁置但文件仍在」一行 | 那批文件仍在原地，不写清会被后续 agent 当成 active 框架 |
 | §5 下一步依赖从「先交付 Discover Agent，再依次交付 Repair / Confirm Agent，最后由确定性 controller 组织闭环」改为「补外部对照与审计」 | Discover 已实现并跑通全量；Repair / Confirm 已移出本文范围；当前真实缺口是对照而非实现 |

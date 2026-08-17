@@ -90,6 +90,6 @@ R5.7 定义 taxonomy 时必须给每类 target 同时写出 claim 强度和降�
 |---|---|
 | [../../story/model_scope.md](../../story/model_scope.md) | R5.6 scope 与 claim boundary 真源。 |
 | [2026-06-29-17-33-35-r5-5-scope-handoff.md](./2026-06-29-17-33-35-r5-5-scope-handoff.md) | R5.5 -> R5.6 handoff。 |
-| [../../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl](../../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl) | candidate-only / partial attribution。 |
-| [../../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) | 60 pair status / time / story role。 |
-| [../../reports/2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](../../reports/2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) | R5.5.2 current status 与 conversion recovery caveat。 |
+| [../../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl](../../../../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl) | candidate-only / partial attribution。 |
+| [../../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../../../../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) | 60 pair status / time / story role。 |
+| [../../reports/2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](../../../../reports/2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) | R5.5.2 current status 与 conversion recovery caveat。 |

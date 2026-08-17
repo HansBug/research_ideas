@@ -27,7 +27,7 @@
 - `phd_proposal/` - LaTeX格式的博士开题报告文档
   - `phd_proposal_report/` - 主开题报告
   - `phd_proposal_literature_review/` - 文献综述文档
-- `project_1_llm_state_machine_modeling/` - 研究内容一：基于LLM的状态机结构化建模；其中 [project_1_llm_state_machine_modeling/talks/](./project_1_llm_state_machine_modeling/talks/) 是 project_1 内部正式导师讨论文库，用于记录高优先级论文路线与实验边界意见，[paper_stm_issue_discover/](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/) 是**第一篇论文（STM issue discover）的完整工作区**——实现、语料、台账、实验、报告全都在里面，[archive/](./project_1_llm_state_machine_modeling/archive/) 是已停用但完整保留的旧路线（旧 agent loop 基础设施、Path-1 评测链、Path-1/2 指南）
+- `project_1_llm_state_machine_modeling/` - 研究内容一：基于LLM的状态机结构化建模；其中 [project_1_llm_state_machine_modeling/talks/](./project_1_llm_state_machine_modeling/talks/) 是 project_1 内部正式导师讨论文库，用于记录高优先级论文路线与实验边界意见，[paper_stm_issue_discover/](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/) 是**第一篇论文（STM issue discover）的完整工作区**——实现、语料、台账、实验、报告全都在里面；⭐⭐ **该论文的缺陷台账只有一份**，即 [discover_matrix/ledger_v2/](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/) 的 **145** 条（入口读它的 [README.md](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/README.md)），⛔ 仓库里出现的 99 / 126 / 319 / 321 / 323 / 380 / 429 一个都不是台账条目数，[archive/](./project_1_llm_state_machine_modeling/archive/) 是已停用但完整保留的旧路线（旧 agent loop 基础设施、Path-1 评测链、Path-1/2 指南）
 - `project_2_verification_scenario_generation/` - 研究内容二：验证场景与性质生成
 - `project_3_profile_based_verification/` - 研究内容三：基于验证剖面的状态机验证
 - `project_4_iterative_model_repair/` - 研究内容四：迭代式模型修复
@@ -1134,10 +1134,17 @@ talks/
 
 **由这条边界导出的两项永久裁定，二者互不相干，不得混谈：**
 
-1. **`00x8` 系列（`0008` `0018` `0028` `0038` `0048` `0058`）永久排除。** 60 个 pair 由 10 份 NL 各生成 6 个；其中一份要求 fork/join 与秒级时间约束，其忠实模型在 $M$ 中无法表示，对应的 6 个 pair 恰好末位为 8。**它们不进评测网格、不进命中分母**，故全量网格恒为 `54 pair × 2 模型 × 3 轮 = 324 格`，本条裁定单独作用后台账剩 `126 - 27 = 99` 条；能力分母另需扣除按逐条 `boundary_ruling` 剔除的 `EIS-0043-02`，故实际为 **98** 条——两种剔除来源不同，不可混谈。判据只读 `nl.txt`、先验、与运行结果无关；且被排除集里 `0018` 的 `hit@1` 高于全量均值——**它不是「剔除不利样本」**。见 [NL_SCOPE_RULE.md](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/protocol/nl_scope_rule.md)。
-2. **hold-out 永久不用。** 不划分留出集，也**不在论文里解释这件事**：谓词词表与 prompt 的由来一律陈述为从真实设计与系统规约归纳，不以任何 pair 为依据，「为什么不留出」在本方法的论证结构里根本不出现。见 [METHOD_PROVENANCE_POLICY.md](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/protocol/method_provenance_policy.md)。
+1. **`00x8` 系列（`0008` `0018` `0028` `0038` `0048` `0058`）永久排除。** 60 个 pair 由 10 份 NL 各生成 6 个；其中一份要求 fork/join 与秒级时间约束，其忠实模型在 $M$ 中无法表示，对应的 6 个 pair 恰好末位为 8。**它们不进评测网格、不进命中分母**，故全量网格恒为 `54 pair` 宽。判据只读 `nl.txt`、先验、与运行结果无关；且被排除集里 `0018` 的 `hit@1` 高于全量均值——**它不是「剔除不利样本」**。
 
-⛔ 把裁定 2（不许因样本表现或参与度改分母）套到裁定 1 上，会得出「排除 `00x8` = 剔除不利样本」这个**错误**结论。已实际发生过一次，代价是把网格擅自改成 60 pair / 360 格的误启动。工具层由 [test_scope_vs_holdout_are_different.py](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/test_scope_vs_holdout_are_different.py) 钉住：`metrics_at_k.REPORTABLE` 已扣除越界记录，且越界记录若混入判定表会直接报「网格被改错」。
+⚠️ **这条裁定作用在哪个台账上，数字不同，不要串用**：
+
+| 台账 | 条目数 | 本条裁定作用后 | 网格 |
+| :-- | --: | :-- | :-- |
+| ⭐ **第二版（当前唯一有效）** [ledger_v2/ledger.json](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/ledger.json) | **145**（D2 98 + D1 47） | ⭐ 台账在构建时**已按 54 pair 生成**，无需再扣 | `145 × 6 = 870` 位 |
+| ⛔ 第一版（已被取代，仅存证据链） `provenance/expected_issue_set.json` | 126 | `126 − 27 = 99` 条进入重标；能力分母另扣逐条 `boundary_ruling` 的 `EIS-0043-02` → **98** —— 两种剔除来源不同，不可混谈 | `54 × 2 × 3 = 324` 格 |见 [nl_scope_rule.md](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/protocol/nl_scope_rule.md)。
+2. **hold-out 永久不用。** 不划分留出集，也**不在论文里解释这件事**：谓词词表与 prompt 的由来一律陈述为从真实设计与系统规约归纳，不以任何 pair 为依据，「为什么不留出」在本方法的论证结构里根本不出现。见 [method_provenance_policy.md](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/protocol/method_provenance_policy.md)。
+
+⛔ 把裁定 2（不许因样本表现或参与度改分母）套到裁定 1 上，会得出「排除 `00x8` = 剔除不利样本」这个**错误**结论。已实际发生过一次，代价是把网格擅自改成 60 pair / 360 格的误启动。工具层由 [test_scope_vs_holdout_are_different.py](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/archive/r10_ledger_v1_and_v46/scripts/test_scope_vs_holdout_are_different.py) 钉住：`metrics_at_k.REPORTABLE` 已扣除越界记录，且越界记录若混入判定表会直接报「网格被改错」。
 
 时间与并发相关的验证仍属**研究内容三**；由于研究内容一不产出时钟与不变式，其时间属性来源需在研究内容二/三中另行界定（见 [TARGET.md](./TARGET.md) 「可能遇到的问题」第 2 条的衔接说明）。
 - 验证剖面：`SP = ⟨(E₁, C₁, τ₁), (E₂, C₂, τ₂), ..., (Eₙ, Cₙ, τₙ)⟩`

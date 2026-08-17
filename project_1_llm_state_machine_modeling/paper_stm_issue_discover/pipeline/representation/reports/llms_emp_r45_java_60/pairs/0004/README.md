@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`188bebba5631b87c315e966d8cd0f993630182d74f9b9bd677e1452198e458cb`
 - FCSTM SHA-256：`89d8bffbbc69d720d97225397233adeff8fa0c56e3c259c7fd2b56b235d21278`
 - review subject SHA-256：`f1a41e12fc2f3a3329b50d5b90d49630023b52c5bb6d892ee21c1b488a723a37`
-- working contract SHA-256：`0462f1e9d37daea4870eadc7c86a2a545ecc1d8fed27d8afd0d38067fe40b965`
+- working contract SHA-256：`10e3079c7fe3696701cbfb6631b18d74a65faf96385aa8ce851dcea461a24e0b`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`7` / `9`
 - mapped / blocked / silent drop：`9` / `0` / `0`
@@ -28,9 +28,9 @@
 - working bundle usage gate：`discover_input_with_capability_mask`
 - ownership source / compiler / agent：`20` / `27` / `0`
 - source macro / positive identity trace / conversion boundary trace：`13` / `20` / `0`
-- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `eligible_with_exclusions` / `eligible_with_exclusions`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0004 passes the current attribution-safe forward review; this does not assert global behavior equivalence, and unsupported runtime semantics remain fail-closed.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0004 passes the current attribution-safe forward review; this does not assert global behavior equivalence, and unsupported runtime semantics remain fail-closed. Amendment record: the substantive subject review remains the one recorded in review_context (first reviewed 2026-07-20T05:44:08Z by gpt-5.5 (session omx-1784393668980-pxpj3q), and it still binds because review_subject_sha256 is unchanged. A scoped re-check was performed 2026-08-17 by claude-opus-5 (main-session LLM, PR #185) because commit bbb04cb1 (2026-07-27) regenerated the 60 working contracts and commit 35eba126 (2026-08-11) renamed the paper workspace, and neither refreshed this registry. The re-review is scoped: a key-by-key diff shows the only contract changes are capability_eligibility.simulation, capability_eligibility.transition_trace and summary.simulation_status (bbb04cb1) plus the four artifact_bindings path strings (35eba126); the remaining 168 keys and the whole of canonical/fcstm/parse_inspect/source_traces are byte-identical, so review_subject_sha256 is unchanged and the original ownership, macro and correspondence findings still stand. The capability block was re-checked against seven invariants: eligible ids are source: only, excluded ids cover the compiler-owned set, the two sets are disjoint, claim_boundary and reason_codes are non-empty, main_result_conversion_artifact_limit is still 0, and usage_gate is unchanged.
 - source anchors：`source-ref:llms_emp_feedback_final_0004.puml:line:4\|state DoorsClosing {, source-ref:llms_emp_feedback_final_0004.puml:line:8\|DoorsClosing --> InMotion : Closed/SendDeparted`；FCSTM anchors：`element-ref:source:state:DoorsClosing@line:8\|state DoorsClosing named "DoorsClosing" {, element-ref:compiler:transition_segment:tr_0003:segment:1@line:39\|!DoorsClosing -> InMotion : /Closed_SendDeparted;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0004.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0004.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0004.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0004.json) | [source trace](../../source_traces/llms_emp_feedback_final_0004.json) | [人工总账](../../MANUAL_REVIEW.md)
