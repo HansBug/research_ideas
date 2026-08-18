@@ -22,7 +22,7 @@ from urllib.parse import quote, urlsplit
 
 from pydantic import BaseModel
 
-from utils.llm import LLMConfig, LLMRegistry
+from utils.llm import LLMConfig, LLMRegistry, prompt_cache_policy
 
 try:
     from langchain.agents import create_agent
@@ -384,9 +384,7 @@ def _default_stream_usage(config: LLMConfig) -> bool:
 
 
 def _prompt_cache_policy(config: LLMConfig) -> dict[str, Any]:
-    if config.adapter == "anthropic":
-        return {"mode": "anthropic-ephemeral", "enabled": True, "ttl": "5m"}
-    return {"mode": "provider-default", "enabled": None, "ttl": None}
+    return prompt_cache_policy(config)
 
 
 def _adapter_prompt_cache_middleware(config: LLMConfig) -> list[Any]:
@@ -400,9 +398,10 @@ def _adapter_prompt_cache_middleware(config: LLMConfig) -> list[Any]:
         raise AgentError(
             "config_error", "langchain-anthropic prompt caching middleware is required"
         ) from exc
+    policy = _prompt_cache_policy(config)
     return [
         AnthropicPromptCachingMiddleware(
-            ttl="5m",
+            ttl=policy["ttl"],
             min_messages_to_cache=0,
             unsupported_model_behavior="raise",
         )

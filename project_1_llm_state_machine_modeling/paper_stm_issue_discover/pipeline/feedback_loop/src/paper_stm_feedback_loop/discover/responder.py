@@ -1,22 +1,25 @@
 from __future__ import annotations
 
-import json
 import functools
+import hashlib
+import json
 import time
 import uuid
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from collections.abc import Callable
-from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
 from utils.llm import (
+    PromptCacheTTL,
     adapter_name,
+    cached_system_prompt_content,
     create_chat_model,
     load_llm_registry,
     normalize_model_output_usage,
+    prompt_cache_policy,
 )
 
 T = TypeVar("T", bound=BaseModel)
@@ -62,7 +65,7 @@ def _empty_structured_output(exc: Exception) -> bool:
         return False
     try:
         items = errors()
-    except Exception:  # pragma: no cover - defensive
+    except Exception:  # noqa: BLE001  # pragma: no cover - third-party exception API
         return False
     return any(
         item.get("type") == "model_type"
@@ -71,7 +74,6 @@ def _empty_structured_output(exc: Exception) -> bool:
         for item in items
         if isinstance(item, dict)
     )
-
 
 
 #: Seconds to wait before each retry.  Retrying with no gap is what made the
@@ -140,7 +142,7 @@ def _retryable_error(exc: Exception) -> bool:
     return status in {408, 409, 425, 429} or status >= 500
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _schema_contract(schema: type[Any]) -> str:
     """用 LangChain 原生的 `PydanticOutputParser` 把字段契约渲染进 system prompt。
 
@@ -166,11 +168,17 @@ def _schema_contract(schema: type[Any]) -> str:
 
     from langchain_core.output_parsers import PydanticOutputParser
 
-    return "\n\n" + PydanticOutputParser(pydantic_object=schema).get_format_instructions()
+    return (
+        "\n\n" + PydanticOutputParser(pydantic_object=schema).get_format_instructions()
+    )
 
 
 class IncompleteStructuredStreamError(RuntimeError):
     """The provider ended a structured stream before its tool-call JSON closed."""
+
+
+class StructuredOutputValidationError(RuntimeError):
+    """The provider returned content that does not satisfy the requested schema."""
 
 
 def _validate_complete_structured_stream(raw: Any) -> None:
@@ -223,6 +231,10 @@ class LLMObservation:
     raw_response: dict[str, Any] | None
     usage: dict[str, Any]
     attempts: tuple[dict[str, Any], ...]
+    structured_schema_sha256: str
+    schema_contract_repeated_in_prompt: bool
+    prompt_cache: dict[str, Any]
+    pricing: dict[str, Any] | None
     failure: str | None = None
 
 
@@ -242,6 +254,8 @@ class DirectStructuredResponder:
         registry_path: str | None = None,
         max_output_tokens: int | None = None,
         transport_retries: int = 4,
+        repeat_schema_in_prompt: bool = True,
+        prompt_cache_ttl: PromptCacheTTL | None = None,
         on_stream_chunk: Callable[[str, int, float], None] | None = None,
     ) -> None:
         registry = load_llm_registry(registry_path)
@@ -263,6 +277,8 @@ class DirectStructuredResponder:
             max_retries=0,
         )
         self.transport_retries = max(0, transport_retries)
+        self.repeat_schema_in_prompt = repeat_schema_in_prompt
+        self.prompt_cache_ttl = prompt_cache_ttl
         self._on_stream_chunk = on_stream_chunk
         self._last_observation: LLMObservation | None = None
 
@@ -281,6 +297,26 @@ class DirectStructuredResponder:
 
         call_started = _utc_now()
         call_start_ns = time.perf_counter_ns()
+        schema_json = json.dumps(
+            schema.model_json_schema(),
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        structured_schema_sha256 = hashlib.sha256(schema_json.encode()).hexdigest()
+        effective_system_prompt = system_prompt + (
+            _schema_contract(schema) if self.repeat_schema_in_prompt else ""
+        )
+        prompt_cache = (
+            prompt_cache_policy(self.config, ttl=self.prompt_cache_ttl)
+            if self.prompt_cache_ttl is not None
+            else {"mode": "disabled", "enabled": False, "ttl": None}
+        )
+        system_message_content = cached_system_prompt_content(
+            self.config,
+            effective_system_prompt,
+            ttl=self.prompt_cache_ttl,
+        )
         attempts: list[dict[str, Any]] = []
         last_error: Exception | None = None
         for attempt_index in range(1, self.transport_retries + 2):
@@ -298,16 +334,15 @@ class DirectStructuredResponder:
                     schema, **structured_options
                 )
                 response = None
-                chunk_count = 0
-                for chunk in structured.stream(
-                    [
-                        SystemMessage(
-                            system_prompt + _schema_contract(schema)
-                        ),
-                        HumanMessage(user_input),
-                    ]
+                for chunk_count, chunk in enumerate(
+                    structured.stream(
+                        [
+                            SystemMessage(content=system_message_content),
+                            HumanMessage(user_input),
+                        ]
+                    ),
+                    start=1,
                 ):
-                    chunk_count += 1
                     response = chunk if response is None else response + chunk
                     if self._on_stream_chunk is not None:
                         self._on_stream_chunk(
@@ -322,7 +357,9 @@ class DirectStructuredResponder:
                 raw = response.get("raw")
                 parsing_error = response.get("parsing_error")
                 if parsing_error is not None:
-                    raise ValueError(f"structured validation failed: {parsing_error}")
+                    raise StructuredOutputValidationError(
+                        f"structured validation failed: {parsing_error}"
+                    )
                 _validate_complete_structured_stream(raw)
                 parsed = response.get("parsed")
                 if parsed is None:
@@ -370,7 +407,8 @@ class DirectStructuredResponder:
                         "attempt_index": attempt_index,
                         "started_at": attempt_started.isoformat(),
                         "finished_at": _utc_now().isoformat(),
-                        "elapsed_ms": (time.perf_counter_ns() - attempt_start_ns) / 1_000_000,
+                        "elapsed_ms": (time.perf_counter_ns() - attempt_start_ns)
+                        / 1_000_000,
                         "status": "completed",
                         "failure_phase": "none",
                         "retryable": False,
@@ -390,23 +428,30 @@ class DirectStructuredResponder:
                     finished_at=finished,
                     elapsed_ms=(time.perf_counter_ns() - call_start_ns) / 1_000_000,
                     status="completed",
-                    system_prompt=system_prompt,
+                    system_prompt=effective_system_prompt,
                     user_prompt=user_input,
                     parsed_output=output.model_dump(mode="json"),
                     raw_response=_jsonable(raw),
                     usage=usage,
                     attempts=tuple(attempts),
+                    structured_schema_sha256=structured_schema_sha256,
+                    schema_contract_repeated_in_prompt=self.repeat_schema_in_prompt,
+                    prompt_cache=prompt_cache,
+                    pricing=(
+                        self.config.pricing.model_dump(mode="json")
+                        if self.config.pricing is not None
+                        else None
+                    ),
                 )
                 return output
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - provider SDKs use mixed errors
                 last_error = exc
                 retryable = _retryable_error(exc)
                 status = _status_code(exc)
                 failure_phase = (
                     "structured_stream"
                     if isinstance(exc, IncompleteStructuredStreamError)
-                    else
-                    "structured_validation"
+                    else "structured_validation"
                     if isinstance(exc, (ValueError, TypeError))
                     else "provider_response"
                     if status is not None
@@ -417,7 +462,8 @@ class DirectStructuredResponder:
                         "attempt_index": attempt_index,
                         "started_at": attempt_started.isoformat(),
                         "finished_at": _utc_now().isoformat(),
-                        "elapsed_ms": (time.perf_counter_ns() - attempt_start_ns) / 1_000_000,
+                        "elapsed_ms": (time.perf_counter_ns() - attempt_start_ns)
+                        / 1_000_000,
                         "status": "failed",
                         "failure_phase": failure_phase,
                         "retryable": retryable,
@@ -446,15 +492,35 @@ class DirectStructuredResponder:
             finished_at=finished,
             elapsed_ms=(time.perf_counter_ns() - call_start_ns) / 1_000_000,
             status="failed",
-            system_prompt=system_prompt,
+            system_prompt=effective_system_prompt,
             user_prompt=user_input,
             parsed_output=None,
             raw_response=None,
             usage=unavailable,
             attempts=tuple(attempts),
-            failure=f"{type(last_error).__name__}: {last_error}" if last_error else "unknown failure",
+            structured_schema_sha256=structured_schema_sha256,
+            schema_contract_repeated_in_prompt=self.repeat_schema_in_prompt,
+            prompt_cache=prompt_cache,
+            pricing=(
+                self.config.pricing.model_dump(mode="json")
+                if self.config.pricing is not None
+                else None
+            ),
+            failure=f"{type(last_error).__name__}: {last_error}"
+            if last_error
+            else "unknown failure",
         )
+        if isinstance(last_error, StructuredOutputValidationError):
+            raise last_error
+        if isinstance(last_error, (ValueError, TypeError)):
+            raise StructuredOutputValidationError(
+                self._last_observation.failure
+            ) from last_error
         raise RuntimeError(self._last_observation.failure) from last_error
 
 
-__all__ = ["DirectStructuredResponder", "LLMObservation"]
+__all__ = [
+    "DirectStructuredResponder",
+    "LLMObservation",
+    "StructuredOutputValidationError",
+]

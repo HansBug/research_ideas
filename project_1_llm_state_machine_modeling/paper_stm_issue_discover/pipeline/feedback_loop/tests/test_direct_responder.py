@@ -6,13 +6,12 @@ from datetime import datetime, timezone
 import pytest
 from langchain_core.messages import AIMessage, AIMessageChunk
 from langchain_core.runnables.utils import AddableDict
-
-from utils.llm import LLMConfig
-
-from paper_stm_feedback_loop.discover import responder as responder_module
 from paper_stm_feedback_loop.discover import nodes
+from paper_stm_feedback_loop.discover import responder as responder_module
 from paper_stm_feedback_loop.discover.responder import DirectStructuredResponder
 from paper_stm_feedback_loop.discover.schemas import DiscoverInput, RequirementReview
+
+from utils.llm import LLMConfig
 
 
 class _Registry:
@@ -70,10 +69,7 @@ class _IncompleteStructured:
             tool_call_chunks=[
                 {
                     "name": "RequirementReview",
-                    "args": (
-                        '{"decision":"accept","reviewed_revision":1,'
-                        '"rationale":'
-                    ),
+                    "args": ('{"decision":"accept","reviewed_revision":1,"rationale":'),
                     "id": "incomplete-call",
                     "index": 0,
                 }
@@ -105,6 +101,23 @@ class _RecoveringIncompleteModel:
         assert method == "function_calling"
         self.calls += 1
         return _IncompleteStructured() if self.calls == 1 else _Structured(schema)
+
+
+class _CapturingAnthropicModel:
+    def __init__(self) -> None:
+        self.messages = []
+
+    def with_structured_output(self, schema, include_raw=False, method=None):
+        assert include_raw is True
+        assert method is None
+        parent = self
+
+        class _CapturingStructured(_Structured):
+            def stream(self, messages):
+                parent.messages = messages
+                yield from super().stream(messages)
+
+        return _CapturingStructured(schema)
 
 
 def test_direct_responder_records_same_profile_model_and_usage(monkeypatch) -> None:
@@ -147,6 +160,10 @@ def test_direct_responder_records_same_profile_model_and_usage(monkeypatch) -> N
     assert observation.profile == "unit-profile"
     assert observation.configured_model == "configured-unit-model"
     assert observation.observed_model == "observed-unit-model"
+    assert observation.schema_contract_repeated_in_prompt is True
+    assert len(observation.structured_schema_sha256) == 64
+    assert observation.system_prompt.startswith("system")
+    assert len(observation.system_prompt) > len("system")
     assert observation.usage["input_tokens"] == 120
     assert observation.usage["cache_read_input_tokens"] == 20
     assert len(observation.attempts) == 1
@@ -156,6 +173,24 @@ def test_direct_responder_records_same_profile_model_and_usage(monkeypatch) -> N
         ("requirement_reviewer", 3),
     ]
     assert all(elapsed_ms >= 0 for _, _, elapsed_ms in stream_updates)
+
+    compact_responder = DirectStructuredResponder(
+        "unit-profile", repeat_schema_in_prompt=False
+    )
+    compact_responder.invoke_structured(
+        role="requirement_reviewer",
+        schema=RequirementReview,
+        system_prompt="system",
+        user_input="user",
+    )
+    compact_observation = compact_responder.take_last_observation()
+    assert compact_observation is not None
+    assert compact_observation.system_prompt == "system"
+    assert compact_observation.schema_contract_repeated_in_prompt is False
+    assert (
+        compact_observation.structured_schema_sha256
+        == observation.structured_schema_sha256
+    )
 
     state = {
         "_input": DiscoverInput(
@@ -200,6 +235,53 @@ def test_direct_responder_records_same_profile_model_and_usage(monkeypatch) -> N
     assert llm_record.raw_response_sha256
 
 
+def test_direct_responder_marks_stable_anthropic_prefix_for_one_hour_cache(
+    monkeypatch,
+) -> None:
+    config = LLMConfig(
+        adapter="anthropic",
+        model="claude-opus-4-7",
+        api_key="unit-test-key",
+    )
+    monkeypatch.setattr(
+        responder_module, "load_llm_registry", lambda _path=None: _Registry(config)
+    )
+    model = _CapturingAnthropicModel()
+    monkeypatch.setattr(
+        responder_module,
+        "create_chat_model",
+        lambda *_args, **_kwargs: model,
+    )
+    responder = DirectStructuredResponder(
+        "unit-profile",
+        repeat_schema_in_prompt=False,
+        prompt_cache_ttl="1h",
+    )
+
+    responder.invoke_structured(
+        role="requirement_reviewer",
+        schema=RequirementReview,
+        system_prompt="stable-system-prefix",
+        user_input="pair-specific dossier",
+    )
+
+    observation = responder.take_last_observation()
+    assert observation is not None
+    assert observation.prompt_cache == {
+        "mode": "anthropic-ephemeral",
+        "enabled": True,
+        "ttl": "1h",
+    }
+    assert model.messages[0].content == [
+        {
+            "type": "text",
+            "text": "stable-system-prefix",
+            "cache_control": {"type": "ephemeral", "ttl": "1h"},
+        }
+    ]
+    assert model.messages[1].content == "pair-specific dossier"
+
+
 def test_direct_responder_rejects_incomplete_structured_stream(monkeypatch) -> None:
     config = LLMConfig(
         adapter="openai",
@@ -216,7 +298,9 @@ def test_direct_responder_rejects_incomplete_structured_stream(monkeypatch) -> N
     )
     responder = DirectStructuredResponder("unit-profile", transport_retries=0)
 
-    with pytest.raises(RuntimeError, match="structured tool-call arguments are incomplete"):
+    with pytest.raises(
+        RuntimeError, match="structured tool-call arguments are incomplete"
+    ):
         responder.invoke_structured(
             role="requirement_reviewer",
             schema=RequirementReview,
@@ -285,9 +369,8 @@ def test_empty_structured_output_is_retryable_but_schema_violations_are_not() ->
     src = Path(__file__).resolve().parents[1] / "src"
     if str(src) not in sys.path:
         sys.path.insert(0, str(src))
-    from pydantic import BaseModel, ValidationError
-
     from paper_stm_feedback_loop.discover.responder import _retryable_error
+    from pydantic import BaseModel, ValidationError
 
     class Shape(BaseModel):
         value: int

@@ -1,0 +1,4119 @@
+from __future__ import annotations
+
+import copy
+import importlib.util
+import re
+import sys
+from pathlib import Path
+
+MODULE_PATH = Path(__file__).resolve().parents[1] / "prototype.py"
+SPEC = importlib.util.spec_from_file_location("witness_search_prototype", MODULE_PATH)
+assert SPEC and SPEC.loader
+prototype = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = prototype
+SPEC.loader.exec_module(prototype)
+
+
+def _pair_and_inspect(case: str = "0029"):
+    pair = prototype.load_pair(case)
+    inspect = prototype.inspect_fcstm(
+        pair["fcstm"], pair["paths"]["fcstm"], smt_timeout_ms=3_000
+    )
+    return pair, inspect
+
+
+def test_context_contains_all_views_and_mapping_comments() -> None:
+    pair, inspect = _pair_and_inspect()
+    context = prototype.build_context(pair, inspect)
+
+    assert "# Natural-language requirements" in context
+    assert "# Author-source PlantUML" in context
+    assert "# Converted FCSTM with source/compiler mapping comments" in context
+    assert "# Execution/source attribution boundary" in context
+    assert "# Verify-enabled pyfcstm inspect cause summary" in context
+    assert "cause_clusters" in context
+    assert "PUML:L12 lower:direct" in context
+    assert "PUML:L31 identity" in context
+    assert "W_UNREACHABLE_STATE" in context
+    assert "expected_issue" not in context
+
+
+def test_fcstm_annotations_use_exact_ast_paths_for_duplicate_short_names() -> None:
+    fcstm = """state Root named \"Root\" {
+    state A named \"A\" {
+        state Same named \"Same A\";
+    }
+    state B named \"B\" {
+        state Same named \"Same B\";
+    }
+}"""
+    contract = {
+        "elements": [
+            {
+                "kind": "state",
+                "origin": "source_owned",
+                "source_refs": ["case.puml:line:10"],
+                "metadata": {"fcstm_path": "Root.A.Same"},
+            },
+            {
+                "kind": "state",
+                "origin": "source_owned",
+                "source_refs": ["case.puml:line:20"],
+                "metadata": {"fcstm_path": "Root.B.Same"},
+            },
+        ]
+    }
+
+    annotated = prototype.annotate_fcstm(fcstm, contract).splitlines()
+
+    assert "PUML:L10 identity" in annotated[2]
+    assert "PUML:L20 identity" not in annotated[2]
+    assert "PUML:L20 identity" in annotated[5]
+    assert "PUML:L10 identity" not in annotated[5]
+
+
+def test_attribution_exclusions_use_closed_formal_reference_projection() -> None:
+    exclusions = ["compiler:state:Root.Generated"]
+
+    assert prototype._reference_matches_exclusion("Root.Generated", exclusions)
+    assert prototype._reference_matches_exclusion(
+        "compiler:state:Root.Generated", exclusions
+    )
+    assert not prototype._reference_matches_exclusion("Generated", exclusions)
+    assert not prototype._reference_matches_exclusion(
+        "unknown:state:Root.Generated", exclusions
+    )
+
+
+def test_known_0029_l2_probes_produce_replayable_artifact_counterexamples() -> None:
+    pair, inspect = _pair_and_inspect()
+    root = pair["pair_name"]
+    plan = prototype.ProbePlan(
+        evidence_summary="Three behavior-level hypotheses from source and inspect clues.",
+        candidates=[
+            prototype.ProbeCandidate(
+                rationale="NL requires the collision-avoidance subsystem to operate.",
+                claim="The collision-avoidance initial state is unreachable.",
+                basis_kind="nl_literal",
+                nl_quote="The collision avoidance system is initially in the collision_avoidance_deactive state.",
+                locations=["NL12"],
+                priority=5,
+                checks=[
+                    prototype.ProbeCheck(
+                        rationale="Search from root entry to the required initial state.",
+                        kind="reaches",
+                        source="[*]",
+                        target=f"{root}.CollisionAvoidance.collision_avoidance_deactive",
+                        within_cycles=4,
+                    )
+                ],
+            ),
+            prototype.ProbeCandidate(
+                rationale="NL says auto_finished exits UrbanMode into a finish state.",
+                claim="The urban completion event does not terminate execution.",
+                basis_kind="nl_literal",
+                nl_quote="The system exits the UrbanMode state by transitioning to FinishState once `auto_finished=true` is satisfied.",
+                locations=["NL10"],
+                priority=5,
+                checks=[
+                    prototype.ProbeCheck(
+                        rationale="Apply auto_finished from a reachable urban leaf.",
+                        kind="terminates",
+                        source=f"{root}.UrbanMode.straight",
+                        trigger="auto_finished=true",
+                    )
+                ],
+            ),
+            prototype.ProbeCandidate(
+                rationale="The converted target is nested under HighwayMode.",
+                claim="Urban completion incorrectly enters HighwayMode.FinishState.",
+                basis_kind="nl_literal",
+                nl_quote="The system exits the UrbanMode state by transitioning to FinishState once `auto_finished=true` is satisfied.",
+                locations=["NL10"],
+                priority=5,
+                checks=[
+                    prototype.ProbeCheck(
+                        rationale="The wrong nested finish target must not become active.",
+                        kind="occupancy_after",
+                        source=f"{root}.UrbanMode.straight",
+                        trigger=f"{root}.auto_finished_true",
+                        target=f"{root}.HighwayMode.FinishState",
+                        within_cycles=3,
+                        expected=False,
+                    )
+                ],
+            ),
+        ],
+    )
+
+    outcomes = prototype.execute_plan(pair, inspect, plan)
+    groups = [item["probe_groups"][0] for item in outcomes]
+
+    assert len(outcomes) == 3
+    assert all(item["planner_envelope_only"] is True for item in outcomes)
+    assert all("source_candidate" not in item for item in outcomes)
+    assert all(group["witness_level"] == "W2" for group in groups)
+    assert all(group["counterexample_found"] is True for group in groups)
+    assert all(item["nl_anchor_valid"] is True for item in outcomes)
+    assert groups[1]["checks"][0]["normalizations"] == [
+        {
+            "field": "trigger",
+            "from": "auto_finished=true",
+            "to": f"{root}.auto_finished_true",
+        }
+    ]
+
+
+def test_0023_projection_risk_is_not_promoted_to_source_finding() -> None:
+    pair, inspect = _pair_and_inspect("0023")
+    plan = prototype.ProbePlan(
+        candidates=[
+            prototype.ProbeCandidate(
+                obligation="WaterState must be behaviorally reachable.",
+                claim="WaterState is unreachable from root entry.",
+                basis_kind="nl_literal",
+                nl_quote="The system can also transition to the WaterState substate, indicating that the pump is controlling or monitoring the water flow.",
+                priority=5,
+                locations=["PUML:L6", f"{pair['pair_name']}.PumpControl.WaterState"],
+                checks=[
+                    prototype.ProbeCheck(
+                        kind="reaches",
+                        source="[*]",
+                        target=f"{pair['pair_name']}.PumpControl.WaterState",
+                        within_cycles=4,
+                    )
+                ],
+            )
+        ]
+    )
+
+    outcome = prototype.execute_plan(pair, inspect, plan)[0]
+    group = outcome["probe_groups"][0]
+
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["source_causality_certificate"] is None
+    assert group["source_attribution"]["status"] == "unattributed"
+    assert group["source_candidate"] is False
+    assert prototype.build_issue_clusters([outcome]) == []
+
+
+def test_inspect_clues_compile_to_unexecuted_probe_seeds() -> None:
+    _, inspect = _pair_and_inspect("0029")
+
+    seeds = prototype.derive_probe_seeds(inspect)
+
+    assert seeds
+    assert any(
+        seed["diagnostic_code"] == "W_UNREACHABLE_STATE"
+        and seed["checks"][0]["kind"] == "reaches"
+        for seed in seeds
+    )
+
+
+def test_malformed_probe_degrades_without_aborting_pair() -> None:
+    pair, inspect = _pair_and_inspect()
+    plan = prototype.ProbePlan(
+        evidence_summary="Malformed probe fixture.",
+        candidates=[
+            prototype.ProbeCandidate(
+                rationale="Exercise the degradation path.",
+                claim="Missing target cannot be executed.",
+                basis_kind="implicit_oracle",
+                priority=1,
+                checks=[
+                    prototype.ProbeCheck(
+                        rationale="Intentionally incomplete.",
+                        kind="reaches",
+                        source="[*]",
+                    )
+                ],
+            )
+        ],
+    )
+
+    outcomes = prototype.execute_plan(pair, inspect, plan)
+    group = outcomes[0]["probe_groups"][0]
+
+    assert group["witness_level"] == "W1"
+    assert group["source_causality_certificate"] is None
+    assert group["source_candidate"] is False
+    assert group["checks"][0]["result"] == "unsupported"
+    findings = prototype.build_finding_records(outcomes)
+    assert len(findings) == 1
+    assert findings[0]["witness_level"] == "W0"
+    assert findings[0]["evidence_status"] == "coverage_gap"
+
+
+def _seed_for_location(seeds, suffix: str):
+    return next(
+        seed
+        for seed in seeds
+        if any(str(location).endswith(suffix) for location in seed["locations"])
+    )
+
+
+def test_seed_and_custom_claims_are_isolated_and_source_deadlock_is_executable() -> (
+    None
+):
+    pair, inspect = _pair_and_inspect("0004")
+    seed = _seed_for_location(
+        prototype.derive_probe_seeds(inspect), ".EmergencyStopping"
+    )
+    root = pair["pair_name"]
+    plan = prototype.ProbePlan(
+        candidates=[
+            prototype.ProbeCandidate(
+                obligation="Obstacle response must not permanently trap the controller.",
+                claim="Obstacle Detected enters EmergencyStopping.",
+                basis_kind="nl_literal",
+                nl_quote="if an obstacle is detected",
+                locations=["NL2"],
+                priority=5,
+                probe_seed_ids=[seed["seed_id"]],
+                checks=[
+                    prototype.ProbeCheck(
+                        role="primary",
+                        kind="occupancy_after",
+                        source=f"{root}.InMotion.Accelerating",
+                        trigger="Obstacle_Detected",
+                        target=f"{root}.EmergencyStopping",
+                        within_cycles=4,
+                    )
+                ],
+            )
+        ]
+    )
+
+    outcome = prototype.execute_plan(pair, inspect, plan)[0]
+    by_id = {group["group_id"]: group for group in outcome["probe_groups"]}
+    seed_group = by_id[f"seed:{seed['seed_id']}"]
+    custom_group = by_id["custom"]
+
+    assert seed_group["claim"] == seed["hypothesis"]
+    assert seed_group["counterexample_found"] is True
+    assert seed_group["source_candidate"] is True
+    certificate = seed_group["source_causality_certificate"]
+    assert certificate["kind"] == "reachable_deadlock"
+    assert certificate["sound_for_claim"] is True
+    assert certificate["state_path"][-1] == "EmergencyStopping"
+    assert custom_group["claim"] == "Obstacle Detected enters EmergencyStopping."
+    assert custom_group["counterexample_found"] is False
+    assert outcome["planner_envelope_only"] is True
+    assert "counterexample_found" not in outcome
+    assert len(prototype.build_issue_clusters([outcome])) == 1
+
+
+def test_missing_initial_consequences_cluster_to_one_causal_source_issue() -> None:
+    pair, inspect = _pair_and_inspect("0046")
+    seeds = prototype.derive_probe_seeds(inspect)
+    selected = [
+        _seed_for_location(seeds, ".SearchRegion.Searching"),
+        _seed_for_location(seeds, ".SearchRegion.FormationAdjustment"),
+    ]
+    quote = "the UAV swarm continuously performs target search tasks"
+    plan = prototype.ProbePlan(
+        candidates=[
+            prototype.ProbeCandidate(
+                obligation="The search region behavior must be reachable.",
+                claim=f"{seed['locations'][0]} is reachable.",
+                basis_kind="nl_literal",
+                nl_quote=quote,
+                locations=["NL2"],
+                priority=5,
+                probe_seed_ids=[seed["seed_id"]],
+            )
+            for seed in selected
+        ]
+    )
+
+    outcomes = prototype.execute_plan(pair, inspect, plan, seeds)
+    clusters = prototype.build_issue_clusters(outcomes)
+
+    assert all(
+        outcome["probe_groups"][0]["source_candidate"] is True for outcome in outcomes
+    )
+    assert len(clusters) == 1
+    assert clusters[0]["cause_key"].endswith(":UAVSwarmStateMachine")
+    certificate = clusters[0]["source_causality_certificate"]
+    assert certificate["kind"] == "missing_initial_with_compiler_consequence"
+    assert certificate["initial_edge_count"] == 0
+    assert certificate["causal_bridge_result"] is True
+    assert certificate["source_behavior_equivalence_claimed"] is False
+
+
+def test_missing_initial_structure_and_consequences_share_one_cause_key() -> None:
+    structure = {
+        "kind": "initial_contract_violation",
+        "scope": "Root",
+    }
+    consequence = {
+        "kind": "missing_initial_with_compiler_consequence",
+        "scope": "Root",
+    }
+
+    structure_key = prototype._certificate_cause_key(structure)
+    consequence_key = prototype._certificate_cause_key(consequence)
+
+    assert structure_key == consequence_key == "source:initial_contract:Root"
+
+
+def test_empty_initial_target_contract_uses_missing_initial_cause() -> None:
+    absent = {
+        "kind": "source_initial_target_contract",
+        "composite": "Root",
+        "child": "Root.Ready",
+        "actual_parent": "Root",
+        "initial_edges": [],
+    }
+    wrong_scope = {
+        "kind": "source_initial_target_contract",
+        "composite": "Root.Region2",
+        "child": "Root.Region1.Ready",
+        "actual_parent": "Root.Region1",
+        "initial_edges": [{"id": "tr_initial"}],
+    }
+
+    assert prototype._certificate_cause_key(absent) == "source:initial_contract:Root"
+    assert prototype._certificate_cause_key(wrong_scope) == (
+        "source:initial_target:Root.Region1:Root.Region1.Ready"
+    )
+
+
+def test_initial_self_target_is_l0_but_cross_scope_target_is_l1() -> None:
+    self_target = {
+        "source_causality_certificate": {
+            "kind": "source_initial_target_contract",
+            "composite": "Root.Ready",
+            "child": "Root.Ready",
+            "matching_edge_count": 1,
+        }
+    }
+    cross_scope = {
+        "source_causality_certificate": {
+            "kind": "source_initial_target_contract",
+            "composite": "Root.Region2",
+            "child": "Root.Region1.Ready",
+            "matching_edge_count": 1,
+        }
+    }
+
+    assert prototype._infer_l_level({}, self_target) == "L0"
+    assert prototype._infer_l_level({}, cross_scope) == "L1"
+
+
+def test_progressive_scout_finds_initial_contract_without_llm_backend_choice() -> None:
+    pair, inspect = _pair_and_inspect("0016")
+
+    outcomes = prototype.execute_progressive_evidence_seeds(pair, inspect)
+    findings = prototype.build_finding_records(outcomes)
+
+    initial = next(
+        item
+        for item in findings
+        if item["source_causality_certificate"]
+        and item["source_causality_certificate"]["kind"] == "initial_contract_violation"
+    )
+    assert initial["witness_level"] == "W2"
+    assert initial["source_attribution"] == ["causal_dual_certificate"]
+    assert initial["formal_oracle_rules"][0]["rule_id"] == (
+        "OR-PYFCSTM-INITIAL-UNCONDITIONAL-MISSING-v1"
+    )
+    assert initial["formal_oracle_rules"][0]["semantic_decision_claimed"] is False
+    assert (
+        initial["execution_certificates"][0]["semantic_binding_receipt"]["authority"]
+        == "formal_pyfcstm_diagnostic"
+    )
+    assert initial["compiled_assertions"][0]["backend"] == "pyfcstm.inspect"
+    assert (
+        "inspect_model(model"
+        in initial["compiled_assertions"][0]["compiled_assertion_code"]
+    )
+
+
+def test_progressive_scout_does_not_read_diagnostic_message_semantics() -> None:
+    pair, inspect = _pair_and_inspect("0016")
+    rewritten = copy.deepcopy(inspect)
+    for diagnostic in rewritten["diagnostics"]:
+        diagnostic["message"] = "Unrelated prose that carries no formal authority."
+
+    original = prototype.derive_progressive_evidence_seeds(pair, inspect)
+    paraphrased = prototype.derive_progressive_evidence_seeds(pair, rewritten)
+
+    def semantic_surface(seeds):
+        return [
+            {
+                key: seed[key]
+                for key in (
+                    "cause_key",
+                    "obligation",
+                    "claim",
+                    "formal_fact",
+                    "formal_oracle_rule",
+                    "locations",
+                )
+            }
+            for seed in seeds
+        ]
+
+    assert semantic_surface(original) == semantic_surface(paraphrased)
+
+
+def test_source_static_scout_executes_cross_scope_initial_targets() -> None:
+    pair, inspect = _pair_and_inspect("0016")
+
+    findings = prototype.build_finding_records(
+        prototype.execute_source_static_evidence_scouts(pair, inspect)
+    )
+
+    assert len(findings) == 2
+    assert {item["source_causality_certificate"]["composite"] for item in findings} == {
+        "SearchMission.Region1.Region2",
+        "SearchMission.Region1.Region2.Region3",
+    }
+    assert all(item["witness_level"] == "W2" for item in findings)
+    assert all(item["counterexample_found"] is True for item in findings)
+    assert all(item["l_level"] == "L1" for item in findings)
+    assert all(item["w_validation_errors"] == [] for item in findings)
+
+
+def test_guard_only_profile_is_syntactic_and_fail_closed() -> None:
+    first = prototype.parse_guard_only_label(" [ opaque guard body ] ")
+    second = prototype.parse_guard_only_label("[different formal payload]")
+
+    assert first is not None and second is not None
+    assert first.explicit_trigger is None
+    assert first.effect is None
+    assert first.implicit_trigger == "completion"
+    assert first.profile_id == second.profile_id
+    assert prototype.parse_guard_only_label("event_name [guard]") is None
+    assert prototype.parse_guard_only_label("[guard] / effect") is None
+    assert prototype.parse_guard_only_label("[]") is None
+    assert prototype.parse_guard_only_label("[unclosed") is None
+
+
+def test_source_static_scout_runs_guarded_completion_and_keeps_it_w1() -> None:
+    pair, inspect = _pair_and_inspect("0054")
+
+    findings = prototype.build_finding_records(
+        prototype.execute_source_static_evidence_scouts(pair, inspect)
+    )
+    finding = next(
+        item
+        for item in findings
+        if item["source_causality_certificate"]
+        and item["source_causality_certificate"]["kind"]
+        == "source_guarded_completion_unfireable"
+    )
+    certificate = finding["source_causality_certificate"]
+
+    assert certificate["assertion_executed"] is True
+    assert certificate["label_profile"] == {
+        "profile_id": prototype.UML_GUARD_ONLY_PROFILE_ID,
+        "explicit_trigger_absent": True,
+        "guard_present": True,
+        "effect_absent": True,
+        "implicit_trigger": "completion",
+    }
+    assert certificate["final_edges"] == []
+    assert certificate["fcstm_projection_audit"]["projection_declared"] is True
+    assert certificate["fcstm_projection_audit"]["projection_used"] is True
+    assert certificate["fcstm_projection_audit"]["representation_divergence"] is True
+    assert certificate["semantic_binding_receipt"]["authority"] == "formal_source_ast"
+    assert finding["witness_level"] == "W1"
+    assert finding["l_level"] == "L0"
+    assert finding["source_attribution"] == ["representation_debt"]
+    assert finding["counterexample_found"] is True
+    assert finding["compiled_assertions"]
+    assert finding["execution_certificates"] == []
+    assert finding["w_validation_errors"] == []
+    assert prototype._language_clause_for_finding(finding)["clause_id"] == (
+        "UML251_DERIVED_GUARDED_COMPLETION"
+    )
+
+
+def test_guarded_completion_scout_does_not_read_natural_language_prose() -> None:
+    pair, inspect = _pair_and_inspect("0054")
+    rewritten = dict(pair)
+    rewritten["nl"] = "Unrelated prose with no shared vocabulary."
+
+    original = prototype.execute_source_static_evidence_scouts(pair, inspect)
+    changed = prototype.execute_source_static_evidence_scouts(rewritten, inspect)
+
+    def formal_result(outcomes):
+        finding = next(
+            item
+            for item in prototype.build_finding_records(outcomes)
+            if item["source_causality_certificate"]
+            and item["source_causality_certificate"]["kind"]
+            == "source_guarded_completion_unfireable"
+        )
+        certificate = dict(finding["source_causality_certificate"])
+        certificate.pop("semantic_binding_receipt")
+        return {
+            "certificate": certificate,
+            "witness_level": finding["witness_level"],
+            "l_level": finding["l_level"],
+            "compiled_assertions": finding["compiled_assertions"],
+        }
+
+    assert formal_result(original) == formal_result(changed)
+
+
+def test_contract_assembler_applies_only_explicit_concept_bindings() -> None:
+    pair, _ = _pair_and_inspect("0030")
+    plan = prototype.ContractExtractionPlan(
+        initial_contracts=[
+            prototype.ExpectedInitialContract(
+                composite="Autonomous",
+                composite_concept_id="C-parent",
+                target="ShortName",
+                target_concept_id="C-child",
+                nl_line=2,
+                priority=2,
+            )
+        ],
+        containment_contracts=[],
+        transition_groups=[],
+    )
+    discovery = prototype.DiscoveryGroundingPlan(
+        concept_bindings=[
+            prototype.CompactConceptBinding(
+                concept_id="C-parent",
+                source_state_id="Autonomous",
+            ),
+            prototype.CompactConceptBinding(
+                concept_id="C-child",
+                source_state_id="Autonomous.Navigating",
+            ),
+        ],
+        initial_contract_bindings=[],
+        containment_contract_bindings=[],
+        transition_group_bindings=[],
+        additional_contracts=plan,
+        surface_candidates=[],
+        behavior_candidates=[],
+        unresolved=[],
+    )
+
+    grounded, diagnostics = prototype._assemble_grounded_contract_plan(
+        pair,
+        prototype.ContractExtractionPlan(
+            initial_contracts=[], containment_contracts=[], transition_groups=[]
+        ),
+        discovery,
+    )
+
+    assert diagnostics == []
+    assert grounded.initial_contracts[0].target == "Autonomous.Navigating"
+
+
+def test_llm_declared_missing_state_path_executes_on_both_artifacts() -> None:
+    pair, inspect = _pair_and_inspect("0030")
+    candidate = prototype.EvidenceCandidate(
+        obligation="A requirement-grounded completion state must exist.",
+        claim="The required completion state is absent.",
+        basis_kind="nl_literal",
+        nl_quote=(
+            "2. The autonomous mode has sub-states and is represented by a sub "
+            "machine state"
+        ),
+        priority=1,
+        locations=["NL2"],
+        proposed_l="L0",
+        goal=prototype.EvidenceGoal(
+            relation="state_exists",
+            source="Autonomous",
+            subject="Autonomous.RequiredCompletion",
+            expected=True,
+        ),
+    )
+
+    validated, diagnostics = prototype._validate_direct_grounded_candidate(
+        pair,
+        prototype.BalancedEvidenceCandidate(
+            **candidate.model_dump(), observed_fact="No exact state path is present."
+        ),
+        lane="surface_candidates",
+        index=0,
+    )
+    findings = prototype.build_finding_records(
+        prototype.execute_evidence_plan(
+            pair, inspect, prototype.EvidencePlan(candidates=[validated])
+        )
+    )
+
+    assert diagnostics == []
+    assert len(findings) == 1
+    assert findings[0]["witness_level"] == "W2"
+    assert findings[0]["l_level"] == "L0"
+    assert findings[0]["source_attribution"] == ["causal_dual_certificate"]
+    assert findings[0]["source_causality_certificate"]["kind"] == (
+        "source_required_state_presence"
+    )
+    assert findings[0]["execution_certificates"][0]["terminal"] is True
+
+
+def test_required_state_contract_is_semantically_resolved_then_executed() -> None:
+    pair, inspect = _pair_and_inspect("0030")
+    raw = prototype.ContractExtractionPlan(
+        initial_contracts=[],
+        containment_contracts=[],
+        transition_groups=[],
+        required_state_contracts=[
+            prototype.RequiredStateContract(
+                concept="auto final",
+                concept_id="C-auto-final",
+                scope_concept_id="C-autonomous",
+                role="condition_state",
+                nl_quote="in (auto final)",
+                priority=1,
+            )
+        ],
+    )
+    plan = prototype.DiscoveryGroundingPlan(
+        concept_bindings=[],
+        initial_contract_bindings=[],
+        containment_contract_bindings=[],
+        transition_group_bindings=[],
+        required_state_bindings=[
+            prototype.RequiredStateGrounding(
+                item_index=0,
+                status="missing",
+                formal_kind="state",
+                parent_scope_id="Autonomous",
+                normative_formal_path="Autonomous.AutoFinal",
+            )
+        ],
+        surface_candidates=[],
+        behavior_candidates=[],
+    )
+
+    _, evidence, diagnostics = prototype.validate_discovery_grounding(pair, raw, plan)
+    findings = prototype.build_finding_records(
+        prototype.execute_evidence_plan(pair, inspect, evidence)
+    )
+
+    assert diagnostics == []
+    assert len(evidence.surface_candidates) == 1
+    assert evidence.surface_candidates[0].goal == prototype.EvidenceGoal(
+        relation="state_exists",
+        source="Autonomous",
+        subject="Autonomous.AutoFinal",
+        expected=True,
+    )
+    assert len(findings) == 1
+    assert findings[0]["witness_level"] == "W2"
+    assert findings[0]["l_level"] == "L0"
+    assert findings[0]["nl_anchor_valid"] is True
+    assert findings[0]["source_attribution"] == ["causal_dual_certificate"]
+
+
+def test_required_state_execution_is_noninterfering_in_concept_prose() -> None:
+    pair, inspect = _pair_and_inspect("0030")
+
+    def execute(concept: str):
+        raw = prototype.ContractExtractionPlan(
+            initial_contracts=[],
+            containment_contracts=[],
+            transition_groups=[],
+            required_state_contracts=[
+                prototype.RequiredStateContract(
+                    concept=concept,
+                    concept_id="C-required",
+                    role="condition_state",
+                    nl_quote="in (auto final)",
+                    priority=1,
+                )
+            ],
+        )
+        plan = prototype.DiscoveryGroundingPlan(
+            concept_bindings=[],
+            initial_contract_bindings=[],
+            containment_contract_bindings=[],
+            transition_group_bindings=[],
+            required_state_bindings=[
+                prototype.RequiredStateGrounding(
+                    item_index=0,
+                    status="missing",
+                    formal_kind="state",
+                    parent_scope_id="Autonomous",
+                    normative_formal_path="Autonomous.AutoFinal",
+                )
+            ],
+            surface_candidates=[],
+            behavior_candidates=[],
+        )
+        _, evidence, diagnostics = prototype.validate_discovery_grounding(
+            pair, raw, plan
+        )
+        assert diagnostics == []
+        return prototype.execute_evidence_plan(pair, inspect, evidence)[0][
+            "probe_groups"
+        ][0]
+
+    first = execute("auto final")
+    rewritten = execute("an unrelated prose name with similar-looking states nearby")
+
+    assert first["compiled_assertion"] == rewritten["compiled_assertion"]
+    assert first["counterexample_found"] is rewritten["counterexample_found"] is True
+    assert first["witness_level"] == rewritten["witness_level"] == "W2"
+
+
+def test_required_state_missing_resolution_fails_closed_on_existing_path() -> None:
+    pair, _ = _pair_and_inspect("0030")
+    raw = prototype.ContractExtractionPlan(
+        initial_contracts=[],
+        containment_contracts=[],
+        transition_groups=[],
+        required_state_contracts=[
+            prototype.RequiredStateContract(
+                concept="semantic concept",
+                concept_id="C-required",
+                role="condition_state",
+                nl_quote="in (auto final)",
+                priority=1,
+            )
+        ],
+    )
+    plan = prototype.DiscoveryGroundingPlan(
+        concept_bindings=[],
+        initial_contract_bindings=[],
+        containment_contract_bindings=[],
+        transition_group_bindings=[],
+        required_state_bindings=[
+            prototype.RequiredStateGrounding(
+                item_index=0,
+                status="missing",
+                formal_kind="state",
+                parent_scope_id="Autonomous",
+                normative_formal_path="Autonomous.Navigating",
+            )
+        ],
+        surface_candidates=[],
+        behavior_candidates=[],
+    )
+
+    _, _, diagnostics = prototype.validate_discovery_grounding(pair, raw, plan)
+
+    assert any(
+        item["class"] == "formal_missing_state_reference_invalid"
+        for item in diagnostics
+    )
+
+
+def test_missing_final_pseudostate_executes_to_w2_when_both_views_lack_it() -> None:
+    pair, inspect = _pair_and_inspect("0030")
+    raw = prototype.ContractExtractionPlan(
+        initial_contracts=[],
+        containment_contracts=[],
+        transition_groups=[],
+        required_state_contracts=[
+            prototype.RequiredStateContract(
+                concept="mode completion marker",
+                concept_id="C-mode-final",
+                role="termination_state",
+                nl_quote="in (auto final)",
+                priority=1,
+            )
+        ],
+    )
+    plan = prototype.DiscoveryGroundingPlan(
+        concept_bindings=[],
+        initial_contract_bindings=[],
+        containment_contract_bindings=[],
+        transition_group_bindings=[],
+        required_state_bindings=[
+            prototype.RequiredStateGrounding(
+                item_index=0,
+                status="missing",
+                formal_kind="final_pseudostate",
+                parent_scope_id="HumanDriving",
+            )
+        ],
+        surface_candidates=[],
+        behavior_candidates=[],
+    )
+
+    _, evidence, diagnostics = prototype.validate_discovery_grounding(pair, raw, plan)
+    findings = prototype.build_finding_records(
+        prototype.execute_evidence_plan(pair, inspect, evidence)
+    )
+
+    assert diagnostics == []
+    assert len(findings) == 1
+    assert findings[0]["witness_level"] == "W2"
+    assert findings[0]["l_level"] == "L0"
+    assert findings[0]["source_attribution"] == ["causal_dual_certificate"]
+    assert findings[0]["execution_certificates"][0]["verdict"] == "counterexample"
+    assert findings[0]["source_causality_certificate"]["kind"] == (
+        "source_required_final_pseudostate_presence"
+    )
+
+
+def test_generated_final_pseudostate_is_w1_representation_debt() -> None:
+    pair, inspect = _pair_and_inspect("0030")
+    raw = prototype.ContractExtractionPlan(
+        initial_contracts=[],
+        containment_contracts=[],
+        transition_groups=[],
+        required_state_contracts=[
+            prototype.RequiredStateContract(
+                concept="autonomous completion marker",
+                concept_id="C-auto-final",
+                scope_concept_id="C-autonomous",
+                role="termination_state",
+                nl_quote="in (auto final)",
+                priority=1,
+            )
+        ],
+    )
+    plan = prototype.DiscoveryGroundingPlan(
+        concept_bindings=[],
+        initial_contract_bindings=[],
+        containment_contract_bindings=[],
+        transition_group_bindings=[],
+        required_state_bindings=[
+            prototype.RequiredStateGrounding(
+                item_index=0,
+                status="missing",
+                formal_kind="final_pseudostate",
+                parent_scope_id="Autonomous",
+            )
+        ],
+        surface_candidates=[],
+        behavior_candidates=[],
+    )
+
+    _, evidence, diagnostics = prototype.validate_discovery_grounding(pair, raw, plan)
+    findings = prototype.build_finding_records(
+        prototype.execute_evidence_plan(pair, inspect, evidence)
+    )
+
+    assert diagnostics == []
+    assert len(findings) == 1
+    assert findings[0]["witness_level"] == "W1"
+    assert findings[0]["l_level"] == "L0"
+    assert findings[0]["source_attribution"] == ["representation_debt"]
+    assert findings[0]["execution_certificates"][0]["terminal"] is True
+    assert findings[0]["execution_certificates"][0]["verdict"] == "satisfied"
+
+
+def test_required_event_scope_contract_expands_and_executes_each_exact_scope() -> None:
+    pair, inspect = _pair_and_inspect("0030")
+    raw = prototype.ContractExtractionPlan(
+        initial_contracts=[],
+        containment_contracts=[],
+        transition_groups=[],
+        required_event_scope_contracts=[
+            prototype.RequiredEventScopeContract(
+                event_concept="power-off request",
+                scope_concept="each operating mode",
+                applicability="each_operating_mode",
+                nl_quote="5 when power off, it will transit to final state",
+                priority=1,
+            )
+        ],
+    )
+    plan = prototype.DiscoveryGroundingPlan(
+        concept_bindings=[],
+        initial_contract_bindings=[],
+        containment_contract_bindings=[],
+        transition_group_bindings=[],
+        required_event_scope_bindings=[
+            prototype.RequiredEventScopeGrounding(
+                item_index=0,
+                status="grounded",
+                observed_transition_id="tr_0007",
+                required_scope_ids=["HumanDriving", "Autonomous"],
+            )
+        ],
+        surface_candidates=[],
+        behavior_candidates=[],
+    )
+
+    _, evidence, diagnostics = prototype.validate_discovery_grounding(pair, raw, plan)
+    outcomes = prototype.execute_evidence_plan(pair, inspect, evidence)
+    findings = prototype.build_finding_records(outcomes)
+
+    assert diagnostics == []
+    assert [item.goal.source for item in evidence.surface_candidates] == [
+        "HumanDriving",
+        "Autonomous",
+    ]
+    assert len(outcomes) == 2
+    assert len(findings) == 1
+    assert findings[0]["witness_level"] == "W2"
+    assert findings[0]["source_causality_certificate"]["source"] == "Autonomous"
+    assert findings[0]["source_attribution"] == ["causal_dual_certificate"]
+
+
+def test_required_event_scope_grounding_fails_closed_without_exact_scopes() -> None:
+    pair, _ = _pair_and_inspect("0030")
+    raw = prototype.ContractExtractionPlan(
+        initial_contracts=[],
+        containment_contracts=[],
+        transition_groups=[],
+        required_event_scope_contracts=[
+            prototype.RequiredEventScopeContract(
+                event_concept="power-off request",
+                scope_concept="every operating mode",
+                applicability="each_operating_mode",
+                nl_quote="5 when power off, it will transit to final state",
+                priority=1,
+            )
+        ],
+    )
+    plan = prototype.DiscoveryGroundingPlan(
+        concept_bindings=[],
+        initial_contract_bindings=[],
+        containment_contract_bindings=[],
+        transition_group_bindings=[],
+        required_event_scope_bindings=[
+            prototype.RequiredEventScopeGrounding(
+                item_index=0,
+                status="grounded",
+                observed_transition_id="tr_0007",
+                required_scope_ids=[],
+            )
+        ],
+        surface_candidates=[],
+        behavior_candidates=[],
+    )
+
+    _, evidence, diagnostics = prototype.validate_discovery_grounding(pair, raw, plan)
+
+    assert evidence.surface_candidates == []
+    assert any(item["class"] == "binding_patch_empty" for item in diagnostics)
+
+
+def test_required_event_scope_execution_ignores_contract_prose() -> None:
+    pair, inspect = _pair_and_inspect("0030")
+
+    def execute(event_concept: str, scope_concept: str) -> dict:
+        raw = prototype.ContractExtractionPlan(
+            initial_contracts=[],
+            containment_contracts=[],
+            transition_groups=[],
+            required_event_scope_contracts=[
+                prototype.RequiredEventScopeContract(
+                    event_concept=event_concept,
+                    scope_concept=scope_concept,
+                    applicability="one_scope",
+                    nl_quote="5 when power off, it will transit to final state",
+                    priority=1,
+                )
+            ],
+        )
+        plan = prototype.DiscoveryGroundingPlan(
+            concept_bindings=[],
+            initial_contract_bindings=[],
+            containment_contract_bindings=[],
+            transition_group_bindings=[],
+            required_event_scope_bindings=[
+                prototype.RequiredEventScopeGrounding(
+                    item_index=0,
+                    status="grounded",
+                    observed_transition_id="tr_0007",
+                    required_scope_ids=["Autonomous"],
+                )
+            ],
+            surface_candidates=[],
+            behavior_candidates=[],
+        )
+        _, evidence, diagnostics = prototype.validate_discovery_grounding(
+            pair, raw, plan
+        )
+        assert diagnostics == []
+        return prototype.execute_evidence_plan(pair, inspect, evidence)[0][
+            "probe_groups"
+        ][0]
+
+    first = execute("power-off request", "autonomous mode")
+    paraphrase = execute(
+        "unrelated narrative label that must not be parsed",
+        "another reporting-only description",
+    )
+
+    assert first["compiled_assertion"] == paraphrase["compiled_assertion"]
+    for field in (
+        "evaluated_artifact_sha256",
+        "compiled_assertion_sha256",
+        "observations",
+        "terminal",
+        "counterexample_found",
+        "verdict",
+    ):
+        assert (
+            first["execution_certificate"][field]
+            == paraphrase["execution_certificate"][field]
+        )
+    for field in (
+        "kind",
+        "evaluated_artifact_sha256",
+        "observed_transition_id",
+        "source",
+        "event",
+        "active_scopes_checked",
+        "consumers",
+        "actual",
+        "verdict",
+    ):
+        assert (
+            first["source_causality_certificate"][field]
+            == paraphrase["source_causality_certificate"][field]
+        )
+
+
+def test_missing_state_path_requires_exact_parent_anchor() -> None:
+    pair, _ = _pair_and_inspect("0030")
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="A required state exists.",
+        claim="The required state is absent.",
+        observed_fact="No exact state path is present.",
+        basis_kind="nl_literal",
+        nl_quote="2. The autonomous mode has sub-states.",
+        priority=1,
+        locations=["NL2"],
+        proposed_l="L0",
+        goal=prototype.EvidenceGoal(
+            relation="state_exists",
+            source="HumanDriving",
+            subject="Autonomous.RequiredCompletion",
+            expected=True,
+        ),
+    )
+
+    validated, diagnostics = prototype._validate_direct_grounded_candidate(
+        pair, candidate, lane="surface_candidates", index=0
+    )
+
+    assert diagnostics[0]["class"] == "formal_id_invalid"
+    assert validated.goal.subject is None
+
+
+def test_scope_event_consumption_binds_event_without_overwriting_scope() -> None:
+    pair, inspect = _pair_and_inspect("0030")
+    candidate = prototype.EvidenceCandidate(
+        obligation="The shutdown event must be consumed in every operating mode.",
+        claim="The shutdown event is not consumed in one operating mode.",
+        basis_kind="nl_literal",
+        nl_quote="5 when power off, it will transit to final state",
+        priority=1,
+        locations=["NL5"],
+        proposed_l="L0",
+        goal=prototype.EvidenceGoal(
+            relation="event_consumed_in_scope",
+            source="Autonomous",
+            observed_transition_id="tr_0007",
+            expected=True,
+        ),
+    )
+
+    findings = prototype.build_finding_records(
+        prototype.execute_evidence_plan(
+            pair, inspect, prototype.EvidencePlan(candidates=[candidate])
+        )
+    )
+
+    assert len(findings) == 1
+    assert findings[0]["witness_level"] == "W2"
+    assert findings[0]["l_level"] == "L0"
+    assert findings[0]["source_attribution"] == ["causal_dual_certificate"]
+    certificate = findings[0]["source_causality_certificate"]
+    assert certificate["kind"] == "source_event_missing_in_scope"
+    assert certificate["source"] == "Autonomous"
+    assert certificate["observed_transition_id"] == "tr_0007"
+    assert certificate["consumers"] == []
+    assertion_ir = findings[0]["compiled_assertions"][0]["assertion_ir"]
+    assert assertion_ir[1]["predicate"] == "event_consumed"
+    assert assertion_ir[1]["bindings"]["source"] == (
+        "llms_emp_feedback_final_0030.Autonomous"
+    )
+
+
+def test_existing_final_pseudostate_transition_reaches_d_as_rebutting_fact() -> None:
+    pair, inspect = _pair_and_inspect("0030")
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="A shutdown transition to the root final pseudostate exists.",
+        claim="The shutdown transition to the root final pseudostate is absent.",
+        observed_fact="The source inventory contains a candidate final edge.",
+        basis_kind="nl_literal",
+        nl_quote="5 when power off, it will transit to final state",
+        priority=1,
+        locations=["NL5"],
+        proposed_l="L0",
+        goal=prototype.EvidenceGoal(
+            relation="transition_exists",
+            source="HumanDriving",
+            target="@final:__root__",
+            trigger="Power Off",
+            expected=True,
+        ),
+    )
+
+    validated, diagnostics = prototype._validate_direct_grounded_candidate(
+        pair, candidate, lane="surface_candidates", index=0
+    )
+    outcomes = prototype.execute_evidence_plan(
+        pair, inspect, prototype.EvidencePlan(candidates=[validated])
+    )
+
+    assert diagnostics == []
+    assert outcomes[0]["probe_groups"][0]["counterexample_found"] is False
+    assert outcomes[0]["probe_groups"][0]["execution_certificate"]["verdict"] == (
+        "inconclusive"
+    )
+    findings = prototype.build_finding_records(outcomes)
+    assert findings[0]["witness_level"] == "W1"
+    d_context = prototype.build_d_context(pair, findings)
+    assert '"matching_transitions":[{' in d_context
+    assert '"id":"tr_0007"' in d_context
+    assert '"target":"@final:__root__"' in d_context
+
+
+def test_satisfied_explicit_probe_does_not_suppress_scout_counterexample() -> None:
+    certificate = {
+        "kind": "reachable_deadlock",
+        "target": "Root.q_dead",
+    }
+    progressive = {
+        "candidate_index": "P1",
+        "candidate": {},
+        "nl_anchor_valid": True,
+        "probe_groups": [
+            {
+                "origin": "progressive_deterministic_scout",
+                "source_candidate": True,
+                "source_causality_certificate": certificate,
+            }
+        ],
+    }
+    explicit = {
+        "candidate_index": 1,
+        "candidate": {},
+        "nl_anchor_valid": True,
+        "probe_groups": [
+            {
+                "origin": "method_owned_evidence_compiler",
+                "source_candidate": False,
+                "counterexample_found": False,
+                "source_causality_certificate": certificate,
+            }
+        ],
+    }
+
+    selected = prototype.select_finding_outcomes([progressive, explicit])
+
+    assert progressive in selected
+    assert explicit in selected
+
+
+def test_progressive_scout_builds_source_cut_for_disconnected_submachine() -> None:
+    pair, inspect = _pair_and_inspect("0059")
+
+    findings = prototype.build_finding_records(
+        prototype.execute_progressive_evidence_seeds(pair, inspect)
+    )
+
+    disconnected = next(
+        item
+        for item in findings
+        if item["source_causality_certificate"]
+        and item["source_causality_certificate"]["kind"]
+        == "unreachable_source_component"
+    )
+    certificate = disconnected["source_causality_certificate"]
+    assert certificate["component"] == "CollisionAvoidanceSystem"
+    assert certificate["cross_component_incoming"] == []
+    assert disconnected["witness_level"] == "W2"
+
+
+def test_progressive_source_gate_rejects_concurrency_projection() -> None:
+    pair, inspect = _pair_and_inspect("0023")
+
+    outcomes = prototype.execute_progressive_evidence_seeds(pair, inspect)
+
+    assert outcomes
+    assert not any(
+        group["source_candidate"]
+        for outcome in outcomes
+        for group in outcome["probe_groups"]
+    )
+    assert all(
+        not group["source_causality_certificate"]["sound_for_claim"]
+        for outcome in outcomes
+        for group in outcome["probe_groups"]
+        if group["source_causality_certificate"]
+    )
+
+
+def test_d_adjudication_is_per_obligation_facet_and_keeps_w_separate() -> None:
+    pair, inspect = _pair_and_inspect("0004")
+    findings = prototype.build_finding_records(
+        prototype.execute_progressive_evidence_seeds(pair, inspect)
+    )
+    plan = prototype.DAdjudicationPlan(
+        decisions=[
+            prototype.DDecision(
+                finding_key=finding["finding_key"],
+                grounding="impl",
+                violated_obligation="A reachable non-final controller state must not deadlock.",
+                supporting_facts=[finding["claims"][0]],
+                strongest_defeater="The state could be an intended final state.",
+                defeater_kind="rebutting",
+                defeater_disposition="defeated",
+                rationale="The source declares no final marker and the state has no exit.",
+                d_subclass="D2-impl",
+                d_level="D2",
+            )
+            for finding in findings
+        ]
+    )
+
+    adjudicated = prototype.apply_d_adjudication(findings, plan)
+    confirmed = prototype.select_confirmed_issues(adjudicated)
+
+    assert len(confirmed) == 2
+    assert all(item["witness_level"] == "W2" for item in confirmed)
+    assert all(item["d_decision"]["d_level"] == "D2" for item in confirmed)
+    assert all(item["d_validation_errors"] == [] for item in confirmed)
+
+
+def test_d_subclass_is_mechanically_derived_and_d0_may_be_undercut() -> None:
+    finding = {
+        "finding_key": "synthetic:language-rule",
+        "witness_level": "W2",
+        "source_causality_certificate": {
+            "kind": "initial_contract_violation",
+            "verdict": "counterexample",
+            "initial_edges": [{"id": "tr_initial", "guard": "c"}],
+        },
+        "nl_quotes": [],
+        "nl_anchor_valid": True,
+    }
+    d2 = prototype.DDecision(
+        finding_key=finding["finding_key"],
+        grounding="lang",
+        violated_obligation="An initial edge cannot carry a trigger.",
+        strongest_defeater="The label could be presentation-only.",
+        defeater_kind="undercutting",
+        defeater_disposition="defeated",
+        rationale="The source parser records the label as the trigger.",
+        d_subclass="not_applicable",
+        d_level="D2",
+    )
+    d0 = prototype.DDecision(
+        finding_key=finding["finding_key"],
+        grounding="none",
+        violated_obligation="No violated obligation was established.",
+        strongest_defeater="The source evidence needed by the claim is absent.",
+        defeater_kind="undercutting",
+        defeater_disposition="survives",
+        rationale="The allegation is not grounded by the supplied source facts.",
+        d_subclass="D2-lit",
+        d_level="D0",
+    )
+
+    normalized_d2 = prototype.normalize_d_decision(d2)
+    normalized_d0 = prototype.normalize_d_decision(d0)
+
+    assert normalized_d2.d_subclass == "D2-lit"
+    assert prototype.validate_d_decision(finding, normalized_d2) == []
+    assert normalized_d0.d_subclass == "not_applicable"
+    assert prototype.validate_d_decision(finding, normalized_d0) == []
+
+
+def test_implicit_oracle_quote_cannot_be_relabelled_as_literal_d2() -> None:
+    finding = {
+        "finding_key": "synthetic:reachable-deadlock",
+        "basis_kind": "implicit_oracle",
+        "witness_level": "W2",
+        "nl_quotes": ["execution proceeds to q_choice"],
+        "nl_anchor_valid": True,
+        "source_causality_certificate": {
+            "kind": "reachable_deadlock",
+            "verdict": "counterexample",
+            "explicit_final": False,
+        },
+    }
+    decision = prototype.DDecision(
+        finding_key=finding["finding_key"],
+        grounding="lit",
+        violated_obligation="The state must continue.",
+        strongest_defeater="No literal continuation obligation is stated.",
+        defeater_kind="undercutting",
+        defeater_disposition="defeated",
+        rationale="The state is reachable and deadlocked.",
+        d_subclass="D2-lit",
+        d_level="D2",
+    )
+
+    errors = prototype.validate_d_decision(finding, decision)
+
+    assert "literal D2-lit requires basis_kind=nl_literal" in errors
+
+
+def test_reachable_deadlock_d2_is_formally_normalized_to_impl_without_reading_text() -> (
+    None
+):
+    finding = {
+        "finding_key": "synthetic:reachable-deadlock",
+        "basis_kind": "nl_literal",
+        "witness_level": "W2",
+        "nl_quotes": ["execution proceeds to q_choice"],
+        "nl_anchor_valid": True,
+        "claims": ["Arbitrary prose that must not control the taxonomy."],
+        "source_causality_certificate": {
+            "kind": "reachable_deadlock",
+            "verdict": "counterexample",
+            "explicit_final": False,
+            "assumptions": {"no_concurrent_regions": True},
+        },
+    }
+    decision = prototype.DDecision(
+        finding_key=finding["finding_key"],
+        grounding="lit",
+        violated_obligation="The reachable non-final state must not deadlock.",
+        strongest_defeater="The state could be intended as terminal.",
+        defeater_kind="rebutting",
+        defeater_disposition="defeated",
+        rationale="The typed certificate excludes explicit finality and concurrency.",
+        d_subclass="D2-lit",
+        d_level="D2",
+    )
+
+    normalized = prototype.normalize_d_decision(decision, finding=finding)
+
+    assert normalized.grounding == "impl"
+    assert normalized.d_subclass == "D2-impl"
+    assert normalized.violated_obligation == decision.violated_obligation
+    assert prototype.validate_d_decision(finding, normalized) == []
+
+
+def test_d2_impl_is_closed_to_source_grounded_reachable_nonfinal_deadlock() -> None:
+    finding = {
+        "finding_key": "synthetic:unreachable-state",
+        "basis_kind": "implicit_oracle",
+        "witness_level": "W2",
+        "nl_quotes": [],
+        "nl_anchor_valid": False,
+        "source_causality_certificate": {
+            "kind": "unreachable_source_component",
+            "verdict": "counterexample",
+        },
+    }
+    decision = prototype.DDecision(
+        finding_key=finding["finding_key"],
+        grounding="impl",
+        violated_obligation="The component must be reachable.",
+        strongest_defeater="The component may be intentionally dormant.",
+        defeater_kind="undercutting",
+        defeater_disposition="defeated",
+        rationale="The component is unreachable.",
+        d_subclass="D2-impl",
+        d_level="D2",
+    )
+
+    errors = prototype.validate_d_decision(finding, decision)
+
+    assert (
+        "D2-impl requires a source-grounded reachable non-final deadlock W2" in errors
+    )
+
+
+def test_d1_requires_a_grounded_first_reading() -> None:
+    finding = {
+        "finding_key": "synthetic:ungrounded-ambiguity",
+        "witness_level": "W1",
+        "source_causality_certificate": None,
+        "nl_quotes": [],
+        "nl_anchor_valid": True,
+    }
+    decision = prototype.DDecision(
+        finding_key=finding["finding_key"],
+        grounding="none",
+        violated_obligation="No violated obligation was established.",
+        strongest_defeater="The alleged structure has not been established.",
+        defeater_kind="undercutting",
+        defeater_disposition="survives",
+        rationale="Missing evidence is not a content-level second reading.",
+        d_subclass="not_applicable",
+        d_level="D1",
+    )
+
+    assert prototype.validate_d_decision(finding, decision) == [
+        "D1 requires a grounded first reading"
+    ]
+
+
+def test_same_nl_anchor_and_semantic_binding_deduplicate_paraphrases() -> None:
+    group = {
+        "group_id": "compiled_goal",
+        "claim": "The edge lacks its condition.",
+        "source_causality_certificate": {
+            "kind": "source_guard_presence",
+            "source": "Root.A",
+            "target": "Root.B",
+        },
+    }
+    first = {
+        "candidate_index": 1,
+        "candidate": {
+            "obligation": "A to B must carry condition c.",
+            "basis_kind": "nl_literal",
+            "nl_quote": "A enters B when c.",
+            "locations": ["NL3"],
+            "goal": {
+                "relation": "guard_present",
+                "source": "Root.A",
+                "target": "Root.B",
+                "condition": "c",
+                "expected": True,
+            },
+        },
+    }
+    second = {
+        "candidate_index": 2,
+        "candidate": {
+            "obligation": "The B branch from A is conditional.",
+            "basis_kind": "nl_literal",
+            "nl_quote": "when c",
+            "locations": ["NL3", "PUML:L8"],
+            "goal": {
+                "relation": "guard_present",
+                "source": "Root.A",
+                "target": "Root.B",
+                "condition": "c",
+                "expected": True,
+            },
+        },
+    }
+
+    assert prototype._finding_key(first, group) == prototype._finding_key(second, group)
+
+
+def test_evidence_goal_compiler_owns_backend_and_predicate_selection() -> None:
+    goal = prototype.EvidenceGoal(
+        relation="event_reaches_target",
+        source="Root.Ready",
+        trigger="Root.go",
+        target="Root.Done",
+    )
+
+    route = prototype.compile_evidence_goal(goal)
+
+    assert route["backend"] == "T_fcstm_trace"
+    assert route["operation"] == "predicate_bundle"
+    assert [check.kind for check in route["checks"]] == [
+        "reaches",
+        "occupancy_after",
+    ]
+    assert "backend" not in goal.model_dump()
+
+
+def test_containment_goal_uses_subject_as_child_and_gets_dual_w2() -> None:
+    pair, inspect = _pair_and_inspect("0016")
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="The three search regions are sibling children of SearchMission.",
+        claim="Region2 is nested under Region1 instead of SearchMission.",
+        basis_kind="nl_literal",
+        nl_quote="three different state areas",
+        priority=5,
+        locations=["PUML:L12"],
+        proposed_l="L1",
+        observed_fact="Region2 is nested below Region1.",
+        goal=prototype.EvidenceGoal(
+            relation="contained_in",
+            subject="SearchMission.Region1.Region2",
+            target="SearchMission",
+        ),
+    )
+
+    route = prototype.compile_evidence_goal(candidate.goal)
+    outcome = prototype.execute_evidence_plan(
+        pair,
+        inspect,
+        prototype.IssueDiscoveryPlan(
+            surface_candidates=[candidate], behavior_candidates=[]
+        ),
+    )[0]
+    group = outcome["probe_groups"][0]
+
+    assert route["errors"] == []
+    assert route["checks"][0].bindings == {
+        "parent": "SearchMission",
+        "child": "SearchMission.Region1.Region2",
+    }
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["source_attribution"]["status"] == "causal_dual_certificate"
+    assert (
+        group["source_causality_certificate"]["kind"] == "source_containment_contract"
+    )
+    assert group["source_causality_certificate"]["actual_parent"].endswith("Region1")
+
+
+def test_child_count_goal_gets_exact_source_dual_w2() -> None:
+    pair, inspect = _pair_and_inspect("0046")
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="SearchRegion must contain exactly three grounded operating areas.",
+        claim="SearchRegion has four direct authored children rather than three.",
+        basis_kind="nl_literal",
+        nl_quote="operates within three different state areas",
+        priority=4,
+        locations=["NL2", "PUML:L3"],
+        proposed_l="L1",
+        observed_fact="The exact source AST has four direct children in SearchRegion.",
+        goal=prototype.EvidenceGoal(
+            relation="child_count",
+            subject="UAVSwarmStateMachine.SearchRegion",
+            count=3,
+        ),
+    )
+
+    outcome = prototype.execute_evidence_plan(
+        pair,
+        inspect,
+        prototype.IssueDiscoveryPlan(
+            surface_candidates=[candidate], behavior_candidates=[]
+        ),
+    )[0]
+    group = outcome["probe_groups"][0]
+    finding = prototype.build_finding_records([outcome])[0]
+
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["source_attribution"]["status"] == "causal_dual_certificate"
+    assert group["source_causality_certificate"]["kind"] == (
+        "source_child_count_contract"
+    )
+    assert group["source_causality_certificate"]["direct_children"] == [
+        "UAVSwarmStateMachine.SearchRegion.Attacking",
+        "UAVSwarmStateMachine.SearchRegion.FormationAdjustment",
+        "UAVSwarmStateMachine.SearchRegion.Idle",
+        "UAVSwarmStateMachine.SearchRegion.Searching",
+    ]
+    assert group["source_causality_certificate"]["actual_count"] == 4
+    receipt = group["execution_certificate"]["semantic_binding_receipt"]
+    assert receipt["authority"] == "formal_source_ast"
+    assert receipt["formal_reference_policy"] == ("exact_id_or_declared_mapping_only")
+    assert receipt["scope"] == "formal_fact_only"
+    assert receipt["semantic_decision_claimed"] is False
+    assert receipt["semantic_provenance"] is None
+    assert finding["l_level"] == "L1"
+
+
+def test_invalid_initial_target_gets_source_scope_certificate() -> None:
+    pair, inspect = _pair_and_inspect("0016")
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="A composite initial edge must target a child in the same scope.",
+        claim="Region2 points its initial edge to a Search state outside Region2.",
+        basis_kind="domain_norm",
+        priority=5,
+        locations=["PUML:L13"],
+        proposed_l="L1",
+        observed_fact="Search belongs to Region1 rather than Region2.",
+        goal=prototype.EvidenceGoal(
+            relation="initial_target",
+            subject="SearchMission.Region1.Region2",
+            target="SearchMission.Region1.Search",
+        ),
+    )
+
+    outcome = prototype.execute_evidence_plan(
+        pair,
+        inspect,
+        prototype.IssueDiscoveryPlan(
+            surface_candidates=[candidate], behavior_candidates=[]
+        ),
+    )[0]
+    group = outcome["probe_groups"][0]
+    finding = prototype.build_finding_records([outcome])[0]
+    d_context = prototype.build_d_context(pair, [finding])
+
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["source_attribution"]["status"] == "causal_dual_certificate"
+    assert (
+        group["source_causality_certificate"]["kind"]
+        == "source_initial_target_contract"
+    )
+    assert group["source_causality_certificate"]["target_is_direct_child"] is False
+    assert finding["l_level"] == "L1"
+    assert "UML_INITIAL_TARGET_SAME_REGION" in d_context
+
+
+def test_d_context_exposes_unattributed_artifact_boundary() -> None:
+    pair, _ = _pair_and_inspect("0046")
+    finding = {
+        "finding_key": "hypothesis:artifact-only:facet:a",
+        "basis_kind": "implicit_oracle",
+        "nl_anchor_valid": False,
+        "claims": ["A generated helper is a reachable deadlock."],
+        "obligations": ["The author source must not deadlock."],
+        "nl_quotes": [],
+        "locations": ["FCSTM:F1"],
+        "evidence_status": "executed_counterexample",
+        "coverage_gap_reasons": [],
+        "counterexample_found": True,
+        "source_attribution": ["unattributed"],
+        "execution_certificates": [
+            {
+                "verdict": "counterexample",
+                "terminal": True,
+                "engine": {"adapter": "pyfcstm"},
+            }
+        ],
+        "source_causality_certificate": None,
+    }
+
+    context = prototype.build_d_context(pair, [finding])
+
+    assert '"source_attribution":["unattributed"]' in context
+    assert '"source_certificate":null' in context
+
+
+def test_d_context_preserves_formal_non_final_deadlock_fact() -> None:
+    pair, _ = _pair_and_inspect("0004")
+    finding = {
+        "finding_key": "source:reachable_deadlock:Root.Stop:facet:a",
+        "basis_kind": "implicit_oracle",
+        "nl_anchor_valid": False,
+        "claims": ["Root.Stop is a reachable deadlock."],
+        "obligations": ["Reachable non-final states must admit continuation."],
+        "nl_quotes": [],
+        "locations": ["PUML:L1"],
+        "evidence_status": "executed_counterexample",
+        "coverage_gap_reasons": [],
+        "counterexample_found": True,
+        "source_attribution": ["causal_dual_certificate"],
+        "execution_certificates": [],
+        "source_causality_certificate": {
+            "kind": "reachable_deadlock",
+            "verdict": "counterexample",
+            "sound_for_claim": True,
+            "target": "Root.Stop",
+            "reachable": True,
+            "explicit_final": False,
+            "outgoing": [],
+        },
+    }
+
+    context = prototype.build_d_context(pair, [finding])
+
+    assert '"explicit_final":false' in context
+    assert '"reachable":true' in context
+
+
+def test_missing_initial_edge_is_l0_but_still_has_dual_w2() -> None:
+    pair, inspect = _pair_and_inspect("0046")
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="The composite must have an initial edge.",
+        claim="UAVSwarmStateMachine has no initial edge to SearchRegion.",
+        basis_kind="domain_norm",
+        priority=5,
+        locations=["PUML:L2"],
+        proposed_l="L0",
+        observed_fact="The composite has children but no source initial transition.",
+        goal=prototype.EvidenceGoal(
+            relation="initial_target",
+            subject="UAVSwarmStateMachine",
+            target="UAVSwarmStateMachine.SearchRegion",
+        ),
+    )
+
+    outcome = prototype.execute_evidence_plan(
+        pair,
+        inspect,
+        prototype.IssueDiscoveryPlan(
+            surface_candidates=[candidate], behavior_candidates=[]
+        ),
+    )[0]
+    finding = prototype.build_finding_records([outcome])[0]
+
+    assert finding["witness_level"] == "W2"
+    assert finding["source_causality_certificate"]["matching_edge_count"] == 0
+    assert finding["l_level"] == "L0"
+
+
+def test_artifact_static_absence_without_source_certificate_is_unattributed() -> None:
+    pair, inspect = _pair_and_inspect("0016")
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="A source-level data carrier must survive conversion.",
+        claim="The converted FCSTM lacks the expected variable.",
+        basis_kind="nl_literal",
+        nl_quote="the number of UAVs in the swarm decreases accordingly",
+        priority=3,
+        locations=["F1"],
+        proposed_l="L0",
+        observed_fact="The converted variable inventory has no uav_count.",
+        goal=prototype.EvidenceGoal(
+            relation="variable_exists",
+            variable="uav_count",
+        ),
+    )
+
+    outcome = prototype.execute_evidence_plan(
+        pair,
+        inspect,
+        prototype.IssueDiscoveryPlan(
+            surface_candidates=[candidate], behavior_candidates=[]
+        ),
+    )[0]
+    group = outcome["probe_groups"][0]
+
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["source_causality_certificate"] is None
+    assert group["source_attribution"]["status"] == "unattributed"
+    assert group["source_candidate"] is False
+
+
+def test_llm_selected_event_transition_is_formally_bound_and_unreachability_is_w2() -> (
+    None
+):
+    pair, inspect = _pair_and_inspect("0046")
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="An interception event must reach formation adjustment.",
+        claim="Intercepted cannot be consumed because its sole source is unreachable.",
+        basis_kind="nl_literal",
+        nl_quote="When the UAV swarm is intercepted, it transitions to the formation adjustment state.",
+        priority=5,
+        locations=["F18"],
+        proposed_l="L2",
+        observed_fact="The only Intercepted consumer is Searching, which is unreachable.",
+        goal=prototype.EvidenceGoal(
+            relation="event_reaches_target",
+            observed_transition_id="tr_0003",
+            target="UAVSwarmStateMachine.SearchRegion.FormationAdjustment",
+        ),
+    )
+
+    outcome = prototype.execute_evidence_plan(
+        pair,
+        inspect,
+        prototype.IssueDiscoveryPlan(
+            surface_candidates=[], behavior_candidates=[candidate]
+        ),
+    )[0]
+    group = outcome["probe_groups"][0]
+
+    assert outcome["candidate"]["goal"]["source"].endswith("SearchRegion.Searching")
+    assert group["compiler_route"]["method_bindings"] == [
+        {
+            "field": "source",
+            "value": "UAVSwarmStateMachine.SearchRegion.Searching",
+            "basis": "llm_selected_observed_transition_then_exact_ast_read",
+        },
+        {
+            "field": "trigger",
+            "value": "llms_emp_feedback_final_0046.Intercepted",
+            "basis": "llm_selected_transition_id_then_declared_event_mapping",
+        },
+    ]
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["execution_certificate"]["observations"]["source_reachable"] is False
+    assert (
+        group["execution_certificate"]["observations"]["event_trace_executed"] is False
+    )
+    assert group["source_attribution"]["status"] == "causal_dual_certificate"
+    assert (
+        group["source_causality_certificate"]["kind"]
+        == "missing_initial_with_compiler_consequence"
+    )
+
+
+def test_event_binding_preserves_llm_leaf_target_below_transition_composite() -> None:
+    pair, inspect = _pair_and_inspect("0016")
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="Interception must enter the active formation-adjustment leaf.",
+        claim="Interception does not enter FormationAdjust.AdjustingFormation.",
+        basis_kind="nl_literal",
+        nl_quote="When the UAV swarm is intercepted, it transitions to the formation adjustment state",
+        priority=5,
+        locations=["NL3"],
+        proposed_l="L2",
+        observed_fact="The source transition targets a composite whose initial descendant is the required leaf.",
+        goal=prototype.EvidenceGoal(
+            relation="event_reaches_target",
+            observed_transition_id="tr_0009",
+            target="FormationAdjust.AdjustingFormation",
+        ),
+    )
+
+    outcome = prototype.execute_evidence_plan(
+        pair,
+        inspect,
+        prototype.IssueDiscoveryPlan(
+            surface_candidates=[], behavior_candidates=[candidate]
+        ),
+    )[0]
+    group = outcome["probe_groups"][0]
+
+    assert (
+        outcome["candidate"]["goal"]["target"] == "FormationAdjust.AdjustingFormation"
+    )
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is False
+    assert group["execution_certificate"]["verdict"] == "satisfied"
+    assert (
+        group["execution_certificate"]["observations"][-1]["terminal_result"] == "true"
+    )
+
+
+def test_nl_event_words_without_formal_transition_binding_remain_w1() -> None:
+    pair, inspect = _pair_and_inspect("0046")
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="An interception event must reach formation adjustment.",
+        claim="The event source is not formally grounded.",
+        basis_kind="nl_literal",
+        nl_quote="When the UAV swarm is intercepted, it transitions to the formation adjustment state.",
+        priority=5,
+        locations=["NL3"],
+        proposed_l="L2",
+        observed_fact="The NL concepts have not been bound to a formal transition ID.",
+        goal=prototype.EvidenceGoal(
+            relation="event_reaches_target",
+            trigger="Intercepted",
+            target="FormationAdjustment",
+        ),
+    )
+
+    outcome = prototype.execute_evidence_plan(
+        pair,
+        inspect,
+        prototype.IssueDiscoveryPlan(
+            surface_candidates=[], behavior_candidates=[candidate]
+        ),
+    )[0]
+
+    assert outcome["probe_groups"][0]["witness_level"] == "W1"
+    assert outcome["probe_groups"][0]["counterexample_found"] is False
+    assert outcome["probe_groups"][0]["execution_certificate"] is None
+
+
+def test_initial_contract_d_context_supplies_generic_language_clause() -> None:
+    pair, inspect = _pair_and_inspect("0016")
+    findings = prototype.build_finding_records(
+        prototype.execute_progressive_evidence_seeds(pair, inspect)
+    )
+    initial = next(
+        finding
+        for finding in findings
+        if finding["source_causality_certificate"]
+        and finding["source_causality_certificate"]["kind"]
+        == "initial_contract_violation"
+    )
+
+    context = prototype.build_d_context(pair, [initial])
+
+    assert "UML_INITIAL_NO_TRIGGER_OR_GUARD" in context
+    assert "must not have a trigger or guard" in context
+
+
+def test_d_context_includes_exact_local_alternative_edges_without_text_matching() -> (
+    None
+):
+    pair, _ = _pair_and_inspect("0029")
+    finding = {
+        "finding_key": "source:transition:test:facet:a",
+        "basis_kind": "nl_literal",
+        "claims": ["One exact transition is absent."],
+        "obligations": ["One exact transition is required."],
+        "nl_quotes": [pair["nl"].splitlines()[3]],
+        "source_attribution": ["causal_dual_certificate"],
+        "evidence_status": "executed_counterexample",
+        "formal_oracle_rules": [],
+        "source_causality_certificate": {
+            "kind": "source_transition_contract",
+            "source": "HighwayMode.lane_change",
+            "target": "HighwayMode.FinishState",
+            "verdict": "counterexample",
+        },
+    }
+
+    context = prototype.build_d_context(pair, [finding])
+
+    assert '"id":"tr_0011"' in context
+    assert '"target":"HighwayMode.exit_hwy"' in context
+    assert "# Exact source state inventory" in context
+
+
+def test_compiler_owns_template_selection() -> None:
+    goal = prototype.EvidenceGoal(
+        relation="target_reachable",
+        target="Root.Target",
+    )
+
+    route = prototype.compile_evidence_goal(goal)
+
+    assert route["template"] == "T09_reachability_certificate"
+    assert route["backend"] == "G_topology_proof"
+    assert route["ignored_template_hint"] is None
+
+    goal_schema = prototype.DiscoveryGroundingPlan.model_json_schema()["$defs"][
+        "EvidenceGoal"
+    ]
+    assert "template" not in goal_schema["properties"]
+
+
+def test_runtime_prompts_define_w_and_d_without_development_case_leakage() -> None:
+    prompts = "\n".join(
+        [
+            prototype.CONTRACT_SYSTEM_PROMPT,
+            prototype.DISCOVERY_GROUNDING_SYSTEM_PROMPT,
+            *(prompt for _, prompt in prototype.DISCOVERY_GROUNDING_AUDIT_LENSES),
+            prototype.EVIDENCE_SYSTEM_PROMPT,
+            prototype.SEMANTIC_GROUNDING_SYSTEM_PROMPT,
+            prototype.D_SYSTEM_PROMPT,
+        ]
+    )
+
+    assert "W2 means" in prompts
+    assert "D2 means" in prompts
+    assert "q0" in prompts and "evt_a" in prompts
+    assert re.search(r"\b00[0-9]{2}\b", prompts) is None
+    for development_identifier in (
+        "enter_hwy",
+        "CollisionAvoidanceSystem",
+        "FinishState",
+        "UrbanMode",
+    ):
+        assert development_identifier not in prompts
+
+
+def test_w2_requires_a_real_terminal_execution_certificate() -> None:
+    invalid = {
+        "witness_level": "W2",
+        "execution_certificates": [
+            {
+                "terminal": False,
+                "verdict": "inconclusive",
+                "counterexample_found": False,
+            }
+        ],
+    }
+
+    assert prototype.validate_witness_record(invalid)
+
+
+def test_probe_candidate_preserves_all_structured_evidence_locations() -> None:
+    candidate = prototype.ProbeCandidate(
+        claim="A formal goal has five independently useful evidence references.",
+        basis_kind="implicit_oracle",
+        priority=1,
+        locations=["R1", "R2", "R3", "R4", "R5"],
+    )
+
+    assert candidate.locations == ["R1", "R2", "R3", "R4", "R5"]
+
+
+def test_evidence_execution_degrades_one_candidate_without_dropping_peers(
+    monkeypatch,
+) -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    candidates = [
+        prototype.BalancedEvidenceCandidate(
+            obligation="The first target must be reachable.",
+            claim="The first target is unreachable.",
+            basis_kind="implicit_oracle",
+            priority=1,
+            locations=["R1"],
+            proposed_l="L2",
+            observed_fact="The formal reachability frontier motivates this goal.",
+            goal=prototype.EvidenceGoal(
+                relation="target_reachable",
+                target="InitialState",
+            ),
+        ),
+        prototype.BalancedEvidenceCandidate(
+            obligation="The second target must be reachable.",
+            claim="The second target is unreachable.",
+            basis_kind="implicit_oracle",
+            priority=1,
+            locations=["R2"],
+            proposed_l="L2",
+            observed_fact="The formal reachability frontier motivates this goal.",
+            goal=prototype.EvidenceGoal(
+                relation="target_reachable",
+                target="HighwayMode.enter_hwy",
+            ),
+        ),
+    ]
+    original = prototype._execute_evidence_candidate
+
+    def fail_first(pair_arg, inspect_arg, candidate_arg, *, index):
+        if index == 1:
+            raise RuntimeError("synthetic candidate failure")
+        return original(pair_arg, inspect_arg, candidate_arg, index=index)
+
+    monkeypatch.setattr(prototype, "_execute_evidence_candidate", fail_first)
+
+    outcomes = prototype.execute_evidence_plan(
+        pair,
+        inspect,
+        prototype.IssueDiscoveryPlan(
+            surface_candidates=[], behavior_candidates=candidates
+        ),
+    )
+
+    assert len(outcomes) == 2
+    assert "synthetic candidate failure" in outcomes[0]["candidate_contract_warning"]
+    assert outcomes[1]["candidate_index"] == 2
+
+
+def test_w2_requires_a_semantic_binding_receipt() -> None:
+    invalid = {
+        "witness_level": "W2",
+        "execution_certificates": [
+            {
+                "terminal": True,
+                "verdict": "counterexample",
+                "counterexample_found": True,
+                "evaluated_artifact_sha256": "artifact-hash",
+                "compiled_assertion_sha256": "assertion-hash",
+            }
+        ],
+    }
+
+    errors = prototype.validate_witness_record(invalid)
+
+    assert errors
+    assert "semantic-binding receipt" in errors[0]
+
+
+def test_llm_semantic_receipt_binds_to_the_actual_call_and_plan_hash_chain() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="The selected authored completion edge must be absent.",
+        claim="The selected completion edge is extraneous.",
+        observed_fact="The exact selected transition exists in the source model.",
+        basis_kind="nl_literal",
+        nl_quote=pair["nl"].splitlines()[5],
+        priority=1,
+        locations=["NL6", "tr_0025"],
+        proposed_l="L0",
+        goal=prototype.EvidenceGoal(
+            relation="transition_absent",
+            observed_transition_id="tr_0025",
+        ),
+    )
+    semantic_plan = prototype.DiscoveryGroundingPlan(
+        initial_contract_bindings=[],
+        containment_contract_bindings=[],
+        transition_group_bindings=[],
+        surface_candidates=[candidate],
+        behavior_candidates=[],
+    )
+    grounded_contract = prototype.GroundedContractPlan()
+    grounded_evidence = prototype.IssueDiscoveryPlan(
+        surface_candidates=[candidate], behavior_candidates=[]
+    )
+    observation = {
+        "llm_call_id": "call-grounding-1",
+        "role": "paper1_discovery_grounding",
+        "profile": "test-profile",
+        "provider": "test-provider",
+        "configured_model": "test-model",
+        "observed_model": "test-model-2026",
+        "status": "completed",
+        "structured_schema_sha256": "schema-hash-1",
+        "schema_contract_repeated_in_prompt": False,
+        "system_prompt": "semantic grounding prompt",
+        "user_prompt": "numbered NL and formal inventory",
+        "raw_response": {"tool_call": "raw"},
+        "parsed_output": semantic_plan.model_dump(mode="json"),
+    }
+    provenance = prototype.build_llm_binding_provenance(
+        [observation],
+        role="paper1_discovery_grounding",
+        semantic_plan=semantic_plan,
+        grounded_contract_plan=grounded_contract,
+        grounded_evidence_plan=grounded_evidence,
+        replayed=False,
+    )
+
+    assert provenance is not None
+    outcome = prototype.execute_evidence_plan(
+        pair,
+        inspect,
+        grounded_evidence,
+        binding_authority="paper1_discovery_grounding_llm",
+        semantic_provenance=provenance,
+    )[0]
+    finding = prototype.build_finding_records([outcome])[0]
+    receipt = finding["execution_certificates"][0]["semantic_binding_receipt"]
+
+    assert finding["witness_level"] == "W2"
+    assert receipt["schema"] == "paper1.semantic_binding_receipt.v2"
+    assert receipt["semantic_provenance"]["llm_call_id"] == "call-grounding-1"
+    assert (
+        receipt["semantic_provenance"]["parsed_output_sha256"]
+        == (receipt["semantic_provenance"]["semantic_plan_sha256"])
+    )
+    assert prototype.validate_witness_record(finding) == []
+    run_record = {
+        "replay_plans_from": None,
+        "discovery_grounding_plan": semantic_plan.model_dump(mode="json"),
+        "grounded_contract_plan": grounded_contract.model_dump(mode="json"),
+        "grounded_evidence_plan": grounded_evidence.model_dump(mode="json"),
+        "llm_observations": [observation],
+        "outcomes": [outcome],
+    }
+    assert prototype.validate_record_semantic_provenance(run_record) == []
+
+    empty_semantic_plan = prototype.DiscoveryGroundingPlan(
+        surface_candidates=[], behavior_candidates=[]
+    )
+    ensemble_record = {
+        "replay_plans_from": None,
+        "discovery_grounding_plans": [
+            empty_semantic_plan.model_dump(mode="json"),
+            semantic_plan.model_dump(mode="json"),
+        ],
+        "grounded_contract_plans": [
+            prototype.GroundedContractPlan().model_dump(mode="json"),
+            grounded_contract.model_dump(mode="json"),
+        ],
+        "grounded_evidence_plans": [
+            prototype.IssueDiscoveryPlan(
+                surface_candidates=[], behavior_candidates=[]
+            ).model_dump(mode="json"),
+            grounded_evidence.model_dump(mode="json"),
+        ],
+        "llm_observations": [observation],
+        "outcomes": [outcome],
+    }
+    assert prototype.validate_record_semantic_provenance(ensemble_record) == []
+
+    tampered_record = copy.deepcopy(run_record)
+    tampered_record["llm_observations"][0]["raw_response"] = {"tampered": True}
+    assert prototype.validate_record_semantic_provenance(tampered_record)
+
+
+def test_llm_authority_without_matching_call_provenance_cannot_qualify_for_w2() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    candidate = prototype.EvidenceCandidate(
+        obligation="The selected authored completion edge must be absent.",
+        claim="The selected completion edge is extraneous.",
+        basis_kind="nl_literal",
+        nl_quote=pair["nl"].splitlines()[5],
+        priority=1,
+        locations=["NL6", "tr_0025"],
+        proposed_l="L0",
+        goal=prototype.EvidenceGoal(
+            relation="transition_absent",
+            observed_transition_id="tr_0025",
+        ),
+    )
+
+    outcome = prototype.execute_evidence_plan(
+        pair,
+        inspect,
+        prototype.EvidencePlan(candidates=[candidate]),
+        binding_authority="paper1_discovery_grounding_llm",
+    )[0]
+    finding = prototype.build_finding_records([outcome])[0]
+
+    assert outcome["probe_groups"][0]["counterexample_found"] is True
+    assert finding["witness_level"] == "W1"
+    assert finding["w_validation_errors"] == []
+
+
+def test_llm_binding_provenance_rejects_a_plan_not_equal_to_parsed_output() -> None:
+    semantic_plan = prototype.DiscoveryGroundingPlan(
+        initial_contract_bindings=[],
+        containment_contract_bindings=[],
+        transition_group_bindings=[],
+        surface_candidates=[],
+        behavior_candidates=[],
+    )
+    observation = {
+        "llm_call_id": "call-grounding-2",
+        "role": "paper1_discovery_grounding",
+        "status": "completed",
+        "parsed_output": {"tampered": True},
+    }
+
+    provenance = prototype.build_llm_binding_provenance(
+        [observation],
+        role="paper1_discovery_grounding",
+        semantic_plan=semantic_plan,
+        grounded_contract_plan=prototype.GroundedContractPlan(),
+        grounded_evidence_plan=prototype.IssueDiscoveryPlan(
+            surface_candidates=[], behavior_candidates=[]
+        ),
+        replayed=True,
+    )
+
+    assert provenance is None
+
+
+def test_w2_rejects_tampered_semantic_provenance() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="The selected authored completion edge must be absent.",
+        claim="The selected completion edge is extraneous.",
+        observed_fact="The exact selected transition exists in the source model.",
+        basis_kind="nl_literal",
+        nl_quote=pair["nl"].splitlines()[5],
+        priority=1,
+        locations=["NL6", "tr_0025"],
+        proposed_l="L0",
+        goal=prototype.EvidenceGoal(
+            relation="transition_absent",
+            observed_transition_id="tr_0025",
+        ),
+    )
+    semantic_plan = prototype.DiscoveryGroundingPlan(
+        initial_contract_bindings=[],
+        containment_contract_bindings=[],
+        transition_group_bindings=[],
+        surface_candidates=[candidate],
+        behavior_candidates=[],
+    )
+    grounded_contract = prototype.GroundedContractPlan()
+    grounded_evidence = prototype.IssueDiscoveryPlan(
+        surface_candidates=[candidate], behavior_candidates=[]
+    )
+    provenance = prototype.build_llm_binding_provenance(
+        [
+            {
+                "llm_call_id": "call-grounding-tamper-test",
+                "role": "paper1_discovery_grounding",
+                "status": "completed",
+                "structured_schema_sha256": "schema-hash-tamper-test",
+                "schema_contract_repeated_in_prompt": False,
+                "system_prompt": "semantic grounding prompt",
+                "user_prompt": "numbered NL and formal inventory",
+                "raw_response": {"tool_call": "raw"},
+                "parsed_output": semantic_plan.model_dump(mode="json"),
+            }
+        ],
+        role="paper1_discovery_grounding",
+        semantic_plan=semantic_plan,
+        grounded_contract_plan=grounded_contract,
+        grounded_evidence_plan=grounded_evidence,
+        replayed=False,
+    )
+    assert provenance is not None
+    outcome = prototype.execute_evidence_plan(
+        pair,
+        inspect,
+        grounded_evidence,
+        binding_authority="paper1_discovery_grounding_llm",
+        semantic_provenance=provenance,
+    )[0]
+    finding = prototype.build_finding_records([outcome])[0]
+    receipt = finding["execution_certificates"][0]["semantic_binding_receipt"]
+    receipt["semantic_provenance"]["parsed_output_sha256"] = "tampered"
+
+    assert prototype.validate_witness_record(finding)
+
+
+def test_d1_and_d2_are_accepted_while_d0_remains_audit_only() -> None:
+    base = {
+        "finding_key": "synthetic:f1",
+        "witness_level": "W2",
+        "source_attribution": ["causal_dual_certificate"],
+        "d_validation_errors": [],
+        "w_validation_errors": [],
+    }
+    findings = [
+        {**base, "d_decision": {"d_level": "D1"}},
+        {**base, "finding_key": "synthetic:f2", "d_decision": {"d_level": "D2"}},
+        {**base, "finding_key": "synthetic:f3", "d_decision": {"d_level": "D0"}},
+    ]
+
+    accepted = prototype.select_accepted_issues(findings)
+
+    assert {item["finding_key"] for item in accepted} == {
+        "synthetic:f1",
+        "synthetic:f2",
+    }
+
+
+def test_report_clusters_merge_exact_cause_but_preserve_normative_facets() -> None:
+    def finding(
+        key: str,
+        *,
+        d_level: str,
+        claim: str,
+        obligation: str,
+        l_level: str = "L2",
+    ) -> dict:
+        return {
+            "finding_key": key,
+            "claims": [claim],
+            "obligations": [obligation],
+            "nl_quotes": [obligation],
+            "locations": ["NL3"],
+            "witness_level": "W2",
+            "l_level": l_level,
+            "source_attribution": ["causal_dual_certificate"],
+            "d_decision": {"d_level": d_level},
+            "d_validation_errors": [],
+            "w_validation_errors": [],
+        }
+
+    facets = [
+        finding(
+            "source:missing_initial:Root:facet:a",
+            d_level="D2",
+            claim="evt_a consumer is unreachable.",
+            obligation="evt_a must reach q1.",
+        ),
+        finding(
+            "source:missing_initial:Root:facet:b",
+            d_level="D1",
+            claim="evt_b consumer is unreachable.",
+            obligation="evt_b must reach q2.",
+        ),
+        finding(
+            "source:reachable_deadlock:q_stop:facet:c",
+            d_level="D2",
+            claim="q_stop is a reachable deadlock.",
+            obligation="Reachable non-final states must progress.",
+        ),
+    ]
+
+    clusters = prototype.build_report_issue_clusters(facets)
+    missing_initial = next(
+        cluster
+        for cluster in clusters
+        if cluster["cause_key"] == "source:missing_initial:Root"
+    )
+
+    assert len(clusters) == 2
+    assert missing_initial["facet_count"] == 2
+    assert missing_initial["facet_d_levels"] == {
+        "source:missing_initial:Root:facet:a": "D2",
+        "source:missing_initial:Root:facet:b": "D1",
+    }
+    assert missing_initial["d_level"] == "D2"
+    assert missing_initial["release_status"] == "confirmed_report_issue"
+    assert len(prototype.select_confirmed_report_issues(clusters)) == 2
+
+
+def test_w1_issue_is_provisional_and_not_a_confirmed_issue() -> None:
+    finding = {
+        "finding_key": "synthetic:w1",
+        "witness_level": "W1",
+        "source_attribution": ["source_localized"],
+        "d_validation_errors": [],
+        "w_validation_errors": [],
+        "d_decision": {"d_level": "D2"},
+    }
+
+    assert prototype.select_confirmed_issues([finding]) == []
+    accepted = prototype.select_accepted_issues([finding])
+    assert accepted[0]["release_status"] == "provisional_issue"
+
+
+def test_explicitly_unsound_source_certificate_blocks_release() -> None:
+    finding = {
+        "finding_key": "synthetic:unsound-source-claim",
+        "witness_level": "W1",
+        "source_attribution": ["source_localized"],
+        "source_causality_certificate": {
+            "kind": "source_transition_contract",
+            "sound_for_claim": False,
+            "result": False,
+            "verdict": "inconclusive",
+        },
+        "d_validation_errors": [],
+        "w_validation_errors": [],
+        "d_decision": {"d_level": "D1"},
+    }
+
+    assert prototype.select_accepted_issues([finding]) == []
+    assert prototype.select_confirmed_issues([finding]) == []
+
+
+def test_0059_guard_overlap_gets_source_executable_smt_w2() -> None:
+    pair, inspect = _pair_and_inspect("0059")
+    source = f"{pair['pair_name']}.AutonomousMode.UrbanMode.enter_urban"
+    plan = prototype.EvidencePlan(
+        candidates=[
+            prototype.EvidenceCandidate(
+                obligation="Urban maneuver guards must select one maneuver.",
+                claim="The three outgoing urban maneuver guards overlap.",
+                basis_kind="domain_norm",
+                priority=5,
+                locations=["PUML:L21", "PUML:L22", "PUML:L23"],
+                proposed_l="L1",
+                goal=prototype.EvidenceGoal(
+                    relation="guards_distinguishable",
+                    source=source,
+                ),
+            )
+        ]
+    )
+
+    outcome = prototype.execute_evidence_plan(pair, inspect, plan)[0]
+    group = outcome["probe_groups"][0]
+
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["source_attribution"]["status"] == "causal_dual_certificate"
+    assert (
+        group["execution_certificate"]["evaluated_artifact"] == pair["paths"]["fcstm"]
+    )
+    proof = group["execution_certificate"]["observations"]
+    assert proof["overlap_found"] is True
+    assert proof["all_terminal"] is True
+    assert any(item["witness"] for item in proof["pairs"])
+
+
+def test_0029_single_character_guard_operators_get_smt_w2() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    source = f"{pair['pair_name']}.HighwayMode.enter_hwy"
+    plan = prototype.EvidencePlan(
+        candidates=[
+            prototype.EvidenceCandidate(
+                obligation="The two highway alternatives need a defined selection.",
+                claim="The outgoing conditions from enter_hwy overlap.",
+                basis_kind="nl_literal",
+                nl_quote="can transition to cruise or lane_change",
+                priority=5,
+                locations=["PUML:L12", "PUML:L13"],
+                proposed_l="L1",
+                goal=prototype.EvidenceGoal(
+                    relation="guards_distinguishable",
+                    source=source,
+                ),
+            )
+        ]
+    )
+
+    outcome = prototype.execute_evidence_plan(pair, inspect, plan)[0]
+    group = outcome["probe_groups"][0]
+
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["source_attribution"]["status"] == "causal_dual_certificate"
+    proof = group["execution_certificate"]["observations"]
+    assert proof["conditions"] == [
+        "dist_to_front<25 & extra_lane=true",
+        "dist_to_front<25 & extra_lane=true",
+    ]
+    assert proof["overlap_found"] is True
+    assert proof["all_terminal"] is True
+
+
+def test_0059_unreachable_goal_gets_artifact_cut_and_source_certificate() -> None:
+    pair, inspect = _pair_and_inspect("0059")
+    target = (
+        f"{pair['pair_name']}.CollisionAvoidanceSystem.collision_avoidance_deactive"
+    )
+    plan = prototype.EvidencePlan(
+        candidates=[
+            prototype.EvidenceCandidate(
+                obligation="The collision-avoidance initial behavior must be reachable.",
+                claim="The collision-avoidance subsystem is unreachable.",
+                basis_kind="nl_literal",
+                nl_quote="The collision avoidance system is initially in the collision_avoidance_deactive state.",
+                priority=5,
+                locations=["NL12", "PUML:L37", "PUML:L38"],
+                proposed_l="L2",
+                goal=prototype.EvidenceGoal(
+                    relation="target_reachable",
+                    target=target,
+                ),
+            )
+        ]
+    )
+
+    outcome = prototype.execute_evidence_plan(pair, inspect, plan)[0]
+    group = outcome["probe_groups"][0]
+
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["source_attribution"]["status"] == "causal_dual_certificate"
+    assert group["compiler_route"]["backend"] == "G_topology_proof"
+    receipt = group["execution_certificate"]
+    assert target in receipt["observations"]["unreachable_leaves"]
+    assert group["source_causality_certificate"]["kind"] in {
+        "missing_initial_with_compiler_consequence",
+        "unreachable_source_component",
+    }
+
+
+def test_missing_guard_goal_gets_dual_static_w2() -> None:
+    pair, inspect = _pair_and_inspect("0059")
+    root = pair["pair_name"]
+    plan = prototype.EvidencePlan(
+        candidates=[
+            prototype.EvidenceCandidate(
+                obligation="The enter_hwy to cruise edge must carry its stated condition.",
+                claim="The enter_hwy to cruise edge is unguarded.",
+                basis_kind="nl_literal",
+                nl_quote="can transition to cruise or lane_change based on the distance to the front vehicle",
+                priority=4,
+                locations=["NL3", "PUML:L12"],
+                proposed_l="L1",
+                goal=prototype.EvidenceGoal(
+                    relation="guard_present",
+                    source=f"{root}.AutonomousMode.HighwayMode.enter_hwy",
+                    target=f"{root}.AutonomousMode.HighwayMode.cruise",
+                ),
+            )
+        ]
+    )
+
+    group = prototype.execute_evidence_plan(pair, inspect, plan)[0]["probe_groups"][0]
+
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["source_attribution"]["status"] == "causal_dual_certificate"
+    assert group["source_causality_certificate"]["kind"] == "source_guard_presence"
+
+
+def test_0059_contract_group_finds_missing_guard_and_direct_edge() -> None:
+    pair, inspect = _pair_and_inspect("0059")
+    plan = prototype.ContractLensPlan(
+        transition_groups=[
+            prototype.ExpectedTransitionGroup(
+                source="AutonomousMode.HighwayMode.enter_hwy",
+                targets=[
+                    prototype.ExpectedTransitionTarget(
+                        target="AutonomousMode.HighwayMode.cruise",
+                        condition="dist_to_front<25",
+                        observed_transition_id="tr_0006",
+                    ),
+                    prototype.ExpectedTransitionTarget(
+                        target="AutonomousMode.HighwayMode.lane_change",
+                        condition="dist_to_front<25 && extra_lane=true",
+                    ),
+                ],
+                nl_line=3,
+                priority=5,
+            )
+        ],
+        surface_candidates=[],
+        behavior_candidates=[],
+    )
+
+    outcomes = prototype.execute_contract_lens_plan(pair, inspect, plan)
+    groups = [item["probe_groups"][0] for item in outcomes]
+    counterexamples = [item for item in groups if item["counterexample_found"]]
+
+    assert {
+        item["source_causality_certificate"]["kind"] for item in counterexamples
+    } == {
+        "source_guard_presence",
+        "source_transition_contract",
+    }
+    assert all(item["witness_level"] == "W2" for item in counterexamples)
+    assert all(
+        item["source_attribution"]["status"] == "causal_dual_certificate"
+        for item in counterexamples
+    )
+
+
+def test_llm_grounding_output_can_restore_omitted_nl_alternative() -> None:
+    pair, inspect = _pair_and_inspect("0059")
+    raw_contract = prototype.ContractExtractionPlan(
+        initial_contracts=[],
+        transition_groups=[
+            prototype.ExpectedTransitionGroup(
+                source="cruise",
+                targets=[
+                    prototype.ExpectedTransitionTarget(
+                        target="lane_change",
+                        condition="dist_to_front<25 && extra_lane=true",
+                    )
+                ],
+                nl_line=3,
+                priority=3,
+            )
+        ],
+    )
+    raw_evidence = prototype.IssueDiscoveryPlan(
+        surface_candidates=[], behavior_candidates=[]
+    )
+    grounding = prototype.SemanticGroundingPlan(
+        contract_plan=prototype.ContractExtractionPlan(
+            initial_contracts=[],
+            transition_groups=[
+                prototype.ExpectedTransitionGroup(
+                    source="AutonomousMode.HighwayMode.enter_hwy",
+                    targets=[
+                        prototype.ExpectedTransitionTarget(
+                            target="AutonomousMode.HighwayMode.cruise",
+                            condition="dist_to_front<25",
+                            observed_transition_id="tr_0006",
+                        ),
+                        prototype.ExpectedTransitionTarget(
+                            target="AutonomousMode.HighwayMode.lane_change",
+                            condition="dist_to_front<25 && extra_lane=true",
+                        ),
+                    ],
+                    nl_line=3,
+                    priority=5,
+                )
+            ],
+        ),
+        evidence_bindings=[],
+    )
+
+    grounded, _, diagnostics = prototype.validate_semantic_grounding(
+        pair, raw_evidence, grounding
+    )
+
+    outcomes = prototype.execute_contract_extraction_plan(pair, inspect, grounded)
+    counterexample_kinds = {
+        group["source_causality_certificate"]["kind"]
+        for outcome in outcomes
+        for group in outcome["probe_groups"]
+        if group["counterexample_found"]
+    }
+
+    assert counterexample_kinds == {
+        "source_guard_presence",
+        "source_transition_contract",
+    }
+    assert diagnostics == []
+    assert len(raw_contract.transition_groups[0].targets) == 1
+
+
+def test_llm_grounded_abstract_transition_contracts_execute_as_satisfied() -> None:
+    fixtures = {
+        "0016": [
+            (
+                "SearchMission",
+                "FormationAdjust",
+                "intercepted",
+                "tr_0009",
+                3,
+            ),
+            (
+                "SearchMission",
+                "AttackState",
+                "task assignment information is received",
+                "tr_0012",
+                4,
+            ),
+        ],
+        "0046": [
+            (
+                "UAVSwarmStateMachine.SearchRegion.Searching",
+                "UAVSwarmStateMachine.SearchRegion.FormationAdjustment",
+                "intercepted",
+                "tr_0003",
+                3,
+            ),
+            (
+                "UAVSwarmStateMachine.SearchRegion.Searching",
+                "UAVSwarmStateMachine.SearchRegion.Attacking",
+                "task assignment information is received",
+                "tr_0004",
+                4,
+            ),
+        ],
+    }
+
+    for case, transitions in fixtures.items():
+        pair, inspect = _pair_and_inspect(case)
+        plan = prototype.ContractExtractionPlan(
+            initial_contracts=[],
+            transition_groups=[
+                prototype.ExpectedTransitionGroup(
+                    source=source,
+                    targets=[
+                        prototype.ExpectedTransitionTarget(
+                            target=target,
+                            condition=condition,
+                            observed_transition_id=transition_id,
+                        )
+                    ],
+                    nl_line=nl_line,
+                    priority=5,
+                )
+                for source, target, condition, transition_id, nl_line in transitions
+            ],
+        )
+
+        outcomes = prototype.execute_contract_extraction_plan(pair, inspect, plan)
+        groups = [outcome["probe_groups"][0] for outcome in outcomes]
+
+        assert all(group["witness_level"] == "W2" for group in groups)
+        assert all(group["counterexample_found"] is False for group in groups)
+        assert all(
+            group["execution_certificate"]["verdict"] == "satisfied" for group in groups
+        )
+        assert all(
+            group["source_causality_certificate"]["verdict"] == "satisfied"
+            for group in groups
+        )
+
+
+def test_only_three_way_contracts_trigger_automatic_overlap_smt() -> None:
+    pair, inspect = _pair_and_inspect("0059")
+    plan = prototype.ContractExtractionPlan(
+        initial_contracts=[],
+        transition_groups=[
+            prototype.ExpectedTransitionGroup(
+                source="AutonomousMode.UrbanMode.enter_urban",
+                targets=[
+                    prototype.ExpectedTransitionTarget(
+                        target="AutonomousMode.UrbanMode.lane_change_urban",
+                        condition="dist_to_front<15 && extra_lane=true",
+                    ),
+                    prototype.ExpectedTransitionTarget(
+                        target="AutonomousMode.UrbanMode.straight",
+                        condition="road_clear",
+                    ),
+                    prototype.ExpectedTransitionTarget(
+                        target="AutonomousMode.UrbanMode.intersection",
+                        condition="intersection=true",
+                    ),
+                ],
+                nl_line=7,
+                priority=4,
+            )
+        ],
+    )
+
+    outcomes = prototype.execute_contract_extraction_plan(pair, inspect, plan)
+    overlap_counterexamples = [
+        group
+        for outcome in outcomes
+        for group in outcome["probe_groups"]
+        if group["counterexample_found"]
+        and group["source_causality_certificate"]["kind"] == "source_guard_overlap"
+    ]
+
+    assert len(overlap_counterexamples) == 1
+
+
+def test_parent_level_transition_contract_accepts_complete_mapping_macro() -> None:
+    pair, inspect = _pair_and_inspect("0059")
+    plan = prototype.ContractLensPlan(
+        transition_groups=[
+            prototype.ExpectedTransitionGroup(
+                source="AutonomousMode.HighwayMode",
+                targets=[
+                    prototype.ExpectedTransitionTarget(
+                        target="AutonomousMode.UrbanMode",
+                        condition="urban_way=true",
+                    )
+                ],
+                nl_line=11,
+                priority=4,
+            )
+        ],
+        surface_candidates=[],
+        behavior_candidates=[],
+    )
+
+    group = prototype.execute_contract_lens_plan(pair, inspect, plan)[0][
+        "probe_groups"
+    ][0]
+
+    assert group["counterexample_found"] is False
+    receipts = group["execution_certificate"]["observations"]["mapping_macro_receipts"]
+    assert receipts and all(item["complete"] for item in receipts)
+
+
+def test_initial_contract_uses_initial_target_instead_of_direct_edge() -> None:
+    pair, inspect = _pair_and_inspect("0059")
+    plan = prototype.ContractExtractionPlan(
+        initial_contracts=[
+            prototype.ExpectedInitialContract(
+                composite="AutonomousMode",
+                target="AutonomousMode.InitialState",
+                nl_line=1,
+                priority=5,
+            )
+        ],
+        transition_groups=[],
+    )
+
+    group = prototype.execute_contract_extraction_plan(pair, inspect, plan)[0][
+        "probe_groups"
+    ][0]
+
+    assert group["counterexample_found"] is False
+
+
+def test_0029_grounded_containment_contract_gets_source_w2() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    plan = prototype.ContractExtractionPlan(
+        initial_contracts=[],
+        containment_contracts=[
+            prototype.ExpectedContainmentContract(
+                parent="AutonomousMode",
+                child="InitialState",
+                nl_line=1,
+                priority=5,
+            )
+        ],
+        transition_groups=[],
+    )
+
+    group = prototype.execute_contract_extraction_plan(pair, inspect, plan)[0][
+        "probe_groups"
+    ][0]
+
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["source_attribution"]["status"] == "causal_dual_certificate"
+    source = group["source_causality_certificate"]
+    assert source["kind"] == "source_containment_contract"
+    assert source["child"] == "InitialState"
+    assert source["expected_parent"] == "AutonomousMode"
+    assert source["actual_parent"] is None
+    assert group["witness_level"] == "W2"
+
+
+def test_initial_contract_accepts_exact_formal_parent_and_child_ids() -> None:
+    pair, inspect = _pair_and_inspect("0059")
+    plan = prototype.ContractExtractionPlan(
+        initial_contracts=[
+            prototype.ExpectedInitialContract(
+                composite="CollisionAvoidanceSystem",
+                target="CollisionAvoidanceSystem.collision_avoidance_deactive",
+                nl_line=12,
+                priority=5,
+            )
+        ],
+        transition_groups=[],
+    )
+
+    group = prototype.execute_contract_extraction_plan(pair, inspect, plan)[0][
+        "probe_groups"
+    ][0]
+
+    assert group["counterexample_found"] is False
+    bindings = group["checks"][0]["normalized_probe"]["bindings"]
+    assert str(bindings["composite"]).endswith(".CollisionAvoidanceSystem")
+    assert str(bindings["child"]).endswith(
+        ".CollisionAvoidanceSystem.collision_avoidance_deactive"
+    )
+
+
+def test_root_scope_is_an_exact_initial_contract_binding() -> None:
+    pair, inspect = _pair_and_inspect("0054")
+    root_scope = pair["canonical"]["model"]["name"]
+    plan = prototype.ContractExtractionPlan(
+        initial_contracts=[
+            prototype.ExpectedInitialContract(
+                composite=root_scope,
+                composite_concept_id="C-System",
+                target="DoorsClosing",
+                target_concept_id="C-DoorsClosing",
+                nl_line=1,
+                priority=5,
+            )
+        ],
+        transition_groups=[],
+    )
+    bindings = [
+        prototype.SemanticConceptBinding(
+            concept_id="C-System",
+            source_state_id=root_scope,
+            nl_lines=[1],
+        ),
+        prototype.SemanticConceptBinding(
+            concept_id="C-DoorsClosing",
+            source_state_id="DoorsClosing",
+            nl_lines=[1],
+        ),
+    ]
+
+    grounded, diagnostics = prototype._validate_grounded_contract_plan(
+        pair, plan, bindings
+    )
+    group = prototype.execute_contract_extraction_plan(pair, inspect, grounded)[0][
+        "probe_groups"
+    ][0]
+
+    assert diagnostics == []
+    assert prototype._semantic_grounding_inventory(pair)["root_scope_id"] == root_scope
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is False
+    certificate = prototype._source_initial_target_certificate(
+        pair, root_scope, "DoorsClosing"
+    )
+    assert certificate is not None
+    assert certificate["composite"] == root_scope
+    assert certificate["verdict"] == "satisfied"
+
+
+def test_unresolved_transition_target_is_retained_as_w1_coverage_gap() -> None:
+    pair, inspect = _pair_and_inspect("0059")
+    plan = prototype.ContractExtractionPlan(
+        initial_contracts=[],
+        transition_groups=[
+            prototype.ExpectedTransitionGroup(
+                source="lane_change",
+                targets=[
+                    prototype.ExpectedTransitionTarget(
+                        target="exit", condition="dist_to_exit<2"
+                    )
+                ],
+                nl_line=4,
+                priority=3,
+            )
+        ],
+    )
+
+    outcomes = prototype.execute_contract_extraction_plan(pair, inspect, plan)
+    group = outcomes[0]["probe_groups"][0]
+
+    assert group["witness_level"] == "W1"
+    assert group["counterexample_found"] is False
+    assert group["execution_certificate"]["verdict"] == "inconclusive"
+    assert group["source_causality_certificate"]["sound_for_claim"] is False
+    findings = prototype.build_finding_records(outcomes)
+    finding = next(
+        finding
+        for finding in findings
+        if any(
+            "lane_change must transition directly to exit" in obligation
+            for obligation in finding["obligations"]
+        )
+    )
+    assert finding["witness_level"] == "W1"
+    assert finding["evidence_status"] == "coverage_gap"
+    assert finding["counterexample_found"] is False
+
+
+def test_l_is_derived_from_goal_relation_not_model_proposal() -> None:
+    pair, inspect = _pair_and_inspect("0059")
+    source = f"{pair['pair_name']}.AutonomousMode.UrbanMode.enter_urban"
+    plan = prototype.EvidencePlan(
+        candidates=[
+            prototype.EvidenceCandidate(
+                obligation="Outgoing alternatives must be distinguishable.",
+                claim="The outgoing guards overlap.",
+                basis_kind="domain_norm",
+                priority=5,
+                locations=["PUML:L21"],
+                proposed_l="L2",
+                goal=prototype.EvidenceGoal(
+                    relation="guards_distinguishable",
+                    source=source,
+                ),
+            )
+        ]
+    )
+
+    findings = prototype.build_finding_records(
+        prototype.execute_evidence_plan(pair, inspect, plan)
+    )
+
+    assert findings[0]["l_level"] == "L1"
+
+
+def test_semantic_text_is_not_rejected_by_arbitrary_schema_length() -> None:
+    long_explanation = "semantically relevant evidence " * 40
+
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation=long_explanation,
+        claim=long_explanation,
+        basis_kind="nl_literal",
+        nl_quote=long_explanation,
+        priority=3,
+        locations=["NL1"],
+        proposed_l="L2",
+        observed_fact=long_explanation,
+        goal=prototype.EvidenceGoal(
+            relation="target_reachable",
+            target="Root.Target",
+        ),
+    )
+
+    assert len(candidate.claim) > 320
+
+
+def test_semantic_evidence_is_not_rejected_by_arbitrary_citation_count() -> None:
+    locations = [f"PUML:L{index}" for index in range(1, 9)]
+
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="A multi-step path must remain reachable.",
+        claim="The complete source path supplies all cited evidence locations.",
+        basis_kind="nl_literal",
+        nl_quote="A multi-step path must remain reachable.",
+        priority=3,
+        locations=locations,
+        proposed_l="L2",
+        observed_fact="The evidence spans eight exact source locations.",
+        goal=prototype.EvidenceGoal(
+            relation="target_reachable",
+            source="Root.Source",
+            target="Root.Target",
+        ),
+    )
+
+    assert candidate.locations == locations
+
+
+def test_probe_candidate_accepts_four_source_locations() -> None:
+    candidate = prototype.ProbeCandidate(
+        claim="A localized hypothesis.",
+        basis_kind="nl_literal",
+        priority=3,
+        locations=["NL1", "PUML:L1", "F1", "Root.State"],
+    )
+
+    assert len(candidate.locations) == 4
+
+
+def test_grounding_validator_rejects_nonexistent_formal_state_id() -> None:
+    pair, _ = _pair_and_inspect("0059")
+    empty_evidence = prototype.IssueDiscoveryPlan(
+        surface_candidates=[], behavior_candidates=[]
+    )
+    grounding = prototype.SemanticGroundingPlan(
+        contract_plan=prototype.ContractExtractionPlan(
+            initial_contracts=[],
+            transition_groups=[
+                prototype.ExpectedTransitionGroup(
+                    source="not-a-formal-state-id",
+                    targets=[
+                        prototype.ExpectedTransitionTarget(
+                            target="also-not-a-formal-state-id",
+                            condition="a natural-language condition",
+                        )
+                    ],
+                    nl_line=4,
+                    priority=3,
+                )
+            ],
+        ),
+        evidence_bindings=[],
+    )
+
+    contract, _, diagnostics = prototype.validate_semantic_grounding(
+        pair, empty_evidence, grounding
+    )
+
+    assert contract.transition_groups == []
+    assert diagnostics[0]["class"] == "formal_id_invalid"
+
+
+def test_direct_discovery_grounding_clears_nonexact_state_bindings() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    plan = prototype.DiscoveryGroundingPlan(
+        initial_contract_bindings=[],
+        containment_contract_bindings=[],
+        transition_group_bindings=[],
+        surface_candidates=[],
+        behavior_candidates=[
+            prototype.BalancedEvidenceCandidate(
+                obligation="A selected event must reach the required state.",
+                claim="The selected event reaches a different state.",
+                basis_kind="nl_literal",
+                nl_quote=pair["nl"].splitlines()[4],
+                priority=5,
+                locations=["NL5"],
+                proposed_l="L2",
+                observed_fact="The selected source transition has another endpoint.",
+                goal=prototype.EvidenceGoal(
+                    relation="event_reaches_target",
+                    observed_transition_id="tr_0009",
+                    source="not-an-exact-state-id",
+                    trigger="dist_to_exit<2",
+                    target="also-not-an-exact-state-id",
+                ),
+            )
+        ],
+    )
+
+    _, evidence, diagnostics = prototype.validate_discovery_grounding(
+        pair,
+        prototype.ContractExtractionPlan(initial_contracts=[], transition_groups=[]),
+        plan,
+    )
+    goal = evidence.behavior_candidates[0].goal
+    outcome = prototype.execute_evidence_plan(pair, inspect, evidence)[0]
+
+    assert goal.source is None
+    assert goal.target is None
+    assert {item["class"] for item in diagnostics} == {"formal_id_invalid"}
+    assert outcome["envelope_witness_level"] == "W1"
+    assert outcome["has_counterexample_group"] is False
+
+
+def test_contract_binding_patch_cannot_rewrite_normative_condition() -> None:
+    pair, _ = _pair_and_inspect("0029")
+    raw = prototype.ContractExtractionPlan(
+        initial_contracts=[],
+        transition_groups=[
+            prototype.ExpectedTransitionGroup(
+                source="the cruise concept",
+                source_concept_id="C-cruise",
+                targets=[
+                    prototype.ExpectedTransitionTarget(
+                        target="the highway-exit concept",
+                        target_concept_id="C-exit-highway",
+                        condition="dist_to_exit<2",
+                    )
+                ],
+                nl_line=5,
+                priority=5,
+            )
+        ],
+    )
+    plan = prototype.DiscoveryGroundingPlan(
+        concept_bindings=[
+            prototype.CompactConceptBinding(
+                concept_id="C-cruise", source_state_id="HighwayMode.cruise"
+            ),
+            prototype.CompactConceptBinding(
+                concept_id="C-exit-highway",
+                source_state_id="HighwayMode.exit_hwy",
+            ),
+        ],
+        initial_contract_bindings=[],
+        containment_contract_bindings=[],
+        transition_group_bindings=[
+            prototype.TransitionGroupGrounding(
+                item_index=0,
+                status="grounded",
+                source="HighwayMode.cruise",
+                targets=[
+                    prototype.TransitionTargetGrounding(
+                        target_index=0,
+                        target="HighwayMode.exit_hwy",
+                        observed_transition_id="tr_0009",
+                    )
+                ],
+            )
+        ],
+        surface_candidates=[],
+        behavior_candidates=[],
+    )
+
+    contract, _, diagnostics = prototype.validate_discovery_grounding(pair, raw, plan)
+    target = contract.transition_groups[0].targets[0]
+
+    assert diagnostics == []
+    assert target.condition == "dist_to_exit<2"
+    assert target.observed_transition_id == "tr_0009"
+    assert contract.transition_groups[0].nl_line == 5
+    assert contract.transition_groups[0].priority == 5
+
+
+def test_sparse_grounding_instantiates_accepted_contracts_from_concept_bindings() -> (
+    None
+):
+    pair, _ = _pair_and_inspect("0029")
+    raw = prototype.ContractExtractionPlan(
+        initial_contracts=[
+            prototype.ExpectedInitialContract(
+                composite="the highway mode",
+                composite_concept_id="C-highway",
+                target="the highway entry",
+                target_concept_id="C-entry",
+                nl_line=3,
+                priority=1,
+            )
+        ],
+        containment_contracts=[
+            prototype.ExpectedContainmentContract(
+                parent="the highway mode",
+                parent_concept_id="C-highway",
+                child="the highway entry",
+                child_concept_id="C-entry",
+                nl_line=3,
+                priority=1,
+            )
+        ],
+        transition_groups=[
+            prototype.ExpectedTransitionGroup(
+                source="the cruise mode",
+                source_concept_id="C-cruise",
+                targets=[
+                    prototype.ExpectedTransitionTarget(
+                        target="the highway exit",
+                        target_concept_id="C-exit",
+                        condition="dist_to_exit<2",
+                    )
+                ],
+                nl_line=5,
+                priority=1,
+            )
+        ],
+        required_state_contracts=[
+            prototype.RequiredStateContract(
+                concept="the cruise mode",
+                concept_id="C-cruise",
+                scope_concept_id="C-highway",
+                role="operating_state",
+                nl_quote="In the cruise substate",
+                priority=1,
+            )
+        ],
+    )
+    plan = prototype.DiscoveryGroundingPlan(
+        concept_bindings=[
+            prototype.CompactConceptBinding(
+                concept_id="C-highway", source_state_id="HighwayMode"
+            ),
+            prototype.CompactConceptBinding(
+                concept_id="C-entry", source_state_id="HighwayMode.enter_hwy"
+            ),
+            prototype.CompactConceptBinding(
+                concept_id="C-cruise", source_state_id="HighwayMode.cruise"
+            ),
+            prototype.CompactConceptBinding(
+                concept_id="C-exit", source_state_id="HighwayMode.exit_hwy"
+            ),
+        ],
+        surface_candidates=[],
+        behavior_candidates=[],
+    )
+
+    grounded, evidence, diagnostics = prototype.validate_discovery_grounding(
+        pair, raw, plan
+    )
+
+    assert diagnostics == []
+    assert grounded.initial_contracts[0].composite == "HighwayMode"
+    assert grounded.initial_contracts[0].target == "HighwayMode.enter_hwy"
+    assert grounded.containment_contracts[0].child == "HighwayMode.enter_hwy"
+    assert grounded.transition_groups[0].source == "HighwayMode.cruise"
+    assert grounded.transition_groups[0].targets[0].target == "HighwayMode.exit_hwy"
+    assert evidence.candidates == []
+
+
+def test_grounded_contract_union_is_not_truncated_by_llm_output_bounds() -> None:
+    pair, _ = _pair_and_inspect("0029")
+
+    def group() -> prototype.ExpectedTransitionGroup:
+        return prototype.ExpectedTransitionGroup(
+            source="semantic source concept",
+            targets=[
+                prototype.ExpectedTransitionTarget(
+                    target="semantic target concept",
+                )
+            ],
+            nl_line=5,
+            priority=3,
+        )
+
+    raw = prototype.ContractExtractionPlan(
+        initial_contracts=[],
+        transition_groups=[group() for _ in range(16)],
+    )
+    plan = prototype.DiscoveryGroundingPlan(
+        initial_contract_bindings=[],
+        containment_contract_bindings=[],
+        transition_group_bindings=[
+            prototype.TransitionGroupGrounding(
+                item_index=index,
+                status="grounded",
+                source="HighwayMode.cruise",
+                targets=[
+                    prototype.TransitionTargetGrounding(
+                        target_index=0,
+                        target="HighwayMode.exit_hwy",
+                    )
+                ],
+            )
+            for index in range(16)
+        ],
+        additional_contracts=prototype.ContractExtractionPlan(
+            initial_contracts=[],
+            transition_groups=[
+                prototype.ExpectedTransitionGroup(
+                    source="HighwayMode.cruise",
+                    targets=[
+                        prototype.ExpectedTransitionTarget(
+                            target="HighwayMode.exit_hwy",
+                        )
+                    ],
+                    nl_line=5,
+                    priority=3,
+                )
+                for _ in range(3)
+            ],
+        ),
+        surface_candidates=[],
+        behavior_candidates=[],
+    )
+
+    grounded, _, diagnostics = prototype.validate_discovery_grounding(pair, raw, plan)
+
+    assert isinstance(grounded, prototype.GroundedContractPlan)
+    assert len(grounded.transition_groups) == 19
+    assert diagnostics == []
+
+
+def test_llm_semantic_rejection_suppresses_raw_contract_without_text_rules() -> None:
+    pair, _ = _pair_and_inspect("0029")
+    raw = prototype.ContractExtractionPlan(
+        initial_contracts=[
+            prototype.ExpectedInitialContract(
+                composite="misread sequential concept",
+                target="misread target concept",
+                nl_line=5,
+                priority=3,
+            )
+        ],
+        transition_groups=[
+            prototype.ExpectedTransitionGroup(
+                source="wrong semantic source",
+                targets=[
+                    prototype.ExpectedTransitionTarget(target="wrong semantic target")
+                ],
+                nl_line=5,
+                priority=3,
+            )
+        ],
+    )
+    plan = prototype.DiscoveryGroundingPlan(
+        initial_contract_bindings=[
+            prototype.InitialContractGrounding(
+                item_index=0,
+                status="rejected",
+                reason="The NL describes sequential flow, not composite entry.",
+            )
+        ],
+        containment_contract_bindings=[],
+        transition_group_bindings=[
+            prototype.TransitionGroupGrounding(
+                item_index=0,
+                status="unresolved",
+                reason="The NL source remains ambiguous.",
+            )
+        ],
+        surface_candidates=[],
+        behavior_candidates=[],
+    )
+
+    grounded, _, diagnostics = prototype.validate_discovery_grounding(pair, raw, plan)
+
+    assert grounded.initial_contracts == []
+    assert grounded.transition_groups == []
+    assert {item["class"] for item in diagnostics} == {
+        "binding_semantically_rejected",
+        "binding_semantically_unresolved",
+    }
+
+
+def test_runtime_has_no_deterministic_nl_semantic_matcher() -> None:
+    for forbidden in (
+        "derive_lexical_transition_groups",
+        "augment_transition_groups",
+        "_semantic_stem",
+        "_semantic_tokens",
+        "_semantic_phrase_matches",
+        "_infer_unique_transition_binding",
+    ):
+        assert not hasattr(prototype, forbidden)
+
+
+def test_semantic_reason_text_has_no_arbitrary_schema_length_gate() -> None:
+    long_reason = "This remains a semantic explanation. " * 32
+
+    gap = prototype.SemanticGroundingGap(
+        scope="contract",
+        item_index=0,
+        field="source",
+        reason=long_reason,
+    )
+    initial = prototype.InitialContractGrounding(
+        item_index=0,
+        status="rejected",
+        reason=long_reason,
+    )
+    containment = prototype.ContainmentContractGrounding(
+        item_index=0,
+        status="unresolved",
+        reason=long_reason,
+    )
+    transition = prototype.TransitionGroupGrounding(
+        item_index=0,
+        status="rejected",
+        reason=long_reason,
+    )
+    required_state = prototype.RequiredStateGrounding(
+        item_index=0,
+        status="unresolved",
+        reason=long_reason,
+    )
+    required_event = prototype.RequiredEventScopeGrounding(
+        item_index=0,
+        status="unresolved",
+        reason=long_reason,
+    )
+
+    assert len(long_reason) > 320
+    assert {
+        gap.reason,
+        initial.reason,
+        containment.reason,
+        transition.reason,
+        required_state.reason,
+        required_event.reason,
+    } == {long_reason}
+
+
+def test_semantic_contract_text_has_no_arbitrary_schema_length_gate() -> None:
+    long_text = "semantically meaningful source text " * 40
+
+    plan = prototype.ContractExtractionPlan(
+        initial_contracts=[
+            prototype.ExpectedInitialContract(
+                composite=long_text,
+                target=long_text,
+                nl_line=1,
+                nl_quote=long_text,
+                priority=1,
+            )
+        ],
+        containment_contracts=[
+            prototype.ExpectedContainmentContract(
+                parent=long_text,
+                child=long_text,
+                nl_line=1,
+                nl_quote=long_text,
+                priority=1,
+            )
+        ],
+        transition_groups=[
+            prototype.ExpectedTransitionGroup(
+                source=long_text,
+                targets=[
+                    prototype.ExpectedTransitionTarget(
+                        target=long_text,
+                        condition=long_text,
+                    )
+                ],
+                nl_line=1,
+                nl_quote=long_text,
+                priority=1,
+            )
+        ],
+        required_state_contracts=[
+            prototype.RequiredStateContract(
+                concept=long_text,
+                concept_id="C-long-state",
+                role="operating_state",
+                nl_quote=long_text,
+                priority=1,
+            )
+        ],
+        required_event_scope_contracts=[
+            prototype.RequiredEventScopeContract(
+                event_concept=long_text,
+                scope_concept=long_text,
+                applicability="one_scope",
+                nl_quote=long_text,
+                priority=1,
+            )
+        ],
+    )
+
+    assert len(long_text) > 480
+    assert plan.transition_groups[0].targets[0].condition == long_text
+
+
+def test_exhaustive_contract_and_grounding_lists_have_no_arbitrary_caps() -> None:
+    target = prototype.ExpectedTransitionTarget(target="Root.Target")
+    groups = [
+        prototype.ExpectedTransitionGroup(
+            source=f"Root.Source{index}",
+            targets=[target] * 5,
+            nl_line=index + 1,
+            nl_quote=f"Requirement {index}",
+            priority=5,
+        )
+        for index in range(17)
+    ]
+    contract = prototype.ContractExtractionPlan(
+        initial_contracts=[],
+        containment_contracts=[],
+        transition_groups=groups,
+    )
+    grounding = prototype.DiscoveryGroundingPlan(
+        initial_contract_bindings=[],
+        containment_contract_bindings=[],
+        transition_group_bindings=[
+            prototype.TransitionGroupGrounding(
+                item_index=index,
+                status="grounded",
+                source=group.source,
+                targets=[
+                    prototype.TransitionTargetGrounding(
+                        target_index=target_index,
+                        target=item.target,
+                    )
+                    for target_index, item in enumerate(group.targets)
+                ],
+            )
+            for index, group in enumerate(groups)
+        ],
+        additional_contracts=contract,
+        surface_candidates=[],
+        behavior_candidates=[],
+    )
+
+    assert len(contract.transition_groups) == 17
+    assert len(contract.transition_groups[0].targets) == 5
+    assert len(grounding.transition_group_bindings) == 17
+    contract_schema = prototype.ContractExtractionPlan.model_json_schema()
+    grounding_schema = prototype.DiscoveryGroundingPlan.model_json_schema()
+    assert "maxItems" not in contract_schema["properties"]["transition_groups"]
+    assert "maxItems" not in grounding_schema["properties"]["transition_group_bindings"]
+
+
+def test_unresolved_candidate_binding_is_an_execution_veto() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    raw = prototype.ContractExtractionPlan(
+        initial_contracts=[], containment_contracts=[], transition_groups=[]
+    )
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="The selected transition must be absent.",
+        claim="The selected transition is extraneous.",
+        observed_fact="One exact source transition was selected.",
+        basis_kind="nl_literal",
+        nl_quote=pair["nl"].splitlines()[5],
+        priority=1,
+        locations=["NL6", "tr_0025"],
+        proposed_l="L0",
+        goal=prototype.EvidenceGoal(
+            relation="transition_absent",
+            observed_transition_id="tr_0025",
+        ),
+    )
+    plan = prototype.DiscoveryGroundingPlan(
+        initial_contract_bindings=[],
+        containment_contract_bindings=[],
+        transition_group_bindings=[],
+        surface_candidates=[candidate],
+        behavior_candidates=[],
+        unresolved=[
+            prototype.SemanticGroundingGap(
+                scope="surface_candidate",
+                item_index=0,
+                field="observed_transition_id",
+                reason="Two semantic bindings remain competent.",
+            )
+        ],
+    )
+
+    _, evidence, diagnostics = prototype.validate_discovery_grounding(pair, raw, plan)
+    outcome = prototype.execute_evidence_plan(pair, inspect, evidence)[0]
+
+    assert evidence.surface_candidates[0].goal.observed_transition_id is None
+    assert outcome["envelope_witness_level"] == "W1"
+    assert outcome["probe_groups"][0]["execution_certificate"] is None
+    assert any(
+        item["class"] == "semantic_binding_unresolved_veto" for item in diagnostics
+    )
+
+
+def test_indexed_contract_binding_authorizes_root_without_duplicate_concept_row() -> (
+    None
+):
+    pair, _ = _pair_and_inspect("0048")
+    raw = prototype.ContractExtractionPlan(
+        initial_contracts=[
+            prototype.ExpectedInitialContract(
+                composite="system",
+                composite_concept_id="C-system",
+                target="TurnOn",
+                target_concept_id="C-TurnOn",
+                nl_line=1,
+                nl_quote="The system begins in the TurnOn state",
+                priority=1,
+            )
+        ],
+        containment_contracts=[],
+        transition_groups=[],
+    )
+    plan = prototype.DiscoveryGroundingPlan(
+        concept_bindings=[],
+        initial_contract_bindings=[
+            prototype.InitialContractGrounding(
+                item_index=0,
+                status="grounded",
+                composite=pair["pair_name"],
+                target="TurnOn",
+            )
+        ],
+        containment_contract_bindings=[],
+        transition_group_bindings=[],
+        surface_candidates=[],
+        behavior_candidates=[],
+    )
+
+    grounded, _, diagnostics = prototype.validate_discovery_grounding(pair, raw, plan)
+
+    assert diagnostics == []
+    assert grounded.initial_contracts[0].composite == pair["pair_name"]
+
+
+def test_exact_quote_validation_checks_provenance_not_physical_line_segmentation() -> (
+    None
+):
+    pair, _ = _pair_and_inspect("0030")
+
+    def candidate(quote: str):
+        return prototype.BalancedEvidenceCandidate(
+            obligation="The shutdown event must be available.",
+            claim="The shutdown event is unavailable.",
+            observed_fact="A formal execution target is supplied separately.",
+            basis_kind="nl_literal",
+            nl_quote=quote,
+            priority=1,
+            locations=["NL5"],
+            proposed_l="L0",
+            goal=prototype.EvidenceGoal(
+                relation="event_consumed_in_scope",
+                source="Autonomous",
+                observed_transition_id="tr_0007",
+            ),
+        )
+
+    assert prototype._nl_anchor_valid(
+        pair, candidate("5 when power off, it will transit to final state")
+    )
+    assert not prototype._nl_anchor_valid(
+        pair, candidate("When shutdown occurs, the system terminates.")
+    )
+
+
+def test_executable_evidence_is_noninterfering_in_candidate_prose() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    goal = prototype.EvidenceGoal(
+        relation="transition_absent",
+        observed_transition_id="tr_0025",
+    )
+
+    def execute(*, obligation: str, claim: str, observed_fact: str):
+        candidate = prototype.BalancedEvidenceCandidate(
+            obligation=obligation,
+            claim=claim,
+            basis_kind="nl_literal",
+            nl_quote=pair["nl"].splitlines()[5],
+            priority=4,
+            locations=["NL6", "tr_0025"],
+            proposed_l="L0",
+            observed_fact=observed_fact,
+            goal=goal,
+        )
+        return prototype.execute_evidence_plan(
+            pair,
+            inspect,
+            prototype.IssueDiscoveryPlan(
+                surface_candidates=[candidate], behavior_candidates=[]
+            ),
+        )[0]["probe_groups"][0]
+
+    first = execute(
+        obligation="The selected authored completion edge must be absent.",
+        claim="The selected completion edge is extraneous.",
+        observed_fact="The exact selected transition exists in the source model.",
+    )
+    paraphrase = execute(
+        obligation="A wholly different prose formulation of the same formal duty.",
+        claim="Narrative wording must not steer the formal evaluator.",
+        observed_fact="This sentence deliberately changes every reporting phrase.",
+    )
+
+    assert first["compiled_assertion"] == paraphrase["compiled_assertion"]
+    assert first["witness_level"] == paraphrase["witness_level"] == "W2"
+    assert first["counterexample_found"] is paraphrase["counterexample_found"] is True
+    assert first["source_attribution"] == paraphrase["source_attribution"]
+    for field in ("execution_certificate", "source_causality_certificate"):
+        first_certificate = dict(first[field])
+        paraphrase_certificate = dict(paraphrase[field])
+        first_certificate.pop("semantic_binding_receipt")
+        paraphrase_certificate.pop("semantic_binding_receipt")
+        assert first_certificate == paraphrase_certificate
+
+
+def test_normalize_check_applies_declared_source_namespace_mapping() -> None:
+    pair, inspect = _pair_and_inspect("0059")
+    check = prototype.ProbeCheck(
+        kind="initial_target",
+        bindings={
+            "composite": "AutonomousMode.HighwayMode",
+            "child": "AutonomousMode.HighwayMode.enter_hwy",
+        },
+    )
+
+    normalized, changes = prototype.normalize_check(check, inspect, pair)
+
+    assert str(normalized.bindings["composite"]).endswith(".AutonomousMode.HighwayMode")
+    assert str(normalized.bindings["child"]).endswith(
+        ".AutonomousMode.HighwayMode.enter_hwy"
+    )
+    assert {item["field"] for item in changes} == {
+        "bindings.composite",
+        "bindings.child",
+    }
+
+
+def test_normalize_check_does_not_guess_from_identifier_suffixes() -> None:
+    pair, inspect = _pair_and_inspect("0059")
+    check = prototype.ProbeCheck(
+        kind="initial_target",
+        bindings={"composite": "HighwayMode", "child": "enter_hwy"},
+    )
+
+    normalized, changes = prototype.normalize_check(check, inspect, pair)
+
+    assert normalized.bindings == check.bindings
+    assert changes == []
+
+
+def test_normalize_check_does_not_complete_an_event_namespace_without_mapping() -> None:
+    pair, inspect = _pair_and_inspect("0059")
+    qualified = next(
+        str(row["qualified_name"])
+        for row in inspect["events"]
+        if isinstance(row, dict)
+        and isinstance(row.get("qualified_name"), str)
+        and str(row["qualified_name"]).startswith(f"{pair['pair_name']}.")
+    )
+    unqualified = qualified.removeprefix(f"{pair['pair_name']}.")
+    check = prototype.ProbeCheck(
+        kind="event_declared",
+        bindings={"event": unqualified},
+    )
+
+    normalized, changes = prototype.normalize_check(check, inspect, pair)
+
+    assert normalized.bindings == check.bindings
+    assert changes == []
+
+
+def test_same_region_clause_requires_an_actual_cross_region_target() -> None:
+    same_region = {
+        "source_causality_certificate": {
+            "kind": "source_initial_target_contract",
+            "initial_edges": [{"id": "tr_initial", "target": "M.other"}],
+            "target_is_direct_child": True,
+            "verdict": "counterexample",
+        }
+    }
+    cross_region = {
+        "source_causality_certificate": {
+            "kind": "source_initial_target_contract",
+            "initial_edges": [{"id": "tr_initial", "target": "Other.q"}],
+            "target_is_direct_child": False,
+            "verdict": "counterexample",
+        }
+    }
+
+    assert prototype._language_clause_for_finding(same_region) is None
+    receipt = prototype._language_clause_for_finding(cross_region)
+    assert receipt is not None
+    assert receipt["antecedent_established"] is True
+    assert receipt["violation_established"] is True
+
+
+def test_0029_termination_target_gets_source_grounded_w2() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    candidate = prototype.EvidenceCandidate(
+        obligation="FinishState must establish stable termination.",
+        claim="FinishState admits a nonterminating continuation.",
+        basis_kind="nl_literal",
+        nl_quote=pair["nl"].splitlines()[5],
+        priority=5,
+        locations=["NL6"],
+        proposed_l="L2",
+        goal=prototype.EvidenceGoal(
+            relation="termination_target",
+            subject="HighwayMode.FinishState",
+        ),
+    )
+
+    outcome = prototype.execute_evidence_plan(
+        pair, inspect, prototype.EvidencePlan(candidates=[candidate])
+    )[0]
+    group = outcome["probe_groups"][0]
+    observations = group["execution_certificate"]["observations"]
+
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["source_attribution"]["status"] == "causal_dual_certificate"
+    assert observations["root_exit_path"] == []
+    assert observations["reachable_cycles_avoiding_root_exit"]
+    assert group["source_causality_certificate"]["kind"] == (
+        "source_unstable_termination_target"
+    )
+
+
+def test_transition_contract_separates_normative_and_observed_targets() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    candidate = prototype.EvidenceCandidate(
+        obligation="The cruise exit must reach exit_hwy.",
+        claim="The observed cruise exit reaches FinishState.",
+        basis_kind="nl_literal",
+        nl_quote=pair["nl"].splitlines()[4],
+        priority=5,
+        locations=["NL5", "PUML:L15"],
+        proposed_l="L1",
+        goal=prototype.EvidenceGoal(
+            relation="transition_contract",
+            observed_transition_id="tr_0009",
+            source="HighwayMode.cruise",
+            target="HighwayMode.exit_hwy",
+            condition="dist_to_exit<2",
+        ),
+    )
+
+    outcome = prototype.execute_evidence_plan(
+        pair, inspect, prototype.EvidencePlan(candidates=[candidate])
+    )[0]
+    group = outcome["probe_groups"][0]
+    assertion_ir = group["compiled_assertion"]["assertion_ir"]
+
+    assert outcome["candidate"]["goal"]["target"] == "HighwayMode.exit_hwy"
+    assert assertion_ir["normative"]["target"] == "HighwayMode.exit_hwy"
+    assert assertion_ir["observed"]["target"] == "HighwayMode.FinishState"
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+
+
+def test_transition_target_consistency_executes_with_two_exact_transition_ids() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    candidate = prototype.EvidenceCandidate(
+        obligation="Both explicitly stated exit behaviors must reach the highway exit.",
+        claim="The selected cruise exit has a target inconsistent with the reference exit.",
+        basis_kind="nl_literal",
+        nl_quote=pair["nl"].splitlines()[4],
+        priority=5,
+        locations=["NL5", "tr_0009", "tr_0011"],
+        proposed_l="L1",
+        goal=prototype.EvidenceGoal(
+            relation="transition_target_consistency",
+            observed_transition_id="tr_0009",
+            reference_transition_id="tr_0011",
+            target="HighwayMode.exit_hwy",
+        ),
+    )
+
+    outcome = prototype.execute_evidence_plan(
+        pair, inspect, prototype.EvidencePlan(candidates=[candidate])
+    )[0]
+    group = outcome["probe_groups"][0]
+    source_certificate = group["source_causality_certificate"]
+    execution = group["execution_certificate"]
+
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["source_attribution"]["status"] == "causal_dual_certificate"
+    assert source_certificate["kind"] == "source_transition_target_inconsistency"
+    assert source_certificate["observed_target"] == "HighwayMode.FinishState"
+    assert source_certificate["reference_target"] == "HighwayMode.exit_hwy"
+    assert source_certificate["reference_supports_normative_target"] is True
+    assert execution["terminal"] is True
+    assert execution["observations"]["observed_actual_projection"]["present"] is True
+    assert execution["observations"]["observed_normative_projection"]["present"] is False
+    assert execution["observations"]["reference_normative_projection"]["present"] is True
+
+    finding = prototype.build_finding_records([outcome])[0]
+    assert finding["witness_level"] == "W2"
+    assert finding["l_level"] == "L1"
+    assert finding["w_validation_errors"] == []
+    d_context = prototype.build_d_context(pair, [finding])
+    assert '"id":"tr_0009"' in d_context
+    assert '"id":"tr_0011"' in d_context
+    assert '"reference_transition_id":"tr_0011"' in d_context
+
+
+def test_transition_target_consistency_with_invalid_reference_degrades() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="Two semantically same-role transitions must share a target.",
+        claim="The observed transition has the wrong target.",
+        observed_fact="Two exact transition bindings were proposed.",
+        basis_kind="nl_literal",
+        nl_quote=pair["nl"].splitlines()[4],
+        priority=5,
+        locations=["NL5", "tr_0009"],
+        proposed_l="L1",
+        goal=prototype.EvidenceGoal(
+            relation="transition_target_consistency",
+            observed_transition_id="tr_0009",
+            reference_transition_id="tr_missing",
+            target="HighwayMode.exit_hwy",
+        ),
+    )
+
+    grounded, diagnostics = prototype._validate_direct_grounded_candidate(
+        pair, candidate, lane="surface_candidates", index=0
+    )
+    outcome = prototype.execute_evidence_plan(
+        pair, inspect, prototype.EvidencePlan(candidates=[grounded])
+    )[0]
+
+    assert diagnostics[0]["class"] == "formal_transition_inconsistent"
+    assert grounded.goal.reference_transition_id is None
+    assert outcome["probe_groups"][0]["witness_level"] == "W1"
+    assert outcome["probe_groups"][0]["execution_certificate"] is None
+
+
+def test_d_prompt_distinguishes_stable_termination_from_deadlock_finality() -> None:
+    assert "`explicit_final=false` is not a defeater" in prototype.D_SYSTEM_PROMPT
+    assert "Reserve the exact `explicit_final` rule for" in prototype.D_SYSTEM_PROMPT
+    assert "`reachable_deadlock`" in prototype.D_SYSTEM_PROMPT
+
+
+def test_0029_scope_negative_event_route_executes_to_w2() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    candidate = prototype.EvidenceCandidate(
+        obligation="Urban completion must not enter HighwayMode.",
+        claim="Urban completion enters the HighwayMode FinishState.",
+        basis_kind="nl_literal",
+        nl_quote=pair["nl"].splitlines()[9],
+        priority=5,
+        locations=["NL10", "PUML:L43"],
+        proposed_l="L2",
+        goal=prototype.EvidenceGoal(
+            relation="event_avoids_scope",
+            observed_transition_id="tr_0026",
+            source="UrbanMode",
+            forbidden_scope="HighwayMode",
+        ),
+    )
+
+    outcome = prototype.execute_evidence_plan(
+        pair, inspect, prototype.EvidencePlan(candidates=[candidate])
+    )[0]
+    group = outcome["probe_groups"][0]
+
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["source_attribution"]["status"] == "causal_dual_certificate"
+    assert group["source_causality_certificate"]["target_ancestor_chain"] == [
+        "HighwayMode.FinishState",
+        "HighwayMode",
+    ]
+    assert group["checks"][1]["execution"]["result"] == "false"
+    finding = prototype.build_finding_records([outcome])[0]
+    assert finding["claims"] == [
+        (
+            "Source transition 'tr_0026' from 'UrbanMode' to "
+            "'HighwayMode.FinishState' enters forbidden scope 'HighwayMode'."
+        )
+    ]
+    assert finding["model_claims"] == [
+        "Urban completion enters the HighwayMode FinishState."
+    ]
+
+
+def test_0029_semantically_selected_extraneous_edge_executes_to_w2() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    candidate = prototype.EvidenceCandidate(
+        obligation="The selected authored completion edge must be absent.",
+        claim="The selected completion edge is extraneous.",
+        basis_kind="nl_literal",
+        nl_quote=pair["nl"].splitlines()[5],
+        priority=4,
+        locations=["NL6", "PUML:L40"],
+        proposed_l="L0",
+        goal=prototype.EvidenceGoal(
+            relation="transition_absent",
+            observed_transition_id="tr_0025",
+        ),
+    )
+
+    outcome = prototype.execute_evidence_plan(
+        pair, inspect, prototype.EvidencePlan(candidates=[candidate])
+    )[0]
+    group = outcome["probe_groups"][0]
+
+    assert outcome["candidate"]["goal"]["expected"] is False
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["source_causality_certificate"]["kind"] == (
+        "source_extraneous_transition"
+    )
+
+
+def test_negative_transition_contract_is_rendered_as_present_but_forbidden() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="One exact authored edge is semantically forbidden.",
+        claim="The exact authored edge should be absent.",
+        observed_fact="The selected source transition exists.",
+        basis_kind="nl_literal",
+        nl_quote=pair["nl"].splitlines()[9],
+        priority=1,
+        locations=["NL10", "tr_0026"],
+        proposed_l="L0",
+        goal=prototype.EvidenceGoal(
+            relation="transition_contract",
+            observed_transition_id="tr_0026",
+            source="UrbanMode",
+            target="HighwayMode.FinishState",
+            trigger="auto_finished=true",
+            expected=False,
+        ),
+    )
+
+    outcome = prototype.execute_evidence_plan(
+        pair,
+        inspect,
+        prototype.IssueDiscoveryPlan(
+            surface_candidates=[candidate], behavior_candidates=[]
+        ),
+    )[0]
+    finding = prototype.build_finding_records([outcome])[0]
+    certificate = finding["source_causality_certificate"]
+
+    assert certificate["kind"] == "source_extraneous_transition"
+    assert certificate["actual"] is True
+    assert finding["claims"] == [
+        "Exact source transition 'tr_0026' is present but forbidden."
+    ]
+
+
+def test_same_llm_concept_id_cannot_bind_to_two_formal_states() -> None:
+    pair, _ = _pair_and_inspect("0029")
+    plan = prototype.ContractExtractionPlan(
+        initial_contracts=[],
+        transition_groups=[
+            prototype.ExpectedTransitionGroup(
+                source="HighwayMode.cruise",
+                source_concept_id="C-cruise",
+                targets=[
+                    prototype.ExpectedTransitionTarget(
+                        target="HighwayMode.FinishState",
+                        target_concept_id="C-exit-highway",
+                    )
+                ],
+                nl_line=5,
+                priority=5,
+            )
+        ],
+    )
+    bindings = [
+        prototype.SemanticConceptBinding(
+            concept_id="C-cruise",
+            source_state_id="HighwayMode.cruise",
+            nl_lines=[5],
+        ),
+        prototype.SemanticConceptBinding(
+            concept_id="C-exit-highway",
+            source_state_id="HighwayMode.exit_hwy",
+            nl_lines=[4, 5],
+        ),
+    ]
+
+    grounded, diagnostics = prototype._validate_grounded_contract_plan(
+        pair, plan, bindings
+    )
+
+    assert grounded.transition_groups == []
+    assert diagnostics[0]["class"] == "formal_id_invalid"
+    assert "disagrees with C-exit-highway binding" in diagnostics[0]["message"]
+
+
+def test_concurrency_gate_reads_canonical_ast_not_raw_plantuml_text() -> None:
+    pair, _ = _pair_and_inspect("0029")
+    pair = {**pair, "plantuml": "@startuml\n--\n@enduml"}
+
+    assert prototype._source_has_concurrent_separator(pair) is False
