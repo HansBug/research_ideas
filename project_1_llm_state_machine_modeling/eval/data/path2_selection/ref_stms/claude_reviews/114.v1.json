@@ -1,0 +1,75 @@
+{
+  "case_id": "114",
+  "verdict": "REVISE",
+  "scores": {
+    "semantic_correctness": {
+      "emoji": "🟠",
+      "evidence": "ParkingRotating/RetrievalRotating 的停车判定被改写为 `movement_counter >= selected_slot` 计数模型，但原文 [E12] 仅说 'IR2 mendeteksi ruang parkir yang lewat maka motor OFF'、[E15] 仅说 'selected slot sudah berada dibawah'，并未给出 IR2-N-次=停车的语义，这是 codex 自己承认的'形式化设计'，与原文一次性触发语义不符。"
+    },
+    "nl_faithfulness": {
+      "emoji": "🟠",
+      "evidence": "多处发明：`movement_counter >= selected_slot` 阈值；CarEntered/PositionAdjusted/FinishBack 三个事件原文无；ParkingComplete 状态及其 GreenReadyOff 在 NL 无对应；EmergencyRedIndicatorOn 抽象名（NL 未提 emergency 红灯）。"
+    },
+    "c_axis_grounding_appropriateness": {
+      "emoji": "🟠",
+      "evidence": "C1 违反 expansion.axis_coverage 明确声明 '原文不支持每周期 aspect'，却在 ParkingRotating/RetrievalRotating 强塞 during {} 累加 counter；C2 部分 guard 是发明（counter 阈值）；C3 不用与 axis_coverage 一致；C4 大体恰当。"
+    },
+    "nl_coverage": {
+      "emoji": "🟡",
+      "evidence": "7 个 scenario 覆盖 Start/Stop/满位/IR1 对齐/slot 1-8/SALAH-BENAR/出场递减/Emergency 全部 emergency 控件，主要 NL 特性已覆盖，但若移除 counter 模型后 slot8_before_stop_guard、ir2_before_selected_count_keeps_rotating 等场景需重写。"
+    }
+  },
+  "hallucinations_found": [
+    {
+      "type": "threshold",
+      "name": "movement_counter >= selected_slot",
+      "issue": "codex notes §5 自承：原文未给 PLC 计数公式，'IR2 检测经过的车位'被擅自形式化为'数到 selected_slot 才停'，把单次触发改为 N 次阈值"
+    },
+    {
+      "type": "event",
+      "name": "CarEntered",
+      "issue": "EntryGateOpen→AlignmentCheck 的 CarEntered 在 NL 无对应；原文只提 proximity 开闸→IR1 检查，没有中间 CarEntered 事件"
+    },
+    {
+      "type": "event",
+      "name": "PositionAdjusted",
+      "issue": "AdjustPosition→AlignmentCheck 的 PositionAdjusted 是发明；NL 只说 'pengguna harus membenarkan posisi'，无显式重检事件"
+    },
+    {
+      "type": "event",
+      "name": "FinishBack",
+      "issue": "ParkingComplete→Ready 的 FinishBack 在 NL 无对应，原文未描述停车完成后如何回到主循环"
+    },
+    {
+      "type": "state",
+      "name": "ParkingComplete",
+      "issue": "NL 未描述独立的 ParkingComplete 状态及'green ready off'语义；停车完成后行为原文不明"
+    },
+    {
+      "type": "effector",
+      "name": "EmergencyRedIndicatorOn/Off",
+      "issue": "NL 提到 DARURAT 控件但未提 emergency 专用红色指示灯，红灯在 NL 中只与 LotFull 绑定 [E7]"
+    }
+  ],
+  "specific_revision_suggestions": [
+    "移除 ParkingRotating/RetrievalRotating 的 `during { movement_counter = movement_counter + 1; }` aspect 和所有 `movement_counter >= selected_slot` guard；改为单次 `Infrared2SpaceDetected` 触发 ParkingRotating→ParkingComplete、单次 `SelectedSlotBelow` 触发 RetrievalRotating→RetrievalValidation，符合 [E12][E15] 原文单事件停车语义",
+    "若仍想保留 movement_counter 变量（因 [E24] Reset Counter 明确提到），仅作为 Reset Counter 触发的可观察变量，不参与 guard，并在 notes 中明确这是 [E24] 显式支持的 'parking-space movement counting' 而非停车判定",
+    "删除 CarEntered 事件，让 EntryGateOpen→AlignmentCheck 由 Infrared1On/Off 直接驱动（NL 描述就是 proximity 开闸后立即由 IR1 判定），或将 EntryGateOpen 与 AlignmentCheck 合并",
+    "将 PositionAdjusted 替换为再次 Infrared1On（合理：用户调整后 IR1 重新点亮），减少发明事件",
+    "删除 ParkingComplete 状态及 FinishBack 事件，让 ParkingRotating 在 Infrared2 时直接回到 Ready 并 `parked_count++`，或在 STM.md §1 摘录中明确补一句完成后行为再保留",
+    "将 EmergencyManual.enter/exit 的 EmergencyRedIndicatorOn/Off 抽象重命名为 NL 直接支持的 `DaruratIndicatorOn`（仅描述 DARURAT ON 状态），避免暗示 NL 未提的红灯硬件"
+  ],
+  "missing_scenarios_suggestions": [
+    "ir2_single_trigger_stops_parking: 验证去除 counter 后 IR2 单次触发直接 ParkingRotating→ParkingComplete（修订后必须）",
+    "selected_slot_below_single_trigger: 验证 SelectedSlotBelow 单次触发直接 RetrievalRotating→RetrievalValidation",
+    "emergency_from_lot_full_recovers: LotFull 状态下 DaruratOn→EmergencyManual→DaruratOff→Ready，验证已声明的 LotFull→EmergencyManual 路径",
+    "reset_counter_in_normal_path: Ready 或 ParkingRotating 中 ResetCounter 是否有定义（当前只在 EmergencyManual 自环），核对 [E24] 是否仅限应急"
+  ],
+  "overall_comment": "codex draft 在状态拓扑、HMI slot 按钮、SALAH/BENAR 校验、emergency 控件几方面忠实度较高，scenarios 也较丰富；但核心缺陷是把原文的 IR2/SelectedSlotBelow 单次触发停车改造成 movement_counter 阈值计数模型，并因此强行使用 C1 during aspect，这既违反 expansion.axis_coverage 的明确声明，也属于无 NL 支撑的语义发明。需要回退到一次性触发模型，并清理 CarEntered/PositionAdjusted/FinishBack 等发明事件后才能进入下一阶段。",
+  "_meta": {
+    "id": "114",
+    "claude_model": "?",
+    "duration_ms": 97839,
+    "cost_usd": 1.257258
+  }
+}

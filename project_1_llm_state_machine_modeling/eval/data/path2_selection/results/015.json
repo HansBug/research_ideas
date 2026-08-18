@@ -1,0 +1,37 @@
+{
+  "case_id": "015",
+  "paper_slug": "autonomous-navigation-framework-holonomic-mobile-robots-agriculture",
+  "case_name": "Greenhouse row-inspection navigation supervisor",
+  "bucket": "HSM-layered",
+  "what_it_is": "该 case 控制温室全向移动机器人在 headland 与作物行之间的导航巡检流程，利用 stereo camera、LiDAR、语义分割和 TEB/SMACH 导航栈调度 waypoint 导航、轨道对齐、行内前进巡检与后退返回。典型流程是 WAIT_FOR_GOAL 接收行巡检任务后进入 PLAN_EXEC，再进入 VISUAL_SERVOING 中的 TARGET_ALIGNMENT 与 TRAVERSE_FORWARD/INSPECT/TRAVERSE_BACKWARD 循环。",
+  "scale": {
+    "state_count": 7,
+    "event_count": 8,
+    "variable_count": 6,
+    "transition_count": 14
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文明确写到从 WAIT_FOR_GOAL 转入 PLAN_EXEC block，成功后转入 VISUAL_SERVOING block，后者包含 TARGET_ALIGNMENT 以及 TRAVERSE_FORWARD、INSPECT、TRAVERSE_BACKWARD 的迭代过程。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文轨道对齐部分给出 dθ≈0、dy≈0、dx≈0 三个持续检查条件，并说明全部满足时 alignment process completed，可作为复合数值 guard。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟢",
+      "evidence": "原文写明 any failure that may occur throughout the entire operation returns to a common state, reported as invalid, aborted, or a failure, and then to initialization state。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文涉及物理移动底盘的 velocity vector/linear and angular velocity commands、metallic wheels 和 heating-pipe rails，但该 FSM 中明确控制的主要硬件出口仍集中在移动底盘导航。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 很有价值：它同时具备层次化 block、复合数值对齐 guard 和跨全流程 failure recovery，能直接支撑 C1/C2/C3 的 in-loop grounding。NL 描述清晰、对象是真实农业机器人导航监督控制器，且与常见纯软件协议样本差异明显。",
+  "potential_pitfalls": "C4 不宜高估，UR10e、升降台和喷洒机构虽在平台描述中出现，但本 case 的 FSM 证据主要覆盖导航底盘而非多执行器工艺控制。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "015"
+  }
+}

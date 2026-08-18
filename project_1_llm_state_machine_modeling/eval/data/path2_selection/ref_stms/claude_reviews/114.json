@@ -1,0 +1,49 @@
+{
+  "case_id": "114",
+  "verdict": "APPROVE",
+  "scores": {
+    "semantic_correctness": {
+      "emoji": "🟢",
+      "evidence": "12 个 mode、事件命名（Start/Stop/ProximityOn/Infrared1On/Off/Infrared2SpaceDetected/AmbilMobil/OKPark/OKRetrieve/SelectedSlotBelow/BENAR/SALAH/DaruratOn/Off 等）、变量 parked_count/selected_slot/movement_counter 与 STM §2 + [E5]-[E24] 一一对应；IR1 ON/OFF 分支、IR2 单次触发回 Ready、BENAR 开闸 + ExitProximityOn 递减 parked_count、SALAH 回 RetrievalSlotSelected、emergency 多入口均忠实于原文。"
+    },
+    "nl_faithfulness": {
+      "emoji": "🟡",
+      "evidence": "主体均可溯源；轻度推断：(a) `Ready -> Ready :: ResetCounter` 与 `ParkingRotating/RetrievalRotating -> self :: ResetCounter` 把 [E24] HMI 控件扩展到正常路径，原文未明确说 Reset Counter 在非应急路径下可触发；(b) `EmergencyManual` 中 `CWLower/CCWLower effect movement_counter++` 是把 [E22] 的 'CW/CCW lowering 控件' 与 'parking-space movement counter' 主动关联，NL 未直接绑定。"
+    },
+    "c_axis_grounding_appropriateness": {
+      "emoji": "🟢",
+      "evidence": "C1 不用（NL 明确 axis_coverage 说无周期 hook，正确）；C2 仅用 `parked_count < 8 / >= 8`（[E1][E7]）与 `selected_slot ∈ [1,8]`（[E11]），全部直接溯源；C3 不用（NL 不支持任意状态 forced fault，正确，emergency 改用显式 `* -> EmergencyManual :: DaruratOn` 的若干显式边）；C4 abstract effector 名（GreenActiveLedOn / BarrierClosedRedLedOn / RotaryParkingMotorOn / RelayCwCcwRotaryMotorOn / YellowLedOnSelectedSlotBelow / DaruratIndicatorOn 等）均映射到 NL 中具名硬件。"
+    },
+    "nl_coverage": {
+      "emoji": "🟢",
+      "evidence": "10 个 scenarios 覆盖 Start/Stop、proximity 入场、IR1 ON/OFF + adjust、Parkir 全部 slot 1-8 按钮、slot 边界拒绝（9 / 0）、IR2 单次触发停车、AmbilMobil 全 slot、SALAH 重试 + BENAR + ExitProximityOn 递减、LotFull + ResetJumlah、emergency 从 ParkingRotating/LotFull 双入口、CW/CCW lowering 计数、ResetCounter / ResetJumlah 在 emergency 与正常路径行为均有命中。"
+    },
+    "hallucinations_found": [
+      {
+        "type": "event",
+        "name": "ResetCounter (Ready / ParkingRotating / RetrievalRotating self-loops)",
+        "issue": "[E24] 只把 Reset Counter 列为 HMI 应急/恢复控件（cancelled parking/retrieval、counting errors、disasters），原文未明示在 Ready 或旋转过程中正常触发；codex 在 notes §6.3 将其扩展为通用 HMI recovery，属于轻度合理推断而非硬证据。"
+      },
+      {
+        "type": "effector",
+        "name": "movement_counter++ on CWLower/CCWLower",
+        "issue": "[E22] 只说 '按钮和指示器用于 CW/CCW 下放车位'，并未明确 CW/CCW 每次按下等于 movement_counter 自增 1；这是 codex 主动把 [E24] 的 'movement counting' 与 [E22] 按钮绑定形成的推断。"
+      }
+    ],
+    "specific_revision_suggestions": [
+      "可在 STM.md 后续 iter 中把 `Ready -> Ready :: ResetCounter` 与 `ParkingRotating/RetrievalRotating -> self :: ResetCounter` 的合理性以注释形式回写到 desc/notes，避免被后续 reviewer 误判为 hallucination；或限定 ResetCounter 仅在 EmergencyManual 与 Ready 中可见。",
+      "若希望对 CW/CCW 计数语义更保守，可把 `EmergencyManual -> EmergencyManual :: CWLower/CCWLower effect { movement_counter++ }` 改为不带 effect（保留事件而不绑定计数），把计数变化仅留给 `ResetCounter` 清零；当前写法可保留，但建议在 notes 中显式标注 '本绑定属于推断'。"
+    ],
+    "missing_scenarios_suggestions": [
+      "emergency_from_retrieval_validation: 验证 RetrievalValidation 下 DaruratOn → EmergencyManual → DaruratOff 回 Ready 路径（当前 scenarios 触达 ParkingRotating / LotFull 入口，但未触达 RetrievalValidation 这一显式声明的 emergency 入口）。",
+      "entry_check_slot8_boundary: 验证 parked_count=7 时 ProximityOn → EntryGateOpen 通过（当前 LotFull 用 parked_count=8 命中，但 parked_count < 8 这一阈值另一侧 7 → EntryGateOpen 缺乏显式 boundary 测试）。"
+    ],
+    "overall_comment": "codex 在 iter2 已根据前轮 claude 反馈删除了 counter-threshold guard、during aspect、CarEntered/PositionAdjusted/FinishBack/ParkingComplete 等明显 hallucination，并把 IR2/SelectedSlotBelow 改回单事件触发，结构与 NL 高度对齐；C-axis 用法克制且都有原文支持，scenarios 覆盖完整。仅余 ResetCounter 通用化与 CW/CCW 计数推断两处轻度扩展，不构成阻塞，建议直接 APPROVE 并把上述推断点在 notes 中显式标注。"
+  },
+  "_meta": {
+    "id": "114",
+    "claude_model": "?",
+    "duration_ms": 76756,
+    "cost_usd": 0.88619625
+  }
+}

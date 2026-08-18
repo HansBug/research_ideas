@@ -1,0 +1,169 @@
+def int forward_drivable = 0;
+def int left_drivable = 0;
+def int right_drivable = 0;
+def int back_drivable = 0;
+def float travel_meters = 0.0;
+def int intersection_type_changed = 0;
+def int step_counter = 0;
+def int intersection_signal = 0;
+def int rotation_done = 0;
+def int plan_action = 0;
+
+state AskForDirectionsSupervisor {
+    event PersonFound;
+    event PersonReached;
+    event DirectionsComplete;
+    event StateFailure;
+    event GoalHallwayAction;
+    event PersonWaypointAction;
+
+    [*] -> Wander;
+
+    state Wander {
+        >> during before abstract MaintainSlamFromImuLidar;
+
+        [*] -> MakeDecision;
+
+        state MakeDecision {
+            enter abstract AnalyzeRegisteredIntersectionAndQualitativeDirections;
+        }
+
+        state RotateRecovery {
+            during abstract SpinInPlace360ToRefreshMaps;
+        }
+
+        state Rotate {
+            enter abstract RotateTowardRecoveryAngleOrTurnAround180;
+        }
+
+        state DriveForward {
+            during abstract DriveForwardAndMonitorRegisteredIntersections;
+            during { travel_meters = travel_meters + 1.0; }
+        }
+
+        state DriveThroughIntersection {
+            enter { travel_meters = 0.0; }
+            during abstract DriveForwardThroughIntersection;
+            during { travel_meters = travel_meters + 1.0; }
+        }
+
+        MakeDecision -> [*] : /PersonFound;
+        MakeDecision -> [*] : /StateFailure;
+        MakeDecision -> DriveThroughIntersection : if [intersection_signal == 2] effect {
+            intersection_signal = 0;
+        };
+        MakeDecision -> RotateRecovery : if [forward_drivable == 0 && left_drivable == 0 && right_drivable == 0 && back_drivable == 0];
+        MakeDecision -> DriveForward : if [forward_drivable == 1 || left_drivable == 1 || right_drivable == 1];
+
+        RotateRecovery -> [*] : /PersonFound;
+        RotateRecovery -> [*] : /StateFailure;
+        RotateRecovery -> Rotate : if [forward_drivable == 1 || left_drivable == 1 || right_drivable == 1 || back_drivable == 1];
+
+        Rotate -> [*] : /PersonFound;
+        Rotate -> [*] : /StateFailure;
+        Rotate -> DriveForward : if [rotation_done == 1] effect {
+            rotation_done = 0;
+        };
+
+        DriveForward -> [*] : /PersonFound;
+        DriveForward -> [*] : /StateFailure;
+        DriveForward -> MakeDecision : if [intersection_signal == 1] effect {
+            intersection_signal = 0;
+        };
+        DriveForward -> RotateRecovery : if [back_drivable == 1 && forward_drivable == 0 && left_drivable == 0 && right_drivable == 0];
+
+        DriveThroughIntersection -> [*] : /PersonFound;
+        DriveThroughIntersection -> [*] : /StateFailure;
+        DriveThroughIntersection -> DriveForward : if [travel_meters > 2.0 && intersection_type_changed == 1] effect {
+            travel_meters = 0.0;
+            intersection_type_changed = 0;
+        };
+    }
+
+    state ApproachPerson {
+        enter abstract DriveTowardPersonAndSynthesizeAttentionSpeech;
+    }
+
+    state HoldConversation {
+        enter abstract RequestDirectionsWithSpeechRecognition;
+        during abstract ContinueSpokenDialogueWithMicrophoneAndSpeaker;
+    }
+
+    state FollowDirections {
+        enter { step_counter = 1; }
+        >> during before abstract ContinuouslyMapWithImuLidar;
+
+        [*] -> MakeDecision;
+
+        state MakeDecision {
+            enter abstract SelectCurrentPlanStep;
+        }
+
+        state DriveForward {
+            during abstract DriveForwardUntilSpecifiedIntersection;
+            during { travel_meters = travel_meters + 1.0; }
+        }
+
+        state Rotate {
+            enter abstract RotateByPlanDirection;
+        }
+
+        state DriveThroughIntersection {
+            enter { travel_meters = 0.0; }
+            during abstract DriveForwardThroughIntersection;
+            during { travel_meters = travel_meters + 1.0; }
+        }
+
+        state Complete {
+            enter abstract MarkDirectionsPlanComplete;
+        }
+
+        MakeDecision -> [*] : /StateFailure;
+        MakeDecision -> DriveForward : if [plan_action == 1];
+        MakeDecision -> Rotate : if [plan_action == 2];
+        MakeDecision -> DriveThroughIntersection : if [plan_action == 3];
+        MakeDecision -> Complete : if [plan_action == 4];
+
+        DriveForward -> [*] : /StateFailure;
+        DriveForward -> MakeDecision : if [intersection_signal == 3] effect {
+            step_counter = step_counter + 1;
+            plan_action = 2;
+            intersection_signal = 0;
+        };
+
+        Rotate -> [*] : /StateFailure;
+        Rotate -> MakeDecision : if [rotation_done == 1] effect {
+            step_counter = step_counter + 1;
+            plan_action = 3;
+            rotation_done = 0;
+        };
+
+        DriveThroughIntersection -> [*] : /StateFailure;
+        DriveThroughIntersection -> MakeDecision : if [travel_meters > 2.0 && intersection_type_changed == 1] effect {
+            step_counter = step_counter + 1;
+            travel_meters = 0.0;
+            intersection_type_changed = 0;
+            plan_action = 4;
+        };
+
+        Complete -> [*] : /GoalHallwayAction;
+        Complete -> [*] : /PersonWaypointAction;
+        Complete -> [*] : /StateFailure;
+    }
+
+    state NavigateDoor {
+        enter abstract DetectDoorsAndInspectDoorTagsWithCameraLidar;
+        during abstract ReadDoorTagsWithCameraAndOcr;
+    }
+
+    Wander -> ApproachPerson : PersonFound;
+    Wander -> Wander : StateFailure;
+    ApproachPerson -> HoldConversation : PersonReached;
+    ApproachPerson -> Wander : StateFailure;
+    HoldConversation -> FollowDirections : DirectionsComplete;
+    HoldConversation -> Wander : StateFailure;
+    FollowDirections -> NavigateDoor : GoalHallwayAction;
+    FollowDirections -> Wander : PersonWaypointAction;
+    FollowDirections -> Wander : StateFailure;
+    NavigateDoor -> Wander : StateFailure;
+}

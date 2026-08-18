@@ -1,0 +1,37 @@
+{
+  "case_id": "096",
+  "paper_slug": "battery-balancing-fsm-flyback-converters",
+  "case_name": "Three-state thermal/SoC balancing supervisor",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "该 case 是串联 LFP 电池组的 BMS 均衡监督器，每 1 s 根据最大 SoC 偏差、最大温差和平均 SoC 在关断、SoC 均衡、温度均衡三种模式间切换。执行端是每个电芯对应的 flyback balancing circuit/current loop，通过分配参考均衡电流降低温差或 SoC 差。",
+  "scale": {
+    "state_count": 3,
+    "event_count": 1,
+    "variable_count": 5,
+    "transition_count": 6
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文明确说“In the proposed finite-state machine-based control design, three states are defined. Each state has its balancing strategy”，但图 6B/§4.2.1 是扁平三态切换，没有层次 init/pseudo 语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "迁移守卫使用 SL,max、TL,max、Sav 等数值量，例如 TL,max 达到 Tlim,h、SL,max 与 Slim,l 比较、Sav 与 Sav,lim 比较，且阈值给出为 0.1%、0.5°C、0.6°C。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "⚪",
+      "evidence": "原文三态只定义 State 1 circuits off、State 2 balance SoCs、State 3 balance temperatures，未出现 any state/from any mode 的 fault、error、abort 或 recovery 路径。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文写明使用“flyback converters/balancing circuits”，并由 balancing controller 为每个电芯 inner current loop 计算 reference current，但硬件出口基本是同类均衡变换器。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C2：数值 guard 清晰、阈值具体、状态切换条件可直接进入 parse/semantic/sim 反馈；同时它是典型 BMS 电力电子控制对象，NL 描述独立且可追溯。",
+  "potential_pitfalls": "模型规模较小且无 fault-recovery，也没有层次化结构，主要支撑 C2/C4，不能作为 C1/C3 强样本。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "096"
+  }
+}

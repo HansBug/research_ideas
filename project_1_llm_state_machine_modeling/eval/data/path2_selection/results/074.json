@@ -1,0 +1,37 @@
+{
+  "case_id": "074",
+  "paper_slug": "communication-within-multi-fsm-based-robotic-systems",
+  "case_name": "Table-Tennis Ball-Collecting Robot Search-Collect-Avoid Hierarchy",
+  "bucket": "HSM-layered",
+  "what_it_is": "这是一个乒乓球收集移动机器人的控制子系统，上层在 search、collect、avoid 三个行为间切换，输入来自摄像头球检测和声呐障碍检测。collect 中根据球的图像偏移与半径生成车体移动和吸尘器开关命令，遇到障碍则进入避障行为。",
+  "scale": {
+    "state_count": 3,
+    "event_count": 4,
+    "variable_count": 12,
+    "transition_count": 6
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文明确说 cbc 的 activities are defined using a hierarchical FSM，且每个状态关联 search/collect/avoid 行为并在 Fig.7 中用 restart_at(SUBMACHINE) 与 wait 状态实现子机执行。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "式(1)给出 dx = x - w/2、vel = calculate_vel(r)，并以 r >= r_min / r < r_min 控制 vacuum TURN_ON/OFF，属于清楚的阈值与数值 effect。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "原文写 collect 的 terminal condition 是 not ball_det or obst_det，且 Whenever an obstacle is detected behaviour avoid is invoked，但没有任意状态 ErrorHandler。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文列出 Ebc,body 控制四个车轮电机、Ebc,vacuum 控制吸尘器，虚拟执行器把命令转换成 PWM 并发送给真实执行器。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C1：它是清晰的机器人层次行为控制样本，含子机启动/等待/终止语义，容易暴露层次状态生成错误。C2/C4 也有可用 grounding：数值阈值、图像偏移、速度计算和真实执行器边界都比较明确。",
+  "potential_pitfalls": "原文只完整形式化了 collect 行为，search 和 avoid 主要以 similar way 和文字说明给出，因此 transition 细节需要保守抽象。",
+  "verdict": "✨ GOOD",
+  "_meta": {
+    "id": "074"
+  }
+}

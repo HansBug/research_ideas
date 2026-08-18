@@ -1,0 +1,132 @@
+def int state_confirm = 0;
+def float Rleft = 100.0;
+def float Rright = 100.0;
+def float front_range = 100.0;
+def float kc = 0.2;
+def float Fs = 40.0;
+
+state JoeySupervisor {
+    >> during before abstract MonitorRollPitchAccelerationRangeSpeedAt5Hz;
+
+    [*] -> StateEstimation;
+
+    state StateEstimation {
+        enter abstract StopToReassessSensorValues;
+        during abstract FuseRangeImuWheelLegAndPreviousStateHistory;
+        during { state_confirm = state_confirm + 1; }
+    }
+
+    state StraightCenter {
+        enter abstract EngageClosedLoopSpeedControl;
+        during abstract DriveLeftAndRightWheelLegMicroMotorsAtSpeed;
+        exit abstract ReleaseClosedLoopSpeedControl;
+    }
+
+    state StraightSided {
+        enter abstract EngageClosedLoopSpeedControl;
+        during abstract DriveLeftAndRightWheelLegMicroMotorsAtSpeed;
+        exit abstract ReleaseClosedLoopSpeedControl;
+    }
+
+    state Sided {
+        enter abstract EngageClosedLoopPositionControl;
+        during abstract FineStepSteerAwayFromWallOrObstacle;
+        exit abstract ReleaseClosedLoopPositionControl;
+    }
+
+    state LeftCorner {
+        enter abstract EngageClosedLoopPositionControl;
+        during abstract TurnLeft90WithLowPitchRoll;
+        exit abstract ReleaseClosedLoopPositionControl;
+    }
+
+    state CrashLeft {
+        enter abstract EngageClosedLoopPositionControl;
+        during abstract Turn30BackwardToPreviousTurningDirection;
+        exit abstract ReleaseClosedLoopPositionControl;
+    }
+
+    state CrashRight {
+        enter abstract EngageClosedLoopPositionControl;
+        during abstract Turn30BackwardToPreviousTurningDirection;
+        exit abstract ReleaseClosedLoopPositionControl;
+    }
+
+    state Cross {
+        enter abstract EngageClosedLoopPositionControl;
+        during abstract TurnRight90AtCrossJunction;
+        exit abstract ReleaseClosedLoopPositionControl;
+    }
+
+    state TJunction {
+        enter abstract EngageClosedLoopPositionControl;
+        during abstract TurnIntoFurthestRightDirection;
+        exit abstract ReleaseClosedLoopPositionControl;
+    }
+
+    state RightCorner {
+        enter abstract EngageClosedLoopPositionControl;
+        during abstract TurnRight90WithLowPitchRoll;
+        exit abstract ReleaseClosedLoopPositionControl;
+    }
+
+    state RightBranch {
+        enter abstract EngageClosedLoopPositionControl;
+        during abstract MoveForwardThenTurnRight45;
+        exit abstract ReleaseClosedLoopPositionControl;
+    }
+
+    state DeadEnd {
+        enter abstract EngageClosedLoopPositionControl;
+        during abstract TurnAround180AndRecenter;
+        exit abstract ReleaseClosedLoopPositionControl;
+    }
+
+    state FlipRisk {
+        enter abstract EngageClosedLoopPositionControl;
+        during abstract StepSlowlyForwardOrBackwardByPitchRoll;
+        exit abstract ReleaseClosedLoopPositionControl;
+    }
+
+    state OpenSpace {
+        enter abstract EngageClosedLoopPositionControl;
+        during abstract ApproachSlowlyAndMonitorConditions;
+        exit abstract ReleaseClosedLoopPositionControl;
+    }
+
+    state LeftBranch {
+        enter abstract EngageClosedLoopSpeedControl;
+        during abstract SlightlySteerAwayAndContinueStraight;
+        exit abstract ReleaseClosedLoopSpeedControl;
+    }
+
+    StateEstimation -> LeftCorner :: ConfirmLeftCorner;
+    StateEstimation -> CrashLeft :: ConfirmCrashLeft;
+    StateEstimation -> CrashRight :: ConfirmCrashRight;
+    StateEstimation -> Cross :: ConfirmCross;
+    StateEstimation -> TJunction :: ConfirmTJunction;
+    StateEstimation -> RightCorner :: ConfirmRightCorner;
+    StateEstimation -> RightBranch :: ConfirmRightBranch;
+    StateEstimation -> DeadEnd :: ConfirmDeadEnd;
+    StateEstimation -> FlipRisk :: ConfirmFlipRisk;
+    StateEstimation -> OpenSpace :: ConfirmOpenSpace;
+    StateEstimation -> LeftBranch :: ConfirmLeftBranch;
+    StateEstimation -> Sided : if [state_confirm > 1 && front_range < Fs];
+    StateEstimation -> StraightCenter : if [state_confirm > 1 && front_range >= Fs && Rleft + Rright > 0.0 && abs(Rleft - Rright) / (Rleft + Rright) <= kc];
+    StateEstimation -> StraightSided : if [state_confirm > 1 && front_range >= Fs && Rleft + Rright > 0.0 && abs(Rleft - Rright) / (Rleft + Rright) > kc];
+
+    StraightCenter -> StateEstimation :: NewStateDetected effect { state_confirm = 0; };
+    StraightSided -> StateEstimation :: NewStateDetected effect { state_confirm = 0; };
+    Sided -> StraightSided :: SidedSteeringComplete;
+    LeftCorner -> StraightCenter :: LeftCornerTurnComplete;
+    CrashLeft -> StateEstimation :: CrashCorrectionComplete effect { state_confirm = 0; };
+    CrashRight -> StateEstimation :: CrashCorrectionComplete effect { state_confirm = 0; };
+    Cross -> StraightCenter :: CrossTurnRightComplete;
+    TJunction -> StraightCenter :: TurnRight90Complete;
+    RightCorner -> StraightCenter :: RightCornerTurnComplete;
+    RightBranch -> StateEstimation :: RightBranchTurnComplete effect { state_confirm = 0; };
+    DeadEnd -> StraightCenter :: DeadEndTurnComplete effect { state_confirm = 0; };
+    FlipRisk -> StateEstimation :: FlipRiskEscaped effect { state_confirm = 0; };
+    OpenSpace -> StateEstimation :: OpenSpaceReassess effect { state_confirm = 0; };
+    LeftBranch -> StraightCenter :: ContinueStraightPastLeftBranch;
+}

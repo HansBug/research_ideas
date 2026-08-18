@@ -1,0 +1,517 @@
+{
+  "scenarios": [
+    {
+      "name": "initialize_and_idle_scan_cycles",
+      "description": "覆盖 E5 的初始化和 do-forever 扫描循环，并在无输入时连续 3 个 scan cycle 保持扫描态。",
+      "initial_state": null,
+      "initial_vars": {
+        "WLS": 0,
+        "TCS": 0,
+        "SKS": 0,
+        "MDS": 0,
+        "KPS": 0,
+        "water_voltage": 0.14,
+        "room_count": 0,
+        "wrong_code_checks": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SmartHomeController.Initializing",
+          "expected_vars": {
+            "WLS": 0,
+            "water_voltage": 0.14,
+            "room_count": 0,
+            "wrong_code_checks": 0
+          },
+          "name": "enter_initializing"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SmartHomeController.Scan",
+          "expected_vars": {
+            "WLS": 0,
+            "water_voltage": 0.14,
+            "room_count": 0,
+            "wrong_code_checks": 0
+          },
+          "name": "enter_scan"
+        },
+        {
+          "before_cycles": 2,
+          "events": [],
+          "expected_state": "SmartHomeController.Scan",
+          "expected_vars": {
+            "WLS": 0,
+            "water_voltage": 0.14,
+            "room_count": 0,
+            "wrong_code_checks": 0
+          },
+          "name": "three_idle_scan_cycles"
+        }
+      ]
+    },
+    {
+      "name": "water_priority_and_tank_full",
+      "description": "覆盖 E6/E7/E15：WLS 在 0.13V 时优先于更低优先级输入进入水位分支，最低液位开泵，最大液位显示满箱并停泵。",
+      "initial_state": "SmartHomeController.Scan",
+      "initial_vars": {
+        "WLS": 1,
+        "TCS": 1,
+        "SKS": 1,
+        "MDS": 0,
+        "KPS": 1,
+        "water_voltage": 0.13,
+        "room_count": 0,
+        "wrong_code_checks": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": null,
+          "expected_state": "SmartHomeController.Scan",
+          "expected_vars": {
+            "WLS": 1,
+            "TCS": 1,
+            "SKS": 1,
+            "water_voltage": 0.13
+          },
+          "name": "qualify_wls_at_threshold"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SmartHomeController.WaterPumpOn",
+          "expected_vars": {
+            "WLS": 1,
+            "water_voltage": 0.13,
+            "room_count": 0
+          },
+          "name": "wls_priority_selects_water"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "MaximumLevel"
+          ],
+          "expected_state": "SmartHomeController.WaterTankFull",
+          "expected_vars": {
+            "WLS": 1,
+            "water_voltage": 0.13,
+            "room_count": 0
+          },
+          "name": "maximum_level_stops_pump"
+        }
+      ]
+    },
+    {
+      "name": "comparator_zero_then_temperature_high",
+      "description": "覆盖 E6/E8/E14：水位电压高于 0.13V 时 WLS 为零，随后 TCS 按优先级进入温度分支并在温度过高时打开 AC。",
+      "initial_state": "SmartHomeController.Scan",
+      "initial_vars": {
+        "WLS": 0,
+        "TCS": 1,
+        "SKS": 0,
+        "MDS": 0,
+        "KPS": 0,
+        "water_voltage": 0.14,
+        "room_count": 0,
+        "wrong_code_checks": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": null,
+          "expected_state": "SmartHomeController.Scan",
+          "expected_vars": {
+            "WLS": 0,
+            "TCS": 1,
+            "water_voltage": 0.14
+          },
+          "name": "voltage_above_threshold_zeroes_wls"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SmartHomeController.TemperatureCheck",
+          "expected_vars": {
+            "WLS": 0,
+            "TCS": 1,
+            "water_voltage": 0.14
+          },
+          "name": "tcs_selected_after_wls_false"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "TemperatureTooHigh"
+          ],
+          "expected_state": "SmartHomeController.TemperatureACOn",
+          "expected_vars": {
+            "WLS": 0,
+            "TCS": 1,
+            "wrong_code_checks": 0
+          },
+          "name": "too_high_switches_ac_on"
+        }
+      ]
+    },
+    {
+      "name": "temperature_not_high_ac_off",
+      "description": "覆盖 E8 的 otherwise 分支：温度未过高时关闭 AC。",
+      "initial_state": "SmartHomeController.TemperatureCheck",
+      "initial_vars": {
+        "WLS": 0,
+        "TCS": 1,
+        "SKS": 0,
+        "MDS": 0,
+        "KPS": 0,
+        "water_voltage": 0.14,
+        "room_count": 0,
+        "wrong_code_checks": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "TemperatureNotHigh"
+          ],
+          "expected_state": "SmartHomeController.TemperatureACOff",
+          "expected_vars": {
+            "WLS": 0,
+            "TCS": 1,
+            "water_voltage": 0.14
+          },
+          "name": "otherwise_switches_ac_off"
+        }
+      ]
+    },
+    {
+      "name": "smoke_hazard_alarm_and_gsm",
+      "description": "覆盖 E6/E9/E10：较高优先级输入均未激活时，SKS 进入烟雾报警并触达 LCD、alarm 和 GSM AT-command 动作。",
+      "initial_state": "SmartHomeController.Scan",
+      "initial_vars": {
+        "WLS": 0,
+        "TCS": 0,
+        "SKS": 1,
+        "MDS": 0,
+        "KPS": 0,
+        "water_voltage": 0.14,
+        "room_count": 0,
+        "wrong_code_checks": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": null,
+          "expected_state": "SmartHomeController.Scan",
+          "expected_vars": {
+            "WLS": 0,
+            "SKS": 1,
+            "water_voltage": 0.14
+          },
+          "name": "scan_smoke_inputs"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SmartHomeController.SmokeAlarm",
+          "expected_vars": {
+            "WLS": 0,
+            "SKS": 1,
+            "wrong_code_checks": 0
+          },
+          "name": "smoke_alarm_actions"
+        }
+      ]
+    },
+    {
+      "name": "room_entrance_dark_then_exit_decrements",
+      "description": "覆盖 E6/E11/E12：MDS 进入房间照明分支，入口且房间暗时开灯并加计数，随后 exit 在 count 非零时递减并关灯。",
+      "initial_state": "SmartHomeController.Scan",
+      "initial_vars": {
+        "WLS": 0,
+        "TCS": 0,
+        "SKS": 0,
+        "MDS": 1,
+        "KPS": 0,
+        "water_voltage": 0.14,
+        "room_count": 0,
+        "wrong_code_checks": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": null,
+          "expected_state": "SmartHomeController.Scan",
+          "expected_vars": {
+            "WLS": 0,
+            "MDS": 1,
+            "room_count": 0
+          },
+          "name": "scan_room_inputs"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SmartHomeController.RoomLightCheck",
+          "expected_vars": {
+            "WLS": 0,
+            "MDS": 1,
+            "room_count": 0
+          },
+          "name": "mds_selected_after_higher_inputs_false"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "EntranceDark"
+          ],
+          "expected_state": "SmartHomeController.RoomLightOn",
+          "expected_vars": {
+            "MDS": 1,
+            "room_count": 1,
+            "wrong_code_checks": 0
+          },
+          "name": "dark_entrance_switches_on_and_increments"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SmartHomeController.Scan",
+          "expected_vars": {
+            "WLS": 0,
+            "MDS": 1,
+            "room_count": 1
+          },
+          "name": "return_to_scan_after_entrance"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SmartHomeController.RoomLightCheck",
+          "expected_vars": {
+            "WLS": 0,
+            "MDS": 1,
+            "room_count": 1
+          },
+          "name": "room_branch_for_exit"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Exit"
+          ],
+          "expected_state": "SmartHomeController.RoomExitCheck",
+          "expected_vars": {
+            "MDS": 1,
+            "room_count": 1
+          },
+          "name": "exit_checks_count"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SmartHomeController.RoomLightOff",
+          "expected_vars": {
+            "MDS": 1,
+            "room_count": 0
+          },
+          "name": "nonzero_count_decrements_and_light_off"
+        }
+      ]
+    },
+    {
+      "name": "room_entrance_not_dark_switches_off",
+      "description": "覆盖 E11 的 entrance otherwise 分支：入口处理发现房间不暗时关灯且不增加 count。",
+      "initial_state": "SmartHomeController.RoomLightCheck",
+      "initial_vars": {
+        "WLS": 0,
+        "TCS": 0,
+        "SKS": 0,
+        "MDS": 0,
+        "KPS": 0,
+        "water_voltage": 0.14,
+        "room_count": 0,
+        "wrong_code_checks": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "EntranceLight"
+          ],
+          "expected_state": "SmartHomeController.RoomLightOff",
+          "expected_vars": {
+            "room_count": 0,
+            "WLS": 0,
+            "wrong_code_checks": 0
+          },
+          "name": "not_dark_switches_light_off"
+        }
+      ]
+    },
+    {
+      "name": "room_exit_zero_count_returns_scan",
+      "description": "覆盖 E12 的 count zero guard：exit 处理发现 count 为 0 时不递减、不关灯，直接回到扫描态。",
+      "initial_state": "SmartHomeController.RoomLightCheck",
+      "initial_vars": {
+        "WLS": 0,
+        "TCS": 0,
+        "SKS": 0,
+        "MDS": 0,
+        "KPS": 0,
+        "water_voltage": 0.14,
+        "room_count": 0,
+        "wrong_code_checks": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "Exit"
+          ],
+          "expected_state": "SmartHomeController.RoomExitCheck",
+          "expected_vars": {
+            "room_count": 0,
+            "WLS": 0,
+            "wrong_code_checks": 0
+          },
+          "name": "exit_with_zero_count_checks_zero"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SmartHomeController.Scan",
+          "expected_vars": {
+            "room_count": 0,
+            "WLS": 0,
+            "wrong_code_checks": 0
+          },
+          "name": "zero_count_returns_to_scan"
+        }
+      ]
+    },
+    {
+      "name": "keypad_correct_grants_access",
+      "description": "覆盖 E6/E13：KPS 在更高优先级输入均为 false 时进入 keypad 分支，正确 code 立即 grant access。",
+      "initial_state": "SmartHomeController.Scan",
+      "initial_vars": {
+        "WLS": 0,
+        "TCS": 0,
+        "SKS": 0,
+        "MDS": 0,
+        "KPS": 1,
+        "water_voltage": 0.14,
+        "room_count": 0,
+        "wrong_code_checks": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": null,
+          "expected_state": "SmartHomeController.Scan",
+          "expected_vars": {
+            "WLS": 0,
+            "KPS": 1,
+            "wrong_code_checks": 0
+          },
+          "name": "scan_keypad_inputs"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SmartHomeController.KeypadChecking",
+          "expected_vars": {
+            "WLS": 0,
+            "KPS": 1,
+            "wrong_code_checks": 0
+          },
+          "name": "kps_selected_last"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "CodeCorrect"
+          ],
+          "expected_state": "SmartHomeController.AccessGranted",
+          "expected_vars": {
+            "KPS": 1,
+            "wrong_code_checks": 0,
+            "room_count": 0
+          },
+          "name": "correct_code_grants_access"
+        }
+      ]
+    },
+    {
+      "name": "keypad_three_wrong_attempts_deny_access",
+      "description": "覆盖 E13/E10 的三次错误阈值：前两次 incorrect code 留在检查态，第三次达到阈值后 deny access、message、alarm、LCD error 和 GSM。",
+      "initial_state": "SmartHomeController.KeypadChecking",
+      "initial_vars": {
+        "WLS": 0,
+        "TCS": 0,
+        "SKS": 0,
+        "MDS": 0,
+        "KPS": 0,
+        "water_voltage": 0.14,
+        "room_count": 0,
+        "wrong_code_checks": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "CodeIncorrect"
+          ],
+          "expected_state": "SmartHomeController.KeypadChecking",
+          "expected_vars": {
+            "wrong_code_checks": 1,
+            "WLS": 0,
+            "room_count": 0
+          },
+          "name": "first_wrong_attempt_below_threshold"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "CodeIncorrect"
+          ],
+          "expected_state": "SmartHomeController.KeypadChecking",
+          "expected_vars": {
+            "wrong_code_checks": 2,
+            "WLS": 0,
+            "room_count": 0
+          },
+          "name": "second_wrong_attempt_below_threshold"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "CodeIncorrect"
+          ],
+          "expected_state": "SmartHomeController.KeypadChecking",
+          "expected_vars": {
+            "wrong_code_checks": 3,
+            "WLS": 0,
+            "room_count": 0
+          },
+          "name": "third_wrong_attempt_reaches_threshold"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SmartHomeController.AccessDenied",
+          "expected_vars": {
+            "wrong_code_checks": 3,
+            "WLS": 0,
+            "room_count": 0
+          },
+          "name": "threshold_guard_denies_access"
+        }
+      ]
+    }
+  ]
+}

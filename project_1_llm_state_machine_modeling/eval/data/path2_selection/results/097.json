@@ -1,0 +1,37 @@
+{
+  "case_id": "097",
+  "paper_slug": "autonomous-aerial-robot-high-speed-search-intercept",
+  "case_name": "Search-follow-catch mission controller",
+  "bucket": "FSM-basic",
+  "what_it_is": "该 case 控制高速搜索与拦截任务中的 UAV 高层 mission controller，利用长距/短距视觉检测、球检测和夹爪内激光传感器触发状态切换。典型流程是起飞后搜索目标、长距跟随、短距接近、对准夹爪抓球，成功后降落。",
+  "scale": {
+    "state_count": 6,
+    "event_count": 6,
+    "variable_count": 5,
+    "transition_count": 10
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文列出 START_STATE、SEARCH、FOLLOW_LONG_RANGE、FOLLOW_SHORT_RANGE、CATCH_BALL、LAND，并在 Figure 17 展示多状态切换，但也说明该 FSM 可用 small number of states and events 表示，未见层次化 composite state。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "Table 1 明确给出 LONG_RANGE_UAV_DETECTED 为 5 连续帧中 3 次检测、SHORT_RANGE_UAV_DETECTED 为 4 连续帧中 2 次检测、DETECTION_LOST 为 5 连续帧无新检测。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "Table 1 将 DETECTION_LOST 定义为 No new detections in 5 consecutive frames，Figure 17 中 FOLLOW_LONG_RANGE、FOLLOW_SHORT_RANGE、CATCH_BALL 等状态都有回到 SEARCH 的 detection-lost 恢复迁移，但不是任意状态全局 fault。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文说状态可 establish UAV speed 和 navigation goals，camera gimbal controller 按 LONG_RANGE_MODE/SHORT_RANGE_MODE 改变行为，且 gripper 由 Arduino Nano 控制 servomotor 开闭。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C2 与 C4：有清晰的连续帧计数型 guard，且状态动作直接连接 UAV 运动、云台和夹爪伺服等硬件出口。NL 描述和原文状态/事件表都较完整，适合作为真实机器人 T0 mission-control case。",
+  "potential_pitfalls": "Figure 17 只说明是 part of the transitions，完整迁移可能未全列，且结构本身是扁平 FSM，C1 层次化 dead-end grounding 不强。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "097"
+  }
+}

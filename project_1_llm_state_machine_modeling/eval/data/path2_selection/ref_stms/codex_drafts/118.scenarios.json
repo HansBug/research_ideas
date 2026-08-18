@@ -1,0 +1,343 @@
+{
+  "scenarios": [
+    {
+      "name": "commissioning_link_guard_to_operational",
+      "description": "覆盖 E3-E12：从 Offline 完成 commissioning，并验证 PreOperational 到 SafeOperational 会被 required real-time link guard 阻塞直到链路存在。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SubsystemLifecycleSupervisor.Offline",
+          "expected_vars": {
+            "configuration_selected": 0,
+            "required_real_time_link_present": 0,
+            "monitoring_cycles": 1
+          },
+          "name": "default_offline"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SubsystemLifecycleSupervisor.StartSubsystem"
+          ],
+          "expected_state": "SubsystemLifecycleSupervisor.SoftwareInit",
+          "expected_vars": {
+            "configuration_selected": 0,
+            "required_real_time_link_present": 0,
+            "monitoring_cycles": 2
+          },
+          "name": "start_software_init"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SubsystemLifecycleSupervisor.PublishParameters"
+          ],
+          "expected_state": "SubsystemLifecycleSupervisor.HardwareInit",
+          "expected_vars": {
+            "configuration_selected": 0,
+            "required_real_time_link_present": 0,
+            "monitoring_cycles": 3
+          },
+          "name": "parameters_published"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SubsystemLifecycleSupervisor.InitializeHardware"
+          ],
+          "expected_state": "SubsystemLifecycleSupervisor.PreOperational",
+          "expected_vars": {
+            "configuration_selected": 0,
+            "required_real_time_link_present": 0,
+            "monitoring_cycles": 4
+          },
+          "name": "hardware_initialized"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SubsystemLifecycleSupervisor.PreOperational",
+          "expected_vars": {
+            "configuration_selected": 0,
+            "required_real_time_link_present": 0,
+            "monitoring_cycles": 5
+          },
+          "name": "blocked_without_configuration_or_link"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SubsystemLifecycleSupervisor.SelectConfiguration"
+          ],
+          "expected_state": "SubsystemLifecycleSupervisor.PreOperational",
+          "expected_vars": {
+            "configuration_selected": 1,
+            "required_real_time_link_present": 0,
+            "monitoring_cycles": 6
+          },
+          "name": "configuration_selected_link_absent"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SubsystemLifecycleSupervisor.PreOperational",
+          "expected_vars": {
+            "configuration_selected": 1,
+            "required_real_time_link_present": 0,
+            "monitoring_cycles": 7
+          },
+          "name": "still_blocked_without_link"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SubsystemLifecycleSupervisor.RealTimeLinkPresent"
+          ],
+          "expected_state": "SubsystemLifecycleSupervisor.PreOperational",
+          "expected_vars": {
+            "configuration_selected": 1,
+            "required_real_time_link_present": 1,
+            "monitoring_cycles": 8
+          },
+          "name": "real_time_link_present"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SubsystemLifecycleSupervisor.SafeOperational",
+          "expected_vars": {
+            "configuration_selected": 0,
+            "required_real_time_link_present": 1,
+            "monitoring_cycles": 9
+          },
+          "name": "guard_allows_safe_operational"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SubsystemLifecycleSupervisor.VerificationCompleted"
+          ],
+          "expected_state": "SubsystemLifecycleSupervisor.Operational",
+          "expected_vars": {
+            "configuration_selected": 0,
+            "required_real_time_link_present": 1,
+            "monitoring_cycles": 10
+          },
+          "name": "verification_completed_operational"
+        }
+      ]
+    },
+    {
+      "name": "orderly_stop_to_offline",
+      "description": "覆盖 E4 与 STM 摘录 B：Operational 经 PostOperational、HardwareDeInit、SoftwareDeInit 有序撤销动作并回到 Offline。",
+      "initial_state": "SubsystemLifecycleSupervisor.Operational",
+      "initial_vars": {
+        "configuration_selected": 0,
+        "required_real_time_link_present": 1,
+        "monitoring_cycles": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "SubsystemLifecycleSupervisor.StopSubsystem"
+          ],
+          "expected_state": "SubsystemLifecycleSupervisor.PostOperational",
+          "expected_vars": {
+            "required_real_time_link_present": 1,
+            "monitoring_cycles": 1
+          },
+          "name": "stop_to_post_operational"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SubsystemLifecycleSupervisor.PostOperationalActionsRevoked"
+          ],
+          "expected_state": "SubsystemLifecycleSupervisor.HardwareDeInit",
+          "expected_vars": {
+            "required_real_time_link_present": 1,
+            "monitoring_cycles": 2
+          },
+          "name": "post_operational_revoked"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SubsystemLifecycleSupervisor.HardwareActionsRevoked"
+          ],
+          "expected_state": "SubsystemLifecycleSupervisor.SoftwareDeInit",
+          "expected_vars": {
+            "required_real_time_link_present": 1,
+            "monitoring_cycles": 3
+          },
+          "name": "hardware_deinit_revoked"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SubsystemLifecycleSupervisor.SoftwareActionsRevoked"
+          ],
+          "expected_state": "SubsystemLifecycleSupervisor.Offline",
+          "expected_vars": {
+            "configuration_selected": 0,
+            "required_real_time_link_present": 0,
+            "monitoring_cycles": 4
+          },
+          "name": "software_deinit_to_offline"
+        }
+      ]
+    },
+    {
+      "name": "medium_error_returns_to_safe_operational",
+      "description": "覆盖 E15-E16 与 E20：Operational 中 medium-severity error 将受影响 subsystem 退回 SafeOperational。",
+      "initial_state": "SubsystemLifecycleSupervisor.Operational",
+      "initial_vars": {
+        "configuration_selected": 0,
+        "required_real_time_link_present": 1,
+        "monitoring_cycles": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "SubsystemLifecycleSupervisor.MediumSeverityError"
+          ],
+          "expected_state": "SubsystemLifecycleSupervisor.SafeOperational",
+          "expected_vars": {
+            "configuration_selected": 0,
+            "required_real_time_link_present": 1,
+            "monitoring_cycles": 1
+          },
+          "name": "medium_error_safe_operational"
+        }
+      ]
+    },
+    {
+      "name": "high_error_forces_error_operational",
+      "description": "覆盖 E13 与 E15-E18：high-severity error 作为全局 forced fault path 进入 ErrorOperational 并关闭 affected real-time network。",
+      "initial_state": "SubsystemLifecycleSupervisor.Operational",
+      "initial_vars": {
+        "configuration_selected": 0,
+        "required_real_time_link_present": 1,
+        "monitoring_cycles": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "SubsystemLifecycleSupervisor.HighSeverityError"
+          ],
+          "expected_state": "SubsystemLifecycleSupervisor.ErrorOperational",
+          "expected_vars": {
+            "configuration_selected": 0,
+            "required_real_time_link_present": 0,
+            "monitoring_cycles": 1
+          },
+          "name": "high_error_error_operational"
+        }
+      ]
+    },
+    {
+      "name": "critical_temperature_limit_forces_error_operational",
+      "description": "覆盖 E14：critical hardware-temperature limit 被当作严重硬件条件上报 supervisor，并进入 ErrorOperational。",
+      "initial_state": "SubsystemLifecycleSupervisor.SafeOperational",
+      "initial_vars": {
+        "configuration_selected": 0,
+        "required_real_time_link_present": 1,
+        "monitoring_cycles": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "SubsystemLifecycleSupervisor.CriticalHardwareTemperatureLimit"
+          ],
+          "expected_state": "SubsystemLifecycleSupervisor.ErrorOperational",
+          "expected_vars": {
+            "configuration_selected": 0,
+            "required_real_time_link_present": 0,
+            "monitoring_cycles": 1
+          },
+          "name": "critical_temperature_error_operational"
+        }
+      ]
+    },
+    {
+      "name": "joystick_or_robot_unplug_shutdown",
+      "description": "覆盖 E17-E19：unplugging joystick or robot 触发 high-severity shutdown path，进入 ErrorOperational。",
+      "initial_state": "SubsystemLifecycleSupervisor.Operational",
+      "initial_vars": {
+        "configuration_selected": 0,
+        "required_real_time_link_present": 1,
+        "monitoring_cycles": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "SubsystemLifecycleSupervisor.JoystickOrRobotUnplugged"
+          ],
+          "expected_state": "SubsystemLifecycleSupervisor.ErrorOperational",
+          "expected_vars": {
+            "configuration_selected": 0,
+            "required_real_time_link_present": 0,
+            "monitoring_cycles": 1
+          },
+          "name": "unplug_forces_error_operational"
+        }
+      ]
+    },
+    {
+      "name": "low_error_and_progress_are_logged_only",
+      "description": "覆盖 E21：low-severity error/progress information 只记录，不改变 Operational mode。",
+      "initial_state": "SubsystemLifecycleSupervisor.Operational",
+      "initial_vars": {
+        "configuration_selected": 0,
+        "required_real_time_link_present": 1,
+        "monitoring_cycles": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "SubsystemLifecycleSupervisor.LowSeverityOrProgressInformation"
+          ],
+          "expected_state": "SubsystemLifecycleSupervisor.Operational",
+          "expected_vars": {
+            "configuration_selected": 0,
+            "required_real_time_link_present": 1,
+            "monitoring_cycles": 1
+          },
+          "name": "low_severity_no_state_change"
+        }
+      ]
+    },
+    {
+      "name": "supervisor_monitoring_runs_each_cycle",
+      "description": "覆盖 E2 与 E10：supervisor 在任意活动 state 中持续 monitoring subsystem 并维护 real-time link graph。",
+      "initial_state": "SubsystemLifecycleSupervisor.SafeOperational",
+      "initial_vars": {
+        "configuration_selected": 0,
+        "required_real_time_link_present": 1,
+        "monitoring_cycles": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 3,
+          "events": null,
+          "expected_state": "SubsystemLifecycleSupervisor.SafeOperational",
+          "expected_vars": {
+            "configuration_selected": 0,
+            "required_real_time_link_present": 1,
+            "monitoring_cycles": 3
+          },
+          "name": "three_empty_cycles_monitoring"
+        }
+      ]
+    }
+  ]
+}

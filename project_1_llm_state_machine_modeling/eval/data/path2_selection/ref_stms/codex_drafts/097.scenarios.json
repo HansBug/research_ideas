@@ -1,0 +1,651 @@
+{
+  "scenarios": [
+    {
+      "name": "startup_and_search_entry",
+      "description": "覆盖 [E3]-[E7]：默认进入 START_STATE，START_MISSION 后进入低空半椭圆 SEARCH 并触达双探测器 abstract action。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.START_STATE",
+          "expected_vars": {
+            "detection_count": 0,
+            "frame_window": 0,
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 0
+          },
+          "name": "default_enters_start_state"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "START_MISSION"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "detection_count": 0,
+            "frame_window": 0,
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 0
+          },
+          "name": "operator_starts_search"
+        }
+      ]
+    },
+    {
+      "name": "long_range_three_of_five_guard",
+      "description": "覆盖 [E8]-[E9]：长距 3/5 帧阈值到达后一拍由 SEARCH 进入 FOLLOW_LONG_RANGE，并触达 5 m XY 快速接近命令。",
+      "initial_state": "SearchFollowCatchMissionController.SEARCH",
+      "initial_vars": {
+        "detection_count": 0,
+        "frame_window": 0,
+        "no_new_detection_frames": 0,
+        "detection_seen_this_frame": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "LongRangeDetectionFrame"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "detection_count": 1,
+            "frame_window": 1
+          },
+          "name": "long_detection_1_of_1"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "LongRangeMissFrame"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "detection_count": 1,
+            "frame_window": 2
+          },
+          "name": "long_window_1_of_2"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "LongRangeDetectionFrame"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "detection_count": 2,
+            "frame_window": 3
+          },
+          "name": "long_detection_2_of_3"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "LongRangeMissFrame"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "detection_count": 2,
+            "frame_window": 4
+          },
+          "name": "below_long_threshold"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "LongRangeDetectionFrame"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "detection_count": 3,
+            "frame_window": 5
+          },
+          "name": "long_threshold_values_reached"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "detection_count": 0,
+            "frame_window": 0,
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 0
+          },
+          "name": "guard_enters_long_range_follow"
+        }
+      ]
+    },
+    {
+      "name": "long_range_failed_window_resets",
+      "description": "覆盖 [E8] 边界反例：只有 2/5 长距检测时不进入 FOLLOW_LONG_RANGE，并重置该 5 帧窗口。",
+      "initial_state": "SearchFollowCatchMissionController.SEARCH",
+      "initial_vars": {
+        "detection_count": 2,
+        "frame_window": 5,
+        "no_new_detection_frames": 0,
+        "detection_seen_this_frame": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "detection_count": 0,
+            "frame_window": 0,
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 0
+          },
+          "name": "two_of_five_does_not_trigger"
+        }
+      ]
+    },
+    {
+      "name": "search_threshold_exact_three_of_five_pattern_variants",
+      "description": "补 claude missing_scenarios：用 D-D-M-M-D 的 3/5 等价类验证 [E8] 不依赖上一版 alternating 到达顺序。",
+      "initial_state": "SearchFollowCatchMissionController.SEARCH",
+      "initial_vars": {
+        "detection_count": 0,
+        "frame_window": 0,
+        "no_new_detection_frames": 0,
+        "detection_seen_this_frame": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "LongRangeDetectionFrame"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "detection_count": 1,
+            "frame_window": 1
+          },
+          "name": "variant_detection_1"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "LongRangeDetectionFrame"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "detection_count": 2,
+            "frame_window": 2
+          },
+          "name": "variant_detection_2"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "LongRangeMissFrame"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "detection_count": 2,
+            "frame_window": 3
+          },
+          "name": "variant_miss_1"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "LongRangeMissFrame"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "detection_count": 2,
+            "frame_window": 4
+          },
+          "name": "variant_miss_2"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "LongRangeDetectionFrame"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "detection_count": 3,
+            "frame_window": 5
+          },
+          "name": "variant_detection_3"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "detection_count": 0,
+            "frame_window": 0,
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 0
+          },
+          "name": "variant_guard_enters_long_range"
+        }
+      ]
+    },
+    {
+      "name": "long_range_new_detection_resets_loss_counter",
+      "description": "覆盖 [E9] 与 [E15]：FOLLOW_LONG_RANGE 中连续空帧累计 no-new 计数，新的长距检测清零该计数并重新触达 5 m approach。",
+      "initial_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+      "initial_vars": {
+        "detection_count": 0,
+        "frame_window": 0,
+        "no_new_detection_frames": 0,
+        "detection_seen_this_frame": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 3,
+          "events": null,
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "no_new_detection_frames": 3,
+            "detection_seen_this_frame": 0
+          },
+          "name": "three_empty_cycles_accumulate"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "LongRangeDetectionFrame"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 0
+          },
+          "name": "new_long_detection_resets_loss_counter"
+        }
+      ]
+    },
+    {
+      "name": "long_range_new_detection_retriggers_5m_approach",
+      "description": "补 claude missing_scenarios：FOLLOW_LONG_RANGE 中多次 LongRangeDetectionFrame 均保持 long-range following、清零 loss counter，并通过 self-transition 重新触发 5 m XY approach enter action。",
+      "initial_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+      "initial_vars": {
+        "detection_count": 0,
+        "frame_window": 0,
+        "no_new_detection_frames": 4,
+        "detection_seen_this_frame": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "LongRangeDetectionFrame"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 0
+          },
+          "name": "first_new_long_detection_retriggers"
+        },
+        {
+          "before_cycles": 2,
+          "events": null,
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "no_new_detection_frames": 2
+          },
+          "name": "loss_counter_rebuilds"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "LongRangeDetectionFrame"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 0
+          },
+          "name": "second_new_long_detection_retriggers"
+        },
+        {
+          "before_cycles": 1,
+          "events": null,
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "no_new_detection_frames": 1
+          },
+          "name": "one_more_empty_cycle"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "LongRangeDetectionFrame"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 0
+          },
+          "name": "third_new_long_detection_retriggers"
+        }
+      ]
+    },
+    {
+      "name": "short_range_two_of_four_guard",
+      "description": "覆盖 [E10]-[E11]：FOLLOW_LONG_RANGE 中短距 2/4 帧阈值到达后一拍进入 FOLLOW_SHORT_RANGE，并触达 4 m standoff 与禁用长距探测器。",
+      "initial_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+      "initial_vars": {
+        "detection_count": 0,
+        "frame_window": 0,
+        "no_new_detection_frames": 0,
+        "detection_seen_this_frame": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "ShortRangeDetectionFrame"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "detection_count": 1,
+            "frame_window": 1,
+            "no_new_detection_frames": 0
+          },
+          "name": "short_detection_1_of_1"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ShortRangeMissFrame"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "detection_count": 1,
+            "frame_window": 2,
+            "no_new_detection_frames": 1
+          },
+          "name": "short_window_1_of_2"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ShortRangeDetectionFrame"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "detection_count": 2,
+            "frame_window": 3,
+            "no_new_detection_frames": 0
+          },
+          "name": "short_detection_2_of_3"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ShortRangeMissFrame"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "detection_count": 2,
+            "frame_window": 4,
+            "no_new_detection_frames": 1
+          },
+          "name": "short_threshold_values_reached"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_SHORT_RANGE",
+          "expected_vars": {
+            "detection_count": 0,
+            "frame_window": 0,
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 0
+          },
+          "name": "guard_enters_short_range_follow"
+        }
+      ]
+    },
+    {
+      "name": "short_range_failed_window_resets",
+      "description": "覆盖 [E10] 边界反例：只有 1/4 短距检测时不进入 FOLLOW_SHORT_RANGE，并重置该 4 帧窗口。",
+      "initial_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+      "initial_vars": {
+        "detection_count": 1,
+        "frame_window": 4,
+        "no_new_detection_frames": 0,
+        "detection_seen_this_frame": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "detection_count": 0,
+            "frame_window": 0,
+            "no_new_detection_frames": 1,
+            "detection_seen_this_frame": 0
+          },
+          "name": "one_of_four_does_not_trigger"
+        }
+      ]
+    },
+    {
+      "name": "ball_catch_continue_planned_trajectory_and_land",
+      "description": "覆盖 [E12]-[E18]：短距跟随后 BALL_DETECTED 进入 CATCH_BALL，球出视野后仍停留在 CATCH_BALL 内继续 planned trajectory，SUCCESSFUL_CATCH 后 LAND。",
+      "initial_state": "SearchFollowCatchMissionController.FOLLOW_SHORT_RANGE",
+      "initial_vars": {
+        "detection_count": 0,
+        "frame_window": 0,
+        "no_new_detection_frames": 0,
+        "detection_seen_this_frame": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "BALL_DETECTED"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.CATCH_BALL",
+          "expected_vars": {
+            "detection_count": 0,
+            "frame_window": 0,
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 0
+          },
+          "name": "ball_detected_enters_catch"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "BALL_DETECTED"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.CATCH_BALL",
+          "expected_vars": {
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 0
+          },
+          "name": "new_ball_detection_keeps_alignment"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "BALL_LEAVES_CAMERA_FIELD_OF_VIEW"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.CATCH_BALL",
+          "expected_vars": {
+            "no_new_detection_frames": 1,
+            "detection_seen_this_frame": 0
+          },
+          "name": "ball_out_of_fov_stays_in_catch_ball"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SUCCESSFUL_CATCH"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.LAND",
+          "expected_vars": {
+            "detection_count": 0,
+            "frame_window": 0,
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 1
+          },
+          "name": "laser_successful_catch_lands"
+        }
+      ]
+    },
+    {
+      "name": "catch_to_land_without_planned_trajectory",
+      "description": "补 claude missing_scenarios：删除 PLANNED_TRAJECTORY 后，CATCH_BALL 可直接由 SUCCESSFUL_CATCH 进入 LAND，验证 [E16]-[E17] 最短主线。",
+      "initial_state": "SearchFollowCatchMissionController.CATCH_BALL",
+      "initial_vars": {
+        "detection_count": 0,
+        "frame_window": 0,
+        "no_new_detection_frames": 0,
+        "detection_seen_this_frame": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "SUCCESSFUL_CATCH"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.LAND",
+          "expected_vars": {
+            "detection_count": 0,
+            "frame_window": 0,
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 1
+          },
+          "name": "catch_success_lands_directly"
+        }
+      ]
+    },
+    {
+      "name": "detection_lost_from_follow_short",
+      "description": "覆盖 [E15] 的 per-cycle 路径：FOLLOW_SHORT_RANGE 中 5 个连续无新检测帧后，下一拍经 C3 forced guard 回到 SEARCH。",
+      "initial_state": "SearchFollowCatchMissionController.FOLLOW_SHORT_RANGE",
+      "initial_vars": {
+        "detection_count": 0,
+        "frame_window": 0,
+        "no_new_detection_frames": 0,
+        "detection_seen_this_frame": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 3,
+          "events": null,
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_SHORT_RANGE",
+          "expected_vars": {
+            "no_new_detection_frames": 3,
+            "detection_seen_this_frame": 0
+          },
+          "name": "three_no_detection_cycles"
+        },
+        {
+          "before_cycles": 2,
+          "events": null,
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_SHORT_RANGE",
+          "expected_vars": {
+            "no_new_detection_frames": 5,
+            "detection_seen_this_frame": 0
+          },
+          "name": "five_no_detection_cycles_boundary"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "detection_count": 0,
+            "frame_window": 0,
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 0
+          },
+          "name": "forced_detection_lost_returns_to_search"
+        }
+      ]
+    },
+    {
+      "name": "detection_lost_from_follow_long",
+      "description": "覆盖 claude global_detection_lost_from_any_tracking 的 FOLLOW_LONG_RANGE 初态：达到 5 个无新检测帧后由 root-level forced transition 回 SEARCH。",
+      "initial_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+      "initial_vars": {
+        "detection_count": 2,
+        "frame_window": 4,
+        "no_new_detection_frames": 5,
+        "detection_seen_this_frame": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "detection_count": 0,
+            "frame_window": 0,
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 0
+          },
+          "name": "follow_long_forced_detection_lost_returns_to_search"
+        }
+      ]
+    },
+    {
+      "name": "detection_lost_from_catch_ball",
+      "description": "覆盖 claude global_detection_lost_from_any_tracking 的 CATCH_BALL 初态：达到 5 个无新检测帧后由 root-level forced transition 回 SEARCH。",
+      "initial_state": "SearchFollowCatchMissionController.CATCH_BALL",
+      "initial_vars": {
+        "detection_count": 0,
+        "frame_window": 0,
+        "no_new_detection_frames": 5,
+        "detection_seen_this_frame": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "detection_count": 0,
+            "frame_window": 0,
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 0
+          },
+          "name": "catch_forced_detection_lost_returns_to_search"
+        }
+      ]
+    },
+    {
+      "name": "explicit_detection_lost_event_returns_to_search",
+      "description": "覆盖 [E15] Table 1 显式 DETECTION_LOST event：root event 在任意 tracking mode 中触发 C3 forced recovery 到 SEARCH。",
+      "initial_state": "SearchFollowCatchMissionController.CATCH_BALL",
+      "initial_vars": {
+        "detection_count": 1,
+        "frame_window": 3,
+        "no_new_detection_frames": 5,
+        "detection_seen_this_frame": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "SearchFollowCatchMissionController.DETECTION_LOST"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "detection_count": 0,
+            "frame_window": 0,
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 0
+          },
+          "name": "explicit_detection_lost_event_forces_search"
+        }
+      ]
+    }
+  ]
+}

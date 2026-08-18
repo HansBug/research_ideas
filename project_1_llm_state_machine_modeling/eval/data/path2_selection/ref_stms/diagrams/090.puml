@@ -1,0 +1,109 @@
+@startuml
+hide empty description
+
+skinparam state {
+  BackgroundColor<<pseudo>> LightGray
+  BackgroundColor<<composite>> LightBlue
+  BorderColor<<pseudo>> Gray
+  FontStyle<<pseudo>> italic
+}
+
+legend top left
+|= Variable |= Type |= Initial Value |
+| state_confirm | int | 0 |
+| Rleft | float | 100.0 |
+| Rright | float | 100.0 |
+| front_range | float | 100.0 |
+| kc | float | 0.2 |
+| Fs | float | 40.0 |
+endlegend
+
+state "JoeySupervisor" as joey_supervisor <<composite>> {
+    state "StateEstimation" as joey_supervisor__state_estimation
+    state "StraightCenter" as joey_supervisor__straight_center
+    state "StraightSided" as joey_supervisor__straight_sided
+    state "Sided" as joey_supervisor__sided
+    state "LeftCorner" as joey_supervisor__left_corner
+    state "CrashLeft" as joey_supervisor__crash_left
+    state "CrashRight" as joey_supervisor__crash_right
+    state "Cross" as joey_supervisor__cross
+    state "TJunction" as joey_supervisor__t_junction
+    state "RightCorner" as joey_supervisor__right_corner
+    state "RightBranch" as joey_supervisor__right_branch
+    state "DeadEnd" as joey_supervisor__dead_end
+    state "FlipRisk" as joey_supervisor__flip_risk
+    state "OpenSpace" as joey_supervisor__open_space
+    state "LeftBranch" as joey_supervisor__left_branch
+    [*] --> joey_supervisor__state_estimation
+    joey_supervisor__state_estimation --> joey_supervisor__left_corner : StateEstimation.ConfirmLeftCorner
+    joey_supervisor__state_estimation --> joey_supervisor__crash_left : StateEstimation.ConfirmCrashLeft
+    joey_supervisor__state_estimation --> joey_supervisor__crash_right : StateEstimation.ConfirmCrashRight
+    joey_supervisor__state_estimation --> joey_supervisor__cross : StateEstimation.ConfirmCross
+    joey_supervisor__state_estimation --> joey_supervisor__t_junction : StateEstimation.ConfirmTJunction
+    joey_supervisor__state_estimation --> joey_supervisor__right_corner : StateEstimation.ConfirmRightCorner
+    joey_supervisor__state_estimation --> joey_supervisor__right_branch : StateEstimation.ConfirmRightBranch
+    joey_supervisor__state_estimation --> joey_supervisor__dead_end : StateEstimation.ConfirmDeadEnd
+    joey_supervisor__state_estimation --> joey_supervisor__flip_risk : StateEstimation.ConfirmFlipRisk
+    joey_supervisor__state_estimation --> joey_supervisor__open_space : StateEstimation.ConfirmOpenSpace
+    joey_supervisor__state_estimation --> joey_supervisor__left_branch : StateEstimation.ConfirmLeftBranch
+    joey_supervisor__state_estimation --> joey_supervisor__sided : state_confirm > 1 && front_range < Fs
+    joey_supervisor__state_estimation --> joey_supervisor__straight_center : state_confirm > 1 && front_range >= Fs && Rleft + Rright > 0.0 && abs(Rleft - Rright) / (Rleft + Rright) <= kc
+    joey_supervisor__state_estimation --> joey_supervisor__straight_sided : state_confirm > 1 && front_range >= Fs && Rleft + Rright > 0.0 && abs(Rleft - Rright) / (Rleft + Rright) > kc
+    joey_supervisor__straight_center --> joey_supervisor__state_estimation : StraightCenter.NewStateDetected
+    note on link
+    effect {
+        state_confirm = 0;
+    }
+    end note
+    joey_supervisor__straight_sided --> joey_supervisor__state_estimation : StraightSided.NewStateDetected
+    note on link
+    effect {
+        state_confirm = 0;
+    }
+    end note
+    joey_supervisor__sided --> joey_supervisor__straight_sided : Sided.SidedSteeringComplete
+    joey_supervisor__left_corner --> joey_supervisor__straight_center : LeftCorner.LeftCornerTurnComplete
+    joey_supervisor__crash_left --> joey_supervisor__state_estimation : CrashLeft.CrashCorrectionComplete
+    note on link
+    effect {
+        state_confirm = 0;
+    }
+    end note
+    joey_supervisor__crash_right --> joey_supervisor__state_estimation : CrashRight.CrashCorrectionComplete
+    note on link
+    effect {
+        state_confirm = 0;
+    }
+    end note
+    joey_supervisor__cross --> joey_supervisor__straight_center : Cross.CrossTurnRightComplete
+    joey_supervisor__t_junction --> joey_supervisor__straight_center : TJunction.TurnRight90Complete
+    joey_supervisor__right_corner --> joey_supervisor__straight_center : RightCorner.RightCornerTurnComplete
+    joey_supervisor__right_branch --> joey_supervisor__state_estimation : RightBranch.RightBranchTurnComplete
+    note on link
+    effect {
+        state_confirm = 0;
+    }
+    end note
+    joey_supervisor__dead_end --> joey_supervisor__straight_center : DeadEnd.DeadEndTurnComplete
+    note on link
+    effect {
+        state_confirm = 0;
+    }
+    end note
+    joey_supervisor__flip_risk --> joey_supervisor__state_estimation : FlipRisk.FlipRiskEscaped
+    note on link
+    effect {
+        state_confirm = 0;
+    }
+    end note
+    joey_supervisor__open_space --> joey_supervisor__state_estimation : OpenSpace.OpenSpaceReassess
+    note on link
+    effect {
+        state_confirm = 0;
+    }
+    end note
+    joey_supervisor__left_branch --> joey_supervisor__straight_center : LeftBranch.ContinueStraightPastLeftBranch
+}
+[*] --> joey_supervisor
+joey_supervisor --> [*]
+@enduml

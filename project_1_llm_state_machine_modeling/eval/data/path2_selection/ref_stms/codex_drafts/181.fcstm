@@ -1,0 +1,122 @@
+def int WLS = 0;
+def int TCS = 0;
+def int SKS = 0;
+def int MDS = 0;
+def int KPS = 0;
+def float water_voltage = 0.14;
+def int room_count = 0;
+def int wrong_code_checks = 0;
+
+state SmartHomeController {
+    [*] -> Initializing;
+
+    state Initializing {
+        enter abstract InitializeProcessVariables;
+    }
+
+    state Scan {
+        during abstract ScanProcessVariables;
+        during {
+            if [water_voltage == 0.13] {
+                WLS = 1;
+            } else {
+                WLS = 0;
+            }
+        }
+    }
+
+    state WaterPumpOn {
+        event MaximumLevel;
+        enter abstract SwitchOnPump;
+    }
+
+    state WaterTankFull {
+        enter abstract DisplayTankFull;
+        enter abstract SwitchOffPump;
+    }
+
+    state TemperatureCheck {
+        event TemperatureTooHigh;
+        event TemperatureNotHigh;
+        enter abstract CheckTemperature;
+    }
+
+    state TemperatureACOn {
+        enter abstract SwitchOnAC;
+    }
+
+    state TemperatureACOff {
+        enter abstract SwitchOffAC;
+    }
+
+    state SmokeAlarm {
+        enter abstract SoundAlarm;
+        enter abstract DisplaySmokeMessageLCD;
+        enter abstract ActivateGSMATCommand;
+    }
+
+    state RoomLightCheck {
+        event EntranceDark;
+        event EntranceLight;
+        event Exit;
+        enter abstract CheckEntrance;
+        enter abstract CheckRoomLightIntensity;
+    }
+
+    state RoomLightOn {
+        enter abstract SwitchOnLight;
+    }
+
+    state RoomLightOff {
+        enter abstract SwitchOffLight;
+    }
+
+    state RoomExitCheck {
+        enter abstract CheckExit;
+        enter abstract CheckCountZero;
+    }
+
+    state KeypadChecking {
+        event CodeCorrect;
+        event CodeIncorrect;
+        enter abstract CheckCode;
+    }
+
+    state AccessGranted {
+        enter abstract GrantAccess;
+    }
+
+    state AccessDenied {
+        enter abstract DenyAccess;
+        enter abstract SendMessage;
+        enter abstract SoundAlarm;
+        enter abstract DisplayErrorLCD;
+        enter abstract ActivateGSMATCommand;
+    }
+
+    Initializing -> Scan;
+    Scan -> WaterPumpOn : if [WLS == 1 && water_voltage == 0.13];
+    Scan -> TemperatureCheck : if [WLS == 0 && TCS == 1];
+    Scan -> SmokeAlarm : if [WLS == 0 && TCS == 0 && SKS == 1];
+    Scan -> RoomLightCheck : if [WLS == 0 && TCS == 0 && SKS == 0 && MDS == 1];
+    Scan -> KeypadChecking : if [WLS == 0 && TCS == 0 && SKS == 0 && MDS == 0 && KPS == 1];
+    WaterPumpOn -> WaterTankFull :: MaximumLevel;
+    WaterTankFull -> Scan;
+    TemperatureCheck -> TemperatureACOn :: TemperatureTooHigh;
+    TemperatureCheck -> TemperatureACOff :: TemperatureNotHigh;
+    TemperatureACOn -> Scan;
+    TemperatureACOff -> Scan;
+    SmokeAlarm -> Scan;
+    RoomLightCheck -> RoomLightOn :: EntranceDark effect { room_count = room_count + 1; };
+    RoomLightCheck -> RoomLightOff :: EntranceLight;
+    RoomLightCheck -> RoomExitCheck :: Exit;
+    RoomLightOn -> Scan;
+    RoomLightOff -> Scan;
+    RoomExitCheck -> RoomLightOff : if [room_count > 0] effect { room_count = room_count - 1; };
+    RoomExitCheck -> Scan : if [room_count == 0];
+    KeypadChecking -> AccessGranted :: CodeCorrect effect { wrong_code_checks = 0; };
+    KeypadChecking -> KeypadChecking :: CodeIncorrect effect { wrong_code_checks = wrong_code_checks + 1; };
+    KeypadChecking -> AccessDenied : if [wrong_code_checks >= 3];
+    AccessGranted -> Scan;
+    AccessDenied -> Scan;
+}

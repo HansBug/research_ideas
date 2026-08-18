@@ -1,0 +1,54 @@
+{
+  "case_id": "097",
+  "verdict": "REVISE",
+  "scores": {
+    "semantic_correctness": {
+      "emoji": "🟠",
+      "evidence": "STM §1 摘录 B 明确列举的 FSM 主状态仅含 START_STATE/SEARCH/FOLLOW_LONG_RANGE/FOLLOW_SHORT_RANGE/CATCH_BALL/LAND（'The following list summarizes the most important states'），codex 新增 PLANNED_TRAJECTORY 把 CATCH_BALL 内 'keeps following the planned trajectory' 这段 in-state 行为升格为独立 state；同时 Table 1 中 DETECTION_LOST 是显式 transition event，被压缩为纯 C2 数值守卫，事件触发语义丢失。"
+    },
+    "nl_faithfulness": {
+      "emoji": "🟡",
+      "evidence": "无伪造硬件/阈值/传感器（3/5、2/4、5 m、4 m、Arduino Nano、laser sensor、GPS/RTK 全部 [E3]/[E8]-[E11]/[E16]/[E18] 可溯）；可疑项 PLANNED_TRAJECTORY 状态与 *MissFrame 派生事件已被 codex notes §5 显式标注为规范化产物，属合理推断范围。"
+    },
+    "c_axis_grounding_appropriateness": {
+      "emoji": "🟡",
+      "evidence": "C1 用 during{} 累计 'no-new-detection frame' 周期化合理；C2 三处数值阈值（3/5、2/4、5）均扎实 grounded；C4 8 个 abstract action 全部映射到原文 effector；C3 未用但 [E15] DETECTION_LOST 跨 4 个 tracking mode 重复回 SEARCH 正是 `! * -> SEARCH` 的典型场景，codex 选择枚举式表达，C3 grounding 漏用。"
+    },
+    "nl_coverage": {
+      "emoji": "🟢",
+      "evidence": "11 条 scenarios 覆盖 startup、3/5 正反、per-cycle ≥3 cycles、2/4 正反、catch→planned→land 主线、4 个 tracking mode 各自 detection-lost 边界，all [E1]-[E18] 关键 hook 触达。"
+    }
+  },
+  "hallucinations_found": [
+    {
+      "type": "state",
+      "name": "PLANNED_TRAJECTORY",
+      "issue": "STM §1 摘录 B 的 FSM 主状态列表未列出此状态；[E14] 原文 'continues following the planned trajectory' 描述的是 CATCH_BALL 状态内行为，不是独立 FSM mode。codex notes §5 已自认这是规范化产物。"
+    },
+    {
+      "type": "event",
+      "name": "LongRangeMissFrame / ShortRangeMissFrame",
+      "issue": "NL 与 Table 1 未给出 miss-frame 事件名；属为表达 consecutive-frame window 引入的派生 event。可保留但应在 STM.md 或 notes 中明确为编码用占位。"
+    }
+  ],
+  "specific_revision_suggestions": [
+    "将 PLANNED_TRAJECTORY 状态删除：把 CATCH_BALL -> PLANNED_TRAJECTORY :: BALL_LEAVES_CAMERA_FIELD_OF_VIEW 改成 CATCH_BALL -> CATCH_BALL :: BALL_LEAVES_CAMERA_FIELD_OF_VIEW（或直接去掉该事件），并在 CATCH_BALL.during{} 或 enter abstract 中体现 'continue planned trajectory after ball leaves FOV'，使原文 [E14] 的 in-state 行为不被错升为 mode。",
+    "SUCCESSFUL_CATCH 仅保留 CATCH_BALL -> LAND 一条迁移即可，删除 PLANNED_TRAJECTORY -> LAND，使主线与 STM §1 摘录 C 的 'SUCCESSFUL_CATCH ... laser sensor inside gripper' 保持一一映射。",
+    "利用 C3 forced fault 表达 [E15] DETECTION_LOST 的跨状态恢复：在 root state 增加 `! * -> SEARCH : if [no_new_detection_frames >= 5]`（或显式 DETECTION_LOST event 形式 `! * -> SEARCH :: DETECTION_LOST`），消除 4 处重复 guard 并恢复 Table 1 的 event-driven 语义。",
+    "建议显式声明 DETECTION_LOST event（如 Table 1 命名），由 during{} 在 no_new_detection_frames>=5 时触发该 event，使 ref 同时保留 [E15] 的 event 名与数值阈值语义。",
+    "在 STM.md / notes 中显式注明 LongRangeMissFrame / ShortRangeMissFrame 是为 pyfcstm 数值窗口建模引入的编码占位，原文对应概念是 'frames without detection'，避免下游误读为论文真实事件。"
+  ],
+  "missing_scenarios_suggestions": [
+    "catch_to_land_without_planned_trajectory: 移除 PLANNED_TRAJECTORY 后，CATCH_BALL 中直接 SUCCESSFUL_CATCH 进入 LAND，验证 [E16]-[E17] 的最短主线。",
+    "global_detection_lost_from_any_tracking: 若采用 C3 ! * -> SEARCH，统一一条 scenario 在 FOLLOW_LONG/FOLLOW_SHORT/CATCH_BALL 三初态分别累计 5 cycles 后回 SEARCH，验证全局 fault 语义。",
+    "search_threshold_exact_three_of_five_pattern_variants: 增补 1-1-1-1-1（首末两帧都命中但中间杂乱）等 3/5 等价类，验证 [E8] 阈值不被特定到达顺序耦合。",
+    "long_range_new_detection_retriggers_5m_approach: 在 FOLLOW_LONG_RANGE 中触发多次 LongRangeDetectionFrame，断言 CommandFastFiveMeterXyApproach 被 re-trigger，覆盖 [E9] 'each new long-range detection commands fast motion' 的 per-detection 语义。"
+  ],
+  "overall_comment": "codex draft 在变量/阈值/硬件 grounding 与 scenarios 覆盖度上质量高，且自检通过。主要问题是把 [E14] 的 'continue planned trajectory' 这段 CATCH_BALL 内行为错误升格为独立状态 PLANNED_TRAJECTORY，偏离 STM §1 摘录 B 明确列出的 FSM 主状态集合；同时 DETECTION_LOST 作为 Table 1 显式 event 被纯数值化处理，且 4 mode 重复 guard 正是 C3 的典型用武之地。建议按上述 specific_revision_suggestions 折叠 PLANNED_TRAJECTORY 并引入 ! * -> SEARCH forced 迁移后再次进入 path2 评审。",
+  "_meta": {
+    "id": "097",
+    "claude_model": "?",
+    "duration_ms": 92900,
+    "cost_usd": 1.04639375
+  }
+}

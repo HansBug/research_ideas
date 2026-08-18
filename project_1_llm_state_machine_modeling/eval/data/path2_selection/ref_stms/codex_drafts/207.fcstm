@@ -1,0 +1,99 @@
+def int bud_count = 0;
+def float end_effector_offset_cm = 0.0;
+def int vines_pruned = 0;
+def int other_aisle_needed = 0;
+def int submodule_success = 0;
+def int software_issue = 0;
+
+state BumblebeeSupervisor {
+    !* -> Error :: HardwareOrUnknownIssue;
+    !Navigation -> Complete : if [vines_pruned >= 20];
+    !Navigation -> Complete :: Done;
+    !Navigation -> Perception :: Success;
+    !Navigation -> Error :: Failure;
+    !Perception -> Manipulation : if [bud_count >= 4];
+    !Perception -> Error :: Failure;
+    !Manipulation -> Navigation :: Success;
+    !Manipulation -> Error :: Failure;
+
+    [*] -> Navigation;
+
+    state Navigation {
+        [*] -> GPSWaypointFollow;
+
+        state GPSWaypointFollow {
+            during abstract FuseRTKGPSWheelEncodersIMUWithEKF;
+            during abstract FollowGPSWaypoints;
+        }
+
+        state RTKSet {
+            enter abstract StopAtSelectedVinePosition;
+            enter { other_aisle_needed = 0; }
+        }
+
+        state NavigationInternalError {
+            enter abstract SelfDiagnoseNavigationSoftwareIssue;
+        }
+
+        GPSWaypointFollow -> RTKSet : if [other_aisle_needed >= 1];
+        RTKSet -> GPSWaypointFollow : if [other_aisle_needed < 1];
+        GPSWaypointFollow -> NavigationInternalError : if [software_issue >= 1];
+        RTKSet -> NavigationInternalError : if [software_issue >= 1];
+    }
+
+    state Perception {
+        [*] -> Modeling3D;
+
+        state Modeling3D {
+            enter abstract MoveTopBottomStereoCamerasOnLinearSlide;
+            during abstract AcquireFourteenViewpointImages;
+            exit abstract RegisterPointCloudForVineModel;
+        }
+
+        state CutPointLocalization {
+            enter abstract DetectBudsAndLocalizeCutPoints;
+            enter { bud_count = 4; }
+            enter { submodule_success = 0; }
+        }
+
+        state PerceptionInternalError {
+            enter abstract SelfDiagnosePerceptionSoftwareIssue;
+        }
+
+        Modeling3D -> CutPointLocalization : if [submodule_success >= 1];
+        Modeling3D -> PerceptionInternalError : if [software_issue >= 1];
+        CutPointLocalization -> PerceptionInternalError : if [software_issue >= 1];
+    }
+
+    state Manipulation {
+        [*] -> ApproachTarget;
+
+        state ApproachTarget {
+            enter abstract PositionCuttingEndEffectorAheadOfCutPoint;
+            enter { end_effector_offset_cm = 15.0; }
+            during abstract OrientEndEffectorPerpendicularToBranch;
+        }
+
+        state Homing {
+            during abstract InchTowardFinalPose;
+            exit abstract CloseAndOpenCuttingBlades;
+        }
+
+        state ManipulationInternalError {
+            enter abstract SelfDiagnoseManipulationSoftwareIssue;
+        }
+
+        ApproachTarget -> Homing : if [end_effector_offset_cm >= 15.0];
+        ApproachTarget -> ManipulationInternalError : if [software_issue >= 1];
+        Homing -> ManipulationInternalError : if [software_issue >= 1];
+    }
+
+    state Error {
+        enter abstract PauseAllOperationsForManualIntervention;
+    }
+
+    state Complete {
+        enter abstract AllVinesPruned;
+    }
+
+}

@@ -1,0 +1,37 @@
+{
+  "case_id": "201",
+  "paper_slug": "microgrid-power-flow-control-integrated-battery-management",
+  "case_name": "SOC-Hysteresis Four-Mode Microgrid Power-Flow Supervisor",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "该 case 控制孤网微电网在 BESS、PV、柴油发电机与负载之间的功率流分配，用电池 SOC 滞回阈值和发电机保护信号在四种运行模式间切换；典型流程是高 SOC 时电池成网供全负载，SOC 降低后投入发电机，再低则切非关键负载，极低时全系统关断。",
+  "scale": {
+    "state_count": 4,
+    "event_count": 6,
+    "variable_count": 2,
+    "transition_count": 6
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文 Fig. 6 明确给出 Mode 1-4 的多模式切换，且写道 “all the operation modes correspond to Table I”，但没有层次化 composite/init/pseudo 语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文写 “Battery SOC is the main trigger for state transitions”，并给出 `SOC < GenSOC_lb`、`SOC > GenSOC_ub`、`SOC < LoadSOC_lb`、`SOC > LoadSOC_ub`、`SOC < SOC_min` 等阈值守卫。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "原文写 “Mode 1 can be transitioned to from Mode 2 or Mode 3 whenever the generator is tripped by the overcurrent/undercurrent protection”，属于两个发电机在线模式共享的故障恢复。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文 Table I 和系统描述涉及 BESS 逆变器、PV 系统、柴油发电机、负载继电器等硬件出口，并写到 generator/load connection is controlled by relay、Mode 4 all units shut down and disconnected。"
+    }
+  },
+  "features_we_care_about": "该样本的 C4 很强，C2 也有清晰的 SOC 滞回数值守卫，适合检验 LLM 能否把真实电力系统 NL 转成可解析、可仿真、可达性合理的 EFSM。四模式流程清楚、原文有 Fig. 6 直接支撑，作为工业控制 T0 样本独立性较好。",
+  "potential_pitfalls": "C1 不是层次状态机，C3 也不是真正 from any state 的全局 fault recovery，主要价值集中在 EFSM 数值守卫与硬件动作映射。",
+  "verdict": "✨ GOOD",
+  "_meta": {
+    "id": "201"
+  }
+}

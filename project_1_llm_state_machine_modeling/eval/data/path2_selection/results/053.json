@@ -1,0 +1,37 @@
+{
+  "case_id": "053",
+  "paper_slug": "fpga-based-smart-parking-management-system-with-real-time-slot-monitoring-and-entry-exit-detection",
+  "case_name": "Idle-Entry-Exit Slot-Monitoring Parking Controller",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是一个基于 Artix-7 FPGA 的四车位智慧停车控制器，用 IR1-IR4 监测车位、IR5/IR6 监测入口/出口，并驱动 LCD、7 段数码管和车位 LED。典型流程是在 Idle 等待入口或出口触发，进入 Entry/Exit 后等待对应车位 IR 变化，更新 O/A 计数和显示后返回 Idle。",
+  "scale": {
+    "state_count": 3,
+    "event_count": 4,
+    "variable_count": 8,
+    "transition_count": 4
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文第 3.4 节写明 FSM 有 Idle、Entry、Exit 三态，Idle 根据 IR5/IR6 切到 Entry/Exit 并在 slot update 后返回 Idle，属于多状态切换但无 composite/nested init。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文第 4.1 节给出 Counter logic: O = Σ(1−IRi), A = 4−O，且 Entry/Exit 会 increment/decrement O/A，但迁移触发主要仍是 IR LOW/HIGH。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "⚪",
+      "evidence": "原文只提到 reset 输入和 rapid toggling/simultaneous slot changes 的稳定性测试，未给出 any mode/from any state 的 Error、Abort、Fault 或 recovery 路径。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文 System Overview 写明 FPGA controls a 16x2 LCD、2-digit 7-segment display 和 four LEDs，Entry/Exit/slot update 都会驱动这些硬件出口。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C4，硬件输出设备清楚且与状态动作绑定紧密；C2 也有 O/A 计数不变式和增减更新，适合作为小规模 FPGA 控制器的 T0 sanity case。",
+  "potential_pitfalls": "结构较小且扁平，没有 cross-cutting fault recovery，数值部分更偏计数 effect 而不是复杂 guard。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "053"
+  }
+}

@@ -1,0 +1,66 @@
+def float Sbox = 0.0;
+def float class_coefficient = 1.0;
+def float ET = 10.0;
+def int multiple_threats = 0;
+
+state MissionTaskFSM {
+    [*] -> LongRangePenetration;
+
+    state LongRangePenetration {
+        during abstract DetectionNetworkDetectTargetsAndThreatFacilities;
+        during abstract LidarObstacleReadingsForVFH;
+        during abstract VFHYawAltitudeLinearVelocityCommands;
+    }
+
+    state FastApproach {
+        enter abstract VisualServoControlReviseTargetPosition;
+        during abstract AirborneEquipmentEstimateDistanceAndYawDirection;
+        during abstract PlaceTargetPointsAlongTargetDirectionForVFHPathReplanning;
+        during abstract VFHLinearVelocityCommands;
+    }
+
+    state DefinedTargetPointsApproach {
+        enter abstract ContinueFlyingToDefinedTargetPoints;
+        during abstract DetectionNetworkDetectTargetsAndThreatFacilities;
+        during abstract VFHPathReplanningToDefinedTargetPoints;
+    }
+
+    state ThreatDegreeEvaluation {
+        enter abstract EvaluateThreatDegreeFromClassCoefficientAndSbox;
+    }
+
+    state FastAvoidance {
+        enter abstract ResetVFHTargetPointsToHistoryPathPoints;
+        during abstract HeadToThreatForVisibilityJudgement;
+        during abstract LateralManeuversRestoreInvisibilityBehindTerrainCover;
+    }
+
+    state HighestThreatFastAvoidance {
+        enter abstract HeadTowardHighestThreatDegree;
+        enter abstract ResetVFHTargetPointsToHistoryPathPoints;
+        during abstract LateralManeuversRestoreInvisibilityBehindTerrainCover;
+    }
+
+    state CircuitousFlight {
+        enter abstract ResetVFHTargetPointsToSideOfHelicopter;
+        during abstract MoveLaterallyAndSeekCover;
+        during abstract VFHYawAltitudeLinearVelocityCommands;
+    }
+
+    LongRangePenetration -> ThreatDegreeEvaluation :: ThreatDetected;
+    FastApproach -> ThreatDegreeEvaluation :: ThreatDetected;
+    DefinedTargetPointsApproach -> ThreatDegreeEvaluation :: ThreatDetected;
+    CircuitousFlight -> ThreatDegreeEvaluation :: ThreatDetected;
+
+    LongRangePenetration -> FastApproach :: TargetDetected;
+    FastApproach -> DefinedTargetPointsApproach :: TargetLost;
+    DefinedTargetPointsApproach -> FastApproach :: TargetRediscovered;
+
+    ThreatDegreeEvaluation -> HighestThreatFastAvoidance : if [multiple_threats >= 1 and Sbox * class_coefficient > ET];
+    ThreatDegreeEvaluation -> FastAvoidance : if [multiple_threats < 1 and Sbox * class_coefficient > ET];
+    ThreatDegreeEvaluation -> CircuitousFlight : if [Sbox * class_coefficient < ET];
+
+    FastAvoidance -> LongRangePenetration :: ThreatLost;
+    HighestThreatFastAvoidance -> LongRangePenetration :: ThreatLost;
+    CircuitousFlight -> LongRangePenetration :: ThreatLost;
+}

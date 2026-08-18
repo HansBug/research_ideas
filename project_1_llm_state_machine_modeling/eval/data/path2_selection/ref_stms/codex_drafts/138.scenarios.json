@@ -1,0 +1,501 @@
+{
+  "scenarios": [
+    {
+      "name": "top_level_pipeline_and_failures",
+      "description": "覆盖 E3-E10 的顶层问路流水线，以及 Approach/Hold/Follow 的 failure 回到初始 Wander。",
+      "initial_state": "AskForDirectionsSupervisor.Wander.DriveForward",
+      "initial_vars": {
+        "forward_drivable": 1,
+        "left_drivable": 0,
+        "right_drivable": 0,
+        "back_drivable": 0,
+        "travel_meters": 0.0,
+        "intersection_type_changed": 0,
+        "step_counter": 0,
+        "intersection_signal": 0,
+        "rotation_done": 0,
+        "plan_action": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": ["AskForDirectionsSupervisor.PersonFound"],
+          "expected_state": "AskForDirectionsSupervisor.ApproachPerson",
+          "expected_vars": {"travel_meters": 0.0, "step_counter": 0, "plan_action": 0},
+          "name": "person_found_enters_approach"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["AskForDirectionsSupervisor.StateFailure"],
+          "expected_state": "AskForDirectionsSupervisor.Wander.MakeDecision",
+          "expected_vars": {"travel_meters": 0.0, "step_counter": 0, "plan_action": 0},
+          "name": "approach_failure_returns_wander"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["AskForDirectionsSupervisor.PersonFound"],
+          "expected_state": "AskForDirectionsSupervisor.ApproachPerson",
+          "expected_vars": {"travel_meters": 0.0, "step_counter": 0, "plan_action": 0},
+          "name": "ask_again_person_found"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["AskForDirectionsSupervisor.PersonReached"],
+          "expected_state": "AskForDirectionsSupervisor.HoldConversation",
+          "expected_vars": {"travel_meters": 0.0, "step_counter": 0, "plan_action": 0},
+          "name": "person_reached_enters_conversation"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["AskForDirectionsSupervisor.StateFailure"],
+          "expected_state": "AskForDirectionsSupervisor.Wander.MakeDecision",
+          "expected_vars": {"travel_meters": 0.0, "step_counter": 0, "plan_action": 0},
+          "name": "conversation_failure_returns_wander"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["AskForDirectionsSupervisor.PersonFound"],
+          "expected_state": "AskForDirectionsSupervisor.ApproachPerson",
+          "expected_vars": {"travel_meters": 0.0, "step_counter": 0, "plan_action": 0},
+          "name": "third_person_found"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["AskForDirectionsSupervisor.PersonReached"],
+          "expected_state": "AskForDirectionsSupervisor.HoldConversation",
+          "expected_vars": {"travel_meters": 0.0, "step_counter": 0, "plan_action": 0},
+          "name": "third_person_reached"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["AskForDirectionsSupervisor.DirectionsComplete"],
+          "expected_state": "AskForDirectionsSupervisor.FollowDirections.MakeDecision",
+          "expected_vars": {"travel_meters": 0.0, "step_counter": 1, "plan_action": 0},
+          "name": "complete_directions_enter_follow"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["AskForDirectionsSupervisor.StateFailure"],
+          "expected_state": "AskForDirectionsSupervisor.Wander.MakeDecision",
+          "expected_vars": {"travel_meters": 0.0, "step_counter": 1, "plan_action": 0},
+          "name": "follow_failure_returns_wander"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["AskForDirectionsSupervisor.StateFailure"],
+          "expected_state": "AskForDirectionsSupervisor.Wander.MakeDecision",
+          "expected_vars": {"travel_meters": 0.0, "step_counter": 1, "plan_action": 0},
+          "name": "wander_failure_reinitializes_wander"
+        }
+      ]
+    },
+    {
+      "name": "wander_no_qualitative_recovery",
+      "description": "覆盖 E11-E12：Wander 初入 MakeDecision，全部 qualitative trajectories 不可用时进入 360 度恢复旋转并保持。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.Wander.MakeDecision",
+          "expected_vars": {"forward_drivable": 0, "left_drivable": 0, "right_drivable": 0, "back_drivable": 0, "travel_meters": 0.0},
+          "name": "default_enters_wander_make_decision"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.Wander.RotateRecovery",
+          "expected_vars": {"forward_drivable": 0, "left_drivable": 0, "right_drivable": 0, "back_drivable": 0, "travel_meters": 0.0},
+          "name": "no_qualitative_enters_rotate_recovery"
+        },
+        {
+          "before_cycles": 2,
+          "events": null,
+          "expected_state": "AskForDirectionsSupervisor.Wander.RotateRecovery",
+          "expected_vars": {"forward_drivable": 0, "left_drivable": 0, "right_drivable": 0, "back_drivable": 0, "travel_meters": 0.0},
+          "name": "no_qualitative_stays_in_recovery"
+        }
+      ]
+    },
+    {
+      "name": "wander_dead_end_turnaround",
+      "description": "覆盖 E14-E15：back 可行且 forward/left/right 不可行的 dead-end guard，之后恢复旋转并 180 度转向回到 DriveForward。",
+      "initial_state": "AskForDirectionsSupervisor.Wander.DriveForward",
+      "initial_vars": {
+        "forward_drivable": 0,
+        "left_drivable": 0,
+        "right_drivable": 0,
+        "back_drivable": 1,
+        "travel_meters": 0.0,
+        "intersection_type_changed": 0,
+        "step_counter": 0,
+        "intersection_signal": 0,
+        "rotation_done": 1,
+        "plan_action": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.Wander.RotateRecovery",
+          "expected_vars": {"back_drivable": 1, "travel_meters": 0.0, "rotation_done": 1},
+          "name": "dead_end_enters_recovery"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.Wander.Rotate",
+          "expected_vars": {"back_drivable": 1, "travel_meters": 0.0, "rotation_done": 1},
+          "name": "back_only_recovery_selects_rotate"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.Wander.DriveForward",
+          "expected_vars": {"back_drivable": 1, "travel_meters": 1.0, "rotation_done": 0},
+          "name": "rotation_done_returns_drive_forward"
+        }
+      ]
+    },
+    {
+      "name": "wander_forward_drive_cycles",
+      "description": "覆盖 E13：Wander 在 forward trajectory 可用时进入 DriveForward，并连续多个 cycle 前进监测 intersection。",
+      "initial_state": "AskForDirectionsSupervisor.Wander.MakeDecision",
+      "initial_vars": {
+        "forward_drivable": 1,
+        "left_drivable": 0,
+        "right_drivable": 0,
+        "back_drivable": 0,
+        "travel_meters": 0.0,
+        "intersection_type_changed": 0,
+        "step_counter": 0,
+        "intersection_signal": 0,
+        "rotation_done": 0,
+        "plan_action": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.Wander.DriveForward",
+          "expected_vars": {"forward_drivable": 1, "travel_meters": 1.0, "intersection_signal": 0},
+          "name": "forward_available_enters_drive"
+        },
+        {
+          "before_cycles": 2,
+          "events": null,
+          "expected_state": "AskForDirectionsSupervisor.Wander.DriveForward",
+          "expected_vars": {"forward_drivable": 1, "travel_meters": 3.0, "intersection_signal": 0},
+          "name": "drive_forward_three_cycles"
+        }
+      ]
+    },
+    {
+      "name": "wander_registered_and_selected_intersections",
+      "description": "覆盖 E13-E15 中 registered intersection 返回决策，以及已选择 hallway trajectory 后进入 crossing phase。",
+      "initial_state": "AskForDirectionsSupervisor.Wander.DriveForward",
+      "initial_vars": {
+        "forward_drivable": 1,
+        "left_drivable": 0,
+        "right_drivable": 0,
+        "back_drivable": 0,
+        "travel_meters": 3.0,
+        "intersection_type_changed": 0,
+        "step_counter": 0,
+        "intersection_signal": 1,
+        "rotation_done": 0,
+        "plan_action": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.Wander.MakeDecision",
+          "expected_vars": {"travel_meters": 3.0, "intersection_signal": 0, "step_counter": 0},
+          "name": "registered_intersection_returns_decision"
+        }
+      ]
+    },
+    {
+      "name": "wander_selected_intersection_enters_crossing",
+      "description": "覆盖 WANDER 的 selected intersection 分支：MakeDecision 选择 hallway trajectory 后进入 DriveThroughIntersection。",
+      "initial_state": "AskForDirectionsSupervisor.Wander.MakeDecision",
+      "initial_vars": {
+        "forward_drivable": 1,
+        "left_drivable": 0,
+        "right_drivable": 0,
+        "back_drivable": 0,
+        "travel_meters": 0.0,
+        "intersection_type_changed": 0,
+        "step_counter": 0,
+        "intersection_signal": 2,
+        "rotation_done": 0,
+        "plan_action": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.Wander.DriveThroughIntersection",
+          "expected_vars": {"travel_meters": 1.0, "intersection_signal": 0, "step_counter": 0},
+          "name": "selected_intersection_enters_crossing"
+        }
+      ]
+    },
+    {
+      "name": "wander_crossing_cycles_without_type_change",
+      "description": "覆盖 WANDER 的 crossing per-cycle drive：intersection type 未变化时连续前进但保持在 DriveThroughIntersection。",
+      "initial_state": "AskForDirectionsSupervisor.Wander.DriveThroughIntersection",
+      "initial_vars": {
+        "forward_drivable": 1,
+        "left_drivable": 0,
+        "right_drivable": 0,
+        "back_drivable": 0,
+        "travel_meters": 0.0,
+        "intersection_type_changed": 0,
+        "step_counter": 0,
+        "intersection_signal": 0,
+        "rotation_done": 0,
+        "plan_action": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 3,
+          "events": null,
+          "expected_state": "AskForDirectionsSupervisor.Wander.DriveThroughIntersection",
+          "expected_vars": {"travel_meters": 3.0, "intersection_type_changed": 0, "step_counter": 0},
+          "name": "wander_crossing_three_cycles"
+        }
+      ]
+    },
+    {
+      "name": "wander_crossing_threshold_exits",
+      "description": "覆盖 WANDER crossing 的正向退出 guard：travel_meters 超过 2 m 且 intersection type 已变化后返回 DriveForward。",
+      "initial_state": "AskForDirectionsSupervisor.Wander.DriveThroughIntersection",
+      "initial_vars": {
+        "forward_drivable": 1,
+        "left_drivable": 0,
+        "right_drivable": 0,
+        "back_drivable": 0,
+        "travel_meters": 0.0,
+        "intersection_type_changed": 1,
+        "step_counter": 0,
+        "intersection_signal": 0,
+        "rotation_done": 0,
+        "plan_action": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.Wander.DriveThroughIntersection",
+          "expected_vars": {"travel_meters": 1.0, "intersection_type_changed": 1, "step_counter": 0},
+          "name": "wander_crossing_one_meter"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.Wander.DriveThroughIntersection",
+          "expected_vars": {"travel_meters": 2.0, "intersection_type_changed": 1, "step_counter": 0},
+          "name": "wander_crossing_two_meters"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.Wander.DriveThroughIntersection",
+          "expected_vars": {"travel_meters": 3.0, "intersection_type_changed": 1, "step_counter": 0},
+          "name": "wander_crossing_more_than_two_ready"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.Wander.DriveForward",
+          "expected_vars": {"travel_meters": 1.0, "intersection_type_changed": 0, "step_counter": 0},
+          "name": "wander_crossing_exits_to_drive_forward"
+        }
+      ]
+    },
+    {
+      "name": "follow_phases_goal_hallway_and_door_failure",
+      "description": "覆盖 E16-E19/E22-E26：FollowDirections 的 step counter、drive/rotate/crossing/complete，以及 goal hallway 进入 NavigateDoor 并可 failure 回 Wander。",
+      "initial_state": "AskForDirectionsSupervisor.FollowDirections.MakeDecision",
+      "initial_vars": {
+        "forward_drivable": 0,
+        "left_drivable": 0,
+        "right_drivable": 0,
+        "back_drivable": 0,
+        "travel_meters": 0.0,
+        "intersection_type_changed": 1,
+        "step_counter": 1,
+        "intersection_signal": 3,
+        "rotation_done": 1,
+        "plan_action": 1
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.FollowDirections.DriveForward",
+          "expected_vars": {"travel_meters": 1.0, "intersection_signal": 3, "step_counter": 1, "plan_action": 1},
+          "name": "forward_action_enters_drive"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.FollowDirections.MakeDecision",
+          "expected_vars": {"travel_meters": 1.0, "intersection_signal": 0, "step_counter": 2, "plan_action": 2},
+          "name": "specified_intersection_increments_step"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.FollowDirections.Rotate",
+          "expected_vars": {"travel_meters": 1.0, "rotation_done": 1, "step_counter": 2, "plan_action": 2},
+          "name": "rotate_action_enters_rotate"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.FollowDirections.MakeDecision",
+          "expected_vars": {"travel_meters": 1.0, "rotation_done": 0, "step_counter": 3, "plan_action": 3},
+          "name": "rotation_done_increments_step"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.FollowDirections.DriveThroughIntersection",
+          "expected_vars": {"travel_meters": 1.0, "intersection_type_changed": 1, "step_counter": 3, "plan_action": 3},
+          "name": "cross_action_enters_crossing"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.FollowDirections.DriveThroughIntersection",
+          "expected_vars": {"travel_meters": 2.0, "intersection_type_changed": 1, "step_counter": 3, "plan_action": 3},
+          "name": "two_meters_not_more_than_two"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.FollowDirections.DriveThroughIntersection",
+          "expected_vars": {"travel_meters": 3.0, "intersection_type_changed": 1, "step_counter": 3, "plan_action": 3},
+          "name": "three_meters_ready_for_next_cycle_guard"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.FollowDirections.MakeDecision",
+          "expected_vars": {"travel_meters": 0.0, "intersection_type_changed": 0, "step_counter": 4, "plan_action": 4},
+          "name": "more_than_two_and_changed_exits_crossing"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.FollowDirections.Complete",
+          "expected_vars": {"travel_meters": 0.0, "intersection_type_changed": 0, "step_counter": 4, "plan_action": 4},
+          "name": "plan_complete_enters_complete"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["AskForDirectionsSupervisor.GoalHallwayAction"],
+          "expected_state": "AskForDirectionsSupervisor.NavigateDoor",
+          "expected_vars": {"travel_meters": 0.0, "intersection_type_changed": 0, "step_counter": 4, "plan_action": 4},
+          "name": "goal_hallway_enters_navigate_door"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["AskForDirectionsSupervisor.StateFailure"],
+          "expected_state": "AskForDirectionsSupervisor.Wander.MakeDecision",
+          "expected_vars": {"travel_meters": 0.0, "intersection_type_changed": 0, "step_counter": 4, "plan_action": 4},
+          "name": "navigate_door_failure_returns_wander"
+        }
+      ]
+    },
+    {
+      "name": "follow_drive_forward_cycles",
+      "description": "覆盖 E17 的 FollowDirections DriveForward per-cycle 行为：未检测到指定 intersection 时持续前进。",
+      "initial_state": "AskForDirectionsSupervisor.FollowDirections.DriveForward",
+      "initial_vars": {
+        "forward_drivable": 0,
+        "left_drivable": 0,
+        "right_drivable": 0,
+        "back_drivable": 0,
+        "travel_meters": 0.0,
+        "intersection_type_changed": 0,
+        "step_counter": 1,
+        "intersection_signal": 0,
+        "rotation_done": 0,
+        "plan_action": 1
+      },
+      "steps": [
+        {
+          "before_cycles": 3,
+          "events": null,
+          "expected_state": "AskForDirectionsSupervisor.FollowDirections.DriveForward",
+          "expected_vars": {"travel_meters": 3.0, "intersection_signal": 0, "step_counter": 1, "plan_action": 1},
+          "name": "follow_drive_forward_three_cycles"
+        }
+      ]
+    },
+    {
+      "name": "follow_crossing_requires_type_change",
+      "description": "覆盖 E18 的复合 guard：即使 travel_meters 已超过 2 m，只要 intersection-type 没有 change 就不能退出 crossing。",
+      "initial_state": "AskForDirectionsSupervisor.FollowDirections.DriveThroughIntersection",
+      "initial_vars": {
+        "forward_drivable": 0,
+        "left_drivable": 0,
+        "right_drivable": 0,
+        "back_drivable": 0,
+        "travel_meters": 3.0,
+        "intersection_type_changed": 0,
+        "step_counter": 2,
+        "intersection_signal": 0,
+        "rotation_done": 0,
+        "plan_action": 3
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "AskForDirectionsSupervisor.FollowDirections.DriveThroughIntersection",
+          "expected_vars": {"travel_meters": 4.0, "intersection_type_changed": 0, "step_counter": 2, "plan_action": 3},
+          "name": "distance_without_type_change_stays"
+        },
+        {
+          "before_cycles": 2,
+          "events": null,
+          "expected_state": "AskForDirectionsSupervisor.FollowDirections.DriveThroughIntersection",
+          "expected_vars": {"travel_meters": 6.0, "intersection_type_changed": 0, "step_counter": 2, "plan_action": 3},
+          "name": "still_stays_after_more_cycles"
+        }
+      ]
+    },
+    {
+      "name": "person_waypoint_returns_to_wander",
+      "description": "覆盖 E20-E21：goal action 为 person waypoint 时，FollowDirections Complete 返回 Wander 重新找人问路。",
+      "initial_state": "AskForDirectionsSupervisor.FollowDirections.Complete",
+      "initial_vars": {
+        "forward_drivable": 0,
+        "left_drivable": 0,
+        "right_drivable": 0,
+        "back_drivable": 0,
+        "travel_meters": 0.0,
+        "intersection_type_changed": 0,
+        "step_counter": 4,
+        "intersection_signal": 0,
+        "rotation_done": 0,
+        "plan_action": 4
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": ["AskForDirectionsSupervisor.PersonWaypointAction"],
+          "expected_state": "AskForDirectionsSupervisor.Wander.MakeDecision",
+          "expected_vars": {"travel_meters": 0.0, "intersection_type_changed": 0, "step_counter": 4, "plan_action": 4},
+          "name": "person_waypoint_exits_to_wander"
+        }
+      ]
+    }
+  ]
+}

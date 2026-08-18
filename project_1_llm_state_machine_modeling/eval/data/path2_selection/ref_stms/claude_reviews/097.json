@@ -1,0 +1,49 @@
+{
+  "case_id": "097",
+  "verdict": "APPROVE",
+  "scores": {
+    "semantic_correctness": {
+      "emoji": "🟢",
+      "evidence": "6 个 state (START_STATE/SEARCH/FOLLOW_LONG_RANGE/FOLLOW_SHORT_RANGE/CATCH_BALL/LAND) 完全对齐 STM §1 摘录 B；3/5、2/4、5 frame 阈值与 [E8][E10][E15] 一致；SUCCESSFUL_CATCH→LAND、BALL_LEAVES_FOV 作为 CATCH_BALL self-loop+during abstract 也对应 [E14][E16][E17]。"
+    },
+    "nl_faithfulness": {
+      "emoji": "🟡",
+      "evidence": "LongRange/ShortRange DetectionFrame/MissFrame 与 detection_seen_this_frame 都是 NL 没有的编码占位（Table 1 真实 event 是 LONG_RANGE_UAV_DETECTED 等聚合事件），但 codex 在 notes §1/§5 已明示标注为 encoding placeholder，属于为可验证 3/5、2/4 数值窗口所做的合理操作化推断。"
+    },
+    "c_axis_grounding_appropriateness": {
+      "emoji": "🟢",
+      "evidence": "C1 用 during {} 累计 [E15] no-new-detection consecutive frames；C2 三组数值守卫均对应原文阈值；C3 用 `! * -> SEARCH :: DETECTION_LOST` 和 `! * -> SEARCH : if [no_new_detection_frames>=5]` 表达 [E15] 跨 mode recovery，对应论文 Table 1 显式 DETECTION_LOST event；C4 9 个 abstract action 全部可追溯到 [E3][E5-E7][E9][E11][E13][E14][E17][E18]。"
+    },
+    "nl_coverage": {
+      "emoji": "🟢",
+      "evidence": "14 个 scenarios 覆盖：startup、3/5 与 2/4 双向阈值（含 D-D-M-M-D 变体与失败窗口重置）、≥3 cycle per-cycle 累计、5m approach 重触发、ball catch + planned trajectory + 直达 land、跨 3 个 tracking mode 的 forced detection_lost 与显式 DETECTION_LOST event 路径。"
+    }
+  },
+  "hallucinations_found": [
+    {
+      "type": "event",
+      "name": "LongRangeDetectionFrame / LongRangeMissFrame / ShortRangeDetectionFrame / ShortRangeMissFrame",
+      "issue": "非论文 Table 1 真实 event 名，是为在 pyfcstm 中显式数值化 3/5、2/4 frame window 引入的 encoding placeholder；codex notes §1/§5 已明确标注，可接受。"
+    },
+    {
+      "type": "var",
+      "name": "detection_seen_this_frame",
+      "issue": "NL 未提及，是为避免 detection event cycle 后 during 把同帧误计为 miss 而引入的 encoding helper；属合理实现细节。"
+    }
+  ],
+  "specific_revision_suggestions": [
+    "（可选优化）在 START_STATE.enter 增加一个 abstract action 名以更直白地呼应 [E3] GPS/RTK/cameras initialization——目前已用 InitializeGpsRtkCameras，建议保留；若要进一步贴近原文，可考虑拆为 InitializeGps、InitializeRtk、InitializeCameras 三个 abstract，便于 scenarios 分别 trace。",
+    "（可选）SEARCH.enter 中 `if [no_new_detection_frames >= 5]` 的 reset 是为应对 `! * -> SEARCH :: DETECTION_LOST` 从 SEARCH 再触发自身的 re-entry 副作用，建议在 notes §5 显式说明这是 forced-transition self re-entry 的 defensive reset，避免后续 reviewer 误以为是冗余逻辑。"
+  ],
+  "missing_scenarios_suggestions": [
+    "（可选）short_range_new_detection_resets_loss_counter：与 long_range_new_detection_resets_loss_counter 对称，验证 FOLLOW_SHORT_RANGE 中 ShortRangeDetectionFrame 也能清零 no_new_detection_frames，补全两个 follow mode 的 per-cycle 对称性。",
+    "（可选）detection_lost_immediately_after_start_mission：验证若刚进入 SEARCH 后立即触发 DETECTION_LOST event，self re-entry 仍能让 SEARCH.enter 的 reset 把窗口清零（呼应 SEARCH.enter 的 defensive reset 设计）。"
+  ],
+  "overall_comment": "修订版相比 v1 已经准确响应了上一轮 claude 评审：删除 PLANNED_TRAJECTORY、把 ball-leaves-FOV 折回 CATCH_BALL during abstract、用 root-level C3 forced transition 替代 4 处重复局部 guard、显式声明 DETECTION_LOST event 并补全 3 个 tracking mode 的 forced recovery scenario。frame-level encoding event 与 detection_seen_this_frame 是为可验证性所做的合理操作化推断，codex 已在 notes 显式标注，未发现重大语义错误或 NL 不支持的硬件/阈值发明，可直接进入下一阶段。",
+  "_meta": {
+    "id": "097",
+    "claude_model": "?",
+    "duration_ms": 82102,
+    "cost_usd": 1.0526165
+  }
+}

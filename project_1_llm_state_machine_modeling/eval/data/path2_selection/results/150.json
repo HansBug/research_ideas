@@ -1,0 +1,37 @@
+{
+  "case_id": "150",
+  "paper_slug": "scada-multi-area-parking-system-plc-m221",
+  "case_name": "Multi-Area Entry-Exit Barrier and Full-Lot Supervisor",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是一个双区域停车场 PLC/SCADA 闸杆控制器，用 loop sensor 检测入口/出口车辆，用 DC motor 驱动闸杆、红绿 LED 指示满位状态，并把占用数、当日进车数和收入回写到 HMI。典型流程是未满时检测到入口车辆即开杆并计数，达到 10 辆后进入满位联锁，出口车辆离开后减计数并恢复可进入状态。",
+  "scale": {
+    "state_count": 5,
+    "event_count": 6,
+    "variable_count": 4,
+    "transition_count": 9
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "STM NL 明确有 closed-bar idle、full-lot state、outbound barrier opening，原文也写“kondisi parkir full (berjumlah 10)”后入口不开、出口后绿灯恢复，属于正常/满位/进出分支切换但没有真正层次嵌套。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "数值 guard 主要围绕占用计数：原文写“jumlah mobil ... belum mencapai 10”、“full (berjumlah 10)”以及出口后“berkurang 1”，但参与 guard 的核心数值变量基本是 occupancy。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "⚪",
+      "evidence": "原文只写流程“berlangsung secara terus menerus sampai pengelola menekan tombol Stop”和满位联锁，没有 any mode/from any state 的 Error、Abort、Reset 或 fault-recovery 路径。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文列出“Motor DC (Palang Pintu 1-4)”、“Led Hijau dan Merah 1/2”和“Relay”，摘要还写 PLC 会“move the doorstop motor, indicator lights and update the display on the HMI”。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C4：硬件输出多且清晰，适合展示 abstract action 与硬件解耦；C2 也有 occupancy 阈值、加减计数和收入更新，能形成轻量 EFSM guard/effect grounding。对象是典型工业/楼宇停车控制链，NL 清晰且独立于更复杂的机械停车样本。",
+  "potential_pitfalls": "C1 只有浅层模式切换，C3 基本缺失，且双区域逻辑高度同构，可能更适合作为硬件解耦/计数联锁样本而不是 dead-end 或 fault-recovery 样本。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "150"
+  }
+}

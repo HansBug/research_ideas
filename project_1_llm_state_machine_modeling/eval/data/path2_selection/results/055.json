@@ -1,0 +1,37 @@
+{
+  "case_id": "055",
+  "paper_slug": "verilog-based-solution-for-multi-vehicle-parking",
+  "case_name": "Password-Gated Four-Slot Parking Controller",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是一个四车位停车场门禁与容量控制器，用入口/出口传感器、用户名/密码认证、车位计数器和红绿灯/门禁输出决定车辆放行、拒绝或满位停止。典型流程是车辆到达后进入等待认证，认证正确且 car_count 未满则放行并更新计数，认证错误或满位则进入拒绝/STOP 路径。",
+  "scale": {
+    "state_count": 5,
+    "event_count": 5,
+    "variable_count": 5,
+    "transition_count": 9
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟠",
+      "evidence": "原文列出 IDLE、WAIT_PASSWORD、RIGHT_PASS、WRONG_PASS、STOP 五态，Figure 4 只有传感器和 password 分支，是扁平 FSM，未见层次化 mode/init/exit 语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文同时给出 password_1/password_2 的 01/10 匹配、car_count < 4 的放行阈值，以及离场时 car count decreased，形成凭据+容量的数值/寄存器守卫。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "原文只写密码错误时 redlight glows 并继续输入，属于局部认证失败分支；未出现 any state/from any mode 的全局 fault recovery。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文写正确密码 gate opens、错误时 gate remains locked，并在结果部分列出 G_LED/R_LED 表示车辆停车，硬件输出明确但种类较少。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C2：凭据匹配、入口/出口传感器和 car_count 上限构成清晰 EFSM interlock，适合检验 parse/semantic/sim loop 对守卫和计数更新的反馈收益。C4 也有一定价值，因为门禁和红绿灯输出能体现 abstract action 的硬件解耦。",
+  "potential_pitfalls": "整体是小型扁平 FSM，状态图与文字对部分迁移触发和 car_count 增减规则描述不够精确，C1/C3 grounding 较弱。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "055"
+  }
+}

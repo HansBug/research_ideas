@@ -1,0 +1,291 @@
+{
+  "scenarios": [
+    {
+      "name": "normal_grid_connected_ccy",
+      "description": "覆盖 [E3][E4][E10][E11][E12][E15]：默认进入 Grid-connected，CCY 表示 EMS breaker closed、transfer switch closed、grid stable。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "MicrogridEMS.GridConnected_CCY",
+          "expected_vars": {
+            "ems_breaker": 0,
+            "utility_grid_transfer_switch": 0,
+            "grid_power_indicator": 1
+          },
+          "name": "default_enters_grid_connected"
+        }
+      ]
+    },
+    {
+      "name": "grid_only_malfunction_opens_ems_breaker",
+      "description": "覆盖 [E5][E10][E11][E15]：battery 或 EMS inverter malfunction 时打开 EMS breaker，进入 Grid-only 的 FCY 编码状态。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "MicrogridEMS.GridConnected_CCY",
+          "expected_vars": {
+            "ems_breaker": 0,
+            "utility_grid_transfer_switch": 0,
+            "grid_power_indicator": 1
+          },
+          "name": "start_from_normal_mode"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["MicrogridEMS.BatteryOrEMSInverterMalfunction"],
+          "expected_state": "MicrogridEMS.GridOnly_FCY",
+          "expected_vars": {
+            "ems_breaker": 1,
+            "utility_grid_transfer_switch": 0,
+            "grid_power_indicator": 1
+          },
+          "name": "malfunction_opens_ems_breaker"
+        }
+      ]
+    },
+    {
+      "name": "grid_only_service_manual_opening",
+      "description": "覆盖 [E5][E11][E15]：battery 或 EMS inverter under service 时进入 Grid-only 的 MCY 服务打开路径。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "MicrogridEMS.GridConnected_CCY",
+          "expected_vars": {
+            "ems_breaker": 0,
+            "utility_grid_transfer_switch": 0,
+            "grid_power_indicator": 1
+          },
+          "name": "start_from_normal_mode"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["MicrogridEMS.BatteryOrEMSInverterUnderService"],
+          "expected_state": "MicrogridEMS.GridOnly_MCY",
+          "expected_vars": {
+            "ems_breaker": 2,
+            "utility_grid_transfer_switch": 0,
+            "grid_power_indicator": 1
+          },
+          "name": "service_opens_ems_breaker"
+        }
+      ]
+    },
+    {
+      "name": "islanding_sync_guard_and_reclose",
+      "description": "覆盖 [E6][E7][E8][E13][E14][E15]：grid outage/instability 使 transfer switch 从 C trip 到 F，grid stable 后进入同步，fault cleared 后 guard 才允许 F 到 C 重连。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "MicrogridEMS.GridConnected_CCY",
+          "expected_vars": {
+            "ems_breaker": 0,
+            "utility_grid_transfer_switch": 0,
+            "grid_power_indicator": 1
+          },
+          "name": "start_from_normal_mode"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["MicrogridEMS.GridOutageOrVoltageInstability"],
+          "expected_state": "MicrogridEMS.Islanding_CFN",
+          "expected_vars": {
+            "ems_breaker": 0,
+            "utility_grid_transfer_switch": 1,
+            "grid_power_indicator": 0
+          },
+          "name": "trip_transfer_switch_to_fault_opening"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["MicrogridEMS.UtilityGridPowerStable"],
+          "expected_state": "MicrogridEMS.Synchronization_CFY",
+          "expected_vars": {
+            "ems_breaker": 0,
+            "utility_grid_transfer_switch": 1,
+            "grid_power_indicator": 1
+          },
+          "name": "enter_synchronization_before_reclose"
+        },
+        {
+          "before_cycles": 1,
+          "events": null,
+          "expected_state": "MicrogridEMS.Synchronization_CFY",
+          "expected_vars": {
+            "ems_breaker": 0,
+            "utility_grid_transfer_switch": 1,
+            "grid_power_indicator": 1
+          },
+          "name": "guard_blocks_reclose_while_switch_still_fault_opening"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["MicrogridEMS.FaultCleared"],
+          "expected_state": "MicrogridEMS.Synchronization_CFY",
+          "expected_vars": {
+            "ems_breaker": 0,
+            "utility_grid_transfer_switch": 0,
+            "grid_power_indicator": 1
+          },
+          "name": "fault_clearance_sets_transfer_switch_closed"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "MicrogridEMS.GridConnected_CCY",
+          "expected_vars": {
+            "ems_breaker": 0,
+            "utility_grid_transfer_switch": 0,
+            "grid_power_indicator": 1
+          },
+          "name": "guard_allows_reclose_after_fault_clearance"
+        }
+      ]
+    },
+    {
+      "name": "outage_reserved_power_monitor_and_utility_return",
+      "description": "覆盖 [E9][E10][E11][E12][E15]：utility grid 与 EMS battery packs 都 out of power 时进入 Outage，并在 reserved power 下多周期监控，utility 返回后转 Grid-only。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "MicrogridEMS.GridConnected_CCY",
+          "expected_vars": {
+            "ems_breaker": 0,
+            "utility_grid_transfer_switch": 0,
+            "grid_power_indicator": 1
+          },
+          "name": "start_from_normal_mode"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["MicrogridEMS.BothGridAndBatteryPacksOutOfPower"],
+          "expected_state": "MicrogridEMS.Outage_FFN",
+          "expected_vars": {
+            "ems_breaker": 1,
+            "utility_grid_transfer_switch": 1,
+            "grid_power_indicator": 0
+          },
+          "name": "both_sources_out_of_power"
+        },
+        {
+          "before_cycles": 3,
+          "events": null,
+          "expected_state": "MicrogridEMS.Outage_FFN",
+          "expected_vars": {
+            "ems_breaker": 1,
+            "utility_grid_transfer_switch": 1,
+            "grid_power_indicator": 0
+          },
+          "name": "reserved_power_monitoring_over_three_cycles"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["MicrogridEMS.UtilityGridPowerReturns"],
+          "expected_state": "MicrogridEMS.GridOnly_FCY",
+          "expected_vars": {
+            "ems_breaker": 1,
+            "utility_grid_transfer_switch": 0,
+            "grid_power_indicator": 1
+          },
+          "name": "utility_returns_while_battery_still_out"
+        }
+      ]
+    },
+    {
+      "name": "outage_battery_return_selects_islanding",
+      "description": "覆盖 [E9]：Outage 中监控到 EMS battery source 返回且 utility grid 仍不稳定时，选择 Islanding/battery-only 路径。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "MicrogridEMS.GridConnected_CCY",
+          "expected_vars": {
+            "ems_breaker": 0,
+            "utility_grid_transfer_switch": 0,
+            "grid_power_indicator": 1
+          },
+          "name": "start_from_normal_mode"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["MicrogridEMS.BothGridAndBatteryPacksOutOfPower"],
+          "expected_state": "MicrogridEMS.Outage_FFN",
+          "expected_vars": {
+            "ems_breaker": 1,
+            "utility_grid_transfer_switch": 1,
+            "grid_power_indicator": 0
+          },
+          "name": "both_sources_out_of_power"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["MicrogridEMS.EMSBatteryPowerReturns"],
+          "expected_state": "MicrogridEMS.Islanding_CFN",
+          "expected_vars": {
+            "ems_breaker": 0,
+            "utility_grid_transfer_switch": 1,
+            "grid_power_indicator": 0
+          },
+          "name": "battery_returns_while_grid_still_unstable"
+        }
+      ]
+    },
+    {
+      "name": "manual_transfer_opening_cannot_reclose_on_fault_cleared",
+      "description": "覆盖 [E11][E14][E15]：maintenance staff 将 transfer switch 置为 Manual opening 后，FaultCleared 不允许从 M 回到 C。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "MicrogridEMS.GridConnected_CCY",
+          "expected_vars": {
+            "ems_breaker": 0,
+            "utility_grid_transfer_switch": 0,
+            "grid_power_indicator": 1
+          },
+          "name": "start_from_normal_mode"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["MicrogridEMS.MaintenanceStaffOpensTransferSwitch"],
+          "expected_state": "MicrogridEMS.ManualTransferOpening_CMY",
+          "expected_vars": {
+            "ems_breaker": 0,
+            "utility_grid_transfer_switch": 2,
+            "grid_power_indicator": 1
+          },
+          "name": "maintenance_staff_sets_manual_opening"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["MicrogridEMS.FaultCleared"],
+          "expected_state": "MicrogridEMS.ManualTransferOpening_CMY",
+          "expected_vars": {
+            "ems_breaker": 0,
+            "utility_grid_transfer_switch": 2,
+            "grid_power_indicator": 1
+          },
+          "name": "fault_cleared_does_not_reclose_manual_opening"
+        }
+      ]
+    }
+  ]
+}

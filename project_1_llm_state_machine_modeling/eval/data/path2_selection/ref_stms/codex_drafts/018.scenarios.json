@@ -1,0 +1,406 @@
+{
+  "scenarios": [
+    {
+      "name": "continuous_long_range_then_target_recovery",
+      "description": "覆盖 [E1][E2][E3][E5][E6]：默认长程低空穿透连续运行，目标检测进入快速接近，目标丢失后沿已定义目标点飞行并在重发现后回到视觉伺服。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 3,
+          "events": null,
+          "expected_state": "MissionTaskFSM.LongRangePenetration",
+          "expected_vars": {
+            "Sbox": 0.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "continuous_long_range_penetration"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "MissionTaskFSM.LongRangePenetration.TargetDetected"
+          ],
+          "expected_state": "MissionTaskFSM.FastApproach",
+          "expected_vars": {
+            "Sbox": 0.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "target_detected_visual_servo"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "MissionTaskFSM.FastApproach.TargetLost"
+          ],
+          "expected_state": "MissionTaskFSM.DefinedTargetPointsApproach",
+          "expected_vars": {
+            "Sbox": 0.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "target_lost_defined_points"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "MissionTaskFSM.DefinedTargetPointsApproach.TargetRediscovered"
+          ],
+          "expected_state": "MissionTaskFSM.FastApproach",
+          "expected_vars": {
+            "Sbox": 0.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "target_rediscovered_visual_servo"
+        }
+      ]
+    },
+    {
+      "name": "serious_threat_overrides_fast_approach",
+      "description": "覆盖 [E7][E8][E9][E11][E12]：在快速接近中检测到 E=Sbox*class_coefficient 高于 ET 的严重威胁时，优先进入快速规避。",
+      "initial_state": null,
+      "initial_vars": {
+        "Sbox": 12.0,
+        "class_coefficient": 1.0,
+        "ET": 10.0,
+        "multiple_threats": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 1,
+          "events": null,
+          "expected_state": "MissionTaskFSM.LongRangePenetration",
+          "expected_vars": {
+            "Sbox": 12.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "default_destination_approach"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "MissionTaskFSM.LongRangePenetration.TargetDetected"
+          ],
+          "expected_state": "MissionTaskFSM.FastApproach",
+          "expected_vars": {
+            "Sbox": 12.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "fast_approach_active"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "MissionTaskFSM.FastApproach.ThreatDetected"
+          ],
+          "expected_state": "MissionTaskFSM.ThreatDegreeEvaluation",
+          "expected_vars": {
+            "Sbox": 12.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "threat_degree_evaluated"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "MissionTaskFSM.FastAvoidance",
+          "expected_vars": {
+            "Sbox": 12.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "serious_threat_fast_avoidance"
+        }
+      ]
+    },
+    {
+      "name": "serious_threat_when_target_lost_then_resume",
+      "description": "覆盖 [E6][E9][E11][E12]：目标丢失后仍可因严重威胁进入快速规避，威胁丢失后恢复目的地接近链。",
+      "initial_state": null,
+      "initial_vars": {
+        "Sbox": 15.0,
+        "class_coefficient": 1.0,
+        "ET": 10.0,
+        "multiple_threats": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 1,
+          "events": null,
+          "expected_state": "MissionTaskFSM.LongRangePenetration",
+          "expected_vars": {
+            "Sbox": 15.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "initial_long_range"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "MissionTaskFSM.LongRangePenetration.TargetDetected"
+          ],
+          "expected_state": "MissionTaskFSM.FastApproach",
+          "expected_vars": {
+            "Sbox": 15.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "target_detected"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "MissionTaskFSM.FastApproach.TargetLost"
+          ],
+          "expected_state": "MissionTaskFSM.DefinedTargetPointsApproach",
+          "expected_vars": {
+            "Sbox": 15.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "target_lost"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "MissionTaskFSM.DefinedTargetPointsApproach.ThreatDetected"
+          ],
+          "expected_state": "MissionTaskFSM.ThreatDegreeEvaluation",
+          "expected_vars": {
+            "Sbox": 15.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "serious_threat_detected_while_target_lost"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "MissionTaskFSM.FastAvoidance",
+          "expected_vars": {
+            "Sbox": 15.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "fast_avoidance_without_target_visibility"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "MissionTaskFSM.FastAvoidance.ThreatLost"
+          ],
+          "expected_state": "MissionTaskFSM.LongRangePenetration",
+          "expected_vars": {
+            "Sbox": 15.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "threat_lost_resume_destination_approach"
+        }
+      ]
+    },
+    {
+      "name": "multiple_serious_threats_select_highest",
+      "description": "覆盖 [E9][E10]：目标检测与威胁检测同周期出现时优先走威胁评估，多威胁且 E 高于 ET 时进入最高威胁快速规避。",
+      "initial_state": null,
+      "initial_vars": {
+        "Sbox": 8.0,
+        "class_coefficient": 2.0,
+        "ET": 10.0,
+        "multiple_threats": 1
+      },
+      "steps": [
+        {
+          "before_cycles": 1,
+          "events": null,
+          "expected_state": "MissionTaskFSM.LongRangePenetration",
+          "expected_vars": {
+            "Sbox": 8.0,
+            "class_coefficient": 2.0,
+            "ET": 10.0,
+            "multiple_threats": 1
+          },
+          "name": "initial_long_range"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "MissionTaskFSM.LongRangePenetration.ThreatDetected",
+            "MissionTaskFSM.LongRangePenetration.TargetDetected"
+          ],
+          "expected_state": "MissionTaskFSM.ThreatDegreeEvaluation",
+          "expected_vars": {
+            "Sbox": 8.0,
+            "class_coefficient": 2.0,
+            "ET": 10.0,
+            "multiple_threats": 1
+          },
+          "name": "threat_priority_over_target_detection"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "MissionTaskFSM.HighestThreatFastAvoidance",
+          "expected_vars": {
+            "Sbox": 8.0,
+            "class_coefficient": 2.0,
+            "ET": 10.0,
+            "multiple_threats": 1
+          },
+          "name": "highest_threat_fast_avoidance"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "MissionTaskFSM.HighestThreatFastAvoidance.ThreatLost"
+          ],
+          "expected_state": "MissionTaskFSM.LongRangePenetration",
+          "expected_vars": {
+            "Sbox": 8.0,
+            "class_coefficient": 2.0,
+            "ET": 10.0,
+            "multiple_threats": 1
+          },
+          "name": "highest_threat_lost_resume"
+        }
+      ]
+    },
+    {
+      "name": "small_threat_circuitous_resume",
+      "description": "覆盖 [E7][E13][E14]：E=Sbox*class_coefficient 低于 ET 时进入迂回飞行，威胁消失后重置目标点并恢复目的地接近。",
+      "initial_state": null,
+      "initial_vars": {
+        "Sbox": 5.0,
+        "class_coefficient": 1.0,
+        "ET": 10.0,
+        "multiple_threats": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 1,
+          "events": null,
+          "expected_state": "MissionTaskFSM.LongRangePenetration",
+          "expected_vars": {
+            "Sbox": 5.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "initial_long_range"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "MissionTaskFSM.LongRangePenetration.ThreatDetected"
+          ],
+          "expected_state": "MissionTaskFSM.ThreatDegreeEvaluation",
+          "expected_vars": {
+            "Sbox": 5.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "small_threat_detected"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "MissionTaskFSM.CircuitousFlight",
+          "expected_vars": {
+            "Sbox": 5.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "below_threshold_circuitous_flight"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "MissionTaskFSM.CircuitousFlight.ThreatLost"
+          ],
+          "expected_state": "MissionTaskFSM.LongRangePenetration",
+          "expected_vars": {
+            "Sbox": 5.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "small_threat_lost_resume"
+        }
+      ]
+    },
+    {
+      "name": "repeated_threat_detection_during_circuitous",
+      "description": "覆盖 [E14] 及论文仿真段落：迂回飞行中再次检测到威胁时重新回到威胁等级评估并按阈值选择规避策略。",
+      "initial_state": "MissionTaskFSM.CircuitousFlight",
+      "initial_vars": {
+        "Sbox": 14.0,
+        "class_coefficient": 1.0,
+        "ET": 10.0,
+        "multiple_threats": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 3,
+          "events": null,
+          "expected_state": "MissionTaskFSM.CircuitousFlight",
+          "expected_vars": {
+            "Sbox": 14.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "circuitous_lateral_operation_continues"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "MissionTaskFSM.CircuitousFlight.ThreatDetected"
+          ],
+          "expected_state": "MissionTaskFSM.ThreatDegreeEvaluation",
+          "expected_vars": {
+            "Sbox": 14.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "threat_detected_again"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "MissionTaskFSM.FastAvoidance",
+          "expected_vars": {
+            "Sbox": 14.0,
+            "class_coefficient": 1.0,
+            "ET": 10.0,
+            "multiple_threats": 0
+          },
+          "name": "repeated_serious_threat_fast_avoidance"
+        }
+      ]
+    }
+  ]
+}

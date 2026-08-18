@@ -1,0 +1,37 @@
+{
+  "case_id": "1",
+  "paper_slug": "optimized-autonomous-navigation-field-robots",
+  "case_name": "Row-following-turning-realignment navigation supervisor",
+  "bucket": "FSM-basic",
+  "what_it_is": "这是 FarmBeast 田间机器人在作物行间自主导航的监督控制器，使用 LiDAR 行检测、IMU quaternion 姿态和 odometry 前进距离来控制行内跟随、行尾转向和重新进入下一行。典型流程是初始化后行跟随，检测到行尾后执行 90° 转向、odometry 前进、再 90° 转向回到下一行导航。",
+  "scale": {
+    "state_count": 5,
+    "event_count": 5,
+    "variable_count": 9,
+    "transition_count": 6
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文 Figure 5 显示 `Task1_init / Task1_in_row_nav / Task1_turning_first_half / Task1_turning_odometry / Task1_turning_second_half` 并由多个 flag 串接，但没有明确 composite state 或嵌套退出语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文写到用 X/Y 坐标均值计算中心、缺侧时按已知 inter-row distance 加减镜像，并用 `qfinal · qinitial = 1 − ε` 判断转向姿态是否足够接近目标。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "⚪",
+      "evidence": "原文只说 FSM 覆盖 `row following, turning, and obstacle avoidance`，未给出 `any mode/from any state` 的 Error、Abort、Reset 或全局 safety forced transition。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文明确有物理运动输出：`robot continues straight`、`steering right/left`、90° rotation 和基于 odometry 的 forward movement，主要对应移动底盘驱动与转向控制。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C2：数值 guard、几何计算和 quaternion 判定很适合 parse/semantic/sim 循环给出外部 grounded feedback。它也是清晰的真实机器人控制样本，FSM 图和原文流程都比较完整。",
+  "potential_pitfalls": "C3 基本没有全局 fault-recovery 语义，且 FSM 拓扑较线性，部分数值 guard 来自算法正文而不是 Figure 5 的迁移标签。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "101"
+  }
+}

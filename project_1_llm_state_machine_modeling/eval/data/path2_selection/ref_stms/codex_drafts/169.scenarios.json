@@ -1,0 +1,403 @@
+{
+  "scenarios": [
+    {
+      "name": "normal_tracking_visual_cycle",
+      "description": "覆盖 E1-E7/E10 的正常任务链：Idle 到 Navigation，到 Tracking 内声学定位、追击、loiter，再进入视觉处理并返回 tracking。",
+      "initial_state": null,
+      "initial_vars": {
+        "detection_confidence": 0.9,
+        "confidence_threshold": 0.8,
+        "range_uncertainty": 0.0,
+        "range_uncertainty_delta": 0.0,
+        "range_uncertainty_limit": 1.0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "PirateMissionSupervisor.Idle",
+          "expected_vars": {
+            "detection_confidence": 0.9,
+            "confidence_threshold": 0.8,
+            "range_uncertainty": 0.0,
+            "range_uncertainty_delta": 0.0,
+            "range_uncertainty_limit": 1.0
+          },
+          "name": "default_enters_idle"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["PirateMissionSupervisor.Idle.MissionStart"],
+          "expected_state": "PirateMissionSupervisor.Navigation",
+          "expected_vars": {
+            "detection_confidence": 0.9,
+            "confidence_threshold": 0.8,
+            "range_uncertainty": 0.0,
+            "range_uncertainty_delta": 0.0,
+            "range_uncertainty_limit": 1.0
+          },
+          "name": "mission_start_enters_navigation"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["PirateMissionSupervisor.Navigation.TrackingMissionStart"],
+          "expected_state": "PirateMissionSupervisor.Tracking.AcousticTriangulation",
+          "expected_vars": {
+            "detection_confidence": 0.9,
+            "confidence_threshold": 0.8,
+            "range_uncertainty": 0.0,
+            "range_uncertainty_delta": 0.0,
+            "range_uncertainty_limit": 1.0
+          },
+          "name": "tracking_starts_with_acoustic_triangulation"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "PirateMissionSupervisor.Tracking.Pursuit",
+          "expected_vars": {
+            "detection_confidence": 0.9,
+            "confidence_threshold": 0.8,
+            "range_uncertainty": 0.0,
+            "range_uncertainty_delta": 0.0,
+            "range_uncertainty_limit": 1.0
+          },
+          "name": "triangulation_estimate_leads_to_pursuit"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "PirateMissionSupervisor.Tracking.Loiter",
+          "expected_vars": {
+            "detection_confidence": 0.9,
+            "confidence_threshold": 0.8,
+            "range_uncertainty": 0.0,
+            "range_uncertainty_delta": 0.0,
+            "range_uncertainty_limit": 1.0
+          },
+          "name": "pursuit_completion_enters_loiter"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["PirateMissionSupervisor.Tracking.OperationallyViableRange"],
+          "expected_state": "PirateMissionSupervisor.VisualProcessing.DetectorVerification",
+          "expected_vars": {
+            "detection_confidence": 0.9,
+            "confidence_threshold": 0.8,
+            "range_uncertainty": 0.0,
+            "range_uncertainty_delta": 0.0,
+            "range_uncertainty_limit": 1.0
+          },
+          "name": "viable_range_activates_visual_pipeline"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "PirateMissionSupervisor.VisualProcessing.TrackingBurst",
+          "expected_vars": {
+            "detection_confidence": 0.9,
+            "confidence_threshold": 0.8,
+            "range_uncertainty": 0.0,
+            "range_uncertainty_delta": 0.0,
+            "range_uncertainty_limit": 1.0
+          },
+          "name": "high_confidence_detection_is_accepted"
+        },
+        {
+          "before_cycles": 0,
+          "events": ["PirateMissionSupervisor.VisualProcessing.TrackingIntervalComplete"],
+          "expected_state": "PirateMissionSupervisor.Tracking.AcousticTriangulation",
+          "expected_vars": {
+            "detection_confidence": 0.9,
+            "confidence_threshold": 0.8,
+            "range_uncertainty": 0.0,
+            "range_uncertainty_delta": 0.0,
+            "range_uncertainty_limit": 1.0
+          },
+          "name": "visual_interval_returns_to_tracking"
+        }
+      ]
+    },
+    {
+      "name": "visual_confidence_below_threshold",
+      "description": "覆盖 E6 的 detector confidence guard 低于阈值一侧：输出不被纳入 tracking state。",
+      "initial_state": "PirateMissionSupervisor.VisualProcessing.DetectorVerification",
+      "initial_vars": {
+        "detection_confidence": 0.79,
+        "confidence_threshold": 0.8,
+        "range_uncertainty": 0.0,
+        "range_uncertainty_delta": 0.0,
+        "range_uncertainty_limit": 1.0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "PirateMissionSupervisor.VisualProcessing.DetectorVerification",
+          "expected_vars": {
+            "detection_confidence": 0.79,
+            "confidence_threshold": 0.8,
+            "range_uncertainty": 0.0,
+            "range_uncertainty_delta": 0.0,
+            "range_uncertainty_limit": 1.0
+          },
+          "name": "below_threshold_stays_in_detector_verification"
+        }
+      ]
+    },
+    {
+      "name": "visual_confidence_above_threshold",
+      "description": "覆盖 E6 的 detector confidence guard 高于阈值一侧：检测框被接受并进入 tracking burst。",
+      "initial_state": "PirateMissionSupervisor.VisualProcessing.DetectorVerification",
+      "initial_vars": {
+        "detection_confidence": 0.81,
+        "confidence_threshold": 0.8,
+        "range_uncertainty": 0.0,
+        "range_uncertainty_delta": 0.0,
+        "range_uncertainty_limit": 1.0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "PirateMissionSupervisor.VisualProcessing.TrackingBurst",
+          "expected_vars": {
+            "detection_confidence": 0.81,
+            "confidence_threshold": 0.8,
+            "range_uncertainty": 0.0,
+            "range_uncertainty_delta": 0.0,
+            "range_uncertainty_limit": 1.0
+          },
+          "name": "above_threshold_enters_tracking_burst"
+        }
+      ]
+    },
+    {
+      "name": "loiter_range_uncertainty_relocalization",
+      "description": "覆盖 E7-E9 的 loiter 周期 ToF/range assessment、range uncertainty 增长、重定位和无重置恢复追击。",
+      "initial_state": "PirateMissionSupervisor.Tracking.Loiter",
+      "initial_vars": {
+        "detection_confidence": 0.0,
+        "confidence_threshold": 0.0,
+        "range_uncertainty": 0.0,
+        "range_uncertainty_delta": 0.1,
+        "range_uncertainty_limit": 0.25
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "PirateMissionSupervisor.Tracking.Loiter",
+          "expected_vars": {
+            "detection_confidence": 0.0,
+            "confidence_threshold": 0.0,
+            "range_uncertainty": 0.1,
+            "range_uncertainty_delta": 0.1,
+            "range_uncertainty_limit": 0.25
+          },
+          "name": "loiter_cycle_1_updates_uncertainty"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "PirateMissionSupervisor.Tracking.Loiter",
+          "expected_vars": {
+            "detection_confidence": 0.0,
+            "confidence_threshold": 0.0,
+            "range_uncertainty": 0.2,
+            "range_uncertainty_delta": 0.1,
+            "range_uncertainty_limit": 0.25
+          },
+          "name": "loiter_cycle_2_still_below_guard"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "PirateMissionSupervisor.Tracking.Loiter",
+          "expected_vars": {
+            "detection_confidence": 0.0,
+            "confidence_threshold": 0.0,
+            "range_uncertainty": 0.30000000000000004,
+            "range_uncertainty_delta": 0.1,
+            "range_uncertainty_limit": 0.25
+          },
+          "name": "loiter_cycle_3_crosses_guard_for_next_cycle"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "PirateMissionSupervisor.Tracking.ReLocalization",
+          "expected_vars": {
+            "detection_confidence": 0.0,
+            "confidence_threshold": 0.0,
+            "range_uncertainty": 0.0,
+            "range_uncertainty_delta": 0.1,
+            "range_uncertainty_limit": 0.25
+          },
+          "name": "uncertainty_guard_enters_relocalization"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "PirateMissionSupervisor.Tracking.Pursuit",
+          "expected_vars": {
+            "detection_confidence": 0.0,
+            "confidence_threshold": 0.0,
+            "range_uncertainty": 0.0,
+            "range_uncertainty_delta": 0.1,
+            "range_uncertainty_limit": 0.25
+          },
+          "name": "relocalized_target_resumes_pursuit"
+        }
+      ]
+    },
+    {
+      "name": "tracking_burst_reinvokes_detector",
+      "description": "覆盖 E6 中 fixed burst 后 detector 被重新调用以验证 target identity 和 spatial consistency。",
+      "initial_state": "PirateMissionSupervisor.VisualProcessing.TrackingBurst",
+      "initial_vars": {
+        "detection_confidence": 0.81,
+        "confidence_threshold": 0.8,
+        "range_uncertainty": 0.0,
+        "range_uncertainty_delta": 0.0,
+        "range_uncertainty_limit": 1.0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "PirateMissionSupervisor.VisualProcessing.DetectorVerification",
+          "expected_vars": {
+            "detection_confidence": 0.81,
+            "confidence_threshold": 0.8,
+            "range_uncertainty": 0.0,
+            "range_uncertainty_delta": 0.0,
+            "range_uncertainty_limit": 1.0
+          },
+          "name": "burst_completion_reinvokes_detector"
+        }
+      ]
+    },
+    {
+      "name": "failsafe_interrupt_from_visual",
+      "description": "覆盖 E11 的 any active mode interrupt-driven failsafe：从视觉 tracking burst 立即进入 RTH。",
+      "initial_state": "PirateMissionSupervisor.VisualProcessing.TrackingBurst",
+      "initial_vars": {
+        "detection_confidence": 0.81,
+        "confidence_threshold": 0.8,
+        "range_uncertainty": 0.0,
+        "range_uncertainty_delta": 0.0,
+        "range_uncertainty_limit": 1.0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": ["PirateMissionSupervisor.FailsafeInterrupt"],
+          "expected_state": "PirateMissionSupervisor.ReturnToHome",
+          "expected_vars": {
+            "detection_confidence": 0.81,
+            "confidence_threshold": 0.8,
+            "range_uncertainty": 0.0,
+            "range_uncertainty_delta": 0.0,
+            "range_uncertainty_limit": 1.0
+          },
+          "name": "interrupt_forces_rth"
+        }
+      ]
+    },
+    {
+      "name": "communication_timeout_rth_from_tracking",
+      "description": "覆盖 E11 的 communication timeout RTH 触发：从 tracking pursuit 立即进入 RTH。",
+      "initial_state": "PirateMissionSupervisor.Tracking.Pursuit",
+      "initial_vars": {
+        "detection_confidence": 0.0,
+        "confidence_threshold": 0.0,
+        "range_uncertainty": 0.0,
+        "range_uncertainty_delta": 0.0,
+        "range_uncertainty_limit": 1.0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": ["PirateMissionSupervisor.CommunicationTimeout"],
+          "expected_state": "PirateMissionSupervisor.ReturnToHome",
+          "expected_vars": {
+            "detection_confidence": 0.0,
+            "confidence_threshold": 0.0,
+            "range_uncertainty": 0.0,
+            "range_uncertainty_delta": 0.0,
+            "range_uncertainty_limit": 1.0
+          },
+          "name": "communication_timeout_forces_rth"
+        }
+      ]
+    },
+    {
+      "name": "mission_end_rth_from_loiter",
+      "description": "覆盖 E11 的 mission end RTH 触发：从 loiter 立即进入 RTH。",
+      "initial_state": "PirateMissionSupervisor.Tracking.Loiter",
+      "initial_vars": {
+        "detection_confidence": 0.0,
+        "confidence_threshold": 0.0,
+        "range_uncertainty": 0.0,
+        "range_uncertainty_delta": 0.0,
+        "range_uncertainty_limit": 1.0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": ["PirateMissionSupervisor.MissionEnd"],
+          "expected_state": "PirateMissionSupervisor.ReturnToHome",
+          "expected_vars": {
+            "detection_confidence": 0.0,
+            "confidence_threshold": 0.0,
+            "range_uncertainty": 0.0,
+            "range_uncertainty_delta": 0.0,
+            "range_uncertainty_limit": 1.0
+          },
+          "name": "mission_end_forces_rth"
+        }
+      ]
+    },
+    {
+      "name": "failure_mode_fault_handling_then_rth",
+      "description": "覆盖 E11 的 failure mode 路径：先进入 FaultHandling，再执行 RTH 恢复。",
+      "initial_state": "PirateMissionSupervisor.Navigation",
+      "initial_vars": {
+        "detection_confidence": 0.0,
+        "confidence_threshold": 0.0,
+        "range_uncertainty": 0.0,
+        "range_uncertainty_delta": 0.0,
+        "range_uncertainty_limit": 1.0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": ["PirateMissionSupervisor.FailureMode"],
+          "expected_state": "PirateMissionSupervisor.FaultHandling",
+          "expected_vars": {
+            "detection_confidence": 0.0,
+            "confidence_threshold": 0.0,
+            "range_uncertainty": 0.0,
+            "range_uncertainty_delta": 0.0,
+            "range_uncertainty_limit": 1.0
+          },
+          "name": "failure_mode_enters_fault_handling"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "PirateMissionSupervisor.ReturnToHome",
+          "expected_vars": {
+            "detection_confidence": 0.0,
+            "confidence_threshold": 0.0,
+            "range_uncertainty": 0.0,
+            "range_uncertainty_delta": 0.0,
+            "range_uncertainty_limit": 1.0
+          },
+          "name": "fault_handling_routes_to_rth"
+        }
+      ]
+    }
+  ]
+}

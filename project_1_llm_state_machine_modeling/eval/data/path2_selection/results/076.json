@@ -1,0 +1,37 @@
+{
+  "case_id": "076",
+  "paper_slug": "using-perception-cues-for-context-aware-navigation-in-dynamic-outdoor-environments",
+  "case_name": "Context-Aware Behavior Executor for Dynamic UGV Navigation",
+  "bucket": "FSM-basic",
+  "what_it_is": "这是小型 UGV 的上下文感知导航行为执行器，根据 LiDAR/RGB 感知到的 pedestrian 与 weapon cue，在 terrain-aware、socially compliant 和 covert 三类导航控制器之间切换。典型流程是收到导航目标后进入 NORMAL，遇行人切到 PEDESTRIAN，遇武器威胁则抢占当前控制器进入 THREAT，直到到达目标。",
+  "scale": {
+    "state_count": 5,
+    "event_count": 4,
+    "variable_count": 4,
+    "transition_count": 10
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文图 9 明确说状态机经过 IDLE、NORMAL、PEDESTRIAN、THREAT、DONE 五态，并在 NORMAL/PEDESTRIAN/THREAT 间按 cue 切换，但没有 composite 或 nested state。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文实验条件包含 pedestrians 或 weapon within 10 m，且为避免误触发要求 rifle detections in three sequential frames before triggering transition，但图 9 本体主要消费 P/T 布尔 cue。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "原文写 THREAT has the highest priority 且 whenever a weapon is detected 会 immediately transition，并会 cancel either the terrain-aware or socially compliant controller，属于跨正常/行人模式的安全抢占但不是通用 ErrorHandler。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟠",
+      "evidence": "图 9 的动作是发送 GSCN/GIOC goal、取消当前 navigation controller、设置 WN/WT 权重；原文虽使用 Clearpath Husky 平台，但 FSM 层没有明确 motor/GPIO 等硬件 actuator 调用。"
+    }
+  },
+  "features_we_care_about": "该样本的价值在于真实 UGV 场景中有清晰的 mode 切换、优先级抢占、控制器取消与重发目标动作，适合测试 parse、semantic validity、sim 与 reachability 的基础闭环收益。它是独立且可追溯的 FSM-basic 样本，但主要支撑 C1/C2/C3 的中等 grounding，不是 C4 强样本。",
+  "potential_pitfalls": "数值 guard 多在 perception cue 生成层而非图 9 FSM 本体，THREAT 也更像安全抢占而非 fault recovery，C4 硬件动作较弱。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "076"
+  }
+}

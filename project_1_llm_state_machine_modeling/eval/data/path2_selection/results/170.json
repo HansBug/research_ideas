@@ -1,0 +1,37 @@
+{
+  "case_id": "170",
+  "paper_slug": "hybrid-verification-technique-decision-making-self-driving-vehicles",
+  "case_name": "Parking-lot exploration and collision-aware parking supervisor",
+  "bucket": "FSM-basic",
+  "what_it_is": "该 case 控制停车场自动驾驶车辆的行为层监督器；用停车位检测、行人/车辆检测、距离区间和接近趋势作为输入，输出探索/泊车 waypoint、慢速、停车、避障和 drive mode 更新。",
+  "scale": {
+    "state_count": 5,
+    "event_count": 7,
+    "variable_count": 6,
+    "transition_count": 7
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文说将每个 driving behavior 建模为 FSM state，并在 Plan 2/4 更新 drive mode、Plan 5/6 激活 slow/stop mode；但没有明确 composite state、init/pseudo 或嵌套退出语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "Plan 5-7 使用距离 guard：3m-6m 慢速避障、<3m 停车、6m-12m 对 moving vehicle 避障；PDF §7.3 还给出 zone 1/2 的 6m/2m、3m/1m 阈值和 φ≡(x1−x2)^2+(y1−y2)^2>=1 的碰撞约束。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "原文写 During this process RA will continuously monitor road users，且 any moving object within zone 2 则减速、进入 zone 1 则 stop，可抽成全局 safety transition，但没有显式 from any state ErrorHandler。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文列出 AM1 brake to stop、AM2 reduced speed、AM3 normal speed，并说明 RA/planning system send control commands to the move base system；硬件出口主要是车辆制动/驱动控制。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C2：数值阈值、区域判定、速度切换和碰撞几何约束都很适合 parse+semantic+sim 反馈。它也是真实 AV 停车场控制场景，NL 描述清楚，和一般家电/流程型 FSM 不同构。",
+  "potential_pitfalls": "不是层次化状态机，C3 的 forced recovery 语义来自持续安全监控而非明确 any-state fault handler。",
+  "verdict": "✨ GOOD",
+  "_meta": {
+    "id": "170"
+  }
+}

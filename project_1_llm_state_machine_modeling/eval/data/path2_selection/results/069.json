@@ -1,0 +1,37 @@
+{
+  "case_id": "069",
+  "paper_slug": "junior-stanford-entry-urban-challenge",
+  "case_name": "Urban Driving State-and-Exception Supervisor",
+  "bucket": "HSM-layered",
+  "what_it_is": "这是 Stanford Junior 城市自动驾驶车的高层行为监督器，用 RNDF/定位、障碍物、critical zone、stuckness detector 等输入在车道行驶、路口等待、掉头、停车场导航和异常恢复之间切换。执行侧通过 drive-by-wire 控制 throttle、brake、steering、gear shifting、turn signals、emergency brake，典型流程是定位后进入道路或停车场导航，遇到阻塞/超时/循环后转入 TRAFFIC_JAM、ESCAPE、BAD_RNDF 等恢复状态再回到正常行为。",
+  "scale": {
+    "state_count": 13,
+    "event_count": 14,
+    "variable_count": 9,
+    "transition_count": 32
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文明确称 navigation group 包含 hierarchical finite state machine，且 §6.5 写明 FSM 在 normal driving states 与 lower driving levels/exceptions 之间切换并在成功后返回正常行为。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文给出 timeout、repeated traversal、velocity and proximity threshold test、20 meters away 等数值/阈值条件，但没有完整公式化 guard。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "原文称 Nearly all states have transitions to ESCAPE and TRAFFIC JAM，并说明 failure to make progress for extended periods ultimately leads to hybrid A* recovery，可归并成跨多状态异常恢复。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文 drive-by-wire interface 明确列出软件控制 throttle、brake、steering、gear shifting、turn signals、emergency brake 等多个物理执行出口。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 很有价值：它是真实自动驾驶系统里的层次化行为 FSM，C1 的多模式/异常层次和 C4 的硬件动作解耦都很强，C3 也有明显的跨状态 stuckness recovery。NL 来源清晰、状态名和异常路径具体，适合作为 20-case T0 子集里的复杂 HSM 样本。",
+  "potential_pitfalls": "主要风险是数值 guard 多散落在 critical zone、timeout 和 planner 描述中，原文没有给出可直接翻译的完整公式，C2 需要建模时做保守抽象。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "069"
+  }
+}

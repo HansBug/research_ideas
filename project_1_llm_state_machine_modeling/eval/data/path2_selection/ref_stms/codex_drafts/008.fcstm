@@ -1,0 +1,87 @@
+def float PL = 0.0;
+def float Ppv = 0.0;
+def float Pw = 0.0;
+def float SoC = 0.25;
+def float eng1_Pmax = 0.0;
+def float eng2_Pmax = 0.0;
+def float eng3_Pmax = 0.0;
+
+state LNGShipEMS {
+    pseudo state Select;
+
+    [*] -> Select;
+
+    state State1_1 {
+        enter abstract CommandRESLoadAndBatteryCharge;
+    }
+
+    state State1_2 {
+        enter abstract CommandRESLoadAndSpare;
+    }
+
+    state State2_1 {
+        enter abstract CommandRESAndBatteryDischargeWithLNGStandby;
+    }
+
+    state State2_2 {
+        enter abstract CommandLNGWithPgmaxFifthBatteryCharge;
+    }
+
+    state State2_3 {
+        enter abstract CommandLNGAndBatteryDischargeWithDG1Standby;
+    }
+
+    state State2_4 {
+        enter abstract CommandLNGDG1WithPd1maxTenthBatteryCharge;
+    }
+
+    state State2_5 {
+        enter abstract CommandLNGDG1AndBatteryDischargeWithDG2Standby;
+    }
+
+    state State2_6 {
+        enter abstract CommandAllThermalWithPd1maxTenthBatteryCharge;
+    }
+
+    state State2_7 {
+        enter abstract CommandAllThermalAndBatteryDischargeIllegalOverload;
+    }
+
+    state State3_1 {
+        enter abstract CommandNoLoadRESBatteryCharge;
+    }
+
+    state State3_2 {
+        enter abstract CommandNoLoadPVChargeWindSpare;
+    }
+
+    state State3_3 {
+        enter abstract CommandNoLoadAllRESSpare;
+    }
+
+    Select -> State3_1 : if [PL == 0.0 && SoC < 0.5];
+    Select -> State3_2 : if [PL == 0.0 && SoC >= 0.5 && SoC < 0.95];
+    Select -> State3_3 : if [PL == 0.0 && SoC >= 0.95];
+    Select -> State1_1 : if [PL > 0.0 && Ppv + Pw >= PL && SoC < 0.95];
+    Select -> State1_2 : if [PL > 0.0 && Ppv + Pw >= PL && SoC >= 0.95];
+    Select -> State2_1 : if [PL > 0.0 && Ppv + Pw < PL && eng3_Pmax > PL - Ppv - Pw && SoC > 0.5];
+    Select -> State2_2 : if [PL > 0.0 && Ppv + Pw < PL && eng3_Pmax > PL - Ppv - Pw && SoC < 0.5];
+    Select -> State2_3 : if [PL > 0.0 && Ppv + Pw < PL && eng3_Pmax < PL - Ppv - Pw && eng1_Pmax + eng3_Pmax > PL - Ppv - Pw && SoC > 0.5];
+    Select -> State2_4 : if [PL > 0.0 && Ppv + Pw < PL && eng3_Pmax < PL - Ppv - Pw && eng1_Pmax + eng3_Pmax > PL - Ppv - Pw && SoC < 0.5];
+    Select -> State2_5 : if [PL > 0.0 && Ppv + Pw < PL && eng3_Pmax < PL - Ppv - Pw && eng1_Pmax + eng3_Pmax < PL - Ppv - Pw && eng1_Pmax + eng2_Pmax + eng3_Pmax > PL - Ppv - Pw && SoC > 0.5];
+    Select -> State2_6 : if [PL > 0.0 && Ppv + Pw < PL && eng3_Pmax < PL - Ppv - Pw && eng1_Pmax + eng3_Pmax < PL - Ppv - Pw && eng1_Pmax + eng2_Pmax + eng3_Pmax > PL - Ppv - Pw && SoC < 0.5];
+    Select -> State2_7 : if [PL > 0.0 && Ppv + Pw < PL && eng3_Pmax < PL - Ppv - Pw && eng1_Pmax + eng3_Pmax < PL - Ppv - Pw && eng1_Pmax + eng2_Pmax + eng3_Pmax < PL - Ppv - Pw];
+
+    State1_1 -> Select;
+    State1_2 -> Select;
+    State2_1 -> Select;
+    State2_2 -> Select;
+    State2_3 -> Select;
+    State2_4 -> Select;
+    State2_5 -> Select;
+    State2_6 -> Select;
+    State2_7 -> Select;
+    State3_1 -> Select;
+    State3_2 -> Select;
+    State3_3 -> Select;
+}

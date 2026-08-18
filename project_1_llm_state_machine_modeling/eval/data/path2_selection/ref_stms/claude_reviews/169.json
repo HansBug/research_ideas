@@ -1,0 +1,43 @@
+{
+  "case_id": "169",
+  "verdict": "APPROVE",
+  "scores": {
+    "semantic_correctness": {
+      "emoji": "🟢",
+      "evidence": "top-level modes Idle/Navigation/Tracking/VisualProcessing/ReturnToHome/FaultHandling 与 STM §1 摘录 B 一一对应；Tracking 子状态 AcousticTriangulation→Pursuit→Loiter 顺序对应摘录 C [E2][E3][E7]，ReLocalization→Pursuit 对应 [E8][E9]。"
+    },
+    "nl_faithfulness": {
+      "emoji": "🟡",
+      "evidence": "未硬编码任何具体阈值数字（vars 全部声明为 0.0，数值仅出现在 scenarios 内）；range_uncertainty_delta / range_uncertainty_limit 是对 [E8] 'range uncertainty increases' 的合理参数化抽象，非编造硬件或 fault path。"
+    },
+    "c_axis_grounding_appropriateness": {
+      "emoji": "🟢",
+      "evidence": "C1 在 Loiter 用 during 累加 uncertainty 对应 [E7][E8] 周期监测；C2 用 detection_confidence / range_uncertainty 复合 guard 对应 [E6][E8]；C3 用 `! * -> ReturnToHome` 横切 4 个事件对应 [E11] any active mode；C4 enter/during abstract 具名 Jetson/Pi/PX4/stern thrusters 对应 [E5][E10]。"
+    },
+    "nl_coverage": {
+      "emoji": "🟢",
+      "evidence": "9 个 scenarios 覆盖正常链、置信度阈值两侧、≥3 cycle uncertainty 累加跨阈值、4 类 RTH 触发（FailsafeInterrupt/CommunicationTimeout/MissionEnd/FailureMode）、TrackingBurst 回调 detector。"
+    }
+  },
+  "hallucinations_found": [
+    {
+      "type": "var",
+      "name": "range_uncertainty_delta / range_uncertainty_limit",
+      "issue": "原文未给具体数值或显式增长率，作为参数化占位是可接受的抽象，但严格意义上 'uncertainty 线性 += delta' 的累加模型为推断性假设，原文仅说 'uncertainty increases'。"
+    }
+  ],
+  "specific_revision_suggestions": [
+    "可在 169.notes.md 显式注明 range_uncertainty 的线性累加是 [E8] 'increases' 的最小化建模假设，避免下游误读为原文给出的显式动力学。"
+  ],
+  "missing_scenarios_suggestions": [
+    "relocalization_resumes_without_reset: 显式断言从 ReLocalization 到 Pursuit 期间 var 未被全局 reset（验证 [E9] 'without reset or operator intervention'）。",
+    "viable_range_from_pursuit: 从 Tracking.Pursuit（而非默认链路上的 Loiter 之后）触发 OperationallyViableRange，验证 `! Tracking -> VisualProcessing` 在所有 Tracking 子状态都生效。"
+  ],
+  "overall_comment": "codex draft 在层次结构、forced fault 横切、per-cycle uncertainty 增长和 effector 具名上对 NL [E1]-[E11] 还原度高；唯一弱点是 uncertainty 线性累加模型为最小化推断需在 notes 显式注明，scenarios 可补一条 'relocalization 不重置 var' 来强化 [E9] 语义。直接进入下一阶段可行。",
+  "_meta": {
+    "id": "169",
+    "claude_model": "?",
+    "duration_ms": 66202,
+    "cost_usd": 1.3035307499999997
+  }
+}

@@ -1,0 +1,101 @@
+@startuml
+hide empty description
+
+skinparam state {
+  BackgroundColor<<pseudo>> LightGray
+  BackgroundColor<<composite>> LightBlue
+  BorderColor<<pseudo>> Gray
+  FontStyle<<pseudo>> italic
+}
+
+legend top left
+|= Variable |= Type |= Initial Value |
+| source_level | int | 1 |
+| destination_level | int | 1 |
+| level_difference | int | 0 |
+| levels_remaining | int | 0 |
+endlegend
+
+state "ParkingLiftController" as parking_lift_controller <<composite>> {
+    state "AutoWaiting" as parking_lift_controller__auto_waiting
+    state "DirectionDecision" as parking_lift_controller__direction_decision <<pseudo>> #line.dotted
+    state "LevelCounterDecision" as parking_lift_controller__level_counter_decision <<pseudo>> #line.dotted
+    state "ManualIdle" as parking_lift_controller__manual_idle
+    state "ManualInchingUp" as parking_lift_controller__manual_inching_up
+    state "ManualInchingDown" as parking_lift_controller__manual_inching_down
+    state "AutoMoveUpHigh" as parking_lift_controller__auto_move_up_high
+    state "AutoMoveUpSlow" as parking_lift_controller__auto_move_up_slow
+    state "AutoMoveDownHigh" as parking_lift_controller__auto_move_down_high
+    state "AutoMoveDownSlow" as parking_lift_controller__auto_move_down_slow
+    state "StoppedAtLevel" as parking_lift_controller__stopped_at_level
+    state "TransferReady" as parking_lift_controller__transfer_ready
+    state "LevelErrorStop" as parking_lift_controller__level_error_stop
+    state "SafetyCutStop" as parking_lift_controller__safety_cut_stop
+    state "OverTravelAlarmStop" as parking_lift_controller__over_travel_alarm_stop
+    [*] --> parking_lift_controller__auto_waiting
+    parking_lift_controller__auto_waiting --> parking_lift_controller__direction_decision : AutoWaiting.AutoCommand
+    note on link
+    effect {
+        level_difference = destination_level - source_level;
+    }
+    end note
+    parking_lift_controller__auto_waiting --> parking_lift_controller__manual_idle : AutoWaiting.SwitchToManual
+    parking_lift_controller__direction_decision --> parking_lift_controller__auto_move_up_high : level_difference < 0
+    note on link
+    effect {
+        levels_remaining = 0 - level_difference;
+    }
+    end note
+    parking_lift_controller__direction_decision --> parking_lift_controller__auto_move_down_high : level_difference > 0
+    note on link
+    effect {
+        levels_remaining = level_difference;
+    }
+    end note
+    parking_lift_controller__direction_decision --> parking_lift_controller__transfer_ready : level_difference == 0
+    note on link
+    effect {
+        levels_remaining = 0;
+    }
+    end note
+    parking_lift_controller__manual_idle --> parking_lift_controller__manual_inching_up : ManualIdle.ManualUpSpringCommand
+    parking_lift_controller__manual_idle --> parking_lift_controller__manual_inching_down : ManualIdle.ManualDownSpringCommand
+    parking_lift_controller__manual_idle --> parking_lift_controller__auto_waiting : ManualIdle.SwitchToAuto
+    parking_lift_controller__manual_inching_up --> parking_lift_controller__manual_idle : ManualInchingUp.SpringButtonReleased
+    parking_lift_controller__manual_inching_down --> parking_lift_controller__manual_idle : ManualInchingDown.SpringButtonReleased
+    parking_lift_controller__manual_inching_up --> parking_lift_controller__safety_cut_stop : ManualInchingUp.HeightAntiLiftCut
+    parking_lift_controller__manual_inching_down --> parking_lift_controller__safety_cut_stop : ManualInchingDown.HeightAntiLiftCut
+    parking_lift_controller__manual_inching_up --> parking_lift_controller__over_travel_alarm_stop : ManualInchingUp.OverTravelSensor
+    parking_lift_controller__auto_move_up_high --> parking_lift_controller__auto_move_up_slow : AutoMoveUpHigh.SlowForkSensor
+    parking_lift_controller__auto_move_down_high --> parking_lift_controller__auto_move_down_slow : AutoMoveDownHigh.SlowForkSensor
+    parking_lift_controller__auto_move_up_slow --> parking_lift_controller__level_counter_decision : AutoMoveUpSlow.StopForkSensor
+    note on link
+    effect {
+        levels_remaining = levels_remaining - 1;
+    }
+    end note
+    parking_lift_controller__auto_move_down_slow --> parking_lift_controller__level_counter_decision : AutoMoveDownSlow.StopForkSensor
+    note on link
+    effect {
+        levels_remaining = levels_remaining - 1;
+    }
+    end note
+    parking_lift_controller__level_counter_decision --> parking_lift_controller__auto_move_up_high : levels_remaining > 0 && level_difference < 0
+    parking_lift_controller__level_counter_decision --> parking_lift_controller__auto_move_down_high : levels_remaining > 0 && level_difference > 0
+    parking_lift_controller__level_counter_decision --> parking_lift_controller__stopped_at_level : levels_remaining <= 0
+    parking_lift_controller__auto_move_up_high --> parking_lift_controller__safety_cut_stop : AutoMoveUpHigh.HeightAntiLiftCut
+    parking_lift_controller__auto_move_up_slow --> parking_lift_controller__safety_cut_stop : AutoMoveUpSlow.HeightAntiLiftCut
+    parking_lift_controller__auto_move_down_high --> parking_lift_controller__safety_cut_stop : AutoMoveDownHigh.HeightAntiLiftCut
+    parking_lift_controller__auto_move_down_slow --> parking_lift_controller__safety_cut_stop : AutoMoveDownSlow.HeightAntiLiftCut
+    parking_lift_controller__auto_move_up_high --> parking_lift_controller__over_travel_alarm_stop : AutoMoveUpHigh.OverTravelSensor
+    parking_lift_controller__auto_move_up_slow --> parking_lift_controller__over_travel_alarm_stop : AutoMoveUpSlow.OverTravelSensor
+    parking_lift_controller__stopped_at_level --> parking_lift_controller__transfer_ready : StoppedAtLevel.LevelConfirmationSensed
+    parking_lift_controller__stopped_at_level --> parking_lift_controller__level_error_stop : StoppedAtLevel.LevelConfirmationMissing
+    parking_lift_controller__transfer_ready --> parking_lift_controller__auto_waiting : TransferReady.Reset
+    parking_lift_controller__level_error_stop --> parking_lift_controller__auto_waiting : LevelErrorStop.Reset
+    parking_lift_controller__safety_cut_stop --> parking_lift_controller__auto_waiting : SafetyCutStop.Reset
+    parking_lift_controller__over_travel_alarm_stop --> parking_lift_controller__auto_waiting : OverTravelAlarmStop.Reset
+}
+[*] --> parking_lift_controller
+parking_lift_controller --> [*]
+@enduml

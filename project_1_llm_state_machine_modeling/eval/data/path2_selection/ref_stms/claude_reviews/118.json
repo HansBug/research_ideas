@@ -1,0 +1,49 @@
+{
+  "case_id": "118",
+  "verdict": "APPROVE",
+  "scores": {
+    "semantic_correctness": {
+      "emoji": "🟢",
+      "evidence": "10 个 state 与 Figure 4 完全对应（Offline→SoftwareInit→HardwareInit→PreOperational→SafeOperational→Operational + ErrorOperational + PostOperational/HardwareDeInit/SoftwareDeInit），PreOperational→SafeOperational 由 configuration_selected && required_real_time_link_present 守卫匹配 [E8][E9]，Medium→SafeOperational 对应 [E20]，High/Temp/Unplug→ErrorOperational 对应 [E13][E14][E17-E19]。"
+    },
+    "nl_faithfulness": {
+      "emoji": "🟡",
+      "evidence": "主要 state/event/var 均可溯源；monitoring_cycles 为合成计数器（用于落 C1 cycle aspect，NL 未直接出现但合理对应 [E2][E10] supervisor 周期监控）；PostOperationalActionsRevoked / HardwareActionsRevoked / SoftwareActionsRevoked 三个 event 是 de-init 序列的隐式触发器，NL 没具名但 sequence 与摘录 B 一致。"
+    },
+    "c_axis_grounding_appropriateness": {
+      "emoji": "🟢",
+      "evidence": "C1 用 `>> during after` 表达 supervisor 每周期监控/维护链路图，对应 [E2][E10]；C2 用复合二元 guard `configuration_selected==1 && required_real_time_link_present==1` 对应 [E8][E9]（NL 本就只有定性 guard，未硬塞数值阈值）；C3 用 `! * -> ErrorOperational` 表达 [E13/E14/E17-E19] 全局 fault，用 `! Operational -> SafeOperational` 表达 [E20] 局部 fault，scoping 恰当；C4 多个 abstract（DisableHardwareActuators / EnableHardwareActuators / BringHardwareDevicesToDefinedState / ShutdownJoystickManipulatorAndAffectedRealTimeNetwork 等）对应具名 effector [E7][E11][E12][E13][E18][E19]。"
+    },
+    "nl_coverage": {
+      "emoji": "🟢",
+      "evidence": "8 个 scenario 覆盖 commissioning + link guard 阻塞/允许、orderly stop、medium/high/temp/unplug fault、low-severity logged-only、3-cycle 监控，与 [E2]-[E21] 关键特性基本逐条对应。"
+    }
+  },
+  "hallucinations_found": [
+    {
+      "type": "var",
+      "name": "monitoring_cycles",
+      "issue": "NL 未直接出现该计数器；属于为暴露 C1 cycle 行为构造的合成观测变量，语义上合理对应 [E2][E10] 但形式上是发明的。"
+    },
+    {
+      "type": "event",
+      "name": "PostOperationalActionsRevoked / HardwareActionsRevoked / SoftwareActionsRevoked",
+      "issue": "NL/摘录 B 仅描述 de-init 顺序，没有为每段 revoke 完成显式命名事件；codex 按 step-complete handshake 模式补名，含义可推断但属推断命名。"
+    }
+  ],
+  "specific_revision_suggestions": [
+    "（可选）在 notes 中明确标注 monitoring_cycles 与三个 *ActionsRevoked event 为'形式化推断'，让后续 reviewer 不误判为原文给定。",
+    "（可选）考虑把 `! Operational -> SafeOperational : MediumSeverityError` 扩成 `! Operational -> SafeOperational` 加 `! PreOperational/SafeOperational -> SafeOperational`（self-loop）以保持 [E20]'change the state of a subsystem to safe-operational' 在更多源 mode 下都能消费 medium-severity，否则在 SafeOperational 内 medium 会被丢弃。"
+  ],
+  "missing_scenarios_suggestions": [
+    "medium_error_from_safe_operational: 验证在 SafeOperational 时 MediumSeverityError 行为（当前 ref 中该事件无效，可作 negative scenario 明确该限制）。",
+    "high_error_from_pre_operational_or_safe_operational: 验证 [E13] '任意 mode 下严重 fault 进入 ErrorOperational' 的全局性而不仅从 Operational 触发。"
+  ],
+  "overall_comment": "ref 整体语义忠实于 STM 摘录 + expansion NL，10-state 拓扑、二元守卫、forced-fault 全局边、abstract effector 占位皆与 [E1]-[E21] 对齐；hallucination 仅限于 1 个合成计数器和 3 个推断命名 event 的命名层面，未发明数值阈值或硬件名。scenarios 覆盖度高，建议补 medium 在 SafeOperational / high 在非 Operational 起点的边界 scenario，但不阻断 APPROVE。",
+  "_meta": {
+    "id": "118",
+    "claude_model": "?",
+    "duration_ms": 82136,
+    "cost_usd": 0.8375705000000001
+  }
+}

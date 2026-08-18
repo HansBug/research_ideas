@@ -1,0 +1,37 @@
+{
+  "case_id": "221",
+  "paper_slug": "automatic-fluid-level-control-using-programmable-logic-controller",
+  "case_name": "Three-Tank Fluid Level Pump-and-Valve Controller",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "该 case 控制 reserve/mixing、operation/overhead、user/working 三个液罐的液位，PLC 读取 I1-I6 压力/液位开关，驱动泵电机 Q1、三路电磁阀 Q2/Q3/Q5 和运行灯 Q4；典型流程是 I3 上电进入 ready，低/高液位触发补水、关阀和干转停泵。",
+  "scale": {
+    "state_count": 7,
+    "event_count": 7,
+    "variable_count": 11,
+    "transition_count": 8
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文写到 I3 ON 时 overall system is ready/on mode、I3 off 时 off mode，并把 reserve、operation、user 三个 tank 分别用 I1/I6、I2/I5、I4 控制，属于多子回路但无真正层次嵌套。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文给出 reserve tank 20,000L、operation tank 5000L、user tank 1250L 等阈值触发关阀/停泵，但实际 guard 主要由 pressure switch I1-I6 离散化。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "原文只有局部干转保护：reserve tank water finished 时 motor operation stop，I1 sends signal to stop the pump motor，没有 from any state/any mode 的 fault recovery。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "PDF block diagram/输出表列出 Q1 pump motor、Q2 solenoid valve for overhead tank、Q3 solenoid valve for user tank、Q4 running lamp、Q5 reserve solenoid valve。"
+    }
+  },
+  "features_we_care_about": "该样本的 C4 很强，且有清楚的 PLC I/O、液位阈值和泵阀联锁，能检验生成模型是否把硬件动作、传感输入和安全停泵关系落到可执行 EFSM。它是典型工业液位控制对象，NL 独立性较好。",
+  "potential_pitfalls": "原文 I/O 标号有噪声，尤其 STM 摘录中 Q4 被写作 motor pump，而 PDF 图表更像 Q1 为 pump、Q4 为 running lamp，建模时需要保守消歧。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "221"
+  }
+}

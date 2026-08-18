@@ -1,0 +1,134 @@
+@startuml
+hide empty description
+
+skinparam state {
+  BackgroundColor<<pseudo>> LightGray
+  BackgroundColor<<composite>> LightBlue
+  BorderColor<<pseudo>> Gray
+  FontStyle<<pseudo>> italic
+}
+
+legend top left
+|= Variable |= Type |= Initial Value |
+| forward_drivable | int | 0 |
+| left_drivable | int | 0 |
+| right_drivable | int | 0 |
+| back_drivable | int | 0 |
+| travel_meters | float | 0.0 |
+| intersection_type_changed | int | 0 |
+| step_counter | int | 0 |
+| intersection_signal | int | 0 |
+| rotation_done | int | 0 |
+| plan_action | int | 0 |
+endlegend
+
+state "AskForDirectionsSupervisor" as ask_for_directions_supervisor <<composite>> {
+    state "Wander" as ask_for_directions_supervisor__wander <<composite>> {
+        state "MakeDecision" as ask_for_directions_supervisor__wander__make_decision
+        state "RotateRecovery" as ask_for_directions_supervisor__wander__rotate_recovery
+        state "Rotate" as ask_for_directions_supervisor__wander__rotate
+        state "DriveForward" as ask_for_directions_supervisor__wander__drive_forward
+        state "DriveThroughIntersection" as ask_for_directions_supervisor__wander__drive_through_intersection
+        [*] --> ask_for_directions_supervisor__wander__make_decision
+        ask_for_directions_supervisor__wander__make_decision --> [*] : /PersonFound
+        ask_for_directions_supervisor__wander__make_decision --> [*] : /StateFailure
+        ask_for_directions_supervisor__wander__make_decision --> ask_for_directions_supervisor__wander__drive_through_intersection : intersection_signal == 2
+        note on link
+        effect {
+            intersection_signal = 0;
+        }
+        end note
+        ask_for_directions_supervisor__wander__make_decision --> ask_for_directions_supervisor__wander__rotate_recovery : forward_drivable == 0 && left_drivable == 0 && right_drivable == 0 && back_drivable == 0
+        ask_for_directions_supervisor__wander__make_decision --> ask_for_directions_supervisor__wander__drive_forward : forward_drivable == 1 || left_drivable == 1 || right_drivable == 1
+        ask_for_directions_supervisor__wander__rotate_recovery --> [*] : /PersonFound
+        ask_for_directions_supervisor__wander__rotate_recovery --> [*] : /StateFailure
+        ask_for_directions_supervisor__wander__rotate_recovery --> ask_for_directions_supervisor__wander__rotate : forward_drivable == 1 || left_drivable == 1 || right_drivable == 1 || back_drivable == 1
+        ask_for_directions_supervisor__wander__rotate --> [*] : /PersonFound
+        ask_for_directions_supervisor__wander__rotate --> [*] : /StateFailure
+        ask_for_directions_supervisor__wander__rotate --> ask_for_directions_supervisor__wander__drive_forward : rotation_done == 1
+        note on link
+        effect {
+            rotation_done = 0;
+        }
+        end note
+        ask_for_directions_supervisor__wander__drive_forward --> [*] : /PersonFound
+        ask_for_directions_supervisor__wander__drive_forward --> [*] : /StateFailure
+        ask_for_directions_supervisor__wander__drive_forward --> ask_for_directions_supervisor__wander__make_decision : intersection_signal == 1
+        note on link
+        effect {
+            intersection_signal = 0;
+        }
+        end note
+        ask_for_directions_supervisor__wander__drive_forward --> ask_for_directions_supervisor__wander__rotate_recovery : back_drivable == 1 && forward_drivable == 0 && left_drivable == 0 && right_drivable == 0
+        ask_for_directions_supervisor__wander__drive_through_intersection --> [*] : /PersonFound
+        ask_for_directions_supervisor__wander__drive_through_intersection --> [*] : /StateFailure
+        ask_for_directions_supervisor__wander__drive_through_intersection --> ask_for_directions_supervisor__wander__drive_forward : travel_meters > 2.0 && intersection_type_changed == 1
+        note on link
+        effect {
+            travel_meters = 0.0;
+            intersection_type_changed = 0;
+        }
+        end note
+    }
+    state "ApproachPerson" as ask_for_directions_supervisor__approach_person
+    state "HoldConversation" as ask_for_directions_supervisor__hold_conversation
+    state "FollowDirections" as ask_for_directions_supervisor__follow_directions <<composite>> {
+        state "MakeDecision" as ask_for_directions_supervisor__follow_directions__make_decision
+        state "DriveForward" as ask_for_directions_supervisor__follow_directions__drive_forward
+        state "Rotate" as ask_for_directions_supervisor__follow_directions__rotate
+        state "DriveThroughIntersection" as ask_for_directions_supervisor__follow_directions__drive_through_intersection
+        state "Complete" as ask_for_directions_supervisor__follow_directions__complete
+        [*] --> ask_for_directions_supervisor__follow_directions__make_decision
+        ask_for_directions_supervisor__follow_directions__make_decision --> [*] : /StateFailure
+        ask_for_directions_supervisor__follow_directions__make_decision --> ask_for_directions_supervisor__follow_directions__drive_forward : plan_action == 1
+        ask_for_directions_supervisor__follow_directions__make_decision --> ask_for_directions_supervisor__follow_directions__rotate : plan_action == 2
+        ask_for_directions_supervisor__follow_directions__make_decision --> ask_for_directions_supervisor__follow_directions__drive_through_intersection : plan_action == 3
+        ask_for_directions_supervisor__follow_directions__make_decision --> ask_for_directions_supervisor__follow_directions__complete : plan_action == 4
+        ask_for_directions_supervisor__follow_directions__drive_forward --> [*] : /StateFailure
+        ask_for_directions_supervisor__follow_directions__drive_forward --> ask_for_directions_supervisor__follow_directions__make_decision : intersection_signal == 3
+        note on link
+        effect {
+            step_counter = step_counter + 1;
+            plan_action = 2;
+            intersection_signal = 0;
+        }
+        end note
+        ask_for_directions_supervisor__follow_directions__rotate --> [*] : /StateFailure
+        ask_for_directions_supervisor__follow_directions__rotate --> ask_for_directions_supervisor__follow_directions__make_decision : rotation_done == 1
+        note on link
+        effect {
+            step_counter = step_counter + 1;
+            plan_action = 3;
+            rotation_done = 0;
+        }
+        end note
+        ask_for_directions_supervisor__follow_directions__drive_through_intersection --> [*] : /StateFailure
+        ask_for_directions_supervisor__follow_directions__drive_through_intersection --> ask_for_directions_supervisor__follow_directions__make_decision : travel_meters > 2.0 && intersection_type_changed == 1
+        note on link
+        effect {
+            step_counter = step_counter + 1;
+            travel_meters = 0.0;
+            intersection_type_changed = 0;
+            plan_action = 4;
+        }
+        end note
+        ask_for_directions_supervisor__follow_directions__complete --> [*] : /GoalHallwayAction
+        ask_for_directions_supervisor__follow_directions__complete --> [*] : /PersonWaypointAction
+        ask_for_directions_supervisor__follow_directions__complete --> [*] : /StateFailure
+    }
+    state "NavigateDoor" as ask_for_directions_supervisor__navigate_door
+    [*] --> ask_for_directions_supervisor__wander
+    ask_for_directions_supervisor__wander --> ask_for_directions_supervisor__approach_person : PersonFound
+    ask_for_directions_supervisor__wander --> ask_for_directions_supervisor__wander : StateFailure
+    ask_for_directions_supervisor__approach_person --> ask_for_directions_supervisor__hold_conversation : PersonReached
+    ask_for_directions_supervisor__approach_person --> ask_for_directions_supervisor__wander : StateFailure
+    ask_for_directions_supervisor__hold_conversation --> ask_for_directions_supervisor__follow_directions : DirectionsComplete
+    ask_for_directions_supervisor__hold_conversation --> ask_for_directions_supervisor__wander : StateFailure
+    ask_for_directions_supervisor__follow_directions --> ask_for_directions_supervisor__navigate_door : GoalHallwayAction
+    ask_for_directions_supervisor__follow_directions --> ask_for_directions_supervisor__wander : PersonWaypointAction
+    ask_for_directions_supervisor__follow_directions --> ask_for_directions_supervisor__wander : StateFailure
+    ask_for_directions_supervisor__navigate_door --> ask_for_directions_supervisor__wander : StateFailure
+}
+[*] --> ask_for_directions_supervisor
+ask_for_directions_supervisor --> [*]
+@enduml

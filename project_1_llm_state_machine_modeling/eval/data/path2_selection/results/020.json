@@ -1,0 +1,37 @@
+{
+  "case_id": "020",
+  "paper_slug": "proactive-guidance-uav-landing-dynamic-platform",
+  "case_name": "Dynamic-platform landing supervisor for a quadrotor UAV",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "该 case 是四旋翼 UAV 在动态 UGV/船载平台上的自主回收着陆监督器，依赖 GPS、视觉/惯性定位与相对位姿估计来切换跟随、视觉接管、轨迹接近和关机阶段。执行侧主要向飞控发送速度 setpoint，并在距降落垫小于 5 cm 时快速降低电机油门直至关机。",
+  "scale": {
+    "state_count": 4,
+    "event_count": 5,
+    "variable_count": 8,
+    "transition_count": 5
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文明确列出四个 FSM stages：GPS following、Vision position following、Ground-effect free trajectory following、Shutdown，并有 backward 回退，但未见层次嵌套。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "数值 guard 包括相对位置进入半径 0.1 m、中心在 landing pad 后方 1.1 m 且上方 0.7 m 的球形 desired domain，以及 <5 cm above pad 关机阈值。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "第二阶段视觉丢失会 rapid moves stage backward 到 GPS，第三阶段 divergence、remaining altitude、overshoot 任一 out of bounds 会立即回退，但不是 from any state。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文写 FSM 向 UAV flight controller 传 velocity setpoints，并在最终阶段 drastically reduce the throttles of the motors until shut down，硬件出口主要是飞控/电机。"
+    }
+  },
+  "features_we_care_about": "该样本的 C2 很强，数值空间 guard、轨迹偏差、剩余高度、overshoot 和关机距离都适合 parse + semantic + sim 循环产生可验证反馈。FSM 阶段清晰、原文证据完整，且是典型真实控制对象。",
+  "potential_pitfalls": "结构是扁平四阶段 FSM，故 C1 不强；fault recovery 主要是局部回退，执行器类型也较单一。",
+  "verdict": "✨ GOOD",
+  "_meta": {
+    "id": "020"
+  }
+}

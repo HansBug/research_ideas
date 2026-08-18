@@ -1,0 +1,37 @@
+{
+  "case_id": "014",
+  "paper_slug": "design-and-implementation-of-an-asynchronous-finite-state-controller-for-wheeled-mobile-robots",
+  "case_name": "Three-lane obstacle-avoidance lane-change controller for a WMR",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是三车道道路上的四轮非转向 WMR 避障换道控制器，使用超声距离、线传感器和轮编码器估计朝向，输出电机 PWM 与超声舵机朝向。流程从右车道跟随开始，遇到 0.5 m 内障碍就检查相邻车道并变道，无可用车道时进入 STOP。",
+  "scale": {
+    "state_count": 7,
+    "event_count": 2,
+    "variable_count": 4,
+    "transition_count": 13
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "Figure 5 含 Follow right/middle/left lane、Check middle/right/left lane 和 STOP，Obstacle detected/No obstacle 在多个 lane mode 间切换，但未给出 composite/nested 状态。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文明确说 transition guard 基于 measured distance 与 vehicle orientation，且障碍阈值为 0.5 m、换道旋转约 45°，朝向还由轮距增量公式更新。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "⚪",
+      "evidence": "Figure 5 只显示 STOP 从 Check middle/left lane 的 Obstacle detected 分支到达，原文没有 any mode/from any state 的 fault、abort、reset 或 recovery 语义。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文列出 four 5V DC motors 与 one Tower Pro Micro Servo SG90，并说明输出是供给 motors 的 PWM 和 ultrasonic sensor servomotor 的 heading。"
+    }
+  },
+  "features_we_care_about": "该样本的主要价值在 C2：距离阈值、朝向估计、45° 旋转约束和 PID/比例控制让 symbolic guard reasoning 有真实 grounding。它也是清晰的物理 WMR 控制对象，NL 独立、流程完整，适合作为 T0 EFSM 样本。",
+  "potential_pitfalls": "结构本质上是扁平 flowchart，没有层次化子状态机和 cross-cutting fault recovery，C1/C3 对 PATH2 的区分力有限。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "014"
+  }
+}

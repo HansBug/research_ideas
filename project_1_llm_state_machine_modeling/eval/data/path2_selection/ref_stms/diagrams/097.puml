@@ -1,0 +1,148 @@
+@startuml
+hide empty description
+
+skinparam state {
+  BackgroundColor<<pseudo>> LightGray
+  BackgroundColor<<composite>> LightBlue
+  BorderColor<<pseudo>> Gray
+  FontStyle<<pseudo>> italic
+}
+
+legend top left
+|= Variable |= Type |= Initial Value |
+| detection_count | int | 0 |
+| frame_window | int | 0 |
+| no_new_detection_frames | int | 0 |
+| detection_seen_this_frame | int | 0 |
+endlegend
+
+state "SearchFollowCatchMissionController" as search_follow_catch_mission_controller <<composite>> {
+    state "START_STATE" as search_follow_catch_mission_controller__start_state
+    state "SEARCH" as search_follow_catch_mission_controller__search
+    state "FOLLOW_LONG_RANGE" as search_follow_catch_mission_controller__follow_long_range
+    state "FOLLOW_SHORT_RANGE" as search_follow_catch_mission_controller__follow_short_range
+    state "CATCH_BALL" as search_follow_catch_mission_controller__catch_ball
+    state "LAND" as search_follow_catch_mission_controller__land
+    search_follow_catch_mission_controller__start_state --> search_follow_catch_mission_controller__search : DETECTION_LOST
+    search_follow_catch_mission_controller__start_state --> search_follow_catch_mission_controller__search : no_new_detection_frames >= 5
+    search_follow_catch_mission_controller__search --> search_follow_catch_mission_controller__search : DETECTION_LOST
+    search_follow_catch_mission_controller__search --> search_follow_catch_mission_controller__search : no_new_detection_frames >= 5
+    search_follow_catch_mission_controller__follow_long_range --> search_follow_catch_mission_controller__search : DETECTION_LOST
+    search_follow_catch_mission_controller__follow_long_range --> search_follow_catch_mission_controller__search : no_new_detection_frames >= 5
+    search_follow_catch_mission_controller__follow_short_range --> search_follow_catch_mission_controller__search : DETECTION_LOST
+    search_follow_catch_mission_controller__follow_short_range --> search_follow_catch_mission_controller__search : no_new_detection_frames >= 5
+    search_follow_catch_mission_controller__catch_ball --> search_follow_catch_mission_controller__search : DETECTION_LOST
+    search_follow_catch_mission_controller__catch_ball --> search_follow_catch_mission_controller__search : no_new_detection_frames >= 5
+    search_follow_catch_mission_controller__land --> search_follow_catch_mission_controller__search : DETECTION_LOST
+    search_follow_catch_mission_controller__land --> search_follow_catch_mission_controller__search : no_new_detection_frames >= 5
+    [*] --> search_follow_catch_mission_controller__start_state
+    search_follow_catch_mission_controller__start_state --> search_follow_catch_mission_controller__search : START_STATE.START_MISSION
+    note on link
+    effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 0;
+    }
+    end note
+    search_follow_catch_mission_controller__search --> search_follow_catch_mission_controller__search : SEARCH.LongRangeDetectionFrame
+    note on link
+    effect {
+        detection_count = detection_count + 1;
+        frame_window = frame_window + 1;
+    }
+    end note
+    search_follow_catch_mission_controller__search --> search_follow_catch_mission_controller__search : SEARCH.LongRangeMissFrame
+    note on link
+    effect {
+        frame_window = frame_window + 1;
+    }
+    end note
+    search_follow_catch_mission_controller__search --> search_follow_catch_mission_controller__follow_long_range : detection_count >= 3 && frame_window >= 5
+    note on link
+    effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 1;
+    }
+    end note
+    search_follow_catch_mission_controller__search --> search_follow_catch_mission_controller__search : frame_window >= 5 && detection_count < 3
+    note on link
+    effect {
+        detection_count = 0;
+        frame_window = 0;
+    }
+    end note
+    search_follow_catch_mission_controller__follow_long_range --> search_follow_catch_mission_controller__follow_long_range : FOLLOW_LONG_RANGE.LongRangeDetectionFrame
+    note on link
+    effect {
+        detection_seen_this_frame = 1;
+    }
+    end note
+    search_follow_catch_mission_controller__follow_long_range --> search_follow_catch_mission_controller__follow_long_range : FOLLOW_LONG_RANGE.ShortRangeDetectionFrame
+    note on link
+    effect {
+        detection_count = detection_count + 1;
+        frame_window = frame_window + 1;
+        detection_seen_this_frame = 1;
+    }
+    end note
+    search_follow_catch_mission_controller__follow_long_range --> search_follow_catch_mission_controller__follow_long_range : FOLLOW_LONG_RANGE.ShortRangeMissFrame
+    note on link
+    effect {
+        frame_window = frame_window + 1;
+        detection_seen_this_frame = 0;
+    }
+    end note
+    search_follow_catch_mission_controller__follow_long_range --> search_follow_catch_mission_controller__follow_short_range : detection_count >= 2 && frame_window >= 4
+    note on link
+    effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 1;
+    }
+    end note
+    search_follow_catch_mission_controller__follow_long_range --> search_follow_catch_mission_controller__follow_long_range : frame_window >= 4 && detection_count < 2
+    note on link
+    effect {
+        detection_count = 0;
+        frame_window = 0;
+    }
+    end note
+    search_follow_catch_mission_controller__follow_short_range --> search_follow_catch_mission_controller__catch_ball : FOLLOW_SHORT_RANGE.BALL_DETECTED
+    note on link
+    effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 1;
+    }
+    end note
+    search_follow_catch_mission_controller__follow_short_range --> search_follow_catch_mission_controller__follow_short_range : FOLLOW_SHORT_RANGE.ShortRangeDetectionFrame
+    note on link
+    effect {
+        detection_seen_this_frame = 1;
+    }
+    end note
+    search_follow_catch_mission_controller__catch_ball --> search_follow_catch_mission_controller__land : CATCH_BALL.SUCCESSFUL_CATCH
+    note on link
+    effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 1;
+    }
+    end note
+    search_follow_catch_mission_controller__catch_ball --> search_follow_catch_mission_controller__catch_ball : CATCH_BALL.BALL_DETECTED
+    note on link
+    effect {
+        detection_seen_this_frame = 1;
+    }
+    end note
+    search_follow_catch_mission_controller__catch_ball --> search_follow_catch_mission_controller__catch_ball : CATCH_BALL.BALL_LEAVES_CAMERA_FIELD_OF_VIEW
+}
+[*] --> search_follow_catch_mission_controller
+search_follow_catch_mission_controller --> [*]
+@enduml

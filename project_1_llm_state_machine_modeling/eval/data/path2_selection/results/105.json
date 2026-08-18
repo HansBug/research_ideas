@@ -1,0 +1,37 @@
+{
+  "case_id": "105",
+  "paper_slug": "sequence-supervisory-control-onboard-uav-mission-management",
+  "case_name": "Mission-mode / command-mode UAV sequence supervisor",
+  "bucket": "HSM-layered",
+  "what_it_is": "这是 ARTIS 无人直升机的 onboard mission-management sequence supervisor，在 manual/auto、mission plan 和 direct command 之间调度 UAV 行为；它用 GCS/机载组件事件、真值表和 EBNF mission grammar 过滤命令，并向 flight controller/actuator command 路径发出起飞、降落、悬停、轨迹飞行等行为。",
+  "scale": {
+    "state_count": 12,
+    "event_count": 12,
+    "variable_count": 8,
+    "transition_count": 30
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文写 Sequence Control System has two hierarchical levels，且 Mission Mode 和 Command Mode 是 two composite states，Mission Mode 内每个 behavior 终止后回到 Parse Command。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文给出 waiting time must not be a negative number、lateral or longitudinal velocity is exceeded、minimum ground distance 等阈值/参数检查，但未给出复杂复合 guard 公式。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟢",
+      "evidence": "原文写 Every state of the top level has a transition to Mission Controller Off，且 stop command 有 transition from every auto mode state，Stand By also serves as a fall-back state in case of errors。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文写系统 must stop producing actuator commands，且 behaviors output direct position and velocity commands to the flight controller，主要硬件出口是 flight controller/actuator command 路径。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的价值主要在 C1/C3：有真实 UAV 控制对象、层次 composite state、跨状态 manual/off/stop/fallback 安全语义，适合暴露 LLM 在 HSM 初始化、退出和 forced transition 上的建模错误。NL 与原文对应关系清晰，且与常见阀门/泵类样本不同质。",
+  "potential_pitfalls": "Figure 3 没完全展开 composite 内部子状态，数值 guard 多为文字阈值和测试场景描述，规模估计有一定不确定性。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "105"
+  }
+}

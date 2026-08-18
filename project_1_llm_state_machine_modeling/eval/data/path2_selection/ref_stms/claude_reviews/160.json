@@ -1,0 +1,50 @@
+{
+  "case_id": "160",
+  "verdict": "APPROVE",
+  "scores": {
+    "semantic_correctness": {
+      "emoji": "🟡",
+      "evidence": "HSM 结构与 MissionMode/CommandMode/StandBy/SlowDown/MissionControllerOff/ParseCommand 等核心 state 命名与摘录 A 完全一致；FlyHome / SearchAndTrackObject 作为 Supervisor 层 sibling 而非 MissionMode 内部 behavior leaf 属于合理整合（摘录 B/C 支持），但 `MissionMode -> StandBy :: MissionPlanProcessed` 与 `DataLinkLost -> FlyHome` 是基于 [E8]/[E19][E21] 的合理推断而非原文直述。"
+    },
+    "nl_faithfulness": {
+      "emoji": "🟡",
+      "evidence": "无明显发明的硬件名 / 数值阈值；`*_error / *_excess / *_discrepancy` 与 `mission_command_available / behavior_termination_condition` 是对 [E8][E12]-[E14] 的归一化变量化（笔记 §5 已明确声明，非 hallucination），但 `MissionPlanProcessed -> StandBy` 与 `StandBy -> StandBy :: StopCommand` 自环属轻度推断（NL 没明说 mission processed 后落点）。"
+    },
+    "c_axis_grounding_appropriateness": {
+      "emoji": "🟢",
+      "evidence": "C1：root `>> during before/after abstract` 直接对应 [E18][E23]；C2：plausibility 复合 guard 同时检查四个属性变量，覆盖 [E12]-[E14]；C3：`! * -> MissionControllerOff :: ManualControl` 列在 StopCommand forced transitions 之前以保证 [E17] 优先级，DataLinkLost 跨层 forced 对应 [E19][E21]；C4：所有 abstract effector（CommandFlightControllerEveryCycle / ReadVehicleStateAndGroundDistanceSensor / CaptureHoverPosition / SmoothChangeoverToStandBy）均有具体 [E] 出处。"
+    },
+    "nl_coverage": {
+      "emoji": "🟡",
+      "evidence": "12 个 scenario 覆盖默认入口、plausibility 接受/拒绝、behavior 终止、payload 从 3 个 MissionMode 子状态进入 CommandMode、stop->SlowDown->StandBy 多 cycle、manual 优先 stop、data-link loss 强制 FlyHome、双 high-level objective、mission processed -> StandBy；缺 BehaviorActive 直接 StopCommand 路径与 StandBy/MissionMode 状态下 DataLinkLost 触发的独立验证。"
+    },
+    "hallucinations_found": [
+      {
+        "type": "event",
+        "name": "MissionPlanProcessed",
+        "issue": "NL [E8] 只说 termination condition 回 Parse Command，并未直述 mission plan 整体处理完后落到 StandBy；此处 `MissionMode -> StandBy :: MissionPlanProcessed` 属轻度推断目标状态。"
+      },
+      {
+        "type": "event",
+        "name": "StopCommand 在 StandBy/SlowDown 上的自环",
+        "issue": "NL [E16] 指 every auto-mode state 接受 stop，但未规定 StandBy/SlowDown 内 stop 的具体语义；codex 用自环吸收，属保守但 NL 未直接支持。"
+      }
+    ],
+    "specific_revision_suggestions": [
+      "可考虑在 notes 或 STM 摘录中补充 [E8] 的轻度推断说明：将 `MissionMode -> StandBy :: MissionPlanProcessed` 标注为 NL 未直述落点的保守选择（已在 notes §5 部分提及，建议同步到 expansion intentional_omissions）。",
+      "`PlausibilityCheck -> BehaviorActive` 中 `(start_end_position_discrepancy * start_end_position_discrepancy) == 0.0` 可直接改写为 `start_end_position_discrepancy == 0.0`，与 reject 分支 `!= 0.0` 对称，避免引入易被误读的乘方运算。",
+      "建议显式补一条 `! BehaviorActive -> SlowDown :: StopCommand`（或在文档中说明 MissionMode forced stop 已覆盖 BehaviorActive 子状态），让 [E16] 的 'every auto-mode state' 在 BehaviorActive 上也有可测试入口。"
+    ],
+    "missing_scenarios_suggestions": [
+      "stop_from_behavior_active_to_slowdown：从 MissionMode.BehaviorActive 发 StopCommand，验证 forced transition 经 MissionMode 层捕获并进入 SlowDown，覆盖 [E16] 在最深 leaf 的语义。",
+      "datalink_loss_from_standby_to_fly_home：从 StandBy 发 DataLinkLost，验证 Supervisor 跨层强制 FlyHome 覆盖 [E19][E21] 在 idle 状态的反应。",
+      "datalink_loss_from_mission_mode_parse：从 MissionMode.ParseCommand 发 DataLinkLost，验证 MissionMode 内任意子状态均能被 supervisor 抢占。"
+    ],
+    "overall_comment": "codex draft 的 HSM 结构、forced transition 优先级与 4 个 C-axis grounding 使用都比较准确，所有 state/event/effector 均能在 expansion [E] 溯源中找到出处；轻度推断（MissionPlanProcessed 落点、StopCommand 自环、DataLinkLost->FlyHome）已在 notes §5 中显式声明，没有捏造硬件或数值。Scenarios 覆盖度较高，仅缺几条边角路径，整体可直接进入下一阶段。"
+  },
+  "_meta": {
+    "id": "160",
+    "recovered_from_raw": true,
+    "added_close_braces": 1
+  }
+}

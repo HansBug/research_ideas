@@ -1,0 +1,37 @@
+{
+  "case_id": "001",
+  "paper_slug": "reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation",
+  "case_name": "Closed-mode CONOPS and safe-mode fallback in Masat-1",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是 Masat-1 CubeSat 飞控软件的闭合式运行模式控制器，根据地面遥控、任务完成、电池电量、日照/地面可见性和 FDIR 异常事件在 INIT、SAFE、CRITICAL、IDLE、SUN-VIS、ECLIPSE、MISSION、COMMUNICATION 等模式间切换。它控制天线部署、COM/ADCS/载荷初始化、载荷关断、低功耗切换、信标发送和安全模式保持。",
+  "scale": {
+    "state_count": 8,
+    "event_count": 12,
+    "variable_count": 8,
+    "transition_count": 16
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文称 operating modes 由有限状态机管理，并且 INIT 进入 power ON pseudo-state，图中还含 Startup/Contingency 与 Nominal 两个模式区。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文给出电池低于 86% 进 CRITICAL、高于 90% 才算 nominal，INIT 还含 45 min 延迟和 3 次天线重部署尝试。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟢",
+      "evidence": "原文写 SAFE 在 system fault/failure event 后进入，且 subsystem/system 级故障会由 safety monitor 通知 flight planner 切到 safe mode。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文涉及天线部署、COM/ADCS/载荷初始化，CRITICAL/SAFE 中还会关断 payload 并把 EPS/OBC/COM/ADCS 切到低功耗。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 很有价值：C1 的闭合模式 FSM 加 INIT 伪状态/重试逻辑容易暴露生成模型的结构错误，C3/C4 又有明确的故障强制回退和硬件动作。NL 描述独立、流程清晰，且来自真实航天飞控场景，不像通用 toy FSM。",
+  "potential_pitfalls": "数值守卫多为阈值和计数比较，缺少复杂算术不变式，因此 C2 只能算中等。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "005"
+  }
+}

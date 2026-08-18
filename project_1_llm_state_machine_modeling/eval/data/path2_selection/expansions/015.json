@@ -1,0 +1,69 @@
+{
+  "case_id": "015",
+  "case_name": "Greenhouse row-inspection navigation supervisor",
+  "expanded_nl": "The navigation supervisor controls a holonomic greenhouse mobile robot whose finite state machine sequences automated row-inspection actions, while a single stereo camera supplies perception and a LiDAR sensor supplies distance measurements [E1]. It starts each mission in the initialization/WAIT_FOR_GOAL mode by acquiring the greenhouse occupancy grid map, reading the user's mission instructions that specify the rows to inspect, configuring localization, and deriving the action sequence for the mission [E2]. When a mission is available, the controller enters the headland-planning PLAN_EXEC block; the robot moves toward the pre-known target at the beginning of the selected corridor, and the TEB local planner uses laser-scanner costmap updates to produce collision-free trajectories that respect kinematics and obstacle distance [E3][E4]. After PLAN_EXEC finishes successfully, the controller enters VISUAL_SERVOING, whose default first phase is rail target alignment before the in-row process begins [E5]. During alignment, semantic segmentation and stereo depth provide rail geometry, and completion is guarded by the angular, lateral, and longitudinal divergences from the rail midpoint all being approximately zero [E6]. In the row, motion is limited to forward and backward x-axis movement; after a corridor has been traversed, negative linear velocity commands return the robot toward the row start, and rail navigation stops when row endpoints enter the robot's field of view [E7]. When the row task is complete, the FSM returns to WAIT_FOR_GOAL, but any failure anywhere in the operation is routed through a common invalid/aborted/failure outcome before reinitialization [E8].",
+  "provenance": [
+    {
+      "marker": "E1",
+      "source": "STM §1 摘录 A | paper.pdf p.1 Abstract | paper_content.txt 行 49-53",
+      "quote": "Our approach utilizes the heating system rails to navigate through the crop rows using a single stereo camera for perception and a LiDAR sensor for accurate distance measurements.",
+      "supports": "holonomic greenhouse robot, finite state machine orchestration, stereo-camera perception, LiDAR distance measurements"
+    },
+    {
+      "marker": "E2",
+      "source": "STM §1 摘录 B/C | paper.pdf p.9 §3.4 | paper_content.txt 行 395-399, 421",
+      "quote": "acquisition of both the greenhouse occupancy grid map and the user's mission instructions, which specify the rows to be inspected",
+      "supports": "initialization/WAIT_FOR_GOAL acquires map, mission rows, localization setup, and action sequence"
+    },
+    {
+      "marker": "E3",
+      "source": "STM §1 摘录 C | paper.pdf p.10 §3.4 / Figure 8 | paper_content.txt 行 421-424",
+      "quote": "there is a transition to the PLAN_EXEC block, which contains the headland planning that is performed by the Timed Elastic Band (TEB) Local Planner",
+      "supports": "mission-triggered transition into PLAN_EXEC and use of TEB for headland planning"
+    },
+    {
+      "marker": "E4",
+      "source": "paper.pdf p.11 §3.5 | paper_content.txt 行 443-449",
+      "quote": "The local planner operates on a local costmap that updates in real-time with the input from the laser scanners and provides accurate, collision-free trajectories",
+      "supports": "laser-scanner costmap updates and collision-free trajectories respecting motion/obstacle constraints"
+    },
+    {
+      "marker": "E5",
+      "source": "STM §1 摘录 C/D | paper.pdf p.10 §3.4 / Figure 8 | paper_content.txt 行 424-427",
+      "quote": "there is a transition to the VISUAL_SERVOING block, which is responsible for the in-row processes. Specifically, the robot performs the TARGET_ALIGNMENT phase once",
+      "supports": "successful PLAN_EXEC leads to VISUAL_SERVOING and default first alignment phase"
+    },
+    {
+      "marker": "E6",
+      "source": "paper.pdf p.12-13 §3.6 | paper_content.txt 行 519-529, 545-547",
+      "quote": "At each timestep the robot calculates its divergence from pmiddle, which is expressed as dθ, dy and dx.",
+      "supports": "alignment variables and composite approximately-zero completion guard"
+    },
+    {
+      "marker": "E7",
+      "source": "paper.pdf p.13 §3.7 | paper_content.txt 行 549-565",
+      "quote": "the mobility of the robot is constrained to only two directions: forward and backward",
+      "supports": "in-row forward/backward x-axis motion, negative return velocity, and endpoint-triggered stop condition"
+    },
+    {
+      "marker": "E8",
+      "source": "STM §1 摘录 D | paper.pdf p.10 §3.4 / Figure 8 | paper_content.txt 行 428-430",
+      "quote": "any failure that may occur throughout the entire operation returns to a common state, which is reported as invalid, aborted, or a failure",
+      "supports": "cross-cutting failure route through common invalid/aborted/failure outcome and reinitialization"
+    }
+  ],
+  "axis_coverage": {
+    "C1": "C1 由 initialization/WAIT_FOR_GOAL、PLAN_EXEC、VISUAL_SERVOING 以及进入 VISUAL_SERVOING 后先执行 rail target alignment 暴露，对应 [E2][E3][E5]。",
+    "C2": "C2 由 alignment 完成条件暴露：角向、横向、纵向偏差 dθ/dy/dx 都近似为零才完成，对应 [E6]；原文没有给具体数值阈值。",
+    "C3": "C3 由「any failure anywhere in the operation」统一进入 common invalid/aborted/failure outcome 再初始化暴露，对应 [E8]；原文不支持每 cycle safety aspect。",
+    "C4": "C4 由 single stereo camera、LiDAR、laser scanners、robot velocity commands 暴露，对应 [E1][E4][E7]；原文未给具名 motor/valve 类 effector。"
+  },
+  "word_count_estimate": 238,
+  "intentional_omissions": "没有添加阀门、马达编号、传感器阈值、timeout 或 emergency-stop 路径，因为原文没有提供这些细节。也没有把 Figure 8 中所有状态名逐一列出，以避免把 NL 变成状态清单。",
+  "_meta": {
+    "id": "015",
+    "actual_word_count": 238,
+    "markers_count": 8,
+    "provenance_count": 8
+  }
+}

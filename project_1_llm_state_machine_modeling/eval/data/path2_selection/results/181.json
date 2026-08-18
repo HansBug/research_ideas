@@ -1,0 +1,37 @@
+{
+  "case_id": "181",
+  "paper_slug": "enhanced-smart-home-control-monitoring-system",
+  "case_name": "Priority-Scanned Smart-Home Utility and Access Controller",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是一个 AT89C51 智能家居监督控制器，用水位、温度、烟雾、运动/进出和 keypad 信号按优先级扫描不同子流程。典型流程是根据传感输入启动/停止水泵、空调、报警器、灯光、门禁与 GSM/LCD 通知。",
+  "scale": {
+    "state_count": 10,
+    "event_count": 14,
+    "variable_count": 10,
+    "transition_count": 20
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文 Fig.4 给出 St0-St9 的 ASM chart，并在控制算法中写 Do forever 下 If (WLS) / Else if (TCS) / Else if (SKS) / Else if (MDS) / Else if (KPS)，有多分支过程切换但没有真正 composite/init/pseudo 层次语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文包含 If level is minimum/maximum、If temperature too high、Check if count is zero 后 Increment/Decrement count、allow “3” time check，以及 VTH = 0.13V 的 comparator threshold，数值 guard 和计数 effect 足够清楚。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "原文只说明 AT commands 在 smoke detector 信号或 wrong keypad supplied three times 时激活，并有 Sound an alarm/Send message，没有写 any mode/from any state 的强制 ErrorHandler。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文动作包括 Switch on/off pump、Switch on/off AC、Sound an alarm、Switch on/off light、Grant/Deny access、Send message 和 Display message/error (LCD)，物理执行器与硬件出口丰富。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的价值主要在 C2 与 C4：它把多个传感阈值、计数器和重试次数 guard 绑定到真实家居执行器，适合测试 symbolic guard feedback 与 abstract hardware handler。NL 独立清晰，且比单一门禁/灯控样本更综合。",
+  "potential_pitfalls": "结构本质上仍是扁平 priority-scanned ASM，C1 层次化风险和 C3 cross-cutting recovery 证据都有限。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "181"
+  }
+}

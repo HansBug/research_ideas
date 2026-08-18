@@ -1,0 +1,37 @@
+{
+  "case_id": "056",
+  "paper_slug": "pressure-sensed-fast-response-anti-collision-system-railway-gate-control",
+  "case_name": "Pressure-Sensed 45° Hold Railway Gate Controller",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是一个铁路平交道口门控系统，用 IR-1/IR-2 检测列车到达与离开，用压力开关在门下落到 45° 时检测是否有车辆卡住，并通过 DC motor 控制关门、停机和回开。典型流程是列车到达后关门到 45° 检查，若无障碍继续到 90°，若有障碍停在 45° 并点亮紧急指示，列车离开后反向开门。",
+  "scale": {
+    "state_count": 7,
+    "event_count": 7,
+    "variable_count": 4,
+    "transition_count": 7
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文算法给出 arrival -> gate closed up to 45° -> vehicle check -> Close/Stop -> departure -> Open 的多阶段门控模式，但没有 composite state、init 或嵌套退出语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文明确写到 gate closing 时会 stop and check at 45°，若无车辆则 allow the gate to be closed at 90°，主要是单一 gate angle 变量的阈值守卫。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "异常路径只在 closing down 到 45° 时由 pressure switch 触发 motor to Stop 和 emergency light ON，没有 from any state 或 all phases 的 cross-cutting fault 语义。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文写 IR sensor signal 送入 microcontroller 后驱动 DC motor rotate，并且 LED D1 is used to give signal to the train，硬件出口主要是 DC motor 和 emergency LED。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的价值主要在 C2 的 45°/90° 数值互锁和 C4 的电机/指示灯硬件动作解耦，NL 流程清楚且是典型工业门控对象。它不是层次化样本，但可作为 T0 中较清晰的 EFSM-interlock 小样本。",
+  "potential_pitfalls": "紧急停在 45° 后的恢复流程原文没有细化，模型容易形成未定义的 emergency hold dead-end。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "056"
+  }
+}

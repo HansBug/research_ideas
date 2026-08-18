@@ -1,0 +1,37 @@
+{
+  "case_id": "001",
+  "paper_slug": "terrestrial-unmanned-roving-vertical-take-off-and-landing-turvtol",
+  "case_name": "Multi-modal drive-fly mission FSM for TURVTOL",
+  "bucket": "HSM-layered",
+  "what_it_is": "该 case 控制 TURVTOL 多模态自主 rover/drone 的任务监督 FSM，利用 SLAM、path planner、VIO、wheel encoders 和电池/地形安全信号在地面行驶、起飞、飞行、悬停、找降落点、降落、牵引恢复和休眠充电之间切换。执行侧涉及 differential-drive wheel motors、coaxial rotors/flying motors 以及 Pixhawk/PX4/MAVROS 飞控命令。",
+  "scale": {
+    "state_count": 14,
+    "event_count": 22,
+    "variable_count": 9,
+    "transition_count": 34
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文第34页明确写到 hierarchical design，顶层有 FLY_OPERATE 和 DRIVE_OPERATE，且 FLY_OPERATE contains a LANDING sub-machine，DRIVE_OPERATE contains TRACTION_LOSS 和 DORMANT sub-machine。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "Table 5 给出 low_battery 是 battery level below threshold，return_to_safe 涉及 specified search radius，slipping/stuck 由 VIO moving more/less than encoders indicate 触发，属于多数值变量比较守卫。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "原文有多处安全/异常路径，如 land 可由 battery low 或 no current destination 触发，TRACTION_LOSS 处理 stuck/slipping/flipped，但没有明确 from any state 或 any mode 的全局 fault transition。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文控制段写 pwm signal gets sent to the motors，并且 MAVROS commands 初始化 mode changes、arming/disarming、takeoff/landing，autopilot 再 sends corresponding signals to the flying motors。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 很有价值：C1 层次结构非常明确，C2 有电池阈值、搜索半径、VIO/encoder 对比等可符号化守卫，C4 也有清晰硬件动作出口。NL 与原文表格/图对应关系清楚，且多模态 rover-drone 不容易与普通工业 FSM 趋同。",
+  "potential_pitfalls": "主要风险是原文说明 FSM structure 已实现但 state methods 仍属 future work，部分 guard 语义偏自然语言而非完整公式。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "012"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "case_id": "103",
+  "paper_slug": "human-robot-collaborative-manufacturing-cell-learning-based-interaction",
+  "case_name": "Palletizing-handover-recovery collaborative arm supervisor",
+  "bucket": "FSM-basic",
+  "what_it_is": "这是一个人机协作制造单元中的 UR10e 机械臂监督控制器，利用体积检测、手势识别和接触交互分类来切换托盘搬运、安全搬运、交接、等待检查和物体回收流程；执行侧主要是机械臂运动配置与 Robotiq 2F 夹爪释放/抓取。",
+  "scale": {
+    "state_count": 6,
+    "event_count": 8,
+    "variable_count": 5,
+    "transition_count": 8
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文写该机械臂由“finite-state machine with six states”控制，包含 Fast/Safe/Object Handover/Wait/Recover 等模式切换，但没有 composite state 或嵌套 init/exit 语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "FSM 转移表面上由 e1/e3/e5 等 decision-model events 触发，但上游检测有可数值化 guard，例如体积检测用 occupied-volume ratio 并将 cell occupancy threshold 设为 15%，手势/物体识别也使用 logit thresholds。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "安全逻辑主要是 State 1 中 operator detected 后切到 State 2 的 slower/retracted motion，原文未给出 from any state/any mode 的 error、abort、reset 或 forced recovery 转移。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文说明每个状态包含 arm and gripper movements、velocities、accelerations，且 PULL 会触发 gripper release、机械臂 retract/recover，但硬件出口主要集中在 UR10e arm 与 Robotiq gripper 两类。"
+    }
+  },
+  "features_we_care_about": "该样本是清晰、独立、工业味较强的 T0 扁平 FSM，NL 到状态/事件/动作的映射明确，适合检验 ParseRate、SimRate 和 ReachabilityRate；C2/C4 有中等 grounding 价值，但不是多层次或强故障恢复样本。",
+  "potential_pitfalls": "数值 guard 多在上游感知模块而非 FSM 本体，且缺少层次结构和 cross-cutting fault path，C-axis 覆盖不够强。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "103"
+  }
+}

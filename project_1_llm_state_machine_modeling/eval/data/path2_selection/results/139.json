@@ -1,0 +1,37 @@
+{
+  "case_id": "139",
+  "paper_slug": "development-of-a-finite-state-machine-for-a-small-unmanned-aircraft-system-using-experimental-design",
+  "case_name": "Wind-Maneuver Adaptive Tracking Parameter FSM",
+  "bucket": "FSM-basic",
+  "what_it_is": "这是一个小型无人机跟踪地面车辆时的自适应参数切换 FSM，根据风速、相对风向和地面车辆机动类型选择 36 个参数状态之一。执行侧不是直接驱动舵机，而是向 APM:Plane 写入 max bank angle、waypoint radius、waypoint loiter radius 等飞控参数。",
+  "scale": {
+    "state_count": 36,
+    "event_count": 3,
+    "variable_count": 7,
+    "transition_count": 36
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文称 FSM 由 four wind directions、three wind speeds、three ground maneuvers 组合成 36 individual states，并且每个 ground maneuver 有单独 Python script，但没有 composite/init/pseudo 等层次语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "Appendix A 中有 `relWindDir = windDir - cs.target_bearing`，并用 `relWindDir > -45 and relWindDir < 45`、`windVel <= 3`、`windVel > 3 and windVel < 11` 等复合数值 guard 选择状态。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "⚪",
+      "evidence": "原文只说明 scripts accept wind direction and wind speed as inputs and output APM:Plane control parameters settings，未描述 any mode/from any state 的 Error、Abort、Reset 或 fault-recovery 路径。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文明确控制参数为 maximum bank angle、waypoint radius、waypoint loiter radius，Appendix A 用 `Script.ChangeParam` 写入 APM:Plane 参数，属于飞控参数出口但非多个独立物理执行器。"
+    }
+  },
+  "features_we_care_about": "该样本最有价值的是 C2：真实飞控脚本里有相对风向计算、风速阈值和区间合取，非常适合 parse + semantic/Z3 guard feedback。它还有清晰的 36-state 状态表和真实 SUAS 背景，可作为 T0 中的数值 guard/参数切换代表样本。",
+  "potential_pitfalls": "主要风险是原文给的是状态表和脚本分支，不是完整迁移拓扑；C1 层次结构和 C3 fault-recovery 价值有限，C4 也偏参数写入而非直接 actuator 控制。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "139"
+  }
+}

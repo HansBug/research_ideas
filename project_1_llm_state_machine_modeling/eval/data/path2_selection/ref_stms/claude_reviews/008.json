@@ -1,0 +1,40 @@
+{
+  "case_id": "008",
+  "verdict": "APPROVE",
+  "scores": {
+    "semantic_correctness": {
+      "emoji": "🟢",
+      "evidence": "12 state 命名 State1_1/1_2/2_1..2_7/3_1..3_3 与论文 Table 3 一致（paper_content.txt 行 624/629/635 证实 State 3_1/3_2/3_3 为原文命名），guard 表达对应 §3.3 优先级 RES→Battery→LNG→DG1→DG2 的层级分支。"
+    },
+    "nl_faithfulness": {
+      "emoji": "🟢",
+      "evidence": "7 个输入变量、SoC 0.5/0.95 阈值、Pgmax/5、Pd1max/10 全部对应 [E3]/[E5][E6]/[E11]/[E12]；Select pseudo state 在 notes 中已明确声明为 pyfcstm router 而非新增 mode，未发现编造硬件或阈值。"
+    },
+    "c_axis_grounding_appropriateness": {
+      "emoji": "🟡",
+      "evidence": "C2 多变量算术 guard 用得很到位；C4 enter abstract 覆盖 RES/LNG/DG/Battery/Spare 全部具名 effector；C3 正确未用（无 global fault）；C1 未用是主要可商榷点——原文 §3.3 行 642 'selects the next state at each step' 与 'vs. time' 实际上是周期重判语义，仅以 leaf→Select 无条件 transition 表达较弱。"
+    },
+    "nl_coverage": {
+      "emoji": "🟢",
+      "evidence": "13 个 scenarios 覆盖全部 12 个 leaf state（含非法 State2_7）+ 1 个 dynamic re-route，[E5]-[E15] 标记全部触达，仅缺多 cycle 的 per-step 重判验证。"
+    }
+  },
+  "hallucinations_found": [],
+  "specific_revision_suggestions": [
+    "可考虑在 LNGShipEMS 顶层加入 `during {}` 空体或在每个 leaf state 写 `during abstract ReevaluateDispatchInputs`，把 §3.3 行 642 'selects the next state at each step' 的 C1 周期语义显式化，而不是仅靠 leaf→Select 无条件 transition 隐式表达。",
+    "在 notes.md 第 5 节明确记录 SoC = 0.95 处 paper 的 `<` 与 `>` 留下的边界缺口（paper 行 630/636），并说明 codex 用 `>=` 闭合的工程化选择，避免后续读者误以为是原文口径。",
+    "可考虑给 State2_7 的 enter abstract 名 `CommandAllThermalAndBatteryDischargeIllegalOverload` 配套 invariant 注释或在 notes 中提示 'illegal but reachable by guard' 的语义边界，防止后续被误判为应当 forced-error。"
+  ],
+  "missing_scenarios_suggestions": [
+    "per_cycle_dispatch_stability: 单一 initial_vars 跑 ≥3 cycle，验证输入不变时 Select 路由稳定停在同一 leaf，对应 [E2] 'dynamically switching states' 的稳定收敛侧。",
+    "threshold_boundary_soc_095: SoC 恰为 0.95 时进入 State1_2/State3_3 的边界测试，验证 codex 用 `>=` 闭合 paper 的 `<`/`>` 缺口的实际效果。",
+    "dispatch_chain_walkthrough: 初始 State1_1 → 改输入触发 State2_1 → 再改输入触发 State2_3 → 最后到 State2_7，覆盖 §3.3 整条优先级升级链的多步动态切换。"
+  ],
+  "overall_comment": "codex 起草质量较高：12-state 命名、guard 算术表达、abstract effector 全部有 NL/原文支撑，无编造内容，scenarios 覆盖面广。主要可改进点在 C1 周期语义未显式表达（用 Select router 隐式替代）与 SoC = 0.95 边界口径需在 notes 标注，整体可进入下一阶段，只需轻度补强。",
+  "_meta": {
+    "id": "008",
+    "claude_model": "?",
+    "duration_ms": 111615,
+    "cost_usd": 1.5581267500000004
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "case_id": "118",
+  "paper_slug": "hirosco-high-level-robotic-spacecraft-controller",
+  "case_name": "Robotic Spacecraft Subsystem Lifecycle Supervisor",
+  "bucket": "HSM-layered",
+  "what_it_is": "这是 HIROSCO 中面向航天器/机器人子系统的生命周期监督器，用遥测、遥控、实时链路状态和错误事件驱动各子系统从 Offline 经 Software-Init、Hardware-Init、Pre-Operational、Safe-Operational 到 Operational。故障时 supervisor 按 severity 将子系统退回安全态或关闭实时网络，涉及硬件设备初始化、执行器使能/禁用、机械臂与力反馈摇杆等实体硬件。",
+  "scale": {
+    "state_count": 10,
+    "event_count": 12,
+    "variable_count": 8,
+    "transition_count": 17
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文称 satellite runs in various modes 且各 mode 需要不同 subsystem operational，supervisor 位于 higher hierarchical level；Figure 4 又给出 ten separate states，并说明 each state can be subdivided into different phases。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文给出 temperature of a hardware device reaches a critical limit 和 exceed the torque limit of a joint 这两类阈值 guard，但没有复合算术或多变量合取。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟢",
+      "evidence": "原文明确有 global error handling，且 high severity errors 会 shut down all subsystems participating in the real-time network，medium severity 会把 subsystem 改到 safe-operational。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文写 Hardware-Init 会 activate and initialize all hardware devices，Safe-Operational 禁用 actuators、Operational 启用 actuators，实测场景还有 manipulator、force-feedback joystick 和 real-time network shutdown。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 价值主要在 C1/C3/C4：它有分层 supervisor + 子系统生命周期 FSM + severity-based 跨子系统恢复，且硬件动作语义清楚，适合作为生成-验证-反馈循环中的 HSM 与 forced recovery grounding case。C2 只有阈值级数值 guard，不能作为 Z3 强样本。",
+  "potential_pitfalls": "原文是体系结构论文而非完整控制需求，迁移触发和数值阈值多为概念性描述，部分 guard/action 需要从 Figure 4 和段落语义中保守补全。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "118"
+  }
+}

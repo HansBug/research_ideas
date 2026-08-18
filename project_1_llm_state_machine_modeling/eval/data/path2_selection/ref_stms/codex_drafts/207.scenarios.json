@@ -1,0 +1,486 @@
+{
+  "scenarios": [
+    {
+      "name": "default_start_navigation_cycles",
+      "description": "覆盖 START 后进入 navigation，并在 GPS waypoint follow 中连续运行 EKF/waypoint 周期行为，对应 [E1] [E4] [E5]。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "BumblebeeSupervisor.Navigation.GPSWaypointFollow",
+          "expected_vars": {
+            "bud_count": 0,
+            "end_effector_offset_cm": 0.0,
+            "vines_pruned": 0,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 0
+          },
+          "name": "start_enters_navigation"
+        },
+        {
+          "before_cycles": 3,
+          "events": null,
+          "expected_state": "BumblebeeSupervisor.Navigation.GPSWaypointFollow",
+          "expected_vars": {
+            "bud_count": 0,
+            "end_effector_offset_cm": 0.0,
+            "vines_pruned": 0,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 0
+          },
+          "name": "navigation_runs_multiple_cycles"
+        }
+      ]
+    },
+    {
+      "name": "other_aisle_and_rtk_positioning",
+      "description": "覆盖需要进入另一行时 navigation 进入 RTK Set，并停在选中 vine 位置后回到 waypoint follow，对应 [E4] [E5]。",
+      "initial_state": "BumblebeeSupervisor.Navigation.GPSWaypointFollow",
+      "initial_vars": {
+        "bud_count": 0,
+        "end_effector_offset_cm": 0.0,
+        "vines_pruned": 0,
+        "other_aisle_needed": 1,
+        "submodule_success": 0,
+        "software_issue": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "BumblebeeSupervisor.Navigation.RTKSet",
+          "expected_vars": {
+            "bud_count": 0,
+            "end_effector_offset_cm": 0.0,
+            "vines_pruned": 0,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 0
+          },
+          "name": "other_aisle_enters_rtk_set"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "BumblebeeSupervisor.Navigation.GPSWaypointFollow",
+          "expected_vars": {
+            "bud_count": 0,
+            "end_effector_offset_cm": 0.0,
+            "vines_pruned": 0,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 0
+          },
+          "name": "rtk_set_returns_to_waypoint_follow"
+        }
+      ]
+    },
+    {
+      "name": "navigation_success_enters_perception",
+      "description": "覆盖 navigation sub-module success outcome 推进到 perception macro mode，对应 Figure 13 与 [E12]。",
+      "initial_state": "BumblebeeSupervisor.Navigation.GPSWaypointFollow",
+      "initial_vars": {
+        "bud_count": 0,
+        "end_effector_offset_cm": 0.0,
+        "vines_pruned": 0,
+        "other_aisle_needed": 0,
+        "submodule_success": 0,
+        "software_issue": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "BumblebeeSupervisor.Navigation.Success"
+          ],
+          "expected_state": "BumblebeeSupervisor.Perception.Modeling3D",
+          "expected_vars": {
+            "bud_count": 0,
+            "end_effector_offset_cm": 0.0,
+            "vines_pruned": 0,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 0
+          },
+          "name": "navigation_success"
+        }
+      ]
+    },
+    {
+      "name": "perception_four_bud_guard_sequence",
+      "description": "覆盖 3D modeling、cut-point localization、retain four buds per cane 后进入 manipulation，对应 [E6] [E7] [E8] [E12]。",
+      "initial_state": "BumblebeeSupervisor.Perception.Modeling3D",
+      "initial_vars": {
+        "bud_count": 0,
+        "end_effector_offset_cm": 0.0,
+        "vines_pruned": 0,
+        "other_aisle_needed": 0,
+        "submodule_success": 1,
+        "software_issue": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "BumblebeeSupervisor.Perception.CutPointLocalization",
+          "expected_vars": {
+            "bud_count": 4,
+            "end_effector_offset_cm": 0.0,
+            "vines_pruned": 0,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 0
+          },
+          "name": "modeling_success_localizes_cut_points"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "BumblebeeSupervisor.Manipulation.ApproachTarget",
+          "expected_vars": {
+            "bud_count": 4,
+            "end_effector_offset_cm": 15.0,
+            "vines_pruned": 0,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 0
+          },
+          "name": "four_buds_enable_manipulation"
+        }
+      ]
+    },
+    {
+      "name": "bud_count_below_rule_blocks_cut_selection",
+      "description": "覆盖 four buds per cane 数值 guard 的低于阈值边界，对应 [E8]。",
+      "initial_state": "BumblebeeSupervisor.Perception.CutPointLocalization",
+      "initial_vars": {
+        "bud_count": 3,
+        "end_effector_offset_cm": 0.0,
+        "vines_pruned": 0,
+        "other_aisle_needed": 0,
+        "submodule_success": 0,
+        "software_issue": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "BumblebeeSupervisor.Perception.CutPointLocalization",
+          "expected_vars": {
+            "bud_count": 3,
+            "end_effector_offset_cm": 0.0,
+            "vines_pruned": 0,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 0
+          },
+          "name": "three_buds_do_not_advance"
+        }
+      ]
+    },
+    {
+      "name": "approach_offset_below_threshold_blocks_homing",
+      "description": "覆盖 cutting end-effector 15cm ahead 数值 guard 的低于阈值边界，对应 [E9]。",
+      "initial_state": "BumblebeeSupervisor.Manipulation.ApproachTarget",
+      "initial_vars": {
+        "bud_count": 4,
+        "end_effector_offset_cm": 14.0,
+        "vines_pruned": 0,
+        "other_aisle_needed": 0,
+        "submodule_success": 0,
+        "software_issue": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "BumblebeeSupervisor.Manipulation.ApproachTarget",
+          "expected_vars": {
+            "bud_count": 4,
+            "end_effector_offset_cm": 14.0,
+            "vines_pruned": 0,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 0
+          },
+          "name": "fourteen_cm_does_not_home"
+        }
+      ]
+    },
+    {
+      "name": "approach_offset_threshold_and_cut_success",
+      "description": "覆盖 15cm approach、homing、垂直姿态、最终逼近和 blade close/open 后 success 回到 navigation，对应 [E9] [E10] [E11] [E12]。",
+      "initial_state": "BumblebeeSupervisor.Manipulation.ApproachTarget",
+      "initial_vars": {
+        "bud_count": 4,
+        "end_effector_offset_cm": 15.0,
+        "vines_pruned": 2,
+        "other_aisle_needed": 0,
+        "submodule_success": 0,
+        "software_issue": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "BumblebeeSupervisor.Manipulation.Homing",
+          "expected_vars": {
+            "bud_count": 4,
+            "end_effector_offset_cm": 15.0,
+            "vines_pruned": 2,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 0
+          },
+          "name": "fifteen_cm_enters_homing"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "BumblebeeSupervisor.Manipulation.Success"
+          ],
+          "expected_state": "BumblebeeSupervisor.Navigation.GPSWaypointFollow",
+          "expected_vars": {
+            "bud_count": 4,
+            "end_effector_offset_cm": 15.0,
+            "vines_pruned": 2,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 0
+          },
+          "name": "successful_cut_repeats_cycle"
+        }
+      ]
+    },
+    {
+      "name": "twentieth_vine_guard_completes",
+      "description": "覆盖 vines_pruned 达到 20 条 field vines 后自动进入 complete 的数值 guard，对应 STM 摘录 D 与 [E12]。",
+      "initial_state": "BumblebeeSupervisor.Navigation.GPSWaypointFollow",
+      "initial_vars": {
+        "bud_count": 4,
+        "end_effector_offset_cm": 15.0,
+        "vines_pruned": 20,
+        "other_aisle_needed": 0,
+        "submodule_success": 0,
+        "software_issue": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "BumblebeeSupervisor.Complete",
+          "expected_vars": {
+            "bud_count": 4,
+            "end_effector_offset_cm": 15.0,
+            "vines_pruned": 20,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 0
+          },
+          "name": "twenty_vines_enters_complete"
+        }
+      ]
+    },
+    {
+      "name": "navigation_done_event_enters_complete",
+      "description": "覆盖 Figure 13 navigation sub-module 的 DONE outcome 直接进入 complete，对应 [E12]。",
+      "initial_state": "BumblebeeSupervisor.Navigation.GPSWaypointFollow",
+      "initial_vars": {
+        "bud_count": 4,
+        "end_effector_offset_cm": 15.0,
+        "vines_pruned": 19,
+        "other_aisle_needed": 0,
+        "submodule_success": 0,
+        "software_issue": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "BumblebeeSupervisor.Navigation.Done"
+          ],
+          "expected_state": "BumblebeeSupervisor.Complete",
+          "expected_vars": {
+            "bud_count": 4,
+            "end_effector_offset_cm": 15.0,
+            "vines_pruned": 19,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 0
+          },
+          "name": "done_event_enters_complete"
+        }
+      ]
+    },
+    {
+      "name": "navigation_internal_error_failure_path",
+      "description": "覆盖 navigation 子过程 internal error self-diagnosis，再由 failure 进入 error/manual intervention，对应 [E3] [E13]。",
+      "initial_state": "BumblebeeSupervisor.Navigation.GPSWaypointFollow",
+      "initial_vars": {
+        "bud_count": 0,
+        "end_effector_offset_cm": 0.0,
+        "vines_pruned": 0,
+        "other_aisle_needed": 0,
+        "submodule_success": 0,
+        "software_issue": 1
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "BumblebeeSupervisor.Navigation.NavigationInternalError",
+          "expected_vars": {
+            "bud_count": 0,
+            "end_effector_offset_cm": 0.0,
+            "vines_pruned": 0,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 1
+          },
+          "name": "navigation_software_issue"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "BumblebeeSupervisor.Navigation.Failure"
+          ],
+          "expected_state": "BumblebeeSupervisor.Error",
+          "expected_vars": {
+            "bud_count": 0,
+            "end_effector_offset_cm": 0.0,
+            "vines_pruned": 0,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 1
+          },
+          "name": "navigation_failure_enters_error"
+        }
+      ]
+    },
+    {
+      "name": "perception_internal_error_failure_path",
+      "description": "覆盖 perception 子过程 internal error self-diagnosis，再由 failure 进入 error/manual intervention，对应 [E3] [E13]。",
+      "initial_state": "BumblebeeSupervisor.Perception.Modeling3D",
+      "initial_vars": {
+        "bud_count": 0,
+        "end_effector_offset_cm": 0.0,
+        "vines_pruned": 0,
+        "other_aisle_needed": 0,
+        "submodule_success": 0,
+        "software_issue": 1
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "BumblebeeSupervisor.Perception.PerceptionInternalError",
+          "expected_vars": {
+            "bud_count": 0,
+            "end_effector_offset_cm": 0.0,
+            "vines_pruned": 0,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 1
+          },
+          "name": "perception_software_issue"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "BumblebeeSupervisor.Perception.Failure"
+          ],
+          "expected_state": "BumblebeeSupervisor.Error",
+          "expected_vars": {
+            "bud_count": 0,
+            "end_effector_offset_cm": 0.0,
+            "vines_pruned": 0,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 1
+          },
+          "name": "perception_failure_enters_error"
+        }
+      ]
+    },
+    {
+      "name": "manipulation_internal_error_failure_path",
+      "description": "覆盖 manipulation 子过程 internal error self-diagnosis，再由 failure 进入 error/manual intervention，对应 [E3] [E13]。",
+      "initial_state": "BumblebeeSupervisor.Manipulation.Homing",
+      "initial_vars": {
+        "bud_count": 4,
+        "end_effector_offset_cm": 15.0,
+        "vines_pruned": 0,
+        "other_aisle_needed": 0,
+        "submodule_success": 0,
+        "software_issue": 1
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "BumblebeeSupervisor.Manipulation.ManipulationInternalError",
+          "expected_vars": {
+            "bud_count": 4,
+            "end_effector_offset_cm": 15.0,
+            "vines_pruned": 0,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 1
+          },
+          "name": "manipulation_software_issue"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "BumblebeeSupervisor.Manipulation.Failure"
+          ],
+          "expected_state": "BumblebeeSupervisor.Error",
+          "expected_vars": {
+            "bud_count": 4,
+            "end_effector_offset_cm": 15.0,
+            "vines_pruned": 0,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 1
+          },
+          "name": "manipulation_failure_enters_error"
+        }
+      ]
+    },
+    {
+      "name": "global_hardware_unknown_issue_forces_manual_intervention",
+      "description": "覆盖 hardware or unknown issues 暂停全部操作并进入 manual intervention error path，对应 [E13] [E14]。",
+      "initial_state": "BumblebeeSupervisor.Perception.Modeling3D",
+      "initial_vars": {
+        "bud_count": 0,
+        "end_effector_offset_cm": 0.0,
+        "vines_pruned": 0,
+        "other_aisle_needed": 0,
+        "submodule_success": 0,
+        "software_issue": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "BumblebeeSupervisor.HardwareOrUnknownIssue"
+          ],
+          "expected_state": "BumblebeeSupervisor.Error",
+          "expected_vars": {
+            "bud_count": 0,
+            "end_effector_offset_cm": 0.0,
+            "vines_pruned": 0,
+            "other_aisle_needed": 0,
+            "submodule_success": 0,
+            "software_issue": 0
+          },
+          "name": "global_issue_enters_error"
+        }
+      ]
+    }
+  ]
+}

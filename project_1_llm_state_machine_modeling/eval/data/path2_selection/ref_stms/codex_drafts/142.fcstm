@@ -1,0 +1,115 @@
+def int selected_product_count = 1;
+def int production_count = 1;
+def int filling_signal = 0;
+def float tank_level_mbar = 0.0;
+def float loadcell_weight_g = 0.0;
+def float desired_weight_g = 0.0;
+def float vertical_motion_mm = 0.0;
+def int plc_pulse_count = 0;
+def int encoder_feedback_count = 0;
+def int target_pulse_count = 0;
+def int resume_code = 1;
+
+state CupFillingLine {
+    !* -> Warning :: Problem;
+
+    [*] -> Setup;
+
+    state Setup {
+        enter { resume_code = 1; }
+        enter abstract ReadHmiPanel;
+        enter abstract CheckHmiMacroConformity;
+    }
+
+    state WaitingForFill {
+        enter { resume_code = 2; }
+        enter abstract ReadPressureTransmitters;
+    }
+
+    state Filling {
+        enter { resume_code = 3; }
+        enter abstract OpenElectropneumaticValves;
+        during { loadcell_weight_g = loadcell_weight_g + 25.0; }
+        during abstract ReadLoadcellFeedback;
+        exit abstract CloseElectropneumaticValves;
+    }
+
+    state CupArrival {
+        enter { resume_code = 4; }
+        enter abstract DetectCupAtCappingStation;
+    }
+
+    state LidTransfer {
+        enter { resume_code = 5; }
+        enter abstract PushLidFromStorage;
+        enter abstract VacuumTransferLidToCupPosition;
+    }
+
+    state VerticalAttach {
+        enter { resume_code = 6; }
+        enter abstract Start50mmVerticalAttachment;
+        during { vertical_motion_mm = vertical_motion_mm + 25.0; }
+    }
+
+    state ReturnInitial {
+        enter { resume_code = 7; }
+        enter abstract ReturnRodlessCylinderAndVacuum;
+    }
+
+    state LabelPure {
+        enter { resume_code = 8; }
+        enter abstract PrintPureLabel;
+    }
+
+    state LabelMixed {
+        enter { resume_code = 9; }
+        enter abstract PrintMixedLabel;
+    }
+
+    state MovingToExit {
+        enter { resume_code = 10; }
+        enter abstract Drive86HS45WithM542;
+        during { plc_pulse_count = plc_pulse_count + 1; encoder_feedback_count = encoder_feedback_count + 1; }
+        during abstract ReadEncoderOnTensionDrum;
+    }
+
+    state ExitReady {
+        enter { resume_code = 11; }
+        enter abstract SendCupToExit;
+    }
+
+    state Warning {
+        enter abstract RaiseWarning;
+    }
+
+    pseudo state ResumeRoute;
+
+    Setup -> WaitingForFill : if [selected_product_count >= 1 && selected_product_count <= 4 && production_count > 0 && production_count <= 10];
+    WaitingForFill -> Filling : if [filling_signal == 1 && tank_level_mbar >= 0.0 && tank_level_mbar <= 250.0] effect { loadcell_weight_g = 0.0; };
+    Filling -> CupArrival : if [loadcell_weight_g >= desired_weight_g];
+    CupArrival -> LidTransfer :: LidPushed;
+    LidTransfer -> VerticalAttach :: VacuumAtCupPosition effect { vertical_motion_mm = 0.0; };
+    VerticalAttach -> ReturnInitial : if [vertical_motion_mm >= 50.0];
+    CupArrival -> CupArrival :: CappingStepFailed effect { vertical_motion_mm = 0.0; };
+    LidTransfer -> CupArrival :: CappingStepFailed effect { vertical_motion_mm = 0.0; };
+    VerticalAttach -> CupArrival :: CappingStepFailed effect { vertical_motion_mm = 0.0; };
+    ReturnInitial -> CupArrival :: CappingStepFailed effect { vertical_motion_mm = 0.0; };
+    ReturnInitial -> LabelPure : if [selected_product_count == 1];
+    ReturnInitial -> LabelMixed : if [selected_product_count > 1];
+    LabelPure -> MovingToExit :: LabelApplied effect { plc_pulse_count = 0; encoder_feedback_count = 0; };
+    LabelMixed -> MovingToExit :: LabelApplied effect { plc_pulse_count = 0; encoder_feedback_count = 0; };
+    MovingToExit -> Warning : if [plc_pulse_count > 0 && encoder_feedback_count < plc_pulse_count];
+    MovingToExit -> ExitReady : if [plc_pulse_count >= target_pulse_count && encoder_feedback_count >= plc_pulse_count];
+    Warning -> ResumeRoute :: Corrected effect { encoder_feedback_count = plc_pulse_count; };
+    ResumeRoute -> Setup : if [resume_code == 1];
+    ResumeRoute -> WaitingForFill : if [resume_code == 2];
+    ResumeRoute -> Filling : if [resume_code == 3];
+    ResumeRoute -> CupArrival : if [resume_code == 4];
+    ResumeRoute -> LidTransfer : if [resume_code == 5];
+    ResumeRoute -> VerticalAttach : if [resume_code == 6];
+    ResumeRoute -> ReturnInitial : if [resume_code == 7];
+    ResumeRoute -> LabelPure : if [resume_code == 8];
+    ResumeRoute -> LabelMixed : if [resume_code == 9];
+    ResumeRoute -> MovingToExit : if [resume_code == 10];
+    ResumeRoute -> ExitReady : if [resume_code == 11];
+}

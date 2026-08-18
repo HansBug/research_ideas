@@ -1,0 +1,50 @@
+{
+  "case_id": "009",
+  "verdict": "APPROVE",
+  "scores": {
+    "semantic_correctness": {
+      "emoji": "🟡",
+      "evidence": "5 mission states + CL 子层 LaneKeeping/LaneChanging 与 STM 摘录 B 一致；优先级通过 transition 排序 + scenarios 验证体现 [E14]；但新增的 `Begin` 顶层 state 在 STM §1 摘录与 expansion NL 中均未出现，仅依据 Figure 2 标签推断，是结构上的合理补全但非严格 NL 对应。"
+    },
+    "nl_faithfulness": {
+      "emoji": "🟡",
+      "evidence": "未引入数值阈值/虚构传感器/虚构 fault 路径；`Begin` state 和 `ros_resource_age` 计数器是对 [E6] 'resource updated over time' 与 Figure 2 'Begin' 标签的合理推断，但属于 NL 字面之外的工程化补全；`Condition12/14/24/21` 等事件不在 expansion 17 个 markers 中但出自同一 Table 1，notes 已声明。"
+    },
+    "c_axis_grounding_appropriateness": {
+      "emoji": "🟢",
+      "evidence": "C1 用 `>> during before` per-cycle 自增对应 [E6]；C2 正确不用（原文无数值阈值，[E8-E12] 都是离散 condition code）；C3 正确不用 forced fault（NL 未说 any-state 强制跳转，emergency 通过显式 mode transitions + 内部 `[*]` 上抛到父级 EStop 表达）；C4 四个 abstract effector 严格对应 [E7][E15][E16][E17]。"
+    },
+    "nl_coverage": {
+      "emoji": "🟡",
+      "evidence": "10 条 scenarios 覆盖 condition 11/23/32/41/42/44/10/20/30/40/00/01、CL 双子态、E-stop 优先级、obstacle 优先级、per-cycle 3 cycles、guard false 边界；但 `Condition21FinishedSAG`（SAG→Ready 正常完结）与 `Condition44` 在 Ready→AvoidObstacle 后未被独立可达性测试。"
+    }
+  },
+  "hallucinations_found": [
+    {
+      "type": "state",
+      "name": "Begin",
+      "issue": "STM §1 摘录 B 仅列 5 个 mission classes（Ready/SAG/CL/E-stop/avoid obstacle），expansion NL 未提及 Begin；codex 依据 Figure 2 文本标签补出该初态，属于结构推断而非 NL 字面支持。"
+    },
+    {
+      "type": "var",
+      "name": "ros_resource_age",
+      "issue": "[E6] 原文是 'a resource updated over time'，并未明确把它建模为递增计数器；ros_resource_age 名称与递增语义是 codex 对'updated over time'的工程化具体化。"
+    }
+  ],
+  "specific_revision_suggestions": [
+    "可在 codex notes §5 中显式声明 `Begin` state 是基于 Figure 2 标签的结构推断（而不仅说成 STM §1 摘录），并在 STM §1 摘录 B 与 expansion NL 之间补一句说明；或考虑将 `Begin` 改写为 `[*] -> Ready :: Condition11ReadyToGo` 直接从伪初态进入，去掉一个 NL 未支持的具名 state。",
+    "建议把 `ros_resource_age` 的语义注释明确写到 notes，使 reviewers 知道它是 [E6] 'updated over time' 的代理计数器而非物理传感器年龄。",
+    "可考虑为 `StopAndGo -> Ready :: Condition21FinishedSAG` 增加一个 smoke scenario，覆盖 SAG 正常完结路径（目前仅 emergency/path-change/avoid-obstacle 三种 SAG 出路被 scenarios 覆盖）。"
+  ],
+  "missing_scenarios_suggestions": [
+    "sag_finishes_normally_to_ready: 从 StopAndGo 触发 Condition21FinishedSAG，验证到达 Ready。",
+    "ready_to_avoid_via_condition14_then_handling: 在 Ready→AvoidObstacle 后追加 Condition44HandlingAvoidObstacle 自保持验证（目前 condition44 只在 SAG 入口后的链路里出现，未单独验证 Ready→AvoidObstacle→handling 链）。"
+  ],
+  "overall_comment": "codex draft 在结构、事件命名、C-axis 选用与 scenarios 覆盖上整体扎实，4 个维度均在 🟢/🟡 区间，符合 APPROVE 门槛。两个值得在 notes 中加强透明度的点是 `Begin` state 的来源（结构推断而非 NL 字面）和 `ros_resource_age` 作为 [E6] 'updated over time' 代理变量的语义说明，不构成强制 REVISE。建议在下一轮 minor revision 中补 1-2 条 scenarios 把 condition 21 与 Ready→handling 的可达路径补齐。",
+  "_meta": {
+    "id": "009",
+    "claude_model": "?",
+    "duration_ms": 92193,
+    "cost_usd": 1.4236944999999999
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "case_id": "001",
+  "paper_slug": "design-of-mobile-robot-for-air-ducts-exploration",
+  "case_name": "Five-state exploration and recovery FSM for an air-duct robot",
+  "bucket": "FSM-basic",
+  "what_it_is": "该 case 控制通风管道巡检机器人的高层导航、洞口处理、返航与恢复流程，依赖 IR 洞口传感器、微动开关、里程计/激光等感知，并驱动轮式电机、舵机扫臂、LED/蜂鸣器等硬件。典型流程是在 Snooze 与 Navigate 间推进目标，遇到洞口进入 Hole Area，完成探索进入 Return，卡住或死端进入 Recovery。",
+  "scale": {
+    "state_count": 5,
+    "event_count": 10,
+    "variable_count": 4,
+    "transition_count": 11
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟠",
+      "evidence": "原文只给出扁平 FSM：“The states are: Snooze, Navigate, Hole Area, Return, Recovery”，§2 NL 也描述为 five-state high-level FSM，未见 composite state、pseudo/init 或嵌套退出语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "Figure 8 含 “robot_pose = starting_pose / robot_pose != starting_pose”，且原文说 dead-end 由 “relative displacement between successive goal positions ... converge towards zero” 判定，有少量数值 guard 但不丰富。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "原文说 “Recovery state handles both cases where the robot is stuck or a dead-end has been reached”，并且 “Recovery state is reachable from the Navigate and Return states”，可抽成部分 forced recovery 但不是 any-state。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "PDF 硬件段明确列出 motor control PCB、LED control PCB、Arduino 控制 servo motor，Recovery 又执行 360 deg/180 deg rotation 与 sweeping arm retracted，硬件动作足够多。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C4：真实机器人控制里有清楚的硬件执行动作，适合检验 abstract handler 的硬件解耦收益；C2/C3 也有一定 grounding，但不是强层次结构样本。NL 和原文状态描述都较清晰，适合作为 T0 中的基础机器人 FSM。",
+  "potential_pitfalls": "FSM 只有 5 个扁平状态，C1 弱，数值 guard 多数来自 pose/displacement 判定而非完整参数化约束。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "007"
+  }
+}

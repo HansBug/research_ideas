@@ -1,0 +1,37 @@
+{
+  "case_id": "169",
+  "paper_slug": "pirate-precision-imaging-real-time-autonomous-tracker-explorer",
+  "case_name": "Hierarchical mission-execution FSM for an autonomous marine tracker",
+  "bucket": "HSM-layered",
+  "what_it_is": "这是 PIRATE 自主水面艇的任务监督控制器，用 GNSS、声学接收器、ToF/TDoA 定位、视觉检测跟踪来协调 PX4、左右推进器和 Jetson/GPU 视觉硬件。典型流程是岸站下发任务后执行航迹导航或声学跟踪，完成三角定位后追击目标，接近后进入视觉/loiter，异常时全局切到 RTH。",
+  "scale": {
+    "state_count": 8,
+    "event_count": 12,
+    "variable_count": 7,
+    "transition_count": 15
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文明确写 mission execution is structured as an FSM，且 high-level operational states are organized hierarchically, with composite modes encapsulating navigation and perception substates。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文给出 target-vehicle range/range uncertainty 用于 enabling/disabling visual sensing 和 triggering re-localization，且 detection confidence exceeds a predefined threshold 才更新 tracking state，但未给出复合 guard 公式。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟢",
+      "evidence": "原文明确说 global interrupt mechanism allows immediate transition to the RTH state from any active mode，且 RTH 可由 communication timeout、mission end 或 various failure modes 触发。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文写 Pi issues navigation and actuation commands to the PX4 flight controller，PX4 performs real-time motor control，并可触发 Jetson GPU 开停视觉检测跟踪和选择性激活 visual sensing。"
+    }
+  },
+  "features_we_care_about": "该样本在 C1/C3/C4 上很强：真实 USV、层次 composite mode、any-state RTH 和异构硬件控制都能直接给 agent loop 提供 parse、semantic、sim grounding。NL 描述清楚，且属于自主海洋机器人任务监督，不容易与常见工业批处理或阀门样本同构。",
+  "potential_pitfalls": "数值条件多来自叙述性可配置阈值，Figure 3 的 guard 标签较粗，C2 建模时需要补齐变量和阈值口径。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "169"
+  }
+}

@@ -1,0 +1,184 @@
+def int detection_count = 0;
+def int frame_window = 0;
+def int no_new_detection_frames = 0;
+def int detection_seen_this_frame = 0;
+
+state SearchFollowCatchMissionController {
+    [*] -> START_STATE;
+
+    state START_STATE {
+        event START_MISSION;
+        enter abstract InitializeGpsRtkCameras;
+    }
+
+    state SEARCH {
+        event LongRangeDetectionFrame;
+        event LongRangeMissFrame;
+        enter abstract CommandSemiellipseSearchLowAltitude;
+        enter abstract ActivateBothUavDetectors;
+    }
+
+    state FOLLOW_LONG_RANGE {
+        event LongRangeDetectionFrame;
+        event ShortRangeDetectionFrame;
+        event ShortRangeMissFrame;
+        enter abstract CommandFastFiveMeterXyApproach;
+        during {
+            if [detection_seen_this_frame > 0] {
+                no_new_detection_frames = 0;
+                detection_seen_this_frame = 0;
+            } else {
+                no_new_detection_frames = no_new_detection_frames + 1;
+            }
+        }
+    }
+
+    state FOLLOW_SHORT_RANGE {
+        event ShortRangeDetectionFrame;
+        event BALL_DETECTED;
+        enter abstract MaintainFourMeterTargetStandoff;
+        enter abstract DisableLongRangeUavDetector;
+        during {
+            if [detection_seen_this_frame > 0] {
+                no_new_detection_frames = 0;
+                detection_seen_this_frame = 0;
+            } else {
+                no_new_detection_frames = no_new_detection_frames + 1;
+            }
+        }
+    }
+
+    state CATCH_BALL {
+        event BALL_DETECTED;
+        event BALL_LEAVES_CAMERA_FIELD_OF_VIEW;
+        event SUCCESSFUL_CATCH;
+        enter abstract CommandMotionTowardBallDetection;
+        enter abstract AlignBallWithGripper;
+        enter abstract CommandArduinoNanoGripperManeuver;
+        during {
+            if [detection_seen_this_frame > 0] {
+                no_new_detection_frames = 0;
+                detection_seen_this_frame = 0;
+            } else {
+                no_new_detection_frames = no_new_detection_frames + 1;
+            }
+        }
+    }
+
+    state PLANNED_TRAJECTORY {
+        event SUCCESSFUL_CATCH;
+        enter abstract ContinuePlannedTrajectory;
+        during {
+            if [detection_seen_this_frame > 0] {
+                no_new_detection_frames = 0;
+                detection_seen_this_frame = 0;
+            } else {
+                no_new_detection_frames = no_new_detection_frames + 1;
+            }
+        }
+    }
+
+    state LAND {
+        enter abstract LandAtGivenPosition;
+    }
+
+    START_STATE -> SEARCH :: START_MISSION effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 0;
+    };
+
+    SEARCH -> SEARCH :: LongRangeDetectionFrame effect {
+        detection_count = detection_count + 1;
+        frame_window = frame_window + 1;
+    };
+    SEARCH -> SEARCH :: LongRangeMissFrame effect {
+        frame_window = frame_window + 1;
+    };
+    SEARCH -> FOLLOW_LONG_RANGE : if [detection_count >= 3 && frame_window >= 5] effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 1;
+    };
+    SEARCH -> SEARCH : if [frame_window >= 5 && detection_count < 3] effect {
+        detection_count = 0;
+        frame_window = 0;
+    };
+
+    FOLLOW_LONG_RANGE -> FOLLOW_LONG_RANGE :: LongRangeDetectionFrame effect {
+        detection_seen_this_frame = 1;
+    };
+    FOLLOW_LONG_RANGE -> FOLLOW_LONG_RANGE :: ShortRangeDetectionFrame effect {
+        detection_count = detection_count + 1;
+        frame_window = frame_window + 1;
+        detection_seen_this_frame = 1;
+    };
+    FOLLOW_LONG_RANGE -> FOLLOW_LONG_RANGE :: ShortRangeMissFrame effect {
+        frame_window = frame_window + 1;
+        detection_seen_this_frame = 0;
+    };
+    FOLLOW_LONG_RANGE -> FOLLOW_SHORT_RANGE : if [detection_count >= 2 && frame_window >= 4] effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 1;
+    };
+    FOLLOW_LONG_RANGE -> SEARCH : if [no_new_detection_frames >= 5] effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 0;
+    };
+    FOLLOW_LONG_RANGE -> FOLLOW_LONG_RANGE : if [frame_window >= 4 && detection_count < 2] effect {
+        detection_count = 0;
+        frame_window = 0;
+    };
+
+    FOLLOW_SHORT_RANGE -> CATCH_BALL :: BALL_DETECTED effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 1;
+    };
+    FOLLOW_SHORT_RANGE -> FOLLOW_SHORT_RANGE :: ShortRangeDetectionFrame effect {
+        detection_seen_this_frame = 1;
+    };
+    FOLLOW_SHORT_RANGE -> SEARCH : if [no_new_detection_frames >= 5] effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 0;
+    };
+
+    CATCH_BALL -> LAND :: SUCCESSFUL_CATCH effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 1;
+    };
+    CATCH_BALL -> CATCH_BALL :: BALL_DETECTED effect {
+        detection_seen_this_frame = 1;
+    };
+    CATCH_BALL -> PLANNED_TRAJECTORY :: BALL_LEAVES_CAMERA_FIELD_OF_VIEW;
+    CATCH_BALL -> SEARCH : if [no_new_detection_frames >= 5] effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 0;
+    };
+
+    PLANNED_TRAJECTORY -> LAND :: SUCCESSFUL_CATCH effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 1;
+    };
+    PLANNED_TRAJECTORY -> SEARCH : if [no_new_detection_frames >= 5] effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 0;
+    };
+}

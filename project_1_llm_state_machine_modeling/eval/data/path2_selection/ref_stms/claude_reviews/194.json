@@ -1,0 +1,61 @@
+{
+  "case_id": "194",
+  "verdict": "APPROVE",
+  "scores": {
+    "semantic_correctness": {
+      "emoji": "🟡",
+      "evidence": "五主模式 + 三字符编码 (CCY/FCY/CFN/CFY/FFN) 全部对应 [E15] 'EMS breaker, grid transfer switch, grid power indicator' 顺序；但 GridOnly_MCY（service→Manual breaker）与 ManualTransferOpening_CMY 是 codex 对 [E14] 'but not from M to C' 的语义外推，原文未显式区分 service↔Manual 编码。"
+    },
+    "nl_faithfulness": {
+      "emoji": "🟡",
+      "evidence": "Event MaintenanceStaffOpensTransferSwitch + state ManualTransferOpening_CMY + 区分 BatteryOrEMSInverterUnderService→M 编码均属合理推断而非 NL 直接描述；其余 state/event/var 都能在 [E1]-[E15] 找到锚点。"
+    },
+    "c_axis_grounding_appropriateness": {
+      "emoji": "🟢",
+      "evidence": "C1: `during abstract` 准确表达 [E3][E4][E7][E9] 的 per-cycle 行为；C2: 离散 int 等值守卫与 [E11][E12] 的 C/F/M、Y/N 离散语义一致，未硬塞数值阈值；C3: 正确未用 forced fault，与 axis_coverage 注明 '原文无全局 emergency' 一致；C4: enter/during abstract 对应 [E5][E6][E7][E13] 中具名 effector (OpenEMSBreaker, OpenGridTransferSwitch, SenseUtilityGridCurrentAndVoltage 等)。"
+    },
+    "nl_coverage": {
+      "emoji": "🟡",
+      "evidence": "7 个 scenarios 覆盖 [E1]-[E15] 主要路径 (normal/malfunction/service/islanding+sync+reclose/outage→utility/outage→battery/manual M)，但缺 GridOnly→GridConnected 恢复路径 scenario 与 islanding 中 per-cycle 'maintain voltage/frequency' during 行为的多周期验证。"
+    },
+    "hallucinations_found": [
+      {
+        "type": "state",
+        "name": "GridOnly_MCY",
+        "issue": "原文 [E5] 仅说 '在 malfunction 或 under service 时 controller would open the breaker'，未区分 service 对应 EMS breaker 的 Manual(M) 编码；codex 推断 service→M、malfunction→F 属于物理合理但 NL 未显式支持的细化。"
+      },
+      {
+        "type": "state",
+        "name": "ManualTransferOpening_CMY",
+        "issue": "原文 [E14] 只通过 'but not from M to C' 暗示 transfer switch M 状态存在，未把 CMY 作为系统级 mode 显式命名；该状态是 codex 从 M 状态推出的独立 mode。"
+      },
+      {
+        "type": "event",
+        "name": "MaintenanceStaffOpensTransferSwitch",
+        "issue": "NL 未提及由 maintenance staff 触发 Manual opening 的具体事件来源，仅 [E11][E14] 提到 M 是状态值之一；事件命名是 codex 推断。"
+      },
+      {
+        "type": "event",
+        "name": "BatteryOrEMSInverterUnderService",
+        "issue": "事件本身在 [E5] 有锚点，但与 BatteryOrEMSInverterMalfunction 分裂为两条不同 transition 且映射到不同 breaker 编码 (M vs F) 是 codex 解释，非 NL 显式分支。"
+      }
+    ],
+    "specific_revision_suggestions": [
+      "可考虑在 194.notes.md 中显式注明 'GridOnly_MCY、ManualTransferOpening_CMY 是基于 [E14] M 状态存在的合理外推，原文未给出独立 mode 名'，以便后续 baseline LLM 评估时区分 hallucination 与可接受推断。",
+      "建议补充 GridOnly_FCY/MCY → GridConnected_CCY 的恢复 transition（如 InverterRepairedOrServiceComplete 事件），并明确若不补则在 notes 中说明 '原文未描述恢复路径，故 ref 保留为吸收态'。",
+      "Synchronization_CFY 的 FaultCleared 自循环 + 守卫自动 transition 模式可读性略差；可改写为 `Synchronization_CFY -> GridConnected_CCY : FaultCleared effect { utility_grid_transfer_switch = 0; }` 让 [E14] 'reclose from F to C when fault cleared' 一步直达。",
+      "Islanding_CFN 的 `during abstract MaintainVoltageFrequencyAndPowerBalance` 可在 scenarios 中通过 before_cycles=3 验证多周期持续行为，目前仅 Outage 有此 ≥3 cycle 验证。"
+    ],
+    "missing_scenarios_suggestions": [
+      "islanding_per_cycle_voltage_frequency_maintenance: 在 Islanding_CFN 下用 before_cycles=3 验证 [E7] per-cycle voltage/frequency 维持行为持续触发",
+      "manual_opening_no_reclose_via_fault_cleared 已覆盖；可补充 manual_opening_persists_across_cycles: 多周期下 CMY 仍是吸收态",
+      "grid_only_fcy_persists: 验证 GridOnly_FCY 在没有恢复事件下保持吸收（与原文未描述恢复一致）"
+    ],
+    "overall_comment": "Ref 整体语义忠实，三字符编码、五主模式、forced-fault 未用均与 [E1]-[E15] 一致，C-axis grounding 4 维全部恰当。主要风险点是 GridOnly 的 F/M 分裂与 ManualTransferOpening_CMY 是基于 [E14] M 状态的外推性建模，但属于 reasonable inference 而非凭空发明；scenarios 覆盖关键路径但缺 per-cycle 与吸收态验证。整体可 APPROVE，但建议在 notes 中明确标注外推决策以便后续评估区分。"
+  },
+  "_meta": {
+    "id": "194",
+    "recovered_from_raw": true,
+    "added_close_braces": 1
+  }
+}

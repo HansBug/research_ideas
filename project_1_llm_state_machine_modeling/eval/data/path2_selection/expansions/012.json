@@ -1,0 +1,183 @@
+{
+  "case_id": "012",
+  "case_name": "Multi-modal drive-fly mission FSM for TURVTOL",
+  "expanded_nl": "The TURVTOL mission supervisor is a ROS SMACH hierarchical FSM with two top-level operating branches, FLY_OPERATE for airborne behavior and DRIVE_OPERATE for ground behavior [E1][E2][E3]. The flight branch contains LANDING for search, return, and landing protocols, while the drive branch contains TRACTION_LOSS and DORMANT behavior for stuck/slipping/flipped recovery plus charging and sleeping [E4][E5][E6]. In ground traversal, terrain that makes takeoff difficult moves the controller out of normal driving, telling the path planner not to consider flight paths until level terrain returns [E7][E8]. A takeoff transition depends on path-planner confirmation, and safe_takeoff combines suitable terrain with battery high enough for safe flight [E9][E10]. Once airborne, the FSM can continue flying on path-planner confirmation, wait for planner updates, or start landing when the planner confirms landing, battery is low, or no destination remains [E11][E12][E13]. During landing, it assesses terrain below, lands only after safe_landing is ensured, and returns to the known launch site when no safe landing can be made within the specified search radius [E14][E15][E16][E17]. Across the mission, transition signals come from what SLAM, the path planner, the control loop, and environmental factors detect or calculate, monitoring battery level, landing/takeoff safety, and flying conditions [E18][E19]. The safety loop compares VIO pose with wheel encoders; VIO-greater-than-encoder motion means slipping, the opposite case means stuck, and both cases trigger traction-regaining protocols [E20][E21][E22]. At the driving-control layer, distance error below 5 centimeters switches waypoints and sets linear velocity to zero [E23]. Motor-facing actions remain in the surrounding control stack: driving uses PWM signals to motors, while flight sends MAVROS/MAVLink mode-change, arming/disarming, and takeoff/landing messages to the autopilot, which signals the flying motors [E24][E25][E26][E27].",
+  "provenance": [
+    {
+      "marker": "E1",
+      "source": "STM §1 摘录 A | paper.pdf p.34 §V.E.2 FSM Design",
+      "quote": "A finite state machine (FSM) has been designed and the general structure has been implemented using the ROS library SMACH.",
+      "supports": "ROS SMACH FSM"
+    },
+    {
+      "marker": "E2",
+      "source": "STM §1 摘录 A | paper.pdf p.34 §V.E.2 FSM Design",
+      "quote": "At a high level, the states are FLY_OPERATE and DRIVE_OPERATE.",
+      "supports": "two top-level operating branches"
+    },
+    {
+      "marker": "E3",
+      "source": "paper.pdf p.34 §V.E.2 FSM Design",
+      "quote": "The FLY OPERATE state handles operations when the vehicle is in the air, and the DRIVE_OPERATE state handles operations when the vehicle is on the ground.",
+      "supports": "airborne behavior and ground behavior"
+    },
+    {
+      "marker": "E4",
+      "source": "STM §1 摘录 A | paper.pdf p.34 §V.E.2 FSM Design",
+      "quote": "The FLY OPERATE sub-machine contains a LANDING sub-machine, which contains states for executing search, return, and landing protocols.",
+      "supports": "LANDING branch for search, return, and landing protocols"
+    },
+    {
+      "marker": "E5",
+      "source": "STM §1 摘录 A | paper.pdf p.34 §V.E.2 FSM Design",
+      "quote": "The DRIVE_OPERATE sub-machine contains a TRACTION_LOSS sub-machine",
+      "supports": "TRACTION_LOSS behavior in the drive branch"
+    },
+    {
+      "marker": "E6",
+      "source": "STM §1 摘录 A | paper.pdf p.34 §V.E.2 FSM Design",
+      "quote": "DRIVE_OPERATE also contains the DORMANT sub-machine, which handles charging and sleeping states for the vehicle.",
+      "supports": "DORMANT behavior for charging and sleeping"
+    },
+    {
+      "marker": "E7",
+      "source": "STM §1 摘录 C | paper.pdf p.33 §V.E.1 Design Criteria",
+      "quote": "when the vehicle is driving across terrain that would make it difficult for the vehicle to takeoff for flight",
+      "supports": "terrain condition that changes ground traversal behavior"
+    },
+    {
+      "marker": "E8",
+      "source": "STM §1 摘录 C | paper.pdf p.33 §V.E.1 Design Criteria",
+      "quote": "inform the path planner to not even consider flight paths until the vehicle is back on level terrain.",
+      "supports": "path planner avoiding flight paths until level terrain returns"
+    },
+    {
+      "marker": "E9",
+      "source": "paper.pdf p.36 Table 5",
+      "quote": "init_takeoff Path planner confirms takeoff",
+      "supports": "takeoff transition depends on path-planner confirmation"
+    },
+    {
+      "marker": "E10",
+      "source": "paper.pdf p.36 Table 5",
+      "quote": "safe_takeoff The current terrain is suitable for takeoff and vehicle’s battery is high enough to facilitate safe flight",
+      "supports": "safe_takeoff guard combines terrain suitability and battery sufficiency"
+    },
+    {
+      "marker": "E11",
+      "source": "STM §1 摘录 C | paper.pdf p.36 Table 5",
+      "quote": "continue_flight Path planner sends confirmation to continue flying (instead of landing)",
+      "supports": "continuing flight on path-planner confirmation"
+    },
+    {
+      "marker": "E12",
+      "source": "STM §1 摘录 B | paper.pdf p.34 Table 4",
+      "quote": "HOVER Waiting for update from path planner",
+      "supports": "waiting for planner updates"
+    },
+    {
+      "marker": "E13",
+      "source": "STM §1 摘录 C | paper.pdf p.36 Table 5",
+      "quote": "land Either path planner confirms landing or battery is low or there is no current destination",
+      "supports": "landing trigger conditions"
+    },
+    {
+      "marker": "E14",
+      "source": "STM §1 摘录 B | paper.pdf p.34 Table 4",
+      "quote": "SEARCH_FOR_LANDING Assesses terrain below for safe landing location",
+      "supports": "landing branch assesses terrain below"
+    },
+    {
+      "marker": "E15",
+      "source": "STM §1 摘录 C | paper.pdf p.36 Table 5",
+      "quote": "safe_landing Path planner confirms landing and safe landing has been ensured",
+      "supports": "landing only after safe_landing is ensured"
+    },
+    {
+      "marker": "E16",
+      "source": "STM §1 摘录 B | paper.pdf p.34 Table 4",
+      "quote": "RETURN_TO_LAUNCH Cannot find safe landing location; return to known safe location (launch site)",
+      "supports": "return to known launch site"
+    },
+    {
+      "marker": "E17",
+      "source": "STM §1 摘录 C | paper.pdf p.36 Table 5",
+      "quote": "return_to_safe Path planner confirms landing but a safe landing cannot be made within a specified search radius",
+      "supports": "specified search radius guard"
+    },
+    {
+      "marker": "E18",
+      "source": "paper.pdf p.36 §V.E.2 FSM Design",
+      "quote": "transition signals that are assigned depending on what the SLAM algorithm, path planner, and control loop are detecting or calculating",
+      "supports": "transition signals from SLAM, path planner, and control loop"
+    },
+    {
+      "marker": "E19",
+      "source": "paper.pdf p.36 §V.E.2 FSM Design",
+      "quote": "monitoring various parameters, such as battery level, safety of potential landings/takeoffs, and flying conditions",
+      "supports": "cross-mission monitoring parameters"
+    },
+    {
+      "marker": "E20",
+      "source": "paper.pdf p.33 §V.D.5 Vehicle Safety",
+      "quote": "continuous comparisons of the vehicle’s pose as obtained through VIO and the wheel encoders",
+      "supports": "VIO and wheel encoder comparison"
+    },
+    {
+      "marker": "E21",
+      "source": "paper.pdf p.33 §V.D.5 Vehicle Safety",
+      "quote": "the FSM will assume the vehicle is slipping and go into the SLIPPING state. If the opposite situation occurs, the FSM will go into the STUCK state.",
+      "supports": "slipping and stuck interpretation"
+    },
+    {
+      "marker": "E22",
+      "source": "paper.pdf p.33 §V.D.5 Vehicle Safety",
+      "quote": "In either case, the control loop will execute protocols to regain traction.",
+      "supports": "traction-regaining recovery"
+    },
+    {
+      "marker": "E23",
+      "source": "paper.pdf p.31 §V.D.2 Control Loop Design",
+      "quote": "When the distance error is less than 5 centimeters, the control loop switches way points and sets the linear velocity to zero",
+      "supports": "5-centimeter threshold and velocity effect"
+    },
+    {
+      "marker": "E24",
+      "source": "paper.pdf p.30 §V.D.2 Control Loop Design",
+      "quote": "pwm is the signal that gets sent to the motors.",
+      "supports": "driving motor PWM output"
+    },
+    {
+      "marker": "E25",
+      "source": "paper.pdf p.32 §V.D.4 Flying Control",
+      "quote": "forwarding the location information through the MAVLink protocol to the autopilot firmware using MAVROS commands.",
+      "supports": "MAVLink/MAVROS flight command path"
+    },
+    {
+      "marker": "E26",
+      "source": "paper.pdf p.32 §V.D.4 Flying Control",
+      "quote": "Additional messages are sent to initialize flight controller mode changes, arming/disarming and takeoff/landing commands.",
+      "supports": "mode-change, arming/disarming, and takeoff/landing messages"
+    },
+    {
+      "marker": "E27",
+      "source": "paper.pdf p.32 §V.D.4 Flying Control",
+      "quote": "The autopilot interprets these messages and sends corresponding signals to the flying motors to enable travel to the way points.",
+      "supports": "autopilot signaling flying motors"
+    }
+  ],
+  "axis_coverage": {
+    "C1": "expanded_nl 前两句通过 [E1]-[E6] 暴露 ROS SMACH 层次 FSM、FLY_OPERATE/DRIVE_OPERATE 顶层分支以及 LANDING/TRACTION_LOSS/DORMANT 复合边界；原文未说明进入复合 mode 的默认初始子状态，因此未写默认入口。",
+    "C2": "expanded_nl 通过 [E9][E10] 暴露 safe_takeoff 的复合守卫 terrain suitable AND battery high enough，并通过 [E23] 暴露 distance error < 5 centimeters 的数值阈值；原文未给 battery threshold 或 search radius 的具体数值。",
+    "C3": "expanded_nl 通过 [E18]-[E22] 暴露跨任务 transition-signal 监控与 VIO/wheel-encoder 安全比较；原文支持连续安全监控，但不支持任何 forced emergency/global fault transition。",
+    "C4": "expanded_nl 通过 [E24]-[E27] 暴露 PWM-to-motors、MAVROS/MAVLink flight messages、autopilot-to-flying-motors 的硬件/外部控制接口；原文未把这些动作绑定为某个 mode 的 enter/exit action。"
+  },
+  "word_count_estimate": 273,
+  "intentional_omissions": "未补写电池阈值、搜索半径数值、风速阈值或具体恢复算法，因为原文只给出 threshold/radius 名称或说明恢复协议属未来工作。未写全局 emergency stop、forced fault path 或复合状态默认入口，因为 STM §1 与相关 PDF 页未提供这些语义。",
+  "_meta": {
+    "id": "012",
+    "actual_word_count": 269,
+    "markers_count": 27,
+    "provenance_count": 27
+  }
+}

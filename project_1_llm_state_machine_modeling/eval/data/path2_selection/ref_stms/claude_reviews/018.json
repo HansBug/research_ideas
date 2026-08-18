@@ -1,0 +1,48 @@
+{
+  "case_id": "018",
+  "verdict": "APPROVE",
+  "scores": {
+    "semantic_correctness": {
+      "emoji": "🟢",
+      "evidence": "状态/事件/变量与 STM §1 摘录 A-D 和 expansion NL 一一对应：LongRangePenetration/FastApproach/DefinedTargetPointsApproach/FastAvoidance/CircuitousFlight 来自摘录 D 与 [E3][E6][E13]，ThreatDegreeEvaluation 作为 guard 分流中转状态合理且 transitions 与 [E7]-[E14] 描述一致。"
+    },
+    "nl_faithfulness": {
+      "emoji": "🟡",
+      "evidence": "ET=10.0、Sbox=0.0、class_coefficient=1.0 为可执行测试默认值（codex 已在 notes 显式声明），multiple_threats 用 int 0/1 替代 bool 是 parser 兼容性合理推断；未发现 NL 未支持的 state/event/effector 编造。"
+    },
+    "c_axis_grounding_appropriateness": {
+      "emoji": "🟢",
+      "evidence": "C1 用 during abstract 对应 [E1][E2][E15][E16] 的持续检测/VFH 运行；C2 用 Sbox*class_coefficient 与 ET 多变量算术 guard 对应 [E7][E8][E13]；C3 正确不用（NL 无全局 forced fault，serious threat 是任务优先级而非 pyfcstm fault path）；C4 用 abstract 占位对应 [E2][E4][E15][E16] 的未具名 effector。"
+    },
+    "nl_coverage": {
+      "emoji": "🟢",
+      "evidence": "6 个 scenario 分别覆盖：连续穿透+target 链 ([E1][E3][E6])、serious threat override fast approach ([E8][E9][E11][E12])、target-lost 时 serious threat ([E9])、multi-threat highest ([E10])、small threat circuitous+resume ([E13][E14])、circuitous 中复检威胁；阈值两侧（Sbox*coef = 12/15/16/5/14）+ ≥3 cycle 持续运行均覆盖。"
+    },
+    "hallucinations_found": [
+      {
+        "type": "threshold",
+        "name": "ET=10.0",
+        "issue": "原文未给具体数值，codex 已在 notes.md §1 与 §5 显式声明仅作测试归一化阈值，可接受但建议在 .fcstm 行内加注释说明。"
+      },
+      {
+        "type": "var",
+        "name": "multiple_threats:int",
+        "issue": "原文 [E10] 是 'several threats' 谓词描述，codex 因 parser 不支持 def bool 改用 int 0/1，已在 notes §5 声明，语义对应合理。"
+      }
+    ],
+    "specific_revision_suggestions": [
+      "（可选）在 .fcstm 顶部 def 行后加 1 行注释，说明 ET=10.0/Sbox 默认值为 reference scenario 的测试归一化参数而非原文给定值，避免下游读者误以为来自论文。",
+      "（可选）考虑 Sbox*class_coefficient == ET 的边界：当前 guard 用严格 `>`/`<`，等于时三条 guard 都不命中会卡在 ThreatDegreeEvaluation。NL 也用 'higher/lower than' 语义未定义，保持现状可接受；若想更鲁棒可将 small-threat guard 写为 `<=` 与原文 STM §2 的 `E <= ET` 整理性表述对齐，并在 notes 说明选择理由。"
+    ],
+    "missing_scenarios_suggestions": [
+      "（可选）boundary_equality_undefined: Sbox*class_coefficient 恰好等于 ET 时，验证当前 guard 设计的不可达分支（如继续停在 ThreatDegreeEvaluation 一个 cycle），明确文档化等号边界的语义。",
+      "（可选）highest_threat_target_lost_path: 进入 DefinedTargetPointsApproach 后再触发 ThreatDetected + multiple_threats=1 进入 HighestThreatFastAvoidance，更完整覆盖 [E9][E10] 在 target-lost 路径上的组合。"
+    ],
+    "overall_comment": "codex draft 在 4 个评审维度上整体表现优良：states/events/transitions 严格溯源 STM §1 摘录与 expansion 16 个 [E] 标记，C-axis 4 轴使用恰当且对 C3 不滥用 forced fault 的克制判断正确，scenarios 在阈值两侧与持续 cycle 上覆盖到位。少量数值默认（ET/Sbox 初值）已在 notes 中明确声明为可执行测试参数，不构成 hallucination。建议直接通过，可选两条 boundary 完善留待下一轮迭代。"
+  },
+  "_meta": {
+    "id": "018",
+    "recovered_from_raw": true,
+    "added_close_braces": 1
+  }
+}

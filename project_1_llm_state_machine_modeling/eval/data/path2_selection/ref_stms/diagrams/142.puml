@@ -1,0 +1,132 @@
+@startuml
+hide empty description
+
+skinparam state {
+  BackgroundColor<<pseudo>> LightGray
+  BackgroundColor<<composite>> LightBlue
+  BorderColor<<pseudo>> Gray
+  FontStyle<<pseudo>> italic
+}
+
+legend top left
+|= Variable |= Type |= Initial Value |
+| selected_product_count | int | 1 |
+| production_count | int | 1 |
+| filling_signal | int | 0 |
+| tank_level_mbar | float | 0.0 |
+| loadcell_weight_g | float | 0.0 |
+| desired_weight_g | float | 0.0 |
+| vertical_motion_mm | float | 0.0 |
+| plc_pulse_count | int | 0 |
+| encoder_feedback_count | int | 0 |
+| target_pulse_count | int | 0 |
+| resume_code | int | 1 |
+endlegend
+
+state "CupFillingLine" as cup_filling_line <<composite>> {
+    state "Setup" as cup_filling_line__setup
+    state "WaitingForFill" as cup_filling_line__waiting_for_fill
+    state "Filling" as cup_filling_line__filling
+    state "CupArrival" as cup_filling_line__cup_arrival
+    state "LidTransfer" as cup_filling_line__lid_transfer
+    state "VerticalAttach" as cup_filling_line__vertical_attach
+    state "ReturnInitial" as cup_filling_line__return_initial
+    state "LabelPure" as cup_filling_line__label_pure
+    state "LabelMixed" as cup_filling_line__label_mixed
+    state "MovingToExit" as cup_filling_line__moving_to_exit
+    state "ExitReady" as cup_filling_line__exit_ready
+    state "Warning" as cup_filling_line__warning
+    state "ResumeRoute" as cup_filling_line__resume_route <<pseudo>> #line.dotted
+    cup_filling_line__setup --> cup_filling_line__warning : Problem
+    cup_filling_line__waiting_for_fill --> cup_filling_line__warning : Problem
+    cup_filling_line__filling --> cup_filling_line__warning : Problem
+    cup_filling_line__cup_arrival --> cup_filling_line__warning : Problem
+    cup_filling_line__lid_transfer --> cup_filling_line__warning : Problem
+    cup_filling_line__vertical_attach --> cup_filling_line__warning : Problem
+    cup_filling_line__return_initial --> cup_filling_line__warning : Problem
+    cup_filling_line__label_pure --> cup_filling_line__warning : Problem
+    cup_filling_line__label_mixed --> cup_filling_line__warning : Problem
+    cup_filling_line__moving_to_exit --> cup_filling_line__warning : Problem
+    cup_filling_line__exit_ready --> cup_filling_line__warning : Problem
+    cup_filling_line__warning --> cup_filling_line__warning : Problem
+    cup_filling_line__resume_route --> cup_filling_line__warning : Problem
+    [*] --> cup_filling_line__setup
+    cup_filling_line__setup --> cup_filling_line__waiting_for_fill : selected_product_count >= 1 && selected_product_count <= 4 && production_count > 0 && production_count <= 10
+    cup_filling_line__waiting_for_fill --> cup_filling_line__filling : filling_signal == 1 && tank_level_mbar >= 0.0 && tank_level_mbar <= 250.0
+    note on link
+    effect {
+        loadcell_weight_g = 0.0;
+    }
+    end note
+    cup_filling_line__filling --> cup_filling_line__cup_arrival : loadcell_weight_g >= desired_weight_g
+    cup_filling_line__cup_arrival --> cup_filling_line__lid_transfer : CupArrival.LidPushed
+    cup_filling_line__lid_transfer --> cup_filling_line__vertical_attach : LidTransfer.VacuumAtCupPosition
+    note on link
+    effect {
+        vertical_motion_mm = 0.0;
+    }
+    end note
+    cup_filling_line__vertical_attach --> cup_filling_line__return_initial : vertical_motion_mm >= 50.0
+    cup_filling_line__cup_arrival --> cup_filling_line__cup_arrival : CupArrival.CappingStepFailed
+    note on link
+    effect {
+        vertical_motion_mm = 0.0;
+    }
+    end note
+    cup_filling_line__lid_transfer --> cup_filling_line__cup_arrival : LidTransfer.CappingStepFailed
+    note on link
+    effect {
+        vertical_motion_mm = 0.0;
+    }
+    end note
+    cup_filling_line__vertical_attach --> cup_filling_line__cup_arrival : VerticalAttach.CappingStepFailed
+    note on link
+    effect {
+        vertical_motion_mm = 0.0;
+    }
+    end note
+    cup_filling_line__return_initial --> cup_filling_line__cup_arrival : ReturnInitial.CappingStepFailed
+    note on link
+    effect {
+        vertical_motion_mm = 0.0;
+    }
+    end note
+    cup_filling_line__return_initial --> cup_filling_line__label_pure : selected_product_count == 1
+    cup_filling_line__return_initial --> cup_filling_line__label_mixed : selected_product_count > 1
+    cup_filling_line__label_pure --> cup_filling_line__moving_to_exit : LabelPure.LabelApplied
+    note on link
+    effect {
+        plc_pulse_count = 0;
+        encoder_feedback_count = 0;
+    }
+    end note
+    cup_filling_line__label_mixed --> cup_filling_line__moving_to_exit : LabelMixed.LabelApplied
+    note on link
+    effect {
+        plc_pulse_count = 0;
+        encoder_feedback_count = 0;
+    }
+    end note
+    cup_filling_line__moving_to_exit --> cup_filling_line__warning : plc_pulse_count > 0 && encoder_feedback_count < plc_pulse_count
+    cup_filling_line__moving_to_exit --> cup_filling_line__exit_ready : plc_pulse_count >= target_pulse_count && encoder_feedback_count >= plc_pulse_count
+    cup_filling_line__warning --> cup_filling_line__resume_route : Warning.Corrected
+    note on link
+    effect {
+        encoder_feedback_count = plc_pulse_count;
+    }
+    end note
+    cup_filling_line__resume_route --> cup_filling_line__setup : resume_code == 1
+    cup_filling_line__resume_route --> cup_filling_line__waiting_for_fill : resume_code == 2
+    cup_filling_line__resume_route --> cup_filling_line__filling : resume_code == 3
+    cup_filling_line__resume_route --> cup_filling_line__cup_arrival : resume_code == 4
+    cup_filling_line__resume_route --> cup_filling_line__lid_transfer : resume_code == 5
+    cup_filling_line__resume_route --> cup_filling_line__vertical_attach : resume_code == 6
+    cup_filling_line__resume_route --> cup_filling_line__return_initial : resume_code == 7
+    cup_filling_line__resume_route --> cup_filling_line__label_pure : resume_code == 8
+    cup_filling_line__resume_route --> cup_filling_line__label_mixed : resume_code == 9
+    cup_filling_line__resume_route --> cup_filling_line__moving_to_exit : resume_code == 10
+    cup_filling_line__resume_route --> cup_filling_line__exit_ready : resume_code == 11
+}
+[*] --> cup_filling_line
+cup_filling_line --> [*]
+@enduml

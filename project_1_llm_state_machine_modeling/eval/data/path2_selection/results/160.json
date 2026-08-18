@@ -1,0 +1,37 @@
+{
+  "case_id": "160",
+  "paper_slug": "onboard-mission-management-vtol-uav-sequence-supervisory-control",
+  "case_name": "Mission-Mode / Command-Mode VTOL UAV Supervisor",
+  "bucket": "HSM-layered",
+  "what_it_is": "该 case 控制 VTOL 无人机机载任务管理器：监督层根据操作者、数据链路、payload/传感输入选择 Fly Home 或 Search and Track 等高层目标，序列层把 mission plan 解析成行为并向飞控输出轨迹/速度/位置类命令。典型流程是 Mission Mode 解析并执行任务行为，遇到直接命令、stop/manual、链路丢失或高层目标时切换到 Command Mode、Stand By、Slow Down、Mission Controller Off 或监督行为。",
+  "scale": {
+    "state_count": 10,
+    "event_count": 20,
+    "variable_count": 8,
+    "transition_count": 24
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文明确说 Sequence Control System 有 “two hierarchical levels”，且 `Mission Mode` 与 `Command Mode` 是 composite states，并且 `Command Mode` 可从 `Mission Mode` 内 every state 进入。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文 runtime plausibility checks 包含 height parameter、allowed maximum velocity、maximum flight height restrictions，以及 movement behavior 的 end/start position spatial discrepancy。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟢",
+      "evidence": "原文写到 every state of the top level 都有到 `Mission Controller Off` 的 manual control transition，且 stop command 有 from every auto mode state 的 transition。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文说行为生成 trajectory-based control commands fed into the flight controller，并在安全切换时 stop producing actuator commands，但未展开到多个具体电机/舵机级执行器。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 很有价值：C1/C3 都有清晰的层次状态和跨 mode 强制切换，C2 还有 mission/command plausibility 的数值语义检查，能支撑 parse + semantic + sim 的 in-loop feedback。它也是较真实的 UAV 工业控制对象，NL 描述边界清楚，和简单 takeoff/landing 三段式样本不完全同构。",
+  "potential_pitfalls": "行为库内部状态没有全部展开，部分数值 guard 来自 runtime plausibility checks 而不是 Fig.3 顶层状态图本身。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "160"
+  }
+}

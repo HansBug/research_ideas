@@ -1,0 +1,37 @@
+{
+  "case_id": "228",
+  "paper_slug": "versatile-mode-parking-system-fpga",
+  "case_name": "Four-mode parking-mode selector and path-generation controller",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是一个 FPGA 上实现的自主多模式泊车控制器，利用红外传感器、角点检测、距离 D1-D5 和坡度角 α 判断车位形态，并在 parallel、perpendicular、head-in angled、head-out angled 四种模式中选择路径。选定模式后生成几何路径，并驱动 DC motors 与 stepper motor 完成泊车。",
+  "scale": {
+    "state_count": 12,
+    "event_count": 10,
+    "variable_count": 10,
+    "transition_count": 30
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文写明算法 “combines the four parking modes” 并由 “existing slope?” 分支到 angled 或 parallel/perpendicular 模式，但未给出层次化 composite state、init/pseudo 或嵌套退出语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文直接给出数值 guard：如 “D2 = K * cos α”、执行前检查 “D1 ≥ D5”，无坡时还检查 “D2 = K” 与 “D1 ≥ D3/D4”。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "⚪",
+      "evidence": "原文只描述空间不足时 “the robot continues to move forward until detecting enough space”，未出现 any mode/from any state 下的 Error、Abort、Reset 或 fault-recovery 语义。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文说明 FPGA board 负责 “controlling the motion and reaction of the stepper and DC motors”，并在仿真输出中列出 “the reaction of DC motors and the stepper motor”。"
+    }
+  },
+  "features_we_care_about": "该样本的主要价值在 C2：多个距离变量、角度变量和乘法/三角阈值共同决定模式选择，适合检验 symbolic guard reasoning。C1/C4 也有中等价值，因为它是四模式真实移动机器人控制对象，且 NL/flowchart 对流程描述较清晰。",
+  "potential_pitfalls": "风险是它更像算法流程图驱动的 EFSM，而非真正层次状态机，也缺少 fault recovery 轴的支撑。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "228"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "case_id": "230",
+  "paper_slug": "uav-delivery-unknown-heterogeneous-energy-storage",
+  "case_name": "Wait-bid-won-deliver-return UAV delivery controller",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "该 case 控制单架按需配送 UAV 的任务竞价、配送执行与返航流程；它根据任务公告中的包裹质量/距离、当前电量 SoC、投标结果以及返航阈值，在等待、投标、赢标、配送和返航之间切换。执行动作主要是取包裹、飞往目的地、按电量阈值中止并返航。",
+  "scale": {
+    "state_count": 5,
+    "event_count": 8,
+    "variable_count": 9,
+    "transition_count": 8
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟠",
+      "evidence": "原文把逻辑称为 finite-state machine，并只枚举 Wait、Bid?、Won?、Deliver、Return 这类平坦阶段，未见 composite state、init/pseudo 或嵌套退出语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "投标策略使用距离、包裹质量和 SoC 组成特征向量，并用 $f(x) \\ge 0$ 判定是否投标；配送中止 guard 是 $SoC(t) \\le \\xi SoC_{takeoff}$。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "异常/恢复只在 Deliver 阶段出现：运输时可因 abort condition 转入 Return，SoC 到零则 lost；没有 any mode/from any state 的全局故障切换。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文明确有 retrieve parcel、flies to the delivery destination、return to the FC 等物理执行动作，但没有细化到电机/夹爪/充电器等多个独立 actuator 接口。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C2：数值 guard 同时涉及 SoC、起飞电量、距离、质量和学习得到的决策超平面，适合检验 Z3/simulation 对 EFSM guard 的反馈收益。NL 流程清楚、T0 独立性好，适合作为中等规模 energy-aware UAV 控制样本。",
+  "potential_pitfalls": "结构是平坦五态 FSM，C1/C3 的 grounding 收益有限；硬件动作也停留在高层飞行/取包裹语义，C4 不宜高估。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "230"
+  }
+}

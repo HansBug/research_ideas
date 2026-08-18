@@ -1,0 +1,37 @@
+{
+  "case_id": "129",
+  "paper_slug": "multi-uavs-formation-autonomous-control-rqpso-fsm-dmpc",
+  "case_name": "Five-mode UAV formation manager",
+  "bucket": "FSM-basic",
+  "what_it_is": "这是多无人机编队重构任务中的五模式 formation manager；它接收相邻 UAV 状态、环境威胁、任务命令和参考轨迹坐标，决定下一步编队模式并交给 DMPC 输出控制信号。典型流程是在 S3 保持编队，遇早警/防空雷达进入 S4 重构并选择最近 UAV 干扰，遇禁飞区或障碍进入 S5 避让。",
+  "scale": {
+    "state_count": 5,
+    "event_count": 9,
+    "variable_count": 12,
+    "transition_count": 15
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文明确列出 five models：S1 free formation flight、S2 forming initial formation、S3 keeping、S4 reconfiguration、S5 avoidance，并给出 Figure 7 state transition diagram，但没有层次化 init/pseudo 语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文约束式包含多变量数值 guard，如 h_ewr(x_i(k),u_i(k))>0、h_adr1>0、h_adr2<0、d_i,j(k)>=Dsafe、d_i,j(k)<=Dcom 以及速度/航向变化率区间约束。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "Figure 7 中 I3 表示 fixed obstacle or nofly zone within predetermined range，并从 S1/S2/S3 触发到 S5 formation avoidance control，可归并成跨多个 mode 的安全避障切换，但不是任意状态 fault handler。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "Figure 6 显示 DMPC formation controller 输出到 UAV executive mechanism，原文还写 nearest UAV 执行 electronic interference，因此有飞行执行机构和干扰设备两类物理出口，但执行器细节较粗。"
+    }
+  },
+  "features_we_care_about": "该样本的 C2 很强，数值约束来自真实 UAV 编队避雷达、避禁飞区、防碰撞和通信距离需求，适合检验 Z3 guard reasoning；同时五模式 FSM 和 Figure 7 使 NL 到结构化 FSM 的映射较清楚。",
+  "potential_pitfalls": "状态机本身是扁平五态图，缺少层次化语义和真正 any-state fault recovery，C3/C4 价值主要来自安全避障和粗粒度 UAV 执行机构。",
+  "verdict": "✨ GOOD",
+  "_meta": {
+    "id": "129"
+  }
+}

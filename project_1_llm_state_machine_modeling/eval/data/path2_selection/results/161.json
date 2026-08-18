@@ -1,0 +1,37 @@
+{
+  "case_id": "161",
+  "paper_slug": "parking-monitoring-system-security-system-features",
+  "case_name": "Password-Gated Parking Gate and Slot Monitor",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是一个私有停车位门禁与车位监测控制器：磁场/红外传感器检测车辆和空位，用户通过 keypad 输入密码，LCD 给出提示，密码正确且检测到可用车位后由步进电机打开闸门。",
+  "scale": {
+    "state_count": 8,
+    "event_count": 7,
+    "variable_count": 4,
+    "transition_count": 11
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟠",
+      "evidence": "原文流程图基本是 Start -> LCD WELCOME -> INSERT PASSWORD -> Password Correct? -> Sensor Detect Car -> Open gate 的扁平顺序分支，没有 composite state、init/pseudo 或嵌套退出语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "步进电机流程含 Data CW+1 load to ACCA 与 ACCA = 0?，程序还用 LDAB #6、DECB、BNE 做重复步进控制，但主要业务 guard 仍是 password correct 和 sensor detect car。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "原文只给出局部拒绝分支：wrong password 时 LCD 显示 ACCESS DENIED 且 gate remain close，没有 any mode/from any state 的 cross-cutting fault recovery。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文明确涉及 LCD prompt、stepper motor 控制 gate entrance、keypad/buzzer beep 以及 Port B/ULN2003A 硬件输出，适合抽象硬件 handler 解耦。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C4：它是清晰的传感器-执行器闭环控制对象，LCD、步进电机、蜂鸣器/端口输出都能测试 abstract action 与硬件解耦。C2 也有少量 motor counter/ACCA guard，可提供轻量 symbolic feedback。",
+  "potential_pitfalls": "控制结构较扁平，fault 语义只是密码拒绝而非真正跨 mode recovery，C1/C3 对 PATH2 的 grounding 价值有限。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "161"
+  }
+}

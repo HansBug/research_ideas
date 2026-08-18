@@ -1,0 +1,37 @@
+{
+  "case_id": "092",
+  "paper_slug": "design-and-construction-of-automatic-railway-crossing-gate-control-omron-cp1e-e30-sdra-plc",
+  "case_name": "Arrival-limit-departure railway crossing gate controller",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是一个 Omron PLC 铁路平交口栏杆控制器，用 proximity/infrared 传感器检测列车到达和离开，用限位开关确认落杆到位，并驱动 PWM/电机、蜂鸣器和 LED 完成落杆、保持告警、抬杆恢复流程。",
+  "scale": {
+    "state_count": 4,
+    "event_count": 3,
+    "variable_count": 3,
+    "transition_count": 4
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟠",
+      "evidence": "原文流程是 arrival detected 后 motor goes down、touches the limit switch 后 motor stops、departure detected 后 reverses the motor 的单链条控制，NL 也整理为 arrival-close-hold-depart-reopen cycle，未出现层次化 mode 或嵌套退出语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟠",
+      "evidence": "控制 guard 主要是 infrared/proximity sensor detects arrival、crossing touches the limit switch、departure sensor detects a train passing 这类布尔触发；论文虽有 217.9 VAC、5.52 VDC、23.29 VDC 等测量值，但它们不是迁移守卫。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "⚪",
+      "evidence": "STM §1 摘录和 PDF 相关段落只描述正常到达、限位保持、离站抬杆流程，没有 any mode、from any state、fault、error、abort 或 reset 类 cross-cutting 恢复语义。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文明确写到 PLC activates PWM, buzzer, and LED、crossing motor goes down、motor stops、reverses the motor，并在硬件段列出 DC motors、buzzers、LED alarms 等物理执行器。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C4：NL 到硬件动作映射清晰，适合检验 abstract action 与硬件解耦。它也是典型工业 PLC 门控对象，流程短但传感器-执行器闭环完整。",
+  "potential_pitfalls": "结构较扁平，基本没有数值 guard 和 fault recovery，可能与普通闸机/门控样本同构，C1-C3 grounding 价值有限。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "092"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "case_id": "128",
+  "paper_slug": "hybrid-autonomy-future-mars-science-helicopter",
+  "case_name": "Mission-Phase FSM-BT Supervisor for Mars Science Helicopter",
+  "bucket": "HSM-layered",
+  "what_it_is": "该 case 控制火星科学直升机的任务自治 supervisor，Healthguard 读取电池、执行器状态、估计器置信度和着陆点感知，FSM/BT 向 PX4 发出设模式、解锁、起飞、下降、着陆、上锁等动作。典型流程是 Idle/Init/PreChecks 后 Takeoff/Mission，成功则 Land/Terminate，失败或健康事件则进入 EmergencyLand。",
+  "scale": {
+    "state_count": 8,
+    "event_count": 8,
+    "variable_count": 6,
+    "transition_count": 14
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文称 “High-level FSM governing mission phases ... integrated BTs” 且 “Each state’s logic is governed by its corresponding Behavior Tree”，FSM 还可 execute/pause/abort/reset BTs。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文称 BatteryLow/BatteryCritical 在 “predefined thresholds are violated” 时由 Healthguard 发出，takeoff timeout 又 “calculated based on the vehicle’s velocity and distance”。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "原文称红箭头表示 failure 或 safety/health events，且 Table I 在 Init/Takeoff/Mission/Land 注入多类 health events；但也写明 “Each state defines explicit transitions for a subset”，未严格声明 from any state。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文/图 4 明确列出 SetPX4Mode、Arming、Takeoff、Descend、Land、Disarm 等动作，并称 Connector 与 PX4 flight controller 等外部硬件系统通信。"
+    }
+  },
+  "features_we_care_about": "这是强 HSM-layered 样本：顶层 mission-phase FSM 加相态内 BT，天然考验 reachability/deadlock 和嵌套执行反馈。它同时有真实飞行硬件动作与多状态故障响应，能支撑 C1 和 C4 的 PATH2 grounding 信号。",
+  "potential_pitfalls": "数值阈值和 timeout 公式在原文中只给语义不给具体阈值，C2 不宜高估；图 4 对多事件迁移有抽象合并，转成 NL 时需避免过度补全。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "128"
+  }
+}

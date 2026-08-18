@@ -1,0 +1,126 @@
+def int parked_count = 0;
+def int selected_slot = 0;
+def int movement_counter = 0;
+
+state RotaryParkingController {
+    [*] -> Off;
+
+    state Off {
+        enter abstract SystemStopped;
+    }
+
+    state Ready {
+        enter abstract GreenActiveLedOn;
+    }
+
+    pseudo state EntryCheck;
+
+    state EntryGateOpen {
+        enter abstract EntryBarrierOpen;
+    }
+
+    state LotFull {
+        enter abstract BarrierClosedRedLedOn;
+    }
+
+    state AdjustPosition {
+        enter abstract Infrared1OffAdjustCar;
+    }
+
+    state ParkingSlotSelected {
+        enter abstract HmiParkirMobilScreen;
+    }
+
+    state ParkingRotating {
+        enter abstract RotaryParkingMotorOn;
+        exit abstract RotaryParkingMotorOff;
+    }
+
+    state RetrievalSlotSelected {
+        enter abstract HmiAmbilMobilScreen;
+    }
+
+    state RetrievalRotating {
+        enter abstract RelayCwCcwRotaryMotorOn;
+        exit abstract RotaryMotorOff;
+    }
+
+    state RetrievalValidation {
+        enter abstract YellowLedOnSelectedSlotBelow;
+    }
+
+    state ExitGateOpen {
+        enter abstract ExitBarrierOpen;
+        exit abstract ExitBarrierCloseYellowLedOff;
+    }
+
+    state EmergencyManual {
+        enter abstract DaruratIndicatorOn;
+        during abstract EmergencyRotaryGateResetControlsAvailable;
+        exit abstract DaruratIndicatorOff;
+    }
+
+    pseudo state ParkCommandCheck;
+    pseudo state RetrieveCommandCheck;
+
+    Off -> Ready :: Start;
+    Ready -> Off :: Stop;
+
+    Ready -> EntryCheck :: ProximityOn;
+    EntryCheck -> EntryGateOpen : if [parked_count < 8];
+    EntryCheck -> LotFull : if [parked_count >= 8];
+    LotFull -> Ready :: ResetJumlah effect { parked_count = 0; };
+
+    EntryGateOpen -> ParkingSlotSelected :: Infrared1On;
+    EntryGateOpen -> AdjustPosition :: Infrared1Off;
+    AdjustPosition -> ParkingSlotSelected :: Infrared1On;
+    AdjustPosition -> AdjustPosition :: Infrared1Off;
+
+    ParkingSlotSelected -> ParkingSlotSelected :: ParkingSlot1 effect { selected_slot = 1; };
+    ParkingSlotSelected -> ParkingSlotSelected :: ParkingSlot2 effect { selected_slot = 2; };
+    ParkingSlotSelected -> ParkingSlotSelected :: ParkingSlot3 effect { selected_slot = 3; };
+    ParkingSlotSelected -> ParkingSlotSelected :: ParkingSlot4 effect { selected_slot = 4; };
+    ParkingSlotSelected -> ParkingSlotSelected :: ParkingSlot5 effect { selected_slot = 5; };
+    ParkingSlotSelected -> ParkingSlotSelected :: ParkingSlot6 effect { selected_slot = 6; };
+    ParkingSlotSelected -> ParkingSlotSelected :: ParkingSlot7 effect { selected_slot = 7; };
+    ParkingSlotSelected -> ParkingSlotSelected :: ParkingSlot8 effect { selected_slot = 8; };
+    ParkingSlotSelected -> ParkCommandCheck :: OKPark;
+    ParkCommandCheck -> ParkingRotating : if [selected_slot >= 1 && selected_slot <= 8];
+    ParkCommandCheck -> ParkingSlotSelected : if [selected_slot < 1 || selected_slot > 8];
+
+    ParkingRotating -> Ready :: Infrared2SpaceDetected effect { parked_count = parked_count + 1; };
+    ParkingRotating -> ParkingRotating :: ResetCounter effect { movement_counter = 0; };
+
+    Ready -> RetrievalSlotSelected :: AmbilMobil;
+    RetrievalSlotSelected -> RetrievalSlotSelected :: RetrievalSlot1 effect { selected_slot = 1; };
+    RetrievalSlotSelected -> RetrievalSlotSelected :: RetrievalSlot2 effect { selected_slot = 2; };
+    RetrievalSlotSelected -> RetrievalSlotSelected :: RetrievalSlot3 effect { selected_slot = 3; };
+    RetrievalSlotSelected -> RetrievalSlotSelected :: RetrievalSlot4 effect { selected_slot = 4; };
+    RetrievalSlotSelected -> RetrievalSlotSelected :: RetrievalSlot5 effect { selected_slot = 5; };
+    RetrievalSlotSelected -> RetrievalSlotSelected :: RetrievalSlot6 effect { selected_slot = 6; };
+    RetrievalSlotSelected -> RetrievalSlotSelected :: RetrievalSlot7 effect { selected_slot = 7; };
+    RetrievalSlotSelected -> RetrievalSlotSelected :: RetrievalSlot8 effect { selected_slot = 8; };
+    RetrievalSlotSelected -> RetrieveCommandCheck :: OKRetrieve;
+    RetrieveCommandCheck -> RetrievalRotating : if [selected_slot >= 1 && selected_slot <= 8];
+    RetrieveCommandCheck -> RetrievalSlotSelected : if [selected_slot < 1 || selected_slot > 8];
+
+    RetrievalRotating -> RetrievalValidation :: SelectedSlotBelow;
+    RetrievalRotating -> RetrievalRotating :: ResetCounter effect { movement_counter = 0; };
+    RetrievalValidation -> ExitGateOpen :: BENAR;
+    RetrievalValidation -> RetrievalSlotSelected :: SALAH effect { selected_slot = 0; movement_counter = 0; };
+    ExitGateOpen -> Ready :: ExitProximityOn effect { parked_count = parked_count - 1; selected_slot = 0; };
+
+    Ready -> EmergencyManual :: DaruratOn;
+    Ready -> Ready :: ResetCounter effect { movement_counter = 0; };
+    ParkingRotating -> EmergencyManual :: DaruratOn;
+    RetrievalRotating -> EmergencyManual :: DaruratOn;
+    RetrievalValidation -> EmergencyManual :: DaruratOn;
+    LotFull -> EmergencyManual :: DaruratOn;
+    EmergencyManual -> Ready :: DaruratOff;
+    EmergencyManual -> EmergencyManual :: CWLower effect { movement_counter = movement_counter + 1; };
+    EmergencyManual -> EmergencyManual :: CCWLower effect { movement_counter = movement_counter + 1; };
+    EmergencyManual -> EmergencyManual :: GateOpen;
+    EmergencyManual -> EmergencyManual :: GateClose;
+    EmergencyManual -> EmergencyManual :: ResetJumlah effect { parked_count = 0; };
+    EmergencyManual -> EmergencyManual :: ResetCounter effect { movement_counter = 0; };
+}

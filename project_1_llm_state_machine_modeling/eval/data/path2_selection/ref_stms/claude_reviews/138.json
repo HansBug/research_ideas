@@ -1,0 +1,54 @@
+{
+  "case_id": "138",
+  "verdict": "APPROVE",
+  "scores": {
+    "semantic_correctness": {
+      "emoji": "🟢",
+      "evidence": "5 个顶层状态 Wander/ApproachPerson/HoldConversation/FollowDirections/NavigateDoor 与摘录 B 一致；WANDER 与 FOLLOW DIRECTIONS 的 5 个子状态命名与摘录 C/D 完全对齐；step_counter 初始化、2m+type_change 退出 guard、goal_hallway→NavigateDoor 与 person_waypoint→Wander 均对应 [E16][E18][E19][E20][E21]。"
+    },
+    "nl_faithfulness": {
+      "emoji": "🟡",
+      "evidence": "`intersection_signal` 0/1/2/3 与 `plan_action` 1/2/3/4 是为驱动 guard 而合成的控制变量（NL 用 qualitative 描述但未给数字编码，属合理建模代理）；WANDER 的 DriveThroughIntersection 退出 guard `travel_meters>2 && intersection_type_changed` 来自 [E18] FOLLOW DIRECTIONS 的描述，原文 §III.A WANDER 未明确把该 guard 套用到 WANDER，属轻度跨段推广。"
+    },
+    "c_axis_grounding_appropriateness": {
+      "emoji": "🟢",
+      "evidence": "C1：`>> during before abstract MaintainSlamFromImuLidar/ContinuouslyMapWithImuLidar` + `during { travel_meters+=1.0 }` 对应 [E7][E13] 的“持续 mapping/drive forward”；C2：多变量复合 guard（4 个 drivable 全 0；back==1 且其余 0；>2m && type_changed）忠实复刻 [E14][E18]；C3：通过 `MakeDecision->[*]:/StateFailure` + 外层 `X->Wander:StateFailure` 完整实现 [E10]“failure 回到 initial state”，未滥用 `! *`；C4：abstract 占位用具名 effector（Imu/Lidar、PTZ/Camera、microphone/speaker）对齐 [E22-E26]。"
+    },
+    "nl_coverage": {
+      "emoji": "🟢",
+      "evidence": "12 个 scenarios 覆盖顶层 pipeline + failure 回退、no-qualitative recovery、dead-end 180°、forward 3-cycle、registered/selected intersection、WANDER 与 FOLLOW 的 crossing 阈值边界（1m/2m/3m）、FOLLOW 各 plan_action 分支、goal_hallway 进 NavigateDoor、person_waypoint 回 Wander，关键 [E11-E22] 全部触达。"
+    },
+    "hallucinations_found": [
+      {
+        "type": "threshold",
+        "name": "WANDER.DriveThroughIntersection exit guard `travel_meters>2 && intersection_type_changed==1`",
+        "issue": "该 guard 在原文中由 §III.D FOLLOW DIRECTIONS [E18] 明确描述，§III.A WANDER 未明确把它套用到 WANDER 的 crossing 子状态；属合理但 NL 未直接支持的推广。"
+      },
+      {
+        "type": "var",
+        "name": "intersection_signal 离散编码 (0/1/2/3)",
+        "issue": "NL 只定性提到 registered intersection 与 selected hallway trajectory，未给出枚举值；属为驱动 guard 而合成的控制信号，仍可作为合理建模代理保留。"
+      },
+      {
+        "type": "var",
+        "name": "plan_action 离散编码 (1=forward/2=rotate/3=cross/4=complete)",
+        "issue": "原文 [E17] 列出三阶段 + Complete，但未给出数字 enum；同上为合成代理。"
+      }
+    ],
+    "specific_revision_suggestions": [
+      "建议在 138.notes.md 中显式声明：WANDER.DriveThroughIntersection 的 `>2m && type_changed` 退出 guard 是从 FOLLOW DIRECTIONS [E18] 跨段类比推广，原文 §III.A 未直接描述该 guard；或者考虑把 WANDER 的 crossing 退出 guard 弱化为只依赖 `intersection_type_changed==1`，把 2m 阈值保留给 FOLLOW（与 [E18] 出处更贴）。",
+      "建议在 notes.md 中显式声明：`intersection_signal` 与 `plan_action` 为合成的离散控制信号代理，用于在 guard 中触发对应分支，对应 NL 中的定性事件 [E13][E17]，不是原文显式给出的数值。",
+      "可选：考虑给 NavigateDoor 也提供 `during { ... }` 节拍（如 inspection_step += 1）以便 scenarios 验证 [E8][E26] 的 per-cycle door 检测；当前 NavigateDoor 仅有 enter/during abstract 而无 per-cycle 数值证据。"
+    ],
+    "missing_scenarios_suggestions": [
+      "navigate_door_per_cycle_inspection：若 NavigateDoor 增加 per-cycle 节拍变量，应补 ≥3 cycle 维持在 NavigateDoor 的 scenario，验证 [E8][E26] 门牌识别的持续行为。",
+      "wander_crossing_exit_only_type_change：若采纳建议 1 弱化 WANDER 退出 guard，应补一个 type_changed==1 且 travel_meters<2 即退出 DriveForward 的 scenario，与 FOLLOW 的严格 2m 阈值形成对照。"
+    ],
+    "overall_comment": "整体语义忠实度高、子结构与摘录 C/D 对齐到位，scenarios 覆盖度优秀；C-axis 4 个维度都有合理 grounding 且没有滥用 forced-fault。主要瑕疵是把 [E18] 的 2m+type_changed guard 跨段套用到 WANDER 的 crossing，以及合成 enum 编码（intersection_signal/plan_action）未在 notes 中说明出处。建议 APPROVE 进入下一阶段，同时在 notes.md 补充建模代理与跨段推广的显式声明。"
+  },
+  "_meta": {
+    "id": "138",
+    "recovered_from_raw": true,
+    "added_close_braces": 1
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "case_id": "107",
+  "paper_slug": "brain-machine-interface-humanoid-motion",
+  "case_name": "Contact-transition whole-body humanoid controller",
+  "bucket": "HSM-layered",
+  "what_it_is": "该 case 控制脑机接口辅助的人形机器人全身接触转换：离线规划接触序列，在线 FSM 在卸载接触、移动足/手等接触链路之间切换，并用 EEG 解码出的 up/down 命令实时修正 way-point。典型流程是 Shift CoM 卸载旧接触，再在 Move contact link 内先到 way-point、再到目标接触位置，最后继续下一段接触序列。",
+  "scale": {
+    "state_count": 3,
+    "event_count": 6,
+    "variable_count": 8,
+    "transition_count": 8
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文明确说 FSM 编码两类 transition，并且 ‘Move contact link’ 是 meta-state，下面有 ‘Move contact link to way-point’ 与 ‘Move contact link to goal’ 两个 sub-state。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文给出 command guard `P(k_t=+1|C_t)>P_thresh and c_{t-1}!=+1`、`P_thresh=0.6`，并写到子状态切换由 contact link crossing a designated threshold plan 触发。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "原文只有局部安全/恢复语义：without collision-avoidance 时 foot collides and simulation stops，local-minimum trap 时 BMI helps reposition the way-point and overcome the local-minimum problem，没有 any-state fault transition。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文说最终输出是 torque command sent to the robot at every control iteration，并控制 moving link、CoM 与 whole configuration；硬件出口明确但主要是同类关节力矩/仿真机器人接口。"
+    }
+  },
+  "features_we_care_about": "它对 PATH2 的主要价值在 C1/C2：有真实论文给出的层次 FSM、meta-state/sub-state、接触力消失、阈值平面跨越和 BMI 阈值 hysteresis，能很好测试 parse/semantic/sim loop 对 HSM 与数值 guard 的反馈收益。样本属于人形机器人全身运动控制，NL 证据清楚，和常见泵阀/温控类工业样本不趋同。",
+  "potential_pitfalls": "C3 不是真正的 any-mode forced fault recovery，且连续 QP/接触规划细节需要抽象成离散 guard 与 abstract action，存在建模粒度噪声。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "107"
+  }
+}
