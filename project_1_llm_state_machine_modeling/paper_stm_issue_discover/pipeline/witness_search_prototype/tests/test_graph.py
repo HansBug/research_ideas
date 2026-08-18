@@ -128,7 +128,7 @@ def test_langgraph_runs_progressive_scouts_before_d_adjudication() -> None:
 
     record = state["final_record"]
     assert record["strategy"] == (
-        "shared_a_complementary_dual_b_formal_execution_batched_d"
+        "shared_a_complementary_dual_b_formal_execution_single_d"
     )
     assert record["telemetry"]["requested_discovery_sample_count"] == 2
     assert record["telemetry"]["completed_discovery_branch_count"] == 2
@@ -185,7 +185,7 @@ def test_grounding_internal_error_degrades_and_preserves_scout_results(
     )
 
 
-def test_fresh_graph_uses_shared_a_complementary_dual_b_and_batched_d() -> None:
+def test_fresh_graph_uses_shared_a_complementary_dual_b_and_single_d() -> None:
     responder = FakeResponder()
 
     state = graph.run_graph(
@@ -243,20 +243,17 @@ def test_cross_sample_exact_binding_conflict_is_withheld_without_text_matching()
     assert diagnostics[0]["class"] == "cross_sample_formal_binding_conflict"
 
 
-def test_d_adjudication_batches_all_findings_without_semantic_filtering(
-    monkeypatch,
-) -> None:
+def test_d_adjudication_covers_all_findings_in_one_call() -> None:
     responder = FakeResponder()
-    monkeypatch.setattr(graph, "DEFAULT_D_BATCH_SIZE", 1)
 
     state = graph.run_graph(
         graph.PrototypeGraphInput(case="0016", profile="fake"), responder
     )
 
     record = state["final_record"]
-    finding_count = record["telemetry"]["finding_count"]
-    assert record["telemetry"]["d_batch_count"] == finding_count
-    assert responder.roles.count("paper1_d_adjudication") == finding_count
+    assert record["telemetry"]["finding_count"] > 1
+    assert record["telemetry"]["d_call_count"] == 1
+    assert responder.roles.count("paper1_d_adjudication") == 1
     assert all(item["d_decision"] is not None for item in record["finding_records"])
 
 
@@ -269,12 +266,13 @@ def test_d_contract_failure_repairs_once_then_degrades_to_auditable_output() -> 
     record = state["final_record"]
     assert record["d_unresolved_reason"]
     assert record["telemetry"]["d_repair_count"] == 2
+    assert record["telemetry"]["d_call_count"] == 2
     assert record["confirmed_issues"] == []
     assert record["accepted_issues"] == []
     assert all(item["d_decision"] is None for item in record["finding_records"])
 
 
-def test_d_semantic_validation_failure_degrades_without_rewriting_valid_batch() -> None:
+def test_d_semantic_validation_failure_degrades_without_rewriting_valid_decisions() -> None:
     state = graph.run_graph(
         graph.PrototypeGraphInput(case="0016", profile="fake"),
         InvalidSemanticDResponder(),

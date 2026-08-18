@@ -1,12 +1,12 @@
 # EvidenceGoal 表达面审计与领域先行构建协议
 
-状态：本文件是当前表达面审计的唯一事实源。它区分“已实现”“已粗审”“已知缺口”和“待领域取证候选”，不得用开发样例的命中结果替代逐条表达能力证明。
+状态：本文件是当前表达面审计的唯一事实源。它区分“已实现”“已粗审”“已知缺口”和“待领域取证候选”，不得用任何工程调试结果替代领域来源与逐条表达能力证明。
 
 ## 1. 当前结论
 
 第二版台账唯一真源共有 145 条，其中 `L0/L1/L2=71/35/39`，`D2/D1=98/47`。本轮已经通览全部 145 条的 `id`、D、L、axes 和 summary，并对当前 25 个 `EvidenceGoal.relation`、13 个模板与 4 类执行后端做了粗粒度对照；这足以发现若干确定的表达缺口，但不等于已经完成逐条 feasibility proof。
 
-当前仓库不存在完整的 `ledger item → normative property → EvidenceGoal → exact bindings → template/backend → W ceiling/unsupported reason` 矩阵。因此目前不能声称“145 条全部可表达”，也不能声称“大多数台账 issue 已经证明可覆盖”。0029 等 development pair 只能证明若干已实现关系能够端到端生成并真实执行 W2，不能证明完整表达面。
+当前仓库不存在完整的 `ledger item → normative property → EvidenceGoal → exact bindings → template/backend → W ceiling/unsupported reason` 矩阵。因此目前不能声称“145 条全部可表达”，也不能声称“大多数台账 issue 已经证明可覆盖”。工程调试只能证明既定机制是否按合同运行，不能证明表达面完整，也不能作为方法语义的来源。
 
 表达能力的正式完成判据是：每条台账 item 都有一行可复核映射；若可表达，必须给出不读取答案文本的 Goal 形状、形式绑定、后端、预期证书和最高 W；若不可表达，必须给出缺失的领域义务、元模型关系或执行语义。该矩阵只能用于覆盖审计，不得反向成为新增 Goal 家族的唯一动机。
 
@@ -31,33 +31,33 @@
 
 ## 4. 领域先行的表达面构建
 
-旧 19 谓词的来源调研已经暴露一项不可重复的错误：词表成员曾由本文评测 pair 上 750 条 splitter 输出的需求分布决定，属于 transductive 构建。它没有直接泄漏 ledger answer，但不能支持“方法由领域独立建立后再用于评测”的叙事。新 Goal 代数不得重复这一路径。
+旧 19 谓词的来源调研已经暴露一项不可重复的错误：词表成员曾由本文评测 pair 上 750 条 splitter 输出的需求分布决定，属于 transductive 构建。它没有直接泄漏 ledger answer，但不能支持“方法由领域独立建立后再用于评测”的叙事。新 Goal 代数不得重复这一路径；但 PR #183 已经检索、逐字核验和对抗裁定的大量一手文献可以直接作为来源池复用，只需对新 surface 重新映射，不应浪费成本重复检索。
 
 新表达面采用以下顺序构建并冻结：
 
 1. 建立与 54 pair、145 条台账物理隔离的领域来源库，至少覆盖 UML/statechart 元模型与执行语义、状态机测试与 test-oracle/property-pattern 传统、model quality/model smell/UML defect taxonomy、控制与自动化系统需求、可执行 witness/counterexample/certificate 方法，以及 pyfcstm 当前可 sound 执行的形式片段。
 2. 从来源中抽取“领域义务”，不是抽取本项目谓词名字。每条义务保存逐字引文、适用对象、量词/时序形状、最强反例、来源独立性、失败检索和限制，并按 ①领域证据、②元模型定义性、③暂缺外部依据分级。
-3. 将来源独立的义务归纳成 obligation taxonomy，再设计最小且可组合的 Goal algebra。一个 Goal relation 只有在能够说明规范语义、binding 角色、正反例和预期执行证书时才可进入候选词表；不能因为某条 development ledger item 需要它就直接加入。
+3. 将来源独立的义务归纳成 obligation taxonomy，再设计最小且可组合的 Goal algebra。一个 Goal relation 只有在能够说明规范语义、binding 角色、正反例和预期执行证书时才可进入候选词表；任何 benchmark item、运行结果或 baseline miss 都不能成为加入 relation 的依据。
 4. 为每个 Goal relation 建立 soundness table：允许的输入 fragment、AssertionIR 形状、backend、terminal verdict、source attribution 条件、W 上限、unsupported 出口和 mutation tests。没有 sound backend 的领域义务可以作为 W1/W0 发现面保留，但不能伪装成 W2 relation。
 5. 用完全合成的 worked examples、metamorphic cases 和 mutation benchmark 检验 Goal、compiler 与证书，不把真实 pair ID、真实台账答案或 baseline miss 写入 runtime prompt。
-6. 冻结来源库版本、taxonomy、Goal schema、compiler registry、prompt hash 和实现一致性审计后，才在 54 pair 上做 confirmatory evaluation。开发 pair 暴露的工程 bug 可以修；若由某条真实 item 导致新增语义 relation、规则或 prompt 义务，该 item 及同源近重复必须退出 confirmatory denominator 并登记 introduction motive。
+6. 冻结来源库版本、taxonomy、Goal schema、compiler registry、prompt hash 和实现一致性审计后，在完整 54 pair 上做统一 benchmark evaluation。调试输入只可暴露实现偏离既定合同、schema 错误、异常处理错误或证据链断裂；它不得引入新的语义 relation、规范义务或面向具体样例的 prompt 规则。若调试暴露疑似表达缺口，只能回到领域来源重新取证；没有独立领域依据的能力不得进入方法。
 
-这条路线支持的论文叙事是“基于领域与元模型证据建立可执行义务代数，然后在 54 pair 上评估发现、执行和归因效果”，而不是“观察 54 pair 的缺陷后把能命中的规则塞进词表”。[PR #183](https://github.com/HansBug/research_ideas/pull/183) 的旧 19 谓词 provenance 可以作为起始来源和反例材料，但不能直接平移成新 25 relation 已经获得充分出处。
+这条路线支持的论文叙事是“基于领域与元模型证据建立可执行义务代数，然后在 54 pair 上评估发现、执行和归因效果”，而不是“观察 54 pair 的缺陷后把能命中的规则塞进词表”。[PR #183](https://github.com/HansBug/research_ideas/pull/183) 作为已裁定来源池按 operator 重新映射；能直接支撑者复用，证据形状不一致或没有直接依据者再补检。最终复用、新增和缺口矩阵见 [TYPED_OBLIGATION_PROVENANCE.md](./TYPED_OBLIGATION_PROVENANCE.md)。
 
 ## 5. 逐条 feasibility 矩阵合同
 
-后续 145 条逐条审计至少包含以下字段：`ledger_id`、`D_ref`、`L_ref`、`normative_property`、`domain_obligation_id`、`goal_relation`、`goal_bindings_shape`、`binding_authority`、`template`、`backend`、`soundness_fragment`、`expected_certificate`、`w_ceiling`、`status`、`unsupported_reason`、`introduced_after_eval`。`status` 只能是 `expressible`、`partial`、`unsupported`、`not_a_method_obligation`。
+后续 145 条逐条审计至少包含以下字段：`ledger_id`、`D_ref`、`L_ref`、`normative_property`、`domain_obligation_id`、`domain_source_ids`、`goal_relation`、`goal_bindings_shape`、`binding_authority`、`template`、`backend`、`soundness_fragment`、`expected_certificate`、`w_ceiling`、`status` 和 `unsupported_reason`。`status` 只能是 `expressible`、`partial`、`unsupported`、`not_a_method_obligation`。
 
-逐条审计由 LLM 进行语义映射，不能用 ledger summary 关键词、axes 字符串或 defect kind 的确定性查表替代。确定性代码只可检查矩阵的 ID 完整性、枚举、引用闭包、145 条是否恰好覆盖和 relation/backend 是否存在。任何 `partial/unsupported` 都必须进入研究 backlog；任何在查看台账后新引入的 relation 必须标记 `introduced_after_eval=true`，并从 confirmatory claim 中隔离受影响条目。
+逐条审计由 LLM 进行语义映射，不能用 ledger summary 关键词、axes 字符串或 defect kind 的确定性查表替代。确定性代码只可检查矩阵的 ID 完整性、枚举、引用闭包、145 条是否恰好覆盖和 relation/backend 是否存在。任何 `partial/unsupported` 都必须进入 limitation 与后续研究清单；审计结果不得反向修改已经由领域来源冻结的方法语义。
 
 ## 6. 冻结前门
 
 - 完成领域义务来源账和每个 Goal/template/backend 的 provenance；不能把“旧谓词有出处”外推为“新 relation 有出处”。
-- 完成 145 条逐条 feasibility 矩阵，但只把它当覆盖审计与 limitation，不允许它静默改写已冻结的 confirmatory 方法。
+- 完成 145 条逐条 feasibility 矩阵，但只把它当覆盖审计与 limitation，不允许它静默改写已冻结的领域方法。
 - 关闭本文件列出的 region、named action/effect、condition、state kind、hierarchy/history、trigger-set 六类缺口，或明确其 W1/W0 上限和 headline 不覆盖范围。
 - 对实现做语义边界一致性审计，尤其检查 unresolved 是否真正 veto、exact quote 是否被行号替代、是否存在唯一候选 namespace 补全、自由语义文本长度是否仍触发 schema failure，以及 receipt 是否绑定真实 LLM call/hash chain。
 - 完成完全合成的正例、反例、非法 binding、unsupported fragment、backend exception 和 replay tests；同一 Goal 在修复 backend 后必须 replay 原 Goal，不能看到 truth 后改写。
 
 ## 7. 与实验结果的关系
 
-0029 v36 的 `strict accepted 8/8` 是开发样例的 post-hoc 结果，说明当前表达子集可以自动发现并执行若干 L0/L1/L2 问题；它不证明 145 条表达完备，也不进入 overall 显著性或 precision 主张。正式结果必须另行报告 overall、L0/L1/L2、D×L、precision、W2 fraction、source-attribution fraction、degraded/unsupported grid 和同模型美元倍率。
+工程调试运行只用于确认 schema、编译、执行、降级、计价与证据链是否按既定合同工作，不承担方法形成或效果评估角色。方法效果由完整 54 pair、145 条台账上的统一 benchmark evaluation 回答，并报告 overall、L0/L1/L2、D×L、precision、W2 fraction、source-attribution fraction、degraded/unsupported grid 和同模型美元倍率。

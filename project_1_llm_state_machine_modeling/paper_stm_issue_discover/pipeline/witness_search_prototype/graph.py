@@ -24,7 +24,6 @@ from paper_stm_feedback_loop.discover.responder import (
 
 
 DEFAULT_MAX_TOTAL_TOKENS = 200_000
-DEFAULT_D_BATCH_SIZE = 8
 DISCOVERY_SAMPLE_COUNT = len(core.DISCOVERY_GROUNDING_AUDIT_LENSES)
 
 
@@ -56,7 +55,7 @@ class PrototypeGraphState(TypedDict, total=False):
     d_plan: core.DAdjudicationPlan
     d_feedback: list[str]
     d_repair_count: int
-    d_batch_count: int
+    d_call_count: int
     d_unresolved_reason: str
     retry_d: bool
     execution_diagnostics: list[dict[str, str]]
@@ -858,58 +857,49 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
         if not state["finding_records"]:
             return {
                 "d_plan": core.DAdjudicationPlan(decisions=[]),
-                "d_batch_count": 0,
+                "d_call_count": 0,
             }
         feedback = ""
         if state.get("d_feedback"):
             feedback = "\n\n# Deterministic contract feedback\n\n" + "\n".join(
                 f"- {item}" for item in state["d_feedback"]
             )
-        decisions: list[core.DDecision] = []
-        batch_observations: list[dict[str, Any]] = []
         findings = sorted(
             state["finding_records"], key=lambda item: item["finding_key"]
         )
-        batches = [
-            findings[index : index + DEFAULT_D_BATCH_SIZE]
-            for index in range(0, len(findings), DEFAULT_D_BATCH_SIZE)
-        ]
-        for batch_index, batch in enumerate(batches):
-            context = core.build_d_context(state["pair"], batch)
-            batch_header = (
-                f"# D adjudication batch\n\nbatch={batch_index + 1}/{len(batches)}; "
-                f"return exactly {len(batch)} decisions.\n\n"
-            )
-            plan, observations, error = _invoke_with_schema_repair(
-                responder,
-                role="paper1_d_adjudication",
-                schema=core.DAdjudicationPlan,
-                system_prompt=core.D_SYSTEM_PROMPT,
-                user_input=batch_header + context + feedback,
-            )
-            batch_observations.extend(observations)
-            if error is not None or plan is None:
-                return {
-                    "failure": {
-                        "node": "d_adjudication",
-                        "class": "provider_or_schema",
-                        "message": (
-                            f"batch {batch_index + 1}/{len(batches)}: "
-                            f"{type(error).__name__}: {error}"
-                        ),
-                    },
-                    "llm_observations": [
-                        *state.get("llm_observations", []),
-                        *batch_observations,
-                    ],
-                }
-            decisions.extend(plan.decisions)
+        context = core.build_d_context(state["pair"], findings)
+        adjudication_header = (
+            "# Whole-pair D adjudication\n\n"
+            f"Return exactly {len(findings)} decisions, one for every finding in "
+            "the supplied stable order.\n\n"
+        )
+        plan, observations, error = _invoke_with_schema_repair(
+            responder,
+            role="paper1_d_adjudication",
+            schema=core.DAdjudicationPlan,
+            system_prompt=core.D_SYSTEM_PROMPT,
+            user_input=adjudication_header + context + feedback,
+        )
+        d_call_count = state.get("d_call_count", 0) + 1
+        if error is not None or plan is None:
+            return {
+                "failure": {
+                    "node": "d_adjudication",
+                    "class": "provider_or_schema",
+                    "message": f"{type(error).__name__}: {error}",
+                },
+                "d_call_count": d_call_count,
+                "llm_observations": [
+                    *state.get("llm_observations", []),
+                    *observations,
+                ],
+            }
         return {
-            "d_plan": core.DAdjudicationPlan(decisions=decisions),
-            "d_batch_count": len(batches),
+            "d_plan": plan,
+            "d_call_count": d_call_count,
             "llm_observations": [
                 *state.get("llm_observations", []),
-                *batch_observations,
+                *observations,
             ],
         }
 
@@ -998,7 +988,7 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
             "exploratory_only": True,
             "case": state["input"].case,
             "profile": state["input"].profile,
-            "strategy": "shared_a_complementary_dual_b_formal_execution_batched_d",
+            "strategy": "shared_a_complementary_dual_b_formal_execution_single_d",
             "replay_plans_from": state["input"].replay_plans_from,
             "contract_plan": state["contract_plan"].model_dump(mode="json"),
             "discovery_grounding_plans": [
@@ -1046,7 +1036,7 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
                 "confirmed_report_issue_count": len(confirmed_report_issues),
                 "accepted_report_issue_count": len(accepted_report_issues),
                 "d_repair_count": state.get("d_repair_count", 0),
-                "d_batch_count": state.get("d_batch_count", 0),
+                "d_call_count": state.get("d_call_count", 0),
                 "token_budget": token_budget,
             },
         }

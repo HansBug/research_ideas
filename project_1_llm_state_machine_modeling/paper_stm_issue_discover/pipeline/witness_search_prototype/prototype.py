@@ -15,7 +15,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -54,6 +54,7 @@ from project_1_llm_state_machine_modeling.paper_stm_issue_discover.pipeline.witn
     PROFILE_ID as UML_GUARD_ONLY_PROFILE_ID,
 )
 from project_1_llm_state_machine_modeling.paper_stm_issue_discover.pipeline.witness_search_prototype.uml_transition_profile import (
+    GuardOnlyLabel,
     parse_guard_only_label,
 )
 
@@ -100,6 +101,118 @@ GoalRelation = Literal[
     "termination_target",
     "eventually_terminates",
 ]
+
+
+class ElementObligation(BaseModel):
+    family: Literal["element"] = "element"
+    element_kind: Literal[
+        "state",
+        "final_pseudostate",
+        "event",
+        "variable",
+        "action",
+        "effect",
+        "transition",
+    ]
+    operator: Literal["exists", "absent", "kind_is", "cardinality"]
+    subject_ref: str | None = None
+    expected_kind: str | None = None
+    expected_count: int | None = Field(default=None, ge=0, le=128)
+
+
+class AttachmentObligation(BaseModel):
+    family: Literal["attachment"] = "attachment"
+    attachment: Literal[
+        "containment",
+        "initial_target",
+        "transition_endpoints",
+        "transition_target_consistency",
+        "trigger",
+        "guard",
+        "effect",
+        "action_phase",
+    ]
+    subject_ref: str | None = None
+    owner_ref: str | None = None
+    reference_ref: str | None = None
+    expected: bool = True
+
+
+class GuardSetObligation(BaseModel):
+    family: Literal["guard_set"] = "guard_set"
+    property: Literal["satisfiable", "disjoint", "complete", "equivalent", "implies"]
+    scope_ref: str | None = None
+    transition_refs: list[str] = Field(default_factory=list)
+    expected: bool = True
+
+
+class GraphObligation(BaseModel):
+    family: Literal["graph"] = "graph"
+    property: Literal[
+        "reachable",
+        "escapable",
+        "deadlock_free",
+        "stable_termination",
+        "path_absent",
+        "event_target_reachable",
+        "event_consumer_reachable",
+    ]
+    source_ref: str | None = None
+    target_ref: str | None = None
+    forbidden_scope_ref: str | None = None
+    bound: int | None = Field(default=None, ge=1, le=16)
+    expected: bool = True
+
+
+class TemporalObligation(BaseModel):
+    family: Literal["temporal"] = "temporal"
+    pattern: Literal[
+        "response",
+        "precedence",
+        "existence",
+        "absence",
+        "universality",
+        "termination",
+        "persistence",
+    ]
+    scope: Literal["global", "before", "after", "between", "after_until"] = "global"
+    trigger_ref: str | None = None
+    response_ref: str | None = None
+    state_ref: str | None = None
+    scope_ref: str | None = None
+    bound: int | None = Field(default=None, ge=1, le=16)
+    expected: bool = True
+
+
+DomainObligation = Annotated[
+    ElementObligation
+    | AttachmentObligation
+    | GuardSetObligation
+    | GraphObligation
+    | TemporalObligation,
+    Field(discriminator="family"),
+]
+
+ObligationSurfaceRole = Literal[
+    "core",
+    "derived_macro",
+    "backend_comparison",
+    "under_supported_extension",
+]
+
+
+class SupportDisposition(BaseModel):
+    """Compiler-derived execution support; this is not a domain obligation."""
+
+    status: Literal["executable", "located_only", "prose_only"]
+    w_ceiling: Literal["W2", "W1", "W0"]
+    surface_role: ObligationSurfaceRole | Literal["legacy_untyped"]
+    reason_code: Literal[
+        "sound_lowering_available",
+        "no_sound_lowering",
+        "legacy_replay",
+    ]
+    reason: str
 
 ProbeKind = Literal[
     "state_declared",
@@ -203,6 +316,13 @@ class EvidenceCandidate(BaseModel):
     priority: int = Field(ge=1, le=5)
     locations: list[str] = Field(default_factory=list, max_length=3)
     proposed_l: Literal["L0", "L1", "L2"]
+    domain_obligation: DomainObligation | None = Field(
+        default=None,
+        description=(
+            "Paper-level typed obligation. New LLM outputs must supply it; legacy "
+            "replay records may omit it while the relation remains a compiler op."
+        ),
+    )
     goal: EvidenceGoal
 
 
@@ -885,7 +1005,30 @@ Return one `DiscoveryGroundingPlan`:
    remain as a W1/W0 coverage gap, but must not be made executable by guessing.
 
 For every candidate, state one obligation, one falsifiable claim, and one concise
-observed source/FCSTM/inspect fact. A `nl_literal` candidate must copy one exact
+observed source/FCSTM/inspect fact. `domain_obligation` is the paper-level typed
+surface and is required for every new candidate:
+- use `element` for existence or an NL-explicit cardinality; absence is the
+  derived negation of existence, while kind comparison is compiler IR rather
+  than an independent domain property;
+- use `attachment` for containment, initial target, transition endpoints, trigger,
+  guard, effect, or action-phase ownership;
+- use `guard_set` for satisfiability, pairwise disjointness, or coverage;
+  equivalence and implication are backend comparison operations, not new domain
+  properties;
+- use `graph` for reachability, deadlock freedom, or path exclusion; escapability,
+  event-target reachability, and stable termination are derived macros;
+- use `temporal` for response, precedence, existence, absence, or universality
+  under an explicit scope; termination and holds-until behavior are derived from
+  these base patterns.
+The `goal.relation` field is only a compiler-lowering operation. It must be
+compatible with the exact typed operator, but neither field selects a proof
+backend. Do not output execution-support or W-ceiling fields. The compiler
+derives one `SupportDisposition`: executable/W2 ceiling, located-only/W1 ceiling,
+or prose-only/W0 ceiling. A meaningful orthogonal-region, history, opaque-action,
+or unsupported temporal issue remains in its closest semantic family and is
+degraded by that compiler decision; unsupportedness is not a sixth obligation.
+
+A `nl_literal` candidate must copy one exact
 contiguous NL span verbatim in `nl_quote` and cite its physical `NL<n>` line when
 available. Use exact source IDs in
 state fields and exact transition IDs in `observed_transition_id`. Choose only a
@@ -1038,7 +1181,7 @@ Return exactly two arrays:
 
 1. `surface_candidates`: at most four suspected L0/L1 defects from T01-T07,
    including inventory, containment, entry, missing labels, and genuinely
-   suspicious same-source guard conflicts.
+   suspicious same-`(source,event)` guard conflicts.
 2. `behavior_candidates`: at most four suspected T08-T12 L2 defects. Each must
    state the concrete contradictory source/inspect fact in `observed_fact`.
 
@@ -1919,7 +2062,7 @@ PROOF_TEMPLATE_CATALOG = [
         "template": "T06_guard_determinism",
         "relations": ["guards_distinguishable"],
         "requires": ["source"],
-        "purpose": "same-source branches are mutually selectable or prioritized",
+        "purpose": "same-(source,event) branches are mutually exclusive or prioritized",
     },
     {
         "template": "T07_topology_entry",
@@ -2104,6 +2247,241 @@ TEMPLATE_BY_RELATION: dict[str, ProofTemplate] = {
     "event_consumed_in_scope": "T03_transition_contract",
     "eventually_responds": "T12_event_response",
 }
+
+ALLOWED_RELATIONS_BY_OBLIGATION: dict[str, frozenset[GoalRelation]] = {
+    "element:exists:state": frozenset({"state_exists"}),
+    "element:exists:final_pseudostate": frozenset({"final_pseudostate_exists"}),
+    "element:exists:variable": frozenset({"variable_exists"}),
+    "element:exists:event": frozenset({"event_exists"}),
+    "element:exists:action": frozenset({"action_exists"}),
+    "element:exists:effect": frozenset({"effect_exists"}),
+    "element:exists:transition": frozenset({"transition_exists"}),
+    "element:absent:transition": frozenset({"transition_absent"}),
+    "element:cardinality:state": frozenset({"child_count"}),
+    "attachment:containment": frozenset({"contained_in"}),
+    "attachment:initial_target": frozenset({"initial_target"}),
+    "attachment:transition_endpoints": frozenset(
+        {"transition_contract", "transition_exists"}
+    ),
+    "attachment:transition_target_consistency": frozenset(
+        {"transition_target_consistency"}
+    ),
+    "attachment:trigger": frozenset(
+        {"transition_contract", "event_consumed", "event_consumed_in_scope"}
+    ),
+    "attachment:guard": frozenset(
+        {"guard_present", "transition_contract", "completion_transition_fireable"}
+    ),
+    "attachment:effect": frozenset({"effect_exists", "transition_contract"}),
+    "attachment:action_phase": frozenset({"action_exists"}),
+    "guard_set:disjoint": frozenset({"guards_distinguishable"}),
+    "graph:reachable": frozenset({"target_reachable"}),
+    "graph:escapable": frozenset({"state_escapable"}),
+    "graph:stable_termination": frozenset({"termination_target"}),
+    "graph:path_absent": frozenset({"transition_absent", "event_avoids_scope"}),
+    "graph:event_target_reachable": frozenset({"event_reaches_target"}),
+    "graph:event_consumer_reachable": frozenset(
+        {"event_consumed", "event_consumed_in_scope"}
+    ),
+    "temporal:response": frozenset({"event_reaches_target", "eventually_responds"}),
+    "temporal:absence": frozenset({"event_avoids_scope"}),
+    "temporal:termination": frozenset(
+        {"termination_target", "eventually_terminates"}
+    ),
+}
+
+
+def _obligation_signature(obligation: DomainObligation) -> str:
+    if isinstance(obligation, ElementObligation):
+        return f"element:{obligation.operator}:{obligation.element_kind}"
+    if isinstance(obligation, AttachmentObligation):
+        return f"attachment:{obligation.attachment}"
+    if isinstance(obligation, GuardSetObligation):
+        return f"guard_set:{obligation.property}"
+    if isinstance(obligation, GraphObligation):
+        return f"graph:{obligation.property}"
+    return f"temporal:{obligation.pattern}"
+
+
+def obligation_surface_role(obligation: DomainObligation) -> ObligationSurfaceRole:
+    """Return the provenance-backed role of an obligation operator."""
+
+    signature = _obligation_signature(obligation)
+    if signature in {
+        "element:absent:state",
+        "element:absent:final_pseudostate",
+        "element:absent:event",
+        "element:absent:variable",
+        "element:absent:action",
+        "element:absent:effect",
+        "element:absent:transition",
+        "graph:escapable",
+        "graph:stable_termination",
+        "graph:event_target_reachable",
+        "temporal:termination",
+        "temporal:persistence",
+    }:
+        return "derived_macro"
+    if signature.startswith("element:kind_is:") or signature in {
+        "guard_set:equivalent",
+        "guard_set:implies",
+        "graph:event_consumer_reachable",
+    }:
+        return "backend_comparison"
+    if signature in {
+        "element:cardinality:state",
+        "attachment:containment",
+    }:
+        return "under_supported_extension"
+    return "core"
+
+
+def validate_domain_obligation_lowering(candidate: EvidenceCandidate) -> list[str]:
+    """Check operator-level compiler compatibility, never free-text semantics."""
+
+    obligation = candidate.domain_obligation
+    if obligation is None:
+        return []
+    signature = _obligation_signature(obligation)
+    allowed = ALLOWED_RELATIONS_BY_OBLIGATION.get(signature, frozenset())
+    if candidate.goal.relation not in allowed:
+        return [
+            (
+                f"domain obligation {signature!r} cannot lower to compiler relation "
+                f"{candidate.goal.relation!r}; allowed relations are {sorted(allowed)}"
+            )
+        ]
+
+    goal = candidate.goal
+    bindings: list[tuple[str, Any, Any]] = []
+    if isinstance(obligation, ElementObligation):
+        goal_subject = (
+            goal.observed_transition_id
+            if obligation.element_kind == "transition" and obligation.operator == "absent"
+            else goal.subject
+        )
+        bindings.extend(
+            [
+                ("subject_ref", obligation.subject_ref, goal_subject),
+                ("expected_count", obligation.expected_count, goal.count),
+            ]
+        )
+    elif isinstance(obligation, AttachmentObligation):
+        if obligation.attachment == "containment":
+            bindings.extend(
+                [
+                    ("subject_ref", obligation.subject_ref, goal.subject),
+                    ("owner_ref", obligation.owner_ref, goal.target),
+                ]
+            )
+        elif obligation.attachment == "initial_target":
+            bindings.extend(
+                [
+                    ("subject_ref", obligation.subject_ref, goal.target),
+                    ("owner_ref", obligation.owner_ref, goal.subject),
+                ]
+            )
+        elif obligation.attachment == "transition_target_consistency":
+            bindings.extend(
+                [
+                    (
+                        "subject_ref",
+                        obligation.subject_ref,
+                        goal.observed_transition_id,
+                    ),
+                    (
+                        "reference_ref",
+                        obligation.reference_ref,
+                        goal.reference_transition_id,
+                    ),
+                    ("owner_ref", obligation.owner_ref, goal.target),
+                ]
+            )
+        elif obligation.attachment in {"trigger", "guard", "effect"}:
+            bindings.append(
+                ("subject_ref", obligation.subject_ref, goal.observed_transition_id)
+            )
+        elif obligation.attachment == "action_phase":
+            bindings.append(("subject_ref", obligation.subject_ref, goal.subject))
+    elif isinstance(obligation, GuardSetObligation):
+        bindings.append(("scope_ref", obligation.scope_ref, goal.source))
+    elif isinstance(obligation, GraphObligation):
+        bindings.extend(
+            [
+                ("source_ref", obligation.source_ref, goal.source),
+                ("target_ref", obligation.target_ref, goal.target),
+                (
+                    "forbidden_scope_ref",
+                    obligation.forbidden_scope_ref,
+                    goal.forbidden_scope,
+                ),
+                ("bound", obligation.bound, goal.within_cycles),
+            ]
+        )
+    elif isinstance(obligation, TemporalObligation):
+        bindings.extend(
+            [
+                ("trigger_ref", obligation.trigger_ref, goal.trigger),
+                (
+                    "response_ref",
+                    obligation.response_ref,
+                    goal.response or goal.target,
+                ),
+                ("state_ref", obligation.state_ref, goal.subject or goal.target),
+                ("scope_ref", obligation.scope_ref, goal.source or goal.forbidden_scope),
+                ("bound", obligation.bound, goal.within_cycles),
+            ]
+        )
+    return [
+        f"typed binding {name}={typed!r} does not equal lowering binding {lowered!r}"
+        for name, typed, lowered in bindings
+        if typed is not None and typed != lowered
+    ]
+
+
+def derive_support_disposition(
+    candidate: EvidenceCandidate,
+    lowering_errors: list[str],
+) -> SupportDisposition:
+    """Derive the W ceiling from formal support and localization only."""
+
+    obligation = candidate.domain_obligation
+    role: ObligationSurfaceRole | Literal["legacy_untyped"] = (
+        obligation_surface_role(obligation)
+        if obligation is not None
+        else "legacy_untyped"
+    )
+    if not lowering_errors:
+        return SupportDisposition(
+            status="executable",
+            w_ceiling="W2",
+            surface_role=role,
+            reason_code=(
+                "sound_lowering_available"
+                if obligation is not None
+                else "legacy_replay"
+            ),
+            reason=(
+                "A preregistered operator-level lowering is available."
+                if obligation is not None
+                else "Legacy replay remains executable under its frozen compiler relation."
+            ),
+        )
+    if candidate.locations:
+        return SupportDisposition(
+            status="located_only",
+            w_ceiling="W1",
+            surface_role=role,
+            reason_code="no_sound_lowering",
+            reason="The obligation is localized but has no sound registered lowering.",
+        )
+    return SupportDisposition(
+        status="prose_only",
+        w_ceiling="W0",
+        surface_role=role,
+        reason_code="no_sound_lowering",
+        reason="The obligation has neither a sound registered lowering nor localization.",
+    )
 
 
 def _goal_value(goal: EvidenceGoal, name: str) -> Any:
@@ -5988,7 +6366,7 @@ def _source_static_certificate(
         "prototype_semantics": (
             "quantifier_free_boolean_linear_real_fragment"
             if goal.relation == "guards_distinguishable"
-            else "exact_source_label_presence"
+            else "exact_guard_ast_or_declared_guard_only_label_profile"
         ),
     }
 
@@ -6033,6 +6411,12 @@ def _single_group_outcome(
         "compiled_assertion": compiled_assertion,
         "execution_certificate": execution_certificate,
         "compiler_route": route,
+        "support_disposition": route.get("support_disposition"),
+        "domain_obligation": (
+            candidate.domain_obligation.model_dump(mode="json")
+            if candidate.domain_obligation is not None
+            else None
+        ),
         "evidence_goal": candidate.goal.model_dump(mode="json"),
         "checks": [],
         "error": error,
@@ -6189,28 +6573,60 @@ def _execute_source_guard_goal(
         if isinstance(row, dict) and isinstance(row.get("path"), str)
     ]
     source = _resolve_candidate_path(pair, str(goal.source), state_paths)
-    display_names = _fcstm_event_display_names(pair)
-    artifact_rows = [
+    all_artifact_rows = [
         row
         for row in inspect.get("transitions", [])
         if isinstance(row, dict)
         and row.get("from_path") == source
-        and row.get("to_path") != "[*]"
     ]
+    source_rows = _source_transition_rows(pair, source=str(goal.source))
+    obligation = candidate.domain_obligation
+    transition_refs = (
+        set(obligation.transition_refs)
+        if isinstance(obligation, GuardSetObligation)
+        else set()
+    )
+    profiled_source_rows: list[tuple[dict[str, Any], GuardOnlyLabel, str]] = []
+    for row in source_rows:
+        if transition_refs and row.get("id") not in transition_refs:
+            continue
+        attributes = row.get("attributes")
+        attributes = attributes if isinstance(attributes, dict) else {}
+        raw_label = attributes.get("raw_label")
+        profile = parse_guard_only_label(raw_label)
+        if profile is None or not isinstance(raw_label, str):
+            continue
+        projected_event, _ = _projected_event(pair, raw_label)
+        profiled_source_rows.append((row, profile, projected_event))
+    projected_events = {item[2] for item in profiled_source_rows}
+    artifact_rows = [
+        row for row in all_artifact_rows if row.get("event") in projected_events
+    ]
+    display_names = _fcstm_event_display_names(pair)
     artifact_conditions = [
         str(row.get("guard"))
         if row.get("guard")
         else display_names.get(str(row.get("event")), "true")
         for row in artifact_rows
     ]
-    source_rows = _source_transition_rows(pair, source=str(goal.source))
-    source_conditions = [
-        str(row.get("attributes", {}).get("raw_label"))
-        if row.get("attributes", {}).get("raw_label")
-        else "true"
-        for row in source_rows
-        if isinstance(row.get("attributes"), dict)
-    ]
+    source_conditions = [profile.guard for _, profile, _ in profiled_source_rows]
+    if len(source_conditions) < 2 or len(artifact_conditions) < 2:
+        return _single_group_outcome(
+            pair,
+            candidate,
+            index=index,
+            route=route,
+            witness_level="W1",
+            counterexample_found=False,
+            source_attribution="source_localized",
+            compiled_assertion=None,
+            execution_certificate=None,
+            source_certificate=None,
+            error=(
+                "fewer than two exact guard-only transitions share the declared "
+                "implicit completion trigger"
+            ),
+        )
     try:
         proof = _guard_overlap_proof(artifact_conditions)
         source_proof = _guard_overlap_proof(source_conditions)
@@ -6257,6 +6673,13 @@ def _execute_source_guard_goal(
             "source": source,
             "transition_rows": artifact_rows,
             "projected_conditions": artifact_conditions,
+            "source_transition_ids": [
+                row.get("id") for row, _, _ in profiled_source_rows
+            ],
+            "decision_group": {
+                "source": goal.source,
+                "trigger": "implicit_completion",
+            },
         },
         "terminal": proof["all_terminal"],
         "precondition_failed": False,
@@ -7006,14 +7429,19 @@ def _execute_guard_presence_goal(
             source_certificate=None,
             error="source/target transition could not be resolved exactly",
         )
-    actual = any(row.get("guard") is not None or row.get("event") for row in rows)
+    actual = any(row.get("guard") is not None for row in rows)
     counterexample = actual != goal.expected
     source_rows = _source_transition_rows(
         pair, source=str(goal.source), target=str(goal.target)
     )
     source_actual = any(
-        isinstance(row.get("attributes"), dict)
-        and bool(row.get("attributes", {}).get("raw_label_present"))
+        row.get("guard") is not None
+        or parse_guard_only_label(
+            (row.get("attributes") or {}).get("raw_label")
+            if isinstance(row.get("attributes"), dict)
+            else None
+        )
+        is not None
         for row in source_rows
     )
     source_certificate = _source_static_certificate(
@@ -7021,7 +7449,7 @@ def _execute_guard_presence_goal(
     )
     program_code = (
         "rows = inspect_transition(source, target)\n"
-        f"assert any(row.guard is not None or row.event for row in rows) is {goal.expected}, "
+        f"assert any(row.guard is not None for row in rows) is {goal.expected}, "
         f"{EXECUTABLE_ASSERTION_MESSAGE!r}"
     )
     program = {
@@ -7463,18 +7891,60 @@ def _execute_evidence_candidate(
     *,
     index: int,
 ) -> dict[str, Any]:
+    obligation = planned_candidate.domain_obligation
+    lowering_errors = validate_domain_obligation_lowering(planned_candidate)
+    support = derive_support_disposition(planned_candidate, lowering_errors)
+    if lowering_errors:
+        return _single_group_outcome(
+            pair,
+            planned_candidate,
+            index=index,
+            route={
+                "schema": "paper1.evidence_route.v2",
+                "template": None,
+                "backend": None,
+                "operation": "invalid_typed_lowering",
+                "checks": [],
+                "errors": lowering_errors,
+                "domain_obligation": (
+                    obligation.model_dump(mode="json") if obligation is not None else None
+                ),
+                "typed_obligation_status": "invalid",
+                "support_disposition": support.model_dump(mode="json"),
+                "method_bindings": [],
+            },
+            witness_level=support.w_ceiling,
+            counterexample_found=False,
+            source_attribution=(
+                "source_localized" if planned_candidate.locations else "unattributed"
+            ),
+            compiled_assertion=None,
+            execution_certificate=None,
+            source_certificate=None,
+            error="; ".join(lowering_errors),
+        )
     candidate, method_bindings = _apply_formal_transition_binding(
         pair, planned_candidate
     )
     route = compile_evidence_goal(candidate.goal)
+    route["schema"] = "paper1.evidence_route.v2"
+    route["domain_obligation"] = (
+        obligation.model_dump(mode="json") if obligation is not None else None
+    )
+    route["typed_obligation_status"] = (
+        "validated" if obligation is not None else "legacy_untyped"
+    )
+    route["support_disposition"] = support.model_dump(mode="json")
     route["method_bindings"] = method_bindings
     if route["errors"]:
+        support = derive_support_disposition(candidate, list(route["errors"]))
+        route["support_disposition"] = support.model_dump(mode="json")
         return _single_group_outcome(
             pair,
             candidate,
             index=index,
             route=route,
-            witness_level="W1" if candidate.locations else "W0",
+            witness_level=support.w_ceiling,
             counterexample_found=False,
             source_attribution=(
                 "source_localized" if candidate.locations else "unattributed"

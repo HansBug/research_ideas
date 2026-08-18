@@ -2467,7 +2467,7 @@ def test_0059_guard_overlap_gets_source_executable_smt_w2() -> None:
     assert any(item["witness"] for item in proof["pairs"])
 
 
-def test_0029_single_character_guard_operators_get_smt_w2() -> None:
+def test_unprofiled_boolean_like_labels_do_not_get_guard_smt_w2() -> None:
     pair, inspect = _pair_and_inspect("0029")
     source = f"{pair['pair_name']}.HighwayMode.enter_hwy"
     plan = prototype.EvidencePlan(
@@ -2491,16 +2491,10 @@ def test_0029_single_character_guard_operators_get_smt_w2() -> None:
     outcome = prototype.execute_evidence_plan(pair, inspect, plan)[0]
     group = outcome["probe_groups"][0]
 
-    assert group["witness_level"] == "W2"
-    assert group["counterexample_found"] is True
-    assert group["source_attribution"]["status"] == "causal_dual_certificate"
-    proof = group["execution_certificate"]["observations"]
-    assert proof["conditions"] == [
-        "dist_to_front<25 & extra_lane=true",
-        "dist_to_front<25 & extra_lane=true",
-    ]
-    assert proof["overlap_found"] is True
-    assert proof["all_terminal"] is True
+    assert group["witness_level"] == "W1"
+    assert group["counterexample_found"] is False
+    assert group["execution_certificate"] is None
+    assert "guard-only transitions" in group["error"]
 
 
 def test_0059_unreachable_goal_gets_artifact_cut_and_source_certificate() -> None:
@@ -2541,23 +2535,23 @@ def test_0059_unreachable_goal_gets_artifact_cut_and_source_certificate() -> Non
     }
 
 
-def test_missing_guard_goal_gets_dual_static_w2() -> None:
+def test_guard_profile_projection_loss_is_artifact_w2_not_source_w2() -> None:
     pair, inspect = _pair_and_inspect("0059")
     root = pair["pair_name"]
     plan = prototype.EvidencePlan(
         candidates=[
             prototype.EvidenceCandidate(
-                obligation="The enter_hwy to cruise edge must carry its stated condition.",
-                claim="The enter_hwy to cruise edge is unguarded.",
+                obligation="The enter_urban to lane_change_urban edge carries a guard.",
+                claim="The converted edge lost the source guard role.",
                 basis_kind="nl_literal",
-                nl_quote="can transition to cruise or lane_change based on the distance to the front vehicle",
+                nl_quote="it can transition to lane_change_urban if the distance to the front vehicle is less than 15 meters",
                 priority=4,
-                locations=["NL3", "PUML:L12"],
+                locations=["NL7", "PUML:L21"],
                 proposed_l="L1",
                 goal=prototype.EvidenceGoal(
                     relation="guard_present",
-                    source=f"{root}.AutonomousMode.HighwayMode.enter_hwy",
-                    target=f"{root}.AutonomousMode.HighwayMode.cruise",
+                    source=f"{root}.AutonomousMode.UrbanMode.enter_urban",
+                    target=f"{root}.AutonomousMode.UrbanMode.lane_change_urban",
                 ),
             )
         ]
@@ -2567,8 +2561,43 @@ def test_missing_guard_goal_gets_dual_static_w2() -> None:
 
     assert group["witness_level"] == "W2"
     assert group["counterexample_found"] is True
-    assert group["source_attribution"]["status"] == "causal_dual_certificate"
+    assert group["source_attribution"]["status"] == "unattributed"
     assert group["source_causality_certificate"]["kind"] == "source_guard_presence"
+    assert group["source_causality_certificate"]["verdict"] == "satisfied"
+
+
+def test_event_only_label_does_not_satisfy_guard_attachment() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    root = pair["pair_name"]
+    candidate = prototype.EvidenceCandidate(
+        obligation="The cruise alternative must carry its stated condition as a guard.",
+        claim="The transition has an event-like label but no formal guard.",
+        basis_kind="nl_literal",
+        nl_quote="can transition to cruise or lane_change",
+        priority=4,
+        locations=["NL3", "PUML:L12"],
+        proposed_l="L1",
+        domain_obligation={
+            "family": "attachment",
+            "attachment": "guard",
+            "subject_ref": "tr_0006",
+        },
+        goal=prototype.EvidenceGoal(
+            relation="guard_present",
+            observed_transition_id="tr_0006",
+            source=f"{root}.HighwayMode.enter_hwy",
+            target=f"{root}.HighwayMode.cruise",
+        ),
+    )
+
+    group = prototype.execute_evidence_plan(
+        pair, inspect, prototype.EvidencePlan(candidates=[candidate])
+    )[0]["probe_groups"][0]
+
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["source_attribution"]["status"] == "causal_dual_certificate"
+    assert group["source_causality_certificate"]["verdict"] == "counterexample"
 
 
 def test_0059_contract_group_finds_missing_guard_and_direct_edge() -> None:
@@ -4117,3 +4146,132 @@ def test_concurrency_gate_reads_canonical_ast_not_raw_plantuml_text() -> None:
     pair = {**pair, "plantuml": "@startuml\n--\n@enduml"}
 
     assert prototype._source_has_concurrent_separator(pair) is False
+
+
+def test_typed_domain_obligation_lowers_to_compatible_compiler_relation() -> None:
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="The selected target must be reachable.",
+        claim="The selected target is unreachable.",
+        observed_fact="The source graph contains no path to the selected target.",
+        basis_kind="domain_norm",
+        priority=5,
+        locations=["Root.Target"],
+        proposed_l="L2",
+        domain_obligation={
+            "family": "graph",
+            "property": "reachable",
+            "target_ref": "Root.Target",
+        },
+        goal=prototype.EvidenceGoal(
+            relation="target_reachable",
+            target="Root.Target",
+        ),
+    )
+
+    assert isinstance(candidate.domain_obligation, prototype.GraphObligation)
+    assert prototype.validate_domain_obligation_lowering(candidate) == []
+
+
+def test_typed_domain_obligation_mismatch_fails_closed_without_text_rules() -> None:
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="The selected target must be reachable.",
+        claim="The selected target is unreachable.",
+        observed_fact="The source graph contains no path to the selected target.",
+        basis_kind="domain_norm",
+        priority=5,
+        locations=["Root.Target"],
+        proposed_l="L2",
+        domain_obligation={
+            "family": "temporal",
+            "pattern": "response",
+            "trigger_ref": "evt_a",
+            "response_ref": "evt_b",
+        },
+        goal=prototype.EvidenceGoal(
+            relation="target_reachable",
+            target="Root.Target",
+        ),
+    )
+
+    errors = prototype.validate_domain_obligation_lowering(candidate)
+
+    assert len(errors) == 1
+    assert "cannot lower" in errors[0]
+
+
+def test_typed_reference_mismatch_fails_closed_before_compilation() -> None:
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="The selected target must be reachable.",
+        claim="The selected target is unreachable.",
+        observed_fact="The source graph contains no path to the selected target.",
+        basis_kind="domain_norm",
+        priority=5,
+        locations=["Root.Target"],
+        proposed_l="L2",
+        domain_obligation={
+            "family": "graph",
+            "property": "reachable",
+            "target_ref": "Root.Other",
+        },
+        goal=prototype.EvidenceGoal(
+            relation="target_reachable",
+            target="Root.Target",
+        ),
+    )
+
+    assert prototype.validate_domain_obligation_lowering(candidate) == [
+        "typed binding target_ref='Root.Other' does not equal lowering binding 'Root.Target'"
+    ]
+
+
+def test_unlowered_typed_obligation_gets_located_only_support_disposition() -> None:
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="Every reachable configuration must be free of deadlock.",
+        claim="The exact state is a reachable non-final deadlock.",
+        observed_fact="The source model localizes the candidate deadlock state.",
+        basis_kind="domain_norm",
+        priority=5,
+        locations=["Root.Concurrent"],
+        proposed_l="L2",
+        domain_obligation={
+            "family": "graph",
+            "property": "deadlock_free",
+            "target_ref": "Root.Concurrent",
+        },
+        goal=prototype.EvidenceGoal(
+            relation="target_reachable",
+            target="Root.Concurrent",
+        ),
+    )
+
+    outcome = prototype._execute_evidence_candidate(
+        {"nl": ""}, {}, candidate, index=1
+    )
+    group = outcome["probe_groups"][0]
+
+    assert group["witness_level"] == "W1"
+    assert group["execution_certificate"] is None
+    assert group["compiler_route"]["operation"] == "invalid_typed_lowering"
+    assert group["domain_obligation"]["family"] == "graph"
+    assert group["support_disposition"] == {
+        "status": "located_only",
+        "w_ceiling": "W1",
+        "surface_role": "core",
+        "reason_code": "no_sound_lowering",
+        "reason": "The obligation is localized but has no sound registered lowering.",
+    }
+
+
+def test_surface_roles_separate_core_macro_backend_and_extension() -> None:
+    assert prototype.obligation_surface_role(
+        prototype.GraphObligation(property="reachable")
+    ) == "core"
+    assert prototype.obligation_surface_role(
+        prototype.GraphObligation(property="stable_termination")
+    ) == "derived_macro"
+    assert prototype.obligation_surface_role(
+        prototype.GuardSetObligation(property="equivalent")
+    ) == "backend_comparison"
+    assert prototype.obligation_surface_role(
+        prototype.AttachmentObligation(attachment="containment")
+    ) == "under_supported_extension"

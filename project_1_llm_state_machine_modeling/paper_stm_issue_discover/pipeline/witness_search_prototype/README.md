@@ -2,15 +2,17 @@
 
 本目录是 paper1 核心方法的探索性实现。它与已归档的 v46 loop 分离，运行时不加载缺陷台账或 X1v2 结果。
 
-当前固定设计包含三个 pair 级 LLM 角色。LLM-A 调用一次；LLM-B 在同一冻结输入上运行 `contract_structure_contrast` 与 `behavior_consequence` 两个互补分支；LLM-C 为避免长列表 structured output 截断，按固定 8 条 finding 一批调用，因此“角色数”与“调用数”必须分开报告。节点内只对 structured-output/schema 错误做一次携带具体错误的定向修复：
+领域来源、五类 typed obligation、完整节点合同、W2 Evidence Program、D/W/L 与完整54 pair统一评测协议见 [DOMAIN_DERIVED_METHOD.md](./DOMAIN_DERIVED_METHOD.md)；逐 operator 的 PR #183 复用、新增补检与证据缺口见 [TYPED_OBLIGATION_PROVENANCE.md](./TYPED_OBLIGATION_PROVENANCE.md)。
+
+当前固定设计包含三个 pair 级 LLM 角色。LLM-A 调用一次；LLM-B 在同一冻结输入上运行 `contract_structure_contrast` 与 `behavior_consequence` 两个互补分支；LLM-C 读取整格压缩 dossier，一次为全部 finding 输出独立 D 决策。节点内只对 structured-output/schema 错误做一次携带具体错误的定向修复：
 
 1. `paper1_contract_extraction` 只读取 numbered NL，抽取 initial、containment、按 source 分组的 direct-transition、required-state、required-event-scope contract 和跨句复用的 concept ID。
 2. 两个 `paper1_discovery_grounding` 分支读取完全相同的 raw contract、NL、作者源 PlantUML、带语义映射注释的 FCSTM、压缩后的 `pyfcstm inspect` 事实和精确 source inventory，分别偏重契约/结构/跨边对照与可达性/响应/终止后果；开放候选取 exact structured union，确定性 formal scout 与执行后端只运行一次。
-3. `paper1_d_adjudication` 读取执行后的 finding facet，按固定小批次调用，但为每条 facet 独立输出 `D2/D1/D0`。
+3. `paper1_d_adjudication` 读取整格全部 finding facet，一次为每条 facet 独立输出 `D2/D1/D0`；完整性合同失败时只允许一次原地修复。
 
 LLM 不选择 Python、pyfcstm 谓词、证明模板、证明后端、W 或最终 L。每个 B 分支先为所有已实现的语义概念输出一次全局 exact-ID `concept_bindings`，随后只对 raw contract 输出稀疏语义补丁：普通已实现 contract 默认继承 LLM-A，只有 `rejected/unresolved`、缺失 required state、final-pseudostate 或其他不能由全局 concept binding 表达的决策才按索引显式返回。确定性 assembler 只按 concept ID、索引和 exact formal ID 合并，并保护原始 `nl_line`、`condition`、`priority` 和 concept ID 不被改写。确定性编译器将每个语义关系映射到 13 个证明模板和 4 个物理后端之一：源/制品静态检查、守卫 SMT、拓扑证明或 FCSTM trace/有界形式执行。断言必须真实运行后才能得到 W2；新增 `transition_target_consistency` 允许 LLM 先语义判定两个 NL 行为具有相同目标角色，再选择被测边、参照边和规范目标，确定性层只核验 exact ID、正式端点与 FCSTM 映射并执行双边断言，绝不从 label、条件字符串或名字推导等价。
 
-`EvidenceGoal` 的当前实现是宽松 typed record，可形式化为 `G=(relation, bindings, expected)`。`relation` 决定固定 proof route，`bindings` 给出规范角色和 exact formal ID，`expected` 给出要被检验的期望真值；relation-specific 必需字段由 compiler 而非 schema 检查，使单个非法 Goal 降为 W1/W0 而不杀整格。Goal 不是 finding，也不是自由 Python；候选只有在编译后真实运行并获得 terminal counterexample、artifact/assertion hash、source certificate 和 semantic receipt 时才可能成为 W2。完整定义、生成协议、编译示例和异常矩阵见 [METHOD_DESIGN.md](./METHOD_DESIGN.md) §4。
+论文一等表达面是 `ElementObligation`、`AttachmentObligation`、`GuardSetObligation`、`GraphObligation` 与 `TemporalObligation` 五类 Pydantic discriminated union。旧 `EvidenceGoal=(relation, bindings, expected)` 仅保留为 compiler lowering record；exact operator 与 relation 的兼容性由确定性表校验，后端仍完全由 compiler 选择。执行支持不作为第六类义务，而由 compiler 产生 `SupportDisposition`：`executable/W2 ceiling`、`located_only/W1 ceiling` 或 `prose_only/W0 ceiling`。relation-specific 必需字段由 compiler 而非 schema 检查，使单个非法 Goal 降级而不杀整格；候选只有在编译后真实运行并获得 terminal counterexample、artifact/assertion hash、source certificate 和 semantic receipt 时才可能成为 W2。
 
 LLM-B 不再逐条复述全部 `grounded` contract。被省略的普通 contract 只有在其 concept ID 已获得全局 exact-ID binding 时才可由 assembler 接受；`rejected` 表示 LLM-A 把 NL 关系抽错，`unresolved` 表示仍有多种称职读法，二者都是执行 veto。它们不要求伪造 formal ID，assembler 只按结构化枚举停止编译并保留诊断，绝不从 reason 文本中搜索“错误”“歧义”等字样。这样既保留 raw contract 写保护与语义复审能力，又避免 LLM-B 重复输出几十条 contract 而截断。
 
@@ -53,18 +55,18 @@ W2 还必须带有 terminal counterexample certificate，其中包含确切 FCST
 从仓库根目录运行：
 
 ```bash
-# 使用 utils.llm、三个 LLM 角色和 immutable stage record 运行 LangGraph；D 会固定分批。
+# 使用 utils.llm、三个 LLM 角色和 immutable stage record 运行 LangGraph；D 对整格一次裁决。
 python -m \
   project_1_llm_state_machine_modeling.paper_stm_issue_discover.pipeline.witness_search_prototype.graph \
-  --case 0029 --profile claude-opus-4-7 \
-  --output-dir runs/paper1/witness-search/0029-opus47
+  --case 0000 --profile claude-opus-4-7 \
+  --output-dir runs/paper1/witness-search/0000-opus47
 
 # 复用已成功的 contract/discovery-grounding plan，但在当前 FCSTM 上重新执行全部断言，并重新调用 D。
 python -m \
   project_1_llm_state_machine_modeling.paper_stm_issue_discover.pipeline.witness_search_prototype.graph \
-  --case 0029 --profile claude-opus-4-7 \
-  --replay-plans-from runs/paper1/witness-search/0029-opus47 \
-  --output-dir runs/paper1/witness-search/0029-replay
+  --case 0000 --profile claude-opus-4-7 \
+  --replay-plans-from runs/paper1/witness-search/0000-opus47 \
+  --output-dir runs/paper1/witness-search/0000-replay
 
 # 确定性回归测试。
 PYTHONPATH=. python -m pytest \
@@ -74,25 +76,11 @@ PYTHONPATH=. python -m pytest \
 
 真实调用通过 `utils.llm` 使用仓库 `.llmconfig.yml` 中的 profile；环境变量不是运行时凭据入口。
 
-## 当前开发性证据
+## 工程调试记录
 
-`0029-v23-sparse-grounding-cost-opus47` 首次验证稀疏 LLM-B：A/B 均一次成功，B 只输出 17 个 concept binding、少量 semantic patch、4 条 surface 和 5 条 behavior candidate；确定性执行形成 34 个 finding，其中 10 W2、24 W1。它也暴露单次输出 34 条 D decision 会截断，因此该次不作为完整端到端结果。
+`runs/paper1/witness-search/` 保留原型迭代的完整输入、调用、usage、候选、证书、异常与 replay 记录。这些运行只用于检查既定方法合同是否被实现，例如 structured output 是否可恢复、单候选异常是否降级、W2 是否真实执行、source attribution 是否闭合、D 是否逐 finding 输出，以及四类 token 成本是否完整；它们不参与方法语义归纳，也不提供论文效果结论。
 
-`0029-v24-batched-d-replay-opus47` 将 D 固定为 8 条一批，7 次调用全部完成且 0 次 schema repair，34 个 finding 全部获得 D/W/L；其中 7 条 D2/W2 confirmed。按配置中的四类 token 单价折算，方法成本 `$0.79521`，同模型 X1v2 为 `$0.072075`，即 `11.03×`。`0029-v25-canonical-claim-replay-opus47` 又把 W2 发布 claim 改成由 typed source certificate 机械生成，自由文本原样保存在 `model_claims`；成本 `$0.78719`，即 `10.92×`，并修复了证书指向 `tr_0026` 而报告误写 `tr_0025` 的不一致。
-
-`0029-v26-full-fresh-opus47` 是单 B 阶段的第一轮强 fresh 证据。它不 replay A/B plan，共 7 次调用：A、B、5 个 D batch；所有调用一次成功，0 次 schema repair，形成 33 个 finding、11 个 accepted、5 个 confirmed。全部 33 条均有 D/W/L，分布为 `W2/W1=9/24`、`D2/D1/D0=5/6/22`、`L0/L1/L2=27/3/3`；9 条 W2 都有 `terminal=true`、`verdict=counterexample`、artifact hash、assertion hash 和 source/semantic provenance，run-level audit 为 eligible。方法 observed usage 为 69,337 input、17,631 output、15,222 cache read、10,933 cache write，四类价格合计 `$0.73263`；同模型 X1v2 为 `$0.072075`，即 `10.16×`，低于 25×美元硬门。
-
-v26 的当前 post-hoc 初判是：accepted 层覆盖 0029 的 7/8 unique ledger item，confirmed 层覆盖 4/8；漏项是 `AutonomousMode` 层次缺失，另有 UrbanMode guard-overlap 的 D1/W2 报告尚需环外裁决。严格复核还发现一条“UrbanMode 到 HighwayMode.FinishState 的 required transition 缺失”W1 报告，其 typed source certificate 已明确记录 relation/condition 实际存在、`sound_for_claim=false`，旧发布门却仍接受。当前代码已把显式 `sound_for_claim=false` 设为 accepted/confirmed 的确定性 veto；对 v26 原记录重放选择器后 accepted 从 11 降为 10，只移除这条明确 FP，strict 7/8 与 confirmed 5 条不变。
-
-`0029-v27-substate-veto-release-gate-fresh-opus47` 加入一个完全合成的语义纪律例子：“P transitions into the q substate”可以同时产生 transition 与 containment，不能因接受前者而否决后者。fresh 运行成功恢复 `InitialState` 不属于 `AutonomousMode` 的 L1 W2 双证书，并把美元成本降到 `$0.67361`，即 `9.35×`；但同一单次 discovery 又漏掉 v26 找到的多余完成边、Highway guard conflict、wrong-scope 和 stable termination，accepted strict hit 回落到约 4/8。这证明当前主要瓶颈是单次跨视图 discovery 方差，而不是 proof compiler 表达能力。
-
-当前实现已收敛为共享 A、互补双 B、共享 formal scout/执行和分批 D。`0029-v34-v33-plans-candidate-isolation-replay-opus47` 重放 fresh v33 的 A/B 计划验证逐候选隔离修复：42 条 finding、16 条 accepted facet、10 条 confirmed facet，开发样例 strict accepted 为 8/8 且 8 条均 W2；成本 `$1.31694`，即同模型 X1v2 的 `18.27×`。它是 replay 开发证据，只证明执行器不再因一个候选异常丢弃同分支其他结果。
-
-`0029-v35-complementary-dual-b-candidate-isolation-fresh-opus47` 是修复后的第一轮完整 fresh：46 条 finding、14 条 accepted、5 条 confirmed，成本 `$1.24496`，即 `17.27×`。它暴露两类 fresh 方差：cruise 错目标已经 W2，但 D 因缺少正确参照边而判 D0；稳定终止也得到 W2，但 B 把 claim 错写成“无自身出边所以不能终止”，D 因而合理判 D0。该结果促成双迁移参照关系和稳定终止 D 纪律。
-
-最新 `0029-v36-metamorphic-reference-stable-termination-fresh-opus47` 完全 fresh，共 8 次调用且 0 次 D schema repair，形成 39 条 finding、15 条 accepted facet、14 条 accepted report、6 条 confirmed report；全量分布为 `W2/W1=16/23`、`D2/D1/D0=6/12/21`、`L0/L1/L2=27/5/7`，semantic provenance audit 通过。成本只按 input/output/cache read/cache write 四类配置价格计算，为 `$1.27404`，同模型 X1v2 的 `17.68×`，低于 25×硬门。开发样例 post-hoc strict accepted 仍为 8/8 且 8 条均 W2；cruise 错目标恢复为 D2/W2，稳定终止为 D1/W2。新双边 oracle 已在确切 0029 FCSTM fixture 上真实执行并生成 observed/reference 双边证书，但本次两个 fresh B 分支都没有完整给出 `observed_transition_id + reference_transition_id + target`，所以自动触发仍不稳定。以上只能支持架构选择与可行性，不能作为 overall 显著领先、precision 改善或正式 recall 的 headline。
-
-其他 development pair 仍保留两类关键负证据。`0046-v11-binding-receipt-opus47` 的 child-count D1/W2 与台账的 UML region-count 不是同一性质，证明 W2、source attribution 和 D 仍不能保证 semantic binding 正确；`0048-v2-grounded-union-fresh-opus47` 的错误 raw contract 在旧 schema 下仍被执行，证明真实 counterexample 不能挽救错误规范前提，这直接促成当前 sparse semantic veto。
+调试中发现的错误只能触发实现修复或回到领域文献重新取证。任何新的 obligation、relation、D 纪律或 prompt 语义约束都必须先有独立领域来源和合成测试，不能由某个真实 pair 的命中或漏报直接推出。方法效果只在完整 54 pair、145 条台账的统一 benchmark evaluation 中报告。
 
 ## 原型边界
 
