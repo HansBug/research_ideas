@@ -190,10 +190,30 @@ def _source_context(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
 def _revision_ledger_payload(
     events: tuple[RevisionLedgerEvent, ...], current_revision: int | None
 ) -> list[dict[str, Any]]:
-    """Render reconstructable history without duplicating the current artifact."""
+    """Render a bounded prompt history without changing the audit ledger.
 
+    Immutable records retain every event. The model needs the first anchor and
+    the latest unresolved transitions; replaying every historical delta on each
+    correction made prompt cost grow with failed rounds without improving the
+    next edit.
+    """
+
+    max_events = 8
+    omitted = max(0, len(events) - max_events)
+    selected = events if not omitted else (events[0], *events[-(max_events - 1) :])
     payload = []
-    for event in events:
+    if omitted:
+        payload.append(
+            {
+                "history_truncated": True,
+                "omitted_event_count": omitted,
+                "instruction": (
+                    "The immutable run record retains omitted events; rely on the "
+                    "current artifact and latest feedback for revision."
+                ),
+            }
+        )
+    for event in selected:
         item = event.model_dump(mode="json")
         if (
             event.event in {"artifact_created", "artifact_rejected"}
@@ -233,11 +253,10 @@ def render_requirement_split_input(
         # 于是只能重复猜同一个数。**一个「必须比某值大」的字段，唯一可靠的说法是把该值直接给出来。**
         "revision_to_emit": 1 if current_result is None else current_result.revision + 1,
     }
+    if revision_feedback is not None:
+        payload["revision_feedback"] = revision_feedback.model_dump(mode="json")
     if current_result is not None:
         payload["current_result"] = current_result.model_dump(mode="json")
-        payload["revision_feedback"] = (
-            revision_feedback.model_dump(mode="json") if revision_feedback else None
-        )
     return prompt_json(payload)
 
 

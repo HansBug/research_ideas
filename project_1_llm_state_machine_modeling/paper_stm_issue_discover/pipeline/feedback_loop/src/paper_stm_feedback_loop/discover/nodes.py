@@ -25,6 +25,7 @@ from paper_stm_feedback_loop.common.nl_segmentation import resolve_nl_segments
 from paper_stm_feedback_loop.common.refs import reference_matches
 
 from . import prompts, renderer
+from .responder import StructuredOutputValidationError
 from .dependencies import (
     blocked_by,
     cross_requirement_dependencies,
@@ -1077,6 +1078,16 @@ def _fail_state(
 def _validate_revision_pair(
     current: BaseModel | None, feedback: RevisionFeedback | None
 ) -> None:
+    # A provider can return a response whose JSON is complete but fails the
+    # requested Pydantic contract. There is no accepted artifact to attach to
+    # that diagnostic, so the next business call is a create-mode correction.
+    # It is distinct from a transport retry and remains visible in telemetry.
+    if (
+        current is None
+        and feedback is not None
+        and feedback.origin == "requirement_contract"
+    ):
+        return
     if (current is None) != (feedback is None):
         raise ValueError(
             "current_result and revision_feedback must be provided as a pair"
@@ -1572,7 +1583,7 @@ def split_requirements(
         output = responder.invoke_structured(
             role="requirement_splitter",
             schema=RequirementSet,
-            system_prompt=prompts.REQUIREMENT_SPLITTER_PROMPT,
+            system_prompt=prompts.RUNTIME_REQUIREMENT_SPLITTER_PROMPT,
             user_input=payload,
         )
         # 契约错误的文案必须带上生产者需要的**数值**。
@@ -1864,7 +1875,7 @@ def split_requirements(
             node_record=record,
             role="requirement_splitter",
             revision=output.revision,
-            system_prompt=prompts.REQUIREMENT_SPLITTER_PROMPT,
+            system_prompt=prompts.RUNTIME_REQUIREMENT_SPLITTER_PROMPT,
             user_prompt=payload,
             output=output,
         )
@@ -1947,15 +1958,20 @@ def split_requirements(
         # 所以按 pydantic 的**结构化**错误判定，不按消息文本：空响应的特征是校验器在顶层模型上
         # 收到 `None`（`type == "model_type"` 且 `input is None`），这与「字段值不合法」不同。
         empty_response = rejected is None and _is_empty_structured_response(exc)
+        structured_contract_failure = isinstance(exc, StructuredOutputValidationError)
         can_revise = (
-            (rejected is not None or empty_response)
+            (rejected is not None or empty_response or structured_contract_failure)
             and "no-progress gate" not in message
             and repair_count < MAX_REQUIREMENT_CONTRACT_REPAIRS
         )
         if can_revise:
             contract_feedback = RevisionFeedback(
                 target="requirements",
-                origin="requirement_review",
+                origin=(
+                    "requirement_contract"
+                    if structured_contract_failure
+                    else "requirement_review"
+                ),
                 reason=(
                     "No parsable structured response was received -- the previous reply "
                     "produced no RequirementSet at all. Emit the complete RequirementSet "
@@ -1964,6 +1980,9 @@ def split_requirements(
                     else "The previous Requirement Splitter response violated the "
                     "deterministic RequirementSet contract. Repair exactly the "
                     "reported problem and keep every other requirement unchanged."
+                    if structured_contract_failure or rejected is not None
+                    else "The previous Requirement Splitter response could not be "
+                    "accepted. Emit the complete RequirementSet again."
                 ),
                 findings=(message,),
             )
@@ -2065,7 +2084,7 @@ def review_requirements(
         output = responder.invoke_structured(
             role="requirement_reviewer",
             schema=RequirementReview,
-            system_prompt=prompts.REQUIREMENT_REVIEWER_PROMPT,
+            system_prompt=prompts.RUNTIME_REQUIREMENT_REVIEWER_PROMPT,
             user_input=payload,
         )
         if output.reviewed_revision != requirements.revision:
@@ -2119,7 +2138,7 @@ def review_requirements(
             node_record=record,
             role="requirement_reviewer",
             revision=requirements.revision,
-            system_prompt=prompts.REQUIREMENT_REVIEWER_PROMPT,
+            system_prompt=prompts.RUNTIME_REQUIREMENT_REVIEWER_PROMPT,
             user_prompt=payload,
             output=output,
         )
@@ -2281,7 +2300,7 @@ def convert_assertions(
         output = responder.invoke_structured(
             role="assertion_converter",
             schema=AssertionScript,
-            system_prompt=prompts.ASSERTION_CONVERTER_PROMPT,
+            system_prompt=prompts.RUNTIME_ASSERTION_CONVERTER_PROMPT,
             user_input=payload,
         )
         if current is None and output.revision != 1:
@@ -2796,7 +2815,7 @@ def convert_assertions(
             node_record=record,
             role="assertion_converter",
             revision=output.revision,
-            system_prompt=prompts.ASSERTION_CONVERTER_PROMPT,
+            system_prompt=prompts.RUNTIME_ASSERTION_CONVERTER_PROMPT,
             user_prompt=payload,
             output=output,
         )
@@ -2956,7 +2975,7 @@ def convert_assertions(
                 node_record=record,
                 role="assertion_converter",
                 revision=output.revision,
-                system_prompt=prompts.ASSERTION_CONVERTER_PROMPT,
+                system_prompt=prompts.RUNTIME_ASSERTION_CONVERTER_PROMPT,
                 user_prompt=locals().get("payload", ""),
                 output=output,
             )
@@ -3726,7 +3745,7 @@ def review_assertions(
         output = responder.invoke_structured(
             role="assertion_reviewer",
             schema=AssertionReview,
-            system_prompt=prompts.ASSERTION_REVIEWER_PROMPT,
+            system_prompt=prompts.RUNTIME_ASSERTION_REVIEWER_PROMPT,
             user_input=payload,
         )
         script_hash = sha256_data(script)
@@ -3799,7 +3818,7 @@ def review_assertions(
             node_record=record,
             role="assertion_reviewer",
             revision=script.revision,
-            system_prompt=prompts.ASSERTION_REVIEWER_PROMPT,
+            system_prompt=prompts.RUNTIME_ASSERTION_REVIEWER_PROMPT,
             user_prompt=payload,
             output=output,
         )

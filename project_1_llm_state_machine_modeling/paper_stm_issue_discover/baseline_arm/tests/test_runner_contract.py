@@ -17,8 +17,8 @@ import pytest
 ARM = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ARM / "src"))
 
-import runner  # noqa: E402
-from schema import NaiveIssue, NaiveReview  # noqa: E402
+import runner
+from schema import NaiveIssue, NaiveReview
 
 
 class _FakeConfig:
@@ -29,7 +29,7 @@ class _FakeConfig:
 
 
 class _FakeRegistry:
-    def require(self, profile: str) -> _FakeConfig:  # noqa: ARG002
+    def require(self, profile: str) -> _FakeConfig:
         return _FakeConfig()
 
 
@@ -53,7 +53,7 @@ class _FakeModel:
         self._structured = structured
         self.structured_options: dict[str, object] = {}
 
-    def with_structured_output(self, schema: object, **options: object) -> _FakeStructured:  # noqa: ARG002
+    def with_structured_output(self, schema: object, **options: object) -> _FakeStructured:
         self.structured_options = dict(options)
         return self._structured
 
@@ -84,7 +84,7 @@ def wired(monkeypatch: pytest.MonkeyPatch):
         # 调用侧传错参数。⚠️ 初版把 config 整个传了进去，mock 掉之后测试全绿、真实 smoke 才炸。
         # 每一个被 mock 掉的纯函数都是一处测试盲区。
         monkeypatch.setattr(
-            runner, "create_chat_model", lambda *a, **k: model  # noqa: ARG005
+            runner, "create_chat_model", lambda *a, **k: model
         )
         monkeypatch.setattr(runner, "normalize_model_output_usage", lambda _raw: {})
         monkeypatch.setattr(runner.time, "sleep", lambda _s: None)
@@ -203,7 +203,23 @@ def test_transport_error_retries_then_records_failure(wired, tmp_path: Path) -> 
     assert record["failure_class"] == "transport_exhausted"
     assert record["parsed_output"] is None
     kinds = [a["status"] for a in record["attempts"]]
-    assert kinds.count("transport_error") == 3, kinds
+    assert kinds.count("provider_error") == 3, kinds
+    assert record["attempts"][0]["billing_disposition"] == "provider_error_retry_exempt"
+    assert record["attempts"][-1]["billing_disposition"] == "counted"
+
+
+def test_unknown_error_is_recorded_without_transport_retry(wired, tmp_path: Path) -> None:
+    """未知内部异常不得被误分类为 provider failure。"""
+
+    wired([RuntimeError("local invariant failed")] * 6)
+    record = runner.run_cell(
+        case="0000", profile="fake", report_root=_corpus_stub(tmp_path), transport_retries=2
+    )
+    assert record["status"] == "failed"
+    assert record["failure_class"] == "internal_error"
+    assert len(record["attempts"]) == 1
+    assert record["attempts"][0]["status"] == "internal_error"
+    assert record["attempts"][0]["billing_disposition"] == "counted"
 
 
 def test_transport_error_then_success(wired, tmp_path: Path) -> None:

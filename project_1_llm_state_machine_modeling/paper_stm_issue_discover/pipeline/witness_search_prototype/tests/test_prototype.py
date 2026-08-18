@@ -1558,6 +1558,75 @@ def test_reachable_deadlock_d2_is_formally_normalized_to_impl_without_reading_te
     assert prototype.validate_d_decision(finding, normalized) == []
 
 
+def test_w2_dead_end_can_retain_typed_operational_d2_norm() -> None:
+    finding = {
+        "finding_key": "synthetic:operational-dead-end",
+        "basis_kind": "domain_norm",
+        "witness_level": "W2",
+        "source_causality_certificate": {
+            "kind": "reachable_deadlock",
+            "target": "Root.q_dead",
+            "verdict": "counterexample",
+            "explicit_final": False,
+            "assumptions": {"no_concurrent_regions": True},
+        },
+        "domain_obligations": [
+            {
+                "family": "graph",
+                "property": "escapable",
+                "target_ref": "Root.q_dead",
+                "expected": True,
+            }
+        ],
+    }
+    decision = prototype.DDecision(
+        finding_key=finding["finding_key"],
+        grounding="dom",
+        violated_obligation="The operational state must admit continuation.",
+        strongest_defeater="The dead-end may be an intended final state.",
+        defeater_kind="rebutting",
+        defeater_disposition="defeated",
+        rationale="The typed operational obligation targets the reachable non-final state.",
+        d_subclass="not_applicable",
+        d_level="D2",
+    )
+
+    normalized = prototype.normalize_d_decision(decision, finding=finding)
+
+    assert normalized.grounding == "dom"
+    assert normalized.d_subclass == "D2-norm"
+    assert prototype.validate_d_decision(finding, normalized) == []
+
+
+def test_d2_norm_rejects_untyped_operational_prose() -> None:
+    finding = {
+        "finding_key": "synthetic:untyped-operational-dead-end",
+        "witness_level": "W2",
+        "source_causality_certificate": {
+            "kind": "reachable_deadlock",
+            "target": "Root.q_dead",
+            "verdict": "counterexample",
+            "explicit_final": False,
+            "assumptions": {"no_concurrent_regions": True},
+        },
+    }
+    decision = prototype.DDecision(
+        finding_key=finding["finding_key"],
+        grounding="dom",
+        violated_obligation="The operational state must admit continuation.",
+        strongest_defeater="The dead-end may be an intended final state.",
+        defeater_kind="rebutting",
+        defeater_disposition="defeated",
+        rationale="Free-text prose is not a typed domain obligation.",
+        d_subclass="D2-norm",
+        d_level="D2",
+    )
+
+    errors = prototype.validate_d_decision(finding, decision)
+
+    assert "D2-norm requires a typed operational domain obligation" in errors
+
+
 def test_d2_impl_is_closed_to_source_grounded_reachable_nonfinal_deadlock() -> None:
     finding = {
         "finding_key": "synthetic:unreachable-state",

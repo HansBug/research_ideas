@@ -42,14 +42,13 @@ _HERE = Path(__file__).resolve().parent
 if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
-from utils.llm import (  # noqa: E402
+from schema import NaiveReview
+from utils.llm import (
     adapter_name,
     create_chat_model,
     load_llm_registry,
     normalize_model_output_usage,
 )
-
-from schema import NaiveReview  # noqa: E402
 
 #: prompt 的唯一真源。⛔ 不在本文件内联副本（理由见 ../prompt/README.md 开头）。
 PROMPT_FILE = _HERE.parents[0] / "prompt" / "naive_v1.txt"
@@ -164,6 +163,20 @@ def _status_code(exc: BaseException) -> int | None:
     return value if isinstance(value, int) else None
 
 
+def _retryable_provider_error(exc: BaseException) -> bool:
+    """Return whether a failed call is eligible for a transport retry.
+
+    A missing status code is not evidence of a provider failure.  In particular,
+    local programming errors and unexpected SDK/value errors must be recorded and
+    stopped rather than replayed as if the gateway were at fault.
+    """
+
+    status = _status_code(exc)
+    if status is not None:
+        return status in {408, 409, 425, 429} or status >= 500
+    return isinstance(exc, (ConnectionError, TimeoutError))
+
+
 def _retry_after_seconds(exc: BaseException) -> float | None:
     """provider 自己说的等待时长优先于任何固定节奏——尊重它能避免 429 被重试成另一个 429。"""
 
@@ -173,7 +186,7 @@ def _retry_after_seconds(exc: BaseException) -> float | None:
         return None
     try:
         raw = headers.get("retry-after") or headers.get("Retry-After")
-    except Exception:  # pragma: no cover - defensive
+    except (AttributeError, TypeError, ValueError):  # pragma: no cover - defensive
         return None
     if raw is None:
         return None
@@ -252,6 +265,7 @@ def run_cell(
     schema_feedback: str | None = None
     schema_failures = 0
     transport_failures = 0
+    terminal_failure_class: str | None = None
 
     total_budget = transport_retries + SCHEMA_RETRIES + 1
     for attempt_index in range(1, total_budget + 1):
@@ -283,6 +297,10 @@ def run_cell(
                     "attempt": attempt_index,
                     "kind": "schema_retry" if schema_feedback else "initial",
                     "status": "ok",
+                    "retryable": False,
+                    "will_retry": False,
+                    "cost_counted": True,
+                    "billing_disposition": "counted",
                     "started_at": attempt_started.isoformat(),
                     "elapsed_ms": (time.perf_counter_ns() - attempt_start_ns) / 1e6,
                 }
@@ -290,11 +308,43 @@ def run_cell(
             break
         except Exception as exc:  # noqa: BLE001 - 分类后分别处置，见下
             schema_error = _is_schema_error(exc)
+            provider_error = _retryable_provider_error(exc)
+            if schema_error:
+                status = "schema_error"
+                retryable = False
+                schema_failures += 1
+                will_retry = schema_failures <= SCHEMA_RETRIES
+                # Schema repair is a billable business correction, not a free
+                # transport retry, even though it is issued in the same node.
+                cost_counted = True
+                billing_disposition = "counted"
+                failure_class = "schema_exhausted"
+            elif provider_error:
+                status = "provider_error"
+                retryable = True
+                transport_failures += 1
+                will_retry = transport_failures <= transport_retries
+                cost_counted = not will_retry
+                billing_disposition = (
+                    "provider_error_retry_exempt" if will_retry else "counted"
+                )
+                failure_class = "transport_exhausted"
+            else:
+                status = "internal_error"
+                retryable = False
+                will_retry = False
+                cost_counted = True
+                billing_disposition = "counted"
+                failure_class = "internal_error"
             attempts.append(
                 {
                     "attempt": attempt_index,
                     "kind": "schema_retry" if schema_feedback else "initial",
-                    "status": "schema_error" if schema_error else "transport_error",
+                    "status": status,
+                    "retryable": retryable,
+                    "will_retry": will_retry,
+                    "cost_counted": cost_counted,
+                    "billing_disposition": billing_disposition,
                     "error_type": type(exc).__name__,
                     "error": str(exc)[:4000],
                     "status_code": _status_code(exc),
@@ -303,15 +353,19 @@ def run_cell(
                 }
             )
             if schema_error:
-                schema_failures += 1
-                if schema_failures > SCHEMA_RETRIES:
+                if not will_retry:
                     failure = f"schema exhausted after {schema_failures} attempts: {exc}"
+                    terminal_failure_class = failure_class
                     break
                 schema_feedback = schema_retry_feedback(str(exc))
                 continue
-            transport_failures += 1
-            if transport_failures > transport_retries:
+            if not provider_error:
+                failure = f"internal error after {attempt_index} attempt(s): {exc}"
+                terminal_failure_class = failure_class
+                break
+            if not will_retry:
                 failure = f"transport exhausted after {transport_failures} attempts: {exc}"
+                terminal_failure_class = failure_class
                 break
             hinted = _retry_after_seconds(exc)
             delay = (
@@ -364,7 +418,7 @@ def run_cell(
         "failure_class": (
             None
             if parsed is not None
-            else ("schema_exhausted" if schema_failures > SCHEMA_RETRIES else "transport_exhausted")
+            else (terminal_failure_class or ("schema_exhausted" if schema_failures > SCHEMA_RETRIES else "transport_exhausted"))
         ),
         "parsed_output": _jsonable(parsed) if parsed is not None else None,
         "issue_count": len(parsed.issues) if parsed is not None else None,

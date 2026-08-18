@@ -1425,7 +1425,15 @@ receipt: D2-impl is available only when that finding itself has
   orthogonal-region entry tuple whose concurrently active leaves and ancestors
   all lack continuation, or an exact missing-initial compiler bridge to a
   reachable fail-closed entry deadlock.
-  Use D2-norm only for an explicit indispensable domain norm.
+  Use D2-norm only for an explicit indispensable domain norm. A finding may
+  carry typed `domain_obligations`; these are the only admissible structured
+  domain-norm evidence. For a dead-end, `graph:deadlock_free` or
+  `graph:escapable` with the exact dead-end target is a non-final operational
+  obligation when the supplied NL/source context makes that obligation
+  indispensable. A closed W2 deadlock certificate may therefore receive
+  D2-norm when that typed obligation is the surviving basis. If no such typed
+  domain obligation is supplied, do not manufacture one from `basis_kind`,
+  `obligation`, diagnostic wording, state names, or absent outgoing edges.
   NL-required unreachability is D2-lit, never D2-impl.
 - D1: use non-`none` grounding, `defeater_kind=undercutting`,
   `defeater_disposition=survives|unresolved`, and
@@ -1594,6 +1602,10 @@ where "before completion" alone creates no stable-ending obligation.
 `within_expected_ancestor=true` because each is nested under an intermediate
 wrapper inside `P`; a claim that the wrapper itself violates containment is D0
 unless NL explicitly requires direct children, siblings, or one hierarchy level.
+(21) A W2 reachable non-final dead-end carries the typed obligation
+`graph:escapable` for that exact target and the NL/source context makes
+continuation indispensable; D2-norm is allowed. The same certificate without
+that typed obligation uses D2-impl only when `protocol_d2_grounding="impl"`.
 Do not propose repairs.
 """.strip()
 
@@ -9572,6 +9584,7 @@ def build_finding_records(outcomes: list[dict[str, Any]]) -> list[dict[str, Any]
                     "compiled_assertions": [],
                     "execution_certificates": [],
                     "source_causality_certificate": None,
+                    "domain_obligations": [],
                     "candidate_indices": [],
                     "probe_group_ids": [],
                     "d_decision": None,
@@ -9608,6 +9621,12 @@ def build_finding_records(outcomes: list[dict[str, Any]]) -> list[dict[str, Any]
                 for existing in record["formal_goals"]
             ):
                 record["formal_goals"].append(goal)
+            domain_obligation = candidate.get("domain_obligation")
+            if isinstance(domain_obligation, dict) and all(
+                _canonical_sha256(existing) != _canonical_sha256(domain_obligation)
+                for existing in record["domain_obligations"]
+            ):
+                record["domain_obligations"].append(domain_obligation)
             record["locations"].extend(candidate.get("locations", []))
             source_status = (group or {}).get("source_attribution", {}).get("status")
             if source_status:
@@ -9928,6 +9947,7 @@ def build_d_context(pair: dict[str, Any], findings: list[dict[str, Any]]) -> str
                 "basis": next(iter(finding.get("bases", [])), None),
                 "claim": next(iter(finding.get("claims", [])), None),
                 "obligation": next(iter(finding.get("obligations", [])), None),
+                "domain_obligations": _domain_obligations_for_finding(finding),
                 "nl_quote": next(iter(finding.get("nl_quotes", [])), None),
                 "evidence_status": finding.get("evidence_status"),
                 "source_attribution": finding.get("source_attribution", []),
@@ -9969,6 +9989,42 @@ def build_d_context(pair: dict[str, Any], findings: list[dict[str, Any]]) -> str
         "# Findings to adjudicate\n\n"
         f"{json.dumps(compact, ensure_ascii=False, sort_keys=True, separators=(',', ':'))}\n"
     )
+
+
+def _domain_obligations_for_finding(finding: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return only typed domain obligations carried by the finding dossier."""
+
+    rows = finding.get("domain_obligations")
+    if not isinstance(rows, list):
+        rows = []
+    singular = finding.get("domain_obligation")
+    if isinstance(singular, dict):
+        rows = [*rows, singular]
+    return [row for row in rows if isinstance(row, dict)]
+
+
+def _has_typed_operational_domain_norm(finding: dict[str, Any]) -> bool:
+    """Recognize only the preregistered typed operational norm surface."""
+
+    certificate = finding.get("source_causality_certificate")
+    certificate = certificate if isinstance(certificate, dict) else {}
+    certificate_target = certificate.get("target")
+    for obligation in _domain_obligations_for_finding(finding):
+        if (
+            obligation.get("family") != "graph"
+            or obligation.get("property") not in {"deadlock_free", "escapable"}
+            or obligation.get("expected", True) is not True
+        ):
+            continue
+        target_ref = obligation.get("target_ref")
+        if (
+            isinstance(target_ref, str)
+            and isinstance(certificate_target, str)
+            and target_ref != certificate_target
+        ):
+            continue
+        return True
+    return False
 
 
 def _has_closed_d2_impl_receipt(finding: dict[str, Any]) -> bool:
@@ -10043,8 +10099,13 @@ def validate_d_decision(finding: dict[str, Any], decision: DDecision) -> list[st
                 "grounding=impl is forbidden because protocol_d2_grounding is null; "
                 "use the supplied literal/language/domain provenance or lower D"
             )
-    if decision.d_subclass == "D2-norm" and decision.grounding != "dom":
-        errors.append("D2-norm requires grounding=dom")
+    if decision.d_subclass == "D2-norm":
+        if decision.grounding != "dom":
+            errors.append("D2-norm requires grounding=dom")
+        elif not _has_typed_operational_domain_norm(finding):
+            errors.append(
+                "D2-norm requires a typed operational domain obligation"
+            )
     if decision.d_level == "D1" and not (
         decision.defeater_kind == "undercutting"
         and decision.defeater_disposition in {"survives", "unresolved"}
@@ -10142,9 +10203,18 @@ def normalize_d_decision(
         subclass: DSubclass = "not_applicable"
         grounding = decision.grounding
     else:
+        typed_domain_norm = bool(
+            isinstance(finding, dict)
+            and _has_typed_operational_domain_norm(finding)
+        )
         grounding = (
-            _protocol_d2_grounding(finding) if isinstance(finding, dict) else None
-        ) or decision.grounding
+            decision.grounding
+            if decision.grounding == "dom" and typed_domain_norm
+            else (
+                _protocol_d2_grounding(finding) if isinstance(finding, dict) else None
+            )
+            or decision.grounding
+        )
         subclass = {
             "lit": "D2-lit",
             "lang": "D2-lit",

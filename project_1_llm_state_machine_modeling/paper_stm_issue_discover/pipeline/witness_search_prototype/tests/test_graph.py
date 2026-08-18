@@ -1047,3 +1047,57 @@ def test_usage_budget_reports_model_matched_usd_cost(tmp_path) -> None:
     assert comparison["x1v2_cost_usd"] == 0.001
     assert round(comparison["cost_multiplier"], 3) == 0.845
     assert comparison["within_25x"] is True
+
+
+def test_failure_class_distinguishes_schema_from_provider() -> None:
+    schema_observations = [
+        {
+            "attempts": [
+                {
+                    "failure_phase": "structured_validation",
+                    "retryable": False,
+                }
+            ]
+        },
+        {
+            "attempts": [
+                {
+                    "failure_phase": "structured_output_limit",
+                    "retryable": False,
+                }
+            ]
+        },
+    ]
+    provider_observations = [
+        {
+            "attempts": [
+                {
+                    "failure_phase": "provider_response",
+                    "retryable": True,
+                }
+            ]
+        }
+    ]
+
+    assert graph._failure_class_from_observations(schema_observations) == (
+        "schema_invalid"
+    )
+    assert graph._failure_class_from_observations(provider_observations) == (
+        "provider_failure"
+    )
+
+
+def test_failure_class_does_not_infer_provider_from_exception_text() -> None:
+    observations = [
+        {
+            "failure": "ValidationError: provider returned a malformed object",
+            "attempts": [
+                {
+                    "failure_phase": "structured_validation",
+                    "retryable": False,
+                }
+            ],
+        }
+    ]
+
+    assert graph._failure_class_from_observations(observations) == "schema_invalid"

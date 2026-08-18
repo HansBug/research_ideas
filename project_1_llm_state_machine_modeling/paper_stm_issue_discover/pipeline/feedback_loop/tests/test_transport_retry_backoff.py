@@ -141,3 +141,9 @@ def test_a_schema_violation_is_not_retried():
 
     assert _retryable_error(ValueError("structured validation failed")) is False
     assert _retryable_error(TypeError("bad kwargs")) is False
+
+
+def test_an_unknown_internal_error_is_not_retried():
+    """A missing status code is not evidence that the provider failed."""
+
+    assert _retryable_error(RuntimeError("local invariant failed")) is False

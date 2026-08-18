@@ -98,6 +98,7 @@ class RevisionFeedback(StrictBaseModel):
     recovery_seed: dict[str, Any] | None = None
     origin: Literal[
         "requirement_review",
+        "requirement_contract",
         "assertion_contract",
         "assertion_precheck",
         "assertion_review",

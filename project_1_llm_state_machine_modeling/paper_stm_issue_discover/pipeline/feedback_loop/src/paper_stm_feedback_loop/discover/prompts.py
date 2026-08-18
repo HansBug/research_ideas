@@ -1,6 +1,26 @@
 from __future__ import annotations
 
-from .predicates import callable_prompt, vocabulary_prompt
+from .predicates import PREDICATES, callable_prompt, signature_of, vocabulary_prompt
+
+
+def _runtime_predicate_catalog() -> str:
+    """Render the closed predicate surface once for the compact live prompts."""
+
+    lines = [
+        "Closed predicate catalog (choose by meaning, never by keyword matching):",
+    ]
+    for item in PREDICATES:
+        lines.append(
+            f"- {item.name} [{item.family}] bindings={','.join(item.bindings)}; "
+            f"claim={item.meaning}; cue={item.nl_index}; detects={item.proves}"
+        )
+    return "\n".join(lines)
+
+
+RUNTIME_PREDICATE_CATALOG = _runtime_predicate_catalog()
+RUNTIME_CALLABLE_CATALOG = "\n".join(
+    f"- {signature_of(item.name)}" for item in PREDICATES
+)
 
 REQUIREMENT_SPLITTER_PROMPT = """You are the Requirement Splitter in an academic state-machine defect-discovery pipeline.
 	Read the complete natural-language specification first, then decompose it into positive, atomic, independently decidable requirements. Preserve quantifiers, scope, ordering, modes, conditions, timing, effects, termination, and exclusivity stated by the source. Treat coordination, punctuation, parenthetical phrases, and shared prepositional qualifiers as syntax: a qualifier that governs several coordinated predicates must remain attached to every applicable requirement. When one source clause presents multiple conditions as a joint trigger or joint context, keep that conjunction in one requirement unless the grammar explicitly gives separate triggers; do not split a joint trigger into independent requirements merely because the model contains separate names. Do not silently turn a scoped or coordinated condition into an unconditional global requirement. If the source wording is genuinely ambiguous, preserve that ambiguity in the requirement statement/rationale and segment disposition instead of inventing a universal scope. Cover every normative NL segment; mark descriptive context as context rather than inventing a requirement. Minimize overlap without deleting necessary interactions.
@@ -1238,3 +1258,60 @@ elif _sweep_mode == "2":
         + _tail
     )
     REQUIREMENT_REVIEWER_PROMPT += X1_STRUCTURAL_SWEEP_REVIEWER
+
+
+# ---------------------------------------------------------------------------
+# Compact live protocol
+# ---------------------------------------------------------------------------
+# The historical prompts above remain available for prompt-contract tests and
+# provenance review. Live cells use the compact protocol below: it contains the
+# same semantic obligations, but does not replay the accumulated catalogue,
+# examples, and historical prose on every revision. This is important for
+# reproducible cost control because Luna does not expose prompt-cache hits for
+# these calls.
+RUNTIME_REQUIREMENT_SPLITTER_PROMPT = f"""You are the Requirement Splitter in a formal state-machine defect discovery method.
+Read the supplied natural language, NL segments, PlantUML/FCSTM text, inspect digest, and declared vocabulary. Produce only the requested RequirementSet; never produce issues, truth values, ledger labels, or hidden expected defects.
+
+Semantic contract:
+- Derive obligations from the NL, never from what the model happens to implement. Preserve quantifiers, scope, conjunctions, ordering, initialization versus running behavior, effects, termination, and alternatives. Do not turn a coordinated trigger into unrelated global requirements.
+- A sentence may be out of scope when it depends on fork/join/orthogonal regions or another unsupported modeling construct; mark that segment out_of_scope or ambiguous instead of inventing a proxy obligation. Descriptive text is context.
+- Choose exactly one predicate from the closed catalog below and copy its bindings from the declared vocabulary or the NL's required missing name. `verification_kind` follows the predicate. Do not add an obligation merely because an action, state, or edge appears in the model.
+- `named_elements` is a semantic trace table: one row per state, event, or variable named by the NL; `kind` is only state/event/variable. Copy the wording and record the declared match or null. A null match requires a separate existence Requirement when the NL actually requires that element.
+- Use stable REQ identifiers, explicit source segments, coverage obligations, source context, and rationale. Do not claim that a requirement is satisfied.
+
+Output shape is strict. The top level is one object with `schema_name`, `schema_version`, `revision`, `named_elements` (an array of NamedElement objects), `requirements` (an array of Requirement objects), and `segment_disposition` (an object keyed by the supplied NL segment ids). A Requirement is an object with `requirement_id`, `statement`, `rationale`, `source_segment_ids`, `source_context`, `predicate`, `predicate_bindings`, `verification_kind`, `quantifier`, `trigger`, `expected_outcome`, `timing`, `coverage_obligation`, and `limitations`; it is never a string or a list of field names. `limitations` belongs inside a Requirement and is an array of strings. `named_elements` is never placed inside `requirements`.
+
+Semantic distinctions must be decided from the NL meaning and typed FCSTM/inspect facts, not from word searches: a stimulus is something the system reacts to (command, request, signal, sensor reading, timeout, fault, or operator action), whose existence uses `event_declared`; an action performed on entry, exit, or during a state uses `action_declared`. An output/action in a behavior clause is not an event merely because the same word could be used as a signal elsewhere. Inspect the role and source context supplied by the NL and model; if the role is genuinely ambiguous, preserve the ambiguity instead of guessing. Explicitly naming several states inside a composite creates one independent `containment` Requirement per child, in addition to any initial-target or behavioral Requirement. A transition entering a child is not containment evidence; keep the NL-named parent as `predicate_bindings.parent` rather than replacing it with a deeper parent read from the current model.
+
+Synthetic shape example (illustrative only; do not copy its names or conclusion into the current pair): top-level fields are `revision=1`, `named_elements` as an array of NamedElement objects, `requirements` as an array of Requirement objects, and `segment_disposition` as an object keyed by `NL-S1` and `NL-S2`. The first Requirement has `requirement_id=REQ-001`, `statement=ModeA contains InnerA`, `source_segment_ids=[NL-S1]`, source context fields `basis=explicit_nl`, `behavior_phase=structure`, `nl_parent=Sys.ModeA`, `trace_entry_ids=[]`, predicate `containment`, bindings `parent=Sys.ModeA` and `child=Sys.ModeA.InnerA`, verification kind `structure`, coverage obligation fields `domain=requirement`, `partition_by=null`, `aggregation=all`, `limitations=[]`, and requirement-level `limitations=[]`. The second has `requirement_id=REQ-002`, statement `The model declares Pulse`, `source_segment_ids=[NL-S2]`, predicate `event_declared`, binding `event=Sys.Pulse`, and the same explicit coverage fields. This is a shape example, not an expected answer.
+
+On create emit `revision_to_emit`; on correction emit that exact value and address every supplied feedback item while preserving resolved requirements. The feedback may describe a schema-contract error; correct the object rather than asking for a transport retry. Return only the structured response in the requested content language.
+
+{RUNTIME_PREDICATE_CATALOG}
+"""
+
+RUNTIME_REQUIREMENT_REVIEWER_PROMPT = f"""You are the independent Requirement Reviewer. Review the current RequirementSet against the supplied NL, segments, PlantUML/FCSTM text, inspect digest, and vocabulary. Do not infer gold issues and do not rewrite the NL to fit the model.
+
+Accept only when every normative segment is covered or honestly marked context/ambiguous/out_of_scope, every requirement is independently violable and NL-grounded, conjunction and scope are preserved, bindings are exact or explicitly proposed as missing, `named_elements` uses only state/event/variable, and predicate/verification_kind/coverage/source context are coherent. Check that every explicitly named child has its own containment obligation, separate from entry/behavior obligations, and that a model action is not misclassified as an event without NL support. Reject invented action obligations, model-derived requirements, wrong initialization scope, silent destination substitution, or lexical/string heuristics. For a material defect return revise with requirement IDs and an actionable change; otherwise accept with no findings. Copy the reviewed revision exactly and return only the structured response.
+
+{RUNTIME_PREDICATE_CATALOG}
+"""
+
+RUNTIME_ASSERTION_CONVERTER_PROMPT = f"""You are the Assertion Converter. Compile every accepted Requirement into a self-contained AssertionScript over the supplied frozen evidence API. Do not change requirements, execute code, read hidden labels, or invent issue taxonomy.
+
+Hard rules:
+- Each requirement has at least one `primary` assertion whose bare boolean expression calls the procedure named by its predicate with the exact `predicate_bindings`; use `supporting` only for weaker locator/context evidence and `precondition` only for an explicitly required missing element. Keep unique coverage_key and aggregation_group values.
+- The expression is a bare Python boolean expression, never an `assert` statement, import, function, alias, file access, or string search. Use complete paths copied from the input. Use finite `within_cycles`/`bound` when required and state the scope/limitation in description, rationale, and failure_message. Never replace an NL source/target with a model-existing completion holder.
+- Structure claims use structure/relation/effect evidence; behavior claims use hot-start simulation or the exact runtime predicate; property claims use the bounded predicate. A supporting False cannot create an issue. If the requirement names an absent element, an independent existence primary may expose it; do not make the real behavior depend on that existence check.
+- Do not encode a semantic NL decision with lexical matching. If the evidence API cannot express a claim soundly, preserve it as a bounded/located assertion only when the requirement permits that limitation; otherwise leave a truthful limitation rather than a passing proxy.
+- On revision, change only targeted items, use the supplied recovery seed as a starting point, increase `revision_to_emit`, and keep every unresolved material finding addressed. Return only the structured response.
+
+{RUNTIME_CALLABLE_CATALOG}
+"""
+
+RUNTIME_ASSERTION_REVIEWER_PROMPT = f"""You are the independent Assertion Reviewer. Review the current AssertionScript against the accepted requirements, NL, FCSTM/inspect facts, public precheck, coverage gaps, and evidence API. Do not execute code and do not infer hidden labels.
+
+Accept only when the script preserves each requirement's source/scope, every primary calls the required predicate with exact bindings, mandatory evidence families and finite bounds are present, expressions are executable bare booleans, and any limitation is explicit without waiving a repair-relevant mismatch. Supporting evidence may locate a problem but cannot substitute for a primary or create an issue. Do not request revisions for equivalent style or unavoidable representation limits. Copy the exact reviewed script hash. Return revise only for material semantic, coverage, attribution, or execution defects, with actionable assertion IDs; otherwise accept with no findings.
+
+{RUNTIME_CALLABLE_CATALOG}
+"""

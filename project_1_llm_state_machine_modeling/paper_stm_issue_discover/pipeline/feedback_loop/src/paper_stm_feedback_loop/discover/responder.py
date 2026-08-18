@@ -130,18 +130,62 @@ def _retry_delay(exc: BaseException, retry_index: int) -> float:
 
 
 def _retryable_error(exc: Exception) -> bool:
+    """Return whether a failed model call is a provider-side retry candidate.
+
+    This function sits below the graph's business-revision loops. A malformed
+    structured value, a local programming error, or an assertion contract
+    failure must reach those loops (or the failure receipt) exactly as observed;
+    silently replaying the same request would both lose the diagnosis and bill
+    an unbounded number of equivalent attempts. Only typed stream/empty-output
+    transport symptoms and provider HTTP/network failures are eligible here.
+    """
+
     if isinstance(exc, StructuredOutputTruncatedError):
         return False
     if isinstance(exc, IncompleteStructuredStreamError):
         return True
     if _empty_structured_output(exc):
         return True
-    if isinstance(exc, (ValueError, TypeError)):
+    if isinstance(exc, (ValueError, TypeError, StructuredOutputValidationError)):
         return False
     status = _status_code(exc)
-    if status is None:
-        return True
-    return status in {408, 409, 425, 429} or status >= 500
+    if status is not None:
+        return status in {408, 409, 425, 429} or status >= 500
+
+    # SDKs do not attach an HTTP status to connection and timeout failures. Use
+    # their typed exception classes when available; unknown exceptions are not
+    # provider errors and must be recorded without a blind transport replay.
+    provider_types: list[type[BaseException]] = [ConnectionError, TimeoutError]
+    for module_name, names in (
+        (
+            "openai",
+            (
+                "APIConnectionError",
+                "APITimeoutError",
+                "RateLimitError",
+                "InternalServerError",
+            ),
+        ),
+        (
+            "anthropic",
+            (
+                "APIConnectionError",
+                "APITimeoutError",
+                "RateLimitError",
+                "InternalServerError",
+            ),
+        ),
+        ("httpx", ("TransportError", "TimeoutException")),
+    ):
+        try:
+            module = __import__(module_name)
+        except ImportError:
+            continue
+        for name in names:
+            candidate = getattr(module, name, None)
+            if isinstance(candidate, type) and issubclass(candidate, BaseException):
+                provider_types.append(candidate)
+    return isinstance(exc, tuple(provider_types))
 
 
 @functools.cache
@@ -541,10 +585,10 @@ class DirectStructuredResponder:
                     "structured_stream"
                     if isinstance(exc, IncompleteStructuredStreamError)
                     else "structured_validation"
-                    if isinstance(exc, (ValueError, TypeError))
+                    if isinstance(exc, (ValueError, TypeError, StructuredOutputValidationError))
                     else "provider_response"
-                    if status is not None
-                    else "transport"
+                    if status is not None or _retryable_error(exc)
+                    else "internal"
                 )
                 will_retry = retryable and attempt_index <= self.transport_retries
                 provider_error_exempt = will_retry and failure_phase in {

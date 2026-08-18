@@ -93,6 +93,37 @@ def _completed_call_id(observations: list[dict[str, Any]]) -> str | None:
     return None
 
 
+def _failure_class_from_observations(
+    observations: list[dict[str, Any]],
+    *,
+    default: str = "internal",
+) -> str:
+    """Classify a failed node from responder phases, never exception wording.
+
+    Transport/provider failures are the only retryable class. Structured output
+    failures remain visible as schema errors and are never relabelled as provider
+    failures merely because the node exhausted its local attempts.
+    """
+
+    phases: list[str] = []
+    for observation in observations:
+        if not isinstance(observation, dict):
+            continue
+        for attempt in observation.get("attempts", []):
+            if not isinstance(attempt, dict):
+                continue
+            phase = attempt.get("failure_phase")
+            if isinstance(phase, str) and phase != "none":
+                phases.append(phase)
+    if phases and all(phase in {"provider_response", "transport"} for phase in phases):
+        return "provider_failure"
+    if phases and all(phase.startswith("structured_") for phase in phases):
+        return "schema_invalid"
+    if phases:
+        return "mixed_failure"
+    return default
+
+
 def _veto_explicit_cross_sample_conflicts(
     plans: list[core.DiscoveryGroundingPlan],
 ) -> tuple[list[core.DiscoveryGroundingPlan], list[dict[str, str]]]:
@@ -927,7 +958,7 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
             return {
                 "failure": {
                     "node": "contract_extraction",
-                    "class": "provider_or_schema",
+                    "class": _failure_class_from_observations(observations),
                     "message": f"{type(error).__name__}: {error}",
                 },
                 "llm_observations": [
@@ -988,7 +1019,10 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
                     branch_failures.append(
                         {
                             "stage": "discovery_grounding",
-                            "class": "sample_provider_or_schema",
+                            "class": _failure_class_from_observations(
+                                sample_observations,
+                                default="internal",
+                            ),
                             "message": (
                                 f"sample {sample_index + 1}/{DISCOVERY_SAMPLE_COUNT}: "
                                 f"{type(error).__name__}: {error}"
@@ -1027,7 +1061,7 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
                     "discovery_grounding_context": discovery_context,
                     "failure": {
                         "node": "discovery_grounding",
-                        "class": "provider_or_schema",
+                        "class": _failure_class_from_observations(observations),
                         "message": "all independent discovery samples failed",
                     },
                     "llm_observations": [
@@ -1301,7 +1335,9 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
             return {
                 "failure": {
                     "node": "d_adjudication",
-                    "class": "provider_or_schema",
+                    "class": _failure_class_from_observations(
+                        [*state.get("llm_observations", []), *observations]
+                    ),
                     "message": f"{type(error).__name__}: {error}",
                 },
                 "d_call_count": d_call_count,
