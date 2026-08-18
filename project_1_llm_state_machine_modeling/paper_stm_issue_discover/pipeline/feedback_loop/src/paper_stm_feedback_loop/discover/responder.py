@@ -130,6 +130,8 @@ def _retry_delay(exc: BaseException, retry_index: int) -> float:
 
 
 def _retryable_error(exc: Exception) -> bool:
+    if isinstance(exc, StructuredOutputTruncatedError):
+        return False
     if isinstance(exc, IncompleteStructuredStreamError):
         return True
     if _empty_structured_output(exc):
@@ -181,6 +183,10 @@ class StructuredOutputValidationError(RuntimeError):
     """The provider returned content that does not satisfy the requested schema."""
 
 
+class StructuredOutputTruncatedError(StructuredOutputValidationError):
+    """A structured response exhausted its output budget before JSON closed."""
+
+
 def _validate_complete_structured_stream(raw: Any) -> None:
     """Reject partial tool-call payloads that LangChain may parse with defaults.
 
@@ -207,9 +213,84 @@ def _validate_complete_structured_stream(raw: Any) -> None:
             try:
                 json.loads(args)
             except json.JSONDecodeError as exc:
-                raise IncompleteStructuredStreamError(
-                    f"structured tool-call arguments are incomplete at chunk {index}"
+                metadata = getattr(raw, "response_metadata", {}) or {}
+                stop_reason = (
+                    metadata.get("stop_reason")
+                    if isinstance(metadata, Mapping)
+                    else None
+                )
+                error_type = (
+                    StructuredOutputTruncatedError
+                    if stop_reason == "max_tokens"
+                    else IncompleteStructuredStreamError
+                )
+                raise error_type(
+                    "structured tool-call arguments are incomplete at chunk "
+                    f"{index}; stop_reason={stop_reason!r}"
                 ) from exc
+
+
+def _aggregate_attempt_usage(attempts: list[dict[str, Any]]) -> dict[str, Any]:
+    """Sum billable attempts; typed provider failures are the sole exemption."""
+
+    rows = [
+        attempt.get("usage")
+        for attempt in attempts
+        if attempt.get("cost_counted") is not False
+        and isinstance(attempt.get("usage"), dict)
+    ]
+    required = ("input_tokens", "output_tokens", "total_tokens")
+    if not rows or any(
+        not all(isinstance(row.get(key), int) for key in required) for row in rows
+    ):
+        unavailable = normalize_model_output_usage(None, status="failed")
+        unavailable["source"] = "attempt_sum_unavailable"
+        unavailable["observed_usage"] = {
+            "billable_attempts": rows,
+            "provider_error_attempts_excluded": sum(
+                attempt.get("cost_counted") is False for attempt in attempts
+            ),
+        }
+        unavailable["unavailable_reason"] = (
+            "one or more provider attempts did not expose complete usage"
+        )
+        return unavailable
+
+    optional = (
+        "cache_read_input_tokens",
+        "cache_creation_input_tokens",
+        "ephemeral_5m_input_tokens",
+        "ephemeral_1h_input_tokens",
+        "reasoning_tokens",
+    )
+    result = {
+        key: sum(int(row[key]) for row in rows)
+        for key in required
+    }
+    for key in optional:
+        values = [row.get(key) for row in rows]
+        result[key] = (
+            sum(int(value) for value in values if isinstance(value, int))
+            if any(isinstance(value, int) for value in values)
+            else None
+        )
+    result.update(
+        {
+            "source": "attempt_sum_excluding_typed_provider_errors",
+            "status": "completed",
+            "unavailable_reason": None,
+            "usage_conflict": any(bool(row.get("usage_conflict")) for row in rows),
+            "observed_usage": {
+                "billable_attempts": rows,
+                "provider_error_attempts_excluded": sum(
+                    attempt.get("cost_counted") is False for attempt in attempts
+                ),
+            },
+            "usage_sources": ["attempt_sum_excluding_typed_provider_errors"],
+            "observed_usages": [],
+        }
+    )
+    return result
 
 
 @dataclass(frozen=True)
@@ -323,6 +404,7 @@ class DirectStructuredResponder:
             attempt_started = _utc_now()
             attempt_start_ns = time.perf_counter_ns()
             raw: Any = None
+            attempt_usage: dict[str, Any] | None = None
             try:
                 structured_options: dict[str, Any] = {"include_raw": True}
                 if self.config.adapter in {"openai", "openai-responses"}:
@@ -355,6 +437,7 @@ class DirectStructuredResponder:
                 if not isinstance(response, dict):
                     raise TypeError("include_raw structured response must be a mapping")
                 raw = response.get("raw")
+                attempt_usage = normalize_model_output_usage(raw)
                 parsing_error = response.get("parsing_error")
                 if parsing_error is not None:
                     raise StructuredOutputValidationError(
@@ -395,7 +478,6 @@ class DirectStructuredResponder:
                         if isinstance(parsed, schema)
                         else schema.model_validate(parsed)
                     )
-                usage = normalize_model_output_usage(raw)
                 metadata = getattr(raw, "response_metadata", {}) or {}
                 observed_model = (
                     metadata.get("model_name") or metadata.get("model")
@@ -412,7 +494,9 @@ class DirectStructuredResponder:
                         "status": "completed",
                         "failure_phase": "none",
                         "retryable": False,
-                        "usage": usage,
+                        "cost_counted": True,
+                        "billing_disposition": "counted",
+                        "usage": attempt_usage,
                     }
                 )
                 finished = _utc_now()
@@ -432,7 +516,7 @@ class DirectStructuredResponder:
                     user_prompt=user_input,
                     parsed_output=output.model_dump(mode="json"),
                     raw_response=_jsonable(raw),
-                    usage=usage,
+                    usage=_aggregate_attempt_usage(attempts),
                     attempts=tuple(attempts),
                     structured_schema_sha256=structured_schema_sha256,
                     schema_contract_repeated_in_prompt=self.repeat_schema_in_prompt,
@@ -446,9 +530,14 @@ class DirectStructuredResponder:
                 return output
             except Exception as exc:  # noqa: BLE001 - provider SDKs use mixed errors
                 last_error = exc
+                if attempt_usage is None and raw is not None:
+                    attempt_usage = normalize_model_output_usage(raw)
                 retryable = _retryable_error(exc)
                 status = _status_code(exc)
                 failure_phase = (
+                    "structured_output_limit"
+                    if isinstance(exc, StructuredOutputTruncatedError)
+                    else
                     "structured_stream"
                     if isinstance(exc, IncompleteStructuredStreamError)
                     else "structured_validation"
@@ -457,6 +546,11 @@ class DirectStructuredResponder:
                     if status is not None
                     else "transport"
                 )
+                will_retry = retryable and attempt_index <= self.transport_retries
+                provider_error_exempt = will_retry and failure_phase in {
+                    "provider_response",
+                    "transport",
+                }
                 attempts.append(
                     {
                         "attempt_index": attempt_index,
@@ -467,19 +561,27 @@ class DirectStructuredResponder:
                         "status": "failed",
                         "failure_phase": failure_phase,
                         "retryable": retryable,
+                        "cost_counted": not provider_error_exempt,
+                        "billing_disposition": (
+                            "provider_error_retry_exempt"
+                            if provider_error_exempt
+                            else "counted"
+                        ),
                         "error_category": type(exc).__name__,
                         "error_message": str(exc),
                         "raw_response": _jsonable(raw),
+                        "usage": attempt_usage
+                        if attempt_usage is not None
+                        else normalize_model_output_usage(None, status="failed"),
                     }
                 )
-                if not retryable or attempt_index > self.transport_retries:
+                if not will_retry:
                     break
                 delay = _retry_delay(exc, attempt_index - 1)
                 attempts[-1]["retry_after_seconds"] = delay
                 time.sleep(delay)
 
         finished = _utc_now()
-        unavailable = normalize_model_output_usage(None, status="failed")
         self._last_observation = LLMObservation(
             llm_call_id=str(uuid.uuid4()),
             role=role,
@@ -496,7 +598,7 @@ class DirectStructuredResponder:
             user_prompt=user_input,
             parsed_output=None,
             raw_response=None,
-            usage=unavailable,
+            usage=_aggregate_attempt_usage(attempts),
             attempts=tuple(attempts),
             structured_schema_sha256=structured_schema_sha256,
             schema_contract_repeated_in_prompt=self.repeat_schema_in_prompt,

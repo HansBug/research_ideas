@@ -26,7 +26,7 @@ flowchart TD
   V --> O[输出 accepted / confirmed / rejected / coverage gap]
 ```
 
-正式计分路径没有 truth-feedback 搜索回路。一个冻结的候选批次只编译和执行一次；D 的冗余 subclass 由 `D × grounding` 机械派生，只允许一次面向其余 schema/合同错误的定向修复，而且修复不得产生新 finding。这样可以防止 W2 变成“不断换断言，直到碰到一条为假”为止的可爬坡指标，也避免为了补一个可机械推导字段而重写整批 D 输出。
+正式计分路径没有 truth-feedback 搜索回路。一个冻结的候选批次只编译和执行一次；D 的冗余 subclass 由 `D × grounding` 机械派生，首轮一次处理整格 finding，随后至多一次只修非法 decision 子集，已经合法的 decision 立即冻结且不得进入 repair 输入，修复也不得产生新 finding。这样可以防止 W2 变成“不断换断言，直到碰到一条为假”为止的可爬坡指标，也避免为了修一条 D 判定而重写整批输出。
 
 ## 3. 阶段契约与跳转
 
@@ -34,14 +34,14 @@ flowchart TD
 |---|---|---|---|
 | `prepare` | NL、PlantUML、带 mapping 注释的 FCSTM、working contract | 输入 hash、canonical source IR、验证后的 inspect 摘要、确定性线索 | replay 非法要留审计；inspect 内部错误向下游降级 |
 | `contract_extraction` | 仅 numbered NL | initial、containment、按 source 分组的 direct-transition raw contract，以及跨句复用的 concept ID | provider/schema 重试耗尽可以让整格失败；此节点不读取作者源，不得让错误制品改写规范 |
-| 两个互补 `discovery_grounding` 分支 | 同一份 raw contract、NL、PlantUML、带 mapping 注释的 FCSTM、inspect 摘要、source IR 精确清单 | `contract_structure_contrast` 偏重契约/结构/对照，`behavior_consequence` 偏重可达性/响应/终止；各自产出全局 concept-ID binding、稀疏 veto patch 和 `EvidenceGoal` | 两分支独立作出语义判断，开放候选取结构化并集；确定性层只识别 exact-ID 冲突，不做文本相似度合并；formal scout 与执行只运行一次 |
+| 两个互补 `discovery_grounding` 分支 | 同一份 raw contract、NL、PlantUML、带 mapping 注释的 FCSTM、inspect 摘要、source IR 精确清单 | `contract_structure_contrast` 偏重契约/结构/对照，`behavior_consequence` 偏重可达性/响应/终止；各自产出全局 concept-ID binding、initial/containment 稀疏 veto、每个 raw transition target 的穷尽 exact observed-ID binding 和 `EvidenceGoal` | 两分支独立作出语义判断，开放候选取结构化并集；fresh 输出必须逐 raw group、逐 target 完整覆盖，缺失、重复或越界索引会让整个分支隔离且不得执行；确定性层只识别 exact-ID 冲突，不做文本相似度合并；formal scout 与执行只运行一次 |
 | `compile` | grounded `EvidenceGoal.relation` 与正式 ID | canonical template、backend route、AssertionIR、可 replay code；由已选 transition ID 机械取得 source/target/event | 不支持、未落地或不一致的绑定降为 W1/W0 coverage gap |
 | `execute` | compiled assertion + 当前精确 FCSTM/source IR | terminal receipt、observation/trace/cut/SCC、hash、limitations | 内部失败记 coverage gap，不允许让整格消失 |
 | `facet_assembly` | execution outcome + source certificate + NL obligation | 每个 `(cause, obligation)` 一条独立 record | 已满足检查丢弃；W1/W0 假设保留 |
-| `d_adjudication` | NL + 整格压缩后的 source/execution dossier，不含 W label | 一次调用为整格每个 facet 恰好输出一个 `DDecision` | 不允许新 finding；完整性或 schema 错误只允许一次携带精确错误位置的原地修复，仍失败则全部保留为 `D_UNRESOLVED` 并落盘 |
+| `d_adjudication` | 首轮为 NL + 整格压缩后的 source/execution dossier；source state/transition inventory 只共享传入一次，各 finding 仅携带 certificate 与规范性字段，不含 W label | 首轮一次调用为整格每个 facet 恰好输出一个 `DDecision`，并用 exact `duplicate_of` 边标记报告级语义重复；必要时第二次只返回非法 key 的 replacement decision | 不允许新 finding；确定性 validator 冻结合同合法的 decision，只把缺失、重复或语义非法的 key、对应 dossier、精确错误和冻结 decision 摘要送入一次 targeted repair，仍失败则仅这些 facet `D_UNRESOLVED`；`duplicate_of` 只能指向稳定顺序中更早的已知 finding；完整 structured output 不可解析时可做一次结构修复；禁止把首轮改回 batch |
 | `publish` | 全部 facet 与 decision | accepted D1/D2、confirmed D2-W2、D0 audit、coverage gap、四类 token usage 与美元成本 | 同模型美元倍率不合格的 run 可审计但不得进入结果 |
 
-`cause` 只用于技术根因去重，`obligation` 才是 D 的判定单元。由同一个 missing entry 导致的两条规范义务不能继承同一个共享 D 值；D 完成后还必须按 cause family 形成报告级 issue cluster，否则同一根因下多个同类事件后果会被重复报告。
+`cause` 只用于技术根因去重，`obligation` 才是 D 的判定单元。由同一个 missing entry 导致的两条规范义务不能继承同一个共享 D 值。报告层先按 exact cause key 聚合 facets，再消费 D 输出的 `duplicate_of` 边合并跨 cause key 的同一技术问题：LLM-C 必须判断相同 exact source elements/transition set、相同 violated property 与相同最小修复；确定性层只检查 earlier-key 方向、exact source-certificate cause 约束和 canonical `GoalRelation + bindings` property signature，不能从 claim 文本推断“最小修复”。claim 文本、token overlap、identifier 相似度和 embedding 均不参与合并，cluster 保留 `cause_keys`、`facet_keys` 与 `deduplicated_by_d` receipt。
 
 ## 4. 语义 IR 与证明策略
 
@@ -55,13 +55,13 @@ flowchart TD
 
 `expected` 的含义由 relation 的方法自有语义固定。例如 `state_exists(subject=q, expected=true)` 要求 q 存在，`transition_absent(observed_transition_id=t, expected=true)` 经 formal binding 后会被编译为该 exact edge 不应存在，`event_reaches_target(source=q0, trigger=e, target=q1, expected=true)` 要求在可到达 q0 的前提下施加 e 后进入 q1。只有 `actual != expected` 且所有前提成立时才形成 counterexample；LLM 不能通过选择 template、backend 或弱谓词改变这个判断。
 
-一个完整候选还携带 `obligation`、`claim`、`basis_kind`、`nl_quote`、`priority`、`locations`、`proposed_l` 和 `observed_fact`。这些散文与报告字段用于语义审计和 D dossier，但不进入 assertion code/hash；真正控制编译的只有 Goal、精确 binding 和形式制品。`proposed_l` 也不直接计分，最终 L 按 compiler relation 机械派生。
+一个完整候选还携带 `obligation`、`claim`、`basis_kind`、`basis`、`nl_quote`、`priority`、`locations` 和 `observed_fact`。`basis` 要求模型用自然语言说明它如何把 NL 义务、形式事实和可反驳点联系起来；`observed_fact` 只陈述输入中的可观察事实，不把执行结果冒充规范依据。D dossier 还保留 `rationale`、`grounding`、`violated_obligation`、`strongest_defeater`、`defeater_kind` 与 `defeater_disposition`，使每个 D2/D1/D0 都能审计“为什么这样判”和“什么反例仍存活”。这些散文与报告字段只用于语义审计、debug 和环外复核，不进入 assertion code/hash；真正控制编译的只有 Goal、精确 binding 和形式制品。`proposed_l` 也不直接计分，最终 L 按 compiler relation 机械派生。
 
 ### 4.2 LLM 如何生成 Goal
 
 LLM-A 仅读取 numbered NL，先抽取 initial、containment、direct transition、required state、required event scope 和跨句 concept ID。它不能看到 PlantUML、FCSTM 或 inspect，因此错误制品不能反向污染规范合同，但 A 仍可能误读 NL。
 
-两个 LLM-B 分支随后读取同一份冻结输入：A 的 raw contract、numbered NL、作者源 PlantUML、带 mapping 注释的 FCSTM、inspect 摘要和 exact source inventory。`contract_structure_contrast` 偏重显式契约、结构、跨边对照和 L0/L1，`behavior_consequence` 偏重可达性、响应、终止和 L2；二者分别输出 exact concept binding、对 A 的稀疏 `rejected/unresolved` veto patch，以及 surface/behavior `EvidenceGoal`。候选取结构化并集，两个分支不会看到对方输出或执行 truth。
+两个 LLM-B 分支随后读取同一份冻结输入：A 的 raw contract、numbered NL、作者源 PlantUML、带 mapping 注释的 FCSTM、inspect 摘要和 exact source inventory。`contract_structure_contrast` 偏重显式契约、结构、跨边对照和 L0/L1，`behavior_consequence` 偏重可达性、响应、终止和 L2；二者分别输出 exact concept binding、对 initial/containment 的稀疏 `rejected/unresolved` veto、对每个 raw transition target 的穷尽 observed-transition binding，以及 surface/behavior `EvidenceGoal`。穷尽 transition binding 是必要的，因为“哪条作者边实现了 NL 条件或动作”属于开放语义，不能交给 deterministic 字符串匹配；fresh 输出通过纯索引合同检查逐 group、逐 target 的存在性、唯一性和边界，任何不完整分支整体隔离且不得执行，旧 replay 才保留显式兼容路径。已存在且满足的 contract 会在执行后被机械过滤，缺失、错误目标或未决 binding 才进入 finding。候选取结构化并集，两个分支不会看到对方输出或执行 truth。
 
 Prompt 明确要求每个候选只有一个 obligation、一个可证伪 claim、一个 observed fact，并给出 exact source state/transition ID；LLM 只选 `relation` 与语义 binding，不写 Python、谓词调用、template、backend、W、L 或 D。无法从输入语义上证明的绑定必须进入 `unresolved`，不能凭名字、label、字符串相似度、唯一候选或执行结果猜测。worked examples 只使用 `q0/q1/evt_a` 等合成符号，不含真实 pair、ledger item、baseline miss 或预期答案。
 
@@ -120,14 +120,17 @@ assert all([_paper1_check_1, _paper1_check_2]), "paper1 formal evidence assertio
 |---|---|---|---|
 | structured output/Pydantic schema 非法 | `_invoke_with_schema_repair()` 将具体 validation error 回给同一 role 一次，要求保持同一语义答案、不增加 finding、不修改合法内容 | 是，最多一次 | 修结构，不重新搜索问题 |
 | LLM-A raw contract 语义错误 | 两个 B 分支可输出 `rejected/unresolved` sparse veto | 是，但属于原定 B 语义复审，不是执行后返工 | A 只读 NL，B 用多视图复审规范 relation |
-| 两个 B 对同一 concept 给出冲突 exact ID | 确定性移除冲突 binding并记 unresolved diagnostic | 否 | 冲突本身可完美判定，不能猜一个赢家 |
+| fresh B transition binding 缺失、重复或索引越界 | 对 raw group 与 target index 做纯结构完整性检查，不完整分支整体隔离并保留 diagnostic，不执行该分支的 contract 或 candidate | 否 | 条目覆盖是可完美判定的合同；条件/动作语义仍完全来自 LLM 输出，不用字符串补全 |
+| 两个 B 对同一 concept 或 raw transition target 给出冲突 exact ID | 确定性移除冲突 binding 并记 unresolved diagnostic，raw contract 进入 coverage-gap fallback | 否 | 冲突本身可完美判定，不能猜一个赢家 |
 | exact ID 非法或 required binding 缺失 | 清空非法字段或由 compiler 返回 relation-specific error，候选降 W1/W0 | 否 | 当前没有 execution-before repair；避免隐藏的语义补全 |
 | unsupported guard、并发、hierarchy 或其他 formal fragment | 保留 Goal、限制与 coverage gap，最高 W1 | 否 | LLM 不能修复后端 soundness 边界 |
 | candidate executor exception | 逐候选隔离为 W1/W0，记录异常，其他候选继续 | 否 | 一个后端异常不能让整 pair 消失，也不能让 LLM看到 truth 后换断言 |
 | assertion terminal verdict 为 satisfied | 不发布该 issue，保留 attempt ledger | 否 | 正式路径禁止不断改 Goal 直到得到 false |
 | D structured output 非法 | 整格 D 调用做一次带精确错误位置的 schema repair | 是，最多一次 | 只修输出形状，不重新分批搜索 |
-| D finding key 缺失、重复或多余 | `validate_d` 将精确合同错误定向反馈一次；仍失败则逐 facet `D_UNRESOLVED` | 是，最多一次 | 不允许重写已经合法的 finding 或重启 discovery |
+| D finding key 缺失、重复或 D 等级/grounding 合同非法 | `validate_d` 冻结全部合法 decision，只把非法 key、对应 finding dossier 和逐条错误送入一次 `paper1_d_targeted_repair`；仍失败仅非法子集 `D_UNRESOLVED` | 是，最多一次 | 初始 D 不 batch；局部返工不重写合法 decision，也不重启 discovery |
 | provider 错误或两次后仍 schema-invalid | 允许整格失败并保存审计 | 否 | 这是仓库失败政策允许的两个 escape hatch |
+
+计费不把上述错误一视同仁。只有确实触发下一次调用、且由 typed 异常或 HTTP 状态确认的 provider/transport failure retry 前序 attempt 可以标为 `provider_error_retry_exempt`；没有发生 retry 的 provider 失败也计费。schema 失败、D targeted repair、内容返工和 `stop_reason=max_tokens` 截断的每个 attempt 都计费。输出截断不得在 responder 内用同一输入盲重试，而是作为 `structured_output_limit` 进入至多一次、携带具体错误的结构修复。每个逻辑调用聚合全部应计 attempt 的 uncached input、output、cache read 与 cache write；若任一应计 attempt 没有完整 usage，整格成本不具备实验资格。
 
 最重要的边界是：backend exception 不交给 LLM“改到能跑”。异常可能来自后端 bug、unsupported semantics 或环境问题；正确处理是封存原 Goal、记录 stack/error class、修复后端后 replay 同一个 Goal。若把 exception 连同 truth/counterexample 交回 B，模型可以通过改变义务规避错误或追逐 W2，实验将失去可解释性。
 
@@ -149,7 +152,7 @@ assert all([_paper1_check_1, _paper1_check_2]), "paper1 formal evidence assertio
 
 任何涉及 NL 的同义、指代、条件作用域、规范义务、描述与 source element 的对应关系都属于非确定性语义问题，必须由显式 LLM 节点回答并保存结构化输出。运行时禁止使用正则、关键词、`and/or` 等连接词、词干、编辑距离、substring、embedding 相似度阈值或 identifier 形状来替代这些判断；这类启发式即使在工程调试中提高 hit，也不能进入方法或正式实验。
 
-该禁令同时覆盖 schema validator 和数据预处理。validator 只能拒绝可被完美判定的结构错误，例如非法枚举、缺少必填项、精确 ID 不存在、引用越界、正式语法不合法或预算越界；不得依据自由文本的长度、词汇、标点、相似度或解释内容决定某个 contract、binding、finding 或 D 是否成立。`reason` 只承担审计说明，不参与 deterministic control flow；LLM 给出的 `grounded/rejected/unresolved` 枚举才是 assembler 唯一可消费的语义决策。若 reason 较长或措辞改变而其他结构化字段不变，方法的编译、执行、W/L 与 source certificate 必须保持不变。
+该禁令同时覆盖 schema validator 和数据预处理。validator 只能拒绝可被完美判定的结构错误，例如非法枚举、缺少必填项、精确 ID 不存在、引用越界、正式语法不合法或预算越界；不得依据自由文本的长度、词汇、标点、相似度或解释内容决定某个 contract、binding、finding 或 D 是否成立。`basis`、`reason`、`observed_fact` 和 `rationale` 只承担可读审计说明，不参与 deterministic control flow；LLM 给出的 `grounded/rejected/unresolved`、D 枚举和 exact binding 字段才是 assembler 可消费的语义决策。若这些散文改写而结构化字段不变，方法的编译、执行、W/L、D 合同和 source certificate 必须保持不变。
 
 确定性计算只承担能被完美判定的合同：schema 与枚举、精确 ID 存在性、transition ID 的 source/target 一致性、source AST/working-contract mapping、pyfcstm inspect/trace/topology、SMT、hash、预算、引用原文是否逐字存在。后一项只证明引用完整性，不证明引用支持 claim。若语义 grounding 未决，系统必须显式降级为 W1/W0 或 coverage gap，不能通过确定性猜测提升为 W2。
 
@@ -198,6 +201,8 @@ FCSTM execution 与作者源 causality 是两个不同命题。只有具备 beha
 
 D call 读取实际 source facts 与 certificate summary，但看不到 W label。它必须先处理 grounding 和最强 undercutting/rebutting defeater，最后再输出 `D2/D1/D0`。D1 必须同时具有非 `none` 的第一读法 grounding 和一个存活或未决的 undercutting defeater；仅仅执行未完成、结构主张未证实或没有可陈述义务时应判 D0，不能把 epistemic uncertainty 冒充两读并立。D1 与 D2 均保留，D0 留在 audit set；`confirmed_issues` 更窄，只包含 D2 + W2 + safe source attribution。
 
+D dossier 采用“共享事实表 + finding 引用”的关系型表示：numbered NL、source state inventory 与 source transition inventory 在整格只出现一次，每个 finding 只携带 `finding_key`、claim、obligation、逐字 NL anchor、evidence status、source attribution、typed language/oracle receipt 与压缩 source certificate。LLM-C 仍在一次调用中同时看到全部 finding 和同一份全局 source graph，能够跨 finding 识别共同根因与相互冲突；消除的只是同一 source neighborhood 在几十个 finding 中的字节级重复，不是把 D 重新分 batch。
+
 L 根据语义关系机械派生：直接 inventory/edge fact 为 L0，静态 structure/guard relation 为 L1，path/reachability/response/termination obligation 为 L2。模型提出的 L 不得覆盖这份映射。
 
 ## 7. 当前原型证据
@@ -208,7 +213,7 @@ L 根据语义关系机械派生：直接 inventory/edge fact 为 L0，静态 st
 
 v5 同时显示当前未冻结：一个候选明说“no surface violation”却仍占用 candidate slot并降为 D0/W1；两个 Power Off L2 假设重复了 event-scope contract，其中一个错误使用别处 transition 仅绑定事件身份而降为 W1；root scope event contract 因当前 exact-state scope合同不接收根机器而留下 formal diagnostic。对应修订只能发生在 LLM prompt/IR 边界，不能用 NL 关键词或 identifier 规则补答案：`final_pseudostates` 清单现在被明确规定为 realized/missing 的正式依据，`event_reaches_target` 只允许选择作为该 normative source 响应实现的 transition，缺 scope consumer 必须走 indexed event-scope binding。
 
-既有真实输入运行只作为工程调试记录保存在 `runs/paper1/witness-search/`，不在方法文档中报告命中率，也不用于论证 relation、compiler 或 prompt 语义的由来。方法语义由领域来源账给出，效果统一由完整 54 pair benchmark 给出。
+既有真实输入运行只作为工程调试记录保存在 `runs/paper1/witness-search/`，不用于论证 relation、compiler 或 prompt 语义的由来。五格 pilot 的逐 record 对齐、strict confirmed 集、成本和限制集中记录在 [PILOT_REPORT.md](./PILOT_REPORT.md)；它不是统一冻结版本的完整 benchmark，不能替代 54 pair 效果结论。方法语义由领域来源账给出，效果统一由完整 54 pair benchmark 给出。
 
 `0048-v2-grounded-union-fresh-opus47` 是一次事前未读 NL、PlantUML、ledger 与 X1v2 的 hash-selected fresh pilot。v1 暴露 bounded LLM schema 被误用于合并后内部合同的问题；无损 `GroundedContractPlan` 与 `16+3=19` 回归修复后，v2 完整产生 29 个 outcome、6 条 report，全部 W2，D2/D1 各 3，L0/L1/L2 为 2/3/1。事后打开第二版台账发现 0048 没有条目，因此该 run 的 hit 分母为 0；它只能测试未登记发现与 false positive。LLM-B 已把 `Junction3` composite-initial 和 `Fork2 -> Terminate` 两个 raw contract 明确记为 plan artifact/错误源端，但旧 binding schema 仍执行并分别发布为 D2/W2 与 D1/W2，说明真实 execution certificate 不能挽救错误的规范前提。当前 schema 因此要求每个 raw contract 显式给出 `grounded/rejected/unresolved`，后两者由 assembler 机械停止编译且绝不解析 reason 文本。v2 三个成功 attempt 的 recorded usage 为 53,139 token，但两次 schema-repair 首次 attempt usage 缺失，故 `eligible=false`，不能进入效果或成本主结果。
 

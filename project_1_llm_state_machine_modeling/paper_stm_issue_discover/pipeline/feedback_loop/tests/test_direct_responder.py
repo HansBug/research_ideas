@@ -66,6 +66,11 @@ class _IncompleteStructured:
     def stream(self, _messages):
         raw = AIMessageChunk(
             content="",
+            usage_metadata={
+                "input_tokens": 100,
+                "output_tokens": 10,
+                "total_tokens": 110,
+            },
             tool_call_chunks=[
                 {
                     "name": "RequirementReview",
@@ -85,11 +90,47 @@ class _IncompleteStructured:
         yield AddableDict(parsing_error=None)
 
 
+class _TruncatedStructured(_IncompleteStructured):
+    def stream(self, messages):
+        chunks = list(super().stream(messages))
+        raw = chunks[0]["raw"]
+        raw.response_metadata = {"stop_reason": "max_tokens"}
+        yield from chunks
+
+
 class _IncompleteModel:
     def with_structured_output(self, _schema, include_raw=False, method=None):
         assert include_raw is True
         assert method == "function_calling"
         return _IncompleteStructured()
+
+
+class _TruncatedModel:
+    def with_structured_output(self, _schema, include_raw=False, method=None):
+        assert include_raw is True
+        assert method == "function_calling"
+        return _TruncatedStructured()
+
+
+class _ProviderError(RuntimeError):
+    status_code = 503
+
+
+class _ProviderFailureStructured:
+    def stream(self, _messages):
+        raise _ProviderError("provider unavailable")
+        yield  # pragma: no cover
+
+
+class _RecoveringProviderModel:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def with_structured_output(self, schema, include_raw=False, method=None):
+        assert include_raw is True
+        assert method == "function_calling"
+        self.calls += 1
+        return _ProviderFailureStructured() if self.calls == 1 else _Structured(schema)
 
 
 class _RecoveringIncompleteModel:
@@ -314,6 +355,8 @@ def test_direct_responder_rejects_incomplete_structured_stream(monkeypatch) -> N
     assert len(observation.attempts) == 1
     assert observation.attempts[0]["failure_phase"] == "structured_stream"
     assert observation.attempts[0]["retryable"] is True
+    assert observation.attempts[0]["cost_counted"] is True
+    assert observation.usage["input_tokens"] == 100
 
 
 def test_direct_responder_retries_incomplete_stream_without_business_revision(
@@ -352,6 +395,116 @@ def test_direct_responder_retries_incomplete_stream_without_business_revision(
         "completed",
     ]
     assert observation.attempts[0]["failure_phase"] == "structured_stream"
+    assert observation.attempts[0]["cost_counted"] is True
+    assert observation.usage["input_tokens"] == 220
+    assert observation.usage["output_tokens"] == 40
+    assert observation.usage["total_tokens"] == 260
+
+
+def test_output_limit_is_counted_and_not_blindly_transport_retried(monkeypatch) -> None:
+    config = LLMConfig(
+        adapter="openai",
+        model="configured-unit-model",
+        api_key="unit-test-key",
+    )
+    monkeypatch.setattr(
+        responder_module, "load_llm_registry", lambda _path=None: _Registry(config)
+    )
+    monkeypatch.setattr(
+        responder_module,
+        "create_chat_model",
+        lambda *_args, **_kwargs: _TruncatedModel(),
+    )
+    responder = DirectStructuredResponder("unit-profile", transport_retries=3)
+
+    with pytest.raises(
+        responder_module.StructuredOutputTruncatedError,
+        match="stop_reason='max_tokens'",
+    ):
+        responder.invoke_structured(
+            role="requirement_reviewer",
+            schema=RequirementReview,
+            system_prompt="system",
+            user_input="user",
+        )
+
+    observation = responder.take_last_observation()
+    assert observation is not None
+    assert len(observation.attempts) == 1
+    assert observation.attempts[0]["failure_phase"] == "structured_output_limit"
+    assert observation.attempts[0]["retryable"] is False
+    assert observation.attempts[0]["cost_counted"] is True
+    assert observation.usage["total_tokens"] == 110
+
+
+def test_provider_error_retry_is_the_only_cost_exemption(monkeypatch) -> None:
+    config = LLMConfig(
+        adapter="openai",
+        model="configured-unit-model",
+        api_key="unit-test-key",
+    )
+    monkeypatch.setattr(
+        responder_module, "load_llm_registry", lambda _path=None: _Registry(config)
+    )
+    model = _RecoveringProviderModel()
+    monkeypatch.setattr(
+        responder_module,
+        "create_chat_model",
+        lambda *_args, **_kwargs: model,
+    )
+    monkeypatch.setattr(responder_module, "_retry_delay", lambda *_args: 0.0)
+    responder = DirectStructuredResponder("unit-profile", transport_retries=1)
+
+    output = responder.invoke_structured(
+        role="requirement_reviewer",
+        schema=RequirementReview,
+        system_prompt="system",
+        user_input="user",
+    )
+
+    observation = responder.take_last_observation()
+    assert output.decision == "accept"
+    assert observation is not None
+    assert model.calls == 2
+    assert observation.attempts[0]["failure_phase"] == "provider_response"
+    assert observation.attempts[0]["cost_counted"] is False
+    assert observation.attempts[0]["billing_disposition"] == (
+        "provider_error_retry_exempt"
+    )
+    assert observation.attempts[1]["cost_counted"] is True
+    assert observation.usage["input_tokens"] == 120
+    assert observation.usage["output_tokens"] == 30
+
+
+def test_unretried_provider_error_is_counted(monkeypatch) -> None:
+    config = LLMConfig(
+        adapter="openai",
+        model="configured-unit-model",
+        api_key="unit-test-key",
+    )
+    monkeypatch.setattr(
+        responder_module, "load_llm_registry", lambda _path=None: _Registry(config)
+    )
+    monkeypatch.setattr(
+        responder_module,
+        "create_chat_model",
+        lambda *_args, **_kwargs: _RecoveringProviderModel(),
+    )
+    responder = DirectStructuredResponder("unit-profile", transport_retries=0)
+
+    with pytest.raises(RuntimeError, match="provider unavailable"):
+        responder.invoke_structured(
+            role="requirement_reviewer",
+            schema=RequirementReview,
+            system_prompt="system",
+            user_input="user",
+        )
+
+    observation = responder.take_last_observation()
+    assert observation is not None
+    assert len(observation.attempts) == 1
+    assert observation.attempts[0]["cost_counted"] is True
+    assert observation.attempts[0]["billing_disposition"] == "counted"
 
 
 def test_empty_structured_output_is_retryable_but_schema_violations_are_not() -> None:

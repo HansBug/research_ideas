@@ -73,20 +73,20 @@ flowchart TD
 | `domain_freeze` | 外部文献、UML 元模型、pyfcstm 可执行片段 | obligation taxonomy、operator roles、compiler registry、soundness table、prompt hash | 任何能力没有领域来源时不进入 core；没有 sound backend 时由 `SupportDisposition` 降级，不查 benchmark 补洞 |
 | `prepare` | NL、PlantUML、FCSTM、working contract、source trace | numbered NL、canonical source IR、带 mapping comments 的 FCSTM、verify/SMT inspect、artifact hash | parse/inspect 内部失败记 structured coverage gap，pair 继续 |
 | `contract_extraction` | 仅 numbered NL | explicit initial/containment/transition/state/event-scope contract 与跨句 concept ID | 一次 schema 定向修复；该节点看不到制品，防止错误模型改写规范 |
-| `discovery_grounding` × 2 | 同一 NL contract、四视图、inspect frontier、exact inventory | typed obligation、精确 concept/transition/state binding、sparse semantic veto、observed fact | 两个互补 lens 独立运行；exact binding 冲突可机械 veto，语义冲突不得按文本相似度裁决 |
+| `discovery_grounding` × 2 | 同一 NL contract、四视图、inspect frontier、exact inventory | typed obligation、精确 concept/state binding、initial/containment sparse semantic veto、每个 raw transition target 的穷尽 observed-transition binding、observed fact | 两个互补 lens 独立运行；fresh 分支必须逐 raw group、逐 target 完整覆盖，任何缺失、重复或越界索引都会让该分支整体隔离且不得执行；exact binding 冲突可机械 veto，语义冲突不得按文本相似度裁决；满足的 transition contract 在执行后过滤，不占 D 输出 |
 | `compile` | typed obligation、lowering op、exact formal IDs | Evidence Program、backend、preconditions、oracle、soundness fragment、replay code/hash | 缺字段、family 不兼容或 unsupported 均降级，不让 pair 崩溃 |
 | `execute` | Evidence Program、精确 source/FCSTM artifact | terminal verdict、observations、trace/path/cut/SCC/SMT model、source certificate、tool/config/hash | assertion satisfied 只记 attempt；counterexample 进入 finding；exception 逐候选降级 |
-| `facet_assembly` | obligation、cause、execution/source receipts | 每个 `(cause, obligation)` 一条 finding facet | 相同 cause 的多个义务不共享 D；报告层随后按精确 cause key 聚类并保留 facets |
-| `d_adjudication` | 整格 numbered NL、全部压缩 finding dossier、source neighborhood、language clause，不含 W label | 每个 finding 恰好一个 DDecision | 正常路径整格一次调用；缺失/重复 key 只允许一次带精确错误位置的原地修复，仍失败则全部 `D_UNRESOLVED` 落盘 |
+| `facet_assembly` | obligation、cause、execution/source receipts | 每个 `(cause, obligation)` 一条 finding facet | 相同 cause 的多个义务不共享 D；报告层先按精确 cause key 聚类并保留 facets |
+| `d_adjudication` | 首轮输入整格 numbered NL、全部压缩 finding dossier、共享一次的 source state/transition inventory、language clause，不含 W label | 每个 finding 恰好一个 DDecision，同时可用 exact `duplicate_of` 边标记报告级语义重复 | 首轮整格一次调用且禁止 batch；若 decision 的 key 合同、D 语义合同或 duplicate 引用非法，确定性 validator 冻结全部合法 decision，只把非法 finding、对应 dossier、精确错误和冻结 decision 摘要送入一次 targeted repair；修复仍失败时仅该子集 `D_UNRESOLVED`，其他 decision 原样保留；structured-output 整体不可解析时才允许同一节点做一次带错误位置的结构修复 |
 | `publish` | finding + D/W/L/source receipts | accepted、confirmed、D0 audit、coverage gap、usage/cost | D1/D2 的 W0/W1 仍可 provisional 发布；W2 若 source attribution 不安全则不能冒充作者源 issue |
 
-整个流程没有 execution-truth feedback 搜索回路。LLM-B 看不到 assertion true/false，不会在失败后换一个更容易得到 counterexample 的义务；backend bug 修复后 replay 同一个 typed obligation。只有 provider 错误和穷尽定向修复后仍 schema-invalid 可以让整格失败，其他内部错误一律降级并落盘。
+整个流程没有 execution-truth feedback 搜索回路。LLM-B 看不到 assertion true/false，不会在失败后换一个更容易得到 counterexample 的义务；backend bug 修复后 replay 同一个 typed obligation。只有 provider 错误和穷尽定向修复后仍 schema-invalid 可以让整格失败，其他内部错误一律降级并落盘。任何 LLM 返工都进入计费，只有确实触发下一次调用的 provider/transport retry 前序失败 attempt 可以豁免；未重试的 provider 失败、schema 修复、output-limit、D targeted repair 和所有内容返工都计费并保留审计。
 
 ## 6. Evidence Program 与 W2
 
 选择结论：不让 LLM 自由写 Python，也不把旧谓词列表当论文表达面。LLM 生成 typed obligation 与 exact bindings，固定 compiler 决定 source AST、guard SMT、graph proof 或 pyfcstm trace/BMC 后端，并渲染可重放 assertion code。这样保留开放语义表达能力，同时把执行、source attribution、hash、异常和 soundness 边界固定在方法内。
 
-一个 Evidence Program 至少包含：`domain_obligation`、`nl_anchor`、`formal_bindings`、`semantic_binding_receipt`、`preconditions`、`oracle`、`backend`、`soundness_fragment`、`source_cause_check`、`compiled_code_sha256` 和 `artifact_sha256`。程序运行后产生 Execution Receipt：`terminal`、`verdict`、`counterexample_found`、`observed_values`、`trace/path/cut/SCC/SMT_model`、`engine/tool_version`、`limitations`、`source_causality_certificate` 与完整 call/plan/candidate hash chain。
+一个 Evidence Program 至少包含：`domain_obligation`、`nl_anchor`、`formal_bindings`、`semantic_binding_receipt`、`preconditions`、`oracle`、`backend`、`soundness_fragment`、`source_cause_check`、`compiled_code_sha256` 和 `artifact_sha256`。候选另外保存 LLM 的 `basis` 与 `observed_fact`，D dossier 保存 `rationale`、`strongest_defeater` 和 `defeater_disposition`；这些字段让审计者能够重建语义判断依据，但不进入 assertion code/hash，也不替代 formal receipt。程序运行后产生 Execution Receipt：`terminal`、`verdict`、`counterexample_found`、`observed_values`、`trace/path/cut/SCC/SMT_model`、`engine/tool_version`、`limitations`、`source_causality_certificate` 与完整 call/plan/candidate hash chain。
 
 W2 的机械判据是：存在 typed Evidence Program；程序在记录 hash 的确切制品上真实运行；terminal verdict 为 counterexample；receipt 与 compiled assertion hash 闭合；若报告作者源 issue，还必须有安全 runtime path、source direct certificate 或 source/FCSTM causal dual certificate。生成了代码但没有运行、运行异常、precondition 未满足、结果 inconclusive 或 source cause 不闭合都不能算 W2。
 
@@ -139,7 +139,7 @@ D2 细分为 `D2-lit`、`D2-impl`、`D2-norm`。`D2-lit` 必须引用确切 NL s
 
 ## 8. Finding、accepted 与 confirmed
 
-`finding` 是 `(cause, obligation)` facet，不是最终发布单位。它包含 typed obligation、claim、exact locations、W/L、execution/source receipts、D decision 和 validation errors。一个根因可能违反多个义务，因此 facets 各自判 D；随后只按精确 cause key 聚成 report issue，不能用文本相似度、embedding 或自由描述做 dedup。
+`finding` 是 `(cause, obligation)` facet，不是最终发布单位。它包含 typed obligation、claim、exact locations、W/L、execution/source receipts、D decision 和 validation errors。一个根因可能违反多个义务，因此 facets 各自判 D。最终 report issue 先按精确 cause key 聚合，再由同一次整格 D 调用判断跨 cause key 的语义重复；LLM 只能用 exact `duplicate_of=<earlier finding_key>` 表示“相同 exact source elements/transition set、相同 violated property、相同最小修复”。确定性层只校验 earlier-key 引用闭包和方向、exact source-certificate cause 约束与 canonical `GoalRelation + bindings` property signature，随后执行并查集合并；它不读取自由文本，也不自称验证了最小修复。文本相似度、embedding、identifier 或自由描述均不参与 dedup，cluster 保留全部 cause/facet 与 duplicate receipt。
 
 `accepted` 是可发布集合：D 必须为 D1 或 D2，D/W 合同无错误，source certificate 不能明确 `sound_for_claim=false`。W2 finding 还必须有安全 source attribution；W1/W0 不要求伪造 source-W2，因此高 D 但证据较弱的问题以 `provisional_issue` 发布，符合 W2 → W1 → W0 的兜底关系。
 
@@ -155,7 +155,7 @@ Runtime 不导入 `ledger.json`、X1v2 命中、真实台账答案或 matching v
 
 ## 10. 完整 54 pair 评测合同
 
-主比较必须同模型横向进行，例如 Opus 对 Opus、GPT 对 GPT。方法成本读取 `.llmconfig.yml` 的 uncached input、output、cache read、cache write 四类美元单价；缓存按配置价格计入，不追求复原每家账单的所有长上下文、峰谷或 TTL 细节。每个方法格相对同模型 X1v2 的美元倍率必须低于25×，质量优先，目标均值控制在15×以内。
+主比较必须同模型横向进行，例如 Opus 对 Opus、GPT 对 GPT。方法成本读取 `.llmconfig.yml` 的 uncached input、output、cache read、cache write 四类美元单价；缓存按配置价格计入，不追求复原每家账单的所有长上下文、峰谷或 TTL 细节。schema 失败、output-limit、内容修复和其他非 provider 错误的全部 attempt 都计费，只有 typed provider/transport failure 的重试可排除重复计费；排除不等于删除，attempt、异常和可得 usage 仍完整落盘。每个方法格相对同模型 X1v2 的美元倍率必须低于25×，质量优先，目标均值控制在15×以内。
 
 主质量门是 overall `hit@1` 至少比 X1v2 高5个百分点，且按 pair 聚类的 bootstrap 95% CI 下界大于0；overall `hit@all` 也必须提高，防止只靠方差偶然命中。D2×L2 目标是至少覆盖28/34个 unique item、`hit@3 >= 70%`、`hit@all > 50%`，但论文必须同时报告 L0/L1/L2 和全部 D×L，不能只展示优势分层。
 

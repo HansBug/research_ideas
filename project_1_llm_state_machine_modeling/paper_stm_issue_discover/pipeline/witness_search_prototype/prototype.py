@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 
 def _find_repo_root(start: Path) -> Path:
@@ -311,6 +311,15 @@ class EvidenceGoal(BaseModel):
 class EvidenceCandidate(BaseModel):
     obligation: str = Field(min_length=1)
     claim: str = Field(min_length=1)
+    basis: str = Field(
+        default="",
+        max_length=1200,
+        description=(
+            "Concise natural-language basis for proposing this candidate: connect "
+            "the cited requirement to the observed formal fact. Fresh discovery "
+            "outputs must fill this field; the compiler never interprets it."
+        ),
+    )
     basis_kind: Literal["nl_literal", "implicit_oracle", "domain_norm"]
     nl_quote: str | None = None
     priority: int = Field(ge=1, le=5)
@@ -366,6 +375,10 @@ class SurfaceObligation(BaseModel):
         return EvidenceCandidate(
             obligation=self.obligation,
             claim=f"Executable obligation: {self.obligation}",
+            basis=(
+                "The contract extractor supplied this explicit natural-language "
+                "obligation and its verbatim source span."
+            ),
             basis_kind="nl_literal",
             nl_quote=self.nl_quote,
             priority=self.priority,
@@ -588,9 +601,27 @@ class TransitionTargetGrounding(BaseModel):
 
 class TransitionGroupGrounding(BaseModel):
     item_index: int = Field(ge=0)
-    status: Literal["grounded", "rejected", "unresolved"]
-    source: str | None = Field(default=None, min_length=1, max_length=200)
-    targets: list[TransitionTargetGrounding] = Field(default_factory=list)
+    status: Literal["grounded", "rejected", "unresolved"] = Field(
+        description=(
+            "grounded when the NL relation is semantically valid; rejected when "
+            "the raw extractor invented it; unresolved only for a genuine competing "
+            "NL reading"
+        )
+    )
+    source: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=200,
+        description="Exact author-source state ID for a grounded raw group.",
+    )
+    targets: list[TransitionTargetGrounding] = Field(
+        default_factory=list,
+        description=(
+            "For a grounded group, exactly one row per raw target in target_index "
+            "order, carrying its normative exact target and the semantically "
+            "corresponding authored transition ID when one exists."
+        ),
+    )
     reason: str | None = Field(default=None, min_length=1)
 
 
@@ -612,12 +643,29 @@ class RequiredEventScopeGrounding(BaseModel):
     reason: str | None = Field(default=None, min_length=1)
 
 
+class UnauthorizedTransitionGrounding(BaseModel):
+    """An LLM-semantic audit result for one authored edge.
+
+    The compiler never infers authorization from labels or from an omitted NL
+    mention.  It only consumes this explicit semantic decision and checks the
+    selected transition ID plus the cited NL span before lowering it to the
+    existing ``transition_absent`` proof route.
+    """
+
+    observed_transition_id: str = Field(min_length=1, max_length=160)
+    status: Literal["unauthorized", "unresolved"]
+    nl_quote: str | None = Field(default=None, min_length=1)
+    nl_lines: list[int] = Field(default_factory=list, max_length=8)
+    rationale: str = Field(min_length=1, max_length=800)
+
+
 class DiscoveryGroundingPlan(BaseModel):
     """One compact cross-view semantic patch plus executable hypotheses.
 
-    The three raw-contract binding lists are sparse veto/ambiguity patches.
-    Omitted contracts are accepted only through an explicit concept binding;
-    exhaustive binding lists from older replay records remain valid.
+    Initial and containment bindings are sparse veto/ambiguity patches. Transition
+    bindings are exhaustive in fresh runs because their conditions and actions
+    cannot be bound by deterministic text rules. Older sparse replay records remain
+    accepted by the graph's explicitly separate replay path.
     """
 
     concept_bindings: list[CompactConceptBinding] = Field(default_factory=list)
@@ -638,13 +686,22 @@ class DiscoveryGroundingPlan(BaseModel):
     transition_group_bindings: list[TransitionGroupGrounding] = Field(
         default_factory=list,
         description=(
-            "Sparse rejected/unresolved patches; grounded rows are accepted only "
-            "for backward-compatible replay."
+            "Fresh-run exhaustive resolutions: exactly one row for every raw "
+            "transition group and, when grounded, exactly one target row for every "
+            "raw target. Replay compatibility is handled outside this schema."
         ),
     )
     required_state_bindings: list[RequiredStateGrounding] = Field(default_factory=list)
     required_event_scope_bindings: list[RequiredEventScopeGrounding] = Field(
         default_factory=list
+    )
+    unauthorized_transition_bindings: list[UnauthorizedTransitionGrounding] = Field(
+        default_factory=list,
+        description=(
+            "Sparse semantic audit results for authored transitions that the NL "
+            "does not authorize. Every row must name an exact source transition "
+            "ID; omission is not interpreted as authorization or rejection."
+        ),
     )
     additional_contracts: ContractExtractionPlan = Field(
         default_factory=lambda: ContractExtractionPlan(
@@ -686,6 +743,20 @@ class DDecision(BaseModel):
     defeater_kind: Literal["none", "undercutting", "rebutting"]
     defeater_disposition: Literal["defeated", "survives", "unresolved"]
     rationale: str = Field(min_length=1)
+    duplicate_of: str | None = Field(
+        default=None,
+        description=(
+            "Exact earlier finding_key for the same technical defect, or null when "
+            "this finding is an independent report issue."
+        ),
+    )
+    duplicate_rationale: str | None = Field(
+        default=None,
+        description=(
+            "One sentence naming the shared exact source cause and violated "
+            "property when duplicate_of is non-null."
+        ),
+    )
     d_subclass: DSubclass
     d_level: DLevel
 
@@ -936,19 +1007,29 @@ Return one `DiscoveryGroundingPlan`:
    for genuine semantic coreference. A required-state concept judged missing, a
    final pseudostate, or unresolved is handled by its indexed required-state
    resolution; do not invent an ID for it.
-2. `initial_contract_bindings`, `containment_contract_bindings`, and
-   `transition_group_bindings` are sparse semantic vetoes, not exhaustive copies.
-   Re-audit every raw item, but output a row only when its status is `rejected` or
-   `unresolved`. `rejected` means the raw extractor invented the relation, such as
-   treating ordinary sequential prose as composite initialization or assigning
-   an event transition to the wrong NL source. `unresolved` means multiple
-   competent readings remain. Leave formal fields empty and state one short
-   reason. Silence after re-audit means the LLM accepts the raw NL relation; the
-   deterministic assembler then substitutes only this plan's exact
-   `concept_bindings`. It never matches names or searches text. Older replay
-   records may contain exhaustive `grounded` rows and remain accepted.
+2. `initial_contract_bindings` and `containment_contract_bindings` are sparse
+   semantic vetoes. Re-audit every raw item, but output a row only when its status
+   is `rejected` or `unresolved`. `rejected` means the raw extractor invented the
+   relation, such as treating ordinary sequential prose as composite
+   initialization. `unresolved` means multiple competent readings remain. Leave
+   formal fields empty and state one short reason. Silence means the LLM accepts
+   the raw relation and the deterministic assembler substitutes only this plan's
+   exact `concept_bindings`; it never matches names or searches text.
 
-   Judge status from the NL relation, never from whether the observed artifact
+   `transition_group_bindings` is deliberately exhaustive because condition and
+   action descriptions cannot be matched by deterministic text rules. Return
+   exactly one indexed row for every raw transition group. A `grounded` row must
+   provide the exact normative source and exactly one target row for every raw
+   target. Each target row preserves the normative exact target and supplies the
+   exact `observed_transition_id` when one authored transition semantically
+   realizes that NL relation. If the intended edge is absent, leave that ID null.
+   If an authored edge realizes the stated action or condition but has the wrong
+   target, select that exact wrong-edge ID while preserving the normative target;
+   execution will test the mismatch. Use `rejected` or `unresolved` with empty
+   formal fields only when the NL relation itself is rejected or ambiguous.
+   Older sparse replay records remain accepted, but fresh plans must be exhaustive.
+
+   Judge every status from the NL relation, never from whether the observed artifact
    satisfies it. If NL truly says state `q` is inside `P` while the inventory
    places `q` at root, the contract is `grounded` with normative parent `P` and
    observed child ID `q`; that mismatch is exactly what execution must test. If
@@ -1000,13 +1081,26 @@ Return one `DiscoveryGroundingPlan`:
    inventory, containment, entry, label/effect, transition, or guard structure.
 7. `behavior_candidates`: at most five distinct L2 hypotheses concerning path,
    reachability, response, escapability, wrong scope, deadlock, or termination.
-8. `unresolved`: list ambiguous or unavailable candidate/concept bindings not
+8. `unauthorized_transition_bindings`: a sparse result of the complete authored-
+   edge authorization audit. Emit one row only when semantic comparison supports
+   the conclusion that an exact authored transition is forbidden or extraneous;
+   include its exact transition ID, one verbatim NL span that supplies the
+   normative context, the physical NL line numbers used, and a concise semantic
+   rationale. Use `status=unresolved` when two competent authorization readings
+   remain. Do not treat omission from this list as authorization, and do not
+   classify an edge as unauthorized merely because its label or identifier is
+   absent from NL. The compiler turns only `status=unauthorized` rows into the
+   fixed `transition_absent` evidence lane.
+9. `unresolved`: list ambiguous or unavailable candidate/concept bindings not
    already represented by an indexed contract status. An unresolved item may
    remain as a W1/W0 coverage gap, but must not be made executable by guessing.
 
-For every candidate, state one obligation, one falsifiable claim, and one concise
-observed source/FCSTM/inspect fact. `domain_obligation` is the paper-level typed
-surface and is required for every new candidate:
+For every candidate, state one obligation, one falsifiable claim, one concise
+natural-language `basis`, and one concise observed source/FCSTM/inspect fact.
+`basis` explains why the cited obligation and observation justify testing this
+candidate; it is an audit field, not a compiler input. `observed_fact` states only
+the exact formal observation and must not predict execution. `domain_obligation`
+is the paper-level typed surface and is required for every new candidate:
 - use `element` for existence or an NL-explicit cardinality; absence is the
   derived negation of existence, while kind comparison is compiler IR rather
   than an independent domain property;
@@ -1027,6 +1121,12 @@ derives one `SupportDisposition`: executable/W2 ceiling, located-only/W1 ceiling
 or prose-only/W0 ceiling. A meaningful orthogonal-region, history, opaque-action,
 or unsupported temporal issue remains in its closest semantic family and is
 degraded by that compiler decision; unsupportedness is not a sixth obligation.
+Keep the paper-level operator and compiler relation distinct. In particular, a
+wrong-scope route uses `domain_obligation.family=graph` with
+`domain_obligation.property=path_absent`, while its lowering relation is
+`goal.relation=event_avoids_scope`; `event_avoids_scope` is never a graph
+property. Likewise, use only the enumerated typed operators in each obligation
+family and only the enumerated lowering relations in `goal.relation`.
 
 A `nl_literal` candidate must copy one exact
 contiguous NL span verbatim in `nl_quote` and cite its physical `NL<n>` line when
@@ -1048,10 +1148,15 @@ Before returning, perform three general semantic audits over the supplied exact
 inventory: (a) authored transitions that no competent reading of any NL contract
 authorizes, (b) selected event routes whose exact target ancestry enters a scope
 that the NL behavior must avoid, and (c) states explicitly designated by NL as a
-completion/ending target that still admit a nonterminating continuation. Emit a
+completion/ending target that still admit a nonterminating continuation. Record
+audit (a) in `unauthorized_transition_bindings`, not in the bounded candidate
+array; record (b) and (c) as executable candidates when supported. Emit a row or
 candidate only when semantic reasoning supports the violation; otherwise emit
 nothing for that audit. These audits are LLM judgments over the complete views,
-never deterministic text matching.
+never deterministic text matching. For audit (a), a closed-world conclusion is
+allowed only when the NL clause semantically enumerates the relevant source/role
+alternatives or otherwise excludes the authored edge; simple non-mention is never
+enough.
 
 Also perform two coverage audits by semantic reasoning: (d) every raw
 `required_state_contract`, especially a state concept referenced by an NL
@@ -1191,9 +1296,11 @@ duplicate a deterministic frontier cause unless you attach a specific NL
 obligation that the frontier lacks. Every surface and behavior candidate must
 include `observed_fact`; state the exact source/FCSTM/inspect fact that motivated
 the hypothesis, without predicting execution. For every candidate:
-- keep `obligation`, `claim`, and `observed_fact` to one concise sentence each;
-  do not repeat the same rationale across fields, and always return both arrays
-  even when one is empty;
+- keep `obligation`, `claim`, `basis`, and `observed_fact` to one concise sentence
+  each; `basis` explains why the cited NL obligation and observed fact make this
+  candidate worth testing, while `observed_fact` states only the exact formal,
+  source, or inspect observation. Do not repeat the same rationale across fields,
+  and always return both arrays even when one is empty;
 - state one violated obligation and one falsifiable claim;
 - quote one complete numbered NL line verbatim for `nl_literal`; reserve `implicit_oracle` for a
   source-grounded reachable non-final terminal; spell out any `domain_norm`;
@@ -1286,12 +1393,38 @@ wording, identifier spelling, or lexical overlap with the NL.
 
 Return exactly one short decision per `finding_key`. Decide in this order:
 grounding, violated obligation, strongest defeater, its disposition, then D.
+The required `rationale` is an audit basis, not a restatement: cite the supplied
+NL clause, exact source/certificate fact, and why the strongest defeater is
+defeated or survives. Keep it concise and do not introduce ledger knowledge or
+an execution result that is absent from the dossier.
+After deciding D, perform report-level semantic dedup inside this same whole-pair
+call. Set `duplicate_of` only when the finding is the same technical defect as an
+earlier supplied finding with a smaller `finding_ordinal`: the same exact source elements or transition set, the
+same violated property, and the same minimal source correction. Point to that
+earlier exact `finding_key` and give one-sentence `duplicate_rationale`. Different
+consequences, different violated properties, or merely related root causes remain
+independent. Never group by wording, token overlap, similar identifiers, or a
+ledger. Different exact transition IDs or state IDs are independent unless the
+later finding is only a weaker restatement over the same complete formal element
+set; sharing one target, defect class, or correction pattern is not enough. Use
+null for both duplicate fields when the issue is independent. Each finding also
+supplies `duplicate_eligible_earlier_keys`, calculated only from typed source
+certificate and executable-property equality. This list is a hard evidence
+boundary, not a semantic duplicate decision: choose `duplicate_of` only from
+that list after your semantic comparison, and set both duplicate fields to null
+when the list is empty. Never use a source-cause name, claim wording, or a
+similar identifier to bypass this list. A duplicate never transfers a D2-impl
+receipt: D2-impl is available only when that finding itself has
+`protocol_d2_grounding="impl"`.
 
 - D2: no competent defeater survives. Use D2-lit only when an exact NL quote
   explicitly and unambiguously states the same source, target, condition scope,
   or other violated obligation, or for a supplied binary language clause. Under
-  this protocol D2-impl is closed to a source-grounded reachable non-final
-  deadlock whose certificate excludes explicit finality and concurrency.
+  this protocol D2-impl is closed to one of the supplied source-grounded
+  non-final deadlock certificates: a sequential reachable deadlock, a complete
+  orthogonal-region entry tuple whose concurrently active leaves and ancestors
+  all lack continuation, or an exact missing-initial compiler bridge to a
+  reachable fail-closed entry deadlock.
   Use D2-norm only for an explicit indispensable domain norm.
   NL-required unreachability is D2-lit, never D2-impl.
 - D1: use non-`none` grounding, `defeater_kind=undercutting`,
@@ -1300,11 +1433,21 @@ grounding, violated obligation, strongest defeater, its disposition, then D.
   overlap is normally D1 when NL does not establish priority/exclusivity.
 - D0: use `d_subclass=not_applicable`; use a rebutting defeater when facts show
   intended/non-defective behavior. Missing evidence without a grounded first
-  reading is D0, not D1.
+  reading is D0, not D1. A plausible quality recommendation or desired
+  continuation that is not required by the NL, an applicable language rule, or
+  an indispensable domain norm is also D0; uncertainty alone cannot manufacture
+  the first violated reading required by D1.
+
+For an `implicit_oracle` deadlock claim, a null or inconclusive source
+certificate means the required source reachability/deadlock premise was not
+grounded. Classify it D0, not D1; D1 is not a substitute for a missing formal
+premise. This does not affect a separate NL-literal finding with an independently
+grounded source certificate.
 
 An executed missing-edge assertion proves only that the asserted exact edge is
 absent. It does not prove that the LLM chose the normative target correctly. Use
-the supplied exact source neighborhood to test the strongest alternative: when
+the supplied shared exact source inventories and certificate anchors to test the
+strongest alternative: when
 the same source already has an edge that realizes the NL action under the stated
 condition, a claim demanding another target is rebutted unless the NL explicitly
 names that other target. Likewise, repeated use of one bare state concept does
@@ -1321,10 +1464,20 @@ event does not satisfy that obligation, because entering the composite does not
 fire the event automatically. When the source certificate shows no initial
 pseudostate edge to the required child, do not downgrade the violation merely
 because a separate eventful edge reaches the same child.
+Conversely, when NL says a child is entered first/default and an exact initial
+pseudostate edge already enters that child, do not demand an additional ordinary
+parent-to-child transition. That initial edge realizes the default-entry
+obligation; an executed assertion for the absent ordinary edge is then D0.
 
 An explicit containment statement is independent of transition reachability. A
 normal edge into a state does not make that state a child of the source scope, so
-it cannot defeat an exact parent/child obligation. For stable termination, use
+it cannot defeat an exact parent/child obligation. However, ordinary NL
+"within/contains" wording establishes transitive containment, not necessarily a
+direct-parent relation. When a `source_containment_contract` reports
+`within_expected_ancestor=true`, a direct-parent claim is D0 unless NL explicitly
+requires a direct child, sibling set, same region, or one hierarchy level. When
+the child lies outside the required ancestor entirely, the containment violation
+survives. For stable termination, use
 hierarchical execution semantics: while a leaf nested in a composite is active,
 applicable outgoing transitions of its active ancestor can still continue the
 machine. Therefore a leaf with no own outgoing edge is not a stable termination
@@ -1338,6 +1491,23 @@ applicable active-ancestor exit or cycle is not stable termination even when the
 leaf has no own outgoing transition. Reserve the exact `explicit_final` rule for
 `reachable_deadlock`; do not transfer it to a literal termination obligation.
 
+Treat the author-source transition action/effect slot as source semantics. When
+an exact transition already has an action that semantically states the NL effect,
+absence of a lower-level variable declaration or assignment is representation
+debt, not an author-source defect, unless the NL or declared source language
+explicitly requires that lower-level encoding. Also do not infer irreversible or
+stable termination from a boundary phrase such as "before completion" alone. A
+stable-termination obligation needs an explicit ends/exits/terminates statement,
+an applicable language clause, or an indispensable domain norm.
+
+An explicit statement that a named mode ends when a named state is reached is a
+local stable-termination obligation for that mode; it does not need to say that
+the whole state machine terminates. When a sound source certificate proves that
+the named target is reachable and an inherited transition can continue, re-enter,
+or leave the supposedly ended mode, the ending obligation is violated. Use the
+exact NL ending statement as `grounding=lit`; do not rebut it merely because
+system-wide termination was not required.
+
 For D2 use a defeated/no surviving defeater and the subclass implied by
 grounding (`lit|lang -> D2-lit`, `impl -> D2-impl`, `dom -> D2-norm`). Keep every
 prose field to one sentence. Do not change a valid decision because another
@@ -1350,10 +1520,19 @@ or domain obligation plus source facts. A supplied `language_clause` may support
 `grounding=lang` only when its antecedent and violation are established. Do not
 invent language rules. For `reachable_deadlock`, use exact `explicit_final`;
 never infer terminality from a state name or merely from absent outgoing edges.
+For `concurrent_region_deadlock`, use the complete typed region-entry tuple and
+do not treat the existence of orthogonal regions as a defeater when every active
+region entry and ancestor is certified blocked. For `source_entry_deadlock`, use
+the exact missing-initial compiler bridge rather than the generated state name.
 Do not retain a concurrency defeater when exact source facts exclude concurrency.
 When `protocol_d2_grounding` is non-null, it is the preregistered #189 subclass
 for this typed formal certificate if and only if you decide D2; it does not tell
 you whether the finding is D2, and it never overrides a surviving defeater.
+The converse is strict: output `grounding=impl` only when that finding's dossier
+sets `protocol_d2_grounding="impl"`. A formal source certificate without that
+field may corroborate a literal obligation but cannot change its provenance;
+when an exact quoted NL obligation is what survives the defeater, use
+`grounding=lit` and D2-lit. This is a field-level contract, not a suggestion.
 
 Synthetic calibration only: (1) NL requires `q0 -> q1` on `evt_a`, the source
 edge is absent, and no alternate reading survives: D2-lit. (2) NL permits `q0`
@@ -1367,8 +1546,55 @@ slot: D0 even if FCSTM execution is inconclusive. (6) NL says `q0` reaches `q1`,
 and if `c` it further reaches `q2`; if both `q0 -> q2 under c` and `q1 -> q2 under
 c` remain competent readings, a guard-placement claim is D1, not D2-lit. (7) NL
 only says execution proceeds to `q_choice`, while a source-grounded certificate
-proves `q_choice` is reachable, non-final, deadlocked, and non-concurrent: D2-impl,
-not D2-lit. Do not propose repairs.
+proves `q_choice` is reachable, non-final, and deadlocked in a certified
+sequential fragment: D2-impl, not D2-lit. A complete orthogonal entry tuple with
+all active non-final leaves blocked receives the same D2-impl treatment. (8) NL
+requires reaching `q_exit` but says nothing about behavior after
+`q_exit`; a claim that `q_exit` must continue to another termination state is D0,
+not D1. (9) Two findings independently allege non-disjoint guards over the same
+exact transitions `t1,t2`; the later finding is `duplicate_of` the earlier one,
+whereas a separate claim that `t2` has the wrong target remains independent. (10)
+One finding concerns an extraneous edge `t1` and another concerns a wrong-scope
+route `t2`; even if both enter the same nested target, they use different exact
+elements and distinct minimal corrections, so neither is a duplicate. (11) NL
+literally says behavior ends when `q_end` is reached, while a source-localized
+finding says `q_end` is not a genuine termination point but has no eligible W2
+receipt; adjudicate the explicit obligation as D2-lit, not D2-impl, because D and
+W are independent. (12) NL requires a component's initial state to operate, and
+an exact source-graph certificate proves that component unreachable with
+`no_concurrent_regions=true`; an imagined orthogonal-region interpretation does
+not survive against the supplied source artifact, so use D2-lit rather than D1.
+(13) NL says an operation decreases `count`, and the exact source transition has
+the action `/ count decreased`; a claim that the author source omits the effect
+merely because it lacks executable assignment syntax is D0. (14) NL says behavior
+holds only "before completion" but never says completion ends the machine; a
+claim that any restart after completion is forbidden is D0, not D1.
+(15) NL says composite `P` first enters child `q`, and the source contains exact
+initial edge `@initial:P -> q`; a claim that ordinary edge `P -> q` is missing is
+D0. (16) A W2 deadlock finding and a later W1 prose hypothesis name the same exact
+state and the same no-continuation property; the W1 restatement may be a duplicate
+only when its `duplicate_eligible_earlier_keys` includes the earlier finding, but
+it cannot use D2-impl without its own W2 receipt. Different exact blocked state
+IDs remain independent even when they occur in one concurrent configuration.
+(17) A finding calls `q` a reachable deadlock, but another exact source
+certificate in the same dossier proves that a missing parent initial makes `q`
+unreachable; the reachable-deadlock claim is rebutted and is D0. Do not convert
+unreachability into deadlock merely because the converted artifact contains a
+different generated fail-closed state.
+(18) NL requires three unnamed regions but does not assign identities to them; a
+count/coverage finding may be grounded, but separate claims that invented
+placeholders `Region1`, `Region2`, and `Region3` are missing are D0. Cardinality
+does not create named element-existence obligations.
+(19) NL says mode `M` ends when target `q_end` is reached, and a sound source
+certificate proves `q_end` reachable with an inherited continuation that can
+continue, re-enter, or leave `M`; this is D2-lit for the local ending obligation
+even when NL does not say the whole machine terminates. This differs from (14),
+where "before completion" alone creates no stable-ending obligation.
+(20) NL says substates `a,b,c` are "within P", while the source certificate says
+`within_expected_ancestor=true` because each is nested under an intermediate
+wrapper inside `P`; a claim that the wrapper itself violates containment is D0
+unless NL explicitly requires direct children, siblings, or one hierarchy level.
+Do not propose repairs.
 """.strip()
 
 
@@ -1849,10 +2075,10 @@ def _numbered(text: str, prefix: str) -> str:
 def _nl_anchor_valid(pair: dict[str, Any], candidate: Any) -> bool:
     """Validate only citation provenance; never infer NL meaning."""
 
-    if getattr(candidate, "basis_kind", None) != "nl_literal":
-        return True
     quote = getattr(candidate, "nl_quote", None)
-    return isinstance(quote, str) and bool(quote) and quote in pair["nl"]
+    if isinstance(quote, str) and quote:
+        return quote in pair["nl"]
+    return getattr(candidate, "basis_kind", None) != "nl_literal"
 
 
 def _contract_nl_quote(pair: dict[str, Any], contract: Any) -> str:
@@ -2353,6 +2579,17 @@ def validate_domain_obligation_lowering(candidate: EvidenceCandidate) -> list[st
         ]
 
     goal = candidate.goal
+    errors: list[str] = []
+    if isinstance(obligation, TemporalObligation) and obligation.pattern == "termination":
+        if obligation.state_ref is not None and goal.relation != "termination_target":
+            errors.append(
+                "typed temporal termination with a named state_ref must lower to "
+                "termination_target, not a whole-machine termination relation"
+            )
+        if obligation.state_ref is None and goal.relation == "termination_target":
+            errors.append(
+                "termination_target requires a typed temporal termination state_ref"
+            )
     bindings: list[tuple[str, Any, Any]] = []
     if isinstance(obligation, ElementObligation):
         goal_subject = (
@@ -2432,11 +2669,12 @@ def validate_domain_obligation_lowering(candidate: EvidenceCandidate) -> list[st
                 ("bound", obligation.bound, goal.within_cycles),
             ]
         )
-    return [
+    errors.extend(
         f"typed binding {name}={typed!r} does not equal lowering binding {lowered!r}"
         for name, typed, lowered in bindings
         if typed is not None and typed != lowered
-    ]
+    )
+    return errors
 
 
 def derive_support_disposition(
@@ -3632,11 +3870,56 @@ def _expand_required_state_bindings(
             binding.source_state_id
         )
     candidates: list[BalancedEvidenceCandidate] = []
+
+    def append_realized_role_candidate(
+        contract: RequiredStateContract, realized_state_id: str
+    ) -> None:
+        if contract.role != "termination_state":
+            return
+        candidates.append(
+            BalancedEvidenceCandidate(
+                obligation=(
+                    f"The NL-designated termination state {contract.concept!r} "
+                    "must be a stable ending target for its declared behavior."
+                ),
+                claim=(
+                    f"Required termination target {realized_state_id!r} admits "
+                    "a source-level nonterminating continuation."
+                ),
+                basis=(
+                    "The NL contract marks this exact grounded state as a "
+                    "termination target, so its source continuation is a "
+                    "directly testable stability obligation."
+                ),
+                basis_kind="nl_literal",
+                nl_quote=contract.nl_quote,
+                priority=contract.priority,
+                locations=[realized_state_id],
+                proposed_l="L2",
+                observed_fact=(
+                    "The contract LLM classified this concept as a termination "
+                    "state and the grounding LLM bound it to this exact source ID; "
+                    "the compiler evaluates local stable termination."
+                ),
+                domain_obligation=TemporalObligation(
+                    pattern="termination",
+                    state_ref=realized_state_id,
+                    expected=True,
+                ),
+                goal=EvidenceGoal(
+                    relation="termination_target",
+                    subject=realized_state_id,
+                    expected=True,
+                ),
+            )
+        )
+
     for item_index, contract in enumerate(contracts):
         binding = by_index.get(item_index)
         if binding is None:
             realized_ids = realized_by_concept.get(contract.concept_id, [])
             if len(realized_ids) == 1 and realized_ids[0] in state_ids:
+                append_realized_role_candidate(contract, realized_ids[0])
                 continue
             diagnostics.append(
                 {
@@ -3670,6 +3953,11 @@ def _expand_required_state_bindings(
                         ),
                     }
                 )
+            elif (
+                binding.formal_kind == "state"
+                and isinstance(binding.realized_state_id, str)
+            ):
+                append_realized_role_candidate(contract, binding.realized_state_id)
             continue
         if binding.status == "unresolved":
             diagnostics.append(
@@ -3755,6 +4043,11 @@ def _expand_required_state_bindings(
             BalancedEvidenceCandidate(
                 obligation=obligation,
                 claim=claim,
+                basis=(
+                    "The required-state grounding records the NL concept and its "
+                    "exact parent scope; the compiler checks that declared formal "
+                    "path against the source AST and FCSTM inventory."
+                ),
                 basis_kind="nl_literal",
                 nl_quote=contract.nl_quote,
                 priority=contract.priority,
@@ -3892,6 +4185,11 @@ def _expand_required_event_scope_bindings(
                         f"Required scope {scope!r} has no consumer for event concept "
                         f"{contract.event_concept!r}."
                     ),
+                    basis=(
+                        "The grounding LLM supplied an exact event identity and "
+                        "normative scope, allowing the compiler to test scope-local "
+                        "event consumption without interpreting labels."
+                    ),
                     basis_kind="nl_literal",
                     nl_quote=contract.nl_quote,
                     priority=contract.priority,
@@ -3909,6 +4207,116 @@ def _expand_required_event_scope_bindings(
                     ),
                 )
             )
+    return candidates, diagnostics
+
+
+def _expand_unauthorized_transition_bindings(
+    pair: dict[str, Any],
+    bindings: list[UnauthorizedTransitionGrounding],
+) -> tuple[list[BalancedEvidenceCandidate], list[dict[str, str]]]:
+    """Lower explicit LLM edge-authorization decisions into transition proofs."""
+
+    diagnostics: list[dict[str, str]] = []
+    candidates: list[BalancedEvidenceCandidate] = []
+    seen: set[str] = set()
+    nl_line_count = len(pair["nl"].splitlines())
+    for binding in bindings:
+        transition_id = binding.observed_transition_id
+        if transition_id in seen:
+            diagnostics.append(
+                {
+                    "stage": "discovery_grounding",
+                    "class": "unauthorized_transition_duplicate",
+                    "message": f"duplicate unauthorized transition {transition_id!r}",
+                }
+            )
+            continue
+        seen.add(transition_id)
+        if any(line < 1 or line > nl_line_count for line in binding.nl_lines):
+            diagnostics.append(
+                {
+                    "stage": "discovery_grounding",
+                    "class": "unauthorized_transition_nl_line_invalid",
+                    "message": (
+                        f"unauthorized transition {transition_id!r} cites an NL line "
+                        f"outside 1..{nl_line_count}"
+                    ),
+                }
+            )
+        if binding.status == "unresolved":
+            diagnostics.append(
+                {
+                    "stage": "discovery_grounding",
+                    "class": "unauthorized_transition_unresolved",
+                    "message": (
+                        f"semantic authorization for transition {transition_id!r} "
+                        f"remains unresolved: {binding.rationale}"
+                    ),
+                }
+            )
+            continue
+        transition = _source_transition_by_id(pair, transition_id)
+        if transition is None:
+            diagnostics.append(
+                {
+                    "stage": "discovery_grounding",
+                    "class": "formal_transition_inconsistent",
+                    "message": (
+                        f"unauthorized transition binding names no exact source "
+                        f"transition: {transition_id!r}"
+                    ),
+                }
+            )
+            continue
+        if not binding.nl_quote or not _nl_anchor_valid(pair, binding):
+            diagnostics.append(
+                {
+                    "stage": "discovery_grounding",
+                    "class": "unauthorized_transition_nl_anchor_invalid",
+                    "message": (
+                        f"unauthorized transition {transition_id!r} requires one "
+                        "verbatim NL span for source attribution"
+                    ),
+                }
+            )
+            continue
+        locations = [transition_id]
+        if isinstance(transition.get("ref"), str):
+            locations.append(str(transition["ref"]))
+        locations.extend(f"NL{line}" for line in binding.nl_lines)
+        candidates.append(
+            BalancedEvidenceCandidate(
+                obligation=(
+                    "Every authored transition must be semantically authorized by "
+                    "the NL contract that governs its source and behavior role."
+                ),
+                claim=(
+                    f"Authored transition {transition_id!r} is present but no "
+                    "competent NL reading authorizes this exact edge."
+                ),
+                basis=binding.rationale,
+                basis_kind="nl_literal",
+                nl_quote=binding.nl_quote,
+                priority=2,
+                locations=locations,
+                proposed_l="L0",
+                observed_fact=(
+                    "The semantic authorization audit selected this exact source "
+                    "transition; the formal compiler will test its presence "
+                    "against the declared absence obligation."
+                ),
+                domain_obligation=ElementObligation(
+                    element_kind="transition",
+                    operator="absent",
+                    subject_ref=transition_id,
+                ),
+                goal=EvidenceGoal(
+                    relation="transition_absent",
+                    observed_transition_id=transition_id,
+                    expected=False,
+                ),
+            )
+        )
     return candidates, diagnostics
 
 
@@ -3937,6 +4345,12 @@ def validate_discovery_grounding(
         )
     )
     diagnostics.extend(event_scope_diagnostics)
+    unauthorized_candidates, unauthorized_diagnostics = (
+        _expand_unauthorized_transition_bindings(
+            pair, plan.unauthorized_transition_bindings
+        )
+    )
+    diagnostics.extend(unauthorized_diagnostics)
     lanes: dict[str, list[BalancedEvidenceCandidate]] = {
         "surface_candidates": [],
         "behavior_candidates": [],
@@ -3992,6 +4406,7 @@ def validate_discovery_grounding(
             *planned_lanes["surface_candidates"],
             *required_candidates,
             *event_scope_candidates,
+            *unauthorized_candidates,
         ],
         "behavior_candidates": planned_lanes["behavior_candidates"],
     }
@@ -4621,6 +5036,397 @@ def _source_deadlock_certificate(
     }
 
 
+def _source_concurrent_region_deadlock_certificate(
+    pair: dict[str, Any], target_reference: str
+) -> dict[str, Any] | None:
+    """Certify one blocked state through the complete orthogonal entry tuple."""
+
+    model = _source_model(pair)
+    target, target_state = _resolve_source_state(pair, target_reference)
+    if not target or not target_state:
+        return None
+    regions = [
+        item
+        for item in model.get("concurrent_regions", [])
+        if isinstance(item, dict)
+    ]
+    target_regions = [
+        item
+        for item in regions
+        if target in {
+            str(state_id)
+            for state_id in item.get("state_ids", [])
+            if isinstance(state_id, str)
+        }
+    ]
+    if len(target_regions) != 1:
+        return None
+    owner = target_regions[0].get("owner_scope")
+    if not isinstance(owner, str) or not owner:
+        return None
+    owner_regions = [item for item in regions if item.get("owner_scope") == owner]
+    if len(owner_regions) < 2:
+        return None
+
+    states = {
+        str(item["id"]): item
+        for item in model.get("states", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    }
+    transitions = [
+        item for item in model.get("transitions", []) if isinstance(item, dict)
+    ]
+    transition_by_id = {
+        str(item.get("id")): item for item in transitions if item.get("id") is not None
+    }
+    active_targets: list[str] = []
+    region_receipts: list[dict[str, Any]] = []
+    initial_edges_complete = True
+    initial_edges_unconditional = True
+    for region in sorted(owner_regions, key=lambda item: int(item.get("region_index", 0))):
+        transition_ids = {
+            str(item)
+            for item in region.get("transition_ids", [])
+            if isinstance(item, str)
+        }
+        initial_edges = [
+            item
+            for item in transitions
+            if item.get("id") in transition_ids
+            and item.get("attributes", {}).get("transition_kind") == "initial"
+            and item.get("scope") == owner
+        ]
+        if len(initial_edges) != 1:
+            initial_edges_complete = False
+            initial_target = None
+        else:
+            initial_target = initial_edges[0].get("target")
+            initial_edges_unconditional = initial_edges_unconditional and not bool(
+                initial_edges[0].get("event") or initial_edges[0].get("guard")
+            )
+            if not isinstance(initial_target, str) or initial_target not in states:
+                initial_edges_complete = False
+                initial_target = None
+            else:
+                active_targets.append(initial_target)
+        region_receipts.append(
+            {
+                "region_id": region.get("id"),
+                "region_index": region.get("region_index"),
+                "initial_transition_ids": [item.get("id") for item in initial_edges],
+                "initial_target": initial_target,
+            }
+        )
+
+    active_targets_are_leaves = bool(active_targets) and all(
+        not any(state.get("parent") == active for state in states.values())
+        for active in active_targets
+    )
+    final_states = {str(item) for item in model.get("final_states", [])}
+    active_targets_nonfinal = bool(active_targets) and all(
+        active not in final_states for active in active_targets
+    )
+    owner_reachable, owner_state_path, owner_transition_path = _source_reachability(
+        model, owner
+    )
+    entry_path_has_no_guards = all(
+        not transition_by_id.get(transition_id, {}).get("guard")
+        for transition_id in owner_transition_path
+    )
+
+    active_scopes = set(active_targets)
+    cursor: str | None = owner
+    while cursor and cursor in states:
+        active_scopes.add(cursor)
+        parent = states[cursor].get("parent")
+        cursor = str(parent) if isinstance(parent, str) and parent else None
+    enabled_outgoing = [
+        _compact_transition_for_d(item)
+        for item in transitions
+        if item.get("source") in active_scopes
+        and item.get("attributes", {}).get("transition_kind") != "initial"
+    ]
+    assumptions = {
+        "all_regions_have_one_initial": initial_edges_complete,
+        "all_region_initials_unconditional": initial_edges_unconditional,
+        "all_active_targets_leaf": active_targets_are_leaves,
+        "all_active_targets_nonfinal": active_targets_nonfinal,
+        "entry_path_has_no_guards": entry_path_has_no_guards,
+        "no_enabled_outgoing": not enabled_outgoing,
+        "owner_identity_resolved_exactly": owner in states,
+        "target_is_active_region_entry": target in active_targets,
+    }
+    sound_for_claim = owner_reachable and all(assumptions.values())
+    return {
+        "schema": "paper1.source_assertion.v1",
+        "kind": "concurrent_region_deadlock",
+        "evaluated_artifact": pair["paths"]["canonical"],
+        "evaluated_artifact_sha256": _sha256(
+            json.dumps(pair["canonical"], ensure_ascii=False, sort_keys=True)
+        ),
+        "assertion": (
+            "reachable(owner) and all concurrent regions enter one non-final leaf "
+            "and inherited_outgoing(active_configuration) == 0"
+        ),
+        "target": target,
+        "owner_scope": owner,
+        "reachable": owner_reachable,
+        "state_path": owner_state_path,
+        "transition_path": owner_transition_path,
+        "explicit_final": target in final_states,
+        "blocked_region_targets": active_targets,
+        "region_entry_receipts": region_receipts,
+        "active_scopes_checked": sorted(active_scopes),
+        "outgoing": enabled_outgoing,
+        "assumptions": assumptions,
+        "sound_for_claim": sound_for_claim,
+        "prototype_semantics": "exact_guard_free_concurrent_entry_configuration",
+        "result": sound_for_claim,
+        "verdict": "counterexample" if sound_for_claim else "inconclusive",
+    }
+
+
+def _source_entry_deadlock_certificate(
+    pair: dict[str, Any], target_reference: str, parent_reference: str | None
+) -> dict[str, Any] | None:
+    """Bridge a compiler fail-closed entry leaf to its exact source composite."""
+
+    if not isinstance(parent_reference, str) or not parent_reference:
+        return None
+    model = _source_model(pair)
+    scope, scope_state = _resolve_source_state(pair, parent_reference)
+    if not scope or not scope_state:
+        return None
+    exact_target = target_reference.removeprefix(f"{pair['pair_name']}.")
+    formal_target = (
+        target_reference
+        if target_reference.startswith(f"{pair['pair_name']}.")
+        else f"{pair['pair_name']}.{exact_target}"
+    )
+    generated_states: list[dict[str, Any]] = []
+    generated_transitions: list[dict[str, Any]] = []
+    expected_state_ref = f"state:{formal_target}"
+    for element in pair["working_contract"].get("elements", []):
+        if not isinstance(element, dict):
+            continue
+        metadata = element.get("metadata")
+        metadata = metadata if isinstance(metadata, dict) else {}
+        if metadata.get("generated_reason") != "missing_source_initial_fail_closed":
+            continue
+        model_refs = element.get("model_refs")
+        model_refs = model_refs if isinstance(model_refs, list) else []
+        if element.get("kind") == "synthetic_state" and model_refs == [
+            expected_state_ref
+        ]:
+            generated_states.append(
+                {
+                    "element_id": element.get("element_id"),
+                    "model_refs": model_refs,
+                }
+            )
+        if (
+            element.get("kind") == "synthetic_transition"
+            and metadata.get("owner_state_id") == scope
+            and metadata.get("scope") == scope
+        ):
+            element_id = str(element.get("element_id") or "")
+            expected_model_ref = (
+                "fcstm-transition:"
+                + element_id.removeprefix("compiler:synthetic_transition:")
+            )
+            generated_transitions.append(
+                {
+                    "element_id": element_id,
+                    "model_refs": model_refs,
+                    "model_ref_exact": model_refs == [expected_model_ref],
+                    "owner_state_id": metadata.get("owner_state_id"),
+                    "scope": metadata.get("scope"),
+                    "line": metadata.get("line"),
+                    "scope_line_occurrence": metadata.get("scope_line_occurrence"),
+                }
+            )
+
+    # Read the emitted target from the public grammar AST.  The working contract
+    # only identifies the synthetic transition; it does not itself carry its
+    # target, so counting synthetic elements cannot establish this bridge.
+    fcstm_initial_targets: list[dict[str, Any]] = []
+    try:
+        from pyfcstm.dsl import parse_with_grammar_entry
+        from pyfcstm.dsl.node import INIT_STATE
+
+        ast = parse_with_grammar_entry(pair["fcstm"], "state_machine_dsl")
+        selected_scope: Any | None = None
+        selected_scope_path: str | None = None
+        fcstm_state_paths: set[str] = set()
+
+        def visit(node: Any, parent: str | None) -> None:
+            nonlocal selected_scope, selected_scope_path
+            name = getattr(node, "name", None)
+            if not isinstance(name, str):
+                return
+            path = name if parent is None else f"{parent}.{name}"
+            fcstm_state_paths.add(path)
+            if _strip_pair_root(path, pair["pair_name"]) == scope:
+                selected_scope = node
+                selected_scope_path = path
+            for child in getattr(node, "substates", []):
+                visit(child, path)
+
+        visit(ast.root_state, None)
+        if selected_scope is not None and selected_scope_path is not None:
+            source_lines = pair["fcstm"].splitlines()
+            occurrences: dict[str, int] = {}
+            for transition in getattr(selected_scope, "transitions", []):
+                if getattr(transition, "from_state", None) is not INIT_STATE:
+                    continue
+                raw_target = getattr(transition, "to_state", None)
+                if not isinstance(raw_target, str) or not raw_target:
+                    continue
+                span = getattr(transition, "_span", None)
+                line_number = getattr(span, "line", None)
+                line = (
+                    source_lines[line_number - 1].strip()
+                    if isinstance(line_number, int)
+                    and 0 < line_number <= len(source_lines)
+                    else None
+                )
+                if not isinstance(line, str) or not line:
+                    continue
+                occurrences[line] = occurrences.get(line, 0) + 1
+                target = (
+                    raw_target
+                    if raw_target.startswith(f"{pair['pair_name']}.")
+                    else f"{selected_scope_path}.{raw_target}"
+                )
+                fcstm_initial_targets.append(
+                    {
+                        "line": line,
+                        "scope_line_occurrence": occurrences[line],
+                        "line_number": line_number,
+                        "target": target,
+                        "target_declared": target in fcstm_state_paths,
+                    }
+                )
+    except Exception:  # noqa: BLE001 - malformed FCSTM must fail the bridge closed
+        fcstm_initial_targets = []
+
+    bridge_receipts = []
+    for transition in generated_transitions:
+        line = transition.get("line")
+        occurrence = transition.get("scope_line_occurrence")
+        matches = [
+            row
+            for row in fcstm_initial_targets
+            if row.get("line") == line
+            and row.get("scope_line_occurrence") == occurrence
+        ]
+        target = matches[0].get("target") if len(matches) == 1 else None
+        matches_synthetic_state = (
+            len(matches) == 1
+            and transition.get("model_ref_exact") is True
+            and target == formal_target
+            and matches[0].get("target_declared") is True
+        )
+        bridge_receipts.append(
+            {
+                "transition_element_id": transition.get("element_id"),
+                "transition_model_refs": transition.get("model_refs", []),
+                "fcstm_initial_transition": matches[0] if len(matches) == 1 else None,
+                "fcstm_target": target,
+                "matches_synthetic_state": matches_synthetic_state,
+            }
+        )
+    compiler_bridge_transition_target_exact = (
+        len(bridge_receipts) == 1
+        and bridge_receipts[0]["matches_synthetic_state"] is True
+    )
+
+    states = {
+        str(item["id"]): item
+        for item in model.get("states", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    }
+    transitions = [
+        item for item in model.get("transitions", []) if isinstance(item, dict)
+    ]
+    initial_edges = [
+        item
+        for item in transitions
+        if item.get("attributes", {}).get("transition_kind") == "initial"
+        and item.get("scope") == scope
+    ]
+    direct_children = [
+        {"id": item.get("id"), "raw_ref": item.get("raw_ref")}
+        for item in states.values()
+        if item.get("parent") == scope
+    ]
+    active_scopes: list[str] = []
+    cursor: str | None = scope
+    while cursor and cursor in states:
+        active_scopes.append(cursor)
+        parent = states[cursor].get("parent")
+        cursor = str(parent) if isinstance(parent, str) and parent else None
+    inherited_outgoing = [
+        _compact_transition_for_d(item)
+        for item in transitions
+        if item.get("source") in active_scopes
+        and item.get("attributes", {}).get("transition_kind") != "initial"
+    ]
+    reachable, state_path, transition_path = _source_reachability(model, scope)
+    transition_by_id = {
+        str(item.get("id")): item for item in transitions if item.get("id") is not None
+    }
+    path_has_no_guards = all(
+        not transition_by_id.get(transition_id, {}).get("guard")
+        for transition_id in transition_path
+    )
+    assumptions = {
+        "source_scope_reachable": reachable,
+        "entry_path_has_no_guards": path_has_no_guards,
+        "missing_source_initial": not initial_edges,
+        "source_has_direct_children": bool(direct_children),
+        "no_inherited_outgoing": not inherited_outgoing,
+        "compiler_bridge_exact": len(generated_states) == 1
+        and len(generated_transitions) == 1
+        and compiler_bridge_transition_target_exact,
+        "compiler_bridge_transition_target_exact": compiler_bridge_transition_target_exact,
+        "no_concurrent_regions": not _source_has_concurrent_separator(pair),
+    }
+    sound_for_claim = all(assumptions.values())
+    return {
+        "schema": "paper1.source_assertion.v1",
+        "kind": "source_entry_deadlock",
+        "evaluated_artifact": pair["paths"]["canonical"],
+        "evaluated_artifact_sha256": _sha256(
+            json.dumps(pair["canonical"], ensure_ascii=False, sort_keys=True)
+        ),
+        "assertion": (
+            "reachable(scope) and initial_edge_count(scope) == 0 and "
+            "inherited_outgoing(scope) == 0 and compiler_fail_closed_leaf(target)"
+        ),
+        "target": formal_target,
+        "scope": scope,
+        "reachable": reachable,
+        "state_path": state_path,
+        "transition_path": transition_path,
+        "explicit_final": False,
+        "direct_children": direct_children,
+        "initial_edges": [_compact_transition_for_d(item) for item in initial_edges],
+        "active_scopes_checked": active_scopes,
+        "outgoing": inherited_outgoing,
+        "compiler_causal_bridge": {
+            "states": generated_states,
+            "transitions": generated_transitions,
+            "initial_target_receipts": bridge_receipts,
+        },
+        "assumptions": assumptions,
+        "sound_for_claim": sound_for_claim,
+        "prototype_semantics": "exact_missing_initial_fail_closed_entry_fragment",
+        "result": sound_for_claim,
+        "verdict": "counterexample" if sound_for_claim else "inconclusive",
+    }
+
+
 def _source_stable_termination_certificate(
     pair: dict[str, Any], target_reference: str
 ) -> dict[str, Any] | None:
@@ -4956,6 +5762,19 @@ def _source_initial_target_certificate(
         and item.get("scope") == composite
     ]
     matching_edges = [item for item in initial_edges if item.get("target") == child]
+    direct_children = [
+        str(item["id"])
+        for item in model.get("states", [])
+        if isinstance(item, dict)
+        and isinstance(item.get("id"), str)
+        and item.get("parent") == composite
+    ]
+    # An authored initial edge proves that the source treats this scope as a
+    # composite even when all of its children are malformed or absent.  A leaf
+    # with no children and no initial edge remains an inconclusive request.
+    scope_supports_initial = (
+        is_root_scope or bool(direct_children) or bool(initial_edges)
+    )
     target_is_direct_child = child_state.get("parent") == composite
     actual = bool(matching_edges) and target_is_direct_child
     return {
@@ -4979,12 +5798,20 @@ def _source_initial_target_certificate(
             for item in initial_edges
         ],
         "matching_edge_count": len(matching_edges),
+        "direct_children": direct_children,
+        "scope_supports_initial": scope_supports_initial,
         "target_is_direct_child": target_is_direct_child,
         "actual": actual,
         "expected": True,
-        "sound_for_claim": True,
-        "result": not actual,
-        "verdict": "counterexample" if not actual else "satisfied",
+        "sound_for_claim": scope_supports_initial,
+        "result": scope_supports_initial and not actual,
+        "verdict": (
+            "counterexample"
+            if scope_supports_initial and not actual
+            else "satisfied"
+            if scope_supports_initial
+            else "inconclusive"
+        ),
         "prototype_semantics": "exact_source_initial-target-scope_fragment",
     }
 
@@ -4992,13 +5819,24 @@ def _source_initial_target_certificate(
 def _source_containment_certificate(
     pair: dict[str, Any], child_reference: str, expected_parent_reference: str
 ) -> dict[str, Any] | None:
+    model = _source_model(pair)
     child, child_state = _resolve_source_state(pair, child_reference)
     expected_parent, parent_state = _resolve_source_state(
         pair, expected_parent_reference
     )
     if not child or not child_state or not expected_parent or not parent_state:
         return None
+    states = {
+        str(item["id"]): item
+        for item in model.get("states", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    }
     actual_parent = child_state.get("parent")
+    actual_ancestor_chain: list[str] = []
+    cursor = actual_parent
+    while isinstance(cursor, str) and cursor in states:
+        actual_ancestor_chain.append(cursor)
+        cursor = states[cursor].get("parent")
     actual = actual_parent == expected_parent
     return {
         "schema": "paper1.source_assertion.v1",
@@ -5011,6 +5849,8 @@ def _source_containment_certificate(
         "child": child,
         "expected_parent": expected_parent,
         "actual_parent": actual_parent,
+        "actual_ancestor_chain": actual_ancestor_chain,
+        "within_expected_ancestor": expected_parent in actual_ancestor_chain,
         "child_raw_ref": child_state.get("raw_ref"),
         "expected_parent_raw_ref": parent_state.get("raw_ref"),
         "actual": actual,
@@ -5259,7 +6099,20 @@ def _source_certificate_for_seed(
         return None
     code = seed.get("diagnostic_code")
     if code in {"W_DEADLOCK_LEAF", "W_TOPOLOGICAL_NOEXIT"}:
-        return _source_deadlock_certificate(pair, target)
+        sequential = _source_deadlock_certificate(pair, target)
+        if sequential is not None and sequential.get("verdict") == "counterexample":
+            return sequential
+        concurrent = _source_concurrent_region_deadlock_certificate(pair, target)
+        if concurrent is not None and concurrent.get("verdict") == "counterexample":
+            return concurrent
+        diagnostic_refs = seed.get("diagnostic_refs")
+        diagnostic_refs = diagnostic_refs if isinstance(diagnostic_refs, dict) else {}
+        entry_deadlock = _source_entry_deadlock_certificate(
+            pair, target, diagnostic_refs.get("parent_path")
+        )
+        if entry_deadlock is not None:
+            return entry_deadlock
+        return concurrent or sequential
     if code == "W_UNREACHABLE_STATE":
         return _source_missing_initial_certificate(
             pair, target
@@ -5324,6 +6177,10 @@ def _certificate_cause_key(certificate: dict[str, Any]) -> str | None:
     kind = certificate.get("kind")
     if kind == "reachable_deadlock":
         return f"source:reachable_deadlock:{certificate.get('target')}"
+    if kind == "concurrent_region_deadlock":
+        return f"source:concurrent_region_deadlock:{certificate.get('target')}"
+    if kind == "source_entry_deadlock":
+        return f"source:entry_deadlock:{certificate.get('scope')}"
     if kind == "missing_initial_with_compiler_consequence":
         return f"source:initial_contract:{certificate.get('scope')}"
     if kind == "unreachable_source_component":
@@ -5546,6 +6403,7 @@ def derive_progressive_evidence_seeds(
         probe_seed = {
             "diagnostic_code": code,
             "locations": [location],
+            "diagnostic_refs": item.get("refs", {}),
         }
         source_certificate = _source_certificate_for_seed(pair, probe_seed)
         cause_key = (
@@ -8306,6 +9164,8 @@ def _infer_l_level(candidate: dict[str, Any], group: dict[str, Any] | None) -> s
         return "L1"
     if certificate.get("kind") in {
         "reachable_deadlock",
+        "concurrent_region_deadlock",
+        "source_entry_deadlock",
         "missing_initial_with_compiler_consequence",
         "unreachable_source_component",
         "source_wrong_scope_route",
@@ -8658,6 +9518,18 @@ def _canonical_source_fact(certificate: dict[str, Any]) -> str | None:
             f"Source state {certificate.get('target')!r} is reachable, non-final, "
             "and has no enabled continuation in the certified fragment."
         )
+    if kind == "concurrent_region_deadlock":
+        return (
+            f"Source state {certificate.get('target')!r} is one member of a "
+            "reachable orthogonal entry configuration whose active non-final "
+            "states and ancestors have no enabled continuation."
+        )
+    if kind == "source_entry_deadlock":
+        return (
+            f"Source composite {certificate.get('scope')!r} is reachable but has "
+            "no default child entry or inherited continuation; its exact compiler "
+            "fail-closed state is deadlocked."
+        )
     return None
 
 
@@ -8684,6 +9556,7 @@ def build_finding_records(outcomes: list[dict[str, Any]]) -> list[dict[str, Any]
                     "witness_level": level,
                     "l_level": _infer_l_level(candidate, group),
                     "basis_kind": candidate.get("basis_kind"),
+                    "bases": [],
                     "nl_anchor_valid": outcome.get("nl_anchor_valid"),
                     "claims": [],
                     "model_claims": [],
@@ -8694,6 +9567,7 @@ def build_finding_records(outcomes: list[dict[str, Any]]) -> list[dict[str, Any]
                     "evidence_status": "coverage_gap",
                     "coverage_gap_reasons": [],
                     "formal_oracle_rules": [],
+                    "formal_goals": [],
                     "counterexample_found": False,
                     "compiled_assertions": [],
                     "execution_certificates": [],
@@ -8708,6 +9582,8 @@ def build_finding_records(outcomes: list[dict[str, Any]]) -> list[dict[str, Any]
                 record["witness_level"] = level
             model_claim = (group or {}).get("claim") or candidate.get("claim")
             record["model_claims"].append(model_claim)
+            if candidate.get("basis"):
+                record["bases"].append(candidate["basis"])
             certificate = (group or {}).get("source_causality_certificate")
             canonical_claim = (
                 _canonical_source_fact(certificate)
@@ -8726,6 +9602,12 @@ def build_finding_records(outcomes: list[dict[str, Any]]) -> list[dict[str, Any]
                     if isinstance(existing, dict)
                 ):
                     record["formal_oracle_rules"].append(rule)
+            goal = candidate.get("goal")
+            if isinstance(goal, dict) and all(
+                _canonical_sha256(existing) != _canonical_sha256(goal)
+                for existing in record["formal_goals"]
+            ):
+                record["formal_goals"].append(goal)
             record["locations"].extend(candidate.get("locations", []))
             source_status = (group or {}).get("source_attribution", {}).get("status")
             if source_status:
@@ -8762,6 +9644,7 @@ def build_finding_records(outcomes: list[dict[str, Any]]) -> list[dict[str, Any]
         for field in (
             "claims",
             "model_claims",
+            "bases",
             "obligations",
             "nl_quotes",
             "locations",
@@ -8875,11 +9758,14 @@ def _compact_source_certificate_for_d(
         "sound_for_claim",
         "target",
         "scope",
+        "owner_scope",
         "source",
         "child",
         "composite",
         "expected_parent",
         "actual_parent",
+        "actual_ancestor_chain",
+        "within_expected_ancestor",
         "component",
         "observed_transition_id",
         "reference_transition_id",
@@ -8892,6 +9778,7 @@ def _compact_source_certificate_for_d(
         "state_path",
         "transition_path",
         "ancestor_chain",
+        "continuing_transitions",
         "reachable",
         "source_reachable",
         "active_scopes_checked",
@@ -8901,8 +9788,12 @@ def _compact_source_certificate_for_d(
         "cross_component_incoming",
         "initial_edge_count",
         "matching_edge_count",
+        "scope_supports_initial",
         "target_is_direct_child",
         "direct_children",
+        "blocked_region_targets",
+        "region_entry_receipts",
+        "compiler_causal_bridge",
         "expected_state",
         "actual_state",
         "expected_final_target",
@@ -8941,75 +9832,100 @@ def _compact_source_certificate_for_d(
     return compact or None
 
 
-def _source_neighborhood_for_d(
-    pair: dict[str, Any], certificate: dict[str, Any]
-) -> dict[str, Any]:
-    """Return exact graph facts around certificate anchors without text matching."""
+def _source_entry_semantics_for_d(pair: dict[str, Any]) -> dict[str, Any]:
+    """Expose typed parent-entry facts without asking the judge to infer them."""
 
     model = _source_model(pair)
-    states = [item for item in model.get("states", []) if isinstance(item, dict)]
+    states = [
+        item
+        for item in model.get("states", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    ]
     transitions = [
-        item for item in model.get("transitions", []) if isinstance(item, dict)
+        item
+        for item in model.get("transitions", [])
+        if isinstance(item, dict)
+        and item.get("attributes", {}).get("transition_kind") == "initial"
     ]
-    anchor_values = {
-        certificate.get(key)
-        for key in (
-            "source",
-            "target",
-            "scope",
-            "child",
-            "composite",
-            "expected_parent",
-            "actual_parent",
-            "component",
-            "state_path",
-            "expected_state",
-            "actual_state",
+    state_ids = {str(item["id"]) for item in states}
+    scopes: list[dict[str, Any]] = []
+    for scope in sorted(states, key=lambda item: str(item["id"])):
+        scope_id = str(scope["id"])
+        direct_children = sorted(
+            str(item["id"])
+            for item in states
+            if item.get("parent") == scope_id
         )
-        if isinstance(certificate.get(key), str)
-    }
-    expanded = set(anchor_values)
-    for state in states:
-        state_id = state.get("id")
-        parent = state.get("parent")
-        if state_id in anchor_values and isinstance(parent, str):
-            expanded.add(parent)
-        if parent in anchor_values and isinstance(state_id, str):
-            expanded.add(state_id)
-    observed_transition_id = certificate.get("observed_transition_id")
-    reference_transition_id = certificate.get("reference_transition_id")
-    local_transitions = [
-        _compact_transition_for_d(item)
-        for item in transitions
-        if item.get("id") in {observed_transition_id, reference_transition_id}
-        or item.get("source") in expanded
-        or item.get("target") in expanded
-    ]
-    return {
-        "anchor_states": [
+        if not direct_children:
+            continue
+        scope_initials = sorted(
+            str(item["id"])
+            for item in transitions
+            if item.get("scope") == scope_id
+        )
+        child_initials = {
+            child: sorted(
+                str(item["id"])
+                for item in transitions
+                if item.get("scope") == child
+            )
+            for child in direct_children
+        }
+        scopes.append(
             {
-                "id": state.get("id"),
-                "parent": state.get("parent"),
-                "kind": state.get("kind"),
+                "scope": scope_id,
+                "scope_initial_transition_ids": scope_initials,
+                "direct_children": direct_children,
+                "child_scope_initial_transition_ids": child_initials,
             }
-            for state in states
-            if state.get("id") in expanded
-        ],
-        "transitions": local_transitions[:16],
+        )
+    concurrent_regions = model.get("concurrent_regions")
+    concurrent_regions = concurrent_regions if isinstance(concurrent_regions, list) else []
+    return {
+        "declared_concurrent_regions": concurrent_regions,
+        "declared_concurrent_region_count": len(concurrent_regions),
+        "state_ids_with_exact_parent": sorted(state_ids),
+        "scope_entry_semantics": scopes,
     }
+
+
+def d_finding_sort_key(finding: dict[str, Any]) -> tuple[int, int, str]:
+    """Put reusable executed evidence before weaker semantic restatements."""
+
+    w_rank = {"W2": 0, "W1": 1, "W0": 2}
+    certificate = finding.get("source_causality_certificate")
+    certified_rank = (
+        0
+        if isinstance(certificate, dict)
+        and certificate.get("verdict") == "counterexample"
+        else 1
+    )
+    return (
+        w_rank.get(str(finding.get("witness_level")), 3),
+        certified_rank,
+        str(finding.get("finding_key") or ""),
+    )
 
 
 def build_d_context(pair: dict[str, Any], findings: list[dict[str, Any]]) -> str:
     compact = []
-    for finding in findings:
+    ordered_findings = sorted(findings, key=d_finding_sort_key)
+    for finding_ordinal, finding in enumerate(ordered_findings, start=1):
         source_certificate = finding.get("source_causality_certificate")
         source_certificate = (
             source_certificate if isinstance(source_certificate, dict) else {}
         )
+        duplicate_eligible_earlier_keys = [
+            str(earlier["finding_key"])
+            for earlier in ordered_findings[: finding_ordinal - 1]
+            if not validate_duplicate_reference(finding, earlier)
+        ]
         compact.append(
             {
+                "finding_ordinal": finding_ordinal,
                 "finding_key": finding["finding_key"],
                 "basis_kind": finding.get("basis_kind"),
+                "basis": next(iter(finding.get("bases", [])), None),
                 "claim": next(iter(finding.get("claims", [])), None),
                 "obligation": next(iter(finding.get("obligations", [])), None),
                 "nl_quote": next(iter(finding.get("nl_quotes", [])), None),
@@ -9018,11 +9934,10 @@ def build_d_context(pair: dict[str, Any], findings: list[dict[str, Any]]) -> str
                 "protocol_d2_grounding": _protocol_d2_grounding(finding),
                 "language_clause": _language_clause_for_finding(finding),
                 "formal_oracle_rules": finding.get("formal_oracle_rules", []),
+                "formal_goals": finding.get("formal_goals", []),
+                "duplicate_eligible_earlier_keys": duplicate_eligible_earlier_keys,
                 "source_certificate": _compact_source_certificate_for_d(
                     source_certificate
-                ),
-                "source_neighborhood": _source_neighborhood_for_d(
-                    pair, source_certificate
                 ),
             }
         )
@@ -9035,14 +9950,66 @@ def build_d_context(pair: dict[str, Any], findings: list[dict[str, Any]]) -> str
         for state in _source_model(pair).get("states", [])
         if isinstance(state, dict)
     ]
+    source_transition_inventory = [
+        _compact_transition_for_d(transition)
+        for transition in _source_model(pair).get("transitions", [])
+        if isinstance(transition, dict)
+    ]
+    source_entry_semantics = _source_entry_semantics_for_d(pair)
     return (
         "# Natural-language requirements\n\n"
         f"{_numbered(pair['nl'], 'NL')}\n\n"
         "# Exact source state inventory\n\n"
         f"{json.dumps(source_state_inventory, ensure_ascii=False, sort_keys=True, separators=(',', ':'))}\n\n"
+        "# Exact source transition inventory\n\n"
+        f"{json.dumps(source_transition_inventory, ensure_ascii=False, sort_keys=True, separators=(',', ':'))}\n\n"
+        "# Typed source entry semantics\n\n"
+        "The following facts come from the canonical source AST. An initial transition is scoped to the exact composite named by its `scope`; an initial transition scoped to a child does not satisfy the parent scope's entry obligation. `declared_concurrent_regions` is the only authoritative concurrency inventory; an empty list means that no concurrent-region entry interpretation is available for this source artifact.\n\n"
+        f"{json.dumps(source_entry_semantics, ensure_ascii=False, sort_keys=True, separators=(',', ':'))}\n\n"
         "# Findings to adjudicate\n\n"
         f"{json.dumps(compact, ensure_ascii=False, sort_keys=True, separators=(',', ':'))}\n"
     )
+
+
+def _has_closed_d2_impl_receipt(finding: dict[str, Any]) -> bool:
+    certificate = finding.get("source_causality_certificate")
+    certificate = certificate if isinstance(certificate, dict) else {}
+    assumptions = certificate.get("assumptions")
+    assumptions = assumptions if isinstance(assumptions, dict) else {}
+    if not (
+        finding.get("witness_level") == "W2"
+        and certificate.get("verdict") == "counterexample"
+        and certificate.get("explicit_final") is False
+    ):
+        return False
+    kind = certificate.get("kind")
+    if kind == "reachable_deadlock":
+        return assumptions.get("no_concurrent_regions") is True
+    if kind == "concurrent_region_deadlock":
+        required = {
+            "all_regions_have_one_initial",
+            "all_region_initials_unconditional",
+            "all_active_targets_leaf",
+            "all_active_targets_nonfinal",
+            "entry_path_has_no_guards",
+            "no_enabled_outgoing",
+            "owner_identity_resolved_exactly",
+            "target_is_active_region_entry",
+        }
+        return all(assumptions.get(key) is True for key in required)
+    if kind == "source_entry_deadlock":
+        required = {
+            "source_scope_reachable",
+            "entry_path_has_no_guards",
+            "missing_source_initial",
+            "source_has_direct_children",
+            "no_inherited_outgoing",
+            "compiler_bridge_exact",
+            "compiler_bridge_transition_target_exact",
+            "no_concurrent_regions",
+        }
+        return all(assumptions.get(key) is True for key in required)
+    return False
 
 
 def validate_d_decision(finding: dict[str, Any], decision: DDecision) -> list[str]:
@@ -9054,8 +10021,6 @@ def validate_d_decision(finding: dict[str, Any], decision: DDecision) -> list[st
     if decision.d_subclass == "D2-lit":
         if decision.grounding == "lit":
             quotes = finding.get("nl_quotes", [])
-            if finding.get("basis_kind") != "nl_literal":
-                errors.append("literal D2-lit requires basis_kind=nl_literal")
             if not finding.get("nl_anchor_valid") or not quotes:
                 errors.append("literal D2-lit requires an exact NL quote")
         elif decision.grounding == "lang":
@@ -9073,19 +10038,10 @@ def validate_d_decision(finding: dict[str, Any], decision: DDecision) -> list[st
     if decision.d_subclass == "D2-impl":
         if decision.grounding != "impl":
             errors.append("D2-impl requires grounding=impl")
-        certificate = finding.get("source_causality_certificate")
-        certificate = certificate if isinstance(certificate, dict) else {}
-        assumptions = certificate.get("assumptions")
-        assumptions = assumptions if isinstance(assumptions, dict) else {}
-        if not (
-            finding.get("witness_level") == "W2"
-            and certificate.get("kind") == "reachable_deadlock"
-            and certificate.get("verdict") == "counterexample"
-            and certificate.get("explicit_final") is False
-            and assumptions.get("no_concurrent_regions") is True
-        ):
+        if not _has_closed_d2_impl_receipt(finding):
             errors.append(
-                "D2-impl requires a source-grounded reachable non-final deadlock W2"
+                "grounding=impl is forbidden because protocol_d2_grounding is null; "
+                "use the supplied literal/language/domain provenance or lower D"
             )
     if decision.d_subclass == "D2-norm" and decision.grounding != "dom":
         errors.append("D2-norm requires grounding=dom")
@@ -9099,22 +10055,82 @@ def validate_d_decision(finding: dict[str, Any], decision: DDecision) -> list[st
     return errors
 
 
+def _typed_source_certificate_cause_identity(
+    finding: dict[str, Any],
+) -> str | None:
+    """Return a fail-closed identity for a deterministic source certificate."""
+
+    certificate = finding.get("source_causality_certificate")
+    if not isinstance(certificate, dict):
+        return None
+    cause_key = _certificate_cause_key(certificate)
+    if cause_key is None:
+        return None
+    return _canonical_sha256(
+        {
+            "cause_key": cause_key,
+            "certificate": certificate,
+        }
+    )
+
+
+def _canonical_formal_property_signature(
+    finding: dict[str, Any],
+) -> tuple[str, ...] | None:
+    """Return a complete executable-property signature or no duplicate proof."""
+
+    formal_goals = finding.get("formal_goals")
+    if not isinstance(formal_goals, list) or not formal_goals:
+        return None
+    signatures = set()
+    for goal in formal_goals:
+        if not isinstance(goal, dict):
+            return None
+        try:
+            typed_goal = EvidenceGoal.model_validate(goal)
+        except ValidationError:
+            return None
+        if compile_evidence_goal(typed_goal)["errors"]:
+            return None
+        signatures.add(
+            _canonical_sha256(typed_goal.model_dump(mode="json", exclude_none=True))
+        )
+    return tuple(sorted(signatures)) or None
+
+
+def validate_duplicate_reference(
+    finding: dict[str, Any], earlier: dict[str, Any]
+) -> list[str]:
+    """Require matching typed cause and executable-property proof to deduplicate."""
+
+    cause_identity = _typed_source_certificate_cause_identity(finding)
+    earlier_cause_identity = _typed_source_certificate_cause_identity(earlier)
+    if cause_identity is None or earlier_cause_identity is None:
+        return [
+            "duplicate_of requires positive typed source-certificate cause identity for both findings"
+        ]
+    if cause_identity != earlier_cause_identity:
+        return [
+            "duplicate_of conflicts with distinct exact source-certificate cause keys"
+        ]
+    property_signature = _canonical_formal_property_signature(finding)
+    earlier_property_signature = _canonical_formal_property_signature(earlier)
+    if property_signature is None or earlier_property_signature is None:
+        return [
+            "duplicate_of requires a canonical formal-property signature for both findings"
+        ]
+    if property_signature != earlier_property_signature:
+        return [
+            "duplicate_of conflicts with distinct exact formal property signatures"
+        ]
+
+    return []
+
+
 def _protocol_d2_grounding(finding: dict[str, Any]) -> str | None:
     """Return a closed #189 subclass only from typed formal evidence."""
 
-    certificate = finding.get("source_causality_certificate")
-    certificate = certificate if isinstance(certificate, dict) else {}
-    assumptions = certificate.get("assumptions")
-    assumptions = assumptions if isinstance(assumptions, dict) else {}
-    if (
-        finding.get("witness_level") == "W2"
-        and certificate.get("kind") == "reachable_deadlock"
-        and certificate.get("verdict") == "counterexample"
-        and certificate.get("explicit_final") is False
-        and assumptions.get("no_concurrent_regions") is True
-    ):
-        return "impl"
-    return None
+    return "impl" if _has_closed_d2_impl_receipt(finding) else None
 
 
 def normalize_d_decision(
@@ -9155,12 +10171,44 @@ def apply_d_adjudication(
             f"missing={sorted(expected - supplied)} unexpected={sorted(supplied - expected)} "
             f"duplicates={sorted(duplicates)}"
         )
+    findings_by_key = {str(finding["finding_key"]): finding for finding in findings}
+    ordered_keys = [
+        str(finding["finding_key"])
+        for finding in sorted(findings, key=d_finding_sort_key)
+    ]
+    finding_positions = {
+        finding_key: index for index, finding_key in enumerate(ordered_keys)
+    }
     adjudicated = []
     for finding in findings:
         decision = normalize_d_decision(by_key[finding["finding_key"]], finding=finding)
         item = dict(finding)
         item["d_decision"] = decision.model_dump(mode="json")
-        item["d_validation_errors"] = validate_d_decision(finding, decision)
+        duplicate_errors: list[str] = []
+        duplicate_of = decision.duplicate_of
+        if duplicate_of is not None:
+            if duplicate_of not in findings_by_key:
+                duplicate_errors.append(
+                    "duplicate_of must reference a supplied finding_key"
+                )
+            elif finding_positions[duplicate_of] >= finding_positions[
+                str(finding["finding_key"])
+            ]:
+                duplicate_errors.append(
+                    "duplicate_of must reference an earlier stable finding_key"
+                )
+            else:
+                duplicate_errors.extend(
+                    validate_duplicate_reference(finding, findings_by_key[duplicate_of])
+                )
+            if not decision.duplicate_rationale:
+                duplicate_errors.append("duplicate_of requires duplicate_rationale")
+        elif decision.duplicate_rationale is not None:
+            duplicate_errors.append("duplicate_rationale requires duplicate_of")
+        item["d_validation_errors"] = [
+            *validate_d_decision(finding, decision),
+            *duplicate_errors,
+        ]
         adjudicated.append(item)
     return adjudicated
 
@@ -9287,14 +10335,75 @@ def _strongest_level(values: list[str], prefix: str) -> str | None:
 def build_report_issue_clusters(
     findings: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Collapse normative facets only when they share an exact technical cause."""
+    """Collapse exact causes, then consume validated D duplicate relations."""
+
+    findings_by_key = {
+        str(finding.get("finding_key")): finding for finding in findings
+    }
+    cause_by_finding = {
+        str(finding.get("finding_key")): _cause_key_from_finding(finding)
+        for finding in findings
+    }
+    parent = {cause_key: cause_key for cause_key in cause_by_finding.values()}
+
+    def root(cause_key: str) -> str:
+        while parent[cause_key] != cause_key:
+            parent[cause_key] = parent[parent[cause_key]]
+            cause_key = parent[cause_key]
+        return cause_key
+
+    deduplicated_by_d: list[dict[str, str]] = []
+    finding_positions = {
+        str(finding.get("finding_key")): index
+        for index, finding in enumerate(sorted(findings, key=d_finding_sort_key))
+    }
+    for finding in findings:
+        finding_key = str(finding.get("finding_key"))
+        decision = finding.get("d_decision")
+        duplicate_of = (
+            decision.get("duplicate_of") if isinstance(decision, dict) else None
+        )
+        if (
+            finding.get("d_validation_errors")
+            or not isinstance(duplicate_of, str)
+            or duplicate_of not in cause_by_finding
+            or findings_by_key[duplicate_of].get("d_validation_errors")
+            or finding_positions[duplicate_of] >= finding_positions[finding_key]
+            or validate_duplicate_reference(
+                finding,
+                findings_by_key[duplicate_of],
+            )
+        ):
+            continue
+        source_cause = root(cause_by_finding[finding_key])
+        target_cause = root(cause_by_finding[duplicate_of])
+        if source_cause == target_cause:
+            continue
+        parent[source_cause] = target_cause
+        deduplicated_by_d.append(
+            {
+                "finding_key": finding_key,
+                "duplicate_of": duplicate_of,
+                "source_cause_key": source_cause,
+                "target_cause_key": target_cause,
+            }
+        )
 
     grouped: dict[str, list[dict[str, Any]]] = {}
     for finding in findings:
-        grouped.setdefault(_cause_key_from_finding(finding), []).append(finding)
+        cause_key = root(cause_by_finding[str(finding.get("finding_key"))])
+        grouped.setdefault(cause_key, []).append(finding)
 
     clusters = []
     for cause_key, facets in grouped.items():
+        cause_keys = list(
+            dict.fromkeys(_cause_key_from_finding(facet) for facet in facets)
+        )
+        duplicate_receipts = [
+            item
+            for item in deduplicated_by_d
+            if root(item["target_cause_key"]) == cause_key
+        ]
         representative = max(facets, key=_facet_report_rank)
         confirmed_facets = select_confirmed_issues(facets)
         accepted_facets = select_accepted_issues(facets)
@@ -9316,6 +10425,8 @@ def build_report_issue_clusters(
                 "schema": "paper1.report_issue_cluster.v1",
                 "report_issue_id": cause_key,
                 "cause_key": cause_key,
+                "cause_keys": cause_keys,
+                "deduplicated_by_d": duplicate_receipts,
                 "representative_finding_key": representative["finding_key"],
                 "facet_keys": [facet["finding_key"] for facet in facets],
                 "facet_count": len(facets),

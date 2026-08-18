@@ -8,13 +8,13 @@
 
 1. `paper1_contract_extraction` 只读取 numbered NL，抽取 initial、containment、按 source 分组的 direct-transition、required-state、required-event-scope contract 和跨句复用的 concept ID。
 2. 两个 `paper1_discovery_grounding` 分支读取完全相同的 raw contract、NL、作者源 PlantUML、带语义映射注释的 FCSTM、压缩后的 `pyfcstm inspect` 事实和精确 source inventory，分别偏重契约/结构/跨边对照与可达性/响应/终止后果；开放候选取 exact structured union，确定性 formal scout 与执行后端只运行一次。
-3. `paper1_d_adjudication` 读取整格全部 finding facet，一次为每条 facet 独立输出 `D2/D1/D0`；完整性合同失败时只允许一次原地修复。
+3. `paper1_d_adjudication` 首轮读取整格全部 finding facet，一次为每条 facet 独立输出 `D2/D1/D0`，并在同一次调用中用 exact `finding_key` 标记报告级语义重复；validator 冻结合法 decision，若存在非法 decision，`paper1_d_targeted_repair` 至多再调用一次且只读取非法子集、对应 dossier、逐条错误和只读的冻结 decision 摘要，失败时仅该子集降为 `D_UNRESOLVED`。
 
-LLM 不选择 Python、pyfcstm 谓词、证明模板、证明后端、W 或最终 L。每个 B 分支先为所有已实现的语义概念输出一次全局 exact-ID `concept_bindings`，随后只对 raw contract 输出稀疏语义补丁：普通已实现 contract 默认继承 LLM-A，只有 `rejected/unresolved`、缺失 required state、final-pseudostate 或其他不能由全局 concept binding 表达的决策才按索引显式返回。确定性 assembler 只按 concept ID、索引和 exact formal ID 合并，并保护原始 `nl_line`、`condition`、`priority` 和 concept ID 不被改写。确定性编译器将每个语义关系映射到 13 个证明模板和 4 个物理后端之一：源/制品静态检查、守卫 SMT、拓扑证明或 FCSTM trace/有界形式执行。断言必须真实运行后才能得到 W2；新增 `transition_target_consistency` 允许 LLM 先语义判定两个 NL 行为具有相同目标角色，再选择被测边、参照边和规范目标，确定性层只核验 exact ID、正式端点与 FCSTM 映射并执行双边断言，绝不从 label、条件字符串或名字推导等价。
+LLM 不选择 Python、pyfcstm 谓词、证明模板、证明后端、W 或最终 L。每个 B 分支先为所有已实现的语义概念输出一次全局 exact-ID `concept_bindings`；initial/containment raw contract 使用稀疏 `rejected/unresolved` veto，而 transition raw contract 必须对每个 target 穷尽返回 exact normative endpoint 与 `observed_transition_id` 或 unresolved。这个区别来自问题本身：概念映射后可以机械检查 containment，但“哪条作者边语义上实现了某个 NL 条件或动作”不能用字符串规则判定，必须由 LLM 显式落账。确定性 assembler 只按 concept ID、索引和 exact formal ID 合并，并保护原始 `nl_line`、`condition`、`priority` 和 concept ID 不被改写；已满足 transition contract 会在真实执行后机械过滤。确定性编译器将每个语义关系映射到 13 个证明模板和 4 个物理后端之一：源/制品静态检查、守卫 SMT、拓扑证明或 FCSTM trace/有界形式执行。断言必须真实运行后才能得到 W2；新增 `transition_target_consistency` 允许 LLM 先语义判定两个 NL 行为具有相同目标角色，再选择被测边、参照边和规范目标，确定性层只核验 exact ID、正式端点与 FCSTM 映射并执行双边断言，绝不从 label、条件字符串或名字推导等价。
 
-论文一等表达面是 `ElementObligation`、`AttachmentObligation`、`GuardSetObligation`、`GraphObligation` 与 `TemporalObligation` 五类 Pydantic discriminated union。旧 `EvidenceGoal=(relation, bindings, expected)` 仅保留为 compiler lowering record；exact operator 与 relation 的兼容性由确定性表校验，后端仍完全由 compiler 选择。执行支持不作为第六类义务，而由 compiler 产生 `SupportDisposition`：`executable/W2 ceiling`、`located_only/W1 ceiling` 或 `prose_only/W0 ceiling`。relation-specific 必需字段由 compiler 而非 schema 检查，使单个非法 Goal 降级而不杀整格；候选只有在编译后真实运行并获得 terminal counterexample、artifact/assertion hash、source certificate 和 semantic receipt 时才可能成为 W2。
+论文一等表达面是 `ElementObligation`、`AttachmentObligation`、`GuardSetObligation`、`GraphObligation` 与 `TemporalObligation` 五类 Pydantic discriminated union。旧 `EvidenceGoal=(relation, bindings, expected)` 仅保留为 compiler lowering record；exact operator 与 relation 的兼容性由确定性表校验，后端仍完全由 compiler 选择。执行支持不作为第六类义务，而由 compiler 产生 `SupportDisposition`：`executable/W2 ceiling`、`located_only/W1 ceiling` 或 `prose_only/W0 ceiling`。relation-specific 必需字段由 compiler 而非 schema 检查，使单个非法 Goal 降级而不杀整格；候选必须同时携带 `basis` 与 `observed_fact`，D dossier 必须携带 `rationale` 和 defeater 说明，但这些自然语言字段只供审计/debug，不得参与确定性语义控制。候选只有在编译后真实运行并获得 terminal counterexample、artifact/assertion hash、source certificate 和 semantic receipt 时才可能成为 W2。
 
-LLM-B 不再逐条复述全部 `grounded` contract。被省略的普通 contract 只有在其 concept ID 已获得全局 exact-ID binding 时才可由 assembler 接受；`rejected` 表示 LLM-A 把 NL 关系抽错，`unresolved` 表示仍有多种称职读法，二者都是执行 veto。它们不要求伪造 formal ID，assembler 只按结构化枚举停止编译并保留诊断，绝不从 reason 文本中搜索“错误”“歧义”等字样。这样既保留 raw contract 写保护与语义复审能力，又避免 LLM-B 重复输出几十条 contract 而截断。
+LLM-B 不再逐条复述全部 initial/containment `grounded` contract。被省略的这两类普通 contract 只有在其 concept ID 已获得全局 exact-ID binding 时才可由 assembler 接受；`rejected` 表示 LLM-A 把 NL 关系抽错，`unresolved` 表示仍有多种称职读法，二者都是执行 veto。transition contract 例外地要求穷尽 indexed binding，但只输出 source、target index、normative target 与 observed transition ID，不复述 claim/obligation；这是用少量结构化字段换取语义明确和后续 satisfied-filter，而不是恢复冗长全文。fresh 分支必须对 raw group 和 target index 完整、唯一且不越界，纯结构合同失败会让该分支整体隔离并禁止执行，绝不靠 concept 名或文本猜回缺失 binding；旧 replay 走单独兼容路径。assembler 只消费结构化枚举与 exact ID，绝不从 reason 文本中搜索“错误”“歧义”等字样。
 
 ## 语义判定纪律
 
@@ -40,9 +40,11 @@ W2 证明的是“在已记录的语义绑定前提下，编译后的断言在�
 
 - `witness_level`：机械派生的 `W2/W1/W0`。
 - `l_level`：根据证明关系机械派生的 `L0/L1/L2`。
-- `d_decision`：按 facet 批量调用但逐条独立给出的 `D2/D1/D0`。
+- `d_decision`：以整格一次调用、逐条独立给出的 `D2/D1/D0`；只有 schema/合同非法的 decision 子集可进入一次 targeted repair。
 
 W2 还必须带有 terminal counterexample certificate，其中包含确切 FCSTM hash 和 compiled assertion hash。source attribution 是另一份独立证书，因为 FCSTM 上的反例本身不能证明作者源 PlantUML 有缺陷；静态 FCSTM 缺失若没有作者源证书只能标为 unattributed，不能借用 `safe_runtime_path`。W1/W0 假设会作为 coverage-gap facet 保留并接受 D 裁决，但不能进入 `confirmed_issues`。
+
+最终报告采用两级去重。确定性层先按 source certificate 导出的 exact cause key 合并同一技术原因下的 facets；随后只消费 LLM-C 在整格 D 中给出的 `duplicate_of=<earlier finding_key>` 边。LLM-C 负责判断“相同 exact source elements/transition set、相同 violated property、相同最小修复”；确定性层只检查 earlier-key 引用方向、exact source-certificate cause 约束和 canonical `GoalRelation + bindings` property signature，绝不从 claim 措辞推断语义或最小修复。cluster 保存全部 `cause_keys`、`facet_keys` 和 `deduplicated_by_d` receipt，因此合并不会覆盖每个 facet 自己的 D/W/L。
 
 完整的阶段契约、后端策略、pilot 证据、评测设计和泄漏边界见 [METHOD_DESIGN.md](./METHOD_DESIGN.md)。
 
@@ -89,5 +91,5 @@ PYTHONPATH=. python -m pytest \
 - mapping contract 证明局部因果关系，不证明整个 converter 的行为等价。
 - progressive formal scout 只能输出 exact diagnostic `FormalFact` 和事前登记的 `OracleRule`；它不解析 diagnostic message，也不把规则直接当作 NL-derived obligation，规则对当前需求是否构成缺陷必须由 LLM-C/reference judge 裁决。
 - `(cause, obligation)` facet 是 D 的判定单元，报告级只按精确 cause key 聚类并保留全部 obligation facet；正式实验前仍需冻结聚类协议和 matching 口径。
-- 正式成本口径是同一 configured model 内的美元倍率，不做跨模型 `<25×` 比较。`.llmconfig.yml` 只配置 input、output、cache read、cache write 四个 USD/M token 单价及来源；当前不模拟峰谷、长上下文、TTL 或供应商账单的全部细节。单 pair 超过同模型 X1v2 的 25×美元成本、usage/price 缺失或 semantic provenance audit 失败时，run 不具备实验资格；200K raw token 只保留为防失控安全上限，不是论文成本口径。
+- 正式成本口径是同一 configured model 内的美元倍率，不做跨模型 `<25×` 比较。`.llmconfig.yml` 只配置 input、output、cache read、cache write 四个 USD/M token 单价及来源；当前不模拟峰谷、长上下文、TTL 或供应商账单的全部细节。schema、output-limit、内容返工和其他非 provider 错误的所有 attempt 都累计费用；只有 typed provider/transport failure 之后确实发起下一次 retry 时，前序失败 attempt 才可标为 `provider_error_retry_exempt`，未发生下一次调用的 provider failure 仍计费，且所有 attempt 都保留审计。单 pair 超过同模型 X1v2 的 25×美元成本、任何应计 attempt 的 usage/price 缺失或 semantic provenance audit 失败时，run 不具备实验资格；200K raw token 只保留为防失控安全上限，不是论文成本口径。
 - provider 失败或无法修复的 structured-output 失败可以让整格失败；内部执行失败和 D 修复耗尽必须带诊断降级落盘。

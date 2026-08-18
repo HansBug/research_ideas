@@ -54,6 +54,9 @@ class PrototypeGraphState(TypedDict, total=False):
     d_context: str
     d_plan: core.DAdjudicationPlan
     d_feedback: list[str]
+    d_frozen_decisions: list[dict[str, Any]]
+    d_repair_keys: list[str]
+    d_repair_output_errors: list[str]
     d_repair_count: int
     d_call_count: int
     d_unresolved_reason: str
@@ -93,7 +96,7 @@ def _completed_call_id(observations: list[dict[str, Any]]) -> str | None:
 def _veto_explicit_cross_sample_conflicts(
     plans: list[core.DiscoveryGroundingPlan],
 ) -> tuple[list[core.DiscoveryGroundingPlan], list[dict[str, str]]]:
-    """Veto only exact structured binding disagreements across B samples."""
+    """Veto exact concept or transition-binding disagreements across B samples."""
 
     if len(plans) < 2:
         return plans, []
@@ -108,7 +111,32 @@ def _veto_explicit_cross_sample_conflicts(
         for concept_id, values in concept_values.items()
         if len(values) > 1
     }
-    if not conflicts:
+    transition_values: dict[
+        int, set[tuple[str, str | None, tuple[tuple[int, str, str | None], ...]]]
+    ] = {}
+    for plan in plans:
+        for binding in plan.transition_group_bindings:
+            signature = (
+                binding.status,
+                binding.source,
+                tuple(
+                    sorted(
+                        (
+                            target.target_index,
+                            target.target,
+                            target.observed_transition_id,
+                        )
+                        for target in binding.targets
+                    )
+                ),
+            )
+            transition_values.setdefault(binding.item_index, set()).add(signature)
+    transition_conflicts = {
+        item_index: values
+        for item_index, values in transition_values.items()
+        if len(values) > 1
+    }
+    if not conflicts and not transition_conflicts:
         return plans, []
     updated = []
     for plan in plans:
@@ -125,6 +153,18 @@ def _veto_explicit_cross_sample_conflicts(
                     ),
                 )
             )
+        for item_index in sorted(transition_conflicts):
+            unresolved.append(
+                core.SemanticGroundingGap(
+                    scope="contract",
+                    item_index=item_index,
+                    field=f"transition_group_bindings[{item_index}]",
+                    reason=(
+                        "independent discovery samples supplied conflicting exact "
+                        "transition bindings; the ensemble withheld execution"
+                    ),
+                )
+            )
         updated.append(
             plan.model_copy(
                 deep=True,
@@ -133,6 +173,21 @@ def _veto_explicit_cross_sample_conflicts(
                         binding
                         for binding in plan.concept_bindings
                         if binding.concept_id not in conflicts
+                    ],
+                    "transition_group_bindings": [
+                        (
+                            core.TransitionGroupGrounding(
+                                item_index=binding.item_index,
+                                status="unresolved",
+                                reason=(
+                                    "independent discovery samples supplied "
+                                    "conflicting exact transition bindings"
+                                ),
+                            )
+                            if binding.item_index in transition_conflicts
+                            else binding
+                        )
+                        for binding in plan.transition_group_bindings
                     ],
                     "unresolved": unresolved,
                 },
@@ -149,7 +204,232 @@ def _veto_explicit_cross_sample_conflicts(
         }
         for concept_id, values in sorted(conflicts.items())
     ]
+    diagnostics.extend(
+        {
+            "stage": "discovery_ensemble",
+            "class": "cross_sample_transition_binding_conflict",
+            "message": (
+                f"transition_group[{item_index}] received conflicting exact "
+                "bindings and was retained only as an unexecuted coverage gap"
+            ),
+        }
+        for item_index in sorted(transition_conflicts)
+    )
     return updated, diagnostics
+
+
+def _fresh_transition_binding_errors(
+    raw: core.ContractExtractionPlan,
+    plan: core.DiscoveryGroundingPlan,
+) -> list[str]:
+    """Check only the deterministic shape of fresh transition resolutions."""
+
+    errors: list[str] = []
+    grouped: dict[int, list[core.TransitionGroupGrounding]] = {}
+    for binding in plan.transition_group_bindings:
+        grouped.setdefault(binding.item_index, []).append(binding)
+    expected = set(range(len(raw.transition_groups)))
+    supplied = set(grouped)
+    for item_index in sorted(expected - supplied):
+        errors.append(f"transition_group[{item_index}] resolution is missing")
+    for item_index in sorted(supplied - expected):
+        errors.append(f"transition_group[{item_index}] does not exist in the raw plan")
+    for item_index in sorted(expected & supplied):
+        rows = grouped[item_index]
+        if len(rows) != 1:
+            errors.append(
+                f"transition_group[{item_index}] has {len(rows)} resolutions; expected 1"
+            )
+            continue
+        binding = rows[0]
+        if binding.status != "grounded":
+            if binding.source is not None or binding.targets:
+                errors.append(
+                    f"transition_group[{item_index}] {binding.status} resolution "
+                    "must not carry formal bindings"
+                )
+            continue
+        if binding.source is None:
+            errors.append(f"transition_group[{item_index}] grounded source is missing")
+        target_rows: dict[int, int] = {}
+        for target in binding.targets:
+            target_rows[target.target_index] = target_rows.get(target.target_index, 0) + 1
+        expected_targets = set(range(len(raw.transition_groups[item_index].targets)))
+        supplied_targets = set(target_rows)
+        for target_index in sorted(expected_targets - supplied_targets):
+            errors.append(
+                f"transition_group[{item_index}].targets[{target_index}] is missing"
+            )
+        for target_index in sorted(supplied_targets - expected_targets):
+            errors.append(
+                f"transition_group[{item_index}].targets[{target_index}] does not exist"
+            )
+        for target_index, count in sorted(target_rows.items()):
+            if count != 1:
+                errors.append(
+                    f"transition_group[{item_index}].targets[{target_index}] has "
+                    f"{count} resolutions; expected 1"
+                )
+    return errors
+
+
+def _partition_d_decisions(
+    findings: list[dict[str, Any]],
+    plan: core.DAdjudicationPlan,
+) -> tuple[dict[str, core.DDecision], dict[str, list[str]], list[str]]:
+    """Freeze valid D decisions and identify only the subset needing LLM repair."""
+
+    expected = {finding["finding_key"]: finding for finding in findings}
+    ordered_keys = [
+        finding["finding_key"]
+        for finding in sorted(findings, key=core.d_finding_sort_key)
+    ]
+    positions = {finding_key: index for index, finding_key in enumerate(ordered_keys)}
+    grouped: dict[str, list[core.DDecision]] = {}
+    for decision in plan.decisions:
+        grouped.setdefault(decision.finding_key, []).append(decision)
+    unexpected = sorted(set(grouped) - set(expected))
+    if unexpected:
+        message = (
+            "D plan contains unexpected finding_key values "
+            f"{unexpected!r}; the whole D plan is contract-invalid"
+        )
+        return {}, {finding_key: [message] for finding_key in expected}, []
+    valid: dict[str, core.DDecision] = {}
+    invalid: dict[str, list[str]] = {}
+    for finding_key, finding in expected.items():
+        decisions = grouped.get(finding_key, [])
+        if len(decisions) != 1:
+            invalid[finding_key] = [
+                f"expected exactly one decision, received {len(decisions)}"
+            ]
+            continue
+        raw_decision = decisions[0]
+        duplicate_of = raw_decision.duplicate_of
+        duplicate_errors: list[str] = []
+        if duplicate_of is not None:
+            if duplicate_of not in expected:
+                duplicate_errors.append(
+                    "duplicate_of must reference a supplied finding_key"
+                )
+            elif positions[duplicate_of] >= positions[finding_key]:
+                eligible_earlier_keys = ordered_keys[: positions[finding_key]]
+                duplicate_errors.append(
+                    "duplicate_of must reference an earlier stable finding_key; "
+                    f"eligible earlier keys={eligible_earlier_keys!r}; use null "
+                    "when none is semantically identical"
+                )
+            else:
+                duplicate_errors.extend(
+                    core.validate_duplicate_reference(
+                        finding, expected[duplicate_of]
+                    )
+                )
+            if not raw_decision.duplicate_rationale:
+                duplicate_errors.append("duplicate_of requires duplicate_rationale")
+        elif raw_decision.duplicate_rationale is not None:
+            duplicate_errors.append("duplicate_rationale requires duplicate_of")
+
+        decision = core.normalize_d_decision(raw_decision, finding=finding)
+        errors = [
+            *core.validate_d_decision(finding, decision),
+            *duplicate_errors,
+        ]
+        if errors:
+            invalid[finding_key] = errors
+        else:
+            valid[finding_key] = decision
+    return valid, invalid, []
+
+
+def _validate_targeted_d_repair_output(
+    plan: core.DAdjudicationPlan,
+    *,
+    repair_keys: list[str],
+    frozen_keys: set[str],
+) -> tuple[list[core.DDecision], list[str]]:
+    """Accept only an exact repair subset before it can join frozen decisions."""
+
+    expected_keys = set(repair_keys)
+    errors: list[str] = []
+    if len(expected_keys) != len(repair_keys):
+        errors.append("targeted repair keys must be unique")
+    overlap = sorted(expected_keys & frozen_keys)
+    if overlap:
+        errors.append(
+            f"targeted repair keys overlap frozen finding_key values {overlap!r}"
+        )
+
+    grouped: dict[str, list[core.DDecision]] = {}
+    for decision in plan.decisions:
+        grouped.setdefault(decision.finding_key, []).append(decision)
+    for finding_key in repair_keys:
+        count = len(grouped.get(finding_key, []))
+        if count != 1:
+            errors.append(
+                "targeted repair must return exactly one decision for repair "
+                f"finding_key {finding_key!r}; received {count}"
+            )
+    for finding_key in sorted(set(grouped) & frozen_keys):
+        errors.append(
+            f"targeted repair must not repeat frozen finding_key {finding_key!r}"
+        )
+    for finding_key in sorted(set(grouped) - expected_keys - frozen_keys):
+        errors.append(f"targeted repair returned unknown finding_key {finding_key!r}")
+    if errors:
+        return [], errors
+    return [grouped[finding_key][0] for finding_key in repair_keys], []
+
+
+def _partially_adjudicated_findings(
+    findings: list[dict[str, Any]],
+    valid: dict[str, core.DDecision],
+    invalid: dict[str, list[str]],
+) -> list[dict[str, Any]]:
+    adjudicated = []
+    for finding in findings:
+        item = dict(finding)
+        finding_key = finding["finding_key"]
+        decision = valid.get(finding_key)
+        if decision is None:
+            item["d_decision"] = None
+            item["d_validation_errors"] = invalid.get(
+                finding_key, ["D decision is unavailable"]
+            )
+            item["d_status"] = "D_UNRESOLVED"
+        else:
+            item["d_decision"] = decision.model_dump(mode="json")
+            item["d_validation_errors"] = []
+            item["d_status"] = decision.d_level
+        adjudicated.append(item)
+    return adjudicated
+
+
+def _quarantine_untyped_fresh_evidence(
+    evidence: core.IssueDiscoveryPlan,
+) -> tuple[core.IssueDiscoveryPlan, list[dict[str, str]]]:
+    """Exclude fresh candidates that bypass the paper-level typed surface."""
+
+    diagnostics: list[dict[str, str]] = []
+    lanes: dict[str, list[core.BalancedEvidenceCandidate]] = {}
+    for lane in ("surface_candidates", "behavior_candidates"):
+        kept = []
+        for item_index, candidate in enumerate(getattr(evidence, lane)):
+            if candidate.domain_obligation is None:
+                diagnostics.append(
+                    {
+                        "stage": "discovery_grounding",
+                        "class": "fresh_typed_obligation_missing",
+                        "message": (
+                            f"{lane}[{item_index}] was quarantined because fresh "
+                            "candidates require a paper-level typed obligation"
+                        ),
+                    }
+                )
+                continue
+            kept.append(candidate)
+        lanes[lane] = kept
+    return core.IssueDiscoveryPlan(**lanes), diagnostics
 
 
 def _observation(responder: DirectStructuredResponder) -> dict[str, Any] | None:
@@ -450,19 +730,36 @@ def _load_replay_plans(
     )
     discovery_branches = discovery_record.get("discovery_branches")
     if contract_payload and isinstance(discovery_branches, list):
-        plans = [
-            core.DiscoveryGroundingPlan.model_validate(
-                migrate_contract_binding_status(branch["discovery_grounding_plan"])
-            )
+        observations = discovery_record.get("llm_observations", [])
+        if not isinstance(observations, list):
+            observations = []
+        parsed_outputs = [
+            item.get("parsed_output")
+            for item in observations
+            if isinstance(item, dict)
+            and item.get("role") == "paper1_discovery_grounding"
+            and item.get("status") == "completed"
+            and isinstance(item.get("parsed_output"), dict)
+        ]
+        branch_payloads = [
+            branch["discovery_grounding_plan"]
             for branch in discovery_branches
             if isinstance(branch, dict)
             and isinstance(branch.get("discovery_grounding_plan"), dict)
         ]
+        replay_payloads = (
+            parsed_outputs
+            if len(parsed_outputs) == len(branch_payloads)
+            else branch_payloads
+        )
+        plans = [
+            core.DiscoveryGroundingPlan.model_validate(
+                migrate_contract_binding_status(payload)
+            )
+            for payload in replay_payloads
+        ]
         if not plans:
             raise ValueError("replay run has no valid discovery branches")
-        observations = discovery_record.get("llm_observations", [])
-        if not isinstance(observations, list):
-            observations = []
         return (
             core.ContractExtractionPlan.model_validate(contract_payload),
             plans,
@@ -652,12 +949,21 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
         )
         observations: list[dict[str, Any]] = []
         branch_inputs: list[
-            tuple[core.DiscoveryGroundingPlan, str | None, str]
+            tuple[
+                core.DiscoveryGroundingPlan,
+                str | None,
+                str,
+                int,
+                core.DiscoveryGroundingPlan,
+            ]
+        ] = []
+        quarantined_inputs: list[
+            tuple[core.DiscoveryGroundingPlan, str | None, str, int, list[str]]
         ] = []
         branch_failures: list[dict[str, str]] = []
         if "replay_discovery_grounding_plans" in state:
             branch_inputs = [
-                (plan, None, f"replay_branch_{index}")
+                (plan, None, f"replay_branch_{index}", index, plan)
                 for index, plan in enumerate(
                     state["replay_discovery_grounding_plans"]
                 )
@@ -690,10 +996,33 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
                         }
                     )
                     continue
-                branch_inputs.append(
-                    (plan, _completed_call_id(sample_observations), lens_id)
+                call_id = _completed_call_id(sample_observations)
+                completeness_errors = _fresh_transition_binding_errors(
+                    state["contract_plan"], plan
                 )
-            if not branch_inputs:
+                if completeness_errors:
+                    quarantined_inputs.append(
+                        (
+                            plan,
+                            call_id,
+                            lens_id,
+                            sample_index,
+                            completeness_errors,
+                        )
+                    )
+                    branch_failures.append(
+                        {
+                            "stage": "discovery_grounding",
+                            "class": "fresh_transition_binding_incomplete",
+                            "message": (
+                                f"sample {sample_index + 1}/{DISCOVERY_SAMPLE_COUNT} "
+                                "was quarantined: " + "; ".join(completeness_errors)
+                            ),
+                        }
+                    )
+                    continue
+                branch_inputs.append((plan, call_id, lens_id, sample_index, plan))
+            if not branch_inputs and not quarantined_inputs:
                 return {
                     "discovery_grounding_context": discovery_context,
                     "failure": {
@@ -707,21 +1036,38 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
                     ],
                 }
         plans, ensemble_diagnostics = _veto_explicit_cross_sample_conflicts(
-            [plan for plan, _, _ in branch_inputs]
+            [plan for plan, _, _, _, _ in branch_inputs]
         )
         branch_inputs = [
-            (plan, branch_inputs[index][1], branch_inputs[index][2])
+            (
+                plan,
+                branch_inputs[index][1],
+                branch_inputs[index][2],
+                branch_inputs[index][3],
+                branch_inputs[index][4],
+            )
             for index, plan in enumerate(plans)
         ]
         branches: list[dict[str, Any]] = []
         diagnostics = [*branch_failures, *ensemble_diagnostics]
-        for sample_index, (plan, llm_call_id, lens_id) in enumerate(branch_inputs):
+        for (
+            plan,
+            llm_call_id,
+            lens_id,
+            sample_index,
+            llm_semantic_plan,
+        ) in branch_inputs:
             try:
                 contract, evidence, branch_diagnostics = (
                     core.validate_discovery_grounding(
                         state["pair"], state["contract_plan"], plan
                     )
                 )
+                if "replay_discovery_grounding_plans" not in state:
+                    evidence, typed_diagnostics = _quarantine_untyped_fresh_evidence(
+                        evidence
+                    )
+                    branch_diagnostics.extend(typed_diagnostics)
             except Exception as exc:  # noqa: BLE001 - internal stages must degrade
                 contract = core.GroundedContractPlan()
                 evidence = core.IssueDiscoveryPlan(
@@ -743,11 +1089,35 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
                     "sample_index": sample_index,
                     "lens_id": lens_id,
                     "llm_call_id": llm_call_id,
+                    "quarantined": False,
+                    "llm_semantic_plan": llm_semantic_plan,
                     "discovery_grounding_plan": plan,
                     "grounded_contract_plan": contract,
                     "grounded_evidence_plan": evidence,
                 }
             )
+        for (
+            plan,
+            llm_call_id,
+            lens_id,
+            sample_index,
+            completeness_errors,
+        ) in quarantined_inputs:
+            branches.append(
+                {
+                    "sample_index": sample_index,
+                    "lens_id": lens_id,
+                    "llm_call_id": llm_call_id,
+                    "quarantined": True,
+                    "quarantine_errors": completeness_errors,
+                    "discovery_grounding_plan": plan,
+                    "grounded_contract_plan": core.GroundedContractPlan(),
+                    "grounded_evidence_plan": core.IssueDiscoveryPlan(
+                        surface_candidates=[], behavior_candidates=[]
+                    ),
+                }
+            )
+        branches.sort(key=lambda item: item["sample_index"])
         return {
             "discovery_grounding_context": discovery_context,
             "discovery_branches": branches,
@@ -787,10 +1157,14 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
                     }
                 )
         for branch in state["discovery_branches"]:
+            if branch.get("quarantined"):
+                continue
             semantic_provenance = core.build_llm_binding_provenance(
                 state.get("llm_observations", []),
                 role="paper1_discovery_grounding",
-                semantic_plan=branch["discovery_grounding_plan"],
+                semantic_plan=branch.get(
+                    "llm_semantic_plan", branch["discovery_grounding_plan"]
+                ),
                 grounded_contract_plan=branch["grounded_contract_plan"],
                 grounded_evidence_plan=branch["grounded_evidence_plan"],
                 replayed=bool(state["input"].replay_plans_from),
@@ -864,21 +1238,63 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
             feedback = "\n\n# Deterministic contract feedback\n\n" + "\n".join(
                 f"- {item}" for item in state["d_feedback"]
             )
+        repair_keys = set(state.get("d_repair_keys", []))
         findings = sorted(
-            state["finding_records"], key=lambda item: item["finding_key"]
+            (
+                item
+                for item in state["finding_records"]
+                if not repair_keys or item["finding_key"] in repair_keys
+            ),
+            key=core.d_finding_sort_key,
         )
         context = core.build_d_context(state["pair"], findings)
+        repairing = bool(repair_keys)
+        frozen_context = ""
+        if repairing:
+            frozen_context = (
+                "\n\n# Frozen valid decisions (read-only context)\n\n"
+                + json.dumps(
+                    [
+                        {
+                            "finding_key": item.get("finding_key"),
+                            "d_level": item.get("d_level"),
+                            "violated_obligation": item.get("violated_obligation"),
+                            "duplicate_of": item.get("duplicate_of"),
+                        }
+                        for item in state.get("d_frozen_decisions", [])
+                    ],
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                + "\n"
+            )
         adjudication_header = (
-            "# Whole-pair D adjudication\n\n"
+            (
+                "# Targeted D decision repair\n\n"
+                "All omitted decisions already passed deterministic validation and "
+                "are frozen. Correct only the supplied invalid decisions; do not "
+                "repeat, revise, or replace any frozen decision. Set `duplicate_of` "
+                "and `duplicate_rationale` to null for every repaired decision; "
+                "the report keeps an independent facet rather than retrying semantic "
+                "clustering here.\n\n"
+            )
+            if repairing
+            else "# Whole-pair D adjudication\n\n"
+        ) + (
             f"Return exactly {len(findings)} decisions, one for every finding in "
             "the supplied stable order.\n\n"
         )
         plan, observations, error = _invoke_with_schema_repair(
             responder,
-            role="paper1_d_adjudication",
+            role=(
+                "paper1_d_targeted_repair"
+                if repairing
+                else "paper1_d_adjudication"
+            ),
             schema=core.DAdjudicationPlan,
             system_prompt=core.D_SYSTEM_PROMPT,
-            user_input=adjudication_header + context + feedback,
+            user_input=adjudication_header + context + frozen_context + feedback,
         )
         d_call_count = state.get("d_call_count", 0) + 1
         if error is not None or plan is None:
@@ -894,9 +1310,28 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
                     *observations,
                 ],
             }
+        if repairing:
+            frozen = [
+                core.DDecision.model_validate(item)
+                for item in state.get("d_frozen_decisions", [])
+            ]
+            repaired, repair_output_errors = _validate_targeted_d_repair_output(
+                plan,
+                repair_keys=state["d_repair_keys"],
+                frozen_keys={decision.finding_key for decision in frozen},
+            )
+            plan = core.DAdjudicationPlan(decisions=[*frozen, *repaired])
+        else:
+            repair_output_errors = []
         return {
             "d_plan": plan,
             "d_call_count": d_call_count,
+            "d_repair_count": (
+                state.get("d_repair_count", 0) + 1
+                if repairing
+                else state.get("d_repair_count", 0)
+            ),
+            "d_repair_output_errors": repair_output_errors,
             "llm_observations": [
                 *state.get("llm_observations", []),
                 *observations,
@@ -904,64 +1339,45 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
         }
 
     def validate_d(state: PrototypeGraphState) -> PrototypeGraphState:
-        try:
-            findings = core.apply_d_adjudication(
-                state["finding_records"], state["d_plan"]
-            )
-        except ValueError as exc:
-            repair_count = state.get("d_repair_count", 0) + 1
-            if repair_count > 1:
-                message = str(exc)
-                unresolved = [
-                    {
-                        **finding,
-                        "d_decision": None,
-                        "d_validation_errors": [message],
-                    }
-                    for finding in state["finding_records"]
-                ]
-                return {
-                    "finding_records": unresolved,
-                    "d_feedback": [message],
-                    "d_repair_count": repair_count,
-                    "d_unresolved_reason": message,
-                    "confirmed_issues": [],
-                    "accepted_issues": [],
-                    "retry_d": False,
-                }
+        valid, invalid, diagnostics = _partition_d_decisions(
+            state["finding_records"], state["d_plan"]
+        )
+        repair_output_errors = state.get("d_repair_output_errors", [])
+        if repair_output_errors:
+            for finding_key in state.get("d_repair_keys", []):
+                valid.pop(finding_key, None)
+                invalid.setdefault(finding_key, []).extend(repair_output_errors)
+        errors = [
+            f"{finding_key}: {message}"
+            for finding_key, messages in invalid.items()
+            for message in messages
+        ]
+        errors.extend(diagnostics)
+        if invalid and state.get("d_repair_count", 0) == 0:
             return {
-                "d_feedback": [str(exc)],
-                "d_repair_count": repair_count,
+                "d_feedback": errors,
+                "d_frozen_decisions": [
+                    decision.model_dump(mode="json") for decision in valid.values()
+                ],
+                "d_repair_keys": sorted(invalid),
                 "retry_d": True,
             }
-        errors = [
-            f"{item['finding_key']}: {message}"
-            for item in findings
-            for message in item.get("d_validation_errors", [])
-        ]
-        if errors:
-            unresolved = [
-                {
-                    **finding,
-                    "d_status": (
-                        "D_UNRESOLVED"
-                        if finding.get("d_validation_errors")
-                        else finding.get("d_decision", {}).get("d_level")
-                    ),
-                }
-                for finding in findings
-            ]
+        findings = _partially_adjudicated_findings(
+            state["finding_records"], valid, invalid
+        )
+        if invalid:
             return {
-                "finding_records": unresolved,
+                "finding_records": findings,
                 "d_feedback": errors,
                 "d_unresolved_reason": "; ".join(errors),
-                "confirmed_issues": core.select_confirmed_issues(unresolved),
-                "accepted_issues": core.select_accepted_issues(unresolved),
+                "confirmed_issues": core.select_confirmed_issues(findings),
+                "accepted_issues": core.select_accepted_issues(findings),
                 "retry_d": False,
             }
         return {
             "finding_records": findings,
             "d_feedback": errors,
+            "d_repair_keys": [],
             "confirmed_issues": core.select_confirmed_issues(findings),
             "accepted_issues": core.select_accepted_issues(findings),
             "retry_d": False,
@@ -992,6 +1408,12 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
             "replay_plans_from": state["input"].replay_plans_from,
             "contract_plan": state["contract_plan"].model_dump(mode="json"),
             "discovery_grounding_plans": [
+                branch.get(
+                    "llm_semantic_plan", branch["discovery_grounding_plan"]
+                ).model_dump(mode="json")
+                for branch in discovery_branches
+            ],
+            "post_ensemble_discovery_grounding_plans": [
                 branch["discovery_grounding_plan"].model_dump(mode="json")
                 for branch in discovery_branches
             ],
@@ -1133,7 +1555,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--report-root", default=None)
     parser.add_argument("--replay-plans-from", default=None)
     parser.add_argument("--matched-x1v2-record", default=None)
-    parser.add_argument("--max-output-tokens", type=int, default=6_000)
+    parser.add_argument("--max-output-tokens", type=int, default=10_000)
     parser.add_argument(
         "--max-total-tokens", type=int, default=DEFAULT_MAX_TOTAL_TOKENS
     )

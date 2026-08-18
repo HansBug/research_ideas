@@ -1,27 +1,57 @@
-# 原型工程调试报告
+# v25 五格 pilot 报告
 
 ## 1. 定位
 
-本文件记录 witness-search 原型的工程调试结论，不承担方法来源、benchmark 分组或论文效果结论。方法的 obligation taxonomy、typed Evidence Program、D/W/L 定义、编译规则与发布策略必须由领域文献、UML 元模型、状态机测试、property-pattern、test-oracle 和 verification-witness 研究建立；任何真实 pair 只可用于验证实现是否符合已经定义的合同。
+本报告记录 `v25-basis-contract` 五格真实运行的工程证据和保守台账对齐，不承担完整 54 pair、145 条台账的正式效果结论。方法语义来自领域来源和 UML/状态机/测试预言机研究，真实 pair 只用于检查冻结实现能否执行、留证和降级；不得用本轮结果反向定义 obligation、Goal 或 prompt。
 
-## 2. 已验证机制
+## 2. 运行边界
 
-当前调试记录已经证明以下工程链条能够运行：LLM 从 NL 生成结构化规范义务；另一 LLM 将义务绑定到 PlantUML 与带映射注释的 FCSTM 精确 ID；固定 compiler 生成 source/SMT/topology/pyfcstm Evidence Program；程序真实执行并保存 terminal verdict、artifact hash、assertion hash、observed values、path/cut/SCC/SMT model/trace 和工具版本；独立 D 节点为每条 finding 输出 D2/D1/D0；发布层机械派生 W2/W1/W0 与 L2/L1/L0，并保留 D0 与证据失败的降级记录。
+冻结 profile 是 `claude-opus-4-7`，五份原始 record 的审计副本位于 `runs/paper1/witness-search/final-pilot-v25-opus47/`，来源运行目录是 `runs/paper1/witness-search/fivecase-v25-basis-contract/`。每格均完成 LLM-A、两个互补 LLM-B、整格一次 LLM-C D 裁决以及必要的定向 D repair；没有 provider error 或 schema failure。每份 record 保存 prompt、raw/parsed output、call id、usage、价格、formal execution receipt、source certificate、D/W/L、accepted/confirmed 列表和 provenance audit。
 
-调试还验证了两个必须分离的命题：FCSTM 上的真实 counterexample 只证明转换制品后果，作者源 issue 还需要独立 source-causality certificate；W2 只证明断言在声明片段内被真实执行并得到反例，不自动证明 NL obligation 绑定正确，因此仍需独立 D 裁决和环外 matching。
+## 3. 本次 v25 方法表
 
-## 3. 已发现的实现风险
+本表只负责本次 `v25-basis-contract` 单次 pilot，不放入 X1v2 字段。
 
-现有风险包括 structured output 过长、同一根因多 facet 重复发布、错误规范前提被真实执行、source certificate 与报告 claim 不一致、未决 binding 未完全 veto、semantic receipt 未闭合到真实 LLM call/hash chain、自由语义文本被不适当地放入 validator，以及 formal diagnostic 被误写成 NL obligation。它们都属于实现偏离或证据链缺陷，修复不得借助真实 pair 的答案，也不得使用关键词、字符串相似度、identifier 后缀或其他文本特判。
+| pair | finding facet | report cluster | accepted report | strict confirmed report | ledger hit | L2 hit | 方法成本（美元） | input/output token | provenance audit |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| `0004` | 8 | 8 | 6 | 3 | 3/3 | 2/2 | 0.484172 | 77,705 / 13,048 | `[]` |
+| `0023` | 12 | 12 | 9 | 3 | 3/3 | 3/3 | 0.622498 | 65,766 / 11,729 | `[]` |
+| `0053` | 13 | 9 | 7 | 2 | 1/3 | 0/2 | 0.631052 | 79,361 / 13,095 | `[]` |
+| `0046` | 16 | 15 | 12 | 0 | 4/4 | 1/1 | 0.656107 | 87,857 / 17,895 | `[]` |
+| `0029` | 21 | 20 | 17 | 5 | 7/8 | 3/3 | 0.991507 | 114,042 / 26,074 | `[]` |
+| 合计 | **70** | **64** | **51** | **13** | **18/21** | **9/11** | **3.385336** | **424,731 / 81,841** | 五格均通过 |
 
-## 4. 调试纪律
+## 4. X1v2 baseline 表
 
-每次调试只检查 schema、引用闭包、编译、执行、异常降级、D 覆盖、证书一致性、计价和 replay 等可机械验证的合同。若调试暴露疑似表达缺口，必须回到领域来源重新取证；只有能够给出领域义务、binding 角色、反例语义、soundness fragment 和预期 receipt 的能力才能进入方法。真实 pair 名称、台账条目、baseline miss 和预期答案不得进入 runtime prompt 或合成 worked example。
+本表只负责 X1v2，不放入 v25 finding/accepted/confirmed 字段。六格唯一 hit 来自 `discover_matrix/ledger_v2/x1v2_grid.json`；成本和 emitted 数来自同日 cost-only record，emitted 不是 hit。
 
-## 5. 效果结论边界
+| pair | 台账条数 | 六格唯一 hit | 六格 L2 hit | cost-only emitted | X1v2 成本（美元） | input/output token |
+|---|---:|---:|---:|---:|---:|---:|
+| `0004` | 3 | 1/3 | 0/2 | 4 | 0.034825 | 2,190 / 955 |
+| `0023` | 3 | 1/3 | 1/3 | 4 | 0.028975 | 1,625 / 834 |
+| `0053` | 3 | 2/3 | 1/2 | 3 | 0.027000 | 1,660 / 748 |
+| `0046` | 4 | 2/4 | 0/1 | 7 | 0.047950 | 1,790 / 1,560 |
+| `0029` | 8 | 8/8 | 3/3 | 12 | 0.066800 | 3,120 / 2,048 |
+| 合计 | **21** | **14/21** | **5/11** | **30** | **0.205550** | **10,385 / 6,145** |
 
-调试运行不能回答 overall hit、L0/L1/L2 hit、D×L hit、precision、false positive、W2 fraction 或相对 X1v2 显著性。上述问题统一由完整 54 pair、145 条台账上的 benchmark evaluation 回答；所有 pair 使用同一冻结方法版本与同一 matching 协议，不作数据集角色拆分。
+`accepted report` 的准入是 `D1/D2` 且没有明确 source certificate 反证；`confirmed report` 是其严格子集，必须同时满足 `D2 ∧ W2 ∧ safe source attribution`。因此 accepted 可以包含 W1/W0 provisional issue，confirmed 不是唯一发布集合。五格共有 190,744 cache-read token 和 59,203 cache-write token；美元计价使用配置中的 input/output/cache-read/cache-write 四类价格，非 provider 错误的 repair attempt 均计费，只有确实触发下一次调用的 typed provider retry 前序 attempt 才可豁免。
 
-## 6. 进入完整评测前的门
+## 5. W2 证据形状
 
-进入完整 benchmark 前必须完成领域义务来源账、typed obligation schema、relation-to-backend soundness table、单次整格 D、W2 receipt v2、未决 binding veto、source attribution gate、D0/W1/W0 降级、四类美元计价、prompt leakage test、合成 mutation test 和全链路 replay test。完整评测必须报告 overall 与各 D/L 分层、hit@1/@3/@all、precision、false positive、W2/W1/W0、source-attribution、degraded/unsupported grid、同模型美元倍率及相对 X1v2 的 pair-clustered uncertainty。
+每个 W2 facet 都要求真实执行的 Evidence Program、确切 FCSTM/source artifact hash、compiled assertion hash、terminal counterexample、observed values/trace/path/cut/SCC/SMT model（按后端适用）、source causality certificate 和 semantic-binding receipt。`causal_dual_certificate` 表示 FCSTM 反例与作者源 cause 之间存在记录的 compiler bridge；`source_localized` 只表示定位到源/制品元素，最高是 W1；`unattributed` 表示执行后果没有安全作者源归因，不能进入 confirmed。程序只在预条件成立且 primary assertion 失败时发布，满足或 exception 只保留 attempt/coverage-gap，不通过改写 Goal 追逐 W2。
+
+本轮 strict confirmed 的代表性 W2 类型包括：`0004` 的 `Stopping`/`EmergencyStopping` reachable deadlock 和 `DoorsClosing` initial target；`0023` 的三个正交 region deadlock；`0053` 的 `PumpControl` entry deadlock 和三个初始可达性义务合并报告；`0029` 的 `HighwayMode`/`UrbanMode` initial contract、`AutonomousMode` containment、`HighwayMode.FinishState` stable termination 和 `CollisionAvoidance` unreachable component。每条具体 facet 的 assertion、hash、terminal verdict、source certificate 和自然语言理由都在对应 JSON 的 `finding_records`、`outcomes` 与 `accepted_report_issues` 中，不能以本表的计数替代原始证据。
+
+## 6. 保守台账对齐
+
+目前人工逐项对齐口径是 Overall `18/21`、L2 `9/11`；逐 pair 为 `0004=3/3`（L2 2/2）、`0023=3/3`（L2 3/3）、`0053=1/3`（L2 0/2）、`0046=4/4`（L2 1/1）、`0029=7/8`（L2 3/3）。未强行计入 `DIFF-0053-01`、`INS-0053-02`，以及 `DIFF-0029-06` 与 v25 的 `wrong_scope_route` 证据性质不完全相同的情况。`EIS-0029-05` 虽有更直接的 `tr_0026` scope-route 证据，本轮仍按 exact matching 保守计数，不把 related property 当作 exact hit。
+
+这些数字是当前人工审计的方向性结果，不是环外 blind judge 的正式 precision。没有发现明确 semantic false positive，只能记为“观测到 0 个明确 FP”；0023 的 ordinary transition/deadlock 重复或语义越界、0053 的 parent-entry 与 compiler entry-deadlock 重叠、0046 的 region/count 解释、0029 的 D1 guard/exit/finish/scope-route hypothesis 仍需环外 judge。未匹配 report 不能仅凭未匹配自动判为 false positive。
+
+## 7. 成本与资格
+
+历史 X1v2 六格台账网格的逐条真值来自 `discover_matrix/ledger_v2/x1v2_grid.json`，按 pair 聚合得到上表的 `14/21` unique item 和 `5/11` L2 item；它是六次 X1v2 生成的“是否至少命中一次”上界式描述，不是本轮单次 baseline 的同 run 对照。为提供成本同口径，本轮另保存了同日、同模型、单次 X1v2 cost-only record：`0004/0023/0053/0046/0029` 分别输出 4/4/3/7/12 条 issue，成本分别为 `$0.034825/$0.028975/$0.027000/$0.047950/$0.066800`，合计 `$0.205550`；这些 raw issue 尚未用环外 blind judge 做逐格正式 hit matching，不能把 emitted 数直接当 hit。v25 方法逐格成本倍率依次为 `13.9030×/21.4840×/23.3723×/13.6831×/14.8429×`，均低于 `25×`，总倍率为 `16.47×`。本轮 CLI 没有传入 `--matched-x1v2-record`，所以每份 JSON 的内置 `model_matched_x1v2_comparison` 仍标为 `eligible=false`；在下一轮冻结 benchmark 中必须由 CLI 自动写入匹配记录后才能把资格置为 true。成本达标不等于效果达标，五格不能宣称整体显著超过 X1v2。
+
+## 8. 方法状态与下一步
+
+v25 已验证 basis/observed_fact/rationale 审计字段、整格 D、局部 D repair、精确 dedup、source-entry compiler bridge、W2/W1/W0 降级和四类美元计价能共同落盘；自然语言理由不参与 deterministic semantic control flow。仍未完成的是同一冻结版本上的完整 54 pair 评测、环外 blind matching/precision、逐条 145-item feasibility audit 和正式 pair-clustered uncertainty。论文只能在这些门通过后报告整体 hit、L0/L1/L2、D×L、W2 fraction、false positive 和显著性。
