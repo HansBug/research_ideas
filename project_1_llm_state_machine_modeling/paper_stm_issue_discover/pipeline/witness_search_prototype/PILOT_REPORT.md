@@ -2,7 +2,7 @@
 
 ## 1. 目标与结论
 
-本轮要回答的不是“能否多找几个 L2”，而是“NL 契约 + 互补双 B discovery + 固定 proof compiler + 独立 D 裁决”能否在完整 L0/L1/L2 表达面上产出真实运行的 W2，并在不读取台账和 X1v2 的运行时边界内形成可审计证据。当前结论是：方法骨架已经具备端到端可行性；最新 0029 v36 fresh 的 39 条 finding 全部具有 D/W/L，16 条 W2 全部真实执行，开发样例 strict accepted 为 8/8 且 8 条均 W2，成本为同模型 X1v2 的 `17.68×`。但该 pair 已深度参与方法开发、accepted report 尚未盲判、新双边 oracle 的自动触发仍有方差，因此不能声称整体显著超过 X1v2。
+本轮要回答的不是“能否多找几个 L2”，而是“NL 契约 + 互补双 B discovery + 固定 proof compiler + 独立 D 裁决”能否在当前已实现的 L0/L1/L2 子集上产出真实运行的 W2，并在不读取台账和 X1v2 的运行时边界内形成可审计证据。当前结论是：方法骨架已经具备端到端可行性；最新 0029 v36 fresh 的 39 条 finding 全部具有 D/W/L，16 条 W2 全部真实执行，开发样例 strict accepted 为 8/8 且 8 条均 W2，成本为同模型 X1v2 的 `17.68×`。但该 pair 已深度参与方法开发、accepted report 尚未盲判、新双边 oracle 的自动触发仍有方差，而且 145 条逐条表达面审计尚未完成，因此不能声称完整表达面、整体显著超过 X1v2 或 precision 已改善。
 
 当前唯一 baseline 是 X1v2 在 145 条第二版台账上的 `hit@1=59.8%`、`hit@all=47.9%`；L2 为 `43.6%/30.8%`，D2×L2 为 `40.2%/29.4%`。正式成功门保持为 overall `hit@1` 至少高 5pp 且 pair-clustered bootstrap 95% CI 下界大于 0，同时 overall `hit@all` 提升；分层结果和 precision 必须并列报告，不能用 D2×L2 的局部优势代替 overall 优势。baseline 事实源见 [X1V2_RESULTS.md](../../discover_matrix/ledger_v2/X1V2_RESULTS.md)，完整方法合同见 [METHOD_DESIGN.md](./METHOD_DESIGN.md)。
 
@@ -36,7 +36,7 @@
 
 当前证据支持：开放语义目标可以被固定 compiler 转成真实执行的 W2；source/FCSTM 双证书能区分作者源缺陷与 representation debt；D、W、L 可以逐 finding 独立生成；互补双 B 能在开发样例上同时保住 L0/L1/L2 的 strict accepted 8/8；完整 fresh 仍能保持在同模型 X1v2 的 17–18 倍成本；对 raw contract 的显式语义否决和逐候选隔离是控制 false positive 与防止证据丢失的必要组件。
 
-当前证据不支持：整体 hit 已显著超过 X1v2、precision 已改善、L2 大部分已稳定发现、25 倍硬门在所有 pair 上都可满足、当前 D 可替代外部真值、或 19 个旧谓词足以覆盖开放世界问题。尤其 12/15 来自 development data，0048 没有台账分母，所有 unmatched finding 仍需环外 blind semantic judge 按“同位置 + 同性质”或新缺陷有效性裁决。
+当前证据不支持：整体 hit 已显著超过 X1v2、precision 已改善、L2 大部分已稳定发现、25 倍硬门在所有 pair 上都可满足、当前 D 可替代外部真值、19 个旧谓词足以覆盖开放世界问题，或当前 25 个 Goal relation 已经覆盖全部/大多数 145 条台账。尤其 12/15 来自 development data，0048 没有台账分母，所有 unmatched finding 仍需环外 blind semantic judge 按“同位置 + 同性质”或新缺陷有效性裁决；已知 expression gaps 与领域先行构建协议见 [EXPRESSION_SURFACE_AUDIT.md](./EXPRESSION_SURFACE_AUDIT.md)。
 
 ## 6. 正式实验设计
 
@@ -46,4 +46,4 @@ confirmatory matching 必须在方法环外进行。判读包只给台账条目�
 
 ## 7. 下一步
 
-下一步先冻结 `grounded/rejected/unresolved`、receipt v2、OracleRule registry、prompt/compiler hash 和 development/confirmatory 划分，再选择小型事前登记批次估计 semantic-veto precision/recall、schema-repair 率、overall/L0/L1/L2 hit 与 blind precision。若平均成本仍接近 25 倍，优先压缩重复的 discovery dossier 与 D dossier，而不是删除影响 overall recall 的 discovery lane。只有在小批次同时满足无内部崩格、usage 完整、W2 provenance 完整、overall 相对 X1v2 明显正向且 blind precision 可接受后，才进入完整 145 条正式运行。
+下一步先按领域与元模型来源建立 obligation taxonomy、补齐每个 Goal/template/backend 的 provenance，并完成不反向调优方法的 145 条逐条 feasibility audit；同时冻结 `grounded/rejected/unresolved`、receipt v2、OracleRule registry、prompt/compiler hash 和 development/confirmatory 划分。之后选择小型事前登记批次估计 semantic-veto precision/recall、schema-repair 率、overall/L0/L1/L2 hit 与 blind precision。若平均成本仍接近 25 倍，优先压缩重复的 discovery dossier 与 D dossier，而不是删除影响 overall recall 的 discovery lane。只有在表达面边界明确、小批次无内部崩格、usage 完整、W2 provenance 完整、overall 相对 X1v2 明显正向且 blind precision 可接受后，才进入完整 145 条正式运行。

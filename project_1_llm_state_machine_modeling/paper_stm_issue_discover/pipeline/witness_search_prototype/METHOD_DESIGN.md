@@ -47,6 +47,92 @@ flowchart TD
 
 两个互补 LLM-B 分支分别输出后端无关 `EvidenceGoal` 和精确 source state/transition binding；LLM 不输出 Python、pyfcstm predicate、proof template、backend、W 或最终 L。`EvidenceGoal` schema 已删除 template 字段，编译器只按 `relation` 路由，避免 LLM 通过选择弱模板改变证明义务。
 
+### 4.1 EvidenceGoal 的正式含义
+
+`EvidenceGoal` 是一个待反驳的形式义务，不是 finding、断言代码或执行结果。当前实现可写成 $G=\langle r,b,e\rangle$：$r$ 是 25 个 `GoalRelation` 之一，$b$ 是按语义角色命名的 binding record，$e\in\{true,false\}$ 是预期值。binding 字段包括 `observed_transition_id`、`reference_transition_id`、`subject`、`source`、`trigger`、`target`、`forbidden_scope`、`response`、`variable`、`sign`、`phase`、`count`、`condition` 和 `within_cycles`；它们在 Pydantic record 中大多 optional，relation-specific 必需字段由 compiler 检查。
+
+这是一种宽松实现的 discriminated union，而不是 25 个严格子类型。宽松 record 的目的，是让一个缺字段或暂不支持的候选降成 W1/W0 coverage gap，而不是因 schema validator 把整个 pair 杀掉；代价是 schema 本身不会阻止无关字段出现，且缺失的 relation-specific binding 要到 compiler 才能发现。冻结前可将它改成严格 tagged union，但必须保留“单候选降级、不杀整格”的外部行为。
+
+`expected` 的含义由 relation 的方法自有语义固定。例如 `state_exists(subject=q, expected=true)` 要求 q 存在，`transition_absent(observed_transition_id=t, expected=true)` 经 formal binding 后会被编译为该 exact edge 不应存在，`event_reaches_target(source=q0, trigger=e, target=q1, expected=true)` 要求在可到达 q0 的前提下施加 e 后进入 q1。只有 `actual != expected` 且所有前提成立时才形成 counterexample；LLM 不能通过选择 template、backend 或弱谓词改变这个判断。
+
+一个完整候选还携带 `obligation`、`claim`、`basis_kind`、`nl_quote`、`priority`、`locations`、`proposed_l` 和 `observed_fact`。这些散文与报告字段用于语义审计和 D dossier，但不进入 assertion code/hash；真正控制编译的只有 Goal、精确 binding 和形式制品。`proposed_l` 也不直接计分，最终 L 按 compiler relation 机械派生。
+
+### 4.2 LLM 如何生成 Goal
+
+LLM-A 仅读取 numbered NL，先抽取 initial、containment、direct transition、required state、required event scope 和跨句 concept ID。它不能看到 PlantUML、FCSTM 或 inspect，因此错误制品不能反向污染规范合同，但 A 仍可能误读 NL。
+
+两个 LLM-B 分支随后读取同一份冻结输入：A 的 raw contract、numbered NL、作者源 PlantUML、带 mapping 注释的 FCSTM、inspect 摘要和 exact source inventory。`contract_structure_contrast` 偏重显式契约、结构、跨边对照和 L0/L1，`behavior_consequence` 偏重可达性、响应、终止和 L2；二者分别输出 exact concept binding、对 A 的稀疏 `rejected/unresolved` veto patch，以及 surface/behavior `EvidenceGoal`。候选取结构化并集，两个分支不会看到对方输出或执行 truth。
+
+Prompt 明确要求每个候选只有一个 obligation、一个可证伪 claim、一个 observed fact，并给出 exact source state/transition ID；LLM 只选 `relation` 与语义 binding，不写 Python、谓词调用、template、backend、W、L 或 D。无法从输入语义上证明的绑定必须进入 `unresolved`，不能凭名字、label、字符串相似度、唯一候选或执行结果猜测。worked examples 只使用 `q0/q1/evt_a` 等合成符号，不含真实 pair、ledger item、baseline miss 或预期答案。
+
+B 同时承担 A 的语义复审：`rejected` 表示 raw relation 并不由 NL 支持，`unresolved` 表示仍有多种称职读法；两者都应成为执行 veto。这里的判断只针对规范 relation 是否成立，不能因为制品违反它就把它否决，也不能因为制品刚好满足它就接受它。
+
+### 4.3 Goal 到 AssertionIR 的编译算法
+
+编译不是把 LLM 文本拼成 Python，而是以下固定链条：
+
+1. Assembler 先消费 B 的 `grounded/rejected/unresolved` 决策；被 veto 的 raw contract 或 candidate 不进入执行。
+2. `_validate_direct_grounded_candidate()` 只检查 exact source state/transition ID、正式 path grammar 和允许的引用闭包。非法 binding 被清空并记录 diagnostic，不从散文或相似名称补全。
+3. `_apply_formal_transition_binding()` 对 LLM 已选择的 exact transition ID 读取 canonical source AST 的 source、target、event、guard，并保存每个派生字段的 basis。这里允许机械读取 observed fact，但禁止用 observed target 填补尚未解决的 normative target。
+4. `compile_evidence_goal()` 依据 `relation → template → backend → operation` registry 检查 relation-specific 必需字段。部分 relation 直接生成一个或两个 `ProbeCheck`；拓扑、SMT、source-static、双边迁移和稳定终止 relation 进入专用 Evidence Program。
+5. 谓词路径把每个 `ProbeCheck` 规范化为 AssertionIR 四元组 `role/predicate/bindings/expected`，按 method-owned `PREDICATE_SIGNATURES` 检查缺失与多余参数，再确定性渲染为表达式。多个 check 组成 `assert all([...])`；precondition 为假表示该主断言没有被执行，不是 finding，只有前提为真且 primary 为假才是 counterexample。
+6. 生成的 assertion code 再由现有 assertion parser 解析，得到 terminal expression 和 code hash，然后在 sealed pyfcstm predicate environment 中真实运行。专用路径同样生成可 replay program、program hash、后端观察和 terminal verdict，而不是只返回一个 LLM 判断。
+7. 执行器同时生成 `execution_certificate`、`source_causality_certificate` 与 `semantic_binding_receipt`。W2 需要确切 FCSTM hash、assertion hash、terminal result、counterexample 和合格 source attribution；缺字段、unsupported fragment、非 terminal 或异常分别降为 W1/W0，并保留原 Goal 与 diagnostic。
+
+下面是一个完全合成的示例。LLM-B 可以输出：
+
+```json
+{
+  "relation": "event_reaches_target",
+  "observed_transition_id": "tr_a",
+  "source": "M.q0",
+  "trigger": "evt_a",
+  "target": "M.q1",
+  "within_cycles": 3,
+  "expected": true
+}
+```
+
+Compiler 先核验 `tr_a`，再从 exact AST 读取 observed source/event，但保留 LLM 给出的规范 target。它随后产生：
+
+```json
+[
+  {"role": "precondition", "predicate": "reaches", "bindings": {"source": "[*]", "target": "M.q0", "within_cycles": 6}, "expected": true},
+  {"role": "primary", "predicate": "occupancy_after", "bindings": {"source": "M.q0", "trigger": "evt_a", "target": "M.q1", "within_cycles": 3}, "expected": true}
+]
+```
+
+可 replay code 的形状是：
+
+```python
+_paper1_check_1 = reaches(source="[*]", target="M.q0", within_cycles=6) is True
+_paper1_check_2 = occupancy_after(source="M.q0", trigger="evt_a", target="M.q1", within_cycles=3) is True
+assert all([_paper1_check_1, _paper1_check_2]), "paper1 formal evidence assertion failed"
+```
+
+若 `q0` 不可达，第一条为假，结果记 `precondition_failed`，不能宣称 event-target defect；若 q0 可达而第二条为假，则得到 W2 counterexample；若两条都为真，则该候选被制品满足，不发布 issue，也不把 truth 回灌给 B 改写 Goal。
+
+### 4.4 错误校正、异常与降级
+
+当前原型不是“完全不校正”，但校正按错误类别隔离，而且没有执行 truth 驱动的断言改写回路：
+
+| 错误类别 | 当前处理 | 是否再次调用 LLM | 设计理由 |
+|---|---|---|---|
+| structured output/Pydantic schema 非法 | `_invoke_with_schema_repair()` 将具体 validation error 回给同一 role 一次，要求保持同一语义答案、不增加 finding、不修改合法内容 | 是，最多一次 | 修结构，不重新搜索问题 |
+| LLM-A raw contract 语义错误 | 两个 B 分支可输出 `rejected/unresolved` sparse veto | 是，但属于原定 B 语义复审，不是执行后返工 | A 只读 NL，B 用多视图复审规范 relation |
+| 两个 B 对同一 concept 给出冲突 exact ID | 确定性移除冲突 binding并记 unresolved diagnostic | 否 | 冲突本身可完美判定，不能猜一个赢家 |
+| exact ID 非法或 required binding 缺失 | 清空非法字段或由 compiler 返回 relation-specific error，候选降 W1/W0 | 否 | 当前没有 execution-before repair；避免隐藏的语义补全 |
+| unsupported guard、并发、hierarchy 或其他 formal fragment | 保留 Goal、限制与 coverage gap，最高 W1 | 否 | LLM 不能修复后端 soundness 边界 |
+| candidate executor exception | 逐候选隔离为 W1/W0，记录异常，其他候选继续 | 否 | 一个后端异常不能让整 pair 消失，也不能让 LLM看到 truth 后换断言 |
+| assertion terminal verdict 为 satisfied | 不发布该 issue，保留 attempt ledger | 否 | 正式路径禁止不断改 Goal 直到得到 false |
+| D structured output 非法 | 每个 batch 先做一次 schema repair | 是，最多一次 | 只修输出形状 |
+| D finding key 缺失、重复或多余 | `validate_d` 将精确合同错误定向反馈一次；仍失败则逐 facet `D_UNRESOLVED` | 是，最多一次 | 不允许重写已经合法的 finding 或重启 discovery |
+| provider 错误或两次后仍 schema-invalid | 允许整格失败并保存审计 | 否 | 这是仓库失败政策允许的两个 escape hatch |
+
+最重要的边界是：backend exception 不交给 LLM“改到能跑”。异常可能来自后端 bug、unsupported semantics 或环境问题；正确处理是封存原 Goal、记录 stack/error class、修复后端后 replay 同一个 Goal。若把 exception 连同 truth/counterexample 交回 B，模型可以通过改变义务规避错误或追逐 W2，实验将失去可解释性。
+
+当前缺少一次 execution 前的 binding-only repair。冻结版可以增加且建议增加一次，但反馈只能包含 unknown exact ID、缺少 relation-required field、非法 formal path、重复/冲突 binding 等合同错误；不得包含 assertion true/false、counterexample、trace、ledger match、W/D 或“换一个更容易失败的 relation”，也不得新增 candidate。修复后必须生成新的 LLM receipt并与原 candidate ID 绑定；若仍非法则按现有路径降级。该环节尚未实现，本文不把它计入当前 pilot 能力。
+
 13 个逻辑模板共享 4 个固定物理后端：
 
 | 模板 | 主要义务 | 后端与证书 |
@@ -208,4 +294,4 @@ v4/v5/v6 均补充 `selection.json`。v4/v5 因源码当时未入库而诚实标
 2. 将这些 obligation 编译为真实执行、可 replay 的 consequence。
 3. 在作出独立且可推翻的 D 判定前，证明这些 consequence 是否能归因作者源。
 
-当前最大风险仍是 confirmatory remainder 上的实际 recall 与 precision。proof-template feasibility 说明大多数台账 issue 形态在表达上可覆盖，但“可表达”不等于“能够被发现”；只有冻结后的正式全量运行才能支持 headline claim。
+当前最大风险同时包括表达面缺口、confirmatory remainder 上的实际 recall 与 precision。当前仅完成 145 条 `id/D/L/axes/summary` 的粗粒度通览，尚未建立逐条 `ledger item → normative property → EvidenceGoal → binding → backend → W ceiling` feasibility 矩阵；已经确认 region/正交并发、具名 action/effect、精确 condition、state kind、层次优先级/history 和独立 trigger 集等缺口。因此不能声称全部或大多数台账问题已经证明可表达。表达面现状、逐条审计合同和领域先行构建协议见 [EXPRESSION_SURFACE_AUDIT.md](./EXPRESSION_SURFACE_AUDIT.md)。

@@ -10,6 +10,8 @@
 
 LLM 不选择 Python、pyfcstm 谓词、证明模板、证明后端、W 或最终 L。每个 B 分支先为所有已实现的语义概念输出一次全局 exact-ID `concept_bindings`，随后只对 raw contract 输出稀疏语义补丁：普通已实现 contract 默认继承 LLM-A，只有 `rejected/unresolved`、缺失 required state、final-pseudostate 或其他不能由全局 concept binding 表达的决策才按索引显式返回。确定性 assembler 只按 concept ID、索引和 exact formal ID 合并，并保护原始 `nl_line`、`condition`、`priority` 和 concept ID 不被改写。确定性编译器将每个语义关系映射到 13 个证明模板和 4 个物理后端之一：源/制品静态检查、守卫 SMT、拓扑证明或 FCSTM trace/有界形式执行。断言必须真实运行后才能得到 W2；新增 `transition_target_consistency` 允许 LLM 先语义判定两个 NL 行为具有相同目标角色，再选择被测边、参照边和规范目标，确定性层只核验 exact ID、正式端点与 FCSTM 映射并执行双边断言，绝不从 label、条件字符串或名字推导等价。
 
+`EvidenceGoal` 的当前实现是宽松 typed record，可形式化为 `G=(relation, bindings, expected)`。`relation` 决定固定 proof route，`bindings` 给出规范角色和 exact formal ID，`expected` 给出要被检验的期望真值；relation-specific 必需字段由 compiler 而非 schema 检查，使单个非法 Goal 降为 W1/W0 而不杀整格。Goal 不是 finding，也不是自由 Python；候选只有在编译后真实运行并获得 terminal counterexample、artifact/assertion hash、source certificate 和 semantic receipt 时才可能成为 W2。完整定义、生成协议、编译示例和异常矩阵见 [METHOD_DESIGN.md](./METHOD_DESIGN.md) §4。
+
 LLM-B 不再逐条复述全部 `grounded` contract。被省略的普通 contract 只有在其 concept ID 已获得全局 exact-ID binding 时才可由 assembler 接受；`rejected` 表示 LLM-A 把 NL 关系抽错，`unresolved` 表示仍有多种称职读法，二者都是执行 veto。它们不要求伪造 formal ID，assembler 只按结构化枚举停止编译并保留诊断，绝不从 reason 文本中搜索“错误”“歧义”等字样。这样既保留 raw contract 写保护与语义复审能力，又避免 LLM-B 重复输出几十条 contract 而截断。
 
 ## 语义判定纪律
@@ -43,6 +45,8 @@ W2 还必须带有 terminal counterexample certificate，其中包含确切 FCST
 完整的阶段契约、后端策略、pilot 证据、评测设计和泄漏边界见 [METHOD_DESIGN.md](./METHOD_DESIGN.md)。
 
 面向论文写作的实验结果与限制汇总见 [PILOT_REPORT.md](./PILOT_REPORT.md)。
+
+当前尚未证明 145 条台账全部或大多数可表达。本轮只完成全部 `id/D/L/axes/summary` 的粗粒度通览，已经确认 region/正交并发、具名 action/effect、精确 condition、state kind、层次优先级/history 和独立 trigger 集等缺口；逐条 feasibility 矩阵仍待完成。表达面唯一审计真源和“领域来源 → obligation taxonomy → Goal algebra → sound backend → 冻结后 54 pair 评测”的构建纪律见 [EXPRESSION_SURFACE_AUDIT.md](./EXPRESSION_SURFACE_AUDIT.md)。
 
 ## 使用方法
 
