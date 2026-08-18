@@ -34,37 +34,69 @@
 
 ## 逐条 ledger checklist
 
-`v25` 列是本次单次 pilot 的保守 hit，`X1v2` 列是六格历史网格中“至少命中一次”的结果；`✅(n/6)` 还保留 X1v2 六格命中次数，避免把一次命中误读为稳定命中。每个 v25 finding key 和 W/D/L 细节都可在同目录 JSON 中追溯。
+下面仍按同一台账顺序列出两边，但物理上拆成两张表：第一张只记录本次 `v25-basis-contract`，第二张只记录 X1v2 六格历史网格。这样逐条 `✅/❌` 可以对照，而不会把一侧的 finding、成本或命中口径混进另一侧。
 
-| pair | ledger item | D/L | v25 | X1v2 六格 | v25 finding / 备注 |
-|---|---|---|---|---|---|
-| `0004` | `EIS-0004-01` | D2/L0 | ✅ | ✅(6/6) | `source:initial_target:None:DoorsClosing` |
-| `0004` | `INS-0004-01` | D2/L2 | ✅ | ❌(0/6) | `source:reachable_deadlock:EmergencyStopping` |
-| `0004` | `INS-0004-02` | D2/L2 | ✅ | ❌(0/6) | `source:reachable_deadlock:Stopping` |
-| `0023` | `INS-0023-01` | D2/L2 | ✅ | ✅(6/6) | `source:concurrent_region_deadlock:PumpControl.PumpState` |
-| `0023` | `INS-0023-02` | D2/L2 | ✅ | ❌(0/6) | `source:concurrent_region_deadlock:PumpControl.WaterState` |
-| `0023` | `INS-0023-03` | D2/L2 | ✅ | ❌(0/6) | `source:concurrent_region_deadlock:PumpControl.MethaneState` |
-| `0053` | `DIFF-0053-01` | D2/L2 | ❌ | ❌(0/6) | 未发现 exact 顺序 wrapper/并发退化主张 |
-| `0053` | `EIS-0053-01` | D2/L0 | ✅ | ✅(6/6) | `source:initial_contract:PumpControl` |
-| `0053` | `INS-0053-02` | D2/L2 | ❌ | ✅(6/6) | 未形成三个具名状态零出边的 exact 主张 |
-| `0046` | `EIS-0046-01` | D2/L0 | ✅ | ❌(0/6) | `hypothesis:245272be42ca2c14` |
-| `0046` | `EIS-0046-02` | D1/L1 | ✅ | ✅(6/6) | `hypothesis:e2d1fb8a3aa8bff6` |
-| `0046` | `INS-0046-03` | D2/L2 | ✅ | ❌(0/6) | `hypothesis:f0a4399b2331cf8c` |
-| `0046` | `VU-0046-01` | D1/L0 | ✅ | ✅(4/6) | `hypothesis:fe88ef76fc338f81` |
-| `0029` | `DIFF-0029-06` | D1/L0 | ❌ | ✅(2/6) | v25 `wrong_scope_route` 不是 exact 多余完成边 |
-| `0029` | `EIS-0029-01` | D2/L1 | ✅ | ✅(2/6) | `source:containment:AutonomousMode` |
-| `0029` | `EIS-0029-02` | D1/L1 | ✅ | ✅(6/6) | `source:guard_presence:HighwayMode.enter_hwy:HighwayMode.lane_change` |
-| `0029` | `EIS-0029-03` | D2/L1 | ✅ | ✅(6/6) | `source:wrong_scope_route:tr_0009` |
-| `0029` | `EIS-0029-04` | D2/L0 | ✅ | ✅(4/6) | `source:initial_contract:HighwayMode` |
-| `0029` | `EIS-0029-05` | D2/L2 | ✅ | ✅(1/6) | `source:wrong_scope_route:tr_0026` |
-| `0029` | `INS-0029-01` | D2/L2 | ✅ | ✅(1/6) | `source:unreachable_component:CollisionAvoidance` |
-| `0029` | `INS-0029-05` | D2/L2 | ✅ | ✅(1/6) | `source:stable_termination:HighwayMode.FinishState` |
+### v25 本次五格逐条表
+
+本表只记录本次单次 pilot 的保守 hit；每个 finding key 和 W/D/L 细节都可在同目录 JSON 中追溯。
+
+| pair | ledger item | D/L | v25 本次 |
+|---|---|---|---|
+| `0004` | `EIS-0004-01` | D2/L0 | ✅ |
+| `0004` | `INS-0004-01` | D2/L2 | ✅ |
+| `0004` | `INS-0004-02` | D2/L2 | ✅ |
+| `0023` | `INS-0023-01` | D2/L2 | ✅ |
+| `0023` | `INS-0023-02` | D2/L2 | ✅ |
+| `0023` | `INS-0023-03` | D2/L2 | ✅ |
+| `0053` | `DIFF-0053-01` | D2/L2 | ❌ |
+| `0053` | `EIS-0053-01` | D2/L0 | ✅ |
+| `0053` | `INS-0053-02` | D2/L2 | ❌ |
+| `0046` | `EIS-0046-01` | D2/L0 | ✅ |
+| `0046` | `EIS-0046-02` | D1/L1 | ✅ |
+| `0046` | `INS-0046-03` | D2/L2 | ✅ |
+| `0046` | `VU-0046-01` | D1/L0 | ✅ |
+| `0029` | `DIFF-0029-06` | D1/L0 | ❌ |
+| `0029` | `EIS-0029-01` | D2/L1 | ✅ |
+| `0029` | `EIS-0029-02` | D1/L1 | ✅ |
+| `0029` | `EIS-0029-03` | D2/L1 | ✅ |
+| `0029` | `EIS-0029-04` | D2/L0 | ✅ |
+| `0029` | `EIS-0029-05` | D2/L2 | ✅ |
+| `0029` | `INS-0029-01` | D2/L2 | ✅ |
+| `0029` | `INS-0029-05` | D2/L2 | ✅ |
+
+### X1v2 六格 baseline 逐条表
+
+本表只记录该台账条目在 X1v2 六格历史网格中是否至少命中一次；`✅(n/6)` 保留六格命中次数，避免把一次命中误读为稳定命中。
+
+| pair | ledger item | D/L | X1v2 六格 baseline |
+|---|---|---|---|
+| `0004` | `EIS-0004-01` | D2/L0 | ✅(6/6) |
+| `0004` | `INS-0004-01` | D2/L2 | ❌(0/6) |
+| `0004` | `INS-0004-02` | D2/L2 | ❌(0/6) |
+| `0023` | `INS-0023-01` | D2/L2 | ✅(6/6) |
+| `0023` | `INS-0023-02` | D2/L2 | ❌(0/6) |
+| `0023` | `INS-0023-03` | D2/L2 | ❌(0/6) |
+| `0053` | `DIFF-0053-01` | D2/L2 | ❌(0/6) |
+| `0053` | `EIS-0053-01` | D2/L0 | ✅(6/6) |
+| `0053` | `INS-0053-02` | D2/L2 | ✅(6/6) |
+| `0046` | `EIS-0046-01` | D2/L0 | ❌(0/6) |
+| `0046` | `EIS-0046-02` | D1/L1 | ✅(6/6) |
+| `0046` | `INS-0046-03` | D2/L2 | ❌(0/6) |
+| `0046` | `VU-0046-01` | D1/L0 | ✅(4/6) |
+| `0029` | `DIFF-0029-06` | D1/L0 | ✅(2/6) |
+| `0029` | `EIS-0029-01` | D2/L1 | ✅(2/6) |
+| `0029` | `EIS-0029-02` | D1/L1 | ✅(6/6) |
+| `0029` | `EIS-0029-03` | D2/L1 | ✅(6/6) |
+| `0029` | `EIS-0029-04` | D2/L0 | ✅(4/6) |
+| `0029` | `EIS-0029-05` | D2/L2 | ✅(1/6) |
+| `0029` | `INS-0029-01` | D2/L2 | ✅(1/6) |
+| `0029` | `INS-0029-05` | D2/L2 | ✅(1/6) |
 
 ## 未计入与证据边界
 
 未强行计入 `DIFF-0053-01`、`INS-0053-02` 和 `DIFF-0029-06`；`EIS-0029-05` 的 `tr_0026` scope-route 证据虽更直接，但仍按 exact matching 保守处理。`0023` 的普通 transition/deadlock 重复或语义越界、`0053` 的 parent-entry/compiler entry-deadlock 重叠、`0046` 的 region/count 解释、`0029` 的 D1 guard/exit/finish/scope-route hypothesis 都是需要环外 blind judge 的 FP 风险，而非已经证实的 FP。
 
-W2 的准入是 `typed Evidence Program + 真实 terminal counterexample + FCSTM/assertion hash + source causality certificate + semantic-binding receipt`；W1 只要求具体定位或 unsupported evidence，W0 只保留可审计自然语言假设。`confirmed` 还要求 D2 和安全 source attribution，因此 accepted 与 confirmed 必须分别统计。
+W2 的准入是 `typed Evidence Program + 真实 terminal counterexample + FCSTM/assertion hash + source causality certificate + semantic-binding receipt`；W1 只要求具体定位或 unsupported evidence，W0 只保留可审计自然语言假设。`confirmed` 还要求 D2 和安全 source attribution，因此 accepted 与 confirmed 必须分别统计。两张逐条表只提供命中对照，不把 baseline 的结果回灌到 v25 的 finding 或 W/D/L 判定。
 
 ## 完整性检查
 
