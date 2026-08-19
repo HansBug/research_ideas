@@ -162,6 +162,26 @@ def test_openai_upstream_failures_that_killed_sol_judge_are_retryable():
     assert _retryable_error(relayed) is True
 
 
+def test_responses_relay_upstream_receipt_is_retryable():
+    """Hahacode Responses wraps an upstream outage in a typed HTTP 400 receipt."""
+
+    request = httpx.Request("POST", "https://provider.invalid/v1/responses")
+    response = httpx.Response(400, request=request)
+    relayed = openai.BadRequestError(
+        "Error code: 400",
+        response=response,
+        body={
+            "error": {
+                "code": "upstream_error",
+                "message": "Upstream request failed request-id=fixture",
+                "type": "new_api_error",
+            }
+        },
+    )
+
+    assert _retryable_error(relayed) is True
+
+
 def test_an_ordinary_bad_request_is_not_retried():
     request = httpx.Request("POST", "https://provider.invalid/v1/chat/completions")
     response = httpx.Response(400, request=request)

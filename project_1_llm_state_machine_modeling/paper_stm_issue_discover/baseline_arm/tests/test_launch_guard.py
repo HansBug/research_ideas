@@ -75,6 +75,17 @@ def test_arms_are_the_same_two_models_as_the_main_arm() -> None:
     assert launch.ROUNDS == (1, 2, 3)
 
 
+def test_parse_arms_supports_an_explicit_smoke_profile() -> None:
+    assert launch.parse_arms("gpt-5.6-terra:terra") == (("gpt-5.6-terra", "terra"),)
+
+
+def test_parse_arms_rejects_malformed_entries() -> None:
+    import pytest
+
+    with pytest.raises(SystemExit, match="profile:label"):
+        launch.parse_arms("gpt-5.6-terra")
+
+
 def test_cell_dir_layout_matches_the_judging_material_reader() -> None:
     """目录布局是 `present.py` 与判定表键的共同约定，改它会静默断开两侧。"""
 

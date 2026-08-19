@@ -52,6 +52,24 @@ ARMS: tuple[tuple[str, str], ...] = (("gpt-5.5", "gpt"), ("claude-opus-4-7", "cl
 
 ROUNDS = (1, 2, 3)
 
+
+def parse_arms(raw: str | None) -> tuple[tuple[str, str], ...]:
+    """解析可选的 profile:label 覆盖，默认保持历史 X1v2 两臂。"""
+
+    if raw is None:
+        return ARMS
+    parsed: list[tuple[str, str]] = []
+    for item in raw.split(","):
+        profile, separator, label = item.partition(":")
+        if not separator or not profile.strip() or not label.strip():
+            raise SystemExit(
+                f"invalid --profiles entry {item!r}; expected profile:label"
+            )
+        parsed.append((profile.strip(), label.strip()))
+    if not parsed:
+        raise SystemExit("--profiles must contain at least one profile:label entry")
+    return tuple(parsed)
+
 #: ⛔ 永久排除的 `00x8` 家族（`docs/protocol/nl_scope_rule.md`）：那份 NL 要求 fork/join 与秒级
 #: 时间约束，其忠实模型在 M = (S,E,V,Tr,A) 里无法表示。⭐ 判据只读 `nl.txt`、与运行结果无关。
 OUT_OF_SCOPE_SUFFIX = "8"
@@ -151,6 +169,7 @@ def _one(
     content_language: str,
     registry_path: str | None,
     transport_retries: int,
+    streaming: bool | None,
 ) -> dict[str, Any]:
     target = cell_dir(out_root, round_index, case, arm_label)
     if already_done(target):
@@ -164,6 +183,7 @@ def _one(
             content_language=content_language,
             registry_path=registry_path,
             transport_retries=transport_retries,
+            streaming=streaming,
             round_index=round_index,
             arm_label=arm_label,
         )
@@ -198,6 +218,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--content-language", choices=("zh-CN", "en-US"), default="zh-CN")
     parser.add_argument("--llm-config", default=None)
     parser.add_argument("--transport-retries", type=int, default=4)
+    parser.add_argument(
+        "--profiles",
+        default=None,
+        help=(
+            "Comma-separated profile:label entries. When omitted, use the frozen "
+            "historical ARMS tuple; e.g. gpt-5.6-terra:terra."
+        ),
+    )
+    stream_mode = parser.add_mutually_exclusive_group()
+    stream_mode.add_argument("--stream", dest="streaming", action="store_true")
+    stream_mode.add_argument("--no-stream", dest="streaming", action="store_false")
+    parser.set_defaults(streaming=None)
     parser.add_argument("--rounds", default="1,2,3", help="comma-separated round indices")
     parser.add_argument("--cases", default=None, help="comma-separated subset, for smoke only")
     parser.add_argument(
@@ -228,15 +260,16 @@ def main(argv: list[str] | None = None) -> int:
         else in_scope_cases()
     )
     rounds = [int(r) for r in args.rounds.split(",") if r.strip()]
+    arms = parse_arms(args.profiles)
 
     plan = [
         (round_index, case, profile, arm_label)
         for round_index in rounds
         for case in cases
-        for profile, arm_label in ARMS
+        for profile, arm_label in arms
     ]
     _log(
-        f"grid: {len(cases)} cases x {len(ARMS)} arms x {len(rounds)} rounds = {len(plan)} cells; "
+        f"grid: {len(cases)} cases x {len(arms)} arms x {len(rounds)} rounds = {len(plan)} cells; "
         f"parallel={args.parallel}; out={out_root}"
     )
 
@@ -258,6 +291,7 @@ def main(argv: list[str] | None = None) -> int:
                     content_language=args.content_language,
                     registry_path=args.llm_config,
                     transport_retries=args.transport_retries,
+                    streaming=args.streaming,
                 )
                 for _r, case, profile, arm_label in batch
             ]
@@ -273,7 +307,7 @@ def main(argv: list[str] | None = None) -> int:
         "finished_at": datetime.now(timezone.utc).isoformat(),
         "cases": cases,
         "rounds": rounds,
-        "arms": [{"profile": p, "label": label} for p, label in ARMS],
+        "arms": [{"profile": p, "label": label} for p, label in arms],
         "cells_planned": len(plan),
         "cells_ok": len(ok),
         "cells_failed": len(failed),

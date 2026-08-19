@@ -27,6 +27,7 @@ import re
 import sys
 import time
 import uuid
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -163,6 +164,28 @@ def _status_code(exc: BaseException) -> int | None:
     return value if isinstance(value, int) else None
 
 
+def _relay_upstream_failure(exc: BaseException) -> bool:
+    """Recognize Hahacode's structured upstream outage receipt.
+
+    The relay can encode an upstream outage as HTTP 400. This is intentionally
+    a narrow diagnostic check, not a semantic or NL rule: ordinary malformed
+    requests remain non-retryable.
+    """
+
+    body = getattr(exc, "body", None)
+    if not isinstance(body, Mapping):
+        return False
+    error = body.get("error", body)
+    if not isinstance(error, Mapping):
+        return False
+    message = error.get("message")
+    if not isinstance(message, str) or not message.startswith("Upstream request failed"):
+        return False
+    return error.get("type") == "invalid_request_error" or (
+        error.get("code") == "upstream_error" and error.get("type") == "new_api_error"
+    )
+
+
 def _retryable_provider_error(exc: BaseException) -> bool:
     """Return whether a failed call is eligible for a transport retry.
 
@@ -171,6 +194,8 @@ def _retryable_provider_error(exc: BaseException) -> bool:
     stopped rather than replayed as if the gateway were at fault.
     """
 
+    if _relay_upstream_failure(exc):
+        return True
     status = _status_code(exc)
     if status is not None:
         return status in {408, 409, 425, 429} or status >= 500
@@ -226,6 +251,7 @@ def run_cell(
     report_root: Path | None = None,
     registry_path: str | None = None,
     transport_retries: int = 4,
+    streaming: bool | None = None,
     round_index: int | None = None,
     arm_label: str | None = None,
 ) -> dict[str, Any]:
@@ -245,7 +271,10 @@ def run_cell(
     # ⛔ 不收 config——初版传了 config，报错文本把整个 config 打了出来。
     adapter = config.adapter
     provider = adapter_name(adapter)
-    model = create_chat_model(config, streaming=True, max_retries=0)
+    effective_streaming = adapter != "openai-responses" if streaming is None else streaming
+    model = create_chat_model(
+        config, streaming=effective_streaming, max_retries=0
+    )
 
     structured_options: dict[str, Any] = {"include_raw": True}
     if adapter in {"openai", "openai-responses"}:
@@ -389,6 +418,7 @@ def run_cell(
         "profile": profile,
         "adapter": adapter,
         "provider": provider,
+        "streaming": effective_streaming,
         "configured_model": config.model,
         "observed_model": observed_model,
         "content_language": content_language,
@@ -449,6 +479,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--report-root", default=None)
     parser.add_argument("--llm-config", default=None)
     parser.add_argument("--transport-retries", type=int, default=4)
+    stream_mode = parser.add_mutually_exclusive_group()
+    stream_mode.add_argument(
+        "--stream",
+        dest="streaming",
+        action="store_true",
+        help="Force streaming responses (overrides the adapter default).",
+    )
+    stream_mode.add_argument(
+        "--no-stream",
+        dest="streaming",
+        action="store_false",
+        help="Force complete non-streaming responses (overrides the adapter default).",
+    )
+    parser.set_defaults(streaming=None)
     parser.add_argument("--round", type=int, default=None)
     parser.add_argument("--arm-label", default=None)
     return parser
@@ -463,6 +507,7 @@ def main(argv: list[str] | None = None) -> int:
         report_root=Path(args.report_root) if args.report_root else None,
         registry_path=args.llm_config,
         transport_retries=args.transport_retries,
+        streaming=args.streaming,
         round_index=args.round,
         arm_label=args.arm_label,
     )

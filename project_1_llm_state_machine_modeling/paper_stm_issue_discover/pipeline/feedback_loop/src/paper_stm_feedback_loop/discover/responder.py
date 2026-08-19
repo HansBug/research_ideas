@@ -146,10 +146,12 @@ def _relay_upstream_failure(exc: BaseException) -> bool:
     error = body.get("error", body)
     if not isinstance(error, Mapping):
         return False
-    return (
-        error.get("type") == "invalid_request_error"
-        and isinstance(error.get("message"), str)
-        and error["message"].startswith("Upstream request failed")
+    message = error.get("message")
+    if not isinstance(message, str) or not message.startswith("Upstream request failed"):
+        return False
+    return error.get("type") == "invalid_request_error" or (
+        error.get("code") == "upstream_error"
+        and error.get("type") == "new_api_error"
     )
 
 

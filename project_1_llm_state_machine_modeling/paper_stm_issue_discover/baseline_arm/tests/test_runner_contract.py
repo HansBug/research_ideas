@@ -229,6 +229,19 @@ def test_transport_error_then_success(wired, tmp_path: Path) -> None:
     assert record["issue_count"] == 1
 
 
+def test_responses_relay_upstream_receipt_is_retryable() -> None:
+    class RelayedProviderError(Exception):
+        body = {
+            "error": {
+                "code": "upstream_error",
+                "message": "Upstream request failed request-id=fixture",
+                "type": "new_api_error",
+            }
+        }
+
+    assert runner._retryable_provider_error(RelayedProviderError()) is True
+
+
 def test_schema_error_feeds_targeted_feedback_back(wired, tmp_path: Path) -> None:
     """⭐ schema 失败必须**原地重试并回灌定向反馈**，⛔ 不是冷启动重来。"""
 
