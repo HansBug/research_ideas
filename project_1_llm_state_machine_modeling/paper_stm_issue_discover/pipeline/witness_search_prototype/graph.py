@@ -285,7 +285,9 @@ def _fresh_transition_binding_errors(
             errors.append(f"transition_group[{item_index}] grounded source is missing")
         target_rows: dict[int, int] = {}
         for target in binding.targets:
-            target_rows[target.target_index] = target_rows.get(target.target_index, 0) + 1
+            target_rows[target.target_index] = (
+                target_rows.get(target.target_index, 0) + 1
+            )
         expected_targets = set(range(len(raw.transition_groups[item_index].targets)))
         supplied_targets = set(target_rows)
         for target_index in sorted(expected_targets - supplied_targets):
@@ -353,9 +355,7 @@ def _partition_d_decisions(
                 )
             else:
                 duplicate_errors.extend(
-                    core.validate_duplicate_reference(
-                        finding, expected[duplicate_of]
-                    )
+                    core.validate_duplicate_reference(finding, expected[duplicate_of])
                 )
             if not raw_decision.duplicate_rationale:
                 duplicate_errors.append("duplicate_of requires duplicate_rationale")
@@ -996,9 +996,7 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
         if "replay_discovery_grounding_plans" in state:
             branch_inputs = [
                 (plan, None, f"replay_branch_{index}", index, plan)
-                for index, plan in enumerate(
-                    state["replay_discovery_grounding_plans"]
-                )
+                for index, plan in enumerate(state["replay_discovery_grounding_plans"])
             ]
         else:
             for sample_index in range(DISCOVERY_SAMPLE_COUNT):
@@ -1322,11 +1320,7 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
         )
         plan, observations, error = _invoke_with_schema_repair(
             responder,
-            role=(
-                "paper1_d_targeted_repair"
-                if repairing
-                else "paper1_d_adjudication"
-            ),
+            role=("paper1_d_targeted_repair" if repairing else "paper1_d_adjudication"),
             schema=core.DAdjudicationPlan,
             system_prompt=core.D_SYSTEM_PROMPT,
             user_input=adjudication_header + context + frozen_context + feedback,
@@ -1599,6 +1593,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--transport-retries", type=int, default=DEFAULT_TRANSPORT_RETRIES
     )
+    stream_mode = parser.add_mutually_exclusive_group()
+    stream_mode.add_argument(
+        "--stream",
+        dest="streaming",
+        action="store_true",
+        help="Force streaming responses (overrides the adapter default).",
+    )
+    stream_mode.add_argument(
+        "--no-stream",
+        dest="streaming",
+        action="store_false",
+        help="Force complete non-streaming responses (overrides the adapter default).",
+    )
+    parser.set_defaults(streaming=None)
     return parser
 
 
@@ -1610,6 +1618,7 @@ def main(argv: list[str] | None = None) -> int:
         args.profile,
         max_output_tokens=args.max_output_tokens,
         transport_retries=args.transport_retries,
+        streaming=args.streaming,
         repeat_schema_in_prompt=False,
         prompt_cache_ttl="1h",
     )

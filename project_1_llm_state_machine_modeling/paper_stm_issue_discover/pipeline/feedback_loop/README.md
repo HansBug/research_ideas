@@ -44,7 +44,7 @@ prepare
 | [`src/paper_stm_feedback_loop/discover/`](./src/paper_stm_feedback_loop/discover/) | StateGraph、节点、prompts、schemas、谓词词表、CLI、渲染器、replay responder |
 | [`fixtures/manual_0000_identity/`](./fixtures/manual_0000_identity/) | 自包含 identity 样例，`discover-demo` 用；**不占正式语料** |
 | [`fixtures/selected_models/`](./fixtures/selected_models/) | 4 个只读 `.fcstm`（`0000/0006/0029/0050`），确定性工具测试用，带副本 SHA-256 |
-| [`tests/`](./tests/) | 1755 个测试：路由、边界、遥测、断言语义、门禁、降级路径、真实入口 |
+| [`tests/`](./tests/) | 1873 个测试：路由、边界、遥测、断言语义、门禁、降级路径、真实入口 |
 | [`Makefile`](./Makefile) | 本目录入口；根 `Makefile` 的 `discover*` 目标转发到此 |
 
 `discover/` 里体量最大的三个文件是 `nodes.py`（约 5800 行，全部节点逻辑）、`capability.py`（约 2300 行，证据能力与门禁）、`schemas.py` 与 `prompts.py`（各约 1000–1300 行）。
@@ -64,7 +64,7 @@ prepare
 
 ## 6. 怎么用
 
-运行真实模型前必须先在 shell 执行 `source .env`。代码只读 `os.environ`，不解析 `.env`。
+运行真实模型时配置真源是仓库根 `.llmconfig.yml`，通过 `--profile` 选择 profile；不需要也不应该 `source .env`。运行前可用 `python -m utils.llm validate` 和 `python -m utils.llm show <profile>` 做非泄密自检。
 
 ```bash
 # 仓库根目录（推荐）
@@ -84,6 +84,14 @@ make -C .../pipeline/feedback_loop test        # 亦有 lint / compileall / help
 PYTHONPATH=.../pipeline/feedback_loop/src:$PWD \
 python -m paper_stm_feedback_loop.discover --help
 ```
+
+### Responses adapter 与传输模式
+
+访问层唯一复用 `utils.llm.create_chat_model()`；当 profile 的 `adapter` 为 `openai-responses` 时，`utils.llm.model_factory` 设置 `use_responses_api=True`，由 `langchain-openai` 的 `ChatOpenAI` 访问 Responses API，代码不自行调用 Chat Completions、HTTP 或 OpenAI SDK。协议和传输模式是正交的：Responses 可以 stream，也可以 non-stream；OpenAI 官方 [Responses Create API](https://developers.openai.com/api/reference/resources/responses/methods/create) 将 `stream` 定义为独立请求参数，`true` 时使用 SSE 返回增量事件。
+
+`DirectStructuredResponder(..., streaming=None)` 使用 adapter 默认策略：`openai-responses` 默认 `False`，其余既有 adapter 默认 `True`；调用者可以显式传 `streaming=True` 或 `streaming=False`。feedback CLI、witness prototype、witness graph 和 semantic judge 均提供互斥的 `--stream` 与 `--no-stream`，未指定时保持上述 adapter 默认。Hahacode 的 Luna 探针显示 Responses non-stream 比 Responses stream 稳定，因此 paper1 正式默认使用 `adapter=openai-responses` 加 non-stream，stream 只用于显式诊断或确有需要的实验。
+
+每次调用的 `LLMObservation`、`LLMCallRecord` 和 semantic judge audit 都保存实际 `adapter`、`provider`、`model`、`streaming`、retry、usage 与 pricing；`streaming` 是实际请求模式而不是配置推测。judge 的 usage/cost 继续独立审计，不计入 prototype method 成本倍率。
 
 `Makefile` 变量：`PROFILE`（默认 `gpt-5.5`）、`CONTENT_LANGUAGE`（默认 `zh-CN`）、`PAIR_ID`（默认 `llms_emp_feedback_final_0000`）、`OUT`（默认 `runs/paper1/feedback-loop/discover`）、`ARGS`（透传 CLI 参数）。
 

@@ -64,6 +64,21 @@ class _Model:
         return _Structured(schema)
 
 
+class _InvokeStructured(_Structured):
+    def invoke(self, messages):
+        response = None
+        for chunk in self.stream(messages):
+            response = chunk if response is None else response + chunk
+        return response
+
+
+class _InvokeOnlyModel:
+    def with_structured_output(self, schema, include_raw=False, method=None):
+        assert include_raw is True
+        assert method == "function_calling"
+        return _InvokeStructured(schema)
+
+
 class _IncompleteStructured:
     def stream(self, _messages):
         raw = AIMessageChunk(
@@ -137,9 +152,7 @@ class _RecoveringProviderModel:
 
 class _RelayedUpstreamFailureStructured:
     def stream(self, _messages):
-        request = httpx.Request(
-            "POST", "https://provider.invalid/v1/chat/completions"
-        )
+        request = httpx.Request("POST", "https://provider.invalid/v1/chat/completions")
         response = httpx.Response(400, request=request)
         raise openai.BadRequestError(
             "Error code: 400",
@@ -166,9 +179,7 @@ class _RecoveringRelayedUpstreamModel(_RecoveringProviderModel):
 
 class _RelayToolChoiceDriftStructured:
     def stream(self, _messages):
-        request = httpx.Request(
-            "POST", "https://provider.invalid/v1/chat/completions"
-        )
+        request = httpx.Request("POST", "https://provider.invalid/v1/chat/completions")
         response = httpx.Response(400, request=request)
         raise openai.BadRequestError(
             "Error code: 400",
@@ -339,6 +350,80 @@ def test_direct_responder_records_same_profile_model_and_usage(monkeypatch) -> N
     assert llm_record.user_prompt_sha256
     assert llm_record.parsed_output_sha256
     assert llm_record.raw_response_sha256
+    assert llm_record.streaming is True
+
+
+def test_responses_adapter_uses_non_streaming_structured_invoke(monkeypatch) -> None:
+    config = LLMConfig(
+        adapter="openai-responses",
+        model="configured-unit-model",
+        api_key="unit-test-key",
+    )
+    monkeypatch.setattr(
+        responder_module, "load_llm_registry", lambda _path=None: _Registry(config)
+    )
+    created = {}
+
+    def create_model(*_args, **kwargs):
+        created.update(kwargs)
+        return _InvokeOnlyModel()
+
+    monkeypatch.setattr(responder_module, "create_chat_model", create_model)
+    progress = []
+    responder = DirectStructuredResponder(
+        "unit-profile",
+        on_stream_chunk=lambda role, chunks, elapsed_ms: progress.append(
+            (role, chunks, elapsed_ms)
+        ),
+    )
+
+    output = responder.invoke_structured(
+        role="requirement_reviewer",
+        schema=RequirementReview,
+        system_prompt="system",
+        user_input="user",
+    )
+    observation = responder.take_last_observation()
+
+    assert output.decision == "accept"
+    assert observation is not None
+    assert observation.adapter == "openai-responses"
+    assert created["streaming"] is False
+    assert [(role, chunks) for role, chunks, _ in progress] == [
+        ("requirement_reviewer", 1)
+    ]
+    assert observation.streaming is False
+
+
+@pytest.mark.parametrize("streaming", [True, False])
+def test_explicit_streaming_override_is_recorded(monkeypatch, streaming: bool) -> None:
+    config = LLMConfig(
+        adapter="openai-responses",
+        model="configured-unit-model",
+        api_key="unit-test-key",
+    )
+    monkeypatch.setattr(
+        responder_module, "load_llm_registry", lambda _path=None: _Registry(config)
+    )
+    created = {}
+
+    def create_model(*_args, **kwargs):
+        created.update(kwargs)
+        return _Model() if streaming else _InvokeOnlyModel()
+
+    monkeypatch.setattr(responder_module, "create_chat_model", create_model)
+    responder = DirectStructuredResponder("unit-profile", streaming=streaming)
+    output = responder.invoke_structured(
+        role="requirement_reviewer",
+        schema=RequirementReview,
+        system_prompt="system",
+        user_input="user",
+    )
+    assert output.decision == "accept"
+    observation = responder.take_last_observation()
+    assert observation is not None
+    assert observation.streaming is streaming
+    assert created["streaming"] is streaming
 
 
 def test_direct_responder_marks_stable_anthropic_prefix_for_one_hour_cache(

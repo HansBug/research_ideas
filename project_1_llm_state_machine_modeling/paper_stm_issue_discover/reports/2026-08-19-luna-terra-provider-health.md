@@ -12,3 +12,9 @@
 四个窗口共同说明：Terra 在第二窗口恢复为 4/4，但第一窗口仍有 504 与 incomplete stream；Luna 只在第三窗口短暂成功 2/6，第四窗口立即回到 0/6，当前仍是严重振荡而非稳定恢复，不适合启动全量网格。第三窗口的同一 profile、同一代码、同一请求形状在一波中同时出现 2 次成功和 1 次 `tool_choice.name` 400，排除了稳定可复现的本地 malformed request，更符合 relay 分片合同漂移；实现只对这一条结构化且精确的 receipt 做 provider compatibility retry，普通 400、schema、内容或本地错误仍不重试。paper1 的 method、feedback CLI 与 semantic judge 默认 transport retry 上限统一为 8，使用 `5/20/60/120/240` 秒退避并在更长序列中重复 240 秒；CLI 仍可按运行窗口显式调整。只有明确 provider/transport failure 且确实发生下一次原地重发时，前序 attempt 才标记 `provider_error_retry_exempt`；末次失败和其他失败照常计数。正式网格启动前应再做小批健康门：目标 profile 至少连续两波结构化请求接近全成功，且不能出现未分类的 request-contract 400。
 
 完整逐 attempt 运行记录位于本机 `runs/paper1/provider-health-20260819/probe.json`、`probe-second-window.json`、`probe-luna-third-window.json` 与 `probe-luna-fourth-window.json`，包含配置模型、观测模型、错误类型、failure phase、retryable、billing disposition、usage、等待和墙钟；不包含 API key 或 Authorization。
+
+## Responses adapter 复测与当前运行策略
+
+随后使用同一 Hahacode key、同一 `gpt-5.6-luna` profile，并通过仓库现有 `utils.llm.create_chat_model()` 强制 `adapter=openai-responses` 做独立探针：Responses non-stream plain 3/3 成功，Responses non-stream structured 3/3 成功，Responses stream structured 2/3 成功且 1 次 overload。将同样的 Responses adapter 和默认 streaming 配置接入 paper1 `DirectStructuredResponder` 后，3 次请求中 2 次完成；另 1 次首次请求和两次原地 retry 均为 provider overload，最终按 provider failure 落盘。该结果说明 Responses 协议本身不绑定 non-stream，但当前 Hahacode relay 的 stream 路径波动更大。
+
+因此当前 paper1 基础设施固定为：`.llmconfig.yml` 的 Hahacode Luna profile 使用 `adapter: openai-responses`；`DirectStructuredResponder` 对该 adapter 默认 `streaming=False`；所有 feedback、witness 和 semantic judge CLI 可用 `--stream` 或 `--no-stream` 显式覆盖；每个 observation 和 run record 保存实际 streaming 值。只有 provider/transport 错误的后续原地 retry 才适用计费豁免，schema、内容、本地执行和其它返工继续计费。正式全量实验启动前仍应以小批 Responses non-stream 健康门确认 relay 可用，stream 结果仅作为诊断，不混入稳定性结论。

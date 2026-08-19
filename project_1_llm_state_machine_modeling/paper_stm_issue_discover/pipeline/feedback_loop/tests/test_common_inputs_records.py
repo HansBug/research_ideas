@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from paper_stm_feedback_loop.common.inputs import clean_path, load_feedback_loop_inputs
 from paper_stm_feedback_loop.common.records import (
     ImmutableRecordStore,
@@ -30,7 +31,10 @@ def test_load_feedback_loop_inputs_from_representation_pair() -> None:
     assert "human driving mode" in bundle.nl_text.lower()
     assert "state llms_emp_feedback_final_0000" in bundle.fcstm_text
     assert bundle.source_trace.entry_count > 0
-    assert bundle.working_contract.data["schema_version"] == "paper1.working_fcstm_contract.v2"
+    assert (
+        bundle.working_contract.data["schema_version"]
+        == "paper1.working_fcstm_contract.v2"
+    )
     summary = bundle.summary()
     assert summary["sha256"]["nl"].startswith("sha256:")
     assert summary["source_trace_entries"] == bundle.source_trace.entry_count
@@ -53,6 +57,54 @@ def test_cli_formal_pair_default_root_is_independent_of_cwd() -> None:
     assert bundle.pair_id == "llms_emp_feedback_final_0000"
     assert bundle.fcstm.path.name == "fcstm.fcstm"
     assert args.transport_retries == DEFAULT_TRANSPORT_RETRIES == 8
+    assert args.streaming is None
+
+    assert (
+        build_parser()
+        .parse_args(
+            [
+                "--pair-id",
+                "0000",
+                "--profile",
+                "test-profile",
+                "--output-dir",
+                "out",
+                "--stream",
+            ]
+        )
+        .streaming
+        is True
+    )
+    assert (
+        build_parser()
+        .parse_args(
+            [
+                "--pair-id",
+                "0000",
+                "--profile",
+                "test-profile",
+                "--output-dir",
+                "out",
+                "--no-stream",
+            ]
+        )
+        .streaming
+        is False
+    )
+
+    with pytest.raises(SystemExit):
+        build_parser().parse_args(
+            [
+                "--pair-id",
+                "0000",
+                "--profile",
+                "test-profile",
+                "--output-dir",
+                "out",
+                "--stream",
+                "--no-stream",
+            ]
+        )
 
 
 def test_load_feedback_loop_inputs_from_custom_files(tmp_path: Path) -> None:
@@ -62,7 +114,12 @@ def test_load_feedback_loop_inputs_from_custom_files(tmp_path: Path) -> None:
     contract = tmp_path / "contract.json"
     nl.write_text("Natural language requirement", encoding="utf-8")
     fcstm.write_text("state Root { }", encoding="utf-8")
-    trace.write_text(json.dumps({"entries": [], "attribution_exclusions": [], "schema_version": "x"}), encoding="utf-8")
+    trace.write_text(
+        json.dumps(
+            {"entries": [], "attribution_exclusions": [], "schema_version": "x"}
+        ),
+        encoding="utf-8",
+    )
     contract.write_text(json.dumps({"schema_version": "contract.v1"}), encoding="utf-8")
 
     bundle = load_feedback_loop_inputs(
@@ -91,7 +148,9 @@ def test_clean_path_rejects_base_escape(tmp_path: Path) -> None:
 
 def test_append_only_jsonl_records_redact_and_summarize(tmp_path: Path) -> None:
     records = tmp_path / "records.jsonl"
-    append_jsonl_record(records, {"kind": "custom", "status": "ok", "api_key": "sk-secretsecretsecret"})
+    append_jsonl_record(
+        records, {"kind": "custom", "status": "ok", "api_key": "sk-secretsecretsecret"}
+    )
     append_jsonl_record(
         records,
         NodeExecution(

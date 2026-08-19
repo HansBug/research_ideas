@@ -215,6 +215,7 @@ class SupportDisposition(BaseModel):
     ]
     reason: str
 
+
 ProbeKind = Literal[
     "state_declared",
     "variable_declared",
@@ -2524,9 +2525,7 @@ ALLOWED_RELATIONS_BY_OBLIGATION: dict[str, frozenset[GoalRelation]] = {
     ),
     "temporal:response": frozenset({"event_reaches_target", "eventually_responds"}),
     "temporal:absence": frozenset({"event_avoids_scope"}),
-    "temporal:termination": frozenset(
-        {"termination_target", "eventually_terminates"}
-    ),
+    "temporal:termination": frozenset({"termination_target", "eventually_terminates"}),
 }
 
 
@@ -2593,7 +2592,10 @@ def validate_domain_obligation_lowering(candidate: EvidenceCandidate) -> list[st
 
     goal = candidate.goal
     errors: list[str] = []
-    if isinstance(obligation, TemporalObligation) and obligation.pattern == "termination":
+    if (
+        isinstance(obligation, TemporalObligation)
+        and obligation.pattern == "termination"
+    ):
         if obligation.state_ref is not None and goal.relation != "termination_target":
             errors.append(
                 "typed temporal termination with a named state_ref must lower to "
@@ -2607,7 +2609,8 @@ def validate_domain_obligation_lowering(candidate: EvidenceCandidate) -> list[st
     if isinstance(obligation, ElementObligation):
         goal_subject = (
             goal.observed_transition_id
-            if obligation.element_kind == "transition" and obligation.operator == "absent"
+            if obligation.element_kind == "transition"
+            and obligation.operator == "absent"
             else goal.subject
         )
         bindings.extend(
@@ -2678,7 +2681,11 @@ def validate_domain_obligation_lowering(candidate: EvidenceCandidate) -> list[st
                     goal.response or goal.target,
                 ),
                 ("state_ref", obligation.state_ref, goal.subject or goal.target),
-                ("scope_ref", obligation.scope_ref, goal.source or goal.forbidden_scope),
+                (
+                    "scope_ref",
+                    obligation.scope_ref,
+                    goal.source or goal.forbidden_scope,
+                ),
                 ("bound", obligation.bound, goal.within_cycles),
             ]
         )
@@ -3966,9 +3973,8 @@ def _expand_required_state_bindings(
                         ),
                     }
                 )
-            elif (
-                binding.formal_kind == "state"
-                and isinstance(binding.realized_state_id, str)
+            elif binding.formal_kind == "state" and isinstance(
+                binding.realized_state_id, str
             ):
                 append_realized_role_candidate(contract, binding.realized_state_id)
             continue
@@ -5059,14 +5065,13 @@ def _source_concurrent_region_deadlock_certificate(
     if not target or not target_state:
         return None
     regions = [
-        item
-        for item in model.get("concurrent_regions", [])
-        if isinstance(item, dict)
+        item for item in model.get("concurrent_regions", []) if isinstance(item, dict)
     ]
     target_regions = [
         item
         for item in regions
-        if target in {
+        if target
+        in {
             str(state_id)
             for state_id in item.get("state_ids", [])
             if isinstance(state_id, str)
@@ -5096,7 +5101,9 @@ def _source_concurrent_region_deadlock_certificate(
     region_receipts: list[dict[str, Any]] = []
     initial_edges_complete = True
     initial_edges_unconditional = True
-    for region in sorted(owner_regions, key=lambda item: int(item.get("region_index", 0))):
+    for region in sorted(
+        owner_regions, key=lambda item: int(item.get("region_index", 0))
+    ):
         transition_ids = {
             str(item)
             for item in region.get("transition_ids", [])
@@ -5243,9 +5250,8 @@ def _source_entry_deadlock_certificate(
             and metadata.get("scope") == scope
         ):
             element_id = str(element.get("element_id") or "")
-            expected_model_ref = (
-                "fcstm-transition:"
-                + element_id.removeprefix("compiler:synthetic_transition:")
+            expected_model_ref = "fcstm-transition:" + element_id.removeprefix(
+                "compiler:synthetic_transition:"
             )
             generated_transitions.append(
                 {
@@ -7126,9 +7132,7 @@ def _apply_formal_transition_binding(
                         {
                             "field": f"{role}_{field}",
                             "value": value,
-                            "basis": (
-                                "llm_selected_transition_id_then_exact_ast_read"
-                            ),
+                            "basis": ("llm_selected_transition_id_then_exact_ast_read"),
                         }
                     )
     elif goal.relation in {"transition_contract", "transition_exists"}:
@@ -7447,8 +7451,7 @@ def _execute_source_guard_goal(
     all_artifact_rows = [
         row
         for row in inspect.get("transitions", [])
-        if isinstance(row, dict)
-        and row.get("from_path") == source
+        if isinstance(row, dict) and row.get("from_path") == source
     ]
     source_rows = _source_transition_rows(pair, source=str(goal.source))
     obligation = candidate.domain_obligation
@@ -8143,9 +8146,7 @@ def _execute_transition_target_consistency_goal(
     source_actual = bool(
         isinstance(observed, dict) and observed_actual_target == normative_target
     )
-    source_counterexample = bool(
-        source_sound and source_actual != goal.expected
-    )
+    source_counterexample = bool(source_sound and source_actual != goal.expected)
     source_certificate = {
         "schema": "paper1.source_assertion.v1",
         "kind": "source_transition_target_inconsistency",
@@ -8255,9 +8256,7 @@ def _execute_transition_target_consistency_goal(
         route=route,
         witness_level="W2" if terminal else "W1",
         counterexample_found=counterexample,
-        source_attribution=(
-            "causal_dual_certificate" if dual else "source_localized"
-        ),
+        source_attribution=("causal_dual_certificate" if dual else "source_localized"),
         compiled_assertion=program,
         execution_certificate=receipt,
         source_certificate=source_certificate,
@@ -8778,7 +8777,9 @@ def _execute_evidence_candidate(
                 "checks": [],
                 "errors": lowering_errors,
                 "domain_obligation": (
-                    obligation.model_dump(mode="json") if obligation is not None else None
+                    obligation.model_dump(mode="json")
+                    if obligation is not None
+                    else None
                 ),
                 "typed_obligation_status": "invalid",
                 "support_disposition": support.model_dump(mode="json"),
@@ -9872,22 +9873,16 @@ def _source_entry_semantics_for_d(pair: dict[str, Any]) -> dict[str, Any]:
     for scope in sorted(states, key=lambda item: str(item["id"])):
         scope_id = str(scope["id"])
         direct_children = sorted(
-            str(item["id"])
-            for item in states
-            if item.get("parent") == scope_id
+            str(item["id"]) for item in states if item.get("parent") == scope_id
         )
         if not direct_children:
             continue
         scope_initials = sorted(
-            str(item["id"])
-            for item in transitions
-            if item.get("scope") == scope_id
+            str(item["id"]) for item in transitions if item.get("scope") == scope_id
         )
         child_initials = {
             child: sorted(
-                str(item["id"])
-                for item in transitions
-                if item.get("scope") == child
+                str(item["id"]) for item in transitions if item.get("scope") == child
             )
             for child in direct_children
         }
@@ -9900,7 +9895,9 @@ def _source_entry_semantics_for_d(pair: dict[str, Any]) -> dict[str, Any]:
             }
         )
     concurrent_regions = model.get("concurrent_regions")
-    concurrent_regions = concurrent_regions if isinstance(concurrent_regions, list) else []
+    concurrent_regions = (
+        concurrent_regions if isinstance(concurrent_regions, list) else []
+    )
     return {
         "declared_concurrent_regions": concurrent_regions,
         "declared_concurrent_region_count": len(concurrent_regions),
@@ -10104,9 +10101,7 @@ def validate_d_decision(finding: dict[str, Any], decision: DDecision) -> list[st
         if decision.grounding != "dom":
             errors.append("D2-norm requires grounding=dom")
         elif not _has_typed_operational_domain_norm(finding):
-            errors.append(
-                "D2-norm requires a typed operational domain obligation"
-            )
+            errors.append("D2-norm requires a typed operational domain obligation")
     if decision.d_level == "D1" and not (
         decision.defeater_kind == "undercutting"
         and decision.defeater_disposition in {"survives", "unresolved"}
@@ -10182,9 +10177,7 @@ def validate_duplicate_reference(
             "duplicate_of requires a canonical formal-property signature for both findings"
         ]
     if property_signature != earlier_property_signature:
-        return [
-            "duplicate_of conflicts with distinct exact formal property signatures"
-        ]
+        return ["duplicate_of conflicts with distinct exact formal property signatures"]
 
     return []
 
@@ -10205,8 +10198,7 @@ def normalize_d_decision(
         grounding = decision.grounding
     else:
         typed_domain_norm = bool(
-            isinstance(finding, dict)
-            and _has_typed_operational_domain_norm(finding)
+            isinstance(finding, dict) and _has_typed_operational_domain_norm(finding)
         )
         grounding = (
             decision.grounding
@@ -10262,9 +10254,10 @@ def apply_d_adjudication(
                 duplicate_errors.append(
                     "duplicate_of must reference a supplied finding_key"
                 )
-            elif finding_positions[duplicate_of] >= finding_positions[
-                str(finding["finding_key"])
-            ]:
+            elif (
+                finding_positions[duplicate_of]
+                >= finding_positions[str(finding["finding_key"])]
+            ):
                 duplicate_errors.append(
                     "duplicate_of must reference an earlier stable finding_key"
                 )
@@ -10349,8 +10342,7 @@ def select_accepted_issues(findings: list[dict[str, Any]]) -> list[dict[str, Any
         item = dict(finding)
         item["release_status"] = (
             "accepted_issue"
-            if decision.get("d_level") == "D2"
-            and finding.get("witness_level") == "W2"
+            if decision.get("d_level") == "D2" and finding.get("witness_level") == "W2"
             else "provisional_issue"
         )
         accepted.append(item)
@@ -10408,9 +10400,7 @@ def build_report_issue_clusters(
 ) -> list[dict[str, Any]]:
     """Collapse exact causes, then consume validated D duplicate relations."""
 
-    findings_by_key = {
-        str(finding.get("finding_key")): finding for finding in findings
-    }
+    findings_by_key = {str(finding.get("finding_key")): finding for finding in findings}
     cause_by_finding = {
         str(finding.get("finding_key")): _cause_key_from_finding(finding)
         for finding in findings
@@ -10660,6 +10650,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             args.profile,
             max_output_tokens=args.max_output_tokens,
             transport_retries=args.transport_retries,
+            streaming=getattr(args, "streaming", None),
         )
         try:
             plan = responder.invoke_structured(
@@ -10723,6 +10714,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--transport-retries", type=int, default=DEFAULT_TRANSPORT_RETRIES
     )
+    stream_mode = parser.add_mutually_exclusive_group()
+    stream_mode.add_argument(
+        "--stream",
+        dest="streaming",
+        action="store_true",
+        help="Force streaming responses (overrides the adapter default).",
+    )
+    stream_mode.add_argument(
+        "--no-stream",
+        dest="streaming",
+        action="store_false",
+        help="Force complete non-streaming responses (overrides the adapter default).",
+    )
+    parser.set_defaults(streaming=None)
     return parser
 
 

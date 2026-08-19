@@ -372,10 +372,7 @@ def _aggregate_attempt_usage(attempts: list[dict[str, Any]]) -> dict[str, Any]:
         "ephemeral_1h_input_tokens",
         "reasoning_tokens",
     )
-    result = {
-        key: sum(int(row[key]) for row in rows)
-        for key in required
-    }
+    result = {key: sum(int(row[key]) for row in rows) for key in required}
     for key in optional:
         values = [row.get(key) for row in rows]
         result[key] = (
@@ -409,6 +406,7 @@ class LLMObservation:
     profile: str
     adapter: str
     provider: str
+    streaming: bool
     configured_model: str
     observed_model: str | None
     started_at: datetime
@@ -444,6 +442,7 @@ class DirectStructuredResponder:
         registry_path: str | None = None,
         max_output_tokens: int | None = None,
         transport_retries: int = DEFAULT_TRANSPORT_RETRIES,
+        streaming: bool | None = None,
         repeat_schema_in_prompt: bool = True,
         prompt_cache_ttl: PromptCacheTTL | None = None,
         on_stream_chunk: Callable[[str, int, float], None] | None = None,
@@ -460,10 +459,18 @@ class DirectStructuredResponder:
                 else None
             )
         )
+        # ``None`` is the adapter policy: Responses defaults to complete
+        # responses, while the established Chat Completions/Anthropic paths keep
+        # streaming. A caller can explicitly force either transport mode.
+        self.streaming = (
+            self.config.adapter != "openai-responses"
+            if streaming is None
+            else streaming
+        )
         self.model = create_chat_model(
             self.config,
             model_options=model_options,
-            streaming=True,
+            streaming=self.streaming,
             max_retries=0,
         )
         self.transport_retries = max(0, transport_retries)
@@ -524,21 +531,28 @@ class DirectStructuredResponder:
                 structured = self.model.with_structured_output(
                     schema, **structured_options
                 )
-                response = None
-                for chunk_count, chunk in enumerate(
-                    structured.stream(
-                        [
-                            SystemMessage(content=system_message_content),
-                            HumanMessage(user_input),
-                        ]
-                    ),
-                    start=1,
-                ):
-                    response = chunk if response is None else response + chunk
+                messages = [
+                    SystemMessage(content=system_message_content),
+                    HumanMessage(user_input),
+                ]
+                if self.streaming:
+                    response = None
+                    for chunk_count, chunk in enumerate(
+                        structured.stream(messages), start=1
+                    ):
+                        response = chunk if response is None else response + chunk
+                        if self._on_stream_chunk is not None:
+                            self._on_stream_chunk(
+                                role,
+                                chunk_count,
+                                (time.perf_counter_ns() - attempt_start_ns) / 1_000_000,
+                            )
+                else:
+                    response = structured.invoke(messages)
                     if self._on_stream_chunk is not None:
                         self._on_stream_chunk(
                             role,
-                            chunk_count,
+                            1,
                             (time.perf_counter_ns() - attempt_start_ns) / 1_000_000,
                         )
                 if response is None:
@@ -615,6 +629,7 @@ class DirectStructuredResponder:
                     profile=self.profile,
                     adapter=self.config.adapter,
                     provider=adapter_name(self.config.adapter),
+                    streaming=self.streaming,
                     configured_model=self.config.model,
                     observed_model=str(observed_model) if observed_model else None,
                     started_at=call_started,
@@ -646,11 +661,12 @@ class DirectStructuredResponder:
                 failure_phase = (
                     "structured_output_limit"
                     if isinstance(exc, StructuredOutputTruncatedError)
-                    else
-                    "structured_stream"
+                    else "structured_stream"
                     if isinstance(exc, IncompleteStructuredStreamError)
                     else "structured_validation"
-                    if isinstance(exc, (ValueError, TypeError, StructuredOutputValidationError))
+                    if isinstance(
+                        exc, (ValueError, TypeError, StructuredOutputValidationError)
+                    )
                     else "provider_response"
                     if status is not None or _retryable_error(exc)
                     else "internal"
@@ -697,6 +713,7 @@ class DirectStructuredResponder:
             profile=self.profile,
             adapter=self.config.adapter,
             provider=adapter_name(self.config.adapter),
+            streaming=self.streaming,
             configured_model=self.config.model,
             observed_model=None,
             started_at=call_started,

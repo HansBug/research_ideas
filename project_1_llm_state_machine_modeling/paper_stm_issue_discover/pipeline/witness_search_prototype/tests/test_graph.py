@@ -21,6 +21,20 @@ def test_all_prototype_entry_points_share_the_provider_retry_default() -> None:
     assert DEFAULT_TRANSPORT_RETRIES == 8
     assert prototype_args.transport_retries == DEFAULT_TRANSPORT_RETRIES
     assert graph_args.transport_retries == DEFAULT_TRANSPORT_RETRIES
+    assert prototype_args.streaming is None
+    assert graph_args.streaming is None
+    assert (
+        prototype.build_parser()
+        .parse_args(["--case", "0000", "--output-dir", "out", "--stream"])
+        .streaming
+        is True
+    )
+    assert (
+        graph.build_parser()
+        .parse_args(["--case", "0000", "--output-dir", "out", "--no-stream"])
+        .streaming
+        is False
+    )
 
 
 class FakeResponder:
@@ -159,9 +173,7 @@ class TargetedDRepairResponder(FakeResponder):
                     "d_level": "D1",
                 }
             )
-            plan = prototype.DAdjudicationPlan(
-                decisions=[first, *plan.decisions[1:]]
-            )
+            plan = prototype.DAdjudicationPlan(decisions=[first, *plan.decisions[1:]])
         return plan
 
 
@@ -331,8 +343,7 @@ def test_fresh_graph_uses_shared_a_complementary_dual_b_and_single_d() -> None:
     ]
     assert len(responder.discovery_system_prompts) == 2
     assert (
-        responder.discovery_system_prompts[0]
-        != responder.discovery_system_prompts[1]
+        responder.discovery_system_prompts[0] != responder.discovery_system_prompts[1]
     )
     assert "contract_structure_contrast" in responder.discovery_system_prompts[0]
     assert "behavior_consequence" in responder.discovery_system_prompts[1]
@@ -517,7 +528,9 @@ def test_d_contract_failure_repairs_once_then_degrades_to_auditable_output() -> 
     assert all(item["d_decision"] is None for item in record["finding_records"])
 
 
-def test_d_semantic_validation_failure_degrades_without_rewriting_valid_decisions() -> None:
+def test_d_semantic_validation_failure_degrades_without_rewriting_valid_decisions() -> (
+    None
+):
     state = graph.run_graph(
         graph.PrototypeGraphInput(case="0016", profile="fake"),
         InvalidSemanticDResponder(),
@@ -646,7 +659,9 @@ def test_d_duplicate_reference_must_be_known_and_earlier() -> None:
         assert set(valid) == {"f:b"}
         assert any(expected_error in message for message in invalid["f:a"])
         if invalid_target == "f:b":
-            assert any("eligible earlier keys=[]" in message for message in invalid["f:a"])
+            assert any(
+                "eligible earlier keys=[]" in message for message in invalid["f:a"]
+            )
         assert diagnostics == []
 
 
@@ -969,9 +984,7 @@ def test_replay_loader_prefers_immutable_llm_outputs_over_ensemble_derivatives(
         )
         for index in (1, 2)
     ]
-    derived = [
-        plan.model_copy(update={"concept_bindings": []}) for plan in raw
-    ]
+    derived = [plan.model_copy(update={"concept_bindings": []}) for plan in raw]
     (contract_stage / "record.json").write_text(
         json.dumps({"contract_plan": contract.model_dump(mode="json")}),
         encoding="utf-8",
@@ -999,9 +1012,7 @@ def test_replay_loader_prefers_immutable_llm_outputs_over_ensemble_derivatives(
         encoding="utf-8",
     )
 
-    _, loaded_plans, _ = graph._load_replay_plans(
-        tmp_path, prototype.load_pair("0016")
-    )
+    _, loaded_plans, _ = graph._load_replay_plans(tmp_path, prototype.load_pair("0016"))
 
     assert loaded_plans == raw
 

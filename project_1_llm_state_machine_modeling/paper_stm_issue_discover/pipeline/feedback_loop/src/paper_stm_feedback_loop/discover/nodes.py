@@ -98,6 +98,7 @@ from .utils import sha256_data, sha256_text
 
 T = TypeVar("T", bound=BaseModel)
 
+
 def _budget(name: str, default: int) -> int:
     """A revision budget, lowerable from the environment for fault injection.
 
@@ -139,7 +140,11 @@ def _budgets_from_env() -> dict[str, int]:
         "ASSERTION_REVIEW",
         "ASSERTION_CONTRACT",
     )
-    return {name: _budget(name, 5) for name in names if os.environ.get(f"DISCOVER_BUDGET_{name}")}
+    return {
+        name: _budget(name, 5)
+        for name in names
+        if os.environ.get(f"DISCOVER_BUDGET_{name}")
+    }
 
 
 MAX_REQUIREMENT_REVIEW_REPAIRS = _budget("REQUIREMENT_REVIEW", 5)
@@ -174,8 +179,11 @@ def coverage_status_of(coverage_gaps, reconciliation) -> str:
     incomplete = any(
         (reconciliation or {}).get(key) for key in INCOMPLETE_RECONCILIATION_KEYS
     )
-    blocked = any(getattr(gap, "blocks_full_coverage", False) for gap in coverage_gaps or ())
+    blocked = any(
+        getattr(gap, "blocks_full_coverage", False) for gap in coverage_gaps or ()
+    )
     return "partial" if (blocked or incomplete) else "full"
+
 
 MAX_ASSERTION_NO_PROGRESS_RECOVERIES = 1
 #: Per-assertion precheck repairs before that item is isolated.  Issue #167 §8.3
@@ -253,6 +261,7 @@ def _semantic_invalid_key(
             head = str(error).strip().split(":", 1)[0]
             error_type = head[:64] or "unknown"
     return f"{assertion_id}|{error_type}|{coverage_key or ''}"
+
 
 ALLOWED_PRIMARY_EVIDENCE_FAMILIES = {
     "structure": {"structure", "relation", "effect", "topology", "provenance"},
@@ -614,7 +623,7 @@ def _predicates_that_refused(state: DiscoverGraphState) -> frozenset[str]:
 
     refused: set[str] = set()
     for feedback in state.get("_assertion_feedback_history", ()) or ():
-        for finding in (getattr(feedback, "findings", None) or ()):
+        for finding in getattr(feedback, "findings", None) or ():
             text = str(finding)
             if "UnsupportedEvidence" not in text:
                 continue
@@ -761,6 +770,7 @@ def _llm_call_record(
         profile=observation.profile,
         adapter=observation.adapter,
         provider=observation.provider,
+        streaming=observation.streaming,
         configured_model=observation.configured_model,
         observed_model=observation.observed_model,
         model_id=observation.observed_model or observation.configured_model,
@@ -831,13 +841,9 @@ def _degraded_conversion(
     requirement_set = state.get("requirement_set")
     requirements = requirement_set.requirements if requirement_set is not None else ()
     covered = {
-        item.requirement_id
-        for item in fallback.assertions
-        if item.role == "primary"
+        item.requirement_id for item in fallback.assertions if item.role == "primary"
     }
-    reason_code = (
-        "no_progress" if repeated else "revision_budget_exhausted"
-    )
+    reason_code = "no_progress" if repeated else "revision_budget_exhausted"
     gaps = tuple(
         CoverageGap(
             gap_id=f"GAP-{requirement.requirement_id}-CONVERSION-DEGRADED",
@@ -1031,6 +1037,7 @@ def _fail_state(
                     profile=observation.profile,
                     adapter=observation.adapter,
                     provider=observation.provider,
+                    streaming=observation.streaming,
                     configured_model=observation.configured_model,
                     observed_model=observation.observed_model,
                     model_id=observation.observed_model or observation.configured_model,
@@ -1171,7 +1178,9 @@ ABLATABLE_GATES = (
 )
 
 _ABLATED_GATES = frozenset(
-    name.strip() for name in os.environ.get("DISCOVER_ABLATE_GATES", "").split(",") if name.strip()
+    name.strip()
+    for name in os.environ.get("DISCOVER_ABLATE_GATES", "").split(",")
+    if name.strip()
 )
 
 _unknown_ablations = sorted(_ABLATED_GATES - set(ABLATABLE_GATES))
@@ -1185,7 +1194,9 @@ if _unknown_ablations:
 
 def _ablated(gate_name: str) -> bool:
     """Whether this gate is switched off for an ablation run."""
-    if gate_name not in ABLATABLE_GATES:  # pragma: no cover - guards a typo at the call site
+    if (
+        gate_name not in ABLATABLE_GATES
+    ):  # pragma: no cover - guards a typo at the call site
         raise ValueError(f"unknown gate name {gate_name!r}; add it to ABLATABLE_GATES")
     return gate_name in _ABLATED_GATES
 
@@ -1231,7 +1242,6 @@ def prepare(state: DiscoverGraphState) -> DiscoverGraphState:
 
 #: Source-trace prefix marking a variable the converter created, not the author.
 _ROUTE_CONTROL_PREFIX = "compiler:route_control:"
-
 
 
 #: `R45RouteToken = 7;` in an effect, `R45RouteToken == 9` in a guard.  Matched by
@@ -1710,27 +1720,39 @@ def split_requirements(
         # it is the motive record the leak audit reads, and it stays in the source (which the
         # model never sees) rather than in any prompt (which it does).
         gates = (
-            ("initialization_anchored", lambda: initialization_anchored_findings(output.requirements)),
+            (
+                "initialization_anchored",
+                lambda: initialization_anchored_findings(output.requirements),
+            ),
             # v36：消解 splitter/reviewer 对机械派生义务的直接冲突。splitter 侧的入口义务触发器
             # 自陈「is mechanical」，reviewer 侧的常设指令是「无 NL 出处即语义添加」，而 reviewer
             # 看不到那条触发器 —— 实测 0032 删 3/4 格、0047 删 5/6 格。这道门把 reviewer 面对的
             # 问题从不可判定（有没有 NL 出处）换成可判定（申报是否满足四条）。
-            ("derivation_contract", lambda: derivation_contract_findings(output.requirements)),
+            (
+                "derivation_contract",
+                lambda: derivation_contract_findings(output.requirements),
+            ),
             # v23: 接线。它要求 `source_context.nl_parent`，splitter prompt 已在 v23 教这个字段 ——
             # v22 未接线正是因为「被要求补一个从未被描述过的字段」会耗尽修复预算。
-            ("vacuous_containment", lambda: vacuous_containment_findings(output.requirements, known_paths)),
+            (
+                "vacuous_containment",
+                lambda: vacuous_containment_findings(output.requirements, known_paths),
+            ),
             (
                 "termination_proposal",
                 lambda: termination_proposal_findings(
                     output.requirements,
                     known_paths,
-                    (frozen.pseudo_state_facts or {}).get("terminating_transitions") or (),
+                    (frozen.pseudo_state_facts or {}).get("terminating_transitions")
+                    or (),
                 ),
             ),
             (
                 "redundant_proposal",
                 lambda: redundant_proposal_findings(
-                    output.requirements, known_paths, dict(frozen.model_vocabulary or {})
+                    output.requirements,
+                    known_paths,
+                    dict(frozen.model_vocabulary or {}),
                 ),
             ),
             # The root spelling of the same anchoring mistake `initialization_anchored_findings`
@@ -1756,12 +1778,17 @@ def split_requirements(
             # A concession filed in `limitations` cannot come back False. Pair 0050 lost a round
             # to a splitter that wrote down the omission correctly and then asserted nothing
             # about it -- eleven assertions, all True, nothing published.
-            ("conceded_omission", lambda: conceded_omission_findings(output.requirements, known_paths)),
+            (
+                "conceded_omission",
+                lambda: conceded_omission_findings(output.requirements, known_paths),
+            ),
             # `reaches` on a declared event answers from the compiler's routing, not the
             # author's edge; pair 0000 lost v6run2 and v10run3 to exactly that.
             (
                 "trigger_consuming",
-                lambda: trigger_consuming_predicate_findings(output.requirements, known_paths),
+                lambda: trigger_consuming_predicate_findings(
+                    output.requirements, known_paths
+                ),
             ),
         )
         # named_elements 是生产者自己填的比对表；表里说「模型没有这个元素」却又不为它写义务，
@@ -1805,7 +1832,8 @@ def split_requirements(
                 req.requirement_id
                 for req in output.requirements
                 if any(
-                    finding.startswith(f"{req.requirement_id} ") for finding in step_findings
+                    finding.startswith(f"{req.requirement_id} ")
+                    for finding in step_findings
                 )
             )
             survivors = tuple(
@@ -2488,7 +2516,10 @@ def convert_assertions(
                     )
                 )
                 mismatch = procedure_mismatch(requirement.predicate, called)
-                if mismatch is not None and requirement.requirement_id in refused_predicates:
+                if (
+                    mismatch is not None
+                    and requirement.requirement_id in refused_predicates
+                ):
                     # 被点名的谓词已在本格拒绝作答，Gate D 的前提不成立。放行并记账，
                     # 让读者看得见「这条命题换了个过程回答」，而不是静默通过。
                     mandatory_waivers.append(
@@ -2638,9 +2669,7 @@ def convert_assertions(
                 assertion.evidence_family for assertion in primary_assertions
             }
             missing_mandatory_families = sorted(
-                MANDATORY_PRIMARY_EVIDENCE_FAMILIES[
-                    requirement.verification_kind
-                ]
+                MANDATORY_PRIMARY_EVIDENCE_FAMILIES[requirement.verification_kind]
                 - present_primary_families
             )
             if missing_mandatory_families:
@@ -2718,9 +2747,9 @@ def convert_assertions(
             phase = str(
                 getattr(requirement.source_context, "behavior_phase", None) or ""
             ).lower()
-            if not anchors_at_initialization(requirement.source_context) and not _ablated(
-                "source_blind_response"
-            ):
+            if not anchors_at_initialization(
+                requirement.source_context
+            ) and not _ablated("source_blind_response"):
                 source_blind = tuple(
                     f"{assertion.assertion_id}: {call}(...) omits source"
                     for assertion in primary_assertions
@@ -3148,7 +3177,8 @@ def precheck_and_seal(
                 behaviour_calls = [
                     call
                     for call in checked.function_call_trace
-                    if PREDICATE_FAMILIES.get(call.function, ("", ""))[0] == "simulation"
+                    if PREDICATE_FAMILIES.get(call.function, ("", ""))[0]
+                    == "simulation"
                 ]
                 # Not every Family B predicate spells its pinning argument
                 # `source`: `terminates` takes `scope`.  Requiring `source`
@@ -3167,9 +3197,14 @@ def precheck_and_seal(
                 source_context = requirement.source_context
                 is_initial_configuration = (
                     isinstance(source_context, dict)
-                    and getattr(source_context, "behavior_phase", None) == "initialization"
+                    and getattr(source_context, "behavior_phase", None)
+                    == "initialization"
                 )
-                if behaviour_calls and not has_hot_start and not is_initial_configuration:
+                if (
+                    behaviour_calls
+                    and not has_hot_start
+                    and not is_initial_configuration
+                ):
                     hot_start_policy_error = (
                         "a behavior requirement must pin its claim to a named "
                         "configuration: pass the Requirement's `source` binding to "
@@ -3535,7 +3570,10 @@ def precheck_and_seal(
         )
         if status == "invalid" and (quarantine_now or no_progress_ids):
             recovery_count = state.get("_assertion_no_progress_recovery_count", 0)
-            if not quarantine_now and recovery_count < MAX_ASSERTION_NO_PROGRESS_RECOVERIES:
+            if (
+                not quarantine_now
+                and recovery_count < MAX_ASSERTION_NO_PROGRESS_RECOVERIES
+            ):
                 last_executable = state.get("_last_executable_assertion_script")
                 seed_assertions = (
                     {
@@ -4352,7 +4390,6 @@ def _working_contract_simulation_is_ineligible(contract: dict[str, Any]) -> bool
     )
 
 
-
 def _review_findings(findings: Iterable[Any]) -> tuple[str, ...]:
     """Render reviewer findings for `RevisionFeedback`, **including `required_change`**.
 
@@ -4428,6 +4465,7 @@ _OMISSION_PLACEHOLDERS = ("UnspecifiedInitial", "FinalWait")
 
 #: `InvalidInitialtr_0005` names the transition whose segment carries the role.
 _TRANSITION_ID = re.compile(r"(tr_\d+)")
+
 
 #: Predicates whose claim is about what the model declares, reused from the capability layer
 #: so the two cannot drift. For these an injected stand-in for a missing declaration is
@@ -4564,7 +4602,8 @@ def _omission_placeholder_only(
         if all(item is not None for item in decided):
             return all(decided)
     return all(
-        any(marker in str(ref) for marker in _OMISSION_PLACEHOLDERS) for ref in debt_refs
+        any(marker in str(ref) for marker in _OMISSION_PLACEHOLDERS)
+        for ref in debt_refs
     )
 
 
@@ -4924,8 +4963,10 @@ def _declared_ancestor_refs(
                 for entry in entries
                 if _trace_entry_matches(entry, {prefix})
                 and isinstance(entry.get("attribution_boundary"), dict)
-                and entry["attribution_boundary"].get("source_level_claim_allowed") is True
-                and entry["attribution_boundary"].get("representation_related") is not True
+                and entry["attribution_boundary"].get("source_level_claim_allowed")
+                is True
+                and entry["attribution_boundary"].get("representation_related")
+                is not True
                 and entry["attribution_boundary"].get("conversion_or_lowering_related")
                 is not True
             ]
@@ -5321,7 +5362,9 @@ def adjudicate_results(
                 pruned_citations.append(
                     {
                         "issue_id": issue.issue_id,
-                        "pruned": tuple(a for a in cited if a not in false_primary_assertions),
+                        "pruned": tuple(
+                            a for a in cited if a not in false_primary_assertions
+                        ),
                         "kept": kept,
                         "reason": (
                             "cited assertions the release layer never produced as False "
@@ -5329,7 +5372,9 @@ def adjudicate_results(
                         ),
                     }
                 )
-                surviving_issues.append(issue.model_copy(update={"assertion_ids": kept}))
+                surviving_issues.append(
+                    issue.model_copy(update={"assertion_ids": kept})
+                )
                 continue
             dropped_unsupported.append(
                 {
@@ -5585,7 +5630,9 @@ def adjudicate_results(
         # `all` 算，否则「存在性为假 + 兄弟主张空过为真」会在 `any` 下判成满足，缺陷消失。
         # 这是确定性归一化而非拒绝 —— `coverage_obligation` 由 splitter 产出、此刻已冻结，
         # 没有任何一方能改它，所以不能做成门（详见 `_requirement_primary_truth`）。
-        known_paths = frozenset(frozen.known_model_paths) if frozen is not None else frozenset()
+        known_paths = (
+            frozenset(frozen.known_model_paths) if frozen is not None else frozenset()
+        )
         absent_element_requirements = {
             item.requirement_id
             for item in (script.assertions if script is not None else ())

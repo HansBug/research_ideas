@@ -168,7 +168,11 @@ def _cell_payload(root: Path, arm: Arm, pair: str, run: int) -> dict[str, Any]:
         for index, item in enumerate(parsed.get("issues", []))
         if isinstance(item, dict)
     ]
-    return {"cell": f"{arm}_run{run}", "status": record.get("status"), "findings": findings}
+    return {
+        "cell": f"{arm}_run{run}",
+        "status": record.get("status"),
+        "findings": findings,
+    }
 
 
 def _expected_emission_ids(cells: list[dict[str, Any]]) -> set[tuple[str, str]]:
@@ -207,6 +211,7 @@ def _observation_audit(observation: Any) -> dict[str, Any]:
         "profile": observation.profile,
         "adapter": observation.adapter,
         "provider": observation.provider,
+        "streaming": getattr(observation, "streaming", None),
         "configured_model": observation.configured_model,
         "observed_model": observation.observed_model,
         "started_at": observation.started_at.isoformat(),
@@ -277,32 +282,48 @@ def _invoke_judge(
         return result
 
 
-def _validate_shape(result: PairJudgement, ledger: list[dict[str, Any]], cells: list[dict[str, Any]]) -> list[str]:
+def _validate_shape(
+    result: PairJudgement, ledger: list[dict[str, Any]], cells: list[dict[str, Any]]
+) -> list[str]:
     errors: list[str] = []
     expected_ledger = {str(row["ledger_id"]) for row in ledger}
     expected_by_cell = {
         str(cell["cell"]): {
-            str(finding["finding_id"])
-            for finding in cell.get("findings", [])
+            str(finding["finding_id"]) for finding in cell.get("findings", [])
         }
         for cell in cells
     }
     supplied_ledger = {row.ledger_id for row in result.ledger_assessments}
     if supplied_ledger != expected_ledger:
-        errors.append("ledger_assessments must contain each supplied ledger_id exactly once")
+        errors.append(
+            "ledger_assessments must contain each supplied ledger_id exactly once"
+        )
     if len(supplied_ledger) != len(result.ledger_assessments):
         errors.append("ledger_assessments contains duplicate ledger_id")
     expected_emissions = _expected_emission_ids(cells)
-    supplied_emissions = {(row.cell, row.emitted_id) for row in result.emission_assessments}
+    supplied_emissions = {
+        (row.cell, row.emitted_id) for row in result.emission_assessments
+    }
     if supplied_emissions != expected_emissions:
-        errors.append("emission_assessments must contain each supplied emitted issue exactly once")
+        errors.append(
+            "emission_assessments must contain each supplied emitted issue exactly once"
+        )
     if len(supplied_emissions) != len(result.emission_assessments):
         errors.append("emission_assessments contains duplicate cell/emitted_id")
     for assessment in result.ledger_assessments:
-        for field in ("method_run1", "method_run2", "method_run3", "baseline_run1", "baseline_run2", "baseline_run3"):
+        for field in (
+            "method_run1",
+            "method_run2",
+            "method_run3",
+            "baseline_run1",
+            "baseline_run2",
+            "baseline_run3",
+        ):
             hit = getattr(assessment, field)
             if any(not isinstance(item, str) for item in hit.supporting_finding_ids):
-                errors.append(f"{assessment.ledger_id}.{field} has invalid supporting id")
+                errors.append(
+                    f"{assessment.ledger_id}.{field} has invalid supporting id"
+                )
                 continue
             supporting_ids = set(hit.supporting_finding_ids)
             unknown_ids = supporting_ids - expected_by_cell[field]
@@ -312,9 +333,13 @@ def _validate_shape(result: PairJudgement, ledger: list[dict[str, Any]], cells: 
                     + ", ".join(sorted(unknown_ids))
                 )
             if hit.hit and not supporting_ids:
-                errors.append(f"{assessment.ledger_id}.{field} hit requires a supporting id")
+                errors.append(
+                    f"{assessment.ledger_id}.{field} hit requires a supporting id"
+                )
             if not hit.hit and supporting_ids:
-                errors.append(f"{assessment.ledger_id}.{field} miss must not carry supporting ids")
+                errors.append(
+                    f"{assessment.ledger_id}.{field} miss must not carry supporting ids"
+                )
     for assessment in result.emission_assessments:
         matched_ledger = set(assessment.matched_ledger_ids)
         unknown_ledger = matched_ledger - expected_ledger
@@ -331,7 +356,12 @@ def _validate_shape(result: PairJudgement, ledger: list[dict[str, Any]], cells: 
     return errors
 
 
-def _prompt(pair: str, ledger: list[dict[str, Any]], cells: list[dict[str, Any]], feedback: str | None = None) -> str:
+def _prompt(
+    pair: str,
+    ledger: list[dict[str, Any]],
+    cells: list[dict[str, Any]],
+    feedback: str | None = None,
+) -> str:
     required_emissions = sorted(_expected_emission_ids(cells))
     payload = {
         "pair": pair,
@@ -344,8 +374,14 @@ def _prompt(pair: str, ledger: list[dict[str, Any]], cells: list[dict[str, Any]]
     }
     text = json.dumps(payload, ensure_ascii=False, indent=2)
     if feedback:
-        text += "\n\n结构完整性反馈：上一版没有满足以下机械结构要求。保持语义判断不变，只补齐缺失项或删除未知项：\n" + feedback
-    return "请评审以下单个 pair。输入中的台账是冻结的预期集合，六个输出格分别属于新方法和 X1v2 baseline 的三轮运行。\n\n" + text
+        text += (
+            "\n\n结构完整性反馈：上一版没有满足以下机械结构要求。保持语义判断不变，只补齐缺失项或删除未知项：\n"
+            + feedback
+        )
+    return (
+        "请评审以下单个 pair。输入中的台账是冻结的预期集合，六个输出格分别属于新方法和 X1v2 baseline 的三轮运行。\n\n"
+        + text
+    )
 
 
 def _atomic_prompt(
@@ -363,7 +399,10 @@ def _atomic_prompt(
     }
     text = json.dumps(payload, ensure_ascii=False, indent=2)
     if feedback:
-        text += "\n\n上一版结构错误，请重新返回完整的 matches、reason、confidence：\n" + feedback
+        text += (
+            "\n\n上一版结构错误，请重新返回完整的 matches、reason、confidence：\n"
+            + feedback
+        )
     return "请独立裁定以下唯一一对台账条目与 release issue。\n\n" + text
 
 
@@ -416,8 +455,7 @@ def _atomic_llm_fallback(
                         feedback = f"{type(exc).__name__}: {exc}"
 
     relation_index = {
-        (row["ledger_id"], row["cell"], row["emitted_id"]): row
-        for row in relations
+        (row["ledger_id"], row["cell"], row["emitted_id"]): row for row in relations
     }
     ledger_assessments: list[LedgerAssessment] = []
     for ledger_row in ledger:
@@ -464,9 +502,7 @@ def _atomic_llm_fallback(
                         else "high"
                     ),
                 )
-        ledger_assessments.append(
-            LedgerAssessment(ledger_id=ledger_id, **by_cell)
-        )
+        ledger_assessments.append(LedgerAssessment(ledger_id=ledger_id, **by_cell))
 
     emission_assessments: list[EmissionAssessment] = []
     for cell in cells:
@@ -485,7 +521,8 @@ def _atomic_llm_fallback(
                     matched_ledger_ids=[row["ledger_id"] for row in matched],
                     false_positive=not bool(matched),
                     reason="；".join(
-                        f"{row['ledger_id']}: {row['reason']}" for row in (matched or rows)
+                        f"{row['ledger_id']}: {row['reason']}"
+                        for row in (matched or rows)
                     ),
                     confidence=(
                         "low"
@@ -555,7 +592,10 @@ def judge_pair(
     )
     errors = _validate_shape(result, ledger, cells)
     if errors:
-        raise RuntimeError("atomic LLM judge produced inconsistent exact-ID aggregation: " + "; ".join(errors))
+        raise RuntimeError(
+            "atomic LLM judge produced inconsistent exact-ID aggregation: "
+            + "; ".join(errors)
+        )
     return {
         "schema": "paper1.luna_semantic_pair_judgement.v1",
         "pair": pair,
@@ -579,10 +619,27 @@ def main() -> int:
     parser.add_argument(
         "--transport-retries", type=int, default=DEFAULT_TRANSPORT_RETRIES
     )
+    stream_mode = parser.add_mutually_exclusive_group()
+    stream_mode.add_argument(
+        "--stream",
+        dest="streaming",
+        action="store_true",
+        help="Force streaming responses (overrides the adapter default).",
+    )
+    stream_mode.add_argument(
+        "--no-stream",
+        dest="streaming",
+        action="store_false",
+        help="Force complete non-streaming responses (overrides the adapter default).",
+    )
+    parser.set_defaults(streaming=None)
     parser.add_argument("--max-output-tokens", type=int, default=20_000)
     parser.add_argument("--pairs", nargs="*", default=None)
     args = parser.parse_args()
-    ledger_path = ROOT / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/ledger.json"
+    ledger_path = (
+        ROOT
+        / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/ledger.json"
+    )
     ledger_items = _read_json(ledger_path)["items"]
     discovered_pairs = {
         path.name[:4]
@@ -597,16 +654,28 @@ def main() -> int:
         args.profile,
         max_output_tokens=args.max_output_tokens,
         transport_retries=args.transport_retries,
+        streaming=args.streaming,
         repeat_schema_in_prompt=False,
         prompt_cache_ttl="1h",
     )
     index: list[dict[str, Any]] = []
     started = time.perf_counter()
     for pair in pairs:
-        result, observations = judge_pair(pair, ledger_items, args.method_root, args.baseline_root, responder)
+        result, observations = judge_pair(
+            pair, ledger_items, args.method_root, args.baseline_root, responder
+        )
         output = args.output_dir / f"{pair}.json"
-        output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        index.append({"pair": pair, "status": result["status"], "file": output.name, "observations": observations})
+        output.write_text(
+            json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        index.append(
+            {
+                "pair": pair,
+                "status": result["status"],
+                "file": output.name,
+                "observations": observations,
+            }
+        )
         print(f"[{result['status']}] pair={pair} -> {output}", flush=True)
     manifest = {
         "schema": "paper1.luna_semantic_judge_manifest.v1",
@@ -618,7 +687,9 @@ def main() -> int:
         "elapsed_seconds": time.perf_counter() - started,
         "pairs": index,
     }
-    (args.output_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (args.output_dir / "manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     return 0 if all(row["status"] == "ok" for row in index) else 1
 
 

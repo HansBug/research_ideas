@@ -42,7 +42,7 @@ flowchart TD
 
 ### 3.1 跑一次 discover（唯一活入口）
 
-真实 LLM 前必须先 `source .env`。以下都在**仓库根目录**执行：
+真实 LLM 运行统一读取仓库根 `.llmconfig.yml`，通过 `--profile` 选择 profile；不要 `source .env`。以下都在**仓库根目录**执行：
 
 ```bash
 make discover-demo                                          # 自包含 identity fixture，不占正式语料

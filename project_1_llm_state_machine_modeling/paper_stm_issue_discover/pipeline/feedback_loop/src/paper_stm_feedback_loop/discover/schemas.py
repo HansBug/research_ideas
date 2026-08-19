@@ -214,7 +214,6 @@ class RequirementSourceContext(StrictBaseModel):
 
     """`Requirement.source_context` 的结构，取代原先的 `dict[str, Any]`。"""
 
-
     behavior_phase: (
         Literal["structure", "initialization", "operation", "termination"] | None
     ) = Field(
@@ -222,7 +221,7 @@ class RequirementSourceContext(StrictBaseModel):
         description=(
             "Which phase the claim is anchored in: `structure` for a claim about what the model "
             "contains, `initialization` for power-on or first entry, `operation` while the "
-            "machine already runs, `termination` for the run ending. Gates read this -- `\"[*]\"` "
+            'machine already runs, `termination` for the run ending. Gates read this -- `"[*]"` '
             "as a `source` or `scope` is accepted only under `initialization`, because anchoring "
             "any other phase before the machine has entered anything asks a different question, "
             "and a model that happens to be wrong in that configuration then answers true for a "
@@ -277,7 +276,6 @@ class RequirementDerivation(StrictBaseModel):
     #:     ⚠️ 这不是给派生义务的免检通道。reviewer 仍可删，只是必须点明是四条判据里的哪一条不满足。
 
     """一条 Requirement 是**从另一条 Requirement 机械派生**的，而不是从某句 NL 长出来的。"""
-
 
     kind: Literal["entry_follows_cardinality", "activation_residency"] = Field(
         description=(
@@ -375,7 +373,7 @@ class Requirement(StrictBaseModel):
             "initial_target; `scope`, `count` for cardinality). Every value that names a model "
             "element must be a complete dotted path copied verbatim from "
             "`declared_model_vocabulary`, not a bare name and not retyped from the FCSTM text. "
-            "`\"[*]\"` is the pseudo-initial and is only legal where the predicate documents it. A "
+            '`"[*]"` is the pseudo-initial and is only legal where the predicate documents it. A '
             "value naming an element the model does not declare is allowed only when `limitations` "
             "records that."
         ),
@@ -397,6 +395,7 @@ class Requirement(StrictBaseModel):
             str(k): (v if isinstance(v, str) else ("" if v is None else str(v)))
             for k, v in value.items()
         }
+
     verification_kind: VerificationKind = Field(
         description=(
             "Derived from `predicate` by table lookup -- emit the family that predicate's "
@@ -499,15 +498,15 @@ class Requirement(StrictBaseModel):
         # change: 2 disjunctions against 23 single bindings, while the splitter prompt already said
         # in as many words that a single binding "reports a defect on a correct model".
         derivation = value.get("derivation")
-        kind = derivation.get("kind") if isinstance(derivation, dict) else getattr(derivation, "kind", None)
+        kind = (
+            derivation.get("kind")
+            if isinstance(derivation, dict)
+            else getattr(derivation, "kind", None)
+        )
         if kind == "entry_follows_cardinality" and predicate == "initial_target":
             required = tuple(name for name in entry.bindings if name != "child")
             forbidden = ("child",)
-        missing = [
-            name
-            for name in required
-            if not str(bound.get(name) or "").strip()
-        ]
+        missing = [name for name in required if not str(bound.get(name) or "").strip()]
         if missing:
             raise ValueError(
                 f"predicate {predicate!r} requires bindings {list(required)}; "
@@ -567,7 +566,6 @@ class NamedElement(StrictBaseModel):
 
     """One element the NL names, and whether the model declares it."""
 
-
     schema_name: Literal["NamedElement"] = "NamedElement"
     kind: Literal["state", "event", "variable"]
     #: 一行一个要素这条纪律**不做 validator**（CLAUDE.md §11）：「这句话点名了一个要素还是
@@ -601,7 +599,6 @@ class NamedElement(StrictBaseModel):
             "信号名，制品用对应的单一名字声明它，那是正确的，照常填。"
         ),
     )
-
 
 
 class RequirementSet(StrictBaseModel):
@@ -803,7 +800,7 @@ class AssertionSpec(StrictBaseModel):
                 "expression must be a bare boolean expression, not an `assert` "
                 "statement: the controller adds `assert (...)` and your "
                 "failure_message itself. Write "
-                "`state_declared(state=\"X\", kind=\"leaf\") is True`, and put the "
+                '`state_declared(state="X", kind="leaf") is True`, and put the '
                 "[REQ-xxx][AST-xxx] label in `failure_message`."
             )
         return value
@@ -1184,6 +1181,7 @@ class LLMCallRecord(StrictBaseModel):
     profile: str
     adapter: str | None = None
     provider: str | None = None
+    streaming: bool | None = None
     configured_model: str | None = None
     observed_model: str | None = None
     started_at: datetime

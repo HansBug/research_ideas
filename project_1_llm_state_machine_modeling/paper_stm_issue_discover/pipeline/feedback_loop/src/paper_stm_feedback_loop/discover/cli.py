@@ -79,6 +79,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--transport-retries", type=int, default=DEFAULT_TRANSPORT_RETRIES
     )
+    stream_mode = parser.add_mutually_exclusive_group()
+    stream_mode.add_argument(
+        "--stream",
+        dest="streaming",
+        action="store_true",
+        help="Force streaming responses (overrides the adapter default).",
+    )
+    stream_mode.add_argument(
+        "--no-stream",
+        dest="streaming",
+        action="store_false",
+        help="Force complete non-streaming responses (overrides the adapter default).",
+    )
+    parser.set_defaults(streaming=None)
     return parser
 
 
@@ -206,7 +220,8 @@ def _write_failure_artifacts(
         # stop trying". Without them the receipt says only that something raised, and the cell
         # is unusable for anything except a rerun (CLAUDE.md §10).
         "coverage_gaps": [
-            gap.model_dump(mode="json") for gap in (state or {}).get("coverage_gaps", ())
+            gap.model_dump(mode="json")
+            for gap in (state or {}).get("coverage_gaps", ())
         ],
         "degraded_stages": list((state or {}).get("_degraded_stages", ())),
         "node_execution_records_count": len(
@@ -356,6 +371,7 @@ def main(argv: list[str] | None = None) -> int:
         registry_path=args.llm_config,
         max_output_tokens=args.max_output_tokens,
         transport_retries=args.transport_retries,
+        streaming=args.streaming,
         on_stream_chunk=on_stream_chunk,
     )
     seen_nodes: set[str] = set()
