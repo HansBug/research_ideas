@@ -1938,6 +1938,43 @@ def test_d2_norm_rejects_untyped_operational_prose() -> None:
     assert "D2-norm requires a typed operational domain obligation" in errors
 
 
+def test_d2_norm_requires_exact_source_ref_when_target_ref_is_absent() -> None:
+    finding = {
+        "finding_key": "synthetic:source-bound-operational-dead-end",
+        "witness_level": "W2",
+        "source_causality_certificate": {
+            "kind": "reachable_deadlock",
+            "target": "Root.q_dead",
+            "verdict": "counterexample",
+            "explicit_final": False,
+            "assumptions": {"no_concurrent_regions": True},
+        },
+        "domain_obligations": [
+            {
+                "family": "graph",
+                "property": "deadlock_free",
+                "source_ref": "Root.other",
+                "expected": True,
+            }
+        ],
+    }
+    decision = prototype.DDecision(
+        finding_key=finding["finding_key"],
+        grounding="dom",
+        violated_obligation="The operational state must admit continuation.",
+        strongest_defeater="The dead-end may be an intended final state.",
+        defeater_kind="rebutting",
+        defeater_disposition="defeated",
+        rationale="The typed obligation is bound to a different exact state.",
+        d_subclass="D2-norm",
+        d_level="D2",
+    )
+
+    errors = prototype.validate_d_decision(finding, decision)
+
+    assert "D2-norm requires a typed operational domain obligation" in errors
+
+
 def test_d2_impl_is_closed_to_source_grounded_reachable_nonfinal_deadlock() -> None:
     finding = {
         "finding_key": "synthetic:unreachable-state",
@@ -5909,6 +5946,106 @@ def test_source_aware_target_reachability_uses_the_bound_source() -> None:
     assert observations["source_target_path"] == []
     assert observations["reachable_from_source"] == ["Root.Isolated"]
     assert observations["query_bound"] is None
+
+
+def test_topology_reference_expands_exact_composite_parent_closure() -> None:
+    pair = {
+        "pair_name": "Root",
+        "paths": {"fcstm": "<synthetic.fcstm>", "canonical": "<synthetic.json>"},
+        "fcstm": "",
+        "canonical": {
+            "model": {
+                "states": [
+                    {"id": "Region", "kind": "composite", "parent": None},
+                    {"id": "Region.Left", "kind": "state", "parent": "Region"},
+                    {"id": "Region.Right", "kind": "state", "parent": "Region"},
+                    {
+                        "id": "Region.Right.Deep",
+                        "kind": "state",
+                        "parent": "Region.Right",
+                    },
+                ]
+            }
+        },
+        "nl": "",
+    }
+
+    resolved, receipt = prototype._resolve_topology_reference(
+        pair,
+        "Region",
+        ["Root.Region.Left", "Root.Region.Right", "Root.Region.Right.Deep"],
+    )
+
+    assert resolved == "Root.Region.Left"
+    assert receipt["mode"] == "source_descendant_closure"
+    assert receipt["nodes"] == [
+        "Root.Region.Left",
+        "Root.Region.Right",
+        "Root.Region.Right.Deep",
+    ]
+
+
+def test_topology_reference_parent_cycle_fails_closed() -> None:
+    pair = {
+        "pair_name": "Root",
+        "paths": {"fcstm": "<synthetic.fcstm>", "canonical": "<synthetic.json>"},
+        "fcstm": "",
+        "canonical": {
+            "model": {
+                "states": [
+                    {"id": "A", "kind": "composite", "parent": "B"},
+                    {"id": "B", "kind": "composite", "parent": "A"},
+                    {"id": "A.Leaf", "kind": "state", "parent": "A"},
+                    {"id": "B.Leaf", "kind": "state", "parent": "B"},
+                ]
+            }
+        },
+        "nl": "",
+    }
+
+    resolved, receipt = prototype._resolve_topology_reference(
+        pair, "A", ["Root.A.Leaf", "Root.B.Leaf"]
+    )
+
+    assert resolved is None
+    assert receipt["mode"] == "parent_cycle"
+    assert receipt["nodes"] == []
+
+
+def test_root_source_target_reachability_uses_initial_closure() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    target = f"{pair['pair_name']}.CollisionAvoidance.collision_avoidance_deactive"
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="The exact target must be reachable from the machine root.",
+        claim="The exact target is unreachable from the machine root.",
+        observed_fact="The root query is evaluated from the typed initial closure.",
+        basis_kind="domain_norm",
+        priority=5,
+        locations=[target],
+        proposed_l="L2",
+        domain_obligation={
+            "family": "graph",
+            "property": "reachable",
+            "source_ref": pair["pair_name"],
+            "target_ref": target,
+        },
+        goal=prototype.EvidenceGoal(
+            relation="target_reachable",
+            source=pair["pair_name"],
+            target=target,
+            expected=True,
+        ),
+    )
+
+    outcome = prototype._execute_evidence_candidate(
+        pair, inspect, candidate, index=1
+    )
+    group = outcome["probe_groups"][0]
+    observations = group["execution_certificate"]["observations"]
+
+    assert group["witness_level"] == "W2"
+    assert observations["source_resolution"]["mode"] == "root_initial_closure"
+    assert observations["source_resolution"]["nodes"]
 
 
 def test_bounded_target_reachability_fails_closed_without_bounded_backend() -> None:

@@ -521,20 +521,49 @@ def _partially_adjudicated_findings(
     valid: dict[str, core.DDecision],
     invalid: dict[str, list[str]],
 ) -> list[dict[str, Any]]:
+    def fallback_decision(finding_key: str, errors: list[str]) -> core.DDecision:
+        """Keep every finding typed when D cannot be repaired.
+
+        D0 is the protocol's internal fail-safe: it is retained for audit and
+        excluded from the release boundary, while a structured error records
+        why semantic adjudication did not establish D1/D2.
+        """
+
+        detail = "; ".join(errors) or "D decision is unavailable"
+        return core.DDecision(
+            finding_key=finding_key,
+            grounding="none",
+            violated_obligation="D adjudication did not establish a publishable obligation.",
+            strongest_defeater=detail,
+            defeater_kind="undercutting",
+            defeater_disposition="unresolved",
+            rationale=(
+                "Conservative D0 fallback after bounded adjudication/repair: "
+                + detail
+            ),
+            d_subclass="not_applicable",
+            d_level="D0",
+            duplicate_of=None,
+            duplicate_rationale=None,
+        )
+
     adjudicated = []
     for finding in findings:
         item = dict(finding)
         finding_key = finding["finding_key"]
         decision = valid.get(finding_key)
         if decision is None:
-            item["d_decision"] = None
-            item["d_validation_errors"] = invalid.get(
-                finding_key, ["D decision is unavailable"]
+            errors = invalid.get(finding_key, ["D decision is unavailable"])
+            item["d_decision"] = fallback_decision(finding_key, errors).model_dump(
+                mode="json"
             )
-            item["d_status"] = "D_UNRESOLVED"
+            item["d_validation_errors"] = errors
+            item["d_fallback"] = True
+            item["d_status"] = "D0_FALLBACK"
         else:
             item["d_decision"] = decision.model_dump(mode="json")
             item["d_validation_errors"] = []
+            item["d_fallback"] = False
             item["d_status"] = decision.d_level
         adjudicated.append(item)
     return adjudicated

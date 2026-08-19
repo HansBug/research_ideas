@@ -658,7 +658,8 @@ def test_d_contract_failure_repairs_once_then_degrades_to_auditable_output() -> 
     assert record["telemetry"]["d_call_count"] == 2
     assert record["confirmed_issues"] == []
     assert record["accepted_issues"] == []
-    assert all(item["d_decision"] is None for item in record["finding_records"])
+    assert all(item["d_decision"]["d_level"] == "D0" for item in record["finding_records"])
+    assert all(item["d_fallback"] is True for item in record["finding_records"])
 
 
 def test_d_semantic_validation_failure_degrades_without_rewriting_valid_decisions() -> (
@@ -675,7 +676,7 @@ def test_d_semantic_validation_failure_degrades_without_rewriting_valid_decision
     assert record["telemetry"]["d_call_count"] == 2
     assert record["confirmed_issues"] == []
     assert record["accepted_issues"] == []
-    assert all(item["d_status"] == "D_UNRESOLVED" for item in record["finding_records"])
+    assert all(item["d_status"] == "D0_FALLBACK" for item in record["finding_records"])
 
 
 def test_d_semantic_repair_sends_only_invalid_subset_and_freezes_valid_decisions() -> (
@@ -727,10 +728,10 @@ def test_targeted_d_repair_repeated_frozen_key_does_not_contaminate_frozen_decis
         "targeted repair must not repeat frozen finding_key"
         in record["d_unresolved_reason"]
     )
-    assert final_by_key[repaired_key]["d_status"] == "D_UNRESOLVED"
+    assert final_by_key[repaired_key]["d_status"] == "D0_FALLBACK"
     for finding_key, initial in responder.initial_decisions.items():
         if finding_key != repaired_key:
-            assert final_by_key[finding_key]["d_status"] != "D_UNRESOLVED"
+            assert final_by_key[finding_key]["d_status"] != "D0_FALLBACK"
             assert final_by_key[finding_key]["d_decision"] == initial
 
 
@@ -749,10 +750,10 @@ def test_targeted_d_repair_unknown_key_does_not_contaminate_frozen_decisions() -
     assert (
         "targeted repair returned unknown finding_key" in record["d_unresolved_reason"]
     )
-    assert final_by_key[repaired_key]["d_status"] == "D_UNRESOLVED"
+    assert final_by_key[repaired_key]["d_status"] == "D0_FALLBACK"
     for finding_key, initial in responder.initial_decisions.items():
         if finding_key != repaired_key:
-            assert final_by_key[finding_key]["d_status"] != "D_UNRESOLVED"
+            assert final_by_key[finding_key]["d_status"] != "D0_FALLBACK"
             assert final_by_key[finding_key]["d_decision"] == initial
 
 
@@ -1280,7 +1281,7 @@ def test_all_discovery_internal_failures_publish_deterministic_scout_output() ->
     )
 
 
-def test_d_internal_failure_publishes_all_findings_as_unresolved() -> None:
+def test_d_internal_failure_publishes_all_findings_as_d0_fallback() -> None:
     state = graph.run_graph(
         graph.PrototypeGraphInput(case="0016", profile="fake"),
         FailureObservationResponder(fail_roles={"paper1_d_adjudication"}),
@@ -1292,8 +1293,8 @@ def test_d_internal_failure_publishes_all_findings_as_unresolved() -> None:
     assert record["accepted_issues"] == []
     assert record["d_unresolved_reason"]
     assert record["finding_records"]
-    assert all(item["d_status"] == "D_UNRESOLVED" for item in record["finding_records"])
-    assert all(item["d_decision"] is None for item in record["finding_records"])
+    assert all(item["d_status"] == "D0_FALLBACK" for item in record["finding_records"])
+    assert all(item["d_decision"]["d_level"] == "D0" for item in record["finding_records"])
 
 
 def test_d_mixed_failure_degrades_without_whole_cell_failure() -> None:
@@ -1311,7 +1312,7 @@ def test_d_mixed_failure_degrades_without_whole_cell_failure() -> None:
 
     record = state["final_record"]
     assert record.get("status") != "failed"
-    assert all(item["d_status"] == "D_UNRESOLVED" for item in record["finding_records"])
+    assert all(item["d_status"] == "D0_FALLBACK" for item in record["finding_records"])
     assert record["confirmed_issues"] == []
 
 
@@ -1327,7 +1328,7 @@ def test_d_local_deadline_degrades_without_whole_cell_failure() -> None:
 
     record = state["final_record"]
     assert record.get("status") != "failed"
-    assert all(item["d_status"] == "D_UNRESOLVED" for item in record["finding_records"])
+    assert all(item["d_status"] == "D0_FALLBACK" for item in record["finding_records"])
 
 
 def test_current_node_provider_failure_remains_a_failed_cell() -> None:

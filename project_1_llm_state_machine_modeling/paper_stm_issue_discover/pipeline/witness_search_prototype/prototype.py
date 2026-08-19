@@ -3231,6 +3231,7 @@ EXECUTABLE_OBLIGATION_SIGNATURES = frozenset(
         "graph:reachable",
         "graph:target_reachable",
         "graph:deadlock_free",
+        "graph:escapable",
         "graph:stable_termination",
         "graph:path_absent",
         "graph:event_target_reachable",
@@ -8677,6 +8678,106 @@ def _resolve_candidate_path(
     return mapped if reference in source_ids and mapped in candidates else None
 
 
+def _resolve_topology_reference(
+    pair: dict[str, Any], reference: str, candidates: list[str]
+) -> tuple[str | None, dict[str, Any]]:
+    """Resolve a typed source reference to an exact topology node or closure.
+
+    ``TopologyIndex`` is leaf-oriented, while NL contracts may intentionally
+    name a composite scope. The canonical source AST is the only authority for
+    expanding that scope: exact ``parent`` links select descendants and the
+    FCSTM namespace prefix is applied only after the source ID has been
+    resolved. No prose or identifier substring is interpreted here.
+    """
+
+    direct = _resolve_candidate_path(pair, reference, candidates)
+    if direct is not None:
+        return direct, {"reference": reference, "mode": "direct", "nodes": [direct]}
+
+    source_model = _source_model(pair)
+    source_states = [
+        item
+        for item in source_model.get("states", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    ]
+    normalized = _strip_pair_root(reference, pair["pair_name"])
+    exact_source = next(
+        (item for item in source_states if item.get("id") == normalized), None
+    )
+    if exact_source is None:
+        return None, {"reference": reference, "mode": "unresolved", "nodes": []}
+
+    source_id = str(exact_source["id"])
+    source_to_full = {
+        str(item.get("id")): f"{pair['pair_name']}.{item['id']}"
+        for item in source_states
+    }
+    candidate_set = set(candidates)
+    parent_by_id = {
+        str(item["id"]): item.get("parent")
+        for item in source_states
+    }
+    scope_cursor: str | None = source_id
+    scope_ancestors: set[str] = set()
+    while scope_cursor is not None and scope_cursor not in scope_ancestors:
+        scope_ancestors.add(scope_cursor)
+        scope_parent = parent_by_id.get(scope_cursor)
+        scope_cursor = (
+            str(scope_parent)
+            if isinstance(scope_parent, str) and scope_parent
+            else None
+        )
+    if scope_cursor is not None:
+        return None, {
+            "reference": reference,
+            "mode": "parent_cycle",
+            "source_id": source_id,
+            "cyclic_descendants": sorted(scope_ancestors),
+            "nodes": [],
+        }
+    descendants: list[str] = []
+    cyclic_descendants: set[str] = set()
+    for item in source_states:
+        item_id = str(item["id"])
+        cursor: str | None = item_id
+        visited: set[str] = set()
+        while cursor is not None and cursor not in visited:
+            if cursor == source_id:
+                descendants.append(item_id)
+                break
+            visited.add(cursor)
+            parent = parent_by_id.get(cursor)
+            cursor = str(parent) if isinstance(parent, str) and parent else None
+        if cursor is not None and cursor in visited:
+            cyclic_descendants.add(item_id)
+    expanded = [
+        source_to_full[item]
+        for item in descendants
+        if item not in cyclic_descendants and source_to_full.get(item) in candidate_set
+    ]
+    if not expanded:
+        if cyclic_descendants:
+            return None, {
+                "reference": reference,
+                "mode": "parent_cycle",
+                "source_id": source_id,
+                "cyclic_descendants": sorted(cyclic_descendants),
+                "nodes": [],
+            }
+        return None, {
+            "reference": reference,
+            "mode": "composite_without_topology_descendant",
+            "source_id": source_id,
+            "nodes": [],
+        }
+    return expanded[0], {
+        "reference": reference,
+        "mode": "source_descendant_closure",
+        "source_id": source_id,
+        "nodes": expanded,
+    }
+
+
 def _source_transition_rows(
     pair: dict[str, Any], *, source: str, target: str | None = None
 ) -> list[dict[str, Any]]:
@@ -10836,18 +10937,68 @@ def _execute_topology_goal(
         else goal.subject
     )
     candidates = [str(item) for item in topology.get("states", [])]
-    target = (
-        _resolve_candidate_path(pair, str(reference), candidates)
-        if reference and goal.relation != "eventually_terminates"
-        else pair["pair_name"]
-        if goal.relation == "eventually_terminates"
-        else None
-    )
-    source = (
-        _resolve_candidate_path(pair, str(goal.source), candidates)
-        if goal.relation == "target_reachable" and goal.source
-        else None
-    )
+    if reference and goal.relation != "eventually_terminates":
+        target, target_resolution = _resolve_topology_reference(
+            pair, str(reference), candidates
+        )
+    elif goal.relation == "eventually_terminates":
+        target = pair["pair_name"]
+        target_resolution = {
+            "reference": pair["pair_name"],
+            "mode": "whole_machine",
+            "nodes": [pair["pair_name"]],
+        }
+    else:
+        target = None
+        target_resolution = {"reference": reference, "mode": "unresolved", "nodes": []}
+    target_nodes = [
+        str(item)
+        for item in target_resolution.get("nodes", [])
+        if isinstance(item, str)
+    ]
+    if goal.relation == "target_reachable" and goal.source:
+        root_scope_ids = {
+            pair["pair_name"],
+            _source_root_scope_id(pair),
+        }
+        if str(goal.source) in root_scope_ids:
+            # The topology backend represents the machine root by its initial
+            # closure rather than by a leaf node.  Bind this exact canonical
+            # root identity here; treating it as a regular state ID would
+            # incorrectly report every root-to-target query as unresolved.
+            source = pair["pair_name"]
+            source_nodes = [
+                str(node)
+                for node in topology.get("initial_closure", [])
+                if isinstance(node, str)
+            ]
+            source_resolution = {
+                "reference": goal.source,
+                "mode": "root_initial_closure",
+                "nodes": source_nodes,
+            }
+        else:
+            source, source_resolution = _resolve_topology_reference(
+                pair, str(goal.source), candidates
+            )
+    else:
+        source = None
+        source_resolution = {
+            "reference": goal.source,
+            "mode": "not_applicable",
+            "nodes": [],
+        }
+    if not (
+        goal.relation == "target_reachable"
+        and goal.source
+        and str(goal.source)
+        in {pair["pair_name"], _source_root_scope_id(pair)}
+    ):
+        source_nodes = [
+            str(item)
+            for item in source_resolution.get("nodes", [])
+            if isinstance(item, str)
+        ]
     if target is None:
         return _single_group_outcome(
             pair,
@@ -10881,8 +11032,10 @@ def _execute_topology_goal(
     if goal.relation == "target_reachable":
         if source is not None:
             graph = build_leaf_level_macro_graph(machine)
-            queue = [source]
-            parents: dict[str, str | None] = {source: None}
+            queue = list(source_nodes)
+            parents: dict[str, str | None] = {
+                source_node: None for source_node in source_nodes
+            }
             while queue:
                 node = queue.pop(0)
                 for successor in graph.edges.get(node, ()):
@@ -10890,30 +11043,39 @@ def _execute_topology_goal(
                         continue
                     parents[successor] = node
                     queue.append(successor)
+            reached_targets = [node for node in target_nodes if node in parents]
             source_target_path: list[str] = []
-            if target in parents:
-                cursor: str | None = target
+            if reached_targets:
+                cursor: str | None = reached_targets[0]
                 while cursor is not None:
                     source_target_path.append(cursor)
                     cursor = parents[cursor]
                 source_target_path.reverse()
-            actual = target in parents
+            actual = bool(reached_targets)
             proof_slice = {
                 "source": source,
+                "source_resolution": source_resolution,
                 "target": target,
+                "target_resolution": target_resolution,
+                "reached_targets": reached_targets,
                 "source_target_path": source_target_path,
                 "reachable_from_source": sorted(parents),
                 "unreachable_leaves": topology.get("unreachable_leaves", []),
                 "query_bound": None,
             }
         else:
-            actual = target not in set(topology.get("unreachable_leaves", []))
+            unreachable = set(topology.get("unreachable_leaves", []))
+            reached_targets = [node for node in target_nodes if node not in unreachable]
+            actual = bool(reached_targets)
             source_certificate = _source_missing_initial_certificate(
                 pair, str(reference)
             ) or _source_unreachable_certificate(pair, str(reference))
             proof_slice = {
                 "source": None,
+                "source_resolution": source_resolution,
                 "target": target,
+                "target_resolution": target_resolution,
+                "reached_targets": reached_targets,
                 "unreachable_leaves": topology.get("unreachable_leaves", []),
                 "initial_closure": topology.get("initial_closure", []),
                 "absence_cut": [
@@ -10927,15 +11089,20 @@ def _execute_topology_goal(
             }
         decisive = True
     elif goal.relation == "state_escapable":
-        initially_reachable = target in set(topology.get("initial_closure", []))
-        actual = initially_reachable and target not in set(
-            topology.get("dead_ends", [])
-        )
+        initial_closure = set(topology.get("initial_closure", []))
+        dead_ends = set(topology.get("dead_ends", []))
+        reachable_targets = [node for node in target_nodes if node in initial_closure]
+        blocked_targets = [node for node in reachable_targets if node in dead_ends]
+        initially_reachable = bool(reachable_targets)
+        actual = initially_reachable and not blocked_targets
         source_certificate = _source_deadlock_certificate(pair, str(reference))
         decisive = initially_reachable
         proof_slice = {
             "target": target,
+            "target_resolution": target_resolution,
             "initially_reachable": initially_reachable,
+            "reachable_targets": reachable_targets,
+            "blocked_targets": blocked_targets,
             "dead_ends": topology.get("dead_ends", []),
         }
     elif goal.relation == "termination_target":
@@ -12507,11 +12674,15 @@ def _has_typed_operational_domain_norm(finding: dict[str, Any]) -> bool:
             or obligation.get("expected", True) is not True
         ):
             continue
-        target_ref = obligation.get("target_ref")
-        if (
-            isinstance(target_ref, str)
-            and isinstance(certificate_target, str)
-            and target_ref != certificate_target
+        formal_refs = {
+            str(obligation.get(field))
+            for field in ("source_ref", "target_ref")
+            if isinstance(obligation.get(field), str)
+            and str(obligation.get(field)).strip()
+        }
+        if not formal_refs or (
+            isinstance(certificate_target, str)
+            and certificate_target not in formal_refs
         ):
             continue
         return True
