@@ -1,6 +1,6 @@
 # SUMMARY.md — 轻量总账与阅读入口
 
-> 本文件只做**入口与索引**，不做第二事实源。⭐ 台账与历史 X1v2 精确网格回 [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/) 核对；当前 gpt-5.6-luna 双臂三轮数字回 [全量报告](./reports/2026-08-19-luna-full-x3-v26.md) 核对；⚠️ v46 报告是历史记录，⛔ 不是当前来源；判定口径一律回 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/)；动态施工状态一律以 GitHub PR / issue 为准。
+> 本文件只做**入口与索引**，不做第二事实源。⭐ 台账与历史 X1v2 精确网格回 [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/) 核对；当前 gpt-5.6-luna 双臂三轮 raw 运行与生成成本回 [全量报告](./reports/2026-08-19-luna-full-x3-v26.md) 核对，旧 hit/FP 数字已废止，严格人工结果尚未完成；判定口径一律回 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/)；动态施工状态一律以 GitHub PR / issue 为准。
 
 ## 1. 一句话状态
 
@@ -14,7 +14,7 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 | :-- | :-- | :-- |
 | 论文口径基准 | [README.md](./README.md) | 这篇论文做什么、**三条** contribution、建模对象边界、目录导航 |
 | 导师定调 | [../talks/](../talks/) | 最高优先级路线依据。⚠️ 2026-08-07 / 08-08 的收窄定调为口头，原话摘录在 [README.md](./README.md) §2 |
-| ⭐ **当前实验事实** | [reports/2026-08-19-luna-full-x3-v26.md](./reports/2026-08-19-luna-full-x3-v26.md) 与 [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/) | 当前报告固定 145 条台账、54 个 eligible pair、Luna v26-dnorm/X1v2 双臂三轮结果；台账与历史 X1v2 六格精确网格仍回 ledger_v2 核对。 |
+| ⭐ **当前实验事实** | [reports/2026-08-19-luna-full-x3-v26.md](./reports/2026-08-19-luna-full-x3-v26.md) 与 [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/) | 当前报告只提供 54 个 eligible pair 的 Luna v26-dnorm/X1v2 双臂三轮 raw 运行和生成成本；严格 hit/FP 必须按人工协议完成后另发，旧自动数字不是当前结果。 |
 | ⚠️ 历史实验事实（v46） | [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | 建立在**已归档的第一版台账**上，⛔ 不是当前口径 |
 | 判定口径 | [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/) | 命中判据、多报五类、方法出处、建模对象边界判据、规则出处纪律。**改它们等于改研究规则** |
 | 实验产地 | [reports/](./reports/) 与 [discover_matrix/](./discover_matrix/) | reports 保存当前同模型对照和逐条台账导出；discover_matrix 保存唯一台账、历史 X1v2 精确网格、协议与证据链。 |
@@ -53,9 +53,9 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 
 ## 5. 下一步依赖（按优先级）
 
-1. **判定层的第二意见**——双侧结论目前共用一个单人语义 judge；同模型 X1v2 对照已完成，但仍需独立复核以量化判定层误差。
+1. **完成严格人工重判**——只读取 D1/D2 final clusters，对方法与 X1v2 的每条 issue 和每条台账逐项给出人工理由；严禁脚本或 LLM judge 参与匹配。
 2. **台账撰写过程的交代**——台账是能力分母，必须写清谁标的、何时标的、是否在看过方法产出之后标的、与命中判定是否同一人。
-3. **判定层的第二意见**——双侧结论目前共用一个单人判定的误差源。
+3. **人工判定的第二意见**——首轮全人工裁决完成后，对争议项做独立人工复核并保留仲裁理由。
 4. **循环各阶段的消融**——两个审查阶段与静态预检占算力大头却无单独收益证据。
 5. **若干纯统计项**——命中形态构成、拒答回灌量、命中位按实际支撑族重算。
 6. 方法侧改进（模型驱动巡检入口、收断言侧过度规定、补中间表示损失、降方差、收需求集规模）影响下一代次，不阻塞写作。

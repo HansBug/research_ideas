@@ -155,11 +155,11 @@ Runtime 不导入 `ledger.json`、X1v2 命中、真实台账答案或 matching v
 
 ## 10. 完整 54 pair 评测合同
 
-主比较必须同模型横向进行，例如 Opus 对 Opus、GPT 对 GPT。方法成本读取 `.llmconfig.yml` 的 uncached input、output、cache read、cache write 四类美元单价；缓存按配置价格计入，不追求复原每家账单的所有长上下文、峰谷或 TTL 细节。schema 失败、output-limit、内容修复和其他非 provider 错误的全部 attempt 都计费，只有 typed provider/transport failure 的重试可排除重复计费；排除不等于删除，attempt、异常和可得 usage 仍完整落盘。成本硬门作用于完整实验的整体 `(method generation + independent judge) / baseline generation`，原则上不超过25×，不要求每个方法格各自低于25×；质量优先级依次为 hit、false positive、整体成本，三者达标后才继续压成本。最终口径见 [final_output_metrics_policy.md](../../discover_matrix/docs/protocol/final_output_metrics_policy.md)。
+主比较必须同模型横向进行，例如 Opus 对 Opus、GPT 对 GPT。成本只覆盖 prototype 从 STM+NL+PlantUML/FCSTM/inspect 生成 D1/D2 issues 的 LLM 调用，并与同模型 X1v2 的 issue-generation 成本比较；`.llmconfig.yml` 提供 uncached input、output、cache read、cache write 四类美元单价。schema 失败、output-limit、内容修复和其他非 provider 错误的全部 prototype attempt 都计费，只有 typed provider/transport failure 的重试可排除重复计费；排除不等于删除，attempt、异常和可得 usage 仍完整落盘。成本硬门作用于完整网格的 `prototype issue generation / X1v2 issue generation`，原则上不超过25×，不要求每个方法格各自低于25×。实验后的人工 judge 只对冻结输出做 hit/FP 对账，不属于方法图、不产生 token 或美元成本、也不参与成本优化。质量优先级依次为 hit、false positive、prototype 整体成本，三者达标后才继续压成本。最终口径见 [final_output_metrics_policy.md](../../discover_matrix/docs/protocol/final_output_metrics_policy.md)。
 
 主质量门是 overall `hit@1` 至少比 X1v2 高5个百分点，且按 pair 聚类的 bootstrap 95% CI 下界大于0；overall `hit@all` 也必须提高，防止只靠方差偶然命中。D2×L2 目标是至少覆盖28/34个 unique item、`hit@3 >= 70%`、`hit@all > 50%`，但论文必须同时报告 L0/L1/L2 和全部 D×L，不能只展示优势分层。
 
-Precision/matching 在方法环外进行：judge 只看匿名 report 与台账条目，按“同位置 + 同性质”判断 hit；unmatched report 另判是否为外部有效新缺陷。匹配不得使用文本相似度或字符串规则，method D 也不能充当 reference truth。必要对照包括 X1v2、budget-matched repeated-X1，以及分别移除 NL contract、semantic grounding、mapping/inspect、formal execution、source gate、D adjudication 的 ablation。
+Precision/matching 在方法环外进行：人工 judge 逐条阅读匿名 report、台账条目与判定所需材料，按“同位置 + 同性质”判断 hit；unmatched report 再人工判断是否为外部有效新缺陷。此环节禁止脚本、LLM judge、文本相似度、字符串规则或自动候选推荐，method D 也不能充当 reference truth。必要对照包括 X1v2、budget-matched repeated-X1，以及分别移除 NL contract、semantic grounding、mapping/inspect、formal execution、source gate、D adjudication 的 ablation。
 
 ## 11. 当前原型状态与收敛判断
 

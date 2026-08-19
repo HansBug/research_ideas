@@ -252,7 +252,7 @@ v4/v5/v6 均补充 `selection.json`。v4/v5 因源码当时未入库而诚实标
 - Prompt 只含 `q0`、`q1`、`evt_a` 等合成名称；测试会拒绝四位 pair ID、台账 ID 和真实制品 identifier。
 - 工程调试输入只用于核对实现合同，不参与方法语义归纳，也不提供 benchmark 效果结论。
 - 每条 obligation、relation 与 prompt 语义纪律必须回指独立领域来源；调试只能修复实现偏离。若缺少领域依据，则该能力保持 unsupported 或 W1/W0，不得按真实 item 定制。
-- 环外 blind judge 的 token 属于 evaluation cost，不计入 method inference cost。
+- 环外 judge 是对冻结输出的全人工 hit/FP 对账，不调用 LLM、不产生 token 或美元成本，也不属于 method inference cost；25× 只比较 prototype issue generation 与同模型 X1v2 issue generation。
 - 25 倍 budget gate 使用 provider observed usage；usage 缺失或越过上限会让 run 失去实验资格，而不是静默截断证据。
 
 ## 10. Paper 定位

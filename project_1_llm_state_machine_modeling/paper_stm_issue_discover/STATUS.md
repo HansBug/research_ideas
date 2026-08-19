@@ -8,7 +8,7 @@
 
 **一次完整的全量运行与同模型 X1v2 运行已完成，但方法最终输出边界发现统计错误，工作重心转入「严格重判 + v27 大迭代」。**
 
-方法实现、语料、缺陷台账、双侧 raw run 与全量审计数据均已就位；旧 v26 judge 错把包含 D0 的 raw finding 当成最终输出，故旧 `226/435` 与 `566/953 FP` 只能作为历史 raw-audit 数字保留。最终输出、hit、FP、失败格、去重和成本的唯一口径已冻结在 [final_output_metrics_policy.md](./discover_matrix/docs/protocol/final_output_metrics_policy.md)，v27 的问题总账与大迭代计划见 [preregistered.md](./discover_matrix/docs/generations/v27/preregistered.md)。
+方法实现、语料、缺陷台账、双侧 raw run 与全量审计数据均已就位；旧 v26 评测错把包含 D0 的 raw finding 当成最终输出，故旧 `226/435` 与 `566/953 FP` 只能作为历史 raw-audit 数字保留。随后尝试的自动 strict judge 也已整体作废；最终 hit/FP 必须只对 D1/D2 release issues 做全人工逐条对账。最终输出与统计边界见 [final_output_metrics_policy.md](./discover_matrix/docs/protocol/final_output_metrics_policy.md)，人工操作合同见 [manual_release_evaluation.md](./discover_matrix/docs/protocol/manual_release_evaluation.md)，v27 计划见 [preregistered.md](./discover_matrix/docs/generations/v27/preregistered.md)。
 
 论文口径已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独成篇**，repair 另立后续论文。
 
@@ -24,7 +24,7 @@
 | ⭐ **台账的完整证据链**（第一版台账 126 条 · 60 份逐 pair 复审 · 54 份工作单含全部人工裁决与逐条 meta review · 三方 D 档判读包 · 去重台账） | **已完成，且与台账放在同一目录下** | [discover_matrix/ledger_v2/provenance/](./discover_matrix/ledger_v2/provenance/)；台账每条的 `worksheet` 字段直接指向对应工作单 |
 | ⛔ 第一版台账（126 条；扣 `00x8` 的 27 条后 99 条进入重标，能力分母 98 条） | **已由第二版取代**；⛔ 不再是任何分母，仅作证据链保留 | [discover_matrix/ledger_v2/provenance/expected_issue_set.json](./discover_matrix/ledger_v2/provenance/expected_issue_set.json) |
 | ⭐ **X1v2 基线在第二版台账上的精确命中** | **已完成**（145 × 6 = 870 位；56 条为本轮逐格人工新判） | [discover_matrix/ledger_v2/X1V2_RESULTS.md](./discover_matrix/ledger_v2/X1V2_RESULTS.md) |
-| ⚠️ **Luna v26-dnorm 与 X1v2 同台账全量 x3 运行** | raw 运行与成本审计已完成；旧 judge 输入边界错误，最终 D1/D2-only hit 与 FP 尚待正式重判，旧报告不得作为 headline | [reports/2026-08-19-luna-full-x3-v26.md](./reports/2026-08-19-luna-full-x3-v26.md)、[final_output_metrics_policy.md](./discover_matrix/docs/protocol/final_output_metrics_policy.md) |
+| ⚠️ **Luna v26-dnorm 与 X1v2 同台账全量 x3 运行** | raw 运行与 prototype/X1v2 生成成本审计已完成；最终 D1/D2-only hit 与 FP 尚待全人工重判，旧报告不得作为 headline | [reports/2026-08-19-luna-full-x3-v26.md](./reports/2026-08-19-luna-full-x3-v26.md)、[manual_release_evaluation.md](./discover_matrix/docs/protocol/manual_release_evaluation.md) |
 | 闭合谓词词表（19 个，三族） | 已冻结 | 报告 §4.3；实现在 [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
 | 方法实现（八阶段 + 定向反馈循环） | 已完成并跑通全量 | [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
 | ⛔ 主臂 v46 全量实验（$54 \times 2 \times 3 = 324$ 格） | 已完成，但**建立在第一版台账上、已整体归档**；⭐ **已裁定不在第二版台账上重测**（2026-08-17 用户裁定），故它不再是欠账，也不进当前结论 | [archive/r10_ledger_v1_and_v46/v46/](./archive/r10_ledger_v1_and_v46/v46/) |
@@ -77,7 +77,7 @@
 
 1. 本文研究「给定需求与一份从它生成的状态机模型，自动发现不符合之处」这一任务，**不含修复**。
 2. 已给出 19 谓词的闭合词表与一套需求义务到断言的转换方法，并在全量语料上跑通。
-3. 一次完整全量运行（方法与 X1v2 各 162 格）已完成并保留 raw record、usage、错误与 hash；最终覆盖和 precision 必须等待 D1/D2 final-cluster judge 重判，旧 raw-finding judge 只作诊断证据。
+3. 一次完整全量运行（方法与 X1v2 各 162 格）已完成并保留 raw record、usage、错误与 hash；最终覆盖和 precision 必须等待 D1/D2 final clusters 的全人工逐条对账，旧 raw-finding 与自动 strict judge 均只作无效调试证据。
 4. 覆盖率数字**只能作为上界**，且必须与算力代价一起给。
 5. 未被台账认领的产出可逐条裁定成五类，其中按条目计最大的一块是评审入口的编译损失。
 6. 可执行语义是必要的（两套口径），但**有界模型检查的必要性本实验无法判定**。
