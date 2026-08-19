@@ -164,6 +164,40 @@ class _RecoveringRelayedUpstreamModel(_RecoveringProviderModel):
         )
 
 
+class _RelayToolChoiceDriftStructured:
+    def stream(self, _messages):
+        request = httpx.Request(
+            "POST", "https://provider.invalid/v1/chat/completions"
+        )
+        response = httpx.Response(400, request=request)
+        raise openai.BadRequestError(
+            "Error code: 400",
+            response=response,
+            body={
+                "error": {
+                    "message": (
+                        "Missing required parameter: 'tool_choice.name'. "
+                        "request-id=fixture"
+                    ),
+                    "type": "invalid_request_error",
+                }
+            },
+        )
+        yield  # pragma: no cover
+
+
+class _RecoveringRelayToolChoiceDriftModel(_RecoveringProviderModel):
+    def with_structured_output(self, schema, include_raw=False, method=None):
+        assert include_raw is True
+        assert method == "function_calling"
+        self.calls += 1
+        return (
+            _RelayToolChoiceDriftStructured()
+            if self.calls == 1
+            else _Structured(schema)
+        )
+
+
 class _RecoveringIncompleteModel:
     def __init__(self) -> None:
         self.calls = 0
@@ -519,6 +553,46 @@ def test_relay_mislabeled_upstream_error_retries_in_place_and_is_exempt(
         responder_module, "load_llm_registry", lambda _path=None: _Registry(config)
     )
     model = _RecoveringRelayedUpstreamModel()
+    monkeypatch.setattr(
+        responder_module,
+        "create_chat_model",
+        lambda *_args, **_kwargs: model,
+    )
+    monkeypatch.setattr(responder_module, "_retry_delay", lambda *_args: 0.0)
+    responder = DirectStructuredResponder("unit-profile", transport_retries=1)
+
+    output = responder.invoke_structured(
+        role="requirement_reviewer",
+        schema=RequirementReview,
+        system_prompt="system",
+        user_input="user",
+    )
+
+    observation = responder.take_last_observation()
+    assert output.decision == "accept"
+    assert observation is not None
+    assert model.calls == 2
+    assert observation.attempts[0]["failure_phase"] == "provider_response"
+    assert observation.attempts[0]["retryable"] is True
+    assert observation.attempts[0]["cost_counted"] is False
+    assert observation.attempts[0]["billing_disposition"] == (
+        "provider_error_retry_exempt"
+    )
+    assert observation.attempts[1]["billing_disposition"] == "counted"
+
+
+def test_relay_tool_choice_contract_drift_retries_in_place_and_is_exempt(
+    monkeypatch,
+) -> None:
+    config = LLMConfig(
+        adapter="openai",
+        model="configured-unit-model",
+        api_key="unit-test-key",
+    )
+    monkeypatch.setattr(
+        responder_module, "load_llm_registry", lambda _path=None: _Registry(config)
+    )
+    model = _RecoveringRelayToolChoiceDriftModel()
     monkeypatch.setattr(
         responder_module,
         "create_chat_model",

@@ -16,7 +16,7 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 | 导师定调 | [../talks/](../talks/) | 最高优先级路线依据。⚠️ 2026-08-07 / 08-08 的收窄定调为口头，原话摘录在 [README.md](./README.md) §2 |
 | ⭐ **当前实验事实** | [reports/2026-08-19-luna-full-x3-v26.md](./reports/2026-08-19-luna-full-x3-v26.md) 与 [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/) | 当前报告固定 145 条台账、54 个 eligible pair、Luna v26-dnorm/X1v2 双臂三轮结果；台账与历史 X1v2 六格精确网格仍回 ledger_v2 核对。 |
 | ⚠️ 历史实验事实（v46） | [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | 建立在**已归档的第一版台账**上，⛔ 不是当前口径 |
-| 判定口径 | [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/) | 命中判据、多报五类、方法出处、建模对象边界判据、规则出处纪律。**改它们等于改研究规则** |
+| 判定口径 | [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/) | 命中判据、多报五类、方法出处、建模对象边界判据、规则出处纪律，以及 Luna 开发筛选 → Sol 正式评测的两级 judge 合同。**改它们等于改研究规则** |
 | 实验产地 | [reports/](./reports/) 与 [discover_matrix/](./discover_matrix/) | reports 保存当前同模型对照和逐条台账导出；discover_matrix 保存唯一台账、历史 X1v2 精确网格、协议与证据链。 |
 | 方法实现 | [pipeline/feedback_loop/](./pipeline/feedback_loop/) | 当前活的实现（八阶段 + 定向反馈循环） |
 | 语料 | [selected_seed_examples/](./selected_seed_examples/) | 60 个 pair，各含 `nl.txt`、`stm0.puml` 与溯源元数据 |
@@ -53,7 +53,7 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 
 ## 5. 下一步依赖（按优先级）
 
-1. **判定模型对照已完成**——Sol 与 Luna semantic judge 都已在同一冻结输入上覆盖 54/54 pair；全部位置的 hit 标签一致率约 92.9%–94.9%，FP 标签一致率约 88.5%–91.4%。`0019` 的 13 项分歧独立复核中 Sol 正确 13 项，因此正式结果采用 Sol，Luna 保留为低成本敏感性对照，详见 judge comparison report。
+1. **判定模型对照与后续分层已完成**——Sol 与 Luna semantic judge 都已在同一冻结输入上覆盖 54/54 pair；全部位置的 hit 标签一致率约 92.9%–94.9%，FP 标签一致率约 88.5%–91.4%。`0019` 的 13 项分歧独立复核中 Sol 正确 13 项，因此后续 Luna 负责开发期筛选，Sol 负责冻结候选正式评测；当前 provider 健康时点证据见 [2026-08-19-luna-terra-provider-health.md](./reports/2026-08-19-luna-terra-provider-health.md)。
 2. **台账撰写过程的交代**——台账是能力分母，必须写清谁标的、何时标的、是否在看过方法产出之后标的、与命中判定是否同一人。
 3. **判定层的第二意见**——双侧结论目前共用一个单人判定的误差源。
 4. **循环各阶段的消融**——两个审查阶段与静态预检占算力大头却无单独收益证据。

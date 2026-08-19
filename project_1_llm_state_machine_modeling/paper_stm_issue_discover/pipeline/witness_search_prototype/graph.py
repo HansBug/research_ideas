@@ -18,6 +18,7 @@ from . import prototype as core
 
 from paper_stm_feedback_loop.common.records import ImmutableRecordStore
 from paper_stm_feedback_loop.discover.responder import (
+    DEFAULT_TRANSPORT_RETRIES,
     DirectStructuredResponder,
     StructuredOutputValidationError,
 )
@@ -1595,7 +1596,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--max-total-tokens", type=int, default=DEFAULT_MAX_TOTAL_TOKENS
     )
-    parser.add_argument("--transport-retries", type=int, default=1)
+    parser.add_argument(
+        "--transport-retries", type=int, default=DEFAULT_TRANSPORT_RETRIES
+    )
     return parser
 
 

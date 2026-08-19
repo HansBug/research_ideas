@@ -89,7 +89,7 @@ python -m paper_stm_feedback_loop.discover --help
 
 ### 有默认值的 FBMCQ 上限是策略，不是「未设资源限制」
 
-`--fbmcq-solver-timeout-ms=30000`、`--fbmcq-max-bound=8`、`--fbmcq-process-wall-seconds=60`、`--fbmcq-canary-bound=3`、`--fbmcq-canary-wall-seconds=45`、`--transport-retries=4` 均有默认值，且**逐次记入 run record**。原因写在 `cli.py` 注释里：有界模型检查没有自然终止保证，公式构造本身在稠密迁移关系上随 bound 指数增长，`process.join(None)` 曾把 pair `0029` 的一条坏断言变成 495 秒 precheck 与一次人工 kill。
+`--fbmcq-solver-timeout-ms=30000`、`--fbmcq-max-bound=8`、`--fbmcq-process-wall-seconds=60`、`--fbmcq-canary-bound=3`、`--fbmcq-canary-wall-seconds=45`、`--transport-retries=8` 均有默认值，且**逐次记入 run record**。原因写在 `cli.py` 注释里：有界模型检查没有自然终止保证，公式构造本身在稠密迁移关系上随 bound 指数增长，`process.join(None)` 曾把 pair `0029` 的一条坏断言变成 495 秒 precheck 与一次人工 kill。2026-08-19 对 Luna/Terra 的并发健康探针显示上游持续失败可超过三次重发，因此方法、feedback CLI 与 semantic judge 统一使用 8 次默认 transport retry；它仍是可由 CLI 覆盖的最大值，不会把 schema 或内容错误改判为 provider error。
 
 `--max-output-tokens`、`--assertion-timeout-seconds` 无默认值，只在调用者显式传入时生效。
 

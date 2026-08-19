@@ -69,9 +69,19 @@ release_issues(cell) = {
 
 按 `D`、`L` 或二者交叉拆分时只改变台账子集，不改变命中判据。整体、L2、D2×L2 必须同时报告，不能只选择提升最大的切片。
 
+### 3.1 开发期代理 judge 与正式 judge
+
+方法迭代采用分层 judge，而不是每一代都支付正式高配 judge 成本。开发期使用 `gpt-5.6-luna` 对冻结台账和当前 D1/D2 release issues 做快速语义评审，用于判断版本级趋势、方法相对 X1v2 的方向、整体/L2/D2×L2 hit、release precision 和逐 pair 回归；当 baseline 输出、台账、judge prompt、schema 与聚合合同均未改变时，开发期可复用同一份 Luna baseline 裁定，只重新评审新方法输出。Luna 结果只能作为工程筛选和敏感性分析，不能产生论文 headline、正式显著性结论或替代 Sol 裁定。
+
+候选版本只有在 Luna 下同时满足以下条件才进入正式评审：整体 hit 已高于冻结 Luna baseline 且至少留出 15 个 position 的经验余量，L2 超过 50%并高于 baseline，release precision 不低于 baseline，W2 与运行资格门均满足，连续两次冻结运行没有方向性回退。15 个 position 是依据 v26 同一冻结输出上 Luna/Sol 的已观察 judge 偏差设置的开发触发线，不是统计显著性门，也不是 Luna 到 Sol 的换算系数；任何切片上的 Luna 比例不得机械外推为 Sol 比例。
+
+正式评审使用 `gpt-5.6-sol`，对冻结候选的 method 与同一冻结 baseline 同时重新裁定全部 54 pair。论文正文、headline、正式 hit/FP/precision、显著性与逐条台账表只读取这一套 Sol 输出；Luna 保留为 judge sensitivity analysis。若 Sol 未过第 0 节硬门，该候选按未达标处理，不能以 Luna 结果覆盖或混合标签。当前经验依据见 [2026-08-19-judge-model-comparison.md](../../../reports/2026-08-19-judge-model-comparison.md)。
+
 ## 4. 失败格与 eligibility
 
 固定实验网格中的任何格都不得静默消失。方法 provider/transport failure、在穷尽节点内定向修复后仍无法满足 structured-output contract 的 schema failure可以使对应方法格不具主结果资格；其它内部超时、执行异常、证书不闭合、预算耗尽、D 修复耗尽和 gate 拒绝必须降级落盘，不得把整格排除。独立 judge 不允许留下未裁判位置：provider/transport failure 必须在同一次调用内退避重发；pair-wide structured output 经定向反馈仍无法闭合时，必须转入逐个 ledger-emission 关系的原子 LLM semantic judge，直到每个关系都有 matches、reason 与 confidence。不得把 judge failure 伪装成全 miss、FP 或保守下界。
+
+方法、feedback CLI 与 semantic judge 的默认 transport retry 上限统一为 8，并允许正式运行通过 CLI 显式覆盖。每个 attempt、错误类型、等待和最终状态都必须进入 run record；只有明确 provider/transport failure 且随后确实发起下一次同请求重发的前序 attempt 才适用计费豁免。提高 retry 上限只用于吸收上游波动，不得使 schema validation、内容返工、D repair 或本地执行错误获得 provider 豁免，也不得以冷启动整格重跑替代原地 retry。
 
 正式报告必须同时给出两套覆盖读数：
 

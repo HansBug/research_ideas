@@ -5,9 +5,9 @@ import json
 import os
 import re
 import time
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
-from collections.abc import Mapping
 from typing import Any
 
 from paper_stm_feedback_loop.assertions import AssertionChecker, build_eval_environment
@@ -18,12 +18,16 @@ from paper_stm_feedback_loop.common.inputs import (
 )
 from paper_stm_feedback_loop.common.records import ImmutableRecordStore
 
-from .graph import run_discover_state
 from . import nodes
-from .nodes import ABLATABLE_GATES, _ABLATED_GATES
-from .nodes import exclusion_roles, inserted_state_paths
+from .graph import run_discover_state
+from .nodes import (
+    _ABLATED_GATES,
+    ABLATABLE_GATES,
+    exclusion_roles,
+    inserted_state_paths,
+)
 from .report import telemetry_summary, write_discover_markdown
-from .responder import DirectStructuredResponder
+from .responder import DEFAULT_TRANSPORT_RETRIES, DirectStructuredResponder
 from .schemas import DiscoverInput, LLMCallRecord, NodeExecutionRecord
 from .utils import sha256_data
 
@@ -72,7 +76,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fbmcq-canary-bound", type=int, default=3)
     parser.add_argument("--fbmcq-canary-wall-seconds", type=float, default=45.0)
     parser.add_argument("--skip-fbmcq-canary", action="store_true")
-    parser.add_argument("--transport-retries", type=int, default=4)
+    parser.add_argument(
+        "--transport-retries", type=int, default=DEFAULT_TRANSPORT_RETRIES
+    )
     return parser
 
 
@@ -115,16 +121,16 @@ def _custom_pair(args: argparse.Namespace) -> FeedbackLoopInputs:
 def _pyfcstm_version() -> str:
     """Best-effort pyfcstm identity for the run record's evidence chain."""
 
-    try:
-        import importlib.metadata as _md
+    import importlib.metadata as _md
 
+    try:
         return _md.version("pyfcstm")
-    except Exception:
+    except _md.PackageNotFoundError:
         try:
             import pyfcstm
 
             return str(getattr(pyfcstm, "__version__", "unknown"))
-        except Exception:
+        except ImportError:
             return "unknown"
 
 

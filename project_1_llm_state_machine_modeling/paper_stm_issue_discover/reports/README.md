@@ -1,6 +1,6 @@
 # reports/ — 阶段性研究报告（按日期命名）
 
-> 🔴 **本目录**没有**当前实验的结果报告。** 共 **11** 份，跨 2026-06 至 2026-08：
+> 本目录共 **14** 份 active human-facing report，跨 2026-06 至 2026-08：
 >
 > | 份数 | 时间 | 是什么 |
 > | --: | :-- | :-- |
@@ -8,16 +8,18 @@
 > | 2 | 2026-07-08 | issue ledger / source trace 两份 v0 字段合同说明 |
 > | 1 | 2026-07-19 | Issue #161 PlantUML Java frontend 技术路线报告——当前 60 例语料的由来 |
 > | 1 | 2026-08-11 | 重构后 e2e smoke。⛔ **工程验证，不是研究性运行，数字不得进论文统计** |
->
-> 也就是说：**没有一份是代次实验结果**，哪怕最新那份是 08 月的。
+> | 3 | 2026-08-19 | v26 全量 x3 正式实验、Luna/Sol judge sensitivity、Luna/Terra provider 健康探针 |
 >
 > | 你想找 | 去哪 |
 > | :-- | :-- |
-> | **v46 全量矩阵的双侧结论（当前唯一完整实验报告）** | [../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) |
+> | **当前 v26 全量 x3 正式结果** | [2026-08-19-luna-full-x3-v26.md](./2026-08-19-luna-full-x3-v26.md) |
+> | Luna/Sol judge 对照与开发/正式分层 | [2026-08-19-judge-model-comparison.md](./2026-08-19-judge-model-comparison.md) |
+> | Luna/Terra 当前 provider 健康证据 | [2026-08-19-luna-terra-provider-health.md](./2026-08-19-luna-terra-provider-health.md) |
+> | v46 全量矩阵双侧结论（历史） | [../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) |
 > | 逐格 / 逐轮结果、代次对比 | [../discover_matrix/](../discover_matrix/) |
 > | Issue #161 Java frontend 技术报告 | [2026-07-19-issue-161-plantuml-java-frontend.md](./2026-07-19-issue-161-plantuml-java-frontend.md) |
 >
-> ⚠️ **每代次实验报告不落在本目录。** 按仓库纪律，代次结果发在 GitHub PR comment，判据与事前登记落在 [../discover_matrix/](../discover_matrix/)，给导师的自包含报告落在 [../../talks/](../../talks/)。本目录只沉淀更早的、与单次运行无关的阶段性结论。
+> 本目录只保存稳定的 human-facing 研究报告。逐格机器制品、运行记录和 usage 回到 [../pipeline/](../pipeline/) 或 `runs/`，判据与事前登记回到 [../discover_matrix/](../discover_matrix/)；GitHub PR/issue 继续只负责动态施工状态。
 >
 > ⚠️ 本目录**机器事实源为零**；统计一律回到 [../pipeline/](../pipeline/) 与 [../corpora/](../corpora/) 下的 JSON / JSONL / registry。
 
@@ -31,6 +33,9 @@ R5.7 / Better STM / constructed `STM_k` / blind adjudication 报告链已经迁�
 
 | 时间 | report | 类型 | 当前使用方式 |
 |---|---|---|---|
+| 2026-08-19 | [2026-08-19-luna-terra-provider-health.md](./2026-08-19-luna-terra-provider-health.md) | provider 健康探针 | 四个时间窗的结构化请求证据；用于运行前健康判断、relay failure 分类和 retry 上限依据，不用于模型能力比较。 |
+| 2026-08-19 | [2026-08-19-judge-model-comparison.md](./2026-08-19-judge-model-comparison.md) | judge sensitivity 与分层协议 | Luna 用于开发期筛选，Sol 用于冻结候选正式评测；保存相关性、分歧和成本证据。 |
+| 2026-08-19 | [2026-08-19-luna-full-x3-v26.md](./2026-08-19-luna-full-x3-v26.md) | 当前全量 x3 正式实验 | 当前 release-only 54-pair 双臂结果、逐条台账、失败、W/D/L 和成本的 human-facing 入口。 |
 | 2026-08-11 | [2026-08-11-post-refactor-e2e-smoke.md](./2026-08-11-post-refactor-e2e-smoke.md) | 重构后 e2e smoke | 大规模目录重构后的端到端验证：`0000` × claude / gpt 各 1 轮，两格均 completed / coverage=full / 零降级零重试，输入哈希与搬迁前逐字节相同，发现的 4 条与 v46 逐条对应。⛔ **工程验证，数字不得进论文统计**。 |
 | 2026-07-19 | [2026-07-19-issue-161-plantuml-java-frontend.md](./2026-07-19-issue-161-plantuml-java-frontend.md) | PlantUML Java frontend | **本表中与当前语料关系最直接的一份**：Issue #161 把 PlantUML canonical 从 SCXML 路线换成 Java source frontend，60 例 active 语料由此产生。技术路线报告，不是实验结果。 |
 | 2026-07-08 14:03:59 | [2026-07-08-14-03-59-pr-source-trace-contract.md](./2026-07-08-14-03-59-pr-source-trace-contract.md) | source trace contract | source trace v0 合同报告；定义 raw/source ↔ intermediate trace、projection status 与 negative attribution gate，不是实验结果。 |
@@ -68,6 +73,7 @@ R5.7 / Better STM / constructed `STM_k` / blind adjudication 报告链已经迁�
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-08-19 | 补录 v26 正式实验、judge 模型对照和 provider 健康探针，active report 数由 11 更新为 14，并修正“本目录无当前实验结果”的旧入口。 |
 | 2026-07-08 14:03:59 | `PR-source-trace` 新增 source trace v0 合同报告，并更新 active report 表。 |
 | 2026-07-08 10:15:00 | `PR-issue-ledger` 新增 source issue ledger v0 合同报告，并更新 active report 表。 |
 | 2026-07-07 23:40:00 | `PR-better-archive` 后将 R5.7 报告链移出 active reports 表，改为 cold archive pointer。 |

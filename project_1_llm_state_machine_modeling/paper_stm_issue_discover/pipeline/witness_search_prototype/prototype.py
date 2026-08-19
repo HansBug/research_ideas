@@ -43,6 +43,7 @@ from paper_stm_feedback_loop.assertions import (
     parse_assertion_script,
 )
 from paper_stm_feedback_loop.discover.responder import (
+    DEFAULT_TRANSPORT_RETRIES,
     DirectStructuredResponder,
 )
 
@@ -10719,7 +10720,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--smt-timeout-ms", type=int, default=3_000)
     parser.add_argument("--max-output-tokens", type=int, default=1_800)
-    parser.add_argument("--transport-retries", type=int, default=1)
+    parser.add_argument(
+        "--transport-retries", type=int, default=DEFAULT_TRANSPORT_RETRIES
+    )
     return parser
 
 

@@ -2,10 +2,25 @@ from __future__ import annotations
 
 import json
 
+from paper_stm_feedback_loop.discover.responder import DEFAULT_TRANSPORT_RETRIES
+
 from project_1_llm_state_machine_modeling.paper_stm_issue_discover.pipeline.witness_search_prototype import (
     graph,
     prototype,
 )
+
+
+def test_all_prototype_entry_points_share_the_provider_retry_default() -> None:
+    prototype_args = prototype.build_parser().parse_args(
+        ["--case", "0000", "--output-dir", "out"]
+    )
+    graph_args = graph.build_parser().parse_args(
+        ["--case", "0000", "--output-dir", "out"]
+    )
+
+    assert DEFAULT_TRANSPORT_RETRIES == 8
+    assert prototype_args.transport_retries == DEFAULT_TRANSPORT_RETRIES
+    assert graph_args.transport_retries == DEFAULT_TRANSPORT_RETRIES
 
 
 class FakeResponder:

@@ -92,7 +92,8 @@ v26 prototype 生成约 `$4.229658`，同模型 baseline 生成约 `$0.225233`�
 | P3 root-cause/evidence bridge | NL+PlantUML+FCSTM+inspect、P2 obligations | 生成四联体 finding；补 negative/source certificate；加入一次 program repair 与 sound fallback | D/W dossier 与真实执行证书 | prose non-interference、exact-ID、source attribution 和 W2 execution tests 全过 |
 | P4 D 与去重收敛 | 全格 dossier | 统一 D 字段；整格一次裁决；非法子集定向修复；final cluster 去重 | D1/D2 release issues + D0 audit gaps | D 决策全集闭合或结构化 unresolved；同 cell duplicate 审计通过 |
 | P5 合成与小型回归 | synthetic suite、历史五 pair smoke | 先跑合成套件，再跑 `0004/0023/0029/0046/0053` 只检查流程与已知能力 | 回归报告、成本估计 | 不因某个真实条目改 prompt；五 pair 无 crash，既有 D1/D2 hit 不回退 |
-| P6 全量统一评测 | 冻结 v27、54 pair、三轮、X1v2 | 最大并发运行，独立 judge，生成分臂表、逐条 ledger、FP 成分和成本 | 正式 v27 run record 与报告 | 下节硬门全部满足或如实判定 v27 未达标 |
+| P6 Luna 开发期全量筛选 | 冻结候选、54 pair、三轮、冻结 Luna X1v2 裁定 | Luna 运行方法并只重判方法输出，生成趋势表、逐条 ledger、FP 和成本 | 开发候选报告 | overall 相对 Luna baseline 至少 +15 positions，L2 超过半数且领先，precision/W2/资格过门，连续两次冻结运行无方向回退 |
+| P7 Sol 正式统一评测 | 通过 P6 的冻结候选、同一 method/baseline 输出 | Sol 同时重判两臂全部 54 pair，生成正式分臂表、逐条 ledger、FP 成分、显著性和 judge sensitivity | 正式 v27 run record 与报告 | 下节硬门全部满足或如实判定 v27 未达标；不得混用 Luna/Sol 标签 |
 
 ## 5. 预期提升与目标区间
 
@@ -128,6 +129,8 @@ L2 的 Sol 正式起点是 `37/117`，v27 最低门是超过半数，主目标�
 | 4 | 运行资格 | 非 provider/schema 的整格崩溃为 0；judge 成功率目标 100%，任何失败同时报告 eligible 主读数与全网格下界 |
 | 4 | 成本 | `prototype issue-generation / X1v2 issue-generation` 不超过 25x；judge 只单独审计；允许个别 pair/noise 超过，不设单格 25x 门；超限先做 prototype prompt/cache/retry 优化 |
 | 学术边界 | 泄漏与语义纪律 | 方法 prompt 无真实台账内容；NL 语义无 deterministic 字符串规则；每个新增 expression 有领域来源和 synthetic contract tests |
+
+开发期门由 Luna judge 执行，正式硬门只由 Sol judge 执行。Luna 与 Sol 在 v26 冻结输出上的总体方向一致，但切片优势和 precision 差值不是固定比例，因此 Luna 只承担版本筛选；15-position 余量是减少过早启动 Sol 的工程触发线，不替代 paired 显著性检验。
 
 若整体 hit、L2 或 paired 显著性未过门，v27 不能以“某个切片大幅领先”宣布成功；若 hit 达标但 FP 比 baseline 差，应保留能力结果并继续做 applicability/dedup 收敛，不通过回退 obligation 表达面来换取表面 precision；若总体成本超过 25x，先压缩重复上下文、优化缓存边界和减少非 provider retry，不先删除已证明贡献 hit 或 FP 控制的节点。四项只有按优先级同时过门，v27 才算完成。
 

@@ -83,6 +83,7 @@ def _empty_structured_output(exc: Exception) -> bool:
 #: The schedule is deliberately longer than a gateway timeout, and long enough
 #: that a rate limit has a chance to clear.
 TRANSPORT_RETRY_DELAYS: tuple[float, ...] = (5.0, 20.0, 60.0, 120.0, 240.0)
+DEFAULT_TRANSPORT_RETRIES = 8
 
 
 def _provider_retry_after_seconds(exc: BaseException) -> float | None:
@@ -152,6 +153,31 @@ def _relay_upstream_failure(exc: BaseException) -> bool:
     )
 
 
+def _relay_tool_choice_contract_drift(exc: BaseException) -> bool:
+    """Recognize the relay shard that intermittently drops tool-choice names.
+
+    The identical structured request succeeded on two Luna shards while a third
+    returned this 400 in the same concurrent wave. That makes this one exact,
+    structured receipt a relay/provider compatibility failure rather than a
+    malformed local request. Keep the match deliberately narrow: ordinary 400
+    parameter or schema errors remain non-retryable and fully billable.
+    """
+
+    body = getattr(exc, "body", None)
+    if not isinstance(body, Mapping):
+        return False
+    error = body.get("error", body)
+    if not isinstance(error, Mapping):
+        return False
+    return (
+        error.get("type") == "invalid_request_error"
+        and isinstance(error.get("message"), str)
+        and error["message"].startswith(
+            "Missing required parameter: 'tool_choice.name'"
+        )
+    )
+
+
 def _bare_openai_api_error(exc: BaseException) -> bool:
     """Return whether OpenAI reported a provider failure without HTTP status."""
 
@@ -181,7 +207,11 @@ def _retryable_error(exc: Exception) -> bool:
         return True
     if isinstance(exc, (ValueError, TypeError, StructuredOutputValidationError)):
         return False
-    if _relay_upstream_failure(exc) or _bare_openai_api_error(exc):
+    if (
+        _relay_upstream_failure(exc)
+        or _relay_tool_choice_contract_drift(exc)
+        or _bare_openai_api_error(exc)
+    ):
         return True
     status = _status_code(exc)
     if status is not None:
@@ -413,7 +443,7 @@ class DirectStructuredResponder:
         *,
         registry_path: str | None = None,
         max_output_tokens: int | None = None,
-        transport_retries: int = 4,
+        transport_retries: int = DEFAULT_TRANSPORT_RETRIES,
         repeat_schema_in_prompt: bool = True,
         prompt_cache_ttl: PromptCacheTTL | None = None,
         on_stream_chunk: Callable[[str, int, float], None] | None = None,

@@ -19,6 +19,10 @@ Luna 与 Sol 均已完成 54/54 pair。Sol 最初缺失的 `0009`、`0013`、`00
 
 因此正式主结果采用 `gpt-5.6-sol` 54/54 judge，Luna 只作为低成本敏感性对照。选择依据是完整性已经相同后，Sol 在人工深查分歧上的语义正确性显著更高，而不是因为 Sol 的指标对任一实验臂更有利。两臂始终使用同一个 Sol judge，不能混合两套标签形成 headline。
 
+## 后续迭代使用方式
+
+Luna 可作为开发期代理 judge：它在本轮对方法逐 pair hit 的 Pearson/Spearman 相关为 0.951/0.967，对 baseline 为 0.965/0.905，对 method-minus-baseline 逐 pair hit gap 为 0.918/0.780；54 个 pair 中 43 个对 method 赢/平/输的方向完全一致，4 个直接反转。它足以筛选版本级大方向，但不能校准 Sol 的绝对分数或切片比例。后续每代先用 Luna 运行方法并评审；冻结 Luna baseline 裁定仅在 baseline 输出、台账和 judge 合同完全未变时复用。候选在 Luna 下整体领先至少 15 positions、L2/precision/W2/资格同时过门且连续两次冻结运行无方向回退后，再由 Sol 对 method 与 baseline 进行 54/54 正式重判。正式 headline 永远只读同一套 Sol 标签。
+
 ## 成本边界
 
 Prototype v26 生成成本为 `$4.229658`，同模型 X1v2 生成成本为 `$0.225233`，唯一 method/X1v2 倍率为 `18.78x`。Luna judge 独立审计成本约 `$0.365308`，Sol judge 包含历史尝试和本轮补判的完整独立审计成本为 `$12.284775`，约为 Luna 的 33.63 倍；二者都不进入 18.78x。高配 judge 的费用是评测审计支出，当前选择优先保障标签可信度。

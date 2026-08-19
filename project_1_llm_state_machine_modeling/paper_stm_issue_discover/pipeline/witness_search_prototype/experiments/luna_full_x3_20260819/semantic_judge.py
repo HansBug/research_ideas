@@ -28,6 +28,7 @@ if str(FEEDBACK_SRC) not in sys.path:
     sys.path.insert(0, str(FEEDBACK_SRC))
 
 from paper_stm_feedback_loop.discover.responder import (
+    DEFAULT_TRANSPORT_RETRIES,
     DirectStructuredResponder,
     StructuredOutputValidationError,
 )
@@ -575,7 +576,9 @@ def main() -> int:
     parser.add_argument("--baseline-root", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--profile", default="gpt-5.6-luna")
-    parser.add_argument("--transport-retries", type=int, default=8)
+    parser.add_argument(
+        "--transport-retries", type=int, default=DEFAULT_TRANSPORT_RETRIES
+    )
     parser.add_argument("--max-output-tokens", type=int, default=20_000)
     parser.add_argument("--pairs", nargs="*", default=None)
     args = parser.parse_args()

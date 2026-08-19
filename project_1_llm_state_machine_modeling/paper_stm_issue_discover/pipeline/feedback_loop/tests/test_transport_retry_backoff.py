@@ -179,6 +179,37 @@ def test_an_ordinary_bad_request_is_not_retried():
     assert _retryable_error(invalid) is False
 
 
+def test_relay_tool_choice_contract_drift_is_retryable_but_other_400s_are_not():
+    request = httpx.Request("POST", "https://provider.invalid/v1/chat/completions")
+    response = httpx.Response(400, request=request)
+    drift = openai.BadRequestError(
+        "Error code: 400",
+        response=response,
+        body={
+            "error": {
+                "message": (
+                    "Missing required parameter: 'tool_choice.name'. "
+                    "request-id=fixture"
+                ),
+                "type": "invalid_request_error",
+            }
+        },
+    )
+    ordinary_missing_parameter = openai.BadRequestError(
+        "Error code: 400",
+        response=response,
+        body={
+            "error": {
+                "message": "Missing required parameter: 'messages'",
+                "type": "invalid_request_error",
+            }
+        },
+    )
+
+    assert _retryable_error(drift) is True
+    assert _retryable_error(ordinary_missing_parameter) is False
+
+
 def test_a_schema_violation_is_not_retried():
     """Retrying a malformed structured output just spends the budget."""
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-
 from paper_stm_feedback_loop.common.inputs import clean_path, load_feedback_loop_inputs
 from paper_stm_feedback_loop.common.records import (
     ImmutableRecordStore,
@@ -38,7 +37,12 @@ def test_load_feedback_loop_inputs_from_representation_pair() -> None:
 
 
 def test_cli_formal_pair_default_root_is_independent_of_cwd() -> None:
-    from paper_stm_feedback_loop.discover.cli import REPORT_ROOT, _formal_pair, build_parser
+    from paper_stm_feedback_loop.discover.cli import (
+        REPORT_ROOT,
+        _formal_pair,
+        build_parser,
+    )
+    from paper_stm_feedback_loop.discover.responder import DEFAULT_TRANSPORT_RETRIES
 
     args = build_parser().parse_args(
         ["--pair-id", "0000", "--profile", "test-profile", "--output-dir", "out"]
@@ -48,6 +52,7 @@ def test_cli_formal_pair_default_root_is_independent_of_cwd() -> None:
     assert bundle.report_root == REPORT_ROOT
     assert bundle.pair_id == "llms_emp_feedback_final_0000"
     assert bundle.fcstm.path.name == "fcstm.fcstm"
+    assert args.transport_retries == DEFAULT_TRANSPORT_RETRIES == 8
 
 
 def test_load_feedback_loop_inputs_from_custom_files(tmp_path: Path) -> None:
