@@ -2,6 +2,8 @@
 
 本文件是 Discover effectiveness 实验中「一条已发布 issue 是否命中某条 expected issue」的**裁决原则**。它是长期规则，不是某一轮的施工状态；施工进度与 review 状态在对应 GitHub PR / issue 中维护。
 
+⚠️ “已发布 issue”的唯一边界由 [final_output_metrics_policy.md](./final_output_metrics_policy.md) 定义：方法侧只允许 `D1/D2 report_issue_clusters` 进入命中判定，`D0`、`D_UNRESOLVED`、raw finding 和未聚类 facet 均不进入。本文只回答进入该边界后的语义同一性，不另设统计分母。
+
 相关：[README.md](../../README.md)、[ground_truth_limitations.md](./ground_truth_limitations.md)（分母的已知缺口）、Issue [#166](https://github.com/HansBug/research_ideas/issues/166)（expected issue 台帐）、Issue [#170](https://github.com/HansBug/research_ideas/issues/170)（谓词设计）、PR [#169](https://github.com/HansBug/research_ideas/pull/169)（Discover 验收）。
 
 ---

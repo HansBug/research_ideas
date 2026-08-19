@@ -9,7 +9,7 @@
 | 路径 | 内容 | 什么时候进去 |
 | :-- | :-- | :-- |
 | ⭐ [ledger_v2/](./ledger_v2/) | **台账**（145 条）· **判定协议**（判定前写定）· **X1v2 基线在台账上的精确结果** · **证据链** [`provenance/`](./ledger_v2/provenance/)（第一版台账、60 份逐 pair 复审、54 份工作单含全部人工裁决与逐条 meta review、三方 D 档判读包、去重台账） | 看结果、复算数字、追溯某条缺陷怎么定的 |
-| [docs/](./docs/) | 学术口径：`protocol/`（判定协议、缺陷分类学、边界裁定、出处政策）· `findings/`（已裁定的发现）· `generations/`（历代事前登记，每代次一个子目录、文件名 `preregistered.md`） | 查判定规则、查某条规则为什么这么定 |
+| [docs/](./docs/) | 学术口径：`protocol/`（判定协议、缺陷分类学、边界裁定、出处政策）· `findings/`（已裁定的发现）· `generations/`（历代事前登记，每代次一个子目录、文件名 `preregistered.md`） | 查判定规则、查某条规则为什么这么定；⭐ 方法最终输出、hit 与 FP 的唯一边界见 [final_output_metrics_policy.md](./docs/protocol/final_output_metrics_policy.md) |
 
 ⛔ **v46 主臂与 v46 时代的评测数据、分析脚本已整体转入冷归档** [../archive/r10_ledger_v1_and_v46/](../archive/r10_ledger_v1_and_v46/)（归档不是删除，那里有复活导引）。⛔ 本目录**不含任何 v46 数字**：历史上出现过的 `hit@1 60.4%`、`76.2%` 一律不是当前口径。
 
@@ -17,7 +17,7 @@
 
 1. ⭐ **台账**：145 条，`D` 档（缺陷主张站不站得住）与 `L` 档（陈述这个错误需要哪一层）逐条落定，无第四类、无「界外」。
 2. ⭐ **基线**：历史的 X1v2 精确网格是 145 × 6（两个生成模型 × 三轮），全台账 `hit@1` **59.8%** · `hit@3` **70.3%** · `hit@all` **47.9%**；⛔ 最弱处是 `D2 × L2`（34 条，`hit@all` 仅 **29.4%**）。
-3. ⭐ **当前同模型对照**：gpt-5.6-luna 下 v26-dnorm 与 X1v2 各三轮、54 个 eligible pair 的独立语义审计见 [paper1 全量报告](../reports/2026-08-19-luna-full-x3-v26.md)；该报告的三轮 baseline 数字不能与上面的历史六格网格混合。
+3. ⚠️ **当前同模型对照正在按最终发布边界重判**：gpt-5.6-luna 下 v26-dnorm 与 X1v2 各三轮、54 个 eligible pair 的运行已完成，但旧聚合错误地把含 D0 的 raw finding 纳入方法侧 judge，原 `226/435` 与 `566/953 FP` 已废止；诊断、v27 计划与严格口径见 [v27 preregistration](./docs/generations/v27/preregistered.md)，旧报告只保留运行与成本证据。
 4. ⚠️ **口径限制**：⭐ v46 已裁定不在新台账上重测（2026-08-17），因此不能把 v46 历史数字与任何当前结果相减；本轮 judge 仍只有一层独立语义评审，无一致性系数。
 
 ⭐ 以上三条的完整表、逐档拆分与全部五条限制，读 [ledger_v2/README.md](./ledger_v2/README.md) 与 [ledger_v2/X1V2_RESULTS.md](./ledger_v2/X1V2_RESULTS.md)。

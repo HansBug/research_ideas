@@ -164,7 +164,18 @@ def load_judgements(judge_root: Path, pairs: list[str]) -> dict[str, dict[str, A
     for pair in pairs:
         candidates = [path for path in judge_root.glob(f"**/{pair}.json") if path.is_file()]
         if candidates:
-            result[pair] = read_json(max(candidates, key=lambda path: path.stat().st_mtime_ns))
+            decoded = [(path, read_json(path)) for path in candidates]
+            successful = [
+                (path, payload)
+                for path, payload in decoded
+                if payload.get("status") == "ok"
+            ]
+            # A later provider/schema failure is not evidence that invalidates a
+            # complete earlier judgement. `semantic_judge` only writes status=ok
+            # after its exact ledger/emission coverage contract has passed.
+            selected = successful or decoded
+            _, payload = max(selected, key=lambda item: item[0].stat().st_mtime_ns)
+            result[pair] = payload
     return result
 
 

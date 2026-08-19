@@ -77,11 +77,11 @@ class PairJudgement(BaseModel):
     pair_reason: str
 
 
-SYSTEM_PROMPT = """你是独立的状态机缺陷覆盖评审员。你的任务是把一个 pair 的冻结台账条目与两个被测臂的六个输出格做语义对齐。你只能依据本次输入中的自然语言规格、PlantUML/FCSTM 相关定位、台账条目的完整主张，以及输出 finding 的完整主张作判断；不得使用关键词命中、字符串包含、编辑距离、向量相似度或任何其他词法捷径。
+SYSTEM_PROMPT = """你是独立的状态机缺陷覆盖评审员。你的任务是把一个 pair 的冻结台账条目与两个被测臂的六个输出格做语义对齐。你只能依据本次输入中的自然语言规格、PlantUML/FCSTM 相关定位、台账条目的完整主张，以及输出 issue 的完整主张作判断；不得使用关键词命中、字符串包含、编辑距离、向量相似度或任何其他词法捷径。
 
 命中判据必须同时满足：1）同一处：输出指认的元素或位置与台账指认的是同一状态、迁移、事件、区域或表达式；2）同一性质：输出主张的是同一种缺失、多余、错位、不可达、无出路、不终止、层次归属、记法槽位或数量问题。措辞不同、只描述后果、没有可执行断言都不影响覆盖命中。只在背景中顺带提到元素、只说上位类别、方向相反，或把多条输出拼起来才能凑成台账主张，都不算命中。
 
-对每个台账条目，六个格都必须给出 hit、支持该命中的 finding id、语义理由和置信度。对每个格中的每一条输出也必须给出是否为 false positive；若它语义上对应台账条目，列出一个或多个对应 ledger id，否则标记 false_positive=true。一个输出 finding 可以覆盖至多条台账，但只有确实同处同性质时才允许。不要因为有正式证书就自动命中，证书只作为主张的一部分；也不要因为没有证书就自动否定覆盖。
+方法侧输入已经是末端可发布 issue：仅含 D2 或 D1 的 `report_issue_clusters`。D0 审计发现不在本次输入中，也绝不能间接计入命中或 false positive。对每个台账条目，六个格都必须给出 hit、支持该命中的 issue id、语义理由和置信度。对每个格中的每一条输出也必须给出是否为 false positive；若它语义上对应台账条目，列出一个或多个对应 ledger id，否则标记 false_positive=true。一个输出 issue 可以覆盖至多条台账，但只有确实同处同性质时才允许。不要因为有正式证书就自动命中，证书只作为主张的一部分；也不要因为没有证书就自动否定覆盖。
 
 这是测量覆盖的独立评审，不是重新修改台账，不得创造新的台账条目。请完整返回要求的结构化对象，不要省略零命中条目或没有 finding 的格。"""
 
@@ -90,32 +90,24 @@ def _read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _compact_method_finding(item: dict[str, Any]) -> dict[str, Any]:
-    decision = item.get("d_decision") or {}
-    certificates = item.get("execution_certificates") or []
-    evidence = []
-    for cert in certificates:
-        if not isinstance(cert, dict):
-            continue
-        evidence.append(
-            {
-                "verdict": cert.get("verdict"),
-                "counterexample_found": cert.get("counterexample_found"),
-                "observations": cert.get("observations", []),
-            }
-        )
+def _compact_method_report_issue(item: dict[str, Any]) -> dict[str, Any]:
+    """Serialize one final D1/D2 issue cluster for the independent judge.
+
+    Raw finding facets, including D0 audit observations, are intentionally not
+    part of the evaluation surface.  The cluster is the method's final output.
+    """
+
     return {
-        "finding_id": item.get("finding_key") or item.get("candidate_index"),
+        "finding_id": item.get("report_issue_id") or item.get("cause_key"),
         "claims": item.get("claims", []),
-        "model_claims": item.get("model_claims", []),
         "locations": item.get("locations", []),
         "obligations": item.get("obligations", []),
-        "basis": item.get("basis_kind"),
-        "d_level": decision.get("d_level") or item.get("d_status"),
+        "basis": item.get("source_attribution", []),
+        "d_level": item.get("d_level"),
         "l_level": item.get("l_level"),
-        "d_rationale": decision.get("rationale"),
-        "evidence_status": item.get("evidence_status"),
-        "execution_evidence": evidence,
+        "witness_level": item.get("witness_level"),
+        "facet_count": item.get("facet_count"),
+        "facet_keys": item.get("facet_keys", []),
     }
 
 
@@ -152,7 +144,11 @@ def _cell_payload(root: Path, arm: Arm, pair: str, run: int) -> dict[str, Any]:
         return {"cell": f"{arm}_run{run}", "status": "missing", "findings": []}
     record = _read_json(folder)
     if arm == "method":
-        findings = [_compact_method_finding(x) for x in record.get("finding_records", [])]
+        findings = [
+            _compact_method_report_issue(item)
+            for item in record.get("report_issue_clusters", [])
+            if item.get("d_level") in {"D1", "D2"}
+        ]
         return {
             "cell": f"{arm}_run{run}",
             "status": record.get("status") or "ok",
@@ -202,6 +198,13 @@ def _observation_audit(observation: Any) -> dict[str, Any]:
 def _validate_shape(result: PairJudgement, ledger: list[dict[str, Any]], cells: list[dict[str, Any]]) -> list[str]:
     errors: list[str] = []
     expected_ledger = {str(row["ledger_id"]) for row in ledger}
+    expected_by_cell = {
+        str(cell["cell"]): {
+            str(finding["finding_id"])
+            for finding in cell.get("findings", [])
+        }
+        for cell in cells
+    }
     supplied_ledger = {row.ledger_id for row in result.ledger_assessments}
     if supplied_ledger != expected_ledger:
         errors.append("ledger_assessments must contain each supplied ledger_id exactly once")
@@ -210,7 +213,7 @@ def _validate_shape(result: PairJudgement, ledger: list[dict[str, Any]], cells: 
     expected_emissions = _expected_emission_ids(cells)
     supplied_emissions = {(row.cell, row.emitted_id) for row in result.emission_assessments}
     if supplied_emissions != expected_emissions:
-        errors.append("emission_assessments must contain each supplied emitted finding exactly once")
+        errors.append("emission_assessments must contain each supplied emitted issue exactly once")
     if len(supplied_emissions) != len(result.emission_assessments):
         errors.append("emission_assessments contains duplicate cell/emitted_id")
     for assessment in result.ledger_assessments:
@@ -218,6 +221,31 @@ def _validate_shape(result: PairJudgement, ledger: list[dict[str, Any]], cells: 
             hit = getattr(assessment, field)
             if any(not isinstance(item, str) for item in hit.supporting_finding_ids):
                 errors.append(f"{assessment.ledger_id}.{field} has invalid supporting id")
+                continue
+            supporting_ids = set(hit.supporting_finding_ids)
+            unknown_ids = supporting_ids - expected_by_cell[field]
+            if unknown_ids:
+                errors.append(
+                    f"{assessment.ledger_id}.{field} references unknown supporting ids: "
+                    + ", ".join(sorted(unknown_ids))
+                )
+            if hit.hit and not supporting_ids:
+                errors.append(f"{assessment.ledger_id}.{field} hit requires a supporting id")
+            if not hit.hit and supporting_ids:
+                errors.append(f"{assessment.ledger_id}.{field} miss must not carry supporting ids")
+    for assessment in result.emission_assessments:
+        matched_ledger = set(assessment.matched_ledger_ids)
+        unknown_ledger = matched_ledger - expected_ledger
+        if unknown_ledger:
+            errors.append(
+                f"{assessment.cell}.{assessment.emitted_id} references unknown ledger ids: "
+                + ", ".join(sorted(unknown_ledger))
+            )
+        if assessment.false_positive == bool(matched_ledger):
+            errors.append(
+                f"{assessment.cell}.{assessment.emitted_id} false_positive must equal "
+                "whether matched_ledger_ids is empty"
+            )
     return errors
 
 
