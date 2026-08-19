@@ -11,7 +11,6 @@ from typing import Any
 
 from utils.llm import LLMPricing, estimate_usage_cost_usd, load_llm_registry
 
-
 CELLS = (
     "method_run1",
     "method_run2",
@@ -89,13 +88,6 @@ def method_cost(pair_dir: Path, pricing: LLMPricing) -> tuple[float, int, int, i
                 if attempt.get("billing_disposition") == "provider_error_retry_exempt":
                     provider_exempt += 1
                 total += attempt_cost(attempt, pricing)
-    if final.get("status") == "failed" and final.get("failure"):
-        category = final["failure"].get("class")
-        if category == "provider_or_schema":
-            category = failure_class(observations)
-        failure = {"class": category or failure_class(observations)}
-    else:
-        failure = None
     return total, calls, attempts, provider_exempt
 
 
@@ -252,7 +244,6 @@ def method_quality(method_root: Path, pairs: list[str], pricing: LLMPricing) -> 
     calls = attempts = provider_exempt = 0
     per_pair: dict[str, Any] = {}
     for pair in pairs:
-        path = method_root / "run1" / f"{pair}-luna" / "record.json"
         records = []
         for run in (1, 2, 3):
             p = method_root / f"run{run}" / f"{pair}-luna" / "record.json"
@@ -330,9 +321,9 @@ def build_report(metrics: dict[str, Any]) -> str:
     method = overall["method"]
     baseline = overall["baseline"]
     lines = [
-        "# Luna 全量 x3 语义审计报告",
+        "# 全量 x3 独立语义审计报告",
         "",
-        "本报告比较 gpt-5.6-luna 下的新方法 v26-dnorm 与 X1v2 baseline，运行矩阵为 54 个非 NL04 pair、每臂每 pair 三轮；命中由独立语义评审依据同一位置与同一性质判定，不使用关键词、字符串包含、编辑距离、embedding 或其他词法捷径。",
+        f"本报告比较 {metrics['cost']['profile']} 下的新方法 v26-dnorm 与 X1v2 baseline，运行矩阵为 54 个非 NL04 pair、每臂每 pair 三轮；命中由独立 {metrics['cost']['judge_profile']} 语义评审依据同一位置与同一性质判定，不使用关键词、字符串包含、编辑距离、embedding 或其他词法捷径。",
         "",
         "## 方法侧覆盖",
         "",
@@ -358,11 +349,11 @@ def build_report(metrics: dict[str, Any]) -> str:
         "",
         "## 质量、错误与成本",
         "",
-        f"方法侧 finding 的 W/D/L 分布、accepted/confirmed 数、schema/provider/local failure 数以及每次 attempt 的计费明细见 `metrics.json`；provider retry exemption 只统计 `billing_disposition=provider_error_retry_exempt`，所有其他 attempt 都计费。方法总成本为 `${metrics['cost']['method_usd']:.6f}`，baseline 总成本为 `${metrics['cost']['baseline_usd']:.6f}`，倍率为 `{metrics['cost']['multiplier']:.2f}x`。",
+        f"方法侧 finding 的 W/D/L 分布、accepted/confirmed 数、schema/provider/local failure 数以及每次 attempt 的计费明细见 `metrics.json`；provider retry exemption 只统计 `billing_disposition=provider_error_retry_exempt`，所有其他 attempt 都计费。方法生成成本为 `${metrics['cost']['method_usd']:.6f}`，baseline 生成成本为 `${metrics['cost']['baseline_usd']:.6f}`，唯一成本倍率为 `{metrics['cost']['multiplier']:.2f}x`。独立 judge 审计成本为 `${metrics['cost']['judge_usd']:.6f}`，只作研究支出审计，不进入该倍率。",
         "",
         "## 逐条台账对照",
         "",
-        "方法与 baseline 的逐条台账表物理分开，分别见 `ledger_method.md` 与 `ledger_baseline.md`；每个单元格是三轮中该轮的语义命中结果，失败格按保守规则记为 `❌`。",
+        "方法与 baseline 的逐条台账表物理分开，分别见 `ledger_method.md` 与 `ledger_baseline.md`；每个单元格是三轮中该轮的语义命中结果。正式结果要求 judge 对全部 pair 给出完整裁定，不能用全 miss 代替失败。",
         "",
         "## 可复现边界",
         "",
@@ -376,14 +367,30 @@ def main() -> int:
     parser.add_argument("--method-root", type=Path, required=True)
     parser.add_argument("--baseline-root", type=Path, required=True)
     parser.add_argument("--judge-root", type=Path, required=True)
+    parser.add_argument(
+        "--judge-audit-root",
+        type=Path,
+        default=None,
+        help="Optional root containing manifests for all judge attempts being audited.",
+    )
     parser.add_argument("--ledger", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--profile", default="gpt-5.6-luna")
+    parser.add_argument(
+        "--judge-profile",
+        default=None,
+        help="Pricing profile for the independent judge; defaults to --profile.",
+    )
     args = parser.parse_args()
-    profile = load_llm_registry().require(args.profile)
+    registry = load_llm_registry()
+    profile = registry.require(args.profile)
     if profile.pricing is None:
         raise ValueError(f"profile {args.profile!r} has no configured pricing")
     pricing = profile.pricing
+    judge_profile_name = args.judge_profile or args.profile
+    judge_profile = registry.require(judge_profile_name)
+    if judge_profile.pricing is None:
+        raise ValueError(f"judge profile {judge_profile_name!r} has no configured pricing")
     ledger_data = read_json(args.ledger)["items"]
     pairs = sorted(
         p.name[:4]
@@ -424,11 +431,12 @@ def main() -> int:
     (args.output_dir / "ledger_baseline.md").write_text(markdown_table(ledger_rows["baseline"], ["台账", "D", "L", "run1", "run2", "run3"]) + "\n", encoding="utf-8")
     method_quality_data = method_quality(args.method_root, pairs, pricing)
     baseline_quality_data = baseline_quality(args.baseline_root, pairs, pricing)
-    judge_quality_data = judge_cost(args.judge_root, pricing)
+    judge_quality_data = judge_cost(
+        args.judge_audit_root or args.judge_root,
+        judge_profile.pricing,
+    )
     method_rows = coverage_rows["method"]
     baseline_rows = coverage_rows["baseline"]
-    method_ids = {row["ledger_id"] for row in method_rows}
-    baseline_ids = {row["ledger_id"] for row in baseline_rows}
     method_ledger = {item["id"]: item for item in ledger_data.values()}
     coverage = {
         "method": {
@@ -455,6 +463,7 @@ def main() -> int:
             "method_usd": method_quality_data["cost_usd"],
             "baseline_usd": baseline_quality_data["cost_usd"],
             "judge_usd": judge_quality_data["cost_usd"],
+            "judge_profile": judge_profile_name,
             "method_plus_judge_usd": method_quality_data["cost_usd"] + judge_quality_data["cost_usd"],
             "research_total_usd": method_quality_data["cost_usd"] + baseline_quality_data["cost_usd"] + judge_quality_data["cost_usd"],
             "multiplier": method_quality_data["cost_usd"] / baseline_quality_data["cost_usd"] if baseline_quality_data["cost_usd"] else None,

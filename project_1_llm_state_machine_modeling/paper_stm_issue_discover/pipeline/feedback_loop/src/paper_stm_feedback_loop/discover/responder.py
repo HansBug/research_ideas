@@ -129,6 +129,39 @@ def _retry_delay(exc: BaseException, retry_index: int) -> float:
     return TRANSPORT_RETRY_DELAYS[-1]
 
 
+def _relay_upstream_failure(exc: BaseException) -> bool:
+    """Recognize a relay's structured upstream-failure receipt.
+
+    Some OpenAI-compatible relays translate an upstream outage into HTTP 400
+    ``invalid_request_error`` even though the request itself is valid.  The
+    structured exception body is the only machine-readable distinction from a
+    genuine client-side 400, so keep the check narrow and never classify an
+    arbitrary bad request as retryable.
+    """
+
+    body = getattr(exc, "body", None)
+    if not isinstance(body, Mapping):
+        return False
+    error = body.get("error", body)
+    if not isinstance(error, Mapping):
+        return False
+    return (
+        error.get("type") == "invalid_request_error"
+        and isinstance(error.get("message"), str)
+        and error["message"].startswith("Upstream request failed")
+    )
+
+
+def _bare_openai_api_error(exc: BaseException) -> bool:
+    """Return whether OpenAI reported a provider failure without HTTP status."""
+
+    try:
+        from openai import APIError, APIStatusError
+    except ImportError:  # pragma: no cover - adapter-dependent environment
+        return False
+    return isinstance(exc, APIError) and not isinstance(exc, APIStatusError)
+
+
 def _retryable_error(exc: Exception) -> bool:
     """Return whether a failed model call is a provider-side retry candidate.
 
@@ -148,6 +181,8 @@ def _retryable_error(exc: Exception) -> bool:
         return True
     if isinstance(exc, (ValueError, TypeError, StructuredOutputValidationError)):
         return False
+    if _relay_upstream_failure(exc) or _bare_openai_api_error(exc):
+        return True
     status = _status_code(exc)
     if status is not None:
         return status in {408, 409, 425, 429} or status >= 500

@@ -1,0 +1,165 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0051",
+  "ledger": [],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:extraneous_transition:tr_0006",
+          "claims": [
+            "Exact source transition 'tr_0006' is present but forbidden."
+          ],
+          "locations": [
+            "tr_0006",
+            "NL2"
+          ],
+          "obligations": [
+            "Every authored transition must be semantically authorized by the NL contract that governs its source and behavior role."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:extraneous_transition:tr_0006:facet:49a4e9c9cf72"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型增加了“BrakingState --> InitialState : Signal Feedback Sent”迁移。",
+          "reason": "规格仅说明发送信号反馈后返回初始状态，但上下文明确描述的是信号传输失败后进入运行状态，再由运行状态在反馈发送后返回初始状态；规格没有规定处于制动状态时收到反馈即可直接返回初始状态。该额外迁移改变了规定的状态路径。",
+          "where": "BrakingState 到 InitialState 的迁移"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型增加了“ClampingState --> InitialState : Braking Complete”迁移。",
+          "reason": "规格只要求进入制动钳夹紧状态，没有定义制动完成事件或夹紧状态返回初始状态的行为；该迁移属于未在规格中声明的额外行为。",
+          "where": "ClampingState 到 InitialState 的迁移"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型将“信号反馈已发送”从 `BrakingState` 直接返回 `InitialState`，而规格要求进入制动状态后先转入制动钳夹紧状态；该直接转移使制动流程可以绕过夹紧状态。",
+          "reason": "规格第3条明确规定进入制动状态后转入制动钳夹紧状态，未规定制动状态可因信号反馈直接返回初始状态。该转移引入了规格未定义且与必经夹紧流程冲突的行为。",
+          "where": "`BrakingState --> InitialState : Signal Feedback Sent`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型为 `ClampingState` 增加了“制动完成”后返回初始状态的转移，但规格没有定义制动完成事件或该返回路径。",
+          "reason": "规格仅描述制动状态进入制动钳夹紧状态，没有说明夹紧状态完成后如何转移。该路径属于模型额外添加的行为，若要求严格按规格建模则不符合已给出的状态转移定义。",
+          "where": "`ClampingState --> InitialState : Braking Complete`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型为 `BrakingState` 增加了直接返回 `InitialState` 的“Signal Feedback Sent”转移。",
+          "reason": "规范只说明“信号反馈发送后返回初始状态”，且在进入制动状态后要求转移到制动钳夹紧状态。该额外转移允许系统尚未进入或完成钳夹状态就返回初始状态，绕过了规范规定的制动状态到钳夹状态流程。",
+          "where": "`BrakingState --> InitialState : Signal Feedback Sent`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型将 `ClampingState` 的 `Braking Complete` 转移指向初始状态，但规范未定义该完成事件或该状态迁移。",
+          "reason": "规范仅规定进入制动状态后转移到制动钳夹紧状态，没有规定制动完成后的状态或事件。该转移属于规范之外的行为；若要求模型严格忠实于规范，应删除或由规范明确其依据。",
+          "where": "`ClampingState --> InitialState : Braking Complete`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0051",
+    "ledger_assessments": [],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:extraneous_transition:tr_0006",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出主张 tr_0006 是规格禁止的额外迁移，但冻结台账没有任何条目，因而不存在与其同处且同性质的预期缺陷可对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出主张 BrakingState 到 InitialState 的 Signal Feedback Sent 迁移是额外行为，但冻结台账为空，无法对应任何预期条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出主张 ClampingState 到 InitialState 的 Braking Complete 迁移是未获规格授权的额外行为，但冻结台账为空，无法对应任何预期条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出主张 BrakingState 直接返回 InitialState 的迁移额外且绕过夹紧流程，但冻结台账没有相应缺陷条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出主张 ClampingState 经 Braking Complete 返回 InitialState 是规格未定义的额外迁移，但冻结台账没有相应缺陷条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出主张 BrakingState 经 Signal Feedback Sent 直接返回 InitialState 是绕过规定流程的额外迁移，但冻结台账为空，不能形成覆盖对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出主张 ClampingState 的 Braking Complete 返回迁移属于规范之外的行为，但冻结台账为空，不能对应任何 ledger id。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "冻结台账为空，因此不存在任何可被六个输出格覆盖的预期缺陷。所有实际输出 issue 均无法对应任何 ledger id，必须判为 false positive；无台账条目可供逐格命中评估。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

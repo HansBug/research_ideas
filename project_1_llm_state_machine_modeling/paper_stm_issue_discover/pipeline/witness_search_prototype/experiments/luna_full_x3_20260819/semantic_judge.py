@@ -27,11 +27,10 @@ if str(ROOT) not in sys.path:
 if str(FEEDBACK_SRC) not in sys.path:
     sys.path.insert(0, str(FEEDBACK_SRC))
 
-from paper_stm_feedback_loop.discover.responder import (  # noqa: E402
+from paper_stm_feedback_loop.discover.responder import (
     DirectStructuredResponder,
     StructuredOutputValidationError,
 )
-
 
 Arm = Literal["method", "baseline"]
 Cell = Literal[
@@ -77,6 +76,12 @@ class PairJudgement(BaseModel):
     pair_reason: str
 
 
+class AtomicMatchDecision(BaseModel):
+    matches: bool
+    reason: str
+    confidence: Literal["high", "medium", "low"]
+
+
 SYSTEM_PROMPT = """你是独立的状态机缺陷覆盖评审员。你的任务是把一个 pair 的冻结台账条目与两个被测臂的六个输出格做语义对齐。你只能依据本次输入中的自然语言规格、PlantUML/FCSTM 相关定位、台账条目的完整主张，以及输出 issue 的完整主张作判断；不得使用关键词命中、字符串包含、编辑距离、向量相似度或任何其他词法捷径。
 
 命中判据必须同时满足：1）同一处：输出指认的元素或位置与台账指认的是同一状态、迁移、事件、区域或表达式；2）同一性质：输出主张的是同一种缺失、多余、错位、不可达、无出路、不终止、层次归属、记法槽位或数量问题。措辞不同、只描述后果、没有可执行断言都不影响覆盖命中。只在背景中顺带提到元素、只说上位类别、方向相反，或把多条输出拼起来才能凑成台账主张，都不算命中。
@@ -84,6 +89,8 @@ SYSTEM_PROMPT = """你是独立的状态机缺陷覆盖评审员。你的任务�
 方法侧输入已经是末端可发布 issue：仅含 D2 或 D1 的 `report_issue_clusters`。D0 审计发现不在本次输入中，也绝不能间接计入命中或 false positive。对每个台账条目，六个格都必须给出 hit、支持该命中的 issue id、语义理由和置信度。对每个格中的每一条输出也必须给出是否为 false positive；若它语义上对应台账条目，列出一个或多个对应 ledger id，否则标记 false_positive=true。一个输出 issue 可以覆盖至多条台账，但只有确实同处同性质时才允许。不要因为有正式证书就自动命中，证书只作为主张的一部分；也不要因为没有证书就自动否定覆盖。
 
 这是测量覆盖的独立评审，不是重新修改台账，不得创造新的台账条目。请完整返回要求的结构化对象，不要省略零命中条目或没有 finding 的格。"""
+
+ATOMIC_SYSTEM_PROMPT = """你是独立的状态机缺陷覆盖评审员。现在只裁定一个冻结台账条目与一个被测系统输出 issue 是否语义对应。matches=true 当且仅当二者同时满足“同一处”和“同一性质”：指认同一个状态、迁移、事件、区域或表达式，并主张同一种缺失、多余、错位、不可达、无出路、不终止、层次归属、记法槽位或数量问题。只描述后果、只说上位类别、方向相反或需要与别的 issue 拼接才能覆盖完整台账主张时，必须判 false。不得使用关键词、字符串包含、编辑距离、向量相似度或任何词法捷径。只能裁定输入中的这一对，不得创造台账条目，不得引用其它 emission。请给出明确的语义理由和置信度。"""
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -171,6 +178,25 @@ def _expected_emission_ids(cells: list[dict[str, Any]]) -> set[tuple[str, str]]:
     }
 
 
+def _drop_unknown_emission_rows(
+    result: PairJudgement,
+    cells: list[dict[str, Any]],
+) -> PairJudgement:
+    """Remove structural placeholder rows that do not name an input emission.
+
+    This is exact-ID normalization only. It never creates a relation, fills a
+    missing assessment, or changes any semantic decision for a real emission.
+    """
+
+    expected = _expected_emission_ids(cells)
+    result.emission_assessments = [
+        row
+        for row in result.emission_assessments
+        if (row.cell, row.emitted_id) in expected
+    ]
+    return result
+
+
 def _observation_audit(observation: Any) -> dict[str, Any]:
     """Serialize billing and failure evidence without retaining prompt bodies."""
 
@@ -193,6 +219,61 @@ def _observation_audit(observation: Any) -> dict[str, Any]:
         "pricing": observation.pricing,
         "failure": observation.failure,
     }
+
+
+def _provider_failure_only(observation: Any) -> bool:
+    attempts = list(getattr(observation, "attempts", ()))
+    return bool(attempts) and all(
+        attempt.get("status") == "failed"
+        and attempt.get("retryable") is True
+        and attempt.get("failure_phase") in {"provider_response", "transport"}
+        for attempt in attempts
+    )
+
+
+def _invoke_judge(
+    *,
+    responder: DirectStructuredResponder,
+    role: str,
+    schema: type[BaseModel],
+    system_prompt: str,
+    user_input: str,
+    observations: list[dict[str, Any]],
+) -> BaseModel:
+    """Invoke one semantic decision, persisting through provider outages.
+
+    A responder budget bounds one transport burst, not the existence of the
+    final judgement. If every attempt in that burst is a typed provider error,
+    the same prompt is resent in this process. The terminal attempt of the old
+    burst is then exempt because a real retry follows it.
+    """
+
+    while True:
+        try:
+            result = responder.invoke_structured(
+                role=role,
+                schema=schema,
+                system_prompt=system_prompt,
+                user_input=user_input,
+            )
+        except Exception:
+            observation = responder.take_last_observation()
+            if observation is not None and _provider_failure_only(observation):
+                audit = _observation_audit(observation)
+                terminal = audit["attempts"][-1]
+                terminal["cost_counted"] = False
+                terminal["billing_disposition"] = "provider_error_retry_exempt"
+                terminal["retry_after_seconds"] = 240.0
+                observations.append(audit)
+                time.sleep(240.0)
+                continue
+            if observation is not None:
+                observations.append(_observation_audit(observation))
+            raise
+        observation = responder.take_last_observation()
+        if observation is not None:
+            observations.append(_observation_audit(observation))
+        return result
 
 
 def _validate_shape(result: PairJudgement, ledger: list[dict[str, Any]], cells: list[dict[str, Any]]) -> list[str]:
@@ -266,6 +347,163 @@ def _prompt(pair: str, ledger: list[dict[str, Any]], cells: list[dict[str, Any]]
     return "请评审以下单个 pair。输入中的台账是冻结的预期集合，六个输出格分别属于新方法和 X1v2 baseline 的三轮运行。\n\n" + text
 
 
+def _atomic_prompt(
+    pair: str,
+    ledger: dict[str, Any],
+    cell: str,
+    finding: dict[str, Any],
+    feedback: str | None = None,
+) -> str:
+    payload = {
+        "pair": pair,
+        "frozen_ledger_entry": ledger,
+        "output_cell": cell,
+        "single_release_issue": finding,
+    }
+    text = json.dumps(payload, ensure_ascii=False, indent=2)
+    if feedback:
+        text += "\n\n上一版结构错误，请重新返回完整的 matches、reason、confidence：\n" + feedback
+    return "请独立裁定以下唯一一对台账条目与 release issue。\n\n" + text
+
+
+def _atomic_llm_fallback(
+    pair: str,
+    ledger: list[dict[str, Any]],
+    cells: list[dict[str, Any]],
+    responder: DirectStructuredResponder,
+    observations: list[dict[str, Any]],
+) -> tuple[PairJudgement, list[dict[str, Any]]]:
+    """Recover a complete semantic judgement through atomic LLM decisions.
+
+    Deterministic code only joins decisions by the exact IDs supplied in the
+    input. Every semantic edge in the ledger/emission bipartite graph is decided
+    by the LLM and retained with its reason; no missing edge is imputed as a
+    match or repaired through text rules.
+    """
+
+    relations: list[dict[str, Any]] = []
+    for ledger_row in ledger:
+        for cell in cells:
+            for finding in cell.get("findings", []):
+                feedback: str | None = None
+                while True:
+                    try:
+                        decision = _invoke_judge(
+                            responder=responder,
+                            role="paper1_atomic_semantic_hit_judge",
+                            schema=AtomicMatchDecision,
+                            system_prompt=ATOMIC_SYSTEM_PROMPT,
+                            user_input=_atomic_prompt(
+                                pair,
+                                ledger_row,
+                                str(cell["cell"]),
+                                finding,
+                                feedback,
+                            ),
+                            observations=observations,
+                        )
+                        relations.append(
+                            {
+                                "ledger_id": str(ledger_row["ledger_id"]),
+                                "cell": str(cell["cell"]),
+                                "emitted_id": str(finding["finding_id"]),
+                                **decision.model_dump(mode="json"),
+                            }
+                        )
+                        break
+                    except (StructuredOutputValidationError, ValidationError) as exc:
+                        feedback = f"{type(exc).__name__}: {exc}"
+
+    relation_index = {
+        (row["ledger_id"], row["cell"], row["emitted_id"]): row
+        for row in relations
+    }
+    ledger_assessments: list[LedgerAssessment] = []
+    for ledger_row in ledger:
+        ledger_id = str(ledger_row["ledger_id"])
+        by_cell: dict[str, HitAssessment] = {}
+        for cell in cells:
+            cell_id = str(cell["cell"])
+            rows = [
+                relation_index[(ledger_id, cell_id, str(finding["finding_id"]))]
+                for finding in cell.get("findings", [])
+            ]
+            matched = [row for row in rows if row["matches"]]
+            if matched:
+                by_cell[cell_id] = HitAssessment(
+                    hit=True,
+                    supporting_finding_ids=[row["emitted_id"] for row in matched],
+                    reason="；".join(
+                        f"{row['emitted_id']}: {row['reason']}" for row in matched
+                    ),
+                    confidence=(
+                        "low"
+                        if any(row["confidence"] == "low" for row in matched)
+                        else "medium"
+                        if any(row["confidence"] == "medium" for row in matched)
+                        else "high"
+                    ),
+                )
+            else:
+                by_cell[cell_id] = HitAssessment(
+                    hit=False,
+                    supporting_finding_ids=[],
+                    reason=(
+                        "该 cell 没有 release issue。"
+                        if not rows
+                        else "；".join(
+                            f"{row['emitted_id']}: {row['reason']}" for row in rows
+                        )
+                    ),
+                    confidence=(
+                        "low"
+                        if any(row["confidence"] == "low" for row in rows)
+                        else "medium"
+                        if any(row["confidence"] == "medium" for row in rows)
+                        else "high"
+                    ),
+                )
+        ledger_assessments.append(
+            LedgerAssessment(ledger_id=ledger_id, **by_cell)
+        )
+
+    emission_assessments: list[EmissionAssessment] = []
+    for cell in cells:
+        cell_id = str(cell["cell"])
+        for finding in cell.get("findings", []):
+            emitted_id = str(finding["finding_id"])
+            rows = [
+                relation_index[(str(ledger_row["ledger_id"]), cell_id, emitted_id)]
+                for ledger_row in ledger
+            ]
+            matched = [row for row in rows if row["matches"]]
+            emission_assessments.append(
+                EmissionAssessment(
+                    cell=cell_id,
+                    emitted_id=emitted_id,
+                    matched_ledger_ids=[row["ledger_id"] for row in matched],
+                    false_positive=not bool(matched),
+                    reason="；".join(
+                        f"{row['ledger_id']}: {row['reason']}" for row in (matched or rows)
+                    ),
+                    confidence=(
+                        "low"
+                        if any(row["confidence"] == "low" for row in rows)
+                        else "medium"
+                        if any(row["confidence"] == "medium" for row in rows)
+                        else "high"
+                    ),
+                )
+            )
+    result = PairJudgement(
+        pair=pair,
+        ledger_assessments=ledger_assessments,
+        emission_assessments=emission_assessments,
+        pair_reason="Pair-wide structured adjudication failed its mechanical contract; every ledger/emission relation was independently re-adjudicated by the atomic LLM judge.",
+    )
+    return result, relations
+
+
 def judge_pair(
     pair: str,
     ledger_items: dict[str, Any],
@@ -284,15 +522,15 @@ def judge_pair(
     last_error: str | None = None
     for attempt in range(3):
         try:
-            result = responder.invoke_structured(
+            result = _invoke_judge(
+                responder=responder,
                 role="paper1_luna_semantic_hit_judge",
                 schema=PairJudgement,
                 system_prompt=SYSTEM_PROMPT,
                 user_input=_prompt(pair, ledger, cells, feedback),
+                observations=observations,
             )
-            observation = responder.take_last_observation()
-            if observation is not None:
-                observations.append(_observation_audit(observation))
+            result = _drop_unknown_emission_rows(result, cells)
             errors = _validate_shape(result, ledger, cells)
             if not errors:
                 return {
@@ -307,20 +545,27 @@ def judge_pair(
             feedback = "; ".join(errors)
             last_error = feedback
         except Exception as exc:  # noqa: BLE001 - preserve exact audit failure
-            observation = responder.take_last_observation()
-            if observation is not None:
-                observations.append(_observation_audit(observation))
             last_error = f"{type(exc).__name__}: {exc}"
             if not isinstance(exc, (StructuredOutputValidationError, ValidationError)):
                 break
             feedback = last_error
+    result, relations = _atomic_llm_fallback(
+        pair, ledger, cells, responder, observations
+    )
+    errors = _validate_shape(result, ledger, cells)
+    if errors:
+        raise RuntimeError("atomic LLM judge produced inconsistent exact-ID aggregation: " + "; ".join(errors))
     return {
         "schema": "paper1.luna_semantic_pair_judgement.v1",
         "pair": pair,
         "ledger": ledger,
         "cells": cells,
-        "status": "failed",
-        "failure": {"class": "semantic_judge_output", "message": last_error},
+        "judgement": result.model_dump(mode="json"),
+        "status": "ok",
+        "attempts": 3,
+        "adjudication_mode": "atomic_llm_fallback",
+        "pair_wide_failure": last_error,
+        "atomic_relations": relations,
     }, observations
 
 
@@ -330,7 +575,7 @@ def main() -> int:
     parser.add_argument("--baseline-root", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--profile", default="gpt-5.6-luna")
-    parser.add_argument("--transport-retries", type=int, default=2)
+    parser.add_argument("--transport-retries", type=int, default=8)
     parser.add_argument("--max-output-tokens", type=int, default=20_000)
     parser.add_argument("--pairs", nargs="*", default=None)
     args = parser.parse_args()

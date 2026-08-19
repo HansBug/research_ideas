@@ -24,6 +24,8 @@ import sys
 import time
 from pathlib import Path
 
+import httpx
+import openai
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,7 +33,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from paper_stm_feedback_loop.discover.responder import (  # noqa: E402
+from paper_stm_feedback_loop.discover.responder import (
     TRANSPORT_RETRY_DELAYS,
     _provider_retry_after_seconds,
     _retry_delay,
@@ -60,7 +62,8 @@ class WithResponse(Exception):
         super().__init__("rate limited")
 
         class R:
-            headers = {"Retry-After": str(seconds)}
+            def __init__(self):
+                self.headers = {"Retry-After": str(seconds)}
 
         self.response = R()
 
@@ -134,6 +137,46 @@ def test_the_gateway_timeout_that_killed_pair_0029_is_retryable():
         status_code = 504
 
     assert _retryable_error(Gateway()) is True
+
+
+def test_openai_upstream_failures_that_killed_sol_judge_are_retryable():
+    """Both provider receipts observed in the Sol judge must retry in place."""
+
+    request = httpx.Request("POST", "https://provider.invalid/v1/chat/completions")
+    unavailable = openai.APIError(
+        "Upstream service temporarily unavailable",
+        request,
+        body=None,
+    )
+    response = httpx.Response(400, request=request)
+    relayed = openai.BadRequestError(
+        "Error code: 400",
+        response=response,
+        body={
+            "message": "Upstream request failed request-id=fixture",
+            "type": "invalid_request_error",
+        },
+    )
+
+    assert _retryable_error(unavailable) is True
+    assert _retryable_error(relayed) is True
+
+
+def test_an_ordinary_bad_request_is_not_retried():
+    request = httpx.Request("POST", "https://provider.invalid/v1/chat/completions")
+    response = httpx.Response(400, request=request)
+    invalid = openai.BadRequestError(
+        "Error code: 400",
+        response=response,
+        body={
+            "error": {
+                "message": "Invalid schema for response_format",
+                "type": "invalid_request_error",
+            }
+        },
+    )
+
+    assert _retryable_error(invalid) is False
 
 
 def test_a_schema_violation_is_not_retried():

@@ -3,6 +3,8 @@ from __future__ import annotations
 import time
 from datetime import datetime, timezone
 
+import httpx
+import openai
 import pytest
 from langchain_core.messages import AIMessage, AIMessageChunk
 from langchain_core.runnables.utils import AddableDict
@@ -131,6 +133,35 @@ class _RecoveringProviderModel:
         assert method == "function_calling"
         self.calls += 1
         return _ProviderFailureStructured() if self.calls == 1 else _Structured(schema)
+
+
+class _RelayedUpstreamFailureStructured:
+    def stream(self, _messages):
+        request = httpx.Request(
+            "POST", "https://provider.invalid/v1/chat/completions"
+        )
+        response = httpx.Response(400, request=request)
+        raise openai.BadRequestError(
+            "Error code: 400",
+            response=response,
+            body={
+                "message": "Upstream request failed request-id=fixture",
+                "type": "invalid_request_error",
+            },
+        )
+        yield  # pragma: no cover
+
+
+class _RecoveringRelayedUpstreamModel(_RecoveringProviderModel):
+    def with_structured_output(self, schema, include_raw=False, method=None):
+        assert include_raw is True
+        assert method == "function_calling"
+        self.calls += 1
+        return (
+            _RelayedUpstreamFailureStructured()
+            if self.calls == 1
+            else _Structured(schema)
+        )
 
 
 class _RecoveringIncompleteModel:
@@ -474,6 +505,46 @@ def test_provider_error_retry_is_the_only_cost_exemption(monkeypatch) -> None:
     assert observation.attempts[1]["cost_counted"] is True
     assert observation.usage["input_tokens"] == 120
     assert observation.usage["output_tokens"] == 30
+
+
+def test_relay_mislabeled_upstream_error_retries_in_place_and_is_exempt(
+    monkeypatch,
+) -> None:
+    config = LLMConfig(
+        adapter="openai",
+        model="configured-unit-model",
+        api_key="unit-test-key",
+    )
+    monkeypatch.setattr(
+        responder_module, "load_llm_registry", lambda _path=None: _Registry(config)
+    )
+    model = _RecoveringRelayedUpstreamModel()
+    monkeypatch.setattr(
+        responder_module,
+        "create_chat_model",
+        lambda *_args, **_kwargs: model,
+    )
+    monkeypatch.setattr(responder_module, "_retry_delay", lambda *_args: 0.0)
+    responder = DirectStructuredResponder("unit-profile", transport_retries=1)
+
+    output = responder.invoke_structured(
+        role="requirement_reviewer",
+        schema=RequirementReview,
+        system_prompt="system",
+        user_input="user",
+    )
+
+    observation = responder.take_last_observation()
+    assert output.decision == "accept"
+    assert observation is not None
+    assert model.calls == 2
+    assert observation.attempts[0]["failure_phase"] == "provider_response"
+    assert observation.attempts[0]["retryable"] is True
+    assert observation.attempts[0]["cost_counted"] is False
+    assert observation.attempts[0]["billing_disposition"] == (
+        "provider_error_retry_exempt"
+    )
+    assert observation.attempts[1]["billing_disposition"] == "counted"
 
 
 def test_unretried_provider_error_is_counted(monkeypatch) -> None:
