@@ -105,7 +105,11 @@ GoalRelation = Literal[
 
 
 class ElementObligation(BaseModel):
-    family: Literal["element"] = "element"
+    """Typed obligation about declaration, absence, kind, or cardinality."""
+
+    family: Literal["element"] = Field(
+        default="element", description="Discriminator for the element obligation family."
+    )
     element_kind: Literal[
         "state",
         "final_pseudostate",
@@ -114,15 +118,27 @@ class ElementObligation(BaseModel):
         "action",
         "effect",
         "transition",
-    ]
-    operator: Literal["exists", "absent", "kind_is", "cardinality"]
-    subject_ref: str | None = None
-    expected_kind: str | None = None
-    expected_count: int | None = Field(default=None, ge=0, le=128)
+    ] = Field(description="Formal element kind selected by semantic grounding.")
+    operator: Literal["exists", "absent", "kind_is", "cardinality"] = Field(
+        description="Exact typed operation; it is lowered by the compiler, not interpreted from prose."
+    )
+    subject_ref: str | None = Field(
+        default=None, description="Exact source/FCSTM element identifier, when applicable."
+    )
+    expected_kind: str | None = Field(
+        default=None, description="Expected formal kind for a kind_is obligation."
+    )
+    expected_count: int | None = Field(
+        default=None, ge=0, le=128, description="Exact expected cardinality for a cardinality obligation."
+    )
 
 
 class AttachmentObligation(BaseModel):
-    family: Literal["attachment"] = "attachment"
+    """Typed obligation about how exact formal elements are connected."""
+
+    family: Literal["attachment"] = Field(
+        default="attachment", description="Discriminator for the attachment obligation family."
+    )
     attachment: Literal[
         "containment",
         "initial_target",
@@ -132,41 +148,132 @@ class AttachmentObligation(BaseModel):
         "guard",
         "effect",
         "action_phase",
-    ]
-    subject_ref: str | None = None
-    owner_ref: str | None = None
-    reference_ref: str | None = None
-    expected: bool = True
+    ] = Field(description="Formal attachment relation to inspect."
+    )
+    subject_ref: str | None = Field(
+        default=None, description="Exact transition or element ID being checked."
+    )
+    owner_ref: str | None = Field(
+        default=None, description="Exact owning state/scope ID, when required."
+    )
+    reference_ref: str | None = Field(
+        default=None, description="Exact comparison/reference transition ID, when required."
+    )
+    action_ref: str | None = Field(
+        default=None, description="Exact lifecycle action identity, when the attachment is action_phase."
+    )
+    phase: Literal["entry", "exit", "during"] | None = Field(
+        default=None,
+        description=(
+            "Exact lifecycle phase when the requirement fixes one; null means "
+            "that the named action may be attached to any lifecycle phase."
+        ),
+    )
+    expected: bool = Field(
+        default=True, description="Required truth value of the typed attachment relation."
+    )
+
+
+class GuardConditionBinding(BaseModel):
+    """Explicit semantic bridge from one authored label to a formal guard expression.
+
+    The transition ID and source label are checked against the canonical source
+    artifact before parsing. The compiler never decides that an ordinary event
+    or action label is a guard merely because its text resembles an expression.
+    """
+
+    transition_id: str = Field(
+        min_length=1,
+        max_length=160,
+        description="Exact authored transition ID whose label is semantically a guard condition.",
+    )
+    source_label: str = Field(
+        min_length=1,
+        max_length=800,
+        description=(
+            "Exact raw source label copied from the selected transition; it is "
+            "compared structurally before formal guard parsing."
+        ),
+    )
+    semantic_role: Literal["guard_condition"] = Field(
+        description=(
+            "LLM semantic declaration that this exact source label is a guard "
+            "condition rather than an event, action, or display label."
+        ),
+    )
 
 
 class GuardSetObligation(BaseModel):
-    family: Literal["guard_set"] = "guard_set"
-    property: Literal["satisfiable", "disjoint", "complete", "equivalent", "implies"]
-    scope_ref: str | None = None
-    transition_refs: list[str] = Field(default_factory=list)
-    expected: bool = True
+    """Typed obligation over a semantically selected set of outgoing transitions."""
+
+    family: Literal["guard_set"] = Field(
+        default="guard_set", description="Discriminator for the guard-set obligation family."
+    )
+    property: Literal["satisfiable", "disjoint", "complete", "equivalent", "implies"] = Field(
+        description="Formal relation to evaluate over the selected transition guards."
+    )
+    scope_ref: str | None = Field(
+        default=None, description="Exact source scope whose outgoing set is under analysis."
+    )
+    transition_refs: list[str] = Field(
+        default_factory=list,
+        description="Exact authored transition IDs selected by semantic grounding; never inferred by text matching.",
+    )
+    guard_bindings: list[GuardConditionBinding] = Field(
+        default_factory=list,
+        description=(
+            "Fresh candidates must supply one binding per transition_ref. The "
+            "compiler requires an exact source-label match and then parses that "
+            "formal expression; missing bindings degrade the goal to W1."
+        ),
+    )
+    expected: bool = Field(
+        default=True, description="Required truth value of the guard-set property."
+    )
 
 
 class GraphObligation(BaseModel):
-    family: Literal["graph"] = "graph"
+    """Typed topology obligation evaluated over the canonical state graph."""
+
+    family: Literal["graph"] = Field(
+        default="graph", description="Discriminator for the graph obligation family."
+    )
     property: Literal[
         "reachable",
+        # ``target_reachable`` is a typed vocabulary alias emitted by some
+        # models for the same unbounded graph reachability operator. It is
+        # normalized at the typed lowering boundary, never inferred from prose.
+        "target_reachable",
         "escapable",
         "deadlock_free",
         "stable_termination",
         "path_absent",
         "event_target_reachable",
         "event_consumer_reachable",
-    ]
-    source_ref: str | None = None
-    target_ref: str | None = None
-    forbidden_scope_ref: str | None = None
-    bound: int | None = Field(default=None, ge=1, le=16)
-    expected: bool = True
+    ] = Field(description="Graph property to evaluate with the registered topology backend.")
+    source_ref: str | None = Field(
+        default=None, description="Exact source state/scope ID, when the property has a source."
+    )
+    target_ref: str | None = Field(
+        default=None, description="Exact target state/scope ID, when the property has a target."
+    )
+    forbidden_scope_ref: str | None = Field(
+        default=None, description="Exact scope that a certified path must avoid."
+    )
+    bound: int | None = Field(
+        default=None, ge=1, le=16, description="Optional bounded-trace limit; unsupported bounds remain W1."
+    )
+    expected: bool = Field(
+        default=True, description="Required truth value of the graph property."
+    )
 
 
 class TemporalObligation(BaseModel):
-    family: Literal["temporal"] = "temporal"
+    """Typed temporal-pattern obligation reserved for registered trace operators."""
+
+    family: Literal["temporal"] = Field(
+        default="temporal", description="Discriminator for the temporal obligation family."
+    )
     pattern: Literal[
         "response",
         "precedence",
@@ -175,14 +282,19 @@ class TemporalObligation(BaseModel):
         "universality",
         "termination",
         "persistence",
-    ]
-    scope: Literal["global", "before", "after", "between", "after_until"] = "global"
-    trigger_ref: str | None = None
-    response_ref: str | None = None
-    state_ref: str | None = None
-    scope_ref: str | None = None
-    bound: int | None = Field(default=None, ge=1, le=16)
-    expected: bool = True
+    ] = Field(description="Temporal pattern whose semantics are defined by the registered backend."
+    )
+    scope: Literal["global", "before", "after", "between", "after_until"] = Field(
+        default="global", description="Temporal scope of the pattern."
+    )
+    trigger_ref: str | None = Field(default=None, description="Exact trigger/event identity, when applicable.")
+    response_ref: str | None = Field(default=None, description="Exact response identity, when applicable.")
+    state_ref: str | None = Field(default=None, description="Exact state identity, when applicable.")
+    scope_ref: str | None = Field(default=None, description="Exact state-machine scope, when applicable.")
+    bound: int | None = Field(
+        default=None, ge=1, le=16, description="Optional bounded trace horizon."
+    )
+    expected: bool = Field(default=True, description="Required truth value of the temporal property.")
 
 
 DomainObligation = Annotated[
@@ -203,17 +315,23 @@ ObligationSurfaceRole = Literal[
 
 
 class SupportDisposition(BaseModel):
-    """Compiler-derived execution support; this is not a domain obligation."""
+    """Compiler-derived support metadata; never invent a domain verdict from it."""
 
-    status: Literal["executable", "located_only", "prose_only"]
-    w_ceiling: Literal["W2", "W1", "W0"]
-    surface_role: ObligationSurfaceRole | Literal["legacy_untyped"]
+    status: Literal["executable", "located_only", "prose_only"] = Field(
+        description="Whether the typed obligation has a registered executable lowering."
+    )
+    w_ceiling: Literal["W2", "W1", "W0"] = Field(
+        description="Maximum witness level allowed by the available formal support."
+    )
+    surface_role: ObligationSurfaceRole | Literal["legacy_untyped"] = Field(
+        description="Role of this obligation surface in the preregistered method."
+    )
     reason_code: Literal[
         "sound_lowering_available",
         "no_sound_lowering",
         "legacy_replay",
-    ]
-    reason: str
+    ] = Field(description="Machine-readable reason for the support disposition.")
+    reason: str = Field(description="Short audit explanation; it is not a semantic finding.")
 
 
 ProbeKind = Literal[
@@ -259,30 +377,53 @@ class ProbeCheck(BaseModel):
     killing the pair.
     """
 
-    role: Literal["precondition", "primary"] = "primary"
-    kind: ProbeKind | None = None
-    source: str | None = None
-    trigger: str | None = None
-    target: str | None = None
-    within_cycles: int | None = Field(default=None, ge=1, le=16)
-    expected: bool = True
-    bindings: dict[str, str | int | float | bool] = Field(default_factory=dict)
+    role: Literal["precondition", "primary"] = Field(
+        default="primary", description="Whether this check establishes a prerequisite or tests the claim."
+    )
+    kind: ProbeKind | None = Field(default=None, description="Registered executable predicate shape.")
+    source: str | None = Field(default=None, description="Exact formal source binding, when applicable.")
+    trigger: str | None = Field(default=None, description="Exact event/trigger binding, when applicable.")
+    target: str | None = Field(default=None, description="Exact formal target binding, when applicable.")
+    within_cycles: int | None = Field(
+        default=None, ge=1, le=16, description="Optional bounded execution horizon."
+    )
+    expected: bool = Field(default=True, description="Expected boolean result of this check.")
+    bindings: dict[str, str | int | float | bool] = Field(
+        default_factory=dict,
+        description="Explicit predicate arguments; the compiler validates their signature exactly.",
+    )
 
 
 class ProbeCandidate(BaseModel):
-    obligation: str = ""
-    claim: str = Field(min_length=1)
-    basis_kind: Literal["nl_literal", "implicit_oracle", "domain_norm"]
-    nl_quote: str | None = None
-    priority: int = Field(ge=1, le=5)
-    locations: list[str] = Field(default_factory=list)
-    broad_candidate_ids: list[str] = Field(default_factory=list, max_length=3)
-    probe_seed_ids: list[str] = Field(default_factory=list, max_length=3)
-    checks: list[ProbeCheck] = Field(default_factory=list, max_length=2)
+    """Legacy executable candidate retained for replay and deterministic scouts."""
+
+    obligation: str = Field(default="", description="Human-readable obligation under test.")
+    claim: str = Field(min_length=1, description="Localized issue hypothesis to test.")
+    basis_kind: Literal["nl_literal", "implicit_oracle", "domain_norm"] = Field(
+        description="Provenance class of the obligation basis."
+    )
+    nl_quote: str | None = Field(default=None, description="Verbatim NL evidence span, when applicable.")
+    priority: int = Field(ge=1, le=5, description="Semantic priority assigned by the planning stage.")
+    locations: list[str] = Field(
+        default_factory=list, description="Exact source, FCSTM, or formal locations supporting localization."
+    )
+    broad_candidate_ids: list[str] = Field(
+        default_factory=list, max_length=3, description="IDs of broad hypotheses refined by this candidate."
+    )
+    probe_seed_ids: list[str] = Field(
+        default_factory=list, max_length=3, description="Deterministic scout seed IDs used as localization clues."
+    )
+    checks: list[ProbeCheck] = Field(
+        default_factory=list, max_length=2, description="At most two typed executable checks."
+    )
 
 
 class ProbePlan(BaseModel):
-    candidates: list[ProbeCandidate] = Field(max_length=4)
+    """Bounded collection of legacy candidates passed to the predicate executor."""
+
+    candidates: list[ProbeCandidate] = Field(
+        max_length=4, description="Candidates to execute independently; one malformed item cannot erase peers."
+    )
 
 
 class EvidenceGoal(BaseModel):
@@ -292,27 +433,73 @@ class EvidenceGoal(BaseModel):
     here so one malformed goal degrades to W1 instead of killing the pair.
     """
 
-    relation: GoalRelation
-    observed_transition_id: str | None = None
-    reference_transition_id: str | None = None
-    subject: str | None = None
-    source: str | None = None
-    trigger: str | None = None
-    target: str | None = None
-    forbidden_scope: str | None = None
-    response: str | None = None
-    variable: str | None = None
-    sign: Literal["positive", "negative", "changed"] | None = None
-    phase: Literal["entry", "exit", "during"] | None = None
-    count: int | None = Field(default=None, ge=0, le=128)
-    condition: str | None = None
-    within_cycles: int | None = Field(default=None, ge=1, le=16)
-    expected: bool = True
+    relation: GoalRelation = Field(
+        description="Semantic relation to compile; choose only from the registered goal surface."
+    )
+    observed_transition_id: str | None = Field(
+        default=None, description="Exact authored transition ID selected by semantic grounding."
+    )
+    reference_transition_id: str | None = Field(
+        default=None, description="Exact comparison transition ID for a target-consistency goal."
+    )
+    subject: str | None = Field(default=None, description="Exact formal subject state/element ID, when applicable.")
+    source: str | None = Field(default=None, description="Exact formal source state/scope ID, when applicable.")
+    trigger: str | None = Field(default=None, description="Exact formal event/trigger ID, when applicable.")
+    target: str | None = Field(default=None, description="Normative exact target ID, when applicable.")
+    forbidden_scope: str | None = Field(
+        default=None, description="Exact scope that a route must avoid, when applicable."
+    )
+    # Event-scope obligations retain their LLM-declared applicability and the
+    # complete set of exact formal scopes.  These are formal IDs, not prose
+    # hints; the executor uses them only against the source AST inventory.
+    scope_applicability: Literal[
+        "one_scope",
+        "scope_and_descendants",
+        "each_operating_mode",
+    ] | None = Field(
+        default=None,
+        description="LLM-declared event applicability; never infer it from the number or names of states.",
+    )
+    required_scope_ids: list[str] = Field(
+        default_factory=list,
+        max_length=128,
+        description="Complete exact scope-ID set required by the applicability declaration.",
+    )
+    response: str | None = Field(default=None, description="Exact response event/state ID, when applicable.")
+    variable: str | None = Field(default=None, description="Exact formal variable ID, when applicable.")
+    sign: Literal["positive", "negative", "changed"] | None = Field(
+        default=None, description="Required effect direction; changed requires a registered sound operator."
+    )
+    phase: Literal["entry", "exit", "during"] | None = Field(
+        default=None, description="Lifecycle action phase."
+    )
+    action: str | None = Field(
+        default=None,
+        description=(
+            "Exact lifecycle action identity when the obligation names one. "
+            "The compiler compares this value only against the structured FCSTM "
+            "action inventory; it never interprets action prose."
+        ),
+    )
+    count: int | None = Field(default=None, ge=0, le=128, description="Exact expected cardinality, when applicable.")
+    condition: str | None = Field(default=None, description="Opaque formal condition supplied as a binding, not NL evidence.")
+    within_cycles: int | None = Field(
+        default=None, ge=1, le=16, description="Optional bounded execution horizon."
+    )
+    expected: bool = Field(default=True, description="Required truth value of the goal relation.")
 
 
 class EvidenceCandidate(BaseModel):
-    obligation: str = Field(min_length=1)
-    claim: str = Field(min_length=1)
+    """Prompt-facing issue hypothesis paired with a typed executable goal."""
+
+    obligation: str = Field(
+        min_length=1,
+        description="Requirement or domain obligation that this candidate tests.",
+    )
+    claim: str = Field(
+        min_length=1,
+        description="Localized issue hypothesis; state what may be wrong without adding unsupported facts.",
+    )
     basis: str = Field(
         default="",
         max_length=1200,
@@ -322,29 +509,61 @@ class EvidenceCandidate(BaseModel):
             "outputs must fill this field; the compiler never interprets it."
         ),
     )
-    basis_kind: Literal["nl_literal", "implicit_oracle", "domain_norm"]
-    nl_quote: str | None = None
-    priority: int = Field(ge=1, le=5)
-    locations: list[str] = Field(default_factory=list, max_length=3)
-    proposed_l: Literal["L0", "L1", "L2"]
+    basis_kind: Literal["nl_literal", "implicit_oracle", "domain_norm"] = Field(
+        description="Why the obligation is justified: exact NL, formal oracle, or explicit domain norm."
+    )
+    nl_quote: str | None = Field(
+        default=None, description="Verbatim requirement span; it must not contain artifact conclusions."
+    )
+    priority: int = Field(ge=1, le=5, description="Semantic priority of the candidate.")
+    locations: list[str] = Field(
+        default_factory=list,
+        max_length=3,
+        description="Exact formal/source locations used for localization, not a semantic substitute.",
+    )
+    requirement_group_id: str | None = Field(
+        default=None,
+        pattern=r"^RG-[A-Za-z0-9_-]{1,64}$",
+        description="LLM-declared semantic bundle ID for facets that must be reported together.",
+    )
+    proposed_l: Literal["L0", "L1", "L2"] = Field(
+        description="Planner's localization suggestion; the compiler derives the final L level."
+    )
     domain_obligation: DomainObligation | None = Field(
         default=None,
         description=(
-            "Paper-level typed obligation. New LLM outputs must supply it; legacy "
-            "replay records may omit it while the relation remains a compiler op."
+            "Paper-level typed obligation for the semantic candidate. The compiler "
+            "requires this field for newly proposed candidates."
         ),
     )
-    goal: EvidenceGoal
+    goal: EvidenceGoal = Field(
+        description="Typed semantic goal that the compiler may lower to an executable obligation."
+    )
 
 
 class EvidencePlan(BaseModel):
-    candidates: list[EvidenceCandidate] = Field(max_length=64)
+    """Typed candidates sent to the deterministic evidence compiler."""
+
+    candidates: list[EvidenceCandidate] = Field(
+        max_length=64, description="Independent candidates; each receives its own execution result."
+    )
 
 
 class BalancedEvidenceCandidate(EvidenceCandidate):
-    obligation: str = Field(min_length=1)
-    claim: str = Field(min_length=1)
-    nl_quote: str | None = None
+    """Issue candidate with an audit-only observed-fact summary."""
+
+    obligation: str = Field(
+        min_length=1,
+        description="Requirement or domain obligation that this candidate tests.",
+    )
+    claim: str = Field(
+        min_length=1,
+        description="Localized issue hypothesis; state what may be wrong without adding unsupported facts.",
+    )
+    nl_quote: str | None = Field(
+        default=None,
+        description="Verbatim requirement span when the candidate is grounded in an explicit NL statement.",
+    )
     locations: list[str] = Field(
         default_factory=list,
         description=(
@@ -353,12 +572,28 @@ class BalancedEvidenceCandidate(EvidenceCandidate):
             "the schema."
         ),
     )
-    observed_fact: str = Field(min_length=1)
+    observed_fact: str = Field(
+        default="",
+        description=(
+            "Optional audit-only summary of the formal fact that motivated the "
+            "candidate. Empty is accepted when the typed goal and basis already "
+            "carry the evidence; this field is never used for compilation."
+        ),
+    )
+    goal: EvidenceGoal = Field(
+        description="Typed semantic goal that the compiler may lower to an executable obligation."
+    )
 
 
 class BalancedEvidencePlan(BaseModel):
-    surface_candidates: list[BalancedEvidenceCandidate] = Field(max_length=3)
-    behavior_candidates: list[BalancedEvidenceCandidate] = Field(max_length=3)
+    """Small bounded plan used by the complementary planning lenses."""
+
+    surface_candidates: list[BalancedEvidenceCandidate] = Field(
+        max_length=3, description="Surface candidates for structural or representation obligations."
+    )
+    behavior_candidates: list[BalancedEvidenceCandidate] = Field(
+        max_length=3, description="Behavior candidates for executable dynamic obligations."
+    )
 
     @property
     def candidates(self) -> list[BalancedEvidenceCandidate]:
@@ -366,12 +601,20 @@ class BalancedEvidencePlan(BaseModel):
 
 
 class SurfaceObligation(BaseModel):
-    obligation: str = Field(min_length=1)
-    nl_quote: str = Field(min_length=1)
-    locations: list[str] = Field(default_factory=list, max_length=2)
-    priority: int = Field(ge=1, le=5)
-    proposed_l: Literal["L0", "L1"]
-    goal: EvidenceGoal
+    """Explicit requirement obligation that can be compiled from a typed goal."""
+
+    obligation: str = Field(min_length=1, description="Requirement obligation stated by the extraction stage.")
+    nl_quote: str = Field(min_length=1, description="Verbatim NL span supporting the obligation.")
+    locations: list[str] = Field(
+        default_factory=list, max_length=2, description="Exact formal/source locations for localization."
+    )
+    priority: int = Field(ge=1, le=5, description="Semantic priority of the obligation.")
+    proposed_l: Literal["L0", "L1"] = Field(
+        description="Planner localization suggestion; final L is derived after execution."
+    )
+    goal: EvidenceGoal = Field(
+        description="Typed semantic goal for the surface obligation; do not encode a verdict in the goal."
+    )
 
     def as_candidate(self) -> EvidenceCandidate:
         return EvidenceCandidate(
@@ -391,8 +634,16 @@ class SurfaceObligation(BaseModel):
 
 
 class HybridEvidencePlan(BaseModel):
-    surface_obligations: list[SurfaceObligation] = Field(max_length=12)
-    behavior_candidates: list[BalancedEvidenceCandidate] = Field(max_length=3)
+    """Combined surface and behavior plan used by the fixed discovery frontend."""
+
+    surface_obligations: list[SurfaceObligation] = Field(
+        max_length=12,
+        description="Explicit requirement obligations reserved for structural and representation checks.",
+    )
+    behavior_candidates: list[BalancedEvidenceCandidate] = Field(
+        max_length=3,
+        description="Behavior hypotheses reserved for executable dynamic checks.",
+    )
 
     @property
     def candidates(self) -> list[EvidenceCandidate]:
@@ -403,62 +654,109 @@ class HybridEvidencePlan(BaseModel):
 
 
 class ExpectedTransitionTarget(BaseModel):
-    target: str = Field(min_length=1)
+    """One semantically extracted target alternative from an NL transition group."""
+
+    target: str = Field(min_length=1, description="Normative target concept or exact grounded state ID.")
     target_concept_id: str | None = Field(
-        default=None, pattern=r"^C-[A-Za-z0-9_-]{1,64}$"
+        default=None,
+        pattern=r"^C-[A-Za-z0-9_-]{1,64}$",
+        description="Stable semantic concept ID for the normative target, when one was assigned.",
     )
-    condition: str | None = None
-    observed_transition_id: str | None = Field(default=None, max_length=160)
+    condition: str | None = Field(
+        default=None, description="Condition semantically attached to this target alternative."
+    )
+    observed_transition_id: str | None = Field(
+        default=None,
+        max_length=160,
+        description="Exact authored transition ID that realizes this relation, when one exists.",
+    )
+    formal_condition: str | None = Field(
+        default=None,
+        max_length=800,
+        description=(
+            "Grounding-only exact formal condition binding. The contract extractor "
+            "must leave this null; grounding may fill it only from the canonical "
+            "transition AST, while the normative condition remains unchanged."
+        ),
+    )
 
 
 class ExpectedTransitionGroup(BaseModel):
-    """One NL sentence/group that assigns alternatives to the same source."""
+    """One NL sentence/group whose alternatives share a semantically grounded source."""
 
-    source: str = Field(min_length=1)
+    source: str = Field(min_length=1, description="Normative source concept or exact grounded state ID.")
     source_concept_id: str | None = Field(
-        default=None, pattern=r"^C-[A-Za-z0-9_-]{1,64}$"
+        default=None,
+        pattern=r"^C-[A-Za-z0-9_-]{1,64}$",
+        description="Stable semantic concept ID for the normative source, when one was assigned.",
     )
-    targets: list[ExpectedTransitionTarget] = Field(min_length=1)
-    nl_line: int = Field(ge=1)
-    nl_quote: str | None = Field(default=None, min_length=1)
-    priority: int = Field(ge=1, le=5)
+    targets: list[ExpectedTransitionTarget] = Field(
+        min_length=1, description="All semantically named target alternatives; do not truncate the group."
+    )
+    nl_line: int = Field(ge=1, description="One-based numbered NL line containing the obligation.")
+    nl_quote: str | None = Field(default=None, min_length=1, description="Optional verbatim NL span.")
+    priority: int = Field(ge=1, le=5, description="Semantic priority of the transition group.")
 
 
 class ExpectedInitialContract(BaseModel):
-    composite: str = Field(min_length=1)
+    """One explicit initial-entry obligation extracted from the requirements."""
+
+    composite: str = Field(min_length=1, description="Normative composite/scope concept or exact state ID.")
     composite_concept_id: str | None = Field(
-        default=None, pattern=r"^C-[A-Za-z0-9_-]{1,64}$"
+        default=None,
+        pattern=r"^C-[A-Za-z0-9_-]{1,64}$",
+        description="Stable semantic concept ID for the normative composite, when one was assigned.",
     )
-    target: str = Field(min_length=1)
+    target: str = Field(min_length=1, description="Normative initial child concept or exact state ID.")
     target_concept_id: str | None = Field(
-        default=None, pattern=r"^C-[A-Za-z0-9_-]{1,64}$"
+        default=None,
+        pattern=r"^C-[A-Za-z0-9_-]{1,64}$",
+        description="Stable semantic concept ID for the normative initial target, when one was assigned.",
     )
-    nl_line: int = Field(ge=1)
-    nl_quote: str | None = Field(default=None, min_length=1)
-    priority: int = Field(ge=1, le=5)
+    nl_line: int = Field(ge=1, description="One-based numbered NL line containing the initial obligation.")
+    nl_quote: str | None = Field(default=None, min_length=1, description="Optional verbatim NL span.")
+    requirement_group_id: str | None = Field(
+        default=None,
+        pattern=r"^RG-[A-Za-z0-9_-]{1,64}$",
+        description=(
+            "LLM-declared semantic bundle identity for initial obligations that "
+            "must be reported together. Deterministic code only preserves it."
+        ),
+    )
+    priority: int = Field(ge=1, le=5, description="Semantic priority of the initial obligation.")
 
 
 class ExpectedContainmentContract(BaseModel):
-    parent: str = Field(min_length=1)
+    """One explicit parent-child containment obligation from the requirements."""
+
+    parent: str = Field(min_length=1, description="Normative parent concept or exact scope ID.")
     parent_concept_id: str | None = Field(
-        default=None, pattern=r"^C-[A-Za-z0-9_-]{1,64}$"
+        default=None,
+        pattern=r"^C-[A-Za-z0-9_-]{1,64}$",
+        description="Stable semantic concept ID for the normative parent, when one was assigned.",
     )
-    child: str = Field(min_length=1)
+    child: str = Field(min_length=1, description="Normative child concept or exact state ID.")
     child_concept_id: str | None = Field(
-        default=None, pattern=r"^C-[A-Za-z0-9_-]{1,64}$"
+        default=None,
+        pattern=r"^C-[A-Za-z0-9_-]{1,64}$",
+        description="Stable semantic concept ID for the normative child, when one was assigned.",
     )
-    nl_line: int = Field(ge=1)
-    nl_quote: str | None = Field(default=None, min_length=1)
-    priority: int = Field(ge=1, le=5)
+    nl_line: int = Field(ge=1, description="One-based numbered NL line containing the containment obligation.")
+    nl_quote: str | None = Field(default=None, min_length=1, description="Optional verbatim NL span.")
+    priority: int = Field(ge=1, le=5, description="Semantic priority of the containment obligation.")
 
 
 class RequiredStateContract(BaseModel):
     """One LLM-declared NL concept that requires a state realization."""
 
-    concept: str = Field(min_length=1)
-    concept_id: str = Field(pattern=r"^C-[A-Za-z0-9_-]{1,64}$")
+    concept: str = Field(min_length=1, description="Natural-language state concept requiring realization.")
+    concept_id: str = Field(
+        pattern=r"^C-[A-Za-z0-9_-]{1,64}$", description="Stable semantic concept ID reused only for true coreference."
+    )
     scope_concept_id: str | None = Field(
-        default=None, pattern=r"^C-[A-Za-z0-9_-]{1,64}$"
+        default=None,
+        pattern=r"^C-[A-Za-z0-9_-]{1,64}$",
+        description="Stable semantic concept ID for the containing scope, when one was assigned.",
     )
     role: Literal[
         "operating_state",
@@ -466,26 +764,59 @@ class RequiredStateContract(BaseModel):
         "initial_state",
         "termination_state",
         "other_state",
-    ]
-    nl_quote: str = Field(min_length=1)
-    priority: int = Field(ge=1, le=5)
+    ] = Field(description="Semantic role of the required state in the requirement.")
+    nl_quote: str = Field(min_length=1, description="Verbatim NL span establishing the state requirement.")
+    priority: int = Field(ge=1, le=5, description="Semantic priority of the required state.")
 
 
 class RequiredEventScopeContract(BaseModel):
     """One LLM-declared event obligation and its normative scope concept."""
 
-    event_concept: str = Field(min_length=1)
-    scope_concept: str = Field(min_length=1)
+    event_concept: str = Field(min_length=1, description="Natural-language event concept whose coverage is required.")
+    scope_concept: str = Field(min_length=1, description="Natural-language scope concept to which coverage applies.")
     scope_concept_id: str | None = Field(
-        default=None, pattern=r"^C-[A-Za-z0-9_-]{1,64}$"
+        default=None,
+        pattern=r"^C-[A-Za-z0-9_-]{1,64}$",
+        description="Stable semantic concept ID for the required scope, when one was assigned.",
     )
     applicability: Literal[
         "one_scope",
         "scope_and_descendants",
         "each_operating_mode",
-    ]
-    nl_quote: str = Field(min_length=1)
-    priority: int = Field(ge=1, le=5)
+    ] = Field(description="LLM semantic applicability mode; do not infer it lexically."
+    )
+    nl_quote: str = Field(min_length=1, description="Verbatim NL span establishing event coverage.")
+    priority: int = Field(ge=1, le=5, description="Semantic priority of the required event scope.")
+
+
+class RequiredActionContract(BaseModel):
+    """One explicit state-owned action or output obligation extracted from NL."""
+
+    action_concept: str = Field(
+        min_length=1,
+        description="Exact normative action or output identity supplied by semantic extraction.",
+    )
+    owner_concept: str = Field(
+        min_length=1,
+        description="Natural-language state concept that owns the required action.",
+    )
+    owner_concept_id: str = Field(
+        pattern=r"^C-[A-Za-z0-9_-]{1,64}$",
+        description="Stable semantic concept ID for the owning state.",
+    )
+    phase: Literal["entry", "exit", "during", "any"] = Field(
+        description=(
+            "Lifecycle phase established by the requirement; use any only when "
+            "the requirement assigns the action to the state without fixing a phase."
+        )
+    )
+    action_kind: Literal["state_action", "output_signal"] = Field(
+        description="Semantic action category; transition triggers and conditions are excluded."
+    )
+    nl_quote: str = Field(
+        min_length=1, description="Verbatim NL span establishing this one atomic action obligation."
+    )
+    priority: int = Field(ge=1, le=5, description="Semantic priority of the required action.")
 
 
 class ContractLensPlan(BaseModel):
@@ -496,9 +827,15 @@ class ContractLensPlan(BaseModel):
     non-transition surface mismatches and behavior hypotheses.
     """
 
-    transition_groups: list[ExpectedTransitionGroup] = Field(max_length=10)
-    surface_candidates: list[BalancedEvidenceCandidate] = Field(max_length=3)
-    behavior_candidates: list[BalancedEvidenceCandidate] = Field(max_length=4)
+    transition_groups: list[ExpectedTransitionGroup] = Field(
+        max_length=10, description="Grouped direct-transition obligations extracted from NL."
+    )
+    surface_candidates: list[BalancedEvidenceCandidate] = Field(
+        max_length=3, description="Surface hypotheses reserved by the lens."
+    )
+    behavior_candidates: list[BalancedEvidenceCandidate] = Field(
+        max_length=4, description="Behavior hypotheses reserved by the lens."
+    )
 
     @property
     def candidates(self) -> list[BalancedEvidenceCandidate]:
@@ -506,34 +843,70 @@ class ContractLensPlan(BaseModel):
 
 
 class ContractExtractionPlan(BaseModel):
-    initial_contracts: list[ExpectedInitialContract]
-    containment_contracts: list[ExpectedContainmentContract] = Field(
-        default_factory=list
+    """Lossless semantic extraction of explicit NL obligations before grounding."""
+
+    initial_contracts: list[ExpectedInitialContract] = Field(
+        description="Every explicit initial-entry obligation; preserve all members of a semantic bundle."
     )
-    transition_groups: list[ExpectedTransitionGroup]
-    required_state_contracts: list[RequiredStateContract] = Field(default_factory=list)
+    containment_contracts: list[ExpectedContainmentContract] = Field(
+        default_factory=list, description="Every explicit parent-child obligation."
+    )
+    transition_groups: list[ExpectedTransitionGroup] = Field(
+        description="Every explicit direct-transition group, including all alternatives."
+    )
+    required_state_contracts: list[RequiredStateContract] = Field(
+        default_factory=list, description="State concepts that the requirements require to be realized."
+    )
     required_event_scope_contracts: list[RequiredEventScopeContract] = Field(
-        default_factory=list
+        default_factory=list, description="Event/scope coverage obligations established by NL semantics."
+    )
+    required_action_contracts: list[RequiredActionContract] = Field(
+        default_factory=list,
+        description=(
+            "Every explicit state-owned named action or output signal obligation, "
+            "kept atomic and independent of persistence or transition obligations."
+        ),
     )
 
 
 class GroundedContractPlan(ContractExtractionPlan):
     """Lossless internal contract after LLM plans have been merged."""
 
-    initial_contracts: list[ExpectedInitialContract] = Field(default_factory=list)
-    containment_contracts: list[ExpectedContainmentContract] = Field(
-        default_factory=list
+    initial_contracts: list[ExpectedInitialContract] = Field(
+        default_factory=list,
+        description="Merged initial-entry obligations preserved after grounding.",
     )
-    transition_groups: list[ExpectedTransitionGroup] = Field(default_factory=list)
-    required_state_contracts: list[RequiredStateContract] = Field(default_factory=list)
+    containment_contracts: list[ExpectedContainmentContract] = Field(
+        default_factory=list,
+        description="Merged parent-child obligations preserved after grounding.",
+    )
+    transition_groups: list[ExpectedTransitionGroup] = Field(
+        default_factory=list,
+        description="Merged direct-transition groups with every normative alternative preserved.",
+    )
+    required_state_contracts: list[RequiredStateContract] = Field(
+        default_factory=list,
+        description="Merged required-state obligations preserved after grounding.",
+    )
     required_event_scope_contracts: list[RequiredEventScopeContract] = Field(
-        default_factory=list
+        default_factory=list,
+        description="Merged event/scope coverage obligations preserved after grounding.",
+    )
+    required_action_contracts: list[RequiredActionContract] = Field(
+        default_factory=list,
+        description="Merged state-owned action obligations preserved after grounding.",
     )
 
 
 class IssueDiscoveryPlan(BaseModel):
-    surface_candidates: list[BalancedEvidenceCandidate] = Field(max_length=96)
-    behavior_candidates: list[BalancedEvidenceCandidate] = Field(max_length=5)
+    """Typed issue hypotheses after semantic grounding, ready for execution."""
+
+    surface_candidates: list[BalancedEvidenceCandidate] = Field(
+        max_length=96, description="Grounded structural and representation hypotheses."
+    )
+    behavior_candidates: list[BalancedEvidenceCandidate] = Field(
+        max_length=5, description="Grounded behavior hypotheses with typed goals."
+    )
 
     @property
     def candidates(self) -> list[BalancedEvidenceCandidate]:
@@ -541,68 +914,132 @@ class IssueDiscoveryPlan(BaseModel):
 
 
 class SemanticGroundingGap(BaseModel):
-    scope: Literal["contract", "surface_candidate", "behavior_candidate"]
-    item_index: int = Field(ge=0)
-    field: str = Field(min_length=1)
-    reason: str = Field(min_length=1)
+    """Explicit unresolved semantic binding retained for audit instead of guessing."""
+
+    scope: Literal["contract", "surface_candidate", "behavior_candidate"] = Field(
+        description="Plan lane in which the unresolved binding occurred."
+    )
+    item_index: int = Field(ge=0, description="Zero-based item index in that lane.")
+    field: str = Field(min_length=1, description="Field whose semantic binding remains unresolved.")
+    reason: str = Field(min_length=1, description="Short semantic reason for withholding a binding.")
 
 
 class EvidenceGoalBinding(BaseModel):
-    lane: Literal["surface_candidates", "behavior_candidates"]
-    item_index: int = Field(ge=0, le=4)
-    observed_transition_id: str | None = Field(default=None, max_length=160)
-    reference_transition_id: str | None = Field(default=None, max_length=160)
-    subject: str | None = Field(default=None, max_length=200)
-    source: str | None = Field(default=None, max_length=200)
-    trigger: str | None = Field(default=None, max_length=200)
-    target: str | None = Field(default=None, max_length=200)
-    forbidden_scope: str | None = Field(default=None, max_length=200)
-    response: str | None = Field(default=None, max_length=200)
-    variable: str | None = Field(default=None, max_length=200)
+    """Compact exact-ID patch applied to an already proposed goal."""
+
+    lane: Literal["surface_candidates", "behavior_candidates"] = Field(
+        description="Candidate lane receiving this binding patch."
+    )
+    item_index: int = Field(ge=0, le=4, description="Zero-based candidate index in the lane.")
+    observed_transition_id: str | None = Field(default=None, max_length=160, description="Exact observed transition ID.")
+    reference_transition_id: str | None = Field(default=None, max_length=160, description="Exact reference transition ID.")
+    subject: str | None = Field(default=None, max_length=200, description="Exact formal subject ID.")
+    source: str | None = Field(default=None, max_length=200, description="Exact formal source ID.")
+    trigger: str | None = Field(default=None, max_length=200, description="Exact formal trigger/event ID.")
+    target: str | None = Field(default=None, max_length=200, description="Normative exact target ID.")
+    forbidden_scope: str | None = Field(default=None, max_length=200, description="Exact forbidden scope ID.")
+    response: str | None = Field(default=None, max_length=200, description="Exact response ID.")
+    variable: str | None = Field(default=None, max_length=200, description="Exact variable ID.")
+    action: str | None = Field(default=None, max_length=200, description="Exact lifecycle action identity.")
 
 
 class SemanticConceptBinding(BaseModel):
-    concept_id: str = Field(pattern=r"^C-[A-Za-z0-9_-]{1,64}$")
-    source_state_id: str = Field(min_length=1, max_length=200)
-    nl_lines: list[int] = Field(default_factory=list)
+    """One semantic concept-to-source-state binding produced by grounding."""
+
+    concept_id: str = Field(
+        pattern=r"^C-[A-Za-z0-9_-]{1,64}$", description="Stable semantic concept ID."
+    )
+    source_state_id: str = Field(
+        min_length=1, max_length=200, description="Exact author-source state ID selected by semantic reasoning."
+    )
+    nl_lines: list[int] = Field(
+        default_factory=list, description="Numbered NL lines supporting the concept binding."
+    )
 
 
 class SemanticGroundingPlan(BaseModel):
-    contract_plan: ContractExtractionPlan
-    concept_bindings: list[SemanticConceptBinding] = Field(default_factory=list)
-    evidence_bindings: list[EvidenceGoalBinding]
-    unresolved: list[SemanticGroundingGap] = Field(default_factory=list)
+    """Semantic re-audit plus exact formal bindings; it does not generate verdicts."""
+
+    contract_plan: ContractExtractionPlan = Field(
+        description="Re-audited contract plan with normative relations preserved."
+    )
+    concept_bindings: list[SemanticConceptBinding] = Field(
+        default_factory=list, description="Exact concept-to-state bindings."
+    )
+    evidence_bindings: list[EvidenceGoalBinding] = Field(
+        description="Exact-ID patches for candidate goals."
+    )
+    unresolved: list[SemanticGroundingGap] = Field(
+        default_factory=list, description="Bindings intentionally withheld because semantics remain ambiguous."
+    )
 
 
 class CompactConceptBinding(BaseModel):
-    concept_id: str = Field(pattern=r"^C-[A-Za-z0-9_-]{1,64}$")
-    source_state_id: str = Field(min_length=1, max_length=200)
+    """Compact exact concept binding used by the discovery-grounding response."""
+
+    concept_id: str = Field(
+        pattern=r"^C-[A-Za-z0-9_-]{1,64}$", description="Stable semantic concept ID."
+    )
+    source_state_id: str = Field(
+        min_length=1,
+        max_length=200,
+        description=(
+            "Exact author-source state ID copied verbatim from the supplied inventory; "
+            "never shorten a qualified path or remove its pair namespace."
+        ),
+    )
 
 
 class InitialContractGrounding(BaseModel):
-    item_index: int = Field(ge=0)
-    status: Literal["grounded", "rejected", "unresolved"]
-    composite: str | None = Field(default=None, min_length=1, max_length=200)
-    target: str | None = Field(default=None, min_length=1, max_length=200)
-    reason: str | None = Field(default=None, min_length=1)
+    """Sparse semantic decision about one extracted initial contract."""
+
+    item_index: int = Field(ge=0, description="Zero-based initial-contract index.")
+    status: Literal["grounded", "rejected", "unresolved"] = Field(
+        description="Semantic status; silence means the raw contract is accepted."
+    )
+    composite: str | None = Field(default=None, min_length=1, max_length=200, description="Exact grounded composite ID.")
+    target: str | None = Field(default=None, min_length=1, max_length=200, description="Exact grounded initial target ID.")
+    reason: str | None = Field(default=None, min_length=1, description="Reason for rejecting or withholding the contract.")
 
 
 class ContainmentContractGrounding(BaseModel):
-    item_index: int = Field(ge=0)
-    status: Literal["grounded", "rejected", "unresolved"]
-    parent: str | None = Field(default=None, min_length=1, max_length=200)
-    child: str | None = Field(default=None, min_length=1, max_length=200)
-    reason: str | None = Field(default=None, min_length=1)
+    """Sparse semantic decision about one extracted containment contract."""
+
+    item_index: int = Field(ge=0, description="Zero-based containment-contract index.")
+    status: Literal["grounded", "rejected", "unresolved"] = Field(
+        description="Semantic status; deterministic code does not infer containment."
+    )
+    parent: str | None = Field(default=None, min_length=1, max_length=200, description="Exact grounded parent scope ID.")
+    child: str | None = Field(default=None, min_length=1, max_length=200, description="Exact grounded child state ID.")
+    reason: str | None = Field(default=None, min_length=1, description="Reason for rejecting or withholding the contract.")
 
 
 class TransitionTargetGrounding(BaseModel):
-    target_index: int = Field(ge=0)
-    target: str = Field(min_length=1, max_length=200)
-    observed_transition_id: str | None = Field(default=None, max_length=160)
+    """Exact target binding for one member of a transition group."""
+
+    target_index: int = Field(ge=0, description="Zero-based target index in the raw transition group.")
+    target: str = Field(min_length=1, max_length=200, description="Normative exact target ID; do not rewrite it to match the artifact.")
+    observed_transition_id: str | None = Field(
+        default=None, max_length=160, description="Exact authored transition ID realizing this relation, when semantically selected."
+    )
+    condition_binding: str | None = Field(
+        default=None,
+        max_length=800,
+        description=(
+            "Exact formal event/guard/raw-label identity copied from the selected "
+            "source transition. Required for a conditioned target when W2 is "
+            "claimed; never use prose, Markdown, or a paraphrase."
+        ),
+    )
 
 
 class TransitionGroupGrounding(BaseModel):
-    item_index: int = Field(ge=0)
+    """Exhaustive semantic binding for one transition alternative group."""
+
+    item_index: int = Field(
+        ge=0,
+        description="Zero-based index of the raw transition group being resolved.",
+    )
     status: Literal["grounded", "rejected", "unresolved"] = Field(
         description=(
             "grounded when the NL relation is semantically valid; rejected when "
@@ -624,25 +1061,57 @@ class TransitionGroupGrounding(BaseModel):
             "corresponding authored transition ID when one exists."
         ),
     )
-    reason: str | None = Field(default=None, min_length=1)
+    reason: str | None = Field(
+        default=None,
+        min_length=1,
+        description="Semantic reason for rejection or unresolved grounding.",
+    )
 
 
 class RequiredStateGrounding(BaseModel):
-    item_index: int = Field(ge=0)
-    status: Literal["realized", "missing", "unresolved"]
-    formal_kind: Literal["state", "final_pseudostate"] | None = None
-    realized_state_id: str | None = Field(default=None, max_length=200)
-    parent_scope_id: str | None = Field(default=None, max_length=200)
-    normative_formal_path: str | None = Field(default=None, max_length=200)
-    reason: str | None = Field(default=None, min_length=1)
+    """Semantic resolution of a required state concept against the source inventory."""
+
+    item_index: int = Field(ge=0, description="Zero-based required-state index.")
+    status: Literal["realized", "missing", "unresolved"] = Field(
+        description="Whether the required state is realized, absent, or semantically unresolved."
+    )
+    formal_kind: Literal["state", "final_pseudostate"] | None = Field(
+        default=None, description="Formal kind of a realized element."
+    )
+    realized_state_id: str | None = Field(default=None, max_length=200, description="Exact realized source state ID.")
+    parent_scope_id: str | None = Field(default=None, max_length=200, description="Exact parent scope ID used for anchoring.")
+    normative_formal_path: str | None = Field(default=None, max_length=200, description="Normative formal path when the required element is absent.")
+    reason: str | None = Field(default=None, min_length=1, description="Semantic reason for a missing or unresolved result.")
 
 
 class RequiredEventScopeGrounding(BaseModel):
-    item_index: int = Field(ge=0)
-    status: Literal["grounded", "unresolved"]
-    observed_transition_id: str | None = Field(default=None, max_length=160)
-    required_scope_ids: list[str] = Field(default_factory=list)
-    reason: str | None = Field(default=None, min_length=1)
+    """Exact event identity and scope set for a required event-coverage obligation."""
+
+    item_index: int = Field(ge=0, description="Zero-based required-event-scope index.")
+    status: Literal["grounded", "unresolved"] = Field(description="Semantic binding status.")
+    observed_transition_id: str | None = Field(
+        default=None, max_length=160, description="Exact transition used to bind the event identity."
+    )
+    required_scope_ids: list[str] = Field(
+        default_factory=list, description="Exact formal scope IDs covered by the requirement."
+    )
+    reason: str | None = Field(default=None, min_length=1, description="Reason for withholding a scope binding.")
+
+
+class RequiredActionGrounding(BaseModel):
+    """Sparse semantic veto for one NL-extracted state-owned action contract."""
+
+    item_index: int = Field(ge=0, description="Zero-based required-action index.")
+    status: Literal["rejected", "unresolved"] = Field(
+        description=(
+            "Reject an incorrectly classified action obligation or withhold a "
+            "genuinely ambiguous owner/action/phase reading. Silence accepts the contract."
+        )
+    )
+    reason: str = Field(
+        min_length=1,
+        description="Auditable semantic reason for rejecting or withholding the action contract.",
+    )
 
 
 class UnauthorizedTransitionGrounding(BaseModel):
@@ -654,11 +1123,29 @@ class UnauthorizedTransitionGrounding(BaseModel):
     existing ``transition_absent`` proof route.
     """
 
-    observed_transition_id: str = Field(min_length=1, max_length=160)
-    status: Literal["unauthorized", "unresolved"]
-    nl_quote: str | None = Field(default=None, min_length=1)
-    nl_lines: list[int] = Field(default_factory=list, max_length=8)
-    rationale: str = Field(min_length=1, max_length=800)
+    observed_transition_id: str = Field(
+        min_length=1,
+        max_length=160,
+        description="Exact authored transition ID selected by semantic review.",
+    )
+    status: Literal["unauthorized", "unresolved"] = Field(
+        description="Semantic disposition of the selected authored transition.",
+    )
+    nl_quote: str | None = Field(
+        default=None,
+        min_length=1,
+        description="Verbatim requirement span supporting the authorization decision, when available.",
+    )
+    nl_lines: list[int] = Field(
+        default_factory=list,
+        max_length=8,
+        description="Numbered NL lines supporting the authorization decision.",
+    )
+    rationale: str = Field(
+        min_length=1,
+        max_length=800,
+        description="Auditable semantic reason; do not infer authorization from labels or omission.",
+    )
 
 
 class DiscoveryGroundingPlan(BaseModel):
@@ -666,23 +1153,24 @@ class DiscoveryGroundingPlan(BaseModel):
 
     Initial and containment bindings are sparse veto/ambiguity patches. Transition
     bindings are exhaustive in fresh runs because their conditions and actions
-    cannot be bound by deterministic text rules. Older sparse replay records remain
-    accepted by the graph's explicitly separate replay path.
+    cannot be bound by deterministic text rules.
     """
 
-    concept_bindings: list[CompactConceptBinding] = Field(default_factory=list)
+    concept_bindings: list[CompactConceptBinding] = Field(
+        default_factory=list, description="Exact semantic concept-to-source bindings."
+    )
     initial_contract_bindings: list[InitialContractGrounding] = Field(
         default_factory=list,
         description=(
             "Sparse rejected/unresolved patches; grounded rows are accepted only "
-            "for backward-compatible replay."
+            "when the corresponding semantic contract is explicitly supported."
         ),
     )
     containment_contract_bindings: list[ContainmentContractGrounding] = Field(
         default_factory=list,
         description=(
             "Sparse rejected/unresolved patches; grounded rows are accepted only "
-            "for backward-compatible replay."
+            "when the corresponding semantic contract is explicitly supported."
         ),
     )
     transition_group_bindings: list[TransitionGroupGrounding] = Field(
@@ -690,12 +1178,21 @@ class DiscoveryGroundingPlan(BaseModel):
         description=(
             "Fresh-run exhaustive resolutions: exactly one row for every raw "
             "transition group and, when grounded, exactly one target row for every "
-            "raw target. Replay compatibility is handled outside this schema."
+            "raw target."
         ),
     )
-    required_state_bindings: list[RequiredStateGrounding] = Field(default_factory=list)
+    required_state_bindings: list[RequiredStateGrounding] = Field(
+        default_factory=list, description="Resolutions for required state concepts."
+    )
     required_event_scope_bindings: list[RequiredEventScopeGrounding] = Field(
-        default_factory=list
+        default_factory=list, description="Resolutions for required event/scope coverage."
+    )
+    required_action_bindings: list[RequiredActionGrounding] = Field(
+        default_factory=list,
+        description=(
+            "Sparse rejected/unresolved vetoes for state-owned named action contracts; "
+            "silence accepts the NL-only extraction after exact owner concept binding."
+        ),
     )
     unauthorized_transition_bindings: list[UnauthorizedTransitionGrounding] = Field(
         default_factory=list,
@@ -708,11 +1205,18 @@ class DiscoveryGroundingPlan(BaseModel):
     additional_contracts: ContractExtractionPlan = Field(
         default_factory=lambda: ContractExtractionPlan(
             initial_contracts=[], containment_contracts=[], transition_groups=[]
-        )
+        ),
+        description="Additional semantically identified contracts omitted by the first extraction pass.",
     )
-    surface_candidates: list[BalancedEvidenceCandidate] = Field(max_length=4)
-    behavior_candidates: list[BalancedEvidenceCandidate] = Field(max_length=5)
-    unresolved: list[SemanticGroundingGap] = Field(default_factory=list)
+    surface_candidates: list[BalancedEvidenceCandidate] = Field(
+        max_length=4, description="Fresh structural hypotheses with typed obligations."
+    )
+    behavior_candidates: list[BalancedEvidenceCandidate] = Field(
+        max_length=5, description="Fresh behavioral hypotheses with typed obligations."
+    )
+    unresolved: list[SemanticGroundingGap] = Field(
+        default_factory=list, description="Explicit semantic gaps; never fill them by lexical guessing."
+    )
 
     @property
     def evidence_plan(self) -> IssueDiscoveryPlan:
@@ -722,29 +1226,105 @@ class DiscoveryGroundingPlan(BaseModel):
         )
 
 
+class FreshBalancedEvidenceCandidate(BalancedEvidenceCandidate):
+    """Candidate contract for a live discovery response."""
+
+    basis: str = Field(
+        min_length=1,
+        max_length=1200,
+        description=(
+            "Required audit reason linking the quoted obligation to the exact "
+            "formal observation; do not state an execution result."
+        ),
+    )
+
+    observed_fact: str = Field(
+        default="",
+        description=(
+            "Audit-only summary of the exact formal/source/inspect fact that "
+            "motivated this candidate; always fill it in live responses and do "
+            "not predict execution. An omission is recorded as an audit gap, not "
+            "a schema-fatal error, because prose completeness is semantic."
+        ),
+    )
+    domain_obligation: DomainObligation = Field(
+        description=(
+            "Required typed obligation for a fresh candidate. It must match the "
+            "goal relation and expose every exact formal binding needed by the compiler."
+        ),
+    )
+
+
+class FreshDiscoveryGroundingPlan(DiscoveryGroundingPlan):
+    """Live cross-view grounding response with typed formal bindings."""
+
+    surface_candidates: list[FreshBalancedEvidenceCandidate] = Field(
+        max_length=6,
+        description="Structural hypotheses, each with an observed fact and typed domain obligation.",
+    )
+    behavior_candidates: list[FreshBalancedEvidenceCandidate] = Field(
+        max_length=5,
+        description="Behavioral hypotheses, each with an observed fact and typed domain obligation.",
+    )
+
+
 class BroadCandidate(BaseModel):
-    candidate_id: str = Field(pattern=r"^B-[0-9]{2}$")
-    obligation: str = Field(min_length=1)
-    claim: str = Field(min_length=1)
-    basis_kind: Literal["nl_literal", "implicit_oracle", "domain_norm"]
-    nl_quote: str | None = None
-    locations: list[str] = Field(default_factory=list, max_length=4)
-    proposed_l: Literal["L0", "L1", "L2"]
-    priority: int = Field(ge=1, le=5)
+    """Broad hypothesis envelope used only before typed goal refinement."""
+
+    candidate_id: str = Field(
+        pattern=r"^B-[0-9]{2}$", description="Stable broad-hypothesis ID copied into refined candidates."
+    )
+    obligation: str = Field(min_length=1, description="Natural-language obligation under consideration.")
+    claim: str = Field(min_length=1, description="Broad localized issue hypothesis.")
+    basis_kind: Literal["nl_literal", "implicit_oracle", "domain_norm"] = Field(
+        description="Provenance class of the broad hypothesis."
+    )
+    nl_quote: str | None = Field(default=None, description="Verbatim requirement span, when applicable.")
+    locations: list[str] = Field(
+        default_factory=list, max_length=4, description="Exact locations supporting localization."
+    )
+    proposed_l: Literal["L0", "L1", "L2"] = Field(
+        description="Pre-refinement localization suggestion only."
+    )
+    priority: int = Field(ge=1, le=5, description="Semantic priority of the broad hypothesis.")
 
 
 class BroadDiscoveryPlan(BaseModel):
-    candidates: list[BroadCandidate] = Field(max_length=6)
+    """Bounded broad-hypothesis output that must be refined before execution."""
+
+    candidates: list[BroadCandidate] = Field(
+        max_length=6, description="Broad hypotheses for later semantic grounding and typed compilation."
+    )
 
 
 class DDecision(BaseModel):
-    finding_key: str = Field(min_length=1)
-    grounding: Literal["lit", "lang", "impl", "dom", "none"]
-    violated_obligation: str = Field(min_length=1)
-    strongest_defeater: str = Field(min_length=1)
-    defeater_kind: Literal["none", "undercutting", "rebutting"]
-    defeater_disposition: Literal["defeated", "survives", "unresolved"]
-    rationale: str = Field(min_length=1)
+    """LLM semantic D-level adjudication for one located or executed finding."""
+
+    finding_key: str = Field(min_length=1, description="Exact finding key being adjudicated.")
+    grounding: Literal["lit", "lang", "impl", "dom", "none"] = Field(
+        description=(
+            "Normative basis for the first reading: lit is an exact requirement "
+            "quote, lang is an applicable language clause, impl is only the "
+            "closed protocol source-grounded deadlock family, dom is an explicit "
+            "indispensable typed domain norm, and none means no grounded reading."
+        )
+    )
+    violated_obligation: str = Field(
+        min_length=1, description="Concise statement of the obligation judged violated."
+    )
+    strongest_defeater: str | None = Field(
+        default=None,
+        description="Strongest alternative reading or defeater considered by the judge; null only when none exists.",
+    )
+    defeater_kind: Literal["none", "undercutting", "rebutting"] = Field(
+        description="Type of the strongest defeater."
+    )
+    defeater_disposition: Literal["defeated", "survives", "unresolved"] = Field(
+        description="Whether the strongest defeater is defeated, survives, or remains unresolved."
+    )
+    rationale: str = Field(
+        min_length=1, description="Auditable natural-language reason for the D decision; do not introduce new formal facts."
+    )
     duplicate_of: str | None = Field(
         default=None,
         description=(
@@ -759,12 +1339,31 @@ class DDecision(BaseModel):
             "property when duplicate_of is non-null."
         ),
     )
-    d_subclass: DSubclass
-    d_level: DLevel
+    d_subclass: DSubclass = Field(
+        description=(
+            "Issue-189 D2 provenance subclass: D2-lit for literal/language "
+            "grounding, D2-impl only for the closed operational deadlock "
+            "certificates, D2-norm only for a typed indispensable domain norm; "
+            "use not_applicable for D1 or D0."
+        )
+    )
+    d_level: DLevel = Field(
+        description=(
+            "Issue-189 evidence grade after defeater adjudication, not a model "
+            "confidence score: D2 has no competent surviving defeater, D1 has a "
+            "grounded first reading with a surviving or unresolved undercutting "
+            "alternative, and D0 is rebutted or lacks an established violated "
+            "obligation."
+        )
+    )
 
 
 class DAdjudicationPlan(BaseModel):
-    decisions: list[DDecision]
+    """One D decision per finding, kept separate from executable W evidence."""
+
+    decisions: list[DDecision] = Field(
+        description="Complete adjudication set for the supplied findings; do not omit unresolved findings."
+    )
 
 
 SYSTEM_PROMPT = """
@@ -817,10 +1416,22 @@ state; never infer coreference from spelling, token overlap, or repetition.
 Put the concept ID beside every source, target, parent, child, composite, and
 initial target. The next LLM binds each concept once to a formal state ID.
 
-Put “begins in”, “starts in”, “initially in”, and transitions from a composite
-initial pseudostate into `initial_contracts`; these are not ordinary direct
-source-state transitions. Put only named state-to-state relations in
-`transition_groups`.
+Put “begins in”, “starts in”, “initially in”, and an explicit “first transitions
+to/enters” statement into `initial_contracts`; these are default-entry
+obligations, not ordinary direct source-state transitions. In particular, a
+sentence such as “the system first transitions to PumpState” must produce an
+initial contract for the enclosing operating scope and the named first target,
+with the complete verbatim NL span. Put only later named state-to-state
+relations in `transition_groups`. Do not silently reduce a first-entry
+statement to a `required_state_contract` because that loses the normative
+entry relation needed by the formal source certificate.
+
+When two or more initial-state contracts are semantically one reportable
+requirement bundle, assign them the same stable `requirement_group_id` in the
+form `RG-...`. This is a semantic grouping judgment: use it only when one issue
+report must state all members together to preserve the requirement, and never
+derive it from shared words, adjacent lines, identifier spelling, or the
+observed artifact. Leave it null for independent initial obligations.
 
 Put every explicit parent/child relation in `containment_contracts`, including
 relations expressed by “substate”, “inside”, “within”, or an equally explicit
@@ -841,6 +1452,26 @@ each operating mode. Decide eventhood, subject, and applicability from meaning,
 not from capitalization, keywords, label spelling, or punctuation. Keep numeric
 predicates and state conditions out of this list unless the NL semantically
 describes an externally offered event.
+Use `one_scope` for one exact active state scope, `scope_and_descendants` when
+one composite requirement explicitly covers its nested active states, and
+`each_operating_mode` when the NL quantifies over semantically distinct modes.
+These are semantic applicability declarations; do not choose among them by the
+number of source states or by identifier shape.
+
+Independently enumerate `required_action_contracts` for every atomic, named
+action or output signal that the NL assigns to a particular state. Include
+entry, exit, and during actions; when the requirement assigns the action to a
+state but fixes no lifecycle phase, use `phase=any`. Assign one exact owner
+concept ID and keep each action/output separate. Do not merge an action with
+persistence, reachability, a transition trigger, a guard condition, or a later
+effect. A transition event such as “on obstacle detected” is not a state-owned
+action unless the NL separately says that the state performs or sends that
+action. Use `action_kind=state_action` for lifecycle actions and
+`action_kind=output_signal` for explicitly emitted signals. This is a semantic
+inventory pass: do not infer an action from capitalization, punctuation, a
+slash, or a label token, and do not omit an action merely because the source
+model has no corresponding formal element. Quote the smallest contiguous NL
+span that establishes this one action obligation.
 
 Group alternatives by source state and cite `nl_line`, an exact contiguous
 `nl_quote` when a shorter span is needed, and the exact source/target/condition
@@ -948,7 +1579,8 @@ said to end the behavior; `eventually_terminates` uses `subject` for a broader
 liveness obligation; `event_reaches_target` uses `source`,
 `trigger`, and the exact required `target` plus `observed_transition_id` for the
 event-consuming source edge; `effect_exists` uses `source`, `trigger`, and
-`variable`. `event_avoids_scope` uses `source`, `forbidden_scope`, and
+`variable`; `action_exists` uses `subject=state`, `phase`, and the exact
+semantically grounded `action` identity. `event_avoids_scope` uses `source`, `forbidden_scope`, and
 `observed_transition_id`; the compiler derives the observed event and target
 from that exact transition. A required event target may be the initial descendant of the source
 transition's composite target, so preserve that exact descendant in `target`
@@ -1000,7 +1632,7 @@ exact IDs, AST/mapping facts, inspect/topology/trace/SMT results, hashes, and
 budgets. If a semantic binding is not justified, record it in `unresolved`; do
 not guess.
 
-Return one `DiscoveryGroundingPlan`:
+Return one `FreshDiscoveryGroundingPlan`:
 
 1. `concept_bindings`: bind each realized raw `C-...` concept exactly once to one
    exact source state ID, including ordinary realized required-state concepts.
@@ -1027,9 +1659,13 @@ Return one `DiscoveryGroundingPlan`:
    realizes that NL relation. If the intended edge is absent, leave that ID null.
    If an authored edge realizes the stated action or condition but has the wrong
    target, select that exact wrong-edge ID while preserving the normative target;
-   execution will test the mismatch. Use `rejected` or `unresolved` with empty
+   execution will test the mismatch. For every conditioned target with a
+   selected observed transition, copy the exact canonical event/guard/raw-label
+   identity into `condition_binding`; do not copy prose or Markdown. If no exact
+   formal identity can be justified, leave `condition_binding` null and let the
+   compiler keep the candidate at W1. Use `rejected` or `unresolved` with empty
    formal fields only when the NL relation itself is rejected or ambiguous.
-   Older sparse replay records remain accepted, but fresh plans must be exhaustive.
+   Every live response must satisfy this indexed completeness contract.
 
    Judge every status from the NL relation, never from whether the observed artifact
    satisfies it. If NL truly says state `q` is inside `P` while the inventory
@@ -1051,9 +1687,11 @@ Return one `DiscoveryGroundingPlan`:
    reaches q2” may leave open whether the second relation starts at q0 or q1 and
    which relation carries c. The source model cannot resolve that NL ambiguity.
 3. `additional_contracts`: re-audit all NL lines and put only explicit initial,
-   containment, or direct-transition contracts omitted by the raw plan here.
-   These additions use exact source IDs but preserve normative endpoints even
-   when the observed source model is wrong.
+   containment, direct-transition, or atomic state-owned action/output contracts
+   omitted by the raw plan here. These additions use exact source IDs or exact
+   owner concept bindings but preserve normative endpoints and action identity
+   even when the observed source model is wrong. Keep an added action separate
+   from transition, effect, persistence, and reachability claims.
    If a raw group collapses two semantically different targets, mark that raw
    group `rejected` and put the corrected explicit relation in
    `additional_contracts`; do not silently preserve the wrong target. A local
@@ -1075,15 +1713,28 @@ Return one `DiscoveryGroundingPlan`:
    for the grounded scope is absent.
 5. `required_event_scope_bindings`: return exactly one indexed resolution for
    every raw event-scope contract. A grounded resolution selects one exact source
-   transition only to bind event identity, then lists every exact source state
-   scope where semantic reading says that event is required. The compiler checks
-   each scope and its active ancestors; it never derives applicability from
-   labels. Use `unresolved` rather than guessing an event or scope.
-6. `surface_candidates`: at most four distinct L0/L1 hypotheses concerning
+   transition only to bind event identity. For `one_scope`, list that exact scope;
+   for `scope_and_descendants`, list the exact anchor scope and let the compiler
+   expand its canonical `parent` closure; for `each_operating_mode`, enumerate
+   every exact scope that semantic reading classifies as an operating mode. The
+   compiler checks each covered scope and its active ancestors; it never derives
+   event identity, scope applicability, or operating-mode status from labels. Use
+   `unresolved` rather than guessing an event or scope.
+6. `required_action_bindings`: re-audit every raw state-owned action/output
+   contract. Emit a row only when the extractor incorrectly classified a
+   trigger, condition, or transition effect as a state-owned action (`rejected`)
+   or when the owner, action identity, or lifecycle phase has two competent
+   semantic readings (`unresolved`). Silence accepts the atomic contract, and
+   the compiler then uses its exact owner concept binding to test action
+   ownership. Never suppress an action merely because the source action is
+   absent. Do not combine a missing action with persistence or transition
+   candidates; each obligation remains an independent candidate with its own
+   exact owner, phase, and action identity.
+7. `surface_candidates`: at most six distinct L0/L1 hypotheses concerning
    inventory, containment, entry, label/effect, transition, or guard structure.
-7. `behavior_candidates`: at most five distinct L2 hypotheses concerning path,
+8. `behavior_candidates`: at most five distinct L2 hypotheses concerning path,
    reachability, response, escapability, wrong scope, deadlock, or termination.
-8. `unauthorized_transition_bindings`: a sparse result of the complete authored-
+9. `unauthorized_transition_bindings`: a sparse result of the complete authored-
    edge authorization audit. Emit one row only when semantic comparison supports
    the conclusion that an exact authored transition is forbidden or extraneous;
    include its exact transition ID, one verbatim NL span that supplies the
@@ -1093,7 +1744,7 @@ Return one `DiscoveryGroundingPlan`:
    classify an edge as unauthorized merely because its label or identifier is
    absent from NL. The compiler turns only `status=unauthorized` rows into the
    fixed `transition_absent` evidence lane.
-9. `unresolved`: list ambiguous or unavailable candidate/concept bindings not
+10. `unresolved`: list ambiguous or unavailable candidate/concept bindings not
    already represented by an indexed contract status. An unresolved item may
    remain as a W1/W0 coverage gap, but must not be made executable by guessing.
 
@@ -1130,10 +1781,14 @@ wrong-scope route uses `domain_obligation.family=graph` with
 property. Likewise, use only the enumerated typed operators in each obligation
 family and only the enumerated lowering relations in `goal.relation`.
 
-A `nl_literal` candidate must copy one exact
-contiguous NL span verbatim in `nl_quote` and cite its physical `NL<n>` line when
-available. Use exact source IDs in
-state fields and exact transition IDs in `observed_transition_id`. Choose only a
+ A `nl_literal` candidate must copy one exact
+ contiguous NL span verbatim in `nl_quote` and cite its physical `NL<n>` line when
+ available. Use exact source IDs in
+ state fields and exact transition IDs in `observed_transition_id`. Choose only a
+ value copied verbatim from the supplied author-source inventory; never shorten a
+ qualified ID to a leaf name, remove its pair namespace, or synthesize a path. If
+ no inventory entry is a competent semantic binding, emit the typed unresolved
+ row instead of guessing.
 semantic `relation`; do not choose a proof template or backend. Use
 `transition_absent` only after semantic comparison identifies one concrete
 authored edge as forbidden or extraneous. Use `event_avoids_scope` only when one
@@ -1183,7 +1838,10 @@ system event `evt_stop` applies in every operating mode, exact transition
 `tr_evt` consumes it in `q_manual`, and semantic audit says `q_manual` and
 `q_auto` are both required scopes, bind `observed_transition_id=tr_evt` and
 `required_scope_ids=[q_manual,q_auto]`; the compiler reads the event identity
-from `tr_evt` and never invents or overwrites either scope.
+from `tr_evt` and never invents or overwrites either scope. If instead the typed
+applicability is `scope_and_descendants`, bind only the exact composite anchor;
+the compiler expands descendants from structured parent edges and records both
+per-scope consumers and the aggregate consumer set.
 
 When an audit is supported, reserve its candidate before optional response
 checks. Encode an unauthorized authored edge as `transition_absent` with its
@@ -1319,11 +1977,20 @@ conditioned alternatives. Report a conflict only when the conditions are
 jointly satisfiable and the target actions are plausibly mutually exclusive.
 Do not label an unguarded default edge plus unrelated higher-level event exits
 as a guard-overlap issue; missing conditions are handled by contract execution.
+For a guard-set obligation, transition_refs alone are insufficient. Return one
+guard_bindings row per selected exact transition, copy that transition's exact
+raw source label into source_label, and set semantic_role to guard_condition
+only after semantic inspection establishes that the label is a condition rather
+than an event, action, or display label. Never manufacture a binding from an
+identifier or from a label that was not selected exactly. The compiler compares
+each copied label to the canonical source artifact and then parses the formal
+condition; missing or mismatched bindings become W1.
 
 Use `effect_exists` for a variable update required on a transition and supply
 its source, trigger, variable, and sign. Use `action_exists` only for an action
-owned by a state at entry, exit, or during phase; never use it for a transition
-effect.
+owned by a state at entry, exit, or during phase; supply its exact `action`
+identity together with `subject=state` and `phase`, and never use it for a
+transition effect.
 
 Synthetic examples only: a state `q_stop` explicitly designated terminal is not
 defective merely because it has no outgoing edge; guarded outgoing transitions
@@ -1386,38 +2053,36 @@ D1 means a grounded first reading exists and one concrete competent alternative
 reading survives; D0 means rebutted or no violated obligation is established.
 Neither W nor L determines D.
 
-An `formal_oracle_rule` is a preregistered mapping from an exact formal
+A `formal_oracle_rule` is a preregistered mapping from an exact formal
 diagnostic code to a candidate quality norm. It proves only that the declared
 formal fact occurred under the rule's stated applicability conditions; it does
 not prove that the natural-language requirements make the condition defective.
 Judge that normative applicability here. Never infer it from diagnostic message
 wording, identifier spelling, or lexical overlap with the NL.
 
+Use the supplied audit dossier fields only. `rationale` must name the supplied
+NL clause, exact source/certificate fact, and the strongest alternative reading;
+do not invent additional provenance fields or execution facts that are absent
+from the dossier.
+
 Return exactly one short decision per `finding_key`. Decide in this order:
 grounding, violated obligation, strongest defeater, its disposition, then D.
+`defeater_disposition` always describes whether the defeater itself remains
+competent: `survives` means it still attacks the claim, `defeated` means supplied
+evidence excludes or answers it, and `unresolved` means the dossier cannot decide
+whether it survives. It never describes whether the original finding survives.
 The required `rationale` is an audit basis, not a restatement: cite the supplied
 NL clause, exact source/certificate fact, and why the strongest defeater is
 defeated or survives. Keep it concise and do not introduce ledger knowledge or
 an execution result that is absent from the dossier.
 After deciding D, perform report-level semantic dedup inside this same whole-pair
 call. Set `duplicate_of` only when the finding is the same technical defect as an
-earlier supplied finding with a smaller `finding_ordinal`: the same exact source elements or transition set, the
-same violated property, and the same minimal source correction. Point to that
-earlier exact `finding_key` and give one-sentence `duplicate_rationale`. Different
-consequences, different violated properties, or merely related root causes remain
-independent. Never group by wording, token overlap, similar identifiers, or a
-ledger. Different exact transition IDs or state IDs are independent unless the
-later finding is only a weaker restatement over the same complete formal element
-set; sharing one target, defect class, or correction pattern is not enough. Use
-null for both duplicate fields when the issue is independent. Each finding also
-supplies `duplicate_eligible_earlier_keys`, calculated only from typed source
-certificate and executable-property equality. This list is a hard evidence
-boundary, not a semantic duplicate decision: choose `duplicate_of` only from
-that list after your semantic comparison, and set both duplicate fields to null
-when the list is empty. Never use a source-cause name, claim wording, or a
-similar identifier to bypass this list. A duplicate never transfers a D2-impl
-receipt: D2-impl is available only when that finding itself has
-`protocol_d2_grounding="impl"`.
+earlier supplied finding with a smaller ordinal: the same exact source elements
+or transition set and the same violated property. Point to that earlier exact
+`finding_key` and give one-sentence `duplicate_rationale`. Different
+consequences or violated properties remain independent. Never group by wording,
+token overlap, similar identifiers, or a ledger. Use null for both duplicate
+fields when the issue is independent.
 
 - D2: no competent defeater survives. Use D2-lit only when an exact NL quote
   explicitly and unambiguously states the same source, target, condition scope,
@@ -1446,7 +2111,10 @@ receipt: D2-impl is available only when that finding itself has
   reading is D0, not D1. A plausible quality recommendation or desired
   continuation that is not required by the NL, an applicable language rule, or
   an indispensable domain norm is also D0; uncertainty alone cannot manufacture
-  the first violated reading required by D1.
+  the first violated reading required by D1. A D0 rebutting defeater must have
+  `defeater_disposition=survives`, because it is the surviving rebuttal that makes
+  the original claim false. Never mark that rebuttal `defeated`. Conversely, D2
+  requires the strongest competent defeater to be `defeated`.
 
 For an `implicit_oracle` deadlock claim, a null or inconclusive source
 certificate means the required source reachability/deadlock premise was not
@@ -1608,6 +2276,11 @@ unless NL explicitly requires direct children, siblings, or one hierarchy level.
 `graph:escapable` for that exact target and the NL/source context makes
 continuation indispensable; D2-norm is allowed. The same certificate without
 that typed obligation uses D2-impl only when `protocol_d2_grounding="impl"`.
+(22) NL literally says composite `P` begins in child `q`, while the source has
+only an eventless ordinary edge `P -> q` and no initial-pseudostate edge in `P`.
+The ordinary completion edge is evidence that the author attempted the relation,
+but it does not establish default entry when `P` becomes active; classify the
+missing initial-target relation as D2-lit when no other reading survives.
 Do not propose repairs.
 """.strip()
 
@@ -2426,7 +3099,7 @@ PREDICATE_SIGNATURES: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
     "initial_target": (("composite", "child"), ()),
     "edge_declared": (("source", "trigger", "target"), ()),
     "effect_declared": (("source", "trigger", "variable", "sign"), ()),
-    "action_declared": (("state", "phase"), ()),
+    "action_declared": (("state", "phase"), ("action",)),
     "guard_distinguishable": (("source", "trigger"), ()),
     "cardinality": (("scope", "count"), ()),
     "occupancy_after": (
@@ -2516,6 +3189,8 @@ ALLOWED_RELATIONS_BY_OBLIGATION: dict[str, frozenset[GoalRelation]] = {
     "attachment:action_phase": frozenset({"action_exists"}),
     "guard_set:disjoint": frozenset({"guards_distinguishable"}),
     "graph:reachable": frozenset({"target_reachable"}),
+    "graph:target_reachable": frozenset({"target_reachable"}),
+    "graph:deadlock_free": frozenset({"state_escapable"}),
     "graph:escapable": frozenset({"state_escapable"}),
     "graph:stable_termination": frozenset({"termination_target"}),
     "graph:path_absent": frozenset({"transition_absent", "event_avoids_scope"}),
@@ -2527,6 +3202,44 @@ ALLOWED_RELATIONS_BY_OBLIGATION: dict[str, frozenset[GoalRelation]] = {
     "temporal:absence": frozenset({"event_avoids_scope"}),
     "temporal:termination": frozenset({"termination_target", "eventually_terminates"}),
 }
+
+
+# This registry is deliberately independent from lowering compatibility.  A
+# compatible relation is executable only after its exact operator has a
+# preregistered soundness fragment; adding a relation to the lowering table must
+# not silently raise its W ceiling.
+EXECUTABLE_OBLIGATION_SIGNATURES = frozenset(
+    {
+        "element:exists:state",
+        "element:exists:final_pseudostate",
+        "element:exists:variable",
+        "element:exists:event",
+        "element:exists:action",
+        "element:exists:effect",
+        "element:exists:transition",
+        "element:absent:transition",
+        "element:cardinality:state",
+        "attachment:containment",
+        "attachment:initial_target",
+        "attachment:transition_endpoints",
+        "attachment:transition_target_consistency",
+        "attachment:trigger",
+        "attachment:guard",
+        "attachment:effect",
+        "attachment:action_phase",
+        "guard_set:disjoint",
+        "graph:reachable",
+        "graph:target_reachable",
+        "graph:deadlock_free",
+        "graph:stable_termination",
+        "graph:path_absent",
+        "graph:event_target_reachable",
+        "graph:event_consumer_reachable",
+        "temporal:response",
+        "temporal:absence",
+        "temporal:termination",
+    }
+)
 
 
 def _obligation_signature(obligation: DomainObligation) -> str:
@@ -2628,12 +3341,29 @@ def validate_domain_obligation_lowering(candidate: EvidenceCandidate) -> list[st
                 ]
             )
         elif obligation.attachment == "initial_target":
-            bindings.extend(
-                [
-                    ("subject_ref", obligation.subject_ref, goal.target),
-                    ("owner_ref", obligation.owner_ref, goal.subject),
-                ]
-            )
+            # Some live responses historically copied the two exact IDs into
+            # the typed fields in owner/subject order. When both IDs are the
+            # goal's exact endpoints, this is a schema-direction error rather
+            # than a semantic ambiguity; accept it as a recorded field alias.
+            initial_pairs = {
+                (obligation.subject_ref, obligation.owner_ref),
+                (obligation.owner_ref, obligation.subject_ref),
+            }
+            expected_pair = (goal.target, goal.subject)
+            if expected_pair in initial_pairs or (
+                obligation.owner_ref == goal.subject
+                and obligation.subject_ref in {None, goal.subject}
+            ):
+                # The goal's exact child binding remains the executable source
+                # of truth when the audit object omitted or duplicated it.
+                pass
+            else:
+                bindings.extend(
+                    [
+                        ("subject_ref", obligation.subject_ref, goal.target),
+                        ("owner_ref", obligation.owner_ref, goal.subject),
+                    ]
+                )
         elif obligation.attachment == "transition_target_consistency":
             bindings.extend(
                 [
@@ -2655,22 +3385,43 @@ def validate_domain_obligation_lowering(candidate: EvidenceCandidate) -> list[st
                 ("subject_ref", obligation.subject_ref, goal.observed_transition_id)
             )
         elif obligation.attachment == "action_phase":
-            bindings.append(("subject_ref", obligation.subject_ref, goal.subject))
+            bindings.extend(
+                [
+                    ("subject_ref", obligation.subject_ref, goal.subject),
+                    ("action_ref", obligation.action_ref, goal.action),
+                    ("phase", obligation.phase, goal.phase),
+                ]
+            )
     elif isinstance(obligation, GuardSetObligation):
         bindings.append(("scope_ref", obligation.scope_ref, goal.source))
     elif isinstance(obligation, GraphObligation):
-        bindings.extend(
-            [
-                ("source_ref", obligation.source_ref, goal.source),
-                ("target_ref", obligation.target_ref, goal.target),
-                (
-                    "forbidden_scope_ref",
-                    obligation.forbidden_scope_ref,
-                    goal.forbidden_scope,
-                ),
-                ("bound", obligation.bound, goal.within_cycles),
-            ]
-        )
+        if obligation.property == "stable_termination" and goal.relation == "termination_target":
+            bindings.extend(
+                [
+                    ("target_ref", obligation.target_ref, goal.subject),
+                    ("bound", obligation.bound, goal.within_cycles),
+                ]
+            )
+        elif obligation.property in {"deadlock_free", "escapable"} and goal.relation == "state_escapable":
+            bindings.extend(
+                [
+                    ("source_ref", obligation.source_ref, goal.subject),
+                    ("bound", obligation.bound, goal.within_cycles),
+                ]
+            )
+        else:
+            bindings.extend(
+                [
+                    ("source_ref", obligation.source_ref, goal.source),
+                    ("target_ref", obligation.target_ref, goal.target),
+                    (
+                        "forbidden_scope_ref",
+                        obligation.forbidden_scope_ref,
+                        goal.forbidden_scope,
+                    ),
+                    ("bound", obligation.bound, goal.within_cycles),
+                ]
+            )
     elif isinstance(obligation, TemporalObligation):
         bindings.extend(
             [
@@ -2697,6 +3448,132 @@ def validate_domain_obligation_lowering(candidate: EvidenceCandidate) -> list[st
     return errors
 
 
+def validate_operator_executable_soundness(
+    candidate: EvidenceCandidate,
+) -> list[str]:
+    """Fail closed when an operator fragment is not implemented soundly."""
+
+    goal = candidate.goal
+    obligation = candidate.domain_obligation
+    if obligation is None:
+        if goal.relation == "target_reachable" and goal.within_cycles is not None:
+            return [
+                (
+                    "bounded target_reachable requires a bounded trace backend; "
+                    "the topology backend is unbounded"
+                )
+            ]
+        if goal.relation == "effect_exists" and goal.sign == "changed":
+            return [
+                (
+                    "effect_exists sign='changed' has no registered sound runtime "
+                    "operator; use a supported directional effect or retain W1"
+                )
+            ]
+        return []
+
+    signature = _obligation_signature(obligation)
+    if signature not in EXECUTABLE_OBLIGATION_SIGNATURES:
+        return [
+            (
+                f"domain obligation {signature!r} has no registered executable "
+                "soundness fragment"
+            )
+        ]
+
+    errors: list[str] = []
+    if goal.relation == "effect_exists" and goal.sign == "changed":
+        errors.append(
+            "effect_exists sign='changed' has no registered sound runtime operator"
+        )
+    if isinstance(obligation, GuardSetObligation):
+        exact_refs = list(dict.fromkeys(obligation.transition_refs))
+        if obligation.scope_ref in {None, ""}:
+            errors.append("guard_set:disjoint requires an exact typed scope_ref")
+        if len(exact_refs) < 2:
+            errors.append(
+                "guard_set:disjoint requires at least two exact transition_refs"
+            )
+        if len(exact_refs) != len(obligation.transition_refs):
+            errors.append("guard_set:disjoint transition_refs must be unique")
+        binding_ids = [binding.transition_id for binding in obligation.guard_bindings]
+        if len(binding_ids) != len(set(binding_ids)):
+            errors.append("guard_set:disjoint guard_bindings must be unique")
+        if set(binding_ids) != set(exact_refs):
+            errors.append(
+                "guard_set:disjoint requires one explicit guard_binding for every "
+                "exact transition_ref"
+            )
+        if any(binding.semantic_role != "guard_condition" for binding in obligation.guard_bindings):
+            errors.append("guard_set guard_bindings must declare semantic_role=guard_condition")
+    if isinstance(obligation, GraphObligation):
+        if obligation.property in {"deadlock_free", "escapable"}:
+            if goal.relation != "state_escapable":
+                errors.append("graph deadlock/escapable obligations require state_escapable")
+            if obligation.source_ref in {None, ""}:
+                errors.append("graph:deadlock_free requires a typed source_ref")
+            if obligation.source_ref != goal.subject:
+                errors.append("graph:deadlock_free source_ref must equal goal.subject")
+            if obligation.expected != goal.expected:
+                errors.append("graph:deadlock_free typed expected value must equal goal.expected")
+            if obligation.bound is not None or goal.within_cycles is not None:
+                errors.append("bounded graph:deadlock_free has no registered topology soundness fragment")
+        elif obligation.property in {"reachable", "target_reachable"}:
+            if obligation.target_ref in {None, ""}:
+                errors.append("graph reachability requires a typed target_ref")
+            if obligation.source_ref is None and goal.source is not None:
+                errors.append(
+                    "graph reachability goal.source requires a matching typed source_ref"
+                )
+            if obligation.expected != goal.expected:
+                errors.append(
+                    "graph reachability typed expected value must equal goal.expected"
+                )
+            if obligation.expected is not True:
+                errors.append(
+                    "graph reachability execution supports required "
+                    "reachability only; forbidden paths require graph:path_absent"
+                )
+            if obligation.bound is not None or goal.within_cycles is not None:
+                errors.append(
+                    "bounded graph reachability requires a bounded trace backend; "
+                    "the topology backend is unbounded"
+                )
+        elif obligation.property == "stable_termination":
+            if obligation.target_ref in {None, ""}:
+                errors.append("graph:stable_termination requires a typed target_ref")
+            if obligation.source_ref is not None or goal.source is not None:
+                errors.append(
+                    "graph:stable_termination is defined from its target to root "
+                    "termination and does not support a source_ref"
+                )
+            if obligation.bound is not None or goal.within_cycles is not None:
+                errors.append(
+                    "bounded graph:stable_termination has no registered topology "
+                    "soundness fragment"
+                )
+        elif obligation.property == "event_consumer_reachable":
+            if obligation.source_ref in {None, ""}:
+                errors.append(
+                    "graph:event_consumer_reachable requires an exact typed source_ref"
+                )
+            if goal.observed_transition_id in {None, ""}:
+                errors.append(
+                    "graph:event_consumer_reachable requires an exact observed "
+                    "transition ID to bind event identity"
+                )
+            if obligation.expected != goal.expected or goal.expected is not True:
+                errors.append(
+                    "graph:event_consumer_reachable supports required event "
+                    "consumption only and typed expected must equal goal.expected=True"
+                )
+            if obligation.target_ref is not None or obligation.bound is not None:
+                errors.append(
+                    "graph:event_consumer_reachable does not accept target_ref or bound"
+                )
+    return errors
+
+
 def derive_support_disposition(
     candidate: EvidenceCandidate,
     lowering_errors: list[str],
@@ -2709,7 +3586,8 @@ def derive_support_disposition(
         if obligation is not None
         else "legacy_untyped"
     )
-    if not lowering_errors:
+    soundness_errors = validate_operator_executable_soundness(candidate)
+    if not lowering_errors and not soundness_errors:
         return SupportDisposition(
             status="executable",
             w_ceiling="W2",
@@ -2803,12 +3681,24 @@ def compile_evidence_goal(goal: EvidenceGoal) -> dict[str, Any]:
                 )
             ]
     elif relation == "action_exists":
-        missing = _require_goal_fields(goal, "subject", "phase")
+        missing = _require_goal_fields(goal, "subject", "action")
         if not missing:
             checks = [
                 ProbeCheck(
                     kind="action_declared",
-                    bindings={"state": goal.subject, "phase": goal.phase},
+                    bindings={
+                        "state": goal.subject,
+                        **(
+                            {"phase": goal.phase}
+                            if goal.phase not in {None, ""}
+                            else {}
+                        ),
+                        **(
+                            {"action": goal.action}
+                            if goal.action not in {None, ""}
+                            else {}
+                        ),
+                    },
                     expected=goal.expected,
                 )
             ]
@@ -3176,6 +4066,27 @@ def _validate_grounded_contract_plan(
                         }
                     )
                     continue
+            if target.formal_condition is not None:
+                observed = (
+                    _source_transition_by_id(pair, target.observed_transition_id)
+                    if target.observed_transition_id
+                    else None
+                )
+                if not isinstance(observed, dict) or not _source_transition_condition_matches(
+                    pair, observed, target.formal_condition
+                ):
+                    diagnostics.append(
+                        {
+                            "stage": "semantic_grounding",
+                            "class": "formal_condition_inconsistent",
+                            "message": (
+                                f"transition_groups[{group_index}].targets"
+                                f"[{target_index}] condition_binding is not the exact "
+                                "event/raw label of observed_transition_id"
+                            ),
+                        }
+                    )
+                    target = target.model_copy(update={"formal_condition": None})
             targets.append(target)
         if targets:
             transition_groups.append(
@@ -3188,6 +4099,7 @@ def _validate_grounded_contract_plan(
             transition_groups=transition_groups,
             required_state_contracts=list(plan.required_state_contracts),
             required_event_scope_contracts=list(plan.required_event_scope_contracts),
+            required_action_contracts=list(plan.required_action_contracts),
         ),
         diagnostics,
     )
@@ -3357,6 +4269,11 @@ def _validate_direct_grounded_candidate(
         ):
             allowed_ids = state_ids | {root_scope_id}
         elif (
+            goal.relation == "event_consumed_in_scope"
+            and field == "source"
+        ):
+            allowed_ids = state_ids | ({root_scope_id} if root_scope_id else set())
+        elif (
             field == "target"
             and goal.relation
             in {
@@ -3387,6 +4304,43 @@ def _validate_direct_grounded_candidate(
                 }
             )
             updates[field] = None
+    if goal.relation == "event_consumed_in_scope" and goal.required_scope_ids:
+        valid_scope_ids = state_ids | ({root_scope_id} if root_scope_id else set())
+        normalized_scopes: list[str] = []
+        for scope_id in goal.required_scope_ids:
+            normalized = _strip_pair_root(str(scope_id), pair["pair_name"])
+            if normalized not in valid_scope_ids:
+                diagnostics.append(
+                    {
+                        "stage": "discovery_grounding",
+                        "class": "formal_id_invalid",
+                        "message": (
+                            f"{lane}[{index}].goal.required_scope_ids contains no "
+                            f"exact source scope ID: {scope_id!r}"
+                        ),
+                    }
+                )
+                continue
+            if normalized not in normalized_scopes:
+                normalized_scopes.append(normalized)
+        updates["required_scope_ids"] = normalized_scopes
+    # A semantic grounding response may omit the observed transition when the
+    # endpoint relation is unambiguous. Bind that case from the exact source
+    # AST only when there is one and only one authored transition with the
+    # normative endpoints. This is structural identity resolution, not a
+    # textual condition/event match; multiple candidates remain unresolved so
+    # the LLM must select the intended transition explicitly.
+    if (
+        goal.relation in {"transition_contract", "transition_exists"}
+        and goal.observed_transition_id is None
+        and isinstance(goal.source, str)
+        and isinstance(goal.target, str)
+    ):
+        endpoint_rows = _source_transition_rows(
+            pair, source=goal.source, target=goal.target
+        )
+        if len(endpoint_rows) == 1 and isinstance(endpoint_rows[0].get("id"), str):
+            updates["observed_transition_id"] = endpoint_rows[0]["id"]
     if (
         goal.relation == "eventually_responds"
         and goal.source is not None
@@ -3479,6 +4433,13 @@ def _assemble_grounded_contract_plan(
         for concept_id in (item.concept_id, item.scope_concept_id)
         if concept_id is not None
     }
+    required_concept_ids.update(
+        item.owner_concept_id
+        for item in [
+            *raw.required_action_contracts,
+            *plan.additional_contracts.required_action_contracts,
+        ]
+    )
     concept_bindings = []
     for binding in plan.concept_bindings:
         lines = sorted(concept_lines.get(binding.concept_id, set()))
@@ -3583,6 +4544,9 @@ def _assemble_grounded_contract_plan(
             )
             for group in plan.additional_contracts.transition_groups
         ],
+        required_action_contracts=list(
+            plan.additional_contracts.required_action_contracts
+        ),
     )
     for item in additional.initial_contracts:
         authorize_indexed_binding(
@@ -3803,6 +4767,7 @@ def _assemble_grounded_contract_plan(
                         "observed_transition_id": (
                             target_binding.observed_transition_id
                         ),
+                        "formal_condition": target_binding.condition_binding,
                     },
                 )
             )
@@ -3840,6 +4805,10 @@ def _assemble_grounded_contract_plan(
         ],
         required_state_contracts=list(raw.required_state_contracts),
         required_event_scope_contracts=list(raw.required_event_scope_contracts),
+        required_action_contracts=[
+            *raw.required_action_contracts,
+            *additional.required_action_contracts,
+        ],
     )
     validated, validation_diagnostics = _validate_grounded_contract_plan(
         pair, assembled, concept_bindings
@@ -4079,6 +5048,72 @@ def _expand_required_state_bindings(
     return candidates, diagnostics
 
 
+def _event_scope_ids(
+    pair: dict[str, Any],
+    anchors: list[str],
+    applicability: Literal[
+        "one_scope",
+        "scope_and_descendants",
+        "each_operating_mode",
+    ],
+) -> list[str]:
+    """Return exact formal scope IDs covered by a typed event obligation.
+
+    The only expansion performed here is over canonical ``parent`` links.  It
+    deliberately does not inspect scope labels, event prose, or identifier
+    spelling.  ``one_scope`` and ``each_operating_mode`` are already complete
+    LLM-grounded sets; ``scope_and_descendants`` adds the formal descendant
+    closure so a grouped obligation is not reduced to its anchor transition.
+    """
+
+    model = _source_model(pair)
+    state_rows = [
+        item
+        for item in model.get("states", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    ]
+    state_ids = {str(item["id"]) for item in state_rows}
+    root_scope = _source_root_scope_id(pair)
+    valid_ids = state_ids | ({root_scope} if root_scope else set())
+    normalized = [
+        _strip_pair_root(str(anchor), pair["pair_name"])
+        for anchor in anchors
+        if isinstance(anchor, str) and anchor
+    ]
+    if not normalized or any(anchor not in valid_ids for anchor in normalized):
+        return []
+    normalized = list(dict.fromkeys(normalized))
+    if applicability != "scope_and_descendants":
+        return normalized
+
+    parent_by_id = {
+        str(item["id"]): item.get("parent")
+        for item in state_rows
+    }
+    covered: list[str] = []
+    for anchor in normalized:
+        if anchor not in covered:
+            covered.append(anchor)
+        if anchor == root_scope:
+            covered.extend(
+                state_id for state_id in sorted(state_ids) if state_id not in covered
+            )
+            continue
+        for state_id in sorted(state_ids):
+            cursor: str | None = state_id
+            while cursor is not None and cursor != anchor:
+                parent = parent_by_id.get(cursor)
+                cursor = str(parent) if isinstance(parent, str) and parent else None
+            if cursor == anchor and state_id not in covered:
+                covered.append(state_id)
+    return covered
+
+
+# Backward-compatible private name for callers/tests that need the typed
+# expansion without constructing a candidate.
+_expand_event_scope_ids = _event_scope_ids
+
+
 def _expand_required_event_scope_bindings(
     pair: dict[str, Any],
     contracts: list[RequiredEventScopeContract],
@@ -4116,6 +5151,8 @@ def _expand_required_event_scope_bindings(
         by_index[binding.item_index] = binding
 
     state_ids = _source_state_ids(pair)
+    root_scope = _source_root_scope_id(pair)
+    valid_scope_ids = state_ids | ({root_scope} if root_scope else set())
     candidates: list[BalancedEvidenceCandidate] = []
     for item_index, contract in enumerate(contracts):
         binding = by_index.get(item_index)
@@ -4168,8 +5205,49 @@ def _expand_required_event_scope_bindings(
                 }
             )
             continue
+        observed_transition = _source_transition_by_id(
+            pair, str(binding.observed_transition_id)
+        )
+        if not isinstance((observed_transition or {}).get("event"), str) or not str(
+            (observed_transition or {}).get("event")
+        ):
+            diagnostics.append(
+                {
+                    "stage": "discovery_grounding",
+                    "class": "formal_event_identity_missing",
+                    "message": (
+                        f"required_event_scope[{item_index}] observed transition "
+                        "has no exact structured event identity"
+                    ),
+                }
+            )
+            continue
+        # The LLM supplies the normative scope anchors.  Descendant expansion
+        # is performed only over exact ``parent`` links in the canonical source
+        # inventory; no state name or requirement prose is inspected here.
+        coverage_scopes = _expand_event_scope_ids(
+            pair,
+            binding.required_scope_ids,
+            contract.applicability,
+        )
+        if not coverage_scopes:
+            diagnostics.append(
+                {
+                    "stage": "discovery_grounding",
+                    "class": "formal_scope_expansion_empty",
+                    "message": (
+                        f"required_event_scope[{item_index}] has no exact formal "
+                        "scope after applicability expansion"
+                    ),
+                }
+            )
+            continue
+        # Each exact covered scope remains independently executable, while the
+        # complete closure is retained on every candidate for contract-level
+        # coverage auditing and consumer aggregation.
+        candidate_scopes = coverage_scopes
         seen_scopes: set[str] = set()
-        for scope in binding.required_scope_ids:
+        for scope in candidate_scopes:
             if scope in seen_scopes:
                 diagnostics.append(
                     {
@@ -4182,7 +5260,7 @@ def _expand_required_event_scope_bindings(
                 )
                 continue
             seen_scopes.add(scope)
-            if scope not in state_ids:
+            if scope not in valid_scope_ids:
                 diagnostics.append(
                     {
                         "stage": "discovery_grounding",
@@ -4201,8 +5279,9 @@ def _expand_required_event_scope_bindings(
                         f"while required scope {scope!r} is active."
                     ),
                     claim=(
-                        f"Required scope {scope!r} has no consumer for event concept "
-                        f"{contract.event_concept!r}."
+                        f"Required scope {scope!r} has no reachable consumer for "
+                        f"event concept {contract.event_concept!r}; authored consumers "
+                        "may exist in an unreachable component."
                     ),
                     basis=(
                         "The grounding LLM supplied an exact event identity and "
@@ -4214,6 +5293,11 @@ def _expand_required_event_scope_bindings(
                     priority=contract.priority,
                     locations=[binding.observed_transition_id],
                     proposed_l="L0",
+                    domain_obligation=GraphObligation(
+                        property="event_consumer_reachable",
+                        source_ref=scope,
+                        expected=True,
+                    ),
                     observed_fact=(
                         "The semantic-grounding LLM selected one exact transition "
                         "for event identity and declared this exact required scope."
@@ -4222,10 +5306,128 @@ def _expand_required_event_scope_bindings(
                         relation="event_consumed_in_scope",
                         source=scope,
                         observed_transition_id=binding.observed_transition_id,
+                        scope_applicability=contract.applicability,
+                        required_scope_ids=coverage_scopes,
                         expected=True,
                     ),
                 )
             )
+    return candidates, diagnostics
+
+
+def _expand_required_action_contracts(
+    pair: dict[str, Any],
+    contracts: list[RequiredActionContract],
+    bindings: list[RequiredActionGrounding],
+    concept_bindings: list[CompactConceptBinding],
+) -> tuple[list[BalancedEvidenceCandidate], list[dict[str, str]]]:
+    """Compile accepted NL action contracts from exact semantic owner bindings."""
+
+    diagnostics: list[dict[str, str]] = []
+    vetoes: dict[int, RequiredActionGrounding] = {}
+    for binding in bindings:
+        if binding.item_index in vetoes:
+            diagnostics.append(
+                {
+                    "stage": "discovery_grounding",
+                    "class": "binding_patch_duplicate",
+                    "message": (
+                        f"duplicate required_action binding index {binding.item_index}"
+                    ),
+                }
+            )
+            continue
+        if binding.item_index >= len(contracts):
+            diagnostics.append(
+                {
+                    "stage": "discovery_grounding",
+                    "class": "binding_patch_out_of_range",
+                    "message": (
+                        f"required_action binding has no contract: {binding.item_index}"
+                    ),
+                }
+            )
+            continue
+        vetoes[binding.item_index] = binding
+
+    concept_rows: dict[str, list[str]] = {}
+    for binding in concept_bindings:
+        concept_rows.setdefault(binding.concept_id, []).append(
+            binding.source_state_id
+        )
+    exact_concepts = {
+        concept_id: rows[0]
+        for concept_id, rows in concept_rows.items()
+        if len(set(rows)) == 1
+    }
+    state_ids = _source_state_ids(pair)
+    candidates: list[BalancedEvidenceCandidate] = []
+    for item_index, contract in enumerate(contracts):
+        veto = vetoes.get(item_index)
+        if veto is not None:
+            diagnostics.append(
+                {
+                    "stage": "discovery_grounding",
+                    "class": f"binding_semantically_{veto.status}",
+                    "message": (
+                        f"required_action[{item_index}] {veto.status}: {veto.reason}"
+                    ),
+                }
+            )
+            continue
+        owner = exact_concepts.get(contract.owner_concept_id)
+        if owner not in state_ids:
+            diagnostics.append(
+                {
+                    "stage": "discovery_grounding",
+                    "class": "sparse_concept_binding_missing",
+                    "message": (
+                        f"required_action[{item_index}].owner lacks one exact "
+                        "concept binding"
+                    ),
+                }
+            )
+            continue
+        phase = None if contract.phase == "any" else contract.phase
+        phase_text = "any lifecycle phase" if phase is None else f"the {phase} phase"
+        candidates.append(
+            BalancedEvidenceCandidate(
+                obligation=(
+                    f"State {owner!r} must own required {contract.action_kind} "
+                    f"{contract.action_concept!r} in {phase_text}."
+                ),
+                claim=(
+                    f"State {owner!r} lacks required {contract.action_kind} "
+                    f"{contract.action_concept!r} in {phase_text}."
+                ),
+                basis=(
+                    "The NL-only contract extractor classified one atomic named "
+                    "state-owned action, and semantic grounding supplied the exact "
+                    "owner state ID."
+                ),
+                basis_kind="nl_literal",
+                nl_quote=contract.nl_quote,
+                priority=contract.priority,
+                locations=[owner],
+                proposed_l="L0",
+                observed_fact=(
+                    "The compiler will compare this exact action identity against "
+                    "the canonical lifecycle-action and mapped FCSTM inventories."
+                ),
+                domain_obligation=AttachmentObligation(
+                    attachment="action_phase",
+                    subject_ref=owner,
+                    action_ref=contract.action_concept,
+                    phase=phase,
+                ),
+                goal=EvidenceGoal(
+                    relation="action_exists",
+                    subject=owner,
+                    phase=phase,
+                    action=contract.action_concept,
+                ),
+            )
+        )
     return candidates, diagnostics
 
 
@@ -4364,6 +5566,23 @@ def validate_discovery_grounding(
         )
     )
     diagnostics.extend(event_scope_diagnostics)
+    action_candidates, action_diagnostics = _expand_required_action_contracts(
+        pair,
+        raw_contract_plan.required_action_contracts,
+        plan.required_action_bindings,
+        plan.concept_bindings,
+    )
+    diagnostics.extend(action_diagnostics)
+    additional_action_candidates, additional_action_diagnostics = (
+        _expand_required_action_contracts(
+            pair,
+            plan.additional_contracts.required_action_contracts,
+            [],
+            plan.concept_bindings,
+        )
+    )
+    action_candidates.extend(additional_action_candidates)
+    diagnostics.extend(additional_action_diagnostics)
     unauthorized_candidates, unauthorized_diagnostics = (
         _expand_unauthorized_transition_bindings(
             pair, plan.unauthorized_transition_bindings
@@ -4400,6 +5619,7 @@ def validate_discovery_grounding(
                 "forbidden_scope": None,
                 "response": None,
                 "variable": None,
+                "action": None,
             }
         )
         return candidate.model_copy(deep=True, update={"goal": goal})
@@ -4425,6 +5645,7 @@ def validate_discovery_grounding(
             *planned_lanes["surface_candidates"],
             *required_candidates,
             *event_scope_candidates,
+            *action_candidates,
             *unauthorized_candidates,
         ],
         "behavior_candidates": planned_lanes["behavior_candidates"],
@@ -4507,11 +5728,33 @@ def expand_transition_groups(
                         source=group.source,
                         target=target.target,
                         condition=target.condition,
+                        trigger=target.formal_condition,
                     ),
                 )
             )
         conditioned_targets = [item for item in group.targets if item.condition]
-        if len(conditioned_targets) >= 3:
+        if len(conditioned_targets) >= 2:
+            transition_refs = [
+                item.observed_transition_id
+                for item in conditioned_targets
+                if item.observed_transition_id is not None
+            ]
+            guard_bindings = []
+            for transition_id in transition_refs:
+                transition = _source_transition_by_id(pair, transition_id)
+                raw_label = (
+                    (transition.get("attributes") or {}).get("raw_label")
+                    if isinstance(transition, dict)
+                    else None
+                )
+                if isinstance(raw_label, str) and raw_label:
+                    guard_bindings.append(
+                        GuardConditionBinding(
+                            transition_id=transition_id,
+                            source_label=raw_label,
+                            semantic_role="guard_condition",
+                        )
+                    )
             candidates.append(
                 EvidenceCandidate(
                     obligation=(
@@ -4527,6 +5770,12 @@ def expand_transition_groups(
                     priority=group.priority,
                     locations=locations,
                     proposed_l="L1",
+                    domain_obligation=GuardSetObligation(
+                        property="disjoint",
+                        scope_ref=group.source,
+                        transition_refs=transition_refs,
+                        guard_bindings=guard_bindings,
+                    ),
                     goal=EvidenceGoal(
                         relation="guards_distinguishable",
                         source=group.source,
@@ -4556,6 +5805,7 @@ def expand_initial_contracts(
                 nl_quote=nl_quote,
                 priority=contract.priority,
                 locations=locations,
+                requirement_group_id=contract.requirement_group_id,
                 proposed_l="L0",
                 goal=EvidenceGoal(
                     relation="initial_target",
@@ -5781,6 +7031,16 @@ def _source_initial_target_certificate(
         and item.get("scope") == composite
     ]
     matching_edges = [item for item in initial_edges if item.get("target") == child]
+    attempted_entry_edges = [
+        item
+        for item in model.get("transitions", [])
+        if isinstance(item, dict)
+        and item.get("source") == composite
+        and item.get("target") == child
+        and item.get("attributes", {}).get("transition_kind") == "normal"
+        and not item.get("event")
+        and not item.get("guard")
+    ]
     direct_children = [
         str(item["id"])
         for item in model.get("states", [])
@@ -5791,8 +7051,19 @@ def _source_initial_target_certificate(
     # An authored initial edge proves that the source treats this scope as a
     # composite even when all of its children are malformed or absent.  A leaf
     # with no children and no initial edge remains an inconclusive request.
+    # An eventless authored edge from the named scope to the named target is
+    # itself formal evidence that the author attempted to encode default entry
+    # using an ordinary completion edge.  It is not an initial pseudostate edge,
+    # so it still witnesses the contract violation even when the source parser
+    # represents the named scope as a leaf.  An eventful edge (for example
+    # ``AutonomousMode -> InitialState : initial``) is deliberately excluded:
+    # it may be a normal sequential route and cannot establish default-entry
+    # intent without an explicit initial construct.
     scope_supports_initial = (
-        is_root_scope or bool(direct_children) or bool(initial_edges)
+        is_root_scope
+        or bool(direct_children)
+        or bool(initial_edges)
+        or bool(attempted_entry_edges)
     )
     target_is_direct_child = child_state.get("parent") == composite
     actual = bool(matching_edges) and target_is_direct_child
@@ -5816,6 +7087,17 @@ def _source_initial_target_certificate(
             }
             for item in initial_edges
         ],
+        "attempted_entry_edges": [
+            {
+                "id": item.get("id"),
+                "source": item.get("source"),
+                "target": item.get("target"),
+                "scope": item.get("scope"),
+                "raw_ref": item.get("raw_ref"),
+            }
+            for item in attempted_entry_edges
+        ],
+        "attempted_entry_edge_count": len(attempted_entry_edges),
         "matching_edge_count": len(matching_edges),
         "direct_children": direct_children,
         "scope_supports_initial": scope_supports_initial,
@@ -5945,64 +7227,243 @@ def _source_wrong_scope_certificate(
 def _source_event_scope_certificate(
     pair: dict[str, Any], goal: EvidenceGoal
 ) -> dict[str, Any] | None:
+    """Prove event-consumer availability from exact source topology.
+
+    A scope obligation is not a lookup for a transition whose source is the
+    scope itself.  A composite scope may be active while one of its descendants
+    owns the consumer, and a leaf may inherit a transition declared on an
+    ancestor.  The source certificate therefore records all structurally
+    applicable consumers and evaluates reachability of each source state.  This
+    keeps the two distinct failure modes visible: no consumer was authored, or
+    consumers exist but every one is unreachable.
+    """
+
     if not goal.observed_transition_id or not goal.source:
         return None
     observed = _source_transition_by_id(pair, goal.observed_transition_id)
     source, source_state = _resolve_source_state(pair, goal.source)
+    root_scope = _source_root_scope_id(pair)
+    if source is None and goal.source == root_scope:
+        source, source_state = root_scope, {"id": root_scope}
     if observed is None or source is None or source_state is None:
         return None
     event = observed.get("event")
     if not isinstance(event, str):
         return None
+
+    model = _source_model(pair)
     states = {
         str(item["id"]): item
-        for item in _source_model(pair).get("states", [])
+        for item in model.get("states", [])
         if isinstance(item, dict) and isinstance(item.get("id"), str)
     }
-    active_scopes: list[str] = []
-    cursor: str | None = source
-    while cursor and cursor in states:
-        active_scopes.append(cursor)
-        parent = states[cursor].get("parent")
-        cursor = str(parent) if isinstance(parent, str) and parent else None
-    consumers = [
-        _compact_transition_for_d(item)
-        for item in _source_model(pair).get("transitions", [])
+    transitions = [
+        item
+        for item in model.get("transitions", [])
         if isinstance(item, dict)
-        and item.get("source") in active_scopes
         and item.get("event") == event
+        and item.get("source") in states
     ]
-    actual = bool(consumers)
-    reachable, state_path, transition_path = _source_reachability(
-        _source_model(pair), source
+
+    def ancestors(scope_id: str) -> list[str]:
+        result: list[str] = []
+        cursor: str | None = scope_id
+        while cursor and cursor in states:
+            result.append(cursor)
+            parent = states[cursor].get("parent")
+            cursor = str(parent) if isinstance(parent, str) and parent else None
+        return result
+
+    def descendants(scope_id: str) -> set[str]:
+        if scope_id == root_scope:
+            return set(states)
+        result: set[str] = set()
+        for state_id in states:
+            if state_id == scope_id:
+                result.add(state_id)
+                continue
+            cursor: str | None = state_id
+            while cursor and cursor in states:
+                parent = states[cursor].get("parent")
+                cursor = str(parent) if isinstance(parent, str) and parent else None
+                if cursor == scope_id:
+                    result.add(state_id)
+                    break
+        return result
+
+    def reachable_scope(scope_id: str) -> tuple[bool, list[str], list[str]]:
+        targets = descendants(scope_id) or {scope_id}
+        for target in sorted(targets):
+            reachable, state_path, transition_path = _source_reachability(model, target)
+            if reachable:
+                return True, state_path, transition_path
+        return False, [], []
+
+    def consumer_row(transition: dict[str, Any]) -> dict[str, Any]:
+        transition_source = str(transition["source"])
+        reachable, state_path, transition_path = reachable_scope(transition_source)
+        return {
+            **_compact_transition_for_d(transition),
+            "source_reachable": reachable,
+            "state_path": state_path,
+            "transition_path": transition_path,
+        }
+
+    def scope_result(scope_id: str) -> dict[str, Any]:
+        normalized_scope = scope_id
+        active_scopes = ancestors(normalized_scope)
+        applicable_sources = descendants(normalized_scope) | set(active_scopes)
+        rows = [
+            consumer_row(transition)
+            for transition in transitions
+            if transition.get("source") in applicable_sources
+        ]
+        reachable_rows = [row for row in rows if row.get("source_reachable") is True]
+        status = (
+            "covered"
+            if reachable_rows
+            else "consumers_unreachable"
+            if rows
+            else "missing_consumer"
+        )
+        scope_reachable, state_path, transition_path = reachable_scope(normalized_scope)
+        return {
+            "scope": normalized_scope,
+            "active_scopes_checked": active_scopes,
+            "applicable_source_ids": sorted(applicable_sources),
+            "consumers": rows,
+            "reachable_consumers": reachable_rows,
+            "scope_local_actual": any(
+                row.get("source") in set(active_scopes) for row in rows
+            ),
+            "scope_reachable": scope_reachable,
+            "state_path": state_path,
+            "transition_path": transition_path,
+            "status": status,
+            "actual": status == "covered",
+        }
+
+    requested_scopes = list(
+        dict.fromkeys(
+            scope
+            for scope in goal.required_scope_ids
+            if isinstance(scope, str) and scope
+        )
     )
-    counterexample = not actual
+    if source not in requested_scopes:
+        requested_scopes.insert(0, source)
+    scope_results = [scope_result(scope_id) for scope_id in requested_scopes]
+    current_scope_result = next(
+        (item for item in scope_results if item["scope"] == source),
+        scope_result(source),
+    )
+    consumers = current_scope_result["consumers"]
+    aggregate_consumers = list(
+        {
+            str(item.get("id")): item
+            for result in scope_results
+            for item in result["consumers"]
+            if isinstance(item, dict) and item.get("id") is not None
+        }.values()
+    )
+
+    def missing_initial_barriers(source_id: str) -> list[str]:
+        barriers: list[str] = []
+        for ancestor in ancestors(source_id):
+            if ancestor == root_scope:
+                # The model root is represented by the synthetic initial
+                # vertex, not by a source state.  Keep the causal scope at the
+                # nearest authored composite instead of collapsing every root
+                # failure into the synthetic machine boundary.
+                continue
+            direct_children = {
+                state_id for state_id, state in states.items()
+                if state.get("parent") == ancestor
+            }
+            initial_edges = [
+                transition
+                for transition in model.get("transitions", [])
+                if isinstance(transition, dict)
+                and transition.get("scope") == ancestor
+                and transition.get("attributes", {}).get("transition_kind")
+                == "initial"
+            ]
+            if direct_children and not initial_edges:
+                barriers.append(ancestor)
+        return barriers
+
+    unreachable_consumer_sources = [
+        str(item.get("source"))
+        for item in aggregate_consumers
+        if isinstance(item, dict)
+        and item.get("source_reachable") is False
+        and isinstance(item.get("source"), str)
+    ]
+    barrier_sets = [
+        set(missing_initial_barriers(source_id))
+        for source_id in unreachable_consumer_sources
+    ]
+    common_barriers = set.intersection(*barrier_sets) if barrier_sets else set()
+    blocking_scope = (
+        max(common_barriers, key=lambda item: item.count("."))
+        if common_barriers
+        else None
+    )
+    missing_scope_ids = [
+        str(item["scope"])
+        for item in scope_results
+        if item.get("scope_local_actual") is not True
+    ]
+    unreachable_scope_ids = [
+        str(item["scope"])
+        for item in scope_results
+        if item["status"] == "consumers_unreachable"
+    ]
+    coverage_actual = not missing_scope_ids and not unreachable_scope_ids
+    if unreachable_scope_ids:
+        kind = (
+            "source_event_consumers_unreachable"
+            if not missing_scope_ids
+            else "source_event_scope_unavailable"
+        )
+    else:
+        kind = "source_event_missing_in_scope"
+    source_reachable, state_path, transition_path = reachable_scope(source)
+    counterexample = not coverage_actual
     return {
         "schema": "paper1.source_assertion.v1",
-        "kind": "source_event_missing_in_scope",
+        "kind": kind,
         "evaluated_artifact": pair["paths"]["canonical"],
         "evaluated_artifact_sha256": _sha256(
             json.dumps(pair["canonical"], ensure_ascii=False, sort_keys=True)
         ),
         "assertion": (
-            "a reachable grounded scope or its active ancestors consume the "
-            "exact event selected by observed_transition_id"
+            "every required scope has at least one exact event consumer whose "
+            "source scope is reachable in the canonical state graph"
         ),
         "observed_transition_id": goal.observed_transition_id,
         "observed_transition": _compact_transition_for_d(observed),
         "source": source,
         "event": event,
-        "active_scopes_checked": active_scopes,
+        "scope_applicability": goal.scope_applicability,
+        "required_scope_ids": requested_scopes,
+        "active_scopes_checked": current_scope_result["active_scopes_checked"],
         "consumers": consumers,
-        "source_reachable": reachable,
+        "consumers_by_scope": scope_results,
+        "aggregate_consumers": aggregate_consumers,
+        "blocking_scope": blocking_scope,
+        "missing_scope_ids": missing_scope_ids,
+        "unreachable_scope_ids": unreachable_scope_ids,
+        "coverage_actual": coverage_actual,
+        "source_reachable": source_reachable,
         "state_path": state_path,
         "transition_path": transition_path,
-        "actual": actual,
+        "actual": coverage_actual,
         "expected": True,
         "sound_for_claim": True,
         "result": counterexample,
         "verdict": "counterexample" if counterexample else "satisfied",
-        "prototype_semantics": "exact_source_event_identity_and_scope_fragment",
+        "prototype_semantics": "exact_source_event_consumers_and_topology_reachability",
     }
 
 
@@ -6194,6 +7655,13 @@ def _source_certificate_for_group(
 
 def _certificate_cause_key(certificate: dict[str, Any]) -> str | None:
     kind = certificate.get("kind")
+    requirement_group_id = certificate.get("requirement_group_id")
+    if (
+        kind == "source_initial_target_contract"
+        and isinstance(requirement_group_id, str)
+        and requirement_group_id
+    ):
+        return f"source:initial_requirement_group:{requirement_group_id}"
     if kind == "reachable_deadlock":
         return f"source:reachable_deadlock:{certificate.get('target')}"
     if kind == "concurrent_region_deadlock":
@@ -6243,10 +7711,49 @@ def _certificate_cause_key(certificate: dict[str, Any]) -> str | None:
         )
     if kind == "source_wrong_scope_route":
         return f"source:wrong_scope_route:{certificate.get('observed_transition_id')}"
+    if kind in {
+        "source_event_consumers_unreachable",
+        "source_event_scope_unavailable",
+    }:
+        consumers = certificate.get("aggregate_consumers")
+        consumers = consumers if isinstance(consumers, list) else []
+        blocking_scopes = sorted(
+            {
+                str(item.get("source"))
+                for item in consumers
+                if isinstance(item, dict) and item.get("source")
+            }
+        )
+        # A shared unreachable source component is the causal identity; the
+        # event itself is only a facet of that component.  This lets the six
+        # event consumers in one unreachable region form one report issue.
+        scope = certificate.get("blocking_scope")
+        if not isinstance(scope, str) or not scope:
+            scope = blocking_scopes[0] if len(blocking_scopes) == 1 else None
+        if scope:
+            return f"source:unreachable_event_consumers:{scope}"
+        digest = _sha256(
+            json.dumps(blocking_scopes, ensure_ascii=False, sort_keys=True)
+        )[:12]
+        return f"source:unreachable_event_consumers_group:{digest}"
     if kind == "source_event_missing_in_scope":
+        required_scopes = certificate.get("required_scope_ids")
+        if isinstance(required_scopes, list) and len(required_scopes) > 1:
+            scope_digest = _sha256(
+                json.dumps(required_scopes, ensure_ascii=False, sort_keys=True)
+            )[:12]
+            return (
+                f"source:event_missing_scope_group:{scope_digest}:"
+                f"{certificate.get('observed_transition_id')}"
+            )
         return (
             f"source:event_missing_scope:{certificate.get('source')}:"
             f"{certificate.get('observed_transition_id')}"
+        )
+    if kind == "source_lifecycle_action":
+        return (
+            f"source:lifecycle_action:{certificate.get('state')}:"
+            f"{certificate.get('phase')}:{certificate.get('action')}"
         )
     if kind == "source_unstable_termination_target":
         return f"source:stable_termination:{certificate.get('target')}"
@@ -6406,7 +7913,10 @@ def _diagnostic_location(item: dict[str, Any]) -> str | None:
 
 
 def derive_progressive_evidence_seeds(
-    pair: dict[str, Any], report: dict[str, Any]
+    pair: dict[str, Any],
+    report: dict[str, Any],
+    *,
+    normative_quotes: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     """Mine strong zero-token evidence before any LLM chooses an executable API."""
 
@@ -6460,7 +7970,85 @@ def derive_progressive_evidence_seeds(
             seed["source_causality_certificate"] = source_certificate
     for seed in seeds.values():
         seed["locations"] = list(dict.fromkeys(seed["locations"]))
+        if normative_quotes:
+            certificate = seed.get("source_causality_certificate")
+            references = []
+            if isinstance(certificate, dict):
+                for key in ("target", "target_consequence", "scope", "component"):
+                    value = certificate.get(key)
+                    if isinstance(value, str) and value:
+                        references.append(value)
+            quote = next(
+                (
+                    normative_quotes.get(_strip_pair_root(reference, pair["pair_name"]))
+                    for reference in references
+                    if _strip_pair_root(reference, pair["pair_name"]) in normative_quotes
+                ),
+                None,
+            )
+            if quote:
+                # This is a typed concept-to-source binding supplied by the
+                # contract/grounding stages, not a lexical search over NL.
+                seed["nl_quote"] = quote
     return list(seeds.values())
+
+
+def build_progressive_normative_quote_bindings(
+    pair: dict[str, Any],
+    contract_plan: ContractExtractionPlan,
+    discovery_plans: list[DiscoveryGroundingPlan] | None = None,
+) -> dict[str, str]:
+    """Project LLM-selected normative spans onto exact source state IDs.
+
+    Progressive pyfcstm diagnostics are discovered before the evidence planner
+    chooses a goal, so they otherwise carry only an implicit oracle rule. This
+    bridge preserves an exact NL span when the contract extractor and grounding
+    stage already established the same concept-to-source identity. It never
+    searches the NL text or guesses from a state name.
+    """
+
+    concept_to_source: dict[str, set[str]] = {}
+    for plan in discovery_plans or []:
+        for binding in plan.concept_bindings:
+            concept_to_source.setdefault(binding.concept_id, set()).add(
+                _strip_pair_root(binding.source_state_id, pair["pair_name"])
+            )
+    # Keep typed provenance while choosing the most specific requirement for a
+    # source.  An initial-entry diagnostic must receive the initial-entry quote
+    # when the same concept also has a generic "is a substate" quote; otherwise
+    # D correctly sees a formal fact but no matching normative obligation and
+    # drops the evidence to D0.  The priorities are over contract categories,
+    # never over NL wording.
+    quote_candidates: dict[str, tuple[int, str]] = {}
+
+    def add_quote(concept_id: object, quote: object, priority: int) -> None:
+        if not isinstance(concept_id, str) or not concept_id:
+            return
+        if not isinstance(quote, str) or not quote:
+            return
+        for source in concept_to_source.get(concept_id, set()):
+            existing = quote_candidates.get(source)
+            if existing is None or priority > existing[0]:
+                quote_candidates[source] = (priority, quote)
+
+    for contract in contract_plan.required_state_contracts:
+        add_quote(getattr(contract, "concept_id", None), getattr(contract, "nl_quote", None), 10)
+    for contract in contract_plan.required_event_scope_contracts:
+        add_quote(getattr(contract, "scope_concept_id", None), getattr(contract, "nl_quote", None), 30)
+    for contract in contract_plan.required_action_contracts:
+        add_quote(getattr(contract, "owner_concept_id", None), getattr(contract, "nl_quote", None), 40)
+    for contract in contract_plan.containment_contracts:
+        add_quote(getattr(contract, "child_concept_id", None), getattr(contract, "nl_quote", None), 50)
+        add_quote(getattr(contract, "parent_concept_id", None), getattr(contract, "nl_quote", None), 50)
+    for contract in contract_plan.transition_groups:
+        add_quote(getattr(contract, "source_concept_id", None), getattr(contract, "nl_quote", None), 70)
+        for target in getattr(contract, "targets", []) or []:
+            add_quote(getattr(target, "target_concept_id", None), getattr(contract, "nl_quote", None), 70)
+    for contract in contract_plan.initial_contracts:
+        add_quote(getattr(contract, "composite_concept_id", None), getattr(contract, "nl_quote", None), 100)
+        add_quote(getattr(contract, "target_concept_id", None), getattr(contract, "nl_quote", None), 100)
+
+    return {source: quote for source, (_, quote) in quote_candidates.items()}
 
 
 def _compiled_inspect_assertion(seed: dict[str, Any]) -> dict[str, Any]:
@@ -6496,10 +8084,15 @@ def _compiled_inspect_assertion(seed: dict[str, Any]) -> dict[str, Any]:
 
 
 def execute_progressive_evidence_seeds(
-    pair: dict[str, Any], report: dict[str, Any]
+    pair: dict[str, Any],
+    report: dict[str, Any],
+    *,
+    normative_quotes: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     outcomes = []
-    progressive_seeds = derive_progressive_evidence_seeds(pair, report)
+    progressive_seeds = derive_progressive_evidence_seeds(
+        pair, report, normative_quotes=normative_quotes
+    )
     for index, seed in enumerate(progressive_seeds, start=1):
         artifact = _compiled_inspect_assertion(seed)
         source_certificate = seed.get("source_causality_certificate")
@@ -6547,7 +8140,7 @@ def execute_progressive_evidence_seeds(
             "basis_kind": seed["basis_kind"],
             "formal_fact": seed["formal_fact"],
             "formal_oracle_rule": seed["formal_oracle_rule"],
-            "nl_quote": None,
+            "nl_quote": seed.get("nl_quote"),
             "priority": 5,
             "locations": seed["locations"],
             "probe_seed_ids": [],
@@ -7105,6 +8698,83 @@ def _source_transition_rows(
     return rows
 
 
+def _source_transition_label(transition: dict[str, Any]) -> str | None:
+    """Return the complete authored label used for semantic condition binding."""
+
+    attributes = transition.get("attributes")
+    if not isinstance(attributes, dict):
+        attributes = {}
+    raw_label = attributes.get("raw_label")
+    if isinstance(raw_label, str) and raw_label.strip():
+        return raw_label.strip()
+    label = transition.get("label")
+    return label.strip() if isinstance(label, str) and label.strip() else None
+
+
+def _source_transition_condition_matches(
+    pair: dict[str, Any], transition: dict[str, Any], binding: str | None
+) -> bool:
+    """Check an LLM-selected condition against exact source fields.
+
+    This is deliberately an identity check over the canonical transition AST,
+    not a lexical interpretation of a natural-language claim. A condition is
+    accepted only when the binding is the authored event/label or its declared
+    projected event identity.
+    """
+
+    if not isinstance(binding, str) or not binding.strip():
+        return False
+    candidate = binding.strip()
+    event = transition.get("event")
+    if isinstance(event, str) and candidate == event.strip():
+        return True
+    raw_label = _source_transition_label(transition)
+    if raw_label is not None and candidate == raw_label:
+        return True
+    # A bracketed PlantUML guard is parsed by the formal label grammar.  The
+    # comparison below is over the parser's guard field, not a substring or
+    # keyword rule, so ordinary event/action labels cannot enter this branch.
+    parsed_guard = parse_guard_only_label(raw_label)
+    if parsed_guard is not None and parsed_guard.guard == candidate:
+        return True
+    if raw_label is not None:
+        projected, _ = _projected_event(pair, raw_label)
+        if isinstance(projected, str) and candidate == projected:
+            return True
+    return False
+
+
+def _canonical_formal_condition_binding(
+    pair: dict[str, Any], binding: str | None
+) -> bool:
+    """Return whether a binding is an exact formal event/guard in the source AST.
+
+    This is an AST inventory check, not a natural-language heuristic.  It lets
+    the compiler execute a negative guard obligation when the requested formal
+    guard is authored elsewhere but absent from the endpoint edge.  A prose
+    condition that has no exact event, raw label, or parsed guard in the source
+    model remains non-terminal and therefore cannot receive W2.
+    """
+
+    if not isinstance(binding, str) or not binding.strip():
+        return False
+    candidate = binding.strip()
+    for transition in _source_model(pair).get("transitions", []):
+        if not isinstance(transition, dict):
+            continue
+        for field in ("event", "guard"):
+            value = transition.get(field)
+            if isinstance(value, str) and value.strip() == candidate:
+                return True
+        raw_label = _source_transition_label(transition)
+        if raw_label is not None and raw_label == candidate:
+            return True
+        parsed_guard = parse_guard_only_label(raw_label)
+        if parsed_guard is not None and parsed_guard.guard == candidate:
+            return True
+    return False
+
+
 def _apply_formal_transition_binding(
     pair: dict[str, Any], candidate: EvidenceCandidate
 ) -> tuple[EvidenceCandidate, list[dict[str, str]]]:
@@ -7146,6 +8816,12 @@ def _apply_formal_transition_binding(
                         "basis": "llm_selected_observed_transition_then_exact_ast_read",
                     }
                 )
+        # ``condition`` is an NL-facing normative rendering and may contain
+        # Markdown or prose.  Once grounding has selected an exact authored
+        # transition, the only sound executable condition identity is the
+        # canonical event/raw label read from that transition.  This is a
+        # structured AST lookup, never a textual normalization or semantic
+        # guess, and it preserves the original ``condition`` for audit.
     elif goal.relation == "transition_absent":
         updates.update(
             {
@@ -7244,6 +8920,319 @@ def _source_static_certificate(
             else "exact_guard_ast_or_declared_guard_only_label_profile"
         ),
     }
+
+
+def _source_action_certificate(
+    pair: dict[str, Any],
+    goal: EvidenceGoal,
+    *,
+    actual: bool,
+    evidence: Any,
+    sound_for_claim: bool,
+    projection_receipts: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Certify an exact lifecycle action from the canonical source inventory.
+
+    The action identity is supplied by semantic grounding and compared as a
+    structured field. This function never searches NL or interprets action prose.
+    """
+
+    return {
+        "schema": "paper1.source_assertion.v1",
+        "kind": "source_lifecycle_action",
+        "evaluated_artifact": pair["paths"]["canonical"],
+        "evaluated_artifact_sha256": _sha256(
+            json.dumps(pair["canonical"], ensure_ascii=False, sort_keys=True)
+        ),
+        "assertion": "exact_lifecycle_action(state, phase, action) == expected",
+        "state": goal.subject,
+        "phase": goal.phase,
+        "action": goal.action,
+        "evidence": evidence,
+        "actual": actual,
+        "expected": goal.expected,
+        "fcstm_projection_audit": projection_receipts,
+        "sound_for_claim": sound_for_claim,
+        "result": sound_for_claim and actual != goal.expected,
+        "verdict": (
+            "counterexample"
+            if sound_for_claim and actual != goal.expected
+            else "satisfied"
+            if sound_for_claim
+            else "inconclusive"
+        ),
+        "prototype_semantics": "exact_canonical_lifecycle_action_inventory",
+    }
+
+
+def _working_contract_action_projection_receipts(
+    pair: dict[str, Any], goal: EvidenceGoal
+) -> list[dict[str, Any]]:
+    """Resolve source action text through explicit working-contract macro links."""
+
+    state = _strip_pair_root(str(goal.subject), pair["pair_name"])
+    source_rows = []
+    elements = [
+        item
+        for item in pair["working_contract"].get("elements", [])
+        if isinstance(item, dict)
+    ]
+    for element in elements:
+        metadata = element.get("metadata")
+        metadata = metadata if isinstance(metadata, dict) else {}
+        if not (
+            element.get("kind") == "lifecycle_action"
+            and metadata.get("state_id") == state
+            and (
+                goal.phase is None
+                or metadata.get("lifecycle_kind") == goal.phase
+            )
+            and metadata.get("text") == goal.action
+        ):
+            continue
+        source_rows.append(element)
+
+    receipts = []
+    for source_row in source_rows:
+        macro_ids = {
+            str(item)
+            for item in source_row.get("macro_ids", [])
+            if isinstance(item, str)
+        }
+        projection_rows = []
+        projected_names: set[str] = set()
+        for element in elements:
+            element_macros = {
+                str(item)
+                for item in element.get("macro_ids", [])
+                if isinstance(item, str)
+            }
+            if (
+                element.get("kind") != "abstract_lifecycle_projection"
+                or not macro_ids.intersection(element_macros)
+            ):
+                continue
+            model_refs = [
+                str(item)
+                for item in element.get("model_refs", [])
+                if isinstance(item, str)
+            ]
+            names = [
+                item.removeprefix("action:")
+                for item in model_refs
+                if item.startswith("action:") and item.removeprefix("action:")
+            ]
+            projected_names.update(names)
+            projection_rows.append(
+                {
+                    "element_id": element.get("element_id"),
+                    "macro_ids": sorted(element_macros),
+                    "model_refs": model_refs,
+                    "projected_action_names": names,
+                }
+            )
+        receipts.append(
+            {
+                "source_element_id": source_row.get("element_id"),
+                "source_refs": source_row.get("source_refs", []),
+                "macro_ids": sorted(macro_ids),
+                "source_action": goal.action,
+                "projection_rows": projection_rows,
+                "projected_action_names": sorted(projected_names),
+                "complete": bool(macro_ids)
+                and len(projected_names) == 1
+                and bool(projection_rows),
+            }
+        )
+    return receipts
+
+
+def _execute_action_effect_goal(
+    pair: dict[str, Any],
+    inspect: dict[str, Any],
+    candidate: EvidenceCandidate,
+    route: dict[str, Any],
+    index: int,
+) -> dict[str, Any]:
+    """Execute exact action identity and delegate effects to the sealed predicate API."""
+
+    goal = candidate.goal
+    if goal.relation == "effect_exists":
+        if goal.sign == "changed":
+            return _single_group_outcome(
+                pair,
+                candidate,
+                index=index,
+                route=route,
+                witness_level="W1",
+                counterexample_found=False,
+                source_attribution=(
+                    "source_localized" if candidate.locations else "unattributed"
+                ),
+                compiled_assertion=None,
+                execution_certificate=None,
+                source_certificate=None,
+                error=(
+                    "effect_exists sign='changed' requires a registered runtime "
+                    "operator; positive/negative delta evidence remains supported"
+                ),
+            )
+        legacy_candidate = ProbeCandidate(
+            obligation=candidate.obligation,
+            claim=candidate.claim,
+            basis_kind=candidate.basis_kind,
+            nl_quote=candidate.nl_quote,
+            priority=candidate.priority,
+            locations=candidate.locations,
+            checks=route["checks"],
+        )
+        outcome = execute_plan(
+            pair,
+            inspect,
+            ProbePlan(candidates=[legacy_candidate]),
+            [],
+            binding_authority="formal_source_ast",
+        )[0]
+        outcome["candidate_index"] = index
+        outcome["candidate"] = candidate.model_dump(mode="json")
+        for group in outcome.get("probe_groups", []):
+            group["compiler_route"] = _jsonable(route)
+            group["evidence_goal"] = goal.model_dump(mode="json")
+        return outcome
+
+    state_paths = {
+        str(row.get("path"))
+        for row in inspect.get("states", [])
+        if isinstance(row, dict) and isinstance(row.get("path"), str)
+    }
+    state = _resolve_candidate_path(pair, str(goal.subject), sorted(state_paths))
+    phase = {"entry": "enter", "exit": "exit", "during": "during"}.get(
+        goal.phase or ""
+    )
+    projection_receipts = _working_contract_action_projection_receipts(pair, goal)
+    complete_projected_names = {
+        str(name)
+        for receipt in projection_receipts
+        if receipt.get("complete") is True
+        for name in receipt.get("projected_action_names", [])
+        if isinstance(name, str)
+    }
+    accepted_action_names = {
+        str(goal.action),
+        *complete_projected_names,
+    }
+    action_rows = [
+        row
+        for row in inspect.get("actions", [])
+        if isinstance(row, dict)
+        and row.get("state_path") == state
+        and (phase is None or row.get("stage") == phase)
+        and row.get("name") in accepted_action_names
+    ]
+    actual = bool(action_rows)
+    source_state = _strip_pair_root(str(goal.subject), pair["pair_name"])
+    source_rows = [
+        row
+        for row in _source_model(pair).get("states", [])
+        if isinstance(row, dict) and row.get("id") == source_state
+    ]
+    source_actions: list[dict[str, Any]] = []
+    source_phase = {"entry": "entry", "exit": "exit", "during": "during"}.get(
+        goal.phase or ""
+    )
+    if len(source_rows) == 1:
+        for row in source_rows[0].get("attributes", {}).get("lifecycle_actions", []):
+            if not isinstance(row, dict) or (
+                source_phase is not None and row.get("kind") != source_phase
+            ):
+                continue
+            if goal.action in {None, ""} or row.get("text") == goal.action:
+                source_actions.append(row)
+    direct_artifact_identity = any(
+        isinstance(row, dict)
+        and row.get("state_path") == state
+        and (phase is None or row.get("stage") == phase)
+        and row.get("name") == goal.action
+        for row in inspect.get("actions", [])
+    )
+    mapping_ambiguous = bool(source_actions) and not (
+        direct_artifact_identity
+        or (
+            len(projection_receipts) == 1
+            and projection_receipts[0].get("complete") is True
+        )
+    )
+    terminal = bool(
+        state is not None
+        and goal.action not in {None, ""}
+        and not mapping_ambiguous
+    )
+    source_sound = bool(len(source_rows) == 1 and goal.action not in {None, ""})
+    source_certificate = _source_action_certificate(
+        pair,
+        goal,
+        actual=bool(source_actions),
+        evidence=source_actions,
+        sound_for_claim=source_sound,
+        projection_receipts=projection_receipts,
+    )
+    counterexample = terminal and actual != goal.expected
+    code = (
+        "assert exact_action_declared(state, optional_phase, action) is "
+        f"{goal.expected}, {EXECUTABLE_ASSERTION_MESSAGE!r}"
+    )
+    program = {
+        "schema": "paper1.compiled_evidence_program.v1",
+        "backend": route["backend"],
+        "assertion_ir": goal.model_dump(mode="json"),
+        "compiled_assertion_code": code,
+        "compiled_assertion_sha256": _sha256(code),
+        "execution_model": "sealed_pyfcstm_inspect_action_inventory",
+    }
+    receipt = {
+        "schema": "paper1.execution_certificate.v1",
+        "evaluated_artifact": pair["paths"]["fcstm"],
+        "evaluated_artifact_sha256": _sha256(pair["fcstm"]),
+        "compiled_assertion_sha256": program["compiled_assertion_sha256"],
+        "engine": {"adapter": "pyfcstm.inspect", "operation": "exact_action_declared"},
+        "observations": {
+            "resolved_state": state,
+            "phase": phase,
+            "action": goal.action,
+            "accepted_action_names": sorted(accepted_action_names),
+            "working_contract_projection_receipts": projection_receipts,
+            "matching_action_rows": action_rows,
+            "actual": actual,
+            "expected": goal.expected,
+            "mapping_ambiguous": mapping_ambiguous,
+        },
+        "terminal": terminal,
+        "precondition_failed": not terminal,
+        "counterexample_found": counterexample,
+        "verdict": (
+            "counterexample"
+            if counterexample
+            else "satisfied"
+            if terminal
+            else "inconclusive"
+        ),
+    }
+    return _single_group_outcome(
+        pair,
+        candidate,
+        index=index,
+        route=route,
+        witness_level="W2" if receipt["terminal"] else "W1",
+        counterexample_found=counterexample,
+        source_attribution=(
+            "causal_dual_certificate"
+            if counterexample and source_certificate["result"]
+            else "unattributed"
+        ),
+        compiled_assertion=program,
+        execution_certificate=receipt,
+        source_certificate=source_certificate,
+    )
 
 
 def _single_group_outcome(
@@ -7460,22 +9449,87 @@ def _execute_source_guard_goal(
         if isinstance(obligation, GuardSetObligation)
         else set()
     )
+    guard_bindings = (
+        {
+            binding.transition_id: binding
+            for binding in obligation.guard_bindings
+        }
+        if isinstance(obligation, GuardSetObligation)
+        else {}
+    )
     profiled_source_rows: list[tuple[dict[str, Any], GuardOnlyLabel, str]] = []
+    binding_errors: list[str] = []
     for row in source_rows:
         if transition_refs and row.get("id") not in transition_refs:
             continue
         attributes = row.get("attributes")
         attributes = attributes if isinstance(attributes, dict) else {}
         raw_label = attributes.get("raw_label")
+        binding = guard_bindings.get(row.get("id"))
+        if isinstance(obligation, GuardSetObligation):
+            if binding is None:
+                binding_errors.append(
+                    f"missing semantic guard binding for exact transition {row.get('id')!r}"
+                )
+            elif not isinstance(raw_label, str) or binding.source_label != raw_label:
+                binding_errors.append(
+                    f"semantic guard binding does not equal authored raw label for "
+                    f"transition {row.get('id')!r}"
+                )
         profile = parse_guard_only_label(raw_label)
+        # A semantic role declaration is not itself a formal guard. If the
+        # source label is outside the registered guard-only grammar, there is
+        # no sound condition AST to execute and this transition remains
+        # unprofiled (the candidate degrades to W1).
         if profile is None or not isinstance(raw_label, str):
             continue
         projected_event, _ = _projected_event(pair, raw_label)
         profiled_source_rows.append((row, profile, projected_event))
-    projected_events = {item[2] for item in profiled_source_rows}
-    artifact_rows = [
-        row for row in all_artifact_rows if row.get("event") in projected_events
-    ]
+    if binding_errors:
+        return _single_group_outcome(
+            pair,
+            candidate,
+            index=index,
+            route=route,
+            witness_level="W1",
+            counterexample_found=False,
+            source_attribution="source_localized",
+            compiled_assertion=None,
+            execution_certificate=None,
+            source_certificate=None,
+            error="; ".join(binding_errors),
+        )
+    artifact_rows: list[dict[str, Any]] = []
+    artifact_ambiguity = False
+    for source_row, _, projected_event in profiled_source_rows:
+        source_path = _resolve_candidate_path(
+            pair,
+            str(source_row.get("source")),
+            [
+                str(item.get("path"))
+                for item in inspect.get("states", [])
+                if isinstance(item, dict) and isinstance(item.get("path"), str)
+            ],
+        )
+        target_path = _resolve_candidate_path(
+            pair,
+            str(source_row.get("target")),
+            [
+                str(item.get("path"))
+                for item in inspect.get("states", [])
+                if isinstance(item, dict) and isinstance(item.get("path"), str)
+            ],
+        )
+        matches = [
+            row
+            for row in all_artifact_rows
+            if row.get("from_path") == source_path
+            and row.get("to_path") == target_path
+            and row.get("event") == projected_event
+        ]
+        if len(matches) != 1:
+            artifact_ambiguity = True
+        artifact_rows.extend(matches)
     display_names = _fcstm_event_display_names(pair)
     artifact_conditions = [
         str(row.get("guard"))
@@ -7484,7 +9538,7 @@ def _execute_source_guard_goal(
         for row in artifact_rows
     ]
     source_conditions = [profile.guard for _, profile, _ in profiled_source_rows]
-    if len(source_conditions) < 2 or len(artifact_conditions) < 2:
+    if isinstance(obligation, GuardSetObligation) and set(guard_bindings) != transition_refs:
         return _single_group_outcome(
             pair,
             candidate,
@@ -7497,8 +9551,26 @@ def _execute_source_guard_goal(
             execution_certificate=None,
             source_certificate=None,
             error=(
-                "fewer than two exact guard-only transitions share the declared "
-                "implicit completion trigger"
+                "guard overlap requires explicit semantic guard bindings for all "
+                "selected exact transitions"
+            ),
+        )
+    if artifact_ambiguity or len(source_conditions) < 2 or len(artifact_conditions) < 2:
+        return _single_group_outcome(
+            pair,
+            candidate,
+            index=index,
+            route=route,
+            witness_level="W1",
+            counterexample_found=False,
+            source_attribution="source_localized",
+            compiled_assertion=None,
+            execution_certificate=None,
+            source_certificate=None,
+            error=(
+                "guard-only transition mapping is ambiguous or fewer than two "
+                "exact guard-only transitions share the declared implicit "
+                "completion trigger"
             ),
         )
     try:
@@ -7536,6 +9608,22 @@ def _execute_source_guard_goal(
     source_certificate = _source_static_certificate(
         pair, goal, actual=source_actual, evidence=source_proof
     )
+    source_certificate["guard_binding_audit"] = (
+        [
+            {
+                "transition_id": binding.transition_id,
+                "source_label": binding.source_label,
+                "semantic_role": binding.semantic_role,
+            }
+            for binding in obligation.guard_bindings
+        ]
+        if isinstance(obligation, GuardSetObligation)
+        else []
+    )
+    source_certificate["sound_for_claim"] = bool(
+        isinstance(obligation, GuardSetObligation)
+        and set(guard_bindings) == transition_refs
+    )
     receipt = {
         "schema": "paper1.execution_certificate.v1",
         "evaluated_artifact": pair["paths"]["fcstm"],
@@ -7550,6 +9638,7 @@ def _execute_source_guard_goal(
             "source_transition_ids": [
                 row.get("id") for row, _, _ in profiled_source_rows
             ],
+            "guard_binding_audit": source_certificate["guard_binding_audit"],
             "decision_group": {
                 "source": goal.source,
                 "trigger": "implicit_completion",
@@ -7569,7 +9658,11 @@ def _execute_source_guard_goal(
         counterexample_found=counterexample,
         source_attribution=(
             "causal_dual_certificate"
-            if counterexample and source_certificate.get("verdict") == "counterexample"
+            if (
+                counterexample
+                and source_certificate.get("sound_for_claim") is True
+                and source_certificate.get("verdict") == "counterexample"
+            )
             else "unattributed"
         ),
         compiled_assertion=program,
@@ -7827,9 +9920,8 @@ def _execute_transition_contract_goal(
     mapped_relation_present = any(item["complete"] for item in mapping_receipts)
     direct_relation_present = bool(artifact_rows)
     artifact_relation_present = direct_relation_present or mapped_relation_present
-    condition = (
-        None if goal.relation == "transition_absent" else goal.condition or goal.trigger
-    )
+    condition_binding = goal.trigger or goal.condition
+    condition = None if goal.relation == "transition_absent" else condition_binding
     bound_transition = (
         _source_transition_by_id(pair, goal.observed_transition_id)
         if goal.observed_transition_id
@@ -7841,25 +9933,34 @@ def _execute_transition_contract_goal(
     projected_event = (
         _projected_event(pair, bound_event)[0] if isinstance(bound_event, str) else None
     )
-    direct_condition_present = any(
-        (
-            isinstance(projected_event, str)
-            and _same_model_reference(pair, row.get("event"), projected_event)
+    # A prose condition is not a formal guard AST. It can support a terminal
+    # missing-edge counterexample, but an existing edge is W2 only when the
+    # semantic grounding also supplied an exact formal trigger binding. The
+    # compiler never treats an arbitrary non-empty label as proof that the
+    # requested condition is realized.
+    source_condition_binding = (
+        isinstance(bound_transition, dict)
+        and _source_transition_condition_matches(
+            pair, bound_transition, condition_binding
         )
-        or (
-            isinstance(bound_transition, dict)
-            and bound_transition.get("guard") is not None
-            and row.get("guard") is not None
-        )
-        for row in artifact_rows
     )
-    mapped_condition_present = any(
-        item["complete"] and bool(item.get("raw_label")) for item in mapping_receipts
-    )
-    artifact_condition_present = direct_condition_present or mapped_condition_present
     endpoint_source_rows = _source_transition_rows(
         pair, source=str(goal.source), target=str(goal.target)
     )
+    direct_condition_present = bool(condition_binding) and source_condition_binding and any(
+        isinstance(projected_event, str)
+        and _same_model_reference(pair, row.get("event"), projected_event)
+        for row in artifact_rows
+    )
+    mapped_condition_present = bool(condition_binding) and any(
+        item["complete"]
+        and any(
+            _source_transition_condition_matches(pair, row, condition_binding)
+            for row in endpoint_source_rows
+        )
+        for item in mapping_receipts
+    )
+    artifact_condition_present = direct_condition_present or mapped_condition_present
     source_rows = (
         [
             row
@@ -7870,10 +9971,12 @@ def _execute_transition_contract_goal(
         else endpoint_source_rows
     )
     source_relation_present = bool(source_rows)
-    source_condition_present = any(
-        isinstance(row.get("attributes"), dict)
-        and bool(row.get("attributes", {}).get("raw_label_present"))
+    source_condition_present = bool(condition_binding) and any(
+        _source_transition_condition_matches(pair, row, condition_binding)
         for row in source_rows
+    )
+    formal_condition_binding = _canonical_formal_condition_binding(
+        pair, condition_binding
     )
     actual = artifact_relation_present and (
         artifact_condition_present if condition else True
@@ -7883,7 +9986,8 @@ def _execute_transition_contract_goal(
     )
     condition_binding_terminal = (
         not condition
-        or goal.observed_transition_id is not None
+        or source_condition_present
+        or formal_condition_binding
         or (not endpoint_source_rows and not artifact_relation_present)
     )
     terminal = source is not None and target is not None and condition_binding_terminal
@@ -7894,7 +9998,8 @@ def _execute_transition_contract_goal(
         and target_reference is not None
         and (
             not condition
-            or goal.observed_transition_id is not None
+            or source_condition_present
+            or formal_condition_binding
             or not endpoint_source_rows
         )
     )
@@ -7903,8 +10008,6 @@ def _execute_transition_contract_goal(
     certificate_kind = (
         "source_extraneous_transition"
         if goal.relation == "transition_absent" or goal.expected is False
-        else "source_guard_presence"
-        if source_relation_present and condition and not source_condition_present
         else "source_transition_contract"
     )
     source_certificate = {
@@ -7929,6 +10032,7 @@ def _execute_transition_contract_goal(
         "matching_transitions": source_rows,
         "relation_present": source_relation_present,
         "condition_present": source_condition_present,
+        "formal_condition_binding": formal_condition_binding,
         "actual": source_actual,
         "expected": goal.expected,
         "sound_for_claim": source_sound,
@@ -8016,6 +10120,7 @@ def _execute_transition_contract_goal(
             "relation_present": artifact_relation_present,
             "condition_present": artifact_condition_present,
             "condition_binding_terminal": condition_binding_terminal,
+            "formal_condition_binding": formal_condition_binding,
         },
         "terminal": terminal,
         "precondition_failed": False,
@@ -8555,6 +10660,157 @@ def _execute_event_scope_goal(
     return outcome
 
 
+def _execute_event_consumer_scope_goal(
+    pair: dict[str, Any],
+    inspect: dict[str, Any],
+    candidate: EvidenceCandidate,
+    route: dict[str, Any],
+    index: int,
+) -> dict[str, Any]:
+    """Execute grouped exact event-consumer reachability on the FCSTM graph."""
+
+    goal = candidate.goal
+    source_certificate = _source_event_scope_certificate(pair, goal)
+    if not isinstance(source_certificate, dict):
+        return _single_group_outcome(
+            pair,
+            candidate,
+            index=index,
+            route=route,
+            witness_level="W1",
+            counterexample_found=False,
+            source_attribution="source_localized",
+            compiled_assertion=None,
+            execution_certificate=None,
+            source_certificate=None,
+            error="event consumer scope could not be resolved from exact source IDs",
+        )
+
+    from paper_stm_feedback_loop.assertions.pyfcstm_adapter import (
+        load_model_for_simulation,
+    )
+    from paper_stm_feedback_loop.assertions.topology import TopologyIndex
+
+    machine = load_model_for_simulation(pair["fcstm"], pair["paths"]["fcstm"])
+    topology = TopologyIndex(inspect, machine).topology()
+    initial_closure = {
+        str(item) for item in topology.get("initial_closure", []) if isinstance(item, str)
+    }
+
+    def runtime_source_reachable(source_id: str) -> bool:
+        formal_source = source_id
+        if not formal_source.startswith(f"{pair['pair_name']}."):
+            formal_source = f"{pair['pair_name']}.{formal_source}"
+        return any(
+            item == formal_source or item.startswith(f"{formal_source}.")
+            for item in initial_closure
+        )
+
+    runtime_scope_results: list[dict[str, Any]] = []
+    for scope_result in source_certificate.get("consumers_by_scope", []):
+        if not isinstance(scope_result, dict):
+            continue
+        runtime_consumers: list[dict[str, Any]] = []
+        for consumer in scope_result.get("consumers", []):
+            if not isinstance(consumer, dict) or not isinstance(consumer.get("source"), str):
+                continue
+            row = dict(consumer)
+            row["runtime_source_reachable"] = runtime_source_reachable(
+                str(consumer["source"])
+            )
+            runtime_consumers.append(row)
+        reachable_consumers = [
+            row for row in runtime_consumers
+            if row.get("runtime_source_reachable") is True
+        ]
+        runtime_scope_results.append(
+            {
+                "scope": scope_result.get("scope"),
+                "consumers": runtime_consumers,
+                "reachable_consumers": reachable_consumers,
+                "actual": bool(reachable_consumers),
+                "source_status": scope_result.get("status"),
+            }
+        )
+    runtime_coverage = bool(runtime_scope_results) and all(
+        item.get("actual") is True for item in runtime_scope_results
+    )
+    counterexample = not runtime_coverage
+    code = (
+        "for each required scope, collect exact source-AST transitions whose "
+        "event identity equals observed_transition_id.event; assert every "
+        "scope has one consumer source reachable in the FCSTM topology"
+    )
+    formal_scope = (
+        goal.source
+        if goal.source == pair["pair_name"]
+        or goal.source.startswith(f"{pair['pair_name']}.")
+        else f"{pair['pair_name']}.{goal.source}"
+    )
+    program = {
+        "schema": "paper1.compiled_evidence_program.v1",
+        "backend": "pyfcstm.topology",
+        # Keep the historical two-step assertion view for audit consumers while
+        # adding the typed grouped operator that actually decides the result.
+        "assertion_ir": [
+            {
+                "predicate": "reachable",
+                "bindings": {"source": f"{pair['pair_name']}.*"},
+            },
+            {
+                "predicate": "event_consumed",
+                "bindings": {
+                    "source": formal_scope,
+                    "trigger": source_certificate.get("event"),
+                },
+            },
+            {
+                "predicate": "grouped_event_consumer_reachable",
+                "bindings": goal.model_dump(mode="json"),
+            },
+        ],
+        "compiled_assertion_code": code,
+        "compiled_assertion_sha256": _sha256(code),
+        "execution_model": "sealed_pyfcstm_topology_environment",
+    }
+    receipt = {
+        "schema": "paper1.execution_certificate.v1",
+        "evaluated_artifact": pair["paths"]["fcstm"],
+        "evaluated_artifact_sha256": _sha256(pair["fcstm"]),
+        "compiled_assertion_sha256": program["compiled_assertion_sha256"],
+        "engine": {
+            "adapter": "pyfcstm.inspect.topology",
+            "initial_closure_used": True,
+        },
+        "observations": {
+            "event": source_certificate.get("event"),
+            "observed_transition_id": goal.observed_transition_id,
+            "initial_closure": sorted(initial_closure),
+            "scopes": runtime_scope_results,
+            "source_certificate_verdict": source_certificate.get("verdict"),
+        },
+        "terminal": True,
+        "precondition_failed": False,
+        "counterexample_found": counterexample,
+        "verdict": "counterexample" if counterexample else "satisfied",
+    }
+    source_counterexample = source_certificate.get("verdict") == "counterexample"
+    return _single_group_outcome(
+        pair,
+        candidate,
+        index=index,
+        route=route,
+        witness_level="W2",
+        counterexample_found=counterexample,
+        source_attribution=(
+            "causal_dual_certificate" if source_counterexample else "unattributed"
+        ),
+        compiled_assertion=program,
+        execution_certificate=receipt,
+        source_certificate=source_certificate,
+    )
+
+
 def _execute_topology_goal(
     pair: dict[str, Any],
     inspect: dict[str, Any],
@@ -8587,6 +10843,11 @@ def _execute_topology_goal(
         if goal.relation == "eventually_terminates"
         else None
     )
+    source = (
+        _resolve_candidate_path(pair, str(goal.source), candidates)
+        if goal.relation == "target_reachable" and goal.source
+        else None
+    )
     if target is None:
         return _single_group_outcome(
             pair,
@@ -8601,25 +10862,70 @@ def _execute_topology_goal(
             source_certificate=None,
             error="topology subject could not be resolved exactly",
         )
+    if goal.relation == "target_reachable" and goal.source and source is None:
+        return _single_group_outcome(
+            pair,
+            candidate,
+            index=index,
+            route=route,
+            witness_level="W1",
+            counterexample_found=False,
+            source_attribution="source_localized",
+            compiled_assertion=None,
+            execution_certificate=None,
+            source_certificate=None,
+            error="topology source could not be resolved exactly",
+        )
 
     source_certificate: dict[str, Any] | None = None
     if goal.relation == "target_reachable":
-        actual = target not in set(topology.get("unreachable_leaves", []))
-        source_certificate = _source_missing_initial_certificate(
-            pair, str(reference)
-        ) or _source_unreachable_certificate(pair, str(reference))
+        if source is not None:
+            graph = build_leaf_level_macro_graph(machine)
+            queue = [source]
+            parents: dict[str, str | None] = {source: None}
+            while queue:
+                node = queue.pop(0)
+                for successor in graph.edges.get(node, ()):
+                    if successor in parents:
+                        continue
+                    parents[successor] = node
+                    queue.append(successor)
+            source_target_path: list[str] = []
+            if target in parents:
+                cursor: str | None = target
+                while cursor is not None:
+                    source_target_path.append(cursor)
+                    cursor = parents[cursor]
+                source_target_path.reverse()
+            actual = target in parents
+            proof_slice = {
+                "source": source,
+                "target": target,
+                "source_target_path": source_target_path,
+                "reachable_from_source": sorted(parents),
+                "unreachable_leaves": topology.get("unreachable_leaves", []),
+                "query_bound": None,
+            }
+        else:
+            actual = target not in set(topology.get("unreachable_leaves", []))
+            source_certificate = _source_missing_initial_certificate(
+                pair, str(reference)
+            ) or _source_unreachable_certificate(pair, str(reference))
+            proof_slice = {
+                "source": None,
+                "target": target,
+                "unreachable_leaves": topology.get("unreachable_leaves", []),
+                "initial_closure": topology.get("initial_closure", []),
+                "absence_cut": [
+                    edge
+                    for edge in topology.get("transitions", [])
+                    if edge.get("source") in set(topology.get("initial_closure", []))
+                    and edge.get("target")
+                    not in set(topology.get("initial_closure", []))
+                ],
+                "query_bound": None,
+            }
         decisive = True
-        proof_slice = {
-            "target": target,
-            "unreachable_leaves": topology.get("unreachable_leaves", []),
-            "initial_closure": topology.get("initial_closure", []),
-            "absence_cut": [
-                edge
-                for edge in topology.get("transitions", [])
-                if edge.get("source") in set(topology.get("initial_closure", []))
-                and edge.get("target") not in set(topology.get("initial_closure", []))
-            ],
-        }
     elif goal.relation == "state_escapable":
         initially_reachable = target in set(topology.get("initial_closure", []))
         actual = initially_reachable and target not in set(
@@ -8701,6 +11007,8 @@ def _execute_topology_goal(
     operation = (
         "stable_termination_target"
         if goal.relation == "termination_target"
+        else "source_target_reachability"
+        if goal.relation == "target_reachable" and source is not None
         else "topology_certificate"
     )
     code = (
@@ -8763,8 +11071,10 @@ def _execute_evidence_candidate(
 ) -> dict[str, Any]:
     obligation = planned_candidate.domain_obligation
     lowering_errors = validate_domain_obligation_lowering(planned_candidate)
+    soundness_errors = validate_operator_executable_soundness(planned_candidate)
     support = derive_support_disposition(planned_candidate, lowering_errors)
-    if lowering_errors:
+    if lowering_errors or soundness_errors:
+        errors = lowering_errors or soundness_errors
         return _single_group_outcome(
             pair,
             planned_candidate,
@@ -8773,15 +11083,21 @@ def _execute_evidence_candidate(
                 "schema": "paper1.evidence_route.v2",
                 "template": None,
                 "backend": None,
-                "operation": "invalid_typed_lowering",
+                "operation": (
+                    "invalid_typed_lowering"
+                    if lowering_errors
+                    else "unsupported_executable_fragment"
+                ),
                 "checks": [],
-                "errors": lowering_errors,
+                "errors": errors,
                 "domain_obligation": (
                     obligation.model_dump(mode="json")
                     if obligation is not None
                     else None
                 ),
-                "typed_obligation_status": "invalid",
+                "typed_obligation_status": (
+                    "invalid" if lowering_errors else "unsupported"
+                ),
                 "support_disposition": support.model_dump(mode="json"),
                 "method_bindings": [],
             },
@@ -8793,7 +11109,7 @@ def _execute_evidence_candidate(
             compiled_assertion=None,
             execution_certificate=None,
             source_certificate=None,
-            error="; ".join(lowering_errors),
+            error="; ".join(errors),
         )
     candidate, method_bindings = _apply_formal_transition_binding(
         pair, planned_candidate
@@ -8825,6 +11141,12 @@ def _execute_evidence_candidate(
             execution_certificate=None,
             source_certificate=None,
             error="; ".join(route["errors"]),
+        )
+    if candidate.goal.relation in {"action_exists", "effect_exists"}:
+        return _execute_action_effect_goal(pair, inspect, candidate, route, index)
+    if candidate.goal.relation == "event_consumed_in_scope":
+        return _execute_event_consumer_scope_goal(
+            pair, inspect, candidate, route, index
         )
     if route["operation"] == "topology_certificate":
         return _execute_topology_goal(pair, inspect, candidate, route, index)
@@ -8882,6 +11204,16 @@ def _execute_evidence_candidate(
     for group in outcome.get("probe_groups", []):
         group["compiler_route"] = _jsonable(route)
         group["evidence_goal"] = candidate.goal.model_dump(mode="json")
+        source_certificate = group.get("source_causality_certificate")
+        if (
+            candidate.goal.relation == "initial_target"
+            and candidate.requirement_group_id is not None
+            and isinstance(source_certificate, dict)
+            and source_certificate.get("kind") == "source_initial_target_contract"
+        ):
+            source_certificate["requirement_group_id"] = (
+                candidate.requirement_group_id
+            )
         if candidate.goal.relation == "event_consumed_in_scope":
             source_certificate = _source_event_scope_certificate(pair, candidate.goal)
             group["source_causality_certificate"] = source_certificate
@@ -9119,16 +11451,23 @@ def _finding_key(outcome: dict[str, Any], group: dict[str, Any] | None) -> str:
             "trigger",
             "target",
             "forbidden_scope",
+            "scope_applicability",
+            "required_scope_ids",
             "response",
             "variable",
             "sign",
             "phase",
+            "action",
             "count",
             "condition",
             "within_cycles",
             "expected",
         )
         if goal.get(key) is not None
+        and not (
+            key == "source"
+            and goal.get("relation") == "event_consumed_in_scope"
+        )
     }
     nl_locations = sorted(
         str(item)
@@ -9184,6 +11523,8 @@ def _infer_l_level(candidate: dict[str, Any], group: dict[str, Any] | None) -> s
         "unreachable_source_component",
         "source_wrong_scope_route",
         "source_unstable_termination_target",
+        "source_event_consumers_unreachable",
+        "source_event_scope_unavailable",
     }:
         return "L2"
     goal = candidate.get("goal")
@@ -9438,6 +11779,16 @@ def _derive_witness_level(
     """Derive W from evidence artifacts instead of accepting an LLM label."""
 
     if _terminal_counterexample_certificates(group):
+        # A terminal FCSTM receipt alone is not enough to call a source-grounded
+        # claim W2.  When a source certificate is present, the source side must
+        # also be a closed counterexample; an inconclusive or explicitly unsound
+        # bridge is a localized W1 result and must remain visible to D adjudication.
+        source_certificate = group.get("source_causality_certificate")
+        if isinstance(source_certificate, dict) and (
+            source_certificate.get("sound_for_claim") is not True
+            or source_certificate.get("verdict") != "counterexample"
+        ):
+            return "W1"
         return "W2"
     source_status = group.get("source_attribution")
     source_status = source_status if isinstance(source_status, dict) else {}
@@ -9499,6 +11850,33 @@ def _canonical_source_fact(certificate: dict[str, Any]) -> str | None:
             f"{certificate.get('observed_target')!r}, while reference transition "
             f"{certificate.get('reference_transition_id')!r} realizes required target "
             f"{certificate.get('normative_target')!r}."
+        )
+    if kind == "source_event_missing_in_scope":
+        missing = certificate.get("missing_scope_ids")
+        if not isinstance(missing, list):
+            missing = [certificate.get("source")]
+        return (
+            f"Exact event {certificate.get('event')!r} has no consumer in required "
+            f"scope(s) {missing!r}; observed event identity came from transition "
+            f"{certificate.get('observed_transition_id')!r}."
+        )
+    if kind in {
+        "source_event_consumers_unreachable",
+        "source_event_scope_unavailable",
+    }:
+        unreachable = certificate.get("unreachable_scope_ids")
+        unreachable = unreachable if isinstance(unreachable, list) else []
+        consumers = certificate.get("aggregate_consumers")
+        consumer_ids = [
+            str(item.get("id"))
+            for item in consumers
+            if isinstance(item, dict) and item.get("id") is not None
+        ] if isinstance(consumers, list) else []
+        return (
+            f"Exact event {certificate.get('event')!r} has authored consumers "
+            f"{list(dict.fromkeys(consumer_ids))!r}, but none is reachable in "
+            f"required scope(s) {unreachable!r}; the selected event identity came "
+            f"from transition {certificate.get('observed_transition_id')!r}."
         )
     if kind == "source_wrong_scope_route":
         return (
@@ -9781,6 +12159,7 @@ def _compact_source_certificate_for_d(
         "scope",
         "owner_scope",
         "source",
+        "state",
         "child",
         "composite",
         "expected_parent",
@@ -9804,11 +12183,22 @@ def _compact_source_certificate_for_d(
         "source_reachable",
         "active_scopes_checked",
         "consumers",
+        "consumers_by_scope",
+        "aggregate_consumers",
+        "reachable_consumers",
+        "blocking_scope",
+        "missing_scope_ids",
+        "unreachable_scope_ids",
+        "coverage_actual",
+        "scope_applicability",
+        "required_scope_ids",
         "explicit_final",
         "root_final_edge_count",
         "cross_component_incoming",
         "initial_edge_count",
         "matching_edge_count",
+        "attempted_entry_edge_count",
+        "attempted_entry_edges",
         "scope_supports_initial",
         "target_is_direct_child",
         "direct_children",
@@ -9824,6 +12214,9 @@ def _compact_source_certificate_for_d(
         "assertion_executed",
         "actual",
         "expected",
+        "phase",
+        "action",
+        "evidence",
         "assumptions",
     )
     compact = {
@@ -9924,6 +12317,97 @@ def d_finding_sort_key(finding: dict[str, Any]) -> tuple[int, int, str]:
     )
 
 
+def _d_normative_basis(finding: dict[str, Any]) -> dict[str, Any]:
+    """Project supplied normative provenance without interpreting its prose."""
+
+    obligations = finding.get("obligations")
+    obligations = obligations if isinstance(obligations, list) else []
+    nl_quotes = finding.get("nl_quotes")
+    nl_quotes = nl_quotes if isinstance(nl_quotes, list) else []
+    return {
+        "basis_kind": finding.get("basis_kind"),
+        "obligation": next((item for item in obligations if item), None),
+        "nl_quote": next((item for item in nl_quotes if item), None),
+        "nl_anchor_valid": finding.get("nl_anchor_valid"),
+        "domain_obligations": _domain_obligations_for_finding(finding),
+        "language_clause": _language_clause_for_finding(finding),
+    }
+
+
+def _d_applicability_reason(finding: dict[str, Any]) -> dict[str, Any] | None:
+    """Expose supplied applicability material, leaving its truth to the judge."""
+
+    bases = finding.get("bases")
+    bases = bases if isinstance(bases, list) else []
+    oracle_rules = finding.get("formal_oracle_rules")
+    oracle_rules = oracle_rules if isinstance(oracle_rules, list) else []
+    conditions = [
+        rule.get("applicability")
+        for rule in oracle_rules
+        if isinstance(rule, dict) and rule.get("applicability")
+    ]
+    candidate_basis = next((item for item in bases if item), None)
+    if candidate_basis is None and not conditions:
+        return None
+    return {
+        "candidate_basis": candidate_basis,
+        "formal_oracle_applicability_conditions": conditions,
+        "semantic_applicability_established": None,
+    }
+
+
+def _d_formal_fact(
+    finding: dict[str, Any], source_certificate: dict[str, Any]
+) -> dict[str, Any] | None:
+    """Expose only facts carried by typed certificates or oracle receipts."""
+
+    oracle_rules = finding.get("formal_oracle_rules")
+    oracle_rules = oracle_rules if isinstance(oracle_rules, list) else []
+    oracle_facts = [
+        {
+            "rule_id": rule.get("rule_id"),
+            "diagnostic_code": rule.get("diagnostic_code"),
+            "formal_fact": rule.get("formal_fact"),
+        }
+        for rule in oracle_rules
+        if isinstance(rule, dict) and rule.get("formal_fact")
+    ]
+    source_fact = _canonical_source_fact(source_certificate)
+    if source_fact is None and not oracle_facts:
+        return None
+    return {
+        "canonical_source_fact": source_fact,
+        "formal_oracle_facts": oracle_facts,
+    }
+
+
+def _mechanical_d_provenance_ceiling(finding: dict[str, Any]) -> dict[str, Any]:
+    """Bound D2 provenance mechanically; never decide semantic applicability."""
+
+    admissible_d2_groundings: list[str] = []
+    nl_quotes = finding.get("nl_quotes")
+    if finding.get("nl_anchor_valid") is True and isinstance(nl_quotes, list) and any(
+        nl_quotes
+    ):
+        admissible_d2_groundings.append("lit")
+    language_clause = _language_clause_for_finding(finding)
+    if (
+        isinstance(language_clause, dict)
+        and language_clause.get("antecedent_established") is True
+        and language_clause.get("violation_established") is True
+    ):
+        admissible_d2_groundings.append("lang")
+    if _protocol_d2_grounding(finding) == "impl":
+        admissible_d2_groundings.append("impl")
+    if _has_typed_operational_domain_norm(finding):
+        admissible_d2_groundings.append("dom")
+    return {
+        "level": "D2" if admissible_d2_groundings else "D1",
+        "admissible_d2_groundings": admissible_d2_groundings,
+        "semantic_d_decision_claimed": False,
+    }
+
+
 def build_d_context(pair: dict[str, Any], findings: list[dict[str, Any]]) -> str:
     compact = []
     ordered_findings = sorted(findings, key=d_finding_sort_key)
@@ -9941,6 +12425,18 @@ def build_d_context(pair: dict[str, Any], findings: list[dict[str, Any]]) -> str
             {
                 "finding_ordinal": finding_ordinal,
                 "finding_key": finding["finding_key"],
+                "normative_basis": _d_normative_basis(finding),
+                "applicability_reason": _d_applicability_reason(finding),
+                "formal_fact": _d_formal_fact(finding, source_certificate),
+                "source_certificate": _compact_source_certificate_for_d(
+                    source_certificate
+                ),
+                "strongest_defeater": None,
+                "defeater_disposition": None,
+                "alternative_reading": None,
+                "mechanical_d_provenance_ceiling": (
+                    _mechanical_d_provenance_ceiling(finding)
+                ),
                 "basis_kind": finding.get("basis_kind"),
                 "basis": next(iter(finding.get("bases", [])), None),
                 "claim": next(iter(finding.get("claims", [])), None),
@@ -9954,9 +12450,6 @@ def build_d_context(pair: dict[str, Any], findings: list[dict[str, Any]]) -> str
                 "formal_oracle_rules": finding.get("formal_oracle_rules", []),
                 "formal_goals": finding.get("formal_goals", []),
                 "duplicate_eligible_earlier_keys": duplicate_eligible_earlier_keys,
-                "source_certificate": _compact_source_certificate_for_d(
-                    source_certificate
-                ),
             }
         )
     source_state_inventory = [
@@ -10102,6 +12595,8 @@ def validate_d_decision(finding: dict[str, Any], decision: DDecision) -> list[st
             errors.append("D2-norm requires grounding=dom")
         elif not _has_typed_operational_domain_norm(finding):
             errors.append("D2-norm requires a typed operational domain obligation")
+    if decision.d_level == "D2" and decision.defeater_disposition != "defeated":
+        errors.append("D2 requires the strongest defeater to be defeated")
     if decision.d_level == "D1" and not (
         decision.defeater_kind == "undercutting"
         and decision.defeater_disposition in {"survives", "unresolved"}
@@ -10109,6 +12604,17 @@ def validate_d_decision(finding: dict[str, Any], decision: DDecision) -> list[st
         errors.append("D1 requires a surviving or unresolved undercutting defeater")
     if decision.d_level == "D1" and decision.grounding == "none":
         errors.append("D1 requires a grounded first reading")
+    if decision.d_level == "D0" and decision.defeater_disposition not in {
+        "survives",
+        "unresolved",
+    }:
+        errors.append("D0 requires a surviving or unresolved defeater")
+    if (
+        decision.d_level == "D0"
+        and decision.defeater_kind == "rebutting"
+        and decision.defeater_disposition != "survives"
+    ):
+        errors.append("D0 rebutting defeater must survive")
     return errors
 
 
@@ -10719,15 +13225,17 @@ def build_parser() -> argparse.ArgumentParser:
         "--stream",
         dest="streaming",
         action="store_true",
-        help="Force streaming responses (overrides the adapter default).",
+        help="Use streaming responses (the default).",
     )
     stream_mode.add_argument(
         "--no-stream",
         dest="streaming",
         action="store_false",
-        help="Force complete non-streaming responses (overrides the adapter default).",
+        help="Use complete non-streaming responses.",
     )
-    parser.set_defaults(streaming=None)
+    # Streaming is the default research transport; use ``--no-stream`` only
+    # when a synchronous request is explicitly required for diagnostics.
+    parser.set_defaults(streaming=True)
     return parser
 
 

@@ -461,14 +461,11 @@ class DirectStructuredResponder:
                 else None
             )
         )
-        # ``None`` is the adapter policy: Responses defaults to complete
-        # responses, while the established Chat Completions/Anthropic paths keep
-        # streaming. A caller can explicitly force either transport mode.
-        self.streaming = (
-            self.config.adapter != "openai-responses"
-            if streaming is None
-            else streaming
-        )
+        # Streaming is the safe research default for every adapter: hosted
+        # gateways can time out while waiting for a complete response before
+        # the first token. ``--no-stream`` / ``streaming=False`` remains an
+        # explicit diagnostic override.
+        self.streaming = True if streaming is None else streaming
         self.model = create_chat_model(
             self.config,
             model_options=model_options,

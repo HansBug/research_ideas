@@ -21,8 +21,8 @@ def test_all_prototype_entry_points_share_the_provider_retry_default() -> None:
     assert DEFAULT_TRANSPORT_RETRIES == 8
     assert prototype_args.transport_retries == DEFAULT_TRANSPORT_RETRIES
     assert graph_args.transport_retries == DEFAULT_TRANSPORT_RETRIES
-    assert prototype_args.streaming is None
-    assert graph_args.streaming is None
+    assert prototype_args.streaming is True
+    assert graph_args.streaming is True
     assert (
         prototype.build_parser()
         .parse_args(["--case", "0000", "--output-dir", "out", "--stream"])
@@ -35,6 +35,32 @@ def test_all_prototype_entry_points_share_the_provider_retry_default() -> None:
         .streaming
         is False
     )
+
+
+def test_graph_cli_repeats_the_schema_contract_in_the_prompt(
+    monkeypatch, tmp_path
+) -> None:
+    captured: dict = {}
+
+    class CapturingResponder:
+        def __init__(self, profile, **kwargs) -> None:
+            captured["profile"] = profile
+            captured.update(kwargs)
+
+    monkeypatch.setattr(graph, "DirectStructuredResponder", CapturingResponder)
+    monkeypatch.setattr(
+        graph,
+        "run_graph",
+        lambda *args, **kwargs: {"final_record": {"finding_records": []}},
+    )
+
+    result = graph.main(
+        ["--case", "0016", "--profile", "fake", "--output-dir", str(tmp_path)]
+    )
+
+    assert result == 0
+    assert captured["profile"] == "fake"
+    assert captured["repeat_schema_in_prompt"] is True
 
 
 class FakeResponder:
@@ -246,10 +272,12 @@ class OneSchemaRepairResponder(FakeResponder):
     def __init__(self) -> None:
         super().__init__()
         self.discovery_attempts = 0
+        self.discovery_inputs: list[str] = []
 
     def invoke_structured(self, *, role, schema, system_prompt, user_input):
         if role == "paper1_discovery_grounding":
             self.discovery_attempts += 1
+            self.discovery_inputs.append(user_input)
             if self.discovery_attempts == 1:
                 raise graph.StructuredOutputValidationError(
                     "observed_fact field required"
@@ -260,6 +288,50 @@ class OneSchemaRepairResponder(FakeResponder):
             system_prompt=system_prompt,
             user_input=user_input,
         )
+
+
+class FailureObservationResponder(FakeResponder):
+    def __init__(
+        self,
+        *,
+        fail_roles: set[str],
+        phases: list[str] | None = None,
+        errors: list[Exception] | None = None,
+    ) -> None:
+        super().__init__()
+        self.fail_roles = fail_roles
+        self.phases = list(phases or ["internal"])
+        self.errors = list(errors or [RuntimeError("synthetic local failure")])
+        self._pending_observation: dict | None = None
+        self._failure_index = 0
+
+    def invoke_structured(self, *, role, schema, system_prompt, user_input):
+        if role not in self.fail_roles:
+            return super().invoke_structured(
+                role=role,
+                schema=schema,
+                system_prompt=system_prompt,
+                user_input=user_input,
+            )
+        index = min(self._failure_index, len(self.phases) - 1)
+        error_index = min(self._failure_index, len(self.errors) - 1)
+        self._failure_index += 1
+        self._pending_observation = {
+            "role": role,
+            "status": "failed",
+            "attempts": [
+                {
+                    "status": "failed",
+                    "failure_phase": self.phases[index],
+                }
+            ],
+        }
+        raise self.errors[error_index]
+
+    def take_last_observation(self):
+        observation = self._pending_observation
+        self._pending_observation = None
+        return observation
 
 
 def test_langgraph_runs_progressive_scouts_before_d_adjudication() -> None:
@@ -300,6 +372,11 @@ def test_schema_error_is_repaired_once_inside_the_same_node() -> None:
 
     assert state["final_record"].get("status") != "failed"
     assert responder.discovery_attempts == 3
+    assert "# Structured-output repair feedback" in responder.discovery_inputs[1]
+    assert (
+        "StructuredOutputValidationError: observed_fact field required"
+        in responder.discovery_inputs[1]
+    )
 
 
 def test_grounding_internal_error_degrades_and_preserves_scout_results(
@@ -336,6 +413,9 @@ def test_fresh_graph_uses_shared_a_complementary_dual_b_and_single_d() -> None:
 
     assert state["final_record"].get("status") != "failed"
     assert responder.roles == [
+        "paper1_contract_extraction",
+        # An all-empty first contract plan receives one completeness review
+        # before the two complementary grounding branches run.
         "paper1_contract_extraction",
         "paper1_discovery_grounding",
         "paper1_discovery_grounding",
@@ -382,6 +462,59 @@ def test_cross_sample_exact_binding_conflict_is_withheld_without_text_matching()
     assert all(plan.concept_bindings == [] for plan in plans)
     assert all(plan.unresolved[0].field == "concept_bindings[C-mode]" for plan in plans)
     assert diagnostics[0]["class"] == "cross_sample_formal_binding_conflict"
+
+
+def test_cross_sample_unique_formal_path_aliases_are_canonicalized() -> None:
+    first = prototype.DiscoveryGroundingPlan(
+        concept_bindings=[
+            prototype.CompactConceptBinding(
+                concept_id="C-mode",
+                source_state_id="Root.Mode",
+            )
+        ],
+        surface_candidates=[],
+        behavior_candidates=[],
+    )
+    second = prototype.DiscoveryGroundingPlan(
+        concept_bindings=[
+            prototype.CompactConceptBinding(
+                concept_id="C-mode",
+                source_state_id="pair.Root.Mode",
+            )
+        ],
+        surface_candidates=[],
+        behavior_candidates=[],
+    )
+
+    plans, diagnostics = graph._veto_explicit_cross_sample_conflicts(
+        [first, second], canonical_formal_ids=frozenset({"pair.Root.Mode"})
+    )
+
+    assert diagnostics == []
+    assert [plan.concept_bindings[0].source_state_id for plan in plans] == [
+        "pair.Root.Mode",
+        "pair.Root.Mode",
+    ]
+
+    prefixed = prototype.DiscoveryGroundingPlan(
+        concept_bindings=[
+            prototype.CompactConceptBinding(
+                concept_id="C-mode",
+                source_state_id="llms_emp_feedback_final_0046.UAVSwarmStateMachine.SearchRegion",
+            )
+        ],
+        surface_candidates=[],
+        behavior_candidates=[],
+    )
+    canonical, diagnostics = graph._veto_explicit_cross_sample_conflicts(
+        [prefixed],
+        canonical_formal_ids=frozenset({"UAVSwarmStateMachine.SearchRegion"}),
+    )
+    assert diagnostics == []
+    assert (
+        canonical[0].concept_bindings[0].source_state_id
+        == "UAVSwarmStateMachine.SearchRegion"
+    )
 
 
 def test_fresh_transition_binding_contract_is_exhaustive_by_index() -> None:
@@ -1127,3 +1260,124 @@ def test_failure_class_does_not_infer_provider_from_exception_text() -> None:
     ]
 
     assert graph._failure_class_from_observations(observations) == "schema_invalid"
+
+
+def test_all_discovery_internal_failures_publish_deterministic_scout_output() -> None:
+    state = graph.run_graph(
+        graph.PrototypeGraphInput(case="0016", profile="fake"),
+        FailureObservationResponder(fail_roles={"paper1_discovery_grounding"}),
+    )
+
+    record = state["final_record"]
+    assert record.get("status") != "failed"
+    assert record["discovery_grounding_plans"] == []
+    assert record["telemetry"]["completed_discovery_branch_count"] == 0
+    assert record["outcomes"]
+    assert all(
+        item["stage"] == "discovery_grounding"
+        for item in record["execution_diagnostics"]
+        if item["class"] == "internal"
+    )
+
+
+def test_d_internal_failure_publishes_all_findings_as_unresolved() -> None:
+    state = graph.run_graph(
+        graph.PrototypeGraphInput(case="0016", profile="fake"),
+        FailureObservationResponder(fail_roles={"paper1_d_adjudication"}),
+    )
+
+    record = state["final_record"]
+    assert record.get("status") != "failed"
+    assert record["confirmed_issues"] == []
+    assert record["accepted_issues"] == []
+    assert record["d_unresolved_reason"]
+    assert record["finding_records"]
+    assert all(item["d_status"] == "D_UNRESOLVED" for item in record["finding_records"])
+    assert all(item["d_decision"] is None for item in record["finding_records"])
+
+
+def test_d_mixed_failure_degrades_without_whole_cell_failure() -> None:
+    state = graph.run_graph(
+        graph.PrototypeGraphInput(case="0016", profile="fake"),
+        FailureObservationResponder(
+            fail_roles={"paper1_d_adjudication"},
+            phases=["structured_validation", "provider_response"],
+            errors=[
+                graph.StructuredOutputValidationError("invalid D payload"),
+                RuntimeError("synthetic provider response failure"),
+            ],
+        ),
+    )
+
+    record = state["final_record"]
+    assert record.get("status") != "failed"
+    assert all(item["d_status"] == "D_UNRESOLVED" for item in record["finding_records"])
+    assert record["confirmed_issues"] == []
+
+
+def test_d_local_deadline_degrades_without_whole_cell_failure() -> None:
+    state = graph.run_graph(
+        graph.PrototypeGraphInput(case="0016", profile="fake"),
+        FailureObservationResponder(
+            fail_roles={"paper1_d_adjudication"},
+            phases=["local_deadline"],
+            errors=[TimeoutError("local D deadline")],
+        ),
+    )
+
+    record = state["final_record"]
+    assert record.get("status") != "failed"
+    assert all(item["d_status"] == "D_UNRESOLVED" for item in record["finding_records"])
+
+
+def test_current_node_provider_failure_remains_a_failed_cell() -> None:
+    state = graph.run_graph(
+        graph.PrototypeGraphInput(case="0016", profile="fake"),
+        FailureObservationResponder(
+            fail_roles={"paper1_d_adjudication"},
+            phases=["provider_response"],
+            errors=[RuntimeError("provider unavailable")],
+        ),
+    )
+
+    record = state["final_record"]
+    assert record["status"] == "failed"
+    assert record["failure"]["class"] == "provider_failure"
+
+
+def test_current_node_schema_exhaustion_remains_a_failed_cell() -> None:
+    state = graph.run_graph(
+        graph.PrototypeGraphInput(case="0016", profile="fake"),
+        FailureObservationResponder(
+            fail_roles={"paper1_d_adjudication"},
+            phases=["structured_validation", "structured_output_limit"],
+            errors=[
+                graph.StructuredOutputValidationError("invalid D payload"),
+                graph.StructuredOutputValidationError("still invalid D payload"),
+            ],
+        ),
+    )
+
+    record = state["final_record"]
+    assert record["status"] == "failed"
+    assert record["failure"]["class"] == "schema_invalid"
+
+
+def test_recovered_prior_observations_do_not_contaminate_current_node_classification() -> None:
+    observations = [
+        {
+            "status": "completed",
+            "attempts": [
+                {"status": "failed", "failure_phase": "provider_response"},
+                {"status": "completed", "failure_phase": "none"},
+            ],
+        },
+        {
+            "status": "failed",
+            "attempts": [
+                {"status": "failed", "failure_phase": "internal"},
+            ],
+        },
+    ]
+
+    assert graph._failure_class_from_observations(observations) == "mixed_failure"

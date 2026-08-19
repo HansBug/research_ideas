@@ -43,44 +43,97 @@ Cell = Literal[
     "baseline_run3",
 ]
 
+MAX_PROVIDER_RETRY_BURSTS = 8
+MAX_ATOMIC_SCHEMA_REPAIRS = 3
+
+
+class ProviderRetryExhausted(RuntimeError):
+    """Provider-only retries ended; the caller must preserve an audit result."""
+
 
 class HitAssessment(BaseModel):
-    hit: bool
-    supporting_finding_ids: list[str] = Field(default_factory=list)
-    reason: str
-    confidence: Literal["high", "medium", "low"] | None = None
+    """Semantic coverage decision for one ledger item in one frozen output cell."""
+
+    hit: bool = Field(
+        description="True only when the supplied output semantically covers the ledger item's location and property."
+    )
+    supporting_finding_ids: list[str] = Field(
+        default_factory=list,
+        description="Exact emitted issue IDs supporting a true decision; empty for a miss.",
+    )
+    reason: str = Field(
+        min_length=1,
+        description="Concise semantic basis for the decision, grounded only in the supplied inputs.",
+    )
+    confidence: Literal["high", "medium", "low"] | None = Field(
+        default=None,
+        description="Reviewer confidence in this semantic correspondence decision.",
+    )
 
 
 class LedgerAssessment(BaseModel):
-    ledger_id: str
-    method_run1: HitAssessment
-    method_run2: HitAssessment
-    method_run3: HitAssessment
-    baseline_run1: HitAssessment
-    baseline_run2: HitAssessment
-    baseline_run3: HitAssessment
+    """Complete six-cell coverage assessment for one ledger item."""
+
+    ledger_id: str = Field(description="Exact supplied ledger item identifier.")
+    method_run1: HitAssessment = Field(description="Coverage decision for method run 1.")
+    method_run2: HitAssessment = Field(description="Coverage decision for method run 2.")
+    method_run3: HitAssessment = Field(description="Coverage decision for method run 3.")
+    baseline_run1: HitAssessment = Field(description="Coverage decision for baseline run 1.")
+    baseline_run2: HitAssessment = Field(description="Coverage decision for baseline run 2.")
+    baseline_run3: HitAssessment = Field(description="Coverage decision for baseline run 3.")
 
 
 class EmissionAssessment(BaseModel):
-    cell: Cell
-    emitted_id: str
-    matched_ledger_ids: list[str] = Field(default_factory=list)
-    false_positive: bool
-    reason: str
-    confidence: Literal["high", "medium", "low"] | None = None
+    """Semantic correspondence and false-positive decision for one emitted issue."""
+
+    cell: Cell = Field(description="Frozen output cell containing the emitted issue.")
+    emitted_id: str = Field(description="Exact emitted issue identifier within the cell.")
+    matched_ledger_ids: list[str] = Field(
+        default_factory=list,
+        description="Supplied ledger item IDs semantically covered by this issue; empty means no correspondence.",
+    )
+    false_positive: bool = Field(
+        description="True when this emitted D1/D2 issue has no valid semantic ledger correspondence."
+    )
+    reason: str = Field(
+        min_length=1,
+        description="Concise semantic basis for the correspondence or false-positive decision.",
+    )
+    confidence: Literal["high", "medium", "low"] | None = Field(
+        default=None,
+        description="Reviewer confidence in this semantic correspondence decision.",
+    )
 
 
 class PairJudgement(BaseModel):
-    pair: str
-    ledger_assessments: list[LedgerAssessment]
-    emission_assessments: list[EmissionAssessment]
-    pair_reason: str
+    """Structured independent judgement for all supplied ledger items and emissions of one pair."""
+
+    pair: str = Field(description="Pair identifier supplied by the evaluation harness.")
+    ledger_assessments: list[LedgerAssessment] = Field(
+        description="One complete six-cell assessment for every supplied ledger item."
+    )
+    emission_assessments: list[EmissionAssessment] = Field(
+        description="One correspondence assessment for every supplied emitted issue."
+    )
+    pair_reason: str = Field(
+        min_length=1,
+        description="Short audit summary of the pair-level semantic judgement; do not add new issues.",
+    )
 
 
 class AtomicMatchDecision(BaseModel):
-    matches: bool
-    reason: str
-    confidence: Literal["high", "medium", "low"]
+    """Single semantic ledger-to-emission correspondence decision used by fallback judging."""
+
+    matches: bool = Field(
+        description="True only when the two supplied claims identify the same location and property."
+    )
+    reason: str = Field(
+        min_length=1,
+        description="Concise semantic reason based only on this ledger/emission pair.",
+    )
+    confidence: Literal["high", "medium", "low"] = Field(
+        description="Reviewer confidence in the atomic correspondence decision."
+    )
 
 
 SYSTEM_PROMPT = """你是独立的状态机缺陷覆盖评审员。你的任务是把一个 pair 的冻结台账条目与两个被测臂的六个输出格做语义对齐。你只能依据本次输入中的自然语言规格、PlantUML/FCSTM 相关定位、台账条目的完整主张，以及输出 issue 的完整主张作判断；不得使用关键词命中、字符串包含、编辑距离、向量相似度或任何其他词法捷径。
@@ -148,6 +201,8 @@ def _ledger_payload(items: dict[str, Any], pair: str) -> list[dict[str, Any]]:
 
 def _cell_payload(root: Path, arm: Arm, pair: str, run: int) -> dict[str, Any]:
     folder = root / f"run{run}" / f"{pair}-luna" / "record.json"
+    if arm == "baseline" and not folder.exists():
+        folder = root / f"run{run}" / f"{pair}-luna-x1v2" / "record.json"
     if not folder.exists():
         return {"cell": f"{arm}_run{run}", "status": "missing", "findings": []}
     record = _read_json(folder)
@@ -254,7 +309,7 @@ def _invoke_judge(
     burst is then exempt because a real retry follows it.
     """
 
-    while True:
+    for provider_burst in range(MAX_PROVIDER_RETRY_BURSTS + 1):
         try:
             result = responder.invoke_structured(
                 role=role,
@@ -271,6 +326,11 @@ def _invoke_judge(
                 terminal["billing_disposition"] = "provider_error_retry_exempt"
                 terminal["retry_after_seconds"] = 240.0
                 observations.append(audit)
+                if provider_burst >= MAX_PROVIDER_RETRY_BURSTS:
+                    raise ProviderRetryExhausted(
+                        "provider retries exhausted after "
+                        f"{MAX_PROVIDER_RETRY_BURSTS} retry bursts"
+                    )
                 time.sleep(240.0)
                 continue
             if observation is not None:
@@ -280,6 +340,7 @@ def _invoke_judge(
         if observation is not None:
             observations.append(_observation_audit(observation))
         return result
+    raise ProviderRetryExhausted("provider retry loop terminated without a result")
 
 
 def _validate_shape(
@@ -426,7 +487,8 @@ def _atomic_llm_fallback(
         for cell in cells:
             for finding in cell.get("findings", []):
                 feedback: str | None = None
-                while True:
+                decision: AtomicMatchDecision | None = None
+                for repair_index in range(MAX_ATOMIC_SCHEMA_REPAIRS + 1):
                     try:
                         decision = _invoke_judge(
                             responder=responder,
@@ -442,17 +504,42 @@ def _atomic_llm_fallback(
                             ),
                             observations=observations,
                         )
-                        relations.append(
-                            {
-                                "ledger_id": str(ledger_row["ledger_id"]),
-                                "cell": str(cell["cell"]),
-                                "emitted_id": str(finding["finding_id"]),
-                                **decision.model_dump(mode="json"),
-                            }
-                        )
                         break
                     except (StructuredOutputValidationError, ValidationError) as exc:
                         feedback = f"{type(exc).__name__}: {exc}"
+                        if repair_index >= MAX_ATOMIC_SCHEMA_REPAIRS:
+                            decision = AtomicMatchDecision(
+                                matches=False,
+                                reason=(
+                                    "结构化 judge 在有界修复后仍未满足契约，"
+                                    "该对应关系保留为未决并按保守 miss 处理。"
+                                ),
+                                confidence="low",
+                            )
+                    except Exception as exc:  # noqa: BLE001 - preserve one relation
+                        decision = AtomicMatchDecision(
+                            matches=False,
+                            reason=(
+                                "该对应关系的 judge 调用未能完成："
+                                f"{type(exc).__name__}: {exc}"
+                            ),
+                            confidence="low",
+                        )
+                        break
+                if decision is None:
+                    decision = AtomicMatchDecision(
+                        matches=False,
+                        reason="judge 未返回可审计的结构化对应关系，按保守 miss 处理。",
+                        confidence="low",
+                    )
+                relations.append(
+                    {
+                        "ledger_id": str(ledger_row["ledger_id"]),
+                        "cell": str(cell["cell"]),
+                        "emitted_id": str(finding["finding_id"]),
+                        **decision.model_dump(mode="json"),
+                    }
+                )
 
     relation_index = {
         (row["ledger_id"], row["cell"], row["emitted_id"]): row for row in relations
@@ -624,15 +711,17 @@ def main() -> int:
         "--stream",
         dest="streaming",
         action="store_true",
-        help="Force streaming responses (overrides the adapter default).",
+        help="Use streaming responses (the default).",
     )
     stream_mode.add_argument(
         "--no-stream",
         dest="streaming",
         action="store_false",
-        help="Force complete non-streaming responses (overrides the adapter default).",
+        help="Use complete non-streaming responses.",
     )
-    parser.set_defaults(streaming=None)
+    # Keep judge transport aligned with method runs: stream by default to avoid
+    # pre-first-token gateway timeouts on the hosted provider.
+    parser.set_defaults(streaming=True)
     parser.add_argument("--max-output-tokens", type=int, default=20_000)
     parser.add_argument("--pairs", nargs="*", default=None)
     args = parser.parse_args()

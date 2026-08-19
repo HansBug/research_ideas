@@ -372,6 +372,7 @@ def test_responses_adapter_uses_non_streaming_structured_invoke(monkeypatch) -> 
     progress = []
     responder = DirectStructuredResponder(
         "unit-profile",
+        streaming=False,
         on_stream_chunk=lambda role, chunks, elapsed_ms: progress.append(
             (role, chunks, elapsed_ms)
         ),

@@ -11,7 +11,7 @@ import time
 from pathlib import Path
 from typing import Any, Literal, TypedDict
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 from utils.llm import LLMPricing, estimate_usage_cost_usd
 
 from . import prototype as core
@@ -29,13 +29,26 @@ DISCOVERY_SAMPLE_COUNT = len(core.DISCOVERY_GROUNDING_AUDIT_LENSES)
 
 
 class PrototypeGraphInput(BaseModel):
-    case: str
-    profile: str
-    report_root: str | None = None
-    replay_plans_from: str | None = None
-    matched_x1v2_record: str | None = None
-    smt_timeout_ms: int = 3_000
-    max_total_tokens: int = DEFAULT_MAX_TOTAL_TOKENS
+    """Non-secret runtime configuration for one method-generation graph run."""
+
+    case: str = Field(description="Dataset case identifier supplied by the caller; not semantic evidence.")
+    profile: str = Field(description="Configured LLM profile name used for method generation.")
+    report_root: str | None = Field(
+        default=None, description="Optional representation-report root containing the formal input artifacts."
+    )
+    replay_plans_from: str | None = Field(
+        default=None, description="Optional prior run directory used for explicit replay, not fresh discovery."
+    )
+    matched_x1v2_record: str | None = Field(
+        default=None, description="Optional same-model baseline usage record for cost comparison only."
+    )
+    smt_timeout_ms: int = Field(
+        default=3_000, description="Timeout for registered formal guard operations."
+    )
+    max_total_tokens: int = Field(
+        default=DEFAULT_MAX_TOTAL_TOKENS,
+        description="Raw method-generation safety cap; provider retries and judge calls are tracked separately.",
+    )
 
 
 class PrototypeGraphState(TypedDict, total=False):
@@ -60,6 +73,7 @@ class PrototypeGraphState(TypedDict, total=False):
     d_repair_output_errors: list[str]
     d_repair_count: int
     d_call_count: int
+    d_call_failure: str
     d_unresolved_reason: str
     retry_d: bool
     execution_diagnostics: list[dict[str, str]]
@@ -110,7 +124,27 @@ def _failure_class_from_observations(
     for observation in observations:
         if not isinstance(observation, dict):
             continue
-        for attempt in observation.get("attempts", []):
+        # A completed observation may contain an earlier failed transport
+        # attempt.  That failure was recovered inside this node and must not
+        # contaminate classification of a later terminal failure.
+        if observation.get("status") == "completed":
+            continue
+        attempts = observation.get("attempts", [])
+        terminal_attempt = next(
+            (
+                attempt
+                for attempt in reversed(attempts)
+                if isinstance(attempt, dict)
+                and (
+                    attempt.get("status") == "failed"
+                    or attempt.get("failure_phase") not in {None, "none"}
+                )
+            ),
+            None,
+        )
+        if terminal_attempt is None:
+            continue
+        for attempt in (terminal_attempt,):
             if not isinstance(attempt, dict):
                 continue
             phase = attempt.get("failure_phase")
@@ -125,10 +159,79 @@ def _failure_class_from_observations(
     return default
 
 
+def _is_whole_cell_failure(failure_class: str) -> bool:
+    return failure_class in {"provider_failure", "schema_invalid"}
+
+
 def _veto_explicit_cross_sample_conflicts(
     plans: list[core.DiscoveryGroundingPlan],
+    *,
+    canonical_formal_ids: frozenset[str] | None = None,
 ) -> tuple[list[core.DiscoveryGroundingPlan], list[dict[str, str]]]:
-    """Veto exact concept or transition-binding disagreements across B samples."""
+    """Veto true formal disagreements across complementary discovery samples.
+
+    The live model sometimes copies a qualified FCSTM path without the source
+    model's pair namespace.  When the canonical AST inventory proves that this
+    is one unique path, the two spellings are the same formal identity and are
+    canonicalized before conflict detection.  This is structured path identity,
+    not a natural-language or keyword heuristic. Ambiguous suffixes remain
+    unresolved and are still fail-closed.
+    """
+
+    def canonical_id(value: str | None) -> str | None:
+        if value is None or canonical_formal_ids is None or value in canonical_formal_ids:
+            return value
+        parts = tuple(value.split("."))
+        matches = [
+            candidate
+            for candidate in canonical_formal_ids
+            if (
+                tuple(candidate.split("."))[-len(parts) :] == parts
+                or parts[-len(tuple(candidate.split("."))) :] == tuple(candidate.split("."))
+            )
+        ]
+        return matches[0] if len(matches) == 1 else value
+
+    if canonical_formal_ids:
+        normalized: list[core.DiscoveryGroundingPlan] = []
+        for plan in plans:
+            normalized.append(
+                plan.model_copy(
+                    deep=True,
+                    update={
+                        "concept_bindings": [
+                            binding.model_copy(
+                                update={
+                                    "source_state_id": canonical_id(binding.source_state_id)
+                                }
+                            )
+                            for binding in plan.concept_bindings
+                        ],
+                        "transition_group_bindings": [
+                            binding.model_copy(
+                                deep=True,
+                                update={
+                                    "source": canonical_id(binding.source),
+                                    "targets": [
+                                        target.model_copy(
+                                            update={
+                                                "target": canonical_id(target.target)
+                                                or target.target,
+                                                "observed_transition_id": canonical_id(
+                                                    target.observed_transition_id
+                                                ),
+                                            }
+                                        )
+                                        for target in binding.targets
+                                    ],
+                                },
+                            )
+                            for binding in plan.transition_group_bindings
+                        ],
+                    },
+                )
+            )
+        plans = normalized
 
     if len(plans) < 2:
         return plans, []
@@ -459,6 +562,18 @@ def _quarantine_untyped_fresh_evidence(
                     }
                 )
                 continue
+            if not candidate.observed_fact.strip():
+                diagnostics.append(
+                    {
+                        "stage": "discovery_grounding",
+                        "class": "fresh_observed_fact_missing",
+                        "message": (
+                            f"{lane}[{item_index}] omitted the audit-only "
+                            "observed_fact; the typed formal goal remains eligible "
+                            "for execution, but the omission is retained for audit"
+                        ),
+                    }
+                )
             kept.append(candidate)
         lanes[lane] = kept
     return core.IssueDiscoveryPlan(**lanes), diagnostics
@@ -521,6 +636,21 @@ def _invoke_with_schema_repair(
         if observation:
             observations.append(observation)
         return None, observations, second_error
+
+
+def _contract_plan_is_empty(plan: core.ContractExtractionPlan) -> bool:
+    """Return whether the structured extractor emitted no contract of any kind."""
+
+    return not any(
+        (
+            plan.initial_contracts,
+            plan.containment_contracts,
+            plan.transition_groups,
+            plan.required_state_contracts,
+            plan.required_event_scope_contracts,
+            plan.required_action_contracts,
+        )
+    )
 
 
 def _usage_budget(
@@ -956,17 +1086,57 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
             user_input=state["contract_context"],
         )
         if error is not None or plan is None:
+            failure_class = _failure_class_from_observations(observations)
+            if _is_whole_cell_failure(failure_class):
+                return {
+                    "failure": {
+                        "node": "contract_extraction",
+                        "class": failure_class,
+                        "message": f"{type(error).__name__}: {error}",
+                    },
+                    "llm_observations": [
+                        *state.get("llm_observations", []),
+                        *observations,
+                    ],
+                }
             return {
-                "failure": {
-                    "node": "contract_extraction",
-                    "class": _failure_class_from_observations(observations),
-                    "message": f"{type(error).__name__}: {error}",
-                },
+                "contract_plan": core.ContractExtractionPlan(
+                    initial_contracts=[], transition_groups=[]
+                ),
+                "execution_diagnostics": [
+                    {
+                        "stage": "contract_extraction",
+                        "class": failure_class,
+                        "message": f"{type(error).__name__}: {error}",
+                    }
+                ],
                 "llm_observations": [
                     *state.get("llm_observations", []),
                     *observations,
                 ],
             }
+        if _contract_plan_is_empty(plan):
+            repair_prompt = (
+                f"{state['contract_context']}\n\n# Empty-contract completeness review\n\n"
+                "The previous response returned every contract array empty. Re-read "
+                "all numbered NL lines and return every explicit state, initial, "
+                "containment, direct-transition, event-scope, and state-owned "
+                "action obligation supported by the text. Descriptive lines may "
+                "remain unrepresented, but do not leave an explicit transition or "
+                "named behavior requirement out merely because the artifact is "
+                "incomplete. This is a completeness review, not permission to add "
+                "artifact-derived obligations."
+            )
+            reviewed, review_observations, review_error = _invoke_with_schema_repair(
+                responder,
+                role="paper1_contract_extraction",
+                schema=core.ContractExtractionPlan,
+                system_prompt=core.CONTRACT_SYSTEM_PROMPT,
+                user_input=repair_prompt,
+            )
+            observations.extend(review_observations)
+            if review_error is None and reviewed is not None:
+                plan = reviewed
         return {
             "contract_plan": plan,
             "llm_observations": [
@@ -1006,7 +1176,7 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
                 plan, sample_observations, error = _invoke_with_schema_repair(
                     responder,
                     role="paper1_discovery_grounding",
-                    schema=core.DiscoveryGroundingPlan,
+                    schema=core.FreshDiscoveryGroundingPlan,
                     system_prompt=(
                         f"{core.DISCOVERY_GROUNDING_SYSTEM_PROMPT}\n\n"
                         f"# Complementary audit lens: {lens_id}\n\n{lens_prompt}"
@@ -1056,11 +1226,22 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
                     continue
                 branch_inputs.append((plan, call_id, lens_id, sample_index, plan))
             if not branch_inputs and not quarantined_inputs:
+                failure_class = _failure_class_from_observations(observations)
+                if not _is_whole_cell_failure(failure_class):
+                    return {
+                        "discovery_grounding_context": discovery_context,
+                        "discovery_branches": [],
+                        "semantic_grounding_diagnostics": branch_failures,
+                        "llm_observations": [
+                            *state.get("llm_observations", []),
+                            *observations,
+                        ],
+                    }
                 return {
                     "discovery_grounding_context": discovery_context,
                     "failure": {
                         "node": "discovery_grounding",
-                        "class": _failure_class_from_observations(observations),
+                        "class": failure_class,
                         "message": "all independent discovery samples failed",
                     },
                     "llm_observations": [
@@ -1068,8 +1249,20 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
                         *observations,
                     ],
                 }
+        inventory = core._semantic_grounding_inventory(state["pair"])
+        canonical_ids = frozenset(
+            [
+                *(item["id"] for item in inventory.get("states", []) if item.get("id")),
+                *(
+                    item["id"]
+                    for item in inventory.get("transitions", [])
+                    if item.get("id")
+                ),
+            ]
+        )
         plans, ensemble_diagnostics = _veto_explicit_cross_sample_conflicts(
-            [plan for plan, _, _, _, _ in branch_inputs]
+            [plan for plan, _, _, _, _ in branch_inputs],
+            canonical_formal_ids=canonical_ids,
         )
         branch_inputs = [
             (
@@ -1168,7 +1361,17 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
             (
                 "progressive_scout",
                 lambda: core.execute_progressive_evidence_seeds(
-                    state["pair"], state["inspect"]
+                    state["pair"],
+                    state["inspect"],
+                    normative_quotes=core.build_progressive_normative_quote_bindings(
+                        state["pair"],
+                        state["contract_plan"],
+                        [
+                            branch["discovery_grounding_plan"]
+                            for branch in state["discovery_branches"]
+                            if not branch.get("quarantined")
+                        ],
+                    ),
                 ),
             ),
             (
@@ -1327,15 +1530,35 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
         )
         d_call_count = state.get("d_call_count", 0) + 1
         if error is not None or plan is None:
+            failure_class = _failure_class_from_observations(
+                observations,
+                default="internal",
+            )
+            if _is_whole_cell_failure(failure_class):
+                return {
+                    "failure": {
+                        "node": "d_adjudication",
+                        "class": failure_class,
+                        "message": f"{type(error).__name__}: {error}",
+                    },
+                    "d_call_count": d_call_count,
+                    "llm_observations": [
+                        *state.get("llm_observations", []),
+                        *observations,
+                    ],
+                }
             return {
-                "failure": {
-                    "node": "d_adjudication",
-                    "class": _failure_class_from_observations(
-                        [*state.get("llm_observations", []), *observations]
-                    ),
-                    "message": f"{type(error).__name__}: {error}",
-                },
+                "d_plan": core.DAdjudicationPlan(decisions=[]),
+                "d_call_failure": failure_class,
                 "d_call_count": d_call_count,
+                "execution_diagnostics": [
+                    *state.get("execution_diagnostics", []),
+                    {
+                        "stage": "d_adjudication",
+                        "class": failure_class,
+                        "message": f"{type(error).__name__}: {error}",
+                    },
+                ],
                 "llm_observations": [
                     *state.get("llm_observations", []),
                     *observations,
@@ -1370,6 +1593,24 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
         }
 
     def validate_d(state: PrototypeGraphState) -> PrototypeGraphState:
+        if state.get("d_call_failure"):
+            errors = [
+                f"D adjudication unavailable after {state['d_call_failure']} failure"
+            ]
+            invalid = {
+                item["finding_key"]: errors for item in state["finding_records"]
+            }
+            findings = _partially_adjudicated_findings(
+                state["finding_records"], {}, invalid
+            )
+            return {
+                "finding_records": findings,
+                "d_feedback": errors,
+                "d_unresolved_reason": "; ".join(errors),
+                "confirmed_issues": [],
+                "accepted_issues": [],
+                "retry_d": False,
+            }
         valid, invalid, diagnostics = _partition_d_decisions(
             state["finding_records"], state["d_plan"]
         )
@@ -1598,15 +1839,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--stream",
         dest="streaming",
         action="store_true",
-        help="Force streaming responses (overrides the adapter default).",
+        help="Use streaming responses (the default).",
     )
     stream_mode.add_argument(
         "--no-stream",
         dest="streaming",
         action="store_false",
-        help="Force complete non-streaming responses (overrides the adapter default).",
+        help="Use complete non-streaming responses.",
     )
-    parser.set_defaults(streaming=None)
+    # Hosted sub2api may return a gateway timeout before a complete response
+    # is available. Streaming is the research-run default so the connection
+    # starts delivering tokens before the gateway wall-clock deadline; callers
+    # can still force ``--no-stream`` for transport diagnostics.
+    parser.set_defaults(streaming=True)
     return parser
 
 
@@ -1619,7 +1864,7 @@ def main(argv: list[str] | None = None) -> int:
         max_output_tokens=args.max_output_tokens,
         transport_retries=args.transport_retries,
         streaming=args.streaming,
-        repeat_schema_in_prompt=False,
+        repeat_schema_in_prompt=True,
         prompt_cache_ttl="1h",
     )
     graph_input = PrototypeGraphInput(

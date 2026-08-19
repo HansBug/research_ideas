@@ -229,7 +229,10 @@ def main(argv: list[str] | None = None) -> int:
     stream_mode = parser.add_mutually_exclusive_group()
     stream_mode.add_argument("--stream", dest="streaming", action="store_true")
     stream_mode.add_argument("--no-stream", dest="streaming", action="store_false")
-    parser.set_defaults(streaming=None)
+    # All grid cells use streaming unless the operator explicitly selects
+    # ``--no-stream``.  This keeps baseline transport behavior comparable to
+    # the method and avoids adapter-dependent first-token timeouts.
+    parser.set_defaults(streaming=True)
     parser.add_argument("--rounds", default="1,2,3", help="comma-separated round indices")
     parser.add_argument("--cases", default=None, help="comma-separated subset, for smoke only")
     parser.add_argument(

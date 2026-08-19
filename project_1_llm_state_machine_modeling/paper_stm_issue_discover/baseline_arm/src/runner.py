@@ -271,7 +271,10 @@ def run_cell(
     # ⛔ 不收 config——初版传了 config，报错文本把整个 config 打了出来。
     adapter = config.adapter
     provider = adapter_name(adapter)
-    effective_streaming = adapter != "openai-responses" if streaming is None else streaming
+    # Streaming is the repository-wide transport default.  The caller may
+    # explicitly opt out with ``streaming=False`` / ``--no-stream``; adapter
+    # selection must not silently change the timeout behavior of a cell.
+    effective_streaming = True if streaming is None else streaming
     model = create_chat_model(
         config, streaming=effective_streaming, max_retries=0
     )
@@ -484,15 +487,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--stream",
         dest="streaming",
         action="store_true",
-        help="Force streaming responses (overrides the adapter default).",
+        help="Force streaming responses (the default).",
     )
     stream_mode.add_argument(
         "--no-stream",
         dest="streaming",
         action="store_false",
-        help="Force complete non-streaming responses (overrides the adapter default).",
+        help="Force complete non-streaming responses.",
     )
-    parser.set_defaults(streaming=None)
+    parser.set_defaults(streaming=True)
     parser.add_argument("--round", type=int, default=None)
     parser.add_argument("--arm-label", default=None)
     return parser

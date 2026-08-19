@@ -28,6 +28,18 @@ class _FakeConfig:
     context_window_tokens = 400000
 
 
+def test_runner_cli_streams_by_default_and_allows_explicit_opt_out() -> None:
+    parser = runner.build_parser()
+    required = ["--case", "0000", "--profile", "fake", "--output-dir", "out"]
+
+    assert parser.parse_args(required).streaming is True
+    assert parser.parse_args([*required, "--stream"]).streaming is True
+    assert parser.parse_args([*required, "--no-stream"]).streaming is False
+
+    with pytest.raises(SystemExit):
+        parser.parse_args([*required, "--stream", "--no-stream"])
+
+
 class _FakeRegistry:
     def require(self, profile: str) -> _FakeConfig:
         return _FakeConfig()

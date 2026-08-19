@@ -89,7 +89,7 @@ python -m paper_stm_feedback_loop.discover --help
 
 访问层唯一复用 `utils.llm.create_chat_model()`；当 profile 的 `adapter` 为 `openai-responses` 时，`utils.llm.model_factory` 设置 `use_responses_api=True`，由 `langchain-openai` 的 `ChatOpenAI` 访问 Responses API，代码不自行调用 Chat Completions、HTTP 或 OpenAI SDK。协议和传输模式是正交的：Responses 可以 stream，也可以 non-stream；OpenAI 官方 [Responses Create API](https://developers.openai.com/api/reference/resources/responses/methods/create) 将 `stream` 定义为独立请求参数，`true` 时使用 SSE 返回增量事件。
 
-`DirectStructuredResponder(..., streaming=None)` 使用 adapter 默认策略：`openai-responses` 默认 `False`，其余既有 adapter 默认 `True`；调用者可以显式传 `streaming=True` 或 `streaming=False`。feedback CLI、witness prototype、witness graph 和 semantic judge 均提供互斥的 `--stream` 与 `--no-stream`，未指定时保持上述 adapter 默认。Hahacode 的 Luna 探针显示 Responses non-stream 比 Responses stream 稳定，因此 paper1 正式默认使用 `adapter=openai-responses` 加 non-stream，stream 只用于显式诊断或确有需要的实验。
+`DirectStructuredResponder(..., streaming=None)` 在 paper1 运行时统一解析为 `streaming=True`；所有 adapter 的缺省请求都使用 stream，只有显式传 `streaming=False` 或 CLI 的 `--no-stream` 才使用完整同步响应。feedback CLI、witness prototype、witness graph 和 semantic judge 均提供互斥的 `--stream` 与 `--no-stream`，未指定时即为 stream。该默认用于降低 Hahacode 网关在首字前等待完整响应时的超时风险；需要对比同步传输时必须在运行记录中保留显式 `--no-stream`。
 
 每次调用的 `LLMObservation`、`LLMCallRecord` 和 semantic judge audit 都保存实际 `adapter`、`provider`、`model`、`streaming`、retry、usage 与 pricing；`streaming` 是实际请求模式而不是配置推测。judge 的 usage/cost 继续独立审计，不计入 prototype method 成本倍率。
 

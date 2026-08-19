@@ -86,6 +86,38 @@ def test_parse_arms_rejects_malformed_entries() -> None:
         launch.parse_arms("gpt-5.6-terra")
 
 
+def test_grid_cli_streams_by_default_and_allows_explicit_opt_out(
+    monkeypatch,
+) -> None:
+    captured: list[bool] = []
+    monkeypatch.setattr(launch, "find_stale_workers", lambda: [])
+    monkeypatch.setattr(launch, "in_scope_cases", lambda: ("0000",))
+
+    def capture(**kwargs) -> dict[str, object]:
+        captured.append(kwargs["streaming"])
+        return {"status": "ok"}
+
+    monkeypatch.setattr(launch, "_one", capture)
+
+    common = [
+        "--output-root",
+        "/tmp/baseline-stream-contract",
+        "--profiles",
+        "gpt-5.6-luna:luna",
+        "--rounds",
+        "1",
+        "--cases",
+        "0000",
+        "--parallel",
+        "1",
+    ]
+    assert launch.main(common) == 0
+    assert captured.pop() is True
+
+    assert launch.main([*common, "--no-stream"]) == 0
+    assert captured.pop() is False
+
+
 def test_cell_dir_layout_matches_the_judging_material_reader() -> None:
     """目录布局是 `present.py` 与判定表键的共同约定，改它会静默断开两侧。"""
 

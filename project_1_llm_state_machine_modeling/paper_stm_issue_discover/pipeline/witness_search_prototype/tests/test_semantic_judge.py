@@ -29,6 +29,21 @@ sys.modules[AGGREGATE_SPEC.name] = aggregate
 AGGREGATE_SPEC.loader.exec_module(aggregate)
 
 
+def test_judge_response_schemas_have_prompt_guidance_for_every_field() -> None:
+    for model in (
+        semantic_judge.PairJudgement,
+        semantic_judge.AtomicMatchDecision,
+    ):
+        schema = model.model_json_schema()
+        documented_models = [(model.__name__, schema), *schema.get("$defs", {}).items()]
+        for model_name, model_schema in documented_models:
+            if "properties" not in model_schema:
+                continue
+            assert model_schema.get("description"), model_name
+            for field_name, field_schema in model_schema["properties"].items():
+                assert field_schema.get("description"), f"{model_name}.{field_name}"
+
+
 def test_method_judge_input_contains_only_final_d1_d2_clusters(tmp_path: Path) -> None:
     record_path = tmp_path / "run1" / "0000-luna" / "record.json"
     record_path.parent.mkdir(parents=True)
@@ -68,6 +83,29 @@ def test_method_judge_input_contains_only_final_d1_d2_clusters(tmp_path: Path) -
         "published-d1",
         "published-d2",
     ]
+
+
+def test_baseline_judge_reads_the_frozen_x1v2_cell_layout(tmp_path: Path) -> None:
+    record_path = tmp_path / "run1" / "0000-luna-x1v2" / "record.json"
+    record_path.parent.mkdir(parents=True)
+    record_path.write_text(
+        json.dumps(
+            {
+                "status": "ok",
+                "parsed_output": {
+                    "issues": [
+                        {"issue": "missing transition", "where": "Root", "reason": "fixture"}
+                    ]
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    payload = semantic_judge._cell_payload(tmp_path, "baseline", "0000", 1)
+
+    assert payload["status"] == "ok"
+    assert len(payload["findings"]) == 1
 
 
 def test_aggregate_preserves_latest_successful_judgement(tmp_path: Path) -> None:

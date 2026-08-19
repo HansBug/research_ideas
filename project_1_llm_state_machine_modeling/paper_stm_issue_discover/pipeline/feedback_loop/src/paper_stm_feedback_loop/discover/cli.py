@@ -84,15 +84,17 @@ def build_parser() -> argparse.ArgumentParser:
         "--stream",
         dest="streaming",
         action="store_true",
-        help="Force streaming responses (overrides the adapter default).",
+        help="Use streaming responses (the default).",
     )
     stream_mode.add_argument(
         "--no-stream",
         dest="streaming",
         action="store_false",
-        help="Force complete non-streaming responses (overrides the adapter default).",
+        help="Use complete non-streaming responses.",
     )
-    parser.set_defaults(streaming=None)
+    # Research calls use streaming by default because the hosted endpoint may
+    # time out while waiting for a complete response before the first token.
+    parser.set_defaults(streaming=True)
     return parser
 
 

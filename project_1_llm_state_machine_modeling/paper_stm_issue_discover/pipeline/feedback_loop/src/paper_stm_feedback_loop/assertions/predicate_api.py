@@ -128,6 +128,7 @@ BINDING_DECLARATION_TABLE = {
     "composite": "states",
     "scope": "states",
     "response": "states",
+    "action": "actions",
 }
 
 
@@ -1054,15 +1055,23 @@ class PredicateAPI:
         )
         if not deltas:
             return False
-        return any(d < 0 for _, d in deltas) if want == "negative" else any(
-            d > 0 for _, d in deltas
-        )
+        if want == "negative":
+            return any(d < 0 for _, d in deltas)
+        return any(d > 0 for _, d in deltas)
 
-    def action_declared(self, *, state: str, phase: str) -> bool:
-        """This state declares an entry, exit or during action."""
+    def action_declared(self, *, state: str, phase: str, action: str | None = None) -> bool:
+        """This state declares an entry, exit or during action.
+
+        When ``action`` is supplied, the comparison is against the structured
+        inspect action inventory using exact identity. It intentionally does
+        not normalize or interpret action prose; omitting it preserves the
+        phase-presence query.
+        """
 
         self._reject_pseudo_initial("action_declared", state=state)
         self._require_well_formed_names(state=state)
+        if action is not None and (not isinstance(action, str) or not action.strip()):
+            raise UnsupportedEvidence("action must be a non-empty exact identity")
         self._note(state)
         rows = self.structure.states(path=_need(state, "state"), exact=True)
         if len(rows) != 1:
@@ -1075,7 +1084,10 @@ class PredicateAPI:
         }.get(str(phase).strip().lower())
         if field is None:
             raise UnsupportedEvidence(f"phase must be entry / exit / during, got {phase!r}")
-        return bool(getattr(rows[0], field, ()) or ())
+        actions = tuple(getattr(rows[0], field, ()) or ())
+        if action is None:
+            return bool(actions)
+        return any(item == action for item in actions)
 
     def guard_distinguishable(self, *, source: str, trigger: str) -> bool:
         """A shared source and trigger cannot reach two targets indistinguishably."""

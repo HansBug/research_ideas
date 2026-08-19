@@ -478,6 +478,7 @@ BOUND_PATH_KWARGS = frozenset(
         # naming no declared state was looked up, not found, and answered
         # False -- a defect reported against a model that never had it.
         "response",
+        "action",
     }
 )
 def _path_bindings(expression: str) -> tuple[tuple[str, str], ...]:

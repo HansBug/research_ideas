@@ -57,7 +57,7 @@ def test_cli_formal_pair_default_root_is_independent_of_cwd() -> None:
     assert bundle.pair_id == "llms_emp_feedback_final_0000"
     assert bundle.fcstm.path.name == "fcstm.fcstm"
     assert args.transport_retries == DEFAULT_TRANSPORT_RETRIES == 8
-    assert args.streaming is None
+    assert args.streaming is True
 
     assert (
         build_parser()
