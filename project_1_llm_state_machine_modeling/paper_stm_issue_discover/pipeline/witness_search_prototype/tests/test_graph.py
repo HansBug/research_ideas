@@ -653,7 +653,7 @@ def test_d_contract_failure_repairs_once_then_degrades_to_auditable_output() -> 
     )
 
     record = state["final_record"]
-    assert record["d_unresolved_reason"]
+    assert record["d_fallback_reason"]
     assert record["telemetry"]["d_repair_count"] == 1
     assert record["telemetry"]["d_call_count"] == 2
     assert record["confirmed_issues"] == []
@@ -671,7 +671,7 @@ def test_d_semantic_validation_failure_degrades_without_rewriting_valid_decision
     )
 
     record = state["final_record"]
-    assert record["d_unresolved_reason"]
+    assert record["d_fallback_reason"]
     assert record["telemetry"]["d_repair_count"] == 1
     assert record["telemetry"]["d_call_count"] == 2
     assert record["confirmed_issues"] == []
@@ -726,7 +726,7 @@ def test_targeted_d_repair_repeated_frozen_key_does_not_contaminate_frozen_decis
     assert record["telemetry"]["d_repair_count"] == 1
     assert (
         "targeted repair must not repeat frozen finding_key"
-        in record["d_unresolved_reason"]
+        in record["d_fallback_reason"]
     )
     assert final_by_key[repaired_key]["d_status"] == "D0_FALLBACK"
     for finding_key, initial in responder.initial_decisions.items():
@@ -748,7 +748,7 @@ def test_targeted_d_repair_unknown_key_does_not_contaminate_frozen_decisions() -
     assert record["telemetry"]["d_call_count"] == 2
     assert record["telemetry"]["d_repair_count"] == 1
     assert (
-        "targeted repair returned unknown finding_key" in record["d_unresolved_reason"]
+        "targeted repair returned unknown finding_key" in record["d_fallback_reason"]
     )
     assert final_by_key[repaired_key]["d_status"] == "D0_FALLBACK"
     for finding_key, initial in responder.initial_decisions.items():
@@ -1291,7 +1291,7 @@ def test_d_internal_failure_publishes_all_findings_as_d0_fallback() -> None:
     assert record.get("status") != "failed"
     assert record["confirmed_issues"] == []
     assert record["accepted_issues"] == []
-    assert record["d_unresolved_reason"]
+    assert record["d_fallback_reason"]
     assert record["finding_records"]
     assert all(item["d_status"] == "D0_FALLBACK" for item in record["finding_records"])
     assert all(item["d_decision"]["d_level"] == "D0" for item in record["finding_records"])

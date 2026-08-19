@@ -36,7 +36,7 @@ release_issues(cell) = {
 | `D1` report issue cluster | 是 | 是 | 是 | 是 |
 | `D2` report issue cluster | 是 | 是 | 是 | 是 |
 
-`D0` 与 `D_UNRESOLVED` 被内部截住不等于删除数据。它们必须保留原始 finding、D 理由、defeater、W/L、执行结果、usage 和 coverage-gap 诊断，用于发现方法为什么没有形成可发布主张；但它们绝不能通过 judge、聚合器或报告脚本间接贡献 hit，也绝不能扩大 FP 分母。若 D 语义契约在一次有界定向修复后仍不成立，方法必须写入一个 `d_fallback=true` 的结构化 D0 决策，并在 `d_validation_errors` 中保留失败原因；只有 provider/schema 整格失败等无法形成任何 D 决策的逃生路径才使用 `D_UNRESOLVED`。
+`D0` 与 `D_UNRESOLVED` 被内部截住不等于删除数据。它们必须保留原始 finding、D 理由、defeater、W/L、执行结果、usage 和 coverage-gap 诊断，用于发现方法为什么没有形成可发布主张；但它们绝不能通过 judge、聚合器或报告脚本间接贡献 hit，也绝不能扩大 FP 分母。若 D 语义契约在一次有界定向修复后仍不成立，方法必须写入一个 `d_fallback=true` 的结构化 D0 决策，在 `d_validation_errors` 与 `d_fallback_reason` 中保留失败原因；只有 provider/schema 整格失败等无法形成任何 D 决策的逃生路径才使用 `D_UNRESOLVED`。
 
 ## 2. D、W、L 是三条独立轴
 

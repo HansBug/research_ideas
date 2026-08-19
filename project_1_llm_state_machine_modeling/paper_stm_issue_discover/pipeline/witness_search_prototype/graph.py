@@ -74,6 +74,7 @@ class PrototypeGraphState(TypedDict, total=False):
     d_repair_count: int
     d_call_count: int
     d_call_failure: str
+    d_fallback_reason: str
     d_unresolved_reason: str
     retry_d: bool
     execution_diagnostics: list[dict[str, str]]
@@ -1635,7 +1636,7 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
             return {
                 "finding_records": findings,
                 "d_feedback": errors,
-                "d_unresolved_reason": "; ".join(errors),
+                "d_fallback_reason": "; ".join(errors),
                 "confirmed_issues": [],
                 "accepted_issues": [],
                 "retry_d": False,
@@ -1670,7 +1671,7 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
             return {
                 "finding_records": findings,
                 "d_feedback": errors,
-                "d_unresolved_reason": "; ".join(errors),
+                "d_fallback_reason": "; ".join(errors),
                 "confirmed_issues": core.select_confirmed_issues(findings),
                 "accepted_issues": core.select_accepted_issues(findings),
                 "retry_d": False,
@@ -1741,6 +1742,7 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
             "confirmed_report_issues": confirmed_report_issues,
             "accepted_report_issues": accepted_report_issues,
             "d_contract_feedback": state.get("d_feedback", []),
+            "d_fallback_reason": state.get("d_fallback_reason"),
             "d_unresolved_reason": state.get("d_unresolved_reason"),
             "execution_diagnostics": state.get("execution_diagnostics", []),
             "llm_observations": observations,
