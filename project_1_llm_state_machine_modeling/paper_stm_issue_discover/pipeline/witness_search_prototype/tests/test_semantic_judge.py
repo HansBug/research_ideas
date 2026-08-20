@@ -143,6 +143,17 @@ def test_aggregate_preserves_latest_successful_judgement(tmp_path: Path) -> None
     assert selected["0000"]["status"] == "ok"
 
 
+def test_aggregate_normalizes_prototype_completed_status(tmp_path: Path) -> None:
+    record = tmp_path / "run1" / "0000-luna" / "record.json"
+    record.parent.mkdir(parents=True)
+    record.write_text(json.dumps({"status": "completed"}), encoding="utf-8")
+
+    status, payload = aggregate.cell_status(tmp_path, "method", "0000", 1)
+
+    assert status == "ok"
+    assert payload["status"] == "completed"
+
+
 def _hit(*, hit: bool, supporting_ids: list[str]) -> semantic_judge.HitAssessment:
     return semantic_judge.HitAssessment(
         hit=hit,

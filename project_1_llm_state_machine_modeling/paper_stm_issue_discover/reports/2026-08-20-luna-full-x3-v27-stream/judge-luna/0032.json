@@ -1,0 +1,817 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0032",
+  "ledger": [
+    {
+      "ledger_id": "DIFF-0032-03",
+      "pair": "0032",
+      "D": "D1",
+      "L": "L0",
+      "summary": "NL 第 1 句把 `Accelerating or Cruising` 作为一个被反引号点名的状态列出，而制品把它拆成了 `AcceleratingState`（:14）与 `CruisingState`（:15）两个状态，并自造了一个 NL 里没有的 `Reach Speed` 触发（:24）。",
+      "detail": "NL 第 1 句逐字为「Once the device is powered on, the system enters the `Operate` state, and based on user actions, it transitions between `Idle`, `Accelerating or Cruising`, and `Braking` states.」。注意反引号的划分方式：`Idle`、`Accelerating or Cruising`、`Braking` 三组各自被反引号包起来，也就是说中间那一组作为一个整体被点名。\n\n制品在 `:13` 开 `state AccelerateRegion {`，块内放了两个状态：`:14 AcceleratingState : Accelerating` 与 `:15 CruisingState : Cruising`，并在 `:24 AccelerateRegion --> CruisingState : Reach Speed` 建了一条从加速到巡航的边。`Reach Speed` 这个触发在 NL 全文没有出现。\n\n另外 `:24` 这条边的源是复合态 `AccelerateRegion`、目标是它自己的子态 `CruisingState`，这个构造本身也不常规。\n\n按第一种读法，这属于过度规约：NL 点名的一个状态被拆成两个，还补了一个 NL 没有的触发。",
+      "D_basis": "判 D1，两读并立。第一种读法按反引号的字面划分：`Accelerating or Cruising` 是被作为一个整体点名的状态名，拆成两个就是过度规约，`Reach Speed` 也是自造的。第二种读法把反引号内的 or 读作「两个可选阶段」而不是一个单一的析取式命名——那么 `:14`/`:15` 的拆分是对 NL 的忠实细化，`:24` 的 `Reach Speed` 则是两个阶段之间必需的过渡触发。第二种读法与结构相容，也符合领域常识（加速与巡航在车辆控制里确实是两个阶段），无法被推翻，故判 D1。",
+      "L_basis": "判 L0。陈述这条错误只需把 NL 第 1 句反引号内的名字与模型里的状态名做比对，看一个名字是否对应了两个状态。这是纯粹的词项对比，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "state",
+        "defect_qualifier": "other",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0032-01",
+      "pair": "0032",
+      "D": "D1",
+      "L": "L0",
+      "summary": "`IdleRegion`（:9）、`AccelerateRegion`（:13）、`BrakeRegion`（:18）三个都是复合态却都没有默认入口边，进入任一个之后的子态未定义；`AcceleratingState` 更是全模型没有任何入边。",
+      "detail": "NL 第 1 句要求系统在 `Idle`、`Accelerating or Cruising`、`Braking` 三个状态之间按用户动作切换。\n\n制品把这三样各包了一层：`:9 state IdleRegion {` 内含 `:10 IdleState : Idle`；`:13 state AccelerateRegion {` 内含 `:14 AcceleratingState` 与 `:15 CruisingState`；`:18 state BrakeRegion {` 内含 `:19 BrakingState`。三个块内都没有写 `[*] -->`。\n\n后果分两层。其一，三个复合态的默认进入点都未定义：`:22 IdleRegion --> AccelerateRegion : Accelerate` 把系统送进 `AccelerateRegion` 之后，落在 `AcceleratingState` 还是 `CruisingState` 没有规定。投影为此在三个块内各合成了一个 `UnspecifiedInitial` 占位状态。其二，`AcceleratingState` 在全模型没有任何入边——检索全文，以它为目标的迁移一条都没有（`:24` 的目标是 `CruisingState`），所以 NL 第 1 句点名的加速配置根本占据不到。",
+      "D_basis": "判 D1，两读并立。第一种读法把 NL 点名的状态映射到最内层的叶态：`IdleState`、`AcceleratingState`、`BrakingState` 都缺默认入口（`AcceleratingState` 更是零入边），NL 第 1 句点名的状态无法可靠占据，缺陷成立。第二种读法把三个 wrapper 直接读作 NL 说的那三个状态：`:8`、`:22`、`:23`、`:25`、`:27` 这些边明确进入 `IdleRegion`、`AccelerateRegion`、`BrakeRegion`，而 NL 并没有规定它点名的状态必须映射到最内层叶态，把 wrapper 读作 NL 状态与源结构相容。这里不能用语言层的二值违规去消灭第二种读法——UML 2.5.1 对区域缺 initial 留作语义未定，不是二值良构性违规。故判 D1。另需说明本条与 pair 0002 的 EIS-0002-02 结构不同（那一份的 wrapper 本身就没有入边），不机械同判。",
+      "L_basis": "判 L0。陈述这条错误只需读三个 `state XRegion {` 块看块内有没有 `[*] -->`（都没有），再检索有没有以 `AcceleratingState` 为目标的迁移（没有）。两项都是纯词法层面的存在性检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:unreachable_component:OperateState",
+          "claims": [
+            "Source component 'OperateState' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0032.OperateState.IdleRegion.IdleState",
+            "llms_emp_feedback_final_0032.OperateState.BrakeRegion.BrakingState"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:OperateState:facet:8f62802001ea"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:OperateState.AccelerateRegion",
+          "claims": [
+            "Source composite 'OperateState.AccelerateRegion' has no initial transition for its exact entry scope despite direct children ['OperateState.AccelerateRegion.CruisingState', 'OperateState.AccelerateRegion.AcceleratingState']; the compiler records the exact fail-closed entry consequence at 'OperateState.AccelerateRegion.AcceleratingState'."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0032.OperateState.AccelerateRegion.AcceleratingState"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:OperateState.AccelerateRegion:facet:4388ddaf22a6"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:c6de173c25c611f1",
+          "claims": [
+            "AccelerateRegion may have no defined default entry target, so entering the accelerating/cruising mode may fail to select a concrete substate."
+          ],
+          "locations": [
+            "NL1",
+            "OperateState.AccelerateRegion",
+            "F24",
+            "F26"
+          ],
+          "obligations": [
+            "The initial entry of each operating substate composite must have a defined target where the model uses that composite as a route destination."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:c6de173c25c611f1:facet:1277f2bd5fc7"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:unreachable_component:OperateState",
+          "claims": [
+            "Source component 'OperateState' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0032.OperateState.IdleRegion.IdleState",
+            "llms_emp_feedback_final_0032.OperateState.BrakeRegion.BrakingState"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:OperateState:facet:4388ddaf22a6"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:OperateState.AccelerateRegion",
+          "claims": [
+            "Source composite 'OperateState.AccelerateRegion' has no initial transition for its exact entry scope despite direct children ['OperateState.AccelerateRegion.CruisingState', 'OperateState.AccelerateRegion.AcceleratingState']; the compiler records the exact fail-closed entry consequence at 'OperateState.AccelerateRegion.AcceleratingState'."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0032.OperateState.AccelerateRegion.AcceleratingState"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:OperateState.AccelerateRegion:facet:4388ddaf22a6"
+          ]
+        },
+        {
+          "finding_id": "source:transition:OperateState.IdleRegion.IdleState:Accelerate:OperateState.AccelerateRegion.AcceleratingState",
+          "claims": [
+            "Source transition 'tr_0004' reaches observed target 'OperateState.AccelerateRegion', but the exact transition contract requires target 'OperateState.AccelerateRegion.AcceleratingState'."
+          ],
+          "locations": [
+            "NL1",
+            "NL3"
+          ],
+          "obligations": [
+            "OperateState.IdleRegion.IdleState must transition directly to OperateState.AccelerateRegion.AcceleratingState under user actions.",
+            "OperateState.IdleRegion.IdleState must transition directly to OperateState.AccelerateRegion.AcceleratingState under actions like accelerating, braking, or stopping."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:transition:OperateState.IdleRegion.IdleState:Accelerate:OperateState.AccelerateRegion.AcceleratingState:facet:e9de12cb5d4f",
+            "source:transition:OperateState.IdleRegion.IdleState:Accelerate:OperateState.AccelerateRegion.AcceleratingState:facet:fee6b861cb33"
+          ]
+        },
+        {
+          "finding_id": "source:transition:OperateState.IdleRegion.IdleState:Brake:OperateState.BrakeRegion.BrakingState",
+          "claims": [
+            "Source transition 'tr_0005' reaches observed target 'OperateState.BrakeRegion', but the exact transition contract requires target 'OperateState.BrakeRegion.BrakingState'."
+          ],
+          "locations": [
+            "NL1",
+            "NL3"
+          ],
+          "obligations": [
+            "OperateState.IdleRegion.IdleState must transition directly to OperateState.BrakeRegion.BrakingState under user actions.",
+            "OperateState.IdleRegion.IdleState must transition directly to OperateState.BrakeRegion.BrakingState under actions like accelerating, braking, or stopping."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:transition:OperateState.IdleRegion.IdleState:Brake:OperateState.BrakeRegion.BrakingState:facet:ed5b156a9b21",
+            "source:transition:OperateState.IdleRegion.IdleState:Brake:OperateState.BrakeRegion.BrakingState:facet:a9a38f234566"
+          ]
+        },
+        {
+          "finding_id": "source:transition:OperateState.AccelerateRegion.AcceleratingState:Reach Speed:OperateState.AccelerateRegion.CruisingState",
+          "claims": [
+            "Source has no matching transition from 'OperateState.AccelerateRegion.AcceleratingState' to 'OperateState.AccelerateRegion.CruisingState' under 'Reach Speed'."
+          ],
+          "locations": [
+            "NL1"
+          ],
+          "obligations": [
+            "OperateState.AccelerateRegion.AcceleratingState must transition directly to OperateState.AccelerateRegion.CruisingState under user actions."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:OperateState.AccelerateRegion.AcceleratingState:Reach Speed:OperateState.AccelerateRegion.CruisingState:facet:41ecb7ad5dd7"
+          ]
+        },
+        {
+          "finding_id": "source:transition:OperateState.AccelerateRegion.AcceleratingState:Brake:OperateState.BrakeRegion.BrakingState",
+          "claims": [
+            "Source transition 'tr_0007' reaches observed target 'OperateState.BrakeRegion', but the exact transition contract requires target 'OperateState.BrakeRegion.BrakingState'."
+          ],
+          "locations": [
+            "NL1"
+          ],
+          "obligations": [
+            "OperateState.AccelerateRegion.AcceleratingState must transition directly to OperateState.BrakeRegion.BrakingState under user actions."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:OperateState.AccelerateRegion.AcceleratingState:Brake:OperateState.BrakeRegion.BrakingState:facet:00fec196b5af"
+          ]
+        },
+        {
+          "finding_id": "source:transition:OperateState.AccelerateRegion.CruisingState:Brake:OperateState.BrakeRegion.BrakingState",
+          "claims": [
+            "Source transition 'tr_0008' reaches observed target 'OperateState.BrakeRegion', but the exact transition contract requires target 'OperateState.BrakeRegion.BrakingState'."
+          ],
+          "locations": [
+            "NL1"
+          ],
+          "obligations": [
+            "OperateState.AccelerateRegion.CruisingState must transition directly to OperateState.BrakeRegion.BrakingState under user actions."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:OperateState.AccelerateRegion.CruisingState:Brake:OperateState.BrakeRegion.BrakingState:facet:7f833ce66a83"
+          ]
+        },
+        {
+          "finding_id": "source:transition:OperateState.BrakeRegion.BrakingState:Stop:OperateState.IdleRegion.IdleState",
+          "claims": [
+            "Source transition 'tr_0009' reaches observed target 'OperateState.IdleRegion', but the exact transition contract requires target 'OperateState.IdleRegion.IdleState'."
+          ],
+          "locations": [
+            "NL1"
+          ],
+          "obligations": [
+            "OperateState.BrakeRegion.BrakingState must transition directly to OperateState.IdleRegion.IdleState under user actions."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:OperateState.BrakeRegion.BrakingState:Stop:OperateState.IdleRegion.IdleState:facet:8cb86c7e6ed8"
+          ]
+        },
+        {
+          "finding_id": "source:transition:OperateState.AccelerateRegion.AcceleratingState:None:OperateState.AccelerateRegion.CruisingState",
+          "claims": [
+            "Source has no matching transition from 'OperateState.AccelerateRegion.AcceleratingState' to 'OperateState.AccelerateRegion.CruisingState'."
+          ],
+          "locations": [
+            "NL1",
+            "NL3",
+            "tr_0004",
+            "tr_0005",
+            "tr_0006",
+            "tr_0007",
+            "tr_0008",
+            "tr_0009"
+          ],
+          "obligations": [
+            "The authored transition structure must realize the stated state-to-state movement."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:OperateState.AccelerateRegion.AcceleratingState:None:OperateState.AccelerateRegion.CruisingState:facet:36015a67b382"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:OperateState.AccelerateRegion",
+          "claims": [
+            "Source composite 'OperateState.AccelerateRegion' has no initial transition for its exact entry scope despite direct children ['OperateState.AccelerateRegion.CruisingState', 'OperateState.AccelerateRegion.AcceleratingState']; the compiler records the exact fail-closed entry consequence at 'OperateState.AccelerateRegion.AcceleratingState'."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0032.OperateState.AccelerateRegion.AcceleratingState"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:OperateState.AccelerateRegion:facet:4388ddaf22a6"
+          ]
+        },
+        {
+          "finding_id": "source:containment:OperateState",
+          "claims": [
+            "Source child 'OperateState.IdleRegion.IdleState' has actual parent 'OperateState.IdleRegion', not required parent 'OperateState'.",
+            "Source child 'OperateState.AccelerateRegion.AcceleratingState' has actual parent 'OperateState.AccelerateRegion', not required parent 'OperateState'.",
+            "Source child 'OperateState.AccelerateRegion.CruisingState' has actual parent 'OperateState.AccelerateRegion', not required parent 'OperateState'."
+          ],
+          "locations": [
+            "NL1",
+            "OperateState.IdleRegion.IdleState",
+            "OperateState.IdleRegion"
+          ],
+          "obligations": [
+            "OperateState.IdleRegion.IdleState must be directly contained in OperateState.",
+            "Idle must be contained within Operate.",
+            "OperateState.AccelerateRegion.AcceleratingState must be directly contained in OperateState.",
+            "OperateState.AccelerateRegion.CruisingState must be directly contained in OperateState."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D1",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 3,
+          "facet_keys": [
+            "source:containment:OperateState:facet:70054dc85111",
+            "source:containment:OperateState:facet:bb36db991059",
+            "source:containment:OperateState:facet:39296fbd18a3"
+          ]
+        },
+        {
+          "finding_id": "source:root_target_unreachable:OperateState.BrakeRegion.BrakingState",
+          "claims": [
+            "No source-graph path reaches target 'OperateState.BrakeRegion.BrakingState' from the exact root entry 'llms_emp_feedback_final_0032'."
+          ],
+          "locations": [
+            "NL1",
+            "llms_emp_feedback_final_0032.OperateState.BrakeRegion.BrakingState"
+          ],
+          "obligations": [
+            "The operating states named in NL must be reachable after entering the system behavior."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:root_target_unreachable:OperateState.BrakeRegion.BrakingState:facet:118f454bda08"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型将“Accelerating or Cruising”拆成 AcceleratingState 和 CruisingState，但没有建模从 AcceleratingState 到 CruisingState 的实际连续状态关系所需的明确语义之外，区域层级定义使转换目标不一致。",
+          "reason": "规格将该阶段描述为一个“Accelerating or Cruising”状态，模型虽拆分为两个状态，但转换从区域 `AccelerateRegion` 指向其内部子状态 `CruisingState`，而不是明确从 AcceleratingState 出发；这会使“加速达到速度后进入巡航”的状态机语义不清，且 AcceleratingState 没有任何进入或离开转换。",
+          "where": "OperateState 内的 AccelerateRegion，以及 `AccelerateRegion --> CruisingState : Reach Speed`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "缺少从 Braking 返回或转入加速/巡航的动作转换。",
+          "reason": "规格要求在 Operate 内根据用户动作在 Idle、Accelerating or Cruising、Braking 之间转换。模型只允许制动后因 Stop 回到 Idle，没有表达制动过程中取消制动、重新加速或进入巡航等从 Braking 到其他运动状态的转换；若“之间转换”按完整行为理解，该模型覆盖不全。",
+          "where": "`BrakeRegion --> IdleRegion : Stop` 及 OperateState 内各区域之间的转换"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "未显式建模“停止”从 Idle 或其他非制动状态的处理。",
+          "reason": "规格明确提到根据包括 stopping 在内的动作进行子状态转换。模型仅定义 `BrakeRegion --> IdleRegion : Stop`，没有定义 Idle 状态收到 Stop 的行为，也没有定义加速/巡航状态收到 Stop 后直接进入 Idle 的行为，因此 stopping 的适用范围和状态响应不完整。",
+          "where": "OperateState 内 IdleRegion、AccelerateRegion、CruisingState 的转换定义"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型没有明确表示“上电后”自动进入 Operate，而是仅用 start 信号从 OffState 转入 OperateState。",
+          "reason": "规格第1条说设备一旦 powered on 即进入 Operate；第2条另说可由 start 信号开启。若 start 就是上电动作，则语义可视为满足；但模型没有单独表达上电事件，只有 start 转换，因此无法表示“上电即进入 Operate”这一条件。",
+          "where": "OffState --> OperateState : start"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "加速状态到巡航状态的建模不完整/语义不一致。",
+          "reason": "规格将“Accelerating or Cruising”作为一个动作相关的阶段，并要求在 Operate 内根据用户动作转换。模型把二者放进复合区域，但没有从 AcceleratingState 到 CruisingState 的明确转换；从 AccelerateRegion 到 CruisingState 的转换也可能是区域级转换，未清晰表达当前处于 Accelerating 后因 Reach Speed 进入 Cruising。",
+          "where": "state AccelerateRegion { AcceleratingState : Accelerating; CruisingState : Cruising } 以及 AccelerateRegion --> CruisingState : Reach Speed"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型缺少从 Cruising 状态回到 Accelerating 状态的加速路径。",
+          "reason": "规格要求根据用户动作在 Idle、Accelerating or Cruising 和 Braking 之间转换。若系统处于 Cruising 后再次执行加速动作，应能回到加速阶段；模型没有该转换。不过规格未明确要求巡航时再次加速，因此这是对动作驱动转换的潜在缺失。",
+          "where": "AccelerateRegion 内仅声明 AcceleratingState、CruisingState；仅有 AccelerateRegion --> CruisingState : Reach Speed"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "模型把 BrakeRegion 到 IdleRegion 的 Stop 转换建模为区域级转换，未明确由 BrakingState 执行停止后回到 IdleState。",
+          "reason": "规格明确要求 Operate 内在 Braking 与停止后的 Idle 之间转换。模型虽然表达了区域间路径，但没有明确 BrakingState --> IdleState，导致具体状态转换关系不清晰；若按 PlantUML 复合状态语义解释，目标区域初始伪状态可能使行为成立，但模型表达不够直接。",
+          "where": "BrakeRegion --> IdleRegion : Stop"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型将 Idle、Accelerating/Cruising、Braking 建模为 OperateState 的并行区域，而不是单一的互斥子状态转换链；同时 IdleRegion、AccelerateRegion、BrakeRegion 没有显式初始伪状态指向各自的实际状态。",
+          "reason": "规格明确要求在 Operate 内根据用户动作在 Idle、Accelerating or Cruising、Braking 之间转换。当前模型使用三个 region（PlantUML 中未声明为并发 composite region，但以嵌套 state 形式表达），并且这些 region 的初始状态未定义，导致进入区域后无法确定实际活动状态，也不能明确保证三类运行状态按互斥方式工作。",
+          "where": "OperateState 内的 IdleRegion、AccelerateRegion、BrakeRegion，以及 IdleState、AcceleratingState、CruisingState、BrakingState 的组织方式"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "缺少从 Idle 到 AcceleratingState 的直接转换，且 AccelerateRegion 的动作语义不完整。",
+          "reason": "规格要求系统根据加速动作在 Idle 与“Accelerating or Cruising”状态之间转换。模型从 IdleRegion 进入 AccelerateRegion 后没有指向 AcceleratingState 的初始或动作转换，只有从整个区域到 CruisingState 的 Reach Speed 转换，因此无法表示实际的 Accelerating 状态。",
+          "where": "IdleRegion --> AccelerateRegion : Accelerate，以及 AccelerateRegion --> CruisingState : Reach Speed"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "停止动作只建模为 BrakeRegion 到 IdleRegion 的转换，未覆盖规格所说的基于 stopping 在 Operate 子状态间转换的完整语义。",
+          "reason": "该路径可以表示刹车后停止并回到 Idle，但模型没有定义其他状态收到 Stop 时的行为；若规格中的 stopping 是通用用户动作，则从 Accelerating/Cruising 停止时应有相应转换。至少当前模型不能完整表达“根据加速、刹车或停止”在 Operate 子状态间转换。",
+          "where": "BrakeRegion --> IdleRegion : Stop"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0032",
+    "ledger_assessments": [
+      {
+        "ledger_id": "DIFF-0032-03",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "三个方法 issue 均未主张将单一规格点名状态拆成两个，或主张模型额外创造 Reach Speed 触发；AccelerateRegion 入口问题属于另一性质。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "Reach Speed issue 断言该迁移缺失，与台账所述该触发被创造的方向相反；其他 issue 也未主张状态拆分或额外触发。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "方法第三轮只主张入口、containment 和 BrakingState 根不可达，没有主张状态拆分或 Reach Speed 额外触发。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 在 AccelerateRegion 同时指认状态拆分、Reach Speed 区域级关系以及 AcceleratingState 没有进入转换，覆盖台账两项主张。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_2 在 AccelerateRegion 指认规格阶段拆成两个状态并指出 Reach Speed 的区域级目标关系，覆盖 DIFF 条目的同处同性质缺陷；未覆盖 EIS。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_1 关注区域组织为并行/互斥表达及缺少初始伪状态，虽覆盖 EIS，但没有主张规格点名状态被拆成两个或 Reach Speed 触发被创造。",
+          "confidence": "medium"
+        }
+      },
+      {
+        "ledger_id": "EIS-0032-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:OperateState.AccelerateRegion",
+            "hypothesis:c6de173c25c611f1"
+          ],
+          "reason": "source:initial_contract 明确断言 AccelerateRegion 无 initial transition，hypothesis issue 也明确断言无定义默认入口目标；两者覆盖台账中 AccelerateRegion 的入口缺失部分。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:OperateState.AccelerateRegion"
+          ],
+          "reason": "source:initial_contract 明确断言 AccelerateRegion 无 initial transition，覆盖台账中复合态默认入口缺失部分。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:OperateState.AccelerateRegion"
+          ],
+          "reason": "source:initial_contract 明确断言 AccelerateRegion 无 initial transition，直接覆盖台账的复合态入口缺失主张。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 明确说 AcceleratingState 没有任何进入转换，且同一条 issue 也说明 AccelerateRegion 的实际进入关系不明确；覆盖台账的 AcceleratingState 无入边和复合态入口未定义。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_2 只说缺少 AcceleratingState 到 CruisingState 的明确转换及区域级 Reach Speed 语义不清，没有主张三个复合态缺少默认入口，也没有明确说 AcceleratingState 全模型无入边。",
+          "confidence": "medium"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1",
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_1 明确指认三个区域没有显式初始伪状态，导致进入区域后实际活动状态未定义；baseline_issue_2 又指认 AcceleratingState 没有进入路径，覆盖台账两部分。",
+          "confidence": "medium"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:c6de173c25c611f1",
+        "matched_ledger_ids": [
+          "EIS-0032-01"
+        ],
+        "false_positive": false,
+        "reason": "明确指认 AccelerateRegion 没有默认入口目标，且进入该复合态后无法选择具体子态；这与台账关于复合态缺少默认入口的性质和位置一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:OperateState.AccelerateRegion",
+        "matched_ledger_ids": [
+          "EIS-0032-01"
+        ],
+        "false_positive": false,
+        "reason": "明确断言 AccelerateRegion 没有 initial transition，并指向其 AcceleratingState 进入后果；对应台账关于 AccelerateRegion 缺少默认入口的主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_component:OperateState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "断言整个 OperateState 从根不可达，位置和性质是复合组件的整体根可达性；台账关注三个复合态的默认入口及 AcceleratingState 入边，不是该整体不可达断言。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:unreachable_component:OperateState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "断言整个 OperateState 从根不可达，未指认台账所述的复合态默认入口缺失或 AcceleratingState 零入边。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_contract:OperateState.AccelerateRegion",
+        "matched_ledger_ids": [
+          "EIS-0032-01"
+        ],
+        "false_positive": false,
+        "reason": "明确断言 AccelerateRegion 没有 initial transition，直接覆盖台账所述复合态缺少默认入口。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:OperateState.IdleRegion.IdleState:Accelerate:OperateState.AccelerateRegion.AcceleratingState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "断言一条具体迁移的目标契约错位；台账没有记录该迁移目标错位，而是记录复合态默认入口缺失和 AcceleratingState 无任何入边。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:OperateState.IdleRegion.IdleState:Brake:OperateState.BrakeRegion.BrakingState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "断言 Idle 到 Brake 的具体迁移目标契约错位，既非台账所述默认入口缺失，也非 AcceleratingState 无入边。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:OperateState.AccelerateRegion.AcceleratingState:Reach Speed:OperateState.AccelerateRegion.CruisingState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "断言缺少 Reach Speed 下从 AcceleratingState 到 CruisingState 的迁移；台账 DIFF 条目主张的是该 Reach Speed 边被额外创造，而非该边缺失，方向相反。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:OperateState.AccelerateRegion.AcceleratingState:Brake:OperateState.BrakeRegion.BrakingState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "断言 AcceleratingState 到 BrakingState 的具体迁移目标错位，不对应台账的拆分/额外 Reach Speed 或默认入口/入边问题。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:OperateState.AccelerateRegion.CruisingState:Brake:OperateState.BrakeRegion.BrakingState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "断言 CruisingState 到 BrakingState 的具体迁移目标错位，位置和性质均不属于台账两项主张。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:OperateState.BrakeRegion.BrakingState:Stop:OperateState.IdleRegion.IdleState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "断言 BrakingState 到 IdleState 的具体迁移目标错位，不是复合态默认入口或 AcceleratingState 零入边问题。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:OperateState.AccelerateRegion.AcceleratingState:None:OperateState.AccelerateRegion.CruisingState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "断言没有 AcceleratingState 到 CruisingState 的无触发迁移；台账只涉及额外 Reach Speed 迁移及入口/入边缺失，不能由该断言拼接覆盖。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:OperateState.AccelerateRegion",
+        "matched_ledger_ids": [
+          "EIS-0032-01"
+        ],
+        "false_positive": false,
+        "reason": "明确断言 AccelerateRegion 缺少 initial transition，直接对应台账关于该复合态无默认入口的主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:containment:OperateState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "断言子状态的父级层次不符合要求，属于层次归属问题；台账虽描述了嵌套结构，但缺陷性质是默认入口和 AcceleratingState 入边缺失，不是 containment 错位。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:root_target_unreachable:OperateState.BrakeRegion.BrakingState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "断言 BrakingState 从根不可达，属于根路径不可达性质；台账未把 BrakingState 的根不可达作为主张。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "DIFF-0032-03",
+          "EIS-0032-01"
+        ],
+        "false_positive": false,
+        "reason": "同处 AccelerateRegion 及其 Reach Speed 边，明确指出将一个规格阶段拆为两个状态，并指出 AcceleratingState 没有进入转换；分别覆盖 DIFF 的拆分问题和 EIS 的 AcceleratingState 无入边问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张缺少 Braking 到其他运动状态的动作转换，属于迁移缺失；台账没有该处或该性质的缺陷。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Stop 在 Idle 或运动状态上的处理不完整，指向停止动作覆盖范围，而非台账的状态拆分、Reach Speed 额外触发或默认入口/AcceleratingState 入边。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张上电事件未被单独建模，位置是 OffState 到 OperateState 的 start 转换；台账不涉及该事件或该迁移。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "DIFF-0032-03"
+        ],
+        "false_positive": false,
+        "reason": "同处 AccelerateRegion，明确指出规格阶段被拆为 AcceleratingState/CruisingState，并讨论区域到 CruisingState 的 Reach Speed 边及语义不一致；覆盖 DIFF 条目的拆分与额外区域级 Reach Speed 构造主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Cruising 回到 Accelerating 的加速路径缺失，属于未定义的另一条迁移；台账不主张该迁移。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 BrakeRegion 到 IdleRegion 的 Stop 迁移应明确到 BrakingState/IdleState，属于具体迁移目标表达问题；不对应台账的默认入口、AcceleratingState 零入边或拆分/额外触发主张。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0032-01"
+        ],
+        "false_positive": false,
+        "reason": "明确指认 IdleRegion、AccelerateRegion、BrakeRegion 没有显式初始伪状态，导致进入区域后实际子态未定义；直接覆盖台账的三个复合态缺少默认入口。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0032-01"
+        ],
+        "false_positive": false,
+        "reason": "指认进入 AccelerateRegion 后没有到 AcceleratingState 的初始或动作转换，导致 AcceleratingState 无法被占据；覆盖台账关于 AcceleratingState 无入边的部分。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Stop 在多个状态上的迁移覆盖不完整，属于停止动作迁移缺失，不是台账列出的入口或入边问题。",
+        "confidence": "medium"
+      }
+    ],
+    "pair_reason": "语义对齐显示：EIS-0032-01 被方法三轮稳定覆盖其 AccelerateRegion 入口缺失部分，并被 baseline_run1/run3 覆盖；DIFF-0032-03 仅被 baseline_run1/run2 对状态拆分及 Reach Speed 区域级构造的综合 issue 覆盖。其余输出主要涉及不同迁移、根可达性、层次归属或相反方向的缺失断言，判为 false positive。"
+  },
+  "status": "ok",
+  "attempts": 2
+}

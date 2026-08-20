@@ -4549,29 +4549,7 @@ def _validate_direct_grounded_candidate(
         if field == "target" and goal.relation == "target_reachable" and value is None:
             value = goal.subject
             field = "subject"
-        if root_scope_id is not None and (
-            (goal.relation == "initial_target" and field == "subject")
-            or (goal.relation == "final_pseudostate_exists" and field == "source")
-        ):
-            allowed_ids = state_reference_ids
-        elif (
-            goal.relation == "event_consumed_in_scope"
-            and field == "source"
-        ):
-            allowed_ids = state_reference_ids
-        elif (
-            field == "target"
-            and goal.relation
-            in {
-                "transition_contract",
-                "transition_exists",
-                "transition_target_consistency",
-                "event_reaches_target",
-            }
-        ) or (field == "subject" and goal.relation == "termination_target"):
-            allowed_ids = state_reference_ids
-        else:
-            allowed_ids = state_reference_ids
+        allowed_ids = state_reference_ids
         if value not in allowed_ids:
             if (
                 goal.relation == "state_exists"

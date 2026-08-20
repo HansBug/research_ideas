@@ -1,0 +1,431 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0036",
+  "ledger": [],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "hypothesis:caa597fd727591e2",
+          "claims": [
+            "The inventory may provide fewer state areas than required by the specification."
+          ],
+          "locations": [
+            "NL2",
+            "author_source_inventory.states",
+            "author_source_inventory.concurrent_regions"
+          ],
+          "obligations": [
+            "The UAV swarm model must realize three different state areas."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:caa597fd727591e2:facet:cea3cf5570e7"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:lifecycle_action:Region2.Attack:exit:UAV Count Decreased",
+          "claims": [
+            "State 'Region2.Attack' lacks required output_signal 'UAV Count Decreased' in the exit phase."
+          ],
+          "locations": [
+            "Region2.Attack"
+          ],
+          "obligations": [
+            "State 'Region2.Attack' must own required output_signal 'UAV Count Decreased' in the exit phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:Region2.Attack:exit:UAV Count Decreased:facet:cba390f05991"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:root_target_unreachable:Region1.TargetSearch",
+          "claims": [
+            "The target-search behavior may be represented under an unreachable region rather than as reachable swarm behavior.",
+            "The target-search state is in an unreachable component, which may prevent the required ongoing search behavior from being entered.",
+            "The target-search and formation-adjustment behavior may be unreachable from the root entry."
+          ],
+          "locations": [
+            "NL2",
+            "llms_emp_feedback_final_0036.Region1.TargetSearch",
+            "tr_0002",
+            "Region1.TargetSearch",
+            "source:unreachable_component:Region1",
+            "NL3",
+            "llms_emp_feedback_final_0036.Region1.FormationAdjustment"
+          ],
+          "obligations": [
+            "The UAV swarm continuously performs target search tasks before mission completion.",
+            "Target search behavior must remain reachable before mission completion.",
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "unattributed"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W1",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:root_target_unreachable:Region1.TargetSearch:facet:90c191222e5f",
+            "source:root_target_unreachable:Region1.TargetSearch:facet:35679b83910d"
+          ]
+        },
+        {
+          "finding_id": "source:root_target_unreachable:Region2.Attack",
+          "claims": [
+            "The attack path may be unreachable from root entry because Region2 is an unreachable source component.",
+            "The attack behavior may be unreachable from the root entry."
+          ],
+          "locations": [
+            "NL4",
+            "Region2.Attack",
+            "source:unreachable_component:Region2",
+            "NL2",
+            "llms_emp_feedback_final_0036.Region2.AttackReady",
+            "llms_emp_feedback_final_0036.Region2.Attack"
+          ],
+          "obligations": [
+            "Attack entry after task assignment must be reachable during flight.",
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "unattributed"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W1",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:root_target_unreachable:Region2.Attack:facet:78b102196bb4",
+            "source:root_target_unreachable:Region2.Attack:facet:a7801d52b1a4"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "两个状态区域彼此独立且没有任何连接，模型无法表示无人机群在持续搜索过程中接收任务分配并进入攻击的流程。",
+          "reason": "规范明确要求无人机群在飞行期间收到任务分配信息后进入攻击状态；但模型仅在 Region2 内从 AttackReady 进入 Attack，而 Region1 的 TargetSearch 与 Region2 没有转移关系，也没有体现“飞行期间”的触发上下文。",
+          "where": "整体状态机结构，尤其是 Region1 与 Region2 之间"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型只定义了两个状态区域，而规范要求在任务完成前运行于三个不同的状态区域。",
+          "reason": "缺少第三个状态区域，直接不满足规范对状态区域数量的明确要求。",
+          "where": "状态区域声明：Region1、Region2"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "顶层 InitialState 没有转移到 Region1 或 Region2；两个区域虽然各自有初始状态，但整体模型从顶层初始状态不可达。",
+          "reason": "模型的起始节点 InitialState 没有后继转移，因而 TargetSearch、FormationAdjustment、AttackReady 和 Attack 均无法从整个状态机的初始配置进入，不能描述无人机群的实际状态演化。",
+          "where": "顶层初始状态 InitialState 及各区域初始伪状态"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "没有表示任务完成前持续执行目标搜索，也没有任务完成或退出搜索的状态/转移。",
+          "reason": "规范以“任务完成前持续执行目标搜索”为生命周期约束；模型没有任务完成事件、终止状态或相应守卫，因此既未表达任务完成前的持续性，也未表达任务完成后的边界。",
+          "where": "整体状态机，特别是终止/完成相关建模"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "拦截后虽进入编队调整，但模型没有说明调整期间仍属于任务生命周期，也没有与攻击流程相连。",
+          "reason": "规范要求被拦截时转入编队调整状态；该局部转移本身符合，但由于 Region1 与攻击区域断开，调整完成后只能回到搜索，无法在后续任务分配时进入攻击，导致整体行为不完整。",
+          "where": "FormationAdjustment --> TargetSearch : Formation Adjusted"
+        },
+        {
+          "finding_id": "baseline_issue_6",
+          "issue": "无人机数量减少只作为转移上的注释/动作文本，没有建模数量变量、更新操作或减少后的状态语义。",
+          "reason": "规范要求攻击完成后无人机群数量相应减少；仅写出“UAV Count Decreased”未定义减少对象、减少量或状态数据，无法在状态机中验证数量确实按攻击结果更新。",
+          "where": "Attack --> AttackReady : Attack Complete / UAV Count Decreased"
+        },
+        {
+          "finding_id": "baseline_issue_7",
+          "issue": "AttackReady 被建模为独立于目标搜索的准备状态，而不是飞行/搜索过程中的可达状态。",
+          "reason": "规范的触发条件是“During flight, if task assignment information is received”；模型没有飞行状态或从搜索/飞行状态到 AttackReady 的转移，因此攻击准备与实际飞行任务过程脱节。",
+          "where": "Region2 内 AttackReady 的定义"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型只定义了两个状态区域，而规格要求任务执行期间存在三个不同的状态区域。",
+          "reason": "规格明确要求 UAV 集群在任务完成前运行于三个不同的状态区域；模型仅有 Region1、Region2，缺少第三个状态区域。",
+          "where": "PlantUML 中的 `state Region1` 和 `state Region2`。"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型没有表达任务完成前持续执行目标搜索这一全局行为，也没有任务完成状态或终止条件。",
+          "reason": "规格要求在任务完成前持续进行目标搜索。模型的 `TargetSearch` 只存在于 Region1，且没有任务完成判定、完成状态或从搜索流程到任务完成的转移；`InitialState` 也未连接到 Region1/Region2 的实际状态。",
+          "where": "顶层初始节点 `[*] --> InitialState` 以及两个并列区域之间的结构。"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "拦截后的编队调整流程没有被纳入完整的任务状态流程。",
+          "reason": "这部分局部转移符合“被拦截后进入编队调整、调整后返回搜索”，但 Region1 是独立复合状态，模型没有说明 UAV 集群如何从顶层或其他任务状态进入该区域，也没有保证调整流程与攻击流程及持续搜索流程连通。",
+          "where": "`TargetSearch --> FormationAdjustment : Interception Detected` 与 `FormationAdjustment --> TargetSearch : Formation Adjusted`。"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "攻击流程没有建模“飞行期间”这一适用条件。",
+          "reason": "规格限定为飞行期间收到任务分配信息时进入攻击状态。模型只定义了 `AttackReady`，没有飞行状态或飞行条件，因此该转移可在未表示飞行的情况下发生，无法验证规格中的前置条件。",
+          "where": "`AttackReady --> Attack : Task Assignment Received`。"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "攻击完成后仅在转移标签中写出数量减少，没有表示无人机数量的状态或变化规则。",
+          "reason": "规格要求攻击完成后无人机数量相应减少。模型没有数量变量、赋值、计数状态或减少幅度，转移注释不能形成可执行或可验证的数量变化；同时也没有体现数量减少后对后续行为的影响。",
+          "where": "`Attack --> AttackReady : Attack Complete / UAV Count Decreased`。"
+        },
+        {
+          "finding_id": "baseline_issue_6",
+          "issue": "攻击流程与目标搜索流程相互断开，不能表示同一 UAV 集群在搜索、接收任务、攻击之间的状态转换。",
+          "reason": "规格描述的是同一 UAV 集群在任务执行期间持续搜索，并在飞行中收到任务分配后攻击。模型将搜索和攻击放入两个无连接的顶层区域，Region2 的初始状态也无法由搜索或飞行流程触发，导致攻击路径与主任务流程不连通。",
+          "where": "Region1 与 Region2 之间没有任何转移；`Region2` 内部仅有 `AttackReady`、`Attack` 循环。"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型只定义了两个状态区域（Region1 和 Region2），而规格明确要求任务执行期间运行在三个不同的状态区域。",
+          "reason": "缺少第三个状态区域，无法表示规格要求的三状态区域结构。",
+          "where": "PlantUML中的 `state Region1` 与 `state Region2` 定义"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "攻击流程未与目标搜索/飞行流程连接，任务分配事件只能在独立的 `AttackReady` 状态中触发攻击。",
+          "reason": "规格要求无人机群在飞行期间收到任务分配信息后进入攻击状态；模型没有从目标搜索或其他飞行状态转入 `AttackReady`，也没有从目标搜索直接响应任务分配，因此该触发条件不在规定的飞行任务流程中。",
+          "where": "`Region2` 内的 `[*] --> AttackReady` 以及 `AttackReady --> Attack : Task Assignment Received`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型没有表示在任务完成前持续执行目标搜索任务的整体流程。",
+          "reason": "`Region1` 和 `Region2` 都是彼此独立的复合状态，顶层没有将它们连接起来，也没有从初始状态进入任一区域的转移；因此模型无法保证或表达任务完成前持续运行目标搜索，并且整个模型从 `InitialState` 后没有可执行的任务流程。",
+          "where": "顶层的 `InitialState`、`Region1`、`Region2` 之间的结构"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "模型缺少任务完成状态或任务完成转移。",
+          "reason": "规格限定“在任务完成之前”持续搜索，隐含需要能够表示任务完成这一终止条件；模型没有任务完成状态、事件或退出转移，无法表达搜索任务何时结束。",
+          "where": "整个PlantUML模型"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0036",
+    "ledger_assessments": [],
+    "emission_assessments": [
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_6",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_7",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_6",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:caa597fd727591e2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:Region2.Attack:exit:UAV Count Decreased",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:root_target_unreachable:Region1.TargetSearch",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:root_target_unreachable:Region2.Attack",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何可对应的台账条目；该问题因此无语义台账对应。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "冻结台账条目集合为空，因此不存在任何六格命中；每个已提供的末端 issue 均无法对应台账条目，均判为 false positive。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

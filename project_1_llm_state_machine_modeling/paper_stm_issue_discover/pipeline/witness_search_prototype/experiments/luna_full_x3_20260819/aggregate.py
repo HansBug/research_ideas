@@ -148,7 +148,11 @@ def cell_status(root: Path, arm: str, pair: str, run: int) -> tuple[str, dict[st
     if not path.exists():
         return "missing", {}
     record = read_json(path)
-    return str(record.get("status") or "ok"), record
+    raw_status = str(record.get("status") or "ok")
+    # The prototype writes `completed`, while X1v2 writes `ok`; both are
+    # eligible successful cells and must share one aggregate status.
+    status = "ok" if raw_status in {"ok", "completed"} else raw_status
+    return status, record
 
 
 def load_judgements(judge_root: Path, pairs: list[str]) -> dict[str, dict[str, Any]]:
@@ -323,7 +327,7 @@ def build_report(metrics: dict[str, Any]) -> str:
     lines = [
         "# 全量 x3 独立语义审计报告",
         "",
-        f"本报告比较 {metrics['cost']['profile']} 下的新方法 v26-dnorm 与 X1v2 baseline，运行矩阵为 54 个非 NL04 pair、每臂每 pair 三轮；命中由独立 {metrics['cost']['judge_profile']} 语义评审依据同一位置与同一性质判定，不使用关键词、字符串包含、编辑距离、embedding 或其他词法捷径。",
+        f"本报告比较 {metrics['cost']['profile']} 下的新方法 v27-stream 与 X1v2 baseline，运行矩阵为 54 个非 NL04 pair、每臂每 pair 三轮；命中由独立 {metrics['cost']['judge_profile']} 语义评审依据同一位置与同一性质判定，不使用关键词、字符串包含、编辑距离、embedding 或其他词法捷径。",
         "",
         "## 方法侧覆盖",
         "",
@@ -357,7 +361,7 @@ def build_report(metrics: dict[str, Any]) -> str:
         "",
         "## 可复现边界",
         "",
-        "原始完整运行目录位于本机 `runs/paper1/luna-full-x3-20260819-v1/`，本目录的 `audit_index.json` 保存每个 raw record 的 SHA-256、状态、失败分类和紧凑审计摘要路径；原始 raw prompt/response 体积过大且包含重复中间阶段，不复制进 git。",
+        "原始完整运行目录位于本机 `runs/paper1/luna-full-x3-20260820-v27-stream/`（方法）和 `runs/paper1/luna-full-x3-20260819-v1/`（X1v2），最终审计目录保存每个 raw record 的 SHA-256、状态、失败分类和紧凑审计摘要路径；原始 raw prompt/response 体积过大且包含重复中间阶段，不复制进 git。",
     ]
     return "\n".join(lines) + "\n"
 

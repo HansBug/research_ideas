@@ -1,0 +1,2178 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0005",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0005-01",
+      "pair": "0005",
+      "D": "D2",
+      "L": "L0",
+      "summary": "NL 第 1 句要求在 `DoorShut` 执行 Cancel 时停留原地（自环），而制品把它写成了 `:4 DoorShut : Cancel` 这一行状态说明文字，模型里根本不存在这条迁移。",
+      "detail": "NL 第 1 句逐字为「The microwave starts in the DoorShut state. From this state, the system can either remain in DoorShut if a Cancel action is performed or transition to the DoorOpen state when the door is opened.」。其中「remain in DoorShut if a Cancel action is performed」是一条显式的自环义务：在 DoorShut 收到 Cancel 时，机器应当有一次迁移，且这次迁移的目标仍是 DoorShut。\n\n制品在 `:4` 写的是 `DoorShut : Cancel`。这是 PlantUML 的状态描述语法（`状态名 : 文本`），它只往状态的显示框里加一行说明文字，不产生任何迁移。同一份文件里真正的迁移写法出现在紧接着的 `:5 DoorShut --> DoorOpen : Door Opened`——有 `-->`。\n\n把这份制品投影成形式化状态机可以确认后果：`DoorShut` 这个状态的名字变成了 `DoorShut\\n[PlantUML body] Cancel`，即那行文字被并进了状态名，而它的出边只有通往 DoorOpen 的一条，没有任何自环。也就是说，在 DoorShut 收到 Cancel 时机器什么都不会做，甚至不会消费这个事件。\n\n根因是把两种语法搞混了：`状态名 : 文本` 与 `源 --> 目标 : 标签` 在 PlantUML 里长得很像，但前者是注释、后者是迁移。NL 那句话把两件事写在同一句里（一个留在原地、一个转出去），生成侧对第二件用了迁移语法、对第一件用了描述语法。\n\n本条的修法是补一条 `DoorShut --> DoorShut : Cancel`，并把 `:4` 那行去掉或保留为纯注释。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 1 句「the system can either remain in DoorShut if a Cancel action is performed」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——`:4` 用的是状态描述语法而不是迁移语法，这一点在同一文件内有直接对照（`:5` 用的是 `-->`），无法解释成「作者用另一种方式表达了同一条自环」。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需把 NL 第 1 句点名的那条自环（DoorShut 上的 Cancel）拿去模型里找，发现以 DoorShut 为源的迁移只有 `:5` 一条且目标是 DoorOpen。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "pair": "0005",
+      "D": "D1",
+      "L": "L1",
+      "summary": "`DoorShutWithItem`、`ReadytoCook`、`Cooking` 三个名字首次出现在 `DoorOpenWithItem` 的块体内（`:14`、`:15` 等），PlantUML 的前向引用规则把它们钉成了 DoorOpenWithItem 的子态，于是「门开有物」与「门关有物」会同时活动。",
+      "detail": "PlantUML 在解析时，一个状态名首次出现的位置决定它归属于哪个作用域。`DoorShutWithItem` 首次出现在 `:14`（`DoorIdleWithItem --> DoorShutWithItem : Close Door with Zero Time`），`ReadytoCook` 首次出现在 `:15`——两者都在 `state DoorOpenWithItem {`（:10）与 `}`（:16）之间。同理 `Cooking` 首次出现在 `:30`，而 `:30` 位于 `state ReadytoCook {`（:25）块内。\n\n于是后面 `:18 state DoorShutWithItem {`、`:25 state ReadytoCook {`、`:33 state Cooking {` 这些块并不是在根层新建状态，而是在给已经归属于内层作用域的那些状态补内容。投影出来的层次是：DoorOpenWithItem 里面套着 DoorShutWithItem 和 ReadytoCook，ReadytoCook 里面又套着 Cooking，再加上 DoorIdleWithItem 和 WaitingToStart。\n\n后果有两个。其一，层次状态机里子态活动蕴含祖先活动，所以「处于 DoorShutWithItem」自动蕴含「处于 DoorOpenWithItem」——按状态名的字面含义就是门关着有物品与门开着有物品同时成立。NL 第 4、5、6、8 句把这两种配置当作互斥的替代项处理，彼此由方向相反的开门 / 关门事件到达（第 5 句「In the DoorShutWithItem state, opening the door transitions the system back to DoorOpenWithItem」）。其二，`:8 DoorOpen --> DoorOpenWithItem : Place Item Inside` 这条边现在会经过 `:11` 的默认入口落到 `DoorIdleWithItem`——一个 NL 里没有的自造状态。\n\n根因是 PlantUML 的前向引用规则与作者的书写顺序相互作用：作者按 NL 的叙述顺序先写了从 DoorOpenWithItem 出发的三条边，无意中就把这些目标状态钉进了它的作用域。这类错误在源文本上完全看不出层次意图，只有投影之后才显形。",
+      "D_basis": "判 D1，两读并立。第一种读法按状态名的字面物理含义来读：DoorShutWithItem 成为 DoorOpenWithItem 的后代会导致门开与门关同时活动，构成矛盾，缺陷成立。第二种读法把 DoorOpenWithItem 重新理解为一个命名不佳的生命周期壳，含义是「物品已放入炉内」这一整个阶段，其内部再分门开、门关、待烹、烹饪等子阶段；这样 `:21 ItemInside --> DoorOpenWithItem : Open Door` 就读作「从门关子阶段退出、重新进入这个壳、并经 `:11` 的默认入口落到真正的门开子阶段 DoorIdleWithItem」，与重入结构和 Open Door 触发都相容。判读中对第二种读法提出过一条反驳：用 Open Door 作触发去进入一个据称与门物理开合无关的壳态，自相矛盾。这条反驳有力但没有把第二种读法排除干净——壳态的默认入口恰好是门开子阶段，用开门事件进入它并不必然矛盾。故两读并立，判 D1。",
+      "L_basis": "判 L1。陈述这条错误的核心是一个不变式：在任何一个系统状态里，`active(DoorShutWithItem)` 都蕴含 `active(DoorOpenWithItem)`。这是从模型的层次结构导出的静态事实，只涉及单个系统状态的合法性判断（对应 Hilken 等所说的 Structural Verification Task「a single system state」），不需要构造任何执行序列或做可达性论证，故不到 L2；但它要先把 PlantUML 的前向引用规则应用一遍才能得出层次关系，比纯词项比对深一层，故不是 L0。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "state",
+        "defect_qualifier": "incorrect",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "pair": "0005",
+      "D": "D1",
+      "L": "L0",
+      "summary": "NL 第 5、6 句显式要求显示与更新 cooking time，而制品全篇 40 行里没有任何变量声明、没有任何迁移 effect（一个 `/` 都没有）、也没有 entry/exit 动作，这条数据侧语义连载体都不存在。",
+      "detail": "NL 里有四处提到计时与烹饪时间：第 5 句「entering cooking time takes the system to ReadytoCook, where the cooking time is displayed and updated」、第 6 句「the system returns to DoorShutWithItem, canceling or updating the cooking time」、第 7 句「the system transitions to the Cooking state, where the timer starts」、第 8 句「opening the door stops the timer」。\n\n需要先按本研究的建模对象边界把它们分开。建模对象是 $M = (S, E, V, Tr, A)$，不含时钟变量与不变式，所以第 7、8 句的 timer 启停属于时间语义，在界外，不计入本条。第 5、6 句要求的是「显示并更新 cooking time」与「取消或更新 cooking time」——那是一个普通变量上的读写，落在 $V$ 与 $A$ 里，属界内。\n\n制品对界内的这部分零表达。全文 `:1`-`:40` 里没有任何变量声明；没有任何 `/` 符号，也就是没有任何迁移 effect；没有任何 `entry/` 或 `exit/` 动作（对比同批的 pair 0004，那份制品在 `:14` 与 `:33` 写了 `entry/`，说明这个记法在本语料里是被使用的）。所有 `状态名 : 文本` 形式的行在本文件里一处都没有承载动作语义。\n\n所以这不是「用另一种方式表达了」，而是这条语义在模型里没有任何载体：无论怎么求值，都问不出 cooking time 现在是多少、被谁改过。\n\n根因是制品只画了控制骨架——状态与触发事件——而把所有的数据侧语义留给了外部。`:37 ActiveCooking --> DoorShutWithItem : Timer Expired` 就是这种处理的典型：计时部件被当成产生事件的外部环境接入，模型自己不持有任何量。",
+      "D_basis": "判 D1，两读并立。第一种读法：NL 第 5、6 句点名的 cooking-time 显示与更新属界内的变量与动作，制品零变量零 effect，义务落空，缺陷成立。第二种读法：全文一致地只画控制态与触发事件，并通过 `:37` 的 `Timer Expired` 把计时部件作为环境事件接进来——这可以称职地读成「这是一份纯控制骨架，设备动作由状态驻留和外部部件承载」。这种读法与全文的一致风格相容，能削弱但不能否掉界内那部分的缺失（显示与更新仍然没有载体），故判 D1 而非 D0。需要如实记下一处分歧：本条的自动 meta review 建议判 D2，理由是「40 行、零个 `/`、零 entry/exit、零变量声明」；人工终裁改判 D1，理由是上面那条纯控制骨架读法尚未被排除。同时纠正了一处：把 timer 启停算作缺失是把动作误当时钟，那部分在建模边界之外，不计入本条。",
+      "L_basis": "判 L0。陈述这条错误只需把 NL 第 5、6 句点名的那样东西（cooking time 这个量及其显示 / 更新动作）拿去模型里找，发现全文没有变量声明、没有 effect、没有 entry/exit。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "effect",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:transition:DoorShut:Cancel action is performed:DoorShut",
+          "claims": [
+            "Source has no matching transition from 'DoorShut' to 'DoorShut' under 'Cancel action is performed'."
+          ],
+          "locations": [
+            "NL1"
+          ],
+          "obligations": [
+            "DoorShut must transition directly to DoorShut under Cancel action is performed."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DoorShut:Cancel action is performed:DoorShut:facet:5c2a8bc547a7"
+          ]
+        },
+        {
+          "finding_id": "source:transition:DoorShut:Cancel:DoorShut",
+          "claims": [
+            "Source has no matching transition from 'DoorShut' to 'DoorShut' under 'Cancel'."
+          ],
+          "locations": [
+            "NL1",
+            "PUML:L4",
+            "FCSTM:F50",
+            "FCSTM:F57",
+            "DoorShut"
+          ],
+          "obligations": [
+            "From DoorShut, a Cancel action can leave the system in DoorShut."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DoorShut:Cancel:DoorShut:facet:54467b78c3d0"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:displayed cooking time",
+          "claims": [
+            "The required displayed cooking time action may not be represented as a state-owned lifecycle action of ReadytoCook.",
+            "The source inventory has no named displayed-cooking-time or updated-cooking-time action attached to ReadytoCook.",
+            "State 'DoorOpenWithItem.ReadytoCook' lacks required output_signal 'displayed cooking time' in the during phase."
+          ],
+          "locations": [
+            "NL5",
+            "PUML:L25",
+            "FCSTM:F20",
+            "inspect:abstract_action_inventory",
+            "F20",
+            "ReadytoCook",
+            "DoorOpenWithItem.ReadytoCook"
+          ],
+          "obligations": [
+            "ReadytoCook displays and updates cooking time during operation.",
+            "The explicitly required displayed and updated cooking-time behavior must be owned by ReadytoCook during that state.",
+            "State 'DoorOpenWithItem.ReadytoCook' must own required output_signal 'displayed cooking time' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:displayed cooking time:facet:d78356178f93",
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:displayed cooking time:facet:e0838cf9f6c1"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:timer starts",
+          "claims": [
+            "The timer-start action may be missing from the Cooking entry-action structure.",
+            "The source contains no named timer-start action attached to Cooking entry.",
+            "State 'DoorOpenWithItem.ReadytoCook.Cooking' lacks required state_action 'timer starts' in the entry phase."
+          ],
+          "locations": [
+            "NL7",
+            "PUML:L33",
+            "PUML:L34",
+            "FCSTM:F21",
+            "FCSTM:F23",
+            "inspect:abstract_action_inventory",
+            "PUML:L30",
+            "F21",
+            "F35",
+            "DoorOpenWithItem.ReadytoCook.Cooking"
+          ],
+          "obligations": [
+            "On entry to Cooking, the timer starts.",
+            "The explicitly required timer-start behavior must occur on entry to Cooking.",
+            "State 'DoorOpenWithItem.ReadytoCook.Cooking' must own required state_action 'timer starts' in the entry phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:timer starts:facet:c64c53bc0529",
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:timer starts:facet:bf3209e2b727"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:exit:stops the timer",
+          "claims": [
+            "The timer-stop action may be missing from the Cooking exit-action structure.",
+            "State 'DoorOpenWithItem.ReadytoCook.Cooking' lacks required state_action 'stops the timer' in the exit phase."
+          ],
+          "locations": [
+            "NL8",
+            "PUML:L36",
+            "FCSTM:F24",
+            "FCSTM:F55",
+            "inspect:abstract_action_inventory",
+            "DoorOpenWithItem.ReadytoCook.Cooking"
+          ],
+          "obligations": [
+            "Opening the door exits Cooking and stops the timer.",
+            "State 'DoorOpenWithItem.ReadytoCook.Cooking' must own required state_action 'stops the timer' in the exit phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:exit:stops the timer:facet:79d2a94abf5e",
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:exit:stops the timer:facet:63480dff8f41"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:updated cooking time",
+          "claims": [
+            "State 'DoorOpenWithItem.ReadytoCook' lacks required state_action 'updated cooking time' in the during phase."
+          ],
+          "locations": [
+            "DoorOpenWithItem.ReadytoCook"
+          ],
+          "obligations": [
+            "State 'DoorOpenWithItem.ReadytoCook' must own required state_action 'updated cooking time' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:updated cooking time:facet:d7632f1197c6"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:a93e0097927f9a47",
+          "claims": [
+            "The source contains no authored transition or state-owned action realization for Cancel in DoorShut."
+          ],
+          "locations": [
+            "NL1",
+            "PUML:L4",
+            "DoorShut",
+            "F10"
+          ],
+          "obligations": [
+            "The microwave must provide the explicitly required Cancel action while in DoorShut, with the stated self-retaining behavior."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:a93e0097927f9a47:facet:85dfd19ce69e"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:DoorShut:during:Cancel action",
+          "claims": [
+            "State 'DoorShut' lacks required state_action 'Cancel action' in the during phase."
+          ],
+          "locations": [
+            "DoorShut"
+          ],
+          "obligations": [
+            "State 'DoorShut' must own required state_action 'Cancel action' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:DoorShut:during:Cancel action:facet:fcf446ed2cc1"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:canceling the cooking time",
+          "claims": [
+            "State 'DoorOpenWithItem.ReadytoCook' lacks required state_action 'canceling the cooking time' in the during phase."
+          ],
+          "locations": [
+            "DoorOpenWithItem.ReadytoCook"
+          ],
+          "obligations": [
+            "State 'DoorOpenWithItem.ReadytoCook' must own required state_action 'canceling the cooking time' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:canceling the cooking time:facet:c139fadec69b"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:updating the cooking time",
+          "claims": [
+            "State 'DoorOpenWithItem.ReadytoCook' lacks required state_action 'updating the cooking time' in the during phase."
+          ],
+          "locations": [
+            "DoorOpenWithItem.ReadytoCook"
+          ],
+          "obligations": [
+            "State 'DoorOpenWithItem.ReadytoCook' must own required state_action 'updating the cooking time' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:updating the cooking time:facet:9da07c6cb5a2"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:transition:DoorShut:a Cancel action is performed:DoorShut",
+          "claims": [
+            "Source has no matching transition from 'DoorShut' to 'DoorShut' under 'a Cancel action is performed'."
+          ],
+          "locations": [
+            "NL1"
+          ],
+          "obligations": [
+            "DoorShut must transition directly to DoorShut under a Cancel action is performed."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DoorShut:a Cancel action is performed:DoorShut:facet:7ad1433f6124"
+          ]
+        },
+        {
+          "finding_id": "source:transition:DoorShut:Cancel:DoorShut",
+          "claims": [
+            "Source has no matching transition from 'DoorShut' to 'DoorShut' under 'Cancel'."
+          ],
+          "locations": [
+            "NL1",
+            "DoorShut",
+            "tr_0001",
+            "tr_0002",
+            "PUML:L4",
+            "F50"
+          ],
+          "obligations": [
+            "DoorShut remains in DoorShut when Cancel is performed.",
+            "DoorShut must have a Cancel self-transition from DoorShut."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DoorShut:Cancel:DoorShut:facet:54467b78c3d0"
+          ]
+        },
+        {
+          "finding_id": "source:guard_presence:DoorOpenWithItem.DoorIdleWithItem:DoorOpenWithItem.DoorShutWithItem",
+          "claims": [
+            "The zero-time qualification may be missing from the formal transition and represented only by an event label."
+          ],
+          "locations": [
+            "NL4",
+            "tr_0007",
+            "F47",
+            "PUML:L14"
+          ],
+          "obligations": [
+            "Closing the door with zero time set must be represented by the required qualified condition."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:guard_presence:DoorOpenWithItem.DoorIdleWithItem:DoorOpenWithItem.DoorShutWithItem:facet:5a33f7b15ecf"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cooking time is displayed",
+          "claims": [
+            "The required display action may be missing or not owned by ReadytoCook.",
+            "State 'DoorOpenWithItem.ReadytoCook' lacks required output_signal 'cooking time is displayed' in the during phase."
+          ],
+          "locations": [
+            "NL5",
+            "ReadytoCook",
+            "F20",
+            "abstract_action_inventory",
+            "DoorOpenWithItem.ReadytoCook"
+          ],
+          "obligations": [
+            "The ReadytoCook state owns the output action that displays cooking time.",
+            "State 'DoorOpenWithItem.ReadytoCook' must own required output_signal 'cooking time is displayed' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cooking time is displayed:facet:1ef3cbb5a572",
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cooking time is displayed:facet:296a7b8ffb26"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:timer starts",
+          "claims": [
+            "The timer-start action may be absent from the Cooking entry behavior.",
+            "State 'DoorOpenWithItem.ReadytoCook.Cooking' lacks required state_action 'timer starts' in the entry phase."
+          ],
+          "locations": [
+            "NL7",
+            "Cooking",
+            "F21",
+            "abstract_action_inventory",
+            "DoorOpenWithItem.ReadytoCook.Cooking"
+          ],
+          "obligations": [
+            "The Cooking state starts the timer on entry.",
+            "State 'DoorOpenWithItem.ReadytoCook.Cooking' must own required state_action 'timer starts' in the entry phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:timer starts:facet:c64c53bc0529",
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:timer starts:facet:bf3209e2b727"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cooking time is updated",
+          "claims": [
+            "State 'DoorOpenWithItem.ReadytoCook' lacks required state_action 'cooking time is updated' in the during phase."
+          ],
+          "locations": [
+            "DoorOpenWithItem.ReadytoCook"
+          ],
+          "obligations": [
+            "State 'DoorOpenWithItem.ReadytoCook' must own required state_action 'cooking time is updated' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cooking time is updated:facet:7cf730748a00"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:exit:stops the timer",
+          "claims": [
+            "State 'DoorOpenWithItem.ReadytoCook.Cooking' lacks required state_action 'stops the timer' in the exit phase."
+          ],
+          "locations": [
+            "DoorOpenWithItem.ReadytoCook.Cooking"
+          ],
+          "obligations": [
+            "State 'DoorOpenWithItem.ReadytoCook.Cooking' must own required state_action 'stops the timer' in the exit phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:exit:stops the timer:facet:63480dff8f41"
+          ]
+        },
+        {
+          "finding_id": "source:containment:DoorOpenWithItem",
+          "claims": [
+            "Source child 'DoorOpenWithItem.DoorShutWithItem' has the forbidden direct parent 'DoorOpenWithItem'; the negative containment obligation is violated."
+          ],
+          "locations": [
+            "NL3",
+            "F14",
+            "F49"
+          ],
+          "obligations": [
+            "DoorOpenWithItem, DoorShutWithItem, and ReadytoCook are alternative operating configurations rather than nested states, so DoorShutWithItem must not be contained in DoorOpenWithItem."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:containment:DoorOpenWithItem:facet:96e7ba55b632"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:DoorShut:during:Cancel",
+          "claims": [
+            "State 'DoorShut' lacks required state_action 'Cancel' in the during phase."
+          ],
+          "locations": [
+            "DoorShut"
+          ],
+          "obligations": [
+            "State 'DoorShut' must own required state_action 'Cancel' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:DoorShut:during:Cancel:facet:957a2eb8798d"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:transition:DoorShut:a Cancel action is performed:DoorShut",
+          "claims": [
+            "Source has no matching transition from 'DoorShut' to 'DoorShut' under 'a Cancel action is performed'."
+          ],
+          "locations": [
+            "NL1"
+          ],
+          "obligations": [
+            "DoorShut must transition directly to DoorShut under a Cancel action is performed."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DoorShut:a Cancel action is performed:DoorShut:facet:7ad1433f6124"
+          ]
+        },
+        {
+          "finding_id": "source:containment:DoorOpenWithItem",
+          "claims": [
+            "Source child 'DoorOpenWithItem.DoorShutWithItem' has the forbidden direct parent 'DoorOpenWithItem'; the negative containment obligation is violated."
+          ],
+          "locations": [
+            "NL4",
+            "PUML:L10",
+            "PUML:L18",
+            "DoorOpenWithItem",
+            "DoorOpenWithItem.DoorShutWithItem"
+          ],
+          "obligations": [
+            "DoorShutWithItem and DoorOpenWithItem are alternative operating configurations and must not be nested."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:containment:DoorOpenWithItem:facet:a4b221771aca"
+          ]
+        },
+        {
+          "finding_id": "source:guard_presence:DoorOpenWithItem.DoorIdleWithItem:DoorOpenWithItem.DoorShutWithItem",
+          "claims": [
+            "The authored transition for closing the door with zero time may have only an event label and no formal zero-time guard."
+          ],
+          "locations": [
+            "NL4",
+            "PUML:L14",
+            "tr_0007",
+            "F47"
+          ],
+          "obligations": [
+            "The zero-time condition on the DoorOpenWithItem to DoorShutWithItem transition must be represented as a guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:guard_presence:DoorOpenWithItem.DoorIdleWithItem:DoorOpenWithItem.DoorShutWithItem:facet:5a33f7b15ecf"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:display cooking time",
+          "claims": [
+            "The ReadytoCook state may omit the required display cooking time action.",
+            "State 'DoorOpenWithItem.ReadytoCook' lacks required state_action 'display cooking time' in the during phase."
+          ],
+          "locations": [
+            "NL5",
+            "PUML:L25",
+            "F20",
+            "DoorOpenWithItem.ReadytoCook"
+          ],
+          "obligations": [
+            "The named cooking-time display behavior must be owned by ReadytoCook during operation.",
+            "State 'DoorOpenWithItem.ReadytoCook' must own required state_action 'display cooking time' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:display cooking time:facet:0cf34b5e8d0b",
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:display cooking time:facet:f1c6d238c68b"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:start timer",
+          "claims": [
+            "The Cooking state may omit the required timer start action.",
+            "State 'DoorOpenWithItem.ReadytoCook.Cooking' lacks required state_action 'start timer' in the entry phase."
+          ],
+          "locations": [
+            "NL7",
+            "PUML:L33",
+            "F21",
+            "DoorOpenWithItem.ReadytoCook.Cooking"
+          ],
+          "obligations": [
+            "The named timer-start behavior must be owned by Cooking on entry.",
+            "State 'DoorOpenWithItem.ReadytoCook.Cooking' must own required state_action 'start timer' in the entry phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:start timer:facet:2d44692df1fa",
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:start timer:facet:ce2644b577cb"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:update cooking time",
+          "claims": [
+            "State 'DoorOpenWithItem.ReadytoCook' lacks required state_action 'update cooking time' in the during phase."
+          ],
+          "locations": [
+            "DoorOpenWithItem.ReadytoCook"
+          ],
+          "obligations": [
+            "State 'DoorOpenWithItem.ReadytoCook' must own required state_action 'update cooking time' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:update cooking time:facet:4b6c2d5524cb",
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:update cooking time:facet:8c9ad2f3351e"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cancel cooking time",
+          "claims": [
+            "State 'DoorOpenWithItem.ReadytoCook' lacks required state_action 'cancel cooking time' in the during phase."
+          ],
+          "locations": [
+            "DoorOpenWithItem.ReadytoCook"
+          ],
+          "obligations": [
+            "State 'DoorOpenWithItem.ReadytoCook' must own required state_action 'cancel cooking time' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cancel cooking time:facet:be3977851d49"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:during:stop timer",
+          "claims": [
+            "State 'DoorOpenWithItem.ReadytoCook.Cooking' lacks required state_action 'stop timer' in the during phase."
+          ],
+          "locations": [
+            "DoorOpenWithItem.ReadytoCook.Cooking"
+          ],
+          "obligations": [
+            "State 'DoorOpenWithItem.ReadytoCook.Cooking' must own required state_action 'stop timer' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:during:stop timer:facet:6ff83544ef8d"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "DoorShut 状态未将 Cancel 建模为保持原状态的转移",
+          "reason": "规格明确要求：在 DoorShut 状态执行 Cancel 后系统仍保持在 DoorShut。PlantUML 这一行只是给状态添加名为“Cancel”的内部文字/注释，并没有表示事件触发的自循环转移（例如 `DoorShut --> DoorShut : Cancel`），因此模型没有明确表达该行为。",
+          "where": "`DoorShut : Cancel`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "DoorShut 状态中的 Cancel 未建模为显式自循环转移",
+          "reason": "规格明确要求在 DoorShut 中执行 Cancel 后仍保持在 DoorShut。该写法只是状态内部文字，不是 `DoorShut --> DoorShut : Cancel` 转移，因此模型没有表达该行为。",
+          "where": "`DoorShut : Cancel`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "DoorOpenWithItem 的复合状态初始转移引入了规格未定义的额外子状态",
+          "reason": "规格将 DoorOpenWithItem 作为一个直接可操作的状态，并要求移除物品、关门、输入烹饪时间等事件从该状态发生。模型实际进入的是复合状态的 `DoorIdleWithItem` 子状态，且没有说明 DoorOpenWithItem 复合状态本身如何承载这些行为，造成状态语义与规格不一致并增加未规定的层级。",
+          "where": "`state DoorOpenWithItem { [*] --> DoorIdleWithItem ... }`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "DoorShutWithItem 的复合状态初始转移引入了规格未定义的额外子状态",
+          "reason": "规格要求系统处于 DoorShutWithItem 时能够开门或输入烹饪时间。模型实际进入的是其内部 `ItemInside` 子状态，虽然转移暂时覆盖了两个动作，但该额外层级没有规格依据，并使顶层状态与可操作状态的含义不一致。",
+          "where": "`state DoorShutWithItem { [*] --> ItemInside ... }`"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "ReadytoCook 未建模“烹饪时间显示和更新”行为",
+          "reason": "规格明确要求进入 ReadytoCook 后显示并更新烹饪时间。模型只表示等待、取消、开门、开始等转移，没有显示或更新时间的动作、状态或内部行为。",
+          "where": "`state ReadytoCook { [*] --> WaitingToStart ... }`"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "ReadytoCook 中 Cancel 的取消/更新时间语义未表达",
+          "reason": "规格要求 Cancel 返回 DoorShutWithItem，并取消或更新烹饪时间。模型仅表达状态转移，没有表达计时值被取消或更新，因此行为不完整。",
+          "where": "`WaitingToStart --> DoorShutWithItem : Cancel`"
+        },
+        {
+          "finding_id": "baseline_issue_6",
+          "issue": "Cooking 状态未建模“启动计时器”行为",
+          "reason": "规格要求在 ReadytoCook 执行 Start 后进入 Cooking，且 Cooking 中计时器开始运行。模型只有到 Cooking 的转移和一个 ActiveCooking 子状态，没有明确的启动计时器动作或计时器运行行为。",
+          "where": "`WaitingToStart --> Cooking : Start` 与 `state Cooking { [*] --> ActiveCooking }`"
+        },
+        {
+          "finding_id": "baseline_issue_7",
+          "issue": "Cooking 状态开门时未显式建模停止计时器",
+          "reason": "规格要求开门会停止计时器后转移到 DoorOpenWithItem。模型只表示转移，没有表示停止计时器动作，因而遗漏了该规定行为。",
+          "where": "`ActiveCooking --> DoorOpenWithItem : Open Door`"
+        },
+        {
+          "finding_id": "baseline_issue_8",
+          "issue": "Cooking 状态的 Cancel 行为缺少计时值处理语义",
+          "reason": "规格虽规定 Cancel 返回 ReadytoCook，且 ReadytoCook 涉及烹饪时间的显示/更新；模型仅表示状态转移，没有说明取消时计时器或剩余烹饪时间如何处理，无法完整体现规格中的时间管理行为。",
+          "where": "`ActiveCooking --> ReadytoCook : Cancel`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0005",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0005-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:transition:DoorShut:Cancel action is performed:DoorShut",
+            "source:transition:DoorShut:Cancel:DoorShut",
+            "hypothesis:a93e0097927f9a47"
+          ],
+          "reason": "source:transition:DoorShut:Cancel action is performed:DoorShut: 台账条目与该 issue 都明确指向 DoorShut 状态上、Cancel action is performed 事件触发的 DoorShut 到 DoorShut 自环迁移，并主张同一性质：该迁移缺失；issue 还直接说明源中没有这条匹配迁移，因此无需拼接其它 issue 才能覆盖台账主张。；source:transition:DoorShut:Cancel:DoorShut: 台账条目与 issue 均指认同一处 DoorShut 状态上、由 Cancel 触发并回到 DoorShut 的自环迁移；二者主张的同一性质都是该迁移缺失。issue 直接陈述不存在该源、目标和标签组合的迁移，完整覆盖台账主张，而非仅描述后果或上位类别。；hypothesis:a93e0097927f9a47: 两者都指向同一处 DoorShut 中 Cancel 的实现缺失：台账明确要求 Cancel 触发 DoorShut 自环迁移，而 issue 指出没有该 authored transition 或 state-owned action realization，并明确要求在 DoorShut 中提供具有自保持行为的 Cancel。issue 的表述覆盖了该具体缺失及其性质，而非仅描述后果或上位类别。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:transition:DoorShut:a Cancel action is performed:DoorShut",
+            "source:transition:DoorShut:Cancel:DoorShut"
+          ],
+          "reason": "source:transition:DoorShut:a Cancel action is performed:DoorShut: 台账条目与 release issue 都指向同一处 DoorShut 状态上的 Cancel 事件到 DoorShut 的自环迁移，并主张同一性质：该迁移缺失。issue 还明确说明源中不存在这条匹配迁移，且义务要求直接回到 DoorShut；不是仅描述后果、上位类别或需要拼接其它 issue。；source:transition:DoorShut:Cancel:DoorShut: 台账条目要求的具体缺陷是：DoorShut 在 Cancel 事件下应存在目标仍为 DoorShut 的自环迁移，但制品缺少该迁移。release issue 明确指认同一源状态、事件和目标状态，并主张不存在该 Cancel 自环，同时给出相同的停留原地义务；二者在位置与性质上完全对应。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:transition:DoorShut:a Cancel action is performed:DoorShut"
+          ],
+          "reason": "source:transition:DoorShut:a Cancel action is performed:DoorShut: 台账条目要求的是同一处 DoorShut 状态在 Cancel 事件下缺失目标仍为 DoorShut 的自环迁移；release issue 明确指出从 DoorShut 到 DoorShut、由该 Cancel 事件触发的迁移不存在，且义务、NL1 位置及缺失性质一致。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该 cell 没有 release issue。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1: 两者都指向同一处 DoorShut 状态上的 Cancel 行为，并主张同一性质：要求的 DoorShut 到 DoorShut 自环迁移缺失；输出还明确说明该行只是状态文字而非迁移，因此无需拼接其它 issue 即完整覆盖该台账主张。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1: 台账与 release issue 都指向 DoorShut 状态接收 Cancel 时应存在且目标仍为 DoorShut 的同一条显式自环迁移，并都判定该迁移缺失；同时指出 `DoorShut : Cancel` 只是状态文字而非迁移，因此覆盖的是同一位置、同一性质的问题。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0005-02",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "source:transition:DoorShut:Cancel action is performed:DoorShut: 台账条目指向 DoorShutWithItem 被错误嵌入 DoorOpenWithItem 的层次归属，导致门开与门关状态同时活动；release issue 指向 DoorShut 的 Cancel action 触发下缺少自环迁移。二者既非同一状态标识（DoorShutWithItem 与 DoorShut），也非同一种缺陷性质（错误层次归属/由此产生的状态语义矛盾与缺少迁移），不能语义对应。；source:transition:DoorShut:Cancel:DoorShut: 台账条目指向 DoorShutWithItem 被错误嵌入 DoorOpenWithItem 的层次归属，以及由此产生的父子状态同时活动和默认入口错位；release issue 指向 DoorShut 状态缺少从 DoorShut 到自身的 Cancel 自环迁移。二者既不是同一处状态/迁移，也不是同一种层次归属问题与迁移缺失问题，不能互相覆盖。；source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:displayed cooking time: 台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌入 DoorOpenWithItem（以及由此产生的层次归属和状态语义冲突）；release issue 仅指向 ReadytoCook 在 during 阶段缺少“显示并更新烹饪时间”的状态拥有生命周期动作。二者既非同一缺陷位置，也非同一缺失/层次性质，必须判不对应。；source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:timer starts: 台账条目针对 DoorOpenWithItem 作用域内错误嵌套 DoorShutWithItem、ReadytoCook、Cooking 的层次归属及其导致的状态语义冲突；release issue 仅针对嵌套路径 DoorOpenWithItem.ReadytoCook.Cooking 的 entry 阶段缺少 timer starts 动作。二者既非同一缺陷位置（层次归属 vs Cooking 入口动作槽位），也非同一缺失性质，因此不构成语义对应。；source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:exit:stops the timer: 台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌入 DoorOpenWithItem 作用域所造成的层次归属错误及由此产生的状态矛盾；release issue 指向同一层次路径中的 Cooking 退出阶段缺少“停止计时器”这一状态动作。二者既非同一缺陷性质，也不是同一处属性，必须拼接层次错误与动作缺失才能关联，故不对应。；source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:updated cooking time: 台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌入 DoorOpenWithItem/ReadytoCook 作用域的层次归属错误，并进一步主张门开与门关状态同时活动；release issue 指向 DoorOpenWithItem.ReadytoCook 在 during 阶段缺少“updated cooking time”状态动作。二者既不是同一处缺陷（错误嵌套层次 vs ReadytoCook 的动作槽位），也不是同一性质（层次归属/状态矛盾 vs 缺失状态动作），无需也不能由该 issue 覆盖台账主张。；hypothesis:a93e0097927f9a47: 台账条目指向 DoorShutWithItem 被错误嵌套在 DoorOpenWithItem 下的层次归属错误，以及由此产生的状态同时活动和默认入口问题；release issue 指向 DoorShut 中缺少 Cancel 迁移或状态动作实现。两者既不是同一处结构问题，也不是同一种缺失性质，不能语义对应。；source:lifecycle_action:DoorShut:during:Cancel action: 台账条目针对 DoorShutWithItem 因嵌套作用域错误而成为 DoorOpenWithItem 子态，主张层次归属错误及由此产生的状态并立；release issue 针对另一个名为 DoorShut 的状态缺少 during 阶段的 Cancel action，主张状态动作槽位缺失。二者既未指认同一状态位置，也不是同一种缺陷性质。；source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:canceling the cooking time: 台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 因前向引用被错误嵌套到 DoorOpenWithItem 作用域这一层次归属缺陷，并涉及由此产生的状态语义冲突；release issue 仅指称 DoorOpenWithItem.ReadytoCook 在 during 阶段缺少“canceling the cooking time”这一状态动作。二者既非同一处缺陷，也非同一性质，前者不是状态动作缺失，不能语义对应。；source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:updating the cooking time: 台账条目主张的是 DoorShutWithItem、ReadytoCook、Cooking 因首次引用作用域错误而被错误嵌套在 DoorOpenWithItem 内，进而造成状态层次与状态含义冲突；release issue 仅主张 DoorOpenWithItem.ReadytoCook 缺少“updating the cooking time”这一 during 阶段动作。二者既未指认同一缺陷位置，也未主张同一种性质，不能对应。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:containment:DoorOpenWithItem"
+          ],
+          "reason": "source:containment:DoorOpenWithItem: 两者均指向同一处层次关系：DoorShutWithItem 被错误地直接嵌套在 DoorOpenWithItem 内；并主张同一性质的层次归属/禁止嵌套问题。release issue 将该关系明确为违反负包含义务，完整覆盖台账关于错误父子作用域导致互斥配置被建模为嵌套状态的核心主张；D/L 标注差异不改变该原子语义对应。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:containment:DoorOpenWithItem"
+          ],
+          "reason": "source:containment:DoorOpenWithItem: 两者都指向同一层次关系：DoorShutWithItem 被错误地置于 DoorOpenWithItem 之下，并都主张这违反了二者作为互斥运行配置、不得嵌套的要求。release issue 直接陈述该父子归属及负向包含义务违反，完整覆盖台账条目的核心层次归属问题；D/L 标签差异不改变语义对应。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该 cell 没有 release issue。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_1: 台账条目针对的是 DoorShutWithItem、ReadytoCook、Cooking 被错误归入 DoorOpenWithItem/ReadytoCook 的层次作用域，以及由此造成的状态层次和互斥语义问题；release issue 针对的是 DoorShut 状态缺少 Cancel 事件触发的保持原状态自循环。二者既未指认同一处状态结构问题，也未主张同一种缺失性质，不能对应。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_1: 台账条目指向 DoorShutWithItem 被错误嵌套在 DoorOpenWithItem 内的层次归属问题，并由此主张门开门关配置的结构性冲突；release issue 指向 DoorShut 中缺少 Cancel 到自身的显式自循环转移。二者既非同一模型位置，也非同一种缺失/层次性质，不能互相覆盖。；baseline_issue_2: 台账条目认定的是若干状态因首次引用而被错误嵌入 DoorOpenWithItem/ReadytoCook，导致 DoorShutWithItem 与 DoorOpenWithItem 的层次归属及并立语义错误；release issue 认定的是 DoorOpenWithItem 复合状态存在未由规格规定的 DoorIdleWithItem 初始子状态及其行为承载方式。二者虽都涉及 DoorOpenWithItem 的层级，但缺陷位置和性质不同，后者没有主张前向引用造成的错误嵌套或门开门关同时活动。；baseline_issue_3: 两者并非同一处且性质不同：台账指认的是 DoorShutWithItem 被前向引用错误归入 DoorOpenWithItem 作用域，导致门开与门关层次同时活动；release issue 指认的是 DoorShutWithItem 内部初始转移额外引入 ItemInside 子状态及其规格依据不足。后者没有主张 DoorShutWithItem 的错误父作用域或由此产生的并立矛盾，不能覆盖该台账主张。；baseline_issue_4: 台账条目指向的是 DoorOpenWithItem 作用域内因前向引用造成的层次归属错误，以及由此产生的状态同时活动和默认入口错位；release issue 指向 ReadytoCook 内缺少烹饪时间显示与更新行为。二者既非同一位置，也非同一种缺失或层次性质，不能语义对应。；baseline_issue_5: 台账条目指向 DoorOpenWithItem 作用域中因前向引用形成错误嵌套层次，并主张 DoorShutWithItem 与 DoorOpenWithItem 的层次归属及由此产生的同时活动问题；release issue 指向 WaitingToStart 到 DoorShutWithItem 的 Cancel 转移，主张取消/更新时间语义缺失。二者既不是同一处模型元素，也不是同一种缺失或层次性质，不能语义对应。；baseline_issue_6: 台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌套在 DoorOpenWithItem/ReadytoCook 作用域中的层次归属错误及其导致的状态矛盾；release issue 指向 Cooking 内缺少“启动计时器”行为这一动作/行为建模缺失。二者既非同一处的层次关系问题，也非同一性质的缺失问题，不能语义对应。；baseline_issue_7: 台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌套到 DoorOpenWithItem 作用域这一层次归属错误，并涉及由此产生的状态同时活动和默认入口问题；release issue 指向 ActiveCooking 到 DoorOpenWithItem 的具体迁移，主张该迁移遗漏停止计时器这一动作。二者既非同一位置，也非同一种缺失或层次性质，不能对应。；baseline_issue_8: 台账条目指向的是 DoorOpenWithItem 作用域内因前向引用造成的层次归属错误，以及由此产生的状态互斥性和默认入口问题。release issue 指向 ActiveCooking 到 ReadytoCook 的 Cancel 迁移，主张取消时计时器或剩余烹饪时间处理语义缺失。二者既不是同一状态/迁移/表达式，也不是同一种缺失或层次归属性质；该 issue 不能覆盖台账中的作用域层次错误。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0005-03",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:displayed cooking time",
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:updated cooking time",
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:canceling the cooking time",
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:updating the cooking time"
+          ],
+          "reason": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:displayed cooking time: 两者都指向 ReadytoCook 中应显示并更新 cooking time 的缺失表达，且都将其定位为该状态期间的动作/输出未被状态拥有或表示。台账虽还概括了更新、取消更新及更广泛的零变量零 effect，但 release issue 明确覆盖其中同一处、同一性质的“显示 cooking time”缺失；该对应不依赖拼接其它 issue。；source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:updated cooking time: 台账条目要求 cooking time 这一界内数据语义在模型中有变量读写或动作载体；release issue 精确指向 DoorOpenWithItem.ReadytoCook 状态的 during 阶段，并主张缺少 updated cooking time 状态动作。因此二者既指向同一状态位置和同一更新动作的缺失，且该 issue 单独覆盖台账中所主张的 cooking-time 更新部分；台账虽还提到显示、取消以及另一状态，但这些并不改变这一对所对应的共同缺失。；source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:canceling the cooking time: 台账条目要求缺失 cooking time 的显示/更新以及在 DoorShutWithItem 返回路径上的取消或更新动作；该 issue 明确定位同一 ReadytoCook 状态并主张缺少 canceling the cooking time 的状态动作。二者都指向 cooking time 的界内动作缺失，且不是仅描述后果或上位类别；该 issue 覆盖台账所主张的取消动作这一具体部分，位置与性质一致。；source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:updating the cooking time: 两者都指向 ReadytoCook 状态内 cooking time 的更新动作缺失：台账说明第5句要求显示并更新该量且制品没有任何动作载体，issue 则具体裁定该状态 during 阶段缺少 updating the cooking time。台账还包含显示要求，但该额外主张不妨碍 issue 覆盖其中明确的更新缺失；二者在位置与性质上均对应。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cooking time is displayed"
+          ],
+          "reason": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cooking time is displayed: 台账条目要求第5句所指的 cooking time 显示与更新在模型中有界内载体；该 issue 精确指向 ReadytoCook 状态 during 阶段缺少“显示 cooking time”的输出动作，因此同一状态/动作位置与同一“显示动作缺失”性质相对应。issue 未覆盖更新或第6句取消部分，但该单一对应主张本身不需要拼接即可覆盖台账中明确的显示缺失子主张。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:display cooking time",
+            "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:update cooking time"
+          ],
+          "reason": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:display cooking time: 两者都指向 ReadytoCook 状态内应有的 cooking time 显示行为，并都主张该界内动作缺失。台账概括了第5、6句的显示及更新整体缺失，而该 issue 对其中同一处、同一性质的 display cooking time 缺失作出更具体裁定；虽然未覆盖更新动作，但本对要求判断该 issue 是否对应台账主张，所指缺失部分已在同一状态和同一动作上对应。；source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:update cooking time: 台账与 issue 都指向同一处 ReadytoCook 状态（台账第5句要求进入后显示并更新 cooking time，issue 明确定位 DoorOpenWithItem.ReadytoCook），并且都主张同一性质：缺少对 cooking time 的更新动作。issue 只覆盖台账界内要求中的更新部分，但该部分本身已构成完整的同处同性质原子主张，不需要拼接其它 issue 才能成立。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该 cell 没有 release issue。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_1: 台账条目指向第5、6句所要求的 cooking time 变量及其显示、更新和取消动作在模型中的整体缺失，位置是变量/动作表达载体；release issue 指向 DoorShut 状态上 Cancel 事件的保持原状态自循环转移缺失。二者既不是同一状态、迁移或表达式，也不是同一种缺失性质；台账主张不能由该状态迁移问题覆盖。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_4",
+            "baseline_issue_5"
+          ],
+          "reason": "baseline_issue_4: 两者都指向 ReadytoCook 中规格要求的 cooking time 显示与更新这一同一行为缺失：台账认定该变量读写在模型中完全没有载体，release issue 具体指出 ReadytoCook 未建模该显示和更新时间动作；并非仅描述后果或上位类别。；baseline_issue_5: 两者都指向 ReadytoCook 中 Cancel 导致返回 DoorShutWithItem 时，烹饪时间的取消或更新时间这一具体缺失的动作语义；release issue 只是将台账所涵盖的缺失具体定位到 Cancel 迁移，没有改变缺失性质或所涉数据语义。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:transition:DoorShut:Cancel action is performed:DoorShut",
+        "matched_ledger_ids": [
+          "EIS-0005-01"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-01: 台账条目与该 issue 都明确指向 DoorShut 状态上、Cancel action is performed 事件触发的 DoorShut 到 DoorShut 自环迁移，并主张同一性质：该迁移缺失；issue 还直接说明源中没有这条匹配迁移，因此无需拼接其它 issue 才能覆盖台账主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:transition:DoorShut:Cancel:DoorShut",
+        "matched_ledger_ids": [
+          "EIS-0005-01"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-01: 台账条目与 issue 均指认同一处 DoorShut 状态上、由 Cancel 触发并回到 DoorShut 的自环迁移；二者主张的同一性质都是该迁移缺失。issue 直接陈述不存在该源、目标和标签组合的迁移，完整覆盖台账主张，而非仅描述后果或上位类别。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:displayed cooking time",
+        "matched_ledger_ids": [
+          "EIS-0005-03"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-03: 两者都指向 ReadytoCook 中应显示并更新 cooking time 的缺失表达，且都将其定位为该状态期间的动作/输出未被状态拥有或表示。台账虽还概括了更新、取消更新及更广泛的零变量零 effect，但 release issue 明确覆盖其中同一处、同一性质的“显示 cooking time”缺失；该对应不依赖拼接其它 issue。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:timer starts",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "EIS-0005-01: 台账条目针对 DoorShut 状态上 Cancel 自环迁移的缺失，要求同一状态、事件及迁移目标仍为 DoorShut；release issue 针对 DoorOpenWithItem.ReadytoCook.Cooking 进入动作中 timer starts 的缺失。二者既不指向同一处状态机元素，也不主张同一种缺失性质，因此不对应。；EIS-0005-02: 台账条目针对 DoorOpenWithItem 作用域内错误嵌套 DoorShutWithItem、ReadytoCook、Cooking 的层次归属及其导致的状态语义冲突；release issue 仅针对嵌套路径 DoorOpenWithItem.ReadytoCook.Cooking 的 entry 阶段缺少 timer starts 动作。二者既非同一缺陷位置（层次归属 vs Cooking 入口动作槽位），也非同一缺失性质，因此不构成语义对应。；EIS-0005-03: 台账条目覆盖的是界内 cooking time 变量及其显示、更新、取消动作完全没有任何模型载体；release issue 指向 Cooking 状态 entry 阶段缺少“timer starts”。后者对应 NL 第7句的时间语义，且是特定状态的 entry-action 归属缺失，不是台账所要求的第5、6句变量读写缺失；二者既非同一语义位置，也非同一缺失性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:exit:stops the timer",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "EIS-0005-01: 台账条目指向 DoorShut 状态上 Cancel 自环迁移的缺失，要求同一源状态、同一事件及目标仍为 DoorShut 的迁移存在；release issue 指向另一个嵌套状态 Cooking 的 exit 阶段缺少 stops the timer 动作。两者位置和性质均不同，不能语义对应。；EIS-0005-02: 台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌入 DoorOpenWithItem 作用域所造成的层次归属错误及由此产生的状态矛盾；release issue 指向同一层次路径中的 Cooking 退出阶段缺少“停止计时器”这一状态动作。二者既非同一缺陷性质，也不是同一处属性，必须拼接层次错误与动作缺失才能关联，故不对应。；EIS-0005-03: 台账条目要求的是 cooking time 变量的显示与更新、取消或更新在模型中完全缺少载体，定位于变量/动作表达。release issue 指向同一系统中的具体层次状态 Cooking 的 exit 阶段，并主张缺少“停止 timer”的退出动作；该动作属于台账明确排除的时间语义，且位置和缺失性质都不同，因此不能对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:updated cooking time",
+        "matched_ledger_ids": [
+          "EIS-0005-03"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-03: 台账条目要求 cooking time 这一界内数据语义在模型中有变量读写或动作载体；release issue 精确指向 DoorOpenWithItem.ReadytoCook 状态的 during 阶段，并主张缺少 updated cooking time 状态动作。因此二者既指向同一状态位置和同一更新动作的缺失，且该 issue 单独覆盖台账中所主张的 cooking-time 更新部分；台账虽还提到显示、取消以及另一状态，但这些并不改变这一对所对应的共同缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:a93e0097927f9a47",
+        "matched_ledger_ids": [
+          "EIS-0005-01"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-01: 两者都指向同一处 DoorShut 中 Cancel 的实现缺失：台账明确要求 Cancel 触发 DoorShut 自环迁移，而 issue 指出没有该 authored transition 或 state-owned action realization，并明确要求在 DoorShut 中提供具有自保持行为的 Cancel。issue 的表述覆盖了该具体缺失及其性质，而非仅描述后果或上位类别。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:DoorShut:during:Cancel action",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "EIS-0005-01: 台账要求的是 DoorShut 接收 Cancel 时存在一条目标仍为 DoorShut 的显式自环迁移；release issue 只声称 DoorShut 缺少 during 阶段的 state_action“Cancel action”，没有指认该迁移的源、目标或迁移槽位。因此它描述的是状态动作归属/生命周期性质，而不是同一条缺失的自环迁移，不能语义对应。；EIS-0005-02: 台账条目针对 DoorShutWithItem 因嵌套作用域错误而成为 DoorOpenWithItem 子态，主张层次归属错误及由此产生的状态并立；release issue 针对另一个名为 DoorShut 的状态缺少 during 阶段的 Cancel action，主张状态动作槽位缺失。二者既未指认同一状态位置，也不是同一种缺陷性质。；EIS-0005-03: 台账条目针对 cooking time 变量及其显示、更新、取消等数据侧表达整体缺失，且明确将 timer 启停排除在建模边界之外；release issue 只针对 DoorShut 状态 during 阶段缺少名为 Cancel action 的状态动作。二者既未指认同一表达位置，也未主张同一类缺失，不能对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:canceling the cooking time",
+        "matched_ledger_ids": [
+          "EIS-0005-03"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-03: 台账条目要求缺失 cooking time 的显示/更新以及在 DoorShutWithItem 返回路径上的取消或更新动作；该 issue 明确定位同一 ReadytoCook 状态并主张缺少 canceling the cooking time 的状态动作。二者都指向 cooking time 的界内动作缺失，且不是仅描述后果或上位类别；该 issue 覆盖台账所主张的取消动作这一具体部分，位置与性质一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:updating the cooking time",
+        "matched_ledger_ids": [
+          "EIS-0005-03"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-03: 两者都指向 ReadytoCook 状态内 cooking time 的更新动作缺失：台账说明第5句要求显示并更新该量且制品没有任何动作载体，issue 则具体裁定该状态 during 阶段缺少 updating the cooking time。台账还包含显示要求，但该额外主张不妨碍 issue 覆盖其中明确的更新缺失；二者在位置与性质上均对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:DoorShut:a Cancel action is performed:DoorShut",
+        "matched_ledger_ids": [
+          "EIS-0005-01"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-01: 台账条目与 release issue 都指向同一处 DoorShut 状态上的 Cancel 事件到 DoorShut 的自环迁移，并主张同一性质：该迁移缺失。issue 还明确说明源中不存在这条匹配迁移，且义务要求直接回到 DoorShut；不是仅描述后果、上位类别或需要拼接其它 issue。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:DoorShut:Cancel:DoorShut",
+        "matched_ledger_ids": [
+          "EIS-0005-01"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-01: 台账条目要求的具体缺陷是：DoorShut 在 Cancel 事件下应存在目标仍为 DoorShut 的自环迁移，但制品缺少该迁移。release issue 明确指认同一源状态、事件和目标状态，并主张不存在该 Cancel 自环，同时给出相同的停留原地义务；二者在位置与性质上完全对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:guard_presence:DoorOpenWithItem.DoorIdleWithItem:DoorOpenWithItem.DoorShutWithItem",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "EIS-0005-01: 台账条目指向 DoorShut 状态上执行 Cancel 时缺失一条目标仍为 DoorShut 的自环迁移；release issue 指向另一处关门迁移，并主张其 zero-time 条件/guard 可能只作为事件标签而未被形式化表示。两者既不是同一迁移或位置，也不是同一种缺失性质，因此不对应。；EIS-0005-02: 台账条目指向 DoorShutWithItem 被错误嵌入 DoorOpenWithItem 的层次归属及其导致的状态矛盾；release issue 指向同一条迁移上缺少“zero time”限定条件的记法/守卫表示。二者既非同一缺陷位置性质，也不能由该 issue 覆盖层次归属主张。；EIS-0005-03: 台账条目针对 ReadytoCook 与 DoorShutWithItem 中 cooking time 变量的显示、更新及取消缺少模型载体；release issue 针对 DoorOpenWithItem 到 DoorShutWithItem 关闭迁移缺少 zero-time qualified guard。二者涉及的迁移/区域和缺失性质均不同，不能语义对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cooking time is displayed",
+        "matched_ledger_ids": [
+          "EIS-0005-03"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-03: 台账条目要求第5句所指的 cooking time 显示与更新在模型中有界内载体；该 issue 精确指向 ReadytoCook 状态 during 阶段缺少“显示 cooking time”的输出动作，因此同一状态/动作位置与同一“显示动作缺失”性质相对应。issue 未覆盖更新或第6句取消部分，但该单一对应主张本身不需要拼接即可覆盖台账中明确的显示缺失子主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:timer starts",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "EIS-0005-01: 台账条目指向 DoorShut 状态上因 Cancel 缺失的自环迁移，要求同一状态、同一事件和同一迁移性质。release issue 指向 DoorOpenWithItem.ReadytoCook.Cooking 状态入口阶段缺失 timer starts 动作，属于不同状态、不同事件以及不同的状态动作槽位；二者不满足“同一处”和“同一性质”，不能对应。；EIS-0005-02: 台账条目指向的是状态层次归属错误：DoorShutWithItem、ReadytoCook、Cooking 因首次出现位置而被错误嵌套在 DoorOpenWithItem 作用域内，并由此产生状态层次与互斥语义问题。release issue 指向 Cooking 状态 entry 阶段缺少“timer starts”这一状态动作；它既不是同一处的层次归属问题，也不是同一种缺失性质，不能覆盖该台账主张。；EIS-0005-03: 台账条目针对 NL 第5、6句中 cooking time 变量的显示、更新与取消，主张该数据语义在模型中完全没有变量、迁移 effect 或动作载体；release issue 则针对 NL 第7句 Cooking 状态 entry 阶段的 timer starts 动作缺失。二者既不是同一语义位置（cooking time 数据操作 vs Cooking entry 行为），也不是同一性质（数据载体整体缺失 vs 特定 entry 动作缺失），且台账明确将 timer 启停排除在本条范围之外。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cooking time is updated",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "EIS-0005-01: 台账条目指向 DoorShut 状态上缺失的 Cancel 自环迁移，要求同一状态、同一事件和迁移目标为 DoorShut。release issue 指向另一状态 DoorOpenWithItem.ReadytoCook 中缺失 during 阶段的 state_action “cooking time is updated”，既不是同一位置，也不是迁移缺失这一性质，因此不对应。；EIS-0005-02: 台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 因首次引用而被错误嵌入 DoorOpenWithItem 作用域，主张的是状态层次归属错误及其导致的状态不相容；release issue 指向 DoorOpenWithItem.ReadytoCook 在 during 阶段缺少“cooking time is updated”这一状态动作，主张的是动作槽位缺失。两者既非同一缺陷位置，也非同一缺陷性质，不能对应。；EIS-0005-03: 两者都涉及 cooking time 更新，但台账条目主张的是第5、6句所要求的界内变量及其显示/更新整体在制品中没有任何变量、迁移 effect 或动作载体；release issue 只指认 DoorOpenWithItem.ReadytoCook 这一特定迁移/状态区域在 during 槽位缺少一项更新动作。它没有覆盖显示、变量承载及第6句返回路径上的取消或更新，因此需要与其他 issue 拼接才能覆盖台账的完整主张，且缺陷位置和记法性质也不相同。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:exit:stops the timer",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "EIS-0005-01: 台账条目指向 DoorShut 状态上 Cancel 事件缺失的自环迁移；release issue 指向另一个状态 DoorOpenWithItem.ReadytoCook.Cooking 在 exit 阶段缺少停止计时器的状态动作。二者既不是同一位置，也不是同一种缺失性质，不能语义对应。；EIS-0005-02: 台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌入 DoorOpenWithItem 作用域所造成的层次归属错误及其状态一致性后果；release issue 只指向嵌套路径 DoorOpenWithItem.ReadytoCook.Cooking 缺少退出阶段的“停止计时器”状态动作。二者既非同一缺陷位置，也非同一性质，后者不能覆盖前者。；EIS-0005-03: 台账条目针对 ReadytoCook 中 cooking time 的显示与更新，以及 DoorShutWithItem 中取消或更新该变量的整体缺失，属于普通变量及其读写动作；release issue 针对 DoorOpenWithItem.ReadytoCook.Cooking 状态 exit 阶段缺少“停止 timer”动作。二者既不是同一状态/位置，也不是同一性质：后者是界外的 timer 停止生命周期动作，而非 cooking-time 变量读写缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:containment:DoorOpenWithItem",
+        "matched_ledger_ids": [
+          "EIS-0005-02"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-02: 两者均指向同一处层次关系：DoorShutWithItem 被错误地直接嵌套在 DoorOpenWithItem 内；并主张同一性质的层次归属/禁止嵌套问题。release issue 将该关系明确为违反负包含义务，完整覆盖台账关于错误父子作用域导致互斥配置被建模为嵌套状态的核心主张；D/L 标注差异不改变该原子语义对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:DoorShut:during:Cancel",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "EIS-0005-01: 台账要求的是 DoorShut 在收到 Cancel 时存在一条目标仍为 DoorShut 的显式自环迁移；issue 仅声称 DoorShut 在 during 阶段缺少名为 Cancel 的状态动作，并未指认迁移、目标状态或自环性质。因此它没有同时覆盖同一处和同一性质，不能语义对应。；EIS-0005-02: 台账条目指向 DoorShutWithItem 在 DoorOpenWithItem 内被错误建模为子态，性质是层次归属错误及其导致的状态同时活动；release issue 指向另一个名字 DoorShut，主张其在 during 阶段缺少 Cancel 状态动作。二者既未指认同一状态对象，也未主张同一种缺失或层次问题，不能语义对应。；EIS-0005-03: 台账条目指向 cooking time 变量的显示与更新在模型中的整体缺失，具体涉及变量、迁移 effect 或 entry/exit 动作没有任何载体；release issue 只指认 DoorShut 状态在 during 阶段缺少名为 Cancel 的 state_action。二者既不是同一位置，也不是同一性质，且该 issue 不能覆盖 cooking time 语义载体整体缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:transition:DoorShut:a Cancel action is performed:DoorShut",
+        "matched_ledger_ids": [
+          "EIS-0005-01"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-01: 台账条目要求的是同一处 DoorShut 状态在 Cancel 事件下缺失目标仍为 DoorShut 的自环迁移；release issue 明确指出从 DoorShut 到 DoorShut、由该 Cancel 事件触发的迁移不存在，且义务、NL1 位置及缺失性质一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:containment:DoorOpenWithItem",
+        "matched_ledger_ids": [
+          "EIS-0005-02"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-02: 两者都指向同一层次关系：DoorShutWithItem 被错误地置于 DoorOpenWithItem 之下，并都主张这违反了二者作为互斥运行配置、不得嵌套的要求。release issue 直接陈述该父子归属及负向包含义务违反，完整覆盖台账条目的核心层次归属问题；D/L 标签差异不改变语义对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:guard_presence:DoorOpenWithItem.DoorIdleWithItem:DoorOpenWithItem.DoorShutWithItem",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "EIS-0005-01: 台账条目指向 DoorShut 状态上因 Cancel 事件缺失的自环迁移；release issue 指向 DoorOpenWithItem 到 DoorShutWithItem 的关门迁移上缺少零时间 guard。二者既不是同一状态/迁移，也不是同一种缺失性质，因此不构成语义对应。；EIS-0005-02: 台账条目主张的是 DoorShutWithItem、ReadytoCook、Cooking 因首次出现位置而被错误嵌入 DoorOpenWithItem（及 ReadytoCook）作用域，导致层次归属错误并产生状态同时活动等后果；release issue 主张的则是 DoorOpenWithItem 到 DoorShutWithItem 的关门迁移缺少形式化的零时守卫。二者虽涉及同一条迁移及相关状态，但缺陷性质不同：一个是状态层次归属错误，另一个是迁移守卫记法槽位缺失，不能语义对应。；EIS-0005-03: 台账条目针对 cooking time 变量及其显示、更新或取消动作在模型中的完全缺失；release issue 针对 DoorOpenWithItem 到 DoorShutWithItem 关闭迁移缺少零时间 guard。二者既非同一迁移、状态或表达式，也不是同一种缺失性质，无法语义对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:display cooking time",
+        "matched_ledger_ids": [
+          "EIS-0005-03"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-03: 两者都指向 ReadytoCook 状态内应有的 cooking time 显示行为，并都主张该界内动作缺失。台账概括了第5、6句的显示及更新整体缺失，而该 issue 对其中同一处、同一性质的 display cooking time 缺失作出更具体裁定；虽然未覆盖更新动作，但本对要求判断该 issue 是否对应台账主张，所指缺失部分已在同一状态和同一动作上对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:start timer",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "EIS-0005-01: 台账条目指向 DoorShut 状态上因 Cancel 缺失的自环迁移，性质是缺少一条特定迁移；release issue 指向 DoorOpenWithItem.ReadytoCook.Cooking 状态 entry 阶段缺失 start timer 状态动作，性质是缺少状态动作。二者既非同一位置，也非同一性质，不能语义对应。；EIS-0005-02: 台账条目针对 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌入 DoorOpenWithItem 作用域所造成的层次归属及状态语义冲突；release issue 针对 Cooking 状态 entry 阶段缺少 start timer 动作。二者既非同一缺陷位置，也非同一缺失或层次性质，且台账主张不能由该动作缺失 issue 覆盖。；EIS-0005-03: 台账条目针对 NL 第5、6句中 cooking time 变量的显示、更新与取消在模型中的整体缺失，且明确将第7、8句 timer 启停排除在建模边界之外。release issue 则针对 Cooking 状态 entry 阶段缺少 start timer 动作，地点是状态生命周期动作，性质是特定 timer 启动动作缺失；它既不是 cooking time 变量读写，也属于台账明确排除的时间语义，因此不满足同一处和同一性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:update cooking time",
+        "matched_ledger_ids": [
+          "EIS-0005-03"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-03: 台账与 issue 都指向同一处 ReadytoCook 状态（台账第5句要求进入后显示并更新 cooking time，issue 明确定位 DoorOpenWithItem.ReadytoCook），并且都主张同一性质：缺少对 cooking time 的更新动作。issue 只覆盖台账界内要求中的更新部分，但该部分本身已构成完整的同处同性质原子主张，不需要拼接其它 issue 才能成立。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cancel cooking time",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "EIS-0005-01: 台账条目指向 DoorShut 状态上 Cancel 事件缺失的 DoorShut→DoorShut 自环迁移；release issue 指向另一状态 DoorOpenWithItem.ReadytoCook 在 during 阶段缺失名为 cancel cooking time 的状态动作。两者既非同一状态/迁移位置，也非同一种缺失性质，不能语义对应。；EIS-0005-02: 台账条目指向 DoorOpenWithItem 作用域内把 DoorShutWithItem、ReadytoCook、Cooking 错误建成子态所造成的层次归属及状态语义冲突；release issue 指向 DoorOpenWithItem.ReadytoCook 状态在 during 阶段缺少 cancel cooking time 动作。二者既非同一处缺陷，也非同一性质，后者不能覆盖前者。；EIS-0005-03: 台账条目主张的是全局不存在 cooking time 变量及其显示/更新动作载体，涵盖 ReadytoCook 与 DoorShutWithItem 相关要求；release issue 仅指认 DoorOpenWithItem.ReadytoCook 状态在 during 阶段缺少一个具体的 cancel cooking time 动作。二者既未指认同一处，性质也不同：前者是数据侧语义载体整体缺失，后者是单一状态动作槽位的缺失，不能仅凭共同涉及 cooking time 视为对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:during:stop timer",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "EIS-0005-01: 台账条目指向 DoorShut 上 Cancel 自环迁移的缺失，要求同一状态、事件和迁移目标为 DoorShut；release issue 指向另一个状态 DoorOpenWithItem.ReadytoCook.Cooking 在 during 阶段缺少 stop timer 状态动作，既不是同一位置，也不是同一性质。；EIS-0005-02: 台账条目指向 DoorOpenWithItem 作用域内状态的层次归属错误，具体主张 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌套并导致状态语义冲突；release issue 只指向 DoorOpenWithItem.ReadytoCook.Cooking 在 during 阶段缺少 stop timer 动作。二者既非同一缺陷位置，也非同一缺失与层次性质，不能互相覆盖。；EIS-0005-03: 台账条目针对 cooking time 变量的显示与更新缺失，定位于数据变量/迁移 effect/动作载体不存在；release issue 则指向复合状态 DoorOpenWithItem.ReadytoCook.Cooking 的 during 阶段缺少 stop timer 状态动作。后者是计时器停止这一时间语义的具体生命周期动作，既不是同一位置，也不是同一种缺失性质，且台账已明确将 timer 启停排除在建模边界之外。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0005-01"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-01: 两者都指向同一处 DoorShut 状态上的 Cancel 行为，并主张同一性质：要求的 DoorShut 到 DoorShut 自环迁移缺失；输出还明确说明该行只是状态文字而非迁移，因此无需拼接其它 issue 即完整覆盖该台账主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0005-01"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-01: 台账与 release issue 都指向 DoorShut 状态接收 Cancel 时应存在且目标仍为 DoorShut 的同一条显式自环迁移，并都判定该迁移缺失；同时指出 `DoorShut : Cancel` 只是状态文字而非迁移，因此覆盖的是同一位置、同一性质的问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "EIS-0005-01: 台账条目针对 DoorShut 状态上缺失的 Cancel 自环迁移，要求该事件从 DoorShut 回到 DoorShut。release issue 针对 DoorOpenWithItem 复合状态初始转移引入未定义的 DoorIdleWithItem 子状态，属于不同状态位置且是层次归属/额外子状态问题，并未主张 DoorShut 的 Cancel 自环缺失。；EIS-0005-02: 台账条目认定的是若干状态因首次引用而被错误嵌入 DoorOpenWithItem/ReadytoCook，导致 DoorShutWithItem 与 DoorOpenWithItem 的层次归属及并立语义错误；release issue 认定的是 DoorOpenWithItem 复合状态存在未由规格规定的 DoorIdleWithItem 初始子状态及其行为承载方式。二者虽都涉及 DoorOpenWithItem 的层级，但缺陷位置和性质不同，后者没有主张前向引用造成的错误嵌套或门开门关同时活动。；EIS-0005-03: 台账条目针对 DoorOpenWithItem 等控制状态中完全缺失 cooking time 变量及其显示、更新或取消动作这一数据/动作语义；release issue 针对同一复合状态的初始迁移引入未定义的 DoorIdleWithItem 子状态及层级归属不一致。二者虽都涉及状态模型，但缺陷处所和性质不同，release issue 不能覆盖台账所要求的变量与动作缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "EIS-0005-01: 台账条目针对 DoorShut 状态上缺失的 Cancel 自环迁移，要求同一状态、同一事件和同一迁移性质。release issue 针对 DoorShutWithItem 复合状态中额外引入 ItemInside 子状态及其初始层级归属，既不是 DoorShut 的 Cancel 迁移，也不是该自环的缺失；两者位置和缺陷性质均不同。；EIS-0005-02: 两者并非同一处且性质不同：台账指认的是 DoorShutWithItem 被前向引用错误归入 DoorOpenWithItem 作用域，导致门开与门关层次同时活动；release issue 指认的是 DoorShutWithItem 内部初始转移额外引入 ItemInside 子状态及其规格依据不足。后者没有主张 DoorShutWithItem 的错误父作用域或由此产生的并立矛盾，不能覆盖该台账主张。；EIS-0005-03: 台账条目指向 DoorShutWithItem 等相关语境中 cooking time 变量及其显示、更新、取消动作在模型中的整体缺失；release issue 指向 DoorShutWithItem 内部 ItemInside 子状态这一具体层级归属问题，并主张存在规格未定义的额外层级。二者既非同一缺失性质，也非同一缺陷位置；该 issue 不能覆盖变量/动作载体完全缺失的台账主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [
+          "EIS-0005-03"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-03: 两者都指向 ReadytoCook 中规格要求的 cooking time 显示与更新这一同一行为缺失：台账认定该变量读写在模型中完全没有载体，release issue 具体指出 ReadytoCook 未建模该显示和更新时间动作；并非仅描述后果或上位类别。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [
+          "EIS-0005-03"
+        ],
+        "false_positive": false,
+        "reason": "EIS-0005-03: 两者都指向 ReadytoCook 中 Cancel 导致返回 DoorShutWithItem 时，烹饪时间的取消或更新时间这一具体缺失的动作语义；release issue 只是将台账所涵盖的缺失具体定位到 Cancel 迁移，没有改变缺失性质或所涉数据语义。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_6",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "EIS-0005-01: 台账条目指向 DoorShut 状态上 Cancel 事件对应的缺失自环迁移；release issue 指向 Cooking 状态中未建模启动计时器行为，涉及不同状态、事件/动作和缺失性质，二者并非同一处同一性质。；EIS-0005-02: 台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌套在 DoorOpenWithItem/ReadytoCook 作用域中的层次归属错误及其导致的状态矛盾；release issue 指向 Cooking 内缺少“启动计时器”行为这一动作/行为建模缺失。二者既非同一处的层次关系问题，也非同一性质的缺失问题，不能语义对应。；EIS-0005-03: 台账条目认定的是界内 cooking time 变量及其显示、更新、取消等数据侧读写在模型中完全没有载体，要求同一变量/动作层面的缺失；release issue 只指出 Cooking 状态中“启动计时器”行为缺失，属于计时器启停这一时间语义，且台账明确将其排除在建模边界之外。因此二者既非同一性质，也不是同一缺失主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_7",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "EIS-0005-01: 台账条目指向 DoorShut 状态上收到 Cancel 时缺失一条回到 DoorShut 的自环迁移；release issue 指向 ActiveCooking 开门转移到 DoorOpenWithItem 时缺少停止计时器动作。二者既不是同一状态或迁移位置，也不是同一种缺失性质，不能语义对应。；EIS-0005-02: 台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌套到 DoorOpenWithItem 作用域这一层次归属错误，并涉及由此产生的状态同时活动和默认入口问题；release issue 指向 ActiveCooking 到 DoorOpenWithItem 的具体迁移，主张该迁移遗漏停止计时器这一动作。二者既非同一位置，也非同一种缺失或层次性质，不能对应。；EIS-0005-03: 台账条目针对第5、6句中 cooking time 变量的显示、更新与取消在模型中的整体缺失，且明确将第7、8句 timer 启停排除在建模边界之外；release issue 则针对 ActiveCooking 开门迁移到 DoorOpenWithItem 时未建模停止计时器动作，属于被台账明确排除的时间语义、不同迁移位置和不同缺失性质，因此不构成同一处同一性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_8",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "EIS-0005-01: 台账条目指向 DoorShut 状态上因 Cancel 缺失的自环迁移；release issue 指向 ActiveCooking 到 ReadytoCook 的 Cancel 迁移，并主张缺少计时器/剩余时间处理语义。二者既不是同一状态或迁移，也不是同一种缺失性质，不能语义对应。；EIS-0005-02: 台账条目指向的是 DoorOpenWithItem 作用域内因前向引用造成的层次归属错误，以及由此产生的状态互斥性和默认入口问题。release issue 指向 ActiveCooking 到 ReadytoCook 的 Cancel 迁移，主张取消时计时器或剩余烹饪时间处理语义缺失。二者既不是同一状态/迁移/表达式，也不是同一种缺失或层次归属性质；该 issue 不能覆盖台账中的作用域层次错误。；EIS-0005-03: 两者都涉及烹饪时间处理，但台账条目主张的是制品对 ReadytoCook 与 DoorShutWithItem 中 cooking time 的显示及更新整体缺少任何变量、迁移 effect 或动作载体；release issue 仅指向 ActiveCooking 取消迁移，并主张该迁移缺少取消时的计时值处理。它既未覆盖台账所指的具体显示/更新位置，也未覆盖 DoorShutWithItem 的取消或更新要求，必须与其它问题拼接才能完整覆盖台账主张。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "Pair-wide structured adjudication failed its mechanical contract; every ledger/emission relation was independently re-adjudicated by the atomic LLM judge."
+  },
+  "status": "ok",
+  "attempts": 3,
+  "adjudication_mode": "atomic_llm_fallback",
+  "pair_wide_failure": "emission_assessments contains duplicate cell/emitted_id; EIS-0005-03.baseline_run2 references unknown supporting ids: source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cooking time is displayed, source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cooking time is updated",
+  "atomic_relations": [
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run1",
+      "emitted_id": "source:transition:DoorShut:Cancel action is performed:DoorShut",
+      "matches": true,
+      "reason": "台账条目与该 issue 都明确指向 DoorShut 状态上、Cancel action is performed 事件触发的 DoorShut 到 DoorShut 自环迁移，并主张同一性质：该迁移缺失；issue 还直接说明源中没有这条匹配迁移，因此无需拼接其它 issue 才能覆盖台账主张。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run1",
+      "emitted_id": "source:transition:DoorShut:Cancel:DoorShut",
+      "matches": true,
+      "reason": "台账条目与 issue 均指认同一处 DoorShut 状态上、由 Cancel 触发并回到 DoorShut 的自环迁移；二者主张的同一性质都是该迁移缺失。issue 直接陈述不存在该源、目标和标签组合的迁移，完整覆盖台账主张，而非仅描述后果或上位类别。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:displayed cooking time",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上 Cancel 自环迁移的缺失，具体是同一状态、事件、目标和迁移关系不存在；release issue 指向 DoorOpenWithItem.ReadytoCook 在 during 阶段缺少 displayed cooking time 输出动作及其状态归属。二者既不是同一位置，也不是同一种缺失性质，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:timer starts",
+      "matches": false,
+      "reason": "台账条目针对 DoorShut 状态上 Cancel 自环迁移的缺失，要求同一状态、事件及迁移目标仍为 DoorShut；release issue 针对 DoorOpenWithItem.ReadytoCook.Cooking 进入动作中 timer starts 的缺失。二者既不指向同一处状态机元素，也不主张同一种缺失性质，因此不对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:exit:stops the timer",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上 Cancel 自环迁移的缺失，要求同一源状态、同一事件及目标仍为 DoorShut 的迁移存在；release issue 指向另一个嵌套状态 Cooking 的 exit 阶段缺少 stops the timer 动作。两者位置和性质均不同，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:updated cooking time",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上因 Cancel 缺失的自环迁移；release issue 指向 DoorOpenWithItem.ReadytoCook 状态在 during 阶段缺失 updated cooking time 状态动作。二者既不是同一状态或迁移位置，也不是同一类缺失性质，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run1",
+      "emitted_id": "hypothesis:a93e0097927f9a47",
+      "matches": true,
+      "reason": "两者都指向同一处 DoorShut 中 Cancel 的实现缺失：台账明确要求 Cancel 触发 DoorShut 自环迁移，而 issue 指出没有该 authored transition 或 state-owned action realization，并明确要求在 DoorShut 中提供具有自保持行为的 Cancel。issue 的表述覆盖了该具体缺失及其性质，而非仅描述后果或上位类别。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorShut:during:Cancel action",
+      "matches": false,
+      "reason": "台账要求的是 DoorShut 接收 Cancel 时存在一条目标仍为 DoorShut 的显式自环迁移；release issue 只声称 DoorShut 缺少 during 阶段的 state_action“Cancel action”，没有指认该迁移的源、目标或迁移槽位。因此它描述的是状态动作归属/生命周期性质，而不是同一条缺失的自环迁移，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:canceling the cooking time",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上执行 Cancel 的缺失自环迁移，属于迁移及其目标的缺失；release issue 指向 DoorOpenWithItem.ReadytoCook 状态 during 阶段缺失一个状态动作。二者既不是同一状态或位置，也不是同一性质，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:updating the cooking time",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上缺失的 Cancel 自环迁移；release issue 指向 DoorOpenWithItem.ReadytoCook 状态在 during 阶段缺失 updating the cooking time 状态动作。二者既不是同一状态或迁移位置，也不是同一种缺失性质，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run2",
+      "emitted_id": "source:transition:DoorShut:a Cancel action is performed:DoorShut",
+      "matches": true,
+      "reason": "台账条目与 release issue 都指向同一处 DoorShut 状态上的 Cancel 事件到 DoorShut 的自环迁移，并主张同一性质：该迁移缺失。issue 还明确说明源中不存在这条匹配迁移，且义务要求直接回到 DoorShut；不是仅描述后果、上位类别或需要拼接其它 issue。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run2",
+      "emitted_id": "source:transition:DoorShut:Cancel:DoorShut",
+      "matches": true,
+      "reason": "台账条目要求的具体缺陷是：DoorShut 在 Cancel 事件下应存在目标仍为 DoorShut 的自环迁移，但制品缺少该迁移。release issue 明确指认同一源状态、事件和目标状态，并主张不存在该 Cancel 自环，同时给出相同的停留原地义务；二者在位置与性质上完全对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run2",
+      "emitted_id": "source:guard_presence:DoorOpenWithItem.DoorIdleWithItem:DoorOpenWithItem.DoorShutWithItem",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上执行 Cancel 时缺失一条目标仍为 DoorShut 的自环迁移；release issue 指向另一处关门迁移，并主张其 zero-time 条件/guard 可能只作为事件标签而未被形式化表示。两者既不是同一迁移或位置，也不是同一种缺失性质，因此不对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run2",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cooking time is displayed",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上 Cancel 自环迁移的缺失，属于特定迁移及其目标问题；release issue 指向 DoorOpenWithItem.ReadytoCook 在 during 阶段缺少“显示烹饪时间”的输出动作，属于另一状态和另一类输出行为。二者既非同一位置，也非同一性质，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run2",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:timer starts",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上因 Cancel 缺失的自环迁移，要求同一状态、同一事件和同一迁移性质。release issue 指向 DoorOpenWithItem.ReadytoCook.Cooking 状态入口阶段缺失 timer starts 动作，属于不同状态、不同事件以及不同的状态动作槽位；二者不满足“同一处”和“同一性质”，不能对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run2",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cooking time is updated",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上缺失的 Cancel 自环迁移，要求同一状态、同一事件和迁移目标为 DoorShut。release issue 指向另一状态 DoorOpenWithItem.ReadytoCook 中缺失 during 阶段的 state_action “cooking time is updated”，既不是同一位置，也不是迁移缺失这一性质，因此不对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run2",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:exit:stops the timer",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上 Cancel 事件缺失的自环迁移；release issue 指向另一个状态 DoorOpenWithItem.ReadytoCook.Cooking 在 exit 阶段缺少停止计时器的状态动作。二者既不是同一位置，也不是同一种缺失性质，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run2",
+      "emitted_id": "source:containment:DoorOpenWithItem",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 上因 Cancel 自环迁移缺失这一具体迁移问题；release issue 指向 DoorShutWithItem 被错误嵌套在 DoorOpenWithItem 下的层次归属问题。二者既不是同一状态机位置，也不是同一种缺失或层次性质，无法语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run2",
+      "emitted_id": "source:lifecycle_action:DoorShut:during:Cancel",
+      "matches": false,
+      "reason": "台账要求的是 DoorShut 在收到 Cancel 时存在一条目标仍为 DoorShut 的显式自环迁移；issue 仅声称 DoorShut 在 during 阶段缺少名为 Cancel 的状态动作，并未指认迁移、目标状态或自环性质。因此它没有同时覆盖同一处和同一性质，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run3",
+      "emitted_id": "source:transition:DoorShut:a Cancel action is performed:DoorShut",
+      "matches": true,
+      "reason": "台账条目要求的是同一处 DoorShut 状态在 Cancel 事件下缺失目标仍为 DoorShut 的自环迁移；release issue 明确指出从 DoorShut 到 DoorShut、由该 Cancel 事件触发的迁移不存在，且义务、NL1 位置及缺失性质一致。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run3",
+      "emitted_id": "source:containment:DoorOpenWithItem",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上 Cancel 自环迁移的缺失，要求同一源状态、同一事件和仍指向 DoorShut 的目标迁移。release issue 指向 DoorOpenWithItem 与 DoorShutWithItem 之间的禁止直接父子嵌套，属于层次归属/包含关系问题，既不是同一状态迁移，也不是同一缺失性质；二者不能互相覆盖。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run3",
+      "emitted_id": "source:guard_presence:DoorOpenWithItem.DoorIdleWithItem:DoorOpenWithItem.DoorShutWithItem",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上因 Cancel 事件缺失的自环迁移；release issue 指向 DoorOpenWithItem 到 DoorShutWithItem 的关门迁移上缺少零时间 guard。二者既不是同一状态/迁移，也不是同一种缺失性质，因此不构成语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run3",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:display cooking time",
+      "matches": false,
+      "reason": "台账条目针对 DoorShut 状态上 Cancel 事件自环迁移的缺失，即同一源状态、事件、目标及迁移性质必须存在；release issue 针对 DoorOpenWithItem.ReadytoCook 状态在 during 阶段缺少 display cooking time 状态动作。二者既不指向同一位置，也不属于同一性质，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run3",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:start timer",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上因 Cancel 缺失的自环迁移，性质是缺少一条特定迁移；release issue 指向 DoorOpenWithItem.ReadytoCook.Cooking 状态 entry 阶段缺失 start timer 状态动作，性质是缺少状态动作。二者既非同一位置，也非同一性质，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run3",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:update cooking time",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上缺失的 Cancel 自环迁移，性质是迁移缺失；release issue 指向 DoorOpenWithItem.ReadytoCook 状态在 during 阶段缺失 update cooking time 状态动作。二者既不是同一状态或迁移位置，也不是同一种缺失对象与性质，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run3",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cancel cooking time",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上 Cancel 事件缺失的 DoorShut→DoorShut 自环迁移；release issue 指向另一状态 DoorOpenWithItem.ReadytoCook 在 during 阶段缺失名为 cancel cooking time 的状态动作。两者既非同一状态/迁移位置，也非同一种缺失性质，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "method_run3",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:during:stop timer",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 上 Cancel 自环迁移的缺失，要求同一状态、事件和迁移目标为 DoorShut；release issue 指向另一个状态 DoorOpenWithItem.ReadytoCook.Cooking 在 during 阶段缺少 stop timer 状态动作，既不是同一位置，也不是同一性质。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "baseline_run2",
+      "emitted_id": "baseline_issue_1",
+      "matches": true,
+      "reason": "两者都指向同一处 DoorShut 状态上的 Cancel 行为，并主张同一性质：要求的 DoorShut 到 DoorShut 自环迁移缺失；输出还明确说明该行只是状态文字而非迁移，因此无需拼接其它 issue 即完整覆盖该台账主张。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_1",
+      "matches": true,
+      "reason": "台账与 release issue 都指向 DoorShut 状态接收 Cancel 时应存在且目标仍为 DoorShut 的同一条显式自环迁移，并都判定该迁移缺失；同时指出 `DoorShut : Cancel` 只是状态文字而非迁移，因此覆盖的是同一位置、同一性质的问题。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_2",
+      "matches": false,
+      "reason": "台账条目针对 DoorShut 状态上缺失的 Cancel 自环迁移，要求该事件从 DoorShut 回到 DoorShut。release issue 针对 DoorOpenWithItem 复合状态初始转移引入未定义的 DoorIdleWithItem 子状态，属于不同状态位置且是层次归属/额外子状态问题，并未主张 DoorShut 的 Cancel 自环缺失。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_3",
+      "matches": false,
+      "reason": "台账条目针对 DoorShut 状态上缺失的 Cancel 自环迁移，要求同一状态、同一事件和同一迁移性质。release issue 针对 DoorShutWithItem 复合状态中额外引入 ItemInside 子状态及其初始层级归属，既不是 DoorShut 的 Cancel 迁移，也不是该自环的缺失；两者位置和缺陷性质均不同。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_4",
+      "matches": false,
+      "reason": "台账条目针对 DoorShut 状态上 Cancel 事件的缺失自环迁移，要求同一源状态、同一事件和仍指向 DoorShut 的目标。release issue 针对 ReadytoCook 中未建模烹饪时间的显示与更新行为，位置、事件/行为性质及缺陷主张均不同；它不能覆盖该具体迁移缺失。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_5",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上 Cancel 自环迁移的缺失；release issue 指向 ReadytoCook 中 WaitingToStart 到 DoorShutWithItem 的 Cancel 迁移，并主张取消或更新时间语义缺失。二者既不是同一迁移位置，也不是同一性质，不能对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_6",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上 Cancel 事件对应的缺失自环迁移；release issue 指向 Cooking 状态中未建模启动计时器行为，涉及不同状态、事件/动作和缺失性质，二者并非同一处同一性质。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_7",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上收到 Cancel 时缺失一条回到 DoorShut 的自环迁移；release issue 指向 ActiveCooking 开门转移到 DoorOpenWithItem 时缺少停止计时器动作。二者既不是同一状态或迁移位置，也不是同一种缺失性质，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-01",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_8",
+      "matches": false,
+      "reason": "台账条目指向 DoorShut 状态上因 Cancel 缺失的自环迁移；release issue 指向 ActiveCooking 到 ReadytoCook 的 Cancel 迁移，并主张缺少计时器/剩余时间处理语义。二者既不是同一状态或迁移，也不是同一种缺失性质，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run1",
+      "emitted_id": "source:transition:DoorShut:Cancel action is performed:DoorShut",
+      "matches": false,
+      "reason": "台账条目指向 DoorShutWithItem 被错误嵌入 DoorOpenWithItem 的层次归属，导致门开与门关状态同时活动；release issue 指向 DoorShut 的 Cancel action 触发下缺少自环迁移。二者既非同一状态标识（DoorShutWithItem 与 DoorShut），也非同一种缺陷性质（错误层次归属/由此产生的状态语义矛盾与缺少迁移），不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run1",
+      "emitted_id": "source:transition:DoorShut:Cancel:DoorShut",
+      "matches": false,
+      "reason": "台账条目指向 DoorShutWithItem 被错误嵌入 DoorOpenWithItem 的层次归属，以及由此产生的父子状态同时活动和默认入口错位；release issue 指向 DoorShut 状态缺少从 DoorShut 到自身的 Cancel 自环迁移。二者既不是同一处状态/迁移，也不是同一种层次归属问题与迁移缺失问题，不能互相覆盖。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:displayed cooking time",
+      "matches": false,
+      "reason": "台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌入 DoorOpenWithItem（以及由此产生的层次归属和状态语义冲突）；release issue 仅指向 ReadytoCook 在 during 阶段缺少“显示并更新烹饪时间”的状态拥有生命周期动作。二者既非同一缺陷位置，也非同一缺失/层次性质，必须判不对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:timer starts",
+      "matches": false,
+      "reason": "台账条目针对 DoorOpenWithItem 作用域内错误嵌套 DoorShutWithItem、ReadytoCook、Cooking 的层次归属及其导致的状态语义冲突；release issue 仅针对嵌套路径 DoorOpenWithItem.ReadytoCook.Cooking 的 entry 阶段缺少 timer starts 动作。二者既非同一缺陷位置（层次归属 vs Cooking 入口动作槽位），也非同一缺失性质，因此不构成语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:exit:stops the timer",
+      "matches": false,
+      "reason": "台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌入 DoorOpenWithItem 作用域所造成的层次归属错误及由此产生的状态矛盾；release issue 指向同一层次路径中的 Cooking 退出阶段缺少“停止计时器”这一状态动作。二者既非同一缺陷性质，也不是同一处属性，必须拼接层次错误与动作缺失才能关联，故不对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:updated cooking time",
+      "matches": false,
+      "reason": "台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌入 DoorOpenWithItem/ReadytoCook 作用域的层次归属错误，并进一步主张门开与门关状态同时活动；release issue 指向 DoorOpenWithItem.ReadytoCook 在 during 阶段缺少“updated cooking time”状态动作。二者既不是同一处缺陷（错误嵌套层次 vs ReadytoCook 的动作槽位），也不是同一性质（层次归属/状态矛盾 vs 缺失状态动作），无需也不能由该 issue 覆盖台账主张。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run1",
+      "emitted_id": "hypothesis:a93e0097927f9a47",
+      "matches": false,
+      "reason": "台账条目指向 DoorShutWithItem 被错误嵌套在 DoorOpenWithItem 下的层次归属错误，以及由此产生的状态同时活动和默认入口问题；release issue 指向 DoorShut 中缺少 Cancel 迁移或状态动作实现。两者既不是同一处结构问题，也不是同一种缺失性质，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorShut:during:Cancel action",
+      "matches": false,
+      "reason": "台账条目针对 DoorShutWithItem 因嵌套作用域错误而成为 DoorOpenWithItem 子态，主张层次归属错误及由此产生的状态并立；release issue 针对另一个名为 DoorShut 的状态缺少 during 阶段的 Cancel action，主张状态动作槽位缺失。二者既未指认同一状态位置，也不是同一种缺陷性质。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:canceling the cooking time",
+      "matches": false,
+      "reason": "台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 因前向引用被错误嵌套到 DoorOpenWithItem 作用域这一层次归属缺陷，并涉及由此产生的状态语义冲突；release issue 仅指称 DoorOpenWithItem.ReadytoCook 在 during 阶段缺少“canceling the cooking time”这一状态动作。二者既非同一处缺陷，也非同一性质，前者不是状态动作缺失，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:updating the cooking time",
+      "matches": false,
+      "reason": "台账条目主张的是 DoorShutWithItem、ReadytoCook、Cooking 因首次引用作用域错误而被错误嵌套在 DoorOpenWithItem 内，进而造成状态层次与状态含义冲突；release issue 仅主张 DoorOpenWithItem.ReadytoCook 缺少“updating the cooking time”这一 during 阶段动作。二者既未指认同一缺陷位置，也未主张同一种性质，不能对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run2",
+      "emitted_id": "source:transition:DoorShut:a Cancel action is performed:DoorShut",
+      "matches": false,
+      "reason": "台账条目主张的是 DoorShutWithItem 被错误嵌套在 DoorOpenWithItem 作用域内，导致层次归属错误及由此产生的状态并立/默认入口后果；release issue 主张的是 DoorShut 缺少在取消事件下回到 DoorShut 的自环迁移。二者既未指认同一状态表示（DoorShutWithItem 与 DoorShut），也未主张同一种性质，且缺少迁移不能覆盖层次归属错误。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run2",
+      "emitted_id": "source:transition:DoorShut:Cancel:DoorShut",
+      "matches": false,
+      "reason": "台账条目主张的是状态层次归属错误：DoorShutWithItem 被错误嵌入 DoorOpenWithItem，进而造成互斥语义冲突及默认入口错位。release issue 只主张 DoorShut 缺少在 Cancel 事件下回到自身的自迁移；它既未指认 DoorOpenWithItem 的嵌套位置，也未主张层次归属或同一性质的缺陷，因此不能对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run2",
+      "emitted_id": "source:guard_presence:DoorOpenWithItem.DoorIdleWithItem:DoorOpenWithItem.DoorShutWithItem",
+      "matches": false,
+      "reason": "台账条目指向 DoorShutWithItem 被错误嵌入 DoorOpenWithItem 的层次归属及其导致的状态矛盾；release issue 指向同一条迁移上缺少“zero time”限定条件的记法/守卫表示。二者既非同一缺陷位置性质，也不能由该 issue 覆盖层次归属主张。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run2",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cooking time is displayed",
+      "matches": false,
+      "reason": "台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 因首次出现位置而被错误嵌套在 DoorOpenWithItem 作用域中的层次归属错误，并进一步主张门开与门关状态被同时激活。release issue 指向 DoorOpenWithItem.ReadytoCook 在 during 阶段缺少或未归属“显示烹饪时间”的输出动作，属于生命周期动作/记法槽位缺失。二者既未指认同一性质，也未主张同一个缺陷；该 issue 不能单独覆盖台账的层次结构主张。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run2",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:timer starts",
+      "matches": false,
+      "reason": "台账条目指向的是状态层次归属错误：DoorShutWithItem、ReadytoCook、Cooking 因首次出现位置而被错误嵌套在 DoorOpenWithItem 作用域内，并由此产生状态层次与互斥语义问题。release issue 指向 Cooking 状态 entry 阶段缺少“timer starts”这一状态动作；它既不是同一处的层次归属问题，也不是同一种缺失性质，不能覆盖该台账主张。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run2",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cooking time is updated",
+      "matches": false,
+      "reason": "台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 因首次引用而被错误嵌入 DoorOpenWithItem 作用域，主张的是状态层次归属错误及其导致的状态不相容；release issue 指向 DoorOpenWithItem.ReadytoCook 在 during 阶段缺少“cooking time is updated”这一状态动作，主张的是动作槽位缺失。两者既非同一缺陷位置，也非同一缺陷性质，不能对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run2",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:exit:stops the timer",
+      "matches": false,
+      "reason": "台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌入 DoorOpenWithItem 作用域所造成的层次归属错误及其状态一致性后果；release issue 只指向嵌套路径 DoorOpenWithItem.ReadytoCook.Cooking 缺少退出阶段的“停止计时器”状态动作。二者既非同一缺陷位置，也非同一性质，后者不能覆盖前者。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run2",
+      "emitted_id": "source:containment:DoorOpenWithItem",
+      "matches": true,
+      "reason": "两者均指向同一处层次关系：DoorShutWithItem 被错误地直接嵌套在 DoorOpenWithItem 内；并主张同一性质的层次归属/禁止嵌套问题。release issue 将该关系明确为违反负包含义务，完整覆盖台账关于错误父子作用域导致互斥配置被建模为嵌套状态的核心主张；D/L 标注差异不改变该原子语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run2",
+      "emitted_id": "source:lifecycle_action:DoorShut:during:Cancel",
+      "matches": false,
+      "reason": "台账条目指向 DoorShutWithItem 在 DoorOpenWithItem 内被错误建模为子态，性质是层次归属错误及其导致的状态同时活动；release issue 指向另一个名字 DoorShut，主张其在 during 阶段缺少 Cancel 状态动作。二者既未指认同一状态对象，也未主张同一种缺失或层次问题，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run3",
+      "emitted_id": "source:transition:DoorShut:a Cancel action is performed:DoorShut",
+      "matches": false,
+      "reason": "台账条目指向 DoorOpenWithItem 作用域内把 DoorShutWithItem、ReadytoCook、Cooking 错归为子态，导致层次归属及状态互斥关系错误；release issue 指向另一个状态 DoorShut，主张缺少在 Cancel action 下从 DoorShut 到自身的自环迁移。两者既非同一模型位置，也非同一种缺失迁移与错误层次性质，不能对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run3",
+      "emitted_id": "source:containment:DoorOpenWithItem",
+      "matches": true,
+      "reason": "两者都指向同一层次关系：DoorShutWithItem 被错误地置于 DoorOpenWithItem 之下，并都主张这违反了二者作为互斥运行配置、不得嵌套的要求。release issue 直接陈述该父子归属及负向包含义务违反，完整覆盖台账条目的核心层次归属问题；D/L 标签差异不改变语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run3",
+      "emitted_id": "source:guard_presence:DoorOpenWithItem.DoorIdleWithItem:DoorOpenWithItem.DoorShutWithItem",
+      "matches": false,
+      "reason": "台账条目主张的是 DoorShutWithItem、ReadytoCook、Cooking 因首次出现位置而被错误嵌入 DoorOpenWithItem（及 ReadytoCook）作用域，导致层次归属错误并产生状态同时活动等后果；release issue 主张的则是 DoorOpenWithItem 到 DoorShutWithItem 的关门迁移缺少形式化的零时守卫。二者虽涉及同一条迁移及相关状态，但缺陷性质不同：一个是状态层次归属错误，另一个是迁移守卫记法槽位缺失，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run3",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:display cooking time",
+      "matches": false,
+      "reason": "台账条目指向 DoorOpenWithItem 作用域内把 DoorShutWithItem、ReadytoCook、Cooking 错误钉为子态所造成的层次归属及由此产生的状态并立/默认入口问题；release issue 只指 ReadytoCook 在 during 阶段缺少 display cooking time 动作。二者既非同一缺陷位置与性质，且缺失动作不能覆盖层次归属错误。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run3",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:start timer",
+      "matches": false,
+      "reason": "台账条目针对 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌入 DoorOpenWithItem 作用域所造成的层次归属及状态语义冲突；release issue 针对 Cooking 状态 entry 阶段缺少 start timer 动作。二者既非同一缺陷位置，也非同一缺失或层次性质，且台账主张不能由该动作缺失 issue 覆盖。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run3",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:update cooking time",
+      "matches": false,
+      "reason": "台账条目指向 DoorOpenWithItem 作用域内错误嵌套 DoorShutWithItem、ReadytoCook、Cooking 所造成的层次归属及由此产生的状态语义冲突；release issue 指向 DoorOpenWithItem.ReadytoCook 状态缺少 during 阶段的“update cooking time”动作。二者既未指认同一性质（错误层次归属 vs 缺失状态动作），也不是同一缺陷主张，不能对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run3",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cancel cooking time",
+      "matches": false,
+      "reason": "台账条目指向 DoorOpenWithItem 作用域内把 DoorShutWithItem、ReadytoCook、Cooking 错误建成子态所造成的层次归属及状态语义冲突；release issue 指向 DoorOpenWithItem.ReadytoCook 状态在 during 阶段缺少 cancel cooking time 动作。二者既非同一处缺陷，也非同一性质，后者不能覆盖前者。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "method_run3",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:during:stop timer",
+      "matches": false,
+      "reason": "台账条目指向 DoorOpenWithItem 作用域内状态的层次归属错误，具体主张 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌套并导致状态语义冲突；release issue 只指向 DoorOpenWithItem.ReadytoCook.Cooking 在 during 阶段缺少 stop timer 动作。二者既非同一缺陷位置，也非同一缺失与层次性质，不能互相覆盖。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "baseline_run2",
+      "emitted_id": "baseline_issue_1",
+      "matches": false,
+      "reason": "台账条目针对的是 DoorShutWithItem、ReadytoCook、Cooking 被错误归入 DoorOpenWithItem/ReadytoCook 的层次作用域，以及由此造成的状态层次和互斥语义问题；release issue 针对的是 DoorShut 状态缺少 Cancel 事件触发的保持原状态自循环。二者既未指认同一处状态结构问题，也未主张同一种缺失性质，不能对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_1",
+      "matches": false,
+      "reason": "台账条目指向 DoorShutWithItem 被错误嵌套在 DoorOpenWithItem 内的层次归属问题，并由此主张门开门关配置的结构性冲突；release issue 指向 DoorShut 中缺少 Cancel 到自身的显式自循环转移。二者既非同一模型位置，也非同一种缺失/层次性质，不能互相覆盖。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_2",
+      "matches": false,
+      "reason": "台账条目认定的是若干状态因首次引用而被错误嵌入 DoorOpenWithItem/ReadytoCook，导致 DoorShutWithItem 与 DoorOpenWithItem 的层次归属及并立语义错误；release issue 认定的是 DoorOpenWithItem 复合状态存在未由规格规定的 DoorIdleWithItem 初始子状态及其行为承载方式。二者虽都涉及 DoorOpenWithItem 的层级，但缺陷位置和性质不同，后者没有主张前向引用造成的错误嵌套或门开门关同时活动。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_3",
+      "matches": false,
+      "reason": "两者并非同一处且性质不同：台账指认的是 DoorShutWithItem 被前向引用错误归入 DoorOpenWithItem 作用域，导致门开与门关层次同时活动；release issue 指认的是 DoorShutWithItem 内部初始转移额外引入 ItemInside 子状态及其规格依据不足。后者没有主张 DoorShutWithItem 的错误父作用域或由此产生的并立矛盾，不能覆盖该台账主张。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_4",
+      "matches": false,
+      "reason": "台账条目指向的是 DoorOpenWithItem 作用域内因前向引用造成的层次归属错误，以及由此产生的状态同时活动和默认入口错位；release issue 指向 ReadytoCook 内缺少烹饪时间显示与更新行为。二者既非同一位置，也非同一种缺失或层次性质，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_5",
+      "matches": false,
+      "reason": "台账条目指向 DoorOpenWithItem 作用域中因前向引用形成错误嵌套层次，并主张 DoorShutWithItem 与 DoorOpenWithItem 的层次归属及由此产生的同时活动问题；release issue 指向 WaitingToStart 到 DoorShutWithItem 的 Cancel 转移，主张取消/更新时间语义缺失。二者既不是同一处模型元素，也不是同一种缺失或层次性质，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_6",
+      "matches": false,
+      "reason": "台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌套在 DoorOpenWithItem/ReadytoCook 作用域中的层次归属错误及其导致的状态矛盾；release issue 指向 Cooking 内缺少“启动计时器”行为这一动作/行为建模缺失。二者既非同一处的层次关系问题，也非同一性质的缺失问题，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_7",
+      "matches": false,
+      "reason": "台账条目指向 DoorShutWithItem、ReadytoCook、Cooking 被错误嵌套到 DoorOpenWithItem 作用域这一层次归属错误，并涉及由此产生的状态同时活动和默认入口问题；release issue 指向 ActiveCooking 到 DoorOpenWithItem 的具体迁移，主张该迁移遗漏停止计时器这一动作。二者既非同一位置，也非同一种缺失或层次性质，不能对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-02",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_8",
+      "matches": false,
+      "reason": "台账条目指向的是 DoorOpenWithItem 作用域内因前向引用造成的层次归属错误，以及由此产生的状态互斥性和默认入口问题。release issue 指向 ActiveCooking 到 ReadytoCook 的 Cancel 迁移，主张取消时计时器或剩余烹饪时间处理语义缺失。二者既不是同一状态/迁移/表达式，也不是同一种缺失或层次归属性质；该 issue 不能覆盖台账中的作用域层次错误。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run1",
+      "emitted_id": "source:transition:DoorShut:Cancel action is performed:DoorShut",
+      "matches": false,
+      "reason": "台账条目针对 ReadytoCook/DoorShutWithItem 场景中 cooking time 变量及其显示、更新、取消动作在模型中的整体缺失；release issue 针对 DoorShut 在 Cancel action is performed 事件下到自身的直接迁移缺失。二者既未指认同一状态/迁移或表达式，也未主张同一种性质，不能由该迁移缺失覆盖台账所要求的数据侧载体缺失。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run1",
+      "emitted_id": "source:transition:DoorShut:Cancel:DoorShut",
+      "matches": false,
+      "reason": "台账条目主张的是模型中 cooking time 变量及其显示、更新、取消动作在状态机表达层完全缺失，且明确排除 timer 启停和外部事件。release issue 主张的是 DoorShut 状态下缺少 Cancel 自环迁移；它针对特定状态迁移的缺失，而非 cooking time 数据变量或动作载体的缺失，因此既非同一处也非同一性质。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:displayed cooking time",
+      "matches": true,
+      "reason": "两者都指向 ReadytoCook 中应显示并更新 cooking time 的缺失表达，且都将其定位为该状态期间的动作/输出未被状态拥有或表示。台账虽还概括了更新、取消更新及更广泛的零变量零 effect，但 release issue 明确覆盖其中同一处、同一性质的“显示 cooking time”缺失；该对应不依赖拼接其它 issue。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:timer starts",
+      "matches": false,
+      "reason": "台账条目覆盖的是界内 cooking time 变量及其显示、更新、取消动作完全没有任何模型载体；release issue 指向 Cooking 状态 entry 阶段缺少“timer starts”。后者对应 NL 第7句的时间语义，且是特定状态的 entry-action 归属缺失，不是台账所要求的第5、6句变量读写缺失；二者既非同一语义位置，也非同一缺失性质。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:exit:stops the timer",
+      "matches": false,
+      "reason": "台账条目要求的是 cooking time 变量的显示与更新、取消或更新在模型中完全缺少载体，定位于变量/动作表达。release issue 指向同一系统中的具体层次状态 Cooking 的 exit 阶段，并主张缺少“停止 timer”的退出动作；该动作属于台账明确排除的时间语义，且位置和缺失性质都不同，因此不能对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:updated cooking time",
+      "matches": true,
+      "reason": "台账条目要求 cooking time 这一界内数据语义在模型中有变量读写或动作载体；release issue 精确指向 DoorOpenWithItem.ReadytoCook 状态的 during 阶段，并主张缺少 updated cooking time 状态动作。因此二者既指向同一状态位置和同一更新动作的缺失，且该 issue 单独覆盖台账中所主张的 cooking-time 更新部分；台账虽还提到显示、取消以及另一状态，但这些并不改变这一对所对应的共同缺失。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run1",
+      "emitted_id": "hypothesis:a93e0097927f9a47",
+      "matches": false,
+      "reason": "台账条目针对 ReadytoCook 与 DoorShutWithItem 中 cooking time 变量的显示、更新或取消缺失，属于数据变量及动作载体不存在；release issue 针对 DoorShut 状态内 Cancel 迁移或状态拥有动作及其自保持行为缺失。二者既未指认同一状态/动作位置，也未主张同一种缺失性质，不能对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorShut:during:Cancel action",
+      "matches": false,
+      "reason": "台账条目针对 cooking time 变量及其显示、更新、取消等数据侧表达整体缺失，且明确将 timer 启停排除在建模边界之外；release issue 只针对 DoorShut 状态 during 阶段缺少名为 Cancel action 的状态动作。二者既未指认同一表达位置，也未主张同一类缺失，不能对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:canceling the cooking time",
+      "matches": true,
+      "reason": "台账条目要求缺失 cooking time 的显示/更新以及在 DoorShutWithItem 返回路径上的取消或更新动作；该 issue 明确定位同一 ReadytoCook 状态并主张缺少 canceling the cooking time 的状态动作。二者都指向 cooking time 的界内动作缺失，且不是仅描述后果或上位类别；该 issue 覆盖台账所主张的取消动作这一具体部分，位置与性质一致。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run1",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:updating the cooking time",
+      "matches": true,
+      "reason": "两者都指向 ReadytoCook 状态内 cooking time 的更新动作缺失：台账说明第5句要求显示并更新该量且制品没有任何动作载体，issue 则具体裁定该状态 during 阶段缺少 updating the cooking time。台账还包含显示要求，但该额外主张不妨碍 issue 覆盖其中明确的更新缺失；二者在位置与性质上均对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run2",
+      "emitted_id": "source:transition:DoorShut:a Cancel action is performed:DoorShut",
+      "matches": false,
+      "reason": "台账条目主张的是 ReadytoCook 与 DoorShutWithItem 处 cooking time 变量及其显示、更新、取消动作完全缺失，且明确排除 timer 启停；release issue 主张的是 DoorShut 到 DoorShut 在 Cancel action 下的自环迁移缺失。二者既未指认同一状态/迁移/动作位置，也未主张同一种缺失性质，不能对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run2",
+      "emitted_id": "source:transition:DoorShut:Cancel:DoorShut",
+      "matches": false,
+      "reason": "台账条目针对的是 ReadytoCook/DoorShutWithItem 语境中 cooking time 变量及其显示、更新、取消动作在制品中的整体缺失；release issue 针对的是 DoorShut 在 Cancel 事件下到自身的自迁移缺失。二者既未指认同一状态/迁移/动作位置，也未主张同一种缺失性质，因此该 issue 不能覆盖台账主张。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run2",
+      "emitted_id": "source:guard_presence:DoorOpenWithItem.DoorIdleWithItem:DoorOpenWithItem.DoorShutWithItem",
+      "matches": false,
+      "reason": "台账条目针对 ReadytoCook 与 DoorShutWithItem 中 cooking time 变量的显示、更新及取消缺少模型载体；release issue 针对 DoorOpenWithItem 到 DoorShutWithItem 关闭迁移缺少 zero-time qualified guard。二者涉及的迁移/区域和缺失性质均不同，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run2",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cooking time is displayed",
+      "matches": true,
+      "reason": "台账条目要求第5句所指的 cooking time 显示与更新在模型中有界内载体；该 issue 精确指向 ReadytoCook 状态 during 阶段缺少“显示 cooking time”的输出动作，因此同一状态/动作位置与同一“显示动作缺失”性质相对应。issue 未覆盖更新或第6句取消部分，但该单一对应主张本身不需要拼接即可覆盖台账中明确的显示缺失子主张。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run2",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:timer starts",
+      "matches": false,
+      "reason": "台账条目针对 NL 第5、6句中 cooking time 变量的显示、更新与取消，主张该数据语义在模型中完全没有变量、迁移 effect 或动作载体；release issue 则针对 NL 第7句 Cooking 状态 entry 阶段的 timer starts 动作缺失。二者既不是同一语义位置（cooking time 数据操作 vs Cooking entry 行为），也不是同一性质（数据载体整体缺失 vs 特定 entry 动作缺失），且台账明确将 timer 启停排除在本条范围之外。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run2",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cooking time is updated",
+      "matches": false,
+      "reason": "两者都涉及 cooking time 更新，但台账条目主张的是第5、6句所要求的界内变量及其显示/更新整体在制品中没有任何变量、迁移 effect 或动作载体；release issue 只指认 DoorOpenWithItem.ReadytoCook 这一特定迁移/状态区域在 during 槽位缺少一项更新动作。它没有覆盖显示、变量承载及第6句返回路径上的取消或更新，因此需要与其他 issue 拼接才能覆盖台账的完整主张，且缺陷位置和记法性质也不相同。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run2",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:exit:stops the timer",
+      "matches": false,
+      "reason": "台账条目针对 ReadytoCook 中 cooking time 的显示与更新，以及 DoorShutWithItem 中取消或更新该变量的整体缺失，属于普通变量及其读写动作；release issue 针对 DoorOpenWithItem.ReadytoCook.Cooking 状态 exit 阶段缺少“停止 timer”动作。二者既不是同一状态/位置，也不是同一性质：后者是界外的 timer 停止生命周期动作，而非 cooking-time 变量读写缺失。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run2",
+      "emitted_id": "source:containment:DoorOpenWithItem",
+      "matches": false,
+      "reason": "台账条目指向同一模型中 cooking time 变量及其显示/更新动作完全缺失，属于数据语义载体缺失；release issue 指向 DoorOpenWithItem 与 DoorShutWithItem 的直接层次包含关系错误，属于禁止的嵌套归属。二者既不是同一状态、迁移、事件、区域或表达式，也不是同一种缺失或层次性质，不能对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run2",
+      "emitted_id": "source:lifecycle_action:DoorShut:during:Cancel",
+      "matches": false,
+      "reason": "台账条目指向 cooking time 变量的显示与更新在模型中的整体缺失，具体涉及变量、迁移 effect 或 entry/exit 动作没有任何载体；release issue 只指认 DoorShut 状态在 during 阶段缺少名为 Cancel 的 state_action。二者既不是同一位置，也不是同一性质，且该 issue 不能覆盖 cooking time 语义载体整体缺失。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run3",
+      "emitted_id": "source:transition:DoorShut:a Cancel action is performed:DoorShut",
+      "matches": false,
+      "reason": "台账条目指向 ReadytoCook/DoorShutWithItem 相关的 cooking time 变量及其显示、更新或取消动作完全缺失；release issue 指向 DoorShut 在 Cancel action 下到 DoorShut 的具体自环迁移缺失。二者既不是同一状态/迁移或表达式位置，也不是同一种性质，不能由该迁移缺失覆盖变量与动作载体的缺失。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run3",
+      "emitted_id": "source:containment:DoorOpenWithItem",
+      "matches": false,
+      "reason": "台账条目主张模型缺失 cooking time 变量及其显示、更新或取消动作的表达载体，定位在数据语义的变量/动作与 effect 缺失；release issue 主张 DoorOpenWithItem 下错误嵌套 DoorShutWithItem，属于状态层次归属的反向包含约束违反。二者既非同一模型位置，也非同一缺陷性质，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run3",
+      "emitted_id": "source:guard_presence:DoorOpenWithItem.DoorIdleWithItem:DoorOpenWithItem.DoorShutWithItem",
+      "matches": false,
+      "reason": "台账条目针对 cooking time 变量及其显示、更新或取消动作在模型中的完全缺失；release issue 针对 DoorOpenWithItem 到 DoorShutWithItem 关闭迁移缺少零时间 guard。二者既非同一迁移、状态或表达式，也不是同一种缺失性质，无法语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run3",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:display cooking time",
+      "matches": true,
+      "reason": "两者都指向 ReadytoCook 状态内应有的 cooking time 显示行为，并都主张该界内动作缺失。台账概括了第5、6句的显示及更新整体缺失，而该 issue 对其中同一处、同一性质的 display cooking time 缺失作出更具体裁定；虽然未覆盖更新动作，但本对要求判断该 issue 是否对应台账主张，所指缺失部分已在同一状态和同一动作上对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run3",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:entry:start timer",
+      "matches": false,
+      "reason": "台账条目针对 NL 第5、6句中 cooking time 变量的显示、更新与取消在模型中的整体缺失，且明确将第7、8句 timer 启停排除在建模边界之外。release issue 则针对 Cooking 状态 entry 阶段缺少 start timer 动作，地点是状态生命周期动作，性质是特定 timer 启动动作缺失；它既不是 cooking time 变量读写，也属于台账明确排除的时间语义，因此不满足同一处和同一性质。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run3",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:update cooking time",
+      "matches": true,
+      "reason": "台账与 issue 都指向同一处 ReadytoCook 状态（台账第5句要求进入后显示并更新 cooking time，issue 明确定位 DoorOpenWithItem.ReadytoCook），并且都主张同一性质：缺少对 cooking time 的更新动作。issue 只覆盖台账界内要求中的更新部分，但该部分本身已构成完整的同处同性质原子主张，不需要拼接其它 issue 才能成立。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run3",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook:during:cancel cooking time",
+      "matches": false,
+      "reason": "台账条目主张的是全局不存在 cooking time 变量及其显示/更新动作载体，涵盖 ReadytoCook 与 DoorShutWithItem 相关要求；release issue 仅指认 DoorOpenWithItem.ReadytoCook 状态在 during 阶段缺少一个具体的 cancel cooking time 动作。二者既未指认同一处，性质也不同：前者是数据侧语义载体整体缺失，后者是单一状态动作槽位的缺失，不能仅凭共同涉及 cooking time 视为对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "method_run3",
+      "emitted_id": "source:lifecycle_action:DoorOpenWithItem.ReadytoCook.Cooking:during:stop timer",
+      "matches": false,
+      "reason": "台账条目针对 cooking time 变量的显示与更新缺失，定位于数据变量/迁移 effect/动作载体不存在；release issue 则指向复合状态 DoorOpenWithItem.ReadytoCook.Cooking 的 during 阶段缺少 stop timer 状态动作。后者是计时器停止这一时间语义的具体生命周期动作，既不是同一位置，也不是同一种缺失性质，且台账已明确将 timer 启停排除在建模边界之外。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "baseline_run2",
+      "emitted_id": "baseline_issue_1",
+      "matches": false,
+      "reason": "台账条目指向第5、6句所要求的 cooking time 变量及其显示、更新和取消动作在模型中的整体缺失，位置是变量/动作表达载体；release issue 指向 DoorShut 状态上 Cancel 事件的保持原状态自循环转移缺失。二者既不是同一状态、迁移或表达式，也不是同一种缺失性质；台账主张不能由该状态迁移问题覆盖。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_1",
+      "matches": false,
+      "reason": "台账条目针对 cooking time 变量及其显示、更新、取消等数据侧 effect 在模型中的整体缺失；release issue 针对 DoorShut 状态内 Cancel 事件缺少显式 DoorShut 到自身的自循环迁移。二者既非同一模型位置，也非同一种缺失性质，不能语义对应。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_2",
+      "matches": false,
+      "reason": "台账条目针对 DoorOpenWithItem 等控制状态中完全缺失 cooking time 变量及其显示、更新或取消动作这一数据/动作语义；release issue 针对同一复合状态的初始迁移引入未定义的 DoorIdleWithItem 子状态及层级归属不一致。二者虽都涉及状态模型，但缺陷处所和性质不同，release issue 不能覆盖台账所要求的变量与动作缺失。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_3",
+      "matches": false,
+      "reason": "台账条目指向 DoorShutWithItem 等相关语境中 cooking time 变量及其显示、更新、取消动作在模型中的整体缺失；release issue 指向 DoorShutWithItem 内部 ItemInside 子状态这一具体层级归属问题，并主张存在规格未定义的额外层级。二者既非同一缺失性质，也非同一缺陷位置；该 issue 不能覆盖变量/动作载体完全缺失的台账主张。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_4",
+      "matches": true,
+      "reason": "两者都指向 ReadytoCook 中规格要求的 cooking time 显示与更新这一同一行为缺失：台账认定该变量读写在模型中完全没有载体，release issue 具体指出 ReadytoCook 未建模该显示和更新时间动作；并非仅描述后果或上位类别。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_5",
+      "matches": true,
+      "reason": "两者都指向 ReadytoCook 中 Cancel 导致返回 DoorShutWithItem 时，烹饪时间的取消或更新时间这一具体缺失的动作语义；release issue 只是将台账所涵盖的缺失具体定位到 Cancel 迁移，没有改变缺失性质或所涉数据语义。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_6",
+      "matches": false,
+      "reason": "台账条目认定的是界内 cooking time 变量及其显示、更新、取消等数据侧读写在模型中完全没有载体，要求同一变量/动作层面的缺失；release issue 只指出 Cooking 状态中“启动计时器”行为缺失，属于计时器启停这一时间语义，且台账明确将其排除在建模边界之外。因此二者既非同一性质，也不是同一缺失主张。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_7",
+      "matches": false,
+      "reason": "台账条目针对第5、6句中 cooking time 变量的显示、更新与取消在模型中的整体缺失，且明确将第7、8句 timer 启停排除在建模边界之外；release issue 则针对 ActiveCooking 开门迁移到 DoorOpenWithItem 时未建模停止计时器动作，属于被台账明确排除的时间语义、不同迁移位置和不同缺失性质，因此不构成同一处同一性质。",
+      "confidence": "high"
+    },
+    {
+      "ledger_id": "EIS-0005-03",
+      "cell": "baseline_run3",
+      "emitted_id": "baseline_issue_8",
+      "matches": false,
+      "reason": "两者都涉及烹饪时间处理，但台账条目主张的是制品对 ReadytoCook 与 DoorShutWithItem 中 cooking time 的显示及更新整体缺少任何变量、迁移 effect 或动作载体；release issue 仅指向 ActiveCooking 取消迁移，并主张该迁移缺少取消时的计时值处理。它既未覆盖台账所指的具体显示/更新位置，也未覆盖 DoorShutWithItem 的取消或更新要求，必须与其它问题拼接才能完整覆盖台账主张。",
+      "confidence": "high"
+    }
+  ]
+}

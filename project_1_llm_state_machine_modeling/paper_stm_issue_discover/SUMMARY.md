@@ -1,10 +1,10 @@
 # SUMMARY.md — 轻量总账与阅读入口
 
-> 本文件只做**入口与索引**，不做第二事实源。⭐ 台账与历史 X1v2 精确网格回 [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/) 核对；当前 gpt-5.6-luna 双臂三轮数字回 [全量报告](./reports/2026-08-19-luna-full-x3-v26.md) 核对；⚠️ v46 报告是历史记录，⛔ 不是当前来源；判定口径一律回 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/)；动态施工状态一律以 GitHub PR / issue 为准。
+> 本文件只做**入口与索引**，不做第二事实源。⭐ 台账与历史 X1v2 精确网格回 [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/) 核对；当前 gpt-5.6-luna 双臂三轮数字回 [v27-stream 全量报告](./reports/2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md) 核对；⚠️ v26/v46 报告是历史记录，⛔ 不是当前来源；判定口径一律回 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/)；动态施工状态一律以 GitHub PR / issue 为准。
 
 ## 1. 一句话状态
 
-paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独成篇**（repair 另立后续论文），一次完整的全量实验（**54 pair × 2 臂 × 3 轮 = 324 格**）已完成，工作重心转入**结果审计与论文写作**；同模型对照报告见 [2026-08-19-luna-full-x3-v26.md](./reports/2026-08-19-luna-full-x3-v26.md)。
+paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独成篇**（repair 另立后续论文），一次完整的全量实验（**54 pair × 2 臂 × 3 轮 = 324 格**）已完成，工作重心转入**结果审计与论文写作**；当前同模型对照报告见 [2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md](./reports/2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md)。
 
 **三条** contribution〔用户明确裁定 2026-08-11〕：① **基于模型转换 + 形式化检查 / 仿真 / 验证的错误发现方法**（独有的是**真值封存**）> ② **基于归纳后的谓词逻辑的断言体系**（⚠️ 这一条就是元模型本身）> ③ **issue 证据链体系**。⚠️ 此前本行写「两条」，系 2026-08-08 的旧口径，已被 08-11 裁定取代；真源是 [story/paper_story.md](./story/paper_story.md) §7。
 
@@ -14,7 +14,7 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 | :-- | :-- | :-- |
 | 论文口径基准 | [README.md](./README.md) | 这篇论文做什么、**三条** contribution、建模对象边界、目录导航 |
 | 导师定调 | [../talks/](../talks/) | 最高优先级路线依据。⚠️ 2026-08-07 / 08-08 的收窄定调为口头，原话摘录在 [README.md](./README.md) §2 |
-| ⭐ **当前实验事实** | [reports/2026-08-19-luna-full-x3-v26.md](./reports/2026-08-19-luna-full-x3-v26.md) 与 [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/) | 当前报告固定 145 条台账、54 个 eligible pair、Luna v26-dnorm/X1v2 双臂三轮结果；台账与历史 X1v2 六格精确网格仍回 ledger_v2 核对。 |
+| ⭐ **当前实验事实** | [reports/2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md](./reports/2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md) 与 [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/) | 当前报告固定 145 条台账、54 个 eligible pair、Luna v27-stream/X1v2 双臂三轮结果；整体 hit@3=`107/145`、L2 hit@3=`35/39`、D2×L2 hit@3=`30/34`，逐条台账与历史 X1v2 六格精确网格仍回 ledger_v2 核对。 |
 | ⚠️ 历史实验事实（v46） | [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | 建立在**已归档的第一版台账**上，⛔ 不是当前口径 |
 | 判定口径 | [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/) | 命中判据、多报五类、方法出处、建模对象边界判据、规则出处纪律，以及 Luna 开发筛选 → Sol 正式评测的两级 judge 合同。**改它们等于改研究规则** |
 | 实验产地 | [reports/](./reports/) 与 [discover_matrix/](./discover_matrix/) | reports 保存当前同模型对照和逐条台账导出；discover_matrix 保存唯一台账、历史 X1v2 精确网格、协议与证据链。 |
@@ -44,7 +44,7 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 | 方法实现 | active，已跑通全量 | [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
 | 输入准备与表示桥、语料准入检查 | active，作为 infrastructure | [pipeline/conversion/](./pipeline/conversion/)、[pipeline/representation/](./pipeline/representation/)、[pipeline/readiness_audit/](./pipeline/readiness_audit/) |
 | 上一版单 Agent 实现 | 已归档（2026-08-11），完整保留可复活 | [archive/r9_agent_loop_pipeline/](./archive/r9_agent_loop_pipeline/) |
-| 实验与评测 | active；⭐ 第二版台账、历史 X1v2 精确网格和 Luna 同模型双臂报告均已就位；⛔ v46 主臂已归档 | [reports/](./reports/)、[discover_matrix/](./discover_matrix/) |
+| 实验与评测 | active；⭐ 第二版台账、历史 X1v2 精确网格和 Luna v27-stream 同模型双臂报告均已就位；v26 与 v46 仅作历史对照 | [reports/](./reports/)、[discover_matrix/](./discover_matrix/) |
 | 语料与更广候选集 | active | [selected_seed_examples/](./selected_seed_examples/)、[corpora/](./corpora/) |
 | repair 期合同（issue lifecycle、source trace、资产地图） | **已随 repair 搁置**，只作历史背景与后续 repair 论文的迁移输入 | [experiment_design/](./experiment_design/)、[evidence/ledgers/](./evidence/ledgers/) |
 | R5.7 / Better STM-facing 资产 | 已归档，只作 historical / superseded / calibration-only 引用 | [archive/](./archive/) |
@@ -53,7 +53,7 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 
 ## 5. 下一步依赖（按优先级）
 
-1. **判定模型对照与后续分层已完成**——Sol 与 Luna semantic judge 都已在同一冻结输入上覆盖 54/54 pair；全部位置的 hit 标签一致率约 92.9%–94.9%，FP 标签一致率约 88.5%–91.4%。`0019` 的 13 项分歧独立复核中 Sol 正确 13 项，因此后续 Luna 负责开发期筛选，Sol 负责冻结候选正式评测；当前 provider 健康时点证据见 [2026-08-19-luna-terra-provider-health.md](./reports/2026-08-19-luna-terra-provider-health.md)。
+1. **判定模型对照与后续分层已完成**——Sol 与 Luna semantic judge 都已在同一冻结输入上覆盖 54/54 pair；全部位置的 hit 标签一致率约 92.9%–94.9%，FP 标签一致率约 88.5%–91.4%。`0019` 的 13 项分歧独立复核中 Sol 正确 13 项，因此开发期可用 Luna 快速筛选，正式冻结候选时仍用 Sol 复核；本轮 v27 headline 使用 Luna judge，当前 provider 健康时点证据见 [2026-08-19-luna-terra-provider-health.md](./reports/2026-08-19-luna-terra-provider-health.md)。
 2. **台账撰写过程的交代**——台账是能力分母，必须写清谁标的、何时标的、是否在看过方法产出之后标的、与命中判定是否同一人。
 3. **判定层的第二意见**——双侧结论目前共用一个单人判定的误差源。
 4. **循环各阶段的消融**——两个审查阶段与静态预检占算力大头却无单独收益证据。

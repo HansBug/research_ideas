@@ -62,9 +62,9 @@ $$ M = (S, E, V, Tr, A) $$
 
 ⭐ 当前有结果的基线臂只有一条：**X1v2**（朴素基线，单次提示、无循环、无工具）。它在新台账上的精确命中为 `hit@1` **59.8%** · `hit@3` **70.3%** · `hit@all` **47.9%**（145 × 6 = 870 位），逐档拆分与全部限制见 [discover_matrix/ledger_v2/X1V2_RESULTS.md](./discover_matrix/ledger_v2/X1V2_RESULTS.md)。
 
-⭐ **当前主臂 Luna 全量对照**见 [reports/2026-08-19-luna-full-x3-v26.md](./reports/2026-08-19-luna-full-x3-v26.md) 与本机 `runs/paper1/luna-full-x3-20260819-v1/final-audit-v29/`；它在 54 个 eligible pair、145 条台账、每 pair 三轮上与 X1v2 同模型对照。⛔ **主臂 v46 已整体归档**（[archive/r10_ledger_v1_and_v46/](./archive/r10_ledger_v1_and_v46/)），其全量实验建立在第一版台账上，仍不是当前数字来源。
+⭐ **当前主臂 Luna 全量对照**见 [reports/2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md](./reports/2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md) 与本机 `runs/paper1/luna-full-x3-20260820-v27-stream/final-audit/`；它在 54 个 eligible pair、145 条台账、每 pair 三轮上与 X1v2 同模型对照，整体 hit@1 为 276/435、hit@3 为 107/145，L2 hit@3 为 35/39。v26-dnorm 仍保留为历史报告。⛔ **主臂 v46 已整体归档**（[archive/r10_ledger_v1_and_v46/](./archive/r10_ledger_v1_and_v46/)），其全量实验建立在第一版台账上，仍不是当前数字来源。
 
-⭐ **已裁定：v46 不在新台账上重测**（2026-08-17 用户裁定）。它是历史臂，重测的产出不进当前结论；当前同台账双臂对照只指向 gpt-5.6-luna 的 v26-dnorm 与 X1v2 全量 x3 报告，不能与 v46 的任何历史数字相减。
+⭐ **已裁定：v46 不在新台账上重测**（2026-08-17 用户裁定）。它是历史臂，重测的产出不进当前结论；当前同台账双臂对照只指向 gpt-5.6-luna 的 v27-stream 与 X1v2 全量 x3 报告，不能与 v46 的任何历史数字相减。
 
 ## 6. 目录导航
 
