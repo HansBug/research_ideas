@@ -628,7 +628,7 @@ def test_d_adjudication_covers_all_findings_in_one_call() -> None:
     assert all(item["d_decision"] is not None for item in record["finding_records"])
 
 
-def test_initial_d_extra_key_forces_whole_pair_targeted_repair() -> None:
+def test_initial_d_extra_key_is_ignored_without_invalidating_exact_decisions() -> None:
     responder = InitialDExtraKeyResponder()
 
     state = graph.run_graph(
@@ -636,12 +636,12 @@ def test_initial_d_extra_key_forces_whole_pair_targeted_repair() -> None:
     )
 
     record = state["final_record"]
-    assert record["telemetry"]["d_call_count"] == 2
-    assert record["telemetry"]["d_repair_count"] == 1
+    assert record["telemetry"]["d_call_count"] == 1
+    assert record["telemetry"]["d_repair_count"] == 0
     assert responder.roles.count("paper1_d_adjudication") == 1
-    assert responder.roles.count("paper1_d_targeted_repair") == 1
-    assert len(responder.d_finding_keys) == 2
-    assert set(responder.d_finding_keys[1]) == set(responder.d_finding_keys[0])
+    assert responder.roles.count("paper1_d_targeted_repair") == 0
+    assert len(responder.d_finding_keys) == 1
+    assert "unexpected finding_key values" in record["d_fallback_reason"]
     assert record.get("d_unresolved_reason") is None
     assert all(item["d_status"] != "D_UNRESOLVED" for item in record["finding_records"])
 
@@ -705,6 +705,9 @@ def test_d_semantic_repair_sends_only_invalid_subset_and_freezes_valid_decisions
     assert len(responder.targeted_repair_inputs) == 1
     repair_input = responder.targeted_repair_inputs[0]
     assert "# Frozen valid decisions (read-only context)" in repair_input
+    assert "do not prepend the label `FINDING_KEY:`" in repair_input
+    assert "- FINDING_KEY:" not in repair_input
+    assert f"- {repaired_key}" in repair_input
     for finding_key in responder.initial_decisions:
         if finding_key != repaired_key:
             assert finding_key in repair_input
@@ -728,7 +731,7 @@ def test_targeted_d_repair_repeated_frozen_key_does_not_contaminate_frozen_decis
         "targeted repair must not repeat frozen finding_key"
         in record["d_fallback_reason"]
     )
-    assert final_by_key[repaired_key]["d_status"] == "D0_FALLBACK"
+    assert final_by_key[repaired_key]["d_status"] != "D0_FALLBACK"
     for finding_key, initial in responder.initial_decisions.items():
         if finding_key != repaired_key:
             assert final_by_key[finding_key]["d_status"] != "D0_FALLBACK"
@@ -750,7 +753,7 @@ def test_targeted_d_repair_unknown_key_does_not_contaminate_frozen_decisions() -
     assert (
         "targeted repair returned unknown finding_key" in record["d_fallback_reason"]
     )
-    assert final_by_key[repaired_key]["d_status"] == "D0_FALLBACK"
+    assert final_by_key[repaired_key]["d_status"] != "D0_FALLBACK"
     for finding_key, initial in responder.initial_decisions.items():
         if finding_key != repaired_key:
             assert final_by_key[finding_key]["d_status"] != "D0_FALLBACK"

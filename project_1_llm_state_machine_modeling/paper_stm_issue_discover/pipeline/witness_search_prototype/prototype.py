@@ -13196,12 +13196,47 @@ def _domain_obligations_for_finding(finding: dict[str, Any]) -> list[dict[str, A
 
 
 def _has_typed_operational_domain_norm(finding: dict[str, Any]) -> bool:
-    """Recognize only the preregistered typed operational norm surface."""
+    """Recognize only the preregistered typed operational norm surface.
+
+    Guard-set disjointness is a first-class domain obligation in the frozen
+    expression surface, alongside graph deadlock/escapability obligations.
+    The check remains structural: it requires an exact scope, at least two
+    distinct transition references, and one typed guard binding per reference;
+    it never interprets the guard text.
+    """
 
     certificate = finding.get("source_causality_certificate")
     certificate = certificate if isinstance(certificate, dict) else {}
     certificate_target = certificate.get("target")
     for obligation in _domain_obligations_for_finding(finding):
+        if (
+            obligation.get("family") == "guard_set"
+            and obligation.get("property") == "disjoint"
+        ):
+            scope_ref = obligation.get("scope_ref")
+            transition_refs = obligation.get("transition_refs")
+            guard_bindings = obligation.get("guard_bindings")
+            if (
+                isinstance(scope_ref, str)
+                and bool(scope_ref.strip())
+                and isinstance(transition_refs, list)
+                and len(transition_refs) >= 2
+                and all(isinstance(ref, str) and ref.strip() for ref in transition_refs)
+                and len(set(transition_refs)) == len(transition_refs)
+                and isinstance(guard_bindings, list)
+            ):
+                bound_ids = [
+                    binding.get("transition_id")
+                    for binding in guard_bindings
+                    if isinstance(binding, dict)
+                ]
+                if (
+                    len(bound_ids) == len(guard_bindings)
+                    and set(bound_ids) == set(transition_refs)
+                    and all(isinstance(item, str) and item.strip() for item in bound_ids)
+                ):
+                    return True
+            continue
         if (
             obligation.get("family") != "graph"
             or obligation.get("property") not in {"deadlock_free", "escapable"}

@@ -4190,6 +4190,28 @@ def test_two_conditioned_alternatives_create_exact_guard_set_obligation() -> Non
         "HighwayMode.lane_change",
     ]
 
+    finding = {
+        "domain_obligations": [
+            guard_candidate.domain_obligation.model_dump(mode="json")
+        ],
+        "source_causality_certificate": certificate,
+    }
+    assert prototype._has_typed_operational_domain_norm(finding) is True
+    assert prototype.validate_d_decision(
+        finding,
+        prototype.DDecision(
+            finding_key="collision",
+            grounding="dom",
+            violated_obligation="The alternatives must be disjoint.",
+            strongest_defeater="The exact alternative set may be incomplete.",
+            defeater_kind="undercutting",
+            defeater_disposition="defeated",
+            rationale="The typed guard-set obligation applies to the exact transitions.",
+            d_subclass="D2-norm",
+            d_level="D2",
+        ),
+    ) == []
+
 
 def test_guard_set_without_two_exact_transition_refs_is_located_only() -> None:
     pair, inspect = _pair_and_inspect("0029")

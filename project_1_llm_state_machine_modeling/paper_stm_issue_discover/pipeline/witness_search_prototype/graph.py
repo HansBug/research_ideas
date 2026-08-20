@@ -427,12 +427,13 @@ def _partition_d_decisions(
     for decision in plan.decisions:
         grouped.setdefault(decision.finding_key, []).append(decision)
     unexpected = sorted(set(grouped) - set(expected))
+    diagnostics: list[str] = []
     if unexpected:
-        message = (
+        diagnostics.append(
             "D plan contains unexpected finding_key values "
-            f"{unexpected!r}; the whole D plan is contract-invalid"
+            f"{unexpected!r}; those rows were ignored and exact supplied keys "
+            "were validated independently"
         )
-        return {}, {finding_key: [message] for finding_key in expected}, []
     valid: dict[str, core.DDecision] = {}
     invalid: dict[str, list[str]] = {}
     for finding_key, finding in expected.items():
@@ -475,7 +476,7 @@ def _partition_d_decisions(
             invalid[finding_key] = errors
         else:
             valid[finding_key] = decision
-    return valid, invalid, []
+    return valid, invalid, diagnostics
 
 
 def _validate_targeted_d_repair_output(
@@ -512,9 +513,12 @@ def _validate_targeted_d_repair_output(
         )
     for finding_key in sorted(set(grouped) - expected_keys - frozen_keys):
         errors.append(f"targeted repair returned unknown finding_key {finding_key!r}")
-    if errors:
-        return [], errors
-    return [grouped[finding_key][0] for finding_key in repair_keys], []
+    repaired = [
+        grouped[finding_key][0]
+        for finding_key in repair_keys
+        if len(grouped.get(finding_key, [])) == 1
+    ]
+    return repaired, errors
 
 
 def _partially_adjudicated_findings(
@@ -1549,10 +1553,12 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
             else "# Whole-pair D adjudication\n\n"
         ) + (
             f"Return exactly {len(findings)} decisions, one for every finding in "
-            "the supplied stable order. Copy each FINDING_KEY exactly from the "
-            "following checklist; do not abbreviate, normalize, or invent keys.\n\n"
-            "# Exact finding_key checklist\n\n"
-            + "\n".join(f"- FINDING_KEY:{item['finding_key']}" for item in findings)
+            "the supplied stable order. Each bullet below is the complete value of "
+            "the JSON `finding_key` field. Copy that value exactly; do not prepend "
+            "the label `FINDING_KEY:` or any other text, and do not abbreviate, "
+            "normalize, or invent keys.\n\n"
+            "# Exact finding_key values\n\n"
+            + "\n".join(f"- {item['finding_key']}" for item in findings)
             + "\n\n"
         )
         plan, observations, error = _invoke_with_schema_repair(
@@ -1650,9 +1656,14 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
         )
         repair_output_errors = state.get("d_repair_output_errors", [])
         if repair_output_errors:
+            diagnostics.extend(repair_output_errors)
+            returned_keys = {
+                decision.finding_key for decision in state["d_plan"].decisions
+            }
             for finding_key in state.get("d_repair_keys", []):
-                valid.pop(finding_key, None)
-                invalid.setdefault(finding_key, []).extend(repair_output_errors)
+                if finding_key not in returned_keys:
+                    valid.pop(finding_key, None)
+                    invalid.setdefault(finding_key, []).extend(repair_output_errors)
         errors = [
             f"{finding_key}: {message}"
             for finding_key, messages in invalid.items()
@@ -1683,6 +1694,7 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
         return {
             "finding_records": findings,
             "d_feedback": errors,
+            "d_fallback_reason": "; ".join(errors) if errors else None,
             "d_repair_keys": [],
             "confirmed_issues": core.select_confirmed_issues(findings),
             "accepted_issues": core.select_accepted_issues(findings),
