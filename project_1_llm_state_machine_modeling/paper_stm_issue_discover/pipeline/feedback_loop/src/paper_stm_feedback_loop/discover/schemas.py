@@ -1179,6 +1179,7 @@ class LLMCallRecord(StrictBaseModel):
     role: str
     revision: int = Field(ge=0)
     profile: str
+    requested_effort: str | None = None
     adapter: str | None = None
     provider: str | None = None
     streaming: bool | None = None

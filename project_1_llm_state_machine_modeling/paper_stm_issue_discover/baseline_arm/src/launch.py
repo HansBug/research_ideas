@@ -45,7 +45,7 @@ _HERE = Path(__file__).resolve().parent
 if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
-from runner import REPORT_ROOT, run_cell, write_record  # noqa: E402
+from runner import EFFORT_LEVELS, REPORT_ROOT, run_cell, write_record  # noqa: E402
 
 #: 两条臂：profile → 短名。⭐ 与主臂 v46 完全相同的两个模型（§4B.2「⛔ 不许降级」）。
 ARMS: tuple[tuple[str, str], ...] = (("gpt-5.5", "gpt"), ("claude-opus-4-7", "claude"))
@@ -143,12 +143,16 @@ def cell_dir(out_root: Path, round_index: int, case: str, arm_label: str) -> Pat
     return out_root / f"run{round_index}" / f"{case}-{arm_label}"
 
 
-def already_done(path: Path) -> bool:
+def already_done(path: Path, requested_effort: str | None = None) -> bool:
     record = path / "record.json"
     if not record.is_file():
         return False
     try:
-        return json.loads(record.read_text(encoding="utf-8")).get("status") == "ok"
+        payload = json.loads(record.read_text(encoding="utf-8"))
+        return (
+            payload.get("status") == "ok"
+            and payload.get("requested_effort") == requested_effort
+        )
     except Exception:  # pragma: no cover - a corrupt record must be re-run
         return False
 
@@ -170,9 +174,10 @@ def _one(
     registry_path: str | None,
     transport_retries: int,
     streaming: bool | None,
+    effort: str | None,
 ) -> dict[str, Any]:
     target = cell_dir(out_root, round_index, case, arm_label)
-    if already_done(target):
+    if already_done(target, effort):
         _log(f"skip  run{round_index}/{case}-{arm_label} (already ok)")
         return json.loads((target / "record.json").read_text(encoding="utf-8"))
     started = time.perf_counter()
@@ -186,6 +191,7 @@ def _one(
             streaming=streaming,
             round_index=round_index,
             arm_label=arm_label,
+            effort=effort,
         )
     except Exception as exc:  # noqa: BLE001
         # ⛔ 编排层也不许让一格把整批带崩（`CLAUDE.md` §10）。落一份 failed record。
@@ -196,6 +202,7 @@ def _one(
             "round": round_index,
             "arm_label": arm_label,
             "profile": profile,
+            "requested_effort": effort,
             "status": "failed",
             "failure": f"orchestrator-level error: {type(exc).__name__}: {exc}",
             "failure_class": "orchestrator_error",
@@ -218,6 +225,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--content-language", choices=("zh-CN", "en-US"), default="zh-CN")
     parser.add_argument("--llm-config", default=None)
     parser.add_argument("--transport-retries", type=int, default=4)
+    parser.add_argument(
+        "--effort",
+        choices=EFFORT_LEVELS,
+        default=None,
+        help="Optional per-run provider effort applied uniformly to every cell.",
+    )
     parser.add_argument(
         "--profiles",
         default=None,
@@ -295,6 +308,7 @@ def main(argv: list[str] | None = None) -> int:
                     registry_path=args.llm_config,
                     transport_retries=args.transport_retries,
                     streaming=args.streaming,
+                    effort=args.effort,
                 )
                 for _r, case, profile, arm_label in batch
             ]
@@ -311,6 +325,7 @@ def main(argv: list[str] | None = None) -> int:
         "cases": cases,
         "rounds": rounds,
         "arms": [{"profile": p, "label": label} for p, label in arms],
+        "requested_effort": args.effort,
         "cells_planned": len(plan),
         "cells_ok": len(ok),
         "cells_failed": len(failed),

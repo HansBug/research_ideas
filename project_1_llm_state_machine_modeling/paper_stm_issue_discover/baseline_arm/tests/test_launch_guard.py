@@ -10,6 +10,7 @@ manifest 才发现它不存在。
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -89,12 +90,12 @@ def test_parse_arms_rejects_malformed_entries() -> None:
 def test_grid_cli_streams_by_default_and_allows_explicit_opt_out(
     monkeypatch,
 ) -> None:
-    captured: list[bool] = []
+    captured: list[dict[str, object]] = []
     monkeypatch.setattr(launch, "find_stale_workers", lambda: [])
     monkeypatch.setattr(launch, "in_scope_cases", lambda: ("0000",))
 
     def capture(**kwargs) -> dict[str, object]:
-        captured.append(kwargs["streaming"])
+        captured.append(kwargs)
         return {"status": "ok"}
 
     monkeypatch.setattr(launch, "_one", capture)
@@ -112,10 +113,26 @@ def test_grid_cli_streams_by_default_and_allows_explicit_opt_out(
         "1",
     ]
     assert launch.main(common) == 0
-    assert captured.pop() is True
+    first = captured.pop()
+    assert first["streaming"] is True
+    assert first["effort"] is None
 
-    assert launch.main([*common, "--no-stream"]) == 0
-    assert captured.pop() is False
+    assert launch.main([*common, "--no-stream", "--effort", "low"]) == 0
+    second = captured.pop()
+    assert second["streaming"] is False
+    assert second["effort"] == "low"
+
+
+def test_idempotence_is_scoped_to_requested_effort(tmp_path: Path) -> None:
+    cell = tmp_path / "run1" / "0000-luna"
+    cell.mkdir(parents=True)
+    (cell / "record.json").write_text(
+        json.dumps({"status": "ok", "requested_effort": "low"}), encoding="utf-8"
+    )
+
+    assert launch.already_done(cell, "low") is True
+    assert launch.already_done(cell, "high") is False
+    assert launch.already_done(cell) is False
 
 
 def test_cell_dir_layout_matches_the_judging_material_reader() -> None:

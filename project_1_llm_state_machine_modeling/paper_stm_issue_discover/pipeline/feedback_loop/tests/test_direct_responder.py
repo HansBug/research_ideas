@@ -258,12 +258,14 @@ def test_direct_responder_records_same_profile_model_and_usage(monkeypatch) -> N
     stream_updates = []
     responder = DirectStructuredResponder(
         "unit-profile",
+        effort="xhigh",
         on_stream_chunk=lambda role, chunks, elapsed_ms: stream_updates.append(
             (role, chunks, elapsed_ms)
         ),
     )
     assert created["streaming"] is True
     assert created["max_retries"] == 0
+    assert created["effort"] == "xhigh"
     output = responder.invoke_structured(
         role="requirement_reviewer",
         schema=RequirementReview,
@@ -275,6 +277,7 @@ def test_direct_responder_records_same_profile_model_and_usage(monkeypatch) -> N
     assert output.decision == "accept"
     assert observation is not None
     assert observation.profile == "unit-profile"
+    assert observation.requested_effort == "xhigh"
     assert observation.configured_model == "configured-unit-model"
     assert observation.observed_model == "observed-unit-model"
     assert observation.schema_contract_repeated_in_prompt is True
@@ -351,6 +354,7 @@ def test_direct_responder_records_same_profile_model_and_usage(monkeypatch) -> N
     assert llm_record.parsed_output_sha256
     assert llm_record.raw_response_sha256
     assert llm_record.streaming is True
+    assert llm_record.requested_effort == "xhigh"
 
 
 def test_responses_adapter_uses_non_streaming_structured_invoke(monkeypatch) -> None:

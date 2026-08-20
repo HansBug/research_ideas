@@ -17,6 +17,7 @@ from paper_stm_feedback_loop.common.inputs import (
     load_feedback_loop_inputs,
 )
 from paper_stm_feedback_loop.common.records import ImmutableRecordStore
+from utils.llm.model_factory import EFFORT_LEVELS
 
 from . import nodes
 from .graph import run_discover_state
@@ -58,6 +59,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--source-trace-file")
     parser.add_argument("--working-contract-file")
     parser.add_argument("--profile", required=True)
+    parser.add_argument(
+        "--effort",
+        choices=EFFORT_LEVELS,
+        default=None,
+        help="Optional per-run provider effort; omitted preserves the provider default.",
+    )
     parser.add_argument(
         "--content-language", choices=("zh-CN", "en-US"), default="zh-CN"
     )
@@ -158,6 +165,7 @@ def _discover_input(
     tool_env_hash: str,
     fbmcq_canary: dict[str, Any] | None = None,
     resource_options: dict[str, Any] | None = None,
+    requested_effort: str | None = None,
 ) -> DiscoverInput:
     manifest: dict[str, Any] = {
         "input_summary": bundle.summary(),
@@ -167,6 +175,7 @@ def _discover_input(
         "tool_env_hash": tool_env_hash,
         "fbmcq_canary": fbmcq_canary or {},
         "resource_options": resource_options or {},
+        "requested_effort": requested_effort,
     }
     return DiscoverInput(
         run_id=run_id,
@@ -195,6 +204,7 @@ def _write_failure_artifacts(
     content_language: str,
     error_type: str,
     error_message: str,
+    requested_effort: str | None = None,
     state: Mapping[str, Any] | None = None,
 ) -> None:
     """Persist a deterministic failure receipt without rewriting records.
@@ -213,6 +223,7 @@ def _write_failure_artifacts(
         "run_id": run_id,
         "status": "failed",
         "profile": profile,
+        "requested_effort": requested_effort,
         "content_language": content_language,
         "error_type": error_type,
         "error_message": error_message,
@@ -239,6 +250,7 @@ def _write_failure_artifacts(
         stream.write("本文件由确定性 CLI 生成；运行失败不等于问题不存在。\n\n")
         stream.write(f"- `run_id`: `{run_id}`\n")
         stream.write(f"- `profile`: `{profile}`\n")
+        stream.write(f"- `requested_effort`: `{requested_effort}`\n")
         stream.write("- `status`: `failed`\n")
         stream.write(f"- `error_type`: `{error_type}`\n")
         stream.write(f"- `error_message`: {error_message}\n\n")
@@ -336,6 +348,7 @@ def main(argv: list[str] | None = None) -> int:
         tool_env_hash,
         fbmcq_canary=fbmcq_canary,
         resource_options=resource_options,
+        requested_effort=args.effort,
     )
     records.append(
         "discover-run-started",
@@ -344,6 +357,7 @@ def main(argv: list[str] | None = None) -> int:
             "schema_version": "v2",
             "run_id": run_id,
             "profile": args.profile,
+            "requested_effort": args.effort,
             "content_language": args.content_language,
             "inputs": bundle.summary(),
             "tool_env_hash": tool_env_hash,
@@ -372,6 +386,7 @@ def main(argv: list[str] | None = None) -> int:
         args.profile,
         registry_path=args.llm_config,
         max_output_tokens=args.max_output_tokens,
+        effort=args.effort,
         transport_retries=args.transport_retries,
         streaming=args.streaming,
         on_stream_chunk=on_stream_chunk,
@@ -431,6 +446,7 @@ def main(argv: list[str] | None = None) -> int:
             output_root,
             run_id=run_id,
             profile=args.profile,
+            requested_effort=args.effort,
             content_language=args.content_language,
             error_type="KeyboardInterrupt",
             error_message="operator interrupt after observed no progress",
@@ -443,6 +459,7 @@ def main(argv: list[str] | None = None) -> int:
                 "schema_name": "DiscoverRunFailed",
                 "schema_version": "v2",
                 "run_id": run_id,
+                "requested_effort": args.effort,
                 "error_type": type(exc).__name__,
                 "error_message": str(exc),
             },
@@ -451,6 +468,7 @@ def main(argv: list[str] | None = None) -> int:
             output_root,
             run_id=run_id,
             profile=args.profile,
+            requested_effort=args.effort,
             content_language=args.content_language,
             error_type=type(exc).__name__,
             error_message=str(exc),

@@ -13,6 +13,7 @@ from typing import Any, Literal, TypedDict
 
 from pydantic import BaseModel, Field, ValidationError
 from utils.llm import LLMPricing, estimate_usage_cost_usd
+from utils.llm.model_factory import EFFORT_LEVELS
 
 from . import prototype as core
 
@@ -33,6 +34,10 @@ class PrototypeGraphInput(BaseModel):
 
     case: str = Field(description="Dataset case identifier supplied by the caller; not semantic evidence.")
     profile: str = Field(description="Configured LLM profile name used for method generation.")
+    requested_effort: str | None = Field(
+        default=None,
+        description="Explicit runtime effort requested by the caller; null preserves the provider default.",
+    )
     report_root: str | None = Field(
         default=None, description="Optional representation-report root containing the formal input artifacts."
     )
@@ -1775,6 +1780,7 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
             "exploratory_only": True,
             "case": state["input"].case,
             "profile": state["input"].profile,
+            "requested_effort": state["input"].requested_effort,
             "replayed": replayed,
             "strategy": "shared_a_complementary_dual_b_formal_execution_single_d",
             "replay_plans_from": state["input"].replay_plans_from,
@@ -1853,6 +1859,7 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
                 "exploratory_only": True,
                 "case": state["input"].case,
                 "profile": state["input"].profile,
+                "requested_effort": state["input"].requested_effort,
                 "status": "failed",
                 "failure": state["failure"],
                 "llm_observations": state.get("llm_observations", []),
@@ -1924,6 +1931,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--case", required=True)
     parser.add_argument("--profile", default="gpt-5.5")
+    parser.add_argument(
+        "--effort",
+        choices=EFFORT_LEVELS,
+        default=None,
+        help="Optional per-run provider effort; omitted preserves the provider default.",
+    )
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--report-root", default=None)
     parser.add_argument("--replay-plans-from", default=None)
@@ -1963,6 +1976,7 @@ def main(argv: list[str] | None = None) -> int:
     responder = DirectStructuredResponder(
         args.profile,
         max_output_tokens=args.max_output_tokens,
+        effort=args.effort,
         transport_retries=args.transport_retries,
         streaming=args.streaming,
         repeat_schema_in_prompt=True,
@@ -1971,6 +1985,7 @@ def main(argv: list[str] | None = None) -> int:
     graph_input = PrototypeGraphInput(
         case=args.case,
         profile=args.profile,
+        requested_effort=args.effort,
         report_root=args.report_root,
         replay_plans_from=args.replay_plans_from,
         matched_x1v2_record=args.matched_x1v2_record,

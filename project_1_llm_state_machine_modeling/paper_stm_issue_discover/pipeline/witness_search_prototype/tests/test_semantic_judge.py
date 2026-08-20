@@ -98,6 +98,13 @@ def test_semantic_judge_cli_defaults_to_stream_and_allows_only_explicit_opt_out(
     ]
 
     assert semantic_judge.build_parser().parse_args(required).streaming is True
+    assert semantic_judge.build_parser().parse_args(required).effort is None
+    assert (
+        semantic_judge.build_parser()
+        .parse_args([*required, "--effort", "medium"])
+        .effort
+        == "medium"
+    )
     assert (
         semantic_judge.build_parser().parse_args([*required, "--no-stream"]).streaming
         is False

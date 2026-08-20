@@ -33,6 +33,8 @@ from paper_stm_feedback_loop.discover.responder import (
     StructuredOutputValidationError,
 )
 
+from utils.llm.model_factory import EFFORT_LEVELS
+
 Arm = Literal["method", "baseline"]
 Cell = Literal[
     "method_run1",
@@ -264,6 +266,7 @@ def _observation_audit(observation: Any) -> dict[str, Any]:
         "llm_call_id": observation.llm_call_id,
         "role": observation.role,
         "profile": observation.profile,
+        "requested_effort": getattr(observation, "requested_effort", None),
         "adapter": observation.adapter,
         "provider": observation.provider,
         "streaming": getattr(observation, "streaming", None),
@@ -706,6 +709,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--profile", default="gpt-5.6-luna")
     parser.add_argument(
+        "--effort",
+        choices=EFFORT_LEVELS,
+        default=None,
+        help="Optional judge effort; keep fixed independently of the evaluated arms.",
+    )
+    parser.add_argument(
         "--transport-retries", type=int, default=DEFAULT_TRANSPORT_RETRIES
     )
     stream_mode = parser.add_mutually_exclusive_group()
@@ -749,6 +758,7 @@ def main() -> int:
     responder = DirectStructuredResponder(
         args.profile,
         max_output_tokens=args.max_output_tokens,
+        effort=args.effort,
         transport_retries=args.transport_retries,
         streaming=args.streaming,
         repeat_schema_in_prompt=False,
@@ -776,6 +786,7 @@ def main() -> int:
     manifest = {
         "schema": "paper1.luna_semantic_judge_manifest.v1",
         "profile": args.profile,
+        "requested_effort": args.effort,
         "method_root": str(args.method_root),
         "baseline_root": str(args.baseline_root),
         "ledger": str(ledger_path),

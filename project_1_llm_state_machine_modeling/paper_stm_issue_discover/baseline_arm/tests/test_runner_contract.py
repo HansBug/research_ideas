@@ -33,6 +33,8 @@ def test_runner_cli_streams_by_default_and_allows_explicit_opt_out() -> None:
     required = ["--case", "0000", "--profile", "fake", "--output-dir", "out"]
 
     assert parser.parse_args(required).streaming is True
+    assert parser.parse_args(required).effort is None
+    assert parser.parse_args([*required, "--effort", "xhigh"]).effort == "xhigh"
     assert parser.parse_args([*required, "--stream"]).streaming is True
     assert parser.parse_args([*required, "--no-stream"]).streaming is False
 
@@ -95,9 +97,11 @@ def wired(monkeypatch: pytest.MonkeyPatch):
         # ⛔ 刻意**不** mock `adapter_name`：它是纯查表函数、不碰凭据，让真函数跑才能抓住
         # 调用侧传错参数。⚠️ 初版把 config 整个传了进去，mock 掉之后测试全绿、真实 smoke 才炸。
         # 每一个被 mock 掉的纯函数都是一处测试盲区。
-        monkeypatch.setattr(
-            runner, "create_chat_model", lambda *a, **k: model
-        )
+        def create_model(*_args, **kwargs):
+            model.create_kwargs = kwargs
+            return model
+
+        monkeypatch.setattr(runner, "create_chat_model", create_model)
         monkeypatch.setattr(runner, "normalize_model_output_usage", lambda _raw: {})
         monkeypatch.setattr(runner.time, "sleep", lambda _s: None)
         return model
@@ -158,7 +162,10 @@ def test_real_corpus_has_54_in_scope_pairs() -> None:
 def test_ok_cell_records_everything_needed_for_audit(wired, tmp_path: Path) -> None:
     model = wired([_ok_response(3)])
     record = runner.run_cell(
-        case="0000", profile="fake", report_root=_corpus_stub(tmp_path)
+        case="0000",
+        profile="fake",
+        report_root=_corpus_stub(tmp_path),
+        effort="high",
     )
     assert record["status"] == "ok"
     assert record["issue_count"] == 3
@@ -168,6 +175,7 @@ def test_ok_cell_records_everything_needed_for_audit(wired, tmp_path: Path) -> N
         "user_prompt",
         "prompt_sha256",
         "configured_model",
+        "requested_effort",
         "adapter",
         "provider",
         "profile_max_output_tokens",
@@ -178,6 +186,8 @@ def test_ok_cell_records_everything_needed_for_audit(wired, tmp_path: Path) -> N
         assert key in record, f"record is missing audit field {key!r}"
     # 真 `adapter_name` 的返回值，证明它是按字符串调用的。
     assert record["provider"] == "langchain-openai/chat-completions", record["provider"]
+    assert record["requested_effort"] == "high"
+    assert model.create_kwargs["effort"] == "high"
     assert record["inputs"]["truncated"] is False
     # ⭐ 证明没压输出预算，也没覆盖采样参数。
     assert record["max_output_tokens_override"] is None

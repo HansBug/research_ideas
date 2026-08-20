@@ -6,7 +6,6 @@ from urllib.parse import urlsplit
 
 from .config import LLMConfig
 
-
 _ADAPTER_PACKAGES = {
     "openai": "langchain-openai",
     "openai-responses": "langchain-openai",
@@ -21,9 +20,47 @@ _ADAPTER_NAMES = {
     "deepseek": "langchain-deepseek/chat-completions",
 }
 
+EFFORT_LEVELS = ("none", "low", "medium", "high", "xhigh", "max")
+_OPENAI_EFFORT_LEVELS = frozenset(EFFORT_LEVELS)
+_ANTHROPIC_EFFORT_LEVELS = frozenset(EFFORT_LEVELS[1:])
+
 
 class LLMModelFactoryError(ValueError):
     """Raised when a neutral LLM model cannot be constructed from config."""
+
+
+def _apply_effort(
+    kwargs: dict[str, Any], config: LLMConfig, effort: str | None
+) -> None:
+    """Apply an explicit runtime effort using the selected adapter's wire shape."""
+
+    if effort is None:
+        return
+    if config.adapter in {"openai", "openai-responses"}:
+        if effort not in _OPENAI_EFFORT_LEVELS:
+            supported = ", ".join(EFFORT_LEVELS)
+            raise LLMModelFactoryError(
+                f"unsupported effort {effort!r} for {config.adapter}; expected one of: {supported}"
+            )
+        if config.adapter == "openai-responses":
+            reasoning = kwargs.get("reasoning")
+            if reasoning is not None and not isinstance(reasoning, Mapping):
+                raise LLMModelFactoryError("model option 'reasoning' must be a mapping")
+            kwargs["reasoning"] = {**dict(reasoning or {}), "effort": effort}
+        else:
+            kwargs["reasoning_effort"] = effort
+        return
+    if config.adapter == "anthropic":
+        if effort not in _ANTHROPIC_EFFORT_LEVELS:
+            supported = ", ".join(EFFORT_LEVELS[1:])
+            raise LLMModelFactoryError(
+                f"unsupported effort {effort!r} for anthropic; expected one of: {supported}"
+            )
+        kwargs["effort"] = effort
+        return
+    raise LLMModelFactoryError(
+        f"adapter {config.adapter!r} does not support explicit effort"
+    )
 
 
 def adapter_name(adapter: str) -> str:
@@ -42,7 +79,9 @@ def default_stream_usage(config: LLMConfig) -> bool:
         return True
     if config.adapter == "deepseek":
         return False
-    host = (urlsplit(config.base_url or "https://api.openai.com").hostname or "").lower()
+    host = (
+        urlsplit(config.base_url or "https://api.openai.com").hostname or ""
+    ).lower()
     return host == "api.openai.com"
 
 
@@ -53,6 +92,7 @@ def model_kwargs(
     stream_usage: bool | None = None,
     max_retries: int | None = 0,
     model_options: Mapping[str, Any] | None = None,
+    effort: str | None = None,
 ) -> dict[str, Any]:
     """Build provider constructor kwargs from ``LLMConfig`` without side imports."""
 
@@ -66,10 +106,13 @@ def model_kwargs(
     if config.adapter in {"openai", "openai-responses"}:
         kwargs["use_responses_api"] = config.adapter == "openai-responses"
     kwargs["streaming"] = streaming
-    kwargs["stream_usage"] = default_stream_usage(config) if stream_usage is None else stream_usage
+    kwargs["stream_usage"] = (
+        default_stream_usage(config) if stream_usage is None else stream_usage
+    )
     if max_retries is not None:
         kwargs["max_retries"] = max_retries
     kwargs.update(dict(model_options or {}))
+    _apply_effort(kwargs, config, effort)
     return kwargs
 
 
@@ -81,6 +124,7 @@ def create_chat_model(
     streaming: bool = True,
     stream_usage: bool | None = None,
     max_retries: int | None = 0,
+    effort: str | None = None,
 ) -> Any:
     """Construct the LangChain chat model selected by ``LLMConfig.adapter``.
 
@@ -115,7 +159,10 @@ def create_chat_model(
                 stream_usage=stream_usage,
                 max_retries=max_retries,
                 model_options=model_options,
+                effort=effort,
             )
         )
+    except LLMModelFactoryError:
+        raise
     except Exception as exc:
         raise LLMModelFactoryError("model construction failed") from exc

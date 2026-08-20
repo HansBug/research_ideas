@@ -58,6 +58,7 @@ from project_1_llm_state_machine_modeling.paper_stm_issue_discover.pipeline.witn
     GuardOnlyLabel,
     parse_guard_only_label,
 )
+from utils.llm.model_factory import EFFORT_LEVELS
 
 ProofTemplate = Literal[
     "T01_initial_contract",
@@ -14518,6 +14519,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "case": args.case,
         "pair_name": pair["pair_name"],
         "profile": args.profile,
+        "requested_effort": getattr(args, "effort", None),
         "inputs": {
             name: {
                 "path": pair["paths"][name],
@@ -14567,6 +14569,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         responder = DirectStructuredResponder(
             args.profile,
             max_output_tokens=args.max_output_tokens,
+            effort=getattr(args, "effort", None),
             transport_retries=args.transport_retries,
             streaming=getattr(args, "streaming", None),
         )
@@ -14623,6 +14626,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--case", required=True, help="four-digit pair id")
     parser.add_argument("--profile", default="gpt-5.5")
+    parser.add_argument(
+        "--effort",
+        choices=EFFORT_LEVELS,
+        default=None,
+        help="Optional per-run provider effort; omitted preserves the provider default.",
+    )
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--report-root", default=None)
     parser.add_argument("--plan-file", default=None)

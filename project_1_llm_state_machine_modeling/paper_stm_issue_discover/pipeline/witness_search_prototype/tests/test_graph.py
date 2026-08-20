@@ -23,6 +23,16 @@ def test_all_prototype_entry_points_share_the_provider_retry_default() -> None:
     assert graph_args.transport_retries == DEFAULT_TRANSPORT_RETRIES
     assert prototype_args.streaming is True
     assert graph_args.streaming is True
+    assert prototype_args.effort is None
+    assert graph_args.effort is None
+    assert (
+        graph.build_parser()
+        .parse_args(
+            ["--case", "0000", "--output-dir", "out", "--effort", "high"]
+        )
+        .effort
+        == "high"
+    )
     assert (
         prototype.build_parser()
         .parse_args(["--case", "0000", "--output-dir", "out", "--stream"])
@@ -55,11 +65,21 @@ def test_graph_cli_repeats_the_schema_contract_in_the_prompt(
     )
 
     result = graph.main(
-        ["--case", "0016", "--profile", "fake", "--output-dir", str(tmp_path)]
+        [
+            "--case",
+            "0016",
+            "--profile",
+            "fake",
+            "--effort",
+            "xhigh",
+            "--output-dir",
+            str(tmp_path),
+        ]
     )
 
     assert result == 0
     assert captured["profile"] == "fake"
+    assert captured["effort"] == "xhigh"
     assert captured["repeat_schema_in_prompt"] is True
 
 
@@ -1290,6 +1310,7 @@ def test_usage_budget_reports_model_matched_usd_cost(tmp_path) -> None:
                 "usage": {
                     "input_tokens": 100,
                     "output_tokens": 20,
+                    "reasoning_tokens": 9,
                     "total_tokens": 120,
                     "cache_read_input_tokens": 0,
                     "cache_creation_input_tokens": 0,
@@ -1307,6 +1328,7 @@ def test_usage_budget_reports_model_matched_usd_cost(tmp_path) -> None:
                 "usage": {
                     "input_tokens": 100,
                     "output_tokens": 20,
+                    "reasoning_tokens": 9,
                     "total_tokens": 120,
                     "cache_read_input_tokens": 40,
                     "cache_creation_input_tokens": 20,

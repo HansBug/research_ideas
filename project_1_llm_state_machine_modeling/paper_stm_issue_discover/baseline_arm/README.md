@@ -90,12 +90,15 @@ baseline_arm/
 python -m pytest project_1_llm_state_machine_modeling/paper_stm_issue_discover/baseline_arm/tests -q
 
 # 单格
-python .../baseline_arm/src/runner.py --case 0000 --profile gpt-5.5 --output-dir /tmp/probe
+python .../baseline_arm/src/runner.py \
+    --case 0000 --profile gpt-5.6-luna --effort high --output-dir /tmp/probe
 
 # 全网格（54 × 2 × 3 = 324），16 并发
 python .../baseline_arm/src/launch.py \
-    --output-root runs/paper1/x1-baseline-v1 --parallel 16
+    --output-root runs/paper1/x1-baseline-v1 --parallel 16 --effort high
 ```
+
+`--effort` 是每次运行的可选 CLI 参数，不写入 `.llmconfig.yml`。省略时 adapter 不发送 effort 字段，保留 provider 默认行为；record 中的 `requested_effort` 为 `null`。
 
 ⚠️ `launch.py` 在开跑前会主动查一次残留工作进程，⛔ 有残留就拒绝启动。理由见该文件 docstring：两个写者写进同一输出目录会产出**静默污染**的记录，而症状看起来像刚改的代码引入的回归。
 

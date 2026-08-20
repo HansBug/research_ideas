@@ -38,6 +38,22 @@ def test_estimate_usage_cost_prices_each_cache_class_once() -> None:
     assert result["total_usd"] == 0.000845
 
 
+def test_estimate_usage_cost_does_not_double_bill_reasoning_tokens() -> None:
+    result = estimate_usage_cost_usd(
+        {
+            "input_tokens": 100,
+            "output_tokens": 20,
+            "reasoning_tokens": 9,
+        },
+        _pricing(),
+    )
+
+    assert result["eligible"] is True
+    assert result["categories"]["output"]["tokens"] == 20
+    assert result["output_usd"] == 0.0005
+    assert result["total_usd"] == 0.001
+
+
 def test_estimate_usage_cost_uses_default_cache_write_price() -> None:
     result = estimate_usage_cost_usd(
         {

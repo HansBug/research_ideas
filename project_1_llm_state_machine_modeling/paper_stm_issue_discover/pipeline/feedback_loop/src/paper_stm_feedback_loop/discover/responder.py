@@ -425,6 +425,7 @@ class LLMObservation:
     schema_contract_repeated_in_prompt: bool
     prompt_cache: dict[str, Any]
     pricing: dict[str, Any] | None
+    requested_effort: str | None = None
     failure: str | None = None
 
 
@@ -443,6 +444,7 @@ class DirectStructuredResponder:
         *,
         registry_path: str | None = None,
         max_output_tokens: int | None = None,
+        effort: str | None = None,
         transport_retries: int = DEFAULT_TRANSPORT_RETRIES,
         streaming: bool | None = None,
         repeat_schema_in_prompt: bool = True,
@@ -451,6 +453,7 @@ class DirectStructuredResponder:
     ) -> None:
         registry = load_llm_registry(registry_path)
         self.profile = profile
+        self.requested_effort = effort
         self.config = registry.require(profile)
         model_options = (
             {"max_tokens": max_output_tokens}
@@ -471,6 +474,7 @@ class DirectStructuredResponder:
             model_options=model_options,
             streaming=self.streaming,
             max_retries=0,
+            effort=effort,
         )
         self.transport_retries = max(0, transport_retries)
         self.repeat_schema_in_prompt = repeat_schema_in_prompt
@@ -626,6 +630,7 @@ class DirectStructuredResponder:
                     llm_call_id=str(uuid.uuid4()),
                     role=role,
                     profile=self.profile,
+                    requested_effort=self.requested_effort,
                     adapter=self.config.adapter,
                     provider=adapter_name(self.config.adapter),
                     streaming=self.streaming,
@@ -710,6 +715,7 @@ class DirectStructuredResponder:
             llm_call_id=str(uuid.uuid4()),
             role=role,
             profile=self.profile,
+            requested_effort=self.requested_effort,
             adapter=self.config.adapter,
             provider=adapter_name(self.config.adapter),
             streaming=self.streaming,

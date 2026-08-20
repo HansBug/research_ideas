@@ -44,12 +44,14 @@ if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
 from schema import NaiveReview
+
 from utils.llm import (
     adapter_name,
     create_chat_model,
     load_llm_registry,
     normalize_model_output_usage,
 )
+from utils.llm.model_factory import EFFORT_LEVELS
 
 #: prompt 的唯一真源。⛔ 不在本文件内联副本（理由见 ../prompt/README.md 开头）。
 PROMPT_FILE = _HERE.parents[0] / "prompt" / "naive_v1.txt"
@@ -254,6 +256,7 @@ def run_cell(
     streaming: bool | None = None,
     round_index: int | None = None,
     arm_label: str | None = None,
+    effort: str | None = None,
 ) -> dict[str, Any]:
     """跑一格，返回自包含的 record。⛔ 本函数不抛异常给调用方；失败也返回 record。"""
 
@@ -276,7 +279,7 @@ def run_cell(
     # selection must not silently change the timeout behavior of a cell.
     effective_streaming = True if streaming is None else streaming
     model = create_chat_model(
-        config, streaming=effective_streaming, max_retries=0
+        config, streaming=effective_streaming, max_retries=0, effort=effort
     )
 
     structured_options: dict[str, Any] = {"include_raw": True}
@@ -419,6 +422,7 @@ def run_cell(
         "round": round_index,
         "arm_label": arm_label,
         "profile": profile,
+        "requested_effort": effort,
         "adapter": adapter,
         "provider": provider,
         "streaming": effective_streaming,
@@ -477,6 +481,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--case", required=True, help="four-digit pair id, e.g. 0000")
     parser.add_argument("--profile", required=True)
+    parser.add_argument(
+        "--effort",
+        choices=EFFORT_LEVELS,
+        default=None,
+        help="Optional per-run provider effort; omitted preserves the provider default.",
+    )
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--content-language", choices=("zh-CN", "en-US"), default="zh-CN")
     parser.add_argument("--report-root", default=None)
@@ -513,6 +523,7 @@ def main(argv: list[str] | None = None) -> int:
         streaming=args.streaming,
         round_index=args.round,
         arm_label=args.arm_label,
+        effort=args.effort,
     )
     path = write_record(record, Path(args.output_dir))
     print(

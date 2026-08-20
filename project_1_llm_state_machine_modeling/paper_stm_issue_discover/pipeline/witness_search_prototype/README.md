@@ -60,8 +60,8 @@ W2 还必须带有 terminal counterexample certificate，其中包含确切 FCST
 # 使用 utils.llm、三个 LLM 角色和 immutable stage record 运行 LangGraph；D 对整格一次裁决。
 python -m \
   project_1_llm_state_machine_modeling.paper_stm_issue_discover.pipeline.witness_search_prototype.graph \
-  --case 0000 --profile claude-opus-4-7 \
-  --output-dir runs/paper1/witness-search/0000-opus47
+  --case 0000 --profile gpt-5.6-luna --effort high \
+  --output-dir runs/paper1/witness-search/0000-luna-high
 
 # 复用已成功的 contract/discovery-grounding plan，但在当前 FCSTM 上重新执行全部断言，并重新调用 D。
 python -m \
@@ -77,6 +77,9 @@ PYTHONPATH=. python -m pytest \
 ```
 
 真实调用通过 `utils.llm` 使用仓库 `.llmconfig.yml` 中的 profile；环境变量不是运行时凭据入口。
+`--effort` 只在 CLI 运行时生效，不进入 profile。省略时 adapter 完全不发送 effort 字段并沿用 provider 默认行为；run record 以 `requested_effort: null` 如实记录“调用方未指定”。
+
+Luna 在 pair `0029` 上的七档 effort 实测结果见 [`experiments/luna_effort_pair0029_20260820/REPORT.md`](./experiments/luna_effort_pair0029_20260820/REPORT.md)；机器可读指标与原始制品 SHA-256 见同目录 `metrics.json`。
 
 ## 工程调试记录
 

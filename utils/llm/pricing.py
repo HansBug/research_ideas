@@ -37,7 +37,12 @@ def estimate_usage_cost_usd(
     usage: Mapping[str, Any],
     pricing: LLMPricing,
 ) -> dict[str, Any]:
-    """Calculate configured input/output/cache-read/cache-write cost."""
+    """Calculate configured input/output/cache-read/cache-write cost.
+
+    Provider ``output_tokens`` already includes reasoning tokens.  Keep the
+    reasoning detail for analysis, but never add it as a separate billing
+    class here.
+    """
 
     errors: list[str] = []
     input_tokens = _token_count(usage, "input_tokens")
