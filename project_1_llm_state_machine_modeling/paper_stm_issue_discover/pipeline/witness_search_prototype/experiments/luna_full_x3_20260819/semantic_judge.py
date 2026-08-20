@@ -697,7 +697,9 @@ def judge_pair(
     }, observations
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
+    """Build the semantic-judge CLI parser with streaming as the default."""
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--method-root", type=Path, required=True)
     parser.add_argument("--baseline-root", type=Path, required=True)
@@ -724,6 +726,11 @@ def main() -> int:
     parser.set_defaults(streaming=True)
     parser.add_argument("--max-output-tokens", type=int, default=20_000)
     parser.add_argument("--pairs", nargs="*", default=None)
+    return parser
+
+
+def main() -> int:
+    parser = build_parser()
     args = parser.parse_args()
     ledger_path = (
         ROOT

@@ -467,6 +467,81 @@ def test_compiler_fail_closed_entry_deadlock_has_exact_source_bridge() -> None:
     assert prototype._protocol_d2_grounding(finding) == "impl"
 
 
+def test_progressive_scout_aggregates_global_zero_behavior_from_typed_parent_ref() -> None:
+    pair, inspect = _pair_and_inspect("0053")
+    seeds = prototype.derive_progressive_evidence_seeds(pair, inspect)
+    matching = [
+        seed
+        for seed in seeds
+        if seed.get("cause_key") == "source:zero_behavior:PumpControl"
+    ]
+
+    assert len(matching) == 1
+    seed = matching[0]
+    assert set(seed["locations"]) == {
+        "llms_emp_feedback_final_0053.PumpControl.PumpRegion.PumpState",
+        "llms_emp_feedback_final_0053.PumpControl.WaterRegion.WaterState",
+        "llms_emp_feedback_final_0053.PumpControl.MethaneRegion.MethaneState",
+    }
+    certificate = seed["source_causality_certificate"]
+    assert certificate["kind"] == "source_zero_behavior"
+    assert certificate["source_root_scope"] == "PumpControl"
+    assert certificate["target"] == "PumpControl"
+    assert certificate["diagnostic_target"] == "PumpControl.PumpRegion"
+    assert certificate["reachable"] is True
+    assert certificate["declared_states"] == [
+        "PumpControl",
+        "PumpControl.MethaneRegion",
+        "PumpControl.MethaneRegion.MethaneState",
+        "PumpControl.PumpRegion",
+        "PumpControl.PumpRegion.PumpState",
+        "PumpControl.WaterRegion",
+        "PumpControl.WaterRegion.WaterState",
+    ]
+    assert certificate["global_non_initial_transition_count"] == 0
+    assert certificate["non_initial_transitions"] == []
+    assert certificate["final_states"] == []
+    assert certificate["verdict"] == "counterexample"
+
+    outcomes = prototype.execute_progressive_evidence_seeds(pair, inspect)
+    findings = prototype.build_finding_records(outcomes)
+    finding = next(
+        item
+        for item in findings
+        if item["finding_key"].startswith("source:zero_behavior:PumpControl:")
+    )
+    assert finding["witness_level"] == "W2"
+    assert finding["claims"] == [
+        "Source system 'PumpControl' reaches 'PumpControl'; its exact canonical AST contains no non-initial transition and no explicit final state, so every declared behavior is a zero-behavior pure stub."
+    ]
+    assert prototype._protocol_d2_grounding(finding) == "impl"
+
+
+def test_missing_initial_certificate_exposes_language_clause_for_d2_lit() -> None:
+    pair, _ = _pair_and_inspect("0046")
+    certificate = prototype._source_missing_initial_certificate(
+        pair,
+        "UAVSwarmStateMachine.SearchRegion.Idle",
+    )
+    assert certificate is not None
+    finding = {
+        "source_causality_certificate": certificate,
+        "witness_level": "W2",
+        "nl_anchor_valid": False,
+        "nl_quotes": [],
+    }
+    clause = prototype._language_clause_for_finding(finding)
+    assert clause is not None
+    assert clause["clause_id"] == "UML_COMPOSITE_INITIAL_ENTRY_REQUIRED"
+    assert clause["antecedent_established"] is True
+    assert clause["violation_established"] is True
+    assert prototype._mechanical_d_provenance_ceiling(finding) == {
+        "level": "D2",
+        "admissible_d2_groundings": ["lang"],
+        "semantic_d_decision_claimed": False,
+    }
+
+
 def test_entry_deadlock_requires_synthetic_transition_to_target_exact_deadlock_state() -> (
     None
 ):
@@ -593,6 +668,29 @@ def test_progressive_scout_finds_initial_contract_without_llm_backend_choice() -
     assert (
         "inspect_model(model"
         in initial["compiled_assertions"][0]["compiled_assertion_code"]
+    )
+
+
+def test_transition_contract_source_fact_names_exact_target_mismatch() -> None:
+    certificate = {
+        "kind": "source_transition_contract",
+        "verdict": "counterexample",
+        "observed_transition_id": "tr_0009",
+        "observed_transition": {
+            "id": "tr_0009",
+            "source": "HighwayMode.cruise",
+            "target": "HighwayMode.FinishState",
+        },
+        "source": "HighwayMode.cruise",
+        "target": "HighwayMode.exit_hwy",
+    }
+
+    fact = prototype._canonical_source_fact(certificate)
+
+    assert fact == (
+        "Source transition 'tr_0009' reaches observed target "
+        "'HighwayMode.FinishState', but the exact transition contract requires "
+        "target 'HighwayMode.exit_hwy'."
     )
 
 
@@ -4174,9 +4272,9 @@ def test_two_conditioned_alternatives_create_exact_guard_set_obligation() -> Non
     group = prototype.execute_evidence_plan(
         pair, inspect, prototype.EvidencePlan(candidates=[guard_candidate])
     )[0]["probe_groups"][0]
-    assert group["witness_level"] == "W1"
+    assert group["witness_level"] == "W2"
     assert group["counterexample_found"] is True
-    assert group["source_attribution"]["status"] == "source_localized"
+    assert group["source_attribution"]["status"] == "causal_dual_certificate"
     certificate = group["source_causality_certificate"]
     assert certificate["kind"] == "source_event_alternative_collision"
     assert certificate["sound_for_claim"] is True
@@ -4189,6 +4287,11 @@ def test_two_conditioned_alternatives_create_exact_guard_set_obligation() -> Non
         "HighwayMode.cruise",
         "HighwayMode.lane_change",
     ]
+    execution = group["execution_certificate"]
+    assert execution["kind"] == "fcstm_event_alternative_collision"
+    assert execution["terminal"] is True
+    assert execution["counterexample_found"] is True
+    assert execution["source_causality_link"]["source_result"] is True
 
     finding = {
         "domain_obligations": [
@@ -5932,6 +6035,48 @@ def test_0029_scope_negative_event_route_executes_to_w2() -> None:
     ]
 
 
+def test_typed_event_scope_goal_binds_observed_target_before_lowering() -> None:
+    """A typed path-absence goal may derive its target from the exact edge ID."""
+
+    pair, inspect = _pair_and_inspect("0029")
+    candidate = prototype.EvidenceCandidate(
+        obligation="The Urban completion event must avoid HighwayMode.",
+        claim="The selected Urban completion route enters HighwayMode.",
+        basis_kind="nl_literal",
+        nl_quote=pair["nl"].splitlines()[9],
+        priority=5,
+        locations=["NL10", "tr_0026"],
+        proposed_l="L2",
+        domain_obligation={
+            "family": "graph",
+            "property": "path_absent",
+            "source_ref": "UrbanMode",
+            "target_ref": "HighwayMode.FinishState",
+            "forbidden_scope_ref": "HighwayMode",
+            "expected": True,
+        },
+        goal=prototype.EvidenceGoal(
+            relation="event_avoids_scope",
+            observed_transition_id="tr_0026",
+            source="UrbanMode",
+            trigger="auto_finished=true",
+            forbidden_scope="HighwayMode",
+        ),
+    )
+
+    outcome = prototype.execute_evidence_plan(
+        pair, inspect, prototype.EvidencePlan(candidates=[candidate])
+    )[0]
+    group = outcome["probe_groups"][0]
+
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["source_attribution"]["status"] == "causal_dual_certificate"
+    assert group["compiler_route"]["typed_obligation_status"] == "validated"
+    assert group["compiler_route"]["method_bindings"]
+    assert group["evidence_goal"]["target"] == "HighwayMode.FinishState"
+
+
 def test_0029_semantically_selected_extraneous_edge_executes_to_w2() -> None:
     pair, inspect = _pair_and_inspect("0029")
     candidate = prototype.EvidenceCandidate(
@@ -6093,6 +6238,31 @@ def test_typed_target_reachable_alias_lowers_to_same_core_operator() -> None:
 
     assert prototype.validate_domain_obligation_lowering(candidate) == []
     assert prototype.validate_operator_executable_soundness(candidate) == []
+
+
+def test_initial_target_alias_uses_goal_child_when_owner_is_omitted() -> None:
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="The composite must enter its specified child initially.",
+        claim="The initial target is not the specified child.",
+        observed_fact="The typed response names the composite but omits its owner field.",
+        basis_kind="domain_norm",
+        priority=5,
+        locations=["PumpControl", "PumpControl.PumpState"],
+        proposed_l="L0",
+        domain_obligation={
+            "family": "attachment",
+            "attachment": "initial_target",
+            "subject_ref": "PumpControl",
+            "owner_ref": None,
+        },
+        goal=prototype.EvidenceGoal(
+            relation="initial_target",
+            subject="PumpControl",
+            target="PumpControl.PumpState",
+        ),
+    )
+
+    assert prototype.validate_domain_obligation_lowering(candidate) == []
 
 
 def test_typed_domain_obligation_mismatch_fails_closed_without_text_rules() -> None:

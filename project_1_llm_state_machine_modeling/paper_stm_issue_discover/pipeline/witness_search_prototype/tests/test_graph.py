@@ -341,6 +341,8 @@ def test_langgraph_runs_progressive_scouts_before_d_adjudication() -> None:
     )
 
     record = state["final_record"]
+    assert record["status"] == "completed"
+    assert record["replayed"] is False
     assert record["strategy"] == (
         "shared_a_complementary_dual_b_formal_execution_single_d"
     )
@@ -626,6 +628,90 @@ def test_d_adjudication_covers_all_findings_in_one_call() -> None:
     assert record["telemetry"]["d_call_count"] == 1
     assert responder.roles.count("paper1_d_adjudication") == 1
     assert all(item["d_decision"] is not None for item in record["finding_records"])
+
+
+def test_w2_target_consistency_d0_requests_one_semantic_recheck() -> None:
+    finding = {
+        "finding_key": "source:transition_target_consistency:facet:fixture",
+        "witness_level": "W2",
+        "nl_anchor_valid": True,
+        "nl_quotes": ["The system exits the highway under the stated condition."],
+        "formal_goals": [{"relation": "transition_target_consistency"}],
+        "source_causality_certificate": {
+            "kind": "source_transition_target_inconsistency",
+            "verdict": "counterexample",
+            "sound_for_claim": True,
+            "observed_transition": {
+                "id": "tr_0009",
+                "source": "HighwayMode.cruise",
+                "target": "HighwayMode.FinishState",
+            },
+            "target": "HighwayMode.exit_hwy",
+        },
+    }
+    decision = prototype.DDecision(
+        finding_key=finding["finding_key"],
+        grounding="none",
+        violated_obligation="The selected target is inconsistent.",
+        strongest_defeater="An alternative target may realize the action.",
+        defeater_kind="rebutting",
+        defeater_disposition="survives",
+        rationale="The alternative target may be intended.",
+        d_subclass="not_applicable",
+        d_level="D0",
+    )
+
+    reason = graph._target_consistency_recheck_reason(finding, decision)
+
+    assert reason is not None
+    assert "typed relation" in reason
+    assert graph._target_consistency_recheck_reason(
+        finding,
+        decision.model_copy(
+            update={
+                "d_level": "D2",
+                "grounding": "lit",
+                "d_subclass": "D2-lit",
+            }
+        ),
+    ) is None
+
+
+def test_w2_transition_contract_target_mismatch_requests_semantic_recheck() -> None:
+    finding = {
+        "finding_key": "source:transition_contract:facet:fixture",
+        "witness_level": "W2",
+        "nl_anchor_valid": True,
+        "nl_quotes": ["The highway exit reaches the local highway exit."],
+        "formal_goals": [{"relation": "transition_contract"}],
+        "source_causality_certificate": {
+            "kind": "source_transition_contract",
+            "verdict": "counterexample",
+            "sound_for_claim": True,
+            "observed_transition": {
+                "id": "tr_0009",
+                "source": "HighwayMode.cruise",
+                "target": "HighwayMode.FinishState",
+            },
+            "target": "HighwayMode.exit_hwy",
+        },
+    }
+    decision = prototype.DDecision(
+        finding_key=finding["finding_key"],
+        grounding="none",
+        violated_obligation="The transition must reach the local highway exit.",
+        strongest_defeater="The completion state may be an equivalent exit.",
+        defeater_kind="rebutting",
+        defeater_disposition="survives",
+        rationale="The target identity could be read as a semantic alias.",
+        d_subclass="not_applicable",
+        d_level="D0",
+    )
+
+    reason = graph._target_consistency_recheck_reason(finding, decision)
+
+    assert reason is not None
+    assert "typed relation" in reason
 
 
 def test_initial_d_extra_key_is_ignored_without_invalidating_exact_decisions() -> None:

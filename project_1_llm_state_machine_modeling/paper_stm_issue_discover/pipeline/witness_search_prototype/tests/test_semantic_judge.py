@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 MODULE_PATH = (
     Path(__file__).resolve().parents[1]
     / "experiments/luna_full_x3_20260819/semantic_judge.py"
@@ -83,6 +85,26 @@ def test_method_judge_input_contains_only_final_d1_d2_clusters(tmp_path: Path) -
         "published-d1",
         "published-d2",
     ]
+
+
+def test_semantic_judge_cli_defaults_to_stream_and_allows_only_explicit_opt_out() -> None:
+    required = [
+        "--method-root",
+        "method",
+        "--baseline-root",
+        "baseline",
+        "--output-dir",
+        "out",
+    ]
+
+    assert semantic_judge.build_parser().parse_args(required).streaming is True
+    assert (
+        semantic_judge.build_parser().parse_args([*required, "--no-stream"]).streaming
+        is False
+    )
+
+    with pytest.raises(SystemExit):
+        semantic_judge.build_parser().parse_args([*required, "--stream", "--no-stream"])
 
 
 def test_baseline_judge_reads_the_frozen_x1v2_cell_layout(tmp_path: Path) -> None:

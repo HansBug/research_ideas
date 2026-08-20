@@ -479,6 +479,36 @@ def _partition_d_decisions(
     return valid, invalid, diagnostics
 
 
+def _target_consistency_recheck_reason(
+    finding: dict[str, Any], decision: core.DDecision
+) -> str | None:
+    """Request one semantic second look for a typed W2 target comparison.
+
+    This is a review trigger, not a deterministic D verdict. It only routes a
+    structured target-consistency certificate back through the LLM when the
+    first adjudication chose D0 despite a terminal source counterexample and a
+    valid NL anchor. The second call remains responsible for deciding whether
+    the reference target is normatively established.
+    """
+
+    if decision.d_level != "D0" or finding.get("witness_level") != "W2":
+        return None
+    if finding.get("nl_anchor_valid") is not True or not finding.get("nl_quotes"):
+        return None
+    comparison = core.typed_target_comparison_for_d(finding)
+    if comparison is None:
+        return None
+    return (
+        "semantic target-consistency recheck: this finding carries a terminal "
+        "typed target-mismatch certificate with an exact selected transition "
+        "and normative target. Re-evaluate the typed "
+        "relation before applying the generic missing-edge rebuttal; decide "
+        "with the supplied NL action/condition whether the reference target "
+        "is normatively established, and retain D2-lit only if no competent "
+        "alternative reading survives."
+    )
+
+
 def _validate_targeted_d_repair_output(
     plan: core.DAdjudicationPlan,
     *,
@@ -1670,13 +1700,34 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
             for message in messages
         ]
         errors.extend(diagnostics)
-        if invalid and state.get("d_repair_count", 0) == 0:
+        finding_by_key = {
+            str(finding["finding_key"]): finding
+            for finding in state["finding_records"]
+        }
+        semantic_rechecks = {
+            finding_key: reason
+            for finding_key, decision in valid.items()
+            if (
+                reason := _target_consistency_recheck_reason(
+                    finding_by_key[finding_key], decision
+                )
+            )
+        }
+        if semantic_rechecks:
+            errors.extend(
+                f"{finding_key}: {reason}"
+                for finding_key, reason in semantic_rechecks.items()
+            )
+        repair_keys = sorted(set(invalid) | set(semantic_rechecks))
+        if repair_keys and state.get("d_repair_count", 0) == 0:
             return {
                 "d_feedback": errors,
                 "d_frozen_decisions": [
-                    decision.model_dump(mode="json") for decision in valid.values()
+                    decision.model_dump(mode="json")
+                    for finding_key, decision in valid.items()
+                    if finding_key not in semantic_rechecks
                 ],
-                "d_repair_keys": sorted(invalid),
+                "d_repair_keys": repair_keys,
                 "retry_d": True,
             }
         findings = _partially_adjudicated_findings(
@@ -1719,9 +1770,11 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
         discovery_branches = state["discovery_branches"]
         final_record = {
             "schema": "paper1.evidence_discovery_langgraph_prototype.v1",
+            "status": "completed",
             "exploratory_only": True,
             "case": state["input"].case,
             "profile": state["input"].profile,
+            "replayed": bool(state["input"].replay_plans_from),
             "strategy": "shared_a_complementary_dual_b_formal_execution_single_d",
             "replay_plans_from": state["input"].replay_plans_from,
             "contract_plan": state["contract_plan"].model_dump(mode="json"),
