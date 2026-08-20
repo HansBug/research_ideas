@@ -1549,7 +1549,11 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
             else "# Whole-pair D adjudication\n\n"
         ) + (
             f"Return exactly {len(findings)} decisions, one for every finding in "
-            "the supplied stable order.\n\n"
+            "the supplied stable order. Copy each FINDING_KEY exactly from the "
+            "following checklist; do not abbreviate, normalize, or invent keys.\n\n"
+            "# Exact finding_key checklist\n\n"
+            + "\n".join(f"- FINDING_KEY:{item['finding_key']}" for item in findings)
+            + "\n\n"
         )
         plan, observations, error = _invoke_with_schema_repair(
             responder,

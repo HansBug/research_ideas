@@ -39,6 +39,32 @@ def test_context_contains_all_views_and_mapping_comments() -> None:
     assert "expected_issue" not in context
 
 
+def test_fresh_grounding_plan_tolerates_omitted_optional_candidate_arrays() -> None:
+    plan = prototype.FreshDiscoveryGroundingPlan.model_validate(
+        {
+            "concept_bindings": [],
+            "initial_contract_bindings": [],
+            "containment_contract_bindings": [],
+            "transition_group_bindings": [],
+            "required_state_bindings": [],
+            "required_event_scope_bindings": [],
+            "required_action_bindings": [],
+            "unauthorized_transition_bindings": [],
+            "additional_contracts": {
+                "initial_contracts": [],
+                "containment_contracts": [],
+                "transition_groups": [],
+                "required_state_contracts": [],
+                "required_event_scope_contracts": [],
+                "required_action_contracts": [],
+            },
+            "unresolved": [],
+        }
+    )
+    assert plan.surface_candidates == []
+    assert plan.behavior_candidates == []
+
+
 def test_fcstm_annotations_use_exact_ast_paths_for_duplicate_short_names() -> None:
     fcstm = """state Root named \"Root\" {
     state A named \"A\" {
@@ -3730,6 +3756,175 @@ def test_transition_condition_binding_is_exactly_checked() -> None:
     assert group["source_causality_certificate"]["condition_present"] is False
 
 
+def test_event_level_prose_condition_without_formal_binding_stays_inconclusive() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    candidate = prototype.EvidenceCandidate(
+        obligation="The HighwayMode-to-UrbanMode route occurs when the urban-way event is received.",
+        claim="The route may be missing a separately represented condition.",
+        basis_kind="nl_literal",
+        nl_quote="when urban_way=true",
+        priority=4,
+        locations=["PUML:L37", "tr_0023"],
+        proposed_l="L1",
+        goal=prototype.EvidenceGoal(
+            relation="transition_contract",
+            source="HighwayMode",
+            target="UrbanMode",
+            condition="when urban_way=true",
+            observed_transition_id="tr_0023",
+            expected=True,
+        ),
+    )
+
+    group = prototype.execute_evidence_plan(
+        pair, inspect, prototype.EvidencePlan(candidates=[candidate])
+    )[0]["probe_groups"][0]
+
+    assert group["witness_level"] == "W1"
+    assert group["counterexample_found"] is False
+    assert group["execution_certificate"]["verdict"] == "inconclusive"
+    assert group["source_causality_certificate"]["formal_condition_binding"] is False
+
+
+def test_condition_role_event_allows_exact_event_binding() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    candidate = prototype.EvidenceCandidate(
+        obligation="The HighwayMode-to-UrbanMode route is taken on the urban-way event.",
+        claim="The event-level route may be absent.",
+        basis_kind="nl_literal",
+        nl_quote="when the urban-way event occurs",
+        priority=4,
+        locations=["PUML:L37", "tr_0023"],
+        proposed_l="L0",
+        goal=prototype.EvidenceGoal(
+            relation="transition_contract",
+            source="HighwayMode",
+            target="UrbanMode",
+            condition="when the urban-way event occurs",
+            condition_role="event",
+            trigger="urban_way=true",
+            observed_transition_id="tr_0023",
+            expected=True,
+        ),
+    )
+
+    group = prototype.execute_evidence_plan(
+        pair, inspect, prototype.EvidencePlan(candidates=[candidate])
+    )[0]["probe_groups"][0]
+
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is False
+    assert group["execution_certificate"]["verdict"] == "satisfied"
+
+
+def test_condition_role_qualified_guard_does_not_accept_event_only_edge() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    candidate = prototype.EvidenceCandidate(
+        obligation="The HighwayMode-to-UrbanMode route requires an additional zero-time qualifier.",
+        claim="The route lacks the required qualified guard.",
+        basis_kind="nl_literal",
+        nl_quote="when zero time is set",
+        priority=4,
+        locations=["PUML:L37", "tr_0023"],
+        proposed_l="L1",
+        goal=prototype.EvidenceGoal(
+            relation="transition_contract",
+            source="HighwayMode",
+            target="UrbanMode",
+            condition="when zero time is set",
+            condition_role="qualified_guard",
+            trigger="urban_way=true",
+            observed_transition_id="tr_0023",
+            expected=True,
+        ),
+    )
+
+    group = prototype.execute_evidence_plan(
+        pair, inspect, prototype.EvidencePlan(candidates=[candidate])
+    )[0]["probe_groups"][0]
+
+    assert group["witness_level"] == "W1"
+    assert group["counterexample_found"] is False
+    assert group["execution_certificate"]["verdict"] == "inconclusive"
+    assert group["source_causality_certificate"]["formal_condition_binding"] is False
+
+
+def test_negative_containment_has_dual_source_certificate() -> None:
+    pair, inspect = _pair_and_inspect("0005")
+    candidate = prototype.EvidenceCandidate(
+        obligation=(
+            "DoorShutWithItem and DoorOpenWithItem are alternative operating "
+            "configurations and must not be nested."
+        ),
+        claim=(
+            "DoorShutWithItem is nested under DoorOpenWithItem even though the "
+            "requirements treat them as alternatives."
+        ),
+        basis=(
+            "The semantic alternative-state reading is supplied by grounding; "
+            "the source AST is checked only for the exact parent relation."
+        ),
+        basis_kind="nl_literal",
+        nl_quote="the door is either open with an item or shut with an item",
+        priority=5,
+        locations=["NL4", "NL5"],
+        proposed_l="L1",
+        domain_obligation=prototype.AttachmentObligation(
+            attachment="containment",
+            subject_ref="DoorOpenWithItem.DoorShutWithItem",
+            owner_ref="DoorOpenWithItem",
+            expected=False,
+        ),
+        goal=prototype.EvidenceGoal(
+            relation="contained_in",
+            subject="DoorOpenWithItem.DoorShutWithItem",
+            target="DoorOpenWithItem",
+            expected=False,
+        ),
+    )
+
+    group = prototype.execute_evidence_plan(
+        pair, inspect, prototype.EvidencePlan(candidates=[candidate])
+    )[0]["probe_groups"][0]
+
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["source_attribution"]["status"] == "causal_dual_certificate"
+    certificate = group["source_causality_certificate"]
+    assert certificate["actual_parent"] == "DoorOpenWithItem"
+    assert certificate["expected"] is False
+    assert certificate["verdict"] == "counterexample"
+
+
+def test_missing_conditioned_endpoint_still_gets_terminal_w2_evidence() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    candidate = prototype.EvidenceCandidate(
+        obligation="HighwayMode.enter_hwy must reach exit_hwy under the qualified exit event.",
+        claim="The required conditioned endpoint transition is absent.",
+        basis_kind="nl_literal",
+        nl_quote="under the qualified exit event",
+        priority=5,
+        locations=["PUML:L15"],
+        proposed_l="L1",
+        goal=prototype.EvidenceGoal(
+            relation="transition_contract",
+            source="HighwayMode.enter_hwy",
+            target="HighwayMode.exit_hwy",
+            trigger="qualified_exit_event",
+            expected=True,
+        ),
+    )
+
+    group = prototype.execute_evidence_plan(
+        pair, inspect, prototype.EvidencePlan(candidates=[candidate])
+    )[0]["probe_groups"][0]
+
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["execution_certificate"]["terminal"] is True
+    assert group["source_causality_certificate"]["verdict"] == "counterexample"
+
+
 def test_unprofiled_boolean_like_labels_do_not_get_guard_smt_w2() -> None:
     pair, inspect = _pair_and_inspect("0029")
     source = f"{pair['pair_name']}.HighwayMode.enter_hwy"
@@ -6046,6 +6241,56 @@ def test_root_source_target_reachability_uses_initial_closure() -> None:
     assert group["witness_level"] == "W2"
     assert observations["source_resolution"]["mode"] == "root_initial_closure"
     assert observations["source_resolution"]["nodes"]
+
+
+def test_root_target_unreachable_has_dual_source_certificate() -> None:
+    pair, inspect = _pair_and_inspect("0046")
+    target = (
+        f"{pair['pair_name']}.UAVSwarmStateMachine."
+        "SearchRegion.Searching"
+    )
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="The exact target must be reachable from the machine root.",
+        claim="The exact target is unreachable from the machine root.",
+        observed_fact=(
+            "The root-to-target query is evaluated on both the converted topology "
+            "and the canonical source graph."
+        ),
+        basis_kind="domain_norm",
+        priority=5,
+        locations=[target],
+        proposed_l="L2",
+        domain_obligation={
+            "family": "graph",
+            "property": "reachable",
+            "source_ref": pair["pair_name"],
+            "target_ref": target,
+        },
+        goal=prototype.EvidenceGoal(
+            relation="target_reachable",
+            source=pair["pair_name"],
+            target=target,
+            expected=True,
+        ),
+    )
+
+    outcome = prototype._execute_evidence_candidate(
+        pair, inspect, candidate, index=1
+    )
+    group = outcome["probe_groups"][0]
+    certificate = group["source_causality_certificate"]
+
+    assert group["witness_level"] == "W2"
+    assert group["execution_certificate"]["verdict"] == "counterexample"
+    assert group["source_attribution"]["status"] == "causal_dual_certificate"
+    assert certificate["kind"] == "source_root_target_unreachable"
+    assert certificate["root_initial_edge_count"] == 0
+    assert (
+        prototype._certificate_cause_key(certificate)
+        == f"source:initial_contract:{pair['pair_name']}"
+    )
+    assert certificate["sound_for_claim"] is True
+    assert certificate["verdict"] == "counterexample"
 
 
 def test_bounded_target_reachability_fails_closed_without_bounded_backend() -> None:

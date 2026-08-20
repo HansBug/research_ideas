@@ -445,6 +445,15 @@ class EvidenceGoal(BaseModel):
     subject: str | None = Field(default=None, description="Exact formal subject state/element ID, when applicable.")
     source: str | None = Field(default=None, description="Exact formal source state/scope ID, when applicable.")
     trigger: str | None = Field(default=None, description="Exact formal event/trigger ID, when applicable.")
+    condition_role: Literal["event", "qualified_guard", "unknown"] | None = Field(
+        default=None,
+        description=(
+            "LLM semantic classification of a normative condition: event means the "
+            "condition is exactly the selected event/action; qualified_guard means "
+            "the NL adds a guard/value/phase qualifier that requires an exact formal "
+            "guard; unknown is fail-closed and never upgrades an unbound qualifier."
+        ),
+    )
     target: str | None = Field(default=None, description="Normative exact target ID, when applicable.")
     forbidden_scope: str | None = Field(
         default=None, description="Exact scope that a route must avoid, when applicable."
@@ -677,6 +686,15 @@ class ExpectedTransitionTarget(BaseModel):
             "Grounding-only exact formal condition binding. The contract extractor "
             "must leave this null; grounding may fill it only from the canonical "
             "transition AST, while the normative condition remains unchanged."
+        ),
+    )
+    condition_role: Literal["event", "qualified_guard", "unknown"] | None = Field(
+        default=None,
+        description=(
+            "Semantic role of the normative condition. Use event when the NL merely "
+            "names the selected event/action; use qualified_guard when it adds an "
+            "independent formal qualifier such as a value, phase, or zero-time rule; "
+            "use unknown when the distinction cannot be grounded."
         ),
     )
 
@@ -936,6 +954,13 @@ class EvidenceGoalBinding(BaseModel):
     subject: str | None = Field(default=None, max_length=200, description="Exact formal subject ID.")
     source: str | None = Field(default=None, max_length=200, description="Exact formal source ID.")
     trigger: str | None = Field(default=None, max_length=200, description="Exact formal trigger/event ID.")
+    condition_role: Literal["event", "qualified_guard", "unknown"] | None = Field(
+        default=None,
+        description=(
+            "Semantic role for a normative condition; qualified_guard is only valid "
+            "when the selected transition has an exact formal guard binding."
+        ),
+    )
     target: str | None = Field(default=None, max_length=200, description="Normative exact target ID.")
     forbidden_scope: str | None = Field(default=None, max_length=200, description="Exact forbidden scope ID.")
     response: str | None = Field(default=None, max_length=200, description="Exact response ID.")
@@ -1029,6 +1054,14 @@ class TransitionTargetGrounding(BaseModel):
             "Exact formal event/guard/raw-label identity copied from the selected "
             "source transition. Required for a conditioned target when W2 is "
             "claimed; never use prose, Markdown, or a paraphrase."
+        ),
+    )
+    condition_role: Literal["event", "qualified_guard", "unknown"] | None = Field(
+        default=None,
+        description=(
+            "LLM semantic condition role copied to the grounded target. This is not "
+            "inferred from labels: event is an event-level obligation, while "
+            "qualified_guard requires an exact parsed guard in the selected AST."
         ),
     )
 
@@ -1209,7 +1242,7 @@ class DiscoveryGroundingPlan(BaseModel):
         description="Additional semantically identified contracts omitted by the first extraction pass.",
     )
     surface_candidates: list[BalancedEvidenceCandidate] = Field(
-        max_length=4, description="Fresh structural hypotheses with typed obligations."
+        max_length=6, description="Fresh structural hypotheses with typed obligations."
     )
     behavior_candidates: list[BalancedEvidenceCandidate] = Field(
         max_length=5, description="Fresh behavioral hypotheses with typed obligations."
@@ -1259,10 +1292,12 @@ class FreshDiscoveryGroundingPlan(DiscoveryGroundingPlan):
     """Live cross-view grounding response with typed formal bindings."""
 
     surface_candidates: list[FreshBalancedEvidenceCandidate] = Field(
+        default_factory=list,
         max_length=6,
         description="Structural hypotheses, each with an observed fact and typed domain obligation.",
     )
     behavior_candidates: list[FreshBalancedEvidenceCandidate] = Field(
+        default_factory=list,
         max_length=5,
         description="Behavioral hypotheses, each with an observed fact and typed domain obligation.",
     )
@@ -1538,7 +1573,11 @@ Return one `SemanticGroundingPlan` with:
    the exact `observed_transition_id` whenever one existing source transition is
    the semantically intended event relation; the compiler derives its formal
    consumer source and event from that ID while preserving an explicitly bound
-   descendant response target. Candidate prose and non-binding goal semantics
+   descendant response target. For a conditioned transition, set
+   `condition_role=event` when the prose merely names the selected event/action,
+   `condition_role=qualified_guard` when it adds an independent value, state,
+   phase, or zero-time qualifier, and `condition_role=unknown` when the
+   distinction is unresolved. Candidate prose and non-binding goal semantics
    are immutable and therefore are not repeated in your output.
 4. `unresolved`: record every binding that remains genuinely ambiguous or lacks
    a corresponding formal element. Do not invent identifiers to make the plan
@@ -1632,6 +1671,16 @@ exact IDs, AST/mapping facts, inspect/topology/trace/SMT results, hashes, and
 budgets. If a semantic binding is not justified, record it in `unresolved`; do
 not guess.
 
+Hierarchy/alternative-state audit is mandatory when applicable: if the NL
+semantically treats two named configurations as sibling or mutually exclusive
+operating states, compare their exact source parent edges and reserve a surface
+candidate for a typed negative containment goal when one is nested under the
+other. Set `relation=contained_in`, bind the exact child and parent IDs, and set
+`expected=false`; include the supporting NL quote, basis, and observed hierarchy
+fact. This candidate is permitted only when the NL establishes the alternative
+relation. Never infer it from state names, capitalization, labels, or identifier
+similarity; unresolved alternative status must remain an unresolved binding.
+
 Return one `FreshDiscoveryGroundingPlan`:
 
 1. `concept_bindings`: bind each realized raw `C-...` concept exactly once to one
@@ -1661,10 +1710,16 @@ Return one `FreshDiscoveryGroundingPlan`:
    target, select that exact wrong-edge ID while preserving the normative target;
    execution will test the mismatch. For every conditioned target with a
    selected observed transition, copy the exact canonical event/guard/raw-label
-   identity into `condition_binding`; do not copy prose or Markdown. If no exact
-   formal identity can be justified, leave `condition_binding` null and let the
-   compiler keep the candidate at W1. Use `rejected` or `unresolved` with empty
-   formal fields only when the NL relation itself is rejected or ambiguous.
+   identity into `condition_binding`; do not copy prose or Markdown. Also set
+   `condition_role=event` when the NL condition merely names that event/action,
+   `condition_role=qualified_guard` when the NL adds an independent value,
+   state, phase, zero-time, or other guard qualifier, and
+   `condition_role=unknown` only when the distinction cannot be grounded. A
+   qualified guard requires an exact parsed guard in the selected source AST;
+   an event label alone never discharges it. If no exact formal identity can be
+   justified, leave `condition_binding` null and let the compiler keep the
+   candidate at W1. Use `rejected` or `unresolved` with empty formal fields only
+   when the NL relation itself is rejected or ambiguous.
    Every live response must satisfy this indexed completeness contract.
 
    Judge every status from the NL relation, never from whether the observed artifact
@@ -1692,6 +1747,14 @@ Return one `FreshDiscoveryGroundingPlan`:
    owner concept bindings but preserve normative endpoints and action identity
    even when the observed source model is wrong. Keep an added action separate
    from transition, effect, persistence, and reachability claims.
+   When the NL presents two named configurations as alternative operating states,
+   reserve a surface candidate for an explicit negative containment obligation
+   when the semantic reading requires them to be siblings rather than nested.
+   Ground the exact child and parent IDs through concept bindings, set the typed
+   goal expectation to false, and retain the supporting NL span and basis. This
+   is a semantic alternative-state decision, not a name or label test; if the
+   alternative relation is unresolved, record the unresolved binding instead of
+   inventing this candidate.
    If a raw group collapses two semantically different targets, mark that raw
    group `rejected` and put the corrected explicit relation in
    `additional_contracts`; do not silently preserve the wrong target. A local
@@ -1905,6 +1968,14 @@ candidate slots first on: omitted or collapsed direct contracts; containment
 and default-entry defects; guard conflicts; unauthorized edges; and
 cross-context inconsistencies where NL semantically assigns the same action or
 condition role but the authored transitions realize incompatible target roles.
+When the NL semantically presents two named states or modes as alternative
+operating configurations, inspect the exact source parent edges for a possible
+scope contradiction. If the semantic reading says those alternatives must not
+be nested, emit a typed `contained_in` goal with the exact child and parent IDs,
+`expected=false`, and preserve the NL span and basis. Do this only when the NL
+meaning establishes the alternative relation; never infer it from state names,
+capitalization, or a label word. If the relation is not grounded, record an
+unresolved binding instead of inventing a containment obligation.
 An authored edge may serve as an in-model contrastive oracle only after you
 semantically establish the shared NL role. Never infer equivalence from equal
 words, labels, identifiers, or condition strings. When a discrepant edge is
@@ -2105,7 +2176,14 @@ fields when the issue is independent.
 - D1: use non-`none` grounding, `defeater_kind=undercutting`,
   `defeater_disposition=survives|unresolved`, and
   `d_subclass=not_applicable`. State the compatible second reading. Guard
-  overlap is normally D1 when NL does not establish priority/exclusivity.
+  overlap is normally D1 when NL does not establish priority/exclusivity,
+  but only when the dossier contains an exact formal guard-set/source
+  certificate. A `guards_distinguishable` candidate whose selected labels are
+  ordinary events, actions, display text, or otherwise lacks a parsed guard
+  certificate has no grounded violated guard obligation; classify it D0 rather
+  than publishing a lexical or label-level overlap hypothesis. The compiler's
+  W1 fallback is evidence of missing executable support, not a defeater for
+  this rule.
 - D0: use `d_subclass=not_applicable`; use a rebutting defeater when facts show
   intended/non-defective behavior. Missing evidence without a grounded first
   reading is D0, not D1. A plausible quality recommendation or desired
@@ -2115,6 +2193,22 @@ fields when the issue is independent.
   `defeater_disposition=survives`, because it is the surviving rebuttal that makes
   the original claim false. Never mark that rebuttal `defeated`. Conversely, D2
   requires the strongest competent defeater to be `defeated`.
+
+For a `contained_in` candidate with `goal.expected=false`, inspect the supplied
+NL quote, obligation, basis, and exact source certificate together. If the
+semantic basis establishes that two named operating configurations are
+alternatives or mutually exclusive, and the certificate reports the forbidden
+parent relation as a terminal source counterexample, this is a grounded first
+reading even when the quote describes the configurations through a transition,
+`or`, or a return route rather than using the word “sibling”. Do not rebut that
+reading merely because the source can execute a transition between the states:
+transition reachability and UML containment are different properties. Use D1
+when a competent alternative interpretation of the names or scope remains, and
+D2 only when the alternative-state obligation is explicit and no such reading
+survives. If the supplied basis does not establish an alternative-state
+obligation, or the source certificate is absent/inconclusive, classify the
+candidate D0. Never create or reject this obligation from state-name similarity
+or label wording.
 
 For an `implicit_oracle` deadlock claim, a null or inconclusive source
 certificate means the required source reachability/deadlock premise was not
@@ -2135,6 +2229,35 @@ If the NL does not establish the asserted target and the exact neighborhood
 contains a competent alternative edge realizing the stated action, no grounded
 first reading remains: classify the missing asserted edge as D0 with a rebutting
 defeater, not D1.
+
+For a transition-contract finding whose normative source is a composite state,
+inspect the exact `observed_transition` and its structured source/parent fields.
+When the selected authored edge starts in a descendant leaf of that composite
+and reaches the required target with the same event, treat that descendant edge
+as a competent realization of a scope-level “from/in the composite” statement.
+Unless the supplied NL explicitly requires a direct composite-boundary edge or
+an event consumed by the composite itself, a missing edge whose only difference
+is the composite-versus-descendant source is D0 with a surviving rebutting
+defeater. This is an AST parent/descendant fact, not a name or string heuristic;
+do not apply it when no exact selected transition or structured parent relation
+is present.
+
+For a `source_transition_contract` whose certificate has
+`relation_present=true` but `condition_present=false`, do not treat the
+compiler's inconclusive condition binding as an automatic defect. First decide
+what the NL condition means. If it is only the event/action that the exact
+observed transition already carries (for example, NL says “when `evt_a` occurs”
+and the selected edge has the exact event `evt_a`), the edge realizes the
+obligation and the candidate is D0. If the NL adds a genuine qualifier (for
+example, a value, state predicate, phase, or zero-time restriction) and the
+source edge has no exact guard/formal qualifier for it, the qualified obligation
+is still a grounded first reading; keep it D1 or D2 according to the surviving
+alternative reading. `formal_condition_binding=false` is evidence about the
+available formal binding, not by itself a semantic verdict. In particular, an
+ordinary event label must not be required to repeat a natural-language paraphrase,
+while a qualified guard must not be silently discharged by an unguarded event
+label. The distinction is semantic and belongs to this LLM adjudication step;
+the deterministic compiler must not infer it from punctuation or keywords.
 
 An exact NL statement that a composite begins or starts in a child imposes a
 default-entry obligation. An ordinary parent-to-child transition requiring an
@@ -2281,6 +2404,13 @@ only an eventless ordinary edge `P -> q` and no initial-pseudostate edge in `P`.
 The ordinary completion edge is evidence that the author attempted the relation,
 but it does not establish default entry when `P` becomes active; classify the
 missing initial-target relation as D2-lit when no other reading survives.
+(23) NL requires `q0 -> q1` when event `evt_a` occurs, and the exact source edge
+`q0 -> q1 : evt_a` is present while the condition binding is inconclusive: the
+event-level contract is satisfied, so the missing-binding hypothesis is D0.
+(24) NL requires `q0 -> q1` when `count=0`, and the exact source edge is
+`q0 -> q1 : close` with no exact guard/formal qualifier: the endpoint edge does
+not discharge the qualified obligation, so a grounded D1/D2 condition finding
+may remain even though `relation_present=true`.
 Do not propose repairs.
 """.strip()
 
@@ -4073,8 +4203,12 @@ def _validate_grounded_contract_plan(
                     if target.observed_transition_id
                     else None
                 )
-                if not isinstance(observed, dict) or not _source_transition_condition_matches(
-                    pair, observed, target.formal_condition
+                if not isinstance(observed, dict) or not (
+                    _source_transition_guard_matches(observed, target.formal_condition)
+                    if target.condition_role == "qualified_guard"
+                    else _source_transition_condition_matches(
+                        pair, observed, target.formal_condition
+                    )
                 ):
                     diagnostics.append(
                         {
@@ -4769,6 +4903,7 @@ def _assemble_grounded_contract_plan(
                             target_binding.observed_transition_id
                         ),
                         "formal_condition": target_binding.condition_binding,
+                        "condition_role": target_binding.condition_role,
                     },
                 )
             )
@@ -5730,6 +5865,7 @@ def expand_transition_groups(
                         target=target.target,
                         condition=target.condition,
                         trigger=target.formal_condition,
+                        condition_role=target.condition_role,
                     ),
                 )
             )
@@ -6954,6 +7090,74 @@ def _source_unreachable_certificate(
     }
 
 
+def _source_root_target_reachability_certificate(
+    pair: dict[str, Any], target_reference: str
+) -> dict[str, Any] | None:
+    """Certify a root-to-target reachability counterexample on the source AST.
+
+    The topology backend can evaluate a root query on the converted FCSTM, but
+    that result alone does not attribute the failure to the authored source.
+    This companion certificate repeats the same exact root reachability query
+    over the canonical source graph and is emitted only for the machine root.
+    It deliberately fails closed for concurrent regions because this prototype
+    does not claim a sequential source semantics for orthogonal regions.
+    """
+
+    model = _source_model(pair)
+    target, target_state = _resolve_source_state(pair, target_reference)
+    root_scope = _source_root_scope_id(pair)
+    if not target or not target_state or not root_scope:
+        return None
+    reachable, state_path, transition_path = _source_reachability(model, target)
+    root_initial_edges = [
+        {
+            "id": transition.get("id"),
+            "target": transition.get("target"),
+            "raw_ref": transition.get("raw_ref"),
+        }
+        for transition in model.get("transitions", [])
+        if isinstance(transition, dict)
+        and transition.get("attributes", {}).get("transition_kind") == "initial"
+        and transition.get("source") == "@initial:__root__"
+    ]
+    concurrent = bool(model.get("concurrent_regions")) or _source_has_concurrent_separator(pair)
+    assumptions = {
+        "root_source_identity_exact": True,
+        "target_identity_resolved_exactly": True,
+        "no_concurrent_regions": not concurrent,
+        "guard_agnostic_absence_is_sound": True,
+    }
+    sound_for_claim = all(assumptions.values())
+    counterexample = sound_for_claim and not reachable
+    return {
+        "schema": "paper1.source_assertion.v1",
+        "kind": "source_root_target_unreachable",
+        "evaluated_artifact": pair["paths"]["canonical"],
+        "evaluated_artifact_sha256": _sha256(
+            json.dumps(pair["canonical"], ensure_ascii=False, sort_keys=True)
+        ),
+        "assertion": "no source-graph path from the exact root entry to target",
+        "source": root_scope,
+        "target": target,
+        "reachable": reachable,
+        "state_path": state_path,
+        "transition_path": transition_path,
+        "root_initial_edges": root_initial_edges,
+        "root_initial_edge_count": len(root_initial_edges),
+        "assumptions": assumptions,
+        "sound_for_claim": sound_for_claim,
+        "prototype_semantics": "exact_source_root_reachability_fragment",
+        "result": counterexample,
+        "verdict": (
+            "counterexample"
+            if counterexample
+            else "satisfied"
+            if sound_for_claim
+            else "inconclusive"
+        ),
+    }
+
+
 def _source_initial_contract_certificate(
     pair: dict[str, Any], composite_reference: str
 ) -> dict[str, Any] | None:
@@ -7119,7 +7323,11 @@ def _source_initial_target_certificate(
 
 
 def _source_containment_certificate(
-    pair: dict[str, Any], child_reference: str, expected_parent_reference: str
+    pair: dict[str, Any],
+    child_reference: str,
+    expected_parent_reference: str,
+    *,
+    expected: bool = True,
 ) -> dict[str, Any] | None:
     model = _source_model(pair)
     child, child_state = _resolve_source_state(pair, child_reference)
@@ -7147,7 +7355,11 @@ def _source_containment_certificate(
         "evaluated_artifact_sha256": _sha256(
             json.dumps(pair["canonical"], ensure_ascii=False, sort_keys=True)
         ),
-        "assertion": "the named child has the expected direct parent",
+        "assertion": (
+            "the named child has the expected direct parent"
+            if expected
+            else "the named child does not have the forbidden direct parent"
+        ),
         "child": child,
         "expected_parent": expected_parent,
         "actual_parent": actual_parent,
@@ -7156,10 +7368,10 @@ def _source_containment_certificate(
         "child_raw_ref": child_state.get("raw_ref"),
         "expected_parent_raw_ref": parent_state.get("raw_ref"),
         "actual": actual,
-        "expected": True,
+        "expected": expected,
         "sound_for_claim": True,
-        "result": not actual,
-        "verdict": "counterexample" if not actual else "satisfied",
+        "result": actual != expected,
+        "verdict": "counterexample" if actual != expected else "satisfied",
         "prototype_semantics": "exact_source_direct-containment_fragment",
     }
 
@@ -7633,11 +7845,13 @@ def _source_certificate_for_group(
                 certificate = _source_initial_target_certificate(pair, composite, child)
                 if certificate is not None:
                     return certificate
-        if check.kind == "containment" and check.expected:
+        if check.kind == "containment":
             parent = check.bindings.get("parent")
             child = check.bindings.get("child")
             if isinstance(parent, str) and isinstance(child, str):
-                certificate = _source_containment_certificate(pair, child, parent)
+                certificate = _source_containment_certificate(
+                    pair, child, parent, expected=check.expected
+                )
                 if certificate is not None:
                     return certificate
         if check.kind == "cardinality" and check.expected:
@@ -7673,6 +7887,13 @@ def _certificate_cause_key(certificate: dict[str, Any]) -> str | None:
         return f"source:initial_contract:{certificate.get('scope')}"
     if kind == "unreachable_source_component":
         return f"source:unreachable_component:{certificate.get('component')}"
+    if kind == "source_root_target_unreachable":
+        # When the exact source root itself has no initial edge, all root-to-target
+        # failures are merely consequences of that one structural cause. The
+        # count comes from the canonical AST, not from an NL label or heuristic.
+        if certificate.get("root_initial_edge_count") == 0:
+            return f"source:initial_contract:{certificate.get('source')}"
+        return f"source:root_target_unreachable:{certificate.get('target')}"
     if kind == "initial_contract_violation":
         return f"source:initial_contract:{certificate.get('scope')}"
     if kind == "source_initial_target_contract":
@@ -8843,6 +9064,21 @@ def _source_transition_condition_matches(
         if isinstance(projected, str) and candidate == projected:
             return True
     return False
+
+
+def _source_transition_guard_matches(
+    transition: dict[str, Any], binding: str | None
+) -> bool:
+    """Match only an exact formal guard AST, never an event/raw label."""
+
+    if not isinstance(binding, str) or not binding.strip():
+        return False
+    candidate = binding.strip()
+    guard = transition.get("guard")
+    if isinstance(guard, str) and guard.strip() == candidate:
+        return True
+    parsed_guard = parse_guard_only_label(_source_transition_label(transition))
+    return parsed_guard is not None and parsed_guard.guard == candidate
 
 
 def _canonical_formal_condition_binding(
@@ -10021,8 +10257,19 @@ def _execute_transition_contract_goal(
     mapped_relation_present = any(item["complete"] for item in mapping_receipts)
     direct_relation_present = bool(artifact_rows)
     artifact_relation_present = direct_relation_present or mapped_relation_present
-    condition_binding = goal.trigger or goal.condition
-    condition = None if goal.relation == "transition_absent" else condition_binding
+    # Keep the normative NL qualifier separate from the exact formal identity
+    # supplied by semantic grounding. A prose event description must not be
+    # mistaken for a missing formal guard, while a qualified condition without
+    # an exact binding must remain inconclusive rather than become a W2 defect.
+    formal_condition = goal.trigger
+    condition_role = goal.condition_role or (
+        "event" if goal.condition is None and formal_condition else "unknown"
+    )
+    condition = (
+        None
+        if goal.relation == "transition_absent"
+        else goal.condition if goal.condition is not None else formal_condition
+    )
     bound_transition = (
         _source_transition_by_id(pair, goal.observed_transition_id)
         if goal.observed_transition_id
@@ -10039,27 +10286,42 @@ def _execute_transition_contract_goal(
     # semantic grounding also supplied an exact formal trigger binding. The
     # compiler never treats an arbitrary non-empty label as proof that the
     # requested condition is realized.
-    source_condition_binding = (
-        isinstance(bound_transition, dict)
-        and _source_transition_condition_matches(
-            pair, bound_transition, condition_binding
-        )
+    source_condition_binding = isinstance(bound_transition, dict) and (
+        _source_transition_guard_matches(bound_transition, formal_condition)
+        if condition_role == "qualified_guard"
+        else _source_transition_condition_matches(pair, bound_transition, formal_condition)
     )
     endpoint_source_rows = _source_transition_rows(
         pair, source=str(goal.source), target=str(goal.target)
     )
-    direct_condition_present = bool(condition_binding) and source_condition_binding and any(
-        isinstance(projected_event, str)
+    direct_condition_present = bool(formal_condition) and source_condition_binding and any(
+        (
+            not goal.observed_transition_id
+            or row.get("id") == goal.observed_transition_id
+        )
+        and isinstance(projected_event, str)
         and _same_model_reference(pair, row.get("event"), projected_event)
+        and (
+            condition_role != "qualified_guard"
+            or _source_transition_guard_matches(bound_transition or {}, formal_condition)
+        )
         for row in artifact_rows
     )
-    mapped_condition_present = bool(condition_binding) and any(
+    mapped_condition_present = bool(formal_condition) and any(
         item["complete"]
         and any(
-            _source_transition_condition_matches(pair, row, condition_binding)
+            (
+                _source_transition_guard_matches(row, formal_condition)
+                if condition_role == "qualified_guard"
+                else _source_transition_condition_matches(pair, row, formal_condition)
+            )
             for row in endpoint_source_rows
         )
         for item in mapping_receipts
+        if (
+            not goal.observed_transition_id
+            or item.get("transition_id") == goal.observed_transition_id
+        )
     )
     artifact_condition_present = direct_condition_present or mapped_condition_present
     source_rows = (
@@ -10072,12 +10334,22 @@ def _execute_transition_contract_goal(
         else endpoint_source_rows
     )
     source_relation_present = bool(source_rows)
-    source_condition_present = bool(condition_binding) and any(
-        _source_transition_condition_matches(pair, row, condition_binding)
+    source_condition_present = bool(formal_condition) and any(
+        (
+            _source_transition_guard_matches(row, formal_condition)
+            if condition_role == "qualified_guard"
+            else _source_transition_condition_matches(pair, row, formal_condition)
+        )
         for row in source_rows
     )
-    formal_condition_binding = _canonical_formal_condition_binding(
-        pair, condition_binding
+    formal_condition_binding = (
+        any(
+            _source_transition_guard_matches(row, formal_condition)
+            for row in _source_model(pair).get("transitions", [])
+            if isinstance(row, dict)
+        )
+        if condition_role == "qualified_guard"
+        else _canonical_formal_condition_binding(pair, formal_condition)
     )
     actual = artifact_relation_present and (
         artifact_condition_present if condition else True
@@ -10127,7 +10399,9 @@ def _execute_transition_contract_goal(
         ),
         "source": goal.source,
         "target": goal.target,
-        "trigger": condition,
+        "trigger": formal_condition or goal.condition,
+        "normative_condition": goal.condition,
+        "condition_role": condition_role,
         "observed_transition_id": goal.observed_transition_id,
         "observed_transition": bound_transition,
         "matching_transitions": source_rows,
@@ -10204,6 +10478,8 @@ def _execute_transition_contract_goal(
             "source": source,
             "target": target,
             "condition": condition,
+            "formal_condition": formal_condition,
+            "condition_role": condition_role,
             "observed_transition_id": goal.observed_transition_id,
             "observed_source": (
                 bound_transition.get("source")
@@ -11063,6 +11339,14 @@ def _execute_topology_goal(
                 "unreachable_leaves": topology.get("unreachable_leaves", []),
                 "query_bound": None,
             }
+            # A converted-topology counterexample is not source-attributed by
+            # itself.  For the exact machine-root query, repeat the same
+            # reachability fact on the canonical source AST so D can distinguish
+            # an authored missing entry from representation debt.
+            if not actual and source == pair["pair_name"]:
+                source_certificate = _source_root_target_reachability_certificate(
+                    pair, str(reference)
+                )
         else:
             unreachable = set(topology.get("unreachable_leaves", []))
             reached_targets = [node for node in target_nodes if node not in unreachable]
@@ -11688,6 +11972,7 @@ def _infer_l_level(candidate: dict[str, Any], group: dict[str, Any] | None) -> s
         "source_entry_deadlock",
         "missing_initial_with_compiler_consequence",
         "unreachable_source_component",
+        "source_root_target_unreachable",
         "source_wrong_scope_route",
         "source_unstable_termination_target",
         "source_event_consumers_unreachable",
@@ -11999,6 +12284,12 @@ def _canonical_source_fact(certificate: dict[str, Any]) -> str | None:
             f"transition to required child {certificate.get('child')!r}."
         )
     if kind == "source_containment_contract":
+        if certificate.get("expected") is False:
+            return (
+                f"Source child {certificate.get('child')!r} has the forbidden "
+                f"direct parent {certificate.get('expected_parent')!r}; the "
+                "negative containment obligation is violated."
+            )
         return (
             f"Source child {certificate.get('child')!r} has actual parent "
             f"{certificate.get('actual_parent')!r}, not required parent "
@@ -12017,6 +12308,11 @@ def _canonical_source_fact(certificate: dict[str, Any]) -> str | None:
             f"{certificate.get('observed_target')!r}, while reference transition "
             f"{certificate.get('reference_transition_id')!r} realizes required target "
             f"{certificate.get('normative_target')!r}."
+        )
+    if kind == "source_root_target_unreachable":
+        return (
+            f"No source-graph path reaches target {certificate.get('target')!r} "
+            f"from the exact root entry {certificate.get('source')!r}."
         )
     if kind == "source_event_missing_in_scope":
         missing = certificate.get("missing_scope_ids")
