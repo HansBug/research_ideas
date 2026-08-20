@@ -1768,20 +1768,21 @@ def build_prototype_graph(responder: DirectStructuredResponder) -> Any:
             state["input"].matched_x1v2_record,
         )
         discovery_branches = state["discovery_branches"]
+        replayed = bool(state["input"].replay_plans_from)
         final_record = {
             "schema": "paper1.evidence_discovery_langgraph_prototype.v1",
             "status": "completed",
             "exploratory_only": True,
             "case": state["input"].case,
             "profile": state["input"].profile,
-            "replayed": bool(state["input"].replay_plans_from),
+            "replayed": replayed,
             "strategy": "shared_a_complementary_dual_b_formal_execution_single_d",
             "replay_plans_from": state["input"].replay_plans_from,
             "contract_plan": state["contract_plan"].model_dump(mode="json"),
             "discovery_grounding_plans": [
                 branch.get(
                     "llm_semantic_plan", branch["discovery_grounding_plan"]
-                ).model_dump(mode="json")
+                ).model_dump(mode="json", exclude_unset=replayed)
                 for branch in discovery_branches
             ],
             "post_ensemble_discovery_grounding_plans": [

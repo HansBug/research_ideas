@@ -430,7 +430,11 @@ class EvidenceGoal(BaseModel):
     """Backend-independent semantic goal emitted by the LLM.
 
     The compiler checks relation-specific required fields. They remain optional
-    here so one malformed goal degrades to W1 instead of killing the pair.
+    here so one malformed goal degrades to W1 instead of killing the pair. For
+    the small set of relations with an unambiguous typed-obligation projection,
+    the compiler may fill an omitted goal binding from the exact typed formal
+    reference; this is a schema-recovery step, never a semantic inference from
+    prose. The LLM should still populate the relation-specific goal fields.
     """
 
     relation: GoalRelation = Field(
@@ -2506,6 +2510,15 @@ def build_llm_binding_provenance(
 ) -> dict[str, Any] | None:
     """Bind an LLM semantic plan to its immutable call observation by hashes."""
 
+    # A replay may load a plan produced before an optional schema field was
+    # added. Pydantic fills that field with its default during validation, but
+    # the immutable observation still contains the original payload. Preserve
+    # the replay payload's exact field presence for provenance hashing; fresh
+    # runs continue to use the complete model dump emitted by the responder.
+    semantic_plan_payload = semantic_plan.model_dump(
+        mode="json", exclude_unset=replayed
+    )
+
     matching = [
         item
         for item in observations
@@ -2516,7 +2529,7 @@ def build_llm_binding_provenance(
     ]
     if not matching:
         return None
-    semantic_plan_hash = _canonical_sha256(semantic_plan)
+    semantic_plan_hash = _canonical_sha256(semantic_plan_payload)
     matching = [
         item
         for item in matching
@@ -3632,6 +3645,71 @@ def validate_domain_obligation_lowering(candidate: EvidenceCandidate) -> list[st
     return errors
 
 
+def _project_typed_goal_bindings(
+    candidate: EvidenceCandidate,
+) -> tuple[EvidenceCandidate, list[dict[str, str]]]:
+    """Fill only compiler-owned goal aliases with exact typed formal IDs.
+
+    This projection repairs a structurally incomplete LLM response at the
+    typed-to-compiler boundary. It is deliberately limited to relations whose
+    field direction is fixed by the registered obligation surface. It never
+    chooses between candidate IDs, interprets prose, or overwrites a value the
+    LLM supplied; a supplied conflict remains visible to the lowering gate.
+    """
+
+    obligation = candidate.domain_obligation
+    if obligation is None:
+        return candidate, []
+
+    goal = candidate.goal
+    updates: dict[str, str] = {}
+    bindings: list[dict[str, str]] = []
+
+    def fill_from_typed(field: str, value: str | None, source_field: str) -> None:
+        if not isinstance(value, str) or not value:
+            return
+        current = getattr(goal, field)
+        if current not in {None, ""}:
+            return
+        updates[field] = value
+        bindings.append(
+            {
+                "field": field,
+                "value": value,
+                "basis": f"typed_obligation_exact_{source_field}_projection",
+            }
+        )
+
+    if (
+        isinstance(obligation, AttachmentObligation)
+        and obligation.attachment == "containment"
+        and goal.relation == "contained_in"
+    ):
+        fill_from_typed("subject", obligation.subject_ref, "subject_ref")
+        fill_from_typed("target", obligation.owner_ref, "owner_ref")
+    elif isinstance(obligation, GraphObligation):
+        if (
+            obligation.property in {"reachable", "target_reachable"}
+            and goal.relation == "target_reachable"
+        ):
+            fill_from_typed("source", obligation.source_ref, "source_ref")
+            fill_from_typed("target", obligation.target_ref, "target_ref")
+        elif (
+            obligation.property in {"deadlock_free", "escapable"}
+            and goal.relation == "state_escapable"
+        ):
+            fill_from_typed("subject", obligation.source_ref, "source_ref")
+        elif (
+            obligation.property == "stable_termination"
+            and goal.relation == "termination_target"
+        ):
+            fill_from_typed("subject", obligation.target_ref, "target_ref")
+
+    if not updates:
+        return candidate, []
+    return candidate.model_copy(update={"goal": goal.model_copy(update=updates)}), bindings
+
+
 def validate_operator_executable_soundness(
     candidate: EvidenceCandidate,
 ) -> list[str]:
@@ -4436,11 +4514,31 @@ def _validate_direct_grounded_candidate(
 ) -> tuple[BalancedEvidenceCandidate, list[dict[str, str]]]:
     """Enforce exact formal references without interpreting any candidate text."""
 
-    goal = candidate.goal.model_copy(deep=True)
+    projected_candidate, _ = _project_typed_goal_bindings(candidate)
+    goal = projected_candidate.goal.model_copy(deep=True)
+    returned_goal = candidate.goal.model_copy(deep=True)
     diagnostics: list[dict[str, str]] = []
     state_ids = _source_state_ids(pair)
     final_target_ids = _source_final_target_ids(pair)
     root_scope_id = _source_root_scope_id(pair)
+    # Canonical source IDs are local to the model, while older grounded plans
+    # may preserve the explicit pair namespace. Both are the same declared
+    # formal identity; keep the original spelling in the candidate and admit
+    # only this exact namespace alias during validation.
+    qualified_state_ids = {
+        f"{pair['pair_name']}.{item}"
+        for item in state_ids | final_target_ids
+    }
+    qualified_root_scope_id = (
+        f"{pair['pair_name']}.{root_scope_id}"
+        if root_scope_id is not None
+        else None
+    )
+    state_reference_ids = state_ids | final_target_ids | qualified_state_ids
+    if root_scope_id is not None:
+        state_reference_ids.add(root_scope_id)
+    if qualified_root_scope_id is not None:
+        state_reference_ids.add(qualified_root_scope_id)
     updates: dict[str, Any] = {}
     required_fields = _GOAL_REQUIRED_STATE_FIELDS.get(goal.relation, ())
     for field in required_fields:
@@ -4455,12 +4553,12 @@ def _validate_direct_grounded_candidate(
             (goal.relation == "initial_target" and field == "subject")
             or (goal.relation == "final_pseudostate_exists" and field == "source")
         ):
-            allowed_ids = state_ids | {root_scope_id}
+            allowed_ids = state_reference_ids
         elif (
             goal.relation == "event_consumed_in_scope"
             and field == "source"
         ):
-            allowed_ids = state_ids | ({root_scope_id} if root_scope_id else set())
+            allowed_ids = state_reference_ids
         elif (
             field == "target"
             and goal.relation
@@ -4471,9 +4569,9 @@ def _validate_direct_grounded_candidate(
                 "event_reaches_target",
             }
         ) or (field == "subject" and goal.relation == "termination_target"):
-            allowed_ids = state_ids | final_target_ids
+            allowed_ids = state_reference_ids
         else:
-            allowed_ids = state_ids
+            allowed_ids = state_reference_ids
         if value not in allowed_ids:
             if (
                 goal.relation == "state_exists"
@@ -4532,7 +4630,7 @@ def _validate_direct_grounded_candidate(
     if (
         goal.relation == "eventually_responds"
         and goal.source is not None
-        and goal.source not in state_ids
+        and goal.source not in state_reference_ids
     ):
         diagnostics.append(
             {
@@ -4568,8 +4666,8 @@ def _validate_direct_grounded_candidate(
             )
             updates["reference_transition_id"] = None
     if updates:
-        goal = goal.model_copy(update=updates)
-    return candidate.model_copy(deep=True, update={"goal": goal}), diagnostics
+        returned_goal = returned_goal.model_copy(update=updates)
+    return candidate.model_copy(deep=True, update={"goal": returned_goal}), diagnostics
 
 
 def _assemble_grounded_contract_plan(
@@ -12157,9 +12255,9 @@ def _execute_evidence_candidate(
     # normative target unset and obtain the observed endpoint from the exact
     # transition ID.  Validating the pre-binding goal would reject a sound
     # typed target_ref before the formal AST had a chance to fill that field.
-    candidate, method_bindings = _apply_formal_transition_binding(
-        pair, planned_candidate
-    )
+    candidate, typed_bindings = _project_typed_goal_bindings(planned_candidate)
+    candidate, transition_bindings = _apply_formal_transition_binding(pair, candidate)
+    method_bindings = [*typed_bindings, *transition_bindings]
     obligation = candidate.domain_obligation
     lowering_errors = validate_domain_obligation_lowering(candidate)
     soundness_errors = validate_operator_executable_soundness(candidate)

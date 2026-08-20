@@ -6240,6 +6240,119 @@ def test_typed_target_reachable_alias_lowers_to_same_core_operator() -> None:
     assert prototype.validate_operator_executable_soundness(candidate) == []
 
 
+def test_typed_graph_refs_project_into_omitted_goal_bindings() -> None:
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="The selected target must be reachable from the selected source.",
+        claim="The selected target is unreachable from the selected source.",
+        observed_fact="The typed graph obligation contains both exact endpoint IDs.",
+        basis_kind="domain_norm",
+        priority=5,
+        locations=["Root.Source", "Root.Target"],
+        proposed_l="L2",
+        domain_obligation={
+            "family": "graph",
+            "property": "reachable",
+            "source_ref": "Root.Source",
+            "target_ref": "Root.Target",
+        },
+        goal=prototype.EvidenceGoal(relation="target_reachable"),
+    )
+
+    projected, bindings = prototype._project_typed_goal_bindings(candidate)
+
+    assert projected.goal.source == "Root.Source"
+    assert projected.goal.target == "Root.Target"
+    assert [item["field"] for item in bindings] == ["source", "target"]
+    assert prototype.validate_domain_obligation_lowering(projected) == []
+
+
+def test_typed_containment_refs_project_without_text_interpretation() -> None:
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="The child must be directly contained in the parent.",
+        claim="The child is nested under the wrong parent.",
+        observed_fact="The typed containment obligation supplies exact child and parent IDs.",
+        basis_kind="domain_norm",
+        priority=5,
+        locations=["Root.Parent.Root.Child"],
+        proposed_l="L1",
+        domain_obligation={
+            "family": "attachment",
+            "attachment": "containment",
+            "subject_ref": "Root.Parent.Root.Child",
+            "owner_ref": "Root.Parent",
+        },
+        goal=prototype.EvidenceGoal(relation="contained_in"),
+    )
+
+    projected, bindings = prototype._project_typed_goal_bindings(candidate)
+
+    assert projected.goal.subject == "Root.Parent.Root.Child"
+    assert projected.goal.target == "Root.Parent"
+    assert [item["field"] for item in bindings] == ["subject", "target"]
+    assert prototype.validate_domain_obligation_lowering(projected) == []
+
+
+def test_typed_projection_preserves_conflicting_goal_binding_for_fail_closed_gate() -> None:
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="The selected target must be reachable.",
+        claim="The selected target is unreachable.",
+        observed_fact="The typed obligation and goal disagree on the exact target ID.",
+        basis_kind="domain_norm",
+        priority=5,
+        locations=["Root.Target", "Root.Other"],
+        proposed_l="L2",
+        domain_obligation={
+            "family": "graph",
+            "property": "reachable",
+            "target_ref": "Root.Target",
+        },
+        goal=prototype.EvidenceGoal(
+            relation="target_reachable",
+            target="Root.Other",
+        ),
+    )
+
+    projected, bindings = prototype._project_typed_goal_bindings(candidate)
+
+    assert bindings == []
+    assert projected.goal.target == "Root.Other"
+    assert prototype.validate_domain_obligation_lowering(projected) == [
+        "typed binding target_ref='Root.Target' does not equal lowering binding 'Root.Other'"
+    ]
+
+
+def test_grounding_validator_checks_projected_refs_without_erasing_receipt_source() -> None:
+    pair, _ = _pair_and_inspect("0046")
+    target = (
+        f"{pair['pair_name']}.UAVSwarmStateMachine."
+        "SearchRegion.Searching"
+    )
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="The exact target must be reachable from the machine root.",
+        claim="The exact target is unreachable from the machine root.",
+        observed_fact="The typed graph obligation supplies the exact root and target IDs.",
+        basis_kind="domain_norm",
+        priority=5,
+        locations=[target],
+        proposed_l="L2",
+        domain_obligation={
+            "family": "graph",
+            "property": "reachable",
+            "source_ref": pair["pair_name"],
+            "target_ref": target,
+        },
+        goal=prototype.EvidenceGoal(relation="target_reachable"),
+    )
+
+    validated, diagnostics = prototype._validate_direct_grounded_candidate(
+        pair, candidate, lane="behavior_candidates", index=0
+    )
+
+    assert diagnostics == []
+    assert validated.goal.source is None
+    assert validated.goal.target is None
+
+
 def test_initial_target_alias_uses_goal_child_when_owner_is_omitted() -> None:
     candidate = prototype.BalancedEvidenceCandidate(
         obligation="The composite must enter its specified child initially.",
@@ -6571,6 +6684,46 @@ def test_root_target_unreachable_has_dual_source_certificate() -> None:
     )
     assert certificate["sound_for_claim"] is True
     assert certificate["verdict"] == "counterexample"
+
+
+def test_root_target_unreachable_projects_typed_refs_before_execution() -> None:
+    pair, inspect = _pair_and_inspect("0046")
+    target = (
+        f"{pair['pair_name']}.UAVSwarmStateMachine."
+        "SearchRegion.Searching"
+    )
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="The exact target must be reachable from the machine root.",
+        claim="The exact target is unreachable from the machine root.",
+        observed_fact="The typed graph obligation supplies the exact root and target IDs.",
+        basis_kind="domain_norm",
+        priority=5,
+        locations=[target],
+        proposed_l="L2",
+        domain_obligation={
+            "family": "graph",
+            "property": "reachable",
+            "source_ref": pair["pair_name"],
+            "target_ref": target,
+        },
+        goal=prototype.EvidenceGoal(
+            relation="target_reachable",
+            expected=True,
+        ),
+    )
+
+    outcome = prototype._execute_evidence_candidate(
+        pair, inspect, candidate, index=1
+    )
+    group = outcome["probe_groups"][0]
+
+    assert group["witness_level"] == "W2"
+    assert group["counterexample_found"] is True
+    assert group["evidence_goal"]["source"] == pair["pair_name"]
+    assert group["evidence_goal"]["target"] == target
+    assert {
+        item["field"] for item in group["compiler_route"]["method_bindings"]
+    } == {"source", "target"}
 
 
 def test_root_target_unreachable_with_concurrent_source_is_inconclusive() -> None:

@@ -1240,6 +1240,35 @@ def test_replay_loader_prefers_immutable_llm_outputs_over_ensemble_derivatives(
     assert loaded_plans == raw
 
 
+def test_replay_provenance_hashes_the_original_optional_field_shape() -> None:
+    plan = prototype.DiscoveryGroundingPlan(
+        surface_candidates=[], behavior_candidates=[]
+    )
+    original_payload = plan.model_dump(mode="json", exclude_unset=True)
+    observation = {
+        "llm_call_id": "replay-discovery-call",
+        "role": "paper1_discovery_grounding",
+        "status": "completed",
+        "parsed_output": original_payload,
+    }
+
+    provenance = prototype.build_llm_binding_provenance(
+        [observation],
+        role="paper1_discovery_grounding",
+        semantic_plan=plan,
+        grounded_contract_plan=prototype.GroundedContractPlan(),
+        grounded_evidence_plan=prototype.IssueDiscoveryPlan(
+            surface_candidates=[], behavior_candidates=[]
+        ),
+        replayed=True,
+    )
+
+    assert provenance is not None
+    assert provenance["semantic_plan_sha256"] == prototype._canonical_sha256(
+        original_payload
+    )
+
+
 def test_usage_budget_reports_model_matched_usd_cost(tmp_path) -> None:
     pricing = {
         "prices": {
