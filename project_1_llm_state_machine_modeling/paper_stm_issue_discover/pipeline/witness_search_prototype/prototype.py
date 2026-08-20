@@ -6553,28 +6553,50 @@ def _source_concurrent_region_deadlock_certificate(
         if item.get("source") in active_scopes
         and item.get("attributes", {}).get("transition_kind") != "initial"
     ]
-    assumptions = {
-        "all_regions_have_one_initial": initial_edges_complete,
-        "all_region_initials_unconditional": initial_edges_unconditional,
-        "all_active_targets_leaf": active_targets_are_leaves,
-        "all_active_targets_nonfinal": active_targets_nonfinal,
-        "entry_path_has_no_guards": entry_path_has_no_guards,
-        "no_enabled_outgoing": not enabled_outgoing,
-        "owner_identity_resolved_exactly": owner in states,
-        "target_is_active_region_entry": target in active_targets,
-    }
+    if initial_edges_complete:
+        kind = "concurrent_region_deadlock"
+        assertion = (
+            "reachable(owner) and all concurrent regions enter one non-final leaf "
+            "and inherited_outgoing(active_configuration) == 0"
+        )
+        assumptions = {
+            "all_regions_have_one_initial": True,
+            "all_region_initials_unconditional": initial_edges_unconditional,
+            "all_active_targets_leaf": active_targets_are_leaves,
+            "all_active_targets_nonfinal": active_targets_nonfinal,
+            "entry_path_has_no_guards": entry_path_has_no_guards,
+            "no_enabled_outgoing": not enabled_outgoing,
+            "owner_identity_resolved_exactly": owner in states,
+            "target_is_active_region_entry": target in active_targets,
+        }
+        semantics = "exact_guard_free_concurrent_entry_configuration"
+    else:
+        kind = "concurrent_region_entry_failure"
+        assertion = (
+            "reachable(owner) and some concurrent regions lack an initial entry "
+            "and inherited_outgoing(resolved_entry_fragment) == 0"
+        )
+        assumptions = {
+            "at_least_one_region_missing_initial": True,
+            "at_least_one_region_entry_resolved": bool(active_targets),
+            "all_present_region_initials_unconditional": initial_edges_unconditional,
+            "all_present_active_targets_leaf": active_targets_are_leaves,
+            "all_present_active_targets_nonfinal": active_targets_nonfinal,
+            "entry_path_has_no_guards": entry_path_has_no_guards,
+            "no_enabled_outgoing": not enabled_outgoing,
+            "owner_identity_resolved_exactly": owner in states,
+            "target_is_active_region_entry": target in active_targets,
+        }
+        semantics = "exact_incomplete_orthogonal_entry_failure_fragment"
     sound_for_claim = owner_reachable and all(assumptions.values())
     return {
         "schema": "paper1.source_assertion.v1",
-        "kind": "concurrent_region_deadlock",
+        "kind": kind,
         "evaluated_artifact": pair["paths"]["canonical"],
         "evaluated_artifact_sha256": _sha256(
             json.dumps(pair["canonical"], ensure_ascii=False, sort_keys=True)
         ),
-        "assertion": (
-            "reachable(owner) and all concurrent regions enter one non-final leaf "
-            "and inherited_outgoing(active_configuration) == 0"
-        ),
+        "assertion": assertion,
         "target": target,
         "owner_scope": owner,
         "reachable": owner_reachable,
@@ -6587,7 +6609,7 @@ def _source_concurrent_region_deadlock_certificate(
         "outgoing": enabled_outgoing,
         "assumptions": assumptions,
         "sound_for_claim": sound_for_claim,
-        "prototype_semantics": "exact_guard_free_concurrent_entry_configuration",
+        "prototype_semantics": semantics,
         "result": sound_for_claim,
         "verdict": "counterexample" if sound_for_claim else "inconclusive",
     }
@@ -7176,12 +7198,12 @@ def _source_initial_contract_certificate(
     ]
     if not initial_edges:
         return None
-    unconditional = [
+    violating = [
         item
         for item in initial_edges
-        if not item.get("event") and not item.get("guard")
+        if item.get("event") is not None or item.get("guard") is not None
     ]
-    if unconditional:
+    if not violating:
         return None
     return {
         "schema": "paper1.source_assertion.v1",
@@ -7190,8 +7212,12 @@ def _source_initial_contract_certificate(
         "evaluated_artifact_sha256": _sha256(
             json.dumps(pair["canonical"], ensure_ascii=False, sort_keys=True)
         ),
-        "assertion": "initial_edge_count(scope) >= 1 and unconditional_initial_edge_count(scope) == 0",
+        "assertion": (
+            "initial_edge_count(scope) >= 1 and "
+            "violating_initial_edge_count(scope) >= 1"
+        ),
         "scope": scope or "__root__",
+        "initial_edge_count": len(initial_edges),
         "initial_edges": [
             {
                 "id": item.get("id"),
@@ -7202,7 +7228,22 @@ def _source_initial_contract_certificate(
             }
             for item in initial_edges
         ],
-        "unconditional_initial_edge_count": 0,
+        "violating_initial_edge_count": len(violating),
+        "violating_initial_edges": [
+            {
+                "id": item.get("id"),
+                "event": item.get("event"),
+                "guard": item.get("guard"),
+                "target": item.get("target"),
+                "raw_ref": item.get("raw_ref"),
+            }
+            for item in violating
+        ],
+        "unconditional_initial_edge_count": sum(
+            1
+            for item in initial_edges
+            if item.get("event") is None and item.get("guard") is None
+        ),
         "sound_for_claim": True,
         "prototype_semantics": "exact_static_initial-contract_fragment",
         "result": True,
@@ -7881,6 +7922,8 @@ def _certificate_cause_key(certificate: dict[str, Any]) -> str | None:
         return f"source:reachable_deadlock:{certificate.get('target')}"
     if kind == "concurrent_region_deadlock":
         return f"source:concurrent_region_deadlock:{certificate.get('target')}"
+    if kind == "concurrent_region_entry_failure":
+        return f"source:concurrent_region_entry_failure:{certificate.get('owner_scope')}"
     if kind == "source_entry_deadlock":
         return f"source:entry_deadlock:{certificate.get('scope')}"
     if kind == "missing_initial_with_compiler_consequence":
@@ -7915,6 +7958,11 @@ def _certificate_cause_key(certificate: dict[str, Any]) -> str | None:
         return f"source:guard_presence:{certificate.get('source')}:{certificate.get('target')}"
     if kind == "source_guard_overlap":
         return f"source:guard_overlap:{certificate.get('source')}"
+    if kind == "source_event_alternative_collision":
+        return (
+            "source:event_alternative_collision:"
+            f"{certificate.get('source')}:{certificate.get('event')}"
+        )
     if kind == "source_guarded_completion_unfireable":
         return (
             "source:guarded_completion_unfireable:"
@@ -8063,11 +8111,14 @@ def compact_inspect_for_planner(
 
 _PROGRESSIVE_ORACLE_RULES = {
     "W_INITIAL_UNCONDITIONAL_MISSING": {
-        "rule_id": "OR-PYFCSTM-INITIAL-UNCONDITIONAL-MISSING-v1",
+        "rule_id": "OR-PYFCSTM-INITIAL-UNCONDITIONAL-MISSING-v2",
         "candidate_norm": (
-            "Every entered composite must provide a valid unconditional initial entry."
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
         ),
-        "formal_fact": "pyfcstm reports no unconditional initial entry for the exact composite reference.",
+        "formal_fact": (
+            "pyfcstm reports an exact initial pseudostate outgoing edge with a "
+            "trigger or guard for the referenced composite."
+        ),
         "applicability": "The referenced composite is behaviorally entered in the modeled system.",
     },
     "W_COMPOSITE_INIT_INCOMPLETE": {
@@ -9661,6 +9712,87 @@ def _guard_overlap_proof(conditions: list[str]) -> dict[str, Any]:
     return pairwise_overlaps(conditions)
 
 
+def _source_event_alternative_collision_certificate(
+    pair: dict[str, Any], source: str, transition_refs: list[str]
+) -> dict[str, Any] | None:
+    """Certify exact same-event alternatives without interpreting label text.
+
+    This is a separate source fragment from guard solving. It uses only the
+    canonical transition fields selected by exact IDs: one source, one exact
+    event identity, distinct targets, and absent formal guards. A display label
+    is included for audit only and never participates in the decision.
+    """
+
+    normalized_source = _strip_pair_root(source, pair["pair_name"])
+    transitions = [
+        _source_transition_by_id(pair, transition_id)
+        for transition_id in transition_refs
+    ]
+    if any(not isinstance(item, dict) for item in transitions):
+        return None
+    rows = [item for item in transitions if isinstance(item, dict)]
+    if len(rows) != len(transition_refs) or len(rows) < 2:
+        return None
+    if any(item.get("source") != normalized_source for item in rows):
+        return None
+
+    collisions: list[dict[str, Any]] = []
+    for left_index, left in enumerate(rows):
+        left_event = left.get("event")
+        left_target = left.get("target")
+        if not isinstance(left_event, str) or not left_event:
+            continue
+        if not isinstance(left_target, str) or not left_target:
+            continue
+        for right in rows[left_index + 1 :]:
+            right_event = right.get("event")
+            right_target = right.get("target")
+            if (
+                left_event != right_event
+                or not isinstance(right_target, str)
+                or not right_target
+                or left_target == right_target
+                or left.get("guard") is not None
+                or right.get("guard") is not None
+            ):
+                continue
+            collisions.append(
+                {
+                    "event": left_event,
+                    "transition_ids": [left.get("id"), right.get("id")],
+                    "targets": [left_target, right_target],
+                    "source": normalized_source,
+                    "guards": [left.get("guard"), right.get("guard")],
+                    "raw_refs": [left.get("raw_ref"), right.get("raw_ref")],
+                    "raw_labels": [
+                        _source_transition_label(left),
+                        _source_transition_label(right),
+                    ],
+                }
+            )
+    if not collisions:
+        return None
+    return {
+        "schema": "paper1.source_assertion.v1",
+        "kind": "source_event_alternative_collision",
+        "evaluated_artifact": pair["paths"]["canonical"],
+        "evaluated_artifact_sha256": _sha256(
+            json.dumps(pair["canonical"], ensure_ascii=False, sort_keys=True)
+        ),
+        "assertion": (
+            "same exact source/event identity with absent formal guards must not "
+            "lead to distinct targets"
+        ),
+        "source": normalized_source,
+        "transition_ids": list(transition_refs),
+        "collision_pairs": collisions,
+        "sound_for_claim": True,
+        "result": True,
+        "verdict": "counterexample",
+        "prototype_semantics": "exact_canonical_event_identity_and_guard_presence",
+    }
+
+
 def _execute_completion_transition_goal(
     pair: dict[str, Any],
     inspect: dict[str, Any],
@@ -9836,6 +9968,42 @@ def _execute_source_guard_goal(
             source_certificate=None,
             error="; ".join(binding_errors),
         )
+
+    # PlantUML labels that the canonical frontend records as exact events are
+    # not silently reclassified as guards. When semantic grounding selected a
+    # complete exact transition set, the source AST can still prove a distinct
+    # target collision directly from event identity and guard presence.
+    if isinstance(obligation, GuardSetObligation):
+        event_collision = _source_event_alternative_collision_certificate(
+            pair, str(goal.source), list(obligation.transition_refs)
+        )
+        if event_collision is not None:
+            code = (
+                "collisions = exact_source_event_alternative_collisions("
+                f"canonical_source_ast, {_quoted(str(goal.source))}, "
+                f"{_quoted(','.join(obligation.transition_refs))})\n"
+                f"assert not collisions, {_quoted(EXECUTABLE_ASSERTION_MESSAGE)}"
+            )
+            compiled_assertion = {
+                "schema": "paper1.compiled_evidence_program.v1",
+                "backend": "canonical_source_ast_event_identity",
+                "assertion_ir": goal.model_dump(mode="json"),
+                "compiled_assertion_code": code,
+                "compiled_assertion_sha256": _sha256(code),
+                "execution_model": "sealed_canonical_source_ast_environment",
+            }
+            return _single_group_outcome(
+                pair,
+                candidate,
+                index=index,
+                route=route,
+                witness_level="W1",
+                counterexample_found=True,
+                source_attribution="source_localized",
+                compiled_assertion=compiled_assertion,
+                execution_certificate=None,
+                source_certificate=event_collision,
+            )
     artifact_rows: list[dict[str, Any]] = []
     artifact_ambiguity = False
     for source_row, _, projected_event in profiled_source_rows:
@@ -11454,7 +11622,8 @@ def _execute_topology_goal(
                 "strongly_connected_components", []
             ),
         }
-    counterexample = decisive and actual != goal.expected
+    artifact_counterexample = decisive and actual != goal.expected
+    counterexample = artifact_counterexample
     operation = (
         "stable_termination_target"
         if goal.relation == "termination_target"
@@ -11496,6 +11665,42 @@ def _execute_topology_goal(
     source_counterexample = bool(
         isinstance(source_certificate, dict)
         and source_certificate.get("verdict") == "counterexample"
+    )
+    source_bridge_closed = source_certificate is None or (
+        source_certificate.get("sound_for_claim") is True
+        and source_certificate.get("verdict") == "counterexample"
+    )
+    source_semantics_inconclusive = (
+        artifact_counterexample
+        and isinstance(source_certificate, dict)
+        and not source_bridge_closed
+    )
+    # A converted FCSTM reachability cut is not a source counterexample when
+    # the source-side semantics are explicitly incomplete (for example an
+    # orthogonal-region model evaluated by a sequential graph). Preserve the
+    # artifact observation, but prevent it from entering a terminal W2 receipt.
+    if source_semantics_inconclusive:
+        decisive = False
+    counterexample = artifact_counterexample and not source_semantics_inconclusive
+    proof_slice = {
+        **proof_slice,
+        "artifact_actual": actual,
+        "artifact_counterexample": artifact_counterexample,
+        "source_semantics_gate": (
+            "inconclusive_source_semantics"
+            if source_semantics_inconclusive
+            else "closed_or_not_required"
+        ),
+    }
+    receipt["observations"] = proof_slice
+    receipt["terminal"] = decisive
+    receipt["counterexample_found"] = counterexample
+    receipt["verdict"] = (
+        "counterexample"
+        if counterexample
+        else "satisfied"
+        if decisive
+        else "inconclusive"
     )
     return _single_group_outcome(
         pair,
@@ -11963,12 +12168,14 @@ def _infer_l_level(candidate: dict[str, Any], group: dict[str, Any] | None) -> s
         "source_child_count_contract",
         "source_guard_presence",
         "source_guard_overlap",
+        "source_event_alternative_collision",
         "source_transition_target_inconsistency",
     }:
         return "L1"
     if certificate.get("kind") in {
         "reachable_deadlock",
         "concurrent_region_deadlock",
+        "concurrent_region_entry_failure",
         "source_entry_deadlock",
         "missing_initial_with_compiler_consequence",
         "unreachable_source_component",
@@ -12278,6 +12485,21 @@ def _canonical_source_fact(certificate: dict[str, Any]) -> str | None:
     if certificate.get("verdict") != "counterexample":
         return None
     kind = certificate.get("kind")
+    if kind == "initial_contract_violation":
+        violating = certificate.get("violating_initial_edges")
+        violating = violating if isinstance(violating, list) else []
+        edge_refs = [
+            str(item.get("raw_ref") or item.get("id"))
+            for item in violating
+            if isinstance(item, dict) and (item.get("raw_ref") or item.get("id"))
+        ]
+        edge_summary = ", ".join(edge_refs) or "the exact initial edge"
+        return (
+            f"Initial pseudostate scope {certificate.get('scope')!r} has "
+            f"{len(violating)} outgoing edge(s) carrying a trigger or guard "
+            f"({edge_summary}); the declared UML initial-transition profile "
+            "forbids a trigger and guard on an initial pseudostate outgoing edge."
+        )
     if kind == "source_initial_target_contract":
         return (
             f"Source composite {certificate.get('composite')!r} has no initial "
@@ -12357,6 +12579,12 @@ def _canonical_source_fact(certificate: dict[str, Any]) -> str | None:
             f"At least two exact outgoing guards from source state "
             f"{certificate.get('source')!r} overlap in the formal guard solver."
         )
+    if kind == "source_event_alternative_collision":
+        return (
+            f"Exact event {certificate.get('event')!r} from source state "
+            f"{certificate.get('source')!r} reaches distinct targets without "
+            "formal guards on the selected transitions."
+        )
     if kind == "source_extraneous_transition":
         transition = certificate.get("observed_transition")
         transition_id = (
@@ -12378,6 +12606,13 @@ def _canonical_source_fact(certificate: dict[str, Any]) -> str | None:
             f"Source state {certificate.get('target')!r} is one member of a "
             "reachable orthogonal entry configuration whose active non-final "
             "states and ancestors have no enabled continuation."
+        )
+    if kind == "concurrent_region_entry_failure":
+        return (
+            f"Reachable orthogonal composite {certificate.get('owner_scope')!r} "
+            "cannot complete its entry because at least one exact region lacks "
+            "an initial transition, while the resolved entry fragment and its "
+            "ancestors have no enabled continuation."
         )
     if kind == "source_entry_deadlock":
         return (
@@ -12622,6 +12857,7 @@ def _compact_source_certificate_for_d(
         "scope",
         "owner_scope",
         "source",
+        "event",
         "state",
         "child",
         "composite",
@@ -12681,6 +12917,8 @@ def _compact_source_certificate_for_d(
         "action",
         "evidence",
         "assumptions",
+        "transition_ids",
+        "collision_pairs",
     )
     compact = {
         key: certificate.get(key) for key in keys if certificate.get(key) is not None
@@ -13005,6 +13243,19 @@ def _has_closed_d2_impl_receipt(finding: dict[str, Any]) -> bool:
             "all_region_initials_unconditional",
             "all_active_targets_leaf",
             "all_active_targets_nonfinal",
+            "entry_path_has_no_guards",
+            "no_enabled_outgoing",
+            "owner_identity_resolved_exactly",
+            "target_is_active_region_entry",
+        }
+        return all(assumptions.get(key) is True for key in required)
+    if kind == "concurrent_region_entry_failure":
+        required = {
+            "at_least_one_region_missing_initial",
+            "at_least_one_region_entry_resolved",
+            "all_present_region_initials_unconditional",
+            "all_present_active_targets_leaf",
+            "all_present_active_targets_nonfinal",
             "entry_path_has_no_guards",
             "no_enabled_outgoing",
             "owner_identity_resolved_exactly",

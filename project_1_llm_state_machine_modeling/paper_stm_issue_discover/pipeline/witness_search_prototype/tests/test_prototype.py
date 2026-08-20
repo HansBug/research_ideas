@@ -406,6 +406,33 @@ def test_concurrent_region_deadlock_certifies_complete_active_tuple() -> None:
         assert prototype._protocol_d2_grounding(finding) == "impl"
 
 
+def test_incomplete_concurrent_entry_has_closed_failure_certificate() -> None:
+    pair, inspect = _pair_and_inspect("0002")
+    seeds = prototype.derive_progressive_evidence_seeds(pair, inspect)
+    matching = [
+        seed
+        for seed in seeds
+        if isinstance(seed.get("source_causality_certificate"), dict)
+        and seed["source_causality_certificate"].get("kind")
+        == "concurrent_region_entry_failure"
+    ]
+
+    assert len(matching) == 1
+    certificate = matching[0]["source_causality_certificate"]
+    assert certificate["target"] == "PumpControl.InitialState"
+    assert certificate["owner_scope"] == "PumpControl"
+    assert certificate["blocked_region_targets"] == ["PumpControl.InitialState"]
+    assert certificate["sound_for_claim"] is True
+    assert certificate["verdict"] == "counterexample"
+    assert certificate["outgoing"] == []
+    assert certificate["assumptions"]["at_least_one_region_missing_initial"] is True
+    finding = {
+        "witness_level": "W2",
+        "source_causality_certificate": certificate,
+    }
+    assert prototype._protocol_d2_grounding(finding) == "impl"
+
+
 def test_compiler_fail_closed_entry_deadlock_has_exact_source_bridge() -> None:
     pair, inspect = _pair_and_inspect("0053")
     seeds = prototype.derive_progressive_evidence_seeds(pair, inspect)
@@ -549,8 +576,14 @@ def test_progressive_scout_finds_initial_contract_without_llm_backend_choice() -
     assert initial["witness_level"] == "W2"
     assert initial["source_attribution"] == ["causal_dual_certificate"]
     assert initial["formal_oracle_rules"][0]["rule_id"] == (
-        "OR-PYFCSTM-INITIAL-UNCONDITIONAL-MISSING-v1"
+        "OR-PYFCSTM-INITIAL-UNCONDITIONAL-MISSING-v2"
     )
+    certificate = initial["source_causality_certificate"]
+    assert certificate["violating_initial_edge_count"] == 1
+    assert certificate["violating_initial_edges"][0]["raw_ref"].endswith(
+        "puml:line:2"
+    )
+    assert "trigger or guard" in prototype._canonical_source_fact(certificate)
     assert initial["formal_oracle_rules"][0]["semantic_decision_claimed"] is False
     assert (
         initial["execution_certificates"][0]["semantic_binding_receipt"]["authority"]
@@ -4142,8 +4175,20 @@ def test_two_conditioned_alternatives_create_exact_guard_set_obligation() -> Non
         pair, inspect, prototype.EvidencePlan(candidates=[guard_candidate])
     )[0]["probe_groups"][0]
     assert group["witness_level"] == "W1"
-    assert group["counterexample_found"] is False
+    assert group["counterexample_found"] is True
     assert group["source_attribution"]["status"] == "source_localized"
+    certificate = group["source_causality_certificate"]
+    assert certificate["kind"] == "source_event_alternative_collision"
+    assert certificate["sound_for_claim"] is True
+    assert certificate["verdict"] == "counterexample"
+    assert certificate["transition_ids"] == ["tr_0006", "tr_0007"]
+    assert certificate["collision_pairs"][0]["event"] == (
+        "dist_to_front<25 & extra_lane=true"
+    )
+    assert certificate["collision_pairs"][0]["targets"] == [
+        "HighwayMode.cruise",
+        "HighwayMode.lane_change",
+    ]
 
 
 def test_guard_set_without_two_exact_transition_refs_is_located_only() -> None:
@@ -4177,6 +4222,49 @@ def test_guard_set_without_two_exact_transition_refs_is_located_only() -> None:
     assert group["witness_level"] == "W1"
     assert group["counterexample_found"] is False
     assert "at least two exact transition_refs" in group["error"]
+
+
+def test_event_alternative_collision_requires_exact_same_event_identity() -> None:
+    pair, inspect = _pair_and_inspect("0029")
+    source = f"{pair['pair_name']}.InitialState"
+    transition_ids = ["tr_0003", "tr_0004"]
+    bindings = [
+        prototype.GuardConditionBinding(
+            transition_id=transition_id,
+            source_label=(prototype._source_transition_by_id(pair, transition_id) or {})[
+                "attributes"
+            ]["raw_label"],
+            semantic_role="guard_condition",
+        )
+        for transition_id in transition_ids
+    ]
+    candidate = prototype.EvidenceCandidate(
+        obligation="The initial alternatives must select one transition.",
+        claim="The initial alternatives collide.",
+        basis_kind="domain_norm",
+        priority=5,
+        locations=["PUML:L7", "PUML:L8"],
+        proposed_l="L1",
+        domain_obligation=prototype.GuardSetObligation(
+            property="disjoint",
+            scope_ref=source,
+            transition_refs=transition_ids,
+            guard_bindings=bindings,
+        ),
+        goal=prototype.EvidenceGoal(
+            relation="guards_distinguishable",
+            source=source,
+        ),
+    )
+
+    group = prototype.execute_evidence_plan(
+        pair, inspect, prototype.EvidencePlan(candidates=[candidate])
+    )[0]["probe_groups"][0]
+
+    assert group["witness_level"] == "W1"
+    assert group["counterexample_found"] is False
+    assert group["source_causality_certificate"] is None
+    assert "guard-only transitions" in group["error"]
 
 
 def test_grouped_initial_contracts_keep_two_w2_receipts_in_one_report_issue() -> None:
@@ -6291,6 +6379,55 @@ def test_root_target_unreachable_has_dual_source_certificate() -> None:
     )
     assert certificate["sound_for_claim"] is True
     assert certificate["verdict"] == "counterexample"
+
+
+def test_root_target_unreachable_with_concurrent_source_is_inconclusive() -> None:
+    pair, inspect = _pair_and_inspect("0002")
+    target = f"{pair['pair_name']}.PumpControl.PumpState"
+    candidate = prototype.BalancedEvidenceCandidate(
+        obligation="The exact target must be reachable from the machine root.",
+        claim="The exact target is unreachable from the machine root.",
+        observed_fact=(
+            "The converted topology and canonical source graph both expose the "
+            "root-to-target query."
+        ),
+        basis_kind="domain_norm",
+        priority=5,
+        locations=[target],
+        proposed_l="L2",
+        domain_obligation={
+            "family": "graph",
+            "property": "reachable",
+            "source_ref": pair["pair_name"],
+            "target_ref": target,
+        },
+        goal=prototype.EvidenceGoal(
+            relation="target_reachable",
+            source=pair["pair_name"],
+            target=target,
+            expected=True,
+        ),
+    )
+
+    outcome = prototype._execute_evidence_candidate(
+        pair, inspect, candidate, index=1
+    )
+    group = outcome["probe_groups"][0]
+    certificate = group["source_causality_certificate"]
+    receipt = group["execution_certificate"]
+
+    assert group["witness_level"] == "W1"
+    assert group["counterexample_found"] is False
+    assert certificate["kind"] == "source_root_target_unreachable"
+    assert certificate["sound_for_claim"] is False
+    assert certificate["verdict"] == "inconclusive"
+    assert receipt["terminal"] is False
+    assert receipt["counterexample_found"] is False
+    assert receipt["verdict"] == "inconclusive"
+    assert receipt["observations"]["artifact_counterexample"] is True
+    assert receipt["observations"]["source_semantics_gate"] == (
+        "inconclusive_source_semantics"
+    )
 
 
 def test_bounded_target_reachability_fails_closed_without_bounded_backend() -> None:
