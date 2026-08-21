@@ -29,6 +29,31 @@
    `utils.agent`/`utils.llm` 与现有 respond/LangGraph。19 个谓词冻结，谓词不支持时仍发
    issue 并降级 W1，不得静默丢弃或擅自新增谓词。
 
+## 输入闭包与阶段入口
+
+正式 method 入口是 pipeline/evidence_discovery。它接收 v27 等价的完整
+ContextManifest，而不是只接收 nl.txt、plantuml.puml、fcstm.fcstm 和 ModelIR。
+闭包至少包含编号 NL、PlantUML、canonical source IR、exact source/transition
+inventory、working contract/mapping、source trace、FCSTM/ModelIR、v27 inspect-derived
+facts、owned inspection-equivalent facts、verify facts 和 SMT summary；每项都要有哈希、
+版本、来源、reason 和 basis。
+
+PlantUML/source 与 canonical IR 只用于作者源定位，FCSTM 只用于闭合模型绑定与执行，
+inspection-equivalent/verify/SMT facts 只用于确定性事实输入。新包自己实现并版本化
+inspection-equivalent.fcstm-graph.v1、verify-equivalent.finite-graph.v1 和
+smt-input-normalization.v1，不调用 Python inspect、pyfcstm.inspect 或旧 inspect_* 后端。
+
+方法保留 v27 的阶段边界：
+
+prepare -> NL contract extraction -> source grounding + model grounding ->
+exact binding -> 19-predicate compiler/backend -> execution receipt ->
+D adjudication -> deterministic W publication
+
+生成 prompt 不包含台账答案、baseline hit/FP、judge 示例或历史 release 输出。完整
+case report 只作为哈希 receipt 保存，prompt 仅接收身份/状态白名单投影。LLM 的每个
+结构化对象和每个阶段 receipt 都由 Pydantic schema 约束并要求非空 reason/basis；
+W/D/L 不由模型自报。
+
 ## 当前可表达性快照
 
 冻结设计的映射为：
@@ -71,6 +96,36 @@ W0、W1、W2 以及各自的分母。
 
 覆盖不足本身不是新增谓词的理由。对于低频、边界或需要额外外部参照的条目，优先
 保留清晰的 W1 语义命中和显式 coverage gap。
+
+## 施工状态边界
+
+当前代码已完成输入闭包、v27 形状的 method 最小垂直闭环、19 谓词编译/后端、确定性
+W、typed LLM semantic D 输入、公共 runtime 和审计 receipt 的第一版 fixture/smoke
+接入；仍需继续补齐 mutation、来源和非干扰测试，并审查短测诊断后再扩大运行范围。
+live runner 只接受显式 pair 子集且当前最多六格，54-pair 全量入口保持关闭；既有 Luna/audit 快照不被
+覆盖或冷重跑。旧实现只能用于历史复现，不能作为现行方法或新论文结果来源。
+
+本轮诊断组六格固定为 `0004`、`0023`、`0029`、`0035`、`0046`、`0053`。前五格沿用
+`runs/paper1/luna-five-v25-20260819` 的 v27 代表组；0035 的近期 v27 施工材料来自
+`runs/paper1/witness-search/v39-dprompt-replay-20260820` 和
+`v40-dprompt-checklist-20260820`。这组六格只用于输入/流程调试和每格一次的短测，不改变
+冻结 54-pair 分母，也不把短测结果写成新方法达标结论。
+
+## 确定性边界
+
+现行规则沿用 v27 的可审计边界：开放语义判断由具名 LLM 节点承担，形式事实由自有
+parser、typed binding、图算法、SMT 输入规范化和后端承担。LLM 负责 NL 同义/指代、
+义务是否成立、语义 grounding、条件作用域和最强反驳；确定性代码只能验证 exact ID、
+枚举、引用闭包、公开语法 AST、图/轨迹/公式的声明 soundness fragment、hash、预算和
+终止状态。不得用关键词、substring、正则、词干、编辑距离、embedding 或字符串相似度
+替代语义判断；自由文本只进入 prompt、报告和审计，不进入 D/W 或 assertion 的语义裁定。
+
+因此，`expected`、`observed` 和 `strongest_rebuttal` 等散文字段不会被确定性层比较。
+D 阶段由 LLM 输出 typed grounding/defeater facts 及 `reason`/`basis`，方法代码只将
+这些封闭枚举映射为 D2/D1/D0；W 仍完全由确定性状态机根据 binding、plan、backend
+receipt 计算。该边界来自 v27 归档的 [METHOD_DESIGN.md](../archive/witness_search_prototype_legacy_20260821/METHOD_DESIGN.md)
+§4.1、§6，以及 [EXPRESSION_SURFACE_AUDIT.md](../archive/witness_search_prototype_legacy_20260821/EXPRESSION_SURFACE_AUDIT.md)
+的 semantic-mapping 规则。
 
 ## 当前代码状态
 

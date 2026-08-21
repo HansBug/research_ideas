@@ -106,6 +106,33 @@ python tools/check_md_links.py project_1_llm_state_machine_modeling/paper_stm_is
   反例/轨迹、来源归因和 `reason`/`basis`，并在完成代码后用 `gpt-5.6-luna` 跑冻结的
   54 pair，全量迭代到 v27 量级验收门。
 
+### 7.1 输入闭包和运行安全门
+
+当前新包已恢复 v27 等价的 method 输入闭包和阶段骨架：编号 NL、PlantUML、
+canonical source IR、exact source/transition inventory、working contract/mapping、
+source trace、FCSTM/ModelIR、v27 inspect-derived facts、owned inspection-equivalent
+facts、verify facts 和 SMT summary 均进入 ContextManifest，并在每个 stage receipt
+记录 manifest hash、artifact hashes 和版本。
+
+PlantUML/source 与 FCSTM/closed model、inspection/verify/SMT facts 的角色分离已写入
+prompt 和测试。case report 的完整历史阶段与 LLM/comparison/review payload 不进入
+method prompt，只保留身份/状态 projection；完整文件仍以 hash 留在输入 receipt。
+method 流程为 prepare -> NL contract extraction -> source/model grounding ->
+exact binding -> compiler/backend -> execution receipt -> typed semantic D -> W。
+
+在该输入/流程完成 review 前，live runner 仅允许显式、最多六个 pair 的诊断子集；
+默认 54-pair 全量入口保持关闭。既有 Luna 与 audit 产物是只读诊断快照，不删除、不
+覆盖、不冷重跑；这条安全门不代表新方法效果已经达标。
+
+### 7.2 确定性边界复核
+
+沿用 v27 的边界表：NL 同义、指代、义务成立性、条件作用域、语义到 formal element
+的对应和最强反驳属于 LLM semantic grounding / D adjudication；parser、AST、精确
+mapping、图可达性、trace、SMT、hash、预算和终止状态才属于确定性代码。禁止用正则、
+关键词、substring、词干、编辑距离、embedding 或字符串相似度从自由文本推出语义结论。
+现行 `adjudication.py` 只消费 D LLM 输出的封闭 typed facts，再机械映射 D；不得读取或
+比较 `expected`、`observed`、`strongest_rebuttal` 散文。
+
 这些是契约和施工门，不代表新后端已经实现或 54 pair 实验已经完成。当前正式包仍处于
 迁移前置阶段；旧 `feedback_loop` 中可见的 `inspect_model` 只属于 legacy replay，不能
 被新 `evidence_discovery` 入口调用。

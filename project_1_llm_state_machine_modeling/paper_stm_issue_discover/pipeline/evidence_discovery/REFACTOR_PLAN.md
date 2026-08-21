@@ -39,7 +39,8 @@ pipeline/evidence_discovery/
 ├── predicate_registry.json        # 机器可读唯一注册表（迁移前置真源）
 ├── inputs/
 │   ├── models.py                  # NL、源模型、轨迹和绑定输入类型
-│   ├── loaders.py                 # pair、PlantUML、fcstm、工作合同加载
+│   ├── context.py                 # v27 输入闭包、manifest 和自有事实算法
+│   ├── loaders.py                 # pair、PlantUML、fcstm、工作合同和事实加载
 │   └── provenance.py              # 输入哈希、源位置和绑定回执
 ├── semantics/
 │   ├── obligations.py             # 需求义务拆分和语义类型
@@ -51,9 +52,7 @@ pipeline/evidence_discovery/
 │   └── plans.py                   # 可执行检查计划及契约校验
 ├── orchestration/
 │   ├── runner.py                  # 单 pair / 批量运行编排，不做语义裁决
-│   ├── budgets.py                 # 重试、超时和资源预算，全部写入运行记录
-│   ├── retry_policy.py             # provider error 原地重试与格子重试一次的状态机
-│   └── migration.py               # 迁移期新旧结果只读对账，不写旧格式
+│   └── runtime.py                 # 公共 runtime、超时、重试、usage 和计费
 ├── backends/
 │   ├── source_static.py           # S1-S6 的封闭源模型检查
 │   ├── topology.py                # G1-G4 的图投影检查
@@ -86,8 +85,21 @@ pipeline/evidence_discovery/
 模块之间先传结构化记录，再接入真实后端。字段名是内部接口的冻结草案；实现阶段若要
 修改，必须同步 schema、迁移说明和测试。
 
+当前 v27 等价输入闭包由 ContextManifest 固定，至少覆盖编号 NL、PlantUML、canonical
+source IR、exact source/transition inventory、working contract/mapping、source trace、
+FCSTM/ModelIR、v27 inspect-derived facts、owned inspection-equivalent facts、verify
+facts 和 SMT summary。每个 artifact reference 都记录哈希、schema/algorithm version、
+producer、source role、reason 和 basis；缺失闭包时不得降级为三文件 prompt。
+
+方法阶段固定为 prepare、NL contract extraction、两个互补 grounding 分支、exact
+binding、19-predicate compiler/backend、execution receipt、D adjudication 和
+deterministic W publication。case report 的历史 lineage、LLM、comparison 和 review
+payload 只保留在 receipt，prompt 只接收身份/状态 projection。
+
 | 记录 | 必填字段 | 生产者 → 消费者 | 不能承载的含义 |
 |---|---|---|---|
+| ContextManifest | pair_id、artifacts、sections、forbidden_inputs、manifest_hash | inputs → semantics / orchestration | 不得省略 v27 source/model/fact closure 或混用来源角色 |
+| StageReceipt | stage_id、stage_name、input_manifest_hash、output_hash、reason、basis | orchestration → audit/reporting | 不得把 provider/schema 诊断改写成 D/W 结论 |
 | `RequirementObligation` | `obligation_id`、`source_text`、`source_location`、`scope`、`binding_status` | `semantics` → `compiler` / `reporting` | 不得提前假定有谓词或后端 |
 | `ModelBinding` | `obligation_id`、`model_hash`、`element_refs`、`binding_kind`、`binding_status` | `semantics` → `compiler` / `evidence` | 不得把字符串相似当精确绑定 |
 | `PredicatePlan` | `predicate_id`、`inputs`、`registry_version`、`soundness_fragment`、`assumptions` | `compiler` → `backends` | 不得写入旧谓词名或自行扩义 |
@@ -190,6 +202,18 @@ containment、child count、consumer scope、正交区和 trace delta 的旧证�
 
 ## 5. 分阶段施工顺序
 
+### 阶段 0：输入闭包和阶段边界
+
+- 恢复完整 v27 source/model/fact closure，并明确 PlantUML/source、FCSTM/closed model
+  和 inspection/verify/SMT facts 的不相混角色。
+- 用 ContextManifest 固定每项哈希、版本、来源角色和 prompt 排除项。
+- 让 fixture 证明每个 grounding 分支实际收到完整闭包；每个阶段产出 Pydantic
+  StageReceipt 和非空 reason/basis。
+- 用自有、版本化的 inspection-equivalent、finite verification 和 SMT normalization
+  算法替代禁用的 inspect API。
+
+退出条件：缺失闭包不能进入 method；角色边界、prompt 非干扰和 stage receipt 均有测试。
+
 ### 阶段 A：注册表先行
 
 - 完成 JSON schema、19 行/6-4-4-5 计数、版本哈希和来源 ID 校验。
@@ -250,6 +274,10 @@ error 使格子死亡，原地重试该格一次；其它错误及由此触发�
 落盘每个 pair/cell 的 W/D、reason/basis、重试和成本；随后修复错误并迭代，直至整体 hit
 显著高于 baseline、L2 大部分成功命中、FP 不高于 baseline，且总体达到 v27 大体相当量级。
 超过 v27 如实记录；不要求逐格复刻，也不允许为达指标新增谓词或放宽学术边界。
+
+当前施工安全门覆盖上述历史目标：在本轮输入闭包和阶段 review 完成前，live runner 必须
+显式传入 pair IDs，且最多运行六个诊断 pair；不允许通过默认参数启动 54-pair 全量，
+也不允许以冷重跑替代故障修复。
 
 ### 阶段 F：退役历史运行入口
 

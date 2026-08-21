@@ -52,6 +52,68 @@ UNKNOWN、超时、资源耗尽和错误不得改写为 violation 或 W2。
 L0/L1/L2 是台账侧属性。方法不生成、不裁定、不在 release issue 中声称自己的 L 等级；
 评测时仅读取冻结台账的 L 字段并按台账分母切片统计。
 
+### 1.2 v27 等价输入闭包与阶段信息流
+
+新方法不能把 v27 的多阶段输入压缩成三个文本文件和一个自有 ModelIR。每个
+PairInput 必须同时保留并在 ContextManifest 中记录哈希、schema version、algorithm
+version、producer、reason 和 basis：
+
+| 输入 | 方法中的唯一角色 |
+|---|---|
+| 编号 NL | 提取源需求义务和原句锚点 |
+| PlantUML 与 canonical source IR | 作者源定位、源状态/迁移身份和源归因 |
+| exact source/transition inventory | 从 canonical source IR 投影的精确源清单 |
+| working contract、mapping、source trace | 映射、归属、边界和来源链约束 |
+| FCSTM 与 owned ModelIR | 被测闭合模型、精确绑定和后端执行 |
+| v27 inspect-derived facts | 只读的历史结构化事实上下文 |
+| inspection-equivalent facts | 新包自有算法生成的版本化 inventory/diagnostic |
+| verify facts | 新包自有有限图检查的结构化事实，不是 D/W 结论 |
+| SMT/formal summary | 归一化的守卫/公式输入；solver_status=not_run 时不是求解器结果 |
+
+PlantUML/canonical source IR 不能冒充 FCSTM 执行模型；FCSTM 不能冒充作者源定位；
+inspection、verify 和 SMT facts 只能陈述确定性事实，不能直接生成 violation、W2 或 D。
+后端和输入解析禁止 Python inspect、pyfcstm.inspect 和旧 inspect_* 后端；当前自有算法
+版本为 inspection-equivalent.fcstm-graph.v1、verify-equivalent.finite-graph.v1 和
+smt-input-normalization.v1。
+
+方法编排保留以下固定阶段边界和信息流：
+
+prepare -> nl_contract_extraction -> source_grounding -> model_grounding ->
+exact_binding -> predicate_compilation -> backend_execution -> d_adjudication ->
+w_publication
+
+两个 grounding 分支互补：source branch 负责作者源身份和位置，model branch 负责闭合
+FCSTM 元素、确定性 facts 和 19 谓词最小输入。方法 prompt 只接受该闭包，不接受冻结
+台账答案、baseline 命中/FP、judge 示例或历史 release 输出。case report 只把身份、哈希
+和状态 projection 放入 prompt；其完整文件仍以哈希保留在 receipt 中，历史
+stage lineage/LLM/comparison/review payload 不进入生成上下文。
+
+所有输入模型、LLM 响应和阶段 receipt 都使用 Pydantic model；字段必须有约束、完整
+description 和非空 reason/basis。LLM 不输出 W/D/L；D 阶段只输出封闭的 semantic
+grounding/defeater facts，方法代码将这些 typed facts 映射为 D2/D1/D0，W 则完全由
+确定性状态机裁定。
+
+### 1.3 确定性方法的准入边界
+
+沿用 v27 已验证的边界：开放世界的自然语言语义必须由具名 LLM 节点判断，不能由文本
+启发式伪装成确定性事实。NL 同义、指代、义务是否成立、条件作用域、NL 概念对应哪个
+formal element、最强反驳以及台账外的语义同一性都属于 LLM semantic grounding 或
+D adjudication。确定性代码只可处理公开语法和 typed AST、精确 ID/mapping、枚举与
+引用闭包、版本化图/轨迹/SMT 算法、hash、预算和后端终止状态。
+
+禁止使用关键词、substring、正则、词干、编辑距离、embedding、identifier 形状、唯一
+候选补全或字符串相似度从自然语言推出语义结论。自由文本 `claim`、`expected`、
+`observed`、`strongest_rebuttal` 只能保存为审计和 prompt 材料，不得进入 assertion
+source/hash、D/W 或 source-attribution 的确定性语义裁定。逐字 quote 的 span 校验只
+核对出处，不证明语义蕴含。任何无法由形式语法、模型 AST、精确引用关系或预先声明
+soundness fragment 完美判定的步骤，都必须有 Pydantic 输出、非空 `reason`/`basis`、
+模型调用和 usage/retry receipt。
+
+这里的“禁止正则”针对自然语言语义代理，不禁止 parser 对公开 FCSTM/guard grammar
+做语法识别。语法 parser 只能生成 typed AST/fragment；bounded backend 只在预先声明的
+有限数值 guard grammar 内求值，无法解析的表达式必须返回 `UNKNOWN`。状态是否终止只
+能来自 exact formal final-pseudostate edge，不能从 `final`、`terminal` 等状态名猜测。
+
 ## 2. 四族的学术叙事
 
 四族按证据的产生方式，而不是按本台账中的标签划分：
