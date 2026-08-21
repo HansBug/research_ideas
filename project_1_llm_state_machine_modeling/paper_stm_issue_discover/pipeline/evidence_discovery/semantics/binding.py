@@ -131,8 +131,8 @@ def resolve_transition_ref(
         matches = [
             item.ref
             for item in model.transitions
-            if (source is None or _endpoint(item.source) == _endpoint(source))
-            and (target is None or _endpoint(item.target) == _endpoint(target))
+            if (source is None or _endpoint_aliases(item.source) & _endpoint_aliases(source))
+            and (target is None or _endpoint_aliases(item.target) & _endpoint_aliases(target))
         ]
     return matches[0] if len(matches) == 1 else None
 
