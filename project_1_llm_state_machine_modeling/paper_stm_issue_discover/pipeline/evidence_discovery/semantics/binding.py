@@ -31,6 +31,32 @@ def _endpoint(value: str) -> str:
     return re.sub(r"\s+", " ", value.strip()).replace("[ * ]", "[*]")
 
 
+def _endpoint_aliases(value: str) -> set[str]:
+    """Return closed-model aliases for source/compiler endpoint spellings.
+
+    The representation compiler preserves source boundary markers such as
+    ``!State`` and qualified source paths such as ``Root.Region.State``.  The
+    owned FCSTM IR intentionally stores the executable endpoint name at its
+    declaration level.  These aliases are structural normalization only; no
+    text similarity or semantic inference is involved.
+    """
+
+    normalized = _endpoint(value)
+    aliases = {normalized}
+    if normalized.startswith("@initial:"):
+        aliases.add("[*]")
+        normalized = normalized[len("@initial:") :]
+    if normalized.startswith("!"):
+        aliases.add(normalized[1:])
+        normalized = normalized[1:]
+    if normalized.startswith("state:"):
+        normalized = normalized[len("state:") :]
+    if "." in normalized:
+        aliases.add(normalized.rsplit(".", 1)[-1])
+    aliases.add(normalized)
+    return {item for item in aliases if item}
+
+
 def _label(value: str) -> str:
     return _endpoint(value).rstrip(" ;")
 
@@ -69,16 +95,24 @@ def _transition_matches(
             candidates = [
                 item
                 for item in candidates
-                if _endpoint(item.source) == expected_source
-                and _endpoint(item.target) == expected_target
+                if _endpoint_aliases(item.source) & _endpoint_aliases(expected_source)
+                and _endpoint_aliases(item.target) & _endpoint_aliases(expected_target)
                 and (not expected_label or _label(item.label) == expected_label)
             ]
         else:
             candidates = []
     if source is not None:
-        candidates = [item for item in candidates if _endpoint(item.source) == _endpoint(source)]
+        candidates = [
+            item
+            for item in candidates
+            if _endpoint_aliases(item.source) & _endpoint_aliases(source)
+        ]
     if target is not None:
-        candidates = [item for item in candidates if _endpoint(item.target) == _endpoint(target)]
+        candidates = [
+            item
+            for item in candidates
+            if _endpoint_aliases(item.target) & _endpoint_aliases(target)
+        ]
     return [item.ref for item in candidates]
 
 
@@ -108,9 +142,14 @@ def _resolve_ref(value: str, model: ModelIR) -> str | None:
         return value
     if value.startswith("state:"):
         name = _LINE_SUFFIX.sub("", value[len("state:") :])
-        state = model.state(name)
-        if state is not None:
-            return state.ref
+        matches = [
+            state
+            for state in model.states
+            if _endpoint_aliases(state.name) & _endpoint_aliases(name)
+            or _endpoint_aliases(state.display_name) & _endpoint_aliases(name)
+        ]
+        if len(matches) == 1:
+            return matches[0].ref
     if value.startswith("event:"):
         name = _LINE_SUFFIX.sub("", value[len("event:") :])
         event = model.event(name)
@@ -119,9 +158,14 @@ def _resolve_ref(value: str, model: ModelIR) -> str | None:
     if value.startswith("transition:"):
         matches = _transition_matches(value, model)
         return matches[0] if len(matches) == 1 else None
-    state = model.state(value)
-    if state is not None:
-        return state.ref
+    state_matches = [
+        state
+        for state in model.states
+        if _endpoint_aliases(state.name) & _endpoint_aliases(value)
+        or _endpoint_aliases(state.display_name) & _endpoint_aliases(value)
+    ]
+    if len(state_matches) == 1:
+        return state_matches[0].ref
     event = model.event(value)
     if event is not None:
         return event.ref
@@ -151,12 +195,23 @@ def bind_candidate(candidate: CandidateIssue, model: ModelIR) -> BindingResult:
             target=target_hint if isinstance(target_hint, str) else None,
         )
     elif isinstance(source_hint, str) and isinstance(target_hint, str):
-        hinted_transitions = [
-            item.ref
-            for item in model.transitions
-            if _endpoint(item.source) == _endpoint(source_hint)
-            and _endpoint(item.target) == _endpoint(target_hint)
-        ]
+        hinted_transitions = _transition_matches(
+            f"transition:{source_hint}->{target_hint}",
+            model,
+            source=source_hint,
+            target=target_hint,
+        )
+
+    # S1/S4 candidates frequently identify their exact model element through
+    # the registry input rather than duplicating it in element_refs.  Resolve
+    # those typed inputs before deciding whether binding is precise.
+    for key in ("element", "state", "event"):
+        value = input_values.get(key)
+        if not isinstance(value, str) or not value.strip():
+            continue
+        ref = _resolve_ref(value, model)
+        if ref is not None and ref not in resolved:
+            resolved.append(ref)
     for value in candidate.element_refs:
         ref = _resolve_ref(value, model)
         if ref is None and value.startswith("transition:") and len(hinted_transitions) == 1:

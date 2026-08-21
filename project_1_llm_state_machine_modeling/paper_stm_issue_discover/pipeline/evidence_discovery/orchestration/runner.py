@@ -599,6 +599,111 @@ def _enrich_candidate(candidate: CandidateIssue, binding: Any, pair: PairInput) 
     return candidate.model_copy(update={"predicate_inputs": inputs})
 
 
+def _endpoint_stem(value: Any) -> str:
+    """Normalize a mapped source path to the owned parser's declaration stem."""
+
+    text = str(value or "").strip()
+    if text.startswith("@initial:"):
+        text = "[*]"
+    text = text.lstrip("!")
+    if text.startswith("state:"):
+        text = text[len("state:") :]
+    return text.rsplit(".", 1)[-1]
+
+
+def _model_ref_for_state(pair: PairInput, value: Any) -> str | None:
+    stem = _endpoint_stem(value)
+    matches = [
+        state.ref
+        for state in pair.model.states
+        if state.name == stem or state.display_name == stem
+    ]
+    return matches[0] if len(matches) == 1 else None
+
+
+def _mapped_model_refs(pair: PairInput, candidate: CandidateIssue) -> list[str]:
+    """Translate source-owned grounding refs through the published mapping contract.
+
+    Grounding sees both author-source and closed-model context.  The LLM may
+    therefore return a source identity in ``element_refs`` even when its
+    predicate inputs identify the corresponding FCSTM element.  The working
+    contract is the explicit mapping authority; this helper only resolves
+    structured IDs and endpoint fields and never performs textual similarity.
+    """
+
+    artifact = pair.working_contract
+    elements = artifact.payload.get("elements", []) if artifact else []
+    records = [item for item in elements if isinstance(item, dict)]
+    raw_refs = list(candidate.element_refs)
+    raw_refs.extend(
+        ref for ref in candidate.source_refs if ref.startswith("source:")
+    )
+    resolved: list[str] = []
+    unresolved: list[str] = []
+    for raw in raw_refs:
+        if raw in pair.model.all_refs:
+            if raw not in resolved:
+                resolved.append(raw)
+            continue
+        matches = [
+            item
+            for item in records
+            if item.get("element_id") == raw
+            or raw in (item.get("source_refs") or [])
+        ]
+        mapped: list[str] = []
+        for item in matches:
+            metadata = item.get("metadata") or {}
+            semantic = item.get("semantic_fields") or {}
+            kind = str(item.get("kind") or "")
+            if "transition" in kind:
+                source = metadata.get("source") or semantic.get("source_endpoint")
+                target = metadata.get("target") or semantic.get("target_endpoint")
+                if source is not None and target is not None:
+                    ref = resolve_transition_ref(
+                        None,
+                        pair.model,
+                        source=str(source),
+                        target=str(target),
+                    )
+                    if ref is not None:
+                        mapped.append(ref)
+            else:
+                state_path = (
+                    metadata.get("fcstm_path")
+                    or semantic.get("fcstm_identifier")
+                )
+                ref = _model_ref_for_state(pair, state_path)
+                if ref is not None:
+                    mapped.append(ref)
+                for model_ref in item.get("model_refs") or []:
+                    ref = _model_ref_for_state(pair, model_ref)
+                    if ref is not None:
+                        mapped.append(ref)
+        if mapped:
+            for ref in mapped:
+                if ref not in resolved:
+                    resolved.append(ref)
+        elif raw not in pair.model.all_refs:
+            unresolved.append(raw)
+
+    # Predicate inputs are authoritative for the typed check.  Binding itself
+    # will validate their endpoint/element identity, so this list only fills
+    # the missing model-ref side of a dual-source candidate.
+    if not resolved:
+        for key in ("element", "state", "event"):
+            value = candidate.predicate_inputs.get(key)
+            ref = _model_ref_for_state(pair, value)
+            if ref is not None:
+                resolved.append(ref)
+    return [*resolved, *unresolved]
+
+
+def _normalize_candidate_model_refs(pair: PairInput, candidate: CandidateIssue) -> CandidateIssue:
+    refs = _mapped_model_refs(pair, candidate)
+    return candidate.model_copy(update={"element_refs": refs})
+
+
 def _prepare_candidate(
     pair: PairInput,
     candidate: CandidateIssue,
@@ -608,6 +713,7 @@ def _prepare_candidate(
     """Bind, compile, and execute once before the separate semantic D call."""
 
     obligation_id = f"{pair.pair_id}:r{round_index}:i{index}"
+    candidate = _normalize_candidate_model_refs(pair, candidate)
     binding = bind_candidate(candidate, pair.model)
     candidate = _enrich_candidate(candidate, binding, pair)
     plan = compile_plan(

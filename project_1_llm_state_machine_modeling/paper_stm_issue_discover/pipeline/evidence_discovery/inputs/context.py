@@ -129,6 +129,92 @@ def case_report_prompt_dict(artifact: StructuredArtifact | None) -> dict[str, An
     }
 
 
+def reference_inspection_prompt_dict(
+    artifact: StructuredArtifact | None,
+) -> dict[str, Any] | None:
+    """Project the published v27 inspection artifact into a compact fact summary.
+
+    The complete artifact remains hash-addressed by ``artifact.ref`` and is
+    retained in the run inputs.  Grounding receives the structured inventory,
+    diagnostics, reachability, and transition facts that are useful for
+    routing, while repetitive legacy projections are represented by explicit
+    count/hash receipts instead of being silently dropped or copied wholesale
+    into every prompt.
+    """
+
+    if artifact is None:
+        return None
+    payload = artifact.payload
+    selected: dict[str, Any] = {}
+    scalar_keys = ("metrics", "root_state_path", "diagnostics", "forced_transitions")
+    for key in scalar_keys:
+        if key in payload:
+            selected[key] = payload[key]
+
+    state_keys = (
+        "path",
+        "name",
+        "parent_path",
+        "is_composite",
+        "is_leaf",
+        "is_pseudo",
+        "substates",
+        "initial_targets",
+        "entry_actions",
+        "during_actions",
+        "exit_actions",
+        "has_abstract_action",
+    )
+    states = payload.get("states")
+    if isinstance(states, list):
+        selected["states"] = [
+            {key: row[key] for key in state_keys if isinstance(row, dict) and key in row}
+            for row in states
+            if isinstance(row, dict)
+        ]
+
+    transition_keys = (
+        "transition_index",
+        "from_path",
+        "to_path",
+        "event",
+        "event_scope",
+        "guard",
+        "effect",
+        "is_forced",
+        "forced_origin",
+    )
+    transitions = payload.get("transitions")
+    if isinstance(transitions, list):
+        selected["transitions"] = [
+            {key: row[key] for key in transition_keys if isinstance(row, dict) and key in row}
+            for row in transitions
+            if isinstance(row, dict)
+        ]
+
+    for key in ("actions", "events", "event_emission_map", "reachability_graph", "variables", "var_dataflow"):
+        if key in payload:
+            selected[key] = payload[key]
+
+    omitted: dict[str, dict[str, Any]] = {}
+    for key, value in payload.items():
+        if key in selected:
+            continue
+        omitted[key] = {
+            "count": len(value) if isinstance(value, (list, dict, str)) else None,
+            "sha256": _artifact_hash_payload({"value": value}),
+            "reason": "The complete artifact is retained by the artifact hash; this repetitive projection is outside the compact grounding summary.",
+            "basis": "v27 parse_inspect artifact and compact-inspection-projection.v1",
+        }
+    selected["omitted_sections"] = omitted
+    return {
+        "ref": artifact.ref.model_dump(mode="json"),
+        "payload": selected,
+        "reason": "Compact v27 inspection facts preserve inventory, diagnostics, graph, transition, action, and event summaries without repeating legacy payload expansion.",
+        "basis": "compact-inspection-projection.v1; complete source bytes remain hash-addressed in the manifest",
+    }
+
+
 class NumberedNLSegment(BaseModel):
     """One deterministic numbered natural-language segment."""
 
@@ -996,7 +1082,7 @@ def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
                     include_elements=True,
                 ),
                 "reference_inspection_facts": (
-                    pair.reference_inspection.to_prompt_dict()
+                    reference_inspection_prompt_dict(pair.reference_inspection)
                     if pair.reference_inspection
                     else None
                 ),
