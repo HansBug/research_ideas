@@ -268,8 +268,6 @@ def test_staged_method_receives_full_context_and_writes_stage_receipts(tmp_path:
     assert '"dossier_input_policy": {' in prompts["d_adjudication"]
     assert '"plantuml_source": {' not in prompts["d_adjudication"]
     assert '"fcstm_model": {' not in prompts["d_adjudication"]
-        assert "frozen ledger answers" in prompt
-        assert "baseline hit/FP results" in prompt
 
     receipt_names = [item["stage_name"] for item in cell["stage_receipts"]]
     for required in (
