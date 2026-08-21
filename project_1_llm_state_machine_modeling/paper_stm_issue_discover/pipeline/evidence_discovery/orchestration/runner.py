@@ -18,7 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from ..backends import run_backend
 from ..compiler import compile_plan
 from ..compiler.plans import validate_plan
-from ..evidence import W2AuditBundle, build_evidence_record
+from ..evidence import build_evidence_record, validate_and_hash_w2_audit_bundle
 from ..evidence.receipts import RawReceipt
 from ..evidence.source_attribution import build_source_attribution
 from ..inputs import FROZEN_PAIR_IDS, load_pair
@@ -721,6 +721,9 @@ def _deterministic_candidate(
     )
     if record["witness_level"] == "W2":
         record["audit_bundle"]["issue_emitted"] = record["issue_emitted"]
+        record["audit_bundle"] = validate_and_hash_w2_audit_bundle(
+            record["audit_bundle"]
+        )
     return record, record if record["issue_emitted"] else None
 
 
@@ -2360,11 +2363,7 @@ def _finalize_w2_audit_links(
                 "reason": "The external W2 bundle was finalized only after method and judge receipts became terminal.",
                 "basis": "method-before-judge orchestration and atomic receipt writes",
             }
-            bundle["audit_hash"] = _hash_json(bundle)
-            write_json(
-                audit_path,
-                W2AuditBundle.model_validate(bundle).model_dump(mode="json"),
-            )
+            write_json(audit_path, validate_and_hash_w2_audit_bundle(bundle))
 
 
 def _pair_status(

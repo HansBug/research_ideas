@@ -45,9 +45,23 @@ class W2AuditBundle(BaseModel):
     method_receipt: dict[str, Any] = Field(description="Terminal method receipt link or explicit pre-finalization state.")
     judge_receipt: dict[str, Any] = Field(description="Terminal independent judge link or explicit pre-finalization state.")
     audit_finalization: dict[str, Any] | None = Field(default=None, description="Judge-time finalization timestamp, receipt hash, reason, and basis.")
+    issue_emitted: bool | None = Field(default=None, description="Whether deterministic D/W publication emitted this W2 record as a release issue.")
     reason: str = Field(min_length=1, description="Non-empty explanation of the deterministic evidence and D publication state.")
     basis: str = Field(min_length=1, description="Non-empty predicate, binding, program, backend, and source basis.")
     audit_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$", description="Hash of the complete bundle excluding this hash field at calculation time.")
+
+
+def validate_and_hash_w2_audit_bundle(payload: dict[str, Any]) -> dict[str, Any]:
+    """Normalize a W2 bundle through Pydantic before calculating its hash."""
+
+    candidate = dict(payload)
+    candidate["audit_hash"] = "sha256:" + "0" * 64
+    normalized = W2AuditBundle.model_validate(candidate).model_dump(mode="json")
+    normalized.pop("audit_hash", None)
+    normalized["audit_hash"] = "sha256:" + hashlib.sha256(
+        json.dumps(normalized, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    return W2AuditBundle.model_validate(normalized).model_dump(mode="json")
 
 
 def build_audit_bundle(
@@ -157,10 +171,8 @@ def build_audit_bundle(
             "basis": "method/judge isolation boundary",
         },
         "audit_finalization": None,
+        "issue_emitted": None,
         "reason": reason,
         "basis": basis,
     }
-    payload["audit_hash"] = "sha256:" + hashlib.sha256(
-        json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
-    ).hexdigest()
-    return W2AuditBundle.model_validate(payload).model_dump(mode="json")
+    return validate_and_hash_w2_audit_bundle(payload)
