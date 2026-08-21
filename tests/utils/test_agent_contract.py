@@ -87,6 +87,22 @@ def test_missing_structured_output_retry_needs_output_schema() -> None:
         )
 
 
+def test_agent_spec_accepts_a_run_scoped_transport_retry_schedule() -> None:
+    spec = AgentSpec(
+        name="transport-contract",
+        system_prompt="answer",
+        transport_retry_delays_seconds=(0, 1.5, 3),
+    )
+    assert spec.transport_retry_delays_seconds == (0.0, 1.5, 3.0)
+
+    with pytest.raises(ValueError, match="transport retry delays"):
+        AgentSpec(
+            name="invalid-transport-contract",
+            system_prompt="answer",
+            transport_retry_delays_seconds=(1, -1),
+        )
+
+
 def test_demo_answer_requires_timezone_aware_iso_timestamps() -> None:
     valid = DemoAnswer.model_validate(
         {

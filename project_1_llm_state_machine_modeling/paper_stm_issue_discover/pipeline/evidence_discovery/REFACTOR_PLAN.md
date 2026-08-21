@@ -99,7 +99,7 @@ payload 只保留在 receipt，prompt 只接收身份/状态 projection。
 | 记录 | 必填字段 | 生产者 → 消费者 | 不能承载的含义 |
 |---|---|---|---|
 | ContextManifest | pair_id、artifacts、sections、forbidden_inputs、manifest_hash | inputs → semantics / orchestration | 不得省略 v27 source/model/fact closure 或混用来源角色 |
-| StageReceipt | stage_id、stage_name、input_manifest_hash、output_hash、reason、basis | orchestration → audit/reporting | 不得把 provider/schema 诊断改写成 D/W 结论 |
+| StageReceipt | stage_id、stage_name、input_manifest_hash、output_hash、context_budget、reason、basis | orchestration → audit/reporting | 不得把 provider/schema 诊断改写成 D/W 结论 |
 | `RequirementObligation` | `obligation_id`、`source_text`、`source_location`、`scope`、`binding_status` | `semantics` → `compiler` / `reporting` | 不得提前假定有谓词或后端 |
 | `ModelBinding` | `obligation_id`、`model_hash`、`element_refs`、`binding_kind`、`binding_status` | `semantics` → `compiler` / `evidence` | 不得把字符串相似当精确绑定 |
 | `PredicatePlan` | `predicate_id`、`inputs`、`registry_version`、`soundness_fragment`、`assumptions` | `compiler` → `backends` | 不得写入旧谓词名或自行扩义 |
@@ -114,6 +114,12 @@ payload 只保留在 receipt，prompt 只接收身份/状态 projection。
 所有模型辅助节点的输出 schema 都必须把 `reason` 或 `basis` 设为必填非空字段；该字段
 只记录本步的依据和边界，D/W 等级仍由方法裁定器计算。`EvidenceRecord` 还必须记录
 `d_level`（D2/D1/D0/D_UNRESOLVED），但不得包含方法生成的 `l_level`。
+
+每个 LLM stage 的 `context_budget` 记录精确 prompt 字符数、调用前 token 估计、provider
+实际 input tokens（可得时）、profile context window、max output、projection version 和
+是否发生 runtime truncation。当前只允许显式 `stage-context-projection.v1` 压缩重复材料，
+不得静默删节；确定性 stage 也必须记录 `deterministic-no-prompt`，不能用
+`context_budget_exceeded` 伪装业务 miss。
 
 每条 W2 的 `audit_bundle` 是可独立复核的最小闭包，至少包含：谓词 ID 与注册表版本、
 完整谓词逻辑和绑定后的输入、编译后的 assertion/formal program 源码及其哈希、模型与
@@ -275,9 +281,17 @@ error 使格子死亡，原地重试该格一次；其它错误及由此触发�
 显著高于 baseline、L2 大部分成功命中、FP 不高于 baseline，且总体达到 v27 大体相当量级。
 超过 v27 如实记录；不要求逐格复刻，也不允许为达指标新增谓词或放宽学术边界。
 
-当前施工安全门覆盖上述历史目标：在本轮输入闭包和阶段 review 完成前，live runner 必须
-显式传入 pair IDs，且最多运行六个诊断 pair；不允许通过默认参数启动 54-pair 全量，
-也不允许以冷重跑替代故障修复。
+当前施工安全门分两级：任意真实 Luna 调用都必须显式通过 `allow_live`；诊断阶段必须
+显式传入 pair IDs，且最多运行六个 pair。冻结 54-pair 三轮全量还必须额外通过
+`allow_full_live`，该门只可在 provider-free 契约检查与 0004/0023/0029/0035/0046/0053
+六 pair 单次复测完成 review 后打开。每次运行在用户给定目录下新建 `run_id` 子目录；
+manifest 冻结 commit、registry/prompt/schema/input hash、workers、retry 和 stream 模式，
+不兼容旧格移入 `stale/` 并重新生成，不能静默 resume，也不能以冷重跑替代故障修复。
+
+效果对账必须把重构前 v27 与 X1v2 baseline 分开。v27 量级参考为 overall hit@1
+276/435、overall hit@3 107/145、L2 hit@3 35/39、D2xL2 hit@3 30/34、release
+precision 45.74%；X1v2 baseline precision 为 41.60%。这些值是第一轮稳定运行后的能力
+分析参照，不是 provider-free 或六 pair 诊断的通过条件，也不能用来改写 19 谓词语义。
 
 ### 阶段 F：退役历史运行入口
 

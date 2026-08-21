@@ -13,22 +13,36 @@ from pipeline.evidence_discovery.backends import run_backend
 from pipeline.evidence_discovery.backends.bounded_verification import _terminal_states
 from pipeline.evidence_discovery.compiler import compile_plan
 from pipeline.evidence_discovery.evidence.receipts import RawReceipt
+from pipeline.evidence_discovery.evidence.audit_bundle import W2AuditBundle
 from pipeline.evidence_discovery.evidence.witness_levels import (
     build_evidence_record,
     calculate_witness_level,
 )
 from pipeline.evidence_discovery.inputs import load_pair, parse_fcstm
 from pipeline.evidence_discovery.orchestration.runner import (
+    AtomicMatchDecision,
     LedgerAssessment,
     JudgeResponse,
     ReleaseAssessment,
     _failure_judge_payload,
     _failure_method_cell,
+    _judge_pair,
+    _metrics,
+    run_experiment,
+)
+from pipeline.evidence_discovery.orchestration.contracts import (
+    IndependentJudgeReceipt,
+    MethodCellReceipt,
+    PairRunStatus,
+    RunManifest,
+    RunSummaryReceipt,
+    SourceProvenance,
 )
 from pipeline.evidence_discovery.orchestration.runtime import (
     PROVIDER_CALL_DEADLINE_SECONDS,
     PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS,
     ProviderCallTimeout,
+    StructuredCallOutcome,
     _annotate_usage_billing,
     _cost_for_usage,
     _provider_timeout_seconds,
@@ -37,6 +51,7 @@ from pipeline.evidence_discovery.orchestration.runtime import (
 from pipeline.evidence_discovery.registry import load_registry
 from pipeline.evidence_discovery.semantics import (
     CandidateIssue,
+    ContextBudgetReceipt,
     MethodResponse,
     SemanticAdjudication,
     adjudicate_disposition,
@@ -275,6 +290,11 @@ def test_w2_audit_contains_logic_hashes_backend_and_retry_records() -> None:
     assert bundle["model_hash"] == pair.hashes["fcstm"]
     assert bundle["program_hash"] == bundle["compiled_program"]["sha256"]
     assert bundle["backend_result"]["terminal_state"] == "completed"
+    assert bundle["generated_at"]
+    assert bundle["execution_environment"]["python_version"]
+    assert bundle["structured_run_summary"]["terminal_state"] == "completed"
+    assert bundle["method_receipt"]["status"] == "pending_cell_finalization"
+    assert bundle["judge_receipt"]["status"] == "pending_independent_judge"
     assert bundle["counterexample"]
     assert bundle["trace"]
     assert bundle["retry_records"] == retry_records
@@ -385,6 +405,21 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
         nested = judge_schema["$defs"][schema_name]
         assert nested["properties"]["reason"].get("description")
         assert nested["properties"]["basis"].get("description")
+    for model in (
+        SourceProvenance,
+        RunManifest,
+        MethodCellReceipt,
+        IndependentJudgeReceipt,
+        PairRunStatus,
+        RunSummaryReceipt,
+        ContextBudgetReceipt,
+        W2AuditBundle,
+        AtomicMatchDecision,
+    ):
+        schema = model.model_json_schema()
+        assert model.__doc__ and model.__doc__.strip()
+        for field_name, field in schema["properties"].items():
+            assert field.get("description"), f"{model.__name__}.{field_name}"
 
     assessment = LedgerAssessment(
         ledger_id="ledger-1",
@@ -445,6 +480,33 @@ def test_provider_retry_exemption_is_row_local_and_other_usage_is_billable() -> 
     assert cost["attempts"][1]["total_usd"] > 0
 
 
+def test_terminal_provider_failure_without_an_actual_retry_remains_billable() -> None:
+    rows = [
+        {
+            "model_call_id": "terminal",
+            "status": "failed",
+            "input_tokens": 100,
+            "output_tokens": 0,
+        }
+    ]
+    _annotate_usage_billing(
+        rows,
+        audit_records=[],
+        final_error={"code": "provider_timeout", "message": "terminal timeout"},
+    )
+    assert rows[0].get("cost_counted", True) is True
+    assert rows[0].get("billing_disposition", "billable") == "billable"
+
+    _annotate_usage_billing(
+        rows,
+        audit_records=[],
+        final_error={"code": "provider_timeout", "message": "retrying timeout"},
+        actual_outer_retry=True,
+    )
+    assert rows[0]["cost_counted"] is False
+    assert rows[0]["billing_disposition"] == "provider_error_retry_exempt"
+
+
 def test_provider_deadline_is_finite_and_provider_timeout_is_bounded() -> None:
     assert PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS == 30
     assert PROVIDER_CALL_DEADLINE_SECONDS == 120
@@ -460,12 +522,25 @@ def test_provider_deadline_is_finite_and_provider_timeout_is_bounded() -> None:
 
 def test_pair_failure_receipts_are_written_for_all_cells(tmp_path: Path) -> None:
     error = RuntimeError("fixture pair failure")
+    run_identity = {
+        "run_id": "0" * 32,
+        "run_contract_hash": "sha256:" + "0" * 64,
+        "source_provenance": {
+            "source_commit": "0" * 40,
+            "source_branch": "fixture",
+            "source_dirty": False,
+            "reason": "Fixture source provenance.",
+            "basis": "provider-free test fixture",
+        },
+        "pair_input_hashes": {},
+    }
     for round_index in (1, 2, 3):
         _failure_method_cell(
             pair_id="0000",
             round_index=round_index,
             output_root=tmp_path,
             error=error,
+            run_identity=run_identity,
         )
     _failure_judge_payload(
         pair_id="0000",
@@ -473,7 +548,280 @@ def test_pair_failure_receipts_are_written_for_all_cells(tmp_path: Path) -> None
         release=[],
         output_root=tmp_path,
         error=error,
+        run_identity=run_identity,
     )
 
     assert len(list((tmp_path / "method" / "0000").glob("round-*.json"))) == 3
     assert (tmp_path / "judge" / "0000.json").is_file()
+    judge = json.loads((tmp_path / "judge" / "0000.json").read_text(encoding="utf-8"))
+    assert judge["eligible"] is False
+    assert judge["judgement"] is None
+
+
+class _AtomicJudgeFixtureRuntime:
+    """Real-provider-shaped fixture that forces pair-wide shape fallback."""
+
+    real_llm = True
+
+    def __init__(self) -> None:
+        self.kinds: list[str] = []
+
+    def call(self, *, kind, schema, system_prompt, prompt, artifact_id, **kwargs):
+        self.kinds.append(kind)
+        if schema is JudgeResponse:
+            response = JudgeResponse(
+                ledger_assessments=[],
+                release_assessments=[],
+                reason="The fixture intentionally returns an incomplete pair-wide shape.",
+                basis="provider-free atomic fallback test",
+            )
+        elif schema is AtomicMatchDecision:
+            response = AtomicMatchDecision(
+                matches=False,
+                confidence="high",
+                reason="The supplied fixture units do not describe the same locus and property.",
+                basis="one supplied ledger entry and one supplied release issue",
+            )
+        else:
+            raise AssertionError(f"unexpected schema: {schema}")
+        return StructuredCallOutcome(
+            kind=kind,
+            status="success",
+            response=response,
+            result={"call_id": f"fixture:{kind}"},
+            attempts=[],
+            usage=[],
+            cost={"eligible": True, "total_usd": 0.0, "attempts": []},
+            context_budget={
+                "mode": "provider_free_real_shape_fixture",
+                "projection_version": "stage-context-projection.v1",
+                "prompt_characters": len(prompt),
+                "estimated_prompt_tokens": (len(prompt) + 3) // 4,
+                "provider_input_tokens": 0,
+                "context_window_tokens": 1_000_000,
+                "max_output_tokens": 8000,
+                "truncation_applied": False,
+                "projection_decision": "The complete fixture prompt was retained.",
+                "reason": "The fixture records the judge prompt size.",
+                "basis": "provider-free atomic fallback test",
+            },
+            real_llm=True,
+            reason="The provider-shaped fixture returned a validated response.",
+            basis="provider-free atomic fallback test",
+        )
+
+
+def _fixture_run_identity(pair_id: str, pair_manifest_hash: str) -> dict:
+    return {
+        "run_id": "1" * 32,
+        "run_contract_hash": "sha256:" + "1" * 64,
+        "source_provenance": {
+            "source_commit": "1" * 40,
+            "source_branch": "fixture",
+            "source_dirty": False,
+            "reason": "Fixture source provenance.",
+            "basis": "provider-free test fixture",
+        },
+        "pair_input_hashes": {pair_id: pair_manifest_hash},
+    }
+
+
+def test_pair_wide_judge_shape_failure_uses_atomic_llm_relations(tmp_path: Path) -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    runtime = _AtomicJudgeFixtureRuntime()
+    issue = {
+        "issue_id": "0000:r1:issue:0",
+        "title": "Fixture unmatched release",
+        "requirement_quote": "Fixture requirement",
+        "predicate_id": None,
+        "predicate_inputs": {},
+        "binding": {"precise": True, "element_refs": [pair.model.states[0].ref]},
+        "expected": "Fixture expected behavior",
+        "observed": "Fixture observed behavior",
+        "d_level": "D1",
+        "witness_level": "W1",
+        "reason": "Fixture release reason.",
+        "basis": "Fixture release basis.",
+    }
+    judge = _judge_pair(
+        pair=pair,
+        method_rounds=[
+            {
+                "schema": "paper1.evidence_discovery.method_cell.v2",
+                "run_id": "1" * 32,
+                "run_contract_hash": "sha256:" + "1" * 64,
+                "pair_id": "0000",
+                "round": 1,
+                "status": "completed",
+                "eligible": True,
+                "eligibility_reasons": ["fixture"],
+                "prompt_hash": "sha256:" + "2" * 64,
+                "context_manifest": pair.context_manifest.model_dump(mode="json"),
+                "input_hashes": pair.hashes,
+                "stage_receipts": [],
+                "report_issue_clusters": [issue],
+                "reason": "Fixture method receipt.",
+                "basis": "Fixture method receipt basis.",
+            }
+        ],
+        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
+        runtime=runtime,
+        output_root=tmp_path,
+        run_identity=_fixture_run_identity(
+            "0000", pair.context_manifest.manifest_hash
+        ),
+    )
+
+    assert judge["eligible"] is True
+    assert judge["adjudication_mode"] == "atomic_llm_fallback"
+    assert judge["judgement"] is not None
+    assert "judge_atomic_relation" in runtime.kinds
+    assert len(judge["atomic_relations"]) == judge["ledger_count"]
+    assert judge["judgement"]["release_assessments"][0]["is_false_positive"] is True
+
+
+def test_exact_empty_release_closes_without_an_llm_semantic_call(tmp_path: Path) -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+
+    class NoCallRuntime:
+        real_llm = True
+
+        def call(self, **kwargs):
+            raise AssertionError("an exact empty release must not call the semantic judge")
+
+    judge = _judge_pair(
+        pair=pair,
+        method_rounds=[
+            {
+                "round": 1,
+                "status": "completed",
+                "eligible": True,
+                "eligibility_reasons": ["fixture"],
+                "report_issue_clusters": [],
+                "reason": "No release issue was produced.",
+                "basis": "Exact empty release fixture.",
+            }
+        ],
+        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
+        runtime=NoCallRuntime(),
+        output_root=tmp_path,
+        run_identity=_fixture_run_identity(
+            "0000", pair.context_manifest.manifest_hash
+        ),
+    )
+
+    assert judge["eligible"] is True
+    assert judge["adjudication_mode"] == "exact_empty_release"
+    assert judge["llm_calls"] == []
+    assert all(not item["matched_issue_ids"] for item in judge["judgement"]["ledger_assessments"])
+
+
+def test_failed_judge_is_unadjudicated_not_a_miss_or_false_positive(tmp_path: Path) -> None:
+    run_identity = _fixture_run_identity("0000", "sha256:" + "3" * 64)
+    failed = _failure_judge_payload(
+        pair_id="0000",
+        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
+        release=[{"issue_id": "0000:r1:issue:0"}],
+        output_root=tmp_path,
+        error=RuntimeError("fixture judge unavailable"),
+        run_identity=run_identity,
+    )
+    metrics = _metrics(
+        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
+        pair_method={
+            "0000": [
+                {
+                    "round": 1,
+                    "eligible": True,
+                    "report_issue_clusters": [{"issue_id": "0000:r1:issue:0"}],
+                    "evidence_records": [],
+                    "errors": [],
+                }
+            ]
+        },
+        pair_judge={"0000": failed},
+        selected_pair_ids=["0000"],
+        rounds=1,
+    )
+
+    assert metrics["eligibility"]["eligible_judge_pairs"] == 0
+    assert metrics["emissions"]["false_positive"] == 0
+    assert metrics["emissions"]["unjudged_or_ineligible_release_issue_count"] == 1
+
+
+def test_provider_free_run_manifest_resume_and_concurrent_atomic_writes(tmp_path: Path) -> None:
+    run_id = "2" * 32
+    summary = run_experiment(
+        report_root=REPORT_ROOT,
+        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
+        output_dir=tmp_path,
+        profile="fixture",
+        rounds=1,
+        pair_ids=["0004", "0023"],
+        workers=2,
+        run_id=run_id,
+    )
+    run_root = tmp_path / run_id
+    manifest = json.loads(
+        (run_root / "run_manifest.json").read_text(encoding="utf-8")
+    )
+
+    assert summary["run_id"] == run_id
+    assert summary["artifact_root"] == str(run_root.resolve())
+    assert manifest["workers"] == 2
+    assert manifest["prompt_schema_hash"].startswith("sha256:")
+    assert manifest["input_data_hash"].startswith("sha256:")
+    assert manifest["pair_input_hashes"].keys() == {"0004", "0023"}
+    assert len(list((run_root / "method").glob("*/round-1.json"))) == 2
+    assert len(list((run_root / "judge").glob("*.json"))) == 2
+    assert not list(run_root.rglob("*.tmp"))
+    audit_files = list((run_root / "audit_bundles").glob("*.json"))
+    assert audit_files
+    for audit_file in audit_files:
+        bundle = json.loads(audit_file.read_text(encoding="utf-8"))
+        assert bundle["method_receipt"]["sha256"].startswith("sha256:")
+        assert bundle["judge_receipt"]["sha256"].startswith("sha256:")
+        assert bundle["audit_finalization"]["judge_receipt_hash"] == bundle["judge_receipt"]["sha256"]
+
+    resumed = run_experiment(
+        report_root=REPORT_ROOT,
+        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
+        output_dir=tmp_path,
+        profile="fixture",
+        rounds=1,
+        pair_ids=["0004", "0023"],
+        workers=2,
+        run_id=run_id,
+        resume=True,
+    )
+    assert resumed["run_id"] == run_id
+    assert resumed["resume"] is True
+
+    stale_path = run_root / "method" / "0004" / "round-1.json"
+    stale_payload = json.loads(stale_path.read_text(encoding="utf-8"))
+    stale_payload["schema"] = "paper1.evidence_discovery.method_cell.v1"
+    stale_path.write_text(
+        json.dumps(stale_payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    repaired = run_experiment(
+        report_root=REPORT_ROOT,
+        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
+        output_dir=tmp_path,
+        profile="fixture",
+        rounds=1,
+        pair_ids=["0004", "0023"],
+        workers=2,
+        run_id=run_id,
+        resume=True,
+    )
+    current = json.loads(stale_path.read_text(encoding="utf-8"))
+    stale_receipts = list((run_root / "stale").rglob("round-1.json"))
+    assert repaired["run_id"] == run_id
+    assert current["schema"] == "paper1.evidence_discovery.method_cell.v2"
+    assert stale_receipts
+    assert any(
+        json.loads(path.read_text(encoding="utf-8"))["schema"]
+        == "paper1.evidence_discovery.method_cell.v1"
+        for path in stale_receipts
+    )

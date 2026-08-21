@@ -4,6 +4,7 @@ from .adjudication import DAdjudicationResponse, SemanticAdjudication, adjudicat
 from .binding import BindingResult, bind_candidate, resolve_transition_ref
 from .obligations import CandidateIssue, MethodResponse
 from .workflow import (
+    ContextBudgetReceipt,
     CONTRACT_SYSTEM_PROMPT,
     D_SYSTEM_PROMPT,
     MODEL_GROUNDING_SYSTEM_PROMPT,
@@ -26,6 +27,7 @@ from .workflow import (
 __all__ = [
     "BindingResult",
     "CandidateIssue",
+    "ContextBudgetReceipt",
     "MethodResponse",
     "SemanticAdjudication",
     "DAdjudicationResponse",

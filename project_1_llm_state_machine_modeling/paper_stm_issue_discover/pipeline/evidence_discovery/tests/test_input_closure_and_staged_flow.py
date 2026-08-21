@@ -142,6 +142,22 @@ class FixtureStructuredRuntime:
             attempts=[],
             usage=[],
             cost={"eligible": True, "total_usd": 0.0, "attempts": []},
+            context_budget={
+                "mode": "provider_free_fixture",
+                "projection_version": "stage-context-projection.v1",
+                "prompt_characters": len(prompt),
+                "estimated_prompt_tokens": (len(prompt) + 3) // 4,
+                "provider_input_tokens": None,
+                "context_window_tokens": None,
+                "max_output_tokens": 8000,
+                "truncation_applied": False,
+                "projection_decision": "The test fixture used the complete serialized prompt.",
+                "reason": "The provider-free test fixture records prompt size.",
+                "basis": "test fixture runtime",
+            },
+            real_llm=False,
+            reason="The provider-free test fixture returned a validated response.",
+            basis="test fixture runtime",
         )
 
 
@@ -322,6 +338,16 @@ def test_staged_method_receives_full_context_and_writes_stage_receipts(tmp_path:
         assert required in receipt_names
     assert all(item["input_manifest_hash"] == pair.context_manifest.manifest_hash for item in cell["stage_receipts"])
     assert all(item["reason"] and item["basis"] for item in cell["stage_receipts"])
+    assert all(item["context_budget"]["reason"] and item["context_budget"]["basis"] for item in cell["stage_receipts"])
+    llm_budgets = [
+        item["context_budget"]
+        for item in cell["stage_receipts"]
+        if item["context_budget"]["mode"] == "structured_llm"
+        or item["context_budget"]["mode"] == "provider_free_fixture"
+    ]
+    assert llm_budgets
+    assert all(item["prompt_characters"] > 0 for item in llm_budgets)
+    assert all(item["truncation_applied"] is False for item in llm_budgets)
     assert len(cell["llm_calls"]) == 4
     assert cell["context_manifest"]["manifest_hash"] == pair.context_manifest.manifest_hash
     assert cell["stage_outputs"]["nl_contract_extraction"]["reason"]
@@ -386,7 +412,7 @@ def test_large_working_contract_is_role_scoped_before_prompt_serialization(tmp_p
 
 
 def test_full_live_runner_requires_explicit_review_gate() -> None:
-    with pytest.raises(RuntimeError, match="live Luna/full experiment is disabled"):
+    with pytest.raises(RuntimeError, match="allow_live=True"):
         run_experiment(
             report_root=REPORT_ROOT,
             ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
@@ -396,8 +422,8 @@ def test_full_live_runner_requires_explicit_review_gate() -> None:
         )
 
 
-def test_live_runner_requires_explicit_diagnostic_subset() -> None:
-    with pytest.raises(RuntimeError, match="explicit pair_ids subset"):
+def test_full_live_runner_requires_second_explicit_gate() -> None:
+    with pytest.raises(RuntimeError, match="allow_full_live=True"):
         run_experiment(
             report_root=REPORT_ROOT,
             ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
@@ -416,4 +442,16 @@ def test_live_runner_caps_diagnostic_subset_at_six_pairs() -> None:
             profile="gpt-5.6-luna",
             allow_live=True,
             pair_ids=["0000", "0001", "0002", "0003", "0004", "0005", "0006"],
+        )
+
+
+def test_live_runner_rejects_sol_during_luna_construction() -> None:
+    with pytest.raises(RuntimeError, match="Sol execution is outside"):
+        run_experiment(
+            report_root=REPORT_ROOT,
+            ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
+            output_dir=PAPER_ROOT / "runs" / "should-not-start-sol",
+            profile="gpt-5.6-sol",
+            allow_live=True,
+            pair_ids=["0004"],
         )

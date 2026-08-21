@@ -120,9 +120,21 @@ method prompt，只保留身份/状态 projection；完整文件仍以 hash 留�
 method 流程为 prepare -> NL contract extraction -> source/model grounding ->
 exact binding -> compiler/backend -> execution receipt -> typed semantic D -> W。
 
-在该输入/流程完成 review 前，live runner 仅允许显式、最多六个 pair 的诊断子集；
-默认 54-pair 全量入口保持关闭。既有 Luna 与 audit 产物是只读诊断快照，不删除、不
-覆盖、不冷重跑；这条安全门不代表新方法效果已经达标。
+live runner 使用双门：任意真实 Luna 调用要求 `allow_live`；最多六个显式 pair 的诊断
+复测只通过第一门。54-pair 三轮全量还要求 `allow_full_live`，只能在 provider-free
+契约检查及 0004/0023/0029/0035/0046/0053 六 pair review 后打开。既有 Luna 与 audit
+产物是只读诊断快照，不删除、不覆盖、不冷重跑；新结果进入独立 `run_id` 子目录。
+
+run manifest 与 v2 receipt 冻结 commit、19 谓词 registry hash、prompt/schema hash、
+pair ContextManifest hash、judge-only ledger hash、workers、stream/timeout 和 retry policy。
+resume 同时校验 run ID、contract hash、schema、source provenance 与 pair input hash；不
+兼容文件显式保存为 `stale_incompatible` 后重跑，不能混入指标。所有 JSON/Markdown
+终态使用同目录临时文件加原子 rename，避免并发 worker 留下半写制品。
+
+能力报告必须明确区分重构前 v27 与 X1v2 baseline：v27 参考为 overall hit@1 276/435、
+overall hit@3 107/145、L2 hit@3 35/39、D2xL2 hit@3 30/34、release precision
+45.74%；X1v2 baseline precision 为 41.60%。这些是全量结束后的对账参照，不是改变
+谓词、W/D 口径或隐藏失败格的理由。
 
 ### 7.2 确定性边界复核
 
@@ -133,6 +145,7 @@ mapping、图可达性、trace、SMT、hash、预算和终止状态才属于确�
 现行 `adjudication.py` 只消费 D LLM 输出的封闭 typed facts，再机械映射 D；不得读取或
 比较 `expected`、`observed`、`strongest_rebuttal` 散文。
 
-这些是契约和施工门，不代表新后端已经实现或 54 pair 实验已经完成。当前正式包仍处于
-迁移前置阶段；旧 `feedback_loop` 中可见的 `inspect_model` 只属于 legacy replay，不能
-被新 `evidence_discovery` 入口调用。
+这些是契约和施工门，不代表 54 pair 实验已经完成或效果已经达标。旧
+`feedback_loop` 中可见的 `inspect_model` 只属于 legacy replay，不能被新
+`evidence_discovery` 入口调用；新包只消费已落盘的 reference facts，并以自有版本化
+parser/AST/有限图算法产生 inspection-equivalent、verify 和 SMT 输入事实。

@@ -52,6 +52,60 @@ class GroundingResponse(BaseModel):
     basis: str = Field(min_length=1, description="LLM basis naming the supplied branch-specific facts and contract IDs used.")
 
 
+class ContextBudgetReceipt(BaseModel):
+    """Auditable prompt-size and projection decision for one method stage."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    mode: Literal["structured_llm", "provider_free_fixture", "deterministic"] = Field(
+        description="Whether this stage consumed an LLM context budget or was deterministic."
+    )
+    projection_version: str = Field(
+        min_length=1,
+        description="Versioned stage projection used before prompt serialization."
+    )
+    prompt_characters: int | None = Field(
+        default=None,
+        ge=0,
+        description="Exact serialized prompt character count, or null for deterministic stages."
+    )
+    estimated_prompt_tokens: int | None = Field(
+        default=None,
+        ge=0,
+        description="Conservative pre-provider prompt token estimate, or null for deterministic stages."
+    )
+    provider_input_tokens: int | None = Field(
+        default=None,
+        ge=0,
+        description="Actual provider-reported input tokens across audited attempts, or null when unavailable."
+    )
+    context_window_tokens: int | None = Field(
+        default=None,
+        gt=0,
+        description="Configured provider context window, or null for a provider-free/deterministic stage."
+    )
+    max_output_tokens: int | None = Field(
+        default=None,
+        gt=0,
+        description="Configured maximum output tokens for the structured call, or null for deterministic stages."
+    )
+    truncation_applied: bool = Field(
+        description="Whether runtime text truncation removed any stage input."
+    )
+    projection_decision: str = Field(
+        min_length=1,
+        description="Explicit statement of structured projection, split-stage, or no-prompt handling."
+    )
+    reason: str = Field(
+        min_length=1,
+        description="Non-empty explanation of why the recorded context budget is valid."
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Non-empty prompt, usage, profile, and projection basis for the budget receipt."
+    )
+
+
 class StageReceipt(BaseModel):
     """Auditable receipt for one deterministic or structured method stage."""
 
@@ -74,6 +128,7 @@ class StageReceipt(BaseModel):
     input_artifact_roles: tuple[str, ...] = Field(min_length=1, description="Artifact roles consumed by this stage.")
     output_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$", description="Hash of the structured stage output or deterministic receipt payload.")
     llm_call_id: str | None = Field(default=None, description="Public runtime call identity when this stage used an LLM.")
+    context_budget: ContextBudgetReceipt = Field(description="Prompt size, provider token, context window, and truncation decision for this stage.")
     diagnostics: tuple[dict[str, Any], ...] = Field(default_factory=tuple, description="Structured stage diagnostics; diagnostic text is not an outcome verdict.")
     reason: str = Field(min_length=1, description="Deterministic or LLM explanation of the stage outcome.")
     basis: str = Field(min_length=1, description="Concrete input, algorithm, schema, or runtime basis for the stage outcome.")

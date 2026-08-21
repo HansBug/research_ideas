@@ -170,6 +170,7 @@ class AgentSpec:
     limits: Mapping[str, int | float | None] | None = None
     require_tool_call: bool = False
     retry_missing_structured_output: bool = False
+    transport_retry_delays_seconds: tuple[float, ...] | None = None
 
     def __post_init__(self) -> None:
         if not self.name.strip() or not self.system_prompt.strip():
@@ -187,6 +188,20 @@ class AgentSpec:
         if self.retry_missing_structured_output and self.output_schema is None:
             raise ValueError(
                 "agent_spec_invalid: retry_missing_structured_output needs output_schema"
+            )
+        retry_delays = self.transport_retry_delays_seconds
+        if retry_delays is not None:
+            if any(
+                not isinstance(value, (int, float)) or value < 0
+                for value in retry_delays
+            ):
+                raise ValueError(
+                    "agent_spec_invalid: transport retry delays must be non-negative numbers"
+                )
+            object.__setattr__(
+                self,
+                "transport_retry_delays_seconds",
+                tuple(float(value) for value in retry_delays),
             )
         object.__setattr__(self, "limits", limits)
 
@@ -3176,6 +3191,11 @@ class AgentApp:
             think_mode=think_mode,
             reasoning_effort=reasoning_effort,
         )
+        transport_retry_delays = (
+            _TRANSPORT_RETRY_DELAYS
+            if self.spec.transport_retry_delays_seconds is None
+            else self.spec.transport_retry_delays_seconds
+        )
         prompt_cache_policy = _prompt_cache_policy(self.config)
         inference_summary = {
             "streaming": getattr(self.model, "streaming", None),
@@ -3183,8 +3203,8 @@ class AgentApp:
             "reasoning_effort": inference_options.get("reasoning_effort"),
             "stream_usage": getattr(self.model, "stream_usage", None),
             "max_retries": getattr(self.model, "max_retries", None),
-            "transport_retries": len(_TRANSPORT_RETRY_DELAYS),
-            "transport_retry_delays_seconds": list(_TRANSPORT_RETRY_DELAYS),
+            "transport_retries": len(transport_retry_delays),
+            "transport_retry_delays_seconds": list(transport_retry_delays),
             "timeout": getattr(self.model, "request_timeout", None) or getattr(self.model, "timeout", None),
             "tool_choice_policy": tool_choice_policy_name,
             "prompt_cache": prompt_cache_policy,
@@ -3236,8 +3256,8 @@ class AgentApp:
                 "compact": {"ratio": compact_trigger_ratio, "threshold": compact_threshold},
                 "tool_choice_policy": tool_choice_policy_name,
                 "transport_retry": {
-                    "max_retries": len(_TRANSPORT_RETRY_DELAYS),
-                    "delays_seconds": list(_TRANSPORT_RETRY_DELAYS),
+                    "max_retries": len(transport_retry_delays),
+                    "delays_seconds": list(transport_retry_delays),
                     "profile": self.profile,
                 },
             }
@@ -4695,7 +4715,7 @@ class AgentApp:
                 *_adapter_prompt_cache_middleware(self.config),
                 _TransportRetryMiddleware(
                     ledger,
-                    delays=_TRANSPORT_RETRY_DELAYS,
+                    delays=transport_retry_delays,
                     on_retry=transport_retry_scheduled,
                     on_recovered=transport_retry_recovered,
                     on_exhausted=transport_retry_exhausted,

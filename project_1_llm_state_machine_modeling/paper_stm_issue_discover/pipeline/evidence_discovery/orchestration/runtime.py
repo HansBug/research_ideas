@@ -21,6 +21,25 @@ T = TypeVar("T", bound=BaseModel)
 # timeout itself is set to the complete-call deadline.
 PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS = 30
 PROVIDER_CALL_DEADLINE_SECONDS = 120
+MAX_STRUCTURED_OUTPUT_TOKENS = 8000
+DEFAULT_TRANSPORT_RETRIES = 8
+TRANSPORT_RETRY_DELAY_SCHEDULE_SECONDS = (5.0, 20.0, 60.0, 120.0, 240.0)
+
+
+def _transport_retry_delays(retries: int) -> tuple[float, ...]:
+    """Expand the audited retry schedule to the requested retry count."""
+
+    if retries < 0:
+        raise ValueError("transport_retries must be non-negative")
+    if retries == 0:
+        return ()
+    tail = TRANSPORT_RETRY_DELAY_SCHEDULE_SECONDS[-1]
+    return tuple(
+        TRANSPORT_RETRY_DELAY_SCHEDULE_SECONDS[index]
+        if index < len(TRANSPORT_RETRY_DELAY_SCHEDULE_SECONDS)
+        else tail
+        for index in range(retries)
+    )
 
 
 def _provider_timeout_seconds(streaming: bool) -> int:
@@ -116,10 +135,13 @@ def _is_provider_error(error: dict[str, Any] | None) -> bool:
         "transport",
         "rate_limit",
         "ratelimit",
+        "http_408",
+        "http_409",
+        "http_429",
+        "http_5",
+        "upstream",
         "timeout",
         "connection",
-        "http_5",
-        "http_4",
         "api_error",
     )
     return any(marker in text for marker in markers)
@@ -154,23 +176,15 @@ def _provider_failure_call_ids(
     records: list[dict[str, Any]],
     final_error: dict[str, Any] | None,
 ) -> set[str]:
+    del final_error
     call_ids: set[str] = set()
     for record in records:
         record_type = record.get("record_type") or record.get("record")
         if record_type == "transport_retry":
-            if record.get("operation") in {"scheduled", "exhausted"}:
+            if record.get("operation") == "scheduled":
                 call_id = record.get("failed_model_call_id")
                 if isinstance(call_id, str) and call_id:
                     call_ids.add(call_id)
-        elif record_type == "model_failed" and _is_provider_error(record.get("error")):
-            call_id = record.get("model_call_id")
-            if isinstance(call_id, str) and call_id:
-                call_ids.add(call_id)
-    if _is_provider_error(final_error):
-        # A terminal provider error may not expose a model call id. Only rows
-        # explicitly marked as failed/unavailable are eligible for this
-        # fallback; completed earlier calls in the same cell remain billable.
-        return call_ids
     return call_ids
 
 
@@ -179,6 +193,7 @@ def _annotate_usage_billing(
     *,
     audit_records: list[dict[str, Any]],
     final_error: dict[str, Any] | None,
+    actual_outer_retry: bool = False,
 ) -> None:
     """Attach billing decisions to the specific failed provider attempts.
 
@@ -189,13 +204,18 @@ def _annotate_usage_billing(
     """
 
     failed_call_ids = _provider_failure_call_ids(audit_records, final_error)
-    has_provider_retry = bool(_retry_records(audit_records))
-    terminal_provider_error = _is_provider_error(final_error)
+    del final_error
+    has_provider_retry = any(
+        record.get("operation") == "scheduled"
+        for record in _retry_records(audit_records)
+    )
+    if not has_provider_retry and not actual_outer_retry:
+        return
     for row in rows:
         call_id = row.get("model_call_id")
         failed_status = row.get("status") in {"failed", "unavailable", "cancelled"}
         if (isinstance(call_id, str) and call_id in failed_call_ids) or (
-            failed_status and (has_provider_retry or terminal_provider_error)
+            failed_status and (has_provider_retry or actual_outer_retry)
         ):
             row["cost_counted"] = False
             row["billing_disposition"] = "provider_error_retry_exempt"
@@ -229,6 +249,24 @@ def _cost_for_usage(rows: list[dict[str, Any]], pricing: Any) -> dict[str, Any]:
     return {"eligible": eligible, "total_usd": total if eligible else None, "attempts": costs}
 
 
+class StructuredContextBudget(BaseModel):
+    """Prompt-size, provider-token, and truncation audit for one structured call."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    mode: str = Field(min_length=1, description="Structured LLM or provider-free fixture context mode.")
+    projection_version: str = Field(min_length=1, description="Versioned prompt projection applied before serialization.")
+    prompt_characters: int = Field(ge=0, description="Exact serialized user prompt character count.")
+    estimated_prompt_tokens: int = Field(ge=0, description="Conservative four-characters-per-token pre-provider estimate.")
+    provider_input_tokens: int | None = Field(default=None, ge=0, description="Actual provider-reported input tokens across audited attempts, when available.")
+    context_window_tokens: int | None = Field(default=None, gt=0, description="Configured model context window, when available in the public profile.")
+    max_output_tokens: int = Field(gt=0, description="Configured maximum structured output token count.")
+    truncation_applied: bool = Field(description="Whether runtime text truncation removed any supplied stage input.")
+    projection_decision: str = Field(min_length=1, description="Explicit stage projection and truncation decision.")
+    reason: str = Field(min_length=1, description="Non-empty explanation of context-budget handling.")
+    basis: str = Field(min_length=1, description="Non-empty prompt, profile, usage, and projection basis.")
+
+
 class StructuredCallOutcome(BaseModel, Generic[T]):
     """Auditable result of one public structured runtime cell."""
 
@@ -241,6 +279,10 @@ class StructuredCallOutcome(BaseModel, Generic[T]):
     attempts: list[dict[str, Any]] = Field(default_factory=list, description="Per-cell outer attempts, provider diagnostics, retry receipts, and artifact paths.")
     usage: list[dict[str, Any]] = Field(default_factory=list, description="Normalized usage rows with model-call identity and billing disposition.")
     cost: dict[str, Any] = Field(default_factory=dict, description="Cost calculation and eligibility for this cell's usage rows.")
+    context_budget: StructuredContextBudget = Field(description="Prompt size, provider token, model window, and truncation receipt.")
+    real_llm: bool = Field(description="Whether this outcome came from the configured real provider rather than a fixture runtime.")
+    reason: str = Field(min_length=1, description="Non-empty explanation of the structured call terminal outcome.")
+    basis: str = Field(min_length=1, description="Non-empty runtime, provider, schema, and retry basis for the terminal outcome.")
 
     @property
     def succeeded(self) -> bool:
@@ -259,18 +301,35 @@ class StructuredCallOutcome(BaseModel, Generic[T]):
             "attempts": self.attempts,
             "usage": self.usage,
             "cost": self.cost,
+            "context_budget": self.context_budget.model_dump(mode="json"),
+            "real_llm": self.real_llm,
+            "reason": self.reason,
+            "basis": self.basis,
         }
 
 
 class PublicStructuredRuntime:
     """One public AgentApp wrapper shared by method and independent judge."""
 
-    def __init__(self, profile: str, artifact_root: Path):
+    real_llm = True
+
+    def __init__(
+        self,
+        profile: str,
+        artifact_root: Path,
+        *,
+        transport_retries: int = DEFAULT_TRANSPORT_RETRIES,
+        streaming: bool = True,
+    ):
         self.profile = profile
         self.artifact_root = artifact_root
         self.artifact_root.mkdir(parents=True, exist_ok=True)
         self.registry = load_llm_registry()
         self.config = self.registry.require(profile)
+        self.transport_retries = transport_retries
+        self.transport_retry_delays = _transport_retry_delays(transport_retries)
+        self.streaming = streaming
+
     def _app(
         self,
         kind: str,
@@ -287,8 +346,14 @@ class PublicStructuredRuntime:
             name=f"evidence-discovery-{kind}",
             system_prompt=system_prompt,
             output_schema=schema,
-            limits={"model_calls": 4, "turns": 4},
+            limits={
+                "model_calls": max(6, self.transport_retries + 4),
+                "turns": 6,
+                "seconds": PROVIDER_CALL_DEADLINE_SECONDS,
+            },
             require_tool_call=False,
+            retry_missing_structured_output=True,
+            transport_retry_delays_seconds=self.transport_retry_delays,
         )
         return AgentApp.from_registry(
             spec,
@@ -310,8 +375,9 @@ class PublicStructuredRuntime:
         prompt: str,
         artifact_id: str,
         retry_cell_on_provider_error: bool = True,
-        streaming: bool = True,
+        streaming: bool | None = None,
     ) -> StructuredCallOutcome[T]:
+        use_streaming = self.streaming if streaming is None else streaming
         attempts: list[dict[str, Any]] = []
         all_usage: list[dict[str, Any]] = []
         last_result: dict[str, Any] = {}
@@ -329,12 +395,12 @@ class PublicStructuredRuntime:
                         kind,
                         schema,
                         system_prompt,
-                        streaming=streaming,
+                        streaming=use_streaming,
                     ).run(
                         prompt,
                         renderer="quiet",
                         log_level="ERROR",
-                        model_call_options={"max_tokens": 8000},
+                        model_call_options={"max_tokens": MAX_STRUCTURED_OUTPUT_TOKENS},
                         audit_out=audit_path,
                         result_out=result_path,
                     )
@@ -343,12 +409,16 @@ class PublicStructuredRuntime:
                 rows = _usage_rows(result, outer_attempt=outer_attempt)
                 all_usage.extend(rows)
                 error = result.error if isinstance(result.error, dict) else None
+                provider_error = _is_provider_error(error)
+                actual_outer_retry = bool(
+                    provider_error and outer_attempt < max_outer_attempts
+                )
                 _annotate_usage_billing(
                     rows,
                     audit_records=audit_records,
                     final_error=error,
+                    actual_outer_retry=actual_outer_retry,
                 )
-                provider_error = _is_provider_error(error)
                 attempt = {
                     "outer_attempt": outer_attempt,
                     "status": result.status,
@@ -393,6 +463,24 @@ class PublicStructuredRuntime:
                 last_result = {"status": "failed", "error": error_payload}
                 break
         cost = _cost_for_usage(all_usage, self.config.pricing)
+        provider_input_tokens = sum(
+            int(row["input_tokens"])
+            for row in all_usage
+            if isinstance(row.get("input_tokens"), int)
+        )
+        context_budget = StructuredContextBudget(
+            mode="structured_llm",
+            projection_version="stage-context-projection.v1",
+            prompt_characters=len(prompt),
+            estimated_prompt_tokens=(len(prompt) + 3) // 4,
+            provider_input_tokens=(provider_input_tokens if all_usage else None),
+            context_window_tokens=self.config.context_window_tokens,
+            max_output_tokens=MAX_STRUCTURED_OUTPUT_TOKENS,
+            truncation_applied=False,
+            projection_decision="The stage-specific structured projection was serialized in full; runtime text truncation was not applied.",
+            reason="The call records both the pre-provider prompt size and actual provider usage when available.",
+            basis="stage-context-projection.v1, utils.llm profile limits, and normalized usage rows",
+        )
         return StructuredCallOutcome(
             kind=kind,
             status=status,
@@ -401,6 +489,17 @@ class PublicStructuredRuntime:
             attempts=attempts,
             usage=all_usage,
             cost=cost,
+            context_budget=context_budget,
+            real_llm=True,
+            reason=(
+                "The public structured call completed with a validated Pydantic response."
+                if status == "success"
+                else "The public structured call exhausted its provider/schema path and retained a terminal failure receipt."
+            ),
+            basis=(
+                f"utils.agent AgentApp; transport_retries={self.transport_retries}; "
+                f"stream_timeout={PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS}s; total_deadline={PROVIDER_CALL_DEADLINE_SECONDS}s"
+            ),
         )
 
 
@@ -412,6 +511,8 @@ class FixtureStructuredRuntime:
     and independent-judge normalization are exercised without credentials.
     It is never used for live results and carries no ledger payload.
     """
+
+    real_llm = False
 
     def call(
         self,
@@ -469,6 +570,19 @@ class FixtureStructuredRuntime:
                 "basis": "provider-free fixture runtime",
             }
         response = schema.model_validate(payload)
+        context_budget = StructuredContextBudget(
+            mode="provider_free_fixture",
+            projection_version="stage-context-projection.v1",
+            prompt_characters=len(prompt),
+            estimated_prompt_tokens=(len(prompt) + 3) // 4,
+            provider_input_tokens=None,
+            context_window_tokens=None,
+            max_output_tokens=MAX_STRUCTURED_OUTPUT_TOKENS,
+            truncation_applied=False,
+            projection_decision="The provider-free fixture consumed the complete serialized stage projection without truncation.",
+            reason="Fixture prompt size is recorded even though no provider token usage exists.",
+            basis="provider-free fixture runtime and stage-context-projection.v1",
+        )
         return StructuredCallOutcome(
             kind=kind,
             status="success",
@@ -477,4 +591,8 @@ class FixtureStructuredRuntime:
             attempts=[],
             usage=[],
             cost={"eligible": True, "total_usd": 0.0, "attempts": []},
+            context_budget=context_budget,
+            real_llm=False,
+            reason="The provider-free fixture returned a validated staged response.",
+            basis="provider-free fixture runtime",
         )
