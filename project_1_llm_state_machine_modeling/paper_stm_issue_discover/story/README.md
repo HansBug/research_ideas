@@ -62,7 +62,7 @@ python3 -m tools.check_evidence_markers project_1_llm_state_machine_modeling/pap
 
 ⚠️ **第二档的边界必须硬守：「导师未反对」不等于背书。** 背书要求**存在一句导师逐字原话，且那句话直接针对这个判断**；讨论记录里写成「我方提出（导师未反对）」的内容，一律不得标为背书，应标【AI 建议·待确认】或写成「我方提出 · 导师未反对」。判据是：**能不能把那句支撑用的导师原话逐字列出来**。列不出就不是背书。
 
-⛔ **[blueprint_proposal.md](./blueprint_proposal.md) 里的绝大多数内容属【AI 建议·待确认】。** 九节骨架、四个 RQ、它那套三条 contribution 的分法、T1/T2 分层、ref 翻转率实验、来源类映射表——**全部是 AI 建议**。⚠️ 其中**它那套三条 contribution 的分法与 T1/T2 分层已于 2026-08-11 被用户裁定取代**（前者换成了另外三条，后者整体作废），见本页 §5；引用 blueprint 时不得再把这两项当候选陈列。[2026-08-08 导师讨论记录](../../talks/2026-08-08-导师-paper1收窄为issue-discover.md) 中逐字加粗的导师原话共 **10 处**（此前本页写「8 句」，系少计，已更正）：discover 单独成篇 / repair 不会简单 / 修复只捎带提及 / 业务建模的重要性 / 那条大逻辑 / 缺上下文信息那条差异化叙述 / 规则从领域分析归纳 / 归纳的规则指导 prompt 设计 / 不必跑那么多 LLM / fork-join 可做专门分析。⚠️ 其中最后一条**已被 2026-08-11 的处置取代**（不展开、不单开 RQ），见该记录 §5.2 与 [model_scope.md](./model_scope.md) §2。后续 PR 不得把【AI 建议·待确认】悄悄升格为【导师原话】。
+⛔ **旧的 `blueprint_proposal.md` 已移入历史归档。** 它里面的九节骨架、四个 RQ、旧 contribution 分法、T1/T2 分层、ref 翻转率方案和来源映射只保留追溯价值，不再作为候选方案。归档指针见 [blueprint_proposal.md](./blueprint_proposal.md)，当前论文结构和方法口径以本目录其余文件及 `pipeline/evidence_discovery/` 为准。后续 PR 不得把归档材料悄悄升格为当前依据或【导师原话】。
 
 ## 3. 文件职责
 
@@ -73,7 +73,7 @@ python3 -m tools.check_evidence_markers project_1_llm_state_machine_modeling/pap
 | 3 | [claim_evidence_map.md](./claim_evidence_map.md) | claim → 证据映射、强度、允许 / 禁止写法 | v46 已有的已填，新增 claim 待补证据 |
 | 4 | [model_scope.md](./model_scope.md) | 建模对象 $M = (S, E, V, Tr, A)$、表达力边界、fork/join 处置 | 基本完整 |
 | 5 | [terminology_policy.md](./terminology_policy.md) | 术语中英口径、易混术语、指标写法、禁用词 | 基本完整 |
-| 6 | [blueprint_proposal.md](./blueprint_proposal.md) | ⛔ **提案，不是依据**：九节骨架 / 四 RQ / T1-T2 / ref 翻转率 / 来源类映射的 AI 推演原料。⛔ **不含导师原话**——原「导师原话」一节已整节删除（此前抄的 6 句里有 1 句 talks 中根本不存在、1 句是两句拼接、另漏 4 句），原话唯一真源是 talks 记录 | 全篇【AI 建议·待确认】，引用须标档位 |
+| 6 | [blueprint_proposal.md](./blueprint_proposal.md) | ⛔ **历史归档指针**：旧提案只用于追溯，不是当前依据；完整文件位于 `archive/legacy_20260821/` | 不得作为当前方法或论文结论引用 |
 
 **推荐阅读顺序**：想理解论文说什么 → 1、2；想写某一节 → 2 找结构、3 核 claim、5 核措辞；**想核任何数字 → 直接去实验报告，不从本目录转抄**。
 
@@ -99,7 +99,7 @@ python3 -m tools.check_evidence_markers project_1_llm_state_machine_modeling/pap
 | --: | :-- | :-- |
 | 1 | 用户 / 导师当前明确指令 | 一切之上 |
 | 2 | [../../talks/2026-08-08-导师-paper1收窄为issue-discover.md](../../talks/2026-08-08-导师-paper1收窄为issue-discover.md) | 论文收窄、contribution 口径、RQ 设计原则、谓词由来口径、修复不展开 |
-| 3 | [../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | **全部实验数字的唯一来源**，自包含 |
+| 3 | 对应版本的正式实验报告（v46 报告仅保留历史追溯） | **实验数字必须回到对应版本报告**；本目录不复制数字 |
 | 4 | [../discover_matrix/docs/protocol/](../discover_matrix/docs/protocol/) | 判定口径、方法出处口径、建模对象边界判据——改它们等于改研究规则 |
 | 5 | [../README.md](../README.md)、[../GUIDE.md](../GUIDE.md)、[../STATUS.md](../STATUS.md) | 工作区口径、纪律与当前状态 |
 | 6 | [blueprint_proposal.md](./blueprint_proposal.md) 一类的 AI 推演材料 | **只作提案**，不得作为依据陈述 |
@@ -122,7 +122,7 @@ python3 -m tools.check_evidence_markers project_1_llm_state_machine_modeling/pap
 
 | # | 冲突 | 双方 | 落点 | 状态 |
 | --: | :-- | :-- | :-- | :-- |
-| **X1** | RQ2 的证据来源里出现「**留出集**」 | BLUEPRINT 的 RQ 表 **vs** [method_provenance_policy.md](../discover_matrix/docs/protocol/method_provenance_policy.md) 的不设留出集 | [paper_outline.md](./paper_outline.md) §6.1「四个 RQ」 | ✅ **已裁定 2026-08-11：永久不设留出集** |
+| **X1** | RQ2 的证据来源里出现「**留出集**」 | 归档提案中的旧 RQ 表 **vs** [method_provenance_policy.md](../discover_matrix/docs/protocol/method_provenance_policy.md) 的不设留出集 | [paper_outline.md](./paper_outline.md) §6.1「四个 RQ」 | ✅ **已裁定 2026-08-11：永久不设留出集** |
 | **X2** | T1/T2 两层实验的形态 | BLUEPRINT 的分层基于 **v35 时期**（当时想省成本、只跑子集）**vs** v46 已跑完 **324 格全量** | [paper_outline.md](./paper_outline.md) §6.5「`TODO-O5`（冲突 **X2**）已裁定：T1/T2 分层作废」 / `TODO-O5` | ✅ **已裁定 2026-08-11：T1/T2 分层作废** |
 | **X3** | contribution「现有 detection 方法**缺少错误的上下文信息**」按字面写会被反驳 | 导师原话 **vs** 模型检查的反例轨迹就是上下文、有文献把状态图改动反向映射回需求、有工作给 provenance | [paper_story.md](./paper_story.md) `TODO-S2` | 🔍 **先调研再裁定**（2026-08-11 定调） |
 
@@ -157,8 +157,8 @@ python3 -m tools.check_evidence_markers project_1_llm_state_machine_modeling/pap
 | `TODO-C3` | claim_evidence_map | 判别效力 claim 缺数据（ref 翻转率未跑） | RQ3 |
 | `TODO-C4` | claim_evidence_map | 无外部对照 → 一切相对性 claim 不可写 | §7、§9 |
 | `TODO-M1` | model_scope | fork/join：不展开（当前定）与 BLUEPRINT 四层 finding 方案的取舍留档 | §3.1 一句话 |
-| `TODO-M2` | model_scope | 19 个谓词逐条挂领域出处 | §4「领域分析与谓词元模型」、§4.2「谓词元模型：19 个谓词、三族」 |
-| `TODO-M3` | model_scope | `invariant` 谓词的处置（最自然用法出界） | §4.2「谓词元模型：19 个谓词、三族」、§9 Threats |
+| `TODO-M2` | model_scope | 按当前三类来源完成 19 个谓词的逐条严格来源审查 | 当前注册表与 `METHOD_PRINCIPLES.md`；不得恢复旧来源分级 |
+| `TODO-M3` | model_scope | 复核 `state_invariant` 的界内语义和来源边界，不得据低频直接退役 | 当前四族注册表的有界验证族；结果只能通过变更门进入 |
 | `TODO-T1` | terminology_policy | 三条 contribution 的英文措辞——三条的中文形状已定（2026-08-11），⚠️ 第三条的措辞仍受 X3 阻塞 | 全篇英文稿 |
 | `TODO-T2` | terminology_policy | 领域分析相关新术语的中英口径 | §4 |
 

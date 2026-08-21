@@ -1,5 +1,9 @@
 # expected issue 分母的已知缺口
 
+> **评测侧边界**：本文件只说明台账分母的已知缺口，不定义当前谓词。文中的历史断言
+> 名称和旧分层只用于解释台账形成过程；当前四族注册表、W1/W2 和变更门以
+> [`pipeline/evidence_discovery/`](../../../pipeline/evidence_discovery/) 为准。
+
 本文件记录 evaluator-side ground truth（Issue [#166](https://github.com/HansBug/research_ideas/issues/166) 的 47 条 E1）**系统性不覆盖**哪些问题类，以及每处缺口是"问题定义边界"还是"待补欠账"。它是论文 threats to validity 一节的直接材料。
 
 判定命中的原则见 [hit_criterion.md](./hit_criterion.md)。**评测语料本身的建模对象筛选见 [nl_scope_rule.md](./nl_scope_rule.md)** —— 10 份 NL 中 1 份（其 6 个 pair 末位均为 8）要求 fork/join 与秒级计时，而 $M = (S, E, V, Tr, A)$ 既无正交区也无时钟，故该规约族不进入评测分母；该文件同时给出全量 / 筛选后 / 被排除部分的三份数字。原论文逐 case 的问题记录见 [paper_reported_problems.json](../../../archive/r10_ledger_v1_and_v46/scripts/paper_reported_problems.json)（由 [extract_paper_problems.py](../../../archive/r10_ledger_v1_and_v46/scripts/extract_paper_problems.py) 从论文公开 workbook 提取，60/60 对齐）。

@@ -1,4 +1,10 @@
-"""The 19 predicates of issue #170, as the only evidence calls an assertion may make.
+"""迁移期旧谓词 API（issue #170 词表），仅供历史运行回放。
+
+当前公开谓词不在本模块，而在
+``pipeline/evidence_discovery/predicate_registry.json``：`four-family-19-core.v1`。
+本模块保留旧运行实现所需的兼容接口；其中的旧谓词名、实验数字和三族机制不得写入
+当前方法、当前结果或新论文。新实现必须按重构计划从注册表加载四族 19 谓词，并在
+没有适用谓词时输出 W1 `semantic_hit`。
 
 Why this layer exists
 ---------------------

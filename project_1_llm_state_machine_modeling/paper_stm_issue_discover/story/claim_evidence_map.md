@@ -2,7 +2,9 @@
 
 > 每条 claim 必须在此有**证据、强度、允许 / 禁止的写法**。
 >
-> ⛔ **数字的唯一来源**是自包含实验报告 [../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md)（下称「报告」，引用格式「报告 §x.y」）。**不得从本文件或其它 story 文件转抄数字后再传播。**
+> ⛔ **数字必须回到对应版本的自包含正式实验报告**。v46 报告只支撑历史 v46 结果；当前
+> 四族配置的设计快照和新实现实测必须分别回到各自的注册表/正式报告。不得从本文件或其它
+> story 文件转抄数字后再传播。
 >
 > ⚠️ **placeholder 版**：v46 已有证据的 claim 已填；结构上需要、但**证据尚未产出**的 claim 以 `TODO(后续PR)` 占位——⛔ **不允许出现「有 claim、无证据、也无 TODO」的条目。**
 
@@ -102,8 +104,8 @@
 
 | 字段 | 内容 |
 | :-- | :-- |
-| Claim | 一套面向状态机问题发现的谓词逻辑元模型：19 个谓词的闭合词表（结构 10 / 仿真 6 / 有界模型检查 3），从领域分析、文献与技术资料调研归纳而来，据此指导 prompt 设计，应用于 54 个案例。 |
-| 证据 | 词表与三族划分：报告 §4.3；由来口径与 2 个逐条挂钩示例：报告 §4.4；实现：[../pipeline/feedback_loop/](../pipeline/feedback_loop/) |
+| Claim | 一套面向状态机问题发现的谓词逻辑元模型：四族 19 个谓词的闭合词表（结构 6、拓扑 4、轨迹仿真 4、有界验证 5），从领域、形式与技术资料归纳而来，据此指导 prompt 设计，应用于案例。 |
+| 证据 | 当前唯一注册表与四族划分：[../pipeline/evidence_discovery/](../pipeline/evidence_discovery/)；来源和变更门：[../pipeline/evidence_discovery/METHOD_PRINCIPLES.md](../pipeline/evidence_discovery/METHOD_PRINCIPLES.md)。旧 v46 报告只作历史运行记录。 |
 | 强度 | `方法设计+实现` ⚠️ **但其合法性依赖 C5，而 C5 目前是 `无证据-占位`** |
 | 可写 | 【导师原话】「规则从领域分析归纳，应用在 54 个案例中；基于所归纳的规则指导 prompt 设计」 |
 | 禁止 | ⛔「从这批 pair 归纳」；⛔ 以「某次运行暴露了什么」作为规则的领域出处（那是引入动机，只写进提交记录）；⛔ 在论文里解释留出集 |
@@ -157,8 +159,8 @@
 | 字段 | 内容 |
 | :-- | :-- |
 | Claim | 谓词词表与 prompt 的每一条规则，都从**现实需求 / 技术文档与规约 / 学术文献**三类领域资料归纳而来，并据此指导 prompt 设计；应用于 54 个案例。 |
-| 证据 | 【导师原话】；报告 §4.4 的 2 个逐条挂钩示例（`stays_in` ← UML 2.5.1 §14.2.3.9.1；`persists_until` ← until 的标准定义）；口径与四条工程要求：[../discover_matrix/docs/protocol/method_provenance_policy.md](../discover_matrix/docs/protocol/method_provenance_policy.md)；规则出处纪律：[../discover_matrix/docs/protocol/rule_provenance.md](../discover_matrix/docs/protocol/rule_provenance.md) |
-| 强度 | `方法设计+实现`（口径已固定）⚠️ **但工程落地未完成**——【v46 实测】当前仅 15 处规则挂了出处注释，**19 个谓词未逐条挂钩**（报告 §4.4、§9 已登记为欠账） |
+| 证据 | 【导师原话】；当前注册表中每个谓词的来源 ID、来源类型和边界；口径与变更门：[../discover_matrix/docs/protocol/method_provenance_policy.md](../discover_matrix/docs/protocol/method_provenance_policy.md)。旧 v46 示例不再作为当前来源结论。 |
+| 强度 | `设计已冻结、严格来源审查进行中`；来源门未闭合的命题保持 W1-only，不能据旧注释数量或台账出场量宣称来源可靠性。 |
 | 可写 | 导师那两句原话的措辞 |
 | 禁止 | ⛔「从这批 pair 归纳」；⛔「我们调查了 N 篇文献」（报锚定关系，不报数量）；⛔ 论文里解释留出集 |
 

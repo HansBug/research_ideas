@@ -607,7 +607,7 @@ LSS / SIQ 的第三层（pragmatic，人读不读得懂）在文献里是正式�
 
 ### 4.5 「模型 vs 需求文本」这个参照物，被规则目录传统按构造排除
 
-这是本轮最值得记的一条空白，且有**两份已发表工作的显式声明**（本仓库先前已逐字核验，见 [related_work/provenance/evidence_distribution.md](../../../related_work/provenance/evidence_distribution.md) §3.3b）：
+这是本轮最值得记的一条空白，且有**两份已发表工作的显式声明**（本仓库先前已逐字核验，见 [历史来源档案](../../../related_work/provenance/archive/legacy_20260821/evidence_distribution.md) §3.3b）：
 
 - Lange 等 2003 [29]（**实质性理由**）："Hence we **exclude the relations with requirements** and implementation artefacts. The main reason for this is that automated checking the consistency and completeness of the relation between requirements and design … **require very different techniques or may even turn out to be infeasable without significant human contributions.**"
 - Torre 等 [25]（**筛文准则**，排除条件之一）："EPs which discussed consistency rules between UML diagrams and other **non-UML sources of data, such as requirements** or source code."
@@ -772,7 +772,7 @@ Heimdahl & Leveson 的两条判据（§2.6.1）之所以**可判定**，依赖 R
 
 **仓库内已核验材料**
 
-[29] C. Lange, M. R. V. Chaudron, J. Muskens, L. J. Somers, H. M. Dortmans. *An Empirical Investigation in Quantifying Inconsistency and Incompleteness of UML Designs*, 2003。逐字引文与出处见本仓库 [related_work/provenance/evidence_distribution.md](../../../related_work/provenance/evidence_distribution.md) §3.3b（该处已完成原文核验）。
+[29] C. Lange, M. R. V. Chaudron, J. Muskens, L. J. Somers, H. M. Dortmans. *An Empirical Investigation in Quantifying Inconsistency and Incompleteness of UML Designs*, 2003。逐字引文与出处见本仓库 [历史来源档案](../../../related_work/provenance/archive/legacy_20260821/evidence_distribution.md) §3.3b（该处已完成原文核验）。
 
 ## 更新日志
 

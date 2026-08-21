@@ -1,0 +1,111 @@
+# 当前方法口径审计记录
+
+**审计日期：** 2026-08-21  
+**审计对象：** `four-family-19-core.v1`、W1/W2/W0 契约、现行入口、旧内容归档和模块化重构计划
+
+## 1. 当前唯一入口
+
+| 内容 | 唯一来源 |
+|---|---|
+| 机器可读谓词注册表 | [`predicate_registry.json`](predicate_registry.json) |
+| 人读谓词表 | [`PREDICATE_REGISTRY.md`](PREDICATE_REGISTRY.md) |
+| 学术优先、W1/W2/W0 和变更门 | [`METHOD_PRINCIPLES.md`](METHOD_PRINCIPLES.md) |
+| 来源三分类与出处政策 | [`method_provenance_policy.md`](../../discover_matrix/docs/protocol/method_provenance_policy.md) |
+| 模块化施工顺序 | [`REFACTOR_PLAN.md`](REFACTOR_PLAN.md) |
+
+当前配置为结构 6、拓扑 4、轨迹仿真 4、有界验证 5，共 19 个谓词。没有适用谓词时仍
+提出问题并输出 W1；W1 计入 `semantic_hit`。W0 是无法精确绑定的覆盖缺口；
+`UNKNOWN` 永远不能转成 violation。
+
+## 2. 已完成的归档处理
+
+- 旧 `witness_search_prototype` 及其旧设计已移入 `pipeline/archive/`。
+- 旧出处政策、旧出处表和旧 contingency 预案已移入各自的
+  `archive/legacy_20260821/`。
+- 早期 `story/blueprint_proposal.md` 已移入 `story/archive/legacy_20260821/`，原路径只保留指针。
+- 已作废且从未落地的 `wellformedness_attribution` 裁定、旧 `conditional_activation` 规则已移入
+  `discover_matrix/docs/protocol/archive/legacy_20260821/`，原路径只保留指针。
+- v25 的 `fused_event_policy` 策略复盘也已移入同一归档目录，原路径只保留指针；其中关于
+  `event_cardinality` 的历史扩张讨论不属于当前 19 个谓词。
+
+归档材料可以追溯历史，但不能作为当前谓词、来源门、台账分母或新结果的定义来源。
+
+## 3. 仍然存在但已明确隔离的旧材料
+
+1. `pipeline/feedback_loop/` 在新包通过测试门之前仍是迁移期运行实现。其旧 S/B/P 词表和
+   旧 API 只用于回放，不能生成当前四族结果，也不能作为新增谓词的依据。
+2. `discover_matrix/docs/protocol/` 中的命中判定、人工台账和多报侧文件可能引用旧台账
+   断言名。这些名称属于评测侧历史编码，已在相应文件顶部标明，不是公开谓词表。
+3. `story/paper_outline.md`、`story/model_scope.md` 和相关出处审计仍保留历史 v46 片段。
+   它们现在以全局说明标出历史范围；其中的数字和旧谓词不能解释为新实现实测。
+
+这些残留不是当前政策入口，也没有被注册表或新重构模块读取。
+
+## 4. 学术叙事审查结论
+
+- 四族按证据形态划分，不按台账类别反向切分。
+- 台账/v27 出场量只用于冻结后的表达力映射，不是来源证据或普遍率。
+- 图路径不写成运行可行性，单条轨迹不写成全称性质，有限搜索不写成无界证明。
+- `containment`、精确基数、并发运行时、层级优先级和轨迹变量差分保留 W1-only，不通过
+  改名包装进入核心表。
+- 来源登记尚未等于严格准入全部通过；未通过的命题保持 W1-only，不因覆盖率压力扩义或新增。
+- 当前来源 ID 已逐条落到 [`related_work/provenance/CURRENT_SOURCE_AUDIT.md`](../../related_work/provenance/CURRENT_SOURCE_AUDIT.md)
+  和机器目录；G4、V1、V3、V4、R3 的保守状态已明确，不能把候选或超界资料写成 W2 来源门。
+
+## 5. 可复核检查
+
+本轮应至少执行：
+
+```bash
+python -m json.tool pipeline/evidence_discovery/predicate_registry.json
+python -m pytest pipeline/evidence_discovery/tests/test_registry_contract.py -q
+git diff --check
+python tools/check_md_links.py project_1_llm_state_machine_modeling/paper_stm_issue_discover
+```
+
+在新代码迁移完成并通过 `REFACTOR_PLAN.md` 的全部测试门之前，不得声称当前四族配置已有
+新的 W2 全量实测结果。
+
+## 6. 本轮 active 文档审计结论
+
+2026-08-21 已对现行方法入口和会被论文/评测读者直接打开的协议做定向审计。结论如下：
+
+| 审计项 | 结果 | 处理方式 |
+|---|---|---|
+| 当前注册表和人读表是否唯一 | 通过 | 只指向 `predicate_registry.json` / `PREDICATE_REGISTRY.md`，版本固定为 `four-family-19-core.v1` |
+| W1 是否保留为合法命中 | 通过 | `METHOD_PRINCIPLES.md`、出处政策、最终指标政策和测试均明确 W1 计入 `semantic_hit` |
+| W0 与 `UNKNOWN` 是否被误升格 | 通过 | 统一写明 W0 是 coverage gap，`UNKNOWN` 不得变成 violation；测试覆盖该边界 |
+| 旧谓词和旧三族数字是否仍被当作当前方法 | 通过（历史文件除外） | active 叙事/协议在顶部标历史边界；旧设计、来源表和单体实现已移入 archive；评测侧旧断言仅保留为历史编码 |
+| `prototype` 是否仍是正式方法名 | 通过 | 正式名只用 `evidence_discovery`；旧目录只能由 legacy replay / archive reader 访问 |
+| 入口句是否把 v46 数字冒充当前结果 | 已修正 | story 入口改为“历史报告只支撑历史结果；当前数字回到对应版本正式报告” |
+| 来源严格门是否全部通过 | 未通过，且已显式保守 | 机器目录保留 `candidate` / `w1_only_*` 状态；未闭合命题只能 W1-only，不能写成 W2 来源依据 |
+| 新四族代码是否已实跑 | 未完成 | 当前 `feedback_loop` 仅作迁移期旧回放；必须按重构计划完成阶段 A-E 后才切换入口 |
+| 新实现的效果目标 | 已写入计划，待实跑验证 | 在同台账、同发布边界、同 judge 和同分母下，hit 与 FP/precision 达到历史 v27 大体相当或更好；v27 不是逐格相等硬门，不要求绝对完美，也不能靠放宽学术口径追平 |
+
+本轮审计的自动门包括：注册表/来源目录解析、19 个谓词和四族计数、W1/W0/`UNKNOWN`
+契约、来源路径、历史归档指针以及 active 入口政策标记。它们只证明口径没有被静默改写，
+不替代逐条学术来源 review，也不把设计表达力快照变成运行结果。
+
+## 7. 本轮新增硬约束审计
+
+本轮已将以下要求冻结进 [`METHOD_PRINCIPLES.md`](METHOD_PRINCIPLES.md)、
+[`REFACTOR_PLAN.md`](REFACTOR_PLAN.md) 和最终输出协议：
+
+- 后端禁止 Python `inspect` 及旧 `inspect_*` 后端；类似能力必须由新包自有算法实现并
+  记录算法版本与输入哈希。
+- 谓词不支持不阻止发 issue；精确绑定但无法表达时必须降级 W1，W1 仍是
+  `semantic_hit`；19 个公开谓词继续冻结。
+- D2/D1/D0 由方法自行裁定，定义遵循 [`issue #189`](https://github.com/HansBug/research_ideas/issues/189)；只有 D2/D1 参与 release、hit 和 FP，
+  D0 只保留审计。W2/W1/W0 由确定性状态机计算，不能由模型口头指定。
+- L 是台账侧属性，方法不生成 L；模型每一步、每条结构化输出必须带非空 `reason` 或
+  `basis`。
+- 新入口必须复用公共 `utils.agent`/`utils.llm` 与现有 respond/LangGraph，不能从
+  `feedback_loop` 私有实现反向依赖；provider error 的原地重试和计费豁免、格子重试一次、
+  其它错误计费的合同已经写入施工计划。
+- 每条 W2 必须落盘完整谓词逻辑、绑定输入、编译源码及哈希、真实后端结果、终止状态、
+  反例/轨迹、来源归因和 `reason`/`basis`，并在完成代码后用 `gpt-5.6-luna` 跑冻结的
+  54 pair，全量迭代到 v27 量级验收门。
+
+这些是契约和施工门，不代表新后端已经实现或 54 pair 实验已经完成。当前正式包仍处于
+迁移前置阶段；旧 `feedback_loop` 中可见的 `inspect_model` 只属于 legacy replay，不能
+被新 `evidence_discovery` 入口调用。

@@ -1,4 +1,10 @@
-"""The predicate vocabulary a requirement claim may use, as one source of truth.
+"""迁移过渡期的旧谓词实现。
+
+现行注册表不在这里，而在
+``pipeline/evidence_discovery/predicate_registry.json``。本文件仍供旧运行链路回放，
+直到模块化重构通过测试门；不得把这里的旧三族词表当作当前公开谓词表。
+
+The legacy predicate vocabulary a requirement claim may use, retained for replay only.
 
 Why a vocabulary at all
 -----------------------

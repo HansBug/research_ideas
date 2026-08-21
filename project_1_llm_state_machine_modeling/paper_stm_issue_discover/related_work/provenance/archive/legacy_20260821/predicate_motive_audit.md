@@ -4,7 +4,7 @@
 
 > ⭐ **判据来自 `CLAUDE.md` §3.5.-1，逐字**：「最可靠的判据是查引入动机，不是列举形态：把每条规则的引入 commit 翻出来，看它是不是**因为某个具体样本没被发现才写的**。commit message 往往自己就交代了。」
 
-> ⚠️ **本文件补的是一处真实缺口。** [../../discover_matrix/docs/generations/v23/motive_audit.md](../../discover_matrix/docs/generations/v23/motive_audit.md) 只审 v23 的三处 prompt 改动，[../../discover_matrix/docs/protocol/rule_provenance.md](../../discover_matrix/docs/protocol/rule_provenance.md) 只管合式性公理的盲态推导纪律 —— ⛔ **两份都不覆盖 19 条谓词自身的来源**。
+> ⚠️ **本文件补的是一处真实缺口。** [../../discover_matrix/docs/generations/v23/motive_audit.md](../../../../discover_matrix/docs/generations/v23/motive_audit.md) 只审 v23 的三处 prompt 改动，[../../discover_matrix/docs/protocol/rule_provenance.md](../../../../discover_matrix/docs/protocol/rule_provenance.md) 只管合式性公理的盲态推导纪律 —— ⛔ **两份都不覆盖 19 条谓词自身的来源**。
 
 ## 一句话结论
 
@@ -106,7 +106,7 @@ git log -S"<谓词名>" --format='%h %ai %s' --all --reverse -- '*predicates.py'
 
 ⛔ 上述三条反证消解的是「C 类」这一指控，⛔ **消解不了「设计期台账可见性」这一事实**。⭐ 严格按 §3.5.-1 的精神（「把答案喂进去」的形态不止一种），⭐ 有一条最小折算口径值得考虑：**对那 5 条被 §2 逐字挂为「本谓词能证明」的记录，其对应谓词的能力证据打折**。⭐ 精确清单是 `EIS-0000-01`（`occupancy_after`）· `EIS-0006-02`（`effect_declared`）· `EIS-0029-01`（`containment`）· `EIS-0029-02`（`guard_distinguishable`）· `EIS-0029-03`（挂在 `occupancy_after` 名下）· ⭐ 外加 `EIS-0029-04`（`initial_target`，§2 逐字用了「失败」二字，⛔ 是全表唯一带负面结果措辞的挂钩）。
 
-⛔ **这 6 条不得作为「该谓词在盲态下也会被写出来」的证据。** ⚠️ 但是否从 `hit@k` 分母中剔除，⛔ 是另一个问题：剔除会同时改变分母口径，⭐ 而 `CLAUDE.md` 的两项永久裁定明确区分了「按构造越界剔除」（`00x8`）与「按样本表现剔除」（禁止）。⭐ 本条属于第三种情形 —— **按设计期可见性剔除** —— ⛔ 现行 protocol 未定义它，⭐ 故我只登记、不执行。⭐ 若裁定为需折算，落点应是 [../../discover_matrix/docs/protocol/method_provenance_policy.md](../../discover_matrix/docs/protocol/method_provenance_policy.md)，⛔ 不是本文件。
+⛔ **这 6 条不得作为「该谓词在盲态下也会被写出来」的证据。** ⚠️ 但是否从 `hit@k` 分母中剔除，⛔ 是另一个问题：剔除会同时改变分母口径，⭐ 而 `CLAUDE.md` 的两项永久裁定明确区分了「按构造越界剔除」（`00x8`）与「按样本表现剔除」（禁止）。⭐ 本条属于第三种情形 —— **按设计期可见性剔除** —— ⛔ 现行 protocol 未定义它，⭐ 故我只登记、不执行。⭐ 若裁定为需折算，落点应是 [../../discover_matrix/docs/protocol/method_provenance_policy.md](../../../../discover_matrix/docs/protocol/archive/legacy_20260821/method_provenance_policy.md)，⛔ 不是本文件。
 
 ### ⭐ 一条对我方有利、但必须同时报告的观察
 
@@ -166,7 +166,7 @@ git log -S"<谓词名>" --format='%h %ai %s' --all --reverse -- '*predicates.py'
 4. ⛔ **`EXP-*` → `EIS-*` 的映射不是机械的。** ⭐ 旧台账已丢失（`152ecffd`）。⭐ 我的 6 条映射里只有 `EXP-0006-EA-001` → `EIS-0006-02` 有台账自身的逐字背书；⚠️ 其余 5 条是我按 statement 内容比对得出的（例如 `EXP-0029-SH-001` → `EIS-0029-01`，依据是「InitialState / HighwayMode / UrbanMode 未归属 AutonomousMode」与该记录 statement 同指）。⛔ 这些映射**须人工复核**，⛔ 若映射错了，§C 的折算清单就错了。
 5. ⛔ **我没有查 prompt 通道里谓词**说明文本**的动机，只查了谓词**本身**的引入。** ⭐ 一条谓词的 `nl_index` / `nl_cue` / `examples` 是进 prompt 的，⛔ 而它们的改动动机可以是样本特化的。⭐ 实例已在手：`dfd4887e`（`reaches` 的 nl_index 重写）body 自陈「v38 实测：reaches 是全量 ① 类最大的一格（159 位里占 39）」⭐ 属 B 类聚合，⭐ 且明写「内容只从谓词语义推导，不引用任何语料元素、pair id 或台账措辞；diff 已过机械泄漏扫描」；⛔ 但其 revert `174c696d` 的 body 里出现了 `0007` `0005` `0027` `EIS-0007-01` 等具体样本。⭐ 两者都已回退，⛔ 故不影响当前词表 —— ⚠️ **但这说明「谓词说明文本」是一个独立于「谓词本身」的、我未系统审计的动机面。**
 6. ⚠️ **`stays_in` 与 `persists_until` 在 2026-08-10 被做过实质语义修订**（`46beaff6` + `1befeed1`），⛔ 即当前这两条谓词的**判定语义**不是引入时的语义。⭐ 我核了这两个 commit 的 body，⭐ 动机是纯语义缺陷（「原编码 `check invariant <= N: (release) || active(state)` **不是 until**」、「在 A1->A2->A3 链上它答 True 而 occupancy_after 答 False，两个谓词对同一次运行给相反事实」），⛔ 无样本挂钩；⭐ 且 `e43a7b59` 事后补挂了领域出处（UML 2.5.1 §14.2.3.9.1 / Pnueli 1977 / Biere 2003）。⭐ 判 **A**。⛔ 但严格说，「引入动机干净」与「当前语义的修订动机干净」是两个命题，⭐ 我只对这 2 条查了后者，⛔ 其余 17 条没查。
-7. ⛔ **本审计**自己**是在见过全部结果之后做的。** ⭐ 按 [rule_provenance.md](../../discover_matrix/docs/protocol/rule_provenance.md) 的逻辑，⛔ 事后审计无法产生「若我没见过样本会不会这样判」的反事实。⭐ 我能提供的只是**可复算的 commit 事实**（上文每条都附了命令或逐字引文），⛔ 不是盲态判断。
+7. ⛔ **本审计**自己**是在见过全部结果之后做的。** ⭐ 按 [rule_provenance.md](../../../../discover_matrix/docs/protocol/rule_provenance.md) 的逻辑，⛔ 事后审计无法产生「若我没见过样本会不会这样判」的反事实。⭐ 我能提供的只是**可复算的 commit 事实**（上文每条都附了命令或逐字引文），⛔ 不是盲态判断。
 
 ## 复算命令
 

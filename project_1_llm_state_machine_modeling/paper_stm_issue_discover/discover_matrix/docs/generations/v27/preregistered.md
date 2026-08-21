@@ -1,5 +1,12 @@
 # v27 大迭代：问题总账、设计计划与验收门
 
+> **历史计划边界（2026-08-21）**：本文冻结的是迁移前 `feedback_loop`/旧单体实现的 v27
+> 诊断、运行和验收计划。文中的 `prototype`、旧 typed obligation、旧谓词名和旧成本数字
+> 只用于历史复盘，不能定义当前方法，也不能证明四族配置已经实跑。当前正式配置和变更门
+> 以 [`pipeline/evidence_discovery/`](../../../../pipeline/evidence_discovery/) 的
+> `four-family-19-core.v1`、`METHOD_PRINCIPLES.md` 与 `REFACTOR_PLAN.md` 为准；没有适用
+> 谓词的需求仍提出并降级为 W1 `semantic_hit`。
+
 本文是在 v26-dnorm 全量运行之后、v27 实现与正式重跑之前冻结的诊断与计划。它的目的不是围绕某几个 benchmark 条目改 prompt，而是把当前方法在“生成、证成、发布、评判”四层暴露的问题一次收齐，再按领域来源、合成回归、分阶段 smoke 和全量统一评测完成一轮大迭代。
 
 最终统计边界以 [final_output_metrics_policy.md](../../protocol/final_output_metrics_policy.md) 为准。本文最初使用 v26 诊断回放定位问题；2026-08-19 完成 Sol 54/54 正式重判后，第 1 节和第 5 节已以后验闭合注的形式同步正式起点，原诊断数字只作为计划形成过程的历史证据。

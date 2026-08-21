@@ -14,7 +14,7 @@
        一条可回溯到 NL 原句与模型元素的证据链>
 ```
 
-方法把过程拆成若干阶段，每阶段配一个审查者，不合格就带**定向反馈**打回重写；断言只能取自一份**先验定义的闭合谓词词表**——19 个谓词，按求值机制分结构（10）/ 仿真（6）/ 有界模型检查（3）三族。
+方法把过程拆成若干阶段，每阶段配一个审查者，不合格就带**定向反馈**打回重写；断言使用一份**先验定义的闭合谓词词表**——当前冻结为 `four-family-19-core.v1`：结构 6、拓扑 4、轨迹仿真 4、有界验证 5。谓词是更高级别的证据支持，不是问题提出门槛；没有 sound 谓词时仍提出问题并降级为 W1，W1 计为 `semantic_hit`。
 
 ## 2. Contribution 口径（2026-08-07 与 08-08 导师讨论定）
 
@@ -34,7 +34,7 @@
 
 不能写成主贡献的（属方法支撑或评价纪律）：run record 与证据簿记、台账与判定口径、closure / regression 审计。⚠️ **此处原有的「中间表示与转换桥」已删除**——那条纪律说的是**实验分析层面**「转换环节引入的模型变化不得记到修复的账上」，被误当成**贡献层面**的禁令；且其前提（存在修复环节）在本文已不存在。详见 [story/paper_story.md](./story/paper_story.md) §7 的两层对照表。
 
-**谓词词表的由来必须按这个口径表述**：从**领域分析、真实文献与技术资料调研**归纳而来，应用于 54 个案例，并据此指导 prompt 设计。⛔ 不表述为"从这批 pair 归纳"。见 [discover_matrix/docs/protocol/method_provenance_policy.md](./discover_matrix/docs/protocol/method_provenance_policy.md)。
+**谓词词表的由来必须按这个口径表述**：从**领域分析、真实文献与技术资料调研**归纳而来，应用于 54 个案例，并据此指导 prompt 设计。⛔ 不表述为“从这批 pair 归纳”。现行出处政策见 [discover_matrix/docs/protocol/method_provenance_policy.md](./discover_matrix/docs/protocol/method_provenance_policy.md)，注册表、口径审计与重构计划见 [pipeline/evidence_discovery/](./pipeline/evidence_discovery/)。
 
 ## 3. 建模对象的边界（属于问题定义，不是样本取舍）
 
@@ -70,7 +70,7 @@ $$ M = (S, E, V, Tr, A) $$
 
 | 目录 | 是什么 | 什么时候进去 |
 | :-- | :-- | :-- |
-| [pipeline/](./pipeline/) | **方法实现**。当前活的是 `feedback_loop/`（Requirement-to-Assertion 发现流水线）；`conversion/` 与 `representation/` 是输入准备与表示桥；`readiness_audit/` 是语料准入检查；`agent_loop/` 是上一版单 Agent 实现，已不在运行路径上 | 改方法、改谓词、改提示词 |
+| [pipeline/](./pipeline/) | **方法实现与规范配置**。`evidence_discovery/` 是当前四族 19 谓词和重构契约；迁移完成前 `feedback_loop/` 仍是运行实现；`conversion/` 与 `representation/` 是输入准备与表示桥；历史单体实现位于 `pipeline/archive/` | 改方法、改谓词、改提示词 |
 | ⭐ [discover_matrix/](./discover_matrix/) | **实验与评测**。只有两个子目录：[ledger_v2/](./discover_matrix/ledger_v2/) 是⭐ **唯一有效的台账**（145 条）+ 它的判定协议 + X1v2 结果 + [证据链 `provenance/`](./discover_matrix/ledger_v2/provenance/)（含 54 份工作单与全部人工裁决）；[docs/](./discover_matrix/docs/) 是学术口径（判定协议、边界裁定、出处政策、历代事前登记） | 看结果、复算数字、查判定口径、追溯某条缺陷怎么定的 |
 | [selected_seed_examples/](./selected_seed_examples/) | **60 个 pair 的人读镜像**，每个目录含 `nl.txt`、`stm0.puml` 与溯源元数据。⚠️ 它**不是**流水线的运行时输入根——真实输入是 `pipeline/representation/reports/llms_emp_r45_java_60/pairs/`，两者逐字节相同 | 查某个 pair 的原文 |
 | [corpora/](./corpora/) | 更广的语料库与候选集。⚠️ 其中 `nl_segmentation/overrides.json` **在运行路径上**（被 `feedback_loop/common/nl_segmentation.py` 运行时读取），不是纯资料 | 扩充语料、改分句覆盖 |
@@ -88,7 +88,7 @@ $$ M = (S, E, V, Tr, A) $$
 
 1. **想理解这篇论文做什么**：读本页 → 读上面那份实验报告。两份读完即可完整理解方法与结果。
 2. **想复算某个数字**：进 [discover_matrix/](./discover_matrix/)，先读它的 `README.md` 导航页。
-3. **想改方法**：先读 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/) 下的判定口径（改它们等于改研究规则），再动 [pipeline/feedback_loop/](./pipeline/feedback_loop/)。
+3. **想改方法**：先读 [pipeline/evidence_discovery/METHOD_PRINCIPLES.md](./pipeline/evidence_discovery/METHOD_PRINCIPLES.md) 和 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/) 下的判定口径，再按 [REFACTOR_PLAN.md](./pipeline/evidence_discovery/REFACTOR_PLAN.md) 迁移代码；不得直接扩写历史单体实现。
 4. **想写论文**：读 [story/](./story/)，并以 [../talks/](../talks/) 的导师讨论为最高优先级。
 
 ## 8. 与仓库其它位置的关系

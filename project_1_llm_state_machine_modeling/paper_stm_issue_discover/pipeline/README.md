@@ -2,22 +2,23 @@
 
 > **导航页。** 本目录是 paper1（STM issue discover）的**代码**所在处：一条准备链（PlantUML → canonical JSON → `.fcstm`）加一条发现链（NL + `.fcstm` → issue + 断言）。评测与结果**不在这里**，在 [../discover_matrix/](../discover_matrix/)。
 
-## 1. 先看一眼：哪个目录在跑，哪个不在
+## 1. 先看一眼：规范配置与运行状态
 
-**六个子目录中只有两个参与「跑一格实验」这件事**：
+当前规范配置和已有运行实现处于迁移阶段：
 
 | 子目录 | 是什么 | 在运行路径上？ | 依据 |
 | :-- | :-- | :-- | :-- |
-| [feedback_loop/](./feedback_loop/) | **当前活的 discover 实现**。Requirement-to-Assertion StateGraph，包 `paper_stm_feedback_loop` | 🟢 | 根 `Makefile` 的 `discover*` 目标全部转发到这里 |
+| [evidence_discovery/](./evidence_discovery/) | **当前正式方法契约**：`four-family-19-core.v1`、W1/W2 规则和模块化重构目标 | 🟡 设计已冻结，代码迁移中 | [METHOD_PRINCIPLES.md](./evidence_discovery/METHOD_PRINCIPLES.md) 与 [REFACTOR_PLAN.md](./evidence_discovery/REFACTOR_PLAN.md) |
+| [feedback_loop/](./feedback_loop/) | **迁移期旧运行实现**。Requirement-to-Assertion StateGraph，包 `paper_stm_feedback_loop`；仅可做历史回放，不代表新四族配置已实跑 | 🟡 | 根 `Makefile` 的 `discover*` 目标在迁移完成前临时转发到这里 |
 | [representation/](./representation/) | 表示桥。产出 discover 每次真正读的那份输入目录 | 🟢 | `discover/cli.py` 的 `REPORT_ROOT` 硬指向 `representation/reports/llms_emp_r45_java_60/` |
 | [conversion/](./conversion/) | PlantUML → canonical。表示桥的上游 | 🟡 | 产物已冻结；只有换语料或改前端时才重跑 |
 | [readiness_audit/](./readiness_audit/) | R5 语料准入审计。判断哪些 seed 能进后续阶段 | 🟡 | 结论已固化在 `handoff/`；60 例已选定，不再重跑 |
 | [evaluation/](./evaluation/) | 只剩两份 v0 schema + fixture + 门禁测试 | 🔴 | 论文的评测在 [../discover_matrix/](../discover_matrix/)，不在此处 |
-| [agent_loop/](../archive/r9_agent_loop_pipeline/agent_loop/) ⚠️ **已于 2026-08-11 归档** | **上一版单 Agent 实现，已退出运行路径**，代码完整保留在 [archive/r9_agent_loop_pipeline/](../archive/r9_agent_loop_pipeline/)（配复活导引） | 🔴 | 入口改名为 `make legacy-discover-*`；包 `paper_stm_repair_loop` |
+| [archive/](./archive/) | **历史实现和旧实验材料**，包括已归档的单体 evidence runner | 🔴 | 只能历史复现，不是当前方法或新结果来源 |
 
 口径：🟢 当前运行路径 ｜ 🟡 产物已冻结、按需重跑 ｜ 🔴 不在运行路径上
 
-⚠️ **改方法请改 [feedback_loop/](./feedback_loop/)。** 旧的 agent_loop 已于 2026-08-11 归档到 [archive/r9_agent_loop_pipeline/](../archive/r9_agent_loop_pipeline/agent_loop/)，不在本目录下，也不要改它。 两者的目录结构、fixture 名、prompt 都长得很像，改错地方不会报错，只会毫无效果。
+⚠️ **改谓词、证据等级或方法契约先改 [evidence_discovery/](./evidence_discovery/)，并按重构计划迁移实现。** 在迁移测试门通过前，运行目标仍转发到 `feedback_loop/`；不得把运行现状误写成新模块已完成。
 
 ## 2. 数据流：一格实验从哪读到哪写
 
@@ -26,7 +27,7 @@ flowchart TD
   A["corpora/seed_library<br/>llms-emp 上游资产"] --> B["conversion<br/>Java PlantUML frontend"]
   B --> C["representation<br/>结构保真 lowering"]
   C --> D["representation/reports/llms_emp_r45_java_60/<br/>pairs/NNNN + source_traces + working_contracts"]
-  D --> E["feedback_loop<br/>discover StateGraph"]
+  D --> E["feedback_loop<br/>legacy replay only"]
   E --> F["runs/paper1/feedback-loop/discover/<br/>不入库"]
   F --> G["../discover_matrix<br/>台账判定与代次汇总"]
   D -.镜像副本.-> H["../selected_seed_examples<br/>60 个 pair 便利入口"]
@@ -34,30 +35,30 @@ flowchart TD
 
 三点容易踩错：
 
-1. **discover 的输入根不是 [../selected_seed_examples/](../selected_seed_examples/)**，而是 `representation/reports/llms_emp_r45_java_60/`。前者是内容逐字节相同的镜像副本，供人阅读；已核对 pair `0000` 的 `nl.txt` 与 `.fcstm` 两侧 SHA-256 一致。只有退役的 `paper_stm_repair_loop.inputs.load_pair()` 才读 `selected_seed_examples/`。
+1. **discover 的输入根不是 [../selected_seed_examples/](../selected_seed_examples/)**，而是 `representation/reports/llms_emp_r45_java_60/`。前者是内容逐字节相同的镜像副本，供人阅读；已核对 pair `0000` 的 `nl.txt` 与 `.fcstm` 两侧 SHA-256 一致。归档实现读取 `selected_seed_examples/` 的行为只用于历史复现。
 2. **运行产物写 `runs/`，而 `runs/` 全目录被 `.gitignore` 排除。** 事前登记、判据、报告必须落到 [../discover_matrix/](../discover_matrix/)，写进 `runs/` 等于没提交。
 3. **网格是 54 pair，不是 60。** 末位为 `8` 的 6 个 pair 因建模对象边界排除，判据只读 `nl.txt`；见 [../discover_matrix/docs/protocol/nl_scope_rule.md](../discover_matrix/docs/protocol/nl_scope_rule.md)。
 
 ## 3. 怎么用
 
-### 3.1 跑一次 discover（唯一活入口）
+### 3.1 迁移期回放入口（不是当前四族实现）
 
 真实 LLM 运行统一读取仓库根 `.llmconfig.yml`，通过 `--profile` 选择 profile；不要 `source .env`。以下都在**仓库根目录**执行：
 
 ```bash
-make discover-demo                                          # 自包含 identity fixture，不占正式语料
-make discover-pair DISCOVER_PAIR=llms_emp_feedback_final_0029 DISCOVER_PROFILE=gpt-5.5
-make discover-test                                          # 转发到 feedback_loop 的 1755 个测试
+make discover-demo                                          # 仅历史回放 fixture，不占正式语料
+make discover-pair DISCOVER_PAIR=llms_emp_feedback_final_0029 DISCOVER_PROFILE=gpt-5.5  # 旧回放
+make discover-test                                          # 仅 feedback_loop 迁移期测试
 ```
 
 等价的 `python -m` 入口与全部 CLI 参数见 [feedback_loop/README.md](./feedback_loop/README.md)。
 
-### 3.2 跑退役实现（只为对照，不产出论文数据）
+### 3.2 运行边界
 
-```bash
-make legacy-discover-demo
-make legacy-discover-test
-```
+迁移过渡期的可运行实现仍是 `feedback_loop/`，但它只产生带 legacy 版本标签的回放结果；
+这些结果不产出当前论文数据，也不能解释为四族 W2。`archive/` 下的历史实现只用于复现
+更早结果，不允许作为新谓词的实现依据。新四族默认入口只有在
+[`REFACTOR_PLAN.md`](./evidence_discovery/REFACTOR_PLAN.md) §8 的切换条件全部满足后才可启用。
 
 ### 3.3 重跑准备链
 
@@ -92,7 +93,7 @@ python -m pytest $P/conversion/tests $P/representation/tests $P/readiness_audit/
 | `archive/r9_agent_loop_pipeline/agent_loop/` | `paper_stm_repair_loop` | 旧名，⚠️ **随归档冻结、不改名**——改归档等于篡改冻结件 |
 | `feedback_loop/` | `paper_stm_feedback_loop` | 新包，本来就不带 `repair` |
 
-**这是有意为之，不是遗漏。** 改包名会同时打断已提交的 run record、report 里的 `generator_cli_sha256`、implementation-tree hash 与全部 `PYTHONPATH`；留待单独一轮做，届时必须配迁移测试。看到 `paper_stm_repair_*` 时按上表对应即可。
+**现行方法名以 `evidence_discovery` 为准。** 归档材料中的旧包名只用于历史复现，不得写入新运行记录或论文方法名。
 
 ## 5. ⚠️ 各套件的规范跑法（同一批测试，跑法不同结果不同）
 

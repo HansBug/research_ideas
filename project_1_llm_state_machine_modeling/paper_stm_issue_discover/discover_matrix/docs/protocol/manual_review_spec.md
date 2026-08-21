@@ -1,5 +1,10 @@
 # 逐 pair 人工审阅规范
 
+> **评测侧边界**：本文件服务于台账建立和人工复核，文中的 `cardinality`、`containment`
+> 等旧表达是台账侧描述，不是当前核心谓词。当前方法的公开谓词只读
+> [`pipeline/evidence_discovery/predicate_registry.json`](../../../pipeline/evidence_discovery/predicate_registry.json)，
+> 无适用谓词时仍提出问题并降级为 W1。
+
 ## 你在判断什么
 
 对每个 pair，判断**作者生成的 STM_0**（`pairs/<case>-author.puml`）相对**参考 STM_0**（`refs/<group>-reference.puml`）有哪些**真实问题**。

@@ -1,5 +1,9 @@
 # OMG UML 2.5.1 状态机良构性规则的开采结果
 
+> **历史来源扫描说明：** 本文件是形式资料的原始摘录和审计，不是当前谓词表，也不
+> 自动证明任何核心谓词已经通过严格来源门。当前注册表和来源三分类以
+> [`pipeline/evidence_discovery/`](../../pipeline/evidence_discovery/) 为准。
+
 > ⭐ **本文件记的是一次定向开采**：⭐ OMG UML 2.5.1（formal/2017-12-05）官方 PDF 全文 796 页，⭐ Chapter 14 StateMachines 逐条读完。⛔ 它**不是** 19 行分级表（那在 [predicate_provenance.md](./predicate_provenance.md)），⭐ 也不是证据总账。
 >
 > ⛔⛔ **本文件含一条对我方论证的更正**（§2），⛔ 不得只读正面部分。

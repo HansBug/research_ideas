@@ -1,8 +1,8 @@
 # 证据为什么厚薄不均 —— 对「词表是照着案例反推的」的正面回应
 
-> **这份文件回答一个指控，⛔ 不是一份统计报告。** 19 行分级表在 [predicate_provenance.md](./predicate_provenance.md)，语料扫描的三条发现在 [corpus_scan_findings.md](./corpus_scan_findings.md)。
+> **这份文件回答一个指控，⛔ 不是一份统计报告。** 19 行分级表在 [predicate_provenance.md](./predicate_provenance.md)，语料扫描的三条发现在 [corpus_scan_findings.md](../../corpus_scan_findings.md)。
 >
-> **档位标记**：§1 §2 §4 的数字为【实测】（由 [tools/analyze_evidence_distribution.py](./tools/analyze_evidence_distribution.py) 与 [corpus_scan_findings.md](./corpus_scan_findings.md) 复算）；§3 的**解释**为【AI 建议·待确认】，⛔ 但每条都附了反证条件。
+> **档位标记**：§1 §2 §4 的数字为【实测】（由 [tools/analyze_evidence_distribution.py](tools_analyze_evidence_distribution.py) 与 [corpus_scan_findings.md](../../corpus_scan_findings.md) 复算）；§3 的**解释**为【AI 建议·待确认】，⛔ 但每条都附了反证条件。
 
 ## 0. ⛔ 先把指控说准，⛔ 否则回应打空
 
@@ -60,7 +60,7 @@
 
 > ⛔ 词表里**干活的那一半**（⭐ 结构族，占台账 60.9%、占已发布支撑 62%）是贴着案例长的；⭐ 而**证据厚的那一半**（⭐ 有界模型检查族，占台账 2.0%）是**装点门面**的。
 
-⚠️ 它最硬的支撑来自我们自己的数据：⭐ `invariant` **41 源 / 台账 0**；⛔ `response_within` **17 源 / 台账 1 / 且在 v46 的 324 格里生成 0 次**（[corpus_scan_findings.md](./corpus_scan_findings.md) 自己登记的）。⭐ 三条几乎不干活的谓词扛着 60.4% 的证据 —— ⭐ 这**恰好**产生 rho < 0，⛔ 且完全符合「装点门面」。
+⚠️ 它最硬的支撑来自我们自己的数据：⭐ `invariant` **41 源 / 台账 0**；⛔ `response_within` **17 源 / 台账 1 / 且在 v46 的 324 格里生成 0 次**（[corpus_scan_findings.md](../../corpus_scan_findings.md) 自己登记的）。⭐ 三条几乎不干活的谓词扛着 60.4% 的证据 —— ⭐ 这**恰好**产生 rho < 0，⛔ 且完全符合「装点门面」。
 
 ⛔⛔ **因此 §1 上一版写的「⛔ 反推词表不会留下一条自己一次都用不上的谓词」这句话，⛔ 是错的** —— ⭐ 会：⭐ 一个拟合出来的工作集，⭐ 加上几条为写 related work 而加的高证据谓词，⭐ **正是这个形状**。
 
@@ -86,7 +86,7 @@
 
 > ⚠️⚠️ ⛔⛔ **本节已于 2026-08-12 整块重写。** ⭐ 上一版只列了 19 行里的 **9 行**（⛔ 掐掉了中间的 10 行），⭐ 并据此声称「行为义务 vs 建模义务」是一个**二分**。⛔ **二分不成立** —— ⭐ 恢复全表后「行为义务」与「混合」两类的区间**大幅重叠**。⭐ 下面是全 19 行与更正后的结论。⛔ 上一版的删行做法本身是缺陷：⭐ 靠删掉 10/19 行才成立的分裂，⛔ 不能承重。
 
-⭐ 这不是为本文件新造的说法 —— ⭐ 它是[语料穷尽扫描](./corpus_scan_findings.md)**发现 2** 的实测结论。⭐ 把 313 个界内案例、310 篇独立论文扫完后，⭐ 该文件给 19 条谓词各打了一个**义务类型**标签（⭐ 三值：行为义务 / 混合 / 建模义务）。⭐ **全 19 行**（⛔ 下列为语料侧**裁定前**计数，⭐ 用于看**排序**）：
+⭐ 这不是为本文件新造的说法 —— ⭐ 它是[语料穷尽扫描](../../corpus_scan_findings.md)**发现 2** 的实测结论。⭐ 把 313 个界内案例、310 篇独立论文扫完后，⭐ 该文件给 19 条谓词各打了一个**义务类型**标签（⭐ 三值：行为义务 / 混合 / 建模义务）。⭐ **全 19 行**（⛔ 下列为语料侧**裁定前**计数，⭐ 用于看**排序**）：
 
 | 义务类型 | 谓词（⭐ 按独立真实系统数降序） | n | ⭐ 区间 | 中位 |
 | :-- | :-- | --: | :-- | --: |
@@ -118,7 +118,7 @@
 | ⛔ **建模义务**（5 条，⭐ 语料扫描的标签） | `initial_target` · `event_consumed` · `event_declared` · `containment` · `variable_delta_after` |
 | ⛔⛔ **交集** | ⭐ **只有 `event_declared` 一条** |
 
-⭐ 另外 5 条 ② 在语料扫描里全被标为**混合**，⛔ 不是建模义务。⚠️ 而 [corpus_scan_findings.md](./corpus_scan_findings.md) §发现 3 有一句**方向相反**的同型错误（「⭐ 建模义务类谓词（`event_declared` `containment` `initial_target` `variable_delta_after` 等）正是 ② 的典型」）—— ⛔ 那 4 条里只有 1 条是 ②（`containment` 是 ③、`initial_target` 与 `variable_delta_after` 都是 ①）。⭐ 两处已同时更正。
+⭐ 另外 5 条 ② 在语料扫描里全被标为**混合**，⛔ 不是建模义务。⚠️ 而 [corpus_scan_findings.md](../../corpus_scan_findings.md) §发现 3 有一句**方向相反**的同型错误（「⭐ 建模义务类谓词（`event_declared` `containment` `initial_target` `variable_delta_after` 等）正是 ② 的典型」）—— ⛔ 那 4 条里只有 1 条是 ②（`containment` 是 ③、`initial_target` 与 `variable_delta_after` 都是 ①）。⭐ 两处已同时更正。
 
 ⛔ **错处二：② 类根本不薄，⛔ 所以「它的薄不是缺陷」这个辩护是多余的。**
 
@@ -135,7 +135,7 @@
 
 > ⭐ 6 条 ② 类谓词中有 **5 条**即便**不使用**元模型定义性豁免，⭐ 也满足 ① 类的 ≥3 独立来源下限（7–15 源）。⭐ **豁免只对 `event_declared` 一条起承重作用。** ⛔ 因此「② 是找不到出处的包装」这一质疑**不成立** —— ⭐ 它对 6 条里的 5 条根本不适用。
 
-⚠️ ⛔⛔ **但 ② 这条豁免另有一处真限定，⭐ 且此前只写在一行源码注释里**（[build_provenance_table.py](./tools/build_provenance_table.py)，⭐ 逐字）：
+⚠️ ⛔⛔ **但 ② 这条豁免另有一处真限定，⭐ 且此前只写在一行源码注释里**（[build_provenance_table.py](tools_build_provenance_table.py)，⭐ 逐字）：
 
 > ⚠️ **判据只覆盖「声明性」那一半。** ⭐ 例如 `edge_declared` 的「该迁移是否被声明」由定义给出，⛔ 而「目标写没写对」是对着 NL 的语义判断 —— ⭐ 后者的正当性来自需求那一句，⛔ 不来自元模型。⚠️ **这条限定必须写进论文**，⛔ 否则 ② 会被读成「这几条不需要任何依据」。
 
@@ -158,7 +158,7 @@
 
 ⭐⭐ **这个解释可证伪，且它预言了证据该在哪** —— ⭐ 跨制品一致性、需求可追踪性、模型-规约符合性、工业模型缺陷实证。⭐ §4 记录了按这个预言做的定向检索及其结果。
 
-⛔⛔ **一条必须同时读的更正（⭐ 由 OMG UML 2.5.1 开采得出，全文见 [uml251_constraints.md](./uml251_constraints.md) §2）**：⭐ 上面这个解释原本是**双向**的，⛔ 而**逆方向已被证伪**。
+⛔⛔ **一条必须同时读的更正（⭐ 由 OMG UML 2.5.1 开采得出，全文见 [uml251_constraints.md](../../uml251_constraints.md) §2）**：⭐ 上面这个解释原本是**双向**的，⛔ 而**逆方向已被证伪**。
 
 | 方向 | 内容 | ⭐ 实测 |
 | :-- | :-- | :-- |
@@ -206,7 +206,7 @@
 
 ### 3.4 ⭐⭐ 仓库对这条指控**已有常设机制**，⛔ 且它主动扣自己的分
 
-⭐ 本回应最强的一环不是任何论证，⭐ 而是一条**已经执行过**的工程纪律。[rule_provenance.md](../../discover_matrix/docs/protocol/rule_provenance.md) 开篇就承认了这个问题的要害（逐字）：
+⭐ 本回应最强的一环不是任何论证，⭐ 而是一条**已经执行过**的工程纪律。[rule_provenance.md](../../../../discover_matrix/docs/protocol/rule_provenance.md) 开篇就承认了这个问题的要害（逐字）：
 
 > 「⭐ 这条判据很强，⛔ 但它只能**事后**判。⭐ 而一旦我已经详细分析过『哪些缺陷没被发现』，我写的任何新规则都落在它的射程内 —— ⛔ **即使那条规则确实来自规范**。」
 
@@ -223,7 +223,7 @@
 
 > 「⭐ **按引入动机排除 `EIS-0043-02` / `EIS-0048-04` / `EIS-0038-02` 三条不计入能力**」
 
-⭐ 另有 [conditional_activation.md](../../discover_matrix/docs/protocol/rules/conditional_activation.md) 公开登记「本规则的引入动机确实是 `EIS-0047-03` 漏检。**动机据此登记在案。**」；⭐ v21 的预注册记「四个可报 pair 中有三条记录参与了修法设计」，⛔ 并据此剔除。
+⭐ 另有 [conditional_activation.md](../../../../discover_matrix/docs/protocol/archive/legacy_20260821/rules/conditional_activation.md) 公开登记「本规则的引入动机确实是 `EIS-0047-03` 漏检。**动机据此登记在案。**」；⭐ v21 的预注册记「四个可报 pair 中有三条记录参与了修法设计」，⛔ 并据此剔除。
 
 ⛔ **一个从案例反推词表的项目，不会建一套主动从自己能力分子里扣案例的机制。**
 
@@ -279,7 +279,7 @@
 
 ⛔ 上述反证消解的是「C 类」这一指控，⛔ **消解不了「设计期台账可见性」这一事实**。⭐ 审计者登记了 **6 条**被 §2 逐字挂为「本谓词能证明」的记录：`EIS-0000-01`（`occupancy_after`）· `EIS-0006-02`（`effect_declared`）· `EIS-0029-01`（`containment`）· `EIS-0029-02`（`guard_distinguishable`）· `EIS-0029-03`（`occupancy_after`）· `EIS-0029-04`（`initial_target`，⚠️ §2 逐字用了「失败」二字，⛔ 全表唯一带负面结果措辞的挂钩）。
 
-⛔ **这 6 条不得作为「该谓词在盲态下也会被写出来」的证据。** ⚠️ 但**是否从 `hit@k` 分母剔除是另一个问题**，⛔ 本轮**不执行**：⭐ 它属于第三种剔除情形 —— **按设计期可见性剔除** —— ⛔ 而 `CLAUDE.md` 的两项永久裁定只定义了「按构造越界剔除」（`00x8`，允许）与「按样本表现剔除」（禁止）。⛔ 现行 protocol 未定义本情形，⭐ 故只登记不执行；⭐ 若裁定为需折算，落点是 [method_provenance_policy.md](../../discover_matrix/docs/protocol/method_provenance_policy.md)，⛔ 不是本文件。
+⛔ **这 6 条不得作为「该谓词在盲态下也会被写出来」的证据。** ⚠️ 但**是否从 `hit@k` 分母剔除是另一个问题**，⛔ 本轮**不执行**：⭐ 它属于第三种剔除情形 —— **按设计期可见性剔除** —— ⛔ 而 `CLAUDE.md` 的两项永久裁定只定义了「按构造越界剔除」（`00x8`，允许）与「按样本表现剔除」（禁止）。⛔ 现行 protocol 未定义本情形，⭐ 故只登记不执行；⭐ 若裁定为需折算，落点是 [method_provenance_policy.md](../../../../discover_matrix/docs/protocol/archive/legacy_20260821/method_provenance_policy.md)，⛔ 不是本文件。
 
 ⚠️ ⛔ **一条不得互相引证的提醒**：⭐ 审计者发现「设计文档引用量」与「证据厚度」两个维度**基本独立**（⛔ 「最干净的谓词恰好也是证据最厚的」这一说法**不成立**）。⭐ 这与 §1 的 −0.562 **方向一致但不是同一个量** —— ⭐ 那份用的是**台账用量**，⛔ 这份用的是**设计文档引用量**。⛔ 不得互相引证。
 
@@ -325,9 +325,9 @@
 
 ⚠️ 【实测】8 条存活的 `guard_distinguishable` 证据**只来自 4 份文档**（⭐ Heitmeyer ×3 · Heimdahl&Leveson ×2 · Torre 论文+TR ×2 · Prochnow ×1），⛔ 而聚合器一度算成 **8 个独立来源** —— ⭐ 因为本轮的 `identifier` 是「⭐ 本地文件路径**含行号**」，⛔ 归一函数按原始串处理。⭐ 裁定者独立指出了这一点（逐字「⛔ 写普遍性时按 4 计，不按 9 计」）。
 
-⛔ 这与已记录的「Dwyer 一篇被算成 6 个」是**同一个缺陷、新的触发条件**。⭐ 已修：[tools/aggregate_evidence.py](./tools/aggregate_evidence.py) 新增 `_LOCAL_TO_WORK` 显式映射表。
+⛔ 这与已记录的「Dwyer 一篇被算成 6 个」是**同一个缺陷、新的触发条件**。⭐ 已修：[tools/aggregate_evidence.py](tools_aggregate_evidence.py) 新增 `_LOCAL_TO_WORK` 显式映射表。
 
-⛔⛔ **修的时候又发现一处**：[tools/build_provenance_table.py](./tools/build_provenance_table.py) 里有一份**逐字复制**的 `canonical_source`，⚠️ 其 docstring 自己写着「⛔ 两处不一致会让总账与逐条表报出不同的来源数」—— ⭐ **这条预言当场应验**。⭐ 已改为 `import`，⛔ 让它在结构上不可能漂。⭐ 两处改动均做过回归：⭐ 冻结基线可**精确复现**。
+⛔⛔ **修的时候又发现一处**：[tools/build_provenance_table.py](tools_build_provenance_table.py) 里有一份**逐字复制**的 `canonical_source`，⚠️ 其 docstring 自己写着「⛔ 两处不一致会让总账与逐条表报出不同的来源数」—— ⭐ **这条预言当场应验**。⭐ 已改为 `import`，⛔ 让它在结构上不可能漂。⭐ 两处改动均做过回归：⭐ 冻结基线可**精确复现**。
 
 ### 4.4 ⛔⛔ `cardinality`：三评审全票，⛔ 纪录从 0/15 延长到 **0/18**
 
@@ -397,7 +397,7 @@
 
 #### ⭐⭐ 「具名真实系统」这条轴是新增的，⛔ 判据写死在工具里
 
-⚠️ ⛔ **为什么单列一条轴而不是并进 `real_systems`**：⭐ 后者数的是**我们语料库 `sources/` 里的条目**，⛔ 而文献侧同样含大量具名真实系统。⛔ 并进去会改变一个已冻结列的语义；⭐ 单列则两边都看得见，⛔ 且不动任何既有数字。⛔ **这不是为了凑数改口径** —— ⭐ 判据写在 [tools/aggregate_evidence.py](./tools/aggregate_evidence.py) 里：⭐ ① `named_system` 非空且不以 `NONE` 开头；⭐ ② 裁定者核查结论**不得**为 `overstated`（⚠️ 实测 **11 条**被判夸大，⛔ 全部剔除）。
+⚠️ ⛔ **为什么单列一条轴而不是并进 `real_systems`**：⭐ 后者数的是**我们语料库 `sources/` 里的条目**，⛔ 而文献侧同样含大量具名真实系统。⛔ 并进去会改变一个已冻结列的语义；⭐ 单列则两边都看得见，⛔ 且不动任何既有数字。⛔ **这不是为了凑数改口径** —— ⭐ 判据写在 [tools/aggregate_evidence.py](tools_aggregate_evidence.py) 里：⭐ ① `named_system` 非空且不以 `NONE` 开头；⭐ ② 裁定者核查结论**不得**为 `overstated`（⚠️ 实测 **11 条**被判夸大，⛔ 全部剔除）。
 
 ⭐ 【实测】**22 个不同的具名真实系统**进入证据表，⭐ 覆盖：**Darlington SDS1** · **KNICS RPS** · **TCAS II** · **ADGS-2100** · **FCS 5000** · **Volvo「Drive Me」XC90** · **GPCA** · **CARA** · **EULYNX SCI-P** · **CERN UNICOS** · **NASA Orion CEV** · Meteosat Third Generation · Loviisa/Olkiluoto · ABB 喷涂机器人 HVC · 等。
 
@@ -517,7 +517,7 @@
 
 1. ⛔ **不主张「证据薄的谓词也有充分依据」。** ⭐ ③ 类就是 ③ 类，⛔ 在 Limitations 明写，⛔ 不删谓词（588 冻结）。
 2. ⛔ **不主张「负相关证明了词表是对的」。** ⭐ 它只证伪了指控的**弱形式**，⛔ 不证明任何正面命题。
-3. ⛔ **不主张「② 类比 ① 类更强或更弱」。** ⭐ 三类不是强度序（[method_provenance_policy.md](../../discover_matrix/docs/protocol/method_provenance_policy.md) §一.4）。
+3. ⛔ **不主张「② 类比 ① 类更强或更弱」。** ⭐ 三类不是强度序（[method_provenance_policy.md](../../../../discover_matrix/docs/protocol/archive/legacy_20260821/method_provenance_policy.md) §一.4）。
 4. ⛔ **不把「找不到出处」等同于「不存在出处」。** ⭐ §3.3 给的是一个**带反证条件的结构性解释**，⛔ 不是存在性否证。
 5. ⛔ **不报任何比例。** ⭐ `sources/` 的收录标准与被测属性重合（⛔ 在因变量上选样），⛔ 分母不合法。
 
@@ -525,4 +525,4 @@
 
 | 时间 | 内容 |
 | :-- | :-- |
-| 2026-08-12 | 建立。⭐ 复算案例用量与上游证据量的秩相关（**rho = −0.562**），⭐ 把分布形状的解释接到 [corpus_scan_findings.md](./corpus_scan_findings.md) 发现 1/2/3 的实测结论上，⭐ 并记录两条 ③ 共享的结构性失败机制。 |
+| 2026-08-12 | 建立。⭐ 复算案例用量与上游证据量的秩相关（**rho = −0.562**），⭐ 把分布形状的解释接到 [corpus_scan_findings.md](../../corpus_scan_findings.md) 发现 1/2/3 的实测结论上，⭐ 并记录两条 ③ 共享的结构性失败机制。 |

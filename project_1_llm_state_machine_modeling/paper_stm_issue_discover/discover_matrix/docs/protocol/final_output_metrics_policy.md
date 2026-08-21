@@ -1,5 +1,11 @@
 # 方法最终输出与评判口径
 
+> **迁移边界（2026-08-21）**：本文冻结的是迁移前 `feedback_loop`/旧单体实现及 v26/v27
+> 历史运行的最终输出和成本审计口径。文中的 `prototype`、旧谓词和旧成本字段均是历史
+> 名称，不能解释为当前正式方法。当前方法契约唯一以 [`pipeline/evidence_discovery/`](../../../pipeline/evidence_discovery/)
+> 的 `four-family-19-core.v1`、W1/W2/W0 规则和重构计划为准；新代码迁移完成前，本文数字
+> 不构成新四族实现的实测结果。
+
 本文冻结 paper1 issue discovery 方法的最终输出边界、hit、false positive、D/W/L、失败格、去重、成本和双臂比较口径。后续所有正式实验、报告、图表和方法与 X1v2 对比均以本文为唯一入口；修改本文等于修改研究协议，必须在下一轮正式运行之前完成并记录版本，运行后不得为迁就结果修改。
 
 ## 0. 优化目标与冲突优先级
@@ -11,7 +17,7 @@
 | 1 | 全量 hit 显著高于同模型 X1v2 baseline | 在同一冻结台账、同一 paired eligible 网格和同一独立 judge 下，方法整体 hit 高于 baseline，且配对差值的 95% 置信区间下界大于 0；全网格保守下界也必须同时报告 |
 | 2 | L2 大部分被发现且显著高于 baseline | L2 hit 首先必须超过 50%，目标达到约 60% 或以上；同时在 L2 paired positions 上显著高于 baseline。D2×L2 必须单列，但不能替代完整 L2 或整体目标 |
 | 3 | FP 可控且不劣于 baseline | 在同一 paired eligible 网格和同一 judge 下，方法 release-emission precision 不低于 baseline，等价地 FP rate 不高于 baseline；同时报告每格 ledger-unmatched emission 与跨轮 unique-cause FP，防止只靠改变分母掩盖绝对用户负担。目标 precision 为至少 65%，但“不劣于 baseline”是最低硬门 |
-| 4 | Prototype 生成成本不超过 baseline 的 25x | 使用同模型价格，只按 `prototype issue-generation / X1v2 issue-generation` 计算；独立 semantic judge 不属于方法图，单独审计但不进入分子或倍率。允许个别 pair 或噪点超过 25x，不设单格硬门。若总体超过 25x，优先减轻 prototype 的重复 prompt、提高 cache 命中和减少非 provider retry，不先删除已经证明提高 hit 或控制 FP 的环节 |
+| 4 | 历史实现生成成本不超过 baseline 的 25x | 使用同模型价格，只按历史 `issue-generation / X1v2 issue-generation` 计算；独立 semantic judge 不属于方法图，单独审计但不进入分子或倍率。允许个别 pair 或噪点超过 25x，不设单格硬门。若总体超过 25x，优先减轻历史实现的重复 prompt、提高 cache 命中和减少非 provider retry，不先删除已经证明提高 hit 或控制 FP 的环节 |
 
 上述次序也定义停止条件：只有 1 与 2 均满足后，才允许以不损失其显著性的方式继续压 FP；只有 1、2、3 均满足后，才进一步追求低于 25x 上限的成本优化。25x 仍是完整正式实验的硬上限，不是可以用“质量优先”无限突破的软建议。
 
@@ -36,7 +42,7 @@ release_issues(cell) = {
 | `D1` report issue cluster | 是 | 是 | 是 | 是 |
 | `D2` report issue cluster | 是 | 是 | 是 | 是 |
 
-`D0` 与 `D_UNRESOLVED` 被内部截住不等于删除数据。它们必须保留原始 finding、D 理由、defeater、W/L、执行结果、usage 和 coverage-gap 诊断，用于发现方法为什么没有形成可发布主张；但它们绝不能通过 judge、聚合器或报告脚本间接贡献 hit，也绝不能扩大 FP 分母。若 D 语义契约在一次有界定向修复后仍不成立，方法必须写入一个 `d_fallback=true` 的结构化 D0 决策，在 `d_validation_errors` 与 `d_fallback_reason` 中保留失败原因；只有 provider/schema 整格失败等无法形成任何 D 决策的逃生路径才使用 `D_UNRESOLVED`。
+`D0` 与 `D_UNRESOLVED` 被内部截住不等于删除数据。它们必须保留原始 finding、D 理由、defeater、W、台账侧 L（如评测关联存在）、执行结果、usage 和 coverage-gap 诊断，用于发现方法为什么没有形成可发布主张；但它们绝不能通过 judge、聚合器或报告脚本间接贡献 hit，也绝不能扩大 FP 分母。若 D 语义契约在一次有界定向修复后仍不成立，方法必须写入一个 `d_fallback=true` 的结构化 D0 决策，在 `d_validation_errors` 与 `d_fallback_reason` 中保留失败原因；只有 provider/schema 整格失败等无法形成任何 D 决策的逃生路径才使用 `D_UNRESOLVED`。
 
 ## 2. D、W、L 是三条独立轴
 
@@ -49,9 +55,13 @@ release_issues(cell) = {
 | `D0` | 作者可正当地称其为设计选择，或没有可陈述的被违反义务 | 内部截住 |
 | `D_UNRESOLVED` | D 结构化裁决在允许的定向修复后仍未闭合 | 内部截住并登记 coverage gap |
 
-`W` 判断证据是否真实执行并闭合，不能由 LLM 口头指定。`W2` 要求编译后的 assertion 或 formal program 在确切 FCSTM 上真实运行并得到 terminal verdict，同时保存 FCSTM hash、program/assertion hash、后端结果、semantic binding receipt 和必要的 source attribution；`W1` 表示已有可复核定位或静态证据但未形成上述完整执行闭环；`W0` 表示只有自然语言主张或执行失败后的最低兜底。D1/D2 即使只有 W1/W0 仍应发布，W1 是 W2 的兜底，W0 是 W2/W1 均无法闭合时的最后兜底；正式报告必须同时给出发布 issue 的 W 分布，并以提高 W2 占比为目标。
+`W` 判断证据是否真实执行并闭合，不能由 LLM 口头指定。`W2` 要求编译后的 assertion 或 formal program 在确切 FCSTM 上真实运行并得到 terminal verdict，同时保存 FCSTM hash、program/assertion hash、后端结果、semantic binding receipt 和必要的 source attribution；`W1` 表示需求义务与模型元素已经精确绑定、可以复核定位，但没有适用的 sound 谓词或后端；W1 仍是合法的 `semantic_hit`。`W0` 表示连精确、可复现的绑定都没有，只记录为 coverage gap，不计命中；`UNKNOWN` 不能改写成 violation。D1/D2 的裁决与 W 轴独立，但没有 W1/W2 的精确绑定时不能形成命中；正式报告必须同时给出 W0、W1、W2 和 `UNKNOWN` 的分布，并以提高 W2 占比为目标。
 
-`L` 描述陈述该缺陷所需的推理层次，沿用台账 `L0/L1/L2` 定义。方法输出必须对每条 release issue 保存自己的 `d_level`、`witness_level`、`l_level` 与理由；不得只输出 judge 最终标签而不输出 basis。
+`L` 描述陈述该缺陷所需的推理层次，沿用台账 `L0/L1/L2` 定义。`L` 是台账侧属性，
+方法不得生成、裁定或在 release issue 中声称自己的 `l_level`；评测时仅读取冻结台账
+的 L 字段并按台账分母切片。方法必须对每条 release issue 保存自己的 `d_level`、
+`witness_level`、非空 `reason`/`basis` 与来源依据，不得只输出 judge 最终标签而不解释
+如何得到该结果。
 
 ## 3. 命中判定
 
@@ -122,11 +132,11 @@ FP 只对 release issue 判定。对一个 eligible cell 的每条 release issue
 
 成本直接读取 `.llmconfig.yml` 对应 profile 的 input、output、cache-read、cache-write 美元单价，同一模型内横向比较。除明确 provider/transport failure 且随后实际发起 retry 的前序 attempt 可标为 `provider_error_retry_exempt` 外，schema repair、定向 D repair、输出超限、本地异常、预算耗尽和其它返工全部计费并保留 usage。
 
-正式成本至少同时报告：prototype issue-generation 成本、X1v2 issue-generation 成本、`prototype / X1v2` 倍率，以及独立 judge 的 usage/cost 审计。用户的 `25x` 约束唯一作用于 `prototype issue-generation / X1v2 issue-generation`，不得把 judge 的 input、output、cache-read、cache-write、retry 或美元成本并入该分子；judge 的独立审计也不得被遗漏或伪装成 method cost。不要求每个 pair 或每次运行单独低于 `25x`。若总体超限，先做 prototype prompt 去重/压缩、稳定 schema 以减少非 provider retry，并最大化稳定前缀的 cache 利用；不得通过漏计 retry、删除 usage 或改用跨模型价格来满足门。
+正式成本至少同时报告：历史 issue-generation 成本、X1v2 issue-generation 成本、历史实现相对 X1v2 的倍率，以及独立 judge 的 usage/cost 审计。用户的 `25x` 约束在本文中只适用于历史运行，不能直接迁移为新 `evidence_discovery` 实现的成本结论；新实现必须另建带版本和运行记录的成本字段。不得把 judge 的 input、output、cache-read、cache-write、retry 或美元成本并入历史方法分子；judge 的独立审计也不得被遗漏或伪装成 method cost。不要求每个 pair 或每次运行单独低于 `25x`。若历史总体超限，先做历史实现的 prompt 去重/压缩、稳定 schema 以减少非 provider retry，并最大化稳定前缀的 cache 利用；不得通过漏计 retry、删除 usage 或改用跨模型价格来满足门。
 
 ## 9. 语义纪律与防泄漏
 
-NL 同义、指代、义务成立、条件作用域、source-element 对应、finding-to-ledger 同一性和语义去重必须由 LLM 明确裁决；确定性代码只处理 schema、精确 ID、AST、inspect、图、trace、SMT、hash、集合和计数等可完美判定的问题。禁止关键词、substring、正则、连接词、编辑距离、embedding 或 identifier 形状承担文本语义判断。
+NL 同义、指代、义务成立、条件作用域、source-element 对应、finding-to-ledger 同一性和语义去重必须由 LLM 明确裁决；确定性代码只处理 schema、精确 ID、自有 AST/源位置算法、图、trace、SMT、hash、集合和计数等可完美判定的问题。后端禁止调用 Python `inspect` 或旧 `inspect_*` 后端；需要类似能力时必须使用仓库内有版本、输入输出明确且经过测试的独立算法。禁止关键词、substring、正则、连接词、编辑距离、embedding 或 identifier 形状承担文本语义判断。
 
 真实台账 ID、台账 summary/detail、真实 pair 的 judge 结论和 benchmark 特有例子不得进入方法生成 prompt。评测与诊断可以读取冻结台账，但从 benchmark 发现的新表达缺口只有在先获得独立领域来源或公认标准依据、再建立不含真实用例的合成 fixture 与回归测试之后，才允许进入方法设计。
 

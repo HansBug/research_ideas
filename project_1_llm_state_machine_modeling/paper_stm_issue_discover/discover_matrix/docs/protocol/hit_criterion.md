@@ -4,6 +4,10 @@
 
 ⚠️ “已发布 issue”的唯一边界由 [final_output_metrics_policy.md](./final_output_metrics_policy.md) 定义：方法侧只允许 `D1/D2 report_issue_clusters` 进入命中判定，`D0`、`D_UNRESOLVED`、raw finding 和未聚类 facet 均不进入。本文只回答进入该边界后的语义同一性，不另设统计分母。
 
+> **谓词口径边界**：本文件还会引用台账建立期的 `eval_assert` 和旧底层原语。它们是
+> 评测侧历史编码，不是当前公开谓词表。当前运行实现迁移后，命中仍按语义同一性判定，
+> 但新断言只能引用 `four-family-19-core.v1`，没有适用谓词的义务仍按 W1 记录。
+
 相关：[README.md](../../README.md)、[ground_truth_limitations.md](./ground_truth_limitations.md)（分母的已知缺口）、Issue [#166](https://github.com/HansBug/research_ideas/issues/166)（expected issue 台帐）、Issue [#170](https://github.com/HansBug/research_ideas/issues/170)（谓词设计）、PR [#169](https://github.com/HansBug/research_ideas/pull/169)（Discover 验收）。
 
 ---

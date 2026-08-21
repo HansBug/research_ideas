@@ -34,7 +34,7 @@
 | 同一 `(source,event)` 的 alternatives 是否覆盖全部情况 | `GuardSet.complete` | `core` | ①/N | 至少上述三个真实系统；Ford 在一个 powertrain 模型上执行 65 个 missing-case checks | 检查 `valid(or(guards))`，保存 uncovered assignment；当前后端尚待补齐 |
 | 两公式是否等价或蕴含 | formula `equivalent/implies` | `backend_comparison` | ② | 是 SMT 可定义关系，不是独立领域缺陷类型 | `p↔q` 双向 implication 或 `not sat(p and not q)` |
 
-结构义务的主要一手来源是 [OMG UML 2.5.1](https://www.omg.org/spec/UML/2.5.1/PDF)、[Lackner & Schmidt 2015](https://doi.org/10.4204/EPTCS.180.4)、[Heitmeyer et al. 1996](https://doi.org/10.1145/234426.234431)、[Heimdahl & Leveson 1996](https://doi.org/10.1109/32.508311) 与 [Sims et al. 2001](https://doi.org/10.1109/ASE.2001.989794)。PR #183 的裁定后逐项数字见 [predicate_provenance.md](../../related_work/provenance/predicate_provenance.md) 和 [evidence_distribution.md](../../related_work/provenance/evidence_distribution.md)。
+结构义务的主要一手来源是 [OMG UML 2.5.1](https://www.omg.org/spec/UML/2.5.1/PDF)、[Lackner & Schmidt 2015](https://doi.org/10.4204/EPTCS.180.4)、[Heitmeyer et al. 1996](https://doi.org/10.1145/234426.234431)、[Heimdahl & Leveson 1996](https://doi.org/10.1109/32.508311) 与 [Sims et al. 2001](https://doi.org/10.1109/ASE.2001.989794)。PR #183 的裁定后逐项数字见 [predicate_provenance.md](../../../related_work/provenance/archive/legacy_20260821/predicate_provenance.md) 和 [evidence_distribution.md](../../../related_work/provenance/archive/legacy_20260821/evidence_distribution.md)。
 
 ## 4. 图与时序义务矩阵
 

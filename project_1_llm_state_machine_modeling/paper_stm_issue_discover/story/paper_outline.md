@@ -1,12 +1,19 @@
 # paper_outline.md — 论文章节骨架（§编号已冻结）
 
-> 本文件是**写作结构**，不是正文，也**不复制实验数字**——数字的唯一来源是 [../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md)（下称「报告」）。
+> 本文件是**写作结构**，不是正文，也**不复制实验数字**。下文保留的 v46 数字只属于历史
+> 结果追溯；当前实验数字必须回到对应版本的正式报告，当前四族配置的设计快照必须回到
+> [`pipeline/evidence_discovery/predicate_registry.json`](../pipeline/evidence_discovery/predicate_registry.json)。
 >
 > ⭐ **§编号已冻结（S1，2026-08-11）。** 冻结口径、旧→新对照表与**已在 S1 同批闭合**的外部引用清单见下面〈§编号冻结〉一节。⛔ 后续 PR 不得再改动本文件的章节编号；要改必须先改那一节并同步全部引用。
 >
 > ⚠️ **仍是 placeholder 版**：十节骨架已实体化（每节四字段齐备），但 RQ 未定稿（`TODO-O3`）、§4 的交付物为空（`TODO-O1`）、§7 的部分小节无数据（`TODO-O8`）。依据强度标记（**六档**）见 [README.md](./README.md) §2。
 >
 > ⚠️ 【导师原话背书】要求「有一句导师逐字原话直接针对该判断」，**「导师未反对」不算背书**。
+
+> **现行方法口径（2026-08-21）**：本文件中涉及旧三族、旧谓词名或 v46 旧实现的段落只
+> 用于历史结果追溯，不能定义当前方法。当前唯一配置是 `four-family-19-core.v1`（结构
+> 6、拓扑 4、轨迹仿真 4、有界验证 5）；没有适用谓词时仍输出 W1 并计入
+> `semantic_hit`。完整契约见 [`pipeline/evidence_discovery/`](../pipeline/evidence_discovery/)。
 
 ---
 
@@ -299,7 +306,7 @@ $$ M = (S, E, V, Tr, A) $$
 
 **职责**：证明谓词词表**不是拍脑袋定的、也不是从这批 pair 凑的**，而是从领域分析归纳出来的；并交出可核验的锚定关系。
 
-**输入**：[model_scope.md](./model_scope.md) §4（19 个谓词与三族）与 `TODO-M2`（逐条挂出处）；[paper_story.md](./paper_story.md) §5.1（受限词表本身就是一次建模）与 §5.2（词表的由来，承重结构）；[../discover_matrix/docs/protocol/rule_provenance.md](../discover_matrix/docs/protocol/rule_provenance.md)、[../discover_matrix/docs/protocol/method_provenance_policy.md](../discover_matrix/docs/protocol/method_provenance_policy.md)；欠账登记见报告 §4.4 与 §9。
+**输入**：[model_scope.md](./model_scope.md) §4（四族 19 个谓词）、[`CURRENT_SOURCE_AUDIT.md`](../related_work/provenance/CURRENT_SOURCE_AUDIT.md)（逐条来源阶段性审查）与 `TODO-M2`（严格准入收尾）；[paper_story.md](./paper_story.md) §5.1（受限词表本身就是一次建模）与 §5.2（词表的由来，承重结构）；当前机器表和人读表分别见 [`pipeline/evidence_discovery/predicate_registry.json`](../pipeline/evidence_discovery/predicate_registry.json) 与 [`PREDICATE_REGISTRY.md`](../pipeline/evidence_discovery/PREDICATE_REGISTRY.md)。
 
 **服务哪条 contribution**：**C-② 独占**。⭐ 这是全文唯一一节**只服务一条** contribution 的——**C-② 的合法性完全挂在它上面**：说不出谓词从哪来，C-② 就只是一份词表清单。
 
@@ -319,20 +326,16 @@ $$ M = (S, E, V, Tr, A) $$
 
 四步线性写法【AI 建议·待确认】：**领域分析 → 归纳谓词语义 → 元模型指导 prompt 设计 → 在 54 个案例上应用。**
 
-### 4.2 谓词元模型：19 个谓词、三族
+### 4.2 谓词元模型：四族 19 个谓词
 
-【v46 实测】结构 10 / 仿真 6 / 有界模型检查 3。全表与逐族说明见 [paper_story.md](./paper_story.md) §5.1 与 [model_scope.md](./model_scope.md) §4。
+当前冻结设计为：结构 6、拓扑 4、轨迹仿真 4、有界验证 5。完整语义、最小输入和来源 ID 只读 [`pipeline/evidence_discovery/PREDICATE_REGISTRY.md`](../pipeline/evidence_discovery/PREDICATE_REGISTRY.md)；历史 v46 的旧三族表不属于当前配置。
 
-### 4.3 一张 19 行映射表 ⚠️ 交付物为空
+### 4.3 一张 19 行映射表
 
-> **TODO(后续PR) `TODO-O1`**：产出 §4 的核心交付物——**一节领域分析 + 一张 19 行映射表**。
-> - **为什么现在做不了**：【v46 实测】当前只有 **15 处规则挂了出处注释**，19 个谓词**未逐条挂钩**；**落在具体谓词上的是 5 条注释、覆盖 3 个谓词**（⛔ 不要写成「3 处注释」——那是把谓词数当成了注释数，`stays_in` 与 `persists_until` 各占 2 条；正确拆分是 `5 + 9 + 1 = 15`）——`occupancy_after`、`stays_in`、`persists_until`（`grep -rn "provenance:" pipeline/feedback_loop/src/paper_stm_feedback_loop/` 可复算），**其余 16 个谓词一处都没有**。⛔ 此前本条写「只有 `stays_in` 与 `persists_until` 两个示例是完整的」——那是 v46 报告 §4.4 的**举例数**，不是实际标注数，已更正（`occupancy_after` 也挂了，只是没被举例）。没有这张表，§4 只是一个标题，而整篇论文的方法合法性挂在它上面。
-> - **表的列**【AI 建议·待确认】：`谓词 | 族(S/B/P) | 归纳自哪类领域来源 | 具体文献/标准锚点 | 在 M=(S,E,V,Tr,A) 上如何实例化 | 该来源类下未实例化的部分`
-> - ⚠️ **最后一列是「表达力边界」那条 RQ 的直接输入**——没有它，那条 RQ 就没有证据。⚠️ RQ 编号待 `TODO-O3`，此处不预先绑定。
-> - **候选来源类映射**（BLUEPRINT 凭记忆给出，**每条都必须自己核**）见 [paper_story.md](./paper_story.md) 的 `TODO-S3`，此处不重复。
-> - **做完之后这一节应该长什么样**：§4.1 是叙述性的领域分析（约 1 页），§4.3 是这张 19 行表，§4.4 用表的最后一列引出表达力边界，直接喂给 §7 的覆盖侧结果。
-> - **材料在哪**：[../discover_matrix/docs/protocol/rule_provenance.md](../discover_matrix/docs/protocol/rule_provenance.md)、[../discover_matrix/docs/protocol/method_provenance_policy.md](../discover_matrix/docs/protocol/method_provenance_policy.md)；欠账登记见报告 §4.4 与 §9。
-> - ⚠️ **与 `TODO-S4`（Related Work 文献）大量重叠，应合并做一次调研。** 伞 PR [#179](https://github.com/HansBug/research_ideas/pull/179) 已把这件事编成 L2 轨。
+注册表已经提供 19 行映射表，列出谓词、族、简明语义、最小输入、预期表达力和来源类型。
+当前剩余工作不是恢复旧三族表，而是对每条来源完成 T0、非并发、命题匹配和多源门审查；
+来源门未闭合的谓词保持 W1-only。覆盖快照 118/145、35/39 和 603/741 只作为设计映射，
+不得写成新实现的 W2 实测结果。
 
 ### 4.4 表达力边界：这套元模型覆盖了什么、未覆盖什么
 
@@ -356,7 +359,7 @@ $$ M = (S, E, V, Tr, A) $$
 | §5.3 义务到断言的转换 | **C-②** + **C-③**（元素绑定即证据链的锚点） |
 | §5.4 审查与定向反馈 | **C-①** + ⭐ **C-②**（⚠️ ② 需求审查是 C-② 覆盖性主张能否站住的那一步；⛔ 而**② 的完整性本轮未测量**，口径挂 `TODO-O7`） |
 | ⭐⭐ §5.4b 真值封存与解封 | ⭐ **C-① 独占**（⭐ 副轴 · 结果完整性；⛔ 这是 C-① 唯一不与别条共享的衔接） |
-| §5.5 求值 | **C-①**（⭐ 三族求值机制与拒答；⭐ 中间表示见 §5.1b） |
+| §5.5 求值 | **C-①**（⭐ 四族求值机制与拒答；⭐ 中间表示见 §5.1b） |
 | §5.6 归因绑定与结果裁决 | ⭐ **C-③**（⭐ 副轴 · 结果可裁定性；⭐ **C-③ 的节级主体** —— ⚠️ ⛔ 不是「唯一落点」：§5.3 产生锚点、⭐ 本节把四段链作为**发布准入**） |
 | §5.7 回归防护 | **C-②**（「整个集合是一套回归套件」是 C-② 的第三条性质） |
 | §5.8 降级而非崩溃 | **C-①**（它保证最难的样本不从数据里消失） |
@@ -433,7 +436,7 @@ $$ M = (S, E, V, Tr, A) $$
 ### 5.5 求值
 
 1. ⭐ **中间表示的语义与转换损耗见 §5.1b，⛔ 本小节不重复。** ⚠️ 原第 1 条 bullet「为什么需要中间表示」已上移到 §5.1b 展开（`O-C3` 裁定产物）。
-2. 三族的求值机制。
+2. 四族的求值机制。
 3. **拒答**：求不出来时不猜。⚠️ 副作用在 §7.1 与 §9 如实交代。
 
 ### 5.6 归因绑定与结果裁决 ⭐ 内容已填（`O-C4` 裁定产物，2026-08-12）
@@ -502,7 +505,7 @@ $$ M = (S, E, V, Tr, A) $$
 
 **职责**：把「验证扣住 contribution」这一环落实——说清用什么语料、什么分母、什么网格、什么口径来检验三条 contribution，并让每个 RQ 都有归属。
 
-**输入**：报告（全部数字的唯一来源）；[paper_story.md](./paper_story.md) §9（证据现状）；[model_scope.md](./model_scope.md) §2.1（网格的来源）；[../discover_matrix/docs/protocol/](../discover_matrix/docs/protocol/)（判定口径的真源）。
+**输入**：对应版本的正式实验报告（数字不得从本文件转抄）；[paper_story.md](./paper_story.md) §9（历史证据现状）；[model_scope.md](./model_scope.md) §2.1（网格的来源）；[../discover_matrix/docs/protocol/](../discover_matrix/docs/protocol/)（判定口径的真源）。
 
 **服务哪条 contribution**：**三条都服务**，小节分工如下——
 
@@ -677,6 +680,10 @@ $$ 54\ \text{pair} \times 2\ \text{执行模型} \times 3\ \text{轮} = 324\ \te
 
 ## §7 结果
 
+> **历史结果声明**：本节数字来自 v46 旧运行实现和旧三族词表，只用于论文实验史和口径追溯。
+> 它们不是 `four-family-19-core.v1` 的新实现结果；新实现迁移完成后必须以独立的四族记账
+> 和 W1/W2 分层重新报告，不能把本节数字回填到当前注册表。
+
 **职责**：用 v46 的数据逐条回答 RQ，并把每个结论显式接回某条 contribution 与 §1 的某条 gap。
 
 **输入**：报告（**逐个数字回它核对，⛔ 不从本文件转抄**）；[claim_evidence_map.md](./claim_evidence_map.md)（每条 claim 的允许 / 禁止写法）。
@@ -687,7 +694,7 @@ $$ 54\ \text{pair} \times 2\ \text{执行模型} \times 3\ \text{轮} = 324\ \te
 | :-- | :-- |
 | §7.1 覆盖侧总体 | **C-①** + **C-②**（这条链路整体能发现多少） |
 | §7.2 分层 | **C-②**（哪类义务表达得出、哪类表达不出） |
-| §7.3 三族证据的供需与必要性 | **C-①**（可执行语义为什么必要）+ **C-②**（三族划分是否成立） |
+| §7.3 四族证据的供需与必要性 | **C-①**（可执行语义为什么必要）+ **C-②**（四族划分是否成立） |
 | §7.4 稳定性与能力归属 | **C-①**（是方法的边界还是执行模型的边界） |
 | §7.5 多报侧 | **C-③**（⭐ 逐条可裁定这件事本身就是证据链的实测证据） |
 | §7.6 尚无数据的小节 | 待 `TODO-O8` |
@@ -745,9 +752,11 @@ $$ 54\ \text{pair} \times 2\ \text{执行模型} \times 3\ \text{轮} = 324\ \te
 - 需求点名层比合式性层高 **22.4pp**——给出机制推论（流程只有需求驱动一个入口），⚠️ 同时写明它与「合式性缺陷本身更难」在本数据上**不可分离**，以及能分离两者的实验是什么。
 - ⛔ 谓词分层**不得读成选型建议**：谓词与缺陷类型共线，须先做词表消融。
 
-### 7.3 三族证据的供需与必要性
+### 7.3 历史 v46 三族统计（仅作旧结果追溯）
 
-【v46 实测】台账侧（197 条断言：结构 60.9% / 仿真 37.1% / BMC 2.0%）与产出侧（支撑已发布的 1555 条：结构 **86.6%** / 仿真 12.0% / BMC 1.4%）的构成落差。
+〔历史 v46 运行记录〕下列统计来自旧三族实现，不是当前四族注册表的实测结果；新代码迁移完成前不得用它们证明当前族的使用量或必要性。当前设计只读 `four-family-19-core.v1`，新实现需按四族分别重新记账。
+
+台账侧（197 条断言：结构 60.9% / 仿真 37.1% / BMC 2.0%）与产出侧（支撑已发布的 1555 条：结构 **86.6%** / 仿真 12.0% / BMC 1.4%）的构成落差。
 
 按「表达它最少需要哪一族」三分，给**宽 / 严两套口径**，两套都必须给：
 

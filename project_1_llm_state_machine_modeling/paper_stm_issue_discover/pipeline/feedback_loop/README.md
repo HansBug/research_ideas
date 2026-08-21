@@ -1,12 +1,14 @@
-# feedback_loop/ — 当前活的 discover 实现
+# feedback_loop/ — 迁移过渡期旧运行实现
 
-> 🟢 **这里是 paper1 唯一在跑的方法实现。** 改方法、改谓词、改提示词都在本目录。上一版实现已于 2026-08-11 归档到 [../../archive/r9_agent_loop_pipeline/](../../archive/r9_agent_loop_pipeline/)，已退出运行路径，别改错地方。
+> 🟡 **这里是迁移完成前的旧运行实现，只能做历史回放，不是当前四族结果入口。** 当前方法契约、四族 19 谓词、W1/W2 和变更门以 [`../evidence_discovery/`](../evidence_discovery/) 为准；代码按 [`REFACTOR_PLAN.md`](../evidence_discovery/REFACTOR_PLAN.md) 逐步迁移。此处产生的结果必须带 legacy 版本标签，不得报告为当前四族 W2。历史实现已归档，不能从本目录直接新增或恢复谓词。
 
 ## 1. 它做什么
 
 给定 `<NL, STM_0>`，把 NL 全覆盖拆成需求条目，为每条转换成**可机械求值的断言**，求值为假的挂钩 issue、为真的构成回归防护。全程只读 `STM_0`，**不修改模型、不做 repair**。
 
-断言只能取自一份**先验闭合的谓词词表**——19 个谓词，按求值机制分结构 `S`（10）/ 仿真 `B`（6）/ 有界模型检查 `P`（3）三族。词表定义在 [`discover/predicates.py`](./src/paper_stm_feedback_loop/discover/predicates.py) 的 `PREDICATES`。
+本目录仍包含旧运行实现使用的三族 `S/B/P` 兼容词表；它只用于迁移期回放，不能冒充
+现行的结构 6、拓扑 4、轨迹仿真 4、有界验证 5 注册表。新运行实现必须先完成注册表
+和 W1 fallback 契约，再逐步接入四类后端。
 
 ⚠️ **repair 不在本目录的职责内，也不在 paper1 内。** 历史文档里的「Discover / Repair / Confirm 三阶段」「B-final」「closure / regression 作为主线」均已作废：paper1 收窄为 issue discover 单独成篇，repair 另立后续论文。
 
@@ -40,7 +42,7 @@ prepare
 | 路径 | 内容 |
 | :-- | :-- |
 | [`src/paper_stm_feedback_loop/common/`](./src/paper_stm_feedback_loop/common/) | 输入装载、NL 分段、source trace、不可变 records、telemetry、配置 |
-| [`src/paper_stm_feedback_loop/assertions/`](./src/paper_stm_feedback_loop/assertions/) | 断言求值 runtime：parser、checker、结构/仿真/FBMCQ 三族谓词实现、provenance、密封 |
+| [`src/paper_stm_feedback_loop/assertions/`](./src/paper_stm_feedback_loop/assertions/) | 迁移期旧运行实现：parser、checker、结构/仿真/FBMCQ 兼容层、provenance、密封 |
 | [`src/paper_stm_feedback_loop/discover/`](./src/paper_stm_feedback_loop/discover/) | StateGraph、节点、prompts、schemas、谓词词表、CLI、渲染器、replay responder |
 | [`fixtures/manual_0000_identity/`](./fixtures/manual_0000_identity/) | 自包含 identity 样例，`discover-demo` 用；**不占正式语料** |
 | [`fixtures/selected_models/`](./fixtures/selected_models/) | 4 个只读 `.fcstm`（`0000/0006/0029/0050`），确定性工具测试用，带副本 SHA-256 |
@@ -89,9 +91,9 @@ python -m paper_stm_feedback_loop.discover --help
 
 访问层唯一复用 `utils.llm.create_chat_model()`；当 profile 的 `adapter` 为 `openai-responses` 时，`utils.llm.model_factory` 设置 `use_responses_api=True`，由 `langchain-openai` 的 `ChatOpenAI` 访问 Responses API，代码不自行调用 Chat Completions、HTTP 或 OpenAI SDK。协议和传输模式是正交的：Responses 可以 stream，也可以 non-stream；OpenAI 官方 [Responses Create API](https://developers.openai.com/api/reference/resources/responses/methods/create) 将 `stream` 定义为独立请求参数，`true` 时使用 SSE 返回增量事件。
 
-`DirectStructuredResponder(..., streaming=None)` 在 paper1 运行时统一解析为 `streaming=True`；所有 adapter 的缺省请求都使用 stream，只有显式传 `streaming=False` 或 CLI 的 `--no-stream` 才使用完整同步响应。feedback CLI、witness prototype、witness graph 和 semantic judge 均提供互斥的 `--stream` 与 `--no-stream`，未指定时即为 stream。该默认用于降低 Hahacode 网关在首字前等待完整响应时的超时风险；需要对比同步传输时必须在运行记录中保留显式 `--no-stream`。
+`DirectStructuredResponder(..., streaming=None)` 在迁移前历史运行中统一解析为 `streaming=True`；所有 adapter 的缺省请求都使用 stream，只有显式传 `streaming=False` 或 CLI 的 `--no-stream` 才使用完整同步响应。feedback CLI、历史 witness 工具和 semantic judge 均提供互斥的 `--stream` 与 `--no-stream`，未指定时即为 stream。该默认用于降低 Hahacode 网关在首字前等待完整响应时的超时风险；需要对比同步传输时必须在运行记录中保留显式 `--no-stream`。
 
-每次调用的 `LLMObservation`、`LLMCallRecord` 和 semantic judge audit 都保存实际 `adapter`、`provider`、`model`、`streaming`、retry、usage 与 pricing；`streaming` 是实际请求模式而不是配置推测。judge 的 usage/cost 继续独立审计，不计入 prototype method 成本倍率。
+每次调用的 `LLMObservation`、`LLMCallRecord` 和 semantic judge audit 都保存实际 `adapter`、`provider`、`model`、`streaming`、retry、usage 与 pricing；`streaming` 是实际请求模式而不是配置推测。judge 的 usage/cost 继续独立审计，不计入迁移前历史运行实现的成本倍率。
 
 `Makefile` 变量：`PROFILE`（默认 `gpt-5.5`）、`CONTENT_LANGUAGE`（默认 `zh-CN`）、`PAIR_ID`（默认 `llms_emp_feedback_final_0000`）、`OUT`（默认 `runs/paper1/feedback-loop/discover`）、`ARGS`（透传 CLI 参数）。
 

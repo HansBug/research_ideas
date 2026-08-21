@@ -30,7 +30,7 @@ $$
 | `S` | 冻结场景 / 回归套件。 | no-regression 与行为义务证据。 | 场景通过率不能覆盖未测需求。 |
 | `R` | 人工 / LLM-as-Judge / 结构化裁决量表。 | NL-grounded semantic adjudication。 | LLM 裁决不是 gold；冲突需要人工升级。 |
 
-本文件沿用 R5.6 的状态机抽象作为判定锚点，模型对象定义以 [../../story/model_scope.md](../../story/model_scope.md) 为准 [src-model-scope]：
+本文件沿用 R5.6 的状态机抽象作为判定锚点，模型对象定义以 [../../story/model_scope.md](../../../../story/model_scope.md) 为准 [src-model-scope]：
 
 $$
 M = (S, s_0, E, V, T, H, A, \tau)
@@ -244,7 +244,7 @@ v0 合成规则：
 | 引用键 | source_id | 事实源 | 类型 | 用途 |
 |---|---|---|---|---|
 | [src-eval-logic] | `r571_evaluation_logic` | [../evaluation_logic.md](../evaluation_logic.md) | md | R5.7.1 claim 类型、分母、A 层、归因边界、指标位置、失败报告纪律。 |
-| [src-model-scope] | `r56_model_scope` | [../../story/model_scope.md](../../story/model_scope.md) | md | T0/T0.5/T1、模型族、状态机抽象、禁止外推。 |
+| [src-model-scope] | `r56_model_scope` | [../../story/model_scope.md](../../../../story/model_scope.md) | md | T0/T0.5/T1、模型族、状态机抽象、禁止外推。 |
 | [src-r56-handoff] | `r56_to_r57_handoff` | [../scope/r5_6_to_r5_7_handoff_constraints.md](../scope/r5_6_to_r5_7_handoff_constraints.md) | md | R5.7 taxonomy 最低字段、candidate-only 纪律、scope 继承。 |
 | [src-taxonomy] | `r572_repair_target_taxonomy` | [repair_target_taxonomy.md](./repair_target_taxonomy.md) | md | 修复目标分类、字段合同、repair_action_allowed 单值纪律、折叠处理。 |
 | [src-case] | `llms_emp_case_matrix` | [../../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../../../../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) | jsonl | 10×6 denominator、time level、conversion/readiness 当前事实。 |

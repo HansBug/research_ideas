@@ -257,7 +257,7 @@ v4/v5/v6 均补充 `selection.json`。v4/v5 因源码当时未入库而诚实标
 
 ## 10. Paper 定位
 
-此前 sub-PR [#186](https://github.com/HansBug/research_ideas/pull/186) 对 LLM4MDE/LLM4Modeling 方法素材的结论应作为当前设计的来源说明，但不能未经重审直接充当论文证据。其 [SUMMARY](../../related_work/neighborhood/SUMMARY.md) 复算一份 N=86 mapping study：model generation 为 62/86，model validation 为 11/86，其中 behavior-model validation 只有 2 项；因此本方向是小众而非空白。其 [确定性工具角色分类学](../../related_work/neighborhood/TOOL_ROLE_TAXONOMY.md) 还说明，工具价值取决于“输出 + prompt 框定”的联合角色：定域到具体元素和输出反例证据可能帮助发现，把工具输出改写成祈使句规则则可能重新分配召回并造成隧道视野。当前方法据此把 inspect 用作有 source ref 的 discovery evidence，把 AST/topology/SMT/trace 用作求值与证书，不把诊断码或文本 warning 当 NL 义务。
+此前 sub-PR [#186](https://github.com/HansBug/research_ideas/pull/186) 对 LLM4MDE/LLM4Modeling 方法素材的结论应作为当前设计的来源说明，但不能未经重审直接充当论文证据。其 [SUMMARY](../../../related_work/neighborhood/SUMMARY.md) 复算一份 N=86 mapping study：model generation 为 62/86，model validation 为 11/86，其中 behavior-model validation 只有 2 项；因此本方向是小众而非空白。其 [确定性工具角色分类学](../../../related_work/neighborhood/TOOL_ROLE_TAXONOMY.md) 还说明，工具价值取决于“输出 + prompt 框定”的联合角色：定域到具体元素和输出反例证据可能帮助发现，把工具输出改写成祈使句规则则可能重新分配召回并造成隧道视野。当前方法据此把 inspect 用作有 source ref 的 discovery evidence，把 AST/topology/SMT/trace 用作求值与证书，不把诊断码或文本 warning 当 NL 义务。
 
 同一材料还给出两条对架构的直接约束。第一，有 sound oracle 但只回灌“哪些性质没满足”仍可能长期不收敛，必须提供 path/cut/SCC/trace 这类元件级定域；当前正式计分路径因此不设 truth-feedback 搜索回路，只执行冻结候选并保留反例证书。第二，闭合中间表示的效应方向会随模型变化，不能照搬旧 19 谓词闭合词表；当前采用“开放语义目标 + 闭合 proof compiler”的混合设计：LLM 可以提出新 `EvidenceGoal` 语义关系，但进入 W2 之前必须落入方法拥有、可审计、可扩充的 AssertionIR 与四类后端。
 

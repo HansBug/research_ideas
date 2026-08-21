@@ -2,17 +2,21 @@
 
 ⭐ 本目录放**与外部工作的关系**：调研预案、以及已完成的文献证据。⛔ 它不是论文集（⛔ 无单论文目录、⛔ 无 `paper.pdf`）—— ⭐ 那类材料在 [../../baselines/](../../baselines/) 与 project_1 的 [sources/](../../sources/) / [state_machine_types/](../../state_machine_types/)。
 
-## 目录内容，⭐ 分属三类调研
+## 目录内容与当前用途
 
 | 路径 | 类别 | 状态 | 它回答什么 |
 | :-- | :-- | :-- | :-- |
-| [CONTINGENCY_L1.md](./CONTINGENCY_L1.md) | ⭐ **L1 · 技术版图与对照系** | ⏳ **预案，未开跑** | 别人做到哪一步、谁能当 `60.4%` 的参照系 |
-| [CONTINGENCY_L2.md](./CONTINGENCY_L2.md) | ⭐ **L2 · 主张根基与差异化** | 📋 **预案**（⚠️ §3 整节与 §6.2/§6.3 已作废） | 19 条谓词凭什么成立、C-③ 的差异化能说多硬 |
-| ⭐ [provenance/](./provenance/) | ⭐ **L2 的产出物** | 🚧 **进行中**（PR [#183](https://github.com/HansBug/research_ideas/pull/183)） | ⭐ 19 行出处三类表 + C-③ 差异化结论 + 对 story 的建议。⭐ 入口读 [provenance/README.md](./provenance/README.md) |
+| [archive/legacy_20260821/CONTINGENCY_L1.md](./archive/legacy_20260821/CONTINGENCY_L1.md) | 历史 L1 预案 | 已归档 | 仅供追溯旧的技术版图假设，不是当前结论 |
+| [archive/legacy_20260821/CONTINGENCY_L2.md](./archive/legacy_20260821/CONTINGENCY_L2.md) | 历史 L2 预案 | 已归档 | 仅供追溯旧的出处分级和差异化假设，不是当前政策 |
+| ⭐ [provenance/](./provenance/) | 当前来源档案入口 | 设计已登记，严格来源门仍在审查 | 当前注册表的领域/形式/技术三类来源和边界；入口读 [provenance/README.md](./provenance/README.md) |
 | ⏳ `landscape/` | L1 的产出物 | ⏳ **未建** | —— |
 | ⭐ [assertion_output_form_evidence.md](./assertion_output_form_evidence.md) | ⭐⭐ **第三类 · 方法学借力论证** | ✅ **已完成（2026-08-12，116 篇）** | ⭐ 「可机械求值断言 + 需求绑定」这种**输出形态**本身，文献里已建立了什么 |
 
-⚠️ **两份 CONTINGENCY 是**预案**，⛔ 不是结论** —— 它们列的是「若调研结果落在某一档，story 该怎么改」。⭐ **L2 的实际结论在 [provenance/](./provenance/)**，⛔ 不在 `CONTINGENCY_L2.md` 里。
+⚠️ 两份 contingency 已移入 `archive/legacy_20260821/`，不属于当前运行路径或论文口径。
+当前谓词、来源和变更门唯一以
+[`pipeline/evidence_discovery/`](../pipeline/evidence_discovery/) 及
+[`discover_matrix/docs/protocol/method_provenance_policy.md`](../discover_matrix/docs/protocol/method_provenance_policy.md)
+为准；`provenance/` 只提供来源档案和审计材料，不复制另一套谓词政策。
 
 ## ⭐⭐ 关于第三类：它不归 L1，⛔ 也不归 L2
 

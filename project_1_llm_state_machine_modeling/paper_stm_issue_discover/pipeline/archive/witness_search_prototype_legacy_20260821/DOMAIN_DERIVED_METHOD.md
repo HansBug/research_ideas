@@ -14,7 +14,7 @@
 
 输入不是“待逐句复现的文字”，而是一个部分、非形式的 test oracle：自然语言给出系统义务，作者源状态机与转换后 FCSTM 给出被测实现的两个表示。目标是发现状态机不满足义务的地方，并把每个报告从散文主张推进到可执行、可归因、可重放的证据对象。该定位来自 test oracle problem，而不是本文自造，基础来源是 Barr et al. 的综述：[The Oracle Problem in Software Testing](https://doi.org/10.1109/TSE.2014.2372785)。
 
-本文的核心研究缺口不是“形式判据不存在”。ACCESS 已能把 EOL 查询挂到 RoboChart 具体迁移并执行；SV-COMP witness、模型检查 counterexample 与成熟测试框架也早有可重算证据。更准确的缺口是：现有近邻通常从人工结构化需求、人工安全目标或人工 property 开始，原始 NL 到 typed executable obligation 的语义桥接仍主要由人完成；仓库对该边界的证据见 [c3_iii_supplement.md](../../related_work/provenance/c3_iii_supplement.md) 与 [PR #183](https://github.com/HansBug/research_ideas/pull/183)。
+本文的核心研究缺口不是“形式判据不存在”。ACCESS 已能把 EOL 查询挂到 RoboChart 具体迁移并执行；SV-COMP witness、模型检查 counterexample 与成熟测试框架也早有可重算证据。更准确的缺口是：现有近邻通常从人工结构化需求、人工安全目标或人工 property 开始，原始 NL 到 typed executable obligation 的语义桥接仍主要由人完成；仓库对该边界的证据见 [c3_iii_supplement.md](../../../related_work/provenance/c3_iii_supplement.md) 与 [PR #183](https://github.com/HansBug/research_ideas/pull/183)。
 
 LLM4MDE 调研对应 [PR #186](https://github.com/HansBug/research_ideas/pull/186)。第三方 N=86 映射研究中 model validation 是少数方向而不是空白；因此论文不主张“首次用 LLM 验证模型”，而主张把原始 NL 义务发现、作者源/转换制品双绑定、真实执行证据、规范性 D 裁决和逐 finding receipt 连接成一条可审计方法链。
 
@@ -34,7 +34,7 @@ LLM4MDE 调研对应 [PR #186](https://github.com/HansBug/research_ideas/pull/18
 | Verification witness 与 test-report 传统，[Verification Witnesses](https://doi.org/10.1145/3477579)；SARIF 2.1.0 | machine-readable witness、validator、artifact location、tool metadata | Evidence Program、execution receipt、source-causality certificate、hash chain | receipt 只在声明的 soundness fragment 内有效 |
 | nl2spec，[CAV 2023](https://doi.org/10.1007/978-3-031-37703-7_18)；Endres et al.，[FSE 2024](https://doi.org/10.1145/3660791) | LLM 从 NL 形成形式性质/后置条件的可行性与风险 | LLM-A/LLM-B 负责 semantic obligation 与 binding，compiler 不解析自由文本 | LLM 输出必须经过 typed schema、执行与独立 D，不把生成本身当证据 |
 
-完整缺陷类型学见 [defect_taxonomy.md](../../discover_matrix/docs/protocol/defect_taxonomy.md)。PR #183 复用的是经过裁定的来源与事实，不是旧 19 谓词的分类或闭合词表；新方法的一等对象是以下五类义务，25 个旧 relation 只作为 lowering operation 保留。逐 operator 的复用来源、新增来源、现实基数、合法分母和证据缺口见 [TYPED_OBLIGATION_PROVENANCE.md](./TYPED_OBLIGATION_PROVENANCE.md)。
+完整缺陷类型学见 [defect_taxonomy.md](../../../discover_matrix/docs/protocol/defect_taxonomy.md)。PR #183 复用的是经过裁定的来源与事实，不是旧 19 谓词的分类或闭合词表；新方法的一等对象是以下五类义务，25 个旧 relation 只作为 lowering operation 保留。逐 operator 的复用来源、新增来源、现实基数、合法分母和证据缺口见 [TYPED_OBLIGATION_PROVENANCE.md](./TYPED_OBLIGATION_PROVENANCE.md)。
 
 ## 4. Typed obligation surface
 
@@ -155,7 +155,7 @@ Runtime 不导入 `ledger.json`、X1v2 命中、真实台账答案或 matching v
 
 ## 10. 完整 54 pair 评测合同
 
-主比较必须同模型横向进行，例如 Opus 对 Opus、GPT 对 GPT。方法成本读取 `.llmconfig.yml` 的 uncached input、output、cache read、cache write 四类美元单价；缓存按配置价格计入，不追求复原每家账单的所有长上下文、峰谷或 TTL 细节。schema 失败、output-limit、内容修复和其他非 provider 错误的全部 prototype attempt 都计费，只有 typed provider/transport failure 的重试可排除重复计费；排除不等于删除，attempt、异常和可得 usage 仍完整落盘。成本硬门唯一作用于完整实验的 `prototype issue-generation / X1v2 issue-generation`，原则上不超过25×，不要求每个方法格各自低于25×；独立 semantic judge 只做冻结输出的 hit/FP 对账，token、cache、retry 与美元成本单独审计但不进入倍率。质量优先级依次为 hit、false positive、prototype 整体成本，三者达标后才继续压成本。最终口径见 [final_output_metrics_policy.md](../../discover_matrix/docs/protocol/final_output_metrics_policy.md)。
+主比较必须同模型横向进行，例如 Opus 对 Opus、GPT 对 GPT。方法成本读取 `.llmconfig.yml` 的 uncached input、output、cache read、cache write 四类美元单价；缓存按配置价格计入，不追求复原每家账单的所有长上下文、峰谷或 TTL 细节。schema 失败、output-limit、内容修复和其他非 provider 错误的全部 prototype attempt 都计费，只有 typed provider/transport failure 的重试可排除重复计费；排除不等于删除，attempt、异常和可得 usage 仍完整落盘。成本硬门唯一作用于完整实验的 `prototype issue-generation / X1v2 issue-generation`，原则上不超过25×，不要求每个方法格各自低于25×；独立 semantic judge 只做冻结输出的 hit/FP 对账，token、cache、retry 与美元成本单独审计但不进入倍率。质量优先级依次为 hit、false positive、prototype 整体成本，三者达标后才继续压成本。最终口径见 [final_output_metrics_policy.md](../../../discover_matrix/docs/protocol/final_output_metrics_policy.md)。
 
 主质量门是 overall `hit@1` 至少比 X1v2 高5个百分点，且按 pair 聚类的 bootstrap 95% CI 下界大于0；overall `hit@all` 也必须提高，防止只靠方差偶然命中。D2×L2 目标是至少覆盖28/34个 unique item、`hit@3 >= 70%`、`hit@all > 50%`，但论文必须同时报告 L0/L1/L2 和全部 D×L，不能只展示优势分层。
 

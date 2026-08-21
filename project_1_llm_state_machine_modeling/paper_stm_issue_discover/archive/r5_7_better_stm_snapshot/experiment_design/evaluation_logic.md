@@ -175,7 +175,7 @@ R5.7.1 只冻结评价逻辑链与 claim boundary，不抢后续子 PR 的细节
 | 引用键 | source_id | 事实源 | 类型 | 用途 | 关键锚点 |
 |---|---|---|---|---|---|
 | [src-status] | `paper_stm_repair_status` | [../STATUS.md](../../../STATUS.md) | md | 当前尚未运行真实 repair loop、尚无 `STM_k` 或 Better STM 主结果。 | §1、§6、§7。 |
-| [src-model-scope] | `r5_6_model_scope` | [../story/model_scope.md](../story/model_scope.md) | md | T0/T0.5/T1、模型族、主线 scope、禁止外推。 | §1–§6；审计附录。 |
+| [src-model-scope] | `r5_6_model_scope` | [../story/model_scope.md](../../../story/model_scope.md) | md | T0/T0.5/T1、模型族、主线 scope、禁止外推。 | §1–§6；审计附录。 |
 | [src-r56-handoff] | `r5_6_to_r5_7_handoff` | [scope/r5_6_to_r5_7_handoff_constraints.md](./scope/r5_6_to_r5_7_handoff_constraints.md) | md | R5.7 必须继承的硬约束、candidate-only 纪律。 | R56-H0–H7、§5。 |
 | [src-better-stm] | `better_stm_definition` | [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) | md | Better STM 原五条件、三阶段归因、parse / executable 不等于 Better；当前已由 R5.7.2 G0–G6 gate 链细化。 | §2–§12。 |
 | [src-r572-better] | `r572_better_stm_definition` | [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) | md | R5.7.2 Better STM gate 链、三层输出模型、硬拒绝、T0.5 caveat、semantic gate。 | §1–§12。 |

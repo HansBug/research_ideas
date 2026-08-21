@@ -1,4 +1,9 @@
-"""Evidence-capability metadata for deterministic mandatory-evidence decisions.
+"""迁移期旧 evidence-capability 兼容层，仅供历史运行回放。
+
+当前方法契约和四族 19 谓词以
+``pipeline/evidence_discovery/METHOD_PRINCIPLES.md`` 与注册表为准。本模块中的旧
+`verification_kind`、旧谓词和案例说明不能定义新方法；新实现必须保留 W1 fallback、
+W0/`UNKNOWN` 边界，并按注册表加载公开语义。
 
 Why this module exists
 ----------------------

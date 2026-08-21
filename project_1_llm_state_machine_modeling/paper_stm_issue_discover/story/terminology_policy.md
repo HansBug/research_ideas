@@ -75,10 +75,12 @@
 | 义务 | obligation | 从需求原文拆出的一条待验证要求。是断言的上游 |
 | 需求条目 | requirement item | 拆分后的一条，带 `verification_kind`、量词、触发、结果、覆盖义务 |
 | 闭合谓词词表 | closed predicate vocabulary | **19 个先验定义的谓词，不可自造** |
-| 谓词族 | predicate family | 结构（10）/ 仿真（6）/ 有界模型检查（3） |
+| 谓词族 | predicate family | 结构 6 / 拓扑 4 / 轨迹仿真 4 / 有界验证 5；当前注册表为 `four-family-19-core.v1` |
 | 断言 | assertion | 一条谓词调用。角色分 `primary` / `supporting` |
 | 定向反馈 | targeted feedback | 审查者给出「哪条不合格、缺什么、期望什么形状」；⛔ **不是重试** |
-| 拒答 | refusal / `UnsupportedEvidence` | 谓词无法给出可靠真值时返回拒答，**而不是猜真假** |
+| W1 降级 | W1 fallback | 已精确绑定但没有 sound 谓词/后端时仍提出问题；计为 `semantic_hit` |
+| W2 证据 | W2 evidence | 终止、可执行且带源归因的回执在声明边界内证明命题 |
+| 拒答 / 未知 | refusal / `UNKNOWN` | 无法给出可靠真值时保留拒答或 `UNKNOWN`，**而不是猜真假**；`UNKNOWN` 不得变成 violation |
 | 覆盖缺口 | coverage gap | 某条义务无法用闭合词表表达时的**显式记录** |
 | 降级 | degradation | 内部配额耗尽时封存已有产物并落盘，⛔ **不中止、不丢弃** |
 | 归因绑定 | attribution binding | 把每个求值为假挂回它依赖的模型元素 |
@@ -156,7 +158,7 @@
 - 首次出现写「已发布的问题（published issue）」，之后可简写 issue。
 - `hit@1` / `hit@3` / `hit@all`、`primary` / `supporting`、`nl_named` 一类**字段名保留英文原形**，与判定表和 run record 对齐。
 - 「表示债务」（representation debt）**首次出现必须附英文**——它与既有文献的 spurious counterexample、program representation fault 同构，需要让审稿人挂上钩。
-- **谓词名一律保留英文原形**（`reaches`、`occupancy_after`……），中文只作括注。
+- **谓词名一律保留英文原形**（如 `may_reach`、`state_reached_after`），中文只作括注；旧谓词名只可在明确标注为历史材料时出现。
 - 数学对象用 `$...$`，不用反引号：写 $M = (S, E, V, Tr, A)$、$\mathrm{hit@1} \le 60.4\%$；工具名、文件名、字段名用反引号：`pyfcstm`、`stm0.puml`、`verification_kind`。
 
 ---

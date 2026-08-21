@@ -174,7 +174,7 @@ T0.5 与 T1 的边界：
 | 引用键 | source_id | 事实源 | 类型 | 用途 |
 |---|---|---|---|---|
 | [src-r56-handoff] | `r56_to_r57_handoff` | [../scope/r5_6_to_r5_7_handoff_constraints.md](../scope/r5_6_to_r5_7_handoff_constraints.md) | md | taxonomy 字段合同、candidate-only 和 claim 降级规则。 |
-| [src-model-scope] | `r56_model_scope` | [../../story/model_scope.md](../../story/model_scope.md) | md | T0/T0.5/T1、模型族与禁止外推。 |
+| [src-model-scope] | `r56_model_scope` | [../../story/model_scope.md](../../../../story/model_scope.md) | md | T0/T0.5/T1、模型族与禁止外推。 |
 | [src-better] | `r572_better_stm` | [better_stm_definition.md](./better_stm_definition.md) | md | G0–G6 gate、三层输出模型、Better 判定接口。 |
 | [src-partial] | `llms_emp_partial_ledger` | [../../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl](../../../../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl) | jsonl | `condition_like_label_lowered_as_event` 等 representation symptom 的来源。 |
 

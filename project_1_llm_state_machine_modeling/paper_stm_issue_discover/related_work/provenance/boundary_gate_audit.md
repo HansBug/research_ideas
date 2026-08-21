@@ -1,5 +1,9 @@
 # 边界门误排除审计（L2 · 语料侧）
 
+> **历史调研说明**：本文审计的是旧来源语料门，数字是当时快照，不是当前谓词覆盖率
+> 或来源普遍率。当前政策和变更门以 [`pipeline/evidence_discovery/`](../../pipeline/evidence_discovery/)
+> 为准。
+
 ⭐ 审计对象：[tools/build_inscope_corpus.py](./tools/build_inscope_corpus.py) 从 [../../../sources/SUMMARY.md](../../../sources/SUMMARY.md) 的「案例清单」筛出界内案例的那道三条件合取门。⭐ 审计日期 2026-08-12。⛔ 本轮**未修改**该脚本，⛔ 也未修改 `sources/` 下任何文件；全部分析脚本写在 `/tmp/l2audit/`，仓库内只新增本文件。
 
 ## 0. 一句话结论
