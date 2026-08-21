@@ -16,6 +16,7 @@ from langchain_core.outputs import ChatGeneration, ChatResult
 from utils.agent import AgentApp, AgentError, AgentEvent, AgentSpec
 from utils.agent.runtime import (
     _ModelOptionsMiddleware,
+    _iterate_and_close,
     _message_ref,
     _prepare_recovery_history,
     _provider_retry_after_seconds,
@@ -23,6 +24,39 @@ from utils.agent.runtime import (
     _tool_completion_status,
 )
 from utils.llm import LLMConfig
+
+
+def test_cancelled_agent_stream_is_closed_before_loop_teardown() -> None:
+    class HangingStream:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def __aiter__(self) -> "HangingStream":
+            return self
+
+        async def __anext__(self) -> Any:
+            await asyncio.Event().wait()
+            raise StopAsyncIteration
+
+        async def aclose(self) -> None:
+            self.closed = True
+
+    async def scenario() -> HangingStream:
+        stream = HangingStream()
+
+        async def consume() -> None:
+            async for _ in _iterate_and_close(stream):
+                pass
+
+        task = asyncio.create_task(consume())
+        await asyncio.sleep(0)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        return stream
+
+    stream = asyncio.run(scenario())
+    assert stream.closed is True
 
 
 def test_unknown_tool_request_has_one_rejected_terminal_action(tmp_path: Path) -> None:

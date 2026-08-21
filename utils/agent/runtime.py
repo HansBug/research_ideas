@@ -90,6 +90,27 @@ _RETRYABLE_TRANSPORT_MESSAGE_MARKERS = (
     "temporarily unavailable",
     "service unavailable",
 )
+
+
+async def _iterate_and_close(stream: Any):
+    """Consume a LangGraph async stream and close it on cancellation.
+
+    ``asyncio.wait_for`` cancels the consumer coroutine when the agent's
+    explicit wall-clock budget expires.  Some provider-backed LangGraph
+    streams otherwise leave an ``async_generator_asend`` pending; the next
+    public call then observes ``Event loop is closed`` while that orphan is
+    finalized.  Keeping closure inside the still-running loop makes provider
+    retry a local operation and leaves the audit/runtime boundary intact.
+    """
+
+    try:
+        async for item in stream:
+            yield item
+    finally:
+        close = getattr(stream, "aclose", None)
+        if close is not None:
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await close()
 _IDENTITY_KEYS = frozenset(
     {"model", "base_url", "api_key", "headers", "authorization", "openai_api_key", "default_headers"}
 )
@@ -4243,7 +4264,9 @@ class AgentApp:
             ):
                 stream_kwargs["config"] = {"recursion_limit": _graph_recursion_limit(self.spec)}
 
-            async for event in graph.astream_events(inputs, **stream_kwargs):
+            async for event in _iterate_and_close(
+                graph.astream_events(inputs, **stream_kwargs)
+            ):
                 name = str(event.get("name") or "")
                 kind = str(event.get("event") or "")
                 data = event.get("data") or {}
