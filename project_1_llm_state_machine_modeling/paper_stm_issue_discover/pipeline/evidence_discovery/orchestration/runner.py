@@ -72,8 +72,8 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v2"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v2"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-orchestration.v4"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-staged-prompts.v3"
+CODE_VERSION = "evidence-discovery-orchestration.v5"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-staged-prompts.v4"
 JUDGE_PROMPT_TOKEN_BUDGET = 180_000
 # Keep the normal judge surface small enough that the model can close every
 # exact-ID row in one response.  A larger release surface is partitioned
@@ -973,18 +973,13 @@ def _method_cell(
             artifact_id=f"method/{pair.pair_id}/round-{round_index}/{branch}-grounding",
         )
 
-    if getattr(runtime, "real_llm", False):
-        # These branches consume the same immutable contract and are
-        # semantically complementary. Parallel execution reduces wall time
-        # without changing the four-call method state machine or receipt order.
-        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="grounding") as executor:
-            source_future = executor.submit(call_grounding, "source", source_prompt)
-            model_future = executor.submit(call_grounding, "model", model_prompt)
-            source_outcome = source_future.result()
-            model_outcome = model_future.result()
-    else:
-        source_outcome = call_grounding("source", source_prompt)
-        model_outcome = call_grounding("model", model_prompt)
+    # The six pair workers already provide process-level parallelism. Keep the
+    # two calls sequential inside one PublicStructuredRuntime so the shared
+    # AgentApp/LangGraph adapter retains its main-thread 30s first-byte and
+    # 120s total deadline semantics; thread fanout previously caused
+    # ``Event loop is closed`` non-provider failures.
+    source_outcome = call_grounding("source", source_prompt)
+    model_outcome = call_grounding("model", model_prompt)
     all_outcomes.extend([source_outcome, model_outcome])
     source_response = source_outcome.response if source_outcome.succeeded else fallback_grounding(
         pair,
@@ -1633,12 +1628,48 @@ def _partitioned_judge(
         else:
             shape_errors = ["judge partition output unavailable"]
         if response is None or shape_errors:
+            # A partition may be semantically useful while violating only the
+            # exact-ID response shape (duplicate ledger rows or a copied issue
+            # ID from another round). Give the same judge one targeted repair
+            # with the exact allowed IDs before falling back to atomic
+            # relations. This bounds judge calls at two per partition and
+            # avoids the old ledger x release explosion.
+            correction = runtime.call(
+                kind="judge_partition_correction",
+                schema=JudgeResponse,
+                system_prompt=JUDGE_SYSTEM_PROMPT,
+                prompt=_judge_partition_correction_prompt(
+                    pair=pair,
+                    ledger_items=ledger_items,
+                    chunk=chunk,
+                    method_rounds=chunk_rounds,
+                    errors=shape_errors,
+                ),
+                artifact_id=f"judge/{pair.pair_id}/partition-{chunk_index}/shape-correction",
+            )
+            outcomes.append(correction)
+            if correction.succeeded:
+                response = _normalize_judge_shape(
+                    correction.response,
+                    ledger_items,
+                    chunk,
+                    len(method_rounds),
+                )
+                shape_errors = _judge_shape_errors(
+                    response,
+                    ledger_items,
+                    chunk,
+                    len(method_rounds),
+                )
+            else:
+                shape_errors.append("partition shape correction output unavailable")
+        if response is None or shape_errors:
             errors.append(
                 {
                     "chunk": chunk_index,
                     "error": "; ".join(shape_errors),
-                    "reason": "A partition did not close its exact ledger/release shape; its relations remain unresolved.",
-                    "basis": "partitioned judge exact-ID coverage contract",
+                    "reason": "A partition and its targeted exact-ID correction did not close; relations remain unresolved before any bounded fallback.",
+                    "basis": "partitioned judge exact-ID coverage contract and targeted correction receipt",
                 }
             )
             continue
@@ -1687,6 +1718,7 @@ def _judge_prompt(
     pair: PairInput,
     ledger_items: list[dict[str, Any]],
     method_rounds: list[dict[str, Any]],
+    required_release_ids: Sequence[str] | None = None,
 ) -> str:
     """Build the independent pair-wide judge prompt from release issues only."""
 
@@ -1721,6 +1753,15 @@ def _judge_prompt(
                 ],
             }
         )
+    required_release_ids = tuple(
+        required_release_ids
+        if required_release_ids is not None
+        else [
+            str(issue.get("issue_id"))
+            for cell in method_rounds
+            for issue in cell.get("report_issue_clusters", [])
+        ]
+    )
     return f"""Assess the supplied method rounds for frozen pair {pair.pair_id} as an independent judge.
 
 Frozen ledger entries (the judge's only ground-truth answer source; method generation did not read them):
@@ -1728,6 +1769,12 @@ Frozen ledger entries (the judge's only ground-truth answer source; method gener
 
 Complete method receipt identities/stage receipts plus full D1/D2 release receipts for all supplied rounds (D0 is excluded):
 {json.dumps(compact_rounds, ensure_ascii=False, sort_keys=True)}
+
+The exact release issue ID set for this request is:
+{json.dumps(list(required_release_ids), ensure_ascii=False)}
+You must emit each of these release IDs exactly once. Do not emit any other
+release ID, even if a similarly named issue appears in another round. Emit each
+frozen ledger ID exactly once as well.
 
 A hit requires the same locus and the same property. Wording and evidence depth may differ. A broad
 category, an opposite-direction claim, a passing mention, a complaint about a reference artifact, or
@@ -1737,6 +1784,30 @@ is_false_positive=true only when no frozen ledger item can semantically account 
 units. Every assessment and the top-level response must have non-empty reason and basis fields. Do
 not read baseline results, other pairs, historical judge examples, or files outside this input.
 """
+
+
+def _judge_partition_correction_prompt(
+    *,
+    pair: PairInput,
+    ledger_items: list[dict[str, Any]],
+    chunk: list[dict[str, Any]],
+    method_rounds: list[dict[str, Any]],
+    errors: list[str],
+) -> str:
+    """Build a bounded exact-ID repair prompt for one judge partition."""
+
+    required_release_ids = [str(item["issue_id"]) for item in chunk]
+    return (
+        _judge_prompt(
+            pair,
+            ledger_items,
+            method_rounds,
+            required_release_ids=required_release_ids,
+        )
+        + "\nThe previous partition response violated these deterministic shape checks:\n- "
+        + "\n- ".join(errors)
+        + "\nReturn a complete replacement. Copy IDs only from the exact lists above; do not repeat an ID. This is a shape repair, not permission to change the semantic matching rule. Every assessment still needs non-empty reason and basis.\n"
+    )
 
 
 ATOMIC_JUDGE_SYSTEM_PROMPT = """You are the independent semantic fallback judge for paper1 evidence_discovery. Decide only whether one supplied frozen ledger entry and one supplied D1/D2 release issue identify the same locus and the same property. Do not use keyword, substring, regex, edit-distance, embedding, identifier-shape, or other lexical proxies. Do not create issues or inspect other pairs. Return one Pydantic AtomicMatchDecision with non-empty reason and basis."""

@@ -1004,6 +1004,8 @@ def _working_contract_prompt_dict(
     artifact: StructuredArtifact | None,
     *,
     include_elements: bool,
+    include_source_trace: bool = True,
+    include_review_subject: bool = True,
 ) -> dict[str, Any] | None:
     """Project the working contract while retaining exact mapping and omission receipts.
 
@@ -1030,11 +1032,13 @@ def _working_contract_prompt_dict(
         "attribution_policy",
         "diagnostic_attribution",
         "artifact_bindings",
-        "source_trace_base",
-        "review_subject",
         "confirm_gate",
         "repair_gate",
     )
+    if include_source_trace:
+        fixed_keys += ("source_trace_base",)
+    if include_review_subject:
+        fixed_keys += ("review_subject",)
     projected: dict[str, Any] = {
         key: payload[key]
         for key in fixed_keys
@@ -1099,8 +1103,6 @@ def _working_contract_prompt_dict(
                     "origin",
                     "model_refs",
                     "source_refs",
-                    "macro_ids",
-                    "edit_policy",
                 )
                 if isinstance(item, dict) and key in item
             }
@@ -1108,7 +1110,7 @@ def _working_contract_prompt_dict(
             if isinstance(item, dict)
         ]
         projected["element_omitted_fields"] = {
-            "fields": ["field_ownership", "metadata", "semantic_fields"],
+            "fields": ["field_ownership", "metadata", "semantic_fields", "macro_ids", "edit_policy"],
             "count": len(projected["elements"]),
             "sha256": _artifact_hash_payload(
                 {
@@ -1124,32 +1126,18 @@ def _working_contract_prompt_dict(
                     ]
                 }
             ),
-            "reason": "Exact refs and field ownership are retained; verbose compiler metadata is available from the working-contract artifact hash.",
-            "basis": "working-contract-prompt-projection.v2",
+            "reason": "Exact source/model refs are retained for binding; verbose compiler metadata remains available from the working-contract artifact hash.",
+            "basis": "working-contract-prompt-projection.v3",
         }
     else:
         projected["elements"] = _project_large_sequence(payload.get("elements"), label="elements")
     if "macros" in payload:
-        projected["macros"] = (
-            [
-                {
-                    key: item[key]
-                    for key in (
-                        "macro_id",
-                        "macro_kind",
-                        "member_digest",
-                        "member_element_ids",
-                        "source_element_ids",
-                        "capability_effects",
-                        "rewrite_policy",
-                    )
-                    if isinstance(item, dict) and key in item
-                }
-                for item in payload["macros"]
-                if isinstance(item, dict)
-            ]
-            if include_elements
-            else _project_large_sequence(payload["macros"], label="macros")
+        # Macro membership is useful as an audit identity, but the full member
+        # lists duplicate the exact transition inventory and inflate every
+        # grounding prompt.  Keep a deterministic count/hash projection here;
+        # the complete macro payload remains in the hash-addressed artifact.
+        projected["macros"] = _project_large_sequence(
+            payload["macros"], label="macros"
         )
 
     eligibility: dict[str, Any] = {}
@@ -1161,13 +1149,13 @@ def _working_contract_prompt_dict(
                 continue
             row = {
                 key: value[key]
-                for key in (
-                    "claim_boundary",
-                    "reason_codes",
-                    "status",
-                )
+                for key in ("claim_boundary", "status")
                 if key in value
             }
+            if "reason_codes" in value:
+                row["reason_codes"] = _project_large_sequence(
+                    value["reason_codes"], label=f"{name}.reason_codes"
+                )
             for key in (
                 "eligible_element_ids",
                 "eligible_field_refs",
@@ -1185,8 +1173,8 @@ def _working_contract_prompt_dict(
     return {
         "ref": artifact.ref.model_dump(mode="json"),
         "payload": projected,
-        "reason": "The working contract projection preserves exact source/model mapping and hashes omitted repetitive eligibility sequences.",
-        "basis": "working-contract-prompt-projection.v2",
+        "reason": "The working contract projection preserves exact source/model mapping and hash-addresses omitted compiler and eligibility expansions.",
+        "basis": "working-contract-prompt-projection.v3",
     }
 
 
@@ -1196,11 +1184,25 @@ def _prompt_base(pair: Any, stage: PromptStage) -> dict[str, Any]:
     if pair.context_manifest is None:
         raise ValueError("stage prompt requires a complete context manifest")
     return {
-        "prompt_projection_version": "stage-context-projection.v2",
+        "prompt_projection_version": "stage-context-projection.v3",
         "stage": stage,
         "context_manifest": pair.context_manifest.model_dump(mode="json"),
         "artifact_refs": [
-            item.model_dump(mode="json")
+            {
+                key: value
+                for key, value in item.model_dump(mode="json").items()
+                if key
+                in {
+                    "role",
+                    "source_role",
+                    "path",
+                    "sha256",
+                    "schema_version",
+                    "algorithm_version",
+                    "producer",
+                    "prompt_included",
+                }
+            }
             for item in pair.context_manifest.artifacts
         ],
         "case_report": case_report_prompt_dict(pair.case_report),
@@ -1217,7 +1219,7 @@ def _prompt_base(pair: Any, stage: PromptStage) -> dict[str, Any]:
             "smt_facts": "normalized_formal_inputs_not_solver_result",
         },
         "reason": "Stage context is role-scoped while the complete artifact closure remains identified by the manifest.",
-        "basis": "context-manifest.v1 and stage-context-projection.v2",
+        "basis": "context-manifest.v1 and stage-context-projection.v3",
     }
 
 
@@ -1242,6 +1244,8 @@ def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
                 "working_contract": _working_contract_prompt_dict(
                     pair.working_contract,
                     include_elements=False,
+                    include_source_trace=False,
+                    include_review_subject=False,
                 ),
                 "source_trace_receipt": (
                     pair.source_trace.ref.model_dump(mode="json")
@@ -1274,6 +1278,8 @@ def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
                 "working_contract": _working_contract_prompt_dict(
                     pair.working_contract,
                     include_elements=True,
+                    include_source_trace=True,
+                    include_review_subject=True,
                 ),
                 "source_trace": _source_trace_prompt_dict(pair.source_trace),
             }
@@ -1297,6 +1303,8 @@ def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
                 "working_contract": _working_contract_prompt_dict(
                     pair.working_contract,
                     include_elements=True,
+                    include_source_trace=False,
+                    include_review_subject=False,
                 ),
                 "reference_inspection_facts": (
                     reference_inspection_prompt_dict(pair.reference_inspection)

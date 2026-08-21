@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from pipeline.evidence_discovery.inputs import load_pair, parse_fcstm
-from pipeline.evidence_discovery.inputs.context import context_payload
+from pipeline.evidence_discovery.inputs.context import context_payload, prompt_context_payload
 from pipeline.evidence_discovery.orchestration.runner import _method_cell, run_experiment
 from pipeline.evidence_discovery.orchestration.runtime import StructuredCallOutcome
 from pipeline.evidence_discovery.semantics import (
@@ -422,6 +422,22 @@ def test_large_working_contract_is_role_scoped_before_prompt_serialization(tmp_p
     model_prompt = dict(runtime.prompts)["model_grounding"]
     assert '"elements": [' in model_prompt
     assert '"excluded_element_ids": {' in model_prompt
+    model_context = prompt_context_payload(pair, stage="model_grounding")
+    model_context_text = json.dumps(model_context, ensure_ascii=False, sort_keys=True)
+    assert len(model_context_text) < 350_000
+    assert '"model_refs"' in model_context_text
+    assert '"source_refs"' in model_context_text
+    for role in (
+        "reference_inspection_facts",
+        "inspection_equivalent_facts",
+        "verify_facts",
+        "smt_facts",
+    ):
+        assert role in model_context
+    source_context = prompt_context_payload(pair, stage="source_grounding")
+    assert source_context["working_contract"]["payload"]["elements"]
+    assert source_context["working_contract"]["payload"].get("review_subject")
+    assert "source_trace" in source_context
 
 
 def test_full_live_runner_requires_explicit_review_gate() -> None:
