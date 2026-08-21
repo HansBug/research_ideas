@@ -54,13 +54,18 @@ from pipeline.evidence_discovery.registry import load_registry
 from pipeline.evidence_discovery.semantics import (
     CandidateIssue,
     ContextBudgetReceipt,
+    D_SYSTEM_PROMPT,
     GroundingResponse,
+    NLContract,
+    NLContractResponse,
     MethodResponse,
     SemanticAdjudication,
     adjudicate_disposition,
     assemble_method_response,
     bind_candidate,
     build_method_prompt,
+    fallback_grounding,
+    build_d_adjudication_prompt,
     resolve_transition_ref,
 )
 from pipeline.evidence_discovery.semantics.binding import BindingResult
@@ -477,6 +482,56 @@ def test_method_prompt_has_no_frozen_ledger_payload() -> None:
     assert "judge examples" in prompt
     assert "S2={source, target, scope}" in prompt
     assert "set predicate_id to null" in prompt
+
+
+def test_frontier_fallback_preserves_exact_leaf_facts_and_v4_dossier_guidance() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0023")
+    contract = NLContract(
+        contract_id="NL-CONTRACT-NL1",
+        segment_id="NL1",
+        quote=pair.nl_segments[0].text,
+        normative_statement=pair.nl_segments[0].text,
+        scope="supplied state-machine scope",
+        source_refs=("nl:NL1",),
+        reason="The fixture preserves the numbered NL segment.",
+        basis="numbered NL input closure",
+    )
+    contracts = NLContractResponse(
+        contracts=[contract],
+        segment_disposition={"NL1": "covered"},
+        reason="The fixture supplies one contract.",
+        basis="provider-free contract fixture",
+    )
+    fallback = fallback_grounding(
+        pair,
+        branch="model",
+        contracts=contracts,
+        reason="provider-free fallback fixture",
+    )
+    frontier = next(item for item in fallback.candidates if item.predicate_id == "V4")
+    expected_leaf_refs = {
+        diagnostic.refs[0]
+        for diagnostic in pair.inspection_facts.diagnostics
+        if diagnostic.code == "LEAF_WITHOUT_OUTGOING" and diagnostic.refs
+    }
+    assert set(frontier.element_refs) == expected_leaf_refs
+    assert frontier.predicate_inputs == {"initial_scope": "closed_fcstm_initial_scope"}
+    assert frontier.reason and frontier.basis
+    assert "reachable non-final leaf" in D_SYSTEM_PROMPT
+    assert "intentional terminal or synthetic" in D_SYSTEM_PROMPT
+
+    dossier = {
+        "obligation_id": "0023:test:frontier",
+        "candidate": frontier.model_dump(mode="json"),
+        "binding": {"precise": True, "element_refs": frontier.element_refs, "source_refs": frontier.source_refs, "reason": "exact", "basis": "fixture"},
+        "plan": {"predicate_id": "V4", "predicate_name": "deadlock_free", "family": "Bounded Verification", "semantics": "finite progress", "inputs": frontier.predicate_inputs, "supported": False, "binding_complete": True, "missing_inputs": [], "reason": "W1", "basis": "fixture"},
+        "receipt": {"receipt_id": "fixture", "backend": "bounded_verification:V4", "terminal_state": "unsupported", "verdict": "false", "counterexample": [{"state": "PumpState"}], "trace": [], "run_metadata": {"terminal_states": [], "nonterminal_deadlock_states": ["PumpState"]}, "reason": "fixture frontier", "basis": "fixture facts"},
+        "source_attribution": {},
+    }
+    prompt = build_d_adjudication_prompt(pair, [dossier])
+    assert "nonterminal_deadlock_states" in prompt
+    assert "Do not infer" in prompt
+    assert "terminality from a state name" in prompt
 
 
 def test_structured_models_require_non_empty_audit_rationale_and_descriptions() -> None:

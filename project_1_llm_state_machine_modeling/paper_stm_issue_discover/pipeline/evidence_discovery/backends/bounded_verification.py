@@ -14,8 +14,17 @@ _COMPARISON = re.compile(r"([A-Za-z_]\w*)\s*(<=|>=|==|<|>)\s*(-?\d+(?:\.\d+)?)")
 
 def _receipt(
     receipt_id: str, predicate: str, model: ModelIR, verdict: str, reason: str, basis: str,
-    *, counterexample: list[dict[str, Any]] | None = None,
+    *,
+    counterexample: list[dict[str, Any]] | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> RawReceipt:
+    run_metadata = {
+        "algorithm_version": "bounded-checker.v1",
+        "input_hash": "sha256:" + hashlib.sha256(model.source_text.encode("utf-8")).hexdigest(),
+        "search_bound": "finite_model_graph_or_syntactic_guard",
+    }
+    if metadata:
+        run_metadata.update(metadata)
     return RawReceipt(
         receipt_id=receipt_id,
         backend=f"bounded_verification:{predicate}",
@@ -24,11 +33,7 @@ def _receipt(
         reason=reason,
         basis=basis,
         counterexample=counterexample or [],
-        run_metadata={
-            "algorithm_version": "bounded-checker.v1",
-            "input_hash": "sha256:" + hashlib.sha256(model.source_text.encode("utf-8")).hexdigest(),
-            "search_bound": "finite_model_graph_or_syntactic_guard",
-        },
+        run_metadata=run_metadata,
     )
 
 
@@ -93,5 +98,11 @@ def run_bounded_verification(plan: PredicatePlan, model: ModelIR, receipt_id: st
             f"The reachable stable-state graph {'contains' if deadlocks else 'contains no'} nonterminal nodes without outgoing progress.",
             "finite reachable-state graph deadlock check; terminality comes only from an exact edge to [*]",
             counterexample=[{"state": node} for node in deadlocks],
+            metadata={
+                "reachable_states": sorted(reachable),
+                "terminal_states": sorted(terminal_states),
+                "nonterminal_deadlock_states": deadlocks,
+                "scope": inputs.get("initial_scope") or "closed_fcstm_initial_scope",
+            },
         )
     return _receipt(receipt_id, predicate, model, "unknown", "The bounded verifier has no decidable implementation branch for this predicate.", "explicit bounded-verification capability boundary")

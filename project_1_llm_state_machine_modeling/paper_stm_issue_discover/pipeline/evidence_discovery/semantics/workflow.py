@@ -222,12 +222,34 @@ S1/S2/S3. Keep one atomic candidate per obligation/property and place repeated
 observations in reason/basis rather than emitting a separate candidate for each
 supporting fact.
 
+When one NL sentence contains multiple obligations, split them before rejecting
+the contract. A satisfied endpoint or declaration does not discharge an attached
+ordering, guard, effect, action, containment, region, consumer, or progress clause.
+For every such unsatisfied or unsupported conjunct, preserve the exact model
+locus and emit one atomic candidate; do not place it in rejected_contract_ids
+merely because a different conjunct is satisfied. A missing registered predicate
+is a precise W1 candidate when the model locus is exact.
+
 Return only the requested Pydantic structure."""
 
 
 D_SYSTEM_PROMPT = f"""You are the method's semantic D adjudication stage. Use only the supplied NL contracts, author-source facts, exact bindings, predicate plan, and backend receipt. Never read or infer frozen ledger answers, baseline hit/FP results, independent judge examples, other pair payloads, or historical release outputs. Do not output D0/D1/D2, W0/W1/W2, L, a hit, or a release decision. Instead return one SemanticAdjudication per supplied obligation using only the closed grounding and defeater enums. `reason` must explain the supplied NL clause, exact source/model facts, and strongest alternative reading; `basis` must identify the supplied artifacts. Free-text wording is for audit only: do not decide from keyword, substring, regex, spelling, identifier shape, or text similarity.
 
-D boundary: an unsupported or W1-only predicate does not erase a precise issue. When exact supplied source/model facts establish the candidate's semantic obligation, use grounding=established and describe the surviving ambiguity as a typed defeater when appropriate; deterministic code will keep it at W1. Use grounding=unresolved only when the supplied dossier genuinely cannot decide. A completed predicate result that is true for the requirement is not a violation merely because the candidate text sounds concerning."""
+D boundary: an unsupported or W1-only predicate does not erase a precise issue. When exact supplied source/model facts establish the candidate's semantic obligation, use grounding=established and describe the surviving ambiguity as a typed defeater when appropriate; deterministic code will keep it at W1. Use grounding=unresolved only when the supplied dossier genuinely cannot decide. A completed predicate result that is true for the requirement is not a violation merely because the candidate text sounds concerning.
+
+V4 frontier protocol: when predicate_id=V4, inspect the exact bound state refs,
+the finite reachability facts, the outgoing-transition facts, and the formal
+terminal-edge facts supplied in the dossier. A precise reachable non-final leaf
+with zero outgoing transitions establishes a candidate progress/deadlock reading
+even when the NL sentence does not literally use the word deadlock. Do not infer
+terminality from a state name; accept terminality only from an exact formal edge
+to [*] or an explicitly supplied terminal fact. If the leaf is an exact model
+element but an intentional terminal or synthetic-lowering reading remains
+competent, use grounding=established with a surviving typed defeater so the
+method can produce D1. Use grounding=unresolved only when the exact element,
+reachability, terminality, or obligation applicability genuinely cannot be
+decided from the supplied dossier. Never turn an unsupported V4 plan into W2,
+and never discard a precise W1 frontier issue."""
 
 
 def build_contract_prompt(pair: PairInput, round_index: int, previous: list[dict[str, Any]]) -> str:
@@ -357,6 +379,7 @@ def _compact_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
             "verdict",
             "counterexample",
             "trace",
+            "run_metadata",
             "reason",
             "basis",
         )
@@ -517,13 +540,58 @@ def fallback_grounding(
     contracts: NLContractResponse,
     reason: str,
 ) -> GroundingResponse:
-    """Create one conservative candidate from exact closed-model facts."""
+    """Create conservative candidates from exact closed-model facts.
+
+    This path is used only after the public structured runtime cannot return a
+    grounding response. It does not decide whether a fact is a violation. It
+    preserves an exact finite leaf-frontier observation for the D stage and one
+    ordinary model fact for audit continuity, so a provider/schema failure does
+    not erase the deterministic context or substitute an unrelated semantic
+    claim. The independent D stage still decides whether either observation is
+    an established issue.
+    """
 
     transition = pair.model.transitions[0] if pair.model.transitions else None
     state = pair.model.states[0] if pair.model.states else None
-    candidate: CandidateIssue | None = None
+    candidates: list[CandidateIssue] = []
+    if branch == "model" and pair.inspection_facts is not None:
+        leaf_refs = tuple(
+            diagnostic.refs[0]
+            for diagnostic in pair.inspection_facts.diagnostics
+            if diagnostic.code == "LEAF_WITHOUT_OUTGOING" and diagnostic.refs
+        )
+        if leaf_refs:
+            quote = (
+                contracts.contracts[0].quote
+                if contracts.contracts
+                else "The supplied state-machine contract is retained for semantic review."
+            )
+            leaf_names = tuple(
+                state_item.name
+                for state_item in pair.inspection_facts.states
+                if state_item.state_ref in set(leaf_refs)
+            )
+            candidates.append(
+                CandidateIssue(
+                    title="Deterministic finite leaf frontier requires semantic review",
+                    requirement_quote=quote,
+                    predicate_id="V4",
+                    predicate_inputs={"initial_scope": "closed_fcstm_initial_scope"},
+                    element_refs=list(leaf_refs),
+                    source_refs=[item.segment_id for item in contracts.contracts[:1]],
+                    expected="The supplied finite model should not end an applicable operational scope at a non-final leaf without progress.",
+                    observed=(
+                        "Owned inspection-equivalent facts report LEAF_WITHOUT_OUTGOING for exact state refs "
+                        + ", ".join(leaf_refs)
+                        + (f" ({', '.join(leaf_names)})." if leaf_names else ".")
+                    ),
+                    strongest_rebuttal="The leaf may be an intentional terminal or synthetic lowering artifact; the D stage must assess that alternative from supplied facts.",
+                    reason="The provider/schema response was unavailable, so the exact deterministic leaf-frontier fact was preserved as the registered V4 candidate surface.",
+                    basis="inspection-equivalent.fcstm-graph.v1 LEAF_WITHOUT_OUTGOING diagnostics; no semantic violation was decided by fallback code.",
+                )
+            )
     if transition is not None:
-        candidate = CandidateIssue(
+        candidates.append(CandidateIssue(
             title="Deterministic fallback preserving an exact transition fact",
             requirement_quote=contracts.contracts[0].quote if contracts.contracts else "The supplied NL contract is retained for audit.",
             predicate_id="S2",
@@ -535,9 +603,9 @@ def fallback_grounding(
             strongest_rebuttal="No violation claim is asserted; this is a fallback candidate.",
             reason="The provider/schema response was unavailable, so an exact transition fact was preserved for deterministic binding.",
             basis=f"{reason}; {pair.model.algorithm_version}",
-        )
+        ))
     elif state is not None:
-        candidate = CandidateIssue(
+        candidates.append(CandidateIssue(
             title="Deterministic fallback preserving an exact state fact",
             requirement_quote=contracts.contracts[0].quote if contracts.contracts else "The supplied NL contract is retained for audit.",
             predicate_id="S1",
@@ -549,10 +617,10 @@ def fallback_grounding(
             strongest_rebuttal="No violation claim is asserted; this is a fallback candidate.",
             reason="The provider/schema response was unavailable, so an exact state fact was preserved for deterministic binding.",
             basis=f"{reason}; {pair.model.algorithm_version}",
-        )
+        ))
     return GroundingResponse(
         branch=branch,
-        candidates=[candidate] if candidate is not None else [],
+        candidates=candidates,
         rejected_contract_ids=[],
         reason=f"{branch} grounding used a deterministic fallback after provider/schema failure.",
         basis=f"{reason}; exact closed-model input closure",
