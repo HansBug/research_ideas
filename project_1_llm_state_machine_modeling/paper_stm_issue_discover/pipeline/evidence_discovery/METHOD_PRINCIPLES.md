@@ -73,7 +73,7 @@ version、producer、reason 和 basis：
 PlantUML/canonical source IR 不能冒充 FCSTM 执行模型；FCSTM 不能冒充作者源定位；
 inspection、verify 和 SMT facts 只能陈述确定性事实，不能直接生成 violation、W2 或 D。
 后端和输入解析禁止 Python inspect、pyfcstm.inspect 和旧 inspect_* 后端；当前自有算法
-版本为 inspection-equivalent.fcstm-graph.v1、verify-equivalent.finite-graph.v1 和
+版本为 inspection-equivalent.fcstm-graph.v2、verify-equivalent.finite-graph.v2 和
 smt-input-normalization.v1。
 
 方法编排保留以下固定阶段边界和信息流：

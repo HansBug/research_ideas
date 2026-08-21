@@ -64,6 +64,7 @@ class Transition(BaseModel):
     effects: tuple[str, ...] = Field(description="Normalized effect fragments parsed from the label.")
     line: int = Field(ge=1, description="One-based source line where this transition starts.")
     ref: str = Field(min_length=1, description="Stable source reference for binding and audit attribution.")
+    scope: str | None = Field(default=None, min_length=1, description="Nearest enclosing FCSTM state scope for a scoped initial or internal transition, or null for a top-level transition.")
 
 
 class ModelIR(BaseModel):
@@ -75,7 +76,7 @@ class ModelIR(BaseModel):
     events: tuple[EventNode, ...] = Field(description="All parsed event declarations in source order.")
     transitions: tuple[Transition, ...] = Field(description="All parsed transitions in source order.")
     source_text: str = Field(description="Exact FCSTM source text consumed by the parser.")
-    algorithm_version: str = Field(default="fcstm-line-parser.v1", min_length=1, description="Versioned parser algorithm identifier used in evidence receipts.")
+    algorithm_version: str = Field(default="fcstm-line-parser.v2", min_length=1, description="Versioned parser algorithm identifier used in evidence receipts.")
 
     @property
     def state_names(self) -> set[str]:
@@ -188,9 +189,15 @@ def parse_fcstm(text: str) -> ModelIR:
         line = raw_line.strip()
         if not line or line.startswith("//"):
             continue
-        while line.startswith("}") and state_stack:
-            state_stack.pop()
+        # Only leading closing braces change declaration scope.  The old
+        # parser also counted every ``}`` in a transition effect, which could
+        # silently pop the enclosing state stack and flatten later facts.
+        while line.startswith("}"):
+            if state_stack:
+                state_stack.pop()
             line = line[1:].strip()
+        if not line:
+            continue
         state_match = _STATE_RE.match(raw_line)
         if state_match:
             name = _clean_name(state_match.group(1))
@@ -265,15 +272,11 @@ def parse_fcstm(text: str) -> ModelIR:
                     effects=effect_values,
                     line=line_no,
                     ref=f"transition:line:{line_no}",
+                    scope=state_stack[-1][0] if state_stack else None,
                 )
             )
         if "{" in raw_line and state_match is None:
             pending_state = pending_state
-        if "}" in raw_line:
-            for _ in range(raw_line.count("}")):
-                if state_stack:
-                    state_stack.pop()
-
     return ModelIR(
         states=tuple(states),
         events=tuple(events),

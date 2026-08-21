@@ -49,7 +49,7 @@ mapping 保留；原始文件仍由 manifest hash 定位。这是上下文压缩
 
 PlantUML/source 与 canonical IR 只用于作者源定位，FCSTM 只用于闭合模型绑定与执行，
 inspection-equivalent/verify/SMT facts 只用于确定性事实输入。新包自己实现并版本化
-inspection-equivalent.fcstm-graph.v1、verify-equivalent.finite-graph.v1 和
+inspection-equivalent.fcstm-graph.v2、verify-equivalent.finite-graph.v2 和
 smt-input-normalization.v1，不调用 Python inspect、pyfcstm.inspect 或旧 inspect_* 后端。
 
 方法保留 v27 的阶段边界：

@@ -246,6 +246,82 @@ def test_microwave_pair_keeps_source_and_closed_model_roles_separate() -> None:
     assert {"canonical_source_ir", "source_inventory", "fcstm_model", "inspection_equivalent_facts"} <= roles
 
 
+def test_representative_inspection_routes_use_exact_hierarchical_loci() -> None:
+    expected_leaf_names = {
+        "0004": {"EmergencyStopping", "Stopping"},
+        "0023": {"PumpState", "WaterState", "MethaneState"},
+        "0053": {"PumpState", "WaterState", "MethaneState"},
+    }
+    for pair_id, expected_names in expected_leaf_names.items():
+        pair = load_pair(REPORT_ROOT / "pairs" / pair_id)
+        facts = pair.inspection_facts
+        assert facts is not None
+        leaf_refs = {
+            diagnostic.refs[0]
+            for diagnostic in facts.diagnostics
+            if diagnostic.code == "LEAF_WITHOUT_OUTGOING"
+        }
+        leaf_names = {
+            state.name for state in facts.states if state.state_ref in leaf_refs
+        }
+        assert expected_names <= leaf_names
+        assert not any(
+            state.is_composite and state.state_ref in leaf_refs
+            for state in facts.states
+        )
+
+    pair_0029 = load_pair(REPORT_ROOT / "pairs" / "0029")
+    facts_0029 = pair_0029.inspection_facts
+    assert facts_0029 is not None
+    collision_ref = next(
+        state.state_ref
+        for state in facts_0029.states
+        if state.name == "CollisionAvoidance"
+    )
+    assert collision_ref not in {
+        diagnostic.refs[0]
+        for diagnostic in facts_0029.diagnostics
+        if diagnostic.code == "LEAF_WITHOUT_OUTGOING"
+    }
+    assert any(
+        diagnostic.code == "STATE_UNREACHABLE_FROM_INITIAL"
+        and diagnostic.refs == (collision_ref,)
+        for diagnostic in facts_0029.diagnostics
+    )
+
+    pair_0035 = load_pair(REPORT_ROOT / "pairs" / "0035")
+    facts_0035 = pair_0035.inspection_facts
+    assert facts_0035 is not None
+    assert next(state for state in facts_0035.states if state.name == "DoorShut").reachable_from_initial is False
+
+    pair_0046 = load_pair(REPORT_ROOT / "pairs" / "0046")
+    facts_0046 = pair_0046.inspection_facts
+    assert facts_0046 is not None
+    intercepted = next(item for item in facts_0046.event_consumers if item.event == "Intercepted")
+    assert intercepted.consumer_transition_refs
+    assert not intercepted.reachable_consumer_transition_refs
+
+
+def test_generated_fact_paths_are_materialized_and_hash_addressed() -> None:
+    import hashlib
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0023")
+    assert pair.context_manifest is not None
+    generated_roles = {
+        "source_inventory",
+        "inspection_equivalent_facts",
+        "verify_facts",
+        "smt_facts",
+    }
+    for artifact in pair.context_manifest.artifacts:
+        if artifact.role not in generated_roles:
+            continue
+        path = Path(artifact.path)
+        assert path.is_file(), artifact.role
+        digest = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+        assert digest == artifact.sha256, artifact.role
+
+
 def test_representative_pairs_staged_fixture_smoke(tmp_path: Path) -> None:
     for pair_id in ("0004", "0023", "0029", "0035", "0046", "0053"):
         pair = load_pair(REPORT_ROOT / "pairs" / pair_id)

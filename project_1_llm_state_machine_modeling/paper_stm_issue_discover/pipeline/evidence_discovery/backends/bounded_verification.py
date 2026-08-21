@@ -6,6 +6,7 @@ from typing import Any
 
 from ..compiler.lowering import PredicatePlan
 from ..evidence.receipts import RawReceipt
+from ..inputs.context import _hierarchical_graph_facts
 from ..inputs.models import ModelIR
 
 
@@ -19,7 +20,7 @@ def _receipt(
     metadata: dict[str, Any] | None = None,
 ) -> RawReceipt:
     run_metadata = {
-        "algorithm_version": "bounded-checker.v1",
+        "algorithm_version": "bounded-checker.v2",
         "input_hash": "sha256:" + hashlib.sha256(model.source_text.encode("utf-8")).hexdigest(),
         "search_bound": "finite_model_graph_or_syntactic_guard",
     }
@@ -73,36 +74,78 @@ def run_bounded_verification(plan: PredicatePlan, model: ModelIR, receipt_id: st
             return _receipt(receipt_id, predicate, model, "true", "All parseable guard pairs are disjoint in the declared syntactic domain.", "bounded syntactic interval comparison")
         return _receipt(receipt_id, predicate, model, "unknown", "At least one guard pair is outside the decidable numeric syntax fragment.", "UNKNOWN is preserved for unsupported guard logic")
     if predicate == "V4":
-        outgoing: dict[str, int] = {}
-        initial = [item.target for item in model.transitions if item.source == "[*]"]
-        for transition in model.transitions:
-            if transition.source != "[*]":
-                outgoing[transition.source] = outgoing.get(transition.source, 0) + 1
-        reachable = set(initial)
-        changed = True
-        while changed:
-            changed = False
-            for transition in model.transitions:
-                if transition.source in reachable and transition.target not in reachable and transition.target != "[*]":
-                    reachable.add(transition.target)
-                    changed = True
-        terminal_states = _terminal_states(model)
-        deadlocks = sorted(
-            node
-            for node in reachable
-            if node not in terminal_states and outgoing.get(node, 0) == 0
+        machine_scope, edges, _roots, _reachability, resolved, reachable_refs = _hierarchical_graph_facts(model)
+        state_by_ref = {state.ref: state for state in model.states}
+        composite_refs = {
+            state.ref
+            for state in model.states
+            if any(child.parent == state.name for child in model.states)
+        }
+        outgoing = {
+            source_ref: tuple(
+                transition_ref
+                for _target_ref, transition_ref in edge_rows
+            )
+            for source_ref, edge_rows in edges.items()
+        }
+        terminal_refs = {
+            source_ref
+            for source_ref, target_ref in resolved.values()
+            if source_ref is not None and target_ref is None
+        }
+        requested_refs = {
+            str(value)
+            for value in (inputs.get("element_refs") or [])
+            if str(value) in state_by_ref
+        }
+        if inputs.get("element_refs") and not requested_refs:
+            return _receipt(
+                receipt_id,
+                predicate,
+                model,
+                "unknown",
+                "V4 scope contains no resolvable closed-model state refs.",
+                "exact element_refs scope binding",
+                metadata={"scope": inputs.get("initial_scope") or "closed_fcstm_initial_scope", "element_refs": list(inputs.get("element_refs") or [])},
+            )
+        scope_refs = requested_refs or {
+            state.ref
+            for state in model.states
+            if state.ref != machine_scope and state.ref not in composite_refs
+        }
+        reachable_scope_refs = scope_refs & reachable_refs
+        if requested_refs and not reachable_scope_refs:
+            return _receipt(
+                receipt_id,
+                predicate,
+                model,
+                "unknown",
+                "V4 scope is precisely bound but no requested state is reachable in the finite initial-entry graph.",
+                "hierarchical reachability fact; unreachable is not a deadlock verdict",
+                metadata={"scope": inputs.get("initial_scope") or "closed_fcstm_initial_scope", "element_refs": sorted(scope_refs), "reachable_state_refs": sorted(reachable_refs)},
+            )
+        deadlock_refs = sorted(
+            state_ref
+            for state_ref in reachable_scope_refs
+            if state_ref not in terminal_refs
+            and state_ref not in composite_refs
+            and not outgoing.get(state_ref)
         )
-        verdict = "false" if deadlocks else "true"
+        reachable_names = sorted(state_by_ref[item].name for item in reachable_scope_refs)
+        verdict = "false" if deadlock_refs else "true"
         return _receipt(
             receipt_id, predicate, model, verdict,
-            f"The reachable stable-state graph {'contains' if deadlocks else 'contains no'} nonterminal nodes without outgoing progress.",
-            "finite reachable-state graph deadlock check; terminality comes only from an exact edge to [*]",
-            counterexample=[{"state": node} for node in deadlocks],
+            f"The bound state scope {'contains' if deadlock_refs else 'contains no'} reachable nonterminal leaves without outgoing progress.",
+            "finite hierarchical reachable-state graph; terminality comes only from an exact edge to [*]",
+            counterexample=[{"state_ref": node, "state": state_by_ref[node].name} for node in deadlock_refs],
             metadata={
-                "reachable_states": sorted(reachable),
-                "terminal_states": sorted(terminal_states),
-                "nonterminal_deadlock_states": deadlocks,
+                "reachable_states": reachable_names,
+                "reachable_state_refs": sorted(reachable_scope_refs),
+                "terminal_state_refs": sorted(terminal_refs),
+                "nonterminal_deadlock_states": [state_by_ref[node].name for node in deadlock_refs],
+                "nonterminal_deadlock_state_refs": deadlock_refs,
                 "scope": inputs.get("initial_scope") or "closed_fcstm_initial_scope",
+                "element_refs": sorted(scope_refs),
             },
         )
     return _receipt(receipt_id, predicate, model, "unknown", "The bounded verifier has no decidable implementation branch for this predicate.", "explicit bounded-verification capability boundary")

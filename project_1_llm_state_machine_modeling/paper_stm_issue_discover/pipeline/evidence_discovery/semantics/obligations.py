@@ -86,7 +86,7 @@ def fallback_candidates(pair: PairInput, round_index: int) -> MethodResponse:
         observed="The model fact was parsed and preserved.",
         strongest_rebuttal="No violation claim is asserted; this is an audit fallback after provider or schema failure.",
         reason=f"Round {round_index} lacked a usable provider/schema response, so deterministic input facts were preserved.",
-        basis="Closed input facts from fcstm-line-parser.v1 and the recorded failure receipt.",
+        basis="Closed input facts from fcstm-line-parser.v2 and the recorded failure receipt.",
     )
     return MethodResponse(
         issues=[candidate],

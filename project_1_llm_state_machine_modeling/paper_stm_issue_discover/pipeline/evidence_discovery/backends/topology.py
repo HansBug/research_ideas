@@ -6,16 +6,30 @@ from typing import Any, Iterable
 
 from ..compiler.lowering import PredicatePlan
 from ..evidence.receipts import RawReceipt
+from ..inputs.context import _machine_scope
 from ..inputs.models import ModelIR
 
 
 def _graph(model: ModelIR) -> dict[str, tuple[str, ...]]:
     graph: dict[str, list[str]] = {}
+    machine_scope = _machine_scope(model)
+
+    def aliases(value: str) -> tuple[str, ...]:
+        normalized = value.strip().replace("[ * ]", "[*]")
+        values = [normalized]
+        if normalized.startswith("!"):
+            values.append(normalized[1:])
+        return tuple(dict.fromkeys(values))
+
     for transition in model.transitions:
-        if transition.source == "[*]":
+        source = transition.source.strip().replace("[ * ]", "[*]")
+        if source == "[*]" and transition.scope not in {None, machine_scope}:
             continue
-        graph.setdefault(transition.source, []).append(transition.target)
-        graph.setdefault(transition.target, [])
+        for source_alias in aliases(transition.source):
+            for target_alias in aliases(transition.target):
+                graph.setdefault(source_alias, []).append(target_alias)
+        for target_alias in aliases(transition.target):
+            graph.setdefault(target_alias, [])
     return {key: tuple(value) for key, value in graph.items()}
 
 
@@ -57,7 +71,13 @@ def _receipt(
 
 
 def _roots(model: ModelIR) -> tuple[str, ...]:
-    return tuple(item.target for item in model.transitions if item.source == "[*]")
+    machine_scope = _machine_scope(model)
+    return tuple(
+        item.target
+        for item in model.transitions
+        if item.source.strip().replace("[ * ]", "[*]") == "[*]"
+        and item.scope in {None, machine_scope}
+    )
 
 
 def run_topology(plan: PredicatePlan, model: ModelIR, receipt_id: str) -> RawReceipt:

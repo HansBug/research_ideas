@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import os
+import tempfile
 from pathlib import Path
 
 from .models import PairInput, parse_fcstm
@@ -15,6 +18,7 @@ from .context import (
     build_artifact_ref,
     file_artifact,
     generated_artifact,
+    StructuredArtifact,
 )
 from .provenance import sha256_file
 
@@ -113,6 +117,7 @@ def load_pair(pair_dir: str | Path) -> PairInput:
         reason="Exact source/transition inventory is required by source grounding.",
         basis="canonical source IR projection",
     )
+    _persist_generated_artifact(source_inventory_artifact)
     inspection_artifact = file_artifact(
         role="reference_inspection_facts",
         source_role="deterministic_facts",
@@ -172,6 +177,7 @@ def load_pair(pair_dir: str | Path) -> PairInput:
         reason="Owned inspection-equivalent facts preserve v27's inventory/diagnostic role without calling forbidden inspection APIs.",
         basis=inspection_facts.basis,
     )
+    _persist_generated_artifact(inspection_equivalent_artifact)
     verify_artifact = generated_artifact(
         role="verify_facts",
         source_role="deterministic_facts",
@@ -183,6 +189,7 @@ def load_pair(pair_dir: str | Path) -> PairInput:
         reason="Finite verification facts are supplied to grounding and remain distinct from execution receipts.",
         basis=verify_facts.basis,
     )
+    _persist_generated_artifact(verify_artifact)
     smt_artifact = generated_artifact(
         role="smt_facts",
         source_role="deterministic_facts",
@@ -194,6 +201,7 @@ def load_pair(pair_dir: str | Path) -> PairInput:
         reason="Normalized formal inputs are supplied with an explicit no-solver boundary.",
         basis=smt_facts.basis,
     )
+    _persist_generated_artifact(smt_artifact)
     artifacts = (
         build_artifact_ref(
             role="natural_language",
@@ -268,6 +276,33 @@ def _read_json_object(path: Path) -> dict:
     if not isinstance(value, dict):
         raise ValueError(f"expected JSON object artifact: {path}")
     return value
+
+
+def _persist_generated_artifact(artifact: StructuredArtifact) -> None:
+    """Atomically materialize a generated fact at the manifest-recorded path."""
+
+    path = Path(artifact.ref.path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    serialized = json.dumps(
+        artifact.payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    digest = "sha256:" + hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+    if digest != artifact.ref.sha256:
+        raise ValueError(f"generated artifact hash mismatch before write: {path}")
+    fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(serialized)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
 
 
 def load_pairs(report_root: str | Path) -> tuple[PairInput, ...]:

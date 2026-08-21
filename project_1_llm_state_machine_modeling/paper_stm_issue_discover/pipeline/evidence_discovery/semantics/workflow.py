@@ -215,7 +215,10 @@ deadlock-frontier fact is a reason to consider one V4(initial_scope) candidate,
 with the exact leaf refs kept in element_refs/supporting facts; it is not an S1
 existence claim. A failed finite reachability fact routes to G1 with its exact
 source/target sets. A refuted initial-entry fact routes to an exact S2 initial
-edge claim. An unresolved inspection fact remains unresolved. Missing
+edge claim. A refuted event-consumer coverage fact may support a precise
+predicate-null W1 candidate for the exact event/consumer scope; do not replace
+consumer reachability with an event or transition existence claim. An unresolved
+inspection fact remains unresolved. Missing
 containment, region, consumer-scope, or variable-delta semantics may remain a
 precisely bound predicate=null candidate for W1, but must not be disguised as
 S1/S2/S3. Keep one atomic candidate per obligation/property and place repeated
@@ -587,7 +590,7 @@ def fallback_grounding(
                     ),
                     strongest_rebuttal="The leaf may be an intentional terminal or synthetic lowering artifact; the D stage must assess that alternative from supplied facts.",
                     reason="The provider/schema response was unavailable, so the exact deterministic leaf-frontier fact was preserved as the registered V4 candidate surface.",
-                    basis="inspection-equivalent.fcstm-graph.v1 LEAF_WITHOUT_OUTGOING diagnostics; no semantic violation was decided by fallback code.",
+                    basis="inspection-equivalent.fcstm-graph.v2 LEAF_WITHOUT_OUTGOING diagnostics; no semantic violation was decided by fallback code.",
                 )
             )
     if transition is not None:

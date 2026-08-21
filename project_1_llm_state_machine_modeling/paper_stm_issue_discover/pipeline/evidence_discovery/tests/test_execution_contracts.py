@@ -11,7 +11,8 @@ from pydantic import ValidationError
 from utils.llm.config import LLMPricing, LLMTokenPrices
 
 from pipeline.evidence_discovery.backends import run_backend
-from pipeline.evidence_discovery.backends.bounded_verification import _terminal_states
+from pipeline.evidence_discovery.backends.bounded_verification import _terminal_states, run_bounded_verification
+from pipeline.evidence_discovery.backends.topology import _graph
 from pipeline.evidence_discovery.compiler import compile_plan
 from pipeline.evidence_discovery.evidence.receipts import RawReceipt
 from pipeline.evidence_discovery.evidence.audit_bundle import W2AuditBundle
@@ -465,6 +466,68 @@ def test_terminality_uses_exact_final_pseudostate_edges_not_state_names() -> Non
         "state terminal_named\nstate EndState\nterminal_named -> [*]\n"
     )
     assert _terminal_states(formal_model) == {"terminal_named"}
+
+
+def test_topology_preserves_outer_initial_edges_and_excludes_nested_initial_roots() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    graph = _graph(pair.model)
+    assert "AutonomousMode" in graph["[*]"]
+    assert "CollisionAvoidance" not in graph["[*]"]
+
+
+def test_v4_uses_exact_leaf_scope_and_rejects_composite_or_unreachable_scope() -> None:
+    registry = load_registry()
+    pair = load_pair(REPORT_ROOT / "pairs" / "0023")
+    leaf_refs = [
+        state.state_ref
+        for state in pair.inspection_facts.states
+        if state.name in {"PumpState", "WaterState", "MethaneState"}
+    ]
+    candidate = _candidate(
+        pair,
+        predicate_id="V4",
+        inputs={"initial_scope": "closed_fcstm_initial_scope", "element_refs": leaf_refs},
+        refs=leaf_refs,
+    )
+    binding = bind_candidate(candidate, pair.model)
+    plan = compile_plan(
+        candidate,
+        binding,
+        registry,
+        obligation_id="0023:v4-scope",
+        round_index=1,
+        model=pair.model,
+        model_hash=pair.hashes["fcstm"],
+    ).model_copy(update={"supported": True, "formal_program": "fixture", "formal_program_hash": "sha256:" + "0" * 64})
+    receipt = run_bounded_verification(plan, pair.model, "0023:v4-receipt")
+    assert receipt.verdict == "false"
+    assert set(receipt.run_metadata["nonterminal_deadlock_state_refs"]) == set(leaf_refs)
+
+    pair_0029 = load_pair(REPORT_ROOT / "pairs" / "0029")
+    collision_ref = next(
+        state.state_ref
+        for state in pair_0029.inspection_facts.states
+        if state.name == "CollisionAvoidance"
+    )
+    composite_candidate = _candidate(
+        pair_0029,
+        predicate_id="V4",
+        inputs={"initial_scope": "closed_fcstm_initial_scope", "element_refs": [collision_ref]},
+        refs=[collision_ref],
+    )
+    composite_binding = bind_candidate(composite_candidate, pair_0029.model)
+    composite_plan = compile_plan(
+        composite_candidate,
+        composite_binding,
+        registry,
+        obligation_id="0029:v4-composite",
+        round_index=1,
+        model=pair_0029.model,
+        model_hash=pair_0029.hashes["fcstm"],
+    ).model_copy(update={"supported": True, "formal_program": "fixture", "formal_program_hash": "sha256:" + "0" * 64})
+    composite_receipt = run_bounded_verification(composite_plan, pair_0029.model, "0029:v4-receipt")
+    assert composite_receipt.verdict == "unknown"
+    assert "not a deadlock verdict" in composite_receipt.basis
 
 
 def test_method_prompt_has_no_frozen_ledger_payload() -> None:
