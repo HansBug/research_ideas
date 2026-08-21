@@ -25,8 +25,16 @@ REPORT_ROOT = PAPER_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60
 class FixtureStructuredRuntime:
     """Provider-free runtime fixture that records every staged prompt."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        include_second_candidate: bool = False,
+        omit_second_d_decision: bool = False,
+    ) -> None:
         self.prompts: list[tuple[str, str]] = []
+        self.include_second_candidate = include_second_candidate
+        self.omit_second_d_decision = omit_second_d_decision
+        self.d_call_count = 0
 
     def call(self, *, kind, schema, system_prompt, prompt, artifact_id, **kwargs):
         self.prompts.append((kind, prompt))
@@ -52,36 +60,65 @@ class FixtureStructuredRuntime:
         elif schema is GroundingResponse:
             pair = load_pair(REPORT_ROOT / "pairs" / pair_id)
             transition = pair.model.transitions[0]
-            response = GroundingResponse(
-                branch="source" if kind == "source_grounding" else "model",
-                candidates=[
+            candidates = [
+                {
+                    "title": "Fixture grounded transition",
+                    "requirement_quote": "The supplied source clause.",
+                    "predicate_id": "S2",
+                    "predicate_inputs": {
+                        "source": transition.source,
+                        "target": transition.target,
+                        "scope": "closed_fcstm",
+                    },
+                    "element_refs": [transition.ref],
+                    "source_refs": ["nl:NL1"],
+                    "expected": "The transition is present.",
+                    "observed": "The transition is present.",
+                    "strongest_rebuttal": "none",
+                    "reason": "Fixture branch reason.",
+                    "basis": "Fixture exact FCSTM transition basis.",
+                }
+            ]
+            if self.include_second_candidate:
+                second_transition = pair.model.transitions[1]
+                candidates.append(
                     {
-                        "title": "Fixture grounded transition",
-                        "requirement_quote": "The supplied source clause.",
+                        "title": "Fixture grounded second transition",
+                        "requirement_quote": "The second supplied source clause.",
                         "predicate_id": "S2",
                         "predicate_inputs": {
-                            "source": transition.source,
-                            "target": transition.target,
+                            "source": second_transition.source,
+                            "target": second_transition.target,
                             "scope": "closed_fcstm",
                         },
-                        "element_refs": [transition.ref],
-                        "source_refs": ["nl:NL1"],
-                        "expected": "The transition is present.",
-                        "observed": "The transition is present.",
+                        "element_refs": [second_transition.ref],
+                        "source_refs": ["nl:NL2"],
+                        "expected": "The second transition is present.",
+                        "observed": "The second transition is present.",
                         "strongest_rebuttal": "none",
-                        "reason": "Fixture branch reason.",
-                        "basis": "Fixture exact FCSTM transition basis.",
+                        "reason": "Fixture second branch reason.",
+                        "basis": "Fixture second exact FCSTM transition basis.",
                     }
-                ],
+                )
+            response = GroundingResponse(
+                branch="source" if kind == "source_grounding" else "model",
+                candidates=candidates,
                 rejected_contract_ids=[],
                 reason="Fixture grounding response reason.",
                 basis="Fixture grounding response basis.",
             )
         elif schema is DAdjudicationResponse:
+            self.d_call_count += 1
+            if self.omit_second_d_decision and kind == "d_adjudication_correction":
+                decision_ids = [f"{pair_id}:r1:i1"]
+            else:
+                decision_ids = [f"{pair_id}:r1:i0"]
+            if self.include_second_candidate and not self.omit_second_d_decision:
+                decision_ids.append(f"{pair_id}:r1:i1")
             response = DAdjudicationResponse(
                 decisions=[
                     {
-                        "obligation_id": f"{pair_id}:r1:i0",
+                        "obligation_id": obligation_id,
                         "grounding": "established",
                         "violated_obligation": "The fixture obligation is semantically grounded.",
                         "strongest_defeater": None,
@@ -90,6 +127,7 @@ class FixtureStructuredRuntime:
                         "reason": "Fixture D reason cites the supplied obligation and exact binding.",
                         "basis": "Fixture semantic dossier and closed enum decision.",
                     }
+                    for obligation_id in decision_ids
                 ],
                 reason="Fixture D response reason.",
                 basis="Fixture D response basis.",
@@ -292,6 +330,42 @@ def test_staged_method_receives_full_context_and_writes_stage_receipts(tmp_path:
     assert all("l_level" not in record for record in cell["evidence_records"])
     for item in cell["stage_receipts"]:
         StageReceipt.model_validate(item)
+
+
+def test_d_coverage_correction_is_in_node_and_no_silent_drop(tmp_path: Path) -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    runtime = FixtureStructuredRuntime(
+        include_second_candidate=True,
+        omit_second_d_decision=True,
+    )
+
+    cell = _method_cell(
+        pair=pair,
+        round_index=1,
+        runtime=runtime,
+        previous=[],
+        output_root=tmp_path,
+    )
+
+    assert runtime.d_call_count == 2
+    assert [kind for kind, _ in runtime.prompts][-2:] == [
+        "d_adjudication",
+        "d_adjudication_correction",
+    ]
+    d_output = cell["stage_outputs"]["d_adjudication"]
+    assert {
+        decision["obligation_id"] for decision in d_output["decisions"]
+    } == {"0000:r1:i0", "0000:r1:i1"}
+    d_receipt = next(
+        item for item in cell["stage_receipts"] if item["stage_name"] == "d_adjudication"
+    )
+    assert d_receipt["status"] == "completed"
+    assert not any(
+        error.get("stage") in {"d_adjudication", "d_adjudication_correction"}
+        for error in cell["errors"]
+    )
+    assert len(cell["evidence_records"]) == 2
+    assert all(record["semantic_adjudication"] for record in cell["evidence_records"])
 
 
 def test_large_working_contract_is_role_scoped_before_prompt_serialization(tmp_path: Path) -> None:
