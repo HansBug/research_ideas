@@ -1785,7 +1785,11 @@ The exact release issue ID set for this request is:
 {json.dumps(list(required_release_ids), ensure_ascii=False)}
 You must emit each of these release IDs exactly once. Do not emit any other
 release ID, even if a similarly named issue appears in another round. Emit each
-frozen ledger ID exactly once as well.
+frozen ledger ID exactly once as well. The frozen ledger list is an array of
+objects: emit exactly one ledger assessment for each supplied object. Do not
+split one object into multiple assessments because its summary, detail, or
+D_basis describes multiple defect aspects; those aspects remain one ledger
+unit under its supplied ID.
 
 A hit requires the same locus and the same property. Wording and evidence depth may differ. A broad
 category, an opposite-direction claim, a passing mention, a complaint about a reference artifact, or

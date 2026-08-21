@@ -29,6 +29,7 @@ from pipeline.evidence_discovery.orchestration.runner import (
     _enrich_candidate,
     _failure_judge_payload,
     _failure_method_cell,
+    _judge_prompt,
     _judge_shape_errors,
     _normalize_judge_shape,
     _judge_pair,
@@ -587,6 +588,25 @@ def test_method_prompt_has_no_frozen_ledger_payload() -> None:
     assert "judge examples" in prompt
     assert "S2={source, target, scope}" in prompt
     assert "set predicate_id to null" in prompt
+
+
+def test_judge_prompt_keeps_one_assessment_per_ledger_object() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0004")
+    ledger = json.loads(
+        (PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    ledger_items = [
+        item for item in ledger["items"].values() if item.get("pair") == "0004"
+    ]
+    prompt = _judge_prompt(pair, ledger_items, [])
+
+    assert len(ledger_items) == 3
+    assert prompt.count('"id": "EIS-0004-01"') == 1
+    normalized_prompt = " ".join(prompt.split())
+    assert "exactly one ledger assessment for each supplied object" in normalized_prompt
+    assert "Do not split one object into multiple assessments" in normalized_prompt
 
 
 def test_frontier_fallback_preserves_exact_leaf_facts_and_v4_dossier_guidance() -> None:
