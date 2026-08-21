@@ -498,6 +498,35 @@ def test_judge_shape_normalization_is_exact_id_only() -> None:
     assert normalized.release_assessments[0].is_false_positive is False
 
 
+def test_judge_shape_rejects_asymmetric_exact_relations() -> None:
+    ledger = [{"id": "L-1", "pair": "0000"}]
+    release = [{"issue_id": "0000:r1:issue:0"}]
+    response = JudgeResponse(
+        ledger_assessments=[
+            LedgerAssessment(
+                ledger_id="L-1",
+                matched_issue_ids=[],
+                reason="The ledger side reports no match.",
+                basis="fixture ledger relation surface",
+            )
+        ],
+        release_assessments=[
+            ReleaseAssessment(
+                issue_id="0000:r1:issue:0",
+                accounted_ledger_ids=["L-1"],
+                is_false_positive=False,
+                reason="The release side reports a match.",
+                basis="fixture release relation surface",
+            )
+        ],
+        reason="The fixture intentionally disagrees across relation directions.",
+        basis="provider-free asymmetric relation fixture",
+    )
+
+    errors = _judge_shape_errors(response, ledger, release, 1)
+    assert any("same exact relation pairs" in error for error in errors)
+
+
 def test_terminality_uses_exact_final_pseudostate_edges_not_state_names() -> None:
     named_model = parse_fcstm(
         "state terminal_named\nstate EndState\n[*] -> terminal_named\n"

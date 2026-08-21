@@ -1889,6 +1889,22 @@ def _judge_shape_errors(
             errors.append(
                 f"{assessment.issue_id}.is_false_positive must equal whether accounted_ledger_ids is empty"
             )
+    matched_relations = {
+        (assessment.ledger_id, issue_id)
+        for assessment in response.ledger_assessments
+        for issue_id in assessment.matched_issue_ids
+        if assessment.ledger_id in expected_ledger and issue_id in expected_release
+    }
+    accounted_relations = {
+        (ledger_id, assessment.issue_id)
+        for assessment in response.release_assessments
+        for ledger_id in assessment.accounted_ledger_ids
+        if ledger_id in expected_ledger and assessment.issue_id in expected_release
+    }
+    if matched_relations != accounted_relations:
+        errors.append(
+            "ledger matched_issue_ids and release accounted_ledger_ids must encode the same exact relation pairs"
+        )
     return errors
 
 
