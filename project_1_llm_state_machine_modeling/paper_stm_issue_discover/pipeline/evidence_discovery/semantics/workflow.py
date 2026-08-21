@@ -185,16 +185,35 @@ def _context_text(pair: PairInput, *, stage: Literal["nl_contract_extraction", "
 COMMON_RULES = """Use only the supplied input closure. Never read, infer, or reproduce frozen ledger answers, baseline hit/FP results, independent judge examples, other pair payloads, or historical release outputs. PlantUML and canonical source IR locate author intent; FCSTM is the closed model evaluated by the deterministic backend; inspection-equivalent and verify/SMT summaries are deterministic facts only. Do not treat one source role as another. Do not emit W0/W1/W2, D0/D1/D2, L, or a release decision. Predicate IDs are closed to the frozen 19 IDs. A precise claim that is not expressible by a frozen predicate must remain a candidate with predicate_id=null, not disappear. Every object and every top-level response must contain non-empty reason and basis. Explain the judgment in the requested content language; English-only output is not required."""
 
 
+# These are semantic routing rules for the frozen registry, not additional
+# predicates. They keep the model from encoding a known structural fact as a
+# merely related existence check or silently discarding a W1-only candidate.
+PREDICATE_ROUTING_GUIDANCE = """Frozen predicate routing discipline:
+- Use S1 only for closed-model declaration membership (kind, element, scope). It does not prove containment, cardinality, initial-entry semantics, or a runtime state.
+- Use S2 for one exact transition endpoint pair, including an initial pseudo-state endpoint when the obligation is an initial edge. Use S3 for one exact transition trigger set, S4 for one state lifecycle action, S5 for one exact transition guard, and S6 for one exact transition effect.
+- Use G1 for a finite path-existence or unreachable-target claim, G2 for universal eventual target reachability, G3 only when the forbidden node/edge set is explicit, and G4 only for the registered coaccessibility form.
+- Use V4(initial_scope) for a supplied finite deadlock-frontier or reachable nonterminal-no-progress fact. V4 is currently W1-only under the source audit, so preserve a precise V4 candidate and its backend result without claiming W2. Do not replace V4 with S1/S2 or call termination, liveness, fairness, or concurrency semantics deadlock evidence.
+- Use V1/V2 only for the declared guard-domain formulas. Use R1-R4 only when a concrete scenario, window, and trace are supplied; do not infer trajectory facts from static text.
+- A predicate that is registered but source-gated as candidate or W1-only is still a valid precise candidate. The downstream deterministic state machine decides W1/W2; the grounding branch must not drop it merely because it cannot reach W2.
+- For a missing fact, bind the expected exact model/source element and the observed absence or counterexample. For a present fact, preserve it as a non-violation observation unless the supplied dossier identifies a distinct violated obligation."""
+
+
 CONTRACT_SYSTEM_PROMPT = f"""You are the NL contract extraction stage of the paper1 evidence_discovery method. {COMMON_RULES} Extract atomic source obligations before inspecting model satisfaction. Preserve qualifiers, ordering, initialization/operation/termination scope, and ambiguity. Return only the requested Pydantic structure."""
 
 
 SOURCE_GROUNDING_SYSTEM_PROMPT = f"""You are the author-source grounding branch of the paper1 evidence_discovery method. {COMMON_RULES} Use NL contracts, PlantUML, canonical source IR, exact source inventory, working contract, and source trace to locate source-scoped obligations and exact source identities. FCSTM facts may be compared only as a separate closed-model role. Do not claim that source presence proves execution or a violation. Return only the requested Pydantic structure."""
 
 
-MODEL_GROUNDING_SYSTEM_PROMPT = f"""You are the closed-model grounding branch of the paper1 evidence_discovery method. {COMMON_RULES} Use FCSTM, owned ModelIR, reference inspection facts, owned inspection-equivalent facts, finite verify facts, and SMT formula summaries to bind exact model elements and propose predicate candidates. Do not rewrite an NL contract to match the model and do not treat unknown/not-run facts as violations. Return only the requested Pydantic structure."""
+MODEL_GROUNDING_SYSTEM_PROMPT = f"""You are the closed-model grounding branch of the paper1 evidence_discovery method. {COMMON_RULES} Use FCSTM, owned ModelIR, reference inspection facts, owned inspection-equivalent facts, finite verify facts, and SMT formula summaries to bind exact model elements and propose predicate candidates. Do not rewrite an NL contract to match the model and do not treat unknown/not-run facts as violations.
+
+{PREDICATE_ROUTING_GUIDANCE}
+
+Return only the requested Pydantic structure."""
 
 
-D_SYSTEM_PROMPT = """You are the method's semantic D adjudication stage. Use only the supplied NL contracts, author-source facts, exact bindings, predicate plan, and backend receipt. Never read or infer frozen ledger answers, baseline hit/FP results, independent judge examples, other pair payloads, or historical release outputs. Do not output D0/D1/D2, W0/W1/W2, L, a hit, or a release decision. Instead return one SemanticAdjudication per supplied obligation using only the closed grounding and defeater enums. `reason` must explain the supplied NL clause, exact source/model facts, and strongest alternative reading; `basis` must identify the supplied artifacts. Free-text wording is for audit only: do not decide from keyword, substring, regex, spelling, identifier shape, or text similarity."""
+D_SYSTEM_PROMPT = f"""You are the method's semantic D adjudication stage. Use only the supplied NL contracts, author-source facts, exact bindings, predicate plan, and backend receipt. Never read or infer frozen ledger answers, baseline hit/FP results, independent judge examples, other pair payloads, or historical release outputs. Do not output D0/D1/D2, W0/W1/W2, L, a hit, or a release decision. Instead return one SemanticAdjudication per supplied obligation using only the closed grounding and defeater enums. `reason` must explain the supplied NL clause, exact source/model facts, and strongest alternative reading; `basis` must identify the supplied artifacts. Free-text wording is for audit only: do not decide from keyword, substring, regex, spelling, identifier shape, or text similarity.
+
+D boundary: an unsupported or W1-only predicate does not erase a precise issue. When exact supplied source/model facts establish the candidate's semantic obligation, use grounding=established and describe the surviving ambiguity as a typed defeater when appropriate; deterministic code will keep it at W1. Use grounding=unresolved only when the supplied dossier genuinely cannot decide. A completed predicate result that is true for the requirement is not a violation merely because the candidate text sounds concerning."""
 
 
 def build_contract_prompt(pair: PairInput, round_index: int, previous: list[dict[str, Any]]) -> str:
@@ -229,11 +248,17 @@ def build_grounding_prompt(
         if branch == "source"
         else "Model branch priority: exact FCSTM binding, deterministic inventory/diagnostic facts, and registry-minimal predicate inputs. Keep author-source identity for the source branch."
     )
+    routing_guidance = (
+        "Source branch must stay within author-source localization; do not use FCSTM facts or backend outcomes to assert satisfaction or violation."
+        if branch == "source"
+        else PREDICATE_ROUTING_GUIDANCE
+    )
     return f"""{COMMON_RULES}
 
 Stage: {branch}_grounding
 Round: {round_index}
 Branch rule: {branch_rules}
+{routing_guidance}
 Frozen predicate input spellings: S1={{kind, element, scope}} S2={{source, target, scope}} S3={{transition, triggers}} S4={{state, phase, action}} S5={{transition, guard}} S6={{transition, effect}} G1={{source, target}} G2={{source, target}} G3={{source, target, forbidden}} G4={{roots, marked}} R1={{scenario, event, step}} R2={{scenario, stimulus, state, window}} R3={{scenario, behavior, window}} R4={{scenario, state, interval}} V1={{source, trigger, domain}} V2={{source, trigger, domain}} V3={{p, q, bound, unit, scope}} V4={{initial_scope}} V5={{state, expected, initial_scope}}.
 If a precise candidate cannot be expressed by the registry, set predicate_id to null. Do not silently drop it. Do not use W/D/L or L levels.
 

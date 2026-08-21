@@ -319,9 +319,13 @@ def test_staged_method_receives_full_context_and_writes_stage_receipts(tmp_path:
     assert '"verify_facts": {' in prompts["model_grounding"]
     assert '"smt_facts": {' in prompts["model_grounding"]
     assert '"plantuml_source": {' not in prompts["model_grounding"]
+    assert "Use V4(initial_scope) for a supplied finite deadlock-frontier" in prompts["model_grounding"]
+    assert "Use G1 for a finite path-existence or unreachable-target claim" in prompts["model_grounding"]
+    assert "Use S1 only for closed-model declaration membership" in prompts["model_grounding"]
     assert '"dossier_input_policy": {' in prompts["d_adjudication"]
     assert '"plantuml_source": {' not in prompts["d_adjudication"]
     assert '"fcstm_model": {' not in prompts["d_adjudication"]
+    assert "an unsupported or W1-only predicate does not erase a precise issue" in prompts["d_adjudication"]
 
     receipt_names = [item["stage_name"] for item in cell["stage_receipts"]]
     for required in (
