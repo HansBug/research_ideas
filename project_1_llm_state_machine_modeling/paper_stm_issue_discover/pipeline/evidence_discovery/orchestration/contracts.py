@@ -353,6 +353,7 @@ class IndependentJudgeReceipt(BaseModel):
         "partitioned_pair_wide",
         "pair_wide_corrected",
         "atomic_llm_fallback",
+        "judge_unavailable",
         "exact_empty_release",
         "not_started",
     ] = Field(

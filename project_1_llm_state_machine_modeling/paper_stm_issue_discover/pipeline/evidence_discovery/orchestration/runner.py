@@ -81,6 +81,11 @@ JUDGE_PROMPT_TOKEN_BUDGET = 180_000
 # through to an unbounded ledger x release relation matrix.
 JUDGE_PAIRWISE_MAX_RELEASES = 5
 JUDGE_PARTITION_RELEASE_SIZE = 8
+# Atomic fallback is a bounded recovery path for genuinely small relation
+# sets.  A failed large partition must remain judge-unavailable; expanding it
+# to ledger x release would recreate the quadratic call surface we are trying
+# to avoid.
+JUDGE_ATOMIC_RELATION_BUDGET = 12
 
 
 class LedgerAssessment(BaseModel):
@@ -2174,7 +2179,6 @@ def _judge_pair(
         else:
             shape_errors.append("judge shape correction output unavailable")
     if response is None or shape_errors:
-        mode = "atomic_llm_fallback"
         errors.append(
             {
                 "stage": "pair_wide_judge",
@@ -2183,25 +2187,41 @@ def _judge_pair(
                 "basis": "exact ledger/release ID coverage and reference validation",
             }
         )
-        response, atomic_outcomes, atomic_relations, atomic_errors = _atomic_judge(
-            pair=pair,
-            ledger_items=ledger_items,
-            release=release,
-            runtime=runtime,
-        )
-        outcomes.extend(atomic_outcomes)
-        errors.extend(atomic_errors)
-    semantic_outcomes = (
-        [item for item in outcomes if item.kind == "judge_atomic_relation"]
-        if mode == "atomic_llm_fallback"
-        else [
-            item
-            for item in outcomes
-            if item.kind == "judge_partition"
+        relation_count = len(ledger_items) * len(release)
+        if relation_count <= JUDGE_ATOMIC_RELATION_BUDGET:
+            mode = "atomic_llm_fallback"
+            response, atomic_outcomes, atomic_relations, atomic_errors = _atomic_judge(
+                pair=pair,
+                ledger_items=ledger_items,
+                release=release,
+                runtime=runtime,
+            )
+            outcomes.extend(atomic_outcomes)
+            errors.extend(atomic_errors)
+        else:
+            mode = "judge_unavailable"
+            errors.append(
+                {
+                    "stage": "atomic_judge_fallback",
+                    "error": "atomic_relation_budget_exceeded",
+                    "relation_count": relation_count,
+                    "relation_budget": JUDGE_ATOMIC_RELATION_BUDGET,
+                    "reason": "The failed partition surface was too large for an auditable atomic fallback; relations remain unresolved rather than becoming misses or false positives.",
+                    "basis": "bounded judge recovery policy and exact ledger/release cardinalities",
+                }
+            )
+    if mode == "atomic_llm_fallback":
+        semantic_outcomes = [
+            item for item in outcomes if item.kind == "judge_atomic_relation"
         ]
-        if mode == "partitioned_pair_wide"
-        else [outcomes[-1]]
-    )
+    elif mode == "partitioned_pair_wide":
+        semantic_outcomes = [
+            item for item in outcomes if item.kind == "judge_partition"
+        ]
+    elif mode == "judge_unavailable":
+        semantic_outcomes = []
+    else:
+        semantic_outcomes = [outcomes[-1]]
     eligible = bool(
         response is not None
         and semantic_outcomes
