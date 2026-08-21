@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import date
 from pathlib import Path
 
@@ -770,6 +771,71 @@ class _AtomicJudgeFixtureRuntime:
         )
 
 
+class _PartitionJudgeFixtureRuntime:
+    """Provider-shaped fixture for bounded release partitioning."""
+
+    real_llm = True
+
+    def __init__(self, ledger_ids: list[str]) -> None:
+        self.ledger_ids = ledger_ids
+        self.kinds: list[str] = []
+
+    def call(self, *, kind, schema, system_prompt, prompt, artifact_id, **kwargs):
+        del system_prompt, artifact_id, kwargs
+        self.kinds.append(kind)
+        if schema is not JudgeResponse or kind != "judge_partition":
+            raise AssertionError(f"unexpected partition call: {kind}, {schema}")
+        issue_ids = list(dict.fromkeys(re.findall(r"0000:r[1-3]:issue:\d+", prompt)))
+        response = JudgeResponse(
+            ledger_assessments=[
+                LedgerAssessment(
+                    ledger_id=ledger_id,
+                    matched_issue_ids=[],
+                    reason="The partition fixture found no semantic match.",
+                    basis="bounded partition fixture with the supplied ledger and release IDs",
+                )
+                for ledger_id in self.ledger_ids
+            ],
+            release_assessments=[
+                ReleaseAssessment(
+                    issue_id=issue_id,
+                    accounted_ledger_ids=[],
+                    is_false_positive=True,
+                    reason="The partition fixture found no frozen ledger item with the same locus and property.",
+                    basis="bounded partition fixture with the supplied ledger and release IDs",
+                )
+                for issue_id in issue_ids
+            ],
+            reason="The fixture closed one exact release partition.",
+            basis="bounded partition fixture",
+        )
+        return StructuredCallOutcome(
+            kind=kind,
+            status="success",
+            response=response,
+            result={"call_id": f"fixture:{kind}"},
+            attempts=[],
+            usage=[],
+            cost={"eligible": True, "total_usd": 0.0, "attempts": []},
+            context_budget={
+                "mode": "provider_free_partition_fixture",
+                "projection_version": "stage-context-projection.v1",
+                "prompt_characters": len(prompt),
+                "estimated_prompt_tokens": (len(prompt) + 3) // 4,
+                "provider_input_tokens": 0,
+                "context_window_tokens": 1_000_000,
+                "max_output_tokens": 8000,
+                "truncation_applied": False,
+                "projection_decision": "The bounded partition prompt was retained.",
+                "reason": "The fixture records the partition prompt size.",
+                "basis": "provider-free bounded partition fixture",
+            },
+            real_llm=True,
+            reason="The provider-shaped fixture returned a validated partition response.",
+            basis="provider-free bounded partition fixture",
+        )
+
+
 def _fixture_run_identity(pair_id: str, pair_manifest_hash: str) -> dict:
     return {
         "run_id": "1" * 32,
@@ -837,6 +903,77 @@ def test_pair_wide_judge_shape_failure_uses_atomic_llm_relations(tmp_path: Path)
     assert "judge_atomic_relation" in runtime.kinds
     assert len(judge["atomic_relations"]) == judge["ledger_count"]
     assert judge["judgement"]["release_assessments"][0]["is_false_positive"] is True
+
+
+def test_large_release_surface_is_partitioned_before_atomic_fallback(tmp_path: Path) -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    ledger_payload = json.loads(
+        (PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    ledger_ids = [
+        str(item["id"])
+        for item in ledger_payload["items"].values()
+        if item.get("pair") == "0000"
+    ]
+    runtime = _PartitionJudgeFixtureRuntime(ledger_ids)
+    method_rounds = []
+    issue_index = 0
+    for round_index in range(1, 4):
+        issues = []
+        for _ in range(2):
+            issues.append(
+                {
+                    "issue_id": f"0000:r{round_index}:issue:{issue_index}",
+                    "title": "Partition fixture issue",
+                    "requirement_quote": "Partition fixture requirement",
+                    "predicate_id": None,
+                    "predicate_inputs": {},
+                    "binding": {"precise": True, "element_refs": [pair.model.states[0].ref]},
+                    "expected": "Partition fixture expected behavior",
+                    "observed": "Partition fixture observed behavior",
+                    "d_level": "D1",
+                    "witness_level": "W1",
+                    "reason": "Partition fixture issue reason.",
+                    "basis": "Partition fixture issue basis.",
+                }
+            )
+            issue_index += 1
+        method_rounds.append(
+            {
+                "schema": "paper1.evidence_discovery.method_cell.v2",
+                "run_id": "1" * 32,
+                "run_contract_hash": "sha256:" + "1" * 64,
+                "pair_id": "0000",
+                "round": round_index,
+                "status": "completed",
+                "eligible": True,
+                "eligibility_reasons": ["fixture"],
+                "prompt_hash": "sha256:" + "2" * 64,
+                "context_manifest": pair.context_manifest.model_dump(mode="json"),
+                "input_hashes": pair.hashes,
+                "stage_receipts": [],
+                "report_issue_clusters": issues,
+                "reason": "Fixture method receipt.",
+                "basis": "Fixture method receipt basis.",
+            }
+        )
+
+    judge = _judge_pair(
+        pair=pair,
+        method_rounds=method_rounds,
+        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
+        runtime=runtime,
+        output_root=tmp_path,
+        run_identity=_fixture_run_identity("0000", pair.context_manifest.manifest_hash),
+    )
+
+    assert judge["eligible"] is True
+    assert judge["adjudication_mode"] == "partitioned_pair_wide"
+    assert runtime.kinds == ["judge_partition"]
+    assert judge["atomic_relations"] == []
+    assert len(judge["judgement"]["release_assessments"]) == 6
 
 
 def test_exact_empty_release_closes_without_an_llm_semantic_call(tmp_path: Path) -> None:

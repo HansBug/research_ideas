@@ -72,10 +72,15 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v2"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v2"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-orchestration.v3"
+CODE_VERSION = "evidence-discovery-orchestration.v4"
 PROMPT_SCHEMA_VERSION = "evidence-discovery-staged-prompts.v3"
 JUDGE_PROMPT_TOKEN_BUDGET = 180_000
-JUDGE_PARTITION_RELEASE_SIZE = 12
+# Keep the normal judge surface small enough that the model can close every
+# exact-ID row in one response.  A larger release surface is partitioned
+# before provider execution; this avoids a failed pair-wide response falling
+# through to an unbounded ledger x release relation matrix.
+JUDGE_PAIRWISE_MAX_RELEASES = 5
+JUDGE_PARTITION_RELEASE_SIZE = 8
 
 
 class LedgerAssessment(BaseModel):
@@ -2037,7 +2042,11 @@ def _judge_pair(
         return payload
 
     estimated_prompt_tokens = (len(prompt) + 3) // 4
-    if estimated_prompt_tokens > JUDGE_PROMPT_TOKEN_BUDGET:
+    should_partition = (
+        estimated_prompt_tokens > JUDGE_PROMPT_TOKEN_BUDGET
+        or len(release) > JUDGE_PAIRWISE_MAX_RELEASES
+    )
+    if should_partition:
         mode = "partitioned_pair_wide"
         response, partition_outcomes, partition_errors = _partitioned_judge(
             pair=pair,

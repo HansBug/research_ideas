@@ -350,6 +350,7 @@ class IndependentJudgeReceipt(BaseModel):
     )
     adjudication_mode: Literal[
         "pair_wide",
+        "partitioned_pair_wide",
         "pair_wide_corrected",
         "atomic_llm_fallback",
         "exact_empty_release",
