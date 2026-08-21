@@ -223,7 +223,15 @@ def test_w2_audit_contains_logic_hashes_backend_and_retry_records() -> None:
         inputs={"source": "[*]", "target": "Ready", "scope": "closed_fcstm"},
     )
     binding = bind_candidate(candidate, pair.model)
-    plan = compile_plan(candidate, binding, registry, obligation_id="0000:audit", round_index=1, model=pair.model)
+    plan = compile_plan(
+        candidate,
+        binding,
+        registry,
+        obligation_id="0000:audit",
+        round_index=1,
+        model=pair.model,
+        model_hash=pair.hashes["fcstm"],
+    )
     receipt = RawReceipt(
         receipt_id="receipt",
         backend="fixture",
@@ -261,6 +269,7 @@ def test_w2_audit_contains_logic_hashes_backend_and_retry_records() -> None:
     bundle = record["audit_bundle"]
     assert bundle["predicate_logic"]["semantics"]
     assert bundle["predicate_logic"]["source_ids"]
+    assert bundle["predicate_logic"]["inputs"]["model_hash"] == bundle["model_hash"]
     assert bundle["compiled_program"]["source"]
     assert bundle["compiled_program"]["sha256"].startswith("sha256:")
     assert bundle["model_hash"] == pair.hashes["fcstm"]

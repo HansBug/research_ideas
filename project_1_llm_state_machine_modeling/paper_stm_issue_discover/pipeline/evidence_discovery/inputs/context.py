@@ -42,6 +42,12 @@ SourceRole = Literal[
     "provenance",
     "runtime_summary",
 ]
+PromptStage = Literal[
+    "nl_contract_extraction",
+    "source_grounding",
+    "model_grounding",
+    "d_adjudication",
+]
 
 
 class ArtifactRef(BaseModel):
@@ -757,6 +763,272 @@ def build_smt_facts(model: ModelIR) -> SMTFacts:
 
 def _artifact_hash_payload(payload: dict[str, Any]) -> str:
     return sha256_text(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
+
+
+def _project_large_sequence(value: Any, *, label: str) -> dict[str, Any]:
+    """Keep a deterministic receipt for a large contract sequence without expanding it in prompts."""
+
+    if not isinstance(value, list):
+        return {"count": 0, "sha256": _artifact_hash_payload({"items": []}), "label": label}
+    return {
+        "count": len(value),
+        "sha256": _artifact_hash_payload({"items": value}),
+        "label": label,
+    }
+
+
+def _working_contract_prompt_dict(
+    artifact: StructuredArtifact | None,
+    *,
+    include_elements: bool,
+) -> dict[str, Any] | None:
+    """Project the working contract while retaining exact mapping and omission receipts.
+
+    The published working contract contains large eligibility exclusion lists and
+    compiler-owned metadata. Source/model grounding needs the exact element
+    mapping, but no stage needs every repeated exclusion string. The omitted
+    sequences remain hash-addressed and available from the artifact path in the
+    manifest, so this projection reduces context pressure without changing the
+    input closure or silently changing a fact.
+    """
+
+    if artifact is None:
+        return None
+    payload = artifact.payload
+    fixed_keys = (
+        "schema_version",
+        "artifact_role",
+        "example_id",
+        "input_identity",
+        "summary",
+        "ownership_policy",
+        "usage_gate",
+        "inventory_digests",
+        "attribution_policy",
+        "diagnostic_attribution",
+        "artifact_bindings",
+        "source_trace_base",
+        "review_subject",
+        "confirm_gate",
+        "repair_gate",
+    )
+    projected: dict[str, Any] = {
+        key: payload[key]
+        for key in fixed_keys
+        if key in payload
+    }
+    if include_elements:
+        projected["elements"] = [
+            {
+                key: item[key]
+                for key in (
+                    "element_id",
+                    "kind",
+                    "origin",
+                    "model_refs",
+                    "source_refs",
+                    "macro_ids",
+                    "edit_policy",
+                    "metadata",
+                    "semantic_fields",
+                )
+                if isinstance(item, dict) and key in item
+            }
+            for item in payload.get("elements", [])
+            if isinstance(item, dict)
+        ]
+    else:
+        projected["elements"] = _project_large_sequence(payload.get("elements"), label="elements")
+    if "macros" in payload:
+        projected["macros"] = (
+            payload["macros"]
+            if include_elements
+            else _project_large_sequence(payload["macros"], label="macros")
+        )
+
+    eligibility: dict[str, Any] = {}
+    raw_eligibility = payload.get("capability_eligibility", {})
+    if isinstance(raw_eligibility, dict):
+        for name, value in raw_eligibility.items():
+            if not isinstance(value, dict):
+                eligibility[name] = value
+                continue
+            row = {
+                key: value[key]
+                for key in (
+                    "claim_boundary",
+                    "eligible_element_ids",
+                    "eligible_field_refs",
+                    "evidence_refs",
+                )
+                if key in value
+            }
+            for key in ("excluded_element_ids", "excluded_field_refs"):
+                if key in value:
+                    row[key] = _project_large_sequence(
+                        value[key],
+                        label=f"{name}.{key}",
+                    )
+            eligibility[name] = row
+    projected["capability_eligibility"] = eligibility
+    return {
+        "ref": artifact.ref.model_dump(mode="json"),
+        "payload": projected,
+        "reason": "The working contract projection preserves exact source/model mapping and hashes omitted repetitive eligibility sequences.",
+        "basis": "working-contract-prompt-projection.v1",
+    }
+
+
+def _prompt_base(pair: Any, stage: PromptStage) -> dict[str, Any]:
+    """Build common stage context with every artifact receipt and source-role boundary."""
+
+    if pair.context_manifest is None:
+        raise ValueError("stage prompt requires a complete context manifest")
+    return {
+        "prompt_projection_version": "stage-context-projection.v1",
+        "stage": stage,
+        "context_manifest": pair.context_manifest.model_dump(mode="json"),
+        "artifact_refs": [
+            item.model_dump(mode="json")
+            for item in pair.context_manifest.artifacts
+        ],
+        "case_report": case_report_prompt_dict(pair.case_report),
+        "source_roles": {
+            "plantuml_source": "author_source_localization_only",
+            "canonical_source_ir": "author_source_localization_only",
+            "exact_source_inventory": "author_source_inventory",
+            "fcstm_model": "closed_model_binding_and_execution",
+            "working_contract": "mapping_and_eligibility_contract",
+            "source_trace": "source_attribution_boundary",
+            "reference_inspection_facts": "read_only_v27_deterministic_facts",
+            "inspection_equivalent_facts": "owned_deterministic_inventory_and_diagnostics",
+            "verify_facts": "owned_deterministic_finite_verification_summary",
+            "smt_facts": "normalized_formal_inputs_not_solver_result",
+        },
+        "reason": "Stage context is role-scoped while the complete artifact closure remains identified by the manifest.",
+        "basis": "context-manifest.v1 and stage-context-projection.v1",
+    }
+
+
+def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
+    """Return the stage-specific prompt closure without duplicating unrelated raw artifacts.
+
+    Every stage receives the complete manifest, hashes, versions, and role policy.
+    The source and model branches additionally receive the exact payloads owned by
+    their authority. This preserves v27 information flow and prevents a large
+    mapping or inspection report from being repeated into every LLM call.
+    """
+
+    payload = _prompt_base(pair, stage)
+    payload["input_hashes"] = dict(pair.hashes)
+    if stage == "nl_contract_extraction":
+        payload.update(
+            {
+                "numbered_nl": [
+                    item.model_dump(mode="json")
+                    for item in pair.nl_segments
+                ],
+                "working_contract": _working_contract_prompt_dict(
+                    pair.working_contract,
+                    include_elements=False,
+                ),
+                "source_trace_receipt": (
+                    pair.source_trace.ref.model_dump(mode="json")
+                    if pair.source_trace
+                    else None
+                ),
+            }
+        )
+    elif stage == "source_grounding":
+        payload.update(
+            {
+                "numbered_nl": [
+                    item.model_dump(mode="json")
+                    for item in pair.nl_segments
+                ],
+                "plantuml_source": {
+                    "role": "author_source",
+                    "path": str(pair.pair_dir / "plantuml.puml"),
+                    "sha256": pair.hashes.get("plantuml"),
+                    "text": pair.plantuml_text,
+                    "reason": "PlantUML is supplied for author-source localization only.",
+                    "basis": "source-role separation contract",
+                },
+                "canonical_source_ir": (
+                    pair.canonical_source_ir.model_dump(mode="json")
+                    if pair.canonical_source_ir
+                    else None
+                ),
+                "exact_source_inventory": (
+                    pair.exact_source_inventory.model_dump(mode="json")
+                    if pair.exact_source_inventory
+                    else None
+                ),
+                "working_contract": _working_contract_prompt_dict(
+                    pair.working_contract,
+                    include_elements=True,
+                ),
+                "source_trace": (
+                    pair.source_trace.to_prompt_dict()
+                    if pair.source_trace
+                    else None
+                ),
+            }
+        )
+    elif stage == "model_grounding":
+        payload.update(
+            {
+                "numbered_nl": [
+                    item.model_dump(mode="json")
+                    for item in pair.nl_segments
+                ],
+                "fcstm_model": {
+                    "role": "closed_model",
+                    "path": str(pair.pair_dir / "fcstm.fcstm"),
+                    "sha256": pair.hashes.get("fcstm"),
+                    "text": pair.fcstm_text,
+                    "model_ir": pair.model.to_dict(),
+                    "reason": "FCSTM is the closed model evaluated by the new deterministic backends.",
+                    "basis": pair.model.algorithm_version,
+                },
+                "working_contract": _working_contract_prompt_dict(
+                    pair.working_contract,
+                    include_elements=True,
+                ),
+                "reference_inspection_facts": (
+                    pair.reference_inspection.to_prompt_dict()
+                    if pair.reference_inspection
+                    else None
+                ),
+                "inspection_equivalent_facts": (
+                    pair.inspection_facts.model_dump(mode="json")
+                    if pair.inspection_facts
+                    else None
+                ),
+                "verify_facts": (
+                    pair.verify_facts.model_dump(mode="json")
+                    if pair.verify_facts
+                    else None
+                ),
+                "smt_facts": (
+                    pair.smt_facts.model_dump(mode="json")
+                    if pair.smt_facts
+                    else None
+                ),
+            }
+        )
+    elif stage == "d_adjudication":
+        payload["dossier_input_policy"] = {
+            "source_and_model_facts": "supplied in the obligation dossiers",
+            "ledger": "forbidden",
+            "baseline": "forbidden",
+            "judge_examples": "forbidden",
+            "reason": "D receives exact candidate dossiers and closure identity, not a second copy of raw source artifacts.",
+            "basis": "dossier-bound semantic adjudication boundary",
+        }
+    else:  # pragma: no cover - PromptStage is a closed literal
+        raise ValueError(f"unsupported prompt stage: {stage}")
+    return payload
 
 
 def build_context_manifest(

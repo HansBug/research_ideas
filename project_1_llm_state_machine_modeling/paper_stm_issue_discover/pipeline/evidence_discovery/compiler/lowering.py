@@ -88,6 +88,7 @@ def compile_plan(
     obligation_id: str,
     round_index: int,
     model: ModelIR,
+    model_hash: str | None = None,
 ) -> PredicatePlan:
     def normalize_inputs(values: dict[str, Any]) -> dict[str, Any]:
         normalized = dict(values)
@@ -99,7 +100,10 @@ def compile_plan(
             if isinstance(value, str):
                 normalized[key] = [value]
         normalized.setdefault("element_refs", list(binding.element_refs))
-        normalized.setdefault("model_hash", _hash_text(model.source_text))
+        # The candidate is LLM output and cannot choose the provenance identity
+        # of the closed model. Prefer the exact loader hash; the text hash is
+        # retained only for direct unit callers without a file receipt.
+        normalized["model_hash"] = model_hash or _hash_text(model.source_text)
         return normalized
 
     candidate_id = candidate.predicate_id

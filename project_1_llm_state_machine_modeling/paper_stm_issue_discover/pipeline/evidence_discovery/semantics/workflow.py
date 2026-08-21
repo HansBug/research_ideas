@@ -8,7 +8,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..inputs.context import context_payload
+from ..inputs.context import prompt_context_payload
 from ..inputs.models import PairInput
 from .adjudication import DAdjudicationResponse, SemanticAdjudication
 from .obligations import CandidateIssue, MethodResponse, PredicateId
@@ -114,12 +114,17 @@ def _safe_previous(previous: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return rows
 
 
-def _context_text(pair: PairInput) -> str:
-    """Serialize the complete non-evaluation input closure for a prompt."""
+def _context_text(pair: PairInput, *, stage: Literal["nl_contract_extraction", "source_grounding", "model_grounding", "d_adjudication"]) -> str:
+    """Serialize the stage-scoped closure while retaining the complete manifest."""
 
     if pair.context_manifest is None or pair.exact_source_inventory is None:
         raise ValueError("formal method prompt requires a complete context manifest and source inventory")
-    return json.dumps(context_payload(pair), ensure_ascii=False, sort_keys=True, indent=2)
+    return json.dumps(
+        prompt_context_payload(pair, stage=stage),
+        ensure_ascii=False,
+        sort_keys=True,
+        indent=2,
+    )
 
 
 COMMON_RULES = """Use only the supplied input closure. Never read, infer, or reproduce frozen ledger answers, baseline hit/FP results, independent judge examples, other pair payloads, or historical release outputs. PlantUML and canonical source IR locate author intent; FCSTM is the closed model evaluated by the deterministic backend; inspection-equivalent and verify/SMT summaries are deterministic facts only. Do not treat one source role as another. Do not emit W0/W1/W2, D0/D1/D2, L, or a release decision. Predicate IDs are closed to the frozen 19 IDs. A precise claim that is not expressible by a frozen predicate must remain a candidate with predicate_id=null, not disappear. Every object and every top-level response must contain non-empty reason and basis. Explain the judgment in the requested content language; English-only output is not required."""
@@ -144,8 +149,8 @@ def build_contract_prompt(pair: PairInput, round_index: int, previous: list[dict
 
 Stage: nl_contract_extraction
 Round: {round_index}
-Context manifest and all method-visible artifacts:
-{_context_text(pair)}
+Stage-scoped context projection and complete artifact manifest:
+{_context_text(pair, stage="nl_contract_extraction")}
 
 Prior method candidates from this pair's earlier round only:
 {json.dumps(_safe_previous(previous), ensure_ascii=False, sort_keys=True, indent=2)}
@@ -180,8 +185,8 @@ If a precise candidate cannot be expressed by the registry, set predicate_id to 
 NL contracts:
 {json.dumps(contracts.model_dump(mode="json"), ensure_ascii=False, sort_keys=True, indent=2)}
 
-Complete method-visible context closure:
-{_context_text(pair)}
+Stage-scoped context projection and complete artifact manifest:
+{_context_text(pair, stage="source_grounding" if branch == "source" else "model_grounding")}
 
 Prior method candidates from this pair's earlier round only:
 {json.dumps(_safe_previous(previous), ensure_ascii=False, sort_keys=True, indent=2)}
@@ -195,12 +200,15 @@ def build_d_adjudication_prompt(pair: PairInput, dossiers: list[dict[str, Any]])
 
 Stage: d_adjudication
 Pair identity: {pair.pair_id}
-Complete method-visible context closure:
-{_context_text(pair)}
+Stage-scoped context projection and complete artifact manifest:
+{_context_text(pair, stage="d_adjudication")}
 
 Obligation dossiers. These contain exact method outputs and backend facts, but no
 W/D/L labels. Assess every obligation exactly once and preserve its obligation_id:
 {json.dumps(dossiers, ensure_ascii=False, sort_keys=True, indent=2)}
+
+Required obligation IDs, exactly once each:
+{json.dumps([item["obligation_id"] for item in dossiers], ensure_ascii=False)}
 
 Decision protocol:
 - grounding=established only when the supplied NL/source/model dossier establishes a first violated-obligation reading;
@@ -209,7 +217,47 @@ Decision protocol:
 - use defeater_kind=none and defeater_disposition=defeated only when no competent defeater applies;
 - use undercutting or rebutting with survives/unresolved when a competent alternative remains;
 - do not turn execution uncertainty or an absent predicate into a semantic violation;
-- do not omit a dossier and do not create a new obligation.
+- do not omit a dossier and do not create a new obligation;
+- before returning, compare the decision obligation_id set with the required list and
+  return one decision for every listed ID, including unresolved decisions.
+"""
+
+
+def build_d_correction_prompt(
+    pair: PairInput,
+    dossiers: list[dict[str, Any]],
+    *,
+    missing_ids: list[str],
+    duplicate_ids: list[str],
+    extra_ids: list[str],
+) -> str:
+    """Build a billed in-node correction prompt for a dynamic D coverage violation."""
+
+    selected = [
+        dossier
+        for dossier in dossiers
+        if dossier["obligation_id"] in set(missing_ids)
+    ]
+    return f"""{D_SYSTEM_PROMPT}
+
+Stage: d_adjudication_correction
+The previous structured response violated the exact obligation coverage contract.
+This is an in-node contract correction, not a new method round. Return decisions
+only for the missing IDs below, preserving their exact spelling:
+
+missing_ids:
+{json.dumps(missing_ids, ensure_ascii=False)}
+duplicate_ids_to_ignore:
+{json.dumps(duplicate_ids, ensure_ascii=False)}
+extra_ids_to_ignore:
+{json.dumps(extra_ids, ensure_ascii=False)}
+
+Correction dossiers:
+{json.dumps(selected, ensure_ascii=False, sort_keys=True, indent=2)}
+
+Return exactly one decision per missing ID. If the supplied dossier cannot decide,
+use grounding=unresolved with a non-empty reason and basis. Do not emit W/D/L/L
+levels, ledger answers, baseline results, or judge examples.
 """
 
 
@@ -379,6 +427,7 @@ __all__ = [
     "build_contract_prompt",
     "build_grounding_prompt",
     "build_d_adjudication_prompt",
+    "build_d_correction_prompt",
     "build_method_prompt",
     "fallback_contracts",
     "fallback_grounding",

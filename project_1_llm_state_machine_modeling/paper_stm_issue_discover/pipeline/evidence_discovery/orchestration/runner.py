@@ -37,6 +37,7 @@ from ..semantics import (
     bind_candidate,
     build_contract_prompt,
     build_d_adjudication_prompt,
+    build_d_correction_prompt,
     build_grounding_prompt,
     fallback_contracts,
     fallback_d_adjudication,
@@ -264,6 +265,7 @@ def _prepare_candidate(
         obligation_id=obligation_id,
         round_index=round_index,
         model=pair.model,
+        model_hash=pair.hashes["fcstm"],
     )
     validate_plan(plan)
     try:
@@ -647,7 +649,9 @@ def _method_cell(
             errors.append({"candidate_index": 0, "error_type": type(exc).__name__, "message": str(exc), "reason": "Deterministic fallback processing failed.", "basis": "Fallback diagnostic preservation."})
 
     d_prompt = ""
+    d_correction_prompt = ""
     d_outcome: StructuredCallOutcome[DAdjudicationResponse] | None = None
+    d_stage_outcome: StructuredCallOutcome[DAdjudicationResponse] | None = None
     d_response = fallback_d_adjudication(
         [item["obligation_id"] for item in prepared_candidates],
         "no prepared candidate dossier",
@@ -676,6 +680,7 @@ def _method_cell(
             artifact_id=f"method/{pair.pair_id}/round-{round_index}/d-adjudication",
         )
         all_outcomes.append(d_outcome)
+        d_stage_outcome = d_outcome
         d_response = d_outcome.response if d_outcome.succeeded else fallback_d_adjudication(
             [item["obligation_id"] for item in prepared_candidates],
             str(d_outcome.result.get("error", "D adjudication output unavailable")),
@@ -691,23 +696,74 @@ def _method_cell(
             )
         expected_ids = [item["obligation_id"] for item in prepared_candidates]
         expected_id_set = set(expected_ids)
-        supplied_decisions = [
-            decision for decision in d_response.decisions if decision.obligation_id in expected_id_set
-        ]
-        unique_supplied: list[SemanticAdjudication] = []
-        duplicate_ids: list[str] = []
-        for decision in supplied_decisions:
-            if any(item.obligation_id == decision.obligation_id for item in unique_supplied):
-                duplicate_ids.append(decision.obligation_id)
-                continue
-            unique_supplied.append(decision)
-        supplied_by_id = {decision.obligation_id: decision for decision in unique_supplied}
-        missing_ids = [obligation_id for obligation_id in expected_ids if obligation_id not in supplied_by_id]
-        extra_ids = [
-            decision.obligation_id
-            for decision in d_response.decisions
-            if decision.obligation_id not in expected_id_set
-        ]
+        def coverage(
+            response: DAdjudicationResponse,
+        ) -> tuple[list[SemanticAdjudication], list[str], list[str], list[str]]:
+            supplied_decisions = [
+                decision
+                for decision in response.decisions
+                if decision.obligation_id in expected_id_set
+            ]
+            unique: list[SemanticAdjudication] = []
+            duplicate: list[str] = []
+            for decision in supplied_decisions:
+                if any(item.obligation_id == decision.obligation_id for item in unique):
+                    duplicate.append(decision.obligation_id)
+                    continue
+                unique.append(decision)
+            supplied_by_id = {decision.obligation_id: decision for decision in unique}
+            missing = [
+                obligation_id
+                for obligation_id in expected_ids
+                if obligation_id not in supplied_by_id
+            ]
+            extra = [
+                decision.obligation_id
+                for decision in response.decisions
+                if decision.obligation_id not in expected_id_set
+            ]
+            return unique, missing, extra, duplicate
+
+        unique_supplied, missing_ids, extra_ids, duplicate_ids = coverage(d_response)
+        if missing_ids and d_outcome.succeeded:
+            d_correction_prompt = build_d_correction_prompt(
+                pair,
+                dossiers,
+                missing_ids=missing_ids,
+                duplicate_ids=duplicate_ids,
+                extra_ids=extra_ids,
+            )
+            correction_outcome: StructuredCallOutcome[DAdjudicationResponse] = runtime.call(
+                kind="d_adjudication_correction",
+                schema=DAdjudicationResponse,
+                system_prompt=D_SYSTEM_PROMPT,
+                prompt=d_correction_prompt,
+                artifact_id=f"method/{pair.pair_id}/round-{round_index}/d-adjudication-correction",
+            )
+            all_outcomes.append(correction_outcome)
+            d_stage_outcome = correction_outcome
+            if correction_outcome.succeeded:
+                d_response = d_response.model_copy(
+                    update={
+                        "decisions": [
+                            *unique_supplied,
+                            *correction_outcome.response.decisions,
+                        ]
+                    }
+                )
+                unique_supplied, missing_ids, extra_ids, duplicate_ids = coverage(d_response)
+            else:
+                errors.append(
+                    {
+                        "stage": "d_adjudication_correction",
+                        "error": correction_outcome.result.get(
+                            "error",
+                            "D correction output unavailable",
+                        ),
+                        "reason": "The D coverage correction failed; missing obligations remain unresolved.",
+                        "basis": "in-node structured contract correction and public runtime outcome",
+                    }
+                )
         if missing_ids or extra_ids or duplicate_ids:
             diagnostics: list[str] = []
             if missing_ids:
@@ -731,20 +787,21 @@ def _method_cell(
             d_response = d_response.model_copy(
                 update={"decisions": unique_supplied + missing_response.decisions}
             )
-            supplied_by_id = {
-                decision.obligation_id: decision for decision in d_response.decisions
-            }
-        decisions = supplied_by_id
+            unique_supplied, _, _, _ = coverage(d_response)
+        decisions = {decision.obligation_id: decision for decision in unique_supplied}
         stage_outputs["d_adjudication"] = d_response.model_dump(mode="json")
         stage_receipts.append(
             _stage_receipt(
                 pair=pair,
                 stage_id=f"{pair.pair_id}:r{round_index}:d-adjudication",
                 stage_name="d_adjudication",
-                status="completed" if d_outcome.succeeded else "completed_with_diagnostics",
+                status="completed" if d_stage_outcome is not None and d_stage_outcome.succeeded and not any(
+                    item.get("stage") in {"d_adjudication", "d_adjudication_correction"}
+                    for item in errors
+                ) else "completed_with_diagnostics",
                 artifact_roles=("natural_language", "plantuml_source", "canonical_source_ir", "source_inventory", "fcstm_model", "working_contract", "source_trace", "predicate_registry"),
                 output=d_response,
-                outcome=d_outcome,
+                outcome=d_stage_outcome,
                 reason=d_response.reason,
                 basis=d_response.basis,
             )
@@ -794,6 +851,7 @@ def _method_cell(
             "source_grounding": source_prompt,
             "model_grounding": model_prompt,
             "d_adjudication": d_prompt,
+            "d_adjudication_correction": d_correction_prompt,
         }
     )
     llm_call = _aggregate_outcomes(all_outcomes)

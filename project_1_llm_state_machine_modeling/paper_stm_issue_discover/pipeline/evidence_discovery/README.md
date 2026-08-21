@@ -38,6 +38,15 @@ inventory、working contract/mapping、source trace、FCSTM/ModelIR、v27 inspec
 facts、owned inspection-equivalent facts、verify facts 和 SMT summary；每项都要有哈希、
 版本、来源、reason 和 basis。
 
+完整闭包不会被删除，但 prompt 按阶段展开权限范围：contract 阶段接收编号 NL 和工作契约
+摘要；source grounding 接收 PlantUML、canonical source IR、exact source inventory、mapping
+和 source trace；model grounding 接收 FCSTM/ModelIR、v27 inspection facts、自有
+inspection-equivalent/verify/SMT facts 以及 exact mapping；D 只接收带完整 manifest 身份的
+候选 dossier。所有阶段都接收完整 artifact refs、hash/version 和 source-role policy。工作契约
+中重复的 eligibility exclusion 序列只在 prompt 中以 count/hash receipt 表示，exact element
+mapping 保留；原始文件仍由 manifest hash 定位。这是上下文压缩，不是删除输入闭包，也不允许
+把 source/model/fact 角色混用。
+
 PlantUML/source 与 canonical IR 只用于作者源定位，FCSTM 只用于闭合模型绑定与执行，
 inspection-equivalent/verify/SMT facts 只用于确定性事实输入。新包自己实现并版本化
 inspection-equivalent.fcstm-graph.v1、verify-equivalent.finite-graph.v1 和

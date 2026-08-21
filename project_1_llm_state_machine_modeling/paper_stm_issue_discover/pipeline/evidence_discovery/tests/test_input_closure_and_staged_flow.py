@@ -243,19 +243,31 @@ def test_staged_method_receives_full_context_and_writes_stage_receipts(tmp_path:
         "model_grounding",
         "d_adjudication",
     ]
-    for _, prompt in runtime.prompts:
-        for marker in (
-            "context_manifest",
-            "canonical_source_ir",
-            "exact_source_inventory",
-            "working_contract",
-            "source_trace",
-            "reference_inspection_facts",
-            "inspection_equivalent_facts",
-            "verify_facts",
-            "smt_facts",
-        ):
-            assert marker in prompt
+    prompts = dict(runtime.prompts)
+    for prompt in prompts.values():
+        assert "context_manifest" in prompt
+        assert "artifact_refs" in prompt
+        assert "source_roles" in prompt
+        assert "frozen ledger answers" in prompt
+        assert "baseline hit/FP results" in prompt
+    assert '"numbered_nl": [' in prompts["nl_contract_extraction"]
+    assert '"working_contract": {' in prompts["nl_contract_extraction"]
+    assert '"fcstm_model": {' not in prompts["nl_contract_extraction"]
+    assert '"plantuml_source": {' in prompts["source_grounding"]
+    assert '"canonical_source_ir": {' in prompts["source_grounding"]
+    assert '"exact_source_inventory": {' in prompts["source_grounding"]
+    assert '"working_contract": {' in prompts["source_grounding"]
+    assert '"source_trace": {' in prompts["source_grounding"]
+    assert '"fcstm_model": {' not in prompts["source_grounding"]
+    assert '"fcstm_model": {' in prompts["model_grounding"]
+    assert '"reference_inspection_facts": {' in prompts["model_grounding"]
+    assert '"inspection_equivalent_facts": {' in prompts["model_grounding"]
+    assert '"verify_facts": {' in prompts["model_grounding"]
+    assert '"smt_facts": {' in prompts["model_grounding"]
+    assert '"plantuml_source": {' not in prompts["model_grounding"]
+    assert '"dossier_input_policy": {' in prompts["d_adjudication"]
+    assert '"plantuml_source": {' not in prompts["d_adjudication"]
+    assert '"fcstm_model": {' not in prompts["d_adjudication"]
         assert "frozen ledger answers" in prompt
         assert "baseline hit/FP results" in prompt
 
@@ -282,6 +294,23 @@ def test_staged_method_receives_full_context_and_writes_stage_receipts(tmp_path:
     assert all("l_level" not in record for record in cell["evidence_records"])
     for item in cell["stage_receipts"]:
         StageReceipt.model_validate(item)
+
+
+def test_large_working_contract_is_role_scoped_before_prompt_serialization(tmp_path: Path) -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    runtime = FixtureStructuredRuntime()
+    _method_cell(
+        pair=pair,
+        round_index=1,
+        runtime=runtime,
+        previous=[],
+        output_root=tmp_path,
+    )
+
+    assert max(len(prompt) for _, prompt in runtime.prompts) < 700_000
+    model_prompt = dict(runtime.prompts)["model_grounding"]
+    assert '"elements": [' in model_prompt
+    assert '"excluded_element_ids": {' in model_prompt
 
 
 def test_full_live_runner_requires_explicit_review_gate() -> None:
