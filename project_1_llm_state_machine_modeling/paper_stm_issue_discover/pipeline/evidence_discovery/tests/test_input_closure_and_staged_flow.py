@@ -224,6 +224,15 @@ def test_owned_fcstm_parser_preserves_semicolon_only_transitions() -> None:
     }
 
 
+def test_owned_fcstm_parser_preserves_forced_source_marker() -> None:
+    parsed = parse_fcstm("state Root;\nstate Target;\n!Root -> Target : /Closed;")
+
+    assert len(parsed.transitions) == 1
+    assert parsed.transitions[0].source == "!Root"
+    assert parsed.transitions[0].target == "Target"
+    assert parsed.transitions[0].triggers == ("Closed",)
+
+
 def test_microwave_pair_keeps_source_and_closed_model_roles_separate() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0035")
 

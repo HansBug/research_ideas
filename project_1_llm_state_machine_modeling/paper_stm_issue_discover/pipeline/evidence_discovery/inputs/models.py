@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 _STATE_RE = re.compile(r"^\s*state\s+([^\s{]+)(?:\s+named\s+\"([^\"]*)\")?")
 _EVENT_RE = re.compile(r"^\s*event\s+([^\s{]+)(?:\s+named\s+\"([^\"]*)\")?")
 _TRANSITION_RE = re.compile(
-    r"^\s*(\[\s*\*\s*\]|[A-Za-z_][\w.-]*)\s*->\s*"
+    r"^\s*(\[\s*\*\s*\]|!?[A-Za-z_][\w.-]*)\s*->\s*"
     r"(\[\s*\*\s*\]|[A-Za-z_][\w.-]*)(?:\s*:\s*(.*?))?\s*;?\s*$"
 )
 _ACTION_RE = re.compile(r"^\s*(entry|exit|do)\s*/\s*(.+?)\s*;?\s*$", re.I)
