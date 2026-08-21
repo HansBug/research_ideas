@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -76,6 +76,7 @@ def adjudicate_disposition(
     candidate: CandidateIssue,
     binding: BindingResult,
     semantic: SemanticAdjudication | None = None,
+    receipt: Any | None = None,
 ) -> dict[str, object]:
     """Map exact binding plus closed semantic enums to the method-owned D level.
 
@@ -91,6 +92,18 @@ def adjudicate_disposition(
             "reason": "The binding is insufficient for the method to state a reproducible violation.",
             "basis": binding.basis,
             "strongest_rebuttal": candidate.strongest_rebuttal,
+            "semantic_adjudication": semantic_payload,
+        }
+    if (
+        receipt is not None
+        and getattr(receipt, "terminal_state", None) == "completed"
+        and getattr(receipt, "verdict", None) == "true"
+    ):
+        return {
+            "d_level": "D0",
+            "reason": "The deterministic predicate completed with a true result for the supplied obligation, so the candidate does not establish a violation.",
+            "basis": "precise binding plus completed backend verdict=true; deterministic satisfaction overrides a conflicting semantic candidate reading",
+            "strongest_rebuttal": getattr(receipt, "reason", None) or candidate.strongest_rebuttal,
             "semantic_adjudication": semantic_payload,
         }
     if semantic is None:

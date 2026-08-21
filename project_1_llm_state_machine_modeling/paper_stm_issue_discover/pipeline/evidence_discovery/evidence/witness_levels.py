@@ -34,7 +34,12 @@ def build_evidence_record(
     retry_records: list[dict[str, Any]],
     semantic_adjudication: SemanticAdjudication | None = None,
 ) -> dict[str, Any]:
-    disposition = adjudicate_disposition(candidate, binding, semantic_adjudication)
+    disposition = adjudicate_disposition(
+        candidate,
+        binding,
+        semantic_adjudication,
+        receipt=receipt,
+    )
     witness_level = calculate_witness_level(binding, plan, receipt)
     issue_emitted = disposition["d_level"] in {"D1", "D2"}
     if witness_level == "W0":

@@ -470,7 +470,7 @@ class PublicStructuredRuntime:
         )
         context_budget = StructuredContextBudget(
             mode="structured_llm",
-            projection_version="stage-context-projection.v1",
+            projection_version="stage-context-projection.v2",
             prompt_characters=len(prompt),
             estimated_prompt_tokens=(len(prompt) + 3) // 4,
             provider_input_tokens=(provider_input_tokens if all_usage else None),
@@ -479,7 +479,7 @@ class PublicStructuredRuntime:
             truncation_applied=False,
             projection_decision="The stage-specific structured projection was serialized in full; runtime text truncation was not applied.",
             reason="The call records both the pre-provider prompt size and actual provider usage when available.",
-            basis="stage-context-projection.v1, utils.llm profile limits, and normalized usage rows",
+            basis="stage-context-projection.v2, utils.llm profile limits, and normalized usage rows",
         )
         return StructuredCallOutcome(
             kind=kind,
@@ -572,7 +572,7 @@ class FixtureStructuredRuntime:
         response = schema.model_validate(payload)
         context_budget = StructuredContextBudget(
             mode="provider_free_fixture",
-            projection_version="stage-context-projection.v1",
+            projection_version="stage-context-projection.v2",
             prompt_characters=len(prompt),
             estimated_prompt_tokens=(len(prompt) + 3) // 4,
             provider_input_tokens=None,
@@ -581,7 +581,7 @@ class FixtureStructuredRuntime:
             truncation_applied=False,
             projection_decision="The provider-free fixture consumed the complete serialized stage projection without truncation.",
             reason="Fixture prompt size is recorded even though no provider token usage exists.",
-            basis="provider-free fixture runtime and stage-context-projection.v1",
+            basis="provider-free fixture runtime and stage-context-projection.v2",
         )
         return StructuredCallOutcome(
             kind=kind,

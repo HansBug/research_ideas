@@ -852,14 +852,151 @@ def _artifact_hash_payload(payload: dict[str, Any]) -> str:
 
 
 def _project_large_sequence(value: Any, *, label: str) -> dict[str, Any]:
-    """Keep a deterministic receipt for a large contract sequence without expanding it in prompts."""
+    """Keep a deterministic receipt for a repetitive contract sequence."""
 
-    if not isinstance(value, list):
-        return {"count": 0, "sha256": _artifact_hash_payload({"items": []}), "label": label}
+    if not isinstance(value, (list, tuple, dict, str)):
+        value = []
+    count = len(value)
     return {
-        "count": len(value),
+        "count": count,
         "sha256": _artifact_hash_payload({"items": value}),
         "label": label,
+        "reason": "The complete sequence remains available through the hash-addressed artifact; only a repetition receipt is prompt-visible.",
+        "basis": "stage-context-projection.v2 repetitive-sequence omission",
+    }
+
+
+def _compact_trace_entries(entries: Any, *, label: str) -> dict[str, Any]:
+    """Retain exact trace identity edges without repeated prose policy text."""
+
+    if not isinstance(entries, list):
+        entries = []
+    rows = [
+        {
+            key: row[key]
+            for key in (
+                "trace_id",
+                "trace_class",
+                "trace_dimension",
+                "trace_relation",
+                "source_elements",
+                "intermediate_elements",
+                "trace_evidence",
+                "required_for_issue_ids",
+                "projection_status",
+            )
+            if isinstance(row, dict) and key in row
+        }
+        for row in entries
+        if isinstance(row, dict)
+    ]
+    return {
+        "entries": rows,
+        "count": len(entries),
+        "sha256": _artifact_hash_payload({"items": entries}),
+        "omitted_fields": [
+            "attribution_boundary",
+            "behavioral_fidelity",
+            "issue_binding_policy",
+            "reviewer_notes",
+            "trace_relation_rationale",
+        ],
+        "reason": "Exact source/intermediate identity edges remain prompt-visible; repeated policy prose is retained by the source-trace hash.",
+        "basis": f"{label}.v2",
+    }
+
+
+def _canonical_source_prompt_dict(canonical: Any) -> dict[str, Any] | None:
+    """Project canonical source IR to exact identity rows plus metadata receipts.
+
+    Source grounding needs authored state/transition identity and raw locations.
+    Large adapter metadata is retained by the canonical artifact hash and does
+    not belong in every grounding prompt.
+    """
+
+    if canonical is None:
+        return None
+    model = canonical.model
+    states = [
+        {
+            "id": item.id,
+            "kind": item.kind,
+            "label": item.label,
+            "parent": item.parent,
+            "raw_ref": item.raw_ref,
+        }
+        for item in model.states
+    ]
+    transitions = [
+        {
+            "id": item.id,
+            "source": item.source,
+            "target": item.target,
+            "event": item.event,
+            "guard": item.guard,
+            "action": item.action,
+            "label": item.label,
+            "raw_ref": item.raw_ref,
+        }
+        for item in model.transitions
+    ]
+    return {
+        "schema_version": canonical.schema_version,
+        "source_format": canonical.source_format,
+        "example_id": canonical.example_id,
+        "seed_id": canonical.seed_id,
+        "adapter": canonical.adapter,
+        "status": canonical.status,
+        "status_reason_code": canonical.status_reason_code,
+        "model": {
+            "name": model.name,
+            "hierarchy_level": model.hierarchy_level,
+            "timing_level": model.timing_level,
+            "initial_states": list(model.initial_states),
+            "final_states": list(model.final_states),
+            "concurrent_regions": _project_large_sequence(model.concurrent_regions, label="canonical.concurrent_regions"),
+            "variables": _project_large_sequence(model.variables, label="canonical.variables"),
+            "states": states,
+            "transitions": transitions,
+        },
+        "metadata": _project_large_sequence(canonical.metadata, label="canonical.metadata"),
+        "reason": "Exact authored state and transition identities are prompt-visible for source localization; adapter metadata remains hash-addressed.",
+        "basis": "canonical-source-prompt-projection.v2",
+    }
+
+
+def _source_trace_prompt_dict(artifact: StructuredArtifact | None) -> dict[str, Any] | None:
+    """Keep exact trace entries while collapsing repetitive exclusion indexes."""
+
+    if artifact is None:
+        return None
+    payload = artifact.payload
+    projected: dict[str, Any] = {
+        key: payload[key]
+        for key in (
+            "schema_version",
+            "trace_scope",
+            "relation_policy",
+            "notes",
+            "boundary_entries",
+            "entries",
+            "source_traceability",
+        )
+        if key in payload
+    }
+    if "entries" in projected:
+        projected["entries"] = _compact_trace_entries(
+            projected["entries"], label="source-trace.entries"
+        )
+    if "attribution_exclusions" in payload:
+        projected["attribution_exclusions"] = _project_large_sequence(
+            payload["attribution_exclusions"], label="source_trace.attribution_exclusions"
+        )
+    return {
+        "ref": artifact.ref.model_dump(mode="json"),
+        "payload": projected,
+        "reason": "Exact source-trace entries remain available for author attribution; repetitive exclusion indexes are represented by count/hash.",
+        "basis": "source-trace-prompt-projection.v2",
     }
 
 
@@ -903,6 +1040,55 @@ def _working_contract_prompt_dict(
         for key in fixed_keys
         if key in payload
     }
+    for key in ("source_trace_base", "review_subject"):
+        if key in projected:
+            value = projected[key]
+            if key == "source_trace_base" and isinstance(value, dict):
+                projected[key] = {
+                    subkey: value[subkey]
+                    for subkey in (
+                        "schema_version",
+                        "trace_scope",
+                        "relation_policy",
+                        "notes",
+                        "boundary_entries",
+                        "entries",
+                        "source_traceability",
+                    )
+                    if subkey in value
+                }
+                if "entries" in projected[key]:
+                    projected[key]["entries"] = _compact_trace_entries(
+                        projected[key]["entries"],
+                        label="working-contract.source_trace_base.entries",
+                    )
+                if "attribution_exclusions" in value:
+                    projected[key]["attribution_exclusions"] = _project_large_sequence(
+                        value["attribution_exclusions"],
+                        label="working_contract.source_trace_base.attribution_exclusions",
+                    )
+            elif key == "review_subject" and isinstance(value, dict):
+                obligations = value.get("review_obligations", [])
+                projected[key] = {
+                    subkey: value[subkey]
+                    for subkey in ("schema_version", "subject", "reason", "basis")
+                    if subkey in value
+                }
+                projected[key]["review_obligations"] = [
+                    {
+                        subkey: row[subkey]
+                        for subkey in (
+                            "obligation_id",
+                            "element_ids",
+                            "source_refs",
+                            "risk_tag",
+                            "rationale",
+                        )
+                        if isinstance(row, dict) and subkey in row
+                    }
+                    for row in obligations
+                    if isinstance(row, dict)
+                ]
     if include_elements:
         projected["elements"] = [
             {
@@ -915,19 +1101,53 @@ def _working_contract_prompt_dict(
                     "source_refs",
                     "macro_ids",
                     "edit_policy",
-                    "metadata",
-                    "semantic_fields",
                 )
                 if isinstance(item, dict) and key in item
             }
             for item in payload.get("elements", [])
             if isinstance(item, dict)
         ]
+        projected["element_omitted_fields"] = {
+            "fields": ["field_ownership", "metadata", "semantic_fields"],
+            "count": len(projected["elements"]),
+            "sha256": _artifact_hash_payload(
+                {
+                    "items": [
+                        {
+                            "element_id": item.get("element_id"),
+                            "field_ownership": item.get("field_ownership"),
+                            "metadata": item.get("metadata"),
+                            "semantic_fields": item.get("semantic_fields"),
+                        }
+                        for item in payload.get("elements", [])
+                        if isinstance(item, dict)
+                    ]
+                }
+            ),
+            "reason": "Exact refs and field ownership are retained; verbose compiler metadata is available from the working-contract artifact hash.",
+            "basis": "working-contract-prompt-projection.v2",
+        }
     else:
         projected["elements"] = _project_large_sequence(payload.get("elements"), label="elements")
     if "macros" in payload:
         projected["macros"] = (
-            payload["macros"]
+            [
+                {
+                    key: item[key]
+                    for key in (
+                        "macro_id",
+                        "macro_kind",
+                        "member_digest",
+                        "member_element_ids",
+                        "source_element_ids",
+                        "capability_effects",
+                        "rewrite_policy",
+                    )
+                    if isinstance(item, dict) and key in item
+                }
+                for item in payload["macros"]
+                if isinstance(item, dict)
+            ]
             if include_elements
             else _project_large_sequence(payload["macros"], label="macros")
         )
@@ -943,13 +1163,18 @@ def _working_contract_prompt_dict(
                 key: value[key]
                 for key in (
                     "claim_boundary",
-                    "eligible_element_ids",
-                    "eligible_field_refs",
-                    "evidence_refs",
+                    "reason_codes",
+                    "status",
                 )
                 if key in value
             }
-            for key in ("excluded_element_ids", "excluded_field_refs"):
+            for key in (
+                "eligible_element_ids",
+                "eligible_field_refs",
+                "evidence_refs",
+                "excluded_element_ids",
+                "excluded_field_refs",
+            ):
                 if key in value:
                     row[key] = _project_large_sequence(
                         value[key],
@@ -961,7 +1186,7 @@ def _working_contract_prompt_dict(
         "ref": artifact.ref.model_dump(mode="json"),
         "payload": projected,
         "reason": "The working contract projection preserves exact source/model mapping and hashes omitted repetitive eligibility sequences.",
-        "basis": "working-contract-prompt-projection.v1",
+        "basis": "working-contract-prompt-projection.v2",
     }
 
 
@@ -971,7 +1196,7 @@ def _prompt_base(pair: Any, stage: PromptStage) -> dict[str, Any]:
     if pair.context_manifest is None:
         raise ValueError("stage prompt requires a complete context manifest")
     return {
-        "prompt_projection_version": "stage-context-projection.v1",
+        "prompt_projection_version": "stage-context-projection.v2",
         "stage": stage,
         "context_manifest": pair.context_manifest.model_dump(mode="json"),
         "artifact_refs": [
@@ -992,7 +1217,7 @@ def _prompt_base(pair: Any, stage: PromptStage) -> dict[str, Any]:
             "smt_facts": "normalized_formal_inputs_not_solver_result",
         },
         "reason": "Stage context is role-scoped while the complete artifact closure remains identified by the manifest.",
-        "basis": "context-manifest.v1 and stage-context-projection.v1",
+        "basis": "context-manifest.v1 and stage-context-projection.v2",
     }
 
 
@@ -1040,11 +1265,7 @@ def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
                     "reason": "PlantUML is supplied for author-source localization only.",
                     "basis": "source-role separation contract",
                 },
-                "canonical_source_ir": (
-                    pair.canonical_source_ir.model_dump(mode="json")
-                    if pair.canonical_source_ir
-                    else None
-                ),
+                "canonical_source_ir": _canonical_source_prompt_dict(pair.canonical_source_ir),
                 "exact_source_inventory": (
                     pair.exact_source_inventory.model_dump(mode="json")
                     if pair.exact_source_inventory
@@ -1054,11 +1275,7 @@ def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
                     pair.working_contract,
                     include_elements=True,
                 ),
-                "source_trace": (
-                    pair.source_trace.to_prompt_dict()
-                    if pair.source_trace
-                    else None
-                ),
+                "source_trace": _source_trace_prompt_dict(pair.source_trace),
             }
         )
     elif stage == "model_grounding":

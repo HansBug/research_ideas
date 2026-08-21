@@ -26,6 +26,8 @@ from pipeline.evidence_discovery.orchestration.runner import (
     ReleaseAssessment,
     _failure_judge_payload,
     _failure_method_cell,
+    _judge_shape_errors,
+    _normalize_judge_shape,
     _judge_pair,
     _metrics,
     run_experiment,
@@ -52,9 +54,11 @@ from pipeline.evidence_discovery.registry import load_registry
 from pipeline.evidence_discovery.semantics import (
     CandidateIssue,
     ContextBudgetReceipt,
+    GroundingResponse,
     MethodResponse,
     SemanticAdjudication,
     adjudicate_disposition,
+    assemble_method_response,
     bind_candidate,
     build_method_prompt,
     resolve_transition_ref,
@@ -343,6 +347,106 @@ def test_d_mapping_is_invariant_to_free_text_and_uses_typed_semantics() -> None:
 
     unresolved = semantic.model_copy(update={"grounding": "unresolved"})
     assert adjudicate_disposition(candidate, binding, unresolved)["d_level"] == "D_UNRESOLVED"
+
+
+def test_completed_true_backend_result_closes_candidate_as_d0() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    candidate = _candidate(
+        pair,
+        predicate_id="S2",
+        inputs={"source": "[*]", "target": "Ready", "scope": "closed_fcstm"},
+    )
+    binding = bind_candidate(candidate, pair.model)
+    semantic = SemanticAdjudication(
+        obligation_id="0000:true-result",
+        grounding="established",
+        violated_obligation="The candidate claims an initial transition issue.",
+        strongest_defeater=None,
+        defeater_kind="none",
+        defeater_disposition="defeated",
+        reason="The fixture semantic call incorrectly proposed a violation.",
+        basis="fixture typed semantic response",
+    )
+    receipt = RawReceipt(
+        receipt_id="0000:true-result:receipt",
+        backend="source_static:S2",
+        terminal_state="completed",
+        verdict="true",
+        reason="The exact transition exists in the closed model.",
+        basis="fixture exact transition membership",
+    )
+    disposition = adjudicate_disposition(candidate, binding, semantic, receipt=receipt)
+    assert disposition["d_level"] == "D0"
+    assert "verdict=true" in str(disposition["basis"])
+
+
+def test_source_grounding_rows_are_attribution_only() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    transition = pair.model.transitions[0]
+    source_candidate = _candidate(
+        pair,
+        predicate_id="S2",
+        inputs={"source": transition.source, "target": transition.target, "scope": "source"},
+        refs=["source:transition:0000:1"],
+    ).model_copy(update={"source_refs": ["nl:NL1"]})
+    model_candidate = _candidate(
+        pair,
+        predicate_id="S2",
+        inputs={"source": transition.source, "target": transition.target, "scope": "closed_fcstm"},
+        refs=[transition.ref],
+    ).model_copy(update={"source_refs": ["nl:NL1"]})
+    joined = assemble_method_response(
+        GroundingResponse(
+            branch="source",
+            candidates=[source_candidate],
+            rejected_contract_ids=[],
+            reason="source fixture",
+            basis="source fixture",
+        ),
+        GroundingResponse(
+            branch="model",
+            candidates=[model_candidate],
+            rejected_contract_ids=[],
+            reason="model fixture",
+            basis="model fixture",
+        ),
+        reason="join fixture",
+        basis="exact source refs",
+    )
+    assert len(joined.issues) == 1
+    assert joined.issues[0].element_refs == [transition.ref]
+    assert joined.issues[0].source_refs == ["nl:NL1"]
+
+
+def test_judge_shape_normalization_is_exact_id_only() -> None:
+    ledger = [{"id": "L-1", "pair": "0000"}]
+    release = [{"issue_id": "0000:r1:issue:0"}]
+    response = JudgeResponse(
+        ledger_assessments=[
+            LedgerAssessment(
+                ledger_id="L-1",
+                hit_r1=False,
+                matched_issue_ids=["0000:r1:issue:0"],
+                reason="The fixture matched the exact issue ID.",
+                basis="exact relation fixture",
+            )
+        ],
+        release_assessments=[
+            ReleaseAssessment(
+                issue_id="0000:r1:issue:0",
+                accounted_ledger_ids=["L-1"],
+                is_false_positive=True,
+                reason="The fixture accounted for the exact ledger ID.",
+                basis="exact relation fixture",
+            )
+        ],
+        reason="Fixture response.",
+        basis="Fixture response basis.",
+    )
+    normalized = _normalize_judge_shape(response, ledger, release, 1)
+    assert not _judge_shape_errors(normalized, ledger, release, 1)
+    assert normalized.ledger_assessments[0].hit_r1 is True
+    assert normalized.release_assessments[0].is_false_positive is False
 
 
 def test_terminality_uses_exact_final_pseudostate_edges_not_state_names() -> None:

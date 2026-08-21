@@ -8,7 +8,7 @@ import subprocess
 import uuid
 from collections import Counter, defaultdict
 from collections.abc import Sequence
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
@@ -72,8 +72,10 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v2"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v2"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-orchestration.v2"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-staged-prompts.v2"
+CODE_VERSION = "evidence-discovery-orchestration.v3"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-staged-prompts.v3"
+JUDGE_PROMPT_TOKEN_BUDGET = 180_000
+JUDGE_PARTITION_RELEASE_SIZE = 12
 
 
 class LedgerAssessment(BaseModel):
@@ -942,14 +944,43 @@ def _method_cell(
         contracts=contract_response,
         previous=previous,
     )
-    source_outcome: StructuredCallOutcome[GroundingResponse] = runtime.call(
-        kind="source_grounding",
-        schema=GroundingResponse,
-        system_prompt=SOURCE_GROUNDING_SYSTEM_PROMPT,
-        prompt=source_prompt,
-        artifact_id=f"method/{pair.pair_id}/round-{round_index}/source-grounding",
+    model_prompt = build_grounding_prompt(
+        pair,
+        branch="model",
+        round_index=round_index,
+        contracts=contract_response,
+        previous=previous,
     )
-    all_outcomes.append(source_outcome)
+
+    def call_grounding(
+        branch: Literal["source", "model"],
+        prompt: str,
+    ) -> StructuredCallOutcome[GroundingResponse]:
+        return runtime.call(
+            kind=f"{branch}_grounding",
+            schema=GroundingResponse,
+            system_prompt=(
+                SOURCE_GROUNDING_SYSTEM_PROMPT
+                if branch == "source"
+                else MODEL_GROUNDING_SYSTEM_PROMPT
+            ),
+            prompt=prompt,
+            artifact_id=f"method/{pair.pair_id}/round-{round_index}/{branch}-grounding",
+        )
+
+    if getattr(runtime, "real_llm", False):
+        # These branches consume the same immutable contract and are
+        # semantically complementary. Parallel execution reduces wall time
+        # without changing the four-call method state machine or receipt order.
+        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="grounding") as executor:
+            source_future = executor.submit(call_grounding, "source", source_prompt)
+            model_future = executor.submit(call_grounding, "model", model_prompt)
+            source_outcome = source_future.result()
+            model_outcome = model_future.result()
+    else:
+        source_outcome = call_grounding("source", source_prompt)
+        model_outcome = call_grounding("model", model_prompt)
+    all_outcomes.extend([source_outcome, model_outcome])
     source_response = source_outcome.response if source_outcome.succeeded else fallback_grounding(
         pair,
         branch="source",
@@ -980,21 +1011,6 @@ def _method_cell(
         )
     )
 
-    model_prompt = build_grounding_prompt(
-        pair,
-        branch="model",
-        round_index=round_index,
-        contracts=contract_response,
-        previous=previous,
-    )
-    model_outcome: StructuredCallOutcome[GroundingResponse] = runtime.call(
-        kind="model_grounding",
-        schema=GroundingResponse,
-        system_prompt=MODEL_GROUNDING_SYSTEM_PROMPT,
-        prompt=model_prompt,
-        artifact_id=f"method/{pair.pair_id}/round-{round_index}/model-grounding",
-    )
-    all_outcomes.append(model_outcome)
     model_response = model_outcome.response if model_outcome.succeeded else fallback_grounding(
         pair,
         branch="model",
@@ -1378,6 +1394,290 @@ def _method_cell(
     return validated
 
 
+def _judge_ledger_projection(item: dict[str, Any]) -> dict[str, Any]:
+    """Project one frozen ledger row to the independent judge surface."""
+
+    return {
+        key: item[key]
+        for key in (
+            "id",
+            "pair",
+            "D",
+            "D_basis",
+            "summary",
+            "detail",
+            "axes",
+        )
+        if key in item
+    }
+
+
+def _judge_issue_projection(issue: dict[str, Any]) -> dict[str, Any]:
+    """Project one release issue without copying its complete audit bundle."""
+
+    plan = issue.get("plan") or {}
+    receipt = issue.get("receipt") or {}
+    binding = issue.get("binding") or {}
+    attribution = issue.get("source_attribution") or {}
+    audit = issue.get("audit_bundle") or {}
+    return {
+        key: issue[key]
+        for key in (
+            "issue_id",
+            "title",
+            "requirement_quote",
+            "predicate_id",
+            "predicate_inputs",
+            "element_refs",
+            "source_refs",
+            "expected",
+            "observed",
+            "strongest_rebuttal",
+            "d_level",
+            "witness_level",
+            "coverage_class",
+            "reason",
+            "basis",
+            "candidate_reason",
+            "candidate_basis",
+        )
+        if key in issue
+    } | {
+        "binding": {
+            key: binding[key]
+            for key in ("precise", "element_refs", "source_refs", "reason", "basis")
+            if key in binding
+        },
+        "predicate_plan": {
+            key: plan[key]
+            for key in (
+                "plan_id",
+                "predicate_id",
+                "predicate_name",
+                "family",
+                "semantics",
+                "inputs",
+                "soundness_fragment",
+                "supported",
+                "binding_complete",
+                "missing_inputs",
+                "source_audit_status",
+                "source_gate_passed",
+                "reason",
+                "basis",
+            )
+            if key in plan
+        },
+        "backend_receipt": {
+            key: receipt[key]
+            for key in (
+                "receipt_id",
+                "backend",
+                "terminal_state",
+                "verdict",
+                "counterexample",
+                "trace",
+                "reason",
+                "basis",
+            )
+            if key in receipt
+        },
+        "source_attribution": {
+            key: attribution[key]
+            for key in ("requirement", "source", "model", "plan", "backend", "input_context")
+            if key in attribution
+        },
+        "audit_reference": {
+            "audit_hash": audit.get("audit_hash"),
+            "path": issue.get("audit_bundle_path"),
+            "reason": "The complete W2 audit bundle remains on disk; the judge receives its identity only.",
+            "basis": "judge-release-projection.v3",
+        },
+        "reason": issue.get("reason") or issue.get("candidate_reason") or "The release issue carries a deterministic method rationale.",
+        "basis": issue.get("basis") or issue.get("candidate_basis") or "method release receipt projection",
+    }
+
+
+def _judge_stage_projection(cell: dict[str, Any]) -> list[dict[str, Any]]:
+    """Keep stage identity and budget facts while excluding repeated payloads."""
+
+    return [
+        {
+            "stage_name": item.get("stage_name"),
+            "stage_id": item.get("stage_id"),
+            "status": item.get("status"),
+            "input_manifest_hash": item.get("input_manifest_hash"),
+            "output_hash": item.get("output_hash"),
+            "context_budget": item.get("context_budget"),
+            "reason": item.get("reason"),
+            "basis": item.get("basis"),
+        }
+        for item in cell.get("stage_receipts", [])
+    ]
+
+
+def _normalize_judge_shape(
+    response: JudgeResponse,
+    ledger_items: list[dict[str, Any]],
+    release: list[dict[str, Any]],
+    rounds: int,
+) -> JudgeResponse:
+    """Normalize exact-ID consistency fields without making semantic decisions."""
+
+    expected_release = {str(item["issue_id"]) for item in release}
+
+    def issue_round(issue_id: str) -> int | None:
+        parts = issue_id.split(":")
+        if len(parts) != 4 or parts[2] != "issue" or not parts[1].startswith("r"):
+            return None
+        try:
+            return int(parts[1][1:])
+        except ValueError:
+            return None
+
+    normalized_ledger = [
+        assessment.model_copy(
+            update={
+                f"hit_r{round_index}": bool(
+                    any(
+                        issue_id in expected_release and issue_round(issue_id) == round_index
+                        for issue_id in assessment.matched_issue_ids
+                    )
+                )
+                if round_index <= rounds
+                else False
+                for round_index in range(1, 4)
+            }
+        )
+        for assessment in response.ledger_assessments
+    ]
+    normalized_release = [
+        assessment.model_copy(
+            update={
+                "is_false_positive": not bool(assessment.accounted_ledger_ids),
+            }
+        )
+        for assessment in response.release_assessments
+    ]
+    return response.model_copy(
+        update={
+            "ledger_assessments": normalized_ledger,
+            "release_assessments": normalized_release,
+        }
+    )
+
+
+def _partitioned_judge(
+    *,
+    pair: PairInput,
+    ledger_items: list[dict[str, Any]],
+    release: list[dict[str, Any]],
+    method_rounds: list[dict[str, Any]],
+    runtime: PublicStructuredRuntime,
+) -> tuple[JudgeResponse | None, list[StructuredCallOutcome[Any]], list[dict[str, Any]]]:
+    """Judge release chunks independently when the compact pair prompt is too large.
+
+    Each call still sees the complete frozen ledger, but only a bounded release
+    subset. Exact IDs are unioned mechanically after all chunks; no missing
+    relation is converted to a miss or false positive.
+    """
+
+    outcomes: list[StructuredCallOutcome[Any]] = []
+    errors: list[dict[str, Any]] = []
+    chunks = [
+        release[index:index + JUDGE_PARTITION_RELEASE_SIZE]
+        for index in range(0, len(release), JUDGE_PARTITION_RELEASE_SIZE)
+    ]
+    chunk_responses: list[tuple[list[dict[str, Any]], JudgeResponse]] = []
+    for chunk_index, chunk in enumerate(chunks):
+        chunk_ids = {str(item.get("issue_id")) for item in chunk}
+        chunk_rounds = [
+            {
+                **cell,
+                "report_issue_clusters": [
+                    issue
+                    for issue in cell.get("report_issue_clusters", [])
+                    if str(issue.get("issue_id")) in chunk_ids
+                ],
+            }
+            for cell in method_rounds
+        ]
+        prompt = _judge_prompt(pair, ledger_items, chunk_rounds)
+        if (len(prompt) + 3) // 4 > JUDGE_PROMPT_TOKEN_BUDGET:
+            errors.append(
+                {
+                    "chunk": chunk_index,
+                    "error": "judge_partition_context_budget_exceeded",
+                    "reason": "A compact judge partition still exceeds the configured prompt budget; no provider call was attempted.",
+                    "basis": f"estimated_tokens={(len(prompt) + 3) // 4}; budget={JUDGE_PROMPT_TOKEN_BUDGET}",
+                }
+            )
+            continue
+        outcome = runtime.call(
+            kind="judge_partition",
+            schema=JudgeResponse,
+            system_prompt=JUDGE_SYSTEM_PROMPT,
+            prompt=prompt,
+            artifact_id=f"judge/{pair.pair_id}/partition-{chunk_index}",
+        )
+        outcomes.append(outcome)
+        response = outcome.response if outcome.succeeded else None
+        if response is not None:
+            response = _normalize_judge_shape(response, ledger_items, chunk, len(method_rounds))
+            shape_errors = _judge_shape_errors(response, ledger_items, chunk, len(method_rounds))
+        else:
+            shape_errors = ["judge partition output unavailable"]
+        if response is None or shape_errors:
+            errors.append(
+                {
+                    "chunk": chunk_index,
+                    "error": "; ".join(shape_errors),
+                    "reason": "A partition did not close its exact ledger/release shape; its relations remain unresolved.",
+                    "basis": "partitioned judge exact-ID coverage contract",
+                }
+            )
+            continue
+        chunk_responses.append((chunk, response))
+
+    if errors or len(chunk_responses) != len(chunks):
+        return None, outcomes, errors
+
+    ledger_by_id: dict[str, list[LedgerAssessment]] = defaultdict(list)
+    release_by_id: dict[str, ReleaseAssessment] = {}
+    for _, response in chunk_responses:
+        for assessment in response.ledger_assessments:
+            ledger_by_id[assessment.ledger_id].append(assessment)
+        for assessment in response.release_assessments:
+            release_by_id[assessment.issue_id] = assessment
+    ledger_assessments = []
+    for item in ledger_items:
+        rows = ledger_by_id.get(str(item["id"]), [])
+        matched_ids = list(dict.fromkeys(
+            issue_id for row in rows for issue_id in row.matched_issue_ids
+        ))
+        ledger_assessments.append(
+            LedgerAssessment(
+                ledger_id=str(item["id"]),
+                hit_r1=any(issue_id.split(":")[1:2] == ["r1"] for issue_id in matched_ids),
+                hit_r2=any(issue_id.split(":")[1:2] == ["r2"] for issue_id in matched_ids),
+                hit_r3=any(issue_id.split(":")[1:2] == ["r3"] for issue_id in matched_ids),
+                matched_issue_ids=matched_ids,
+                reason="; ".join(row.reason for row in rows) or "No supplied partition reported a matching release issue.",
+                basis="partitioned pair-wide judge responses unioned by exact ledger and issue IDs",
+            )
+        )
+    return (
+        JudgeResponse(
+            ledger_assessments=ledger_assessments,
+            release_assessments=[release_by_id[str(item["issue_id"])] for item in release],
+            reason="The compact pair-wide judge was partitioned by release issue count before provider execution.",
+            basis="bounded release partitions, complete frozen ledger per partition, and exact-ID aggregation",
+        ),
+        outcomes,
+        [],
+    )
+
+
 def _judge_prompt(
     pair: PairInput,
     ledger_items: list[dict[str, Any]],
@@ -1405,13 +1705,13 @@ def _judge_prompt(
                         else None
                     ),
                     "input_hashes": cell.get("input_hashes", {}),
-                    "stage_receipts": cell.get("stage_receipts", []),
+                    "stage_receipts": _judge_stage_projection(cell),
                     "method_receipt_hash": _hash_json(cell),
                     "reason": cell.get("reason"),
                     "basis": cell.get("basis"),
                 },
                 "release_issue_clusters": [
-                    _jsonable(issue)
+                    _judge_issue_projection(issue)
                     for issue in cell.get("report_issue_clusters", [])
                 ],
             }
@@ -1419,7 +1719,7 @@ def _judge_prompt(
     return f"""Assess the supplied method rounds for frozen pair {pair.pair_id} as an independent judge.
 
 Frozen ledger entries (the judge's only ground-truth answer source; method generation did not read them):
-{json.dumps(ledger_items, ensure_ascii=False, sort_keys=True)}
+{json.dumps([_judge_ledger_projection(item) for item in ledger_items], ensure_ascii=False, sort_keys=True)}
 
 Complete method receipt identities/stage receipts plus full D1/D2 release receipts for all supplied rounds (D0 is excluded):
 {json.dumps(compact_rounds, ensure_ascii=False, sort_keys=True)}
@@ -1453,6 +1753,15 @@ def _judge_shape_errors(
 ) -> list[str]:
     """Validate exact judge coverage and references without semantic guessing."""
 
+    def issue_round(issue_id: str) -> int | None:
+        parts = issue_id.split(":")
+        if len(parts) != 4 or parts[2] != "issue" or not parts[1].startswith("r"):
+            return None
+        try:
+            return int(parts[1][1:])
+        except ValueError:
+            return None
+
     errors: list[str] = []
     expected_ledger = {str(item["id"]) for item in ledger_items}
     expected_release = {str(item["issue_id"]) for item in release}
@@ -1468,7 +1777,11 @@ def _judge_shape_errors(
         if unknown:
             errors.append(f"{assessment.ledger_id} references unknown release IDs {sorted(unknown)}")
         for round_index in range(1, 4):
-            round_ids = {issue_id for issue_id in matched if f":r{round_index}:" in issue_id}
+            round_ids = {
+                issue_id
+                for issue_id in matched
+                if issue_round(issue_id) == round_index
+            }
             hit = bool(getattr(assessment, f"hit_r{round_index}"))
             if round_index <= rounds and hit != bool(round_ids):
                 errors.append(
@@ -1481,7 +1794,7 @@ def _judge_shape_errors(
         unknown = accounted - expected_ledger
         if unknown:
             errors.append(f"{assessment.issue_id} references unknown ledger IDs {sorted(unknown)}")
-        if assessment.is_false_positive == bool(accounted):
+        if assessment.is_false_positive != (not bool(accounted)):
             errors.append(
                 f"{assessment.issue_id}.is_false_positive must equal whether accounted_ledger_ids is empty"
             )
@@ -1515,10 +1828,10 @@ def _atomic_judge_prompt(
     return f"""Frozen pair: {pair_id}
 
 Frozen ledger entry (judge-only ground truth input):
-{json.dumps(ledger_item, ensure_ascii=False, sort_keys=True)}
+{json.dumps(_judge_ledger_projection(ledger_item), ensure_ascii=False, sort_keys=True)}
 
 One method D1/D2 release issue:
-{json.dumps(release_issue, ensure_ascii=False, sort_keys=True)}
+{json.dumps(_judge_issue_projection(release_issue), ensure_ascii=False, sort_keys=True)}
 
 Set matches=true only for the same locus and same property. Explain the semantic relation in reason and identify the supplied facts in basis. Do not use baseline data, other pairs, or lexical matching.
 """
@@ -1536,39 +1849,52 @@ def _atomic_judge(
     outcomes: list[StructuredCallOutcome[Any]] = []
     relations: list[dict[str, Any]] = []
     errors: list[dict[str, Any]] = []
-    for ledger_index, ledger_item in enumerate(ledger_items):
-        for issue_index, issue in enumerate(release):
-            outcome: StructuredCallOutcome[AtomicMatchDecision] = runtime.call(
-                kind="judge_atomic_relation",
-                schema=AtomicMatchDecision,
-                system_prompt=ATOMIC_JUDGE_SYSTEM_PROMPT,
-                prompt=_atomic_judge_prompt(
-                    pair_id=pair.pair_id,
-                    ledger_item=ledger_item,
-                    release_issue=issue,
-                ),
-                artifact_id=f"judge_atomic/{pair.pair_id}/ledger-{ledger_index}/issue-{issue_index}",
-            )
-            outcomes.append(outcome)
-            if not outcome.succeeded:
-                errors.append(
-                    {
-                        "ledger_id": ledger_item["id"],
-                        "issue_id": issue["issue_id"],
-                        "error": outcome.result.get("error", "atomic judge unavailable"),
-                        "reason": "An atomic semantic relation failed after public provider retries; it remains unadjudicated rather than becoming a miss or FP.",
-                        "basis": "public structured runtime terminal outcome",
-                    }
-                )
-                continue
-            decision = outcome.response
-            relations.append(
+    jobs = [
+        (ledger_index, ledger_item, issue_index, issue)
+        for ledger_index, ledger_item in enumerate(ledger_items)
+        for issue_index, issue in enumerate(release)
+    ]
+
+    def call_relation(
+        job: tuple[int, dict[str, Any], int, dict[str, Any]],
+    ) -> StructuredCallOutcome[AtomicMatchDecision]:
+        ledger_index, ledger_item, issue_index, issue = job
+        return runtime.call(
+            kind="judge_atomic_relation",
+            schema=AtomicMatchDecision,
+            system_prompt=ATOMIC_JUDGE_SYSTEM_PROMPT,
+            prompt=_atomic_judge_prompt(
+                pair_id=pair.pair_id,
+                ledger_item=ledger_item,
+                release_issue=issue,
+            ),
+            artifact_id=f"judge_atomic/{pair.pair_id}/ledger-{ledger_index}/issue-{issue_index}",
+        )
+
+    if jobs:
+        with ThreadPoolExecutor(max_workers=min(4, len(jobs)), thread_name_prefix="judge-atomic") as executor:
+            outcomes = list(executor.map(call_relation, jobs))
+    for job, outcome in zip(jobs, outcomes):
+        _, ledger_item, _, issue = job
+        if not outcome.succeeded:
+            errors.append(
                 {
                     "ledger_id": ledger_item["id"],
                     "issue_id": issue["issue_id"],
-                    **decision.model_dump(mode="json"),
+                    "error": outcome.result.get("error", "atomic judge unavailable"),
+                    "reason": "An atomic semantic relation failed after public provider retries; it remains unadjudicated rather than becoming a miss or FP.",
+                    "basis": "public structured runtime terminal outcome",
                 }
             )
+            continue
+        decision = outcome.response
+        relations.append(
+            {
+                "ledger_id": ledger_item["id"],
+                "issue_id": issue["issue_id"],
+                **decision.model_dump(mode="json"),
+            }
+        )
     if errors:
         return None, outcomes, relations, errors
 
@@ -1710,21 +2036,41 @@ def _judge_pair(
         write_json(output_root / "judge" / f"{pair.pair_id}.json", payload)
         return payload
 
-    outcome: StructuredCallOutcome[JudgeResponse] = runtime.call(
-        kind="judge",
-        schema=JudgeResponse,
-        system_prompt=JUDGE_SYSTEM_PROMPT,
-        prompt=prompt,
-        artifact_id=f"judge/{pair.pair_id}",
-    )
-    outcomes.append(outcome)
-    response = outcome.response if outcome.succeeded else None
-    shape_errors = (
-        _judge_shape_errors(response, ledger_items, release, len(method_rounds))
-        if response is not None
-        else ["pair-wide judge output unavailable"]
-    )
-    if response is not None and shape_errors:
+    estimated_prompt_tokens = (len(prompt) + 3) // 4
+    if estimated_prompt_tokens > JUDGE_PROMPT_TOKEN_BUDGET:
+        mode = "partitioned_pair_wide"
+        response, partition_outcomes, partition_errors = _partitioned_judge(
+            pair=pair,
+            ledger_items=ledger_items,
+            release=release,
+            method_rounds=method_rounds,
+            runtime=runtime,
+        )
+        outcomes.extend(partition_outcomes)
+        errors.extend(partition_errors)
+        shape_errors = (
+            _judge_shape_errors(response, ledger_items, release, len(method_rounds))
+            if response is not None
+            else ["partitioned judge output unavailable"]
+        )
+    else:
+        outcome: StructuredCallOutcome[JudgeResponse] = runtime.call(
+            kind="judge",
+            schema=JudgeResponse,
+            system_prompt=JUDGE_SYSTEM_PROMPT,
+            prompt=prompt,
+            artifact_id=f"judge/{pair.pair_id}",
+        )
+        outcomes.append(outcome)
+        response = outcome.response if outcome.succeeded else None
+        if response is not None:
+            response = _normalize_judge_shape(response, ledger_items, release, len(method_rounds))
+        shape_errors = (
+            _judge_shape_errors(response, ledger_items, release, len(method_rounds))
+            if response is not None
+            else ["pair-wide judge output unavailable"]
+        )
+    if mode == "pair_wide" and response is not None and shape_errors:
         correction: StructuredCallOutcome[JudgeResponse] = runtime.call(
             kind="judge_correction",
             schema=JudgeResponse,
@@ -1734,7 +2080,12 @@ def _judge_pair(
         )
         outcomes.append(correction)
         if correction.succeeded:
-            response = correction.response
+            response = _normalize_judge_shape(
+                correction.response,
+                ledger_items,
+                release,
+                len(method_rounds),
+            )
             shape_errors = _judge_shape_errors(
                 response, ledger_items, release, len(method_rounds)
             )
@@ -1763,6 +2114,12 @@ def _judge_pair(
     semantic_outcomes = (
         [item for item in outcomes if item.kind == "judge_atomic_relation"]
         if mode == "atomic_llm_fallback"
+        else [
+            item
+            for item in outcomes
+            if item.kind == "judge_partition"
+        ]
+        if mode == "partitioned_pair_wide"
         else [outcomes[-1]]
     )
     eligible = bool(

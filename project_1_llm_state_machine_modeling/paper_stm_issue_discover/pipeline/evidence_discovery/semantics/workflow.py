@@ -194,6 +194,8 @@ PREDICATE_ROUTING_GUIDANCE = """Frozen predicate routing discipline:
 - Use G1 for a finite path-existence or unreachable-target claim, G2 for universal eventual target reachability, G3 only when the forbidden node/edge set is explicit, and G4 only for the registered coaccessibility form.
 - Use V4(initial_scope) for a supplied finite deadlock-frontier or reachable nonterminal-no-progress fact. V4 is currently W1-only under the source audit, so preserve a precise V4 candidate and its backend result without claiming W2. Do not replace V4 with S1/S2 or call termination, liveness, fairness, or concurrency semantics deadlock evidence.
 - Use V1/V2 only for the declared guard-domain formulas. Use R1-R4 only when a concrete scenario, window, and trace are supplied; do not infer trajectory facts from static text.
+- Route deterministic facts by property: LEAF_WITHOUT_OUTGOING/deadlock-frontier facts may yield one V4(initial_scope) candidate with exact leaf refs as supporting binding; failed finite reachability yields G1; a refuted initial-entry fact yields an exact S2 initial-edge claim. Do not turn a leaf/deadlock fact into S1 or an arbitrary present S2 edge.
+- Missing containment, region/consumer scope, initial-owner existence, or variable-delta semantics may remain a precise predicate=null W1 candidate. Preserve the exact owner/event/state refs and state the unsupported boundary; do not silently drop or rename it.
 - A predicate that is registered but source-gated as candidate or W1-only is still a valid precise candidate. The downstream deterministic state machine decides W1/W2; the grounding branch must not drop it merely because it cannot reach W2.
 - For a missing fact, bind the expected exact model/source element and the observed absence or counterexample. For a present fact, preserve it as a non-violation observation unless the supplied dossier identifies a distinct violated obligation."""
 
@@ -207,6 +209,18 @@ SOURCE_GROUNDING_SYSTEM_PROMPT = f"""You are the author-source grounding branch 
 MODEL_GROUNDING_SYSTEM_PROMPT = f"""You are the closed-model grounding branch of the paper1 evidence_discovery method. {COMMON_RULES} Use FCSTM, owned ModelIR, reference inspection facts, owned inspection-equivalent facts, finite verify facts, and SMT formula summaries to bind exact model elements and propose predicate candidates. Do not rewrite an NL contract to match the model and do not treat unknown/not-run facts as violations.
 
 {PREDICATE_ROUTING_GUIDANCE}
+
+Inspection-equivalent routing: a deterministic `LEAF_WITHOUT_OUTGOING` or finite
+deadlock-frontier fact is a reason to consider one V4(initial_scope) candidate,
+with the exact leaf refs kept in element_refs/supporting facts; it is not an S1
+existence claim. A failed finite reachability fact routes to G1 with its exact
+source/target sets. A refuted initial-entry fact routes to an exact S2 initial
+edge claim. An unresolved inspection fact remains unresolved. Missing
+containment, region, consumer-scope, or variable-delta semantics may remain a
+precisely bound predicate=null candidate for W1, but must not be disguised as
+S1/S2/S3. Keep one atomic candidate per obligation/property and place repeated
+observations in reason/basis rather than emitting a separate candidate for each
+supporting fact.
 
 Return only the requested Pydantic structure."""
 
@@ -276,6 +290,8 @@ Prior method candidates from this pair's earlier round only:
 def build_d_adjudication_prompt(pair: PairInput, dossiers: list[dict[str, Any]]) -> str:
     """Build the whole-cell semantic D prompt without exposing evaluation answers."""
 
+    compact_dossiers = [_compact_dossier(item) for item in dossiers]
+
     return f"""{D_SYSTEM_PROMPT}
 
 Stage: d_adjudication
@@ -285,10 +301,10 @@ Stage-scoped context projection and complete artifact manifest:
 
 Obligation dossiers. These contain exact method outputs and backend facts, but no
 W/D/L labels. Assess every obligation exactly once and preserve its obligation_id:
-{json.dumps(dossiers, ensure_ascii=False, sort_keys=True, indent=2)}
+{json.dumps(compact_dossiers, ensure_ascii=False, sort_keys=True, indent=2)}
 
 Required obligation IDs, exactly once each:
-{json.dumps([item["obligation_id"] for item in dossiers], ensure_ascii=False)}
+{json.dumps([item["obligation_id"] for item in compact_dossiers], ensure_ascii=False)}
 
 Decision protocol:
 - grounding=established only when the supplied NL/source/model dossier establishes a first violated-obligation reading;
@@ -301,6 +317,82 @@ Decision protocol:
 - before returning, compare the decision obligation_id set with the required list and
   return one decision for every listed ID, including unresolved decisions.
 """
+
+
+def _compact_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
+    """Project one D dossier to semantic facts without duplicating audit bytes."""
+
+    candidate = dossier.get("candidate", {})
+    binding = dossier.get("binding", {})
+    plan = dossier.get("plan", {})
+    receipt = dossier.get("receipt", {})
+    attribution = dossier.get("source_attribution", {})
+    compact_plan = {
+        key: plan[key]
+        for key in (
+            "plan_id",
+            "predicate_id",
+            "predicate_name",
+            "family",
+            "semantics",
+            "inputs",
+            "soundness_fragment",
+            "assumptions",
+            "supported",
+            "binding_complete",
+            "missing_inputs",
+            "source_audit_status",
+            "source_gate_passed",
+            "reason",
+            "basis",
+        )
+        if key in plan
+    }
+    compact_receipt = {
+        key: receipt[key]
+        for key in (
+            "receipt_id",
+            "backend",
+            "terminal_state",
+            "verdict",
+            "counterexample",
+            "trace",
+            "reason",
+            "basis",
+        )
+        if key in receipt
+    }
+    compact_attribution = {
+        key: attribution[key]
+        for key in ("requirement", "source", "model", "plan", "backend", "input_context")
+        if key in attribution
+    }
+    return {
+        "obligation_id": dossier.get("obligation_id"),
+        "candidate": {
+            key: candidate[key]
+            for key in (
+                "title",
+                "requirement_quote",
+                "predicate_id",
+                "predicate_inputs",
+                "element_refs",
+                "source_refs",
+                "expected",
+                "observed",
+                "strongest_rebuttal",
+                "reason",
+                "basis",
+            )
+            if key in candidate
+        },
+        "binding": binding,
+        "plan": compact_plan,
+        "receipt": compact_receipt,
+        "source_attribution": compact_attribution,
+        "reason": "D receives the exact candidate, binding, predicate semantics, and backend result; raw audit and retry payloads remain receipt-only.",
+        "basis": "dossier-prompt-projection.v2",
+    }
 
 
 def build_d_correction_prompt(
@@ -333,7 +425,7 @@ extra_ids_to_ignore:
 {json.dumps(extra_ids, ensure_ascii=False)}
 
 Correction dossiers:
-{json.dumps(selected, ensure_ascii=False, sort_keys=True, indent=2)}
+{json.dumps([_compact_dossier(item) for item in selected], ensure_ascii=False, sort_keys=True, indent=2)}
 
 Return exactly one decision per missing ID. If the supplied dossier cannot decide,
 use grounding=unresolved with a non-empty reason and basis. Do not emit W/D/L/L
@@ -474,24 +566,46 @@ def assemble_method_response(
     reason: str,
     basis: str,
 ) -> MethodResponse:
-    """Merge complementary branch candidates without semantic adjudication."""
+    """Join source attribution onto model candidates without widening execution.
+
+    The source branch is a localization index, not a second closed-model
+    candidate surface. A source row is joined only when it shares an exact
+    supplied source reference with a model row; free-text similarity is never
+    used for this join.
+    """
 
     seen: set[str] = set()
     candidates: list[CandidateIssue] = []
-    for candidate in (*source.candidates, *model.candidates):
+    for candidate in model.candidates:
+        source_refs = set(candidate.source_refs)
+        matched_source_refs: set[str] = set()
+        for source_candidate in source.candidates:
+            shared_refs = source_refs.intersection(source_candidate.source_refs)
+            if shared_refs:
+                matched_source_refs.update(shared_refs)
+        if matched_source_refs:
+            candidate = candidate.model_copy(
+                update={
+                    "source_refs": list(dict.fromkeys([*candidate.source_refs, *sorted(matched_source_refs)])),
+                    "basis": f"{candidate.basis}; source-localization refs joined by exact source IDs",
+                }
+            )
         key = _hash(
             {
                 "predicate_id": candidate.predicate_id,
                 "predicate_inputs": candidate.predicate_inputs,
                 "element_refs": candidate.element_refs,
-                "requirement_quote": candidate.requirement_quote,
             }
         )
         if key in seen:
             continue
         seen.add(key)
         candidates.append(candidate)
-    return MethodResponse(issues=candidates, reason=reason, basis=basis)
+    return MethodResponse(
+        issues=candidates,
+        reason=f"{reason} Source-only rows were retained in the stage receipt and excluded from backend execution.",
+        basis=f"{basis}; model-grounding is the sole closed-model candidate surface",
+    )
 
 
 __all__ = [
