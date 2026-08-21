@@ -598,10 +598,16 @@ def _enrich_candidate(candidate: CandidateIssue, binding: Any, pair: PairInput) 
     if transition_ref is not None:
         transition = pair.model.transition(transition_ref)
         if transition is not None:
+            # Predicate inputs are executable fields, not provenance slots.
+            # Once the binding identifies one closed-model edge, overwrite any
+            # source/target/ref spellings emitted by the model (for example
+            # ``state:Searching:line:13``).  Keeping those spellings would
+            # make the backend compare a typed source reference with the
+            # canonical FCSTM endpoint and report a false missing edge.
             inputs["transition"] = transition.ref
-            inputs.setdefault("transition_ref", transition.ref)
-            inputs.setdefault("source", transition.source)
-            inputs.setdefault("target", transition.target)
+            inputs["transition_ref"] = transition.ref
+            inputs["source"] = transition.source
+            inputs["target"] = transition.target
     if candidate.predicate_id == "S1" and "element" not in inputs and binding.element_refs:
         ref = binding.element_refs[0]
         state = next((item for item in pair.model.states if item.ref == ref), None)

@@ -26,6 +26,7 @@ from pipeline.evidence_discovery.orchestration.runner import (
     LedgerAssessment,
     JudgeResponse,
     ReleaseAssessment,
+    _enrich_candidate,
     _failure_judge_payload,
     _failure_method_cell,
     _judge_shape_errors,
@@ -239,6 +240,46 @@ def test_binding_normalizes_display_refs_but_rejects_ambiguous_edges() -> None:
     invalid_receipt = run_backend(invalid_plan, pair.model, "invalid-kind-receipt")
     assert invalid_receipt.verdict == "unknown"
     assert calculate_witness_level(invalid_binding, invalid_plan, invalid_receipt) == "UNKNOWN"
+
+
+def test_enrich_candidate_replaces_typed_transition_endpoints_with_canonical_model_values() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0046")
+    transition = next(
+        item for item in pair.model.transitions
+        if item.source == "Searching" and item.target == "FormationAdjustment"
+    )
+    candidate = _candidate(
+        pair,
+        predicate_id="S2",
+        inputs={
+            "transition": transition.ref,
+            "transition_ref": transition.ref,
+            "source": f"state:{transition.source}:line:13",
+            "target": f"state:{transition.target}:line:14",
+            "scope": "closed_fcstm",
+        },
+        refs=[transition.ref, f"state:{transition.source}:line:13", f"state:{transition.target}:line:14"],
+    )
+    binding = bind_candidate(candidate, pair.model)
+    enriched = _enrich_candidate(candidate, binding, pair)
+
+    assert enriched.predicate_inputs["transition"] == transition.ref
+    assert enriched.predicate_inputs["transition_ref"] == transition.ref
+    assert enriched.predicate_inputs["source"] == transition.source
+    assert enriched.predicate_inputs["target"] == transition.target
+
+    plan = compile_plan(
+        enriched,
+        binding,
+        load_registry(),
+        obligation_id="0046:canonical-s2",
+        round_index=1,
+        model=pair.model,
+        model_hash=pair.hashes["fcstm"],
+    )
+    receipt = run_backend(plan, pair.model, "0046:canonical-s2:receipt")
+    assert receipt.verdict == "true"
+    assert receipt.terminal_state == "completed"
 
 def test_w2_audit_contains_logic_hashes_backend_and_retry_records() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
