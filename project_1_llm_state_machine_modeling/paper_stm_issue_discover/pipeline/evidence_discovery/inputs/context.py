@@ -1194,6 +1194,13 @@ def _inspection_equivalent_prompt_dict(
         facts.transitions,
         fields=(
             "transition_ref",
+            "source",
+            "target",
+            "triggers",
+            "guard",
+            "effects",
+            "line",
+            "scope",
             "resolved_source_ref",
             "resolved_target_ref",
             "reachable_from_initial",
@@ -1253,11 +1260,28 @@ def _verification_facts_prompt_dict(
         fields=("check_id", "kind", "status", "subject_refs", "details"),
         label="verify_facts.checks",
     )
+    non_proved = [row for row in checks if row.get("status") != "proved"]
+    proved_index = [
+        {
+            key: row[key]
+            for key in ("check_id", "kind", "subject_refs")
+            if key in row
+        }
+        for row in checks
+        if row.get("status") == "proved"
+    ]
     return {
         "schema_version": facts.schema_version,
         "algorithm_version": facts.algorithm_version,
         "scope": facts.scope,
-        "checks": checks,
+        "checks": {
+            "non_proved": non_proved,
+            "proved_index": proved_index,
+            "count": len(checks),
+            "sha256": receipt["sha256"],
+            "reason": "Non-proved finite results retain their full structured details; proved rows retain exact check and subject identity because their underlying positive facts are already present in the owned inspection inventory.",
+            "basis": "verify-facts-prompt-projection.v2",
+        },
         "terminal_state": facts.terminal_state,
         "row_rationale_receipt": receipt,
         "reason": facts.reason,
@@ -1288,11 +1312,11 @@ def _smt_facts_prompt_dict(facts: SMTFacts | None) -> dict[str, Any] | None:
 
 
 def _compact_trace_entries(entries: Any, *, label: str) -> dict[str, Any]:
-    """Retain exact trace identity edges without repeated prose policy text."""
+    """Retain exact trace edges without repeating uniform relation metadata."""
 
     if not isinstance(entries, list):
         entries = []
-    rows = [
+    raw_rows = [
         {
             key: row[key]
             for key in (
@@ -1310,8 +1334,38 @@ def _compact_trace_entries(entries: Any, *, label: str) -> dict[str, Any]:
         for row in entries
         if isinstance(row, dict)
     ]
+    uniform_fields: dict[str, Any] = {}
+    for key in (
+        "trace_class",
+        "trace_dimension",
+        "trace_relation",
+        "projection_status",
+    ):
+        values = {json.dumps(row.get(key), sort_keys=True) for row in raw_rows}
+        if len(values) == 1 and raw_rows:
+            uniform_fields[key] = raw_rows[0].get(key)
+    edges = [
+        {
+            key: row[key]
+            for key in (
+                "trace_id",
+                "source_elements",
+                "intermediate_elements",
+                "trace_evidence",
+                "trace_class",
+                "trace_dimension",
+                "trace_relation",
+                "projection_status",
+            )
+            if key in row
+            and key not in uniform_fields
+            and not (key == "trace_evidence" and not row[key])
+        }
+        for row in raw_rows
+    ]
     return {
-        "entries": rows,
+        "common_relation": uniform_fields,
+        "edges": edges,
         "count": len(entries),
         "sha256": _artifact_hash_payload({"items": entries}),
         "omitted_fields": [
@@ -1321,8 +1375,8 @@ def _compact_trace_entries(entries: Any, *, label: str) -> dict[str, Any]:
             "reviewer_notes",
             "trace_relation_rationale",
         ],
-        "reason": "Exact source/intermediate identity edges remain prompt-visible; repeated policy prose is retained by the source-trace hash.",
-        "basis": f"{label}.v2",
+        "reason": "Exact source/intermediate identity edges remain prompt-visible while uniform relation fields are stated once; repeated policy prose remains in the source-trace hash.",
+        "basis": f"{label}.v3",
     }
 
 
@@ -1337,29 +1391,12 @@ def _canonical_source_prompt_dict(canonical: Any) -> dict[str, Any] | None:
     if canonical is None:
         return None
     model = canonical.model
-    states = [
-        {
-            "id": item.id,
-            "kind": item.kind,
-            "label": item.label,
-            "parent": item.parent,
-            "raw_ref": item.raw_ref,
-        }
-        for item in model.states
-    ]
-    transitions = [
-        {
-            "id": item.id,
-            "source": item.source,
-            "target": item.target,
-            "event": item.event,
-            "guard": item.guard,
-            "action": item.action,
-            "label": item.label,
-            "raw_ref": item.raw_ref,
-        }
-        for item in model.transitions
-    ]
+    inventory_payload = {
+        "states": [item.model_dump(mode="json") for item in model.states],
+        "transitions": [
+            item.model_dump(mode="json") for item in model.transitions
+        ],
+    }
     return {
         "schema_version": canonical.schema_version,
         "source_format": canonical.source_format,
@@ -1376,12 +1413,76 @@ def _canonical_source_prompt_dict(canonical: Any) -> dict[str, Any] | None:
             "final_states": list(model.final_states),
             "concurrent_regions": _project_large_sequence(model.concurrent_regions, label="canonical.concurrent_regions"),
             "variables": _project_large_sequence(model.variables, label="canonical.variables"),
-            "states": states,
-            "transitions": transitions,
+            "inventory_receipt": {
+                "state_count": len(model.states),
+                "transition_count": len(model.transitions),
+                "sha256": _artifact_hash_payload(inventory_payload),
+                "projection": "Exact source rows are supplied once in exact_source_inventory; this canonical IR section retains model-level semantics and the hash of its complete row inventory.",
+            },
         },
         "metadata": _project_large_sequence(canonical.metadata, label="canonical.metadata"),
         "reason": "Exact authored state and transition identities are prompt-visible for source localization; adapter metadata remains hash-addressed.",
-        "basis": "canonical-source-prompt-projection.v2",
+        "basis": "canonical-source-prompt-projection.v3",
+    }
+
+
+def _exact_source_inventory_prompt_dict(inventory: Any) -> dict[str, Any] | None:
+    """Expose complete exact source rows once, without repeated row rationale."""
+
+    if inventory is None:
+        return None
+    states, state_receipt = _compact_fact_rows(
+        inventory.states,
+        fields=("source_id", "name", "kind", "parent", "raw_ref", "line"),
+        label="exact_source_inventory.states",
+    )
+    transitions, transition_receipt = _compact_fact_rows(
+        inventory.transitions,
+        fields=(
+            "transition_id",
+            "source",
+            "target",
+            "event",
+            "guard",
+            "action",
+            "raw_ref",
+            "line",
+        ),
+        label="exact_source_inventory.transitions",
+    )
+    return {
+        "schema_version": inventory.schema_version,
+        "algorithm_version": inventory.algorithm_version,
+        "source_ir_hash": inventory.source_ir_hash,
+        "states": states,
+        "transitions": transitions,
+        "events": inventory.events,
+        "row_rationale_receipts": {
+            "states": state_receipt,
+            "transitions": transition_receipt,
+        },
+        "reason": inventory.reason,
+        "basis": inventory.basis,
+    }
+
+
+def _owned_model_ir_prompt_dict(model: Any) -> dict[str, Any]:
+    """Project owned ModelIR identity while inspection facts carry parsed rows."""
+
+    payload = model.to_dict()
+    return {
+        "algorithm_version": model.algorithm_version,
+        "source_hash": payload.get("source_hash"),
+        "full_model_ir_hash": _artifact_hash_payload(payload),
+        "state_refs": [item.ref for item in model.states],
+        "events": [
+            {"ref": item.ref, "name": item.name, "line": item.line}
+            for item in model.events
+        ],
+        "transition_refs": [item.ref for item in model.transitions],
+        "inventory_projection": "Exact parsed state/transition fields are supplied once in inspection_equivalent_facts; raw syntax remains in fcstm_model.text.",
+        "reason": "The owned parser identity and complete ref inventory remain prompt-visible without duplicating every parsed row.",
+        "basis": "owned-model-ir-prompt-projection.v2",
     }
 
 
@@ -1511,24 +1612,34 @@ def _working_contract_prompt_dict(
                     if isinstance(row, dict)
                 ]
     if include_elements:
-        projected["elements"] = [
-            {
-                key: item[key]
-                for key in (
-                    "element_id",
-                    "kind",
-                    "origin",
-                    "model_refs",
-                    "source_refs",
-                )
-                if isinstance(item, dict) and key in item
-            }
-            for item in payload.get("elements", [])
-            if isinstance(item, dict)
+        elements = [
+            item for item in payload.get("elements", []) if isinstance(item, dict)
         ]
+        projected["elements"] = {
+            "source_to_model": [
+                {
+                    "source_element": item.get("element_id"),
+                    "model_refs": item.get("model_refs", []),
+                }
+                for item in elements
+                if item.get("origin") == "source_owned"
+            ],
+            "compiler_owned": [
+                {
+                    "element_id": item.get("element_id"),
+                    "kind": item.get("kind"),
+                    "model_refs": item.get("model_refs", []),
+                }
+                for item in elements
+                if item.get("origin") != "source_owned"
+            ],
+            "count": len(elements),
+            "sha256": _artifact_hash_payload({"items": elements}),
+            "source_ref_join": "Join source_element to exact_source_inventory.source_id/raw_ref; source refs are not repeated in this mapping table.",
+        }
         projected["element_omitted_fields"] = {
             "fields": ["field_ownership", "metadata", "semantic_fields", "macro_ids", "edit_policy"],
-            "count": len(projected["elements"]),
+            "count": len(elements),
             "sha256": _artifact_hash_payload(
                 {
                     "items": [
@@ -1544,7 +1655,7 @@ def _working_contract_prompt_dict(
                 }
             ),
             "reason": "Exact source/model refs are retained for binding; verbose compiler metadata remains available from the working-contract artifact hash.",
-            "basis": "working-contract-prompt-projection.v5",
+            "basis": "working-contract-prompt-projection.v6",
         }
     else:
         projected["elements"] = _project_large_sequence(payload.get("elements"), label="elements")
@@ -1582,7 +1693,7 @@ def _working_contract_prompt_dict(
             "excluded_field_refs",
         ],
         "reason": "Capability status and claim boundaries remain visible; repeated eligibility ID lists remain in the complete working-contract artifact.",
-        "basis": "working-contract-prompt-projection.v5",
+        "basis": "working-contract-prompt-projection.v6",
     }
     for key in ("diagnostic_attribution", "confirm_gate", "repair_gate"):
         if key in payload:
@@ -1606,7 +1717,7 @@ def _prompt_base(pair: Any, stage: PromptStage) -> dict[str, Any]:
         raise ValueError("stage prompt requires a complete context manifest")
     manifest = pair.context_manifest
     return {
-        "prompt_projection_version": "stage-context-projection.v6",
+        "prompt_projection_version": "stage-context-projection.v7",
         "stage": stage,
         "context_manifest": {
             "schema_version": manifest.schema_version,
@@ -1651,7 +1762,7 @@ def _prompt_base(pair: Any, stage: PromptStage) -> dict[str, Any]:
             "smt_facts": "normalized_formal_inputs_not_solver_result",
         },
         "reason": "Stage context is role-scoped while the complete artifact closure remains identified by the manifest.",
-        "basis": "context-manifest.v1 and stage-context-projection.v6",
+        "basis": "context-manifest.v1 and stage-context-projection.v7",
     }
 
 
@@ -1703,10 +1814,8 @@ def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
                     "basis": "source-role separation contract",
                 },
                 "canonical_source_ir": _canonical_source_prompt_dict(pair.canonical_source_ir),
-                "exact_source_inventory": (
-                    pair.exact_source_inventory.model_dump(mode="json")
-                    if pair.exact_source_inventory
-                    else None
+                "exact_source_inventory": _exact_source_inventory_prompt_dict(
+                    pair.exact_source_inventory
                 ),
                 "working_contract": _working_contract_prompt_dict(
                     pair.working_contract,
@@ -1720,7 +1829,7 @@ def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
                     "path": str(pair.pair_dir / "fcstm.fcstm"),
                     "sha256": pair.hashes.get("fcstm"),
                     "text": pair.fcstm_text,
-                    "model_ir": pair.model.to_dict(),
+                    "model_ir": _owned_model_ir_prompt_dict(pair.model),
                     "reason": "FCSTM is the closed model evaluated by the new deterministic backends.",
                     "basis": pair.model.algorithm_version,
                 },

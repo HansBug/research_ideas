@@ -613,8 +613,9 @@ class FixtureStructuredRuntime:
                     if artifact_id.endswith("/behavior_consequence")
                     else "contract_structure_contrast"
                 ),
+                "additional_contracts": [],
                 "candidates": [],
-                "contract_dispositions": [],
+                "unresolved": [],
                 "reason": "Fixture grounding output leaves candidate generation to the fallback receipt.",
                 "basis": "provider-free fixture runtime",
             }

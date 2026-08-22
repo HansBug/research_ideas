@@ -22,7 +22,6 @@ from pipeline.evidence_discovery.semantics import (
     D_SYSTEM_PROMPT,
     DISCOVERY_GROUNDING_SYSTEM_PROMPT,
     DAdjudicationResponse,
-    GroundingDisposition,
     GroundingResponse,
     NLContract,
     NLContractResponse,
@@ -168,16 +167,9 @@ class FixtureStructuredRuntime:
                     if artifact_id.endswith("/behavior_consequence")
                     else "contract_structure_contrast"
                 ),
+                additional_contracts=[],
                 candidates=candidates,
-                contract_dispositions=[
-                    GroundingDisposition(
-                        contract_id="NL-CONTRACT-NL1",
-                        status="candidate_emitted",
-                        candidate_count=len(candidates),
-                        reason="The fixture branch emitted candidates for the synthetic contract.",
-                        basis="Fixture exact contract ID accounting.",
-                    )
-                ],
+                unresolved=[],
                 reason="Fixture grounding response reason.",
                 basis="Fixture grounding response basis.",
             )
@@ -509,14 +501,10 @@ def test_representative_pairs_staged_fixture_smoke(tmp_path: Path) -> None:
     assert sum(calls_per_cell) * 3 == 72
     assert all(item["reason"] and item["basis"] for item in cell["stage_receipts"])
     assert all(item["input_manifest_hash"] == pair.context_manifest.manifest_hash for item in cell["stage_receipts"])
-    contract_ids = {
-        item["contract_id"]
-        for item in cell["stage_outputs"]["contract_extraction"]["contracts"]
-    }
     for branch in cell["stage_outputs"]["discovery_grounding"]["branches"]:
-        dispositions = branch["contract_dispositions"]
-        assert {item["contract_id"] for item in dispositions} == contract_ids
-        assert all(item["reason"] and item["basis"] for item in dispositions)
+        assert branch["additional_contracts"] == []
+        assert branch["unresolved"] == []
+        assert "contract_dispositions" not in branch
 
 
 def test_method_context_excludes_historical_case_run_payloads() -> None:
@@ -697,10 +685,12 @@ def test_one_grounding_failure_does_not_erase_closed_w1_release(tmp_path: Path) 
     )
 
 
-def test_partial_grounding_contract_accounting_is_audited(tmp_path: Path) -> None:
+def test_sparse_grounding_omission_is_normal_but_unknown_derived_segment_is_audited(
+    tmp_path: Path,
+) -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
 
-    class PartialAccountingRuntime(FixtureStructuredRuntime):
+    class SparseGroundingRuntime(FixtureStructuredRuntime):
         def call(self, **kwargs):
             outcome = super().call(**kwargs).model_copy(update={"real_llm": True})
             if kwargs["schema"] is NLContractResponse:
@@ -714,12 +704,32 @@ def test_partial_grounding_contract_accounting_is_audited(tmp_path: Path) -> Non
                 return outcome.model_copy(update={"response": response})
             if kwargs["schema"] is not GroundingResponse:
                 return outcome
-            return outcome
+            unknown = NLContract(
+                contract_id="NL-CONTRACT-NL999-DERIVED-UNKNOWN",
+                segment_id="NL999",
+                quote="A structurally valid but unsupplied segment fixture.",
+                normative_statement="The unavailable segment would require a transition.",
+                locus_kind="transition",
+                locus_names=("Synthetic.Source", "Synthetic.Target"),
+                property="transition_endpoints",
+                expected_direction="must_exist",
+                violation_direction="missing",
+                evidence_types=("transition_fact",),
+                binding_hints=(),
+                scope="fixture scope",
+                source_refs=("nl:NL999",),
+                reason="The fixture deliberately names an unavailable segment.",
+                basis="provider-free unknown derived segment fixture",
+            )
+            response = outcome.response.model_copy(
+                update={"additional_contracts": [unknown]}
+            )
+            return outcome.model_copy(update={"response": response})
 
     cell = _method_cell(
         pair=pair,
         round_index=1,
-        runtime=PartialAccountingRuntime(),
+        runtime=SparseGroundingRuntime(),
         output_root=tmp_path,
     )
 
@@ -731,15 +741,19 @@ def test_partial_grounding_contract_accounting_is_audited(tmp_path: Path) -> Non
     assert grounding_receipt["status"] == "completed_with_diagnostics"
     diagnostics = grounding_receipt["diagnostics"]
     assert any(
-        item.get("class") == "exact_contract_accounting_incomplete"
-        and item.get("missing_contract_ids")
+        item.get("class") == "unknown_additional_contract_segment"
+        and item.get("segment_id") == "NL999"
         for item in diagnostics
     )
     assert cell["eligible"] is True
     assert cell["status"] == "completed_with_diagnostics"
     assert any(
-        item.get("class") == "exact_contract_accounting_incomplete"
+        item.get("class") == "unknown_additional_contract_segment"
         for item in cell["errors"]
+    )
+    assert not any(
+        item.get("class") == "exact_contract_accounting_incomplete"
+        for item in diagnostics
     )
 
 
@@ -822,7 +836,8 @@ def test_large_working_contract_is_role_scoped_before_prompt_serialization(tmp_p
 
     assert max(len(prompt) for _, prompt in runtime.prompts) < 350_000
     grounding_prompt = dict(runtime.prompts)["behavior_consequence"]
-    assert '"elements": [' in grounding_prompt
+    assert '"elements": {' in grounding_prompt
+    assert '"source_to_model": [' in grounding_prompt
     assert '"capability_eligibility_detail_receipt": {' in grounding_prompt
     assert '"excluded_element_ids": {' not in grounding_prompt
     assert '"row_rationale_receipts": {' in grounding_prompt
@@ -833,10 +848,10 @@ def test_large_working_contract_is_role_scoped_before_prompt_serialization(tmp_p
         ensure_ascii=False,
         sort_keys=True,
     )
-    assert len(grounding_context_text) < 210_000
-    assert grounding_context["prompt_projection_version"] == "stage-context-projection.v6"
+    assert len(grounding_context_text) < 150_000
+    assert grounding_context["prompt_projection_version"] == "stage-context-projection.v7"
     assert '"model_refs"' in grounding_context_text
-    assert '"source_refs"' in grounding_context_text
+    assert '"raw_ref"' in grounding_context_text
     for role in (
         "reference_inspection_facts",
         "inspection_equivalent_facts",
@@ -844,9 +859,22 @@ def test_large_working_contract_is_role_scoped_before_prompt_serialization(tmp_p
         "smt_facts",
     ):
         assert role in grounding_context
-    assert grounding_context["working_contract"]["payload"]["elements"]
+    assert grounding_context["working_contract"]["payload"]["elements"]["source_to_model"]
     assert "review_subject" not in grounding_context["working_contract"]["payload"]
     assert "source_trace" in grounding_context
+    transition_row = grounding_context["inspection_equivalent_facts"]["transitions"][0]
+    for field_name in (
+        "source",
+        "target",
+        "triggers",
+        "guard",
+        "effects",
+        "line",
+        "scope",
+        "resolved_source_ref",
+        "resolved_target_ref",
+    ):
+        assert field_name in transition_row
 
 
 def test_full_live_runner_requires_explicit_review_gate() -> None:

@@ -44,6 +44,7 @@ from pipeline.evidence_discovery.orchestration.runner import (
     _judge_prompt,
     _judge_shape_errors,
     _materialize_exact_s2_inventory_candidates,
+    _merge_grounding_contracts,
     _metrics,
     _normalize_grounding_exact_facts,
     _normalize_judge_shape,
@@ -73,11 +74,13 @@ from pipeline.evidence_discovery.semantics import (
     CandidateIssue,
     ContextBudgetReceipt,
     ContractBindingHint,
-    GroundingDisposition,
+    GroundingUnresolved,
     GroundingResponse,
     MethodResponse,
     NLContract,
     NLContractResponse,
+    NLTransitionAlternative,
+    NLTransitionGroup,
     SemanticAdjudication,
     adjudicate_disposition,
     assemble_method_response,
@@ -87,7 +90,6 @@ from pipeline.evidence_discovery.semantics import (
     build_method_prompt,
     fallback_grounding,
     normalize_contract_state_roles,
-    normalize_grounding_dispositions,
     resolve_transition_ref,
 )
 from pipeline.evidence_discovery.semantics.binding import BindingResult
@@ -727,30 +729,12 @@ def test_both_v27_grounding_lenses_contribute_exact_candidates() -> None:
             GroundingResponse(
                 lens="contract_structure_contrast",
                 candidates=[source_candidate],
-                contract_dispositions=[
-                    GroundingDisposition(
-                        contract_id=source_candidate.contract_id,
-                        status="candidate_emitted",
-                        candidate_count=1,
-                        reason="The source fixture emitted one exact candidate.",
-                        basis="provider-free source candidate fixture",
-                    )
-                ],
                 reason="structure fixture",
                 basis="structure fixture",
             ),
             GroundingResponse(
                 lens="behavior_consequence",
                 candidates=[model_candidate],
-                contract_dispositions=[
-                    GroundingDisposition(
-                        contract_id=model_candidate.contract_id,
-                        status="candidate_emitted",
-                        candidate_count=1,
-                        reason="The model fixture emitted one exact candidate.",
-                        basis="provider-free model candidate fixture",
-                    )
-                ],
                 reason="behavior fixture",
                 basis="behavior fixture",
             ),
@@ -1047,19 +1031,17 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
         reason="provider-free fallback fixture",
     )
     assert fallback.candidates == []
-    assert fallback.contract_dispositions[0].contract_id == contract.contract_id
-    assert fallback.contract_dispositions[0].status == "unresolved"
-    assert fallback.contract_dispositions[0].reason
-    assert fallback.contract_dispositions[0].basis
+    assert fallback.unresolved[0].contract_id == contract.contract_id
+    assert fallback.unresolved[0].reason
+    assert fallback.unresolved[0].basis
     assert "reachable non-final leaf" in D_SYSTEM_PROMPT
     assert "intentional-terminal alternative is competent only" in D_SYSTEM_PROMPT
     assert "`rebutting+survives`" in D_SYSTEM_PROMPT
     assert "Predicate/backend availability is a W question" in D_SYSTEM_PROMPT
     assert "different root-level initial edge" in D_SYSTEM_PROMPT
-    assert "For each semantically active operating state" in CONTRACT_SYSTEM_PROMPT
-    assert "semantic state-role coverage pass" in CONTRACT_SYSTEM_PROMPT
-    assert "required target of an operating transition" in CONTRACT_SYSTEM_PROMPT
-    assert "need not repeat words such as continue" in CONTRACT_SYSTEM_PROMPT
+    assert "does not create a progress contract" in CONTRACT_SYSTEM_PROMPT
+    assert "emit an independent `termination` contract" in CONTRACT_SYSTEM_PROMPT
+    assert "covered segment accounting never licenses omission" in CONTRACT_SYSTEM_PROMPT
     assert "first enter ModeA" in CONTRACT_SYSTEM_PROMPT
     assert '"the system begins in Controller" yields owner=root/system' in CONTRACT_SYSTEM_PROMPT
     assert "an intermediate region or nested composite still satisfies" in CONTRACT_SYSTEM_PROMPT
@@ -1090,7 +1072,8 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert '"state_role": "operating_state"' in grounding_prompt
     assert "exact owner hint" in grounding_prompt
     assert "exact owner-local edge reaches the required target" in grounding_prompt
-    assert "The required disposition table contains 1 row(s)" in grounding_prompt
+    assert "Return sparse v27-style output" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "additional_contracts" in grounding_prompt
     assert '["NL-CONTRACT-NL1"]' in grounding_prompt
     assert "missing edge -> exact endpoint state refs" in grounding_prompt
     assert "Predicate support controls" in grounding_prompt
@@ -1106,9 +1089,9 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "Unreachability is not itself a wrong endpoint" in D_SYSTEM_PROMPT
 
     contract_schema = NLContract.model_json_schema()["properties"]
-    assert "needs its own separate progress contract" in contract_schema["state_role"]["description"]
+    assert "does not invent a separate progress contract" in contract_schema["state_role"]["description"]
     response_schema = NLContractResponse.model_json_schema()["properties"]
-    assert "every semantically active operating state" in response_schema["contracts"]["description"]
+    assert "without manufacturing progress for every mentioned operating state" in response_schema["contracts"]["description"]
     assert "Every segment marked covered" in response_schema["contracts"]["description"]
     assert "Mark a numbered segment covered only" in CONTRACT_SYSTEM_PROMPT
 
@@ -1150,63 +1133,171 @@ def test_contract_response_rejects_covered_segment_without_atomic_contract() -> 
     assert response.segment_disposition["NL2"] == "context"
 
 
-def test_grounding_response_rejects_empty_local_accounting() -> None:
-    with pytest.raises(ValidationError):
+def test_grounding_response_uses_sparse_unresolved_without_full_disposition_table() -> None:
+    response = GroundingResponse(
+        lens="contract_structure_contrast",
+        candidates=[],
+        unresolved=[],
+        reason="The fixture found no branch-local issue or uncertainty.",
+        basis="provider-free sparse v27 grounding fixture",
+    )
+    assert response.candidates == []
+    assert response.unresolved == []
+    assert "contract_dispositions" not in response.model_dump(mode="json")
+
+    with pytest.raises(ValidationError, match="both a candidate and unresolved"):
         GroundingResponse(
             lens="contract_structure_contrast",
-            candidates=[],
-            contract_dispositions=[],
-            reason="The fixture returned no candidates.",
-            basis="provider-free empty-accounting fixture",
+            candidates=[
+                CandidateIssue(
+                    contract_id="NL-CONTRACT-NL1",
+                    locus_kind="state",
+                    locus_names=("Controller",),
+                    property="deadlock_freedom",
+                    violation_direction="dead_end",
+                    evidence_types=("deadlock_frontier_fact",),
+                    title="Controller cannot progress",
+                    requirement_quote="Controller must progress.",
+                    predicate_id=None,
+                    predicate_inputs={},
+                    element_refs=[],
+                    source_refs=["nl:NL1"],
+                    expected="Controller progresses.",
+                    observed="No exact continuation could be bound.",
+                    strongest_rebuttal="The binding may be incomplete.",
+                    reason="The fixture emits one candidate.",
+                    basis="provider-free sparse accounting fixture",
+                )
+            ],
+            unresolved=[
+                GroundingUnresolved(
+                    contract_id="NL-CONTRACT-NL1",
+                    reason="The same contract was also marked unresolved.",
+                    basis="provider-free malformed sparse accounting fixture",
+                )
+            ],
+            reason="The fixture deliberately overlaps sparse rows.",
+            basis="provider-free validation fixture",
         )
 
 
-def test_grounding_response_normalizes_derived_count_and_status_without_repair() -> None:
+def test_branch_local_additional_contracts_merge_by_exact_structured_identity() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    segment = pair.nl_segments[0]
+    base_contract = NLContract(
+        contract_id=f"NL-CONTRACT-{segment.segment_id}",
+        segment_id=segment.segment_id,
+        quote=segment.text,
+        normative_statement=segment.text,
+        locus_kind="state",
+        locus_names=(pair.model.states[0].name,),
+        property="initial_entry",
+        expected_direction="must_enter",
+        violation_direction="missing",
+        evidence_types=("initial_entry_fact",),
+        binding_hints=(),
+        scope="closed model root",
+        source_refs=(f"nl:{segment.segment_id}",),
+        reason="The base fixture preserves one source obligation.",
+        basis="provider-free numbered NL fixture",
+    )
     contracts = NLContractResponse(
-        contracts=[
-            NLContract(
-                contract_id="NL-CONTRACT-NL1",
-                segment_id="NL1",
-                quote="The controller preserves the required response.",
-                normative_statement="The controller must preserve the required response.",
-                locus_kind="state",
-                locus_names=("Controller",),
-                property="state_after_stimulus",
-                expected_direction="must_remain",
-                violation_direction="missing",
-                state_role="operating_state",
-                evidence_types=("action_fact",),
-                binding_hints=(),
-                scope="controller state",
-                reason="The numbered requirement states a response obligation.",
-                basis="provider-free NL1 fixture",
-            )
-        ],
-        segment_disposition={"NL1": "covered"},
-        reason="The fixture contains one atomic contract.",
+        contracts=[base_contract],
+        segment_disposition={segment.segment_id: "covered"},
+        reason="The fixture contains one base contract.",
         basis="provider-free contract fixture",
     )
-    response = GroundingResponse(
+    derived_id = f"NL-CONTRACT-{segment.segment_id}-DERIVED-ROOT-REACHABILITY"
+    derived = NLContract(
+        contract_id=derived_id,
+        segment_id=segment.segment_id,
+        quote=segment.text,
+        normative_statement="The required operating scope must be reachable from root.",
+        locus_kind="state",
+        locus_names=(pair.model.states[-1].name,),
+        property="reachability",
+        expected_direction="must_reach",
+        violation_direction="unreachable",
+        evidence_types=("reachability_fact", "verify_fact"),
+        binding_hints=(
+            ContractBindingHint(
+                role="state",
+                value=pair.model.states[-1].name,
+                source_ref=f"nl:{segment.segment_id}",
+                reason="The first lens binds the required operating state.",
+                basis="provider-free first-lens rationale",
+            ),
+        ),
+        scope="closed model root",
+        source_refs=(f"nl:{segment.segment_id}",),
+        reason="Cross-view facts expose a separate root-reachability obligation.",
+        basis="provider-free exact source and ModelIR fixture",
+    )
+    first = GroundingResponse(
         lens="behavior_consequence",
+        additional_contracts=[derived],
         candidates=[],
-        contract_dispositions=[
-            GroundingDisposition(
-                contract_id="NL-CONTRACT-NL1",
-                status="candidate_emitted",
-                candidate_count=1,
-                reason="The model reported a candidate disposition.",
-                basis="provider-free deliberately stale derived fields",
+        reason="The behavior lens derives one causal contract.",
+        basis="provider-free branch-local contract fixture",
+    )
+    merged, diagnostics = _merge_grounding_contracts(pair, contracts, [first])
+    assert merged[derived_id] == derived
+    assert merged[derived_id].property == "reachability"
+    assert merged[base_contract.contract_id].property == "initial_entry"
+    assert diagnostics == []
+
+    agreeing_contract = derived.model_copy(
+        update={
+            "reason": "The second lens independently derives the same typed obligation.",
+            "basis": "provider-free second-lens rationale",
+            "binding_hints": (
+                derived.binding_hints[0].model_copy(
+                    update={
+                        "reason": "The second lens explains the same exact state binding differently.",
+                        "basis": "provider-free second-lens hint rationale",
+                    }
+                ),
+            ),
+        }
+    )
+    agreeing = first.model_copy(
+        update={
+            "lens": "contract_structure_contrast",
+            "additional_contracts": [agreeing_contract],
+        }
+    )
+    merged, diagnostics = _merge_grounding_contracts(
+        pair, contracts, [first, agreeing]
+    )
+    assert merged[derived_id] == derived
+    assert diagnostics == []
+
+    conflicting = derived.model_copy(
+        update={
+            "locus_names": (pair.model.states[0].name,),
+            "reason": "The second lens assigns a different exact locus.",
+        }
+    )
+    second = GroundingResponse(
+        lens="contract_structure_contrast",
+        additional_contracts=[conflicting],
+        candidates=[],
+        unresolved=[
+            GroundingUnresolved(
+                contract_id="NL-CONTRACT-NL999-DERIVED-UNKNOWN",
+                reason="The fixture names an unavailable contract.",
+                basis="provider-free unknown-ID fixture",
             )
         ],
-        reason="The fixture carries stale derived accounting.",
-        basis="provider-free local-accounting fixture",
+        reason="The source lens deliberately conflicts for validation.",
+        basis="provider-free conflict fixture",
     )
-
-    normalized = normalize_grounding_dispositions(response, contracts)
-
-    assert normalized.contract_dispositions[0].status == "unresolved"
-    assert normalized.contract_dispositions[0].candidate_count == 0
-    assert "normalized" in normalized.reason
+    merged, diagnostics = _merge_grounding_contracts(pair, contracts, [first, second])
+    assert derived_id not in merged
+    assert {item["class"] for item in diagnostics} == {
+        "conflicting_additional_contract_id",
+        "unknown_unresolved_contract_id",
+    }
 
 
 def test_unsupported_backend_does_not_turn_satisfied_semantics_into_d1() -> None:
@@ -1284,6 +1375,57 @@ def test_d_validation_rejects_unreachability_recast_as_bound_state_dead_end() ->
     assert any("unreachability is not a local dead-end" in error for error in errors)
 
 
+def test_d_validation_rejects_declared_but_unreachable_consumer_as_rebuttal() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0046")
+    assert pair.inspection_facts is not None
+    event_fact = next(
+        fact
+        for fact in pair.inspection_facts.event_consumers
+        if fact.declared_ref is not None
+        and fact.consumer_transition_refs
+        and not fact.reachable_consumer_transition_refs
+    )
+    candidate = CandidateIssue(
+        contract_id="NL-CONTRACT-NL4-EVENT-CONSUMER",
+        locus_kind="event",
+        locus_names=(event_fact.event, "UAV swarm operating scope"),
+        property="event_consumer_coverage",
+        violation_direction="unconsumed",
+        evidence_types=("event_consumer_fact", "reachability_fact"),
+        title="Required event has no reachable consumer",
+        requirement_quote="The supplied event must be consumed during operation.",
+        predicate_id=None,
+        predicate_inputs={},
+        element_refs=[event_fact.declared_ref, *event_fact.consumer_transition_refs],
+        source_refs=["NL4"],
+        expected="At least one consumer is reachable in the required scope.",
+        observed="All exact consumer transition sources are unreachable.",
+        strongest_rebuttal="The event declaration and consumer transitions exist.",
+        reason="The fixture binds declaration separately from operational reachability.",
+        basis="provider-free 0046 inspection-equivalent event-consumer facts",
+    )
+    binding = bind_candidate(candidate, pair.model)
+    assert binding.precise is True
+    invalid = SemanticAdjudication(
+        obligation_id="0046:r1:i0",
+        grounding="established",
+        violated_obligation="The required event has no reachable consumer.",
+        strongest_defeater="A declaration and unreachable consumer exist.",
+        defeater_kind="rebutting",
+        defeater_disposition="survives",
+        reason="The fixture deliberately treats declaration as satisfaction.",
+        basis="provider-free contradictory D fixture",
+    )
+
+    errors = _d_decision_consistency_errors(
+        invalid,
+        prepared={"candidate": candidate, "binding": binding},
+        pair=pair,
+    )
+
+    assert any("declaration-only presence cannot rebut" in error for error in errors)
+
+
 def test_structured_models_require_non_empty_audit_rationale_and_descriptions() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     candidate = _candidate(pair, predicate_id="S1", inputs={})
@@ -1326,7 +1468,9 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
         ContextBudgetReceipt,
         ContractBindingHint,
         NLContract,
-        GroundingDisposition,
+        NLTransitionAlternative,
+        NLTransitionGroup,
+        GroundingUnresolved,
         W2AuditBundle,
     ):
         schema = model.model_json_schema()
@@ -1562,6 +1706,125 @@ def test_0029_contract_shape_rejects_bundled_transition_alternatives() -> None:
     assert split.property == "transition_endpoints"
     assert [hint.role for hint in split.binding_hints] == ["source", "target"]
 
+    transition_group = NLTransitionGroup(
+        group_id="NL-GROUP-NL2-INITIALSTATE-CHOICE",
+        segment_id=segment.segment_id,
+        source_name="InitialState",
+        alternatives=(
+            NLTransitionAlternative(
+                alternative_id="ALT-NL2-HIGHWAY",
+                target_name="HighwayMode",
+                condition="high_way=true",
+                condition_role="qualified_guard",
+                source_refs=(segment.segment_id,),
+                reason="The first destination has its own normative condition.",
+                basis="provider-free NL2 transition-group fixture",
+            ),
+            NLTransitionAlternative(
+                alternative_id="ALT-NL2-URBAN",
+                target_name="UrbanMode",
+                condition="urban_way=true",
+                condition_role="qualified_guard",
+                source_refs=(segment.segment_id,),
+                reason="The second destination has its own normative condition.",
+                basis="provider-free NL2 transition-group fixture",
+            ),
+        ),
+        source_refs=(segment.segment_id,),
+        reason="Both target alternatives share the same semantically stated source.",
+        basis="provider-free NL2 discourse fixture",
+    )
+    grouped = NLContractResponse(
+        contracts=[split],
+        transition_groups=[transition_group],
+        segment_disposition={segment.segment_id: "covered"},
+        reason="The response preserves both an atomic endpoint and its relation group.",
+        basis="provider-free v27 transition-group fixture",
+    )
+    assert len(grouped.transition_groups[0].alternatives) == 2
+    compact_prompt = build_grounding_prompt(
+        pair,
+        lens="contract_structure_contrast",
+        round_index=1,
+        contracts=grouped,
+    )
+    assert '"group_id": "NL-GROUP-NL2-INITIALSTATE-CHOICE"' in compact_prompt
+    assert '"alternative_id": "ALT-NL2-HIGHWAY"' in compact_prompt
+    assert "compare all alternatives as one relation" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+
+
+def test_containment_and_termination_contracts_survive_covered_segment_accounting() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    segment = next(item for item in pair.nl_segments if item.segment_id == "NL1")
+
+    def contract(
+        contract_id: str,
+        *,
+        property_name: str,
+        locus_kind: str,
+        locus_names: tuple[str, ...],
+        expected_direction: str,
+        violation_direction: str,
+        state_role: str | None = None,
+    ) -> NLContract:
+        return NLContract(
+            contract_id=contract_id,
+            segment_id=segment.segment_id,
+            quote=segment.text,
+            normative_statement=f"The fixture requires {property_name}.",
+            locus_kind=locus_kind,
+            locus_names=locus_names,
+            property=property_name,
+            state_role=state_role,
+            expected_direction=expected_direction,
+            violation_direction=violation_direction,
+            evidence_types=("source_identity", "semantic_comparison"),
+            binding_hints=(),
+            scope="AutonomousMode",
+            source_refs=(segment.segment_id,),
+            reason=f"The fixture preserves the independent {property_name} obligation.",
+            basis="provider-free typed contract fixture",
+        )
+
+    containment = contract(
+        "NL-CONTRACT-NL1-CONTAINMENT",
+        property_name="containment",
+        locus_kind="state",
+        locus_names=("AutonomousMode", "InitialState"),
+        expected_direction="must_be_contained",
+        violation_direction="wrong_scope",
+    )
+    endpoint = contract(
+        "NL-CONTRACT-NL1-ENDPOINT",
+        property_name="transition_endpoints",
+        locus_kind="transition",
+        locus_names=("AutonomousMode", "InitialState"),
+        expected_direction="must_exist",
+        violation_direction="missing",
+    )
+    termination = contract(
+        "NL-CONTRACT-NL1-TERMINATION",
+        property_name="termination",
+        locus_kind="state",
+        locus_names=("FinishState",),
+        expected_direction="must_terminate",
+        violation_direction="not_completed",
+        state_role="termination_state",
+    )
+    response = NLContractResponse(
+        contracts=[containment, endpoint, termination],
+        segment_disposition={segment.segment_id: "covered"},
+        reason="Covered retains every independently violable contract.",
+        basis="provider-free segment-accounting fixture",
+    )
+    normalized, _ = normalize_contract_state_roles(response)
+    assert {item.property for item in normalized.contracts} == {
+        "containment",
+        "transition_endpoints",
+        "termination",
+    }
+    assert not any(item.property == "deadlock_freedom" for item in normalized.contracts)
+
 
 def test_0046_contract_shape_separates_endpoint_and_event_consumer() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0046")
@@ -1616,7 +1879,7 @@ def test_0046_contract_shape_separates_endpoint_and_event_consumer() -> None:
     assert "one normalized guard hint" in CONTRACT_SYSTEM_PROMPT
     assert "`property=state_action` uses `evidence_types=[action_fact]`" in CONTRACT_SYSTEM_PROMPT
     assert "return the complete replacement" in build_contract_prompt(pair, 1)
-    assert "Never return only the" in build_contract_prompt(pair, 1)
+    assert "Never return only the" in " ".join(build_contract_prompt(pair, 1).split())
     contract_schema = NLContractResponse.model_json_schema()
     contracts_description = contract_schema["properties"]["contracts"]["description"]
     assert "complete replacement list" in contracts_description
@@ -1641,6 +1904,8 @@ def test_0046_contract_shape_separates_endpoint_and_event_consumer() -> None:
     assert "Complete-inventory absence protocol" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "a nonexistent transition cannot supply its own ref" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "Do not leave a normative qualifier only inside" in CONTRACT_SYSTEM_PROMPT
+    assert "instead of duplicating every mentioned qualifier" in CONTRACT_SYSTEM_PROMPT
+    assert "derive only actual mismatches" in CONTRACT_SYSTEM_PROMPT
     assert "effect and guard are property values" in NLContract.model_json_schema()["properties"]["locus_kind"]["description"]
 
 
@@ -1726,15 +1991,6 @@ def test_exact_outgoing_fact_rejects_false_dead_end_but_preserves_true_frontier(
         return GroundingResponse(
             lens="behavior_consequence",
             candidates=[candidate],
-            contract_dispositions=[
-                GroundingDisposition(
-                    contract_id=contract_id,
-                    status="candidate_emitted",
-                    candidate_count=1,
-                    reason="The branch emitted the candidate.",
-                    basis="provider-free grounding fixture",
-                )
-            ],
             reason="The fixture returns one behavior candidate.",
             basis="provider-free grounding fixture",
         )
@@ -1744,7 +2000,7 @@ def test_exact_outgoing_fact_rejects_false_dead_end_but_preserves_true_frontier(
         with_outgoing, response_for(with_outgoing, "DoorOpen")
     )
     assert normalized.candidates == []
-    assert normalized.contract_dispositions[0].status == "satisfied"
+    assert normalized.unresolved == []
     assert diagnostics[0]["class"] == "exact_local_progress_satisfied"
     assert diagnostics[0]["outgoing_transition_refs"]["DoorOpen"]
 
@@ -1753,7 +2009,7 @@ def test_exact_outgoing_fact_rejects_false_dead_end_but_preserves_true_frontier(
         zero_outgoing, response_for(zero_outgoing, "PumpState")
     )
     assert len(preserved.candidates) == 1
-    assert preserved.contract_dispositions[0].status == "candidate_emitted"
+    assert preserved.unresolved == []
     assert diagnostics == []
 
 

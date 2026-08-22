@@ -31,6 +31,44 @@ StateSemanticRole = Literal[
 ]
 
 
+class NLTransitionAlternative(BaseModel):
+    """One normative target alternative in a v27-style transition group."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    alternative_id: str = Field(pattern=r"^ALT-[A-Za-z0-9_.-]+$", min_length=5, description="Stable response-local alternative ID copied by grounding when it discusses this exact member.")
+    target_name: str = Field(min_length=1, description="Normative target concept named by the numbered NL; preserve discourse coreference instead of inheriting an arbitrary model scope.")
+    condition: str | None = Field(default=None, min_length=1, description="Condition semantically attached to this target alternative, or null when the NL states an unconditional relation.")
+    condition_role: Literal["event", "qualified_guard", "unknown"] | None = Field(default=None, description="Semantic role of condition: event for a stimulus/event identity, qualified_guard for an independently constraining condition, unknown only when the supplied NL cannot decide, or null when no condition is stated.")
+    observed_transition_ref: str | None = Field(default=None, min_length=1, description="Exact author-source or closed-model transition ref selected during cross-view grounding, or null in an NL-only group and whenever no exact transition realizes the relation.")
+    source_refs: tuple[str, ...] = Field(default_factory=tuple, description="Exact supplied NL or author-source refs supporting this alternative; do not invent refs.")
+    reason: str = Field(min_length=1, description="LLM explanation of why this target and condition form one member of the shared-source transition group.")
+    basis: str = Field(min_length=1, description="LLM basis naming the numbered NL clause and, during grounding, any exact transition fact used for this member.")
+
+
+class NLTransitionGroup(BaseModel):
+    """One v27-style semantic transition group with a shared source."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    group_id: str = Field(pattern=r"^NL-GROUP-[A-Za-z0-9_.-]+$", min_length=10, description="Stable group ID derived from one supplied numbered segment and reused only for this exact shared-source relation.")
+    segment_id: str = Field(pattern=r"^NL[0-9]+(?:\.[0-9]+)?$", min_length=3, description="Exact numbered NL segment containing or completing this transition relation.")
+    source_name: str = Field(min_length=1, description="Normative source concept after LLM discourse/coreference resolution; never default to the enclosing model merely because a later sentence omits its source.")
+    alternatives: tuple[NLTransitionAlternative, ...] = Field(min_length=1, description="Complete ordered target alternatives sharing source_name; do not truncate a branch set or split alternatives into unrelated groups.")
+    source_refs: tuple[str, ...] = Field(default_factory=tuple, description="Exact supplied NL/source refs supporting the shared source and group boundary.")
+    reason: str = Field(min_length=1, description="LLM explanation of the discourse relation that makes these alternatives share one source.")
+    basis: str = Field(min_length=1, description="LLM basis naming the supplied numbered clauses used to resolve the source, ordering, and alternative membership.")
+
+    @model_validator(mode="after")
+    def validate_alternative_ids(self) -> NLTransitionGroup:
+        """Require response-local exact IDs without interpreting transition prose."""
+
+        alternative_ids = [item.alternative_id for item in self.alternatives]
+        if len(alternative_ids) != len(set(alternative_ids)):
+            raise ValueError("transition group alternative_id values must be unique")
+        return self
+
+
 class NLContract(BaseModel):
     """One typed, source-grounded obligation extracted from a numbered NL segment.
 
@@ -63,11 +101,10 @@ class NLContract(BaseModel):
             "v27 semantic role of the state centered by this contract, or null "
             "when the locus is not one state concept. An operating state denotes "
             "active behavior that must retain a response/progress interpretation. "
-            "A state required as the target of an operating transition remains an "
-            "operating state and needs its own separate progress contract unless "
-            "the supplied NL explicitly establishes terminal behavior; the target "
-            "name and absence of an explicit continuation sentence do not make it "
-            "terminal. "
+            "A state required as the target of an operating transition may retain "
+            "an operating role, but that role alone does not invent a separate "
+            "progress contract. Progress requires an explicit continuation/response "
+            "obligation or a later cross-view domain obligation. "
             "termination_state requires explicit completion or terminal semantics "
             "from the NL and must never be inferred from a suggestive identifier."
         ),
@@ -177,7 +214,8 @@ class NLContractResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    contracts: list[NLContract] = Field(default_factory=list, description="Complete list of atomic contracts covering normative numbered NL segments, including every semantically active operating state through exactly one separate deadlock_freedom/progress contract per unique state identity across the entire response; aggregate repeated supporting segments into that one contract instead of emitting one progress row per mention. A state required as an operating transition target is included unless the NL explicitly makes it terminal. Descriptive segments may be omitted with an explained top-level basis. Every segment marked covered must retain at least one atomic contract carrying that exact segment_id. A schema-correction turn must repeat every valid contract and return a complete replacement list, not only the corrected row or a summary placeholder for earlier rows.")
+    contracts: list[NLContract] = Field(default_factory=list, description="Complete list of independently violable atomic contracts from normative numbered NL. Preserve containment, initial/default entry, transition endpoints, explicit progress/response, termination, event-consumer scope, and other distinct properties without manufacturing progress for every mentioned operating state. Descriptive segments may be omitted with an explained top-level basis. Every segment marked covered must retain at least one atomic contract carrying that exact segment_id, but covered never means all other obligations in the segment may be dropped. A schema-correction turn must return a complete replacement list containing every valid contract and semantic group, not only the corrected row or a summary placeholder.")
+    transition_groups: list[NLTransitionGroup] = Field(default_factory=list, description="v27-style shared-source transition relations used for discourse binding and alternative comparison. Each endpoint remains an atomic contract; when alternatives semantically require distinguishability, add a separate guard_disjointness contract rather than hiding that property inside endpoint rows.")
     segment_disposition: dict[str, Literal["covered", "context", "ambiguous"]] = Field(default_factory=dict, description="Disposition for supplied NL segment IDs only; every key must be an input segment ID. Use covered only when at least one contract in this same response carries that exact segment_id; context and ambiguous may have no contract.")
     reason: str = Field(min_length=1, description="LLM explanation of the overall contract extraction decision.")
     basis: str = Field(min_length=1, description="LLM basis identifying the supplied NL segments and source context used.")
@@ -204,19 +242,25 @@ class NLContractResponse(BaseModel):
                 "with the same segment_id; repeat the complete atomic contract "
                 f"list instead of replacing prior rows with a summary: {uncovered_ids}"
             )
+        group_ids = [group.group_id for group in self.transition_groups]
+        if len(group_ids) != len(set(group_ids)):
+            raise ValueError("transition_groups must contain unique group_id values")
         return self
 
 
-class GroundingDisposition(BaseModel):
-    """One branch's explicit disposition for one atomic NL contract."""
+class GroundingUnresolved(BaseModel):
+    """One exact contract that this grounding lens could not bind or assess.
+
+    v27 returned sparse unresolved rows rather than forcing the model to restate
+    every satisfied contract. A missing row therefore makes no semantic claim;
+    this object is emitted only when the branch has a concrete unresolved unit.
+    """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
     contract_id: str = Field(pattern=r"^NL-CONTRACT-[A-Za-z0-9_.-]+$", min_length=14, description="Exact supplied atomic contract ID reviewed by this grounding branch.")
-    status: Literal["candidate_emitted", "satisfied", "unresolved", "not_applicable"] = Field(description="Branch result for this contract; unresolved preserves insufficient facts, while satisfied and not_applicable require a reason grounded in supplied branch facts.")
-    candidate_count: int = Field(ge=0, description="LLM-reported number of candidates in this response carrying this exact contract ID. This is explanatory audit data, not an admission gate: deterministic normalization recomputes it from exact contract IDs before execution.")
-    reason: str = Field(min_length=1, description="LLM explanation of why this branch emitted candidates or assigned the stated non-candidate disposition for this contract.")
-    basis: str = Field(min_length=1, description="LLM basis naming the branch-specific source or closed-model facts used for this one contract disposition.")
+    reason: str = Field(min_length=1, description="LLM explanation of the exact missing identity, ambiguous source meaning, unavailable deterministic fact, or other uncertainty that prevents this branch from forming a candidate.")
+    basis: str = Field(min_length=1, description="LLM basis naming the supplied source or closed-model facts checked before this contract remained unresolved.")
 
 
 GroundingLens = Literal["contract_structure_contrast", "behavior_consequence"]
@@ -228,30 +272,32 @@ class GroundingResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     lens: GroundingLens = Field(description="Exact v27 audit-lens identity; both lenses receive the same cross-view context and response contract.")
-    candidates: list[CandidateIssue] = Field(default_factory=list, description="Candidate claims grounded across author source, closed FCSTM, and deterministic facts. Every candidate list item must independently carry all CandidateIssue fields, including its own non-empty reason and basis; a top-level or disposition basis does not satisfy a candidate. Candidates must not emit W/D/L levels.")
-    contract_dispositions: list[GroundingDisposition] = Field(min_length=1, description="One reasoned disposition per supplied atomic contract for this lens. This array must never be empty, even when the lens emits no candidates; every supplied contract still needs an explicit satisfied, unresolved, or not_applicable row. Missing rows are normalized to explicit unresolved receipts without semantic guessing.")
+    additional_contracts: list[NLContract] = Field(default_factory=list, description="Sparse v27-style atomic obligations derived by this grounding lens when exact cross-view facts reveal a causal property absent from the NL-only contract plan. Each row must retain one supplied segment_id and source obligation, use a unique NL-CONTRACT-...-DERIVED-... ID, and carry its own reason/basis. Do not restate supplied contracts, enumerate satisfied checks, or derive obligations from labels, identifier shape, ledger data, or historical results.")
+    additional_transition_groups: list[NLTransitionGroup] = Field(default_factory=list, description="Sparse v27-style transition groups omitted by NL-only extraction and established only after cross-view semantic grounding. Do not restate supplied groups; every target member needs exact reason/basis and any observed transition ref must come from the supplied inventories.")
+    candidates: list[CandidateIssue] = Field(default_factory=list, description="Candidate claims grounded across author source, closed FCSTM, and deterministic facts. Every candidate list item must independently carry all CandidateIssue fields, including its own non-empty reason and basis; a top-level or unresolved basis does not satisfy a candidate. The contract_id must name either one supplied contract or one row in additional_contracts. Candidates must not emit W/D/L levels.")
+    unresolved: list[GroundingUnresolved] = Field(default_factory=list, description="Sparse exact contract rows that this lens could not bind or assess. Omit satisfied and not-applicable contracts instead of restating the full contract table. Every unresolved row must carry its own reason and basis.")
     reason: str = Field(min_length=1, description="LLM explanation of how this audit lens selected or rejected candidate claims.")
     basis: str = Field(min_length=1, description="LLM basis naming the supplied cross-view facts and contract IDs used by this lens.")
 
     @model_validator(mode="after")
-    def validate_local_contract_accounting(self) -> GroundingResponse:
-        """Require structural accounting while leaving derived values to normalization."""
+    def validate_sparse_contract_accounting(self) -> GroundingResponse:
+        """Require unique sparse rows without making cross-stage semantic claims."""
 
-        disposition_ids = [item.contract_id for item in self.contract_dispositions]
-        if len(disposition_ids) != len(set(disposition_ids)):
+        additional_ids = [item.contract_id for item in self.additional_contracts]
+        if len(additional_ids) != len(set(additional_ids)):
+            raise ValueError("additional_contracts must contain unique contract_id values")
+        additional_group_ids = [item.group_id for item in self.additional_transition_groups]
+        if len(additional_group_ids) != len(set(additional_group_ids)):
+            raise ValueError("additional_transition_groups must contain unique group_id values")
+        unresolved_ids = [item.contract_id for item in self.unresolved]
+        if len(unresolved_ids) != len(set(unresolved_ids)):
+            raise ValueError("unresolved must contain each contract_id at most once")
+        candidate_ids = {candidate.contract_id for candidate in self.candidates}
+        overlap = sorted(candidate_ids & set(unresolved_ids))
+        if overlap:
             raise ValueError(
-                "contract_dispositions must contain each contract_id exactly once"
-            )
-        candidate_counts: dict[str, int] = {}
-        for candidate in self.candidates:
-            candidate_counts[candidate.contract_id] = (
-                candidate_counts.get(candidate.contract_id, 0) + 1
-            )
-        missing_dispositions = sorted(set(candidate_counts) - set(disposition_ids))
-        if missing_dispositions:
-            raise ValueError(
-                "every candidate contract_id needs one contract_dispositions row; "
-                f"missing {missing_dispositions}"
+                "a contract cannot be both a candidate and unresolved in one lens: "
+                f"{overlap}"
             )
         return self
 
@@ -381,6 +427,26 @@ def _compact_contract_plan(contracts: NLContractResponse) -> dict[str, Any]:
                 "source_refs": contract.source_refs,
             }
             for contract in contracts.contracts
+        ],
+        "transition_groups": [
+            {
+                "group_id": group.group_id,
+                "segment_id": group.segment_id,
+                "source_name": group.source_name,
+                "alternatives": [
+                    {
+                        "alternative_id": alternative.alternative_id,
+                        "target_name": alternative.target_name,
+                        "condition": alternative.condition,
+                        "condition_role": alternative.condition_role,
+                        "observed_transition_ref": alternative.observed_transition_ref,
+                        "source_refs": alternative.source_refs,
+                    }
+                    for alternative in group.alternatives
+                ],
+                "source_refs": group.source_refs,
+            }
+            for group in contracts.transition_groups
         ],
         "segment_disposition": contracts.segment_disposition,
         "reason": "Grounding receives each exact typed contract and source anchor while upstream LLM rationale remains in the hash-addressed contract stage output.",
@@ -544,14 +610,14 @@ PREDICATE_ROUTING_GUIDANCE = """Frozen predicate routing discipline:
 - For a missing fact, bind the expected exact model/source element and the observed absence or counterexample. For a present fact, preserve it as a non-violation observation unless the supplied dossier identifies a distinct violated obligation."""
 
 
-CONTRACT_SYSTEM_PROMPT = f"""You are the NL contract extraction stage of the paper1 evidence_discovery method. {COMMON_RULES} Extract atomic source obligations before inspecting model satisfaction. For every contract, fill the typed semantic key `(locus_kind, locus_names, property, state_role, expected_direction, violation_direction, evidence_types)` and typed binding hints. Split independently violable containment, initialization, transition endpoint, trigger, guard, effect, action, reachability, progress, event-consumer, region, variable-delta, and excess-behavior clauses instead of bundling them. Preserve qualifiers, ordering, initialization/operation/termination scope, and ambiguity. The violation direction says what later grounding must test; it does not claim that the defect exists. Keep each per-contract reason and basis concise and specific; do not restate the full input context. Mark a numbered segment covered only when at least one atomic contract carries that exact segment_id. During schema correction, return the complete prior atomic list with only the reported structural defect repaired; never replace valid contracts with an `other` summary row or a claim that earlier obligations are preserved elsewhere.
+CONTRACT_SYSTEM_PROMPT = f"""You are the NL contract extraction stage of the paper1 evidence_discovery method. {COMMON_RULES} Extract atomic source obligations before inspecting model satisfaction. For every contract, fill the typed semantic key `(locus_kind, locus_names, property, state_role, expected_direction, violation_direction, evidence_types)` and typed binding hints. Preserve v27 transition relations in `transition_groups` so shared sources, all alternatives, ordering/coreference, and condition roles remain available to grounding; endpoint, guard-disjointness, and termination properties still require their own atomic contracts. Split independently violable containment, initialization, transition endpoint, trigger, guard, effect, action, reachability, progress, event-consumer, region, variable-delta, and excess-behavior clauses instead of bundling them. Preserve qualifiers, ordering, initialization/operation/termination scope, and ambiguity. The violation direction says what later grounding must test; it does not claim that the defect exists. Keep each per-object reason and basis concise and specific; do not restate the full input context. Mark a numbered segment covered only when at least one atomic contract carries that exact segment_id, but do not treat covered as proof that every independent relation in that segment was extracted. During schema correction, return the complete prior atomic list and transition group list with only the reported structural defect repaired; never replace valid contracts with an `other` summary row or a claim that earlier obligations are preserved elsewhere.
 
 Allowed `evidence_types` values are exactly: `source_identity`, `closed_model_inventory`, `transition_fact`, `initial_entry_fact`, `containment_fact`, `reachability_fact`, `deadlock_frontier_fact`, `event_consumer_fact`, `guard_fact`, `effect_fact`, `action_fact`, `trace_fact`, `verify_fact`, `smt_fact`, `semantic_comparison`, and `other`. Do not put a property name in this field: for example, `property=state_action` uses `evidence_types=[action_fact]`, never `state_action`.
 
 Atomic contract shape:
 - One contract represents one property at one independently violable locus. A transition-property row has at most one source, one target, and one transition hint.
 - Alternative destinations are separate endpoint contracts. A guard conjunction for one exact transition remains one normalized guard hint; guards attached to different transitions are separate contracts.
-- A transition endpoint contract contains only the required source and target relation. When the same clause qualifies that transition with an event, condition/guard, or effect, emit an additional atomic trigger_set, guard, or effect contract even if the author model omits that field. Do not leave a normative qualifier only inside an endpoint quote, locus name, or evidence_types list.
+- A transition endpoint contract contains only the required source and target relation. Preserve an event or branch-selection condition on its `transition_groups` alternative instead of duplicating every mentioned qualifier into a standalone contract. Emit a separate trigger_set or guard contract at NL extraction only when the clause states that trigger/guard as an independently violable obligation beyond selecting that alternative. Grounding must derive a sparse atomic trigger/guard contract when exact cross-view comparison later reveals a mismatch. An independently required effect or state action remains its own atomic contract because transition_groups do not carry those properties. Do not leave a normative qualifier only inside an endpoint quote, locus name, or evidence_types list.
 - A bidirectional or dynamic A-to-B/B-to-A requirement is two endpoint contracts. Never place two source hints or two target hints in one contract.
 - A conjunction such as `a and b and c` on one transition is one normalized guard hint with the complete conjunction as its value, not three guard hints. Alternative guards on different transitions remain separate contracts.
 - Initialization, containment, endpoint, trigger, guard, effect, action, reachability/progress, event-consumer coverage, region structure, and variable delta never share one contract merely because the NL states them in one sentence.
@@ -560,10 +626,12 @@ Atomic contract shape:
 
 v27 state-role and discourse discipline:
 - Preserve the semantic role of every state-centered obligation in `state_role`. Use `operating_state` for an active control state or substate whose behavior must react, continue, or lead onward; use `termination_state` only when the NL explicitly establishes completion or intended terminal behavior. A name that sounds like stopping, emergency, final, or completion is not itself terminal evidence.
-- For each semantically active operating state identity, emit exactly one separate `deadlock_freedom` contract across the whole response with `expected_direction=must_progress`, `violation_direction=dead_end`, and the exact state as its locus. Repeated mentions in later numbered segments support that same row through source_refs; they do not create another progress contract. This contract states the v27 progress/response obligation before model inspection. Grounding will decide from exact finite facts whether the state has an outgoing or inherited continuation, an explicit terminal route, or a dead-end frontier. Do not emit this contract for an explicitly intended terminal state.
-- Before returning, perform a semantic state-role coverage pass over the supplied numbered NL: enumerate every state that the requirements make active, including every required target of an operating transition or initial entry. For each state not explicitly established as terminal, verify that the response contains its own atomic `deadlock_freedom` contract. A sentence need not repeat words such as continue, exit, or respond; required entry into an operating state supplies the first operational reading used by v27. Do not omit the progress contract merely because the same state already appears in an endpoint, trigger, action, or effect contract.
+- Emit `deadlock_freedom` only when the NL explicitly requires continuation, response availability, repeated operation, or onward progress for that exact state/scope. Merely naming, entering, or targeting an operating state does not create a progress contract. Cross-view grounding may later add a domain-grounded reachability/progress obligation from exact source/inspection facts; NL-only extraction must not pre-enumerate one for every state.
+- When the NL explicitly says that a mode ends, completes, or terminates at a state, set that state's role to `termination_state` and emit an independent `termination` contract with `expected_direction=must_terminate` and `violation_direction=not_completed`. Do not simultaneously manufacture a progress contract for that terminal role. Grounding will assess stable termination separately from endpoint existence.
 - Treat an explicit "first transitions/enters" clause as `initial_entry` into the first state under the enclosing operating owner, not as an ordinary transition from a word such as system or controller. In an initial-entry contract, `owner` is the scope that owns the required initial pseudostate edge and `target` is the state entered by that edge. Thus "the system begins in Controller" yields owner=root/system and target=Controller, while a later "within Controller, first enter ModeA" yields owner=Controller and target=ModeA. Never make the entered target its own owner merely because it is described as a composite. Resolve later omitted sources and enclosing owners by discourse semantics. A sequence such as "first enter ModeA; it can then transition to ModeB; similarly it transitions to ModeC" yields owner initial-entry to ModeA, ModeA-to-ModeB, and ModeB-to-ModeC. By contrast, "from ModeA choose either ModeB or ModeC" yields two alternatives from ModeA. This is an LLM coreference and ordering judgment; never decide it by keywords or identifier spelling.
-- Keep a state-owned action/effect independent from the endpoint that enters the state. The action may remain a precise unsupported W1 obligation even when the endpoint exists.
+- Preserve every explicit parent/child relation as a separate `containment` contract. A clause that a scope transitions into, contains, or uses a named substate may establish both an endpoint/initial-entry relation and child containment; one does not replace the other. In particular, covered segment accounting never licenses omission of the containment row.
+- Put every direct-transition sentence in one `transition_groups` row with its semantically resolved shared source and complete target set. Sequential discourse continues from the preceding target when the supplied meaning supports that reading; it does not mechanically inherit the enclosing composite as source. When two alternatives from the same source are intended to be distinguishable or mutually exclusive, emit a separate `guard_disjointness` contract over that group. Two individually present guards do not establish disjointness.
+- Keep a state-owned action/effect independent from the endpoint that enters the state. The action may remain a precise unsupported W1 obligation even when the endpoint exists. Do not create standalone trigger/guard contracts that merely repeat every transition-group condition; use the group as the compact normative relation and let grounding derive only actual mismatches.
 - Preserve containment depth from the NL. A state described only as being "within" or "under" a composite requires semantic descendant containment; an intermediate region or nested composite still satisfies that obligation. Require direct/immediate ownership only when the source meaning explicitly requires no intermediate owner. Region or wrapper structure is a separate contract only when the NL independently specifies that structure or its concurrency semantics.
 
 Generic worked example: "Within Controller, start in Idle; on Begin transition from Idle to Running when enabled and set mode=active" yields separate contracts for Controller containment of Idle, Controller initial entry to Idle, the Idle-to-Running endpoint, its Begin trigger set, its enabled guard, and its mode=active effect. If the clause also requires Begin to be accepted throughout Controller, that coverage requirement is a separate event-consumer contract. Do not copy the whole sentence into one multi-property contract.
@@ -582,8 +650,8 @@ actually used in `evidence_types`.
 
 Emit a candidate only for a possible violated obligation or a precisely bound
 semantic gap that must remain W1. When the supplied source/model facts satisfy a
-contract, return its disposition as `satisfied` and emit no candidate for that
-contract. Predicate/backend unavailability does not turn a satisfied fact into
+contract, omit it from both `candidates` and `unresolved`. Predicate/backend
+unavailability does not turn a satisfied fact into
 an issue and is not by itself semantic ambiguity.
 
 Complete-inventory absence protocol: when the contract supplies an exact source
@@ -614,16 +682,64 @@ Keep author-source and closed-model namespaces separate: `element_refs` contains
 only exact FCSTM/ModelIR refs, while PlantUML, canonical, source, and macro refs
 belong in `source_refs`. An unmapped source identity is provenance, not evidence
 that an otherwise exact FCSTM binding is missing.
-Every candidate and contract disposition must include its own non-empty reason
-and basis. These are structural output obligations, not optional prose.
+Every candidate, additional contract, and unresolved row must include its own
+non-empty reason and basis. These are structural output obligations, not optional prose.
 Before returning, inspect every candidate list item independently: copy the full
 `NL-CONTRACT-...` ID without abbreviation and include both `reason` and `basis`
-on that item. Keep `contract_dispositions` as one flat top-level array; never
-nest a second `contract_dispositions` object inside an array row.
-Build the complete disposition table before returning candidates. Both lenses
-must account for every supplied contract; a lens priority changes attention, not
-the required ID coverage. An empty disposition array is schema-invalid even when
-the lens emits no candidates.
+on that item.
+
+Return sparse v27-style output. Do not restate satisfied or not-applicable
+contracts. Use `unresolved` only for an exact contract whose semantic source,
+model identity, or necessary fact cannot be bound, and give that row its own
+reason and basis. A contract absent from candidates and unresolved makes no
+additional claim and remains fully preserved in the contract-stage receipt.
+
+Like v27 `additional_contracts`, this branch may add a small number of causal
+atomic obligations when the cross-view closure exposes a property that the NL-only
+contract extraction could not see. This does not authorize arbitrary issue
+invention. Every additional contract must retain one supplied numbered NL segment,
+state the requirement-side semantic implication, bind exact source/model facts,
+and use a unique `NL-CONTRACT-<segment>-DERIVED-...` ID. A candidate using it must
+copy its exact typed semantic key. Typical legitimate cases are: required operating
+behavior whose exact consumer transitions are unreachable because an enclosing
+source composite lacks an entry; an exact required operating state that is
+unreachable from root; or an unqualified event-response obligation whose exact
+consumer coverage is narrower than its semantically bound scope. Do not derive
+these from keywords, names, or diagnostic prose, and do not add a contract when
+the existing atomic contract already states the same locus/property.
+The derived contract is the candidate's actual semantic obligation: give it a new
+contract ID and the actual locus/property/direction. Never attach a reachability,
+termination, containment, event-consumer, or transition-group claim to a weaker
+initial-entry/endpoint/declaration contract. If cross-view grounding also recovers
+a missing shared-source relation, put that relation in
+`additional_transition_groups`; it does not replace the independent atomic issue
+contract.
+For a transition-group alternative, a supplied event or qualified condition is
+part of the normative relation even when NL extraction did not duplicate it as a
+standalone atomic contract. When exact source/model comparison shows the selected
+transition has the wrong or missing trigger/guard, derive one atomic contract for
+that actual mismatch and emit its candidate. Do not first enumerate standalone
+qualifier contracts for every satisfied alternative.
+
+Cross-view frontier discipline:
+- A required active control state with exact ongoing action/response semantics and
+  a deterministic reachable leaf/no-outgoing fact may justify one derived
+  `deadlock_freedom` contract for that state. Do not enumerate progress for every
+  state merely because it is named or entered.
+- A source/model composite that semantically owns required behavior but has no
+  exact owner-local default entry may justify one derived `initial_entry` contract
+  for that owner. Keep this separate from entry edges inside child regions.
+- A required composite, operating scope, or wrapper absent from root reachability
+  may justify one derived `reachability` contract for that exact scope. Local
+  initial edges or local endpoint existence do not satisfy root reachability.
+- When exact event-consumer facts show declared consumers but no reachable consumer
+  in the semantically required scope, derive one `event_consumer_coverage`
+  contract at that scope. Aggregate supporting consumer refs in basis rather than
+  emitting one issue per transition.
+- When several required wrappers or regions are semantically sequential/concurrent
+  but the exact source/model topology isolates them, derive the narrowest global
+  reachability/region contract that states that relation; local leaf facts may be
+  supporting evidence but are not a substitute for the global property.
 
 {PREDICATE_ROUTING_GUIDANCE}
 
@@ -650,8 +766,8 @@ into another issue. Emit the upstream defect only against its own exact
 initial-entry or reachability contract. In particular, an unreachable state that
 has exact outgoing continuation is not a deadlock/dead-end violation, and a
 present exact endpoint does not become a wrong-target violation because its source
-is unreachable. Return `satisfied` for the original property instead of publishing
-one downstream issue per state or transition.
+is unreachable. Omit the satisfied original property instead of publishing one
+downstream issue per state or transition.
 
 For event-consumer coverage, distinguish declaration from operational coverage.
 An exact declared consumer with no consumer reachable in the contract's exact
@@ -661,6 +777,22 @@ finite cardinality contract, once this lens semantically binds the exact owner
 and member kind, use the complete exact inventory to compare the member count.
 The absence of a dedicated frozen predicate changes W to W1; it does not make
 the already bound finite comparison unresolved.
+
+For a supplied transition group, compare all alternatives as one relation before
+checking each endpoint in isolation. When two semantically exclusive target
+alternatives from the same exact source carry the same effective condition, emit
+one `guard_disjointness` candidate whose locus names the shared source and target
+set. Use V1 only when its source/trigger/domain inputs and finite guard semantics
+are exact; otherwise preserve the precise relation as predicate-null W1. The
+existence of each endpoint or each individual guard is a weaker property and does
+not satisfy group distinguishability.
+
+For stable termination, keep endpoint existence, local outgoing behavior, and
+termination as distinct properties. An explicit NL termination role plus exact
+source/model facts may establish an independent `termination` candidate when the
+named completion state re-enters itself, exits to another operating scope, or
+cannot stably reach formal completion. A present edge into that state does not
+rebut the stronger termination property, and predicate support affects only W.
 
 Interpret containment at the depth stated by the contract. Transitive descendant
 containment through a region satisfies an ordinary within-scope containment
@@ -694,7 +826,7 @@ target, emit the scoped candidate (predicate=null when the registry cannot state
 the full owner semantics); do not substitute the nearby local edge.
 
 The converse owner rule is equally strict. If the exact initial edge owned by the
-contract's owner reaches the required target, mark that contract `satisfied` and
+contract's owner reaches the required target, omit it from the sparse response and
 do not emit a candidate for it. A malformed, synthetic, missing, or differently
 targeted initial edge owned by the target state or any descendant/sibling scope is
 a separate obligation and cannot turn the already-satisfied owner-local contract
@@ -706,7 +838,8 @@ the contract. A satisfied endpoint or declaration does not discharge an attached
 ordering, guard, effect, action, containment, region, consumer, or progress clause.
 For every such unsatisfied or unsupported conjunct, preserve the exact model
 locus and emit one atomic candidate; do not mark it satisfied or not_applicable
-merely because a different conjunct is satisfied. A missing registered predicate
+merely because a different conjunct is satisfied. Omit only the independently
+satisfied conjunct. A missing registered predicate
 is a precise W1 candidate when the model locus is exact.
 
 Return only the requested Pydantic structure."""
@@ -736,6 +869,10 @@ Property-preserving adjudication protocol:
   contract. A declared event consumer does not rebut a contract requiring a
   reachable consumer in an exact operating scope when the deterministic coverage
   row has no reachable consumer.
+- A local initial edge does not rebut owner/composite root unreachability; an
+  existing endpoint does not rebut transition-group nondeterminism; and an
+  outgoing edge does not by itself rebut failed stable termination. These require
+  separate candidate properties and separate obligation IDs.
 - Unreachability is not itself a wrong endpoint, missing trigger, missing guard,
   missing action, failed retention, or local dead end. If those exact properties
   are positively present, use grounding=not_established for those dossiers and
@@ -796,9 +933,9 @@ Stage-scoped context projection and complete artifact manifest:
 Extract one NLContract per independently violable normative obligation. The typed semantic key and binding hints are the contract plan consumed by both grounding branches. Mark every supplied numbered NL segment as covered, context, or ambiguous. Every contract_id must include its exact segment_id (for example, NL-CONTRACT-NL6-ENDPOINT-1) and must be unique within this whole-cell response. Do not include ledger IDs, baseline labels, judge examples, W/D/L values, or hidden expected answers.
 
 If Pydantic schema feedback requests a correction, return the complete replacement
-NLContractResponse: preserve and repeat every already valid contract, correct each
-invalid row in place, and keep every segment disposition. Never return only the
-row named by the latest validation error.
+NLContractResponse: preserve and repeat every already valid contract and transition
+group, correct each invalid row in place, and keep every segment disposition. Never
+return only the row named by the latest validation error.
 """
 
 
@@ -826,16 +963,13 @@ must not change the semantic key or reverse the defect direction. Put actual
 evidence families used for the comparison in `evidence_types`.
 For `initial_entry`, copy and enforce the contract's exact owner hint as well as
 its target; an initial edge in a different owner scope is a different fact. When
-the exact owner-local edge reaches the required target, return `satisfied` for
+the exact owner-local edge reaches the required target, emit no candidate for
 that contract. Do not use an initial edge owned by the target or one of its
 descendants to manufacture a defect in the satisfied outer entry contract.
-Return exactly one `contract_dispositions` row for every supplied contract ID.
-Use `candidate_emitted` when this response contains one or more candidates for
-that ID; otherwise use `satisfied`, `unresolved`, or `not_applicable` with a
-contract-specific reason and basis. Do not silently omit a contract.
-The required disposition table contains {len(contract_ids)} row(s). Copy these IDs
-exactly once each, regardless of this lens's priority:
+The supplied contract IDs are:
 {json.dumps(contract_ids, ensure_ascii=False)}
+Candidates and unresolved rows may use these IDs. A branch-local derived
+candidate must instead name one exact row returned in `additional_contracts`.
 Before selecting `unresolved`, distinguish missing evidence identity from an
 exact negative inventory result: an exact required edge absent from the complete
 transition inventory is a candidate, while an ambiguous source or target is
@@ -1043,78 +1177,6 @@ def fallback_d_adjudication(obligation_ids: list[str], reason: str) -> DAdjudica
     )
 
 
-def normalize_grounding_dispositions(
-    response: GroundingResponse,
-    contracts: NLContractResponse,
-) -> GroundingResponse:
-    """Close exact contract accounting without making semantic decisions."""
-
-    allowed_contract_ids = {
-        contract.contract_id for contract in contracts.contracts
-    }
-    supplied = {
-        item.contract_id: item
-        for item in response.contract_dispositions
-        if item.contract_id in allowed_contract_ids
-    }
-    normalized: list[GroundingDisposition] = []
-    changed = len(supplied) != len(response.contract_dispositions)
-    for contract in contracts.contracts:
-        candidate_count = sum(
-            candidate.contract_id == contract.contract_id
-            for candidate in response.candidates
-        )
-        item = supplied.get(contract.contract_id)
-        if item is None:
-            normalized.append(
-                GroundingDisposition(
-                    contract_id=contract.contract_id,
-                    status="candidate_emitted" if candidate_count else "unresolved",
-                    candidate_count=candidate_count,
-                    reason=(
-                        "Candidates carry this exact contract ID, but the branch omitted its disposition row."
-                        if candidate_count
-                        else "The branch omitted this exact contract ID; deterministic normalization preserves it as unresolved."
-                    ),
-                    basis="exact contract ID coverage normalization; no semantic text inference",
-                )
-            )
-            changed = True
-            continue
-        status = item.status
-        if candidate_count and status != "candidate_emitted":
-            status = "candidate_emitted"
-            changed = True
-        elif not candidate_count and status == "candidate_emitted":
-            status = "unresolved"
-            changed = True
-        if item.candidate_count != candidate_count:
-            changed = True
-        normalized.append(
-            item.model_copy(
-                update={
-                    "status": status,
-                    "candidate_count": candidate_count,
-                    "basis": (
-                        item.basis
-                        + "; candidate_count/status audited by exact contract ID"
-                    ),
-                }
-            )
-        )
-    if not changed:
-        return response.model_copy(update={"contract_dispositions": normalized})
-    return response.model_copy(
-        update={
-            "contract_dispositions": normalized,
-            "reason": response.reason
-            + " Exact contract accounting was normalized without changing candidate semantics.",
-            "basis": response.basis
-            + "; exact contract ID coverage normalization",
-        }
-    )
-
-
 def build_method_prompt(pair: PairInput, round_index: int, previous: list[dict[str, Any]]) -> str:
     """Compatibility prompt exposing the first v27 discovery lens."""
 
@@ -1202,12 +1264,11 @@ def fallback_grounding(
     del pair
     return GroundingResponse(
         lens=lens,
+        additional_contracts=[],
         candidates=[],
-        contract_dispositions=[
-            GroundingDisposition(
+        unresolved=[
+            GroundingUnresolved(
                 contract_id=contract.contract_id,
-                status="unresolved",
-                candidate_count=0,
                 reason="The lens provider/schema result was unavailable; no semantic candidate was inferred from an unrelated model fact.",
                 basis=f"{reason}; exact contract ID accounting and v27 no-fabricated-fallback rule",
             )
@@ -1258,10 +1319,12 @@ __all__ = [
     "DISCOVERY_GROUNDING_AUDIT_LENSES",
     "DISCOVERY_GROUNDING_SYSTEM_PROMPT",
     "D_SYSTEM_PROMPT",
-    "GroundingDisposition",
+    "GroundingUnresolved",
     "GroundingResponse",
     "NLContract",
     "NLContractResponse",
+    "NLTransitionAlternative",
+    "NLTransitionGroup",
     "StageReceipt",
     "assemble_method_response",
     "build_contract_prompt",
@@ -1273,5 +1336,4 @@ __all__ = [
     "fallback_d_adjudication",
     "fallback_grounding",
     "normalize_contract_state_roles",
-    "normalize_grounding_dispositions",
 ]

@@ -131,6 +131,7 @@ class ContractBindingHint(BaseModel):
         "target",
         "transition",
         "event",
+        "trigger",
         "state",
         "action",
         "phase",
@@ -145,7 +146,7 @@ class ContractBindingHint(BaseModel):
         "bound",
         "unit",
         "other",
-    ] = Field(description="Semantic argument role of this source-side hint; this is not a frozen predicate input name unless grounding later binds it exactly. For initial_entry, owner is the scope that owns the required initial pseudostate edge and target is the state entered by that edge; the entered state is not its own owner unless the NL explicitly states a nested self-owned obligation.")
+    ] = Field(description="Semantic argument role of this source-side hint; event names an event concept while trigger names the trigger attached to one transition. This is not a frozen predicate input name unless grounding later binds it exactly. For initial_entry, owner is the scope that owns the required initial pseudostate edge and target is the state entered by that edge; the entered state is not its own owner unless the NL explicitly states a nested self-owned obligation.")
     value: str = Field(min_length=1, description="Source-grounded name, phrase, expression, or scope value copied or faithfully normalized from the supplied NL.")
     source_ref: str | None = Field(default=None, description="Exact supplied NL or author-source reference supporting this hint, or null when only the parent contract source refs apply.")
     reason: str = Field(min_length=1, description="LLM explanation of why this value has the declared semantic role in the atomic contract.")
@@ -163,7 +164,7 @@ class CandidateIssue(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    contract_id: str = Field(pattern=r"^NL-CONTRACT-[A-Za-z0-9_.-]+$", min_length=14, description="Exact atomic NL contract ID evaluated by this candidate; copy it from the supplied contract plan and never invent, merge, or omit it.")
+    contract_id: str = Field(pattern=r"^NL-CONTRACT-[A-Za-z0-9_.-]+$", min_length=14, description="Exact atomic contract ID evaluated by this candidate. Copy it from the supplied contract plan or from this grounding response's branch-local additional_contracts; never invent an unreported ID, merge contracts, or omit the binding contract.")
     locus_kind: ObligationLocusKind = Field(description="Typed semantic kind of the requirement locus; preserve the contract's locus kind rather than substituting a nearby declared element.")
     locus_names: tuple[Annotated[str, Field(min_length=1)], ...] = Field(min_length=1, description="One or more source-grounded names identifying the exact semantic locus; these are semantic identities, while element_refs carry exact FCSTM refs.")
     property: ObligationProperty = Field(description="Exact atomic property being evaluated; preserve the contract property even when no frozen predicate fully expresses it.")

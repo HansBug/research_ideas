@@ -33,7 +33,6 @@ from ..semantics import (
     CandidateIssue,
     ContextBudgetReceipt,
     DAdjudicationResponse,
-    GroundingDisposition,
     GroundingResponse,
     NLContract,
     NLContractResponse,
@@ -49,7 +48,6 @@ from ..semantics import (
     fallback_d_adjudication,
     fallback_grounding,
     normalize_contract_state_roles,
-    normalize_grounding_dispositions,
     resolve_state_ref,
     resolve_transition_ref,
 )
@@ -871,7 +869,6 @@ def _normalize_grounding_exact_facts(
     """
 
     kept: list[CandidateIssue] = []
-    removed_by_contract: dict[str, list[dict[str, Any]]] = {}
     diagnostics: list[dict[str, Any]] = []
     for candidate in response.candidates:
         normalized = _normalize_candidate_model_refs(pair, candidate)
@@ -906,7 +903,6 @@ def _normalize_grounding_exact_facts(
             "bound_state_refs": [state.ref for state in bound_states],
             "outgoing_transition_refs": outgoing_by_state,
         }
-        removed_by_contract.setdefault(normalized.contract_id, []).append(fact)
         diagnostics.append(
             {
                 "stage": "discovery_grounding",
@@ -918,31 +914,12 @@ def _normalize_grounding_exact_facts(
             }
         )
 
-    remaining_counts = Counter(candidate.contract_id for candidate in kept)
-    dispositions: list[GroundingDisposition] = []
-    for item in response.contract_dispositions:
-        removed = removed_by_contract.get(item.contract_id)
-        if removed and remaining_counts[item.contract_id] == 0:
-            dispositions.append(
-                item.model_copy(
-                    update={
-                        "status": "satisfied",
-                        "candidate_count": 0,
-                        "reason": "The exact bound operating state has parsed outgoing continuation, so this local progress contract is satisfied; any separate reachability defect requires its own contract.",
-                        "basis": "owned ModelIR exact state refs and outgoing transition refs; rejected candidate facts are retained in the stage diagnostics",
-                    }
-                )
-            )
-        else:
-            dispositions.append(item)
-
     if not diagnostics:
         return response.model_copy(update={"candidates": kept}), []
     return (
         response.model_copy(
             update={
                 "candidates": kept,
-                "contract_dispositions": dispositions,
                 "reason": response.reason
                 + " Exact local-progress satisfactions were normalized before execution.",
                 "basis": response.basis
@@ -951,6 +928,152 @@ def _normalize_grounding_exact_facts(
         ),
         diagnostics,
     )
+
+
+def _merge_grounding_contracts(
+    pair: PairInput,
+    contracts: NLContractResponse,
+    branches: Sequence[GroundingResponse],
+) -> tuple[dict[str, NLContract], list[dict[str, Any]]]:
+    """Accept structurally valid v27 branch-local contracts by exact identity.
+
+    This boundary intentionally interprets no prose. It checks only supplied NL
+    segment IDs, the documented derived-ID shape, and exact structured contract
+    identity. Unknown or conflicting IDs remain candidate-local diagnostics; a
+    candidate that names one will fail the existing exact contract-key binding
+    check and therefore cannot be promoted beyond W0/D_UNRESOLVED.
+    """
+
+    merged = {contract.contract_id: contract for contract in contracts.contracts}
+    base_ids = set(merged)
+    supplied_segment_ids = {segment.segment_id for segment in pair.nl_segments}
+    accepted_lens: dict[str, str] = {}
+    invalid_ids: set[str] = set()
+    diagnostics: list[dict[str, Any]] = []
+
+    def semantic_payload(contract: NLContract) -> dict[str, Any]:
+        return {
+            "contract_id": contract.contract_id,
+            "segment_id": contract.segment_id,
+            "quote": contract.quote,
+            "normative_statement": contract.normative_statement,
+            "locus_kind": contract.locus_kind,
+            "locus_names": contract.locus_names,
+            "property": contract.property,
+            "state_role": contract.state_role,
+            "expected_direction": contract.expected_direction,
+            "violation_direction": contract.violation_direction,
+            "evidence_types": contract.evidence_types,
+            "binding_hints": tuple(
+                (hint.role, hint.value, hint.source_ref)
+                for hint in contract.binding_hints
+            ),
+            "scope": contract.scope,
+            "source_refs": contract.source_refs,
+        }
+
+    for branch in branches:
+        for contract in branch.additional_contracts:
+            expected_prefix = f"NL-CONTRACT-{contract.segment_id}-DERIVED-"
+            diagnostic_base = {
+                "stage": "discovery_grounding",
+                "lens": branch.lens,
+                "contract_id": contract.contract_id,
+                "segment_id": contract.segment_id,
+            }
+            if contract.segment_id not in supplied_segment_ids:
+                diagnostics.append(
+                    {
+                        **diagnostic_base,
+                        "class": "unknown_additional_contract_segment",
+                        "reason": "The branch-local contract names a segment ID absent from the supplied numbered NL artifact.",
+                        "basis": "exact segment-ID membership check without text interpretation",
+                    }
+                )
+                invalid_ids.add(contract.contract_id)
+                continue
+            if not contract.contract_id.startswith(expected_prefix):
+                diagnostics.append(
+                    {
+                        **diagnostic_base,
+                        "class": "invalid_additional_contract_id",
+                        "expected_prefix": expected_prefix,
+                        "reason": "The branch-local contract ID does not preserve its supplied segment identity and DERIVED namespace.",
+                        "basis": "exact documented derived-ID prefix check",
+                    }
+                )
+                invalid_ids.add(contract.contract_id)
+                continue
+            if contract.contract_id in base_ids:
+                diagnostics.append(
+                    {
+                        **diagnostic_base,
+                        "class": "additional_contract_collides_with_base",
+                        "reason": "A branch-local contract reused a base contract ID, so the additional row was not admitted.",
+                        "basis": "exact contract-ID namespace comparison",
+                    }
+                )
+                continue
+            if contract.contract_id in invalid_ids:
+                diagnostics.append(
+                    {
+                        **diagnostic_base,
+                        "class": "previously_conflicting_additional_contract_id",
+                        "reason": "This derived ID was already invalidated by conflicting structured definitions.",
+                        "basis": "exact contract-ID conflict ledger within this method cell",
+                    }
+                )
+                continue
+            existing = merged.get(contract.contract_id)
+            if existing is None:
+                merged[contract.contract_id] = contract
+                accepted_lens[contract.contract_id] = branch.lens
+                continue
+            if semantic_payload(existing) == semantic_payload(contract):
+                # Agreement between the two v27 lenses is a normal exact merge,
+                # not a diagnostic. Both raw branch rows remain in the stage
+                # receipt while execute-batch consumes the contract once.
+                continue
+            diagnostics.append(
+                {
+                    **diagnostic_base,
+                    "class": "conflicting_additional_contract_id",
+                    "first_lens": accepted_lens[contract.contract_id],
+                    "reason": "The two grounding lenses assigned different structured meanings to one derived contract ID; neither definition is authoritative.",
+                    "basis": "exact derived contract ID equality and structured semantic payload inequality",
+                }
+            )
+            merged.pop(contract.contract_id, None)
+            invalid_ids.add(contract.contract_id)
+
+    known_ids = set(merged)
+    for branch in branches:
+        for unresolved in branch.unresolved:
+            if unresolved.contract_id not in known_ids:
+                diagnostics.append(
+                    {
+                        "stage": "discovery_grounding",
+                        "lens": branch.lens,
+                        "class": "unknown_unresolved_contract_id",
+                        "contract_id": unresolved.contract_id,
+                        "reason": "The sparse unresolved row does not name a supplied or accepted branch-local contract.",
+                        "basis": "exact contract-ID membership check without semantic inference",
+                    }
+                )
+        for candidate in branch.candidates:
+            if candidate.contract_id not in known_ids:
+                diagnostics.append(
+                    {
+                        "stage": "discovery_grounding",
+                        "lens": branch.lens,
+                        "class": "unknown_candidate_contract_id",
+                        "contract_id": candidate.contract_id,
+                        "candidate_hash": _hash_json(candidate),
+                        "reason": "The candidate does not name a supplied or accepted branch-local contract and will remain imprecisely bound.",
+                        "basis": "exact contract-ID membership check; downstream W0/D_UNRESOLVED boundary",
+                    }
+                )
+    return merged, diagnostics
 
 
 def _prepare_candidate(
@@ -1288,6 +1411,33 @@ def _d_decision_consistency_errors(
                     f"every bound dead_end locus has outgoing transitions ({states_with_outgoing}); "
                     "unreachability is not a local dead-end or V4 deadlock violation"
                 )
+        if (
+            isinstance(candidate, CandidateIssue)
+            and candidate.property == "event_consumer_coverage"
+            and candidate.violation_direction == "unconsumed"
+            and binding is not None
+            and pair.inspection_facts is not None
+            and decision.defeater_kind == "rebutting"
+            and decision.defeater_disposition == "survives"
+        ):
+            bound_refs = set(binding.element_refs)
+            matching_facts = [
+                fact
+                for fact in pair.inspection_facts.event_consumers
+                if (
+                    fact.declared_ref in bound_refs
+                    or bool(bound_refs & set(fact.consumer_transition_refs))
+                )
+            ]
+            if (
+                len(matching_facts) == 1
+                and not matching_facts[0].reachable_consumer_transition_refs
+            ):
+                errors.append(
+                    "a surviving rebutting defeater contradicts the exact event-consumer inventory: "
+                    "the uniquely bound event is declared or consumed only by unreachable transitions, "
+                    "so declaration-only presence cannot rebut reachable-consumer coverage"
+                )
     return errors
 
 
@@ -1481,37 +1631,11 @@ def _method_cell(
                 )
             ),
         )
-        expected_disposition_ids = {
-            contract.contract_id for contract in contract_response.contracts
-        }
-        supplied_disposition_ids = {
-            item.contract_id for item in response.contract_dispositions
-        }
-        missing_disposition_ids = sorted(
-            expected_disposition_ids - supplied_disposition_ids
-        )
-        extra_disposition_ids = sorted(
-            supplied_disposition_ids - expected_disposition_ids
-        )
-        if missing_disposition_ids or extra_disposition_ids:
-            accounting_diagnostic = {
-                "stage": "discovery_grounding",
-                "lens": lens,
-                "class": "exact_contract_accounting_incomplete",
-                "missing_contract_ids": missing_disposition_ids,
-                "extra_contract_ids": extra_disposition_ids,
-                "reason": "The grounding response did not account for the exact supplied contract ID set; omitted rows remain unresolved after normalization.",
-                "basis": "exact contract ID set comparison without semantic text inference",
-            }
-            grounding_normalization_diagnostics.append(accounting_diagnostic)
-            all_errors.append(accounting_diagnostic)
         response, exact_fact_diagnostics = _normalize_grounding_exact_facts(
             pair, response
         )
         grounding_normalization_diagnostics.extend(exact_fact_diagnostics)
-        grounding_responses.append(
-            normalize_grounding_dispositions(response, contract_response)
-        )
+        grounding_responses.append(response)
         if not outcome.succeeded:
             all_errors.append(
                 {
@@ -1526,11 +1650,22 @@ def _method_cell(
                 }
             )
     all_outcomes.extend(grounding_outcomes)
+    contracts_by_id, grounding_contract_diagnostics = _merge_grounding_contracts(
+        pair,
+        contract_response,
+        grounding_responses,
+    )
+    grounding_normalization_diagnostics.extend(grounding_contract_diagnostics)
+    all_errors.extend(grounding_contract_diagnostics)
     stage_outputs["discovery_grounding"] = {
         "branches": [
             response.model_dump(mode="json")
             for response in grounding_responses
         ],
+        "accepted_additional_contract_ids": sorted(
+            set(contracts_by_id)
+            - {contract.contract_id for contract in contract_response.contracts}
+        ),
         "reason": "Two complementary v27 discovery lenses completed or retained explicit lens diagnostics.",
         "basis": "one shared GroundingResponse schema and compact cross-view context over the same contract plan",
     }
@@ -1572,9 +1707,6 @@ def _method_cell(
     release: list[dict[str, Any]] = []
     errors: list[dict[str, Any]] = list(all_errors)
     prepared_candidates: list[dict[str, Any]] = []
-    contracts_by_id = {
-        contract.contract_id: contract for contract in contract_response.contracts
-    }
     for index, candidate in enumerate(candidates):
         try:
             prepared = _prepare_candidate(
