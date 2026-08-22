@@ -22,7 +22,6 @@ from .obligations import (
     ViolationDirection,
 )
 
-
 StateSemanticRole = Literal[
     "operating_state",
     "condition_state",
@@ -46,9 +45,18 @@ class NLContract(BaseModel):
     segment_id: str = Field(pattern=r"^NL[0-9]+(?:\.[0-9]+)?$", min_length=3, description="Exact numbered NL segment identifier carried from the input closure.")
     quote: str = Field(min_length=1, description="Exact or faithful quote of the supplied NL segment; do not invent an answer or expected defect.")
     normative_statement: str = Field(min_length=1, description="Atomic source obligation stated without judging whether the current model satisfies it.")
-    locus_kind: ObligationLocusKind = Field(description="Typed semantic kind of the source obligation locus; choose the object whose property can be violated, not a nearby declared element.")
+    locus_kind: ObligationLocusKind = Field(
+        description=(
+            "Typed semantic kind of the source obligation locus. Allowed values "
+            "are exactly model, state, transition, composite, region, event, "
+            "action, variable, path, scenario, scope, and other. Choose the "
+            "object whose property can be violated, not the property name or a "
+            "nearby declared element: effect and guard are property values, not "
+            "locus_kind values."
+        )
+    )
     locus_names: tuple[str, ...] = Field(min_length=1, description="Source-grounded names that identify the exact obligation locus before model binding; keep one independently violable semantic locus per contract.")
-    property: ObligationProperty = Field(description="Atomic property required at the locus; this vocabulary includes the frozen predicate meanings and explicit unsupported semantic boundaries.")
+    property: ObligationProperty = Field(description="Atomic property required at the locus; this vocabulary includes the frozen predicate meanings and explicit unsupported semantic boundaries. A transition's source/target requirement uses transition_endpoints, while any attached event, condition, or effect is also represented by its own trigger_set, guard, or effect contract instead of being hidden inside the endpoint row.")
     state_role: StateSemanticRole | None = Field(
         default=None,
         description=(
@@ -169,7 +177,7 @@ class NLContractResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    contracts: list[NLContract] = Field(default_factory=list, description="Complete list of atomic contracts covering normative numbered NL segments, including one separate deadlock_freedom/progress contract for every semantically active operating state identified by the supplied NL; a state required as an operating transition target is included unless the NL explicitly makes it terminal. Descriptive segments may be omitted with an explained top-level basis. A schema-correction turn must repeat every valid contract and return a complete replacement list, not only the corrected row.")
+    contracts: list[NLContract] = Field(default_factory=list, description="Complete list of atomic contracts covering normative numbered NL segments, including every semantically active operating state through exactly one separate deadlock_freedom/progress contract per unique state identity across the entire response; aggregate repeated supporting segments into that one contract instead of emitting one progress row per mention. A state required as an operating transition target is included unless the NL explicitly makes it terminal. Descriptive segments may be omitted with an explained top-level basis. A schema-correction turn must repeat every valid contract and return a complete replacement list, not only the corrected row.")
     segment_disposition: dict[str, Literal["covered", "context", "ambiguous"]] = Field(default_factory=dict, description="Disposition for supplied NL segment IDs only; every key must be an input segment ID.")
     reason: str = Field(min_length=1, description="LLM explanation of the overall contract extraction decision.")
     basis: str = Field(min_length=1, description="LLM basis identifying the supplied NL segments and source context used.")
@@ -208,7 +216,7 @@ class GroundingResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     lens: GroundingLens = Field(description="Exact v27 audit-lens identity; both lenses receive the same cross-view context and response contract.")
-    candidates: list[CandidateIssue] = Field(default_factory=list, description="Candidate claims grounded across author source, closed FCSTM, and deterministic facts; each candidate must carry reason and basis and must not emit W/D/L levels.")
+    candidates: list[CandidateIssue] = Field(default_factory=list, description="Candidate claims grounded across author source, closed FCSTM, and deterministic facts. Every candidate list item must independently carry all CandidateIssue fields, including its own non-empty reason and basis; a top-level or disposition basis does not satisfy a candidate. Candidates must not emit W/D/L levels.")
     contract_dispositions: list[GroundingDisposition] = Field(default_factory=list, description="One reasoned disposition per supplied atomic contract for this lens; missing rows are normalized to explicit unresolved receipts without semantic guessing.")
     reason: str = Field(min_length=1, description="LLM explanation of how this audit lens selected or rejected candidate claims.")
     basis: str = Field(min_length=1, description="LLM basis naming the supplied cross-view facts and contract IDs used by this lens.")
@@ -346,6 +354,132 @@ def _compact_contract_plan(contracts: NLContractResponse) -> dict[str, Any]:
     }
 
 
+def normalize_contract_state_roles(
+    response: NLContractResponse,
+) -> tuple[NLContractResponse, list[dict[str, Any]]]:
+    """Collapse repeated v27 operating-state role contracts by exact identity.
+
+    v27 assigned one stable concept ID to a required state and therefore
+    expanded its operating-state role once. The atomic contract surface has no
+    separate concept-ID table, so this restores that behavior only for exact
+    typed progress identities. It never interprets prose, spelling similarity,
+    or model/ledger contents.
+    """
+
+    progress_groups: dict[tuple[Any, ...], list[NLContract]] = {}
+    for contract in response.contracts:
+        if (
+            contract.locus_kind == "state"
+            and contract.property == "deadlock_freedom"
+            and contract.state_role == "operating_state"
+            and contract.expected_direction == "must_progress"
+            and contract.violation_direction == "dead_end"
+            and len(contract.locus_names) == 1
+        ):
+            key = (
+                contract.locus_kind,
+                contract.locus_names,
+                contract.property,
+                contract.state_role,
+                contract.expected_direction,
+                contract.violation_direction,
+            )
+            progress_groups.setdefault(key, []).append(contract)
+
+    duplicate_ids = {
+        contract.contract_id
+        for group in progress_groups.values()
+        for contract in group[1:]
+    }
+    if not duplicate_ids:
+        return response, []
+
+    merged_by_primary_id: dict[str, NLContract] = {}
+    diagnostics: list[dict[str, Any]] = []
+    for key, group in progress_groups.items():
+        if len(group) == 1:
+            continue
+        primary = group[0]
+        evidence_types = tuple(
+            dict.fromkeys(
+                evidence_type
+                for contract in group
+                for evidence_type in contract.evidence_types
+            )
+        )
+        source_refs = tuple(
+            dict.fromkeys(
+                source_ref
+                for contract in group
+                for source_ref in contract.source_refs
+            )
+        )
+        hints_by_identity: dict[
+            tuple[str, str, str | None], ContractBindingHint
+        ] = {}
+        for contract in group:
+            for hint in contract.binding_hints:
+                hints_by_identity.setdefault(
+                    (hint.role, hint.value, hint.source_ref), hint
+                )
+        merged_ids = [contract.contract_id for contract in group[1:]]
+        merged_by_primary_id[primary.contract_id] = primary.model_copy(
+            update={
+                "evidence_types": evidence_types,
+                "binding_hints": tuple(hints_by_identity.values()),
+                "source_refs": source_refs,
+                "reason": (
+                    primary.reason
+                    + " Repeated source mentions of this exact typed operating-state role were consolidated deterministically."
+                ),
+                "basis": (
+                    primary.basis
+                    + "; exact typed state-role identity merge over contract fields"
+                ),
+            }
+        )
+        diagnostics.append(
+            {
+                "stage": "contract_extraction",
+                "class": "exact_typed_state_role_merge",
+                "kept_contract_id": primary.contract_id,
+                "merged_contract_ids": merged_ids,
+                "semantic_key": {
+                    "locus_kind": key[0],
+                    "locus_names": list(key[1]),
+                    "property": key[2],
+                    "state_role": key[3],
+                    "expected_direction": key[4],
+                    "violation_direction": key[5],
+                },
+                "reason": "v27 represents one required operating-state role once even when several numbered clauses support it.",
+                "basis": "exact typed contract fields only; no prose, similarity, model result, ledger, or judge input",
+            }
+        )
+
+    contracts = [
+        merged_by_primary_id.get(contract.contract_id, contract)
+        for contract in response.contracts
+        if contract.contract_id not in duplicate_ids
+    ]
+    return (
+        response.model_copy(
+            update={
+                "contracts": contracts,
+                "reason": (
+                    response.reason
+                    + " Exact repeated v27 operating-state roles were consolidated without changing other obligations."
+                ),
+                "basis": (
+                    response.basis
+                    + "; exact typed state-role normalization with raw provider output retained in the LLM audit"
+                ),
+            }
+        ),
+        diagnostics,
+    )
+
+
 def _context_text(pair: PairInput, *, stage: Literal["nl_contract_extraction", "discovery_grounding", "d_adjudication"]) -> str:
     """Serialize the stage-scoped closure while retaining the complete manifest."""
 
@@ -383,6 +517,7 @@ Allowed `evidence_types` values are exactly: `source_identity`, `closed_model_in
 Atomic contract shape:
 - One contract represents one property at one independently violable locus. A transition-property row has at most one source, one target, and one transition hint.
 - Alternative destinations are separate endpoint contracts. A guard conjunction for one exact transition remains one normalized guard hint; guards attached to different transitions are separate contracts.
+- A transition endpoint contract contains only the required source and target relation. When the same clause qualifies that transition with an event, condition/guard, or effect, emit an additional atomic trigger_set, guard, or effect contract even if the author model omits that field. Do not leave a normative qualifier only inside an endpoint quote, locus name, or evidence_types list.
 - A bidirectional or dynamic A-to-B/B-to-A requirement is two endpoint contracts. Never place two source hints or two target hints in one contract.
 - A conjunction such as `a and b and c` on one transition is one normalized guard hint with the complete conjunction as its value, not three guard hints. Alternative guards on different transitions remain separate contracts.
 - Initialization, containment, endpoint, trigger, guard, effect, action, reachability/progress, event-consumer coverage, region structure, and variable delta never share one contract merely because the NL states them in one sentence.
@@ -391,7 +526,7 @@ Atomic contract shape:
 
 v27 state-role and discourse discipline:
 - Preserve the semantic role of every state-centered obligation in `state_role`. Use `operating_state` for an active control state or substate whose behavior must react, continue, or lead onward; use `termination_state` only when the NL explicitly establishes completion or intended terminal behavior. A name that sounds like stopping, emergency, final, or completion is not itself terminal evidence.
-- For each semantically active operating state, emit one separate `deadlock_freedom` contract with `expected_direction=must_progress`, `violation_direction=dead_end`, and the exact state as its locus. This contract states the v27 progress/response obligation before model inspection. Grounding will decide from exact finite facts whether the state has an outgoing or inherited continuation, an explicit terminal route, or a dead-end frontier. Do not emit this contract for an explicitly intended terminal state.
+- For each semantically active operating state identity, emit exactly one separate `deadlock_freedom` contract across the whole response with `expected_direction=must_progress`, `violation_direction=dead_end`, and the exact state as its locus. Repeated mentions in later numbered segments support that same row through source_refs; they do not create another progress contract. This contract states the v27 progress/response obligation before model inspection. Grounding will decide from exact finite facts whether the state has an outgoing or inherited continuation, an explicit terminal route, or a dead-end frontier. Do not emit this contract for an explicitly intended terminal state.
 - Before returning, perform a semantic state-role coverage pass over the supplied numbered NL: enumerate every state that the requirements make active, including every required target of an operating transition or initial entry. For each state not explicitly established as terminal, verify that the response contains its own atomic `deadlock_freedom` contract. A sentence need not repeat words such as continue, exit, or respond; required entry into an operating state supplies the first operational reading used by v27. Do not omit the progress contract merely because the same state already appears in an endpoint, trigger, action, or effect contract.
 - Treat an explicit "first transitions/enters" clause as `initial_entry` into the first state under the enclosing operating owner, not as an ordinary transition from a word such as system or controller. In an initial-entry contract, `owner` is the scope that owns the required initial pseudostate edge and `target` is the state entered by that edge. Thus "the system begins in Controller" yields owner=root/system and target=Controller, while a later "within Controller, first enter ModeA" yields owner=Controller and target=ModeA. Never make the entered target its own owner merely because it is described as a composite. Resolve later omitted sources and enclosing owners by discourse semantics. A sequence such as "first enter ModeA; it can then transition to ModeB; similarly it transitions to ModeC" yields owner initial-entry to ModeA, ModeA-to-ModeB, and ModeB-to-ModeC. By contrast, "from ModeA choose either ModeB or ModeC" yields two alternatives from ModeA. This is an LLM coreference and ordering judgment; never decide it by keywords or identifier spelling.
 - Keep a state-owned action/effect independent from the endpoint that enters the state. The action may remain a precise unsupported W1 obligation even when the endpoint exists.
@@ -417,6 +552,18 @@ contract, return its disposition as `satisfied` and emit no candidate for that
 contract. Predicate/backend unavailability does not turn a satisfied fact into
 an issue and is not by itself semantic ambiguity.
 
+Complete-inventory absence protocol: when the contract supplies an exact source
+and target and the complete closed transition inventory contains no such edge,
+that absence is the candidate evidence, not an unresolved binding. Emit one S2
+candidate with the required source/target inputs and bind the exact endpoint
+state refs; a nonexistent transition cannot supply its own ref. Likewise, when
+one exact existing transition is bound and its parsed guard/effect/action field
+is empty while an atomic contract requires that field, emit the corresponding
+S4/S5/S6 candidate. Use predicate_id=null and preserve W1 only when the semantic
+value cannot be represented by the frozen predicate input. Use `unresolved`
+only when the required locus, endpoint identities, or source meaning itself is
+not exact; never use it merely because the required model fact is absent.
+
 Every candidate object must explicitly include `locus_kind` and `locus_names`
 copied from its contract. `predicate_inputs` must always be a JSON object; use
 an empty object when predicate_id is null, never a list or free-text value.
@@ -426,6 +573,10 @@ belong in `source_refs`. An unmapped source identity is provenance, not evidence
 that an otherwise exact FCSTM binding is missing.
 Every candidate and contract disposition must include its own non-empty reason
 and basis. These are structural output obligations, not optional prose.
+Before returning, inspect every candidate list item independently: copy the full
+`NL-CONTRACT-...` ID without abbreviation and include both `reason` and `basis`
+on that item. Keep `contract_dispositions` as one flat top-level array; never
+nest a second `contract_dispositions` object inside an array row.
 
 {PREDICATE_ROUTING_GUIDANCE}
 
@@ -633,6 +784,10 @@ Return exactly one `contract_dispositions` row for every supplied contract ID.
 Use `candidate_emitted` when this response contains one or more candidates for
 that ID; otherwise use `satisfied`, `unresolved`, or `not_applicable` with a
 contract-specific reason and basis. Do not silently omit a contract.
+Before selecting `unresolved`, distinguish missing evidence identity from an
+exact negative inventory result: an exact required edge absent from the complete
+transition inventory is a candidate, while an ambiguous source or target is
+unresolved.
 
 NL contracts:
 {json.dumps(_compact_contract_plan(contracts), ensure_ascii=False, sort_keys=True)}
@@ -1044,8 +1199,8 @@ def assemble_method_response(
 
 __all__ = [
     "CONTRACT_SYSTEM_PROMPT",
-    "DISCOVERY_GROUNDING_SYSTEM_PROMPT",
     "DISCOVERY_GROUNDING_AUDIT_LENSES",
+    "DISCOVERY_GROUNDING_SYSTEM_PROMPT",
     "D_SYSTEM_PROMPT",
     "GroundingDisposition",
     "GroundingResponse",
@@ -1054,12 +1209,13 @@ __all__ = [
     "StageReceipt",
     "assemble_method_response",
     "build_contract_prompt",
-    "build_grounding_prompt",
     "build_d_adjudication_prompt",
     "build_d_correction_prompt",
+    "build_grounding_prompt",
     "build_method_prompt",
     "fallback_contracts",
-    "fallback_grounding",
     "fallback_d_adjudication",
+    "fallback_grounding",
+    "normalize_contract_state_roles",
     "normalize_grounding_dispositions",
 ]

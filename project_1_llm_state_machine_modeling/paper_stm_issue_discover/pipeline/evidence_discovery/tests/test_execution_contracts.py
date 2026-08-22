@@ -8,38 +8,20 @@ from importlib import import_module
 from pathlib import Path
 
 import pytest
-from pydantic import BaseModel, ValidationError
-from utils.llm.config import LLMPricing, LLMTokenPrices
-
 from pipeline.evidence_discovery.backends import run_backend
-from pipeline.evidence_discovery.backends.bounded_verification import _terminal_states, run_bounded_verification
+from pipeline.evidence_discovery.backends.bounded_verification import (
+    _terminal_states,
+    run_bounded_verification,
+)
 from pipeline.evidence_discovery.backends.topology import _graph
 from pipeline.evidence_discovery.compiler import compile_plan
-from pipeline.evidence_discovery.evidence.receipts import RawReceipt
 from pipeline.evidence_discovery.evidence.audit_bundle import W2AuditBundle
+from pipeline.evidence_discovery.evidence.receipts import RawReceipt
 from pipeline.evidence_discovery.evidence.witness_levels import (
     build_evidence_record,
     calculate_witness_level,
 )
 from pipeline.evidence_discovery.inputs import load_pair, parse_fcstm
-from pipeline.evidence_discovery.orchestration.runner import (
-    LedgerAssessment,
-    JudgeResponse,
-    ReleaseAssessment,
-    _d_decision_consistency_errors,
-    _deduplicate_release_issues,
-    _enrich_candidate,
-    _failure_judge_payload,
-    _failure_method_cell,
-    _finalize_w2_audit_links,
-    _judge_prompt,
-    _judge_shape_errors,
-    _normalize_judge_shape,
-    _prepare_candidate,
-    _judge_pair,
-    _metrics,
-    run_experiment,
-)
 from pipeline.evidence_discovery.orchestration.contracts import (
     IndependentJudgeReceipt,
     MethodCellReceipt,
@@ -47,6 +29,25 @@ from pipeline.evidence_discovery.orchestration.contracts import (
     RunManifest,
     RunSummaryReceipt,
     SourceProvenance,
+)
+from pipeline.evidence_discovery.orchestration.runner import (
+    JudgeResponse,
+    LedgerAssessment,
+    ReleaseAssessment,
+    _d_decision_consistency_errors,
+    _deduplicate_release_issues,
+    _enrich_candidate,
+    _failure_judge_payload,
+    _failure_method_cell,
+    _finalize_w2_audit_links,
+    _judge_pair,
+    _judge_prompt,
+    _judge_shape_errors,
+    _metrics,
+    _normalize_grounding_exact_facts,
+    _normalize_judge_shape,
+    _prepare_candidate,
+    run_experiment,
 )
 from pipeline.evidence_discovery.orchestration.runtime import (
     JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS,
@@ -59,34 +60,37 @@ from pipeline.evidence_discovery.orchestration.runtime import (
     _annotate_usage_billing,
     _cost_for_usage,
     _is_provider_error,
-    _provider_timeout_seconds,
     _provider_deadline,
+    _provider_timeout_seconds,
 )
 from pipeline.evidence_discovery.registry import load_registry
 from pipeline.evidence_discovery.semantics import (
-    CandidateIssue,
     CONTRACT_SYSTEM_PROMPT,
-    ContractBindingHint,
-    ContextBudgetReceipt,
-    DISCOVERY_GROUNDING_SYSTEM_PROMPT,
     D_SYSTEM_PROMPT,
-    GroundingResponse,
+    DISCOVERY_GROUNDING_SYSTEM_PROMPT,
+    CandidateIssue,
+    ContextBudgetReceipt,
+    ContractBindingHint,
     GroundingDisposition,
+    GroundingResponse,
+    MethodResponse,
     NLContract,
     NLContractResponse,
-    MethodResponse,
     SemanticAdjudication,
     adjudicate_disposition,
     assemble_method_response,
     bind_candidate,
     build_contract_prompt,
-    build_method_prompt,
     build_grounding_prompt,
+    build_method_prompt,
     fallback_grounding,
+    normalize_contract_state_roles,
     resolve_transition_ref,
 )
 from pipeline.evidence_discovery.semantics.binding import BindingResult
+from pydantic import BaseModel, ValidationError
 
+from utils.llm.config import LLMPricing, LLMTokenPrices
 
 PAPER_ROOT = Path(__file__).parents[3]
 REPORT_ROOT = PAPER_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
@@ -1509,6 +1513,123 @@ def test_0046_contract_shape_separates_endpoint_and_event_consumer() -> None:
     assert "state_action is a property name" in evidence_description
     assert "Every candidate object must explicitly include" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "must always be a JSON object" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "Complete-inventory absence protocol" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "a nonexistent transition cannot supply its own ref" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "Do not leave a normative qualifier only inside" in CONTRACT_SYSTEM_PROMPT
+    assert "effect and guard are property values" in NLContract.model_json_schema()["properties"]["locus_kind"]["description"]
+
+
+def test_v27_state_role_normalization_merges_only_exact_typed_progress_identity() -> None:
+    def progress_contract(
+        contract_id: str,
+        segment_id: str,
+        state_name: str,
+    ) -> NLContract:
+        return NLContract(
+            contract_id=contract_id,
+            segment_id=segment_id,
+            quote=f"{state_name} remains operational.",
+            normative_statement=f"{state_name} must retain progress.",
+            locus_kind="state",
+            locus_names=(state_name,),
+            property="deadlock_freedom",
+            state_role="operating_state",
+            expected_direction="must_progress",
+            violation_direction="dead_end",
+            evidence_types=("deadlock_frontier_fact",),
+            binding_hints=(
+                ContractBindingHint(
+                    role="state",
+                    value=state_name,
+                    source_ref=segment_id,
+                    reason="The numbered segment establishes this operating state.",
+                    basis=segment_id,
+                ),
+            ),
+            scope=f"{state_name} operation",
+            source_refs=(segment_id,),
+            reason="The state has an active operating role.",
+            basis=segment_id,
+        )
+
+    first = progress_contract("NL-CONTRACT-NL1-PROGRESS", "NL1", "DoorOpen")
+    repeated = progress_contract("NL-CONTRACT-NL2-PROGRESS", "NL2", "DoorOpen")
+    distinct = progress_contract(
+        "NL-CONTRACT-NL2-OTHER-PROGRESS", "NL2", "DoorOpenWithItem"
+    )
+    response = NLContractResponse(
+        contracts=[first, repeated, distinct],
+        segment_disposition={"NL1": "covered", "NL2": "covered"},
+        reason="The fixture extracted typed operating-state roles.",
+        basis="provider-free numbered NL fixture",
+    )
+
+    normalized, diagnostics = normalize_contract_state_roles(response)
+
+    assert [item.contract_id for item in normalized.contracts] == [
+        first.contract_id,
+        distinct.contract_id,
+    ]
+    assert normalized.contracts[0].source_refs == ("NL1", "NL2")
+    assert diagnostics[0]["merged_contract_ids"] == [repeated.contract_id]
+    assert diagnostics[0]["semantic_key"]["locus_names"] == ["DoorOpen"]
+
+
+def test_exact_outgoing_fact_rejects_false_dead_end_but_preserves_true_frontier() -> None:
+    def response_for(pair, state_name: str) -> GroundingResponse:
+        state = next(item for item in pair.model.states if item.name == state_name)
+        contract_id = "NL-CONTRACT-NL1-PROGRESS"
+        candidate = CandidateIssue(
+            contract_id=contract_id,
+            locus_kind="state",
+            locus_names=(state_name,),
+            property="deadlock_freedom",
+            violation_direction="dead_end",
+            evidence_types=("deadlock_frontier_fact", "verify_fact"),
+            title=f"{state_name} has no progress",
+            requirement_quote=f"{state_name} must continue.",
+            predicate_id="V4",
+            predicate_inputs={"initial_scope": pair.model.states[0].name},
+            element_refs=[state.ref],
+            source_refs=["NL1"],
+            expected=f"{state_name} retains progress.",
+            observed=f"{state_name} was proposed as a dead end.",
+            strongest_rebuttal="An exact outgoing transition would satisfy local progress.",
+            reason="The grounding fixture proposes one typed dead-end candidate.",
+            basis="provider-free exact ModelIR fixture",
+        )
+        return GroundingResponse(
+            lens="behavior_consequence",
+            candidates=[candidate],
+            contract_dispositions=[
+                GroundingDisposition(
+                    contract_id=contract_id,
+                    status="candidate_emitted",
+                    candidate_count=1,
+                    reason="The branch emitted the candidate.",
+                    basis="provider-free grounding fixture",
+                )
+            ],
+            reason="The fixture returns one behavior candidate.",
+            basis="provider-free grounding fixture",
+        )
+
+    with_outgoing = load_pair(REPORT_ROOT / "pairs" / "0035")
+    normalized, diagnostics = _normalize_grounding_exact_facts(
+        with_outgoing, response_for(with_outgoing, "DoorOpen")
+    )
+    assert normalized.candidates == []
+    assert normalized.contract_dispositions[0].status == "satisfied"
+    assert diagnostics[0]["class"] == "exact_local_progress_satisfied"
+    assert diagnostics[0]["outgoing_transition_refs"]["DoorOpen"]
+
+    zero_outgoing = load_pair(REPORT_ROOT / "pairs" / "0023")
+    preserved, diagnostics = _normalize_grounding_exact_facts(
+        zero_outgoing, response_for(zero_outgoing, "PumpState")
+    )
+    assert len(preserved.candidates) == 1
+    assert preserved.contract_dispositions[0].status == "candidate_emitted"
+    assert diagnostics == []
 
 
 def test_provider_retry_exemption_is_row_local_and_other_usage_is_billable() -> None:

@@ -26,13 +26,14 @@ from ..inputs.models import PairInput
 from ..registry import load_registry
 from ..reporting.export import write_json, write_markdown_summary
 from ..semantics import (
-    CandidateIssue,
     CONTRACT_SYSTEM_PROMPT,
-    ContextBudgetReceipt,
-    DAdjudicationResponse,
     D_SYSTEM_PROMPT,
     DISCOVERY_GROUNDING_AUDIT_LENSES,
     DISCOVERY_GROUNDING_SYSTEM_PROMPT,
+    CandidateIssue,
+    ContextBudgetReceipt,
+    DAdjudicationResponse,
+    GroundingDisposition,
     GroundingResponse,
     NLContract,
     NLContractResponse,
@@ -47,6 +48,7 @@ from ..semantics import (
     fallback_contracts,
     fallback_d_adjudication,
     fallback_grounding,
+    normalize_contract_state_roles,
     normalize_grounding_dispositions,
     resolve_transition_ref,
 )
@@ -60,24 +62,23 @@ from .contracts import (
 )
 from .runtime import (
     DEFAULT_TRANSPORT_RETRIES,
-    FixtureStructuredRuntime,
     JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS,
     PROVIDER_CALL_DEADLINE_SECONDS,
     PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS,
     STRUCTURED_STAGE_DEADLINE_SECONDS,
+    TRANSPORT_RETRY_DELAY_SCHEDULE_SECONDS,
+    FixtureStructuredRuntime,
     PublicStructuredRuntime,
     StructuredCallOutcome,
-    TRANSPORT_RETRY_DELAY_SCHEDULE_SECONDS,
 )
-
 
 REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS = ("0004", "0023", "0029", "0035", "0046", "0053")
 METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v6"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v3"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v5"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v9"
+CODE_VERSION = "evidence-discovery-v27-flow.v6"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v10"
 
 
 class LedgerAssessment(BaseModel):
@@ -855,6 +856,102 @@ def _normalize_candidate_model_refs(pair: PairInput, candidate: CandidateIssue) 
     )
 
 
+def _normalize_grounding_exact_facts(
+    pair: PairInput,
+    response: GroundingResponse,
+) -> tuple[GroundingResponse, list[dict[str, Any]]]:
+    """Remove exact local-dead-end claims contradicted by the closed graph.
+
+    This is the deterministic counterpart of the grounding prompt's property
+    boundary. It compares only typed candidate fields, exact model refs, and
+    parsed transition endpoints. Raw provider output remains in the public LLM
+    audit, while the normalized branch records why a proposed issue is already
+    satisfied by the closed-model inventory.
+    """
+
+    kept: list[CandidateIssue] = []
+    removed_by_contract: dict[str, list[dict[str, Any]]] = {}
+    diagnostics: list[dict[str, Any]] = []
+    for candidate in response.candidates:
+        normalized = _normalize_candidate_model_refs(pair, candidate)
+        binding = bind_candidate(normalized, pair.model)
+        bound_states = [
+            state
+            for state in pair.model.states
+            if state.ref in binding.element_refs
+        ]
+        outgoing_by_state = {
+            state.name: [
+                transition.ref
+                for transition in pair.model.transitions
+                if transition.source == state.name
+            ]
+            for state in bound_states
+        }
+        exact_local_progress = bool(
+            binding.precise
+            and normalized.property == "deadlock_freedom"
+            and normalized.violation_direction == "dead_end"
+            and bound_states
+            and all(outgoing_by_state[state.name] for state in bound_states)
+        )
+        if not exact_local_progress:
+            kept.append(normalized)
+            continue
+
+        fact = {
+            "contract_id": normalized.contract_id,
+            "candidate_hash": _hash_json(normalized),
+            "bound_state_refs": [state.ref for state in bound_states],
+            "outgoing_transition_refs": outgoing_by_state,
+        }
+        removed_by_contract.setdefault(normalized.contract_id, []).append(fact)
+        diagnostics.append(
+            {
+                "stage": "discovery_grounding",
+                "lens": response.lens,
+                "class": "exact_local_progress_satisfied",
+                **fact,
+                "reason": "Every exactly bound state in this dead_end claim has at least one parsed outgoing transition, so unreachability cannot be relabeled as a local dead-end violation.",
+                "basis": "typed deadlock_freedom/dead_end identity, exact binding refs, and owned ModelIR transition endpoints",
+            }
+        )
+
+    remaining_counts = Counter(candidate.contract_id for candidate in kept)
+    dispositions: list[GroundingDisposition] = []
+    for item in response.contract_dispositions:
+        removed = removed_by_contract.get(item.contract_id)
+        if removed and remaining_counts[item.contract_id] == 0:
+            dispositions.append(
+                item.model_copy(
+                    update={
+                        "status": "satisfied",
+                        "candidate_count": 0,
+                        "reason": "The exact bound operating state has parsed outgoing continuation, so this local progress contract is satisfied; any separate reachability defect requires its own contract.",
+                        "basis": "owned ModelIR exact state refs and outgoing transition refs; rejected candidate facts are retained in the stage diagnostics",
+                    }
+                )
+            )
+        else:
+            dispositions.append(item)
+
+    if not diagnostics:
+        return response.model_copy(update={"candidates": kept}), []
+    return (
+        response.model_copy(
+            update={
+                "candidates": kept,
+                "contract_dispositions": dispositions,
+                "reason": response.reason
+                + " Exact local-progress satisfactions were normalized before execution.",
+                "basis": response.basis
+                + "; exact typed binding and owned ModelIR outgoing-transition check",
+            }
+        ),
+        diagnostics,
+    )
+
+
 def _prepare_candidate(
     pair: PairInput,
     candidate: CandidateIssue,
@@ -1175,13 +1272,16 @@ def _method_cell(
         artifact_id=f"method/{pair.pair_id}/round-{round_index}/contract-extraction",
     )
     all_outcomes.append(contract_outcome)
-    contract_response = (
+    raw_contract_response = (
         contract_outcome.response
         if contract_outcome.succeeded
         else fallback_contracts(
             pair,
             str(contract_outcome.result.get("error", "structured contract output unavailable")),
         )
+    )
+    contract_response, contract_normalization_diagnostics = (
+        normalize_contract_state_roles(raw_contract_response)
     )
     if not contract_outcome.succeeded:
         all_errors.append(
@@ -1202,6 +1302,7 @@ def _method_cell(
             artifact_roles=("natural_language", "working_contract", "source_trace"),
             output=contract_response,
             outcome=contract_outcome,
+            diagnostics=tuple(contract_normalization_diagnostics),
             projection_version="v27-contract-projection.v1",
             reason=contract_response.reason,
             basis=contract_response.basis,
@@ -1219,6 +1320,7 @@ def _method_cell(
     }
     grounding_outcomes: list[StructuredCallOutcome[GroundingResponse]] = []
     grounding_responses: list[GroundingResponse] = []
+    grounding_normalization_diagnostics: list[dict[str, Any]] = []
     # v27 samples the two complementary lenses sequentially inside one method
     # cell. Pair workers provide process-level parallelism without changing the
     # public AgentApp/LangGraph call semantics or deadline handling.
@@ -1245,6 +1347,10 @@ def _method_cell(
                 )
             ),
         )
+        response, exact_fact_diagnostics = _normalize_grounding_exact_facts(
+            pair, response
+        )
+        grounding_normalization_diagnostics.extend(exact_fact_diagnostics)
         grounding_responses.append(
             normalize_grounding_dispositions(response, contract_response)
         )
@@ -1283,6 +1389,7 @@ def _method_cell(
             artifact_roles=("natural_language", "plantuml_source", "canonical_source_ir", "source_inventory", "fcstm_model", "reference_inspection_facts", "inspection_equivalent_facts", "verify_facts", "smt_facts", "working_contract", "source_trace"),
             output=stage_outputs["discovery_grounding"],
             outcome=grounding_outcomes[-1],
+            diagnostics=tuple(grounding_normalization_diagnostics),
             projection_version="v27-complementary-grounding-projection.v1",
             reason=stage_outputs["discovery_grounding"]["reason"],
             basis=stage_outputs["discovery_grounding"]["basis"],
