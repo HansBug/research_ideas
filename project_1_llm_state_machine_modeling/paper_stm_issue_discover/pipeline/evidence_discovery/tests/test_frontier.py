@@ -843,7 +843,7 @@ def test_termination_frontier_keeps_ownerless_contract_outside_aggregate() -> No
     assert ownerless.contract_id not in batch.superseded_candidate_contract_ids
 
 
-def test_termination_frontier_treats_state_hint_as_owner_with_explicit_target() -> None:
+def test_termination_frontier_treats_source_hint_as_owner_with_explicit_target() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0029")
     contracts = [
         _contract(
@@ -855,7 +855,7 @@ def test_termination_frontier_treats_state_hint_as_owner_with_explicit_target() 
             expected_direction="must_terminate",
             violation_direction="not_completed",
             hints=(
-                _hint("state", owner, segment),
+                _hint("source", owner, segment),
                 _hint("target", "FinishState", segment),
             ),
             state_role="termination_state",

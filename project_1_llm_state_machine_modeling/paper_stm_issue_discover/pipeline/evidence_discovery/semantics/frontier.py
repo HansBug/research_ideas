@@ -228,9 +228,9 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v13"] = Field(
-        default="v27-typed-frontier.v13",
-        description="产生该检查的确定性算法版本；v13 消费 termination contract 的 typed state-owner role，不表示旧谓词或旧 inspect 后端。",
+    algorithm_version: Literal["v27-typed-frontier.v14"] = Field(
+        default="v27-typed-frontier.v14",
+        description="产生该检查的确定性算法版本；v14 消费 termination contract 的 typed owner/scope/source role，不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
         min_length=1,
@@ -317,9 +317,9 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v13"] = Field(
-        default="v27-typed-frontier.v13",
-        description="本批所有 check/obligation 使用的确定性算法版本；v13 消费 termination contract 的 typed state-owner role。",
+    algorithm_version: Literal["v27-typed-frontier.v14"] = Field(
+        default="v27-typed-frontier.v14",
+        description="本批所有 check/obligation 使用的确定性算法版本；v14 消费 termination contract 的 typed owner/scope/source role。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
         default_factory=tuple,
@@ -2051,7 +2051,11 @@ def _materialize_termination(builder: _Builder, contracts: Sequence[NLContract])
         explicit_target_hint = _hint(contract, "target")
         state_hint = _hint(contract, "state")
         target_hint = explicit_target_hint or state_hint
-        owner_hint = _hint(contract, "owner") or _hint(contract, "scope")
+        owner_hint = (
+            _hint(contract, "owner")
+            or _hint(contract, "scope")
+            or _hint(contract, "source")
+        )
         if (
             owner_hint is None
             and explicit_target_hint is not None

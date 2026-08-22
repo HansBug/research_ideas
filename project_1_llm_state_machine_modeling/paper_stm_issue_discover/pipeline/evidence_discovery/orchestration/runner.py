@@ -86,8 +86,8 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v8"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v5"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v34"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v30"
+CODE_VERSION = "evidence-discovery-v27-flow.v35"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v31"
 JUDGE_EXACT_IDENTITY_CONTRACT_VERSION = "paper1.judge-exact-identity-contract.v1"
 
 
@@ -135,7 +135,9 @@ class JudgeRelationAssessment(BaseModel):
             "当 candidate 只覆盖 ledger 明确枚举的一个 sibling/component 时必须使用"
             "ledger_subsumes_candidate 或 partial_overlap。多个这种非 hit candidate 不能"
             "通过集合并集升级为 hit；每个计入 matched/accounted 的 issue 都必须独立具有"
-            "exact、semantic_equivalent 或 candidate_subsumes_ledger 关系。"
+            "exact、semantic_equivalent 或 candidate_subsumes_ledger 关系。一个完整 ledger"
+            " 若列出 A+B 两个 component，只主张 A 的 candidate 永远不能 candidate_subsumes_ledger；"
+            " 正确方向是 ledger_subsumes_candidate，B 的另一条 candidate 也不能与它联合补票。"
         ),
     )
     entailment_basis: str | None = Field(
@@ -284,7 +286,7 @@ class ExactJudgeResponse(JudgeResponse):
 
 METHOD_SYSTEM_PROMPT = """The method is staged. The public method-generation surface is the NL contract extraction stage followed by two v27 complementary discovery-grounding lenses that share one response schema and compact cross-view context. Use only the complete context manifest supplied to each stage. Never read ledger answers, baseline results, judge examples, or historical release outputs. Do not emit W, D, or L levels. Every structured object must contain non-empty reason and basis."""
 
-JUDGE_SYSTEM_PROMPT = """You are an independent judge separated from method generation. You may use the supplied frozen ledger entries to assess method D1/D2 release issues. Judge semantic identity of locus, property, scope, and direction, not string similarity. Emit sparse typed relation_assessments: exact, semantic_equivalent, or candidate_subsumes_ledger may count as a hit; candidate_subsumes_ledger requires a complete logical entailment basis from the candidate's own supplied claim. When a ledger explicitly enumerates multiple sibling scopes, events, states, or components, a candidate covering only a subset is ledger_subsumes_candidate or partial_overlap, even if it shares the same ancestor or cause. Never use ledger detail to add a missing sibling/component to the candidate's claim. ledger_subsumes_candidate, partial_overlap, same_cause_different_property, and unrelated never count as hits. Multiple non-hit subset candidates cannot be unioned or counted collectively as one ledger hit: every issue_id in matched_issue_ids must independently have one exact, semantic_equivalent, or candidate_subsumes_ledger relation that establishes the complete ledger defect. If no single release does so, the ledger is a miss even when several releases together mention every enumerated sibling. For a D1 ledger, compare the represented ambiguity rather than requiring the method release to settle it or use the same D level: when the release identifies the same primary defect reading at the same locus/property/scope/direction and preserves a compatible competent alternative, the surviving alternative is part of the same D1 ambiguity and does not by itself make the relation partial_overlap. This rule never repairs a wrong source, different property, incompatible scope, narrow manifestation, or issue that merely shares a cause; those are not semantic equivalence. Do not emit a full ledger-by-release matrix. Release assessment coverage is identity-based: emit one row for every supplied issue_id even when two releases are semantic duplicates or share one cause/ledger mapping; never deduplicate release rows. The ledger matched_issue_ids, release accounted_ledger_ids, hit-eligible typed relations, hit booleans, false-positive boolean, reason, and basis must all describe the same decision. In particular, a release marked false positive must have accounted_ledger_ids=[] and must not have reason or basis claiming that it matches a frozen defect. Do not read baseline results, other pairs, other judge outputs, or historical examples. Every assessment, relation, and top-level response must contain non-empty reason and basis fields that explain the judgment and its supplied-input support. Preserve the model's original wording."""
+JUDGE_SYSTEM_PROMPT = """You are an independent judge separated from method generation. You may use the supplied frozen ledger entries to assess method D1/D2 release issues. Judge semantic identity of locus, property, scope, and direction, not string similarity. Emit sparse typed relation_assessments: exact, semantic_equivalent, or candidate_subsumes_ledger may count as a hit; candidate_subsumes_ledger requires a complete logical entailment basis from the candidate's own supplied claim. When a ledger explicitly enumerates multiple sibling scopes, events, states, or components, a candidate covering only a subset is ledger_subsumes_candidate or partial_overlap, even if it shares the same ancestor or cause. Relation direction is literal: if the complete ledger names A+B but one candidate claims only A, the ledger subsumes that candidate; the candidate does not subsume the ledger. A second candidate claiming only B does not change either pairwise relation, and A plus B cannot be unioned into a hit. Never use ledger detail to add a missing sibling/component to the candidate's claim. ledger_subsumes_candidate, partial_overlap, same_cause_different_property, and unrelated never count as hits. Multiple non-hit subset candidates cannot be unioned or counted collectively as one ledger hit: every issue_id in matched_issue_ids must independently have one exact, semantic_equivalent, or candidate_subsumes_ledger relation that establishes the complete ledger defect. If no single release does so, the ledger is a miss even when several releases together mention every enumerated sibling. For a D1 ledger, compare the represented ambiguity rather than requiring the method release to settle it or use the same D level: when the release identifies the same primary defect reading at the same locus/property/scope/direction and preserves a compatible competent alternative, the surviving alternative is part of the same D1 ambiguity and does not by itself make the relation partial_overlap. This rule never repairs a wrong source, different property, incompatible scope, narrow manifestation, or issue that merely shares a cause; those are not semantic equivalence. Do not emit a full ledger-by-release matrix. Release assessment coverage is identity-based: emit one row for every supplied issue_id even when two releases are semantic duplicates or share one cause/ledger mapping; never deduplicate release rows. The ledger matched_issue_ids, release accounted_ledger_ids, hit-eligible typed relations, hit booleans, false-positive boolean, reason, and basis must all describe the same decision. In particular, a release marked false positive must have accounted_ledger_ids=[] and must not have reason or basis claiming that it matches a frozen defect. Do not read baseline results, other pairs, other judge outputs, or historical examples. Every assessment, relation, and top-level response must contain non-empty reason and basis fields that explain the judgment and its supplied-input support. Preserve the model's original wording."""
 
 
 def _prompt_schema_hash() -> str:
@@ -2647,8 +2649,11 @@ the complete ledger defect in entailment_basis using the candidate's own supplie
 claim. If the ledger explicitly enumerates multiple sibling scopes, events,
 states, or components, a candidate that covers only a subset cannot subsume it:
 use ledger_subsumes_candidate or partial_overlap even when both share an ancestor
-or root cause. Do not use ledger detail to add an absent sibling or component to
-the candidate. This completeness requirement also applies to semantic_equivalent:
+or root cause. Relation direction is literal: when a complete ledger names A+B
+but a candidate claims only A, the ledger subsumes that candidate; another
+candidate claiming only B cannot be unioned with A into a hit. Do not use ledger
+detail to add an absent sibling or component to the candidate. This completeness
+requirement also applies to semantic_equivalent:
 for example, if a ledger says owner P is missing required children A, B, and C,
 a release stating only that A is outside P is ledger_subsumes_candidate or
 partial_overlap, never semantic_equivalent, even though its owner and property
