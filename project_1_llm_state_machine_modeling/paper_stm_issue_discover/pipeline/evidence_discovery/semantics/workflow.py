@@ -169,6 +169,18 @@ class NLContractResponse(BaseModel):
     reason: str = Field(min_length=1, description="LLM explanation of the overall contract extraction decision.")
     basis: str = Field(min_length=1, description="LLM basis identifying the supplied NL segments and source context used.")
 
+    @model_validator(mode="after")
+    def validate_unique_contract_ids(self) -> NLContractResponse:
+        """Require one row per exact contract identity within the response."""
+
+        contract_ids = [contract.contract_id for contract in self.contracts]
+        if len(contract_ids) != len(set(contract_ids)):
+            raise ValueError(
+                "contracts must contain each contract_id at most once; return "
+                "a complete replacement response with duplicate IDs removed"
+            )
+        return self
+
 
 class GroundingDisposition(BaseModel):
     """One branch's explicit disposition for one atomic NL contract."""

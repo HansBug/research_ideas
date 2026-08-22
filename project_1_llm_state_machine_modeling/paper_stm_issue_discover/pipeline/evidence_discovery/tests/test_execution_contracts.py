@@ -1320,6 +1320,13 @@ def test_0046_contract_shape_separates_endpoint_and_event_consumer() -> None:
     contract_schema = NLContractResponse.model_json_schema()
     contracts_description = contract_schema["properties"]["contracts"]["description"]
     assert "complete replacement list" in contracts_description
+    with pytest.raises(ValidationError, match="each contract_id at most once"):
+        NLContractResponse(
+            contracts=[event_consumer, event_consumer],
+            segment_disposition={segment.segment_id: "covered"},
+            reason="The response contains a duplicate contract identity.",
+            basis="provider-free duplicate-ID fixture",
+        )
     invalid_evidence_type = event_consumer.model_dump(mode="json")
     invalid_evidence_type["evidence_types"] = ["state_action"]
     with pytest.raises(ValidationError):
