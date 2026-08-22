@@ -988,6 +988,8 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "Emit a candidate only for a possible violated obligation" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "treat its typed `owner` binding hint" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "does not satisfy a `Controller -> ModeA`" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "satisfied `root/system -> Controller`" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "already-satisfied owner-local contract" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "Interpret containment at the depth stated by the contract" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "synthetic placeholders are not author-specified operating-state" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     grounding_prompt = build_grounding_prompt(
@@ -998,6 +1000,7 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     )
     assert '"state_role": "operating_state"' in grounding_prompt
     assert "exact owner hint" in grounding_prompt
+    assert "exact owner-local edge reaches the required target" in grounding_prompt
     assert '"projection_version": "contract-grounding-projection.v2"' in grounding_prompt
 
 

@@ -466,6 +466,14 @@ contract. If the required owner-local edge is absent or selects another exact
 target, emit the scoped candidate (predicate=null when the registry cannot state
 the full owner semantics); do not substitute the nearby local edge.
 
+The converse owner rule is equally strict. If the exact initial edge owned by the
+contract's owner reaches the required target, mark that contract `satisfied` and
+do not emit a candidate for it. A malformed, synthetic, missing, or differently
+targeted initial edge owned by the target state or any descendant/sibling scope is
+a separate obligation and cannot turn the already-satisfied owner-local contract
+into a violation. In particular, a satisfied `root/system -> Controller` contract
+must not be reinterpreted as a `Controller -> child` default-entry contract.
+
 When one NL sentence contains multiple obligations, split them before rejecting
 the contract. A satisfied endpoint or declaration does not discharge an attached
 ordering, guard, effect, action, containment, region, consumer, or progress clause.
@@ -565,7 +573,10 @@ may narrow source names to exact model identities through element_refs, but it
 must not change the semantic key or reverse the defect direction. Put actual
 evidence families used for the comparison in `evidence_types`.
 For `initial_entry`, copy and enforce the contract's exact owner hint as well as
-its target; an initial edge in a different owner scope is a different fact.
+its target; an initial edge in a different owner scope is a different fact. When
+the exact owner-local edge reaches the required target, return `satisfied` for
+that contract. Do not use an initial edge owned by the target or one of its
+descendants to manufacture a defect in the satisfied outer entry contract.
 Return exactly one `contract_dispositions` row for every supplied contract ID.
 Use `candidate_emitted` when this response contains one or more candidates for
 that ID; otherwise use `satisfied`, `unresolved`, or `not_applicable` with a
