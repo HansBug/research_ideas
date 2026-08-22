@@ -45,6 +45,7 @@ from .workflow import (
 
 FrontierKind = Literal[
     "containment",
+    "aggregate_containment",
     "cardinality",
     "owner_initial_entry",
     "aggregate_initial_entry",
@@ -221,8 +222,8 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v10"] = Field(
-        default="v27-typed-frontier.v10",
+    algorithm_version: Literal["v27-typed-frontier.v11"] = Field(
+        default="v27-typed-frontier.v11",
         description="产生该检查的确定性算法版本；不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
@@ -310,8 +311,8 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v10"] = Field(
-        default="v27-typed-frontier.v10",
+    algorithm_version: Literal["v27-typed-frontier.v11"] = Field(
+        default="v27-typed-frontier.v11",
         description="本批所有 check/obligation 使用的确定性算法版本。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
@@ -907,8 +908,13 @@ def contract_semantic_key_from_candidate(candidate: CandidateIssue) -> tuple[obj
     )
 
 
-def _materialize_containment(builder: _Builder, contracts: Sequence[NLContract]) -> None:
+def _materialize_containment(
+    builder: _Builder,
+    contracts: Sequence[NLContract],
+    groups: Sequence[NLTransitionGroup],
+) -> None:
     pair = builder.pair
+    violations: list[tuple[NLContract, CandidateIssue, StateNode, StateNode]] = []
     for contract in contracts:
         if contract.property != "containment":
             continue
@@ -955,6 +961,158 @@ def _materialize_containment(builder: _Builder, contracts: Sequence[NLContract])
             reason="The LLM-established containment contract binds both states exactly, and the complete parent chain refutes the required owner relation.",
             basis=f"contract={contract.contract_id}; child_ref={child.ref}; owner_ref={owner.ref}; model={pair.model.algorithm_version}",
         )
+        violations.append((contract, candidate, owner, child))
+
+    violations_by_relation: dict[
+        tuple[str, str], list[tuple[NLContract, CandidateIssue, StateNode, StateNode]]
+    ] = defaultdict(list)
+    for row in violations:
+        violations_by_relation[(row[2].ref, row[3].ref)].append(row)
+
+    consumed_contract_ids: set[str] = set()
+    seen_aggregate_relations: set[tuple[str, tuple[str, ...]]] = set()
+    for group in groups:
+        if len(group.alternatives) < 2:
+            continue
+        member_names = tuple(
+            dict.fromkeys(
+                [group.source_name, *[item.target_name for item in group.alternatives]]
+            )
+        )
+        if len(member_names) < 3:
+            continue
+        members = [_state_for_value(pair, name) for name in member_names]
+        if any(member is None for member in members):
+            continue
+        exact_members = [member for member in members if member is not None]
+        owner_sets = [
+            {
+                owner_ref
+                for owner_ref, child_ref in violations_by_relation
+                if child_ref == member.ref
+            }
+            for member in exact_members
+        ]
+        if not owner_sets or any(not owner_refs for owner_refs in owner_sets):
+            continue
+        common_owner_refs = set.intersection(*owner_sets)
+        for owner_ref in sorted(common_owner_refs):
+            relation_key = (owner_ref, tuple(member.ref for member in exact_members))
+            if relation_key in seen_aggregate_relations:
+                continue
+            owner = _state_by_ref(pair, owner_ref)
+            if owner is None or any(member.ref == owner.ref for member in exact_members):
+                continue
+            relation_rows = [
+                violations_by_relation[(owner_ref, member.ref)]
+                for member in exact_members
+            ]
+            primary_rows = [rows[0] for rows in relation_rows]
+            source_contract_ids = tuple(
+                dict.fromkeys(
+                    row[0].contract_id
+                    for rows in relation_rows
+                    for row in rows
+                )
+            )
+            base = primary_rows[0][0]
+            source_refs = tuple(
+                dict.fromkeys(
+                    [
+                        *_source_refs([row[0] for row in primary_rows]),
+                        *group.source_refs,
+                    ]
+                )
+            )
+            aggregate_contract = _derived_contract(
+                base,
+                locus_kind="scope",
+                locus_names=(owner.name, *[member.name for member in exact_members]),
+                property_name="containment",
+                state_role=None,
+                expected_direction="must_be_contained",
+                violation_direction="wrong_scope",
+                evidence_types=(
+                    "source_identity",
+                    "closed_model_inventory",
+                    "containment_fact",
+                    "semantic_comparison",
+                ),
+                normative_statement=(
+                    f"The complete transition group rooted at {group.source_name} must remain "
+                    f"inside enclosing owner {owner.name}: "
+                    f"{[member.name for member in exact_members]}."
+                ),
+                scope=(
+                    f"Complete containment scope of transition group {group.group_id} "
+                    f"under {owner.name}"
+                ),
+                source_refs=source_refs,
+                reason=(
+                    "Separate typed containment contracts place the transition-group "
+                    "source and every alternative target under one exact enclosing owner; "
+                    "the group supplies the complete enumerated member boundary."
+                ),
+                basis=(
+                    f"transition_group_id={group.group_id}; owner_ref={owner.ref}; "
+                    f"source_contract_ids={list(source_contract_ids)}; "
+                    f"member_refs={[member.ref for member in exact_members]}"
+                ),
+            ).model_copy(
+                update={
+                    "quote": "\n".join(
+                        f"[{row[0].segment_id}] {row[0].quote}"
+                        for row in primary_rows
+                    ),
+                    "binding_hints": tuple(
+                        hint
+                        for row in primary_rows
+                        for hint in row[0].binding_hints
+                    ),
+                }
+            )
+            aggregate_candidate = _candidate(
+                aggregate_contract,
+                title=f"{owner.name} is missing its complete required state hierarchy",
+                predicate_id=None,
+                predicate_inputs={},
+                element_refs=(
+                    owner.ref,
+                    *[member.ref for member in exact_members],
+                ),
+                source_refs=source_refs,
+                expected=aggregate_contract.normative_statement,
+                observed=" ".join(row[1].observed for row in primary_rows),
+                strongest_rebuttal=(
+                    "A transition among root-level states does not establish that the "
+                    "complete source-and-alternative set is contained by the required owner."
+                ),
+                reason=(
+                    "Every independently established member of one complete transition "
+                    "group has an exact ancestry that excludes the same required owner."
+                ),
+                basis=aggregate_contract.basis,
+            )
+            builder.add(
+                "aggregate_containment",
+                source_contract_ids,
+                aggregate_contract,
+                aggregate_candidate,
+                reason=(
+                    "A typed transition group and complete same-owner containment contracts "
+                    "establish one full-scope hierarchy violation."
+                ),
+                basis=(
+                    f"transition_group_id={group.group_id}; exact owner/member ModelIR "
+                    "ancestry for every explicitly contracted group member"
+                ),
+            )
+            consumed_contract_ids.update(source_contract_ids)
+            seen_aggregate_relations.add(relation_key)
+
+    for contract, candidate, _owner, _child in violations:
+        if contract.contract_id in consumed_contract_ids:
+            continue
         builder.add(
             "containment",
             (contract.contract_id,),
@@ -3184,7 +3342,7 @@ def materialize_v27_frontier(
         seen_group_keys.add(encoded_key)
         all_groups.append(group)
     builder = _Builder(pair, llm_candidates)
-    _materialize_containment(builder, all_contracts)
+    _materialize_containment(builder, all_contracts, all_groups)
     _materialize_cardinality(
         builder, all_contracts, grounding_responses, llm_candidates
     )

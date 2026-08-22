@@ -260,6 +260,122 @@ def test_transition_endpoint_contract_requires_exact_typed_endpoint_roles() -> N
     assert "恰有一个 source" in description
 
 
+def test_containment_frontier_aggregates_only_complete_typed_group_scope() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+
+    def containment(
+        contract_id: str,
+        segment_id: str,
+        child: str,
+    ) -> NLContract:
+        return _contract(
+            contract_id=contract_id,
+            segment_id=segment_id,
+            locus_kind="state",
+            locus_names=(child, "AutonomousMode"),
+            property_name="containment",
+            expected_direction="must_be_contained",
+            violation_direction="wrong_scope",
+            hints=(
+                _hint("owner", "AutonomousMode", segment_id),
+                _hint("state", child, segment_id),
+            ),
+        )
+
+    initial = containment(
+        "NL-CONTRACT-NL1-AUTONOMOUS-INITIAL-CONTAINMENT",
+        "NL1",
+        "InitialState",
+    )
+    highway = containment(
+        "NL-CONTRACT-NL2-AUTONOMOUS-HIGHWAY-CONTAINMENT",
+        "NL2",
+        "HighwayMode",
+    )
+    urban = containment(
+        "NL-CONTRACT-NL2-AUTONOMOUS-URBAN-CONTAINMENT",
+        "NL2",
+        "UrbanMode",
+    )
+    group = NLTransitionGroup(
+        group_id="NL-GROUP-NL2-AUTONOMOUS-MODES",
+        segment_id="NL2",
+        source_name="InitialState",
+        alternatives=(
+            NLTransitionAlternative(
+                alternative_id="ALT-NL2-HIGHWAY-CONTAINMENT",
+                target_name="HighwayMode",
+                condition="high_way=true",
+                condition_role="qualified_guard",
+                source_refs=("NL2",),
+                reason="The first alternative remains in the enclosing mode.",
+                basis="provider-free NL2 HighwayMode alternative",
+            ),
+            NLTransitionAlternative(
+                alternative_id="ALT-NL2-URBAN-CONTAINMENT",
+                target_name="UrbanMode",
+                condition="urban_way=true",
+                condition_role="qualified_guard",
+                source_refs=("NL2",),
+                reason="The second alternative remains in the enclosing mode.",
+                basis="provider-free NL2 UrbanMode alternative",
+            ),
+        ),
+        source_refs=("NL1", "NL2"),
+        reason="The discourse-scoped group enumerates both operating alternatives.",
+        basis="provider-free complete containment group",
+    )
+
+    complete_contracts = [initial, highway, urban]
+    complete = materialize_v27_frontier(
+        pair,
+        _response(complete_contracts, [group]),
+        {item.contract_id: item for item in complete_contracts},
+        (),
+        (),
+    )
+
+    aggregate = next(
+        item for item in complete.obligations
+        if item.kind == "aggregate_containment"
+    )
+    assert aggregate.source_contract_ids == tuple(
+        item.contract_id for item in complete_contracts
+    )
+    assert aggregate.candidate.locus_names == (
+        "AutonomousMode",
+        "InitialState",
+        "HighwayMode",
+        "UrbanMode",
+    )
+    assert aggregate.candidate.property == "containment"
+    assert aggregate.candidate.violation_direction == "wrong_scope"
+    assert aggregate.candidate.predicate_id is None
+    assert not any(
+        item.kind == "containment" and set(item.source_contract_ids).intersection(
+            {contract.contract_id for contract in complete_contracts}
+        )
+        for item in complete.obligations
+    )
+
+    incomplete_contracts = [initial, highway]
+    incomplete = materialize_v27_frontier(
+        pair,
+        _response(incomplete_contracts, [group]),
+        {item.contract_id: item for item in incomplete_contracts},
+        (),
+        (),
+    )
+    assert not any(
+        item.kind == "aggregate_containment" for item in incomplete.obligations
+    )
+    assert {
+        item.source_contract_ids[0]
+        for item in incomplete.obligations
+        if item.kind == "containment"
+    } == {initial.contract_id, highway.contract_id}
+
+
 def test_0029_frontier_aggregates_complete_same_property_scopes() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0029")
     autonomous_entry = _contract(

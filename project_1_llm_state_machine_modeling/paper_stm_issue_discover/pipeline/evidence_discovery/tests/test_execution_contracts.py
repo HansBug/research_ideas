@@ -1184,6 +1184,8 @@ def test_aggregate_ledger_rejects_subset_candidate_subsumption() -> None:
     normalized_prompt = " ".join(prompt.split())
     assert "a candidate that covers only a subset cannot subsume it" in normalized_prompt
     assert "Do not use ledger detail to add an absent sibling" in normalized_prompt
+    assert "never semantic_equivalent" in normalized_prompt
+    assert "recount hits and misses" in normalized_prompt
 
 
 def test_aggregate_ledger_rejects_collective_subset_accounting() -> None:
@@ -1492,6 +1494,8 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "does not create a progress contract" in CONTRACT_SYSTEM_PROMPT
     assert "emit an independent `termination` contract" in CONTRACT_SYSTEM_PROMPT
     assert "covered segment accounting never licenses omission" in CONTRACT_SYSTEM_PROMPT
+    assert "source `S` as a child of owner `P`" in CONTRACT_SYSTEM_PROMPT
+    assert "complete source-and-alternative group" in CONTRACT_SYSTEM_PROMPT
     assert "first enter ModeA" in CONTRACT_SYSTEM_PROMPT
     assert '"the system begins in Controller" yields owner=root/system' in CONTRACT_SYSTEM_PROMPT
     assert "`system` is the grammatical actor" in CONTRACT_SYSTEM_PROMPT
@@ -1514,6 +1518,7 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "satisfied `root/system -> Controller`" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "already-satisfied owner-local contract" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "Interpret containment at the depth stated by the contract" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "Audit discourse-scoped transition groups" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "synthetic placeholders are not author-specified operating-state" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "an unreachable state that" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "not a deadlock/dead-end violation" in DISCOVERY_GROUNDING_SYSTEM_PROMPT

@@ -85,8 +85,8 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v8"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v5"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v30"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v26"
+CODE_VERSION = "evidence-discovery-v27-flow.v31"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v27"
 JUDGE_EXACT_IDENTITY_CONTRACT_VERSION = "paper1.judge-exact-identity-contract.v1"
 
 
@@ -2646,7 +2646,11 @@ claim. If the ledger explicitly enumerates multiple sibling scopes, events,
 states, or components, a candidate that covers only a subset cannot subsume it:
 use ledger_subsumes_candidate or partial_overlap even when both share an ancestor
 or root cause. Do not use ledger detail to add an absent sibling or component to
-the candidate. ledger_subsumes_candidate,
+the candidate. This completeness requirement also applies to semantic_equivalent:
+for example, if a ledger says owner P is missing required children A, B, and C,
+a release stating only that A is outside P is ledger_subsumes_candidate or
+partial_overlap, never semantic_equivalent, even though its owner and property
+match. ledger_subsumes_candidate,
 partial_overlap, same_cause_different_property, and unrelated do not count. A
 wrong source, narrow manifestation sharing only a cause, broader category,
 opposite direction, passing mention, reference-artifact complaint, or unrelated
@@ -2664,8 +2668,11 @@ release issue; set is_false_positive=true only when no hit-eligible relation
 accounts for it. The release reason and basis must agree with that boolean: if
 true, explain why no supplied ledger has the same locus/property/scope/direction
 and do not call it a match; if false, name the hit-eligible typed relation that
-accounts for it. Do not omit units. Every assessment, relation, and top-level
-response must have non-empty reason and basis fields. Do not read baseline
+accounts for it. Do not omit units. The top-level reason and basis must summarize
+the final ledger rows exactly: recount hits and misses after all relation decisions
+and do not retain an earlier draft count or list that contradicts those rows.
+Every assessment, relation, and top-level response must have non-empty reason and
+basis fields. Do not read baseline
 results, other pairs, historical judge examples, or files outside this input.
 """
 
