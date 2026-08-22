@@ -464,7 +464,7 @@ class RunSummaryReceipt(BaseModel):
         description="In-place provider transport retry count configured through utils.agent."
     )
     streaming: bool = Field(
-        description="Whether calls used the 30-second first-byte plus 120-second total streaming contract."
+        description="Whether calls used the 30-second first-byte plus 300-second total streaming contract."
     )
     registry_version: str = Field(
         min_length=1,

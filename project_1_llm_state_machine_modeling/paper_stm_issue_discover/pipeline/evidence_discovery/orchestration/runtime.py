@@ -20,7 +20,7 @@ T = TypeVar("T", bound=BaseModel)
 # For non-streaming calls there is no first byte to wait for, so the provider
 # timeout itself is set to the complete-call deadline.
 PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS = 30
-PROVIDER_CALL_DEADLINE_SECONDS = 120
+PROVIDER_CALL_DEADLINE_SECONDS = 300
 MAX_STRUCTURED_OUTPUT_TOKENS = 8000
 DEFAULT_TRANSPORT_RETRIES = 8
 TRANSPORT_RETRY_DELAY_SCHEDULE_SECONDS = (5.0, 20.0, 60.0, 120.0, 240.0)
@@ -497,7 +497,7 @@ class PublicStructuredRuntime:
         )
         context_budget = StructuredContextBudget(
             mode="structured_llm",
-            projection_version="stage-context-projection.v4",
+            projection_version="stage-context-projection.v5",
             prompt_characters=len(prompt),
             estimated_prompt_tokens=(len(prompt) + 3) // 4,
             provider_input_tokens=(provider_input_tokens if all_usage else None),
@@ -506,7 +506,7 @@ class PublicStructuredRuntime:
             truncation_applied=False,
             projection_decision="The stage-specific structured projection was serialized in full; runtime text truncation was not applied.",
             reason="The call records both the pre-provider prompt size and actual provider usage when available.",
-                basis="stage-context-projection.v4, utils.llm profile limits, and normalized usage rows",
+                basis="stage-context-projection.v5, utils.llm profile limits, and normalized usage rows",
         )
         return StructuredCallOutcome(
             kind=kind,
@@ -599,7 +599,7 @@ class FixtureStructuredRuntime:
         response = schema.model_validate(payload)
         context_budget = StructuredContextBudget(
             mode="provider_free_fixture",
-            projection_version="stage-context-projection.v4",
+            projection_version="stage-context-projection.v5",
             prompt_characters=len(prompt),
             estimated_prompt_tokens=(len(prompt) + 3) // 4,
             provider_input_tokens=None,
@@ -608,7 +608,7 @@ class FixtureStructuredRuntime:
             truncation_applied=False,
             projection_decision="The provider-free fixture consumed the complete serialized stage projection without truncation.",
             reason="Fixture prompt size is recorded even though no provider token usage exists.",
-            basis="provider-free fixture runtime and stage-context-projection.v4",
+            basis="provider-free fixture runtime and stage-context-projection.v5",
         )
         return StructuredCallOutcome(
             kind=kind,

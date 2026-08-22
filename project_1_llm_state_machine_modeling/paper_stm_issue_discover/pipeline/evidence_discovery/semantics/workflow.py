@@ -362,7 +362,6 @@ def _context_text(pair: PairInput, *, stage: Literal["nl_contract_extraction", "
         prompt_context_payload(pair, stage=stage),
         ensure_ascii=False,
         sort_keys=True,
-        indent=2,
     )
 
 
@@ -378,7 +377,7 @@ PREDICATE_ROUTING_GUIDANCE = """Frozen predicate routing discipline:
 - Use G1 for a finite path-existence or unreachable-target claim, G2 for universal eventual target reachability, G3 only when the forbidden node/edge set is explicit, and G4 only for the registered coaccessibility form.
 - Use V4(initial_scope) for a supplied finite deadlock-frontier or reachable nonterminal-no-progress fact. V4 is currently W1-only under the source audit, so preserve a precise V4 candidate and its backend result without claiming W2. Do not replace V4 with S1/S2 or call termination, liveness, fairness, or concurrency semantics deadlock evidence.
 - Use V1/V2 only for the declared guard-domain formulas. Use R1-R4 only when a concrete scenario, window, and trace are supplied; do not infer trajectory facts from static text.
-- Route deterministic facts by property: LEAF_WITHOUT_OUTGOING/deadlock-frontier facts may yield one V4(initial_scope) candidate with exact leaf refs as supporting binding; failed finite reachability yields G1; a refuted initial-entry fact yields an exact S2 initial-edge claim. Do not turn a leaf/deadlock fact into S1 or an arbitrary present S2 edge.
+- Route deterministic facts by property: LEAF_WITHOUT_OUTGOING/deadlock-frontier facts may yield one V4(initial_scope) candidate with exact leaf refs as supporting binding; failed finite reachability yields G1. A refuted initial-entry fact uses S2 only when the required exact pseudo-state edge is absent. If that endpoint edge exists but is conditional or fails broader default-owner semantics, S2 cannot decide the initial-entry property; preserve a predicate=null W1 candidate unless a separate explicit guard contract supports S5. Do not turn a leaf/deadlock fact into S1 or an arbitrary present S2 edge.
 - Missing containment, region/consumer scope, initial-owner existence, or variable-delta semantics may remain a precise predicate=null W1 candidate. Preserve the exact owner/event/state refs and state the unsupported boundary; do not silently drop or rename it.
 - A predicate that is registered but source-gated as candidate or W1-only is still a valid precise candidate. The downstream deterministic state machine decides W1/W2; the grounding branch must not drop it merely because it cannot reach W2.
 - For a missing fact, bind the expected exact model/source element and the observed absence or counterexample. For a present fact, preserve it as a non-violation observation unless the supplied dossier identifies a distinct violated obligation."""
@@ -499,7 +498,7 @@ def build_contract_prompt(
         "reason": "This bounded chunk limits structured output size while preserving exact numbered-NL ownership.",
         "basis": "deterministic source-order partition; complete artifacts remain identified by the context manifest",
     }
-    context_text = json.dumps(context, ensure_ascii=False, sort_keys=True, indent=2)
+    context_text = json.dumps(context, ensure_ascii=False, sort_keys=True)
 
     return f"""{COMMON_RULES}
 
@@ -510,7 +509,7 @@ Stage-scoped context projection and complete artifact manifest:
 {context_text}
 
 Prior method candidates from this pair's earlier round only:
-{json.dumps(_safe_previous(previous), ensure_ascii=False, sort_keys=True, indent=2)}
+{json.dumps(_safe_previous(previous), ensure_ascii=False, sort_keys=True)}
 
 Extract one NLContract per independently violable normative obligation. The typed semantic key and binding hints are the contract plan consumed by both grounding branches. Return contracts and dispositions only for the exact segment IDs in this chunk; mark every supplied chunk segment as covered, context, or ambiguous. Every contract_id must include its exact segment_id (for example, NL-CONTRACT-NL6-ENDPOINT-1) so IDs remain unique after deterministic cross-chunk merge. Do not include ledger IDs, baseline labels, judge examples, W/D/L values, or hidden expected answers.
 """
@@ -605,13 +604,13 @@ that ID; otherwise use `satisfied`, `unresolved`, or `not_applicable` with a
 contract-specific reason and basis. Do not silently omit a contract.
 
 NL contracts:
-{json.dumps(_compact_contract_plan(contracts), ensure_ascii=False, sort_keys=True, indent=2)}
+{json.dumps(_compact_contract_plan(contracts), ensure_ascii=False, sort_keys=True)}
 
 Stage-scoped context projection and complete artifact manifest:
 {_context_text(pair, stage="source_grounding" if branch == "source" else "model_grounding")}
 
 Prior method candidates from this pair's earlier round only:
-{json.dumps(_safe_previous(previous), ensure_ascii=False, sort_keys=True, indent=2)}
+{json.dumps(_safe_previous(previous), ensure_ascii=False, sort_keys=True)}
     """
 
 
@@ -629,7 +628,7 @@ Stage-scoped context projection and complete artifact manifest:
 
 Obligation dossiers. These contain exact method outputs and backend facts, but no
 W/D/L labels. Assess every obligation exactly once and preserve its obligation_id:
-{json.dumps(compact_dossiers, ensure_ascii=False, sort_keys=True, indent=2)}
+{json.dumps(compact_dossiers, ensure_ascii=False, sort_keys=True)}
 
 Required obligation IDs, exactly once each:
 {json.dumps([item["obligation_id"] for item in compact_dossiers], ensure_ascii=False)}

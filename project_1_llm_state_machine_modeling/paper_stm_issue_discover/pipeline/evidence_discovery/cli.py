@@ -50,7 +50,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--no-stream",
         action="store_true",
-        help="Use non-streaming calls with only the 120-second total timeout.",
+        help="Use non-streaming calls with only the 300-second total timeout.",
     )
     parser.add_argument(
         "--predecessor-snapshot",

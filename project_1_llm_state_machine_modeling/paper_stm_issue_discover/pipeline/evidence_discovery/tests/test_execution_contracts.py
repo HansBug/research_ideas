@@ -148,6 +148,102 @@ def test_source_gate_and_input_aliases_are_deterministic() -> None:
         assert plan.supported is False, predicate_id
 
 
+def test_present_guarded_initial_edge_is_w1_not_false_s2_satisfaction() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    transition = pair.model.transition("transition:line:24")
+    assert transition is not None
+    assert transition.guard is not None
+    target = next(state for state in pair.model.states if state.name == "enter_hwy")
+    candidate = CandidateIssue(
+        contract_id="NL-CONTRACT-NL3-INITIAL-1",
+        locus_kind="state",
+        locus_names=("HighwayMode", "enter_hwy"),
+        property="initial_entry",
+        violation_direction="missing",
+        evidence_types=("initial_entry_fact", "guard_fact"),
+        title="HighwayMode lacks an unconditional default entry",
+        requirement_quote="HighwayMode begins in enter_hwy.",
+        predicate_id="S2",
+        predicate_inputs={
+            "source": "[*]",
+            "target": "enter_hwy",
+            "scope": "HighwayMode",
+            "transition": transition.ref,
+        },
+        element_refs=[transition.ref, target.ref],
+        source_refs=["NL3"],
+        expected="The owner enters enter_hwy without a condition.",
+        observed="The exact endpoint edge exists with a parsed guard.",
+        strongest_rebuttal="The guarded edge has the requested endpoint pair.",
+        reason="The supplied initial-entry fact identifies a conditional edge.",
+        basis="0029 FCSTM and owned initial-entry fact fixture",
+    )
+
+    prepared = _prepare_candidate(pair, candidate, 1, 0)
+
+    assert prepared["binding"].precise is True
+    assert prepared["candidate"].predicate_id is None
+    assert prepared["candidate"].predicate_inputs == {}
+    assert prepared["plan"].supported is False
+    assert prepared["receipt"].verdict == "unknown"
+    assert calculate_witness_level(
+        prepared["binding"],
+        prepared["plan"],
+        prepared["receipt"],
+    ) == "W1"
+    semantic = SemanticAdjudication(
+        obligation_id=prepared["obligation_id"],
+        grounding="established",
+        violated_obligation="HighwayMode requires an unconditional default entry.",
+        strongest_defeater=None,
+        defeater_kind="none",
+        defeater_disposition="defeated",
+        reason="The exact guarded edge does not establish unconditional initial entry.",
+        basis="typed initial-entry contract and parsed transition guard",
+    )
+    assert adjudicate_disposition(
+        prepared["candidate"],
+        prepared["binding"],
+        semantic,
+        receipt=prepared["receipt"],
+    )["d_level"] == "D2"
+
+
+def test_absent_exact_initial_edge_remains_an_s2_executable_claim() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0035")
+    target = next(state for state in pair.model.states if state.name == "DoorShut")
+    candidate = CandidateIssue(
+        contract_id="NL-CONTRACT-NL1-INITIAL-1",
+        locus_kind="state",
+        locus_names=("DoorShut",),
+        property="initial_entry",
+        violation_direction="missing",
+        evidence_types=("initial_entry_fact", "transition_fact"),
+        title="DoorShut lacks the required exact initial edge",
+        requirement_quote="The microwave begins in DoorShut.",
+        predicate_id="S2",
+        predicate_inputs={
+            "source": "[*]",
+            "target": "DoorShut",
+            "scope": "closed_fcstm",
+        },
+        element_refs=[target.ref],
+        source_refs=["NL1"],
+        expected="An exact pseudo-state edge enters DoorShut.",
+        observed="No such endpoint edge is present.",
+        strongest_rebuttal="A textual stereotype may label DoorShut as initial.",
+        reason="The exact state is bound and the expected edge can be checked.",
+        basis="0035 FCSTM exact state inventory fixture",
+    )
+
+    prepared = _prepare_candidate(pair, candidate, 1, 0)
+
+    assert prepared["binding"].precise is True
+    assert prepared["candidate"].predicate_id == "S2"
+    assert prepared["receipt"].terminal_state == "completed"
+    assert prepared["receipt"].verdict == "false"
+
+
 def test_w0_w1_and_unknown_are_mutually_exclusive() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     registry = load_registry()
@@ -1044,9 +1140,9 @@ def test_terminal_provider_failure_without_an_actual_retry_remains_billable() ->
 
 def test_provider_deadline_is_finite_and_provider_timeout_is_bounded() -> None:
     assert PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS == 30
-    assert PROVIDER_CALL_DEADLINE_SECONDS == 120
+    assert PROVIDER_CALL_DEADLINE_SECONDS == 300
     assert _provider_timeout_seconds(True) == 30
-    assert _provider_timeout_seconds(False) == 120
+    assert _provider_timeout_seconds(False) == 300
     assert PROVIDER_CALL_DEADLINE_SECONDS > PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS
     with pytest.raises(ProviderCallTimeout):
         with _provider_deadline(0.01):
@@ -1639,6 +1735,9 @@ def test_provider_free_run_manifest_resume_and_concurrent_atomic_writes(tmp_path
     assert summary["run_id"] == run_id
     assert summary["artifact_root"] == str(run_root.resolve())
     assert manifest["workers"] == 2
+    assert manifest["retry_policy"]["stream_first_byte_timeout_seconds"] == 30
+    assert manifest["retry_policy"]["structured_call_total_timeout_seconds"] == 300
+    assert manifest["retry_policy"]["non_stream_provider_timeout_seconds"] == 300
     assert manifest["prompt_schema_hash"].startswith("sha256:")
     assert manifest["input_data_hash"].startswith("sha256:")
     assert manifest["pair_input_hashes"].keys() == {"0004", "0023"}

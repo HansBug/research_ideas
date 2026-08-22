@@ -650,7 +650,7 @@ def test_staged_method_receives_full_context_and_writes_stage_receipts(tmp_path:
     assert {
         item["context_budget"]["projection_version"]
         for item in grounding_receipts.values()
-    } == {"stage-context-projection.v4+contract-grounding-projection.v1"}
+    } == {"stage-context-projection.v5+contract-grounding-projection.v1"}
     assert len(cell["llm_calls"]) == 4
     assert cell["context_manifest"]["manifest_hash"] == pair.context_manifest.manifest_hash
     assert cell["stage_outputs"]["nl_contract_extraction"]["reason"]
@@ -708,13 +708,16 @@ def test_large_working_contract_is_role_scoped_before_prompt_serialization(tmp_p
         output_root=tmp_path,
     )
 
-    assert max(len(prompt) for _, prompt in runtime.prompts) < 700_000
+    assert max(len(prompt) for _, prompt in runtime.prompts) < 350_000
     model_prompt = dict(runtime.prompts)["model_grounding"]
     assert '"elements": [' in model_prompt
-    assert '"excluded_element_ids": {' in model_prompt
+    assert '"capability_eligibility_detail_receipt": {' in model_prompt
+    assert '"excluded_element_ids": {' not in model_prompt
+    assert '"row_rationale_receipts": {' in model_prompt
+    assert '"row_rationale_receipt": {' in model_prompt
     model_context = prompt_context_payload(pair, stage="model_grounding")
     model_context_text = json.dumps(model_context, ensure_ascii=False, sort_keys=True)
-    assert len(model_context_text) < 350_000
+    assert len(model_context_text) < 250_000
     assert '"model_refs"' in model_context_text
     assert '"source_refs"' in model_context_text
     for role in (

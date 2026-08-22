@@ -65,6 +65,8 @@ from .contracts import (
 from .runtime import (
     DEFAULT_TRANSPORT_RETRIES,
     FixtureStructuredRuntime,
+    PROVIDER_CALL_DEADLINE_SECONDS,
+    PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS,
     PublicStructuredRuntime,
     StructuredCallOutcome,
     TRANSPORT_RETRY_DELAY_SCHEDULE_SECONDS,
@@ -76,8 +78,8 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v3"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v2"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-orchestration.v9"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-staged-prompts.v8"
+CODE_VERSION = "evidence-discovery-orchestration.v10"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-staged-prompts.v9"
 CONTRACT_CHUNK_MAX_SEGMENTS = 4
 CONTRACT_SINGLE_CHUNK_MAX_CHARACTERS = 1_200
 JUDGE_PROMPT_TOKEN_BUDGET = 180_000
@@ -278,6 +280,9 @@ def _retry_policy(transport_retries: int) -> dict[str, Any]:
     return {
         "transport_retries": transport_retries,
         "transport_retry_delays_seconds": delays,
+        "stream_first_byte_timeout_seconds": PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS,
+        "structured_call_total_timeout_seconds": PROVIDER_CALL_DEADLINE_SECONDS,
+        "non_stream_provider_timeout_seconds": PROVIDER_CALL_DEADLINE_SECONDS,
         "dead_structured_call_retries_after_provider_error": 1,
         "schema_and_non_provider_retries_billable": True,
         "provider_retry_exemption": "Only a failed provider attempt followed by an actual same-request retry is exempt; the successful attempt remains billable.",
@@ -590,7 +595,95 @@ def _aggregate_outcomes(
     }
 
 
+_PREDICATE_PROPERTY_COMPATIBILITY: dict[str, frozenset[str]] = {
+    "S1": frozenset({"element_declaration"}),
+    "S2": frozenset({"transition_endpoints", "initial_entry"}),
+    "S3": frozenset({"trigger_set"}),
+    "S4": frozenset({"state_action"}),
+    "S5": frozenset({"guard"}),
+    "S6": frozenset({"effect"}),
+    "G1": frozenset({"reachability"}),
+    "G2": frozenset({"universal_reachability", "termination"}),
+    "G3": frozenset({"route_avoidance"}),
+    "G4": frozenset({"coaccessibility", "termination"}),
+    "R1": frozenset({"event_consumption"}),
+    "R2": frozenset({"state_after_stimulus"}),
+    "R3": frozenset({"behavior_occurrence"}),
+    "R4": frozenset({"state_retention"}),
+    "V1": frozenset({"guard_disjointness"}),
+    "V2": frozenset({"guard_completeness"}),
+    "V3": frozenset({"bounded_response"}),
+    "V4": frozenset({"deadlock_freedom"}),
+    "V5": frozenset({"state_invariant"}),
+}
+
+
+def _apply_typed_predicate_boundary(
+    pair: PairInput,
+    candidate: CandidateIssue,
+) -> CandidateIssue:
+    """Downgrade a semantically mismatched executable claim to precise W1.
+
+    This rule compares only typed contract properties, predicate IDs, and
+    parsed transition fields. It never interprets candidate prose. The issue
+    remains present; only the unsupported executable assertion is removed.
+    """
+
+    predicate_id = candidate.predicate_id
+    if predicate_id is None:
+        return candidate
+    allowed_properties = _PREDICATE_PROPERTY_COMPATIBILITY.get(predicate_id)
+    reason: str | None = None
+    if allowed_properties is not None and candidate.property not in allowed_properties:
+        reason = (
+            f"Predicate {predicate_id} does not decide typed property "
+            f"{candidate.property}; preserve the exact issue as predicate-null W1."
+        )
+    elif (
+        predicate_id in {"S1", "S2"}
+        and candidate.violation_direction == "extra"
+    ):
+        reason = (
+            f"Predicate {predicate_id} proves positive existence but the typed "
+            "candidate alleges extra behavior; the current compiler has no "
+            "audited negated assertion for this claim."
+        )
+    elif predicate_id == "S2" and candidate.property == "initial_entry":
+        inputs = candidate.predicate_inputs
+        source = inputs.get("source")
+        target = inputs.get("target")
+        transition_hint = inputs.get("transition") or inputs.get("transition_ref")
+        transition_ref = resolve_transition_ref(
+            transition_hint if isinstance(transition_hint, str) else None,
+            pair.model,
+            source=source if isinstance(source, str) else None,
+            target=target if isinstance(target, str) else None,
+        )
+        transition = pair.model.transition(transition_ref) if transition_ref else None
+        if transition is not None and transition.guard is not None:
+            reason = (
+                "S2 proves that the pseudo-state endpoint edge exists, but it "
+                "cannot decide the stronger default/unconditional initial-entry "
+                "property of a present guarded edge."
+            )
+    if reason is None:
+        return candidate
+    return candidate.model_copy(
+        update={
+            "predicate_id": None,
+            "predicate_inputs": {},
+            "reason": candidate.reason + " " + reason,
+            "basis": (
+                candidate.basis
+                + "; typed predicate/property compatibility and exact parsed transition fields"
+            ),
+        }
+    )
+
+
 def _enrich_candidate(candidate: CandidateIssue, binding: Any, pair: PairInput) -> CandidateIssue:
+    if candidate.predicate_id is None:
+        return candidate.model_copy(update={"predicate_inputs": {}})
     inputs = dict(candidate.predicate_inputs)
     inputs.setdefault("element_refs", list(binding.element_refs))
     bound_transitions = [item for item in pair.model.transitions if item.ref in binding.element_refs]
@@ -744,6 +837,7 @@ def _prepare_candidate(
 
     obligation_id = f"{pair.pair_id}:r{round_index}:i{index}"
     candidate = _normalize_candidate_model_refs(pair, candidate)
+    candidate = _apply_typed_predicate_boundary(pair, candidate)
     binding = bind_candidate(candidate, pair.model)
     if contracts_by_id is not None:
         contract = contracts_by_id.get(candidate.contract_id)
@@ -1055,7 +1149,7 @@ def _method_cell(
                 artifact_roles=("natural_language", "working_contract", "source_trace"),
                 output=chunk_output,
                 outcome=contract_outcome,
-                projection_version="stage-context-projection.v4+contract-chunking.v1",
+                projection_version="stage-context-projection.v5+contract-chunking.v1",
                 reason=chunk_output.reason,
                 basis=chunk_output.basis,
             )
@@ -1130,7 +1224,7 @@ def _method_cell(
     # The six pair workers already provide process-level parallelism. Keep the
     # two calls sequential inside one PublicStructuredRuntime so the shared
     # AgentApp/LangGraph adapter retains its main-thread 30s first-byte and
-    # 120s total deadline semantics; thread fanout previously caused
+    # 300s total deadline semantics; thread fanout previously caused
     # ``Event loop is closed`` non-provider failures.
     source_outcome = call_grounding("source", source_prompt)
     model_outcome = call_grounding("model", model_prompt)
@@ -1164,7 +1258,7 @@ def _method_cell(
             artifact_roles=("natural_language", "plantuml_source", "canonical_source_ir", "source_inventory", "working_contract", "source_trace"),
             output=source_response,
             outcome=source_outcome,
-            projection_version="stage-context-projection.v4+contract-grounding-projection.v1",
+            projection_version="stage-context-projection.v5+contract-grounding-projection.v1",
             reason=source_response.reason,
             basis=source_response.basis,
         )
@@ -1199,7 +1293,7 @@ def _method_cell(
             artifact_roles=("natural_language", "fcstm_model", "reference_inspection_facts", "inspection_equivalent_facts", "verify_facts", "smt_facts", "working_contract"),
             output=model_response,
             outcome=model_outcome,
-            projection_version="stage-context-projection.v4+contract-grounding-projection.v1",
+            projection_version="stage-context-projection.v5+contract-grounding-projection.v1",
             reason=model_response.reason,
             basis=model_response.basis,
         )

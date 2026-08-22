@@ -119,6 +119,13 @@ description 和非空 reason/basis。LLM 不输出 W/D/L；D 阶段只输出封�
 grounding/defeater facts，方法代码将这些 typed facts 映射为 D2/D1/D0，W 则完全由
 确定性状态机裁定。
 
+grounding prompt 使用 stage-context-projection.v5：NL、PlantUML、FCSTM、
+reference inspect、inspection-equivalent、verify/SMT、working mapping 和完整 manifest
+的角色均保留；确定性 fact 行的可判定字段和 exact refs 直接传入，重复的逐行
+reason/basis 与 capability eligibility ID 展开只以完整 artifact 的 hash/path/count
+引用。该投影只去重 prompt，不修改完整输入或审计 receipt。stream 模式保持首字 30 秒，
+总 timeout 为 300 秒；non-stream 不设首字限制，只使用 300 秒总 timeout。
+
 ### 1.3 确定性方法的准入边界
 
 沿用 v27 已验证的边界：开放世界的自然语言语义必须由具名 LLM 节点判断，不能由文本
@@ -134,6 +141,12 @@ source/hash、D/W 或 source-attribution 的确定性语义裁定。逐字 quote
 核对出处，不证明语义蕴含。任何无法由形式语法、模型 AST、精确引用关系或预先声明
 soundness fragment 完美判定的步骤，都必须有 Pydantic 输出、非空 `reason`/`basis`、
 模型调用和 usage/retry receipt。
+
+predicate/property 兼容性只比较 typed enum、冻结 predicate ID 和解析后的模型字段。
+若 S1/S2 等正向存在谓词不能决定 candidate 的 typed property，方法不得执行一个邻近
+assertion 后把 true 当作满足，而应保留 exact binding 并降为 predicate-null W1。例如
+现存但带 guard 的 initial edge 不能用 S2 证明缺省/无条件入口；只有所需 exact
+pseudo-state endpoint edge 本身缺失时，S2 才能直接检查该 initial-edge 命题。
 
 这里的“禁止正则”针对自然语言语义代理，不禁止 parser 对公开 FCSTM/guard grammar
 做语法识别。语法 parser 只能生成 typed AST/fragment；bounded backend 只在预先声明的

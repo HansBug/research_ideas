@@ -1163,6 +1163,158 @@ def _project_large_sequence(value: Any, *, label: str) -> dict[str, Any]:
     }
 
 
+def _compact_fact_rows(
+    rows: Any,
+    *,
+    fields: tuple[str, ...],
+    label: str,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Project typed fact rows while hash-addressing repeated audit rationale."""
+
+    raw_rows = [
+        row.model_dump(mode="json") if isinstance(row, BaseModel) else row
+        for row in (rows or ())
+        if isinstance(row, (BaseModel, dict))
+    ]
+    projected = [
+        {key: row[key] for key in fields if key in row}
+        for row in raw_rows
+    ]
+    receipt = {
+        "count": len(raw_rows),
+        "sha256": _artifact_hash_payload({"items": raw_rows}),
+        "omitted_fields": ["reason", "basis"],
+        "label": label,
+        "reason": "Typed fact fields remain prompt-visible; repeated per-row audit rationale remains in the hash-addressed complete artifact.",
+        "basis": "stage-context-projection.v5 typed-fact projection",
+    }
+    return projected, receipt
+
+
+def _inspection_equivalent_prompt_dict(
+    facts: InspectionEquivalentFacts | None,
+) -> dict[str, Any] | None:
+    """Keep the complete owned inventory semantics without repeated row prose."""
+
+    if facts is None:
+        return None
+    states, state_receipt = _compact_fact_rows(
+        facts.states,
+        fields=(
+            "state_ref",
+            "name",
+            "parent",
+            "line",
+            "is_composite",
+            "reachable_from_initial",
+            "outgoing_transition_refs",
+        ),
+        label="inspection_equivalent_facts.states",
+    )
+    transitions, transition_receipt = _compact_fact_rows(
+        facts.transitions,
+        fields=(
+            "transition_ref",
+            "source",
+            "target",
+            "triggers",
+            "guard",
+            "effects",
+            "line",
+            "scope",
+            "resolved_source_ref",
+            "resolved_target_ref",
+            "reachable_from_initial",
+        ),
+        label="inspection_equivalent_facts.transitions",
+    )
+    diagnostics, diagnostic_receipt = _compact_fact_rows(
+        facts.diagnostics,
+        fields=("code", "severity", "refs", "line", "message"),
+        label="inspection_equivalent_facts.diagnostics",
+    )
+    event_consumers, consumer_receipt = _compact_fact_rows(
+        facts.event_consumers,
+        fields=(
+            "event",
+            "declared_ref",
+            "consumer_transition_refs",
+            "consumer_state_refs",
+            "reachable_consumer_transition_refs",
+            "reachable_consumer_state_refs",
+        ),
+        label="inspection_equivalent_facts.event_consumers",
+    )
+    return {
+        "schema_version": facts.schema_version,
+        "algorithm_version": facts.algorithm_version,
+        "fcstm_hash": facts.fcstm_hash,
+        "states": states,
+        "transitions": transitions,
+        "events": facts.events,
+        "diagnostics": diagnostics,
+        "reachability": facts.reachability,
+        "machine_root_ref": facts.machine_root_ref,
+        "reachable_state_refs": facts.reachable_state_refs,
+        "event_consumers": event_consumers,
+        "metrics": facts.metrics,
+        "row_rationale_receipts": {
+            "states": state_receipt,
+            "transitions": transition_receipt,
+            "diagnostics": diagnostic_receipt,
+            "event_consumers": consumer_receipt,
+        },
+        "reason": facts.reason,
+        "basis": facts.basis,
+    }
+
+
+def _verification_facts_prompt_dict(
+    facts: VerificationFacts | None,
+) -> dict[str, Any] | None:
+    """Project finite check results and exact subjects without row-level repetition."""
+
+    if facts is None:
+        return None
+    checks, receipt = _compact_fact_rows(
+        facts.checks,
+        fields=("check_id", "kind", "status", "subject_refs", "details"),
+        label="verify_facts.checks",
+    )
+    return {
+        "schema_version": facts.schema_version,
+        "algorithm_version": facts.algorithm_version,
+        "scope": facts.scope,
+        "checks": checks,
+        "terminal_state": facts.terminal_state,
+        "row_rationale_receipt": receipt,
+        "reason": facts.reason,
+        "basis": facts.basis,
+    }
+
+
+def _smt_facts_prompt_dict(facts: SMTFacts | None) -> dict[str, Any] | None:
+    """Project normalized formulas while preserving the explicit no-solver boundary."""
+
+    if facts is None:
+        return None
+    formulas, receipt = _compact_fact_rows(
+        facts.formulas,
+        fields=("formula_id", "source_ref", "expression", "variables", "solver_status"),
+        label="smt_facts.formulas",
+    )
+    return {
+        "schema_version": facts.schema_version,
+        "algorithm_version": facts.algorithm_version,
+        "scope": facts.scope,
+        "formulas": formulas,
+        "solver_status": facts.solver_status,
+        "row_rationale_receipt": receipt,
+        "reason": facts.reason,
+        "basis": facts.basis,
+    }
+
+
 def _compact_trace_entries(entries: Any, *, label: str) -> dict[str, Any]:
     """Retain exact trace identity edges without repeated prose policy text."""
 
@@ -1424,7 +1576,7 @@ def _working_contract_prompt_dict(
                 }
             ),
             "reason": "Exact source/model refs are retained for binding; verbose compiler metadata remains available from the working-contract artifact hash.",
-            "basis": "working-contract-prompt-projection.v3",
+            "basis": "working-contract-prompt-projection.v4",
         }
     else:
         projected["elements"] = _project_large_sequence(payload.get("elements"), label="elements")
@@ -1444,34 +1596,31 @@ def _working_contract_prompt_dict(
             if not isinstance(value, dict):
                 eligibility[name] = value
                 continue
-            row = {
+            eligibility[name] = {
                 key: value[key]
                 for key in ("claim_boundary", "status")
                 if key in value
             }
-            if "reason_codes" in value:
-                row["reason_codes"] = _project_large_sequence(
-                    value["reason_codes"], label=f"{name}.reason_codes"
-                )
-            for key in (
-                "eligible_element_ids",
-                "eligible_field_refs",
-                "evidence_refs",
-                "excluded_element_ids",
-                "excluded_field_refs",
-            ):
-                if key in value:
-                    row[key] = _project_large_sequence(
-                        value[key],
-                        label=f"{name}.{key}",
-                    )
-            eligibility[name] = row
     projected["capability_eligibility"] = eligibility
+    projected["capability_eligibility_detail_receipt"] = {
+        "capability_count": len(raw_eligibility) if isinstance(raw_eligibility, dict) else 0,
+        "sha256": _artifact_hash_payload({"items": raw_eligibility}),
+        "omitted_fields": [
+            "reason_codes",
+            "eligible_element_ids",
+            "eligible_field_refs",
+            "evidence_refs",
+            "excluded_element_ids",
+            "excluded_field_refs",
+        ],
+        "reason": "Capability status and claim boundaries remain visible; repeated eligibility ID lists remain in the complete working-contract artifact.",
+        "basis": "working-contract-prompt-projection.v4",
+    }
     return {
         "ref": artifact.ref.model_dump(mode="json"),
         "payload": projected,
         "reason": "The working contract projection preserves exact source/model mapping and hash-addresses omitted compiler and eligibility expansions.",
-        "basis": "working-contract-prompt-projection.v3",
+        "basis": "working-contract-prompt-projection.v4",
     }
 
 
@@ -1481,7 +1630,7 @@ def _prompt_base(pair: Any, stage: PromptStage) -> dict[str, Any]:
     if pair.context_manifest is None:
         raise ValueError("stage prompt requires a complete context manifest")
     return {
-        "prompt_projection_version": "stage-context-projection.v4",
+        "prompt_projection_version": "stage-context-projection.v5",
         "stage": stage,
         "context_manifest": pair.context_manifest.model_dump(mode="json"),
         "artifact_refs": [
@@ -1516,7 +1665,7 @@ def _prompt_base(pair: Any, stage: PromptStage) -> dict[str, Any]:
             "smt_facts": "normalized_formal_inputs_not_solver_result",
         },
         "reason": "Stage context is role-scoped while the complete artifact closure remains identified by the manifest.",
-        "basis": "context-manifest.v1 and stage-context-projection.v4",
+        "basis": "context-manifest.v1 and stage-context-projection.v5",
     }
 
 
@@ -1609,19 +1758,13 @@ def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
                     else None
                 ),
                 "inspection_equivalent_facts": (
-                    pair.inspection_facts.model_dump(mode="json")
-                    if pair.inspection_facts
-                    else None
+                    _inspection_equivalent_prompt_dict(pair.inspection_facts)
                 ),
                 "verify_facts": (
-                    pair.verify_facts.model_dump(mode="json")
-                    if pair.verify_facts
-                    else None
+                    _verification_facts_prompt_dict(pair.verify_facts)
                 ),
                 "smt_facts": (
-                    pair.smt_facts.model_dump(mode="json")
-                    if pair.smt_facts
-                    else None
+                    _smt_facts_prompt_dict(pair.smt_facts)
                 ),
             }
         )

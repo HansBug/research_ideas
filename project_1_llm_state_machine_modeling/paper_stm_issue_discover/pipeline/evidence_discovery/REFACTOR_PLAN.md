@@ -131,9 +131,13 @@ quote、normative statement、名称或自由文本 reason；这些语义拆分�
 
 每个 LLM stage 的 `context_budget` 记录精确 prompt 字符数、调用前 token 估计、provider
 实际 input tokens（可得时）、profile context window、max output、projection version 和
-是否发生 runtime truncation。当前只允许显式 `stage-context-projection.v4` 和
+是否发生 runtime truncation。当前只允许显式 `stage-context-projection.v5` 和
 `contract-grounding-projection.v1` 压缩重复材料；后者保留 typed semantic key、NL 锚点、
 scope 和 binding hint 值，并用完整 contract stage output 的 hash 代替重复 reason/basis。
+v5 还保留 typed inventory/diagnostic/verify 字段和 exact refs，同时把逐行重复 rationale
+及 capability eligibility ID 展开折叠为完整 artifact 的 count/hash/path receipt；这不是
+删除 reference inspect、inspection-equivalent facts 或 working mapping。stream 模式使用
+30 秒首字、300 秒总 timeout；non-stream 只使用 300 秒总 timeout。
 不得静默删节；确定性 stage 也必须记录 `deterministic-no-prompt`，不能用
 `context_budget_exceeded` 伪装业务 miss。
 
@@ -311,7 +315,7 @@ error 使格子死亡，原地重试该格一次；其它错误及由此触发�
 当前施工安全门分两级：任意真实 Luna 调用都必须显式通过 `allow_live`；诊断阶段必须
 显式传入 pair IDs，且最多运行六个 pair。冻结 54-pair 三轮全量还必须额外通过
 `allow_full_live`，该门只可在 provider-free 契约检查与 0004/0023/0029/0035/0046/0053
-六 pair 单次复测完成 review 后打开。每次运行在用户给定目录下新建 `run_id` 子目录；
+六 pair 三轮 method + independent judge 验收完成 review 后打开。每次运行在用户给定目录下新建 `run_id` 子目录；
 manifest 冻结 commit、registry/prompt/schema/input hash、workers、retry 和 stream 模式，
 不兼容旧格移入 `stale/` 并重新生成，不能静默 resume，也不能以冷重跑替代故障修复。
 
