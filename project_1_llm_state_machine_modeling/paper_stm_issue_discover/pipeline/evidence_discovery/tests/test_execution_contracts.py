@@ -79,6 +79,7 @@ from pipeline.evidence_discovery.semantics import (
     assemble_method_response,
     bind_candidate,
     build_method_prompt,
+    build_grounding_prompt,
     fallback_grounding,
     resolve_transition_ref,
 )
@@ -946,6 +947,7 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
         locus_kind="scope",
         locus_names=("supplied state-machine scope",),
         property="deadlock_freedom",
+        state_role="operating_state",
         expected_direction="must_progress",
         violation_direction="dead_end",
         evidence_types=("deadlock_frontier_fact", "verify_fact"),
@@ -974,6 +976,48 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert fallback.contract_dispositions[0].basis
     assert "reachable non-final leaf" in D_SYSTEM_PROMPT
     assert "intentional terminal or synthetic" in D_SYSTEM_PROMPT
+    assert "Predicate/backend availability is a W question" in D_SYSTEM_PROMPT
+    assert "different root-level initial edge" in D_SYSTEM_PROMPT
+    assert "For each semantically active operating state" in CONTRACT_SYSTEM_PROMPT
+    assert "first enter ModeA" in CONTRACT_SYSTEM_PROMPT
+    assert "Emit a candidate only for a possible violated obligation" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    grounding_prompt = build_grounding_prompt(
+        pair,
+        lens="behavior_consequence",
+        round_index=1,
+        contracts=contracts,
+    )
+    assert '"state_role": "operating_state"' in grounding_prompt
+    assert '"projection_version": "contract-grounding-projection.v2"' in grounding_prompt
+
+
+def test_unsupported_backend_does_not_turn_satisfied_semantics_into_d1() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    candidate = _candidate(pair, predicate_id=None, inputs={})
+    binding = bind_candidate(candidate, pair.model)
+    semantic = SemanticAdjudication(
+        obligation_id="0000:r1:i0",
+        grounding="not_established",
+        violated_obligation="The supplied property is under review.",
+        strongest_defeater="The exact supplied facts satisfy the expected property.",
+        defeater_kind="rebutting",
+        defeater_disposition="survives",
+        reason="The semantic facts satisfy the obligation; backend availability is irrelevant to D.",
+        basis="provider-free exact semantic fixture",
+    )
+    receipt = RawReceipt(
+        receipt_id="0000:r1:i0:receipt",
+        backend="none",
+        terminal_state="unsupported",
+        verdict="unknown",
+        reason="No frozen predicate expresses the claim.",
+        basis="deterministic backend capability table",
+    )
+
+    decision = adjudicate_disposition(candidate, binding, semantic, receipt)
+
+    assert binding.precise is True
+    assert decision["d_level"] == "D0"
 
 
 def test_structured_models_require_non_empty_audit_rationale_and_descriptions() -> None:

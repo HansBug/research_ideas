@@ -26,7 +26,10 @@ class SemanticAdjudication(BaseModel):
     grounding: Literal["established", "not_established", "unresolved"] = Field(
         description=(
             "Whether the supplied NL/source/model dossier establishes a first violated-obligation reading. "
-            "Use unresolved when the supplied facts cannot decide; do not infer it from words or identifiers."
+            "Use not_established when exact facts satisfy the expected property. "
+            "Use unresolved when the supplied facts cannot decide; predicate/backend "
+            "unavailability is a W boundary and does not itself establish semantic "
+            "ambiguity. Do not infer this field from words or identifiers."
         )
     )
     violated_obligation: str = Field(
@@ -38,7 +41,7 @@ class SemanticAdjudication(BaseModel):
         description="Strongest supplied alternative reading or rebuttal; null only when none is applicable.",
     )
     defeater_kind: Literal["none", "undercutting", "rebutting"] = Field(
-        description="Typed kind of the strongest defeater: none when no competent alternative exists; undercutting when a second competent reading remains compatible with the same facts (D1 boundary); rebutting when supplied facts defeat the alleged violation or preserve a reasonable design choice (D0 boundary when it survives)."
+        description="Typed kind of the strongest defeater: none when no competent alternative exists; undercutting only when a second semantic reading remains compatible with the same facts (D1 boundary), never merely because a predicate/backend is unsupported; rebutting when supplied facts satisfy the expected property, defeat the alleged violation, or preserve a reasonable design choice (D0 boundary when it survives)."
     )
     defeater_disposition: Literal["defeated", "survives", "unresolved"] = Field(
         description="Whether the typed defeater is defeated by supplied facts, survives as a competent reading/rebuttal, or remains unresolved; deterministic method code combines this enum with defeater_kind and exact binding to derive D."

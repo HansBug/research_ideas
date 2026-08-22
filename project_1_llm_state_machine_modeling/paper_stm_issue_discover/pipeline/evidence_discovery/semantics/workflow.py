@@ -23,6 +23,15 @@ from .obligations import (
 )
 
 
+StateSemanticRole = Literal[
+    "operating_state",
+    "condition_state",
+    "initial_state",
+    "termination_state",
+    "other_state",
+]
+
+
 class NLContract(BaseModel):
     """One typed, source-grounded obligation extracted from a numbered NL segment.
 
@@ -40,6 +49,16 @@ class NLContract(BaseModel):
     locus_kind: ObligationLocusKind = Field(description="Typed semantic kind of the source obligation locus; choose the object whose property can be violated, not a nearby declared element.")
     locus_names: tuple[str, ...] = Field(min_length=1, description="Source-grounded names that identify the exact obligation locus before model binding; keep one independently violable semantic locus per contract.")
     property: ObligationProperty = Field(description="Atomic property required at the locus; this vocabulary includes the frozen predicate meanings and explicit unsupported semantic boundaries.")
+    state_role: StateSemanticRole | None = Field(
+        default=None,
+        description=(
+            "v27 semantic role of the state centered by this contract, or null "
+            "when the locus is not one state concept. An operating state denotes "
+            "active behavior that must retain a response/progress interpretation; "
+            "termination_state requires explicit completion or terminal semantics "
+            "from the NL and must never be inferred from a suggestive identifier."
+        ),
+    )
     expected_direction: ExpectedDirection = Field(description="Positive requirement direction stated by the NL, such as required existence, entry, reachability, progress, coverage, or absence.")
     violation_direction: ViolationDirection = Field(description="Defect direction that grounding must look for if the requirement is not met; it must not be reversed into a nearby existence observation.")
     evidence_types: tuple[EvidenceType, ...] = Field(
@@ -275,7 +294,7 @@ def _compact_contract_plan(contracts: NLContractResponse) -> dict[str, Any]:
 
     full_payload = contracts.model_dump(mode="json")
     return {
-        "projection_version": "contract-grounding-projection.v1",
+        "projection_version": "contract-grounding-projection.v2",
         "full_contract_response_hash": _hash(full_payload),
         "contract_count": len(contracts.contracts),
         "contracts": [
@@ -287,6 +306,7 @@ def _compact_contract_plan(contracts: NLContractResponse) -> dict[str, Any]:
                 "locus_kind": contract.locus_kind,
                 "locus_names": contract.locus_names,
                 "property": contract.property,
+                "state_role": contract.state_role,
                 "expected_direction": contract.expected_direction,
                 "violation_direction": contract.violation_direction,
                 "evidence_types": contract.evidence_types,
@@ -305,7 +325,7 @@ def _compact_contract_plan(contracts: NLContractResponse) -> dict[str, Any]:
         ],
         "segment_disposition": contracts.segment_disposition,
         "reason": "Grounding receives each exact typed contract and source anchor while upstream LLM rationale remains in the hash-addressed contract stage output.",
-        "basis": "contract-grounding-projection.v1 and full contract response hash",
+        "basis": "contract-grounding-projection.v2 and full contract response hash",
     }
 
 
@@ -339,7 +359,7 @@ PREDICATE_ROUTING_GUIDANCE = """Frozen predicate routing discipline:
 - For a missing fact, bind the expected exact model/source element and the observed absence or counterexample. For a present fact, preserve it as a non-violation observation unless the supplied dossier identifies a distinct violated obligation."""
 
 
-CONTRACT_SYSTEM_PROMPT = f"""You are the NL contract extraction stage of the paper1 evidence_discovery method. {COMMON_RULES} Extract atomic source obligations before inspecting model satisfaction. For every contract, fill the typed semantic key `(locus_kind, locus_names, property, expected_direction, violation_direction, evidence_types)` and typed binding hints. Split independently violable containment, initialization, transition endpoint, trigger, guard, effect, action, reachability, progress, event-consumer, region, variable-delta, and excess-behavior clauses instead of bundling them. Preserve qualifiers, ordering, initialization/operation/termination scope, and ambiguity. The violation direction says what later grounding must test; it does not claim that the defect exists. Keep each per-contract reason and basis concise and specific; do not restate the full input context.
+CONTRACT_SYSTEM_PROMPT = f"""You are the NL contract extraction stage of the paper1 evidence_discovery method. {COMMON_RULES} Extract atomic source obligations before inspecting model satisfaction. For every contract, fill the typed semantic key `(locus_kind, locus_names, property, state_role, expected_direction, violation_direction, evidence_types)` and typed binding hints. Split independently violable containment, initialization, transition endpoint, trigger, guard, effect, action, reachability, progress, event-consumer, region, variable-delta, and excess-behavior clauses instead of bundling them. Preserve qualifiers, ordering, initialization/operation/termination scope, and ambiguity. The violation direction says what later grounding must test; it does not claim that the defect exists. Keep each per-contract reason and basis concise and specific; do not restate the full input context.
 
 Allowed `evidence_types` values are exactly: `source_identity`, `closed_model_inventory`, `transition_fact`, `initial_entry_fact`, `containment_fact`, `reachability_fact`, `deadlock_frontier_fact`, `event_consumer_fact`, `guard_fact`, `effect_fact`, `action_fact`, `trace_fact`, `verify_fact`, `smt_fact`, `semantic_comparison`, and `other`. Do not put a property name in this field: for example, `property=state_action` uses `evidence_types=[action_fact]`, never `state_action`.
 
@@ -351,6 +371,12 @@ Atomic contract shape:
 - Initialization, containment, endpoint, trigger, guard, effect, action, reachability/progress, event-consumer coverage, region structure, and variable delta never share one contract merely because the NL states them in one sentence.
 - `wrong_target` belongs to `transition_endpoints`, `wrong_guard` to `guard`, `wrong_effect` to `effect` or `variable_delta`, `unreachable` to `reachability`, `dead_end` to `deadlock_freedom`, and `unconsumed` to `event_consumer_coverage`. Do not encode one property with another property's direction.
 - When an event is semantically required to be accepted within a scope, emit a separate `event_consumer_coverage` contract in addition to any local endpoint/trigger contract. This is a semantic LLM judgment from the supplied NL, never a spelling or keyword rule.
+
+v27 state-role and discourse discipline:
+- Preserve the semantic role of every state-centered obligation in `state_role`. Use `operating_state` for an active control state or substate whose behavior must react, continue, or lead onward; use `termination_state` only when the NL explicitly establishes completion or intended terminal behavior. A name that sounds like stopping, emergency, final, or completion is not itself terminal evidence.
+- For each semantically active operating state, emit one separate `deadlock_freedom` contract with `expected_direction=must_progress`, `violation_direction=dead_end`, and the exact state as its locus. This contract states the v27 progress/response obligation before model inspection. Grounding will decide from exact finite facts whether the state has an outgoing or inherited continuation, an explicit terminal route, or a dead-end frontier. Do not emit this contract for an explicitly intended terminal state.
+- Treat an explicit "first transitions/enters" clause as `initial_entry` into the first state under the enclosing operating owner, not as an ordinary transition from a word such as system or controller. Resolve later omitted sources by discourse semantics. A sequence such as "first enter ModeA; it can then transition to ModeB; similarly it transitions to ModeC" yields owner initial-entry to ModeA, ModeA-to-ModeB, and ModeB-to-ModeC. By contrast, "from ModeA choose either ModeB or ModeC" yields two alternatives from ModeA. This is an LLM coreference and ordering judgment; never decide it by keywords or identifier spelling.
+- Keep a state-owned action/effect independent from the endpoint that enters the state. The action may remain a precise unsupported W1 obligation even when the endpoint exists.
 
 Generic worked example: "Within Controller, start in Idle; on Begin transition from Idle to Running when enabled and set mode=active" yields separate contracts for Controller containment of Idle, Controller initial entry to Idle, the Idle-to-Running endpoint, its Begin trigger set, its enabled guard, and its mode=active effect. If the clause also requires Begin to be accepted throughout Controller, that coverage requirement is a separate event-consumer contract. Do not copy the whole sentence into one multi-property contract.
 
@@ -366,6 +392,12 @@ that same property. Do not substitute a nearby endpoint, declaration, or local
 path property merely because it is executable. Record the evidence families
 actually used in `evidence_types`.
 
+Emit a candidate only for a possible violated obligation or a precisely bound
+semantic gap that must remain W1. When the supplied source/model facts satisfy a
+contract, return its disposition as `satisfied` and emit no candidate for that
+contract. Predicate/backend unavailability does not turn a satisfied fact into
+an issue and is not by itself semantic ambiguity.
+
 Every candidate object must explicitly include `locus_kind` and `locus_names`
 copied from its contract. `predicate_inputs` must always be a JSON object; use
 an empty object when predicate_id is null, never a list or free-text value.
@@ -376,6 +408,7 @@ and basis. These are structural output obligations, not optional prose.
 
 Inspection-equivalent routing: a deterministic `LEAF_WITHOUT_OUTGOING` or finite
 deadlock-frontier fact is a reason to consider one V4(initial_scope) candidate,
+for the exact `deadlock_freedom` operating-state contract and exact state locus,
 with the exact leaf refs kept in element_refs/supporting facts; it is not an S1
 existence claim. A failed finite reachability fact routes to G1 with its exact
 source/target sets. A refuted initial-entry fact routes to an exact S2 initial
@@ -388,6 +421,14 @@ precisely bound predicate=null candidate for W1, but must not be disguised as
 S1/S2/S3. Keep one atomic candidate per obligation/property and place repeated
 observations in reason/basis rather than emitting a separate candidate for each
 supporting fact.
+
+An authored initial pseudostate edge nested in an owner must target a valid child
+in that same owner scope. If the exact source inventory and deterministic facts
+show a self-target, synthetic invalid target, or out-of-owner target, preserve one
+`initial_entry` candidate for that malformed owner-local edge. A separate valid
+root initial edge is a different fact and does not satisfy or erase the malformed
+nested edge. Use only the supplied structured source/inspection facts; do not
+infer malformed syntax from text matching.
 
 When one NL sentence contains multiple obligations, split them before rejecting
 the contract. A satisfied endpoint or declaration does not discharge an attached
@@ -409,6 +450,23 @@ DISCOVERY_GROUNDING_AUDIT_LENSES: dict[GroundingLens, str] = {
 D_SYSTEM_PROMPT = """You are the method's semantic D adjudication stage. Use only the supplied NL contracts, author-source facts, exact bindings, predicate plan, and backend receipt. Never read or infer frozen ledger answers, baseline hit/FP results, independent judge examples, other pair payloads, or historical release outputs. Do not output D0/D1/D2, W0/W1/W2, L, a hit, or a release decision. Instead return one SemanticAdjudication per supplied obligation using only the closed grounding and defeater enums. `reason` must explain the supplied NL clause, exact source/model facts, and strongest alternative reading; `basis` must identify the supplied artifacts. Free-text wording is for audit only: do not decide from keyword, substring, regex, spelling, identifier shape, or text similarity.
 
 D boundary: an unsupported or W1-only predicate does not erase a precise issue. When exact supplied source/model facts establish the candidate's semantic obligation, use grounding=established and describe the surviving ambiguity as a typed defeater when appropriate; deterministic code will keep it at W1. Use grounding=unresolved only when the supplied dossier genuinely cannot decide. A completed predicate result that is true for the requirement is not a violation merely because the candidate text sounds concerning.
+
+Predicate/backend availability is a W question, never a D defeater by itself. If
+the supplied exact facts satisfy the candidate's expected property, use
+grounding=not_established (or a surviving rebutting defeater when a first reading
+was genuinely considered), not an undercutting D1 reading. Conversely, a precise
+predicate-null candidate may still be D2 when the supplied semantic facts clearly
+violate the obligation; deterministic publication will keep it at W1. Do not use
+backend=unsupported or verdict=unknown as evidence either for or against the
+semantic violation.
+
+Initial-entry scope protocol: assess each authored initial pseudostate edge in
+its exact owner. A malformed nested edge whose target is self-referential,
+synthetic-invalid, or outside that owner remains a source defect even when a
+different root-level initial edge correctly enters the owner. The separate root
+edge does not rebut the owner-local malformed-edge claim. Apply this only when
+the supplied exact source inventory or deterministic diagnostic establishes the
+owner and target; never infer it from names or free-text syntax.
 
 V4 frontier protocol: when predicate_id=V4, inspect the exact bound state refs,
 the finite reachability facts, the outgoing-transition facts, and the formal
@@ -503,6 +561,10 @@ Decision protocol:
 - use undercutting with survives only when two competent readings remain compatible with the supplied facts (the method maps this to D1); an unresolved undercutting reading remains D_UNRESOLVED;
 - use rebutting with survives when the alternative defeats the alleged violation or leaves a reasonable design choice (the method maps this to D0); unresolved rebutting evidence remains D_UNRESOLVED;
 - do not turn execution uncertainty or an absent predicate into a semantic violation;
+- backend or predicate unsupported status alone is not a competent undercutting
+  reading; when exact facts satisfy expected behavior, use not_established/D0;
+- keep owner-local initial-edge validity separate from a different valid root
+  initial edge, using only supplied typed source/diagnostic facts;
 - do not omit a dossier and do not create a new obligation;
 - before returning, compare the decision obligation_id set with the required list and
   return one decision for every listed ID, including unresolved decisions.

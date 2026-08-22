@@ -574,7 +574,7 @@ def test_staged_method_receives_full_context_and_writes_stage_receipts(tmp_path:
         assert '"inspection_equivalent_facts": {' in prompts[grounding_stage]
         assert '"verify_facts": {' in prompts[grounding_stage]
         assert '"smt_facts": {' in prompts[grounding_stage]
-        assert '"projection_version": "contract-grounding-projection.v1"' in prompts[grounding_stage]
+        assert '"projection_version": "contract-grounding-projection.v2"' in prompts[grounding_stage]
         assert '"full_contract_response_hash": "sha256:' in prompts[grounding_stage]
         assert '"contract_id": "NL-CONTRACT-NL1"' in prompts[grounding_stage]
         assert "Fixture contract reason." not in prompts[grounding_stage]
