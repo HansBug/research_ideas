@@ -87,6 +87,7 @@ from pipeline.evidence_discovery.semantics import (
     build_method_prompt,
     fallback_grounding,
     normalize_contract_state_roles,
+    normalize_grounding_dispositions,
     resolve_transition_ref,
 )
 from pipeline.evidence_discovery.semantics.binding import BindingResult
@@ -1110,7 +1111,7 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "every semantically active operating state" in response_schema["contracts"]["description"]
 
 
-def test_grounding_response_rejects_empty_or_inconsistent_local_accounting() -> None:
+def test_grounding_response_rejects_empty_local_accounting() -> None:
     with pytest.raises(ValidationError):
         GroundingResponse(
             lens="contract_structure_contrast",
@@ -1120,22 +1121,53 @@ def test_grounding_response_rejects_empty_or_inconsistent_local_accounting() -> 
             basis="provider-free empty-accounting fixture",
         )
 
-    with pytest.raises(ValidationError, match="must equal 0"):
-        GroundingResponse(
-            lens="behavior_consequence",
-            candidates=[],
-            contract_dispositions=[
-                GroundingDisposition(
-                    contract_id="NL-CONTRACT-NL1",
-                    status="candidate_emitted",
-                    candidate_count=1,
-                    reason="The malformed fixture claims one candidate.",
-                    basis="provider-free inconsistent-count fixture",
-                )
-            ],
-            reason="The fixture carries inconsistent local accounting.",
-            basis="provider-free local-accounting fixture",
-        )
+
+def test_grounding_response_normalizes_derived_count_and_status_without_repair() -> None:
+    contracts = NLContractResponse(
+        contracts=[
+            NLContract(
+                contract_id="NL-CONTRACT-NL1",
+                segment_id="NL1",
+                quote="The controller preserves the required response.",
+                normative_statement="The controller must preserve the required response.",
+                locus_kind="state",
+                locus_names=("Controller",),
+                property="state_after_stimulus",
+                expected_direction="must_remain",
+                violation_direction="missing",
+                state_role="operating_state",
+                evidence_types=("action_fact",),
+                binding_hints=(),
+                scope="controller state",
+                reason="The numbered requirement states a response obligation.",
+                basis="provider-free NL1 fixture",
+            )
+        ],
+        segment_disposition={"NL1": "covered"},
+        reason="The fixture contains one atomic contract.",
+        basis="provider-free contract fixture",
+    )
+    response = GroundingResponse(
+        lens="behavior_consequence",
+        candidates=[],
+        contract_dispositions=[
+            GroundingDisposition(
+                contract_id="NL-CONTRACT-NL1",
+                status="candidate_emitted",
+                candidate_count=1,
+                reason="The model reported a candidate disposition.",
+                basis="provider-free deliberately stale derived fields",
+            )
+        ],
+        reason="The fixture carries stale derived accounting.",
+        basis="provider-free local-accounting fixture",
+    )
+
+    normalized = normalize_grounding_dispositions(response, contracts)
+
+    assert normalized.contract_dispositions[0].status == "unresolved"
+    assert normalized.contract_dispositions[0].candidate_count == 0
+    assert "normalized" in normalized.reason
 
 
 def test_unsupported_backend_does_not_turn_satisfied_semantics_into_d1() -> None:

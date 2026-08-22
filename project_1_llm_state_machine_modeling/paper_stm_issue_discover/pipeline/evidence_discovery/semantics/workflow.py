@@ -202,7 +202,7 @@ class GroundingDisposition(BaseModel):
 
     contract_id: str = Field(pattern=r"^NL-CONTRACT-[A-Za-z0-9_.-]+$", min_length=14, description="Exact supplied atomic contract ID reviewed by this grounding branch.")
     status: Literal["candidate_emitted", "satisfied", "unresolved", "not_applicable"] = Field(description="Branch result for this contract; unresolved preserves insufficient facts, while satisfied and not_applicable require a reason grounded in supplied branch facts.")
-    candidate_count: int = Field(ge=0, description="Number of candidates in this same response carrying this exact contract ID; deterministic normalization audits this count.")
+    candidate_count: int = Field(ge=0, description="LLM-reported number of candidates in this response carrying this exact contract ID. This is explanatory audit data, not an admission gate: deterministic normalization recomputes it from exact contract IDs before execution.")
     reason: str = Field(min_length=1, description="LLM explanation of why this branch emitted candidates or assigned the stated non-candidate disposition for this contract.")
     basis: str = Field(min_length=1, description="LLM basis naming the branch-specific source or closed-model facts used for this one contract disposition.")
 
@@ -223,7 +223,7 @@ class GroundingResponse(BaseModel):
 
     @model_validator(mode="after")
     def validate_local_contract_accounting(self) -> GroundingResponse:
-        """Reject locally inconsistent rows using exact IDs and counts only."""
+        """Require structural accounting while leaving derived values to normalization."""
 
         disposition_ids = [item.contract_id for item in self.contract_dispositions]
         if len(disposition_ids) != len(set(disposition_ids)):
@@ -241,23 +241,6 @@ class GroundingResponse(BaseModel):
                 "every candidate contract_id needs one contract_dispositions row; "
                 f"missing {missing_dispositions}"
             )
-        for item in self.contract_dispositions:
-            actual_count = candidate_counts.get(item.contract_id, 0)
-            if item.candidate_count != actual_count:
-                raise ValueError(
-                    f"contract_dispositions candidate_count for {item.contract_id} "
-                    f"must equal {actual_count}"
-                )
-            if actual_count and item.status != "candidate_emitted":
-                raise ValueError(
-                    f"contract_dispositions status for {item.contract_id} must be "
-                    "candidate_emitted when candidates exist"
-                )
-            if not actual_count and item.status == "candidate_emitted":
-                raise ValueError(
-                    f"contract_dispositions status for {item.contract_id} cannot be "
-                    "candidate_emitted without a candidate"
-                )
         return self
 
 
