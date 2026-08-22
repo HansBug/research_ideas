@@ -77,7 +77,7 @@ JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v3"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
 CODE_VERSION = "evidence-discovery-v27-flow.v5"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v5"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v6"
 
 
 class LedgerAssessment(BaseModel):
@@ -89,7 +89,7 @@ class LedgerAssessment(BaseModel):
     hit_r1: bool = Field(default=False, description="Whether method round 1 contains a semantically identical release issue.")
     hit_r2: bool = Field(default=False, description="Whether method round 2 contains a semantically identical release issue.")
     hit_r3: bool = Field(default=False, description="Whether method round 3 contains a semantically identical release issue.")
-    matched_issue_ids: list[str] = Field(default_factory=list, description="Method issue IDs that support the claimed round hits.")
+    matched_issue_ids: list[str] = Field(default_factory=list, description="Exact supplied method issue IDs that support the claimed round hits. This list and the release-side accounted_ledger_ids must encode the same semantic relation pairs.")
     reason: str = Field(min_length=1, description="Non-empty explanation of why this ledger item is or is not semantically matched.")
     basis: str = Field(min_length=1, description="Non-empty evidence basis for this ledger assessment, tied to the supplied ledger and method release data.")
 
@@ -100,7 +100,7 @@ class ReleaseAssessment(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     issue_id: str = Field(min_length=1, description="Released method issue ID being assessed; copy it exactly from method input.")
-    accounted_ledger_ids: list[str] = Field(default_factory=list, description="Frozen ledger IDs that semantically account for this release issue.")
+    accounted_ledger_ids: list[str] = Field(default_factory=list, description="Exact supplied frozen ledger IDs that semantically account for this release issue. This list and the ledger-side matched_issue_ids must encode the same semantic relation pairs.")
     is_false_positive: bool = Field(description="True only when no supplied frozen ledger entry can semantically carry this issue.")
     reason: str = Field(min_length=1, description="Non-empty explanation of why this release issue is or is not a false positive.")
     basis: str = Field(min_length=1, description="Non-empty evidence basis for the release decision, tied to supplied ledger and method release data.")
@@ -111,8 +111,8 @@ class JudgeResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    ledger_assessments: list[LedgerAssessment] = Field(default_factory=list, description="One assessment for every frozen ledger item supplied to the judge.")
-    release_assessments: list[ReleaseAssessment] = Field(default_factory=list, description="One assessment for every method issue in the supplied release surface.")
+    ledger_assessments: list[LedgerAssessment] = Field(default_factory=list, description="Exactly one assessment for every frozen ledger item supplied to the judge; never split one ledger ID into multiple rows.")
+    release_assessments: list[ReleaseAssessment] = Field(default_factory=list, description="Exactly one assessment for every method issue in the supplied release surface; never duplicate or omit an issue ID.")
     reason: str = Field(min_length=1, description="Non-empty explanation of the judge's overall assessment decision.")
     basis: str = Field(min_length=1, description="Non-empty basis identifying the supplied ledger and method release facts used by the judge.")
 
@@ -1820,6 +1820,13 @@ def _judge_prompt(
         for cell in method_rounds
         for issue in cell.get("report_issue_clusters", [])
     ]
+    required_ledger_ids = [str(item["id"]) for item in ledger_items]
+    required_shape = {
+        "ledger_assessment_count": len(required_ledger_ids),
+        "ledger_ids_exactly_once": required_ledger_ids,
+        "release_assessment_count": len(required_release_ids),
+        "release_issue_ids_exactly_once": required_release_ids,
+    }
     return f"""Assess the supplied method rounds for frozen pair {pair.pair_id} as an independent judge.
 
 Frozen ledger entries (the judge's only ground-truth answer source; method generation did not read them):
@@ -1828,9 +1835,9 @@ Frozen ledger entries (the judge's only ground-truth answer source; method gener
 Final D1/D2 report issue clusters for all supplied method rounds (D0, stage receipts, compiler/backend details, and W2 audit bundles are excluded):
 {json.dumps(compact_rounds, ensure_ascii=False, sort_keys=True)}
 
-The exact release issue ID set for this request is:
-{json.dumps(required_release_ids, ensure_ascii=False)}
-You must emit each of these release IDs exactly once. Do not emit any other
+The exact Pydantic response shape for this request is:
+{json.dumps(required_shape, ensure_ascii=False, sort_keys=True)}
+You must emit each listed release ID exactly once. Do not emit any other
 release ID, even if a similarly named issue appears in another round. Emit each
 frozen ledger ID exactly once as well. The frozen ledger list is an array of
 objects: emit exactly one ledger assessment for each supplied object. Do not
@@ -1932,15 +1939,23 @@ def _judge_correction_prompt(
     pair: PairInput,
     ledger_items: list[dict[str, Any]],
     method_rounds: list[dict[str, Any]],
+    previous_response: JudgeResponse,
     errors: list[str],
 ) -> str:
     """Build a billed same-node correction prompt for judge shape failures."""
 
+    previous = json.dumps(
+        previous_response.model_dump(mode="json"),
+        ensure_ascii=False,
+        sort_keys=True,
+    )
     return (
         _judge_prompt(pair, ledger_items, method_rounds)
+        + "\nPrevious pair-wide JudgeResponse to repair:\n"
+        + previous
         + "\nThe previous response violated these deterministic shape contracts:\n- "
         + "\n- ".join(errors)
-        + "\nReturn a complete replacement response. This is schema/coverage correction, not a provider retry. Every supplied unit still requires a semantic reason and basis.\n"
+        + "\nReturn one complete replacement response. Preserve the previous semantic decisions while repairing exact shape. Merge duplicate rows for one ledger ID into its single required row, and make ledger matched_issue_ids and release accounted_ledger_ids encode the same relation pairs. Do not add a relation merely to fill shape. This is schema/coverage correction, not a provider retry. Every supplied unit still requires a semantic reason and basis.\n"
     )
 
 
@@ -2012,6 +2027,7 @@ def _judge_pair(
                 pair,
                 ledger_items,
                 judge_method_rounds,
+                response,
                 shape_errors,
             ),
             artifact_id=f"judge/{pair.pair_id}/shape-correction",

@@ -1547,10 +1547,12 @@ class _PairWideJudgeFixtureRuntime:
         self.malformed_always = malformed_always
         self.pair_wide_calls = 0
         self.max_output_tokens: list[int | None] = []
+        self.prompts: list[str] = []
 
     def call(self, *, kind, schema, system_prompt, prompt, artifact_id, **kwargs):
         del system_prompt, artifact_id
         self.kinds.append(kind)
+        self.prompts.append(prompt)
         self.max_output_tokens.append(kwargs.get("max_output_tokens"))
         if schema is not JudgeResponse or kind not in {"judge", "judge_correction"}:
             raise AssertionError(f"unexpected pair-wide call: {kind}, {schema}")
@@ -1813,6 +1815,10 @@ def test_pair_wide_shape_failure_gets_one_targeted_correction(tmp_path: Path) ->
     assert judge["eligible"] is True
     assert judge["adjudication_mode"] == "pair_wide_corrected"
     assert runtime.kinds == ["judge", "judge_correction"]
+    assert '"ledger_assessment_count"' in runtime.prompts[0]
+    assert '"release_assessment_count": 6' in runtime.prompts[0]
+    assert "Previous pair-wide JudgeResponse to repair" in runtime.prompts[1]
+    assert "Merge duplicate rows for one ledger ID" in runtime.prompts[1]
     assert len(judge["judgement"]["release_assessments"]) == 6
 
 
