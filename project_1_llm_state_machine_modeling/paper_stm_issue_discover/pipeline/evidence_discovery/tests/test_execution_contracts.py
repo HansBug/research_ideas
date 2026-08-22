@@ -2620,8 +2620,19 @@ def test_0046_contract_shape_separates_endpoint_and_event_consumer() -> None:
     evidence_description = NLContract.model_json_schema()["properties"][
         "evidence_types"
     ]["description"]
+    assert "trigger_fact" in evidence_description
     assert "action_fact" in evidence_description
     assert "state_action is a property name" in evidence_description
+    role_description = NLContract.model_json_schema()["$defs"][
+        "ContractBindingHint"
+    ]["properties"]["role"]["description"]
+    assert "mode or composite itself transitions" in role_description
+    assert "never substitutes for an endpoint source" in role_description
+    assert "`trigger_fact`" in CONTRACT_SYSTEM_PROMPT
+    trigger_evidence_payload = event_consumer.model_dump(mode="json")
+    trigger_evidence_payload["evidence_types"] = ["trigger_fact"]
+    trigger_evidence = NLContract.model_validate(trigger_evidence_payload)
+    assert trigger_evidence.evidence_types == ("trigger_fact",)
     assert "Every candidate object must explicitly include" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "must always be a JSON object" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "Never return a candidate-only derived ID" in " ".join(
