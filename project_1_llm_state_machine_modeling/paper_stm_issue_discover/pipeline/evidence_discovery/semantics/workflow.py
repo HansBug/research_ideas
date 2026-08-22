@@ -420,6 +420,10 @@ an issue and is not by itself semantic ambiguity.
 Every candidate object must explicitly include `locus_kind` and `locus_names`
 copied from its contract. `predicate_inputs` must always be a JSON object; use
 an empty object when predicate_id is null, never a list or free-text value.
+Keep author-source and closed-model namespaces separate: `element_refs` contains
+only exact FCSTM/ModelIR refs, while PlantUML, canonical, source, and macro refs
+belong in `source_refs`. An unmapped source identity is provenance, not evidence
+that an otherwise exact FCSTM binding is missing.
 Every candidate and contract disposition must include its own non-empty reason
 and basis. These are structural output obligations, not optional prose.
 
@@ -440,6 +444,25 @@ precisely bound predicate=null candidate for W1, but must not be disguised as
 S1/S2/S3. Keep one atomic candidate per obligation/property and place repeated
 observations in reason/basis rather than emitting a separate candidate for each
 supporting fact.
+
+Preserve the contract property through causal consequences. If an exact endpoint,
+trigger, guard, action, retention, or local-progress property is satisfied, an
+upstream initial-entry or reachability defect does not turn that satisfied contract
+into another issue. Emit the upstream defect only against its own exact
+initial-entry or reachability contract. In particular, an unreachable state that
+has exact outgoing continuation is not a deadlock/dead-end violation, and a
+present exact endpoint does not become a wrong-target violation because its source
+is unreachable. Return `satisfied` for the original property instead of publishing
+one downstream issue per state or transition.
+
+For event-consumer coverage, distinguish declaration from operational coverage.
+An exact declared consumer with no consumer reachable in the contract's exact
+operating scope violates a reachable-consumer contract; the declaration is a
+supporting structural fact, not satisfaction of the stronger property. For a
+finite cardinality contract, once this lens semantically binds the exact owner
+and member kind, use the complete exact inventory to compare the member count.
+The absence of a dedicated frozen predicate changes W to W1; it does not make
+the already bound finite comparison unresolved.
 
 Interpret containment at the depth stated by the contract. Transitive descendant
 containment through a region satisfies an ordinary within-scope containment
@@ -509,6 +532,22 @@ predicate-null candidate may still be D2 when the supplied semantic facts clearl
 violate the obligation; deterministic publication will keep it at W1. Do not use
 backend=unsupported or verdict=unknown as evidence either for or against the
 semantic violation.
+
+Property-preserving adjudication protocol:
+- A supplied fact for a weaker or different property cannot rebut the exact
+  contract. A declared event consumer does not rebut a contract requiring a
+  reachable consumer in an exact operating scope when the deterministic coverage
+  row has no reachable consumer.
+- Unreachability is not itself a wrong endpoint, missing trigger, missing guard,
+  missing action, failed retention, or local dead end. If those exact properties
+  are positively present, use grounding=not_established for those dossiers and
+  leave the upstream reachability/initial-entry defect to its own dossier.
+- Once the semantic locus and member kind are exactly bound, a complete finite
+  source/model inventory can establish absence or cardinality. A missing dedicated
+  predicate or precomputed cardinality receipt is only a W boundary. If two
+  competent scope/member readings remain compatible, use established plus an
+  undercutting-survives defeater (D1), not grounding=unresolved merely because the
+  frozen registry lacks that predicate.
 
 Initial-entry scope protocol: assess each authored initial pseudostate edge in
 its exact owner. A malformed nested edge whose target is self-referential,

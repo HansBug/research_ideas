@@ -996,6 +996,11 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "already-satisfied owner-local contract" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "Interpret containment at the depth stated by the contract" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "synthetic placeholders are not author-specified operating-state" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "an unreachable state that" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "not a deadlock/dead-end violation" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "declared consumer with no consumer reachable" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "complete exact inventory" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "element_refs` contains" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     grounding_prompt = build_grounding_prompt(
         pair,
         lens="behavior_consequence",
@@ -1011,6 +1016,10 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "exact NL terminal clause" in semantic_schema["strongest_defeater"]["description"]
     assert "bare possibility" in semantic_schema["defeater_kind"]["description"]
     assert "survives does not mean merely conceivable" in semantic_schema["defeater_disposition"]["description"]
+    assert "declared but unreachable event consumer" in semantic_schema["defeater_kind"]["description"]
+    assert "complete exact inventory" in semantic_schema["grounding"]["description"]
+    assert "declared event consumer does not rebut" in D_SYSTEM_PROMPT
+    assert "Unreachability is not itself a wrong endpoint" in D_SYSTEM_PROMPT
 
     contract_schema = NLContract.model_json_schema()["properties"]
     assert "needs its own separate progress contract" in contract_schema["state_role"]["description"]

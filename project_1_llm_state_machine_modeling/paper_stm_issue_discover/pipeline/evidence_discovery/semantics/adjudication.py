@@ -29,7 +29,9 @@ class SemanticAdjudication(BaseModel):
             "Use not_established when exact facts satisfy the expected property. "
             "Use unresolved when the supplied facts cannot decide; predicate/backend "
             "unavailability is a W boundary and does not itself establish semantic "
-            "ambiguity. Do not infer this field from words or identifiers."
+            "ambiguity. Once an LLM-semantic locus is exactly bound, a complete exact "
+            "inventory can establish finite absence or cardinality without a separate "
+            "predicate receipt. Do not infer this field from words or identifiers."
         )
     )
     violated_obligation: str = Field(
@@ -48,7 +50,7 @@ class SemanticAdjudication(BaseModel):
         ),
     )
     defeater_kind: Literal["none", "undercutting", "rebutting"] = Field(
-        description="Typed kind of the strongest defeater: none when no competent alternative exists; undercutting only when a second semantic reading remains compatible with the same facts (D1 boundary), never merely because a predicate/backend is unsupported; rebutting only when supplied facts satisfy the expected property, defeat the alleged violation, or positively support a reasonable design choice (D0 boundary when it survives). A bare possibility contradicted by an explicit supplied obligation is not a rebutting defeater."
+        description="Typed kind of the strongest defeater: none when no competent alternative exists; undercutting only when a second semantic reading remains compatible with the same facts (D1 boundary), never merely because a predicate/backend is unsupported; rebutting only when supplied facts satisfy the exact expected property, defeat the alleged violation, or positively support a reasonable design choice (D0 boundary when it survives). Satisfaction of a weaker property is not rebutting evidence: for example, a declared but unreachable event consumer does not rebut a reachable-consumer coverage violation. A bare possibility contradicted by an explicit supplied obligation is not a rebutting defeater."
     )
     defeater_disposition: Literal["defeated", "survives", "unresolved"] = Field(
         description="Whether the typed defeater is defeated by supplied facts, survives as a competent reading/rebuttal supported by those facts, or remains unresolved. Use defeated when an explicit supplied contract or exact fact excludes the alternative, even if the alternative was initially considered; survives does not mean merely conceivable. Deterministic method code combines this enum with defeater_kind and exact binding to derive D."
