@@ -77,7 +77,7 @@ JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v3"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
 CODE_VERSION = "evidence-discovery-v27-flow.v5"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v7"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v8"
 
 
 class LedgerAssessment(BaseModel):

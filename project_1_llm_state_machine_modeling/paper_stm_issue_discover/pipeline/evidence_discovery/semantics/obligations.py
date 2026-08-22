@@ -146,7 +146,7 @@ class ContractBindingHint(BaseModel):
         "bound",
         "unit",
         "other",
-    ] = Field(description="Semantic argument role of this source-side hint; this is not a frozen predicate input name unless grounding later binds it exactly.")
+    ] = Field(description="Semantic argument role of this source-side hint; this is not a frozen predicate input name unless grounding later binds it exactly. For initial_entry, owner is the scope that owns the required initial pseudostate edge and target is the state entered by that edge; the entered state is not its own owner unless the NL explicitly states a nested self-owned obligation.")
     value: str = Field(min_length=1, description="Source-grounded name, phrase, expression, or scope value copied or faithfully normalized from the supplied NL.")
     source_ref: str | None = Field(default=None, description="Exact supplied NL or author-source reference supporting this hint, or null when only the parent contract source refs apply.")
     reason: str = Field(min_length=1, description="LLM explanation of why this value has the declared semantic role in the atomic contract.")
