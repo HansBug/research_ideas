@@ -1021,6 +1021,80 @@ def test_0046_d1_ambiguity_is_semantically_equivalent_not_partial_overlap() -> N
     )
 
 
+def test_aggregate_ledger_rejects_subset_candidate_subsumption() -> None:
+    ledger = [{"id": "L-AGGREGATE", "pair": "0000"}]
+    release = [
+        {"issue_id": "0000:r1:issue:whole-scope"},
+        {"issue_id": "0000:r1:issue:one-sibling"},
+    ]
+    response = JudgeResponse(
+        ledger_assessments=[
+            LedgerAssessment(
+                ledger_id="L-AGGREGATE",
+                hit_r1=True,
+                matched_issue_ids=["0000:r1:issue:whole-scope"],
+                reason="Only the whole-scope claim establishes every enumerated component.",
+                basis="The ledger enumerates sibling scopes A and B.",
+            )
+        ],
+        release_assessments=[
+            ReleaseAssessment(
+                issue_id="0000:r1:issue:whole-scope",
+                accounted_ledger_ids=["L-AGGREGATE"],
+                is_false_positive=False,
+                reason="Unreachability of the common owner entails both sibling failures.",
+                basis="The candidate claims that the owner containing A and B is unreachable.",
+            ),
+            ReleaseAssessment(
+                issue_id="0000:r1:issue:one-sibling",
+                accounted_ledger_ids=[],
+                is_false_positive=True,
+                reason="The candidate establishes A only and cannot account for sibling B.",
+                basis="Its supplied locus and observed facts mention only A.",
+            ),
+        ],
+        relation_assessments=[
+            JudgeRelationAssessment(
+                ledger_id="L-AGGREGATE",
+                issue_id="0000:r1:issue:whole-scope",
+                relation="candidate_subsumes_ledger",
+                entailment_basis=(
+                    "The candidate's own whole-owner unreachability claim entails that "
+                    "both contained sibling scopes A and B are unreachable."
+                ),
+                reason="The whole-owner claim covers every ledger component.",
+                basis="Typed owner scope contains both enumerated sibling scopes.",
+            ),
+            JudgeRelationAssessment(
+                ledger_id="L-AGGREGATE",
+                issue_id="0000:r1:issue:one-sibling",
+                relation="ledger_subsumes_candidate",
+                reason="The ledger includes sibling B, which the candidate does not establish.",
+                basis="The candidate's supplied claim is limited to sibling A.",
+            ),
+        ],
+        reason="The fixture separates complete logical entailment from a shared-cause subset.",
+        basis="Provider-free aggregate-ledger positive and negative relation fixture.",
+    )
+
+    normalized = _normalize_judge_shape(response, ledger, release, 1)
+
+    assert not _judge_shape_errors(normalized, ledger, release, 1)
+    by_issue = {
+        item.issue_id: item.relation for item in normalized.relation_assessments
+    }
+    assert by_issue["0000:r1:issue:whole-scope"] == "candidate_subsumes_ledger"
+    assert by_issue["0000:r1:issue:one-sibling"] == "ledger_subsumes_candidate"
+    prompt = _judge_prompt(
+        load_pair(REPORT_ROOT / "pairs" / "0000"),
+        ledger,
+        [{"round": 1, "report_issue_clusters": release}],
+    )
+    normalized_prompt = " ".join(prompt.split())
+    assert "a candidate that covers only a subset cannot subsume it" in normalized_prompt
+    assert "Do not use ledger detail to add an absent sibling" in normalized_prompt
+
+
 def test_candidate_subsumes_ledger_requires_entailment_basis() -> None:
     with pytest.raises(ValidationError, match="entailment_basis"):
         JudgeRelationAssessment(

@@ -84,8 +84,8 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v8"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v4"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v20"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v19"
+CODE_VERSION = "evidence-discovery-v27-flow.v21"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v20"
 
 
 JudgeRelation = Literal[
@@ -134,7 +134,12 @@ class JudgeRelationAssessment(BaseModel):
     entailment_basis: str | None = Field(
         default=None,
         min_length=1,
-        description="仅 candidate_subsumes_ledger 必填：说明 candidate 主张如何逻辑上建立完整 ledger defect；共享原因或 narrow manifestation 不是蕴含。",
+        description=(
+            "仅 candidate_subsumes_ledger 必填：说明 candidate 自身主张如何逻辑上建立完整"
+            "ledger defect。ledger 明确枚举多个 sibling scope/event/component 时，candidate"
+            "必须覆盖或蕴含全部组件；不得从 ledger detail 反向补全 candidate，shared cause"
+            "或 narrow manifestation 不是蕴含。"
+        ),
     )
     reason: str = Field(
         min_length=1,
@@ -211,7 +216,7 @@ class JudgeResponse(BaseModel):
 
 METHOD_SYSTEM_PROMPT = """The method is staged. The public method-generation surface is the NL contract extraction stage followed by two v27 complementary discovery-grounding lenses that share one response schema and compact cross-view context. Use only the complete context manifest supplied to each stage. Never read ledger answers, baseline results, judge examples, or historical release outputs. Do not emit W, D, or L levels. Every structured object must contain non-empty reason and basis."""
 
-JUDGE_SYSTEM_PROMPT = """You are an independent judge separated from method generation. You may use the supplied frozen ledger entries to assess method D1/D2 release issues. Judge semantic identity of locus, property, scope, and direction, not string similarity. Emit sparse typed relation_assessments: exact, semantic_equivalent, or candidate_subsumes_ledger may count as a hit; candidate_subsumes_ledger requires a complete logical entailment basis. ledger_subsumes_candidate, partial_overlap, same_cause_different_property, and unrelated never count as hits. For D1, compare the represented ambiguity rather than requiring either side to settle it: when a D1 ledger and D1 release identify the same primary defect reading at the same locus/property/scope/direction and preserve a compatible competent alternative, the surviving alternative is part of the same D1 ambiguity and does not by itself make the relation partial_overlap. This rule never repairs a wrong source, different property, incompatible scope, narrow manifestation, or issue that merely shares a cause; those are not semantic equivalence. Do not emit a full ledger-by-release matrix. Release assessment coverage is identity-based: emit one row for every supplied issue_id even when two releases are semantic duplicates or share one cause/ledger mapping; never deduplicate release rows. The ledger matched_issue_ids, release accounted_ledger_ids, hit-eligible typed relations, hit booleans, false-positive boolean, reason, and basis must all describe the same decision. In particular, a release marked false positive must not have reason or basis claiming that it matches a frozen defect. Do not read baseline results, other pairs, other judge outputs, or historical examples. Every assessment, relation, and top-level response must contain non-empty reason and basis fields that explain the judgment and its supplied-input support. Preserve the model's original wording."""
+JUDGE_SYSTEM_PROMPT = """You are an independent judge separated from method generation. You may use the supplied frozen ledger entries to assess method D1/D2 release issues. Judge semantic identity of locus, property, scope, and direction, not string similarity. Emit sparse typed relation_assessments: exact, semantic_equivalent, or candidate_subsumes_ledger may count as a hit; candidate_subsumes_ledger requires a complete logical entailment basis from the candidate's own supplied claim. When a ledger explicitly enumerates multiple sibling scopes, events, states, or components, a candidate covering only a subset is ledger_subsumes_candidate or partial_overlap, even if it shares the same ancestor or cause. Never use ledger detail to add a missing sibling/component to the candidate's claim. ledger_subsumes_candidate, partial_overlap, same_cause_different_property, and unrelated never count as hits. For a D1 ledger, compare the represented ambiguity rather than requiring the method release to settle it or use the same D level: when the release identifies the same primary defect reading at the same locus/property/scope/direction and preserves a compatible competent alternative, the surviving alternative is part of the same D1 ambiguity and does not by itself make the relation partial_overlap. This rule never repairs a wrong source, different property, incompatible scope, narrow manifestation, or issue that merely shares a cause; those are not semantic equivalence. Do not emit a full ledger-by-release matrix. Release assessment coverage is identity-based: emit one row for every supplied issue_id even when two releases are semantic duplicates or share one cause/ledger mapping; never deduplicate release rows. The ledger matched_issue_ids, release accounted_ledger_ids, hit-eligible typed relations, hit booleans, false-positive boolean, reason, and basis must all describe the same decision. In particular, a release marked false positive must not have reason or basis claiming that it matches a frozen defect. Do not read baseline results, other pairs, other judge outputs, or historical examples. Every assessment, relation, and top-level response must contain non-empty reason and basis fields that explain the judgment and its supplied-input support. Preserve the model's original wording."""
 
 
 def _prompt_schema_hash() -> str:
@@ -2479,13 +2484,18 @@ A hit requires the same locus, property, scope, and defect direction. For every
 claimed hit/accounting pair emit exactly one sparse relation_assessment. Only
 exact, semantic_equivalent, and candidate_subsumes_ledger can count as hits;
 candidate_subsumes_ledger must explain how the candidate logically establishes
-the complete ledger defect in entailment_basis. ledger_subsumes_candidate,
+the complete ledger defect in entailment_basis using the candidate's own supplied
+claim. If the ledger explicitly enumerates multiple sibling scopes, events,
+states, or components, a candidate that covers only a subset cannot subsume it:
+use ledger_subsumes_candidate or partial_overlap even when both share an ancestor
+or root cause. Do not use ledger detail to add an absent sibling or component to
+the candidate. ledger_subsumes_candidate,
 partial_overlap, same_cause_different_property, and unrelated do not count. A
 wrong source, narrow manifestation sharing only a cause, broader category,
 opposite direction, passing mention, reference-artifact complaint, or unrelated
-bundle is not a hit. For D1 ledger/release comparisons, do not demand that the
-ambiguity be resolved: if both sides preserve compatible competent readings and
-their primary violating reading has the same owner or locus, counted property,
+bundle is not a hit. For a D1 ledger, do not demand that the method release use
+the same D level or resolve the ambiguity: if both sides preserve compatible
+competent readings and their primary violating reading has the same owner or locus, counted property,
 normative scope, required direction, and shortfall, a surviving satisfying
 alternative is part of the same D1 defect and is not by itself partial_overlap.
 This D1 rule does not relax any locus/property/scope/direction requirement and
