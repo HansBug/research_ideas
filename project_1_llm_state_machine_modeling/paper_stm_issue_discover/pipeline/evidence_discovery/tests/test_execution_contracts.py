@@ -1338,6 +1338,7 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "covered segment accounting never licenses omission" in CONTRACT_SYSTEM_PROMPT
     assert "first enter ModeA" in CONTRACT_SYSTEM_PROMPT
     assert '"the system begins in Controller" yields owner=root/system' in CONTRACT_SYSTEM_PROMPT
+    assert "`system` is the grammatical actor" in CONTRACT_SYSTEM_PROMPT
     assert "an intermediate region or nested composite still satisfies" in CONTRACT_SYSTEM_PROMPT
     assert "broad capability context has not been converted" in CONTRACT_SYSTEM_PROMPT
     assert "common enclosing owner is not itself evidence" in CONTRACT_SYSTEM_PROMPT
@@ -1347,6 +1348,10 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "segment already has a cardinality or structure contract" in CONTRACT_SYSTEM_PROMPT
     hint_schema = ContractBindingHint.model_json_schema()
     assert "owns the required initial pseudostate edge" in hint_schema["properties"]["role"]["description"]
+    contract_schema = NLContract.model_json_schema()
+    assert "grammatical actor" in contract_schema["properties"]["property"]["description"]
+    response_schema = NLContractResponse.model_json_schema()
+    assert "root-to-substate endpoint" in response_schema["properties"]["contracts"]["description"]
     assert "Emit a candidate only for a possible violated obligation" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "treat its typed `owner` binding hint" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "does not satisfy a `Controller -> ModeA`" in DISCOVERY_GROUNDING_SYSTEM_PROMPT

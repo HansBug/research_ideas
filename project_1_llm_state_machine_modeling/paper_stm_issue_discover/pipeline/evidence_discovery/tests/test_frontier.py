@@ -1100,20 +1100,41 @@ def test_0029_wrong_target_materializes_from_exact_cross_contract_roles() -> Non
 
 def test_0053_frontier_preserves_three_leaf_and_global_properties() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0053")
-    contracts = [
-        _contract(
-            contract_id=f"NL-CONTRACT-NL{index}-{state}-ACTION",
-            segment_id=f"NL{index}",
-            locus_kind="state",
-            locus_names=(state,),
-            property_name="state_action",
-            expected_direction="must_exist",
-            violation_direction="missing",
-            hints=(_hint("state", state, f"NL{index}"),),
-            state_role="operating_state",
-        )
-        for index, state in ((3, "PumpState"), (4, "WaterState"), (5, "MethaneState"))
-    ]
+    owner_entry_contract = _contract(
+        contract_id="NL-CONTRACT-NL3-PUMPCONTROL-ENTRY",
+        segment_id="NL3",
+        locus_kind="composite",
+        locus_names=("PumpControl", "PumpState"),
+        property_name="initial_entry",
+        expected_direction="must_enter",
+        violation_direction="missing",
+        hints=(
+            _hint("owner", "PumpControl", "NL3"),
+            _hint("target", "PumpState", "NL3"),
+        ),
+        state_role="initial_state",
+    )
+    contracts = [owner_entry_contract]
+    contracts.extend(
+        [
+            _contract(
+                contract_id=f"NL-CONTRACT-NL{index}-{state}-ACTION",
+                segment_id=f"NL{index}",
+                locus_kind="state",
+                locus_names=(state,),
+                property_name="state_action",
+                expected_direction="must_exist",
+                violation_direction="missing",
+                hints=(_hint("state", state, f"NL{index}"),),
+                state_role="operating_state",
+            )
+            for index, state in (
+                (3, "PumpState"),
+                (4, "WaterState"),
+                (5, "MethaneState"),
+            )
+        ]
+    )
     contracts.extend(
         [
             _contract(
@@ -1122,8 +1143,8 @@ def test_0053_frontier_preserves_three_leaf_and_global_properties() -> None:
                 locus_kind="transition",
                 locus_names=("PumpState", "WaterState"),
                 property_name="transition_endpoints",
-                expected_direction="must_exist",
-                violation_direction="missing",
+                expected_direction="must_reach",
+                violation_direction="wrong_target",
                 hints=(
                     _hint("source", "PumpState", "NL4"),
                     _hint("target", "WaterState", "NL4"),
@@ -1135,8 +1156,8 @@ def test_0053_frontier_preserves_three_leaf_and_global_properties() -> None:
                 locus_kind="transition",
                 locus_names=("WaterState", "MethaneState"),
                 property_name="transition_endpoints",
-                expected_direction="must_exist",
-                violation_direction="missing",
+                expected_direction="must_reach",
+                violation_direction="wrong_target",
                 hints=(
                     _hint("source", "WaterState", "NL5"),
                     _hint("target", "MethaneState", "NL5"),
@@ -1160,6 +1181,13 @@ def test_0053_frontier_preserves_three_leaf_and_global_properties() -> None:
         if item.kind == "reachable_dead_end"
     }
     assert dead_ends == {"PumpState", "WaterState", "MethaneState"}
+    owner_entry = next(
+        item.candidate
+        for item in batch.obligations
+        if item.kind == "owner_initial_entry"
+    )
+    assert owner_entry.locus_names == ("PumpControl", "PumpState")
+    assert owner_entry.property == "initial_entry"
     global_issue = next(
         item.candidate
         for item in batch.obligations
@@ -1212,8 +1240,8 @@ def test_0023_frontier_keeps_direct_leaf_dead_ends_independent() -> None:
                 locus_kind="transition",
                 locus_names=("PumpState", "WaterState"),
                 property_name="transition_endpoints",
-                expected_direction="must_exist",
-                violation_direction="missing",
+                expected_direction="must_reach",
+                violation_direction="wrong_target",
                 hints=(
                     _hint("source", "PumpState", "NL4"),
                     _hint("target", "WaterState", "NL4"),
@@ -1225,8 +1253,8 @@ def test_0023_frontier_keeps_direct_leaf_dead_ends_independent() -> None:
                 locus_kind="transition",
                 locus_names=("WaterState", "MethaneState"),
                 property_name="transition_endpoints",
-                expected_direction="must_exist",
-                violation_direction="missing",
+                expected_direction="must_reach",
+                violation_direction="wrong_target",
                 hints=(
                     _hint("source", "WaterState", "NL5"),
                     _hint("target", "MethaneState", "NL5"),

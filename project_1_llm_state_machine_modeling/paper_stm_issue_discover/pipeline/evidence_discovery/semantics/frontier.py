@@ -219,8 +219,8 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v7"] = Field(
-        default="v27-typed-frontier.v7",
+    algorithm_version: Literal["v27-typed-frontier.v8"] = Field(
+        default="v27-typed-frontier.v8",
         description="产生该检查的确定性算法版本；不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
@@ -308,8 +308,8 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v7"] = Field(
-        default="v27-typed-frontier.v7",
+    algorithm_version: Literal["v27-typed-frontier.v8"] = Field(
+        default="v27-typed-frontier.v8",
         description="本批所有 check/obligation 使用的确定性算法版本。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
@@ -2326,7 +2326,11 @@ def _missing_endpoint_rows(
 ) -> list[tuple[NLContract, StateNode, StateNode]]:
     rows = []
     for contract in contracts:
-        if contract.property != "transition_endpoints" or contract.expected_direction != "must_exist":
+        if (
+            contract.property != "transition_endpoints"
+            or contract.expected_direction
+            not in {"must_exist", "must_reach", "must_eventually_reach"}
+        ):
             continue
         source_hint = _hint(contract, "source")
         target_hint = _hint(contract, "target")
