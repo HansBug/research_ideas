@@ -11,11 +11,25 @@ from pydantic import BaseModel, ConfigDict, Field
 from ..inputs.context import prompt_context_payload
 from ..inputs.models import PairInput
 from .adjudication import DAdjudicationResponse, SemanticAdjudication
-from .obligations import CandidateIssue, MethodResponse, PredicateId
+from .obligations import (
+    CandidateIssue,
+    ContractBindingHint,
+    EvidenceType,
+    ExpectedDirection,
+    MethodResponse,
+    ObligationLocusKind,
+    ObligationProperty,
+    ViolationDirection,
+)
 
 
 class NLContract(BaseModel):
-    """One source-grounded normative contract extracted from a numbered NL segment."""
+    """One typed, source-grounded obligation extracted from a numbered NL segment.
+
+    The contract describes author intent only. Its typed semantic key keeps
+    later grounding focused on the same locus, property, and direction without
+    deciding whether the closed FCSTM satisfies or violates the obligation.
+    """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
@@ -23,7 +37,14 @@ class NLContract(BaseModel):
     segment_id: str = Field(pattern=r"^NL[0-9]+(?:\.[0-9]+)?$", min_length=3, description="Exact numbered NL segment identifier carried from the input closure.")
     quote: str = Field(min_length=1, description="Exact or faithful quote of the supplied NL segment; do not invent an answer or expected defect.")
     normative_statement: str = Field(min_length=1, description="Atomic source obligation stated without judging whether the current model satisfies it.")
-    scope: str = Field(min_length=1, description="Source-grounded scope of the obligation, such as a named state or initialization boundary.")
+    locus_kind: ObligationLocusKind = Field(description="Typed semantic kind of the source obligation locus; choose the object whose property can be violated, not a nearby declared element.")
+    locus_names: tuple[str, ...] = Field(min_length=1, description="Source-grounded names that identify the exact obligation locus before model binding; keep one independently violable semantic locus per contract.")
+    property: ObligationProperty = Field(description="Atomic property required at the locus; this vocabulary includes the frozen predicate meanings and explicit unsupported semantic boundaries.")
+    expected_direction: ExpectedDirection = Field(description="Positive requirement direction stated by the NL, such as required existence, entry, reachability, progress, coverage, or absence.")
+    violation_direction: ViolationDirection = Field(description="Defect direction that grounding must look for if the requirement is not met; it must not be reversed into a nearby existence observation.")
+    evidence_types: tuple[EvidenceType, ...] = Field(min_length=1, description="Evidence families needed to assess this obligation; these route context but do not assert that evidence exists or proves a violation.")
+    binding_hints: tuple[ContractBindingHint, ...] = Field(default_factory=tuple, description="Typed source-side argument hints used by both grounding branches; each hint remains distinct from an exact FCSTM binding.")
+    scope: str = Field(min_length=1, description="Human-readable source scope, phase, owner, or boundary retained for audit alongside the typed semantic key.")
     source_refs: tuple[str, ...] = Field(default_factory=tuple, description="Source references from the supplied NL, PlantUML, or source trace; do not invent references.")
     reason: str = Field(min_length=1, description="LLM explanation of why this contract follows from the supplied NL segment.")
     basis: str = Field(min_length=1, description="LLM basis naming the supplied segment and source facts used for this contract.")
@@ -40,6 +61,18 @@ class NLContractResponse(BaseModel):
     basis: str = Field(min_length=1, description="LLM basis identifying the supplied NL segments and source context used.")
 
 
+class GroundingDisposition(BaseModel):
+    """One branch's explicit disposition for one atomic NL contract."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    contract_id: str = Field(pattern=r"^NL-CONTRACT-[A-Za-z0-9_.-]+$", min_length=14, description="Exact supplied atomic contract ID reviewed by this grounding branch.")
+    status: Literal["candidate_emitted", "satisfied", "unresolved", "not_applicable"] = Field(description="Branch result for this contract; unresolved preserves insufficient facts, while satisfied and not_applicable require a reason grounded in supplied branch facts.")
+    candidate_count: int = Field(ge=0, description="Number of candidates in this same response carrying this exact contract ID; deterministic normalization audits this count.")
+    reason: str = Field(min_length=1, description="LLM explanation of why this branch emitted candidates or assigned the stated non-candidate disposition for this contract.")
+    basis: str = Field(min_length=1, description="LLM basis naming the branch-specific source or closed-model facts used for this one contract disposition.")
+
+
 class GroundingResponse(BaseModel):
     """Structured LLM response for one complementary grounding branch."""
 
@@ -47,7 +80,7 @@ class GroundingResponse(BaseModel):
 
     branch: Literal["source", "model"] = Field(description="Grounding branch identity: author-source localization or closed-model/fact binding.")
     candidates: list[CandidateIssue] = Field(default_factory=list, description="Candidate claims grounded by this branch; each candidate must carry reason and basis and must not emit W/D/L levels.")
-    rejected_contract_ids: list[str] = Field(default_factory=list, description="Contract IDs this branch could not ground; preserve the reason in the top-level fields instead of silently dropping them.")
+    contract_dispositions: list[GroundingDisposition] = Field(default_factory=list, description="One reasoned disposition per supplied atomic contract; missing rows are normalized to explicit unresolved receipts without semantic guessing.")
     reason: str = Field(min_length=1, description="LLM explanation of how this branch selected or rejected candidate claims.")
     basis: str = Field(min_length=1, description="LLM basis naming the supplied branch-specific facts and contract IDs used.")
 
@@ -151,6 +184,12 @@ def _safe_previous(previous: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 key: item[key]
                 for key in (
                     "issue_id",
+                    "contract_id",
+                    "locus_kind",
+                    "locus_names",
+                    "property",
+                    "violation_direction",
+                    "evidence_types",
                     "title",
                     "requirement_quote",
                     "predicate_id",
@@ -182,7 +221,7 @@ def _context_text(pair: PairInput, *, stage: Literal["nl_contract_extraction", "
     )
 
 
-COMMON_RULES = """Use only the supplied input closure. Never read, infer, or reproduce frozen ledger answers, baseline hit/FP results, independent judge examples, other pair payloads, or historical release outputs. PlantUML and canonical source IR locate author intent; FCSTM is the closed model evaluated by the deterministic backend; inspection-equivalent and verify/SMT summaries are deterministic facts only. Do not treat one source role as another. Do not emit W0/W1/W2, D0/D1/D2, L, or a release decision. Predicate IDs are closed to the frozen 19 IDs. A precise claim that is not expressible by a frozen predicate must remain a candidate with predicate_id=null, not disappear. Every object and every top-level response must contain non-empty reason and basis. Explain the judgment in the requested content language; English-only output is not required."""
+COMMON_RULES = """Use only the supplied input closure. Never read, infer, or reproduce frozen ledger answers, baseline hit/FP results, independent judge examples, other pair payloads, or historical release outputs. PlantUML and canonical source IR locate author intent; FCSTM is the closed model evaluated by the deterministic backend; inspection-equivalent and verify/SMT summaries are deterministic facts only. Do not treat one source role as another. Do not emit W0/W1/W2, D0/D1/D2, L, or a release decision. Predicate IDs are closed to the frozen 19 IDs. A precise claim that is not expressible by a frozen predicate must remain a candidate with predicate_id=null, not disappear. Every object and every top-level response must contain non-empty reason and basis. Explain the judgment in the requested content language; English-only output is not required. Free-text source content may be interpreted by the LLM, never by deterministic keyword, substring, regex, spelling, identifier-shape, or similarity rules."""
 
 
 # These are semantic routing rules for the frozen registry, not additional
@@ -200,13 +239,20 @@ PREDICATE_ROUTING_GUIDANCE = """Frozen predicate routing discipline:
 - For a missing fact, bind the expected exact model/source element and the observed absence or counterexample. For a present fact, preserve it as a non-violation observation unless the supplied dossier identifies a distinct violated obligation."""
 
 
-CONTRACT_SYSTEM_PROMPT = f"""You are the NL contract extraction stage of the paper1 evidence_discovery method. {COMMON_RULES} Extract atomic source obligations before inspecting model satisfaction. Preserve qualifiers, ordering, initialization/operation/termination scope, and ambiguity. Return only the requested Pydantic structure."""
+CONTRACT_SYSTEM_PROMPT = f"""You are the NL contract extraction stage of the paper1 evidence_discovery method. {COMMON_RULES} Extract atomic source obligations before inspecting model satisfaction. For every contract, fill the typed semantic key `(locus_kind, locus_names, property, expected_direction, violation_direction, evidence_types)` and typed binding hints. Split independently violable containment, initialization, transition endpoint, trigger, guard, effect, action, reachability, progress, event-consumer, region, variable-delta, and excess-behavior clauses instead of bundling them. Preserve qualifiers, ordering, initialization/operation/termination scope, and ambiguity. The violation direction says what later grounding must test; it does not claim that the defect exists. Return only the requested Pydantic structure."""
 
 
 SOURCE_GROUNDING_SYSTEM_PROMPT = f"""You are the author-source grounding branch of the paper1 evidence_discovery method. {COMMON_RULES} Use NL contracts, PlantUML, canonical source IR, exact source inventory, working contract, and source trace to locate source-scoped obligations and exact source identities. FCSTM facts may be compared only as a separate closed-model role. Do not claim that source presence proves execution or a violation. Return only the requested Pydantic structure."""
 
 
 MODEL_GROUNDING_SYSTEM_PROMPT = f"""You are the closed-model grounding branch of the paper1 evidence_discovery method. {COMMON_RULES} Use FCSTM, owned ModelIR, reference inspection facts, owned inspection-equivalent facts, finite verify facts, and SMT formula summaries to bind exact model elements and propose predicate candidates. Do not rewrite an NL contract to match the model and do not treat unknown/not-run facts as violations.
+
+Every candidate must copy one exact `contract_id` and preserve that contract's
+`locus_kind`, `locus_names`, `property`, and `violation_direction`. Evaluate the
+contract property first, then select the minimal frozen predicate that decides
+that same property. Do not substitute a nearby endpoint, declaration, or local
+path property merely because it is executable. Record the evidence families
+actually used in `evidence_types`.
 
 {PREDICATE_ROUTING_GUIDANCE}
 
@@ -229,7 +275,7 @@ When one NL sentence contains multiple obligations, split them before rejecting
 the contract. A satisfied endpoint or declaration does not discharge an attached
 ordering, guard, effect, action, containment, region, consumer, or progress clause.
 For every such unsatisfied or unsupported conjunct, preserve the exact model
-locus and emit one atomic candidate; do not place it in rejected_contract_ids
+locus and emit one atomic candidate; do not mark it satisfied or not_applicable
 merely because a different conjunct is satisfied. A missing registered predicate
 is a precise W1 candidate when the model locus is exact.
 
@@ -268,7 +314,7 @@ Stage-scoped context projection and complete artifact manifest:
 Prior method candidates from this pair's earlier round only:
 {json.dumps(_safe_previous(previous), ensure_ascii=False, sort_keys=True, indent=2)}
 
-Extract one NLContract per independently violable normative obligation. Mark each supplied segment as covered, context, or ambiguous. Do not include ledger IDs, baseline labels, judge examples, W/D/L values, or hidden expected answers.
+Extract one NLContract per independently violable normative obligation. The typed semantic key and binding hints are the contract plan consumed by both grounding branches. Mark each supplied segment as covered, context, or ambiguous. Do not include ledger IDs, baseline labels, judge examples, W/D/L values, or hidden expected answers.
 """
 
 
@@ -300,6 +346,15 @@ Branch rule: {branch_rules}
 {routing_guidance}
 Frozen predicate input spellings: S1={{kind, element, scope}} S2={{source, target, scope}} S3={{transition, triggers}} S4={{state, phase, action}} S5={{transition, guard}} S6={{transition, effect}} G1={{source, target}} G2={{source, target}} G3={{source, target, forbidden}} G4={{roots, marked}} R1={{scenario, event, step}} R2={{scenario, stimulus, state, window}} R3={{scenario, behavior, window}} R4={{scenario, state, interval}} V1={{source, trigger, domain}} V2={{source, trigger, domain}} V3={{p, q, bound, unit, scope}} V4={{initial_scope}} V5={{state, expected, initial_scope}}.
 If a precise candidate cannot be expressed by the registry, set predicate_id to null. Do not silently drop it. Do not use W/D/L or L levels.
+Copy `contract_id`, `locus_kind`, `locus_names`, `property`, and
+`violation_direction` from the one atomic contract being evaluated. A candidate
+may narrow source names to exact model identities through element_refs, but it
+must not change the semantic key or reverse the defect direction. Put actual
+evidence families used for the comparison in `evidence_types`.
+Return exactly one `contract_dispositions` row for every supplied contract ID.
+Use `candidate_emitted` when this response contains one or more candidates for
+that ID; otherwise use `satisfied`, `unresolved`, or `not_applicable` with a
+contract-specific reason and basis. Do not silently omit a contract.
 
 NL contracts:
 {json.dumps(contracts.model_dump(mode="json"), ensure_ascii=False, sort_keys=True, indent=2)}
@@ -398,6 +453,12 @@ def _compact_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
         "candidate": {
             key: candidate[key]
             for key in (
+                "contract_id",
+                "locus_kind",
+                "locus_names",
+                "property",
+                "violation_direction",
+                "evidence_types",
                 "title",
                 "requirement_quote",
                 "predicate_id",
@@ -482,6 +543,78 @@ def fallback_d_adjudication(obligation_ids: list[str], reason: str) -> DAdjudica
     )
 
 
+def normalize_grounding_dispositions(
+    response: GroundingResponse,
+    contracts: NLContractResponse,
+) -> GroundingResponse:
+    """Close exact contract accounting without making semantic decisions."""
+
+    allowed_contract_ids = {
+        contract.contract_id for contract in contracts.contracts
+    }
+    supplied = {
+        item.contract_id: item
+        for item in response.contract_dispositions
+        if item.contract_id in allowed_contract_ids
+    }
+    normalized: list[GroundingDisposition] = []
+    changed = len(supplied) != len(response.contract_dispositions)
+    for contract in contracts.contracts:
+        candidate_count = sum(
+            candidate.contract_id == contract.contract_id
+            for candidate in response.candidates
+        )
+        item = supplied.get(contract.contract_id)
+        if item is None:
+            normalized.append(
+                GroundingDisposition(
+                    contract_id=contract.contract_id,
+                    status="candidate_emitted" if candidate_count else "unresolved",
+                    candidate_count=candidate_count,
+                    reason=(
+                        "Candidates carry this exact contract ID, but the branch omitted its disposition row."
+                        if candidate_count
+                        else "The branch omitted this exact contract ID; deterministic normalization preserves it as unresolved."
+                    ),
+                    basis="exact contract ID coverage normalization; no semantic text inference",
+                )
+            )
+            changed = True
+            continue
+        status = item.status
+        if candidate_count and status != "candidate_emitted":
+            status = "candidate_emitted"
+            changed = True
+        elif not candidate_count and status == "candidate_emitted":
+            status = "unresolved"
+            changed = True
+        if item.candidate_count != candidate_count:
+            changed = True
+        normalized.append(
+            item.model_copy(
+                update={
+                    "status": status,
+                    "candidate_count": candidate_count,
+                    "basis": (
+                        item.basis
+                        + "; candidate_count/status audited by exact contract ID"
+                    ),
+                }
+            )
+        )
+    if not changed:
+        return response.model_copy(update={"contract_dispositions": normalized})
+    return response.model_copy(
+        update={
+            "contract_dispositions": normalized,
+            "reason": response.reason
+            + " Exact contract accounting was normalized without changing candidate semantics.",
+            "basis": response.basis
+            + "; exact contract ID coverage normalization",
+        }
+    )
+
+
 def build_method_prompt(pair: PairInput, round_index: int, previous: list[dict[str, Any]]) -> str:
     """Compatibility prompt exposing the source-grounding surface for tests/tools."""
 
@@ -492,6 +625,13 @@ def build_method_prompt(pair: PairInput, round_index: int, previous: list[dict[s
                 segment_id=segment.segment_id,
                 quote=segment.text,
                 normative_statement=segment.text,
+                locus_kind="scope",
+                locus_names=(segment.segment_id,),
+                property="other",
+                expected_direction="other",
+                violation_direction="other",
+                evidence_types=("source_identity",),
+                binding_hints=(),
                 scope="source-supplied scope",
                 source_refs=(f"nl:{segment.segment_id}",),
                 reason="The compatibility prompt preserves the numbered source segment.",
@@ -521,6 +661,13 @@ def fallback_contracts(pair: PairInput, reason: str) -> NLContractResponse:
             segment_id=segment.segment_id,
             quote=segment.text,
             normative_statement=segment.text,
+            locus_kind="scope",
+            locus_names=(segment.segment_id,),
+            property="other",
+            expected_direction="other",
+            violation_direction="other",
+            evidence_types=("source_identity",),
+            binding_hints=(),
             scope="source-supplied scope; semantic scope requires review",
             source_refs=(f"nl:{segment.segment_id}",),
             reason="The structured contract response was unavailable, so the exact numbered source segment was preserved.",
@@ -576,6 +723,12 @@ def fallback_grounding(
             )
             candidates.append(
                 CandidateIssue(
+                    contract_id=(contracts.contracts[0].contract_id if contracts.contracts else "NL-CONTRACT-UNRESOLVED"),
+                    locus_kind="state",
+                    locus_names=leaf_names or leaf_refs,
+                    property="deadlock_freedom",
+                    violation_direction="dead_end",
+                    evidence_types=("deadlock_frontier_fact", "verify_fact"),
                     title="Deterministic finite leaf frontier requires semantic review",
                     requirement_quote=quote,
                     predicate_id="V4",
@@ -595,6 +748,12 @@ def fallback_grounding(
             )
     if transition is not None:
         candidates.append(CandidateIssue(
+            contract_id=(contracts.contracts[0].contract_id if contracts.contracts else "NL-CONTRACT-UNRESOLVED"),
+            locus_kind="transition",
+            locus_names=(transition.source, transition.target),
+            property="transition_endpoints",
+            violation_direction="other",
+            evidence_types=("closed_model_inventory", "transition_fact"),
             title="Deterministic fallback preserving an exact transition fact",
             requirement_quote=contracts.contracts[0].quote if contracts.contracts else "The supplied NL contract is retained for audit.",
             predicate_id="S2",
@@ -609,6 +768,12 @@ def fallback_grounding(
         ))
     elif state is not None:
         candidates.append(CandidateIssue(
+            contract_id=(contracts.contracts[0].contract_id if contracts.contracts else "NL-CONTRACT-UNRESOLVED"),
+            locus_kind="state",
+            locus_names=(state.name,),
+            property="element_declaration",
+            violation_direction="other",
+            evidence_types=("closed_model_inventory",),
             title="Deterministic fallback preserving an exact state fact",
             requirement_quote=contracts.contracts[0].quote if contracts.contracts else "The supplied NL contract is retained for audit.",
             predicate_id="S1",
@@ -624,7 +789,26 @@ def fallback_grounding(
     return GroundingResponse(
         branch=branch,
         candidates=candidates,
-        rejected_contract_ids=[],
+        contract_dispositions=[
+            GroundingDisposition(
+                contract_id=contract.contract_id,
+                status=(
+                    "candidate_emitted"
+                    if any(item.contract_id == contract.contract_id for item in candidates)
+                    else "unresolved"
+                ),
+                candidate_count=sum(
+                    item.contract_id == contract.contract_id for item in candidates
+                ),
+                reason=(
+                    "The deterministic fallback preserved exact facts for this contract after the branch provider/schema result was unavailable."
+                    if any(item.contract_id == contract.contract_id for item in candidates)
+                    else "The branch provider/schema result was unavailable and deterministic code did not infer a semantic disposition for this contract."
+                ),
+                basis=f"{reason}; exact contract ID accounting without free-text semantic inference",
+            )
+            for contract in contracts.contracts
+        ],
         reason=f"{branch} grounding used a deterministic fallback after provider/schema failure.",
         basis=f"{reason}; exact closed-model input closure",
     )
@@ -663,6 +847,11 @@ def assemble_method_response(
             )
         key = _hash(
             {
+                "contract_id": candidate.contract_id,
+                "locus_kind": candidate.locus_kind,
+                "locus_names": candidate.locus_names,
+                "property": candidate.property,
+                "violation_direction": candidate.violation_direction,
                 "predicate_id": candidate.predicate_id,
                 "predicate_inputs": candidate.predicate_inputs,
                 "element_refs": candidate.element_refs,
@@ -684,6 +873,7 @@ __all__ = [
     "SOURCE_GROUNDING_SYSTEM_PROMPT",
     "MODEL_GROUNDING_SYSTEM_PROMPT",
     "D_SYSTEM_PROMPT",
+    "GroundingDisposition",
     "GroundingResponse",
     "NLContract",
     "NLContractResponse",
@@ -697,4 +887,5 @@ __all__ = [
     "fallback_contracts",
     "fallback_grounding",
     "fallback_d_adjudication",
+    "normalize_grounding_dispositions",
 ]

@@ -14,6 +14,144 @@ PredicateId = Literal[
     "V1", "V2", "V3", "V4", "V5",
 ]
 
+ObligationLocusKind = Literal[
+    "model",
+    "state",
+    "transition",
+    "composite",
+    "region",
+    "event",
+    "action",
+    "variable",
+    "path",
+    "scenario",
+    "scope",
+    "other",
+]
+
+ObligationProperty = Literal[
+    "element_declaration",
+    "containment",
+    "cardinality",
+    "initial_entry",
+    "transition_endpoints",
+    "trigger_set",
+    "state_action",
+    "guard",
+    "effect",
+    "reachability",
+    "universal_reachability",
+    "route_avoidance",
+    "coaccessibility",
+    "event_consumption",
+    "state_after_stimulus",
+    "behavior_occurrence",
+    "state_retention",
+    "guard_disjointness",
+    "guard_completeness",
+    "bounded_response",
+    "deadlock_freedom",
+    "state_invariant",
+    "event_consumer_coverage",
+    "region_structure",
+    "variable_delta",
+    "termination",
+    "excess_behavior",
+    "other",
+]
+
+ExpectedDirection = Literal[
+    "must_exist",
+    "must_not_exist",
+    "must_equal",
+    "must_reach",
+    "must_eventually_reach",
+    "must_avoid",
+    "must_occur",
+    "must_remain",
+    "must_progress",
+    "must_cover",
+    "must_be_contained",
+    "must_enter",
+    "must_terminate",
+    "other",
+]
+
+ViolationDirection = Literal[
+    "missing",
+    "extra",
+    "mismatched",
+    "unreachable",
+    "dead_end",
+    "unconsumed",
+    "wrong_scope",
+    "wrong_target",
+    "wrong_guard",
+    "wrong_effect",
+    "not_retained",
+    "not_completed",
+    "unsupported_expression",
+    "other",
+]
+
+EvidenceType = Literal[
+    "source_identity",
+    "closed_model_inventory",
+    "transition_fact",
+    "initial_entry_fact",
+    "containment_fact",
+    "reachability_fact",
+    "deadlock_frontier_fact",
+    "event_consumer_fact",
+    "guard_fact",
+    "effect_fact",
+    "action_fact",
+    "trace_fact",
+    "verify_fact",
+    "smt_fact",
+    "semantic_comparison",
+    "other",
+]
+
+
+class ContractBindingHint(BaseModel):
+    """One source-side binding hint carried from an atomic NL contract.
+
+    A hint is not a model binding and does not prove satisfaction or violation.
+    It preserves a role and source phrase so the grounding branches can locate
+    exact author-source and closed-model identities without reversing the
+    requirement direction.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    role: Literal[
+        "owner",
+        "scope",
+        "source",
+        "target",
+        "transition",
+        "event",
+        "state",
+        "action",
+        "phase",
+        "guard",
+        "effect",
+        "variable",
+        "root",
+        "marked",
+        "forbidden",
+        "scenario",
+        "window",
+        "bound",
+        "unit",
+        "other",
+    ] = Field(description="Semantic argument role of this source-side hint; this is not a frozen predicate input name unless grounding later binds it exactly.")
+    value: str = Field(min_length=1, description="Source-grounded name, phrase, expression, or scope value copied or faithfully normalized from the supplied NL.")
+    source_ref: str | None = Field(default=None, description="Exact supplied NL or author-source reference supporting this hint, or null when only the parent contract source refs apply.")
+    reason: str = Field(min_length=1, description="LLM explanation of why this value has the declared semantic role in the atomic contract.")
+    basis: str = Field(min_length=1, description="LLM basis naming the supplied NL clause or author-source fact used for this hint.")
+
 class CandidateIssue(BaseModel):
     """One LLM-generated candidate with explicit audit rationale.
 
@@ -26,6 +164,12 @@ class CandidateIssue(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
+    contract_id: str = Field(pattern=r"^NL-CONTRACT-[A-Za-z0-9_.-]+$", min_length=14, description="Exact atomic NL contract ID evaluated by this candidate; copy it from the supplied contract plan and never invent, merge, or omit it.")
+    locus_kind: ObligationLocusKind = Field(description="Typed semantic kind of the requirement locus; preserve the contract's locus kind rather than substituting a nearby declared element.")
+    locus_names: tuple[Annotated[str, Field(min_length=1)], ...] = Field(min_length=1, description="One or more source-grounded names identifying the exact semantic locus; these are semantic identities, while element_refs carry exact FCSTM refs.")
+    property: ObligationProperty = Field(description="Exact atomic property being evaluated; preserve the contract property even when no frozen predicate fully expresses it.")
+    violation_direction: ViolationDirection = Field(description="Observed defect direction for this candidate; do not reverse a missing/dead-end/unreachable obligation into an unrelated existence claim.")
+    evidence_types: tuple[EvidenceType, ...] = Field(min_length=1, description="Structured evidence families actually used to form this candidate; unknown, error, or not-run facts are not violation evidence.")
     title: str = Field(min_length=1, description="Short human-readable issue title; do not include a verdict level.")
     requirement_quote: str = Field(min_length=1, description="Exact or faithful quote of the supplied requirement supporting this candidate.")
     predicate_id: PredicateId | None = Field(default=None, description="One frozen predicate ID, or null when the precise claim is not expressible by the registry.")
@@ -76,6 +220,12 @@ def fallback_candidates(pair: PairInput, round_index: int) -> MethodResponse:
     elif first_state:
         inputs = {"kind": "state", "element": first_state.name, "scope": "closed_fcstm"}
     candidate = CandidateIssue(
+        contract_id="NL-CONTRACT-UNRESOLVED",
+        locus_kind="model",
+        locus_names=(pair.pair_id,),
+        property="other",
+        violation_direction="other",
+        evidence_types=("closed_model_inventory",),
         title="Deterministic fallback candidate preserving a checkable model fact",
         requirement_quote="No structured model candidate was available; preserve the first checkable supplied fact.",
         predicate_id=predicate_id,

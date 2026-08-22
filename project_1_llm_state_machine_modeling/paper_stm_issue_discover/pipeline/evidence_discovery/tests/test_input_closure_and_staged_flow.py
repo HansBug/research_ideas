@@ -11,6 +11,7 @@ from pipeline.evidence_discovery.orchestration.runner import _method_cell, run_e
 from pipeline.evidence_discovery.orchestration.runtime import StructuredCallOutcome
 from pipeline.evidence_discovery.semantics import (
     DAdjudicationResponse,
+    GroundingDisposition,
     GroundingResponse,
     NLContract,
     NLContractResponse,
@@ -47,6 +48,13 @@ class FixtureStructuredRuntime:
                         segment_id="NL1",
                         quote="The supplied source clause.",
                         normative_statement="The supplied source clause is preserved.",
+                        locus_kind="transition",
+                        locus_names=("Synthetic.Source", "Synthetic.Target"),
+                        property="transition_endpoints",
+                        expected_direction="must_exist",
+                        violation_direction="missing",
+                        evidence_types=("source_identity", "transition_fact"),
+                        binding_hints=(),
                         scope="source-supplied scope",
                         source_refs=["nl:NL1"],
                         reason="Fixture contract reason.",
@@ -62,6 +70,12 @@ class FixtureStructuredRuntime:
             transition = pair.model.transitions[0]
             candidates = [
                 {
+                    "contract_id": "NL-CONTRACT-NL1",
+                    "locus_kind": "transition",
+                    "locus_names": ["Synthetic.Source", "Synthetic.Target"],
+                    "property": "transition_endpoints",
+                    "violation_direction": "missing",
+                    "evidence_types": ["closed_model_inventory", "transition_fact"],
                     "title": "Fixture grounded transition",
                     "requirement_quote": "The supplied source clause.",
                     "predicate_id": "S2",
@@ -83,6 +97,12 @@ class FixtureStructuredRuntime:
                 second_transition = pair.model.transitions[1]
                 candidates.append(
                     {
+                        "contract_id": "NL-CONTRACT-NL1",
+                        "locus_kind": "transition",
+                        "locus_names": ["Synthetic.Source", "Synthetic.OtherTarget"],
+                        "property": "transition_endpoints",
+                        "violation_direction": "missing",
+                        "evidence_types": ["closed_model_inventory", "transition_fact"],
                         "title": "Fixture grounded second transition",
                         "requirement_quote": "The second supplied source clause.",
                         "predicate_id": "S2",
@@ -103,7 +123,15 @@ class FixtureStructuredRuntime:
             response = GroundingResponse(
                 branch="source" if kind == "source_grounding" else "model",
                 candidates=candidates,
-                rejected_contract_ids=[],
+                contract_dispositions=[
+                    GroundingDisposition(
+                        contract_id="NL-CONTRACT-NL1",
+                        status="candidate_emitted",
+                        candidate_count=len(candidates),
+                        reason="The fixture branch emitted candidates for the synthetic contract.",
+                        basis="Fixture exact contract ID accounting.",
+                    )
+                ],
                 reason="Fixture grounding response reason.",
                 basis="Fixture grounding response basis.",
             )
@@ -336,8 +364,16 @@ def test_representative_pairs_staged_fixture_smoke(tmp_path: Path) -> None:
         assert len(runtime.prompts) == 4
         assert cell["context_manifest"]["manifest_hash"] == pair.context_manifest.manifest_hash
         assert cell["evidence_records"]
-        assert all(item["reason"] and item["basis"] for item in cell["stage_receipts"])
-        assert all(item["input_manifest_hash"] == pair.context_manifest.manifest_hash for item in cell["stage_receipts"])
+    assert all(item["reason"] and item["basis"] for item in cell["stage_receipts"])
+    assert all(item["input_manifest_hash"] == pair.context_manifest.manifest_hash for item in cell["stage_receipts"])
+    contract_ids = {
+        item["contract_id"]
+        for item in cell["stage_outputs"]["nl_contract_extraction"]["contracts"]
+    }
+    for stage_name in ("source_grounding", "model_grounding"):
+        dispositions = cell["stage_outputs"][stage_name]["contract_dispositions"]
+        assert {item["contract_id"] for item in dispositions} == contract_ids
+        assert all(item["reason"] and item["basis"] for item in dispositions)
 
 
 def test_method_context_excludes_historical_case_run_payloads() -> None:

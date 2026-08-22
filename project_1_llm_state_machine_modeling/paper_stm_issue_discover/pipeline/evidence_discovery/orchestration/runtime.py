@@ -562,7 +562,7 @@ class FixtureStructuredRuntime:
             payload = {
                 "branch": "model" if kind == "model_grounding" else "source",
                 "candidates": [],
-                "rejected_contract_ids": [],
+                "contract_dispositions": [],
                 "reason": "Fixture grounding output leaves candidate generation to the fallback receipt.",
                 "basis": "provider-free fixture runtime",
             }

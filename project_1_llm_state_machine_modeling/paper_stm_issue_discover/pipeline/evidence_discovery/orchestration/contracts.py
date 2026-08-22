@@ -223,7 +223,7 @@ class MethodCellReceipt(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["paper1.evidence_discovery.method_cell.v2"] = Field(
+    schema: Literal["paper1.evidence_discovery.method_cell.v3"] = Field(
         description="Versioned method-cell schema identifier."
     )
     run_id: str = Field(

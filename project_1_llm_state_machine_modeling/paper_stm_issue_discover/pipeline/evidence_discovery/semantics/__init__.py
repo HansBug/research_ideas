@@ -2,13 +2,14 @@
 
 from .adjudication import DAdjudicationResponse, SemanticAdjudication, adjudicate_disposition
 from .binding import BindingResult, bind_candidate, resolve_transition_ref
-from .obligations import CandidateIssue, MethodResponse
+from .obligations import CandidateIssue, ContractBindingHint, MethodResponse
 from .workflow import (
     ContextBudgetReceipt,
     CONTRACT_SYSTEM_PROMPT,
     D_SYSTEM_PROMPT,
     MODEL_GROUNDING_SYSTEM_PROMPT,
     SOURCE_GROUNDING_SYSTEM_PROMPT,
+    GroundingDisposition,
     GroundingResponse,
     NLContract,
     NLContractResponse,
@@ -22,17 +23,20 @@ from .workflow import (
     fallback_contracts,
     fallback_grounding,
     fallback_d_adjudication,
+    normalize_grounding_dispositions,
 )
 
 __all__ = [
     "BindingResult",
     "CandidateIssue",
+    "ContractBindingHint",
     "ContextBudgetReceipt",
     "MethodResponse",
     "SemanticAdjudication",
     "DAdjudicationResponse",
     "NLContract",
     "NLContractResponse",
+    "GroundingDisposition",
     "GroundingResponse",
     "StageReceipt",
     "CONTRACT_SYSTEM_PROMPT",
@@ -51,4 +55,5 @@ __all__ = [
     "fallback_contracts",
     "fallback_grounding",
     "fallback_d_adjudication",
+    "normalize_grounding_dispositions",
 ]

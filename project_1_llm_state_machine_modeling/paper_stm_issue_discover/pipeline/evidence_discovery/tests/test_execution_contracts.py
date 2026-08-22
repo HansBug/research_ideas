@@ -32,6 +32,7 @@ from pipeline.evidence_discovery.orchestration.runner import (
     _judge_prompt,
     _judge_shape_errors,
     _normalize_judge_shape,
+    _prepare_candidate,
     _judge_pair,
     _metrics,
     run_experiment,
@@ -57,9 +58,11 @@ from pipeline.evidence_discovery.orchestration.runtime import (
 from pipeline.evidence_discovery.registry import load_registry
 from pipeline.evidence_discovery.semantics import (
     CandidateIssue,
+    ContractBindingHint,
     ContextBudgetReceipt,
     D_SYSTEM_PROMPT,
     GroundingResponse,
+    GroundingDisposition,
     NLContract,
     NLContractResponse,
     MethodResponse,
@@ -89,6 +92,12 @@ def _candidate(
     observed: str = "observed violation",
 ) -> CandidateIssue:
     return CandidateIssue(
+        contract_id="NL-CONTRACT-FIXTURE",
+        locus_kind="transition",
+        locus_names=("Synthetic.Source", "Synthetic.Target"),
+        property="transition_endpoints",
+        violation_direction="missing",
+        evidence_types=("closed_model_inventory", "transition_fact"),
         title="candidate title",
         requirement_quote="requirement quote",
         predicate_id=predicate_id,
@@ -448,14 +457,14 @@ def test_source_grounding_rows_are_attribution_only() -> None:
         GroundingResponse(
             branch="source",
             candidates=[source_candidate],
-            rejected_contract_ids=[],
+            contract_dispositions=[],
             reason="source fixture",
             basis="source fixture",
         ),
         GroundingResponse(
             branch="model",
             candidates=[model_candidate],
-            rejected_contract_ids=[],
+            contract_dispositions=[],
             reason="model fixture",
             basis="model fixture",
         ),
@@ -645,6 +654,13 @@ def test_frontier_fallback_preserves_exact_leaf_facts_and_v4_dossier_guidance() 
         segment_id="NL1",
         quote=pair.nl_segments[0].text,
         normative_statement=pair.nl_segments[0].text,
+        locus_kind="scope",
+        locus_names=("supplied state-machine scope",),
+        property="deadlock_freedom",
+        expected_direction="must_progress",
+        violation_direction="dead_end",
+        evidence_types=("deadlock_frontier_fact", "verify_fact"),
+        binding_hints=(),
         scope="supplied state-machine scope",
         source_refs=("nl:NL1",),
         reason="The fixture preserves the numbered NL segment.",
@@ -669,6 +685,12 @@ def test_frontier_fallback_preserves_exact_leaf_facts_and_v4_dossier_guidance() 
         if diagnostic.code == "LEAF_WITHOUT_OUTGOING" and diagnostic.refs
     }
     assert set(frontier.element_refs) == expected_leaf_refs
+    assert frontier.contract_id == contract.contract_id
+    assert frontier.locus_kind == "state"
+    assert set(frontier.locus_names) == {"PumpState", "WaterState", "MethaneState"}
+    assert frontier.property == "deadlock_freedom"
+    assert frontier.violation_direction == "dead_end"
+    assert frontier.evidence_types == ("deadlock_frontier_fact", "verify_fact")
     assert frontier.predicate_inputs == {"initial_scope": "closed_fcstm_initial_scope"}
     assert frontier.reason and frontier.basis
     assert "reachable non-final leaf" in D_SYSTEM_PROMPT
@@ -707,7 +729,9 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
     judge_schema = JudgeResponse.model_json_schema()
     candidate_properties = candidate_schema["properties"]
     for field_name in (
-        "title", "requirement_quote", "predicate_id", "predicate_inputs", "element_refs",
+        "contract_id", "locus_kind", "locus_names", "property",
+        "violation_direction", "evidence_types", "title", "requirement_quote",
+        "predicate_id", "predicate_inputs", "element_refs",
         "source_refs", "expected", "observed", "strongest_rebuttal", "reason", "basis",
     ):
         assert candidate_properties[field_name].get("description"), field_name
@@ -726,6 +750,9 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
         PairRunStatus,
         RunSummaryReceipt,
         ContextBudgetReceipt,
+        ContractBindingHint,
+        NLContract,
+        GroundingDisposition,
         W2AuditBundle,
         AtomicMatchDecision,
     ):
@@ -753,6 +780,68 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
     )
     assert judged.ledger_assessments[0].reason
     assert judged.release_assessments[0].basis
+
+
+def test_candidate_must_preserve_exact_typed_contract_semantic_key() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0023")
+    transition = pair.model.transitions[0]
+    contract = NLContract(
+        contract_id="NL-CONTRACT-FIXTURE-TRANSITION",
+        segment_id="NL1",
+        quote="A synthetic controller shall transition from SourceA to TargetA.",
+        normative_statement="The synthetic transition shall exist.",
+        locus_kind="transition",
+        locus_names=("SourceA", "TargetA"),
+        property="transition_endpoints",
+        expected_direction="must_exist",
+        violation_direction="missing",
+        evidence_types=("transition_fact",),
+        binding_hints=(),
+        scope="Synthetic controller scope",
+        source_refs=("nl:NL1",),
+        reason="The synthetic fixture supplies one atomic endpoint obligation.",
+        basis="provider-free synthetic contract",
+    )
+    candidate = _candidate(
+        pair,
+        predicate_id="S2",
+        inputs={
+            "source": transition.source,
+            "target": transition.target,
+            "scope": "closed_fcstm",
+        },
+        refs=[transition.ref],
+    ).model_copy(
+        update={
+            "contract_id": contract.contract_id,
+            "locus_names": contract.locus_names,
+        }
+    )
+    exact = _prepare_candidate(
+        pair,
+        candidate,
+        1,
+        0,
+        {contract.contract_id: contract},
+    )
+    assert exact["binding"].precise is True
+
+    reversed_property = candidate.model_copy(
+        update={
+            "property": "initial_entry",
+            "violation_direction": "wrong_target",
+        }
+    )
+    rejected = _prepare_candidate(
+        pair,
+        reversed_property,
+        1,
+        1,
+        {contract.contract_id: contract},
+    )
+    assert rejected["binding"].precise is False
+    assert "property" in rejected["binding"].basis
+    assert "violation_direction" in rejected["binding"].basis
 
 
 def test_provider_retry_exemption_is_row_local_and_other_usage_is_billable() -> None:
@@ -1038,7 +1127,7 @@ def test_pair_wide_judge_shape_failure_uses_atomic_llm_relations(tmp_path: Path)
         pair=pair,
         method_rounds=[
             {
-                "schema": "paper1.evidence_discovery.method_cell.v2",
+                "schema": "paper1.evidence_discovery.method_cell.v3",
                 "run_id": "1" * 32,
                 "run_contract_hash": "sha256:" + "1" * 64,
                 "pair_id": "0000",
@@ -1108,7 +1197,7 @@ def test_large_release_surface_is_partitioned_before_atomic_fallback(tmp_path: P
             issue_index += 1
         method_rounds.append(
             {
-                "schema": "paper1.evidence_discovery.method_cell.v2",
+                "schema": "paper1.evidence_discovery.method_cell.v3",
                 "run_id": "1" * 32,
                 "run_contract_hash": "sha256:" + "1" * 64,
                 "pair_id": "0000",
@@ -1174,7 +1263,7 @@ def test_partition_shape_failure_gets_one_targeted_correction(tmp_path: Path) ->
     ]
     method_rounds = [
         {
-            "schema": "paper1.evidence_discovery.method_cell.v2",
+            "schema": "paper1.evidence_discovery.method_cell.v3",
             "run_id": "1" * 32,
             "run_contract_hash": "sha256:" + "1" * 64,
             "pair_id": "0000",
@@ -1243,7 +1332,7 @@ def test_large_partition_failure_does_not_expand_to_atomic_relation_matrix(
         pair=pair,
         method_rounds=[
             {
-                "schema": "paper1.evidence_discovery.method_cell.v2",
+                "schema": "paper1.evidence_discovery.method_cell.v3",
                 "run_id": "1" * 32,
                 "run_contract_hash": "sha256:" + "1" * 64,
                 "pair_id": "0000",
@@ -1373,12 +1462,18 @@ def test_provider_free_run_manifest_resume_and_concurrent_atomic_writes(tmp_path
     assert len(list((run_root / "judge").glob("*.json"))) == 2
     assert not list(run_root.rglob("*.tmp"))
     audit_files = list((run_root / "audit_bundles").glob("*.json"))
-    assert audit_files
-    for audit_file in audit_files:
-        bundle = json.loads(audit_file.read_text(encoding="utf-8"))
-        assert bundle["method_receipt"]["sha256"].startswith("sha256:")
-        assert bundle["judge_receipt"]["sha256"].startswith("sha256:")
-        assert bundle["audit_finalization"]["judge_receipt_hash"] == bundle["judge_receipt"]["sha256"]
+    assert audit_files == []
+    for method_path in (run_root / "method").glob("*/round-1.json"):
+        cell = json.loads(method_path.read_text(encoding="utf-8"))
+        assert cell["report_issue_clusters"] == []
+        assert all(
+            record["witness_level"] == "W0"
+            for record in cell["evidence_records"]
+        )
+        assert all(
+            "typed semantic key" in record["binding"]["reason"]
+            for record in cell["evidence_records"]
+        )
 
     resumed = run_experiment(
         report_root=REPORT_ROOT,
@@ -1415,7 +1510,7 @@ def test_provider_free_run_manifest_resume_and_concurrent_atomic_writes(tmp_path
     current = json.loads(stale_path.read_text(encoding="utf-8"))
     stale_receipts = list((run_root / "stale").rglob("round-1.json"))
     assert repaired["run_id"] == run_id
-    assert current["schema"] == "paper1.evidence_discovery.method_cell.v2"
+    assert current["schema"] == "paper1.evidence_discovery.method_cell.v3"
     assert stale_receipts
     assert any(
         json.loads(path.read_text(encoding="utf-8"))["schema"]

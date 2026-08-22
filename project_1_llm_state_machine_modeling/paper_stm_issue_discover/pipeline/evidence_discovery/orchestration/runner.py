@@ -7,7 +7,7 @@ import re
 import subprocess
 import uuid
 from collections import Counter, defaultdict
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
@@ -33,6 +33,7 @@ from ..semantics import (
     D_SYSTEM_PROMPT,
     GroundingResponse,
     MODEL_GROUNDING_SYSTEM_PROMPT,
+    NLContract,
     NLContractResponse,
     SemanticAdjudication,
     SOURCE_GROUNDING_SYSTEM_PROMPT,
@@ -47,6 +48,7 @@ from ..semantics import (
     fallback_contracts,
     fallback_d_adjudication,
     fallback_grounding,
+    normalize_grounding_dispositions,
     resolve_transition_ref,
 )
 from ..semantics.obligations import fallback_candidates
@@ -68,12 +70,12 @@ from .runtime import (
 
 
 REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS = ("0004", "0023", "0029", "0035", "0046", "0053")
-METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v2"
+METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v3"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v2"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-orchestration.v5"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-staged-prompts.v4"
+CODE_VERSION = "evidence-discovery-orchestration.v6"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-staged-prompts.v5"
 JUDGE_PROMPT_TOKEN_BUDGET = 180_000
 # Keep the normal judge surface small enough that the model can close every
 # exact-ID row in one response.  A larger release surface is partitioned
@@ -727,12 +729,37 @@ def _prepare_candidate(
     candidate: CandidateIssue,
     round_index: int,
     index: int,
- ) -> dict[str, Any]:
+    contracts_by_id: Mapping[str, NLContract] | None = None,
+) -> dict[str, Any]:
     """Bind, compile, and execute once before the separate semantic D call."""
 
     obligation_id = f"{pair.pair_id}:r{round_index}:i{index}"
     candidate = _normalize_candidate_model_refs(pair, candidate)
     binding = bind_candidate(candidate, pair.model)
+    if contracts_by_id is not None:
+        contract = contracts_by_id.get(candidate.contract_id)
+        mismatch_fields: list[str] = []
+        if contract is None:
+            mismatch_fields.append("contract_id")
+        else:
+            if candidate.locus_kind != contract.locus_kind:
+                mismatch_fields.append("locus_kind")
+            if tuple(candidate.locus_names) != tuple(contract.locus_names):
+                mismatch_fields.append("locus_names")
+            if candidate.property != contract.property:
+                mismatch_fields.append("property")
+            if candidate.violation_direction != contract.violation_direction:
+                mismatch_fields.append("violation_direction")
+        if mismatch_fields:
+            binding = binding.model_copy(
+                update={
+                    "precise": False,
+                    "reason": "The candidate does not preserve the exact typed semantic key of one supplied atomic NL contract.",
+                    "basis": "exact contract ID and typed locus/property/direction comparison; mismatched fields: "
+                    + ", ".join(mismatch_fields)
+                    + "; W0 and D_UNRESOLVED are required",
+                }
+            )
     candidate = _enrich_candidate(candidate, binding, pair)
     plan = compile_plan(
         candidate,
@@ -821,6 +848,12 @@ def _deterministic_candidate(
     record.update(
         {
             "issue_id": f"{pair.pair_id}:r{round_index}:issue:{index}",
+            "contract_id": candidate.contract_id,
+            "locus_kind": candidate.locus_kind,
+            "locus_names": list(candidate.locus_names),
+            "property": candidate.property,
+            "violation_direction": candidate.violation_direction,
+            "evidence_types": list(candidate.evidence_types),
             "title": candidate.title,
             "requirement_quote": candidate.requirement_quote,
             "predicate_inputs": candidate.predicate_inputs,
@@ -998,6 +1031,10 @@ def _method_cell(
         contracts=contract_response,
         reason=str(source_outcome.result.get("error", "source grounding output unavailable")),
     )
+    source_response = normalize_grounding_dispositions(
+        source_response,
+        contract_response,
+    )
     stage_outputs["source_grounding"] = source_response.model_dump(mode="json")
     if not source_outcome.succeeded:
         all_errors.append(
@@ -1027,6 +1064,10 @@ def _method_cell(
         branch="model",
         contracts=contract_response,
         reason=str(model_outcome.result.get("error", "model grounding output unavailable")),
+    )
+    model_response = normalize_grounding_dispositions(
+        model_response,
+        contract_response,
     )
     stage_outputs["model_grounding"] = model_response.model_dump(mode="json")
     if not model_outcome.succeeded:
@@ -1063,9 +1104,18 @@ def _method_cell(
     release: list[dict[str, Any]] = []
     errors: list[dict[str, Any]] = list(all_errors)
     prepared_candidates: list[dict[str, Any]] = []
+    contracts_by_id = {
+        contract.contract_id: contract for contract in contract_response.contracts
+    }
     for index, candidate in enumerate(candidates):
         try:
-            prepared = _prepare_candidate(pair, candidate, round_index, index)
+            prepared = _prepare_candidate(
+                pair,
+                candidate,
+                round_index,
+                index,
+                contracts_by_id,
+            )
             prepared_candidates.append(prepared)
             stage_receipts.extend(
                 [
@@ -1108,7 +1158,13 @@ def _method_cell(
         # when the provider returns an empty list or the candidate schema fails.
         candidate = fallback_candidates(pair, round_index).issues[0]
         try:
-            prepared = _prepare_candidate(pair, candidate, round_index, 0)
+            prepared = _prepare_candidate(
+                pair,
+                candidate,
+                round_index,
+                0,
+                contracts_by_id,
+            )
             prepared_candidates.append(prepared)
             stage_receipts.extend(
                 [
@@ -1435,6 +1491,12 @@ def _judge_issue_projection(issue: dict[str, Any]) -> dict[str, Any]:
         key: issue[key]
         for key in (
             "issue_id",
+            "contract_id",
+            "locus_kind",
+            "locus_names",
+            "property",
+            "violation_direction",
+            "evidence_types",
             "title",
             "requirement_quote",
             "predicate_id",
@@ -2437,6 +2499,11 @@ def _metrics(
         _hash_json(
             {
                 "pair_id": issue["issue_id"].split(":", 1)[0],
+                "contract_id": issue.get("contract_id"),
+                "locus_kind": issue.get("locus_kind"),
+                "locus_names": issue.get("locus_names"),
+                "property": issue.get("property"),
+                "violation_direction": issue.get("violation_direction"),
                 "predicate_id": issue.get("predicate_id"),
                 "predicate_inputs": issue.get("predicate_inputs"),
                 "binding": issue.get("binding"),

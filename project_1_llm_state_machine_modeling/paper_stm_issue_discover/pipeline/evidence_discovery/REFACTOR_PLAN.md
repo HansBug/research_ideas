@@ -100,7 +100,9 @@ payload 只保留在 receipt，prompt 只接收身份/状态 projection。
 |---|---|---|---|
 | ContextManifest | pair_id、artifacts、sections、forbidden_inputs、manifest_hash | inputs → semantics / orchestration | 不得省略 v27 source/model/fact closure 或混用来源角色 |
 | StageReceipt | stage_id、stage_name、input_manifest_hash、output_hash、context_budget、reason、basis | orchestration → audit/reporting | 不得把 provider/schema 诊断改写成 D/W 结论 |
-| `RequirementObligation` | `obligation_id`、`source_text`、`source_location`、`scope`、`binding_status` | `semantics` → `compiler` / `reporting` | 不得提前假定有谓词或后端 |
+| `NLContract` | `contract_id`、source quote、locus kind/names、property、expected/violation direction、evidence types、binding hints、reason、basis | NL contract extraction → 两个 grounding 分支 | 不得读取闭模型结果、提前声称 violation 或把复合句留成一个义务 |
+| `GroundingDisposition` | `contract_id`、status、candidate_count、reason、basis | 两个 grounding 分支 → stage receipt | 漏项只能确定性补 unresolved，不得补 satisfied/miss/FP |
+| `CandidateIssue` | exact contract semantic key、predicate_id?、predicate_inputs、element/source refs、expected/observed、reason、basis | model grounding → binding / compiler / reporting | 不得改写 contract 的 locus/property/direction，不能用邻近可执行事实替代原义务 |
 | `ModelBinding` | `obligation_id`、`model_hash`、`element_refs`、`binding_kind`、`binding_status` | `semantics` → `compiler` / `evidence` | 不得把字符串相似当精确绑定 |
 | `PredicatePlan` | `predicate_id`、`inputs`、`registry_version`、`soundness_fragment`、`assumptions` | `compiler` → `backends` | 不得写入旧谓词名或自行扩义 |
 | `RawReceipt` | `plan_id`、`backend`、`terminal_state`、`verdict`、`counterexample`、`run_metadata` | `backends` → `evidence` | 不得自行决定 W 等级或发布 issue |
@@ -110,6 +112,11 @@ payload 只保留在 receipt，prompt 只接收身份/状态 projection。
 其中 `element_refs` 必须包含源文件、稳定 ID 或路径和模型哈希；`source_chain` 至少能
 回到需求原句、模型元素、计划和回执四段。`predicate_id` 可以为空：这正是没有适用谓词
 时仍然输出 W1 的合法路径。
+
+exact binding 同时检查候选是否引用一个已供应的 `contract_id`，以及 typed
+`locus_kind/locus_names/property/violation_direction` 是否逐字段保持。该检查只处理 exact
+ID 与封闭枚举，不解释自由文本；任何不一致都进入 W0/D_UNRESOLVED。开放世界的 NL
+拆分、概念对应和义务方向仍由 LLM contract/grounding 节点判断。
 
 所有模型辅助节点的输出 schema 都必须把 `reason` 或 `basis` 设为必填非空字段；该字段
 只记录本步的依据和边界，D/W 等级仍由方法裁定器计算。`EvidenceRecord` 还必须记录

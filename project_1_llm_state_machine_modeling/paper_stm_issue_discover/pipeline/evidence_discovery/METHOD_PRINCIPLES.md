@@ -88,6 +88,16 @@ FCSTM 元素、确定性 facts 和 19 谓词最小输入。方法 prompt 只接�
 和状态 projection 放入 prompt；其完整文件仍以哈希保留在 receipt 中，历史
 stage lineage/LLM/comparison/review payload 不进入生成上下文。
 
+NL contract extraction 必须先形成紧凑的 typed contract plan。每条原子义务至少固定
+`contract_id`、`locus_kind`、`locus_names`、`property`、`expected_direction`、
+`violation_direction`、`evidence_types` 和 typed binding hints；这些字段描述来源义务，
+不提前声称 FCSTM 已违反。两个 grounding 分支的每条 candidate 必须复制同一条 contract
+的 exact semantic key，模型元素另放在 `element_refs`。确定性代码只比较 exact ID 和
+枚举字段：若 candidate 改写了 locus/property/direction，则绑定降为 W0、D_UNRESOLVED；
+不得用自由文本相似度修补。每个 grounding 分支还必须为每条 contract 保存带非空
+`reason`/`basis` 的 disposition；漏项只能补成 explicit unresolved，不能补成 satisfied、
+miss 或 FP。
+
 所有输入模型、LLM 响应和阶段 receipt 都使用 Pydantic model；字段必须有约束、完整
 description 和非空 reason/basis。LLM 不输出 W/D/L；D 阶段只输出封闭的 semantic
 grounding/defeater facts，方法代码将这些 typed facts 映射为 D2/D1/D0，W 则完全由
@@ -188,6 +198,8 @@ consumer scope、orthogonal runtime、hierarchy priority、trace variable delta�
 - [ ] D2/D1/D0 由方法自行裁定；只有 D2/D1 进入 release、hit 和 FP，D0 仅审计。
 - [ ] W0/W1/W2 由确定性状态机计算，模型不能自报等级；L 只从台账读取，方法不输出 L。
 - [ ] 每一步、每一条模型结构化输出都有非空 `reason` 或 `basis`，且说明输入、规则和边界。
+- [ ] typed contract plan 的 locus/property/direction 在 grounding、binding、release 和 judge
+      projection 中保持 exact ID 闭合；逐 contract disposition 没有静默漏项。
 - [ ] 后端及输入解析不调用 `inspect`；类似能力使用自有、可测试且有版本的算法。
 - [ ] 正式运行复用公共 `utils.agent`/`utils.llm` 与 LangGraph/respond，不从 `feedback_loop`
       私有实现反向导入；19 个谓词保持冻结。
