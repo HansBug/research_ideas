@@ -389,6 +389,7 @@ v27 state-role and discourse discipline:
 - For each semantically active operating state, emit one separate `deadlock_freedom` contract with `expected_direction=must_progress`, `violation_direction=dead_end`, and the exact state as its locus. This contract states the v27 progress/response obligation before model inspection. Grounding will decide from exact finite facts whether the state has an outgoing or inherited continuation, an explicit terminal route, or a dead-end frontier. Do not emit this contract for an explicitly intended terminal state.
 - Treat an explicit "first transitions/enters" clause as `initial_entry` into the first state under the enclosing operating owner, not as an ordinary transition from a word such as system or controller. In an initial-entry contract, `owner` is the scope that owns the required initial pseudostate edge and `target` is the state entered by that edge. Thus "the system begins in Controller" yields owner=root/system and target=Controller, while a later "within Controller, first enter ModeA" yields owner=Controller and target=ModeA. Never make the entered target its own owner merely because it is described as a composite. Resolve later omitted sources and enclosing owners by discourse semantics. A sequence such as "first enter ModeA; it can then transition to ModeB; similarly it transitions to ModeC" yields owner initial-entry to ModeA, ModeA-to-ModeB, and ModeB-to-ModeC. By contrast, "from ModeA choose either ModeB or ModeC" yields two alternatives from ModeA. This is an LLM coreference and ordering judgment; never decide it by keywords or identifier spelling.
 - Keep a state-owned action/effect independent from the endpoint that enters the state. The action may remain a precise unsupported W1 obligation even when the endpoint exists.
+- Preserve containment depth from the NL. A state described only as being "within" or "under" a composite requires semantic descendant containment; an intermediate region or nested composite still satisfies that obligation. Require direct/immediate ownership only when the source meaning explicitly requires no intermediate owner. Region or wrapper structure is a separate contract only when the NL independently specifies that structure or its concurrency semantics.
 
 Generic worked example: "Within Controller, start in Idle; on Begin transition from Idle to Running when enabled and set mode=active" yields separate contracts for Controller containment of Idle, Controller initial entry to Idle, the Idle-to-Running endpoint, its Begin trigger set, its enabled guard, and its mode=active effect. If the clause also requires Begin to be accepted throughout Controller, that coverage requirement is a separate event-consumer contract. Do not copy the whole sentence into one multi-property contract.
 
@@ -433,6 +434,20 @@ precisely bound predicate=null candidate for W1, but must not be disguised as
 S1/S2/S3. Keep one atomic candidate per obligation/property and place repeated
 observations in reason/basis rather than emitting a separate candidate for each
 supporting fact.
+
+Interpret containment at the depth stated by the contract. Transitive descendant
+containment through a region satisfies an ordinary within-scope containment
+contract; do not emit a wrong-scope issue solely because the state is not a
+direct child. Direct ownership and region/concurrency structure require their own
+explicit source obligations.
+
+Compiler-owned synthetic placeholders are not author-specified operating-state
+loci. A synthetic invalid or unspecified initial target may support the exact
+owner's `initial_entry` defect, but its zero-outgoing fact must not become a
+separate `deadlock_freedom` issue unless the source contract itself establishes
+that placeholder as an operating state. For an owner-level progress contract,
+evaluate the exact author-grounded operating descendants and keep the synthetic
+target as supporting initial-entry evidence only.
 
 An authored initial pseudostate edge nested in an owner must target a valid child
 in that same owner scope. If the exact source inventory and deterministic facts
