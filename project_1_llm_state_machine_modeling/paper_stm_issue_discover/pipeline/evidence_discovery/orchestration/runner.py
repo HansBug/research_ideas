@@ -1018,8 +1018,11 @@ def _deterministic_candidate(
 
 def _d_decision_consistency_errors(
     decision: SemanticAdjudication,
+    *,
+    prepared: Mapping[str, Any] | None = None,
+    pair: PairInput | None = None,
 ) -> list[str]:
-    """Validate only closed, context-free D fields before publication."""
+    """Validate closed D fields and exact typed fact contradictions."""
 
     errors: list[str] = []
     if decision.defeater_kind == "none":
@@ -1029,6 +1032,31 @@ def _d_decision_consistency_errors(
             errors.append("defeater_kind=none requires defeater_disposition=defeated")
     elif decision.strongest_defeater is None:
         errors.append("a typed defeater requires a non-null strongest_defeater")
+    if prepared is not None and pair is not None and decision.grounding == "established":
+        candidate = prepared.get("candidate")
+        binding = prepared.get("binding")
+        if (
+            isinstance(candidate, CandidateIssue)
+            and candidate.property == "deadlock_freedom"
+            and candidate.violation_direction == "dead_end"
+            and binding is not None
+        ):
+            bound_states = [
+                state
+                for state in pair.model.states
+                if state.ref in binding.element_refs
+            ]
+            states_with_outgoing = [
+                state.name
+                for state in bound_states
+                if any(edge.source == state.name for edge in pair.model.transitions)
+            ]
+            if bound_states and len(states_with_outgoing) == len(bound_states):
+                errors.append(
+                    "grounding=established contradicts the exact closed-model outgoing-transition inventory: "
+                    f"every bound dead_end locus has outgoing transitions ({states_with_outgoing}); "
+                    "unreachability is not a local dead-end or V4 deadlock violation"
+                )
     return errors
 
 
@@ -1329,8 +1357,8 @@ def _method_cell(
         "repair_duplicate_ids": [],
         "repair_invalid_decisions": {},
         "final_unresolved_ids": [],
-        "reason": "D validation checked exact obligation coverage, uniqueness, and closed enum consistency.",
-        "basis": "context-free obligation IDs and typed SemanticAdjudication fields",
+        "reason": "D validation checked exact obligation coverage, uniqueness, closed enums, and decidable typed-fact contradictions.",
+        "basis": "obligation IDs, typed SemanticAdjudication fields, and exact closed-model outgoing-transition inventory",
     }
     if prepared_candidates:
         dossiers = [
@@ -1400,10 +1428,19 @@ def _method_cell(
             return unique, missing, extra, duplicate
 
         unique_supplied, missing_ids, extra_ids, duplicate_ids = coverage(d_response)
+        prepared_by_id = {
+            item["obligation_id"]: item for item in prepared_candidates
+        }
         invalid_decisions = {
             decision.obligation_id: decision_errors
             for decision in unique_supplied
-            if (decision_errors := _d_decision_consistency_errors(decision))
+            if (
+                decision_errors := _d_decision_consistency_errors(
+                    decision,
+                    prepared=prepared_by_id.get(decision.obligation_id),
+                    pair=pair,
+                )
+            )
         }
         validation_output.update(
             {
@@ -1467,7 +1504,11 @@ def _method_cell(
                     for obligation_id, rows in repair_groups.items()
                     if len(rows) == 1
                     and (
-                        decision_errors := _d_decision_consistency_errors(rows[0])
+                        decision_errors := _d_decision_consistency_errors(
+                            rows[0],
+                            prepared=prepared_by_id.get(obligation_id),
+                            pair=pair,
+                        )
                     )
                 }
                 repaired = [

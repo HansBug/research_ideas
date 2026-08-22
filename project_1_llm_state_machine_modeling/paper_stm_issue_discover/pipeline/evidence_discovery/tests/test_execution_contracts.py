@@ -26,6 +26,7 @@ from pipeline.evidence_discovery.orchestration.runner import (
     LedgerAssessment,
     JudgeResponse,
     ReleaseAssessment,
+    _d_decision_consistency_errors,
     _deduplicate_release_issues,
     _enrich_candidate,
     _failure_judge_payload,
@@ -1106,6 +1107,52 @@ def test_unsupported_backend_does_not_turn_satisfied_semantics_into_d1() -> None
 
     assert binding.precise is True
     assert decision["d_level"] == "D0"
+
+
+def test_d_validation_rejects_unreachability_recast_as_bound_state_dead_end() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0035")
+    state = pair.model.state("DoorShut")
+    assert state is not None
+    outgoing_refs = [
+        transition.ref
+        for transition in pair.model.transitions
+        if transition.source == state.name
+    ]
+    assert outgoing_refs
+    candidate = _candidate(
+        pair,
+        predicate_id="V4",
+        inputs={"initial_scope": "closed_fcstm_hierarchy"},
+        refs=[state.ref, *outgoing_refs],
+    ).model_copy(
+        update={
+            "contract_id": "NL-CONTRACT-NL1-PROGRESS-1",
+            "locus_kind": "state",
+            "locus_names": ("DoorShut",),
+            "property": "deadlock_freedom",
+            "violation_direction": "dead_end",
+        }
+    )
+    binding = bind_candidate(candidate, pair.model)
+    established = SemanticAdjudication(
+        obligation_id="0035:r1:i0",
+        grounding="established",
+        violated_obligation="DoorShut must not be a dead end.",
+        strongest_defeater=None,
+        defeater_kind="none",
+        defeater_disposition="defeated",
+        reason="The fixture intentionally recasts unreachability as a dead end.",
+        basis="provider-free contradictory D fixture",
+    )
+
+    errors = _d_decision_consistency_errors(
+        established,
+        prepared={"candidate": candidate, "binding": binding},
+        pair=pair,
+    )
+
+    assert any("outgoing-transition inventory" in error for error in errors)
+    assert any("unreachability is not a local dead-end" in error for error in errors)
 
 
 def test_structured_models_require_non_empty_audit_rationale_and_descriptions() -> None:
