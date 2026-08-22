@@ -32,6 +32,7 @@ from .obligations import (
     ViolationDirection,
 )
 from .workflow import (
+    CardinalityDomainBinding,
     CardinalityRequirement,
     GroundingResponse,
     NLContract,
@@ -136,12 +137,12 @@ class IdentityNormalizationReceipt(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.identity-normalization.v2"] = Field(
-        default="paper1.identity-normalization.v2",
+    schema_version: Literal["paper1.identity-normalization.v3"] = Field(
+        default="paper1.identity-normalization.v3",
         description="identity normalization receipt 的持久化 schema 版本。",
     )
-    algorithm_version: Literal["typed-contract-identity.v2"] = Field(
-        default="typed-contract-identity.v2",
+    algorithm_version: Literal["typed-contract-identity.v3"] = Field(
+        default="typed-contract-identity.v3",
         description="生成 canonical ID 和改写 branch-local 引用的确定性算法版本。",
     )
     lens: Literal["contract_structure_contrast", "behavior_consequence"] = Field(
@@ -173,6 +174,10 @@ class IdentityNormalizationReceipt(BaseModel):
     rewritten_binding_count: int = Field(
         ge=0,
         description="本 lens 中从 raw ID 精确改写到 canonical ID 的 SemanticBinding 引用数。",
+    )
+    rewritten_cardinality_binding_count: int = Field(
+        ge=0,
+        description="本 lens 中从 raw ID 精确改写到 canonical ID 的 CardinalityDomainBinding 引用数。",
     )
     reason: str = Field(
         min_length=1,
@@ -213,8 +218,8 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v4"] = Field(
-        default="v27-typed-frontier.v4",
+    algorithm_version: Literal["v27-typed-frontier.v5"] = Field(
+        default="v27-typed-frontier.v5",
         description="产生该检查的确定性算法版本；不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
@@ -302,8 +307,8 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v4"] = Field(
-        default="v27-typed-frontier.v4",
+    algorithm_version: Literal["v27-typed-frontier.v5"] = Field(
+        default="v27-typed-frontier.v5",
         description="本批所有 check/obligation 使用的确定性算法版本。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
@@ -455,6 +460,10 @@ def canonicalize_grounding_response(
                     item.contract_id == contract.contract_id
                     for item in response.semantic_bindings
                 ),
+                rewritten_cardinality_binding_count=sum(
+                    item.contract_id == contract.contract_id
+                    for item in response.cardinality_bindings
+                ),
                 reason="The runner replaced a branch-local derived identifier and projected referenced candidates onto the contract-authoritative typed semantic identity.",
                 basis=f"lens={response.lens}; semantic_key={contract_semantic_key(contract).model_dump(mode='json')}",
             )
@@ -495,6 +504,12 @@ def canonicalize_grounding_response(
         )
         for item in response.semantic_bindings
     ]
+    cardinality_bindings = [
+        item.model_copy(
+            update={"contract_id": raw_to_canonical.get(item.contract_id, item.contract_id)}
+        )
+        for item in response.cardinality_bindings
+    ]
     groups_by_id: dict[str, NLTransitionGroup] = {}
     for group in response.additional_transition_groups:
         canonical_group, alternative_id_map = _canonicalize_transition_group(group)
@@ -517,6 +532,7 @@ def canonicalize_grounding_response(
             "candidates": candidates,
             "unresolved": unresolved,
             "semantic_bindings": semantic_bindings,
+            "cardinality_bindings": cardinality_bindings,
         }
     )
     return normalized, tuple(receipts)
@@ -554,6 +570,19 @@ def _source_state_by_name(
         return None
     matches = [
         item for item in pair.exact_source_inventory.states if item.name == name
+    ]
+    return matches[0] if len(matches) == 1 else None
+
+
+def _source_state_by_id(
+    pair: PairInput, source_id: str | None
+) -> SourceInventoryState | None:
+    if not source_id or pair.exact_source_inventory is None:
+        return None
+    matches = [
+        item
+        for item in pair.exact_source_inventory.states
+        if item.source_id == source_id
     ]
     return matches[0] if len(matches) == 1 else None
 
@@ -936,6 +965,7 @@ def _materialize_containment(builder: _Builder, contracts: Sequence[NLContract])
 def _materialize_cardinality(
     builder: _Builder,
     contracts: Sequence[NLContract],
+    grounding_responses: Sequence[GroundingResponse],
     existing: Sequence[CandidateIssue],
 ) -> None:
     pair = builder.pair
@@ -955,7 +985,101 @@ def _materialize_cardinality(
                 )
             )
             continue
-        if requirement.member_domain != "direct_child_states":
+
+        binding_rows = [
+            binding
+            for response in grounding_responses
+            for binding in response.cardinality_bindings
+            if binding.contract_id == contract.contract_id
+        ]
+        exact_bindings = [
+            binding for binding in binding_rows if binding.status == "exact"
+        ]
+        exact_binding_keys = {
+            (
+                binding.member_domain,
+                binding.owner_source_id,
+                binding.owner_model_ref,
+            )
+            for binding in exact_bindings
+        }
+        selected_binding: CardinalityDomainBinding | None = None
+        effective_requirement = requirement
+        if requirement.member_domain == "unresolved":
+            if not exact_bindings:
+                builder.checks.append(
+                    builder.receipt(
+                        "cardinality",
+                        (contract.contract_id,),
+                        status="unresolved",
+                        source_refs=contract.source_refs,
+                        reason="No grounding lens selected one exact primary cardinality member domain and owner.",
+                        basis=(
+                            "member_domain=unresolved; cardinality_binding_statuses="
+                            f"{[item.status for item in binding_rows]}; no free-text or name-shape fallback is permitted"
+                        ),
+                    )
+                )
+                continue
+            if len(exact_binding_keys) != 1:
+                builder.checks.append(
+                    builder.receipt(
+                        "cardinality",
+                        (contract.contract_id,),
+                        status="unresolved",
+                        source_refs=contract.source_refs,
+                        reason="The grounding lenses selected conflicting exact cardinality domains or owners, so the frontier cannot choose one by branch order.",
+                        basis=f"exact_binding_keys={sorted(exact_binding_keys)}",
+                    )
+                )
+                continue
+            selected_binding = exact_bindings[0]
+            effective_requirement = requirement.model_copy(
+                update={
+                    "member_domain": selected_binding.member_domain,
+                    "alternative_reading": (
+                        selected_binding.alternative_reading
+                        or requirement.alternative_reading
+                    ),
+                    "reason": "Grounding selected one primary typed member domain from supplied NL/source semantics while retaining any competing competent reading for D.",
+                    "basis": "numbered NL CardinalityRequirement plus exact CardinalityDomainBinding; observed count was not used to choose the domain",
+                }
+            )
+        else:
+            agreeing_bindings = [
+                binding
+                for binding in exact_bindings
+                if binding.member_domain == requirement.member_domain
+            ]
+            agreeing_keys = {
+                (binding.owner_source_id, binding.owner_model_ref)
+                for binding in agreeing_bindings
+            }
+            if agreeing_bindings and len(agreeing_keys) != 1:
+                builder.checks.append(
+                    builder.receipt(
+                        "cardinality",
+                        (contract.contract_id,),
+                        status="unresolved",
+                        source_refs=contract.source_refs,
+                        reason="The grounding lenses disagree about the exact owner of the contract-selected cardinality domain.",
+                        basis=f"member_domain={requirement.member_domain}; agreeing_owner_keys={sorted(agreeing_keys)}",
+                    )
+                )
+                continue
+            if len(agreeing_keys) == 1:
+                selected_binding = agreeing_bindings[0]
+                if (
+                    effective_requirement.alternative_reading is None
+                    and selected_binding.alternative_reading is not None
+                ):
+                    effective_requirement = requirement.model_copy(
+                        update={
+                            "alternative_reading": selected_binding.alternative_reading
+                        }
+                    )
+
+        if effective_requirement.member_domain != "direct_child_states":
             builder.checks.append(
                 builder.receipt(
                     "cardinality",
@@ -963,47 +1087,66 @@ def _materialize_cardinality(
                     status="unresolved",
                     source_refs=contract.source_refs,
                     reason="This frontier currently has no exact inventory projection for the contract's selected member domain.",
-                    basis=f"member_domain={requirement.member_domain}; no free-text or name-shape fallback is permitted",
+                    basis=f"member_domain={effective_requirement.member_domain}; no free-text or name-shape fallback is permitted",
                 )
             )
             continue
 
-        bound_states = _contract_state_refs(pair, contract)
-        for candidate in existing:
-            if (
-                candidate.contract_id == contract.contract_id
-                and candidate.property == "cardinality"
-            ):
-                bound_states.extend(_candidate_state_refs(pair, candidate))
-        bound_states = list({item.ref: item for item in bound_states}.values())
+        if selected_binding is not None:
+            bound_owner = _state_by_ref(pair, selected_binding.owner_model_ref)
+            source_owner = _source_state_by_id(
+                pair, selected_binding.owner_source_id
+            )
+            owner_rows = (
+                [
+                    (
+                        bound_owner,
+                        source_owner,
+                        _source_direct_children(pair, source_owner),
+                    )
+                ]
+                if bound_owner is not None and source_owner is not None
+                else []
+            )
+            bound_states = [bound_owner] if bound_owner is not None else []
+        else:
+            bound_states = _contract_state_refs(pair, contract)
+            for candidate in existing:
+                if (
+                    candidate.contract_id == contract.contract_id
+                    and candidate.property == "cardinality"
+                ):
+                    bound_states.extend(_candidate_state_refs(pair, candidate))
+            bound_states = list({item.ref: item for item in bound_states}.values())
 
-        structural_owner_rows: list[
-            tuple[StateNode, SourceInventoryState, list[SourceInventoryState]]
-        ] = []
-        bound_source_ids = {
-            source_state.source_id
-            for state in bound_states
-            if (source_state := _source_state_by_name(pair, state.name)) is not None
-        }
-        for state in bound_states:
-            source_owner = _source_state_by_name(pair, state.name)
-            if source_owner is None:
-                continue
-            children = _source_direct_children(pair, source_owner)
-            if children:
-                structural_owner_rows.append((state, source_owner, children))
-        linked_owner_rows = [
-            row
-            for row in structural_owner_rows
-            if any(child.source_id in bound_source_ids for child in row[2])
-        ]
-        owner_rows = (
-            linked_owner_rows
-            if linked_owner_rows
-            else structural_owner_rows
-            if len(structural_owner_rows) == 1
-            else []
-        )
+            structural_owner_rows: list[
+                tuple[StateNode, SourceInventoryState, list[SourceInventoryState]]
+            ] = []
+            bound_source_ids = {
+                source_state.source_id
+                for state in bound_states
+                if (source_state := _source_state_by_name(pair, state.name))
+                is not None
+            }
+            for state in bound_states:
+                source_owner = _source_state_by_name(pair, state.name)
+                if source_owner is None:
+                    continue
+                children = _source_direct_children(pair, source_owner)
+                if children:
+                    structural_owner_rows.append((state, source_owner, children))
+            linked_owner_rows = [
+                row
+                for row in structural_owner_rows
+                if any(child.source_id in bound_source_ids for child in row[2])
+            ]
+            owner_rows = (
+                linked_owner_rows
+                if linked_owner_rows
+                else structural_owner_rows
+                if len(structural_owner_rows) == 1
+                else []
+            )
         if len(owner_rows) != 1:
             builder.checks.append(
                 builder.receipt(
@@ -1012,8 +1155,12 @@ def _materialize_cardinality(
                     status="unresolved",
                     model_refs=[item.ref for item in bound_states],
                     source_refs=contract.source_refs,
-                    reason="The typed candidate refs do not identify one exact source owner and its complete direct-child member domain.",
-                    basis=f"owner_candidate_count={len(owner_rows)}; exact source parent relations only",
+                    reason="The typed binding does not identify one exact source/model owner for the complete direct-child member domain.",
+                    basis=(
+                        f"owner_candidate_count={len(owner_rows)}; "
+                        f"cardinality_binding_id={selected_binding.binding_id if selected_binding else None}; "
+                        "exact source parent relations only"
+                    ),
                 )
             )
             continue
@@ -1035,7 +1182,7 @@ def _materialize_cardinality(
             if (state := _state_by_name(pair, member.name)) is not None
         ]
         model_refs = [owner.ref, *[item.ref for item in model_members]]
-        if actual_count == requirement.required_count:
+        if actual_count == effective_requirement.required_count:
             builder.checks.append(
                 builder.receipt(
                     "cardinality",
@@ -1045,7 +1192,7 @@ def _materialize_cardinality(
                     model_refs=model_refs,
                     source_refs=source_refs,
                     reason="The complete exact author-source direct-child inventory has the required finite cardinality.",
-                    basis=f"owner={source_owner.source_id}; required={requirement.required_count}; actual={actual_count}; members={[item.source_id for item in members]}",
+                    basis=f"owner={source_owner.source_id}; required={effective_requirement.required_count}; actual={actual_count}; members={[item.source_id for item in members]}",
                 )
             )
             continue
@@ -1060,18 +1207,18 @@ def _materialize_cardinality(
             violation_direction="missing",
             evidence_types=("source_identity", "closed_model_inventory", "containment_fact", "semantic_comparison"),
             normative_statement=(
-                f"{owner.name} must contain {requirement.required_count} "
-                f"{requirement.member_concept} as direct child states."
+                f"{owner.name} must contain {effective_requirement.required_count} "
+                f"{effective_requirement.member_concept} as direct child states."
             ),
             scope=f"Direct authored children of {owner.name}",
             source_refs=source_refs,
             reason="The NL contract establishes a finite direct-child member-domain reading whose count can be compared with the complete exact source inventory.",
             basis="typed CardinalityRequirement plus exact source parent/member rows",
-            cardinality_requirement=requirement,
+            cardinality_requirement=effective_requirement,
         )
         candidate = _candidate(
             derived,
-            title=f"{owner.name} has {actual_count}, not {requirement.required_count}, direct state areas",
+            title=f"{owner.name} has {actual_count}, not {effective_requirement.required_count}, direct state areas",
             predicate_id=None,
             predicate_inputs={},
             element_refs=model_refs,
@@ -1083,11 +1230,15 @@ def _materialize_cardinality(
                 f"{[item.source_id for item in members]}."
             ),
             strongest_rebuttal=(
-                requirement.alternative_reading
+                effective_requirement.alternative_reading
                 or "No competing member-domain reading is recorded in the supplied cardinality contract."
             ),
             reason="The required count and direct-child member domain are typed, and the complete source inventory establishes a different finite count.",
-            basis=f"contract={contract.contract_id}; owner={source_owner.source_id}; required={requirement.required_count}; actual={actual_count}",
+            basis=(
+                f"contract={contract.contract_id}; owner={source_owner.source_id}; "
+                f"required={effective_requirement.required_count}; actual={actual_count}; "
+                f"cardinality_binding_id={selected_binding.binding_id if selected_binding else None}"
+            ),
         )
         builder.add(
             "cardinality",
@@ -2389,7 +2540,9 @@ def materialize_v27_frontier(
         all_groups.append(group)
     builder = _Builder(pair, llm_candidates)
     _materialize_containment(builder, all_contracts)
-    _materialize_cardinality(builder, all_contracts, llm_candidates)
+    _materialize_cardinality(
+        builder, all_contracts, grounding_responses, llm_candidates
+    )
     _materialize_initial_entries(builder, all_contracts)
     scopes = _materialize_root_reachability(builder, all_contracts, llm_candidates)
     _materialize_scope_entries(builder, scopes)

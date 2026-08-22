@@ -84,8 +84,8 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v8"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v4"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v18"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v17"
+CODE_VERSION = "evidence-discovery-v27-flow.v19"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v18"
 
 
 JudgeRelation = Literal[
@@ -1086,6 +1086,32 @@ def _merge_grounding_contracts(
 
     known_ids = set(merged)
     for branch in branches:
+        for binding in branch.semantic_bindings:
+            if binding.contract_id not in known_ids:
+                diagnostics.append(
+                    {
+                        "stage": "discovery_grounding",
+                        "lens": branch.lens,
+                        "class": "unknown_semantic_binding_contract_id",
+                        "contract_id": binding.contract_id,
+                        "binding_id": binding.binding_id,
+                        "reason": "The semantic binding does not name a supplied or accepted branch-local contract.",
+                        "basis": "exact contract-ID membership check without semantic inference",
+                    }
+                )
+        for binding in branch.cardinality_bindings:
+            if binding.contract_id not in known_ids:
+                diagnostics.append(
+                    {
+                        "stage": "discovery_grounding",
+                        "lens": branch.lens,
+                        "class": "unknown_cardinality_binding_contract_id",
+                        "contract_id": binding.contract_id,
+                        "binding_id": binding.binding_id,
+                        "reason": "The cardinality domain binding does not name a supplied or accepted branch-local cardinality contract.",
+                        "basis": "exact contract-ID membership check without semantic inference",
+                    }
+                )
         for unresolved in branch.unresolved:
             if unresolved.contract_id not in known_ids:
                 diagnostics.append(

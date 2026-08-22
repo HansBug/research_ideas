@@ -29,6 +29,7 @@ from .frontier import (
     transition_group_semantic_key,
 )
 from .workflow import (
+    CardinalityDomainBinding,
     CardinalityRequirement,
     CONTRACT_SYSTEM_PROMPT,
     D_SYSTEM_PROMPT,
@@ -64,6 +65,7 @@ __all__ = [
     "D_SYSTEM_PROMPT",
     "BindingResult",
     "CandidateIssue",
+    "CardinalityDomainBinding",
     "CardinalityRequirement",
     "ContextBudgetReceipt",
     "ContractSemanticKey",

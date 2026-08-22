@@ -5,6 +5,7 @@ from pathlib import Path
 from pipeline.evidence_discovery.inputs import load_pair
 from pipeline.evidence_discovery.semantics import (
     CandidateIssue,
+    CardinalityDomainBinding,
     CardinalityRequirement,
     ContractBindingHint,
     FrontierBatch,
@@ -643,6 +644,106 @@ def test_cardinality_frontier_keeps_unresolved_member_domain_unresolved() -> Non
     assert "no free-text or name-shape fallback" in receipt.basis
 
 
+def _0046_cardinality_binding(
+    contract: NLContract,
+    *,
+    lens: str = "contract_structure_contrast",
+    member_domain: str = "direct_child_states",
+) -> GroundingResponse:
+    return GroundingResponse(
+        lens=lens,
+        cardinality_bindings=[
+            CardinalityDomainBinding(
+                binding_id=f"CARD-BIND-{lens}",
+                contract_id=contract.contract_id,
+                status="exact",
+                member_domain=member_domain,
+                owner_source_id="UAVSwarmStateMachine",
+                owner_model_ref="state:UAVSwarmStateMachine:line:10",
+                alternative_reading=(
+                    "The clause may instead count named operating states; that competent reading remains for D."
+                ),
+                reason="The supplied source semantics select one primary structural member domain without using its observed count.",
+                basis="provider-free NL2 plus exact source owner/member inventory and ModelIR owner ref",
+            )
+        ],
+        reason="The fixture supplies one typed cardinality domain binding.",
+        basis="provider-free grounding response",
+    )
+
+
+def test_0046_grounding_binding_closes_unresolved_cardinality_domain() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0046")
+    contract = _0046_cardinality_contract("unresolved")
+    grounding = _0046_cardinality_binding(contract)
+
+    batch = materialize_v27_frontier(
+        pair,
+        _response([contract]),
+        {contract.contract_id: contract},
+        (grounding,),
+        (),
+    )
+
+    obligation = next(item for item in batch.obligations if item.kind == "cardinality")
+    assert obligation.candidate.locus_names == ("UAVSwarmStateMachine",)
+    assert "contains 2 direct children" in obligation.candidate.observed
+    assert obligation.contract.cardinality_requirement is not None
+    assert (
+        obligation.contract.cardinality_requirement.member_domain
+        == "direct_child_states"
+    )
+    assert "named operating states" in obligation.candidate.strongest_rebuttal
+    assert contract.contract_id in batch.superseded_candidate_contract_ids
+
+
+def test_cardinality_frontier_refuses_conflicting_exact_domain_bindings() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0046")
+    contract = _0046_cardinality_contract("unresolved")
+    structure = _0046_cardinality_binding(contract)
+    named_members = _0046_cardinality_binding(
+        contract,
+        lens="behavior_consequence",
+        member_domain="explicit_named_members",
+    )
+
+    batch = materialize_v27_frontier(
+        pair,
+        _response([contract]),
+        {contract.contract_id: contract},
+        (structure, named_members),
+        (),
+    )
+
+    assert all(item.kind != "cardinality" for item in batch.obligations)
+    receipt = next(item for item in batch.checks if item.kind == "cardinality")
+    assert receipt.status == "unresolved"
+    assert "conflicting exact cardinality domains" in receipt.reason
+
+
+def test_cardinality_binding_follows_runner_canonical_contract_identity() -> None:
+    raw_contract = _0046_cardinality_contract("unresolved").model_copy(
+        update={
+            "contract_id": (
+                "NL-CONTRACT-NL2-DERIVED-contract_structure_contrast-CARDINALITY"
+            )
+        }
+    )
+    raw_response = _0046_cardinality_binding(raw_contract).model_copy(
+        update={"additional_contracts": [raw_contract]}
+    )
+
+    normalized, receipts = canonicalize_grounding_response(raw_response)
+
+    canonical_id = normalized.additional_contracts[0].contract_id
+    assert canonical_id != raw_contract.contract_id
+    assert normalized.cardinality_bindings[0].contract_id == canonical_id
+    identity_receipt = next(
+        item for item in receipts if isinstance(item, IdentityNormalizationReceipt)
+    )
+    assert identity_receipt.rewritten_cardinality_binding_count == 1
+
+
 def test_derived_candidate_identity_is_projected_from_authoritative_contract() -> None:
     contract = _contract(
         contract_id="NL-CONTRACT-NL2-DERIVED-BRANCH-CONSUMERS",
@@ -1056,6 +1157,20 @@ def test_frontier_pydantic_descriptions_reach_json_schema() -> None:
         "explicit_named_members",
         "unresolved",
     }
+    grounding_schema = GroundingResponse.model_json_schema()
+    domain_binding_schema = grounding_schema["$defs"]["CardinalityDomainBinding"]
+    assert "有限成员域" in domain_binding_schema["description"]
+    assert "exact_source_inventory.states" in domain_binding_schema["properties"][
+        "owner_source_id"
+    ]["description"]
+    assert set(domain_binding_schema["properties"]["status"]["enum"]) == {
+        "exact",
+        "ambiguous",
+        "unbound",
+    }
+    assert "observed count" in grounding_schema["properties"][
+        "cardinality_bindings"
+    ]["description"]
 
 
 def test_segment_coverage_is_complete_observable_audit_not_a_gate() -> None:

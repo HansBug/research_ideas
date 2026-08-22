@@ -531,6 +531,103 @@ class SemanticBinding(BaseModel):
         return self
 
 
+class CardinalityDomainBinding(BaseModel):
+    """grounding 对数量义务的有限成员域和 exact owner 绑定。
+
+    grounding lens 产生该对象，deterministic frontier 消费它并从完整 source
+    inventory 枚举成员。它只裁定规范概念按哪一种 typed domain 计数以及该 domain
+    属于哪个 supplied owner；不携带 observed count、满足结论、candidate、W/D/L
+    或 ledger 信息。存在另一种称职读法时保留在 alternative_reading，由 D 审查。
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    schema_version: Literal["paper1.cardinality-domain-binding.v1"] = Field(
+        default="paper1.cardinality-domain-binding.v1",
+        description="CardinalityDomainBinding 的持久化 schema 版本；用于跨 lens、artifact 与 resume 审计。",
+    )
+    binding_id: str = Field(
+        pattern=r"^CARD-BIND-[A-Za-z0-9_.-]+$",
+        description="本 grounding response 内唯一的数量域绑定 ID；不是 contract、source element、model element 或 ledger ID。",
+    )
+    contract_id: str = Field(
+        pattern=r"^NL-CONTRACT-[A-Za-z0-9_.-]+$",
+        description="被解释的 supplied 或 branch-local cardinality contract ID；runner 会随 derived identity 精确 canonicalize。",
+    )
+    status: Literal["exact", "ambiguous", "unbound"] = Field(
+        description=(
+            "member-domain 绑定状态：exact 表示 supplied NL/source facts 支持一个 primary typed domain；"
+            "ambiguous 表示多种读法并立且无法选择 primary；unbound 表示缺少所需 source identity。"
+            "另一种称职读法不自动使 exact 变成 ambiguous，应写入 alternative_reading 交给 D。"
+        ),
+    )
+    member_domain: CardinalityMemberDomain = Field(
+        description=(
+            "规范成员概念的 primary typed domain；exact 时必须是 direct_child_states、"
+            "concurrent_regions 或 explicit_named_members，ambiguous/unbound 时必须为 unresolved。"
+            "不得根据 observed count、元素名称后缀或 ledger 选择该值。"
+        ),
+    )
+    owner_source_id: str | None = Field(
+        default=None,
+        min_length=1,
+        description=(
+            "exact_source_inventory.states 中承载该成员域的唯一 source_id；null 表示 owner source "
+            "尚未闭合。它不是 raw line ref，也不能由 deterministic frontier 做字符串相似匹配。"
+        ),
+    )
+    owner_model_ref: str | None = Field(
+        default=None,
+        min_length=1,
+        description=(
+            "与 owner_source_id 语义对应的 exact closed ModelIR state ref；null 表示 closed-model "
+            "owner 尚未闭合。frontier 只按 exact ref 定位，不按名称补猜。"
+        ),
+    )
+    alternative_reading: str | None = Field(
+        default=None,
+        min_length=1,
+        description=(
+            "与 primary member_domain 同样称职的竞争解释；null 表示 supplied facts 未建立竞争读法，"
+            "不表示 observed model 已满足。frontier 将其保留为 strongest rebuttal，供 D1/D2 裁定。"
+        ),
+    )
+    reason: str = Field(
+        min_length=1,
+        description="解释 supplied NL 与 author-source semantics 为什么支持该 domain/status/owner 绑定；不得用实际计数差异倒推读法。",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="列出 exact contract、numbered NL、source inventory owner/member rows 和 ModelIR owner ref；不得引用 ledger、judge 或历史命中。",
+    )
+
+    @model_validator(mode="after")
+    def validate_domain_binding_shape(self) -> CardinalityDomainBinding:
+        """Enforce only closed enum/ref invariants, never semantic word matching."""
+
+        owner_refs = (self.owner_source_id, self.owner_model_ref)
+        if (owner_refs[0] is None) != (owner_refs[1] is None):
+            raise ValueError(
+                "owner_source_id and owner_model_ref must both be present or both be null; "
+                f"actual owner_source_id={self.owner_source_id!r}, owner_model_ref={self.owner_model_ref!r}"
+            )
+        if self.status == "exact":
+            if self.member_domain == "unresolved":
+                raise ValueError(
+                    "status='exact' requires a concrete member_domain, not 'unresolved'"
+                )
+            if self.owner_source_id is None:
+                raise ValueError(
+                    "status='exact' requires exact owner_source_id and owner_model_ref"
+                )
+        elif self.member_domain != "unresolved":
+            raise ValueError(
+                f"status={self.status!r} requires member_domain='unresolved'; "
+                f"actual member_domain={self.member_domain!r}"
+            )
+        return self
+
+
 class GroundingResponse(BaseModel):
     """Structured LLM response for one v27 complementary discovery lens."""
 
@@ -540,6 +637,14 @@ class GroundingResponse(BaseModel):
     additional_contracts: list[NLContract] = Field(default_factory=list, description="Sparse v27-style atomic obligations derived by this grounding lens when exact cross-view facts reveal a causal property absent from the NL-only contract plan. Each row must retain one supplied segment_id and source obligation, use a unique NL-CONTRACT-...-DERIVED-... ID containing this response's exact lens name, and carry its own reason/basis. Do not restate supplied contracts, enumerate satisfied checks, or derive obligations from labels, identifier shape, ledger data, or historical results.")
     additional_transition_groups: list[NLTransitionGroup] = Field(default_factory=list, description="Sparse v27-style transition groups omitted by NL-only extraction and established only after cross-view semantic grounding. Do not restate supplied groups; every target member needs exact reason/basis and any observed transition ref must come from the supplied inventories.")
     semantic_bindings: list[SemanticBinding] = Field(default_factory=list, description="Sparse exact cross-artifact argument bindings needed by candidates/frontiers. Emit them for concepts whose NL name alone cannot serve as a ModelIR ref, especially wrong-target/wrong-scope relations; ambiguous or unbound concepts remain explicit and are never repaired by text similarity.")
+    cardinality_bindings: list[CardinalityDomainBinding] = Field(
+        default_factory=list,
+        description=(
+            "Sparse typed member-domain bindings for cardinality contracts. Emit one row when this lens can "
+            "select or explicitly cannot select a primary domain/owner from supplied NL and exact source/model "
+            "facts. This row is not a candidate and never records observed count, W, D, L, or ledger data."
+        ),
+    )
     candidates: list[CandidateIssue] = Field(default_factory=list, description="Candidate claims grounded across author source, closed FCSTM, and deterministic facts. Every candidate list item must independently carry all CandidateIssue fields, including its own non-empty reason and basis; a top-level or unresolved basis does not satisfy a candidate. The contract_id must name either one supplied contract or one row in additional_contracts. Candidates must not emit W/D/L levels.")
     unresolved: list[GroundingUnresolved] = Field(default_factory=list, description="Sparse exact contract rows that this lens could not bind or assess. Omit satisfied and not-applicable contracts instead of restating the full contract table. Every unresolved row must carry its own reason and basis.")
     reason: str = Field(min_length=1, description="LLM explanation of how this audit lens selected or rejected candidate claims.")
@@ -558,6 +663,16 @@ class GroundingResponse(BaseModel):
         binding_ids = [item.binding_id for item in self.semantic_bindings]
         if len(binding_ids) != len(set(binding_ids)):
             raise ValueError("semantic_bindings must contain unique binding_id values")
+        cardinality_binding_ids = [item.binding_id for item in self.cardinality_bindings]
+        if len(cardinality_binding_ids) != len(set(cardinality_binding_ids)):
+            raise ValueError("cardinality_bindings must contain unique binding_id values")
+        cardinality_contract_ids = [
+            item.contract_id for item in self.cardinality_bindings
+        ]
+        if len(cardinality_contract_ids) != len(set(cardinality_contract_ids)):
+            raise ValueError(
+                "cardinality_bindings must contain at most one primary domain row per contract_id"
+            )
         unresolved_ids = [item.contract_id for item in self.unresolved]
         if len(unresolved_ids) != len(set(unresolved_ids)):
             raise ValueError("unresolved must contain each contract_id at most once")
@@ -1165,6 +1280,22 @@ and member kind, use the complete exact inventory to compare the member count.
 The absence of a dedicated frozen predicate changes W to W1; it does not make
 the already bound finite comparison unresolved.
 
+Cardinality grounding protocol: do not rewrite the NL contract or encode the
+domain choice only in candidate prose. Return one `cardinality_bindings` row for
+each cardinality contract this lens analyzes. Select a concrete primary domain
+only from the supplied NL/source semantics and bind its exact
+`owner_source_id` plus `owner_model_ref`; never select it because the resulting
+observed count would pass or fail. A competing competent interpretation belongs
+in `alternative_reading` and is assessed later by D; its existence does not by
+itself make the primary binding ambiguous. Use `status=ambiguous` and
+`member_domain=unresolved` only when the supplied semantics genuinely do not
+support one primary reading. Use `concurrent_regions` only when the supplied
+author source exposes an explicit region/concurrency construct; when the
+normative member concept is instead carried by directly owned child scopes,
+`direct_child_states` may be the primary reading even if another competent
+operating-state reading remains. The deterministic frontier, not this response,
+enumerates the complete members and computes the observed count.
+
 For a supplied transition group, compare all alternatives as one relation before
 checking each endpoint in isolation. When two semantically exclusive target
 alternatives from the same exact source carry the same effective condition, emit
@@ -1705,6 +1836,8 @@ def assemble_method_response(
 
 
 __all__ = [
+    "CardinalityDomainBinding",
+    "CardinalityRequirement",
     "CONTRACT_SYSTEM_PROMPT",
     "DISCOVERY_GROUNDING_AUDIT_LENSES",
     "DISCOVERY_GROUNDING_SYSTEM_PROMPT",
