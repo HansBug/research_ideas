@@ -647,7 +647,7 @@ class GroundingResponse(BaseModel):
             "facts. This row is not a candidate and never records observed count, W, D, L, or ledger data."
         ),
     )
-    candidates: list[CandidateIssue] = Field(default_factory=list, description="Candidate claims grounded across author source, closed FCSTM, and deterministic facts. Every candidate list item must independently carry all CandidateIssue fields, including its own non-empty reason and basis; a top-level or unresolved basis does not satisfy a candidate. The contract_id must name either one supplied contract or one row in additional_contracts. Candidates must not emit W/D/L levels.")
+    candidates: list[CandidateIssue] = Field(default_factory=list, description="Candidate claims grounded across author source, closed FCSTM, and deterministic facts. Every candidate list item must independently carry all CandidateIssue fields, including its own non-empty reason and basis; a top-level or unresolved basis does not satisfy a candidate. The contract_id must name either one supplied contract or one row in additional_contracts. A branch-local ID containing this response's exact lens marker after -DERIVED- must be defined in this same response's additional_contracts list; never mint a candidate-only derived ID. Candidates must not emit W/D/L levels.")
     unresolved: list[GroundingUnresolved] = Field(default_factory=list, description="Sparse exact contract rows that this lens could not bind or assess. Omit satisfied and not-applicable contracts instead of restating the full contract table. Every unresolved row must carry its own reason and basis.")
     reason: str = Field(min_length=1, description="LLM explanation of how this audit lens selected or rejected candidate claims.")
     basis: str = Field(min_length=1, description="LLM basis naming the supplied cross-view facts and contract IDs used by this lens.")
@@ -684,6 +684,41 @@ class GroundingResponse(BaseModel):
             raise ValueError(
                 "a contract cannot be both a candidate and unresolved in one lens: "
                 f"{overlap}"
+            )
+        branch_marker = f"-DERIVED-{self.lens}-"
+        branch_local_references = {
+            "semantic_bindings": {
+                item.contract_id
+                for item in self.semantic_bindings
+                if branch_marker in item.contract_id
+            },
+            "cardinality_bindings": {
+                item.contract_id
+                for item in self.cardinality_bindings
+                if branch_marker in item.contract_id
+            },
+            "candidates": {
+                item.contract_id
+                for item in self.candidates
+                if branch_marker in item.contract_id
+            },
+            "unresolved": {
+                item.contract_id
+                for item in self.unresolved
+                if branch_marker in item.contract_id
+            },
+        }
+        dangling_references = {
+            collection: sorted(contract_ids - set(additional_ids))
+            for collection, contract_ids in branch_local_references.items()
+            if contract_ids - set(additional_ids)
+        }
+        if dangling_references:
+            raise ValueError(
+                "branch-local contract reference closure failed for "
+                f"lens={self.lens!r}; every ID containing marker "
+                f"{branch_marker!r} must appear in additional_contracts; "
+                f"dangling_references={dangling_references}"
             )
         return self
 
@@ -1119,6 +1154,13 @@ contract property first, then select the minimal frozen predicate that decides
 that same property. Do not substitute a nearby endpoint, declaration, or local
 path property merely because it is executable. Record the evidence families
 actually used in `evidence_types`.
+
+Before returning, close every branch-local contract reference. If this lens
+derives a new property and mints an ID containing its exact name after
+`-DERIVED-`, return the complete typed contract in `additional_contracts` and
+make every candidate/binding/unresolved row reference that exact row. Never
+return a candidate-only derived ID. Schema correction must return the complete
+response with all previously valid rows retained.
 
 Emit a candidate only for a possible violated obligation or a precisely bound
 semantic gap that must remain W1. When the supplied source/model facts satisfy a

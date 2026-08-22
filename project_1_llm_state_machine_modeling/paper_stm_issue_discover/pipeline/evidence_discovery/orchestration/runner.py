@@ -85,8 +85,8 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v8"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v4"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v22"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v21"
+CODE_VERSION = "evidence-discovery-v27-flow.v23"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v22"
 
 
 JudgeRelation = Literal[

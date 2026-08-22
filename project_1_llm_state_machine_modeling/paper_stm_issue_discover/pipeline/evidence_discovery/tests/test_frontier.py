@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
+
 from pipeline.evidence_discovery.inputs import load_pair
 from pipeline.evidence_discovery.semantics import (
     CandidateIssue,
@@ -684,9 +687,11 @@ def _0046_cardinality_binding(
     *,
     lens: str = "contract_structure_contrast",
     member_domain: str = "direct_child_states",
+    additional_contracts: tuple[NLContract, ...] = (),
 ) -> GroundingResponse:
     return GroundingResponse(
         lens=lens,
+        additional_contracts=list(additional_contracts),
         cardinality_bindings=[
             CardinalityDomainBinding(
                 binding_id=f"CARD-BIND-{lens}",
@@ -765,8 +770,9 @@ def test_cardinality_binding_follows_runner_canonical_contract_identity() -> Non
             )
         }
     )
-    raw_response = _0046_cardinality_binding(raw_contract).model_copy(
-        update={"additional_contracts": [raw_contract]}
+    raw_response = _0046_cardinality_binding(
+        raw_contract,
+        additional_contracts=(raw_contract,),
     )
 
     normalized, receipts = canonicalize_grounding_response(raw_response)
@@ -782,7 +788,7 @@ def test_cardinality_binding_follows_runner_canonical_contract_identity() -> Non
 
 def test_derived_candidate_identity_is_projected_from_authoritative_contract() -> None:
     contract = _contract(
-        contract_id="NL-CONTRACT-NL2-DERIVED-BRANCH-CONSUMERS",
+        contract_id="NL-CONTRACT-NL2-DERIVED-behavior_consequence-CONSUMERS",
         segment_id="NL2",
         locus_kind="scope",
         locus_names=("target search task response consumers",),
@@ -809,6 +815,15 @@ def test_derived_candidate_identity_is_projected_from_authoritative_contract() -
         reason="The candidate evaluates the referenced derived contract.",
         basis="provider-free consumer identity fixture",
     )
+    with pytest.raises(
+        ValidationError, match="branch-local contract reference closure failed"
+    ):
+        GroundingResponse(
+            lens="behavior_consequence",
+            candidates=[candidate],
+            reason="The malformed fixture omits its branch-local contract row.",
+            basis="provider-free dangling derived reference fixture",
+        )
     response = GroundingResponse(
         lens="behavior_consequence",
         additional_contracts=[contract],

@@ -2416,6 +2416,9 @@ def test_0046_contract_shape_separates_endpoint_and_event_consumer() -> None:
     assert "state_action is a property name" in evidence_description
     assert "Every candidate object must explicitly include" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "must always be a JSON object" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "Never return a candidate-only derived ID" in " ".join(
+        DISCOVERY_GROUNDING_SYSTEM_PROMPT.split()
+    )
     assert "Complete-inventory absence protocol" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "a nonexistent transition cannot supply its own ref" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "Do not leave a normative qualifier only inside" in CONTRACT_SYSTEM_PROMPT
