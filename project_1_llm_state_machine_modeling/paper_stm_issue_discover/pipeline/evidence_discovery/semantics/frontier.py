@@ -199,8 +199,8 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v2"] = Field(
-        default="v27-typed-frontier.v2",
+    algorithm_version: Literal["v27-typed-frontier.v3"] = Field(
+        default="v27-typed-frontier.v3",
         description="产生该检查的确定性算法版本；不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
@@ -288,8 +288,8 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v2"] = Field(
-        default="v27-typed-frontier.v2",
+    algorithm_version: Literal["v27-typed-frontier.v3"] = Field(
+        default="v27-typed-frontier.v3",
         description="本批所有 check/obligation 使用的确定性算法版本。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
@@ -1699,6 +1699,178 @@ def _materialize_wrong_targets(
             candidate,
             reason="One exact shared target-concept binding is refuted by the exact source+condition carrier endpoint.",
             basis="typed concept identity, exact source transition inventory, and exact ModelIR endpoints",
+        )
+
+    contract_carriers: list[
+        tuple[
+            NLContract,
+            ContractBindingHint,
+            StateNode,
+            SourceInventoryTransition,
+            Transition,
+            StateNode,
+        ]
+    ] = []
+    direct_target_roles: dict[str, list[tuple[NLContract, ContractBindingHint]]] = (
+        defaultdict(list)
+    )
+    for contract in contracts:
+        target_hint = _hint(contract, "target")
+        if target_hint is not None:
+            direct_target = _state_for_value(pair, target_hint.value)
+            if direct_target is not None:
+                direct_target_roles[direct_target.ref].append((contract, target_hint))
+        if contract.property != "transition_endpoints" or target_hint is None:
+            continue
+        source_hint = _hint(contract, "source")
+        source_state = _state_for_value(pair, source_hint.value if source_hint else None)
+        source_carrier = (
+            _source_carrier_for_contract(pair, contract, source_state)
+            if source_state is not None
+            else None
+        )
+        model_carrier = (
+            _model_carrier_for_source_row(pair, source_carrier)
+            if source_carrier is not None
+            else None
+        )
+        actual_target = (
+            _state_for_value(pair, _source_endpoint_name(source_carrier.target))
+            if source_carrier is not None
+            else None
+        )
+        if (
+            source_state is not None
+            and source_carrier is not None
+            and model_carrier is not None
+            and actual_target is not None
+        ):
+            contract_carriers.append(
+                (
+                    contract,
+                    target_hint,
+                    source_state,
+                    source_carrier,
+                    model_carrier,
+                    actual_target,
+                )
+            )
+
+    for (
+        base,
+        target_hint,
+        source_state,
+        source_carrier,
+        model_carrier,
+        actual_target,
+    ) in contract_carriers:
+        foreign_roles = [
+            (contract, hint)
+            for contract, hint in direct_target_roles.get(actual_target.ref, [])
+            if contract.contract_id != base.contract_id
+            and hint.value != target_hint.value
+        ]
+        if not foreign_roles:
+            continue
+        sibling_rows = [
+            row
+            for row in contract_carriers
+            if row[0].contract_id != base.contract_id
+            and row[1].value == target_hint.value
+            and row[5].ref != actual_target.ref
+        ]
+        sibling_target_refs = {row[5].ref for row in sibling_rows}
+        foreign_role_names = {hint.value for _contract, hint in foreign_roles}
+        if len(sibling_target_refs) != 1 or len(foreign_role_names) != 1:
+            continue
+        expected_state = _state_by_ref(pair, next(iter(sibling_target_refs)))
+        if expected_state is None:
+            continue
+        target_contract = base
+        if base.violation_direction != "wrong_target":
+            target_contract = _derived_contract(
+                base,
+                locus_kind="transition",
+                locus_names=(source_state.name, target_hint.value),
+                property_name="transition_endpoints",
+                state_role=base.state_role,
+                expected_direction=base.expected_direction,
+                violation_direction="wrong_target",
+                evidence_types=(
+                    "source_identity",
+                    "closed_model_inventory",
+                    "transition_fact",
+                    "semantic_comparison",
+                ),
+                normative_statement=base.normative_statement,
+                scope=base.scope,
+                source_refs=base.source_refs,
+                reason="Cross-contract target roles distinguish the required concept from the carrier's actual target.",
+                basis="typed target concepts and exact source+condition carriers",
+            )
+        supporting_source_refs = [
+            row[3].raw_ref for row in sibling_rows if row[5].ref == expected_state.ref
+        ]
+        supporting_source_refs.extend(
+            ref
+            for contract, _hint_value in foreign_roles
+            for ref in contract.source_refs
+        )
+        foreign_role = next(iter(foreign_role_names))
+        candidate = _candidate(
+            target_contract,
+            title=(
+                f"{source_state.name} routes to {actual_target.name} instead of "
+                f"the required {target_hint.value} target"
+            ),
+            predicate_id=None,
+            predicate_inputs={},
+            element_refs=(
+                source_state.ref,
+                expected_state.ref,
+                actual_target.ref,
+                model_carrier.ref,
+            ),
+            source_refs=(
+                *target_contract.source_refs,
+                source_carrier.raw_ref,
+                *supporting_source_refs,
+            ),
+            expected=target_contract.normative_statement,
+            observed=(
+                f"Exact author-source carrier {source_carrier.transition_id} targets "
+                f"{source_carrier.target}; sibling carriers for target concept "
+                f"{target_hint.value!r} uniquely target {expected_state.ref}, while "
+                f"{actual_target.ref} is independently bound as {foreign_role!r}."
+            ),
+            strongest_rebuttal=(
+                "Treating the actual target as an alias for the required concept would "
+                "conflict with its independent typed target role and the unique sibling "
+                "carrier target."
+            ),
+            reason="Exact source carriers map one typed target concept inconsistently, and the divergent target has a distinct independently established role.",
+            basis=(
+                f"concept={target_hint.value}; source_transition_id={source_carrier.transition_id}; "
+                f"expected_target_ref={expected_state.ref}; actual_target_ref={actual_target.ref}; "
+                f"foreign_role={foreign_role}; sibling_transition_ids="
+                f"{[row[3].transition_id for row in sibling_rows]}"
+            ),
+        )
+        builder.add(
+            "wrong_target",
+            tuple(
+                dict.fromkeys(
+                    [
+                        base.contract_id,
+                        *[row[0].contract_id for row in sibling_rows],
+                        *[contract.contract_id for contract, _hint_value in foreign_roles],
+                    ]
+                )
+            ),
+            target_contract,
+            candidate,
+            reason="A condition-scoped carrier diverges from the unique sibling target for the same concept and instead reaches a separately typed target role.",
+            basis="typed cross-contract relation plus exact source and ModelIR transition identities",
         )
 
 

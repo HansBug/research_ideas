@@ -698,6 +698,76 @@ def test_0029_wrong_target_reuses_unique_exact_target_concept_binding() -> None:
     assert any(ref.endswith("puml:line:15") for ref in issue.source_refs)
 
 
+def test_0029_wrong_target_materializes_from_exact_cross_contract_roles() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    lane_exit = _contract(
+        contract_id="NL-CONTRACT-NL4-LANE-EXIT",
+        segment_id="NL4",
+        locus_kind="transition",
+        locus_names=("lane_change", "highway exit"),
+        property_name="transition_endpoints",
+        expected_direction="must_exist",
+        violation_direction="wrong_target",
+        hints=(
+            _hint("source", "lane_change", "NL4"),
+            _hint("target", "highway exit", "NL4"),
+            _hint("guard", "dist_to_exit<2", "NL4"),
+        ),
+    )
+    cruise_exit = _contract(
+        contract_id="NL-CONTRACT-NL5-CRUISE-EXIT",
+        segment_id="NL5",
+        locus_kind="transition",
+        locus_names=("cruise", "highway exit"),
+        property_name="transition_endpoints",
+        expected_direction="must_exist",
+        violation_direction="wrong_target",
+        hints=(
+            _hint("source", "cruise", "NL5"),
+            _hint("target", "highway exit", "NL5"),
+            _hint("guard", "dist_to_exit<2", "NL5"),
+        ),
+    )
+    termination = _contract(
+        contract_id="NL-CONTRACT-NL6-TERMINATION",
+        segment_id="NL6",
+        locus_kind="state",
+        locus_names=("HighwayMode", "FinishState"),
+        property_name="termination",
+        expected_direction="must_terminate",
+        violation_direction="missing",
+        hints=(
+            _hint("owner", "HighwayMode", "NL6"),
+            _hint("target", "FinishState", "NL6"),
+        ),
+        state_role="termination_state",
+    )
+    response = _response([lane_exit, cruise_exit, termination])
+
+    batch = materialize_v27_frontier(
+        pair,
+        response,
+        {item.contract_id: item for item in response.contracts},
+        (),
+        (),
+    )
+
+    wrong_targets = [
+        item for item in batch.obligations if item.kind == "wrong_target"
+    ]
+    assert len(wrong_targets) == 1
+    obligation = wrong_targets[0]
+    assert obligation.candidate.contract_id == cruise_exit.contract_id
+    assert obligation.candidate.locus_names == ("cruise", "highway exit")
+    assert set(obligation.source_contract_ids) == {
+        lane_exit.contract_id,
+        cruise_exit.contract_id,
+        termination.contract_id,
+    }
+    assert "FinishState" in obligation.candidate.observed
+    assert pair.model.state("exit_hwy").ref in obligation.candidate.element_refs
+
+
 def test_0053_frontier_preserves_three_leaf_and_global_properties() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0053")
     contracts = [
