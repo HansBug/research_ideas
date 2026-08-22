@@ -2090,7 +2090,22 @@ def test_candidate_must_preserve_exact_typed_contract_semantic_key() -> None:
         expected_direction="must_exist",
         violation_direction="missing",
         evidence_types=("transition_fact",),
-        binding_hints=(),
+        binding_hints=(
+            ContractBindingHint(
+                role="source",
+                value="SourceA",
+                source_ref="NL1",
+                reason="The fixture binds the exact normative transition source.",
+                basis="provider-free synthetic source binding",
+            ),
+            ContractBindingHint(
+                role="target",
+                value="TargetA",
+                source_ref="NL1",
+                reason="The fixture binds the exact normative transition target.",
+                basis="provider-free synthetic target binding",
+            ),
+        ),
         scope="Synthetic controller scope",
         source_refs=("nl:NL1",),
         reason="The synthetic fixture supplies one atomic endpoint obligation.",
@@ -2452,6 +2467,24 @@ def test_containment_and_termination_contracts_survive_covered_segment_accountin
         violation_direction: str,
         state_role: str | None = None,
     ) -> NLContract:
+        binding_hints = ()
+        if property_name == "transition_endpoints":
+            binding_hints = (
+                ContractBindingHint(
+                    role="source",
+                    value=locus_names[0],
+                    source_ref=segment.segment_id,
+                    reason="The fixture binds the first typed endpoint as source.",
+                    basis="provider-free endpoint source fixture",
+                ),
+                ContractBindingHint(
+                    role="target",
+                    value=locus_names[1],
+                    source_ref=segment.segment_id,
+                    reason="The fixture binds the second typed endpoint as target.",
+                    basis="provider-free endpoint target fixture",
+                ),
+            )
         return NLContract(
             contract_id=contract_id,
             segment_id=segment.segment_id,
@@ -2464,7 +2497,7 @@ def test_containment_and_termination_contracts_survive_covered_segment_accountin
             expected_direction=expected_direction,
             violation_direction=violation_direction,
             evidence_types=("source_identity", "semantic_comparison"),
-            binding_hints=(),
+            binding_hints=binding_hints,
             scope="AutonomousMode",
             source_refs=(segment.segment_id,),
             reason=f"The fixture preserves the independent {property_name} obligation.",

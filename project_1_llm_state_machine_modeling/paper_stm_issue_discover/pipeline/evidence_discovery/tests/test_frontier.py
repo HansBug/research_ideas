@@ -223,6 +223,43 @@ def test_0029_frontier_materializes_relational_v27_obligations() -> None:
     assert any(item[0] == "wrong_scope_route" for item in keys)
 
 
+def test_transition_endpoint_contract_requires_exact_typed_endpoint_roles() -> None:
+    with pytest.raises(
+        ValidationError,
+        match="requires exactly one source hint and exactly one target hint",
+    ):
+        _contract(
+            contract_id="NL-CONTRACT-NL3-INCOMPLETE-ENDPOINT",
+            segment_id="NL3",
+            locus_kind="transition",
+            locus_names=("enter_hwy", "cruise"),
+            property_name="transition_endpoints",
+            expected_direction="must_exist",
+            violation_direction="missing",
+            hints=(_hint("source", "enter_hwy", "NL3"),),
+        )
+
+    valid = _contract(
+        contract_id="NL-CONTRACT-NL3-COMPLETE-ENDPOINT",
+        segment_id="NL3",
+        locus_kind="transition",
+        locus_names=("enter_hwy", "cruise"),
+        property_name="transition_endpoints",
+        expected_direction="must_exist",
+        violation_direction="missing",
+        hints=(
+            _hint("source", "enter_hwy", "NL3"),
+            _hint("target", "cruise", "NL3"),
+        ),
+    )
+    assert [hint.role for hint in valid.binding_hints] == ["source", "target"]
+
+    schema = NLContract.model_json_schema()
+    description = schema["properties"]["binding_hints"]["description"]
+    assert "property=transition_endpoints" in description
+    assert "恰有一个 source" in description
+
+
 def test_0029_frontier_aggregates_complete_same_property_scopes() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0029")
     autonomous_entry = _contract(

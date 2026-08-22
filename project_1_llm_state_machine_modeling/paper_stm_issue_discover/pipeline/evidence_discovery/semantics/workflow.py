@@ -268,8 +268,11 @@ class NLContract(BaseModel):
             "供两个 grounding lens 使用的 typed source-side argument hints；每个 hint "
             "都与 exact FCSTM binding 分离，并保留当前 segment 的规范性角色和值。一个"
             "transition-property contract 最多包含一个 source、一个 target 和一个 "
-            "transition；alternatives 必须拆成独立 endpoint contracts，且不得用后续"
-            "segment 或 observed model endpoint 统一原本不同的 target concepts。"
+            "transition；其中 property=transition_endpoints 时必须恰有一个 source 和"
+            "一个 target，不能只把二者写进 locus_names，也不能用 owner 代替 source。"
+            "正例是 source=enter_hwy、target=cruise；反例是仅有 source hint。"
+            "alternatives 必须拆成独立 endpoint contracts，且不得用后续 segment 或"
+            "observed model endpoint 统一原本不同的 target concepts。"
         ),
     )
     cardinality_requirement: CardinalityRequirement | None = Field(
@@ -326,6 +329,17 @@ class NLContract(BaseModel):
                     "one atomic transition-property contract may contain at most "
                     "one source, one target, and one transition hint; split "
                     f"independently violable endpoints into separate contracts: {repeated_roles}"
+                )
+        if self.property == "transition_endpoints":
+            endpoint_role_counts = {
+                role: role_counts.get(role, 0) for role in ("source", "target")
+            }
+            if endpoint_role_counts != {"source": 1, "target": 1}:
+                raise ValueError(
+                    "property='transition_endpoints' requires exactly one source "
+                    "hint and exactly one target hint; locus_names do not replace "
+                    "typed endpoint roles and owner does not replace source; "
+                    f"actual role counts={endpoint_role_counts}"
                 )
         if self.property == "guard" and role_counts.get("guard", 0) > 1:
             raise ValueError(
@@ -1111,6 +1125,8 @@ PREDICATE_ROUTING_GUIDANCE = """Frozen predicate routing discipline:
 
 
 CONTRACT_SYSTEM_PROMPT = f"""You are the NL contract extraction stage of the paper1 evidence_discovery method. {COMMON_RULES} Extract atomic source obligations before inspecting model satisfaction. For every contract, fill the typed semantic key `(locus_kind, locus_names, property, state_role, expected_direction, violation_direction, evidence_types)` and typed binding hints. Preserve v27 transition relations in `transition_groups` so shared sources, all alternatives, ordering/coreference, and condition roles remain available to grounding; endpoint, guard-disjointness, and termination properties still require their own atomic contracts. Split independently violable containment, initialization, transition endpoint, trigger, guard, effect, action, reachability, progress, event-consumer, region, variable-delta, and excess-behavior clauses instead of bundling them. Preserve qualifiers, ordering, initialization/operation/termination scope, and ambiguity. The violation direction says what later grounding must test; it does not claim that the defect exists. Keep each per-object reason and basis concise and specific; do not restate the full input context. Mark a numbered segment covered only when at least one atomic contract carries that exact segment_id, but do not treat covered as proof that every independent relation in that segment was extracted. During schema correction, return the complete prior atomic list and transition group list with only the reported structural defect repaired; never replace valid contracts with an `other` summary row or a claim that earlier obligations are preserved elsewhere.
+
+Every `transition_endpoints` contract must carry exactly one typed `source` hint and exactly one typed `target` hint, even when the same values already appear in `locus_names`. An enclosing `owner` is scope provenance and never substitutes for the transition source. For example, an endpoint from `enter_hwy` to `cruise` carries source=`enter_hwy` and target=`cruise`; a row with only source or only owner+target is structurally incomplete and must be repaired without dropping other contracts.
 
 Allowed `evidence_types` values are exactly: `source_identity`, `closed_model_inventory`, `transition_fact`, `initial_entry_fact`, `containment_fact`, `reachability_fact`, `deadlock_frontier_fact`, `event_consumer_fact`, `guard_fact`, `effect_fact`, `action_fact`, `trace_fact`, `verify_fact`, `smt_fact`, `semantic_comparison`, and `other`. Do not put a property name in this field: for example, `property=state_action` uses `evidence_types=[action_fact]`, never `state_action`.
 
