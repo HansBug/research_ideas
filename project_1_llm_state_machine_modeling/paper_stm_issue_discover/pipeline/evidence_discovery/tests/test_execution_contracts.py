@@ -976,7 +976,8 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert fallback.contract_dispositions[0].reason
     assert fallback.contract_dispositions[0].basis
     assert "reachable non-final leaf" in D_SYSTEM_PROMPT
-    assert "intentional terminal or synthetic" in D_SYSTEM_PROMPT
+    assert "intentional-terminal alternative is competent only" in D_SYSTEM_PROMPT
+    assert "`rebutting+survives`" in D_SYSTEM_PROMPT
     assert "Predicate/backend availability is a W question" in D_SYSTEM_PROMPT
     assert "different root-level initial edge" in D_SYSTEM_PROMPT
     assert "For each semantically active operating state" in CONTRACT_SYSTEM_PROMPT
@@ -1002,6 +1003,11 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "exact owner hint" in grounding_prompt
     assert "exact owner-local edge reaches the required target" in grounding_prompt
     assert '"projection_version": "contract-grounding-projection.v2"' in grounding_prompt
+
+    semantic_schema = SemanticAdjudication.model_json_schema()["properties"]
+    assert "exact NL terminal clause" in semantic_schema["strongest_defeater"]["description"]
+    assert "bare possibility" in semantic_schema["defeater_kind"]["description"]
+    assert "survives does not mean merely conceivable" in semantic_schema["defeater_disposition"]["description"]
 
 
 def test_unsupported_backend_does_not_turn_satisfied_semantics_into_d1() -> None:

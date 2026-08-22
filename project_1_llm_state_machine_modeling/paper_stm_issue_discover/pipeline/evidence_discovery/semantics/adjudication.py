@@ -38,13 +38,20 @@ class SemanticAdjudication(BaseModel):
     )
     strongest_defeater: str | None = Field(
         default=None,
-        description="Strongest supplied alternative reading or rebuttal; null only when none is applicable.",
+        description=(
+            "Strongest alternative reading or rebuttal supported by the supplied "
+            "dossier; null only when none is applicable. A merely conceivable "
+            "design intention is not a supplied defeater. In particular, an "
+            "intentional-terminal reading requires an exact NL terminal clause, "
+            "formal terminal edge, or explicit supplied terminal fact; a state "
+            "name or zero outgoing transitions is not terminal-intent evidence."
+        ),
     )
     defeater_kind: Literal["none", "undercutting", "rebutting"] = Field(
-        description="Typed kind of the strongest defeater: none when no competent alternative exists; undercutting only when a second semantic reading remains compatible with the same facts (D1 boundary), never merely because a predicate/backend is unsupported; rebutting when supplied facts satisfy the expected property, defeat the alleged violation, or preserve a reasonable design choice (D0 boundary when it survives)."
+        description="Typed kind of the strongest defeater: none when no competent alternative exists; undercutting only when a second semantic reading remains compatible with the same facts (D1 boundary), never merely because a predicate/backend is unsupported; rebutting only when supplied facts satisfy the expected property, defeat the alleged violation, or positively support a reasonable design choice (D0 boundary when it survives). A bare possibility contradicted by an explicit supplied obligation is not a rebutting defeater."
     )
     defeater_disposition: Literal["defeated", "survives", "unresolved"] = Field(
-        description="Whether the typed defeater is defeated by supplied facts, survives as a competent reading/rebuttal, or remains unresolved; deterministic method code combines this enum with defeater_kind and exact binding to derive D."
+        description="Whether the typed defeater is defeated by supplied facts, survives as a competent reading/rebuttal supported by those facts, or remains unresolved. Use defeated when an explicit supplied contract or exact fact excludes the alternative, even if the alternative was initially considered; survives does not mean merely conceivable. Deterministic method code combines this enum with defeater_kind and exact binding to derive D."
     )
     reason: str = Field(
         min_length=1,

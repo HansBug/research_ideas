@@ -519,9 +519,16 @@ with zero outgoing transitions establishes a candidate progress/deadlock reading
 even when the NL sentence does not literally use the word deadlock. Do not infer
 terminality from a state name; accept terminality only from an exact formal edge
 to [*] or an explicitly supplied terminal fact. If the leaf is an exact model
-element but an intentional terminal or synthetic-lowering reading remains
-competent, use grounding=established with a surviving typed defeater so the
-method can produce D1. Use grounding=unresolved only when the exact element,
+element, an intentional-terminal alternative is competent only when an exact NL
+terminal clause, formal terminal edge, or explicitly supplied terminal fact
+supports it. Zero outgoing transitions, a suggestive state name, or the bare
+possibility that a designer intended termination does not support that alternative.
+Likewise, a synthetic-lowering alternative survives only when supplied exact
+mapping or behavior facts establish the equivalent required behavior. If an
+explicit supplied continuation/progress contract contradicts the proposed
+alternative and no such exact support exists, mark the defeater `defeated`; do
+not output `rebutting+survives` while the reason admits that the contract excludes
+the rebuttal. Use grounding=unresolved only when the exact element,
 reachability, terminality, or obligation applicability genuinely cannot be
 decided from the supplied dossier. Never turn an unsupported V4 plan into W2,
 and never discard a precise W1 frontier issue."""
@@ -617,6 +624,10 @@ Decision protocol:
 - do not turn execution uncertainty or an absent predicate into a semantic violation;
 - backend or predicate unsupported status alone is not a competent undercutting
   reading; when exact facts satisfy expected behavior, use not_established/D0;
+- a proposed intentional-terminal rebuttal survives only with an exact supplied
+  terminal clause, formal terminal edge, or explicit terminal fact. If a supplied
+  continuation/progress contract excludes it, use `defeated`; bare design
+  possibility and zero-outgoing structure do not support `rebutting+survives`;
 - keep owner-local initial-edge validity separate from a different valid root
   initial edge, using only supplied typed source/diagnostic facts;
 - do not omit a dossier and do not create a new obligation;
