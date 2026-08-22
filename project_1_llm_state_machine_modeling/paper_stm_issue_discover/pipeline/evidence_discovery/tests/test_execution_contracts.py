@@ -1649,6 +1649,11 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
         nested = judge_schema["$defs"][schema_name]
         assert nested["properties"]["reason"].get("description")
         assert nested["properties"]["basis"].get("description")
+    release_schema = judge_schema["$defs"]["ReleaseAssessment"]["properties"]
+    assert "不得合并、去重或省略" in release_schema["issue_id"]["description"]
+    assert "不按语义相似性 deduplicate" in judge_schema["properties"][
+        "release_assessments"
+    ]["description"]
     for model in (
         SourceProvenance,
         RunManifest,
@@ -2955,6 +2960,9 @@ def test_pair_wide_shape_failure_gets_one_targeted_correction(tmp_path: Path) ->
     assert '"release_assessment_count": 6' in runtime.prompts[0]
     assert "Previous pair-wide JudgeResponse to repair" in runtime.prompts[1]
     assert "Merge duplicate rows for one ledger ID" in runtime.prompts[1]
+    assert '"missing_release_issue_ids": ["0000:r1:issue:5"]' in runtime.prompts[1]
+    assert "Never deduplicate release assessment rows" in runtime.prompts[1]
+    assert "mechanically compare both assessment ID sets" in runtime.prompts[1]
     assert len(judge["judgement"]["release_assessments"]) == 6
 
 

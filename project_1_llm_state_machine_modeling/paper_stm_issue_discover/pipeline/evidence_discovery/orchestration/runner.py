@@ -84,8 +84,8 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v8"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v4"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v14"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v14"
+CODE_VERSION = "evidence-discovery-v27-flow.v15"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v15"
 
 
 JudgeRelation = Literal[
@@ -172,7 +172,14 @@ class ReleaseAssessment(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    issue_id: str = Field(min_length=1, description="Released method issue ID being assessed; copy it exactly from method input.")
+    issue_id: str = Field(
+        min_length=1,
+        description=(
+            "被裁定的 exact released method issue ID，必须从 judge input 原样复制。"
+            "每个 supplied issue ID 都需要独立一行；即使多个 release 在语义上重复、"
+            "共享 cause 或映射到同一 ledger，也不得合并、去重或省略其中任何一行。"
+        ),
+    )
     accounted_ledger_ids: list[str] = Field(default_factory=list, description="Exact supplied frozen ledger IDs that semantically account for this release issue. This list and the ledger-side matched_issue_ids must encode the same semantic relation pairs.")
     is_false_positive: bool = Field(description="True only when no supplied frozen ledger entry can semantically carry this issue.")
     reason: str = Field(min_length=1, description="Non-empty explanation of why this release issue is or is not a false positive.")
@@ -185,7 +192,14 @@ class JudgeResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     ledger_assessments: list[LedgerAssessment] = Field(default_factory=list, description="Exactly one assessment for every frozen ledger item supplied to the judge; never split one ledger ID into multiple rows.")
-    release_assessments: list[ReleaseAssessment] = Field(default_factory=list, description="Exactly one assessment for every method issue in the supplied release surface; never duplicate or omit an issue ID.")
+    release_assessments: list[ReleaseAssessment] = Field(
+        default_factory=list,
+        description=(
+            "supplied release surface 中每个 exact method issue 各一行且仅一行。该列表"
+            "按 issue identity 完整覆盖，不按语义相似性 deduplicate；两个 release 即使"
+            "具有相同 locus/property/cause，也必须保留各自的 ReleaseAssessment。"
+        ),
+    )
     relation_assessments: list[JudgeRelationAssessment] = Field(default_factory=list, description="Sparse typed relations for plausible ledger/release pairs. Every claimed hit/accounting pair needs exactly one row. Negative nearby relations may be retained for audit, but do not emit a full unrelated ledger-by-release matrix.")
     reason: str = Field(min_length=1, description="Non-empty explanation of the judge's overall assessment decision.")
     basis: str = Field(min_length=1, description="Non-empty basis identifying the supplied ledger and method release facts used by the judge.")
@@ -193,7 +207,7 @@ class JudgeResponse(BaseModel):
 
 METHOD_SYSTEM_PROMPT = """The method is staged. The public method-generation surface is the NL contract extraction stage followed by two v27 complementary discovery-grounding lenses that share one response schema and compact cross-view context. Use only the complete context manifest supplied to each stage. Never read ledger answers, baseline results, judge examples, or historical release outputs. Do not emit W, D, or L levels. Every structured object must contain non-empty reason and basis."""
 
-JUDGE_SYSTEM_PROMPT = """You are an independent judge separated from method generation. You may use the supplied frozen ledger entries to assess method D1/D2 release issues. Judge semantic identity of locus, property, scope, and direction, not string similarity. Emit sparse typed relation_assessments: exact, semantic_equivalent, or candidate_subsumes_ledger may count as a hit; candidate_subsumes_ledger requires a complete logical entailment basis. ledger_subsumes_candidate, partial_overlap, same_cause_different_property, and unrelated never count as hits. Wrong source, a narrow manifestation sharing only a cause, or a nearby weaker property is not semantic equivalence. Do not emit a full ledger-by-release matrix. Do not read baseline results, other pairs, other judge outputs, or historical examples. Every assessment, relation, and top-level response must contain non-empty reason and basis fields that explain the judgment and its supplied-input support. Preserve the model's original wording."""
+JUDGE_SYSTEM_PROMPT = """You are an independent judge separated from method generation. You may use the supplied frozen ledger entries to assess method D1/D2 release issues. Judge semantic identity of locus, property, scope, and direction, not string similarity. Emit sparse typed relation_assessments: exact, semantic_equivalent, or candidate_subsumes_ledger may count as a hit; candidate_subsumes_ledger requires a complete logical entailment basis. ledger_subsumes_candidate, partial_overlap, same_cause_different_property, and unrelated never count as hits. Wrong source, a narrow manifestation sharing only a cause, or a nearby weaker property is not semantic equivalence. Do not emit a full ledger-by-release matrix. Release assessment coverage is identity-based: emit one row for every supplied issue_id even when two releases are semantic duplicates or share one cause/ledger mapping; never deduplicate release rows. Do not read baseline results, other pairs, other judge outputs, or historical examples. Every assessment, relation, and top-level response must contain non-empty reason and basis fields that explain the judgment and its supplied-input support. Preserve the model's original wording."""
 
 
 def _prompt_schema_hash() -> str:
@@ -2518,10 +2532,42 @@ def _judge_shape_errors(
     expected_release = {str(item["issue_id"]) for item in release}
     ledger_ids = [item.ledger_id for item in response.ledger_assessments]
     release_ids = [item.issue_id for item in response.release_assessments]
-    if set(ledger_ids) != expected_ledger or len(ledger_ids) != len(set(ledger_ids)):
-        errors.append("ledger_assessments must contain each supplied ledger_id exactly once")
-    if set(release_ids) != expected_release or len(release_ids) != len(set(release_ids)):
-        errors.append("release_assessments must contain each supplied issue_id exactly once")
+    def coverage_error(
+        *,
+        label: str,
+        id_name: str,
+        expected: set[str],
+        actual: list[str],
+    ) -> str | None:
+        counts = Counter(actual)
+        missing = sorted(expected - set(actual))
+        unknown = sorted(set(actual) - expected)
+        duplicates = sorted(item_id for item_id, count in counts.items() if count > 1)
+        if not missing and not unknown and not duplicates:
+            return None
+        return (
+            f"{label} must contain each supplied {id_name} exactly once; "
+            f"missing={json.dumps(missing, ensure_ascii=False)}; "
+            f"unknown={json.dumps(unknown, ensure_ascii=False)}; "
+            f"duplicates={json.dumps(duplicates, ensure_ascii=False)}"
+        )
+
+    ledger_coverage_error = coverage_error(
+        label="ledger_assessments",
+        id_name="ledger_id",
+        expected=expected_ledger,
+        actual=ledger_ids,
+    )
+    if ledger_coverage_error:
+        errors.append(ledger_coverage_error)
+    release_coverage_error = coverage_error(
+        label="release_assessments",
+        id_name="issue_id",
+        expected=expected_release,
+        actual=release_ids,
+    )
+    if release_coverage_error:
+        errors.append(release_coverage_error)
     for assessment in response.ledger_assessments:
         matched = set(assessment.matched_issue_ids)
         unknown = matched - expected_release
@@ -2620,13 +2666,55 @@ def _judge_correction_prompt(
         ensure_ascii=False,
         sort_keys=True,
     )
+    required_ledger_ids = [str(item["id"]) for item in ledger_items]
+    required_release_ids = [
+        str(issue["issue_id"])
+        for cell in method_rounds
+        for issue in cell.get("report_issue_clusters", [])
+    ]
+    previous_ledger_ids = [
+        assessment.ledger_id for assessment in previous_response.ledger_assessments
+    ]
+    previous_release_ids = [
+        assessment.issue_id for assessment in previous_response.release_assessments
+    ]
+    previous_ledger_counts = Counter(previous_ledger_ids)
+    previous_release_counts = Counter(previous_release_ids)
+    replacement_checklist = {
+        "required_ledger_ids": required_ledger_ids,
+        "previous_ledger_ids": previous_ledger_ids,
+        "missing_ledger_ids": [
+            item_id
+            for item_id in required_ledger_ids
+            if previous_ledger_counts[item_id] == 0
+        ],
+        "duplicate_ledger_ids": sorted(
+            item_id
+            for item_id, count in previous_ledger_counts.items()
+            if count > 1
+        ),
+        "required_release_issue_ids": required_release_ids,
+        "previous_release_issue_ids": previous_release_ids,
+        "missing_release_issue_ids": [
+            item_id
+            for item_id in required_release_ids
+            if previous_release_counts[item_id] == 0
+        ],
+        "duplicate_release_issue_ids": sorted(
+            item_id
+            for item_id, count in previous_release_counts.items()
+            if count > 1
+        ),
+    }
     return (
         _judge_prompt(pair, ledger_items, method_rounds)
         + "\nPrevious pair-wide JudgeResponse to repair:\n"
         + previous
+        + "\nExact complete-replacement identity checklist:\n"
+        + json.dumps(replacement_checklist, ensure_ascii=False, sort_keys=True)
         + "\nThe previous response violated these deterministic shape contracts:\n- "
         + "\n- ".join(errors)
-        + "\nReturn one complete replacement response. Preserve every previous semantic decision not implicated by the listed errors. Merge duplicate rows for one ledger ID into its single required row. Every claimed hit/accounting pair must have one typed relation_assessment, and hit-eligible typed relations must appear on both ledger/release accounting sides. For each listed ledger-side-only, release-side-only, or typed-relation inconsistency, make one semantic locus/property/scope/direction decision: if it is a match, use exact, semantic_equivalent, or a fully justified candidate_subsumes_ledger; otherwise remove the accounting pair and optionally preserve its sparse negative relation. Do not add a relation merely to fill shape, do not create a full matrix, and do not leave a claimed pair on only one side. This is schema/coverage correction, not a provider retry. Every supplied unit still requires a semantic reason and basis.\n"
+        + "\nReturn one complete replacement response. First carry forward every prior valid ledger and release assessment whose ID is required, preserving its semantic decision unless a listed relation error implicates it; then add every missing required row. Merge duplicate rows for one ledger ID into its single required row, and collapse release rows only when they repeat the same exact issue_id. Never deduplicate release assessment rows because their content, cause, locus, property, or ledger mapping is similar: identity coverage is by exact issue_id, and the final release issue ID set must equal required_release_issue_ids. Every claimed hit/accounting pair must have one typed relation_assessment, and hit-eligible typed relations must appear on both ledger/release accounting sides. For each listed ledger-side-only, release-side-only, or typed-relation inconsistency, make one semantic locus/property/scope/direction decision: if it is a match, use exact, semantic_equivalent, or a fully justified candidate_subsumes_ledger; otherwise remove the accounting pair and optionally preserve its sparse negative relation. Before returning, mechanically compare both assessment ID sets with the checklist and verify that no required ID is missing. Do not add a relation merely to fill shape, do not create a full matrix, and do not leave a claimed pair on only one side. This is schema/coverage correction, not a provider retry. Every supplied unit still requires a semantic reason and basis.\n"
     )
 
 
