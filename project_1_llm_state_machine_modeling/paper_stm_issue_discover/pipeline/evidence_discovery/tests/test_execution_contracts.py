@@ -1109,6 +1109,45 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "needs its own separate progress contract" in contract_schema["state_role"]["description"]
     response_schema = NLContractResponse.model_json_schema()["properties"]
     assert "every semantically active operating state" in response_schema["contracts"]["description"]
+    assert "Every segment marked covered" in response_schema["contracts"]["description"]
+    assert "Mark a numbered segment covered only" in CONTRACT_SYSTEM_PROMPT
+
+
+def test_contract_response_rejects_covered_segment_without_atomic_contract() -> None:
+    contract = NLContract(
+        contract_id="NL-CONTRACT-NL1",
+        segment_id="NL1",
+        quote="The controller remains operational.",
+        normative_statement="The controller must remain operational.",
+        locus_kind="state",
+        locus_names=("Controller",),
+        property="deadlock_freedom",
+        state_role="operating_state",
+        expected_direction="must_progress",
+        violation_direction="dead_end",
+        evidence_types=("deadlock_frontier_fact",),
+        binding_hints=(),
+        scope="Controller",
+        source_refs=("nl:NL1",),
+        reason="NL1 states an operating-state progress obligation.",
+        basis="provider-free numbered NL fixture",
+    )
+
+    with pytest.raises(ValidationError, match="NL2"):
+        NLContractResponse(
+            contracts=[contract],
+            segment_disposition={"NL1": "covered", "NL2": "covered"},
+            reason="The malformed correction claims both segments are covered.",
+            basis="provider-free incomplete replacement fixture",
+        )
+
+    response = NLContractResponse(
+        contracts=[contract],
+        segment_disposition={"NL1": "covered", "NL2": "context"},
+        reason="Only the normative segment is covered by a contract.",
+        basis="provider-free exact segment accounting fixture",
+    )
+    assert response.segment_disposition["NL2"] == "context"
 
 
 def test_grounding_response_rejects_empty_local_accounting() -> None:

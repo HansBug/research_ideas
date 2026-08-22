@@ -177,20 +177,32 @@ class NLContractResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    contracts: list[NLContract] = Field(default_factory=list, description="Complete list of atomic contracts covering normative numbered NL segments, including every semantically active operating state through exactly one separate deadlock_freedom/progress contract per unique state identity across the entire response; aggregate repeated supporting segments into that one contract instead of emitting one progress row per mention. A state required as an operating transition target is included unless the NL explicitly makes it terminal. Descriptive segments may be omitted with an explained top-level basis. A schema-correction turn must repeat every valid contract and return a complete replacement list, not only the corrected row.")
-    segment_disposition: dict[str, Literal["covered", "context", "ambiguous"]] = Field(default_factory=dict, description="Disposition for supplied NL segment IDs only; every key must be an input segment ID.")
+    contracts: list[NLContract] = Field(default_factory=list, description="Complete list of atomic contracts covering normative numbered NL segments, including every semantically active operating state through exactly one separate deadlock_freedom/progress contract per unique state identity across the entire response; aggregate repeated supporting segments into that one contract instead of emitting one progress row per mention. A state required as an operating transition target is included unless the NL explicitly makes it terminal. Descriptive segments may be omitted with an explained top-level basis. Every segment marked covered must retain at least one atomic contract carrying that exact segment_id. A schema-correction turn must repeat every valid contract and return a complete replacement list, not only the corrected row or a summary placeholder for earlier rows.")
+    segment_disposition: dict[str, Literal["covered", "context", "ambiguous"]] = Field(default_factory=dict, description="Disposition for supplied NL segment IDs only; every key must be an input segment ID. Use covered only when at least one contract in this same response carries that exact segment_id; context and ambiguous may have no contract.")
     reason: str = Field(min_length=1, description="LLM explanation of the overall contract extraction decision.")
     basis: str = Field(min_length=1, description="LLM basis identifying the supplied NL segments and source context used.")
 
     @model_validator(mode="after")
-    def validate_unique_contract_ids(self) -> NLContractResponse:
-        """Require one row per exact contract identity within the response."""
+    def validate_structural_contract_coverage(self) -> NLContractResponse:
+        """Require unique contracts and exact coverage accounting by segment ID."""
 
         contract_ids = [contract.contract_id for contract in self.contracts]
         if len(contract_ids) != len(set(contract_ids)):
             raise ValueError(
                 "contracts must contain each contract_id at most once; return "
                 "a complete replacement response with duplicate IDs removed"
+            )
+        contract_segment_ids = {contract.segment_id for contract in self.contracts}
+        uncovered_ids = sorted(
+            segment_id
+            for segment_id, disposition in self.segment_disposition.items()
+            if disposition == "covered" and segment_id not in contract_segment_ids
+        )
+        if uncovered_ids:
+            raise ValueError(
+                "every segment_disposition=covered ID needs at least one contract "
+                "with the same segment_id; repeat the complete atomic contract "
+                f"list instead of replacing prior rows with a summary: {uncovered_ids}"
             )
         return self
 
@@ -532,7 +544,7 @@ PREDICATE_ROUTING_GUIDANCE = """Frozen predicate routing discipline:
 - For a missing fact, bind the expected exact model/source element and the observed absence or counterexample. For a present fact, preserve it as a non-violation observation unless the supplied dossier identifies a distinct violated obligation."""
 
 
-CONTRACT_SYSTEM_PROMPT = f"""You are the NL contract extraction stage of the paper1 evidence_discovery method. {COMMON_RULES} Extract atomic source obligations before inspecting model satisfaction. For every contract, fill the typed semantic key `(locus_kind, locus_names, property, state_role, expected_direction, violation_direction, evidence_types)` and typed binding hints. Split independently violable containment, initialization, transition endpoint, trigger, guard, effect, action, reachability, progress, event-consumer, region, variable-delta, and excess-behavior clauses instead of bundling them. Preserve qualifiers, ordering, initialization/operation/termination scope, and ambiguity. The violation direction says what later grounding must test; it does not claim that the defect exists. Keep each per-contract reason and basis concise and specific; do not restate the full input context.
+CONTRACT_SYSTEM_PROMPT = f"""You are the NL contract extraction stage of the paper1 evidence_discovery method. {COMMON_RULES} Extract atomic source obligations before inspecting model satisfaction. For every contract, fill the typed semantic key `(locus_kind, locus_names, property, state_role, expected_direction, violation_direction, evidence_types)` and typed binding hints. Split independently violable containment, initialization, transition endpoint, trigger, guard, effect, action, reachability, progress, event-consumer, region, variable-delta, and excess-behavior clauses instead of bundling them. Preserve qualifiers, ordering, initialization/operation/termination scope, and ambiguity. The violation direction says what later grounding must test; it does not claim that the defect exists. Keep each per-contract reason and basis concise and specific; do not restate the full input context. Mark a numbered segment covered only when at least one atomic contract carries that exact segment_id. During schema correction, return the complete prior atomic list with only the reported structural defect repaired; never replace valid contracts with an `other` summary row or a claim that earlier obligations are preserved elsewhere.
 
 Allowed `evidence_types` values are exactly: `source_identity`, `closed_model_inventory`, `transition_fact`, `initial_entry_fact`, `containment_fact`, `reachability_fact`, `deadlock_frontier_fact`, `event_consumer_fact`, `guard_fact`, `effect_fact`, `action_fact`, `trace_fact`, `verify_fact`, `smt_fact`, `semantic_comparison`, and `other`. Do not put a property name in this field: for example, `property=state_action` uses `evidence_types=[action_fact]`, never `state_action`.
 
