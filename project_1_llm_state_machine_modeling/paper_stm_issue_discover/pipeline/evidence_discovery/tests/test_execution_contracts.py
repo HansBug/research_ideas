@@ -33,6 +33,7 @@ from pipeline.evidence_discovery.orchestration.contracts import (
     SourceProvenance,
 )
 from pipeline.evidence_discovery.orchestration.runner import (
+    ExactJudgeResponse,
     JudgeRelationAssessment,
     JudgeResponse,
     LedgerAssessment,
@@ -45,6 +46,7 @@ from pipeline.evidence_discovery.orchestration.runner import (
     _finalize_w2_audit_links,
     _judge_pair,
     _judge_prompt,
+    _judge_response_contract,
     _judge_shape_errors,
     _materialize_exact_s2_inventory_candidates,
     _merge_grounding_contracts,
@@ -624,7 +626,7 @@ def test_w2_audit_contains_logic_hashes_backend_and_retry_records(tmp_path: Path
         ],
     }
     judge = {
-        "schema": "paper1.evidence_discovery.independent_judge.v4",
+        "schema": "paper1.evidence_discovery.independent_judge.v5",
         "run_id": "1" * 32,
         "run_contract_hash": "sha256:" + "1" * 64,
         "status": "completed",
@@ -867,6 +869,94 @@ def test_judge_shape_rejects_asymmetric_exact_relations() -> None:
         'release-side-only=[["L-1", "0000:r1:issue:0"]]' in error
         for error in errors
     )
+
+
+def test_runtime_judge_contract_rejects_identity_deduplication() -> None:
+    schema = _judge_response_contract(
+        ledger_ids=("INS-0029-01", "INS-0029-05"),
+        release_ids=("0029:r1:issue:7", "0029:r1:issue:12"),
+        rounds=1,
+    )
+    json_schema = schema.model_json_schema()
+    ledger_property = json_schema["properties"]["ledger_assessments"]
+    release_property = json_schema["properties"]["release_assessments"]
+    assert ledger_property["minItems"] == ledger_property["maxItems"] == 2
+    assert release_property["minItems"] == release_property["maxItems"] == 2
+    release_definition = release_property["items"]["$ref"].rsplit("/", 1)[-1]
+    assert set(
+        json_schema["$defs"][release_definition]["properties"]["issue_id"]["enum"]
+    ) == {"0029:r1:issue:7", "0029:r1:issue:12"}
+
+    payload = {
+        "ledger_assessments": [
+            {
+                "ledger_id": ledger_id,
+                "matched_issue_ids": [],
+                "reason": "No exact release establishes this ledger item.",
+                "basis": "Provider-free exact identity fixture.",
+            }
+            for ledger_id in ("INS-0029-01", "INS-0029-05")
+        ],
+        "release_assessments": [
+            {
+                "issue_id": issue_id,
+                "accounted_ledger_ids": [],
+                "is_false_positive": True,
+                "reason": "This exact release identity has no hit-eligible relation.",
+                "basis": "Provider-free exact identity fixture.",
+            }
+            for issue_id in ("0029:r1:issue:7", "0029:r1:issue:12")
+        ],
+        "relation_assessments": [],
+        "reason": "Every exact ledger and release identity was retained.",
+        "basis": "Provider-free exact identity fixture.",
+    }
+    validated = schema.model_validate(payload)
+    assert isinstance(validated, ExactJudgeResponse)
+
+    identity_deduplicated = dict(payload)
+    identity_deduplicated["release_assessments"] = [
+        payload["release_assessments"][1],
+        payload["release_assessments"][1],
+    ]
+    with pytest.raises(
+        ValidationError,
+        match=r"missing=.*0029:r1:issue:7.*duplicates=.*0029:r1:issue:12",
+    ):
+        schema.model_validate(identity_deduplicated)
+
+
+def test_runtime_judge_contract_rejects_asymmetric_accounting() -> None:
+    schema = _judge_response_contract(
+        ledger_ids=("L-1",),
+        release_ids=("0000:r1:issue:0",),
+        rounds=1,
+    )
+    with pytest.raises(ValidationError, match="same exact relation pairs"):
+        schema.model_validate(
+            {
+                "ledger_assessments": [
+                    {
+                        "ledger_id": "L-1",
+                        "matched_issue_ids": [],
+                        "reason": "The ledger side reports no match.",
+                        "basis": "Provider-free asymmetric fixture.",
+                    }
+                ],
+                "release_assessments": [
+                    {
+                        "issue_id": "0000:r1:issue:0",
+                        "accounted_ledger_ids": ["L-1"],
+                        "is_false_positive": False,
+                        "reason": "The release side reports a match.",
+                        "basis": "Provider-free asymmetric fixture.",
+                    }
+                ],
+                "relation_assessments": [],
+                "reason": "The fixture intentionally disagrees across directions.",
+                "basis": "Provider-free asymmetric fixture.",
+            }
+        )
 
 
 def test_0053_typed_judge_relation_rejects_wrong_source_narrow_manifestation() -> None:
@@ -3243,7 +3333,7 @@ class _UnavailableJudgeFixtureRuntime:
     def call(self, *, kind, schema, system_prompt, prompt, artifact_id, **kwargs):
         self.kinds.append(kind)
         self.max_output_tokens.append(kwargs.get("max_output_tokens"))
-        if schema is not JudgeResponse or kind not in {"judge", "judge_correction"}:
+        if not issubclass(schema, ExactJudgeResponse) or kind not in {"judge", "judge_correction"}:
             raise AssertionError(f"unexpected schema: {schema}")
         response = JudgeResponse(
             ledger_assessments=[],
@@ -3305,7 +3395,7 @@ class _PairWideJudgeFixtureRuntime:
         self.kinds.append(kind)
         self.prompts.append(prompt)
         self.max_output_tokens.append(kwargs.get("max_output_tokens"))
-        if schema is not JudgeResponse or kind not in {"judge", "judge_correction"}:
+        if not issubclass(schema, ExactJudgeResponse) or kind not in {"judge", "judge_correction"}:
             raise AssertionError(f"unexpected pair-wide call: {kind}, {schema}")
         if kind == "judge":
             self.pair_wide_calls += 1
@@ -3347,6 +3437,12 @@ class _PairWideJudgeFixtureRuntime:
             reason="The fixture closed one exact pair-wide release surface.",
             basis="pair-wide fixture",
         )
+        if not (
+            self.malformed_always
+            or (kind == "judge" and self.malformed_first)
+            or asymmetric
+        ):
+            response = schema.model_validate(response.model_dump(mode="json"))
         return StructuredCallOutcome(
             kind=kind,
             status="success",
@@ -3512,6 +3608,7 @@ def test_large_release_surface_stays_one_pair_wide_call(tmp_path: Path) -> None:
 
     assert judge["eligible"] is True
     assert judge["adjudication_mode"] == "pair_wide"
+    assert judge["response_schema_hash"].startswith("sha256:")
     assert runtime.kinds == ["judge"]
     assert runtime.max_output_tokens == [JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS]
     assert len(judge["judgement"]["release_assessments"]) == 6
@@ -3580,6 +3677,8 @@ def test_pair_wide_shape_failure_gets_one_targeted_correction(tmp_path: Path) ->
     assert runtime.kinds == ["judge", "judge_correction"]
     assert '"ledger_assessment_count"' in runtime.prompts[0]
     assert '"release_assessment_count": 6' in runtime.prompts[0]
+    assert '"identity_contract_version"' in runtime.prompts[0]
+    assert judge["response_schema_hash"] in runtime.prompts[0]
     assert "Previous pair-wide JudgeResponse to repair" in runtime.prompts[1]
     assert "Merge duplicate rows for one ledger ID" in runtime.prompts[1]
     assert '"missing_release_issue_ids": ["0000:r1:issue:5"]' in runtime.prompts[1]

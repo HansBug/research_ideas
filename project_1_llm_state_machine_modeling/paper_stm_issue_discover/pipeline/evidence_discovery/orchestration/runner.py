@@ -11,9 +11,9 @@ from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, ClassVar, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
 
 from ..backends import run_backend
 from ..compiler import compile_plan
@@ -82,11 +82,12 @@ from .runtime import (
 
 REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS = ("0004", "0023", "0029", "0035", "0046", "0053")
 METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v8"
-JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v4"
+JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v5"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v27"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v24"
+CODE_VERSION = "evidence-discovery-v27-flow.v28"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v25"
+JUDGE_EXACT_IDENTITY_CONTRACT_VERSION = "paper1.judge-exact-identity-contract.v1"
 
 
 JudgeRelation = Literal[
@@ -246,6 +247,40 @@ class JudgeResponse(BaseModel):
     basis: str = Field(min_length=1, description="Non-empty basis identifying the supplied ledger and method release facts used by the judge.")
 
 
+class ExactJudgeResponse(JudgeResponse):
+    """Per-call judge response whose exact input identities are runtime-bound.
+
+    The runner specializes this Pydantic model for one pair-wide judge input.
+    Its validator has authority only over structural identity closure, symmetric
+    accounting, round booleans, and typed-reference consistency. It never
+    chooses or rewrites a semantic relation, hit, or false-positive decision.
+    """
+
+    expected_ledger_ids: ClassVar[tuple[str, ...]] = ()
+    expected_release_ids: ClassVar[tuple[str, ...]] = ()
+    supplied_rounds: ClassVar[int] = 0
+    enforce_exact_identity_contract: ClassVar[bool] = False
+
+    @model_validator(mode="after")
+    def validate_exact_identity_contract(self) -> ExactJudgeResponse:
+        """Reject structurally incomplete pair-wide accounting in the schema path."""
+
+        if not type(self).enforce_exact_identity_contract:
+            return self
+        errors = _judge_contract_errors(
+            self,
+            expected_ledger=type(self).expected_ledger_ids,
+            expected_release=type(self).expected_release_ids,
+            rounds=type(self).supplied_rounds,
+        )
+        if errors:
+            raise ValueError(
+                "exact pair-wide judge identity contract failed:\n- "
+                + "\n- ".join(errors)
+            )
+        return self
+
+
 METHOD_SYSTEM_PROMPT = """The method is staged. The public method-generation surface is the NL contract extraction stage followed by two v27 complementary discovery-grounding lenses that share one response schema and compact cross-view context. Use only the complete context manifest supplied to each stage. Never read ledger answers, baseline results, judge examples, or historical release outputs. Do not emit W, D, or L levels. Every structured object must contain non-empty reason and basis."""
 
 JUDGE_SYSTEM_PROMPT = """You are an independent judge separated from method generation. You may use the supplied frozen ledger entries to assess method D1/D2 release issues. Judge semantic identity of locus, property, scope, and direction, not string similarity. Emit sparse typed relation_assessments: exact, semantic_equivalent, or candidate_subsumes_ledger may count as a hit; candidate_subsumes_ledger requires a complete logical entailment basis from the candidate's own supplied claim. When a ledger explicitly enumerates multiple sibling scopes, events, states, or components, a candidate covering only a subset is ledger_subsumes_candidate or partial_overlap, even if it shares the same ancestor or cause. Never use ledger detail to add a missing sibling/component to the candidate's claim. ledger_subsumes_candidate, partial_overlap, same_cause_different_property, and unrelated never count as hits. Multiple non-hit subset candidates cannot be unioned or counted collectively as one ledger hit: every issue_id in matched_issue_ids must independently have one exact, semantic_equivalent, or candidate_subsumes_ledger relation that establishes the complete ledger defect. If no single release does so, the ledger is a miss even when several releases together mention every enumerated sibling. For a D1 ledger, compare the represented ambiguity rather than requiring the method release to settle it or use the same D level: when the release identifies the same primary defect reading at the same locus/property/scope/direction and preserves a compatible competent alternative, the surviving alternative is part of the same D1 ambiguity and does not by itself make the relation partial_overlap. This rule never repairs a wrong source, different property, incompatible scope, narrow manifestation, or issue that merely shares a cause; those are not semantic equivalence. Do not emit a full ledger-by-release matrix. Release assessment coverage is identity-based: emit one row for every supplied issue_id even when two releases are semantic duplicates or share one cause/ledger mapping; never deduplicate release rows. The ledger matched_issue_ids, release accounted_ledger_ids, hit-eligible typed relations, hit booleans, false-positive boolean, reason, and basis must all describe the same decision. In particular, a release marked false positive must have accounted_ledger_ids=[] and must not have reason or basis claiming that it matches a frozen defect. Do not read baseline results, other pairs, other judge outputs, or historical examples. Every assessment, relation, and top-level response must contain non-empty reason and basis fields that explain the judgment and its supplied-input support. Preserve the model's original wording."""
@@ -270,6 +305,15 @@ def _prompt_schema_hash() -> str:
                 "grounding": GroundingResponse.model_json_schema(),
                 "d_adjudication": DAdjudicationResponse.model_json_schema(),
                 "judge": JudgeResponse.model_json_schema(),
+                "judge_exact_identity_contract": {
+                    "version": JUDGE_EXACT_IDENTITY_CONTRACT_VERSION,
+                    "base_schema": ExactJudgeResponse.model_json_schema(),
+                    "specialization": (
+                        "Per pair, ledger/release IDs become closed Literal sets; "
+                        "assessment lengths become exact; the inherited validator "
+                        "enforces unique identity closure and symmetric accounting."
+                    ),
+                },
             },
         }
     )
@@ -2538,6 +2582,8 @@ def _judge_prompt(
     pair: PairInput,
     ledger_items: list[dict[str, Any]],
     method_rounds: list[dict[str, Any]],
+    *,
+    response_schema_hash: str | None = None,
 ) -> str:
     """Build the independent pair-wide judge prompt from release issues only."""
 
@@ -2558,7 +2604,16 @@ def _judge_prompt(
         for issue in cell.get("report_issue_clusters", [])
     ]
     required_ledger_ids = [str(item["id"]) for item in ledger_items]
+    if response_schema_hash is None:
+        response_schema = _judge_response_contract(
+            ledger_ids=required_ledger_ids,
+            release_ids=required_release_ids,
+            rounds=len(method_rounds),
+        )
+        response_schema_hash = _hash_json(response_schema.model_json_schema())
     required_shape = {
+        "identity_contract_version": JUDGE_EXACT_IDENTITY_CONTRACT_VERSION,
+        "response_schema_hash": response_schema_hash,
         "ledger_assessment_count": len(required_ledger_ids),
         "ledger_ids_exactly_once": required_ledger_ids,
         "release_assessment_count": len(required_release_ids),
@@ -2623,13 +2678,14 @@ def _read_ledger_for_pair(ledger_path: Path, pair_id: str) -> list[dict[str, Any
     return [dict(item) for item in items.values() if item.get("pair") == pair_id]
 
 
-def _judge_shape_errors(
+def _judge_contract_errors(
     response: JudgeResponse,
-    ledger_items: list[dict[str, Any]],
-    release: list[dict[str, Any]],
+    *,
+    expected_ledger: Sequence[str],
+    expected_release: Sequence[str],
     rounds: int,
 ) -> list[str]:
-    """Validate exact judge coverage and references without semantic guessing."""
+    """Validate exact judge identity closure without semantic guessing."""
 
     def issue_round(issue_id: str) -> int | None:
         parts = issue_id.split(":")
@@ -2641,8 +2697,8 @@ def _judge_shape_errors(
             return None
 
     errors: list[str] = []
-    expected_ledger = {str(item["id"]) for item in ledger_items}
-    expected_release = {str(item["issue_id"]) for item in release}
+    expected_ledger = set(expected_ledger)
+    expected_release = set(expected_release)
     ledger_ids = [item.ledger_id for item in response.ledger_assessments]
     release_ids = [item.issue_id for item in response.release_assessments]
     def coverage_error(
@@ -2765,12 +2821,164 @@ def _judge_shape_errors(
     return errors
 
 
+def _judge_shape_errors(
+    response: JudgeResponse,
+    ledger_items: list[dict[str, Any]],
+    release: list[dict[str, Any]],
+    rounds: int,
+) -> list[str]:
+    """Validate the persisted judge response against its supplied pair surface."""
+
+    return _judge_contract_errors(
+        response,
+        expected_ledger=tuple(str(item["id"]) for item in ledger_items),
+        expected_release=tuple(str(item["issue_id"]) for item in release),
+        rounds=rounds,
+    )
+
+
+def _closed_literal(values: tuple[str, ...]) -> Any:
+    """Build a closed Literal type for one non-empty runtime identity set."""
+
+    if not values:
+        raise ValueError("a closed Literal identity set cannot be empty")
+    return Literal.__getitem__(values)
+
+
+def _judge_response_contract(
+    *,
+    ledger_ids: Sequence[str],
+    release_ids: Sequence[str],
+    rounds: int,
+) -> type[ExactJudgeResponse]:
+    """Specialize the judge schema to one exact pair-wide identity surface.
+
+    Literal item IDs and exact list cardinalities guide structured generation;
+    the inherited validator closes uniqueness, references, round booleans, and
+    symmetric accounting. The specialization does not encode semantic matches.
+    """
+
+    expected_ledger = tuple(str(item_id) for item_id in ledger_ids)
+    expected_release = tuple(str(item_id) for item_id in release_ids)
+    if len(expected_ledger) != len(set(expected_ledger)):
+        raise ValueError("judge ledger input contains duplicate ledger IDs")
+    if len(expected_release) != len(set(expected_release)):
+        raise ValueError("judge release input contains duplicate issue IDs")
+    if rounds not in {1, 3}:
+        raise ValueError(f"judge response contract requires 1 or 3 rounds, got {rounds}")
+
+    contract_key = _hash_json(
+        {
+            "version": JUDGE_EXACT_IDENTITY_CONTRACT_VERSION,
+            "ledger_ids": expected_ledger,
+            "release_ids": expected_release,
+            "rounds": rounds,
+        }
+    ).removeprefix("sha256:")[:16]
+    ledger_model: type[LedgerAssessment] = LedgerAssessment
+    if expected_ledger:
+        ledger_model = create_model(
+            f"ExactLedgerAssessment_{contract_key}",
+            __base__=LedgerAssessment,
+            ledger_id=(
+                _closed_literal(expected_ledger),
+                Field(
+                    description=(
+                        "Exact frozen ledger ID from this pair-wide call's closed "
+                        "identity set; every allowed ID must occur once overall."
+                    )
+                ),
+            ),
+        )
+    release_model: type[ReleaseAssessment] = ReleaseAssessment
+    if expected_release:
+        release_model = create_model(
+            f"ExactReleaseAssessment_{contract_key}",
+            __base__=ReleaseAssessment,
+            issue_id=(
+                _closed_literal(expected_release),
+                Field(
+                    description=(
+                        "Exact released issue ID from this pair-wide call's closed "
+                        "identity set; semantic duplicates remain separate rows."
+                    )
+                ),
+            ),
+        )
+    relation_model: type[JudgeRelationAssessment] = JudgeRelationAssessment
+    if expected_ledger and expected_release:
+        relation_model = create_model(
+            f"ExactJudgeRelationAssessment_{contract_key}",
+            __base__=JudgeRelationAssessment,
+            ledger_id=(
+                _closed_literal(expected_ledger),
+                Field(description="Exact ledger ID from this call's closed identity set."),
+            ),
+            issue_id=(
+                _closed_literal(expected_release),
+                Field(description="Exact release issue ID from this call's closed identity set."),
+            ),
+        )
+
+    response_model = create_model(
+        f"ExactJudgeResponse_{contract_key}",
+        __base__=ExactJudgeResponse,
+        ledger_assessments=(
+            list[ledger_model],
+            Field(
+                ...,
+                min_length=len(expected_ledger),
+                max_length=len(expected_ledger),
+                description=(
+                    "Exactly one assessment for every ledger ID in this call's closed "
+                    "identity set; IDs may not be omitted, duplicated, or invented."
+                ),
+            ),
+        ),
+        release_assessments=(
+            list[release_model],
+            Field(
+                ...,
+                min_length=len(expected_release),
+                max_length=len(expected_release),
+                description=(
+                    "Exactly one assessment for every release issue ID in this call's "
+                    "closed identity set, including semantically duplicate releases."
+                ),
+            ),
+        ),
+        relation_assessments=(
+            list[relation_model],
+            Field(
+                ...,
+                max_length=len(expected_ledger) * len(expected_release),
+                description=(
+                    "Sparse typed relations over only this call's closed ledger/release "
+                    "identity sets; it is not a request for a full relation matrix."
+                ),
+            ),
+        ),
+    )
+    response_model.__doc__ = (
+        "Runtime-specialized independent pair-wide judge response. The schema "
+        "has authority over exact identity closure only, not semantic relations."
+    )
+    response_model.expected_ledger_ids = expected_ledger
+    response_model.expected_release_ids = expected_release
+    response_model.supplied_rounds = rounds
+    response_model.enforce_exact_identity_contract = True
+    response_model.model_rebuild(force=True)
+    return response_model
+
+
 def _judge_correction_prompt(
     pair: PairInput,
     ledger_items: list[dict[str, Any]],
     method_rounds: list[dict[str, Any]],
     previous_response: JudgeResponse,
     errors: list[str],
+    *,
+    response_schema_hash: str | None = None,
 ) -> str:
     """Build a billed same-node correction prompt for judge shape failures."""
 
@@ -2857,7 +3065,12 @@ def _judge_correction_prompt(
         "relation_accounting_rows": relation_accounting_rows,
     }
     return (
-        _judge_prompt(pair, ledger_items, method_rounds)
+        _judge_prompt(
+            pair,
+            ledger_items,
+            method_rounds,
+            response_schema_hash=response_schema_hash,
+        )
         + "\nPrevious pair-wide JudgeResponse to repair:\n"
         + previous
         + "\nExact complete-replacement identity checklist:\n"
@@ -2896,13 +3109,24 @@ def _judge_pair(
         for cell in judge_method_rounds
         for issue in cell.get("report_issue_clusters", [])
     ]
-    prompt = _judge_prompt(pair, ledger_items, judge_method_rounds)
+    response_schema = _judge_response_contract(
+        ledger_ids=tuple(str(item["id"]) for item in ledger_items),
+        release_ids=tuple(str(item["issue_id"]) for item in release),
+        rounds=len(judge_method_rounds),
+    )
+    response_schema_hash = _hash_json(response_schema.model_json_schema())
+    prompt = _judge_prompt(
+        pair,
+        ledger_items,
+        judge_method_rounds,
+        response_schema_hash=response_schema_hash,
+    )
     outcomes: list[StructuredCallOutcome[Any]] = []
     errors: list[dict[str, Any]] = []
     mode = "pair_wide"
-    outcome: StructuredCallOutcome[JudgeResponse] = runtime.call(
+    outcome: StructuredCallOutcome[Any] = runtime.call(
         kind="judge",
-        schema=JudgeResponse,
+        schema=response_schema,
         system_prompt=JUDGE_SYSTEM_PROMPT,
         prompt=prompt,
         artifact_id=f"judge/{pair.pair_id}",
@@ -2928,9 +3152,9 @@ def _judge_pair(
         else ["pair-wide judge output unavailable"]
     )
     if response is not None and shape_errors:
-        correction: StructuredCallOutcome[JudgeResponse] = runtime.call(
+        correction: StructuredCallOutcome[Any] = runtime.call(
             kind="judge_correction",
-            schema=JudgeResponse,
+            schema=response_schema,
             system_prompt=JUDGE_SYSTEM_PROMPT,
             prompt=_judge_correction_prompt(
                 pair,
@@ -2938,6 +3162,7 @@ def _judge_pair(
                 judge_method_rounds,
                 response,
                 shape_errors,
+                response_schema_hash=response_schema_hash,
             ),
             artifact_id=f"judge/{pair.pair_id}/shape-correction",
             max_output_tokens=JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS,
@@ -3003,6 +3228,7 @@ def _judge_pair(
         "release_count": len(release),
         "ledger_source": str(ledger_path),
         "prompt_hash": "sha256:" + hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
+        "response_schema_hash": response_schema_hash,
         "llm_calls": [item.to_dict() for item in outcomes],
         "llm_call": _aggregate_outcomes(outcomes, kind="judge"),
         "judgement": response.model_dump(mode="json") if response is not None else None,
@@ -3406,6 +3632,7 @@ def _failure_judge_payload(
         "release_count": len(release),
         "ledger_source": str(ledger_path),
         "prompt_hash": None,
+        "response_schema_hash": None,
         "llm_call": {
             "kind": "judge",
             "status": "not_started",

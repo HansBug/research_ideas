@@ -316,7 +316,7 @@ class IndependentJudgeReceipt(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["paper1.evidence_discovery.independent_judge.v4"] = Field(
+    schema: Literal["paper1.evidence_discovery.independent_judge.v5"] = Field(
         description="Versioned independent-judge schema identifier."
     )
     run_id: str = Field(
@@ -372,6 +372,16 @@ class IndependentJudgeReceipt(BaseModel):
         default=None,
         pattern=r"^sha256:[0-9a-f]{64}$",
         description="Hash of the pair-wide judge prompt, or null when judge setup did not start."
+    )
+    response_schema_hash: str | None = Field(
+        default=None,
+        pattern=r"^sha256:[0-9a-f]{64}$",
+        description=(
+            "Hash of the runtime-specialized Pydantic JudgeResponse schema that "
+            "freezes exact ledger/release identities for this pair, or null when "
+            "judge setup did not start. It has structural authority only and does "
+            "not encode semantic hit relations."
+        ),
     )
     llm_calls: list[dict[str, Any]] = Field(
         default_factory=list,
