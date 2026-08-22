@@ -218,8 +218,8 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v5"] = Field(
-        default="v27-typed-frontier.v5",
+    algorithm_version: Literal["v27-typed-frontier.v6"] = Field(
+        default="v27-typed-frontier.v6",
         description="产生该检查的确定性算法版本；不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
@@ -307,8 +307,8 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v5"] = Field(
-        default="v27-typed-frontier.v5",
+    algorithm_version: Literal["v27-typed-frontier.v6"] = Field(
+        default="v27-typed-frontier.v6",
         description="本批所有 check/obligation 使用的确定性算法版本。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
@@ -1207,10 +1207,14 @@ def _materialize_cardinality(
             violation_direction="missing",
             evidence_types=("source_identity", "closed_model_inventory", "containment_fact", "semantic_comparison"),
             normative_statement=(
-                f"{owner.name} must contain {effective_requirement.required_count} "
-                f"{effective_requirement.member_concept} as direct child states."
+                f"Within {contract.scope}, {owner.name} must realize "
+                f"{effective_requirement.required_count} {effective_requirement.member_concept}; "
+                "the primary typed reading counts exact direct child states."
             ),
-            scope=f"Direct authored children of {owner.name}",
+            scope=(
+                f"{contract.scope}; primary member domain is the direct authored "
+                f"children of {owner.name}"
+            ),
             source_refs=source_refs,
             reason="The NL contract establishes a finite direct-child member-domain reading whose count can be compared with the complete exact source inventory.",
             basis="typed CardinalityRequirement plus exact source parent/member rows",
@@ -1218,22 +1222,31 @@ def _materialize_cardinality(
         )
         candidate = _candidate(
             derived,
-            title=f"{owner.name} has {actual_count}, not {effective_requirement.required_count}, direct state areas",
+            title=(
+                f"{owner.name} realizes {actual_count}, not "
+                f"{effective_requirement.required_count}, state areas in the required "
+                "operating scope under the direct-child reading"
+            ),
             predicate_id=None,
             predicate_inputs={},
             element_refs=model_refs,
             source_refs=source_refs,
             expected=derived.normative_statement,
             observed=(
-                f"The complete exact author-source inventory contains {actual_count} "
-                f"direct children under {source_owner.source_id}: "
+                f"For the normative scope '{contract.scope}', the primary direct-child "
+                f"reading has {actual_count} exact author-source children under "
+                f"{source_owner.source_id}: "
                 f"{[item.source_id for item in members]}."
             ),
             strongest_rebuttal=(
                 effective_requirement.alternative_reading
                 or "No competing member-domain reading is recorded in the supplied cardinality contract."
             ),
-            reason="The required count and direct-child member domain are typed, and the complete source inventory establishes a different finite count.",
+            reason=(
+                "The contract's operating scope, required count, and primary direct-child "
+                "member domain are preserved, while the complete source inventory "
+                "establishes a different finite count and D retains any alternative reading."
+            ),
             basis=(
                 f"contract={contract.contract_id}; owner={source_owner.source_id}; "
                 f"required={effective_requirement.required_count}; actual={actual_count}; "

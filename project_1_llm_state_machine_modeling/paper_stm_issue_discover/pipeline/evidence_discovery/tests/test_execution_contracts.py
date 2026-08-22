@@ -935,6 +935,92 @@ def test_0053_typed_judge_relation_rejects_wrong_source_narrow_manifestation() -
     assert release_by_id["0053:r1:issue:wrong-owner-source"].is_false_positive is True
 
 
+def test_0046_d1_ambiguity_is_semantically_equivalent_not_partial_overlap() -> None:
+    ledger = [
+        {
+            "id": "EIS-0046-02",
+            "pair": "0046",
+            "D": "D1",
+            "D_basis": (
+                "The primary reading requires three search-period state areas and finds "
+                "the authored area structure short; a second competent reading counts "
+                "three named operating states and remains satisfied."
+            ),
+            "summary": "The search-period operating scope does not realize three state areas.",
+        }
+    ]
+    release = [
+        {
+            "issue_id": "0046:r1:issue:cardinality",
+            "d_level": "D1",
+            "locus_kind": "composite",
+            "locus_names": ["UAVSwarmStateMachine"],
+            "property": "cardinality",
+            "violation_direction": "missing",
+            "requirement_quote": "it operates within three different state areas",
+            "expected": (
+                "Within the target-search operating scope, UAVSwarmStateMachine must "
+                "realize three state areas under the primary direct-child reading."
+            ),
+            "observed": "The complete author-source inventory realizes two such direct areas.",
+            "strongest_rebuttal": (
+                "The phrase may instead count three named operating states; that "
+                "competent reading remains satisfied."
+            ),
+        }
+    ]
+    response = JudgeResponse(
+        ledger_assessments=[
+            LedgerAssessment(
+                ledger_id="EIS-0046-02",
+                hit_r1=True,
+                matched_issue_ids=["0046:r1:issue:cardinality"],
+                reason="Both sides represent the same search-scope D1 cardinality ambiguity.",
+                basis="The primary three-area shortfall and compatible alternative reading align.",
+            )
+        ],
+        release_assessments=[
+            ReleaseAssessment(
+                issue_id="0046:r1:issue:cardinality",
+                accounted_ledger_ids=["EIS-0046-02"],
+                is_false_positive=False,
+                reason="The D1 release is semantically equivalent to the frozen D1 defect.",
+                basis="Same owner, search scope, state-area cardinality, count, and direction.",
+            )
+        ],
+        relation_assessments=[
+            JudgeRelationAssessment(
+                ledger_id="EIS-0046-02",
+                issue_id="0046:r1:issue:cardinality",
+                relation="semantic_equivalent",
+                reason=(
+                    "The surviving satisfying reading is part of the same D1 ambiguity, "
+                    "not a locus or property mismatch."
+                ),
+                basis="Typed D1 ledger/release fields preserve compatible primary and alternative readings.",
+            )
+        ],
+        reason="The provider-free fixture preserves D1 ambiguity without weakening semantic identity.",
+        basis="0046 v27 positive cardinality relation fixture",
+    )
+
+    normalized = _normalize_judge_shape(response, ledger, release, 1)
+
+    assert not _judge_shape_errors(normalized, ledger, release, 1)
+    assert normalized.relation_assessments[0].relation == "semantic_equivalent"
+    prompt = _judge_prompt(
+        load_pair(REPORT_ROOT / "pairs" / "0046"),
+        ledger,
+        [{"round": 1, "report_issue_clusters": release}],
+    )
+    normalized_prompt = " ".join(prompt.split())
+    assert "a surviving satisfying alternative is part of the same D1 defect" in normalized_prompt
+    assert "must never repair a wrong source" in normalized_prompt
+    assert "absence of a required construct is possible negative" in (
+        DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    )
+
+
 def test_candidate_subsumes_ledger_requires_entailment_basis() -> None:
     with pytest.raises(ValidationError, match="entailment_basis"):
         JudgeRelationAssessment(

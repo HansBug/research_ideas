@@ -620,7 +620,8 @@ def test_0046_frontier_compares_typed_three_area_requirement_with_exact_two_chil
     assert issue.locus_names == ("UAVSwarmStateMachine",)
     assert issue.property == "cardinality"
     assert issue.predicate_id is None
-    assert "contains 2 direct children" in issue.observed
+    assert contract.scope in issue.expected
+    assert "primary direct-child reading has 2" in issue.observed
     assert "three named operating states" in issue.strongest_rebuttal
     assert batch.superseded_candidate_contract_ids == (contract.contract_id,)
 
@@ -687,7 +688,8 @@ def test_0046_grounding_binding_closes_unresolved_cardinality_domain() -> None:
 
     obligation = next(item for item in batch.obligations if item.kind == "cardinality")
     assert obligation.candidate.locus_names == ("UAVSwarmStateMachine",)
-    assert "contains 2 direct children" in obligation.candidate.observed
+    assert contract.scope in obligation.candidate.expected
+    assert "primary direct-child reading has 2" in obligation.candidate.observed
     assert obligation.contract.cardinality_requirement is not None
     assert (
         obligation.contract.cardinality_requirement.member_domain

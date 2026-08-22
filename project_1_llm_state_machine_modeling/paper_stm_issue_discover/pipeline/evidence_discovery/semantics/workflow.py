@@ -1289,12 +1289,15 @@ observed count would pass or fail. A competing competent interpretation belongs
 in `alternative_reading` and is assessed later by D; its existence does not by
 itself make the primary binding ambiguous. Use `status=ambiguous` and
 `member_domain=unresolved` only when the supplied semantics genuinely do not
-support one primary reading. Use `concurrent_regions` only when the supplied
-author source exposes an explicit region/concurrency construct; when the
-normative member concept is instead carried by directly owned child scopes,
-`direct_child_states` may be the primary reading even if another competent
-operating-state reading remains. The deterministic frontier, not this response,
-enumerates the complete members and computes the observed count.
+support one primary reading. Select `concurrent_regions` when the supplied NL
+semantics establishes UML regions or concurrency as the primary member concept;
+do not require the author artifact to already contain a region separator or
+region object, because absence of a required construct is possible negative
+evidence. Conversely, do not infer concurrency from names or from an observed
+count. Use `direct_child_states` when the supplied discourse maps the member
+concept to directly owned child scopes, even if another competent operating-state
+reading remains. The deterministic frontier, not this response, enumerates the
+complete members and computes the observed count.
 
 For a supplied transition group, compare all alternatives as one relation before
 checking each endpoint in isolation. When two semantically exclusive target
