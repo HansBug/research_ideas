@@ -47,6 +47,7 @@ from pipeline.evidence_discovery.orchestration.runner import (
     _normalize_grounding_exact_facts,
     _normalize_judge_shape,
     _prepare_candidate,
+    _prepared_is_finding_candidate,
     run_experiment,
 )
 from pipeline.evidence_discovery.orchestration.runtime import (
@@ -1630,6 +1631,25 @@ def test_exact_outgoing_fact_rejects_false_dead_end_but_preserves_true_frontier(
     assert len(preserved.candidates) == 1
     assert preserved.contract_dispositions[0].status == "candidate_emitted"
     assert diagnostics == []
+
+
+def test_v27_execute_boundary_excludes_only_completed_true_receipts() -> None:
+    def prepared(terminal_state: str, verdict: str) -> dict:
+        return {
+            "receipt": RawReceipt(
+                receipt_id=f"receipt:{terminal_state}:{verdict}",
+                backend="provider-free-fixture",
+                terminal_state=terminal_state,
+                verdict=verdict,
+                reason="The fixture supplies one deterministic backend result.",
+                basis="provider-free v27 execute-boundary fixture",
+            )
+        }
+
+    assert not _prepared_is_finding_candidate(prepared("completed", "true"))
+    assert _prepared_is_finding_candidate(prepared("completed", "false"))
+    assert _prepared_is_finding_candidate(prepared("unknown", "unknown"))
+    assert _prepared_is_finding_candidate(prepared("error", "unknown"))
 
 
 def test_provider_retry_exemption_is_row_local_and_other_usage_is_billable() -> None:

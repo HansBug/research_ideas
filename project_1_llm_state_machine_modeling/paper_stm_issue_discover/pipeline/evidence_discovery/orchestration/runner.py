@@ -77,7 +77,7 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v6"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v3"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v6"
+CODE_VERSION = "evidence-discovery-v27-flow.v7"
 PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v10"
 
 
@@ -1046,6 +1046,17 @@ def _prepare_candidate(
     }
 
 
+def _prepared_is_finding_candidate(prepared: Mapping[str, Any]) -> bool:
+    """Restore v27's execute-batch boundary between passing checks and findings."""
+
+    receipt = prepared.get("receipt")
+    return not (
+        isinstance(receipt, RawReceipt)
+        and receipt.terminal_state == "completed"
+        and receipt.verdict == "true"
+    )
+
+
 def _deterministic_candidate(
     pair: PairInput,
     candidate: CandidateIssue,
@@ -1421,12 +1432,26 @@ def _method_cell(
             prepared_candidates.append(prepared)
         except Exception as exc:  # preserve a cell-level diagnostic instead of losing a candidate
             errors.append({"candidate_index": index, "error_type": type(exc).__name__, "message": str(exc), "reason": "Candidate processing failed; the cell remains readable.", "basis": "Candidate-level diagnostic preservation."})
+    finding_candidates = [
+        item for item in prepared_candidates if _prepared_is_finding_candidate(item)
+    ]
+    satisfied_candidates = [
+        item for item in prepared_candidates if not _prepared_is_finding_candidate(item)
+    ]
     stage_outputs["execute_batch"] = {
         "candidate_count": len(candidates),
         "prepared_count": len(prepared_candidates),
+        "finding_count": len(finding_candidates),
+        "satisfied_count": len(satisfied_candidates),
+        "finding_obligation_ids": [
+            item["obligation_id"] for item in finding_candidates
+        ],
+        "satisfied_obligation_ids": [
+            item["obligation_id"] for item in satisfied_candidates
+        ],
         "candidates": [_jsonable(item) for item in prepared_candidates],
-        "reason": "Exact binding, frozen predicate compilation, and deterministic backend execution were applied candidate by candidate inside one v27 execute-batch stage.",
-        "basis": "owned ModelIR, frozen predicate registry, compiler plans, and backend receipts",
+        "reason": "Exact binding, frozen predicate compilation, and deterministic backend execution were applied candidate by candidate; completed true receipts remain passing-check audit records while only counterexamples, unresolved W1/W0, or errors become v27 findings.",
+        "basis": "owned ModelIR, frozen predicate registry, compiler plans, backend receipts, and the v27 passing-check exclusion rule",
     }
     stage_receipts.append(
         _stage_receipt(
@@ -1445,7 +1470,7 @@ def _method_cell(
     d_correction_prompt = ""
     d_outcome: StructuredCallOutcome[DAdjudicationResponse] | None = None
     d_stage_outcome: StructuredCallOutcome[DAdjudicationResponse] | None = None
-    expected_ids = [item["obligation_id"] for item in prepared_candidates]
+    expected_ids = [item["obligation_id"] for item in finding_candidates]
     d_response = DAdjudicationResponse(
         decisions=[],
         reason="No executed candidate required semantic D adjudication.",
@@ -1467,7 +1492,7 @@ def _method_cell(
         "reason": "D validation checked exact obligation coverage, uniqueness, closed enums, and decidable typed-fact contradictions.",
         "basis": "obligation IDs, typed SemanticAdjudication fields, and exact closed-model outgoing-transition inventory",
     }
-    if prepared_candidates:
+    if finding_candidates:
         dossiers = [
             {
                 "obligation_id": item["obligation_id"],
@@ -1479,7 +1504,7 @@ def _method_cell(
                 "reason": "The dossier contains exact method outputs and formal execution facts for semantic adjudication.",
                 "basis": "prepared candidate, exact binding, frozen predicate plan, and backend receipt",
             }
-            for item in prepared_candidates
+            for item in finding_candidates
         ]
         d_prompt = build_d_adjudication_prompt(pair, dossiers)
         d_outcome = runtime.call(
@@ -1492,7 +1517,7 @@ def _method_cell(
         all_outcomes.append(d_outcome)
         d_stage_outcome = d_outcome
         d_response = d_outcome.response if d_outcome.succeeded else fallback_d_adjudication(
-            [item["obligation_id"] for item in prepared_candidates],
+            [item["obligation_id"] for item in finding_candidates],
             str(d_outcome.result.get("error", "D adjudication output unavailable")),
         )
         if not d_outcome.succeeded:
@@ -1536,7 +1561,7 @@ def _method_cell(
 
         unique_supplied, missing_ids, extra_ids, duplicate_ids = coverage(d_response)
         prepared_by_id = {
-            item["obligation_id"]: item for item in prepared_candidates
+            item["obligation_id"]: item for item in finding_candidates
         }
         invalid_decisions = {
             decision.obligation_id: decision_errors
@@ -1715,7 +1740,7 @@ def _method_cell(
             stage_name="d_adjudication",
             status=(
                 "completed"
-                if not prepared_candidates
+                if not finding_candidates
                 or (d_stage_outcome is not None and d_stage_outcome.succeeded)
                 else "completed_with_diagnostics"
             ),
@@ -1748,7 +1773,7 @@ def _method_cell(
         for outcome in all_outcomes
         for attempt in outcome.attempts
     ]
-    for index, prepared in enumerate(prepared_candidates):
+    for index, prepared in enumerate(finding_candidates):
         try:
             record, emitted = _deterministic_candidate(
                 pair,

@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from pipeline.evidence_discovery.inputs import load_pair, parse_fcstm
 from pipeline.evidence_discovery.inputs.context import (
     build_numbered_nl_segments,
@@ -20,9 +19,9 @@ from pipeline.evidence_discovery.orchestration.runtime import (
     StructuredCallOutcome,
 )
 from pipeline.evidence_discovery.semantics import (
-    DAdjudicationResponse,
-    DISCOVERY_GROUNDING_SYSTEM_PROMPT,
     D_SYSTEM_PROMPT,
+    DISCOVERY_GROUNDING_SYSTEM_PROMPT,
+    DAdjudicationResponse,
     GroundingDisposition,
     GroundingResponse,
     NLContract,
@@ -31,7 +30,6 @@ from pipeline.evidence_discovery.semantics import (
     build_contract_prompt,
     fallback_contracts,
 )
-
 
 PAPER_ROOT = Path(__file__).parents[3]
 REPORT_ROOT = PAPER_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
@@ -99,7 +97,19 @@ class FixtureStructuredRuntime:
             )
         elif schema is GroundingResponse:
             pair = load_pair(REPORT_ROOT / "pairs" / pair_id)
-            transition = pair.model.transitions[0]
+            existing_endpoints = {
+                (transition.source, transition.target)
+                for transition in pair.model.transitions
+            }
+            missing_endpoints = [
+                (source, target)
+                for source in pair.model.states
+                for target in pair.model.states
+                if source.ref != target.ref
+                and (source.name, target.name) not in existing_endpoints
+            ]
+            assert len(missing_endpoints) >= 2
+            source, target = missing_endpoints[0]
             candidates = [
                 {
                     "contract_id": "NL-CONTRACT-NL1",
@@ -112,21 +122,21 @@ class FixtureStructuredRuntime:
                     "requirement_quote": "The supplied source clause.",
                     "predicate_id": "S2",
                     "predicate_inputs": {
-                        "source": transition.source,
-                        "target": transition.target,
+                        "source": source.name,
+                        "target": target.name,
                         "scope": "closed_fcstm",
                     },
-                    "element_refs": [transition.ref],
+                    "element_refs": [source.ref, target.ref],
                     "source_refs": ["nl:NL1"],
-                    "expected": "The transition is present.",
-                    "observed": "The transition is present.",
+                    "expected": "The required transition is present.",
+                    "observed": "The required transition is absent.",
                     "strongest_rebuttal": "none",
                     "reason": "Fixture branch reason.",
-                    "basis": "Fixture exact FCSTM transition basis.",
+                    "basis": "Fixture exact FCSTM endpoint binding and missing-edge basis.",
                 }
             ]
             if self.include_second_candidate:
-                second_transition = pair.model.transitions[1]
+                second_source, second_target = missing_endpoints[1]
                 candidates.append(
                     {
                         "contract_id": "NL-CONTRACT-NL1",
@@ -139,17 +149,17 @@ class FixtureStructuredRuntime:
                         "requirement_quote": "The second supplied source clause.",
                         "predicate_id": "S2",
                         "predicate_inputs": {
-                            "source": second_transition.source,
-                            "target": second_transition.target,
+                            "source": second_source.name,
+                            "target": second_target.name,
                             "scope": "closed_fcstm",
                         },
-                        "element_refs": [second_transition.ref],
+                        "element_refs": [second_source.ref, second_target.ref],
                         "source_refs": ["nl:NL2"],
-                        "expected": "The second transition is present.",
-                        "observed": "The second transition is present.",
+                        "expected": "The second required transition is present.",
+                        "observed": "The second required transition is absent.",
                         "strongest_rebuttal": "none",
                         "reason": "Fixture second branch reason.",
-                        "basis": "Fixture second exact FCSTM transition basis.",
+                        "basis": "Fixture second exact FCSTM endpoint binding and missing-edge basis.",
                     }
                 )
             response = GroundingResponse(
