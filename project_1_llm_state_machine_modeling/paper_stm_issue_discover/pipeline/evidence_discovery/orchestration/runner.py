@@ -76,9 +76,9 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v3"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v2"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-orchestration.v8"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-staged-prompts.v7"
-CONTRACT_CHUNK_MAX_SEGMENTS = 5
+CODE_VERSION = "evidence-discovery-orchestration.v9"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-staged-prompts.v8"
+CONTRACT_CHUNK_MAX_SEGMENTS = 4
 CONTRACT_SINGLE_CHUNK_MAX_CHARACTERS = 1_200
 JUDGE_PROMPT_TOKEN_BUDGET = 180_000
 # Keep the normal judge surface small enough that the model can close every
@@ -2275,8 +2275,23 @@ def _judge_pair(
     """Run pair-wide judge, one shape correction, then atomic semantic fallback."""
 
     ledger_items = _read_ledger_for_pair(ledger_path, pair.pair_id)
-    release = [issue for cell in method_rounds for issue in cell.get("report_issue_clusters", [])]
-    prompt = _judge_prompt(pair, ledger_items, method_rounds)
+    judge_method_rounds = [
+        {
+            **cell,
+            "report_issue_clusters": (
+                cell.get("report_issue_clusters", [])
+                if cell.get("eligible") is True
+                else []
+            ),
+        }
+        for cell in method_rounds
+    ]
+    release = [
+        issue
+        for cell in judge_method_rounds
+        for issue in cell.get("report_issue_clusters", [])
+    ]
+    prompt = _judge_prompt(pair, ledger_items, judge_method_rounds)
     outcomes: list[StructuredCallOutcome[Any]] = []
     errors: list[dict[str, Any]] = []
     atomic_relations: list[dict[str, Any]] = []
@@ -2331,13 +2346,18 @@ def _judge_pair(
             pair=pair,
             ledger_items=ledger_items,
             release=release,
-            method_rounds=method_rounds,
+            method_rounds=judge_method_rounds,
             runtime=runtime,
         )
         outcomes.extend(partition_outcomes)
         errors.extend(partition_errors)
         shape_errors = (
-            _judge_shape_errors(response, ledger_items, release, len(method_rounds))
+            _judge_shape_errors(
+                response,
+                ledger_items,
+                release,
+                len(judge_method_rounds),
+            )
             if response is not None
             else ["partitioned judge output unavailable"]
         )
@@ -2352,9 +2372,19 @@ def _judge_pair(
         outcomes.append(outcome)
         response = outcome.response if outcome.succeeded else None
         if response is not None:
-            response = _normalize_judge_shape(response, ledger_items, release, len(method_rounds))
+            response = _normalize_judge_shape(
+                response,
+                ledger_items,
+                release,
+                len(judge_method_rounds),
+            )
         shape_errors = (
-            _judge_shape_errors(response, ledger_items, release, len(method_rounds))
+            _judge_shape_errors(
+                response,
+                ledger_items,
+                release,
+                len(judge_method_rounds),
+            )
             if response is not None
             else ["pair-wide judge output unavailable"]
         )
@@ -2363,7 +2393,12 @@ def _judge_pair(
             kind="judge_correction",
             schema=JudgeResponse,
             system_prompt=JUDGE_SYSTEM_PROMPT,
-            prompt=_judge_correction_prompt(pair, ledger_items, method_rounds, shape_errors),
+            prompt=_judge_correction_prompt(
+                pair,
+                ledger_items,
+                judge_method_rounds,
+                shape_errors,
+            ),
             artifact_id=f"judge/{pair.pair_id}/shape-correction",
         )
         outcomes.append(correction)
@@ -2372,10 +2407,13 @@ def _judge_pair(
                 correction.response,
                 ledger_items,
                 release,
-                len(method_rounds),
+                len(judge_method_rounds),
             )
             shape_errors = _judge_shape_errors(
-                response, ledger_items, release, len(method_rounds)
+                response,
+                ledger_items,
+                release,
+                len(judge_method_rounds),
             )
             if not shape_errors:
                 mode = "pair_wide_corrected"
@@ -2429,7 +2467,12 @@ def _judge_pair(
         response is not None
         and semantic_outcomes
         and all(item.real_llm and item.succeeded for item in semantic_outcomes)
-        and not _judge_shape_errors(response, ledger_items, release, len(method_rounds))
+        and not _judge_shape_errors(
+            response,
+            ledger_items,
+            release,
+            len(judge_method_rounds),
+        )
     )
     payload = IndependentJudgeReceipt.model_validate({
         "schema": JUDGE_SCHEMA,

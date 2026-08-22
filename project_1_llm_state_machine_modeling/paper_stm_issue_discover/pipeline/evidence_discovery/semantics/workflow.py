@@ -389,6 +389,8 @@ CONTRACT_SYSTEM_PROMPT = f"""You are the NL contract extraction stage of the pap
 Atomic contract shape:
 - One contract represents one property at one independently violable locus. A transition-property row has at most one source, one target, and one transition hint.
 - Alternative destinations are separate endpoint contracts. A guard conjunction for one exact transition remains one normalized guard hint; guards attached to different transitions are separate contracts.
+- A bidirectional or dynamic A-to-B/B-to-A requirement is two endpoint contracts. Never place two source hints or two target hints in one contract.
+- A conjunction such as `a and b and c` on one transition is one normalized guard hint with the complete conjunction as its value, not three guard hints. Alternative guards on different transitions remain separate contracts.
 - Initialization, containment, endpoint, trigger, guard, effect, action, reachability/progress, event-consumer coverage, region structure, and variable delta never share one contract merely because the NL states them in one sentence.
 - `wrong_target` belongs to `transition_endpoints`, `wrong_guard` to `guard`, `wrong_effect` to `effect` or `variable_delta`, `unreachable` to `reachability`, `dead_end` to `deadlock_freedom`, and `unconsumed` to `event_consumer_coverage`. Do not encode one property with another property's direction.
 - When an event is semantically required to be accepted within a scope, emit a separate `event_consumer_coverage` contract in addition to any local endpoint/trigger contract. This is a semantic LLM judgment from the supplied NL, never a spelling or keyword rule.
@@ -409,6 +411,12 @@ contract property first, then select the minimal frozen predicate that decides
 that same property. Do not substitute a nearby endpoint, declaration, or local
 path property merely because it is executable. Record the evidence families
 actually used in `evidence_types`.
+
+Every candidate object must explicitly include `locus_kind` and `locus_names`
+copied from its contract. `predicate_inputs` must always be a JSON object; use
+an empty object when predicate_id is null, never a list or free-text value.
+Every candidate and contract disposition must include its own non-empty reason
+and basis. These are structural output obligations, not optional prose.
 
 {PREDICATE_ROUTING_GUIDANCE}
 

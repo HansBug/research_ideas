@@ -77,6 +77,7 @@ from pipeline.evidence_discovery.semantics import (
     resolve_transition_ref,
 )
 from pipeline.evidence_discovery.semantics.binding import BindingResult
+from pipeline.evidence_discovery.semantics.workflow import MODEL_GROUNDING_SYSTEM_PROMPT
 
 
 PAPER_ROOT = Path(__file__).parents[3]
@@ -970,6 +971,10 @@ def test_0046_contract_shape_separates_endpoint_and_event_consumer() -> None:
     assert event_consumer.violation_direction == "unconsumed"
     assert "One contract represents one property" in CONTRACT_SYSTEM_PROMPT
     assert "semantic LLM judgment" in CONTRACT_SYSTEM_PROMPT
+    assert "bidirectional or dynamic A-to-B/B-to-A requirement" in CONTRACT_SYSTEM_PROMPT
+    assert "one normalized guard hint" in CONTRACT_SYSTEM_PROMPT
+    assert "Every candidate object must explicitly include" in MODEL_GROUNDING_SYSTEM_PROMPT
+    assert "must always be a JSON object" in MODEL_GROUNDING_SYSTEM_PROMPT
 
 
 def test_provider_retry_exemption_is_row_local_and_other_usage_is_billable() -> None:
@@ -1528,6 +1533,57 @@ def test_exact_empty_release_closes_without_an_llm_semantic_call(tmp_path: Path)
     assert judge["adjudication_mode"] == "exact_empty_release"
     assert judge["llm_calls"] == []
     assert all(not item["matched_issue_ids"] for item in judge["judgement"]["ledger_assessments"])
+
+
+def test_ineligible_diagnostic_release_never_enters_judge_surface(tmp_path: Path) -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+
+    class NoCallRuntime:
+        real_llm = True
+
+        def call(self, **kwargs):
+            raise AssertionError("an ineligible diagnostic release must not call the judge")
+
+    judge = _judge_pair(
+        pair=pair,
+        method_rounds=[
+            {
+                "round": 1,
+                "status": "completed_with_diagnostics",
+                "eligible": False,
+                "eligibility_reasons": ["provider_error"],
+                "report_issue_clusters": [
+                    {
+                        "issue_id": "0000:r1:diagnostic:0",
+                        "title": "Retained diagnostic issue",
+                        "d_level": "D1",
+                        "witness_level": "W1",
+                        "reason": "The partial method cell retained this diagnostic issue.",
+                        "basis": "Ineligible method receipt fixture.",
+                    }
+                ],
+                "reason": "The method cell retained diagnostics but is not eligible.",
+                "basis": "Provider-free ineligible-cell fixture.",
+            }
+        ],
+        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
+        runtime=NoCallRuntime(),
+        output_root=tmp_path,
+        run_identity=_fixture_run_identity(
+            "0000", pair.context_manifest.manifest_hash
+        ),
+    )
+
+    assert judge["eligible"] is True
+    assert judge["adjudication_mode"] == "exact_empty_release"
+    assert judge["release_count"] == 0
+    assert judge["llm_calls"] == []
+    assert judge["llm_call"]["cost"]["total_usd"] == 0.0
+    assert judge["judgement"]["release_assessments"] == []
+    assert all(
+        not item["matched_issue_ids"]
+        for item in judge["judgement"]["ledger_assessments"]
+    )
 
 
 def test_failed_judge_is_unadjudicated_not_a_miss_or_false_positive(tmp_path: Path) -> None:

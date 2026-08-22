@@ -313,9 +313,10 @@ def test_0029_contract_chunks_are_bounded_and_exact() -> None:
     chunks = _contract_segment_chunks(pair)
 
     assert chunks == (
-        ("NL1", "NL2", "NL3", "NL4", "NL5"),
-        ("NL6", "NL7", "NL8", "NL9", "NL10"),
-        ("NL11", "NL12", "NL13"),
+        ("NL1", "NL2", "NL3", "NL4"),
+        ("NL5", "NL6", "NL7", "NL8"),
+        ("NL9", "NL10", "NL11", "NL12"),
+        ("NL13",),
     )
     prompts = [
         build_contract_prompt(
@@ -328,12 +329,14 @@ def test_0029_contract_chunks_are_bounded_and_exact() -> None:
         )
         for index, segment_ids in enumerate(chunks, start=1)
     ]
-    assert "Contract chunk: 1/3" in prompts[0]
-    assert '"segment_id": "NL5"' in prompts[0]
-    assert '"segment_id": "NL6"' not in prompts[0]
-    assert '"segment_id": "NL6"' in prompts[1]
-    assert '"segment_id": "NL11"' not in prompts[1]
-    assert '"segment_id": "NL11"' in prompts[2]
+    assert "Contract chunk: 1/4" in prompts[0]
+    assert '"segment_id": "NL4"' in prompts[0]
+    assert '"segment_id": "NL5"' not in prompts[0]
+    assert '"segment_id": "NL5"' in prompts[1]
+    assert '"segment_id": "NL9"' not in prompts[1]
+    assert '"segment_id": "NL9"' in prompts[2]
+    assert '"segment_id": "NL13"' not in prompts[2]
+    assert '"segment_id": "NL13"' in prompts[3]
 
 
 def test_contract_chunk_outputs_merge_only_by_exact_ids() -> None:
@@ -522,8 +525,8 @@ def test_representative_pairs_staged_fixture_smoke(tmp_path: Path) -> None:
             and ContractChunkOutput.model_validate(item).basis
             for item in cell["stage_outputs"]["nl_contract_chunks"]
         )
-    assert calls_per_cell == [5, 4, 6, 5, 4, 4]
-    assert sum(calls_per_cell) * 3 == 84
+    assert calls_per_cell == [6, 4, 7, 5, 4, 4]
+    assert sum(calls_per_cell) * 3 == 90
     assert all(item["reason"] and item["basis"] for item in cell["stage_receipts"])
     assert all(item["input_manifest_hash"] == pair.context_manifest.manifest_hash for item in cell["stage_receipts"])
     contract_ids = {
