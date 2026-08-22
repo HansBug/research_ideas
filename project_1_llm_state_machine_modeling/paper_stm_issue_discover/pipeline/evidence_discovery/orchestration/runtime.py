@@ -15,12 +15,14 @@ from utils.llm import estimate_usage_cost_usd, load_llm_registry
 
 T = TypeVar("T", bound=BaseModel)
 
-# A streaming provider call gets a finite first-byte boundary. Its complete
-# structured cell is bounded separately by ``PROVIDER_CALL_DEADLINE_SECONDS``.
-# For non-streaming calls there is no first byte to wait for, so the provider
+# A streaming provider call gets a finite first-byte/read boundary. Each model
+# invocation has a separate complete-call deadline, while the enclosing
+# structured stage has enough time for one bounded schema-repair turn. For
+# non-streaming calls there is no first byte to wait for, so the provider
 # timeout itself is set to the complete-call deadline.
 PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS = 30
 PROVIDER_CALL_DEADLINE_SECONDS = 300
+STRUCTURED_STAGE_DEADLINE_SECONDS = 3 * PROVIDER_CALL_DEADLINE_SECONDS
 MAX_STRUCTURED_OUTPUT_TOKENS = 10_000
 JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS = 20_000
 DEFAULT_TRANSPORT_RETRIES = 8
@@ -155,10 +157,12 @@ def _is_provider_error(error: dict[str, Any] | None) -> bool:
     if str(error.get("phase", "")).strip().lower() == "model_transport":
         return True
     details = error.get("details")
-    return bool(
-        isinstance(details, dict)
-        and str(details.get("source", "")).strip().lower() == "provider"
-    )
+    if not isinstance(details, dict):
+        return False
+    if str(details.get("source", "")).strip().lower() == "provider":
+        return True
+    detail_type = str(details.get("type", "")).strip().lower().replace("-", "_")
+    return detail_type == "providercalltimeout"
 
 
 def _read_audit_records(path: Path) -> list[dict[str, Any]]:
@@ -368,7 +372,8 @@ class PublicStructuredRuntime:
             limits={
                 "model_calls": max(6, self.transport_retries + 4),
                 "turns": 6,
-                "seconds": PROVIDER_CALL_DEADLINE_SECONDS,
+                "model_call_seconds": PROVIDER_CALL_DEADLINE_SECONDS,
+                "seconds": STRUCTURED_STAGE_DEADLINE_SECONDS,
             },
             require_tool_call=False,
             retry_missing_structured_output=True,
@@ -441,7 +446,7 @@ class PublicStructuredRuntime:
             audit_path = attempt_dir / "audit.jsonl"
             result_path = attempt_dir / "result.json"
             try:
-                with _provider_deadline(PROVIDER_CALL_DEADLINE_SECONDS):
+                with _provider_deadline(STRUCTURED_STAGE_DEADLINE_SECONDS):
                     result = self._app(
                         kind,
                         schema,
@@ -563,7 +568,9 @@ class PublicStructuredRuntime:
             ),
             basis=(
                 f"utils.agent AgentApp; transport_retries={self.transport_retries}; "
-                f"stream_timeout={PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS}s; total_deadline={PROVIDER_CALL_DEADLINE_SECONDS}s"
+                f"stream_first_byte_timeout={PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS}s; "
+                f"provider_call_deadline={PROVIDER_CALL_DEADLINE_SECONDS}s; "
+                f"structured_stage_deadline={STRUCTURED_STAGE_DEADLINE_SECONDS}s"
             ),
         )
 

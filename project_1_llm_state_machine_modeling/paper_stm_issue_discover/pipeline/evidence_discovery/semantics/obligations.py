@@ -169,7 +169,19 @@ class CandidateIssue(BaseModel):
     locus_names: tuple[Annotated[str, Field(min_length=1)], ...] = Field(min_length=1, description="One or more source-grounded names identifying the exact semantic locus; these are semantic identities, while element_refs carry exact FCSTM refs.")
     property: ObligationProperty = Field(description="Exact atomic property being evaluated; preserve the contract property even when no frozen predicate fully expresses it.")
     violation_direction: ViolationDirection = Field(description="Observed defect direction for this candidate; do not reverse a missing/dead-end/unreachable obligation into an unrelated existence claim.")
-    evidence_types: tuple[EvidenceType, ...] = Field(min_length=1, description="Structured evidence families actually used to form this candidate; unknown, error, or not-run facts are not violation evidence.")
+    evidence_types: tuple[EvidenceType, ...] = Field(
+        min_length=1,
+        description=(
+            "Structured evidence families actually used to form this candidate. "
+            "Allowed values are exactly source_identity, closed_model_inventory, "
+            "transition_fact, initial_entry_fact, containment_fact, "
+            "reachability_fact, deadlock_frontier_fact, event_consumer_fact, "
+            "guard_fact, effect_fact, action_fact, trace_fact, verify_fact, "
+            "smt_fact, semantic_comparison, and other. Unknown, error, or not-run "
+            "facts are not violation evidence; state_action is a property name, "
+            "not an evidence type."
+        ),
+    )
     title: str = Field(min_length=1, description="Short human-readable issue title; do not include a verdict level.")
     requirement_quote: str = Field(min_length=1, description="Exact or faithful quote of the supplied requirement supporting this candidate.")
     predicate_id: PredicateId | None = Field(default=None, description="One frozen predicate ID, or null when the precise claim is not expressible by the registry.")

@@ -52,6 +52,7 @@ from pipeline.evidence_discovery.orchestration.runtime import (
     MAX_STRUCTURED_OUTPUT_TOKENS,
     PROVIDER_CALL_DEADLINE_SECONDS,
     PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS,
+    STRUCTURED_STAGE_DEADLINE_SECONDS,
     ProviderCallTimeout,
     StructuredCallOutcome,
     _annotate_usage_billing,
@@ -1268,6 +1269,16 @@ def test_0046_contract_shape_separates_endpoint_and_event_consumer() -> None:
     assert "semantic LLM judgment" in CONTRACT_SYSTEM_PROMPT
     assert "bidirectional or dynamic A-to-B/B-to-A requirement" in CONTRACT_SYSTEM_PROMPT
     assert "one normalized guard hint" in CONTRACT_SYSTEM_PROMPT
+    assert "`property=state_action` uses `evidence_types=[action_fact]`" in CONTRACT_SYSTEM_PROMPT
+    invalid_evidence_type = event_consumer.model_dump(mode="json")
+    invalid_evidence_type["evidence_types"] = ["state_action"]
+    with pytest.raises(ValidationError):
+        NLContract.model_validate(invalid_evidence_type)
+    evidence_description = NLContract.model_json_schema()["properties"][
+        "evidence_types"
+    ]["description"]
+    assert "action_fact" in evidence_description
+    assert "state_action is a property name" in evidence_description
     assert "Every candidate object must explicitly include" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "must always be a JSON object" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
 
@@ -1340,6 +1351,7 @@ def test_terminal_provider_failure_without_an_actual_retry_remains_billable() ->
 def test_provider_deadline_is_finite_and_provider_timeout_is_bounded() -> None:
     assert PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS == 30
     assert PROVIDER_CALL_DEADLINE_SECONDS == 300
+    assert STRUCTURED_STAGE_DEADLINE_SECONDS == 900
     assert _provider_timeout_seconds(True) == 30
     assert _provider_timeout_seconds(False) == 300
     assert PROVIDER_CALL_DEADLINE_SECONDS > PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS
@@ -1361,6 +1373,15 @@ def test_provider_error_classification_uses_typed_ownership_not_message_text() -
             "message": "local schema bug mentions provider timeout",
         }
     ) is False
+    assert _is_provider_error(
+        {
+            "code": "structured_output_invalid",
+            "details": {
+                "source": "runtime",
+                "type": "ProviderCallTimeout",
+            },
+        }
+    ) is True
     assert _is_provider_error(
         {"code": "ValueError", "message": "timeout field is invalid", "phase": "local_runtime"}
     ) is False
@@ -1953,7 +1974,8 @@ def test_provider_free_run_manifest_resume_and_concurrent_atomic_writes(tmp_path
     assert summary["artifact_root"] == str(run_root.resolve())
     assert manifest["workers"] == 2
     assert manifest["retry_policy"]["stream_first_byte_timeout_seconds"] == 30
-    assert manifest["retry_policy"]["structured_call_total_timeout_seconds"] == 300
+    assert manifest["retry_policy"]["provider_call_total_timeout_seconds"] == 300
+    assert manifest["retry_policy"]["structured_stage_timeout_seconds"] == 900
     assert manifest["retry_policy"]["non_stream_provider_timeout_seconds"] == 300
     assert manifest["prompt_schema_hash"].startswith("sha256:")
     assert manifest["input_data_hash"].startswith("sha256:")

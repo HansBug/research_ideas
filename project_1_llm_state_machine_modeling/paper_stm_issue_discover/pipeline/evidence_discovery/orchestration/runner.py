@@ -64,6 +64,7 @@ from .runtime import (
     JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS,
     PROVIDER_CALL_DEADLINE_SECONDS,
     PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS,
+    STRUCTURED_STAGE_DEADLINE_SECONDS,
     PublicStructuredRuntime,
     StructuredCallOutcome,
     TRANSPORT_RETRY_DELAY_SCHEDULE_SECONDS,
@@ -75,8 +76,8 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v6"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v3"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v3"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v3"
+CODE_VERSION = "evidence-discovery-v27-flow.v4"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v4"
 
 
 class LedgerAssessment(BaseModel):
@@ -251,7 +252,8 @@ def _retry_policy(transport_retries: int) -> dict[str, Any]:
         "transport_retries": transport_retries,
         "transport_retry_delays_seconds": delays,
         "stream_first_byte_timeout_seconds": PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS,
-        "structured_call_total_timeout_seconds": PROVIDER_CALL_DEADLINE_SECONDS,
+        "provider_call_total_timeout_seconds": PROVIDER_CALL_DEADLINE_SECONDS,
+        "structured_stage_timeout_seconds": STRUCTURED_STAGE_DEADLINE_SECONDS,
         "non_stream_provider_timeout_seconds": PROVIDER_CALL_DEADLINE_SECONDS,
         "dead_structured_call_retries_after_provider_error": 1,
         "schema_and_non_provider_retries_billable": True,

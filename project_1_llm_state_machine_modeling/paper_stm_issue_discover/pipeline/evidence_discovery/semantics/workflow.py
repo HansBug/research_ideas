@@ -42,7 +42,19 @@ class NLContract(BaseModel):
     property: ObligationProperty = Field(description="Atomic property required at the locus; this vocabulary includes the frozen predicate meanings and explicit unsupported semantic boundaries.")
     expected_direction: ExpectedDirection = Field(description="Positive requirement direction stated by the NL, such as required existence, entry, reachability, progress, coverage, or absence.")
     violation_direction: ViolationDirection = Field(description="Defect direction that grounding must look for if the requirement is not met; it must not be reversed into a nearby existence observation.")
-    evidence_types: tuple[EvidenceType, ...] = Field(min_length=1, description="Evidence families needed to assess this obligation; these route context but do not assert that evidence exists or proves a violation.")
+    evidence_types: tuple[EvidenceType, ...] = Field(
+        min_length=1,
+        description=(
+            "Evidence families needed to assess this obligation. Allowed values "
+            "are exactly source_identity, closed_model_inventory, transition_fact, "
+            "initial_entry_fact, containment_fact, reachability_fact, "
+            "deadlock_frontier_fact, event_consumer_fact, guard_fact, effect_fact, "
+            "action_fact, trace_fact, verify_fact, smt_fact, semantic_comparison, "
+            "and other. These route context but do not assert that evidence exists "
+            "or proves a violation; state_action is a property name and uses "
+            "action_fact as its evidence family."
+        ),
+    )
     binding_hints: tuple[ContractBindingHint, ...] = Field(default_factory=tuple, description="Typed source-side argument hints used by both grounding branches; each hint remains distinct from an exact FCSTM binding. One transition-property contract may identify at most one source, one target, and one transition; split alternative endpoints into separate contracts.")
     scope: str = Field(min_length=1, description="Human-readable source scope, phase, owner, or boundary retained for audit alongside the typed semantic key.")
     source_refs: tuple[str, ...] = Field(default_factory=tuple, description="Source references from the supplied NL, PlantUML, or source trace; do not invent references.")
@@ -328,6 +340,8 @@ PREDICATE_ROUTING_GUIDANCE = """Frozen predicate routing discipline:
 
 
 CONTRACT_SYSTEM_PROMPT = f"""You are the NL contract extraction stage of the paper1 evidence_discovery method. {COMMON_RULES} Extract atomic source obligations before inspecting model satisfaction. For every contract, fill the typed semantic key `(locus_kind, locus_names, property, expected_direction, violation_direction, evidence_types)` and typed binding hints. Split independently violable containment, initialization, transition endpoint, trigger, guard, effect, action, reachability, progress, event-consumer, region, variable-delta, and excess-behavior clauses instead of bundling them. Preserve qualifiers, ordering, initialization/operation/termination scope, and ambiguity. The violation direction says what later grounding must test; it does not claim that the defect exists. Keep each per-contract reason and basis concise and specific; do not restate the full input context.
+
+Allowed `evidence_types` values are exactly: `source_identity`, `closed_model_inventory`, `transition_fact`, `initial_entry_fact`, `containment_fact`, `reachability_fact`, `deadlock_frontier_fact`, `event_consumer_fact`, `guard_fact`, `effect_fact`, `action_fact`, `trace_fact`, `verify_fact`, `smt_fact`, `semantic_comparison`, and `other`. Do not put a property name in this field: for example, `property=state_action` uses `evidence_types=[action_fact]`, never `state_action`.
 
 Atomic contract shape:
 - One contract represents one property at one independently violable locus. A transition-property row has at most one source, one target, and one transition hint.

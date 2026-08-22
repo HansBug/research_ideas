@@ -15,6 +15,7 @@ from langchain_core.outputs import ChatGeneration, ChatResult
 
 from utils.agent import AgentApp, AgentError, AgentEvent, AgentSpec
 from utils.agent.runtime import (
+    _ModelCallDeadlineMiddleware,
     _ModelOptionsMiddleware,
     _iterate_and_close,
     _message_ref,
@@ -57,6 +58,37 @@ def test_cancelled_agent_stream_is_closed_before_loop_teardown() -> None:
 
     stream = asyncio.run(scenario())
     assert stream.closed is True
+
+
+def test_model_call_deadline_is_typed_and_transport_retryable() -> None:
+    middleware = _ModelCallDeadlineMiddleware(0.01)
+
+    async def scenario() -> AgentError:
+        async def handler(_request: object) -> object:
+            await asyncio.sleep(0.05)
+            return object()
+
+        with pytest.raises(AgentError) as caught:
+            await middleware.awrap_model_call(object(), handler)
+        return caught.value
+
+    error = asyncio.run(scenario())
+    assert error.code == "provider_timeout"
+    assert error.details == {
+        "source": "provider",
+        "type": "ProviderCallTimeout",
+        "timeout_seconds": 0.01,
+    }
+    assert _retryable_transport_error(error) is True
+
+
+def test_agent_spec_accepts_separate_model_and_run_deadlines() -> None:
+    spec = AgentSpec(
+        name="separate-deadlines",
+        system_prompt="Answer with the requested schema.",
+        limits={"model_call_seconds": 300, "seconds": 900},
+    )
+    assert spec.limits == {"model_call_seconds": 300, "seconds": 900}
 
 
 def test_unknown_tool_request_has_one_rejected_terminal_action(tmp_path: Path) -> None:

@@ -69,6 +69,7 @@ _RETRYABLE_TRANSPORT_EXCEPTION_NAMES = frozenset(
         "connecttimeout",
         "networkerror",
         "pooltimeout",
+        "providercalltimeout",
         "readerror",
         "readtimeout",
         "remoteprotocolerror",
@@ -200,7 +201,13 @@ class AgentSpec:
         if len(names) != len(set(names)):
             raise ValueError("agent_spec_invalid: duplicate tool name")
         limits = dict(self.limits or {})
-        allowed = {"model_calls", "tool_calls", "turns", "seconds"}
+        allowed = {
+            "model_calls",
+            "tool_calls",
+            "turns",
+            "seconds",
+            "model_call_seconds",
+        }
         unknown = set(limits) - allowed
         if unknown:
             raise ValueError(f"agent_spec_invalid: unknown limit keys: {sorted(unknown)}")
@@ -2937,6 +2944,35 @@ class _TransportRetryMiddleware(AgentMiddleware):
             return response
 
 
+class _ModelCallDeadlineMiddleware(AgentMiddleware):
+    """Bound each provider invocation inside a longer structured agent run.
+
+    ``AgentSpec.limits['seconds']`` remains the complete run budget. This
+    narrower limit applies to each asynchronous model invocation, including a
+    structured-output repair turn, and emits a typed provider-owned error that
+    the public transport retry middleware can handle in place.
+    """
+
+    def __init__(self, seconds: float) -> None:
+        if seconds <= 0:
+            raise ValueError("model_call_seconds must be positive")
+        self.seconds = float(seconds)
+
+    async def awrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
+        try:
+            return await asyncio.wait_for(handler(request), timeout=self.seconds)
+        except asyncio.TimeoutError as exc:
+            raise AgentError(
+                "provider_timeout",
+                f"provider model call exceeded {self.seconds:g} seconds",
+                details={
+                    "source": "provider",
+                    "type": "ProviderCallTimeout",
+                    "timeout_seconds": self.seconds,
+                },
+            ) from exc
+
+
 def _tool_completion_status(
     result: Any,
 ) -> tuple[str, dict[str, Any] | None, bool]:
@@ -4742,6 +4778,15 @@ class AgentApp:
                     on_retry=transport_retry_scheduled,
                     on_recovered=transport_retry_recovered,
                     on_exhausted=transport_retry_exhausted,
+                ),
+                *(
+                    [
+                        _ModelCallDeadlineMiddleware(
+                            float((self.spec.limits or {})["model_call_seconds"])
+                        )
+                    ]
+                    if (self.spec.limits or {}).get("model_call_seconds") is not None
+                    else []
                 ),
                 _RequestCaptureMiddleware(request_captures, capture_primary_request),
                 guard,
