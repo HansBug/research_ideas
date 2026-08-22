@@ -74,8 +74,8 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v3"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v2"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-orchestration.v6"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-staged-prompts.v5"
+CODE_VERSION = "evidence-discovery-orchestration.v7"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-staged-prompts.v6"
 JUDGE_PROMPT_TOKEN_BUDGET = 180_000
 # Keep the normal judge surface small enough that the model can close every
 # exact-ID row in one response.  A larger release surface is partitioned
@@ -506,6 +506,7 @@ def _stage_receipt(
     basis: str,
     outcome: StructuredCallOutcome[Any] | None = None,
     diagnostics: tuple[dict[str, Any], ...] = (),
+    projection_version: str | None = None,
 ) -> dict[str, Any]:
     """Build one validated stage receipt with the input manifest hash."""
 
@@ -530,6 +531,10 @@ def _stage_receipt(
             basis="typed stage inputs and deterministic method execution",
         )
     )
+    if projection_version is not None:
+        context_budget = context_budget.model_copy(
+            update={"projection_version": projection_version}
+        )
     return StageReceipt(
         stage_id=stage_id,
         stage_name=stage_name,  # type: ignore[arg-type]
@@ -1054,6 +1059,7 @@ def _method_cell(
             artifact_roles=("natural_language", "plantuml_source", "canonical_source_ir", "source_inventory", "working_contract", "source_trace"),
             output=source_response,
             outcome=source_outcome,
+            projection_version="stage-context-projection.v4+contract-grounding-projection.v1",
             reason=source_response.reason,
             basis=source_response.basis,
         )
@@ -1088,6 +1094,7 @@ def _method_cell(
             artifact_roles=("natural_language", "fcstm_model", "reference_inspection_facts", "inspection_equivalent_facts", "verify_facts", "smt_facts", "working_contract"),
             output=model_response,
             outcome=model_outcome,
+            projection_version="stage-context-projection.v4+contract-grounding-projection.v1",
             reason=model_response.reason,
             basis=model_response.basis,
         )

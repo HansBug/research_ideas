@@ -434,6 +434,12 @@ def test_staged_method_receives_full_context_and_writes_stage_receipts(tmp_path:
     assert '"working_contract": {' in prompts["source_grounding"]
     assert '"source_trace": {' in prompts["source_grounding"]
     assert '"fcstm_model": {' not in prompts["source_grounding"]
+    for grounding_stage in ("source_grounding", "model_grounding"):
+        assert '"projection_version": "contract-grounding-projection.v1"' in prompts[grounding_stage]
+        assert '"full_contract_response_hash": "sha256:' in prompts[grounding_stage]
+        assert '"contract_id": "NL-CONTRACT-NL1"' in prompts[grounding_stage]
+        assert "Fixture contract reason." not in prompts[grounding_stage]
+        assert "Fixture contract response reason." not in prompts[grounding_stage]
     assert '"fcstm_model": {' in prompts["model_grounding"]
     assert '"reference_inspection_facts": {' in prompts["model_grounding"]
     assert '"inspection_equivalent_facts": {' in prompts["model_grounding"]
@@ -473,6 +479,15 @@ def test_staged_method_receives_full_context_and_writes_stage_receipts(tmp_path:
     assert llm_budgets
     assert all(item["prompt_characters"] > 0 for item in llm_budgets)
     assert all(item["truncation_applied"] is False for item in llm_budgets)
+    grounding_receipts = {
+        item["stage_name"]: item
+        for item in cell["stage_receipts"]
+        if item["stage_name"] in {"source_grounding", "model_grounding"}
+    }
+    assert {
+        item["context_budget"]["projection_version"]
+        for item in grounding_receipts.values()
+    } == {"stage-context-projection.v4+contract-grounding-projection.v1"}
     assert len(cell["llm_calls"]) == 4
     assert cell["context_manifest"]["manifest_hash"] == pair.context_manifest.manifest_hash
     assert cell["stage_outputs"]["nl_contract_extraction"]["reason"]

@@ -98,6 +98,15 @@ NL contract extraction 必须先形成紧凑的 typed contract plan。每条原�
 `reason`/`basis` 的 disposition；漏项只能补成 explicit unresolved，不能补成 satisfied、
 miss 或 FP。
 
+一条 contract 只能承载一个可独立违反的 property/locus。初始化、containment、endpoint、
+trigger、guard、effect、action、reachability/progress、event-consumer、region 和
+variable-delta 即使出现在同一句 NL 中也要分别成行；不同 target 的 transition 也分别成行。
+schema validator 只检查可完美判定的 typed enum 兼容性和 hint role 基数，例如一个
+transition-property contract 至多一个 source、target 和 transition，以及
+`trigger_set + wrong_target` 这类封闭类型冲突。句子究竟包含哪些义务、guard 是合取还是
+不同 transition 的替代条件、事件是否要求 scope-wide consumer，仍由 LLM 基于语义判断，
+不得用关键词、正则或字符串形状代替。
+
 所有输入模型、LLM 响应和阶段 receipt 都使用 Pydantic model；字段必须有约束、完整
 description 和非空 reason/basis。LLM 不输出 W/D/L；D 阶段只输出封闭的 semantic
 grounding/defeater facts，方法代码将这些 typed facts 映射为 D2/D1/D0，W 则完全由

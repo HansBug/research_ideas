@@ -118,13 +118,22 @@ exact binding 同时检查候选是否引用一个已供应的 `contract_id`，�
 ID 与封闭枚举，不解释自由文本；任何不一致都进入 W0/D_UNRESOLVED。开放世界的 NL
 拆分、概念对应和义务方向仍由 LLM contract/grounding 节点判断。
 
+`NLContract` 的原子性准入只使用结构化且可完美判定的规则：一个 transition property
+至多一个 source/target/transition hint，guard/effect 各自只有一个规范化表达，且
+property 与 violation-direction 的封闭枚举组合必须一致。多个 endpoint、初始化与行为、
+endpoint 与 consumer/reachability 等独立性质必须拆成不同 contract。validator 不读取
+quote、normative statement、名称或自由文本 reason；这些语义拆分由 contract LLM 完成，
+错误时通过同一 structured call 的定向 schema feedback 修订。
+
 所有模型辅助节点的输出 schema 都必须把 `reason` 或 `basis` 设为必填非空字段；该字段
 只记录本步的依据和边界，D/W 等级仍由方法裁定器计算。`EvidenceRecord` 还必须记录
 `d_level`（D2/D1/D0/D_UNRESOLVED），但不得包含方法生成的 `l_level`。
 
 每个 LLM stage 的 `context_budget` 记录精确 prompt 字符数、调用前 token 估计、provider
 实际 input tokens（可得时）、profile context window、max output、projection version 和
-是否发生 runtime truncation。当前只允许显式 `stage-context-projection.v1` 压缩重复材料，
+是否发生 runtime truncation。当前只允许显式 `stage-context-projection.v4` 和
+`contract-grounding-projection.v1` 压缩重复材料；后者保留 typed semantic key、NL 锚点、
+scope 和 binding hint 值，并用完整 contract stage output 的 hash 代替重复 reason/basis。
 不得静默删节；确定性 stage 也必须记录 `deterministic-no-prompt`，不能用
 `context_budget_exceeded` 伪装业务 miss。
 

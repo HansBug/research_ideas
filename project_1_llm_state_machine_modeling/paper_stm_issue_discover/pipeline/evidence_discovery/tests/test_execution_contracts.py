@@ -58,6 +58,7 @@ from pipeline.evidence_discovery.orchestration.runtime import (
 from pipeline.evidence_discovery.registry import load_registry
 from pipeline.evidence_discovery.semantics import (
     CandidateIssue,
+    CONTRACT_SYSTEM_PROMPT,
     ContractBindingHint,
     ContextBudgetReceipt,
     D_SYSTEM_PROMPT,
@@ -842,6 +843,133 @@ def test_candidate_must_preserve_exact_typed_contract_semantic_key() -> None:
     assert rejected["binding"].precise is False
     assert "property" in rejected["binding"].basis
     assert "violation_direction" in rejected["binding"].basis
+
+
+def test_0029_contract_shape_rejects_bundled_transition_alternatives() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    segment = next(item for item in pair.nl_segments if item.segment_id == "NL2")
+    common = {
+        "contract_id": "NL-CONTRACT-NL2-BUNDLED",
+        "segment_id": segment.segment_id,
+        "quote": segment.text,
+        "normative_statement": "InitialState must select one of two guarded destinations.",
+        "locus_kind": "transition",
+        "locus_names": ("InitialState", "HighwayMode", "UrbanMode"),
+        "property": "guard",
+        "expected_direction": "must_exist",
+        "violation_direction": "missing",
+        "evidence_types": ("source_identity", "transition_fact", "guard_fact"),
+        "scope": "AutonomousMode initialization",
+        "source_refs": (segment.segment_id,),
+        "reason": "The fixture reproduces a structurally bundled contract row.",
+        "basis": "0029 numbered NL input without ledger or judge data",
+    }
+    with pytest.raises(ValidationError, match="split independently violable endpoints"):
+        NLContract(
+            **common,
+            binding_hints=(
+                ContractBindingHint(
+                    role="source",
+                    value="InitialState",
+                    source_ref=segment.segment_id,
+                    reason="The source state is explicit.",
+                    basis=segment.segment_id,
+                ),
+                ContractBindingHint(
+                    role="target",
+                    value="HighwayMode",
+                    source_ref=segment.segment_id,
+                    reason="The first destination is explicit.",
+                    basis=segment.segment_id,
+                ),
+                ContractBindingHint(
+                    role="target",
+                    value="UrbanMode",
+                    source_ref=segment.segment_id,
+                    reason="The second destination is independently violable.",
+                    basis=segment.segment_id,
+                ),
+            ),
+        )
+
+    split = NLContract(
+        **{
+            **common,
+            "contract_id": "NL-CONTRACT-NL2-HIGHWAY-ENDPOINT",
+            "normative_statement": "InitialState must transition to HighwayMode.",
+            "locus_names": ("InitialState", "HighwayMode"),
+            "property": "transition_endpoints",
+        },
+        binding_hints=(
+            ContractBindingHint(
+                role="source",
+                value="InitialState",
+                source_ref=segment.segment_id,
+                reason="The source state is explicit.",
+                basis=segment.segment_id,
+            ),
+            ContractBindingHint(
+                role="target",
+                value="HighwayMode",
+                source_ref=segment.segment_id,
+                reason="This contract has one exact destination.",
+                basis=segment.segment_id,
+            ),
+        ),
+    )
+    assert split.property == "transition_endpoints"
+    assert [hint.role for hint in split.binding_hints] == ["source", "target"]
+
+
+def test_0046_contract_shape_separates_endpoint_and_event_consumer() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0046")
+    segment = next(item for item in pair.nl_segments if item.segment_id == "NL3")
+    common = {
+        "contract_id": "NL-CONTRACT-NL3-INTERCEPTION",
+        "segment_id": segment.segment_id,
+        "quote": segment.text,
+        "normative_statement": "The interception event must be consumed in the UAV swarm scope.",
+        "locus_kind": "event",
+        "locus_names": ("interception event", "UAV swarm scope"),
+        "expected_direction": "must_cover",
+        "evidence_types": ("source_identity", "event_consumer_fact", "reachability_fact"),
+        "binding_hints": (
+            ContractBindingHint(
+                role="event",
+                value="interception event",
+                source_ref=segment.segment_id,
+                reason="The source clause supplies the event.",
+                basis=segment.segment_id,
+            ),
+            ContractBindingHint(
+                role="scope",
+                value="UAV swarm scope",
+                source_ref=segment.segment_id,
+                reason="The source clause supplies the applicable scope.",
+                basis=segment.segment_id,
+            ),
+        ),
+        "scope": "UAV swarm operation",
+        "source_refs": (segment.segment_id,),
+        "reason": "The fixture separates consumer coverage from endpoint identity.",
+        "basis": "0046 numbered NL input without ledger or judge data",
+    }
+    with pytest.raises(ValidationError, match="event-consumer"):
+        NLContract(
+            **common,
+            property="trigger_set",
+            violation_direction="wrong_target",
+        )
+
+    event_consumer = NLContract(
+        **common,
+        property="event_consumer_coverage",
+        violation_direction="unconsumed",
+    )
+    assert event_consumer.property == "event_consumer_coverage"
+    assert event_consumer.violation_direction == "unconsumed"
+    assert "One contract represents one property" in CONTRACT_SYSTEM_PROMPT
+    assert "semantic LLM judgment" in CONTRACT_SYSTEM_PROMPT
 
 
 def test_provider_retry_exemption_is_row_local_and_other_usage_is_billable() -> None:

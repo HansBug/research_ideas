@@ -6,7 +6,7 @@ import hashlib
 import json
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..inputs.context import prompt_context_payload
 from ..inputs.models import PairInput
@@ -43,11 +43,89 @@ class NLContract(BaseModel):
     expected_direction: ExpectedDirection = Field(description="Positive requirement direction stated by the NL, such as required existence, entry, reachability, progress, coverage, or absence.")
     violation_direction: ViolationDirection = Field(description="Defect direction that grounding must look for if the requirement is not met; it must not be reversed into a nearby existence observation.")
     evidence_types: tuple[EvidenceType, ...] = Field(min_length=1, description="Evidence families needed to assess this obligation; these route context but do not assert that evidence exists or proves a violation.")
-    binding_hints: tuple[ContractBindingHint, ...] = Field(default_factory=tuple, description="Typed source-side argument hints used by both grounding branches; each hint remains distinct from an exact FCSTM binding.")
+    binding_hints: tuple[ContractBindingHint, ...] = Field(default_factory=tuple, description="Typed source-side argument hints used by both grounding branches; each hint remains distinct from an exact FCSTM binding. One transition-property contract may identify at most one source, one target, and one transition; split alternative endpoints into separate contracts.")
     scope: str = Field(min_length=1, description="Human-readable source scope, phase, owner, or boundary retained for audit alongside the typed semantic key.")
     source_refs: tuple[str, ...] = Field(default_factory=tuple, description="Source references from the supplied NL, PlantUML, or source trace; do not invent references.")
     reason: str = Field(min_length=1, description="LLM explanation of why this contract follows from the supplied NL segment.")
     basis: str = Field(min_length=1, description="LLM basis naming the supplied segment and source facts used for this contract.")
+
+    @model_validator(mode="after")
+    def validate_atomic_contract_shape(self) -> NLContract:
+        """Reject structurally bundled or property/direction-incoherent rows.
+
+        This validator inspects only typed enum values and role cardinalities.
+        It deliberately does not interpret free text, names, or source wording.
+        """
+
+        role_counts = {
+            role: sum(hint.role == role for hint in self.binding_hints)
+            for role in {hint.role for hint in self.binding_hints}
+        }
+        transition_properties = {
+            "transition_endpoints",
+            "trigger_set",
+            "guard",
+            "effect",
+        }
+        if self.property in transition_properties:
+            repeated_roles = {
+                role: role_counts.get(role, 0)
+                for role in ("source", "target", "transition")
+                if role_counts.get(role, 0) > 1
+            }
+            if repeated_roles:
+                raise ValueError(
+                    "one atomic transition-property contract may contain at most "
+                    "one source, one target, and one transition hint; split "
+                    f"independently violable endpoints into separate contracts: {repeated_roles}"
+                )
+        if self.property == "guard" and role_counts.get("guard", 0) > 1:
+            raise ValueError(
+                "one atomic guard contract may contain one normalized guard "
+                "expression; preserve a conjunction in one guard hint and split "
+                "alternative transition guards into separate contracts"
+            )
+        if self.property == "effect" and role_counts.get("effect", 0) > 1:
+            raise ValueError(
+                "one atomic effect contract may contain one normalized effect; "
+                "split independently violable effects into separate contracts"
+            )
+
+        direction_mismatches = {
+            "initial_entry": {
+                "dead_end", "unreachable", "unconsumed", "wrong_guard", "wrong_effect",
+            },
+            "transition_endpoints": {
+                "dead_end", "unreachable", "unconsumed", "wrong_guard", "wrong_effect",
+            },
+            "trigger_set": {
+                "dead_end", "unreachable", "unconsumed", "wrong_target", "wrong_guard", "wrong_effect",
+            },
+            "guard": {
+                "dead_end", "unreachable", "unconsumed", "wrong_target", "wrong_effect",
+            },
+            "effect": {
+                "dead_end", "unreachable", "unconsumed", "wrong_target", "wrong_guard",
+            },
+            "reachability": {
+                "dead_end", "unconsumed", "wrong_target", "wrong_guard", "wrong_effect",
+            },
+            "deadlock_freedom": {
+                "unreachable", "unconsumed", "wrong_target", "wrong_guard", "wrong_effect",
+            },
+            "event_consumer_coverage": {
+                "dead_end", "wrong_target", "wrong_guard", "wrong_effect",
+            },
+        }
+        invalid_directions = direction_mismatches.get(self.property, set())
+        if self.violation_direction in invalid_directions:
+            raise ValueError(
+                f"property={self.property!r} cannot use "
+                f"violation_direction={self.violation_direction!r}; create a "
+                "separate contract for the endpoint, reachability, progress, "
+                "event-consumer, guard, or effect property actually stated"
+            )
+        return self
 
 
 class NLContractResponse(BaseModel):
@@ -208,6 +286,50 @@ def _safe_previous(previous: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return rows
 
 
+def _compact_contract_plan(contracts: NLContractResponse) -> dict[str, Any]:
+    """Project contract semantics once without repeating upstream rationale.
+
+    Complete contract and hint rationale remains in the contract stage output.
+    Grounding needs the typed key, source anchor, scope, and binding values; it
+    can refer to the hash when auditing the exact upstream response.
+    """
+
+    full_payload = contracts.model_dump(mode="json")
+    return {
+        "projection_version": "contract-grounding-projection.v1",
+        "full_contract_response_hash": _hash(full_payload),
+        "contract_count": len(contracts.contracts),
+        "contracts": [
+            {
+                "contract_id": contract.contract_id,
+                "segment_id": contract.segment_id,
+                "quote": contract.quote,
+                "normative_statement": contract.normative_statement,
+                "locus_kind": contract.locus_kind,
+                "locus_names": contract.locus_names,
+                "property": contract.property,
+                "expected_direction": contract.expected_direction,
+                "violation_direction": contract.violation_direction,
+                "evidence_types": contract.evidence_types,
+                "binding_hints": [
+                    {
+                        "role": hint.role,
+                        "value": hint.value,
+                        "source_ref": hint.source_ref,
+                    }
+                    for hint in contract.binding_hints
+                ],
+                "scope": contract.scope,
+                "source_refs": contract.source_refs,
+            }
+            for contract in contracts.contracts
+        ],
+        "segment_disposition": contracts.segment_disposition,
+        "reason": "Grounding receives each exact typed contract and source anchor while upstream LLM rationale remains in the hash-addressed contract stage output.",
+        "basis": "contract-grounding-projection.v1 and full contract response hash",
+    }
+
+
 def _context_text(pair: PairInput, *, stage: Literal["nl_contract_extraction", "source_grounding", "model_grounding", "d_adjudication"]) -> str:
     """Serialize the stage-scoped closure while retaining the complete manifest."""
 
@@ -239,7 +361,18 @@ PREDICATE_ROUTING_GUIDANCE = """Frozen predicate routing discipline:
 - For a missing fact, bind the expected exact model/source element and the observed absence or counterexample. For a present fact, preserve it as a non-violation observation unless the supplied dossier identifies a distinct violated obligation."""
 
 
-CONTRACT_SYSTEM_PROMPT = f"""You are the NL contract extraction stage of the paper1 evidence_discovery method. {COMMON_RULES} Extract atomic source obligations before inspecting model satisfaction. For every contract, fill the typed semantic key `(locus_kind, locus_names, property, expected_direction, violation_direction, evidence_types)` and typed binding hints. Split independently violable containment, initialization, transition endpoint, trigger, guard, effect, action, reachability, progress, event-consumer, region, variable-delta, and excess-behavior clauses instead of bundling them. Preserve qualifiers, ordering, initialization/operation/termination scope, and ambiguity. The violation direction says what later grounding must test; it does not claim that the defect exists. Return only the requested Pydantic structure."""
+CONTRACT_SYSTEM_PROMPT = f"""You are the NL contract extraction stage of the paper1 evidence_discovery method. {COMMON_RULES} Extract atomic source obligations before inspecting model satisfaction. For every contract, fill the typed semantic key `(locus_kind, locus_names, property, expected_direction, violation_direction, evidence_types)` and typed binding hints. Split independently violable containment, initialization, transition endpoint, trigger, guard, effect, action, reachability, progress, event-consumer, region, variable-delta, and excess-behavior clauses instead of bundling them. Preserve qualifiers, ordering, initialization/operation/termination scope, and ambiguity. The violation direction says what later grounding must test; it does not claim that the defect exists.
+
+Atomic contract shape:
+- One contract represents one property at one independently violable locus. A transition-property row has at most one source, one target, and one transition hint.
+- Alternative destinations are separate endpoint contracts. A guard conjunction for one exact transition remains one normalized guard hint; guards attached to different transitions are separate contracts.
+- Initialization, containment, endpoint, trigger, guard, effect, action, reachability/progress, event-consumer coverage, region structure, and variable delta never share one contract merely because the NL states them in one sentence.
+- `wrong_target` belongs to `transition_endpoints`, `wrong_guard` to `guard`, `wrong_effect` to `effect` or `variable_delta`, `unreachable` to `reachability`, `dead_end` to `deadlock_freedom`, and `unconsumed` to `event_consumer_coverage`. Do not encode one property with another property's direction.
+- When an event is semantically required to be accepted within a scope, emit a separate `event_consumer_coverage` contract in addition to any local endpoint/trigger contract. This is a semantic LLM judgment from the supplied NL, never a spelling or keyword rule.
+
+Generic worked example: "Within Controller, start in Idle; on Begin transition from Idle to Running when enabled and set mode=active" yields separate contracts for Controller containment of Idle, Controller initial entry to Idle, the Idle-to-Running endpoint, its Begin trigger set, its enabled guard, and its mode=active effect. If the clause also requires Begin to be accepted throughout Controller, that coverage requirement is a separate event-consumer contract. Do not copy the whole sentence into one multi-property contract.
+
+Return only the requested Pydantic structure."""
 
 
 SOURCE_GROUNDING_SYSTEM_PROMPT = f"""You are the author-source grounding branch of the paper1 evidence_discovery method. {COMMON_RULES} Use NL contracts, PlantUML, canonical source IR, exact source inventory, working contract, and source trace to locate source-scoped obligations and exact source identities. FCSTM facts may be compared only as a separate closed-model role. Do not claim that source presence proves execution or a violation. Return only the requested Pydantic structure."""
@@ -357,7 +490,7 @@ that ID; otherwise use `satisfied`, `unresolved`, or `not_applicable` with a
 contract-specific reason and basis. Do not silently omit a contract.
 
 NL contracts:
-{json.dumps(contracts.model_dump(mode="json"), ensure_ascii=False, sort_keys=True, indent=2)}
+{json.dumps(_compact_contract_plan(contracts), ensure_ascii=False, sort_keys=True, indent=2)}
 
 Stage-scoped context projection and complete artifact manifest:
 {_context_text(pair, stage="source_grounding" if branch == "source" else "model_grounding")}
