@@ -12,7 +12,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from utils.agent import AgentApp, AgentError, AgentSpec
 from utils.llm import estimate_usage_cost_usd, load_llm_registry
 
-
 T = TypeVar("T", bound=BaseModel)
 
 # A streaming provider call gets a finite first-byte/read boundary. Each model
@@ -61,13 +60,13 @@ def _provider_timeout_seconds(streaming: bool) -> int:
     )
 
 
-class ProviderCallTimeout(TimeoutError):
-    """Raised when the public structured cell exceeds its wall-clock deadline."""
+class StructuredStageTimeout(TimeoutError):
+    """Raised when the enclosing structured stage exhausts its local deadline."""
 
 
 @contextmanager
-def _provider_deadline(seconds: int):
-    """Bound a synchronous AgentApp call without changing its request payload."""
+def _structured_stage_deadline(seconds: int):
+    """Bound one synchronous structured stage without changing its payload."""
 
     if threading.current_thread() is not threading.main_thread():
         # SIGALRM is process-global; callers using a worker thread still rely
@@ -77,8 +76,8 @@ def _provider_deadline(seconds: int):
     previous = signal.getsignal(signal.SIGALRM)
 
     def _raise_timeout(_signum: int, _frame: Any) -> None:
-        raise ProviderCallTimeout(
-            f"provider structured call exceeded {seconds} seconds"
+        raise StructuredStageTimeout(
+            f"structured stage exceeded its local {seconds}-second deadline"
         )
 
     signal.signal(signal.SIGALRM, _raise_timeout)
@@ -104,7 +103,12 @@ def _jsonable(value: Any) -> Any:
 
 def _usage_rows(result: Any, *, outer_attempt: int | None = None) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for item in getattr(result, "usage", ()) or ():
+    usage = (
+        result.get("usage", ())
+        if isinstance(result, dict)
+        else getattr(result, "usage", ())
+    )
+    for item in usage or ():
         if not isinstance(item, dict):
             continue
         value = item.get("usage")
@@ -124,6 +128,20 @@ def _usage_rows(result: Any, *, outer_attempt: int | None = None) -> list[dict[s
                 row["outer_attempt"] = outer_attempt
             rows.append(row)
     return rows
+
+
+def _read_result_artifact(path: Path) -> tuple[dict[str, Any] | None, str]:
+    """Recover a committed public result without turning audit damage into a gate."""
+
+    if not path.is_file():
+        return None, "result_artifact_missing"
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None, "result_artifact_unreadable"
+    if not isinstance(value, dict):
+        return None, "result_artifact_not_an_object"
+    return value, "committed_result_artifact"
 
 
 def _is_provider_error(error: dict[str, Any] | None) -> bool:
@@ -229,11 +247,14 @@ def _annotate_usage_billing(
     )
     if not has_provider_retry and not actual_outer_retry:
         return
+    fallback_without_call_identity = not failed_call_ids and (
+        has_provider_retry or actual_outer_retry
+    )
     for row in rows:
         call_id = row.get("model_call_id")
         failed_status = row.get("status") in {"failed", "unavailable", "cancelled"}
         if (isinstance(call_id, str) and call_id in failed_call_ids) or (
-            failed_status and (has_provider_retry or actual_outer_retry)
+            failed_status and fallback_without_call_identity
         ):
             row["cost_counted"] = False
             row["billing_disposition"] = "provider_error_retry_exempt"
@@ -445,8 +466,10 @@ class PublicStructuredRuntime:
             attempt_dir.mkdir(parents=True, exist_ok=True)
             audit_path = attempt_dir / "audit.jsonl"
             result_path = attempt_dir / "result.json"
+            captured_result: dict[str, Any] | None = None
+            rows: list[dict[str, Any]] = []
             try:
-                with _provider_deadline(STRUCTURED_STAGE_DEADLINE_SECONDS):
+                with _structured_stage_deadline(STRUCTURED_STAGE_DEADLINE_SECONDS):
                     result = self._app(
                         kind,
                         schema,
@@ -460,7 +483,8 @@ class PublicStructuredRuntime:
                         audit_out=audit_path,
                         result_out=result_path,
                     )
-                last_result = result.to_dict()
+                captured_result = result.to_dict()
+                last_result = captured_result
                 audit_records = _read_audit_records(audit_path)
                 rows = _usage_rows(result, outer_attempt=outer_attempt)
                 all_usage.extend(rows)
@@ -475,6 +499,13 @@ class PublicStructuredRuntime:
                     final_error=error,
                     actual_outer_retry=actual_outer_retry,
                 )
+                validated_response = None
+                if result.status == "success" and result.output is not None:
+                    validated_response = (
+                        result.output
+                        if isinstance(result.output, schema)
+                        else schema.model_validate(result.output)
+                    )
                 attempt = {
                     "outer_attempt": outer_attempt,
                     "status": result.status,
@@ -487,22 +518,51 @@ class PublicStructuredRuntime:
                     "retry_records": _retry_records(audit_records),
                 }
                 attempts.append(attempt)
-                if result.status == "success" and result.output is not None:
-                    response = result.output if isinstance(result.output, schema) else schema.model_validate(result.output)
+                if validated_response is not None:
+                    response = validated_response
                     status = "success"
                     break
                 if provider_error and outer_attempt < max_outer_attempts:
                     continue
                 status = "failed"
                 break
-            except (ProviderCallTimeout, AgentError, ValueError, TypeError) as exc:
+            except (StructuredStageTimeout, AgentError, ValueError, TypeError) as exc:
                 audit_records = _read_audit_records(audit_path)
-                if isinstance(exc, ProviderCallTimeout):
+                if captured_result is not None:
+                    artifact_result = captured_result
+                    recovery_source = "in_memory_public_result"
+                else:
+                    artifact_result, recovery_source = _read_result_artifact(
+                        result_path
+                    )
+                    rows = _usage_rows(
+                        artifact_result or {},
+                        outer_attempt=outer_attempt,
+                    )
+                    all_usage.extend(rows)
+                if artifact_result is not None:
+                    last_result = artifact_result
+                if isinstance(exc, StructuredStageTimeout):
                     error_payload = {
-                        "code": "provider_timeout",
+                        "code": "structured_stage_timeout",
                         "message": str(exc),
-                        "phase": "model_transport",
+                        "phase": "local_runtime",
                     }
+                    if not rows:
+                        rows = [
+                            {
+                                "model_call_id": None,
+                                "status": "cancelled",
+                                "input_tokens": None,
+                                "output_tokens": None,
+                                "source": "unavailable",
+                                "unavailable_reason": recovery_source,
+                                "cost_counted": True,
+                                "billing_disposition": "billable_usage_unavailable",
+                                "outer_attempt": outer_attempt,
+                            }
+                        ]
+                        all_usage.extend(rows)
                 elif isinstance(exc, AgentError):
                     error_payload = {
                         "code": exc.code,
@@ -516,6 +576,15 @@ class PublicStructuredRuntime:
                         "phase": "local_runtime",
                     }
                 provider_error = _is_provider_error(error_payload)
+                actual_outer_retry = bool(
+                    provider_error and outer_attempt < max_outer_attempts
+                )
+                _annotate_usage_billing(
+                    rows,
+                    audit_records=audit_records,
+                    final_error=error_payload,
+                    actual_outer_retry=actual_outer_retry,
+                )
                 attempts.append({
                     "outer_attempt": outer_attempt,
                     "status": "exception",
@@ -523,14 +592,36 @@ class PublicStructuredRuntime:
                     "error": error_payload,
                     "audit_path": str(audit_path),
                     "result_path": str(result_path),
-                    "usage_count": 0,
+                    "usage_count": len(rows),
+                    "usage_recovery": {
+                        "status": (
+                            "recovered"
+                            if artifact_result is not None and rows
+                            else "recovered_without_rows"
+                            if artifact_result is not None
+                            else "unavailable"
+                        ),
+                        "source": recovery_source,
+                        "result_path": str(result_path),
+                        "reason": (
+                            "Usage rows were recovered from the committed public result artifact."
+                            if rows and recovery_source == "committed_result_artifact"
+                            else "Usage rows were retained from the in-memory public result before local validation failed."
+                            if rows and recovery_source == "in_memory_public_result"
+                            else "No committed usage rows were available; cost remains explicitly unobserved rather than assumed to be zero."
+                        ),
+                    },
                     "billing_disposition": "provider_error_attempt_requires_row_level_join" if provider_error else "billable",
                     "retry_records": _retry_records(audit_records),
                 })
                 if provider_error and outer_attempt < max_outer_attempts:
                     continue
                 status = "failed"
-                last_result = {"status": "failed", "error": error_payload}
+                last_result = (
+                    {**artifact_result, "wrapper_error": error_payload}
+                    if artifact_result is not None
+                    else {"status": "failed", "error": error_payload}
+                )
                 break
         cost = _cost_for_usage(all_usage, self.config.pricing)
         provider_input_tokens = sum(

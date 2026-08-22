@@ -84,7 +84,7 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v8"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v4"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v15"
+CODE_VERSION = "evidence-discovery-v27-flow.v16"
 PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v15"
 
 
@@ -344,7 +344,10 @@ def _retry_policy(transport_retries: int) -> dict[str, Any]:
         "structured_stage_timeout_seconds": STRUCTURED_STAGE_DEADLINE_SECONDS,
         "non_stream_provider_timeout_seconds": PROVIDER_CALL_DEADLINE_SECONDS,
         "dead_structured_call_retries_after_provider_error": 1,
+        "structured_stage_timeout_owner": "local_runtime",
+        "structured_stage_timeout_outer_retry": False,
         "schema_and_non_provider_retries_billable": True,
+        "unavailable_non_provider_usage": "cost_ineligible_not_zero",
         "provider_retry_exemption": "Only a failed provider attempt followed by an actual same-request retry is exempt; the successful attempt remains billable.",
         "reason": "The run uses v27-equivalent in-place provider recovery without cold cell reruns.",
         "basis": "utils.agent transport middleware plus row-local usage/retry identity",

@@ -6,6 +6,7 @@ import re
 from datetime import date
 from importlib import import_module
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from pipeline.evidence_discovery.backends import run_backend
@@ -60,13 +61,14 @@ from pipeline.evidence_discovery.orchestration.runtime import (
     PROVIDER_CALL_DEADLINE_SECONDS,
     PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS,
     STRUCTURED_STAGE_DEADLINE_SECONDS,
-    ProviderCallTimeout,
+    PublicStructuredRuntime,
     StructuredCallOutcome,
+    StructuredStageTimeout,
     _annotate_usage_billing,
     _cost_for_usage,
     _is_provider_error,
-    _provider_deadline,
     _provider_timeout_seconds,
+    _structured_stage_deadline,
 )
 from pipeline.evidence_discovery.registry import load_registry
 from pipeline.evidence_discovery.semantics import (
@@ -76,8 +78,8 @@ from pipeline.evidence_discovery.semantics import (
     CandidateIssue,
     ContextBudgetReceipt,
     ContractBindingHint,
-    GroundingUnresolved,
     GroundingResponse,
+    GroundingUnresolved,
     MethodResponse,
     NLContract,
     NLContractResponse,
@@ -98,6 +100,7 @@ from pipeline.evidence_discovery.semantics import (
 from pipeline.evidence_discovery.semantics.binding import BindingResult
 from pydantic import BaseModel, ValidationError
 
+from utils.agent import AgentError
 from utils.llm.config import LLMPricing, LLMTokenPrices
 
 PAPER_ROOT = Path(__file__).parents[3]
@@ -2467,8 +2470,8 @@ def test_exact_s2_scout_materializes_missing_typed_edge_without_text_rules() -> 
     assert present_receipts == []
 
 
-def test_provider_retry_exemption_is_row_local_and_other_usage_is_billable() -> None:
-    pricing = LLMPricing(
+def _runtime_fixture_pricing() -> LLMPricing:
+    return LLMPricing(
         prices=LLMTokenPrices(
             input_usd_per_million_tokens=1.0,
             output_usd_per_million_tokens=2.0,
@@ -2480,6 +2483,26 @@ def test_provider_retry_exemption_is_row_local_and_other_usage_is_billable() -> 
         basis="official_list_price",
         scope_note="fixture",
     )
+
+
+def _provider_free_public_runtime(
+    tmp_path: Path,
+    *,
+    pricing: LLMPricing,
+) -> PublicStructuredRuntime:
+    runtime = PublicStructuredRuntime.__new__(PublicStructuredRuntime)
+    runtime.artifact_root = tmp_path
+    runtime.streaming = True
+    runtime.transport_retries = 0
+    runtime.config = SimpleNamespace(
+        pricing=pricing,
+        context_window_tokens=272_000,
+    )
+    return runtime
+
+
+def test_provider_retry_exemption_is_row_local_and_other_usage_is_billable() -> None:
+    pricing = _runtime_fixture_pricing()
     rows = [
         {"model_call_id": "failed", "status": "failed", "input_tokens": None, "output_tokens": None},
         {"model_call_id": "successful", "status": "completed", "input_tokens": 100, "output_tokens": 10},
@@ -2503,6 +2526,42 @@ def test_provider_retry_exemption_is_row_local_and_other_usage_is_billable() -> 
     assert cost["total_usd"] is not None and cost["total_usd"] > 0
     assert cost["attempts"][0]["total_usd"] == 0.0
     assert cost["attempts"][1]["total_usd"] > 0
+
+
+def test_identified_provider_retry_does_not_exempt_unrelated_cancellation() -> None:
+    rows = [
+        {
+            "model_call_id": "failed-provider-call",
+            "status": "failed",
+            "input_tokens": None,
+            "output_tokens": None,
+        },
+        {
+            "model_call_id": "later-local-cancellation",
+            "status": "cancelled",
+            "input_tokens": None,
+            "output_tokens": None,
+        },
+    ]
+    audit_records = [
+        {
+            "record": "transport_retry",
+            "record_type": "transport_retry",
+            "operation": "scheduled",
+            "failed_model_call_id": "failed-provider-call",
+        }
+    ]
+
+    _annotate_usage_billing(
+        rows,
+        audit_records=audit_records,
+        final_error={"code": "structured_stage_timeout"},
+    )
+
+    assert rows[0]["cost_counted"] is False
+    assert rows[0]["billing_disposition"] == "provider_error_retry_exempt"
+    assert rows[1].get("cost_counted", True) is True
+    assert rows[1].get("billing_disposition", "billable") == "billable"
 
 
 def test_terminal_provider_failure_without_an_actual_retry_remains_billable() -> None:
@@ -2532,18 +2591,280 @@ def test_terminal_provider_failure_without_an_actual_retry_remains_billable() ->
     assert rows[0]["billing_disposition"] == "provider_error_retry_exempt"
 
 
-def test_provider_deadline_is_finite_and_provider_timeout_is_bounded() -> None:
+def test_structured_stage_deadline_is_distinct_from_provider_timeout() -> None:
     assert PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS == 30
     assert PROVIDER_CALL_DEADLINE_SECONDS == 300
     assert STRUCTURED_STAGE_DEADLINE_SECONDS == 900
     assert _provider_timeout_seconds(True) == 30
     assert _provider_timeout_seconds(False) == 300
     assert PROVIDER_CALL_DEADLINE_SECONDS > PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS
-    with pytest.raises(ProviderCallTimeout):
-        with _provider_deadline(0.01):
-            import time
+    with pytest.raises(StructuredStageTimeout), _structured_stage_deadline(0.01):
+        import time
 
-            time.sleep(0.05)
+        time.sleep(0.05)
+
+
+def test_structured_stage_timeout_recovers_committed_usage_without_outer_retry(
+    tmp_path: Path,
+) -> None:
+    class FixtureResponse(BaseModel):
+        value: str
+
+    class StageTimeoutApp:
+        def run(self, _prompt: str, **kwargs: object) -> object:
+            result_path = Path(str(kwargs["result_out"]))
+            result_path.write_text(
+                json.dumps(
+                    {
+                        "status": "cancelled",
+                        "output": None,
+                        "error": {
+                            "code": "cancelled",
+                            "message": "local stage deadline cancelled the run",
+                        },
+                        "usage": [
+                            {
+                                "model_call_id": "completed-before-stage-timeout",
+                                "status": "completed",
+                                "input_tokens": 100,
+                                "output_tokens": 10,
+                            },
+                            {
+                                "model_call_id": "cancelled-at-stage-timeout",
+                                "status": "cancelled",
+                                "input_tokens": None,
+                                "output_tokens": None,
+                                "source": "unavailable",
+                                "unavailable_reason": "adapter_did_not_expose_provider_usage",
+                            },
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            raise StructuredStageTimeout("fixture structured stage timeout")
+
+    runtime = _provider_free_public_runtime(
+        tmp_path,
+        pricing=_runtime_fixture_pricing(),
+    )
+    runtime._app = lambda *_args, **_kwargs: StageTimeoutApp()
+
+    outcome = runtime._call_unlocked(
+        kind="fixture_stage",
+        schema=FixtureResponse,
+        system_prompt="fixture system prompt",
+        prompt="fixture prompt",
+        artifact_id="fixture-stage-timeout",
+        retry_cell_on_provider_error=True,
+    )
+
+    assert outcome.status == "failed"
+    assert len(outcome.attempts) == 1
+    assert outcome.attempts[0]["provider_error"] is False
+    assert outcome.attempts[0]["error"]["code"] == "structured_stage_timeout"
+    assert outcome.attempts[0]["usage_count"] == 2
+    assert outcome.attempts[0]["usage_recovery"]["status"] == "recovered"
+    assert outcome.result["status"] == "cancelled"
+    assert outcome.result["wrapper_error"]["code"] == "structured_stage_timeout"
+    assert len(outcome.usage) == 2
+    assert outcome.usage[0]["cost_counted"] is True
+    assert outcome.usage[0]["billing_disposition"] == "billable"
+    assert outcome.cost["attempts"][0]["total_usd"] > 0
+    assert outcome.usage[1]["cost_counted"] is True
+    assert outcome.usage[1]["billing_disposition"] == "billable"
+    assert outcome.cost["attempts"][1]["eligible"] is False
+    assert outcome.cost["attempts"][1]["total_usd"] is None
+    assert outcome.cost["total_usd"] is None
+
+
+def test_exception_provider_failure_recovers_usage_and_exempts_only_retried_row(
+    tmp_path: Path,
+) -> None:
+    class FixtureResponse(BaseModel):
+        value: str
+
+    class ProviderFailureApp:
+        def run(self, _prompt: str, **kwargs: object) -> object:
+            result_path = Path(str(kwargs["result_out"]))
+            result_path.write_text(
+                json.dumps(
+                    {
+                        "status": "failed",
+                        "output": None,
+                        "error": {
+                            "code": "provider_timeout",
+                            "message": "fixture provider timeout",
+                        },
+                        "usage": [
+                            {
+                                "model_call_id": "failed-provider-attempt",
+                                "status": "failed",
+                                "input_tokens": 100,
+                                "output_tokens": 0,
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            raise AgentError(
+                "provider_timeout",
+                "fixture provider timeout",
+                details={"source": "provider"},
+            )
+
+    success_result = SimpleNamespace(
+        status="success",
+        output=FixtureResponse(value="ok"),
+        error=None,
+        usage=[
+            {
+                "model_call_id": "successful-provider-attempt",
+                "status": "completed",
+                "input_tokens": 120,
+                "output_tokens": 12,
+            }
+        ],
+        to_dict=lambda: {
+            "status": "success",
+            "output": {"value": "ok"},
+            "error": None,
+        },
+    )
+    runtime = _provider_free_public_runtime(
+        tmp_path,
+        pricing=_runtime_fixture_pricing(),
+    )
+    app_count = 0
+
+    def app_factory(*_args: object, **_kwargs: object) -> object:
+        nonlocal app_count
+        app_count += 1
+        return ProviderFailureApp() if app_count == 1 else SimpleNamespace(
+            run=lambda *_run_args, **_run_kwargs: success_result
+        )
+
+    runtime._app = app_factory
+    outcome = runtime._call_unlocked(
+        kind="fixture_provider_retry",
+        schema=FixtureResponse,
+        system_prompt="fixture system prompt",
+        prompt="fixture prompt",
+        artifact_id="fixture-provider-retry",
+        retry_cell_on_provider_error=True,
+    )
+
+    assert outcome.status == "success"
+    assert len(outcome.attempts) == 2
+    assert outcome.attempts[0]["provider_error"] is True
+    assert outcome.attempts[0]["usage_recovery"]["status"] == "recovered"
+    assert outcome.usage[0]["cost_counted"] is False
+    assert outcome.usage[0]["billing_disposition"] == "provider_error_retry_exempt"
+    assert outcome.usage[1]["cost_counted"] is True
+    assert outcome.usage[1]["billing_disposition"] == "billable"
+    assert outcome.cost["eligible"] is True
+    assert outcome.cost["attempts"][0]["total_usd"] == 0.0
+    assert outcome.cost["attempts"][1]["total_usd"] > 0
+
+
+def test_structured_stage_timeout_without_result_records_unknown_billable_usage(
+    tmp_path: Path,
+) -> None:
+    class FixtureResponse(BaseModel):
+        value: str
+
+    class StageTimeoutWithoutResultApp:
+        def run(self, _prompt: str, **_kwargs: object) -> object:
+            raise StructuredStageTimeout("fixture timeout before result commit")
+
+    runtime = _provider_free_public_runtime(
+        tmp_path,
+        pricing=_runtime_fixture_pricing(),
+    )
+    runtime._app = lambda *_args, **_kwargs: StageTimeoutWithoutResultApp()
+
+    outcome = runtime._call_unlocked(
+        kind="fixture_stage_without_result",
+        schema=FixtureResponse,
+        system_prompt="fixture system prompt",
+        prompt="fixture prompt",
+        artifact_id="fixture-stage-without-result",
+        retry_cell_on_provider_error=True,
+    )
+
+    assert len(outcome.attempts) == 1
+    assert outcome.attempts[0]["provider_error"] is False
+    assert outcome.attempts[0]["usage_recovery"]["status"] == "unavailable"
+    assert outcome.usage == [
+        {
+            "model_call_id": None,
+            "status": "cancelled",
+            "input_tokens": None,
+            "output_tokens": None,
+            "source": "unavailable",
+            "unavailable_reason": "result_artifact_missing",
+            "cost_counted": True,
+            "billing_disposition": "billable_usage_unavailable",
+            "outer_attempt": 1,
+        }
+    ]
+    assert outcome.cost["eligible"] is False
+    assert outcome.cost["total_usd"] is None
+
+
+def test_local_schema_failure_does_not_duplicate_in_memory_usage(
+    tmp_path: Path,
+) -> None:
+    class FixtureResponse(BaseModel):
+        value: str
+
+    invalid_result = SimpleNamespace(
+        status="success",
+        output={},
+        error=None,
+        usage=[
+            {
+                "model_call_id": "schema-failure-call",
+                "status": "completed",
+                "input_tokens": 100,
+                "output_tokens": 10,
+            }
+        ],
+        to_dict=lambda: {
+            "status": "success",
+            "output": {},
+            "error": None,
+        },
+    )
+    runtime = _provider_free_public_runtime(
+        tmp_path,
+        pricing=_runtime_fixture_pricing(),
+    )
+    runtime._app = lambda *_args, **_kwargs: SimpleNamespace(
+        run=lambda *_run_args, **_run_kwargs: invalid_result
+    )
+
+    outcome = runtime._call_unlocked(
+        kind="fixture_local_schema_failure",
+        schema=FixtureResponse,
+        system_prompt="fixture system prompt",
+        prompt="fixture prompt",
+        artifact_id="fixture-local-schema-failure",
+        retry_cell_on_provider_error=True,
+    )
+
+    assert outcome.status == "failed"
+    assert len(outcome.attempts) == 1
+    assert outcome.attempts[0]["provider_error"] is False
+    assert outcome.attempts[0]["usage_count"] == 1
+    assert outcome.attempts[0]["usage_recovery"]["source"] == (
+        "in_memory_public_result"
+    )
+    assert len(outcome.usage) == 1
+    assert outcome.usage[0]["model_call_id"] == "schema-failure-call"
+    assert outcome.cost["eligible"] is True
+    assert outcome.cost["total_usd"] > 0
 
 
 def test_provider_error_classification_uses_typed_ownership_not_message_text() -> None:
@@ -3242,7 +3563,14 @@ def test_provider_free_run_manifest_resume_and_concurrent_atomic_writes(tmp_path
     assert manifest["retry_policy"]["stream_first_byte_timeout_seconds"] == 30
     assert manifest["retry_policy"]["provider_call_total_timeout_seconds"] == 300
     assert manifest["retry_policy"]["structured_stage_timeout_seconds"] == 900
+    assert manifest["retry_policy"]["structured_stage_timeout_owner"] == (
+        "local_runtime"
+    )
+    assert manifest["retry_policy"]["structured_stage_timeout_outer_retry"] is False
     assert manifest["retry_policy"]["non_stream_provider_timeout_seconds"] == 300
+    assert manifest["retry_policy"]["unavailable_non_provider_usage"] == (
+        "cost_ineligible_not_zero"
+    )
     assert manifest["prompt_schema_hash"].startswith("sha256:")
     assert manifest["input_data_hash"].startswith("sha256:")
     assert manifest["pair_input_hashes"].keys() == {"0004", "0023"}
