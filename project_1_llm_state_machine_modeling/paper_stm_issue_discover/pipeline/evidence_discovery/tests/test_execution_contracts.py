@@ -419,6 +419,54 @@ def test_enrich_candidate_replaces_typed_transition_endpoints_with_canonical_mod
     assert receipt.verdict == "true"
     assert receipt.terminal_state == "completed"
 
+
+def test_enrich_candidate_preserves_required_s2_endpoints_when_supporting_edge_differs() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0035")
+    initial_edge = next(item for item in pair.model.transitions if item.source == "[*]")
+    required_target = pair.model.state("DoorShut")
+    observed_target = pair.model.state(initial_edge.target)
+    assert required_target is not None
+    assert observed_target is not None
+    candidate = _candidate(
+        pair,
+        predicate_id="S2",
+        inputs={
+            "source": "[*]",
+            "target": "DoorShut",
+            "scope": "closed_fcstm",
+        },
+        refs=[initial_edge.ref, observed_target.ref, required_target.ref],
+    ).model_copy(
+        update={
+            "contract_id": "NL-CONTRACT-NL1-INITIAL-1",
+            "locus_kind": "scope",
+            "locus_names": ("microwave", "DoorShut"),
+            "property": "initial_entry",
+            "violation_direction": "wrong_target",
+        }
+    )
+    binding = bind_candidate(candidate, pair.model)
+    enriched = _enrich_candidate(candidate, binding, pair)
+
+    assert enriched.predicate_inputs["source"] == "[*]"
+    assert enriched.predicate_inputs["target"] == "DoorShut"
+    assert "transition" not in enriched.predicate_inputs
+    assert "transition_ref" not in enriched.predicate_inputs
+
+    plan = compile_plan(
+        enriched,
+        binding,
+        load_registry(),
+        obligation_id="0035:required-initial-s2",
+        round_index=1,
+        model=pair.model,
+        model_hash=pair.hashes["fcstm"],
+    )
+    receipt = run_backend(plan, pair.model, "0035:required-initial-s2:receipt")
+    assert receipt.verdict == "false"
+    assert receipt.counterexample == [{"source": "[*]", "target": "DoorShut"}]
+
+
 def test_w2_audit_contains_logic_hashes_backend_and_retry_records(tmp_path: Path) -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     registry = load_registry()

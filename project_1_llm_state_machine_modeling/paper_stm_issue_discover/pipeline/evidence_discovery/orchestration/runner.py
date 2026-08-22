@@ -666,7 +666,12 @@ def _enrich_candidate(candidate: CandidateIssue, binding: Any, pair: PairInput) 
         source=inputs.get("source") if isinstance(inputs.get("source"), str) else None,
         target=inputs.get("target") if isinstance(inputs.get("target"), str) else None,
     )
-    if transition_ref is None and not transition_hint and len(bound_transitions) == 1:
+    if (
+        transition_ref is None
+        and not transition_hint
+        and candidate.predicate_id in {"S3", "S5", "S6"}
+        and len(bound_transitions) == 1
+    ):
         transition_ref = bound_transitions[0].ref
     # A predicate requiring one transition must receive one unambiguous
     # transition binding. Composite candidates remain W0 until the method names
@@ -675,11 +680,11 @@ def _enrich_candidate(candidate: CandidateIssue, binding: Any, pair: PairInput) 
         transition = pair.model.transition(transition_ref)
         if transition is not None:
             # Predicate inputs are executable fields, not provenance slots.
-            # Once the binding identifies one closed-model edge, overwrite any
-            # source/target/ref spellings emitted by the model (for example
-            # ``state:Searching:line:13``).  Keeping those spellings would
-            # make the backend compare a typed source reference with the
-            # canonical FCSTM endpoint and report a false missing edge.
+            # Once the predicate identifies one closed-model edge, overwrite
+            # typed source/target/ref spellings with canonical FCSTM values.
+            # S2 absence checks without a transition hint deliberately do not
+            # infer a subject edge from supporting refs: their source/target
+            # pair is the required edge that the backend must test.
             inputs["transition"] = transition.ref
             inputs["transition_ref"] = transition.ref
             inputs["source"] = transition.source
