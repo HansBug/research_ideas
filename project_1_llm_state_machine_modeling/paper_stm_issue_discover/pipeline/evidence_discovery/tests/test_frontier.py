@@ -914,6 +914,79 @@ def test_termination_frontier_treats_source_hint_as_owner_with_explicit_target()
     }
 
 
+def test_termination_frontier_joins_same_segment_completion_endpoint() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    termination_contracts = [
+        _contract(
+            contract_id=f"NL-CONTRACT-{segment}-TERMINATION-OWNER-ONLY",
+            segment_id=segment,
+            locus_kind="composite",
+            locus_names=(owner,),
+            property_name="termination",
+            expected_direction="must_terminate",
+            violation_direction="not_completed",
+            hints=(_hint("state", owner, segment),),
+            state_role="termination_state",
+        )
+        for segment, owner in (("NL6", "HighwayMode"), ("NL10", "UrbanMode"))
+    ]
+    endpoint_contracts = [
+        _contract(
+            contract_id=f"NL-CONTRACT-{segment}-COMPLETION-ENDPOINT",
+            segment_id=segment,
+            locus_kind="transition",
+            locus_names=(owner, "FinishState"),
+            property_name="transition_endpoints",
+            expected_direction="must_exist",
+            violation_direction="wrong_target",
+            hints=(
+                _hint("source", owner, segment),
+                _hint("target", "FinishState", segment),
+            ),
+            state_role="termination_state",
+        )
+        for segment, owner in (("NL6", "HighwayMode"), ("NL10", "UrbanMode"))
+    ]
+    contracts = [*termination_contracts, *endpoint_contracts]
+
+    batch = materialize_v27_frontier(
+        pair,
+        _response(contracts),
+        {item.contract_id: item for item in contracts},
+        (),
+        (),
+    )
+
+    aggregate = next(
+        item
+        for item in batch.obligations
+        if item.kind == "aggregate_stable_termination"
+    )
+    wrong_scope = next(
+        item for item in batch.obligations if item.kind == "wrong_scope_route"
+    )
+    assert aggregate.source_contract_ids == tuple(
+        item.contract_id for item in termination_contracts
+    )
+    assert aggregate.candidate.locus_names == (
+        "HighwayMode",
+        "UrbanMode",
+        "FinishState",
+    )
+    assert wrong_scope.source_contract_ids == (
+        termination_contracts[1].contract_id,
+        endpoint_contracts[1].contract_id,
+    )
+    assert wrong_scope.candidate.locus_names == (
+        "UrbanMode",
+        "FinishState",
+        "HighwayMode",
+    )
+    assert set(batch.superseded_candidate_contract_ids) == {
+        item.contract_id for item in termination_contracts
+    }
+
+
 def test_0029_grounding_group_identity_is_canonical_and_consumed() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0029")
     cruise = _contract(

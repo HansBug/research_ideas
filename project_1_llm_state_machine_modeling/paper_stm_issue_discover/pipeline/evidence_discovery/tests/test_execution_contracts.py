@@ -1108,6 +1108,7 @@ def test_0046_d1_ambiguity_is_semantically_equivalent_not_partial_overlap() -> N
     assert "a surviving satisfying alternative is part of the same D1 defect" in normalized_prompt
     assert "must never repair a wrong source" in normalized_prompt
     assert "the ledger subsumes that candidate" in normalized_prompt
+    assert "typed property and violation_direction are authoritative" in normalized_prompt
     assert "absence of a required construct is possible negative" in (
         DISCOVERY_GROUNDING_SYSTEM_PROMPT
     )

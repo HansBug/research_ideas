@@ -228,9 +228,9 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v14"] = Field(
-        default="v27-typed-frontier.v14",
-        description="产生该检查的确定性算法版本；v14 消费 termination contract 的 typed owner/scope/source role，不表示旧谓词或旧 inspect 后端。",
+    algorithm_version: Literal["v27-typed-frontier.v15"] = Field(
+        default="v27-typed-frontier.v15",
+        description="产生该检查的确定性算法版本；v15 消费 termination contract 及同 segment completion endpoint 的 typed owner/target role，不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
         min_length=1,
@@ -317,9 +317,9 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v14"] = Field(
-        default="v27-typed-frontier.v14",
-        description="本批所有 check/obligation 使用的确定性算法版本；v14 消费 termination contract 的 typed owner/scope/source role。",
+    algorithm_version: Literal["v27-typed-frontier.v15"] = Field(
+        default="v27-typed-frontier.v15",
+        description="本批所有 check/obligation 使用的确定性算法版本；v15 消费 termination contract 及同 segment completion endpoint 的 typed owner/target role。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
         default_factory=tuple,
@@ -2050,7 +2050,6 @@ def _materialize_termination(builder: _Builder, contracts: Sequence[NLContract])
             continue
         explicit_target_hint = _hint(contract, "target")
         state_hint = _hint(contract, "state")
-        target_hint = explicit_target_hint or state_hint
         owner_hint = (
             _hint(contract, "owner")
             or _hint(contract, "scope")
@@ -2063,6 +2062,29 @@ def _materialize_termination(builder: _Builder, contracts: Sequence[NLContract])
             and state_hint.value != explicit_target_hint.value
         ):
             owner_hint = state_hint
+        endpoint_contract: NLContract | None = None
+        if explicit_target_hint is None:
+            completion_owner_hint = owner_hint or state_hint
+            matching_endpoints = [
+                endpoint
+                for endpoint in contracts
+                if endpoint.segment_id == contract.segment_id
+                and endpoint.property == "transition_endpoints"
+                and endpoint.state_role == "termination_state"
+                and completion_owner_hint is not None
+                and _hint(endpoint, "source") is not None
+                and _hint(endpoint, "source").value == completion_owner_hint.value
+                and _hint(endpoint, "target") is not None
+            ]
+            target_values = {
+                _hint(endpoint, "target").value for endpoint in matching_endpoints
+            }
+            if len(target_values) == 1:
+                endpoint_contract = matching_endpoints[0]
+                explicit_target_hint = _hint(endpoint_contract, "target")
+                if owner_hint is None:
+                    owner_hint = completion_owner_hint
+        target_hint = explicit_target_hint or state_hint
         target = _state_for_value(pair, target_hint.value if target_hint else None)
         owner = _state_for_value(pair, owner_hint.value if owner_hint else None)
         if target is None:
@@ -2119,7 +2141,7 @@ def _materialize_termination(builder: _Builder, contracts: Sequence[NLContract])
                 observed=f"The exact reachable author-source target is not explicit-final and its ancestor chain admits guard-free continuations {[item.id for item in continuing]}.",
                 strongest_rebuttal="Endpoint existence alone does not prove that the designated ending target is stable.",
                 reason="The NL marks the exact target as a termination state, while the closed author-source soundness fragment establishes reachable non-final continuation.",
-                basis=f"contract={contract.contract_id}; source_target_id={source_target_id}; source_path={source_path}; continuation_ids={[item.id for item in continuing]}",
+                basis=f"contract={contract.contract_id}; target_binding_contract={endpoint_contract.contract_id if endpoint_contract else contract.contract_id}; source_target_id={source_target_id}; source_path={source_path}; continuation_ids={[item.id for item in continuing]}",
             )
             stable_rows.append(
                 (
@@ -2143,9 +2165,16 @@ def _materialize_termination(builder: _Builder, contracts: Sequence[NLContract])
                 evidence_types=("source_identity", "closed_model_inventory", "transition_fact", "containment_fact", "reachability_fact"),
                 normative_statement=f"Completion of {owner.name} must not route into a termination target owned by another operating scope.",
                 scope=f"Completion route from {owner.name}",
-                source_refs=contract.source_refs,
+                source_refs=tuple(
+                    dict.fromkeys(
+                        [
+                            *contract.source_refs,
+                            *(endpoint_contract.source_refs if endpoint_contract else ()),
+                        ]
+                    )
+                ),
                 reason="The typed termination owner and target resolve exactly, and the target ancestry belongs to a different scope.",
-                basis="termination contract owner/target hints and complete ModelIR parent chain",
+                basis="termination owner plus exact same-segment completion endpoint target and complete ModelIR parent chain",
             )
             candidate = _candidate(
                 derived,
@@ -2162,11 +2191,22 @@ def _materialize_termination(builder: _Builder, contracts: Sequence[NLContract])
             )
             builder.add(
                 "wrong_scope_route",
-                (contract.contract_id,),
+                tuple(
+                    dict.fromkeys(
+                        [
+                            contract.contract_id,
+                            *(
+                                [endpoint_contract.contract_id]
+                                if endpoint_contract
+                                else []
+                            ),
+                        ]
+                    )
+                ),
                 derived,
                 candidate,
                 reason="The exact termination target lies under a different operating owner.",
-                basis="typed termination owner and exact target ancestor chain",
+                basis="typed termination owner, same-segment completion endpoint, and exact target ancestor chain",
             )
 
     grouped: dict[
