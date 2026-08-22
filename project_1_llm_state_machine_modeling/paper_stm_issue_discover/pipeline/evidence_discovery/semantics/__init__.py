@@ -5,7 +5,12 @@ from .adjudication import (
     SemanticAdjudication,
     adjudicate_disposition,
 )
-from .binding import BindingResult, bind_candidate, resolve_transition_ref
+from .binding import (
+    BindingResult,
+    bind_candidate,
+    resolve_state_ref,
+    resolve_transition_ref,
+)
 from .obligations import CandidateIssue, ContractBindingHint, MethodResponse
 from .workflow import (
     CONTRACT_SYSTEM_PROMPT,
@@ -61,5 +66,6 @@ __all__ = [
     "fallback_grounding",
     "normalize_contract_state_roles",
     "normalize_grounding_dispositions",
+    "resolve_state_ref",
     "resolve_transition_ref",
 ]

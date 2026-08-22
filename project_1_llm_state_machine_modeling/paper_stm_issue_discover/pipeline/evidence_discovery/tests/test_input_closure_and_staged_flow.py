@@ -501,6 +501,10 @@ def test_representative_pairs_staged_fixture_smoke(tmp_path: Path) -> None:
         ) == 1
         assert cell["context_manifest"]["manifest_hash"] == pair.context_manifest.manifest_hash
         assert cell["evidence_records"]
+        execute_output = cell["stage_outputs"]["execute_batch"]
+        assert execute_output["llm_candidate_count"] == 1
+        assert execute_output["exact_s2_scout_candidate_count"] == 0
+        assert execute_output["exact_s2_scout_receipts"] == []
     assert calls_per_cell == [4, 4, 4, 4, 4, 4]
     assert sum(calls_per_cell) * 3 == 72
     assert all(item["reason"] and item["basis"] for item in cell["stage_receipts"])

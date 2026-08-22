@@ -43,6 +43,7 @@ from pipeline.evidence_discovery.orchestration.runner import (
     _judge_pair,
     _judge_prompt,
     _judge_shape_errors,
+    _materialize_exact_s2_inventory_candidates,
     _metrics,
     _normalize_grounding_exact_facts,
     _normalize_judge_shape,
@@ -1702,6 +1703,103 @@ def test_v27_execute_boundary_excludes_only_completed_true_receipts() -> None:
     assert _prepared_is_finding_candidate(prepared("completed", "false"))
     assert _prepared_is_finding_candidate(prepared("unknown", "unknown"))
     assert _prepared_is_finding_candidate(prepared("error", "unknown"))
+
+
+def test_exact_s2_scout_materializes_missing_typed_edge_without_text_rules() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0035")
+    segment = next(item for item in pair.nl_segments if item.segment_id == "NL2")
+    contract = NLContract(
+        contract_id="NL-CONTRACT-NL2-ENDPOINT-MISSING",
+        segment_id="NL2",
+        quote=segment.text,
+        normative_statement="DoorOpen must transition to DoorShut.",
+        locus_kind="transition",
+        locus_names=("DoorOpen", "DoorShut"),
+        property="transition_endpoints",
+        expected_direction="must_exist",
+        violation_direction="wrong_target",
+        evidence_types=("source_identity", "transition_fact"),
+        binding_hints=(
+            ContractBindingHint(
+                role="source",
+                value="DoorOpen",
+                source_ref="NL2",
+                reason="The typed source endpoint is explicit.",
+                basis="provider-free NL2 fixture",
+            ),
+            ContractBindingHint(
+                role="target",
+                value="DoorShut",
+                source_ref="NL2",
+                reason="The typed target endpoint is explicit.",
+                basis="provider-free NL2 fixture",
+            ),
+        ),
+        scope="microwave operation",
+        source_refs=("NL2",),
+        reason="The provider-free contract captures one ordered endpoint obligation.",
+        basis="provider-free typed NL contract without ledger data",
+    )
+    contracts = NLContractResponse(
+        contracts=[contract],
+        segment_disposition={"NL2": "covered"},
+        reason="The fixture provides one exact transition contract.",
+        basis="provider-free exact contract fixture",
+    )
+
+    candidates, receipts = _materialize_exact_s2_inventory_candidates(
+        pair, contracts, []
+    )
+
+    assert len(candidates) == 1
+    assert len(receipts) == 1
+    candidate = candidates[0]
+    assert candidate.contract_id == contract.contract_id
+    assert candidate.predicate_id == "S2"
+    assert candidate.violation_direction == "wrong_target"
+    assert candidate.predicate_inputs == {
+        "source": "DoorOpen",
+        "target": "DoorShut",
+        "scope": "closed_fcstm",
+    }
+    assert set(candidate.element_refs) == {
+        pair.model.state("DoorOpen").ref,
+        pair.model.state("DoorShut").ref,
+    }
+    prepared = _prepare_candidate(
+        pair,
+        candidate,
+        1,
+        0,
+        {contract.contract_id: contract},
+    )
+    assert prepared["binding"].precise is True
+    assert prepared["receipt"].terminal_state == "completed"
+    assert prepared["receipt"].verdict == "false"
+
+    duplicate_candidates, duplicate_receipts = (
+        _materialize_exact_s2_inventory_candidates(pair, contracts, candidates)
+    )
+    assert duplicate_candidates == []
+    assert duplicate_receipts == []
+
+    source_hint, target_hint = contract.binding_hints
+    present_contract = contract.model_copy(
+        update={
+            "contract_id": "NL-CONTRACT-NL2-ENDPOINT-PRESENT",
+            "locus_names": ("DoorShut", "DoorOpen"),
+            "binding_hints": (
+                source_hint.model_copy(update={"value": "DoorShut"}),
+                target_hint.model_copy(update={"value": "DoorOpen"}),
+            ),
+        }
+    )
+    present_contracts = contracts.model_copy(update={"contracts": [present_contract]})
+    present_candidates, present_receipts = (
+        _materialize_exact_s2_inventory_candidates(pair, present_contracts, [])
+    )
+    assert present_candidates == []
+    assert present_receipts == []
 
 
 def test_provider_retry_exemption_is_row_local_and_other_usage_is_billable() -> None:

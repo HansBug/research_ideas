@@ -50,6 +50,7 @@ from ..semantics import (
     fallback_grounding,
     normalize_contract_state_roles,
     normalize_grounding_dispositions,
+    resolve_state_ref,
     resolve_transition_ref,
 )
 from .contracts import (
@@ -77,7 +78,7 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v6"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v3"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v8"
+CODE_VERSION = "evidence-discovery-v27-flow.v9"
 PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v11"
 
 
@@ -1046,6 +1047,128 @@ def _prepare_candidate(
     }
 
 
+def _materialize_exact_s2_inventory_candidates(
+    pair: PairInput,
+    contracts: NLContractResponse,
+    llm_candidates: list[CandidateIssue],
+) -> tuple[list[CandidateIssue], list[dict[str, Any]]]:
+    """Compile exact missing-edge contracts that v27 scouts cannot let LLMs suppress."""
+
+    materialized: list[CandidateIssue] = []
+    receipts: list[dict[str, Any]] = []
+    for contract in contracts.contracts:
+        if (
+            contract.property != "transition_endpoints"
+            or contract.expected_direction != "must_exist"
+        ):
+            continue
+        source_hints = [
+            hint for hint in contract.binding_hints if hint.role == "source"
+        ]
+        target_hints = [
+            hint for hint in contract.binding_hints if hint.role == "target"
+        ]
+        if len(source_hints) != 1 or len(target_hints) != 1:
+            continue
+        source_ref = resolve_state_ref(source_hints[0].value, pair.model)
+        target_ref = resolve_state_ref(target_hints[0].value, pair.model)
+        if source_ref is None or target_ref is None:
+            continue
+        source_state = next(
+            (state for state in pair.model.states if state.ref == source_ref), None
+        )
+        target_state = next(
+            (state for state in pair.model.states if state.ref == target_ref), None
+        )
+        if source_state is None or target_state is None:
+            continue
+        if any(
+            transition.source == source_state.name
+            and transition.target == target_state.name
+            for transition in pair.model.transitions
+        ):
+            continue
+        already_exact = False
+        for candidate in llm_candidates:
+            if (
+                candidate.contract_id != contract.contract_id
+                or candidate.predicate_id != "S2"
+                or candidate.predicate_inputs.get("source") != source_state.name
+                or candidate.predicate_inputs.get("target") != target_state.name
+            ):
+                continue
+            binding = bind_candidate(candidate, pair.model)
+            if binding.precise and {source_ref, target_ref} <= set(
+                binding.element_refs
+            ):
+                already_exact = True
+                break
+        if already_exact:
+            continue
+        source_refs = list(contract.source_refs)
+        for hint in (*source_hints, *target_hints):
+            if hint.source_ref and hint.source_ref not in source_refs:
+                source_refs.append(hint.source_ref)
+        evidence_types = list(contract.evidence_types)
+        for evidence_type in ("closed_model_inventory", "transition_fact"):
+            if evidence_type not in evidence_types:
+                evidence_types.append(evidence_type)
+        candidate = CandidateIssue(
+            contract_id=contract.contract_id,
+            locus_kind=contract.locus_kind,
+            locus_names=contract.locus_names,
+            property=contract.property,
+            violation_direction=contract.violation_direction,
+            evidence_types=tuple(evidence_types),
+            title=(
+                f"Required transition {source_state.name} -> "
+                f"{target_state.name} is absent"
+            ),
+            requirement_quote=contract.quote,
+            predicate_id="S2",
+            predicate_inputs={
+                "source": source_state.name,
+                "target": target_state.name,
+                "scope": "closed_fcstm",
+            },
+            element_refs=[source_ref, target_ref],
+            source_refs=source_refs,
+            expected=contract.normative_statement,
+            observed=(
+                "The complete closed ModelIR transition inventory contains no "
+                f"edge from {source_state.name} to {target_state.name}."
+            ),
+            strongest_rebuttal=(
+                "No edge with different endpoints satisfies this exact typed "
+                "source-target obligation."
+            ),
+            reason=(
+                "The LLM-extracted typed contract supplies one source and one "
+                "target; both resolve uniquely, and the complete ModelIR has no "
+                "transition with that exact ordered endpoint pair."
+            ),
+            basis=(
+                f"contract={contract.contract_id}; source_ref={source_ref}; "
+                f"target_ref={target_ref}; model_algorithm={pair.model.algorithm_version}; "
+                f"model_hash={pair.hashes['fcstm']}"
+            ),
+        )
+        materialized.append(candidate)
+        receipts.append(
+            {
+                "contract_id": contract.contract_id,
+                "predicate_id": "S2",
+                "source": source_state.name,
+                "target": target_state.name,
+                "element_refs": [source_ref, target_ref],
+                "model_hash": pair.hashes["fcstm"],
+                "reason": candidate.reason,
+                "basis": candidate.basis,
+            }
+        )
+    return materialized, receipts
+
+
 def _prepared_is_finding_candidate(prepared: Mapping[str, Any]) -> bool:
     """Restore v27's execute-batch boundary between passing checks and findings."""
 
@@ -1437,7 +1560,14 @@ def _method_cell(
         reason="The method merged two complementary v27 discovery lenses after NL contract extraction; typed semantic D is adjudicated separately and W remains deterministic downstream output.",
         basis="two GroundingResponse objects over the same compact cross-view context manifest",
     )
-    candidates = response.issues
+    exact_s2_candidates, exact_s2_receipts = (
+        _materialize_exact_s2_inventory_candidates(
+            pair,
+            contract_response,
+            response.issues,
+        )
+    )
+    candidates = [*response.issues, *exact_s2_candidates]
     records: list[dict[str, Any]] = []
     release: list[dict[str, Any]] = []
     errors: list[dict[str, Any]] = list(all_errors)
@@ -1465,6 +1595,9 @@ def _method_cell(
     ]
     stage_outputs["execute_batch"] = {
         "candidate_count": len(candidates),
+        "llm_candidate_count": len(response.issues),
+        "exact_s2_scout_candidate_count": len(exact_s2_candidates),
+        "exact_s2_scout_receipts": exact_s2_receipts,
         "prepared_count": len(prepared_candidates),
         "finding_count": len(finding_candidates),
         "satisfied_count": len(satisfied_candidates),
@@ -1475,8 +1608,8 @@ def _method_cell(
             item["obligation_id"] for item in satisfied_candidates
         ],
         "candidates": [_jsonable(item) for item in prepared_candidates],
-        "reason": "Exact binding, frozen predicate compilation, and deterministic backend execution were applied candidate by candidate; completed true receipts remain passing-check audit records while only counterexamples, unresolved W1/W0, or errors become v27 findings.",
-        "basis": "owned ModelIR, frozen predicate registry, compiler plans, backend receipts, and the v27 passing-check exclusion rule",
+        "reason": "Exact binding, the v27-style typed S2 inventory scout, frozen predicate compilation, and deterministic backend execution were applied inside one execute-batch; completed true receipts remain passing-check audit records while only counterexamples, unresolved W1/W0, or errors become v27 findings.",
+        "basis": "LLM-extracted typed contracts, owned ModelIR, frozen predicate registry, compiler plans, backend receipts, and the v27 passing-check exclusion rule",
     }
     stage_receipts.append(
         _stage_receipt(
@@ -1843,7 +1976,7 @@ def _method_cell(
             stage_name="publish",
             status=(
                 "completed"
-                if len(records) == len(prepared_candidates)
+                if len(records) == len(finding_candidates)
                 else "completed_with_diagnostics"
             ),
             artifact_roles=("fcstm_model", "predicate_registry", "verify_facts"),

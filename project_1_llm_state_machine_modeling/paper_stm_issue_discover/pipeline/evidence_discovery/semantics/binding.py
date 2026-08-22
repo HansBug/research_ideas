@@ -137,19 +137,30 @@ def resolve_transition_ref(
     return matches[0] if len(matches) == 1 else None
 
 
+def resolve_state_ref(value: str, model: ModelIR) -> str | None:
+    """Resolve one typed state identity only when the ModelIR match is unique."""
+
+    if value in {state.ref for state in model.states}:
+        return value
+    name = value
+    if value.startswith("state:"):
+        name = _LINE_SUFFIX.sub("", value[len("state:") :])
+    matches = [
+        state
+        for state in model.states
+        if _endpoint_aliases(state.name) & _endpoint_aliases(name)
+        or _endpoint_aliases(state.display_name) & _endpoint_aliases(name)
+    ]
+    return matches[0].ref if len(matches) == 1 else None
+
+
 def _resolve_ref(value: str, model: ModelIR) -> str | None:
     if value in model.all_refs:
         return value
     if value.startswith("state:"):
-        name = _LINE_SUFFIX.sub("", value[len("state:") :])
-        matches = [
-            state
-            for state in model.states
-            if _endpoint_aliases(state.name) & _endpoint_aliases(name)
-            or _endpoint_aliases(state.display_name) & _endpoint_aliases(name)
-        ]
-        if len(matches) == 1:
-            return matches[0].ref
+        state_ref = resolve_state_ref(value, model)
+        if state_ref is not None:
+            return state_ref
     if value.startswith("event:"):
         name = _LINE_SUFFIX.sub("", value[len("event:") :])
         event = model.event(name)
@@ -158,14 +169,9 @@ def _resolve_ref(value: str, model: ModelIR) -> str | None:
     if value.startswith("transition:"):
         matches = _transition_matches(value, model)
         return matches[0] if len(matches) == 1 else None
-    state_matches = [
-        state
-        for state in model.states
-        if _endpoint_aliases(state.name) & _endpoint_aliases(value)
-        or _endpoint_aliases(state.display_name) & _endpoint_aliases(value)
-    ]
-    if len(state_matches) == 1:
-        return state_matches[0].ref
+    state_ref = resolve_state_ref(value, model)
+    if state_ref is not None:
+        return state_ref
     event = model.event(value)
     if event is not None:
         return event.ref
