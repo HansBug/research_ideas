@@ -751,6 +751,10 @@ def test_judge_shape_rejects_asymmetric_exact_relations() -> None:
 
     errors = _judge_shape_errors(response, ledger, release, 1)
     assert any("same exact relation pairs" in error for error in errors)
+    assert any(
+        'release-side-only=[["L-1", "0000:r1:issue:0"]]' in error
+        for error in errors
+    )
 
 
 def test_report_dedup_uses_exact_typed_defect_key_only() -> None:
@@ -1612,11 +1616,13 @@ class _PairWideJudgeFixtureRuntime:
         *,
         malformed_first: bool = False,
         malformed_always: bool = False,
+        asymmetric_first: bool = False,
     ) -> None:
         self.ledger_ids = ledger_ids
         self.kinds: list[str] = []
         self.malformed_first = malformed_first
         self.malformed_always = malformed_always
+        self.asymmetric_first = asymmetric_first
         self.pair_wide_calls = 0
         self.max_output_tokens: list[int | None] = []
         self.prompts: list[str] = []
@@ -1633,6 +1639,12 @@ class _PairWideJudgeFixtureRuntime:
         issue_ids = list(dict.fromkeys(re.findall(r"0000:r[1-3]:issue:\d+", prompt)))
         if self.malformed_always or (kind == "judge" and self.malformed_first):
             issue_ids = issue_ids[:-1]
+        asymmetric = bool(
+            kind == "judge"
+            and self.asymmetric_first
+            and self.ledger_ids
+            and issue_ids
+        )
         response = JudgeResponse(
             ledger_assessments=[
                 LedgerAssessment(
@@ -1646,8 +1658,14 @@ class _PairWideJudgeFixtureRuntime:
             release_assessments=[
                 ReleaseAssessment(
                     issue_id=issue_id,
-                    accounted_ledger_ids=[],
-                    is_false_positive=True,
+                    accounted_ledger_ids=(
+                        [self.ledger_ids[0]]
+                        if asymmetric and issue_id == issue_ids[0]
+                        else []
+                    ),
+                    is_false_positive=not (
+                        asymmetric and issue_id == issue_ids[0]
+                    ),
                     reason="The pair-wide fixture found no frozen ledger item with the same locus and property.",
                     basis="one pair-wide fixture with the supplied ledger and release IDs",
                 )
@@ -1892,6 +1910,65 @@ def test_pair_wide_shape_failure_gets_one_targeted_correction(tmp_path: Path) ->
     assert "Previous pair-wide JudgeResponse to repair" in runtime.prompts[1]
     assert "Merge duplicate rows for one ledger ID" in runtime.prompts[1]
     assert len(judge["judgement"]["release_assessments"]) == 6
+
+
+def test_pair_wide_relation_asymmetry_gets_exact_targeted_correction(
+    tmp_path: Path,
+) -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    ledger_payload = json.loads(
+        (PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    ledger_ids = [
+        str(item["id"])
+        for item in ledger_payload["items"].values()
+        if item.get("pair") == "0000"
+    ]
+    runtime = _PairWideJudgeFixtureRuntime(ledger_ids, asymmetric_first=True)
+    issue = {
+        "issue_id": "0000:r1:issue:0",
+        "title": "Asymmetric relation fixture issue",
+        "requirement_quote": "Asymmetric relation fixture requirement",
+        "predicate_id": None,
+        "predicate_inputs": {},
+        "binding": {"precise": True, "element_refs": [pair.model.states[0].ref]},
+        "expected": "Asymmetric relation fixture expected behavior",
+        "observed": "Asymmetric relation fixture observed behavior",
+        "d_level": "D1",
+        "witness_level": "W1",
+        "reason": "Asymmetric relation fixture issue reason.",
+        "basis": "Asymmetric relation fixture issue basis.",
+    }
+    judge = _judge_pair(
+        pair=pair,
+        method_rounds=[
+            {
+                "round": 1,
+                "status": "completed",
+                "eligible": True,
+                "eligibility_reasons": ["fixture"],
+                "report_issue_clusters": [issue],
+                "reason": "Asymmetric relation fixture method receipt.",
+                "basis": "Asymmetric relation fixture method receipt basis.",
+            }
+        ],
+        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
+        runtime=runtime,
+        output_root=tmp_path,
+        run_identity=_fixture_run_identity("0000", pair.context_manifest.manifest_hash),
+    )
+
+    assert judge["eligible"] is True
+    assert judge["adjudication_mode"] == "pair_wide_corrected"
+    assert runtime.kinds == ["judge", "judge_correction"]
+    assert (
+        f'release-side-only=[["{ledger_ids[0]}", "0000:r1:issue:0"]]'
+        in runtime.prompts[1]
+    )
+    assert "if it is a match, include the pair on both sides" in runtime.prompts[1]
+    assert "if it is not a match, remove it from both sides" in runtime.prompts[1]
 
 
 def test_pair_wide_failure_does_not_expand_to_atomic_relation_matrix(

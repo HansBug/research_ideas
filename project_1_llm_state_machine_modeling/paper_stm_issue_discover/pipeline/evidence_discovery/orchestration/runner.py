@@ -1981,8 +1981,12 @@ def _judge_shape_errors(
         if ledger_id in expected_ledger and assessment.issue_id in expected_release
     }
     if matched_relations != accounted_relations:
+        ledger_side_only = sorted(matched_relations - accounted_relations)
+        release_side_only = sorted(accounted_relations - matched_relations)
         errors.append(
-            "ledger matched_issue_ids and release accounted_ledger_ids must encode the same exact relation pairs"
+            "ledger matched_issue_ids and release accounted_ledger_ids must encode the same exact relation pairs; "
+            f"ledger-side-only={json.dumps(ledger_side_only, ensure_ascii=False)}; "
+            f"release-side-only={json.dumps(release_side_only, ensure_ascii=False)}"
         )
     return errors
 
@@ -2007,7 +2011,7 @@ def _judge_correction_prompt(
         + previous
         + "\nThe previous response violated these deterministic shape contracts:\n- "
         + "\n- ".join(errors)
-        + "\nReturn one complete replacement response. Preserve the previous semantic decisions while repairing exact shape. Merge duplicate rows for one ledger ID into its single required row, and make ledger matched_issue_ids and release accounted_ledger_ids encode the same relation pairs. Do not add a relation merely to fill shape. This is schema/coverage correction, not a provider retry. Every supplied unit still requires a semantic reason and basis.\n"
+        + "\nReturn one complete replacement response. Preserve every previous semantic decision not implicated by the listed errors. Merge duplicate rows for one ledger ID into its single required row. For each listed ledger-side-only or release-side-only relation pair, make one semantic same-locus-and-property decision: if it is a match, include the pair on both sides; if it is not a match, remove it from both sides. Do not add a relation merely to fill shape, and do not leave a listed pair on only one side. This is schema/coverage correction, not a provider retry. Every supplied unit still requires a semantic reason and basis.\n"
     )
 
 
