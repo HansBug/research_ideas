@@ -308,6 +308,156 @@ def test_0029_grounding_group_identity_is_canonical_and_consumed() -> None:
     assert collisions[0].contract.property == "guard_disjointness"
 
 
+def test_0029_group_frontier_resolves_composite_source_through_typed_entry() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    initial_entry = _contract(
+        contract_id="NL-CONTRACT-NL3-INITIAL",
+        segment_id="NL3",
+        locus_kind="composite",
+        locus_names=("HighwayMode", "enter_hwy"),
+        property_name="initial_entry",
+        expected_direction="must_exist",
+        violation_direction="missing",
+        hints=(
+            _hint("owner", "HighwayMode", "NL3"),
+            _hint("target", "enter_hwy", "NL3"),
+        ),
+        state_role="initial_state",
+    )
+    relation = _contract(
+        contract_id="NL-CONTRACT-NL3-ALTERNATIVES",
+        segment_id="NL3",
+        locus_kind="transition",
+        locus_names=("HighwayMode", "cruise", "lane_change"),
+        property_name="other",
+        expected_direction="must_cover",
+        violation_direction="missing",
+        hints=(
+            _hint("scope", "HighwayMode", "NL3"),
+            _hint("target", "cruise", "NL3"),
+            _hint("target", "lane_change", "NL3"),
+        ),
+    )
+    group = NLTransitionGroup(
+        group_id="NL-GROUP-NL3-COMPOSITE-SOURCE",
+        segment_id="NL3",
+        source_name="HighwayMode",
+        alternatives=(
+            NLTransitionAlternative(
+                alternative_id="ALT-NL3-CRUISE",
+                target_name="cruise",
+                condition="dist_to_front<25 and extra_lane=true",
+                condition_role="qualified_guard",
+                source_refs=("NL3",),
+                reason="The first branch targets cruise.",
+                basis="provider-free NL3 alternative",
+            ),
+            NLTransitionAlternative(
+                alternative_id="ALT-NL3-LANE",
+                target_name="lane_change",
+                condition="dist_to_front<25 and extra_lane=true",
+                condition_role="qualified_guard",
+                source_refs=("NL3",),
+                reason="The second branch targets lane_change.",
+                basis="provider-free NL3 alternative",
+            ),
+        ),
+        source_refs=("NL3",),
+        reason="The capability clause is stated at composite scope.",
+        basis="provider-free composite-source transition group",
+    )
+    response = _response([initial_entry, relation], [group])
+
+    batch = materialize_v27_frontier(
+        pair,
+        response,
+        {item.contract_id: item for item in response.contracts},
+        (),
+        (),
+    )
+
+    collision = next(
+        item for item in batch.obligations if item.kind == "transition_group_collision"
+    )
+    assert collision.candidate.locus_names == (
+        "enter_hwy",
+        "cruise",
+        "lane_change",
+    )
+    assert collision.candidate.property == "guard_disjointness"
+
+
+def test_transition_group_frontier_rejects_distinct_exact_signatures() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    cruise = _contract(
+        contract_id="NL-CONTRACT-NL4-CRUISE",
+        segment_id="NL4",
+        locus_kind="transition",
+        locus_names=("lane_change", "cruise"),
+        property_name="transition_endpoints",
+        expected_direction="must_exist",
+        violation_direction="wrong_target",
+        hints=(
+            _hint("source", "lane_change", "NL4"),
+            _hint("target", "cruise", "NL4"),
+        ),
+    )
+    exit_hwy = _contract(
+        contract_id="NL-CONTRACT-NL4-EXIT",
+        segment_id="NL4",
+        locus_kind="transition",
+        locus_names=("lane_change", "exit_hwy"),
+        property_name="transition_endpoints",
+        expected_direction="must_exist",
+        violation_direction="wrong_target",
+        hints=(
+            _hint("source", "lane_change", "NL4"),
+            _hint("target", "exit_hwy", "NL4"),
+        ),
+    )
+    group = NLTransitionGroup(
+        group_id="NL-GROUP-NL4-DISTINCT",
+        segment_id="NL4",
+        source_name="lane_change",
+        alternatives=(
+            NLTransitionAlternative(
+                alternative_id="ALT-NL4-CRUISE",
+                target_name="cruise",
+                condition="lane_change_completed",
+                condition_role="qualified_guard",
+                source_refs=("NL4",),
+                reason="Completion selects cruise.",
+                basis="provider-free distinct-signature fixture",
+            ),
+            NLTransitionAlternative(
+                alternative_id="ALT-NL4-EXIT",
+                target_name="exit_hwy",
+                condition="dist_to_exit<2",
+                condition_role="qualified_guard",
+                source_refs=("NL4",),
+                reason="Exit distance selects exit_hwy.",
+                basis="provider-free distinct-signature fixture",
+            ),
+        ),
+        source_refs=("NL4",),
+        reason="The alternatives have distinct conditions and targets.",
+        basis="provider-free negative transition-group fixture",
+    )
+    response = _response([cruise, exit_hwy], [group])
+
+    batch = materialize_v27_frontier(
+        pair,
+        response,
+        {item.contract_id: item for item in response.contracts},
+        (),
+        (),
+    )
+
+    assert all(
+        item.kind != "transition_group_collision" for item in batch.obligations
+    )
+
+
 def test_0046_frontier_separates_root_entry_and_reachable_consumers() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0046")
     operating = _contract(
@@ -469,6 +619,83 @@ def test_0029_wrong_target_requires_exact_semantic_binding() -> None:
         (),
     )
     assert all(item.kind != "wrong_target" for item in no_binding.obligations)
+
+
+def test_0029_wrong_target_reuses_unique_exact_target_concept_binding() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    lane_exit = _contract(
+        contract_id="NL-CONTRACT-NL4-LANE-EXIT",
+        segment_id="NL4",
+        locus_kind="transition",
+        locus_names=("lane_change", "highway exit"),
+        property_name="transition_endpoints",
+        expected_direction="must_exist",
+        violation_direction="wrong_target",
+        hints=(
+            _hint("source", "lane_change", "NL4"),
+            _hint("target", "highway exit", "NL4"),
+            _hint("guard", "dist_to_exit<2", "NL4"),
+        ),
+    )
+    cruise_exit = _contract(
+        contract_id="NL-CONTRACT-NL5-CRUISE-EXIT",
+        segment_id="NL5",
+        locus_kind="transition",
+        locus_names=("cruise", "highway exit"),
+        property_name="transition_endpoints",
+        expected_direction="must_exist",
+        violation_direction="wrong_target",
+        hints=(
+            _hint("source", "cruise", "NL5"),
+            _hint("target", "highway exit", "NL5"),
+            _hint("guard", "dist_to_exit<2", "NL5"),
+        ),
+    )
+    expected_target = pair.model.state("exit_hwy")
+    assert expected_target is not None
+    lane_carrier = next(
+        item
+        for item in pair.model.transitions
+        if item.source == "lane_change" and item.target == "exit_hwy"
+    )
+    grounding = GroundingResponse(
+        lens="contract_structure_contrast",
+        semantic_bindings=[
+            SemanticBinding(
+                binding_id="BIND-NL4-HIGHWAY-EXIT",
+                contract_id=lane_exit.contract_id,
+                role="target",
+                concept_name="highway exit",
+                status="exact",
+                source_element_ref="source:state:HighwayMode.exit_hwy",
+                model_element_ref=expected_target.ref,
+                carrier_transition_ref=lane_carrier.ref,
+                reason="The exact source inventory binds the highway-exit concept to exit_hwy.",
+                basis="NL4 and exact source/model exit_hwy identity",
+            )
+        ],
+        reason="The fixture provides one unique typed target-concept binding.",
+        basis="provider-free cross-contract target binding",
+    )
+    response = _response([lane_exit, cruise_exit])
+
+    batch = materialize_v27_frontier(
+        pair,
+        response,
+        {item.contract_id: item for item in response.contracts},
+        (grounding,),
+        (),
+    )
+
+    wrong_targets = [
+        item for item in batch.obligations if item.kind == "wrong_target"
+    ]
+    assert len(wrong_targets) == 1
+    issue = wrong_targets[0].candidate
+    assert issue.contract_id == cruise_exit.contract_id
+    assert issue.locus_names == ("cruise", "highway exit")
+    assert pair.model.state("FinishState").ref in issue.element_refs
+    assert any(ref.endswith("puml:line:15") for ref in issue.source_refs)
 
 
 def test_0053_frontier_preserves_three_leaf_and_global_properties() -> None:

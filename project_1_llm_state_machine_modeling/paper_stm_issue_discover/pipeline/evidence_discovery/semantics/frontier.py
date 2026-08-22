@@ -15,7 +15,7 @@ from typing import Literal, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..inputs.context import InspectionStateFact
+from ..inputs.context import InspectionStateFact, SourceInventoryTransition
 from ..inputs.models import PairInput, StateNode, Transition
 from .binding import bind_candidate, resolve_state_ref
 from .obligations import (
@@ -32,6 +32,7 @@ from .workflow import (
     NLContract,
     NLContractResponse,
     NLTransitionGroup,
+    SemanticBinding,
     StateSemanticRole,
 )
 
@@ -198,8 +199,8 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v1"] = Field(
-        default="v27-typed-frontier.v1",
+    algorithm_version: Literal["v27-typed-frontier.v2"] = Field(
+        default="v27-typed-frontier.v2",
         description="产生该检查的确定性算法版本；不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
@@ -287,8 +288,8 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v1"] = Field(
-        default="v27-typed-frontier.v1",
+    algorithm_version: Literal["v27-typed-frontier.v2"] = Field(
+        default="v27-typed-frontier.v2",
         description="本批所有 check/obligation 使用的确定性算法版本。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
@@ -1288,10 +1289,53 @@ def _materialize_termination(builder: _Builder, contracts: Sequence[NLContract])
             )
 
 
-def _group_transitions(pair: PairInput, group: NLTransitionGroup) -> list[tuple[object, Transition]]:
-    source = _state_for_value(pair, group.source_name)
+def _group_operating_source(
+    pair: PairInput,
+    group: NLTransitionGroup,
+    contracts: Sequence[NLContract],
+) -> StateNode | None:
+    target_names = {item.target_name for item in group.alternatives}
+
+    def matching_target_count(source: StateNode) -> int:
+        return len(
+            {
+                item.target
+                for item in pair.model.transitions
+                if item.source == source.name and item.target in target_names
+            }
+        )
+
+    declared_source = _state_for_value(pair, group.source_name)
+    if declared_source is not None and matching_target_count(declared_source) >= 2:
+        return declared_source
+
+    entry_targets: list[StateNode] = []
+    for contract in contracts:
+        if contract.segment_id != group.segment_id or contract.property != "initial_entry":
+            continue
+        owner_hint = _hint(contract, "owner")
+        target_hint = _hint(contract, "target")
+        if (
+            owner_hint is None
+            or target_hint is None
+            or owner_hint.value != group.source_name
+        ):
+            continue
+        target = _state_for_value(pair, target_hint.value)
+        if target is not None and matching_target_count(target) >= 2:
+            entry_targets.append(target)
+    unique_targets = {item.ref: item for item in entry_targets}
+    return next(iter(unique_targets.values())) if len(unique_targets) == 1 else None
+
+
+def _group_transitions(
+    pair: PairInput,
+    group: NLTransitionGroup,
+    contracts: Sequence[NLContract],
+) -> tuple[StateNode | None, list[tuple[object, Transition]]]:
+    source = _group_operating_source(pair, group, contracts)
     if source is None:
-        return []
+        return None, []
     rows: list[tuple[object, Transition]] = []
     for alternative in group.alternatives:
         target = _state_for_value(pair, alternative.target_name)
@@ -1304,7 +1348,41 @@ def _group_transitions(pair: PairInput, group: NLTransitionGroup) -> list[tuple[
         ]
         if len(matches) == 1:
             rows.append((alternative, matches[0]))
-    return rows
+    return source, rows
+
+
+def _group_base_contract(
+    group: NLTransitionGroup,
+    source: StateNode,
+    contracts: Sequence[NLContract],
+) -> NLContract | None:
+    target_names = {item.target_name for item in group.alternatives}
+    endpoint_contracts = []
+    relation_contracts = []
+    for contract in contracts:
+        if contract.segment_id != group.segment_id:
+            continue
+        source_hint = _hint(contract, "source")
+        target_hints = [item for item in contract.binding_hints if item.role == "target"]
+        if (
+            contract.property == "transition_endpoints"
+            and source_hint is not None
+            and source_hint.value in {group.source_name, source.name}
+            and any(item.value in target_names for item in target_hints)
+        ):
+            endpoint_contracts.append(contract)
+        scope_hints = [
+            item
+            for item in contract.binding_hints
+            if item.role in {"source", "scope", "owner"}
+        ]
+        if (
+            len({item.value for item in target_hints if item.value in target_names}) >= 2
+            and any(item.value == group.source_name for item in scope_hints)
+        ):
+            relation_contracts.append(contract)
+    candidates = endpoint_contracts or relation_contracts
+    return candidates[0] if candidates else None
 
 
 def _materialize_group_collisions(
@@ -1318,7 +1396,7 @@ def _materialize_group_collisions(
             continue
         if len({alternative.target_name for alternative in group.alternatives}) < 2:
             continue
-        rows = _group_transitions(pair, group)
+        source, rows = _group_transitions(pair, group, contracts)
         if len(rows) < 2:
             continue
         normative_conditions = {
@@ -1327,31 +1405,17 @@ def _materialize_group_collisions(
         signatures = {
             (transition.triggers, transition.guard) for _item, transition in rows
         }
-        if len(normative_conditions) < 2 or len(signatures) != 1:
+        if len(signatures) != 1:
             continue
-        base = next(
-            (
-                item
-                for item in contracts
-                if item.segment_id == group.segment_id
-                and item.property == "transition_endpoints"
-                and (_hint(item, "source") is not None)
-                and _hint(item, "source").value == group.source_name
-                and (_hint(item, "target") is not None)
-                and _hint(item, "target").value
-                in {alternative.target_name for alternative in group.alternatives}
-            ),
-            None,
-        )
-        if base is None:
+        base = _group_base_contract(group, source, contracts) if source else None
+        if base is None or source is None:
             continue
-        source = _state_for_value(pair, group.source_name)
         targets = [_state_for_value(pair, item.target_name) for item, _ in rows]
         targets = [item for item in targets if item]
         derived = _derived_contract(
             base,
             locus_kind="transition",
-            locus_names=(group.source_name, *[item.target_name for item, _ in rows]),
+            locus_names=(source.name, *[item.target_name for item, _ in rows]),
             property_name="guard_disjointness",
             state_role=base.state_role,
             expected_direction="must_cover",
@@ -1360,7 +1424,7 @@ def _materialize_group_collisions(
             normative_statement=f"Distinct alternatives in {group.group_id} must remain operationally distinguishable.",
             scope=f"Transition group {group.group_id}",
             source_refs=group.source_refs,
-            reason="The LLM transition group establishes distinct alternatives, allowing exact transition signatures to be compared as a relation.",
+            reason="The LLM transition group establishes distinct alternatives, and a typed owner-entry relation resolves the operational source when the group is stated at composite scope.",
             basis="typed transition group alternatives and exact ModelIR trigger/guard fields",
         )
         refs = [transition.ref for _, transition in rows]
@@ -1384,12 +1448,12 @@ def _materialize_group_collisions(
                 item.contract_id
                 for item in contracts
                 if item.segment_id == group.segment_id
-                and item.property == "transition_endpoints"
-                and (_hint(item, "source") is not None)
-                and _hint(item, "source").value == group.source_name
-                and (_hint(item, "target") is not None)
-                and _hint(item, "target").value
-                in {alternative.target_name for alternative in group.alternatives}
+                and any(
+                    hint.role == "target"
+                    and hint.value
+                    in {alternative.target_name for alternative in group.alternatives}
+                    for hint in item.binding_hints
+                )
             )
             or (base.contract_id,),
             derived,
@@ -1397,6 +1461,44 @@ def _materialize_group_collisions(
             reason="A typed multi-target relation has identical exact trigger/guard signatures for distinct alternatives.",
             basis="transition group semantic identity and exact closed-model signatures",
         )
+
+
+def _source_endpoint_name(value: str) -> str:
+    """Return the exact leaf identifier from a canonical qualified source endpoint."""
+
+    return value.rsplit(".", 1)[-1]
+
+
+def _source_carrier_for_contract(
+    pair: PairInput,
+    contract: NLContract,
+    source_state: StateNode,
+) -> SourceInventoryTransition | None:
+    inventory = pair.exact_source_inventory
+    condition_hint = _hint(contract, "guard", "event", "trigger")
+    if inventory is None or condition_hint is None:
+        return None
+    rows = [
+        item
+        for item in inventory.transitions
+        if _source_endpoint_name(item.source) == source_state.name
+        and condition_hint.value in {item.event, item.guard}
+    ]
+    return rows[0] if len(rows) == 1 else None
+
+
+def _model_carrier_for_source_row(
+    pair: PairInput,
+    source_row: SourceInventoryTransition,
+) -> Transition | None:
+    source_name = _source_endpoint_name(source_row.source)
+    target_name = _source_endpoint_name(source_row.target)
+    rows = [
+        item
+        for item in pair.model.transitions
+        if item.source == source_name and item.target == target_name
+    ]
+    return rows[0] if len(rows) == 1 else None
 
 
 def _materialize_wrong_targets(
@@ -1489,6 +1591,114 @@ def _materialize_wrong_targets(
             candidate,
             reason="One exact target binding is refuted by the resolved endpoint of its supplied closed transition carrier.",
             basis="typed SemanticBinding plus exact ModelIR transition source/target refs",
+        )
+
+    target_refs_by_concept: dict[str, set[str]] = defaultdict(set)
+    bindings_by_concept: dict[str, list[SemanticBinding]] = defaultdict(list)
+    for binding in exact_target_bindings:
+        target_refs_by_concept[binding.concept_name].add(binding.model_element_ref)
+        bindings_by_concept[binding.concept_name].append(binding)
+    for base in contracts:
+        if base.property != "transition_endpoints":
+            continue
+        source_hint = _hint(base, "source")
+        target_hint = _hint(base, "target")
+        if source_hint is None or target_hint is None:
+            continue
+        expected_refs = target_refs_by_concept.get(target_hint.value, set())
+        if len(expected_refs) != 1:
+            continue
+        expected_state = _state_by_ref(pair, next(iter(expected_refs)))
+        source_state = _state_for_value(pair, source_hint.value)
+        source_carrier = (
+            _source_carrier_for_contract(pair, base, source_state)
+            if source_state is not None
+            else None
+        )
+        model_carrier = (
+            _model_carrier_for_source_row(pair, source_carrier)
+            if source_carrier is not None
+            else None
+        )
+        actual_target = (
+            _state_for_value(pair, _source_endpoint_name(source_carrier.target))
+            if source_carrier is not None
+            else None
+        )
+        if (
+            expected_state is None
+            or source_state is None
+            or source_carrier is None
+            or model_carrier is None
+            or actual_target is None
+            or actual_target.ref == expected_state.ref
+        ):
+            continue
+        target_contract = base
+        if base.violation_direction != "wrong_target":
+            target_contract = _derived_contract(
+                base,
+                locus_kind="transition",
+                locus_names=(source_state.name, expected_state.name),
+                property_name="transition_endpoints",
+                state_role=base.state_role,
+                expected_direction=base.expected_direction,
+                violation_direction="wrong_target",
+                evidence_types=(
+                    "source_identity",
+                    "closed_model_inventory",
+                    "transition_fact",
+                    "semantic_comparison",
+                ),
+                normative_statement=base.normative_statement,
+                scope=base.scope,
+                source_refs=base.source_refs,
+                reason="A unique exact target-concept binding is reused across contracts carrying the same typed target concept.",
+                basis="SemanticBinding concept identity plus exact source transition inventory",
+            )
+        concept_bindings = bindings_by_concept[target_hint.value]
+        candidate = _candidate(
+            target_contract,
+            title=f"{source_state.name} routes to {actual_target.name} instead of {expected_state.name}",
+            predicate_id=None,
+            predicate_inputs={},
+            element_refs=(
+                source_state.ref,
+                expected_state.ref,
+                actual_target.ref,
+                model_carrier.ref,
+            ),
+            source_refs=(
+                *target_contract.source_refs,
+                source_carrier.raw_ref,
+                *[
+                    item.source_element_ref
+                    for item in concept_bindings
+                    if item.source_element_ref
+                ],
+            ),
+            expected=target_contract.normative_statement,
+            observed=(
+                f"Exact author-source carrier {source_carrier.transition_id} "
+                f"targets {source_carrier.target}; its closed-model carrier "
+                f"{model_carrier.ref} targets {actual_target.ref}, while the unique "
+                f"normative concept binding is {expected_state.ref}."
+            ),
+            strongest_rebuttal="A condition-scoped transition to a different exact target cannot satisfy the bound target concept.",
+            reason="The same typed target concept has one exact cross-artifact binding, and the exact source+condition carrier resolves to a different target.",
+            basis=(
+                f"concept={target_hint.value}; source_transition_id={source_carrier.transition_id}; "
+                f"source_ref={source_state.ref}; expected_target_ref={expected_state.ref}; "
+                f"carrier_ref={model_carrier.ref}; actual_target_ref={actual_target.ref}"
+            ),
+        )
+        builder.add(
+            "wrong_target",
+            (base.contract_id,),
+            target_contract,
+            candidate,
+            reason="One exact shared target-concept binding is refuted by the exact source+condition carrier endpoint.",
+            basis="typed concept identity, exact source transition inventory, and exact ModelIR endpoints",
         )
 
 
