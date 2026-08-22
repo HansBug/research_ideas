@@ -5,7 +5,11 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from pipeline.evidence_discovery.backends import run_backend
+from pipeline.evidence_discovery.compiler import compile_plan
+from pipeline.evidence_discovery.evidence.witness_levels import calculate_witness_level
 from pipeline.evidence_discovery.inputs import load_pair
+from pipeline.evidence_discovery.registry import load_registry
 from pipeline.evidence_discovery.semantics import (
     CandidateIssue,
     CardinalityDomainBinding,
@@ -20,6 +24,7 @@ from pipeline.evidence_discovery.semantics import (
     NLTransitionGroup,
     SegmentCoverage,
     SemanticBinding,
+    bind_candidate,
     canonicalize_grounding_response,
     materialize_segment_coverage,
     materialize_v27_frontier,
@@ -213,9 +218,385 @@ def test_0029_frontier_materializes_relational_v27_obligations() -> None:
         "containment",
         "wrong_scope",
     ) in keys
-    assert any(item[0] == "stable_termination" for item in keys)
+    assert any(item[0] == "aggregate_stable_termination" for item in keys)
     assert any(item[0] == "transition_group_collision" for item in keys)
     assert any(item[0] == "wrong_scope_route" for item in keys)
+
+
+def test_0029_frontier_aggregates_complete_same_property_scopes() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    autonomous_entry = _contract(
+        contract_id="NL-CONTRACT-NL1-AUTONOMOUS-ENTRY",
+        segment_id="NL1",
+        locus_kind="composite",
+        locus_names=("AutonomousMode", "InitialState"),
+        property_name="initial_entry",
+        expected_direction="must_enter",
+        violation_direction="missing",
+        hints=(
+            _hint("owner", "AutonomousMode", "NL1"),
+            _hint("target", "InitialState", "NL1"),
+        ),
+        state_role="initial_state",
+    )
+    highway_entry = _contract(
+        contract_id="NL-CONTRACT-NL3-HIGHWAY-ENTRY",
+        segment_id="NL3",
+        locus_kind="composite",
+        locus_names=("HighwayMode", "enter_hwy"),
+        property_name="initial_entry",
+        expected_direction="must_enter",
+        violation_direction="missing",
+        hints=(
+            _hint("owner", "HighwayMode", "NL3"),
+            _hint("target", "enter_hwy", "NL3"),
+        ),
+        state_role="initial_state",
+    )
+    urban_entry = _contract(
+        contract_id="NL-CONTRACT-NL7-URBAN-ENTRY",
+        segment_id="NL7",
+        locus_kind="composite",
+        locus_names=("UrbanMode", "enter_urban"),
+        property_name="initial_entry",
+        expected_direction="must_enter",
+        violation_direction="missing",
+        hints=(
+            _hint("owner", "UrbanMode", "NL7"),
+            _hint("target", "enter_urban", "NL7"),
+        ),
+        state_role="initial_state",
+    )
+    highway_termination = _contract(
+        contract_id="NL-CONTRACT-NL6-HIGHWAY-TERMINATION",
+        segment_id="NL6",
+        locus_kind="scope",
+        locus_names=("HighwayMode", "FinishState"),
+        property_name="termination",
+        expected_direction="must_terminate",
+        violation_direction="not_completed",
+        hints=(
+            _hint("owner", "HighwayMode", "NL6"),
+            _hint("target", "FinishState", "NL6"),
+        ),
+        state_role="termination_state",
+    )
+    urban_termination = _contract(
+        contract_id="NL-CONTRACT-NL10-URBAN-TERMINATION",
+        segment_id="NL10",
+        locus_kind="scope",
+        locus_names=("UrbanMode", "FinishState"),
+        property_name="termination",
+        expected_direction="must_terminate",
+        violation_direction="not_completed",
+        hints=(
+            _hint("owner", "UrbanMode", "NL10"),
+            _hint("target", "FinishState", "NL10"),
+        ),
+        state_role="termination_state",
+    )
+    contracts = [
+        autonomous_entry,
+        highway_entry,
+        urban_entry,
+        highway_termination,
+        urban_termination,
+    ]
+    mode_group = NLTransitionGroup(
+        group_id="NL-GROUP-NL2-MODE-ALTERNATIVES",
+        segment_id="NL2",
+        source_name="InitialState",
+        alternatives=(
+            NLTransitionAlternative(
+                alternative_id="ALT-NL2-HIGHWAY",
+                target_name="HighwayMode",
+                condition="high_way=true",
+                condition_role="qualified_guard",
+                source_refs=("NL2",),
+                reason="The first alternative selects HighwayMode.",
+                basis="provider-free NL2 mode alternative",
+            ),
+            NLTransitionAlternative(
+                alternative_id="ALT-NL2-URBAN",
+                target_name="UrbanMode",
+                condition="urban_way=true",
+                condition_role="qualified_guard",
+                source_refs=("NL2",),
+                reason="The second alternative selects UrbanMode.",
+                basis="provider-free NL2 mode alternative",
+            ),
+        ),
+        source_refs=("NL2",),
+        reason="The typed group enumerates both sibling operating modes.",
+        basis="provider-free NL2 transition-group fixture",
+    )
+    response = _response(contracts, [mode_group])
+
+    batch = materialize_v27_frontier(
+        pair,
+        response,
+        {item.contract_id: item for item in contracts},
+        (),
+        (),
+    )
+
+    initial = next(
+        item for item in batch.obligations
+        if item.kind == "aggregate_initial_entry"
+    )
+    assert initial.source_contract_ids == (
+        highway_entry.contract_id,
+        urban_entry.contract_id,
+    )
+    assert initial.candidate.locus_names == (
+        "HighwayMode",
+        "enter_hwy",
+        "UrbanMode",
+        "enter_urban",
+    )
+    assert initial.candidate.property == "initial_entry"
+    assert initial.candidate.predicate_id is None
+    autonomous = next(
+        item
+        for item in batch.obligations
+        if item.kind == "owner_initial_entry"
+        and item.source_contract_ids == (autonomous_entry.contract_id,)
+    )
+    assert autonomous.candidate.locus_names == (
+        "AutonomousMode",
+        "InitialState",
+    )
+
+    termination = next(
+        item for item in batch.obligations
+        if item.kind == "aggregate_stable_termination"
+    )
+    assert termination.source_contract_ids == (
+        highway_termination.contract_id,
+        urban_termination.contract_id,
+    )
+    assert termination.candidate.locus_names == (
+        "HighwayMode",
+        "UrbanMode",
+        "FinishState",
+    )
+    assert termination.candidate.property == "termination"
+    assert termination.candidate.violation_direction == "not_completed"
+    assert termination.candidate.predicate_id is None
+    assert not any(
+        item.kind == "stable_termination" for item in batch.obligations
+    )
+    assert {
+        highway_entry.contract_id,
+        urban_entry.contract_id,
+        highway_termination.contract_id,
+        urban_termination.contract_id,
+    }.issubset(set(batch.superseded_candidate_contract_ids))
+    assert autonomous_entry.contract_id not in batch.superseded_candidate_contract_ids
+
+    for index, obligation in enumerate((initial, termination)):
+        candidate = obligation.candidate
+        contract = obligation.contract
+        assert candidate.contract_id == contract.contract_id
+        assert candidate.locus_kind == contract.locus_kind
+        assert candidate.locus_names == contract.locus_names
+        assert candidate.property == contract.property
+        assert candidate.violation_direction == contract.violation_direction
+        binding = bind_candidate(candidate, pair.model)
+        plan = compile_plan(
+            candidate,
+            binding,
+            load_registry(),
+            obligation_id=f"0029:r1:aggregate:{index}",
+            round_index=1,
+            model=pair.model,
+            model_hash=pair.hashes["fcstm"],
+        )
+        receipt = run_backend(
+            plan,
+            pair.model,
+            f"0029:r1:aggregate:{index}:receipt",
+        )
+        assert binding.precise is True
+        assert plan.predicate_id is None
+        assert plan.supported is False
+        assert calculate_witness_level(binding, plan, receipt) == "W1"
+
+
+def test_initial_entry_frontier_keeps_one_violation_atomic() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    contract = _contract(
+        contract_id="NL-CONTRACT-NL3-HIGHWAY-ENTRY-ONLY",
+        segment_id="NL3",
+        locus_kind="composite",
+        locus_names=("HighwayMode", "enter_hwy"),
+        property_name="initial_entry",
+        expected_direction="must_enter",
+        violation_direction="missing",
+        hints=(
+            _hint("owner", "HighwayMode", "NL3"),
+            _hint("target", "enter_hwy", "NL3"),
+        ),
+        state_role="initial_state",
+    )
+
+    batch = materialize_v27_frontier(
+        pair,
+        _response([contract]),
+        {contract.contract_id: contract},
+        (),
+        (),
+    )
+
+    initial = [item for item in batch.obligations if "initial_entry" in item.kind]
+    assert len(initial) == 1
+    assert initial[0].kind == "owner_initial_entry"
+    assert initial[0].source_contract_ids == (contract.contract_id,)
+    assert contract.contract_id not in batch.superseded_candidate_contract_ids
+
+
+def test_initial_entry_frontier_does_not_aggregate_duplicate_same_owner() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    contracts = [
+        _contract(
+            contract_id=f"NL-CONTRACT-NL3-HIGHWAY-ENTRY-{suffix}",
+            segment_id="NL3",
+            locus_kind="composite",
+            locus_names=("HighwayMode", "enter_hwy"),
+            property_name="initial_entry",
+            expected_direction="must_enter",
+            violation_direction="missing",
+            hints=(
+                _hint("owner", "HighwayMode", "NL3"),
+                _hint("target", "enter_hwy", "NL3"),
+            ),
+            state_role="initial_state",
+        )
+        for suffix in ("A", "B")
+    ]
+
+    batch = materialize_v27_frontier(
+        pair,
+        _response(contracts),
+        {item.contract_id: item for item in contracts},
+        (),
+        (),
+    )
+
+    initial = [item for item in batch.obligations if "initial_entry" in item.kind]
+    assert len(initial) == 1
+    assert initial[0].kind == "owner_initial_entry"
+    assert initial[0].source_contract_ids == tuple(
+        item.contract_id for item in contracts
+    )
+    assert not batch.superseded_candidate_contract_ids
+
+
+def test_termination_frontier_does_not_aggregate_different_targets() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    contracts = [
+        _contract(
+            contract_id="NL-CONTRACT-NL6-HIGHWAY-FINISH",
+            segment_id="NL6",
+            locus_kind="scope",
+            locus_names=("HighwayMode", "FinishState"),
+            property_name="termination",
+            expected_direction="must_terminate",
+            violation_direction="not_completed",
+            hints=(
+                _hint("owner", "HighwayMode", "NL6"),
+                _hint("target", "FinishState", "NL6"),
+            ),
+            state_role="termination_state",
+        ),
+        _contract(
+            contract_id="NL-CONTRACT-NL8-URBAN-EXIT",
+            segment_id="NL8",
+            locus_kind="scope",
+            locus_names=("UrbanMode", "exit_urban"),
+            property_name="termination",
+            expected_direction="must_terminate",
+            violation_direction="not_completed",
+            hints=(
+                _hint("owner", "UrbanMode", "NL8"),
+                _hint("target", "exit_urban", "NL8"),
+            ),
+            state_role="termination_state",
+        ),
+    ]
+
+    batch = materialize_v27_frontier(
+        pair,
+        _response(contracts),
+        {item.contract_id: item for item in contracts},
+        (),
+        (),
+    )
+
+    stable = [
+        item for item in batch.obligations if "stable_termination" in item.kind
+    ]
+    assert len(stable) == 2
+    assert {item.kind for item in stable} == {"stable_termination"}
+    assert {item.candidate.locus_names for item in stable} == {
+        ("HighwayMode", "FinishState"),
+        ("UrbanMode", "exit_urban"),
+    }
+
+
+def test_termination_frontier_keeps_ownerless_contract_outside_aggregate() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    ownerless = _contract(
+        contract_id="NL-CONTRACT-NL6-GLOBAL-FINISH",
+        segment_id="NL6",
+        locus_kind="state",
+        locus_names=("FinishState",),
+        property_name="termination",
+        expected_direction="must_terminate",
+        violation_direction="not_completed",
+        hints=(_hint("target", "FinishState", "NL6"),),
+        state_role="termination_state",
+    )
+    owned = [
+        _contract(
+            contract_id=f"NL-CONTRACT-{segment}-{owner.upper()}-FINISH",
+            segment_id=segment,
+            locus_kind="scope",
+            locus_names=(owner, "FinishState"),
+            property_name="termination",
+            expected_direction="must_terminate",
+            violation_direction="not_completed",
+            hints=(
+                _hint("owner", owner, segment),
+                _hint("target", "FinishState", segment),
+            ),
+            state_role="termination_state",
+        )
+        for segment, owner in (("NL6", "HighwayMode"), ("NL10", "UrbanMode"))
+    ]
+    contracts = [ownerless, *owned]
+
+    batch = materialize_v27_frontier(
+        pair,
+        _response(contracts),
+        {item.contract_id: item for item in contracts},
+        (),
+        (),
+    )
+
+    stable = [
+        item for item in batch.obligations if "stable_termination" in item.kind
+    ]
+    assert len(stable) == 2
+    atomic = next(item for item in stable if item.kind == "stable_termination")
+    aggregate = next(
+        item for item in stable if item.kind == "aggregate_stable_termination"
+    )
+    assert atomic.source_contract_ids == (ownerless.contract_id,)
+    assert aggregate.source_contract_ids == tuple(
+        item.contract_id for item in owned
+    )
+    assert ownerless.contract_id not in batch.superseded_candidate_contract_ids
 
 
 def test_0029_grounding_group_identity_is_canonical_and_consumed() -> None:

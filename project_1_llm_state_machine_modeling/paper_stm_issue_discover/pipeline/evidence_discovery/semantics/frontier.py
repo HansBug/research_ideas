@@ -47,9 +47,11 @@ FrontierKind = Literal[
     "containment",
     "cardinality",
     "owner_initial_entry",
+    "aggregate_initial_entry",
     "root_reachability",
     "event_consumer_coverage",
     "stable_termination",
+    "aggregate_stable_termination",
     "transition_group_collision",
     "wrong_target",
     "wrong_scope_route",
@@ -219,8 +221,8 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v9"] = Field(
-        default="v27-typed-frontier.v9",
+    algorithm_version: Literal["v27-typed-frontier.v10"] = Field(
+        default="v27-typed-frontier.v10",
         description="产生该检查的确定性算法版本；不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
@@ -308,8 +310,8 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v9"] = Field(
-        default="v27-typed-frontier.v9",
+    algorithm_version: Literal["v27-typed-frontier.v10"] = Field(
+        default="v27-typed-frontier.v10",
         description="本批所有 check/obligation 使用的确定性算法版本。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
@@ -1266,8 +1268,15 @@ def _materialize_cardinality(
             builder.superseded_candidate_contract_ids.append(contract.contract_id)
 
 
-def _materialize_initial_entries(builder: _Builder, contracts: Sequence[NLContract]) -> None:
+def _materialize_initial_entries(
+    builder: _Builder,
+    contracts: Sequence[NLContract],
+    groups: Sequence[NLTransitionGroup],
+) -> None:
     pair = builder.pair
+    violations: list[
+        tuple[NLContract, NLContract, CandidateIssue, StateNode | None, StateNode]
+    ] = []
     for contract in contracts:
         if contract.property != "initial_entry":
             continue
@@ -1342,6 +1351,191 @@ def _materialize_initial_entries(builder: _Builder, contracts: Sequence[NLContra
             reason="The typed owner and target resolve exactly, but no unconditional owner-local initial edge enters the required target.",
             basis=f"contract={contract.contract_id}; target_ref={target.ref}; owner_ref={owner.ref if owner else 'root'}; initial_refs={[item.ref for item in initial]}",
         )
+        violations.append(
+            (contract, normalized_contract, candidate, owner, target)
+        )
+
+    rows_by_owner_ref: dict[
+        str,
+        list[tuple[NLContract, NLContract, CandidateIssue, StateNode, StateNode]],
+    ] = defaultdict(list)
+    individual: list[
+        tuple[NLContract, NLContract, CandidateIssue, StateNode | None, StateNode]
+    ] = [row for row in violations if row[3] is None]
+    for contract, normalized_contract, candidate, owner, target in violations:
+        if owner is not None:
+            rows_by_owner_ref[owner.ref].append(
+                (contract, normalized_contract, candidate, owner, target)
+            )
+
+    aggregate_owner_sets: list[tuple[tuple[str, ...], NLTransitionGroup]] = []
+    for group in groups:
+        owners = [
+            _state_for_value(pair, alternative.target_name)
+            for alternative in group.alternatives
+        ]
+        if any(owner is None for owner in owners):
+            continue
+        owner_refs = tuple(
+            dict.fromkeys(owner.ref for owner in owners if owner is not None)
+        )
+        if len(owner_refs) < 2 or any(
+            owner_ref not in rows_by_owner_ref for owner_ref in owner_refs
+        ):
+            continue
+        parents = {
+            row[3].parent
+            for owner_ref in owner_refs
+            for row in rows_by_owner_ref[owner_ref]
+        }
+        if len(parents) != 1:
+            continue
+        aggregate_owner_sets.append((owner_refs, group))
+
+    aggregate_owner_sets.sort(
+        key=lambda item: (-len(item[0]), item[0], item[1].group_id)
+    )
+    consumed_contract_ids: set[str] = set()
+    for owner_refs, group in aggregate_owner_sets:
+        rows = [
+            row
+            for owner_ref in owner_refs
+            for row in rows_by_owner_ref[owner_ref]
+            if row[0].contract_id not in consumed_contract_ids
+        ]
+        if {row[3].ref for row in rows} != set(owner_refs):
+            continue
+        source_contract_ids = tuple(
+            dict.fromkeys(row[0].contract_id for row in rows)
+        )
+        owner_target_rows = list(
+            {
+                (row[3].ref, row[4].ref): row
+                for row in rows
+            }.values()
+        )
+        locus_names = tuple(
+            name
+            for row in owner_target_rows
+            for name in (row[3].name, row[4].name)
+        )
+        source_refs = tuple(
+            dict.fromkeys(
+                [
+                    *[ref for row in rows for ref in row[2].source_refs],
+                    *group.source_refs,
+                ]
+            )
+        )
+        element_refs = tuple(
+            dict.fromkeys(
+                ref
+                for row in owner_target_rows
+                for ref in row[2].element_refs
+            )
+        )
+        expected_rows = [
+            f"{row[3].name} -> {row[4].name}"
+            for row in owner_target_rows
+        ]
+        observed_rows = [row[2].observed for row in owner_target_rows]
+        base = owner_target_rows[0][1]
+        aggregate_contract = _derived_contract(
+            base,
+            locus_kind="scope",
+            locus_names=locus_names,
+            property_name="initial_entry",
+            state_role="initial_state",
+            expected_direction="must_enter",
+            violation_direction="missing",
+            evidence_types=tuple(
+                dict.fromkeys(
+                    evidence
+                    for row in owner_target_rows
+                    for evidence in row[1].evidence_types
+                )
+            ),
+            normative_statement=(
+                f"The alternatives from {group.source_name} enter sibling operating "
+                "composites that must each provide their exact "
+                f"owner-local unconditional default entry: {expected_rows}."
+            ),
+            scope=(
+                f"Transition group {group.group_id} from {group.source_name}; sibling "
+                "composite default-entry obligations under common parent "
+                f"{owner_target_rows[0][3].parent or 'model root'}"
+            ),
+            source_refs=source_refs,
+            reason=(
+                "One typed transition group enumerates multiple sibling operating "
+                "owners with explicit initial-state contracts, forming one complete "
+                "same-property scope; each atomic contract remains supporting evidence."
+            ),
+            basis=(
+                f"transition_group_id={group.group_id}; "
+                f"transition_group_source={group.source_name}; "
+                f"source_contract_ids={list(source_contract_ids)}; "
+                f"owner_target_refs={[(row[3].ref, row[4].ref) for row in owner_target_rows]}"
+            ),
+        ).model_copy(
+            update={
+                "quote": "\n".join(
+                    f"[{row[0].segment_id}] {row[0].quote}"
+                    for row in owner_target_rows
+                ),
+                "binding_hints": tuple(
+                    hint
+                    for row in owner_target_rows
+                    for hint in row[0].binding_hints
+                ),
+            }
+        )
+        aggregate_candidate = _candidate(
+            aggregate_contract,
+            title="Sibling operating composites lack their required default entries",
+            predicate_id=None,
+            predicate_inputs={},
+            element_refs=element_refs,
+            source_refs=source_refs,
+            expected=aggregate_contract.normative_statement,
+            observed=" ".join(observed_rows),
+            strongest_rebuttal=(
+                "A guarded parent-to-child route in one sibling does not establish "
+                "an unconditional owner-local default entry in that sibling or any other."
+            ),
+            reason=(
+                "Each supplied initial-state contract resolves to a different sibling "
+                "composite, and every exact owner-local inventory independently lacks "
+                "the required unconditional default entry."
+            ),
+            basis=aggregate_contract.basis,
+        )
+        builder.add(
+            "aggregate_initial_entry",
+            source_contract_ids,
+            aggregate_contract,
+            aggregate_candidate,
+            reason=(
+                "A typed alternatives group establishes the complete sibling scope, "
+                "and each explicit default-entry obligation is refuted by its complete "
+                "owner-local transition inventory."
+            ),
+            basis=(
+                f"transition_group_id={group.group_id}; typed sibling owner/target "
+                "bindings and owned ModelIR initial edges"
+            ),
+        )
+        for contract_id in source_contract_ids:
+            consumed_contract_ids.add(contract_id)
+            if contract_id not in builder.superseded_candidate_contract_ids:
+                builder.superseded_candidate_contract_ids.append(contract_id)
+
+    for rows in rows_by_owner_ref.values():
+        individual.extend(
+            row for row in rows if row[0].contract_id not in consumed_contract_ids
+        )
+
+    for contract, normalized_contract, candidate, _owner, _target in individual:
         builder.add(
             "owner_initial_entry",
             (contract.contract_id,),
@@ -1625,6 +1819,15 @@ def _source_path(
 
 def _materialize_termination(builder: _Builder, contracts: Sequence[NLContract]) -> None:
     pair = builder.pair
+    stable_rows: list[
+        tuple[
+            NLContract,
+            CandidateIssue,
+            StateNode,
+            StateNode | None,
+            tuple[SourceInventoryTransition, ...],
+        ]
+    ] = []
     for contract in contracts:
         if contract.property != "termination" or contract.state_role != "termination_state":
             continue
@@ -1688,13 +1891,14 @@ def _materialize_termination(builder: _Builder, contracts: Sequence[NLContract])
                 reason="The NL marks the exact target as a termination state, while the closed author-source soundness fragment establishes reachable non-final continuation.",
                 basis=f"contract={contract.contract_id}; source_target_id={source_target_id}; source_path={source_path}; continuation_ids={[item.id for item in continuing]}",
             )
-            builder.add(
-                "stable_termination",
-                (contract.contract_id,),
-                contract,
-                candidate,
-                reason="A typed termination target has exact continuing behavior and is not an explicit stable sink.",
-                basis="termination state role plus canonical author-source reachability, final-state, hierarchy, and transition inventory",
+            stable_rows.append(
+                (
+                    contract,
+                    candidate,
+                    target,
+                    owner,
+                    tuple(continuing),
+                )
             )
         if owner and not _is_descendant(pair, target, owner):
             actual_parent = target.parent or "model root"
@@ -1734,6 +1938,171 @@ def _materialize_termination(builder: _Builder, contracts: Sequence[NLContract])
                 reason="The exact termination target lies under a different operating owner.",
                 basis="typed termination owner and exact target ancestor chain",
             )
+
+    grouped: dict[
+        str,
+        list[
+            tuple[
+                NLContract,
+                CandidateIssue,
+                StateNode,
+                StateNode | None,
+                tuple[SourceInventoryTransition, ...],
+            ]
+        ],
+    ] = defaultdict(list)
+    ownerless_rows: list[
+        tuple[
+            NLContract,
+            CandidateIssue,
+            StateNode,
+            StateNode | None,
+            tuple[SourceInventoryTransition, ...],
+        ]
+    ] = []
+    for row in stable_rows:
+        if row[3] is None:
+            ownerless_rows.append(row)
+        else:
+            grouped[row[2].ref].append(row)
+
+    for contract, candidate, _target, _owner, _continuing in ownerless_rows:
+        builder.add(
+            "stable_termination",
+            (contract.contract_id,),
+            contract,
+            candidate,
+            reason="A typed termination target has exact continuing behavior and is not an explicit stable sink.",
+            basis="termination state role plus canonical author-source reachability, final-state, hierarchy, and transition inventory",
+        )
+
+    for rows in grouped.values():
+        owner_rows = rows
+        distinct_owner_refs = {row[3].ref for row in owner_rows if row[3] is not None}
+        if len(distinct_owner_refs) < 2:
+            for contract, candidate, _target, _owner, _continuing in rows:
+                builder.add(
+                    "stable_termination",
+                    (contract.contract_id,),
+                    contract,
+                    candidate,
+                    reason="A typed termination target has exact continuing behavior and is not an explicit stable sink.",
+                    basis="termination state role plus canonical author-source reachability, final-state, hierarchy, and transition inventory",
+                )
+            continue
+
+        target = rows[0][2]
+        source_contract_ids = tuple(
+            dict.fromkeys(row[0].contract_id for row in rows)
+        )
+        owners = list(
+            {
+                row[3].ref: row[3]
+                for row in owner_rows
+                if row[3] is not None
+            }.values()
+        )
+        continuing = list(
+            {
+                transition.id: transition
+                for row in rows
+                for transition in row[4]
+            }.values()
+        )
+        source_refs = tuple(
+            dict.fromkeys(
+                [
+                    *[
+                        ref
+                        for row in rows
+                        for ref in row[0].source_refs
+                    ],
+                    *[item.raw_ref for item in continuing],
+                ]
+            )
+        )
+        aggregate_contract = _derived_contract(
+            rows[0][0],
+            locus_kind="scope",
+            locus_names=(*[owner.name for owner in owners], target.name),
+            property_name="termination",
+            state_role="termination_state",
+            expected_direction="must_terminate",
+            violation_direction="not_completed",
+            evidence_types=tuple(
+                dict.fromkeys(
+                    evidence
+                    for row in rows
+                    for evidence in row[0].evidence_types
+                )
+            ),
+            normative_statement=(
+                f"The completion obligations for {[owner.name for owner in owners]} "
+                f"must reach shared target {target.name} as a stable termination boundary."
+            ),
+            scope=(
+                f"Shared termination target {target.name} across explicit operating scopes"
+            ),
+            source_refs=source_refs,
+            reason=(
+                "Multiple explicit termination contracts bind the same exact target, "
+                "so one same-property shared-target obligation preserves their full scope."
+            ),
+            basis=(
+                f"source_contract_ids={list(source_contract_ids)}; "
+                f"owner_refs={[owner.ref for owner in owners]}; target_ref={target.ref}; "
+                f"continuation_ids={[item.id for item in continuing]}"
+            ),
+        ).model_copy(
+            update={
+                "quote": "\n".join(
+                    f"[{row[0].segment_id}] {row[0].quote}" for row in rows
+                ),
+                "binding_hints": tuple(
+                    hint for row in rows for hint in row[0].binding_hints
+                ),
+            }
+        )
+        aggregate_candidate = _candidate(
+            aggregate_contract,
+            title=f"Shared termination target {target.name} does not terminate its operating scopes",
+            predicate_id=None,
+            predicate_inputs={},
+            element_refs=(*[owner.ref for owner in owners], target.ref),
+            source_refs=source_refs,
+            expected=aggregate_contract.normative_statement,
+            observed=(
+                f"The exact reachable author-source target {target.name} is not "
+                "explicit-final, and its ancestor chain admits guard-free "
+                f"continuations {[item.id for item in continuing]}; therefore none "
+                f"of the bound completion scopes {[owner.name for owner in owners]} "
+                "obtains a stable termination boundary at that shared target."
+            ),
+            strongest_rebuttal=(
+                "The existence of each completion endpoint does not establish stable "
+                "termination when their shared target remains non-final and continuing."
+            ),
+            reason=(
+                "Every explicit termination contract binds the same exact target, and "
+                "the complete author-source soundness fragment establishes one shared "
+                "non-final continuation cause across all of them."
+            ),
+            basis=aggregate_contract.basis,
+        )
+        builder.add(
+            "aggregate_stable_termination",
+            source_contract_ids,
+            aggregate_contract,
+            aggregate_candidate,
+            reason=(
+                "A shared exact target refutes multiple explicit termination obligations "
+                "through one complete non-final continuation certificate."
+            ),
+            basis="typed termination owners, shared target identity, and canonical author-source continuation inventory",
+        )
+        for contract_id in source_contract_ids:
+            if contract_id not in builder.superseded_candidate_contract_ids:
+                builder.superseded_candidate_contract_ids.append(contract_id)
 
 
 def _group_operating_source(
@@ -2819,7 +3188,7 @@ def materialize_v27_frontier(
     _materialize_cardinality(
         builder, all_contracts, grounding_responses, llm_candidates
     )
-    _materialize_initial_entries(builder, all_contracts)
+    _materialize_initial_entries(builder, all_contracts, all_groups)
     scopes = _materialize_root_reachability(builder, all_contracts, llm_candidates)
     _materialize_scope_entries(builder, scopes)
     _materialize_dead_ends(builder, all_contracts)
