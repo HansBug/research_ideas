@@ -2643,7 +2643,14 @@ def test_0046_contract_shape_separates_endpoint_and_event_consumer() -> None:
     assert "Do not leave a normative qualifier only inside" in CONTRACT_SYSTEM_PROMPT
     assert "instead of duplicating every mentioned qualifier" in CONTRACT_SYSTEM_PROMPT
     assert "derive only actual mismatches" in CONTRACT_SYSTEM_PROMPT
+    assert 'Words such as "when", "if", or "based on"' in CONTRACT_SYSTEM_PROMPT
     assert "effect and guard are property values" in NLContract.model_json_schema()["properties"]["locus_kind"]["description"]
+    group_schema = NLTransitionGroup.model_json_schema()
+    owner_description = group_schema["properties"][
+        "common_enclosing_owner_name"
+    ]["description"]
+    assert "deterministic containment expansion" in owner_description
+    assert "若 source 本身是 owner" in owner_description
 
 
 def test_v27_state_role_normalization_merges_only_exact_typed_progress_identity() -> None:

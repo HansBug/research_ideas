@@ -125,9 +125,10 @@ class TransitionGroupSemanticKey(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.transition-group-key.v1"] = Field(default="paper1.transition-group-key.v1", description="Transition group semantic key 的 schema 版本。")
+    schema_version: Literal["paper1.transition-group-key.v2"] = Field(default="paper1.transition-group-key.v2", description="Transition group semantic key 的 schema 版本；v2 将 LLM-authorized common owner 纳入 identity。")
     segment_id: str = Field(pattern=r"^NL[0-9]+(?:\.[0-9]+)?$", description="建立该 relation 的精确 numbered NL segment。")
     source_name: str = Field(min_length=1, description="LLM discourse-resolved shared source；不得由 enclosing owner 自动替代。")
+    common_enclosing_owner_name: str | None = Field(default=None, min_length=1, description="LLM 明确建立的完整 sibling-group owner；null 表示该 relation 不授权 containment expansion。")
     alternatives: tuple[TransitionAlternativeSemanticKey, ...] = Field(min_length=1, description="有序完整 alternatives；目标、条件或顺序不同即为不同 relation。")
 
 
@@ -198,8 +199,8 @@ class GroupIdentityNormalizationReceipt(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.group-identity-normalization.v1"] = Field(default="paper1.group-identity-normalization.v1", description="Group identity normalization receipt 的 schema 版本。")
-    algorithm_version: Literal["typed-transition-group-identity.v1"] = Field(default="typed-transition-group-identity.v1", description="canonical group/alternative IDs 的确定性算法版本。")
+    schema_version: Literal["paper1.group-identity-normalization.v2"] = Field(default="paper1.group-identity-normalization.v2", description="Group identity normalization receipt 的 schema 版本；v2 记录 common-owner identity。")
+    algorithm_version: Literal["typed-transition-group-identity.v2"] = Field(default="typed-transition-group-identity.v2", description="canonical group/alternative IDs 的确定性算法版本；v2 将 common owner 纳入 group key。")
     lens: Literal["contract_structure_contrast", "behavior_consequence"] = Field(description="产生原始 additional group 的 grounding lens；仅用于 provenance。")
     raw_group_id: str = Field(min_length=1, description="provider 返回的 branch-local group ID；不再决定下游身份。")
     canonical_group_id: str = Field(min_length=1, description="runner 根据 TransitionGroupSemanticKey 生成的权威 group ID。")
@@ -222,8 +223,8 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v11"] = Field(
-        default="v27-typed-frontier.v11",
+    algorithm_version: Literal["v27-typed-frontier.v12"] = Field(
+        default="v27-typed-frontier.v12",
         description="产生该检查的确定性算法版本；不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
@@ -311,8 +312,8 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v11"] = Field(
-        default="v27-typed-frontier.v11",
+    algorithm_version: Literal["v27-typed-frontier.v12"] = Field(
+        default="v27-typed-frontier.v12",
         description="本批所有 check/obligation 使用的确定性算法版本。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
@@ -369,6 +370,7 @@ def transition_group_semantic_key(
     return TransitionGroupSemanticKey(
         segment_id=group.segment_id,
         source_name=group.source_name,
+        common_enclosing_owner_name=group.common_enclosing_owner_name,
         alternatives=tuple(
             TransitionAlternativeSemanticKey(
                 target_name=item.target_name,
@@ -2447,16 +2449,35 @@ def _source_carrier_for_contract(
     pair: PairInput,
     contract: NLContract,
     source_state: StateNode,
+    groups: Sequence[NLTransitionGroup] = (),
 ) -> SourceInventoryTransition | None:
     inventory = pair.exact_source_inventory
-    condition_hint = _hint(contract, "guard", "event", "trigger")
-    if inventory is None or condition_hint is None:
+    if inventory is None:
         return None
+    condition_values = {
+        hint.value
+        for hint in contract.binding_hints
+        if hint.role in {"guard", "event", "trigger"}
+    }
+    source_hint = _hint(contract, "source")
+    target_hint = _hint(contract, "target")
+    if source_hint is not None and target_hint is not None:
+        condition_values.update(
+            alternative.condition
+            for group in groups
+            if group.source_name == source_hint.value
+            for alternative in group.alternatives
+            if alternative.target_name == target_hint.value
+            and alternative.condition is not None
+        )
+    if len(condition_values) != 1:
+        return None
+    condition_value = next(iter(condition_values))
     rows = [
         item
         for item in inventory.transitions
         if _source_endpoint_name(item.source) == source_state.name
-        and condition_hint.value in {item.event, item.guard}
+        and condition_value in {item.event, item.guard}
     ]
     return rows[0] if len(rows) == 1 else None
 
@@ -2478,6 +2499,7 @@ def _model_carrier_for_source_row(
 def _materialize_wrong_targets(
     builder: _Builder,
     contracts: Sequence[NLContract],
+    groups: Sequence[NLTransitionGroup],
     grounding_responses: Sequence[GroundingResponse],
 ) -> None:
     pair = builder.pair
@@ -2585,7 +2607,7 @@ def _materialize_wrong_targets(
         expected_state = _state_by_ref(pair, next(iter(expected_refs)))
         source_state = _state_for_value(pair, source_hint.value)
         source_carrier = (
-            _source_carrier_for_contract(pair, base, source_state)
+            _source_carrier_for_contract(pair, base, source_state, groups)
             if source_state is not None
             else None
         )
@@ -2699,7 +2721,7 @@ def _materialize_wrong_targets(
         source_hint = _hint(contract, "source")
         source_state = _state_for_value(pair, source_hint.value if source_hint else None)
         source_carrier = (
-            _source_carrier_for_contract(pair, contract, source_state)
+            _source_carrier_for_contract(pair, contract, source_state, groups)
             if source_state is not None
             else None
         )
@@ -3352,7 +3374,7 @@ def materialize_v27_frontier(
     _materialize_dead_ends(builder, all_contracts)
     _materialize_termination(builder, all_contracts)
     _materialize_group_collisions(builder, all_groups, all_contracts)
-    _materialize_wrong_targets(builder, all_contracts, grounding_responses)
+    _materialize_wrong_targets(builder, all_contracts, all_groups, grounding_responses)
     _materialize_cross_wrapper(builder, all_contracts)
     _materialize_event_consumers(builder, all_contracts, scopes)
     return FrontierBatch(

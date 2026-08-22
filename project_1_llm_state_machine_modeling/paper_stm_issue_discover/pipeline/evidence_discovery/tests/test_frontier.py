@@ -26,6 +26,7 @@ from pipeline.evidence_discovery.semantics import (
     SemanticBinding,
     bind_candidate,
     canonicalize_grounding_response,
+    materialize_group_containment_contracts,
     materialize_segment_coverage,
     materialize_v27_frontier,
 )
@@ -258,6 +259,96 @@ def test_transition_endpoint_contract_requires_exact_typed_endpoint_roles() -> N
     description = schema["properties"]["binding_hints"]["description"]
     assert "property=transition_endpoints" in description
     assert "恰有一个 source" in description
+
+
+def test_common_owner_group_materializes_complete_containment_contracts() -> None:
+    endpoints = [
+        _contract(
+            contract_id=f"NL-CONTRACT-NL2-ENDPOINT-{target.upper()}",
+            segment_id="NL2",
+            locus_kind="transition",
+            locus_names=("InitialState", target),
+            property_name="transition_endpoints",
+            expected_direction="must_exist",
+            violation_direction="missing",
+            hints=(
+                _hint("source", "InitialState", "NL2"),
+                _hint("target", target, "NL2"),
+            ),
+        )
+        for target in ("HighwayMode", "UrbanMode")
+    ]
+    group = NLTransitionGroup(
+        group_id="NL-GROUP-NL2-AUTONOMOUS-SIBLINGS",
+        segment_id="NL2",
+        source_name="InitialState",
+        common_enclosing_owner_name="AutonomousMode",
+        alternatives=(
+            NLTransitionAlternative(
+                alternative_id="ALT-NL2-HIGHWAY",
+                target_name="HighwayMode",
+                condition="high_way=true",
+                condition_role="qualified_guard",
+                reason="The fixture preserves the HighwayMode alternative.",
+                basis="provider-free NL2 group",
+            ),
+            NLTransitionAlternative(
+                alternative_id="ALT-NL2-URBAN",
+                target_name="UrbanMode",
+                condition="urban_way=true",
+                condition_role="qualified_guard",
+                reason="The fixture preserves the UrbanMode alternative.",
+                basis="provider-free NL2 group",
+            ),
+        ),
+        source_refs=("NL1", "NL2"),
+        reason="The LLM fixture establishes one complete sibling group.",
+        basis="provider-free common-owner discourse binding",
+    )
+    response = _response(endpoints, (group,))
+
+    materialized = materialize_group_containment_contracts(response)
+
+    relations = {
+        (
+            next(h.value for h in item.binding_hints if h.role == "owner"),
+            next(h.value for h in item.binding_hints if h.role == "target"),
+        )
+        for item in materialized.contracts
+        if item.property == "containment"
+    }
+    assert relations == {
+        ("AutonomousMode", "InitialState"),
+        ("AutonomousMode", "HighwayMode"),
+        ("AutonomousMode", "UrbanMode"),
+    }
+    batch = materialize_v27_frontier(
+        load_pair(REPORT_ROOT / "pairs" / "0029"),
+        materialized,
+        {item.contract_id: item for item in materialized.contracts},
+        (),
+        (),
+    )
+    aggregate = next(
+        item for item in batch.obligations if item.kind == "aggregate_containment"
+    )
+    assert aggregate.candidate.locus_names == (
+        "AutonomousMode",
+        "InitialState",
+        "HighwayMode",
+        "UrbanMode",
+    )
+
+    ownerless = response.model_copy(
+        update={
+            "transition_groups": [
+                group.model_copy(update={"common_enclosing_owner_name": None})
+            ]
+        }
+    )
+    assert materialize_group_containment_contracts(ownerless) == ownerless
+    incomplete = _response(endpoints[:1], (group,))
+    assert materialize_group_containment_contracts(incomplete) == incomplete
 
 
 def test_containment_frontier_aggregates_only_complete_typed_group_scope() -> None:
@@ -1498,7 +1589,6 @@ def test_0029_wrong_target_reuses_unique_exact_target_concept_binding() -> None:
         hints=(
             _hint("source", "lane_change", "NL4"),
             _hint("target", "highway exit", "NL4"),
-            _hint("guard", "dist_to_exit<2", "NL4"),
         ),
     )
     cruise_exit = _contract(
@@ -1512,7 +1602,6 @@ def test_0029_wrong_target_reuses_unique_exact_target_concept_binding() -> None:
         hints=(
             _hint("source", "cruise", "NL5"),
             _hint("target", "highway exit", "NL5"),
-            _hint("guard", "dist_to_exit<2", "NL5"),
         ),
     )
     expected_target = pair.model.state("exit_hwy")
@@ -1541,7 +1630,27 @@ def test_0029_wrong_target_reuses_unique_exact_target_concept_binding() -> None:
         reason="The fixture provides one unique typed target-concept binding.",
         basis="provider-free cross-contract target binding",
     )
-    response = _response([lane_exit, cruise_exit])
+    groups = [
+        NLTransitionGroup(
+            group_id=f"NL-GROUP-{segment}-EXIT",
+            segment_id=segment,
+            source_name=source,
+            alternatives=(
+                NLTransitionAlternative(
+                    alternative_id=f"ALT-{segment}-EXIT",
+                    target_name="highway exit",
+                    condition="dist_to_exit<2",
+                    condition_role="qualified_guard",
+                    reason="The exact exit condition belongs to this alternative.",
+                    basis=f"provider-free {segment} transition group",
+                ),
+            ),
+            reason="The fixture keeps the carrier condition in the typed group.",
+            basis=f"provider-free {segment} relation",
+        )
+        for segment, source in (("NL4", "lane_change"), ("NL5", "cruise"))
+    ]
+    response = _response([lane_exit, cruise_exit], groups)
 
     batch = materialize_v27_frontier(
         pair,
