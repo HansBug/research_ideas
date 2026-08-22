@@ -544,15 +544,47 @@ def _canonical_source_ir(payload: dict[str, Any]) -> CanonicalSourceIR:
 
 
 def build_numbered_nl_segments(text: str) -> tuple[NumberedNLSegment, ...]:
-    """Split numbered NL even when the legacy artifact contains no newlines.
+    """Split explicit numbered clauses without interpreting requirement text.
 
-    The splitter recognizes a one-or-more digit marker only when it is followed
-    by a period, whitespace, or the ``when`` clause marker.  Thus the numeric
-    literal in ``front_distance > 10`` is not treated as a segment boundary.
+    Multi-line artifacts use ``N`` or ``N.`` markers at physical line starts. A
+    constrained fallback retains historical one-line artifacts: dotted markers
+    and ``N when``/``Nwhen`` delimiters remain explicit, while a plain ``N``
+    marker is accepted only at the artifact start or after sentence punctuation.
+    Numeric quantities and decimals are therefore retained inside their clause.
     """
 
-    marker = re.compile(r"(?<![A-Za-z0-9_.])(?P<number>[1-9]\d*)(?:(?P<dot>\.)(?=\s)|(?=\s)|(?=when\b))")
-    matches = list(marker.finditer(text))
+    line_marker = re.compile(r"(?m)^[ \t]*(?P<number>[1-9]\d*)(?:\.)?(?=[ \t]+)")
+    legacy_marker = re.compile(
+        r"(?<![A-Za-z0-9_.])(?P<number>[1-9]\d*)"
+        r"(?:(?P<dot>\.)(?=[ \t]+)|(?P<attached_when>(?=when\b))|"
+        r"(?P<spaced_when>(?=[ \t]+when\b))|(?P<plain>(?=[ \t]+)))"
+    )
+
+    line_matches: list[re.Match[str]] = []
+    last_line_number = 0
+    for match in line_marker.finditer(text):
+        number = int(match.group("number"))
+        if number == 1 and not line_matches:
+            line_matches.append(match)
+            last_line_number = number
+        elif line_matches and number in {last_line_number, last_line_number + 1}:
+            line_matches.append(match)
+            last_line_number = number
+    if "\n" in text or "\r" in text:
+        matches = line_matches
+        algorithm_basis = "nl-segmentation.v2; contiguous physical-line-start N or N. marker"
+        boundary_reason = "A physical line starts with a contiguous N or N. source marker; the next such line bounds this segment."
+    else:
+        matches = []
+        for match in legacy_marker.finditer(text):
+            if match.group("plain") is not None:
+                prefix = text[: match.start("number")].rstrip()
+                if prefix and prefix[-1] not in ".!?":
+                    continue
+            matches.append(match)
+        algorithm_basis = "nl-segmentation.v2; constrained one-line legacy delimiter"
+        boundary_reason = "An explicit one-line legacy source delimiter bounds this segment without interpreting clause text."
+
     segments: list[NumberedNLSegment] = []
     seen: dict[int, int] = {}
     for index, match in enumerate(matches):
@@ -562,7 +594,7 @@ def build_numbered_nl_segments(text: str) -> tuple[NumberedNLSegment, ...]:
         start = match.end()
         while start < len(text) and text[start].isspace():
             start += 1
-        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        end = matches[index + 1].start("number") if index + 1 < len(matches) else len(text)
         value = text[start:end].strip()
         if not value:
             continue
@@ -575,10 +607,10 @@ def build_numbered_nl_segments(text: str) -> tuple[NumberedNLSegment, ...]:
                 source_number=number,
                 ordinal=len(segments) + 1,
                 text=value,
-                raw_start=match.start(),
+                raw_start=match.start("number"),
                 raw_end=end,
-                reason="A numbered source marker was followed by a clause boundary and the next marker bounds this segment.",
-                basis="nl-segmentation.v1; period/whitespace/when marker rule",
+                reason=boundary_reason,
+                basis=algorithm_basis,
             )
         )
     if not segments and text.strip():
@@ -591,7 +623,7 @@ def build_numbered_nl_segments(text: str) -> tuple[NumberedNLSegment, ...]:
                 raw_start=0,
                 raw_end=len(text),
                 reason="No numbered marker was recoverable; the complete artifact is retained as one segment.",
-                basis="nl-segmentation.v1 fallback; exact artifact preservation",
+                basis="nl-segmentation.v2 fallback; exact artifact preservation",
             )
         )
     return tuple(segments)

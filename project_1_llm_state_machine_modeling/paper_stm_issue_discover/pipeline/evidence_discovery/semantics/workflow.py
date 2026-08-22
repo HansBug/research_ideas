@@ -804,7 +804,7 @@ def fallback_contracts(pair: PairInput, reason: str) -> NLContractResponse:
             scope="source-supplied scope; semantic scope requires review",
             source_refs=(f"nl:{segment.segment_id}",),
             reason="The structured contract response was unavailable, so the exact numbered source segment was preserved.",
-            basis=f"{reason}; nl-segmentation.v1",
+            basis=f"{reason}; nl-segmentation.v2",
         )
         for segment in pair.nl_segments
     )

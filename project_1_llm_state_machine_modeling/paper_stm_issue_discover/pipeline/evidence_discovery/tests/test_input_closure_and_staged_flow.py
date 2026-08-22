@@ -6,7 +6,11 @@ from pathlib import Path
 import pytest
 
 from pipeline.evidence_discovery.inputs import load_pair, parse_fcstm
-from pipeline.evidence_discovery.inputs.context import context_payload, prompt_context_payload
+from pipeline.evidence_discovery.inputs.context import (
+    build_numbered_nl_segments,
+    context_payload,
+    prompt_context_payload,
+)
 from pipeline.evidence_discovery.orchestration.runner import _method_cell, run_experiment
 from pipeline.evidence_discovery.orchestration.runtime import StructuredCallOutcome
 from pipeline.evidence_discovery.semantics import (
@@ -224,6 +228,66 @@ def test_v27_input_closure_is_loaded_and_role_separated() -> None:
     assert pair.inspection_facts.transitions
     assert pair.verify_facts.terminal_state == "completed"
     assert pair.smt_facts.solver_status == "not_run"
+
+
+def test_0029_numbered_nl_does_not_split_numeric_quantities() -> None:
+    nl_path = REPORT_ROOT / "pairs" / "0029" / "nl.txt"
+    text = nl_path.read_text(encoding="utf-8")
+
+    segments = build_numbered_nl_segments(text)
+
+    assert [item.segment_id for item in segments] == [f"NL{number}" for number in range(1, 14)]
+    assert "25 meters" in next(item.text for item in segments if item.segment_id == "NL5")
+    assert "15 meters" in next(item.text for item in segments if item.segment_id == "NL7")
+    assert "2 kilometers" in next(item.text for item in segments if item.segment_id == "NL4")
+    assert "0.7 kilometers" in next(item.text for item in segments if item.segment_id == "NL8")
+    assert all(item.basis.startswith("nl-segmentation.v2") for item in segments)
+    for item in segments:
+        assert text[item.raw_start :].startswith(str(item.source_number))
+        assert item.raw_start < item.raw_end <= len(text)
+
+
+def test_0046_line_start_markers_without_periods_are_preserved() -> None:
+    nl_path = REPORT_ROOT / "pairs" / "0046" / "nl.txt"
+
+    segments = build_numbered_nl_segments(nl_path.read_text(encoding="utf-8"))
+
+    assert [item.segment_id for item in segments] == ["NL1", "NL2", "NL3", "NL4"]
+    assert all("physical-line-start" in item.basis for item in segments)
+
+
+def test_line_start_numeric_quantities_do_not_become_source_markers() -> None:
+    text = (
+        "1. First clause starts here.\n"
+        "25 meters remains a continuation quantity.\n"
+        "2 Second clause starts here.\n"
+        "15 meters remains another continuation quantity.\n"
+        "3. Third clause starts here."
+    )
+
+    segments = build_numbered_nl_segments(text)
+
+    assert [item.segment_id for item in segments] == ["NL1", "NL2", "NL3"]
+    assert "25 meters" in segments[0].text
+    assert "15 meters" in segments[1].text
+
+
+def test_single_line_numbered_nl_uses_constrained_legacy_delimiters() -> None:
+    text = (
+        "1. First clause keeps 25 meters and 0.7 kilometers. "
+        "2. Second clause keeps 15 meters and 2 kilometers. "
+        "3 when the final explicit legacy clause applies"
+    )
+
+    segments = build_numbered_nl_segments(text)
+
+    assert [item.segment_id for item in segments] == ["NL1", "NL2", "NL3"]
+    assert "25 meters" in segments[0].text
+    assert "0.7 kilometers" in segments[0].text
+    assert "15 meters" in segments[1].text
+    assert "2 kilometers" in segments[1].text
+    assert segments[2].text == "when the final explicit legacy clause applies"
+    assert all("constrained one-line legacy delimiter" in item.basis for item in segments)
 
 
 def test_representative_v27_predecessor_pairs_have_complete_input_closure() -> None:
