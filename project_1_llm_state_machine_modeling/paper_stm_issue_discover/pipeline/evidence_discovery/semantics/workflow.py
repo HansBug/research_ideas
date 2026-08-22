@@ -54,7 +54,12 @@ class NLContract(BaseModel):
         description=(
             "v27 semantic role of the state centered by this contract, or null "
             "when the locus is not one state concept. An operating state denotes "
-            "active behavior that must retain a response/progress interpretation; "
+            "active behavior that must retain a response/progress interpretation. "
+            "A state required as the target of an operating transition remains an "
+            "operating state and needs its own separate progress contract unless "
+            "the supplied NL explicitly establishes terminal behavior; the target "
+            "name and absence of an explicit continuation sentence do not make it "
+            "terminal. "
             "termination_state requires explicit completion or terminal semantics "
             "from the NL and must never be inferred from a suggestive identifier."
         ),
@@ -164,7 +169,7 @@ class NLContractResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    contracts: list[NLContract] = Field(default_factory=list, description="Complete list of atomic contracts covering normative numbered NL segments; descriptive segments may be omitted with an explained top-level basis. A schema-correction turn must repeat every valid contract and return a complete replacement list, not only the corrected row.")
+    contracts: list[NLContract] = Field(default_factory=list, description="Complete list of atomic contracts covering normative numbered NL segments, including one separate deadlock_freedom/progress contract for every semantically active operating state identified by the supplied NL; a state required as an operating transition target is included unless the NL explicitly makes it terminal. Descriptive segments may be omitted with an explained top-level basis. A schema-correction turn must repeat every valid contract and return a complete replacement list, not only the corrected row.")
     segment_disposition: dict[str, Literal["covered", "context", "ambiguous"]] = Field(default_factory=dict, description="Disposition for supplied NL segment IDs only; every key must be an input segment ID.")
     reason: str = Field(min_length=1, description="LLM explanation of the overall contract extraction decision.")
     basis: str = Field(min_length=1, description="LLM basis identifying the supplied NL segments and source context used.")
@@ -387,6 +392,7 @@ Atomic contract shape:
 v27 state-role and discourse discipline:
 - Preserve the semantic role of every state-centered obligation in `state_role`. Use `operating_state` for an active control state or substate whose behavior must react, continue, or lead onward; use `termination_state` only when the NL explicitly establishes completion or intended terminal behavior. A name that sounds like stopping, emergency, final, or completion is not itself terminal evidence.
 - For each semantically active operating state, emit one separate `deadlock_freedom` contract with `expected_direction=must_progress`, `violation_direction=dead_end`, and the exact state as its locus. This contract states the v27 progress/response obligation before model inspection. Grounding will decide from exact finite facts whether the state has an outgoing or inherited continuation, an explicit terminal route, or a dead-end frontier. Do not emit this contract for an explicitly intended terminal state.
+- Before returning, perform a semantic state-role coverage pass over the supplied numbered NL: enumerate every state that the requirements make active, including every required target of an operating transition or initial entry. For each state not explicitly established as terminal, verify that the response contains its own atomic `deadlock_freedom` contract. A sentence need not repeat words such as continue, exit, or respond; required entry into an operating state supplies the first operational reading used by v27. Do not omit the progress contract merely because the same state already appears in an endpoint, trigger, action, or effect contract.
 - Treat an explicit "first transitions/enters" clause as `initial_entry` into the first state under the enclosing operating owner, not as an ordinary transition from a word such as system or controller. In an initial-entry contract, `owner` is the scope that owns the required initial pseudostate edge and `target` is the state entered by that edge. Thus "the system begins in Controller" yields owner=root/system and target=Controller, while a later "within Controller, first enter ModeA" yields owner=Controller and target=ModeA. Never make the entered target its own owner merely because it is described as a composite. Resolve later omitted sources and enclosing owners by discourse semantics. A sequence such as "first enter ModeA; it can then transition to ModeB; similarly it transitions to ModeC" yields owner initial-entry to ModeA, ModeA-to-ModeB, and ModeB-to-ModeC. By contrast, "from ModeA choose either ModeB or ModeC" yields two alternatives from ModeA. This is an LLM coreference and ordering judgment; never decide it by keywords or identifier spelling.
 - Keep a state-owned action/effect independent from the endpoint that enters the state. The action may remain a precise unsupported W1 obligation even when the endpoint exists.
 - Preserve containment depth from the NL. A state described only as being "within" or "under" a composite requires semantic descendant containment; an intermediate region or nested composite still satisfies that obligation. Require direct/immediate ownership only when the source meaning explicitly requires no intermediate owner. Region or wrapper structure is a separate contract only when the NL independently specifies that structure or its concurrency semantics.

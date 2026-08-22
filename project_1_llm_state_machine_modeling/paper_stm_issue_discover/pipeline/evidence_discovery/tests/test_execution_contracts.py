@@ -981,6 +981,9 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "Predicate/backend availability is a W question" in D_SYSTEM_PROMPT
     assert "different root-level initial edge" in D_SYSTEM_PROMPT
     assert "For each semantically active operating state" in CONTRACT_SYSTEM_PROMPT
+    assert "semantic state-role coverage pass" in CONTRACT_SYSTEM_PROMPT
+    assert "required target of an operating transition" in CONTRACT_SYSTEM_PROMPT
+    assert "need not repeat words such as continue" in CONTRACT_SYSTEM_PROMPT
     assert "first enter ModeA" in CONTRACT_SYSTEM_PROMPT
     assert '"the system begins in Controller" yields owner=root/system' in CONTRACT_SYSTEM_PROMPT
     assert "an intermediate region or nested composite still satisfies" in CONTRACT_SYSTEM_PROMPT
@@ -1008,6 +1011,11 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "exact NL terminal clause" in semantic_schema["strongest_defeater"]["description"]
     assert "bare possibility" in semantic_schema["defeater_kind"]["description"]
     assert "survives does not mean merely conceivable" in semantic_schema["defeater_disposition"]["description"]
+
+    contract_schema = NLContract.model_json_schema()["properties"]
+    assert "needs its own separate progress contract" in contract_schema["state_role"]["description"]
+    response_schema = NLContractResponse.model_json_schema()["properties"]
+    assert "every semantically active operating state" in response_schema["contracts"]["description"]
 
 
 def test_unsupported_backend_does_not_turn_satisfied_semantics_into_d1() -> None:
