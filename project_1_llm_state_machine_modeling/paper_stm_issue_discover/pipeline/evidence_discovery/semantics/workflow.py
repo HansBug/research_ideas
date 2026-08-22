@@ -42,7 +42,7 @@ class NLContract(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    contract_id: str = Field(pattern=r"^NL-CONTRACT-[A-Za-z0-9_.-]+$", min_length=14, description="Stable contract identifier derived from the supplied segment identifier.")
+    contract_id: str = Field(pattern=r"^NL-CONTRACT-[A-Za-z0-9_.-]+$", min_length=14, description="Required stable identifier derived from the supplied segment identifier; every value must start with NL-CONTRACT-, including values returned during schema correction.")
     segment_id: str = Field(pattern=r"^NL[0-9]+(?:\.[0-9]+)?$", min_length=3, description="Exact numbered NL segment identifier carried from the input closure.")
     quote: str = Field(min_length=1, description="Exact or faithful quote of the supplied NL segment; do not invent an answer or expected defect.")
     normative_statement: str = Field(min_length=1, description="Atomic source obligation stated without judging whether the current model satisfies it.")
@@ -60,7 +60,7 @@ class NLContract(BaseModel):
         ),
     )
     expected_direction: ExpectedDirection = Field(description="Positive requirement direction stated by the NL, such as required existence, entry, reachability, progress, coverage, or absence.")
-    violation_direction: ViolationDirection = Field(description="Defect direction that grounding must look for if the requirement is not met; it must not be reversed into a nearby existence observation.")
+    violation_direction: ViolationDirection = Field(description="Required defect direction on every contract that grounding must look for if the requirement is not met; it must not be omitted during schema correction or reversed into a nearby existence observation.")
     evidence_types: tuple[EvidenceType, ...] = Field(
         min_length=1,
         description=(
@@ -164,7 +164,7 @@ class NLContractResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    contracts: list[NLContract] = Field(default_factory=list, description="Atomic contracts covering normative numbered NL segments; descriptive segments may be omitted with an explained top-level basis.")
+    contracts: list[NLContract] = Field(default_factory=list, description="Complete list of atomic contracts covering normative numbered NL segments; descriptive segments may be omitted with an explained top-level basis. A schema-correction turn must repeat every valid contract and return a complete replacement list, not only the corrected row.")
     segment_disposition: dict[str, Literal["covered", "context", "ambiguous"]] = Field(default_factory=dict, description="Disposition for supplied NL segment IDs only; every key must be an input segment ID.")
     reason: str = Field(min_length=1, description="LLM explanation of the overall contract extraction decision.")
     basis: str = Field(min_length=1, description="LLM basis identifying the supplied NL segments and source context used.")
@@ -500,6 +500,11 @@ Stage-scoped context projection and complete artifact manifest:
 {context_text}
 
 Extract one NLContract per independently violable normative obligation. The typed semantic key and binding hints are the contract plan consumed by both grounding branches. Mark every supplied numbered NL segment as covered, context, or ambiguous. Every contract_id must include its exact segment_id (for example, NL-CONTRACT-NL6-ENDPOINT-1) and must be unique within this whole-cell response. Do not include ledger IDs, baseline labels, judge examples, W/D/L values, or hidden expected answers.
+
+If Pydantic schema feedback requests a correction, return the complete replacement
+NLContractResponse: preserve and repeat every already valid contract, correct each
+invalid row in place, and keep every segment disposition. Never return only the
+row named by the latest validation error.
 """
 
 
