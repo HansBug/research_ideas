@@ -85,8 +85,8 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v8"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v4"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v26"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v23"
+CODE_VERSION = "evidence-discovery-v27-flow.v27"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v24"
 
 
 JudgeRelation = Literal[
@@ -130,6 +130,10 @@ class JudgeRelationAssessment(BaseModel):
             "同 locus/property/scope 下的闭集关系。D1 ledger 与 D1 release 若表达相同的"
             "主要缺陷读法并保留相容的另一种称职读法，alternative survives 本身不使其降为"
             "partial_overlap；same cause、wrong source、different property 或不相容 scope 仍不得升级为 hit。"
+            "当 candidate 只覆盖 ledger 明确枚举的一个 sibling/component 时必须使用"
+            "ledger_subsumes_candidate 或 partial_overlap。多个这种非 hit candidate 不能"
+            "通过集合并集升级为 hit；每个计入 matched/accounted 的 issue 都必须独立具有"
+            "exact、semantic_equivalent 或 candidate_subsumes_ledger 关系。"
         ),
     )
     entailment_basis: str | None = Field(
@@ -172,7 +176,16 @@ class LedgerAssessment(BaseModel):
     hit_r1: bool = Field(default=False, description="Whether method round 1 contains a semantically identical release issue.")
     hit_r2: bool = Field(default=False, description="Whether method round 2 contains a semantically identical release issue.")
     hit_r3: bool = Field(default=False, description="Whether method round 3 contains a semantically identical release issue.")
-    matched_issue_ids: list[str] = Field(default_factory=list, description="Exact supplied method issue IDs that support the claimed round hits. This list and the release-side accounted_ledger_ids must encode the same semantic relation pairs.")
+    matched_issue_ids: list[str] = Field(
+        default_factory=list,
+        description=(
+            "支持该 ledger round hit 的 exact supplied method issue IDs。每个 ID 都必须"
+            "独立拥有 exact、semantic_equivalent 或 candidate_subsumes_ledger typed relation，"
+            "并在对应 ReleaseAssessment.accounted_ledger_ids 中反向出现。不得把多个"
+            "ledger_subsumes_candidate/partial_overlap 子集 issue 合并后当作一个 hit；若没有"
+            "单条 release 建立完整 ledger defect，此列表为空且对应 hit_rN=false。"
+        ),
+    )
     reason: str = Field(min_length=1, description="Non-empty explanation of why this ledger item is or is not semantically matched.")
     basis: str = Field(min_length=1, description="Non-empty evidence basis for this ledger assessment, tied to the supplied ledger and method release data.")
 
@@ -190,7 +203,17 @@ class ReleaseAssessment(BaseModel):
             "共享 cause 或映射到同一 ledger，也不得合并、去重或省略其中任何一行。"
         ),
     )
-    accounted_ledger_ids: list[str] = Field(default_factory=list, description="Exact supplied frozen ledger IDs that semantically account for this release issue. This list and the ledger-side matched_issue_ids must encode the same semantic relation pairs; an empty list means no hit-eligible typed relation accounts for the release.")
+    accounted_ledger_ids: list[str] = Field(
+        default_factory=list,
+        description=(
+            "以 hit-eligible typed relation 完整解释该 release 的 exact frozen ledger IDs。"
+            "每个 pair 必须在 ledger-side matched_issue_ids 中反向出现，且 relation 只能是"
+            "exact、semantic_equivalent 或带完整 entailment_basis 的 candidate_subsumes_ledger。"
+            "ledger_subsumes_candidate、partial_overlap、same_cause_different_property 和"
+            "unrelated 必须保持未计账，即使多个 subset release 的并集看似覆盖 ledger。"
+            "空列表精确表示没有 hit-eligible ledger relation。"
+        ),
+    )
     is_false_positive: bool = Field(description="True exactly when accounted_ledger_ids is empty. A true value means reason and basis must explain why no hit-eligible ledger relation exists; they must not describe the release as matching a frozen defect.")
     reason: str = Field(min_length=1, description="Non-empty explanation consistent with is_false_positive and accounted_ledger_ids: explain the accepted hit relation when accounted, or the locus/property/scope/direction mismatch when false positive.")
     basis: str = Field(min_length=1, description="Non-empty supplied ledger/release evidence consistent with the release decision; it must not claim a semantic match that the accounting and typed relations omit.")
@@ -210,14 +233,22 @@ class JudgeResponse(BaseModel):
             "具有相同 locus/property/cause，也必须保留各自的 ReleaseAssessment。"
         ),
     )
-    relation_assessments: list[JudgeRelationAssessment] = Field(default_factory=list, description="Sparse typed relations for plausible ledger/release pairs. Every claimed hit/accounting pair needs exactly one row. Negative nearby relations may be retained for audit, but do not emit a full unrelated ledger-by-release matrix.")
+    relation_assessments: list[JudgeRelationAssessment] = Field(
+        default_factory=list,
+        description=(
+            "Plausible ledger/release pair 的 sparse typed relations。每个 claimed hit/accounting"
+            " pair 必须且只能有一行 hit-eligible relation；负关系可稀疏保留。relation 是逐"
+            " candidate 判断，禁止把多个 ledger_subsumes_candidate 或 partial_overlap 行的"
+            "集合并集升级成 ledger hit，也禁止生成完整 unrelated 矩阵。"
+        ),
+    )
     reason: str = Field(min_length=1, description="Non-empty explanation of the judge's overall assessment decision.")
     basis: str = Field(min_length=1, description="Non-empty basis identifying the supplied ledger and method release facts used by the judge.")
 
 
 METHOD_SYSTEM_PROMPT = """The method is staged. The public method-generation surface is the NL contract extraction stage followed by two v27 complementary discovery-grounding lenses that share one response schema and compact cross-view context. Use only the complete context manifest supplied to each stage. Never read ledger answers, baseline results, judge examples, or historical release outputs. Do not emit W, D, or L levels. Every structured object must contain non-empty reason and basis."""
 
-JUDGE_SYSTEM_PROMPT = """You are an independent judge separated from method generation. You may use the supplied frozen ledger entries to assess method D1/D2 release issues. Judge semantic identity of locus, property, scope, and direction, not string similarity. Emit sparse typed relation_assessments: exact, semantic_equivalent, or candidate_subsumes_ledger may count as a hit; candidate_subsumes_ledger requires a complete logical entailment basis from the candidate's own supplied claim. When a ledger explicitly enumerates multiple sibling scopes, events, states, or components, a candidate covering only a subset is ledger_subsumes_candidate or partial_overlap, even if it shares the same ancestor or cause. Never use ledger detail to add a missing sibling/component to the candidate's claim. ledger_subsumes_candidate, partial_overlap, same_cause_different_property, and unrelated never count as hits. For a D1 ledger, compare the represented ambiguity rather than requiring the method release to settle it or use the same D level: when the release identifies the same primary defect reading at the same locus/property/scope/direction and preserves a compatible competent alternative, the surviving alternative is part of the same D1 ambiguity and does not by itself make the relation partial_overlap. This rule never repairs a wrong source, different property, incompatible scope, narrow manifestation, or issue that merely shares a cause; those are not semantic equivalence. Do not emit a full ledger-by-release matrix. Release assessment coverage is identity-based: emit one row for every supplied issue_id even when two releases are semantic duplicates or share one cause/ledger mapping; never deduplicate release rows. The ledger matched_issue_ids, release accounted_ledger_ids, hit-eligible typed relations, hit booleans, false-positive boolean, reason, and basis must all describe the same decision. In particular, a release marked false positive must not have reason or basis claiming that it matches a frozen defect. Do not read baseline results, other pairs, other judge outputs, or historical examples. Every assessment, relation, and top-level response must contain non-empty reason and basis fields that explain the judgment and its supplied-input support. Preserve the model's original wording."""
+JUDGE_SYSTEM_PROMPT = """You are an independent judge separated from method generation. You may use the supplied frozen ledger entries to assess method D1/D2 release issues. Judge semantic identity of locus, property, scope, and direction, not string similarity. Emit sparse typed relation_assessments: exact, semantic_equivalent, or candidate_subsumes_ledger may count as a hit; candidate_subsumes_ledger requires a complete logical entailment basis from the candidate's own supplied claim. When a ledger explicitly enumerates multiple sibling scopes, events, states, or components, a candidate covering only a subset is ledger_subsumes_candidate or partial_overlap, even if it shares the same ancestor or cause. Never use ledger detail to add a missing sibling/component to the candidate's claim. ledger_subsumes_candidate, partial_overlap, same_cause_different_property, and unrelated never count as hits. Multiple non-hit subset candidates cannot be unioned or counted collectively as one ledger hit: every issue_id in matched_issue_ids must independently have one exact, semantic_equivalent, or candidate_subsumes_ledger relation that establishes the complete ledger defect. If no single release does so, the ledger is a miss even when several releases together mention every enumerated sibling. For a D1 ledger, compare the represented ambiguity rather than requiring the method release to settle it or use the same D level: when the release identifies the same primary defect reading at the same locus/property/scope/direction and preserves a compatible competent alternative, the surviving alternative is part of the same D1 ambiguity and does not by itself make the relation partial_overlap. This rule never repairs a wrong source, different property, incompatible scope, narrow manifestation, or issue that merely shares a cause; those are not semantic equivalence. Do not emit a full ledger-by-release matrix. Release assessment coverage is identity-based: emit one row for every supplied issue_id even when two releases are semantic duplicates or share one cause/ledger mapping; never deduplicate release rows. The ledger matched_issue_ids, release accounted_ledger_ids, hit-eligible typed relations, hit booleans, false-positive boolean, reason, and basis must all describe the same decision. In particular, a release marked false positive must have accounted_ledger_ids=[] and must not have reason or basis claiming that it matches a frozen defect. Do not read baseline results, other pairs, other judge outputs, or historical examples. Every assessment, relation, and top-level response must contain non-empty reason and basis fields that explain the judgment and its supplied-input support. Preserve the model's original wording."""
 
 
 def _prompt_schema_hash() -> str:
@@ -2762,6 +2793,42 @@ def _judge_correction_prompt(
     ]
     previous_ledger_counts = Counter(previous_ledger_ids)
     previous_release_counts = Counter(previous_release_ids)
+    typed_relations = {
+        (item.ledger_id, item.issue_id): item.relation
+        for item in previous_response.relation_assessments
+    }
+    ledger_accounting_pairs = {
+        (item.ledger_id, issue_id)
+        for item in previous_response.ledger_assessments
+        for issue_id in item.matched_issue_ids
+    }
+    release_accounting_pairs = {
+        (ledger_id, item.issue_id)
+        for item in previous_response.release_assessments
+        for ledger_id in item.accounted_ledger_ids
+    }
+    relation_accounting_rows = [
+        {
+            "ledger_id": ledger_id,
+            "issue_id": issue_id,
+            "typed_relation": typed_relations.get((ledger_id, issue_id)),
+            "typed_hit_eligible": (
+                typed_relations.get((ledger_id, issue_id))
+                in _HIT_JUDGE_RELATIONS
+            ),
+            "ledger_side_accounted": (
+                (ledger_id, issue_id) in ledger_accounting_pairs
+            ),
+            "release_side_accounted": (
+                (ledger_id, issue_id) in release_accounting_pairs
+            ),
+        }
+        for ledger_id, issue_id in sorted(
+            set(typed_relations)
+            | ledger_accounting_pairs
+            | release_accounting_pairs
+        )
+    ]
     replacement_checklist = {
         "required_ledger_ids": required_ledger_ids,
         "previous_ledger_ids": previous_ledger_ids,
@@ -2787,6 +2854,7 @@ def _judge_correction_prompt(
             for item_id, count in previous_release_counts.items()
             if count > 1
         ),
+        "relation_accounting_rows": relation_accounting_rows,
     }
     return (
         _judge_prompt(pair, ledger_items, method_rounds)
@@ -2796,7 +2864,7 @@ def _judge_correction_prompt(
         + json.dumps(replacement_checklist, ensure_ascii=False, sort_keys=True)
         + "\nThe previous response violated these deterministic shape contracts:\n- "
         + "\n- ".join(errors)
-        + "\nReturn one complete replacement response. First carry forward every prior valid ledger and release assessment whose ID is required, preserving its semantic decision unless a listed relation error implicates it; then add every missing required row. Merge duplicate rows for one ledger ID into its single required row, and collapse release rows only when they repeat the same exact issue_id. Never deduplicate release assessment rows because their content, cause, locus, property, or ledger mapping is similar: identity coverage is by exact issue_id, and the final release issue ID set must equal required_release_issue_ids. Every claimed hit/accounting pair must have one typed relation_assessment, and hit-eligible typed relations must appear on both ledger/release accounting sides. For each listed ledger-side-only, release-side-only, or typed-relation inconsistency, make one semantic locus/property/scope/direction decision: if it is a match, use exact, semantic_equivalent, or a fully justified candidate_subsumes_ledger; otherwise remove the accounting pair and optionally preserve its sparse negative relation. Whenever accounting changes, rewrite that assessment's reason and basis to describe the corrected decision; a false-positive row must not retain wording that claims a frozen-ledger match. Before returning, mechanically compare both assessment ID sets with the checklist and verify that no required ID is missing. Do not add a relation merely to fill shape, do not create a full matrix, and do not leave a claimed pair on only one side. This is schema/coverage correction, not a provider retry. Every supplied unit still requires a semantic reason and basis.\n"
+        + "\nReturn one complete replacement response. First carry forward every prior valid ledger and release assessment whose ID is required, preserving its semantic decision unless a listed relation error implicates it; then add every missing required row. Merge duplicate rows for one ledger ID into its single required row, and collapse release rows only when they repeat the same exact issue_id. Never deduplicate release assessment rows because their content, cause, locus, property, or ledger mapping is similar: identity coverage is by exact issue_id, and the final release issue ID set must equal required_release_issue_ids. Every claimed hit/accounting pair must have one typed relation_assessment, and hit-eligible typed relations must appear on both ledger/release accounting sides. Read every relation_accounting_rows item mechanically: typed_hit_eligible=true requires ledger_side_accounted=true and release_side_accounted=true; typed_hit_eligible=false requires both accounting booleans false unless you make and justify a new semantic decision that changes the typed relation itself. Multiple ledger_subsumes_candidate or partial_overlap rows cannot be unioned into one hit, so do not use words such as jointly, together, collectively, or combined to account subset candidates. For each listed ledger-side-only, release-side-only, or typed-relation inconsistency, make one semantic locus/property/scope/direction decision: if one candidate independently establishes the complete ledger defect, use exact, semantic_equivalent, or a fully justified candidate_subsumes_ledger; otherwise remove the accounting pair and optionally preserve its sparse negative relation. Whenever accounting changes, rewrite that assessment's reason and basis to describe the corrected decision; is_false_positive must equal whether accounted_ledger_ids is empty, and a false-positive row must not retain wording that claims a frozen-ledger match. Before returning, mechanically compare both assessment ID sets and every relation_accounting_rows pair with the checklist and verify that no required ID is missing. Do not add a relation merely to fill shape, do not create a full matrix, and do not leave a claimed pair on only one side. This is schema/coverage correction, not a provider retry. Every supplied unit still requires a semantic reason and basis.\n"
     )
 
 

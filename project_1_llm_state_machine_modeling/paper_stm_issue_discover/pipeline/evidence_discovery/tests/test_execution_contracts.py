@@ -1096,6 +1096,72 @@ def test_aggregate_ledger_rejects_subset_candidate_subsumption() -> None:
     assert "Do not use ledger detail to add an absent sibling" in normalized_prompt
 
 
+def test_aggregate_ledger_rejects_collective_subset_accounting() -> None:
+    ledger = [{"id": "L-AGGREGATE", "pair": "0000"}]
+    release = [
+        {"issue_id": "0000:r1:issue:sibling-a"},
+        {"issue_id": "0000:r1:issue:sibling-b"},
+    ]
+    response = JudgeResponse(
+        ledger_assessments=[
+            LedgerAssessment(
+                ledger_id="L-AGGREGATE",
+                hit_r1=True,
+                matched_issue_ids=[
+                    "0000:r1:issue:sibling-a",
+                    "0000:r1:issue:sibling-b",
+                ],
+                reason="The invalid fixture unions two subset candidates.",
+                basis="The ledger enumerates sibling scopes A and B.",
+            )
+        ],
+        release_assessments=[
+            ReleaseAssessment(
+                issue_id="0000:r1:issue:sibling-a",
+                accounted_ledger_ids=["L-AGGREGATE"],
+                is_false_positive=False,
+                reason="The invalid fixture accounts subset A.",
+                basis="The candidate establishes sibling A only.",
+            ),
+            ReleaseAssessment(
+                issue_id="0000:r1:issue:sibling-b",
+                accounted_ledger_ids=["L-AGGREGATE"],
+                is_false_positive=False,
+                reason="The invalid fixture accounts subset B.",
+                basis="The candidate establishes sibling B only.",
+            ),
+        ],
+        relation_assessments=[
+            JudgeRelationAssessment(
+                ledger_id="L-AGGREGATE",
+                issue_id="0000:r1:issue:sibling-a",
+                relation="ledger_subsumes_candidate",
+                reason="The ledger also requires sibling B.",
+                basis="The candidate scope contains sibling A only.",
+            ),
+            JudgeRelationAssessment(
+                ledger_id="L-AGGREGATE",
+                issue_id="0000:r1:issue:sibling-b",
+                relation="ledger_subsumes_candidate",
+                reason="The ledger also requires sibling A.",
+                basis="The candidate scope contains sibling B only.",
+            ),
+        ],
+        reason="The fixture reproduces invalid collective subset accounting.",
+        basis="Provider-free aggregate-ledger shape regression.",
+    )
+
+    normalized = _normalize_judge_shape(response, ledger, release, 1)
+    errors = _judge_shape_errors(normalized, ledger, release, 1)
+
+    relation_error = next(
+        error for error in errors if "typed hit relations" in error
+    )
+    assert "0000:r1:issue:sibling-a" in relation_error
+    assert "0000:r1:issue:sibling-b" in relation_error
+    assert "accounting-only" in relation_error
+
+
 def test_candidate_subsumes_ledger_requires_entailment_basis() -> None:
     with pytest.raises(ValidationError, match="entailment_basis"):
         JudgeRelationAssessment(
@@ -1826,7 +1892,16 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
         assert nested["properties"]["reason"].get("description")
         assert nested["properties"]["basis"].get("description")
     release_schema = judge_schema["$defs"]["ReleaseAssessment"]["properties"]
+    ledger_schema = judge_schema["$defs"]["LedgerAssessment"]["properties"]
+    relation_schema = judge_schema["$defs"]["JudgeRelationAssessment"][
+        "properties"
+    ]
     assert "不得合并、去重或省略" in release_schema["issue_id"]["description"]
+    assert "多个 subset release 的并集" in release_schema[
+        "accounted_ledger_ids"
+    ]["description"]
+    assert "多个" in ledger_schema["matched_issue_ids"]["description"]
+    assert "不能" in relation_schema["relation"]["description"]
     assert "must not describe the release as matching" in release_schema[
         "is_false_positive"
     ]["description"]
@@ -3568,8 +3643,13 @@ def test_pair_wide_relation_asymmetry_gets_exact_targeted_correction(
         f'release-side-only=[["{ledger_ids[0]}", "0000:r1:issue:0"]]'
         in runtime.prompts[1]
     )
-    assert "if it is a match, use exact, semantic_equivalent" in runtime.prompts[1]
+    assert (
+        "if one candidate independently establishes the complete ledger defect"
+        in runtime.prompts[1]
+    )
     assert "otherwise remove the accounting pair" in runtime.prompts[1]
+    assert '"relation_accounting_rows"' in runtime.prompts[1]
+    assert "cannot be unioned into one hit" in runtime.prompts[1]
 
 
 def test_pair_wide_failure_does_not_expand_to_atomic_relation_matrix(
