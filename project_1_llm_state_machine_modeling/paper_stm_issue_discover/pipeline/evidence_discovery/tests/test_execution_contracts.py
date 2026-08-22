@@ -792,7 +792,7 @@ def test_both_v27_grounding_lenses_contribute_exact_candidates() -> None:
     }
 
 
-def test_judge_shape_normalization_is_exact_id_only() -> None:
+def test_judge_shape_normalization_does_not_rewrite_decision_fields() -> None:
     ledger = [{"id": "L-1", "pair": "0000"}]
     release = [{"issue_id": "0000:r1:issue:0"}]
     response = JudgeResponse(
@@ -827,9 +827,11 @@ def test_judge_shape_normalization_is_exact_id_only() -> None:
         basis="Fixture response basis.",
     )
     normalized = _normalize_judge_shape(response, ledger, release, 1)
-    assert not _judge_shape_errors(normalized, ledger, release, 1)
-    assert normalized.ledger_assessments[0].hit_r1 is True
-    assert normalized.release_assessments[0].is_false_positive is False
+    errors = _judge_shape_errors(normalized, ledger, release, 1)
+    assert normalized.ledger_assessments[0].hit_r1 is False
+    assert normalized.release_assessments[0].is_false_positive is True
+    assert any("hit_r1 must agree" in error for error in errors)
+    assert any("is_false_positive must equal" in error for error in errors)
 
 
 def test_judge_shape_rejects_asymmetric_exact_relations() -> None:
@@ -857,7 +859,8 @@ def test_judge_shape_rejects_asymmetric_exact_relations() -> None:
         basis="provider-free asymmetric relation fixture",
     )
 
-    errors = _judge_shape_errors(response, ledger, release, 1)
+    normalized = _normalize_judge_shape(response, ledger, release, 1)
+    errors = _judge_shape_errors(normalized, ledger, release, 1)
     assert any("same exact relation pairs" in error for error in errors)
     assert any(
         'release-side-only=[["L-1", "0000:r1:issue:0"]]' in error
@@ -875,9 +878,9 @@ def test_0053_typed_judge_relation_rejects_wrong_source_narrow_manifestation() -
         ledger_assessments=[
             LedgerAssessment(
                 ledger_id="DIFF-0053-01",
+                hit_r1=True,
                 matched_issue_ids=[
                     "0053:r1:issue:correct-sequence",
-                    "0053:r1:issue:wrong-owner-source",
                 ],
                 reason="Only the exact cross-wrapper sequence has the ledger property.",
                 basis="provider-free v27 positive/negative relation fixture",
@@ -893,8 +896,8 @@ def test_0053_typed_judge_relation_rejects_wrong_source_narrow_manifestation() -
             ),
             ReleaseAssessment(
                 issue_id="0053:r1:issue:wrong-owner-source",
-                accounted_ledger_ids=["DIFF-0053-01"],
-                is_false_positive=False,
+                accounted_ledger_ids=[],
+                is_false_positive=True,
                 reason="This nearby issue shares a global causal context only.",
                 basis="PumpControl to WaterState wrong-source relation",
             ),
@@ -1654,6 +1657,12 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
         assert nested["properties"]["basis"].get("description")
     release_schema = judge_schema["$defs"]["ReleaseAssessment"]["properties"]
     assert "不得合并、去重或省略" in release_schema["issue_id"]["description"]
+    assert "must not describe the release as matching" in release_schema[
+        "is_false_positive"
+    ]["description"]
+    assert "must not claim a semantic match" in release_schema["basis"][
+        "description"
+    ]
     assert "不按语义相似性 deduplicate" in judge_schema["properties"][
         "release_assessments"
     ]["description"]
