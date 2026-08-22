@@ -442,6 +442,15 @@ root initial edge is a different fact and does not satisfy or erase the malforme
 nested edge. Use only the supplied structured source/inspection facts; do not
 infer malformed syntax from text matching.
 
+For every `initial_entry` contract, treat its typed `owner` binding hint and
+target as one exact scoped obligation. An initial edge owned by a nested region,
+sibling composite, or root cannot satisfy an entry contract owned by another
+scope merely because it reaches a target with the same name. For example, a
+`Region -> ModeA` initial edge does not satisfy a `Controller -> ModeA` first-entry
+contract. If the required owner-local edge is absent or selects another exact
+target, emit the scoped candidate (predicate=null when the registry cannot state
+the full owner semantics); do not substitute the nearby local edge.
+
 When one NL sentence contains multiple obligations, split them before rejecting
 the contract. A satisfied endpoint or declaration does not discharge an attached
 ordering, guard, effect, action, containment, region, consumer, or progress clause.
@@ -540,6 +549,8 @@ Copy `contract_id`, `locus_kind`, `locus_names`, `property`, and
 may narrow source names to exact model identities through element_refs, but it
 must not change the semantic key or reverse the defect direction. Put actual
 evidence families used for the comparison in `evidence_types`.
+For `initial_entry`, copy and enforce the contract's exact owner hint as well as
+its target; an initial edge in a different owner scope is a different fact.
 Return exactly one `contract_dispositions` row for every supplied contract ID.
 Use `candidate_emitted` when this response contains one or more candidates for
 that ID; otherwise use `satisfied`, `unresolved`, or `not_applicable` with a

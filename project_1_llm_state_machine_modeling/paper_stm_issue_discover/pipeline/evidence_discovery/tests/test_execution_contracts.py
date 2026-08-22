@@ -982,6 +982,8 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "For each semantically active operating state" in CONTRACT_SYSTEM_PROMPT
     assert "first enter ModeA" in CONTRACT_SYSTEM_PROMPT
     assert "Emit a candidate only for a possible violated obligation" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "treat its typed `owner` binding hint" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "does not satisfy a `Controller -> ModeA`" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     grounding_prompt = build_grounding_prompt(
         pair,
         lens="behavior_consequence",
@@ -989,6 +991,7 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
         contracts=contracts,
     )
     assert '"state_role": "operating_state"' in grounding_prompt
+    assert "exact owner hint" in grounding_prompt
     assert '"projection_version": "contract-grounding-projection.v2"' in grounding_prompt
 
 
