@@ -8,7 +8,6 @@ new evidence method with algorithms owned by this package.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from pathlib import Path
@@ -44,8 +43,7 @@ SourceRole = Literal[
 ]
 PromptStage = Literal[
     "nl_contract_extraction",
-    "source_grounding",
-    "model_grounding",
+    "discovery_grounding",
     "d_adjudication",
 ]
 
@@ -145,73 +143,54 @@ def reference_inspection_prompt_dict(
     if artifact is None:
         return None
     payload = artifact.payload
-    selected: dict[str, Any] = {}
-    scalar_keys = ("metrics", "root_state_path", "diagnostics", "forced_transitions")
-    for key in scalar_keys:
-        if key in payload:
-            selected[key] = payload[key]
+    diagnostics = [
+        {
+            key: row[key]
+            for key in ("code", "severity", "refs", "span")
+            if isinstance(row, dict) and key in row
+        }
+        for row in payload.get("diagnostics", [])
+        if isinstance(row, dict)
+    ]
+    diagnostic_counts: dict[str, int] = {}
+    for row in diagnostics:
+        code = str(row.get("code") or "UNKNOWN")
+        diagnostic_counts[code] = diagnostic_counts.get(code, 0) + 1
 
-    state_keys = (
-        "path",
-        "name",
-        "parent_path",
-        "is_composite",
-        "is_leaf",
-        "is_pseudo",
-        "substates",
-        "initial_targets",
-        "entry_actions",
-        "during_actions",
-        "exit_actions",
-        "has_abstract_action",
+    inventory_sections = (
+        "states",
+        "transitions",
+        "actions",
+        "events",
+        "variables",
+        "forced_transitions",
+        "reachability_graph",
+        "event_emission_map",
+        "var_dataflow",
     )
-    states = payload.get("states")
-    if isinstance(states, list):
-        selected["states"] = [
-            {key: row[key] for key in state_keys if isinstance(row, dict) and key in row}
-            for row in states
-            if isinstance(row, dict)
-        ]
-
-    transition_keys = (
-        "transition_index",
-        "from_path",
-        "to_path",
-        "event",
-        "event_scope",
-        "guard",
-        "effect",
-        "is_forced",
-        "forced_origin",
-    )
-    transitions = payload.get("transitions")
-    if isinstance(transitions, list):
-        selected["transitions"] = [
-            {key: row[key] for key in transition_keys if isinstance(row, dict) and key in row}
-            for row in transitions
-            if isinstance(row, dict)
-        ]
-
-    for key in ("actions", "events", "event_emission_map", "reachability_graph", "variables", "var_dataflow"):
-        if key in payload:
-            selected[key] = payload[key]
-
-    omitted: dict[str, dict[str, Any]] = {}
-    for key, value in payload.items():
-        if key in selected:
-            continue
-        omitted[key] = {
+    inventory_receipts = {
+        key: {
             "count": len(value) if isinstance(value, (list, dict, str)) else None,
             "sha256": _artifact_hash_payload({"value": value}),
-            "reason": "The complete artifact is retained by the artifact hash; this repetitive projection is outside the compact grounding summary.",
-            "basis": "v27 parse_inspect artifact and compact-inspection-projection.v1",
         }
-    selected["omitted_sections"] = omitted
+        for key in inventory_sections
+        if (value := payload.get(key)) is not None
+    }
+    selected = {
+        "metrics": payload.get("metrics", {}),
+        "root_state_path": payload.get("root_state_path"),
+        "diagnostic_counts": diagnostic_counts,
+        "diagnostics": diagnostics,
+        "forced_transitions": payload.get("forced_transitions", []),
+        "inventory_receipts": inventory_receipts,
+        "reason": "The prompt carries the v27 compact inspect status, metrics, exact diagnostic refs, and inventory identities; exact source/closed-model inventories and owned facts are supplied separately.",
+        "basis": "v27 build_goal_context compact inspect shape plus compact-inspection-projection.v2",
+    }
     return {
         "ref": artifact.ref.model_dump(mode="json"),
         "payload": selected,
-        "reason": "Compact v27 inspection facts preserve inventory, diagnostics, graph, transition, action, and event summaries without repeating legacy payload expansion.",
-        "basis": "compact-inspection-projection.v1; complete source bytes remain hash-addressed in the manifest",
+        "reason": "Compact v27 inspection facts remain prompt-visible without duplicating the exact inventories supplied by the other closure artifacts.",
+        "basis": "compact-inspection-projection.v2; complete source bytes remain hash-addressed in the manifest",
     }
 
 
@@ -1186,7 +1165,7 @@ def _compact_fact_rows(
         "omitted_fields": ["reason", "basis"],
         "label": label,
         "reason": "Typed fact fields remain prompt-visible; repeated per-row audit rationale remains in the hash-addressed complete artifact.",
-        "basis": "stage-context-projection.v5 typed-fact projection",
+        "basis": "stage-context-projection.v6 typed-fact projection",
     }
     return projected, receipt
 
@@ -1215,13 +1194,6 @@ def _inspection_equivalent_prompt_dict(
         facts.transitions,
         fields=(
             "transition_ref",
-            "source",
-            "target",
-            "triggers",
-            "guard",
-            "effects",
-            "line",
-            "scope",
             "resolved_source_ref",
             "resolved_target_ref",
             "reachable_from_initial",
@@ -1331,7 +1303,6 @@ def _compact_trace_entries(entries: Any, *, label: str) -> dict[str, Any]:
                 "source_elements",
                 "intermediate_elements",
                 "trace_evidence",
-                "required_for_issue_ids",
                 "projection_status",
             )
             if isinstance(row, dict) and key in row
@@ -1479,10 +1450,7 @@ def _working_contract_prompt_dict(
         "usage_gate",
         "inventory_digests",
         "attribution_policy",
-        "diagnostic_attribution",
         "artifact_bindings",
-        "confirm_gate",
-        "repair_gate",
     )
     if include_source_trace:
         fixed_keys += ("source_trace_base",)
@@ -1576,7 +1544,7 @@ def _working_contract_prompt_dict(
                 }
             ),
             "reason": "Exact source/model refs are retained for binding; verbose compiler metadata remains available from the working-contract artifact hash.",
-            "basis": "working-contract-prompt-projection.v4",
+            "basis": "working-contract-prompt-projection.v5",
         }
     else:
         projected["elements"] = _project_large_sequence(payload.get("elements"), label="elements")
@@ -1614,13 +1582,20 @@ def _working_contract_prompt_dict(
             "excluded_field_refs",
         ],
         "reason": "Capability status and claim boundaries remain visible; repeated eligibility ID lists remain in the complete working-contract artifact.",
-        "basis": "working-contract-prompt-projection.v4",
+        "basis": "working-contract-prompt-projection.v5",
     }
+    for key in ("diagnostic_attribution", "confirm_gate", "repair_gate"):
+        if key in payload:
+            projected[f"{key}_receipt"] = {
+                "sha256": _artifact_hash_payload({"value": payload[key]}),
+                "reason": "This generation/review policy remains in the complete working-contract artifact and is not duplicated in discovery grounding.",
+                "basis": "working-contract-prompt-projection.v5",
+            }
     return {
         "ref": artifact.ref.model_dump(mode="json"),
         "payload": projected,
         "reason": "The working contract projection preserves exact source/model mapping and hash-addresses omitted compiler and eligibility expansions.",
-        "basis": "working-contract-prompt-projection.v4",
+        "basis": "working-contract-prompt-projection.v5",
     }
 
 
@@ -1629,10 +1604,21 @@ def _prompt_base(pair: Any, stage: PromptStage) -> dict[str, Any]:
 
     if pair.context_manifest is None:
         raise ValueError("stage prompt requires a complete context manifest")
+    manifest = pair.context_manifest
     return {
-        "prompt_projection_version": "stage-context-projection.v5",
+        "prompt_projection_version": "stage-context-projection.v6",
         "stage": stage,
-        "context_manifest": pair.context_manifest.model_dump(mode="json"),
+        "context_manifest": {
+            "schema_version": manifest.schema_version,
+            "protocol_version": manifest.protocol_version,
+            "pair_id": manifest.pair_id,
+            "manifest_hash": manifest.manifest_hash,
+            "artifact_count": len(manifest.artifacts),
+            "sections": [item.model_dump(mode="json") for item in manifest.sections],
+            "forbidden_inputs": list(manifest.forbidden_inputs),
+            "reason": "The complete manifest is retained in the method receipt; this prompt identity is joined to the exact artifact refs below.",
+            "basis": "context-manifest-prompt-projection.v2",
+        },
         "artifact_refs": [
             {
                 key: value
@@ -1665,7 +1651,7 @@ def _prompt_base(pair: Any, stage: PromptStage) -> dict[str, Any]:
             "smt_facts": "normalized_formal_inputs_not_solver_result",
         },
         "reason": "Stage context is role-scoped while the complete artifact closure remains identified by the manifest.",
-        "basis": "context-manifest.v1 and stage-context-projection.v5",
+        "basis": "context-manifest.v1 and stage-context-projection.v6",
     }
 
 
@@ -1673,9 +1659,10 @@ def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
     """Return the stage-specific prompt closure without duplicating unrelated raw artifacts.
 
     Every stage receives the complete manifest, hashes, versions, and role policy.
-    The source and model branches additionally receive the exact payloads owned by
-    their authority. This preserves v27 information flow and prevents a large
-    mapping or inspection report from being repeated into every LLM call.
+    The two v27 complementary discovery lenses receive the same compact cross-view
+    payload. Source and closed-model roles remain explicit inside that payload;
+    neither lens receives a different semantic protocol or a silently incomplete
+    half of the method input closure.
     """
 
     payload = _prompt_base(pair, stage)
@@ -1700,7 +1687,7 @@ def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
                 ),
             }
         )
-    elif stage == "source_grounding":
+    elif stage == "discovery_grounding":
         payload.update(
             {
                 "numbered_nl": [
@@ -1724,19 +1711,10 @@ def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
                 "working_contract": _working_contract_prompt_dict(
                     pair.working_contract,
                     include_elements=True,
-                    include_source_trace=True,
-                    include_review_subject=True,
+                    include_source_trace=False,
+                    include_review_subject=False,
                 ),
                 "source_trace": _source_trace_prompt_dict(pair.source_trace),
-            }
-        )
-    elif stage == "model_grounding":
-        payload.update(
-            {
-                "numbered_nl": [
-                    item.model_dump(mode="json")
-                    for item in pair.nl_segments
-                ],
                 "fcstm_model": {
                     "role": "closed_model",
                     "path": str(pair.pair_dir / "fcstm.fcstm"),
@@ -1746,12 +1724,6 @@ def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
                     "reason": "FCSTM is the closed model evaluated by the new deterministic backends.",
                     "basis": pair.model.algorithm_version,
                 },
-                "working_contract": _working_contract_prompt_dict(
-                    pair.working_contract,
-                    include_elements=True,
-                    include_source_trace=False,
-                    include_review_subject=False,
-                ),
                 "reference_inspection_facts": (
                     reference_inspection_prompt_dict(pair.reference_inspection)
                     if pair.reference_inspection

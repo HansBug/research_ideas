@@ -12,14 +12,17 @@ from pipeline.evidence_discovery.inputs.context import (
     prompt_context_payload,
 )
 from pipeline.evidence_discovery.orchestration.runner import (
-    _contract_segment_chunks,
     _method_cell,
     run_experiment,
 )
-from pipeline.evidence_discovery.orchestration.runtime import StructuredCallOutcome
+from pipeline.evidence_discovery.orchestration.runtime import (
+    MAX_STRUCTURED_OUTPUT_TOKENS,
+    StructuredCallOutcome,
+)
 from pipeline.evidence_discovery.semantics import (
     DAdjudicationResponse,
-    ContractChunkOutput,
+    DISCOVERY_GROUNDING_SYSTEM_PROMPT,
+    D_SYSTEM_PROMPT,
     GroundingDisposition,
     GroundingResponse,
     NLContract,
@@ -27,7 +30,6 @@ from pipeline.evidence_discovery.semantics import (
     StageReceipt,
     build_contract_prompt,
     fallback_contracts,
-    merge_contract_chunks,
 )
 
 
@@ -43,20 +45,29 @@ class FixtureStructuredRuntime:
         *,
         include_second_candidate: bool = False,
         omit_second_d_decision: bool = False,
+        duplicate_first_d_decision: bool = False,
     ) -> None:
         self.prompts: list[tuple[str, str]] = []
         self.include_second_candidate = include_second_candidate
         self.omit_second_d_decision = omit_second_d_decision
+        self.duplicate_first_d_decision = duplicate_first_d_decision
         self.d_call_count = 0
 
     def call(self, *, kind, schema, system_prompt, prompt, artifact_id, **kwargs):
-        self.prompts.append((kind, prompt))
+        recorded_kind = (
+            "contract_structure_contrast"
+            if artifact_id.endswith("/contract_structure_contrast")
+            else "behavior_consequence"
+            if artifact_id.endswith("/behavior_consequence")
+            else kind
+        )
+        self.prompts.append((recorded_kind, prompt))
         pair_id = artifact_id.split("/")[1]
         if schema is NLContractResponse:
             context_marker = "Stage-scoped context projection and complete artifact manifest:\n"
             context_start = prompt.index(context_marker) + len(context_marker)
             context, _ = json.JSONDecoder().raw_decode(prompt[context_start:])
-            segment_id = context["contract_chunk"]["segment_ids"][0]
+            segment_id = context["numbered_nl"][0]["segment_id"]
             segment = next(
                 item
                 for item in load_pair(REPORT_ROOT / "pairs" / pair_id).nl_segments
@@ -142,7 +153,11 @@ class FixtureStructuredRuntime:
                     }
                 )
             response = GroundingResponse(
-                branch="source" if kind == "source_grounding" else "model",
+                lens=(
+                    "behavior_consequence"
+                    if artifact_id.endswith("/behavior_consequence")
+                    else "contract_structure_contrast"
+                ),
                 candidates=candidates,
                 contract_dispositions=[
                     GroundingDisposition(
@@ -164,6 +179,8 @@ class FixtureStructuredRuntime:
                 decision_ids = [f"{pair_id}:r1:i0"]
             if self.include_second_candidate and not self.omit_second_d_decision:
                 decision_ids.append(f"{pair_id}:r1:i1")
+            if self.duplicate_first_d_decision and kind == "d_adjudication":
+                decision_ids.append(f"{pair_id}:r1:i0")
             response = DAdjudicationResponse(
                 decisions=[
                     {
@@ -198,7 +215,9 @@ class FixtureStructuredRuntime:
                 "estimated_prompt_tokens": (len(prompt) + 3) // 4,
                 "provider_input_tokens": None,
                 "context_window_tokens": None,
-                "max_output_tokens": 8000,
+                "max_output_tokens": kwargs.get(
+                    "max_output_tokens", MAX_STRUCTURED_OUTPUT_TOKENS
+                ),
                 "truncation_applied": False,
                 "projection_decision": "The test fixture used the complete serialized prompt.",
                 "reason": "The provider-free test fixture records prompt size.",
@@ -307,72 +326,26 @@ def test_single_line_numbered_nl_uses_constrained_legacy_delimiters() -> None:
     assert all("constrained one-line legacy delimiter" in item.basis for item in segments)
 
 
-def test_0029_contract_chunks_are_bounded_and_exact() -> None:
+def test_0029_contract_extraction_is_one_whole_cell_call() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0029")
 
-    chunks = _contract_segment_chunks(pair)
+    prompt = build_contract_prompt(pair, 1)
 
-    assert chunks == (
-        ("NL1", "NL2", "NL3", "NL4"),
-        ("NL5", "NL6", "NL7", "NL8"),
-        ("NL9", "NL10", "NL11", "NL12"),
-        ("NL13",),
-    )
-    prompts = [
-        build_contract_prompt(
-            pair,
-            1,
-            [],
-            segment_ids=segment_ids,
-            chunk_index=index,
-            chunk_count=len(chunks),
-        )
-        for index, segment_ids in enumerate(chunks, start=1)
-    ]
-    assert "Contract chunk: 1/4" in prompts[0]
-    assert '"segment_id": "NL4"' in prompts[0]
-    assert '"segment_id": "NL5"' not in prompts[0]
-    assert '"segment_id": "NL5"' in prompts[1]
-    assert '"segment_id": "NL9"' not in prompts[1]
-    assert '"segment_id": "NL9"' in prompts[2]
-    assert '"segment_id": "NL13"' not in prompts[2]
-    assert '"segment_id": "NL13"' in prompts[3]
+    assert "Stage: contract-extraction" in prompt
+    assert "Contract chunk:" not in prompt
+    assert all(f'"segment_id": "NL{number}"' in prompt for number in range(1, 14))
 
 
-def test_contract_chunk_outputs_merge_only_by_exact_ids() -> None:
+def test_contract_fallback_preserves_all_numbered_nl_without_merge_protocol() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0029")
-    chunks = _contract_segment_chunks(pair)
-    parts = [
-        (
-            segment_ids,
-            fallback_contracts(
-                pair,
-                "provider-free chunk fixture",
-                segment_ids=segment_ids,
-            ),
-        )
-        for segment_ids in chunks
-    ]
+    fallback = fallback_contracts(pair, "provider-free whole-cell fixture")
 
-    merged = merge_contract_chunks(parts)
-    chunk_receipt = ContractChunkOutput(
-        chunk_index=1,
-        chunk_count=len(chunks),
-        segment_ids=chunks[0],
-        prompt_hash="sha256:" + "1" * 64,
-        response=parts[0][1],
-        reason="The fixture retains one bounded contract response.",
-        basis="contract-chunking.v1 provider-free fixture",
-    )
-
-    assert [item.segment_id for item in merged.contracts] == [
+    assert [item.segment_id for item in fallback.contracts] == [
         f"NL{number}" for number in range(1, 14)
     ]
-    assert list(merged.segment_disposition) == [f"NL{number}" for number in range(1, 14)]
-    assert len({item.contract_id for item in merged.contracts}) == 13
-    assert chunk_receipt.reason and chunk_receipt.basis
-    with pytest.raises(ValueError, match="outside its exact assignment"):
-        merge_contract_chunks([(chunks[0], parts[1][1])])
+    assert list(fallback.segment_disposition) == [f"NL{number}" for number in range(1, 14)]
+    assert len({item.contract_id for item in fallback.contracts}) == 13
+    assert fallback.reason and fallback.basis
 
 
 def test_representative_v27_predecessor_pairs_have_complete_input_closure() -> None:
@@ -508,33 +481,26 @@ def test_representative_pairs_staged_fixture_smoke(tmp_path: Path) -> None:
             pair=pair,
             round_index=1,
             runtime=runtime,
-            previous=[],
             output_root=tmp_path / pair_id,
         )
-        contract_chunk_count = len(_contract_segment_chunks(pair))
-        assert len(runtime.prompts) == contract_chunk_count + 3
+        assert len(runtime.prompts) == 4
         calls_per_cell.append(len(runtime.prompts))
         assert sum(
-            kind == "nl_contract_extraction"
+            kind == "contract_extraction"
             for kind, _ in runtime.prompts
-        ) == contract_chunk_count
+        ) == 1
         assert cell["context_manifest"]["manifest_hash"] == pair.context_manifest.manifest_hash
         assert cell["evidence_records"]
-        assert all(
-            ContractChunkOutput.model_validate(item).reason
-            and ContractChunkOutput.model_validate(item).basis
-            for item in cell["stage_outputs"]["nl_contract_chunks"]
-        )
-    assert calls_per_cell == [6, 4, 7, 5, 4, 4]
-    assert sum(calls_per_cell) * 3 == 90
+    assert calls_per_cell == [4, 4, 4, 4, 4, 4]
+    assert sum(calls_per_cell) * 3 == 72
     assert all(item["reason"] and item["basis"] for item in cell["stage_receipts"])
     assert all(item["input_manifest_hash"] == pair.context_manifest.manifest_hash for item in cell["stage_receipts"])
     contract_ids = {
         item["contract_id"]
-        for item in cell["stage_outputs"]["nl_contract_extraction"]["contracts"]
+        for item in cell["stage_outputs"]["contract_extraction"]["contracts"]
     }
-    for stage_name in ("source_grounding", "model_grounding"):
-        dispositions = cell["stage_outputs"][stage_name]["contract_dispositions"]
+    for branch in cell["stage_outputs"]["discovery_grounding"]["branches"]:
+        dispositions = branch["contract_dispositions"]
         assert {item["contract_id"] for item in dispositions} == contract_ids
         assert all(item["reason"] and item["basis"] for item in dispositions)
 
@@ -551,6 +517,10 @@ def test_method_context_excludes_historical_case_run_payloads() -> None:
     assert "review" not in case_fields
     assert "canonical_sha256" in case_fields
     assert "fcstm_sha256" in case_fields
+
+    grounding = prompt_context_payload(pair, stage="discovery_grounding")
+    source_trace_text = json.dumps(grounding["source_trace"], sort_keys=True)
+    assert "required_for_issue_ids" not in source_trace_text
 
 
 def test_incomplete_three_file_surface_is_rejected(tmp_path: Path) -> None:
@@ -571,14 +541,13 @@ def test_staged_method_receives_full_context_and_writes_stage_receipts(tmp_path:
         pair=pair,
         round_index=1,
         runtime=runtime,
-        previous=[],
         output_root=tmp_path,
     )
 
     assert [kind for kind, _ in runtime.prompts] == [
-        "nl_contract_extraction",
-        "source_grounding",
-        "model_grounding",
+        "contract_extraction",
+        "contract_structure_contrast",
+        "behavior_consequence",
         "d_adjudication",
     ]
     prompts = dict(runtime.prompts)
@@ -587,49 +556,47 @@ def test_staged_method_receives_full_context_and_writes_stage_receipts(tmp_path:
         assert "artifact_refs" in prompt
         assert "source_roles" in prompt
         assert "frozen ledger answers" in prompt
-        assert "baseline hit/FP results" in prompt
-    assert '"numbered_nl": [' in prompts["nl_contract_extraction"]
-    assert '"working_contract": {' in prompts["nl_contract_extraction"]
-    assert '"fcstm_model": {' not in prompts["nl_contract_extraction"]
-    assert '"plantuml_source": {' in prompts["source_grounding"]
-    assert '"canonical_source_ir": {' in prompts["source_grounding"]
-    assert '"exact_source_inventory": {' in prompts["source_grounding"]
-    assert '"working_contract": {' in prompts["source_grounding"]
-    assert '"source_trace": {' in prompts["source_grounding"]
-    assert '"fcstm_model": {' not in prompts["source_grounding"]
-    for grounding_stage in ("source_grounding", "model_grounding"):
+        assert "baseline hit/false-positive results" in prompt
+    assert '"numbered_nl": [' in prompts["contract_extraction"]
+    assert '"working_contract": {' in prompts["contract_extraction"]
+    assert '"fcstm_model": {' not in prompts["contract_extraction"]
+    for grounding_stage in (
+        "contract_structure_contrast",
+        "behavior_consequence",
+    ):
+        assert '"plantuml_source": {' in prompts[grounding_stage]
+        assert '"canonical_source_ir": {' in prompts[grounding_stage]
+        assert '"exact_source_inventory": {' in prompts[grounding_stage]
+        assert '"working_contract": {' in prompts[grounding_stage]
+        assert '"source_trace": {' in prompts[grounding_stage]
+        assert '"fcstm_model": {' in prompts[grounding_stage]
+        assert '"reference_inspection_facts": {' in prompts[grounding_stage]
+        assert '"inspection_equivalent_facts": {' in prompts[grounding_stage]
+        assert '"verify_facts": {' in prompts[grounding_stage]
+        assert '"smt_facts": {' in prompts[grounding_stage]
         assert '"projection_version": "contract-grounding-projection.v1"' in prompts[grounding_stage]
         assert '"full_contract_response_hash": "sha256:' in prompts[grounding_stage]
         assert '"contract_id": "NL-CONTRACT-NL1"' in prompts[grounding_stage]
         assert "Fixture contract reason." not in prompts[grounding_stage]
         assert "Fixture contract response reason." not in prompts[grounding_stage]
-    assert '"fcstm_model": {' in prompts["model_grounding"]
-    assert '"reference_inspection_facts": {' in prompts["model_grounding"]
-    assert '"inspection_equivalent_facts": {' in prompts["model_grounding"]
-    assert '"verify_facts": {' in prompts["model_grounding"]
-    assert '"smt_facts": {' in prompts["model_grounding"]
-    assert '"plantuml_source": {' not in prompts["model_grounding"]
-    assert "Use V4(initial_scope) for a supplied finite deadlock-frontier" in prompts["model_grounding"]
-    assert "Use G1 for a finite path-existence or unreachable-target claim" in prompts["model_grounding"]
-    assert "Use S1 only for closed-model declaration membership" in prompts["model_grounding"]
+        assert "Use V4(initial_scope) for a supplied finite deadlock-frontier" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+        assert "Use G1 for a finite path-existence or unreachable-target claim" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+        assert "Use S1 only for closed-model declaration membership" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert '"dossier_input_policy": {' in prompts["d_adjudication"]
     assert '"plantuml_source": {' not in prompts["d_adjudication"]
     assert '"fcstm_model": {' not in prompts["d_adjudication"]
-    assert "an unsupported or W1-only predicate does not erase a precise issue" in prompts["d_adjudication"]
+    assert "an unsupported or W1-only predicate does not erase a precise issue" in D_SYSTEM_PROMPT
 
     receipt_names = [item["stage_name"] for item in cell["stage_receipts"]]
-    for required in (
+    assert receipt_names == [
         "prepare",
-        "nl_contract_extraction",
-        "source_grounding",
-        "model_grounding",
-        "exact_binding",
-        "predicate_compilation",
-        "backend_execution",
+        "contract_extraction",
+        "discovery_grounding",
+        "execute_batch",
         "d_adjudication",
-        "w_publication",
-    ):
-        assert required in receipt_names
+        "validate_d",
+        "publish",
+    ]
     assert all(item["input_manifest_hash"] == pair.context_manifest.manifest_hash for item in cell["stage_receipts"])
     assert all(item["reason"] and item["basis"] for item in cell["stage_receipts"])
     assert all(item["context_budget"]["reason"] and item["context_budget"]["basis"] for item in cell["stage_receipts"])
@@ -642,23 +609,78 @@ def test_staged_method_receives_full_context_and_writes_stage_receipts(tmp_path:
     assert llm_budgets
     assert all(item["prompt_characters"] > 0 for item in llm_budgets)
     assert all(item["truncation_applied"] is False for item in llm_budgets)
-    grounding_receipts = {
-        item["stage_name"]: item
-        for item in cell["stage_receipts"]
-        if item["stage_name"] in {"source_grounding", "model_grounding"}
-    }
-    assert {
-        item["context_budget"]["projection_version"]
-        for item in grounding_receipts.values()
-    } == {"stage-context-projection.v5+contract-grounding-projection.v1"}
+    assert all(
+        item["max_output_tokens"] == MAX_STRUCTURED_OUTPUT_TOKENS
+        for item in llm_budgets
+    )
+    grounding_receipt = next(
+        item for item in cell["stage_receipts"]
+        if item["stage_name"] == "discovery_grounding"
+    )
+    assert grounding_receipt["context_budget"]["projection_version"] == "v27-complementary-grounding-projection.v1"
     assert len(cell["llm_calls"]) == 4
     assert cell["context_manifest"]["manifest_hash"] == pair.context_manifest.manifest_hash
-    assert cell["stage_outputs"]["nl_contract_extraction"]["reason"]
-    assert cell["stage_outputs"]["source_grounding"]["basis"]
-    assert cell["stage_outputs"]["model_grounding"]["reason"]
+    assert cell["stage_outputs"]["contract_extraction"]["reason"]
+    grounding_branches = cell["stage_outputs"]["discovery_grounding"]["branches"]
+    assert [branch["lens"] for branch in grounding_branches] == [
+        "contract_structure_contrast",
+        "behavior_consequence",
+    ]
+    assert all(branch["reason"] and branch["basis"] for branch in grounding_branches)
     assert all("l_level" not in record for record in cell["evidence_records"])
     for item in cell["stage_receipts"]:
         StageReceipt.model_validate(item)
+
+
+def test_one_grounding_failure_does_not_erase_closed_w1_release(tmp_path: Path) -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+
+    class OneBranchFailureRuntime(FixtureStructuredRuntime):
+        def call(self, **kwargs):
+            outcome = super().call(**kwargs).model_copy(update={"real_llm": True})
+            artifact_id = kwargs["artifact_id"]
+            if artifact_id.endswith("/contract_structure_contrast"):
+                return outcome.model_copy(
+                    update={
+                        "status": "failed_with_receipt",
+                        "response": None,
+                        "result": {"error": "fixture source grounding provider failure"},
+                        "reason": "The source lens failed in this provider-shaped fixture.",
+                        "basis": "provider-free branch-local failure fixture",
+                    }
+                )
+            if artifact_id.endswith("/behavior_consequence"):
+                response = outcome.response.model_copy(
+                    update={
+                        "candidates": [
+                            candidate.model_copy(
+                                update={"predicate_id": None, "predicate_inputs": {}}
+                            )
+                            for candidate in outcome.response.candidates
+                        ]
+                    }
+                )
+                return outcome.model_copy(update={"response": response})
+            return outcome
+
+    runtime = OneBranchFailureRuntime()
+    cell = _method_cell(
+        pair=pair,
+        round_index=1,
+        runtime=runtime,
+        output_root=tmp_path,
+    )
+
+    assert cell["eligible"] is True
+    assert cell["status"] == "completed_with_diagnostics"
+    assert len(cell["report_issue_clusters"]) == 1
+    assert cell["report_issue_clusters"][0]["witness_level"] == "W1"
+    assert cell["report_issue_clusters"][0]["d_level"] == "D2"
+    assert any(
+        error.get("stage") == "discovery_grounding"
+        and error.get("lens") == "contract_structure_contrast"
+        for error in cell["errors"]
+    )
 
 
 def test_d_coverage_correction_is_in_node_and_no_silent_drop(tmp_path: Path) -> None:
@@ -672,7 +694,6 @@ def test_d_coverage_correction_is_in_node_and_no_silent_drop(tmp_path: Path) -> 
         pair=pair,
         round_index=1,
         runtime=runtime,
-        previous=[],
         output_root=tmp_path,
     )
 
@@ -697,6 +718,38 @@ def test_d_coverage_correction_is_in_node_and_no_silent_drop(tmp_path: Path) -> 
     assert all(record["semantic_adjudication"] for record in cell["evidence_records"])
 
 
+def test_d_duplicate_id_is_targeted_and_valid_decisions_remain_frozen(
+    tmp_path: Path,
+) -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    runtime = FixtureStructuredRuntime(duplicate_first_d_decision=True)
+
+    cell = _method_cell(
+        pair=pair,
+        round_index=1,
+        runtime=runtime,
+        output_root=tmp_path,
+    )
+
+    validation = cell["stage_outputs"]["validate_d"]
+    assert runtime.d_call_count == 2
+    assert validation["initial_duplicate_ids"] == ["0000:r1:i0"]
+    assert validation["repair_attempted"] is True
+    assert validation["repair_missing_ids"] == []
+    assert validation["repair_extra_ids"] == []
+    assert validation["repair_duplicate_ids"] == []
+    assert validation["repair_invalid_decisions"] == {}
+    assert validation["final_unresolved_ids"] == []
+    assert len(cell["evidence_records"]) == 1
+    correction_prompt = next(
+        prompt
+        for kind, prompt in runtime.prompts
+        if kind == "d_adjudication_correction"
+    )
+    assert 'duplicate_ids_to_repair:\n["0000:r1:i0"]' in correction_prompt
+    assert '"obligation_id": "0000:r1:i0"' in correction_prompt
+
+
 def test_large_working_contract_is_role_scoped_before_prompt_serialization(tmp_path: Path) -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0029")
     runtime = FixtureStructuredRuntime()
@@ -704,33 +757,36 @@ def test_large_working_contract_is_role_scoped_before_prompt_serialization(tmp_p
         pair=pair,
         round_index=1,
         runtime=runtime,
-        previous=[],
         output_root=tmp_path,
     )
 
     assert max(len(prompt) for _, prompt in runtime.prompts) < 350_000
-    model_prompt = dict(runtime.prompts)["model_grounding"]
-    assert '"elements": [' in model_prompt
-    assert '"capability_eligibility_detail_receipt": {' in model_prompt
-    assert '"excluded_element_ids": {' not in model_prompt
-    assert '"row_rationale_receipts": {' in model_prompt
-    assert '"row_rationale_receipt": {' in model_prompt
-    model_context = prompt_context_payload(pair, stage="model_grounding")
-    model_context_text = json.dumps(model_context, ensure_ascii=False, sort_keys=True)
-    assert len(model_context_text) < 250_000
-    assert '"model_refs"' in model_context_text
-    assert '"source_refs"' in model_context_text
+    grounding_prompt = dict(runtime.prompts)["behavior_consequence"]
+    assert '"elements": [' in grounding_prompt
+    assert '"capability_eligibility_detail_receipt": {' in grounding_prompt
+    assert '"excluded_element_ids": {' not in grounding_prompt
+    assert '"row_rationale_receipts": {' in grounding_prompt
+    assert '"row_rationale_receipt": {' in grounding_prompt
+    grounding_context = prompt_context_payload(pair, stage="discovery_grounding")
+    grounding_context_text = json.dumps(
+        grounding_context,
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    assert len(grounding_context_text) < 210_000
+    assert grounding_context["prompt_projection_version"] == "stage-context-projection.v6"
+    assert '"model_refs"' in grounding_context_text
+    assert '"source_refs"' in grounding_context_text
     for role in (
         "reference_inspection_facts",
         "inspection_equivalent_facts",
         "verify_facts",
         "smt_facts",
     ):
-        assert role in model_context
-    source_context = prompt_context_payload(pair, stage="source_grounding")
-    assert source_context["working_contract"]["payload"]["elements"]
-    assert source_context["working_contract"]["payload"].get("review_subject")
-    assert "source_trace" in source_context
+        assert role in grounding_context
+    assert grounding_context["working_contract"]["payload"]["elements"]
+    assert "review_subject" not in grounding_context["working_contract"]["payload"]
+    assert "source_trace" in grounding_context
 
 
 def test_full_live_runner_requires_explicit_review_gate() -> None:

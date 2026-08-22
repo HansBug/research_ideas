@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Sequence
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -140,28 +139,6 @@ class NLContractResponse(BaseModel):
     basis: str = Field(min_length=1, description="LLM basis identifying the supplied NL segments and source context used.")
 
 
-class ContractChunkOutput(BaseModel):
-    """Audited output of one bounded NL-contract extraction chunk."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
-
-    chunk_index: int = Field(ge=1, description="One-based contract chunk index in deterministic source order.")
-    chunk_count: int = Field(ge=1, description="Total number of contract chunks in this method cell.")
-    segment_ids: tuple[str, ...] = Field(min_length=1, description="Exact numbered NL segment IDs assigned to this chunk and no other chunk.")
-    prompt_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$", description="Hash of the exact chunk prompt sent through the public runtime.")
-    response: NLContractResponse = Field(description="Validated model response, or the explicit per-chunk deterministic fallback after provider/schema failure.")
-    reason: str = Field(min_length=1, description="Why this bounded chunk exists and how its output is retained.")
-    basis: str = Field(min_length=1, description="Versioned chunking rule and exact segment assignment basis.")
-
-    @model_validator(mode="after")
-    def validate_chunk_position(self) -> ContractChunkOutput:
-        """Keep chunk position metadata internally consistent."""
-
-        if self.chunk_index > self.chunk_count:
-            raise ValueError("chunk_index cannot exceed chunk_count")
-        return self
-
-
 class GroundingDisposition(BaseModel):
     """One branch's explicit disposition for one atomic NL contract."""
 
@@ -174,16 +151,19 @@ class GroundingDisposition(BaseModel):
     basis: str = Field(min_length=1, description="LLM basis naming the branch-specific source or closed-model facts used for this one contract disposition.")
 
 
+GroundingLens = Literal["contract_structure_contrast", "behavior_consequence"]
+
+
 class GroundingResponse(BaseModel):
-    """Structured LLM response for one complementary grounding branch."""
+    """Structured LLM response for one v27 complementary discovery lens."""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    branch: Literal["source", "model"] = Field(description="Grounding branch identity: author-source localization or closed-model/fact binding.")
-    candidates: list[CandidateIssue] = Field(default_factory=list, description="Candidate claims grounded by this branch; each candidate must carry reason and basis and must not emit W/D/L levels.")
-    contract_dispositions: list[GroundingDisposition] = Field(default_factory=list, description="One reasoned disposition per supplied atomic contract; missing rows are normalized to explicit unresolved receipts without semantic guessing.")
-    reason: str = Field(min_length=1, description="LLM explanation of how this branch selected or rejected candidate claims.")
-    basis: str = Field(min_length=1, description="LLM basis naming the supplied branch-specific facts and contract IDs used.")
+    lens: GroundingLens = Field(description="Exact v27 audit-lens identity; both lenses receive the same cross-view context and response contract.")
+    candidates: list[CandidateIssue] = Field(default_factory=list, description="Candidate claims grounded across author source, closed FCSTM, and deterministic facts; each candidate must carry reason and basis and must not emit W/D/L levels.")
+    contract_dispositions: list[GroundingDisposition] = Field(default_factory=list, description="One reasoned disposition per supplied atomic contract for this lens; missing rows are normalized to explicit unresolved receipts without semantic guessing.")
+    reason: str = Field(min_length=1, description="LLM explanation of how this audit lens selected or rejected candidate claims.")
+    basis: str = Field(min_length=1, description="LLM basis naming the supplied cross-view facts and contract IDs used by this lens.")
 
 
 class ContextBudgetReceipt(BaseModel):
@@ -248,15 +228,13 @@ class StageReceipt(BaseModel):
     stage_id: str = Field(min_length=1, description="Stable stage identifier within one method cell.")
     stage_name: Literal[
         "prepare",
-        "nl_contract_extraction",
-        "source_grounding",
-        "model_grounding",
-        "exact_binding",
-        "predicate_compilation",
-        "backend_execution",
+        "contract_extraction",
+        "discovery_grounding",
+        "execute_batch",
         "d_adjudication",
-        "w_publication",
-    ] = Field(description="Frozen stage boundary represented by this receipt.")
+        "validate_d",
+        "publish",
+    ] = Field(description="Frozen v27 stage boundary represented by this receipt; candidate compiler/backend details remain nested audit records.")
     status: Literal["completed", "completed_with_diagnostics", "failed_with_receipt"] = Field(description="Terminal stage status; failure is retained as a receipt.")
     input_manifest_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$", description="Context manifest hash supplied to this stage.")
     input_artifact_roles: tuple[str, ...] = Field(min_length=1, description="Artifact roles consumed by this stage.")
@@ -273,40 +251,6 @@ def _hash(value: Any) -> str:
 
     text = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
-def _safe_previous(previous: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Keep only the method's own prior candidate surface for iterative rounds."""
-
-    rows: list[dict[str, Any]] = []
-    for item in previous[-8:]:
-        rows.append(
-            {
-                key: item[key]
-                for key in (
-                    "issue_id",
-                    "contract_id",
-                    "locus_kind",
-                    "locus_names",
-                    "property",
-                    "violation_direction",
-                    "evidence_types",
-                    "title",
-                    "requirement_quote",
-                    "predicate_id",
-                    "predicate_inputs",
-                    "element_refs",
-                    "source_refs",
-                    "expected",
-                    "observed",
-                    "strongest_rebuttal",
-                    "candidate_reason",
-                    "candidate_basis",
-                )
-                if key in item
-            }
-        )
-    return rows
 
 
 def _compact_contract_plan(contracts: NLContractResponse) -> dict[str, Any]:
@@ -353,7 +297,7 @@ def _compact_contract_plan(contracts: NLContractResponse) -> dict[str, Any]:
     }
 
 
-def _context_text(pair: PairInput, *, stage: Literal["nl_contract_extraction", "source_grounding", "model_grounding", "d_adjudication"]) -> str:
+def _context_text(pair: PairInput, *, stage: Literal["nl_contract_extraction", "discovery_grounding", "d_adjudication"]) -> str:
     """Serialize the stage-scoped closure while retaining the complete manifest."""
 
     if pair.context_manifest is None or pair.exact_source_inventory is None:
@@ -399,10 +343,7 @@ Generic worked example: "Within Controller, start in Idle; on Begin transition f
 Return only the requested Pydantic structure."""
 
 
-SOURCE_GROUNDING_SYSTEM_PROMPT = f"""You are the author-source grounding branch of the paper1 evidence_discovery method. {COMMON_RULES} Use NL contracts, PlantUML, canonical source IR, exact source inventory, working contract, and source trace to locate source-scoped obligations and exact source identities. FCSTM facts may be compared only as a separate closed-model role. Do not claim that source presence proves execution or a violation. Return only the requested Pydantic structure."""
-
-
-MODEL_GROUNDING_SYSTEM_PROMPT = f"""You are the closed-model grounding branch of the paper1 evidence_discovery method. {COMMON_RULES} Use FCSTM, owned ModelIR, reference inspection facts, owned inspection-equivalent facts, finite verify facts, and SMT formula summaries to bind exact model elements and propose predicate candidates. Do not rewrite an NL contract to match the model and do not treat unknown/not-run facts as violations.
+DISCOVERY_GROUNDING_SYSTEM_PROMPT = f"""You are one complementary discovery-grounding lens of the paper1 evidence_discovery method. {COMMON_RULES} In one cross-view response, use NL contracts, PlantUML, canonical source IR, exact source inventory, working contract, and source trace to locate author-source obligations, then use FCSTM, owned ModelIR, reference inspection facts, owned inspection-equivalent facts, finite verify facts, and SMT formula summaries to bind exact closed-model elements and propose candidates. PlantUML/canonical source is author localization, FCSTM is the closed model under test, and inspection/verify/SMT rows are deterministic facts; never substitute one role for another. Do not rewrite an NL contract to match the model, claim that source presence proves execution, or treat unknown/not-run facts as violations.
 
 Every candidate must copy one exact `contract_id` and preserve that contract's
 `locus_kind`, `locus_names`, `property`, and `violation_direction`. Evaluate the
@@ -445,7 +386,13 @@ is a precise W1 candidate when the model locus is exact.
 Return only the requested Pydantic structure."""
 
 
-D_SYSTEM_PROMPT = f"""You are the method's semantic D adjudication stage. Use only the supplied NL contracts, author-source facts, exact bindings, predicate plan, and backend receipt. Never read or infer frozen ledger answers, baseline hit/FP results, independent judge examples, other pair payloads, or historical release outputs. Do not output D0/D1/D2, W0/W1/W2, L, a hit, or a release decision. Instead return one SemanticAdjudication per supplied obligation using only the closed grounding and defeater enums. `reason` must explain the supplied NL clause, exact source/model facts, and strongest alternative reading; `basis` must identify the supplied artifacts. Free-text wording is for audit only: do not decide from keyword, substring, regex, spelling, identifier shape, or text similarity.
+DISCOVERY_GROUNDING_AUDIT_LENSES: dict[GroundingLens, str] = {
+    "contract_structure_contrast": """Prioritize contract completeness, structure, and contrastive consistency. Resolve exact source and closed-model identities before emitting a candidate. Audit omitted or collapsed direct contracts, containment and default-entry defects, guard/effect conflicts, unauthorized edges, and cross-context inconsistencies. An authored fact may be contrastive evidence only after the NL establishes the shared semantic role; never infer equivalence from labels, identifiers, or textual overlap.""",
+    "behavior_consequence": """Prioritize behavioral consequence while still completing exact source and closed-model binding. Audit finite reachability, event-consumer coverage, forbidden-scope entry, dead-end/frontier facts, stable termination, and bounded response or trace obligations. Prefer the deepest sound consequence and its author-source cause, but do not replace a distinct structural defect or promote a finite/trace result beyond its registered soundness fragment.""",
+}
+
+
+D_SYSTEM_PROMPT = """You are the method's semantic D adjudication stage. Use only the supplied NL contracts, author-source facts, exact bindings, predicate plan, and backend receipt. Never read or infer frozen ledger answers, baseline hit/FP results, independent judge examples, other pair payloads, or historical release outputs. Do not output D0/D1/D2, W0/W1/W2, L, a hit, or a release decision. Instead return one SemanticAdjudication per supplied obligation using only the closed grounding and defeater enums. `reason` must explain the supplied NL clause, exact source/model facts, and strongest alternative reading; `basis` must identify the supplied artifacts. Free-text wording is for audit only: do not decide from keyword, substring, regex, spelling, identifier shape, or text similarity.
 
 D boundary: an unsupported or W1-only predicate does not erase a precise issue. When exact supplied source/model facts establish the candidate's semantic obligation, use grounding=established and describe the surviving ambiguity as a typed defeater when appropriate; deterministic code will keep it at W1. Use grounding=unresolved only when the supplied dossier genuinely cannot decide. A completed predicate result that is true for the requirement is not a violation merely because the candidate text sounds concerning.
 
@@ -467,130 +414,36 @@ and never discard a precise W1 frontier issue."""
 def build_contract_prompt(
     pair: PairInput,
     round_index: int,
-    previous: list[dict[str, Any]],
-    *,
-    segment_ids: Sequence[str] | None = None,
-    chunk_index: int = 1,
-    chunk_count: int = 1,
 ) -> str:
-    """Build one bounded contract prompt with the complete manifest closure."""
+    """Build the single whole-cell v27 contract-extraction prompt."""
 
-    selected_ids = tuple(segment_ids or (item.segment_id for item in pair.nl_segments))
-    known_segments = {item.segment_id: item for item in pair.nl_segments}
-    unknown_ids = [segment_id for segment_id in selected_ids if segment_id not in known_segments]
-    if unknown_ids:
-        raise ValueError(f"contract chunk contains unknown segment IDs: {unknown_ids}")
-    if not selected_ids:
-        raise ValueError("contract chunk must contain at least one numbered NL segment")
-    if chunk_index < 1 or chunk_count < 1 or chunk_index > chunk_count:
-        raise ValueError("contract chunk index must be within the declared chunk count")
-
+    if not pair.nl_segments:
+        raise ValueError("contract extraction requires at least one numbered NL segment")
     context = prompt_context_payload(pair, stage="nl_contract_extraction")
-    context["numbered_nl"] = [
-        known_segments[segment_id].model_dump(mode="json")
-        for segment_id in selected_ids
-    ]
-    context["contract_chunk"] = {
-        "schema_version": "contract-chunking.v1",
-        "chunk_index": chunk_index,
-        "chunk_count": chunk_count,
-        "segment_ids": selected_ids,
-        "reason": "This bounded chunk limits structured output size while preserving exact numbered-NL ownership.",
-        "basis": "deterministic source-order partition; complete artifacts remain identified by the context manifest",
-    }
     context_text = json.dumps(context, ensure_ascii=False, sort_keys=True)
 
-    return f"""{COMMON_RULES}
-
-Stage: nl_contract_extraction
+    return f"""Stage: contract-extraction
 Round: {round_index}
-Contract chunk: {chunk_index}/{chunk_count}
 Stage-scoped context projection and complete artifact manifest:
 {context_text}
 
-Prior method candidates from this pair's earlier round only:
-{json.dumps(_safe_previous(previous), ensure_ascii=False, sort_keys=True)}
-
-Extract one NLContract per independently violable normative obligation. The typed semantic key and binding hints are the contract plan consumed by both grounding branches. Return contracts and dispositions only for the exact segment IDs in this chunk; mark every supplied chunk segment as covered, context, or ambiguous. Every contract_id must include its exact segment_id (for example, NL-CONTRACT-NL6-ENDPOINT-1) so IDs remain unique after deterministic cross-chunk merge. Do not include ledger IDs, baseline labels, judge examples, W/D/L values, or hidden expected answers.
+Extract one NLContract per independently violable normative obligation. The typed semantic key and binding hints are the contract plan consumed by both grounding branches. Mark every supplied numbered NL segment as covered, context, or ambiguous. Every contract_id must include its exact segment_id (for example, NL-CONTRACT-NL6-ENDPOINT-1) and must be unique within this whole-cell response. Do not include ledger IDs, baseline labels, judge examples, W/D/L values, or hidden expected answers.
 """
-
-
-def merge_contract_chunks(
-    chunks: Sequence[tuple[Sequence[str], NLContractResponse]],
-) -> NLContractResponse:
-    """Merge exact disjoint contract chunks without interpreting free text."""
-
-    if not chunks:
-        raise ValueError("at least one contract chunk is required")
-    expected_ids: list[str] = []
-    contracts: list[NLContract] = []
-    dispositions: dict[str, Literal["covered", "context", "ambiguous"]] = {}
-    contract_ids: set[str] = set()
-    chunk_hashes: list[str] = []
-    for raw_segment_ids, response in chunks:
-        segment_ids = tuple(raw_segment_ids)
-        segment_set = set(segment_ids)
-        if not segment_ids or len(segment_set) != len(segment_ids):
-            raise ValueError("each contract chunk must contain unique segment IDs")
-        overlap = segment_set.intersection(expected_ids)
-        if overlap:
-            raise ValueError(f"contract chunks overlap on segment IDs: {sorted(overlap)}")
-        expected_ids.extend(segment_ids)
-        outside_contracts = sorted(
-            {contract.segment_id for contract in response.contracts}
-            - segment_set
-        )
-        outside_dispositions = sorted(set(response.segment_disposition) - segment_set)
-        if outside_contracts or outside_dispositions:
-            raise ValueError(
-                "contract chunk emitted segment IDs outside its exact assignment: "
-                f"contracts={outside_contracts}, dispositions={outside_dispositions}"
-            )
-        for contract in response.contracts:
-            if contract.contract_id in contract_ids:
-                raise ValueError(f"duplicate contract ID across chunks: {contract.contract_id}")
-            contract_ids.add(contract.contract_id)
-            contracts.append(contract)
-        for segment_id in segment_ids:
-            dispositions[segment_id] = response.segment_disposition.get(
-                segment_id,
-                "ambiguous",
-            )
-        chunk_hashes.append(_hash(response.model_dump(mode="json")))
-    return NLContractResponse(
-        contracts=contracts,
-        segment_disposition=dispositions,
-        reason="Bounded contract chunks were merged in exact source order without changing any typed semantic key.",
-        basis="contract-chunking.v1; chunk response hashes: " + ", ".join(chunk_hashes),
-    )
 
 
 def build_grounding_prompt(
     pair: PairInput,
     *,
-    branch: Literal["source", "model"],
+    lens: GroundingLens,
     round_index: int,
     contracts: NLContractResponse,
-    previous: list[dict[str, Any]],
 ) -> str:
-    """Build one branch prompt while retaining the full shared input closure."""
+    """Build one v27 lens prompt over the shared compact cross-view closure."""
 
-    branch_rules = (
-        "Source branch priority: source identity, author scope, exact source line and transition mapping. Keep execution conclusions for the model branch and deterministic backend."
-        if branch == "source"
-        else "Model branch priority: exact FCSTM binding, deterministic inventory/diagnostic facts, and registry-minimal predicate inputs. Keep author-source identity for the source branch."
-    )
-    routing_guidance = (
-        "Source branch must stay within author-source localization; do not use FCSTM facts or backend outcomes to assert satisfaction or violation."
-        if branch == "source"
-        else PREDICATE_ROUTING_GUIDANCE
-    )
-    return f"""{COMMON_RULES}
-
-Stage: {branch}_grounding
+    return f"""Stage: discovery-grounding
 Round: {round_index}
-Branch rule: {branch_rules}
-{routing_guidance}
+Complementary audit lens: {lens}
+Lens priority: {DISCOVERY_GROUNDING_AUDIT_LENSES[lens]}
 Frozen predicate input spellings: S1={{kind, element, scope}} S2={{source, target, scope}} S3={{transition, triggers}} S4={{state, phase, action}} S5={{transition, guard}} S6={{transition, effect}} G1={{source, target}} G2={{source, target}} G3={{source, target, forbidden}} G4={{roots, marked}} R1={{scenario, event, step}} R2={{scenario, stimulus, state, window}} R3={{scenario, behavior, window}} R4={{scenario, state, interval}} V1={{source, trigger, domain}} V2={{source, trigger, domain}} V3={{p, q, bound, unit, scope}} V4={{initial_scope}} V5={{state, expected, initial_scope}}.
 If a precise candidate cannot be expressed by the registry, set predicate_id to null. Do not silently drop it. Do not use W/D/L or L levels.
 Copy `contract_id`, `locus_kind`, `locus_names`, `property`, and
@@ -607,10 +460,7 @@ NL contracts:
 {json.dumps(_compact_contract_plan(contracts), ensure_ascii=False, sort_keys=True)}
 
 Stage-scoped context projection and complete artifact manifest:
-{_context_text(pair, stage="source_grounding" if branch == "source" else "model_grounding")}
-
-Prior method candidates from this pair's earlier round only:
-{json.dumps(_safe_previous(previous), ensure_ascii=False, sort_keys=True)}
+{_context_text(pair, stage="discovery_grounding")}
     """
 
 
@@ -619,9 +469,7 @@ def build_d_adjudication_prompt(pair: PairInput, dossiers: list[dict[str, Any]])
 
     compact_dossiers = [_compact_dossier(item) for item in dossiers]
 
-    return f"""{D_SYSTEM_PROMPT}
-
-Stage: d_adjudication
+    return f"""Stage: d_adjudication
 Pair identity: {pair.pair_id}
 Stage-scoped context projection and complete artifact manifest:
 {_context_text(pair, stage="d_adjudication")}
@@ -638,7 +486,8 @@ Decision protocol:
 - grounding=not_established when the supplied evidence does not establish that reading;
 - grounding=unresolved when the dossier cannot decide;
 - use defeater_kind=none and defeater_disposition=defeated only when no competent defeater applies;
-- use undercutting or rebutting with survives/unresolved when a competent alternative remains;
+- use undercutting with survives only when two competent readings remain compatible with the supplied facts (the method maps this to D1); an unresolved undercutting reading remains D_UNRESOLVED;
+- use rebutting with survives when the alternative defeats the alleged violation or leaves a reasonable design choice (the method maps this to D0); unresolved rebutting evidence remains D_UNRESOLVED;
 - do not turn execution uncertainty or an absent predicate into a semantic violation;
 - do not omit a dossier and do not create a new obligation;
 - before returning, compare the decision obligation_id set with the required list and
@@ -736,13 +585,16 @@ def build_d_correction_prompt(
     missing_ids: list[str],
     duplicate_ids: list[str],
     extra_ids: list[str],
+    invalid_decisions: dict[str, list[str]] | None = None,
 ) -> str:
-    """Build a billed in-node correction prompt for a dynamic D coverage violation."""
+    """Build the one v27 targeted repair for missing or invalid D rows."""
 
+    invalid_decisions = invalid_decisions or {}
+    repair_ids = set(missing_ids) | set(duplicate_ids) | set(invalid_decisions)
     selected = [
         dossier
         for dossier in dossiers
-        if dossier["obligation_id"] in set(missing_ids)
+        if dossier["obligation_id"] in repair_ids
     ]
     return f"""{D_SYSTEM_PROMPT}
 
@@ -753,7 +605,9 @@ only for the missing IDs below, preserving their exact spelling:
 
 missing_ids:
 {json.dumps(missing_ids, ensure_ascii=False)}
-duplicate_ids_to_ignore:
+invalid_decisions:
+{json.dumps(invalid_decisions, ensure_ascii=False, sort_keys=True)}
+duplicate_ids_to_repair:
 {json.dumps(duplicate_ids, ensure_ascii=False)}
 extra_ids_to_ignore:
 {json.dumps(extra_ids, ensure_ascii=False)}
@@ -761,7 +615,9 @@ extra_ids_to_ignore:
 Correction dossiers:
 {json.dumps([_compact_dossier(item) for item in selected], ensure_ascii=False, sort_keys=True, indent=2)}
 
-Return exactly one decision per missing ID. If the supplied dossier cannot decide,
+Return exactly one decision per repair ID (the union of missing_ids,
+duplicate_ids_to_repair, and the keys of invalid_decisions). Do not repeat any
+frozen valid decision or any extra ID. If the supplied dossier cannot decide,
 use grounding=unresolved with a non-empty reason and basis. Do not emit W/D/L/L
 levels, ledger answers, baseline results, or judge examples.
 """
@@ -863,7 +719,9 @@ def normalize_grounding_dispositions(
 
 
 def build_method_prompt(pair: PairInput, round_index: int, previous: list[dict[str, Any]]) -> str:
-    """Compatibility prompt exposing the source-grounding surface for tests/tools."""
+    """Compatibility prompt exposing the first v27 discovery lens."""
+
+    del previous
 
     empty_contracts = NLContractResponse(
         contracts=tuple(
@@ -892,22 +750,18 @@ def build_method_prompt(pair: PairInput, round_index: int, previous: list[dict[s
     )
     return build_grounding_prompt(
         pair,
-        branch="source",
+        lens="contract_structure_contrast",
         round_index=round_index,
         contracts=empty_contracts,
-        previous=previous,
     )
 
 
 def fallback_contracts(
     pair: PairInput,
     reason: str,
-    *,
-    segment_ids: Sequence[str] | None = None,
 ) -> NLContractResponse:
     """Create an auditable deterministic contract fallback after provider/schema failure."""
 
-    selected_ids = set(segment_ids or (item.segment_id for item in pair.nl_segments))
     contracts = tuple(
         NLContract(
             contract_id=f"NL-CONTRACT-{segment.segment_id}",
@@ -927,14 +781,12 @@ def fallback_contracts(
             basis=f"{reason}; nl-segmentation.v2",
         )
         for segment in pair.nl_segments
-        if segment.segment_id in selected_ids
     )
     return NLContractResponse(
         contracts=contracts,
         segment_disposition={
             segment.segment_id: "covered"
             for segment in pair.nl_segments
-            if segment.segment_id in selected_ids
         },
         reason="Provider/schema failure was downgraded to a deterministic source-contract receipt.",
         basis="exact numbered NL artifact and no-silent-drop contract",
@@ -944,192 +796,70 @@ def fallback_contracts(
 def fallback_grounding(
     pair: PairInput,
     *,
-    branch: Literal["source", "model"],
+    lens: GroundingLens,
     contracts: NLContractResponse,
     reason: str,
 ) -> GroundingResponse:
-    """Create conservative candidates from exact closed-model facts.
+    """Preserve a failed lens as unresolved without fabricating an issue."""
 
-    This path is used only after the public structured runtime cannot return a
-    grounding response. It does not decide whether a fact is a violation. It
-    preserves an exact finite leaf-frontier observation for the D stage and one
-    ordinary model fact for audit continuity, so a provider/schema failure does
-    not erase the deterministic context or substitute an unrelated semantic
-    claim. The independent D stage still decides whether either observation is
-    an established issue.
-    """
-
-    transition = pair.model.transitions[0] if pair.model.transitions else None
-    state = pair.model.states[0] if pair.model.states else None
-    candidates: list[CandidateIssue] = []
-    if branch == "model" and pair.inspection_facts is not None:
-        leaf_refs = tuple(
-            diagnostic.refs[0]
-            for diagnostic in pair.inspection_facts.diagnostics
-            if diagnostic.code == "LEAF_WITHOUT_OUTGOING" and diagnostic.refs
-        )
-        if leaf_refs:
-            quote = (
-                contracts.contracts[0].quote
-                if contracts.contracts
-                else "The supplied state-machine contract is retained for semantic review."
-            )
-            leaf_names = tuple(
-                state_item.name
-                for state_item in pair.inspection_facts.states
-                if state_item.state_ref in set(leaf_refs)
-            )
-            candidates.append(
-                CandidateIssue(
-                    contract_id=(contracts.contracts[0].contract_id if contracts.contracts else "NL-CONTRACT-UNRESOLVED"),
-                    locus_kind="state",
-                    locus_names=leaf_names or leaf_refs,
-                    property="deadlock_freedom",
-                    violation_direction="dead_end",
-                    evidence_types=("deadlock_frontier_fact", "verify_fact"),
-                    title="Deterministic finite leaf frontier requires semantic review",
-                    requirement_quote=quote,
-                    predicate_id="V4",
-                    predicate_inputs={"initial_scope": "closed_fcstm_initial_scope"},
-                    element_refs=list(leaf_refs),
-                    source_refs=[item.segment_id for item in contracts.contracts[:1]],
-                    expected="The supplied finite model should not end an applicable operational scope at a non-final leaf without progress.",
-                    observed=(
-                        "Owned inspection-equivalent facts report LEAF_WITHOUT_OUTGOING for exact state refs "
-                        + ", ".join(leaf_refs)
-                        + (f" ({', '.join(leaf_names)})." if leaf_names else ".")
-                    ),
-                    strongest_rebuttal="The leaf may be an intentional terminal or synthetic lowering artifact; the D stage must assess that alternative from supplied facts.",
-                    reason="The provider/schema response was unavailable, so the exact deterministic leaf-frontier fact was preserved as the registered V4 candidate surface.",
-                    basis="inspection-equivalent.fcstm-graph.v2 LEAF_WITHOUT_OUTGOING diagnostics; no semantic violation was decided by fallback code.",
-                )
-            )
-    if transition is not None:
-        candidates.append(CandidateIssue(
-            contract_id=(contracts.contracts[0].contract_id if contracts.contracts else "NL-CONTRACT-UNRESOLVED"),
-            locus_kind="transition",
-            locus_names=(transition.source, transition.target),
-            property="transition_endpoints",
-            violation_direction="other",
-            evidence_types=("closed_model_inventory", "transition_fact"),
-            title="Deterministic fallback preserving an exact transition fact",
-            requirement_quote=contracts.contracts[0].quote if contracts.contracts else "The supplied NL contract is retained for audit.",
-            predicate_id="S2",
-            predicate_inputs={"source": transition.source, "target": transition.target, "scope": "closed_fcstm"},
-            element_refs=[transition.ref],
-            source_refs=[contracts.contracts[0].segment_id if contracts.contracts else "nl:unknown"],
-            expected="The source-grounded transition contract is checkable in the closed model.",
-            observed=f"The owned FCSTM parser found {transition.ref}.",
-            strongest_rebuttal="No violation claim is asserted; this is a fallback candidate.",
-            reason="The provider/schema response was unavailable, so an exact transition fact was preserved for deterministic binding.",
-            basis=f"{reason}; {pair.model.algorithm_version}",
-        ))
-    elif state is not None:
-        candidates.append(CandidateIssue(
-            contract_id=(contracts.contracts[0].contract_id if contracts.contracts else "NL-CONTRACT-UNRESOLVED"),
-            locus_kind="state",
-            locus_names=(state.name,),
-            property="element_declaration",
-            violation_direction="other",
-            evidence_types=("closed_model_inventory",),
-            title="Deterministic fallback preserving an exact state fact",
-            requirement_quote=contracts.contracts[0].quote if contracts.contracts else "The supplied NL contract is retained for audit.",
-            predicate_id="S1",
-            predicate_inputs={"kind": "state", "element": state.name, "scope": "closed_fcstm"},
-            element_refs=[state.ref],
-            source_refs=[contracts.contracts[0].segment_id if contracts.contracts else "nl:unknown"],
-            expected="The source-grounded state contract is checkable in the closed model.",
-            observed=f"The owned FCSTM parser found {state.ref}.",
-            strongest_rebuttal="No violation claim is asserted; this is a fallback candidate.",
-            reason="The provider/schema response was unavailable, so an exact state fact was preserved for deterministic binding.",
-            basis=f"{reason}; {pair.model.algorithm_version}",
-        ))
+    del pair
     return GroundingResponse(
-        branch=branch,
-        candidates=candidates,
+        lens=lens,
+        candidates=[],
         contract_dispositions=[
             GroundingDisposition(
                 contract_id=contract.contract_id,
-                status=(
-                    "candidate_emitted"
-                    if any(item.contract_id == contract.contract_id for item in candidates)
-                    else "unresolved"
-                ),
-                candidate_count=sum(
-                    item.contract_id == contract.contract_id for item in candidates
-                ),
-                reason=(
-                    "The deterministic fallback preserved exact facts for this contract after the branch provider/schema result was unavailable."
-                    if any(item.contract_id == contract.contract_id for item in candidates)
-                    else "The branch provider/schema result was unavailable and deterministic code did not infer a semantic disposition for this contract."
-                ),
-                basis=f"{reason}; exact contract ID accounting without free-text semantic inference",
+                status="unresolved",
+                candidate_count=0,
+                reason="The lens provider/schema result was unavailable; no semantic candidate was inferred from an unrelated model fact.",
+                basis=f"{reason}; exact contract ID accounting and v27 no-fabricated-fallback rule",
             )
             for contract in contracts.contracts
         ],
-        reason=f"{branch} grounding used a deterministic fallback after provider/schema failure.",
-        basis=f"{reason}; exact closed-model input closure",
+        reason=f"{lens} grounding is explicitly unresolved after provider/schema failure.",
+        basis=f"{reason}; no semantic issue was manufactured",
     )
 
 
 def assemble_method_response(
-    source: GroundingResponse,
-    model: GroundingResponse,
+    branches: list[GroundingResponse],
     *,
     reason: str,
     basis: str,
 ) -> MethodResponse:
-    """Join source attribution onto model candidates without widening execution.
-
-    The source branch is a localization index, not a second closed-model
-    candidate surface. A source row is joined only when it shares an exact
-    supplied source reference with a model row; free-text similarity is never
-    used for this join.
-    """
+    """Merge both v27 lens candidate surfaces by exact typed identity."""
 
     seen: set[str] = set()
     candidates: list[CandidateIssue] = []
-    for candidate in model.candidates:
-        source_refs = set(candidate.source_refs)
-        matched_source_refs: set[str] = set()
-        for source_candidate in source.candidates:
-            shared_refs = source_refs.intersection(source_candidate.source_refs)
-            if shared_refs:
-                matched_source_refs.update(shared_refs)
-        if matched_source_refs:
-            candidate = candidate.model_copy(
-                update={
-                    "source_refs": list(dict.fromkeys([*candidate.source_refs, *sorted(matched_source_refs)])),
-                    "basis": f"{candidate.basis}; source-localization refs joined by exact source IDs",
+    for branch in branches:
+        for candidate in branch.candidates:
+            key = _hash(
+                {
+                    "contract_id": candidate.contract_id,
+                    "locus_kind": candidate.locus_kind,
+                    "locus_names": candidate.locus_names,
+                    "property": candidate.property,
+                    "violation_direction": candidate.violation_direction,
+                    "predicate_id": candidate.predicate_id,
+                    "predicate_inputs": candidate.predicate_inputs,
+                    "element_refs": candidate.element_refs,
                 }
             )
-        key = _hash(
-            {
-                "contract_id": candidate.contract_id,
-                "locus_kind": candidate.locus_kind,
-                "locus_names": candidate.locus_names,
-                "property": candidate.property,
-                "violation_direction": candidate.violation_direction,
-                "predicate_id": candidate.predicate_id,
-                "predicate_inputs": candidate.predicate_inputs,
-                "element_refs": candidate.element_refs,
-            }
-        )
-        if key in seen:
-            continue
-        seen.add(key)
-        candidates.append(candidate)
+            if key in seen:
+                continue
+            seen.add(key)
+            candidates.append(candidate)
     return MethodResponse(
         issues=candidates,
-        reason=f"{reason} Source-only rows were retained in the stage receipt and excluded from backend execution.",
-        basis=f"{basis}; model-grounding is the sole closed-model candidate surface",
+        reason=reason,
+        basis=f"{basis}; exact candidate identity merge without prose similarity",
     )
 
 
 __all__ = [
     "CONTRACT_SYSTEM_PROMPT",
-    "SOURCE_GROUNDING_SYSTEM_PROMPT",
-    "MODEL_GROUNDING_SYSTEM_PROMPT",
+    "DISCOVERY_GROUNDING_SYSTEM_PROMPT",
+    "DISCOVERY_GROUNDING_AUDIT_LENSES",
     "D_SYSTEM_PROMPT",
     "GroundingDisposition",
     "GroundingResponse",

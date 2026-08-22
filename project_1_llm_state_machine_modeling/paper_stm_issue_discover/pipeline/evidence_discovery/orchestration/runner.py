@@ -6,12 +6,12 @@ import multiprocessing
 import re
 import subprocess
 import uuid
-from collections import Counter, defaultdict
+from collections import Counter
 from collections.abc import Mapping, Sequence
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -28,18 +28,16 @@ from ..reporting.export import write_json, write_markdown_summary
 from ..semantics import (
     CandidateIssue,
     CONTRACT_SYSTEM_PROMPT,
-    ContractChunkOutput,
     ContextBudgetReceipt,
     DAdjudicationResponse,
     D_SYSTEM_PROMPT,
+    DISCOVERY_GROUNDING_AUDIT_LENSES,
+    DISCOVERY_GROUNDING_SYSTEM_PROMPT,
     GroundingResponse,
-    MODEL_GROUNDING_SYSTEM_PROMPT,
     NLContract,
     NLContractResponse,
     SemanticAdjudication,
-    SOURCE_GROUNDING_SYSTEM_PROMPT,
     StageReceipt,
-    MethodResponse,
     assemble_method_response,
     bind_candidate,
     build_contract_prompt,
@@ -49,11 +47,9 @@ from ..semantics import (
     fallback_contracts,
     fallback_d_adjudication,
     fallback_grounding,
-    merge_contract_chunks,
     normalize_grounding_dispositions,
     resolve_transition_ref,
 )
-from ..semantics.obligations import fallback_candidates
 from .contracts import (
     IndependentJudgeReceipt,
     MethodCellReceipt,
@@ -65,6 +61,7 @@ from .contracts import (
 from .runtime import (
     DEFAULT_TRANSPORT_RETRIES,
     FixtureStructuredRuntime,
+    JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS,
     PROVIDER_CALL_DEADLINE_SECONDS,
     PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS,
     PublicStructuredRuntime,
@@ -74,26 +71,12 @@ from .runtime import (
 
 
 REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS = ("0004", "0023", "0029", "0035", "0046", "0053")
-METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v3"
-JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v2"
+METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v6"
+JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v3"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-orchestration.v10"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-staged-prompts.v9"
-CONTRACT_CHUNK_MAX_SEGMENTS = 4
-CONTRACT_SINGLE_CHUNK_MAX_CHARACTERS = 1_200
-JUDGE_PROMPT_TOKEN_BUDGET = 180_000
-# Keep the normal judge surface small enough that the model can close every
-# exact-ID row in one response.  A larger release surface is partitioned
-# before provider execution; this avoids a failed pair-wide response falling
-# through to an unbounded ledger x release relation matrix.
-JUDGE_PAIRWISE_MAX_RELEASES = 5
-JUDGE_PARTITION_RELEASE_SIZE = 8
-# Atomic fallback is a bounded recovery path for genuinely small relation
-# sets.  A failed large partition must remain judge-unavailable; expanding it
-# to ledger x release would recreate the quadratic call surface we are trying
-# to avoid.
-JUDGE_ATOMIC_RELATION_BUDGET = 12
+CODE_VERSION = "evidence-discovery-v27-flow.v3"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v3"
 
 
 class LedgerAssessment(BaseModel):
@@ -133,18 +116,7 @@ class JudgeResponse(BaseModel):
     basis: str = Field(min_length=1, description="Non-empty basis identifying the supplied ledger and method release facts used by the judge.")
 
 
-class AtomicMatchDecision(BaseModel):
-    """One independent semantic relation used when pair-wide judge shape cannot close."""
-
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-
-    matches: bool = Field(description="True only when the supplied ledger entry and release issue have the same locus and property.")
-    confidence: Literal["high", "medium", "low"] = Field(description="Independent judge confidence in this one semantic relation.")
-    reason: str = Field(min_length=1, description="Non-empty semantic explanation of why this exact ledger/issue relation matches or does not match.")
-    basis: str = Field(min_length=1, description="Non-empty basis naming only the supplied ledger entry and release issue facts.")
-
-
-METHOD_SYSTEM_PROMPT = """The method is staged. The public method-generation surface is the NL contract extraction stage followed by two complementary grounding branches. Use only the complete context manifest supplied to each stage. Never read ledger answers, baseline results, judge examples, or historical release outputs. Do not emit W, D, or L levels. Every structured object must contain non-empty reason and basis."""
+METHOD_SYSTEM_PROMPT = """The method is staged. The public method-generation surface is the NL contract extraction stage followed by two v27 complementary discovery-grounding lenses that share one response schema and compact cross-view context. Use only the complete context manifest supplied to each stage. Never read ledger answers, baseline results, judge examples, or historical release outputs. Do not emit W, D, or L levels. Every structured object must contain non-empty reason and basis."""
 
 JUDGE_SYSTEM_PROMPT = """You are an independent judge separated from method generation. You may use the supplied frozen ledger entries to assess method D1/D2 release issues. Judge semantic identity of locus and property, not string similarity. Do not read baseline results, other pairs, other judge outputs, or historical examples. Every assessment and the top-level response must contain non-empty reason and basis fields that explain the judgment and its supplied-input support. Preserve the model's original wording."""
 
@@ -158,18 +130,16 @@ def _prompt_schema_hash() -> str:
             "system_prompts": {
                 "method_boundary": METHOD_SYSTEM_PROMPT,
                 "contract": CONTRACT_SYSTEM_PROMPT,
-                "source_grounding": SOURCE_GROUNDING_SYSTEM_PROMPT,
-                "model_grounding": MODEL_GROUNDING_SYSTEM_PROMPT,
+                "discovery_grounding": DISCOVERY_GROUNDING_SYSTEM_PROMPT,
+                "discovery_lenses": DISCOVERY_GROUNDING_AUDIT_LENSES,
                 "d_adjudication": D_SYSTEM_PROMPT,
                 "judge": JUDGE_SYSTEM_PROMPT,
-                "atomic_judge": ATOMIC_JUDGE_SYSTEM_PROMPT,
             },
             "schemas": {
                 "nl_contract": NLContractResponse.model_json_schema(),
                 "grounding": GroundingResponse.model_json_schema(),
                 "d_adjudication": DAdjudicationResponse.model_json_schema(),
                 "judge": JudgeResponse.model_json_schema(),
-                "atomic_judge": AtomicMatchDecision.model_json_schema(),
             },
         }
     )
@@ -987,29 +957,72 @@ def _deterministic_candidate(
     return record, record if record["issue_emitted"] else None
 
 
-def _fallback_method(pair: PairInput, round_index: int, reason: str) -> MethodResponse:
-    fallback = fallback_candidates(pair, round_index)
-    return fallback.model_copy(
-        update={
-            "reason": "The provider or schema response was unavailable; deterministic input facts were preserved.",
-            "basis": "The provider/runtime diagnostic is stored in llm_call and cell errors; no ledger or judge data was read.",
+def _d_decision_consistency_errors(
+    decision: SemanticAdjudication,
+) -> list[str]:
+    """Validate only closed, context-free D fields before publication."""
+
+    errors: list[str] = []
+    if decision.defeater_kind == "none":
+        if decision.strongest_defeater is not None:
+            errors.append("defeater_kind=none requires strongest_defeater=null")
+        if decision.defeater_disposition != "defeated":
+            errors.append("defeater_kind=none requires defeater_disposition=defeated")
+    elif decision.strongest_defeater is None:
+        errors.append("a typed defeater requires a non-null strongest_defeater")
+    return errors
+
+
+def _release_semantic_key(issue: Mapping[str, Any]) -> tuple[Any, ...]:
+    """Return the exact typed defect identity used for report-level dedup."""
+
+    return (
+        issue.get("locus_kind"),
+        tuple(issue.get("locus_names") or ()),
+        issue.get("property"),
+        issue.get("violation_direction"),
+    )
+
+
+def _deduplicate_release_issues(
+    release: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Collapse only exact typed defect identities without reading prose."""
+
+    grouped: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
+    for issue in release:
+        grouped.setdefault(_release_semantic_key(issue), []).append(issue)
+    d_rank = {"D1": 1, "D2": 2}
+    w_rank = {"W1": 1, "W2": 2}
+    result: list[dict[str, Any]] = []
+    for facets in grouped.values():
+        representative = max(
+            enumerate(facets),
+            key=lambda indexed: (
+                d_rank.get(str(indexed[1].get("d_level")), 0),
+                w_rank.get(str(indexed[1].get("witness_level")), 0),
+                -indexed[0],
+            ),
+        )[1]
+        item = dict(representative)
+        item["facet_issue_ids"] = [str(facet["issue_id"]) for facet in facets]
+        item["facet_count"] = len(facets)
+        item["contract_ids"] = list(
+            dict.fromkeys(str(facet["contract_id"]) for facet in facets)
+        )
+        item["deduplication"] = {
+            "algorithm_version": "exact-typed-defect-key.v1",
+            "semantic_key": {
+                "locus_kind": item.get("locus_kind"),
+                "locus_names": item.get("locus_names", []),
+                "property": item.get("property"),
+                "violation_direction": item.get("violation_direction"),
+            },
+            "reason": "Candidates with the same exact typed locus, property, and violation direction were published as one report issue.",
+            "basis": "context-free equality over typed fields; no prose, ledger, similarity, or lexical heuristic",
         }
-    )
-
-
-def _contract_segment_chunks(pair: PairInput) -> tuple[tuple[str, ...], ...]:
-    """Partition numbered NL in source order with linear, bounded call growth."""
-
-    segment_ids = tuple(item.segment_id for item in pair.nl_segments)
-    if (
-        sum(len(item.text) for item in pair.nl_segments)
-        <= CONTRACT_SINGLE_CHUNK_MAX_CHARACTERS
-    ):
-        return (segment_ids,)
-    return tuple(
-        segment_ids[index : index + CONTRACT_CHUNK_MAX_SEGMENTS]
-        for index in range(0, len(segment_ids), CONTRACT_CHUNK_MAX_SEGMENTS)
-    )
+        result.append(item)
+    return result
 
 
 def _method_cell(
@@ -1017,7 +1030,6 @@ def _method_cell(
     pair: PairInput,
     round_index: int,
     runtime: PublicStructuredRuntime,
-    previous: list[dict[str, Any]],
     output_root: Path,
     run_identity: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -1067,243 +1079,133 @@ def _method_cell(
         )
     )
 
-    contract_prompts: list[str] = []
-    contract_parts: list[tuple[tuple[str, ...], NLContractResponse]] = []
-    contract_chunk_outputs: list[ContractChunkOutput] = []
-    contract_chunks = _contract_segment_chunks(pair)
-    contract_merge_failed = False
-    for chunk_index, segment_ids in enumerate(contract_chunks, start=1):
-        contract_prompt = build_contract_prompt(
+    contract_prompt = build_contract_prompt(pair, round_index)
+    contract_outcome: StructuredCallOutcome[NLContractResponse] = runtime.call(
+        kind="contract_extraction",
+        schema=NLContractResponse,
+        system_prompt=CONTRACT_SYSTEM_PROMPT,
+        prompt=contract_prompt,
+        artifact_id=f"method/{pair.pair_id}/round-{round_index}/contract-extraction",
+    )
+    all_outcomes.append(contract_outcome)
+    contract_response = (
+        contract_outcome.response
+        if contract_outcome.succeeded
+        else fallback_contracts(
             pair,
-            round_index,
-            previous,
-            segment_ids=segment_ids,
-            chunk_index=chunk_index,
-            chunk_count=len(contract_chunks),
+            str(contract_outcome.result.get("error", "structured contract output unavailable")),
         )
-        contract_prompts.append(contract_prompt)
-        contract_outcome: StructuredCallOutcome[NLContractResponse] = runtime.call(
-            kind="nl_contract_extraction",
-            schema=NLContractResponse,
-            system_prompt=CONTRACT_SYSTEM_PROMPT,
-            prompt=contract_prompt,
+    )
+    if not contract_outcome.succeeded:
+        all_errors.append(
+            {
+                "stage": "contract_extraction",
+                "error": contract_outcome.result.get("error", "structured contract output unavailable"),
+                "reason": "The whole-cell v27 contract call failed; numbered NL is preserved only as an unresolved audit contract.",
+                "basis": "public structured runtime outcome and exact numbered NL fallback",
+            }
+        )
+    stage_outputs["contract_extraction"] = contract_response.model_dump(mode="json")
+    stage_receipts.append(
+        _stage_receipt(
+            pair=pair,
+            stage_id=f"{pair.pair_id}:r{round_index}:contract-extraction",
+            stage_name="contract_extraction",
+            status="completed" if contract_outcome.succeeded else "failed_with_receipt",
+            artifact_roles=("natural_language", "working_contract", "source_trace"),
+            output=contract_response,
+            outcome=contract_outcome,
+            projection_version="v27-contract-projection.v1",
+            reason=contract_response.reason,
+            basis=contract_response.basis,
+        )
+    )
+
+    grounding_prompts = {
+        lens: build_grounding_prompt(
+            pair,
+            lens=lens,
+            round_index=round_index,
+            contracts=contract_response,
+        )
+        for lens in DISCOVERY_GROUNDING_AUDIT_LENSES
+    }
+    grounding_outcomes: list[StructuredCallOutcome[GroundingResponse]] = []
+    grounding_responses: list[GroundingResponse] = []
+    # v27 samples the two complementary lenses sequentially inside one method
+    # cell. Pair workers provide process-level parallelism without changing the
+    # public AgentApp/LangGraph call semantics or deadline handling.
+    for lens, prompt in grounding_prompts.items():
+        outcome: StructuredCallOutcome[GroundingResponse] = runtime.call(
+            kind="discovery_grounding",
+            schema=GroundingResponse,
+            system_prompt=DISCOVERY_GROUNDING_SYSTEM_PROMPT,
+            prompt=prompt,
             artifact_id=(
-                f"method/{pair.pair_id}/round-{round_index}/contract/"
-                f"chunk-{chunk_index}-of-{len(contract_chunks)}"
+                f"method/{pair.pair_id}/round-{round_index}/"
+                f"discovery-grounding/{lens}"
             ),
         )
-        all_outcomes.append(contract_outcome)
-        contract_part = (
-            contract_outcome.response
-            if contract_outcome.succeeded
-            else fallback_contracts(
-                pair,
-                str(
-                    contract_outcome.result.get(
-                        "error",
-                        "structured contract output unavailable",
-                    )
-                ),
-                segment_ids=segment_ids,
-            )
+        grounding_outcomes.append(outcome)
+        response = outcome.response if outcome.succeeded else fallback_grounding(
+            pair,
+            lens=lens,
+            contracts=contract_response,
+            reason=str(
+                outcome.result.get(
+                    "error",
+                    f"{lens} discovery grounding output unavailable",
+                )
+            ),
         )
-        contract_parts.append((segment_ids, contract_part))
-        chunk_output = ContractChunkOutput(
-            chunk_index=chunk_index,
-            chunk_count=len(contract_chunks),
-            segment_ids=segment_ids,
-            prompt_hash=_hash_json(contract_prompt),
-            response=contract_part,
-            reason="This bounded contract chunk retains its validated model output or explicit local fallback before exact-ID merge.",
-            basis="contract-chunking.v1 and public structured runtime receipt",
+        grounding_responses.append(
+            normalize_grounding_dispositions(response, contract_response)
         )
-        contract_chunk_outputs.append(chunk_output)
-        if not contract_outcome.succeeded:
+        if not outcome.succeeded:
             all_errors.append(
                 {
-                    "stage": "nl_contract_extraction",
-                    "chunk_index": chunk_index,
-                    "chunk_count": len(contract_chunks),
-                    "segment_ids": list(segment_ids),
-                    "error": contract_outcome.result.get(
+                    "stage": "discovery_grounding",
+                    "lens": lens,
+                    "error": outcome.result.get(
                         "error",
-                        "structured contract output unavailable",
+                        f"{lens} discovery grounding output unavailable",
                     ),
-                    "reason": "Contract provider/schema failure was downgraded only for the affected source chunk.",
-                    "basis": "public structured runtime outcome, contract-chunking.v1, and numbered NL fallback",
+                    "reason": "One v27 discovery lens failed; its contracts remain unresolved and no fallback issue was manufactured.",
+                    "basis": "public structured runtime outcome and v27 lens-local failure rule",
                 }
             )
-        stage_receipts.append(
-            _stage_receipt(
-                pair=pair,
-                stage_id=(
-                    f"{pair.pair_id}:r{round_index}:nl-contract:"
-                    f"chunk-{chunk_index}-of-{len(contract_chunks)}"
-                ),
-                stage_name="nl_contract_extraction",
-                status=(
-                    "completed"
-                    if contract_outcome.succeeded
-                    else "completed_with_diagnostics"
-                ),
-                artifact_roles=("natural_language", "working_contract", "source_trace"),
-                output=chunk_output,
-                outcome=contract_outcome,
-                projection_version="stage-context-projection.v5+contract-chunking.v1",
-                reason=chunk_output.reason,
-                basis=chunk_output.basis,
-            )
-        )
-    try:
-        contract_response = merge_contract_chunks(contract_parts)
-    except ValueError as exc:
-        contract_merge_failed = True
-        contract_response = fallback_contracts(pair, str(exc))
-        all_errors.append(
-            {
-                "stage": "nl_contract_extraction_merge",
-                "error": {"code": "contract_chunk_merge_error", "message": str(exc)},
-                "reason": "Exact-ID chunk merge rejected an overlapping, duplicate, or out-of-chunk model object; the complete NL fallback remains auditable.",
-                "basis": "contract-chunking.v1 exact segment and contract ID validator",
-            }
-        )
-    stage_outputs["nl_contract_chunks"] = [
-        item.model_dump(mode="json") for item in contract_chunk_outputs
-    ]
-    stage_outputs["nl_contract_extraction"] = contract_response.model_dump(mode="json")
-    if len(contract_chunks) > 1:
-        stage_receipts.append(
-            _stage_receipt(
-                pair=pair,
-                stage_id=f"{pair.pair_id}:r{round_index}:nl-contract:merge",
-                stage_name="nl_contract_extraction",
-                status=(
-                    "completed"
-                    if not contract_merge_failed
-                    else "completed_with_diagnostics"
-                ),
-                artifact_roles=("natural_language", "working_contract", "source_trace"),
-                output=contract_response,
-                reason=contract_response.reason,
-                basis=contract_response.basis,
-                projection_version="contract-chunking.v1-exact-id-merge",
-            )
-        )
-
-    source_prompt = build_grounding_prompt(
-        pair,
-        branch="source",
-        round_index=round_index,
-        contracts=contract_response,
-        previous=previous,
-    )
-    model_prompt = build_grounding_prompt(
-        pair,
-        branch="model",
-        round_index=round_index,
-        contracts=contract_response,
-        previous=previous,
-    )
-
-    def call_grounding(
-        branch: Literal["source", "model"],
-        prompt: str,
-    ) -> StructuredCallOutcome[GroundingResponse]:
-        return runtime.call(
-            kind=f"{branch}_grounding",
-            schema=GroundingResponse,
-            system_prompt=(
-                SOURCE_GROUNDING_SYSTEM_PROMPT
-                if branch == "source"
-                else MODEL_GROUNDING_SYSTEM_PROMPT
+    all_outcomes.extend(grounding_outcomes)
+    stage_outputs["discovery_grounding"] = {
+        "branches": [
+            response.model_dump(mode="json")
+            for response in grounding_responses
+        ],
+        "reason": "Two complementary v27 discovery lenses completed or retained explicit lens diagnostics.",
+        "basis": "one shared GroundingResponse schema and compact cross-view context over the same contract plan",
+    }
+    stage_receipts.append(
+        _stage_receipt(
+            pair=pair,
+            stage_id=f"{pair.pair_id}:r{round_index}:discovery-grounding",
+            stage_name="discovery_grounding",
+            status=(
+                "completed"
+                if all(outcome.succeeded for outcome in grounding_outcomes)
+                else "completed_with_diagnostics"
             ),
-            prompt=prompt,
-            artifact_id=f"method/{pair.pair_id}/round-{round_index}/{branch}-grounding",
-        )
-
-    # The six pair workers already provide process-level parallelism. Keep the
-    # two calls sequential inside one PublicStructuredRuntime so the shared
-    # AgentApp/LangGraph adapter retains its main-thread 30s first-byte and
-    # 300s total deadline semantics; thread fanout previously caused
-    # ``Event loop is closed`` non-provider failures.
-    source_outcome = call_grounding("source", source_prompt)
-    model_outcome = call_grounding("model", model_prompt)
-    all_outcomes.extend([source_outcome, model_outcome])
-    source_response = source_outcome.response if source_outcome.succeeded else fallback_grounding(
-        pair,
-        branch="source",
-        contracts=contract_response,
-        reason=str(source_outcome.result.get("error", "source grounding output unavailable")),
-    )
-    source_response = normalize_grounding_dispositions(
-        source_response,
-        contract_response,
-    )
-    stage_outputs["source_grounding"] = source_response.model_dump(mode="json")
-    if not source_outcome.succeeded:
-        all_errors.append(
-            {
-                "stage": "source_grounding",
-                "error": source_outcome.result.get("error", "source grounding output unavailable"),
-                "reason": "Source grounding provider/schema failure was downgraded to a deterministic candidate receipt.",
-                "basis": "public structured runtime outcome and source-role fallback",
-            }
-        )
-    stage_receipts.append(
-        _stage_receipt(
-            pair=pair,
-            stage_id=f"{pair.pair_id}:r{round_index}:source-grounding",
-            stage_name="source_grounding",
-            status="completed" if source_outcome.succeeded else "completed_with_diagnostics",
-            artifact_roles=("natural_language", "plantuml_source", "canonical_source_ir", "source_inventory", "working_contract", "source_trace"),
-            output=source_response,
-            outcome=source_outcome,
-            projection_version="stage-context-projection.v5+contract-grounding-projection.v1",
-            reason=source_response.reason,
-            basis=source_response.basis,
-        )
-    )
-
-    model_response = model_outcome.response if model_outcome.succeeded else fallback_grounding(
-        pair,
-        branch="model",
-        contracts=contract_response,
-        reason=str(model_outcome.result.get("error", "model grounding output unavailable")),
-    )
-    model_response = normalize_grounding_dispositions(
-        model_response,
-        contract_response,
-    )
-    stage_outputs["model_grounding"] = model_response.model_dump(mode="json")
-    if not model_outcome.succeeded:
-        all_errors.append(
-            {
-                "stage": "model_grounding",
-                "error": model_outcome.result.get("error", "model grounding output unavailable"),
-                "reason": "Model grounding provider/schema failure was downgraded to a deterministic candidate receipt.",
-                "basis": "public structured runtime outcome and closed-model fallback",
-            }
-        )
-    stage_receipts.append(
-        _stage_receipt(
-            pair=pair,
-            stage_id=f"{pair.pair_id}:r{round_index}:model-grounding",
-            stage_name="model_grounding",
-            status="completed" if model_outcome.succeeded else "completed_with_diagnostics",
-            artifact_roles=("natural_language", "fcstm_model", "reference_inspection_facts", "inspection_equivalent_facts", "verify_facts", "smt_facts", "working_contract"),
-            output=model_response,
-            outcome=model_outcome,
-            projection_version="stage-context-projection.v5+contract-grounding-projection.v1",
-            reason=model_response.reason,
-            basis=model_response.basis,
+            artifact_roles=("natural_language", "plantuml_source", "canonical_source_ir", "source_inventory", "fcstm_model", "reference_inspection_facts", "inspection_equivalent_facts", "verify_facts", "smt_facts", "working_contract", "source_trace"),
+            output=stage_outputs["discovery_grounding"],
+            outcome=grounding_outcomes[-1],
+            projection_version="v27-complementary-grounding-projection.v1",
+            reason=stage_outputs["discovery_grounding"]["reason"],
+            basis=stage_outputs["discovery_grounding"]["basis"],
         )
     )
 
     response = assemble_method_response(
-        source_response,
-        model_response,
-        reason="The method merged two complementary grounding branches after NL contract extraction; typed semantic D is adjudicated separately and W remains deterministic downstream output.",
-        basis="source-grounding and closed-model-grounding responses over the same context manifest",
+        grounding_responses,
+        reason="The method merged two complementary v27 discovery lenses after NL contract extraction; typed semantic D is adjudicated separately and W remains deterministic downstream output.",
+        basis="two GroundingResponse objects over the same compact cross-view context manifest",
     )
     candidates = response.issues
     records: list[dict[str, Any]] = []
@@ -1323,101 +1225,54 @@ def _method_cell(
                 contracts_by_id,
             )
             prepared_candidates.append(prepared)
-            stage_receipts.extend(
-                [
-                    _stage_receipt(
-                        pair=pair,
-                        stage_id=f"{pair.pair_id}:r{round_index}:i{index}:binding",
-                        stage_name="exact_binding",
-                        status="completed",
-                        artifact_roles=("natural_language", "fcstm_model", "source_inventory", "working_contract"),
-                        output=prepared["binding"],
-                        reason=prepared["binding"].reason,
-                        basis=prepared["binding"].basis,
-                    ),
-                    _stage_receipt(
-                        pair=pair,
-                        stage_id=f"{pair.pair_id}:r{round_index}:i{index}:compile",
-                        stage_name="predicate_compilation",
-                        status="completed",
-                        artifact_roles=("fcstm_model", "inspection_equivalent_facts", "verify_facts", "smt_facts", "predicate_registry"),
-                        output=prepared["plan"],
-                        reason=prepared["plan"].reason,
-                        basis=prepared["plan"].basis,
-                    ),
-                    _stage_receipt(
-                        pair=pair,
-                        stage_id=f"{pair.pair_id}:r{round_index}:i{index}:execute",
-                        stage_name="backend_execution",
-                        status="completed" if prepared["receipt"].terminal_state in {"completed", "unsupported", "unknown"} else "completed_with_diagnostics",
-                        artifact_roles=("fcstm_model", "verify_facts", "smt_facts"),
-                        output=prepared["receipt"],
-                        reason=prepared["receipt"].reason,
-                        basis=prepared["receipt"].basis,
-                    )
-                ]
-            )
         except Exception as exc:  # preserve a cell-level diagnostic instead of losing a candidate
             errors.append({"candidate_index": index, "error_type": type(exc).__name__, "message": str(exc), "reason": "Candidate processing failed; the cell remains readable.", "basis": "Candidate-level diagnostic preservation."})
-    if not prepared_candidates:
-        # A valid method cell always has a deterministic auditable output, even
-        # when the provider returns an empty list or the candidate schema fails.
-        candidate = fallback_candidates(pair, round_index).issues[0]
-        try:
-            prepared = _prepare_candidate(
-                pair,
-                candidate,
-                round_index,
-                0,
-                contracts_by_id,
-            )
-            prepared_candidates.append(prepared)
-            stage_receipts.extend(
-                [
-                    _stage_receipt(
-                        pair=pair,
-                        stage_id=f"{pair.pair_id}:r{round_index}:fallback:binding",
-                        stage_name="exact_binding",
-                        status="completed",
-                        artifact_roles=("natural_language", "fcstm_model", "source_inventory", "working_contract"),
-                        output=prepared["binding"],
-                        reason=prepared["binding"].reason,
-                        basis=prepared["binding"].basis,
-                    ),
-                    _stage_receipt(
-                        pair=pair,
-                        stage_id=f"{pair.pair_id}:r{round_index}:fallback:compile",
-                        stage_name="predicate_compilation",
-                        status="completed",
-                        artifact_roles=("fcstm_model", "inspection_equivalent_facts", "verify_facts", "smt_facts", "predicate_registry"),
-                        output=prepared["plan"],
-                        reason=prepared["plan"].reason,
-                        basis=prepared["plan"].basis,
-                    ),
-                    _stage_receipt(
-                        pair=pair,
-                        stage_id=f"{pair.pair_id}:r{round_index}:fallback:execute",
-                        stage_name="backend_execution",
-                        status="completed" if prepared["receipt"].terminal_state in {"completed", "unsupported", "unknown"} else "completed_with_diagnostics",
-                        artifact_roles=("fcstm_model", "verify_facts", "smt_facts"),
-                        output=prepared["receipt"],
-                        reason=prepared["receipt"].reason,
-                        basis=prepared["receipt"].basis,
-                    ),
-                ]
-            )
-        except Exception as exc:
-            errors.append({"candidate_index": 0, "error_type": type(exc).__name__, "message": str(exc), "reason": "Deterministic fallback processing failed.", "basis": "Fallback diagnostic preservation."})
+    stage_outputs["execute_batch"] = {
+        "candidate_count": len(candidates),
+        "prepared_count": len(prepared_candidates),
+        "candidates": [_jsonable(item) for item in prepared_candidates],
+        "reason": "Exact binding, frozen predicate compilation, and deterministic backend execution were applied candidate by candidate inside one v27 execute-batch stage.",
+        "basis": "owned ModelIR, frozen predicate registry, compiler plans, and backend receipts",
+    }
+    stage_receipts.append(
+        _stage_receipt(
+            pair=pair,
+            stage_id=f"{pair.pair_id}:r{round_index}:execute-batch",
+            stage_name="execute_batch",
+            status="completed" if len(prepared_candidates) == len(candidates) else "completed_with_diagnostics",
+            artifact_roles=("natural_language", "fcstm_model", "source_inventory", "working_contract", "inspection_equivalent_facts", "verify_facts", "smt_facts", "predicate_registry"),
+            output=stage_outputs["execute_batch"],
+            reason=stage_outputs["execute_batch"]["reason"],
+            basis=stage_outputs["execute_batch"]["basis"],
+        )
+    )
 
     d_prompt = ""
     d_correction_prompt = ""
     d_outcome: StructuredCallOutcome[DAdjudicationResponse] | None = None
     d_stage_outcome: StructuredCallOutcome[DAdjudicationResponse] | None = None
-    d_response = fallback_d_adjudication(
-        [item["obligation_id"] for item in prepared_candidates],
-        "no prepared candidate dossier",
+    expected_ids = [item["obligation_id"] for item in prepared_candidates]
+    d_response = DAdjudicationResponse(
+        decisions=[],
+        reason="No executed candidate required semantic D adjudication.",
+        basis="the exact execute-batch candidate set is empty",
     )
     decisions: dict[str, SemanticAdjudication] = {}
+    validation_output: dict[str, Any] = {
+        "expected_obligation_ids": expected_ids,
+        "initial_missing_ids": [],
+        "initial_extra_ids": [],
+        "initial_duplicate_ids": [],
+        "initial_invalid_decisions": {},
+        "repair_attempted": False,
+        "repair_missing_ids": [],
+        "repair_extra_ids": [],
+        "repair_duplicate_ids": [],
+        "repair_invalid_decisions": {},
+        "final_unresolved_ids": [],
+        "reason": "D validation checked exact obligation coverage, uniqueness, and closed enum consistency.",
+        "basis": "context-free obligation IDs and typed SemanticAdjudication fields",
+    }
     if prepared_candidates:
         dossiers = [
             {
@@ -1455,8 +1310,8 @@ def _method_cell(
                     "basis": "public structured runtime outcome and no-silent-drop D fallback",
                 }
             )
-        expected_ids = [item["obligation_id"] for item in prepared_candidates]
         expected_id_set = set(expected_ids)
+
         def coverage(
             response: DAdjudicationResponse,
         ) -> tuple[list[SemanticAdjudication], list[str], list[str], list[str]]:
@@ -1486,13 +1341,34 @@ def _method_cell(
             return unique, missing, extra, duplicate
 
         unique_supplied, missing_ids, extra_ids, duplicate_ids = coverage(d_response)
-        if missing_ids and d_outcome.succeeded:
+        invalid_decisions = {
+            decision.obligation_id: decision_errors
+            for decision in unique_supplied
+            if (decision_errors := _d_decision_consistency_errors(decision))
+        }
+        validation_output.update(
+            {
+                "initial_missing_ids": missing_ids,
+                "initial_extra_ids": extra_ids,
+                "initial_duplicate_ids": duplicate_ids,
+                "initial_invalid_decisions": invalid_decisions,
+            }
+        )
+        repair_ids = set(missing_ids) | set(duplicate_ids) | set(invalid_decisions)
+        frozen_decisions = [
+            decision
+            for decision in unique_supplied
+            if decision.obligation_id not in repair_ids
+        ]
+        if repair_ids and d_outcome.succeeded:
+            validation_output["repair_attempted"] = True
             d_correction_prompt = build_d_correction_prompt(
                 pair,
                 dossiers,
                 missing_ids=missing_ids,
                 duplicate_ids=duplicate_ids,
                 extra_ids=extra_ids,
+                invalid_decisions=invalid_decisions,
             )
             correction_outcome: StructuredCallOutcome[DAdjudicationResponse] = runtime.call(
                 kind="d_adjudication_correction",
@@ -1504,15 +1380,52 @@ def _method_cell(
             all_outcomes.append(correction_outcome)
             d_stage_outcome = correction_outcome
             if correction_outcome.succeeded:
-                d_response = d_response.model_copy(
-                    update={
-                        "decisions": [
-                            *unique_supplied,
-                            *correction_outcome.response.decisions,
-                        ]
+                correction_rows = correction_outcome.response.decisions
+                correction_extra = [
+                    decision.obligation_id
+                    for decision in correction_rows
+                    if decision.obligation_id not in repair_ids
+                ]
+                repair_groups: dict[str, list[SemanticAdjudication]] = {}
+                for decision in correction_rows:
+                    if decision.obligation_id in repair_ids:
+                        repair_groups.setdefault(decision.obligation_id, []).append(
+                            decision
+                        )
+                correction_duplicate = [
+                    obligation_id
+                    for obligation_id, rows in repair_groups.items()
+                    if len(rows) > 1
+                ]
+                correction_missing = [
+                    obligation_id
+                    for obligation_id in expected_ids
+                    if obligation_id in repair_ids
+                    and len(repair_groups.get(obligation_id, [])) != 1
+                ]
+                correction_invalid = {
+                    obligation_id: decision_errors
+                    for obligation_id, rows in repair_groups.items()
+                    if len(rows) == 1
+                    and (
+                        decision_errors := _d_decision_consistency_errors(rows[0])
+                    )
+                }
+                repaired = [
+                    rows[0]
+                    for obligation_id, rows in repair_groups.items()
+                    if len(rows) == 1
+                    and obligation_id not in correction_invalid
+                ]
+                unique_supplied = [*frozen_decisions, *repaired]
+                validation_output.update(
+                    {
+                        "repair_missing_ids": correction_missing,
+                        "repair_extra_ids": correction_extra,
+                        "repair_duplicate_ids": correction_duplicate,
+                        "repair_invalid_decisions": correction_invalid,
                     }
                 )
-                unique_supplied, missing_ids, extra_ids, duplicate_ids = coverage(d_response)
             else:
                 errors.append(
                     {
@@ -1525,7 +1438,20 @@ def _method_cell(
                         "basis": "in-node structured contract correction and public runtime outcome",
                     }
                 )
-        if missing_ids or extra_ids or duplicate_ids:
+                unique_supplied = frozen_decisions
+        else:
+            unique_supplied = frozen_decisions
+
+        final_by_id = {
+            decision.obligation_id: decision for decision in unique_supplied
+        }
+        final_unresolved_ids = [
+            obligation_id
+            for obligation_id in expected_ids
+            if obligation_id not in final_by_id
+        ]
+        validation_output["final_unresolved_ids"] = final_unresolved_ids
+        if final_unresolved_ids:
             diagnostics: list[str] = []
             if missing_ids:
                 diagnostics.append(f"missing={missing_ids}")
@@ -1533,40 +1459,83 @@ def _method_cell(
                 diagnostics.append(f"extra={extra_ids}")
             if duplicate_ids:
                 diagnostics.append(f"duplicate={duplicate_ids}")
+            if invalid_decisions:
+                diagnostics.append(f"invalid={invalid_decisions}")
+            if validation_output["repair_missing_ids"]:
+                diagnostics.append(
+                    f"repair_missing={validation_output['repair_missing_ids']}"
+                )
+            if validation_output["repair_extra_ids"]:
+                diagnostics.append(
+                    f"repair_extra={validation_output['repair_extra_ids']}"
+                )
+            if validation_output["repair_duplicate_ids"]:
+                diagnostics.append(
+                    f"repair_duplicate={validation_output['repair_duplicate_ids']}"
+                )
+            if validation_output["repair_invalid_decisions"]:
+                diagnostics.append(
+                    f"repair_invalid={validation_output['repair_invalid_decisions']}"
+                )
             errors.append(
                 {
                     "stage": "d_adjudication",
                     "error": "; ".join(diagnostics),
-                    "reason": "D structured output did not cover the exact obligation set; missing units were retained as unresolved.",
+                    "reason": "D structured output and its one targeted repair did not close every obligation; remaining units were retained as unresolved.",
                     "basis": "deterministic obligation-ID coverage and uniqueness check",
                 }
             )
+        if final_unresolved_ids:
             missing_response = fallback_d_adjudication(
-                missing_ids,
-                "D structured output coverage check",
+                final_unresolved_ids,
+                "D structured output validation or targeted repair did not close",
             )
-            d_response = d_response.model_copy(
-                update={"decisions": unique_supplied + missing_response.decisions}
+            final_by_id.update(
+                (decision.obligation_id, decision)
+                for decision in missing_response.decisions
             )
-            unique_supplied, _, _, _ = coverage(d_response)
-        decisions = {decision.obligation_id: decision for decision in unique_supplied}
-        stage_outputs["d_adjudication"] = d_response.model_dump(mode="json")
-        stage_receipts.append(
-            _stage_receipt(
-                pair=pair,
-                stage_id=f"{pair.pair_id}:r{round_index}:d-adjudication",
-                stage_name="d_adjudication",
-                status="completed" if d_stage_outcome is not None and d_stage_outcome.succeeded and not any(
-                    item.get("stage") in {"d_adjudication", "d_adjudication_correction"}
-                    for item in errors
-                ) else "completed_with_diagnostics",
-                artifact_roles=("natural_language", "plantuml_source", "canonical_source_ir", "source_inventory", "fcstm_model", "working_contract", "source_trace", "predicate_registry"),
-                output=d_response,
-                outcome=d_stage_outcome,
-                reason=d_response.reason,
-                basis=d_response.basis,
-            )
+        ordered_decisions = [final_by_id[obligation_id] for obligation_id in expected_ids]
+        d_response = d_response.model_copy(update={"decisions": ordered_decisions})
+        decisions = {
+            decision.obligation_id: decision for decision in ordered_decisions
+        }
+
+    stage_outputs["d_adjudication"] = d_response.model_dump(mode="json")
+    stage_receipts.append(
+        _stage_receipt(
+            pair=pair,
+            stage_id=f"{pair.pair_id}:r{round_index}:d-adjudication",
+            stage_name="d_adjudication",
+            status=(
+                "completed"
+                if not prepared_candidates
+                or (d_stage_outcome is not None and d_stage_outcome.succeeded)
+                else "completed_with_diagnostics"
+            ),
+            artifact_roles=("natural_language", "plantuml_source", "canonical_source_ir", "source_inventory", "fcstm_model", "working_contract", "source_trace", "predicate_registry"),
+            output=d_response,
+            outcome=d_stage_outcome,
+            reason=d_response.reason,
+            basis=d_response.basis,
         )
+    )
+    stage_outputs["validate_d"] = validation_output
+    stage_receipts.append(
+        _stage_receipt(
+            pair=pair,
+            stage_id=f"{pair.pair_id}:r{round_index}:validate-d",
+            stage_name="validate_d",
+            status=(
+                "completed"
+                if not validation_output["final_unresolved_ids"]
+                else "completed_with_diagnostics"
+            ),
+            artifact_roles=("natural_language", "fcstm_model", "predicate_registry"),
+            output=validation_output,
+            reason=validation_output["reason"],
+            basis=validation_output["basis"],
+        )
+    )
     retry_records = [
         {"stage": outcome.kind, **attempt}
         for outcome in all_outcomes
@@ -1586,49 +1555,87 @@ def _method_cell(
             records.append(record)
             if emitted is not None:
                 release.append(emitted)
-            stage_receipts.extend(
-                [
-                    _stage_receipt(
-                        pair=pair,
-                        stage_id=f"{pair.pair_id}:r{round_index}:i{index}:w",
-                        stage_name="w_publication",
-                        status="completed",
-                        artifact_roles=("fcstm_model", "predicate_registry", "verify_facts"),
-                        output={"witness_level": record["witness_level"], "issue_emitted": record["issue_emitted"]},
-                        reason="W level and issue publication were computed by the deterministic evidence state machine.",
-                        basis="binding, plan support, backend terminal state, receipt verdict, and D adjudication",
-                    ),
-                ]
-            )
             if record.get("audit_bundle") is not None:
                 audit_path = output_root / "audit_bundles" / f"{record['issue_id']}.json"
                 write_json(audit_path, record["audit_bundle"])
                 record["audit_bundle_path"] = str(audit_path)
         except Exception as exc:  # preserve a cell-level diagnostic instead of losing a candidate
             errors.append({"candidate_index": index, "error_type": type(exc).__name__, "message": str(exc), "reason": "Candidate publication failed; the cell remains readable.", "basis": "Candidate-level diagnostic preservation."})
+    release = _deduplicate_release_issues(release)
+    publish_output = {
+        "evidence_record_count": len(records),
+        "pre_dedup_release_count": sum(
+            bool(record.get("issue_emitted")) for record in records
+        ),
+        "report_issue_count": len(release),
+        "report_issue_ids": [item["issue_id"] for item in release],
+        "w_distribution": dict(
+            Counter(str(record.get("witness_level")) for record in records)
+        ),
+        "d_distribution": dict(
+            Counter(str(record.get("d_level")) for record in records)
+        ),
+        "reason": "Deterministic W publication retained only D1/D2 violations and collapsed exact typed duplicate defects.",
+        "basis": "binding completeness, frozen predicate support, backend terminal verdict, method-owned D, and exact-typed-defect-key.v1",
+    }
+    stage_outputs["publish"] = publish_output
+    stage_receipts.append(
+        _stage_receipt(
+            pair=pair,
+            stage_id=f"{pair.pair_id}:r{round_index}:publish",
+            stage_name="publish",
+            status=(
+                "completed"
+                if len(records) == len(prepared_candidates)
+                else "completed_with_diagnostics"
+            ),
+            artifact_roles=("fcstm_model", "predicate_registry", "verify_facts"),
+            output=publish_output,
+            reason=publish_output["reason"],
+            basis=publish_output["basis"],
+        )
+    )
     prompt_hash = _hash_json(
         {
-            "contract_chunks": contract_prompts,
-            "source_grounding": source_prompt,
-            "model_grounding": model_prompt,
+            "contract_extraction": contract_prompt,
+            "discovery_grounding": grounding_prompts,
             "d_adjudication": d_prompt,
             "d_adjudication_correction": d_correction_prompt,
         }
     )
     llm_call = _aggregate_outcomes(all_outcomes)
-    real_llm = bool(all_outcomes) and all(outcome.real_llm for outcome in all_outcomes)
-    provider_or_schema_failure = (
-        contract_merge_failed
-        or any(not outcome.succeeded for outcome in all_outcomes)
+    contract_ready = contract_outcome.real_llm and contract_outcome.succeeded
+    grounding_ready = [
+        outcome.real_llm and outcome.succeeded
+        for outcome in grounding_outcomes
+    ]
+    closed_semantic_records = [
+        record
+        for record in records
+        if record.get("d_level") in {"D0", "D1", "D2"}
+    ]
+    semantic_result_available = (
+        bool(closed_semantic_records)
+        if candidates
+        else all(grounding_ready)
     )
-    eligible = bool(records and real_llm and not provider_or_schema_failure)
+    eligible = bool(
+        contract_ready
+        and any(grounding_ready)
+        and semantic_result_available
+    )
     eligibility_reasons = (
-        ["real_structured_stage_outputs", "method_receipt_complete"]
+        [
+            "real_contract_output",
+            "at_least_one_real_v27_grounding_lens",
+            "auditable_semantic_result",
+            "method_receipt_complete",
+        ]
         if eligible
         else [
-            *([] if records else ["no_evidence_record"]),
-            *([] if real_llm else ["fixture_or_non_provider_output"]),
-            *([] if not provider_or_schema_failure else ["provider_or_schema_stage_failure"]),
+            *([] if contract_ready else ["contract_output_unavailable_or_fixture"]),
+            *([] if any(grounding_ready) else ["grounding_outputs_unavailable_or_fixture"]),
+            *([] if semantic_result_available else ["no_auditable_semantic_result"]),
         ]
     )
     cell = {
@@ -1641,9 +1648,9 @@ def _method_cell(
         "round": round_index,
         "status": (
             "completed"
-            if records and all_outcomes and all(item.succeeded for item in all_outcomes) and not errors
+            if eligible and not errors
             else "completed_with_diagnostics"
-            if records
+            if eligible
             else "failed_with_receipt"
         ),
         "prompt_hash": prompt_hash,
@@ -1679,7 +1686,9 @@ def _judge_ledger_projection(item: dict[str, Any]) -> dict[str, Any]:
             "id",
             "pair",
             "D",
+            "L",
             "D_basis",
+            "L_basis",
             "summary",
             "detail",
             "axes",
@@ -1689,14 +1698,10 @@ def _judge_ledger_projection(item: dict[str, Any]) -> dict[str, Any]:
 
 
 def _judge_issue_projection(issue: dict[str, Any]) -> dict[str, Any]:
-    """Project one release issue without copying its complete audit bundle."""
+    """Project only the final v27-style D1/D2 semantic publication surface."""
 
-    plan = issue.get("plan") or {}
-    receipt = issue.get("receipt") or {}
-    binding = issue.get("binding") or {}
-    attribution = issue.get("source_attribution") or {}
     audit = issue.get("audit_bundle") or {}
-    return {
+    semantic = {
         key: issue[key]
         for key in (
             "issue_id",
@@ -1708,8 +1713,6 @@ def _judge_issue_projection(issue: dict[str, Any]) -> dict[str, Any]:
             "evidence_types",
             "title",
             "requirement_quote",
-            "predicate_id",
-            "predicate_inputs",
             "element_refs",
             "source_refs",
             "expected",
@@ -1717,85 +1720,28 @@ def _judge_issue_projection(issue: dict[str, Any]) -> dict[str, Any]:
             "strongest_rebuttal",
             "d_level",
             "witness_level",
-            "coverage_class",
             "reason",
             "basis",
-            "candidate_reason",
-            "candidate_basis",
+            "facet_count",
+            "facet_issue_ids",
+            "contract_ids",
         )
         if key in issue
-    } | {
-        "binding": {
-            key: binding[key]
-            for key in ("precise", "element_refs", "source_refs", "reason", "basis")
-            if key in binding
-        },
-        "predicate_plan": {
-            key: plan[key]
-            for key in (
-                "plan_id",
-                "predicate_id",
-                "predicate_name",
-                "family",
-                "semantics",
-                "inputs",
-                "soundness_fragment",
-                "supported",
-                "binding_complete",
-                "missing_inputs",
-                "source_audit_status",
-                "source_gate_passed",
-                "reason",
-                "basis",
-            )
-            if key in plan
-        },
-        "backend_receipt": {
-            key: receipt[key]
-            for key in (
-                "receipt_id",
-                "backend",
-                "terminal_state",
-                "verdict",
-                "counterexample",
-                "trace",
-                "reason",
-                "basis",
-            )
-            if key in receipt
-        },
-        "source_attribution": {
-            key: attribution[key]
-            for key in ("requirement", "source", "model", "plan", "backend", "input_context")
-            if key in attribution
-        },
+    }
+    return semantic | {
+        "method_issue_hash": _hash_json(semantic),
         "audit_reference": {
-            "audit_hash": audit.get("audit_hash"),
+            "pre_finalization_audit_hash": (
+                audit.get("pre_finalization_audit_hash")
+                or audit.get("audit_hash")
+            ),
             "path": issue.get("audit_bundle_path"),
             "reason": "The complete W2 audit bundle remains on disk; the judge receives its identity only.",
-            "basis": "judge-release-projection.v3",
+            "basis": "v27-judge-release-projection.v1",
         },
-        "reason": issue.get("reason") or issue.get("candidate_reason") or "The release issue carries a deterministic method rationale.",
-        "basis": issue.get("basis") or issue.get("candidate_basis") or "method release receipt projection",
+        "reason": issue.get("reason") or "The release issue carries a deterministic method rationale.",
+        "basis": issue.get("basis") or "method final-publication projection",
     }
-
-
-def _judge_stage_projection(cell: dict[str, Any]) -> list[dict[str, Any]]:
-    """Keep stage identity and budget facts while excluding repeated payloads."""
-
-    return [
-        {
-            "stage_name": item.get("stage_name"),
-            "stage_id": item.get("stage_id"),
-            "status": item.get("status"),
-            "input_manifest_hash": item.get("input_manifest_hash"),
-            "output_hash": item.get("output_hash"),
-            "context_budget": item.get("context_budget"),
-            "reason": item.get("reason"),
-            "basis": item.get("basis"),
-        }
-        for item in cell.get("stage_receipts", [])
-    ]
 
 
 def _normalize_judge_shape(
@@ -1849,158 +1795,10 @@ def _normalize_judge_shape(
     )
 
 
-def _partitioned_judge(
-    *,
-    pair: PairInput,
-    ledger_items: list[dict[str, Any]],
-    release: list[dict[str, Any]],
-    method_rounds: list[dict[str, Any]],
-    runtime: PublicStructuredRuntime,
-) -> tuple[JudgeResponse | None, list[StructuredCallOutcome[Any]], list[dict[str, Any]]]:
-    """Judge release chunks independently when the compact pair prompt is too large.
-
-    Each call still sees the complete frozen ledger, but only a bounded release
-    subset. Exact IDs are unioned mechanically after all chunks; no missing
-    relation is converted to a miss or false positive.
-    """
-
-    outcomes: list[StructuredCallOutcome[Any]] = []
-    errors: list[dict[str, Any]] = []
-    chunks = [
-        release[index:index + JUDGE_PARTITION_RELEASE_SIZE]
-        for index in range(0, len(release), JUDGE_PARTITION_RELEASE_SIZE)
-    ]
-    chunk_responses: list[tuple[list[dict[str, Any]], JudgeResponse]] = []
-    for chunk_index, chunk in enumerate(chunks):
-        chunk_ids = {str(item.get("issue_id")) for item in chunk}
-        chunk_rounds = [
-            {
-                **cell,
-                "report_issue_clusters": [
-                    issue
-                    for issue in cell.get("report_issue_clusters", [])
-                    if str(issue.get("issue_id")) in chunk_ids
-                ],
-            }
-            for cell in method_rounds
-        ]
-        prompt = _judge_prompt(pair, ledger_items, chunk_rounds)
-        if (len(prompt) + 3) // 4 > JUDGE_PROMPT_TOKEN_BUDGET:
-            errors.append(
-                {
-                    "chunk": chunk_index,
-                    "error": "judge_partition_context_budget_exceeded",
-                    "reason": "A compact judge partition still exceeds the configured prompt budget; no provider call was attempted.",
-                    "basis": f"estimated_tokens={(len(prompt) + 3) // 4}; budget={JUDGE_PROMPT_TOKEN_BUDGET}",
-                }
-            )
-            continue
-        outcome = runtime.call(
-            kind="judge_partition",
-            schema=JudgeResponse,
-            system_prompt=JUDGE_SYSTEM_PROMPT,
-            prompt=prompt,
-            artifact_id=f"judge/{pair.pair_id}/partition-{chunk_index}",
-        )
-        outcomes.append(outcome)
-        response = outcome.response if outcome.succeeded else None
-        if response is not None:
-            response = _normalize_judge_shape(response, ledger_items, chunk, len(method_rounds))
-            shape_errors = _judge_shape_errors(response, ledger_items, chunk, len(method_rounds))
-        else:
-            shape_errors = ["judge partition output unavailable"]
-        if response is None or shape_errors:
-            # A partition may be semantically useful while violating only the
-            # exact-ID response shape (duplicate ledger rows or a copied issue
-            # ID from another round). Give the same judge one targeted repair
-            # with the exact allowed IDs before falling back to atomic
-            # relations. This bounds judge calls at two per partition and
-            # avoids the old ledger x release explosion.
-            correction = runtime.call(
-                kind="judge_partition_correction",
-                schema=JudgeResponse,
-                system_prompt=JUDGE_SYSTEM_PROMPT,
-                prompt=_judge_partition_correction_prompt(
-                    pair=pair,
-                    ledger_items=ledger_items,
-                    chunk=chunk,
-                    method_rounds=chunk_rounds,
-                    errors=shape_errors,
-                ),
-                artifact_id=f"judge/{pair.pair_id}/partition-{chunk_index}/shape-correction",
-            )
-            outcomes.append(correction)
-            if correction.succeeded:
-                response = _normalize_judge_shape(
-                    correction.response,
-                    ledger_items,
-                    chunk,
-                    len(method_rounds),
-                )
-                shape_errors = _judge_shape_errors(
-                    response,
-                    ledger_items,
-                    chunk,
-                    len(method_rounds),
-                )
-            else:
-                shape_errors.append("partition shape correction output unavailable")
-        if response is None or shape_errors:
-            errors.append(
-                {
-                    "chunk": chunk_index,
-                    "error": "; ".join(shape_errors),
-                    "reason": "A partition and its targeted exact-ID correction did not close; relations remain unresolved before any bounded fallback.",
-                    "basis": "partitioned judge exact-ID coverage contract and targeted correction receipt",
-                }
-            )
-            continue
-        chunk_responses.append((chunk, response))
-
-    if errors or len(chunk_responses) != len(chunks):
-        return None, outcomes, errors
-
-    ledger_by_id: dict[str, list[LedgerAssessment]] = defaultdict(list)
-    release_by_id: dict[str, ReleaseAssessment] = {}
-    for _, response in chunk_responses:
-        for assessment in response.ledger_assessments:
-            ledger_by_id[assessment.ledger_id].append(assessment)
-        for assessment in response.release_assessments:
-            release_by_id[assessment.issue_id] = assessment
-    ledger_assessments = []
-    for item in ledger_items:
-        rows = ledger_by_id.get(str(item["id"]), [])
-        matched_ids = list(dict.fromkeys(
-            issue_id for row in rows for issue_id in row.matched_issue_ids
-        ))
-        ledger_assessments.append(
-            LedgerAssessment(
-                ledger_id=str(item["id"]),
-                hit_r1=any(issue_id.split(":")[1:2] == ["r1"] for issue_id in matched_ids),
-                hit_r2=any(issue_id.split(":")[1:2] == ["r2"] for issue_id in matched_ids),
-                hit_r3=any(issue_id.split(":")[1:2] == ["r3"] for issue_id in matched_ids),
-                matched_issue_ids=matched_ids,
-                reason="; ".join(row.reason for row in rows) or "No supplied partition reported a matching release issue.",
-                basis="partitioned pair-wide judge responses unioned by exact ledger and issue IDs",
-            )
-        )
-    return (
-        JudgeResponse(
-            ledger_assessments=ledger_assessments,
-            release_assessments=[release_by_id[str(item["issue_id"])] for item in release],
-            reason="The compact pair-wide judge was partitioned by release issue count before provider execution.",
-            basis="bounded release partitions, complete frozen ledger per partition, and exact-ID aggregation",
-        ),
-        outcomes,
-        [],
-    )
-
-
 def _judge_prompt(
     pair: PairInput,
     ledger_items: list[dict[str, Any]],
     method_rounds: list[dict[str, Any]],
-    required_release_ids: Sequence[str] | None = None,
 ) -> str:
     """Build the independent pair-wide judge prompt from release issues only."""
 
@@ -2008,52 +1806,28 @@ def _judge_prompt(
     for cell in method_rounds:
         compact_rounds.append(
             {
-                "receipt_identity": {
-                    "schema": cell.get("schema"),
-                    "run_id": cell.get("run_id"),
-                    "run_contract_hash": cell.get("run_contract_hash"),
-                    "pair_id": cell.get("pair_id"),
-                    "round": cell.get("round"),
-                    "status": cell.get("status"),
-                    "eligible": cell.get("eligible", False),
-                    "eligibility_reasons": cell.get("eligibility_reasons", []),
-                    "prompt_hash": cell.get("prompt_hash"),
-                    "context_manifest_hash": (
-                        cell.get("context_manifest", {}).get("manifest_hash")
-                        if isinstance(cell.get("context_manifest"), dict)
-                        else None
-                    ),
-                    "input_hashes": cell.get("input_hashes", {}),
-                    "stage_receipts": _judge_stage_projection(cell),
-                    "method_receipt_hash": _hash_json(cell),
-                    "reason": cell.get("reason"),
-                    "basis": cell.get("basis"),
-                },
+                "round": cell.get("round"),
                 "release_issue_clusters": [
                     _judge_issue_projection(issue)
                     for issue in cell.get("report_issue_clusters", [])
                 ],
             }
         )
-    required_release_ids = tuple(
-        required_release_ids
-        if required_release_ids is not None
-        else [
-            str(issue.get("issue_id"))
-            for cell in method_rounds
-            for issue in cell.get("report_issue_clusters", [])
-        ]
-    )
+    required_release_ids = [
+        str(issue.get("issue_id"))
+        for cell in method_rounds
+        for issue in cell.get("report_issue_clusters", [])
+    ]
     return f"""Assess the supplied method rounds for frozen pair {pair.pair_id} as an independent judge.
 
 Frozen ledger entries (the judge's only ground-truth answer source; method generation did not read them):
 {json.dumps([_judge_ledger_projection(item) for item in ledger_items], ensure_ascii=False, sort_keys=True)}
 
-Complete method receipt identities/stage receipts plus full D1/D2 release receipts for all supplied rounds (D0 is excluded):
+Final D1/D2 report issue clusters for all supplied method rounds (D0, stage receipts, compiler/backend details, and W2 audit bundles are excluded):
 {json.dumps(compact_rounds, ensure_ascii=False, sort_keys=True)}
 
 The exact release issue ID set for this request is:
-{json.dumps(list(required_release_ids), ensure_ascii=False)}
+{json.dumps(required_release_ids, ensure_ascii=False)}
 You must emit each of these release IDs exactly once. Do not emit any other
 release ID, even if a similarly named issue appears in another round. Emit each
 frozen ledger ID exactly once as well. The frozen ledger list is an array of
@@ -2070,33 +1844,6 @@ is_false_positive=true only when no frozen ledger item can semantically account 
 units. Every assessment and the top-level response must have non-empty reason and basis fields. Do
 not read baseline results, other pairs, historical judge examples, or files outside this input.
 """
-
-
-def _judge_partition_correction_prompt(
-    *,
-    pair: PairInput,
-    ledger_items: list[dict[str, Any]],
-    chunk: list[dict[str, Any]],
-    method_rounds: list[dict[str, Any]],
-    errors: list[str],
-) -> str:
-    """Build a bounded exact-ID repair prompt for one judge partition."""
-
-    required_release_ids = [str(item["issue_id"]) for item in chunk]
-    return (
-        _judge_prompt(
-            pair,
-            ledger_items,
-            method_rounds,
-            required_release_ids=required_release_ids,
-        )
-        + "\nThe previous partition response violated these deterministic shape checks:\n- "
-        + "\n- ".join(errors)
-        + "\nReturn a complete replacement. Copy IDs only from the exact lists above; do not repeat an ID. This is a shape repair, not permission to change the semantic matching rule. Every assessment still needs non-empty reason and basis.\n"
-    )
-
-
-ATOMIC_JUDGE_SYSTEM_PROMPT = """You are the independent semantic fallback judge for paper1 evidence_discovery. Decide only whether one supplied frozen ledger entry and one supplied D1/D2 release issue identify the same locus and the same property. Do not use keyword, substring, regex, edit-distance, embedding, identifier-shape, or other lexical proxies. Do not create issues or inspect other pairs. Return one Pydantic AtomicMatchDecision with non-empty reason and basis."""
 
 
 def _read_ledger_for_pair(ledger_path: Path, pair_id: str) -> list[dict[str, Any]]:
@@ -2195,168 +1942,6 @@ def _judge_correction_prompt(
     )
 
 
-def _atomic_judge_prompt(
-    *,
-    pair_id: str,
-    ledger_item: dict[str, Any],
-    release_issue: dict[str, Any],
-) -> str:
-    """Build one blind ledger-to-release semantic relation prompt."""
-
-    return f"""Frozen pair: {pair_id}
-
-Frozen ledger entry (judge-only ground truth input):
-{json.dumps(_judge_ledger_projection(ledger_item), ensure_ascii=False, sort_keys=True)}
-
-One method D1/D2 release issue:
-{json.dumps(_judge_issue_projection(release_issue), ensure_ascii=False, sort_keys=True)}
-
-Set matches=true only for the same locus and same property. Explain the semantic relation in reason and identify the supplied facts in basis. Do not use baseline data, other pairs, or lexical matching.
-"""
-
-
-def _atomic_judge(
-    *,
-    pair: PairInput,
-    ledger_items: list[dict[str, Any]],
-    release: list[dict[str, Any]],
-    runtime: PublicStructuredRuntime,
-) -> tuple[JudgeResponse | None, list[StructuredCallOutcome[Any]], list[dict[str, Any]], list[dict[str, Any]]]:
-    """Recover a complete judge surface through independent atomic LLM relations."""
-
-    outcomes: list[StructuredCallOutcome[Any]] = []
-    relations: list[dict[str, Any]] = []
-    errors: list[dict[str, Any]] = []
-    jobs = [
-        (ledger_index, ledger_item, issue_index, issue)
-        for ledger_index, ledger_item in enumerate(ledger_items)
-        for issue_index, issue in enumerate(release)
-    ]
-
-    def call_relation(
-        job: tuple[int, dict[str, Any], int, dict[str, Any]],
-    ) -> StructuredCallOutcome[AtomicMatchDecision]:
-        ledger_index, ledger_item, issue_index, issue = job
-        return runtime.call(
-            kind="judge_atomic_relation",
-            schema=AtomicMatchDecision,
-            system_prompt=ATOMIC_JUDGE_SYSTEM_PROMPT,
-            prompt=_atomic_judge_prompt(
-                pair_id=pair.pair_id,
-                ledger_item=ledger_item,
-                release_issue=issue,
-            ),
-            artifact_id=f"judge_atomic/{pair.pair_id}/ledger-{ledger_index}/issue-{issue_index}",
-        )
-
-    if jobs:
-        with ThreadPoolExecutor(max_workers=min(4, len(jobs)), thread_name_prefix="judge-atomic") as executor:
-            outcomes = list(executor.map(call_relation, jobs))
-    for job, outcome in zip(jobs, outcomes):
-        _, ledger_item, _, issue = job
-        if not outcome.succeeded:
-            errors.append(
-                {
-                    "ledger_id": ledger_item["id"],
-                    "issue_id": issue["issue_id"],
-                    "error": outcome.result.get("error", "atomic judge unavailable"),
-                    "reason": "An atomic semantic relation failed after public provider retries; it remains unadjudicated rather than becoming a miss or FP.",
-                    "basis": "public structured runtime terminal outcome",
-                }
-            )
-            continue
-        decision = outcome.response
-        relations.append(
-            {
-                "ledger_id": ledger_item["id"],
-                "issue_id": issue["issue_id"],
-                **decision.model_dump(mode="json"),
-            }
-        )
-    if errors:
-        return None, outcomes, relations, errors
-
-    matched_by_ledger: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    matched_by_issue: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for relation in relations:
-        if relation["matches"]:
-            matched_by_ledger[relation["ledger_id"]].append(relation)
-            matched_by_issue[relation["issue_id"]].append(relation)
-    ledger_assessments: list[LedgerAssessment] = []
-    for item in ledger_items:
-        matched = matched_by_ledger[item["id"]]
-        issue_ids = [relation["issue_id"] for relation in matched]
-        ledger_assessments.append(
-            LedgerAssessment(
-                ledger_id=item["id"],
-                hit_r1=any(":r1:" in issue_id for issue_id in issue_ids),
-                hit_r2=any(":r2:" in issue_id for issue_id in issue_ids),
-                hit_r3=any(":r3:" in issue_id for issue_id in issue_ids),
-                matched_issue_ids=issue_ids,
-                reason=(
-                    "Atomic semantic relations found matching release issues: "
-                    + "; ".join(relation["reason"] for relation in matched)
-                    if matched
-                    else "No supplied release issue had the same locus and property under the atomic semantic assessments."
-                ),
-                basis=(
-                    "independent atomic LLM relation receipts"
-                    if release
-                    else "the supplied release set is exactly empty"
-                ),
-            )
-        )
-    release_assessments: list[ReleaseAssessment] = []
-    for issue in release:
-        matched = matched_by_issue[issue["issue_id"]]
-        ledger_ids = [relation["ledger_id"] for relation in matched]
-        release_assessments.append(
-            ReleaseAssessment(
-                issue_id=issue["issue_id"],
-                accounted_ledger_ids=ledger_ids,
-                is_false_positive=not ledger_ids,
-                reason=(
-                    "Atomic semantic relations matched ledger entries: "
-                    + "; ".join(relation["reason"] for relation in matched)
-                    if matched
-                    else "No frozen ledger entry had the same locus and property under the atomic semantic assessments."
-                ),
-                basis="independent atomic LLM relation receipts",
-            )
-        )
-    response = JudgeResponse(
-        ledger_assessments=ledger_assessments,
-        release_assessments=release_assessments,
-        reason="Pair-wide judge shape did not close, so every required ledger-to-release relation was independently adjudicated and mechanically aggregated.",
-        basis="complete atomic LLM semantic relation matrix plus exact ID aggregation",
-    )
-    return response, outcomes, relations, []
-
-
-def _exact_empty_release_judgement(
-    ledger_items: list[dict[str, Any]],
-) -> JudgeResponse:
-    """Close an empty release surface without inventing a semantic relation."""
-
-    return JudgeResponse(
-        ledger_assessments=[
-            LedgerAssessment(
-                ledger_id=item["id"],
-                hit_r1=False,
-                hit_r2=False,
-                hit_r3=False,
-                matched_issue_ids=[],
-                reason="The complete supplied D1/D2 release surface is exactly empty, so no method issue can match this ledger entry.",
-                basis="exact empty release issue ID set; no textual or semantic proxy was used",
-            )
-            for item in ledger_items
-        ],
-        release_assessments=[],
-        reason="The independent judge boundary mechanically closed an exactly empty release surface without creating a missing assessment or false positive.",
-        basis="complete method receipt identities and the exact empty D1/D2 release issue set",
-    )
-
-
 def _judge_pair(
     *,
     pair: PairInput,
@@ -2366,7 +1951,7 @@ def _judge_pair(
     output_root: Path,
     run_identity: dict[str, Any],
 ) -> dict[str, Any]:
-    """Run pair-wide judge, one shape correction, then atomic semantic fallback."""
+    """Run the v27 pair-wide judge with at most one shape correction."""
 
     ledger_items = _read_ledger_for_pair(ledger_path, pair.pair_id)
     judge_method_rounds = [
@@ -2388,101 +1973,35 @@ def _judge_pair(
     prompt = _judge_prompt(pair, ledger_items, judge_method_rounds)
     outcomes: list[StructuredCallOutcome[Any]] = []
     errors: list[dict[str, Any]] = []
-    atomic_relations: list[dict[str, Any]] = []
     mode = "pair_wide"
-    if not release:
-        response = _exact_empty_release_judgement(ledger_items)
-        payload = IndependentJudgeReceipt(
-            schema=JUDGE_SCHEMA,
-            run_id=run_identity["run_id"],
-            run_contract_hash=run_identity["run_contract_hash"],
-            source_provenance=run_identity["source_provenance"],
-            pair_id=pair.pair_id,
-            pair_input_hash=run_identity["pair_input_hashes"][pair.pair_id],
-            status="completed",
-            eligible=True,
-            eligibility_reasons=["exact_release_set_is_empty", "no_semantic_relation_is_missing"],
-            adjudication_mode="exact_empty_release",
-            ledger_count=len(ledger_items),
-            release_count=0,
-            ledger_source=str(ledger_path),
-            prompt_hash="sha256:" + hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
-            llm_calls=[],
-            llm_call={
-                "kind": "judge",
-                "status": "not_required_exact_empty_release",
-                "real_llm": False,
-                "response": response.model_dump(mode="json"),
-                "result": {"relation_count": 0},
-                "attempts": [],
-                "usage": [],
-                "cost": {"eligible": True, "total_usd": 0.0, "attempts": []},
-                "reason": "No LLM semantic relation exists to judge because the exact release issue set is empty.",
-                "basis": "exact issue ID set and complete method receipt projection",
-            },
-            judgement=response.model_dump(mode="json"),
-            atomic_relations=[],
-            errors=[],
-            reason=response.reason,
-            basis=response.basis,
-        ).model_dump(mode="json")
-        write_json(output_root / "judge" / f"{pair.pair_id}.json", payload)
-        return payload
-
-    estimated_prompt_tokens = (len(prompt) + 3) // 4
-    should_partition = (
-        estimated_prompt_tokens > JUDGE_PROMPT_TOKEN_BUDGET
-        or len(release) > JUDGE_PAIRWISE_MAX_RELEASES
+    outcome: StructuredCallOutcome[JudgeResponse] = runtime.call(
+        kind="judge",
+        schema=JudgeResponse,
+        system_prompt=JUDGE_SYSTEM_PROMPT,
+        prompt=prompt,
+        artifact_id=f"judge/{pair.pair_id}",
+        max_output_tokens=JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS,
     )
-    if should_partition:
-        mode = "partitioned_pair_wide"
-        response, partition_outcomes, partition_errors = _partitioned_judge(
-            pair=pair,
-            ledger_items=ledger_items,
-            release=release,
-            method_rounds=judge_method_rounds,
-            runtime=runtime,
+    outcomes.append(outcome)
+    response = outcome.response if outcome.succeeded else None
+    if response is not None:
+        response = _normalize_judge_shape(
+            response,
+            ledger_items,
+            release,
+            len(judge_method_rounds),
         )
-        outcomes.extend(partition_outcomes)
-        errors.extend(partition_errors)
-        shape_errors = (
-            _judge_shape_errors(
-                response,
-                ledger_items,
-                release,
-                len(judge_method_rounds),
-            )
-            if response is not None
-            else ["partitioned judge output unavailable"]
+    shape_errors = (
+        _judge_shape_errors(
+            response,
+            ledger_items,
+            release,
+            len(judge_method_rounds),
         )
-    else:
-        outcome: StructuredCallOutcome[JudgeResponse] = runtime.call(
-            kind="judge",
-            schema=JudgeResponse,
-            system_prompt=JUDGE_SYSTEM_PROMPT,
-            prompt=prompt,
-            artifact_id=f"judge/{pair.pair_id}",
-        )
-        outcomes.append(outcome)
-        response = outcome.response if outcome.succeeded else None
-        if response is not None:
-            response = _normalize_judge_shape(
-                response,
-                ledger_items,
-                release,
-                len(judge_method_rounds),
-            )
-        shape_errors = (
-            _judge_shape_errors(
-                response,
-                ledger_items,
-                release,
-                len(judge_method_rounds),
-            )
-            if response is not None
-            else ["pair-wide judge output unavailable"]
-        )
-    if mode == "pair_wide" and response is not None and shape_errors:
+        if response is not None
+        else ["pair-wide judge output unavailable"]
+    )
+    if response is not None and shape_errors:
         correction: StructuredCallOutcome[JudgeResponse] = runtime.call(
             kind="judge_correction",
             schema=JudgeResponse,
@@ -2494,6 +2013,7 @@ def _judge_pair(
                 shape_errors,
             ),
             artifact_id=f"judge/{pair.pair_id}/shape-correction",
+            max_output_tokens=JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS,
         )
         outcomes.append(correction)
         if correction.succeeded:
@@ -2522,45 +2042,14 @@ def _judge_pair(
                 "basis": "exact ledger/release ID coverage and reference validation",
             }
         )
-        relation_count = len(ledger_items) * len(release)
-        if relation_count <= JUDGE_ATOMIC_RELATION_BUDGET:
-            mode = "atomic_llm_fallback"
-            response, atomic_outcomes, atomic_relations, atomic_errors = _atomic_judge(
-                pair=pair,
-                ledger_items=ledger_items,
-                release=release,
-                runtime=runtime,
-            )
-            outcomes.extend(atomic_outcomes)
-            errors.extend(atomic_errors)
-        else:
-            mode = "judge_unavailable"
-            errors.append(
-                {
-                    "stage": "atomic_judge_fallback",
-                    "error": "atomic_relation_budget_exceeded",
-                    "relation_count": relation_count,
-                    "relation_budget": JUDGE_ATOMIC_RELATION_BUDGET,
-                    "reason": "The failed partition surface was too large for an auditable atomic fallback; relations remain unresolved rather than becoming misses or false positives.",
-                    "basis": "bounded judge recovery policy and exact ledger/release cardinalities",
-                }
-            )
-    if mode == "atomic_llm_fallback":
-        semantic_outcomes = [
-            item for item in outcomes if item.kind == "judge_atomic_relation"
-        ]
-    elif mode == "partitioned_pair_wide":
-        semantic_outcomes = [
-            item for item in outcomes if item.kind == "judge_partition"
-        ]
-    elif mode == "judge_unavailable":
-        semantic_outcomes = []
-    else:
-        semantic_outcomes = [outcomes[-1]]
+        response = None
+        mode = "judge_unavailable"
+    semantic_outcome = outcomes[-1] if response is not None else None
     eligible = bool(
         response is not None
-        and semantic_outcomes
-        and all(item.real_llm and item.succeeded for item in semantic_outcomes)
+        and semantic_outcome is not None
+        and semantic_outcome.real_llm
+        and semantic_outcome.succeeded
         and not _judge_shape_errors(
             response,
             ledger_items,
@@ -2590,7 +2079,6 @@ def _judge_pair(
         "llm_calls": [item.to_dict() for item in outcomes],
         "llm_call": _aggregate_outcomes(outcomes, kind="judge"),
         "judgement": response.model_dump(mode="json") if response is not None else None,
-        "atomic_relations": atomic_relations,
         "errors": errors,
         "reason": (
             response.reason
@@ -3005,7 +2493,6 @@ def _failure_judge_payload(
         },
         "llm_calls": [],
         "judgement": None,
-        "atomic_relations": [],
         "reason": "The independent judge did not start; every required relation remains explicitly unadjudicated rather than becoming a miss or false positive.",
         "basis": "deterministic no-silent-drop and no-fabricated-judgement failure contract",
         "errors": [
@@ -3240,6 +2727,8 @@ def _finalize_w2_audit_links(
                 and bundle.get("method_receipt", {}).get("sha256") == method_hash
             ):
                 continue
+            if bundle.get("pre_finalization_audit_hash") is None:
+                bundle["pre_finalization_audit_hash"] = bundle.get("audit_hash")
             bundle.pop("audit_hash", None)
             bundle["method_receipt"] = {
                 "schema": cell.get("schema"),
@@ -3268,6 +2757,9 @@ def _finalize_w2_audit_links(
             bundle["audit_finalization"] = {
                 "finalized_at": datetime.now(timezone.utc).isoformat(),
                 "judge_receipt_hash": judge_hash,
+                "pre_finalization_audit_hash": bundle[
+                    "pre_finalization_audit_hash"
+                ],
                 "reason": "The external W2 bundle was finalized only after method and judge receipts became terminal.",
                 "basis": "method-before-judge orchestration and atomic receipt writes",
             }
@@ -3498,20 +2990,15 @@ def _run_pair_worker(task: dict[str, Any]) -> dict[str, Any]:
                 streaming=bool(task["streaming"]),
             )
         resumed_prefix = bool(rounds_data)
-        previous: list[dict[str, Any]] = (
-            rounds_data[-1].get("report_issue_clusters", []) if rounds_data else []
-        )
         for round_index in range(len(rounds_data) + 1, rounds + 1):
             cell = _method_cell(
                 pair=pair,
                 round_index=round_index,
                 runtime=runtime,
-                previous=previous,
                 output_root=output_root,
                 run_identity=run_identity,
             )
             rounds_data.append(cell)
-            previous = cell.get("report_issue_clusters", [])
         if judge is None:
             judge = _judge_pair(
                 pair=pair,

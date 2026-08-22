@@ -117,15 +117,16 @@ facts、verify facts 和 SMT summary 均进入 ContextManifest，并在每个 st
 PlantUML/source 与 FCSTM/closed model、inspection/verify/SMT facts 的角色分离已写入
 prompt 和测试。case report 的完整历史阶段与 LLM/comparison/review payload 不进入
 method prompt，只保留身份/状态 projection；完整文件仍以 hash 留在输入 receipt。
-method 流程为 prepare -> NL contract extraction -> source/model grounding ->
-exact binding -> compiler/backend -> execution receipt -> typed semantic D -> W。
+method 流程为 `prepare -> contract-extraction -> discovery-grounding -> execute-batch ->
+d-adjudication -> validate-d -> publish`；structure/contrast 与 behavior/consequence 是 discovery-grounding 内两个同 schema、同 cross-view closure 的互补 lens，
+exact binding、compiler/backend 与 execution receipt 是 execute-batch 内部审计。
 
 live runner 使用双门：任意真实 Luna 调用要求 `allow_live`；最多六个显式 pair 的诊断
 复测只通过第一门。54-pair 三轮全量还要求 `allow_full_live`，只能在 provider-free
 契约检查及 0004/0023/0029/0035/0046/0053 六 pair review 后打开。既有 Luna 与 audit
 产物是只读诊断快照，不删除、不覆盖、不冷重跑；新结果进入独立 `run_id` 子目录。
 
-run manifest 与 v2 receipt 冻结 commit、19 谓词 registry hash、prompt/schema hash、
+run manifest 与版本化 method/judge receipt 冻结 commit、19 谓词 registry hash、prompt/schema hash、
 pair ContextManifest hash、judge-only ledger hash、workers、stream/timeout 和 retry policy。
 resume 同时校验 run ID、contract hash、schema、source provenance 与 pair input hash；不
 兼容文件显式保存为 `stale_incompatible` 后重跑，不能混入指标。所有 JSON/Markdown

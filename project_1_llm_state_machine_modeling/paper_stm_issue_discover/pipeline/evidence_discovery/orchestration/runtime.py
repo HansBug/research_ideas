@@ -21,7 +21,8 @@ T = TypeVar("T", bound=BaseModel)
 # timeout itself is set to the complete-call deadline.
 PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS = 30
 PROVIDER_CALL_DEADLINE_SECONDS = 300
-MAX_STRUCTURED_OUTPUT_TOKENS = 8000
+MAX_STRUCTURED_OUTPUT_TOKENS = 10_000
+JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS = 20_000
 DEFAULT_TRANSPORT_RETRIES = 8
 TRANSPORT_RETRY_DELAY_SCHEDULE_SECONDS = (5.0, 20.0, 60.0, 120.0, 240.0)
 
@@ -124,27 +125,40 @@ def _usage_rows(result: Any, *, outer_attempt: int | None = None) -> list[dict[s
 
 
 def _is_provider_error(error: dict[str, Any] | None) -> bool:
+    """Classify only explicit transport/provider ownership as provider error.
+
+    Public ``utils.agent`` receipts normalize provider failures to a typed code,
+    phase, or ``details.source``. Free-text messages are deliberately excluded:
+    a schema or local bug mentioning a timeout/provider must remain billable and
+    must not receive the provider retry exemption.
+    """
+
     if not error:
         return False
-    code = str(error.get("code", "")).lower()
-    message = str(error.get("message", "")).lower()
-    details = json.dumps(error.get("details", {}), ensure_ascii=False).lower()
-    text = " ".join((code, message, details))
-    markers = (
-        "provider",
-        "transport",
+    code = str(error.get("code", "")).strip().lower().replace("-", "_")
+    explicit_codes = {
+        "provider_error",
+        "provider_timeout",
+        "transport_error",
         "rate_limit",
-        "ratelimit",
-        "http_408",
-        "http_409",
-        "http_429",
-        "http_5",
-        "upstream",
-        "timeout",
-        "connection",
-        "api_error",
+        "rate_limit_error",
+        "api_connection_error",
+        "api_timeout_error",
+        "service_unavailable",
+    }
+    if code in explicit_codes:
+        return True
+    if code.startswith("http_"):
+        status = code.removeprefix("http_").split("_", 1)[0]
+        if status in {"408", "409", "429"} or status.startswith("5"):
+            return True
+    if str(error.get("phase", "")).strip().lower() == "model_transport":
+        return True
+    details = error.get("details")
+    return bool(
+        isinstance(details, dict)
+        and str(details.get("source", "")).strip().lower() == "provider"
     )
-    return any(marker in text for marker in markers)
 
 
 def _read_audit_records(path: Path) -> list[dict[str, Any]]:
@@ -381,6 +395,7 @@ class PublicStructuredRuntime:
         artifact_id: str,
         retry_cell_on_provider_error: bool = True,
         streaming: bool | None = None,
+        max_output_tokens: int | None = None,
     ) -> StructuredCallOutcome[T]:
         with self._call_lock:
             return self._call_unlocked(
@@ -391,6 +406,7 @@ class PublicStructuredRuntime:
                 artifact_id=artifact_id,
                 retry_cell_on_provider_error=retry_cell_on_provider_error,
                 streaming=streaming,
+                max_output_tokens=max_output_tokens,
             )
 
     def _call_unlocked(
@@ -403,8 +419,16 @@ class PublicStructuredRuntime:
         artifact_id: str,
         retry_cell_on_provider_error: bool = True,
         streaming: bool | None = None,
+        max_output_tokens: int | None = None,
     ) -> StructuredCallOutcome[T]:
         use_streaming = self.streaming if streaming is None else streaming
+        selected_max_output_tokens = (
+            MAX_STRUCTURED_OUTPUT_TOKENS
+            if max_output_tokens is None
+            else max_output_tokens
+        )
+        if selected_max_output_tokens <= 0:
+            raise ValueError("max_output_tokens must be positive")
         attempts: list[dict[str, Any]] = []
         all_usage: list[dict[str, Any]] = []
         last_result: dict[str, Any] = {}
@@ -427,7 +451,7 @@ class PublicStructuredRuntime:
                         prompt,
                         renderer="quiet",
                         log_level="ERROR",
-                        model_call_options={"max_tokens": MAX_STRUCTURED_OUTPUT_TOKENS},
+                        model_call_options={"max_tokens": selected_max_output_tokens},
                         audit_out=audit_path,
                         result_out=result_path,
                     )
@@ -468,10 +492,24 @@ class PublicStructuredRuntime:
                 break
             except (ProviderCallTimeout, AgentError, ValueError, TypeError) as exc:
                 audit_records = _read_audit_records(audit_path)
-                error_payload = {
-                    "code": "provider_timeout" if isinstance(exc, ProviderCallTimeout) else type(exc).__name__,
-                    "message": str(exc),
-                }
+                if isinstance(exc, ProviderCallTimeout):
+                    error_payload = {
+                        "code": "provider_timeout",
+                        "message": str(exc),
+                        "phase": "model_transport",
+                    }
+                elif isinstance(exc, AgentError):
+                    error_payload = {
+                        "code": exc.code,
+                        "message": exc.message,
+                        "details": _jsonable(exc.details),
+                    }
+                else:
+                    error_payload = {
+                        "code": type(exc).__name__,
+                        "message": str(exc),
+                        "phase": "local_runtime",
+                    }
                 provider_error = _is_provider_error(error_payload)
                 attempts.append({
                     "outer_attempt": outer_attempt,
@@ -497,16 +535,16 @@ class PublicStructuredRuntime:
         )
         context_budget = StructuredContextBudget(
             mode="structured_llm",
-            projection_version="stage-context-projection.v5",
+            projection_version="stage-context-projection.v6",
             prompt_characters=len(prompt),
             estimated_prompt_tokens=(len(prompt) + 3) // 4,
             provider_input_tokens=(provider_input_tokens if all_usage else None),
             context_window_tokens=self.config.context_window_tokens,
-            max_output_tokens=MAX_STRUCTURED_OUTPUT_TOKENS,
+            max_output_tokens=selected_max_output_tokens,
             truncation_applied=False,
             projection_decision="The stage-specific structured projection was serialized in full; runtime text truncation was not applied.",
             reason="The call records both the pre-provider prompt size and actual provider usage when available.",
-                basis="stage-context-projection.v5, utils.llm profile limits, and normalized usage rows",
+            basis="stage-context-projection.v6, utils.llm profile limits, and normalized usage rows",
         )
         return StructuredCallOutcome(
             kind=kind,
@@ -551,6 +589,9 @@ class FixtureStructuredRuntime:
         artifact_id: str,
         **kwargs: Any,
     ) -> StructuredCallOutcome[T]:
+        selected_max_output_tokens = int(
+            kwargs.get("max_output_tokens") or MAX_STRUCTURED_OUTPUT_TOKENS
+        )
         if schema.__name__ == "NLContractResponse":
             payload: dict[str, Any] = {
                 "contracts": [],
@@ -560,7 +601,11 @@ class FixtureStructuredRuntime:
             }
         elif schema.__name__ == "GroundingResponse":
             payload = {
-                "branch": "model" if kind == "model_grounding" else "source",
+                "lens": (
+                    "behavior_consequence"
+                    if artifact_id.endswith("/behavior_consequence")
+                    else "contract_structure_contrast"
+                ),
                 "candidates": [],
                 "contract_dispositions": [],
                 "reason": "Fixture grounding output leaves candidate generation to the fallback receipt.",
@@ -588,27 +633,27 @@ class FixtureStructuredRuntime:
                 "basis": "provider-free fixture runtime",
             }
         else:
-            # Judge normalization supplies one conservative assessment per
-            # ledger/release unit after this empty provider-free response.
+            # The empty fixture response must fail the exact judge shape check;
+            # no ledger/release assessment is synthesized by deterministic code.
             payload = {
                 "ledger_assessments": [],
                 "release_assessments": [],
-                "reason": "Fixture judge output is normalized conservatively by the independent-judge boundary.",
+                "reason": "Fixture judge output intentionally leaves semantic relations unavailable.",
                 "basis": "provider-free fixture runtime",
             }
         response = schema.model_validate(payload)
         context_budget = StructuredContextBudget(
             mode="provider_free_fixture",
-            projection_version="stage-context-projection.v5",
+            projection_version="stage-context-projection.v6",
             prompt_characters=len(prompt),
             estimated_prompt_tokens=(len(prompt) + 3) // 4,
             provider_input_tokens=None,
             context_window_tokens=None,
-            max_output_tokens=MAX_STRUCTURED_OUTPUT_TOKENS,
+            max_output_tokens=selected_max_output_tokens,
             truncation_applied=False,
             projection_decision="The provider-free fixture consumed the complete serialized stage projection without truncation.",
             reason="Fixture prompt size is recorded even though no provider token usage exists.",
-            basis="provider-free fixture runtime and stage-context-projection.v5",
+            basis="provider-free fixture runtime and stage-context-projection.v6",
         )
         return StructuredCallOutcome(
             kind=kind,

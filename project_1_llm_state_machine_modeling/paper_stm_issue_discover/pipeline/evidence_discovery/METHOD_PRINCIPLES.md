@@ -78,12 +78,15 @@ smt-input-normalization.v1。
 
 方法编排保留以下固定阶段边界和信息流：
 
-prepare -> nl_contract_extraction -> source_grounding -> model_grounding ->
-exact_binding -> predicate_compilation -> backend_execution -> d_adjudication ->
-w_publication
+prepare -> contract-extraction -> discovery-grounding -> execute-batch ->
+d-adjudication -> validate-d -> publish
 
-两个 grounding 分支互补：source branch 负责作者源身份和位置，model branch 负责闭合
-FCSTM 元素、确定性 facts 和 19 谓词最小输入。方法 prompt 只接受该闭包，不接受冻结
+`discovery-grounding` 内按 v27 固定调用 `contract_structure_contrast` 与
+`behavior_consequence` 两个互补 lens。两者使用相同 Pydantic schema 和同一份 compact
+cross-view closure，均完成作者源定位、闭合 FCSTM 绑定和候选输出；区别只在审计重点，
+不是两套 source/model 协议。exact binding、19 谓词
+compiler/backend 和 execution receipt 都是 `execute-batch` 的内部审计记录，不新增长期
+stage 或下游调用。方法 prompt 只接受该闭包，不接受冻结
 台账答案、baseline 命中/FP、judge 示例或历史 release 输出。case report 只把身份、哈希
 和状态 projection 放入 prompt；其完整文件仍以哈希保留在 receipt 中，历史
 stage lineage/LLM/comparison/review payload 不进入生成上下文。
@@ -91,10 +94,10 @@ stage lineage/LLM/comparison/review payload 不进入生成上下文。
 NL contract extraction 必须先形成紧凑的 typed contract plan。每条原子义务至少固定
 `contract_id`、`locus_kind`、`locus_names`、`property`、`expected_direction`、
 `violation_direction`、`evidence_types` 和 typed binding hints；这些字段描述来源义务，
-不提前声称 FCSTM 已违反。两个 grounding 分支的每条 candidate 必须复制同一条 contract
+不提前声称 FCSTM 已违反。两个 grounding lens 的每条 candidate 必须复制同一条 contract
 的 exact semantic key，模型元素另放在 `element_refs`。确定性代码只比较 exact ID 和
 枚举字段：若 candidate 改写了 locus/property/direction，则绑定降为 W0、D_UNRESOLVED；
-不得用自由文本相似度修补。每个 grounding 分支还必须为每条 contract 保存带非空
+不得用自由文本相似度修补。每个 grounding lens 还必须为每条 contract 保存带非空
 `reason`/`basis` 的 disposition；漏项只能补成 explicit unresolved，不能补成 satisfied、
 miss 或 FP。
 
@@ -107,24 +110,30 @@ transition-property contract 至多一个 source、target 和 transition，以�
 不同 transition 的替代条件、事件是否要求 scope-wide consumer，仍由 LLM 基于语义判断，
 不得用关键词、正则或字符串形状代替。
 
-当一个 pair 的编号 NL 投影超过 1200 字符时，contract stage 按源顺序做有界分块，每块
-最多 4 段；短投影保持单块，避免无谓增加调用。每块仍携带完整 context manifest 和输入
-哈希，只投影本块的 exact segment IDs。每块的 Pydantic 输出、prompt
-hash、usage、retry 和 reason/basis 独立落盘，再由确定性合并器仅按 exact segment/contract ID
-合并。该分块只控制结构化输出规模，不改变义务语义；不得退化为逐 obligation 调用，也不得
-把分块失败扩散成全 pair 的静默 miss。
+contract stage 正常路径对一个 pair 整格调用一次，不设置主动 token/chunk gate，也不把
+chunk/merge 变成新的长期协议。上下文压缩只能使用 v27 职责对应的结构化 stage projection；
+若真实 provider 调用仍失败，按 provider/schema 失败协议留下 receipt，不通过预设分块、
+逐 obligation fan-out 或冷重跑改变方法调用形态。
 
 所有输入模型、LLM 响应和阶段 receipt 都使用 Pydantic model；字段必须有约束、完整
 description 和非空 reason/basis。LLM 不输出 W/D/L；D 阶段只输出封闭的 semantic
 grounding/defeater facts，方法代码将这些 typed facts 映射为 D2/D1/D0，W 则完全由
 确定性状态机裁定。
 
-grounding prompt 使用 stage-context-projection.v5：NL、PlantUML、FCSTM、
+grounding prompt 使用 stage-context-projection.v6：NL、PlantUML、FCSTM、
 reference inspect、inspection-equivalent、verify/SMT、working mapping 和完整 manifest
 的角色均保留；确定性 fact 行的可判定字段和 exact refs 直接传入，重复的逐行
 reason/basis 与 capability eligibility ID 展开只以完整 artifact 的 hash/path/count
 引用。该投影只去重 prompt，不修改完整输入或审计 receipt。stream 模式保持首字 30 秒，
 总 timeout 为 300 秒；non-stream 不设首字限制，只使用 300 秒总 timeout。
+
+三轮 method 相互独立，round 2/3 不读取前一轮 release。三轮结束后，independent judge
+只读取冻结 ledger 与三轮最终 D1/D2 report issue clusters 的最小语义字段；stage receipt、
+predicate plan、backend receipt 和完整 W2 audit bundle 不进入 judge prompt，W2 只保留
+audit hash/path。judge 正常路径只允许一次 pair-wide 调用；机械 shape 不闭合时至多一次
+定向 correction，仍失败即 `judge_unavailable`，不得 partition，也不得展开
+ledger x release 的 atomic 调用矩阵。即使 release 精确为空，也沿同一 pair-wide 边界完成
+独立裁定，不引入另一套统计协议。
 
 ### 1.3 确定性方法的准入边界
 

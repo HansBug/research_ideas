@@ -4,10 +4,11 @@ import hashlib
 import json
 import re
 from datetime import date
+from importlib import import_module
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from utils.llm.config import LLMPricing, LLMTokenPrices
 
 from pipeline.evidence_discovery.backends import run_backend
@@ -22,13 +23,14 @@ from pipeline.evidence_discovery.evidence.witness_levels import (
 )
 from pipeline.evidence_discovery.inputs import load_pair, parse_fcstm
 from pipeline.evidence_discovery.orchestration.runner import (
-    AtomicMatchDecision,
     LedgerAssessment,
     JudgeResponse,
     ReleaseAssessment,
+    _deduplicate_release_issues,
     _enrich_candidate,
     _failure_judge_payload,
     _failure_method_cell,
+    _finalize_w2_audit_links,
     _judge_prompt,
     _judge_shape_errors,
     _normalize_judge_shape,
@@ -46,12 +48,15 @@ from pipeline.evidence_discovery.orchestration.contracts import (
     SourceProvenance,
 )
 from pipeline.evidence_discovery.orchestration.runtime import (
+    JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS,
+    MAX_STRUCTURED_OUTPUT_TOKENS,
     PROVIDER_CALL_DEADLINE_SECONDS,
     PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS,
     ProviderCallTimeout,
     StructuredCallOutcome,
     _annotate_usage_billing,
     _cost_for_usage,
+    _is_provider_error,
     _provider_timeout_seconds,
     _provider_deadline,
 )
@@ -61,6 +66,7 @@ from pipeline.evidence_discovery.semantics import (
     CONTRACT_SYSTEM_PROMPT,
     ContractBindingHint,
     ContextBudgetReceipt,
+    DISCOVERY_GROUNDING_SYSTEM_PROMPT,
     D_SYSTEM_PROMPT,
     GroundingResponse,
     GroundingDisposition,
@@ -73,11 +79,9 @@ from pipeline.evidence_discovery.semantics import (
     bind_candidate,
     build_method_prompt,
     fallback_grounding,
-    build_d_adjudication_prompt,
     resolve_transition_ref,
 )
 from pipeline.evidence_discovery.semantics.binding import BindingResult
-from pipeline.evidence_discovery.semantics.workflow import MODEL_GROUNDING_SYSTEM_PROMPT
 
 
 PAPER_ROOT = Path(__file__).parents[3]
@@ -299,6 +303,29 @@ def test_w0_w1_and_unknown_are_mutually_exclusive() -> None:
     )
     assert calculate_witness_level(unsupported_binding, unsupported_plan, completed) == "W1"
 
+    missing_input_candidate = _candidate(
+        pair,
+        predicate_id="S2",
+        inputs={"source": transition.source, "scope": "closed_fcstm"},
+    )
+    missing_input_binding = bind_candidate(missing_input_candidate, pair.model)
+    missing_input_plan = compile_plan(
+        missing_input_candidate,
+        missing_input_binding,
+        registry,
+        obligation_id="0000:w1-missing-predicate-input",
+        round_index=1,
+        model=pair.model,
+    )
+    assert missing_input_binding.precise is True
+    assert missing_input_plan.binding_complete is False
+    assert (
+        calculate_witness_level(
+            missing_input_binding, missing_input_plan, completed
+        )
+        == "W1"
+    )
+
     incomplete = BindingResult(
         precise=False,
         element_refs=(),
@@ -389,7 +416,7 @@ def test_enrich_candidate_replaces_typed_transition_endpoints_with_canonical_mod
     assert receipt.verdict == "true"
     assert receipt.terminal_state == "completed"
 
-def test_w2_audit_contains_logic_hashes_backend_and_retry_records() -> None:
+def test_w2_audit_contains_logic_hashes_backend_and_retry_records(tmp_path: Path) -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     registry = load_registry()
     candidate = _candidate(
@@ -462,11 +489,56 @@ def test_w2_audit_contains_logic_hashes_backend_and_retry_records() -> None:
     assert bundle["reason"]
     assert bundle["basis"]
     assert bundle["semantic_adjudication"]["reason"]
+    pre_finalization_bundle = dict(bundle)
     audit_hash = bundle.pop("audit_hash")
     expected_hash = "sha256:" + hashlib.sha256(
         json.dumps(bundle, ensure_ascii=False, sort_keys=True).encode("utf-8")
     ).hexdigest()
     assert audit_hash == expected_hash
+
+    audit_path = tmp_path / "audit_bundles" / "0000-audit.json"
+    audit_path.parent.mkdir(parents=True)
+    audit_path.write_text(
+        json.dumps(pre_finalization_bundle, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    cell = {
+        "schema": "paper1.evidence_discovery.method_cell.v6",
+        "round": 1,
+        "run_id": "1" * 32,
+        "run_contract_hash": "sha256:" + "1" * 64,
+        "pair_input_hash": "sha256:" + "2" * 64,
+        "status": "completed",
+        "eligible": True,
+        "evidence_records": [
+            {
+                "obligation_id": "0000:audit",
+                "witness_level": "W2",
+                "audit_bundle_path": str(audit_path),
+            }
+        ],
+    }
+    judge = {
+        "schema": "paper1.evidence_discovery.independent_judge.v3",
+        "run_id": "1" * 32,
+        "run_contract_hash": "sha256:" + "1" * 64,
+        "status": "completed",
+        "eligible": True,
+        "adjudication_mode": "pair_wide",
+        "reason": "Fixture judge completed.",
+        "basis": "Fixture terminal receipt.",
+    }
+    _finalize_w2_audit_links(
+        output_root=tmp_path,
+        pair_id="0000",
+        rounds_data=[cell],
+        judge=judge,
+    )
+    finalized = json.loads(audit_path.read_text(encoding="utf-8"))
+    assert finalized["pre_finalization_audit_hash"] == audit_hash
+    assert finalized["audit_finalization"]["pre_finalization_audit_hash"] == audit_hash
+    assert finalized["audit_hash"] != audit_hash
+    W2AuditBundle.model_validate(finalized)
 
 
 def test_d_mapping_is_invariant_to_free_text_and_uses_typed_semantics() -> None:
@@ -505,6 +577,46 @@ def test_d_mapping_is_invariant_to_free_text_and_uses_typed_semantics() -> None:
     assert adjudicate_disposition(candidate, binding, unresolved)["d_level"] == "D_UNRESOLVED"
 
 
+def test_issue_189_distinguishes_undercutting_d1_from_rebutting_d0() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    candidate = _candidate(
+        pair,
+        predicate_id=None,
+        inputs={},
+        refs=[pair.model.states[0].ref],
+    )
+    binding = bind_candidate(candidate, pair.model)
+    undercutting = SemanticAdjudication(
+        obligation_id="0000:undercutting",
+        grounding="established",
+        violated_obligation="The supplied facts establish one competent violation reading.",
+        strongest_defeater="A second competent interpretation remains compatible with the same facts.",
+        defeater_kind="undercutting",
+        defeater_disposition="survives",
+        reason="Two competent readings remain coextensive with the supplied facts.",
+        basis="issue #189 typed defeater fixture",
+    )
+    rebutting = undercutting.model_copy(
+        update={
+            "obligation_id": "0000:rebutting",
+            "strongest_defeater": "A competent supplied fact rebuts the alleged violation.",
+            "defeater_kind": "rebutting",
+        }
+    )
+
+    assert adjudicate_disposition(candidate, binding, undercutting)["d_level"] == "D1"
+    assert adjudicate_disposition(candidate, binding, rebutting)["d_level"] == "D0"
+    unresolved_undercutting = undercutting.model_copy(
+        update={"defeater_disposition": "unresolved"}
+    )
+    assert (
+        adjudicate_disposition(candidate, binding, unresolved_undercutting)[
+            "d_level"
+        ]
+        == "D_UNRESOLVED"
+    )
+
+
 def test_completed_true_backend_result_closes_candidate_as_d0() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     candidate = _candidate(
@@ -536,7 +648,7 @@ def test_completed_true_backend_result_closes_candidate_as_d0() -> None:
     assert "verdict=true" in str(disposition["basis"])
 
 
-def test_source_grounding_rows_are_attribution_only() -> None:
+def test_both_v27_grounding_lenses_contribute_exact_candidates() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     transition = pair.model.transitions[0]
     source_candidate = _candidate(
@@ -552,26 +664,30 @@ def test_source_grounding_rows_are_attribution_only() -> None:
         refs=[transition.ref],
     ).model_copy(update={"source_refs": ["nl:NL1"]})
     joined = assemble_method_response(
-        GroundingResponse(
-            branch="source",
-            candidates=[source_candidate],
-            contract_dispositions=[],
-            reason="source fixture",
-            basis="source fixture",
-        ),
-        GroundingResponse(
-            branch="model",
-            candidates=[model_candidate],
-            contract_dispositions=[],
-            reason="model fixture",
-            basis="model fixture",
-        ),
+        [
+            GroundingResponse(
+                lens="contract_structure_contrast",
+                candidates=[source_candidate],
+                contract_dispositions=[],
+                reason="structure fixture",
+                basis="structure fixture",
+            ),
+            GroundingResponse(
+                lens="behavior_consequence",
+                candidates=[model_candidate],
+                contract_dispositions=[],
+                reason="behavior fixture",
+                basis="behavior fixture",
+            ),
+        ],
         reason="join fixture",
-        basis="exact source refs",
+        basis="exact typed candidate keys",
     )
-    assert len(joined.issues) == 1
-    assert joined.issues[0].element_refs == [transition.ref]
-    assert joined.issues[0].source_refs == ["nl:NL1"]
+    assert len(joined.issues) == 2
+    assert {tuple(issue.element_refs) for issue in joined.issues} == {
+        ("source:transition:0000:1",),
+        (transition.ref,),
+    }
 
 
 def test_judge_shape_normalization_is_exact_id_only() -> None:
@@ -632,6 +748,40 @@ def test_judge_shape_rejects_asymmetric_exact_relations() -> None:
 
     errors = _judge_shape_errors(response, ledger, release, 1)
     assert any("same exact relation pairs" in error for error in errors)
+
+
+def test_report_dedup_uses_exact_typed_defect_key_only() -> None:
+    base = {
+        "issue_id": "0000:r1:issue:0",
+        "contract_id": "NL-CONTRACT-NL1",
+        "locus_kind": "state",
+        "locus_names": ["Stopping"],
+        "property": "deadlock_freedom",
+        "violation_direction": "dead_end",
+        "d_level": "D1",
+        "witness_level": "W1",
+    }
+    duplicate = {
+        **base,
+        "issue_id": "0000:r1:issue:1",
+        "contract_id": "NL-CONTRACT-NL2",
+        "d_level": "D2",
+    }
+    distinct = {
+        **base,
+        "issue_id": "0000:r1:issue:2",
+        "contract_id": "NL-CONTRACT-NL3",
+        "violation_direction": "unreachable",
+    }
+
+    release = _deduplicate_release_issues([base, duplicate, distinct])
+
+    assert len(release) == 2
+    merged = next(item for item in release if item["violation_direction"] == "dead_end")
+    assert merged["issue_id"] == duplicate["issue_id"]
+    assert merged["facet_issue_ids"] == [base["issue_id"], duplicate["issue_id"]]
+    assert merged["contract_ids"] == ["NL-CONTRACT-NL1", "NL-CONTRACT-NL2"]
+    assert merged["deduplication"]["algorithm_version"] == "exact-typed-defect-key.v1"
 
 
 def test_terminality_uses_exact_final_pseudostate_edges_not_state_names() -> None:
@@ -736,16 +886,56 @@ def test_judge_prompt_keeps_one_assessment_per_ledger_object() -> None:
     ledger_items = [
         item for item in ledger["items"].values() if item.get("pair") == "0004"
     ]
-    prompt = _judge_prompt(pair, ledger_items, [])
+    prompt = _judge_prompt(
+        pair,
+        ledger_items,
+        [
+            {
+                "round": 1,
+                "stage_receipts": [{"stage_name": "execute_batch"}],
+                "report_issue_clusters": [
+                    {
+                        "issue_id": "0004:r1:issue:0",
+                        "contract_id": "NL-CONTRACT-NL1",
+                        "locus_kind": "state",
+                        "locus_names": ["Stopping"],
+                        "property": "deadlock_freedom",
+                        "violation_direction": "dead_end",
+                        "title": "Stopping has no progress",
+                        "requirement_quote": "The train can stop safely.",
+                        "element_refs": ["state:Stopping"],
+                        "source_refs": ["nl:NL1"],
+                        "expected": "Stopping can make progress.",
+                        "observed": "Stopping is a reachable non-final leaf.",
+                        "strongest_rebuttal": "Stopping may be intended as terminal.",
+                        "d_level": "D1",
+                        "witness_level": "W1",
+                        "reason": "The supplied facts support two competent readings.",
+                        "basis": "final method publication",
+                        "plan": {"formal_program": "must not enter judge"},
+                        "receipt": {"trace": ["must not enter judge"]},
+                        "audit_bundle": {"audit_hash": "sha256:" + "1" * 64},
+                        "audit_bundle_path": "/tmp/audit.json",
+                    }
+                ],
+            }
+        ],
+    )
 
     assert len(ledger_items) == 3
     assert prompt.count('"id": "EIS-0004-01"') == 1
     normalized_prompt = " ".join(prompt.split())
     assert "exactly one ledger assessment for each supplied object" in normalized_prompt
     assert "Do not split one object into multiple assessments" in normalized_prompt
+    assert '"stage_receipts"' not in prompt
+    assert '"predicate_plan"' not in prompt
+    assert '"backend_receipt"' not in prompt
+    assert '"formal_program"' not in prompt
+    assert '"trace"' not in prompt
+    assert '"pre_finalization_audit_hash": "sha256:' in prompt
 
 
-def test_frontier_fallback_preserves_exact_leaf_facts_and_v4_dossier_guidance() -> None:
+def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_issue() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0023")
     contract = NLContract(
         contract_id="NL-CONTRACT-NL1",
@@ -772,40 +962,17 @@ def test_frontier_fallback_preserves_exact_leaf_facts_and_v4_dossier_guidance() 
     )
     fallback = fallback_grounding(
         pair,
-        branch="model",
+        lens="behavior_consequence",
         contracts=contracts,
         reason="provider-free fallback fixture",
     )
-    frontier = next(item for item in fallback.candidates if item.predicate_id == "V4")
-    expected_leaf_refs = {
-        diagnostic.refs[0]
-        for diagnostic in pair.inspection_facts.diagnostics
-        if diagnostic.code == "LEAF_WITHOUT_OUTGOING" and diagnostic.refs
-    }
-    assert set(frontier.element_refs) == expected_leaf_refs
-    assert frontier.contract_id == contract.contract_id
-    assert frontier.locus_kind == "state"
-    assert set(frontier.locus_names) == {"PumpState", "WaterState", "MethaneState"}
-    assert frontier.property == "deadlock_freedom"
-    assert frontier.violation_direction == "dead_end"
-    assert frontier.evidence_types == ("deadlock_frontier_fact", "verify_fact")
-    assert frontier.predicate_inputs == {"initial_scope": "closed_fcstm_initial_scope"}
-    assert frontier.reason and frontier.basis
+    assert fallback.candidates == []
+    assert fallback.contract_dispositions[0].contract_id == contract.contract_id
+    assert fallback.contract_dispositions[0].status == "unresolved"
+    assert fallback.contract_dispositions[0].reason
+    assert fallback.contract_dispositions[0].basis
     assert "reachable non-final leaf" in D_SYSTEM_PROMPT
     assert "intentional terminal or synthetic" in D_SYSTEM_PROMPT
-
-    dossier = {
-        "obligation_id": "0023:test:frontier",
-        "candidate": frontier.model_dump(mode="json"),
-        "binding": {"precise": True, "element_refs": frontier.element_refs, "source_refs": frontier.source_refs, "reason": "exact", "basis": "fixture"},
-        "plan": {"predicate_id": "V4", "predicate_name": "deadlock_free", "family": "Bounded Verification", "semantics": "finite progress", "inputs": frontier.predicate_inputs, "supported": False, "binding_complete": True, "missing_inputs": [], "reason": "W1", "basis": "fixture"},
-        "receipt": {"receipt_id": "fixture", "backend": "bounded_verification:V4", "terminal_state": "unsupported", "verdict": "false", "counterexample": [{"state": "PumpState"}], "trace": [], "run_metadata": {"terminal_states": [], "nonterminal_deadlock_states": ["PumpState"]}, "reason": "fixture frontier", "basis": "fixture facts"},
-        "source_attribution": {},
-    }
-    prompt = build_d_adjudication_prompt(pair, [dossier])
-    assert "nonterminal_deadlock_states" in prompt
-    assert "Do not infer" in prompt
-    assert "terminality from a state name" in prompt
 
 
 def test_structured_models_require_non_empty_audit_rationale_and_descriptions() -> None:
@@ -852,7 +1019,6 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
         NLContract,
         GroundingDisposition,
         W2AuditBundle,
-        AtomicMatchDecision,
     ):
         schema = model.model_json_schema()
         assert model.__doc__ and model.__doc__.strip()
@@ -878,6 +1044,39 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
     )
     assert judged.ledger_assessments[0].reason
     assert judged.release_assessments[0].basis
+
+
+def test_all_evidence_discovery_pydantic_models_have_docs_and_field_descriptions() -> None:
+    module_names = (
+        "pipeline.evidence_discovery.inputs.models",
+        "pipeline.evidence_discovery.inputs.context",
+        "pipeline.evidence_discovery.semantics.binding",
+        "pipeline.evidence_discovery.semantics.obligations",
+        "pipeline.evidence_discovery.semantics.adjudication",
+        "pipeline.evidence_discovery.semantics.workflow",
+        "pipeline.evidence_discovery.orchestration.contracts",
+        "pipeline.evidence_discovery.orchestration.runtime",
+        "pipeline.evidence_discovery.orchestration.runner",
+        "pipeline.evidence_discovery.evidence.audit_bundle",
+    )
+    checked = 0
+    for module_name in module_names:
+        module = import_module(module_name)
+        for value in vars(module).values():
+            if (
+                not isinstance(value, type)
+                or value is BaseModel
+                or not issubclass(value, BaseModel)
+                or value.__module__ != module_name
+            ):
+                continue
+            checked += 1
+            assert value.__doc__ and value.__doc__.strip(), value.__name__
+            for field_name, field in value.model_json_schema().get(
+                "properties", {}
+            ).items():
+                assert field.get("description"), f"{value.__name__}.{field_name}"
+    assert checked >= 50
 
 
 def test_candidate_must_preserve_exact_typed_contract_semantic_key() -> None:
@@ -1069,8 +1268,8 @@ def test_0046_contract_shape_separates_endpoint_and_event_consumer() -> None:
     assert "semantic LLM judgment" in CONTRACT_SYSTEM_PROMPT
     assert "bidirectional or dynamic A-to-B/B-to-A requirement" in CONTRACT_SYSTEM_PROMPT
     assert "one normalized guard hint" in CONTRACT_SYSTEM_PROMPT
-    assert "Every candidate object must explicitly include" in MODEL_GROUNDING_SYSTEM_PROMPT
-    assert "must always be a JSON object" in MODEL_GROUNDING_SYSTEM_PROMPT
+    assert "Every candidate object must explicitly include" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "must always be a JSON object" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
 
 
 def test_provider_retry_exemption_is_row_local_and_other_usage_is_billable() -> None:
@@ -1151,6 +1350,22 @@ def test_provider_deadline_is_finite_and_provider_timeout_is_bounded() -> None:
             time.sleep(0.05)
 
 
+def test_provider_error_classification_uses_typed_ownership_not_message_text() -> None:
+    assert _is_provider_error({"code": "provider_error"}) is True
+    assert _is_provider_error(
+        {"code": "runtime_error", "details": {"source": "provider"}}
+    ) is True
+    assert _is_provider_error(
+        {
+            "code": "structured_output_invalid",
+            "message": "local schema bug mentions provider timeout",
+        }
+    ) is False
+    assert _is_provider_error(
+        {"code": "ValueError", "message": "timeout field is invalid", "phase": "local_runtime"}
+    ) is False
+
+
 def test_pair_failure_receipts_are_written_for_all_cells(tmp_path: Path) -> None:
     error = RuntimeError("fixture pair failure")
     run_identity = {
@@ -1189,32 +1404,26 @@ def test_pair_failure_receipts_are_written_for_all_cells(tmp_path: Path) -> None
     assert judge["judgement"] is None
 
 
-class _AtomicJudgeFixtureRuntime:
-    """Real-provider-shaped fixture that forces pair-wide shape fallback."""
+class _UnavailableJudgeFixtureRuntime:
+    """Provider-shaped fixture whose pair-wide shape never closes."""
 
     real_llm = True
 
     def __init__(self) -> None:
         self.kinds: list[str] = []
+        self.max_output_tokens: list[int | None] = []
 
     def call(self, *, kind, schema, system_prompt, prompt, artifact_id, **kwargs):
         self.kinds.append(kind)
-        if schema is JudgeResponse:
-            response = JudgeResponse(
-                ledger_assessments=[],
-                release_assessments=[],
-                reason="The fixture intentionally returns an incomplete pair-wide shape.",
-                basis="provider-free atomic fallback test",
-            )
-        elif schema is AtomicMatchDecision:
-            response = AtomicMatchDecision(
-                matches=False,
-                confidence="high",
-                reason="The supplied fixture units do not describe the same locus and property.",
-                basis="one supplied ledger entry and one supplied release issue",
-            )
-        else:
+        self.max_output_tokens.append(kwargs.get("max_output_tokens"))
+        if schema is not JudgeResponse or kind not in {"judge", "judge_correction"}:
             raise AssertionError(f"unexpected schema: {schema}")
+        response = JudgeResponse(
+            ledger_assessments=[],
+            release_assessments=[],
+            reason="The fixture intentionally returns an incomplete pair-wide shape.",
+            basis="provider-free pair-wide failure test",
+        )
         return StructuredCallOutcome(
             kind=kind,
             status="success",
@@ -1224,26 +1433,26 @@ class _AtomicJudgeFixtureRuntime:
             usage=[],
             cost={"eligible": True, "total_usd": 0.0, "attempts": []},
             context_budget={
-                "mode": "provider_free_real_shape_fixture",
+                "mode": "provider_free_fixture",
                 "projection_version": "stage-context-projection.v1",
                 "prompt_characters": len(prompt),
                 "estimated_prompt_tokens": (len(prompt) + 3) // 4,
                 "provider_input_tokens": 0,
                 "context_window_tokens": 1_000_000,
-                "max_output_tokens": 8000,
+                "max_output_tokens": kwargs.get("max_output_tokens", MAX_STRUCTURED_OUTPUT_TOKENS),
                 "truncation_applied": False,
                 "projection_decision": "The complete fixture prompt was retained.",
                 "reason": "The fixture records the judge prompt size.",
-                "basis": "provider-free atomic fallback test",
+                "basis": "provider-free pair-wide failure test",
             },
             real_llm=True,
             reason="The provider-shaped fixture returned a validated response.",
-            basis="provider-free atomic fallback test",
+            basis="provider-free pair-wide failure test",
         )
 
 
-class _PartitionJudgeFixtureRuntime:
-    """Provider-shaped fixture for bounded release partitioning."""
+class _PairWideJudgeFixtureRuntime:
+    """Provider-shaped fixture for one pair-wide call and one correction."""
 
     real_llm = True
 
@@ -1258,25 +1467,27 @@ class _PartitionJudgeFixtureRuntime:
         self.kinds: list[str] = []
         self.malformed_first = malformed_first
         self.malformed_always = malformed_always
-        self.partition_calls = 0
+        self.pair_wide_calls = 0
+        self.max_output_tokens: list[int | None] = []
 
     def call(self, *, kind, schema, system_prompt, prompt, artifact_id, **kwargs):
-        del system_prompt, artifact_id, kwargs
+        del system_prompt, artifact_id
         self.kinds.append(kind)
-        if schema is not JudgeResponse or kind not in {"judge_partition", "judge_partition_correction"}:
-            raise AssertionError(f"unexpected partition call: {kind}, {schema}")
-        if kind == "judge_partition":
-            self.partition_calls += 1
+        self.max_output_tokens.append(kwargs.get("max_output_tokens"))
+        if schema is not JudgeResponse or kind not in {"judge", "judge_correction"}:
+            raise AssertionError(f"unexpected pair-wide call: {kind}, {schema}")
+        if kind == "judge":
+            self.pair_wide_calls += 1
         issue_ids = list(dict.fromkeys(re.findall(r"0000:r[1-3]:issue:\d+", prompt)))
-        if self.malformed_always or (kind == "judge_partition" and self.malformed_first):
+        if self.malformed_always or (kind == "judge" and self.malformed_first):
             issue_ids = issue_ids[:-1]
         response = JudgeResponse(
             ledger_assessments=[
                 LedgerAssessment(
                     ledger_id=ledger_id,
                     matched_issue_ids=[],
-                    reason="The partition fixture found no semantic match.",
-                    basis="bounded partition fixture with the supplied ledger and release IDs",
+                    reason="The pair-wide fixture found no semantic match.",
+                    basis="one pair-wide fixture with the supplied ledger and release IDs",
                 )
                 for ledger_id in self.ledger_ids
             ],
@@ -1285,13 +1496,13 @@ class _PartitionJudgeFixtureRuntime:
                     issue_id=issue_id,
                     accounted_ledger_ids=[],
                     is_false_positive=True,
-                    reason="The partition fixture found no frozen ledger item with the same locus and property.",
-                    basis="bounded partition fixture with the supplied ledger and release IDs",
+                    reason="The pair-wide fixture found no frozen ledger item with the same locus and property.",
+                    basis="one pair-wide fixture with the supplied ledger and release IDs",
                 )
                 for issue_id in issue_ids
             ],
-            reason="The fixture closed one exact release partition.",
-            basis="bounded partition fixture",
+            reason="The fixture closed one exact pair-wide release surface.",
+            basis="pair-wide fixture",
         )
         return StructuredCallOutcome(
             kind=kind,
@@ -1302,21 +1513,21 @@ class _PartitionJudgeFixtureRuntime:
             usage=[],
             cost={"eligible": True, "total_usd": 0.0, "attempts": []},
             context_budget={
-                "mode": "provider_free_partition_fixture",
+                "mode": "provider_free_fixture",
                 "projection_version": "stage-context-projection.v1",
                 "prompt_characters": len(prompt),
                 "estimated_prompt_tokens": (len(prompt) + 3) // 4,
                 "provider_input_tokens": 0,
                 "context_window_tokens": 1_000_000,
-                "max_output_tokens": 8000,
+                "max_output_tokens": kwargs.get("max_output_tokens", MAX_STRUCTURED_OUTPUT_TOKENS),
                 "truncation_applied": False,
-                "projection_decision": "The bounded partition prompt was retained.",
-                "reason": "The fixture records the partition prompt size.",
-                "basis": "provider-free bounded partition fixture",
+                "projection_decision": "The pair-wide prompt was retained.",
+                "reason": "The fixture records the pair-wide prompt size.",
+                "basis": "provider-free pair-wide fixture",
             },
             real_llm=True,
-            reason="The provider-shaped fixture returned a validated partition response.",
-            basis="provider-free bounded partition fixture",
+            reason="The provider-shaped fixture returned a validated pair-wide response.",
+            basis="provider-free pair-wide fixture",
         )
 
 
@@ -1335,9 +1546,9 @@ def _fixture_run_identity(pair_id: str, pair_manifest_hash: str) -> dict:
     }
 
 
-def test_pair_wide_judge_shape_failure_uses_atomic_llm_relations(tmp_path: Path) -> None:
+def test_pair_wide_judge_shape_failure_becomes_unavailable_after_one_correction(tmp_path: Path) -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
-    runtime = _AtomicJudgeFixtureRuntime()
+    runtime = _UnavailableJudgeFixtureRuntime()
     issue = {
         "issue_id": "0000:r1:issue:0",
         "title": "Fixture unmatched release",
@@ -1356,7 +1567,7 @@ def test_pair_wide_judge_shape_failure_uses_atomic_llm_relations(tmp_path: Path)
         pair=pair,
         method_rounds=[
             {
-                "schema": "paper1.evidence_discovery.method_cell.v3",
+                "schema": "paper1.evidence_discovery.method_cell.v6",
                 "run_id": "1" * 32,
                 "run_contract_hash": "sha256:" + "1" * 64,
                 "pair_id": "0000",
@@ -1381,15 +1592,18 @@ def test_pair_wide_judge_shape_failure_uses_atomic_llm_relations(tmp_path: Path)
         ),
     )
 
-    assert judge["eligible"] is True
-    assert judge["adjudication_mode"] == "atomic_llm_fallback"
-    assert judge["judgement"] is not None
-    assert "judge_atomic_relation" in runtime.kinds
-    assert len(judge["atomic_relations"]) == judge["ledger_count"]
-    assert judge["judgement"]["release_assessments"][0]["is_false_positive"] is True
+    assert judge["eligible"] is False
+    assert judge["adjudication_mode"] == "judge_unavailable"
+    assert judge["judgement"] is None
+    assert runtime.kinds == ["judge", "judge_correction"]
+    assert runtime.max_output_tokens == [
+        JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS,
+        JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS,
+    ]
+    assert len(judge["llm_calls"]) == 2
 
 
-def test_large_release_surface_is_partitioned_before_atomic_fallback(tmp_path: Path) -> None:
+def test_large_release_surface_stays_one_pair_wide_call(tmp_path: Path) -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     ledger_payload = json.loads(
         (PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json").read_text(
@@ -1401,7 +1615,7 @@ def test_large_release_surface_is_partitioned_before_atomic_fallback(tmp_path: P
         for item in ledger_payload["items"].values()
         if item.get("pair") == "0000"
     ]
-    runtime = _PartitionJudgeFixtureRuntime(ledger_ids)
+    runtime = _PairWideJudgeFixtureRuntime(ledger_ids)
     method_rounds = []
     issue_index = 0
     for round_index in range(1, 4):
@@ -1410,23 +1624,23 @@ def test_large_release_surface_is_partitioned_before_atomic_fallback(tmp_path: P
             issues.append(
                 {
                     "issue_id": f"0000:r{round_index}:issue:{issue_index}",
-                    "title": "Partition fixture issue",
-                    "requirement_quote": "Partition fixture requirement",
+                    "title": "Pair-wide fixture issue",
+                    "requirement_quote": "Pair-wide fixture requirement",
                     "predicate_id": None,
                     "predicate_inputs": {},
                     "binding": {"precise": True, "element_refs": [pair.model.states[0].ref]},
-                    "expected": "Partition fixture expected behavior",
-                    "observed": "Partition fixture observed behavior",
+                    "expected": "Pair-wide fixture expected behavior",
+                    "observed": "Pair-wide fixture observed behavior",
                     "d_level": "D1",
                     "witness_level": "W1",
-                    "reason": "Partition fixture issue reason.",
-                    "basis": "Partition fixture issue basis.",
+                    "reason": "Pair-wide fixture issue reason.",
+                    "basis": "Pair-wide fixture issue basis.",
                 }
             )
             issue_index += 1
         method_rounds.append(
             {
-                "schema": "paper1.evidence_discovery.method_cell.v3",
+                "schema": "paper1.evidence_discovery.method_cell.v6",
                 "run_id": "1" * 32,
                 "run_contract_hash": "sha256:" + "1" * 64,
                 "pair_id": "0000",
@@ -1454,13 +1668,13 @@ def test_large_release_surface_is_partitioned_before_atomic_fallback(tmp_path: P
     )
 
     assert judge["eligible"] is True
-    assert judge["adjudication_mode"] == "partitioned_pair_wide"
-    assert runtime.kinds == ["judge_partition"]
-    assert judge["atomic_relations"] == []
+    assert judge["adjudication_mode"] == "pair_wide"
+    assert runtime.kinds == ["judge"]
+    assert runtime.max_output_tokens == [JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS]
     assert len(judge["judgement"]["release_assessments"]) == 6
 
 
-def test_partition_shape_failure_gets_one_targeted_correction(tmp_path: Path) -> None:
+def test_pair_wide_shape_failure_gets_one_targeted_correction(tmp_path: Path) -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     ledger_payload = json.loads(
         (PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json").read_text(
@@ -1472,7 +1686,7 @@ def test_partition_shape_failure_gets_one_targeted_correction(tmp_path: Path) ->
         for item in ledger_payload["items"].values()
         if item.get("pair") == "0000"
     ]
-    runtime = _PartitionJudgeFixtureRuntime(ledger_ids, malformed_first=True)
+    runtime = _PairWideJudgeFixtureRuntime(ledger_ids, malformed_first=True)
     issues = [
         {
             "issue_id": f"0000:r1:issue:{index}",
@@ -1492,7 +1706,7 @@ def test_partition_shape_failure_gets_one_targeted_correction(tmp_path: Path) ->
     ]
     method_rounds = [
         {
-            "schema": "paper1.evidence_discovery.method_cell.v3",
+            "schema": "paper1.evidence_discovery.method_cell.v6",
             "run_id": "1" * 32,
             "run_contract_hash": "sha256:" + "1" * 64,
             "pair_id": "0000",
@@ -1519,13 +1733,12 @@ def test_partition_shape_failure_gets_one_targeted_correction(tmp_path: Path) ->
     )
 
     assert judge["eligible"] is True
-    assert judge["adjudication_mode"] == "partitioned_pair_wide"
-    assert runtime.kinds == ["judge_partition", "judge_partition_correction"]
-    assert judge["atomic_relations"] == []
+    assert judge["adjudication_mode"] == "pair_wide_corrected"
+    assert runtime.kinds == ["judge", "judge_correction"]
     assert len(judge["judgement"]["release_assessments"]) == 6
 
 
-def test_large_partition_failure_does_not_expand_to_atomic_relation_matrix(
+def test_pair_wide_failure_does_not_expand_to_atomic_relation_matrix(
     tmp_path: Path,
 ) -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
@@ -1539,7 +1752,7 @@ def test_large_partition_failure_does_not_expand_to_atomic_relation_matrix(
         for item in ledger_payload["items"].values()
         if item.get("pair") == "0000"
     ]
-    runtime = _PartitionJudgeFixtureRuntime(ledger_ids, malformed_always=True)
+    runtime = _PairWideJudgeFixtureRuntime(ledger_ids, malformed_always=True)
     issues = [
         {
             "issue_id": f"0000:r1:issue:{index}",
@@ -1561,7 +1774,7 @@ def test_large_partition_failure_does_not_expand_to_atomic_relation_matrix(
         pair=pair,
         method_rounds=[
             {
-                "schema": "paper1.evidence_discovery.method_cell.v3",
+                "schema": "paper1.evidence_discovery.method_cell.v6",
                 "run_id": "1" * 32,
                 "run_contract_hash": "sha256:" + "1" * 64,
                 "pair_id": "0000",
@@ -1587,22 +1800,22 @@ def test_large_partition_failure_does_not_expand_to_atomic_relation_matrix(
     assert judge["eligible"] is False
     assert judge["adjudication_mode"] == "judge_unavailable"
     assert judge["judgement"] is None
-    assert judge["atomic_relations"] == []
-    assert "judge_atomic_relation" not in runtime.kinds
-    assert any(
-        error.get("error") == "atomic_relation_budget_exceeded"
-        for error in judge["errors"]
-    )
+    assert runtime.kinds == ["judge", "judge_correction"]
+    assert len(judge["llm_calls"]) == 2
+    assert all("atomic" not in json.dumps(error).lower() for error in judge["errors"])
 
 
-def test_exact_empty_release_closes_without_an_llm_semantic_call(tmp_path: Path) -> None:
+def test_exact_empty_release_still_uses_one_pair_wide_judge_call(tmp_path: Path) -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
-
-    class NoCallRuntime:
-        real_llm = True
-
-        def call(self, **kwargs):
-            raise AssertionError("an exact empty release must not call the semantic judge")
+    ledger_payload = json.loads(
+        (PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json").read_text(encoding="utf-8")
+    )
+    ledger_ids = [
+        str(item["id"])
+        for item in ledger_payload["items"].values()
+        if item.get("pair") == "0000"
+    ]
+    runtime = _PairWideJudgeFixtureRuntime(ledger_ids)
 
     judge = _judge_pair(
         pair=pair,
@@ -1618,7 +1831,7 @@ def test_exact_empty_release_closes_without_an_llm_semantic_call(tmp_path: Path)
             }
         ],
         ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
-        runtime=NoCallRuntime(),
+        runtime=runtime,
         output_root=tmp_path,
         run_identity=_fixture_run_identity(
             "0000", pair.context_manifest.manifest_hash
@@ -1626,19 +1839,23 @@ def test_exact_empty_release_closes_without_an_llm_semantic_call(tmp_path: Path)
     )
 
     assert judge["eligible"] is True
-    assert judge["adjudication_mode"] == "exact_empty_release"
-    assert judge["llm_calls"] == []
+    assert judge["adjudication_mode"] == "pair_wide"
+    assert runtime.kinds == ["judge"]
+    assert len(judge["llm_calls"]) == 1
     assert all(not item["matched_issue_ids"] for item in judge["judgement"]["ledger_assessments"])
 
 
 def test_ineligible_diagnostic_release_never_enters_judge_surface(tmp_path: Path) -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
-
-    class NoCallRuntime:
-        real_llm = True
-
-        def call(self, **kwargs):
-            raise AssertionError("an ineligible diagnostic release must not call the judge")
+    ledger_payload = json.loads(
+        (PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json").read_text(encoding="utf-8")
+    )
+    ledger_ids = [
+        str(item["id"])
+        for item in ledger_payload["items"].values()
+        if item.get("pair") == "0000"
+    ]
+    runtime = _PairWideJudgeFixtureRuntime(ledger_ids)
 
     judge = _judge_pair(
         pair=pair,
@@ -1663,7 +1880,7 @@ def test_ineligible_diagnostic_release_never_enters_judge_surface(tmp_path: Path
             }
         ],
         ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
-        runtime=NoCallRuntime(),
+        runtime=runtime,
         output_root=tmp_path,
         run_identity=_fixture_run_identity(
             "0000", pair.context_manifest.manifest_hash
@@ -1671,10 +1888,10 @@ def test_ineligible_diagnostic_release_never_enters_judge_surface(tmp_path: Path
     )
 
     assert judge["eligible"] is True
-    assert judge["adjudication_mode"] == "exact_empty_release"
+    assert judge["adjudication_mode"] == "pair_wide"
     assert judge["release_count"] == 0
-    assert judge["llm_calls"] == []
-    assert judge["llm_call"]["cost"]["total_usd"] == 0.0
+    assert runtime.kinds == ["judge"]
+    assert len(judge["llm_calls"]) == 1
     assert judge["judgement"]["release_assessments"] == []
     assert all(
         not item["matched_issue_ids"]
@@ -1793,7 +2010,7 @@ def test_provider_free_run_manifest_resume_and_concurrent_atomic_writes(tmp_path
     current = json.loads(stale_path.read_text(encoding="utf-8"))
     stale_receipts = list((run_root / "stale").rglob("round-1.json"))
     assert repaired["run_id"] == run_id
-    assert current["schema"] == "paper1.evidence_discovery.method_cell.v3"
+    assert current["schema"] == "paper1.evidence_discovery.method_cell.v6"
     assert stale_receipts
     assert any(
         json.loads(path.read_text(encoding="utf-8"))["schema"]

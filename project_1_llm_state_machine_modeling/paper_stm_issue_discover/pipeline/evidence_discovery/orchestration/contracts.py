@@ -223,7 +223,7 @@ class MethodCellReceipt(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["paper1.evidence_discovery.method_cell.v3"] = Field(
+    schema: Literal["paper1.evidence_discovery.method_cell.v6"] = Field(
         description="Versioned method-cell schema identifier."
     )
     run_id: str = Field(
@@ -316,7 +316,7 @@ class IndependentJudgeReceipt(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["paper1.evidence_discovery.independent_judge.v2"] = Field(
+    schema: Literal["paper1.evidence_discovery.independent_judge.v3"] = Field(
         description="Versioned independent-judge schema identifier."
     )
     run_id: str = Field(
@@ -350,11 +350,8 @@ class IndependentJudgeReceipt(BaseModel):
     )
     adjudication_mode: Literal[
         "pair_wide",
-        "partitioned_pair_wide",
         "pair_wide_corrected",
-        "atomic_llm_fallback",
         "judge_unavailable",
-        "exact_empty_release",
         "not_started",
     ] = Field(
         description="Semantic judge path that produced the terminal judgement."
@@ -378,7 +375,7 @@ class IndependentJudgeReceipt(BaseModel):
     )
     llm_calls: list[dict[str, Any]] = Field(
         default_factory=list,
-        description="Every pair-wide, correction, or atomic semantic judge call with usage and retries."
+        description="The pair-wide judge call and, when required, its one targeted shape-correction call, including usage and retries."
     )
     llm_call: dict[str, Any] = Field(
         description="Aggregate judge runtime and billing receipt."
@@ -387,13 +384,9 @@ class IndependentJudgeReceipt(BaseModel):
         default=None,
         description="Complete validated judge output, or null when semantic adjudication remains incomplete."
     )
-    atomic_relations: list[dict[str, Any]] = Field(
-        default_factory=list,
-        description="Audited ledger-to-release semantic relations used by the atomic fallback."
-    )
     errors: list[dict[str, Any]] = Field(
         default_factory=list,
-        description="Structured pair-wide shape, provider, schema, and atomic relation diagnostics."
+        description="Structured pair-wide shape, provider, and schema diagnostics; unavailable relations are never filled as misses or false positives."
     )
     reason: str = Field(
         min_length=1,

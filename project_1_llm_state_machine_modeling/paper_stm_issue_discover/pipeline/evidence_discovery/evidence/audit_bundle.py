@@ -21,7 +21,7 @@ class W2AuditBundle(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["paper1.evidence_discovery.w2_audit_bundle.v2"] = Field(description="Versioned W2 audit schema identifier.")
+    schema: Literal["paper1.evidence_discovery.w2_audit_bundle.v3"] = Field(description="Versioned W2 audit schema identifier.")
     generated_at: datetime = Field(description="Timezone-aware backend evidence generation timestamp.")
     pair_id: str = Field(pattern=r"^[0-9]{4}$", description="Frozen pair owning this W2 evidence record.")
     obligation_id: str = Field(min_length=1, description="Stable pair-round-candidate obligation identity.")
@@ -44,6 +44,7 @@ class W2AuditBundle(BaseModel):
     source_attribution: dict[str, Any] = Field(description="Requirement, source/model, plan, and backend receipt attribution chain.")
     method_receipt: dict[str, Any] = Field(description="Terminal method receipt link or explicit pre-finalization state.")
     judge_receipt: dict[str, Any] = Field(description="Terminal independent judge link or explicit pre-finalization state.")
+    pre_finalization_audit_hash: str | None = Field(default=None, pattern=r"^sha256:[0-9a-f]{64}$", description="Hash of the bundle identity embedded in the immutable method receipt and supplied to the judge before terminal receipt links were added.")
     audit_finalization: dict[str, Any] | None = Field(default=None, description="Judge-time finalization timestamp, receipt hash, reason, and basis.")
     issue_emitted: bool | None = Field(default=None, description="Whether deterministic D/W publication emitted this W2 record as a release issue.")
     reason: str = Field(min_length=1, description="Non-empty explanation of the deterministic evidence and D publication state.")
@@ -82,7 +83,7 @@ def build_audit_bundle(
         "sha256:" + hashlib.sha256(program.encode("utf-8")).hexdigest()
     )
     payload = {
-        "schema": "paper1.evidence_discovery.w2_audit_bundle.v2",
+        "schema": "paper1.evidence_discovery.w2_audit_bundle.v3",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "pair_id": pair.pair_id,
         "obligation_id": obligation_id,
@@ -170,6 +171,7 @@ def build_audit_bundle(
             "reason": "The independent judge runs only after every method round is terminal.",
             "basis": "method/judge isolation boundary",
         },
+        "pre_finalization_audit_hash": None,
         "audit_finalization": None,
         "issue_emitted": None,
         "reason": reason,

@@ -11,7 +11,7 @@ from .receipts import RawReceipt
 
 
 def calculate_witness_level(binding: BindingResult, plan: PredicatePlan, receipt: RawReceipt) -> str:
-    if not binding.precise or not plan.binding_complete:
+    if not binding.precise:
         return "W0"
     if not plan.supported:
         return "W1"

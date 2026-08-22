@@ -143,8 +143,8 @@ def compile_plan(
     backend_supported = predicate.id in SUPPORTED_PREDICATES
     supported = backend_supported and source_gate_passed and binding_complete
     if not binding_complete:
-        reason = f"The predicate binding lacks required inputs {list(missing_inputs)}; this candidate is W0 coverage gap."
-        basis = "registry minimal-input completeness check"
+        reason = f"The predicate execution binding lacks required inputs {list(missing_inputs)}; an exact semantic element binding remains W1, while an imprecise semantic binding remains W0."
+        basis = "registry minimal-input completeness check; deterministic W state machine retains the independent semantic binding boundary"
     elif not backend_supported:
         reason = "The predicate is registered but has no sound backend in the current runtime; a precise candidate is W1."
         basis = "registry lookup plus explicit backend capability table"

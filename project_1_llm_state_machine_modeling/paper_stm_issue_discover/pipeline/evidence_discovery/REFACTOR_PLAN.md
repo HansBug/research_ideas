@@ -91,18 +91,19 @@ FCSTM/ModelIR、v27 inspect-derived facts、owned inspection-equivalent facts、
 facts 和 SMT summary。每个 artifact reference 都记录哈希、schema/algorithm version、
 producer、source role、reason 和 basis；缺失闭包时不得降级为三文件 prompt。
 
-方法阶段固定为 prepare、NL contract extraction、两个互补 grounding 分支、exact
-binding、19-predicate compiler/backend、execution receipt、D adjudication 和
-deterministic W publication。case report 的历史 lineage、LLM、comparison 和 review
-payload 只保留在 receipt，prompt 只接收身份/状态 projection。
+方法阶段固定为 `prepare -> contract-extraction -> discovery-grounding -> execute-batch ->
+d-adjudication -> validate-d -> publish`。两个互补 grounding lens 是一个 stage 内的两次
+固定调用；exact binding、19-predicate compiler/backend 和 execution receipt 是
+`execute-batch` 内部审计。case report 的历史 lineage、LLM、comparison 和 review payload
+只保留在 receipt，prompt 只接收身份/状态 projection。
 
 | 记录 | 必填字段 | 生产者 → 消费者 | 不能承载的含义 |
 |---|---|---|---|
 | ContextManifest | pair_id、artifacts、sections、forbidden_inputs、manifest_hash | inputs → semantics / orchestration | 不得省略 v27 source/model/fact closure 或混用来源角色 |
 | StageReceipt | stage_id、stage_name、input_manifest_hash、output_hash、context_budget、reason、basis | orchestration → audit/reporting | 不得把 provider/schema 诊断改写成 D/W 结论 |
-| `NLContract` | `contract_id`、source quote、locus kind/names、property、expected/violation direction、evidence types、binding hints、reason、basis | NL contract extraction → 两个 grounding 分支 | 不得读取闭模型结果、提前声称 violation 或把复合句留成一个义务 |
-| `GroundingDisposition` | `contract_id`、status、candidate_count、reason、basis | 两个 grounding 分支 → stage receipt | 漏项只能确定性补 unresolved，不得补 satisfied/miss/FP |
-| `CandidateIssue` | exact contract semantic key、predicate_id?、predicate_inputs、element/source refs、expected/observed、reason、basis | model grounding → binding / compiler / reporting | 不得改写 contract 的 locus/property/direction，不能用邻近可执行事实替代原义务 |
+| `NLContract` | `contract_id`、source quote、locus kind/names、property、expected/violation direction、evidence types、binding hints、reason、basis | NL contract extraction → 两个 grounding lens | 不得读取闭模型结果、提前声称 violation 或把复合句留成一个义务 |
+| `GroundingDisposition` | `contract_id`、status、candidate_count、reason、basis | 两个 grounding lens → stage receipt | 漏项只能确定性补 unresolved，不得补 satisfied/miss/FP |
+| `CandidateIssue` | exact contract semantic key、predicate_id?、predicate_inputs、element/source refs、expected/observed、reason、basis | 任一 grounding lens → binding / compiler / reporting | 不得改写 contract 的 locus/property/direction，不能用邻近可执行事实替代原义务 |
 | `ModelBinding` | `obligation_id`、`model_hash`、`element_refs`、`binding_kind`、`binding_status` | `semantics` → `compiler` / `evidence` | 不得把字符串相似当精确绑定 |
 | `PredicatePlan` | `predicate_id`、`inputs`、`registry_version`、`soundness_fragment`、`assumptions` | `compiler` → `backends` | 不得写入旧谓词名或自行扩义 |
 | `RawReceipt` | `plan_id`、`backend`、`terminal_state`、`verdict`、`counterexample`、`run_metadata` | `backends` → `evidence` | 不得自行决定 W 等级或发布 issue |
@@ -131,26 +132,24 @@ quote、normative statement、名称或自由文本 reason；这些语义拆分�
 
 每个 LLM stage 的 `context_budget` 记录精确 prompt 字符数、调用前 token 估计、provider
 实际 input tokens（可得时）、profile context window、max output、projection version 和
-是否发生 runtime truncation。当前只允许显式 `stage-context-projection.v5` 和
+是否发生 runtime truncation。当前只允许显式 `stage-context-projection.v6` 和
 `contract-grounding-projection.v1` 压缩重复材料；后者保留 typed semantic key、NL 锚点、
 scope 和 binding hint 值，并用完整 contract stage output 的 hash 代替重复 reason/basis。
-v5 还保留 typed inventory/diagnostic/verify 字段和 exact refs，同时把逐行重复 rationale
+v6 还保留 typed inventory/diagnostic/verify 字段和 exact refs，同时把逐行重复 rationale
 及 capability eligibility ID 展开折叠为完整 artifact 的 count/hash/path receipt；这不是
 删除 reference inspect、inspection-equivalent facts 或 working mapping。stream 模式使用
 30 秒首字、300 秒总 timeout；non-stream 只使用 300 秒总 timeout。
 不得静默删节；确定性 stage 也必须记录 `deterministic-no-prompt`，不能用
 `context_budget_exceeded` 伪装业务 miss。
 
-contract structured output 使用 `contract-chunking.v1`：不超过 1200 字符的 NL 投影保持
-单块；超过后最多 4 个编号 NL segment 为一块。调用数随 segment 数线性增长且不按
-obligation 展开。每块保留独立 prompt/output/usage
-receipt，合并只接受不重叠的 exact segment IDs 和唯一 contract IDs；某块 provider/schema
-失败只对该块生成显式 fallback，并使 method cell 保持 diagnostics/ineligible，不能冷重跑
-或把失败项记为业务 miss。
+contract extraction 正常路径整格调用一次，不使用主动 chunk/token gate、逐 obligation
+fan-out 或 merge 协议。三轮 method 相互独立，前一轮 release 不进入下一轮 prompt。
 
-independent judge 只从 `eligible=True` 的 method cell 构造 release surface；不合格格子的
-诊断性 release 保留在 method receipt，但不得触发 judge 调用或进入 relation/FP。若 eligible
-release ID 集精确为空，judge 必须走确定性 empty-release receipt，LLM 调用数和费用均为零。
+independent judge 只从 `eligible=True` 的 method cell 构造三轮最终 D1/D2 release surface；
+不合格格子的诊断性 release 保留在 method receipt，但不进入 relation/FP。judge 对每个 pair
+固定一次 pair-wide 调用，机械 shape 不闭合时至多一次定向 correction；仍失败标记
+`judge_unavailable`，不得把缺失关系补成 miss/FP，也不得使用 partition、release/token gate
+或 ledger x release atomic fallback。release 集精确为空时仍使用同一 pair-wide 评测边界。
 
 每条 W2 的 `audit_bundle` 是可独立复核的最小闭包，至少包含：谓词 ID 与注册表版本、
 完整谓词逻辑和绑定后的输入、编译后的 assertion/formal program 源码及其哈希、模型与
@@ -307,7 +306,8 @@ precision 较好的切片报告。
 error 使格子死亡，原地重试该格一次；其它错误及由此触发的 retry 全部计费并作为实现缺陷
 修复，不能通过整格冷重跑掩盖。
 
-阶段 E 完成后立即使用 `gpt-5.6-luna` 对冻结的 54 pair 做一次全量实验。实验输出必须
+阶段 E 完成并通过固定六 pair 三轮 method + independent judge 放行门后，才使用
+`gpt-5.6-luna` 对冻结的 54 pair 做一次全量实验。实验输出必须
 落盘每个 pair/cell 的 W/D、reason/basis、重试和成本；随后修复错误并迭代，直至整体 hit
 显著高于 baseline、L2 大部分成功命中、FP 不高于 baseline，且总体达到 v27 大体相当量级。
 超过 v27 如实记录；不要求逐格复刻，也不允许为达指标新增谓词或放宽学术边界。

@@ -5,11 +5,10 @@ from .binding import BindingResult, bind_candidate, resolve_transition_ref
 from .obligations import CandidateIssue, ContractBindingHint, MethodResponse
 from .workflow import (
     ContextBudgetReceipt,
-    ContractChunkOutput,
     CONTRACT_SYSTEM_PROMPT,
     D_SYSTEM_PROMPT,
-    MODEL_GROUNDING_SYSTEM_PROMPT,
-    SOURCE_GROUNDING_SYSTEM_PROMPT,
+    DISCOVERY_GROUNDING_AUDIT_LENSES,
+    DISCOVERY_GROUNDING_SYSTEM_PROMPT,
     GroundingDisposition,
     GroundingResponse,
     NLContract,
@@ -24,7 +23,6 @@ from .workflow import (
     fallback_contracts,
     fallback_grounding,
     fallback_d_adjudication,
-    merge_contract_chunks,
     normalize_grounding_dispositions,
 )
 
@@ -33,7 +31,6 @@ __all__ = [
     "CandidateIssue",
     "ContractBindingHint",
     "ContextBudgetReceipt",
-    "ContractChunkOutput",
     "MethodResponse",
     "SemanticAdjudication",
     "DAdjudicationResponse",
@@ -44,8 +41,8 @@ __all__ = [
     "StageReceipt",
     "CONTRACT_SYSTEM_PROMPT",
     "D_SYSTEM_PROMPT",
-    "SOURCE_GROUNDING_SYSTEM_PROMPT",
-    "MODEL_GROUNDING_SYSTEM_PROMPT",
+    "DISCOVERY_GROUNDING_AUDIT_LENSES",
+    "DISCOVERY_GROUNDING_SYSTEM_PROMPT",
     "assemble_method_response",
     "build_contract_prompt",
     "build_d_adjudication_prompt",
@@ -58,6 +55,5 @@ __all__ = [
     "fallback_contracts",
     "fallback_grounding",
     "fallback_d_adjudication",
-    "merge_contract_chunks",
     "normalize_grounding_dispositions",
 ]

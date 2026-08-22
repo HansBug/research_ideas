@@ -38,10 +38,10 @@ class SemanticAdjudication(BaseModel):
         description="Strongest supplied alternative reading or rebuttal; null only when none is applicable.",
     )
     defeater_kind: Literal["none", "undercutting", "rebutting"] = Field(
-        description="Typed kind of the strongest defeater: none, undercutting the reading, or rebutting its conclusion."
+        description="Typed kind of the strongest defeater: none when no competent alternative exists; undercutting when a second competent reading remains compatible with the same facts (D1 boundary); rebutting when supplied facts defeat the alleged violation or preserve a reasonable design choice (D0 boundary when it survives)."
     )
     defeater_disposition: Literal["defeated", "survives", "unresolved"] = Field(
-        description="Whether the typed defeater is defeated by supplied facts, survives, or remains unresolved."
+        description="Whether the typed defeater is defeated by supplied facts, survives as a competent reading/rebuttal, or remains unresolved; deterministic method code combines this enum with defeater_kind and exact binding to derive D."
     )
     reason: str = Field(
         min_length=1,
@@ -141,11 +141,33 @@ def adjudicate_disposition(
             "strongest_rebuttal": semantic.strongest_defeater or candidate.strongest_rebuttal,
             "semantic_adjudication": semantic_payload,
         }
-    if semantic.defeater_disposition in {"survives", "unresolved"}:
+    if (
+        semantic.defeater_kind == "undercutting"
+        and semantic.defeater_disposition == "survives"
+    ):
         return {
             "d_level": "D1",
-            "reason": "A grounded first reading remains compatible with a surviving or unresolved typed defeater.",
-            "basis": "precise binding plus semantic grounding=established and defeater disposition in {survives, unresolved}",
+            "reason": "A grounded first reading remains compatible with a surviving competent alternative reading.",
+            "basis": "precise binding plus semantic grounding=established, defeater kind=undercutting, and disposition=survives",
+            "strongest_rebuttal": semantic.strongest_defeater or candidate.strongest_rebuttal,
+            "semantic_adjudication": semantic_payload,
+        }
+    if (
+        semantic.defeater_kind == "rebutting"
+        and semantic.defeater_disposition == "survives"
+    ):
+        return {
+            "d_level": "D0",
+            "reason": "A competent rebutting reading survives, so the candidate is not a released violation.",
+            "basis": "precise binding plus semantic grounding=established, defeater kind=rebutting, and disposition=survives",
+            "strongest_rebuttal": semantic.strongest_defeater or candidate.strongest_rebuttal,
+            "semantic_adjudication": semantic_payload,
+        }
+    if semantic.defeater_disposition == "unresolved":
+        return {
+            "d_level": "D_UNRESOLVED",
+            "reason": "A typed defeater remains unresolved, so the method cannot close D without guessing.",
+            "basis": "precise binding plus semantic grounding=established and defeater disposition=unresolved",
             "strongest_rebuttal": semantic.strongest_defeater or candidate.strongest_rebuttal,
             "semantic_adjudication": semantic_payload,
         }

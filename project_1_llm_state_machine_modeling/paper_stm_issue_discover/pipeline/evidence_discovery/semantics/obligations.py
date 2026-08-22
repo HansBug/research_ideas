@@ -208,38 +208,3 @@ def build_method_prompt(pair: PairInput, round_index: int, previous: list[dict[s
     from .workflow import build_method_prompt as build_staged_method_prompt
 
     return build_staged_method_prompt(pair, round_index, previous)
-
-def fallback_candidates(pair: PairInput, round_index: int) -> MethodResponse:
-    first_state = pair.model.states[0] if pair.model.states else None
-    first_transition = pair.model.transitions[0] if pair.model.transitions else None
-    refs = [first_transition.ref] if first_transition else ([first_state.ref] if first_state else [])
-    predicate_id = "S2" if first_transition else ("S1" if first_state else None)
-    inputs: dict[str, Any] = {}
-    if first_transition:
-        inputs = {"source": first_transition.source, "target": first_transition.target, "scope": "closed_fcstm"}
-    elif first_state:
-        inputs = {"kind": "state", "element": first_state.name, "scope": "closed_fcstm"}
-    candidate = CandidateIssue(
-        contract_id="NL-CONTRACT-UNRESOLVED",
-        locus_kind="model",
-        locus_names=(pair.pair_id,),
-        property="other",
-        violation_direction="other",
-        evidence_types=("closed_model_inventory",),
-        title="Deterministic fallback candidate preserving a checkable model fact",
-        requirement_quote="No structured model candidate was available; preserve the first checkable supplied fact.",
-        predicate_id=predicate_id,
-        predicate_inputs=inputs,
-        element_refs=refs,
-        source_refs=[f"fcstm:line:{first_transition.line if first_transition else first_state.line if first_state else 1}"],
-        expected="The model fact is checkable in the closed FCSTM input.",
-        observed="The model fact was parsed and preserved.",
-        strongest_rebuttal="No violation claim is asserted; this is an audit fallback after provider or schema failure.",
-        reason=f"Round {round_index} lacked a usable provider/schema response, so deterministic input facts were preserved.",
-        basis="Closed input facts from fcstm-line-parser.v2 and the recorded failure receipt.",
-    )
-    return MethodResponse(
-        issues=[candidate],
-        reason="The structured model output was unavailable, so a deterministic fallback candidate was generated.",
-        basis="provider/schema failure fallback; no ledger or judge data was read.",
-    )
