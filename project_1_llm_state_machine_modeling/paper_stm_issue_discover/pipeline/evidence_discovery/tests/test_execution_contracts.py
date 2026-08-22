@@ -725,14 +725,30 @@ def test_both_v27_grounding_lenses_contribute_exact_candidates() -> None:
             GroundingResponse(
                 lens="contract_structure_contrast",
                 candidates=[source_candidate],
-                contract_dispositions=[],
+                contract_dispositions=[
+                    GroundingDisposition(
+                        contract_id=source_candidate.contract_id,
+                        status="candidate_emitted",
+                        candidate_count=1,
+                        reason="The source fixture emitted one exact candidate.",
+                        basis="provider-free source candidate fixture",
+                    )
+                ],
                 reason="structure fixture",
                 basis="structure fixture",
             ),
             GroundingResponse(
                 lens="behavior_consequence",
                 candidates=[model_candidate],
-                contract_dispositions=[],
+                contract_dispositions=[
+                    GroundingDisposition(
+                        contract_id=model_candidate.contract_id,
+                        status="candidate_emitted",
+                        candidate_count=1,
+                        reason="The model fixture emitted one exact candidate.",
+                        basis="provider-free model candidate fixture",
+                    )
+                ],
                 reason="behavior fixture",
                 basis="behavior fixture",
             ),
@@ -1059,6 +1075,10 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "declared consumer with no consumer reachable" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "complete exact inventory" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "element_refs` contains" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "Negative-property carrier example" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    candidate_schema = CandidateIssue.model_json_schema()["properties"]
+    assert "missing edge has no ref of its own" in candidate_schema["element_refs"]["description"]
+    assert "exact existing carrier transition/state ref" in candidate_schema["element_refs"]["description"]
     grounding_prompt = build_grounding_prompt(
         pair,
         lens="behavior_consequence",
@@ -1068,6 +1088,10 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert '"state_role": "operating_state"' in grounding_prompt
     assert "exact owner hint" in grounding_prompt
     assert "exact owner-local edge reaches the required target" in grounding_prompt
+    assert "The required disposition table contains 1 row(s)" in grounding_prompt
+    assert '["NL-CONTRACT-NL1"]' in grounding_prompt
+    assert "missing edge -> exact endpoint state refs" in grounding_prompt
+    assert "Predicate support controls" in grounding_prompt
     assert '"projection_version": "contract-grounding-projection.v2"' in grounding_prompt
 
     semantic_schema = SemanticAdjudication.model_json_schema()["properties"]
@@ -1083,6 +1107,34 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "needs its own separate progress contract" in contract_schema["state_role"]["description"]
     response_schema = NLContractResponse.model_json_schema()["properties"]
     assert "every semantically active operating state" in response_schema["contracts"]["description"]
+
+
+def test_grounding_response_rejects_empty_or_inconsistent_local_accounting() -> None:
+    with pytest.raises(ValidationError):
+        GroundingResponse(
+            lens="contract_structure_contrast",
+            candidates=[],
+            contract_dispositions=[],
+            reason="The fixture returned no candidates.",
+            basis="provider-free empty-accounting fixture",
+        )
+
+    with pytest.raises(ValidationError, match="must equal 0"):
+        GroundingResponse(
+            lens="behavior_consequence",
+            candidates=[],
+            contract_dispositions=[
+                GroundingDisposition(
+                    contract_id="NL-CONTRACT-NL1",
+                    status="candidate_emitted",
+                    candidate_count=1,
+                    reason="The malformed fixture claims one candidate.",
+                    basis="provider-free inconsistent-count fixture",
+                )
+            ],
+            reason="The fixture carries inconsistent local accounting.",
+            basis="provider-free local-accounting fixture",
+        )
 
 
 def test_unsupported_backend_does_not_turn_satisfied_semantics_into_d1() -> None:

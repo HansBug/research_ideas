@@ -217,9 +217,48 @@ class GroundingResponse(BaseModel):
 
     lens: GroundingLens = Field(description="Exact v27 audit-lens identity; both lenses receive the same cross-view context and response contract.")
     candidates: list[CandidateIssue] = Field(default_factory=list, description="Candidate claims grounded across author source, closed FCSTM, and deterministic facts. Every candidate list item must independently carry all CandidateIssue fields, including its own non-empty reason and basis; a top-level or disposition basis does not satisfy a candidate. Candidates must not emit W/D/L levels.")
-    contract_dispositions: list[GroundingDisposition] = Field(default_factory=list, description="One reasoned disposition per supplied atomic contract for this lens; missing rows are normalized to explicit unresolved receipts without semantic guessing.")
+    contract_dispositions: list[GroundingDisposition] = Field(min_length=1, description="One reasoned disposition per supplied atomic contract for this lens. This array must never be empty, even when the lens emits no candidates; every supplied contract still needs an explicit satisfied, unresolved, or not_applicable row. Missing rows are normalized to explicit unresolved receipts without semantic guessing.")
     reason: str = Field(min_length=1, description="LLM explanation of how this audit lens selected or rejected candidate claims.")
     basis: str = Field(min_length=1, description="LLM basis naming the supplied cross-view facts and contract IDs used by this lens.")
+
+    @model_validator(mode="after")
+    def validate_local_contract_accounting(self) -> GroundingResponse:
+        """Reject locally inconsistent rows using exact IDs and counts only."""
+
+        disposition_ids = [item.contract_id for item in self.contract_dispositions]
+        if len(disposition_ids) != len(set(disposition_ids)):
+            raise ValueError(
+                "contract_dispositions must contain each contract_id exactly once"
+            )
+        candidate_counts: dict[str, int] = {}
+        for candidate in self.candidates:
+            candidate_counts[candidate.contract_id] = (
+                candidate_counts.get(candidate.contract_id, 0) + 1
+            )
+        missing_dispositions = sorted(set(candidate_counts) - set(disposition_ids))
+        if missing_dispositions:
+            raise ValueError(
+                "every candidate contract_id needs one contract_dispositions row; "
+                f"missing {missing_dispositions}"
+            )
+        for item in self.contract_dispositions:
+            actual_count = candidate_counts.get(item.contract_id, 0)
+            if item.candidate_count != actual_count:
+                raise ValueError(
+                    f"contract_dispositions candidate_count for {item.contract_id} "
+                    f"must equal {actual_count}"
+                )
+            if actual_count and item.status != "candidate_emitted":
+                raise ValueError(
+                    f"contract_dispositions status for {item.contract_id} must be "
+                    "candidate_emitted when candidates exist"
+                )
+            if not actual_count and item.status == "candidate_emitted":
+                raise ValueError(
+                    f"contract_dispositions status for {item.contract_id} cannot be "
+                    "candidate_emitted without a candidate"
+                )
+        return self
 
 
 class ContextBudgetReceipt(BaseModel):
@@ -564,6 +603,15 @@ value cannot be represented by the frozen predicate input. Use `unresolved`
 only when the required locus, endpoint identities, or source meaning itself is
 not exact; never use it merely because the required model fact is absent.
 
+Negative-property carrier example: if a contract requires `A -> B`, both A and B
+resolve to exact closed-model states, and the complete transition inventory has
+no A-to-B edge, emit S2 with `source=A`, `target=B`, and both endpoint state refs
+in `element_refs`; do not ask a missing edge for a transition ref. If an exact
+state or transition carrier lacks a required action/effect value, bind that
+carrier ref and emit the issue; use predicate_id=null for W1 when the frozen
+predicate cannot represent the semantic value. Missing required content is the
+negative fact under review, not missing binding to its existing carrier.
+
 Every candidate object must explicitly include `locus_kind` and `locus_names`
 copied from its contract. `predicate_inputs` must always be a JSON object; use
 an empty object when predicate_id is null, never a list or free-text value.
@@ -577,6 +625,10 @@ Before returning, inspect every candidate list item independently: copy the full
 `NL-CONTRACT-...` ID without abbreviation and include both `reason` and `basis`
 on that item. Keep `contract_dispositions` as one flat top-level array; never
 nest a second `contract_dispositions` object inside an array row.
+Build the complete disposition table before returning candidates. Both lenses
+must account for every supplied contract; a lens priority changes attention, not
+the required ID coverage. An empty disposition array is schema-invalid even when
+the lens emits no candidates.
 
 {PREDICATE_ROUTING_GUIDANCE}
 
@@ -764,6 +816,8 @@ def build_grounding_prompt(
 ) -> str:
     """Build one v27 lens prompt over the shared compact cross-view closure."""
 
+    contract_ids = [contract.contract_id for contract in contracts.contracts]
+
     return f"""Stage: discovery-grounding
 Round: {round_index}
 Complementary audit lens: {lens}
@@ -784,10 +838,17 @@ Return exactly one `contract_dispositions` row for every supplied contract ID.
 Use `candidate_emitted` when this response contains one or more candidates for
 that ID; otherwise use `satisfied`, `unresolved`, or `not_applicable` with a
 contract-specific reason and basis. Do not silently omit a contract.
+The required disposition table contains {len(contract_ids)} row(s). Copy these IDs
+exactly once each, regardless of this lens's priority:
+{json.dumps(contract_ids, ensure_ascii=False)}
 Before selecting `unresolved`, distinguish missing evidence identity from an
 exact negative inventory result: an exact required edge absent from the complete
 transition inventory is a candidate, while an ambiguous source or target is
 unresolved.
+For negative facts, bind the existing carrier rather than the absent content:
+missing edge -> exact endpoint state refs; missing action -> exact state ref;
+missing guard/effect -> exact carrier transition ref. Predicate support controls
+W2 versus W1 later and never licenses silent omission.
 
 NL contracts:
 {json.dumps(_compact_contract_plan(contracts), ensure_ascii=False, sort_keys=True)}

@@ -77,8 +77,8 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v6"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v3"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v7"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v10"
+CODE_VERSION = "evidence-discovery-v27-flow.v8"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v11"
 
 
 class LedgerAssessment(BaseModel):
@@ -1358,6 +1358,30 @@ def _method_cell(
                 )
             ),
         )
+        expected_disposition_ids = {
+            contract.contract_id for contract in contract_response.contracts
+        }
+        supplied_disposition_ids = {
+            item.contract_id for item in response.contract_dispositions
+        }
+        missing_disposition_ids = sorted(
+            expected_disposition_ids - supplied_disposition_ids
+        )
+        extra_disposition_ids = sorted(
+            supplied_disposition_ids - expected_disposition_ids
+        )
+        if missing_disposition_ids or extra_disposition_ids:
+            accounting_diagnostic = {
+                "stage": "discovery_grounding",
+                "lens": lens,
+                "class": "exact_contract_accounting_incomplete",
+                "missing_contract_ids": missing_disposition_ids,
+                "extra_contract_ids": extra_disposition_ids,
+                "reason": "The grounding response did not account for the exact supplied contract ID set; omitted rows remain unresolved after normalization.",
+                "basis": "exact contract ID set comparison without semantic text inference",
+            }
+            grounding_normalization_diagnostics.append(accounting_diagnostic)
+            all_errors.append(accounting_diagnostic)
         response, exact_fact_diagnostics = _normalize_grounding_exact_facts(
             pair, response
         )
@@ -1395,6 +1419,7 @@ def _method_cell(
             status=(
                 "completed"
                 if all(outcome.succeeded for outcome in grounding_outcomes)
+                and not grounding_normalization_diagnostics
                 else "completed_with_diagnostics"
             ),
             artifact_roles=("natural_language", "plantuml_source", "canonical_source_ir", "source_inventory", "fcstm_model", "reference_inspection_facts", "inspection_equivalent_facts", "verify_facts", "smt_facts", "working_contract", "source_trace"),

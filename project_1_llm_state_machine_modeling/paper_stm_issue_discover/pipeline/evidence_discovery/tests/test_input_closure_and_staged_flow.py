@@ -693,6 +693,52 @@ def test_one_grounding_failure_does_not_erase_closed_w1_release(tmp_path: Path) 
     )
 
 
+def test_partial_grounding_contract_accounting_is_audited(tmp_path: Path) -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+
+    class PartialAccountingRuntime(FixtureStructuredRuntime):
+        def call(self, **kwargs):
+            outcome = super().call(**kwargs).model_copy(update={"real_llm": True})
+            if kwargs["schema"] is NLContractResponse:
+                first = outcome.response.contracts[0]
+                second = first.model_copy(
+                    update={"contract_id": "NL-CONTRACT-NL1-SECOND"}
+                )
+                response = outcome.response.model_copy(
+                    update={"contracts": [first, second]}
+                )
+                return outcome.model_copy(update={"response": response})
+            if kwargs["schema"] is not GroundingResponse:
+                return outcome
+            return outcome
+
+    cell = _method_cell(
+        pair=pair,
+        round_index=1,
+        runtime=PartialAccountingRuntime(),
+        output_root=tmp_path,
+    )
+
+    grounding_receipt = next(
+        item
+        for item in cell["stage_receipts"]
+        if item["stage_name"] == "discovery_grounding"
+    )
+    assert grounding_receipt["status"] == "completed_with_diagnostics"
+    diagnostics = grounding_receipt["diagnostics"]
+    assert any(
+        item.get("class") == "exact_contract_accounting_incomplete"
+        and item.get("missing_contract_ids")
+        for item in diagnostics
+    )
+    assert cell["eligible"] is True
+    assert cell["status"] == "completed_with_diagnostics"
+    assert any(
+        item.get("class") == "exact_contract_accounting_incomplete"
+        for item in cell["errors"]
+    )
+
+
 def test_d_coverage_correction_is_in_node_and_no_silent_drop(tmp_path: Path) -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     runtime = FixtureStructuredRuntime(
