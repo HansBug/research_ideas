@@ -219,8 +219,8 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v8"] = Field(
-        default="v27-typed-frontier.v8",
+    algorithm_version: Literal["v27-typed-frontier.v9"] = Field(
+        default="v27-typed-frontier.v9",
         description="产生该检查的确定性算法版本；不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
@@ -308,8 +308,8 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v8"] = Field(
-        default="v27-typed-frontier.v8",
+    algorithm_version: Literal["v27-typed-frontier.v9"] = Field(
+        default="v27-typed-frontier.v9",
         description="本批所有 check/obligation 使用的确定性算法版本。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
@@ -2370,6 +2370,41 @@ def _operating_contracts_for_state(
     return matches
 
 
+def _owner_transition_inventory(
+    pair: PairInput, owner: StateNode
+) -> tuple[list[str], list[str]]:
+    facts = pair.inspection_facts
+    if facts is None:
+        return [], []
+    scoped_transition_refs: list[str] = []
+    named_source_refs: list[str] = []
+    for transition in facts.transitions:
+        source_state = _state_by_ref(pair, transition.resolved_source_ref)
+        scope_state = _state_for_value(pair, transition.scope)
+        in_owner_scope = bool(
+            (
+                source_state
+                and (
+                    source_state.ref == owner.ref
+                    or _is_descendant(pair, source_state, owner)
+                )
+            )
+            or (
+                scope_state
+                and (
+                    scope_state.ref == owner.ref
+                    or _is_descendant(pair, scope_state, owner)
+                )
+            )
+        )
+        if not in_owner_scope:
+            continue
+        scoped_transition_refs.append(transition.transition_ref)
+        if transition.source != "[*]":
+            named_source_refs.append(transition.transition_ref)
+    return scoped_transition_refs, named_source_refs
+
+
 def _materialize_aggregate_zero_behavior(
     builder: _Builder,
     contracts: Sequence[NLContract],
@@ -2406,20 +2441,9 @@ def _materialize_aggregate_zero_behavior(
         operating_contracts.extend(state_contracts)
         state_facts.append(state_fact)
 
-    scoped_transition_refs: list[str] = []
-    named_source_refs: list[str] = []
-    for transition in facts.transitions:
-        source_state = _state_by_ref(pair, transition.resolved_source_ref)
-        scope_state = _state_for_value(pair, transition.scope)
-        in_owner_scope = bool(
-            (source_state and (source_state.ref == owner.ref or _is_descendant(pair, source_state, owner)))
-            or (scope_state and (scope_state.ref == owner.ref or _is_descendant(pair, scope_state, owner)))
-        )
-        if not in_owner_scope:
-            continue
-        scoped_transition_refs.append(transition.transition_ref)
-        if transition.source != "[*]":
-            named_source_refs.append(transition.transition_ref)
+    scoped_transition_refs, named_source_refs = _owner_transition_inventory(
+        pair, owner
+    )
     if named_source_refs:
         return
 
@@ -2556,8 +2580,23 @@ def _materialize_cross_wrapper(builder: _Builder, contracts: Sequence[NLContract
         if owner is None:
             continue
         wrappers = [_wrapper_under(pair, state, owner) for state in states]
-        if any(item is None for item in wrappers) or len({item.ref for item in wrappers if item}) < 2:
+        if any(item is None for item in wrappers) or len(
+            {item.ref for item in wrappers if item}
+        ) < 2:
             continue
+        exact_wrappers = tuple(item for item in wrappers if item is not None)
+        wrapper_facts = [
+            _inspection_state(pair, wrapper.ref) for wrapper in exact_wrappers
+        ]
+        if any(
+            wrapper.ref == state.ref
+            for wrapper, state in zip(exact_wrappers, states)
+        ) or any(fact is None or not fact.is_composite for fact in wrapper_facts):
+            continue
+        scoped_transition_refs, named_source_refs = _owner_transition_inventory(
+            pair, owner
+        )
+        globally_disconnected = not named_source_refs
         base = chain[0][0]
         derived = _derived_contract(
             base,
@@ -2568,25 +2607,64 @@ def _materialize_cross_wrapper(builder: _Builder, contracts: Sequence[NLContract
             expected_direction="must_reach",
             violation_direction="unreachable",
             evidence_types=("source_identity", "closed_model_inventory", "transition_fact", "reachability_fact", "semantic_comparison"),
-            normative_statement=f"The required sequential operating states under {owner.name} must be mutually reachable in the stated order.",
+            normative_statement=f"The required operating states under {owner.name} must have cross-wrapper reachability sufficient to realize the stated operating sequence.",
             scope=f"Cross-wrapper operating relation under {owner.name}",
             source_refs=_source_refs([item[0] for item in chain]),
             reason="Multiple typed endpoint contracts form one exact sequential chain across distinct wrappers under a common owner.",
             basis="contract source/target bindings, exact parent chains, and complete missing-edge inventory",
         )
-        refs = [owner.ref, *[state.ref for state in states], *[item.ref for item in wrappers if item]]
+        refs = [
+            owner.ref,
+            *[state.ref for state in states],
+            *[item.ref for item in exact_wrappers],
+        ]
         candidate = _candidate(
             derived,
-            title=f"Required cross-wrapper sequence under {owner.name} is disconnected",
+            title=(
+                f"Operating wrappers under {owner.name} are mutually disconnected"
+                if globally_disconnected
+                else f"Required cross-wrapper sequence under {owner.name} is disconnected"
+            ),
             predicate_id=None,
             predicate_inputs={},
             element_refs=refs,
             source_refs=derived.source_refs,
             expected=derived.normative_statement,
-            observed=f"The complete closed transition inventory contains none of the required chain edges {[f'{item[1].name}->{item[2].name}' for item in chain]} across wrappers {[item.name for item in wrappers if item]}.",
+            observed=(
+                f"The complete closed transition inventory under {owner.name} has "
+                f"named_source_transition_refs=[] and only pseudo-state entries "
+                f"{scoped_transition_refs}; therefore operating states "
+                f"{[state.name for state in states]} in wrappers "
+                f"{[item.name for item in exact_wrappers]} cannot reach one another "
+                "in any direction after entry."
+                if globally_disconnected
+                else (
+                    "The complete closed transition inventory contains none of "
+                    "the required chain edges "
+                    f"{[f'{item[1].name}->{item[2].name}' for item in chain]} "
+                    "across wrappers "
+                    f"{[item.name for item in exact_wrappers]}."
+                )
+            ),
             strongest_rebuttal="Independent region-local initial edges do not establish the required cross-wrapper sequence.",
-            reason="The LLM-established endpoint chain is exact, and the complete model contains no links between its distinct wrapper scopes.",
-            basis=f"owner_ref={owner.ref}; contracts={list(ids)}; state_refs={[state.ref for state in states]}",
+            reason=(
+                "The LLM-established endpoint chain is exact, and the complete "
+                "owner-subtree inventory has no transition sourced from any named "
+                "state, which makes every participating wrapper mutually unreachable."
+                if globally_disconnected
+                else (
+                    "The LLM-established endpoint chain is exact, and the complete "
+                    "model contains none of its required links between distinct "
+                    "wrapper scopes."
+                )
+            ),
+            basis=(
+                f"owner_ref={owner.ref}; contracts={list(ids)}; "
+                f"state_refs={[state.ref for state in states]}; "
+                f"wrapper_refs={[item.ref for item in exact_wrappers]}; "
+                f"scoped_transition_refs={scoped_transition_refs}; "
+                f"named_source_transition_refs={named_source_refs}"
+            ),
         )
         builder.add(
             "cross_wrapper_reachability",
@@ -2602,7 +2680,7 @@ def _materialize_cross_wrapper(builder: _Builder, contracts: Sequence[NLContract
             chain,
             states,
             owner,
-            tuple(item for item in wrappers if item is not None),
+            exact_wrappers,
         )
 
 

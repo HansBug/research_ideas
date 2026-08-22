@@ -1200,6 +1200,9 @@ def test_0053_frontier_preserves_three_leaf_and_global_properties() -> None:
     )
     assert global_issue.property == "reachability"
     assert global_issue.predicate_id is None
+    assert "mutually disconnected" in global_issue.title
+    assert "named_source_transition_refs=[]" in global_issue.observed
+    assert "cannot reach one another in any direction" in global_issue.observed
     aggregate = next(
         item.candidate
         for item in batch.obligations
@@ -1285,6 +1288,75 @@ def test_0023_frontier_keeps_direct_leaf_dead_ends_independent() -> None:
     assert not any(
         item.kind == "aggregate_zero_behavior" for item in batch.obligations
     )
+    assert not any(
+        item.kind == "cross_wrapper_reachability" for item in batch.obligations
+    )
+
+
+def test_cross_wrapper_frontier_does_not_overclaim_mutual_disconnection() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0053")
+    facts = pair.inspection_facts
+    assert facts is not None
+    named_transition = facts.transitions[0].model_copy(
+        update={
+            "source": "PumpState",
+            "resolved_source_ref": "state:PumpState:line:4",
+        }
+    )
+    pair = pair.model_copy(
+        update={
+            "inspection_facts": facts.model_copy(
+                update={
+                    "transitions": (named_transition, *facts.transitions[1:]),
+                }
+            )
+        }
+    )
+    contracts = [
+        _contract(
+            contract_id="NL-CONTRACT-NL4-PUMP-WATER",
+            segment_id="NL4",
+            locus_kind="transition",
+            locus_names=("PumpState", "WaterState"),
+            property_name="transition_endpoints",
+            expected_direction="must_reach",
+            violation_direction="wrong_target",
+            hints=(
+                _hint("source", "PumpState", "NL4"),
+                _hint("target", "WaterState", "NL4"),
+            ),
+        ),
+        _contract(
+            contract_id="NL-CONTRACT-NL5-WATER-METHANE",
+            segment_id="NL5",
+            locus_kind="transition",
+            locus_names=("WaterState", "MethaneState"),
+            property_name="transition_endpoints",
+            expected_direction="must_reach",
+            violation_direction="wrong_target",
+            hints=(
+                _hint("source", "WaterState", "NL5"),
+                _hint("target", "MethaneState", "NL5"),
+            ),
+        ),
+    ]
+    response = _response(contracts)
+
+    batch = materialize_v27_frontier(
+        pair,
+        response,
+        {item.contract_id: item for item in response.contracts},
+        (),
+        (),
+    )
+
+    issue = next(
+        item.candidate
+        for item in batch.obligations
+        if item.kind == "cross_wrapper_reachability"
+    )
+    assert "mutually disconnected" not in issue.title
+    assert "cannot reach one another in any direction" not in issue.observed
 
 
 def test_frontier_pydantic_descriptions_reach_json_schema() -> None:
