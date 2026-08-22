@@ -28,6 +28,7 @@ from ..reporting.export import write_json, write_markdown_summary
 from ..semantics import (
     CandidateIssue,
     CONTRACT_SYSTEM_PROMPT,
+    ContractChunkOutput,
     ContextBudgetReceipt,
     DAdjudicationResponse,
     D_SYSTEM_PROMPT,
@@ -48,6 +49,7 @@ from ..semantics import (
     fallback_contracts,
     fallback_d_adjudication,
     fallback_grounding,
+    merge_contract_chunks,
     normalize_grounding_dispositions,
     resolve_transition_ref,
 )
@@ -74,8 +76,10 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v3"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v2"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-orchestration.v7"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-staged-prompts.v6"
+CODE_VERSION = "evidence-discovery-orchestration.v8"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-staged-prompts.v7"
+CONTRACT_CHUNK_MAX_SEGMENTS = 5
+CONTRACT_SINGLE_CHUNK_MAX_CHARACTERS = 1_200
 JUDGE_PROMPT_TOKEN_BUDGET = 180_000
 # Keep the normal judge surface small enough that the model can close every
 # exact-ID row in one response.  A larger release surface is partitioned
@@ -899,6 +903,21 @@ def _fallback_method(pair: PairInput, round_index: int, reason: str) -> MethodRe
     )
 
 
+def _contract_segment_chunks(pair: PairInput) -> tuple[tuple[str, ...], ...]:
+    """Partition numbered NL in source order with linear, bounded call growth."""
+
+    segment_ids = tuple(item.segment_id for item in pair.nl_segments)
+    if (
+        sum(len(item.text) for item in pair.nl_segments)
+        <= CONTRACT_SINGLE_CHUNK_MAX_CHARACTERS
+    ):
+        return (segment_ids,)
+    return tuple(
+        segment_ids[index : index + CONTRACT_CHUNK_MAX_SEGMENTS]
+        for index in range(0, len(segment_ids), CONTRACT_CHUNK_MAX_SEGMENTS)
+    )
+
+
 def _method_cell(
     *,
     pair: PairInput,
@@ -954,42 +973,128 @@ def _method_cell(
         )
     )
 
-    contract_prompt = build_contract_prompt(pair, round_index, previous)
-    contract_outcome: StructuredCallOutcome[NLContractResponse] = runtime.call(
-        kind="nl_contract_extraction",
-        schema=NLContractResponse,
-        system_prompt=CONTRACT_SYSTEM_PROMPT,
-        prompt=contract_prompt,
-        artifact_id=f"method/{pair.pair_id}/round-{round_index}/contract",
-    )
-    all_outcomes.append(contract_outcome)
-    contract_response = contract_outcome.response if contract_outcome.succeeded else fallback_contracts(
-        pair,
-        str(contract_outcome.result.get("error", "structured contract output unavailable")),
-    )
-    stage_outputs["nl_contract_extraction"] = contract_response.model_dump(mode="json")
-    if not contract_outcome.succeeded:
+    contract_prompts: list[str] = []
+    contract_parts: list[tuple[tuple[str, ...], NLContractResponse]] = []
+    contract_chunk_outputs: list[ContractChunkOutput] = []
+    contract_chunks = _contract_segment_chunks(pair)
+    contract_merge_failed = False
+    for chunk_index, segment_ids in enumerate(contract_chunks, start=1):
+        contract_prompt = build_contract_prompt(
+            pair,
+            round_index,
+            previous,
+            segment_ids=segment_ids,
+            chunk_index=chunk_index,
+            chunk_count=len(contract_chunks),
+        )
+        contract_prompts.append(contract_prompt)
+        contract_outcome: StructuredCallOutcome[NLContractResponse] = runtime.call(
+            kind="nl_contract_extraction",
+            schema=NLContractResponse,
+            system_prompt=CONTRACT_SYSTEM_PROMPT,
+            prompt=contract_prompt,
+            artifact_id=(
+                f"method/{pair.pair_id}/round-{round_index}/contract/"
+                f"chunk-{chunk_index}-of-{len(contract_chunks)}"
+            ),
+        )
+        all_outcomes.append(contract_outcome)
+        contract_part = (
+            contract_outcome.response
+            if contract_outcome.succeeded
+            else fallback_contracts(
+                pair,
+                str(
+                    contract_outcome.result.get(
+                        "error",
+                        "structured contract output unavailable",
+                    )
+                ),
+                segment_ids=segment_ids,
+            )
+        )
+        contract_parts.append((segment_ids, contract_part))
+        chunk_output = ContractChunkOutput(
+            chunk_index=chunk_index,
+            chunk_count=len(contract_chunks),
+            segment_ids=segment_ids,
+            prompt_hash=_hash_json(contract_prompt),
+            response=contract_part,
+            reason="This bounded contract chunk retains its validated model output or explicit local fallback before exact-ID merge.",
+            basis="contract-chunking.v1 and public structured runtime receipt",
+        )
+        contract_chunk_outputs.append(chunk_output)
+        if not contract_outcome.succeeded:
+            all_errors.append(
+                {
+                    "stage": "nl_contract_extraction",
+                    "chunk_index": chunk_index,
+                    "chunk_count": len(contract_chunks),
+                    "segment_ids": list(segment_ids),
+                    "error": contract_outcome.result.get(
+                        "error",
+                        "structured contract output unavailable",
+                    ),
+                    "reason": "Contract provider/schema failure was downgraded only for the affected source chunk.",
+                    "basis": "public structured runtime outcome, contract-chunking.v1, and numbered NL fallback",
+                }
+            )
+        stage_receipts.append(
+            _stage_receipt(
+                pair=pair,
+                stage_id=(
+                    f"{pair.pair_id}:r{round_index}:nl-contract:"
+                    f"chunk-{chunk_index}-of-{len(contract_chunks)}"
+                ),
+                stage_name="nl_contract_extraction",
+                status=(
+                    "completed"
+                    if contract_outcome.succeeded
+                    else "completed_with_diagnostics"
+                ),
+                artifact_roles=("natural_language", "working_contract", "source_trace"),
+                output=chunk_output,
+                outcome=contract_outcome,
+                projection_version="stage-context-projection.v4+contract-chunking.v1",
+                reason=chunk_output.reason,
+                basis=chunk_output.basis,
+            )
+        )
+    try:
+        contract_response = merge_contract_chunks(contract_parts)
+    except ValueError as exc:
+        contract_merge_failed = True
+        contract_response = fallback_contracts(pair, str(exc))
         all_errors.append(
             {
-                "stage": "nl_contract_extraction",
-                "error": contract_outcome.result.get("error", "structured contract output unavailable"),
-                "reason": "Contract provider/schema failure was downgraded to a deterministic receipt.",
-                "basis": "public structured runtime outcome and numbered NL fallback",
+                "stage": "nl_contract_extraction_merge",
+                "error": {"code": "contract_chunk_merge_error", "message": str(exc)},
+                "reason": "Exact-ID chunk merge rejected an overlapping, duplicate, or out-of-chunk model object; the complete NL fallback remains auditable.",
+                "basis": "contract-chunking.v1 exact segment and contract ID validator",
             }
         )
-    stage_receipts.append(
-        _stage_receipt(
-            pair=pair,
-            stage_id=f"{pair.pair_id}:r{round_index}:nl-contract",
-            stage_name="nl_contract_extraction",
-            status="completed" if contract_outcome.succeeded else "completed_with_diagnostics",
-            artifact_roles=("natural_language", "working_contract", "source_trace"),
-            output=contract_response,
-            outcome=contract_outcome,
-            reason=contract_response.reason,
-            basis=contract_response.basis,
+    stage_outputs["nl_contract_chunks"] = [
+        item.model_dump(mode="json") for item in contract_chunk_outputs
+    ]
+    stage_outputs["nl_contract_extraction"] = contract_response.model_dump(mode="json")
+    if len(contract_chunks) > 1:
+        stage_receipts.append(
+            _stage_receipt(
+                pair=pair,
+                stage_id=f"{pair.pair_id}:r{round_index}:nl-contract:merge",
+                stage_name="nl_contract_extraction",
+                status=(
+                    "completed"
+                    if not contract_merge_failed
+                    else "completed_with_diagnostics"
+                ),
+                artifact_roles=("natural_language", "working_contract", "source_trace"),
+                output=contract_response,
+                reason=contract_response.reason,
+                basis=contract_response.basis,
+                projection_version="contract-chunking.v1-exact-id-merge",
+            )
         )
-    )
 
     source_prompt = build_grounding_prompt(
         pair,
@@ -1409,7 +1514,7 @@ def _method_cell(
             errors.append({"candidate_index": index, "error_type": type(exc).__name__, "message": str(exc), "reason": "Candidate publication failed; the cell remains readable.", "basis": "Candidate-level diagnostic preservation."})
     prompt_hash = _hash_json(
         {
-            "contract": contract_prompt,
+            "contract_chunks": contract_prompts,
             "source_grounding": source_prompt,
             "model_grounding": model_prompt,
             "d_adjudication": d_prompt,
@@ -1418,7 +1523,10 @@ def _method_cell(
     )
     llm_call = _aggregate_outcomes(all_outcomes)
     real_llm = bool(all_outcomes) and all(outcome.real_llm for outcome in all_outcomes)
-    provider_or_schema_failure = any(not outcome.succeeded for outcome in all_outcomes)
+    provider_or_schema_failure = (
+        contract_merge_failed
+        or any(not outcome.succeeded for outcome in all_outcomes)
+    )
     eligible = bool(records and real_llm and not provider_or_schema_failure)
     eligibility_reasons = (
         ["real_structured_stage_outputs", "method_receipt_complete"]

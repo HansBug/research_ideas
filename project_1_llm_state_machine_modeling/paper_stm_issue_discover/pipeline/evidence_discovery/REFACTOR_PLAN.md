@@ -137,6 +137,13 @@ scope 和 binding hint 值，并用完整 contract stage output 的 hash 代替�
 不得静默删节；确定性 stage 也必须记录 `deterministic-no-prompt`，不能用
 `context_budget_exceeded` 伪装业务 miss。
 
+contract structured output 使用 `contract-chunking.v1`：不超过 1200 字符的 NL 投影保持
+单块；超过后最多 5 个编号 NL segment 为一块。调用数随 segment 数线性增长且不按
+obligation 展开。每块保留独立 prompt/output/usage
+receipt，合并只接受不重叠的 exact segment IDs 和唯一 contract IDs；某块 provider/schema
+失败只对该块生成显式 fallback，并使 method cell 保持 diagnostics/ineligible，不能冷重跑
+或把失败项记为业务 miss。
+
 每条 W2 的 `audit_bundle` 是可独立复核的最小闭包，至少包含：谓词 ID 与注册表版本、
 完整谓词逻辑和绑定后的输入、编译后的 assertion/formal program 源码及其哈希、模型与
 程序哈希、实际后端运行结果、terminal state、counterexample/trace、四段 source

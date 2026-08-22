@@ -107,6 +107,13 @@ transition-property contract 至多一个 source、target 和 transition，以�
 不同 transition 的替代条件、事件是否要求 scope-wide consumer，仍由 LLM 基于语义判断，
 不得用关键词、正则或字符串形状代替。
 
+当一个 pair 的编号 NL 投影超过 1200 字符时，contract stage 按源顺序做有界分块，每块
+最多 5 段；短投影保持单块，避免无谓增加调用。每块仍携带完整 context manifest 和输入
+哈希，只投影本块的 exact segment IDs。每块的 Pydantic 输出、prompt
+hash、usage、retry 和 reason/basis 独立落盘，再由确定性合并器仅按 exact segment/contract ID
+合并。该分块只控制结构化输出规模，不改变义务语义；不得退化为逐 obligation 调用，也不得
+把分块失败扩散成全 pair 的静默 miss。
+
 所有输入模型、LLM 响应和阶段 receipt 都使用 Pydantic model；字段必须有约束、完整
 description 和非空 reason/basis。LLM 不输出 W/D/L；D 阶段只输出封闭的 semantic
 grounding/defeater facts，方法代码将这些 typed facts 映射为 D2/D1/D0，W 则完全由

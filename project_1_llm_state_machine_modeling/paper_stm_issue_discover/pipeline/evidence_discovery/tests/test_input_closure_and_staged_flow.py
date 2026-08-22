@@ -11,15 +11,23 @@ from pipeline.evidence_discovery.inputs.context import (
     context_payload,
     prompt_context_payload,
 )
-from pipeline.evidence_discovery.orchestration.runner import _method_cell, run_experiment
+from pipeline.evidence_discovery.orchestration.runner import (
+    _contract_segment_chunks,
+    _method_cell,
+    run_experiment,
+)
 from pipeline.evidence_discovery.orchestration.runtime import StructuredCallOutcome
 from pipeline.evidence_discovery.semantics import (
     DAdjudicationResponse,
+    ContractChunkOutput,
     GroundingDisposition,
     GroundingResponse,
     NLContract,
     NLContractResponse,
     StageReceipt,
+    build_contract_prompt,
+    fallback_contracts,
+    merge_contract_chunks,
 )
 
 
@@ -45,13 +53,22 @@ class FixtureStructuredRuntime:
         self.prompts.append((kind, prompt))
         pair_id = artifact_id.split("/")[1]
         if schema is NLContractResponse:
+            context_marker = "Stage-scoped context projection and complete artifact manifest:\n"
+            context_start = prompt.index(context_marker) + len(context_marker)
+            context, _ = json.JSONDecoder().raw_decode(prompt[context_start:])
+            segment_id = context["contract_chunk"]["segment_ids"][0]
+            segment = next(
+                item
+                for item in load_pair(REPORT_ROOT / "pairs" / pair_id).nl_segments
+                if item.segment_id == segment_id
+            )
             response = NLContractResponse(
                 contracts=[
                     NLContract(
-                        contract_id="NL-CONTRACT-NL1",
-                        segment_id="NL1",
-                        quote="The supplied source clause.",
-                        normative_statement="The supplied source clause is preserved.",
+                        contract_id=f"NL-CONTRACT-{segment_id}",
+                        segment_id=segment_id,
+                        quote=segment.text,
+                        normative_statement=segment.text,
                         locus_kind="transition",
                         locus_names=("Synthetic.Source", "Synthetic.Target"),
                         property="transition_endpoints",
@@ -60,12 +77,12 @@ class FixtureStructuredRuntime:
                         evidence_types=("source_identity", "transition_fact"),
                         binding_hints=(),
                         scope="source-supplied scope",
-                        source_refs=["nl:NL1"],
+                        source_refs=[f"nl:{segment_id}"],
                         reason="Fixture contract reason.",
                         basis="Fixture numbered NL basis.",
                     )
                 ],
-                segment_disposition={"NL1": "covered"},
+                segment_disposition={segment_id: "covered"},
                 reason="Fixture contract response reason.",
                 basis="Fixture contract response basis.",
             )
@@ -290,6 +307,71 @@ def test_single_line_numbered_nl_uses_constrained_legacy_delimiters() -> None:
     assert all("constrained one-line legacy delimiter" in item.basis for item in segments)
 
 
+def test_0029_contract_chunks_are_bounded_and_exact() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+
+    chunks = _contract_segment_chunks(pair)
+
+    assert chunks == (
+        ("NL1", "NL2", "NL3", "NL4", "NL5"),
+        ("NL6", "NL7", "NL8", "NL9", "NL10"),
+        ("NL11", "NL12", "NL13"),
+    )
+    prompts = [
+        build_contract_prompt(
+            pair,
+            1,
+            [],
+            segment_ids=segment_ids,
+            chunk_index=index,
+            chunk_count=len(chunks),
+        )
+        for index, segment_ids in enumerate(chunks, start=1)
+    ]
+    assert "Contract chunk: 1/3" in prompts[0]
+    assert '"segment_id": "NL5"' in prompts[0]
+    assert '"segment_id": "NL6"' not in prompts[0]
+    assert '"segment_id": "NL6"' in prompts[1]
+    assert '"segment_id": "NL11"' not in prompts[1]
+    assert '"segment_id": "NL11"' in prompts[2]
+
+
+def test_contract_chunk_outputs_merge_only_by_exact_ids() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    chunks = _contract_segment_chunks(pair)
+    parts = [
+        (
+            segment_ids,
+            fallback_contracts(
+                pair,
+                "provider-free chunk fixture",
+                segment_ids=segment_ids,
+            ),
+        )
+        for segment_ids in chunks
+    ]
+
+    merged = merge_contract_chunks(parts)
+    chunk_receipt = ContractChunkOutput(
+        chunk_index=1,
+        chunk_count=len(chunks),
+        segment_ids=chunks[0],
+        prompt_hash="sha256:" + "1" * 64,
+        response=parts[0][1],
+        reason="The fixture retains one bounded contract response.",
+        basis="contract-chunking.v1 provider-free fixture",
+    )
+
+    assert [item.segment_id for item in merged.contracts] == [
+        f"NL{number}" for number in range(1, 14)
+    ]
+    assert list(merged.segment_disposition) == [f"NL{number}" for number in range(1, 14)]
+    assert len({item.contract_id for item in merged.contracts}) == 13
+    assert chunk_receipt.reason and chunk_receipt.basis
+    with pytest.raises(ValueError, match="outside its exact assignment"):
+        merge_contract_chunks([(chunks[0], parts[1][1])])
+
+
 def test_representative_v27_predecessor_pairs_have_complete_input_closure() -> None:
     for pair_id in ("0004", "0023", "0029", "0035", "0046", "0053"):
         pair = load_pair(REPORT_ROOT / "pairs" / pair_id)
@@ -415,6 +497,7 @@ def test_generated_fact_paths_are_materialized_and_hash_addressed() -> None:
 
 
 def test_representative_pairs_staged_fixture_smoke(tmp_path: Path) -> None:
+    calls_per_cell: list[int] = []
     for pair_id in ("0004", "0023", "0029", "0035", "0046", "0053"):
         pair = load_pair(REPORT_ROOT / "pairs" / pair_id)
         runtime = FixtureStructuredRuntime()
@@ -425,9 +508,22 @@ def test_representative_pairs_staged_fixture_smoke(tmp_path: Path) -> None:
             previous=[],
             output_root=tmp_path / pair_id,
         )
-        assert len(runtime.prompts) == 4
+        contract_chunk_count = len(_contract_segment_chunks(pair))
+        assert len(runtime.prompts) == contract_chunk_count + 3
+        calls_per_cell.append(len(runtime.prompts))
+        assert sum(
+            kind == "nl_contract_extraction"
+            for kind, _ in runtime.prompts
+        ) == contract_chunk_count
         assert cell["context_manifest"]["manifest_hash"] == pair.context_manifest.manifest_hash
         assert cell["evidence_records"]
+        assert all(
+            ContractChunkOutput.model_validate(item).reason
+            and ContractChunkOutput.model_validate(item).basis
+            for item in cell["stage_outputs"]["nl_contract_chunks"]
+        )
+    assert calls_per_cell == [5, 4, 6, 5, 4, 4]
+    assert sum(calls_per_cell) * 3 == 84
     assert all(item["reason"] and item["basis"] for item in cell["stage_receipts"])
     assert all(item["input_manifest_hash"] == pair.context_manifest.manifest_hash for item in cell["stage_receipts"])
     contract_ids = {

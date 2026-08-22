@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Sequence
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -137,6 +138,28 @@ class NLContractResponse(BaseModel):
     segment_disposition: dict[str, Literal["covered", "context", "ambiguous"]] = Field(default_factory=dict, description="Disposition for supplied NL segment IDs only; every key must be an input segment ID.")
     reason: str = Field(min_length=1, description="LLM explanation of the overall contract extraction decision.")
     basis: str = Field(min_length=1, description="LLM basis identifying the supplied NL segments and source context used.")
+
+
+class ContractChunkOutput(BaseModel):
+    """Audited output of one bounded NL-contract extraction chunk."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    chunk_index: int = Field(ge=1, description="One-based contract chunk index in deterministic source order.")
+    chunk_count: int = Field(ge=1, description="Total number of contract chunks in this method cell.")
+    segment_ids: tuple[str, ...] = Field(min_length=1, description="Exact numbered NL segment IDs assigned to this chunk and no other chunk.")
+    prompt_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$", description="Hash of the exact chunk prompt sent through the public runtime.")
+    response: NLContractResponse = Field(description="Validated model response, or the explicit per-chunk deterministic fallback after provider/schema failure.")
+    reason: str = Field(min_length=1, description="Why this bounded chunk exists and how its output is retained.")
+    basis: str = Field(min_length=1, description="Versioned chunking rule and exact segment assignment basis.")
+
+    @model_validator(mode="after")
+    def validate_chunk_position(self) -> ContractChunkOutput:
+        """Keep chunk position metadata internally consistent."""
+
+        if self.chunk_index > self.chunk_count:
+            raise ValueError("chunk_index cannot exceed chunk_count")
+        return self
 
 
 class GroundingDisposition(BaseModel):
@@ -361,7 +384,7 @@ PREDICATE_ROUTING_GUIDANCE = """Frozen predicate routing discipline:
 - For a missing fact, bind the expected exact model/source element and the observed absence or counterexample. For a present fact, preserve it as a non-violation observation unless the supplied dossier identifies a distinct violated obligation."""
 
 
-CONTRACT_SYSTEM_PROMPT = f"""You are the NL contract extraction stage of the paper1 evidence_discovery method. {COMMON_RULES} Extract atomic source obligations before inspecting model satisfaction. For every contract, fill the typed semantic key `(locus_kind, locus_names, property, expected_direction, violation_direction, evidence_types)` and typed binding hints. Split independently violable containment, initialization, transition endpoint, trigger, guard, effect, action, reachability, progress, event-consumer, region, variable-delta, and excess-behavior clauses instead of bundling them. Preserve qualifiers, ordering, initialization/operation/termination scope, and ambiguity. The violation direction says what later grounding must test; it does not claim that the defect exists.
+CONTRACT_SYSTEM_PROMPT = f"""You are the NL contract extraction stage of the paper1 evidence_discovery method. {COMMON_RULES} Extract atomic source obligations before inspecting model satisfaction. For every contract, fill the typed semantic key `(locus_kind, locus_names, property, expected_direction, violation_direction, evidence_types)` and typed binding hints. Split independently violable containment, initialization, transition endpoint, trigger, guard, effect, action, reachability, progress, event-consumer, region, variable-delta, and excess-behavior clauses instead of bundling them. Preserve qualifiers, ordering, initialization/operation/termination scope, and ambiguity. The violation direction says what later grounding must test; it does not claim that the defect exists. Keep each per-contract reason and basis concise and specific; do not restate the full input context.
 
 Atomic contract shape:
 - One contract represents one property at one independently violable locus. A transition-property row has at most one source, one target, and one transition hint.
@@ -434,21 +457,105 @@ decided from the supplied dossier. Never turn an unsupported V4 plan into W2,
 and never discard a precise W1 frontier issue."""
 
 
-def build_contract_prompt(pair: PairInput, round_index: int, previous: list[dict[str, Any]]) -> str:
-    """Build the contract prompt with the complete context manifest."""
+def build_contract_prompt(
+    pair: PairInput,
+    round_index: int,
+    previous: list[dict[str, Any]],
+    *,
+    segment_ids: Sequence[str] | None = None,
+    chunk_index: int = 1,
+    chunk_count: int = 1,
+) -> str:
+    """Build one bounded contract prompt with the complete manifest closure."""
+
+    selected_ids = tuple(segment_ids or (item.segment_id for item in pair.nl_segments))
+    known_segments = {item.segment_id: item for item in pair.nl_segments}
+    unknown_ids = [segment_id for segment_id in selected_ids if segment_id not in known_segments]
+    if unknown_ids:
+        raise ValueError(f"contract chunk contains unknown segment IDs: {unknown_ids}")
+    if not selected_ids:
+        raise ValueError("contract chunk must contain at least one numbered NL segment")
+    if chunk_index < 1 or chunk_count < 1 or chunk_index > chunk_count:
+        raise ValueError("contract chunk index must be within the declared chunk count")
+
+    context = prompt_context_payload(pair, stage="nl_contract_extraction")
+    context["numbered_nl"] = [
+        known_segments[segment_id].model_dump(mode="json")
+        for segment_id in selected_ids
+    ]
+    context["contract_chunk"] = {
+        "schema_version": "contract-chunking.v1",
+        "chunk_index": chunk_index,
+        "chunk_count": chunk_count,
+        "segment_ids": selected_ids,
+        "reason": "This bounded chunk limits structured output size while preserving exact numbered-NL ownership.",
+        "basis": "deterministic source-order partition; complete artifacts remain identified by the context manifest",
+    }
+    context_text = json.dumps(context, ensure_ascii=False, sort_keys=True, indent=2)
 
     return f"""{COMMON_RULES}
 
 Stage: nl_contract_extraction
 Round: {round_index}
+Contract chunk: {chunk_index}/{chunk_count}
 Stage-scoped context projection and complete artifact manifest:
-{_context_text(pair, stage="nl_contract_extraction")}
+{context_text}
 
 Prior method candidates from this pair's earlier round only:
 {json.dumps(_safe_previous(previous), ensure_ascii=False, sort_keys=True, indent=2)}
 
-Extract one NLContract per independently violable normative obligation. The typed semantic key and binding hints are the contract plan consumed by both grounding branches. Mark each supplied segment as covered, context, or ambiguous. Do not include ledger IDs, baseline labels, judge examples, W/D/L values, or hidden expected answers.
+Extract one NLContract per independently violable normative obligation. The typed semantic key and binding hints are the contract plan consumed by both grounding branches. Return contracts and dispositions only for the exact segment IDs in this chunk; mark every supplied chunk segment as covered, context, or ambiguous. Every contract_id must include its exact segment_id (for example, NL-CONTRACT-NL6-ENDPOINT-1) so IDs remain unique after deterministic cross-chunk merge. Do not include ledger IDs, baseline labels, judge examples, W/D/L values, or hidden expected answers.
 """
+
+
+def merge_contract_chunks(
+    chunks: Sequence[tuple[Sequence[str], NLContractResponse]],
+) -> NLContractResponse:
+    """Merge exact disjoint contract chunks without interpreting free text."""
+
+    if not chunks:
+        raise ValueError("at least one contract chunk is required")
+    expected_ids: list[str] = []
+    contracts: list[NLContract] = []
+    dispositions: dict[str, Literal["covered", "context", "ambiguous"]] = {}
+    contract_ids: set[str] = set()
+    chunk_hashes: list[str] = []
+    for raw_segment_ids, response in chunks:
+        segment_ids = tuple(raw_segment_ids)
+        segment_set = set(segment_ids)
+        if not segment_ids or len(segment_set) != len(segment_ids):
+            raise ValueError("each contract chunk must contain unique segment IDs")
+        overlap = segment_set.intersection(expected_ids)
+        if overlap:
+            raise ValueError(f"contract chunks overlap on segment IDs: {sorted(overlap)}")
+        expected_ids.extend(segment_ids)
+        outside_contracts = sorted(
+            {contract.segment_id for contract in response.contracts}
+            - segment_set
+        )
+        outside_dispositions = sorted(set(response.segment_disposition) - segment_set)
+        if outside_contracts or outside_dispositions:
+            raise ValueError(
+                "contract chunk emitted segment IDs outside its exact assignment: "
+                f"contracts={outside_contracts}, dispositions={outside_dispositions}"
+            )
+        for contract in response.contracts:
+            if contract.contract_id in contract_ids:
+                raise ValueError(f"duplicate contract ID across chunks: {contract.contract_id}")
+            contract_ids.add(contract.contract_id)
+            contracts.append(contract)
+        for segment_id in segment_ids:
+            dispositions[segment_id] = response.segment_disposition.get(
+                segment_id,
+                "ambiguous",
+            )
+        chunk_hashes.append(_hash(response.model_dump(mode="json")))
+    return NLContractResponse(
+        contracts=contracts,
+        segment_disposition=dispositions,
+        reason="Bounded contract chunks were merged in exact source order without changing any typed semantic key.",
+        basis="contract-chunking.v1; chunk response hashes: " + ", ".join(chunk_hashes),
+    )
 
 
 def build_grounding_prompt(
@@ -785,9 +892,15 @@ def build_method_prompt(pair: PairInput, round_index: int, previous: list[dict[s
     )
 
 
-def fallback_contracts(pair: PairInput, reason: str) -> NLContractResponse:
+def fallback_contracts(
+    pair: PairInput,
+    reason: str,
+    *,
+    segment_ids: Sequence[str] | None = None,
+) -> NLContractResponse:
     """Create an auditable deterministic contract fallback after provider/schema failure."""
 
+    selected_ids = set(segment_ids or (item.segment_id for item in pair.nl_segments))
     contracts = tuple(
         NLContract(
             contract_id=f"NL-CONTRACT-{segment.segment_id}",
@@ -807,10 +920,15 @@ def fallback_contracts(pair: PairInput, reason: str) -> NLContractResponse:
             basis=f"{reason}; nl-segmentation.v2",
         )
         for segment in pair.nl_segments
+        if segment.segment_id in selected_ids
     )
     return NLContractResponse(
         contracts=contracts,
-        segment_disposition={segment.segment_id: "covered" for segment in pair.nl_segments},
+        segment_disposition={
+            segment.segment_id: "covered"
+            for segment in pair.nl_segments
+            if segment.segment_id in selected_ids
+        },
         reason="Provider/schema failure was downgraded to a deterministic source-contract receipt.",
         basis="exact numbered NL artifact and no-silent-drop contract",
     )
