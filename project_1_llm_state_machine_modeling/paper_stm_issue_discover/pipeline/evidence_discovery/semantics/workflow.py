@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Sequence
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -30,12 +31,28 @@ StateSemanticRole = Literal[
     "other_state",
 ]
 
+SegmentDisposition = Literal["covered", "context", "ambiguous", "unreported"]
+SegmentSemanticCategory = Literal[
+    "containment",
+    "initial_default_entry",
+    "transition_endpoint",
+    "transition_group",
+    "guard_relation",
+    "termination",
+    "event_scope",
+    "action",
+    "effect",
+    "reachability_progress",
+    "other",
+]
+
 
 class NLTransitionAlternative(BaseModel):
     """One normative target alternative in a v27-style transition group."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
+    schema_version: Literal["paper1.transition-alternative.v1"] = Field(default="paper1.transition-alternative.v1", description="Transition alternative 的持久化 schema 版本；不参与语义条件比较。")
     alternative_id: str = Field(pattern=r"^ALT-[A-Za-z0-9_.-]+$", min_length=5, description="Stable response-local alternative ID copied by grounding when it discusses this exact member.")
     target_name: str = Field(min_length=1, description="Normative target concept named by the numbered NL; preserve discourse coreference instead of inheriting an arbitrary model scope.")
     condition: str | None = Field(default=None, min_length=1, description="Complete condition semantically attached to this target alternative, or null when the NL states an unconditional relation. Preserve a trailing condition that semantically governs a coordinated target list on every governed alternative; never distribute its conjuncts one per target unless the NL explicitly pairs them that way.")
@@ -51,6 +68,7 @@ class NLTransitionGroup(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
+    schema_version: Literal["paper1.transition-group.v1"] = Field(default="paper1.transition-group.v1", description="Transition group 的持久化 schema 版本；用于 artifact/resume 审计。")
     group_id: str = Field(pattern=r"^NL-GROUP-[A-Za-z0-9_.-]+$", min_length=10, description="Stable group ID derived from one supplied numbered segment and reused only for this exact shared-source relation.")
     segment_id: str = Field(pattern=r"^NL[0-9]+(?:\.[0-9]+)?$", min_length=3, description="Exact numbered NL segment containing or completing this transition relation.")
     source_name: str = Field(min_length=1, description="Normative source concept after LLM discourse/coreference resolution; never default to the enclosing model merely because a later sentence omits its source or because an earlier introductory sentence says the enclosing scope can transition among substates.")
@@ -67,6 +85,53 @@ class NLTransitionGroup(BaseModel):
         if len(alternative_ids) != len(set(alternative_ids)):
             raise ValueError("transition group alternative_id values must be unique")
         return self
+
+
+class SegmentCoverage(BaseModel):
+    """一个编号 NL segment 的结构化提取覆盖审计。
+
+    contract extraction 可产生该对象，runner 对缺失 segment 做确定性补齐，grounding
+    只把它作为“哪些 typed semantic units 已出现”的观察面。它不证明语义完整，不是
+    candidate、W/D/L、publish 或 judge gate；covered 也不表示该段没有遗漏义务。
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    schema_version: Literal["paper1.segment-coverage.v1"] = Field(
+        default="paper1.segment-coverage.v1",
+        description="SegmentCoverage 的持久化 schema 版本；用于 artifact/resume 审计。",
+    )
+    segment_id: str = Field(
+        pattern=r"^NL[0-9]+(?:\.[0-9]+)?$",
+        description="输入闭包中的精确编号 NL segment ID；不得使用 contract 或 ledger ID 代替。",
+    )
+    disposition: SegmentDisposition = Field(
+        description="covered 表示至少提取一个 typed unit，context 表示仅作上下文，ambiguous 表示有未闭合读法，unreported 表示 provider 未给 disposition；任何值都不阻止后续 issue。",
+    )
+    semantic_categories: tuple[SegmentSemanticCategory, ...] = Field(
+        default_factory=tuple,
+        description="该 segment 已实际形成的 typed semantic unit 类别；空集合表示未提取，不等于没有规范义务。",
+    )
+    contract_ids: tuple[str, ...] = Field(
+        default_factory=tuple,
+        description="该 segment 已产出的 exact atomic contract IDs；下游据此追踪生命周期，不据此判定满足或缺陷。",
+    )
+    transition_group_ids: tuple[str, ...] = Field(
+        default_factory=tuple,
+        description="该 segment 已产出的 shared-source transition group IDs；空值表示没有结构化 group。",
+    )
+    unresolved_readings: tuple[str, ...] = Field(
+        default_factory=tuple,
+        description="provider 明确指出但尚未闭合的语义读法；空值只表示未报告 unresolved reading，不证明完整。",
+    )
+    reason: str = Field(
+        min_length=1,
+        description="解释该 coverage 行为何具有当前 disposition/categories，不能声称 ledger 命中。",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="列出 supplied segment、contract/group IDs 或 provider unresolved basis。",
+    )
 
 
 class NLContract(BaseModel):
@@ -217,6 +282,7 @@ class NLContractResponse(BaseModel):
     contracts: list[NLContract] = Field(default_factory=list, description="Complete list of independently violable atomic contracts from normative numbered NL. Preserve containment, initial/default entry, transition endpoints, explicit progress/response, termination, event-consumer scope, and other distinct properties without manufacturing progress for every mentioned operating state. Descriptive segments may be omitted with an explained top-level basis. Every segment marked covered must retain at least one atomic contract carrying that exact segment_id, but covered never means all other obligations in the segment may be dropped. A schema-correction turn must return a complete replacement list containing every valid contract and semantic group, not only the corrected row or a summary placeholder.")
     transition_groups: list[NLTransitionGroup] = Field(default_factory=list, description="v27-style shared-source transition relations used for discourse binding and alternative comparison. A broad capability statement without exact alternatives is context, not an element_declaration contract or permission to force later sequential clauses into one owner-sourced group. Each endpoint remains an atomic contract; when alternatives semantically require distinguishability, add a separate guard_disjointness contract rather than hiding that property inside endpoint rows.")
     segment_disposition: dict[str, Literal["covered", "context", "ambiguous"]] = Field(default_factory=dict, description="Disposition for supplied NL segment IDs only; every key must be an input segment ID. Use covered only when at least one contract in this same response carries that exact segment_id; context and ambiguous may have no contract.")
+    segment_coverage: list[SegmentCoverage] = Field(default_factory=list, description="Structured per-segment completeness audit. Return one row per segment when possible, preserving unresolved readings; runner deterministically fills missing rows without treating them as semantic failures. This list is observable audit only and never gates candidate generation or publication.")
     reason: str = Field(min_length=1, description="LLM explanation of the overall contract extraction decision.")
     basis: str = Field(min_length=1, description="LLM basis identifying the supplied NL segments and source context used.")
 
@@ -245,6 +311,25 @@ class NLContractResponse(BaseModel):
         group_ids = [group.group_id for group in self.transition_groups]
         if len(group_ids) != len(set(group_ids)):
             raise ValueError("transition_groups must contain unique group_id values")
+        coverage_ids = [item.segment_id for item in self.segment_coverage]
+        if len(coverage_ids) != len(set(coverage_ids)):
+            raise ValueError(
+                "segment_coverage must contain each segment_id at most once; "
+                f"duplicates={sorted(segment_id for segment_id in set(coverage_ids) if coverage_ids.count(segment_id) > 1)}"
+            )
+        known_contract_ids = set(contract_ids)
+        known_group_ids = set(group_ids)
+        for index, coverage in enumerate(self.segment_coverage):
+            unknown_contracts = sorted(set(coverage.contract_ids) - known_contract_ids)
+            unknown_groups = sorted(
+                set(coverage.transition_group_ids) - known_group_ids
+            )
+            if unknown_contracts or unknown_groups:
+                raise ValueError(
+                    f"segment_coverage[{index}] references unknown typed units; "
+                    f"unknown_contract_ids={unknown_contracts}; "
+                    f"unknown_transition_group_ids={unknown_groups}"
+                )
         return self
 
 
@@ -266,6 +351,84 @@ class GroundingUnresolved(BaseModel):
 GroundingLens = Literal["contract_structure_contrast", "behavior_consequence"]
 
 
+class SemanticBinding(BaseModel):
+    """grounding 对一个 contract argument 的精确跨制品语义绑定。
+
+    两个 grounding lens 可产生该对象，runner/frontier 消费其 exact refs。它表达
+    “NL/source concept 对应哪个 supplied source/model element”，不表达满足、缺陷、
+    W、D、L 或 judge 关系；ambiguous/unbound 绝不能被确定性代码猜成 exact。
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    schema_version: Literal["paper1.semantic-binding.v1"] = Field(
+        default="paper1.semantic-binding.v1",
+        description="SemanticBinding 的持久化 schema 版本；用于跨 lens/artifact 审计。",
+    )
+    binding_id: str = Field(
+        pattern=r"^BIND-[A-Za-z0-9_.-]+$",
+        description="本 grounding response 内唯一的 binding ID；不是 contract、element 或 ledger ID。",
+    )
+    contract_id: str = Field(
+        pattern=r"^NL-CONTRACT-[A-Za-z0-9_.-]+$",
+        description="被绑定的 supplied/branch-local atomic contract ID；runner 会随 derived identity 一并 canonicalize。",
+    )
+    role: Literal[
+        "owner",
+        "scope",
+        "source",
+        "target",
+        "transition",
+        "event",
+        "state",
+    ] = Field(
+        description="该 concept 在 atomic contract 中的 typed argument role；target 不得用 nearby owner/source 代替。",
+    )
+    concept_name: str = Field(
+        min_length=1,
+        description="NL contract 中被解释的规范概念；它用于审计，不由 deterministic 代码做字符串匹配。",
+    )
+    status: Literal["exact", "ambiguous", "unbound"] = Field(
+        description="exact 表示 supplied facts 支持唯一 ref；ambiguous/unbound 保留不确定性且不得进入 exact frontier。",
+    )
+    source_element_ref: str | None = Field(
+        default=None,
+        min_length=1,
+        description="exact canonical/source-inventory element identity，若 source 侧没有唯一对应则为 null；不是文件行号泛称。",
+    )
+    model_element_ref: str | None = Field(
+        default=None,
+        min_length=1,
+        description="该规范概念对应的 exact closed ModelIR element ref；null 表示没有唯一模型绑定，不能由名称补猜。",
+    )
+    carrier_transition_ref: str | None = Field(
+        default=None,
+        min_length=1,
+        description="当该 role 由一个实际 closed transition 承载或反驳时给出其 exact ref；仅声明 state/event 时为 null。",
+    )
+    reason: str = Field(
+        min_length=1,
+        description="解释 supplied NL/source/model facts 为何支持当前 binding status 和 refs。",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="列出 exact segment、contract、source inventory 和 ModelIR refs；不得引用 ledger/judge。",
+    )
+
+    @model_validator(mode="after")
+    def validate_exact_ref_presence(self) -> SemanticBinding:
+        """Require a reproducible ref for exact status without semantic inference."""
+
+        if self.status == "exact" and not (
+            self.source_element_ref or self.model_element_ref
+        ):
+            raise ValueError(
+                "SemanticBinding status='exact' requires source_element_ref or "
+                "model_element_ref; use ambiguous/unbound when no exact ref exists"
+            )
+        return self
+
+
 class GroundingResponse(BaseModel):
     """Structured LLM response for one v27 complementary discovery lens."""
 
@@ -274,6 +437,7 @@ class GroundingResponse(BaseModel):
     lens: GroundingLens = Field(description="Exact v27 audit-lens identity; both lenses receive the same cross-view context and response contract.")
     additional_contracts: list[NLContract] = Field(default_factory=list, description="Sparse v27-style atomic obligations derived by this grounding lens when exact cross-view facts reveal a causal property absent from the NL-only contract plan. Each row must retain one supplied segment_id and source obligation, use a unique NL-CONTRACT-...-DERIVED-... ID containing this response's exact lens name, and carry its own reason/basis. Do not restate supplied contracts, enumerate satisfied checks, or derive obligations from labels, identifier shape, ledger data, or historical results.")
     additional_transition_groups: list[NLTransitionGroup] = Field(default_factory=list, description="Sparse v27-style transition groups omitted by NL-only extraction and established only after cross-view semantic grounding. Do not restate supplied groups; every target member needs exact reason/basis and any observed transition ref must come from the supplied inventories.")
+    semantic_bindings: list[SemanticBinding] = Field(default_factory=list, description="Sparse exact cross-artifact argument bindings needed by candidates/frontiers. Emit them for concepts whose NL name alone cannot serve as a ModelIR ref, especially wrong-target/wrong-scope relations; ambiguous or unbound concepts remain explicit and are never repaired by text similarity.")
     candidates: list[CandidateIssue] = Field(default_factory=list, description="Candidate claims grounded across author source, closed FCSTM, and deterministic facts. Every candidate list item must independently carry all CandidateIssue fields, including its own non-empty reason and basis; a top-level or unresolved basis does not satisfy a candidate. The contract_id must name either one supplied contract or one row in additional_contracts. Candidates must not emit W/D/L levels.")
     unresolved: list[GroundingUnresolved] = Field(default_factory=list, description="Sparse exact contract rows that this lens could not bind or assess. Omit satisfied and not-applicable contracts instead of restating the full contract table. Every unresolved row must carry its own reason and basis.")
     reason: str = Field(min_length=1, description="LLM explanation of how this audit lens selected or rejected candidate claims.")
@@ -289,6 +453,9 @@ class GroundingResponse(BaseModel):
         additional_group_ids = [item.group_id for item in self.additional_transition_groups]
         if len(additional_group_ids) != len(set(additional_group_ids)):
             raise ValueError("additional_transition_groups must contain unique group_id values")
+        binding_ids = [item.binding_id for item in self.semantic_bindings]
+        if len(binding_ids) != len(set(binding_ids)):
+            raise ValueError("semantic_bindings must contain unique binding_id values")
         unresolved_ids = [item.contract_id for item in self.unresolved]
         if len(unresolved_ids) != len(set(unresolved_ids)):
             raise ValueError("unresolved must contain each contract_id at most once")
@@ -580,6 +747,85 @@ def normalize_contract_state_roles(
     )
 
 
+_SEGMENT_CATEGORY_BY_PROPERTY: dict[
+    ObligationProperty, SegmentSemanticCategory
+] = {
+    "containment": "containment",
+    "cardinality": "containment",
+    "region_structure": "containment",
+    "initial_entry": "initial_default_entry",
+    "transition_endpoints": "transition_endpoint",
+    "guard": "guard_relation",
+    "guard_disjointness": "guard_relation",
+    "guard_completeness": "guard_relation",
+    "termination": "termination",
+    "trigger_set": "event_scope",
+    "event_consumption": "event_scope",
+    "event_consumer_coverage": "event_scope",
+    "state_action": "action",
+    "behavior_occurrence": "action",
+    "effect": "effect",
+    "variable_delta": "effect",
+    "reachability": "reachability_progress",
+    "universal_reachability": "reachability_progress",
+    "route_avoidance": "reachability_progress",
+    "coaccessibility": "reachability_progress",
+    "bounded_response": "reachability_progress",
+    "deadlock_freedom": "reachability_progress",
+}
+
+
+def materialize_segment_coverage(
+    response: NLContractResponse,
+    supplied_segment_ids: Sequence[str],
+) -> NLContractResponse:
+    """Reconcile observable coverage from exact typed units without a semantic gate."""
+
+    existing = {item.segment_id: item for item in response.segment_coverage}
+    contracts_by_segment: dict[str, list[NLContract]] = {}
+    groups_by_segment: dict[str, list[NLTransitionGroup]] = {}
+    for contract in response.contracts:
+        contracts_by_segment.setdefault(contract.segment_id, []).append(contract)
+    for group in response.transition_groups:
+        groups_by_segment.setdefault(group.segment_id, []).append(group)
+
+    coverage_rows: list[SegmentCoverage] = []
+    for segment_id in supplied_segment_ids:
+        prior = existing.get(segment_id)
+        contracts = contracts_by_segment.get(segment_id, [])
+        groups = groups_by_segment.get(segment_id, [])
+        categories: list[SegmentSemanticCategory] = []
+        for contract in contracts:
+            category = _SEGMENT_CATEGORY_BY_PROPERTY.get(contract.property, "other")
+            if category not in categories:
+                categories.append(category)
+        if groups and "transition_group" not in categories:
+            categories.append("transition_group")
+        disposition: SegmentDisposition = response.segment_disposition.get(
+            segment_id,
+            prior.disposition if prior else "unreported",
+        )
+        coverage_rows.append(
+            SegmentCoverage(
+                segment_id=segment_id,
+                disposition=disposition,
+                semantic_categories=tuple(categories),
+                contract_ids=tuple(item.contract_id for item in contracts),
+                transition_group_ids=tuple(item.group_id for item in groups),
+                unresolved_readings=prior.unresolved_readings if prior else (),
+                reason=(
+                    "The runner reconciled this observable coverage row from exact typed contract/group membership; it makes no claim that extraction is complete."
+                ),
+                basis=(
+                    f"segment_id={segment_id}; contract_ids={[item.contract_id for item in contracts]}; "
+                    f"transition_group_ids={[item.group_id for item in groups]}; "
+                    f"provider_coverage_basis={prior.basis if prior else 'not supplied'}"
+                ),
+            )
+        )
+    return response.model_copy(update={"segment_coverage": coverage_rows})
+
+
 def _context_text(pair: PairInput, *, stage: Literal["nl_contract_extraction", "discovery_grounding", "d_adjudication"]) -> str:
     """Serialize the stage-scoped closure while retaining the complete manifest."""
 
@@ -691,6 +937,15 @@ non-empty reason and basis. These are structural output obligations, not optiona
 Before returning, inspect every candidate list item independently: copy the full
 `NL-CONTRACT-...` ID without abbreviation and include both `reason` and `basis`
 on that item.
+
+Use `semantic_bindings` when a normative concept needs an exact cross-artifact
+identity that cannot be represented by copying its NL name. For example, if the
+NL target concept is an exit role while source/model inventories contain a
+specific exit state, bind contract role=target to that exact source element and
+ModelIR state. If one actual closed transition carries the conflicting endpoint,
+put its exact ref in `carrier_transition_ref`. Emit status=exact only for a unique
+supplied mapping; otherwise use ambiguous/unbound. Do not infer mappings from
+substring, spelling, identifier shape, majority vote, or the current model target.
 
 Return sparse v27-style output. Do not restate satisfied or not-applicable
 contracts. Use `unresolved` only for an exact contract whose semantic source,
@@ -1355,6 +1610,8 @@ __all__ = [
     "NLContractResponse",
     "NLTransitionAlternative",
     "NLTransitionGroup",
+    "SegmentCoverage",
+    "SemanticBinding",
     "StageReceipt",
     "assemble_method_response",
     "build_contract_prompt",
@@ -1365,5 +1622,6 @@ __all__ = [
     "fallback_contracts",
     "fallback_d_adjudication",
     "fallback_grounding",
+    "materialize_segment_coverage",
     "normalize_contract_state_roles",
 ]

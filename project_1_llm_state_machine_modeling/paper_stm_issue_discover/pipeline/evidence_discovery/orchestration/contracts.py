@@ -223,7 +223,7 @@ class MethodCellReceipt(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["paper1.evidence_discovery.method_cell.v6"] = Field(
+    schema: Literal["paper1.evidence_discovery.method_cell.v8"] = Field(
         description="Versioned method-cell schema identifier."
     )
     run_id: str = Field(
@@ -316,7 +316,7 @@ class IndependentJudgeReceipt(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["paper1.evidence_discovery.independent_judge.v3"] = Field(
+    schema: Literal["paper1.evidence_discovery.independent_judge.v4"] = Field(
         description="Versioned independent-judge schema identifier."
     )
     run_id: str = Field(

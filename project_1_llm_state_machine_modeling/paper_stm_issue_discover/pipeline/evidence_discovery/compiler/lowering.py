@@ -2,14 +2,20 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..inputs.models import ModelIR
 from ..registry.model import PredicateRegistry
 from ..semantics.binding import BindingResult
 from ..semantics.obligations import CandidateIssue
+from .inputs import (
+    PredicateInputs,
+    UnsupportedPredicateInputs,
+    validate_predicate_inputs,
+)
 
 
 SUPPORTED_PREDICATES = frozenset(
@@ -52,14 +58,18 @@ def _hash_text(text: str) -> str:
 
 
 class PredicatePlan(BaseModel):
-    """Compiled deterministic plan for one frozen predicate candidate."""
+    """一个 frozen predicate candidate 的确定性编译计划。
+
+    compiler 产生该对象，backend 与 W state machine 消费；它对 normalized inputs、
+    formal program 和 capability gate 有权威，但不决定 candidate 的 D 或 judge 关系。
+    """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
     plan_id: str = Field(min_length=1, description="Stable plan identifier tied to the pair, round, and candidate obligation.")
     predicate_id: str | None = Field(default=None, description="Frozen predicate identifier, or null for a W1-only/unexpressed candidate.")
     registry_version: str = Field(min_length=1, description="Registry version used to compile this plan.")
-    inputs: dict[str, Any] = Field(description="Canonical predicate inputs after alias normalization and binding enrichment.")
+    inputs: PredicateInputs = Field(description="按 frozen predicate ID 判别的 typed canonical inputs；unsupported variant 表示 null/invalid 输入并强制降级，不能执行为 W2。")
     soundness_fragment: str = Field(min_length=1, description="Registered soundness boundary for the planned check.")
     assumptions: tuple[str, ...] = Field(description="Closed-input and algorithm assumptions required by the plan.")
     formal_program: str | None = Field(default=None, description="Compiled assertion or formal-program source, present only for an executable supported plan.")
@@ -75,6 +85,33 @@ class PredicatePlan(BaseModel):
     source_gate_passed: bool = Field(default=False, description="Whether the source audit status passed the current W2 gate.")
     binding_complete: bool = Field(default=True, description="Whether all registry-minimal inputs are present after normalization.")
     missing_inputs: tuple[str, ...] = Field(default=(), description="Required registry inputs missing from the candidate binding.")
+
+    @model_validator(mode="before")
+    @classmethod
+    def add_input_discriminator(cls, value: Any) -> Any:
+        """Tag legacy direct-constructor input maps from the explicit plan predicate ID."""
+
+        if not isinstance(value, Mapping):
+            return value
+        inputs = value.get("inputs")
+        if not isinstance(inputs, Mapping) or "predicate_id" in inputs:
+            return value
+        tagged_inputs = dict(inputs)
+        tagged_inputs["predicate_id"] = value.get("predicate_id") or "unsupported"
+        updated = dict(value)
+        updated["inputs"] = tagged_inputs
+        return updated
+
+    @model_validator(mode="after")
+    def validate_input_support_consistency(self) -> PredicatePlan:
+        """Prevent an invalid typed input object from entering a W2 backend."""
+
+        if isinstance(self.inputs, UnsupportedPredicateInputs) and self.supported:
+            raise ValueError(
+                "PredicatePlan.inputs is unsupported/invalid but supported=true; "
+                "typed input failures must deterministically downgrade to W1"
+            )
+        return self
 
     def to_dict(self) -> dict[str, Any]:
         return self.model_dump(mode="json")
@@ -93,8 +130,9 @@ def compile_plan(
     def normalize_inputs(values: dict[str, Any]) -> dict[str, Any]:
         normalized = dict(values)
         for alias, canonical in _INPUT_ALIASES.items():
-            if canonical not in normalized and alias in normalized:
-                normalized[canonical] = normalized.pop(alias)
+            if alias in normalized:
+                normalized.setdefault(canonical, normalized[alias])
+                normalized.pop(alias)
         for key in _SEQUENCE_INPUTS:
             value = normalized.get(key)
             if isinstance(value, str):
@@ -110,11 +148,15 @@ def compile_plan(
     predicate = registry.get(candidate_id)
     plan_id = f"{obligation_id}:r{round_index}:plan"
     if predicate is None:
+        typed_inputs = validate_predicate_inputs(
+            None,
+            normalize_inputs(dict(candidate.predicate_inputs)),
+        )
         return PredicatePlan(
             plan_id=plan_id,
             predicate_id=None,
             registry_version=registry.version,
-            inputs=normalize_inputs(dict(candidate.predicate_inputs)),
+            inputs=typed_inputs,
             soundness_fragment="none",
             assumptions=(),
             formal_program=None,
@@ -124,6 +166,7 @@ def compile_plan(
             basis="frozen registry lookup rejected missing or unknown predicate",
         )
     inputs = normalize_inputs(dict(candidate.predicate_inputs))
+    typed_inputs = validate_predicate_inputs(predicate.id, inputs)
     source_audit = (registry.source_audit or {}).get(predicate.id, {})
     source_status = source_audit.get("status") if isinstance(source_audit, dict) else None
     source_status = str(source_status) if source_status is not None else None
@@ -141,8 +184,17 @@ def compile_plan(
         f"ASSUMPTION closed_fcstm=true algorithm={model.algorithm_version}"
     )
     backend_supported = predicate.id in SUPPORTED_PREDICATES
-    supported = backend_supported and source_gate_passed and binding_complete
-    if not binding_complete:
+    input_shape_valid = not isinstance(typed_inputs, UnsupportedPredicateInputs)
+    supported = (
+        backend_supported
+        and source_gate_passed
+        and binding_complete
+        and input_shape_valid
+    )
+    if not input_shape_valid:
+        reason = "The normalized predicate inputs violate the exact discriminated Pydantic variant; the candidate remains auditable W1 and is not executed."
+        basis = f"typed predicate input validation errors={list(typed_inputs.validation_errors)}"
+    elif not binding_complete:
         reason = f"The predicate execution binding lacks required inputs {list(missing_inputs)}; an exact semantic element binding remains W1, while an imprecise semantic binding remains W0."
         basis = "registry minimal-input completeness check; deterministic W state machine retains the independent semantic binding boundary"
     elif not backend_supported:
@@ -158,7 +210,7 @@ def compile_plan(
         plan_id=plan_id,
         predicate_id=predicate.id,
         registry_version=registry.version,
-        inputs=inputs,
+        inputs=typed_inputs,
         soundness_fragment=predicate.soundness_fragment,
         assumptions=("closed_fcstm_input", model.algorithm_version),
         formal_program=formal_program if supported else None,

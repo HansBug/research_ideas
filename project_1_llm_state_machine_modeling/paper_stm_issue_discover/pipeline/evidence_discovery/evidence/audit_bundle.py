@@ -111,7 +111,7 @@ def build_audit_bundle(
             "name": plan.predicate_name,
             "family": plan.family,
             "semantics": plan.semantics,
-            "inputs": plan.inputs,
+            "inputs": plan.inputs.model_dump(mode="json"),
             "soundness_fragment": plan.soundness_fragment,
             "assumptions": list(plan.assumptions),
             "source_ids": list(plan.source_ids),

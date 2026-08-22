@@ -13,8 +13,9 @@ from pipeline.evidence_discovery.backends.bounded_verification import (
     _terminal_states,
     run_bounded_verification,
 )
-from pipeline.evidence_discovery.backends.topology import _graph
+from pipeline.evidence_discovery.backends.topology import _graph, run_topology
 from pipeline.evidence_discovery.compiler import compile_plan
+from pipeline.evidence_discovery.compiler.lowering import PredicatePlan
 from pipeline.evidence_discovery.evidence.audit_bundle import W2AuditBundle
 from pipeline.evidence_discovery.evidence.receipts import RawReceipt
 from pipeline.evidence_discovery.evidence.witness_levels import (
@@ -31,6 +32,7 @@ from pipeline.evidence_discovery.orchestration.contracts import (
     SourceProvenance,
 )
 from pipeline.evidence_discovery.orchestration.runner import (
+    JudgeRelationAssessment,
     JudgeResponse,
     LedgerAssessment,
     ReleaseAssessment,
@@ -88,6 +90,7 @@ from pipeline.evidence_discovery.semantics import (
     build_contract_prompt,
     build_grounding_prompt,
     build_method_prompt,
+    canonicalize_grounding_response,
     fallback_grounding,
     normalize_contract_state_roles,
     resolve_transition_ref,
@@ -163,6 +166,43 @@ def test_source_gate_and_input_aliases_are_deterministic() -> None:
             model=pair.model,
         )
         assert plan.supported is False, predicate_id
+
+
+def test_predicate_plan_uses_discriminated_inputs_and_invalid_shape_downgrades() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    registry = load_registry()
+    candidate = _candidate(
+        pair,
+        predicate_id="S5",
+        inputs={
+            "transition": pair.model.transitions[0].ref,
+            "guard": "front_distance > 10",
+            "not_a_registry_input": "must not enter backend",
+        },
+    )
+    plan = compile_plan(
+        candidate,
+        bind_candidate(candidate, pair.model),
+        registry,
+        obligation_id="0000:invalid-typed-input",
+        round_index=1,
+        model=pair.model,
+    )
+
+    assert plan.supported is False
+    assert plan.inputs.predicate_id == "unsupported"
+    assert plan.inputs.claimed_predicate_id == "S5"
+    assert plan.inputs.validation_errors
+    schema = PredicatePlan.model_json_schema()
+    discriminator = schema["properties"]["inputs"]["discriminator"]
+    assert discriminator["propertyName"] == "predicate_id"
+    assert set(discriminator["mapping"]) == {
+        "S1", "S2", "S3", "S4", "S5", "S6",
+        "G1", "G2", "G3", "G4",
+        "R1", "R2", "R3", "R4",
+        "V1", "V2", "V3", "V4", "V5",
+        "unsupported",
+    }
 
 
 def test_present_guarded_initial_edge_is_w1_not_false_s2_satisfaction() -> None:
@@ -564,7 +604,7 @@ def test_w2_audit_contains_logic_hashes_backend_and_retry_records(tmp_path: Path
         encoding="utf-8",
     )
     cell = {
-        "schema": "paper1.evidence_discovery.method_cell.v6",
+        "schema": "paper1.evidence_discovery.method_cell.v8",
         "round": 1,
         "run_id": "1" * 32,
         "run_contract_hash": "sha256:" + "1" * 64,
@@ -580,7 +620,7 @@ def test_w2_audit_contains_logic_hashes_backend_and_retry_records(tmp_path: Path
         ],
     }
     judge = {
-        "schema": "paper1.evidence_discovery.independent_judge.v3",
+        "schema": "paper1.evidence_discovery.independent_judge.v4",
         "run_id": "1" * 32,
         "run_contract_hash": "sha256:" + "1" * 64,
         "status": "completed",
@@ -771,6 +811,15 @@ def test_judge_shape_normalization_is_exact_id_only() -> None:
                 basis="exact relation fixture",
             )
         ],
+        relation_assessments=[
+            JudgeRelationAssessment(
+                ledger_id="L-1",
+                issue_id="0000:r1:issue:0",
+                relation="exact",
+                reason="The exact locus, property, scope, and direction match.",
+                basis="provider-free typed judge relation fixture",
+            )
+        ],
         reason="Fixture response.",
         basis="Fixture response basis.",
     )
@@ -811,6 +860,84 @@ def test_judge_shape_rejects_asymmetric_exact_relations() -> None:
         'release-side-only=[["L-1", "0000:r1:issue:0"]]' in error
         for error in errors
     )
+
+
+def test_0053_typed_judge_relation_rejects_wrong_source_narrow_manifestation() -> None:
+    ledger = [{"id": "DIFF-0053-01", "pair": "0053"}]
+    release = [
+        {"issue_id": "0053:r1:issue:correct-sequence"},
+        {"issue_id": "0053:r1:issue:wrong-owner-source"},
+    ]
+    response = JudgeResponse(
+        ledger_assessments=[
+            LedgerAssessment(
+                ledger_id="DIFF-0053-01",
+                matched_issue_ids=[
+                    "0053:r1:issue:correct-sequence",
+                    "0053:r1:issue:wrong-owner-source",
+                ],
+                reason="Only the exact cross-wrapper sequence has the ledger property.",
+                basis="provider-free v27 positive/negative relation fixture",
+            )
+        ],
+        release_assessments=[
+            ReleaseAssessment(
+                issue_id="0053:r1:issue:correct-sequence",
+                accounted_ledger_ids=["DIFF-0053-01"],
+                is_false_positive=False,
+                reason="The exact sequence establishes the ledger defect.",
+                basis="PumpState to WaterState to MethaneState relation",
+            ),
+            ReleaseAssessment(
+                issue_id="0053:r1:issue:wrong-owner-source",
+                accounted_ledger_ids=["DIFF-0053-01"],
+                is_false_positive=False,
+                reason="This nearby issue shares a global causal context only.",
+                basis="PumpControl to WaterState wrong-source relation",
+            ),
+        ],
+        relation_assessments=[
+            JudgeRelationAssessment(
+                ledger_id="DIFF-0053-01",
+                issue_id="0053:r1:issue:correct-sequence",
+                relation="semantic_equivalent",
+                reason="The source sequence, cross-wrapper scope, and missing connectivity property are equivalent.",
+                basis="typed v27 correct-sequence positive fixture",
+            ),
+            JudgeRelationAssessment(
+                ledger_id="DIFF-0053-01",
+                issue_id="0053:r1:issue:wrong-owner-source",
+                relation="partial_overlap",
+                reason="The owner-source endpoint has the wrong locus and does not establish wrapper mutual unreachability.",
+                basis="typed v27 PumpControl-source negative fixture",
+            ),
+        ],
+        reason="The fixture distinguishes exact semantics from a shared-cause narrow manifestation.",
+        basis="v27 0053 positive and negative examples",
+    )
+
+    normalized = _normalize_judge_shape(response, ledger, release, 1)
+
+    assert not _judge_shape_errors(normalized, ledger, release, 1)
+    assert normalized.ledger_assessments[0].matched_issue_ids == [
+        "0053:r1:issue:correct-sequence"
+    ]
+    release_by_id = {
+        item.issue_id: item for item in normalized.release_assessments
+    }
+    assert release_by_id["0053:r1:issue:correct-sequence"].is_false_positive is False
+    assert release_by_id["0053:r1:issue:wrong-owner-source"].is_false_positive is True
+
+
+def test_candidate_subsumes_ledger_requires_entailment_basis() -> None:
+    with pytest.raises(ValidationError, match="entailment_basis"):
+        JudgeRelationAssessment(
+            ledger_id="ledger-1",
+            issue_id="issue-1",
+            relation="candidate_subsumes_ledger",
+            reason="The fixture deliberately omits logical entailment.",
+            basis="provider-free invalid judge relation",
+        )
 
 
 def test_report_dedup_uses_exact_typed_defect_key_only() -> None:
@@ -1191,7 +1318,7 @@ def test_grounding_response_uses_sparse_unresolved_without_full_disposition_tabl
         )
 
 
-def test_branch_local_additional_contracts_merge_by_exact_structured_identity() -> None:
+def test_branch_local_additional_contracts_merge_by_canonical_typed_identity() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     segment = pair.nl_segments[0]
     base_contract = NLContract(
@@ -1253,9 +1380,16 @@ def test_branch_local_additional_contracts_merge_by_exact_structured_identity() 
         reason="The behavior lens derives one causal contract.",
         basis="provider-free branch-local contract fixture",
     )
-    merged, diagnostics = _merge_grounding_contracts(pair, contracts, [first])
-    assert merged[derived_id] == derived
-    assert merged[derived_id].property == "reachability"
+    normalized_first, first_receipts = canonicalize_grounding_response(first)
+    canonical_id = normalized_first.additional_contracts[0].contract_id
+    assert canonical_id != derived_id
+    assert first_receipts[0].raw_contract_id == derived_id
+    assert first_receipts[0].canonical_contract_id == canonical_id
+
+    merged, diagnostics = _merge_grounding_contracts(
+        pair, contracts, [normalized_first]
+    )
+    assert merged[canonical_id].property == "reachability"
     assert merged[base_contract.contract_id].property == "initial_entry"
     assert diagnostics == []
 
@@ -1279,10 +1413,13 @@ def test_branch_local_additional_contracts_merge_by_exact_structured_identity() 
             "additional_contracts": [agreeing_contract],
         }
     )
+    normalized_agreeing, agreeing_receipts = canonicalize_grounding_response(agreeing)
+    assert normalized_agreeing.additional_contracts[0].contract_id == canonical_id
+    assert agreeing_receipts[0].canonical_contract_id == canonical_id
     merged, diagnostics = _merge_grounding_contracts(
-        pair, contracts, [first, agreeing]
+        pair, contracts, [normalized_first, normalized_agreeing]
     )
-    assert merged[derived_id] == derived
+    assert merged[canonical_id].property == "reachability"
     assert diagnostics == []
 
     conflicting = derived.model_copy(
@@ -1305,12 +1442,48 @@ def test_branch_local_additional_contracts_merge_by_exact_structured_identity() 
         reason="The source lens deliberately conflicts for validation.",
         basis="provider-free conflict fixture",
     )
-    merged, diagnostics = _merge_grounding_contracts(pair, contracts, [first, second])
-    assert derived_id not in merged
+    normalized_second, second_receipts = canonicalize_grounding_response(second)
+    conflicting_id = normalized_second.additional_contracts[0].contract_id
+    assert conflicting_id != canonical_id
+    assert second_receipts[0].raw_contract_id == derived_id
+    merged, diagnostics = _merge_grounding_contracts(
+        pair, contracts, [normalized_first, normalized_second]
+    )
+    assert canonical_id in merged
+    assert conflicting_id in merged
     assert {item["class"] for item in diagnostics} == {
-        "conflicting_additional_contract_id",
         "unknown_unresolved_contract_id",
     }
+
+
+def test_g1_flattens_list_valued_source_and_target_inputs() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    target = next(
+        item.name for item in pair.model.states if item.name == "CollisionAvoidance"
+    )
+    plan = PredicatePlan(
+        plan_id="provider-free:g1:list-inputs",
+        predicate_id="G1",
+        registry_version="four-family-19-core.v1",
+        inputs={"source": [["[*]"]], "target": [[target]]},
+        soundness_fragment="finite closed-graph reachability",
+        assumptions=("closed FCSTM",),
+        formal_program="ASSERT G1",
+        formal_program_hash="sha256:provider-free",
+        supported=True,
+        reason="The fixture exercises the exact list-valued inputs observed in the Luna run.",
+        basis="provider-free topology input-normalization regression",
+        source_gate_passed=True,
+    )
+
+    receipt = run_topology(plan, pair.model, "provider-free:g1:list-inputs:receipt")
+
+    assert receipt.terminal_state == "completed"
+    assert receipt.verdict in {"true", "false"}
+    if receipt.verdict == "false":
+        assert receipt.counterexample == [
+            {"sources": ["[*]"], "targets": [target]}
+        ]
 
 
 def test_unsupported_backend_does_not_turn_satisfied_semantics_into_d1() -> None:
@@ -1391,17 +1564,18 @@ def test_d_validation_rejects_unreachability_recast_as_bound_state_dead_end() ->
 def test_d_validation_rejects_declared_but_unreachable_consumer_as_rebuttal() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0046")
     assert pair.inspection_facts is not None
-    event_fact = next(
+    event_facts = [
         fact
         for fact in pair.inspection_facts.event_consumers
         if fact.declared_ref is not None
         and fact.consumer_transition_refs
         and not fact.reachable_consumer_transition_refs
-    )
+    ][:2]
+    assert len(event_facts) == 2
     candidate = CandidateIssue(
         contract_id="NL-CONTRACT-NL4-EVENT-CONSUMER",
-        locus_kind="event",
-        locus_names=(event_fact.event, "UAV swarm operating scope"),
+        locus_kind="scope",
+        locus_names=("UAV swarm operating scope",),
         property="event_consumer_coverage",
         violation_direction="unconsumed",
         evidence_types=("event_consumer_fact", "reachability_fact"),
@@ -1409,10 +1583,14 @@ def test_d_validation_rejects_declared_but_unreachable_consumer_as_rebuttal() ->
         requirement_quote="The supplied event must be consumed during operation.",
         predicate_id=None,
         predicate_inputs={},
-        element_refs=[event_fact.declared_ref, *event_fact.consumer_transition_refs],
+        element_refs=[
+            ref
+            for fact in event_facts
+            for ref in (fact.declared_ref, *fact.consumer_transition_refs)
+        ],
         source_refs=["NL4"],
         expected="At least one consumer is reachable in the required scope.",
-        observed="All exact consumer transition sources are unreachable.",
+        observed="All exact consumer transition sources for the aggregated events are unreachable.",
         strongest_rebuttal="The event declaration and consumer transitions exist.",
         reason="The fixture binds declaration separately from operational reachability.",
         basis="provider-free 0046 inspection-equivalent event-consumer facts",
@@ -1520,6 +1698,7 @@ def test_all_evidence_discovery_pydantic_models_have_docs_and_field_descriptions
         "pipeline.evidence_discovery.semantics.obligations",
         "pipeline.evidence_discovery.semantics.adjudication",
         "pipeline.evidence_discovery.semantics.workflow",
+        "pipeline.evidence_discovery.semantics.frontier",
         "pipeline.evidence_discovery.orchestration.contracts",
         "pipeline.evidence_discovery.orchestration.runtime",
         "pipeline.evidence_discovery.orchestration.runner",
@@ -2463,7 +2642,7 @@ def test_pair_wide_judge_shape_failure_becomes_unavailable_after_one_correction(
         pair=pair,
         method_rounds=[
             {
-                "schema": "paper1.evidence_discovery.method_cell.v6",
+                "schema": "paper1.evidence_discovery.method_cell.v8",
                 "run_id": "1" * 32,
                 "run_contract_hash": "sha256:" + "1" * 64,
                 "pair_id": "0000",
@@ -2536,7 +2715,7 @@ def test_large_release_surface_stays_one_pair_wide_call(tmp_path: Path) -> None:
             issue_index += 1
         method_rounds.append(
             {
-                "schema": "paper1.evidence_discovery.method_cell.v6",
+                "schema": "paper1.evidence_discovery.method_cell.v8",
                 "run_id": "1" * 32,
                 "run_contract_hash": "sha256:" + "1" * 64,
                 "pair_id": "0000",
@@ -2602,7 +2781,7 @@ def test_pair_wide_shape_failure_gets_one_targeted_correction(tmp_path: Path) ->
     ]
     method_rounds = [
         {
-            "schema": "paper1.evidence_discovery.method_cell.v6",
+            "schema": "paper1.evidence_discovery.method_cell.v8",
             "run_id": "1" * 32,
             "run_contract_hash": "sha256:" + "1" * 64,
             "pair_id": "0000",
@@ -2693,8 +2872,8 @@ def test_pair_wide_relation_asymmetry_gets_exact_targeted_correction(
         f'release-side-only=[["{ledger_ids[0]}", "0000:r1:issue:0"]]'
         in runtime.prompts[1]
     )
-    assert "if it is a match, include the pair on both sides" in runtime.prompts[1]
-    assert "if it is not a match, remove it from both sides" in runtime.prompts[1]
+    assert "if it is a match, use exact, semantic_equivalent" in runtime.prompts[1]
+    assert "otherwise remove the accounting pair" in runtime.prompts[1]
 
 
 def test_pair_wide_failure_does_not_expand_to_atomic_relation_matrix(
@@ -2733,7 +2912,7 @@ def test_pair_wide_failure_does_not_expand_to_atomic_relation_matrix(
         pair=pair,
         method_rounds=[
             {
-                "schema": "paper1.evidence_discovery.method_cell.v6",
+                "schema": "paper1.evidence_discovery.method_cell.v8",
                 "run_id": "1" * 32,
                 "run_contract_hash": "sha256:" + "1" * 64,
                 "pair_id": "0000",
@@ -2970,7 +3149,7 @@ def test_provider_free_run_manifest_resume_and_concurrent_atomic_writes(tmp_path
     current = json.loads(stale_path.read_text(encoding="utf-8"))
     stale_receipts = list((run_root / "stale").rglob("round-1.json"))
     assert repaired["run_id"] == run_id
-    assert current["schema"] == "paper1.evidence_discovery.method_cell.v6"
+    assert current["schema"] == "paper1.evidence_discovery.method_cell.v8"
     assert stale_receipts
     assert any(
         json.loads(path.read_text(encoding="utf-8"))["schema"]

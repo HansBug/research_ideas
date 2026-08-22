@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from collections import deque
+from collections.abc import Sequence
 from typing import Any, Iterable
 
 from ..compiler.lowering import PredicatePlan
@@ -80,13 +81,29 @@ def _roots(model: ModelIR) -> tuple[str, ...]:
     )
 
 
+def _nodes(value: object) -> tuple[str, ...]:
+    """Normalize scalar or nested node inputs without stringifying containers."""
+
+    if value is None:
+        return ()
+    if isinstance(value, str):
+        return (value,) if value else ()
+    if isinstance(value, Sequence):
+        nodes: list[str] = []
+        for item in value:
+            nodes.extend(_nodes(item))
+        return tuple(dict.fromkeys(nodes))
+    node = str(value)
+    return (node,) if node else ()
+
+
 def run_topology(plan: PredicatePlan, model: ModelIR, receipt_id: str) -> RawReceipt:
     graph = _graph(model)
     inputs = plan.inputs
     predicate = plan.predicate_id or "unknown"
     if predicate == "G1":
-        sources = tuple(inputs.get("sources") or ([inputs.get("source")] if inputs.get("source") else []))
-        targets = set(inputs.get("targets") or ([inputs.get("target")] if inputs.get("target") else []))
+        sources = _nodes(inputs.get("sources")) or _nodes(inputs.get("source"))
+        targets = set(_nodes(inputs.get("targets")) or _nodes(inputs.get("target")))
         if not sources or not targets:
             return _receipt(receipt_id, predicate, model, "unknown", "G1 is missing a source or target binding.", "required topology inputs")
         reached = _reachable(graph, sources)
@@ -100,8 +117,8 @@ def run_topology(plan: PredicatePlan, model: ModelIR, receipt_id: str) -> RawRec
             trace=[{"node": node} for node in found],
         )
     if predicate == "G2":
-        sources = tuple(inputs.get("sources") or ([inputs.get("source")] if inputs.get("source") else _roots(model)))
-        targets = set(inputs.get("targets") or ([inputs.get("target")] if inputs.get("target") else []))
+        sources = _nodes(inputs.get("sources")) or _nodes(inputs.get("source")) or _roots(model)
+        targets = set(_nodes(inputs.get("targets")) or _nodes(inputs.get("target")))
         if not sources or not targets:
             return _receipt(receipt_id, predicate, model, "unknown", "G2 is missing a source or target-set binding.", "required topology inputs")
         reachable = _reachable(graph, sources)
@@ -151,8 +168,8 @@ def run_topology(plan: PredicatePlan, model: ModelIR, receipt_id: str) -> RawRec
             counterexample=[{"path": list(violating_path), "forbidden": sorted(forbidden)}] if violating_path else [],
         )
     if predicate == "G4":
-        roots = tuple(inputs.get("roots") or _roots(model))
-        marked = set(inputs.get("marked") or inputs.get("targets") or [])
+        roots = _nodes(inputs.get("roots")) or _roots(model)
+        marked = set(_nodes(inputs.get("marked")) or _nodes(inputs.get("targets")))
         if not roots or not marked:
             return _receipt(receipt_id, predicate, model, "unknown", "G4 is missing a root or marked-node binding.", "required topology inputs")
         reachable = _reachable(graph, roots)
