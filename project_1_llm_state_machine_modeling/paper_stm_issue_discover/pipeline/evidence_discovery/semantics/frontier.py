@@ -15,7 +15,11 @@ from typing import Literal, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..inputs.context import InspectionStateFact, SourceInventoryTransition
+from ..inputs.context import (
+    InspectionStateFact,
+    SourceInventoryState,
+    SourceInventoryTransition,
+)
 from ..inputs.models import PairInput, StateNode, Transition
 from .binding import bind_candidate, resolve_state_ref
 from .obligations import (
@@ -28,6 +32,7 @@ from .obligations import (
     ViolationDirection,
 )
 from .workflow import (
+    CardinalityRequirement,
     GroundingResponse,
     NLContract,
     NLContractResponse,
@@ -39,6 +44,7 @@ from .workflow import (
 
 FrontierKind = Literal[
     "containment",
+    "cardinality",
     "owner_initial_entry",
     "root_reachability",
     "event_consumer_coverage",
@@ -60,8 +66,8 @@ class ContractSemanticKey(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.contract-semantic-key.v1"] = Field(
-        default="paper1.contract-semantic-key.v1",
+    schema_version: Literal["paper1.contract-semantic-key.v2"] = Field(
+        default="paper1.contract-semantic-key.v2",
         description="该 typed identity 的 schema 版本；用于 artifact 与 resume 审计，不参与语义裁定。",
     )
     segment_id: str = Field(
@@ -91,6 +97,10 @@ class ContractSemanticKey(BaseModel):
     violation_direction: ViolationDirection = Field(
         min_length=1,
         description="候选应审查的缺陷方向；missing、wrong-scope、unreachable 等不能互相覆盖。",
+    )
+    cardinality_requirement: CardinalityRequirement | None = Field(
+        default=None,
+        description="数量义务的规范 required count 与 typed member domain；非 cardinality identity 为 null，不能用自由文本补值。",
     )
 
 
@@ -126,12 +136,12 @@ class IdentityNormalizationReceipt(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.identity-normalization.v1"] = Field(
-        default="paper1.identity-normalization.v1",
+    schema_version: Literal["paper1.identity-normalization.v2"] = Field(
+        default="paper1.identity-normalization.v2",
         description="identity normalization receipt 的持久化 schema 版本。",
     )
-    algorithm_version: Literal["typed-contract-identity.v1"] = Field(
-        default="typed-contract-identity.v1",
+    algorithm_version: Literal["typed-contract-identity.v2"] = Field(
+        default="typed-contract-identity.v2",
         description="生成 canonical ID 和改写 branch-local 引用的确定性算法版本。",
     )
     lens: Literal["contract_structure_contrast", "behavior_consequence"] = Field(
@@ -151,6 +161,10 @@ class IdentityNormalizationReceipt(BaseModel):
     rewritten_candidate_count: int = Field(
         ge=0,
         description="本 lens 中从 raw ID 精确改写到 canonical ID 的 candidate 引用数。",
+    )
+    projected_candidate_identity_count: int = Field(
+        ge=0,
+        description="本 lens 中按 referenced contract 权威 typed key 投影 locus/property/direction 的 candidate 数；raw provider payload 仍保留在调用审计中。",
     )
     rewritten_unresolved_count: int = Field(
         ge=0,
@@ -199,8 +213,8 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v3"] = Field(
-        default="v27-typed-frontier.v3",
+    algorithm_version: Literal["v27-typed-frontier.v4"] = Field(
+        default="v27-typed-frontier.v4",
         description="产生该检查的确定性算法版本；不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
@@ -288,8 +302,8 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v3"] = Field(
-        default="v27-typed-frontier.v3",
+    algorithm_version: Literal["v27-typed-frontier.v4"] = Field(
+        default="v27-typed-frontier.v4",
         description="本批所有 check/obligation 使用的确定性算法版本。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
@@ -299,6 +313,10 @@ class FrontierBatch(BaseModel):
     checks: tuple[FrontierCheckReceipt, ...] = Field(
         default_factory=tuple,
         description="候选、满足和未决检查的完整回执，避免只保存发布结果。",
+    )
+    superseded_candidate_contract_ids: tuple[str, ...] = Field(
+        default_factory=tuple,
+        description="已被 exact typed frontier 对同一 contract/property 完整展开所替代的 provisional LLM candidate contract IDs；raw grounding output 仍保留审计，下游只跳过其重复 D dossier。",
     )
     reason: str = Field(
         min_length=1,
@@ -321,6 +339,7 @@ def contract_semantic_key(contract: NLContract) -> ContractSemanticKey:
         state_role=contract.state_role,
         expected_direction=contract.expected_direction,
         violation_direction=contract.violation_direction,
+        cardinality_requirement=contract.cardinality_requirement,
     )
 
 
@@ -424,6 +443,10 @@ def canonicalize_grounding_response(
                     candidate.contract_id == contract.contract_id
                     for candidate in response.candidates
                 ),
+                projected_candidate_identity_count=sum(
+                    candidate.contract_id == contract.contract_id
+                    for candidate in response.candidates
+                ),
                 rewritten_unresolved_count=sum(
                     item.contract_id == contract.contract_id
                     for item in response.unresolved
@@ -432,17 +455,34 @@ def canonicalize_grounding_response(
                     item.contract_id == contract.contract_id
                     for item in response.semantic_bindings
                 ),
-                reason="The runner replaced a branch-local derived identifier with the canonical typed semantic identity.",
+                reason="The runner replaced a branch-local derived identifier and projected referenced candidates onto the contract-authoritative typed semantic identity.",
                 basis=f"lens={response.lens}; semantic_key={contract_semantic_key(contract).model_dump(mode='json')}",
             )
         )
 
-    candidates = [
-        candidate.model_copy(
-            update={"contract_id": raw_to_canonical.get(candidate.contract_id, candidate.contract_id)}
-        )
-        for candidate in response.candidates
-    ]
+    candidates = []
+    contracts_by_raw_id = {
+        raw_id: contracts_by_id[canonical_id]
+        for raw_id, canonical_id in raw_to_canonical.items()
+    }
+    for candidate in response.candidates:
+        contract = contracts_by_raw_id.get(candidate.contract_id)
+        update: dict[str, object] = {
+            "contract_id": raw_to_canonical.get(
+                candidate.contract_id, candidate.contract_id
+            )
+        }
+        if contract is not None:
+            update.update(
+                {
+                    "locus_kind": contract.locus_kind,
+                    "locus_names": contract.locus_names,
+                    "property": contract.property,
+                    "violation_direction": contract.violation_direction,
+                    "evidence_types": contract.evidence_types,
+                }
+            )
+        candidates.append(candidate.model_copy(update=update))
     unresolved = [
         item.model_copy(
             update={"contract_id": raw_to_canonical.get(item.contract_id, item.contract_id)}
@@ -505,6 +545,42 @@ def _state_by_name(pair: PairInput, name: str | None) -> StateNode | None:
         return None
     matches = [item for item in pair.model.states if item.name == name]
     return matches[0] if len(matches) == 1 else None
+
+
+def _source_state_by_name(
+    pair: PairInput, name: str | None
+) -> SourceInventoryState | None:
+    if not name or pair.exact_source_inventory is None:
+        return None
+    matches = [
+        item for item in pair.exact_source_inventory.states if item.name == name
+    ]
+    return matches[0] if len(matches) == 1 else None
+
+
+def _source_direct_children(
+    pair: PairInput, owner: SourceInventoryState
+) -> list[SourceInventoryState]:
+    if pair.exact_source_inventory is None:
+        return []
+    return [
+        item
+        for item in pair.exact_source_inventory.states
+        if item.parent == owner.source_id
+    ]
+
+
+def _source_initial_transitions(
+    pair: PairInput, owner: SourceInventoryState
+) -> list[SourceInventoryTransition]:
+    if pair.exact_source_inventory is None:
+        return []
+    initial_source = f"@initial:{owner.source_id}"
+    return [
+        item
+        for item in pair.exact_source_inventory.transitions
+        if item.source == initial_source
+    ]
 
 
 def _inspection_state(pair: PairInput, ref: str) -> InspectionStateFact | None:
@@ -608,6 +684,7 @@ def _derived_contract(
     source_refs: Sequence[str],
     reason: str,
     basis: str,
+    cardinality_requirement: CardinalityRequirement | None = None,
 ) -> NLContract:
     contract = NLContract(
         contract_id=f"NL-CONTRACT-{base.segment_id}-DERIVED-PENDING",
@@ -622,6 +699,7 @@ def _derived_contract(
         violation_direction=violation_direction,
         evidence_types=tuple(dict.fromkeys(evidence_types)),
         binding_hints=base.binding_hints,
+        cardinality_requirement=cardinality_requirement,
         scope=scope,
         source_refs=tuple(dict.fromkeys(source_refs)),
         reason=reason,
@@ -675,6 +753,7 @@ class _Builder:
             for candidate in existing
         }
         self.obligation_index: dict[tuple[object, ...], int] = {}
+        self.superseded_candidate_contract_ids: list[str] = []
 
     def add(
         self,
@@ -854,6 +933,174 @@ def _materialize_containment(builder: _Builder, contracts: Sequence[NLContract])
         )
 
 
+def _materialize_cardinality(
+    builder: _Builder,
+    contracts: Sequence[NLContract],
+    existing: Sequence[CandidateIssue],
+) -> None:
+    pair = builder.pair
+    for contract in contracts:
+        if contract.property != "cardinality":
+            continue
+        requirement = contract.cardinality_requirement
+        if requirement is None:
+            builder.checks.append(
+                builder.receipt(
+                    "cardinality",
+                    (contract.contract_id,),
+                    status="unresolved",
+                    source_refs=contract.source_refs,
+                    reason="The cardinality contract has no typed required count and member domain, so free text is not parsed to manufacture them.",
+                    basis="NLContract.cardinality_requirement is null",
+                )
+            )
+            continue
+        if requirement.member_domain != "direct_child_states":
+            builder.checks.append(
+                builder.receipt(
+                    "cardinality",
+                    (contract.contract_id,),
+                    status="unresolved",
+                    source_refs=contract.source_refs,
+                    reason="This frontier currently has no exact inventory projection for the contract's selected member domain.",
+                    basis=f"member_domain={requirement.member_domain}; no free-text or name-shape fallback is permitted",
+                )
+            )
+            continue
+
+        bound_states = _contract_state_refs(pair, contract)
+        for candidate in existing:
+            if (
+                candidate.contract_id == contract.contract_id
+                and candidate.property == "cardinality"
+            ):
+                bound_states.extend(_candidate_state_refs(pair, candidate))
+        bound_states = list({item.ref: item for item in bound_states}.values())
+
+        structural_owner_rows: list[
+            tuple[StateNode, SourceInventoryState, list[SourceInventoryState]]
+        ] = []
+        bound_source_ids = {
+            source_state.source_id
+            for state in bound_states
+            if (source_state := _source_state_by_name(pair, state.name)) is not None
+        }
+        for state in bound_states:
+            source_owner = _source_state_by_name(pair, state.name)
+            if source_owner is None:
+                continue
+            children = _source_direct_children(pair, source_owner)
+            if children:
+                structural_owner_rows.append((state, source_owner, children))
+        linked_owner_rows = [
+            row
+            for row in structural_owner_rows
+            if any(child.source_id in bound_source_ids for child in row[2])
+        ]
+        owner_rows = (
+            linked_owner_rows
+            if linked_owner_rows
+            else structural_owner_rows
+            if len(structural_owner_rows) == 1
+            else []
+        )
+        if len(owner_rows) != 1:
+            builder.checks.append(
+                builder.receipt(
+                    "cardinality",
+                    (contract.contract_id,),
+                    status="unresolved",
+                    model_refs=[item.ref for item in bound_states],
+                    source_refs=contract.source_refs,
+                    reason="The typed candidate refs do not identify one exact source owner and its complete direct-child member domain.",
+                    basis=f"owner_candidate_count={len(owner_rows)}; exact source parent relations only",
+                )
+            )
+            continue
+
+        owner, source_owner, members = owner_rows[0]
+        actual_count = len(members)
+        source_refs = tuple(
+            dict.fromkeys(
+                [
+                    *contract.source_refs,
+                    source_owner.raw_ref,
+                    *[member.raw_ref for member in members],
+                ]
+            )
+        )
+        model_members = [
+            state
+            for member in members
+            if (state := _state_by_name(pair, member.name)) is not None
+        ]
+        model_refs = [owner.ref, *[item.ref for item in model_members]]
+        if actual_count == requirement.required_count:
+            builder.checks.append(
+                builder.receipt(
+                    "cardinality",
+                    (contract.contract_id,),
+                    status="satisfied",
+                    contract=contract,
+                    model_refs=model_refs,
+                    source_refs=source_refs,
+                    reason="The complete exact author-source direct-child inventory has the required finite cardinality.",
+                    basis=f"owner={source_owner.source_id}; required={requirement.required_count}; actual={actual_count}; members={[item.source_id for item in members]}",
+                )
+            )
+            continue
+
+        derived = _derived_contract(
+            contract,
+            locus_kind="composite",
+            locus_names=(owner.name,),
+            property_name="cardinality",
+            state_role=contract.state_role,
+            expected_direction="must_cover",
+            violation_direction="missing",
+            evidence_types=("source_identity", "closed_model_inventory", "containment_fact", "semantic_comparison"),
+            normative_statement=(
+                f"{owner.name} must contain {requirement.required_count} "
+                f"{requirement.member_concept} as direct child states."
+            ),
+            scope=f"Direct authored children of {owner.name}",
+            source_refs=source_refs,
+            reason="The NL contract establishes a finite direct-child member-domain reading whose count can be compared with the complete exact source inventory.",
+            basis="typed CardinalityRequirement plus exact source parent/member rows",
+            cardinality_requirement=requirement,
+        )
+        candidate = _candidate(
+            derived,
+            title=f"{owner.name} has {actual_count}, not {requirement.required_count}, direct state areas",
+            predicate_id=None,
+            predicate_inputs={},
+            element_refs=model_refs,
+            source_refs=source_refs,
+            expected=derived.normative_statement,
+            observed=(
+                f"The complete exact author-source inventory contains {actual_count} "
+                f"direct children under {source_owner.source_id}: "
+                f"{[item.source_id for item in members]}."
+            ),
+            strongest_rebuttal=(
+                requirement.alternative_reading
+                or "No competing member-domain reading is recorded in the supplied cardinality contract."
+            ),
+            reason="The required count and direct-child member domain are typed, and the complete source inventory establishes a different finite count.",
+            basis=f"contract={contract.contract_id}; owner={source_owner.source_id}; required={requirement.required_count}; actual={actual_count}",
+        )
+        builder.add(
+            "cardinality",
+            (contract.contract_id,),
+            derived,
+            candidate,
+            reason="A typed finite cardinality requirement differs from the complete exact source member inventory.",
+            basis="CardinalityRequirement and canonical source direct-parent inventory",
+        )
+        if contract.contract_id not in builder.superseded_candidate_contract_ids:
+            builder.superseded_candidate_contract_ids.append(contract.contract_id)
+
+
 def _materialize_initial_entries(builder: _Builder, contracts: Sequence[NLContract]) -> None:
     pair = builder.pair
     for contract in contracts:
@@ -988,7 +1235,12 @@ def _materialize_root_reachability(
         scope = _state_by_ref(pair, scope_ref)
         if scope is None:
             continue
-        base, descendant = rows[0]
+        descendant_rows = [
+            row
+            for row in rows
+            if row[1].ref != scope.ref and _is_descendant(pair, row[1], scope)
+        ]
+        base, descendant = descendant_rows[0] if descendant_rows else rows[0]
         scopes[scope_ref] = (scope, descendant, base)
         derived = _derived_contract(
             base,
@@ -1040,9 +1292,24 @@ def _materialize_scope_entries(
         target = _direct_child_under(pair, descendant, scope)
         if target is None:
             continue
-        initial = _initial_transitions(pair, scope)
-        if any(_transition_target_ref(pair, item) == target.ref and not item.guard and not item.triggers for item in initial):
+        source_scope = _source_state_by_name(pair, scope.name)
+        source_target = _source_state_by_name(pair, target.name)
+        source_children = (
+            _source_direct_children(pair, source_scope) if source_scope else []
+        )
+        source_initial = (
+            _source_initial_transitions(pair, source_scope) if source_scope else []
+        )
+        if (
+            source_scope is None
+            or source_target is None
+            or source_target.parent != source_scope.source_id
+            or len(source_children) < 2
+        ):
             continue
+        if any(item.target == source_target.source_id for item in source_initial):
+            continue
+        initial = _initial_transitions(pair, scope)
         derived = _derived_contract(
             base,
             locus_kind="composite",
@@ -1060,18 +1327,33 @@ def _materialize_scope_entries(
         )
         refs = [scope.ref, target.ref, *[item.ref for item in initial]]
         refs.extend(ref for item in initial if (ref := _transition_target_ref(pair, item)))
+        source_refs = tuple(
+            dict.fromkeys(
+                [
+                    *derived.source_refs,
+                    source_scope.raw_ref,
+                    *[item.raw_ref for item in source_children],
+                    *[item.raw_ref for item in source_initial],
+                ]
+            )
+        )
         candidate = _candidate(
             derived,
             title=f"{scope.name} lacks default entry into {target.name}",
             predicate_id=None,
             predicate_inputs={},
             element_refs=refs,
-            source_refs=derived.source_refs,
+            source_refs=source_refs,
             expected=derived.normative_statement,
-            observed=f"Owner-local initial transitions target {[item.target for item in initial]}, not required child {target.name}.",
+            observed=(
+                f"The exact author-source composite has direct children "
+                f"{[item.source_id for item in source_children]} and owner-local "
+                f"initial targets {[item.target for item in source_initial]}; the "
+                f"closed model records initial targets {[item.target for item in initial]}."
+            ),
             strongest_rebuttal="An initial edge inside the child scope does not provide the missing owner-level entry.",
             reason="Exact owner/child binding and complete owner-local initial inventory establish the missing default entry.",
-            basis=f"owner_ref={scope.ref}; child_ref={target.ref}; initial_refs={[item.ref for item in initial]}",
+            basis=f"source_owner={source_scope.source_id}; source_child={source_target.source_id}; source_initial_refs={[item.raw_ref for item in source_initial]}; owner_ref={scope.ref}; child_ref={target.ref}; model_initial_refs={[item.ref for item in initial]}",
         )
         builder.add(
             "owner_initial_entry",
@@ -2107,6 +2389,7 @@ def materialize_v27_frontier(
         all_groups.append(group)
     builder = _Builder(pair, llm_candidates)
     _materialize_containment(builder, all_contracts)
+    _materialize_cardinality(builder, all_contracts, llm_candidates)
     _materialize_initial_entries(builder, all_contracts)
     scopes = _materialize_root_reachability(builder, all_contracts, llm_candidates)
     _materialize_scope_entries(builder, scopes)
@@ -2119,6 +2402,9 @@ def materialize_v27_frontier(
     return FrontierBatch(
         obligations=tuple(builder.obligations),
         checks=tuple(builder.checks),
+        superseded_candidate_contract_ids=tuple(
+            builder.superseded_candidate_contract_ids
+        ),
         reason="The runner systematically expanded LLM-established typed obligations through the v27 domain frontier before predicate selection.",
         basis=(
             "NLContractResponse and grounding semantic identities; owned ModelIR; "

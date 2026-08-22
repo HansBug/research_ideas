@@ -84,8 +84,8 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v8"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v4"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v17"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v16"
+CODE_VERSION = "evidence-discovery-v27-flow.v18"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v17"
 
 
 JudgeRelation = Literal[
@@ -1772,6 +1772,12 @@ def _method_cell(
     frontier_candidates = [
         obligation.candidate for obligation in frontier_batch.obligations
     ]
+    admitted_llm_candidates = [
+        candidate
+        for candidate in response.issues
+        if candidate.contract_id
+        not in frontier_batch.superseded_candidate_contract_ids
+    ]
     for obligation in frontier_batch.obligations:
         contracts_by_id.setdefault(
             obligation.contract.contract_id, obligation.contract
@@ -1780,11 +1786,11 @@ def _method_cell(
         _materialize_exact_s2_inventory_candidates(
             pair,
             contract_response,
-            [*response.issues, *frontier_candidates],
+            [*admitted_llm_candidates, *frontier_candidates],
         )
     )
     candidates = [
-        *response.issues,
+        *admitted_llm_candidates,
         *frontier_candidates,
         *exact_s2_candidates,
     ]
@@ -1813,6 +1819,10 @@ def _method_cell(
     stage_outputs["execute_batch"] = {
         "candidate_count": len(candidates),
         "llm_candidate_count": len(response.issues),
+        "admitted_llm_candidate_count": len(admitted_llm_candidates),
+        "superseded_llm_candidate_contract_ids": list(
+            frontier_batch.superseded_candidate_contract_ids
+        ),
         "frontier_candidate_count": len(frontier_candidates),
         "frontier_batch": frontier_batch.model_dump(mode="json"),
         "exact_s2_scout_candidate_count": len(exact_s2_candidates),

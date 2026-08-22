@@ -46,6 +46,13 @@ SegmentSemanticCategory = Literal[
     "other",
 ]
 
+CardinalityMemberDomain = Literal[
+    "direct_child_states",
+    "concurrent_regions",
+    "explicit_named_members",
+    "unresolved",
+]
+
 
 class NLTransitionAlternative(BaseModel):
     """One normative target alternative in a v27-style transition group."""
@@ -143,6 +150,55 @@ class SegmentCoverage(BaseModel):
     )
 
 
+class CardinalityRequirement(BaseModel):
+    """NL 对一个有限成员域建立的规范性数量要求。
+
+    contract extraction 产生该对象，grounding/frontier 只在 scope 与成员域获得 exact
+    typed binding 后把它同完整 inventory 比较。它不包含 observed count、满足结论、
+    W/D/L 或 ledger 信息；`unresolved` 明确表示 NL 尚未决定按哪类成员计数。
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    schema_version: Literal["paper1.cardinality-requirement.v1"] = Field(
+        default="paper1.cardinality-requirement.v1",
+        description="CardinalityRequirement 的持久化 schema 版本；用于 artifact、canonical identity 与 resume 审计。",
+    )
+    required_count: int = Field(
+        ge=0,
+        description="编号 NL 明确要求的成员数量；它是规范值，不是从 PlantUML/FCSTM 反推的 observed count。",
+    )
+    member_domain: CardinalityMemberDomain = Field(
+        description=(
+            "NL 要计数的 typed 成员域：direct_child_states 表示一个 composite 的直接子状态，"
+            "concurrent_regions 表示显式并发 region，explicit_named_members 表示 NL 逐项点名的"
+            "有限集合，unresolved 表示多种称职读法尚未闭合。不得根据元素名称含 Region/State "
+            "或关键词形状选择成员域；grounding 必须用 supplied 语义与 exact inventory 绑定。"
+        ),
+    )
+    scope_concept: str = Field(
+        min_length=1,
+        description="NL 中承载该数量义务的规范性 owner/scope 概念；不是 observed model ref，后续需通过 SemanticBinding 或 exact candidate refs 绑定。",
+    )
+    member_concept: str = Field(
+        min_length=1,
+        description="NL 对被计数成员的规范性称呼，例如 state areas；它保留原语义，不授权按名称后缀筛选模型元素。",
+    )
+    alternative_reading: str | None = Field(
+        default=None,
+        min_length=1,
+        description="与 primary member_domain 同样称职的另一种成员域读法；null 表示 supplied NL 未建立可陈述的竞争读法，不等于 observed model 已满足。D 用它审查 D1，但它不覆盖确定性 inventory。",
+    )
+    reason: str = Field(
+        min_length=1,
+        description="解释 NL 为什么建立该 required_count/member_domain；若存在另一种称职读法，必须在此明确保留。",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="指出 supplied numbered NL 中支持数量、scope 与成员域读法的精确 clause；不得引用 ledger 或 observed defect。",
+    )
+
+
 class NLContract(BaseModel):
     """One typed, source-grounded obligation extracted from a numbered NL segment.
 
@@ -216,6 +272,15 @@ class NLContract(BaseModel):
             "segment 或 observed model endpoint 统一原本不同的 target concepts。"
         ),
     )
+    cardinality_requirement: CardinalityRequirement | None = Field(
+        default=None,
+        description=(
+            "仅供 property=cardinality 的规范性数量 payload；必须记录 NL 的 required_count、"
+            "member_domain、scope/member concepts。null 精确表示该 contract 不是数量义务；"
+            "cardinality contract 缺失该字段属于可确定的 schema 错误，不能解析自由文本猜数量。"
+            "该字段不含 observed count，也不决定 W/D。"
+        ),
+    )
     scope: str = Field(min_length=1, description="Human-readable source scope, phase, owner, or boundary retained for audit alongside the typed semantic key.")
     source_refs: tuple[str, ...] = Field(default_factory=tuple, description="Source references from the supplied NL, PlantUML, or source trace; do not invent references.")
     reason: str = Field(min_length=1, description="LLM explanation of why this contract follows from the supplied NL segment.")
@@ -233,6 +298,17 @@ class NLContract(BaseModel):
             role: sum(hint.role == role for hint in self.binding_hints)
             for role in {hint.role for hint in self.binding_hints}
         }
+        if self.property == "cardinality" and self.cardinality_requirement is None:
+            raise ValueError(
+                "property='cardinality' requires cardinality_requirement with "
+                "required_count, member_domain, scope_concept, member_concept, "
+                "reason, and basis; do not encode the count only in free text"
+            )
+        if self.property != "cardinality" and self.cardinality_requirement is not None:
+            raise ValueError(
+                "cardinality_requirement is only valid when property='cardinality'; "
+                f"actual property={self.property!r}"
+            )
         transition_properties = {
             "transition_endpoints",
             "trigger_set",
@@ -908,6 +984,7 @@ v27 state-role and discourse discipline:
 - Keep semantically distinct control effects distinct even when both eventually leave a scope. A local mode exit under one condition and a later mode/system completion under another condition are different targets unless the NL explicitly identifies them. For example, an earlier `LocalExitRole` alternative must not become `NamedCompletionState` merely because a later segment names that state as the target of a different completion condition.
 - An introductory statement that an enclosing controller "can transition to different substates" establishes context but no exact source-target relation until the later discourse supplies it. Do not turn that sentence into an `element_declaration` contract, and do not use it to override the sequential source resolved from later "first", "also", or "similarly" clauses. A common enclosing owner is not itself evidence of a common transition source.
 - Keep a state-owned action/effect independent from the endpoint that enters the state. The action may remain a precise unsupported W1 obligation even when the endpoint exists. Do not create standalone trigger/guard contracts that merely repeat every transition-group condition; use the group as the compact normative relation and let grounding derive only actual mismatches.
+- For every `property=cardinality` contract, fill `cardinality_requirement` from the numbered NL: preserve the literal required count, the normative scope/member concepts, and a typed primary member domain. Use `direct_child_states`, `concurrent_regions`, or `explicit_named_members` when the supplied language establishes that competent reading, and preserve another competent interpretation in `alternative_reading`; use `unresolved` only when no primary member domain can be selected. Never infer the required count or domain from the observed model, element names, or a ledger.
 - Preserve containment depth from the NL. A state described only as being "within" or "under" a composite requires semantic descendant containment; an intermediate region or nested composite still satisfies that obligation. Require direct/immediate ownership only when the source meaning explicitly requires no intermediate owner. Region or wrapper structure is a separate contract only when the NL independently specifies that structure or its concurrency semantics.
 
 Generic worked example: "Within Controller, start in Idle; on Begin transition from Idle to Running when enabled and set mode=active" yields separate contracts for Controller containment of Idle, Controller initial entry to Idle, the Idle-to-Running endpoint, its Begin trigger set, its enabled guard, and its mode=active effect. If the clause also requires Begin to be accepted throughout Controller, that coverage requirement is a separate event-consumer contract. Do not copy the whole sentence into one multi-property contract.
