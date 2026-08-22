@@ -147,7 +147,17 @@ class ContractBindingHint(BaseModel):
         "unit",
         "other",
     ] = Field(description="Semantic argument role of this source-side hint; event names an event concept while trigger names the trigger attached to one transition. This is not a frozen predicate input name unless grounding later binds it exactly. For initial_entry, owner is the scope that owns the required initial pseudostate edge and target is the state entered by that edge; the entered state is not its own owner unless the NL explicitly states a nested self-owned obligation.")
-    value: str = Field(min_length=1, description="Source-grounded name, phrase, expression, or scope value copied or faithfully normalized from the supplied NL.")
+    value: str = Field(
+        min_length=1,
+        description=(
+            "从 supplied NL 复制或忠实规范化的规范性名称、短语、表达式或 scope 值；"
+            "它是 source-side 语义提示，不是 observed model binding。当前编号 segment "
+            "明确陈述的 role/value 优先，后续 segment 只能消解真正未定的指代，不能用"
+            "后续具名 termination state 覆盖此前已明确的 local-exit 等语义角色；例如"
+            "`LocalExitRole` 与稍后具名的 `NamedCompletionState` 默认保持不同概念，除非 NL "
+            "明确将二者等同。"
+        ),
+    )
     source_ref: str | None = Field(default=None, description="Exact supplied NL or author-source reference supporting this hint, or null when only the parent contract source refs apply.")
     reason: str = Field(min_length=1, description="LLM explanation of why this value has the declared semantic role in the atomic contract.")
     basis: str = Field(min_length=1, description="LLM basis naming the supplied NL clause or author-source fact used for this hint.")

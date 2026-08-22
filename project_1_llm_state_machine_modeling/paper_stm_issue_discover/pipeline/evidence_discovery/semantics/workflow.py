@@ -54,7 +54,16 @@ class NLTransitionAlternative(BaseModel):
 
     schema_version: Literal["paper1.transition-alternative.v1"] = Field(default="paper1.transition-alternative.v1", description="Transition alternative 的持久化 schema 版本；不参与语义条件比较。")
     alternative_id: str = Field(pattern=r"^ALT-[A-Za-z0-9_.-]+$", min_length=5, description="Stable response-local alternative ID copied by grounding when it discusses this exact member.")
-    target_name: str = Field(min_length=1, description="Normative target concept named by the numbered NL; preserve discourse coreference instead of inheriting an arbitrary model scope.")
+    target_name: str = Field(
+        min_length=1,
+        description=(
+            "当前编号 NL segment 直接陈述或经真实指代消解得到的规范目标概念；该值"
+            "不是 observed model endpoint。后续 segment 只能解析真正未定的 anaphora，"
+            "不能用稍后具名的 completion/termination state 改写当前已明确的 local-exit "
+            "role。协调 alternatives 必须逐项保留原目标；例如 `LocalExitRole` 与后续"
+            "的 `NamedCompletionState` 默认是两个概念，除非 supplied NL 明确等同。"
+        ),
+    )
     condition: str | None = Field(default=None, min_length=1, description="Complete condition semantically attached to this target alternative, or null when the NL states an unconditional relation. Preserve a trailing condition that semantically governs a coordinated target list on every governed alternative; never distribute its conjuncts one per target unless the NL explicitly pairs them that way.")
     condition_role: Literal["event", "qualified_guard", "unknown"] | None = Field(default=None, description="Semantic role of condition: event for a stimulus/event identity, qualified_guard for an independently constraining condition, unknown only when the supplied NL cannot decide, or null when no condition is stated.")
     observed_transition_ref: str | None = Field(default=None, min_length=1, description="Exact author-source or closed-model transition ref selected during cross-view grounding, or null in an NL-only group and whenever no exact transition realizes the relation.")
@@ -147,7 +156,15 @@ class NLContract(BaseModel):
     contract_id: str = Field(pattern=r"^NL-CONTRACT-[A-Za-z0-9_.-]+$", min_length=14, description="Required stable identifier derived from the supplied segment identifier; every value must start with NL-CONTRACT-, including values returned during schema correction.")
     segment_id: str = Field(pattern=r"^NL[0-9]+(?:\.[0-9]+)?$", min_length=3, description="Exact numbered NL segment identifier carried from the input closure.")
     quote: str = Field(min_length=1, description="Exact or faithful quote of the supplied NL segment; do not invent an answer or expected defect.")
-    normative_statement: str = Field(min_length=1, description="Atomic source obligation stated without judging whether the current model satisfies it.")
+    normative_statement: str = Field(
+        min_length=1,
+        description=(
+            "当前 numbered NL segment 建立的原子规范义务，不判断 closed model 是否满足。"
+            "必须保留本段明确的 source、target、role 和 scope；后续上下文可消解真正"
+            "未定的指代，但不能把本段的 local-exit 等目标改写成后来具名的 termination "
+            "target，也不能从 PlantUML/FCSTM 的 observed endpoint 反推规范目标。"
+        ),
+    )
     locus_kind: ObligationLocusKind = Field(
         description=(
             "Typed semantic kind of the source obligation locus. Allowed values "
@@ -189,7 +206,16 @@ class NLContract(BaseModel):
             "action_fact as its evidence family."
         ),
     )
-    binding_hints: tuple[ContractBindingHint, ...] = Field(default_factory=tuple, description="Typed source-side argument hints used by both grounding branches; each hint remains distinct from an exact FCSTM binding. One transition-property contract may identify at most one source, one target, and one transition; split alternative endpoints into separate contracts.")
+    binding_hints: tuple[ContractBindingHint, ...] = Field(
+        default_factory=tuple,
+        description=(
+            "供两个 grounding lens 使用的 typed source-side argument hints；每个 hint "
+            "都与 exact FCSTM binding 分离，并保留当前 segment 的规范性角色和值。一个"
+            "transition-property contract 最多包含一个 source、一个 target 和一个 "
+            "transition；alternatives 必须拆成独立 endpoint contracts，且不得用后续"
+            "segment 或 observed model endpoint 统一原本不同的 target concepts。"
+        ),
+    )
     scope: str = Field(min_length=1, description="Human-readable source scope, phase, owner, or boundary retained for audit alongside the typed semantic key.")
     source_refs: tuple[str, ...] = Field(default_factory=tuple, description="Source references from the supplied NL, PlantUML, or source trace; do not invent references.")
     reason: str = Field(min_length=1, description="LLM explanation of why this contract follows from the supplied NL segment.")
@@ -878,6 +904,8 @@ v27 state-role and discourse discipline:
 - Treat an explicit "first transitions/enters" clause as `initial_entry` into the first state under the enclosing operating owner, not as an ordinary transition from a word such as system or controller. In an initial-entry contract, `owner` is the scope that owns the required initial pseudostate edge and `target` is the state entered by that edge. Thus "the system begins in Controller" yields owner=root/system and target=Controller, while a later "within Controller, first enter ModeA" yields owner=Controller and target=ModeA. Never make the entered target its own owner merely because it is described as a composite. Resolve later omitted sources and enclosing owners by discourse semantics. A sequence such as "first enter ModeA; the system can also transition to ModeB; similarly, it can transition to ModeC" continues the operating narrative as owner-initial-to-ModeA, ModeA-to-ModeB, and ModeB-to-ModeC unless the supplied discourse explicitly resets the source or defines alternatives. By contrast, "from ModeA choose either ModeB or ModeC" yields two alternatives from ModeA. This is an LLM coreference and ordering judgment; never decide it by keywords or identifier spelling.
 - Preserve every explicit parent/child relation as a separate `containment` contract. A clause that a scope transitions into, contains, or uses a named substate may establish both an endpoint/initial-entry relation and child containment; one does not replace the other. In particular, covered segment accounting never licenses omission of the containment row.
 - Put every direct-transition sentence in one `transition_groups` row with its semantically resolved shared source and complete target set. Sequential discourse continues from the preceding target when the supplied meaning supports that reading; it does not mechanically inherit the enclosing composite as source. When two alternatives from the same source are intended to be distinguishable or mutually exclusive, emit a separate `guard_disjointness` contract over that group. Two individually present guards do not establish disjointness.
+- Treat the current numbered segment's explicit semantic target or role as authoritative. Later segments may resolve genuine anaphora, but they must not overwrite an earlier local role that is already semantically complete. In particular, “leave/exit a mode” remains a distinct local-exit target concept unless the supplied NL explicitly equates it with a later named completion or termination state. Preserve every coordinated alternative's target exactly as stated. Do not infer normative target identity from PlantUML, FCSTM, or apparent model satisfaction during contract extraction; grounding binds the preserved concept later.
+- Keep semantically distinct control effects distinct even when both eventually leave a scope. A local mode exit under one condition and a later mode/system completion under another condition are different targets unless the NL explicitly identifies them. For example, an earlier `LocalExitRole` alternative must not become `NamedCompletionState` merely because a later segment names that state as the target of a different completion condition.
 - An introductory statement that an enclosing controller "can transition to different substates" establishes context but no exact source-target relation until the later discourse supplies it. Do not turn that sentence into an `element_declaration` contract, and do not use it to override the sequential source resolved from later "first", "also", or "similarly" clauses. A common enclosing owner is not itself evidence of a common transition source.
 - Keep a state-owned action/effect independent from the endpoint that enters the state. The action may remain a precise unsupported W1 obligation even when the endpoint exists. Do not create standalone trigger/guard contracts that merely repeat every transition-group condition; use the group as the compact normative relation and let grounding derive only actual mismatches.
 - Preserve containment depth from the NL. A state described only as being "within" or "under" a composite requires semantic descendant containment; an intermediate region or nested composite still satisfies that obligation. Require direct/immediate ownership only when the source meaning explicitly requires no intermediate owner. Region or wrapper structure is a separate contract only when the NL independently specifies that structure or its concurrency semantics.

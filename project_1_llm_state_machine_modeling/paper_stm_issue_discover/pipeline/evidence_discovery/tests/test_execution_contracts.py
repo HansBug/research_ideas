@@ -1945,6 +1945,147 @@ def test_0029_contract_shape_rejects_bundled_transition_alternatives() -> None:
     assert "compare all alternatives as one relation" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
 
 
+def test_0029_local_exit_target_survives_typed_contract_projection() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    nl4 = next(item for item in pair.nl_segments if item.segment_id == "NL4")
+    nl6 = next(item for item in pair.nl_segments if item.segment_id == "NL6")
+
+    def endpoint_contract(
+        contract_id: str,
+        *,
+        segment_id: str,
+        quote: str,
+        source: str,
+        target: str,
+        guard: str,
+    ) -> NLContract:
+        return NLContract(
+            contract_id=contract_id,
+            segment_id=segment_id,
+            quote=quote,
+            normative_statement=f"{source} must transition to {target} when {guard}.",
+            locus_kind="transition",
+            locus_names=(source, target),
+            property="transition_endpoints",
+            expected_direction="must_exist",
+            violation_direction="wrong_target",
+            evidence_types=("source_identity", "transition_fact", "semantic_comparison"),
+            binding_hints=(
+                ContractBindingHint(
+                    role="source",
+                    value=source,
+                    source_ref=segment_id,
+                    reason="The numbered segment states the transition source.",
+                    basis=segment_id,
+                ),
+                ContractBindingHint(
+                    role="target",
+                    value=target,
+                    source_ref=segment_id,
+                    reason="The numbered segment states this normative target role.",
+                    basis=segment_id,
+                ),
+                ContractBindingHint(
+                    role="guard",
+                    value=guard,
+                    source_ref=segment_id,
+                    reason="The numbered segment attaches this condition to the endpoint.",
+                    basis=segment_id,
+                ),
+            ),
+            scope="HighwayMode",
+            source_refs=(segment_id,),
+            reason="The fixture preserves the segment-local target before model grounding.",
+            basis="provider-free numbered NL contract fixture",
+        )
+
+    local_exit = endpoint_contract(
+        "NL-CONTRACT-NL4-LOCAL-EXIT",
+        segment_id="NL4",
+        quote=nl4.text,
+        source="lane_change",
+        target="HighwayMode local exit",
+        guard="dist_to_exit<2",
+    )
+    later_termination = endpoint_contract(
+        "NL-CONTRACT-NL6-TERMINATION-TARGET",
+        segment_id="NL6",
+        quote=nl6.text,
+        source="HighwayMode",
+        target="FinishState",
+        guard="auto_finished=true",
+    )
+    group = NLTransitionGroup(
+        group_id="NL-GROUP-NL4-LOCAL-EXIT",
+        segment_id="NL4",
+        source_name="lane_change",
+        alternatives=(
+            NLTransitionAlternative(
+                alternative_id="ALT-NL4-CRUISE",
+                target_name="cruise",
+                condition="lane change completed",
+                condition_role="qualified_guard",
+                source_refs=("NL4",),
+                reason="NL4 states the return-to-cruise alternative.",
+                basis="provider-free NL4 transition-group fixture",
+            ),
+            NLTransitionAlternative(
+                alternative_id="ALT-NL4-LOCAL-EXIT",
+                target_name="HighwayMode local exit",
+                condition="dist_to_exit<2",
+                condition_role="qualified_guard",
+                source_refs=("NL4",),
+                reason="NL4 states a local highway-exit role without naming FinishState.",
+                basis="provider-free NL4 transition-group fixture",
+            ),
+        ),
+        source_refs=("NL4",),
+        reason="NL4 gives two distinct alternatives from lane_change.",
+        basis="provider-free NL4 discourse fixture",
+    )
+    response = NLContractResponse(
+        contracts=(local_exit, later_termination),
+        transition_groups=(group,),
+        segment_disposition={"NL4": "covered", "NL6": "covered"},
+        reason="The fixture keeps local exit and later termination as distinct concepts.",
+        basis="provider-free v27 target-identity fixture",
+    )
+
+    validated = NLContractResponse.model_validate(response.model_dump(mode="json"))
+    local_target = next(
+        hint.value
+        for hint in validated.contracts[0].binding_hints
+        if hint.role == "target"
+    )
+    termination_target = next(
+        hint.value
+        for hint in validated.contracts[1].binding_hints
+        if hint.role == "target"
+    )
+    assert local_target == "HighwayMode local exit"
+    assert termination_target == "FinishState"
+    assert local_target != termination_target
+    assert validated.transition_groups[0].alternatives[1].target_name == local_target
+
+    schema = NLContractResponse.model_json_schema()
+    defs = schema["$defs"]
+    assert "当前编号 segment" in defs["ContractBindingHint"]["properties"]["value"]["description"]
+    assert "不能用稍后具名" in defs["NLTransitionAlternative"]["properties"]["target_name"]["description"]
+    assert "不能把本段的 local-exit" in defs["NLContract"]["properties"]["normative_statement"]["description"]
+
+    grounding_prompt = build_grounding_prompt(
+        pair,
+        lens="contract_structure_contrast",
+        round_index=1,
+        contracts=validated,
+    )
+    assert '"value": "HighwayMode local exit"' in grounding_prompt
+    assert '"value": "FinishState"' in grounding_prompt
+    assert '"target_name": "HighwayMode local exit"' in grounding_prompt
+    assert "current numbered segment's explicit semantic target" in CONTRACT_SYSTEM_PROMPT
+    assert "must not become `NamedCompletionState`" in CONTRACT_SYSTEM_PROMPT
+
+
 def test_containment_and_termination_contracts_survive_covered_segment_accounting() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0029")
     segment = next(item for item in pair.nl_segments if item.segment_id == "NL1")
