@@ -1213,6 +1213,43 @@ def test_candidate_must_preserve_exact_typed_contract_semantic_key() -> None:
     assert "violation_direction" in rejected["binding"].basis
 
 
+def test_source_owned_ref_does_not_poison_exact_fcstm_binding() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0046")
+    searching = pair.model.state("Searching")
+    assert searching is not None
+    candidate = CandidateIssue(
+        contract_id="NL-CONTRACT-NL2-ACTION-1",
+        locus_kind="action",
+        locus_names=("UAV swarm target search",),
+        property="state_action",
+        violation_direction="other",
+        evidence_types=("source_identity", "action_fact"),
+        title="Continuous target-search action lacks executable evidence",
+        requirement_quote="The swarm continuously performs target search tasks.",
+        predicate_id=None,
+        predicate_inputs={},
+        element_refs=[
+            searching.ref,
+            "source:body:UAVSwarmStateMachine.SearchRegion.Searching:2",
+        ],
+        source_refs=["NL2"],
+        expected="Searching owns the required target-search action.",
+        observed="The exact closed-model state has no lifecycle action.",
+        strongest_rebuttal="A source label alone does not establish executable behavior.",
+        reason="The candidate binds the semantic action gap to the exact closed-model state.",
+        basis="NL2, exact author-source body ref, and FCSTM state action inventory.",
+    )
+
+    prepared = _prepare_candidate(pair, candidate, 1, 0)
+
+    assert prepared["binding"].precise is True
+    assert prepared["candidate"].element_refs == [searching.ref]
+    assert (
+        "source:body:UAVSwarmStateMachine.SearchRegion.Searching:2"
+        in prepared["candidate"].source_refs
+    )
+
+
 def test_0029_contract_shape_rejects_bundled_transition_alternatives() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0029")
     segment = next(item for item in pair.nl_segments if item.segment_id == "NL2")

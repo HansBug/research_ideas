@@ -729,11 +729,9 @@ def _mapped_model_refs(pair: PairInput, candidate: CandidateIssue) -> list[str]:
     elements = artifact.payload.get("elements", []) if artifact else []
     records = [item for item in elements if isinstance(item, dict)]
     raw_refs = list(candidate.element_refs)
-    raw_refs.extend(
-        ref for ref in candidate.source_refs if ref.startswith("source:")
-    )
     resolved: list[str] = []
     unresolved: list[str] = []
+    source_owned_unmapped: list[str] = []
     for raw in raw_refs:
         if raw in pair.model.all_refs:
             if raw not in resolved:
@@ -779,7 +777,51 @@ def _mapped_model_refs(pair: PairInput, candidate: CandidateIssue) -> list[str]:
                 if ref not in resolved:
                     resolved.append(ref)
         elif raw not in pair.model.all_refs:
-            unresolved.append(raw)
+            if raw.startswith(("source:", "macro:")):
+                source_owned_unmapped.append(raw)
+            else:
+                unresolved.append(raw)
+
+    # Source refs are provenance, not mandatory FCSTM bindings. They may fill
+    # an otherwise empty model side through the published mapping contract,
+    # but an unmapped source identity must not invalidate exact FCSTM refs that
+    # the candidate already supplied.
+    if not resolved:
+        for raw in candidate.source_refs:
+            if not raw.startswith(("source:", "macro:")):
+                continue
+            matches = [
+                item
+                for item in records
+                if item.get("element_id") == raw
+                or raw in (item.get("source_refs") or [])
+            ]
+            for item in matches:
+                metadata = item.get("metadata") or {}
+                semantic = item.get("semantic_fields") or {}
+                kind = str(item.get("kind") or "")
+                if "transition" in kind:
+                    source = metadata.get("source") or semantic.get("source_endpoint")
+                    target = metadata.get("target") or semantic.get("target_endpoint")
+                    if source is not None and target is not None:
+                        ref = resolve_transition_ref(
+                            None,
+                            pair.model,
+                            source=str(source),
+                            target=str(target),
+                        )
+                        if ref is not None and ref not in resolved:
+                            resolved.append(ref)
+                else:
+                    state_path = metadata.get("fcstm_path") or semantic.get(
+                        "fcstm_identifier"
+                    )
+                    ref = _model_ref_for_state(pair, state_path)
+                    if ref is not None and ref not in resolved:
+                        resolved.append(ref)
+
+    if not resolved:
+        unresolved.extend(source_owned_unmapped)
 
     # Predicate inputs are authoritative for the typed check.  Binding itself
     # will validate their endpoint/element identity, so this list only fills
@@ -795,7 +837,17 @@ def _mapped_model_refs(pair: PairInput, candidate: CandidateIssue) -> list[str]:
 
 def _normalize_candidate_model_refs(pair: PairInput, candidate: CandidateIssue) -> CandidateIssue:
     refs = _mapped_model_refs(pair, candidate)
-    return candidate.model_copy(update={"element_refs": refs})
+    migrated_source_refs = [
+        ref
+        for ref in candidate.element_refs
+        if ref.startswith(("source:", "macro:"))
+    ]
+    source_refs = list(
+        dict.fromkeys([*candidate.source_refs, *migrated_source_refs])
+    )
+    return candidate.model_copy(
+        update={"element_refs": refs, "source_refs": source_refs}
+    )
 
 
 def _prepare_candidate(
