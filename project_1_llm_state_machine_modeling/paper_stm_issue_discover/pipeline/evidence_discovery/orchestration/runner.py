@@ -31,6 +31,7 @@ from ..semantics import (
     DISCOVERY_GROUNDING_AUDIT_LENSES,
     DISCOVERY_GROUNDING_SYSTEM_PROMPT,
     CandidateIssue,
+    CardinalityDomainBinding,
     ContextBudgetReceipt,
     DAdjudicationResponse,
     FrontierBatch,
@@ -84,8 +85,8 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v8"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v4"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v21"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v20"
+CODE_VERSION = "evidence-discovery-v27-flow.v22"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v21"
 
 
 JudgeRelation = Literal[
@@ -959,14 +960,71 @@ def _normalize_grounding_exact_facts(
     pair: PairInput,
     response: GroundingResponse,
 ) -> tuple[GroundingResponse, list[dict[str, Any]]]:
-    """Remove exact local-dead-end claims contradicted by the closed graph.
+    """Normalize exact mapped owner refs and remove refuted local dead ends.
 
     This is the deterministic counterpart of the grounding prompt's property
-    boundary. It compares only typed candidate fields, exact model refs, and
-    parsed transition endpoints. Raw provider output remains in the public LLM
-    audit, while the normalized branch records why a proposed issue is already
-    satisfied by the closed-model inventory.
+    boundary. It compares only typed source IDs, published mapping rows, exact
+    model refs, candidate fields, and parsed transition endpoints. Raw provider
+    output remains in the public LLM audit, while this normalized branch uses
+    owned ModelIR refs for deterministic frontier execution.
     """
+
+    normalized_cardinality_bindings: list[CardinalityDomainBinding] = []
+    normalized_cardinality_count = 0
+    source_inventory = pair.exact_source_inventory
+    working_contract = pair.working_contract
+    mapping_rows = [
+        item
+        for item in (
+            working_contract.payload.get("elements", [])
+            if working_contract is not None
+            else []
+        )
+        if isinstance(item, dict)
+    ]
+    for cardinality_binding in response.cardinality_bindings:
+        source_matches = [
+            item
+            for item in (source_inventory.states if source_inventory else ())
+            if item.source_id == cardinality_binding.owner_source_id
+        ]
+        expected_element_id = (
+            f"source:state:{cardinality_binding.owner_source_id}"
+            if cardinality_binding.owner_source_id is not None
+            else None
+        )
+        exact_mapping_rows = [
+            item
+            for item in mapping_rows
+            if expected_element_id is not None
+            and item.get("element_id") == expected_element_id
+            and cardinality_binding.owner_model_ref
+            in (item.get("model_refs") or [])
+        ]
+        mapped_owned_refs = {
+            ref
+            for item in exact_mapping_rows
+            for mapped_ref in (item.get("model_refs") or [])
+            if mapped_ref == cardinality_binding.owner_model_ref
+            and (ref := _model_ref_for_state(pair, mapped_ref)) is not None
+        }
+        if len(source_matches) != 1 or len(mapped_owned_refs) != 1:
+            normalized_cardinality_bindings.append(cardinality_binding)
+            continue
+        owned_ref = next(iter(mapped_owned_refs))
+        if owned_ref == cardinality_binding.owner_model_ref:
+            normalized_cardinality_bindings.append(cardinality_binding)
+            continue
+        normalized_cardinality_bindings.append(
+            cardinality_binding.model_copy(
+                update={
+                    "owner_model_ref": owned_ref,
+                    "basis": cardinality_binding.basis
+                    + "; runner exact join: source inventory owner -> published working-contract model_ref -> unique owned ModelIR state ref",
+                }
+            )
+        )
+        normalized_cardinality_count += 1
 
     kept: list[CandidateIssue] = []
     diagnostics: list[dict[str, Any]] = []
@@ -1014,15 +1072,28 @@ def _normalize_grounding_exact_facts(
             }
         )
 
+    response_update: dict[str, Any] = {
+        "cardinality_bindings": normalized_cardinality_bindings,
+        "candidates": kept,
+    }
+    if normalized_cardinality_count:
+        response_update.update(
+            {
+                "reason": response.reason
+                + " Published representation owner refs were exactly joined to owned ModelIR refs before frontier execution.",
+                "basis": response.basis
+                + "; exact source inventory, working-contract mapping, and unique owned ModelIR ref join",
+            }
+        )
     if not diagnostics:
-        return response.model_copy(update={"candidates": kept}), []
+        return response.model_copy(update=response_update), []
     return (
         response.model_copy(
             update={
-                "candidates": kept,
-                "reason": response.reason
+                **response_update,
+                "reason": response_update.get("reason", response.reason)
                 + " Exact local-progress satisfactions were normalized before execution.",
-                "basis": response.basis
+                "basis": response_update.get("basis", response.basis)
                 + "; exact typed binding and owned ModelIR outgoing-transition check",
             }
         ),

@@ -76,6 +76,7 @@ from pipeline.evidence_discovery.semantics import (
     D_SYSTEM_PROMPT,
     DISCOVERY_GROUNDING_SYSTEM_PROMPT,
     CandidateIssue,
+    CardinalityDomainBinding,
     ContextBudgetReceipt,
     ContractBindingHint,
     GroundingResponse,
@@ -1342,6 +1343,8 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "common enclosing owner is not itself evidence" in CONTRACT_SYSTEM_PROMPT
     assert "preserve the complete shared condition" in CONTRACT_SYSTEM_PROMPT
     assert "owner-initial-to-ModeA, ModeA-to-ModeB, and ModeB-to-ModeC" in CONTRACT_SYSTEM_PROMPT
+    assert "activity to be performed continuously or repeatedly" in CONTRACT_SYSTEM_PROMPT
+    assert "segment already has a cardinality or structure contract" in CONTRACT_SYSTEM_PROMPT
     hint_schema = ContractBindingHint.model_json_schema()
     assert "owns the required initial pseudostate edge" in hint_schema["properties"]["role"]["description"]
     assert "Emit a candidate only for a possible violated obligation" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
@@ -1395,8 +1398,10 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "does not invent a separate progress contract" in contract_schema["state_role"]["description"]
     response_schema = NLContractResponse.model_json_schema()["properties"]
     assert "without manufacturing progress for every mentioned operating state" in response_schema["contracts"]["description"]
+    assert "explicitly continuous or repeated task" in response_schema["contracts"]["description"]
     assert "Every segment marked covered" in response_schema["contracts"]["description"]
     assert "Mark a numbered segment covered only" in CONTRACT_SYSTEM_PROMPT
+    assert "closed_model_inventory.states[].ref" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
 
 
 def test_contract_response_rejects_covered_segment_without_atomic_contract() -> None:
@@ -2520,6 +2525,50 @@ def test_exact_outgoing_fact_rejects_false_dead_end_but_preserves_true_frontier(
     )
     assert len(preserved.candidates) == 1
     assert preserved.unresolved == []
+    assert diagnostics == []
+
+
+def test_cardinality_owner_mapping_normalizes_only_exact_published_ref() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0046")
+    representation_ref = (
+        "state:llms_emp_feedback_final_0046.UAVSwarmStateMachine.SearchRegion"
+    )
+    owned_ref = pair.model.state("SearchRegion").ref
+
+    def response_for(model_ref: str) -> GroundingResponse:
+        return GroundingResponse(
+            lens="contract_structure_contrast",
+            cardinality_bindings=[
+                CardinalityDomainBinding(
+                    binding_id="CARD-BIND-NL2-SEARCH-AREAS",
+                    contract_id="NL-CONTRACT-NL2-THREE-AREAS",
+                    status="exact",
+                    member_domain="direct_child_states",
+                    owner_source_id="UAVSwarmStateMachine.SearchRegion",
+                    owner_model_ref=model_ref,
+                    reason="The supplied source identifies the exact search-area owner.",
+                    basis="provider-free exact source and working-contract fixture",
+                )
+            ],
+            reason="The fixture supplies one exact cardinality binding.",
+            basis="provider-free grounding normalization fixture",
+        )
+
+    raw = response_for(representation_ref)
+    normalized, diagnostics = _normalize_grounding_exact_facts(pair, raw)
+
+    assert raw.cardinality_bindings[0].owner_model_ref == representation_ref
+    assert normalized.cardinality_bindings[0].owner_model_ref == owned_ref
+    assert "runner exact join" in normalized.cardinality_bindings[0].basis
+    assert diagnostics == []
+
+    wrong_owner_ref = (
+        "state:llms_emp_feedback_final_0046.UAVSwarmStateMachine.MissionRegion"
+    )
+    preserved, diagnostics = _normalize_grounding_exact_facts(
+        pair, response_for(wrong_owner_ref)
+    )
+    assert preserved.cardinality_bindings[0].owner_model_ref == wrong_owner_ref
     assert diagnostics == []
 
 

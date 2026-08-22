@@ -522,6 +522,40 @@ def test_0046_frontier_separates_root_entry_and_reachable_consumers() -> None:
     assert "declaration" in consumer.strongest_rebuttal.lower()
 
 
+def test_0046_continuous_action_survives_same_segment_cardinality() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0046")
+    cardinality = _0046_cardinality_contract()
+    continuous_action = _contract(
+        contract_id="NL-CONTRACT-NL2-CONTINUOUS-SEARCH",
+        segment_id="NL2",
+        locus_kind="state",
+        locus_names=("Searching",),
+        property_name="state_action",
+        expected_direction="must_exist",
+        violation_direction="missing",
+        hints=(_hint("state", "Searching", "NL2"),),
+        state_role="operating_state",
+    )
+    response = _response([cardinality, continuous_action])
+    grounding = _0046_cardinality_binding(cardinality)
+
+    batch = materialize_v27_frontier(
+        pair,
+        response,
+        {item.contract_id: item for item in response.contracts},
+        (grounding,),
+        (),
+    )
+
+    assert {item.property for item in response.contracts} == {
+        "cardinality",
+        "state_action",
+    }
+    assert any(item.kind == "cardinality" for item in batch.obligations)
+    assert any(item.kind == "root_reachability" for item in batch.obligations)
+    assert any(item.kind == "owner_initial_entry" for item in batch.obligations)
+
+
 def test_0046_frontier_does_not_invent_owner_entry_without_operating_obligation() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0046")
     contextual = _contract(
@@ -1165,6 +1199,9 @@ def test_frontier_pydantic_descriptions_reach_json_schema() -> None:
     assert "exact_source_inventory.states" in domain_binding_schema["properties"][
         "owner_source_id"
     ]["description"]
+    assert "closed_model_inventory.states[].ref" in domain_binding_schema[
+        "properties"
+    ]["owner_model_ref"]["description"]
     assert set(domain_binding_schema["properties"]["status"]["enum"]) == {
         "exact",
         "ambiguous",
