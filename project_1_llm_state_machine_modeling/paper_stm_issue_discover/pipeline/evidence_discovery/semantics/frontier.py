@@ -55,6 +55,7 @@ FrontierKind = Literal[
     "wrong_scope_route",
     "reachable_dead_end",
     "cross_wrapper_reachability",
+    "aggregate_zero_behavior",
 ]
 
 
@@ -218,8 +219,8 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v6"] = Field(
-        default="v27-typed-frontier.v6",
+    algorithm_version: Literal["v27-typed-frontier.v7"] = Field(
+        default="v27-typed-frontier.v7",
         description="产生该检查的确定性算法版本；不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
@@ -307,8 +308,8 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v6"] = Field(
-        default="v27-typed-frontier.v6",
+    algorithm_version: Literal["v27-typed-frontier.v7"] = Field(
+        default="v27-typed-frontier.v7",
         description="本批所有 check/obligation 使用的确定性算法版本。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
@@ -2343,6 +2344,178 @@ def _wrapper_under(pair: PairInput, state: StateNode, owner: StateNode) -> State
     return _direct_child_under(pair, state, owner)
 
 
+def _operating_contracts_for_state(
+    pair: PairInput,
+    contracts: Sequence[NLContract],
+    state: StateNode,
+) -> list[NLContract]:
+    matches: list[NLContract] = []
+    for contract in contracts:
+        if contract.state_role != "operating_state":
+            continue
+        state_hint = (
+            _hint(contract, "state")
+            or _hint(contract, "target")
+            or _hint(contract, "owner")
+        )
+        bound_state = _state_for_value(
+            pair, state_hint.value if state_hint else None
+        )
+        if bound_state is not None and bound_state.ref == state.ref:
+            matches.append(contract)
+    return matches
+
+
+def _materialize_aggregate_zero_behavior(
+    builder: _Builder,
+    contracts: Sequence[NLContract],
+    chain: Sequence[tuple[NLContract, StateNode, StateNode]],
+    states: Sequence[StateNode],
+    owner: StateNode,
+    wrappers: Sequence[StateNode],
+) -> None:
+    pair = builder.pair
+    facts = pair.inspection_facts
+    if facts is None:
+        return
+
+    # A direct child leaf is not a wrapper scope. This keeps independent sibling
+    # dead ends atomic unless the normative sequence actually crosses composites.
+    if any(wrapper.ref == state.ref for wrapper, state in zip(wrappers, states)):
+        return
+    wrapper_facts = [_inspection_state(pair, wrapper.ref) for wrapper in wrappers]
+    if any(fact is None or not fact.is_composite for fact in wrapper_facts):
+        return
+
+    operating_contracts: list[NLContract] = []
+    state_facts: list[InspectionStateFact] = []
+    for state in states:
+        state_contracts = _operating_contracts_for_state(pair, contracts, state)
+        state_fact = _inspection_state(pair, state.ref)
+        if (
+            not state_contracts
+            or state_fact is None
+            or not state_fact.reachable_from_initial
+            or state_fact.outgoing_transition_refs
+        ):
+            return
+        operating_contracts.extend(state_contracts)
+        state_facts.append(state_fact)
+
+    scoped_transition_refs: list[str] = []
+    named_source_refs: list[str] = []
+    for transition in facts.transitions:
+        source_state = _state_by_ref(pair, transition.resolved_source_ref)
+        scope_state = _state_for_value(pair, transition.scope)
+        in_owner_scope = bool(
+            (source_state and (source_state.ref == owner.ref or _is_descendant(pair, source_state, owner)))
+            or (scope_state and (scope_state.ref == owner.ref or _is_descendant(pair, scope_state, owner)))
+        )
+        if not in_owner_scope:
+            continue
+        scoped_transition_refs.append(transition.transition_ref)
+        if transition.source != "[*]":
+            named_source_refs.append(transition.transition_ref)
+    if named_source_refs:
+        return
+
+    chain_contracts = [item[0] for item in chain]
+    source_contracts = list(
+        dict.fromkeys(
+            [
+                *[item.contract_id for item in chain_contracts],
+                *[item.contract_id for item in operating_contracts],
+            ]
+        )
+    )
+    base = chain_contracts[0]
+    derived = _derived_contract(
+        base,
+        locus_kind="scope",
+        locus_names=tuple(state.name for state in states),
+        property_name="deadlock_freedom",
+        state_role="operating_state",
+        expected_direction="must_progress",
+        violation_direction="dead_end",
+        evidence_types=(
+            "source_identity",
+            "closed_model_inventory",
+            "transition_fact",
+            "deadlock_frontier_fact",
+            "verify_fact",
+            "semantic_comparison",
+        ),
+        normative_statement=(
+            f"The required operating sequence under {owner.name} must contain "
+            "named-state behavior that continues across its operating states."
+        ),
+        scope=f"Aggregate operating continuation under {owner.name}",
+        source_refs=_source_refs([*chain_contracts, *operating_contracts]),
+        reason=(
+            "Exact endpoint contracts establish one sequence across distinct "
+            "composite wrappers, and exact operating contracts establish every "
+            "member as an active operating state."
+        ),
+        basis=(
+            "typed cross-wrapper sequence plus exact operating-state bindings and "
+            "complete owner-subtree transition inventory"
+        ),
+    )
+    element_refs = [
+        owner.ref,
+        *[wrapper.ref for wrapper in wrappers],
+        *[state.ref for state in states],
+        *scoped_transition_refs,
+    ]
+    candidate = _candidate(
+        derived,
+        title=f"Operating scope {owner.name} is a zero-behavior stub",
+        predicate_id=None,
+        predicate_inputs={},
+        element_refs=element_refs,
+        source_refs=derived.source_refs,
+        expected=derived.normative_statement,
+        observed=(
+            f"The complete closed transition inventory under {owner.name} has "
+            f"named_source_transition_refs=[]; operating states "
+            f"{[state.name for state in states]} are reachable and each has "
+            "outgoing_transition_refs=[]. All scoped transitions are pseudo-state "
+            f"entries {scoped_transition_refs}."
+        ),
+        strongest_rebuttal=(
+            "Wrapper-local initial entries make the states reachable, but an entry "
+            "from [*] is not named-state continuation and cannot realize the required "
+            "cross-wrapper operating sequence."
+        ),
+        reason=(
+            "Every state in the exact cross-wrapper operating chain is a reachable "
+            "dead end, and the complete owner subtree contains no transition sourced "
+            "from any named state."
+        ),
+        basis=(
+            f"owner_ref={owner.ref}; state_refs={[item.state_ref for item in state_facts]}; "
+            f"wrapper_refs={[item.ref for item in wrappers]}; "
+            f"scoped_transition_refs={scoped_transition_refs}; "
+            f"named_source_transition_refs={named_source_refs}; "
+            f"inspection={facts.algorithm_version}"
+        ),
+    )
+    builder.add(
+        "aggregate_zero_behavior",
+        source_contracts,
+        derived,
+        candidate,
+        reason=(
+            "One typed cross-wrapper operating sequence shares a complete zero-"
+            "named-source transition cause across all of its reachable leaf states."
+        ),
+        basis=(
+            "exact multi-contract chain, composite-wrapper ancestry, operating-state "
+            "contracts, and complete inspection-equivalent transition inventory"
+        ),
+    )
+
+
 def _materialize_cross_wrapper(builder: _Builder, contracts: Sequence[NLContract]) -> None:
     pair = builder.pair
     rows = _missing_endpoint_rows(pair, contracts)
@@ -2418,6 +2591,14 @@ def _materialize_cross_wrapper(builder: _Builder, contracts: Sequence[NLContract
             candidate,
             reason="A typed multi-contract sequence spans distinct wrappers with no exact connecting transitions.",
             basis="exact contract chain, hierarchy, and complete transition inventory",
+        )
+        _materialize_aggregate_zero_behavior(
+            builder,
+            contracts,
+            chain,
+            states,
+            owner,
+            tuple(item for item in wrappers if item is not None),
         )
 
 

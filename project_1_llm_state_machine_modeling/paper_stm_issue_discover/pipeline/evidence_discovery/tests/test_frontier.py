@@ -1172,6 +1172,91 @@ def test_0053_frontier_preserves_three_leaf_and_global_properties() -> None:
     )
     assert global_issue.property == "reachability"
     assert global_issue.predicate_id is None
+    aggregate = next(
+        item.candidate
+        for item in batch.obligations
+        if item.kind == "aggregate_zero_behavior"
+    )
+    assert aggregate.locus_names == (
+        "PumpState",
+        "WaterState",
+        "MethaneState",
+    )
+    assert aggregate.property == "deadlock_freedom"
+    assert aggregate.violation_direction == "dead_end"
+    assert aggregate.predicate_id is None
+    assert "named_source_transition_refs=[]" in aggregate.observed
+
+
+def test_0023_frontier_keeps_direct_leaf_dead_ends_independent() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0023")
+    contracts = [
+        _contract(
+            contract_id=f"NL-CONTRACT-NL{index}-{state}-ACTION",
+            segment_id=f"NL{index}",
+            locus_kind="state",
+            locus_names=(state,),
+            property_name="state_action",
+            expected_direction="must_exist",
+            violation_direction="missing",
+            hints=(_hint("state", state, f"NL{index}"),),
+            state_role="operating_state",
+        )
+        for index, state in ((3, "PumpState"), (4, "WaterState"), (5, "MethaneState"))
+    ]
+    contracts.extend(
+        [
+            _contract(
+                contract_id="NL-CONTRACT-NL4-PUMP-WATER",
+                segment_id="NL4",
+                locus_kind="transition",
+                locus_names=("PumpState", "WaterState"),
+                property_name="transition_endpoints",
+                expected_direction="must_exist",
+                violation_direction="missing",
+                hints=(
+                    _hint("source", "PumpState", "NL4"),
+                    _hint("target", "WaterState", "NL4"),
+                ),
+            ),
+            _contract(
+                contract_id="NL-CONTRACT-NL5-WATER-METHANE",
+                segment_id="NL5",
+                locus_kind="transition",
+                locus_names=("WaterState", "MethaneState"),
+                property_name="transition_endpoints",
+                expected_direction="must_exist",
+                violation_direction="missing",
+                hints=(
+                    _hint("source", "WaterState", "NL5"),
+                    _hint("target", "MethaneState", "NL5"),
+                ),
+            ),
+        ]
+    )
+    response = _response(contracts)
+
+    batch = materialize_v27_frontier(
+        pair,
+        response,
+        {item.contract_id: item for item in response.contracts},
+        (),
+        (),
+    )
+
+    leaf_dead_ends = [
+        item.candidate
+        for item in batch.obligations
+        if item.kind == "reachable_dead_end"
+    ]
+    assert {item.locus_names for item in leaf_dead_ends} == {
+        ("PumpState",),
+        ("WaterState",),
+        ("MethaneState",),
+    }
+    assert not any(
+        item.kind == "aggregate_zero_behavior" for item in batch.obligations
+    )
 
 
 def test_frontier_pydantic_descriptions_reach_json_schema() -> None:
