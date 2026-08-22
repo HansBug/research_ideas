@@ -1045,6 +1045,10 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "first enter ModeA" in CONTRACT_SYSTEM_PROMPT
     assert '"the system begins in Controller" yields owner=root/system' in CONTRACT_SYSTEM_PROMPT
     assert "an intermediate region or nested composite still satisfies" in CONTRACT_SYSTEM_PROMPT
+    assert "broad capability context has not been converted" in CONTRACT_SYSTEM_PROMPT
+    assert "common enclosing owner is not itself evidence" in CONTRACT_SYSTEM_PROMPT
+    assert "preserve the complete shared condition" in CONTRACT_SYSTEM_PROMPT
+    assert "owner-initial-to-ModeA, ModeA-to-ModeB, and ModeB-to-ModeC" in CONTRACT_SYSTEM_PROMPT
     hint_schema = ContractBindingHint.model_json_schema()
     assert "owns the required initial pseudostate edge" in hint_schema["properties"]["role"]["description"]
     assert "Emit a candidate only for a possible violated obligation" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
@@ -1057,6 +1061,10 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "an unreachable state that" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "not a deadlock/dead-end violation" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "declared consumer with no consumer reachable" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "three independent frontier properties" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "For every supplied `termination` contract" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "For every transition group with multiple target alternatives" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "canonical author-source inventory" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "complete exact inventory" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "element_refs` contains" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "Negative-property carrier example" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
@@ -1074,6 +1082,8 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "exact owner-local edge reaches the required target" in grounding_prompt
     assert "Return sparse v27-style output" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "additional_contracts" in grounding_prompt
+    assert "must include the exact lens name" in grounding_prompt
+    assert "`behavior_consequence` after its `-DERIVED-` marker" in grounding_prompt
     assert '["NL-CONTRACT-NL1"]' in grounding_prompt
     assert "missing edge -> exact endpoint state refs" in grounding_prompt
     assert "Predicate support controls" in grounding_prompt
@@ -1207,7 +1217,10 @@ def test_branch_local_additional_contracts_merge_by_exact_structured_identity() 
         reason="The fixture contains one base contract.",
         basis="provider-free contract fixture",
     )
-    derived_id = f"NL-CONTRACT-{segment.segment_id}-DERIVED-ROOT-REACHABILITY"
+    derived_id = (
+        f"NL-CONTRACT-{segment.segment_id}-OPERATING-1-"
+        "DERIVED-behavior_consequence-ROOT-REACHABILITY"
+    )
     derived = NLContract(
         contract_id=derived_id,
         segment_id=segment.segment_id,

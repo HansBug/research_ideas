@@ -38,7 +38,7 @@ class NLTransitionAlternative(BaseModel):
 
     alternative_id: str = Field(pattern=r"^ALT-[A-Za-z0-9_.-]+$", min_length=5, description="Stable response-local alternative ID copied by grounding when it discusses this exact member.")
     target_name: str = Field(min_length=1, description="Normative target concept named by the numbered NL; preserve discourse coreference instead of inheriting an arbitrary model scope.")
-    condition: str | None = Field(default=None, min_length=1, description="Condition semantically attached to this target alternative, or null when the NL states an unconditional relation.")
+    condition: str | None = Field(default=None, min_length=1, description="Complete condition semantically attached to this target alternative, or null when the NL states an unconditional relation. Preserve a trailing condition that semantically governs a coordinated target list on every governed alternative; never distribute its conjuncts one per target unless the NL explicitly pairs them that way.")
     condition_role: Literal["event", "qualified_guard", "unknown"] | None = Field(default=None, description="Semantic role of condition: event for a stimulus/event identity, qualified_guard for an independently constraining condition, unknown only when the supplied NL cannot decide, or null when no condition is stated.")
     observed_transition_ref: str | None = Field(default=None, min_length=1, description="Exact author-source or closed-model transition ref selected during cross-view grounding, or null in an NL-only group and whenever no exact transition realizes the relation.")
     source_refs: tuple[str, ...] = Field(default_factory=tuple, description="Exact supplied NL or author-source refs supporting this alternative; do not invent refs.")
@@ -53,7 +53,7 @@ class NLTransitionGroup(BaseModel):
 
     group_id: str = Field(pattern=r"^NL-GROUP-[A-Za-z0-9_.-]+$", min_length=10, description="Stable group ID derived from one supplied numbered segment and reused only for this exact shared-source relation.")
     segment_id: str = Field(pattern=r"^NL[0-9]+(?:\.[0-9]+)?$", min_length=3, description="Exact numbered NL segment containing or completing this transition relation.")
-    source_name: str = Field(min_length=1, description="Normative source concept after LLM discourse/coreference resolution; never default to the enclosing model merely because a later sentence omits its source.")
+    source_name: str = Field(min_length=1, description="Normative source concept after LLM discourse/coreference resolution; never default to the enclosing model merely because a later sentence omits its source or because an earlier introductory sentence says the enclosing scope can transition among substates.")
     alternatives: tuple[NLTransitionAlternative, ...] = Field(min_length=1, description="Complete ordered target alternatives sharing source_name; do not truncate a branch set or split alternatives into unrelated groups.")
     source_refs: tuple[str, ...] = Field(default_factory=tuple, description="Exact supplied NL/source refs supporting the shared source and group boundary.")
     reason: str = Field(min_length=1, description="LLM explanation of the discourse relation that makes these alternatives share one source.")
@@ -215,7 +215,7 @@ class NLContractResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     contracts: list[NLContract] = Field(default_factory=list, description="Complete list of independently violable atomic contracts from normative numbered NL. Preserve containment, initial/default entry, transition endpoints, explicit progress/response, termination, event-consumer scope, and other distinct properties without manufacturing progress for every mentioned operating state. Descriptive segments may be omitted with an explained top-level basis. Every segment marked covered must retain at least one atomic contract carrying that exact segment_id, but covered never means all other obligations in the segment may be dropped. A schema-correction turn must return a complete replacement list containing every valid contract and semantic group, not only the corrected row or a summary placeholder.")
-    transition_groups: list[NLTransitionGroup] = Field(default_factory=list, description="v27-style shared-source transition relations used for discourse binding and alternative comparison. Each endpoint remains an atomic contract; when alternatives semantically require distinguishability, add a separate guard_disjointness contract rather than hiding that property inside endpoint rows.")
+    transition_groups: list[NLTransitionGroup] = Field(default_factory=list, description="v27-style shared-source transition relations used for discourse binding and alternative comparison. A broad capability statement without exact alternatives is context, not an element_declaration contract or permission to force later sequential clauses into one owner-sourced group. Each endpoint remains an atomic contract; when alternatives semantically require distinguishability, add a separate guard_disjointness contract rather than hiding that property inside endpoint rows.")
     segment_disposition: dict[str, Literal["covered", "context", "ambiguous"]] = Field(default_factory=dict, description="Disposition for supplied NL segment IDs only; every key must be an input segment ID. Use covered only when at least one contract in this same response carries that exact segment_id; context and ambiguous may have no contract.")
     reason: str = Field(min_length=1, description="LLM explanation of the overall contract extraction decision.")
     basis: str = Field(min_length=1, description="LLM basis identifying the supplied NL segments and source context used.")
@@ -272,7 +272,7 @@ class GroundingResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     lens: GroundingLens = Field(description="Exact v27 audit-lens identity; both lenses receive the same cross-view context and response contract.")
-    additional_contracts: list[NLContract] = Field(default_factory=list, description="Sparse v27-style atomic obligations derived by this grounding lens when exact cross-view facts reveal a causal property absent from the NL-only contract plan. Each row must retain one supplied segment_id and source obligation, use a unique NL-CONTRACT-...-DERIVED-... ID, and carry its own reason/basis. Do not restate supplied contracts, enumerate satisfied checks, or derive obligations from labels, identifier shape, ledger data, or historical results.")
+    additional_contracts: list[NLContract] = Field(default_factory=list, description="Sparse v27-style atomic obligations derived by this grounding lens when exact cross-view facts reveal a causal property absent from the NL-only contract plan. Each row must retain one supplied segment_id and source obligation, use a unique NL-CONTRACT-...-DERIVED-... ID containing this response's exact lens name, and carry its own reason/basis. Do not restate supplied contracts, enumerate satisfied checks, or derive obligations from labels, identifier shape, ledger data, or historical results.")
     additional_transition_groups: list[NLTransitionGroup] = Field(default_factory=list, description="Sparse v27-style transition groups omitted by NL-only extraction and established only after cross-view semantic grounding. Do not restate supplied groups; every target member needs exact reason/basis and any observed transition ref must come from the supplied inventories.")
     candidates: list[CandidateIssue] = Field(default_factory=list, description="Candidate claims grounded across author source, closed FCSTM, and deterministic facts. Every candidate list item must independently carry all CandidateIssue fields, including its own non-empty reason and basis; a top-level or unresolved basis does not satisfy a candidate. The contract_id must name either one supplied contract or one row in additional_contracts. Candidates must not emit W/D/L levels.")
     unresolved: list[GroundingUnresolved] = Field(default_factory=list, description="Sparse exact contract rows that this lens could not bind or assess. Omit satisfied and not-applicable contracts instead of restating the full contract table. Every unresolved row must carry its own reason and basis.")
@@ -618,6 +618,7 @@ Atomic contract shape:
 - One contract represents one property at one independently violable locus. A transition-property row has at most one source, one target, and one transition hint.
 - Alternative destinations are separate endpoint contracts. A guard conjunction for one exact transition remains one normalized guard hint; guards attached to different transitions are separate contracts.
 - A transition endpoint contract contains only the required source and target relation. Preserve an event or branch-selection condition on its `transition_groups` alternative instead of duplicating every mentioned qualifier into a standalone contract. Emit a separate trigger_set or guard contract at NL extraction only when the clause states that trigger/guard as an independently violable obligation beyond selecting that alternative. Grounding must derive a sparse atomic trigger/guard contract when exact cross-view comparison later reveals a mismatch. An independently required effect or state action remains its own atomic contract because transition_groups do not carry those properties. Do not leave a normative qualifier only inside an endpoint quote, locus name, or evidence_types list.
+- When one trailing phrase semantically governs a coordinated target list, preserve the complete shared condition on every governed alternative. For example, "choose A or B based on x and y" normally gives both alternatives the condition `x and y`; it does not assign x only to A and y only to B unless the NL explicitly pairs them. This is semantic parsing by the LLM, never a string rule.
 - A bidirectional or dynamic A-to-B/B-to-A requirement is two endpoint contracts. Never place two source hints or two target hints in one contract.
 - A conjunction such as `a and b and c` on one transition is one normalized guard hint with the complete conjunction as its value, not three guard hints. Alternative guards on different transitions remain separate contracts.
 - Initialization, containment, endpoint, trigger, guard, effect, action, reachability/progress, event-consumer coverage, region structure, and variable delta never share one contract merely because the NL states them in one sentence.
@@ -628,13 +629,16 @@ v27 state-role and discourse discipline:
 - Preserve the semantic role of every state-centered obligation in `state_role`. Use `operating_state` for an active control state or substate whose behavior must react, continue, or lead onward; use `termination_state` only when the NL explicitly establishes completion or intended terminal behavior. A name that sounds like stopping, emergency, final, or completion is not itself terminal evidence.
 - Emit `deadlock_freedom` only when the NL explicitly requires continuation, response availability, repeated operation, or onward progress for that exact state/scope. Merely naming, entering, or targeting an operating state does not create a progress contract. Cross-view grounding may later add a domain-grounded reachability/progress obligation from exact source/inspection facts; NL-only extraction must not pre-enumerate one for every state.
 - When the NL explicitly says that a mode ends, completes, or terminates at a state, set that state's role to `termination_state` and emit an independent `termination` contract with `expected_direction=must_terminate` and `violation_direction=not_completed`. Do not simultaneously manufacture a progress contract for that terminal role. Grounding will assess stable termination separately from endpoint existence.
-- Treat an explicit "first transitions/enters" clause as `initial_entry` into the first state under the enclosing operating owner, not as an ordinary transition from a word such as system or controller. In an initial-entry contract, `owner` is the scope that owns the required initial pseudostate edge and `target` is the state entered by that edge. Thus "the system begins in Controller" yields owner=root/system and target=Controller, while a later "within Controller, first enter ModeA" yields owner=Controller and target=ModeA. Never make the entered target its own owner merely because it is described as a composite. Resolve later omitted sources and enclosing owners by discourse semantics. A sequence such as "first enter ModeA; it can then transition to ModeB; similarly it transitions to ModeC" yields owner initial-entry to ModeA, ModeA-to-ModeB, and ModeB-to-ModeC. By contrast, "from ModeA choose either ModeB or ModeC" yields two alternatives from ModeA. This is an LLM coreference and ordering judgment; never decide it by keywords or identifier spelling.
+- Treat an explicit "first transitions/enters" clause as `initial_entry` into the first state under the enclosing operating owner, not as an ordinary transition from a word such as system or controller. In an initial-entry contract, `owner` is the scope that owns the required initial pseudostate edge and `target` is the state entered by that edge. Thus "the system begins in Controller" yields owner=root/system and target=Controller, while a later "within Controller, first enter ModeA" yields owner=Controller and target=ModeA. Never make the entered target its own owner merely because it is described as a composite. Resolve later omitted sources and enclosing owners by discourse semantics. A sequence such as "first enter ModeA; the system can also transition to ModeB; similarly, it can transition to ModeC" continues the operating narrative as owner-initial-to-ModeA, ModeA-to-ModeB, and ModeB-to-ModeC unless the supplied discourse explicitly resets the source or defines alternatives. By contrast, "from ModeA choose either ModeB or ModeC" yields two alternatives from ModeA. This is an LLM coreference and ordering judgment; never decide it by keywords or identifier spelling.
 - Preserve every explicit parent/child relation as a separate `containment` contract. A clause that a scope transitions into, contains, or uses a named substate may establish both an endpoint/initial-entry relation and child containment; one does not replace the other. In particular, covered segment accounting never licenses omission of the containment row.
 - Put every direct-transition sentence in one `transition_groups` row with its semantically resolved shared source and complete target set. Sequential discourse continues from the preceding target when the supplied meaning supports that reading; it does not mechanically inherit the enclosing composite as source. When two alternatives from the same source are intended to be distinguishable or mutually exclusive, emit a separate `guard_disjointness` contract over that group. Two individually present guards do not establish disjointness.
+- An introductory statement that an enclosing controller "can transition to different substates" establishes context but no exact source-target relation until the later discourse supplies it. Do not turn that sentence into an `element_declaration` contract, and do not use it to override the sequential source resolved from later "first", "also", or "similarly" clauses. A common enclosing owner is not itself evidence of a common transition source.
 - Keep a state-owned action/effect independent from the endpoint that enters the state. The action may remain a precise unsupported W1 obligation even when the endpoint exists. Do not create standalone trigger/guard contracts that merely repeat every transition-group condition; use the group as the compact normative relation and let grounding derive only actual mismatches.
 - Preserve containment depth from the NL. A state described only as being "within" or "under" a composite requires semantic descendant containment; an intermediate region or nested composite still satisfies that obligation. Require direct/immediate ownership only when the source meaning explicitly requires no intermediate owner. Region or wrapper structure is a separate contract only when the NL independently specifies that structure or its concurrency semantics.
 
 Generic worked example: "Within Controller, start in Idle; on Begin transition from Idle to Running when enabled and set mode=active" yields separate contracts for Controller containment of Idle, Controller initial entry to Idle, the Idle-to-Running endpoint, its Begin trigger set, its enabled guard, and its mode=active effect. If the clause also requires Begin to be accepted throughout Controller, that coverage requirement is a separate event-consumer contract. Do not copy the whole sentence into one multi-property contract.
+
+Before returning, perform one semantic completeness pass without adding a new stage or response object: (1) every explicit child/substate relation has its containment contract even when the same clause also states entry or transition; (2) every explicit ending/completion role has one termination contract and no manufactured progress contract; (3) every exact transition clause has its discourse-resolved source and target; (4) every coordinated alternative keeps its complete shared condition and any independent disjointness obligation; and (5) broad capability context has not been converted into a synthetic element or endpoint obligation. `segment_disposition=covered` never replaces this pass.
 
 Return only the requested Pydantic structure."""
 
@@ -699,7 +703,10 @@ atomic obligations when the cross-view closure exposes a property that the NL-on
 contract extraction could not see. This does not authorize arbitrary issue
 invention. Every additional contract must retain one supplied numbered NL segment,
 state the requirement-side semantic implication, bind exact source/model facts,
-and use a unique `NL-CONTRACT-<segment>-DERIVED-...` ID. A candidate using it must
+and use a unique ID under that segment's namespace with a distinct `-DERIVED-`
+marker, such as `NL-CONTRACT-<segment>-<source-contract>-DERIVED-<lens>-...`.
+Include this response's exact `lens` value in every additional-contract ID so the
+two complementary branches cannot assign different meanings to one ID. A candidate using it must
 copy its exact typed semantic key. Typical legitimate cases are: required operating
 behavior whose exact consumer transitions are unreachable because an enclosing
 source composite lacks an entry; an exact required operating state that is
@@ -740,6 +747,26 @@ Cross-view frontier discipline:
   but the exact source/model topology isolates them, derive the narrowest global
   reachability/region contract that states that relation; local leaf facts may be
   supporting evidence but are not a substitute for the global property.
+- Treat owner default entry, root reachability, and reachable event-consumer
+  coverage as three independent frontier properties. Discovering a deeper root
+  reachability cause does not license omission of an exact missing owner entry or
+  an exact declared-but-unreachable consumer. Conversely, a local entry edge or a
+  declared consumer never discharges root reachability or operational coverage.
+- For every supplied `termination` contract with `state_role=termination_state`,
+  audit the exact target ancestry and all target/active-ancestor continuations.
+  If the designated ending target can re-enter, cycle, or route into continued
+  behavior, emit one termination candidate on that exact contract even when the
+  endpoint transition exists. Predicate support affects W only.
+- For every transition group with multiple target alternatives, compare the exact
+  selected trigger/guard relations as a group. If distinct alternatives are
+  operationally indistinguishable under the same condition, emit the independent
+  `guard_disjointness` candidate (V1 only when its finite domain is supplied;
+  otherwise predicate=null/W1). Individual S3/S5 successes cannot rebut it.
+- When an NL endpoint denotes a semantic local exit or role rather than a literal
+  state spelling, use the canonical author-source inventory to bind the exact
+  intended target before comparing the closed FCSTM. A present edge to another
+  exact target is evidence for a wrong-target candidate, not grounds to rewrite
+  the normative target or mark it unresolved.
 
 {PREDICATE_ROUTING_GUIDANCE}
 
@@ -846,8 +873,8 @@ Return only the requested Pydantic structure."""
 
 
 DISCOVERY_GROUNDING_AUDIT_LENSES: dict[GroundingLens, str] = {
-    "contract_structure_contrast": """Prioritize contract completeness, structure, and contrastive consistency. Resolve exact source and closed-model identities before emitting a candidate. Audit omitted or collapsed direct contracts, containment and default-entry defects, guard/effect conflicts, unauthorized edges, and cross-context inconsistencies. An authored fact may be contrastive evidence only after the NL establishes the shared semantic role; never infer equivalence from labels, identifiers, or textual overlap.""",
-    "behavior_consequence": """Prioritize behavioral consequence while still completing exact source and closed-model binding. Audit finite reachability, event-consumer coverage, forbidden-scope entry, dead-end/frontier facts, stable termination, and bounded response or trace obligations. Prefer the deepest sound consequence and its author-source cause, but do not replace a distinct structural defect or promote a finite/trace result beyond its registered soundness fragment.""",
+    "contract_structure_contrast": """Prioritize contract completeness, structure, and contrastive consistency. Resolve exact source and closed-model identities before emitting a candidate. Audit omitted or collapsed direct contracts, containment and owner/root default-entry defects, transition-group guard collisions, wrong local-exit targets, unauthorized edges, and cross-context inconsistencies. A source/model composite that owns required downstream behavior but lacks an exact default entry needs its own derived initial-entry candidate even when no NL sentence separately says 'initial'. An authored fact may be contrastive evidence only after the NL establishes the shared semantic role; never infer equivalence from labels, identifiers, or textual overlap.""",
+    "behavior_consequence": """Prioritize behavioral consequence while still completing exact source and closed-model binding. Audit root reachability, reachable event-consumer coverage, forbidden-scope entry, dead-end/frontier facts, cross-wrapper reachability, stable termination, and bounded response or trace obligations. For every supplied termination-state contract, inspect the exact target and active-ancestor continuations; endpoint existence is not stable termination. For every required event response, inspect both declared and reachable consumer sets; declaration-only presence cannot discharge operational coverage. Preserve separate derived candidates for owner entry, root reachability, and consumer coverage when each exact property fails. Prefer one candidate per distinct property and place repeated causal facts in its basis; do not replace a distinct structural defect or promote a finite/trace result beyond its registered soundness fragment.""",
 }
 
 
@@ -970,6 +997,9 @@ The supplied contract IDs are:
 {json.dumps(contract_ids, ensure_ascii=False)}
 Candidates and unresolved rows may use these IDs. A branch-local derived
 candidate must instead name one exact row returned in `additional_contracts`.
+Every branch-local additional contract ID must include the exact lens name
+`{lens}` after its `-DERIVED-` marker; do not reuse an ID from the complementary
+lens even when both lenses discover related evidence.
 Before selecting `unresolved`, distinguish missing evidence identity from an
 exact negative inventory result: an exact required edge absent from the complete
 transition inventory is a candidate, while an ambiguous source or target is

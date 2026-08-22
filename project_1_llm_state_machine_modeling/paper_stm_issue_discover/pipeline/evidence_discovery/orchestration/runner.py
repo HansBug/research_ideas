@@ -974,7 +974,8 @@ def _merge_grounding_contracts(
 
     for branch in branches:
         for contract in branch.additional_contracts:
-            expected_prefix = f"NL-CONTRACT-{contract.segment_id}-DERIVED-"
+            segment_prefix = f"NL-CONTRACT-{contract.segment_id}-"
+            derived_marker = "-DERIVED-"
             diagnostic_base = {
                 "stage": "discovery_grounding",
                 "lens": branch.lens,
@@ -992,14 +993,23 @@ def _merge_grounding_contracts(
                 )
                 invalid_ids.add(contract.contract_id)
                 continue
-            if not contract.contract_id.startswith(expected_prefix):
+            suffix = (
+                contract.contract_id[len(segment_prefix) :]
+                if contract.contract_id.startswith(segment_prefix)
+                else ""
+            )
+            has_derived_namespace = suffix.startswith("DERIVED-") or (
+                derived_marker in suffix
+            )
+            if not suffix or not has_derived_namespace:
                 diagnostics.append(
                     {
                         **diagnostic_base,
                         "class": "invalid_additional_contract_id",
-                        "expected_prefix": expected_prefix,
-                        "reason": "The branch-local contract ID does not preserve its supplied segment identity and DERIVED namespace.",
-                        "basis": "exact documented derived-ID prefix check",
+                        "expected_segment_prefix": segment_prefix,
+                        "required_marker": derived_marker,
+                        "reason": "The branch-local contract ID does not preserve its supplied segment identity and a distinct DERIVED namespace.",
+                        "basis": "exact segment-prefix and DERIVED-marker checks without interpreting identifier prose",
                     }
                 )
                 invalid_ids.add(contract.contract_id)
