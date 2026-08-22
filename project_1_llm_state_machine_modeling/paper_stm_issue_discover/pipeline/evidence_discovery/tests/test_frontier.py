@@ -843,6 +843,77 @@ def test_termination_frontier_keeps_ownerless_contract_outside_aggregate() -> No
     assert ownerless.contract_id not in batch.superseded_candidate_contract_ids
 
 
+def test_termination_frontier_treats_state_hint_as_owner_with_explicit_target() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    contracts = [
+        _contract(
+            contract_id=f"NL-CONTRACT-{segment}-TERMINATION-STATE-OWNER",
+            segment_id=segment,
+            locus_kind="composite",
+            locus_names=(owner, "FinishState"),
+            property_name="termination",
+            expected_direction="must_terminate",
+            violation_direction="not_completed",
+            hints=(
+                _hint("state", owner, segment),
+                _hint("target", "FinishState", segment),
+            ),
+            state_role="termination_state",
+        )
+        for segment, owner in (("NL6", "HighwayMode"), ("NL10", "UrbanMode"))
+    ]
+    provisional_candidates = [
+        CandidateIssue(
+            contract_id=contract.contract_id,
+            locus_kind=contract.locus_kind,
+            locus_names=contract.locus_names,
+            property=contract.property,
+            violation_direction=contract.violation_direction,
+            evidence_types=contract.evidence_types,
+            title=f"{contract.locus_names[0]} termination is unstable",
+            requirement_quote=contract.quote,
+            element_refs=["state:FinishState:line:21"],
+            source_refs=[contract.segment_id],
+            expected=contract.normative_statement,
+            observed="FinishState has continuing authored behavior.",
+            strongest_rebuttal="Endpoint existence does not establish stable termination.",
+            reason="The provisional lens candidate is scoped to one owner.",
+            basis="provider-free replay of the latest 0029 grounding shape",
+        )
+        for contract in contracts
+    ]
+
+    batch = materialize_v27_frontier(
+        pair,
+        _response(contracts),
+        {item.contract_id: item for item in contracts},
+        (),
+        provisional_candidates,
+    )
+
+    aggregate = next(
+        item
+        for item in batch.obligations
+        if item.kind == "aggregate_stable_termination"
+    )
+    assert aggregate.source_contract_ids == tuple(
+        contract.contract_id for contract in contracts
+    )
+    assert aggregate.candidate.locus_names == (
+        "HighwayMode",
+        "UrbanMode",
+        "FinishState",
+    )
+    assert any(
+        item.kind == "wrong_scope_route"
+        and item.source_contract_ids == (contracts[1].contract_id,)
+        for item in batch.obligations
+    )
+    assert set(batch.superseded_candidate_contract_ids) == {
+        contract.contract_id for contract in contracts
+    }
+
+
 def test_0029_grounding_group_identity_is_canonical_and_consumed() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0029")
     cruise = _contract(
@@ -1440,15 +1511,17 @@ def test_derived_candidate_identity_is_projected_from_authoritative_contract() -
         reason="The candidate evaluates the referenced derived contract.",
         basis="provider-free consumer identity fixture",
     )
-    with pytest.raises(
-        ValidationError, match="branch-local contract reference closure failed"
-    ):
-        GroundingResponse(
-            lens="behavior_consequence",
-            candidates=[candidate],
-            reason="The malformed fixture omits its branch-local contract row.",
-            basis="provider-free dangling derived reference fixture",
-        )
+    dangling = GroundingResponse(
+        lens="behavior_consequence",
+        candidates=[candidate],
+        reason="The malformed fixture omits its branch-local contract row.",
+        basis="provider-free dangling derived reference fixture",
+    )
+    normalized_dangling, dangling_receipts = canonicalize_grounding_response(
+        dangling
+    )
+    assert normalized_dangling.candidates[0].contract_id == candidate.contract_id
+    assert dangling_receipts == ()
     response = GroundingResponse(
         lens="behavior_consequence",
         additional_contracts=[contract],
@@ -1463,6 +1536,57 @@ def test_derived_candidate_identity_is_projected_from_authoritative_contract() -
     assert normalized.candidates[0].locus_names == contract.locus_names
     receipt = next(item for item in receipts if isinstance(item, IdentityNormalizationReceipt))
     assert receipt.projected_candidate_identity_count == 1
+
+
+def test_derived_candidate_reference_typo_recovers_from_unique_typed_payload() -> None:
+    contract = _contract(
+        contract_id=(
+            "NL-CONTRACT-NL12-NL12-ENDPOINT-1-DERIVED-"
+            "behavior_consequence-REACHABILITY-1"
+        ),
+        segment_id="NL12",
+        locus_kind="composite",
+        locus_names=("CollisionAvoidance",),
+        property_name="reachability",
+        expected_direction="must_reach",
+        violation_direction="unreachable",
+        hints=(_hint("state", "CollisionAvoidance", "NL12"),),
+    )
+    candidate = CandidateIssue(
+        contract_id=(
+            "NL-CONTRACT-NL12-ENDPOINT-1-DERIVED-"
+            "behavior_consequence-REACHABILITY-1"
+        ),
+        locus_kind=contract.locus_kind,
+        locus_names=contract.locus_names,
+        property=contract.property,
+        violation_direction=contract.violation_direction,
+        evidence_types=contract.evidence_types,
+        title="CollisionAvoidance is unreachable",
+        requirement_quote=contract.quote,
+        element_refs=["state:CollisionAvoidance:line:89"],
+        source_refs=["NL12"],
+        expected="CollisionAvoidance must be reachable.",
+        observed="The exact finite root-reachability set excludes it.",
+        strongest_rebuttal="A local initial edge does not establish root reachability.",
+        reason="The typed scope is excluded from exact root reachability.",
+        basis="provider-free replay of the rejected 0029 grounding payload",
+    )
+    response = GroundingResponse(
+        lens="behavior_consequence",
+        additional_contracts=[contract],
+        candidates=[candidate],
+        reason="The fixture contains one response-local reference typo.",
+        basis="provider-free typed-reference recovery fixture",
+    )
+
+    normalized, receipts = canonicalize_grounding_response(response)
+
+    assert normalized.candidates[0].contract_id == normalized.additional_contracts[0].contract_id
+    receipt = next(item for item in receipts if isinstance(item, IdentityNormalizationReceipt))
+    assert receipt.rewritten_candidate_count == 0
+    assert receipt.projected_candidate_identity_count == 1
+    assert receipt.recovered_candidate_reference_count == 1
 
 
 def test_frontier_merges_duplicate_typed_candidate_support() -> None:
@@ -2037,6 +2161,17 @@ def test_frontier_pydantic_descriptions_reach_json_schema() -> None:
         "unresolved",
     }
     grounding_schema = GroundingResponse.model_json_schema()
+    assert "response-local references" in grounding_schema["description"]
+    candidate_schema = grounding_schema["$defs"]["CandidateIssue"]
+    assert "requirement_quote" in candidate_schema["required"]
+    assert "Every candidates list item" in candidate_schema["properties"][
+        "requirement_quote"
+    ]["description"]
+    hint_schema = grounding_schema["$defs"]["ContractBindingHint"]
+    assert {"reason", "basis"}.issubset(set(hint_schema["required"]))
+    assert "mandatory on every binding_hints list item" in hint_schema[
+        "properties"
+    ]["reason"]["description"]
     domain_binding_schema = grounding_schema["$defs"]["CardinalityDomainBinding"]
     assert "有限成员域" in domain_binding_schema["description"]
     assert "exact_source_inventory.states" in domain_binding_schema["properties"][

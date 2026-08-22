@@ -160,8 +160,8 @@ class ContractBindingHint(BaseModel):
         ),
     )
     source_ref: str | None = Field(default=None, description="Exact supplied NL or author-source reference supporting this hint, or null when only the parent contract source refs apply.")
-    reason: str = Field(min_length=1, description="LLM explanation of why this value has the declared semantic role in the atomic contract.")
-    basis: str = Field(min_length=1, description="LLM basis naming the supplied NL clause or author-source fact used for this hint.")
+    reason: str = Field(min_length=1, description="Required per-hint LLM explanation of why this value has the declared semantic role in the atomic contract. This field is mandatory on every binding_hints list item; a contract-level reason does not replace it.")
+    basis: str = Field(min_length=1, description="Required per-hint LLM basis naming the supplied NL clause or author-source fact used for this hint. This field is mandatory on every binding_hints list item; a contract-level basis does not replace it.")
 
 class CandidateIssue(BaseModel):
     """One LLM-generated candidate with explicit audit rationale.
@@ -194,7 +194,7 @@ class CandidateIssue(BaseModel):
         ),
     )
     title: str = Field(min_length=1, description="Short human-readable issue title; do not include a verdict level.")
-    requirement_quote: str = Field(min_length=1, description="Exact or faithful quote of the supplied requirement supporting this candidate.")
+    requirement_quote: str = Field(min_length=1, description="Required exact or faithful quote of the supplied numbered requirement supporting this candidate. Every candidates list item must include this field independently; contract_id, source_refs, or a top-level basis do not substitute for the quote.")
     predicate_id: PredicateId | None = Field(default=None, description="One frozen predicate ID, or null when the precise claim is not expressible by the registry.")
     predicate_inputs: dict[str, Any] = Field(default_factory=dict, description="Only the frozen predicate's named inputs; do not invent semantic fields or answer data.")
     element_refs: list[Annotated[str, Field(min_length=1)]] = Field(default_factory=list, description="Stable closed-FCSTM element references that bind the candidate to the executable model. For an absent required edge, bind its exact existing endpoint-state refs because the missing edge has no ref of its own. For a missing guard, action, or effect, bind the exact existing carrier transition/state ref; absence of the required field is evidence, not a reason to leave the carrier unbound. Put PlantUML/canonical/source/macro identities in source_refs, not here. A source identity is provenance and must not masquerade as a closed-model element.")

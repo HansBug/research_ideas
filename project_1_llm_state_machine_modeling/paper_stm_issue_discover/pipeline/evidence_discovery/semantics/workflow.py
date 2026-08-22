@@ -657,12 +657,17 @@ class CardinalityDomainBinding(BaseModel):
 
 
 class GroundingResponse(BaseModel):
-    """Structured LLM response for one v27 complementary discovery lens."""
+    """Structured LLM response for one v27 complementary discovery lens.
+
+    Additional-contract IDs are response-local references only. The runner
+    derives their persistent identities from typed semantic payloads before
+    cross-lens merge; provider spelling never has semantic authority.
+    """
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     lens: GroundingLens = Field(description="Exact v27 audit-lens identity; both lenses receive the same cross-view context and response contract.")
-    additional_contracts: list[NLContract] = Field(default_factory=list, description="Sparse v27-style atomic obligations derived by this grounding lens when exact cross-view facts reveal a causal property absent from the NL-only contract plan. Each row must retain one supplied segment_id and source obligation, use a unique NL-CONTRACT-...-DERIVED-... ID containing this response's exact lens name, and carry its own reason/basis. Do not restate supplied contracts, enumerate satisfied checks, or derive obligations from labels, identifier shape, ledger data, or historical results.")
+    additional_contracts: list[NLContract] = Field(default_factory=list, description="Sparse v27-style atomic obligations derived by this grounding lens when exact cross-view facts reveal a causal property absent from the NL-only contract plan. Each row must retain one supplied segment_id and source obligation, use a response-local NL-CONTRACT-...-DERIVED-... reference, and carry its own reason/basis plus complete binding_hints reason/basis. The local string only joins rows inside this response; the runner computes the persistent canonical ID from the typed semantic payload. Do not restate supplied contracts, enumerate satisfied checks, or derive obligations from labels, identifier shape, ledger data, or historical results.")
     additional_transition_groups: list[NLTransitionGroup] = Field(default_factory=list, description="Sparse v27-style transition groups omitted by NL-only extraction and established only after cross-view semantic grounding. Do not restate supplied groups; every target member needs exact reason/basis and any observed transition ref must come from the supplied inventories.")
     semantic_bindings: list[SemanticBinding] = Field(default_factory=list, description="Sparse exact cross-artifact argument bindings needed by candidates/frontiers. Emit them for concepts whose NL name alone cannot serve as a ModelIR ref, especially wrong-target/wrong-scope relations; ambiguous or unbound concepts remain explicit and are never repaired by text similarity.")
     cardinality_bindings: list[CardinalityDomainBinding] = Field(
@@ -673,7 +678,7 @@ class GroundingResponse(BaseModel):
             "facts. This row is not a candidate and never records observed count, W, D, L, or ledger data."
         ),
     )
-    candidates: list[CandidateIssue] = Field(default_factory=list, description="Candidate claims grounded across author source, closed FCSTM, and deterministic facts. Every candidate list item must independently carry all CandidateIssue fields, including its own non-empty reason and basis; a top-level or unresolved basis does not satisfy a candidate. The contract_id must name either one supplied contract or one row in additional_contracts. A branch-local ID containing this response's exact lens marker after -DERIVED- must be defined in this same response's additional_contracts list; never mint a candidate-only derived ID. Candidates must not emit W/D/L levels.")
+    candidates: list[CandidateIssue] = Field(default_factory=list, description="Candidate claims grounded across author source, closed FCSTM, and deterministic facts. Every list item must independently include requirement_quote, reason, basis, locus_kind, locus_names, property, violation_direction, evidence_types, expected, observed, and strongest_rebuttal; no top-level field substitutes for an item field. contract_id names either one supplied contract or one response-local additional_contracts row. The runner canonicalizes derived identity from the unique typed payload and records any exact reference recovery. Candidates must not emit W/D/L levels.")
     unresolved: list[GroundingUnresolved] = Field(default_factory=list, description="Sparse exact contract rows that this lens could not bind or assess. Omit satisfied and not-applicable contracts instead of restating the full contract table. Every unresolved row must carry its own reason and basis.")
     reason: str = Field(min_length=1, description="LLM explanation of how this audit lens selected or rejected candidate claims.")
     basis: str = Field(min_length=1, description="LLM basis naming the supplied cross-view facts and contract IDs used by this lens.")
@@ -710,41 +715,6 @@ class GroundingResponse(BaseModel):
             raise ValueError(
                 "a contract cannot be both a candidate and unresolved in one lens: "
                 f"{overlap}"
-            )
-        branch_marker = f"-DERIVED-{self.lens}-"
-        branch_local_references = {
-            "semantic_bindings": {
-                item.contract_id
-                for item in self.semantic_bindings
-                if branch_marker in item.contract_id
-            },
-            "cardinality_bindings": {
-                item.contract_id
-                for item in self.cardinality_bindings
-                if branch_marker in item.contract_id
-            },
-            "candidates": {
-                item.contract_id
-                for item in self.candidates
-                if branch_marker in item.contract_id
-            },
-            "unresolved": {
-                item.contract_id
-                for item in self.unresolved
-                if branch_marker in item.contract_id
-            },
-        }
-        dangling_references = {
-            collection: sorted(contract_ids - set(additional_ids))
-            for collection, contract_ids in branch_local_references.items()
-            if contract_ids - set(additional_ids)
-        }
-        if dangling_references:
-            raise ValueError(
-                "branch-local contract reference closure failed for "
-                f"lens={self.lens!r}; every ID containing marker "
-                f"{branch_marker!r} must appear in additional_contracts; "
-                f"dangling_references={dangling_references}"
             )
         return self
 
@@ -1335,11 +1305,13 @@ path property merely because it is executable. Record the evidence families
 actually used in `evidence_types`.
 
 Before returning, close every branch-local contract reference. If this lens
-derives a new property and mints an ID containing its exact name after
-`-DERIVED-`, return the complete typed contract in `additional_contracts` and
-make every candidate/binding/unresolved row reference that exact row. Never
-return a candidate-only derived ID. Schema correction must return the complete
-response with all previously valid rows retained.
+derives a new property, return the complete typed contract in
+`additional_contracts` and use one response-local `NL-CONTRACT-...-DERIVED-...`
+reference consistently in candidate/binding/unresolved rows. That provider
+string is only a response-local join key: the runner computes the persistent ID
+from the typed segment/locus/property/role/direction payload and merges lenses by
+that key. Never return a candidate-only derived reference. Schema correction
+must return the complete response with all previously valid rows retained.
 
 Emit a candidate only for a possible violated obligation or a precisely bound
 semantic gap that must remain W1. When the supplied source/model facts satisfy a
@@ -1375,11 +1347,13 @@ Keep author-source and closed-model namespaces separate: `element_refs` contains
 only exact FCSTM/ModelIR refs, while PlantUML, canonical, source, and macro refs
 belong in `source_refs`. An unmapped source identity is provenance, not evidence
 that an otherwise exact FCSTM binding is missing.
-Every candidate, additional contract, and unresolved row must include its own
-non-empty reason and basis. These are structural output obligations, not optional prose.
-Before returning, inspect every candidate list item independently: copy the full
-`NL-CONTRACT-...` ID without abbreviation and include both `reason` and `basis`
-on that item.
+Every candidate, additional contract, binding hint, semantic binding, and
+unresolved row must include its own non-empty reason and basis. These are
+structural output obligations, not optional prose. Before returning, inspect
+every candidate list item independently: include its full contract reference,
+`requirement_quote`, `reason`, and `basis`. Inspect every
+`additional_contracts[].binding_hints[]` item independently and include its own
+`reason` and `basis`; parent contract prose does not fill nested fields.
 
 Use `semantic_bindings` when a normative concept needs an exact cross-artifact
 identity that cannot be represented by copying its NL name. For example, if the
@@ -1401,11 +1375,11 @@ atomic obligations when the cross-view closure exposes a property that the NL-on
 contract extraction could not see. This does not authorize arbitrary issue
 invention. Every additional contract must retain one supplied numbered NL segment,
 state the requirement-side semantic implication, bind exact source/model facts,
-and use a unique ID under that segment's namespace with a distinct `-DERIVED-`
-marker, such as `NL-CONTRACT-<segment>-<source-contract>-DERIVED-<lens>-...`.
-Include this response's exact `lens` value in every additional-contract ID so the
-two complementary branches cannot assign different meanings to one ID. A candidate using it must
-copy its exact typed semantic key. Typical legitimate cases are: required operating
+and use a unique response-local ID under that segment's namespace with a
+distinct `-DERIVED-` marker. The string is not a cross-lens semantic identity;
+the runner derives that identity from the complete typed payload. A candidate
+using the local reference must copy the contract's exact typed semantic fields.
+Typical legitimate cases are: required operating
 behavior whose exact consumer transitions are unreachable because an enclosing
 source composite lacks an entry; an exact required operating state that is
 unreachable from root; or an unqualified event-response obligation whose exact
@@ -1724,9 +1698,9 @@ The supplied contract IDs are:
 {json.dumps(contract_ids, ensure_ascii=False)}
 Candidates and unresolved rows may use these IDs. A branch-local derived
 candidate must instead name one exact row returned in `additional_contracts`.
-Every branch-local additional contract ID must include the exact lens name
-`{lens}` after its `-DERIVED-` marker; do not reuse an ID from the complementary
-lens even when both lenses discover related evidence.
+Every branch-local additional contract reference must be unique within this
+response. It need not predict the runner's canonical ID and must never be used
+to decide semantic equivalence across lenses.
 Before selecting `unresolved`, distinguish missing evidence identity from an
 exact negative inventory result: an exact required edge absent from the complete
 transition inventory is a candidate, while an ambiguous source or target is

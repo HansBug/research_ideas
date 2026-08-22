@@ -86,8 +86,8 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v8"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v5"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v33"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v29"
+CODE_VERSION = "evidence-discovery-v27-flow.v34"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v30"
 JUDGE_EXACT_IDENTITY_CONTRACT_VERSION = "paper1.judge-exact-identity-contract.v1"
 
 

@@ -142,13 +142,13 @@ class IdentityNormalizationReceipt(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.identity-normalization.v3"] = Field(
-        default="paper1.identity-normalization.v3",
+    schema_version: Literal["paper1.identity-normalization.v4"] = Field(
+        default="paper1.identity-normalization.v4",
         description="identity normalization receipt 的持久化 schema 版本。",
     )
-    algorithm_version: Literal["typed-contract-identity.v3"] = Field(
-        default="typed-contract-identity.v3",
-        description="生成 canonical ID 和改写 branch-local 引用的确定性算法版本。",
+    algorithm_version: Literal["typed-contract-identity.v4"] = Field(
+        default="typed-contract-identity.v4",
+        description="生成 canonical ID、改写 exact branch-local 引用并恢复唯一 typed candidate 引用的确定性算法版本。",
     )
     lens: Literal["contract_structure_contrast", "behavior_consequence"] = Field(
         description="产生原始 additional contract 的 grounding lens；仅用于 provenance。",
@@ -171,6 +171,11 @@ class IdentityNormalizationReceipt(BaseModel):
     projected_candidate_identity_count: int = Field(
         ge=0,
         description="本 lens 中按 referenced contract 权威 typed key 投影 locus/property/direction 的 candidate 数；raw provider payload 仍保留在调用审计中。",
+    )
+    recovered_candidate_reference_count: int = Field(
+        default=0,
+        ge=0,
+        description="provider 的 derived local reference 拼写漂移时，runner 仅凭唯一的 locus kind/names、property、direction 与 evidence-family typed projection 恢复到本 contract 的 candidate 数；0 表示没有执行这种恢复。",
     )
     rewritten_unresolved_count: int = Field(
         ge=0,
@@ -223,9 +228,9 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v12"] = Field(
-        default="v27-typed-frontier.v12",
-        description="产生该检查的确定性算法版本；不表示旧谓词或旧 inspect 后端。",
+    algorithm_version: Literal["v27-typed-frontier.v13"] = Field(
+        default="v27-typed-frontier.v13",
+        description="产生该检查的确定性算法版本；v13 消费 termination contract 的 typed state-owner role，不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
         min_length=1,
@@ -312,9 +317,9 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v12"] = Field(
-        default="v27-typed-frontier.v12",
-        description="本批所有 check/obligation 使用的确定性算法版本。",
+    algorithm_version: Literal["v27-typed-frontier.v13"] = Field(
+        default="v27-typed-frontier.v13",
+        description="本批所有 check/obligation 使用的确定性算法版本；v13 消费 termination contract 的 typed state-owner role。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
         default_factory=tuple,
@@ -422,6 +427,30 @@ def _canonicalize_transition_group(
     )
 
 
+def _candidate_contract_reference_key(candidate: CandidateIssue) -> tuple[object, ...]:
+    """Return the exact typed candidate fields shared with its contract."""
+
+    return (
+        candidate.locus_kind,
+        candidate.locus_names,
+        candidate.property,
+        candidate.violation_direction,
+        candidate.evidence_types,
+    )
+
+
+def _contract_candidate_reference_key(contract: NLContract) -> tuple[object, ...]:
+    """Return the contract projection available on a grounding candidate."""
+
+    return (
+        contract.locus_kind,
+        contract.locus_names,
+        contract.property,
+        contract.violation_direction,
+        contract.evidence_types,
+    )
+
+
 def canonicalize_grounding_response(
     response: GroundingResponse,
 ) -> tuple[
@@ -436,14 +465,38 @@ def canonicalize_grounding_response(
 
     raw_to_canonical: dict[str, str] = {}
     contracts_by_id: dict[str, NLContract] = {}
+    raw_contracts: dict[str, NLContract] = {}
     receipts: list[
         IdentityNormalizationReceipt | GroupIdentityNormalizationReceipt
     ] = []
     for contract in response.additional_contracts:
         canonical_id = canonical_contract_id(contract)
         raw_to_canonical[contract.contract_id] = canonical_id
+        raw_contracts[contract.contract_id] = contract
         canonical = contract.model_copy(update={"contract_id": canonical_id})
         contracts_by_id.setdefault(canonical_id, canonical)
+
+    recovered_candidate_contracts: dict[int, NLContract] = {}
+    for index, candidate in enumerate(response.candidates):
+        if candidate.contract_id in raw_contracts:
+            continue
+        if "-DERIVED-" not in candidate.contract_id:
+            continue
+        candidate_key = _candidate_contract_reference_key(candidate)
+        matches = [
+            contract
+            for contract in response.additional_contracts
+            if _contract_candidate_reference_key(contract) == candidate_key
+        ]
+        if len(matches) == 1:
+            recovered_candidate_contracts[index] = matches[0]
+
+    for contract in response.additional_contracts:
+        canonical_id = raw_to_canonical[contract.contract_id]
+        recovered_count = sum(
+            recovered.contract_id == contract.contract_id
+            for recovered in recovered_candidate_contracts.values()
+        )
         receipts.append(
             IdentityNormalizationReceipt(
                 lens=response.lens,
@@ -457,7 +510,8 @@ def canonicalize_grounding_response(
                 projected_candidate_identity_count=sum(
                     candidate.contract_id == contract.contract_id
                     for candidate in response.candidates
-                ),
+                ) + recovered_count,
+                recovered_candidate_reference_count=recovered_count,
                 rewritten_unresolved_count=sum(
                     item.contract_id == contract.contract_id
                     for item in response.unresolved
@@ -480,11 +534,14 @@ def canonicalize_grounding_response(
         raw_id: contracts_by_id[canonical_id]
         for raw_id, canonical_id in raw_to_canonical.items()
     }
-    for candidate in response.candidates:
+    for index, candidate in enumerate(response.candidates):
+        recovered_contract = recovered_candidate_contracts.get(index)
         contract = contracts_by_raw_id.get(candidate.contract_id)
+        if contract is None and recovered_contract is not None:
+            contract = contracts_by_id[raw_to_canonical[recovered_contract.contract_id]]
         update: dict[str, object] = {
-            "contract_id": raw_to_canonical.get(
-                candidate.contract_id, candidate.contract_id
+            "contract_id": (
+                contract.contract_id if contract is not None else candidate.contract_id
             )
         }
         if contract is not None:
@@ -1991,8 +2048,17 @@ def _materialize_termination(builder: _Builder, contracts: Sequence[NLContract])
     for contract in contracts:
         if contract.property != "termination" or contract.state_role != "termination_state":
             continue
-        target_hint = _hint(contract, "target") or _hint(contract, "state")
+        explicit_target_hint = _hint(contract, "target")
+        state_hint = _hint(contract, "state")
+        target_hint = explicit_target_hint or state_hint
         owner_hint = _hint(contract, "owner") or _hint(contract, "scope")
+        if (
+            owner_hint is None
+            and explicit_target_hint is not None
+            and state_hint is not None
+            and state_hint.value != explicit_target_hint.value
+        ):
+            owner_hint = state_hint
         target = _state_for_value(pair, target_hint.value if target_hint else None)
         owner = _state_for_value(pair, owner_hint.value if owner_hint else None)
         if target is None:

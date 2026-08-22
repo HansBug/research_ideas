@@ -1544,8 +1544,8 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "exact owner-local edge reaches the required target" in grounding_prompt
     assert "Return sparse v27-style output" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "additional_contracts" in grounding_prompt
-    assert "must include the exact lens name" in grounding_prompt
-    assert "`behavior_consequence` after its `-DERIVED-` marker" in grounding_prompt
+    assert "need not predict the runner's canonical ID" in grounding_prompt
+    assert "unique within this response" in " ".join(grounding_prompt.split())
     assert '["NL-CONTRACT-NL1"]' in grounding_prompt
     assert "missing edge -> exact endpoint state refs" in grounding_prompt
     assert "Predicate support controls" in grounding_prompt
@@ -2635,7 +2635,7 @@ def test_0046_contract_shape_separates_endpoint_and_event_consumer() -> None:
     assert trigger_evidence.evidence_types == ("trigger_fact",)
     assert "Every candidate object must explicitly include" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "must always be a JSON object" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
-    assert "Never return a candidate-only derived ID" in " ".join(
+    assert "Never return a candidate-only derived reference" in " ".join(
         DISCOVERY_GROUNDING_SYSTEM_PROMPT.split()
     )
     assert "Complete-inventory absence protocol" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
