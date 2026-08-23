@@ -6,6 +6,8 @@ import re
 from pathlib import Path
 
 import pytest
+from pydantic import BaseModel, ValidationError
+
 from pipeline.semantic_judge import models
 from pipeline.semantic_judge.artifacts import (
     adapt_evidence_discovery_release,
@@ -36,7 +38,6 @@ from pipeline.semantic_judge.schema import (
     build_exact_response_model,
     materialize_reading,
 )
-from pydantic import BaseModel, ValidationError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 REPOSITORY_ROOT = PROJECT_ROOT.parents[1]
@@ -182,6 +183,25 @@ def reading_payload(
                         "basis": f"CandidateReport {report.report_id}.reason",
                     },
                 ],
+                "causal_field_audits": [
+                    {
+                        "report_field": field_name,
+                        "exact_text": field_value,
+                        "verdict": (
+                            "REFUTED"
+                            if selected_validity == ReportValidity.INVALID
+                            else "SUPPORTED"
+                        ),
+                        "reason": "The complete fixture causal field receives one artifact verdict.",
+                        "basis": f"CandidateReport {report.report_id}.{field_name} and fixture artifacts",
+                        "source_refs": [
+                            f"report:{report.report_id}:{field_name}",
+                            "artifact:natural_language",
+                        ],
+                    }
+                    for field_name in ("reason", "basis", "observed")
+                    if isinstance((field_value := getattr(report, field_name)), str)
+                ],
                 "reason": f"artifact review classifies {report.report_id}",
                 "basis": "fixture artifact truth review",
                 "source_refs": [
@@ -204,7 +224,7 @@ def reading_payload(
             }
         )
     return {
-        "schema_version": "paper1.semantic-judge.response.v3",
+        "schema_version": "paper1.semantic-judge.response.v4",
         "relations": relation_rows,
         "report_judgments": report_rows,
         "expected_judgments": expected_rows,
@@ -266,6 +286,10 @@ def test_runtime_schema_contains_descriptions_enums_and_exact_literals() -> None
     assert "VALID_KNOWN" in serialized
     assert "VALID_NOVEL" in serialized
     assert "INVALID" in serialized
+    assert "SUPPORTED" in serialized
+    assert "MIXED" in serialized
+    assert "REFUTED" in serialized
+    assert "causal_field_audits" in serialized
     assert "R0001" in serialized and "R0002" in serialized
     assert "E0001" in serialized and "E0002" in serialized
     properties = schema["properties"]
@@ -397,6 +421,98 @@ def test_invalid_report_requires_an_exact_refuted_premise() -> None:
         schema.model_validate(payload)
 
 
+def test_causal_field_audit_requires_exact_complete_closure() -> None:
+    judge_input = minimal_input()
+    report = judge_input.reports[0].model_copy(
+        update={"basis": "complete basis", "observed": "complete observation"}
+    )
+    judge_input = judge_input.model_copy(update={"reports": (report,)})
+    schema = build_exact_response_model(judge_input)
+
+    payload = reading_payload(judge_input)
+    payload["report_judgments"][0]["causal_field_audits"].pop()
+    with pytest.raises(ValidationError, match="causal_field_audits exact closure failed"):
+        schema.model_validate(payload)
+
+    payload = reading_payload(judge_input)
+    payload["report_judgments"][0]["causal_field_audits"].append(
+        payload["report_judgments"][0]["causal_field_audits"][0].copy()
+    )
+    with pytest.raises(ValidationError, match="causal_field_audits exact closure failed"):
+        schema.model_validate(payload)
+
+    payload = reading_payload(judge_input)
+    payload["report_judgments"][0]["causal_field_audits"][0]["exact_text"] = (
+        "incomplete"
+    )
+    with pytest.raises(
+        ValidationError, match="must contain the complete CandidateReport.reason field"
+    ):
+        schema.model_validate(payload)
+
+
+def test_valid_report_requires_supported_causal_certificate() -> None:
+    judge_input = minimal_input()
+    schema = build_exact_response_model(judge_input)
+    payload = reading_payload(judge_input)
+    payload["report_judgments"][0]["causal_field_audits"][0]["verdict"] = "MIXED"
+
+    with pytest.raises(
+        ValidationError,
+        match="requires CAUSAL_SUPPORT from a whole-field SUPPORTED causal audit",
+    ):
+        schema.model_validate(payload)
+
+
+def test_invalid_report_requires_refuted_causal_certificate() -> None:
+    judge_input = minimal_input()
+    schema = build_exact_response_model(judge_input)
+    payload = reading_payload(
+        judge_input,
+        validity={"R0001": ReportValidity.INVALID},
+    )
+    payload["report_judgments"][0]["causal_field_audits"][0]["verdict"] = "SUPPORTED"
+
+    with pytest.raises(
+        ValidationError,
+        match="requires REFUTED_PREMISE from a whole-field MIXED or REFUTED causal audit",
+    ):
+        schema.model_validate(payload)
+
+
+def test_invalid_report_may_retain_supported_context_without_rescuing_claim() -> None:
+    judge_input = minimal_input()
+    report = judge_input.reports[0].model_copy(
+        update={"basis": "The report cites the natural-language artifact."}
+    )
+    judge_input = judge_input.model_copy(update={"reports": (report,)})
+    schema = build_exact_response_model(judge_input)
+    payload = reading_payload(
+        judge_input,
+        validity={"R0001": ReportValidity.INVALID},
+    )
+    audits = payload["report_judgments"][0]["causal_field_audits"]
+    next(row for row in audits if row["report_field"] == "basis")["verdict"] = (
+        "SUPPORTED"
+    )
+
+    validated = schema.model_validate(payload)
+    assert validated.report_judgments[0].validity == ReportValidity.INVALID
+
+
+def test_relation_causal_support_requires_supported_whole_field() -> None:
+    judge_input = minimal_input()
+    schema = build_exact_response_model(judge_input)
+    payload = reading_payload(
+        judge_input,
+        matches={("R0001", "E0001"): MatchStrength.FULL_MATCH},
+    )
+    payload["report_judgments"][0]["causal_field_audits"][0]["verdict"] = "MIXED"
+
+    with pytest.raises(ValidationError, match="whole-field SUPPORTED causal audit"):
+        schema.model_validate(payload)
+
+
 def test_backend_materializes_relation_sets_hit_and_support() -> None:
     judge_input = minimal_input(report_count=2, expected_count=2)
     payload = reading_payload(
@@ -409,6 +525,7 @@ def test_backend_materializes_relation_sets_hit_and_support() -> None:
     response = build_exact_response_model(judge_input).model_validate(payload)
     reading = materialize_reading(response)
     assert reading.report_assessments[0].full_expected_ids == ("E0001",)
+    assert reading.report_assessments[0].causal_field_audits[0].exact_text == "reason 1"
     assert reading.report_assessments[1].partial_expected_ids == ("E0002",)
     assert reading.expected_assessments[0].hit
     assert reading.expected_assessments[1].supported

@@ -9,6 +9,7 @@ from typing import Literal, cast
 from pydantic import BaseModel, Field, model_validator
 
 from .models import (
+    CausalFieldVerdict,
     ExpectedAssessment,
     ExpectedJudgment,
     JudgeReading,
@@ -120,6 +121,7 @@ def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResp
             relation_by_key = {
                 (row.report_id, row.expected_id): row.match for row in self.relations
             }
+            causal_audits_by_report: dict[str, dict[str, CausalFieldVerdict]] = {}
             evidence_rows = [
                 (f"relations[{row.report_id},{row.expected_id}]", row.report_id, row.report_text_evidence)
                 for row in self.relations
@@ -206,6 +208,71 @@ def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResp
                         f"report_judgments[{row.report_id}].report_text_evidence requires "
                         f"{required_role.value} for {row.validity.value}"
                     )
+                report = reports_by_id[row.report_id]
+                expected_causal_fields = {
+                    field_name: field_value
+                    for field_name in ("reason", "basis", "observed")
+                    if isinstance((field_value := getattr(report, field_name)), str)
+                }
+                actual_causal_fields = [
+                    item.report_field.value for item in row.causal_field_audits
+                ]
+                if set(actual_causal_fields) != set(expected_causal_fields) or len(
+                    actual_causal_fields
+                ) != len(set(actual_causal_fields)):
+                    raise ValueError(
+                        f"report_judgments[{row.report_id}].causal_field_audits exact "
+                        f"closure failed; expected={sorted(expected_causal_fields)}, "
+                        f"actual={actual_causal_fields}"
+                    )
+                for index, item in enumerate(row.causal_field_audits):
+                    field_name = item.report_field.value
+                    if item.exact_text != expected_causal_fields[field_name]:
+                        raise ValueError(
+                            f"report_judgments[{row.report_id}].causal_field_audits[{index}] "
+                            f"must contain the complete CandidateReport.{field_name} field"
+                        )
+                supported_fields = [
+                    item.report_field.value
+                    for item in row.causal_field_audits
+                    if item.verdict == CausalFieldVerdict.SUPPORTED
+                ]
+                causal_audits_by_report[row.report_id] = {
+                    item.report_field.value: item.verdict
+                    for item in row.causal_field_audits
+                }
+                supporting_evidence_fields = {
+                    item.report_field.value
+                    for item in row.report_text_evidence
+                    if item.semantic_role == ReportTextEvidenceRole.CAUSAL_SUPPORT
+                }
+                refuted_evidence_fields = {
+                    item.report_field.value
+                    for item in row.report_text_evidence
+                    if item.semantic_role == ReportTextEvidenceRole.REFUTED_PREMISE
+                }
+                if row.validity != ReportValidity.INVALID and not (
+                    supporting_evidence_fields & set(supported_fields)
+                ):
+                    raise ValueError(
+                        f"report_judgments[{row.report_id}].validity={row.validity.value} "
+                        "requires CAUSAL_SUPPORT from a whole-field SUPPORTED causal audit"
+                    )
+                refuted_causal_fields = {
+                    field_name
+                    for field_name, verdict in causal_audits_by_report[row.report_id].items()
+                    if verdict in {
+                        CausalFieldVerdict.MIXED,
+                        CausalFieldVerdict.REFUTED,
+                    }
+                }
+                if row.validity == ReportValidity.INVALID and not (
+                    refuted_evidence_fields & refuted_causal_fields
+                ):
+                    raise ValueError(
+                        f"report_judgments[{row.report_id}].validity=INVALID requires "
+                        "REFUTED_PREMISE from a whole-field MIXED or REFUTED causal audit"
+                    )
                 has_known_relation = any(
                     relation_by_key[(row.report_id, expected_id)]
                     in {MatchStrength.FULL_MATCH, MatchStrength.PARTIAL_MATCH}
@@ -224,6 +291,19 @@ def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResp
                         f"report_judgments[{row.report_id}].validity=VALID_NOVEL "
                         "requires all relations NO_MATCH"
                     )
+            for object_path, report_id, evidence in evidence_rows:
+                audit_by_field = causal_audits_by_report[report_id]
+                for index, item in enumerate(evidence):
+                    field_name = item.report_field.value
+                    if item.semantic_role == ReportTextEvidenceRole.CAUSAL_SUPPORT and (
+                        audit_by_field.get(field_name) != CausalFieldVerdict.SUPPORTED
+                    ):
+                        actual = audit_by_field.get(field_name)
+                        raise ValueError(
+                            f"{object_path}.report_text_evidence[{index}] CAUSAL_SUPPORT "
+                            f"requires CandidateReport.{field_name} to have a whole-field "
+                            f"SUPPORTED causal audit; actual={getattr(actual, 'value', None)}"
+                        )
             return self
 
     suffix = hashlib.sha256(
@@ -270,6 +350,7 @@ def materialize_reading(response: JudgeResponse) -> JudgeReading:
             ),
             root_cause_cluster_key=judgment.root_cause_cluster_key,
             report_text_evidence=judgment.report_text_evidence,
+            causal_field_audits=judgment.causal_field_audits,
             reason=judgment.reason,
             basis=judgment.basis,
             source_refs=judgment.source_refs,

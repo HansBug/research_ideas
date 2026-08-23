@@ -51,6 +51,14 @@ class ReportTextEvidenceRole(str, Enum):
     REFUTED_PREMISE = "REFUTED_PREMISE"
 
 
+class CausalFieldVerdict(str, Enum):
+    """Truth status of one complete report-owned causal field under artifact audit."""
+
+    SUPPORTED = "SUPPORTED"
+    MIXED = "MIXED"
+    REFUTED = "REFUTED"
+
+
 class ArtifactAuthority(str, Enum):
     """Closed roles that prevent author source, lowered model, and facts being conflated."""
 
@@ -175,6 +183,39 @@ class ReportTextEvidence(FrozenModel):
     basis: str = Field(
         min_length=1,
         description="Auditable field-level provenance for the quotation and the supplied artifact facts used to verify or refute it.",
+    )
+
+
+class ReportCausalFieldAudit(FrozenModel):
+    """Artifact audit of one complete causal field owned by a candidate report.
+
+    The Judge produces one row for every non-empty reason, basis, and observed
+    field. The exact response schema validates field closure and exact text. This
+    row judges the whole field: a materially false causal clause makes the field
+    MIXED or REFUTED even when another clause or the high-level conclusion is true.
+    """
+
+    report_field: ReportField = Field(
+        description="Complete CandidateReport causal field being audited; runtime closure permits only reason, basis, and observed.",
+    )
+    exact_text: str = Field(
+        min_length=1,
+        description="Complete case-sensitive value of the selected report field; excerpts are invalid because they can hide a contradictory causal clause.",
+    )
+    verdict: CausalFieldVerdict = Field(
+        description="Whole-field artifact verdict: SUPPORTED only when every material causal/factual assertion is compatible, MIXED when true and false material assertions coexist, and REFUTED when the field's material mechanism fails.",
+    )
+    reason: str = Field(
+        min_length=1,
+        description="English explanation of the whole-field verdict that addresses every material causal clause rather than only a convenient fragment.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Common-artifact evidence used to verify or refute the complete field, with enough detail to audit a MIXED or REFUTED classification.",
+    )
+    source_refs: tuple[str, ...] = Field(
+        min_length=1,
+        description="Report-field and common-artifact references actually used for the whole-field verdict; the tuple must not be empty.",
     )
 
 
@@ -413,6 +454,10 @@ class ReportJudgment(FrozenModel):
         min_length=1,
         description="Exact report-owned quotations used for validity. Every judgment needs CLAIM_BOUNDARY; valid reports need CAUSAL_SUPPORT, while INVALID reports need REFUTED_PREMISE.",
     )
+    causal_field_audits: tuple[ReportCausalFieldAudit, ...] = Field(
+        min_length=1,
+        description="Exactly one whole-field audit for every non-empty report reason, basis, and observed field. A valid report must cite a SUPPORTED field as CAUSAL_SUPPORT; an INVALID report must cite a MIXED or REFUTED field as REFUTED_PREMISE. A true contextual field alone does not rescue a false core claim.",
+    )
     reason: str = Field(
         min_length=1,
         description="Why the report claim is true or false and why a valid report is KNOWN or NOVEL; unmatched status alone proves neither.",
@@ -451,9 +496,9 @@ class ExpectedJudgment(FrozenModel):
 class JudgeResponse(FrozenModel):
     """LLM response containing only semantic judgments, never deterministic summaries."""
 
-    schema_version: Literal["paper1.semantic-judge.response.v3"] = Field(
-        default="paper1.semantic-judge.response.v3",
-        description="Provider structured-output schema version; v3 adds exact report-owned text evidence while only the backend generates derived sets, hit, and support.",
+    schema_version: Literal["paper1.semantic-judge.response.v4"] = Field(
+        default="paper1.semantic-judge.response.v4",
+        description="Provider structured-output schema version; v4 adds complete causal-field audit while only the backend generates derived sets, hit, and support.",
     )
     relations: tuple[RelationAssessment, ...] = Field(
         description="Complete report-by-expected matrix including every NO_MATCH; it must not be sparse."
@@ -502,6 +547,10 @@ class ReportAssessment(FrozenModel):
     report_text_evidence: tuple[ReportTextEvidence, ...] = Field(
         min_length=1,
         description="Validated exact report-owned quotations retained from ReportJudgment for downstream causal-certificate audit.",
+    )
+    causal_field_audits: tuple[ReportCausalFieldAudit, ...] = Field(
+        min_length=1,
+        description="Validated complete causal-field audits retained from ReportJudgment, including true contextual fields that do not independently support the report's core claim.",
     )
     reason: str = Field(
         min_length=1,
