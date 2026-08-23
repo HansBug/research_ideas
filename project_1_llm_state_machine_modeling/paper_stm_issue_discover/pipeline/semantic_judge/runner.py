@@ -16,6 +16,7 @@ from .metrics import compute_semantic_metrics, decode_outcomes
 from .models import (
     AdapterAudit,
     ArbitrationInput,
+    ArbitrationResponse,
     ConflictKind,
     ConflictRecord,
     JudgeCallReceipt,
@@ -39,10 +40,24 @@ from .protocol import (
     prompt_hash,
 )
 from .schema import (
+    build_exact_arbitration_model,
     build_exact_response_model,
     materialize_reading,
+    merge_arbitration_response,
     response_schema_hash,
 )
+
+
+class JudgeExecutionFailure(RuntimeError):
+    """Terminal Judge failure carrying every call receipt produced before failure."""
+
+    def __init__(
+        self,
+        message: str,
+        call_receipts: tuple[JudgeCallReceipt, ...],
+    ) -> None:
+        super().__init__(message)
+        self.call_receipts = call_receipts
 
 
 def _stable_json(value: Any) -> str:
@@ -111,13 +126,13 @@ def detect_disagreements(
     for report_id in sorted(reports_1):
         first = reports_1[report_id]
         second = reports_2[report_id]
-        if first.validity != second.validity:
+        if first.core_truth != second.core_truth:
             disagreements.append(
                 ReadingDisagreement(
-                    kind=ConflictKind.VALIDITY,
+                    kind=ConflictKind.CORE_TRUTH,
                     object_ref=f"report:{report_id}",
-                    reading_1_value=first.validity.value,
-                    reading_2_value=second.validity.value,
+                    reading_1_value=first.core_truth.value,
+                    reading_2_value=second.core_truth.value,
                 )
             )
         if first.root_cause_cluster_key != second.root_cause_cluster_key:
@@ -151,8 +166,8 @@ def _find_final_row(
         item for item in final_reading.report_assessments if item.report_id == report_id
     )
     final_value = (
-        row.validity.value
-        if disagreement.kind == ConflictKind.VALIDITY
+        row.core_truth.value
+        if disagreement.kind == ConflictKind.CORE_TRUTH
         else row.root_cause_cluster_key
     )
     return final_value, row.reason, row.basis, row.source_refs
@@ -307,13 +322,36 @@ def _call_receipt(
     )
 
 
-def _validated_reading(outcome: StructuredCallOutcome[Any], phase: str) -> JudgeReading:
+def _validated_response(
+    outcome: StructuredCallOutcome[Any], phase: str
+) -> JudgeResponse:
     if not outcome.succeeded or outcome.response is None:
         raise RuntimeError(
             f"semantic Judge {phase} failed after provider/schema handling: {outcome.reason}; {outcome.basis}"
         )
-    response = JudgeResponse.model_validate(outcome.response.model_dump(mode="json"))
-    return materialize_reading(response)
+    return JudgeResponse.model_validate(outcome.response.model_dump(mode="json"))
+
+
+def _validated_arbitration_response(
+    outcome: StructuredCallOutcome[Any], phase: str
+) -> ArbitrationResponse:
+    if not outcome.succeeded or outcome.response is None:
+        raise RuntimeError(
+            f"semantic Judge {phase} failed after provider/schema handling: {outcome.reason}; {outcome.basis}"
+        )
+    return ArbitrationResponse.model_validate(outcome.response.model_dump(mode="json"))
+
+
+def _conflicted_report_ids(
+    disagreements: tuple[ReadingDisagreement, ...],
+) -> tuple[str, ...]:
+    """Resolve every relation/report conflict to its enclosing report identity."""
+
+    values = []
+    for disagreement in disagreements:
+        report_ref = disagreement.object_ref.split("/", 1)[0]
+        values.append(report_ref.removeprefix("report:"))
+    return tuple(dict.fromkeys(values))
 
 
 def judge_pair(
@@ -325,13 +363,14 @@ def judge_pair(
     runtime: PublicStructuredRuntime,
     judge_code_commit: str,
 ) -> PairJudgeResult:
-    """Run two blind readings and a full arbitration on any substantive conflict."""
+    """Run two blind sparse readings and targeted arbitration when required."""
 
     response_model = build_exact_response_model(judge_input)
     schema_hash = response_schema_hash(response_model)
     primary_prompt = build_primary_prompt(judge_input)
     primary_prompt_hash = _sha256_text(SYSTEM_PROMPT + "\n" + primary_prompt)
     pair_id = judge_input.pair_id
+    receipts: list[JudgeCallReceipt] = []
     outcome_1 = runtime.call(
         kind="semantic-judge-primary",
         schema=response_model,
@@ -343,7 +382,21 @@ def judge_pair(
             JUDGE_MAX_OUTPUT_TOKENS, runtime.config.max_output_tokens
         ),
     )
-    reading_1 = _validated_reading(outcome_1, "primary_1")
+    receipts.append(
+        _call_receipt(
+            call_id=f"{pair_id}:r{round_no}:primary-1",
+            phase="primary_1",
+            profile=runtime.profile,
+            schema_hash=schema_hash,
+            actual_prompt_hash=primary_prompt_hash,
+            outcome=outcome_1,
+        )
+    )
+    try:
+        response_1 = _validated_response(outcome_1, "primary_1")
+        reading_1 = materialize_reading(response_1, judge_input)
+    except Exception as exc:
+        raise JudgeExecutionFailure(str(exc), tuple(receipts)) from exc
     outcome_2 = runtime.call(
         kind="semantic-judge-primary",
         schema=response_model,
@@ -355,16 +408,7 @@ def judge_pair(
             JUDGE_MAX_OUTPUT_TOKENS, runtime.config.max_output_tokens
         ),
     )
-    reading_2 = _validated_reading(outcome_2, "primary_2")
-    receipts = [
-        _call_receipt(
-            call_id=f"{pair_id}:r{round_no}:primary-1",
-            phase="primary_1",
-            profile=runtime.profile,
-            schema_hash=schema_hash,
-            actual_prompt_hash=primary_prompt_hash,
-            outcome=outcome_1,
-        ),
+    receipts.append(
         _call_receipt(
             call_id=f"{pair_id}:r{round_no}:primary-2",
             phase="primary_2",
@@ -372,26 +416,46 @@ def judge_pair(
             schema_hash=schema_hash,
             actual_prompt_hash=primary_prompt_hash,
             outcome=outcome_2,
-        ),
-    ]
-    disagreements = detect_disagreements(reading_1, reading_2)
+        )
+    )
+    try:
+        response_2 = _validated_response(outcome_2, "primary_2")
+        reading_2 = materialize_reading(response_2, judge_input)
+        disagreements = detect_disagreements(reading_1, reading_2)
+    except Exception as exc:
+        raise JudgeExecutionFailure(str(exc), tuple(receipts)) from exc
     arbitration_reading = None
     if disagreements:
+        conflicted_report_ids = _conflicted_report_ids(disagreements)
+        response_1_by_id = {
+            row.report_id: row for row in response_1.report_judgments
+        }
+        response_2_by_id = {
+            row.report_id: row for row in response_2.report_judgments
+        }
         arbitration_input = ArbitrationInput(
             judge_input=judge_input,
-            primary_reading_1=reading_1,
-            primary_reading_2=reading_2,
+            primary_conflicting_judgments_1=tuple(
+                response_1_by_id[report_id] for report_id in conflicted_report_ids
+            ),
+            primary_conflicting_judgments_2=tuple(
+                response_2_by_id[report_id] for report_id in conflicted_report_ids
+            ),
             disagreements=disagreements,
             reason="Primary semantic values conflict; issue #195 requires complete artifact review and final arbitration with no UNKNOWN.",
-            basis=f"{JUDGE_ALGORITHM_VERSION}; exact enum/validity/root-cause comparison",
+            basis=f"{JUDGE_ALGORITHM_VERSION}; exact relation/core-truth/root-cause comparison",
         )
+        arbitration_model = build_exact_arbitration_model(
+            judge_input, conflicted_report_ids
+        )
+        arbitration_schema_hash = response_schema_hash(arbitration_model)
         arbitration_prompt = build_arbitration_prompt(arbitration_input)
         arbitration_prompt_hash = _sha256_text(
             SYSTEM_PROMPT + "\n" + arbitration_prompt
         )
         arbitration_outcome = runtime.call(
             kind="semantic-judge-arbitration",
-            schema=response_model,
+            schema=arbitration_model,
             system_prompt=SYSTEM_PROMPT,
             prompt=arbitration_prompt,
             artifact_id=f"{pair_id}/round-{round_no}/arbitration",
@@ -400,17 +464,28 @@ def judge_pair(
                 JUDGE_MAX_OUTPUT_TOKENS, runtime.config.max_output_tokens
             ),
         )
-        arbitration_reading = _validated_reading(arbitration_outcome, "arbitration")
         receipts.append(
             _call_receipt(
                 call_id=f"{pair_id}:r{round_no}:arbitration",
                 phase="arbitration",
                 profile=runtime.profile,
-                schema_hash=schema_hash,
+                schema_hash=arbitration_schema_hash,
                 actual_prompt_hash=arbitration_prompt_hash,
                 outcome=arbitration_outcome,
             )
         )
+        try:
+            arbitration_response = _validated_arbitration_response(
+                arbitration_outcome, "arbitration"
+            )
+            final_response = merge_arbitration_response(
+                response_1,
+                arbitration_response,
+                response_model,
+            )
+            arbitration_reading = materialize_reading(final_response, judge_input)
+        except Exception as exc:
+            raise JudgeExecutionFailure(str(exc), tuple(receipts)) from exc
         final_reading = arbitration_reading
     else:
         final_reading = reading_1

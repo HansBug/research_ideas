@@ -255,6 +255,7 @@ def main(argv: list[str] | None = None) -> int:
             except Exception as exc:  # noqa: BLE001 - run boundary persists typed failures
                 input_path = artifact_root / "inputs" / f"{pair_id}.json"
                 adapter_path = artifact_root / "adapter_audits" / f"{pair_id}.json"
+                call_receipts = tuple(getattr(exc, "call_receipts", ()))
                 failure = RunPairFailure(
                     pair_id=pair_id,
                     round=args.round,
@@ -266,6 +267,13 @@ def main(argv: list[str] | None = None) -> int:
                     llm_artifact_path=str(artifact_root / "llm" / pair_id),
                     error_type=type(exc).__name__,
                     error_message=str(exc) or repr(exc),
+                    call_receipts=call_receipts,
+                    total_judge_cost_usd=sum(
+                        call.cost_usd for call in call_receipts
+                    ),
+                    cost_eligible=all(
+                        call.cost_eligible for call in call_receipts
+                    ),
                     reason="The pair did not complete two validated readings and any required arbitration, so it is excluded from aggregation.",
                     basis="Captured worker exception plus preserved unified input, adapter audit, and public runtime artifacts when available.",
                 )
@@ -309,6 +317,22 @@ def main(argv: list[str] | None = None) -> int:
             manifest_hash=manifest_hash,
             completed_pair_receipts=tuple(receipts),
             failures=tuple(failures),
+            total_judge_cost_usd=(
+                sum(
+                    call.cost_usd
+                    for result in results
+                    for call in result.call_receipts
+                )
+                + sum(failure.total_judge_cost_usd for failure in failures)
+            ),
+            cost_eligible=(
+                all(
+                    call.cost_eligible
+                    for result in results
+                    for call in result.call_receipts
+                )
+                and all(failure.cost_eligible for failure in failures)
+            ),
             reason=f"{len(failures)} selected pair(s) failed; no completed summary or partial score was emitted.",
             basis=f"{PROTOCOL_VERSION}; {JUDGE_ALGORITHM_VERSION}; typed pair failures and no-partial-summary policy",
         )

@@ -20,6 +20,48 @@
 
 形式上，冻结 expected issue 集合记为 \(E\)，某臂最终发布且由方法自裁为 D2/D1 的原子 issue 报告集合记为 \(R\)。D0 是方法内部淘汰项，不进入 \(R\)，也不参与 hit/FP；但方法自报的 D2/D1 只是发布准入，不是 Judge 真值。W0/W1/W2 不出现在匹配函数中。
 
+### 1.1 两维不是无约束笛卡尔积
+
+维度 A 的 `FULL_MATCH / PARTIAL_MATCH` 表示一条**真实、经制品闭包支持的 defect relation**，不是报告文字看起来像某条 expected、意图上想谈同一问题或共享术语。因此报告有效性与 relation 必须满足以下合法组合：
+
+| 当前 report 对当前 expected 的关系 | `VALID_KNOWN` | `VALID_NOVEL` | `INVALID` |
+| :-- | :--: | :--: | :--: |
+| `FULL_MATCH` | 合法；该 expected 贡献 hit | 非法 | 非法 |
+| `PARTIAL_MATCH` | 合法；只贡献 supported | 非法 | 非法 |
+| `NO_MATCH` | 单格合法，但该 report 对其他 expected 至少有一个 FULL/PARTIAL | 合法，且全部 expected 都必须 NO | 合法，且全部 expected 都必须 NO |
+
+报告级确定性闭合规则为：
+
+```text
+VALID_KNOWN
+= 报告核心主张经公共制品闭包审计成立
+  AND 至少存在一个 FULL_MATCH 或 PARTIAL_MATCH
+
+VALID_NOVEL
+= 报告核心主张经公共制品闭包审计成立
+  AND 对全部 expected 都是 NO_MATCH
+
+INVALID
+= 报告核心主张不成立或完整审计后仍不能承担最低举证责任
+  AND 对全部 expected 都是 NO_MATCH
+```
+
+执行顺序必须是：先裁报告核心主张 `VALID / INVALID`；若为 `INVALID`，全部 relation 直接闭合为 `NO_MATCH`；若为 `VALID`，再逐 expected 裁 `FULL / PARTIAL / NO`；最后由后端从核心真值和 relation closure 确定性派生 `VALID_KNOWN / VALID_NOVEL / INVALID`。LLM 不应重复输出可与 relation 冲突的最终 known/novel 类别。
+
+若调试需要记录一条 invalid 报告“试图谈论”哪个 expected，只能使用明确标为非计分的 diagnostic 字段；不得把它记录为 `FULL_MATCH` 或 `PARTIAL_MATCH`，也不得参与任何正式指标。
+
+### 1.2 固定 calibration anchor：X1v2 0053
+
+该 anchor 只用于 Judge 外部验收，不得写入生产 prompt、response schema description 或按 ID 分支的代码：
+
+| report | 最终类别 | E0001 | E0002 | E0003 |
+| :-- | :-- | :--: | :--: | :--: |
+| R0001：把 sibling wrappers 错读成并发区域 | `INVALID` | NO | NO | NO |
+| R0002：指出主状态之间没有条件转换 | `VALID_KNOWN` | FULL | NO | FULL |
+| R0003：用错误并发机制解释“未确保首先进入 PumpState” | `INVALID` | NO | NO | NO |
+
+最终结果为 expected hit `2/3`，仅命中 E0001、E0003；E0002 miss；K/N/I 为 `1/0/2`。R0002 的“缺少具名状态之间条件转换”既是 E0001 中互不可达/无法切换的独立可行动核心 facet，也是 E0003 零行为纯桩的直接可行动 facet。R0001/R0003 的核心机制依赖不存在的并发区域语义，Judge 不得使用 artifact 中另行发现的 owner-entry 或 reachability 真相补票。
+
 ---
 
 ## 2. 维度 A：Expected-Issue 语义匹配强度

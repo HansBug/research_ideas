@@ -12,7 +12,7 @@ from .test_models_and_schema import minimal_input, reading_payload
 
 def validate(judge_input, payload):
     response = build_exact_response_model(judge_input).model_validate(payload)
-    return materialize_reading(response)
+    return materialize_reading(response, judge_input)
 
 
 def test_0023_one_global_report_can_full_three_atomic_dead_ends() -> None:
@@ -130,9 +130,10 @@ def test_order_and_opaque_id_renaming_do_not_change_metrics() -> None:
         ("R0002", "E0002"): MatchStrength.PARTIAL_MATCH,
     }
     first_payload = reading_payload(first_input, matches=first_matches)
-    first_payload["relations"].reverse()
     first_payload["report_judgments"].reverse()
-    first_payload["expected_judgments"].reverse()
+    for judgment in first_payload["report_judgments"]:
+        judgment["supported_relations"].reverse()
+        judgment["no_match_expected_ids"].reverse()
     first = compute_semantic_metrics(validate(first_input, first_payload))
 
     second_input = minimal_input(report_count=2, expected_count=2)

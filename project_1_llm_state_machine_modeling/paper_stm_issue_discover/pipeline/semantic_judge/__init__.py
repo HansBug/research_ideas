@@ -2,8 +2,11 @@
 
 from .models import (
     CandidateReport,
+    CoreClaimTruth,
     ExpectedIssue,
+    JudgeScaleAudit,
     MatchStrength,
+    PositiveMatchStrength,
     ReportValidity,
     SemanticMetrics,
     UnifiedJudgeInput,
@@ -15,8 +18,11 @@ __all__ = [
     "PROTOCOL_SHA256",
     "PROTOCOL_VERSION",
     "CandidateReport",
+    "CoreClaimTruth",
     "ExpectedIssue",
+    "JudgeScaleAudit",
     "MatchStrength",
+    "PositiveMatchStrength",
     "ReportValidity",
     "SemanticMetrics",
     "UnifiedJudgeInput",

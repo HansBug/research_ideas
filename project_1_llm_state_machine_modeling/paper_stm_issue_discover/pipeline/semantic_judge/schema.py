@@ -1,25 +1,31 @@
-"""Exact-closure provider schema and deterministic Judge reading materialization."""
+"""Sparse exact-closure provider schemas and deterministic dense materialization."""
 
 from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Iterable
 from typing import Literal, cast
 
 from pydantic import BaseModel, Field, model_validator
 
 from .models import (
+    ArbitrationResponse,
     CausalFieldVerdict,
+    CoreClaimTruth,
     ExpectedAssessment,
-    ExpectedJudgment,
     JudgeReading,
     JudgeResponse,
     MatchStrength,
     RelationAssessment,
     ReportAssessment,
+    ReportCausalFieldAudit,
+    ReportField,
     ReportJudgment,
+    ReportTextEvidence,
     ReportTextEvidenceRole,
     ReportValidity,
+    SupportedRelationJudgment,
     UnifiedJudgeInput,
 )
 
@@ -28,347 +34,529 @@ def _literal(values: tuple[str, ...]):
     return Literal.__getitem__(values or ("__EMPTY_CLOSURE__",))
 
 
-def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResponse]:
-    """Build the provider schema over the exact anonymous IDs in one pair input."""
+def _validate_report_judgment(
+    *,
+    row: ReportJudgment,
+    report,
+    expected_ids: tuple[str, ...],
+    object_path: str,
+) -> None:
+    """Validate deterministic report-field, certificate, and relation invariants."""
 
+    expected_causal_fields = {
+        field_name: field_value
+        for field_name in ("reason", "basis", "observed")
+        if isinstance((field_value := getattr(report, field_name)), str)
+    }
+    actual_causal_fields = [item.report_field.value for item in row.causal_field_audits]
+    if set(actual_causal_fields) != set(expected_causal_fields) or len(
+        actual_causal_fields
+    ) != len(set(actual_causal_fields)):
+        raise ValueError(
+            f"{object_path}.causal_field_audits exact closure failed; "
+            f"expected={sorted(expected_causal_fields)}, actual={actual_causal_fields}"
+        )
+    audit_by_field: dict[str, ReportCausalFieldAudit] = {}
+    for index, audit in enumerate(row.causal_field_audits):
+        field_name = audit.report_field.value
+        if audit.exact_text != expected_causal_fields[field_name]:
+            raise ValueError(
+                f"{object_path}.causal_field_audits[{index}].exact_text must equal the "
+                f"complete CandidateReport.{field_name} value for report {row.report_id}"
+            )
+        audit_by_field[field_name] = audit
+    certificate_name = row.causal_certificate_field.value
+    certificate = audit_by_field.get(certificate_name)
+    if certificate is None:
+        raise ValueError(
+            f"{object_path}.causal_certificate_field={certificate_name} has no corresponding "
+            "whole-field causal audit"
+        )
+    allowed_certificate_verdicts = (
+        {CausalFieldVerdict.SUPPORTED}
+        if row.core_truth == CoreClaimTruth.VALID
+        else {CausalFieldVerdict.MIXED, CausalFieldVerdict.REFUTED}
+    )
+    if certificate.verdict not in allowed_certificate_verdicts:
+        raise ValueError(
+            f"{object_path}.core_truth={row.core_truth.value} conflicts with "
+            f"causal_certificate_field={certificate_name} verdict={certificate.verdict.value}; "
+            f"expected={sorted(item.value for item in allowed_certificate_verdicts)}"
+        )
+
+    positive_ids: list[str] = []
+    positive_keys: list[tuple[str, str]] = []
+    for index, relation in enumerate(row.supported_relations):
+        if relation.report_id != row.report_id:
+            raise ValueError(
+                f"{object_path}.supported_relations[{index}].report_id must equal "
+                f"{row.report_id}; actual={relation.report_id}"
+            )
+        if relation.causal_certificate_field != row.causal_certificate_field:
+            raise ValueError(
+                f"{object_path}.supported_relations[{index}].causal_certificate_field must "
+                f"reference report certificate {certificate_name}; "
+                f"actual={relation.causal_certificate_field.value}"
+            )
+        field_names = [item.value for item in relation.report_field_refs]
+        if len(field_names) != len(set(field_names)):
+            raise ValueError(
+                f"{object_path}.supported_relations[{index}].report_field_refs contains "
+                f"duplicates: {field_names}"
+            )
+        if ReportField.CLAIM not in relation.report_field_refs:
+            raise ValueError(
+                f"{object_path}.supported_relations[{index}].report_field_refs must include claim"
+            )
+        for field_name in field_names:
+            if not isinstance(getattr(report, field_name), str):
+                raise ValueError(  # noqa: TRY004 - Pydantic reports this as response-schema validation
+                    f"{object_path}.supported_relations[{index}].report_field_refs references "
+                    f"null CandidateReport.{field_name} for report {row.report_id}"
+                )
+        positive_ids.append(relation.expected_id)
+        positive_keys.append((relation.report_id, relation.expected_id))
+    if len(positive_keys) != len(set(positive_keys)):
+        raise ValueError(
+            f"{object_path}.supported_relations contains duplicate report/expected keys: "
+            f"{positive_keys}"
+        )
+    if row.core_truth == CoreClaimTruth.INVALID and row.supported_relations:
+        raise ValueError(
+            f"{object_path}.core_truth=INVALID requires supported_relations=[]; "
+            f"actual_positive_expected_ids={positive_ids}"
+        )
+
+    no_match_ids = list(row.no_match_expected_ids)
+    if len(no_match_ids) != len(set(no_match_ids)):
+        raise ValueError(
+            f"{object_path}.no_match_expected_ids contains duplicates: {no_match_ids}"
+        )
+    if no_match_ids:
+        if not row.no_match_reason or not row.no_match_basis or not row.no_match_source_refs:
+            raise ValueError(
+                f"{object_path} has a non-empty NO_MATCH closure and requires non-null "
+                "no_match_reason, no_match_basis, and non-empty no_match_source_refs"
+            )
+    elif any(
+        value is not None
+        for value in (
+            row.no_match_reason,
+            row.no_match_basis,
+            row.no_match_source_refs,
+        )
+    ):
+        raise ValueError(
+            f"{object_path} has an empty NO_MATCH closure, so no_match_reason, "
+            "no_match_basis, and no_match_source_refs must all be null"
+        )
+    actual_partition = positive_ids + no_match_ids
+    if len(actual_partition) != len(set(actual_partition)) or set(actual_partition) != set(
+        expected_ids
+    ):
+        raise ValueError(
+            f"{object_path} positive/NO relation closure must cover every expected ID "
+            f"exactly once; expected={expected_ids}, positive={positive_ids}, "
+            f"no_match={no_match_ids}"
+        )
+
+
+def _exact_report_model(
+    judge_input: UnifiedJudgeInput,
+    *,
+    allowed_report_ids: tuple[str, ...],
+    suffix: str,
+):
     report_ids = tuple(item.report_id for item in judge_input.reports)
     expected_ids = tuple(item.expected_id for item in judge_input.expected_issues)
     report_id_type = _literal(report_ids)
+    allowed_report_id_type = _literal(allowed_report_ids)
     expected_id_type = _literal(expected_ids)
-    relation_count = len(report_ids) * len(expected_ids)
     reports_by_id = {item.report_id: item for item in judge_input.reports}
 
-    class ExactRelationAssessment(RelationAssessment):
-        """One exact report/expected relation whose IDs are closed by this input."""
+    class ExactSupportedRelationJudgment(SupportedRelationJudgment):
+        """One positive relation restricted to the exact anonymous input IDs."""
 
         report_id: report_id_type = Field(  # type: ignore[valid-type]
-            description="Anonymous report ID from the exact input closure; do not create, rewrite, or omit an ID."
+            description="Anonymous report ID from the exact input closure; it must equal the enclosing report judgment ID."
         )
         expected_id: expected_id_type = Field(  # type: ignore[valid-type]
-            description="Anonymous expected ID from the exact input closure; do not create, rewrite, or omit an ID."
+            description="Anonymous expected ID from the exact input closure receiving FULL or PARTIAL support."
         )
 
     class ExactReportJudgment(ReportJudgment):
-        """One exact report validity/cluster judgment without derived relation sets."""
+        """One validity-first sparse judgment restricted to exact closure IDs."""
 
-        report_id: report_id_type = Field(  # type: ignore[valid-type]
-            description="Anonymous report ID from the exact input closure; include every ID exactly once."
+        report_id: allowed_report_id_type = Field(  # type: ignore[valid-type]
+            description="Anonymous report ID from the exact required closure; include each required report exactly once."
         )
-
-    class ExactExpectedJudgment(ExpectedJudgment):
-        """One exact expected explanation without backend-derived coverage fields."""
-
-        expected_id: expected_id_type = Field(  # type: ignore[valid-type]
-            description="Anonymous expected ID from the exact input closure; include every ID exactly once."
+        supported_relations: tuple[ExactSupportedRelationJudgment, ...] = Field(
+            description="Only FULL/PARTIAL rows for this report; an empty tuple is valid only with exhaustive explicit NO closure."
         )
-
-    class ExactJudgeResponse(JudgeResponse):
-        """Provider-authored #195 semantics with exact closure and no duplicated sums."""
-
-        relations: tuple[ExactRelationAssessment, ...] = Field(
-            min_length=relation_count,
-            max_length=relation_count,
-            description="Complete report-by-expected relation matrix with every NO_MATCH row and the exact fixed size.",
-        )
-        report_judgments: tuple[ExactReportJudgment, ...] = Field(
-            min_length=len(report_ids),
-            max_length=len(report_ids),
-            description="Validity, root-cause cluster, and evidence for every anonymous report exactly once; do not repeat relation-derived ID sets.",
-        )
-        expected_judgments: tuple[ExactExpectedJudgment, ...] = Field(
-            min_length=len(expected_ids),
-            max_length=len(expected_ids),
-            description="Semantic explanation for every anonymous expected issue exactly once; the backend derives hit and support.",
+        no_match_expected_ids: tuple[expected_id_type, ...] = Field(  # type: ignore[valid-type]
+            description="Every exact expected ID not present in supported_relations, listed explicitly and exactly once."
         )
 
         @model_validator(mode="after")
-        def exact_closure_and_validity_consistency(self) -> ExactJudgeResponse:
-            expected_relation_keys = {
-                (report_id, expected_id)
-                for report_id in report_ids
-                for expected_id in expected_ids
-            }
-            actual_relation_keys = [
-                (row.report_id, row.expected_id) for row in self.relations
-            ]
-            actual_relation_key_set = set(actual_relation_keys)
-            if actual_relation_key_set != expected_relation_keys or len(
-                actual_relation_keys
-            ) != len(actual_relation_key_set):
-                missing = sorted(expected_relation_keys - actual_relation_key_set)
-                extra = sorted(actual_relation_key_set - expected_relation_keys)
-                raise ValueError(
-                    "relations exact closure failed; "
-                    f"missing={missing}, extra={extra}, "
-                    f"duplicate_count={len(actual_relation_keys) - len(actual_relation_key_set)}"
-                )
-            report_rows = [row.report_id for row in self.report_judgments]
-            if set(report_rows) != set(report_ids) or len(report_rows) != len(
-                set(report_rows)
-            ):
-                raise ValueError(
-                    "report_judgments must contain each input report exactly once; "
-                    f"expected={report_ids}, actual={report_rows}"
-                )
-            expected_rows = [row.expected_id for row in self.expected_judgments]
-            if set(expected_rows) != set(expected_ids) or len(expected_rows) != len(
-                set(expected_rows)
-            ):
-                raise ValueError(
-                    "expected_judgments must contain each input expected exactly once; "
-                    f"expected={expected_ids}, actual={expected_rows}"
-                )
-            relation_by_key = {
-                (row.report_id, row.expected_id): row.match for row in self.relations
-            }
-            causal_audits_by_report: dict[str, dict[str, CausalFieldVerdict]] = {}
-            evidence_rows = [
-                (f"relations[{row.report_id},{row.expected_id}]", row.report_id, row.report_text_evidence)
-                for row in self.relations
-            ] + [
-                (f"report_judgments[{row.report_id}]", row.report_id, row.report_text_evidence)
-                for row in self.report_judgments
-            ]
-            for object_path, report_id, evidence in evidence_rows:
-                report = reports_by_id[report_id]
-                roles_by_field: dict[str, set[ReportTextEvidenceRole]] = {}
-                for index, item in enumerate(evidence):
-                    field_value = getattr(report, item.report_field.value)
-                    if not isinstance(field_value, str):
-                        raise ValueError(  # noqa: TRY004 - Pydantic must wrap provider validation failures
-                            f"{object_path}.report_text_evidence[{index}] references null "
-                            f"CandidateReport.{item.report_field.value} for report {report_id}"
-                        )
-                    if item.exact_quote not in field_value:
-                        raise ValueError(
-                            f"{object_path}.report_text_evidence[{index}].exact_quote is not "
-                            f"a case-sensitive substring of report {report_id} field "
-                            f"{item.report_field.value}; actual_quote={item.exact_quote!r}"
-                        )
-                    roles_by_field.setdefault(item.report_field.value, set()).add(
-                        item.semantic_role
-                    )
-                    if item.semantic_role == ReportTextEvidenceRole.CAUSAL_SUPPORT:
-                        allowed_fields = {
-                            "reason",
-                            "basis",
-                            "observed",
-                        }
-                        if item.report_field.value not in allowed_fields:
-                            raise ValueError(
-                                f"{object_path}.report_text_evidence[{index}] uses "
-                                f"CandidateReport.{item.report_field.value} as CAUSAL_SUPPORT; "
-                                f"allowed_fields={sorted(allowed_fields)}"
-                            )
-                        if item.exact_quote != field_value:
-                            raise ValueError(
-                                f"{object_path}.report_text_evidence[{index}] CAUSAL_SUPPORT "
-                                f"must quote the complete CandidateReport.{item.report_field.value} "
-                                f"field for report {report_id}"
-                            )
-                for field_name, roles in roles_by_field.items():
-                    if {
-                        ReportTextEvidenceRole.CAUSAL_SUPPORT,
-                        ReportTextEvidenceRole.REFUTED_PREMISE,
-                    }.issubset(roles):
-                        raise ValueError(
-                            f"{object_path}.report_text_evidence assigns both CAUSAL_SUPPORT "
-                            f"and REFUTED_PREMISE to CandidateReport.{field_name} for report "
-                            f"{report_id}"
-                        )
-            for row in self.relations:
-                roles = {item.semantic_role for item in row.report_text_evidence}
-                if ReportTextEvidenceRole.CLAIM_BOUNDARY not in roles:
-                    raise ValueError(
-                        f"relations[{row.report_id},{row.expected_id}].report_text_evidence "
-                        "requires CLAIM_BOUNDARY"
-                    )
-            for row in self.report_judgments:
-                roles = {item.semantic_role for item in row.report_text_evidence}
-                if ReportTextEvidenceRole.CLAIM_BOUNDARY not in roles:
-                    raise ValueError(
-                        f"report_judgments[{row.report_id}].report_text_evidence requires "
-                        "CLAIM_BOUNDARY"
-                    )
-                required_role = (
-                    ReportTextEvidenceRole.REFUTED_PREMISE
-                    if row.validity == ReportValidity.INVALID
-                    else ReportTextEvidenceRole.CAUSAL_SUPPORT
-                )
-                if required_role not in roles:
-                    raise ValueError(
-                        f"report_judgments[{row.report_id}].report_text_evidence requires "
-                        f"{required_role.value} for {row.validity.value}"
-                    )
-                report = reports_by_id[row.report_id]
-                expected_causal_fields = {
-                    field_name: field_value
-                    for field_name in ("reason", "basis", "observed")
-                    if isinstance((field_value := getattr(report, field_name)), str)
-                }
-                actual_causal_fields = [
-                    item.report_field.value for item in row.causal_field_audits
-                ]
-                if set(actual_causal_fields) != set(expected_causal_fields) or len(
-                    actual_causal_fields
-                ) != len(set(actual_causal_fields)):
-                    raise ValueError(
-                        f"report_judgments[{row.report_id}].causal_field_audits exact "
-                        f"closure failed; expected={sorted(expected_causal_fields)}, "
-                        f"actual={actual_causal_fields}"
-                    )
-                for index, item in enumerate(row.causal_field_audits):
-                    field_name = item.report_field.value
-                    if item.exact_text != expected_causal_fields[field_name]:
-                        raise ValueError(
-                            f"report_judgments[{row.report_id}].causal_field_audits[{index}] "
-                            f"must contain the complete CandidateReport.{field_name} field"
-                        )
-                supported_fields = [
-                    item.report_field.value
-                    for item in row.causal_field_audits
-                    if item.verdict == CausalFieldVerdict.SUPPORTED
-                ]
-                causal_audits_by_report[row.report_id] = {
-                    item.report_field.value: item.verdict
-                    for item in row.causal_field_audits
-                }
-                supporting_evidence_fields = {
-                    item.report_field.value
-                    for item in row.report_text_evidence
-                    if item.semantic_role == ReportTextEvidenceRole.CAUSAL_SUPPORT
-                }
-                refuted_evidence_fields = {
-                    item.report_field.value
-                    for item in row.report_text_evidence
-                    if item.semantic_role == ReportTextEvidenceRole.REFUTED_PREMISE
-                }
-                if row.validity != ReportValidity.INVALID and not (
-                    supporting_evidence_fields & set(supported_fields)
-                ):
-                    raise ValueError(
-                        f"report_judgments[{row.report_id}].validity={row.validity.value} "
-                        "requires CAUSAL_SUPPORT from a whole-field SUPPORTED causal audit"
-                    )
-                refuted_causal_fields = {
-                    field_name
-                    for field_name, verdict in causal_audits_by_report[row.report_id].items()
-                    if verdict in {
-                        CausalFieldVerdict.MIXED,
-                        CausalFieldVerdict.REFUTED,
-                    }
-                }
-                if row.validity == ReportValidity.INVALID and not (
-                    refuted_evidence_fields & refuted_causal_fields
-                ):
-                    raise ValueError(
-                        f"report_judgments[{row.report_id}].validity=INVALID requires "
-                        "REFUTED_PREMISE from a whole-field MIXED or REFUTED causal audit"
-                    )
-                has_known_relation = any(
-                    relation_by_key[(row.report_id, expected_id)]
-                    in {MatchStrength.FULL_MATCH, MatchStrength.PARTIAL_MATCH}
-                    for expected_id in expected_ids
-                )
-                if (
-                    row.validity == ReportValidity.VALID_KNOWN
-                    and not has_known_relation
-                ):
-                    raise ValueError(
-                        f"report_judgments[{row.report_id}].validity=VALID_KNOWN "
-                        "requires at least one FULL_MATCH or PARTIAL_MATCH relation"
-                    )
-                if row.validity == ReportValidity.VALID_NOVEL and has_known_relation:
-                    raise ValueError(
-                        f"report_judgments[{row.report_id}].validity=VALID_NOVEL "
-                        "requires all relations NO_MATCH"
-                    )
-            for object_path, report_id, evidence in evidence_rows:
-                audit_by_field = causal_audits_by_report[report_id]
-                for index, item in enumerate(evidence):
-                    field_name = item.report_field.value
-                    if item.semantic_role == ReportTextEvidenceRole.CAUSAL_SUPPORT and (
-                        audit_by_field.get(field_name) != CausalFieldVerdict.SUPPORTED
-                    ):
-                        actual = audit_by_field.get(field_name)
-                        raise ValueError(
-                            f"{object_path}.report_text_evidence[{index}] CAUSAL_SUPPORT "
-                            f"requires CandidateReport.{field_name} to have a whole-field "
-                            f"SUPPORTED causal audit; actual={getattr(actual, 'value', None)}"
-                        )
+        def exact_report_closure(self) -> ExactReportJudgment:
+            _validate_report_judgment(
+                row=self,
+                report=reports_by_id[self.report_id],
+                expected_ids=expected_ids,
+                object_path=f"report_judgments[{self.report_id}]",
+            )
             return self
 
+    ExactSupportedRelationJudgment.__name__ = (
+        f"ExactSupportedRelationJudgment_{suffix}"
+    )
+    ExactReportJudgment.__name__ = f"ExactReportJudgment_{suffix}"
+    return ExactReportJudgment
+
+
+def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResponse]:
+    """Build a sparse provider schema over the exact report and expected IDs."""
+
+    report_ids = tuple(item.report_id for item in judge_input.reports)
+    expected_ids = tuple(item.expected_id for item in judge_input.expected_issues)
     suffix = hashlib.sha256(
         ("|".join(report_ids) + "::" + "|".join(expected_ids)).encode("utf-8")
     ).hexdigest()[:12]
-    ExactRelationAssessment.__name__ = f"ExactRelationAssessment_{suffix}"
-    ExactReportJudgment.__name__ = f"ExactReportJudgment_{suffix}"
-    ExactExpectedJudgment.__name__ = f"ExactExpectedJudgment_{suffix}"
+    ExactReportJudgment = _exact_report_model(
+        judge_input,
+        allowed_report_ids=report_ids,
+        suffix=suffix,
+    )
+
+    class ExactJudgeResponse(JudgeResponse):
+        """Sparse validity-first semantics with exact exhaustive report closure."""
+
+        report_judgments: tuple[ExactReportJudgment, ...] = Field(
+            min_length=len(report_ids),
+            max_length=len(report_ids),
+            description="One core-truth, causal-certificate, and sparse exhaustive relation judgment for every anonymous report exactly once."
+        )
+
+        @model_validator(mode="after")
+        def exact_report_identity(self) -> ExactJudgeResponse:
+            actual = [row.report_id for row in self.report_judgments]
+            if set(actual) != set(report_ids) or len(actual) != len(set(actual)):
+                raise ValueError(
+                    "report_judgments must contain every input report exactly once; "
+                    f"expected={report_ids}, actual={actual}"
+                )
+            return self
+
     ExactJudgeResponse.__name__ = f"ExactJudgeResponse_{suffix}"
     return cast(type[JudgeResponse], ExactJudgeResponse)
 
 
-def materialize_reading(response: JudgeResponse) -> JudgeReading:
-    """Derive every score-bearing set from validated semantic rows exactly once."""
+def build_exact_arbitration_model(
+    judge_input: UnifiedJudgeInput,
+    conflicted_report_ids: tuple[str, ...],
+) -> type[ArbitrationResponse]:
+    """Build a conflict-only replacement schema over exact report identities."""
 
-    report_ids = tuple(row.report_id for row in response.report_judgments)
-    expected_ids = tuple(row.expected_id for row in response.expected_judgments)
-    relation_by_key = {
-        (row.report_id, row.expected_id): row for row in response.relations
-    }
-    report_judgment_by_id = {row.report_id: row for row in response.report_judgments}
-
-    report_assessments = tuple(
-        ReportAssessment(
-            report_id=judgment.report_id,
-            validity=judgment.validity,
-            full_expected_ids=tuple(
-                expected_id
-                for expected_id in expected_ids
-                if relation_by_key[(judgment.report_id, expected_id)].match
-                == MatchStrength.FULL_MATCH
-            ),
-            partial_expected_ids=tuple(
-                expected_id
-                for expected_id in expected_ids
-                if relation_by_key[(judgment.report_id, expected_id)].match
-                == MatchStrength.PARTIAL_MATCH
-            ),
-            no_match_expected_ids=tuple(
-                expected_id
-                for expected_id in expected_ids
-                if relation_by_key[(judgment.report_id, expected_id)].match
-                == MatchStrength.NO_MATCH
-            ),
-            root_cause_cluster_key=judgment.root_cause_cluster_key,
-            report_text_evidence=judgment.report_text_evidence,
-            causal_field_audits=judgment.causal_field_audits,
-            reason=judgment.reason,
-            basis=judgment.basis,
-            source_refs=judgment.source_refs,
+    if not conflicted_report_ids or len(conflicted_report_ids) != len(
+        set(conflicted_report_ids)
+    ):
+        raise ValueError(
+            f"conflicted_report_ids must be non-empty and unique: {conflicted_report_ids}"
         )
-        for judgment in response.report_judgments
+    known_report_ids = {item.report_id for item in judge_input.reports}
+    if not set(conflicted_report_ids) <= known_report_ids:
+        raise ValueError(
+            "conflicted_report_ids contains values outside the input closure: "
+            f"{sorted(set(conflicted_report_ids) - known_report_ids)}"
+        )
+    expected_ids = tuple(item.expected_id for item in judge_input.expected_issues)
+    suffix = hashlib.sha256(
+        (
+            "|".join(conflicted_report_ids)
+            + "::"
+            + "|".join(expected_ids)
+            + "::arbitration"
+        ).encode("utf-8")
+    ).hexdigest()[:12]
+    ExactReportJudgment = _exact_report_model(
+        judge_input,
+        allowed_report_ids=conflicted_report_ids,
+        suffix=suffix,
     )
-    expected_assessments = []
-    for judgment in response.expected_judgments:
+
+    class ExactArbitrationResponse(ArbitrationResponse):
+        """Targeted replacements for every conflicted report and no other report."""
+
+        report_judgments: tuple[ExactReportJudgment, ...] = Field(
+            min_length=len(conflicted_report_ids),
+            max_length=len(conflicted_report_ids),
+            description="One complete sparse replacement for every conflicted report exactly once; unchanged reports are omitted."
+        )
+
+        @model_validator(mode="after")
+        def exact_conflict_identity(self) -> ExactArbitrationResponse:
+            actual = [row.report_id for row in self.report_judgments]
+            if set(actual) != set(conflicted_report_ids) or len(actual) != len(set(actual)):
+                raise ValueError(
+                    "arbitration report_judgments must replace every conflicted report "
+                    f"exactly once; expected={conflicted_report_ids}, actual={actual}"
+                )
+            return self
+
+    ExactArbitrationResponse.__name__ = f"ExactArbitrationResponse_{suffix}"
+    return cast(type[ArbitrationResponse], ExactArbitrationResponse)
+
+
+def merge_arbitration_response(
+    primary_response: JudgeResponse,
+    arbitration_response: ArbitrationResponse,
+    response_model: type[JudgeResponse],
+) -> JudgeResponse:
+    """Replace conflicted reports and revalidate the complete sparse closure."""
+
+    replacements = {
+        row.report_id: row for row in arbitration_response.report_judgments
+    }
+    merged = [
+        replacements.get(row.report_id, row) for row in primary_response.report_judgments
+    ]
+    payload = primary_response.model_dump(mode="json")
+    payload["report_judgments"] = [row.model_dump(mode="json") for row in merged]
+    payload["reason"] = arbitration_response.reason
+    payload["basis"] = arbitration_response.basis
+    payload["source_refs"] = list(arbitration_response.source_refs)
+    return response_model.model_validate(payload)
+
+
+def _materialized_text_evidence(
+    *,
+    report,
+    report_field: ReportField,
+    semantic_role: ReportTextEvidenceRole,
+    reason: str,
+    basis: str,
+) -> ReportTextEvidence:
+    field_value = getattr(report, report_field.value)
+    if not isinstance(field_value, str):
+        raise ValueError(  # noqa: TRY004 - impossible value is a persisted closure-validation failure
+            f"cannot materialize null CandidateReport.{report_field.value} for {report.report_id}"
+        )
+    return ReportTextEvidence(
+        report_field=report_field,
+        exact_quote=field_value,
+        semantic_role=semantic_role,
+        reason=reason,
+        basis=(
+            f"{basis}; CandidateReport {report.report_id}.{report_field.value}; "
+            "sha256:"
+            + hashlib.sha256(field_value.encode("utf-8")).hexdigest()
+        ),
+    )
+
+
+def _unique(values: Iterable[str]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(values))
+
+
+def materialize_reading(
+    response: JudgeResponse,
+    judge_input: UnifiedJudgeInput,
+) -> JudgeReading:
+    """Derive ownership, dense NO rows, expected coverage, and exact text audit."""
+
+    report_ids = tuple(item.report_id for item in judge_input.reports)
+    expected_ids = tuple(item.expected_id for item in judge_input.expected_issues)
+    reports_by_id = {item.report_id: item for item in judge_input.reports}
+    judgments_by_id = {row.report_id: row for row in response.report_judgments}
+    if set(judgments_by_id) != set(report_ids) or len(judgments_by_id) != len(
+        response.report_judgments
+    ):
+        raise ValueError("materialize_reading requires exact validated report closure")
+
+    relations: list[RelationAssessment] = []
+    report_assessments: list[ReportAssessment] = []
+    for report_id in report_ids:
+        judgment = judgments_by_id[report_id]
+        report = reports_by_id[report_id]
+        positive_by_expected = {
+            row.expected_id: row for row in judgment.supported_relations
+        }
+        full_expected_ids: list[str] = []
+        partial_expected_ids: list[str] = []
+        for expected_id in expected_ids:
+            positive = positive_by_expected.get(expected_id)
+            if positive is None:
+                relation = RelationAssessment(
+                    report_id=report_id,
+                    expected_id=expected_id,
+                    match=MatchStrength.NO_MATCH,
+                    report_text_evidence=(
+                        _materialized_text_evidence(
+                            report=report,
+                            report_field=ReportField.CLAIM,
+                            semantic_role=ReportTextEvidenceRole.CLAIM_BOUNDARY,
+                            reason="The complete published claim defines the report boundary for this explicit NO relation.",
+                            basis=f"report_judgments[{report_id}].no_match_expected_ids",
+                        ),
+                    ),
+                    reason=cast(str, judgment.no_match_reason),
+                    basis=cast(str, judgment.no_match_basis),
+                    source_refs=cast(tuple[str, ...], judgment.no_match_source_refs),
+                )
+            else:
+                match = MatchStrength(positive.match.value)
+                if match == MatchStrength.FULL_MATCH:
+                    full_expected_ids.append(expected_id)
+                else:
+                    partial_expected_ids.append(expected_id)
+                evidence = tuple(
+                    _materialized_text_evidence(
+                        report=report,
+                        report_field=field_ref,
+                        semantic_role=(
+                            ReportTextEvidenceRole.CAUSAL_SUPPORT
+                            if field_ref.value
+                            == positive.causal_certificate_field.value
+                            else ReportTextEvidenceRole.CLAIM_BOUNDARY
+                        ),
+                        reason=(
+                            "The complete supported causal certificate establishes the report-owned premise used by this relation."
+                            if field_ref.value
+                            == positive.causal_certificate_field.value
+                            else "The complete referenced report field delimits the published technical claim used by this relation."
+                        ),
+                        basis=f"supported_relation:{report_id}/{expected_id}",
+                    )
+                    for field_ref in positive.report_field_refs
+                )
+                if not any(
+                    item.semantic_role == ReportTextEvidenceRole.CAUSAL_SUPPORT
+                    for item in evidence
+                ):
+                    certificate_field = ReportField(
+                        positive.causal_certificate_field.value
+                    )
+                    evidence += (
+                        _materialized_text_evidence(
+                            report=report,
+                            report_field=certificate_field,
+                            semantic_role=ReportTextEvidenceRole.CAUSAL_SUPPORT,
+                            reason="The complete supported causal certificate establishes the report-owned premise used by this relation.",
+                            basis=f"supported_relation:{report_id}/{expected_id}",
+                        ),
+                    )
+                relation = RelationAssessment(
+                    report_id=report_id,
+                    expected_id=expected_id,
+                    match=match,
+                    report_text_evidence=evidence,
+                    reason=positive.reason,
+                    basis=positive.basis,
+                    source_refs=positive.source_refs,
+                )
+            relations.append(relation)
+
+        validity = (
+            ReportValidity.INVALID
+            if judgment.core_truth == CoreClaimTruth.INVALID
+            else ReportValidity.VALID_KNOWN
+            if full_expected_ids or partial_expected_ids
+            else ReportValidity.VALID_NOVEL
+        )
+        if validity == ReportValidity.VALID_KNOWN:
+            ownership_reason = (
+                "Backend ownership is VALID_KNOWN because core_truth is VALID and "
+                "the exhaustive relation closure contains positive expected IDs "
+                f"{full_expected_ids + partial_expected_ids}."
+            )
+        elif validity == ReportValidity.VALID_NOVEL:
+            ownership_reason = (
+                "Backend ownership is VALID_NOVEL because core_truth is VALID and "
+                "every expected relation is explicitly NO_MATCH."
+            )
+        else:
+            ownership_reason = (
+                "Backend ownership is INVALID because core_truth is INVALID and "
+                "every expected relation is explicitly NO_MATCH."
+            )
+        certificate_role = (
+            ReportTextEvidenceRole.CAUSAL_SUPPORT
+            if judgment.core_truth == CoreClaimTruth.VALID
+            else ReportTextEvidenceRole.REFUTED_PREMISE
+        )
+        report_assessments.append(
+            ReportAssessment(
+                report_id=report_id,
+                core_truth=judgment.core_truth,
+                validity=validity,
+                full_expected_ids=tuple(full_expected_ids),
+                partial_expected_ids=tuple(partial_expected_ids),
+                no_match_expected_ids=tuple(
+                    expected_id
+                    for expected_id in expected_ids
+                    if expected_id not in positive_by_expected
+                ),
+                root_cause_cluster_key=judgment.root_cause_cluster_key,
+                report_text_evidence=(
+                    _materialized_text_evidence(
+                        report=report,
+                        report_field=ReportField.CLAIM,
+                        semantic_role=ReportTextEvidenceRole.CLAIM_BOUNDARY,
+                        reason="The complete published claim defines the report-level validity boundary.",
+                        basis=f"report_judgments[{report_id}]",
+                    ),
+                    _materialized_text_evidence(
+                        report=report,
+                        report_field=ReportField(
+                            judgment.causal_certificate_field.value
+                        ),
+                        semantic_role=certificate_role,
+                        reason=(
+                            "The complete field supplies the artifact-compatible causal certificate for the valid core claim."
+                            if judgment.core_truth == CoreClaimTruth.VALID
+                            else "The complete field contains the mixed or refuted premise that invalidates the core claim."
+                        ),
+                        basis=f"report_judgments[{report_id}].causal_certificate_field",
+                    ),
+                ),
+                causal_field_audits=judgment.causal_field_audits,
+                reason=f"{judgment.reason} {ownership_reason}",
+                basis=(
+                    f"{judgment.basis}; deterministic ownership derivation from "
+                    "core_truth and the exact positive/NO expected-ID partition"
+                ),
+                source_refs=_unique(
+                    [f"report:{report_id}"]
+                    + list(judgment.source_refs)
+                    + [f"expected:{expected_id}" for expected_id in expected_ids]
+                ),
+            )
+        )
+
+    relation_by_key = {
+        (row.report_id, row.expected_id): row for row in relations
+    }
+    expected_assessments: list[ExpectedAssessment] = []
+    for expected_id in expected_ids:
         full_report_ids = tuple(
             report_id
             for report_id in report_ids
-            if report_judgment_by_id[report_id].validity == ReportValidity.VALID_KNOWN
-            and relation_by_key[(report_id, judgment.expected_id)].match
+            if relation_by_key[(report_id, expected_id)].match
             == MatchStrength.FULL_MATCH
         )
         partial_report_ids = tuple(
             report_id
             for report_id in report_ids
-            if report_judgment_by_id[report_id].validity == ReportValidity.VALID_KNOWN
-            and relation_by_key[(report_id, judgment.expected_id)].match
+            if relation_by_key[(report_id, expected_id)].match
             == MatchStrength.PARTIAL_MATCH
         )
         supported_report_ids = set(full_report_ids) | set(partial_report_ids)
+        relation_rows = tuple(
+            relation_by_key[(report_id, expected_id)] for report_id in report_ids
+        )
         expected_assessments.append(
             ExpectedAssessment(
-                expected_id=judgment.expected_id,
+                expected_id=expected_id,
                 full_report_ids=full_report_ids,
                 partial_report_ids=partial_report_ids,
                 no_support_report_ids=tuple(
@@ -378,14 +566,20 @@ def materialize_reading(response: JudgeResponse) -> JudgeReading:
                 ),
                 hit=bool(full_report_ids),
                 supported=bool(supported_report_ids),
-                reason=judgment.reason,
-                basis=judgment.basis,
-                source_refs=judgment.source_refs,
+                reason=(
+                    f"Expected issue {expected_id} has FULL support from {list(full_report_ids)} "
+                    f"and PARTIAL support from {list(partial_report_ids)}; all remaining reports are NO_MATCH."
+                ),
+                basis="Deterministic materialization of every validated sparse positive row and explicit NO closure for this expected issue.",
+                source_refs=_unique(
+                    [f"expected:{expected_id}"]
+                    + [ref for row in relation_rows for ref in row.source_refs]
+                ),
             )
         )
     return JudgeReading(
-        relations=response.relations,
-        report_assessments=report_assessments,
+        relations=tuple(relations),
+        report_assessments=tuple(report_assessments),
         expected_assessments=tuple(expected_assessments),
         reason=response.reason,
         basis=response.basis,
