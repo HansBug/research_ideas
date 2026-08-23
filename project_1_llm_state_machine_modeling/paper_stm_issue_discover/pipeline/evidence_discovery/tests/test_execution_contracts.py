@@ -9,10 +9,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from pydantic import BaseModel, ValidationError
-from utils.agent import AgentError
-from utils.llm.config import LLMPricing, LLMTokenPrices
-
 from pipeline.evidence_discovery.backends import run_backend
 from pipeline.evidence_discovery.backends.bounded_verification import (
     _terminal_states,
@@ -99,6 +95,7 @@ from pipeline.evidence_discovery.semantics import (
     NLTransitionAlternative,
     NLTransitionGroup,
     SemanticAdjudication,
+    SourceTransitionClosureReceipt,
     adjudicate_disposition,
     assemble_method_response,
     bind_candidate,
@@ -106,11 +103,18 @@ from pipeline.evidence_discovery.semantics import (
     build_grounding_prompt,
     build_method_prompt,
     canonicalize_grounding_response,
+    endpoint_candidate_is_satisfied_by_macro,
+    evaluate_source_transition_closure,
     fallback_grounding,
     normalize_contract_state_roles,
     resolve_transition_ref,
+    suppress_satisfied_source_transition_candidates,
 )
 from pipeline.evidence_discovery.semantics.binding import BindingResult
+from pydantic import BaseModel, ValidationError
+
+from utils.agent import AgentError
+from utils.llm.config import LLMPricing, LLMTokenPrices
 
 PAPER_ROOT = Path(__file__).parents[3]
 REPORT_ROOT = PAPER_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
@@ -1115,9 +1119,7 @@ def test_0046_d1_ambiguity_is_semantically_equivalent_not_partial_overlap() -> N
     assert "must never repair a wrong source" in normalized_prompt
     assert "the ledger subsumes that candidate" in normalized_prompt
     assert "typed property and violation_direction are authoritative" in normalized_prompt
-    assert "absence of a required construct is possible negative" in (
-        DISCOVERY_GROUNDING_SYSTEM_PROMPT
-    )
+    assert "possible negative evidence only after" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
 
 
 def test_aggregate_ledger_rejects_subset_candidate_subsumption() -> None:
@@ -1573,7 +1575,8 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "owner-initial-to-ModeA, ModeA-to-ModeB, and ModeB-to-ModeC" in CONTRACT_SYSTEM_PROMPT
     assert "activity to be performed continuously or repeatedly" in CONTRACT_SYSTEM_PROMPT
     assert "segment already has a cardinality or structure contract" in CONTRACT_SYSTEM_PROMPT
-    assert "structural-area primary reading" in CONTRACT_SYSTEM_PROMPT
+    assert "Generic words such as area, section, or part" in CONTRACT_SYSTEM_PROMPT
+    assert "simultaneously active partitions" in CONTRACT_SYSTEM_PROMPT
     hint_schema = ContractBindingHint.model_json_schema()
     assert "owns the required initial pseudostate edge" in hint_schema["properties"]["role"]["description"]
     assert "variable names only the data subject" in hint_schema["properties"]["role"]["description"]
@@ -1600,7 +1603,9 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "element_refs` contains" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "Negative-property carrier example" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "must not emit a cardinality CandidateIssue" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
-    assert "operates within three different state areas" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "Generic area, section, or part language is insufficient" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "Respect protected compiler-macro boundaries" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "member digest, protected" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "not to a descendant action carrier" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     candidate_schema = CandidateIssue.model_json_schema()["properties"]
     assert "missing edge has no ref of its own" in candidate_schema["element_refs"]["description"]
@@ -3283,6 +3288,143 @@ def test_exact_s2_scout_materializes_missing_typed_edge_without_text_rules() -> 
     )
     assert present_candidates == []
     assert present_receipts == []
+
+
+def _completion_endpoint_contract() -> NLContract:
+    return NLContract(
+        contract_id="NL-CONTRACT-COMPLETION-ENDPOINT",
+        segment_id="NL6",
+        quote="The operating mode ends by transitioning to the named completion state.",
+        normative_statement="The operating mode must transition to the named completion state.",
+        locus_kind="transition",
+        locus_names=("HighwayMode", "FinishState"),
+        property="transition_endpoints",
+        state_role="termination_state",
+        expected_direction="must_exist",
+        violation_direction="wrong_target",
+        evidence_types=("source_identity", "transition_fact"),
+        binding_hints=(
+            ContractBindingHint(
+                role="source",
+                value="HighwayMode",
+                source_ref="NL6",
+                reason="The operating mode is the explicit transition source.",
+                basis="provider-free endpoint fixture",
+            ),
+            ContractBindingHint(
+                role="target",
+                value="FinishState",
+                source_ref="NL6",
+                reason="The completion state is the explicit transition target.",
+                basis="provider-free endpoint fixture",
+            ),
+        ),
+        scope="Operating-mode completion",
+        source_refs=("NL6",),
+        reason="The endpoint requirement is independently testable.",
+        basis="provider-free typed endpoint fixture",
+    )
+
+
+def test_complete_protected_source_transition_macro_suppresses_endpoint_candidate() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    contract = _completion_endpoint_contract()
+
+    receipt = evaluate_source_transition_closure(pair, contract)
+
+    assert isinstance(receipt, SourceTransitionClosureReceipt)
+    assert receipt.status == "satisfied"
+    assert receipt.candidate_disposition == "suppress_matching_endpoint_candidates"
+    assert receipt.source_transition_id == "tr_0027"
+    assert receipt.macro_id == "macro:transition:tr_0027"
+    assert len(receipt.expected_member_ids) == 9
+    assert receipt.expected_member_ids == receipt.observed_member_ids
+    assert receipt.published_member_digest == receipt.recomputed_member_digest
+    assert receipt.target_entry_fcstm_ref == "fcstm:line:27"
+    assert all(member.closed for member in receipt.member_receipts)
+    assert receipt.hashes.source_inventory_sha256 is not None
+    assert not receipt.diagnostics
+
+    candidate = CandidateIssue(
+        contract_id=contract.contract_id,
+        locus_kind=contract.locus_kind,
+        locus_names=contract.locus_names,
+        property=contract.property,
+        violation_direction=contract.violation_direction,
+        evidence_types=contract.evidence_types,
+        title="Completion appears to target the enclosing mode",
+        requirement_quote=contract.quote,
+        predicate_id="S2",
+        predicate_inputs={
+            "source": "HighwayMode",
+            "target": "FinishState",
+            "scope": "closed_fcstm",
+        },
+        element_refs=[],
+        source_refs=["NL6"],
+        expected=contract.normative_statement,
+        observed="A compiler-generated controller segment is a self-loop.",
+        strongest_rebuttal="The complete protected macro may realize the author transition.",
+        reason="The candidate reads one compiler-owned segment as an independent endpoint.",
+        basis="provider-free candidate fixture",
+    )
+    assert endpoint_candidate_is_satisfied_by_macro(candidate, receipt)
+    retained, dispositions = suppress_satisfied_source_transition_candidates(
+        [candidate],
+        {contract.contract_id: receipt},
+        candidate_origin="grounding",
+    )
+    assert retained == []
+    assert len(dispositions) == 1
+    assert dispositions[0].disposition == "suppressed_satisfied_endpoint"
+
+    contracts = NLContractResponse(
+        contracts=[contract],
+        segment_disposition={"NL6": "covered"},
+        reason="The endpoint fixture is complete.",
+        basis="provider-free endpoint fixture",
+    )
+    materialized, scout_receipts = _materialize_exact_s2_inventory_candidates(
+        pair,
+        contracts,
+        [],
+        {contract.contract_id: receipt},
+    )
+    assert materialized == []
+    assert scout_receipts == []
+
+
+def test_incomplete_source_transition_macro_remains_unresolved_and_keeps_candidate() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    assert pair.working_contract is not None
+    contract = _completion_endpoint_contract()
+    payload = json.loads(json.dumps(pair.working_contract.payload))
+    macro = next(
+        item
+        for item in payload["macros"]
+        if item["macro_id"] == "macro:transition:tr_0027"
+    )
+    missing_member_id = macro["member_element_ids"][-1]
+    payload["elements"] = [
+        item
+        for item in payload["elements"]
+        if item["element_id"] != missing_member_id
+    ]
+    incomplete_pair = pair.model_copy(
+        update={
+            "working_contract": pair.working_contract.model_copy(
+                update={"payload": payload}
+            )
+        }
+    )
+
+    receipt = evaluate_source_transition_closure(incomplete_pair, contract)
+
+    assert receipt.status == "unresolved"
+    assert receipt.candidate_disposition == "retain_candidates"
+    assert missing_member_id not in receipt.observed_member_ids
+    assert any(not member.closed for member in receipt.member_receipts)
+    assert any("protected ownership" in item for item in receipt.diagnostics)
 
 
 def _runtime_fixture_pricing() -> LLMPricing:

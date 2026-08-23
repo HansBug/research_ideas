@@ -226,12 +226,11 @@ class CardinalityRequirement(BaseModel):
             "a composite with direct child states but no separator has one implicit "
             "region. explicit_named_members is a finite set enumerated by NL, and "
             "unresolved means several competent readings remain open. Select "
-            "concurrent_regions when the primary reading partitions one active "
-            "configuration into structural regions, areas, or partitions; NL need "
-            "not also say concurrent/UML, and the observed artifact need not already "
-            "contain a separator. For `controller operates within three different "
-            "state areas`, the primary reading is three configuration regions, while "
-            "three operating phases/states may remain an alternative_reading. Select "
+            "concurrent_regions only when NL explicitly establishes parallel or "
+            "orthogonal regions, simultaneously active partitions, or UML region "
+            "structure; the observed artifact need not already contain a separator. "
+            "Generic words such as area, section, or part do not establish concurrent "
+            "region semantics by themselves. Select "
             "direct_child_states only when NL directly requires a fixed number of "
             "child states or modes. Do not rebind an area/partition primary to "
             "direct_child_states because child states exist under the owner, because "
@@ -653,13 +652,13 @@ class CardinalityDomainBinding(BaseModel):
         description=(
             "Primary typed domain of the normative member concept. exact requires "
             "direct_child_states, concurrent_regions, or explicit_named_members; "
-            "ambiguous/unbound requires unresolved. Use concurrent_regions when "
-            "the obligation describes one active configuration as structural "
-            "regions, areas, or partitions, even without extra concurrent/UML "
-            "wording and when observed source has no separator. A non-empty "
+            "ambiguous/unbound requires unresolved. Use concurrent_regions only when "
+            "the obligation explicitly describes parallel or orthogonal regions, "
+            "simultaneously active partitions, or UML region structure, even when "
+            "the observed source has no separator. A non-empty "
             "composite without a separator has one implicit region. Direct-child "
             "operating phases/states may remain an alternative_reading but cannot "
-            "replace an area/partition primary. Use direct_child_states only when "
+            "replace an explicitly established primary. Use direct_child_states only when "
             "normative text directly counts a composite's child states or modes. "
             "Never choose from observed count, element-name suffix, or ledger data."
         ),
@@ -1376,7 +1375,7 @@ State-role and discourse discipline:
 - Keep a state-owned action/effect independent from the endpoint that enters the state. The action may remain a precise unsupported W1 obligation even when the endpoint exists. Do not create standalone trigger/guard contracts that merely repeat every transition-group condition; use the group as the compact normative relation and let grounding derive only actual mismatches.
 - When an action, effect, display, update, reset, or cancellation obligation reads or writes one named data subject, add a separate `variable` binding hint whose value is only that subject concept. Preserve the action/effect itself in its own `action` or `effect` hint. Independent contracts that act on the same data subject must use the same exact variable concept so deterministic frontier code can audit their complete carrier surface. Different subjects remain different even when their prose is related: for example, display/update of `setpoint` and cancel/update of `setpoint` share variable=`setpoint`, while start/stop of `timer` uses variable=`timer` and must not be merged with `setpoint`.
 - For every `property=cardinality` contract, fill `cardinality_requirement` from the numbered NL: preserve the literal required count, the normative scope/member concepts, and a typed primary member domain. Use `direct_child_states`, `concurrent_regions`, or `explicit_named_members` when the supplied language establishes that competent reading, and preserve another competent interpretation in `alternative_reading`; use `unresolved` only when no primary member domain can be selected. Never infer the required count or domain from the observed model, element names, or a ledger.
-- For cardinality domain selection, a clause that divides an active configuration into a number of structural regions, areas, or partitions uses `concurrent_regions` as its primary domain even when it does not repeat the words concurrent or UML. Example: "the controller operates within three different state areas" has a structural-area primary reading; three operating phases/states may remain in `alternative_reading`. Use `direct_child_states` only when the NL directly counts child states or modes owned by one composite. Missing separators or region objects are possible negative evidence and never a reason to reinterpret areas as child states.
+- For cardinality domain selection, use `concurrent_regions` only when the supplied meaning explicitly establishes parallel or orthogonal regions, simultaneously active partitions, or UML region structure. Generic words such as area, section, or part do not establish concurrency by themselves. Use `direct_child_states` only when NL directly counts child states or modes owned by one composite; use `explicit_named_members` for an explicit finite list, and preserve `unresolved` when no typed domain is semantically established. Missing separators or region objects are possible negative evidence only after concurrent-region semantics is established.
 - Preserve containment depth from the NL. A state described only as being "within" or "under" a composite requires semantic descendant containment; an intermediate region or nested composite still satisfies that obligation. Require direct/immediate ownership only when the source meaning explicitly requires no intermediate owner. Region or wrapper structure is a separate contract only when the NL independently specifies that structure or its concurrency semantics.
 
 Generic worked example: "Within Controller, start in Idle; on Begin transition from Idle to Running when enabled and set mode=active" yields contracts for Controller containment of Idle, Controller initial entry to Idle, the Idle-to-Running endpoint, and its mode=active effect. Preserve Begin and enabled on the transition-group alternative; do not duplicate them as trigger/guard contracts unless supplied wording independently requires those exact formal properties. If the clause also requires Begin to be accepted throughout Controller, that coverage requirement is a separate event-consumer contract. Do not copy the whole sentence into one multi-property contract.
@@ -1559,6 +1558,15 @@ present exact endpoint does not become a wrong-target violation because its sour
 is unreachable. Omit the satisfied original property instead of publishing one
 downstream issue per state or transition.
 
+Respect protected compiler-macro boundaries. When the working contract maps one
+exact author transition to a source-owned macro root and a complete protected
+member inventory, assess the endpoint through the whole macro rather than treating
+one generated segment as an independent author transition. A complete macro may
+satisfy an endpoint only when the source endpoints, member digest, protected
+ownership, exact closed-model lines, and target-entry segment all close. If any
+join is missing or ambiguous, retain the endpoint candidate for downstream
+adjudication; never infer macro satisfaction from generated names or one segment.
+
 For event-consumer coverage, distinguish declaration from operational coverage.
 An exact declared consumer with no consumer reachable in the contract's exact
 operating scope violates a reachable-consumer contract; the declaration is a
@@ -1581,15 +1589,16 @@ the deterministic frontier combines the two typed bindings, enumerates the
 complete member inventory, and materializes the sole cardinality candidate or
 satisfaction receipt. Do not turn an alternative reading into a second candidate.
 Select a concrete primary domain only from the supplied NL/source semantics.
-When the contract describes one active configuration as divided into structural
-regions, areas, or partitions, select `concurrent_regions` without requiring the
-extra words concurrent or UML. Missing separators or region objects are possible
-negative evidence; absence of a required construct is possible negative evidence,
-not grounds to reinterpret the obligation. A non-empty composite without separators
+Select `concurrent_regions` only when the supplied meaning explicitly establishes
+parallel or orthogonal regions, simultaneously active partitions, or UML region
+structure. Generic area, section, or part language is insufficient by itself.
+Missing separators or region objects are possible negative evidence only after
+that semantic domain is established; absence of a required construct is possible
+negative evidence, not grounds to reinterpret the obligation. A non-empty composite without separators
 has one implicit UML region, not one region per child state. Use `direct_child_states` only when the NL
 directly counts child states or modes owned by one composite. Named operating
-phases/states remain a competent `alternative_reading`; their existence and count
-must not replace the structural-area primary reading. Never choose a domain because
+phases/states remain a competent `alternative_reading` when another domain is
+explicitly primary; their existence and count must not replace that primary reading. Never choose a domain because
 the resulting observed count would pass or fail, or infer it from element names.
 
 Bind the exact `owner_source_id` plus `owner_model_ref`; copy `owner_model_ref`
@@ -1597,11 +1606,11 @@ exactly from the owned `closed_model_inventory.states[].ref`, not from a
 working-contract representation mapping. The owner realizes the cardinality
 contract's normative `scope_concept` and owner/scope binding hints. Bind it to the
 contract-level scope, not to a descendant action carrier merely because an activity
-in the same clause executes there.
-For example, "Controller operates within three different state areas while tasks
-execute in Controller.TaskRegion" binds `concurrent_regions` to Controller, not to
-Controller.TaskRegion, unless supplied NL/source semantics explicitly make
-TaskRegion the counted scope. Both lenses apply this same contract-level owner rule.
+in the same clause executes there. When a clause explicitly assigns orthogonal
+regions to an enclosing controller while locating tasks in one descendant region,
+bind the region domain to the enclosing controller unless the supplied meaning
+explicitly makes the descendant the counted scope. Both lenses apply this same
+contract-level owner rule.
 A competing competent interpretation belongs in `alternative_reading` and is
 assessed later by D; its existence does not by itself make the primary binding
 ambiguous. Use `status=ambiguous` and `member_domain=unresolved` only when supplied

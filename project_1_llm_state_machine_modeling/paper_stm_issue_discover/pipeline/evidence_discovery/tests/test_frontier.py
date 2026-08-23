@@ -3066,7 +3066,7 @@ def test_frontier_pydantic_descriptions_reach_json_schema() -> None:
         "explicit_named_members",
         "unresolved",
     }
-    assert "controller operates within three different state areas" in cardinality_schema[
+    assert "Generic words such as area, section, or part" in cardinality_schema[
         "properties"
     ]["member_domain"]["description"]
     grounding_schema = GroundingResponse.model_json_schema()
@@ -3083,7 +3083,7 @@ def test_frontier_pydantic_descriptions_reach_json_schema() -> None:
     ]["reason"]["description"]
     domain_binding_schema = grounding_schema["$defs"]["CardinalityDomainBinding"]
     assert "Finite member-domain" in domain_binding_schema["description"]
-    assert "structural regions, areas, or partitions" in domain_binding_schema[
+    assert "parallel or orthogonal regions" in domain_binding_schema[
         "properties"
     ]["member_domain"]["description"]
     assert "exact_source_inventory.states" in domain_binding_schema["properties"][

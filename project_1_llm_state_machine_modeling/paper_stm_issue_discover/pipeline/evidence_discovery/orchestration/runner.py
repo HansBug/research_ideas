@@ -41,6 +41,7 @@ from ..semantics import (
     NLContract,
     NLContractResponse,
     SemanticAdjudication,
+    SourceTransitionClosureReceipt,
     StageReceipt,
     assemble_method_response,
     bind_candidate,
@@ -51,6 +52,7 @@ from ..semantics import (
     canonical_contract_id,
     canonicalize_grounding_response,
     contract_semantic_key,
+    evaluate_source_transition_closure,
     fallback_contracts,
     fallback_d_adjudication,
     fallback_grounding,
@@ -60,6 +62,7 @@ from ..semantics import (
     normalize_contract_state_roles,
     resolve_state_ref,
     resolve_transition_ref,
+    suppress_satisfied_source_transition_candidates,
 )
 from .contracts import (
     IndependentJudgeReceipt,
@@ -86,8 +89,8 @@ METHOD_CELL_SCHEMA = "evidence-discovery.method_cell.v8"
 JUDGE_SCHEMA = "evidence-discovery.independent_judge.v5"
 SUMMARY_SCHEMA = "evidence-discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "evidence-discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-typed-flow.v42"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-prompts.v37"
+CODE_VERSION = "evidence-discovery-typed-flow.v43"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-prompts.v38"
 JUDGE_EXACT_IDENTITY_CONTRACT_VERSION = "evidence-discovery.judge-exact-identity-contract.v1"
 GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION = (
     "evidence-discovery.grounding-exact-identity-contract.v2"
@@ -1538,6 +1541,9 @@ def _materialize_exact_s2_inventory_candidates(
     pair: PairInput,
     contracts: NLContractResponse,
     llm_candidates: list[CandidateIssue],
+    source_transition_closures: Mapping[
+        str, SourceTransitionClosureReceipt
+    ] | None = None,
 ) -> tuple[list[CandidateIssue], list[dict[str, Any]]]:
     """Compile exact missing-edge contracts that LLM output cannot suppress."""
 
@@ -1548,6 +1554,9 @@ def _materialize_exact_s2_inventory_candidates(
             contract.property != "transition_endpoints"
             or contract.expected_direction != "must_exist"
         ):
+            continue
+        closure = (source_transition_closures or {}).get(contract.contract_id)
+        if closure is not None and closure.status == "satisfied":
             continue
         source_hints = [
             hint for hint in contract.binding_hints if hint.role == "source"
@@ -2100,7 +2109,7 @@ def _method_cell(
     frontier_candidates = [
         obligation.candidate for obligation in frontier_batch.obligations
     ]
-    admitted_llm_candidates = [
+    raw_admitted_llm_candidates = [
         candidate
         for candidate in response.issues
         if candidate.contract_id
@@ -2110,11 +2119,32 @@ def _method_cell(
         contracts_by_id.setdefault(
             obligation.contract.contract_id, obligation.contract
         )
+    source_transition_closures = {
+        contract_id: evaluate_source_transition_closure(pair, contract)
+        for contract_id, contract in contracts_by_id.items()
+        if contract.property == "transition_endpoints"
+        and contract.expected_direction == "must_exist"
+    }
+    admitted_llm_candidates, llm_macro_dispositions = (
+        suppress_satisfied_source_transition_candidates(
+            raw_admitted_llm_candidates,
+            source_transition_closures,
+            candidate_origin="grounding",
+        )
+    )
+    frontier_candidates, frontier_macro_dispositions = (
+        suppress_satisfied_source_transition_candidates(
+            frontier_candidates,
+            source_transition_closures,
+            candidate_origin="deterministic_frontier",
+        )
+    )
     exact_s2_candidates, exact_s2_receipts = (
         _materialize_exact_s2_inventory_candidates(
             pair,
             contract_response,
             [*admitted_llm_candidates, *frontier_candidates],
+            source_transition_closures,
         )
     )
     candidates = [
@@ -2148,6 +2178,17 @@ def _method_cell(
         "candidate_count": len(candidates),
         "llm_candidate_count": len(response.issues),
         "admitted_llm_candidate_count": len(admitted_llm_candidates),
+        "source_transition_macro_closure_count": len(source_transition_closures),
+        "source_transition_macro_closures": [
+            receipt.model_dump(mode="json")
+            for receipt in source_transition_closures.values()
+        ],
+        "source_transition_suppressed_candidate_count": len(llm_macro_dispositions)
+        + len(frontier_macro_dispositions),
+        "source_transition_candidate_dispositions": [
+            receipt.model_dump(mode="json")
+            for receipt in (*llm_macro_dispositions, *frontier_macro_dispositions)
+        ],
         "superseded_llm_candidate_contract_ids": list(
             frontier_batch.superseded_candidate_contract_ids
         ),
@@ -2165,8 +2206,8 @@ def _method_cell(
             item["obligation_id"] for item in satisfied_candidates
         ],
         "candidates": [_jsonable(item) for item in prepared_candidates],
-        "reason": "Exact binding, the typed domain frontier, the exact S2 inventory scout, frozen predicate compilation, and deterministic backend execution were applied inside one execute batch; completed true receipts remain passing-check audit records while only counterexamples, unresolved W1/W0, or errors become findings.",
-        "basis": "LLM-established typed contracts, owned source/ModelIR/inspection facts, frozen predicate registry, compiler plans, backend receipts, and the passing-check exclusion rule",
+        "reason": "Exact binding, protected source-transition macro closure, the typed domain frontier, the exact S2 inventory scout, frozen predicate compilation, and deterministic backend execution were applied inside one execute batch; completed true receipts remain passing-check audit records while only counterexamples, unresolved W1/W0, or errors become findings.",
+        "basis": "LLM-established typed contracts, exact source inventory, published working-contract macro membership, owned source/ModelIR/inspection facts, frozen predicate registry, compiler plans, backend receipts, and the passing-check exclusion rule",
     }
     stage_receipts.append(
         _stage_receipt(
