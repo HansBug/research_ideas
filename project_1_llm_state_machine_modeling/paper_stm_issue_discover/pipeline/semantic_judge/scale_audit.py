@@ -154,24 +154,24 @@ def _relation_envelope(relation_input, *, all_positive: bool) -> dict:
             )
         else:
             decisions.append(
-                {"expected_id": expected.expected_id, "match": "NO_MATCH"}
+                {
+                    "expected_id": expected.expected_id,
+                    "match": "NO_MATCH",
+                    "reason": "This valid report concerns a different defect, obligation, or repair target from this expected issue.",
+                    "basis": "The report, complete expected issue, and common artifacts establish this expected-specific boundary.",
+                    "source_refs": [
+                        f"expected:{expected.expected_id}",
+                        artifact_ref,
+                    ],
+                }
             )
     return {
-        "schema_version": "semantic-judge.relation-response.v1",
+        "schema_version": "semantic-judge.relation-response.v2",
         "report_id": relation_input.report.report_id,
         "validity_certificate_hash": (
             relation_input.validity_certificate.certificate_hash
         ),
         "relation_decisions": decisions,
-        "no_match_closure": (
-            None
-            if all_positive
-            else {
-                "reason": "Every listed expected issue is a different defect, obligation, or repair target.",
-                "basis": "The valid report, complete expected issues, and common artifacts were compared explicitly.",
-                "source_refs": [artifact_ref],
-            }
-        ),
         "relation_reason": "Every exact expected position has one complete relation decision.",
         "relation_basis": "The immutable validity certificate and common artifact closure are preserved.",
         "relation_source_refs": [artifact_ref],

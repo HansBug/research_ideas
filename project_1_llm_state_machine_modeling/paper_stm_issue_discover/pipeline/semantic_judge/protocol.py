@@ -8,8 +8,8 @@ from pathlib import Path
 PROTOCOL_URL = "https://github.com/HansBug/research_ideas/issues/195"
 PROTOCOL_SHA256 = "d774d9bd3e4c4fe04735ed1d4ec064be197cfadcd52e21c8226e37175b29b210"
 PROTOCOL_VERSION = "github-issue-195.d774d9bd3e4c"
-JUDGE_ALGORITHM_VERSION = "semantic-judge.two-stage.v1"
-PROMPT_VERSION = "semantic-judge.two-stage-prompt.v1"
+JUDGE_ALGORITHM_VERSION = "semantic-judge.two-stage.v2"
+PROMPT_VERSION = "semantic-judge.two-stage-prompt.v2"
 ARTIFACT_BUILDER_VERSION = "paper1.semantic-judge.artifact-closure.v2"
 ADAPTER_VERSION = "paper1.semantic-judge.arm-neutral-adapter.v1"
 METRICS_VERSION = "paper1.semantic-judge.metrics.v1"
@@ -46,7 +46,7 @@ For each exact expected position, output one relation:
 
 Read each expected issue's summary and complete detail together. A valid report need not reproduce every taxonomy field, locus granularity, witness form, or wording. A report may FULL-match multiple expected issues only when each mapping has its own expected-specific reason and basis. A missing operational transition may be a direct actionable facet of a broader no-progress or pure-stub issue when the same absence is explicit in the expected mechanism and the repair materially mitigates it; do not apply that rule to a distinct entry, ownership, region, or narrow-edge obligation.
 
-Complete every exact expected position once in schema order. An omitted row never defaults to NO. FULL and PARTIAL rows must include report-owned field references, expected-specific English reason and basis, and supplied source references. Every NO position must be explicit, with one shared non-empty no_match_closure whenever any NO exists. Return the exact frozen validity certificate hash unchanged.
+Complete every exact expected position once in schema order. An omitted row never defaults to NO. Every FULL, PARTIAL, and NO row must include expected-specific English reason, basis, and supplied source references; FULL and PARTIAL rows must additionally include report-owned field references. Return the exact frozen validity certificate hash unchanged.
 
 Respect typed carriers and artifact authority. Do not infer semantic equivalence from names, shared locus, generated lowering members, or taxonomy labels alone. Report and expected IDs are anonymous keys. Experimental metadata, evidence levels, predicate families, and historical outcomes are not matching gates. Write every generated value in English except immutable provider-external quotations."""
 

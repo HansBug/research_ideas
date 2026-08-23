@@ -15,6 +15,7 @@ from .models import (
     ArbitrationResponse,
     AtomicArbitrationResponse,
     AtomicPrimaryResponse,
+    AuditedNoMatchRelationJudgment,
     CausalFieldAuditJudgment,
     CausalFieldVerdict,
     ClauseAuditJudgment,
@@ -172,7 +173,9 @@ def _validate_report_judgment(
     return core_truth
 
 
-def _exact_relation_decision_type(*, expected_id: str, suffix: str):
+def _exact_relation_decision_type(
+    *, expected_id: str, suffix: str, audited_no_match: bool = False
+):
     """Build one discriminator union fixed to one expected position."""
 
     expected_id_type = _literal((expected_id,))
@@ -197,7 +200,13 @@ def _exact_relation_decision_type(*, expected_id: str, suffix: str):
             description="Artifact-supported PARTIAL_MATCH relation at this exact expected position."
         )
 
-    class ExactNoMatchRelationJudgment(NoMatchRelationJudgment):
+    no_match_base = (
+        AuditedNoMatchRelationJudgment
+        if audited_no_match
+        else NoMatchRelationJudgment
+    )
+
+    class ExactNoMatchRelationJudgment(no_match_base):  # type: ignore[valid-type,misc]
         """One explicit NO relation fixed to an exact anonymous expected position."""
 
         expected_id: expected_id_type = Field(  # type: ignore[valid-type]
@@ -215,13 +224,19 @@ def _exact_relation_decision_type(*, expected_id: str, suffix: str):
     ]
 
 
-def _exact_relation_tuple(expected_ids: tuple[str, ...], *, suffix: str):
+def _exact_relation_tuple(
+    expected_ids: tuple[str, ...],
+    *,
+    suffix: str,
+    audited_no_match: bool = False,
+):
     """Return one shared exact relation tuple type for a pair's expected closure."""
 
     relation_decision_types = tuple(
         _exact_relation_decision_type(
             expected_id=expected_id,
             suffix=f"{suffix}_{index}",
+            audited_no_match=audited_no_match,
         )
         for index, expected_id in enumerate(expected_ids)
     )
@@ -590,7 +605,9 @@ def build_exact_relation_model(
         (relation_input.validity_certificate.certificate_hash,)
     )
     exact_relation_tuple = _exact_relation_tuple(
-        expected_ids, suffix=f"{suffix}_relations"
+        expected_ids,
+        suffix=f"{suffix}_relations",
+        audited_no_match=True,
     )
 
     class ExactRelationResponse(RelationResponse):
@@ -627,14 +644,6 @@ def build_exact_relation_model(
                             f"relation_decisions[{index}] references null report field {field_ref.value}"
                         )
                 positive_ids.append(positive.expected_id)
-            if no_match_ids and self.no_match_closure is None:
-                raise ValueError(
-                    "a non-empty NO_MATCH partition requires no_match_closure"
-                )
-            if not no_match_ids and self.no_match_closure is not None:
-                raise ValueError(
-                    "no_match_closure must be null when every relation is positive"
-                )
             actual = positive_ids + no_match_ids
             if len(actual) != len(set(actual)) or set(actual) != set(expected_ids):
                 raise ValueError(
@@ -1089,15 +1098,16 @@ def materialize_two_stage_reading(
         report = reports_by_id[report_id]
         certificate = certificates_by_id[report_id]
         response = responses_by_id.get(report_id)
-        positive_by_expected = (
-            {
-                item.expected_id: cast(SupportedRelationJudgment, item)
-                for item in response.relation_decisions
-                if item.match != MatchStrength.NO_MATCH
-            }
+        decisions_by_expected = (
+            {item.expected_id: item for item in response.relation_decisions}
             if response is not None
             else {}
         )
+        positive_by_expected = {
+            expected_id: cast(SupportedRelationJudgment, decision)
+            for expected_id, decision in decisions_by_expected.items()
+            if decision.match != MatchStrength.NO_MATCH
+        }
         full_expected_ids = []
         partial_expected_ids = []
         for expected_id in expected_ids:
@@ -1112,14 +1122,20 @@ def materialize_two_stage_reading(
                     )
                     relation_source_refs = certificate.source_refs
                 else:
-                    closure = cast(RelationResponse, response).no_match_closure
-                    if closure is None:
+                    no_match = decisions_by_expected.get(expected_id)
+                    if (
+                        no_match is None
+                        or no_match.match != MatchStrength.NO_MATCH
+                    ):
                         raise ValueError(
-                            f"valid report {report_id} has NO_MATCH without closure evidence"
+                            f"valid report {report_id} lacks explicit NO_MATCH evidence for {expected_id}"
                         )
-                    relation_reason = closure.reason
-                    relation_basis = closure.basis
-                    relation_source_refs = closure.source_refs
+                    audited_no_match = cast(
+                        AuditedNoMatchRelationJudgment, no_match
+                    )
+                    relation_reason = audited_no_match.reason
+                    relation_basis = audited_no_match.basis
+                    relation_source_refs = audited_no_match.source_refs
                 relation = RelationAssessment(
                     report_id=report_id,
                     expected_id=expected_id,

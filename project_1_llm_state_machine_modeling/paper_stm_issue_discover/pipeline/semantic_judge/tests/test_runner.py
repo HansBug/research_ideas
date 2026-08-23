@@ -25,6 +25,7 @@ from pipeline.semantic_judge.runner import (
     judge_pair,
 )
 from pipeline.semantic_judge.schema import (
+    build_exact_relation_model,
     build_exact_validity_model,
     build_relation_input,
     build_validity_input,
@@ -136,7 +137,16 @@ def relation_payload(relation_input, matches=None) -> dict:
         match = matches.get(expected.expected_id, MatchStrength.NO_MATCH)
         if match == MatchStrength.NO_MATCH:
             decisions.append(
-                {"expected_id": expected.expected_id, "match": "NO_MATCH"}
+                {
+                    "expected_id": expected.expected_id,
+                    "match": "NO_MATCH",
+                    "reason": "This valid report concerns a different expected defect or obligation.",
+                    "basis": "The report, expected issue, and common artifacts establish this explicit boundary.",
+                    "source_refs": [
+                        f"expected:{expected.expected_id}",
+                        "artifact:natural_language",
+                    ],
+                }
             )
         else:
             decisions.append(
@@ -152,23 +162,13 @@ def relation_payload(relation_input, matches=None) -> dict:
                     ],
                 }
             )
-    has_no = any(item["match"] == "NO_MATCH" for item in decisions)
     return {
-        "schema_version": "semantic-judge.relation-response.v1",
+        "schema_version": "semantic-judge.relation-response.v2",
         "report_id": relation_input.report.report_id,
         "validity_certificate_hash": (
             relation_input.validity_certificate.certificate_hash
         ),
         "relation_decisions": decisions,
-        "no_match_closure": (
-            {
-                "reason": "Every explicit NO position concerns a distinct defect or obligation.",
-                "basis": "The complete report, expected issues, and artifacts were compared.",
-                "source_refs": ["artifact:natural_language"],
-            }
-            if has_no
-            else None
-        ),
         "relation_reason": "Every exact expected position has one complete relation decision.",
         "relation_basis": "The immutable VALID certificate and common artifact closure were preserved.",
         "relation_source_refs": ["artifact:natural_language"],
@@ -360,6 +360,40 @@ def test_relation_conflict_is_arbitrated_without_reopening_validity() -> None:
     assert "field_audits" in runtime.calls[-1]["prompt"]
     assert result.final_reading.relations[0].match == MatchStrength.FULL_MATCH
     assert len(result.relation_arbitration_responses) == 1
+
+
+def test_relation_schema_replays_and_eliminates_conditional_no_closure_failure() -> None:
+    judge_input = minimal_input(expected_count=3)
+    validity_input = build_validity_input(judge_input, "R0001")
+    valid = validity_payload(validity_input)
+    certificate = certificate_from_payload(validity_input, valid)
+    relation_input = build_relation_input(judge_input, certificate)
+    schema = build_exact_relation_model(relation_input)
+    corrected = relation_payload(
+        relation_input, {"E0003": MatchStrength.FULL_MATCH}
+    )
+    old_failure = json.loads(json.dumps(corrected))
+    for decision in old_failure["relation_decisions"]:
+        if decision["match"] == "NO_MATCH":
+            decision.pop("reason")
+            decision.pop("basis")
+            decision.pop("source_refs")
+    old_failure["no_match_closure"] = None
+
+    with pytest.raises(ValidationError) as caught:
+        schema.model_validate(old_failure)
+    error_text = str(caught.value)
+    assert "reason" in error_text
+    assert "basis" in error_text
+    assert "source_refs" in error_text
+    properties = schema.model_json_schema()["properties"]
+    assert "no_match_closure" not in properties
+    validated = schema.model_validate(corrected)
+    assert [item.match for item in validated.relation_decisions] == [
+        MatchStrength.NO_MATCH,
+        MatchStrength.NO_MATCH,
+        MatchStrength.FULL_MATCH,
+    ]
 
 
 def v19_0053_input():

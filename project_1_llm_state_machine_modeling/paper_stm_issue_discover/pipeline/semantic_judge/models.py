@@ -1169,9 +1169,9 @@ class RelationJudgeInput(FrozenModel):
 class RelationResponse(FrozenModel):
     """Provider relation-only response for one frozen-valid report."""
 
-    schema_version: Literal["semantic-judge.relation-response.v1"] = Field(
-        default="semantic-judge.relation-response.v1",
-        description="Relation-only response version with exhaustive exact expected positions.",
+    schema_version: Literal["semantic-judge.relation-response.v2"] = Field(
+        default="semantic-judge.relation-response.v2",
+        description="Relation-only response version with exhaustive expected positions and self-contained evidence for every positive or NO relation.",
     )
     report_id: str = Field(
         pattern=r"^R\d{4}$",
@@ -1182,13 +1182,10 @@ class RelationResponse(FrozenModel):
         description="Exact frozen certificate hash supplied to this relation call; the provider must return it unchanged.",
     )
     relation_decisions: tuple[
-        SupportedRelationJudgment | NoMatchRelationJudgment, ...
+        SupportedRelationJudgment | AuditedNoMatchRelationJudgment, ...
     ] = Field(
         min_length=1,
-        description="Exactly one FULL_MATCH, PARTIAL_MATCH, or explicit NO_MATCH decision per expected issue in dynamic-schema order.",
-    )
-    no_match_closure: NoMatchClosureJudgment | None = Field(
-        description="Shared evidence required exactly when at least one relation is NO_MATCH; explicit null when all are positive."
+        description="Exactly one FULL_MATCH, PARTIAL_MATCH, or explicit evidenced NO_MATCH decision per expected issue in dynamic-schema order.",
     )
     relation_reason: str = Field(
         min_length=1,
@@ -1346,6 +1343,23 @@ class NoMatchRelationJudgment(FrozenModel):
     )
     match: Literal[MatchStrength.NO_MATCH] = Field(
         description="Explicit NO_MATCH enum; omission never implies NO and this row can never carry FULL or PARTIAL.",
+    )
+
+
+class AuditedNoMatchRelationJudgment(NoMatchRelationJudgment):
+    """One explicit NO relation with expected-specific provider evidence."""
+
+    reason: str = Field(
+        min_length=1,
+        description="English expected-specific explanation of why this valid report does not match the expected defect, obligation, or repair target.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="English basis citing the supplied report, expected issue, and common artifacts that establish this NO_MATCH boundary.",
+    )
+    source_refs: tuple[str, ...] = Field(
+        min_length=1,
+        description="Supplied report, expected, and artifact references actually used for this explicit NO_MATCH relation.",
     )
 
 
@@ -2075,9 +2089,9 @@ class JudgeScaleAudit(FrozenModel):
     Judge model.
     """
 
-    schema_version: Literal["semantic-judge.scale-audit.v6"] = Field(
-        default="semantic-judge.scale-audit.v6",
-        description="Provider-free two-stage atomic scale-audit version with separately auditable validity, relation all-NO, and relation all-FULL response envelopes.",
+    schema_version: Literal["semantic-judge.scale-audit.v7"] = Field(
+        default="semantic-judge.scale-audit.v7",
+        description="Provider-free two-stage atomic scale-audit version with self-contained evidence in every explicit relation position.",
     )
     generated_at_utc: datetime = Field(
         description="UTC time when this deterministic scale audit was materialized."

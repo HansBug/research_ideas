@@ -84,9 +84,10 @@ INVALID 不调用 relation LLM，后端直接为全部 expected 物化 `NO_MATCH
 闭包，只能输出 FULL/PARTIAL/NO，不能重开 validity。
 
 规模协议只压缩重复表示，不裁剪 Judge 证据：relation 动态 Pydantic schema 为每个 expected
-建立固定位置的 discriminated `relation_decision`；FULL/PARTIAL 行保存 expected-specific
-reason/basis/source refs，NO 行显式保存 expected ID 与 `NO_MATCH`，共同的 NO 证据只在
-report 级保存一次。`prefixItems + minItems + maxItems` 在 provider schema 层保证每个
+建立固定位置的 discriminated `relation_decision`；FULL/PARTIAL/NO 每一行均保存
+expected-specific reason/basis/source refs，FULL/PARTIAL 另存 report-owned field refs。
+NO 不再依赖另一个条件式 closure 字段，避免 relation partition 与 evidence 字段形成模型难以
+一次闭合的跨字段条件。`prefixItems + minItems + maxItems` 在 provider schema 层保证每个
 expected 恰好出现一次，再由后端物化完整 dense audit。validity schema 不让 provider
 自由选择 `report_field`，而是按实际输入动态生成 `claim_audit`、`reason_audit` 等固定顶层槽；
 每个字段中每条 material factual assertion、modeling-semantic assumption 和 causal link
@@ -101,7 +102,7 @@ source clauses，动态 schema 要求每个 clause exactly once 英文判读，�
 报告运行。真正冲突的 report 在对应隔离阶段逐条 atomic 仲裁；未冲突结果原样复用，全部
 replacement 合并后重验 pair closure。真实 `0029` provider-free scale audit 按 27 reports、
 8 expected、400 clauses，以及“所有报告均 VALID”的最坏 108 次 primary call 证明每个
-validity/relation target 的 prompt、schema、all-NO/all-FULL envelope 在 profile context/output
+validity/relation target 的 prompt、schema、带逐 expected 证据的 all-NO/all-FULL envelope 在 profile context/output
 上限内闭合。该 audit 必须在任何 method 六 pair 或 baseline 全量重判之前通过；live smoke
 失败不得当作 miss 或从分母排除。
 
