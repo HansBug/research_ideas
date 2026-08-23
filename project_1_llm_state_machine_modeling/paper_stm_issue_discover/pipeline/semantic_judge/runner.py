@@ -123,6 +123,22 @@ def detect_disagreements(
         raise ValueError(
             "primary reading report closures differ after schema validation"
         )
+    cluster_members_1 = {
+        report_id: frozenset(
+            other.report_id
+            for other in reports_1.values()
+            if other.root_cause_cluster_key == report.root_cause_cluster_key
+        )
+        for report_id, report in reports_1.items()
+    }
+    cluster_members_2 = {
+        report_id: frozenset(
+            other.report_id
+            for other in reports_2.values()
+            if other.root_cause_cluster_key == report.root_cause_cluster_key
+        )
+        for report_id, report in reports_2.items()
+    }
     for report_id in sorted(reports_1):
         first = reports_1[report_id]
         second = reports_2[report_id]
@@ -135,7 +151,7 @@ def detect_disagreements(
                     reading_2_value=second.core_truth.value,
                 )
             )
-        if first.root_cause_cluster_key != second.root_cause_cluster_key:
+        if cluster_members_1[report_id] != cluster_members_2[report_id]:
             disagreements.append(
                 ReadingDisagreement(
                     kind=ConflictKind.ROOT_CAUSE_CLUSTER,
@@ -427,56 +443,99 @@ def judge_pair(
     arbitration_reading = None
     if disagreements:
         conflicted_report_ids = _conflicted_report_ids(disagreements)
+        reports_by_id = {row.report_id: row for row in judge_input.reports}
         response_1_by_id = {
             row.report_id: row for row in response_1.report_judgments
         }
         response_2_by_id = {
             row.report_id: row for row in response_2.report_judgments
         }
-        arbitration_input = ArbitrationInput(
-            judge_input=judge_input,
-            primary_conflicting_judgments_1=tuple(
-                response_1_by_id[report_id] for report_id in conflicted_report_ids
-            ),
-            primary_conflicting_judgments_2=tuple(
-                response_2_by_id[report_id] for report_id in conflicted_report_ids
-            ),
-            disagreements=disagreements,
-            reason="Primary semantic values conflict; issue #195 requires complete artifact review and final arbitration with no UNKNOWN.",
-            basis=f"{JUDGE_ALGORITHM_VERSION}; exact relation/core-truth/root-cause comparison",
-        )
-        arbitration_model = build_exact_arbitration_model(
-            judge_input, conflicted_report_ids
-        )
-        arbitration_schema_hash = response_schema_hash(arbitration_model)
-        arbitration_prompt = build_arbitration_prompt(arbitration_input)
-        arbitration_prompt_hash = _sha256_text(
-            SYSTEM_PROMPT + "\n" + arbitration_prompt
-        )
-        arbitration_outcome = runtime.call(
-            kind="semantic-judge-arbitration",
-            schema=arbitration_model,
-            system_prompt=SYSTEM_PROMPT,
-            prompt=arbitration_prompt,
-            artifact_id=f"{pair_id}/round-{round_no}/arbitration",
-            retry_cell_on_provider_error=True,
-            max_output_tokens=min(
-                JUDGE_MAX_OUTPUT_TOKENS, runtime.config.max_output_tokens
-            ),
-        )
-        receipts.append(
-            _call_receipt(
-                call_id=f"{pair_id}:r{round_no}:arbitration",
-                phase="arbitration",
-                profile=runtime.profile,
-                schema_hash=arbitration_schema_hash,
-                actual_prompt_hash=arbitration_prompt_hash,
-                outcome=arbitration_outcome,
-            )
-        )
+        atomic_responses: list[ArbitrationResponse] = []
         try:
-            arbitration_response = _validated_arbitration_response(
-                arbitration_outcome, "arbitration"
+            for report_id in conflicted_report_ids:
+                report_disagreements = tuple(
+                    row
+                    for row in disagreements
+                    if row.object_ref.split("/", 1)[0]
+                    == f"report:{report_id}"
+                )
+                atomic_input = judge_input.model_copy(
+                    update={"reports": (reports_by_id[report_id],)}
+                )
+                arbitration_input = ArbitrationInput(
+                    judge_input=atomic_input,
+                    primary_conflicting_judgments_1=(
+                        response_1_by_id[report_id],
+                    ),
+                    primary_conflicting_judgments_2=(
+                        response_2_by_id[report_id],
+                    ),
+                    disagreements=report_disagreements,
+                    reason="Primary semantic values for this report conflict; complete artifact review must select a final result with no UNKNOWN.",
+                    basis=f"{JUDGE_ALGORITHM_VERSION}; exact relation/core-truth/root-cause-partition comparison",
+                )
+                arbitration_model = build_exact_arbitration_model(
+                    atomic_input, (report_id,)
+                )
+                arbitration_schema_hash = response_schema_hash(arbitration_model)
+                arbitration_prompt = build_arbitration_prompt(arbitration_input)
+                arbitration_prompt_hash = _sha256_text(
+                    SYSTEM_PROMPT + "\n" + arbitration_prompt
+                )
+                arbitration_outcome = runtime.call(
+                    kind="semantic-judge-arbitration",
+                    schema=arbitration_model,
+                    system_prompt=SYSTEM_PROMPT,
+                    prompt=arbitration_prompt,
+                    artifact_id=(
+                        f"{pair_id}/round-{round_no}/arbitration-{report_id}"
+                    ),
+                    retry_cell_on_provider_error=True,
+                    max_output_tokens=min(
+                        JUDGE_MAX_OUTPUT_TOKENS, runtime.config.max_output_tokens
+                    ),
+                )
+                receipts.append(
+                    _call_receipt(
+                        call_id=(
+                            f"{pair_id}:r{round_no}:arbitration:{report_id}"
+                        ),
+                        phase="arbitration",
+                        profile=runtime.profile,
+                        schema_hash=arbitration_schema_hash,
+                        actual_prompt_hash=arbitration_prompt_hash,
+                        outcome=arbitration_outcome,
+                    )
+                )
+                atomic_responses.append(
+                    _validated_arbitration_response(
+                        arbitration_outcome, f"arbitration_{report_id}"
+                    )
+                )
+            arbitration_response = ArbitrationResponse(
+                report_judgments=tuple(
+                    response.report_judgments[0]
+                    for response in atomic_responses
+                ),
+                reason=" ".join(
+                    f"{report_id}: {response.reason}"
+                    for report_id, response in zip(
+                        conflicted_report_ids, atomic_responses, strict=True
+                    )
+                ),
+                basis=" ".join(
+                    f"{report_id}: {response.basis}"
+                    for report_id, response in zip(
+                        conflicted_report_ids, atomic_responses, strict=True
+                    )
+                ),
+                source_refs=tuple(
+                    dict.fromkeys(
+                        ref
+                        for response in atomic_responses
+                        for ref in response.source_refs
+                    )
+                ),
             )
             final_response = merge_arbitration_response(
                 response_1,

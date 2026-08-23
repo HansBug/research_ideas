@@ -976,9 +976,9 @@ class ReadingDisagreement(FrozenModel):
 class ArbitrationInput(FrozenModel):
     """Complete typed arbitration input containing no arm or method-only metadata."""
 
-    schema_version: Literal["semantic-judge.arbitration-input.v6"] = Field(
-        default="semantic-judge.arbitration-input.v6",
-        description="Targeted arbitration-input version carrying assertion-level causal audits and positional relation partitions only for substantive conflicts.",
+    schema_version: Literal["semantic-judge.arbitration-input.v7"] = Field(
+        default="semantic-judge.arbitration-input.v7",
+        description="Atomic report-level arbitration input carrying assertion audits and positional relation partitions only for one report's substantive conflicts.",
     )
     judge_input: UnifiedJudgeInput = Field(
         description="Anonymous reports, expected issues, and common artifact closure identical to the primary input."
@@ -1569,8 +1569,8 @@ class AdapterAudit(FrozenModel):
 class PairJudgeResult(FrozenModel):
     """Self-contained pair result with two readings, arbitration, metrics, and audit."""
 
-    schema_version: Literal["paper1.semantic-judge.pair-result.v4"] = Field(
-        default="paper1.semantic-judge.pair-result.v4",
+    schema_version: Literal["paper1.semantic-judge.pair-result.v5"] = Field(
+        default="paper1.semantic-judge.pair-result.v5",
         description="Unified pair-Judge persistence version containing backend-hashed causal fields and assertion-derived audit verdicts.",
     )
     run_id: str = Field(

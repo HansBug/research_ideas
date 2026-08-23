@@ -310,6 +310,63 @@ def test_conflict_detection_ignores_reason_wording_but_catches_semantics() -> No
     assert records[0].final_value == "FULL_MATCH"
 
 
+def test_cluster_conflicts_compare_partitions_not_free_text_keys() -> None:
+    judge_input = minimal_input(report_count=3, expected_count=1)
+    from pipeline.semantic_judge.schema import (
+        build_exact_response_model,
+        materialize_reading,
+    )
+
+    schema = build_exact_response_model(judge_input)
+    first = materialize_reading(
+        schema.model_validate(
+            reading_payload(
+                judge_input,
+                clusters={
+                    "R0001": "shared cause phrasing one",
+                    "R0002": "shared cause phrasing one",
+                    "R0003": "independent cause phrasing one",
+                },
+            )
+        ),
+        judge_input,
+    )
+    synonymous = materialize_reading(
+        schema.model_validate(
+            reading_payload(
+                judge_input,
+                clusters={
+                    "R0001": "synonymous shared cause",
+                    "R0002": "synonymous shared cause",
+                    "R0003": "synonymous independent cause",
+                },
+            )
+        ),
+        judge_input,
+    )
+    assert not detect_disagreements(first, synonymous)
+
+    split = materialize_reading(
+        schema.model_validate(
+            reading_payload(
+                judge_input,
+                clusters={
+                    "R0001": "first separate cause",
+                    "R0002": "second separate cause",
+                    "R0003": "third separate cause",
+                },
+            )
+        ),
+        judge_input,
+    )
+    conflicts = detect_disagreements(first, split)
+    assert {
+        item.object_ref
+        for item in conflicts
+        if item.kind.value == "root_cause_cluster"
+    } == {"report:R0001", "report:R0002"}
+
+
 def test_single_entry_runs_both_readings_and_arbitration() -> None:
     judge_input = minimal_input()
     first = reading_payload(
@@ -348,6 +405,48 @@ def test_single_entry_runs_both_readings_and_arbitration() -> None:
     assert result.metrics.invalid_count == 0
     assert result.report_outcomes[0].original_report_id == "original-report-1"
     assert result.expected_outcomes[0].ledger_id == "LEDGER-1"
+
+
+def test_each_conflicted_report_receives_one_atomic_arbitration_call() -> None:
+    judge_input = minimal_input(report_count=2, expected_count=1)
+    first = reading_payload(judge_input)
+    final_matches = {
+        ("R0001", "E0001"): MatchStrength.FULL_MATCH,
+        ("R0002", "E0001"): MatchStrength.FULL_MATCH,
+    }
+    second = reading_payload(judge_input, matches=final_matches)
+    arbitration_full = reading_payload(judge_input, matches=final_matches)
+
+    def atomic_response(report_id: str) -> dict:
+        return {
+            "schema_version": "semantic-judge.arbitration-response.v5",
+            "report_judgments": [
+                row
+                for row in arbitration_full["report_judgments"]
+                if row["report_id"] == report_id
+            ],
+            "reason": f"Atomic arbitration resolves {report_id}.",
+            "basis": "Fixture common artifacts and the report-specific conflict.",
+            "source_refs": ["artifact:natural_language"],
+        }
+
+    runtime = FakeRuntime(
+        (first, second, atomic_response("R0001"), atomic_response("R0002"))
+    )
+    result = judge_pair(
+        run_id="fixture-atomic-arbitration",
+        round_no=1,
+        judge_input=judge_input,
+        adapter_audit=adapter_audit(2, 1),
+        runtime=runtime,
+        judge_code_commit="d" * 40,
+    )
+    assert len(runtime.calls) == 4
+    assert runtime.calls[2]["artifact_id"].endswith("arbitration-R0001")
+    assert runtime.calls[3]["artifact_id"].endswith("arbitration-R0002")
+    assert result.arbitration_reading is not None
+    assert result.metrics.full_hit_count == 1
+    assert result.metrics.valid_known_count == 2
 
 
 def test_no_conflict_uses_two_calls_and_deterministic_metrics() -> None:

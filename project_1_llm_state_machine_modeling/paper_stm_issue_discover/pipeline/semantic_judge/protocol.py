@@ -8,8 +8,8 @@ from pathlib import Path
 PROTOCOL_URL = "https://github.com/HansBug/research_ideas/issues/195"
 PROTOCOL_SHA256 = "d774d9bd3e4c4fe04735ed1d4ec064be197cfadcd52e21c8226e37175b29b210"
 PROTOCOL_VERSION = "github-issue-195.d774d9bd3e4c"
-JUDGE_ALGORITHM_VERSION = "semantic-judge.v17"
-PROMPT_VERSION = "semantic-judge.prompt.v17"
+JUDGE_ALGORITHM_VERSION = "semantic-judge.v18"
+PROMPT_VERSION = "semantic-judge.prompt.v18"
 ARTIFACT_BUILDER_VERSION = "paper1.semantic-judge.artifact-closure.v2"
 ADAPTER_VERSION = "paper1.semantic-judge.arm-neutral-adapter.v1"
 METRICS_VERSION = "paper1.semantic-judge.metrics.v1"
@@ -61,7 +61,7 @@ Academic boundary: this protocol operationalizes ideas from MCeT same-root-cause
 PRIMARY_INSTRUCTION = """Perform one independent validity-first reading of the anonymous pair. For each report, audit every complete report-owned causal field at material-assertion level, select one causal certificate field, and fill every fixed relation_decisions position exactly once with FULL_MATCH, PARTIAL_MATCH, or explicit NO_MATCH. Do not output core truth, VALID_KNOWN, VALID_NOVEL, INVALID-as-ownership, hit, support, precision, report-level aggregate prose, or expected-side summaries; the backend derives them. Do not consult another reading. Return exactly the response schema, with every generated value in English."""
 
 
-ARBITRATION_INSTRUCTION = """Re-audit only the reports named in the deterministic conflict set against the original common artifacts. Return one complete validity-first report judgment for each conflicted report and no judgment for unchanged reports. Do not vote, favor an experimental system, repeat unaffected rows, output derived core truth, or retain UNKNOWN. Fill every fixed relation_decisions position for each returned report. The backend merges these replacements with verified non-conflicting judgments and revalidates the complete closure. Write every generated value in English."""
+ARBITRATION_INSTRUCTION = """Re-audit the one anonymous report in this atomic conflict input against the original common artifacts and every expected issue. Return exactly one complete validity-first report judgment for that report. Do not vote, favor an experimental system, repeat an unaffected report, output derived core truth, or retain UNKNOWN. Fill every fixed relation_decisions position. The backend combines all atomic conflict replacements with verified non-conflicting judgments and revalidates the complete pair closure. Write every generated value in English."""
 
 
 def prompt_hash() -> str:
