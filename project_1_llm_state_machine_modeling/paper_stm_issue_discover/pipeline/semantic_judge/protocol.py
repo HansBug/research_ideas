@@ -8,8 +8,8 @@ from pathlib import Path
 PROTOCOL_URL = "https://github.com/HansBug/research_ideas/issues/195"
 PROTOCOL_SHA256 = "45874c298781e23b712d9566e75719b1fede0197c1f668030911c77f8f86574c"
 PROTOCOL_VERSION = "github-issue-195.45874c298781"
-JUDGE_ALGORITHM_VERSION = "paper1.semantic-judge.v5"
-PROMPT_VERSION = "paper1.semantic-judge.prompt.v5"
+JUDGE_ALGORITHM_VERSION = "paper1.semantic-judge.v6"
+PROMPT_VERSION = "paper1.semantic-judge.prompt.v6"
 ARTIFACT_BUILDER_VERSION = "paper1.semantic-judge.artifact-closure.v2"
 ADAPTER_VERSION = "paper1.semantic-judge.arm-neutral-adapter.v1"
 METRICS_VERSION = "paper1.semantic-judge.metrics.v1"
@@ -38,6 +38,7 @@ Mandatory boundaries:
 - An extra event/target self-loop and a missing different event/target outgoing edge at the same source state are different defects by default. Unless the extra edge explicitly occupies or replaces the exact semantic slot of the missing edge, removing it does not create the missing edge, so the relation is NO_MATCH rather than PARTIAL.
 - If one subclaim in a composite report is refuted, preserve only a true and actionable facet that the report text independently states under the same locus/property. The Judge must not derive a nearby correct issue to rescue a wrong source, wrong root cause, or false execution narrative.
 - If a conclusion happens to be true but all reason/where/basis supplied by the report depend on a premise refuted by the artifacts, the report lacks the correct causal certificate and is INVALID. The Judge must not invent a different correct reason from the common artifacts; preserve it only when the report text independently states that correct facet.
+- A high-level conclusion alone is not an independently stated facet when the report's where/reason/basis explain it only through a refuted mechanism. Preserving a facet requires the report itself to identify the correct carrier, owner, source, target, scope, or violated obligation and to supply at least one artifact-compatible causal statement. Facts discovered solely by the Judge cannot fill that gap. For example, a report that says a required first state is not ensured because sibling regions activate concurrently may not be reinterpreted as a missing owner-local default entry when the concurrency premise is false, unless the report itself identifies that missing owner-level entry.
 - A report about the same defective partition or decomposition need not enumerate every missing member. It may FULL-match a cardinality/composition expected issue when it directly localizes the same composite structure and its repair would reconstruct the required region/state composition.
 - A claim that a semantic carrier is missing is normally INVALID when an equivalent carrier exists. Audit actual transition-label events, guards and effects, state-owned actions, PlantUML `/` effects, UML default-state semantics, and real region separators.
 - Text after `/` in a PlantUML transition label is an authored transition-effect carrier. When NL requires only that action/effect, the report may not call it unexpressed merely because no extra variable, AST field, or imperative implementation exists.

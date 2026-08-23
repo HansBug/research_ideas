@@ -85,10 +85,31 @@ def test_system_prompt_carries_frozen_scope_and_carrier_boundaries() -> None:
     assert "extra event/target self-loop" in SYSTEM_PROMPT
     assert "preserve only a true and actionable facet" in SYSTEM_PROMPT
     assert "all reason/where/basis supplied by the report depend" in SYSTEM_PROMPT
+    assert "A high-level conclusion alone is not an independently stated facet" in SYSTEM_PROMPT
+    assert "Facts discovered solely by the Judge cannot fill that gap" in SYSTEM_PROMPT
     assert "authored transition-effect carrier" in SYSTEM_PROMPT
     assert "without an explicit `--` region separator" in SYSTEM_PROMPT
     assert "does not prove that a target composite has an owner-local default entry" in SYSTEM_PROMPT
     assert "does not include undeclared clock/timer execution semantics" in SYSTEM_PROMPT
+
+
+def test_primary_projection_preserves_a_refuted_causal_certificate_for_audit() -> None:
+    judge_input = minimal_input()
+    report = judge_input.reports[0].model_copy(
+        update={
+            "claim": "The required first state is not ensured.",
+            "where": "Sibling composites with local initial transitions.",
+            "reason": "The sibling composites activate concurrently.",
+        }
+    )
+    judge_input = judge_input.model_copy(update={"reports": (report,)})
+
+    prompt = build_primary_prompt(judge_input)
+
+    assert '"claim": "The required first state is not ensured."' in prompt
+    assert '"where": "Sibling composites with local initial transitions."' in prompt
+    assert '"reason": "The sibling composites activate concurrently."' in prompt
+    assert "owner-local default entry" in SYSTEM_PROMPT
 
 
 def test_cli_uses_one_runtime_and_persists_failure_without_partial_summary(
