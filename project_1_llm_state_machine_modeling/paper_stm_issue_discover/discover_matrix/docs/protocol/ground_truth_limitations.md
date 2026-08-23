@@ -1,5 +1,11 @@
 # expected issue 分母的已知缺口
 
+> **现行 Judge 解释**：冻结 D2+D1 ledger 仍是 hit/recall 的唯一分母，但不是现实缺陷全集。
+> 按 [issue #195 同步入口](./semantic_judge_protocol.md)，台账外发布报告必须先独立审计
+> 核心主张：成立且全部 relation 为 NO 时是 `VALID_NOVEL`，不算 hit 或 FP；不成立或达不到
+> 最低举证责任时才是 `INVALID`，且全部 relation 为 NO。不得从 ledger-unmatched 自动推出
+> novel，也不得从 ledger-unmatched 自动推出 invalid。
+
 > **评测侧边界**：本文件只说明台账分母的已知缺口，不定义当前谓词。文中的历史断言
 > 名称和旧分层只用于解释台账形成过程；当前四族注册表、W1/W2 和变更门以
 > [`pipeline/evidence_discovery/`](../../../pipeline/evidence_discovery/) 为准。

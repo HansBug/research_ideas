@@ -1,5 +1,12 @@
 # X1v2 在第二版台账上的精确命中结果
 
+> **Legacy result, pending replacement by the issue #195 rejudge.** 本文数字来自历史
+> [旧判定协议](./JUDGING_PROTOCOL.md)，不含 `FULL/PARTIAL/NO`、K/N/I、Supported Rate、
+> Semantic FP/Precision、valid novel 或双读仲裁，因而不能与当前方法比较。历史数字与
+> artifact 保留不删；新的 canonical baseline 表只能由
+> [统一语义 Judge](../docs/protocol/semantic_judge_protocol.md) 对既有 54 pair x 3 原始报告
+> 完整重判后更新。
+
 ⭐ 判定协议见 [JUDGING_PROTOCOL.md](./JUDGING_PROTOCOL.md)（判定前写定）；逐条判定依据见 [x1v2_hits.json](./x1v2_hits.json)；逐格真值见 [x1v2_grid.json](./x1v2_grid.json)。
 
 ## 一、口径

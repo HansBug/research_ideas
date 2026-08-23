@@ -1,5 +1,11 @@
 # 命中判定方法学：三层判定与审计口径
 
+> **现行协议说明（2026-08-23）**：下文三层 A/B/C 与历史脚本只用于复核旧实验，已不再
+> 产生现行正式分数。当前由 [issue #195 同步入口](./semantic_judge_protocol.md) 定义：
+> 两次独立 validity-first reading 使用同一 Pydantic sparse-exact-closure schema；后端比较
+> relation/core truth/root-cause cluster，只对冲突 report 定向仲裁并在 merge 后重验完整
+> closure；最终没有 UNKNOWN。全部 reason/basis/source refs 与 usage/cost/retry 均落盘。
+
 > **评测侧边界**：本文判定的是冻结台账与发布结果的语义同一性。文中的旧谓词名和
 > 台账断言编码只用于历史复核，不定义当前四族 19 谓词；当前方法契约见
 > [`pipeline/evidence_discovery/METHOD_PRINCIPLES.md`](../../../pipeline/evidence_discovery/METHOD_PRINCIPLES.md)。

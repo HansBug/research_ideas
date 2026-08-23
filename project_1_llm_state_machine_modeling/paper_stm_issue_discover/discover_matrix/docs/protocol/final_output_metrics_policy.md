@@ -6,7 +6,9 @@
 > 的 `four-family-19-core.v1`、W1/W2/W0 规则和重构计划为准；新代码迁移完成前，本文数字
 > 不构成新四族实现的实测结果。
 
-本文冻结 paper1 issue discovery 方法的最终输出边界、hit、false positive、D/W/L、失败格、去重、成本和双臂比较口径。后续所有正式实验、报告、图表和方法与 X1v2 对比均以本文为唯一入口；修改本文等于修改研究协议，必须在下一轮正式运行之前完成并记录版本，运行后不得为迁就结果修改。
+本文冻结 issue discovery 方法的最终输出边界、D/W/L、失败格、去重和成本。现行 hit、
+Supported Rate、Semantic FP/Precision、novel、ledger-unmatched 与统一 Judge 输入规则唯一
+引用 [issue #195 同步入口](./semantic_judge_protocol.md)；本文不得建立第二套语义定义。
 
 ## 0. 优化目标与冲突优先级
 
@@ -16,7 +18,7 @@
 |---:|---|---|
 | 1 | 全量 hit 显著高于同模型 X1v2 baseline | 在同一冻结台账、同一 paired eligible 网格和同一独立 judge 下，方法整体 hit 高于 baseline，且配对差值的 95% 置信区间下界大于 0；全网格保守下界也必须同时报告 |
 | 2 | L2 大部分被发现且显著高于 baseline | L2 hit 首先必须超过 50%，目标达到约 60% 或以上；同时在 L2 paired positions 上显著高于 baseline。D2×L2 必须单列，但不能替代完整 L2 或整体目标 |
-| 3 | FP 可控且不劣于 baseline | 在同一 paired eligible 网格和同一 judge 下，方法 release-emission precision 不低于 baseline，等价地 FP rate 不高于 baseline；同时报告每格 ledger-unmatched emission 与跨轮 unique-cause FP，防止只靠改变分母掩盖绝对用户负担。目标 precision 为至少 65%，但“不劣于 baseline”是最低硬门 |
+| 3 | Semantic FP 可控且不劣于 baseline | 在同一 paired eligible 网格和同一冻结 Judge 下，方法 raw-report Semantic Precision 不低于 baseline；只有 `INVALID` 是 Semantic FP，同时独立报告 ledger-unmatched、cluster precision 与 redundancy。目标 precision 为至少 65%，但“不劣于 baseline”是最低硬门 |
 | 4 | 历史实现生成成本不超过 baseline 的 25x | 使用同模型价格，只按历史 `issue-generation / X1v2 issue-generation` 计算；独立 semantic judge 不属于方法图，单独审计但不进入分子或倍率。允许个别 pair 或噪点超过 25x，不设单格硬门。若总体超过 25x，优先减轻历史实现的重复 prompt、提高 cache 命中和减少非 provider retry，不先删除已经证明提高 hit 或控制 FP 的环节 |
 
 上述次序也定义停止条件：只有 1 与 2 均满足后，才允许以不损失其显著性的方式继续压 FP；只有 1、2、3 均满足后，才进一步追求低于 25x 上限的成本优化。25x 仍是完整正式实验的硬上限，不是可以用“质量优先”无限突破的软建议。
@@ -55,7 +57,7 @@ release_issues(cell) = {
 | `D0` | 作者可正当地称其为设计选择，或没有可陈述的被违反义务 | 内部截住 |
 | `D_UNRESOLVED` | D 结构化裁决在允许的定向修复后仍未闭合 | 内部截住并登记 coverage gap |
 
-`W` 判断证据是否真实执行并闭合，不能由 LLM 口头指定。`W2` 要求编译后的 assertion 或 formal program 在确切 FCSTM 上真实运行并得到 terminal verdict，同时保存 FCSTM hash、program/assertion hash、后端结果、semantic binding receipt 和必要的 source attribution；`W1` 表示需求义务与模型元素已经精确绑定、可以复核定位，但没有适用的 sound 谓词或后端；W1 仍是合法的 `semantic_hit`。`W0` 表示连精确、可复现的绑定都没有，只记录为 coverage gap，不计命中；`UNKNOWN` 不能改写成 violation。D1/D2 的裁决与 W 轴独立，但没有 W1/W2 的精确绑定时不能形成命中；正式报告必须同时给出 W0、W1、W2 和 `UNKNOWN` 的分布，并以提高 W2 占比为目标。
+`W` 判断证据是否真实执行并闭合，不能由 LLM 口头指定。`W2` 要求编译后的 assertion 或 formal program 在确切 FCSTM 上真实运行并得到 terminal verdict，同时保存 FCSTM hash、program/assertion hash、后端结果、semantic binding receipt 和必要的 source attribution；`W1` 表示需求义务与模型元素已经精确绑定、可以复核定位，但没有适用的 sound 谓词或后端。W0/W1/W2 均不进入独立 Judge 的 validity 或 match gate；具体、artifact-compatible 的 W1/free-text 发布报告可以 `FULL_MATCH`。正式报告必须给出 W0/W1/W2 与 method diagnostic 分布，但不能据此机械决定 hit 或 FP。
 
 `L` 描述陈述该缺陷所需的推理层次，沿用台账 `L0/L1/L2` 定义。`L` 是台账侧属性，
 方法不得生成、裁定或在 release issue 中声称自己的 `l_level`；评测时仅读取冻结台账
@@ -65,9 +67,16 @@ release_issues(cell) = {
 
 ## 3. 命中判定
 
-一条台账记录在某个 cell 上命中，当且仅当独立语义 judge 找到至少一条属于该 cell 的 release issue，并判定它与台账记录同时满足“同一位置”和“同一性质”。措辞不同、谓词不同、只报告更根本原因或行为后果不自动否定命中，但必须满足 [hit_criterion.md](./hit_criterion.md) 的语义同一性与禁止项；judge 支持 ID 不在该 cell 的 `release_issues` 集合内时，该命中无效。
+一条台账记录在某个 cell 上命中，当且仅当至少存在一条最终分类为 `VALID_KNOWN` 的
+release report，且它与该 expected 的 relation 为 `FULL_MATCH`。FULL 采用 issue #195 的
+适度宽语义，不要求 locus/property/scope/direction 或 taxonomy 逐字段复刻；同一根因的
+直接可归因症状、独立可行动 facet，以及能消除或实质缓解 expected 核心违反的修复重叠
+均可 FULL。真实但不足以唯一归因的关系为 `PARTIAL_MATCH`，只贡献 Supported Rate。
 
-方法侧 judge 输入只允许读取 D1/D2 `report_issue_clusters`。judge 不得读取 D0、D_UNRESOLVED、未聚类 facet 或被 release gate 截住的内容；聚合器必须机械验证 judge 引用的 issue ID 完全属于本次输入集合。
+方法侧 Judge 输入只允许读取 D1/D2 `report_issue_clusters` 的最终发布语义内容。D/W/L、
+谓词族、内部 dossier 和历史结果不得进入 `UnifiedJudgeInput`。X1v2 与方法报告均通过
+同一 arm-neutral adapter contract、公共 artifact closure、prompt/schema/model/retry/
+arbitration/metrics 入口；聚合器机械验证全部 report 与 expected ID closure。
 
 对当前单模型三轮实验：
 
@@ -79,17 +88,17 @@ release_issues(cell) = {
 
 按 `D`、`L` 或二者交叉拆分时只改变台账子集，不改变命中判据。整体、L2、D2×L2 必须同时报告，不能只选择提升最大的切片。
 
-### 3.1 开发期代理 judge 与正式 judge
+### 3.1 冻结 Judge 与迭代复用
 
-方法迭代采用分层 judge，而不是每一代都支付正式高配 judge 成本。开发期使用 `gpt-5.6-luna` 对冻结台账和当前 D1/D2 release issues 做快速语义评审，用于判断版本级趋势、方法相对 X1v2 的方向、整体/L2/D2×L2 hit、release precision 和逐 pair 回归；当 baseline 输出、台账、judge prompt、schema 与聚合合同均未改变时，开发期可复用同一份 Luna baseline 裁定，只重新评审新方法输出。Luna 结果只能作为工程筛选和敏感性分析，不能产生论文 headline、正式显著性结论或替代 Sol 裁定。
-
-候选版本只有在 Luna 下同时满足以下条件才进入正式评审：整体 hit 已高于冻结 Luna baseline 且至少留出 15 个 position 的经验余量，L2 超过 50%并高于 baseline，release precision 不低于 baseline，W2 与运行资格门均满足，连续两次冻结运行没有方向性回退。15 个 position 是依据 v26 同一冻结输出上 Luna/Sol 的已观察 judge 偏差设置的开发触发线，不是统计显著性门，也不是 Luna 到 Sol 的换算系数；任何切片上的 Luna 比例不得机械外推为 Sol 比例。
-
-正式评审使用 `gpt-5.6-sol`，对冻结候选的 method 与同一冻结 baseline 同时重新裁定全部 54 pair。论文正文、headline、正式 hit/FP/precision、显著性与逐条台账表只读取这一套 Sol 输出；Luna 保留为 judge sensitivity analysis。若 Sol 未过第 0 节硬门，该候选按未达标处理，不能以 Luna 结果覆盖或混合标签。当前经验依据见 [2026-08-19-judge-model-comparison.md](../../../reports/2026-08-19-judge-model-comparison.md)。
+本阶段统一使用 `gpt-5.6-luna`。Judge cost 不参与优化，不能裁剪 prompt、artifact、双读、
+reason/basis 或仲裁来降本。protocol snapshot、prompt、Pydantic schema、artifact builder、
+model profile、validator、retry、仲裁或 metrics 中任何影响语义的改动都必须升 Judge 版本，
+并使旧分数失去直接可比资格。版本冻结后 baseline 可复用；新 method 输出必须使用同一
+冻结版本评测。论文 headline 只能来自同一 snapshot 和同一冻结 Judge 下双方完整重判。
 
 ## 4. 失败格与 eligibility
 
-固定实验网格中的任何格都不得静默消失。方法 provider/transport failure、在穷尽节点内定向修复后仍无法满足 structured-output contract 的 schema failure可以使对应方法格不具主结果资格；其它内部超时、执行异常、证书不闭合、预算耗尽、D 修复耗尽和 gate 拒绝必须降级落盘，不得把整格排除。独立 judge 不允许留下未裁判位置：provider/transport failure 必须在同一次调用内退避重发；pair-wide structured output 经定向反馈仍无法闭合时，必须转入逐个 ledger-emission 关系的原子 LLM semantic judge，直到每个关系都有 matches、reason 与 confidence。不得把 judge failure 伪装成全 miss、FP 或保守下界。
+固定实验网格中的任何格都不得静默消失。方法 provider/transport failure、在穷尽节点内定向修复后仍无法满足 structured-output contract 的 schema failure 可以使对应方法格不具主结果资格；其它内部超时、执行异常、证书不闭合、预算耗尽、D 修复耗尽和 gate 拒绝必须降级落盘，不得把整格排除。独立 Judge 不允许留下未裁判位置：provider/transport failure 必须原地重发；pair-wide structured output 经定向反馈仍无法闭合时，必须转入逐 report/逐 relation 的原子 Judge，直到核心真值与 FULL/PARTIAL/NO closure 全部终态。不得把 Judge failure 伪装成 miss、FP、保守下界或排除格。
 
 方法、feedback CLI 与 semantic judge 的默认 transport retry 上限统一为 8，并允许正式运行通过 CLI 显式覆盖。每个 attempt、错误类型、等待和最终状态都必须进入 run record；只有明确 provider/transport failure 且随后确实发起下一次同请求重发的前序 attempt 才适用计费豁免。提高 retry 上限只用于吸收上游波动，不得使 schema validation、内容返工、D repair 或本地执行错误获得 provider 豁免，也不得以冷启动整格重跑替代原地 retry。
 
@@ -101,20 +110,24 @@ release_issues(cell) = {
 
 方法与 baseline 的显著性比较只能在 paired eligible positions 上进行，并同时报告全网格保守下界。不得将后产生的失败 judge 文件覆盖同一 pair 已存在且通过完整 shape contract 的成功 judge 文件；选择规则是“最新成功结果优先，失败 receipt 只用于审计和继续原地恢复，不能进入最终指标”。
 
-## 5. False positive 与 precision
+## 5. Semantic FP、precision 与 unmatched
 
-FP 只对 release issue 判定。对一个 eligible cell 的每条 release issue，若独立语义 judge 认定它与冻结台账中的至少一条记录同处同性质，则该 issue 是 ledger-accounted emission；若没有任何台账记录承载它，则在冻结 benchmark 口径下记为 ledger-unmatched FP。
+Semantic FP 只对 D2/D1 最终发布报告判定，且只有 `INVALID` 进入 Semantic FP。
+`VALID_NOVEL` 是经公共制品审计成立、但对全部 expected 均为 NO 的真实台账外问题；
+它不贡献 hit，也不算 FP。`VALID_KNOWN` 至少有一个 FULL/PARTIAL；是否 hit 只由 FULL 决定。
 
-`precision = ledger-accounted release issue emissions / 全部 release issue emissions`。D0、D_UNRESOLVED、raw finding、重复 facet、coverage gap 和内部诊断均不得进入分子或分母。
+```text
+raw-report Semantic Precision
+= (VALID_KNOWN + VALID_NOVEL) / 全部已裁定发布报告
 
-每次正式报告必须同时给出两套 FP 计数，二者不得混成一个数：
+Ledger-Unmatched
+= 只有 PARTIAL 的 VALID_KNOWN + VALID_NOVEL + INVALID
+```
 
-| 口径 | 去重单元 | 用途 |
-|---|---|---|
-| release emission FP | 每个 cell 的最终 `report_issue_cluster` | 计算正式 precision，反映一次运行交给用户的负担 |
-| unique-cause FP | `(pair, canonical cause key)`，跨轮合并 | 分析方法有多少种不同的错误主张，避免三轮重复把同一原因放大 |
-
-冻结台账不保证是现实缺陷全集，因此 `ledger-unmatched FP` 是 benchmark 操作定义，不自动等于现实中的虚假缺陷。所有 unique-cause FP 还要独立分成“同 pair 内重复未合并”“已有裁决确认不入台账”“证据不足或两读未决”“可能是真实台账漏记”四类；该成分分析作为 validity 附表报告，但不允许事后把有利条目加入冻结台账并回算主 precision。
+每次正式报告必须分开给出：raw K/N/I、Semantic FP、raw-report Semantic Precision、
+valid novel、Ledger-Unmatched、root-cause-cluster precision 和 redundancy rate。不同 report
+若属于同一 actionable root cause，重复只进入 redundancy；不得把重复 valid finding 算 FP。
+D0、D_UNRESOLVED、raw finding、coverage gap 和内部诊断不进入这些发布报告分母。
 
 ## 6. 去重边界
 
@@ -124,9 +137,9 @@ FP 只对 release issue 判定。对一个 eligible cell 的每条 release issue
 
 ## 7. Baseline 对比
 
-方法与 X1v2 必须物理分表报告，逐条台账结果也必须分成 `ledger_method.md` 与 `ledger_baseline.md`。方法的最终端点是 D1/D2 `report_issue_clusters`；X1v2 没有 D gate，其最终端点是 `parsed_output.issues`。两臂均由同一独立语义 judge 按同处同性质裁决，不得让方法侧读取 baseline 结果，也不得让任一生成 prompt 读取真实台账条目或 judge 例子。
+方法与 X1v2 必须物理分表报告，逐条台账结果也必须分成 `ledger_method.md` 与 `ledger_baseline.md`。方法的最终端点是 D1/D2 `report_issue_clusters`；X1v2 没有 D gate，其最终端点是 `parsed_output.issues`。两臂适配后必须进入同一 `UnifiedJudgeInput`、公共 artifact closure、prompt/schema/model/retry/仲裁/metrics 路径；不得让方法侧读取 baseline 结果，也不得让任一生成 prompt 读取真实台账条目或 Judge 例子。
 
-同模型比较必须报告整体、L2、D2×L2 的 hit@1/hit@3/hit@all、release emission precision、unique-cause FP、eligible rate、失败格、W/D/L 分布和美元成本。旧历史六格 X1v2 网格与当前 Luna 三轮同模型网格必须分开，不得相减或混表。
+同模型比较必须报告整体、L2、D2×L2 的 hit@1/hit@3/hit@all、Supported Rate、K/N/I、Semantic FP、raw-report 与 root-cause-cluster precision、valid novel、Ledger-Unmatched、redundancy、eligible rate、失败格、W/D/L 分布和美元成本。不同 Judge protocol/version 的历史网格必须分开，不得相减或混表。
 
 ## 8. 成本口径
 

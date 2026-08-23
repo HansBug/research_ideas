@@ -1,5 +1,11 @@
 # X1 判定指令（发给每个判定组的**物理同一份**文本）
 
+> **Legacy judging material.** 本文件仅用于复现历史 X1/X1v2 人工判定，不是现行 Judge
+> prompt，也不得再发给正式判定者。现行 baseline 与 method 共用
+> [issue #195 统一 Judge](../discover_matrix/docs/protocol/semantic_judge_protocol.md)：
+> validity-first、FULL/PARTIAL/NO、后端派生 K/N/I、双读与冲突仲裁。本文旧 hit 枚举、
+> 单读输出和 exact-field 边界不能覆盖新协议。
+
 > ⛔⛔ **2026-08-12 更正**：本文件此前授权判定者读**维护版** `docs/protocol/hit_criterion.md`——⛔ **那是隔离合同违规**：维护版的实例带**真实往轮** `EXP-` 标识符与真实状态名，⛔ 而净化版 `hit_criterion_for_judges.md` 逐字写着「那些真实实例**就是答案**、维护版**不能**交给判定者」。⭐ 已改为只授权净化版；⭐ **判据正文两版逐字节相同**。⚠️ v1 的判定是在旧授权下做的，⛔ X1-v2 的重判已改正。
 
 

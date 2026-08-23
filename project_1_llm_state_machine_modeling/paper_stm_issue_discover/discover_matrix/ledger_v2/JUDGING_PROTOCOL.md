@@ -1,5 +1,11 @@
 # X1v2 在第二版台账上的命中判定协议
 
+> **Legacy protocol, incomparable with issue #195.** 本文件冻结的是历史 X1v2 单读、
+> exact locus/property 型命中协议，只用于解释 `x1v2_hits.json` 与 `x1v2_grid.json` 的来源。
+> 新 baseline 正式结果必须读取既有原始 `parsed_output.issues`，通过同一个
+> [统一语义 Judge](../docs/protocol/semantic_judge_protocol.md) 重判；不得继续用本文件施工，
+> 也不得把本文件的 unmatched 或 hit 数与新 Semantic FP/Precision 混报。
+
 ⭐ 本文在**判定开始之前**写定，⛔ 判定过程中不得修改。判定结果落在 [x1v2_hits.json](./x1v2_hits.json)。
 
 ## 一、判定对象与网格
