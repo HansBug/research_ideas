@@ -2443,7 +2443,8 @@ def test_exact_existing_candidate_still_suppresses_duplicate_frontier() -> None:
     )
 
 
-def test_state_action_does_not_manufacture_deadlock_without_source_certificate() -> None:
+def test_exact_sibling_sequence_materializes_one_aggregate_zero_behavior_issue(
+) -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0023")
     contracts = [
         _contract(
@@ -2505,11 +2506,53 @@ def test_state_action_does_not_manufacture_deadlock_without_source_certificate()
         if item.kind == "reachable_dead_end"
     ]
     assert leaf_dead_ends == []
-    assert not any(
-        item.kind == "aggregate_zero_behavior" for item in batch.obligations
+    aggregates = [
+        item.candidate
+        for item in batch.obligations
+        if item.kind == "aggregate_zero_behavior"
+    ]
+    assert len(aggregates) == 1
+    assert aggregates[0].locus_names == (
+        "PumpState",
+        "WaterState",
+        "MethaneState",
     )
+    assert "named_source_transition_refs=[]" in aggregates[0].observed
     assert not any(
         item.kind == "cross_wrapper_reachability" for item in batch.obligations
+    )
+
+
+def test_state_action_does_not_manufacture_deadlock_without_sequence_certificate(
+) -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0023")
+    contracts = [
+        _contract(
+            contract_id=f"NL-CONTRACT-NL{index}-{state}-ACTION",
+            segment_id=f"NL{index}",
+            locus_kind="state",
+            locus_names=(state,),
+            property_name="state_action",
+            expected_direction="must_exist",
+            violation_direction="missing",
+            hints=(_hint("state", state, f"NL{index}"),),
+            state_role="operating_state",
+        )
+        for index, state in ((3, "PumpState"), (4, "WaterState"), (5, "MethaneState"))
+    ]
+    response = _response(contracts)
+
+    batch = materialize_typed_frontier(
+        pair,
+        response,
+        {item.contract_id: item for item in response.contracts},
+        (),
+        (),
+    )
+
+    assert not any(
+        item.kind in {"reachable_dead_end", "aggregate_zero_behavior"}
+        for item in batch.obligations
     )
 
 

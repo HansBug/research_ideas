@@ -3736,12 +3736,18 @@ def _materialize_aggregate_zero_behavior(
     if facts is None:
         return
 
-    # A direct child leaf is not a wrapper scope. This keeps independent sibling
-    # dead ends atomic unless the normative sequence actually crosses composites.
-    if any(wrapper.ref == state.ref for wrapper, state in zip(wrappers, states)):
+    direct_sibling_chain = all(
+        wrapper.ref == state.ref for wrapper, state in zip(wrappers, states)
+    )
+    composite_wrapper_chain = all(
+        wrapper.ref != state.ref for wrapper, state in zip(wrappers, states)
+    )
+    if not direct_sibling_chain and not composite_wrapper_chain:
         return
     wrapper_facts = [_inspection_state(pair, wrapper.ref) for wrapper in wrappers]
-    if any(fact is None or not fact.is_composite for fact in wrapper_facts):
+    if composite_wrapper_chain and any(
+        fact is None or not fact.is_composite for fact in wrapper_facts
+    ):
         return
 
     operating_contracts: list[NLContract] = []
@@ -3799,11 +3805,11 @@ def _materialize_aggregate_zero_behavior(
         source_refs=_source_refs([*chain_contracts, *operating_contracts]),
         reason=(
             "Exact endpoint contracts establish one sequence across distinct "
-            "composite wrappers, and exact operating contracts establish every "
-            "member as an active operating state."
+            "operating loci, and exact operating contracts establish every member "
+            "as an active operating state."
         ),
         basis=(
-            "typed cross-wrapper sequence plus exact operating-state bindings and "
+            "typed operating sequence plus exact operating-state bindings and "
             "complete owner-subtree transition inventory"
         ),
     )
@@ -3829,12 +3835,12 @@ def _materialize_aggregate_zero_behavior(
             f"entries {scoped_transition_refs}."
         ),
         strongest_rebuttal=(
-            "Wrapper-local initial entries make the states reachable, but an entry "
-            "from [*] is not named-state continuation and cannot realize the required "
-            "cross-wrapper operating sequence."
+            "Pseudo-state entries make the states reachable, but an entry from [*] "
+            "is not named-state continuation and cannot realize the required "
+            "operating sequence."
         ),
         reason=(
-            "Every state in the exact cross-wrapper operating chain is a reachable "
+            "Every state in the exact operating chain is a reachable "
             "dead end, and the complete owner subtree contains no transition sourced "
             "from any named state."
         ),
@@ -3852,11 +3858,11 @@ def _materialize_aggregate_zero_behavior(
         derived,
         candidate,
         reason=(
-            "One typed cross-wrapper operating sequence shares a complete zero-"
-            "named-source transition cause across all of its reachable leaf states."
+            "One typed operating sequence shares a complete zero-named-source "
+            "transition cause across all of its reachable leaf states."
         ),
         basis=(
-            "exact multi-contract chain, composite-wrapper ancestry, operating-state "
+            "exact multi-contract chain, common-owner ancestry, operating-state "
             "contracts, and complete inspection-equivalent transition inventory"
         ),
     )
@@ -4094,6 +4100,20 @@ def _materialize_cross_wrapper(builder: _Builder, contracts: Sequence[NLContract
         wrapper_facts = [
             _inspection_state(pair, wrapper.ref) for wrapper in exact_wrappers
         ]
+        direct_sibling_chain = all(
+            wrapper.ref == state.ref
+            for wrapper, state in zip(exact_wrappers, states)
+        )
+        if direct_sibling_chain:
+            _materialize_aggregate_zero_behavior(
+                builder,
+                contracts,
+                chain,
+                states,
+                owner,
+                exact_wrappers,
+            )
+            continue
         if any(
             wrapper.ref == state.ref
             for wrapper, state in zip(exact_wrappers, states)
