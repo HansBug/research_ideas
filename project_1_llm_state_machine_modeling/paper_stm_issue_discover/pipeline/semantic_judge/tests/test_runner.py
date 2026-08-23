@@ -12,6 +12,7 @@ from pipeline.semantic_judge.models import (
     MatchStrength,
     ReportValidity,
 )
+from pipeline.semantic_judge.protocol import SYSTEM_PROMPT
 from pipeline.semantic_judge.runner import (
     build_conflict_records,
     build_primary_prompt,
@@ -77,6 +78,15 @@ def test_primary_prompt_has_no_adapter_or_method_metadata() -> None:
     assert '"witness_level"' not in prompt
     assert '"d_level"' not in prompt
     assert '"predicate_id"' not in prompt
+
+
+def test_system_prompt_carries_frozen_scope_and_carrier_boundaries() -> None:
+    assert "match 强度与报告置信度分开" in SYSTEM_PROMPT
+    assert "同一 locus/property 下仍真实且可行动的 facet" in SYSTEM_PROMPT
+    assert "`/` 之后的文字就是作者声明的 transition effect carrier" in SYSTEM_PROMPT
+    assert "没有显式 `--` region separator" in SYSTEM_PROMPT
+    assert "它不证明 target composite 已有 owner-local default entry" in SYSTEM_PROMPT
+    assert "不含未声明的 clock/timer 执行语义" in SYSTEM_PROMPT
 
 
 def test_cli_uses_one_runtime_and_persists_failure_without_partial_summary(
