@@ -8,8 +8,8 @@ from pathlib import Path
 PROTOCOL_URL = "https://github.com/HansBug/research_ideas/issues/195"
 PROTOCOL_SHA256 = "45874c298781e23b712d9566e75719b1fede0197c1f668030911c77f8f86574c"
 PROTOCOL_VERSION = "github-issue-195.45874c298781"
-JUDGE_ALGORITHM_VERSION = "paper1.semantic-judge.v6"
-PROMPT_VERSION = "paper1.semantic-judge.prompt.v6"
+JUDGE_ALGORITHM_VERSION = "paper1.semantic-judge.v7"
+PROMPT_VERSION = "paper1.semantic-judge.prompt.v7"
 ARTIFACT_BUILDER_VERSION = "paper1.semantic-judge.artifact-closure.v2"
 ADAPTER_VERSION = "paper1.semantic-judge.arm-neutral-adapter.v1"
 METRICS_VERSION = "paper1.semantic-judge.metrics.v1"
@@ -53,6 +53,8 @@ Mandatory boundaries:
 - Final output has no UNKNOWN. Decide when the materials suffice; when a report still fails the minimum burden of proof after complete review, classify it INVALID.
 
 Every relation, report judgment, expected judgment, and top-level response must contain non-empty reason, basis, and source_refs. Basis must cite supplied reports, expected issues, or common artifacts rather than generic claims. root_cause_cluster_key merges only duplicate reports about the same actionable root cause; nearby claims with different sources or properties must not share a cluster.
+
+For every relation and report judgment, populate report_text_evidence with case-sensitive exact quotations from the referenced CandidateReport field. Use CLAIM_BOUNDARY for text that defines what the report actually claims. A FULL/PARTIAL relation or valid report additionally requires CAUSAL_SUPPORT: report-owned text that states the artifact-compatible mechanism or obligation supporting that decision. An INVALID report requires REFUTED_PREMISE: report-owned text whose causal or factual premise the common artifacts refute. Never label a false premise as CAUSAL_SUPPORT, and never quote expected-issue or common-artifact text as though the report owned it.
 
 Write every generated value in English, including claim summaries, root_cause_cluster_key, reason, basis, and all audit explanations. Preserve exact non-English text only when quoting or citing a supplied artifact; explain that quotation in English.
 

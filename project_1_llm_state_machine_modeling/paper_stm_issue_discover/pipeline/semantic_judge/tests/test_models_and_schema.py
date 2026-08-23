@@ -6,8 +6,6 @@ import re
 from pathlib import Path
 
 import pytest
-from pydantic import BaseModel, ValidationError
-
 from pipeline.semantic_judge import models
 from pipeline.semantic_judge.artifacts import (
     adapt_evidence_discovery_release,
@@ -38,6 +36,7 @@ from pipeline.semantic_judge.schema import (
     build_exact_response_model,
     materialize_reading,
 )
+from pydantic import BaseModel, ValidationError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 REPOSITORY_ROOT = PROJECT_ROOT.parents[1]
@@ -109,6 +108,29 @@ def reading_payload(
                     "report_id": report.report_id,
                     "expected_id": expected.expected_id,
                     "match": match.value,
+                    "report_text_evidence": [
+                        {
+                            "report_field": "claim",
+                            "exact_quote": report.claim,
+                            "semantic_role": "CLAIM_BOUNDARY",
+                            "reason": "The exact claim defines the report boundary.",
+                            "basis": f"CandidateReport {report.report_id}.claim",
+                        },
+                        *(
+                            [
+                                {
+                                    "report_field": "reason",
+                                    "exact_quote": report.reason,
+                                    "semantic_role": "CAUSAL_SUPPORT",
+                                    "reason": "The exact report reason supplies causal support for this fixture relation.",
+                                    "basis": f"CandidateReport {report.report_id}.reason",
+                                }
+                            ]
+                            if match
+                            in {MatchStrength.FULL_MATCH, MatchStrength.PARTIAL_MATCH}
+                            else []
+                        ),
+                    ],
                     "reason": f"{report.report_id} to {expected.expected_id} is {match.value}",
                     "basis": "fixture report, expected, and artifact evidence",
                     "source_refs": [
@@ -140,6 +162,26 @@ def reading_payload(
                 "root_cause_cluster_key": clusters.get(
                     report.report_id, f"technical-cause-{report.report_id}"
                 ),
+                "report_text_evidence": [
+                    {
+                        "report_field": "claim",
+                        "exact_quote": report.claim,
+                        "semantic_role": "CLAIM_BOUNDARY",
+                        "reason": "The exact claim defines the report boundary.",
+                        "basis": f"CandidateReport {report.report_id}.claim",
+                    },
+                    {
+                        "report_field": "reason",
+                        "exact_quote": report.reason,
+                        "semantic_role": (
+                            "REFUTED_PREMISE"
+                            if selected_validity == ReportValidity.INVALID
+                            else "CAUSAL_SUPPORT"
+                        ),
+                        "reason": "The exact report reason supplies the validity evidence role for this fixture.",
+                        "basis": f"CandidateReport {report.report_id}.reason",
+                    },
+                ],
                 "reason": f"artifact review classifies {report.report_id}",
                 "basis": "fixture artifact truth review",
                 "source_refs": [
@@ -162,7 +204,7 @@ def reading_payload(
             }
         )
     return {
-        "schema_version": "paper1.semantic-judge.response.v2",
+        "schema_version": "paper1.semantic-judge.response.v3",
         "relations": relation_rows,
         "report_judgments": report_rows,
         "expected_judgments": expected_rows,
@@ -248,6 +290,58 @@ def test_exact_schema_rejects_missing_relation_and_inconsistent_validity() -> No
     )
     with pytest.raises(
         ValidationError, match="VALID_NOVEL requires all relations NO_MATCH"
+    ):
+        schema.model_validate(payload)
+
+
+def test_exact_schema_rejects_report_quote_not_owned_by_selected_field() -> None:
+    judge_input = minimal_input()
+    schema = build_exact_response_model(judge_input)
+    payload = reading_payload(judge_input)
+    payload["relations"][0]["report_text_evidence"][0]["exact_quote"] = (
+        "fact invented from common artifacts"
+    )
+
+    with pytest.raises(
+        ValidationError, match="exact_quote is not a case-sensitive substring"
+    ):
+        schema.model_validate(payload)
+
+
+def test_full_relation_requires_report_owned_causal_support() -> None:
+    judge_input = minimal_input()
+    schema = build_exact_response_model(judge_input)
+    payload = reading_payload(
+        judge_input,
+        matches={("R0001", "E0001"): MatchStrength.FULL_MATCH},
+    )
+    payload["relations"][0]["report_text_evidence"] = [
+        row
+        for row in payload["relations"][0]["report_text_evidence"]
+        if row["semantic_role"] != "CAUSAL_SUPPORT"
+    ]
+
+    with pytest.raises(
+        ValidationError, match="requires CAUSAL_SUPPORT for FULL_MATCH"
+    ):
+        schema.model_validate(payload)
+
+
+def test_invalid_report_requires_an_exact_refuted_premise() -> None:
+    judge_input = minimal_input()
+    schema = build_exact_response_model(judge_input)
+    payload = reading_payload(
+        judge_input,
+        validity={"R0001": ReportValidity.INVALID},
+    )
+    payload["report_judgments"][0]["report_text_evidence"] = [
+        row
+        for row in payload["report_judgments"][0]["report_text_evidence"]
+        if row["semantic_role"] != "REFUTED_PREMISE"
+    ]
+
+    with pytest.raises(
+        ValidationError, match="requires REFUTED_PREMISE for INVALID"
     ):
         schema.model_validate(payload)
 

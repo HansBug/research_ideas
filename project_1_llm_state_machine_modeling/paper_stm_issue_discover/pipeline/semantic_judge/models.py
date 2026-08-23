@@ -30,6 +30,27 @@ class ReportValidity(str, Enum):
     INVALID = "INVALID"
 
 
+class ReportField(str, Enum):
+    """Candidate-report text fields that may be cited verbatim by a Judge decision."""
+
+    CLAIM = "claim"
+    WHERE = "where"
+    PROPERTY = "property"
+    VIOLATED_OBLIGATION = "violated_obligation"
+    EXPECTED = "expected"
+    OBSERVED = "observed"
+    REASON = "reason"
+    BASIS = "basis"
+
+
+class ReportTextEvidenceRole(str, Enum):
+    """Closed semantic role played by an exact quotation from the candidate report."""
+
+    CLAIM_BOUNDARY = "CLAIM_BOUNDARY"
+    CAUSAL_SUPPORT = "CAUSAL_SUPPORT"
+    REFUTED_PREMISE = "REFUTED_PREMISE"
+
+
 class ArtifactAuthority(str, Enum):
     """Closed roles that prevent author source, lowered model, and facts being conflated."""
 
@@ -126,6 +147,34 @@ class CandidateReport(FrozenModel):
     evidence: tuple[CandidateEvidence, ...] = Field(
         default_factory=tuple,
         description="Publicly auditable evidence statements owned by the report; excludes W/D/L, predicates, compilation plans, and hidden intermediate reasoning.",
+    )
+
+
+class ReportTextEvidence(FrozenModel):
+    """Exact report-owned text used to delimit or audit one Judge decision.
+
+    The Judge produces this evidence and the exact response schema validates it
+    against the referenced CandidateReport field. It proves textual provenance
+    only; common artifacts still determine whether the quoted premise is true.
+    """
+
+    report_field: ReportField = Field(
+        description="CandidateReport scalar text field containing exact_quote; this is a provenance selector, not a semantic conclusion.",
+    )
+    exact_quote: str = Field(
+        min_length=1,
+        description="Case-sensitive verbatim substring from the selected report field; generated paraphrases and facts found only in common artifacts are forbidden.",
+    )
+    semantic_role: ReportTextEvidenceRole = Field(
+        description="How the quoted report-owned text participates in this decision: claim boundary, artifact-compatible causal support, or a premise refuted by common artifacts.",
+    )
+    reason: str = Field(
+        min_length=1,
+        description="Why this exact quotation has the selected role in the current relation or validity judgment; it must not add content absent from the quote.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Auditable field-level provenance for the quotation and the supplied artifact facts used to verify or refute it.",
     )
 
 
@@ -329,6 +378,10 @@ class RelationAssessment(FrozenModel):
     match: MatchStrength = Field(
         description="Issue #195 dimension A, separate from report validity; PARTIAL is neither a hit nor a false positive."
     )
+    report_text_evidence: tuple[ReportTextEvidence, ...] = Field(
+        min_length=1,
+        description="Exact report-owned quotations delimiting this pairwise relation. Every row needs CLAIM_BOUNDARY; FULL/PARTIAL additionally need CAUSAL_SUPPORT from the report itself.",
+    )
     reason: str = Field(
         min_length=1,
         description="Why the pair is FULL, PARTIAL, or NO; explain root-cause, obligation, symptom, or repair-overlap boundaries.",
@@ -355,6 +408,10 @@ class ReportJudgment(FrozenModel):
     root_cause_cluster_key: str = Field(
         min_length=1,
         description="Stable phrase key based on an actionable technical root cause; never use report ID/order or merge nearby claims with different properties or sources.",
+    )
+    report_text_evidence: tuple[ReportTextEvidence, ...] = Field(
+        min_length=1,
+        description="Exact report-owned quotations used for validity. Every judgment needs CLAIM_BOUNDARY; valid reports need CAUSAL_SUPPORT, while INVALID reports need REFUTED_PREMISE.",
     )
     reason: str = Field(
         min_length=1,
@@ -394,9 +451,9 @@ class ExpectedJudgment(FrozenModel):
 class JudgeResponse(FrozenModel):
     """LLM response containing only semantic judgments, never deterministic summaries."""
 
-    schema_version: Literal["paper1.semantic-judge.response.v2"] = Field(
-        default="paper1.semantic-judge.response.v2",
-        description="Provider structured-output schema version; from v2 onward, only the backend generates derived sets, hit, and support.",
+    schema_version: Literal["paper1.semantic-judge.response.v3"] = Field(
+        default="paper1.semantic-judge.response.v3",
+        description="Provider structured-output schema version; v3 adds exact report-owned text evidence while only the backend generates derived sets, hit, and support.",
     )
     relations: tuple[RelationAssessment, ...] = Field(
         description="Complete report-by-expected matrix including every NO_MATCH; it must not be sparse."
@@ -441,6 +498,10 @@ class ReportAssessment(FrozenModel):
     root_cause_cluster_key: str = Field(
         min_length=1,
         description="Stable phrase key based on an actionable technical root cause, used for redundancy and cluster precision; never use report ID or order.",
+    )
+    report_text_evidence: tuple[ReportTextEvidence, ...] = Field(
+        min_length=1,
+        description="Validated exact report-owned quotations retained from ReportJudgment for downstream causal-certificate audit.",
     )
     reason: str = Field(
         min_length=1,

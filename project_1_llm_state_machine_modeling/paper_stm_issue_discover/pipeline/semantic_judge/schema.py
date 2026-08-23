@@ -17,6 +17,7 @@ from .models import (
     RelationAssessment,
     ReportAssessment,
     ReportJudgment,
+    ReportTextEvidenceRole,
     ReportValidity,
     UnifiedJudgeInput,
 )
@@ -34,6 +35,7 @@ def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResp
     report_id_type = _literal(report_ids)
     expected_id_type = _literal(expected_ids)
     relation_count = len(report_ids) * len(expected_ids)
+    reports_by_id = {item.report_id: item for item in judge_input.reports}
 
     class ExactRelationAssessment(RelationAssessment):
         """One exact report/expected relation whose IDs are closed by this input."""
@@ -118,7 +120,60 @@ def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResp
             relation_by_key = {
                 (row.report_id, row.expected_id): row.match for row in self.relations
             }
+            evidence_rows = [
+                (f"relations[{row.report_id},{row.expected_id}]", row.report_id, row.report_text_evidence)
+                for row in self.relations
+            ] + [
+                (f"report_judgments[{row.report_id}]", row.report_id, row.report_text_evidence)
+                for row in self.report_judgments
+            ]
+            for object_path, report_id, evidence in evidence_rows:
+                report = reports_by_id[report_id]
+                for index, item in enumerate(evidence):
+                    field_value = getattr(report, item.report_field.value)
+                    if not isinstance(field_value, str):
+                        raise ValueError(  # noqa: TRY004 - Pydantic must wrap provider validation failures
+                            f"{object_path}.report_text_evidence[{index}] references null "
+                            f"CandidateReport.{item.report_field.value} for report {report_id}"
+                        )
+                    if item.exact_quote not in field_value:
+                        raise ValueError(
+                            f"{object_path}.report_text_evidence[{index}].exact_quote is not "
+                            f"a case-sensitive substring of report {report_id} field "
+                            f"{item.report_field.value}; actual_quote={item.exact_quote!r}"
+                        )
+            for row in self.relations:
+                roles = {item.semantic_role for item in row.report_text_evidence}
+                if ReportTextEvidenceRole.CLAIM_BOUNDARY not in roles:
+                    raise ValueError(
+                        f"relations[{row.report_id},{row.expected_id}].report_text_evidence "
+                        "requires CLAIM_BOUNDARY"
+                    )
+                if row.match in {
+                    MatchStrength.FULL_MATCH,
+                    MatchStrength.PARTIAL_MATCH,
+                } and ReportTextEvidenceRole.CAUSAL_SUPPORT not in roles:
+                    raise ValueError(
+                        f"relations[{row.report_id},{row.expected_id}].report_text_evidence "
+                        f"requires CAUSAL_SUPPORT for {row.match.value}"
+                    )
             for row in self.report_judgments:
+                roles = {item.semantic_role for item in row.report_text_evidence}
+                if ReportTextEvidenceRole.CLAIM_BOUNDARY not in roles:
+                    raise ValueError(
+                        f"report_judgments[{row.report_id}].report_text_evidence requires "
+                        "CLAIM_BOUNDARY"
+                    )
+                required_role = (
+                    ReportTextEvidenceRole.REFUTED_PREMISE
+                    if row.validity == ReportValidity.INVALID
+                    else ReportTextEvidenceRole.CAUSAL_SUPPORT
+                )
+                if required_role not in roles:
+                    raise ValueError(
+                        f"report_judgments[{row.report_id}].report_text_evidence requires "
+                        f"{required_role.value} for {row.validity.value}"
+                    )
                 has_known_relation = any(
                     relation_by_key[(row.report_id, expected_id)]
                     in {MatchStrength.FULL_MATCH, MatchStrength.PARTIAL_MATCH}
@@ -182,6 +237,7 @@ def materialize_reading(response: JudgeResponse) -> JudgeReading:
                 == MatchStrength.NO_MATCH
             ),
             root_cause_cluster_key=judgment.root_cause_cluster_key,
+            report_text_evidence=judgment.report_text_evidence,
             reason=judgment.reason,
             basis=judgment.basis,
             source_refs=judgment.source_refs,
