@@ -656,6 +656,10 @@ def test_initial_entry_frontier_keeps_one_violation_atomic() -> None:
     assert len(initial) == 1
     assert initial[0].kind == "owner_initial_entry"
     assert initial[0].source_contract_ids == (contract.contract_id,)
+    assert initial[0].candidate.title == (
+        "Required entry to enter_hwy is not the unconditional default for HighwayMode"
+    )
+    assert "conditional=True" in initial[0].candidate.observed
     assert contract.contract_id not in batch.superseded_candidate_contract_ids
 
 

@@ -1892,7 +1892,12 @@ def _materialize_initial_entries(
         )
         candidate = _candidate(
             normalized_contract,
-            title=f"{owner.name if owner else 'Model'} lacks default entry to {target.name}",
+            title=(
+                f"Required entry to {target.name} is not the unconditional default "
+                f"for {owner.name if owner else 'Model'}"
+                if matching
+                else f"{owner.name if owner else 'Model'} lacks default entry to {target.name}"
+            ),
             predicate_id=None,
             predicate_inputs={},
             element_refs=refs,
