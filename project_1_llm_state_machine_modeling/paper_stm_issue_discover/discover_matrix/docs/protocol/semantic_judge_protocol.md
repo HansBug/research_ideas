@@ -83,6 +83,16 @@ INVALID 不调用 relation LLM，后端直接为全部 expected 物化 `NO_MATCH
 的报告才进入 `RelationJudgeInput`；它看到 immutable certificate/hash、expected 和同一公共
 闭包，只能输出 FULL/PARTIAL/NO，不能重开 validity。
 
+production prompt 的 typed-carrier 规则来自 PlantUML 状态图语法与层次状态机作用域，而非
+固定 pair 答案：并发/正交 region 必须由同一 composite 内的显式 region separator 建立；
+sibling composite declaration、名称中的 `region` 和 child-local initial transition 均不能
+替代该 carrier。child-local entry 只证明 child 内部入口，不证明 parent-level entry，也不
+证明 siblings 同时激活。relation 对 composite expected 逐项读取其明确写出的独立可行动
+facet：报告准确陈述其中一个核心 facet 且修复会实质缓解时即可 FULL，不要求覆盖其它并列
+facet；反向边界同样严格，公共 artifacts 中另一个真实 defect 不能扩写报告自己的
+claim/scope/carrier/repair obligation。上述规则不含 benchmark ID、状态名或预设映射，且
+必须由 provider-free replay 与 held-out calibration 共同验证。
+
 规模协议只压缩重复表示，不裁剪 Judge 证据：relation 动态 Pydantic schema 为每个 expected
 建立固定位置的 discriminated `relation_decision`；FULL/PARTIAL/NO 每一行均保存
 expected-specific reason/basis/source refs，FULL/PARTIAL 另存 report-owned field refs。

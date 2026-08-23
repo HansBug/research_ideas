@@ -790,3 +790,29 @@ def test_prompts_and_generated_fixture_audit_language_are_english() -> None:
         for value in (row["assertion"], row["reason"], row["basis"])
     ]
     assert all(not non_ascii.search(value) for value in generated_values)
+
+
+def test_prompts_state_general_typed_carrier_and_relation_scope_boundaries() -> None:
+    normalized_validity = " ".join(VALIDITY_SYSTEM_PROMPT.split()).lower()
+    normalized_relation = " ".join(RELATION_SYSTEM_PROMPT.split()).lower()
+
+    assert "explicit region separator" in normalized_validity
+    assert "child-local initial transitions do not establish sibling concurrency" in (
+        normalized_validity
+    )
+    assert "independently actionable causal facet" in normalized_relation
+    assert "need not also identify every coequal facet" in normalized_relation
+    assert "never expand the report to a different defect" in normalized_relation
+    assert "initial transition inside a child composite is not a parent-level entry" in (
+        normalized_relation
+    )
+    forbidden_calibration_terms = {
+        "pumpstate",
+        "pumpcontrol",
+        "r0001",
+        "e0001",
+        "0053",
+    }
+    assert forbidden_calibration_terms.isdisjoint(
+        set(re.findall(r"[a-z0-9]+", normalized_validity + normalized_relation))
+    )
