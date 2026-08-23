@@ -1571,6 +1571,7 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "owner-initial-to-ModeA, ModeA-to-ModeB, and ModeB-to-ModeC" in CONTRACT_SYSTEM_PROMPT
     assert "activity to be performed continuously or repeatedly" in CONTRACT_SYSTEM_PROMPT
     assert "segment already has a cardinality or structure contract" in CONTRACT_SYSTEM_PROMPT
+    assert "structural-area primary reading" in CONTRACT_SYSTEM_PROMPT
     hint_schema = ContractBindingHint.model_json_schema()
     assert "owns the required initial pseudostate edge" in hint_schema["properties"]["role"]["description"]
     assert "variable names only the data subject" in hint_schema["properties"]["role"]["description"]
@@ -1596,6 +1597,9 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "complete exact inventory" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "element_refs` contains" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "Negative-property carrier example" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "must not emit a cardinality CandidateIssue" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "operates within three different state areas" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "not to a descendant action carrier" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     candidate_schema = CandidateIssue.model_json_schema()["properties"]
     assert "missing edge has no ref of its own" in candidate_schema["element_refs"]["description"]
     assert "exact existing carrier transition/state ref" in candidate_schema["element_refs"]["description"]

@@ -2949,6 +2949,9 @@ def test_frontier_pydantic_descriptions_reach_json_schema() -> None:
         "explicit_named_members",
         "unresolved",
     }
+    assert "controller operates within three different state areas" in cardinality_schema[
+        "properties"
+    ]["member_domain"]["description"]
     grounding_schema = GroundingResponse.model_json_schema()
     assert "response-local references" in grounding_schema["description"]
     candidate_schema = grounding_schema["$defs"]["CandidateIssue"]
@@ -2963,7 +2966,13 @@ def test_frontier_pydantic_descriptions_reach_json_schema() -> None:
     ]["reason"]["description"]
     domain_binding_schema = grounding_schema["$defs"]["CardinalityDomainBinding"]
     assert "有限成员域" in domain_binding_schema["description"]
+    assert "structural regions/areas/partitions" in domain_binding_schema[
+        "properties"
+    ]["member_domain"]["description"]
     assert "exact_source_inventory.states" in domain_binding_schema["properties"][
+        "owner_source_id"
+    ]["description"]
+    assert "contract-level scope" in domain_binding_schema["properties"][
         "owner_source_id"
     ]["description"]
     assert "closed_model_inventory.states[].ref" in domain_binding_schema[

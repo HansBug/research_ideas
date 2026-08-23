@@ -209,9 +209,13 @@ class CardinalityRequirement(BaseModel):
             "concurrent_regions 表示 UML structural region partitions：显式 separator 产生多个 region，"
             "而有直接子状态但无 separator 的 composite 只有一个隐式 region；explicit_named_members "
             "表示 NL 逐项点名的有限集合，unresolved 表示多种称职读法尚未闭合。若 primary 读法"
-            "要求 structural regions/areas，不得仅因 owner 内存在 operating child states 就改成 "
-            "direct_child_states；这些 states 可作为 alternative_reading。不得根据元素名称含 "
-            "Region/State 或关键词形状选择成员域；grounding 必须用 supplied 语义与 exact inventory 绑定。"
+            "描述一个活动配置被划分为若干 structural regions/areas/partitions，应选 concurrent_regions；"
+            "这不要求 NL 额外出现 concurrent/UML 字样，也不要求 observed artifact 已有 separator。"
+            "例如 `controller operates within three different state areas` 的 primary 是三个配置区域，"
+            "而三个 operating phases/states 是可保留的 alternative_reading。只有 NL 直接要求某 composite "
+            "拥有固定数量的直接 child states/modes 时才选 direct_child_states。不得因 owner 内存在 child "
+            "states、或因为某种 observed count 更接近 required_count 而把 area/partition primary 改绑为"
+            "direct_child_states；也不得根据元素名称含 Region/State 或关键词形状选择成员域。"
         ),
     )
     scope_concept: str = Field(
@@ -617,9 +621,12 @@ class CardinalityDomainBinding(BaseModel):
         description=(
             "规范成员概念的 primary typed domain；exact 时必须是 direct_child_states、"
             "concurrent_regions 或 explicit_named_members，ambiguous/unbound 时必须为 unresolved。"
-            "concurrent_regions 计 UML structural partitions，其中无 separator 的非空 composite 只有"
-            "一个隐式 region；不能因为它含多个 child operating states 就把 region requirement 改绑为"
-            "direct_child_states。不得根据 observed count、元素名称后缀或 ledger 选择该值。"
+            "当义务把一个活动配置描述为若干 structural regions/areas/partitions 时，primary 使用"
+            "concurrent_regions，即使 NL 未额外写 concurrent/UML，且 observed source 没有 separator；"
+            "无 separator 的非空 composite 只有一个隐式 region。直接子 operating phases/states 可作为"
+            "alternative_reading，但不能替代 area/partition primary。只有规范文本直接计一个 composite "
+            "的 child states/modes 时使用 direct_child_states。不得根据 observed count、元素名称后缀"
+            "或 ledger 选择该值。"
         ),
     )
     owner_source_id: str | None = Field(
@@ -629,7 +636,10 @@ class CardinalityDomainBinding(BaseModel):
             "exact_source_inventory.states 中承载该成员域的唯一 source_id；null 表示 owner source "
             "尚未闭合。该 owner 必须实现 cardinality contract 的规范 scope_concept 与 owner/scope "
             "binding hint；不能仅因某项活动发生在更深的子 composite 中就把 owner 下沉到该子项。"
-            "它不是 raw line ref，也不能由 deterministic frontier 做字符串相似匹配。"
+            "两个 lens 都必须按同一 contract-level scope 选择 owner：例如 contract 计 Controller "
+            "operation 的区域，而动作在其 TaskRegion 内执行时，owner 仍是 Controller，除非 supplied "
+            "NL/source semantics 明确把 counted scope 等同于 TaskRegion。它不是 raw line ref，也不能"
+            "由 deterministic frontier 做字符串相似匹配。"
         ),
     )
     owner_model_ref: str | None = Field(
@@ -710,7 +720,9 @@ class GroundingResponse(BaseModel):
             "in this response also needs one row. Every contract_id must name either one supplied contract or "
             "one additional_contracts row in this same response; non-cardinality contracts are invalid targets. "
             "Schema correction returns a complete replacement preserving all valid rows. This row is not a "
-            "candidate and never records observed count, W, D, L, or ledger data."
+            "candidate and never records observed count, W, D, L, or ledger data. For a supplied cardinality "
+            "contract, emit this binding row only; deterministic frontier computes the complete count after both "
+            "lenses, so neither lens may emit its own cardinality CandidateIssue from a primary or alternative reading."
         ),
     )
     candidates: list[CandidateIssue] = Field(default_factory=list, description="Candidate claims grounded across author source, closed FCSTM, and deterministic facts. Every list item must independently include requirement_quote, reason, basis, locus_kind, locus_names, property, violation_direction, evidence_types, expected, observed, and strongest_rebuttal; no top-level field substitutes for an item field. contract_id names either one supplied contract or one response-local additional_contracts row. The runner canonicalizes derived identity from the unique typed payload and records any exact reference recovery. Candidates must not emit W/D/L levels.")
@@ -1322,6 +1334,7 @@ v27 state-role and discourse discipline:
 - Keep a state-owned action/effect independent from the endpoint that enters the state. The action may remain a precise unsupported W1 obligation even when the endpoint exists. Do not create standalone trigger/guard contracts that merely repeat every transition-group condition; use the group as the compact normative relation and let grounding derive only actual mismatches.
 - When an action, effect, display, update, reset, or cancellation obligation reads or writes one named data subject, add a separate `variable` binding hint whose value is only that subject concept. Preserve the action/effect itself in its own `action` or `effect` hint. Independent contracts that act on the same data subject must use the same exact variable concept so deterministic frontier code can audit their complete carrier surface. Different subjects remain different even when their prose is related: for example, display/update of `setpoint` and cancel/update of `setpoint` share variable=`setpoint`, while start/stop of `timer` uses variable=`timer` and must not be merged with `setpoint`.
 - For every `property=cardinality` contract, fill `cardinality_requirement` from the numbered NL: preserve the literal required count, the normative scope/member concepts, and a typed primary member domain. Use `direct_child_states`, `concurrent_regions`, or `explicit_named_members` when the supplied language establishes that competent reading, and preserve another competent interpretation in `alternative_reading`; use `unresolved` only when no primary member domain can be selected. Never infer the required count or domain from the observed model, element names, or a ledger.
+- For cardinality domain selection, a clause that divides an active configuration into a number of structural regions, areas, or partitions uses `concurrent_regions` as its primary domain even when it does not repeat the words concurrent or UML. Example: "the controller operates within three different state areas" has a structural-area primary reading; three operating phases/states may remain in `alternative_reading`. Use `direct_child_states` only when the NL directly counts child states or modes owned by one composite. Missing separators or region objects are possible negative evidence and never a reason to reinterpret areas as child states.
 - Preserve containment depth from the NL. A state described only as being "within" or "under" a composite requires semantic descendant containment; an intermediate region or nested composite still satisfies that obligation. Require direct/immediate ownership only when the source meaning explicitly requires no intermediate owner. Region or wrapper structure is a separate contract only when the NL independently specifies that structure or its concurrency semantics.
 
 Generic worked example: "Within Controller, start in Idle; on Begin transition from Idle to Running when enabled and set mode=active" yields contracts for Controller containment of Idle, Controller initial entry to Idle, the Idle-to-Running endpoint, and its mode=active effect. Preserve Begin and enabled on the transition-group alternative; do not duplicate them as trigger/guard contracts unless supplied wording independently requires those exact formal properties. If the clause also requires Begin to be accepted throughout Controller, that coverage requirement is a separate event-consumer contract. Do not copy the whole sentence into one multi-property contract.
@@ -1521,30 +1534,36 @@ silently skip the row by deciding not to analyze the contract. Return an
 when no exact primary reading or owner closes. Every branch-local additional
 cardinality contract also requires one row. On schema correction, return the
 complete replacement response and retain all previously valid rows while adding
-any missing required IDs. Select a concrete primary domain
-only from the supplied NL/source semantics and bind its exact
-`owner_source_id` plus `owner_model_ref`; copy `owner_model_ref` exactly from the
-owned `closed_model_inventory.states[].ref`, not from a working-contract
-representation mapping. Never select the binding because the resulting observed
-count would pass or fail. The selected owner must realize the cardinality
-contract's normative `scope_concept` and owner/scope binding hints. Do not narrow
-that owner to a descendant composite merely because an activity mentioned in the
-same clause executes inside that descendant; narrowing requires supplied NL to
-make the descendant itself the counted scope. A competing competent interpretation belongs
-in `alternative_reading` and is assessed later by D; its existence does not by
-itself make the primary binding ambiguous. Use `status=ambiguous` and
-`member_domain=unresolved` only when the supplied semantics genuinely do not
-support one primary reading. Select `concurrent_regions` when the supplied NL
-semantics establishes UML structural regions/areas or concurrency as the primary member concept;
-do not require the author artifact to already contain a region separator or
-region object, because absence of a required construct is possible negative
-evidence: a non-empty composite without separators has one implicit UML region,
-not one region per child state. Conversely, do not infer concurrency from names
-or from an observed count. Use `direct_child_states` only when the supplied
-discourse maps the primary member concept to directly owned child states/scopes;
-never select it merely because operating child states exist inside a structural
-region owner. Preserve such an operating-state interpretation as
-`alternative_reading` when it is also competent. The deterministic frontier,
+any missing required IDs. This lens must not emit a cardinality CandidateIssue:
+the deterministic frontier combines the two typed bindings, enumerates the
+complete member inventory, and materializes the sole cardinality candidate or
+satisfaction receipt. Do not turn an alternative reading into a second candidate.
+Select a concrete primary domain only from the supplied NL/source semantics.
+When the contract describes one active configuration as divided into structural
+regions, areas, or partitions, select `concurrent_regions` without requiring the
+extra words concurrent or UML. Missing separators or region objects are possible
+negative evidence; absence of a required construct is possible negative evidence,
+not grounds to reinterpret the obligation. A non-empty composite without separators
+has one implicit UML region, not one region per child state. Use `direct_child_states` only when the NL
+directly counts child states or modes owned by one composite. Named operating
+phases/states remain a competent `alternative_reading`; their existence and count
+must not replace the structural-area primary reading. Never choose a domain because
+the resulting observed count would pass or fail, or infer it from element names.
+
+Bind the exact `owner_source_id` plus `owner_model_ref`; copy `owner_model_ref`
+exactly from the owned `closed_model_inventory.states[].ref`, not from a
+working-contract representation mapping. The owner realizes the cardinality
+contract's normative `scope_concept` and owner/scope binding hints. Bind it to the
+contract-level scope, not to a descendant action carrier merely because an activity
+in the same clause executes there.
+For example, "Controller operates within three different state areas while tasks
+execute in Controller.TaskRegion" binds `concurrent_regions` to Controller, not to
+Controller.TaskRegion, unless supplied NL/source semantics explicitly make
+TaskRegion the counted scope. Both lenses apply this same contract-level owner rule.
+A competing competent interpretation belongs in `alternative_reading` and is
+assessed later by D; its existence does not by itself make the primary binding
+ambiguous. Use `status=ambiguous` and `member_domain=unresolved` only when supplied
+semantics genuinely do not support one primary reading. The deterministic frontier,
 not this response, enumerates the complete members and computes the observed count.
 
 For a supplied transition group, compare all alternatives as one relation before
