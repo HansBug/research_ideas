@@ -230,9 +230,9 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v19"] = Field(
-        default="v27-typed-frontier.v19",
-        description="产生该检查的确定性算法版本；v19 合并同一 exact cardinality owner/domain 的跨 lens 竞争读法，且保留 v18 的 typed state-locus carrier fallback；不表示旧谓词或旧 inspect 后端。",
+    algorithm_version: Literal["v27-typed-frontier.v20"] = Field(
+        default="v27-typed-frontier.v20",
+        description="产生该检查的确定性算法版本；v20 按 exact owner 计 canonical 显式/隐式 UML regions 并区分 missing/extra cardinality，且保留 v19 的跨 lens 竞争读法；不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
         min_length=1,
@@ -319,9 +319,9 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v19"] = Field(
-        default="v27-typed-frontier.v19",
-        description="本批所有 check/obligation 使用的确定性算法版本；v19 保留同一 cardinality owner/domain 的跨 lens 竞争读法，并保留 v18 的 typed state-locus carrier fallback。",
+    algorithm_version: Literal["v27-typed-frontier.v20"] = Field(
+        default="v27-typed-frontier.v20",
+        description="本批所有 check/obligation 使用的确定性算法版本；v20 增加 exact owner 的 canonical UML region 计数与 cardinality mismatch direction，并保留 v19 的跨 lens 竞争读法。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
         default_factory=tuple,
@@ -1335,7 +1335,10 @@ def _materialize_cardinality(
                         }
                     )
 
-        if effective_requirement.member_domain != "direct_child_states":
+        if effective_requirement.member_domain not in {
+            "direct_child_states",
+            "concurrent_regions",
+        }:
             builder.checks.append(
                 builder.receipt(
                     "cardinality",
@@ -1411,30 +1414,167 @@ def _materialize_cardinality(
                     status="unresolved",
                     model_refs=[item.ref for item in bound_states],
                     source_refs=contract.source_refs,
-                    reason="The typed binding does not identify one exact source/model owner for the complete direct-child member domain.",
+                    reason="The typed binding does not identify one exact source/model owner for the selected finite cardinality member domain.",
                     basis=(
                         f"owner_candidate_count={len(owner_rows)}; "
                         f"cardinality_binding_id={selected_binding.binding_id if selected_binding else None}; "
-                        "exact source parent relations only"
+                        f"member_domain={effective_requirement.member_domain}; exact source parent relations only"
                     ),
                 )
             )
             continue
 
-        owner, source_owner, members = owner_rows[0]
-        actual_count = len(members)
+        owner, source_owner, direct_children = owner_rows[0]
+        member_domain = effective_requirement.member_domain
+        if member_domain == "concurrent_regions":
+            source_ir = pair.canonical_source_ir
+            if source_ir is None:
+                builder.checks.append(
+                    builder.receipt(
+                        "cardinality",
+                        (contract.contract_id,),
+                        status="unresolved",
+                        model_refs=(owner.ref,),
+                        source_refs=contract.source_refs,
+                        reason="The exact owner is bound, but canonical concurrent-region inventory is unavailable.",
+                        basis=(
+                            f"owner={source_owner.source_id}; member_domain=concurrent_regions; "
+                            "canonical_source_ir=null"
+                        ),
+                    )
+                )
+                continue
+            region_rows = [
+                region
+                for region in source_ir.model.concurrent_regions
+                if region.owner_scope == source_owner.source_id
+            ]
+            if region_rows:
+                actual_count = len(region_rows)
+                source_member_ids = tuple(
+                    dict.fromkeys(
+                        state_id
+                        for region in region_rows
+                        for state_id in region.state_ids
+                    )
+                )
+                source_members = [
+                    member
+                    for source_id in source_member_ids
+                    if (member := _source_state_by_id(pair, source_id)) is not None
+                ]
+                region_source_refs = tuple(
+                    dict.fromkeys(
+                        ref
+                        for region in region_rows
+                        for ref in (
+                            *region.separator_before_raw_refs,
+                            *region.separator_after_raw_refs,
+                        )
+                    )
+                )
+                inventory_ids = [region.id for region in region_rows]
+                observed = (
+                    f"For the normative scope '{contract.scope}', the primary "
+                    f"concurrent-region reading has {actual_count} explicit canonical "
+                    f"UML regions under {source_owner.source_id}: {inventory_ids}."
+                )
+                inventory_basis = (
+                    f"explicit_region_ids={inventory_ids}; "
+                    f"separator_refs={list(region_source_refs)}"
+                )
+            else:
+                actual_count = 1 if direct_children else 0
+                source_members = direct_children
+                region_source_refs = ()
+                inventory_ids = (
+                    [f"implicit-region:{source_owner.source_id}"]
+                    if direct_children
+                    else []
+                )
+                observed = (
+                    f"For the normative scope '{contract.scope}', the primary "
+                    f"concurrent-region reading has {actual_count} implicit UML region "
+                    f"under {source_owner.source_id}: no exact separator-derived region "
+                    f"rows exist and direct_children={[item.source_id for item in direct_children]}."
+                )
+                inventory_basis = (
+                    "explicit_region_ids=[]; implicit_region_count="
+                    f"{actual_count}; direct_children="
+                    f"{[item.source_id for item in direct_children]}"
+                )
+            domain_phrase = "canonical UML concurrent regions"
+            scope_phrase = (
+                f"the authored UML region partition of {owner.name}; a non-empty "
+                "composite without separators has one implicit region"
+            )
+            requirement_reason = (
+                "The NL contract establishes a finite structural-region member-domain "
+                "reading whose count can be compared with exact canonical separators "
+                "and the implicit single-region rule."
+            )
+            requirement_basis = (
+                "typed CardinalityRequirement plus exact canonical concurrent-region "
+                "rows and source direct-child inventory"
+            )
+            satisfied_reason = (
+                "The exact canonical UML region inventory, including the implicit "
+                "single-region rule when no separators exist, has the required finite cardinality."
+            )
+            candidate_reason = (
+                "The contract's scope, required count, and primary structural-region "
+                "domain are preserved, while canonical separators plus the implicit "
+                "single-region rule establish a different finite count and D retains "
+                "the operating-state alternative reading."
+            )
+            frontier_basis = (
+                "CardinalityRequirement and canonical source concurrent-region inventory"
+            )
+        else:
+            actual_count = len(direct_children)
+            source_members = direct_children
+            region_source_refs = ()
+            inventory_ids = [item.source_id for item in direct_children]
+            observed = (
+                f"For the normative scope '{contract.scope}', the primary direct-child "
+                f"reading has {actual_count} exact author-source children under "
+                f"{source_owner.source_id}: {inventory_ids}."
+            )
+            inventory_basis = f"members={inventory_ids}"
+            domain_phrase = "exact direct child states"
+            scope_phrase = f"the direct authored children of {owner.name}"
+            requirement_reason = (
+                "The NL contract establishes a finite direct-child member-domain reading "
+                "whose count can be compared with the complete exact source inventory."
+            )
+            requirement_basis = (
+                "typed CardinalityRequirement plus exact source parent/member rows"
+            )
+            satisfied_reason = (
+                "The complete exact author-source direct-child inventory has the required finite cardinality."
+            )
+            candidate_reason = (
+                "The contract's operating scope, required count, and primary direct-child "
+                "member domain are preserved, while the complete source inventory "
+                "establishes a different finite count and D retains any alternative reading."
+            )
+            frontier_basis = (
+                "CardinalityRequirement and canonical source direct-parent inventory"
+            )
+
         source_refs = tuple(
             dict.fromkeys(
                 [
                     *contract.source_refs,
                     source_owner.raw_ref,
-                    *[member.raw_ref for member in members],
+                    *[member.raw_ref for member in source_members],
+                    *region_source_refs,
                 ]
             )
         )
         model_members = [
             state
-            for member in members
+            for member in source_members
             if (state := _state_by_name(pair, member.name)) is not None
         ]
         model_refs = [owner.ref, *[item.ref for item in model_members]]
@@ -1447,12 +1587,21 @@ def _materialize_cardinality(
                     contract=contract,
                     model_refs=model_refs,
                     source_refs=source_refs,
-                    reason="The complete exact author-source direct-child inventory has the required finite cardinality.",
-                    basis=f"owner={source_owner.source_id}; required={effective_requirement.required_count}; actual={actual_count}; members={[item.source_id for item in members]}",
+                    reason=satisfied_reason,
+                    basis=(
+                        f"owner={source_owner.source_id}; member_domain={member_domain}; "
+                        f"required={effective_requirement.required_count}; actual={actual_count}; "
+                        f"{inventory_basis}"
+                    ),
                 )
             )
             continue
 
+        mismatch_direction: ViolationDirection = (
+            "missing"
+            if actual_count < effective_requirement.required_count
+            else "extra"
+        )
         derived = _derived_contract(
             contract,
             locus_kind="composite",
@@ -1460,53 +1609,43 @@ def _materialize_cardinality(
             property_name="cardinality",
             state_role=contract.state_role,
             expected_direction="must_cover",
-            violation_direction="missing",
+            violation_direction=mismatch_direction,
             evidence_types=("source_identity", "closed_model_inventory", "containment_fact", "semantic_comparison"),
             normative_statement=(
                 f"Within {contract.scope}, {owner.name} must realize "
                 f"{effective_requirement.required_count} {effective_requirement.member_concept}; "
-                "the primary typed reading counts exact direct child states."
+                f"the primary typed reading counts {domain_phrase}."
             ),
-            scope=(
-                f"{contract.scope}; primary member domain is the direct authored "
-                f"children of {owner.name}"
-            ),
+            scope=f"{contract.scope}; primary member domain is {scope_phrase}",
             source_refs=source_refs,
-            reason="The NL contract establishes a finite direct-child member-domain reading whose count can be compared with the complete exact source inventory.",
-            basis="typed CardinalityRequirement plus exact source parent/member rows",
+            reason=requirement_reason,
+            basis=requirement_basis,
             cardinality_requirement=effective_requirement,
         )
         candidate = _candidate(
             derived,
             title=(
                 f"{owner.name} realizes {actual_count}, not "
-                f"{effective_requirement.required_count}, state areas in the required "
-                "operating scope under the direct-child reading"
+                f"{effective_requirement.required_count}, {effective_requirement.member_concept} "
+                f"under the {member_domain} reading"
             ),
             predicate_id=None,
             predicate_inputs={},
             element_refs=model_refs,
             source_refs=source_refs,
             expected=derived.normative_statement,
-            observed=(
-                f"For the normative scope '{contract.scope}', the primary direct-child "
-                f"reading has {actual_count} exact author-source children under "
-                f"{source_owner.source_id}: "
-                f"{[item.source_id for item in members]}."
-            ),
+            observed=observed,
             strongest_rebuttal=(
                 effective_requirement.alternative_reading
                 or "No competing member-domain reading is recorded in the supplied cardinality contract."
             ),
-            reason=(
-                "The contract's operating scope, required count, and primary direct-child "
-                "member domain are preserved, while the complete source inventory "
-                "establishes a different finite count and D retains any alternative reading."
-            ),
+            reason=candidate_reason,
             basis=(
                 f"contract={contract.contract_id}; owner={source_owner.source_id}; "
+                f"member_domain={member_domain}; violation_direction={mismatch_direction}; "
                 f"required={effective_requirement.required_count}; actual={actual_count}; "
-                f"cardinality_binding_id={selected_binding.binding_id if selected_binding else None}"
+                f"cardinality_binding_id={selected_binding.binding_id if selected_binding else None}; "
+                f"{inventory_basis}"
             ),
         )
         builder.add(
@@ -1515,7 +1654,7 @@ def _materialize_cardinality(
             derived,
             candidate,
             reason="A typed finite cardinality requirement differs from the complete exact source member inventory.",
-            basis="CardinalityRequirement and canonical source direct-parent inventory",
+            basis=frontier_basis,
         )
         if contract.contract_id not in builder.superseded_candidate_contract_ids:
             builder.superseded_candidate_contract_ids.append(contract.contract_id)

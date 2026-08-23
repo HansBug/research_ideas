@@ -238,6 +238,63 @@ class CanonicalTransition(BaseModel):
     attributes: dict[str, Any] = Field(default_factory=dict, description="Structured canonical transition attributes retained for source localization.")
 
 
+class CanonicalConcurrentRegion(BaseModel):
+    """Canonical author-source partition for one UML concurrent region.
+
+    The PlantUML canonical adapter produces this row and source grounding plus the
+    deterministic frontier consume it.  It is authoritative only for the exact
+    authored owner, separator, state, and transition inventory.  It does not state
+    a normative requirement, closed-model behavior, predicate result, W/D/L level,
+    or judge relation.  A composite with no such rows can still have one implicit
+    UML region; that derived count belongs to the frontier, not this source row.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    schema_version: Literal["paper1.canonical-concurrent-region.v1"] = Field(
+        default="paper1.canonical-concurrent-region.v1",
+        description="该 canonical concurrent-region 行的 typed schema 版本；用于 artifact 与算法 provenance，不是源文件中的 region ID。",
+    )
+    id: str = Field(
+        min_length=1,
+        description="canonical adapter 为该显式 UML region 生成的稳定 source identity；下游只用于精确枚举，不把名称形状解释成语义。",
+    )
+    owner_scope: str | None = Field(
+        default=None,
+        description="该 region 的 exact canonical owner state ID；null 只表示 model 顶层 region，不表示 owner 未解析或可按名称补猜。",
+    )
+    region_index: int = Field(
+        ge=0,
+        description="同一 exact owner 内按 author-source 顺序排列的零基 region 序号；它是事实性位置，不是规范数量。",
+    )
+    separator_after_raw_refs: tuple[str, ...] = Field(
+        default_factory=tuple,
+        description="紧随该 region 的 exact PlantUML separator source refs；空集合表示其后没有显式 separator，不等于 region 不存在。",
+    )
+    separator_before_raw_refs: tuple[str, ...] = Field(
+        default_factory=tuple,
+        description="紧邻该 region 之前的 exact PlantUML separator source refs；首个显式 region 通常为空。",
+    )
+    state_ids: tuple[str, ...] = Field(
+        default_factory=tuple,
+        description="canonical source inventory 中归属该 region 的 exact state IDs；空集合允许表示没有 state declaration 的显式 region。",
+    )
+    transition_ids: tuple[str, ...] = Field(
+        default_factory=tuple,
+        description="canonical source inventory 中归属该 region 的 exact transition IDs；空集合表示没有 authored transition，不是行为满足结论。",
+    )
+    reason: str = Field(
+        default="This row preserves one explicit canonical author-source UML region without adding a semantic verdict.",
+        min_length=1,
+        description="解释该对象为何只是 canonical source partition fact，不具有 requirement、W、D 或 judge 权威。",
+    )
+    basis: str = Field(
+        default="canonical PlantUML source IR model.concurrent_regions",
+        min_length=1,
+        description="产生该行的 exact canonical artifact field；下游用 source artifact hash 复核其 provenance。",
+    )
+
+
 class CanonicalModel(BaseModel):
     """Typed source model portion of the canonical PlantUML IR."""
 
@@ -248,7 +305,10 @@ class CanonicalModel(BaseModel):
     timing_level: str = Field(default="unknown", description="Canonical timing classification; unknown is preserved rather than inferred.")
     initial_states: tuple[str, ...] = Field(default_factory=tuple, description="Canonical initial state identities.")
     final_states: tuple[str, ...] = Field(default_factory=tuple, description="Canonical explicit final state identities.")
-    concurrent_regions: tuple[dict[str, Any], ...] = Field(default_factory=tuple, description="Canonical concurrent-region facts, if any.")
+    concurrent_regions: tuple[CanonicalConcurrentRegion, ...] = Field(
+        default_factory=tuple,
+        description="显式 canonical UML region partitions；空集合表示没有 separator-derived region rows，frontier 仍可对有直接子状态的 exact owner 计算一个隐式 region。",
+    )
     variables: tuple[dict[str, Any], ...] = Field(default_factory=tuple, description="Canonical source variable facts, if any.")
     states: tuple[CanonicalState, ...] = Field(default_factory=tuple, description="Exact canonical source state inventory in source order.")
     transitions: tuple[CanonicalTransition, ...] = Field(default_factory=tuple, description="Exact canonical source transition inventory in source order.")
@@ -513,7 +573,11 @@ def _canonical_source_ir(payload: dict[str, Any]) -> CanonicalSourceIR:
             timing_level=str(model_payload.get("timing_level", "unknown")),
             initial_states=tuple(str(value) for value in model_payload.get("initial_states", ()) if value is not None),
             final_states=tuple(str(value) for value in model_payload.get("final_states", ()) if value is not None),
-            concurrent_regions=tuple(value for value in model_payload.get("concurrent_regions", ()) if isinstance(value, dict)),
+            concurrent_regions=tuple(
+                CanonicalConcurrentRegion.model_validate(value)
+                for value in model_payload.get("concurrent_regions", ())
+                if isinstance(value, dict)
+            ),
             variables=tuple(value for value in model_payload.get("variables", ()) if isinstance(value, dict)),
             states=tuple(CanonicalState.model_validate(value) for value in model_payload.get("states", ()) if isinstance(value, dict)),
             transitions=tuple(CanonicalTransition.model_validate(value) for value in model_payload.get("transitions", ()) if isinstance(value, dict)),
@@ -1132,10 +1196,17 @@ def _project_large_sequence(value: Any, *, label: str) -> dict[str, Any]:
 
     if not isinstance(value, (list, tuple, dict, str)):
         value = []
-    count = len(value)
+    if isinstance(value, (list, tuple)):
+        json_value: Any = [
+            item.model_dump(mode="json") if isinstance(item, BaseModel) else item
+            for item in value
+        ]
+    else:
+        json_value = value
+    count = len(json_value)
     return {
         "count": count,
-        "sha256": _artifact_hash_payload({"items": value}),
+        "sha256": _artifact_hash_payload({"items": json_value}),
         "label": label,
         "reason": "The complete sequence remains available through the hash-addressed artifact; only a repetition receipt is prompt-visible.",
         "basis": "stage-context-projection.v2 repetitive-sequence omission",

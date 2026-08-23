@@ -206,9 +206,12 @@ class CardinalityRequirement(BaseModel):
     member_domain: CardinalityMemberDomain = Field(
         description=(
             "NL 要计数的 typed 成员域：direct_child_states 表示一个 composite 的直接子状态，"
-            "concurrent_regions 表示显式并发 region，explicit_named_members 表示 NL 逐项点名的"
-            "有限集合，unresolved 表示多种称职读法尚未闭合。不得根据元素名称含 Region/State "
-            "或关键词形状选择成员域；grounding 必须用 supplied 语义与 exact inventory 绑定。"
+            "concurrent_regions 表示 UML structural region partitions：显式 separator 产生多个 region，"
+            "而有直接子状态但无 separator 的 composite 只有一个隐式 region；explicit_named_members "
+            "表示 NL 逐项点名的有限集合，unresolved 表示多种称职读法尚未闭合。若 primary 读法"
+            "要求 structural regions/areas，不得仅因 owner 内存在 operating child states 就改成 "
+            "direct_child_states；这些 states 可作为 alternative_reading。不得根据元素名称含 "
+            "Region/State 或关键词形状选择成员域；grounding 必须用 supplied 语义与 exact inventory 绑定。"
         ),
     )
     scope_concept: str = Field(
@@ -614,7 +617,9 @@ class CardinalityDomainBinding(BaseModel):
         description=(
             "规范成员概念的 primary typed domain；exact 时必须是 direct_child_states、"
             "concurrent_regions 或 explicit_named_members，ambiguous/unbound 时必须为 unresolved。"
-            "不得根据 observed count、元素名称后缀或 ledger 选择该值。"
+            "concurrent_regions 计 UML structural partitions，其中无 separator 的非空 composite 只有"
+            "一个隐式 region；不能因为它含多个 child operating states 就把 region requirement 改绑为"
+            "direct_child_states。不得根据 observed count、元素名称后缀或 ledger 选择该值。"
         ),
     )
     owner_source_id: str | None = Field(
@@ -1521,14 +1526,17 @@ in `alternative_reading` and is assessed later by D; its existence does not by
 itself make the primary binding ambiguous. Use `status=ambiguous` and
 `member_domain=unresolved` only when the supplied semantics genuinely do not
 support one primary reading. Select `concurrent_regions` when the supplied NL
-semantics establishes UML regions or concurrency as the primary member concept;
+semantics establishes UML structural regions/areas or concurrency as the primary member concept;
 do not require the author artifact to already contain a region separator or
 region object, because absence of a required construct is possible negative
-evidence. Conversely, do not infer concurrency from names or from an observed
-count. Use `direct_child_states` when the supplied discourse maps the member
-concept to directly owned child scopes, even if another competent operating-state
-reading remains. The deterministic frontier, not this response, enumerates the
-complete members and computes the observed count.
+evidence: a non-empty composite without separators has one implicit UML region,
+not one region per child state. Conversely, do not infer concurrency from names
+or from an observed count. Use `direct_child_states` only when the supplied
+discourse maps the primary member concept to directly owned child states/scopes;
+never select it merely because operating child states exist inside a structural
+region owner. Preserve such an operating-state interpretation as
+`alternative_reading` when it is also competent. The deterministic frontier,
+not this response, enumerates the complete members and computes the observed count.
 
 For a supplied transition group, compare all alternatives as one relation before
 checking each endpoint in isolation. When two semantically exclusive target

@@ -8,7 +8,11 @@ from pydantic import ValidationError
 from pipeline.evidence_discovery.backends import run_backend
 from pipeline.evidence_discovery.compiler import compile_plan
 from pipeline.evidence_discovery.evidence.witness_levels import calculate_witness_level
-from pipeline.evidence_discovery.inputs import PairInput, load_pair
+from pipeline.evidence_discovery.inputs import (
+    CanonicalConcurrentRegion,
+    PairInput,
+    load_pair,
+)
 from pipeline.evidence_discovery.registry import load_registry
 from pipeline.evidence_discovery.semantics import (
     CandidateIssue,
@@ -1475,6 +1479,8 @@ def test_0046_frontier_does_not_invent_owner_entry_without_operating_obligation(
 
 def _0046_cardinality_contract(
     member_domain: str = "direct_child_states",
+    *,
+    required_count: int = 3,
 ) -> NLContract:
     return _contract(
         contract_id="NL-CONTRACT-NL2-THREE-AREAS",
@@ -1490,7 +1496,7 @@ def _0046_cardinality_contract(
         ),
         state_role="operating_state",
         cardinality_requirement=CardinalityRequirement(
-            required_count=3,
+            required_count=required_count,
             member_domain=member_domain,
             scope_concept="UAV swarm state machine",
             member_concept="different state areas",
@@ -1544,11 +1550,122 @@ def test_0046_frontier_compares_typed_three_area_requirement_with_exact_two_chil
     )
     assert issue.locus_names == ("UAVSwarmStateMachine",)
     assert issue.property == "cardinality"
+    assert issue.violation_direction == "missing"
     assert issue.predicate_id is None
     assert contract.scope in issue.expected
     assert "primary direct-child reading has 2" in issue.observed
     assert "three named operating states" in issue.strongest_rebuttal
     assert batch.superseded_candidate_contract_ids == (contract.contract_id,)
+
+
+def test_0046_frontier_counts_one_implicit_concurrent_region_without_separators() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0046")
+    contract = _0046_cardinality_contract("concurrent_regions")
+    grounding = _0046_cardinality_binding(
+        contract,
+        member_domain="concurrent_regions",
+    )
+
+    batch = materialize_v27_frontier(
+        pair,
+        _response([contract]),
+        {contract.contract_id: contract},
+        (grounding,),
+        (),
+    )
+
+    obligation = next(item for item in batch.obligations if item.kind == "cardinality")
+    issue = obligation.candidate
+    assert issue.locus_names == ("UAVSwarmStateMachine",)
+    assert issue.property == "cardinality"
+    assert issue.violation_direction == "missing"
+    assert issue.predicate_id is None
+    assert "primary concurrent-region reading has 1 implicit UML region" in issue.observed
+    assert "no exact separator-derived region rows exist" in issue.observed
+    assert "named operating states" in issue.strongest_rebuttal
+    assert obligation.contract.cardinality_requirement is not None
+    assert (
+        obligation.contract.cardinality_requirement.member_domain
+        == "concurrent_regions"
+    )
+
+
+def test_cardinality_frontier_counts_explicit_regions_for_the_exact_owner() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0023")
+    contract = _contract(
+        contract_id="NL-CONTRACT-NL2-THREE-REGIONS",
+        segment_id="NL2",
+        locus_kind="composite",
+        locus_names=("PumpControl",),
+        property_name="cardinality",
+        expected_direction="must_cover",
+        violation_direction="missing",
+        hints=(_hint("owner", "PumpControl", "NL2"),),
+        state_role="operating_state",
+        cardinality_requirement=CardinalityRequirement(
+            required_count=3,
+            member_domain="concurrent_regions",
+            scope_concept="PumpControl",
+            member_concept="concurrent regions",
+            alternative_reading=None,
+            reason="The fixture establishes exactly three structural regions.",
+            basis="provider-free explicit-region fixture",
+        ),
+    )
+    owner = pair.model.state("PumpControl")
+    assert owner is not None
+    grounding = GroundingResponse(
+        lens="contract_structure_contrast",
+        cardinality_bindings=[
+            CardinalityDomainBinding(
+                binding_id="CARD-BIND-explicit-regions",
+                contract_id=contract.contract_id,
+                status="exact",
+                member_domain="concurrent_regions",
+                owner_source_id="PumpControl",
+                owner_model_ref=owner.ref,
+                alternative_reading=None,
+                reason="The typed fixture binds the exact structural-region owner.",
+                basis="0023 canonical owner and closed ModelIR owner ref",
+            )
+        ],
+        reason="The fixture supplies one exact explicit-region binding.",
+        basis="provider-free cardinality grounding fixture",
+    )
+
+    batch = materialize_v27_frontier(
+        pair,
+        _response([contract]),
+        {contract.contract_id: contract},
+        (grounding,),
+        (),
+    )
+
+    assert all(item.kind != "cardinality" for item in batch.obligations)
+    receipt = next(item for item in batch.checks if item.kind == "cardinality")
+    assert receipt.status == "satisfied"
+    assert "explicit_region_ids" in receipt.basis
+    assert "actual=3" in receipt.basis
+
+
+def test_cardinality_frontier_marks_over_count_as_extra_not_missing() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0046")
+    contract = _0046_cardinality_contract(required_count=1)
+    grounding = _0046_cardinality_binding(contract)
+
+    batch = materialize_v27_frontier(
+        pair,
+        _response([contract]),
+        {contract.contract_id: contract},
+        (grounding,),
+        (),
+    )
+
+    issue = next(
+        item.candidate for item in batch.obligations if item.kind == "cardinality"
+    )
+    assert "actual=2" in issue.basis
+    assert issue.violation_direction == "extra"
 
 
 def test_cardinality_frontier_keeps_unresolved_member_domain_unresolved() -> None:
@@ -1681,6 +1798,45 @@ def test_cardinality_frontier_refuses_conflicting_exact_domain_bindings() -> Non
     receipt = next(item for item in batch.checks if item.kind == "cardinality")
     assert receipt.status == "unresolved"
     assert "conflicting exact cardinality domains" in receipt.reason
+
+
+def test_cardinality_frontier_refuses_conflicting_exact_owner_bindings() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0046")
+    contract = _0046_cardinality_contract("unresolved")
+    root_binding = _0046_cardinality_binding(contract)
+    search_region = pair.model.state("SearchRegion")
+    assert search_region is not None
+    nested_binding = _0046_cardinality_binding(
+        contract,
+        lens="behavior_consequence",
+    ).model_copy(
+        update={
+            "cardinality_bindings": [
+                _0046_cardinality_binding(
+                    contract,
+                    lens="behavior_consequence",
+                ).cardinality_bindings[0].model_copy(
+                    update={
+                        "owner_source_id": "UAVSwarmStateMachine.SearchRegion",
+                        "owner_model_ref": search_region.ref,
+                    }
+                )
+            ]
+        }
+    )
+
+    batch = materialize_v27_frontier(
+        pair,
+        _response([contract]),
+        {contract.contract_id: contract},
+        (root_binding, nested_binding),
+        (),
+    )
+
+    assert all(item.kind != "cardinality" for item in batch.obligations)
+    receipt = next(item for item in batch.checks if item.kind == "cardinality")
+    assert receipt.status == "unresolved"
+    assert "conflicting exact cardinality domains or owners" in receipt.reason
 
 
 def test_cardinality_binding_follows_runner_canonical_contract_identity() -> None:
@@ -2821,6 +2977,14 @@ def test_frontier_pydantic_descriptions_reach_json_schema() -> None:
     assert "observed count" in grounding_schema["properties"][
         "cardinality_bindings"
     ]["description"]
+    region_schema = CanonicalConcurrentRegion.model_json_schema()
+    assert "Canonical author-source partition" in region_schema["description"]
+    assert "model 顶层 region" in region_schema["properties"]["owner_scope"][
+        "description"
+    ]
+    assert "规范数量" in region_schema["properties"]["region_index"][
+        "description"
+    ]
 
 
 def test_segment_coverage_is_complete_observable_audit_not_a_gate() -> None:

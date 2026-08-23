@@ -2,6 +2,7 @@
 
 from .loaders import FROZEN_PAIR_IDS, load_pair, load_pairs
 from .context import (
+    CanonicalConcurrentRegion,
     CanonicalSourceIR,
     ContextManifest,
     ExactSourceInventory,
@@ -17,6 +18,7 @@ __all__ = [
     "ModelIR",
     "PairInput",
     "Transition",
+    "CanonicalConcurrentRegion",
     "CanonicalSourceIR",
     "ContextManifest",
     "ExactSourceInventory",
