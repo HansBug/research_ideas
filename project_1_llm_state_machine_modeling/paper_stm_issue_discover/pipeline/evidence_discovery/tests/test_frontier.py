@@ -2290,6 +2290,86 @@ def test_0004_source_certificate_restores_stopping_dead_end() -> None:
     assert [hint.role for hint in stopping.contract.binding_hints] == ["state"]
 
 
+def test_0004_frontier_preserves_malformed_self_initial_identity() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0004")
+    contract = _contract(
+        contract_id="NL-CONTRACT-NL1-ROOT-DOORSCLOSING",
+        segment_id="NL1",
+        locus_kind="scope",
+        locus_names=("system", "DoorsClosing"),
+        property_name="initial_entry",
+        expected_direction="must_enter",
+        violation_direction="missing",
+        hints=(
+            _hint("owner", "system", "NL1"),
+            _hint("target", "DoorsClosing", "NL1"),
+        ),
+        state_role="initial_state",
+    )
+    response = _response([contract])
+
+    batch = materialize_v27_frontier(
+        pair,
+        response,
+        {contract.contract_id: contract},
+        (),
+        (),
+    )
+
+    malformed = next(
+        item
+        for item in batch.obligations
+        if item.kind == "owner_initial_entry"
+        and item.candidate.violation_direction == "wrong_target"
+    )
+    assert malformed.source_contract_ids == (contract.contract_id,)
+    assert malformed.candidate.locus_kind == "composite"
+    assert malformed.candidate.locus_names == ("DoorsClosing",)
+    assert malformed.candidate.property == "initial_entry"
+    assert malformed.candidate.predicate_id is None
+    assert malformed.candidate.element_refs == [
+        pair.model.state("DoorsClosing").ref,
+        pair.model.transition("transition:line:10").ref,
+        pair.model.state("InvalidInitialtr_0002").ref,
+    ]
+    assert "@initial:DoorsClosing->DoorsClosing" in malformed.candidate.observed
+    assert any(ref.endswith("puml:line:5") for ref in malformed.candidate.source_refs)
+    assert bind_candidate(malformed.candidate, pair.model).precise is True
+
+
+def test_malformed_source_initial_frontier_rejects_valid_descendant_entry() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0004")
+    contract = _contract(
+        contract_id="NL-CONTRACT-NL5-INMOTION-ACCELERATING",
+        segment_id="NL5",
+        locus_kind="composite",
+        locus_names=("InMotion", "Accelerating"),
+        property_name="initial_entry",
+        expected_direction="must_enter",
+        violation_direction="missing",
+        hints=(
+            _hint("owner", "InMotion", "NL5"),
+            _hint("target", "Accelerating", "NL5"),
+        ),
+        state_role="initial_state",
+    )
+    response = _response([contract])
+
+    batch = materialize_v27_frontier(
+        pair,
+        response,
+        {contract.contract_id: contract},
+        (),
+        (),
+    )
+
+    assert not any(
+        item.kind == "owner_initial_entry"
+        and item.candidate.violation_direction == "wrong_target"
+        for item in batch.obligations
+    )
+
+
 def test_source_deadlock_certificate_rejects_unsound_or_unbound_states() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0004")
     source_ir = pair.canonical_source_ir

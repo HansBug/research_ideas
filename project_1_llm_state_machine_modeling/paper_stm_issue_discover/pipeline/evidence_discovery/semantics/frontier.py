@@ -230,9 +230,9 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v16"] = Field(
-        default="v27-typed-frontier.v16",
-        description="产生该检查的确定性算法版本；v16 增加 v27 source deadlock certificate、typed event/guard carrier 和 shared-variable data aggregate，不表示旧谓词或旧 inspect 后端。",
+    algorithm_version: Literal["v27-typed-frontier.v17"] = Field(
+        default="v27-typed-frontier.v17",
+        description="产生该检查的确定性算法版本；v17 增加 exact malformed source initial-entry identity，且保留 v16 的 source deadlock、typed event/guard 与 shared-variable aggregate；不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
         min_length=1,
@@ -319,9 +319,9 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v16"] = Field(
-        default="v27-typed-frontier.v16",
-        description="本批所有 check/obligation 使用的确定性算法版本；v16 增加 source-certified deadlock、event/guard carrier 与 shared-variable data aggregate。",
+    algorithm_version: Literal["v27-typed-frontier.v17"] = Field(
+        default="v27-typed-frontier.v17",
+        description="本批所有 check/obligation 使用的确定性算法版本；v17 增加 malformed owner-local source initial-entry identity，并保留 v16 的 source deadlock、event/guard 与 shared-variable aggregate。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
         default_factory=tuple,
@@ -662,6 +662,28 @@ def _source_direct_children(
         for item in pair.exact_source_inventory.states
         if item.parent == owner.source_id
     ]
+
+
+def _source_is_descendant(
+    pair: PairInput,
+    child: SourceInventoryState,
+    owner: SourceInventoryState,
+) -> bool:
+    """Return exact canonical-source ancestry without interpreting names."""
+
+    inventory = pair.exact_source_inventory
+    if inventory is None or child.source_id == owner.source_id:
+        return False
+    states = {item.source_id: item for item in inventory.states}
+    cursor = child.parent
+    seen: set[str] = set()
+    while cursor and cursor not in seen:
+        if cursor == owner.source_id:
+            return True
+        seen.add(cursor)
+        parent = states.get(cursor)
+        cursor = parent.parent if parent is not None else None
+    return False
 
 
 def _source_initial_transitions(
@@ -1487,11 +1509,148 @@ def _materialize_cardinality(
             builder.superseded_candidate_contract_ids.append(contract.contract_id)
 
 
+def _materialize_malformed_source_initial_entries(
+    builder: _Builder,
+    contracts: Sequence[NLContract],
+) -> None:
+    """Materialize exact self-targeting or out-of-owner source initial edges."""
+
+    pair = builder.pair
+    if pair.exact_source_inventory is None:
+        return
+    for base in contracts:
+        if base.property != "initial_entry":
+            continue
+        target_hint = _hint(base, "target") or _hint(base, "state")
+        target = _state_for_value(pair, target_hint.value if target_hint else None)
+        source_owner = _source_state_by_name(pair, target.name if target else None)
+        if (
+            target is None
+            or source_owner is None
+            or source_owner.kind != "composite"
+        ):
+            continue
+        source_initial = _source_initial_transitions(pair, source_owner)
+        invalid_rows: list[
+            tuple[SourceInventoryTransition, SourceInventoryState]
+        ] = []
+        for transition in source_initial:
+            source_target = _source_state_by_id(pair, transition.target)
+            if source_target is None:
+                continue
+            if not _source_is_descendant(pair, source_target, source_owner):
+                invalid_rows.append((transition, source_target))
+        if not invalid_rows:
+            continue
+
+        model_initial = _initial_transitions(pair, target)
+        model_target_refs = tuple(
+            ref
+            for transition in model_initial
+            if (ref := _transition_target_ref(pair, transition))
+        )
+        owner_hint = ContractBindingHint(
+            role="owner",
+            value=target.name,
+            source_ref=base.segment_id,
+            reason="The NL initial-state contract binds the exact composite whose owner-local source entry is audited.",
+            basis=f"anchor_contract={base.contract_id}; owner_ref={target.ref}; source_owner={source_owner.source_id}",
+        )
+        source_refs = tuple(
+            dict.fromkeys(
+                [
+                    *base.source_refs,
+                    source_owner.raw_ref,
+                    *[transition.raw_ref for transition, _ in invalid_rows],
+                ]
+            )
+        )
+        derived = _derived_contract(
+            base,
+            locus_kind="composite",
+            locus_names=(target.name,),
+            property_name="initial_entry",
+            state_role="initial_state",
+            expected_direction="must_enter",
+            violation_direction="wrong_target",
+            evidence_types=(
+                "source_identity",
+                "closed_model_inventory",
+                "initial_entry_fact",
+                "transition_fact",
+                "containment_fact",
+            ),
+            normative_statement=(
+                f"The owner-local initial edge of composite {target.name} must enter "
+                "a state strictly inside that composite, never the owner itself or "
+                "a state outside its subtree."
+            ),
+            scope=f"Owner-local initialization of {target.name}",
+            source_refs=source_refs,
+            reason=(
+                "The NL activates this exact composite, and the canonical author "
+                "source exposes its complete owner-local initial relation."
+            ),
+            basis=(
+                "typed initial-state anchor plus exact canonical-source owner, target, "
+                "and parent identities"
+            ),
+        ).model_copy(update={"binding_hints": (owner_hint,)})
+        derived = derived.model_copy(
+            update={"contract_id": canonical_contract_id(derived)}
+        )
+        source_relations = [
+            f"{transition.source}->{source_target.source_id}"
+            for transition, source_target in invalid_rows
+        ]
+        model_targets = [transition.target for transition in model_initial]
+        candidate = _candidate(
+            derived,
+            title=f"{target.name} has a malformed owner-local initial target",
+            predicate_id=None,
+            predicate_inputs={},
+            element_refs=(
+                target.ref,
+                *[transition.ref for transition in model_initial],
+                *model_target_refs,
+            ),
+            source_refs=source_refs,
+            expected=derived.normative_statement,
+            observed=(
+                f"Canonical source owner-local initial relations are {source_relations}; "
+                f"the closed model records owner-local targets {model_targets}."
+            ),
+            strongest_rebuttal=(
+                "A separate root entry into the composite activates only the outer "
+                "state and cannot repair a self-targeting or out-of-subtree owner-local entry."
+            ),
+            reason=(
+                "At least one exact owner-local source initial edge targets the owner "
+                "itself or another state that is not its descendant."
+            ),
+            basis=(
+                f"source_owner={source_owner.source_id}; "
+                f"source_initial_refs={[row.raw_ref for row, _ in invalid_rows]}; "
+                f"model_initial_refs={[row.ref for row in model_initial]}; "
+                f"model_target_refs={list(model_target_refs)}"
+            ),
+        )
+        builder.add(
+            "owner_initial_entry",
+            (base.contract_id,),
+            derived,
+            candidate,
+            reason="An exact canonical-source owner-local initial edge leaves the strict descendant target domain.",
+            basis="typed composite activation anchor and exact source/model initial inventories",
+        )
+
+
 def _materialize_initial_entries(
     builder: _Builder,
     contracts: Sequence[NLContract],
     groups: Sequence[NLTransitionGroup],
 ) -> None:
+    _materialize_malformed_source_initial_entries(builder, contracts)
     pair = builder.pair
     violations: list[
         tuple[NLContract, NLContract, CandidateIssue, StateNode | None, StateNode]
