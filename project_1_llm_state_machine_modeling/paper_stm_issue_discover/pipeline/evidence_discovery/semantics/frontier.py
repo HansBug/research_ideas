@@ -230,9 +230,9 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v18"] = Field(
-        default="v27-typed-frontier.v18",
-        description="产生该检查的确定性算法版本；v18 允许 shared-variable aggregate 使用 exact typed state locus 绑定 carrier，且保留 v17 的 malformed owner-local initial identity；不表示旧谓词或旧 inspect 后端。",
+    algorithm_version: Literal["v27-typed-frontier.v19"] = Field(
+        default="v27-typed-frontier.v19",
+        description="产生该检查的确定性算法版本；v19 合并同一 exact cardinality owner/domain 的跨 lens 竞争读法，且保留 v18 的 typed state-locus carrier fallback；不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
         min_length=1,
@@ -319,9 +319,9 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v18"] = Field(
-        default="v27-typed-frontier.v18",
-        description="本批所有 check/obligation 使用的确定性算法版本；v18 增加 exact typed state-locus carrier fallback，并保留 v17 的 malformed owner-local initial identity。",
+    algorithm_version: Literal["v27-typed-frontier.v19"] = Field(
+        default="v27-typed-frontier.v19",
+        description="本批所有 check/obligation 使用的确定性算法版本；v19 保留同一 cardinality owner/domain 的跨 lens 竞争读法，并保留 v18 的 typed state-locus carrier fallback。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
         default_factory=tuple,
@@ -1278,13 +1278,18 @@ def _materialize_cardinality(
                 )
                 continue
             selected_binding = exact_bindings[0]
+            alternative_reading = next(
+                (
+                    binding.alternative_reading
+                    for binding in exact_bindings
+                    if binding.alternative_reading is not None
+                ),
+                requirement.alternative_reading,
+            )
             effective_requirement = requirement.model_copy(
                 update={
                     "member_domain": selected_binding.member_domain,
-                    "alternative_reading": (
-                        selected_binding.alternative_reading
-                        or requirement.alternative_reading
-                    ),
+                    "alternative_reading": alternative_reading,
                     "reason": "Grounding selected one primary typed member domain from supplied NL/source semantics while retaining any competing competent reading for D.",
                     "basis": "numbered NL CardinalityRequirement plus exact CardinalityDomainBinding; observed count was not used to choose the domain",
                 }
@@ -1315,11 +1320,18 @@ def _materialize_cardinality(
                 selected_binding = agreeing_bindings[0]
                 if (
                     effective_requirement.alternative_reading is None
-                    and selected_binding.alternative_reading is not None
+                    and any(
+                        binding.alternative_reading is not None
+                        for binding in agreeing_bindings
+                    )
                 ):
                     effective_requirement = requirement.model_copy(
                         update={
-                            "alternative_reading": selected_binding.alternative_reading
+                            "alternative_reading": next(
+                                binding.alternative_reading
+                                for binding in agreeing_bindings
+                                if binding.alternative_reading is not None
+                            )
                         }
                     )
 

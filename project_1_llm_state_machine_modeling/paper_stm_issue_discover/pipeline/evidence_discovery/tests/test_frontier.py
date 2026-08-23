@@ -1626,6 +1626,39 @@ def test_0046_grounding_binding_closes_unresolved_cardinality_domain() -> None:
     assert contract.contract_id in batch.superseded_candidate_contract_ids
 
 
+def test_cardinality_frontier_merges_alternative_reading_across_agreeing_lenses() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0046")
+    contract = _0046_cardinality_contract("unresolved")
+    without_alternative = _0046_cardinality_binding(contract).model_copy(
+        update={
+            "cardinality_bindings": [
+                _0046_cardinality_binding(contract).cardinality_bindings[0].model_copy(
+                    update={"alternative_reading": None}
+                )
+            ]
+        }
+    )
+    with_alternative = _0046_cardinality_binding(
+        contract,
+        lens="behavior_consequence",
+    )
+
+    batch = materialize_v27_frontier(
+        pair,
+        _response([contract]),
+        {contract.contract_id: contract},
+        (without_alternative, with_alternative),
+        (),
+    )
+
+    obligation = next(item for item in batch.obligations if item.kind == "cardinality")
+    assert "named operating states" in obligation.candidate.strongest_rebuttal
+    assert obligation.contract.cardinality_requirement is not None
+    assert "named operating states" in (
+        obligation.contract.cardinality_requirement.alternative_reading or ""
+    )
+
+
 def test_cardinality_frontier_refuses_conflicting_exact_domain_bindings() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0046")
     contract = _0046_cardinality_contract("unresolved")
