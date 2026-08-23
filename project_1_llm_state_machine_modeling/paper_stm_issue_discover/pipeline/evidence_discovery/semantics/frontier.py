@@ -59,6 +59,8 @@ FrontierKind = Literal[
     "reachable_dead_end",
     "cross_wrapper_reachability",
     "aggregate_zero_behavior",
+    "transition_guard_presence",
+    "aggregate_data_semantics",
 ]
 
 
@@ -114,10 +116,10 @@ class TransitionAlternativeSemanticKey(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.transition-alternative-key.v1"] = Field(default="paper1.transition-alternative-key.v1", description="Alternative semantic key 的 schema 版本。")
+    schema_version: Literal["paper1.transition-alternative-key.v2"] = Field(default="paper1.transition-alternative-key.v2", description="Alternative semantic key 的 schema 版本；v2 分离 event 与 guard。")
     target_name: str = Field(min_length=1, description="LLM 已完成 discourse binding 的规范目标；顺序和精确值参与 identity。")
-    condition: str | None = Field(default=None, min_length=1, description="完整规范条件；null 表示 typed unconditional alternative，不与空字符串等价。")
-    condition_role: Literal["event", "qualified_guard", "unknown"] | None = Field(default=None, description="条件的 typed semantic role；null 仅用于无条件 alternative。")
+    event: str | None = Field(default=None, min_length=1, description="独立规范 event identity；null 表示该 relation 未建立 event，不是 observed trigger 结论。")
+    guard: str | None = Field(default=None, min_length=1, description="独立规范 guard；可与 event 同时存在，null 表示该 relation 未建立 guard。")
 
 
 class TransitionGroupSemanticKey(BaseModel):
@@ -125,7 +127,7 @@ class TransitionGroupSemanticKey(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.transition-group-key.v2"] = Field(default="paper1.transition-group-key.v2", description="Transition group semantic key 的 schema 版本；v2 将 LLM-authorized common owner 纳入 identity。")
+    schema_version: Literal["paper1.transition-group-key.v3"] = Field(default="paper1.transition-group-key.v3", description="Transition group semantic key 的 schema 版本；v3 以独立 event/guard member identity 替换单一 condition role。")
     segment_id: str = Field(pattern=r"^NL[0-9]+(?:\.[0-9]+)?$", description="建立该 relation 的精确 numbered NL segment。")
     source_name: str = Field(min_length=1, description="LLM discourse-resolved shared source；不得由 enclosing owner 自动替代。")
     common_enclosing_owner_name: str | None = Field(default=None, min_length=1, description="LLM 明确建立的完整 sibling-group owner；null 表示该 relation 不授权 containment expansion。")
@@ -204,8 +206,8 @@ class GroupIdentityNormalizationReceipt(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.group-identity-normalization.v2"] = Field(default="paper1.group-identity-normalization.v2", description="Group identity normalization receipt 的 schema 版本；v2 记录 common-owner identity。")
-    algorithm_version: Literal["typed-transition-group-identity.v2"] = Field(default="typed-transition-group-identity.v2", description="canonical group/alternative IDs 的确定性算法版本；v2 将 common owner 纳入 group key。")
+    schema_version: Literal["paper1.group-identity-normalization.v3"] = Field(default="paper1.group-identity-normalization.v3", description="Group identity normalization receipt 的 schema 版本；v3 记录 event/guard-separated member identity。")
+    algorithm_version: Literal["typed-transition-group-identity.v3"] = Field(default="typed-transition-group-identity.v3", description="canonical group/alternative IDs 的确定性算法版本；v3 使用 target、event、guard 和 common owner。")
     lens: Literal["contract_structure_contrast", "behavior_consequence"] = Field(description="产生原始 additional group 的 grounding lens；仅用于 provenance。")
     raw_group_id: str = Field(min_length=1, description="provider 返回的 branch-local group ID；不再决定下游身份。")
     canonical_group_id: str = Field(min_length=1, description="runner 根据 TransitionGroupSemanticKey 生成的权威 group ID。")
@@ -228,9 +230,9 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v15"] = Field(
-        default="v27-typed-frontier.v15",
-        description="产生该检查的确定性算法版本；v15 消费 termination contract 及同 segment completion endpoint 的 typed owner/target role，不表示旧谓词或旧 inspect 后端。",
+    algorithm_version: Literal["v27-typed-frontier.v16"] = Field(
+        default="v27-typed-frontier.v16",
+        description="产生该检查的确定性算法版本；v16 增加 v27 source deadlock certificate、typed event/guard carrier 和 shared-variable data aggregate，不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
         min_length=1,
@@ -317,9 +319,9 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v15"] = Field(
-        default="v27-typed-frontier.v15",
-        description="本批所有 check/obligation 使用的确定性算法版本；v15 消费 termination contract 及同 segment completion endpoint 的 typed owner/target role。",
+    algorithm_version: Literal["v27-typed-frontier.v16"] = Field(
+        default="v27-typed-frontier.v16",
+        description="本批所有 check/obligation 使用的确定性算法版本；v16 增加 source-certified deadlock、event/guard carrier 与 shared-variable data aggregate。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
         default_factory=tuple,
@@ -379,8 +381,8 @@ def transition_group_semantic_key(
         alternatives=tuple(
             TransitionAlternativeSemanticKey(
                 target_name=item.target_name,
-                condition=item.condition,
-                condition_role=item.condition_role,
+                event=item.event,
+                guard=item.guard,
             )
             for item in group.alternatives
         ),
@@ -404,8 +406,8 @@ def _canonicalize_transition_group(
     for index, alternative in enumerate(group.alternatives, start=1):
         alternative_payload = TransitionAlternativeSemanticKey(
             target_name=alternative.target_name,
-            condition=alternative.condition,
-            condition_role=alternative.condition_role,
+            event=alternative.event,
+            guard=alternative.guard,
         ).model_dump(mode="json")
         canonical_alternative_id = (
             f"ALT-{index}-{_hash_payload([canonical_group_id, alternative_payload])}"
@@ -1941,6 +1943,194 @@ def _materialize_scope_entries(
         )
 
 
+def _operating_state_contracts(
+    pair: PairInput,
+    contracts: Sequence[NLContract],
+) -> dict[str, list[NLContract]]:
+    """Index exact operating-state anchors without interpreting contract prose."""
+
+    result: dict[str, list[NLContract]] = defaultdict(list)
+    for contract in contracts:
+        if contract.state_role != "operating_state":
+            continue
+        hints = [
+            hint
+            for hint in contract.binding_hints
+            if hint.role in {"state", "target"}
+        ]
+        states = {
+            state.ref: state
+            for hint in hints
+            if (state := _state_for_value(pair, hint.value)) is not None
+        }
+        if not states and len(contract.locus_names) == 1:
+            state = _state_for_value(pair, contract.locus_names[0])
+            if state is not None:
+                states[state.ref] = state
+        for state_ref in states:
+            result[state_ref].append(contract)
+    return result
+
+
+def _materialize_source_dead_ends(
+    builder: _Builder,
+    contracts: Sequence[NLContract],
+) -> None:
+    """Restore v27's source-certified reachable non-final deadlock frontier.
+
+    The closed-model inspection fact identifies a reachable leaf. The canonical
+    author source independently closes the sequential soundness fragment. An NL
+    contract is required only as an exact operating-state identity anchor; it is
+    not rewritten into a fabricated NL progress requirement.
+    """
+
+    pair = builder.pair
+    facts = pair.inspection_facts
+    source_ir = pair.canonical_source_ir
+    if facts is None or source_ir is None or pair.exact_source_inventory is None:
+        return
+    anchors_by_ref = _operating_state_contracts(pair, contracts)
+    source_states = {item.id: item for item in source_ir.model.states}
+    source_transitions = {item.id: item for item in source_ir.model.transitions}
+    final_states = set(source_ir.model.final_states)
+
+    for state_fact in facts.states:
+        if (
+            not state_fact.reachable_from_initial
+            or state_fact.outgoing_transition_refs
+            or state_fact.is_composite
+        ):
+            continue
+        state = _state_by_ref(pair, state_fact.state_ref)
+        anchors = anchors_by_ref.get(state_fact.state_ref, [])
+        if state is None or not anchors:
+            continue
+        source_matches = [
+            item
+            for item in pair.exact_source_inventory.states
+            if item.name == state.name
+        ]
+        if len(source_matches) != 1:
+            continue
+        source_state = source_matches[0]
+        canonical_state = source_states.get(source_state.source_id)
+        source_path = _source_path(pair, source_state.source_id)
+        if canonical_state is None or source_path is None:
+            continue
+
+        ancestor_ids: list[str] = []
+        cursor: str | None = source_state.source_id
+        while cursor and cursor in source_states:
+            ancestor_ids.append(cursor)
+            cursor = source_states[cursor].parent
+        inherited_outgoing = [
+            transition
+            for transition in source_transitions.values()
+            if transition.source in ancestor_ids
+            and transition.attributes.get("transition_kind") != "initial"
+        ]
+        path_transitions = [
+            source_transitions[transition_id]
+            for transition_id in source_path[1]
+            if transition_id in source_transitions
+        ]
+        assumptions = {
+            "target_identity_resolved_exactly": True,
+            "target_is_root_level": canonical_state.parent is None,
+            "path_has_no_guards": len(path_transitions) == len(source_path[1])
+            and all(item.guard is None for item in path_transitions),
+            "no_concurrent_regions": not source_ir.model.concurrent_regions,
+        }
+        explicit_final = source_state.source_id in final_states
+        sound_for_claim = all(assumptions.values())
+        if not sound_for_claim or explicit_final or inherited_outgoing:
+            continue
+
+        base = anchors[0]
+        state_hint = ContractBindingHint(
+            role="state",
+            value=state.name,
+            source_ref=base.segment_id,
+            reason="The supplied operating-state contract binds this exact author/source and closed-model state identity.",
+            basis=f"anchor_contract={base.contract_id}; state_ref={state.ref}; source_id={source_state.source_id}",
+        )
+        derived = _derived_contract(
+            base,
+            locus_kind="state",
+            locus_names=(state.name,),
+            property_name="deadlock_freedom",
+            state_role="operating_state",
+            expected_direction="must_progress",
+            violation_direction="dead_end",
+            evidence_types=(
+                "source_identity",
+                "closed_model_inventory",
+                "reachability_fact",
+                "deadlock_frontier_fact",
+                "verify_fact",
+            ),
+            normative_statement=(
+                f"The author-specified reachable non-final operating state {state.name} "
+                "must not terminate without an inherited continuation."
+            ),
+            scope=f"Source-certified operational continuation of {state.name}",
+            source_refs=tuple(
+                dict.fromkeys(
+                    [
+                        *_source_refs(anchors),
+                        source_state.raw_ref,
+                        *[item.raw_ref for item in path_transitions],
+                    ]
+                )
+            ),
+            reason=(
+                "The typed operating-state identity and the v27 sequential source "
+                "certificate establish a domain deadlock obligation independently "
+                "of an NL-only progress contract."
+            ),
+            basis=(
+                "exact inspection reachable-leaf fact plus canonical source "
+                "reachability, final-state, inherited-outgoing, guard, and concurrency inventory"
+            ),
+        ).model_copy(update={"binding_hints": (state_hint,)})
+        derived = derived.model_copy(update={"contract_id": canonical_contract_id(derived)})
+        candidate = _candidate(
+            derived,
+            title=f"{state.name} is a source-certified reachable dead end",
+            predicate_id="V4",
+            predicate_inputs={"initial_scope": state.name},
+            element_refs=(state.ref,),
+            source_refs=derived.source_refs,
+            expected=derived.normative_statement,
+            observed=(
+                f"{state.ref} is reachable_from_initial=true with outgoing_transition_refs=[]; "
+                f"source target {source_state.source_id} is reachable, explicit_final=false, "
+                "and inherited_outgoing=[]."
+            ),
+            strongest_rebuttal=(
+                "A terminal reading is not supported by an explicit final declaration, "
+                "guarded-only path, concurrent region, inherited transition, or unresolved identity."
+            ),
+            reason=(
+                "The exact closed-model leaf and independent author-source certificate "
+                "establish the same reachable non-final no-continuation claim."
+            ),
+            basis=(
+                f"state_ref={state.ref}; source_id={source_state.source_id}; "
+                f"source_path={source_path}; assumptions={assumptions}; "
+                f"inspection={facts.algorithm_version}"
+            ),
+        )
+        builder.add(
+            "reachable_dead_end",
+            tuple(contract.contract_id for contract in anchors),
+            derived,
+            candidate,
+            reason="A v27 source certificate closes one exact reachable non-final deadlock fragment.",
+            basis="typed operating-state anchor and exact source/inspection finite-graph facts",
+        )
+
+
 def _materialize_dead_ends(builder: _Builder, contracts: Sequence[NLContract]) -> None:
     pair = builder.pair
     for contract in contracts:
@@ -1991,6 +2181,7 @@ def _materialize_dead_ends(builder: _Builder, contracts: Sequence[NLContract]) -
             reason="An explicit operating-state obligation is bound to a reachable leaf with no outgoing transition.",
             basis="typed state role plus inspection-equivalent deadlock frontier",
         )
+    _materialize_source_dead_ends(builder, contracts)
 
 
 def _source_state_id(pair: PairInput, state: StateNode) -> str | None:
@@ -2486,7 +2677,7 @@ def _materialize_group_collisions(
         if len(rows) < 2:
             continue
         normative_conditions = {
-            (item.condition_role, item.condition) for item, _transition in rows
+            (item.event, item.guard) for item, _transition in rows
         }
         signatures = {
             (transition.triggers, transition.guard) for _item, transition in rows
@@ -2525,7 +2716,7 @@ def _materialize_group_collisions(
             expected=derived.normative_statement,
             observed=f"The exact transitions {[transition.ref for _, transition in rows]} share trigger/guard signature {next(iter(signatures))}.",
             strongest_rebuttal="Individual endpoint existence does not establish that distinct alternatives are distinguishable.",
-            reason="Distinct typed conditions map to multiple exact targets whose closed transition signatures are identical.",
+            reason="Distinct typed event/guard alternatives map to multiple exact targets whose closed transition signatures are identical.",
             basis=f"group={group.group_id}; normative_conditions={sorted(map(str, normative_conditions))}; transition_refs={[transition.ref for _, transition in rows]}",
         )
         builder.add(
@@ -2549,6 +2740,140 @@ def _materialize_group_collisions(
         )
 
 
+def _materialize_group_guards(
+    builder: _Builder,
+    groups: Sequence[NLTransitionGroup],
+    contracts: Sequence[NLContract],
+) -> None:
+    """Materialize missing guards from the typed event+guard group projection."""
+
+    pair = builder.pair
+    for group in groups:
+        source = _state_for_value(pair, group.source_name)
+        if source is None:
+            continue
+        for alternative in group.alternatives:
+            if alternative.guard is None:
+                continue
+            target = _state_for_value(pair, alternative.target_name)
+            if target is None:
+                continue
+            matches = [
+                item
+                for item in pair.model.transitions
+                if item.source == source.name and item.target == target.name
+            ]
+            if len(matches) != 1:
+                continue
+            transition = matches[0]
+            base = _group_base_contract(group, source, contracts)
+            if base is None:
+                continue
+            if transition.guard is not None:
+                builder.checks.append(
+                    builder.receipt(
+                        "transition_guard_presence",
+                        (base.contract_id,),
+                        status="not_applicable",
+                        contract=base,
+                        model_refs=(source.ref, target.ref, transition.ref),
+                        source_refs=(*group.source_refs, *alternative.source_refs),
+                        reason="The exact carrier has a guard, so the deterministic missing-guard frontier does not emit a candidate; semantic guard equivalence remains a separate grounding question.",
+                        basis=f"transition_ref={transition.ref}; guard={transition.guard!r}",
+                    )
+                )
+                continue
+
+            hints = [
+                ContractBindingHint(
+                    role="source",
+                    value=source.name,
+                    source_ref=group.segment_id,
+                    reason="The typed transition group binds the exact shared source.",
+                    basis=f"group={group.group_id}; source_ref={source.ref}",
+                ),
+                ContractBindingHint(
+                    role="target",
+                    value=target.name,
+                    source_ref=group.segment_id,
+                    reason="This typed alternative binds one exact normative target.",
+                    basis=f"alternative={alternative.alternative_id}; target_ref={target.ref}",
+                ),
+                ContractBindingHint(
+                    role="guard",
+                    value=alternative.guard,
+                    source_ref=group.segment_id,
+                    reason="The alternative carries an independent normative guard in addition to any event.",
+                    basis=f"alternative={alternative.alternative_id}; supplied transition-group guard field",
+                ),
+            ]
+            if alternative.event is not None:
+                hints.append(
+                    ContractBindingHint(
+                        role="event",
+                        value=alternative.event,
+                        source_ref=group.segment_id,
+                        reason="The alternative carries this event independently from its guard.",
+                        basis=f"alternative={alternative.alternative_id}; supplied transition-group event field",
+                    )
+                )
+            derived = _derived_contract(
+                base,
+                locus_kind="transition",
+                locus_names=(source.name, target.name),
+                property_name="guard",
+                state_role=base.state_role,
+                expected_direction="must_exist",
+                violation_direction="missing",
+                evidence_types=(
+                    "source_identity",
+                    "closed_model_inventory",
+                    "transition_fact",
+                    "guard_fact",
+                ),
+                normative_statement=(
+                    f"The exact {source.name} to {target.name} alternative must retain "
+                    f"the independent guard {alternative.guard!r}."
+                ),
+                scope=f"Guard carrier {source.name} -> {target.name}",
+                source_refs=tuple(
+                    dict.fromkeys([*group.source_refs, *alternative.source_refs])
+                ),
+                reason="The typed relation separately establishes an event and guard, allowing exact carrier guard-presence audit.",
+                basis="NLTransitionAlternative.guard and exact ModelIR transition endpoint identity",
+            ).model_copy(update={"binding_hints": tuple(hints)})
+            derived = derived.model_copy(
+                update={"contract_id": canonical_contract_id(derived)}
+            )
+            candidate = _candidate(
+                derived,
+                title=f"{source.name} to {target.name} omits its required guard",
+                predicate_id="S5",
+                predicate_inputs={
+                    "transition_ref": transition.ref,
+                    "expected_guard": alternative.guard,
+                },
+                element_refs=(source.ref, target.ref, transition.ref),
+                source_refs=derived.source_refs,
+                expected=derived.normative_statement,
+                observed=f"The exact carrier {transition.ref} has guard=null.",
+                strongest_rebuttal="The event/trigger carrier is a different typed field and cannot satisfy the independent guard.",
+                reason="The normative alternative has an independent guard while its one exact closed-model carrier has none.",
+                basis=(
+                    f"group={group.group_id}; alternative={alternative.alternative_id}; "
+                    f"transition_ref={transition.ref}; model_guard=null"
+                ),
+            )
+            builder.add(
+                "transition_guard_presence",
+                (base.contract_id,),
+                derived,
+                candidate,
+                reason="A typed normative guard is absent from its exact endpoint carrier.",
+                basis="event/guard-separated transition-group semantics and exact ModelIR guard field",
+            )
+
+
 def _source_endpoint_name(value: str) -> str:
     """Return the exact leaf identifier from a canonical qualified source endpoint."""
 
@@ -2565,29 +2890,36 @@ def _source_carrier_for_contract(
     if inventory is None:
         return None
     condition_values = {
-        hint.value
+        hint.role: hint.value
         for hint in contract.binding_hints
         if hint.role in {"guard", "event", "trigger"}
     }
     source_hint = _hint(contract, "source")
     target_hint = _hint(contract, "target")
     if source_hint is not None and target_hint is not None:
-        condition_values.update(
-            alternative.condition
+        group_alternatives = [
+            alternative
             for group in groups
             if group.source_name == source_hint.value
             for alternative in group.alternatives
             if alternative.target_name == target_hint.value
-            and alternative.condition is not None
-        )
-    if len(condition_values) != 1:
+        ]
+        if len(group_alternatives) == 1:
+            alternative = group_alternatives[0]
+            if alternative.event is not None:
+                condition_values.setdefault("event", alternative.event)
+            if alternative.guard is not None:
+                condition_values.setdefault("guard", alternative.guard)
+    if not condition_values:
         return None
-    condition_value = next(iter(condition_values))
     rows = [
         item
         for item in inventory.transitions
         if _source_endpoint_name(item.source) == source_state.name
-        and condition_value in {item.event, item.guard}
+        and all(
+            value in {item.event, item.guard}
+            for value in condition_values.values()
+        )
     ]
     return rows[0] if len(rows) == 1 else None
 
@@ -3203,6 +3535,170 @@ def _materialize_aggregate_zero_behavior(
     )
 
 
+def _materialize_aggregate_data_semantics(
+    builder: _Builder,
+    contracts: Sequence[NLContract],
+) -> None:
+    """Aggregate complete action/effect gaps sharing one typed data subject."""
+
+    pair = builder.pair
+    source_ir = pair.canonical_source_ir
+    source_inventory = pair.exact_source_inventory
+    if source_ir is None or source_inventory is None:
+        return
+    by_variable: dict[str, list[NLContract]] = defaultdict(list)
+    for contract in contracts:
+        if contract.property not in {"state_action", "effect", "variable_delta"}:
+            continue
+        variable_hints = [
+            hint for hint in contract.binding_hints if hint.role == "variable"
+        ]
+        if len(variable_hints) == 1:
+            by_variable[variable_hints[0].value].append(contract)
+
+    source_variables = tuple(source_ir.model.variables)
+    source_transition_actions = tuple(
+        transition
+        for transition in source_ir.model.transitions
+        if transition.action is not None
+    )
+    model_state_actions = tuple(
+        state
+        for state in pair.model.states
+        if any(state.actions.values())
+    )
+    model_transition_effects = tuple(
+        transition for transition in pair.model.transitions if transition.effects
+    )
+    if (
+        source_variables
+        or source_transition_actions
+        or model_state_actions
+        or model_transition_effects
+    ):
+        return
+
+    for variable_name, rows in by_variable.items():
+        properties = {contract.property for contract in rows}
+        segment_ids = {contract.segment_id for contract in rows}
+        if (
+            len(segment_ids) < 2
+            or "state_action" not in properties
+            or not properties.intersection({"effect", "variable_delta"})
+        ):
+            continue
+        rows = sorted(rows, key=lambda item: (item.segment_id, item.contract_id))
+        base = rows[0]
+        variable_hint = next(
+            hint for hint in base.binding_hints if hint.role == "variable"
+        )
+        hints_by_key: dict[tuple[str, str], ContractBindingHint] = {
+            ("variable", variable_name): variable_hint
+        }
+        for contract in rows:
+            for hint in contract.binding_hints:
+                if hint.role in {
+                    "state",
+                    "source",
+                    "target",
+                    "transition",
+                    "action",
+                    "effect",
+                }:
+                    hints_by_key.setdefault((hint.role, hint.value), hint)
+        bound_states = {
+            state.ref: state
+            for contract in rows
+            for hint in contract.binding_hints
+            if hint.role in {"state", "source", "target"}
+            if (state := _state_for_value(pair, hint.value)) is not None
+        }
+        if not bound_states:
+            continue
+        bound_source_refs = [
+            source_state.raw_ref
+            for state in bound_states.values()
+            for source_state in source_inventory.states
+            if source_state.name == state.name
+        ]
+        source_refs = tuple(
+            dict.fromkeys([*_source_refs(rows), *bound_source_refs])
+        )
+        derived = _derived_contract(
+            base,
+            locus_kind="variable",
+            locus_names=(variable_name,),
+            property_name="effect",
+            state_role="operating_state",
+            expected_direction="must_exist",
+            violation_direction="wrong_effect",
+            evidence_types=(
+                "source_identity",
+                "closed_model_inventory",
+                "action_fact",
+                "effect_fact",
+                "semantic_comparison",
+            ),
+            normative_statement=(
+                f"The required data subject {variable_name!r} must have its complete "
+                "declared state-action and transition-effect behavior represented."
+            ),
+            scope=f"Cross-contract data behavior for {variable_name}",
+            source_refs=source_refs,
+            reason=(
+                "Multiple independent action/effect contracts share one exact typed "
+                "variable concept and jointly establish its complete data-side behavior."
+            ),
+            basis="exact variable-role equality across contracts; no prose similarity or ledger data",
+        ).model_copy(
+            update={
+                "quote": " | ".join(
+                    f"[{contract.segment_id}] {contract.quote}" for contract in rows
+                ),
+                "binding_hints": tuple(hints_by_key.values()),
+            }
+        )
+        derived = derived.model_copy(
+            update={"contract_id": canonical_contract_id(derived)}
+        )
+        candidate = _candidate(
+            derived,
+            title=f"{variable_name} has no data-side representation",
+            predicate_id=None,
+            predicate_inputs={},
+            element_refs=tuple(bound_states),
+            source_refs=source_refs,
+            expected=derived.normative_statement,
+            observed=(
+                "The complete typed inventories contain source_variables=[], "
+                "source_transition_actions=[], model_state_actions=[], and "
+                "model_transition_effects=[]."
+            ),
+            strongest_rebuttal=(
+                "A consistent control-skeleton abstraction can carry some behavior "
+                "implicitly, but it does not provide a declared data value or an "
+                "observable carrier for all supplied display/update/cancel obligations."
+            ),
+            reason=(
+                "Every action/effect obligation for the same typed data subject lacks "
+                "a variable, state-action, or transition-effect carrier in the complete inventories."
+            ),
+            basis=(
+                f"source_contract_ids={[item.contract_id for item in rows]}; "
+                f"variable={variable_name!r}; canonical_source={source_ir.schema_version}; "
+                f"bound_state_refs={list(bound_states)}; closed_model={pair.model.algorithm_version}"
+            ),
+        )
+        builder.add(
+            "aggregate_data_semantics",
+            tuple(contract.contract_id for contract in rows),
+            derived,
+            candidate,
+            reason="One typed data subject joins independent action/effect obligations whose complete carrier inventories are empty.",
+            basis="typed variable binding plus complete canonical-source and closed-model action/effect inventories",
+        )
+
+
 def _materialize_cross_wrapper(builder: _Builder, contracts: Sequence[NLContract]) -> None:
     pair = builder.pair
     rows = _missing_endpoint_rows(pair, contracts)
@@ -3483,8 +3979,10 @@ def materialize_v27_frontier(
     _materialize_scope_entries(builder, scopes)
     _materialize_dead_ends(builder, all_contracts)
     _materialize_termination(builder, all_contracts)
+    _materialize_group_guards(builder, all_groups, all_contracts)
     _materialize_group_collisions(builder, all_groups, all_contracts)
     _materialize_wrong_targets(builder, all_contracts, all_groups, grounding_responses)
+    _materialize_aggregate_data_semantics(builder, all_contracts)
     _materialize_cross_wrapper(builder, all_contracts)
     _materialize_event_consumers(builder, all_contracts, scopes)
     return FrontierBatch(

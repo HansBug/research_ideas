@@ -55,11 +55,17 @@ CardinalityMemberDomain = Literal[
 
 
 class NLTransitionAlternative(BaseModel):
-    """One normative target alternative in a v27-style transition group."""
+    """一个 v27 transition group 中的规范性 target alternative。
+
+    contract extraction 产生该对象，grounding/frontier 消费其独立的 event 与
+    guard 投影。它表达 NL relation，不是 observed transition，也不判断满足性、
+    W、D、L 或 judge 关系。event 与 guard 可同时存在，不能压成一个带角色标签的
+    自由 condition 字符串。
+    """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.transition-alternative.v1"] = Field(default="paper1.transition-alternative.v1", description="Transition alternative 的持久化 schema 版本；不参与语义条件比较。")
+    schema_version: Literal["paper1.transition-alternative.v2"] = Field(default="paper1.transition-alternative.v2", description="Transition alternative 的持久化 schema 版本；v2 将 event 与 guard 分成可同时存在的 typed 字段。")
     alternative_id: str = Field(pattern=r"^ALT-[A-Za-z0-9_.-]+$", min_length=5, description="Stable response-local alternative ID copied by grounding when it discusses this exact member.")
     target_name: str = Field(
         min_length=1,
@@ -71,12 +77,29 @@ class NLTransitionAlternative(BaseModel):
             "的 `NamedCompletionState` 默认是两个概念，除非 supplied NL 明确等同。"
         ),
     )
-    condition: str | None = Field(default=None, min_length=1, description="Complete condition semantically attached to this target alternative, or null when the NL states an unconditional relation. Preserve a trailing condition that semantically governs a coordinated target list on every governed alternative; never distribute its conjuncts one per target unless the NL explicitly pairs them that way.")
-    condition_role: Literal["event", "qualified_guard", "unknown"] | None = Field(default=None, description="Semantic role of condition: event for a stimulus/event identity, qualified_guard for an independently constraining condition, unknown only when the supplied NL cannot decide, or null when no condition is stated.")
+    event: str | None = Field(
+        default=None,
+        min_length=1,
+        description=(
+            "NL 为该 exact alternative 建立的 stimulus/event identity；null 表示 NL 未建立"
+            "独立 event，不表示 observed transition 没有 trigger。event 与 guard 可同时非空："
+            "例如 `door is closed with zero time set` 应投影为 event=`door closed`、"
+            "guard=`cooking time equals zero`，不能把整个合取只标成 event。"
+        ),
+    )
+    guard: str | None = Field(
+        default=None,
+        min_length=1,
+        description=(
+            "NL 对该 exact alternative 独立施加的规范性 guard/qualifier；null 表示 NL 未建立"
+            "guard，不表示模型 guard 已满足或缺失。保留完整 guard 合取；协调 target list 的"
+            "共享 guard 应复制到每个受其约束的 alternative，除非 NL 明确逐项配对。"
+        ),
+    )
     observed_transition_ref: str | None = Field(default=None, min_length=1, description="Exact author-source or closed-model transition ref selected during cross-view grounding, or null in an NL-only group and whenever no exact transition realizes the relation.")
     source_refs: tuple[str, ...] = Field(default_factory=tuple, description="Exact supplied NL or author-source refs supporting this alternative; do not invent refs.")
-    reason: str = Field(min_length=1, description="LLM explanation of why this target and condition form one member of the shared-source transition group.")
-    basis: str = Field(min_length=1, description="LLM basis naming the numbered NL clause and, during grounding, any exact transition fact used for this member.")
+    reason: str = Field(min_length=1, description="解释该 target、event 与 guard 为什么共同构成 shared-source group 的一个 exact member；每项不可为空。")
+    basis: str = Field(min_length=1, description="指出 supplied numbered NL clause；grounding 补充 exact transition fact 时仍不得把 observed 值写回规范字段。")
 
 
 class NLTransitionGroup(BaseModel):
@@ -857,8 +880,8 @@ def _compact_contract_plan(contracts: NLContractResponse) -> dict[str, Any]:
                     {
                         "alternative_id": alternative.alternative_id,
                         "target_name": alternative.target_name,
-                        "condition": alternative.condition,
-                        "condition_role": alternative.condition_role,
+                        "event": alternative.event,
+                        "guard": alternative.guard,
                         "observed_transition_ref": alternative.observed_transition_ref,
                         "source_refs": alternative.source_refs,
                     }
@@ -1268,7 +1291,7 @@ Atomic contract shape:
 - One contract represents one property at one independently violable locus. A transition-property row has at most one source, one target, and one transition hint.
 - Alternative destinations are separate endpoint contracts. A guard conjunction for one exact transition remains one normalized guard hint; guards attached to different transitions are separate contracts.
 - A transition endpoint contract contains only the required source and target relation. Preserve an event or branch-selection condition on its `transition_groups` alternative instead of duplicating every mentioned qualifier into a standalone contract. Words such as "when", "if", or "based on" normally attach the condition to that alternative and do not by themselves establish a separate formal guard obligation. Emit a separate trigger_set or guard contract at NL extraction only when the clause independently requires that exact trigger/guard property beyond selecting the alternative. Grounding must derive a sparse atomic trigger/guard contract when exact cross-view comparison later reveals a mismatch. An independently required effect or state action remains its own atomic contract because transition_groups do not carry those properties. Do not leave a normative qualifier only inside an endpoint quote, locus name, or evidence_types list.
-- When one trailing phrase semantically governs a coordinated target list, preserve the complete shared condition on every governed alternative. For example, "choose A or B based on x and y" normally gives both alternatives the condition `x and y`; it does not assign x only to A and y only to B unless the NL explicitly pairs them. This is semantic parsing by the LLM, never a string rule.
+- Project each transition-group alternative into independent `event` and `guard` fields. Both may be non-null: "on Door Closed when cooking time is zero" has event=`Door Closed` and guard=`cooking time is zero`; neither field may swallow the other. When one trailing qualifier semantically governs a coordinated target list, preserve the complete shared guard on every governed alternative. For example, "choose A or B based on x and y" normally gives both alternatives guard=`x and y`; it does not assign x only to A and y only to B unless the NL explicitly pairs them. This is semantic parsing by the LLM, never a string rule.
 - A bidirectional or dynamic A-to-B/B-to-A requirement is two endpoint contracts. Never place two source hints or two target hints in one contract.
 - A conjunction such as `a and b and c` on one transition is one normalized guard hint with the complete conjunction as its value, not three guard hints. Alternative guards on different transitions remain separate contracts.
 - Initialization, containment, endpoint, trigger, guard, effect, action, reachability/progress, event-consumer coverage, region structure, and variable delta never share one contract merely because the NL states them in one sentence.
@@ -1287,12 +1310,13 @@ v27 state-role and discourse discipline:
 - Keep semantically distinct control effects distinct even when both eventually leave a scope. A local mode exit under one condition and a later mode/system completion under another condition are different targets unless the NL explicitly identifies them. For example, an earlier `LocalExitRole` alternative must not become `NamedCompletionState` merely because a later segment names that state as the target of a different completion condition.
 - An introductory statement that an enclosing controller "can transition to different substates" establishes context but no exact source-target relation until the later discourse supplies it. Do not turn that sentence into an `element_declaration` contract, and do not use it to override the sequential source resolved from later "first", "also", or "similarly" clauses. A common enclosing owner is not itself evidence of a common transition source.
 - Keep a state-owned action/effect independent from the endpoint that enters the state. The action may remain a precise unsupported W1 obligation even when the endpoint exists. Do not create standalone trigger/guard contracts that merely repeat every transition-group condition; use the group as the compact normative relation and let grounding derive only actual mismatches.
+- When an action, effect, display, update, reset, or cancellation obligation reads or writes one named data subject, add a separate `variable` binding hint whose value is only that subject concept. Preserve the action/effect itself in its own `action` or `effect` hint. Independent contracts that act on the same data subject must use the same exact variable concept so deterministic frontier code can audit their complete carrier surface. Different subjects remain different even when their prose is related: for example, display/update of `setpoint` and cancel/update of `setpoint` share variable=`setpoint`, while start/stop of `timer` uses variable=`timer` and must not be merged with `setpoint`.
 - For every `property=cardinality` contract, fill `cardinality_requirement` from the numbered NL: preserve the literal required count, the normative scope/member concepts, and a typed primary member domain. Use `direct_child_states`, `concurrent_regions`, or `explicit_named_members` when the supplied language establishes that competent reading, and preserve another competent interpretation in `alternative_reading`; use `unresolved` only when no primary member domain can be selected. Never infer the required count or domain from the observed model, element names, or a ledger.
 - Preserve containment depth from the NL. A state described only as being "within" or "under" a composite requires semantic descendant containment; an intermediate region or nested composite still satisfies that obligation. Require direct/immediate ownership only when the source meaning explicitly requires no intermediate owner. Region or wrapper structure is a separate contract only when the NL independently specifies that structure or its concurrency semantics.
 
 Generic worked example: "Within Controller, start in Idle; on Begin transition from Idle to Running when enabled and set mode=active" yields contracts for Controller containment of Idle, Controller initial entry to Idle, the Idle-to-Running endpoint, and its mode=active effect. Preserve Begin and enabled on the transition-group alternative; do not duplicate them as trigger/guard contracts unless supplied wording independently requires those exact formal properties. If the clause also requires Begin to be accepted throughout Controller, that coverage requirement is a separate event-consumer contract. Do not copy the whole sentence into one multi-property contract.
 
-Before returning, perform one semantic completeness pass without adding a new stage or response object: (1) every explicit child/substate relation has its containment contract even when the same clause also states entry or transition, and every semantically continuing enclosing scope preserves separate containment contracts for the complete source-and-alternative group; (2) every explicit ending/completion role has one termination contract and no manufactured progress contract; (3) every exact transition clause has its discourse-resolved source and target; (4) every coordinated alternative keeps its complete shared condition and any independent disjointness obligation; (5) every explicitly continuous or repeated task has its independent operating `state_action` contract even when that segment already has a cardinality or structure contract; and (6) broad capability context has not been converted into a synthetic element or endpoint obligation. `segment_disposition=covered` never replaces this pass.
+Before returning, perform one semantic completeness pass without adding a new stage or response object: (1) every explicit child/substate relation has its containment contract even when the same clause also states entry or transition, and every semantically continuing enclosing scope preserves separate containment contracts for the complete source-and-alternative group; (2) every explicit ending/completion role has one termination contract and no manufactured progress contract; (3) every exact transition clause has its discourse-resolved source and target; (4) every coordinated alternative keeps its complete event and guard projections plus any independent disjointness obligation; (5) every explicitly continuous or repeated task has its independent operating `state_action` contract even when that segment already has a cardinality or structure contract; and (6) broad capability context has not been converted into a synthetic element or endpoint obligation. `segment_disposition=covered` never replaces this pass.
 
 Return only the requested Pydantic structure."""
 
@@ -1395,8 +1419,8 @@ initial-entry/endpoint/declaration contract. If cross-view grounding also recove
 a missing shared-source relation, put that relation in
 `additional_transition_groups`; it does not replace the independent atomic issue
 contract.
-For a transition-group alternative, a supplied event or qualified condition is
-part of the normative relation even when NL extraction did not duplicate it as a
+For a transition-group alternative, supplied `event` and `guard` fields are
+independent parts of the normative relation even when NL extraction did not duplicate them as a
 standalone atomic contract. When exact source/model comparison shows the selected
 transition has the wrong or missing trigger/guard, derive one atomic contract for
 that actual mismatch and emit its candidate. Do not first enumerate standalone

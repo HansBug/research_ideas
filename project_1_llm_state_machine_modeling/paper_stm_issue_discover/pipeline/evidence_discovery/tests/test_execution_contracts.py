@@ -1505,12 +1505,14 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "an intermediate region or nested composite still satisfies" in CONTRACT_SYSTEM_PROMPT
     assert "broad capability context has not been converted" in CONTRACT_SYSTEM_PROMPT
     assert "common enclosing owner is not itself evidence" in CONTRACT_SYSTEM_PROMPT
-    assert "preserve the complete shared condition" in CONTRACT_SYSTEM_PROMPT
+    assert "independent `event` and `guard` fields" in CONTRACT_SYSTEM_PROMPT
+    assert "variable=`setpoint`" in CONTRACT_SYSTEM_PROMPT
     assert "owner-initial-to-ModeA, ModeA-to-ModeB, and ModeB-to-ModeC" in CONTRACT_SYSTEM_PROMPT
     assert "activity to be performed continuously or repeatedly" in CONTRACT_SYSTEM_PROMPT
     assert "segment already has a cardinality or structure contract" in CONTRACT_SYSTEM_PROMPT
     hint_schema = ContractBindingHint.model_json_schema()
     assert "owns the required initial pseudostate edge" in hint_schema["properties"]["role"]["description"]
+    assert "variable names only the data subject" in hint_schema["properties"]["role"]["description"]
     contract_schema = NLContract.model_json_schema()
     assert "grammatical actor" in contract_schema["properties"]["property"]["description"]
     response_schema = NLContractResponse.model_json_schema()
@@ -2369,8 +2371,7 @@ def test_0029_contract_shape_rejects_bundled_transition_alternatives() -> None:
             NLTransitionAlternative(
                 alternative_id="ALT-NL2-HIGHWAY",
                 target_name="HighwayMode",
-                condition="high_way=true",
-                condition_role="qualified_guard",
+                guard="high_way=true",
                 source_refs=(segment.segment_id,),
                 reason="The first destination has its own normative condition.",
                 basis="provider-free NL2 transition-group fixture",
@@ -2378,8 +2379,7 @@ def test_0029_contract_shape_rejects_bundled_transition_alternatives() -> None:
             NLTransitionAlternative(
                 alternative_id="ALT-NL2-URBAN",
                 target_name="UrbanMode",
-                condition="urban_way=true",
-                condition_role="qualified_guard",
+                guard="urban_way=true",
                 source_refs=(segment.segment_id,),
                 reason="The second destination has its own normative condition.",
                 basis="provider-free NL2 transition-group fixture",
@@ -2486,8 +2486,7 @@ def test_0029_local_exit_target_survives_typed_contract_projection() -> None:
             NLTransitionAlternative(
                 alternative_id="ALT-NL4-CRUISE",
                 target_name="cruise",
-                condition="lane change completed",
-                condition_role="qualified_guard",
+                guard="lane change completed",
                 source_refs=("NL4",),
                 reason="NL4 states the return-to-cruise alternative.",
                 basis="provider-free NL4 transition-group fixture",
@@ -2495,8 +2494,7 @@ def test_0029_local_exit_target_survives_typed_contract_projection() -> None:
             NLTransitionAlternative(
                 alternative_id="ALT-NL4-LOCAL-EXIT",
                 target_name="HighwayMode local exit",
-                condition="dist_to_exit<2",
-                condition_role="qualified_guard",
+                guard="dist_to_exit<2",
                 source_refs=("NL4",),
                 reason="NL4 states a local highway-exit role without naming FinishState.",
                 basis="provider-free NL4 transition-group fixture",

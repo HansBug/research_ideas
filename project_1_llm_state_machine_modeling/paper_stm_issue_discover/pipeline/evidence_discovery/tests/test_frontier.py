@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from pipeline.evidence_discovery.backends import run_backend
 from pipeline.evidence_discovery.compiler import compile_plan
 from pipeline.evidence_discovery.evidence.witness_levels import calculate_witness_level
-from pipeline.evidence_discovery.inputs import load_pair
+from pipeline.evidence_discovery.inputs import PairInput, load_pair
 from pipeline.evidence_discovery.registry import load_registry
 from pipeline.evidence_discovery.semantics import (
     CandidateIssue,
@@ -180,8 +180,7 @@ def test_0029_frontier_materializes_relational_v27_obligations() -> None:
             NLTransitionAlternative(
                 alternative_id="ALT-NL3-CRUISE",
                 target_name="cruise",
-                condition="dist_to_front<25",
-                condition_role="qualified_guard",
+                guard="dist_to_front<25",
                 source_refs=("NL3",),
                 reason="The first condition selects cruise.",
                 basis="provider-free NL3 alternative",
@@ -189,8 +188,7 @@ def test_0029_frontier_materializes_relational_v27_obligations() -> None:
             NLTransitionAlternative(
                 alternative_id="ALT-NL3-LANE",
                 target_name="lane_change",
-                condition="extra_lane=true",
-                condition_role="qualified_guard",
+                guard="extra_lane=true",
                 source_refs=("NL3",),
                 reason="The second condition selects lane_change.",
                 basis="provider-free NL3 alternative",
@@ -287,16 +285,14 @@ def test_common_owner_group_materializes_complete_containment_contracts() -> Non
             NLTransitionAlternative(
                 alternative_id="ALT-NL2-HIGHWAY",
                 target_name="HighwayMode",
-                condition="high_way=true",
-                condition_role="qualified_guard",
+                guard="high_way=true",
                 reason="The fixture preserves the HighwayMode alternative.",
                 basis="provider-free NL2 group",
             ),
             NLTransitionAlternative(
                 alternative_id="ALT-NL2-URBAN",
                 target_name="UrbanMode",
-                condition="urban_way=true",
-                condition_role="qualified_guard",
+                guard="urban_way=true",
                 reason="The fixture preserves the UrbanMode alternative.",
                 basis="provider-free NL2 group",
             ),
@@ -396,8 +392,7 @@ def test_containment_frontier_aggregates_only_complete_typed_group_scope() -> No
             NLTransitionAlternative(
                 alternative_id="ALT-NL2-HIGHWAY-CONTAINMENT",
                 target_name="HighwayMode",
-                condition="high_way=true",
-                condition_role="qualified_guard",
+                guard="high_way=true",
                 source_refs=("NL2",),
                 reason="The first alternative remains in the enclosing mode.",
                 basis="provider-free NL2 HighwayMode alternative",
@@ -405,8 +400,7 @@ def test_containment_frontier_aggregates_only_complete_typed_group_scope() -> No
             NLTransitionAlternative(
                 alternative_id="ALT-NL2-URBAN-CONTAINMENT",
                 target_name="UrbanMode",
-                condition="urban_way=true",
-                condition_role="qualified_guard",
+                guard="urban_way=true",
                 source_refs=("NL2",),
                 reason="The second alternative remains in the enclosing mode.",
                 basis="provider-free NL2 UrbanMode alternative",
@@ -554,8 +548,7 @@ def test_0029_frontier_aggregates_complete_same_property_scopes() -> None:
             NLTransitionAlternative(
                 alternative_id="ALT-NL2-HIGHWAY",
                 target_name="HighwayMode",
-                condition="high_way=true",
-                condition_role="qualified_guard",
+                guard="high_way=true",
                 source_refs=("NL2",),
                 reason="The first alternative selects HighwayMode.",
                 basis="provider-free NL2 mode alternative",
@@ -563,8 +556,7 @@ def test_0029_frontier_aggregates_complete_same_property_scopes() -> None:
             NLTransitionAlternative(
                 alternative_id="ALT-NL2-URBAN",
                 target_name="UrbanMode",
-                condition="urban_way=true",
-                condition_role="qualified_guard",
+                guard="urban_way=true",
                 source_refs=("NL2",),
                 reason="The second alternative selects UrbanMode.",
                 basis="provider-free NL2 mode alternative",
@@ -1023,8 +1015,7 @@ def test_0029_grounding_group_identity_is_canonical_and_consumed() -> None:
             NLTransitionAlternative(
                 alternative_id="ALT-CRUISE-LOCAL",
                 target_name="cruise",
-                condition="distance condition A",
-                condition_role="qualified_guard",
+                guard="distance condition A",
                 source_refs=("NL3",),
                 reason="The first branch selects cruise.",
                 basis="provider-free NL3 branch A",
@@ -1032,8 +1023,7 @@ def test_0029_grounding_group_identity_is_canonical_and_consumed() -> None:
             NLTransitionAlternative(
                 alternative_id="ALT-LANE-LOCAL",
                 target_name="lane_change",
-                condition="distance condition B",
-                condition_role="qualified_guard",
+                guard="distance condition B",
                 source_refs=("NL3",),
                 reason="The second branch selects lane_change.",
                 basis="provider-free NL3 branch B",
@@ -1122,8 +1112,7 @@ def test_0029_group_frontier_resolves_composite_source_through_typed_entry() -> 
             NLTransitionAlternative(
                 alternative_id="ALT-NL3-CRUISE",
                 target_name="cruise",
-                condition="dist_to_front<25 and extra_lane=true",
-                condition_role="qualified_guard",
+                guard="dist_to_front<25 and extra_lane=true",
                 source_refs=("NL3",),
                 reason="The first branch targets cruise.",
                 basis="provider-free NL3 alternative",
@@ -1131,8 +1120,7 @@ def test_0029_group_frontier_resolves_composite_source_through_typed_entry() -> 
             NLTransitionAlternative(
                 alternative_id="ALT-NL3-LANE",
                 target_name="lane_change",
-                condition="dist_to_front<25 and extra_lane=true",
-                condition_role="qualified_guard",
+                guard="dist_to_front<25 and extra_lane=true",
                 source_refs=("NL3",),
                 reason="The second branch targets lane_change.",
                 basis="provider-free NL3 alternative",
@@ -1199,8 +1187,7 @@ def test_transition_group_frontier_rejects_distinct_exact_signatures() -> None:
             NLTransitionAlternative(
                 alternative_id="ALT-NL4-CRUISE",
                 target_name="cruise",
-                condition="lane_change_completed",
-                condition_role="qualified_guard",
+                guard="lane_change_completed",
                 source_refs=("NL4",),
                 reason="Completion selects cruise.",
                 basis="provider-free distinct-signature fixture",
@@ -1208,8 +1195,7 @@ def test_transition_group_frontier_rejects_distinct_exact_signatures() -> None:
             NLTransitionAlternative(
                 alternative_id="ALT-NL4-EXIT",
                 target_name="exit_hwy",
-                condition="dist_to_exit<2",
-                condition_role="qualified_guard",
+                guard="dist_to_exit<2",
                 source_refs=("NL4",),
                 reason="Exit distance selects exit_hwy.",
                 basis="provider-free distinct-signature fixture",
@@ -1231,6 +1217,139 @@ def test_transition_group_frontier_rejects_distinct_exact_signatures() -> None:
 
     assert all(
         item.kind != "transition_group_collision" for item in batch.obligations
+    )
+
+
+def test_0035_transition_alternative_preserves_event_and_missing_guard() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0035")
+    endpoint = _contract(
+        contract_id="NL-CONTRACT-NL4-DOOR-CLOSED-ZERO",
+        segment_id="NL4",
+        locus_kind="transition",
+        locus_names=("DoorOpenWithItem", "DoorShutWithItem"),
+        property_name="transition_endpoints",
+        expected_direction="must_exist",
+        violation_direction="missing",
+        hints=(
+            _hint("source", "DoorOpenWithItem", "NL4"),
+            _hint("target", "DoorShutWithItem", "NL4"),
+        ),
+        state_role="operating_state",
+    )
+    alternative = NLTransitionAlternative(
+        alternative_id="ALT-NL4-DOOR-CLOSED-ZERO",
+        target_name="DoorShutWithItem",
+        event="Door Closed",
+        guard="cooking time equals zero",
+        source_refs=("NL4",),
+        reason="Door Closed is the event and zero cooking time is an independent guard.",
+        basis="provider-free NL4 typed conjunction fixture",
+    )
+    group = NLTransitionGroup(
+        group_id="NL-GROUP-NL4-DOOR-CLOSED-ZERO",
+        segment_id="NL4",
+        source_name="DoorOpenWithItem",
+        alternatives=(alternative,),
+        source_refs=("NL4",),
+        reason="The fixture preserves one exact event-plus-guard alternative.",
+        basis="provider-free 0035 transition relation",
+    )
+    response = _response([endpoint], [group])
+
+    batch = materialize_v27_frontier(
+        pair,
+        response,
+        {endpoint.contract_id: endpoint},
+        (),
+        (),
+    )
+
+    issue = next(
+        item.candidate
+        for item in batch.obligations
+        if item.kind == "transition_guard_presence"
+    )
+    assert issue.locus_names == ("DoorOpenWithItem", "DoorShutWithItem")
+    assert issue.property == "guard"
+    assert issue.predicate_id == "S5"
+    assert issue.predicate_inputs["expected_guard"] == "cooking time equals zero"
+    assert "guard=null" in issue.observed
+
+
+def test_transition_guard_frontier_rejects_event_only_and_present_guard() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0035")
+    endpoint = _contract(
+        contract_id="NL-CONTRACT-NL4-DOOR-CLOSED-ZERO",
+        segment_id="NL4",
+        locus_kind="transition",
+        locus_names=("DoorOpenWithItem", "DoorShutWithItem"),
+        property_name="transition_endpoints",
+        expected_direction="must_exist",
+        violation_direction="missing",
+        hints=(
+            _hint("source", "DoorOpenWithItem", "NL4"),
+            _hint("target", "DoorShutWithItem", "NL4"),
+        ),
+        state_role="operating_state",
+    )
+
+    def group(*, guard: str | None) -> NLTransitionGroup:
+        return NLTransitionGroup(
+            group_id="NL-GROUP-NL4-DOOR-CLOSED-ZERO",
+            segment_id="NL4",
+            source_name="DoorOpenWithItem",
+            alternatives=(
+                NLTransitionAlternative(
+                    alternative_id="ALT-NL4-DOOR-CLOSED-ZERO",
+                    target_name="DoorShutWithItem",
+                    event="Door Closed",
+                    guard=guard,
+                    source_refs=("NL4",),
+                    reason="The fixture controls whether an independent guard exists.",
+                    basis="provider-free event-only/present-guard fixture",
+                ),
+            ),
+            source_refs=("NL4",),
+            reason="One exact alternative is sufficient for guard-presence audit.",
+            basis="provider-free negative frontier fixture",
+        )
+
+    event_only = _response([endpoint], [group(guard=None)])
+    event_only_batch = materialize_v27_frontier(
+        pair,
+        event_only,
+        {endpoint.contract_id: endpoint},
+        (),
+        (),
+    )
+    assert not any(
+        item.kind == "transition_guard_presence"
+        for item in event_only_batch.obligations
+    )
+
+    transitions = tuple(
+        transition.model_copy(update={"guard": "cooking time equals zero"})
+        if transition.source == "DoorOpenWithItem"
+        and transition.target == "DoorShutWithItem"
+        else transition
+        for transition in pair.model.transitions
+    )
+    guarded_pair = pair.model_copy(
+        update={"model": pair.model.model_copy(update={"transitions": transitions})}
+    )
+    guarded_response = _response(
+        [endpoint], [group(guard="cooking time equals zero")]
+    )
+    guarded_batch = materialize_v27_frontier(
+        guarded_pair,
+        guarded_response,
+        {endpoint.contract_id: endpoint},
+        (),
+        (),
+    )
+    assert not any(
+        item.kind == "transition_guard_presence"
+        for item in guarded_batch.obligations
     )
 
 
@@ -1836,8 +1955,7 @@ def test_0029_wrong_target_reuses_unique_exact_target_concept_binding() -> None:
                 NLTransitionAlternative(
                     alternative_id=f"ALT-{segment}-EXIT",
                     target_name="highway exit",
-                    condition="dist_to_exit<2",
-                    condition_role="qualified_guard",
+                    guard="dist_to_exit<2",
                     reason="The exact exit condition belongs to this alternative.",
                     basis=f"provider-free {segment} transition group",
                 ),
@@ -2133,6 +2251,275 @@ def test_0023_frontier_keeps_direct_leaf_dead_ends_independent() -> None:
     )
 
 
+def test_0004_source_certificate_restores_stopping_dead_end() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0004")
+    contract = _contract(
+        contract_id="NL-CONTRACT-NL2-INMOTION-STOPPING",
+        segment_id="NL2",
+        locus_kind="transition",
+        locus_names=("InMotion", "Stopping"),
+        property_name="transition_endpoints",
+        expected_direction="must_exist",
+        violation_direction="wrong_target",
+        hints=(
+            _hint("source", "InMotion", "NL2"),
+            _hint("target", "Stopping", "NL2"),
+        ),
+        state_role="operating_state",
+    )
+    response = _response([contract])
+
+    batch = materialize_v27_frontier(
+        pair,
+        response,
+        {contract.contract_id: contract},
+        (),
+        (),
+    )
+
+    stopping = next(
+        item
+        for item in batch.obligations
+        if item.kind == "reachable_dead_end"
+        and item.candidate.locus_names == ("Stopping",)
+    )
+    assert stopping.source_contract_ids == (contract.contract_id,)
+    assert stopping.candidate.property == "deadlock_freedom"
+    assert stopping.candidate.predicate_id == "V4"
+    assert "explicit_final=false" in stopping.candidate.observed
+    assert [hint.role for hint in stopping.contract.binding_hints] == ["state"]
+
+
+def test_source_deadlock_certificate_rejects_unsound_or_unbound_states() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0004")
+    source_ir = pair.canonical_source_ir
+    source_inventory = pair.exact_source_inventory
+    assert source_ir is not None
+    assert source_inventory is not None
+    stopping_source = next(item for item in source_inventory.states if item.name == "Stopping")
+
+    def contract(target: str = "Stopping") -> NLContract:
+        return _contract(
+            contract_id=f"NL-CONTRACT-NL2-INMOTION-{target.upper()}",
+            segment_id="NL2",
+            locus_kind="transition",
+            locus_names=("InMotion", target),
+            property_name="transition_endpoints",
+            expected_direction="must_exist",
+            violation_direction="wrong_target",
+            hints=(
+                _hint("source", "InMotion", "NL2"),
+                _hint("target", target, "NL2"),
+            ),
+            state_role="operating_state",
+        )
+
+    def has_stopping(candidate_pair: PairInput, anchor: NLContract) -> bool:
+        response = _response([anchor])
+        batch = materialize_v27_frontier(
+            candidate_pair,
+            response,
+            {anchor.contract_id: anchor},
+            (),
+            (),
+        )
+        return any(
+            item.kind == "reachable_dead_end"
+            and item.candidate.locus_names == ("Stopping",)
+            for item in batch.obligations
+        )
+
+    explicit_final_model = source_ir.model.model_copy(
+        update={
+            "final_states": tuple(
+                dict.fromkeys(
+                    [*source_ir.model.final_states, stopping_source.source_id]
+                )
+            )
+        }
+    )
+    explicit_final_pair = pair.model_copy(
+        update={
+            "canonical_source_ir": source_ir.model_copy(
+                update={"model": explicit_final_model}
+            )
+        }
+    )
+    assert not has_stopping(explicit_final_pair, contract())
+
+    guarded_model = source_ir.model.model_copy(
+        update={
+            "transitions": tuple(
+                item.model_copy(update={"guard": "guarded fixture"})
+                for item in source_ir.model.transitions
+            )
+        }
+    )
+    guarded_pair = pair.model_copy(
+        update={
+            "canonical_source_ir": source_ir.model_copy(
+                update={"model": guarded_model}
+            )
+        }
+    )
+    assert not has_stopping(guarded_pair, contract())
+
+    concurrent_model = source_ir.model.model_copy(
+        update={"concurrent_regions": ({"fixture": "parallel"},)}
+    )
+    concurrent_pair = pair.model_copy(
+        update={
+            "canonical_source_ir": source_ir.model_copy(
+                update={"model": concurrent_model}
+            )
+        }
+    )
+    assert not has_stopping(concurrent_pair, contract())
+    assert not has_stopping(pair, contract("UnboundState"))
+
+
+def test_0035_data_frontier_aggregates_complete_shared_variable_gap() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0035")
+    display_update = _contract(
+        contract_id="NL-CONTRACT-NL5-COOKING-TIME-ACTION",
+        segment_id="NL5",
+        locus_kind="state",
+        locus_names=("ReadytoCook",),
+        property_name="state_action",
+        expected_direction="must_occur",
+        violation_direction="missing",
+        hints=(
+            _hint("state", "ReadytoCook", "NL5"),
+            _hint("action", "display and update cooking time", "NL5"),
+            _hint("variable", "cooking time", "NL5"),
+        ),
+        state_role="operating_state",
+    )
+    cancel_update = _contract(
+        contract_id="NL-CONTRACT-NL6-COOKING-TIME-EFFECT",
+        segment_id="NL6",
+        locus_kind="transition",
+        locus_names=("ReadytoCook", "Cancel"),
+        property_name="effect",
+        expected_direction="must_occur",
+        violation_direction="wrong_effect",
+        hints=(
+            _hint("source", "ReadytoCook", "NL6"),
+            _hint("effect", "cancel or update cooking time", "NL6"),
+            _hint("variable", "cooking time", "NL6"),
+        ),
+        state_role="operating_state",
+    )
+    response = _response([display_update, cancel_update])
+
+    batch = materialize_v27_frontier(
+        pair,
+        response,
+        {item.contract_id: item for item in response.contracts},
+        (),
+        (),
+    )
+
+    aggregate = next(
+        item
+        for item in batch.obligations
+        if item.kind == "aggregate_data_semantics"
+    )
+    assert aggregate.source_contract_ids == (
+        display_update.contract_id,
+        cancel_update.contract_id,
+    )
+    assert aggregate.candidate.locus_kind == "variable"
+    assert aggregate.candidate.locus_names == ("cooking time",)
+    assert aggregate.candidate.property == "effect"
+    assert aggregate.candidate.predicate_id is None
+    assert aggregate.candidate.element_refs == [pair.model.state("ReadytoCook").ref]
+    assert bind_candidate(aggregate.candidate, pair.model).precise is True
+    assert "source_variables=[]" in aggregate.candidate.observed
+    assert {hint.role for hint in aggregate.contract.binding_hints} >= {
+        "variable",
+        "state",
+        "action",
+        "source",
+        "effect",
+    }
+
+
+def test_data_frontier_rejects_different_subjects_or_existing_carrier() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0035")
+
+    def contracts(effect_variable: str) -> list[NLContract]:
+        return [
+            _contract(
+                contract_id="NL-CONTRACT-NL5-DATA-ACTION",
+                segment_id="NL5",
+                locus_kind="state",
+                locus_names=("ReadytoCook",),
+                property_name="state_action",
+                expected_direction="must_occur",
+                violation_direction="missing",
+                hints=(
+                    _hint("state", "ReadytoCook", "NL5"),
+                    _hint("action", "display data", "NL5"),
+                    _hint("variable", "cooking time", "NL5"),
+                ),
+                state_role="operating_state",
+            ),
+            _contract(
+                contract_id="NL-CONTRACT-NL6-DATA-EFFECT",
+                segment_id="NL6",
+                locus_kind="transition",
+                locus_names=("ReadytoCook", "Cancel"),
+                property_name="effect",
+                expected_direction="must_occur",
+                violation_direction="wrong_effect",
+                hints=(
+                    _hint("source", "ReadytoCook", "NL6"),
+                    _hint("effect", "update data", "NL6"),
+                    _hint("variable", effect_variable, "NL6"),
+                ),
+                state_role="operating_state",
+            ),
+        ]
+
+    different = _response(contracts("timer"))
+    different_batch = materialize_v27_frontier(
+        pair,
+        different,
+        {item.contract_id: item for item in different.contracts},
+        (),
+        (),
+    )
+    assert not any(
+        item.kind == "aggregate_data_semantics"
+        for item in different_batch.obligations
+    )
+
+    ready = pair.model.state("ReadytoCook")
+    assert ready is not None
+    states = tuple(
+        state.model_copy(update={"actions": {"do": ("display data",)}})
+        if state.ref == ready.ref
+        else state
+        for state in pair.model.states
+    )
+    carrier_pair = pair.model_copy(
+        update={"model": pair.model.model_copy(update={"states": states})}
+    )
+    same = _response(contracts("cooking time"))
+    carrier_batch = materialize_v27_frontier(
+        carrier_pair,
+        same,
+        {item.contract_id: item for item in same.contracts},
+        (),
+        (),
+    )
+    assert not any(
+        item.kind == "aggregate_data_semantics"
+        for item in carrier_batch.obligations
+    )
+
+
 def test_cross_wrapper_frontier_does_not_overclaim_mutual_disconnection() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0053")
     facts = pair.inspection_facts
@@ -2203,11 +2590,17 @@ def test_frontier_pydantic_descriptions_reach_json_schema() -> None:
     identity_schema = IdentityNormalizationReceipt.model_json_schema()
     frontier_schema = FrontierBatch.model_json_schema()
     contract_schema = NLContractResponse.model_json_schema()
+    alternative_schema = NLTransitionAlternative.model_json_schema()
 
     assert "grounding branch-local identity" in identity_schema["description"]
     assert "typed identity" in identity_schema["properties"]["semantic_key"]["description"]
     assert "execute-batch" in frontier_schema["description"]
     assert "candidate" in frontier_schema["properties"]["obligations"]["description"]
+    assert "event 与 guard 可同时存在" in alternative_schema["description"]
+    assert {"event", "guard"}.issubset(alternative_schema["properties"])
+    assert "condition" not in alternative_schema["properties"]
+    assert "不能把整个合取只标成 event" in alternative_schema["properties"]["event"]["description"]
+    assert "保留完整 guard 合取" in alternative_schema["properties"]["guard"]["description"]
     definitions = frontier_schema["$defs"]
     assert set(definitions["FrontierCheckReceipt"]["properties"]["status"]["enum"]) == {
         "candidate",
