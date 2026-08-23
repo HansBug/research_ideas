@@ -262,19 +262,6 @@ class CausalFieldAuditJudgment(FrozenModel):
         min_length=1,
         description="Exhaustive ordered decomposition of every material factual assertion, modeling-semantic assumption, and causal link in the complete field. Use one row per independently testable assertion; omission cannot make a field supported.",
     )
-    reason: str = Field(
-        min_length=1,
-        description="English explanation covering the complete assertion audit, including every refuted premise; do not state a provider-selected whole-field enum.",
-    )
-    basis: str = Field(
-        min_length=1,
-        description="Common-artifact evidence used for the exhaustive assertion audit, with enough detail for the backend-derived whole-field verdict to be reviewed.",
-    )
-    source_refs: tuple[str, ...] = Field(
-        min_length=1,
-        description="Report-field and common-artifact references actually used for the complete assertion audit; the tuple must not be empty.",
-    )
-
     @model_validator(mode="after")
     def material_assertion_ids_are_exact(self) -> CausalFieldAuditJudgment:
         """Require canonical contiguous assertion identities within one field audit."""
@@ -307,8 +294,9 @@ class ReportCausalFieldAudit(FrozenModel):
 
     The backend materializes exact_text and exact_text_sha256 from the immutable
     CandidateReport after validating the provider's field-reference closure. The
-    provider supplies only the field selector and semantic verdict, so verbatim
-    copying can neither fail the call nor truncate the persisted audit evidence.
+    provider supplies only the field selector and exhaustive assertion rows, so
+    verbatim copying and repeated aggregate verdicts cannot fail or contradict the
+    persisted audit evidence.
     """
 
     report_field: CausalReportField = Field(
@@ -596,10 +584,6 @@ class SupportedRelationJudgment(FrozenModel):
     materializes the dense relation audit.
     """
 
-    report_id: str = Field(
-        min_length=1,
-        description="Anonymous report ID from the exact input closure; the value carries no semantic or experimental information.",
-    )
     expected_id: str = Field(
         min_length=1,
         description="Anonymous expected ID receiving this positive relation; it must occur in the exact expected closure.",
@@ -610,9 +594,6 @@ class SupportedRelationJudgment(FrozenModel):
     report_field_refs: tuple[ReportField, ...] = Field(
         min_length=1,
         description="Non-null CandidateReport fields that delimit this exact relation; include claim and any locus, property, obligation, or behavior field actually used. The backend materializes their complete text and hashes.",
-    )
-    causal_certificate_field: CausalReportField = Field(
-        description="Complete report-owned reason, basis, or observed field whose SUPPORTED audit establishes the causal premise used by this relation; it must match the report-level validity certificate."
     )
     reason: str = Field(
         min_length=1,
@@ -645,20 +626,34 @@ class NoMatchRelationJudgment(FrozenModel):
     )
 
 
+class NoMatchClosureJudgment(FrozenModel):
+    """Shared evidence for every explicit NO_MATCH row in one report partition."""
+
+    reason: str = Field(
+        min_length=1,
+        description="English explanation covering every explicit NO_MATCH position for this report without treating an omitted relation as NO.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="English report, expected-issue, and common-artifact basis for the complete non-empty NO_MATCH closure.",
+    )
+    source_refs: tuple[str, ...] = Field(
+        min_length=1,
+        description="Supplied report, expected, and artifact references actually used for the complete non-empty NO_MATCH closure.",
+    )
+
+
 class ReportJudgment(FrozenModel):
     """One validity-first provider judgment with sparse exhaustive relations.
 
-    The Judge produces core truth, a complete causal certificate, and one typed
-    relation decision at every expected position. It never produces final
-    VALID_KNOWN or VALID_NOVEL ownership; the backend derives that classification
-    from core_truth and the validated relation partition.
+    The Judge audits every causal field, selects one causal certificate, and emits
+    one typed relation decision at every expected position. It does not repeat
+    whole-field verdict, core truth, or final known/novel ownership; the backend
+    derives those values from the assertion audit and relation partition.
     """
 
     report_id: str = Field(
         min_length=1, description="Anonymous ID of the assessed report; it must occur exactly once in the response."
-    )
-    core_truth: CoreClaimTruth = Field(
-        description="Artifact-audited truth before ledger ownership. Select VALID exactly when causal_certificate_field has verdict SUPPORTED; select INVALID exactly when it has verdict MIXED or REFUTED, with zero positive relations and exhaustive NO closure."
     )
     root_cause_cluster_key: str = Field(
         min_length=1,
@@ -666,10 +661,10 @@ class ReportJudgment(FrozenModel):
     )
     causal_field_audits: tuple[CausalFieldAuditJudgment, ...] = Field(
         min_length=1,
-        description="Exactly one whole-field verdict for every non-null reason, basis, and observed field in the supplied CandidateReport. Select report fields without copying their text; the backend materializes exact text and hash after closure validation."
+        description="Exactly one exhaustive material-assertion audit for every non-null reason, basis, and observed field in the supplied CandidateReport. Select report fields without copying their source text; the backend materializes exact text, hash, and aggregate verdict after closure validation.",
     )
     causal_certificate_field: CausalReportField = Field(
-        description="One audited CandidateReport field carrying the core truth certificate. Its verdict and core_truth must agree exactly: SUPPORTED with VALID, or MIXED/REFUTED with INVALID."
+        description="One audited CandidateReport field carrying the core claim certificate. The backend derives VALID from an all-SUPPORTED assertion audit and INVALID from a MIXED or all-REFUTED audit.",
     )
     relation_decisions: tuple[
         SupportedRelationJudgment | NoMatchRelationJudgment, ...
@@ -677,40 +672,20 @@ class ReportJudgment(FrozenModel):
         min_length=1,
         description="Exactly one decision per expected issue in dynamic-schema order. FULL/PARTIAL rows retain expected-specific evidence; NO rows explicitly retain identity without repeated prose."
     )
-    no_match_reason: str | None = Field(
-        min_length=1,
-        description="English group explanation for all explicit NO_MATCH decision rows. It is required when any NO row exists and must be null when every row is positive."
-    )
-    no_match_basis: str | None = Field(
-        min_length=1,
-        description="English report, expected, and artifact basis for a non-empty grouped NO closure; null means every expected issue has a positive relation."
-    )
-    no_match_source_refs: tuple[str, ...] | None = Field(
-        description="Supplied references used for a non-empty grouped NO closure; null means no NO relation exists, while an empty tuple is never valid."
-    )
-    reason: str = Field(
-        min_length=1,
-        description="English explanation of why the report's own core technical claim is VALID or INVALID under the complete artifact audit; do not discuss backend-derived known/novel ownership."
-    )
-    basis: str = Field(
-        min_length=1,
-        description="NL, PlantUML, FCSTM, deterministic facts, or complete semantic-audit basis used for the truth judgment.",
-    )
-    source_refs: tuple[str, ...] = Field(
-        min_length=1,
-        description="Supplied source references actually used for report validity; must not be empty.",
+    no_match_closure: NoMatchClosureJudgment | None = Field(
+        description="Shared evidence required exactly when at least one positional relation is NO_MATCH; explicit null is required when every relation is positive.",
     )
 
 
 class JudgeResponse(FrozenModel):
     """Validity-first provider response with sparse evidence and exact decisions."""
 
-    schema_version: Literal["semantic-judge.response.v10"] = Field(
-        default="semantic-judge.response.v10",
-        description="Provider response version implementing assertion-level causal audits, core truth, and a provider-native exact positional relation partition.",
+    schema_version: Literal["semantic-judge.response.v11"] = Field(
+        default="semantic-judge.response.v11",
+        description="Provider response version implementing assertion-derived core truth and a provider-native exact positional relation partition.",
     )
     report_judgments: tuple[ReportJudgment, ...] = Field(
-        description="Core truth, causal certificate, sparse relation closure, root cause, reason, and basis for every report exactly once."
+        description="Assertion-level causal certificate, sparse relation closure, and root-cause cluster for every report exactly once; report truth and ownership are backend-derived.",
     )
     reason: str = Field(
         min_length=1, description="Overall semantic conclusion of the complete reading; do not merely restate counts."
@@ -732,7 +707,7 @@ class ReportAssessment(FrozenModel):
         min_length=1, description="Anonymous ID of the assessed report; it must occur exactly once in the response."
     )
     core_truth: CoreClaimTruth = Field(
-        description="Provider-audited core claim truth retained separately from the backend-derived known, novel, or invalid classification."
+        description="Backend-derived core claim truth from the selected causal certificate, retained separately from known, novel, or invalid ownership.",
     )
     validity: ReportValidity = Field(
         description="Backend-derived issue #195 final report class; only INVALID is a semantic false positive."
@@ -842,8 +817,8 @@ class ExpectedAssessment(FrozenModel):
 class JudgeReading(FrozenModel):
     """One complete independent or arbitrated issue #195 reading of a pair."""
 
-    schema_version: Literal["semantic-judge.reading.v4"] = Field(
-        default="semantic-judge.reading.v4",
+    schema_version: Literal["semantic-judge.reading.v5"] = Field(
+        default="semantic-judge.reading.v5",
         description="Complete dense reading version with backend-hashed causal source text and assertion-derived field verdicts; it does not encode primary or arbitration role.",
     )
     relations: tuple[RelationAssessment, ...] = Field(
@@ -1001,8 +976,8 @@ class ReadingDisagreement(FrozenModel):
 class ArbitrationInput(FrozenModel):
     """Complete typed arbitration input containing no arm or method-only metadata."""
 
-    schema_version: Literal["semantic-judge.arbitration-input.v5"] = Field(
-        default="semantic-judge.arbitration-input.v5",
+    schema_version: Literal["semantic-judge.arbitration-input.v6"] = Field(
+        default="semantic-judge.arbitration-input.v6",
         description="Targeted arbitration-input version carrying assertion-level causal audits and positional relation partitions only for substantive conflicts.",
     )
     judge_input: UnifiedJudgeInput = Field(
@@ -1052,8 +1027,8 @@ class ArbitrationInput(FrozenModel):
 class ArbitrationResponse(FrozenModel):
     """Targeted provider response replacing only conflicted report judgments."""
 
-    schema_version: Literal["semantic-judge.arbitration-response.v4"] = Field(
-        default="semantic-judge.arbitration-response.v4",
+    schema_version: Literal["semantic-judge.arbitration-response.v5"] = Field(
+        default="semantic-judge.arbitration-response.v5",
         description="Conflict-only arbitration response version using assertion-level causal audits and exact positional relation partitions; unchanged report judgments are never regenerated.",
     )
     report_judgments: tuple[ReportJudgment, ...] = Field(
@@ -1319,8 +1294,8 @@ class JudgeScaleAudit(FrozenModel):
     Judge model.
     """
 
-    schema_version: Literal["semantic-judge.scale-audit.v2"] = Field(
-        default="semantic-judge.scale-audit.v2",
+    schema_version: Literal["semantic-judge.scale-audit.v3"] = Field(
+        default="semantic-judge.scale-audit.v3",
         description="Provider-free Judge scale-audit version with a source-length-derived material-assertion envelope.",
     )
     generated_at_utc: datetime = Field(
@@ -1594,8 +1569,8 @@ class AdapterAudit(FrozenModel):
 class PairJudgeResult(FrozenModel):
     """Self-contained pair result with two readings, arbitration, metrics, and audit."""
 
-    schema_version: Literal["paper1.semantic-judge.pair-result.v3"] = Field(
-        default="paper1.semantic-judge.pair-result.v3",
+    schema_version: Literal["paper1.semantic-judge.pair-result.v4"] = Field(
+        default="paper1.semantic-judge.pair-result.v4",
         description="Unified pair-Judge persistence version containing backend-hashed causal fields and assertion-derived audit verdicts.",
     )
     run_id: str = Field(

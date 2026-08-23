@@ -134,11 +134,9 @@ def _structural_response_payload(
         positive_relations = (
             [
                 {
-                    "report_id": report.report_id,
                     "expected_id": expected_id,
                     "match": "FULL_MATCH",
                     "report_field_refs": ["claim", certificate_field],
-                    "causal_certificate_field": certificate_field,
                     "reason": "The complete valid report states the same actionable defect relation for this expected issue.",
                     "basis": "The report-owned causal certificate, expected obligation, and common artifacts establish direct repair overlap.",
                     "source_refs": [
@@ -166,7 +164,6 @@ def _structural_response_payload(
         report_judgments.append(
             {
                 "report_id": report.report_id,
-                "core_truth": "VALID",
                 "root_cause_cluster_key": "one actionable technical root cause",
                 "causal_field_audits": [
                     {
@@ -177,39 +174,27 @@ def _structural_response_payload(
                             field_text=getattr(report, field_name),
                             artifact_ref=artifact_ref,
                         ),
-                        "reason": "Every material assertion in this complete report-owned field is represented and artifact-compatible.",
-                        "basis": "The complete field was checked against the natural language, authored model, closed model, and deterministic facts.",
-                        "source_refs": [
-                            f"report:{report.report_id}:{field_name}",
-                            artifact_ref,
-                        ],
                     }
                     for field_name in causal_fields
                 ],
                 "causal_certificate_field": certificate_field,
                 "relation_decisions": relation_decisions,
-                "no_match_reason": (
-                    "The listed expected issues share no true defect instance, violated obligation, direct symptom, or repair overlap with this valid report."
+                "no_match_closure": (
+                    {
+                        "reason": "The listed expected issues share no true defect instance, violated obligation, direct symptom, or repair overlap with this valid report.",
+                        "basis": "The complete report boundary, every expected issue, and the common artifact closure were compared explicitly.",
+                        "source_refs": [
+                            f"report:{report.report_id}:claim",
+                            artifact_ref,
+                        ],
+                    }
                     if has_no_match
                     else None
                 ),
-                "no_match_basis": (
-                    "The complete report boundary, every expected issue, and the common artifact closure were compared explicitly."
-                    if has_no_match
-                    else None
-                ),
-                "no_match_source_refs": (
-                    [f"report:{report.report_id}:claim", artifact_ref]
-                    if has_no_match
-                    else None
-                ),
-                "reason": "The report's complete causal certificate is artifact-compatible and meets the minimum burden of proof.",
-                "basis": "The report claim and complete causal fields were audited against the common artifact closure.",
-                "source_refs": [f"report:{report.report_id}", artifact_ref],
             }
         )
     return {
-        "schema_version": "semantic-judge.response.v10",
+        "schema_version": "semantic-judge.response.v11",
         "report_judgments": report_judgments,
         "reason": "Every report and expected issue has complete validity-first sparse relation closure.",
         "basis": "The exact provider schema validates report identity, causal fields, positive relations, and explicit NO coverage.",

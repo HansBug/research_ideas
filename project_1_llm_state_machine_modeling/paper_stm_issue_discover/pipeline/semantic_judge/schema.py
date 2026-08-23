@@ -44,7 +44,7 @@ def _validate_report_judgment(
     report,
     expected_ids: tuple[str, ...],
     object_path: str,
-) -> None:
+) -> CoreClaimTruth:
     """Validate deterministic report-field, certificate, and relation invariants."""
 
     expected_causal_fields = {
@@ -74,37 +74,20 @@ def _validate_report_judgment(
     certificate_verdict = derive_causal_field_verdict(
         certificate.material_assertion_audits
     )
-    allowed_certificate_verdicts = (
-        {CausalFieldVerdict.SUPPORTED}
-        if row.core_truth == CoreClaimTruth.VALID
-        else {CausalFieldVerdict.MIXED, CausalFieldVerdict.REFUTED}
+    core_truth = (
+        CoreClaimTruth.VALID
+        if certificate_verdict == CausalFieldVerdict.SUPPORTED
+        else CoreClaimTruth.INVALID
     )
-    if certificate_verdict not in allowed_certificate_verdicts:
-        raise ValueError(
-            f"{object_path}.core_truth={row.core_truth.value} conflicts with "
-            f"causal_certificate_field={certificate_name} derived_verdict={certificate_verdict.value}; "
-            f"expected={sorted(item.value for item in allowed_certificate_verdicts)}"
-        )
 
     positive_relations: list[SupportedRelationJudgment] = []
     no_match_ids: list[str] = []
-    positive_keys: list[tuple[str, str]] = []
+    positive_ids: list[str] = []
     for index, decision in enumerate(row.relation_decisions):
         if decision.match == MatchStrength.NO_MATCH:
             no_match_ids.append(decision.expected_id)
             continue
         relation = cast(SupportedRelationJudgment, decision)
-        if relation.report_id != row.report_id:
-            raise ValueError(
-                f"{object_path}.relation_decisions[{index}].report_id must equal "
-                f"{row.report_id}; actual={relation.report_id}"
-            )
-        if relation.causal_certificate_field != row.causal_certificate_field:
-            raise ValueError(
-                f"{object_path}.relation_decisions[{index}].causal_certificate_field must "
-                f"reference report certificate {certificate_name}; "
-                f"actual={relation.causal_certificate_field.value}"
-            )
         field_names = [item.value for item in relation.report_field_refs]
         if len(field_names) != len(set(field_names)):
             raise ValueError(
@@ -122,16 +105,16 @@ def _validate_report_judgment(
                     f"null CandidateReport.{field_name} for report {row.report_id}"
                 )
         positive_relations.append(relation)
-        positive_keys.append((relation.report_id, relation.expected_id))
-    if len(positive_keys) != len(set(positive_keys)):
+        positive_ids.append(relation.expected_id)
+    if len(positive_ids) != len(set(positive_ids)):
         raise ValueError(
-            f"{object_path}.relation_decisions contains duplicate positive report/expected keys: "
-            f"{positive_keys}"
+            f"{object_path}.relation_decisions contains duplicate positive expected IDs: "
+            f"{positive_ids}"
         )
-    positive_ids = [relation.expected_id for relation in positive_relations]
-    if row.core_truth == CoreClaimTruth.INVALID and positive_relations:
+    if core_truth == CoreClaimTruth.INVALID and positive_relations:
         raise ValueError(
-            f"{object_path}.core_truth=INVALID requires every relation_decision to be NO_MATCH; "
+            f"{object_path} has a MIXED/REFUTED causal certificate and requires every "
+            "relation_decision to be NO_MATCH; "
             f"actual_positive_expected_ids={positive_ids}"
         )
 
@@ -140,22 +123,14 @@ def _validate_report_judgment(
             f"{object_path}.relation_decisions contains duplicate NO expected IDs: {no_match_ids}"
         )
     if no_match_ids:
-        if not row.no_match_reason or not row.no_match_basis or not row.no_match_source_refs:
+        if row.no_match_closure is None:
             raise ValueError(
                 f"{object_path} has a non-empty NO_MATCH closure and requires non-null "
-                "no_match_reason, no_match_basis, and non-empty no_match_source_refs"
+                "no_match_closure evidence"
             )
-    elif any(
-        value is not None
-        for value in (
-            row.no_match_reason,
-            row.no_match_basis,
-            row.no_match_source_refs,
-        )
-    ):
+    elif row.no_match_closure is not None:
         raise ValueError(
-            f"{object_path} has an empty NO_MATCH closure, so no_match_reason, "
-            "no_match_basis, and no_match_source_refs must all be null"
+            f"{object_path} has an empty NO_MATCH closure, so no_match_closure must be null"
         )
     actual_partition = positive_ids + no_match_ids
     if len(actual_partition) != len(set(actual_partition)) or set(actual_partition) != set(
@@ -166,11 +141,10 @@ def _validate_report_judgment(
             f"exactly once; expected={expected_ids}, positive={positive_ids}, "
             f"no_match={no_match_ids}"
         )
+    return core_truth
 
 
-def _exact_relation_decision_type(
-    *, report_id_type, expected_id: str, suffix: str
-):
+def _exact_relation_decision_type(*, expected_id: str, suffix: str):
     """Build one discriminator union fixed to one expected position."""
 
     expected_id_type = _literal((expected_id,))
@@ -178,9 +152,6 @@ def _exact_relation_decision_type(
     class ExactFullRelationJudgment(SupportedRelationJudgment):
         """One FULL relation fixed to an exact anonymous expected position."""
 
-        report_id: report_id_type = Field(  # type: ignore[valid-type]
-            description="Anonymous report ID from the exact input closure; it must equal the enclosing report judgment ID."
-        )
         expected_id: expected_id_type = Field(  # type: ignore[valid-type]
             description="Anonymous expected ID fixed by this exact relation position."
         )
@@ -191,9 +162,6 @@ def _exact_relation_decision_type(
     class ExactPartialRelationJudgment(SupportedRelationJudgment):
         """One PARTIAL relation fixed to an exact anonymous expected position."""
 
-        report_id: report_id_type = Field(  # type: ignore[valid-type]
-            description="Anonymous report ID from the exact input closure; it must equal the enclosing report judgment ID."
-        )
         expected_id: expected_id_type = Field(  # type: ignore[valid-type]
             description="Anonymous expected ID fixed by this exact relation position."
         )
@@ -225,14 +193,11 @@ def _exact_report_model(
     allowed_report_ids: tuple[str, ...],
     suffix: str,
 ):
-    report_ids = tuple(item.report_id for item in judge_input.reports)
     expected_ids = tuple(item.expected_id for item in judge_input.expected_issues)
-    report_id_type = _literal(report_ids)
     allowed_report_id_type = _literal(allowed_report_ids)
     reports_by_id = {item.report_id: item for item in judge_input.reports}
     relation_decision_types = tuple(
         _exact_relation_decision_type(
-            report_id_type=report_id_type,
             expected_id=expected_id,
             suffix=f"{suffix}_{index}",
         )
@@ -426,9 +391,19 @@ def _materialized_causal_field_audit(
         + hashlib.sha256(field_value.encode("utf-8")).hexdigest(),
         material_assertion_audits=judgment.material_assertion_audits,
         verdict=derive_causal_field_verdict(judgment.material_assertion_audits),
-        reason=judgment.reason,
-        basis=judgment.basis,
-        source_refs=judgment.source_refs,
+        reason=" ".join(
+            f"{item.assertion_id}={item.verdict.value}: {item.reason}"
+            for item in judgment.material_assertion_audits
+        ),
+        basis=" ".join(
+            f"{item.assertion_id}: {item.basis}"
+            for item in judgment.material_assertion_audits
+        ),
+        source_refs=_unique(
+            ref
+            for item in judgment.material_assertion_audits
+            for ref in item.source_refs
+        ),
     )
 
 
@@ -452,6 +427,20 @@ def materialize_reading(
     for report_id in report_ids:
         judgment = judgments_by_id[report_id]
         report = reports_by_id[report_id]
+        causal_judgments_by_field = {
+            audit.report_field.value: audit for audit in judgment.causal_field_audits
+        }
+        certificate_judgment = causal_judgments_by_field[
+            judgment.causal_certificate_field.value
+        ]
+        certificate_verdict = derive_causal_field_verdict(
+            certificate_judgment.material_assertion_audits
+        )
+        core_truth = (
+            CoreClaimTruth.VALID
+            if certificate_verdict == CausalFieldVerdict.SUPPORTED
+            else CoreClaimTruth.INVALID
+        )
         positive_by_expected = {
             row.expected_id: cast(SupportedRelationJudgment, row)
             for row in judgment.relation_decisions
@@ -475,9 +464,11 @@ def materialize_reading(
                             basis=f"report_judgments[{report_id}].relation_decisions",
                         ),
                     ),
-                    reason=cast(str, judgment.no_match_reason),
-                    basis=cast(str, judgment.no_match_basis),
-                    source_refs=cast(tuple[str, ...], judgment.no_match_source_refs),
+                    reason=cast(str, judgment.no_match_closure.reason),
+                    basis=cast(str, judgment.no_match_closure.basis),
+                    source_refs=cast(
+                        tuple[str, ...], judgment.no_match_closure.source_refs
+                    ),
                 )
             else:
                 match = MatchStrength(positive.match.value)
@@ -491,14 +482,12 @@ def materialize_reading(
                         report_field=field_ref,
                         semantic_role=(
                             ReportTextEvidenceRole.CAUSAL_SUPPORT
-                            if field_ref.value
-                            == positive.causal_certificate_field.value
+                            if field_ref.value == judgment.causal_certificate_field.value
                             else ReportTextEvidenceRole.CLAIM_BOUNDARY
                         ),
                         reason=(
                             "The complete supported causal certificate establishes the report-owned premise used by this relation."
-                            if field_ref.value
-                            == positive.causal_certificate_field.value
+                            if field_ref.value == judgment.causal_certificate_field.value
                             else "The complete referenced report field delimits the published technical claim used by this relation."
                         ),
                         basis=f"supported_relation:{report_id}/{expected_id}",
@@ -510,7 +499,7 @@ def materialize_reading(
                     for item in evidence
                 ):
                     certificate_field = ReportField(
-                        positive.causal_certificate_field.value
+                        judgment.causal_certificate_field.value
                     )
                     evidence += (
                         _materialized_text_evidence(
@@ -534,7 +523,7 @@ def materialize_reading(
 
         validity = (
             ReportValidity.INVALID
-            if judgment.core_truth == CoreClaimTruth.INVALID
+            if core_truth == CoreClaimTruth.INVALID
             else ReportValidity.VALID_KNOWN
             if full_expected_ids or partial_expected_ids
             else ReportValidity.VALID_NOVEL
@@ -557,16 +546,17 @@ def materialize_reading(
             )
         certificate_role = (
             ReportTextEvidenceRole.CAUSAL_SUPPORT
-            if judgment.core_truth == CoreClaimTruth.VALID
+            if core_truth == CoreClaimTruth.VALID
             else ReportTextEvidenceRole.REFUTED_PREMISE
         )
-        causal_judgments_by_field = {
-            audit.report_field.value: audit for audit in judgment.causal_field_audits
-        }
+        certificate_audit = _materialized_causal_field_audit(
+            report=report,
+            judgment=certificate_judgment,
+        )
         report_assessments.append(
             ReportAssessment(
                 report_id=report_id,
-                core_truth=judgment.core_truth,
+                core_truth=core_truth,
                 validity=validity,
                 full_expected_ids=tuple(full_expected_ids),
                 partial_expected_ids=tuple(partial_expected_ids),
@@ -592,7 +582,7 @@ def materialize_reading(
                         semantic_role=certificate_role,
                         reason=(
                             "The complete field supplies the artifact-compatible causal certificate for the valid core claim."
-                            if judgment.core_truth == CoreClaimTruth.VALID
+                            if core_truth == CoreClaimTruth.VALID
                             else "The complete field contains the mixed or refuted premise that invalidates the core claim."
                         ),
                         basis=f"report_judgments[{report_id}].causal_certificate_field",
@@ -606,14 +596,14 @@ def materialize_reading(
                     for field_name in ("reason", "basis", "observed")
                     if isinstance(getattr(report, field_name), str)
                 ),
-                reason=f"{judgment.reason} {ownership_reason}",
+                reason=f"{certificate_audit.reason} {ownership_reason}",
                 basis=(
-                    f"{judgment.basis}; deterministic ownership derivation from "
+                    f"{certificate_audit.basis}; deterministic ownership derivation from "
                     "core_truth and the exact positive/NO expected-ID partition"
                 ),
                 source_refs=_unique(
                     [f"report:{report_id}"]
-                    + list(judgment.source_refs)
+                    + list(certificate_audit.source_refs)
                     + [f"expected:{expected_id}" for expected_id in expected_ids]
                 ),
             )

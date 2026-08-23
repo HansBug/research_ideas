@@ -117,11 +117,7 @@ def reading_payload(
             if has_positive
             else ReportValidity.VALID_NOVEL,
         )
-        core_truth = (
-            CoreClaimTruth.INVALID
-            if selected_validity == ReportValidity.INVALID
-            else CoreClaimTruth.VALID
-        )
+        invalid = selected_validity == ReportValidity.INVALID
         relation_decisions = []
         for expected in judge_input.expected_issues:
             match = matches.get(
@@ -130,11 +126,9 @@ def reading_payload(
             if match in {MatchStrength.FULL_MATCH, MatchStrength.PARTIAL_MATCH}:
                 relation_decisions.append(
                     {
-                        "report_id": report.report_id,
                         "expected_id": expected.expected_id,
                         "match": match.value,
                         "report_field_refs": ["claim", "reason"],
-                        "causal_certificate_field": "reason",
                         "reason": f"{report.report_id} to {expected.expected_id} is {match.value}.",
                         "basis": "Fixture report, expected issue, and artifact evidence.",
                         "source_refs": [
@@ -154,7 +148,6 @@ def reading_payload(
         report_rows.append(
             {
                 "report_id": report.report_id,
-                "core_truth": core_truth.value,
                 "root_cause_cluster_key": clusters.get(
                     report.report_id, f"technical-cause-{report.report_id}"
                 ),
@@ -167,7 +160,7 @@ def reading_payload(
                                 "assertion": "The fixture field states one material causal premise.",
                                 "verdict": (
                                     "REFUTED"
-                                    if core_truth == CoreClaimTruth.INVALID
+                                    if invalid
                                     else "SUPPORTED"
                                 ),
                                 "reason": "The fixture artifacts determine this exact premise.",
@@ -178,43 +171,28 @@ def reading_payload(
                                 ],
                             }
                         ],
-                        "reason": "The complete fixture causal field receives an exhaustive assertion audit.",
-                        "basis": f"CandidateReport {report.report_id}.{field_name} and fixture artifacts.",
-                        "source_refs": [
-                            f"report:{report.report_id}:{field_name}",
-                            "artifact:natural_language",
-                        ],
                     }
                     for field_name in ("reason", "basis", "observed")
                     if isinstance(getattr(report, field_name), str)
                 ],
                 "causal_certificate_field": "reason",
                 "relation_decisions": relation_decisions,
-                "no_match_reason": (
-                    "The listed expected issues have no true defect relation to this report."
+                "no_match_closure": (
+                    {
+                        "reason": "The listed expected issues have no true defect relation to this report.",
+                        "basis": "Fixture report, expected issues, and common artifact closure.",
+                        "source_refs": [
+                            f"report:{report.report_id}",
+                            "artifact:natural_language",
+                        ],
+                    }
                     if has_no_match
                     else None
                 ),
-                "no_match_basis": (
-                    "Fixture report, expected issues, and common artifact closure."
-                    if has_no_match
-                    else None
-                ),
-                "no_match_source_refs": (
-                    [f"report:{report.report_id}", "artifact:natural_language"]
-                    if has_no_match
-                    else None
-                ),
-                "reason": f"Artifact review classifies {report.report_id}.",
-                "basis": "Fixture artifact truth review.",
-                "source_refs": [
-                    f"report:{report.report_id}",
-                    "artifact:natural_language",
-                ],
             }
         )
     return {
-        "schema_version": "semantic-judge.response.v10",
+        "schema_version": "semantic-judge.response.v11",
         "report_judgments": report_rows,
         "reason": "Complete provider-free fixture reading.",
         "basis": "Issue #195 fixture closure and artifact review.",
@@ -267,7 +245,7 @@ def test_runtime_schema_is_sparse_described_and_hides_derived_classes() -> None:
     assert "NO_MATCH" in serialized
     assert "VALID_KNOWN" not in serialized
     assert "VALID_NOVEL" not in serialized
-    assert '"VALID"' in serialized and '"INVALID"' in serialized
+    assert '"VALID"' not in serialized and '"INVALID"' not in serialized
     assert "SUPPORTED" in serialized
     assert "REFUTED" in serialized
     assert "exact_text" not in serialized
@@ -275,6 +253,11 @@ def test_runtime_schema_is_sparse_described_and_hides_derived_classes() -> None:
     assert "R0001" in serialized and "R0002" in serialized
     assert "E0001" in serialized and "E0002" in serialized
     assert "expected_judgments" not in schema["properties"]
+    assert "core_truth" not in serialized
+    assert "no_match_closure" in serialized
+    assert "no_match_reason" not in serialized
+    assert "no_match_basis" not in serialized
+    assert "no_match_source_refs" not in serialized
 
 
 @pytest.mark.parametrize(
@@ -319,9 +302,7 @@ def test_all_report_relation_validity_combinations(
         judge_input, matches=matches, validity=source_validity
     )
     if validity == ReportValidity.INVALID and match != MatchStrength.NO_MATCH:
-        with pytest.raises(
-                ValidationError, match="core_truth=INVALID requires every relation_decision"
-        ):
+        with pytest.raises(ValidationError, match="MIXED/REFUTED causal certificate"):
             build_exact_response_model(judge_input).model_validate(provider_payload)
         return
     response = build_exact_response_model(judge_input).model_validate(provider_payload)
@@ -348,7 +329,7 @@ def test_all_report_relation_validity_combinations(
             models.ReportAssessment.model_validate(payload)
 
 
-def test_invalid_core_truth_rejects_full_and_partial_relations() -> None:
+def test_refuted_causal_certificate_rejects_full_and_partial_relations() -> None:
     judge_input = minimal_input()
     for match in (MatchStrength.FULL_MATCH, MatchStrength.PARTIAL_MATCH):
         payload = reading_payload(
@@ -356,9 +337,7 @@ def test_invalid_core_truth_rejects_full_and_partial_relations() -> None:
             matches={("R0001", "E0001"): match},
             validity={"R0001": ReportValidity.INVALID},
         )
-        with pytest.raises(
-            ValidationError, match="core_truth=INVALID requires every relation_decision"
-        ):
+        with pytest.raises(ValidationError, match="MIXED/REFUTED causal certificate"):
             build_exact_response_model(judge_input).model_validate(payload)
 
 
@@ -393,12 +372,16 @@ def test_empty_no_closure_requires_explicit_null_group_evidence() -> None:
         judge_input,
         matches={("R0001", "E0001"): MatchStrength.FULL_MATCH},
     )
-    payload["report_judgments"][0]["no_match_reason"] = "No rows remain."
-    with pytest.raises(ValidationError, match="must all be null"):
+    payload["report_judgments"][0]["no_match_closure"] = {
+        "reason": "No rows remain.",
+        "basis": "No NO relation exists.",
+        "source_refs": ["artifact:natural_language"],
+    }
+    with pytest.raises(ValidationError, match="no_match_closure must be null"):
         build_exact_response_model(judge_input).model_validate(payload)
 
 
-def test_positive_relation_requires_owned_fields_and_report_certificate() -> None:
+def test_positive_relation_requires_owned_fields_and_inherits_report_certificate() -> None:
     judge_input = minimal_input()
     schema = build_exact_response_model(judge_input)
     payload = reading_payload(
@@ -410,14 +393,15 @@ def test_positive_relation_requires_owned_fields_and_report_certificate() -> Non
     with pytest.raises(ValidationError, match="references null CandidateReport.where"):
         schema.model_validate(payload)
     payload = reading_payload(
-        judge_input,
-        matches={("R0001", "E0001"): MatchStrength.FULL_MATCH},
+        judge_input, matches={("R0001", "E0001"): MatchStrength.FULL_MATCH}
     )
-    payload["report_judgments"][0]["relation_decisions"][0][
-        "causal_certificate_field"
-    ] = "basis"
-    with pytest.raises(ValidationError, match="must reference report certificate reason"):
-        schema.model_validate(payload)
+    reading = materialize_reading(schema.model_validate(payload), judge_input)
+    relation = reading.relations[0]
+    assert any(
+        row.report_field.value == "reason"
+        and row.semantic_role == models.ReportTextEvidenceRole.CAUSAL_SUPPORT
+        for row in relation.report_text_evidence
+    )
 
 
 def test_causal_field_audit_requires_exact_field_reference_closure() -> None:
@@ -481,23 +465,27 @@ def test_backend_canonicalizes_causal_audit_order() -> None:
     ]
 
 
-def test_core_truth_requires_compatible_whole_field_certificate() -> None:
+def test_core_truth_is_derived_from_whole_field_certificate() -> None:
     judge_input = minimal_input()
     schema = build_exact_response_model(judge_input)
     payload = reading_payload(judge_input)
     payload["report_judgments"][0]["causal_field_audits"][0][
         "material_assertion_audits"
     ][0]["verdict"] = "REFUTED"
-    with pytest.raises(ValidationError, match="core_truth=VALID conflicts"):
-        schema.model_validate(payload)
+    reading = materialize_reading(schema.model_validate(payload), judge_input)
+    assessment = reading.report_assessments[0]
+    assert assessment.core_truth == CoreClaimTruth.INVALID
+    assert assessment.validity == ReportValidity.INVALID
     payload = reading_payload(
         judge_input, validity={"R0001": ReportValidity.INVALID}
     )
     payload["report_judgments"][0]["causal_field_audits"][0][
         "material_assertion_audits"
     ][0]["verdict"] = "SUPPORTED"
-    with pytest.raises(ValidationError, match="core_truth=INVALID conflicts"):
-        schema.model_validate(payload)
+    reading = materialize_reading(schema.model_validate(payload), judge_input)
+    assessment = reading.report_assessments[0]
+    assert assessment.core_truth == CoreClaimTruth.VALID
+    assert assessment.validity == ReportValidity.VALID_NOVEL
 
 
 def test_invalid_report_may_retain_supported_context_without_rescuing_claim() -> None:
@@ -590,8 +578,10 @@ def test_refuted_material_premise_cannot_be_rescued_by_nearby_true_assertion() -
             ],
         },
     ]
-    with pytest.raises(ValidationError, match="core_truth=VALID conflicts"):
-        build_exact_response_model(judge_input).model_validate(payload)
+    validated = build_exact_response_model(judge_input).model_validate(payload)
+    assessment = materialize_reading(validated, judge_input).report_assessments[0]
+    assert assessment.core_truth == CoreClaimTruth.INVALID
+    assert assessment.validity == ReportValidity.INVALID
 
 
 def test_material_assertion_ids_must_be_contiguous_in_source_order() -> None:

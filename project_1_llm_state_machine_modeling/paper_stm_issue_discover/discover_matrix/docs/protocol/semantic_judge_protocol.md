@@ -51,7 +51,7 @@ redundancy rate；重复的 valid finding 进入 redundancy，不进入 FP。
 | :-- | :-- | :-- | :-- | :-- |
 | issue snapshot 是唯一权威，变更即升版并使旧分数失效 | `protocol.py` 的 `PROTOCOL_*` 与 `verify_snapshot` | CLI 在运行前校验 snapshot | snapshot hash、prompt hash 测试 | 本文件“冻结版本” |
 | D2+D1 是唯一发布集合；D0 不进入 Judge | arm-neutral `CandidateReport` 不含 D/W/L | `artifacts.py` 只适配最终发布报告 | adapter 字段结构与排除字段测试 | `final_output_metrics_policy.md` |
-| 先判核心真值，再判 relation，后端派生 K/N/I | `CoreClaimTruth`、`PositiveMatchStrength`、`ReportJudgment` | `schema.py::materialize_reading` | 3x3 合法组合、全局 closure 测试 | 本文件“现行核心合同” |
+| 先判核心真值，再判 relation，后端派生 K/N/I | provider 输出 assertion truth、certificate selector 与 `PositiveMatchStrength`，不重复 aggregate core truth | `derive_causal_field_verdict`、`schema.py::materialize_reading` | 3x3 合法组合、全局 closure、core-truth derivation 测试 | 本文件“现行核心合同” |
 | INVALID、VALID_NOVEL 全 NO；VALID_KNOWN 至少一条 FULL/PARTIAL | 动态 exact-closure schema 与 validator | `_validate_report_judgment`、`ReportAssessment` validator | 非法组合确定性拒绝测试 | snapshot §1.1 |
 | FULL 采用适度宽语义，不以字段复刻为 gate | `SYSTEM_PROMPT` 的 root cause、obligation、symptom、repair overlap 规则 | relation enum 原样物化 | free-text FULL、多 expected FULL 测试 | `hit_criterion.md` |
 | PARTIAL 只算 supported，不算 hit/FP | `PositiveMatchStrength.PARTIAL_MATCH` | `metrics.py::compute_semantic_metrics` | partial 指标测试 | 本文件“确定性指标” |
@@ -80,7 +80,8 @@ report 级保存一次。`prefixItems + minItems + maxItems` 在 provider schema
 expected 恰好出现一次，再由后端物化完整 dense audit。whole-field causal audit 同样只让
 provider 选择 `report_field`，并把字段中每个 material factual assertion、modeling-semantic
 assumption 和 causal link 按原文顺序拆成独立 assertion row；每行给出
-`SUPPORTED/REFUTED`、reason、basis 和 source refs。模型不自报 whole-field verdict，后端按
+`SUPPORTED/REFUTED`、reason、basis 和 source refs。模型不自报 whole-field verdict 或
+aggregate core truth，后端按
 “全 SUPPORTED = SUPPORTED、全 REFUTED = REFUTED、混合 = MIXED”机械派生。完整字段原文与
 SHA-256 也由后端从不可变输入确定性物化，既不允许摘取方便子句、用邻近真事实替换错误机制，
 也不要求模型复制长文本。仲裁仅重写冲突 report，
