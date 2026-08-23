@@ -18,6 +18,7 @@ from pipeline.semantic_judge.artifacts import (
     candidate_schema_field_set,
     load_expected_issues,
 )
+from pipeline.semantic_judge.causal_audit import build_causal_audit_plan
 from pipeline.semantic_judge.models import (
     ArtifactAuthority,
     ArtifactDocument,
@@ -103,6 +104,10 @@ def reading_payload(
     matches = matches or {}
     validity = validity or {}
     clusters = clusters or {}
+    audit_plan = build_causal_audit_plan(judge_input.reports)
+    plans_by_report = {
+        item.report_id: item for item in audit_plan.report_plans
+    }
     report_rows = []
     for report in judge_input.reports:
         has_positive = any(
@@ -157,7 +162,7 @@ def reading_payload(
                         "report_field": field_name,
                         "material_assertion_audits": [
                             {
-                                "assertion_id": "A1",
+                                "assertion_id": unit.assertion_id,
                                 "assertion": "The fixture field states one material causal premise.",
                                 "verdict": (
                                     "REFUTED"
@@ -171,6 +176,13 @@ def reading_payload(
                                     "artifact:natural_language",
                                 ],
                             }
+                            for unit in next(
+                                item
+                                for item in plans_by_report[
+                                    report.report_id
+                                ].field_plans
+                                if item.report_field.value == field_name
+                            ).source_units
                         ],
                     }
                     for field_name in ("reason", "basis", "observed")
@@ -448,7 +460,7 @@ def test_causal_field_audit_requires_exact_field_reference_closure() -> None:
     schema = build_exact_response_model(judge_input)
     payload = reading_payload(judge_input)
     payload["report_judgments"][0]["causal_field_audits"].pop()
-    with pytest.raises(ValidationError, match="causal_field_audits exact closure failed"):
+    with pytest.raises(ValidationError, match="causal_field_audits|Field required"):
         schema.model_validate(payload)
     payload = reading_payload(judge_input)
     payload["report_judgments"][0]["causal_field_audits"][0]["report_field"] = (
@@ -523,6 +535,45 @@ def test_core_truth_is_derived_from_whole_field_certificate() -> None:
     assert assessment.validity == ReportValidity.VALID_NOVEL
 
 
+def test_exact_source_units_prevent_omitting_a_refuted_mechanism() -> None:
+    judge_input = minimal_input()
+    report = judge_input.reports[0].model_copy(
+        update={
+            "reason": (
+                "The artifact lacks operational transitions; "
+                "the sibling wrappers therefore execute concurrently."
+            )
+        }
+    )
+    judge_input = judge_input.model_copy(update={"reports": (report,)})
+    plan = build_causal_audit_plan(judge_input.reports)
+    source_units = plan.report_plans[0].field_plans[0].source_units
+    assert [item.assertion_id for item in source_units] == ["A1", "A2"]
+    assert "".join(item.exact_source_quote for item in source_units) == report.reason
+
+    payload = reading_payload(judge_input)
+    payload["report_judgments"][0]["causal_field_audits"][0][
+        "material_assertion_audits"
+    ].pop()
+    with pytest.raises(ValidationError, match="source-unit closure failed"):
+        build_exact_response_model(judge_input).model_validate(payload)
+
+    complete_payload = reading_payload(judge_input)
+    complete_payload["report_judgments"][0]["causal_field_audits"][0][
+        "material_assertion_audits"
+    ][1]["verdict"] = "REFUTED"
+    complete_payload["report_judgments"][0]["relation_decisions"] = [
+        {"expected_id": "E0001", "match": "NO_MATCH"}
+    ]
+    reading = materialize_reading(
+        build_exact_response_model(judge_input).model_validate(complete_payload),
+        judge_input,
+    )
+    audit = reading.report_assessments[0].causal_field_audits[0]
+    assert audit.verdict == models.CausalFieldVerdict.MIXED
+    assert "".join(item.exact_source_quote for item in audit.source_units) == report.reason
+
+
 def test_invalid_report_may_retain_supported_context_without_rescuing_claim() -> None:
     judge_input = minimal_input()
     report = judge_input.reports[0].model_copy(
@@ -544,6 +595,10 @@ def test_invalid_report_may_retain_supported_context_without_rescuing_claim() ->
 
 def test_material_assertions_derive_all_three_whole_field_verdicts() -> None:
     judge_input = minimal_input()
+    report = judge_input.reports[0].model_copy(
+        update={"reason": "A nearby observation is true; the stated causal mechanism is false."}
+    )
+    judge_input = judge_input.model_copy(update={"reports": (report,)})
     schema = build_exact_response_model(judge_input)
 
     supported_payload = reading_payload(judge_input)
@@ -590,6 +645,10 @@ def test_material_assertions_derive_all_three_whole_field_verdicts() -> None:
 
 def test_refuted_material_premise_cannot_be_rescued_by_nearby_true_assertion() -> None:
     judge_input = minimal_input()
+    report = judge_input.reports[0].model_copy(
+        update={"reason": "A separate artifact fact is true; the report mechanism is false."}
+    )
+    judge_input = judge_input.model_copy(update={"reports": (report,)})
     payload = reading_payload(judge_input)
     certificate = payload["report_judgments"][0]["causal_field_audits"][0]
     certificate["material_assertion_audits"] = [
@@ -625,7 +684,7 @@ def test_material_assertion_ids_must_be_contiguous_in_source_order() -> None:
     payload["report_judgments"][0]["causal_field_audits"][0][
         "material_assertion_audits"
     ][0]["assertion_id"] = "A2"
-    with pytest.raises(ValidationError, match="contiguous IDs in source order"):
+    with pytest.raises(ValidationError, match="A1"):
         build_exact_response_model(judge_input).model_validate(payload)
 
 

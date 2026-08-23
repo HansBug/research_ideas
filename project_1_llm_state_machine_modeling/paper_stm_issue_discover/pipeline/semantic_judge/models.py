@@ -90,6 +90,122 @@ class MaterialAssertionVerdict(str, Enum):
     REFUTED = "REFUTED"
 
 
+class CausalAuditUnit(FrozenModel):
+    """Backend-defined exact source unit that one provider assertion must audit."""
+
+    model_config = ConfigDict(
+        extra="forbid", frozen=True, str_strip_whitespace=False
+    )
+
+    assertion_id: str = Field(
+        pattern=r"^A[1-9][0-9]*$",
+        description="Field-local exact source-unit ID in canonical A1, A2, ... order.",
+    )
+    source_start: int = Field(
+        ge=0,
+        description="Inclusive Python-character offset in the complete immutable report field.",
+    )
+    source_end: int = Field(
+        gt=0,
+        description="Exclusive Python-character offset in the complete immutable report field.",
+    )
+    exact_source_quote: str = Field(
+        min_length=1,
+        description="Verbatim source quotation fixed by the backend; non-English text is retained only as quoted input evidence.",
+    )
+    exact_source_sha256: str = Field(
+        pattern=r"^sha256:[0-9a-f]{64}$",
+        description="SHA-256 of exact_source_quote computed by the deterministic audit-plan builder.",
+    )
+
+    @model_validator(mode="after")
+    def offsets_and_hash_are_exact(self) -> CausalAuditUnit:
+        """Reject units whose offsets or digest do not match their exact quote."""
+
+        if self.source_end - self.source_start != len(self.exact_source_quote):
+            raise ValueError(
+                "source_end-source_start must equal the exact source-quote length"
+            )
+        expected_hash = "sha256:" + hashlib.sha256(
+            self.exact_source_quote.encode("utf-8")
+        ).hexdigest()
+        if self.exact_source_sha256 != expected_hash:
+            raise ValueError(
+                "exact_source_sha256 must equal the exact source-quote digest"
+            )
+        return self
+
+
+class CausalFieldAuditPlan(FrozenModel):
+    """Exact complete source partition for one non-null report causal field."""
+
+    report_field: CausalReportField = Field(
+        description="CandidateReport reason, basis, or observed field partitioned by this plan."
+    )
+    source_units: tuple[CausalAuditUnit, ...] = Field(
+        min_length=1,
+        description="Ordered non-overlapping source units whose concatenation exactly reconstructs the field.",
+    )
+
+    @model_validator(mode="after")
+    def source_units_are_contiguous(self) -> CausalFieldAuditPlan:
+        """Require canonical IDs and gap-free source offsets."""
+
+        cursor = 0
+        for index, unit in enumerate(self.source_units, start=1):
+            if unit.assertion_id != f"A{index}" or unit.source_start != cursor:
+                raise ValueError(
+                    "source_units must use contiguous IDs and gap-free offsets"
+                )
+            cursor = unit.source_end
+        return self
+
+
+class ReportCausalAuditPlan(FrozenModel):
+    """Exact causal-field audit plan for one anonymous candidate report."""
+
+    report_id: str = Field(
+        min_length=1,
+        description="Anonymous report ID whose immutable causal fields are partitioned.",
+    )
+    field_plans: tuple[CausalFieldAuditPlan, ...] = Field(
+        min_length=1,
+        description="Exactly one source partition for every non-null reason, basis, and observed field.",
+    )
+
+    @model_validator(mode="after")
+    def field_plans_are_unique(self) -> ReportCausalAuditPlan:
+        """Reject duplicate causal fields within a report plan."""
+
+        fields = [item.report_field for item in self.field_plans]
+        if len(fields) != len(set(fields)):
+            raise ValueError(f"field_plans contains duplicate report fields: {fields}")
+        return self
+
+
+class CausalAuditPlan(FrozenModel):
+    """Arm-neutral exact source-unit plan supplied with one Judge request."""
+
+    schema_version: Literal["semantic-judge.causal-audit-plan.v1"] = Field(
+        default="semantic-judge.causal-audit-plan.v1",
+        description="Deterministic source-unit plan version used by both experimental inputs.",
+    )
+    report_plans: tuple[ReportCausalAuditPlan, ...] = Field(
+        description="Exactly one causal audit plan for every anonymous report in input order."
+    )
+
+    @model_validator(mode="after")
+    def report_plans_are_unique(self) -> CausalAuditPlan:
+        """Reject duplicate report identities in the exact plan closure."""
+
+        report_ids = [item.report_id for item in self.report_plans]
+        if len(report_ids) != len(set(report_ids)):
+            raise ValueError(
+                f"report_plans contains duplicate report IDs: {report_ids}"
+            )
+        return self
+
+
 class ArtifactAuthority(str, Enum):
     """Closed roles that prevent author source, lowered model, and facts being conflated."""
 
@@ -310,6 +426,10 @@ class ReportCausalFieldAudit(FrozenModel):
         pattern=r"^sha256:[0-9a-f]{64}$",
         description="SHA-256 digest of exact_text computed deterministically by the backend for persisted provenance verification.",
     )
+    source_units: tuple[CausalAuditUnit, ...] = Field(
+        min_length=1,
+        description="Backend-materialized exact source partition that maps each assertion ID to a complete immutable quotation.",
+    )
     material_assertion_audits: tuple[MaterialAssertionAuditJudgment, ...] = Field(
         min_length=1,
         description="Provider-authored exhaustive assertion audit retained verbatim so the backend-derived whole-field verdict remains independently auditable.",
@@ -341,6 +461,22 @@ class ReportCausalFieldAudit(FrozenModel):
             raise ValueError(
                 "exact_text_sha256 must equal the SHA-256 digest of exact_text; "
                 f"expected={expected}, actual={self.exact_text_sha256}"
+            )
+        reconstructed = "".join(
+            unit.exact_source_quote for unit in self.source_units
+        )
+        if reconstructed != self.exact_text:
+            raise ValueError(
+                "source_units must reconstruct exact_text without omission or rewriting"
+            )
+        source_ids = [unit.assertion_id for unit in self.source_units]
+        assertion_ids = [
+            item.assertion_id for item in self.material_assertion_audits
+        ]
+        if source_ids != assertion_ids:
+            raise ValueError(
+                "source_units and material_assertion_audits must have identical IDs; "
+                f"source={source_ids}, assertions={assertion_ids}"
             )
         expected_verdict = derive_causal_field_verdict(self.material_assertion_audits)
         if self.verdict != expected_verdict:
@@ -1596,8 +1732,8 @@ class AdapterAudit(FrozenModel):
 class PairJudgeResult(FrozenModel):
     """Self-contained pair result with two readings, arbitration, metrics, and audit."""
 
-    schema_version: Literal["paper1.semantic-judge.pair-result.v6"] = Field(
-        default="paper1.semantic-judge.pair-result.v6",
+    schema_version: Literal["paper1.semantic-judge.pair-result.v7"] = Field(
+        default="paper1.semantic-judge.pair-result.v7",
         description="Unified pair-Judge persistence version containing backend-hashed causal fields and assertion-derived audit verdicts.",
     )
     run_id: str = Field(

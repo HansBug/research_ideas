@@ -84,9 +84,11 @@ assumption 和 causal link 按原文顺序拆成独立 assertion row；每行给
 aggregate core truth，后端按
 “全 SUPPORTED = SUPPORTED、全 REFUTED = REFUTED、混合 = MIXED”机械派生。完整字段原文与
 SHA-256 也由后端从不可变输入确定性物化，既不允许摘取方便子句、用邻近真事实替换错误机制，
-也不要求模型复制长文本。root-cause cluster 冲突按 report 共聚分区判断，不按自由文本 key
-的表面措辞判断；真正冲突的 report 逐条 atomic 仲裁，并使用扁平单 report Pydantic
-响应避免一项列表包装引起字段越级，每次仍读取完整公共制品与全部 expected。
+也不要求模型复制长文本。后端先把完整 causal field 确定性分成 gap-free source units，
+动态 Pydantic schema 要求每个 unit exactly once 英文判读，原文 quote 与 hash 由后端物化，
+禁止省略被反驳机制后用邻近真事实补写。root-cause cluster 冲突按 report 共聚分区判断，
+不按自由文本 key 的表面措辞判断；真正冲突的 report 逐条 atomic 仲裁，并使用扁平单
+report Pydantic 响应避免一项列表包装引起字段越级，每次仍读取完整公共制品与全部 expected。
 后端合并所有 replacement 后重验全 closure。仲裁仅重写冲突 report，
 未冲突报告复用已验证 primary，合并后重新执行全 closure validator。真实 `0029`
 provider-free scale audit 按真实 causal-field 长度每 64 字符至少预留一条 material assertion，

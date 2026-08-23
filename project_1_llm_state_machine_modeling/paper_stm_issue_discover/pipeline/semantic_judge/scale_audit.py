@@ -21,6 +21,7 @@ from .artifacts import (
     load_expected_issues,
     stable_model_hash,
 )
+from .causal_audit import MAX_SOURCE_UNIT_CHARACTERS, build_causal_audit_plan
 from .models import JudgeScaleAudit, UnifiedJudgeInput
 from .protocol import (
     JUDGE_ALGORITHM_VERSION,
@@ -36,7 +37,7 @@ from .runner import build_primary_prompt
 from .schema import build_exact_response_model, response_schema_hash
 
 SourceFormat = Literal["x1v2_record", "evidence_discovery_release"]
-MATERIAL_ASSERTION_CHARS_PER_ROW = 64
+MATERIAL_ASSERTION_CHARS_PER_ROW = MAX_SOURCE_UNIT_CHARACTERS
 
 
 def _sha256_text(value: str) -> str:
@@ -56,6 +57,7 @@ def _algorithm_source_hash() -> str:
     digest = hashlib.sha256()
     paths = (
         ("semantic_judge/artifacts.py", module_root / "artifacts.py"),
+        ("semantic_judge/causal_audit.py", module_root / "causal_audit.py"),
         ("semantic_judge/cli.py", module_root / "cli.py"),
         ("semantic_judge/metrics.py", module_root / "metrics.py"),
         ("semantic_judge/models.py", module_root / "models.py"),
@@ -87,24 +89,18 @@ def _causal_field_names(report) -> tuple[str, ...]:
     )
 
 
-def _material_assertion_count(field_text: str) -> int:
-    """Reserve at least one assertion row per short source-text span."""
-
-    return max(
-        1,
-        (len(field_text) + MATERIAL_ASSERTION_CHARS_PER_ROW - 1)
-        // MATERIAL_ASSERTION_CHARS_PER_ROW,
-    )
-
-
 def _material_assertion_envelope(
-    *, report_id: str, field_name: str, field_text: str, artifact_ref: str
+    *,
+    report_id: str,
+    field_name: str,
+    assertion_ids: tuple[str, ...],
+    artifact_ref: str,
 ) -> list[dict]:
-    """Build a conservative validated assertion envelope from real field length."""
+    """Build one validated response row per fixed exact source unit."""
 
     return [
         {
-            "assertion_id": f"A{index}",
+            "assertion_id": assertion_id,
             "assertion": "One independently testable material premise from the complete report field.",
             "verdict": "SUPPORTED",
             "reason": "The exact premise is compatible with the complete common artifact closure.",
@@ -114,7 +110,7 @@ def _material_assertion_envelope(
                 artifact_ref,
             ],
         }
-        for index in range(1, _material_assertion_count(field_text) + 1)
+        for assertion_id in assertion_ids
     ]
 
 
@@ -127,6 +123,10 @@ def _structural_response_payload(
 
     artifact_ref = judge_input.artifact_closure.artifacts[0].artifact_id
     expected_ids = tuple(item.expected_id for item in judge_input.expected_issues)
+    audit_plan = build_causal_audit_plan(judge_input.reports)
+    plans_by_report = {
+        item.report_id: item for item in audit_plan.report_plans
+    }
     report_judgments = []
     for report in judge_input.reports:
         causal_fields = _causal_field_names(report)
@@ -171,7 +171,16 @@ def _structural_response_payload(
                         "material_assertion_audits": _material_assertion_envelope(
                             report_id=report.report_id,
                             field_name=field_name,
-                            field_text=getattr(report, field_name),
+                            assertion_ids=tuple(
+                                unit.assertion_id
+                                for unit in next(
+                                    item
+                                    for item in plans_by_report[
+                                        report.report_id
+                                    ].field_plans
+                                    if item.report_field.value == field_name
+                                ).source_units
+                            ),
                             artifact_ref=artifact_ref,
                         ),
                     }
@@ -237,10 +246,11 @@ def build_scale_audit(
         sum(len(getattr(report, field_name)) for field_name in _causal_field_names(report))
         for report in judge_input.reports
     ]
+    audit_plan = build_causal_audit_plan(judge_input.reports)
     assertion_counts = [
-        _material_assertion_count(getattr(report, field_name))
-        for report in judge_input.reports
-        for field_name in _causal_field_names(report)
+        len(field_plan.source_units)
+        for report_plan in audit_plan.report_plans
+        for field_plan in report_plan.field_plans
     ]
     effective_max_output_tokens = min(
         profile_max_output_tokens, JUDGE_MAX_OUTPUT_TOKENS

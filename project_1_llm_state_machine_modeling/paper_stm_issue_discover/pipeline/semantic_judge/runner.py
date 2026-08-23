@@ -12,6 +12,7 @@ from pipeline.evidence_discovery.orchestration.runtime import (
 )
 
 from .artifacts import stable_model_hash
+from .causal_audit import build_causal_audit_plan
 from .metrics import compute_semantic_metrics, decode_outcomes
 from .models import (
     AdapterAudit,
@@ -75,22 +76,30 @@ def _sha256_text(value: str) -> str:
 def build_primary_prompt(judge_input: UnifiedJudgeInput) -> str:
     """Serialize the exact same primary prompt for either source adapter."""
 
+    audit_plan = build_causal_audit_plan(judge_input.reports)
     return (
         f"{PRIMARY_INSTRUCTION}\n\n"
         "<unified_judge_input>\n"
         f"{judge_input.model_dump_json(indent=2)}\n"
-        "</unified_judge_input>"
+        "</unified_judge_input>\n\n"
+        "<causal_audit_plan>\n"
+        f"{audit_plan.model_dump_json(indent=2)}\n"
+        "</causal_audit_plan>"
     )
 
 
 def build_arbitration_prompt(arbitration_input: ArbitrationInput) -> str:
     """Serialize complete common artifacts and both readings for conflict resolution."""
 
+    audit_plan = build_causal_audit_plan(arbitration_input.judge_input.reports)
     return (
         f"{ARBITRATION_INSTRUCTION}\n\n"
         "<arbitration_input>\n"
         f"{arbitration_input.model_dump_json(indent=2)}\n"
-        "</arbitration_input>"
+        "</arbitration_input>\n\n"
+        "<causal_audit_plan>\n"
+        f"{audit_plan.model_dump_json(indent=2)}\n"
+        "</causal_audit_plan>"
     )
 
 

@@ -9,6 +9,7 @@ from typing import Annotated, Literal, cast
 
 from pydantic import BaseModel, Field, model_validator
 
+from .causal_audit import build_causal_audit_plan
 from .models import (
     ArbitrationResponse,
     AtomicArbitrationResponse,
@@ -62,8 +63,24 @@ def _validate_report_judgment(
             f"expected={sorted(expected_causal_fields)}, actual={actual_causal_fields}"
         )
     audit_by_field: dict[str, CausalFieldAuditJudgment] = {}
+    audit_plan = build_causal_audit_plan((report,)).report_plans[0]
+    plan_by_field = {
+        item.report_field.value: item for item in audit_plan.field_plans
+    }
     for audit in row.causal_field_audits:
         field_name = audit.report_field.value
+        expected_assertion_ids = [
+            item.assertion_id for item in plan_by_field[field_name].source_units
+        ]
+        actual_assertion_ids = [
+            item.assertion_id for item in audit.material_assertion_audits
+        ]
+        if actual_assertion_ids != expected_assertion_ids:
+            raise ValueError(
+                f"{object_path}.causal_field_audits[{field_name}] source-unit "
+                "closure failed; "
+                f"expected={expected_assertion_ids}, actual={actual_assertion_ids}"
+            )
         audit_by_field[field_name] = audit
     certificate_name = row.causal_certificate_field.value
     certificate = audit_by_field.get(certificate_name)
@@ -188,15 +205,9 @@ def _exact_relation_decision_type(*, expected_id: str, suffix: str):
     ]
 
 
-def _exact_report_model(
-    judge_input: UnifiedJudgeInput,
-    *,
-    allowed_report_ids: tuple[str, ...],
-    suffix: str,
-):
-    expected_ids = tuple(item.expected_id for item in judge_input.expected_issues)
-    allowed_report_id_type = _literal(allowed_report_ids)
-    reports_by_id = {item.report_id: item for item in judge_input.reports}
+def _exact_relation_tuple(expected_ids: tuple[str, ...], *, suffix: str):
+    """Return one shared exact relation tuple type for a pair's expected closure."""
+
     relation_decision_types = tuple(
         _exact_relation_decision_type(
             expected_id=expected_id,
@@ -204,12 +215,24 @@ def _exact_report_model(
         )
         for index, expected_id in enumerate(expected_ids)
     )
-    exact_relation_tuple = tuple.__class_getitem__(relation_decision_types)
+    return tuple.__class_getitem__(relation_decision_types)
+
+
+def _exact_report_model(
+    judge_input: UnifiedJudgeInput,
+    *,
+    allowed_report_ids: tuple[str, ...],
+    exact_relation_tuple,
+    suffix: str,
+):
+    expected_ids = tuple(item.expected_id for item in judge_input.expected_issues)
+    report_id_type = _literal(allowed_report_ids)
+    reports_by_id = {item.report_id: item for item in judge_input.reports}
 
     class ExactReportJudgment(ReportJudgment):
         """One validity-first sparse judgment restricted to exact closure IDs."""
 
-        report_id: allowed_report_id_type = Field(  # type: ignore[valid-type]
+        report_id: report_id_type = Field(  # type: ignore[valid-type]
             description="Anonymous report ID from the exact required closure; include each required report exactly once."
         )
         relation_decisions: exact_relation_tuple = Field(  # type: ignore[valid-type]
@@ -238,9 +261,13 @@ def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResp
     suffix = hashlib.sha256(
         ("|".join(report_ids) + "::" + "|".join(expected_ids)).encode("utf-8")
     ).hexdigest()[:12]
+    shared_relation_tuple = _exact_relation_tuple(
+        expected_ids, suffix=f"{suffix}_relations"
+    )
     ExactReportJudgment = _exact_report_model(
         judge_input,
         allowed_report_ids=report_ids,
+        exact_relation_tuple=shared_relation_tuple,
         suffix=suffix,
     )
 
@@ -250,7 +277,7 @@ def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResp
         report_judgments: tuple[ExactReportJudgment, ...] = Field(
             min_length=len(report_ids),
             max_length=len(report_ids),
-            description="One core-truth, causal-certificate, and sparse exhaustive relation judgment for every anonymous report exactly once."
+            description="One exact causal-certificate and exhaustive relation judgment for every anonymous report; report order is semantically irrelevant."
         )
 
         @model_validator(mode="after")
@@ -296,14 +323,9 @@ def build_exact_arbitration_model(
     report_id = conflicted_report_ids[0]
     report_id_type = _literal((report_id,))
     reports_by_id = {item.report_id: item for item in judge_input.reports}
-    relation_decision_types = tuple(
-        _exact_relation_decision_type(
-            expected_id=expected_id,
-            suffix=f"{suffix}_{index}",
-        )
-        for index, expected_id in enumerate(expected_ids)
+    exact_relation_tuple = _exact_relation_tuple(
+        expected_ids, suffix=f"{suffix}_relations"
     )
-    exact_relation_tuple = tuple.__class_getitem__(relation_decision_types)
 
     class ExactAtomicArbitrationResponse(AtomicArbitrationResponse):
         """Flat final judgment for exactly one conflicted anonymous report."""
@@ -393,11 +415,18 @@ def _materialized_causal_field_audit(
             f"cannot materialize null CandidateReport.{judgment.report_field.value} "
             f"for {report.report_id}"
         )
+    report_plan = build_causal_audit_plan((report,)).report_plans[0]
+    field_plan = next(
+        item
+        for item in report_plan.field_plans
+        if item.report_field == judgment.report_field
+    )
     return ReportCausalFieldAudit(
         report_field=judgment.report_field,
         exact_text=field_value,
         exact_text_sha256="sha256:"
         + hashlib.sha256(field_value.encode("utf-8")).hexdigest(),
+        source_units=field_plan.source_units,
         material_assertion_audits=judgment.material_assertion_audits,
         verdict=derive_causal_field_verdict(judgment.material_assertion_audits),
         reason=" ".join(
