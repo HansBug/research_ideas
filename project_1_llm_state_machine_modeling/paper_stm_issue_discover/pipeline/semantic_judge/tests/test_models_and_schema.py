@@ -7,8 +7,6 @@ import re
 from pathlib import Path
 
 import pytest
-from pydantic import BaseModel, ValidationError
-
 from pipeline.semantic_judge import models
 from pipeline.semantic_judge.artifacts import (
     adapt_evidence_discovery_release,
@@ -40,9 +38,11 @@ from pipeline.semantic_judge.protocol import (
 from pipeline.semantic_judge.scale_audit import build_scale_audit
 from pipeline.semantic_judge.schema import (
     build_exact_arbitration_model,
+    build_exact_primary_model,
     build_exact_response_model,
     materialize_reading,
 )
+from pydantic import BaseModel, ValidationError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
@@ -252,6 +252,14 @@ def test_judge_prompts_and_runtime_schema_use_english_audit_language() -> None:
         sort_keys=True,
     )
     assert not non_ascii.search(arbitration_schema_text)
+    primary_schema_text = json.dumps(
+        build_exact_primary_model(
+            minimal_input(), "R0001"
+        ).model_json_schema(),
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    assert not non_ascii.search(primary_schema_text)
 
 
 def test_runtime_schema_is_sparse_described_and_hides_derived_classes() -> None:
@@ -301,6 +309,32 @@ def test_atomic_arbitration_schema_is_flat_and_exact() -> None:
             "arbitration_reason": "The complete artifact re-audit resolves the conflict.",
             "arbitration_basis": "The anonymous report, expected issues, and common artifacts.",
             "arbitration_source_refs": ["artifact:natural_language"],
+        }
+    )
+    assert response.report_id == "R0001"
+    assert len(response.relation_decisions) == 2
+
+
+def test_atomic_primary_schema_is_flat_and_exact() -> None:
+    judge_input = minimal_input(report_count=1, expected_count=2)
+    schema = build_exact_primary_model(judge_input, "R0001")
+    properties = schema.model_json_schema()["properties"]
+    assert "report_judgments" not in properties
+    assert properties["report_id"]["const"] == "R0001"
+    assert "relation_decisions" in properties
+    assert "no_match_closure" in properties
+    assert "reading_reason" in properties
+    assert "reading_basis" in properties
+    assert "reading_source_refs" in properties
+
+    row = reading_payload(judge_input)["report_judgments"][0]
+    response = schema.model_validate(
+        {
+            **row,
+            "schema_version": "semantic-judge.atomic-primary-response.v1",
+            "reading_reason": "The report received one complete independent reading.",
+            "reading_basis": "The anonymous report, expected issues, and common artifacts.",
+            "reading_source_refs": ["artifact:natural_language"],
         }
     )
     assert response.report_id == "R0001"
@@ -808,18 +842,37 @@ def test_typed_scale_audit_checks_exact_prompt_schema_and_sparse_envelopes() -> 
 
     assert audit.status == "pass"
     assert audit.report_count == 22
+    assert audit.atomic_primary_call_count == 88
+    assert audit.maximum_request_target_report_id.split(":", 1)[0] in {
+        "validity",
+        "relation",
+    }
     assert audit.expected_count == 8
     assert audit.relation_position_count == 176
     assert audit.effective_max_output_tokens == 128_000
     assert audit.material_assertion_chars_per_row == 64
     assert audit.material_assertion_envelope_count >= 22
     assert audit.maximum_field_material_assertion_envelope_count >= 1
-    assert audit.all_no_fits_output_limit
-    assert audit.all_positive_fits_output_limit
+    assert audit.maximum_validity_response_fits_output_limit
+    assert audit.maximum_relation_all_no_response_fits_output_limit
+    assert audit.maximum_relation_all_full_response_fits_output_limit
     assert audit.reserved_context_fits_window
     assert audit.context_headroom_tokens > 0
-    assert audit.all_positive_response_estimated_tokens > audit.all_no_response_estimated_tokens
+    assert (
+        audit.maximum_relation_all_full_response_estimated_tokens
+        > audit.maximum_relation_all_no_response_estimated_tokens
+    )
+    assert (
+        audit.maximum_validity_response_hash
+        != audit.maximum_relation_all_no_response_hash
+    )
+    assert (
+        audit.maximum_relation_all_no_response_hash
+        != audit.maximum_relation_all_full_response_hash
+    )
     assert audit.response_schema_hash.startswith("sha256:")
+    assert audit.primary_prompt_set_hash.startswith("sha256:")
+    assert audit.response_schema_set_hash.startswith("sha256:")
 
 
 def test_both_adapters_emit_one_candidate_schema_without_privileged_fields(

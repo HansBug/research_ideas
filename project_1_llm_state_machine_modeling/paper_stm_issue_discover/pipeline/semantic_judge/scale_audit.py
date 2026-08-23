@@ -21,7 +21,7 @@ from .artifacts import (
     load_expected_issues,
     stable_model_hash,
 )
-from .causal_audit import MAX_SOURCE_UNIT_CHARACTERS, build_causal_audit_plan
+from .causal_audit import MAX_SOURCE_UNIT_CHARACTERS
 from .models import JudgeScaleAudit, UnifiedJudgeInput
 from .protocol import (
     JUDGE_ALGORITHM_VERSION,
@@ -29,12 +29,20 @@ from .protocol import (
     PROMPT_VERSION,
     PROTOCOL_SHA256,
     PROTOCOL_VERSION,
-    SYSTEM_PROMPT,
+    RELATION_SYSTEM_PROMPT,
+    VALIDITY_SYSTEM_PROMPT,
     prompt_hash,
     verify_snapshot,
 )
-from .runner import build_primary_prompt
-from .schema import build_exact_response_model, response_schema_hash
+from .runner import build_relation_prompt, build_validity_prompt
+from .schema import (
+    build_exact_relation_model,
+    build_exact_validity_model,
+    build_relation_input,
+    build_validity_input,
+    materialize_validity_certificate,
+    response_schema_hash,
+)
 
 SourceFormat = Literal["x1v2_record", "evidence_discovery_release"]
 MATERIAL_ASSERTION_CHARS_PER_ROW = MAX_SOURCE_UNIT_CHARACTERS
@@ -81,133 +89,92 @@ def _algorithm_source_hash() -> str:
     return "sha256:" + digest.hexdigest()
 
 
-def _causal_field_names(report) -> tuple[str, ...]:
+def _auditable_field_names(report) -> tuple[str, ...]:
     return tuple(
         field_name
-        for field_name in ("reason", "basis", "observed")
+        for field_name in (
+            "claim",
+            "property",
+            "violated_obligation",
+            "expected",
+            "observed",
+            "reason",
+            "basis",
+        )
         if isinstance(getattr(report, field_name), str)
     )
 
 
-def _material_assertion_envelope(
-    *,
-    report_id: str,
-    field_name: str,
-    assertion_ids: tuple[str, ...],
-    artifact_ref: str,
-) -> list[dict]:
-    """Build one validated response row per fixed exact source unit."""
+def _validity_envelope(validity_input) -> dict:
+    """Build one all-SUPPORTED fixed-clause validity size envelope."""
 
-    return [
-        {
-            "assertion_id": assertion_id,
-            "assertion": "One independently testable material premise from the complete report field.",
-            "verdict": "SUPPORTED",
-            "reason": "The exact premise is compatible with the complete common artifact closure.",
-            "basis": "The authored report field and common artifacts directly support this premise.",
-            "source_refs": [
-                f"report:{report_id}:{field_name}",
-                artifact_ref,
-            ],
-        }
-        for assertion_id in assertion_ids
-    ]
-
-
-def _structural_response_payload(
-    judge_input: UnifiedJudgeInput,
-    *,
-    all_positive: bool,
-) -> dict:
-    """Build a validated size envelope without supplying a semantic decision."""
-
-    artifact_ref = judge_input.artifact_closure.artifacts[0].artifact_id
-    expected_ids = tuple(item.expected_id for item in judge_input.expected_issues)
-    audit_plan = build_causal_audit_plan(judge_input.reports)
-    plans_by_report = {
-        item.report_id: item for item in audit_plan.report_plans
+    artifact_ref = validity_input.artifact_closure.artifacts[0].artifact_id
+    payload = {
+        "schema_version": "semantic-judge.validity-response.v1",
+        "report_id": validity_input.report.report_id,
+        "root_cause_cluster_key": "one actionable technical root cause",
+        "validity_reason": "Every immutable report clause has one complete artifact truth judgment.",
+        "validity_basis": "The report source clauses and complete common artifacts determine every verdict.",
+        "validity_source_refs": [artifact_ref],
     }
-    report_judgments = []
-    for report in judge_input.reports:
-        causal_fields = _causal_field_names(report)
-        certificate_field = "reason"
-        positive_relations = (
-            [
+    for field_plan in validity_input.core_envelope.field_plans:
+        payload[f"{field_plan.report_field.value}_audit"] = [
+            {
+                "clause_id": clause.clause_id,
+                "assertion": "This English assertion faithfully represents every material premise in the complete immutable source clause.",
+                "verdict": "SUPPORTED",
+                "reason": "The complete common artifact closure supports every material premise in this clause.",
+                "basis": "The report-owned source clause and common artifacts provide direct evidence.",
+                "source_refs": [artifact_ref],
+            }
+            for clause in field_plan.clauses
+        ]
+    return payload
+
+
+def _relation_envelope(relation_input, *, all_positive: bool) -> dict:
+    """Build one validated all-NO or all-FULL relation size envelope."""
+
+    artifact_ref = relation_input.artifact_closure.artifacts[0].artifact_id
+    decisions = []
+    for expected in relation_input.expected_issues:
+        if all_positive:
+            decisions.append(
                 {
-                    "expected_id": expected_id,
+                    "expected_id": expected.expected_id,
                     "match": "FULL_MATCH",
-                    "report_field_refs": ["claim", certificate_field],
-                    "reason": "The complete valid report states the same actionable defect relation for this expected issue.",
-                    "basis": "The report-owned causal certificate, expected obligation, and common artifacts establish direct repair overlap.",
+                    "report_field_refs": ["claim", "reason"],
+                    "reason": "The valid report states the same independently actionable defect facet for this expected issue.",
+                    "basis": "The frozen validity certificate, expected obligation, and common artifacts establish direct repair overlap.",
                     "source_refs": [
-                        f"report:{report.report_id}:{certificate_field}",
-                        f"expected:{expected_id}",
+                        f"expected:{expected.expected_id}",
                         artifact_ref,
                     ],
                 }
-                for expected_id in expected_ids
-            ]
-            if all_positive
-            else []
-        )
-        positive_by_expected = {
-            row["expected_id"]: row for row in positive_relations
-        }
-        relation_decisions = [
-            positive_by_expected.get(
-                expected_id,
-                {"expected_id": expected_id, "match": "NO_MATCH"},
             )
-            for expected_id in expected_ids
-        ]
-        has_no_match = not all_positive
-        report_judgments.append(
-            {
-                "report_id": report.report_id,
-                "root_cause_cluster_key": "one actionable technical root cause",
-                "causal_field_audits": [
-                    {
-                        "report_field": field_name,
-                        "material_assertion_audits": _material_assertion_envelope(
-                            report_id=report.report_id,
-                            field_name=field_name,
-                            assertion_ids=tuple(
-                                unit.assertion_id
-                                for unit in next(
-                                    item
-                                    for item in plans_by_report[
-                                        report.report_id
-                                    ].field_plans
-                                    if item.report_field.value == field_name
-                                ).source_units
-                            ),
-                            artifact_ref=artifact_ref,
-                        ),
-                    }
-                    for field_name in causal_fields
-                ],
-                "causal_certificate_field": certificate_field,
-                "relation_decisions": relation_decisions,
-                "no_match_closure": (
-                    {
-                        "reason": "The listed expected issues share no true defect instance, violated obligation, direct symptom, or repair overlap with this valid report.",
-                        "basis": "The complete report boundary, every expected issue, and the common artifact closure were compared explicitly.",
-                        "source_refs": [
-                            f"report:{report.report_id}:claim",
-                            artifact_ref,
-                        ],
-                    }
-                    if has_no_match
-                    else None
-                ),
-            }
-        )
+        else:
+            decisions.append(
+                {"expected_id": expected.expected_id, "match": "NO_MATCH"}
+            )
     return {
-        "schema_version": "semantic-judge.response.v11",
-        "report_judgments": report_judgments,
-        "reason": "Every report and expected issue has complete validity-first sparse relation closure.",
-        "basis": "The exact provider schema validates report identity, causal fields, positive relations, and explicit NO coverage.",
-        "source_refs": [artifact_ref],
+        "schema_version": "semantic-judge.relation-response.v1",
+        "report_id": relation_input.report.report_id,
+        "validity_certificate_hash": (
+            relation_input.validity_certificate.certificate_hash
+        ),
+        "relation_decisions": decisions,
+        "no_match_closure": (
+            None
+            if all_positive
+            else {
+                "reason": "Every listed expected issue is a different defect, obligation, or repair target.",
+                "basis": "The valid report, complete expected issues, and common artifacts were compared explicitly.",
+                "source_refs": [artifact_ref],
+            }
+        ),
+        "relation_reason": "Every exact expected position has one complete relation decision.",
+        "relation_basis": "The immutable validity certificate and common artifact closure are preserved.",
+        "relation_source_refs": [artifact_ref],
     }
 
 
@@ -226,46 +193,140 @@ def build_scale_audit(
     profile_max_output_tokens: int,
     generated_at_utc: datetime | None = None,
 ) -> JudgeScaleAudit:
-    """Measure one exact input and two validated sparse response envelopes."""
+    """Measure every validity and worst-case relation target without a provider."""
 
-    response_model = build_exact_response_model(judge_input)
-    primary_prompt = build_primary_prompt(judge_input)
-    schema_text = json.dumps(
-        response_model.model_json_schema(),
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-    )
-    all_no_response = response_model.model_validate(
-        _structural_response_payload(judge_input, all_positive=False)
-    ).model_dump_json(indent=2)
-    all_positive_response = response_model.model_validate(
-        _structural_response_payload(judge_input, all_positive=True)
-    ).model_dump_json(indent=2)
+    if not judge_input.reports:
+        raise ValueError("scale audit requires at least one published report")
+    measurements = []
+    prompt_hashes: dict[str, str] = {}
+    schema_hashes: dict[str, str] = {}
+    validity_responses = []
+    relation_no_responses = []
+    relation_positive_responses = []
+    assertion_counts = []
+    for report in judge_input.reports:
+        report_id = report.report_id
+        validity_input = build_validity_input(judge_input, report_id)
+        validity_model = build_exact_validity_model(validity_input)
+        validity_prompt = build_validity_prompt(validity_input)
+        validity_schema_text = json.dumps(
+            validity_model.model_json_schema(),
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        validity_response = validity_model.model_validate(
+            _validity_envelope(validity_input)
+        ).model_dump_json(indent=2)
+        validity_responses.append(validity_response)
+        certificate = materialize_validity_certificate(
+            validity_model.model_validate(_validity_envelope(validity_input)),
+            validity_input,
+        )
+        validity_key = f"validity:{report_id}"
+        validity_prompt_hash = _sha256_text(
+            VALIDITY_SYSTEM_PROMPT + "\n" + validity_prompt
+        )
+        validity_schema_hash = response_schema_hash(validity_model)
+        prompt_hashes[validity_key] = validity_prompt_hash
+        schema_hashes[validity_key] = validity_schema_hash
+        validity_prompt_tokens = _estimated_tokens(validity_prompt)
+        validity_schema_tokens = _estimated_tokens(validity_schema_text)
+        measurements.append(
+            {
+                "target_report_id": validity_key,
+                "system_prompt": VALIDITY_SYSTEM_PROMPT,
+                "primary_prompt": validity_prompt,
+                "schema_text": validity_schema_text,
+                "response": validity_response,
+                "primary_tokens": validity_prompt_tokens,
+                "schema_tokens": validity_schema_tokens,
+                "request_tokens": _estimated_tokens(VALIDITY_SYSTEM_PROMPT)
+                + validity_prompt_tokens
+                + validity_schema_tokens,
+            }
+        )
+        assertion_counts.extend(
+            len(field_plan.clauses)
+            for field_plan in validity_input.core_envelope.field_plans
+        )
+
+        relation_input = build_relation_input(judge_input, certificate)
+        relation_model = build_exact_relation_model(relation_input)
+        relation_prompt = build_relation_prompt(relation_input)
+        relation_schema_text = json.dumps(
+            relation_model.model_json_schema(),
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        all_no_response = relation_model.model_validate(
+            _relation_envelope(relation_input, all_positive=False)
+        ).model_dump_json(indent=2)
+        all_positive_response = relation_model.model_validate(
+            _relation_envelope(relation_input, all_positive=True)
+        ).model_dump_json(indent=2)
+        relation_no_responses.append(all_no_response)
+        relation_positive_responses.append(all_positive_response)
+        relation_key = f"relation:{report_id}"
+        prompt_hashes[relation_key] = _sha256_text(
+            RELATION_SYSTEM_PROMPT + "\n" + relation_prompt
+        )
+        schema_hashes[relation_key] = response_schema_hash(relation_model)
+        relation_prompt_tokens = _estimated_tokens(relation_prompt)
+        relation_schema_tokens = _estimated_tokens(relation_schema_text)
+        measurements.append(
+            {
+                "target_report_id": relation_key,
+                "system_prompt": RELATION_SYSTEM_PROMPT,
+                "primary_prompt": relation_prompt,
+                "schema_text": relation_schema_text,
+                "response": all_positive_response,
+                "primary_tokens": relation_prompt_tokens,
+                "schema_tokens": relation_schema_tokens,
+                "request_tokens": _estimated_tokens(RELATION_SYSTEM_PROMPT)
+                + relation_prompt_tokens
+                + relation_schema_tokens,
+            }
+        )
     causal_text_lengths = [
-        sum(len(getattr(report, field_name)) for field_name in _causal_field_names(report))
+        sum(
+            len(getattr(report, field_name))
+            for field_name in _auditable_field_names(report)
+        )
         for report in judge_input.reports
-    ]
-    audit_plan = build_causal_audit_plan(judge_input.reports)
-    assertion_counts = [
-        len(field_plan.source_units)
-        for report_plan in audit_plan.report_plans
-        for field_plan in report_plan.field_plans
     ]
     effective_max_output_tokens = min(
         profile_max_output_tokens, JUDGE_MAX_OUTPUT_TOKENS
     )
-    system_tokens = _estimated_tokens(SYSTEM_PROMPT)
-    primary_tokens = _estimated_tokens(primary_prompt)
-    schema_tokens = _estimated_tokens(schema_text)
-    request_tokens = system_tokens + primary_tokens + schema_tokens
-    all_no_tokens = _estimated_tokens(all_no_response)
-    all_positive_tokens = _estimated_tokens(all_positive_response)
+    maximum_request = max(measurements, key=lambda item: item["request_tokens"])
+    maximum_validity_response = max(validity_responses, key=_estimated_tokens)
+    maximum_relation_all_no_response = max(
+        relation_no_responses, key=_estimated_tokens
+    )
+    maximum_relation_all_full_response = max(
+        relation_positive_responses, key=_estimated_tokens
+    )
+    system_prompt = maximum_request["system_prompt"]
+    system_tokens = _estimated_tokens(system_prompt)
+    primary_prompt = maximum_request["primary_prompt"]
+    schema_text = maximum_request["schema_text"]
+    primary_tokens = maximum_request["primary_tokens"]
+    schema_tokens = maximum_request["schema_tokens"]
+    request_tokens = maximum_request["request_tokens"]
+    maximum_validity_tokens = _estimated_tokens(maximum_validity_response)
+    maximum_relation_all_no_tokens = _estimated_tokens(
+        maximum_relation_all_no_response
+    )
+    maximum_relation_all_full_tokens = _estimated_tokens(
+        maximum_relation_all_full_response
+    )
     reserved_context_tokens = request_tokens + effective_max_output_tokens
     context_headroom_tokens = context_window_tokens - reserved_context_tokens
     fit_flags = (
-        all_no_tokens <= effective_max_output_tokens,
-        all_positive_tokens <= effective_max_output_tokens,
+        maximum_validity_tokens <= effective_max_output_tokens,
+        maximum_relation_all_no_tokens <= effective_max_output_tokens,
+        maximum_relation_all_full_tokens <= effective_max_output_tokens,
         context_headroom_tokens >= 0,
     )
     return JudgeScaleAudit(
@@ -289,6 +350,8 @@ def build_scale_audit(
         judge_max_output_tokens=JUDGE_MAX_OUTPUT_TOKENS,
         effective_max_output_tokens=effective_max_output_tokens,
         report_count=len(judge_input.reports),
+        atomic_primary_call_count=4 * len(judge_input.reports),
+        maximum_request_target_report_id=maximum_request["target_report_id"],
         expected_count=len(judge_input.expected_issues),
         relation_position_count=(
             len(judge_input.reports) * len(judge_input.expected_issues)
@@ -302,30 +365,54 @@ def build_scale_audit(
         ),
         serialized_input_hash=stable_model_hash(judge_input),
         artifact_closure_hash=judge_input.artifact_closure.closure_hash,
-        system_prompt_hash=_sha256_text(SYSTEM_PROMPT),
+        system_prompt_hash=_sha256_text(system_prompt),
         primary_prompt_hash=_sha256_text(primary_prompt),
-        response_schema_hash=response_schema_hash(response_model),
-        system_prompt_chars=len(SYSTEM_PROMPT),
+        primary_prompt_set_hash=_sha256_text(
+            json.dumps(prompt_hashes, sort_keys=True, separators=(",", ":"))
+        ),
+        response_schema_hash=schema_hashes[
+            maximum_request["target_report_id"]
+        ],
+        response_schema_set_hash=_sha256_text(
+            json.dumps(schema_hashes, sort_keys=True, separators=(",", ":"))
+        ),
+        system_prompt_chars=len(system_prompt),
         system_prompt_estimated_tokens=system_tokens,
         primary_prompt_chars=len(primary_prompt),
         primary_prompt_estimated_tokens=primary_tokens,
         response_schema_chars=len(schema_text),
         response_schema_estimated_tokens=schema_tokens,
         request_estimated_tokens=request_tokens,
-        all_no_response_hash=_sha256_text(all_no_response),
-        all_no_response_chars=len(all_no_response),
-        all_no_response_estimated_tokens=all_no_tokens,
-        all_positive_response_hash=_sha256_text(all_positive_response),
-        all_positive_response_chars=len(all_positive_response),
-        all_positive_response_estimated_tokens=all_positive_tokens,
+        maximum_validity_response_hash=_sha256_text(maximum_validity_response),
+        maximum_validity_response_chars=len(maximum_validity_response),
+        maximum_validity_response_estimated_tokens=maximum_validity_tokens,
+        maximum_relation_all_no_response_hash=_sha256_text(
+            maximum_relation_all_no_response
+        ),
+        maximum_relation_all_no_response_chars=len(
+            maximum_relation_all_no_response
+        ),
+        maximum_relation_all_no_response_estimated_tokens=(
+            maximum_relation_all_no_tokens
+        ),
+        maximum_relation_all_full_response_hash=_sha256_text(
+            maximum_relation_all_full_response
+        ),
+        maximum_relation_all_full_response_chars=len(
+            maximum_relation_all_full_response
+        ),
+        maximum_relation_all_full_response_estimated_tokens=(
+            maximum_relation_all_full_tokens
+        ),
         reserved_context_tokens=reserved_context_tokens,
         context_headroom_tokens=context_headroom_tokens,
-        all_no_fits_output_limit=fit_flags[0],
-        all_positive_fits_output_limit=fit_flags[1],
-        reserved_context_fits_window=fit_flags[2],
+        maximum_validity_response_fits_output_limit=fit_flags[0],
+        maximum_relation_all_no_response_fits_output_limit=fit_flags[1],
+        maximum_relation_all_full_response_fits_output_limit=fit_flags[2],
+        reserved_context_fits_window=fit_flags[3],
         status="pass" if all(fit_flags) else "fail",
-        reason="The real unified input, exact dynamic schema, full output allowance, and source-length-derived material-assertion envelopes were checked without a provider call.",
-        basis=f"Four-characters-per-token estimates over the frozen prompt, exact payload and schema, plus at least one material assertion row per {MATERIAL_ASSERTION_CHARS_PER_ROW} causal-field characters in both validated response envelopes.",
+        reason="Every real expected-isolated validity target and worst-case valid-report relation target fits the exact dynamic schema and configured context without a provider call.",
+        basis=f"Four-characters-per-token estimates over every validity and relation prompt/schema, plus one fixed clause row per at most {MATERIAL_ASSERTION_CHARS_PER_ROW} report-field characters and validated all-NO/all-FULL relation envelopes.",
         source_refs=(
             source_path,
             source_hash,

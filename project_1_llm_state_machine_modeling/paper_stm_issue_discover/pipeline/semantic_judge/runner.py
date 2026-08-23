@@ -1,4 +1,4 @@
-"""Single executable path for issue #195 primary readings and arbitration."""
+"""Two-stage executable path for expected-isolated validity and relation judging."""
 
 from __future__ import annotations
 
@@ -12,41 +12,48 @@ from pipeline.evidence_discovery.orchestration.runtime import (
 )
 
 from .artifacts import stable_model_hash
-from .causal_audit import build_causal_audit_plan
 from .metrics import compute_semantic_metrics, decode_outcomes
 from .models import (
     AdapterAudit,
-    ArbitrationInput,
-    ArbitrationResponse,
-    AtomicArbitrationResponse,
     ConflictKind,
     ConflictRecord,
+    CoreClaimTruth,
+    FrozenValidityCertificate,
     JudgeCallReceipt,
     JudgeReading,
-    JudgeResponse,
     PairJudgeResult,
     ReadingDisagreement,
-    ReportJudgment,
+    RelationArbitrationInput,
+    RelationResponse,
+    RelationStageReading,
     RetryRecord,
     UnifiedJudgeInput,
     UsageReceipt,
+    ValidityArbitrationInput,
+    ValidityJudgeInput,
+    ValidityStageReading,
 )
 from .protocol import (
-    ARBITRATION_INSTRUCTION,
     JUDGE_ALGORITHM_VERSION,
     JUDGE_MAX_OUTPUT_TOKENS,
-    PRIMARY_INSTRUCTION,
     PROMPT_VERSION,
     PROTOCOL_SHA256,
     PROTOCOL_VERSION,
-    SYSTEM_PROMPT,
+    RELATION_ARBITRATION_INSTRUCTION,
+    RELATION_PRIMARY_INSTRUCTION,
+    RELATION_SYSTEM_PROMPT,
+    VALIDITY_ARBITRATION_INSTRUCTION,
+    VALIDITY_PRIMARY_INSTRUCTION,
+    VALIDITY_SYSTEM_PROMPT,
     prompt_hash,
 )
 from .schema import (
-    build_exact_arbitration_model,
-    build_exact_response_model,
-    materialize_reading,
-    merge_arbitration_response,
+    build_exact_relation_model,
+    build_exact_validity_model,
+    build_relation_input,
+    build_validity_input,
+    materialize_two_stage_reading,
+    materialize_validity_certificate,
     response_schema_hash,
 )
 
@@ -73,157 +80,143 @@ def _sha256_text(value: str) -> str:
     return "sha256:" + hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
-def build_primary_prompt(judge_input: UnifiedJudgeInput) -> str:
-    """Serialize the exact same primary prompt for either source adapter."""
+def build_validity_prompt(validity_input: ValidityJudgeInput) -> str:
+    """Serialize one expected-isolated validity input with no ledger fields."""
 
-    audit_plan = build_causal_audit_plan(judge_input.reports)
     return (
-        f"{PRIMARY_INSTRUCTION}\n\n"
-        "<unified_judge_input>\n"
-        f"{judge_input.model_dump_json(indent=2)}\n"
-        "</unified_judge_input>\n\n"
-        "<causal_audit_plan>\n"
-        f"{audit_plan.model_dump_json(indent=2)}\n"
-        "</causal_audit_plan>"
+        f"{VALIDITY_PRIMARY_INSTRUCTION}\n\n"
+        "<validity_input>\n"
+        f"{validity_input.model_dump_json(indent=2)}\n"
+        "</validity_input>"
     )
 
 
-def build_arbitration_prompt(arbitration_input: ArbitrationInput) -> str:
-    """Serialize complete common artifacts and both readings for conflict resolution."""
+def build_validity_arbitration_prompt(
+    arbitration_input: ValidityArbitrationInput,
+) -> str:
+    """Serialize one expected-isolated validity conflict for fresh arbitration."""
 
-    audit_plan = build_causal_audit_plan(arbitration_input.judge_input.reports)
     return (
-        f"{ARBITRATION_INSTRUCTION}\n\n"
-        "<arbitration_input>\n"
+        f"{VALIDITY_ARBITRATION_INSTRUCTION}\n\n"
+        "<validity_arbitration_input>\n"
         f"{arbitration_input.model_dump_json(indent=2)}\n"
-        "</arbitration_input>\n\n"
-        "<causal_audit_plan>\n"
-        f"{audit_plan.model_dump_json(indent=2)}\n"
-        "</causal_audit_plan>"
+        "</validity_arbitration_input>"
     )
 
 
-def detect_disagreements(
-    reading_1: JudgeReading,
-    reading_2: JudgeReading,
-) -> tuple[ReadingDisagreement, ...]:
-    """Compare only semantic enum/validity/cluster values, never wording or order."""
+def build_relation_prompt(relation_input) -> str:
+    """Serialize one relation-only input with an immutable VALID certificate."""
 
-    disagreements: list[ReadingDisagreement] = []
-    relations_1 = {(row.report_id, row.expected_id): row for row in reading_1.relations}
-    relations_2 = {(row.report_id, row.expected_id): row for row in reading_2.relations}
-    if set(relations_1) != set(relations_2):
-        raise ValueError(
-            "primary reading relation closures differ after schema validation"
-        )
-    for key in sorted(relations_1):
-        value_1 = relations_1[key].match.value
-        value_2 = relations_2[key].match.value
-        if value_1 != value_2:
-            disagreements.append(
-                ReadingDisagreement(
-                    kind=ConflictKind.RELATION,
-                    object_ref=f"report:{key[0]}/expected:{key[1]}",
-                    reading_1_value=value_1,
-                    reading_2_value=value_2,
-                )
+    return (
+        f"{RELATION_PRIMARY_INSTRUCTION}\n\n"
+        "<relation_input>\n"
+        f"{relation_input.model_dump_json(indent=2)}\n"
+        "</relation_input>"
+    )
+
+
+def build_relation_arbitration_prompt(
+    arbitration_input: RelationArbitrationInput,
+) -> str:
+    """Serialize one relation-only conflict without reopening report validity."""
+
+    return (
+        f"{RELATION_ARBITRATION_INSTRUCTION}\n\n"
+        "<relation_arbitration_input>\n"
+        f"{arbitration_input.model_dump_json(indent=2)}\n"
+        "</relation_arbitration_input>"
+    )
+
+
+def build_primary_prompt(
+    judge_input: UnifiedJudgeInput, target_report_id: str | None = None
+) -> str:
+    """Compatibility serializer that now returns only expected-isolated validity input."""
+
+    if target_report_id is None:
+        if len(judge_input.reports) != 1:
+            raise ValueError(
+                "target_report_id is required when the Judge input has multiple reports"
             )
-    reports_1 = {row.report_id: row for row in reading_1.report_assessments}
-    reports_2 = {row.report_id: row for row in reading_2.report_assessments}
-    if set(reports_1) != set(reports_2):
-        raise ValueError(
-            "primary reading report closures differ after schema validation"
+        target_report_id = judge_input.reports[0].report_id
+    return build_validity_prompt(build_validity_input(judge_input, target_report_id))
+
+
+def detect_validity_disagreements(
+    certificate_1: FrozenValidityCertificate,
+    certificate_2: FrozenValidityCertificate,
+) -> tuple[ReadingDisagreement, ...]:
+    """Compare aggregate truth and every fixed clause verdict, never prose wording."""
+
+    if certificate_1.report_id != certificate_2.report_id:
+        raise ValueError("validity certificates identify different reports")
+    report_id = certificate_1.report_id
+    disagreements = []
+    if certificate_1.core_truth != certificate_2.core_truth:
+        disagreements.append(
+            ReadingDisagreement(
+                kind=ConflictKind.CORE_TRUTH,
+                object_ref=f"report:{report_id}",
+                reading_1_value=certificate_1.core_truth.value,
+                reading_2_value=certificate_2.core_truth.value,
+            )
         )
-    cluster_members_1 = {
-        report_id: frozenset(
-            other.report_id
-            for other in reports_1.values()
-            if other.root_cause_cluster_key == report.root_cause_cluster_key
-        )
-        for report_id, report in reports_1.items()
+    first_fields = {
+        item.report_field.value: item for item in certificate_1.field_audits
     }
-    cluster_members_2 = {
-        report_id: frozenset(
-            other.report_id
-            for other in reports_2.values()
-            if other.root_cause_cluster_key == report.root_cause_cluster_key
-        )
-        for report_id, report in reports_2.items()
+    second_fields = {
+        item.report_field.value: item for item in certificate_2.field_audits
     }
-    for report_id in sorted(reports_1):
-        first = reports_1[report_id]
-        second = reports_2[report_id]
-        if first.core_truth != second.core_truth:
-            disagreements.append(
-                ReadingDisagreement(
-                    kind=ConflictKind.CORE_TRUTH,
-                    object_ref=f"report:{report_id}",
-                    reading_1_value=first.core_truth.value,
-                    reading_2_value=second.core_truth.value,
+    if set(first_fields) != set(second_fields):
+        raise ValueError("validity certificate field closures differ")
+    for field_name, first_field in first_fields.items():
+        first_clauses = {
+            item.clause_id: item for item in first_field.clause_audits
+        }
+        second_clauses = {
+            item.clause_id: item for item in second_fields[field_name].clause_audits
+        }
+        if set(first_clauses) != set(second_clauses):
+            raise ValueError("validity certificate clause closures differ")
+        for clause_id, first_clause in first_clauses.items():
+            first_value = first_clause.verdict.value
+            second_value = second_clauses[clause_id].verdict.value
+            if first_value != second_value:
+                disagreements.append(
+                    ReadingDisagreement(
+                        kind=ConflictKind.VALIDITY_CLAUSE,
+                        object_ref=(
+                            f"report:{report_id}/field:{field_name}/clause:{clause_id}"
+                        ),
+                        reading_1_value=first_value,
+                        reading_2_value=second_value,
+                    )
                 )
-            )
-        if cluster_members_1[report_id] != cluster_members_2[report_id]:
-            disagreements.append(
-                ReadingDisagreement(
-                    kind=ConflictKind.ROOT_CAUSE_CLUSTER,
-                    object_ref=f"report:{report_id}",
-                    reading_1_value=first.root_cause_cluster_key,
-                    reading_2_value=second.root_cause_cluster_key,
-                )
-            )
     return tuple(disagreements)
 
 
-def _find_final_row(
-    disagreement: ReadingDisagreement,
-    final_reading: JudgeReading,
-) -> tuple[str, str, str, tuple[str, ...]]:
-    if disagreement.kind == ConflictKind.RELATION:
-        report_part, expected_part = disagreement.object_ref.split("/")
-        report_id = report_part.removeprefix("report:")
-        expected_id = expected_part.removeprefix("expected:")
-        row = next(
-            item
-            for item in final_reading.relations
-            if item.report_id == report_id and item.expected_id == expected_id
+def detect_relation_disagreements(
+    response_1: RelationResponse,
+    response_2: RelationResponse,
+) -> tuple[ReadingDisagreement, ...]:
+    """Compare every exact relation enum while ignoring explanatory wording."""
+
+    if response_1.report_id != response_2.report_id:
+        raise ValueError("relation responses identify different reports")
+    first = {item.expected_id: item for item in response_1.relation_decisions}
+    second = {item.expected_id: item for item in response_2.relation_decisions}
+    if set(first) != set(second):
+        raise ValueError("relation response expected closures differ")
+    return tuple(
+        ReadingDisagreement(
+            kind=ConflictKind.RELATION,
+            object_ref=f"report:{response_1.report_id}/expected:{expected_id}",
+            reading_1_value=first[expected_id].match.value,
+            reading_2_value=second[expected_id].match.value,
         )
-        return row.match.value, row.reason, row.basis, row.source_refs
-    report_id = disagreement.object_ref.removeprefix("report:")
-    row = next(
-        item for item in final_reading.report_assessments if item.report_id == report_id
+        for expected_id in first
+        if first[expected_id].match != second[expected_id].match
     )
-    final_value = (
-        row.core_truth.value
-        if disagreement.kind == ConflictKind.CORE_TRUTH
-        else row.root_cause_cluster_key
-    )
-    return final_value, row.reason, row.basis, row.source_refs
-
-
-def build_conflict_records(
-    disagreements: tuple[ReadingDisagreement, ...],
-    final_reading: JudgeReading,
-) -> tuple[ConflictRecord, ...]:
-    """Attach the final arbitrated reason/basis to every detected disagreement."""
-
-    records = []
-    for disagreement in disagreements:
-        final_value, reason, basis, source_refs = _find_final_row(
-            disagreement, final_reading
-        )
-        records.append(
-            ConflictRecord(
-                kind=disagreement.kind,
-                object_ref=disagreement.object_ref,
-                reading_1_value=disagreement.reading_1_value,
-                reading_2_value=disagreement.reading_2_value,
-                final_value=final_value,
-                reason=reason,
-                basis=basis,
-                source_refs=source_refs,
-            )
-        )
-    return tuple(records)
 
 
 def _cache_tokens(row: dict[str, Any], key: str) -> int | None:
@@ -271,8 +264,8 @@ def _call_receipt(
         )
         for row in outcome.usage
     )
-    retries: list[RetryRecord] = []
-    artifact_paths: list[str] = []
+    retries = []
+    artifact_paths = []
     for outer_index, attempt in enumerate(outcome.attempts, start=1):
         error = attempt.get("error")
         error_mapping = error if isinstance(error, dict) else {}
@@ -335,7 +328,7 @@ def _call_receipt(
     return JudgeCallReceipt(
         call_id=call_id,
         phase=phase,  # type: ignore[arg-type]
-        status=("success" if outcome.succeeded else "failed"),
+        status="success" if outcome.succeeded else "failed",
         profile=profile,
         schema_hash=schema_hash,
         prompt_hash=actual_prompt_hash,
@@ -349,38 +342,91 @@ def _call_receipt(
     )
 
 
-def _validated_response(
+def _require_response(
     outcome: StructuredCallOutcome[Any], phase: str
-) -> JudgeResponse:
+) -> Any:
     if not outcome.succeeded or outcome.response is None:
         raise RuntimeError(
-            f"semantic Judge {phase} failed after provider/schema handling: {outcome.reason}; {outcome.basis}"
+            f"semantic Judge {phase} failed after provider/schema handling: "
+            f"{outcome.reason}; {outcome.basis}"
         )
-    return JudgeResponse.model_validate(outcome.response.model_dump(mode="json"))
+    return outcome.response
 
 
-def _validated_arbitration_response(
-    outcome: StructuredCallOutcome[Any], phase: str
-) -> AtomicArbitrationResponse:
-    if not outcome.succeeded or outcome.response is None:
-        raise RuntimeError(
-            f"semantic Judge {phase} failed after provider/schema handling: {outcome.reason}; {outcome.basis}"
-        )
-    return AtomicArbitrationResponse.model_validate(
-        outcome.response.model_dump(mode="json")
+def _reading_source_refs(certificates) -> tuple[str, ...]:
+    refs = [
+        ref
+        for certificate in certificates
+        for ref in certificate.source_refs
+    ]
+    return tuple(dict.fromkeys(refs)) or ("artifact:empty-report-closure",)
+
+
+def _schema_set_hash(schema_hashes: dict[str, str]) -> str:
+    return _sha256_text(
+        json.dumps(schema_hashes, sort_keys=True, separators=(",", ":"))
     )
 
 
-def _conflicted_report_ids(
+def _conflict_records(
     disagreements: tuple[ReadingDisagreement, ...],
-) -> tuple[str, ...]:
-    """Resolve every relation/report conflict to its enclosing report identity."""
-
-    values = []
+    final_certificates: dict[str, FrozenValidityCertificate],
+    final_reading: JudgeReading,
+) -> tuple[ConflictRecord, ...]:
+    records = []
     for disagreement in disagreements:
-        report_ref = disagreement.object_ref.split("/", 1)[0]
-        values.append(report_ref.removeprefix("report:"))
-    return tuple(dict.fromkeys(values))
+        report_part = disagreement.object_ref.split("/", 1)[0]
+        report_id = report_part.removeprefix("report:")
+        if disagreement.kind == ConflictKind.RELATION:
+            expected_id = disagreement.object_ref.split("/expected:", 1)[1]
+            row = next(
+                item
+                for item in final_reading.relations
+                if item.report_id == report_id
+                and item.expected_id == expected_id
+            )
+            final_value = row.match.value
+            reason = row.reason
+            basis = row.basis
+            source_refs = row.source_refs
+        elif disagreement.kind == ConflictKind.CORE_TRUTH:
+            certificate = final_certificates[report_id]
+            final_value = certificate.core_truth.value
+            reason = certificate.reason
+            basis = certificate.basis
+            source_refs = certificate.source_refs
+        else:
+            _, field_part, clause_part = disagreement.object_ref.split("/")
+            field_name = field_part.removeprefix("field:")
+            clause_id = clause_part.removeprefix("clause:")
+            certificate = final_certificates[report_id]
+            field_audit = next(
+                item
+                for item in certificate.field_audits
+                if item.report_field.value == field_name
+            )
+            clause = next(
+                item
+                for item in field_audit.clause_audits
+                if item.clause_id == clause_id
+            )
+            final_value = clause.verdict.value
+            reason = clause.reason
+            basis = clause.basis
+            source_refs = clause.source_refs
+        records.append(
+            ConflictRecord(
+                kind=disagreement.kind,
+                object_ref=disagreement.object_ref,
+                reading_1_value=disagreement.reading_1_value,
+                reading_2_value=disagreement.reading_2_value,
+                final_value=final_value,
+                reason=reason,
+                basis=basis,
+                source_refs=source_refs,
+            )
+        )
+    return tuple(records)
 
 
 def judge_pair(
@@ -392,181 +438,319 @@ def judge_pair(
     runtime: PublicStructuredRuntime,
     judge_code_commit: str,
 ) -> PairJudgeResult:
-    """Run two blind sparse readings and targeted arbitration when required."""
+    """Run expected-isolated validity, freeze truth, then judge relations."""
 
-    response_model = build_exact_response_model(judge_input)
-    schema_hash = response_schema_hash(response_model)
-    primary_prompt = build_primary_prompt(judge_input)
-    primary_prompt_hash = _sha256_text(SYSTEM_PROMPT + "\n" + primary_prompt)
     pair_id = judge_input.pair_id
-    receipts: list[JudgeCallReceipt] = []
-    outcome_1 = runtime.call(
-        kind="semantic-judge-primary",
-        schema=response_model,
-        system_prompt=SYSTEM_PROMPT,
-        prompt=primary_prompt,
-        artifact_id=f"{pair_id}/round-{round_no}/primary-1",
-        retry_cell_on_provider_error=True,
-        max_output_tokens=min(
-            JUDGE_MAX_OUTPUT_TOKENS, runtime.config.max_output_tokens
-        ),
-    )
-    receipts.append(
-        _call_receipt(
-            call_id=f"{pair_id}:r{round_no}:primary-1",
-            phase="primary_1",
-            profile=runtime.profile,
-            schema_hash=schema_hash,
-            actual_prompt_hash=primary_prompt_hash,
-            outcome=outcome_1,
-        )
-    )
-    try:
-        response_1 = _validated_response(outcome_1, "primary_1")
-        reading_1 = materialize_reading(response_1, judge_input)
-    except Exception as exc:
-        raise JudgeExecutionFailure(str(exc), tuple(receipts)) from exc
-    outcome_2 = runtime.call(
-        kind="semantic-judge-primary",
-        schema=response_model,
-        system_prompt=SYSTEM_PROMPT,
-        prompt=primary_prompt,
-        artifact_id=f"{pair_id}/round-{round_no}/primary-2",
-        retry_cell_on_provider_error=True,
-        max_output_tokens=min(
-            JUDGE_MAX_OUTPUT_TOKENS, runtime.config.max_output_tokens
-        ),
-    )
-    receipts.append(
-        _call_receipt(
-            call_id=f"{pair_id}:r{round_no}:primary-2",
-            phase="primary_2",
-            profile=runtime.profile,
-            schema_hash=schema_hash,
-            actual_prompt_hash=primary_prompt_hash,
-            outcome=outcome_2,
-        )
-    )
-    try:
-        response_2 = _validated_response(outcome_2, "primary_2")
-        reading_2 = materialize_reading(response_2, judge_input)
-        disagreements = detect_disagreements(reading_1, reading_2)
-    except Exception as exc:
-        raise JudgeExecutionFailure(str(exc), tuple(receipts)) from exc
-    arbitration_reading = None
-    if disagreements:
-        conflicted_report_ids = _conflicted_report_ids(disagreements)
-        reports_by_id = {row.report_id: row for row in judge_input.reports}
-        response_1_by_id = {
-            row.report_id: row for row in response_1.report_judgments
-        }
-        response_2_by_id = {
-            row.report_id: row for row in response_2.report_judgments
-        }
-        atomic_responses: list[AtomicArbitrationResponse] = []
-        try:
-            for report_id in conflicted_report_ids:
-                report_disagreements = tuple(
-                    row
-                    for row in disagreements
-                    if row.object_ref.split("/", 1)[0]
-                    == f"report:{report_id}"
-                )
-                atomic_input = judge_input.model_copy(
-                    update={"reports": (reports_by_id[report_id],)}
-                )
-                arbitration_input = ArbitrationInput(
-                    judge_input=atomic_input,
-                    primary_conflicting_judgments_1=(
-                        response_1_by_id[report_id],
+    receipts = []
+    schema_hashes = {}
+    validity_inputs = {
+        report.report_id: build_validity_input(judge_input, report.report_id)
+        for report in judge_input.reports
+    }
+
+    def run_validity(reading_no: int) -> ValidityStageReading:
+        certificates = []
+        phase = f"validity_primary_{reading_no}"
+        for report in judge_input.reports:
+            report_id = report.report_id
+            validity_input = validity_inputs[report_id]
+            model = build_exact_validity_model(validity_input)
+            model_hash = response_schema_hash(model)
+            schema_hashes[f"{phase}:{report_id}"] = model_hash
+            prompt = build_validity_prompt(validity_input)
+            outcome = runtime.call(
+                kind="semantic-judge-validity",
+                schema=model,
+                system_prompt=VALIDITY_SYSTEM_PROMPT,
+                prompt=prompt,
+                artifact_id=(
+                    f"{pair_id}/round-{round_no}/validity-primary-{reading_no}-{report_id}"
+                ),
+                retry_cell_on_provider_error=True,
+                max_output_tokens=min(
+                    JUDGE_MAX_OUTPUT_TOKENS, runtime.config.max_output_tokens
+                ),
+            )
+            receipts.append(
+                _call_receipt(
+                    call_id=f"{pair_id}:r{round_no}:{phase}:{report_id}",
+                    phase=phase,
+                    profile=runtime.profile,
+                    schema_hash=model_hash,
+                    actual_prompt_hash=_sha256_text(
+                        VALIDITY_SYSTEM_PROMPT + "\n" + prompt
                     ),
-                    primary_conflicting_judgments_2=(
-                        response_2_by_id[report_id],
+                    outcome=outcome,
+                )
+            )
+            response = _require_response(outcome, f"{phase}_{report_id}")
+            certificates.append(
+                materialize_validity_certificate(response, validity_input)
+            )
+        return ValidityStageReading(
+            certificates=tuple(certificates),
+            reason="Every report received one complete expected-isolated validity reading.",
+            basis="Fixed report-field slots, exact source-clause closure, and complete common artifacts.",
+            source_refs=_reading_source_refs(certificates),
+        )
+
+    try:
+        validity_reading_1 = run_validity(1)
+        validity_reading_2 = run_validity(2)
+        validity_1_by_id = {
+            item.report_id: item for item in validity_reading_1.certificates
+        }
+        validity_2_by_id = {
+            item.report_id: item for item in validity_reading_2.certificates
+        }
+        validity_disagreements = tuple(
+            disagreement
+            for report in judge_input.reports
+            for disagreement in detect_validity_disagreements(
+                validity_1_by_id[report.report_id],
+                validity_2_by_id[report.report_id],
+            )
+        )
+        validity_arbitrations = []
+        final_certificates = dict(validity_1_by_id)
+        conflicted_validity_ids = tuple(
+            dict.fromkeys(
+                item.object_ref.split("/", 1)[0].removeprefix("report:")
+                for item in validity_disagreements
+            )
+        )
+        for report_id in conflicted_validity_ids:
+            disagreements = tuple(
+                item
+                for item in validity_disagreements
+                if item.object_ref.startswith(f"report:{report_id}")
+            )
+            arbitration_input = ValidityArbitrationInput(
+                validity_input=validity_inputs[report_id],
+                primary_certificate_1=validity_1_by_id[report_id],
+                primary_certificate_2=validity_2_by_id[report_id],
+                disagreements=disagreements,
+                reason="Substantive clause or aggregate truth values conflict and require a fresh expected-isolated reading.",
+                basis=f"{JUDGE_ALGORITHM_VERSION}; exact validity enum comparison",
+            )
+            model = build_exact_validity_model(validity_inputs[report_id])
+            model_hash = response_schema_hash(model)
+            schema_hashes[f"validity_arbitration:{report_id}"] = model_hash
+            prompt = build_validity_arbitration_prompt(arbitration_input)
+            outcome = runtime.call(
+                kind="semantic-judge-validity-arbitration",
+                schema=model,
+                system_prompt=VALIDITY_SYSTEM_PROMPT,
+                prompt=prompt,
+                artifact_id=(
+                    f"{pair_id}/round-{round_no}/validity-arbitration-{report_id}"
+                ),
+                retry_cell_on_provider_error=True,
+                max_output_tokens=min(
+                    JUDGE_MAX_OUTPUT_TOKENS, runtime.config.max_output_tokens
+                ),
+            )
+            receipts.append(
+                _call_receipt(
+                    call_id=(
+                        f"{pair_id}:r{round_no}:validity_arbitration:{report_id}"
                     ),
-                    disagreements=report_disagreements,
-                    reason="Primary semantic values for this report conflict; complete artifact review must select a final result with no UNKNOWN.",
-                    basis=f"{JUDGE_ALGORITHM_VERSION}; exact relation/core-truth/root-cause-partition comparison",
+                    phase="validity_arbitration",
+                    profile=runtime.profile,
+                    schema_hash=model_hash,
+                    actual_prompt_hash=_sha256_text(
+                        VALIDITY_SYSTEM_PROMPT + "\n" + prompt
+                    ),
+                    outcome=outcome,
                 )
-                arbitration_model = build_exact_arbitration_model(
-                    atomic_input, (report_id,)
-                )
-                arbitration_schema_hash = response_schema_hash(arbitration_model)
-                arbitration_prompt = build_arbitration_prompt(arbitration_input)
-                arbitration_prompt_hash = _sha256_text(
-                    SYSTEM_PROMPT + "\n" + arbitration_prompt
-                )
-                arbitration_outcome = runtime.call(
-                    kind="semantic-judge-arbitration",
-                    schema=arbitration_model,
-                    system_prompt=SYSTEM_PROMPT,
-                    prompt=arbitration_prompt,
+            )
+            response = _require_response(
+                outcome, f"validity_arbitration_{report_id}"
+            )
+            certificate = materialize_validity_certificate(
+                response, validity_inputs[report_id]
+            )
+            validity_arbitrations.append(certificate)
+            final_certificates[report_id] = certificate
+        ordered_certificates = tuple(
+            final_certificates[report.report_id] for report in judge_input.reports
+        )
+
+        relation_inputs = {
+            certificate.report_id: build_relation_input(judge_input, certificate)
+            for certificate in ordered_certificates
+            if certificate.core_truth == CoreClaimTruth.VALID
+        }
+        invalid_ids = tuple(
+            certificate.report_id
+            for certificate in ordered_certificates
+            if certificate.core_truth == CoreClaimTruth.INVALID
+        )
+
+        def run_relations(reading_no: int) -> RelationStageReading:
+            responses = []
+            phase = f"relation_primary_{reading_no}"
+            for report in judge_input.reports:
+                relation_input = relation_inputs.get(report.report_id)
+                if relation_input is None:
+                    continue
+                model = build_exact_relation_model(relation_input)
+                model_hash = response_schema_hash(model)
+                schema_hashes[f"{phase}:{report.report_id}"] = model_hash
+                prompt = build_relation_prompt(relation_input)
+                outcome = runtime.call(
+                    kind="semantic-judge-relation",
+                    schema=model,
+                    system_prompt=RELATION_SYSTEM_PROMPT,
+                    prompt=prompt,
                     artifact_id=(
-                        f"{pair_id}/round-{round_no}/arbitration-{report_id}"
+                        f"{pair_id}/round-{round_no}/relation-primary-{reading_no}-{report.report_id}"
                     ),
                     retry_cell_on_provider_error=True,
                     max_output_tokens=min(
-                        JUDGE_MAX_OUTPUT_TOKENS, runtime.config.max_output_tokens
+                        JUDGE_MAX_OUTPUT_TOKENS,
+                        runtime.config.max_output_tokens,
                     ),
                 )
                 receipts.append(
                     _call_receipt(
                         call_id=(
-                            f"{pair_id}:r{round_no}:arbitration:{report_id}"
+                            f"{pair_id}:r{round_no}:{phase}:{report.report_id}"
                         ),
-                        phase="arbitration",
+                        phase=phase,
                         profile=runtime.profile,
-                        schema_hash=arbitration_schema_hash,
-                        actual_prompt_hash=arbitration_prompt_hash,
-                        outcome=arbitration_outcome,
+                        schema_hash=model_hash,
+                        actual_prompt_hash=_sha256_text(
+                            RELATION_SYSTEM_PROMPT + "\n" + prompt
+                        ),
+                        outcome=outcome,
                     )
                 )
-                atomic_responses.append(
-                    _validated_arbitration_response(
-                        arbitration_outcome, f"arbitration_{report_id}"
+                exact_response = _require_response(
+                    outcome, f"{phase}_{report.report_id}"
+                )
+                responses.append(
+                    RelationResponse.model_validate(
+                        exact_response.model_dump(mode="json")
                     )
                 )
-            arbitration_response = ArbitrationResponse(
-                report_judgments=tuple(
-                    ReportJudgment.model_validate(
-                        response.model_dump(
-                            mode="json", include=set(ReportJudgment.model_fields)
-                        )
-                    )
-                    for response in atomic_responses
-                ),
-                reason=" ".join(
-                    f"{report_id}: {response.arbitration_reason}"
-                    for report_id, response in zip(
-                        conflicted_report_ids, atomic_responses, strict=True
-                    )
-                ),
-                basis=" ".join(
-                    f"{report_id}: {response.arbitration_basis}"
-                    for report_id, response in zip(
-                        conflicted_report_ids, atomic_responses, strict=True
-                    )
-                ),
+            return RelationStageReading(
+                responses=tuple(responses),
+                backend_invalid_report_ids=invalid_ids,
+                reason="Every frozen-valid report received one complete relation reading; invalid reports remain backend-owned all-NO closures.",
+                basis="Immutable validity certificates, every expected position, and the unchanged common artifacts.",
                 source_refs=tuple(
                     dict.fromkeys(
-                        ref
-                        for response in atomic_responses
-                        for ref in response.arbitration_source_refs
+                        [
+                            certificate.certificate_hash
+                            for certificate in ordered_certificates
+                        ]
+                        + [
+                            ref
+                            for response in responses
+                            for ref in response.relation_source_refs
+                        ]
                     )
+                )
+                or (judge_input.artifact_closure.closure_hash,),
+            )
+
+        relation_reading_1 = run_relations(1)
+        relation_reading_2 = run_relations(2)
+        relation_1_by_id = {
+            item.report_id: item for item in relation_reading_1.responses
+        }
+        relation_2_by_id = {
+            item.report_id: item for item in relation_reading_2.responses
+        }
+        relation_disagreements = tuple(
+            disagreement
+            for report_id in relation_1_by_id
+            for disagreement in detect_relation_disagreements(
+                relation_1_by_id[report_id], relation_2_by_id[report_id]
+            )
+        )
+        relation_arbitrations = []
+        final_relation_responses = dict(relation_1_by_id)
+        conflicted_relation_ids = tuple(
+            dict.fromkeys(
+                item.object_ref.split("/", 1)[0].removeprefix("report:")
+                for item in relation_disagreements
+            )
+        )
+        for report_id in conflicted_relation_ids:
+            disagreements = tuple(
+                item
+                for item in relation_disagreements
+                if item.object_ref.startswith(f"report:{report_id}/")
+            )
+            arbitration_input = RelationArbitrationInput(
+                relation_input=relation_inputs[report_id],
+                primary_response_1=relation_1_by_id[report_id],
+                primary_response_2=relation_2_by_id[report_id],
+                disagreements=disagreements,
+                reason="Substantive FULL, PARTIAL, or NO enums conflict and require a fresh relation-only reading.",
+                basis=f"{JUDGE_ALGORITHM_VERSION}; immutable validity certificate and exact relation comparison",
+            )
+            model = build_exact_relation_model(relation_inputs[report_id])
+            model_hash = response_schema_hash(model)
+            schema_hashes[f"relation_arbitration:{report_id}"] = model_hash
+            prompt = build_relation_arbitration_prompt(arbitration_input)
+            outcome = runtime.call(
+                kind="semantic-judge-relation-arbitration",
+                schema=model,
+                system_prompt=RELATION_SYSTEM_PROMPT,
+                prompt=prompt,
+                artifact_id=(
+                    f"{pair_id}/round-{round_no}/relation-arbitration-{report_id}"
+                ),
+                retry_cell_on_provider_error=True,
+                max_output_tokens=min(
+                    JUDGE_MAX_OUTPUT_TOKENS, runtime.config.max_output_tokens
                 ),
             )
-            final_response = merge_arbitration_response(
-                response_1,
-                arbitration_response,
-                response_model,
+            receipts.append(
+                _call_receipt(
+                    call_id=(
+                        f"{pair_id}:r{round_no}:relation_arbitration:{report_id}"
+                    ),
+                    phase="relation_arbitration",
+                    profile=runtime.profile,
+                    schema_hash=model_hash,
+                    actual_prompt_hash=_sha256_text(
+                        RELATION_SYSTEM_PROMPT + "\n" + prompt
+                    ),
+                    outcome=outcome,
+                )
             )
-            arbitration_reading = materialize_reading(final_response, judge_input)
-        except Exception as exc:
-            raise JudgeExecutionFailure(str(exc), tuple(receipts)) from exc
-        final_reading = arbitration_reading
-    else:
-        final_reading = reading_1
-    conflicts = build_conflict_records(disagreements, final_reading)
-    report_outcomes, expected_outcomes = decode_outcomes(final_reading, adapter_audit)
+            exact_response = _require_response(
+                outcome, f"relation_arbitration_{report_id}"
+            )
+            response = RelationResponse.model_validate(
+                exact_response.model_dump(mode="json")
+            )
+            relation_arbitrations.append(response)
+            final_relation_responses[report_id] = response
+        ordered_relation_responses = tuple(
+            final_relation_responses[report.report_id]
+            for report in judge_input.reports
+            if report.report_id in final_relation_responses
+        )
+        final_reading = materialize_two_stage_reading(
+            ordered_certificates,
+            ordered_relation_responses,
+            judge_input,
+        )
+    except Exception as exc:
+        raise JudgeExecutionFailure(str(exc), tuple(receipts)) from exc
+
+    disagreements = validity_disagreements + relation_disagreements
+    conflicts = _conflict_records(
+        disagreements, final_certificates, final_reading
+    )
+    report_outcomes, expected_outcomes = decode_outcomes(
+        final_reading, adapter_audit
+    )
     metrics = compute_semantic_metrics(final_reading)
     return PairJudgeResult(
         run_id=run_id,
@@ -579,12 +763,15 @@ def judge_pair(
         model_profile=runtime.profile,
         artifact_closure_hash=judge_input.artifact_closure.closure_hash,
         serialized_input_hash=stable_model_hash(judge_input),
-        response_schema_hash=schema_hash,
+        response_schema_hash=_schema_set_hash(schema_hashes),
         prompt_template_hash=prompt_hash(),
         adapter_audit=adapter_audit,
-        primary_reading_1=reading_1,
-        primary_reading_2=reading_2,
-        arbitration_reading=arbitration_reading,
+        validity_reading_1=validity_reading_1,
+        validity_reading_2=validity_reading_2,
+        validity_arbitration_certificates=tuple(validity_arbitrations),
+        relation_reading_1=relation_reading_1,
+        relation_reading_2=relation_reading_2,
+        relation_arbitration_responses=tuple(relation_arbitrations),
         conflicts=conflicts,
         final_reading=final_reading,
         report_outcomes=report_outcomes,
@@ -592,11 +779,11 @@ def judge_pair(
         metrics=metrics,
         call_receipts=tuple(receipts),
         reason=(
-            f"Two independent readings completed; {len(disagreements)} substantive conflicts "
-            f"were {'fully arbitrated' if disagreements else 'absent'}."
+            "Two expected-isolated validity readings and two relation-only readings completed; "
+            f"{len(validity_disagreements)} validity and {len(relation_disagreements)} relation disagreements were fully arbitrated."
         ),
         basis=(
             f"{PROTOCOL_VERSION}; {JUDGE_ALGORITHM_VERSION}; {PROMPT_VERSION}; "
-            "exact response closure and deterministic issue #195 metrics"
+            "fixed clause closure, immutable validity certificates, exact relation closure, and deterministic issue #195 metrics"
         ),
     )

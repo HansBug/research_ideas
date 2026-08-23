@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from datetime import datetime
 from enum import Enum
 from typing import Literal
@@ -62,6 +63,18 @@ class ReportField(str, Enum):
 class CausalReportField(str, Enum):
     """Report fields eligible for complete causal-certificate audit."""
 
+    OBSERVED = "observed"
+    REASON = "reason"
+    BASIS = "basis"
+
+
+class ValidityReportField(str, Enum):
+    """Candidate-report fields audited by the expected-isolated validity stage."""
+
+    CLAIM = "claim"
+    PROPERTY = "property"
+    VIOLATED_OBLIGATION = "violated_obligation"
+    EXPECTED = "expected"
     OBSERVED = "observed"
     REASON = "reason"
     BASIS = "basis"
@@ -674,6 +687,580 @@ class UnifiedJudgeInput(FrozenModel):
         return self
 
 
+class ReportSourceClause(FrozenModel):
+    """One immutable gap-free source clause from a candidate-report field."""
+
+    model_config = ConfigDict(
+        extra="forbid", frozen=True, str_strip_whitespace=False
+    )
+
+    clause_id: str = Field(
+        pattern=r"^C[1-9][0-9]*$",
+        description="Field-local clause ID in canonical C1, C2, ... source order.",
+    )
+    source_start: int = Field(
+        ge=0,
+        description="Inclusive Python-character offset in the complete immutable report field.",
+    )
+    source_end: int = Field(
+        gt=0,
+        description="Exclusive Python-character offset in the complete immutable report field.",
+    )
+    exact_text: str = Field(
+        min_length=1,
+        description="Verbatim source clause fixed by the backend; non-English text remains only as quoted input evidence.",
+    )
+    exact_text_sha256: str = Field(
+        pattern=r"^sha256:[0-9a-f]{64}$",
+        description="SHA-256 of exact_text computed by the deterministic source-clause builder.",
+    )
+
+    @model_validator(mode="after")
+    def offsets_and_hash_are_exact(self) -> ReportSourceClause:
+        """Reject a clause whose offsets or digest do not match its exact text."""
+
+        if self.source_end - self.source_start != len(self.exact_text):
+            raise ValueError(
+                "source_end-source_start must equal the exact clause-text length"
+            )
+        expected_hash = "sha256:" + hashlib.sha256(
+            self.exact_text.encode("utf-8")
+        ).hexdigest()
+        if self.exact_text_sha256 != expected_hash:
+            raise ValueError(
+                "exact_text_sha256 must equal the exact clause-text digest"
+            )
+        return self
+
+
+class ReportFieldClausePlan(FrozenModel):
+    """Complete immutable source-clause partition for one report field."""
+
+    report_field: ValidityReportField = Field(
+        description="Exact CandidateReport field partitioned by this plan; where is never eligible."
+    )
+    is_core_field: bool = Field(
+        description="Whether a REFUTED clause in this field deterministically invalidates the report core envelope."
+    )
+    clauses: tuple[ReportSourceClause, ...] = Field(
+        min_length=1,
+        description="Ordered non-overlapping clauses whose exact text concatenation reconstructs the complete report field.",
+    )
+
+    @model_validator(mode="after")
+    def clause_partition_is_gap_free(self) -> ReportFieldClausePlan:
+        """Require canonical clause IDs and contiguous source offsets."""
+
+        cursor = 0
+        for index, clause in enumerate(self.clauses, start=1):
+            if clause.clause_id != f"C{index}" or clause.source_start != cursor:
+                raise ValueError(
+                    "clauses must use canonical IDs and gap-free source offsets"
+                )
+            cursor = clause.source_end
+        return self
+
+
+class ReportCoreEnvelope(FrozenModel):
+    """Deterministic complete validity envelope for one anonymous report."""
+
+    schema_version: Literal["semantic-judge.report-core-envelope.v1"] = Field(
+        default="semantic-judge.report-core-envelope.v1",
+        description="Expected-isolated report source-clause envelope version.",
+    )
+    report_id: str = Field(
+        pattern=r"^R\d{4}$",
+        description="Anonymous report ID whose complete validity fields are partitioned.",
+    )
+    field_plans: tuple[ReportFieldClausePlan, ...] = Field(
+        min_length=2,
+        description="Exactly one source-clause plan for claim, reason, and every other non-null auditable report field.",
+    )
+    envelope_hash: str = Field(
+        pattern=r"^sha256:[0-9a-f]{64}$",
+        description="Stable hash of the immutable report ID and complete field-clause partition.",
+    )
+    reason: str = Field(
+        min_length=1,
+        description="English explanation of why these fields form the complete report-validity boundary.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Deterministic field selection, source offsets, and exact-text hash basis.",
+    )
+
+    @model_validator(mode="after")
+    def field_closure_is_exact(self) -> ReportCoreEnvelope:
+        """Reject duplicate fields or envelopes missing claim or reason."""
+
+        fields = [item.report_field for item in self.field_plans]
+        if len(fields) != len(set(fields)):
+            raise ValueError(f"field_plans contains duplicate fields: {fields}")
+        required = {ValidityReportField.CLAIM, ValidityReportField.REASON}
+        if not required <= set(fields):
+            raise ValueError(
+                "field_plans must contain claim and reason exactly once"
+            )
+        payload = {
+            "schema_version": self.schema_version,
+            "report_id": self.report_id,
+            "field_plans": [
+                item.model_dump(mode="json") for item in self.field_plans
+            ],
+        }
+        serialized = json.dumps(
+            payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        )
+        expected_hash = "sha256:" + hashlib.sha256(
+            serialized.encode("utf-8")
+        ).hexdigest()
+        if self.envelope_hash != expected_hash:
+            raise ValueError("envelope_hash must match the immutable clause closure")
+        return self
+
+
+class ValidityJudgeInput(FrozenModel):
+    """Expected-isolated provider input for one report-validity judgment.
+
+    This type physically cannot carry expected issues, ledger metadata, method
+    evidence levels, predicates, historical scores, or experimental-arm labels.
+    """
+
+    schema_version: Literal["semantic-judge.validity-input.v1"] = Field(
+        default="semantic-judge.validity-input.v1",
+        description="Expected-isolated validity input version for one anonymous report.",
+    )
+    protocol_version: str = Field(
+        min_length=1,
+        description="Frozen semantic protocol version governing artifact-compatible report validity.",
+    )
+    report: CandidateReport = Field(
+        description="One anonymous report exactly as projected from its published semantic content."
+    )
+    core_envelope: ReportCoreEnvelope = Field(
+        description="Backend-fixed gap-free clause closure for every auditable report field."
+    )
+    artifact_closure: JudgeArtifactClosure = Field(
+        description="Complete common truth-audit artifacts, with no expected-issue or experimental-arm data."
+    )
+    reason: str = Field(
+        min_length=1,
+        description="English explanation of the expected-isolated validity input boundary.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Protocol, report projection, envelope hash, and common artifact-closure basis.",
+    )
+
+    @model_validator(mode="after")
+    def identity_is_closed(self) -> ValidityJudgeInput:
+        """Require the report and core envelope to identify the same object."""
+
+        if self.report.report_id != self.core_envelope.report_id:
+            raise ValueError("report and core_envelope report IDs must match")
+        return self
+
+
+class ClauseAuditJudgment(FrozenModel):
+    """Provider truth judgment for one backend-fixed complete source clause."""
+
+    clause_id: str = Field(
+        pattern=r"^C[1-9][0-9]*$",
+        description="Backend-fixed clause ID; every exact clause must be judged once in source order.",
+    )
+    assertion: str = Field(
+        min_length=1,
+        description="Faithful English rendering of all material factual and causal content in the complete source clause.",
+    )
+    verdict: MaterialAssertionVerdict = Field(
+        description="SUPPORTED only when every material premise in the complete clause is artifact-compatible; otherwise REFUTED."
+    )
+    reason: str = Field(
+        min_length=1,
+        description="English explanation that evaluates the report-owned clause without substituting a nearby true defect.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Common-artifact evidence that directly supports or refutes the complete source clause.",
+    )
+    source_refs: tuple[str, ...] = Field(
+        min_length=1,
+        description="Supplied report-field and common-artifact references actually used for this clause verdict.",
+    )
+
+
+class ValidityResponse(FrozenModel):
+    """Provider response base for one expected-isolated report-validity reading.
+
+    Runtime-specialized subclasses add one required fixed audit property per
+    report field, such as claim_audit and reason_audit. The provider never emits
+    aggregate validity; the backend derives it from the exact clause closure.
+    """
+
+    schema_version: Literal["semantic-judge.validity-response.v1"] = Field(
+        default="semantic-judge.validity-response.v1",
+        description="Expected-isolated fixed-field validity response version.",
+    )
+    report_id: str = Field(
+        pattern=r"^R\d{4}$",
+        description="Anonymous report ID fixed by this atomic validity call.",
+    )
+    root_cause_cluster_key: str = Field(
+        min_length=1,
+        description="English actionable technical root-cause phrase based only on this report and common artifacts.",
+    )
+    validity_reason: str = Field(
+        min_length=1,
+        description="English whole-report explanation addressing claim, reason, and every other audited field.",
+    )
+    validity_basis: str = Field(
+        min_length=1,
+        description="English common-artifact basis for the complete expected-isolated validity reading.",
+    )
+    validity_source_refs: tuple[str, ...] = Field(
+        min_length=1,
+        description="Supplied report and common-artifact references used by the complete validity reading.",
+    )
+
+
+class FrozenFieldValidityAudit(FrozenModel):
+    """Backend-materialized complete clause audit for one report field."""
+
+    report_field: ValidityReportField = Field(
+        description="Exact CandidateReport field represented by this immutable audit."
+    )
+    is_core_field: bool = Field(
+        description="Whether any REFUTED clause in this field invalidates the report core envelope."
+    )
+    exact_text: str = Field(
+        min_length=1,
+        description="Complete report field text materialized by the backend from immutable input.",
+    )
+    exact_text_sha256: str = Field(
+        pattern=r"^sha256:[0-9a-f]{64}$",
+        description="Backend-computed SHA-256 of complete exact_text.",
+    )
+    clauses: tuple[ReportSourceClause, ...] = Field(
+        min_length=1,
+        description="Immutable gap-free source clauses covering complete exact_text.",
+    )
+    clause_audits: tuple[ClauseAuditJudgment, ...] = Field(
+        min_length=1,
+        description="Provider judgments aligned exactly once with every immutable source clause.",
+    )
+    verdict: CausalFieldVerdict = Field(
+        description="Backend-derived field verdict from the exhaustive clause verdicts."
+    )
+    reason: str = Field(
+        min_length=1,
+        description="English deterministic explanation combining every clause verdict in source order.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="English deterministic combination of every clause evidence basis.",
+    )
+    source_refs: tuple[str, ...] = Field(
+        min_length=1,
+        description="Deduplicated report and artifact references used across all clause judgments.",
+    )
+
+    @model_validator(mode="after")
+    def audit_is_exact_and_derived(self) -> FrozenFieldValidityAudit:
+        """Validate source reconstruction, hashes, clause IDs, and field verdict."""
+
+        reconstructed = "".join(item.exact_text for item in self.clauses)
+        if reconstructed != self.exact_text:
+            raise ValueError("clauses must reconstruct exact_text without gaps")
+        expected_hash = "sha256:" + hashlib.sha256(
+            self.exact_text.encode("utf-8")
+        ).hexdigest()
+        if self.exact_text_sha256 != expected_hash:
+            raise ValueError("exact_text_sha256 must match exact_text")
+        clause_ids = [item.clause_id for item in self.clauses]
+        audit_ids = [item.clause_id for item in self.clause_audits]
+        if clause_ids != audit_ids:
+            raise ValueError(
+                "clauses and clause_audits must have identical IDs in source order"
+            )
+        verdicts = {item.verdict for item in self.clause_audits}
+        expected_verdict = (
+            CausalFieldVerdict.SUPPORTED
+            if verdicts == {MaterialAssertionVerdict.SUPPORTED}
+            else CausalFieldVerdict.REFUTED
+            if verdicts == {MaterialAssertionVerdict.REFUTED}
+            else CausalFieldVerdict.MIXED
+        )
+        if self.verdict != expected_verdict:
+            raise ValueError("verdict must be derived from clause_audits")
+        return self
+
+
+class FrozenValidityCertificate(FrozenModel):
+    """Immutable expected-isolated report-validity result used by relation judging."""
+
+    schema_version: Literal["semantic-judge.frozen-validity-certificate.v1"] = Field(
+        default="semantic-judge.frozen-validity-certificate.v1",
+        description="Frozen validity certificate version with complete source-clause closure.",
+    )
+    report_id: str = Field(
+        pattern=r"^R\d{4}$",
+        description="Anonymous report ID certified by this validity-only reading.",
+    )
+    core_truth: CoreClaimTruth = Field(
+        description="Backend-derived VALID only when every core field is fully SUPPORTED; otherwise INVALID."
+    )
+    validity_input_hash: str = Field(
+        pattern=r"^sha256:[0-9a-f]{64}$",
+        description="Stable hash of the exact expected-isolated ValidityJudgeInput.",
+    )
+    core_envelope_hash: str = Field(
+        pattern=r"^sha256:[0-9a-f]{64}$",
+        description="Stable hash of the immutable source-clause envelope audited by this certificate.",
+    )
+    field_audits: tuple[FrozenFieldValidityAudit, ...] = Field(
+        min_length=2,
+        description="Exactly one complete backend-materialized audit for every field in the core envelope.",
+    )
+    root_cause_cluster_key: str = Field(
+        min_length=1,
+        description="English actionable root-cause phrase frozen before expected issues become visible.",
+    )
+    reason: str = Field(
+        min_length=1,
+        description="English report-validity explanation retained from the expected-isolated reading.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="English report and common-artifact basis retained from the expected-isolated reading.",
+    )
+    source_refs: tuple[str, ...] = Field(
+        min_length=1,
+        description="Report and common-artifact references used by the expected-isolated reading.",
+    )
+    certificate_hash: str = Field(
+        pattern=r"^sha256:[0-9a-f]{64}$",
+        description="Stable hash of every certificate field except certificate_hash itself.",
+    )
+
+    @model_validator(mode="after")
+    def truth_and_hash_are_derived(self) -> FrozenValidityCertificate:
+        """Reject certificates whose truth or self-hash is not deterministic."""
+
+        core_audits = [item for item in self.field_audits if item.is_core_field]
+        if not core_audits:
+            raise ValueError("field_audits must contain core fields")
+        expected_truth = (
+            CoreClaimTruth.VALID
+            if all(item.verdict == CausalFieldVerdict.SUPPORTED for item in core_audits)
+            else CoreClaimTruth.INVALID
+        )
+        if self.core_truth != expected_truth:
+            raise ValueError("core_truth must be derived from all core field audits")
+        payload = self.model_dump(mode="json", exclude={"certificate_hash"})
+        serialized = json.dumps(
+            payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        )
+        expected_hash = "sha256:" + hashlib.sha256(
+            serialized.encode("utf-8")
+        ).hexdigest()
+        if self.certificate_hash != expected_hash:
+            raise ValueError("certificate_hash must match the complete certificate")
+        return self
+
+
+class ValidityStageReading(FrozenModel):
+    """One complete independent or arbitrated validity-only reading of all reports."""
+
+    schema_version: Literal["semantic-judge.validity-stage-reading.v1"] = Field(
+        default="semantic-judge.validity-stage-reading.v1",
+        description="Complete expected-isolated certificate closure for all anonymous reports.",
+    )
+    certificates: tuple[FrozenValidityCertificate, ...] = Field(
+        description="Exactly one frozen expected-isolated validity certificate per anonymous report."
+    )
+    reason: str = Field(
+        min_length=1,
+        description="English explanation of the complete validity-only reading.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Expected-isolated input, source-clause closure, and common-artifact basis.",
+    )
+    source_refs: tuple[str, ...] = Field(
+        min_length=1,
+        description="Report and common-artifact references used across the validity reading.",
+    )
+
+
+class ValidityArbitrationInput(FrozenModel):
+    """Expected-isolated input for resolving one report-validity disagreement."""
+
+    schema_version: Literal["semantic-judge.validity-arbitration-input.v1"] = Field(
+        default="semantic-judge.validity-arbitration-input.v1",
+        description="Validity-only arbitration input with no expected-issue or arm fields.",
+    )
+    validity_input: ValidityJudgeInput = Field(
+        description="Original expected-isolated report and common-artifact input."
+    )
+    primary_certificate_1: FrozenValidityCertificate = Field(
+        description="First independent frozen validity certificate for this report."
+    )
+    primary_certificate_2: FrozenValidityCertificate = Field(
+        description="Second independent frozen validity certificate for this report."
+    )
+    disagreements: tuple[ReadingDisagreement, ...] = Field(
+        min_length=1,
+        description="Deterministically detected clause or aggregate validity disagreements only.",
+    )
+    reason: str = Field(
+        min_length=1,
+        description="Why the validity conflict requires a fresh artifact-only reading rather than voting.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Dual-reading validity protocol and exact disagreement basis.",
+    )
+
+
+class RelationJudgeInput(FrozenModel):
+    """Relation-only input for one report already frozen as artifact-valid."""
+
+    schema_version: Literal["semantic-judge.relation-input.v1"] = Field(
+        default="semantic-judge.relation-input.v1",
+        description="Relation-only input version that cannot modify the frozen validity certificate.",
+    )
+    protocol_version: str = Field(
+        min_length=1,
+        description="Frozen semantic protocol version governing FULL, PARTIAL, and NO relations.",
+    )
+    report: CandidateReport = Field(
+        description="Original anonymous report text whose validity is already frozen."
+    )
+    validity_certificate: FrozenValidityCertificate = Field(
+        description="Expected-isolated VALID certificate that relation judging may cite but never modify."
+    )
+    expected_issues: tuple[ExpectedIssue, ...] = Field(
+        min_length=1,
+        description="Complete anonymous expected-issue denominator compared with this valid report.",
+    )
+    artifact_closure: JudgeArtifactClosure = Field(
+        description="The same complete common artifacts used by validity judging."
+    )
+    reason: str = Field(
+        min_length=1,
+        description="English explanation of the relation-only input boundary.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Frozen certificate hash, expected closure, protocol, and artifact-closure basis.",
+    )
+
+    @model_validator(mode="after")
+    def valid_certificate_is_closed(self) -> RelationJudgeInput:
+        """Allow relation judging only for the same report with frozen VALID truth."""
+
+        if self.validity_certificate.core_truth != CoreClaimTruth.VALID:
+            raise ValueError("relation input requires a VALID frozen certificate")
+        if self.report.report_id != self.validity_certificate.report_id:
+            raise ValueError("report and validity_certificate report IDs must match")
+        return self
+
+
+class RelationResponse(FrozenModel):
+    """Provider relation-only response for one frozen-valid report."""
+
+    schema_version: Literal["semantic-judge.relation-response.v1"] = Field(
+        default="semantic-judge.relation-response.v1",
+        description="Relation-only response version with exhaustive exact expected positions.",
+    )
+    report_id: str = Field(
+        pattern=r"^R\d{4}$",
+        description="Anonymous valid report ID fixed by this atomic relation call.",
+    )
+    validity_certificate_hash: str = Field(
+        pattern=r"^sha256:[0-9a-f]{64}$",
+        description="Exact frozen certificate hash supplied to this relation call; the provider must return it unchanged.",
+    )
+    relation_decisions: tuple[
+        SupportedRelationJudgment | NoMatchRelationJudgment, ...
+    ] = Field(
+        min_length=1,
+        description="Exactly one FULL_MATCH, PARTIAL_MATCH, or explicit NO_MATCH decision per expected issue in dynamic-schema order.",
+    )
+    no_match_closure: NoMatchClosureJudgment | None = Field(
+        description="Shared evidence required exactly when at least one relation is NO_MATCH; explicit null when all are positive."
+    )
+    relation_reason: str = Field(
+        min_length=1,
+        description="English explanation of the complete relation partition without revisiting report validity.",
+    )
+    relation_basis: str = Field(
+        min_length=1,
+        description="English frozen-certificate, expected-issue, and common-artifact basis for this partition.",
+    )
+    relation_source_refs: tuple[str, ...] = Field(
+        min_length=1,
+        description="Supplied report, certificate, expected, and artifact references used across this relation reading.",
+    )
+
+
+class RelationArbitrationInput(FrozenModel):
+    """Input for resolving one relation-only disagreement without reopening validity."""
+
+    schema_version: Literal["semantic-judge.relation-arbitration-input.v1"] = Field(
+        default="semantic-judge.relation-arbitration-input.v1",
+        description="Relation-only arbitration input version with one immutable VALID certificate.",
+    )
+    relation_input: RelationJudgeInput = Field(
+        description="Original valid-report, frozen-certificate, expected, and artifact input."
+    )
+    primary_response_1: RelationResponse = Field(
+        description="First complete relation partition for this frozen-valid report."
+    )
+    primary_response_2: RelationResponse = Field(
+        description="Second complete relation partition for this frozen-valid report."
+    )
+    disagreements: tuple[ReadingDisagreement, ...] = Field(
+        min_length=1,
+        description="Exact expected positions whose FULL, PARTIAL, or NO enums conflict."
+    )
+    reason: str = Field(
+        min_length=1,
+        description="Why relation conflict resolution requires a fresh semantic reading rather than voting.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Dual-reading relation protocol, immutable certificate, and exact conflict basis.",
+    )
+
+
+class RelationStageReading(FrozenModel):
+    """One complete relation-stage reading over every frozen-valid report."""
+
+    schema_version: Literal["semantic-judge.relation-stage-reading.v1"] = Field(
+        default="semantic-judge.relation-stage-reading.v1",
+        description="Relation response closure plus backend-owned invalid report IDs.",
+    )
+    responses: tuple[RelationResponse, ...] = Field(
+        description="Exactly one relation response for every report frozen as VALID."
+    )
+    backend_invalid_report_ids: tuple[str, ...] = Field(
+        description="Reports frozen as INVALID and therefore assigned all-NO relations without a relation model call."
+    )
+    reason: str = Field(
+        min_length=1,
+        description="English explanation of valid-report relation coverage and backend invalid closure.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Frozen validity certificates, exact expected positions, and common-artifact basis.",
+    )
+    source_refs: tuple[str, ...] = Field(
+        min_length=1,
+        description="Certificate, expected, report, and artifact references used across this relation reading.",
+    )
+
+
 class RelationAssessment(FrozenModel):
     """One dense backend-materialized relation for an exact report/expected pair.
 
@@ -836,6 +1423,27 @@ class JudgeResponse(FrozenModel):
     )
 
 
+class AtomicPrimaryResponse(ReportJudgment):
+    """Flat provider response for one report in one independent primary reading."""
+
+    schema_version: Literal["semantic-judge.atomic-primary-response.v1"] = Field(
+        default="semantic-judge.atomic-primary-response.v1",
+        description="Flat single-report primary response version with no report_judgments list wrapper.",
+    )
+    reading_reason: str = Field(
+        min_length=1,
+        description="English explanation of this independent validity-first report judgment.",
+    )
+    reading_basis: str = Field(
+        min_length=1,
+        description="English report, expected-issue, and common-artifact basis for this independent judgment.",
+    )
+    reading_source_refs: tuple[str, ...] = Field(
+        min_length=1,
+        description="Supplied report, expected, and artifact references actually used by this independent judgment.",
+    )
+
+
 class ReportAssessment(FrozenModel):
     """One dimension-B validity decision plus exhaustive relation-derived ownership."""
 
@@ -865,9 +1473,11 @@ class ReportAssessment(FrozenModel):
         min_length=1,
         description="Validated exact report-owned quotations retained from ReportJudgment for downstream causal-certificate audit.",
     )
-    causal_field_audits: tuple[ReportCausalFieldAudit, ...] = Field(
+    causal_field_audits: tuple[
+        ReportCausalFieldAudit | FrozenFieldValidityAudit, ...
+    ] = Field(
         min_length=1,
-        description="Validated complete causal-field audits retained from ReportJudgment, including true contextual fields that do not independently support the report's core claim.",
+        description="Validated complete field audits retained from legacy or two-stage judgment, including exact source closure and backend-derived verdicts.",
     )
     reason: str = Field(
         min_length=1,
@@ -1062,6 +1672,7 @@ class ConflictKind(str, Enum):
 
     RELATION = "relation"
     CORE_TRUTH = "core_truth"
+    VALIDITY_CLAUSE = "validity_clause"
     ROOT_CAUSE_CLUSTER = "root_cause_cluster"
 
 
@@ -1069,7 +1680,7 @@ class ConflictRecord(FrozenModel):
     """Audit trail for one primary-reading disagreement and arbitrated outcome."""
 
     kind: ConflictKind = Field(
-        description="Whether the conflict concerns relation, core claim truth, or root-cause clustering."
+        description="Whether the conflict concerns relation, aggregate core truth, one validity clause, or root-cause clustering."
     )
     object_ref: str = Field(
         min_length=1,
@@ -1099,7 +1710,7 @@ class ReadingDisagreement(FrozenModel):
     """Provider-visible primary disagreement before a final value is selected."""
 
     kind: ConflictKind = Field(
-        description="Relation, core-truth, or root-cause-clustering conflict type requiring arbitration."
+        description="Relation, aggregate core-truth, validity-clause, or root-cause-clustering conflict type requiring arbitration."
     )
     object_ref: str = Field(
         min_length=1,
@@ -1290,8 +1901,15 @@ class JudgeCallReceipt(FrozenModel):
         min_length=1,
         description="Stable call ID within the pair; it identifies audit files and carries no judgment semantics.",
     )
-    phase: Literal["primary_1", "primary_2", "arbitration"] = Field(
-        description="Role of the call in the dual-reading arbitration flow."
+    phase: Literal[
+        "validity_primary_1",
+        "validity_primary_2",
+        "validity_arbitration",
+        "relation_primary_1",
+        "relation_primary_2",
+        "relation_arbitration",
+    ] = Field(
+        description="Exact validity or relation role of the call in the two-stage dual-reading flow."
     )
     status: Literal["success", "failed"] = Field(
         description="Whether the structured call produced a complete validated reading."
@@ -1448,7 +2066,7 @@ class SemanticMetrics(FrozenModel):
 
 
 class JudgeScaleAudit(FrozenModel):
-    """Provider-free proof that one real Judge payload fits configured model limits.
+    """Provider-free proof that every atomic primary payload fits model limits.
 
     The audit is built from the same arm-neutral input, prompt serializer, dynamic
     response schema, and output validators used by live judging. Character-based
@@ -1457,9 +2075,9 @@ class JudgeScaleAudit(FrozenModel):
     Judge model.
     """
 
-    schema_version: Literal["semantic-judge.scale-audit.v3"] = Field(
-        default="semantic-judge.scale-audit.v3",
-        description="Provider-free Judge scale-audit version with a source-length-derived material-assertion envelope.",
+    schema_version: Literal["semantic-judge.scale-audit.v6"] = Field(
+        default="semantic-judge.scale-audit.v6",
+        description="Provider-free two-stage atomic scale-audit version with separately auditable validity, relation all-NO, and relation all-FULL response envelopes.",
     )
     generated_at_utc: datetime = Field(
         description="UTC time when this deterministic scale audit was materialized."
@@ -1520,7 +2138,15 @@ class JudgeScaleAudit(FrozenModel):
         gt=0, description="Minimum of profile_max_output_tokens and judge_max_output_tokens."
     )
     report_count: int = Field(
-        ge=0, description="Number of real anonymous published reports in the measured input."
+        gt=0, description="Number of real anonymous published reports in the measured input."
+    )
+    atomic_primary_call_count: int = Field(
+        gt=0,
+        description="Worst-case primary call count across two validity and two relation readings when every report is VALID; exactly four times report_count.",
+    )
+    maximum_request_target_report_id: str = Field(
+        min_length=1,
+        description="Stage-prefixed anonymous report ID whose validity or relation prompt and schema produce the largest request estimate.",
     )
     expected_count: int = Field(
         ge=0, description="Number of frozen expected issues in the measured input."
@@ -1556,10 +2182,18 @@ class JudgeScaleAudit(FrozenModel):
         pattern=r"^sha256:[0-9a-f]{64}$", description="Hash of the exact system prompt text measured by this audit."
     )
     primary_prompt_hash: str = Field(
-        pattern=r"^sha256:[0-9a-f]{64}$", description="Hash of the exact serialized primary user prompt."
+        pattern=r"^sha256:[0-9a-f]{64}$", description="Hash of the largest-request target's exact serialized primary user prompt."
+    )
+    primary_prompt_set_hash: str = Field(
+        pattern=r"^sha256:[0-9a-f]{64}$",
+        description="Hash of the complete ordered mapping from every target report ID to its exact primary prompt hash.",
     )
     response_schema_hash: str = Field(
-        pattern=r"^sha256:[0-9a-f]{64}$", description="Hash of the actual dynamic exact-closure provider schema."
+        pattern=r"^sha256:[0-9a-f]{64}$", description="Hash of the largest-request target's actual dynamic exact-closure provider schema."
+    )
+    response_schema_set_hash: str = Field(
+        pattern=r"^sha256:[0-9a-f]{64}$",
+        description="Hash of the complete ordered mapping from every target report ID to its exact response schema hash.",
     )
     system_prompt_chars: int = Field(
         ge=0, description="Character count of the exact system prompt."
@@ -1568,37 +2202,55 @@ class JudgeScaleAudit(FrozenModel):
         ge=0, description="Conservative four-characters-per-token estimate for the system prompt."
     )
     primary_prompt_chars: int = Field(
-        ge=0, description="Character count of the exact serialized primary user prompt."
+        ge=0, description="Character count of the largest-request target's exact serialized primary user prompt."
     )
     primary_prompt_estimated_tokens: int = Field(
         ge=0, description="Conservative four-characters-per-token estimate for the primary user prompt."
     )
     response_schema_chars: int = Field(
-        ge=0, description="Character count of the stable serialized dynamic response schema."
+        ge=0, description="Character count of the largest-request target's serialized dynamic response schema."
     )
     response_schema_estimated_tokens: int = Field(
         ge=0, description="Conservative four-characters-per-token estimate for the response schema."
     )
     request_estimated_tokens: int = Field(
-        ge=0, description="Combined estimated tokens for system prompt, primary prompt, and response schema."
+        ge=0, description="Largest atomic target request estimate across system prompt, primary prompt, and response schema."
     )
-    all_no_response_hash: str = Field(
-        pattern=r"^sha256:[0-9a-f]{64}$", description="Hash of a validated all-NO sparse structural response for this exact input."
+    maximum_validity_response_hash: str = Field(
+        pattern=r"^sha256:[0-9a-f]{64}$",
+        description="Hash of the largest validated fixed-clause validity response across all reports.",
     )
-    all_no_response_chars: int = Field(
-        ge=0, description="Pretty-serialized character count of the validated all-NO structural response."
+    maximum_validity_response_chars: int = Field(
+        ge=0,
+        description="Pretty-serialized character count of the largest validated fixed-clause validity response.",
     )
-    all_no_response_estimated_tokens: int = Field(
-        ge=0, description="Conservative token estimate for the validated all-NO structural response."
+    maximum_validity_response_estimated_tokens: int = Field(
+        ge=0,
+        description="Conservative token estimate for the largest validated fixed-clause validity response.",
     )
-    all_positive_response_hash: str = Field(
-        pattern=r"^sha256:[0-9a-f]{64}$", description="Hash of a validated response with every relation position represented as FULL."
+    maximum_relation_all_no_response_hash: str = Field(
+        pattern=r"^sha256:[0-9a-f]{64}$",
+        description="Hash of the largest validated relation response with every expected position explicitly NO_MATCH.",
     )
-    all_positive_response_chars: int = Field(
-        ge=0, description="Pretty-serialized character count of the all-positive structural envelope."
+    maximum_relation_all_no_response_chars: int = Field(
+        ge=0,
+        description="Pretty-serialized character count of the largest validated relation all-NO response.",
     )
-    all_positive_response_estimated_tokens: int = Field(
-        ge=0, description="Conservative token estimate for the all-positive structural envelope."
+    maximum_relation_all_no_response_estimated_tokens: int = Field(
+        ge=0,
+        description="Conservative token estimate for the largest validated relation all-NO response.",
+    )
+    maximum_relation_all_full_response_hash: str = Field(
+        pattern=r"^sha256:[0-9a-f]{64}$",
+        description="Hash of the largest validated relation response with every expected position explicitly FULL_MATCH.",
+    )
+    maximum_relation_all_full_response_chars: int = Field(
+        ge=0,
+        description="Pretty-serialized character count of the largest validated relation all-FULL response.",
+    )
+    maximum_relation_all_full_response_estimated_tokens: int = Field(
+        ge=0,
+        description="Conservative token estimate for the largest validated relation all-FULL response.",
     )
     reserved_context_tokens: int = Field(
         ge=0, description="Request estimate plus the complete effective Judge output allowance."
@@ -1606,11 +2258,14 @@ class JudgeScaleAudit(FrozenModel):
     context_headroom_tokens: int = Field(
         description="Configured context window minus reserved_context_tokens; a negative value records failure."
     )
-    all_no_fits_output_limit: bool = Field(
-        description="Whether the validated all-NO structural response fits the effective output limit."
+    maximum_validity_response_fits_output_limit: bool = Field(
+        description="Whether the largest validated validity response fits the effective output limit."
     )
-    all_positive_fits_output_limit: bool = Field(
-        description="Whether the validated all-positive structural envelope fits the effective output limit."
+    maximum_relation_all_no_response_fits_output_limit: bool = Field(
+        description="Whether the largest validated relation all-NO response fits the effective output limit."
+    )
+    maximum_relation_all_full_response_fits_output_limit: bool = Field(
+        description="Whether the largest validated relation all-FULL response fits the effective output limit."
     )
     reserved_context_fits_window: bool = Field(
         description="Whether the full output allowance remains available after the measured request estimate."
@@ -1637,6 +2292,11 @@ class JudgeScaleAudit(FrozenModel):
             raise ValueError(
                 "effective_max_output_tokens must equal the smaller profile and Judge cap"
             )
+        expected_primary_calls = 4 * self.report_count
+        if self.atomic_primary_call_count != expected_primary_calls:
+            raise ValueError(
+                "atomic_primary_call_count must equal four worst-case primary readings times report_count"
+            )
         expected_relation_positions = self.report_count * self.expected_count
         if self.relation_position_count != expected_relation_positions:
             raise ValueError(
@@ -1662,13 +2322,18 @@ class JudgeScaleAudit(FrozenModel):
                 "context_headroom_tokens must equal context window minus reserved tokens"
             )
         expected_flags = (
-            self.all_no_response_estimated_tokens <= expected_effective_limit,
-            self.all_positive_response_estimated_tokens <= expected_effective_limit,
+            self.maximum_validity_response_estimated_tokens
+            <= expected_effective_limit,
+            self.maximum_relation_all_no_response_estimated_tokens
+            <= expected_effective_limit,
+            self.maximum_relation_all_full_response_estimated_tokens
+            <= expected_effective_limit,
             expected_headroom >= 0,
         )
         actual_flags = (
-            self.all_no_fits_output_limit,
-            self.all_positive_fits_output_limit,
+            self.maximum_validity_response_fits_output_limit,
+            self.maximum_relation_all_no_response_fits_output_limit,
+            self.maximum_relation_all_full_response_fits_output_limit,
             self.reserved_context_fits_window,
         )
         if actual_flags != expected_flags:
@@ -1730,11 +2395,11 @@ class AdapterAudit(FrozenModel):
 
 
 class PairJudgeResult(FrozenModel):
-    """Self-contained pair result with two readings, arbitration, metrics, and audit."""
+    """Self-contained two-stage pair result with validity and relation audit."""
 
-    schema_version: Literal["paper1.semantic-judge.pair-result.v7"] = Field(
-        default="paper1.semantic-judge.pair-result.v7",
-        description="Unified pair-Judge persistence version containing backend-hashed causal fields and assertion-derived audit verdicts.",
+    schema_version: Literal["paper1.semantic-judge.pair-result.v9"] = Field(
+        default="paper1.semantic-judge.pair-result.v9",
+        description="Two-stage pair-Judge persistence version with expected-isolated validity certificates and relation-only responses.",
     )
     run_id: str = Field(
         min_length=1, description="Judge run ID; never reuse it across different protocol, code, or input versions."
@@ -1766,7 +2431,7 @@ class PairJudgeResult(FrozenModel):
     )
     response_schema_hash: str = Field(
         pattern=r"^sha256:[0-9a-f]{64}$",
-        description="Dynamic exact-closure schema hash for this pair.",
+        description="Hash of the complete ordered validity and relation dynamic-schema hash set for this pair.",
     )
     prompt_template_hash: str = Field(
         pattern=r"^sha256:[0-9a-f]{64}$",
@@ -1775,11 +2440,23 @@ class PairJudgeResult(FrozenModel):
     adapter_audit: AdapterAudit = Field(
         description="Provider-external evidence of source adaptation and anonymous mapping."
     )
-    primary_reading_1: JudgeReading = Field(description="First complete independent reading.")
-    primary_reading_2: JudgeReading = Field(description="Second complete independent reading.")
-    arbitration_reading: JudgeReading | None = Field(
-        default=None,
-        description="Backend-merged complete reading after targeted report replacements when relation, core-truth, or cluster conflicts exist; null when there is no conflict."
+    validity_reading_1: ValidityStageReading = Field(
+        description="First complete independent expected-isolated validity reading."
+    )
+    validity_reading_2: ValidityStageReading = Field(
+        description="Second complete independent expected-isolated validity reading."
+    )
+    validity_arbitration_certificates: tuple[FrozenValidityCertificate, ...] = Field(
+        description="Final replacement certificates only for reports with substantive validity conflicts."
+    )
+    relation_reading_1: RelationStageReading = Field(
+        description="First complete relation-only reading for all reports frozen as VALID."
+    )
+    relation_reading_2: RelationStageReading = Field(
+        description="Second complete relation-only reading for all reports frozen as VALID."
+    )
+    relation_arbitration_responses: tuple[RelationResponse, ...] = Field(
+        description="Final replacement relation partitions only for reports with substantive relation conflicts."
     )
     conflicts: tuple[ConflictRecord, ...] = Field(
         description="All substantive conflicts between the two primary readings and the final choice; wording differences are not conflicts."
@@ -1797,11 +2474,11 @@ class PairJudgeResult(FrozenModel):
         description="Pair metrics deterministically recomputed from the final reading."
     )
     call_receipts: tuple[JudgeCallReceipt, ...] = Field(
-        description="Complete usage, cost, and retry receipts for both primary readings and optional arbitration."
+        description="Complete usage, cost, and retry receipts for all validity and relation readings and arbitrations."
     )
     status: Literal["completed"] = Field(
         default="completed",
-        description="Completed only after both readings, required arbitration, and exact accounting are complete.",
+        description="Completed only after both validity and relation readings, required arbitrations, and exact accounting are complete.",
     )
     reason: str = Field(
         min_length=1, description="Summary of pair completeness, conflict handling, and final classifications."
@@ -2034,3 +2711,10 @@ class RunFailureSummary(FrozenModel):
         min_length=1,
         description="Manifest, successful receipts, failure artifacts, and the no-partial-summary rule.",
     )
+
+
+# Resolve the deliberately staged annotations after every referenced model exists.
+ValidityArbitrationInput.model_rebuild()
+RelationResponse.model_rebuild()
+RelationArbitrationInput.model_rebuild()
+RelationStageReading.model_rebuild()

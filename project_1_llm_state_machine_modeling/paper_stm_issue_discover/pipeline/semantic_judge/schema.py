@@ -7,22 +7,30 @@ import json
 from collections.abc import Iterable
 from typing import Annotated, Literal, cast
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, create_model, model_validator
 
-from .causal_audit import build_causal_audit_plan
+from .artifacts import stable_model_hash
+from .causal_audit import build_causal_audit_plan, build_report_core_envelope
 from .models import (
     ArbitrationResponse,
     AtomicArbitrationResponse,
+    AtomicPrimaryResponse,
     CausalFieldAuditJudgment,
     CausalFieldVerdict,
+    ClauseAuditJudgment,
     CoreClaimTruth,
     ExpectedAssessment,
+    FrozenFieldValidityAudit,
+    FrozenValidityCertificate,
     JudgeReading,
     JudgeResponse,
     MatchStrength,
+    MaterialAssertionVerdict,
     NoMatchRelationJudgment,
     PositiveMatchStrength,
     RelationAssessment,
+    RelationJudgeInput,
+    RelationResponse,
     ReportAssessment,
     ReportCausalFieldAudit,
     ReportField,
@@ -32,6 +40,8 @@ from .models import (
     ReportValidity,
     SupportedRelationJudgment,
     UnifiedJudgeInput,
+    ValidityJudgeInput,
+    ValidityResponse,
     derive_causal_field_verdict,
 )
 
@@ -292,6 +302,348 @@ def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResp
 
     ExactJudgeResponse.__name__ = f"ExactJudgeResponse_{suffix}"
     return cast(type[JudgeResponse], ExactJudgeResponse)
+
+
+def build_exact_primary_model(
+    judge_input: UnifiedJudgeInput, target_report_id: str
+) -> type[AtomicPrimaryResponse]:
+    """Build one flat primary response over one exact report and all expected IDs."""
+
+    reports_by_id = {item.report_id: item for item in judge_input.reports}
+    if target_report_id not in reports_by_id:
+        raise ValueError(
+            f"target_report_id is outside the report closure: {target_report_id}"
+        )
+    expected_ids = tuple(item.expected_id for item in judge_input.expected_issues)
+    suffix = hashlib.sha256(
+        (
+            target_report_id
+            + "::"
+            + "|".join(expected_ids)
+            + "::primary"
+        ).encode("utf-8")
+    ).hexdigest()[:12]
+    report_id_type = _literal((target_report_id,))
+    exact_relation_tuple = _exact_relation_tuple(
+        expected_ids, suffix=f"{suffix}_relations"
+    )
+
+    class ExactAtomicPrimaryResponse(AtomicPrimaryResponse):
+        """Flat independent judgment for exactly one anonymous report."""
+
+        report_id: report_id_type = Field(  # type: ignore[valid-type]
+            description="The one anonymous report ID fixed by this atomic primary call."
+        )
+        relation_decisions: exact_relation_tuple = Field(  # type: ignore[valid-type]
+            description="One provider-native discriminated decision at each exact expected position, in input order; keep this field at the response root."
+        )
+
+        @model_validator(mode="after")
+        def exact_primary_closure(self) -> ExactAtomicPrimaryResponse:
+            _validate_report_judgment(
+                row=self,
+                report=reports_by_id[self.report_id],
+                expected_ids=expected_ids,
+                object_path=f"atomic_primary[{self.report_id}]",
+            )
+            return self
+
+    ExactAtomicPrimaryResponse.__name__ = f"ExactAtomicPrimaryResponse_{suffix}"
+    return cast(type[AtomicPrimaryResponse], ExactAtomicPrimaryResponse)
+
+
+def build_validity_input(
+    judge_input: UnifiedJudgeInput, target_report_id: str
+) -> ValidityJudgeInput:
+    """Project one report and common artifacts into an expected-isolated input."""
+
+    report = next(
+        (
+            item
+            for item in judge_input.reports
+            if item.report_id == target_report_id
+        ),
+        None,
+    )
+    if report is None:
+        raise ValueError(
+            f"target_report_id is outside the report closure: {target_report_id}"
+        )
+    envelope = build_report_core_envelope(report)
+    return ValidityJudgeInput(
+        protocol_version=judge_input.protocol_version,
+        report=report,
+        core_envelope=envelope,
+        artifact_closure=judge_input.artifact_closure,
+        reason="This input physically isolates report validity from expected-issue matching and experimental metadata.",
+        basis=(
+            f"{judge_input.protocol_version}; {envelope.envelope_hash}; "
+            f"{judge_input.artifact_closure.closure_hash}"
+        ),
+    )
+
+
+def _exact_clause_audit_tuple(field_plan, *, suffix: str):
+    """Build one fixed tuple position for every immutable source clause."""
+
+    exact_types = []
+    for index, clause in enumerate(field_plan.clauses):
+        clause_id_type = _literal((clause.clause_id,))
+
+        class ExactClauseAuditJudgment(ClauseAuditJudgment):
+            """Truth judgment fixed to one immutable report source clause."""
+
+            clause_id: clause_id_type = Field(  # type: ignore[valid-type]
+                description="Clause ID fixed by this exact source position; it cannot be omitted, duplicated, or moved."
+            )
+
+        ExactClauseAuditJudgment.__name__ = (
+            f"ExactClauseAuditJudgment_{suffix}_{index}"
+        )
+        exact_types.append(ExactClauseAuditJudgment)
+    return tuple.__class_getitem__(tuple(exact_types))
+
+
+def build_exact_validity_model(
+    validity_input: ValidityJudgeInput,
+) -> type[ValidityResponse]:
+    """Build fixed top-level field slots for one expected-isolated validity call."""
+
+    suffix = hashlib.sha256(
+        (
+            validity_input.report.report_id
+            + "::"
+            + validity_input.core_envelope.envelope_hash
+            + "::validity"
+        ).encode("utf-8")
+    ).hexdigest()[:12]
+    report_id_type = _literal((validity_input.report.report_id,))
+    field_definitions: dict[str, tuple[object, Field]] = {
+        "report_id": (
+            report_id_type,
+            Field(
+                description="The one anonymous report ID fixed by this expected-isolated validity call."
+            ),
+        )
+    }
+    for field_plan in validity_input.core_envelope.field_plans:
+        field_name = f"{field_plan.report_field.value}_audit"
+        exact_tuple = _exact_clause_audit_tuple(
+            field_plan, suffix=f"{suffix}_{field_plan.report_field.value}"
+        )
+        field_definitions[field_name] = (
+            exact_tuple,
+            Field(
+                description=(
+                    f"Required exact source-order audit for every immutable clause in CandidateReport.{field_plan.report_field.value}; "
+                    "judge the complete clause and mark REFUTED if any material premise in it is false."
+                )
+            ),
+        )
+    model = create_model(
+        f"ExactValidityResponse_{suffix}",
+        __base__=ValidityResponse,
+        **field_definitions,
+    )
+    model.__doc__ = (
+        "Expected-isolated validity response with one required fixed audit slot "
+        "for every non-null report field."
+    )
+    return cast(type[ValidityResponse], model)
+
+
+def _field_verdict(
+    clause_audits: tuple[ClauseAuditJudgment, ...],
+) -> CausalFieldVerdict:
+    verdicts = {item.verdict for item in clause_audits}
+    if verdicts == {MaterialAssertionVerdict.SUPPORTED}:
+        return CausalFieldVerdict.SUPPORTED
+    if verdicts == {MaterialAssertionVerdict.REFUTED}:
+        return CausalFieldVerdict.REFUTED
+    return CausalFieldVerdict.MIXED
+
+
+def materialize_validity_certificate(
+    response: BaseModel,
+    validity_input: ValidityJudgeInput,
+) -> FrozenValidityCertificate:
+    """Freeze exact report text, clause verdicts, and backend-derived core truth."""
+
+    field_audits = []
+    for field_plan in validity_input.core_envelope.field_plans:
+        field_name = field_plan.report_field.value
+        clause_audits = tuple(getattr(response, f"{field_name}_audit"))
+        exact_text = getattr(validity_input.report, field_name)
+        if not isinstance(exact_text, str):
+            raise TypeError(
+                f"core envelope references null CandidateReport.{field_name}"
+            )
+        field_audits.append(
+            FrozenFieldValidityAudit(
+                report_field=field_plan.report_field,
+                is_core_field=field_plan.is_core_field,
+                exact_text=exact_text,
+                exact_text_sha256="sha256:"
+                + hashlib.sha256(exact_text.encode("utf-8")).hexdigest(),
+                clauses=field_plan.clauses,
+                clause_audits=clause_audits,
+                verdict=_field_verdict(clause_audits),
+                reason=" ".join(
+                    f"{item.clause_id}={item.verdict.value}: {item.reason}"
+                    for item in clause_audits
+                ),
+                basis=" ".join(
+                    f"{item.clause_id}: {item.basis}"
+                    for item in clause_audits
+                ),
+                source_refs=_unique(
+                    ref for item in clause_audits for ref in item.source_refs
+                ),
+            )
+        )
+    frozen_audits = tuple(field_audits)
+    core_truth = (
+        CoreClaimTruth.VALID
+        if all(
+            item.verdict == CausalFieldVerdict.SUPPORTED
+            for item in frozen_audits
+            if item.is_core_field
+        )
+        else CoreClaimTruth.INVALID
+    )
+    values = {
+        "schema_version": "semantic-judge.frozen-validity-certificate.v1",
+        "report_id": validity_input.report.report_id,
+        "core_truth": core_truth,
+        "validity_input_hash": stable_model_hash(validity_input),
+        "core_envelope_hash": validity_input.core_envelope.envelope_hash,
+        "field_audits": frozen_audits,
+        "root_cause_cluster_key": response.root_cause_cluster_key,
+        "reason": response.validity_reason,
+        "basis": response.validity_basis,
+        "source_refs": tuple(response.validity_source_refs),
+    }
+    hash_payload = {
+        key: (
+            [item.model_dump(mode="json") for item in value]
+            if key == "field_audits"
+            else value.value
+            if isinstance(value, CoreClaimTruth)
+            else value
+        )
+        for key, value in values.items()
+    }
+    serialized = json.dumps(
+        hash_payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    )
+    return FrozenValidityCertificate(
+        **values,
+        certificate_hash="sha256:"
+        + hashlib.sha256(serialized.encode("utf-8")).hexdigest(),
+    )
+
+
+def build_relation_input(
+    judge_input: UnifiedJudgeInput,
+    certificate: FrozenValidityCertificate,
+) -> RelationJudgeInput:
+    """Build one relation-only input from an immutable VALID certificate."""
+
+    report = next(
+        item
+        for item in judge_input.reports
+        if item.report_id == certificate.report_id
+    )
+    return RelationJudgeInput(
+        protocol_version=judge_input.protocol_version,
+        report=report,
+        validity_certificate=certificate,
+        expected_issues=judge_input.expected_issues,
+        artifact_closure=judge_input.artifact_closure,
+        reason="This input permits expected matching only after report validity has been frozen independently.",
+        basis=(
+            f"{judge_input.protocol_version}; {certificate.certificate_hash}; "
+            f"{judge_input.artifact_closure.closure_hash}"
+        ),
+    )
+
+
+def build_exact_relation_model(
+    relation_input: RelationJudgeInput,
+) -> type[RelationResponse]:
+    """Build a relation-only schema over one VALID report and every expected ID."""
+
+    expected_ids = tuple(
+        item.expected_id for item in relation_input.expected_issues
+    )
+    suffix = hashlib.sha256(
+        (
+            relation_input.report.report_id
+            + "::"
+            + relation_input.validity_certificate.certificate_hash
+            + "::"
+            + "|".join(expected_ids)
+        ).encode("utf-8")
+    ).hexdigest()[:12]
+    report_id_type = _literal((relation_input.report.report_id,))
+    certificate_hash_type = _literal(
+        (relation_input.validity_certificate.certificate_hash,)
+    )
+    exact_relation_tuple = _exact_relation_tuple(
+        expected_ids, suffix=f"{suffix}_relations"
+    )
+
+    class ExactRelationResponse(RelationResponse):
+        """Relation-only judgment for one frozen-valid anonymous report."""
+
+        report_id: report_id_type = Field(  # type: ignore[valid-type]
+            description="The one anonymous valid report ID fixed by this relation call."
+        )
+        validity_certificate_hash: certificate_hash_type = Field(  # type: ignore[valid-type]
+            description="The immutable validity certificate hash; return it unchanged."
+        )
+        relation_decisions: exact_relation_tuple = Field(  # type: ignore[valid-type]
+            description="One discriminated FULL_MATCH, PARTIAL_MATCH, or explicit NO_MATCH decision at every exact expected position in input order."
+        )
+
+        @model_validator(mode="after")
+        def exact_relation_closure(self) -> ExactRelationResponse:
+            positive_ids = []
+            no_match_ids = []
+            for index, decision in enumerate(self.relation_decisions):
+                if decision.match == MatchStrength.NO_MATCH:
+                    no_match_ids.append(decision.expected_id)
+                    continue
+                positive = cast(SupportedRelationJudgment, decision)
+                if ReportField.CLAIM not in positive.report_field_refs:
+                    raise ValueError(
+                        f"relation_decisions[{index}].report_field_refs must include claim"
+                    )
+                for field_ref in positive.report_field_refs:
+                    if not isinstance(
+                        getattr(relation_input.report, field_ref.value), str
+                    ):
+                        raise TypeError(
+                            f"relation_decisions[{index}] references null report field {field_ref.value}"
+                        )
+                positive_ids.append(positive.expected_id)
+            if no_match_ids and self.no_match_closure is None:
+                raise ValueError(
+                    "a non-empty NO_MATCH partition requires no_match_closure"
+                )
+            if not no_match_ids and self.no_match_closure is not None:
+                raise ValueError(
+                    "no_match_closure must be null when every relation is positive"
+                )
+            actual = positive_ids + no_match_ids
+            if len(actual) != len(set(actual)) or set(actual) != set(expected_ids):
+                raise ValueError(
+                    "relation_decisions must cover every expected ID exactly once"
+                )
+            return self
+
+    ExactRelationResponse.__name__ = f"ExactRelationResponse_{suffix}"
+    return cast(type[RelationResponse], ExactRelationResponse)
 
 
 def build_exact_arbitration_model(
@@ -698,6 +1050,259 @@ def materialize_reading(
         reason=response.reason,
         basis=response.basis,
         source_refs=response.source_refs,
+    )
+
+
+def materialize_two_stage_reading(
+    certificates: tuple[FrozenValidityCertificate, ...],
+    relation_responses: tuple[RelationResponse, ...],
+    judge_input: UnifiedJudgeInput,
+) -> JudgeReading:
+    """Derive dense issue #195 ownership from frozen truth and relation closure."""
+
+    report_ids = tuple(item.report_id for item in judge_input.reports)
+    expected_ids = tuple(item.expected_id for item in judge_input.expected_issues)
+    reports_by_id = {item.report_id: item for item in judge_input.reports}
+    certificates_by_id = {item.report_id: item for item in certificates}
+    if set(certificates_by_id) != set(report_ids) or len(certificates_by_id) != len(
+        certificates
+    ):
+        raise ValueError(
+            "validity certificates must cover every report exactly once"
+        )
+    valid_ids = {
+        report_id
+        for report_id, certificate in certificates_by_id.items()
+        if certificate.core_truth == CoreClaimTruth.VALID
+    }
+    responses_by_id = {item.report_id: item for item in relation_responses}
+    if set(responses_by_id) != valid_ids or len(responses_by_id) != len(
+        relation_responses
+    ):
+        raise ValueError(
+            "relation responses must cover every and only VALID report exactly once"
+        )
+
+    relations = []
+    report_assessments = []
+    for report_id in report_ids:
+        report = reports_by_id[report_id]
+        certificate = certificates_by_id[report_id]
+        response = responses_by_id.get(report_id)
+        positive_by_expected = (
+            {
+                item.expected_id: cast(SupportedRelationJudgment, item)
+                for item in response.relation_decisions
+                if item.match != MatchStrength.NO_MATCH
+            }
+            if response is not None
+            else {}
+        )
+        full_expected_ids = []
+        partial_expected_ids = []
+        for expected_id in expected_ids:
+            positive = positive_by_expected.get(expected_id)
+            if positive is None:
+                if certificate.core_truth == CoreClaimTruth.INVALID:
+                    relation_reason = (
+                        "The expected-isolated validity certificate is INVALID, so issue #195 requires this relation to be NO_MATCH."
+                    )
+                    relation_basis = (
+                        f"{certificate.certificate_hash}; {certificate.reason}; all-NO invalid-report closure"
+                    )
+                    relation_source_refs = certificate.source_refs
+                else:
+                    closure = cast(RelationResponse, response).no_match_closure
+                    if closure is None:
+                        raise ValueError(
+                            f"valid report {report_id} has NO_MATCH without closure evidence"
+                        )
+                    relation_reason = closure.reason
+                    relation_basis = closure.basis
+                    relation_source_refs = closure.source_refs
+                relation = RelationAssessment(
+                    report_id=report_id,
+                    expected_id=expected_id,
+                    match=MatchStrength.NO_MATCH,
+                    report_text_evidence=(
+                        _materialized_text_evidence(
+                            report=report,
+                            report_field=ReportField.CLAIM,
+                            semantic_role=ReportTextEvidenceRole.CLAIM_BOUNDARY,
+                            reason="The complete published claim defines this explicit NO relation boundary.",
+                            basis=f"frozen_validity:{certificate.certificate_hash}",
+                        ),
+                    ),
+                    reason=relation_reason,
+                    basis=relation_basis,
+                    source_refs=relation_source_refs,
+                )
+            else:
+                match = MatchStrength(positive.match.value)
+                if match == MatchStrength.FULL_MATCH:
+                    full_expected_ids.append(expected_id)
+                else:
+                    partial_expected_ids.append(expected_id)
+                field_refs = list(positive.report_field_refs)
+                if ReportField.REASON not in field_refs:
+                    field_refs.append(ReportField.REASON)
+                evidence = tuple(
+                    _materialized_text_evidence(
+                        report=report,
+                        report_field=field_ref,
+                        semantic_role=(
+                            ReportTextEvidenceRole.CLAIM_BOUNDARY
+                            if field_ref == ReportField.CLAIM
+                            else ReportTextEvidenceRole.CAUSAL_SUPPORT
+                        ),
+                        reason=(
+                            "The complete published claim delimits this positive relation."
+                            if field_ref == ReportField.CLAIM
+                            else "The expected-isolated certificate establishes this complete report field as artifact-compatible support."
+                        ),
+                        basis=f"relation:{report_id}/{expected_id}; {certificate.certificate_hash}",
+                    )
+                    for field_ref in field_refs
+                )
+                relation = RelationAssessment(
+                    report_id=report_id,
+                    expected_id=expected_id,
+                    match=match,
+                    report_text_evidence=evidence,
+                    reason=positive.reason,
+                    basis=positive.basis,
+                    source_refs=positive.source_refs,
+                )
+            relations.append(relation)
+
+        validity = (
+            ReportValidity.INVALID
+            if certificate.core_truth == CoreClaimTruth.INVALID
+            else ReportValidity.VALID_KNOWN
+            if full_expected_ids or partial_expected_ids
+            else ReportValidity.VALID_NOVEL
+        )
+        ownership_reason = (
+            "Backend ownership is INVALID because expected-isolated core truth is INVALID and every relation is mechanically NO_MATCH."
+            if validity == ReportValidity.INVALID
+            else "Backend ownership is VALID_KNOWN because frozen core truth is VALID and at least one FULL_MATCH or PARTIAL_MATCH relation exists."
+            if validity == ReportValidity.VALID_KNOWN
+            else "Backend ownership is VALID_NOVEL because frozen core truth is VALID and every expected relation is explicitly NO_MATCH."
+        )
+        reason_audit = next(
+            item
+            for item in certificate.field_audits
+            if item.report_field.value == "reason"
+        )
+        report_assessments.append(
+            ReportAssessment(
+                report_id=report_id,
+                core_truth=certificate.core_truth,
+                validity=validity,
+                full_expected_ids=tuple(full_expected_ids),
+                partial_expected_ids=tuple(partial_expected_ids),
+                no_match_expected_ids=tuple(
+                    expected_id
+                    for expected_id in expected_ids
+                    if expected_id not in positive_by_expected
+                ),
+                root_cause_cluster_key=certificate.root_cause_cluster_key,
+                report_text_evidence=(
+                    _materialized_text_evidence(
+                        report=report,
+                        report_field=ReportField.CLAIM,
+                        semantic_role=ReportTextEvidenceRole.CLAIM_BOUNDARY,
+                        reason="The complete published claim is a mandatory part of the frozen validity envelope.",
+                        basis=f"frozen_validity:{certificate.certificate_hash}",
+                    ),
+                    _materialized_text_evidence(
+                        report=report,
+                        report_field=ReportField.REASON,
+                        semantic_role=(
+                            ReportTextEvidenceRole.CAUSAL_SUPPORT
+                            if reason_audit.verdict == CausalFieldVerdict.SUPPORTED
+                            else ReportTextEvidenceRole.REFUTED_PREMISE
+                        ),
+                        reason="The complete published reason was audited before any expected issue became visible.",
+                        basis=f"frozen_validity:{certificate.certificate_hash}",
+                    ),
+                ),
+                causal_field_audits=certificate.field_audits,
+                reason=f"{certificate.reason} {ownership_reason}",
+                basis=(
+                    f"{certificate.basis}; deterministic ownership from immutable core truth "
+                    "and the exhaustive expected relation partition"
+                ),
+                source_refs=_unique(
+                    [f"report:{report_id}"]
+                    + list(certificate.source_refs)
+                    + [f"expected:{expected_id}" for expected_id in expected_ids]
+                ),
+            )
+        )
+
+    relation_by_key = {
+        (item.report_id, item.expected_id): item for item in relations
+    }
+    expected_assessments = []
+    for expected_id in expected_ids:
+        full_report_ids = tuple(
+            report_id
+            for report_id in report_ids
+            if relation_by_key[(report_id, expected_id)].match
+            == MatchStrength.FULL_MATCH
+        )
+        partial_report_ids = tuple(
+            report_id
+            for report_id in report_ids
+            if relation_by_key[(report_id, expected_id)].match
+            == MatchStrength.PARTIAL_MATCH
+        )
+        supported_ids = set(full_report_ids) | set(partial_report_ids)
+        expected_assessments.append(
+            ExpectedAssessment(
+                expected_id=expected_id,
+                full_report_ids=full_report_ids,
+                partial_report_ids=partial_report_ids,
+                no_support_report_ids=tuple(
+                    report_id
+                    for report_id in report_ids
+                    if report_id not in supported_ids
+                ),
+                hit=bool(full_report_ids),
+                supported=bool(supported_ids),
+                reason=(
+                    f"Expected issue {expected_id} has FULL support from {list(full_report_ids)} "
+                    f"and PARTIAL support from {list(partial_report_ids)}; every remaining report is NO_MATCH."
+                ),
+                basis="Deterministic two-stage materialization from frozen validity and exhaustive relation closures.",
+                source_refs=_unique(
+                    [f"expected:{expected_id}"]
+                    + [
+                        ref
+                        for report_id in report_ids
+                        for ref in relation_by_key[
+                            (report_id, expected_id)
+                        ].source_refs
+                    ]
+                ),
+            )
+        )
+    return JudgeReading(
+        relations=tuple(relations),
+        report_assessments=tuple(report_assessments),
+        expected_assessments=tuple(expected_assessments),
+        reason="Expected-isolated validity certificates and relation-only responses were deterministically closed with no UNKNOWN.",
+        basis="Frozen certificate hashes, exact expected positions, common artifacts, and issue #195 ownership formulas.",
+        source_refs=_unique(
+            [judge_input.artifact_closure.closure_hash]
+            + [item.certificate_hash for item in certificates]
+            + [
+                ref
+                for response in relation_responses
+                for ref in response.relation_source_refs
+            ]
+        ),
     )
 
 

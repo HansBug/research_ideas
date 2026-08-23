@@ -51,14 +51,14 @@ redundancy rate；重复的 valid finding 进入 redundancy，不进入 FP。
 | :-- | :-- | :-- | :-- | :-- |
 | issue snapshot 是唯一权威，变更即升版并使旧分数失效 | `protocol.py` 的 `PROTOCOL_*` 与 `verify_snapshot` | CLI 在运行前校验 snapshot | snapshot hash、prompt hash 测试 | 本文件“冻结版本” |
 | D2+D1 是唯一发布集合；D0 不进入 Judge | arm-neutral `CandidateReport` 不含 D/W/L | `artifacts.py` 只适配最终发布报告 | adapter 字段结构与排除字段测试 | `final_output_metrics_policy.md` |
-| 先判核心真值，再判 relation，后端派生 K/N/I | provider 输出 assertion truth、certificate selector 与 `PositiveMatchStrength`，不重复 aggregate core truth | `derive_causal_field_verdict`、`schema.py::materialize_reading` | 3x3 合法组合、全局 closure、core-truth derivation 测试 | 本文件“现行核心合同” |
-| INVALID、VALID_NOVEL 全 NO；VALID_KNOWN 至少一条 FULL/PARTIAL | 动态 exact-closure schema 与 validator | `_validate_report_judgment`、`ReportAssessment` validator | 非法组合确定性拒绝测试 | snapshot §1.1 |
-| FULL 采用适度宽语义，不以字段复刻为 gate | `SYSTEM_PROMPT` 的 root cause、obligation、symptom、repair overlap 规则 | relation enum 原样物化 | free-text FULL、多 expected FULL 测试 | `hit_criterion.md` |
+| 先判核心真值，再判 relation，后端派生 K/N/I | `ValidityJudgeInput` 物理不含 expected；`RelationJudgeInput` 只接受冻结 VALID certificate | `materialize_validity_certificate`、`materialize_two_stage_reading` | expected isolation、clause closure、two-stage replay 测试 | 本文件“现行核心合同” |
+| INVALID、VALID_NOVEL 全 NO；VALID_KNOWN 至少一条 FULL/PARTIAL | INVALID 不进入 relation schema；relation 动态 exact closure | `judge_pair` 的 invalid all-NO closure、`ReportAssessment` validator | 非法组合、invalid-no-relation 测试 | snapshot §1.1 |
+| FULL 采用适度宽语义，不以字段复刻为 gate | `RELATION_SYSTEM_PROMPT` 的 root cause、obligation、symptom、repair overlap 规则 | relation enum 原样物化 | free-text FULL、多 expected FULL 测试 | `hit_criterion.md` |
 | PARTIAL 只算 supported，不算 hit/FP | `PositiveMatchStrength.PARTIAL_MATCH` | `metrics.py::compute_semantic_metrics` | partial 指标测试 | 本文件“确定性指标” |
-| Novel 需要独立真实性证据，不能由 unmatched 自动推出 | causal certificate 与 `core_truth=VALID` | VALID + all NO 才派生 `VALID_NOVEL` | valid-novel 与 invalid 对照测试 | `ground_truth_limitations.md` |
+| Novel 需要独立真实性证据，不能由 unmatched 自动推出 | expected-isolated `FrozenValidityCertificate` | VALID + relation 全 NO 才派生 `VALID_NOVEL` | concise valid-novel 与 invalid 对照测试 | `ground_truth_limitations.md` |
 | 只有 INVALID 是 Semantic FP | `ReportValidity.INVALID` 仅后端派生 | deterministic metrics / aggregate | invalid-only FP、duplicate-valid 测试 | `final_output_metrics_policy.md` §5 |
-| 无最终 UNKNOWN；双独立 reading，冲突定向仲裁 | primary/arbitration Pydantic schema | `runner.py::judge_pair`、targeted merge 后完整重验 | primary、arbitration、failure 测试 | `verdict_methodology.md` |
-| 每条 relation、validity、顶层结果有 reason/basis/source refs | provider 输出字段引用与逐 material assertion 的 truth audit | `derive_causal_field_verdict` 派生 field verdict；`ReportCausalFieldAudit` 的 exact text/hash 由后端物化 | 空字段、错引用、assertion closure、whole-field derivation 与 exact materialization 测试 | 本文件与 run record |
+| 无最终 UNKNOWN；两阶段各双独立 reading，冲突定向仲裁 | validity/relation primary 与 arbitration Pydantic schema | `runner.py::judge_pair` 分阶段 merge 后完整重验 | validity/relation arbitration、failure 测试 | `verdict_methodology.md` |
+| 每条 relation、validity、顶层结果有 reason/basis/source refs | 固定 field/clause truth audit 与 expected-specific relation evidence | `FrozenFieldValidityAudit` 与 `FrozenValidityCertificate` 由后端物化 exact text/hash | claim/clause omission、fixed slot、exact materialization 测试 | 本文件与 run record |
 | 同一 expected 多报告只命中一次；一报告可 FULL 多 expected | 每个 report 的 positional relation decisions | expected-side unique 聚合 | 三 expected FULL、duplicate-valid 测试 | `hit_criterion.md` |
 | W/D/L、谓词族、arm、历史结果不作 gate | `UnifiedJudgeInput` 不含这些字段 | 两臂共用 artifacts/runner/metrics | adapter diff、prompt leakage 测试 | 本文件“公平性合同” |
 | 公共 artifact closure 对两臂相同 | `JudgeArtifactClosure` | `build_artifact_closure` 单入口 | closure identity 与完整角色测试 | 本文件“公平性合同” |
@@ -68,33 +68,42 @@ redundancy rate；重复的 valid finding 进入 redundancy，不进入 FP。
 ## 公平性与规模合同
 
 X1v2 与 evidence-discovery 仅在 source adapter 内读取各自报告结构；adapter 结束后，两臂
-进入完全相同的 `UnifiedJudgeInput`、动态 Pydantic schema、英文 prompt、公共 artifact
+进入完全相同的 `UnifiedJudgeInput`、两阶段动态 Pydantic schema、英文 prompt、公共 artifact
 closure、`gpt-5.6-luna` profile、双读、retry、仲裁和指标入口。provider 看不到 arm 名、
 原始 ID、D/W/L、谓词、历史得分或旧判决。相同 pair 的公共闭包由一个 builder 构建，
 顺序、内容、provenance 与 hash 不因 arm 改变。
 
-规模协议只压缩重复表示，不裁剪 Judge 证据：动态 Pydantic schema 为每个 expected
+每条报告先单独进入 `ValidityJudgeInput`。该 Pydantic 类型只含当前匿名 report、固定
+`ReportCoreEnvelope` 与公共 artifact closure，物理上没有 expected/ledger 字段。两个独立
+validity reading 与必要的 validity-only 仲裁完成后，后端冻结
+`FrozenValidityCertificate`；核心 truth 由 `claim`、`property`、`violated_obligation`、
+`expected`、`observed`、`reason` 中所有非空字段的完整 clause verdict 机械派生，`basis`
+只作独立审计，`where` 只作 locus。任一核心字段含 material `REFUTED` 即 `INVALID`。
+INVALID 不调用 relation LLM，后端直接为全部 expected 物化 `NO_MATCH`。只有冻结为 VALID
+的报告才进入 `RelationJudgeInput`；它看到 immutable certificate/hash、expected 和同一公共
+闭包，只能输出 FULL/PARTIAL/NO，不能重开 validity。
+
+规模协议只压缩重复表示，不裁剪 Judge 证据：relation 动态 Pydantic schema 为每个 expected
 建立固定位置的 discriminated `relation_decision`；FULL/PARTIAL 行保存 expected-specific
 reason/basis/source refs，NO 行显式保存 expected ID 与 `NO_MATCH`，共同的 NO 证据只在
 report 级保存一次。`prefixItems + minItems + maxItems` 在 provider schema 层保证每个
-expected 恰好出现一次，再由后端物化完整 dense audit。whole-field causal audit 同样只让
-provider 选择 `report_field`，并把字段中每个 material factual assertion、modeling-semantic
-assumption 和 causal link 按原文顺序拆成独立 assertion row；每行给出
+expected 恰好出现一次，再由后端物化完整 dense audit。validity schema 不让 provider
+自由选择 `report_field`，而是按实际输入动态生成 `claim_audit`、`reason_audit` 等固定顶层槽；
+每个字段中每条 material factual assertion、modeling-semantic assumption 和 causal link
+按原文顺序进入不可遗漏的 clause row；每行给出
 `SUPPORTED/REFUTED`、reason、basis 和 source refs。模型不自报 whole-field verdict 或
 aggregate core truth，后端按
 “全 SUPPORTED = SUPPORTED、全 REFUTED = REFUTED、混合 = MIXED”机械派生。完整字段原文与
 SHA-256 也由后端从不可变输入确定性物化，既不允许摘取方便子句、用邻近真事实替换错误机制，
-也不要求模型复制长文本。后端先把完整 causal field 确定性分成 gap-free source units，
-动态 Pydantic schema 要求每个 unit exactly once 英文判读，原文 quote 与 hash 由后端物化，
-禁止省略被反驳机制后用邻近真事实补写。root-cause cluster 冲突按 report 共聚分区判断，
-不按自由文本 key 的表面措辞判断；真正冲突的 report 逐条 atomic 仲裁，并使用扁平单
-report Pydantic 响应避免一项列表包装引起字段越级，每次仍读取完整公共制品与全部 expected。
-后端合并所有 replacement 后重验全 closure。仲裁仅重写冲突 report，
-未冲突报告复用已验证 primary，合并后重新执行全 closure validator。真实 `0029`
-provider-free scale audit 按真实 causal-field 长度每 64 字符至少预留一条 material assertion，
-同时验证 all-NO 与 all-positive envelope；只有在 profile 声明的输出上限和完整 context
-reserve 内均闭合才通过。该 audit 必须在任何 method 六 pair 或 baseline 全量重判之前通过；
-live smoke 失败时转入原子裁定，而不是把失败当 miss。
+也不要求模型复制长文本。后端先把全部 auditable field 确定性分成不超过 64 字符的 gap-free
+source clauses，动态 schema 要求每个 clause exactly once 英文判读，原文、offset 与 hash
+由后端物化。两个 validity primary 都完全看不到 expected；两个 relation primary 只对 VALID
+报告运行。真正冲突的 report 在对应隔离阶段逐条 atomic 仲裁；未冲突结果原样复用，全部
+replacement 合并后重验 pair closure。真实 `0029` provider-free scale audit 按 27 reports、
+8 expected、400 clauses，以及“所有报告均 VALID”的最坏 108 次 primary call 证明每个
+validity/relation target 的 prompt、schema、all-NO/all-FULL envelope 在 profile context/output
+上限内闭合。该 audit 必须在任何 method 六 pair 或 baseline 全量重判之前通过；live smoke
+失败不得当作 miss 或从分母排除。
 
 ## 学术边界
 
