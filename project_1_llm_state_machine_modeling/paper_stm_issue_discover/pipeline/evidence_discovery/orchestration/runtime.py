@@ -669,10 +669,11 @@ class PublicStructuredRuntime:
 class FixtureStructuredRuntime:
     """Provider-free structured runtime for end-to-end fixture smoke runs.
 
-    This fixture intentionally returns empty grounding and judge surfaces so
-    the method's no-silent-drop fallbacks, typed D coverage checks, receipts,
-    and independent-judge normalization are exercised without credentials.
-    It is never used for live results and carries no ledger payload.
+    This fixture returns no semantic candidates or judge relations. Dynamic
+    grounding schemas still receive explicit unbound rows for every required
+    cardinality contract, so structural coverage is exercised without making a
+    semantic domain choice. It is never used for live results and carries no
+    ledger payload.
     """
 
     real_llm = False
@@ -697,7 +698,10 @@ class FixtureStructuredRuntime:
                 "reason": "Fixture contract output leaves semantic extraction to the fallback receipt.",
                 "basis": "provider-free fixture runtime",
             }
-        elif schema.__name__ == "GroundingResponse":
+        elif any(base.__name__ == "GroundingResponse" for base in schema.__mro__):
+            cardinality_contract_ids = tuple(
+                getattr(schema, "expected_cardinality_contract_ids", ())
+            )
             payload = {
                 "lens": (
                     "behavior_consequence"
@@ -705,6 +709,23 @@ class FixtureStructuredRuntime:
                     else "contract_structure_contrast"
                 ),
                 "additional_contracts": [],
+                "cardinality_bindings": [
+                    {
+                        "binding_id": f"CARD-BIND-FIXTURE-{index}",
+                        "contract_id": contract_id,
+                        "status": "unbound",
+                        "member_domain": "unresolved",
+                        "owner_source_id": None,
+                        "owner_model_ref": None,
+                        "alternative_reading": None,
+                        "reason": "The provider-free fixture cannot select a semantic member domain or exact owner.",
+                        "basis": "provider-free fixture runtime; no provider semantic judgment was performed",
+                    }
+                    for index, contract_id in enumerate(
+                        cardinality_contract_ids,
+                        start=1,
+                    )
+                ],
                 "candidates": [],
                 "unresolved": [],
                 "reason": "Fixture grounding output leaves candidate generation to the fallback receipt.",

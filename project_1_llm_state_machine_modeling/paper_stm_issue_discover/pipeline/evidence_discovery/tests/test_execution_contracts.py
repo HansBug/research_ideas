@@ -65,6 +65,7 @@ from pipeline.evidence_discovery.orchestration.runtime import (
     PROVIDER_CALL_DEADLINE_SECONDS,
     PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS,
     STRUCTURED_STAGE_DEADLINE_SECONDS,
+    FixtureStructuredRuntime,
     PublicStructuredRuntime,
     StructuredCallOutcome,
     StructuredStageTimeout,
@@ -81,6 +82,7 @@ from pipeline.evidence_discovery.semantics import (
     DISCOVERY_GROUNDING_SYSTEM_PROMPT,
     CandidateIssue,
     CardinalityDomainBinding,
+    CardinalityRequirement,
     ContextBudgetReceipt,
     ContractBindingHint,
     GroundingResponse,
@@ -1720,8 +1722,41 @@ def test_grounding_response_uses_sparse_unresolved_without_full_disposition_tabl
 
 
 def test_grounding_runtime_schema_closes_contract_references() -> None:
+    supplied_contract = NLContract(
+        contract_id="NL-CONTRACT-NL1",
+        segment_id="NL1",
+        quote="The controller must remain operational.",
+        normative_statement="The controller must remain operational.",
+        locus_kind="state",
+        locus_names=("Controller",),
+        property="deadlock_freedom",
+        state_role="operating_state",
+        expected_direction="must_progress",
+        violation_direction="dead_end",
+        evidence_types=("deadlock_frontier_fact",),
+        scope="Controller",
+        source_refs=("nl:NL1",),
+        reason="The numbered segment establishes an operating obligation.",
+        basis="provider-free exact grounding schema fixture NL1",
+    )
+    action_contract = NLContract(
+        contract_id="NL-CONTRACT-NL3-ACTION-1",
+        segment_id="NL3",
+        quote="The controller shall update the display.",
+        normative_statement="The controller must update the display.",
+        locus_kind="action",
+        locus_names=("update display",),
+        property="state_action",
+        expected_direction="must_occur",
+        violation_direction="missing",
+        evidence_types=("action_fact",),
+        scope="Controller",
+        source_refs=("nl:NL3",),
+        reason="The numbered segment establishes one action obligation.",
+        basis="provider-free exact grounding schema fixture NL3",
+    )
     schema = _grounding_response_contract(
-        ["NL-CONTRACT-NL1", "NL-CONTRACT-NL3-ACTION-1"]
+        [supplied_contract, action_contract]
     )
     projected_schema = schema.model_json_schema()
     assert "supplied contract set" in projected_schema["description"]
@@ -1805,6 +1840,166 @@ def test_grounding_runtime_schema_closes_contract_references() -> None:
             reason="The fixture reproduces the 0053 invented unresolved ID.",
             basis="provider-free exact grounding response schema",
         )
+
+
+def test_grounding_runtime_schema_requires_explicit_cardinality_accounting() -> None:
+    cardinality_contract = NLContract(
+        contract_id="NL-CONTRACT-NL2-CARDINALITY-1",
+        segment_id="NL2",
+        quote="The model shall have three concurrent state areas.",
+        normative_statement="The operating scope must have three concurrent UML regions.",
+        locus_kind="composite",
+        locus_names=("OperatingScope",),
+        property="cardinality",
+        expected_direction="must_cover",
+        violation_direction="missing",
+        evidence_types=("source_identity", "containment_fact", "semantic_comparison"),
+        cardinality_requirement=CardinalityRequirement(
+            required_count=3,
+            member_domain="unresolved",
+            scope_concept="OperatingScope",
+            member_concept="concurrent state areas",
+            reason="The NL fixes a count while leaving the primary typed domain for grounding.",
+            basis="provider-free cardinality fixture NL2",
+        ),
+        scope="OperatingScope",
+        source_refs=("nl:NL2",),
+        reason="The numbered segment establishes one cardinality obligation.",
+        basis="provider-free exact cardinality coverage fixture",
+    )
+    non_cardinality_contract = cardinality_contract.model_copy(
+        update={
+            "contract_id": "NL-CONTRACT-NL3-ACTION-1",
+            "segment_id": "NL3",
+            "quote": "The operating scope shall perform its task.",
+            "normative_statement": "The operating scope must perform its task.",
+            "locus_kind": "action",
+            "locus_names": ("perform task",),
+            "property": "state_action",
+            "expected_direction": "must_occur",
+            "violation_direction": "missing",
+            "evidence_types": ("action_fact",),
+            "cardinality_requirement": None,
+            "source_refs": ("nl:NL3",),
+        }
+    )
+    schema = _grounding_response_contract(
+        [cardinality_contract, non_cardinality_contract]
+    )
+    projected_schema = schema.model_json_schema()
+    cardinality_description = projected_schema["properties"][
+        "cardinality_bindings"
+    ]["description"]
+    assert "exhaustive" in cardinality_description
+    assert cardinality_contract.contract_id in cardinality_description
+    assert schema.expected_cardinality_contract_ids == (
+        cardinality_contract.contract_id,
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match=(
+            "cardinality_bindings is missing one required exact/ambiguous/"
+            "unbound row.*NL-CONTRACT-NL2-CARDINALITY-1"
+        ),
+    ):
+        schema(
+            lens="contract_structure_contrast",
+            reason="The malformed fixture silently omits cardinality accounting.",
+            basis="provider-free missing-cardinality-row fixture",
+        )
+
+    for status in ("ambiguous", "unbound"):
+        response = schema(
+            lens="behavior_consequence",
+            cardinality_bindings=[
+                CardinalityDomainBinding(
+                    binding_id=f"CARD-BIND-{status.upper()}",
+                    contract_id=cardinality_contract.contract_id,
+                    status=status,
+                    member_domain="unresolved",
+                    owner_source_id=None,
+                    owner_model_ref=None,
+                    reason=f"The fixture records an explicit {status} reading.",
+                    basis="provider-free explicit unresolved-domain fixture",
+                )
+            ],
+            reason="The fixture explicitly accounts for the cardinality contract.",
+            basis="provider-free exact cardinality coverage fixture",
+        )
+        assert response.cardinality_bindings[0].status == status
+
+    exact = schema(
+        lens="contract_structure_contrast",
+        cardinality_bindings=[
+            CardinalityDomainBinding(
+                binding_id="CARD-BIND-EXACT",
+                contract_id=cardinality_contract.contract_id,
+                status="exact",
+                member_domain="concurrent_regions",
+                owner_source_id="source:OperatingScope",
+                owner_model_ref="state:OperatingScope",
+                alternative_reading="Three operating child states are a weaker reading.",
+                reason="The supplied semantics selects UML structural regions under one exact owner.",
+                basis="provider-free exact concurrent-region fixture",
+            )
+        ],
+        reason="The fixture closes the cardinality member domain and owner.",
+        basis="provider-free exact cardinality coverage fixture",
+    )
+    assert exact.cardinality_bindings[0].member_domain == "concurrent_regions"
+
+    with pytest.raises(
+        ValidationError,
+        match="property is not cardinality.*NL-CONTRACT-NL3-ACTION-1",
+    ):
+        schema(
+            lens="contract_structure_contrast",
+            cardinality_bindings=[
+                exact.cardinality_bindings[0].model_copy(
+                    update={"contract_id": non_cardinality_contract.contract_id}
+                )
+            ],
+            reason="The malformed fixture targets a non-cardinality contract.",
+            basis="provider-free wrong-property cardinality fixture",
+        )
+
+    fixture_outcome = FixtureStructuredRuntime().call(
+        kind="discovery_grounding",
+        schema=schema,
+        system_prompt=DISCOVERY_GROUNDING_SYSTEM_PROMPT,
+        prompt="provider-free dynamic grounding schema fixture",
+        artifact_id="method/0046/round-1/discovery-grounding/behavior_consequence",
+    )
+    assert fixture_outcome.succeeded
+    assert len(fixture_outcome.response.cardinality_bindings) == 1
+    assert fixture_outcome.response.cardinality_bindings[0].status == "unbound"
+    assert fixture_outcome.response.candidates == []
+
+    failed_lens = fallback_grounding(
+        SimpleNamespace(),
+        lens="contract_structure_contrast",
+        contracts=NLContractResponse(
+            contracts=[cardinality_contract],
+            segment_disposition={"NL2": "covered"},
+            reason="The fixture supplies one cardinality contract.",
+            basis="provider-free fallback cardinality fixture",
+        ),
+        reason="provider-free simulated grounding failure",
+    )
+    assert len(failed_lens.cardinality_bindings) == 1
+    assert failed_lens.cardinality_bindings[0].status == "unbound"
+    assert failed_lens.candidates == []
+
+    non_cardinality_schema = _grounding_response_contract(
+        [non_cardinality_contract]
+    )
+    non_cardinality_response = non_cardinality_schema(
+        lens="contract_structure_contrast",
+        reason="No cardinality contract is supplied.",
+        basis="provider-free non-cardinality fixture",
+    )
+    assert non_cardinality_response.cardinality_bindings == []
 
 
 def test_branch_local_additional_contracts_merge_by_canonical_typed_identity() -> None:

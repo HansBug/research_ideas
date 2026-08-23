@@ -86,11 +86,11 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v8"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v5"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v38"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v34"
+CODE_VERSION = "evidence-discovery-v27-flow.v39"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v35"
 JUDGE_EXACT_IDENTITY_CONTRACT_VERSION = "paper1.judge-exact-identity-contract.v1"
 GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION = (
-    "paper1.grounding-exact-identity-contract.v1"
+    "paper1.grounding-exact-identity-contract.v2"
 )
 
 
@@ -291,18 +291,21 @@ class ExactGroundingResponse(GroundingResponse):
     """Per-call grounding response bound to the supplied contract identity set.
 
     The runner specializes this Pydantic model for one method cell. Its
-    authority is limited to exact contract-reference closure: grounding rows
-    may reference supplied contracts or additional contracts declared in that
-    same response. It does not decide whether an obligation exists, whether a
-    candidate is valid, or any W, D, L, publish, or judge result.
+    authority is limited to exact contract-reference closure and structurally
+    complete accounting for supplied cardinality contracts: grounding rows may
+    reference supplied contracts or additional contracts declared in that same
+    response, and every cardinality contract must receive one typed domain row.
+    It does not select that domain or decide whether an obligation exists,
+    whether a candidate is valid, or any W, D, L, publish, or judge result.
     """
 
     expected_contract_ids: ClassVar[tuple[str, ...]] = ()
+    expected_cardinality_contract_ids: ClassVar[tuple[str, ...]] = ()
     enforce_exact_identity_contract: ClassVar[bool] = False
 
     @model_validator(mode="after")
     def validate_exact_contract_reference_closure(self) -> ExactGroundingResponse:
-        """Reject invented cross-stage IDs with path-specific correction text."""
+        """Reject invented IDs and missing cardinality rows with correction text."""
 
         if not type(self).enforce_exact_identity_contract:
             return self
@@ -343,6 +346,58 @@ class ExactGroundingResponse(GroundingResponse):
                 + "\nallowed supplied contract IDs="
                 + repr(list(type(self).expected_contract_ids))
             )
+
+        supplied_ids = set(type(self).expected_contract_ids)
+        supplied_cardinality_ids = set(
+            type(self).expected_cardinality_contract_ids
+        )
+        additional_property_by_id = {
+            contract.contract_id: contract.property
+            for contract in self.additional_contracts
+        }
+        required_cardinality_ids = supplied_cardinality_ids | {
+            contract_id
+            for contract_id, property_name in additional_property_by_id.items()
+            if property_name == "cardinality"
+        }
+        actual_cardinality_ids = {
+            binding.contract_id for binding in self.cardinality_bindings
+        }
+        missing_cardinality_ids = sorted(
+            required_cardinality_ids - actual_cardinality_ids
+        )
+        non_cardinality_targets = sorted(
+            contract_id
+            for contract_id in actual_cardinality_ids
+            if (
+                contract_id in supplied_ids
+                and contract_id not in supplied_cardinality_ids
+            )
+            or additional_property_by_id.get(contract_id) not in {
+                None,
+                "cardinality",
+            }
+        )
+        if missing_cardinality_ids or non_cardinality_targets:
+            errors = []
+            if missing_cardinality_ids:
+                errors.append(
+                    "cardinality_bindings is missing one required exact/ambiguous/"
+                    "unbound row for contract IDs="
+                    + repr(missing_cardinality_ids)
+                )
+            if non_cardinality_targets:
+                errors.append(
+                    "cardinality_bindings targets supplied/additional contracts "
+                    "whose property is not cardinality: "
+                    + repr(non_cardinality_targets)
+                )
+            raise ValueError(
+                "exact grounding cardinality coverage failed; return a complete "
+                "replacement response retaining all valid rows and add exactly "
+                "one typed binding row for every required cardinality contract:\n- "
+                + "\n- ".join(errors)
+            )
         return self
 
 
@@ -368,6 +423,16 @@ def _prompt_schema_hash() -> str:
             "schemas": {
                 "nl_contract": NLContractResponse.model_json_schema(),
                 "grounding": GroundingResponse.model_json_schema(),
+                "grounding_exact_identity_contract": {
+                    "version": GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION,
+                    "base_schema": ExactGroundingResponse.model_json_schema(),
+                    "specialization": (
+                        "Per method cell, supplied contract identities and the "
+                        "cardinality-contract subset are closed; every cardinality "
+                        "contract requires exactly one exact, ambiguous, or unbound "
+                        "typed domain row in each complementary grounding lens."
+                    ),
+                },
                 "d_adjudication": DAdjudicationResponse.model_json_schema(),
                 "judge": JudgeResponse.model_json_schema(),
                 "judge_exact_identity_contract": {
@@ -1897,9 +1962,7 @@ def _method_cell(
         IdentityNormalizationReceipt | GroupIdentityNormalizationReceipt
     ] = []
     grounding_normalization_diagnostics: list[dict[str, Any]] = []
-    grounding_schema = _grounding_response_contract(
-        [contract.contract_id for contract in contract_response.contracts]
-    )
+    grounding_schema = _grounding_response_contract(contract_response.contracts)
     # v27 samples the two complementary lenses sequentially inside one method
     # cell. Pair workers provide process-level parallelism without changing the
     # public AgentApp/LangGraph call semantics or deadline handling.
@@ -2933,32 +2996,58 @@ def _closed_literal(values: tuple[str, ...]) -> Any:
 
 
 def _grounding_response_contract(
-    contract_ids: Sequence[str],
+    contracts: Sequence[NLContract],
 ) -> type[ExactGroundingResponse]:
-    """Specialize grounding validation to one method cell's contract closure."""
+    """Specialize grounding identity and cardinality coverage to one method cell."""
 
-    expected_contract_ids = tuple(str(contract_id) for contract_id in contract_ids)
+    expected_contract_ids = tuple(contract.contract_id for contract in contracts)
     if len(expected_contract_ids) != len(set(expected_contract_ids)):
         raise ValueError("grounding input contains duplicate contract IDs")
     if not expected_contract_ids:
         raise ValueError("grounding response contract requires at least one contract ID")
+    expected_cardinality_contract_ids = tuple(
+        contract.contract_id
+        for contract in contracts
+        if contract.property == "cardinality"
+    )
     contract_key = _hash_json(
         {
             "version": GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION,
             "contract_ids": expected_contract_ids,
+            "cardinality_contract_ids": expected_cardinality_contract_ids,
         }
     ).removeprefix("sha256:")[:16]
+    cardinality_description = (
+        "Typed member-domain accounting for cardinality contracts. Unlike the "
+        "other sparse grounding rows, this list is exhaustive for the supplied "
+        "property=cardinality contracts in this method cell: return exactly one "
+        "exact, ambiguous, or unbound row for each required ID, even when this "
+        "lens cannot select a domain or owner. Schema correction must return a "
+        "complete replacement response retaining every previously valid row. "
+        "Rows never contain observed counts, W, D, L, or ledger data. Required "
+        f"supplied cardinality contract IDs={list(expected_cardinality_contract_ids)!r}."
+    )
     response_model = create_model(
         f"ExactGroundingResponse_{contract_key}",
         __base__=ExactGroundingResponse,
+        cardinality_bindings=(
+            list[CardinalityDomainBinding],
+            Field(default_factory=list, description=cardinality_description),
+        ),
     )
     response_model.__doc__ = (
         "Runtime-specialized v27 grounding response. All contract_id references "
-        "must resolve to the supplied contract set or to one typed additional "
-        "contract declared in this same response; this closure check has no "
-        "authority over semantic discovery, W, D, L, publish, or judge decisions."
+        "must resolve to the supplied contract set or one typed additional "
+        "contract declared in this response. Every supplied cardinality contract "
+        "must also receive exactly one typed domain row in this lens, including an "
+        "explicit ambiguous or unbound row when no exact reading closes. These "
+        "structural checks have no authority over semantic discovery, W, D, L, "
+        "publish, or judge decisions."
     )
     response_model.expected_contract_ids = expected_contract_ids
+    response_model.expected_cardinality_contract_ids = (
+        expected_cardinality_contract_ids
+    )
     response_model.enforce_exact_identity_contract = True
     response_model.model_rebuild(force=True)
     return response_model

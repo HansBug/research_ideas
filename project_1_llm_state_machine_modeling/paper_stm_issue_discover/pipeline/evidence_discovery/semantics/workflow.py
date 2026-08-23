@@ -703,11 +703,14 @@ class GroundingResponse(BaseModel):
     cardinality_bindings: list[CardinalityDomainBinding] = Field(
         default_factory=list,
         description=(
-            "Sparse typed member-domain bindings for cardinality contracts. Emit one row when this lens can "
-            "select or explicitly cannot select a primary domain/owner from supplied NL and exact source/model "
-            "facts. Every contract_id must name either one supplied contract or one additional_contracts row "
-            "in this same response; never invent a placeholder ID. This row is not a candidate and never "
-            "records observed count, W, D, L, or ledger data."
+            "Typed member-domain accounting for cardinality contracts. Unlike other sparse grounding rows, "
+            "every supplied property=cardinality contract must have exactly one row in each lens: use exact "
+            "when one primary domain and owner close, ambiguous when competent domains cannot be ordered, or "
+            "unbound when exact owner identity is unavailable. Every additional property=cardinality contract "
+            "in this response also needs one row. Every contract_id must name either one supplied contract or "
+            "one additional_contracts row in this same response; non-cardinality contracts are invalid targets. "
+            "Schema correction returns a complete replacement preserving all valid rows. This row is not a "
+            "candidate and never records observed count, W, D, L, or ledger data."
         ),
     )
     candidates: list[CandidateIssue] = Field(default_factory=list, description="Candidate claims grounded across author source, closed FCSTM, and deterministic facts. Every list item must independently include requirement_quote, reason, basis, locus_kind, locus_names, property, violation_direction, evidence_types, expected, observed, and strongest_rebuttal; no top-level field substitutes for an item field. contract_id names either one supplied contract or one response-local additional_contracts row. The runner canonicalizes derived identity from the unique typed payload and records any exact reference recovery. Candidates must not emit W/D/L levels.")
@@ -1511,8 +1514,14 @@ The absence of a dedicated frozen predicate changes W to W1; it does not make
 the already bound finite comparison unresolved.
 
 Cardinality grounding protocol: do not rewrite the NL contract or encode the
-domain choice only in candidate prose. Return one `cardinality_bindings` row for
-each cardinality contract this lens analyzes. Select a concrete primary domain
+domain choice only in candidate prose. For every supplied `property=cardinality`
+contract, this lens must return exactly one `cardinality_bindings` row; it cannot
+silently skip the row by deciding not to analyze the contract. Return an
+`ambiguous` or `unbound` row with `member_domain=unresolved` and null owner refs
+when no exact primary reading or owner closes. Every branch-local additional
+cardinality contract also requires one row. On schema correction, return the
+complete replacement response and retain all previously valid rows while adding
+any missing required IDs. Select a concrete primary domain
 only from the supplied NL/source semantics and bind its exact
 `owner_source_id` plus `owner_model_ref`; copy `owner_model_ref` exactly from the
 owned `closed_model_inventory.states[].ref`, not from a working-contract
@@ -2036,6 +2045,21 @@ def fallback_grounding(
     return GroundingResponse(
         lens=lens,
         additional_contracts=[],
+        cardinality_bindings=[
+            CardinalityDomainBinding(
+                binding_id=f"CARD-BIND-FALLBACK-{lens}-{index}",
+                contract_id=contract.contract_id,
+                status="unbound",
+                member_domain="unresolved",
+                owner_source_id=None,
+                owner_model_ref=None,
+                alternative_reading=None,
+                reason="The failed grounding lens cannot select a semantic member domain or exact owner.",
+                basis=f"{reason}; deterministic lens-local failure receipt",
+            )
+            for index, contract in enumerate(contracts.contracts, start=1)
+            if contract.property == "cardinality"
+        ],
         candidates=[],
         unresolved=[
             GroundingUnresolved(
