@@ -86,9 +86,12 @@ METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v8"
 JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v5"
 SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v36"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v32"
+CODE_VERSION = "evidence-discovery-v27-flow.v37"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v33"
 JUDGE_EXACT_IDENTITY_CONTRACT_VERSION = "paper1.judge-exact-identity-contract.v1"
+GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION = (
+    "paper1.grounding-exact-identity-contract.v1"
+)
 
 
 JudgeRelation = Literal[
@@ -280,6 +283,65 @@ class ExactJudgeResponse(JudgeResponse):
             raise ValueError(
                 "exact pair-wide judge identity contract failed:\n- "
                 + "\n- ".join(errors)
+            )
+        return self
+
+
+class ExactGroundingResponse(GroundingResponse):
+    """Per-call grounding response bound to the supplied contract identity set.
+
+    The runner specializes this Pydantic model for one method cell. Its
+    authority is limited to exact contract-reference closure: grounding rows
+    may reference supplied contracts or additional contracts declared in that
+    same response. It does not decide whether an obligation exists, whether a
+    candidate is valid, or any W, D, L, publish, or judge result.
+    """
+
+    expected_contract_ids: ClassVar[tuple[str, ...]] = ()
+    enforce_exact_identity_contract: ClassVar[bool] = False
+
+    @model_validator(mode="after")
+    def validate_exact_contract_reference_closure(self) -> ExactGroundingResponse:
+        """Reject invented cross-stage IDs with path-specific correction text."""
+
+        if not type(self).enforce_exact_identity_contract:
+            return self
+        known_ids = set(type(self).expected_contract_ids)
+        known_ids.update(
+            contract.contract_id for contract in self.additional_contracts
+        )
+        referenced_rows = [
+            *(
+                (f"semantic_bindings[{index}].contract_id", item.contract_id)
+                for index, item in enumerate(self.semantic_bindings)
+            ),
+            *(
+                (f"cardinality_bindings[{index}].contract_id", item.contract_id)
+                for index, item in enumerate(self.cardinality_bindings)
+            ),
+            *(
+                (f"candidates[{index}].contract_id", item.contract_id)
+                for index, item in enumerate(self.candidates)
+            ),
+            *(
+                (f"unresolved[{index}].contract_id", item.contract_id)
+                for index, item in enumerate(self.unresolved)
+            ),
+        ]
+        errors = [
+            f"{path}={contract_id!r} is not a supplied contract or an "
+            "additional_contracts row in this response"
+            for path, contract_id in referenced_rows
+            if contract_id not in known_ids
+        ]
+        if errors:
+            raise ValueError(
+                "exact grounding contract-reference closure failed; omit rows "
+                "that do not correspond to a real contract, or return a complete "
+                "typed additional_contracts row and reference its exact local ID:\n- "
+                + "\n- ".join(errors)
+                + "\nallowed supplied contract IDs="
+                + repr(list(type(self).expected_contract_ids))
             )
         return self
 
@@ -1835,13 +1897,16 @@ def _method_cell(
         IdentityNormalizationReceipt | GroupIdentityNormalizationReceipt
     ] = []
     grounding_normalization_diagnostics: list[dict[str, Any]] = []
+    grounding_schema = _grounding_response_contract(
+        [contract.contract_id for contract in contract_response.contracts]
+    )
     # v27 samples the two complementary lenses sequentially inside one method
     # cell. Pair workers provide process-level parallelism without changing the
     # public AgentApp/LangGraph call semantics or deadline handling.
     for lens, prompt in grounding_prompts.items():
         outcome: StructuredCallOutcome[GroundingResponse] = runtime.call(
             kind="discovery_grounding",
-            schema=GroundingResponse,
+            schema=grounding_schema,
             system_prompt=DISCOVERY_GROUNDING_SYSTEM_PROMPT,
             prompt=prompt,
             artifact_id=(
@@ -2860,6 +2925,38 @@ def _closed_literal(values: tuple[str, ...]) -> Any:
     if not values:
         raise ValueError("a closed Literal identity set cannot be empty")
     return Literal.__getitem__(values)
+
+
+def _grounding_response_contract(
+    contract_ids: Sequence[str],
+) -> type[ExactGroundingResponse]:
+    """Specialize grounding validation to one method cell's contract closure."""
+
+    expected_contract_ids = tuple(str(contract_id) for contract_id in contract_ids)
+    if len(expected_contract_ids) != len(set(expected_contract_ids)):
+        raise ValueError("grounding input contains duplicate contract IDs")
+    if not expected_contract_ids:
+        raise ValueError("grounding response contract requires at least one contract ID")
+    contract_key = _hash_json(
+        {
+            "version": GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION,
+            "contract_ids": expected_contract_ids,
+        }
+    ).removeprefix("sha256:")[:16]
+    response_model = create_model(
+        f"ExactGroundingResponse_{contract_key}",
+        __base__=ExactGroundingResponse,
+    )
+    response_model.__doc__ = (
+        "Runtime-specialized v27 grounding response. All contract_id references "
+        "must resolve to the supplied contract set or to one typed additional "
+        "contract declared in this same response; this closure check has no "
+        "authority over semantic discovery, W, D, L, publish, or judge decisions."
+    )
+    response_model.expected_contract_ids = expected_contract_ids
+    response_model.enforce_exact_identity_contract = True
+    response_model.model_rebuild(force=True)
+    return response_model
 
 
 def _judge_response_contract(

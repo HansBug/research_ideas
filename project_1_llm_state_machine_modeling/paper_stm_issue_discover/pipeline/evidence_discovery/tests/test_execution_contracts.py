@@ -44,6 +44,7 @@ from pipeline.evidence_discovery.orchestration.runner import (
     _failure_judge_payload,
     _failure_method_cell,
     _finalize_w2_audit_links,
+    _grounding_response_contract,
     _judge_pair,
     _judge_prompt,
     _judge_response_contract,
@@ -1654,6 +1655,94 @@ def test_grounding_response_uses_sparse_unresolved_without_full_disposition_tabl
             ],
             reason="The fixture deliberately overlaps sparse rows.",
             basis="provider-free validation fixture",
+        )
+
+
+def test_grounding_runtime_schema_closes_contract_references() -> None:
+    schema = _grounding_response_contract(
+        ["NL-CONTRACT-NL1", "NL-CONTRACT-NL3-ACTION-1"]
+    )
+    projected_schema = schema.model_json_schema()
+    assert "supplied contract set" in projected_schema["description"]
+    assert "never invent an *-UNDECLARED" in (
+        projected_schema["properties"]["unresolved"]["description"]
+    )
+
+    valid = schema(
+        lens="behavior_consequence",
+        unresolved=[
+            GroundingUnresolved(
+                contract_id="NL-CONTRACT-NL3-ACTION-1",
+                reason="The supplied action contract lacks an exact carrier.",
+                basis="provider-free supplied-contract closure fixture",
+            )
+        ],
+        reason="The fixture returns one supplied unresolved identity.",
+        basis="provider-free exact grounding response schema",
+    )
+    assert valid.unresolved[0].contract_id == "NL-CONTRACT-NL3-ACTION-1"
+
+    local_contract = NLContract(
+        contract_id="NL-CONTRACT-NL2-DERIVED-LOCAL-REACHABILITY",
+        segment_id="NL2",
+        quote="The operating scope must perform its task.",
+        normative_statement="The required operating scope must be reachable.",
+        locus_kind="state",
+        locus_names=("OperatingScope",),
+        property="reachability",
+        state_role="operating_state",
+        expected_direction="must_reach",
+        violation_direction="unreachable",
+        evidence_types=("reachability_fact",),
+        binding_hints=(),
+        scope="closed model root",
+        source_refs=("nl:NL2",),
+        reason="Cross-view facts expose one derived reachability obligation.",
+        basis="provider-free same-response additional contract fixture",
+    )
+    local_candidate = CandidateIssue(
+        contract_id=local_contract.contract_id,
+        locus_kind="state",
+        locus_names=("OperatingScope",),
+        property="reachability",
+        violation_direction="unreachable",
+        evidence_types=("reachability_fact",),
+        title="Operating scope is unreachable",
+        requirement_quote=local_contract.quote,
+        predicate_id=None,
+        predicate_inputs={},
+        element_refs=("state:OperatingScope",),
+        source_refs=("nl:NL2",),
+        expected="OperatingScope is reachable from root.",
+        observed="The exact closed graph has no root path to OperatingScope.",
+        strongest_rebuttal="No supplied alternative root satisfies this scope.",
+        reason="The local candidate references its typed derived contract.",
+        basis="provider-free same-response reference-closure fixture",
+    )
+    local_valid = schema(
+        lens="behavior_consequence",
+        additional_contracts=[local_contract],
+        candidates=[local_candidate],
+        reason="The fixture returns one valid branch-local derived candidate.",
+        basis="provider-free exact grounding response schema",
+    )
+    assert local_valid.candidates[0].contract_id == local_contract.contract_id
+
+    with pytest.raises(
+        ValidationError,
+        match=r"unresolved\[0\]\.contract_id='NL-CONTRACT-NL2-ACTION-UNDECLARED'",
+    ):
+        schema(
+            lens="behavior_consequence",
+            unresolved=[
+                GroundingUnresolved(
+                    contract_id="NL-CONTRACT-NL2-ACTION-UNDECLARED",
+                    reason="No unresolved row should be emitted.",
+                    basis="provider-free invented-ID negative fixture",
+                )
+            ],
+            reason="The fixture reproduces the 0053 invented unresolved ID.",
+            basis="provider-free exact grounding response schema",
         )
 
 

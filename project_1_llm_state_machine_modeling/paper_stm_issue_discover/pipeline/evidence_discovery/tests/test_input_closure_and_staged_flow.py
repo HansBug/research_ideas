@@ -110,7 +110,7 @@ class FixtureStructuredRuntime:
                 reason="Fixture contract response reason.",
                 basis="Fixture contract response basis.",
             )
-        elif schema is GroundingResponse:
+        elif issubclass(schema, GroundingResponse):
             pair = load_pair(REPORT_ROOT / "pairs" / pair_id)
             existing_endpoints = {
                 (transition.source, transition.target)
@@ -177,7 +177,7 @@ class FixtureStructuredRuntime:
                         "basis": "Fixture second exact FCSTM endpoint binding and missing-edge basis.",
                     }
                 )
-            response = GroundingResponse(
+            response = schema(
                 lens=(
                     "behavior_consequence"
                     if artifact_id.endswith("/behavior_consequence")
@@ -718,7 +718,7 @@ def test_sparse_grounding_omission_is_normal_but_unknown_derived_segment_is_audi
                     update={"contracts": [first, second]}
                 )
                 return outcome.model_copy(update={"response": response})
-            if kwargs["schema"] is not GroundingResponse:
+            if not issubclass(kwargs["schema"], GroundingResponse):
                 return outcome
             unknown = NLContract(
                 contract_id="NL-CONTRACT-NL999-DERIVED-UNKNOWN",
