@@ -614,7 +614,7 @@ def test_w2_audit_contains_logic_hashes_backend_and_retry_records(tmp_path: Path
         encoding="utf-8",
     )
     cell = {
-        "schema": "paper1.evidence_discovery.method_cell.v8",
+        "schema": "evidence-discovery.method_cell.v8",
         "round": 1,
         "run_id": "1" * 32,
         "run_contract_hash": "sha256:" + "1" * 64,
@@ -630,7 +630,7 @@ def test_w2_audit_contains_logic_hashes_backend_and_retry_records(tmp_path: Path
         ],
     }
     judge = {
-        "schema": "paper1.evidence_discovery.independent_judge.v5",
+        "schema": "evidence-discovery.independent_judge.v5",
         "run_id": "1" * 32,
         "run_contract_hash": "sha256:" + "1" * 64,
         "status": "completed",
@@ -688,7 +688,7 @@ def test_d_mapping_is_invariant_to_free_text_and_uses_typed_semantics() -> None:
     assert adjudicate_disposition(candidate, binding, unresolved)["d_level"] == "D_UNRESOLVED"
 
 
-def test_issue_189_distinguishes_undercutting_d1_from_rebutting_d0() -> None:
+def test_typed_defeater_protocol_distinguishes_undercutting_from_rebutting() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     candidate = _candidate(
         pair,
@@ -705,7 +705,7 @@ def test_issue_189_distinguishes_undercutting_d1_from_rebutting_d0() -> None:
         defeater_kind="undercutting",
         defeater_disposition="survives",
         reason="Two competent readings remain coextensive with the supplied facts.",
-        basis="issue #189 typed defeater fixture",
+        basis="provider-free typed defeater fixture",
     )
     rebutting = undercutting.model_copy(
         update={
@@ -759,7 +759,7 @@ def test_completed_true_backend_result_closes_candidate_as_d0() -> None:
     assert "verdict=true" in str(disposition["basis"])
 
 
-def test_both_v27_grounding_lenses_contribute_exact_candidates() -> None:
+def test_both_complementary_grounding_lenses_contribute_exact_candidates() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     transition = pair.model.transitions[0]
     source_candidate = _candidate(
@@ -978,7 +978,7 @@ def test_0053_typed_judge_relation_rejects_wrong_source_narrow_manifestation() -
                     "0053:r1:issue:correct-sequence",
                 ],
                 reason="Only the exact cross-wrapper sequence has the ledger property.",
-                basis="provider-free v27 positive/negative relation fixture",
+                basis="provider-free positive and negative relation fixture",
             )
         ],
         release_assessments=[
@@ -1003,18 +1003,18 @@ def test_0053_typed_judge_relation_rejects_wrong_source_narrow_manifestation() -
                 issue_id="0053:r1:issue:correct-sequence",
                 relation="semantic_equivalent",
                 reason="The source sequence, cross-wrapper scope, and missing connectivity property are equivalent.",
-                basis="typed v27 correct-sequence positive fixture",
+                basis="typed correct-sequence positive fixture",
             ),
             JudgeRelationAssessment(
                 ledger_id="DIFF-0053-01",
                 issue_id="0053:r1:issue:wrong-owner-source",
                 relation="partial_overlap",
                 reason="The owner-source endpoint has the wrong locus and does not establish wrapper mutual unreachability.",
-                basis="typed v27 PumpControl-source negative fixture",
+                basis="typed owner-source negative fixture",
             ),
         ],
         reason="The fixture distinguishes exact semantics from a shared-cause narrow manifestation.",
-        basis="v27 0053 positive and negative examples",
+        basis="provider-free sequential-source positive and negative examples",
     )
 
     normalized = _normalize_judge_shape(response, ledger, release, 1)
@@ -1096,7 +1096,7 @@ def test_0046_d1_ambiguity_is_semantically_equivalent_not_partial_overlap() -> N
             )
         ],
         reason="The provider-free fixture preserves D1 ambiguity without weakening semantic identity.",
-        basis="0046 v27 positive cardinality relation fixture",
+        basis="provider-free positive cardinality relation fixture",
     )
 
     normalized = _normalize_judge_shape(response, ledger, release, 1)
@@ -1392,7 +1392,7 @@ def test_method_prompt_has_no_frozen_ledger_payload() -> None:
     title = first_ledger_item.get("title")
     if title:
         assert title not in prompt
-    assert "judge examples" in prompt
+    assert "reviewer examples" in prompt
     assert "S2={source, target, scope}" in prompt
     assert "set predicate_id to null" in prompt
 
@@ -1612,7 +1612,7 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert '"state_role": "operating_state"' in grounding_prompt
     assert "exact owner hint" in grounding_prompt
     assert "exact owner-local edge reaches the required target" in grounding_prompt
-    assert "Return sparse v27-style output" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "Return sparse structured output" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "additional_contracts" in grounding_prompt
     assert "need not predict the runner's canonical ID" in grounding_prompt
     assert "unique within this response" in " ".join(grounding_prompt.split())
@@ -1683,7 +1683,7 @@ def test_grounding_response_uses_sparse_unresolved_without_full_disposition_tabl
         candidates=[],
         unresolved=[],
         reason="The fixture found no branch-local issue or uncertainty.",
-        basis="provider-free sparse v27 grounding fixture",
+        basis="provider-free sparse grounding fixture",
     )
     assert response.candidates == []
     assert response.unresolved == []
@@ -2159,7 +2159,7 @@ def test_g1_flattens_list_valued_source_and_target_inputs() -> None:
         formal_program="ASSERT G1",
         formal_program_hash="sha256:provider-free",
         supported=True,
-        reason="The fixture exercises the exact list-valued inputs observed in the Luna run.",
+        reason="The fixture exercises exact list-valued topology inputs.",
         basis="provider-free topology input-normalization regression",
         source_gate_passed=True,
     )
@@ -2315,9 +2315,13 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
     with pytest.raises(ValidationError):
         MethodResponse(issues=[], reason="   ", basis="valid basis")
 
-    chinese_reason = MethodResponse(issues=[], reason="中文理由", basis="中文依据")
-    assert chinese_reason.reason == "中文理由"
-    assert chinese_reason.basis == "中文依据"
+    english_rationale = MethodResponse(
+        issues=[],
+        reason="The fixture has no reportable issue.",
+        basis="Provider-free typed model fixture.",
+    )
+    assert english_rationale.reason == "The fixture has no reportable issue."
+    assert english_rationale.basis == "Provider-free typed model fixture."
 
     candidate_schema = CandidateIssue.model_json_schema()
     method_schema = MethodResponse.model_json_schema()
@@ -2342,23 +2346,25 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
     relation_schema = judge_schema["$defs"]["JudgeRelationAssessment"][
         "properties"
     ]
-    assert "不得合并、去重或省略" in release_schema["issue_id"]["description"]
-    assert "多个 subset release 的并集" in release_schema[
+    assert "no row may be merged, deduplicated, or omitted" in release_schema[
+        "issue_id"
+    ]["description"]
+    assert "union of subset releases" in release_schema[
         "accounted_ledger_ids"
     ]["description"]
-    assert "多个" in ledger_schema["matched_issue_ids"]["description"]
-    assert "不能" in relation_schema["relation"]["description"]
+    assert "Multiple" in ledger_schema["matched_issue_ids"]["description"]
+    assert "cannot become a hit" in relation_schema["relation"]["description"]
     assert "must not describe the release as matching" in release_schema[
         "is_false_positive"
     ]["description"]
     assert "must not claim a semantic match" in release_schema["basis"][
         "description"
     ]
-    assert "不按语义相似性 deduplicate" in judge_schema["properties"][
+    assert "not semantic-similarity deduplication" in judge_schema["properties"][
         "release_assessments"
     ]["description"]
     cardinality_schema = CardinalityDomainBinding.model_json_schema()
-    assert "不能仅因某项活动发生在更深的子 composite" in cardinality_schema[
+    assert "Do not descend to a deeper child composite" in cardinality_schema[
         "properties"
     ]["owner_source_id"]["description"]
     assert "contract's normative `scope_concept`" in (
@@ -2659,7 +2665,7 @@ def test_0029_contract_shape_rejects_bundled_transition_alternatives() -> None:
         transition_groups=[transition_group],
         segment_disposition={segment.segment_id: "covered"},
         reason="The response preserves both an atomic endpoint and its relation group.",
-        basis="provider-free v27 transition-group fixture",
+        basis="provider-free transition-group fixture",
     )
     assert len(grouped.transition_groups[0].alternatives) == 2
     compact_prompt = build_grounding_prompt(
@@ -2774,7 +2780,7 @@ def test_0029_local_exit_target_survives_typed_contract_projection() -> None:
         transition_groups=(group,),
         segment_disposition={"NL4": "covered", "NL6": "covered"},
         reason="The fixture keeps local exit and later termination as distinct concepts.",
-        basis="provider-free v27 target-identity fixture",
+        basis="provider-free target-identity fixture",
     )
 
     validated = NLContractResponse.model_validate(response.model_dump(mode="json"))
@@ -2795,9 +2801,15 @@ def test_0029_local_exit_target_survives_typed_contract_projection() -> None:
 
     schema = NLContractResponse.model_json_schema()
     defs = schema["$defs"]
-    assert "当前编号 segment" in defs["ContractBindingHint"]["properties"]["value"]["description"]
-    assert "不能用稍后具名" in defs["NLTransitionAlternative"]["properties"]["target_name"]["description"]
-    assert "不能把本段的 local-exit" in defs["NLContract"]["properties"]["normative_statement"]["description"]
+    assert "current numbered segment" in defs["ContractBindingHint"]["properties"][
+        "value"
+    ]["description"]
+    assert "may not rewrite an explicit local-exit" in defs[
+        "NLTransitionAlternative"
+    ]["properties"]["target_name"]["description"]
+    assert "may not rewrite a local-exit" in defs["NLContract"]["properties"][
+        "normative_statement"
+    ]["description"]
 
     grounding_prompt = build_grounding_prompt(
         pair,
@@ -3004,10 +3016,10 @@ def test_0046_contract_shape_separates_endpoint_and_event_consumer() -> None:
         "common_enclosing_owner_name"
     ]["description"]
     assert "deterministic containment expansion" in owner_description
-    assert "若 source 本身是 owner" in owner_description
+    assert "source itself is the owner" in owner_description
 
 
-def test_v27_state_role_normalization_merges_only_exact_typed_progress_identity() -> None:
+def test_state_role_normalization_merges_only_exact_typed_progress_identity() -> None:
     def progress_contract(
         contract_id: str,
         segment_id: str,
@@ -3155,7 +3167,7 @@ def test_cardinality_owner_mapping_normalizes_only_exact_published_ref() -> None
     assert diagnostics == []
 
 
-def test_v27_execute_boundary_excludes_only_completed_true_receipts() -> None:
+def test_execute_boundary_excludes_only_completed_true_receipts() -> None:
     def prepared(terminal_state: str, verdict: str) -> dict:
         return {
             "receipt": RawReceipt(
@@ -3164,7 +3176,7 @@ def test_v27_execute_boundary_excludes_only_completed_true_receipts() -> None:
                 terminal_state=terminal_state,
                 verdict=verdict,
                 reason="The fixture supplies one deterministic backend result.",
-                basis="provider-free v27 execute-boundary fixture",
+                basis="provider-free execute-boundary fixture",
             )
         }
 
@@ -3916,7 +3928,7 @@ def test_pair_wide_judge_shape_failure_becomes_unavailable_after_one_correction(
         pair=pair,
         method_rounds=[
             {
-                "schema": "paper1.evidence_discovery.method_cell.v8",
+                "schema": "evidence-discovery.method_cell.v8",
                 "run_id": "1" * 32,
                 "run_contract_hash": "sha256:" + "1" * 64,
                 "pair_id": "0000",
@@ -3989,7 +4001,7 @@ def test_large_release_surface_stays_one_pair_wide_call(tmp_path: Path) -> None:
             issue_index += 1
         method_rounds.append(
             {
-                "schema": "paper1.evidence_discovery.method_cell.v8",
+                "schema": "evidence-discovery.method_cell.v8",
                 "run_id": "1" * 32,
                 "run_contract_hash": "sha256:" + "1" * 64,
                 "pair_id": "0000",
@@ -4056,7 +4068,7 @@ def test_pair_wide_shape_failure_gets_one_targeted_correction(tmp_path: Path) ->
     ]
     method_rounds = [
         {
-            "schema": "paper1.evidence_discovery.method_cell.v8",
+            "schema": "evidence-discovery.method_cell.v8",
             "run_id": "1" * 32,
             "run_contract_hash": "sha256:" + "1" * 64,
             "pair_id": "0000",
@@ -4197,7 +4209,7 @@ def test_pair_wide_failure_does_not_expand_to_atomic_relation_matrix(
         pair=pair,
         method_rounds=[
             {
-                "schema": "paper1.evidence_discovery.method_cell.v8",
+                "schema": "evidence-discovery.method_cell.v8",
                 "run_id": "1" * 32,
                 "run_contract_hash": "sha256:" + "1" * 64,
                 "pair_id": "0000",
@@ -4422,7 +4434,7 @@ def test_provider_free_run_manifest_resume_and_concurrent_atomic_writes(tmp_path
 
     stale_path = run_root / "method" / "0004" / "round-1.json"
     stale_payload = json.loads(stale_path.read_text(encoding="utf-8"))
-    stale_payload["schema"] = "paper1.evidence_discovery.method_cell.v1"
+    stale_payload["schema"] = "evidence-discovery.method_cell.v1"
     stale_path.write_text(
         json.dumps(stale_payload, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
@@ -4441,10 +4453,10 @@ def test_provider_free_run_manifest_resume_and_concurrent_atomic_writes(tmp_path
     current = json.loads(stale_path.read_text(encoding="utf-8"))
     stale_receipts = list((run_root / "stale").rglob("round-1.json"))
     assert repaired["run_id"] == run_id
-    assert current["schema"] == "paper1.evidence_discovery.method_cell.v8"
+    assert current["schema"] == "evidence-discovery.method_cell.v8"
     assert stale_receipts
     assert any(
         json.loads(path.read_text(encoding="utf-8"))["schema"]
-        == "paper1.evidence_discovery.method_cell.v1"
+        == "evidence-discovery.method_cell.v1"
         for path in stale_receipts
     )

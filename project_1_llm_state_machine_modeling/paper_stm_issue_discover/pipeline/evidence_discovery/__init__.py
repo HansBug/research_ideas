@@ -1,7 +1,8 @@
-"""当前证据发现方法包。
+"""Current evidence-discovery method package.
 
-在注册表和契约从历史单体实现迁出并通过回归测试前，本包只暴露规范配置；
-运行模块按重构计划逐步加入。
+The package exposes the frozen registry contract and the staged runtime that
+replaced the historical monolith. Every active stage is covered by regression
+tests before it enters experiment runs.
 """
 
 REGISTRY_VERSION = "four-family-19-core.v1"

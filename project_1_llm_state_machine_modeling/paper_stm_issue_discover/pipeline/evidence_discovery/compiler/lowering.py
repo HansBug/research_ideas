@@ -58,10 +58,11 @@ def _hash_text(text: str) -> str:
 
 
 class PredicatePlan(BaseModel):
-    """一个 frozen predicate candidate 的确定性编译计划。
+    """Deterministic compilation plan for one frozen-predicate candidate.
 
-    compiler 产生该对象，backend 与 W state machine 消费；它对 normalized inputs、
-    formal program 和 capability gate 有权威，但不决定 candidate 的 D 或 judge 关系。
+    The compiler produces this object for the backend and W state machine. It
+    is authoritative for normalized inputs, formal program, and capability
+    gates, but it does not decide candidate D or any Judge relation.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
@@ -69,7 +70,7 @@ class PredicatePlan(BaseModel):
     plan_id: str = Field(min_length=1, description="Stable plan identifier tied to the pair, round, and candidate obligation.")
     predicate_id: str | None = Field(default=None, description="Frozen predicate identifier, or null for a W1-only/unexpressed candidate.")
     registry_version: str = Field(min_length=1, description="Registry version used to compile this plan.")
-    inputs: PredicateInputs = Field(description="按 frozen predicate ID 判别的 typed canonical inputs；unsupported variant 表示 null/invalid 输入并强制降级，不能执行为 W2。")
+    inputs: PredicateInputs = Field(description="Typed canonical inputs discriminated by frozen predicate ID; the unsupported variant represents null or invalid inputs, forces downgrade, and cannot execute as W2.")
     soundness_fragment: str = Field(min_length=1, description="Registered soundness boundary for the planned check.")
     assumptions: tuple[str, ...] = Field(description="Closed-input and algorithm assumptions required by the plan.")
     formal_program: str | None = Field(default=None, description="Compiled assertion or formal-program source, present only for an executable supported plan.")

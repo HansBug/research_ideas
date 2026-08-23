@@ -81,14 +81,14 @@ def test_primary_prompt_has_no_adapter_or_method_metadata() -> None:
 
 
 def test_system_prompt_carries_frozen_scope_and_carrier_boundaries() -> None:
-    assert "match 强度与报告置信度分开" in SYSTEM_PROMPT
-    assert "不同 event/target 出边" in SYSTEM_PROMPT
-    assert "同一 locus/property 下仍真实且可行动的 facet" in SYSTEM_PROMPT
-    assert "全部 reason/where/basis 都依赖被制品反驳的前提" in SYSTEM_PROMPT
-    assert "`/` 之后的文字就是作者声明的 transition effect carrier" in SYSTEM_PROMPT
-    assert "没有显式 `--` region separator" in SYSTEM_PROMPT
-    assert "它不证明 target composite 已有 owner-local default entry" in SYSTEM_PROMPT
-    assert "不含未声明的 clock/timer 执行语义" in SYSTEM_PROMPT
+    assert "Match strength is independent of report confidence" in SYSTEM_PROMPT
+    assert "extra event/target self-loop" in SYSTEM_PROMPT
+    assert "preserve only a true and actionable facet" in SYSTEM_PROMPT
+    assert "all reason/where/basis supplied by the report depend" in SYSTEM_PROMPT
+    assert "authored transition-effect carrier" in SYSTEM_PROMPT
+    assert "without an explicit `--` region separator" in SYSTEM_PROMPT
+    assert "does not prove that a target composite has an owner-local default entry" in SYSTEM_PROMPT
+    assert "does not include undeclared clock/timer execution semantics" in SYSTEM_PROMPT
 
 
 def test_cli_uses_one_runtime_and_persists_failure_without_partial_summary(

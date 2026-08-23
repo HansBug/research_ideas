@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -27,6 +28,11 @@ from pipeline.semantic_judge.models import (
     MatchStrength,
     ReportValidity,
     UnifiedJudgeInput,
+)
+from pipeline.semantic_judge.protocol import (
+    ARBITRATION_INSTRUCTION,
+    PRIMARY_INSTRUCTION,
+    SYSTEM_PROMPT,
 )
 from pipeline.semantic_judge.schema import (
     build_exact_response_model,
@@ -179,6 +185,31 @@ def test_every_pydantic_model_and_field_has_description() -> None:
         assert inspect.getdoc(model), model.__name__
         for field_name, field in model.model_fields.items():
             assert field.description, f"{model.__name__}.{field_name}"
+
+
+def test_judge_prompts_and_runtime_schema_use_english_audit_language() -> None:
+    han_text = re.compile(r"[\u3400-\u9fff]")
+    classes = [
+        value
+        for value in vars(models).values()
+        if inspect.isclass(value)
+        and issubclass(value, BaseModel)
+        and value.__module__ == models.__name__
+    ]
+    for model in classes:
+        assert not han_text.search(inspect.getdoc(model) or ""), model.__name__
+        for field_name, field in model.model_fields.items():
+            assert not han_text.search(field.description or ""), (
+                f"{model.__name__}.{field_name}"
+            )
+        schema_text = json.dumps(
+            model.model_json_schema(), ensure_ascii=False, sort_keys=True
+        )
+        assert not han_text.search(schema_text), model.__name__
+
+    for prompt in (SYSTEM_PROMPT, PRIMARY_INSTRUCTION, ARBITRATION_INSTRUCTION):
+        assert not han_text.search(prompt)
+        assert "in English" in prompt
 
 
 def test_runtime_schema_contains_descriptions_enums_and_exact_literals() -> None:

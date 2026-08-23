@@ -151,12 +151,15 @@ class ContractBindingHint(BaseModel):
     value: str = Field(
         min_length=1,
         description=(
-            "从 supplied NL 复制或忠实规范化的规范性名称、短语、表达式或 scope 值；"
-            "它是 source-side 语义提示，不是 observed model binding。当前编号 segment "
-            "明确陈述的 role/value 优先，后续 segment 只能消解真正未定的指代，不能用"
-            "后续具名 termination state 覆盖此前已明确的 local-exit 等语义角色；例如"
-            "`LocalExitRole` 与稍后具名的 `NamedCompletionState` 默认保持不同概念，除非 NL "
-            "明确将二者等同。"
+            "Normative name, phrase, expression, or scope value copied or "
+            "faithfully normalized from supplied NL. It is a source-side "
+            "semantic hint, not an observed-model binding. An explicit role "
+            "or value in the current numbered segment takes precedence; later "
+            "segments may resolve genuinely open anaphora but may not replace "
+            "an already explicit local-exit role with a later named termination "
+            "state. For example, LocalExitRole and a later "
+            "NamedCompletionState remain distinct concepts unless NL explicitly "
+            "equates them."
         ),
     )
     source_ref: str | None = Field(default=None, description="Exact supplied NL or author-source reference supporting this hint, or null when only the parent contract source refs apply.")
@@ -222,7 +225,7 @@ class MethodResponse(BaseModel):
 
 
 def build_method_prompt(pair: PairInput, round_index: int, previous: list[dict[str, Any]]) -> str:
-    """Build the staged v27-shaped compatibility prompt.
+    """Build the staged typed compatibility prompt.
 
     The implementation lives in ``workflow.py`` so the legacy obligation
     models remain importable without creating a module cycle.

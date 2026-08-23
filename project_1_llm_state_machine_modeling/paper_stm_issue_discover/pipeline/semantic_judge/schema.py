@@ -39,24 +39,24 @@ def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResp
         """One exact report/expected relation whose IDs are closed by this input."""
 
         report_id: report_id_type = Field(  # type: ignore[valid-type]
-            description="输入 exact closure 中的匿名 report ID；不得新建、改写或遗漏。"
+            description="Anonymous report ID from the exact input closure; do not create, rewrite, or omit an ID."
         )
         expected_id: expected_id_type = Field(  # type: ignore[valid-type]
-            description="输入 exact closure 中的匿名 expected ID；不得新建、改写或遗漏。"
+            description="Anonymous expected ID from the exact input closure; do not create, rewrite, or omit an ID."
         )
 
     class ExactReportJudgment(ReportJudgment):
         """One exact report validity/cluster judgment without derived relation sets."""
 
         report_id: report_id_type = Field(  # type: ignore[valid-type]
-            description="输入 exact closure 中的匿名 report ID；每条 exactly once。"
+            description="Anonymous report ID from the exact input closure; include every ID exactly once."
         )
 
     class ExactExpectedJudgment(ExpectedJudgment):
         """One exact expected explanation without backend-derived coverage fields."""
 
         expected_id: expected_id_type = Field(  # type: ignore[valid-type]
-            description="输入 exact closure 中的匿名 expected ID；每条 exactly once。"
+            description="Anonymous expected ID from the exact input closure; include every ID exactly once."
         )
 
     class ExactJudgeResponse(JudgeResponse):
@@ -65,17 +65,17 @@ def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResp
         relations: tuple[ExactRelationAssessment, ...] = Field(
             min_length=relation_count,
             max_length=relation_count,
-            description="完整 report x expected 关系矩阵；包含全部 NO_MATCH，数量固定。",
+            description="Complete report-by-expected relation matrix with every NO_MATCH row and the exact fixed size.",
         )
         report_judgments: tuple[ExactReportJudgment, ...] = Field(
             min_length=len(report_ids),
             max_length=len(report_ids),
-            description="每条匿名 report exactly once 的 validity、cluster 与依据；不重复填写 relation ID 集合。",
+            description="Validity, root-cause cluster, and evidence for every anonymous report exactly once; do not repeat relation-derived ID sets.",
         )
         expected_judgments: tuple[ExactExpectedJudgment, ...] = Field(
             min_length=len(expected_ids),
             max_length=len(expected_ids),
-            description="每条匿名 expected exactly once 的语义说明；hit/support 由后端派生。",
+            description="Semantic explanation for every anonymous expected issue exactly once; the backend derives hit and support.",
         )
 
         @model_validator(mode="after")

@@ -39,7 +39,7 @@ class RunManifest(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["paper1.evidence_discovery.run_manifest.v2"] = Field(
+    schema: Literal["evidence-discovery.run_manifest.v2"] = Field(
         description="Versioned run-manifest schema identifier."
     )
     run_id: str = Field(
@@ -141,7 +141,7 @@ class PairRunStatus(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["paper1.evidence_discovery.pair_status.v2"] = Field(
+    schema: Literal["evidence-discovery.pair_status.v2"] = Field(
         description="Versioned pair-status schema identifier."
     )
     run_id: str = Field(
@@ -223,7 +223,7 @@ class MethodCellReceipt(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["paper1.evidence_discovery.method_cell.v8"] = Field(
+    schema: Literal["evidence-discovery.method_cell.v8"] = Field(
         description="Versioned method-cell schema identifier."
     )
     run_id: str = Field(
@@ -258,7 +258,7 @@ class MethodCellReceipt(BaseModel):
     )
     context_manifest: dict[str, Any] | None = Field(
         default=None,
-        description="Complete v27-equivalent context manifest supplied to method stages, or null after pre-load failure."
+        description="Complete typed context manifest supplied to method stages, or null after pre-load failure."
     )
     input_hashes: dict[str, str] = Field(
         default_factory=dict,
@@ -316,7 +316,7 @@ class IndependentJudgeReceipt(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["paper1.evidence_discovery.independent_judge.v5"] = Field(
+    schema: Literal["evidence-discovery.independent_judge.v5"] = Field(
         description="Versioned independent-judge schema identifier."
     )
     run_id: str = Field(
@@ -413,7 +413,7 @@ class RunSummaryReceipt(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["paper1.evidence_discovery.run_summary.v2"] = Field(
+    schema: Literal["evidence-discovery.run_summary.v2"] = Field(
         description="Versioned run-summary schema identifier."
     )
     run_id: str = Field(

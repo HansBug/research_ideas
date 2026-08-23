@@ -130,7 +130,7 @@ class PairInput(BaseModel):
 
     The source text and closed FCSTM are kept as separate fields because they
     have different authority.  The additional context fields are populated by
-    ``load_pair`` from the v27 representation artifacts and owned deterministic
+    ``load_pair`` from the published representation artifacts and owned deterministic
     fact builders; a formal method run must not silently fall back to the old
     three-file input surface.
     """
@@ -150,7 +150,7 @@ class PairInput(BaseModel):
     working_contract: "StructuredArtifact | None" = Field(default=None, description="Published working contract containing mapping, ownership, and capability boundaries.")
     source_trace: "StructuredArtifact | None" = Field(default=None, description="Published source trace and attribution boundary artifact.")
     case_report: "StructuredArtifact | None" = Field(default=None, description="Published case report identity and artifact-hash record, excluding evaluation answers.")
-    reference_inspection: "StructuredArtifact | None" = Field(default=None, description="Read-only v27 inspection-derived fact artifact; it is context, never a new backend dependency.")
+    reference_inspection: "StructuredArtifact | None" = Field(default=None, description="Read-only inspection-derived fact artifact; it is context, never a new backend dependency.")
     inspection_facts: "InspectionEquivalentFacts | None" = Field(default=None, description="Owned deterministic inspection-equivalent inventory and diagnostics computed from the closed FCSTM.")
     verify_facts: "VerificationFacts | None" = Field(default=None, description="Owned finite verification fact summary supplied to grounding.")
     smt_facts: "SMTFacts | None" = Field(default=None, description="Owned normalized bounded-formula summary with an explicit no-solver boundary.")

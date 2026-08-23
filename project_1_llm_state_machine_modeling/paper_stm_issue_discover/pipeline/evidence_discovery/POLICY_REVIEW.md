@@ -25,7 +25,7 @@
 - 早期 `story/blueprint_proposal.md` 已移入 `story/archive/legacy_20260821/`，原路径只保留指针。
 - 已作废且从未落地的 `wellformedness_attribution` 裁定、旧 `conditional_activation` 规则已移入
   `discover_matrix/docs/protocol/archive/legacy_20260821/`，原路径只保留指针。
-- v25 的 `fused_event_policy` 策略复盘也已移入同一归档目录，原路径只保留指针；其中关于
+- 历史 `fused_event_policy` 策略复盘也已移入同一归档目录，原路径只保留指针；其中关于
   `event_cardinality` 的历史扩张讨论不属于当前 19 个谓词。
 
 归档材料可以追溯历史，但不能作为当前谓词、来源门、台账分母或新结果的定义来源。
@@ -36,7 +36,7 @@
    旧 API 只用于回放，不能生成当前四族结果，也不能作为新增谓词的依据。
 2. `discover_matrix/docs/protocol/` 中的命中判定、人工台账和多报侧文件可能引用旧台账
    断言名。这些名称属于评测侧历史编码，已在相应文件顶部标明，不是公开谓词表。
-3. `story/paper_outline.md`、`story/model_scope.md` 和相关出处审计仍保留历史 v46 片段。
+3. `story/paper_outline.md`、`story/model_scope.md` 和相关出处审计仍保留历史迭代片段。
    它们现在以全局说明标出历史范围；其中的数字和旧谓词不能解释为新实现实测。
 
 这些残留不是当前政策入口，也没有被注册表或新重构模块读取。
@@ -44,7 +44,7 @@
 ## 4. 学术叙事审查结论
 
 - 四族按证据形态划分，不按台账类别反向切分。
-- 台账/v27 出场量只用于冻结后的表达力映射，不是来源证据或普遍率。
+- 台账或历史参考实现出场量只用于冻结后的表达力映射，不是来源证据或普遍率。
 - 图路径不写成运行可行性，单条轨迹不写成全称性质，有限搜索不写成无界证明。
 - `containment`、精确基数、并发运行时、层级优先级和轨迹变量差分保留 W1-only，不通过
   改名包装进入核心表。
@@ -77,10 +77,10 @@ python tools/check_md_links.py project_1_llm_state_machine_modeling/paper_stm_is
 | W0 与 `UNKNOWN` 是否被误升格 | 通过 | 统一写明 W0 是 coverage gap，`UNKNOWN` 不得变成 violation；测试覆盖该边界 |
 | 旧谓词和旧三族数字是否仍被当作当前方法 | 通过（历史文件除外） | active 叙事/协议在顶部标历史边界；旧设计、来源表和单体实现已移入 archive；评测侧旧断言仅保留为历史编码 |
 | `prototype` 是否仍是正式方法名 | 通过 | 正式名只用 `evidence_discovery`；旧目录只能由 legacy replay / archive reader 访问 |
-| 入口句是否把 v46 数字冒充当前结果 | 已修正 | story 入口改为“历史报告只支撑历史结果；当前数字回到对应版本正式报告” |
+| 入口句是否把历史迭代数字冒充当前结果 | 已修正 | story 入口改为“历史报告只支撑历史结果；当前数字回到对应版本正式报告” |
 | 来源严格门是否全部通过 | 未通过，且已显式保守 | 机器目录保留 `candidate` / `w1_only_*` 状态；未闭合命题只能 W1-only，不能写成 W2 来源依据 |
 | 新四族代码是否已实跑 | 未完成 | 当前 `feedback_loop` 仅作迁移期旧回放；必须按重构计划完成阶段 A-E 后才切换入口 |
-| 新实现的效果目标 | 已写入计划，待实跑验证 | 在同台账、同发布边界、同 judge 和同分母下，hit 与 FP/precision 达到历史 v27 大体相当或更好；v27 不是逐格相等硬门，不要求绝对完美，也不能靠放宽学术口径追平 |
+| 新实现的效果目标 | 已写入计划，待实跑验证 | 在同台账、同发布边界、同 judge 和同分母下，hit 与 FP/precision 达到冻结历史参考实现大体相当或更好；参考实现不是逐格相等硬门，不要求绝对完美，也不能靠放宽学术口径追平 |
 
 本轮审计的自动门包括：注册表/来源目录解析、19 个谓词和四族计数、W1/W0/`UNKNOWN`
 契约、来源路径、历史归档指针以及 active 入口政策标记。它们只证明口径没有被静默改写，
@@ -95,7 +95,7 @@ python tools/check_md_links.py project_1_llm_state_machine_modeling/paper_stm_is
   记录算法版本与输入哈希。
 - 谓词不支持不阻止发 issue；精确绑定但无法表达时必须降级 W1，W1 仍是
   `semantic_hit`；19 个公开谓词继续冻结。
-- D2/D1/D0 由方法自行裁定，定义遵循 [`issue #189`](https://github.com/HansBug/research_ideas/issues/189)；只有 D2/D1 参与 release、hit 和 FP，
+- D2/D1/D0 由方法按照冻结语义裁定合同自行裁定；只有 D2/D1 参与 release、hit 和 FP，
   D0 只保留审计。W2/W1/W0 由确定性状态机计算，不能由模型口头指定。
 - L 是台账侧属性，方法不生成 L；模型每一步、每条结构化输出必须带非空 `reason` 或
   `basis`。
@@ -104,13 +104,13 @@ python tools/check_md_links.py project_1_llm_state_machine_modeling/paper_stm_is
   其它错误计费的合同已经写入施工计划。
 - 每条 W2 必须落盘完整谓词逻辑、绑定输入、编译源码及哈希、真实后端结果、终止状态、
   反例/轨迹、来源归因和 `reason`/`basis`，并在完成代码后用 `gpt-5.6-luna` 跑冻结的
-  54 pair，全量迭代到 v27 量级验收门。
+  完整评测集，全量迭代到冻结历史参考实现量级验收门。
 
 ### 7.1 输入闭包和运行安全门
 
-当前新包已恢复 v27 等价的 method 输入闭包和阶段骨架：编号 NL、PlantUML、
+当前新包已恢复完整的 method 输入闭包和阶段骨架：编号 NL、PlantUML、
 canonical source IR、exact source/transition inventory、working contract/mapping、
-source trace、FCSTM/ModelIR、v27 inspect-derived facts、owned inspection-equivalent
+source trace、FCSTM/ModelIR、reference inspection-derived facts、owned inspection-equivalent
 facts、verify facts 和 SMT summary 均进入 ContextManifest，并在每个 stage receipt
 记录 manifest hash、artifact hashes 和版本。
 
@@ -121,9 +121,9 @@ method 流程为 `prepare -> contract-extraction -> discovery-grounding -> execu
 d-adjudication -> validate-d -> publish`；structure/contrast 与 behavior/consequence 是 discovery-grounding 内两个同 schema、同 cross-view closure 的互补 lens，
 exact binding、compiler/backend 与 execution receipt 是 execute-batch 内部审计。
 
-live runner 使用双门：任意真实 Luna 调用要求 `allow_live`；最多六个显式 pair 的诊断
-复测只通过第一门。54-pair 三轮全量还要求 `allow_full_live`，只能在 provider-free
-契约检查及 0004/0023/0029/0035/0046/0053 六 pair review 后打开。既有 Luna 与 audit
+live runner 使用双门：任意真实 provider 调用要求 `allow_live`；预先登记的小规模诊断
+复测只通过第一门。完整评测集的多轮全量还要求 `allow_full_live`，只能在 provider-free
+契约检查及诊断集 review 后打开。既有 provider 与 audit
 产物是只读诊断快照，不删除、不覆盖、不冷重跑；新结果进入独立 `run_id` 子目录。
 
 run manifest 与版本化 method/judge receipt 冻结 commit、19 谓词 registry hash、prompt/schema hash、
@@ -132,14 +132,12 @@ resume 同时校验 run ID、contract hash、schema、source provenance 与 pair
 兼容文件显式保存为 `stale_incompatible` 后重跑，不能混入指标。所有 JSON/Markdown
 终态使用同目录临时文件加原子 rename，避免并发 worker 留下半写制品。
 
-能力报告必须明确区分重构前 v27 与 X1v2 baseline：v27 参考为 overall hit@1 276/435、
-overall hit@3 107/145、L2 hit@3 35/39、D2xL2 hit@3 30/34、release precision
-45.74%；X1v2 baseline precision 为 41.60%。这些是全量结束后的对账参照，不是改变
-谓词、W/D 口径或隐藏失败格的理由。
+能力报告必须明确区分历史参考实现与 baseline 实现。冻结指标及其 provenance 只保存在
+实验记录中；它们是全量结束后的对账参照，不是改变谓词、W/D 口径或隐藏失败格的理由。
 
 ### 7.2 确定性边界复核
 
-沿用 v27 的边界表：NL 同义、指代、义务成立性、条件作用域、语义到 formal element
+采用冻结职责边界：NL 同义、指代、义务成立性、条件作用域、语义到 formal element
 的对应和最强反驳属于 LLM semantic grounding / D adjudication；parser、AST、精确
 mapping、图可达性、trace、SMT、hash、预算和终止状态才属于确定性代码。禁止用正则、
 关键词、substring、词干、编辑距离、embedding 或字符串相似度从自由文本推出语义结论。

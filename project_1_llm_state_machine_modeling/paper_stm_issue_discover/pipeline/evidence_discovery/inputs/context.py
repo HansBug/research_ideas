@@ -70,6 +70,16 @@ class ArtifactRef(BaseModel):
     basis: str = Field(min_length=1, description="Concrete file, algorithm, or protocol basis for including this artifact.")
 
 
+def _artifact_prompt_ref(ref: ArtifactRef) -> dict[str, Any]:
+    """Project receipt identity without exposing filesystem layout to the provider."""
+
+    return {
+        key: value
+        for key, value in ref.model_dump(mode="json").items()
+        if key != "path"
+    }
+
+
 class StructuredArtifact(BaseModel):
     """JSON artifact together with its immutable provenance reference."""
 
@@ -79,28 +89,19 @@ class StructuredArtifact(BaseModel):
     payload: dict[str, Any] = Field(description="Parsed JSON object supplied as structured context; it is never treated as an execution result by itself.")
 
     def to_prompt_dict(self) -> dict[str, Any]:
-        """Return the complete structured payload while retaining its receipt reference."""
+        """Return the structured payload with a path-free receipt projection."""
 
-        return {"ref": self.ref.model_dump(mode="json"), "payload": self.payload}
+        return {"ref": _artifact_prompt_ref(self.ref), "payload": self.payload}
 
 
-_CASE_REPORT_PROMPT_FIELDS = (
-    "schema_version",
-    "case_id",
-    "pair_id",
-    "pair_index",
-    "canonical_sha256",
-    "fcstm_sha256",
-    "parse_inspect_sha256",
-    "source_trace_sha256",
-    "working_contract_sha256",
-    "source_sha256",
-    "selected_stage",
-    "official_raw_status",
-    "official_validation_status",
-    "is_phase_i_fallback",
-    "phase_i_changed",
-)
+_CASE_REPORT_HASH_FIELDS = {
+    "canonical_source": "canonical_sha256",
+    "closed_model": "fcstm_sha256",
+    "inspection_facts": "parse_inspect_sha256",
+    "source_trace": "source_trace_sha256",
+    "working_contract": "working_contract_sha256",
+    "source_artifact": "source_sha256",
+}
 
 
 def case_report_prompt_dict(artifact: StructuredArtifact | None) -> dict[str, Any] | None:
@@ -115,12 +116,20 @@ def case_report_prompt_dict(artifact: StructuredArtifact | None) -> dict[str, An
     if artifact is None:
         return None
     payload = {
-        key: artifact.payload[key]
-        for key in _CASE_REPORT_PROMPT_FIELDS
-        if key in artifact.payload
+        "case_id": artifact.payload.get("case_id"),
+        "case_index": artifact.payload.get("pair_index"),
+        "source_hashes": {
+            public_name: artifact.payload[source_name]
+            for public_name, source_name in _CASE_REPORT_HASH_FIELDS.items()
+            if source_name in artifact.payload
+        },
+        "artifact_status": {
+            "input": artifact.payload.get("official_raw_status"),
+            "validated": artifact.payload.get("official_validation_status"),
+        },
     }
     return {
-        "ref": artifact.ref.model_dump(mode="json"),
+        "ref": _artifact_prompt_ref(artifact.ref),
         "payload": payload,
         "reason": "Only case identity and artifact status are prompt-visible; historical run outputs are receipt-only.",
         "basis": "case-report prompt projection v1",
@@ -130,7 +139,7 @@ def case_report_prompt_dict(artifact: StructuredArtifact | None) -> dict[str, An
 def reference_inspection_prompt_dict(
     artifact: StructuredArtifact | None,
 ) -> dict[str, Any] | None:
-    """Project the published v27 inspection artifact into a compact fact summary.
+    """Project the published inspection artifact into a compact fact summary.
 
     The complete artifact remains hash-addressed by ``artifact.ref`` and is
     retained in the run inputs.  Grounding receives the structured inventory,
@@ -183,13 +192,13 @@ def reference_inspection_prompt_dict(
         "diagnostics": diagnostics,
         "forced_transitions": payload.get("forced_transitions", []),
         "inventory_receipts": inventory_receipts,
-        "reason": "The prompt carries the v27 compact inspect status, metrics, exact diagnostic refs, and inventory identities; exact source/closed-model inventories and owned facts are supplied separately.",
-        "basis": "v27 build_goal_context compact inspect shape plus compact-inspection-projection.v2",
+        "reason": "The prompt carries compact inspection status, metrics, exact diagnostic references, and inventory identities; exact source/closed-model inventories and owned facts are supplied separately.",
+        "basis": "published compact inspection shape plus compact-inspection-projection.v2",
     }
     return {
-        "ref": artifact.ref.model_dump(mode="json"),
+        "ref": _artifact_prompt_ref(artifact.ref),
         "payload": selected,
-        "reason": "Compact v27 inspection facts remain prompt-visible without duplicating the exact inventories supplied by the other closure artifacts.",
+        "reason": "Compact inspection facts remain prompt-visible without duplicating the exact inventories supplied by the other closure artifacts.",
         "basis": "compact-inspection-projection.v2; complete source bytes remain hash-addressed in the manifest",
     }
 
@@ -251,47 +260,47 @@ class CanonicalConcurrentRegion(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.canonical-concurrent-region.v1"] = Field(
-        default="paper1.canonical-concurrent-region.v1",
-        description="该 canonical concurrent-region 行的 typed schema 版本；用于 artifact 与算法 provenance，不是源文件中的 region ID。",
+    schema_version: Literal["evidence-discovery.canonical-concurrent-region.v1"] = Field(
+        default="evidence-discovery.canonical-concurrent-region.v1",
+        description="Typed schema version of this canonical concurrent-region row; it records artifact and algorithm provenance and is not a source-file region ID.",
     )
     id: str = Field(
         min_length=1,
-        description="canonical adapter 为该显式 UML region 生成的稳定 source identity；下游只用于精确枚举，不把名称形状解释成语义。",
+        description="Stable source identity generated by the canonical adapter for this explicit UML region; downstream code uses it only for exact enumeration and never infers semantics from its spelling.",
     )
     owner_scope: str | None = Field(
         default=None,
-        description="该 region 的 exact canonical owner state ID；null 只表示 model 顶层 region，不表示 owner 未解析或可按名称补猜。",
+        description="Exact canonical owner-state ID of this region; null means only a model-level region, not an unresolved owner or permission to guess by name.",
     )
     region_index: int = Field(
         ge=0,
-        description="同一 exact owner 内按 author-source 顺序排列的零基 region 序号；它是事实性位置，不是规范数量。",
+        description="Zero-based region position within the exact owner in author-source order; this is a factual location, not a normative cardinality.",
     )
     separator_after_raw_refs: tuple[str, ...] = Field(
         default_factory=tuple,
-        description="紧随该 region 的 exact PlantUML separator source refs；空集合表示其后没有显式 separator，不等于 region 不存在。",
+        description="Exact PlantUML separator source references immediately after this region; an empty tuple means no following explicit separator, not that the region is absent.",
     )
     separator_before_raw_refs: tuple[str, ...] = Field(
         default_factory=tuple,
-        description="紧邻该 region 之前的 exact PlantUML separator source refs；首个显式 region 通常为空。",
+        description="Exact PlantUML separator source references immediately before this region; the first explicit region normally has none.",
     )
     state_ids: tuple[str, ...] = Field(
         default_factory=tuple,
-        description="canonical source inventory 中归属该 region 的 exact state IDs；空集合允许表示没有 state declaration 的显式 region。",
+        description="Exact state IDs assigned to this region in the canonical source inventory; an empty tuple may represent an explicit region with no state declaration.",
     )
     transition_ids: tuple[str, ...] = Field(
         default_factory=tuple,
-        description="canonical source inventory 中归属该 region 的 exact transition IDs；空集合表示没有 authored transition，不是行为满足结论。",
+        description="Exact transition IDs assigned to this region in the canonical source inventory; an empty tuple means no authored transition and is not a behavioral satisfaction verdict.",
     )
     reason: str = Field(
         default="This row preserves one explicit canonical author-source UML region without adding a semantic verdict.",
         min_length=1,
-        description="解释该对象为何只是 canonical source partition fact，不具有 requirement、W、D 或 judge 权威。",
+        description="Explains why this object is only a canonical source-partition fact with no requirement, W, D, or Judge authority.",
     )
     basis: str = Field(
         default="canonical PlantUML source IR model.concurrent_regions",
         min_length=1,
-        description="产生该行的 exact canonical artifact field；下游用 source artifact hash 复核其 provenance。",
+        description="Exact canonical artifact field that produced this row; downstream audit verifies its provenance with the source artifact hash.",
     )
 
 
@@ -307,7 +316,7 @@ class CanonicalModel(BaseModel):
     final_states: tuple[str, ...] = Field(default_factory=tuple, description="Canonical explicit final state identities.")
     concurrent_regions: tuple[CanonicalConcurrentRegion, ...] = Field(
         default_factory=tuple,
-        description="显式 canonical UML region partitions；空集合表示没有 separator-derived region rows，frontier 仍可对有直接子状态的 exact owner 计算一个隐式 region。",
+        description="Explicit canonical UML region partitions; an empty tuple means no separator-derived rows, while the frontier may still count one implicit region for an exact owner with direct child states.",
     )
     variables: tuple[dict[str, Any], ...] = Field(default_factory=tuple, description="Canonical source variable facts, if any.")
     states: tuple[CanonicalState, ...] = Field(default_factory=tuple, description="Exact canonical source state inventory in source order.")
@@ -542,7 +551,7 @@ class ContextManifest(BaseModel):
     pair_id: str = Field(min_length=1, description="Frozen pair identifier.")
     artifacts: tuple[ArtifactRef, ...] = Field(min_length=1, description="Every artifact supplied to method/grounding, including deterministic summaries.")
     sections: tuple[PromptSection, ...] = Field(min_length=1, description="Prompt sections and their role boundaries.")
-    forbidden_inputs: tuple[str, ...] = Field(min_length=1, description="Data classes excluded from method generation, including ledger answers, baseline hits, and judge examples.")
+    forbidden_inputs: tuple[str, ...] = Field(min_length=1, description="Data classes excluded from method generation, including evaluation ground truth, scores, and reviewer outputs.")
     manifest_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$", description="Hash over the manifest content excluding this field.")
     reason: str = Field(min_length=1, description="Why this manifest is the method's input closure boundary.")
     basis: str = Field(min_length=1, description="Frozen protocol and artifact reference basis for the manifest.")
@@ -1469,15 +1478,10 @@ def _canonical_source_prompt_dict(canonical: Any) -> dict[str, Any] | None:
         ],
     }
     return {
-        "schema_version": canonical.schema_version,
+        "projection_version": "canonical-source-prompt-projection.v4",
         "source_format": canonical.source_format,
-        "example_id": canonical.example_id,
-        "seed_id": canonical.seed_id,
-        "adapter": canonical.adapter,
-        "status": canonical.status,
-        "status_reason_code": canonical.status_reason_code,
+        "conversion_status": canonical.status,
         "model": {
-            "name": model.name,
             "hierarchy_level": model.hierarchy_level,
             "timing_level": model.timing_level,
             "initial_states": list(model.initial_states),
@@ -1585,7 +1589,7 @@ def _source_trace_prompt_dict(artifact: StructuredArtifact | None) -> dict[str, 
             payload["attribution_exclusions"], label="source_trace.attribution_exclusions"
         )
     return {
-        "ref": artifact.ref.model_dump(mode="json"),
+        "ref": _artifact_prompt_ref(artifact.ref),
         "payload": projected,
         "reason": "Exact source-trace entries remain available for author attribution; repetitive exclusion indexes are represented by count/hash.",
         "basis": "source-trace-prompt-projection.v2",
@@ -1613,16 +1617,11 @@ def _working_contract_prompt_dict(
         return None
     payload = artifact.payload
     fixed_keys = (
-        "schema_version",
         "artifact_role",
-        "example_id",
         "input_identity",
         "summary",
-        "ownership_policy",
         "usage_gate",
         "inventory_digests",
-        "attribution_policy",
-        "artifact_bindings",
     )
     if include_source_trace:
         fixed_keys += ("source_trace_base",)
@@ -1633,6 +1632,18 @@ def _working_contract_prompt_dict(
         for key in fixed_keys
         if key in payload
     }
+    if isinstance(payload.get("ownership_policy"), dict):
+        projected["ownership_policy"] = {
+            key: payload["ownership_policy"][key]
+            for key in ("agent_edit_policy", "compiler_member_policy", "origins")
+            if key in payload["ownership_policy"]
+        }
+    if isinstance(payload.get("attribution_policy"), dict):
+        projected["attribution_policy"] = {
+            key: value
+            for key, value in payload["attribution_policy"].items()
+            if key != "policy_id"
+        }
     for key in ("source_trace_base", "review_subject"):
         if key in projected:
             value = projected[key]
@@ -1774,7 +1785,7 @@ def _working_contract_prompt_dict(
                 "basis": "working-contract-prompt-projection.v5",
             }
     return {
-        "ref": artifact.ref.model_dump(mode="json"),
+        "ref": _artifact_prompt_ref(artifact.ref),
         "payload": projected,
         "reason": "The working contract projection preserves exact source/model mapping and hash-addresses omitted compiler and eligibility expansions.",
         "basis": "working-contract-prompt-projection.v5",
@@ -1809,7 +1820,6 @@ def _prompt_base(pair: Any, stage: PromptStage) -> dict[str, Any]:
                 in {
                     "role",
                     "source_role",
-                    "path",
                     "sha256",
                     "schema_version",
                     "algorithm_version",
@@ -1827,7 +1837,7 @@ def _prompt_base(pair: Any, stage: PromptStage) -> dict[str, Any]:
             "fcstm_model": "closed_model_binding_and_execution",
             "working_contract": "mapping_and_eligibility_contract",
             "source_trace": "source_attribution_boundary",
-            "reference_inspection_facts": "read_only_v27_deterministic_facts",
+            "reference_inspection_facts": "read_only_reference_deterministic_facts",
             "inspection_equivalent_facts": "owned_deterministic_inventory_and_diagnostics",
             "verify_facts": "owned_deterministic_finite_verification_summary",
             "smt_facts": "normalized_formal_inputs_not_solver_result",
@@ -1841,7 +1851,7 @@ def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
     """Return the stage-specific prompt closure without duplicating unrelated raw artifacts.
 
     Every stage receives the complete manifest, hashes, versions, and role policy.
-    The two v27 complementary discovery lenses receive the same compact cross-view
+    The two complementary discovery lenses receive the same compact cross-view
     payload. Source and closed-model roles remain explicit inside that payload;
     neither lens receives a different semantic protocol or a silently incomplete
     half of the method input closure.
@@ -1863,7 +1873,7 @@ def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
                     include_review_subject=False,
                 ),
                 "source_trace_receipt": (
-                    pair.source_trace.ref.model_dump(mode="json")
+                    _artifact_prompt_ref(pair.source_trace.ref)
                     if pair.source_trace
                     else None
                 ),
@@ -1878,7 +1888,6 @@ def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
                 ],
                 "plantuml_source": {
                     "role": "author_source",
-                    "path": str(pair.pair_dir / "plantuml.puml"),
                     "sha256": pair.hashes.get("plantuml"),
                     "text": pair.plantuml_text,
                     "reason": "PlantUML is supplied for author-source localization only.",
@@ -1897,7 +1906,6 @@ def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
                 "source_trace": _source_trace_prompt_dict(pair.source_trace),
                 "fcstm_model": {
                     "role": "closed_model",
-                    "path": str(pair.pair_dir / "fcstm.fcstm"),
                     "sha256": pair.hashes.get("fcstm"),
                     "text": pair.fcstm_text,
                     "model_ir": _owned_model_ir_prompt_dict(pair.model),
@@ -1923,9 +1931,9 @@ def prompt_context_payload(pair: Any, *, stage: PromptStage) -> dict[str, Any]:
     elif stage == "d_adjudication":
         payload["dossier_input_policy"] = {
             "source_and_model_facts": "supplied in the obligation dossiers",
-            "ledger": "forbidden",
-            "baseline": "forbidden",
-            "judge_examples": "forbidden",
+            "evaluation_ground_truth": "forbidden",
+            "evaluation_scores": "forbidden",
+            "reviewer_examples": "forbidden",
             "reason": "D receives exact candidate dossiers and closure identity, not a second copy of raw source artifacts.",
             "basis": "dossier-bound semantic adjudication boundary",
         }
@@ -1945,16 +1953,16 @@ def build_context_manifest(
         PromptSection(
             section_id="nl-contract",
             artifact_roles=("natural_language", "working_contract", "source_trace"),
-            purpose="Extract numbered source obligations without looking at model satisfaction or ledger answers.",
-            excluded_claims=("model_violation", "baseline_hit", "judge_match"),
-            reason="The v27 contract stage is source-first.",
+            purpose="Extract numbered source obligations without looking at model satisfaction or evaluation ground truth.",
+            excluded_claims=("model_violation", "evaluation_score", "reviewer_match"),
+            reason="The contract stage is source-first.",
             basis="frozen method information-flow boundary",
         ),
         PromptSection(
             section_id="source-grounding",
             artifact_roles=("plantuml_source", "canonical_source_ir", "source_inventory", "source_trace", "working_contract"),
             purpose="Locate author-source states, transitions, mappings, and source-scoped obligations.",
-            excluded_claims=("fcstm_execution_verdict", "ledger_answer", "baseline_result"),
+            excluded_claims=("fcstm_execution_verdict", "evaluation_ground_truth", "evaluation_score"),
             reason="PlantUML and canonical IR are author-source evidence only.",
             basis="source-role separation contract",
         ),
@@ -1962,27 +1970,27 @@ def build_context_manifest(
             section_id="model-grounding",
             artifact_roles=("fcstm_model", "reference_inspection_facts", "inspection_equivalent_facts", "verify_facts", "smt_facts"),
             purpose="Bind exact closed-model elements and plan deterministic predicate checks.",
-            excluded_claims=("author_source_identity", "ledger_answer", "judge_example"),
+            excluded_claims=("author_source_identity", "evaluation_ground_truth", "reviewer_example"),
             reason="FCSTM is the tested closed model; deterministic facts are context, not semantic verdicts.",
             basis="closed-model execution contract",
         ),
     )
     forbidden = (
-        "frozen ledger answers and D/L labels",
-        "baseline hit/false-positive results",
-        "independent judge examples or outputs",
-        "other pair payloads",
-        "historical method release outputs",
+        "evaluation ground truth and external labels",
+        "evaluation scores or error classifications",
+        "reviewer examples or outputs",
+        "artifacts from other evaluation cases",
+        "previously generated reports",
     )
     base = {
         "schema_version": "evidence-discovery.context-manifest.v1",
-        "protocol_version": "v27-input-closure-plus-four-family-19.v1",
+        "protocol_version": "typed-input-closure-plus-four-family-19.v3",
         "pair_id": pair_id,
         "artifacts": [item.model_dump(mode="json") for item in artifacts],
         "sections": [item.model_dump(mode="json") for item in sections],
         "forbidden_inputs": list(forbidden),
         "reason": "The method and grounding branches must receive the full source/model/fact closure while remaining independent of evaluation answers.",
-        "basis": "v27 frozen artifacts plus owned evidence_discovery deterministic fact algorithms",
+        "basis": "frozen input artifacts plus owned evidence-discovery deterministic fact algorithms",
     }
     return ContextManifest(
         **base,
@@ -2116,6 +2124,6 @@ def context_payload(pair: Any) -> dict[str, Any]:
         "inspection_equivalent_facts": pair.inspection_facts.model_dump(mode="json"),
         "verify_facts": pair.verify_facts.model_dump(mode="json"),
         "smt_facts": pair.smt_facts.model_dump(mode="json"),
-        "reason": "All sections are method-visible context; no ledger, baseline, judge, or historical release data is included.",
+        "reason": "All sections are method-visible context; no evaluation ground truth, scores, reviewer output, or prior generated report is included.",
         "basis": "context-manifest.v1 and frozen pair artifact closure",
     }

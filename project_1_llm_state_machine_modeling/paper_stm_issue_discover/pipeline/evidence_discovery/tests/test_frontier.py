@@ -32,7 +32,7 @@ from pipeline.evidence_discovery.semantics import (
     canonicalize_grounding_response,
     materialize_group_containment_contracts,
     materialize_segment_coverage,
-    materialize_v27_frontier,
+    materialize_typed_frontier,
 )
 
 
@@ -106,7 +106,7 @@ def _keys(batch: FrontierBatch) -> set[tuple[str, tuple[str, ...], str, str]]:
     }
 
 
-def test_0029_frontier_materializes_relational_v27_obligations() -> None:
+def test_0029_frontier_materializes_relational_domain_obligations() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0029")
     containment = _contract(
         contract_id="NL-CONTRACT-NL1-CONTAINMENT",
@@ -206,7 +206,7 @@ def test_0029_frontier_materializes_relational_v27_obligations() -> None:
         [containment, termination, wrong_scope, cruise, lane], [group]
     )
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {item.contract_id: item for item in response.contracts},
@@ -260,7 +260,7 @@ def test_transition_endpoint_contract_requires_exact_typed_endpoint_roles() -> N
     schema = NLContract.model_json_schema()
     description = schema["properties"]["binding_hints"]["description"]
     assert "property=transition_endpoints" in description
-    assert "恰有一个 source" in description
+    assert "requires exactly one source" in description
 
 
 def test_common_owner_group_materializes_complete_containment_contracts() -> None:
@@ -322,7 +322,7 @@ def test_common_owner_group_materializes_complete_containment_contracts() -> Non
         ("AutonomousMode", "HighwayMode"),
         ("AutonomousMode", "UrbanMode"),
     }
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         load_pair(REPORT_ROOT / "pairs" / "0029"),
         materialized,
         {item.contract_id: item for item in materialized.contracts},
@@ -416,7 +416,7 @@ def test_containment_frontier_aggregates_only_complete_typed_group_scope() -> No
     )
 
     complete_contracts = [initial, highway, urban]
-    complete = materialize_v27_frontier(
+    complete = materialize_typed_frontier(
         pair,
         _response(complete_contracts, [group]),
         {item.contract_id: item for item in complete_contracts},
@@ -448,7 +448,7 @@ def test_containment_frontier_aggregates_only_complete_typed_group_scope() -> No
     )
 
     incomplete_contracts = [initial, highway]
-    incomplete = materialize_v27_frontier(
+    incomplete = materialize_typed_frontier(
         pair,
         _response(incomplete_contracts, [group]),
         {item.contract_id: item for item in incomplete_contracts},
@@ -572,7 +572,7 @@ def test_0029_frontier_aggregates_complete_same_property_scopes() -> None:
     )
     response = _response(contracts, [mode_group])
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {item.contract_id: item for item in contracts},
@@ -680,7 +680,7 @@ def test_initial_entry_frontier_keeps_one_violation_atomic() -> None:
         state_role="initial_state",
     )
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         _response([contract]),
         {contract.contract_id: contract},
@@ -715,7 +715,7 @@ def test_initial_entry_frontier_does_not_aggregate_duplicate_same_owner() -> Non
         for suffix in ("A", "B")
     ]
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         _response(contracts),
         {item.contract_id: item for item in contracts},
@@ -765,7 +765,7 @@ def test_termination_frontier_does_not_aggregate_different_targets() -> None:
         ),
     ]
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         _response(contracts),
         {item.contract_id: item for item in contracts},
@@ -816,7 +816,7 @@ def test_termination_frontier_keeps_ownerless_contract_outside_aggregate() -> No
     ]
     contracts = [ownerless, *owned]
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         _response(contracts),
         {item.contract_id: item for item in contracts},
@@ -879,7 +879,7 @@ def test_termination_frontier_treats_source_hint_as_owner_with_explicit_target()
         for contract in contracts
     ]
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         _response(contracts),
         {item.contract_id: item for item in contracts},
@@ -945,7 +945,7 @@ def test_termination_frontier_joins_same_segment_completion_endpoint() -> None:
     ]
     contracts = [*termination_contracts, *endpoint_contracts]
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         _response(contracts),
         {item.contract_id: item for item in contracts},
@@ -1064,7 +1064,7 @@ def test_0029_grounding_group_identity_is_canonical_and_consumed() -> None:
     assert second_receipts[0].canonical_group_id == second_group.group_id
 
     contracts = _response([cruise, lane])
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         contracts,
         {item.contract_id: item for item in contracts.contracts},
@@ -1136,7 +1136,7 @@ def test_0029_group_frontier_resolves_composite_source_through_typed_entry() -> 
     )
     response = _response([initial_entry, relation], [group])
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {item.contract_id: item for item in response.contracts},
@@ -1211,7 +1211,7 @@ def test_transition_group_frontier_rejects_distinct_exact_signatures() -> None:
     )
     response = _response([cruise, exit_hwy], [group])
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {item.contract_id: item for item in response.contracts},
@@ -1260,7 +1260,7 @@ def test_0035_transition_alternative_preserves_event_and_missing_guard() -> None
     )
     response = _response([endpoint], [group])
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {endpoint.contract_id: endpoint},
@@ -1319,7 +1319,7 @@ def test_transition_guard_frontier_rejects_event_only_and_present_guard() -> Non
         )
 
     event_only = _response([endpoint], [group(guard=None)])
-    event_only_batch = materialize_v27_frontier(
+    event_only_batch = materialize_typed_frontier(
         pair,
         event_only,
         {endpoint.contract_id: endpoint},
@@ -1344,7 +1344,7 @@ def test_transition_guard_frontier_rejects_event_only_and_present_guard() -> Non
     guarded_response = _response(
         [endpoint], [group(guard="cooking time equals zero")]
     )
-    guarded_batch = materialize_v27_frontier(
+    guarded_batch = materialize_typed_frontier(
         guarded_pair,
         guarded_response,
         {endpoint.contract_id: endpoint},
@@ -1387,7 +1387,7 @@ def test_0046_frontier_separates_root_entry_and_reachable_consumers() -> None:
     )
     response = _response([operating, event_contract])
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {item.contract_id: item for item in response.contracts},
@@ -1434,7 +1434,7 @@ def test_0046_continuous_action_survives_same_segment_cardinality() -> None:
     response = _response([cardinality, continuous_action])
     grounding = _0046_cardinality_binding(cardinality)
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {item.contract_id: item for item in response.contracts},
@@ -1466,7 +1466,7 @@ def test_0046_frontier_does_not_invent_owner_entry_without_operating_obligation(
     )
     response = _response([contextual])
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {contextual.contract_id: contextual},
@@ -1537,7 +1537,7 @@ def test_0046_frontier_compares_typed_three_area_requirement_with_exact_two_chil
     )
     response = _response([contract])
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {contract.contract_id: contract},
@@ -1566,7 +1566,7 @@ def test_0046_frontier_counts_one_implicit_concurrent_region_without_separators(
         member_domain="concurrent_regions",
     )
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         _response([contract]),
         {contract.contract_id: contract},
@@ -1633,7 +1633,7 @@ def test_cardinality_frontier_counts_explicit_regions_for_the_exact_owner() -> N
         basis="provider-free cardinality grounding fixture",
     )
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         _response([contract]),
         {contract.contract_id: contract},
@@ -1653,7 +1653,7 @@ def test_cardinality_frontier_marks_over_count_as_extra_not_missing() -> None:
     contract = _0046_cardinality_contract(required_count=1)
     grounding = _0046_cardinality_binding(contract)
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         _response([contract]),
         {contract.contract_id: contract},
@@ -1673,7 +1673,7 @@ def test_cardinality_frontier_keeps_unresolved_member_domain_unresolved() -> Non
     contract = _0046_cardinality_contract("unresolved")
     response = _response([contract])
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {contract.contract_id: contract},
@@ -1722,7 +1722,7 @@ def test_0046_grounding_binding_closes_unresolved_cardinality_domain() -> None:
     contract = _0046_cardinality_contract("unresolved")
     grounding = _0046_cardinality_binding(contract)
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         _response([contract]),
         {contract.contract_id: contract},
@@ -1760,7 +1760,7 @@ def test_cardinality_frontier_merges_alternative_reading_across_agreeing_lenses(
         lens="behavior_consequence",
     )
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         _response([contract]),
         {contract.contract_id: contract},
@@ -1786,7 +1786,7 @@ def test_cardinality_frontier_refuses_conflicting_exact_domain_bindings() -> Non
         member_domain="explicit_named_members",
     )
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         _response([contract]),
         {contract.contract_id: contract},
@@ -1825,7 +1825,7 @@ def test_cardinality_frontier_refuses_conflicting_exact_owner_bindings() -> None
         }
     )
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         _response([contract]),
         {contract.contract_id: contract},
@@ -1988,7 +1988,7 @@ def test_frontier_merges_duplicate_typed_candidate_support() -> None:
     ]
     response = _response(contracts)
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {item.contract_id: item for item in contracts},
@@ -2051,7 +2051,7 @@ def test_0029_wrong_target_requires_exact_semantic_binding() -> None:
     )
     response = _response([contract])
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {contract.contract_id: contract},
@@ -2071,7 +2071,7 @@ def test_0029_wrong_target_requires_exact_semantic_binding() -> None:
         carrier.ref,
     }
 
-    no_binding = materialize_v27_frontier(
+    no_binding = materialize_typed_frontier(
         pair,
         response,
         {contract.contract_id: contract},
@@ -2156,7 +2156,7 @@ def test_0029_wrong_target_reuses_unique_exact_target_concept_binding() -> None:
     ]
     response = _response([lane_exit, cruise_exit], groups)
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {item.contract_id: item for item in response.contracts},
@@ -2221,7 +2221,7 @@ def test_0029_wrong_target_materializes_from_exact_cross_contract_roles() -> Non
     )
     response = _response([lane_exit, cruise_exit, termination])
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {item.contract_id: item for item in response.contracts},
@@ -2314,7 +2314,7 @@ def test_0053_frontier_preserves_three_leaf_and_global_properties() -> None:
     )
     response = _response(contracts)
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {item.contract_id: item for item in response.contracts},
@@ -2401,13 +2401,13 @@ def test_0053_mismatched_llm_dead_ends_do_not_suppress_canonical_frontier() -> N
             expected=f"{contract.locus_names[0]} must retain a continuation.",
             observed="The reachable state has no outgoing transition.",
             strongest_rebuttal="The referenced action contract does not establish this property identity.",
-            reason="This replays the six-pair run's property-mismatched grounding candidate.",
-            basis="provider-free replay of the cb406442 0053 grounding shape",
+            reason="This fixture supplies a property-mismatched grounding candidate.",
+            basis="provider-free regression for an exact property-identity mismatch",
         )
         for contract in contracts
     ]
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         _response(contracts),
         {contract.contract_id: contract for contract in contracts},
@@ -2425,7 +2425,7 @@ def test_0053_mismatched_llm_dead_ends_do_not_suppress_canonical_frontier() -> N
         item.contract.contract_id not in {contract.contract_id for contract in contracts}
         for item in dead_ends.values()
     )
-    assert batch.algorithm_version == "v27-typed-frontier.v21"
+    assert batch.algorithm_version == "typed-domain-frontier.v22"
 
 
 def test_exact_existing_candidate_still_suppresses_duplicate_frontier() -> None:
@@ -2459,7 +2459,7 @@ def test_exact_existing_candidate_still_suppresses_duplicate_frontier() -> None:
         basis="provider-free exact-identity duplicate fixture",
     )
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         _response([contract]),
         {contract.contract_id: contract},
@@ -2527,7 +2527,7 @@ def test_0023_frontier_keeps_direct_leaf_dead_ends_independent() -> None:
     )
     response = _response(contracts)
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {item.contract_id: item for item in response.contracts},
@@ -2571,7 +2571,7 @@ def test_0004_source_certificate_restores_stopping_dead_end() -> None:
     )
     response = _response([contract])
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {contract.contract_id: contract},
@@ -2610,7 +2610,7 @@ def test_0004_frontier_preserves_malformed_self_initial_identity() -> None:
     )
     response = _response([contract])
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {contract.contract_id: contract},
@@ -2657,7 +2657,7 @@ def test_malformed_source_initial_frontier_rejects_valid_descendant_entry() -> N
     )
     response = _response([contract])
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {contract.contract_id: contract},
@@ -2698,7 +2698,7 @@ def test_source_deadlock_certificate_rejects_unsound_or_unbound_states() -> None
 
     def has_stopping(candidate_pair: PairInput, anchor: NLContract) -> bool:
         response = _response([anchor])
-        batch = materialize_v27_frontier(
+        batch = materialize_typed_frontier(
             candidate_pair,
             response,
             {anchor.contract_id: anchor},
@@ -2794,7 +2794,7 @@ def test_0035_data_frontier_aggregates_complete_shared_variable_gap() -> None:
     )
     response = _response([display_update, cancel_update])
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {item.contract_id: item for item in response.contracts},
@@ -2859,7 +2859,7 @@ def test_data_frontier_uses_exact_state_locus_without_redundant_state_hint() -> 
     )
     response = _response([display_update, cancel_update])
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {item.contract_id: item for item in response.contracts},
@@ -2919,7 +2919,7 @@ def test_data_frontier_rejects_different_subjects_or_existing_carrier() -> None:
         ]
 
     different = _response(contracts("timer"))
-    different_batch = materialize_v27_frontier(
+    different_batch = materialize_typed_frontier(
         pair,
         different,
         {item.contract_id: item for item in different.contracts},
@@ -2943,7 +2943,7 @@ def test_data_frontier_rejects_different_subjects_or_existing_carrier() -> None:
         update={"model": pair.model.model_copy(update={"states": states})}
     )
     same = _response(contracts("cooking time"))
-    carrier_batch = materialize_v27_frontier(
+    carrier_batch = materialize_typed_frontier(
         carrier_pair,
         same,
         {item.contract_id: item for item in same.contracts},
@@ -3005,7 +3005,7 @@ def test_cross_wrapper_frontier_does_not_overclaim_mutual_disconnection() -> Non
     ]
     response = _response(contracts)
 
-    batch = materialize_v27_frontier(
+    batch = materialize_typed_frontier(
         pair,
         response,
         {item.contract_id: item for item in response.contracts},
@@ -3030,13 +3030,17 @@ def test_frontier_pydantic_descriptions_reach_json_schema() -> None:
 
     assert "grounding branch-local identity" in identity_schema["description"]
     assert "typed identity" in identity_schema["properties"]["semantic_key"]["description"]
-    assert "execute-batch" in frontier_schema["description"]
+    assert "execute batch" in frontier_schema["description"]
     assert "candidate" in frontier_schema["properties"]["obligations"]["description"]
-    assert "event 与 guard 可同时存在" in alternative_schema["description"]
+    assert "Event and guard may coexist" in alternative_schema["description"]
     assert {"event", "guard"}.issubset(alternative_schema["properties"])
     assert "condition" not in alternative_schema["properties"]
-    assert "不能把整个合取只标成 event" in alternative_schema["properties"]["event"]["description"]
-    assert "保留完整 guard 合取" in alternative_schema["properties"]["guard"]["description"]
+    assert "rather than labeling the whole conjunction as only an event" in alternative_schema[
+        "properties"
+    ]["event"]["description"]
+    assert "Preserve the complete guard conjunction" in alternative_schema[
+        "properties"
+    ]["guard"]["description"]
     definitions = frontier_schema["$defs"]
     assert set(definitions["FrontierCheckReceipt"]["properties"]["status"]["enum"]) == {
         "candidate",
@@ -3045,14 +3049,14 @@ def test_frontier_pydantic_descriptions_reach_json_schema() -> None:
         "not_applicable",
     }
     binding_schema = SemanticBinding.model_json_schema()
-    assert "跨制品语义绑定" in binding_schema["description"]
+    assert "cross-artifact semantic binding" in binding_schema["description"]
     assert set(binding_schema["properties"]["status"]["enum"]) == {
         "exact",
         "ambiguous",
         "unbound",
     }
     cardinality_schema = contract_schema["$defs"]["CardinalityRequirement"]
-    assert "规范性数量要求" in cardinality_schema["description"]
+    assert "Normative cardinality requirement" in cardinality_schema["description"]
     assert "observed count" in cardinality_schema["properties"]["required_count"]["description"]
     assert set(
         cardinality_schema["properties"]["member_domain"]["enum"]
@@ -3078,8 +3082,8 @@ def test_frontier_pydantic_descriptions_reach_json_schema() -> None:
         "properties"
     ]["reason"]["description"]
     domain_binding_schema = grounding_schema["$defs"]["CardinalityDomainBinding"]
-    assert "有限成员域" in domain_binding_schema["description"]
-    assert "structural regions/areas/partitions" in domain_binding_schema[
+    assert "Finite member-domain" in domain_binding_schema["description"]
+    assert "structural regions, areas, or partitions" in domain_binding_schema[
         "properties"
     ]["member_domain"]["description"]
     assert "exact_source_inventory.states" in domain_binding_schema["properties"][
@@ -3101,10 +3105,10 @@ def test_frontier_pydantic_descriptions_reach_json_schema() -> None:
     ]["description"]
     region_schema = CanonicalConcurrentRegion.model_json_schema()
     assert "Canonical author-source partition" in region_schema["description"]
-    assert "model 顶层 region" in region_schema["properties"]["owner_scope"][
+    assert "model-level region" in region_schema["properties"]["owner_scope"][
         "description"
     ]
-    assert "规范数量" in region_schema["properties"]["region_index"][
+    assert "not a normative cardinality" in region_schema["properties"]["region_index"][
         "description"
     ]
 
@@ -3143,7 +3147,7 @@ def test_segment_coverage_is_complete_observable_audit_not_a_gate() -> None:
     assert normalized.contracts == [contract]
 
     schema = SegmentCoverage.model_json_schema()
-    assert "不证明语义完整" in schema["description"]
+    assert "does not prove semantic completeness" in schema["description"]
     assert set(schema["properties"]["disposition"]["enum"]) == {
         "covered",
         "context",

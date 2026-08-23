@@ -13,7 +13,7 @@ EXPECTED_FAMILIES = {
 
 
 def validate_registry(data: dict[str, Any]) -> None:
-    if data.get("schema") != "paper1.predicate-registry.v1":
+    if data.get("schema") != "evidence-discovery.predicate-registry.v1":
         raise ValueError("registry schema mismatch")
     if data.get("registry_version") != "four-family-19-core.v1":
         raise ValueError("registry version is not the frozen v1 registry")

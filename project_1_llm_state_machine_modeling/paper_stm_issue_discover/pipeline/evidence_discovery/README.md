@@ -1,6 +1,6 @@
 # 证据发现方法
 
-本目录是 paper1 当前证据发现方法的规范入口。正式配置为
+本目录是当前证据发现方法的规范入口。正式配置为
 `four-family-19-core.v1`，包含四个按证据形态划分的谓词族和 19 个公开原子谓词。
 注册表见 [`predicate_registry.json`](predicate_registry.json)，人读版见
 [`PREDICATE_REGISTRY.md`](PREDICATE_REGISTRY.md)。
@@ -20,7 +20,7 @@
 4. **谓词不是问题提出门槛。** 需求条目先经过语义绑定和裁决；没有 sound 谓词或后端时，仍要提出问题并降级为 W1。
 5. **W1 是合法语义命中。** W1 表示需求和模型已精确绑定到可复现位置，但当前没有注册的 sound 判定器。W2 是更高一级的、终止且带来源归因的可执行证据。W0 则连精确绑定都没有，不能计为命中。
 6. **未知不等于违反。** 任何后端返回 `UNKNOWN` 的结果都不能改写成 violation。
-7. **D 由方法自裁，W 由确定性逻辑计算。** 方法按 issue #189 自行给出 D2/D1/D0，只有
+7. **D 由方法自裁，W 由确定性逻辑计算。** 方法按本目录冻结的语义裁定合同自行给出 D2/D1/D0，只有
    D2/D1 进入 release、hit 和 FP；W2/W1/W0 由绑定、计划、后端状态和终止回执计算，不能
    由模型口头指定。L 是台账侧属性，方法不生成 L。
 8. **每条模型输出都可调试。** 每一步、每一条结构化结果必须带非空 `reason` 或 `basis`；
@@ -31,16 +31,16 @@
 
 ## 输入闭包与阶段入口
 
-正式 method 入口是 pipeline/evidence_discovery。它接收 v27 等价的完整
+正式 method 入口是 pipeline/evidence_discovery。它接收版本化的完整
 ContextManifest，而不是只接收 nl.txt、plantuml.puml、fcstm.fcstm 和 ModelIR。
 闭包至少包含编号 NL、PlantUML、canonical source IR、exact source/transition
-inventory、working contract/mapping、source trace、FCSTM/ModelIR、v27 inspect-derived
+inventory、working contract/mapping、source trace、FCSTM/ModelIR、reference inspection-derived
 facts、owned inspection-equivalent facts、verify facts 和 SMT summary；每项都要有哈希、
 版本、来源、reason 和 basis。
 
 完整闭包不会被删除，但 prompt 按阶段展开权限范围：contract 阶段接收编号 NL 和工作契约
-摘要；两个 v27 grounding lens 接收同一份 compact cross-view closure，其中包含 PlantUML、
-canonical source IR、exact source inventory、mapping/source trace、FCSTM/ModelIR、v27
+摘要；两个互补 grounding lens 接收同一份 compact cross-view closure，其中包含 PlantUML、
+canonical source IR、exact source inventory、mapping/source trace、FCSTM/ModelIR、reference
 inspection facts、自有 inspection-equivalent/verify/SMT facts；D 只接收带完整 manifest 身份的
 候选 dossier。所有阶段都接收完整 artifact refs、hash/version 和 source-role policy。工作契约
 中重复的 eligibility exclusion 序列只在 prompt 中以 count/hash receipt 表示，exact element
@@ -52,7 +52,7 @@ inspection-equivalent/verify/SMT facts 只用于确定性事实输入。新包�
 inspection-equivalent.fcstm-graph.v2、verify-equivalent.finite-graph.v2 和
 smt-input-normalization.v1，不调用 Python inspect、pyfcstm.inspect 或旧 inspect_* 后端。
 
-方法保留 v27 的阶段边界：
+方法固定以下阶段边界：
 
 prepare -> contract extraction -> discovery grounding -> execute batch ->
 D adjudication -> validate D -> publish
@@ -76,7 +76,7 @@ W/D/L 不由模型自报。
 |---|---:|---:|---:|---|
 | 当前台账 | 118 | 145 | 81.4% | 设计映射中的直接可表达条目 |
 | L2 子集 | 35 | 39 | 89.7% | L2 中的直接可表达条目 |
-| v27 映射 | 603 | 741 | 81.4% | 仅作设计覆盖参照 |
+| 历史参考实现映射 | 603 | 741 | 81.4% | 仅作设计覆盖参照 |
 
 这三个数字是**可表达性快照**，不是新模块化实现的 W2 实测命中率。W1 计入
 `semantic_hit`，因此最终语义命中率不能把上述比例当作硬上限；实测时必须另外报告
@@ -113,22 +113,19 @@ W0、W1、W2 以及各自的分母。
 
 ## 施工状态边界
 
-当前代码已完成输入闭包、v27 形状的 method 最小垂直闭环、19 谓词编译/后端、确定性
+当前代码已完成输入闭包、分阶段 method 最小垂直闭环、19 谓词编译/后端、确定性
 W、typed LLM semantic D 输入、公共 runtime 和审计 receipt 的第一版 fixture/smoke
 接入；仍需继续补齐 mutation、来源和非干扰测试，并审查短测诊断后再扩大运行范围。
 live runner 只接受显式 pair 子集且当前最多六格，54-pair 全量入口保持关闭；既有 Luna/audit 快照不被
 覆盖或冷重跑。旧实现只能用于历史复现，不能作为现行方法或新论文结果来源。
 
-本轮诊断组六格固定为 `0004`、`0023`、`0029`、`0035`、`0046`、`0053`。前五格沿用
-`runs/paper1/luna-five-v25-20260819` 的 v27 代表组；0035 的近期 v27 施工材料来自
-`runs/paper1/witness-search/v39-dprompt-replay-20260820` 和
-`v40-dprompt-checklist-20260820`。这组六格用于小步调试和固定三轮 method + independent
-judge 验收，不改变
-冻结 54-pair 分母，也不把短测结果写成新方法达标结论。
+实验特定的诊断 case 集、运行路径、比较臂和历史代次只记录在实验 provenance 中，不属于
+公开方法术语，也不得进入 method prompt、schema、类名、变量名或审计解释。局部诊断用于
+小步调试和回归验收，不改变冻结评测分母，也不把短测结果写成方法达标结论。
 
 ## 确定性边界
 
-现行规则沿用 v27 的可审计边界：开放语义判断由具名 LLM 节点承担，形式事实由自有
+现行规则采用可审计的职责边界：开放语义判断由具名 LLM 节点承担，形式事实由自有
 parser、typed binding、图算法、SMT 输入规范化和后端承担。LLM 负责 NL 同义/指代、
 义务是否成立、语义 grounding、条件作用域和最强反驳；确定性代码只能验证 exact ID、
 枚举、引用闭包、公开语法 AST、图/轨迹/公式的声明 soundness fragment、hash、预算和
@@ -138,9 +135,8 @@ parser、typed binding、图算法、SMT 输入规范化和后端承担。LLM �
 因此，`expected`、`observed` 和 `strongest_rebuttal` 等散文字段不会被确定性层比较。
 D 阶段由 LLM 输出 typed grounding/defeater facts 及 `reason`/`basis`，方法代码只将
 这些封闭枚举映射为 D2/D1/D0；W 仍完全由确定性状态机根据 binding、plan、backend
-receipt 计算。该边界来自 v27 归档的 [METHOD_DESIGN.md](../archive/witness_search_prototype_legacy_20260821/METHOD_DESIGN.md)
-§4.1、§6，以及 [EXPRESSION_SURFACE_AUDIT.md](../archive/witness_search_prototype_legacy_20260821/EXPRESSION_SURFACE_AUDIT.md)
-的 semantic-mapping 规则。
+receipt 计算。归档的 predecessor design records 只保留历史 provenance，不构成公开方法
+词汇，也不会被运行时 prompt 或 schema 读取。
 
 ## 当前代码状态
 
@@ -152,6 +148,6 @@ receipt 计算。该边界来自 v27 归档的 [METHOD_DESIGN.md](../archive/wit
 ## 迁移后的效果目标
 
 新代码使用本注册表和新规则，在相同台账、54 个 pair、最终发布边界、独立 judge 和统计
-分母下，目标是取得与历史 v27 **大体相当或更好**的 hit 与 FP/precision。v27 是量级参照，
+分母下，目标是取得与冻结历史参考实现**大体相当或更好**的 hit 与 FP/precision。参考实现是量级参照，
 不是逐格相等或绝对完美的硬门；达到大体相当即可，超过则记录改进。目标不能通过放宽
 学术来源、把 W1 冒充 W2、把 `UNKNOWN` 改成 violation 或新增覆盖专用谓词来实现。

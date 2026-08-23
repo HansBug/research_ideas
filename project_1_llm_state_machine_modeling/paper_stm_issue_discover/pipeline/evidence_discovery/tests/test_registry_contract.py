@@ -1,6 +1,6 @@
-"""当前注册表的最小契约测试。
+"""Minimal contract tests for the active predicate registry.
 
-这些测试只依赖标准库，迁移期也能运行；后续模块化实现的测试必须继续复用它们。
+These tests depend only on the standard library and remain available during migrations.
 """
 
 import json
@@ -36,8 +36,8 @@ def test_w1_is_a_hit_and_unknown_is_not_a_violation() -> None:
 
     assert data["w1_is_semantic_hit"] is True
     assert data["unknown_is_violation"] is False
-    assert "semantic hit" in data["evidence_levels"]["W1"]
-    assert "不计为命中" in data["evidence_levels"]["W0"]
+    assert "semantic finding" in data["evidence_levels"]["W1"]
+    assert "not as an established finding" in data["evidence_levels"]["W0"]
 
 
 def test_registry_uses_current_source_types() -> None:
@@ -98,7 +98,11 @@ def test_coverage_snapshot_is_explicitly_a_design_mapping() -> None:
 
     assert snapshot["ledger"] == {"expressible": 118, "denominator": 145, "percent": 81.4}
     assert snapshot["ledger_l2"] == {"expressible": 35, "denominator": 39, "percent": 89.7}
-    assert snapshot["v27"] == {"expressible": 603, "denominator": 741, "percent": 81.4}
+    assert snapshot["historical_reference"] == {
+        "expressible": 603,
+        "denominator": 741,
+        "percent": 81.4,
+    }
     assert snapshot["status"] == "planned_mapping_not_new_method_measurement"
 
 

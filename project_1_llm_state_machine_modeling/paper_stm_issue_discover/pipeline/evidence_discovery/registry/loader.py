@@ -51,7 +51,7 @@ def load_registry(path: str | Path | None = None) -> PredicateRegistry:
                 source_types=tuple(item["source_types"]),
                 soundness_fragment=(
                     f"{family['label']}: {item['semantics']} "
-                    "仅在声明的封闭输入和边界内成立。"
+                    "This claim holds only over the declared closed inputs and boundary."
                 ),
             )
             predicates[predicate.id] = predicate

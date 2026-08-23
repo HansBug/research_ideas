@@ -247,7 +247,7 @@ class FixtureStructuredRuntime:
         )
 
 
-def test_v27_input_closure_is_loaded_and_role_separated() -> None:
+def test_complete_input_closure_is_loaded_and_role_separated() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
 
     assert len(pair.nl_segments) >= 5
@@ -366,7 +366,7 @@ def test_contract_fallback_preserves_all_numbered_nl_without_merge_protocol() ->
     assert fallback.reason and fallback.basis
 
 
-def test_representative_v27_predecessor_pairs_have_complete_input_closure() -> None:
+def test_representative_diagnostic_cases_have_complete_input_closure() -> None:
     for pair_id in ("0004", "0023", "0029", "0035", "0046", "0053"):
         pair = load_pair(REPORT_ROOT / "pairs" / pair_id)
         assert pair.context_manifest is not None
@@ -533,8 +533,10 @@ def test_method_context_excludes_historical_case_run_payloads() -> None:
     assert "stage_lineage" not in case_fields
     assert "llm" not in case_fields
     assert "review" not in case_fields
-    assert "canonical_sha256" in case_fields
-    assert "fcstm_sha256" in case_fields
+    assert case_fields == {"case_id", "case_index", "source_hashes", "artifact_status"}
+    assert {"canonical_source", "closed_model"}.issubset(
+        case_report["payload"]["source_hashes"]
+    )
 
     grounding = prompt_context_payload(pair, stage="discovery_grounding")
     source_trace_text = json.dumps(grounding["source_trace"], sort_keys=True)
@@ -548,7 +550,7 @@ def test_incomplete_three_file_surface_is_rejected(tmp_path: Path) -> None:
     (pair_dir / "plantuml.puml").write_text("@startuml\n@enduml\n", encoding="utf-8")
     (pair_dir / "fcstm.fcstm").write_text("state A\n", encoding="utf-8")
 
-    with pytest.raises(FileNotFoundError, match="incomplete v27 input closure"):
+    with pytest.raises(FileNotFoundError, match="incomplete method input closure"):
         load_pair(pair_dir)
 
 
@@ -573,8 +575,14 @@ def test_staged_method_receives_full_context_and_writes_stage_receipts(tmp_path:
         assert "context_manifest" in prompt
         assert "artifact_refs" in prompt
         assert "source_roles" in prompt
-        assert "frozen ledger answers" in prompt
-        assert "baseline hit/false-positive results" in prompt
+        assert "evaluation ground truth" in prompt
+        assert "evaluation scores or error classifications" in prompt
+        assert str(pair.pair_dir) not in prompt
+        assert '"example_id"' not in prompt
+        assert '"seed_id"' not in prompt
+        assert '"artifact_bindings"' not in prompt
+        assert '"canonical_path"' not in prompt
+        assert '"fcstm_path"' not in prompt
     assert '"numbered_nl": [' in prompts["contract_extraction"]
     assert '"working_contract": {' in prompts["contract_extraction"]
     assert '"fcstm_model": {' not in prompts["contract_extraction"]
@@ -635,7 +643,10 @@ def test_staged_method_receives_full_context_and_writes_stage_receipts(tmp_path:
         item for item in cell["stage_receipts"]
         if item["stage_name"] == "discovery_grounding"
     )
-    assert grounding_receipt["context_budget"]["projection_version"] == "v27-complementary-grounding-projection.v1"
+    assert (
+        grounding_receipt["context_budget"]["projection_version"]
+        == "complementary-grounding-projection.v2"
+    )
     assert len(cell["llm_calls"]) == 4
     assert cell["context_manifest"]["manifest_hash"] == pair.context_manifest.manifest_hash
     assert cell["stage_outputs"]["contract_extraction"]["reason"]
@@ -942,8 +953,8 @@ def test_live_runner_caps_diagnostic_subset_at_six_pairs() -> None:
         )
 
 
-def test_live_runner_rejects_sol_during_luna_construction() -> None:
-    with pytest.raises(RuntimeError, match="Sol execution is outside"):
+def test_live_runner_rejects_profile_outside_construction_protocol() -> None:
+    with pytest.raises(RuntimeError, match="outside the frozen construction"):
         run_experiment(
             report_root=REPORT_ROOT,
             ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",

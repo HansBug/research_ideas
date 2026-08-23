@@ -28,12 +28,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--allow-live",
         action="store_true",
-        help="Explicit provider-free review gate for any real Luna execution; fixture mode does not need it.",
+        help="Explicit provider-free review gate for any live provider execution; fixture mode does not need it.",
     )
     parser.add_argument(
         "--allow-full-live",
         action="store_true",
-        help="Second explicit gate for the frozen 54-pair three-round Luna run after six-pair review.",
+        help="Second explicit gate for the frozen 54-pair three-round run after representative-pair review.",
     )
     parser.add_argument(
         "--workers",

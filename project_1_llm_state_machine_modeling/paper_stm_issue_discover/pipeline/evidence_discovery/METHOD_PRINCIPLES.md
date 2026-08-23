@@ -34,8 +34,7 @@
 
 ### 1.1 D 裁定、W 裁定与 L 边界
 
-`D2/D1/D0` 是方法对自己拟发布主张的裁定，不能读取或复制台账侧 D 标签。定义遵循
-[`issue #189`](https://github.com/HansBug/research_ideas/issues/189) 的口径：
+`D2/D1/D0` 是方法对自己拟发布主张的裁定，不能读取或复制台账侧 D 标签。现行定义为：
 
 - **D2**：明确违反义务，且最强反驳不成立；
 - **D1**：存在与事实相容的两种称职读法，两读并立；
@@ -52,9 +51,9 @@ UNKNOWN、超时、资源耗尽和错误不得改写为 violation 或 W2。
 L0/L1/L2 是台账侧属性。方法不生成、不裁定、不在 release issue 中声称自己的 L 等级；
 评测时仅读取冻结台账的 L 字段并按台账分母切片统计。
 
-### 1.2 v27 等价输入闭包与阶段信息流
+### 1.2 完整输入闭包与阶段信息流
 
-新方法不能把 v27 的多阶段输入压缩成三个文本文件和一个自有 ModelIR。每个
+方法不能把多阶段输入压缩成三个文本文件和一个自有 ModelIR。每个
 PairInput 必须同时保留并在 ContextManifest 中记录哈希、schema version、algorithm
 version、producer、reason 和 basis：
 
@@ -65,7 +64,7 @@ version、producer、reason 和 basis：
 | exact source/transition inventory | 从 canonical source IR 投影的精确源清单 |
 | working contract、mapping、source trace | 映射、归属、边界和来源链约束 |
 | FCSTM 与 owned ModelIR | 被测闭合模型、精确绑定和后端执行 |
-| v27 inspect-derived facts | 只读的历史结构化事实上下文 |
+| reference inspection-derived facts | 只读的外部结构化事实上下文 |
 | inspection-equivalent facts | 新包自有算法生成的版本化 inventory/diagnostic |
 | verify facts | 新包自有有限图检查的结构化事实，不是 D/W 结论 |
 | SMT/formal summary | 归一化的守卫/公式输入；solver_status=not_run 时不是求解器结果 |
@@ -81,13 +80,13 @@ smt-input-normalization.v1。
 prepare -> contract-extraction -> discovery-grounding -> execute-batch ->
 d-adjudication -> validate-d -> publish
 
-`discovery-grounding` 内按 v27 固定调用 `contract_structure_contrast` 与
+`discovery-grounding` 内固定调用 `contract_structure_contrast` 与
 `behavior_consequence` 两个互补 lens。两者使用相同 Pydantic schema 和同一份 compact
 cross-view closure，均完成作者源定位、闭合 FCSTM 绑定和候选输出；区别只在审计重点，
 不是两套 source/model 协议。exact binding、19 谓词
 compiler/backend 和 execution receipt 都是 `execute-batch` 的内部审计记录，不新增长期
-stage 或下游调用。方法 prompt 只接受该闭包，不接受冻结
-台账答案、baseline 命中/FP、judge 示例或历史 release 输出。case report 只把身份、哈希
+stage 或下游调用。方法 prompt 只接受该闭包，不接受评测真值、分数、reviewer 示例或既有
+release 输出。case report 只把身份、哈希
 和状态 projection 放入 prompt；其完整文件仍以哈希保留在 receipt 中，历史
 stage lineage/LLM/comparison/review payload 不进入生成上下文。
 
@@ -111,7 +110,7 @@ transition-property contract 至多一个 source、target 和 transition，以�
 不得用关键词、正则或字符串形状代替。
 
 contract stage 正常路径对一个 pair 整格调用一次，不设置主动 token/chunk gate，也不把
-chunk/merge 变成新的长期协议。上下文压缩只能使用 v27 职责对应的结构化 stage projection；
+chunk/merge 变成新的长期协议。上下文压缩只能使用各阶段职责对应的结构化 projection；
 若真实 provider 调用仍失败，按 provider/schema 失败协议留下 receipt，不通过预设分块、
 逐 obligation fan-out 或冷重跑改变方法调用形态。
 
@@ -137,7 +136,7 @@ ledger x release 的 atomic 调用矩阵。即使 release 精确为空，也沿�
 
 ### 1.3 确定性方法的准入边界
 
-沿用 v27 已验证的边界：开放世界的自然语言语义必须由具名 LLM 节点判断，不能由文本
+开放世界的自然语言语义必须由具名 LLM 节点判断，不能由文本
 启发式伪装成确定性事实。NL 同义、指代、义务是否成立、条件作用域、NL 概念对应哪个
 formal element、最强反驳以及台账外的语义同一性都属于 LLM semantic grounding 或
 D adjudication。确定性代码只可处理公开语法和 typed AST、精确 ID/mapping、枚举与
@@ -206,7 +205,7 @@ consumer scope、orthogonal runtime、hierarchy priority、trace variable delta�
 登记，严格准入待修复”，不能宣称全部通过。UML 2.5.1 明确没有把同事件守卫互斥列为
 状态机强制约束；`guards_disjoint` 必须依赖独立且命题匹配的来源，不能从该标准反推。
 
-来源数量不是 prevalence 分母，台账/v27 的出场量也不是学术证据。任何来源不足的命题
+来源数量不是 prevalence 分母，台账或历史运行中的出场量也不是学术证据。任何来源不足的命题
 都应保持 W1-only，不能由 benchmark 频率反推学术普世性。
 
 ## 5. 变更审批门
@@ -246,17 +245,41 @@ consumer scope、orthogonal runtime、hierarchy priority、trace variable delta�
 - [ ] 每条 W2 都有完整谓词逻辑、绑定输入、编译源码及哈希、真实后端结果、终止状态、
       反例/轨迹、来源归因和 `reason`/`basis`。
 
+### 6.1 Public implementation language
+
+The public method implementation uses stable, domain-facing English terminology.
+This rule applies to provider prompts, Pydantic class docstrings and field
+descriptions, production class/function/variable names, registry text, generated
+explanations, and deterministic audit prose. All generated explanations and formal
+audit text must be English.
+
+- Do not expose paper-local aliases, experiment-generation labels, comparison-arm
+  names, pull-request or issue numbers, temporary case-set labels, commit nicknames,
+  or historical implementation nicknames on the public method surface. Active
+  method documentation is part of that public surface.
+- Exact source quotations and source-defined identifiers may retain their original
+  language. Every generated interpretation, `reason`, `basis`, title, summary, and
+  audit explanation around them must be English.
+- Compatibility terminology may exist only in an isolated migration or replay
+  adapter. It must never enter new provider input, provider schema, formal method
+  artifacts, or generated audit output.
+- Historical development records may preserve their original provenance, but they
+  are not method instructions and must not be imported into runtime prompts.
+- Provider-free tests inspect production source text, prompt constants, class
+  docstrings, field descriptions, and actual `model_json_schema()` projections so
+  that this contract cannot regress silently.
+
 ## 7. 迁移后的效果目标
 
 新实现的工程目标是：在相同台账、相同 54 个 pair、相同最终发布边界和可比的独立
-judge 下，使用本注册表和新规则取得与历史 v27 正式结果**大体相当或更好**的 hit 与
-FP/precision 表现。v27 只是量级参照，不是逐格相等或绝对完美的硬门；达到大体相当即可，
-若超过 v27 则如实记录为更好。这里不承诺逐格、逐轮或逐个数字复现，也不要求每个边角
+judge 下，使用本注册表和新规则取得与冻结参考结果**大体相当或更好**的 hit 与
+FP/precision 表现。参考结果只是量级参照，不是逐格相等或绝对完美的硬门；达到大体相当即可，
+若超过参考结果则如实记录为更好。这里不承诺逐格、逐轮或逐个数字复现，也不要求每个边角
 案例都覆盖；不得为了追平或超过历史数字放宽学术来源、把 W1 冒充 W2、把 `UNKNOWN`
 改成 violation，或新增覆盖专用谓词。
 
 正式对账必须同时报告整体、L2、D2×L2 的 `hit@1`/`hit@3`/`hit@all`、release FP/
-precision、eligible rate、W0/W1/W2/`UNKNOWN` 分布和成本。比较前先冻结 v27 的具体报告、
-台账版本、judge 和分母；若新实现与 v27 有差异，优先按绑定、证据等级、后端边界和
+precision、eligible rate、W0/W1/W2/`UNKNOWN` 分布和成本。比较前先冻结参考报告、
+台账版本、judge 和分母；若新实现与冻结参考有差异，优先按绑定、证据等级、后端边界和
 表示债务解释，不能事后改比较口径。新实现即使 semantic hit 与历史相当，也必须单独
 证明其 W2 回执和来源归因闭合。

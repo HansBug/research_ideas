@@ -1,4 +1,4 @@
-"""v27-shaped method stages for contract extraction and complementary grounding."""
+"""Method stages for typed contract extraction and complementary grounding."""
 
 from __future__ import annotations
 
@@ -55,59 +55,67 @@ CardinalityMemberDomain = Literal[
 
 
 class NLTransitionAlternative(BaseModel):
-    """一个 v27 transition group 中的规范性 target alternative。
+    """One normative target alternative in a typed transition group.
 
-    contract extraction 产生该对象，grounding/frontier 消费其独立的 event 与
-    guard 投影。它表达 NL relation，不是 observed transition，也不判断满足性、
-    W、D、L 或 judge 关系。event 与 guard 可同时存在，不能压成一个带角色标签的
-    自由 condition 字符串。
+    Contract extraction produces this object and grounding/frontier consumes
+    its separate event and guard projections. It expresses an NL relation, not
+    an observed transition, and has no authority over satisfaction, W, D, L,
+    or Judge relations. Event and guard may coexist and must not be compressed
+    into one free-form condition string with a role label.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.transition-alternative.v2"] = Field(default="paper1.transition-alternative.v2", description="Transition alternative 的持久化 schema 版本；v2 将 event 与 guard 分成可同时存在的 typed 字段。")
+    schema_version: Literal["evidence-discovery.transition-alternative.v2"] = Field(default="evidence-discovery.transition-alternative.v2", description="Persistence schema version for a transition alternative; v2 separates event and guard into typed fields that may coexist.")
     alternative_id: str = Field(pattern=r"^ALT-[A-Za-z0-9_.-]+$", min_length=5, description="Stable response-local alternative ID copied by grounding when it discusses this exact member.")
     target_name: str = Field(
         min_length=1,
         description=(
-            "当前编号 NL segment 直接陈述或经真实指代消解得到的规范目标概念；该值"
-            "不是 observed model endpoint。后续 segment 只能解析真正未定的 anaphora，"
-            "不能用稍后具名的 completion/termination state 改写当前已明确的 local-exit "
-            "role。协调 alternatives 必须逐项保留原目标；例如 `LocalExitRole` 与后续"
-            "的 `NamedCompletionState` 默认是两个概念，除非 supplied NL 明确等同。"
+            "Normative target concept stated directly by the current numbered "
+            "NL segment or obtained through genuine anaphora resolution; this "
+            "is not an observed-model endpoint. Later segments may resolve only "
+            "genuinely open anaphora and may not rewrite an explicit local-exit "
+            "role into a later named completion or termination state. Coordinated "
+            "alternatives retain each original target; LocalExitRole and a later "
+            "NamedCompletionState remain distinct unless supplied NL explicitly "
+            "equates them."
         ),
     )
     event: str | None = Field(
         default=None,
         min_length=1,
         description=(
-            "NL 为该 exact alternative 建立的 stimulus/event identity；null 表示 NL 未建立"
-            "独立 event，不表示 observed transition 没有 trigger。event 与 guard 可同时非空："
-            "例如 `door is closed with zero time set` 应投影为 event=`door closed`、"
-            "guard=`cooking time equals zero`，不能把整个合取只标成 event。"
+            "Stimulus or event identity established by NL for this exact "
+            "alternative; null means NL establishes no independent event, not "
+            "that an observed transition lacks a trigger. Event and guard may "
+            "both be non-null: for example, `door is closed with zero time set` "
+            "projects event=`door closed` and guard=`cooking time equals zero`, "
+            "rather than labeling the whole conjunction as only an event."
         ),
     )
     guard: str | None = Field(
         default=None,
         min_length=1,
         description=(
-            "NL 对该 exact alternative 独立施加的规范性 guard/qualifier；null 表示 NL 未建立"
-            "guard，不表示模型 guard 已满足或缺失。保留完整 guard 合取；协调 target list 的"
-            "共享 guard 应复制到每个受其约束的 alternative，除非 NL 明确逐项配对。"
+            "Normative guard or qualifier that NL independently imposes on this "
+            "exact alternative; null means NL establishes no guard, not that a "
+            "model guard is satisfied or absent. Preserve the complete guard "
+            "conjunction. A shared guard over coordinated targets applies to "
+            "every constrained alternative unless NL explicitly pairs them."
         ),
     )
     observed_transition_ref: str | None = Field(default=None, min_length=1, description="Exact author-source or closed-model transition ref selected during cross-view grounding, or null in an NL-only group and whenever no exact transition realizes the relation.")
     source_refs: tuple[str, ...] = Field(default_factory=tuple, description="Exact supplied NL or author-source refs supporting this alternative; do not invent refs.")
-    reason: str = Field(min_length=1, description="解释该 target、event 与 guard 为什么共同构成 shared-source group 的一个 exact member；每项不可为空。")
-    basis: str = Field(min_length=1, description="指出 supplied numbered NL clause；grounding 补充 exact transition fact 时仍不得把 observed 值写回规范字段。")
+    reason: str = Field(min_length=1, description="Explains why this target, event, and guard together form one exact member of a shared-source group; every item requires a non-empty value.")
+    basis: str = Field(min_length=1, description="Cites the supplied numbered NL clause; even when grounding adds an exact transition fact, observed values must not be written back into normative fields.")
 
 
 class NLTransitionGroup(BaseModel):
-    """One v27-style semantic transition group with a shared source."""
+    """One typed semantic transition group with a shared source."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.transition-group.v2"] = Field(default="paper1.transition-group.v2", description="Transition group 的持久化 schema 版本；v2 增加显式 common_enclosing_owner_name，用于 artifact/resume 审计。")
+    schema_version: Literal["evidence-discovery.transition-group.v2"] = Field(default="evidence-discovery.transition-group.v2", description="Persistence schema version for a transition group; v2 adds explicit common_enclosing_owner_name for artifact and resume audit.")
     group_id: str = Field(pattern=r"^NL-GROUP-[A-Za-z0-9_.-]+$", min_length=10, description="Stable group ID derived from one supplied numbered segment and reused only for this exact shared-source relation.")
     segment_id: str = Field(pattern=r"^NL[0-9]+(?:\.[0-9]+)?$", min_length=3, description="Exact numbered NL segment containing or completing this transition relation.")
     source_name: str = Field(min_length=1, description="Normative source concept after LLM discourse/coreference resolution; never default to the enclosing model merely because a later sentence omits its source or because an earlier introductory sentence says the enclosing scope can transition among substates.")
@@ -115,12 +123,15 @@ class NLTransitionGroup(BaseModel):
         default=None,
         min_length=1,
         description=(
-            "当 supplied NL discourse 明确把 source 与全部 alternatives 作为同一 owner 下的"
-            "同级成员时，填写该规范性 owner 概念；例如 InitialState、HighwayMode、UrbanMode "
-            "共同位于 AutonomousMode 下。该字段由 contract LLM 的语义判断授权 deterministic "
-            "containment expansion，不是 observed model parent。若 source 本身是 owner、relation "
-            "跨 scope、只有部分 member 属于该 owner，或读法仍有歧义，必须为 null。不得根据"
-            "名称、FCSTM 布局或 transition 存在性推断。"
+            "Normative owner concept when supplied NL discourse explicitly "
+            "places the source and all alternatives as sibling members under "
+            "one owner, such as InitialState, HighwayMode, and UrbanMode under "
+            "AutonomousMode. The contract LLM's semantic judgment uses this field "
+            "to authorize deterministic containment expansion; it is not an "
+            "observed-model parent. It must be null when the source itself is the "
+            "owner, the relation crosses scopes, only some members belong to the "
+            "owner, or the reading remains ambiguous. Never infer it from names, "
+            "FCSTM layout, or transition existence."
         ),
     )
     alternatives: tuple[NLTransitionAlternative, ...] = Field(min_length=1, description="Complete ordered target alternatives sharing source_name; do not truncate a branch set or split alternatives into unrelated groups.")
@@ -139,105 +150,115 @@ class NLTransitionGroup(BaseModel):
 
 
 class SegmentCoverage(BaseModel):
-    """一个编号 NL segment 的结构化提取覆盖审计。
+    """Structured extraction-coverage audit for one numbered NL segment.
 
-    contract extraction 可产生该对象，runner 对缺失 segment 做确定性补齐，grounding
-    只把它作为“哪些 typed semantic units 已出现”的观察面。它不证明语义完整，不是
-    candidate、W/D/L、publish 或 judge gate；covered 也不表示该段没有遗漏义务。
+    Contract extraction may produce this object, and the runner deterministically
+    fills missing segments. Grounding uses it only to observe which typed semantic
+    units appeared. It does not prove semantic completeness and is not a candidate,
+    W/D/L, publish, or Judge gate. covered does not mean the segment has no omitted
+    obligations.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.segment-coverage.v1"] = Field(
-        default="paper1.segment-coverage.v1",
-        description="SegmentCoverage 的持久化 schema 版本；用于 artifact/resume 审计。",
+    schema_version: Literal["evidence-discovery.segment-coverage.v1"] = Field(
+        default="evidence-discovery.segment-coverage.v1",
+        description="Persistence schema version for SegmentCoverage, used for artifact and resume audit.",
     )
     segment_id: str = Field(
         pattern=r"^NL[0-9]+(?:\.[0-9]+)?$",
-        description="输入闭包中的精确编号 NL segment ID；不得使用 contract 或 ledger ID 代替。",
+        description="Exact numbered NL segment ID from the input closure; a contract or ledger ID may not substitute for it.",
     )
     disposition: SegmentDisposition = Field(
-        description="covered 表示至少提取一个 typed unit，context 表示仅作上下文，ambiguous 表示有未闭合读法，unreported 表示 provider 未给 disposition；任何值都不阻止后续 issue。",
+        description="covered means at least one typed unit was extracted, context means context-only, ambiguous means a reading remains open, and unreported means the provider supplied no disposition; no value blocks a later issue.",
     )
     semantic_categories: tuple[SegmentSemanticCategory, ...] = Field(
         default_factory=tuple,
-        description="该 segment 已实际形成的 typed semantic unit 类别；空集合表示未提取，不等于没有规范义务。",
+        description="Typed semantic-unit categories actually formed for this segment; an empty tuple means none were extracted, not that no normative obligation exists.",
     )
     contract_ids: tuple[str, ...] = Field(
         default_factory=tuple,
-        description="该 segment 已产出的 exact atomic contract IDs；下游据此追踪生命周期，不据此判定满足或缺陷。",
+        description="Exact atomic contract IDs produced for this segment; downstream stages track lifecycle from them but do not infer satisfaction or defect.",
     )
     transition_group_ids: tuple[str, ...] = Field(
         default_factory=tuple,
-        description="该 segment 已产出的 shared-source transition group IDs；空值表示没有结构化 group。",
+        description="Shared-source transition-group IDs produced for this segment; an empty tuple means no structured group was extracted.",
     )
     unresolved_readings: tuple[str, ...] = Field(
         default_factory=tuple,
-        description="provider 明确指出但尚未闭合的语义读法；空值只表示未报告 unresolved reading，不证明完整。",
+        description="Semantic readings explicitly identified but not closed by the provider; empty means no unresolved reading was reported and does not prove completeness.",
     )
     reason: str = Field(
         min_length=1,
-        description="解释该 coverage 行为何具有当前 disposition/categories，不能声称 ledger 命中。",
+        description="Explains why this coverage row has its disposition and categories; it may not claim a ledger hit.",
     )
     basis: str = Field(
         min_length=1,
-        description="列出 supplied segment、contract/group IDs 或 provider unresolved basis。",
+        description="Lists the supplied segment, contract/group IDs, or provider basis for an unresolved reading.",
     )
 
 
 class CardinalityRequirement(BaseModel):
-    """NL 对一个有限成员域建立的规范性数量要求。
+    """Normative cardinality requirement that NL establishes over a finite member domain.
 
-    contract extraction 产生该对象，grounding/frontier 只在 scope 与成员域获得 exact
-    typed binding 后把它同完整 inventory 比较。它不包含 observed count、满足结论、
-    W/D/L 或 ledger 信息；`unresolved` 明确表示 NL 尚未决定按哪类成员计数。
+    Contract extraction produces this object. Grounding/frontier compares it
+    with the complete inventory only after obtaining exact typed bindings for
+    scope and member domain. It contains no observed count, satisfaction result,
+    W/D/L, or ledger information. unresolved explicitly means NL has not fixed
+    which member domain to count.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.cardinality-requirement.v1"] = Field(
-        default="paper1.cardinality-requirement.v1",
-        description="CardinalityRequirement 的持久化 schema 版本；用于 artifact、canonical identity 与 resume 审计。",
+    schema_version: Literal["evidence-discovery.cardinality-requirement.v1"] = Field(
+        default="evidence-discovery.cardinality-requirement.v1",
+        description="Persistence schema version for CardinalityRequirement, used for artifact, canonical-identity, and resume audit.",
     )
     required_count: int = Field(
         ge=0,
-        description="编号 NL 明确要求的成员数量；它是规范值，不是从 PlantUML/FCSTM 反推的 observed count。",
+        description="Member count explicitly required by numbered NL; this is a normative value, not an observed count inferred from PlantUML or FCSTM.",
     )
     member_domain: CardinalityMemberDomain = Field(
         description=(
-            "NL 要计数的 typed 成员域：direct_child_states 表示一个 composite 的直接子状态，"
-            "concurrent_regions 表示 UML structural region partitions：显式 separator 产生多个 region，"
-            "而有直接子状态但无 separator 的 composite 只有一个隐式 region；explicit_named_members "
-            "表示 NL 逐项点名的有限集合，unresolved 表示多种称职读法尚未闭合。若 primary 读法"
-            "描述一个活动配置被划分为若干 structural regions/areas/partitions，应选 concurrent_regions；"
-            "这不要求 NL 额外出现 concurrent/UML 字样，也不要求 observed artifact 已有 separator。"
-            "例如 `controller operates within three different state areas` 的 primary 是三个配置区域，"
-            "而三个 operating phases/states 是可保留的 alternative_reading。只有 NL 直接要求某 composite "
-            "拥有固定数量的直接 child states/modes 时才选 direct_child_states。不得因 owner 内存在 child "
-            "states、或因为某种 observed count 更接近 required_count 而把 area/partition primary 改绑为"
-            "direct_child_states；也不得根据元素名称含 Region/State 或关键词形状选择成员域。"
+            "Typed member domain counted by NL. direct_child_states means direct "
+            "child states of one composite. concurrent_regions means UML structural "
+            "region partitions: explicit separators create multiple regions, while "
+            "a composite with direct child states but no separator has one implicit "
+            "region. explicit_named_members is a finite set enumerated by NL, and "
+            "unresolved means several competent readings remain open. Select "
+            "concurrent_regions when the primary reading partitions one active "
+            "configuration into structural regions, areas, or partitions; NL need "
+            "not also say concurrent/UML, and the observed artifact need not already "
+            "contain a separator. For `controller operates within three different "
+            "state areas`, the primary reading is three configuration regions, while "
+            "three operating phases/states may remain an alternative_reading. Select "
+            "direct_child_states only when NL directly requires a fixed number of "
+            "child states or modes. Do not rebind an area/partition primary to "
+            "direct_child_states because child states exist under the owner, because "
+            "an observed count is closer to required_count, or because element names "
+            "contain Region/State-like text."
         ),
     )
     scope_concept: str = Field(
         min_length=1,
-        description="NL 中承载该数量义务的规范性 owner/scope 概念；不是 observed model ref，后续需通过 SemanticBinding 或 exact candidate refs 绑定。",
+        description="Normative owner or scope concept carrying the cardinality obligation in NL; it is not an observed-model reference and later requires SemanticBinding or exact candidate references.",
     )
     member_concept: str = Field(
         min_length=1,
-        description="NL 对被计数成员的规范性称呼，例如 state areas；它保留原语义，不授权按名称后缀筛选模型元素。",
+        description="Normative NL term for the counted members, such as state areas; it preserves source semantics and does not authorize filtering model elements by name suffix.",
     )
     alternative_reading: str | None = Field(
         default=None,
         min_length=1,
-        description="与 primary member_domain 同样称职的另一种成员域读法；null 表示 supplied NL 未建立可陈述的竞争读法，不等于 observed model 已满足。D 用它审查 D1，但它不覆盖确定性 inventory。",
+        description="Alternative member-domain reading as competent as the primary; null means supplied NL establishes no articulable competing reading, not that the observed model is satisfied. D uses it to review D1, but it never overrides deterministic inventory.",
     )
     reason: str = Field(
         min_length=1,
-        description="解释 NL 为什么建立该 required_count/member_domain；若存在另一种称职读法，必须在此明确保留。",
+        description="Explains why NL establishes this required_count and member_domain; any equally competent alternative reading must be preserved explicitly.",
     )
     basis: str = Field(
         min_length=1,
-        description="指出 supplied numbered NL 中支持数量、scope 与成员域读法的精确 clause；不得引用 ledger 或 observed defect。",
+        description="Cites the exact supplied numbered-NL clause supporting count, scope, and member-domain reading; never cites a ledger item or observed defect.",
     )
 
 
@@ -257,10 +278,12 @@ class NLContract(BaseModel):
     normative_statement: str = Field(
         min_length=1,
         description=(
-            "当前 numbered NL segment 建立的原子规范义务，不判断 closed model 是否满足。"
-            "必须保留本段明确的 source、target、role 和 scope；后续上下文可消解真正"
-            "未定的指代，但不能把本段的 local-exit 等目标改写成后来具名的 termination "
-            "target，也不能从 PlantUML/FCSTM 的 observed endpoint 反推规范目标。"
+            "Atomic normative obligation established by the current numbered NL "
+            "segment without deciding closed-model satisfaction. Preserve the "
+            "segment's explicit source, target, role, and scope. Later context may "
+            "resolve genuinely open references but may not rewrite a local-exit "
+            "target into a later named termination target or infer a normative "
+            "target backward from an observed PlantUML/FCSTM endpoint."
         ),
     )
     locus_kind: ObligationLocusKind = Field(
@@ -278,7 +301,7 @@ class NLContract(BaseModel):
     state_role: StateSemanticRole | None = Field(
         default=None,
         description=(
-            "v27 semantic role of the state centered by this contract, or null "
+            "Semantic role of the state centered by this contract, or null "
             "when the locus is not one state concept. An operating state denotes "
             "active behavior that must retain a response/progress interpretation. "
             "A state required as the target of an operating transition may retain "
@@ -307,23 +330,26 @@ class NLContract(BaseModel):
     binding_hints: tuple[ContractBindingHint, ...] = Field(
         default_factory=tuple,
         description=(
-            "供两个 grounding lens 使用的 typed source-side argument hints；每个 hint "
-            "都与 exact FCSTM binding 分离，并保留当前 segment 的规范性角色和值。一个"
-            "transition-property contract 最多包含一个 source、一个 target 和一个 "
-            "transition；其中 property=transition_endpoints 时必须恰有一个 source 和"
-            "一个 target，不能只把二者写进 locus_names，也不能用 owner 代替 source。"
-            "正例是 source=enter_hwy、target=cruise；反例是仅有 source hint。"
-            "alternatives 必须拆成独立 endpoint contracts，且不得用后续 segment 或"
-            "observed model endpoint 统一原本不同的 target concepts。"
+            "Typed source-side argument hints for both grounding lenses. Every "
+            "hint remains separate from exact FCSTM binding and preserves the "
+            "current segment's normative role and value. A transition-property "
+            "contract contains at most one source, one target, and one transition. "
+            "property=transition_endpoints requires exactly one source and one "
+            "target; locus_names alone is insufficient, and owner cannot substitute "
+            "for source. source=enter_hwy,target=cruise is valid; a source-only hint "
+            "is not. Alternatives require separate endpoint contracts, and later "
+            "segments or observed endpoints may not collapse distinct target concepts."
         ),
     )
     cardinality_requirement: CardinalityRequirement | None = Field(
         default=None,
         description=(
-            "仅供 property=cardinality 的规范性数量 payload；必须记录 NL 的 required_count、"
-            "member_domain、scope/member concepts。null 精确表示该 contract 不是数量义务；"
-            "cardinality contract 缺失该字段属于可确定的 schema 错误，不能解析自由文本猜数量。"
-            "该字段不含 observed count，也不决定 W/D。"
+            "Normative cardinality payload only for property=cardinality. It must "
+            "record NL required_count, member_domain, and scope/member concepts. "
+            "null means exactly that this contract is not a cardinality obligation. "
+            "A cardinality contract without this field is a deterministic schema "
+            "error; do not guess a count from free text. This field contains no "
+            "observed count and decides neither W nor D."
         ),
     )
     scope: str = Field(min_length=1, description="Human-readable source scope, phase, owner, or boundary retained for audit alongside the typed semantic key.")
@@ -433,12 +459,12 @@ class NLContract(BaseModel):
 
 
 class NLContractResponse(BaseModel):
-    """Structured LLM response for the v27-style NL contract extraction stage."""
+    """Structured LLM response for the typed NL contract-extraction stage."""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     contracts: list[NLContract] = Field(default_factory=list, description="Complete list of independently violable atomic contracts from normative numbered NL. Preserve containment, initial/default entry, transition endpoints, explicit progress/response, termination, event-consumer scope, and other distinct properties without manufacturing progress for every mentioned operating state. When prior discourse establishes an enclosing owner and a later clause says the system/controller first enters one of that owner's substates, represent the owner-local initial_entry; the grammatical actor does not become a root-to-substate endpoint. An explicitly continuous or repeated task is an independent operating state_action obligation and must survive alongside cardinality or structure obligations from the same segment; a merely mentioned activity is not. Descriptive segments may be omitted with an explained top-level basis. Every segment marked covered must retain at least one atomic contract carrying that exact segment_id, but covered never means all other obligations in the segment may be dropped. A schema-correction turn must return a complete replacement list containing every valid contract and semantic group, not only the corrected row or a summary placeholder.")
-    transition_groups: list[NLTransitionGroup] = Field(default_factory=list, description="v27-style shared-source transition relations used for discourse binding and alternative comparison. A broad capability statement without exact alternatives is context, not an element_declaration contract or permission to force later sequential clauses into one owner-sourced group. Each endpoint remains an atomic contract; when alternatives semantically require distinguishability, add a separate guard_disjointness contract rather than hiding that property inside endpoint rows.")
+    transition_groups: list[NLTransitionGroup] = Field(default_factory=list, description="Typed shared-source transition relations used for discourse binding and alternative comparison. A broad capability statement without exact alternatives is context, not an element_declaration contract or permission to force later sequential clauses into one owner-sourced group. Each endpoint remains an atomic contract; when alternatives semantically require distinguishability, add a separate guard_disjointness contract rather than hiding that property inside endpoint rows.")
     segment_disposition: dict[str, Literal["covered", "context", "ambiguous"]] = Field(default_factory=dict, description="Disposition for supplied NL segment IDs only; every key must be an input segment ID. Use covered only when at least one contract in this same response carries that exact segment_id; context and ambiguous may have no contract.")
     segment_coverage: list[SegmentCoverage] = Field(default_factory=list, description="Structured per-segment completeness audit. Return one row per segment when possible, preserving unresolved readings; runner deterministically fills missing rows without treating them as semantic failures. This list is observable audit only and never gates candidate generation or publication.")
     reason: str = Field(min_length=1, description="LLM explanation of the overall contract extraction decision.")
@@ -494,7 +520,7 @@ class NLContractResponse(BaseModel):
 class GroundingUnresolved(BaseModel):
     """One exact contract that this grounding lens could not bind or assess.
 
-    v27 returned sparse unresolved rows rather than forcing the model to restate
+    The protocol uses sparse unresolved rows rather than forcing the model to restate
     every satisfied contract. A missing row therefore makes no semantic claim;
     this object is emitted only when the branch has a concrete unresolved unit.
     """
@@ -510,26 +536,27 @@ GroundingLens = Literal["contract_structure_contrast", "behavior_consequence"]
 
 
 class SemanticBinding(BaseModel):
-    """grounding 对一个 contract argument 的精确跨制品语义绑定。
+    """Exact cross-artifact semantic binding for one contract argument.
 
-    两个 grounding lens 可产生该对象，runner/frontier 消费其 exact refs。它表达
-    “NL/source concept 对应哪个 supplied source/model element”，不表达满足、缺陷、
-    W、D、L 或 judge 关系；ambiguous/unbound 绝不能被确定性代码猜成 exact。
+    Either grounding lens may produce this object, and runner/frontier consumes
+    its exact references. It states which supplied source/model element corresponds
+    to an NL/source concept. It expresses no satisfaction, defect, W, D, L, or
+    Judge relation. Deterministic code must never guess ambiguous/unbound as exact.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.semantic-binding.v1"] = Field(
-        default="paper1.semantic-binding.v1",
-        description="SemanticBinding 的持久化 schema 版本；用于跨 lens/artifact 审计。",
+    schema_version: Literal["evidence-discovery.semantic-binding.v1"] = Field(
+        default="evidence-discovery.semantic-binding.v1",
+        description="Persistence schema version for SemanticBinding, used for cross-lens and cross-artifact audit.",
     )
     binding_id: str = Field(
         pattern=r"^BIND-[A-Za-z0-9_.-]+$",
-        description="本 grounding response 内唯一的 binding ID；不是 contract、element 或 ledger ID。",
+        description="Binding ID unique within this grounding response; it is not a contract, element, or ledger ID.",
     )
     contract_id: str = Field(
         pattern=r"^NL-CONTRACT-[A-Za-z0-9_.-]+$",
-        description="被绑定的 supplied/branch-local atomic contract ID；runner 会随 derived identity 一并 canonicalize。",
+        description="Supplied or branch-local atomic contract ID being bound; the runner canonicalizes it together with derived identity.",
     )
     role: Literal[
         "owner",
@@ -540,37 +567,37 @@ class SemanticBinding(BaseModel):
         "event",
         "state",
     ] = Field(
-        description="该 concept 在 atomic contract 中的 typed argument role；target 不得用 nearby owner/source 代替。",
+        description="Typed argument role of the concept in the atomic contract; a nearby owner or source may not substitute for target.",
     )
     concept_name: str = Field(
         min_length=1,
-        description="NL contract 中被解释的规范概念；它用于审计，不由 deterministic 代码做字符串匹配。",
+        description="Normative concept interpreted from the NL contract; used for audit and never for deterministic string matching.",
     )
     status: Literal["exact", "ambiguous", "unbound"] = Field(
-        description="exact 表示 supplied facts 支持唯一 ref；ambiguous/unbound 保留不确定性且不得进入 exact frontier。",
+        description="exact means supplied facts support one unique reference; ambiguous and unbound preserve uncertainty and cannot enter an exact frontier.",
     )
     source_element_ref: str | None = Field(
         default=None,
         min_length=1,
-        description="exact canonical/source-inventory element identity，若 source 侧没有唯一对应则为 null；不是文件行号泛称。",
+        description="Exact canonical or source-inventory element identity; null when the source side has no unique match, and never a generic file-line label.",
     )
     model_element_ref: str | None = Field(
         default=None,
         min_length=1,
-        description="该规范概念对应的 exact closed ModelIR element ref；null 表示没有唯一模型绑定，不能由名称补猜。",
+        description="Exact closed ModelIR element reference corresponding to the normative concept; null means no unique model binding and forbids name-based guessing.",
     )
     carrier_transition_ref: str | None = Field(
         default=None,
         min_length=1,
-        description="当该 role 由一个实际 closed transition 承载或反驳时给出其 exact ref；仅声明 state/event 时为 null。",
+        description="Exact reference when an actual closed transition carries or rebuts this role; null when only a state or event declaration is involved.",
     )
     reason: str = Field(
         min_length=1,
-        description="解释 supplied NL/source/model facts 为何支持当前 binding status 和 refs。",
+        description="Explains why supplied NL, source, and model facts support the current binding status and references.",
     )
     basis: str = Field(
         min_length=1,
-        description="列出 exact segment、contract、source inventory 和 ModelIR refs；不得引用 ledger/judge。",
+        description="Lists exact segment, contract, source-inventory, and ModelIR references; never cites ledger or Judge data.",
     )
 
     @model_validator(mode="after")
@@ -588,85 +615,100 @@ class SemanticBinding(BaseModel):
 
 
 class CardinalityDomainBinding(BaseModel):
-    """grounding 对数量义务的有限成员域和 exact owner 绑定。
+    """Finite member-domain and exact-owner binding for a cardinality obligation.
 
-    grounding lens 产生该对象，deterministic frontier 消费它并从完整 source
-    inventory 枚举成员。它只裁定规范概念按哪一种 typed domain 计数以及该 domain
-    属于哪个 supplied owner；不携带 observed count、满足结论、candidate、W/D/L
-    或 ledger 信息。存在另一种称职读法时保留在 alternative_reading，由 D 审查。
+    A grounding lens produces this object. The deterministic frontier consumes
+    it and enumerates members from the complete source inventory. It decides only
+    which typed domain counts the normative concept and which supplied owner owns
+    that domain. It carries no observed count, satisfaction result, candidate,
+    W/D/L, or ledger data. Any equally competent reading remains in
+    alternative_reading for D review.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.cardinality-domain-binding.v1"] = Field(
-        default="paper1.cardinality-domain-binding.v1",
-        description="CardinalityDomainBinding 的持久化 schema 版本；用于跨 lens、artifact 与 resume 审计。",
+    schema_version: Literal["evidence-discovery.cardinality-domain-binding.v1"] = Field(
+        default="evidence-discovery.cardinality-domain-binding.v1",
+        description="Persistence schema version for CardinalityDomainBinding, used for cross-lens, artifact, and resume audit.",
     )
     binding_id: str = Field(
         pattern=r"^CARD-BIND-[A-Za-z0-9_.-]+$",
-        description="本 grounding response 内唯一的数量域绑定 ID；不是 contract、source element、model element 或 ledger ID。",
+        description="Cardinality-domain binding ID unique within this grounding response; it is not a contract, source-element, model-element, or ledger ID.",
     )
     contract_id: str = Field(
         pattern=r"^NL-CONTRACT-[A-Za-z0-9_.-]+$",
-        description="被解释的 supplied 或 branch-local cardinality contract ID；runner 会随 derived identity 精确 canonicalize。",
+        description="Supplied or branch-local cardinality contract ID being interpreted; the runner canonicalizes it exactly with derived identity.",
     )
     status: Literal["exact", "ambiguous", "unbound"] = Field(
         description=(
-            "member-domain 绑定状态：exact 表示 supplied NL/source facts 支持一个 primary typed domain；"
-            "ambiguous 表示多种读法并立且无法选择 primary；unbound 表示缺少所需 source identity。"
-            "另一种称职读法不自动使 exact 变成 ambiguous，应写入 alternative_reading 交给 D。"
+            "Member-domain binding status: exact means supplied NL/source facts "
+            "support one primary typed domain; ambiguous means multiple readings "
+            "remain and no primary can be selected; unbound means the required "
+            "source identity is missing. Another competent reading does not "
+            "automatically turn exact into ambiguous; record it in "
+            "alternative_reading for D."
         ),
     )
     member_domain: CardinalityMemberDomain = Field(
         description=(
-            "规范成员概念的 primary typed domain；exact 时必须是 direct_child_states、"
-            "concurrent_regions 或 explicit_named_members，ambiguous/unbound 时必须为 unresolved。"
-            "当义务把一个活动配置描述为若干 structural regions/areas/partitions 时，primary 使用"
-            "concurrent_regions，即使 NL 未额外写 concurrent/UML，且 observed source 没有 separator；"
-            "无 separator 的非空 composite 只有一个隐式 region。直接子 operating phases/states 可作为"
-            "alternative_reading，但不能替代 area/partition primary。只有规范文本直接计一个 composite "
-            "的 child states/modes 时使用 direct_child_states。不得根据 observed count、元素名称后缀"
-            "或 ledger 选择该值。"
+            "Primary typed domain of the normative member concept. exact requires "
+            "direct_child_states, concurrent_regions, or explicit_named_members; "
+            "ambiguous/unbound requires unresolved. Use concurrent_regions when "
+            "the obligation describes one active configuration as structural "
+            "regions, areas, or partitions, even without extra concurrent/UML "
+            "wording and when observed source has no separator. A non-empty "
+            "composite without a separator has one implicit region. Direct-child "
+            "operating phases/states may remain an alternative_reading but cannot "
+            "replace an area/partition primary. Use direct_child_states only when "
+            "normative text directly counts a composite's child states or modes. "
+            "Never choose from observed count, element-name suffix, or ledger data."
         ),
     )
     owner_source_id: str | None = Field(
         default=None,
         min_length=1,
         description=(
-            "exact_source_inventory.states 中承载该成员域的唯一 source_id；null 表示 owner source "
-            "尚未闭合。该 owner 必须实现 cardinality contract 的规范 scope_concept 与 owner/scope "
-            "binding hint；不能仅因某项活动发生在更深的子 composite 中就把 owner 下沉到该子项。"
-            "两个 lens 都必须按同一 contract-level scope 选择 owner：例如 contract 计 Controller "
-            "operation 的区域，而动作在其 TaskRegion 内执行时，owner 仍是 Controller，除非 supplied "
-            "NL/source semantics 明确把 counted scope 等同于 TaskRegion。它不是 raw line ref，也不能"
-            "由 deterministic frontier 做字符串相似匹配。"
+            "Unique source_id in exact_source_inventory.states that owns this "
+            "member domain; null means the owner source is not closed. The owner "
+            "must realize the cardinality contract's normative scope_concept and "
+            "owner/scope binding hint. Do not descend to a deeper child composite "
+            "merely because an activity occurs there. Both lenses must choose from "
+            "the same contract-level scope: if a contract counts regions of "
+            "Controller operation while an action executes in TaskRegion, the "
+            "owner remains Controller unless supplied NL/source semantics equates "
+            "the counted scope with TaskRegion. This is not a raw line reference "
+            "and deterministic frontier may not use string similarity."
         ),
     )
     owner_model_ref: str | None = Field(
         default=None,
         min_length=1,
         description=(
-            "与 owner_source_id 语义对应的 exact owned closed ModelIR state ref，必须逐字复制 "
-            "closed_model_inventory.states[].ref；working-contract 中 representation 层的 model_refs "
-            "只能帮助 runner 做受控映射，不能直接冒充该字段。null 表示 closed-model owner 尚未闭合。"
-            "frontier 只按 exact owned ref 定位，不按名称补猜。"
+            "Exact owned closed-ModelIR state reference semantically corresponding "
+            "to owner_source_id, copied exactly from "
+            "closed_model_inventory.states[].ref. Representation-layer model_refs "
+            "in the working contract may assist controlled runner mapping but may "
+            "not substitute for this field. null means the closed-model owner is "
+            "not closed. Frontier localizes only by exact owned reference, never by name."
         ),
     )
     alternative_reading: str | None = Field(
         default=None,
         min_length=1,
         description=(
-            "与 primary member_domain 同样称职的竞争解释；null 表示 supplied facts 未建立竞争读法，"
-            "不表示 observed model 已满足。frontier 将其保留为 strongest rebuttal，供 D1/D2 裁定。"
+            "Competing interpretation as competent as the primary member_domain; "
+            "null means supplied facts establish no competing reading, not that "
+            "the observed model is satisfied. Frontier preserves it as the "
+            "strongest rebuttal for D1/D2 adjudication."
         ),
     )
     reason: str = Field(
         min_length=1,
-        description="解释 supplied NL 与 author-source semantics 为什么支持该 domain/status/owner 绑定；不得用实际计数差异倒推读法。",
+        description="Explains why supplied NL and author-source semantics support this domain/status/owner binding; never infer the reading backward from an observed count difference.",
     )
     basis: str = Field(
         min_length=1,
-        description="列出 exact contract、numbered NL、source inventory owner/member rows 和 ModelIR owner ref；不得引用 ledger、judge 或历史命中。",
+        description="Lists the exact contract, numbered NL, source-inventory owner/member rows, and ModelIR owner reference; never cites ledger, Judge, or historical hits.",
     )
 
     @model_validator(mode="after")
@@ -697,7 +739,7 @@ class CardinalityDomainBinding(BaseModel):
 
 
 class GroundingResponse(BaseModel):
-    """Structured LLM response for one v27 complementary discovery lens.
+    """Structured LLM response for one complementary discovery lens.
 
     Additional-contract IDs are response-local references only. The runner
     derives their persistent identities from typed semantic payloads before
@@ -706,9 +748,9 @@ class GroundingResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    lens: GroundingLens = Field(description="Exact v27 audit-lens identity; both lenses receive the same cross-view context and response contract.")
-    additional_contracts: list[NLContract] = Field(default_factory=list, description="Sparse v27-style atomic obligations derived by this grounding lens when exact cross-view facts reveal a causal property absent from the NL-only contract plan. Each row must retain one supplied segment_id and source obligation, use a response-local NL-CONTRACT-...-DERIVED-... reference, and carry its own reason/basis plus complete binding_hints reason/basis. The local string only joins rows inside this response; the runner computes the persistent canonical ID from the typed semantic payload. Do not restate supplied contracts, enumerate satisfied checks, or derive obligations from labels, identifier shape, ledger data, or historical results.")
-    additional_transition_groups: list[NLTransitionGroup] = Field(default_factory=list, description="Sparse v27-style transition groups omitted by NL-only extraction and established only after cross-view semantic grounding. Do not restate supplied groups; every target member needs exact reason/basis and any observed transition ref must come from the supplied inventories.")
+    lens: GroundingLens = Field(description="Exact audit-lens identity; both lenses receive the same cross-view context and response contract.")
+    additional_contracts: list[NLContract] = Field(default_factory=list, description="Sparse atomic obligations derived by this grounding lens when exact cross-view facts reveal a causal property absent from the NL-only contract plan. Each row must retain one supplied segment_id and source obligation, use a response-local NL-CONTRACT-...-DERIVED-... reference, and carry its own reason/basis plus complete binding_hints reason/basis. The local string only joins rows inside this response; the runner computes the persistent canonical ID from the typed semantic payload. Do not restate supplied contracts, enumerate satisfied checks, or derive obligations from labels, identifier shape, ledger data, or historical results.")
+    additional_transition_groups: list[NLTransitionGroup] = Field(default_factory=list, description="Sparse transition groups omitted by NL-only extraction and established only after cross-view semantic grounding. Do not restate supplied groups; every target member needs exact reason/basis and any observed transition ref must come from the supplied inventories.")
     semantic_bindings: list[SemanticBinding] = Field(default_factory=list, description="Sparse exact cross-artifact argument bindings needed by candidates/frontiers. Every contract_id must name either one supplied contract or one additional_contracts row in this same response; never invent a placeholder ID for an unextracted obligation. Emit bindings for concepts whose NL name alone cannot serve as a ModelIR ref, especially wrong-target/wrong-scope relations; ambiguous or unbound concepts remain explicit and are never repaired by text similarity.")
     cardinality_bindings: list[CardinalityDomainBinding] = Field(
         default_factory=list,
@@ -834,7 +876,7 @@ class StageReceipt(BaseModel):
         "d_adjudication",
         "validate_d",
         "publish",
-    ] = Field(description="Frozen v27 stage boundary represented by this receipt; candidate compiler/backend details remain nested audit records.")
+    ] = Field(description="Frozen method-stage boundary represented by this receipt; candidate compiler/backend details remain nested audit records.")
     status: Literal["completed", "completed_with_diagnostics", "failed_with_receipt"] = Field(description="Terminal stage status; failure is retained as a receipt.")
     input_manifest_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$", description="Context manifest hash supplied to this stage.")
     input_artifact_roles: tuple[str, ...] = Field(min_length=1, description="Artifact roles consumed by this stage.")
@@ -922,9 +964,9 @@ def _compact_contract_plan(contracts: NLContractResponse) -> dict[str, Any]:
 def normalize_contract_state_roles(
     response: NLContractResponse,
 ) -> tuple[NLContractResponse, list[dict[str, Any]]]:
-    """Collapse repeated v27 operating-state role contracts by exact identity.
+    """Collapse repeated operating-state role contracts by exact identity.
 
-    v27 assigned one stable concept ID to a required state and therefore
+    The protocol assigns one stable concept ID to a required state and therefore
     expanded its operating-state role once. The atomic contract surface has no
     separate concept-ID table, so this restores that behavior only for exact
     typed progress identities. It never interprets prose, spelling similarity,
@@ -1017,7 +1059,7 @@ def normalize_contract_state_roles(
                     "expected_direction": key[4],
                     "violation_direction": key[5],
                 },
-                "reason": "v27 represents one required operating-state role once even when several numbered clauses support it.",
+                "reason": "One required operating-state role is represented once even when several numbered clauses support it.",
                 "basis": "exact typed contract fields only; no prose, similarity, model result, ledger, or judge input",
             }
         )
@@ -1033,7 +1075,7 @@ def normalize_contract_state_roles(
                 "contracts": contracts,
                 "reason": (
                     response.reason
-                    + " Exact repeated v27 operating-state roles were consolidated without changing other obligations."
+                    + " Exact repeated operating-state roles were consolidated without changing other obligations."
                 ),
                 "basis": (
                     response.basis
@@ -1285,7 +1327,7 @@ def _context_text(pair: PairInput, *, stage: Literal["nl_contract_extraction", "
     )
 
 
-COMMON_RULES = """Use only the supplied input closure. Never read, infer, or reproduce frozen ledger answers, baseline hit/FP results, independent judge examples, other pair payloads, or historical release outputs. PlantUML and canonical source IR locate author intent; FCSTM is the closed model evaluated by the deterministic backend; inspection-equivalent and verify/SMT summaries are deterministic facts only. Do not treat one source role as another. Do not emit W0/W1/W2, D0/D1/D2, L, or a release decision. Predicate IDs are closed to the frozen 19 IDs. A precise claim that is not expressible by a frozen predicate must remain a candidate with predicate_id=null, not disappear. Every object and every top-level response must contain non-empty reason and basis. Explain the judgment in the requested content language; English-only output is not required. Free-text source content may be interpreted by the LLM, never by deterministic keyword, substring, regex, spelling, identifier-shape, or similarity rules."""
+COMMON_RULES = """Use only the supplied input closure. Never read, infer, or reproduce evaluation ground truth, scores, reviewer examples, artifacts from other evaluation cases, or previously generated reports. PlantUML and canonical source IR locate author intent; FCSTM is the closed model evaluated by the deterministic backend; inspection-equivalent and verify/SMT summaries are deterministic facts only. Do not treat one source role as another. Do not emit W0/W1/W2, D0/D1/D2, L, or a release decision. Predicate IDs are closed to the frozen 19 IDs. A precise claim that is not expressible by a frozen predicate must remain a candidate with predicate_id=null, not disappear. Every object and every top-level response must contain non-empty reason and basis. Write every generated title, statement, summary, reason, basis, unresolved reading, and audit explanation in English. Preserve non-English text only inside exact quotations or identifiers copied from supplied artifacts, and explain each quotation in English. Free-text source content may be interpreted by the LLM, never by deterministic keyword, substring, regex, spelling, identifier-shape, or similarity rules."""
 
 
 # These are semantic routing rules for the frozen registry, not additional
@@ -1303,7 +1345,7 @@ PREDICATE_ROUTING_GUIDANCE = """Frozen predicate routing discipline:
 - For a missing fact, bind the expected exact model/source element and the observed absence or counterexample. For a present fact, preserve it as a non-violation observation unless the supplied dossier identifies a distinct violated obligation."""
 
 
-CONTRACT_SYSTEM_PROMPT = f"""You are the NL contract extraction stage of the paper1 evidence_discovery method. {COMMON_RULES} Extract atomic source obligations before inspecting model satisfaction. For every contract, fill the typed semantic key `(locus_kind, locus_names, property, state_role, expected_direction, violation_direction, evidence_types)` and typed binding hints. Preserve v27 transition relations in `transition_groups` so shared sources, all alternatives, ordering/coreference, and condition roles remain available to grounding; endpoint, guard-disjointness, and termination properties still require their own atomic contracts. Split independently violable containment, initialization, transition endpoint, trigger, guard, effect, action, reachability, progress, event-consumer, region, variable-delta, and excess-behavior clauses instead of bundling them. Preserve qualifiers, ordering, initialization/operation/termination scope, and ambiguity. The violation direction says what later grounding must test; it does not claim that the defect exists. Keep each per-object reason and basis concise and specific; do not restate the full input context. Mark a numbered segment covered only when at least one atomic contract carries that exact segment_id, but do not treat covered as proof that every independent relation in that segment was extracted. During schema correction, return the complete prior atomic list and transition group list with only the reported structural defect repaired; never replace valid contracts with an `other` summary row or a claim that earlier obligations are preserved elsewhere.
+CONTRACT_SYSTEM_PROMPT = f"""You are the NL contract-extraction stage of an evidence-discovery method. {COMMON_RULES} Extract atomic source obligations before inspecting model satisfaction. For every contract, fill the typed semantic key `(locus_kind, locus_names, property, state_role, expected_direction, violation_direction, evidence_types)` and typed binding hints. Preserve typed transition relations in `transition_groups` so shared sources, all alternatives, ordering/coreference, and condition roles remain available to grounding; endpoint, guard-disjointness, and termination properties still require their own atomic contracts. Split independently violable containment, initialization, transition endpoint, trigger, guard, effect, action, reachability, progress, event-consumer, region, variable-delta, and excess-behavior clauses instead of bundling them. Preserve qualifiers, ordering, initialization/operation/termination scope, and ambiguity. The violation direction says what later grounding must test; it does not claim that the defect exists. Keep each per-object reason and basis concise and specific; do not restate the full input context. Mark a numbered segment covered only when at least one atomic contract carries that exact segment_id, but do not treat covered as proof that every independent relation in that segment was extracted. During schema correction, return the complete prior atomic list and transition group list with only the reported structural defect repaired; never replace valid contracts with an `other` summary row or a claim that earlier obligations are preserved elsewhere.
 
 Every `transition_endpoints` contract must carry exactly one typed `source` hint and exactly one typed `target` hint, even when the same values already appear in `locus_names`. An enclosing `owner` is scope provenance and never substitutes for the transition source. For example, an endpoint from `enter_hwy` to `cruise` carries source=`enter_hwy` and target=`cruise`; when `OperatingMode` completes by transitioning to `FinishState`, use source=`OperatingMode` and target=`FinishState`, not owner=`OperatingMode` plus target. A row with only source or only owner+target is structurally incomplete and must be repaired without dropping other contracts.
 
@@ -1320,7 +1362,7 @@ Atomic contract shape:
 - `wrong_target` belongs to `transition_endpoints`, `wrong_guard` to `guard`, `wrong_effect` to `effect` or `variable_delta`, `unreachable` to `reachability`, `dead_end` to `deadlock_freedom`, and `unconsumed` to `event_consumer_coverage`. Do not encode one property with another property's direction.
 - When an event is semantically required to be accepted within a scope, emit a separate `event_consumer_coverage` contract in addition to any local endpoint/trigger contract. This is a semantic LLM judgment from the supplied NL, never a spelling or keyword rule.
 
-v27 state-role and discourse discipline:
+State-role and discourse discipline:
 - Preserve the semantic role of every state-centered obligation in `state_role`. Use `operating_state` for an active control state or substate whose behavior must react, continue, or lead onward; use `termination_state` only when the NL explicitly establishes completion or intended terminal behavior. A name that sounds like stopping, emergency, final, or completion is not itself terminal evidence.
 - Emit `deadlock_freedom` only when the NL explicitly requires continuation, response availability, repeated operation, or onward progress for that exact state/scope. When the NL explicitly requires an activity to be performed continuously or repeatedly, emit a separate `state_action` contract for that exact operating state/scope even if the same segment also establishes cardinality, containment, or another structural property. Merely naming an activity, entering a state, or targeting an operating state does not create a progress contract or a `state_action` contract. Cross-view grounding may later add a domain-grounded reachability/progress obligation from exact source/inspection facts; NL-only extraction must not pre-enumerate one for every state.
 - When the NL explicitly says that a mode ends, completes, or terminates at a state, set that state's role to `termination_state` and emit an independent `termination` contract with `expected_direction=must_terminate` and `violation_direction=not_completed`. Do not simultaneously manufacture a progress contract for that terminal role. Grounding will assess stable termination separately from endpoint existence.
@@ -1344,7 +1386,7 @@ Before returning, perform one semantic completeness pass without adding a new st
 Return only the requested Pydantic structure."""
 
 
-DISCOVERY_GROUNDING_SYSTEM_PROMPT = f"""You are one complementary discovery-grounding lens of the paper1 evidence_discovery method. {COMMON_RULES} In one cross-view response, use NL contracts, PlantUML, canonical source IR, exact source inventory, working contract, and source trace to locate author-source obligations, then use FCSTM, owned ModelIR, reference inspection facts, owned inspection-equivalent facts, finite verify facts, and SMT formula summaries to bind exact closed-model elements and propose candidates. PlantUML/canonical source is author localization, FCSTM is the closed model under test, and inspection/verify/SMT rows are deterministic facts; never substitute one role for another. Do not rewrite an NL contract to match the model, claim that source presence proves execution, or treat unknown/not-run facts as violations.
+DISCOVERY_GROUNDING_SYSTEM_PROMPT = f"""You are one complementary discovery-grounding lens of an evidence-discovery method. {COMMON_RULES} In one cross-view response, use NL contracts, PlantUML, canonical source IR, exact source inventory, working contract, and source trace to locate author-source obligations, then use FCSTM, owned ModelIR, reference inspection facts, owned inspection-equivalent facts, finite verify facts, and SMT formula summaries to bind exact closed-model elements and propose candidates. PlantUML/canonical source is author localization, FCSTM is the closed model under test, and inspection/verify/SMT rows are deterministic facts; never substitute one role for another. Do not rewrite an NL contract to match the model, claim that source presence proves execution, or treat unknown/not-run facts as violations.
 
 Every candidate must copy one exact `contract_id` and preserve that contract's
 `locus_kind`, `locus_names`, `property`, and `violation_direction`. Evaluate the
@@ -1413,13 +1455,13 @@ put its exact ref in `carrier_transition_ref`. Emit status=exact only for a uniq
 supplied mapping; otherwise use ambiguous/unbound. Do not infer mappings from
 substring, spelling, identifier shape, majority vote, or the current model target.
 
-Return sparse v27-style output. Do not restate satisfied or not-applicable
+Return sparse structured output. Do not restate satisfied or not-applicable
 contracts. Use `unresolved` only for an exact contract whose semantic source,
 model identity, or necessary fact cannot be bound, and give that row its own
 reason and basis. A contract absent from candidates and unresolved makes no
 additional claim and remains fully preserved in the contract-stage receipt.
 
-Like v27 `additional_contracts`, this branch may add a small number of causal
+`additional_contracts` may add a small number of causal
 atomic obligations when the cross-view closure exposes a property that the NL-only
 contract extraction could not see. This does not authorize arbitrary issue
 invention. Every additional contract must retain one supplied numbered NL segment,
@@ -1647,7 +1689,7 @@ DISCOVERY_GROUNDING_AUDIT_LENSES: dict[GroundingLens, str] = {
 }
 
 
-D_SYSTEM_PROMPT = """You are the method's semantic D adjudication stage. Use only the supplied NL contracts, author-source facts, exact bindings, predicate plan, and backend receipt. Never read or infer frozen ledger answers, baseline hit/FP results, independent judge examples, other pair payloads, or historical release outputs. Do not output D0/D1/D2, W0/W1/W2, L, a hit, or a release decision. Instead return one SemanticAdjudication per supplied obligation using only the closed grounding and defeater enums. `reason` must explain the supplied NL clause, exact source/model facts, and strongest alternative reading; `basis` must identify the supplied artifacts. Free-text wording is for audit only: do not decide from keyword, substring, regex, spelling, identifier shape, or text similarity.
+D_SYSTEM_PROMPT = """You are the method's semantic D adjudication stage. Use only the supplied NL contracts, author-source facts, exact bindings, predicate plan, and backend receipt. Never read or infer evaluation ground truth, scores, reviewer examples, artifacts from other evaluation cases, or previously generated reports. Do not output D0/D1/D2, W0/W1/W2, L, a hit, or a release decision. Instead return one SemanticAdjudication per supplied obligation using only the closed grounding and defeater enums. `reason` must explain the supplied NL clause, exact source/model facts, and strongest alternative reading; `basis` must identify the supplied artifacts. Write every generated decision, violated-obligation summary, defeater, reason, and basis in English. Preserve non-English text only inside exact quotations or identifiers copied from supplied artifacts, and explain each quotation in English. Free-text wording is for audit only: do not decide from keyword, substring, regex, spelling, identifier shape, or text similarity.
 
 D boundary: an unsupported or W1-only predicate does not erase a precise issue. When exact supplied source/model facts establish the candidate's semantic obligation, use grounding=established and describe the surviving ambiguity as a typed defeater when appropriate; deterministic code will keep it at W1. Use grounding=unresolved only when the supplied dossier genuinely cannot decide. A completed predicate result that is true for the requirement is not a violation merely because the candidate text sounds concerning.
 
@@ -1714,7 +1756,7 @@ def build_contract_prompt(
     pair: PairInput,
     round_index: int,
 ) -> str:
-    """Build the single whole-cell v27 contract-extraction prompt."""
+    """Build the single whole-cell typed contract-extraction prompt."""
 
     if not pair.nl_segments:
         raise ValueError("contract extraction requires at least one numbered NL segment")
@@ -1726,7 +1768,7 @@ Round: {round_index}
 Stage-scoped context projection and complete artifact manifest:
 {context_text}
 
-Extract one NLContract per independently violable normative obligation. The typed semantic key and binding hints are the contract plan consumed by both grounding branches. Mark every supplied numbered NL segment as covered, context, or ambiguous. Every contract_id must include its exact segment_id (for example, NL-CONTRACT-NL6-ENDPOINT-1) and must be unique within this whole-cell response. Do not include ledger IDs, baseline labels, judge examples, W/D/L values, or hidden expected answers.
+Extract one NLContract per independently violable normative obligation. The typed semantic key and binding hints are the contract plan consumed by both grounding branches. Mark every supplied numbered NL segment as covered, context, or ambiguous. Every contract_id must include its exact segment_id (for example, NL-CONTRACT-NL6-ENDPOINT-1) and must be unique within this whole-cell response. Do not include evaluation identifiers, scores, reviewer examples, W/D/L values, or hidden expected answers.
 
 If Pydantic schema feedback requests a correction, return the complete replacement
 NLContractResponse: preserve and repeat every already valid contract and transition
@@ -1742,7 +1784,7 @@ def build_grounding_prompt(
     round_index: int,
     contracts: NLContractResponse,
 ) -> str:
-    """Build one v27 lens prompt over the shared compact cross-view closure."""
+    """Build one complementary-lens prompt over the shared compact cross-view closure."""
 
     contract_ids = [contract.contract_id for contract in contracts.contracts]
 
@@ -1832,7 +1874,6 @@ def _compact_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
     binding = dossier.get("binding", {})
     plan = dossier.get("plan", {})
     receipt = dossier.get("receipt", {})
-    attribution = dossier.get("source_attribution", {})
     compact_plan = {
         key: plan[key]
         for key in (
@@ -1869,11 +1910,6 @@ def _compact_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
         )
         if key in receipt
     }
-    compact_attribution = {
-        key: attribution[key]
-        for key in ("requirement", "source", "model", "plan", "backend", "input_context")
-        if key in attribution
-    }
     return {
         "obligation_id": dossier.get("obligation_id"),
         "candidate": {
@@ -1902,9 +1938,8 @@ def _compact_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
         "binding": binding,
         "plan": compact_plan,
         "receipt": compact_receipt,
-        "source_attribution": compact_attribution,
-        "reason": "D receives the exact candidate, binding, predicate semantics, and backend result; raw audit and retry payloads remain receipt-only.",
-        "basis": "dossier-prompt-projection.v2",
+        "reason": "D receives the exact candidate, binding, predicate semantics, and backend result; repeated paths, attribution metadata, raw audit, and retry payloads remain receipt-only.",
+        "basis": "dossier-prompt-projection.v3",
     }
 
 
@@ -1917,7 +1952,7 @@ def build_d_correction_prompt(
     extra_ids: list[str],
     invalid_decisions: dict[str, list[str]] | None = None,
 ) -> str:
-    """Build the one v27 targeted repair for missing or invalid D rows."""
+    """Build one targeted repair prompt for missing or invalid D rows."""
 
     invalid_decisions = invalid_decisions or {}
     repair_ids = set(missing_ids) | set(duplicate_ids) | set(invalid_decisions)
@@ -1949,7 +1984,7 @@ Return exactly one decision per repair ID (the union of missing_ids,
 duplicate_ids_to_repair, and the keys of invalid_decisions). Do not repeat any
 frozen valid decision or any extra ID. If the supplied dossier cannot decide,
 use grounding=unresolved with a non-empty reason and basis. Do not emit W/D/L/L
-levels, ledger answers, baseline results, or judge examples.
+levels, evaluation ground truth, scores, or reviewer examples.
 """
 
 
@@ -1977,7 +2012,7 @@ def fallback_d_adjudication(obligation_ids: list[str], reason: str) -> DAdjudica
 
 
 def build_method_prompt(pair: PairInput, round_index: int, previous: list[dict[str, Any]]) -> str:
-    """Compatibility prompt exposing the first v27 discovery lens."""
+    """Compatibility prompt exposing the first complementary discovery lens."""
 
     del previous
 
@@ -2003,7 +2038,7 @@ def build_method_prompt(pair: PairInput, round_index: int, previous: list[dict[s
             for segment in pair.nl_segments
         ),
         segment_disposition={segment.segment_id: "covered" for segment in pair.nl_segments},
-        reason="The compatibility prompt exposes the complete v27-shaped context.",
+        reason="The compatibility prompt exposes the complete typed context.",
         basis="context-manifest.v1",
     )
     return build_grounding_prompt(
@@ -2084,7 +2119,7 @@ def fallback_grounding(
             GroundingUnresolved(
                 contract_id=contract.contract_id,
                 reason="The lens provider/schema result was unavailable; no semantic candidate was inferred from an unrelated model fact.",
-                basis=f"{reason}; exact contract ID accounting and v27 no-fabricated-fallback rule",
+                basis=f"{reason}; exact contract ID accounting and no-fabricated-fallback rule",
             )
             for contract in contracts.contracts
         ],
@@ -2099,7 +2134,7 @@ def assemble_method_response(
     reason: str,
     basis: str,
 ) -> MethodResponse:
-    """Merge both v27 lens candidate surfaces by exact typed identity."""
+    """Merge both complementary-lens candidate surfaces by exact typed identity."""
 
     seen: set[str] = set()
     candidates: list[CandidateIssue] = []

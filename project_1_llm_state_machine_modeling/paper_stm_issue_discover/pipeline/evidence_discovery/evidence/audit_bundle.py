@@ -21,7 +21,7 @@ class W2AuditBundle(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["paper1.evidence_discovery.w2_audit_bundle.v3"] = Field(description="Versioned W2 audit schema identifier.")
+    schema: Literal["evidence-discovery.w2_audit_bundle.v3"] = Field(description="Versioned W2 audit schema identifier.")
     generated_at: datetime = Field(description="Timezone-aware backend evidence generation timestamp.")
     pair_id: str = Field(pattern=r"^[0-9]{4}$", description="Frozen pair owning this W2 evidence record.")
     obligation_id: str = Field(min_length=1, description="Stable pair-round-candidate obligation identity.")
@@ -83,7 +83,7 @@ def build_audit_bundle(
         "sha256:" + hashlib.sha256(program.encode("utf-8")).hexdigest()
     )
     payload = {
-        "schema": "paper1.evidence_discovery.w2_audit_bundle.v3",
+        "schema": "evidence-discovery.w2_audit_bundle.v3",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "pair_id": pair.pair_id,
         "obligation_id": obligation_id,

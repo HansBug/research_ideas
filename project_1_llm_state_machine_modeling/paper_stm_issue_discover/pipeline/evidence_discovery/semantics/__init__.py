@@ -25,7 +25,7 @@ from .frontier import (
     canonical_transition_group_id,
     canonicalize_grounding_response,
     contract_semantic_key,
-    materialize_v27_frontier,
+    materialize_typed_frontier,
     transition_group_semantic_key,
 )
 from .workflow import (
@@ -108,7 +108,7 @@ __all__ = [
     "materialize_group_containment_contracts",
     "materialize_segment_coverage",
     "normalize_contract_state_roles",
-    "materialize_v27_frontier",
+    "materialize_typed_frontier",
     "resolve_state_ref",
     "resolve_transition_ref",
     "transition_group_semantic_key",

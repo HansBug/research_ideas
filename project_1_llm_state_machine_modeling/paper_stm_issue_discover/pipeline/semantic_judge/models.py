@@ -63,11 +63,11 @@ class CandidateEvidence(FrozenModel):
 
     evidence_ref: str = Field(
         min_length=1,
-        description="报告自身引用的匿名 evidence ID；来源臂没有证据时列表为空，下游只用它审计主张，不作参评门槛。",
+        description="Anonymous evidence ID cited by the report itself; an arm with no report-owned evidence supplies an empty list, and downstream review uses this only to audit the claim, never as an eligibility gate.",
     )
     statement: str = Field(
         min_length=1,
-        description="报告实际给出的技术证据陈述；它是候选性材料，不代表 Judge 已确认真实性。",
+        description="Technical evidence statement actually supplied by the report; this is candidate material and does not mean the Judge has confirmed its truth.",
     )
 
 
@@ -81,51 +81,51 @@ class CandidateReport(FrozenModel):
 
     schema_version: Literal["paper1.semantic-judge.candidate-report.v1"] = Field(
         default="paper1.semantic-judge.candidate-report.v1",
-        description="候选报告协议版本；用于持久化兼容，不表达报告质量。",
+        description="Candidate-report protocol version for persistence compatibility; it says nothing about report quality.",
     )
     report_id: str = Field(
         pattern=r"^R\d{4}$",
-        description="pair 内匿名报告 ID，只用于 exact closure；不得从编号、顺序或前缀推断实验臂或语义。",
+        description="Anonymous report ID within the pair, used only for exact closure; never infer experimental arm or semantics from its number, order, or prefix.",
     )
     claim: str = Field(
         min_length=1,
-        description="报告实际发布的原子技术主张；它是候选性陈述，Judge 必须另行验证，不能直接采信。",
+        description="Atomic technical claim actually published by the report; it is a candidate statement that the Judge must verify independently rather than trust directly.",
     )
     where: str | None = Field(
         default=None,
-        description="报告自身给出的 locus/where；null 表示原报告未提供，不能由适配器替该臂补写。",
+        description="Locus or where supplied by the report itself; null means the original report omitted it, and an adapter may not add it for that arm.",
     )
     property: str | None = Field(
         default=None,
-        description="报告自身明确声称被违反的 property；null 表示原报告没有 typed property，绝不构成 FULL 或 validity 的阻断。",
+        description="Property explicitly claimed as violated by the report; null means the original report has no typed property and must never block FULL or validity.",
     )
     violated_obligation: str | None = Field(
         default=None,
-        description="报告自身表述的规范义务；null 表示没有独立字段，下游可从 claim/reason 审计但适配器不得合成。",
+        description="Normative obligation stated by the report; null means there was no separate field, so downstream review may audit claim/reason but the adapter may not synthesize one.",
     )
     expected: str | None = Field(
         default=None,
-        description="报告自身描述的应然行为；null 表示原报告未拆分 expected/observed，而非没有语义内容。",
+        description="Expected behavior described by the report; null means the original report did not separate expected from observed, not that it lacks semantic content.",
     )
     observed: str | None = Field(
         default=None,
-        description="报告自身描述的实然行为；null 表示原报告未单列观察，不得以缺字段惩罚报告。",
+        description="Observed behavior described by the report; null means the original report did not provide a separate observation and must not be penalized for the missing field.",
     )
     reason: str = Field(
         min_length=1,
-        description="报告发布时实际拥有的因果解释；属于候选证据，Judge 用公共制品独立复核。",
+        description="Causal explanation actually owned by the report at publication; it is candidate evidence that the Judge independently checks against common artifacts.",
     )
     basis: str | None = Field(
         default=None,
-        description="报告实际拥有的制品依据；null 表示原臂没有 basis 字段，不能推导或补写 method-only dossier。",
+        description="Artifact basis actually owned by the report; null means the source arm had no basis field, so no method-only dossier may be inferred or added.",
     )
     source_refs: tuple[str, ...] = Field(
         default_factory=tuple,
-        description="报告实际携带的 NL/source/model/fact refs；空集合表示原报告没有结构化 refs，不影响参评资格。",
+        description="NL, source, model, or fact references actually carried by the report; an empty tuple means the original report had no structured references and does not affect eligibility.",
     )
     evidence: tuple[CandidateEvidence, ...] = Field(
         default_factory=tuple,
-        description="报告自身可公开审计的证据陈述；不包含 W/D/L、predicate、编译计划或隐藏中间推理。",
+        description="Publicly auditable evidence statements owned by the report; excludes W/D/L, predicates, compilation plans, and hidden intermediate reasoning.",
     )
 
 
@@ -134,23 +134,23 @@ class ExpectedAxisHints(FrozenModel):
 
     defect_locus: str | None = Field(
         default=None,
-        description="台账描述的缺陷 locus 提示；null 表示未标注，Judge 不得要求报告逐字段相同。",
+        description="Ledger hint describing the defect locus; null means unannotated, and the Judge must not require field-for-field identity from a report.",
     )
     defect_element: str | None = Field(
         default=None,
-        description="台账描述的 element 提示；只辅助理解 expected，不是 exact-field hit gate。",
+        description="Ledger hint describing an element; it only aids interpretation of the expected issue and is not an exact-field hit gate.",
     )
     defect_qualifier: str | None = Field(
         default=None,
-        description="台账描述的 qualifier 提示；null 不影响 expected 身份。",
+        description="Ledger qualifier hint; null does not change the expected issue's identity.",
     )
     defect_logic_kind: str | None = Field(
         default=None,
-        description="台账描述的 logic kind；只作语义背景，不是报告资格条件。",
+        description="Ledger logic-kind hint used only as semantic context, never as a report eligibility condition.",
     )
     defect_reference: str | None = Field(
         default=None,
-        description="台账描述的 reference authority；与报告证据强度或 W 无关。",
+        description="Reference-authority hint recorded by the ledger; it is unrelated to report evidence strength or W.",
     )
 
 
@@ -163,30 +163,30 @@ class ExpectedIssue(FrozenModel):
 
     schema_version: Literal["paper1.semantic-judge.expected-issue.v1"] = Field(
         default="paper1.semantic-judge.expected-issue.v1",
-        description="匿名 expected issue 投影版本；不暴露 ledger 的 D/L。",
+        description="Anonymous expected-issue projection version; it does not expose ledger D or L.",
     )
     expected_id: str = Field(
         pattern=r"^E\d{4}$",
-        description="pair 内匿名 expected ID，只用于完整关系矩阵；原 ledger ID 仅保存在 provider 外 mapping。",
+        description="Anonymous expected ID within the pair, used only for the complete relation matrix; the original ledger ID remains only in provider-external mapping.",
     )
     summary: str = Field(
         min_length=1,
-        description="冻结台账的核心缺陷摘要，是 expected 语义身份的一部分。",
+        description="Core defect summary from the frozen ledger; this is part of the expected issue's semantic identity.",
     )
     detail: str = Field(
         min_length=1,
-        description="冻结台账的完整缺陷机制、locus、后果和边界；用于宽语义 FULL/PARTIAL 裁定。",
+        description="Complete frozen-ledger defect mechanism, locus, consequence, and boundary used for academically broad FULL/PARTIAL assessment.",
     )
     source_statement: str | None = Field(
         default=None,
-        description="台账 provenance 中的原始/复核技术陈述；null 表示没有该字段，不改变 expected 分母。",
+        description="Original or reviewed technical statement from ledger provenance; null means the field is absent and does not change the expected denominator.",
     )
     axes: ExpectedAxisHints = Field(
-        description="台账 taxonomy 提示；只辅助理解，不得退化成 exact locus/property/scope/direction gate。",
+        description="Ledger taxonomy hints used only for interpretation; they must not become an exact locus/property/scope/direction gate.",
     )
     source_refs: tuple[str, ...] = Field(
         min_length=1,
-        description="expected 可回溯的 ledger/NL 制品引用；Judge basis 应结合公共 closure 复核。",
+        description="Ledger or NL artifact references that trace the expected issue; Judge basis should verify them together with the common closure.",
     )
 
 
@@ -195,30 +195,30 @@ class ArtifactDocument(FrozenModel):
 
     artifact_id: str = Field(
         pattern=r"^artifact:[a-z0-9_-]+$",
-        description="pair 内稳定 artifact 引用，供 Judge basis/source_refs 精确引用。",
+        description="Stable artifact reference within the pair for exact citation in Judge basis and source_refs.",
     )
     role: ArtifactRole = Field(
-        description="制品在统一闭包中的闭集角色；同一 pair 对所有实验臂完全相同。"
+        description="Closed-set role of the artifact in the unified closure; identical for every experimental arm on the same pair."
     )
     authority: ArtifactAuthority = Field(
-        description="制品权威边界；防止作者源、closed model、deterministic facts 和 provenance 相互冒充。"
+        description="Artifact authority boundary that prevents authored source, closed model, deterministic facts, and provenance from substituting for one another."
     )
     sha256: str = Field(
         pattern=r"^sha256:[0-9a-f]{64}$",
-        description="该制品投影内容的 SHA-256，用于两臂公共闭包 identity 检查。",
+        description="SHA-256 of the projected artifact content used to prove common-closure identity across arms.",
     )
     schema_version: str = Field(
-        min_length=1, description="制品自身 schema/version；纯文本使用明确 text 版本。"
+        min_length=1, description="Artifact's own schema/version; plain text uses an explicit text version."
     )
     content: str = Field(
         min_length=1,
-        description="完整 UTF-8 文本或稳定 JSON 文本；事实性权威由 role/authority 决定，不由报告决定。",
+        description="Complete UTF-8 text or stable JSON text; factual authority comes from role and authority, not from a report.",
     )
     reason: str = Field(
-        min_length=1, description="为何该制品属于真实性仲裁所需公共闭包。"
+        min_length=1, description="Why this artifact belongs in the common closure required for truth arbitration."
     )
     basis: str = Field(
-        min_length=1, description="制品来源和构建算法依据，不含实验臂或历史分数。"
+        min_length=1, description="Artifact source and builder-algorithm basis with no experimental-arm or historical-score information."
     )
 
 
@@ -227,25 +227,25 @@ class JudgeArtifactClosure(FrozenModel):
 
     schema_version: Literal["paper1.semantic-judge.artifact-closure.v2"] = Field(
         default="paper1.semantic-judge.artifact-closure.v2",
-        description="公共制品闭包 schema 版本；任何内容/截断策略变化都必须改变版本或 hash。",
+        description="Common artifact-closure schema version; any content or truncation-policy change must alter the version or hash.",
     )
     pair_id: str = Field(
         pattern=r"^\d{4}$",
-        description="冻结 pair 身份；仅用于选择同一公共制品，不表示实验臂。",
+        description="Frozen pair identity used only to select common artifacts; it does not identify an experimental arm.",
     )
     artifacts: tuple[ArtifactDocument, ...] = Field(
         min_length=1,
-        description="按固定 role 顺序排列的完整公共制品；不得按报告来源臂增删、重排或截断。",
+        description="Complete common artifacts in fixed role order; never add, remove, reorder, or truncate them by report-producing arm.",
     )
     closure_hash: str = Field(
         pattern=r"^sha256:[0-9a-f]{64}$",
-        description="除本字段外整个闭包稳定 JSON 的 SHA-256，用于 apples-to-apples 证明。",
+        description="SHA-256 of stable closure JSON excluding this field, used as apples-to-apples evidence.",
     )
     reason: str = Field(
-        min_length=1, description="公共闭包为何足以审计真实性且对两臂公平。"
+        min_length=1, description="Why the common closure is sufficient to audit truth and fair to both arms."
     )
     basis: str = Field(
-        min_length=1, description="闭包 builder 版本、PairInput 和逐制品 hash 依据。"
+        min_length=1, description="Closure-builder version, PairInput, and per-artifact hash basis."
     )
 
     @model_validator(mode="after")
@@ -268,32 +268,32 @@ class UnifiedJudgeInput(FrozenModel):
 
     schema_version: Literal["paper1.semantic-judge.input.v1"] = Field(
         default="paper1.semantic-judge.input.v1",
-        description="统一 Judge 输入协议版本；两臂必须进入同一 class 和 serialization。",
+        description="Unified Judge input protocol version; both arms must enter the same class and serialization.",
     )
     protocol_version: str = Field(
         min_length=1,
-        description="冻结 issue #195 protocol version；语义变化会使旧分数失效。",
+        description="Frozen issue #195 protocol version; a semantic change invalidates scores from older versions.",
     )
     pair_id: str = Field(
         pattern=r"^\d{4}$",
-        description="被裁 pair；输入不含 arm 名称、历史结果或方法标签。",
+        description="Pair under assessment; input contains no arm name, historical result, or method label.",
     )
     reports: tuple[CandidateReport, ...] = Field(
-        description="实际发布报告的匿名 arm-neutral 投影；允许为空，禁止补写原臂没有的语义。"
+        description="Anonymous arm-neutral projections of actually published reports; may be empty, and may not add semantics absent from the source arm."
     )
     expected_issues: tuple[ExpectedIssue, ...] = Field(
         min_length=1,
-        description="该 pair 冻结 D2+D1 expected 分母的匿名投影；不含 D/L。",
+        description="Anonymous projection of the pair's frozen D2+D1 expected denominator; contains no D or L.",
     )
     artifact_closure: JudgeArtifactClosure = Field(
-        description="对所有实验臂逐字相同的公共真实性审计闭包。"
+        description="Common truth-audit closure serialized identically for every experimental arm."
     )
     reason: str = Field(
-        min_length=1, description="输入如何由匿名报告、冻结 expected 和公共闭包组成。"
+        min_length=1, description="How anonymous reports, frozen expected issues, and the common closure compose this input."
     )
     basis: str = Field(
         min_length=1,
-        description="adapter、ledger projection、artifact builder 和 protocol hash 依据。",
+        description="Adapter, ledger-projection, artifact-builder, and protocol-hash basis.",
     )
 
     @model_validator(mode="after")
@@ -320,26 +320,26 @@ class RelationAssessment(FrozenModel):
     """One required dimension-A decision for an exact report/expected pair."""
 
     report_id: str = Field(
-        min_length=1, description="被比较的匿名 report ID；必须来自输入 exact closure。"
+        min_length=1, description="Anonymous report ID being compared; it must come from the exact input closure."
     )
     expected_id: str = Field(
         min_length=1,
-        description="被比较的匿名 expected ID；必须来自输入 exact closure。",
+        description="Anonymous expected ID being compared; it must come from the exact input closure.",
     )
     match: MatchStrength = Field(
-        description="issue #195 维度 A；与报告 validity 分开，PARTIAL 既不 hit 也不 FP。"
+        description="Issue #195 dimension A, separate from report validity; PARTIAL is neither a hit nor a false positive."
     )
     reason: str = Field(
         min_length=1,
-        description="为什么两者是 FULL/PARTIAL/NO；需说明 root cause、义务、症状或修复重叠边界。",
+        description="Why the pair is FULL, PARTIAL, or NO; explain root-cause, obligation, symptom, or repair-overlap boundaries.",
     )
     basis: str = Field(
         min_length=1,
-        description="支持关系判断的 supplied report、expected 与公共 artifact 事实。",
+        description="Supplied report, expected issue, and common-artifact facts that support the relation judgment.",
     )
     source_refs: tuple[str, ...] = Field(
         min_length=1,
-        description="关系判断实际引用的 report/expected/artifact refs；不得为空。",
+        description="Report, expected, and artifact references actually used by the relation judgment; must not be empty.",
     )
 
 
@@ -347,26 +347,26 @@ class ReportJudgment(FrozenModel):
     """LLM-authored dimension-B and root-cause judgment without derived ID sets."""
 
     report_id: str = Field(
-        min_length=1, description="被裁报告的匿名 ID；在 response 中必须 exactly once。"
+        min_length=1, description="Anonymous ID of the assessed report; it must occur exactly once in the response."
     )
     validity: ReportValidity = Field(
-        description="issue #195 维度 B；只有 INVALID 是 semantic FP。"
+        description="Issue #195 dimension B; only INVALID is a semantic false positive."
     )
     root_cause_cluster_key: str = Field(
         min_length=1,
-        description="基于可行动技术根因的稳定短语 key；不得使用 report ID/顺序，邻近但不同 property/source 不合并。",
+        description="Stable phrase key based on an actionable technical root cause; never use report ID/order or merge nearby claims with different properties or sources.",
     )
     reason: str = Field(
         min_length=1,
-        description="为什么报告主张成立/不成立以及 KNOWN/NOVEL 归属；不得由 unmatched 自动推出。",
+        description="Why the report claim is true or false and why a valid report is KNOWN or NOVEL; unmatched status alone proves neither.",
     )
     basis: str = Field(
         min_length=1,
-        description="真实性裁定引用的 NL、PlantUML、FCSTM、facts 或完整语义审计依据。",
+        description="NL, PlantUML, FCSTM, deterministic facts, or complete semantic-audit basis used for the truth judgment.",
     )
     source_refs: tuple[str, ...] = Field(
         min_length=1,
-        description="报告 validity 实际引用的 supplied source refs；不得为空。",
+        description="Supplied source references actually used for report validity; must not be empty.",
     )
 
 
@@ -375,19 +375,19 @@ class ExpectedJudgment(FrozenModel):
 
     expected_id: str = Field(
         min_length=1,
-        description="被解释 expected 的匿名 ID；在 response 中必须 exactly once。",
+        description="Anonymous ID of the explained expected issue; it must occur exactly once in the response.",
     )
     reason: str = Field(
         min_length=1,
-        description="该 expected 与所有报告关系的语义总结；hit/support 由后端矩阵确定性派生。",
+        description="Semantic summary of this expected issue's relations to all reports; the backend derives hit and support deterministically from the matrix.",
     )
     basis: str = Field(
         min_length=1,
-        description="逐 relation、validity 和公共制品依据；不得自报计分数字。",
+        description="Per-relation, validity, and common-artifact basis; do not self-report metric values.",
     )
     source_refs: tuple[str, ...] = Field(
         min_length=1,
-        description="expected judgment 实际引用的 expected/report/artifact refs。",
+        description="Expected, report, and artifact references actually used by this expected judgment.",
     )
 
 
@@ -396,27 +396,27 @@ class JudgeResponse(FrozenModel):
 
     schema_version: Literal["paper1.semantic-judge.response.v2"] = Field(
         default="paper1.semantic-judge.response.v2",
-        description="provider structured-output schema 版本；derived sets/hit/support 从 v2 起由后端唯一生成。",
+        description="Provider structured-output schema version; from v2 onward, only the backend generates derived sets, hit, and support.",
     )
     relations: tuple[RelationAssessment, ...] = Field(
-        description="report x expected 完整矩阵，包含所有 NO_MATCH，不能稀疏省略。"
+        description="Complete report-by-expected matrix including every NO_MATCH; it must not be sparse."
     )
     report_judgments: tuple[ReportJudgment, ...] = Field(
-        description="每条 report exactly once 的 validity/root-cause/reason/basis。"
+        description="Validity, root cause, reason, and basis for every report exactly once."
     )
     expected_judgments: tuple[ExpectedJudgment, ...] = Field(
-        description="每条 expected exactly once 的语义 reason/basis；不重复填写可派生集合。"
+        description="Semantic reason and basis for every expected issue exactly once; do not repeat derivable sets."
     )
     reason: str = Field(
-        min_length=1, description="本次完整判读的总体语义结论，不得只复述计数。"
+        min_length=1, description="Overall semantic conclusion of the complete reading; do not merely restate counts."
     )
     basis: str = Field(
         min_length=1,
-        description="本次判读使用的协议、匿名输入和公共 artifact closure 依据。",
+        description="Protocol, anonymous input, and common artifact-closure basis used by this reading.",
     )
     source_refs: tuple[str, ...] = Field(
         min_length=1,
-        description="顶层判读实际依赖的 supplied artifact/report/expected refs。",
+        description="Supplied artifact, report, and expected references actually used by the top-level reading.",
     )
 
 
@@ -424,35 +424,35 @@ class ReportAssessment(FrozenModel):
     """One dimension-B validity decision plus exhaustive relation-derived ownership."""
 
     report_id: str = Field(
-        min_length=1, description="被裁报告的匿名 ID；在响应中必须 exactly once。"
+        min_length=1, description="Anonymous ID of the assessed report; it must occur exactly once in the response."
     )
     validity: ReportValidity = Field(
-        description="issue #195 维度 B；只有 INVALID 是 semantic FP。"
+        description="Issue #195 dimension B; only INVALID is a semantic false positive."
     )
     full_expected_ids: tuple[str, ...] = Field(
-        description="该报告 FULL_MATCH 的全部 expected IDs；由 relation matrix 精确派生。"
+        description="All expected IDs that FULL_MATCH this report, derived exactly from the relation matrix."
     )
     partial_expected_ids: tuple[str, ...] = Field(
-        description="该报告 PARTIAL_MATCH 的全部 expected IDs；只支持 coverage，不算 hit/FP。"
+        description="All expected IDs that PARTIAL_MATCH this report; they support coverage but count as neither hit nor false positive."
     )
     no_match_expected_ids: tuple[str, ...] = Field(
-        description="该报告 NO_MATCH 的全部 expected IDs；三组必须精确覆盖 expected closure。"
+        description="All expected IDs with NO_MATCH for this report; the three relation sets must exactly cover the expected closure."
     )
     root_cause_cluster_key: str = Field(
         min_length=1,
-        description="基于可行动技术根因的稳定短语 key，用于重复率和 cluster precision；不得使用 report ID/顺序。",
+        description="Stable phrase key based on an actionable technical root cause, used for redundancy and cluster precision; never use report ID or order.",
     )
     reason: str = Field(
         min_length=1,
-        description="为什么报告主张成立/不成立以及 KNOWN/NOVEL 归属；不得由 unmatched 自动推出。",
+        description="Why the report claim is true or false and why a valid report is KNOWN or NOVEL; unmatched status alone proves neither.",
     )
     basis: str = Field(
         min_length=1,
-        description="真实性裁定引用的 NL、PlantUML、FCSTM、facts 或完整语义审计依据。",
+        description="NL, PlantUML, FCSTM, deterministic facts, or complete semantic-audit basis used for the truth judgment.",
     )
     source_refs: tuple[str, ...] = Field(
         min_length=1,
-        description="报告 validity 实际引用的 supplied source refs；不得为空。",
+        description="Supplied source references actually used for report validity; must not be empty.",
     )
 
 
@@ -460,33 +460,33 @@ class ExpectedAssessment(FrozenModel):
     """One exhaustive expected-side coverage decision derived from valid reports."""
 
     expected_id: str = Field(
-        min_length=1, description="被汇总 expected 的匿名 ID；响应中必须 exactly once。"
+        min_length=1, description="Anonymous ID of the summarized expected issue; it must occur exactly once in the response."
     )
     full_report_ids: tuple[str, ...] = Field(
-        description="对该 expected 为 FULL 且报告 validity=VALID_KNOWN 的报告 IDs。"
+        description="Report IDs with FULL relation to this expected issue and VALID_KNOWN report validity."
     )
     partial_report_ids: tuple[str, ...] = Field(
-        description="对该 expected 为 PARTIAL 且报告 validity=VALID_KNOWN 的报告 IDs。"
+        description="Report IDs with PARTIAL relation to this expected issue and VALID_KNOWN report validity."
     )
     no_support_report_ids: tuple[str, ...] = Field(
-        description="未形成有效 FULL/PARTIAL 支持的其余全部报告 IDs。"
+        description="Every remaining report ID that provides no valid FULL or PARTIAL support."
     )
     hit: bool = Field(
-        description="是否存在 VALID_KNOWN + FULL_MATCH；仅该值贡献主 hit。"
+        description="Whether any VALID_KNOWN plus FULL_MATCH report exists; only this condition contributes a primary hit."
     )
     supported: bool = Field(
-        description="是否存在 VALID_KNOWN + FULL/PARTIAL；INVALID 不贡献支持。"
+        description="Whether any VALID_KNOWN plus FULL or PARTIAL report exists; INVALID reports never contribute support."
     )
     reason: str = Field(
         min_length=1,
-        description="该 expected hit/support 状态的语义解释，重复报告只计一次 expected。",
+        description="Semantic explanation of this expected issue's hit/support status; duplicate reports still count the expected issue only once.",
     )
     basis: str = Field(
-        min_length=1, description="对应 relation 和 validity 以及公共制品依据。"
+        min_length=1, description="Corresponding relation, validity, and common-artifact basis."
     )
     source_refs: tuple[str, ...] = Field(
         min_length=1,
-        description="expected assessment 实际引用的 expected/report/artifact refs。",
+        description="Expected, report, and artifact references actually used by this expected assessment.",
     )
 
 
@@ -495,27 +495,27 @@ class JudgeReading(FrozenModel):
 
     schema_version: Literal["paper1.semantic-judge.reading.v1"] = Field(
         default="paper1.semantic-judge.reading.v1",
-        description="完整判读 schema 版本；不编码 primary/arbitration 身份。",
+        description="Complete-reading schema version; it does not encode primary or arbitration role.",
     )
     relations: tuple[RelationAssessment, ...] = Field(
-        description="report x expected 完整矩阵，包含所有 NO_MATCH，不能稀疏省略。"
+        description="Complete report-by-expected matrix including every NO_MATCH; it must not be sparse."
     )
     report_assessments: tuple[ReportAssessment, ...] = Field(
-        description="每条 report exactly once 的 dimension-B 与聚类裁定。"
+        description="Dimension-B and clustering assessment for every report exactly once."
     )
     expected_assessments: tuple[ExpectedAssessment, ...] = Field(
-        description="每条 expected exactly once 的 hit/support 审计。"
+        description="Hit/support audit for every expected issue exactly once."
     )
     reason: str = Field(
-        min_length=1, description="本次完整判读的总体语义结论，不得只复述计数。"
+        min_length=1, description="Overall semantic conclusion of the complete reading; do not merely restate counts."
     )
     basis: str = Field(
         min_length=1,
-        description="本次判读使用的协议、匿名输入和公共 artifact closure 依据。",
+        description="Protocol, anonymous input, and common artifact-closure basis used by this reading.",
     )
     source_refs: tuple[str, ...] = Field(
         min_length=1,
-        description="顶层判读实际依赖的 supplied artifact/report/expected refs。",
+        description="Supplied artifact, report, and expected references actually used by the top-level reading.",
     )
 
 
@@ -531,29 +531,29 @@ class ConflictRecord(FrozenModel):
     """Audit trail for one primary-reading disagreement and arbitrated outcome."""
 
     kind: ConflictKind = Field(
-        description="冲突属于 relation、validity 或 root-cause clustering。"
+        description="Whether the conflict concerns relation, validity, or root-cause clustering."
     )
     object_ref: str = Field(
         min_length=1,
-        description="冲突对象的稳定匿名引用，例如 report:R0001/expected:E0002。",
+        description="Stable anonymous reference to the conflicted object, such as report:R0001/expected:E0002.",
     )
     reading_1_value: str = Field(
-        min_length=1, description="第一次独立判读的枚举或 cluster value。"
+        min_length=1, description="Enum or cluster value from the first independent reading."
     )
     reading_2_value: str = Field(
-        min_length=1, description="第二次独立判读的枚举或 cluster value。"
+        min_length=1, description="Enum or cluster value from the second independent reading."
     )
     final_value: str = Field(
-        min_length=1, description="重新查看完整制品后仲裁采用的最终值，不能是 UNKNOWN。"
+        min_length=1, description="Final value selected after re-reading complete artifacts; it cannot be UNKNOWN."
     )
     reason: str = Field(
-        min_length=1, description="最终为何选择该值，而非按多数投票或按实验臂补票。"
+        min_length=1, description="Why this final value was selected instead of majority voting or arm-specific substitute credit."
     )
     basis: str = Field(
-        min_length=1, description="最终 reading 中对应 relation/report 的制品依据。"
+        min_length=1, description="Artifact basis for the corresponding relation or report in the final reading."
     )
     source_refs: tuple[str, ...] = Field(
-        min_length=1, description="仲裁冲突实际引用的 supplied refs。"
+        min_length=1, description="Supplied references actually used to arbitrate the conflict."
     )
 
 
@@ -561,14 +561,14 @@ class ReadingDisagreement(FrozenModel):
     """Provider-visible primary disagreement before a final value is selected."""
 
     kind: ConflictKind = Field(
-        description="需要仲裁的 relation、validity 或 root-cause clustering 冲突类型。"
+        description="Relation, validity, or root-cause-clustering conflict type requiring arbitration."
     )
     object_ref: str = Field(
         min_length=1,
-        description="冲突的匿名 report/expected 对象引用；不暴露原始臂 ID。",
+        description="Anonymous report/expected object reference for the conflict; it does not expose a source-arm ID.",
     )
-    reading_1_value: str = Field(min_length=1, description="第一次独立判读的结构化值。")
-    reading_2_value: str = Field(min_length=1, description="第二次独立判读的结构化值。")
+    reading_1_value: str = Field(min_length=1, description="Structured value from the first independent reading.")
+    reading_2_value: str = Field(min_length=1, description="Structured value from the second independent reading.")
 
 
 class ArbitrationInput(FrozenModel):
@@ -576,26 +576,26 @@ class ArbitrationInput(FrozenModel):
 
     schema_version: Literal["paper1.semantic-judge.arbitration-input.v1"] = Field(
         default="paper1.semantic-judge.arbitration-input.v1",
-        description="统一仲裁输入版本；只在两次独立判读发生实质冲突时构建。",
+        description="Unified arbitration-input version; built only when the two independent readings have a substantive conflict.",
     )
     judge_input: UnifiedJudgeInput = Field(
-        description="与 primary 完全相同的匿名 reports、expected 和公共 artifact closure。"
+        description="Anonymous reports, expected issues, and common artifact closure identical to the primary input."
     )
     primary_reading_1: JudgeReading = Field(
-        description="第一次完整独立判读及其 reason/basis/source refs。"
+        description="First complete independent reading with its reason, basis, and source references."
     )
     primary_reading_2: JudgeReading = Field(
-        description="第二次完整独立判读及其 reason/basis/source refs。"
+        description="Second complete independent reading with its reason, basis, and source references."
     )
     disagreements: tuple[ReadingDisagreement, ...] = Field(
         min_length=1,
-        description="确定性比较枚举/validity/cluster 后得到的全部实质冲突；文本措辞差异不列入。",
+        description="All substantive conflicts found by deterministic comparison of relation enums, validity, and clusters; wording differences are excluded.",
     )
     reason: str = Field(
-        min_length=1, description="为什么必须重新查看完整制品而不能投票或保留 UNKNOWN。"
+        min_length=1, description="Why complete artifacts must be reviewed again instead of voting or retaining UNKNOWN."
     )
     basis: str = Field(
-        min_length=1, description="issue #195 双读仲裁合同和 exact conflict detection。"
+        min_length=1, description="Issue #195 dual-reading arbitration contract and exact conflict detection."
     )
 
 
@@ -604,42 +604,42 @@ class UsageReceipt(FrozenModel):
 
     model_call_id: str | None = Field(
         default=None,
-        description="provider/public runtime call ID；null 表示 provider error 未暴露 ID。",
+        description="Provider or public-runtime call ID; null means a provider error exposed no ID.",
     )
-    status: str = Field(min_length=1, description="该调用 attempt 的完成/失败状态。")
+    status: str = Field(min_length=1, description="Completion or failure status of this call attempt.")
     model: str | None = Field(
-        default=None, description="provider 实际报告的 model ID；null 表示不可观测。"
+        default=None, description="Model ID actually reported by the provider; null means it was unobservable."
     )
     input_tokens: int | None = Field(
         default=None,
         ge=0,
-        description="规范化总 input tokens；null 表示 provider 未提供。",
+        description="Normalized total input tokens; null means the provider did not report them.",
     )
     output_tokens: int | None = Field(
         default=None,
         ge=0,
-        description="规范化 output tokens；null 表示 provider 未提供。",
+        description="Normalized output tokens; null means the provider did not report them.",
     )
     cache_read_input_tokens: int | None = Field(
         default=None,
         ge=0,
-        description="input_token_details.cache_read 的规范化值；null 表示未报告。",
+        description="Normalized input_token_details.cache_read value; null means it was not reported.",
     )
     cache_write_input_tokens: int | None = Field(
         default=None,
         ge=0,
-        description="provider cache creation/write tokens；null 表示未报告。",
+        description="Provider cache-creation or cache-write tokens; null means they were not reported.",
     )
     cost_counted: bool = Field(
-        description="该 usage 是否按既定 provider-error exemption 计费。"
+        description="Whether this usage is billable under the established provider-error exemption."
     )
     billing_disposition: str = Field(
         min_length=1,
-        description="billable、provider_error_retry_exempt 或明确不可观测状态。",
+        description="Billable, provider_error_retry_exempt, or an explicit unobservable status.",
     )
     raw_usage_json: str = Field(
         min_length=1,
-        description="完整规范化 usage row 的稳定 JSON，保留未知 provider 字段而不以自由 dict 跨阶段传递。",
+        description="Stable JSON for the complete normalized usage row; preserves unknown provider fields without passing a free-form dictionary across stages.",
     )
 
 
@@ -647,26 +647,26 @@ class RetryRecord(FrozenModel):
     """One outer or transport retry audit row for a Judge call."""
 
     attempt_no: int = Field(
-        ge=1, description="本 Judge cell 内从 1 开始的 attempt 序号。"
+        ge=1, description="One-based attempt number within this Judge cell."
     )
     status: str = Field(
         min_length=1,
-        description="attempt 终态，例如 success、exception、provider_error。",
+        description="Terminal attempt status such as success, exception, or provider_error.",
     )
     provider_error: bool = Field(
-        description="是否为 provider 侧错误；仅该类 retry 可费用豁免。"
+        description="Whether this is a provider-side error; only this retry class may be cost-exempt."
     )
     error_code: str | None = Field(
-        default=None, description="结构化错误 code；null 表示成功或 provider 未提供。"
+        default=None, description="Structured error code; null means success or that the provider supplied no code."
     )
     error_message: str | None = Field(
-        default=None, description="可审计错误消息；null 表示无错误，禁止包含 secret。"
+        default=None, description="Auditable error message; null means no error, and the value must never contain a secret."
     )
     billing_disposition: str = Field(
-        min_length=1, description="该 attempt 的费用处理口径。"
+        min_length=1, description="Cost-accounting treatment for this attempt."
     )
     raw_attempt_json: str = Field(
-        min_length=1, description="完整脱敏 attempt/retry 元数据的稳定 JSON。"
+        min_length=1, description="Stable JSON containing complete redacted attempt/retry metadata."
     )
 
 
@@ -675,44 +675,44 @@ class JudgeCallReceipt(FrozenModel):
 
     call_id: str = Field(
         min_length=1,
-        description="pair 内稳定 call ID；只标识审计文件，不承载判决语义。",
+        description="Stable call ID within the pair; it identifies audit files and carries no judgment semantics.",
     )
     phase: Literal["primary_1", "primary_2", "arbitration"] = Field(
-        description="调用在双读仲裁流程中的角色。"
+        description="Role of the call in the dual-reading arbitration flow."
     )
     status: Literal["success", "failed"] = Field(
-        description="结构化调用是否得到完整、已验证 reading。"
+        description="Whether the structured call produced a complete validated reading."
     )
     profile: str = Field(
-        min_length=1, description="统一 Judge 使用的 utils.llm profile；两臂必须相同。"
+        min_length=1, description="utils.llm profile used by the unified Judge; it must be identical for both arms."
     )
     schema_hash: str = Field(
         pattern=r"^sha256:[0-9a-f]{64}$",
-        description="本 pair exact-closure response schema hash。",
+        description="Exact-closure response-schema hash for this pair.",
     )
     prompt_hash: str = Field(
         pattern=r"^sha256:[0-9a-f]{64}$",
-        description="实际 system+user prompt hash；用于协议冻结审计。",
+        description="Hash of the actual system and user prompts used for protocol-freeze audit.",
     )
     usage: tuple[UsageReceipt, ...] = Field(
-        description="所有成功、失败和 retry usage；provider error 豁免逐 row 保存。"
+        description="Usage for every success, failure, and retry; provider-error exemptions are preserved per row."
     )
     retries: tuple[RetryRecord, ...] = Field(
-        description="outer/transport retry 记录；空集合表示没有 retry。"
+        description="Outer or transport retry records; an empty tuple means no retry occurred."
     )
     cost_usd: float = Field(
         ge=0,
-        description="runtime 按 normalized usage 计算的本 call Judge cost；不作为优化目标。",
+        description="Judge cost for this call calculated by the runtime from normalized usage; it is not an optimization target.",
     )
     cost_eligible: bool = Field(
-        description="所有计费 usage 是否都有完整 pricing/token 数据。"
+        description="Whether every billable usage row has complete pricing and token data."
     )
     artifact_paths: tuple[str, ...] = Field(
-        description="public runtime prompt/raw/result/audit 路径；只用于复核，不发送回 provider。"
+        description="Public-runtime prompt, raw, result, and audit path; used only for review and never sent back to the provider."
     )
-    reason: str = Field(min_length=1, description="调用为何成功/失败及是否需要仲裁。")
+    reason: str = Field(min_length=1, description="Why the call succeeded or failed and whether arbitration is required.")
     basis: str = Field(
-        min_length=1, description="utils.llm/AgentApp、profile、schema 和 retry 依据。"
+        min_length=1, description="utils.llm/AgentApp, profile, schema, and retry basis."
     )
 
 
@@ -720,24 +720,24 @@ class ExpectedOutcome(FrozenModel):
     """Deterministic decoded expected outcome using the original frozen ledger ID."""
 
     ledger_id: str = Field(
-        min_length=1, description="provider 外恢复的冻结 ledger ID，用于正式逐条汇总。"
+        min_length=1, description="Frozen ledger ID restored outside the provider for formal item-level aggregation."
     )
-    hit: bool = Field(description="是否存在 final VALID_KNOWN + FULL_MATCH。")
-    supported: bool = Field(description="是否存在 final VALID_KNOWN + FULL/PARTIAL。")
+    hit: bool = Field(description="Whether a final VALID_KNOWN plus FULL_MATCH report exists.")
+    supported: bool = Field(description="Whether a final VALID_KNOWN plus FULL or PARTIAL report exists.")
     full_report_ids: tuple[str, ...] = Field(
-        description="命中该 expected 的原始发布报告 IDs；重复只计一次 expected。"
+        description="Original published report IDs that hit this expected issue; duplicates still count the expected issue once."
     )
     partial_report_ids: tuple[str, ...] = Field(
-        description="仅支持该 expected 的原始发布报告 IDs。"
+        description="Original published report IDs that only support this expected issue."
     )
     reason: str = Field(
-        min_length=1, description="final expected assessment 的原始语义解释。"
+        min_length=1, description="Original semantic explanation from the final expected assessment."
     )
     basis: str = Field(
-        min_length=1, description="final expected assessment 的制品与 relation 依据。"
+        min_length=1, description="Artifact and relation basis from the final expected assessment."
     )
     source_refs: tuple[str, ...] = Field(
-        min_length=1, description="final expected assessment 的 supplied refs。"
+        min_length=1, description="Supplied references from the final expected assessment."
     )
 
 
@@ -745,27 +745,27 @@ class ReportOutcome(FrozenModel):
     """Deterministic decoded report outcome using the source artifact's original ID."""
 
     original_report_id: str = Field(
-        min_length=1, description="provider 外 adapter mapping 恢复的原始 report ID。"
+        min_length=1, description="Original report ID restored by provider-external adapter mapping."
     )
     validity: ReportValidity = Field(
-        description="final dimension-B classification；只有 INVALID 计 semantic FP。"
+        description="Final dimension-B classification; only INVALID counts as a semantic false positive."
     )
     full_ledger_ids: tuple[str, ...] = Field(
-        description="final FULL_MATCH 的原始 ledger IDs。"
+        description="Original ledger IDs with final FULL_MATCH."
     )
     partial_ledger_ids: tuple[str, ...] = Field(
-        description="final PARTIAL_MATCH 的原始 ledger IDs。"
+        description="Original ledger IDs with final PARTIAL_MATCH."
     )
     root_cause_cluster_key: str = Field(
         min_length=1,
-        description="final root-cause cluster key，用于 cluster metrics 与 redundancy。",
+        description="Final root-cause cluster key used for cluster metrics and redundancy.",
     )
-    reason: str = Field(min_length=1, description="final report validity 的 reason。")
+    reason: str = Field(min_length=1, description="Reason from the final report-validity judgment.")
     basis: str = Field(
-        min_length=1, description="final report validity 的 artifact basis。"
+        min_length=1, description="Artifact basis from the final report-validity judgment."
     )
     source_refs: tuple[str, ...] = Field(
-        min_length=1, description="final report validity 的 supplied refs。"
+        min_length=1, description="Supplied references from the final report-validity judgment."
     )
 
 
@@ -774,45 +774,45 @@ class SemanticMetrics(FrozenModel):
 
     schema_version: Literal["paper1.semantic-judge.metrics.v1"] = Field(
         default="paper1.semantic-judge.metrics.v1",
-        description="确定性计分器 schema 版本。",
+        description="Deterministic metric-calculator schema version.",
     )
-    expected_count: int = Field(ge=0, description="冻结 D2+D1 expected 分母。")
+    expected_count: int = Field(ge=0, description="Frozen D2+D1 expected denominator.")
     full_hit_count: int = Field(
-        ge=0, description="unique VALID_KNOWN+FULL hit expected 数。"
+        ge=0, description="Number of unique expected issues hit by VALID_KNOWN plus FULL."
     )
     fn_count: int = Field(ge=0, description="expected_count - full_hit_count。")
     supported_count: int = Field(
-        ge=0, description="被 valid FULL 或 PARTIAL 覆盖的 unique expected 数。"
+        ge=0, description="Number of unique expected issues covered by a valid FULL or PARTIAL report."
     )
     hit_rate: float = Field(ge=0, le=1, description="full_hit_count / expected_count。")
     supported_rate: float = Field(
         ge=0, le=1, description="supported_count / expected_count。"
     )
     report_count: int = Field(
-        ge=0, description="全部 final 已裁定发布报告数；最终无 UNKNOWN。"
+        ge=0, description="Number of all final adjudicated published reports; no final UNKNOWN exists."
     )
-    valid_known_count: int = Field(ge=0, description="VALID_KNOWN raw report 数。")
+    valid_known_count: int = Field(ge=0, description="Number of raw VALID_KNOWN reports.")
     valid_novel_count: int = Field(
-        ge=0, description="VALID_NOVEL raw report 数；不 hit、不 FP。"
+        ge=0, description="Number of raw VALID_NOVEL reports; they count as neither hits nor false positives."
     )
     invalid_count: int = Field(
-        ge=0, description="INVALID raw report 数，也是唯一 Semantic FP。"
+        ge=0, description="Number of raw INVALID reports, which are the only semantic false positives."
     )
     semantic_precision: float = Field(
         ge=0, le=1, description="(VALID_KNOWN+VALID_NOVEL)/report_count。"
     )
     ledger_unmatched_count: int = Field(
         ge=0,
-        description="只有 PARTIAL 的 known + novel + invalid；仅 legacy 诊断，禁止命名 FP。",
+        description="PARTIAL-only known reports plus novel and invalid reports; this is a legacy diagnostic and must not be named false positive.",
     )
     cluster_count: int = Field(
-        ge=0, description="按 final actionable root-cause key 去重后的全部 cluster 数。"
+        ge=0, description="Number of all clusters after deduplication by final actionable root-cause key."
     )
     valid_cluster_count: int = Field(
-        ge=0, description="valid known/novel root-cause cluster 数。"
+        ge=0, description="Number of valid known or novel root-cause clusters."
     )
     invalid_cluster_count: int = Field(
-        ge=0, description="invalid root-cause cluster 数。"
+        ge=0, description="Number of invalid root-cause clusters."
     )
     root_cause_cluster_precision: float = Field(
         ge=0, le=1, description="valid_cluster_count / cluster_count。"
@@ -820,27 +820,27 @@ class SemanticMetrics(FrozenModel):
     redundancy_rate: float = Field(
         ge=0,
         le=1,
-        description="(report_count-cluster_count)/report_count；重复 valid 不计 FP。",
+        description="(report_count-cluster_count)/report_count; duplicate valid reports are not false positives.",
     )
     valid_redundancy_rate: float = Field(
-        ge=0, le=1, description="仅 valid reports 的 cluster 重复率。"
+        ge=0, le=1, description="Cluster redundancy rate restricted to valid reports."
     )
     reason: str = Field(
         min_length=1,
-        description="计分器对 hit/support/FP/precision/cluster 的确定性说明。",
+        description="Deterministic calculator explanation of hit, support, false positive, precision, and clustering.",
     )
     basis: str = Field(
-        min_length=1, description="issue #195 公式与 final exact-closure reading。"
+        min_length=1, description="Issue #195 formulas and the final exact-closure reading."
     )
 
 
 class AdapterIdMap(FrozenModel):
     """Provider-external reversible mapping between anonymous and source IDs."""
 
-    anonymous_id: str = Field(min_length=1, description="进入 provider 的匿名 R/E ID。")
+    anonymous_id: str = Field(min_length=1, description="Anonymous R/E ID sent to the provider.")
     original_id: str = Field(
         min_length=1,
-        description="原始 artifact 或 frozen ledger ID；绝不进入 provider payload。",
+        description="Original artifact or frozen ledger ID; it never enters the provider payload.",
     )
 
 
@@ -849,34 +849,34 @@ class AdapterAudit(FrozenModel):
 
     schema_version: Literal["paper1.semantic-judge.adapter-audit.v1"] = Field(
         default="paper1.semantic-judge.adapter-audit.v1",
-        description="provider 外 adapter 审计 schema。",
+        description="Provider-external adapter-audit schema.",
     )
     source_format: Literal["x1v2_record", "evidence_discovery_release"] = Field(
-        description="仅写入本地 audit；该字段及 arm identity 不进入 UnifiedJudgeInput。",
+        description="Written only to local audit; this field and arm identity never enter UnifiedJudgeInput.",
     )
     source_path: str = Field(
-        min_length=1, description="被重判原始结果路径；用于 provenance，不输入 Judge。"
+        min_length=1, description="Path to the original result being rejudged; used for provenance and never sent to the Judge."
     )
     source_hash: str = Field(
-        pattern=r"^sha256:[0-9a-f]{64}$", description="原始结果 bytes hash。"
+        pattern=r"^sha256:[0-9a-f]{64}$", description="Byte hash of the original result."
     )
     report_id_map: tuple[AdapterIdMap, ...] = Field(
-        description="匿名 report IDs 到原始 release IDs 的 exact mapping。"
+        description="Exact mapping from anonymous report IDs to original release IDs."
     )
     expected_id_map: tuple[AdapterIdMap, ...] = Field(
-        description="匿名 expected IDs 到 ledger IDs 的 exact mapping。"
+        description="Exact mapping from anonymous expected IDs to ledger IDs."
     )
     projected_field_names: tuple[str, ...] = Field(
-        description="两臂统一 CandidateReport schema 的字段名，用于字段级公平性 diff。"
+        description="Field names of the CandidateReport schema shared by both arms, used for field-level fairness diff."
     )
     excluded_field_names: tuple[str, ...] = Field(
-        description="明确排除的 arm/W/D/L/predicate/history 字段审计。"
+        description="Audit of explicitly excluded arm, W, D, L, predicate, and history fields."
     )
     reason: str = Field(
-        min_length=1, description="适配器如何只投影原报告实际拥有的语义。"
+        min_length=1, description="How the adapter projects only semantics actually owned by the original report."
     )
     basis: str = Field(
-        min_length=1, description="source artifact、adapter version 和匿名化规则。"
+        min_length=1, description="Source artifact, adapter version, and anonymization-rule basis."
     )
 
 
@@ -885,102 +885,102 @@ class PairJudgeResult(FrozenModel):
 
     schema_version: Literal["paper1.semantic-judge.pair-result.v1"] = Field(
         default="paper1.semantic-judge.pair-result.v1",
-        description="统一 pair Judge 持久化协议版本。",
+        description="Unified pair-Judge persistence protocol version.",
     )
     run_id: str = Field(
-        min_length=1, description="本次 Judge run ID；不同 protocol/code 输入不得复用。"
+        min_length=1, description="Judge run ID; never reuse it across different protocol, code, or input versions."
     )
-    pair_id: str = Field(pattern=r"^\d{4}$", description="被重判 pair。")
-    round: int = Field(ge=1, description="原发布报告所属实验轮次；不影响语义判决。")
+    pair_id: str = Field(pattern=r"^\d{4}$", description="Pair being rejudged.")
+    round: int = Field(ge=1, description="Experiment round of the original published reports; it does not affect semantic judgment.")
     protocol_version: str = Field(
-        min_length=1, description="issue #195 冻结 protocol version。"
+        min_length=1, description="Frozen issue #195 protocol version."
     )
     protocol_sha256: str = Field(
-        pattern=r"^[0-9a-f]{64}$", description="issue #195 正文原始 bytes SHA-256。"
+        pattern=r"^[0-9a-f]{64}$", description="SHA-256 of the original issue #195 snapshot bytes."
     )
     judge_algorithm_version: str = Field(
-        min_length=1, description="统一 runner/仲裁/持久化算法版本。"
+        min_length=1, description="Unified runner, arbitration, and persistence algorithm version."
     )
     judge_code_commit: str = Field(
-        pattern=r"^[0-9a-f]{40}$", description="实际执行 Judge 的 git commit。"
+        pattern=r"^[0-9a-f]{40}$", description="Git commit that actually executed the Judge."
     )
     model_profile: str = Field(
-        min_length=1, description="两次独立判读及仲裁共用的 gpt-5.6-luna profile。"
+        min_length=1, description="gpt-5.6-luna profile shared by both independent readings and arbitration."
     )
     artifact_closure_hash: str = Field(
         pattern=r"^sha256:[0-9a-f]{64}$",
-        description="两臂同 pair 必须完全相同的公共 artifact hash。",
+        description="Common artifact hash that must be identical for both arms on the same pair.",
     )
     serialized_input_hash: str = Field(
         pattern=r"^sha256:[0-9a-f]{64}$",
-        description="匿名统一 Judge input 的稳定 JSON hash。",
+        description="Stable JSON hash of the anonymous unified Judge input.",
     )
     response_schema_hash: str = Field(
         pattern=r"^sha256:[0-9a-f]{64}$",
-        description="该 pair exact closure dynamic schema hash。",
+        description="Dynamic exact-closure schema hash for this pair.",
     )
     prompt_template_hash: str = Field(
         pattern=r"^sha256:[0-9a-f]{64}$",
-        description="冻结 system/primary/arbitration prompt template hash。",
+        description="Hash of the frozen system, primary, and arbitration prompt templates.",
     )
     adapter_audit: AdapterAudit = Field(
-        description="provider 外 source adaptation/匿名映射证据。"
+        description="Provider-external evidence of source adaptation and anonymous mapping."
     )
-    primary_reading_1: JudgeReading = Field(description="第一次独立完整判读。")
-    primary_reading_2: JudgeReading = Field(description="第二次独立完整判读。")
+    primary_reading_1: JudgeReading = Field(description="First complete independent reading.")
+    primary_reading_2: JudgeReading = Field(description="Second complete independent reading.")
     arbitration_reading: JudgeReading | None = Field(
         default=None,
-        description="存在枚举/validity/cluster 冲突时的完整仲裁判读；无冲突为 null。",
+        description="Complete arbitration reading when relation, validity, or cluster conflicts exist; null when there is no conflict.",
     )
     conflicts: tuple[ConflictRecord, ...] = Field(
-        description="两次 primary 的全部实质冲突及 final 选择；文本措辞差异不算冲突。"
+        description="All substantive conflicts between the two primary readings and the final choice; wording differences are not conflicts."
     )
     final_reading: JudgeReading = Field(
-        description="无 UNKNOWN 的最终权威 reading；有冲突时必须来自 arbitration。"
+        description="Final authoritative reading with no UNKNOWN; when conflicts exist it must come from arbitration."
     )
     report_outcomes: tuple[ReportOutcome, ...] = Field(
-        description="provider 外解码后的逐原始报告 K/N/I、关系与聚类审计。"
+        description="Provider-external decoded K/N/I, relation, and clustering audit for every original report."
     )
     expected_outcomes: tuple[ExpectedOutcome, ...] = Field(
-        description="provider 外解码后的逐 ledger hit/support 审计。"
+        description="Provider-external decoded hit/support audit for every ledger item."
     )
     metrics: SemanticMetrics = Field(
-        description="从 final reading 确定性重算的 pair metrics。"
+        description="Pair metrics deterministically recomputed from the final reading."
     )
     call_receipts: tuple[JudgeCallReceipt, ...] = Field(
-        description="两次 primary 及可选 arbitration 的完整 usage/cost/retry receipts。"
+        description="Complete usage, cost, and retry receipts for both primary readings and optional arbitration."
     )
     status: Literal["completed"] = Field(
         default="completed",
-        description="只有完整双读、必要仲裁和 exact accounting 后才能 completed。",
+        description="Completed only after both readings, required arbitration, and exact accounting are complete.",
     )
     reason: str = Field(
-        min_length=1, description="pair 完整性、冲突处理和最终分类概述。"
+        min_length=1, description="Summary of pair completeness, conflict handling, and final classifications."
     )
     basis: str = Field(
         min_length=1,
-        description="protocol、input/schema/prompt hash、public runtime 与 deterministic metrics 依据。",
+        description="Protocol, input/schema/prompt hashes, public runtime, and deterministic-metrics basis.",
     )
 
 
 class RunPairReceipt(FrozenModel):
     """One pair/round location and terminal status in a semantic Judge run."""
 
-    pair_id: str = Field(pattern=r"^\d{4}$", description="冻结 pair ID。")
-    round: int = Field(ge=1, description="原始发布轮次。")
+    pair_id: str = Field(pattern=r"^\d{4}$", description="Frozen pair ID.")
+    round: int = Field(ge=1, description="Original publication round.")
     result_path: str = Field(
-        min_length=1, description="完整 PairJudgeResult JSON 路径。"
+        min_length=1, description="Path to the complete PairJudgeResult JSON."
     )
     result_hash: str = Field(
         pattern=r"^sha256:[0-9a-f]{64}$", description="PairJudgeResult bytes hash。"
     )
     artifact_closure_hash: str = Field(
-        pattern=r"^sha256:[0-9a-f]{64}$", description="该 pair 公共制品闭包 hash。"
+        pattern=r"^sha256:[0-9a-f]{64}$", description="Common artifact-closure hash for this pair."
     )
-    report_count: int = Field(ge=0, description="被裁发布报告数。")
-    expected_count: int = Field(ge=0, description="冻结 expected 分母数。")
+    report_count: int = Field(ge=0, description="Number of published reports assessed.")
+    expected_count: int = Field(ge=0, description="Size of the frozen expected denominator.")
     status: Literal["completed"] = Field(
-        default="completed", description="无 crash、漏项或 UNKNOWN 的终态。"
+        default="completed", description="Terminal status with no crash, omission, or UNKNOWN."
     )
 
 
@@ -994,41 +994,41 @@ class RunPairFailure(FrozenModel):
 
     schema_version: Literal["paper1.semantic-judge.pair-failure.v1"] = Field(
         default="paper1.semantic-judge.pair-failure.v1",
-        description="失败诊断持久化版本；它不是 Judge 语义结果，也不能进入指标。",
+        description="Failure-diagnostic persistence version; this is not a semantic Judge result and cannot enter metrics.",
     )
-    pair_id: str = Field(pattern=r"^\d{4}$", description="失败的冻结 pair ID。")
-    round: int = Field(ge=1, description="失败报告所属原始轮次。")
+    pair_id: str = Field(pattern=r"^\d{4}$", description="Frozen pair ID that failed.")
+    round: int = Field(ge=1, description="Original round of the reports in the failed cell.")
     source_path: str = Field(
-        min_length=1, description="本格实际读取的原始发布报告路径。"
+        min_length=1, description="Path to the original published reports actually read by this cell."
     )
     input_path: str | None = Field(
         default=None,
-        description="若 unified input 已成功持久化则为其路径；null 表示失败发生在输入构建前。",
+        description="Path to the unified input when it was persisted successfully; null means failure occurred before input construction.",
     )
     adapter_audit_path: str | None = Field(
         default=None,
-        description="若 adapter audit 已成功持久化则为其路径；null 表示失败发生在适配前。",
+        description="Path to the adapter audit when it was persisted successfully; null means failure occurred before adaptation.",
     )
     llm_artifact_path: str = Field(
         min_length=1,
-        description="该 pair 的 public runtime audit 根；provider/schema 失败时用于恢复 usage/retry 证据。",
+        description="Public-runtime audit root for this pair, used to recover usage and retry evidence after provider or schema failure.",
     )
     error_type: str = Field(
         min_length=1,
-        description="终端异常 class 名，用于区分 provider/schema/local bug。",
+        description="Terminal exception class name used to distinguish provider, schema, and local bugs.",
     )
     error_message: str = Field(
-        min_length=1, description="可定位的终端错误信息；不得吞掉 schema/runtime 原因。"
+        min_length=1, description="Localizable terminal error message; it must preserve the schema or runtime cause."
     )
     status: Literal["failed"] = Field(
-        default="failed", description="本格未形成完整 Judge result，禁止聚合。"
+        default="failed", description="This cell produced no complete Judge result and is ineligible for aggregation."
     )
     reason: str = Field(
-        min_length=1, description="为什么该格不能被视为 completed 或用于论文指标。"
+        min_length=1, description="Why this cell cannot be treated as completed or used in paper metrics."
     )
     basis: str = Field(
         min_length=1,
-        description="输入、adapter、runtime audit 和捕获异常的持久化依据。",
+        description="Persistence basis covering input, adapter, runtime audit, and captured exception.",
     )
 
 
@@ -1037,56 +1037,56 @@ class RunManifest(FrozenModel):
 
     schema_version: Literal["paper1.semantic-judge.run-manifest.v1"] = Field(
         default="paper1.semantic-judge.run-manifest.v1",
-        description="统一 Judge run manifest 版本。",
+        description="Unified Judge run-manifest version.",
     )
-    run_id: str = Field(min_length=1, description="不可复用的 Judge run ID。")
+    run_id: str = Field(min_length=1, description="Non-reusable Judge run ID.")
     source_format: Literal["x1v2_record", "evidence_discovery_release"] = Field(
-        description="本地 source adapter 类型；不进入 provider payload。"
+        description="Local source-adapter type; it never enters the provider payload."
     )
     source_root: str = Field(
-        min_length=1, description="现有原始发布结果根目录；Judge 不重新生成 issue。"
+        min_length=1, description="Root of existing original published results; the Judge does not regenerate issues."
     )
     source_root_hash: str = Field(
         pattern=r"^sha256:[0-9a-f]{64}$",
-        description="本次实际选择源文件清单和 bytes 的 hash。",
+        description="Hash of the source-file list and bytes actually selected for this run.",
     )
     report_root: str = Field(
-        min_length=1, description="54 pair 公共 representation report 根。"
+        min_length=1, description="Root of the common representation reports for all 54 pairs."
     )
-    ledger_path: str = Field(min_length=1, description="冻结 145 条 ledger 真源路径。")
+    ledger_path: str = Field(min_length=1, description="Path to the frozen 145-item ledger source of truth.")
     ledger_hash: str = Field(
-        pattern=r"^sha256:[0-9a-f]{64}$", description="完整 frozen ledger bytes hash。"
+        pattern=r"^sha256:[0-9a-f]{64}$", description="Byte hash of the complete frozen ledger."
     )
     protocol_version: str = Field(
-        min_length=1, description="冻结 issue #195 protocol version。"
+        min_length=1, description="Frozen issue #195 protocol version."
     )
     protocol_sha256: str = Field(
-        pattern=r"^[0-9a-f]{64}$", description="issue #195 snapshot bytes hash。"
+        pattern=r"^[0-9a-f]{64}$", description="SHA-256 hash of the issue #195 snapshot bytes."
     )
     judge_algorithm_version: str = Field(
-        min_length=1, description="统一 Judge runner version。"
+        min_length=1, description="Unified Judge runner version."
     )
     judge_code_commit: str = Field(
-        pattern=r"^[0-9a-f]{40}$", description="run 启动时 clean tracked git commit。"
+        pattern=r"^[0-9a-f]{40}$", description="Clean tracked git commit when the run started."
     )
     model_profile: str = Field(
-        min_length=1, description="所有 Judge reading/arbitration 统一 profile。"
+        min_length=1, description="Single profile shared by every Judge reading and arbitration call."
     )
     selected_pair_ids: tuple[str, ...] = Field(
-        min_length=1, description="run 前冻结的 pair selection。"
+        min_length=1, description="Pair selection frozen before the run."
     )
     selected_rounds: tuple[int, ...] = Field(
-        min_length=1, description="run 前冻结的轮次 selection。"
+        min_length=1, description="Round selection frozen before the run."
     )
     workers: int = Field(
-        ge=1, description="pair-level 并行 worker 数；不改变单 pair Judge 语义。"
+        ge=1, description="Number of pair-level parallel workers; it does not change single-pair Judge semantics."
     )
     transport_retries: int = Field(
-        ge=0, description="provider error 就地 retry 上限；两臂必须相同。"
+        ge=0, description="In-place retry limit for provider errors; it must be identical for both arms."
     )
     reason: str = Field(
         min_length=1,
-        description="本次是 baseline 重判或 current method 重判的本地 provenance；不发送给 provider。",
+        description="Local provenance stating whether this is a baseline or current-method rejudge; it is never sent to the provider.",
     )
     basis: str = Field(
         min_length=1,
@@ -1099,21 +1099,21 @@ class RunSummary(FrozenModel):
 
     schema_version: Literal["paper1.semantic-judge.run-summary.v1"] = Field(
         default="paper1.semantic-judge.run-summary.v1",
-        description="统一 Judge 汇总 schema 版本。",
+        description="Unified Judge summary schema version.",
     )
-    run_id: str = Field(min_length=1, description="对应 RunManifest.run_id。")
+    run_id: str = Field(min_length=1, description="Corresponding RunManifest.run_id.")
     manifest_hash: str = Field(
-        pattern=r"^sha256:[0-9a-f]{64}$", description="冻结 RunManifest bytes hash。"
+        pattern=r"^sha256:[0-9a-f]{64}$", description="Byte hash of the frozen RunManifest."
     )
     pair_receipts: tuple[RunPairReceipt, ...] = Field(
-        description="每个 selected pair x round exactly once 的结果闭包。"
+        description="Result closure containing every selected pair-by-round cell exactly once."
     )
     overall: SemanticMetrics = Field(
-        description="所有格子的 raw reports 与 expected positions 聚合指标。"
+        description="Metrics aggregated over raw reports and expected positions from all cells."
     )
     l2_expected_count: int = Field(
         ge=0,
-        description="仅用于台账侧分组的 L2 expected positions；L 不进入 provider。",
+        description="L2 expected positions used only for ledger-side grouping; L never enters the provider.",
     )
     l2_full_hit_count: int = Field(
         ge=0, description="final FULL-hit L2 expected positions。"
@@ -1122,21 +1122,21 @@ class RunSummary(FrozenModel):
         ge=0, le=1, description="l2_full_hit_count/l2_expected_count。"
     )
     total_judge_cost_usd: float = Field(
-        ge=0, description="所有 primary/arbitration Judge calls 的完整 cost；不做优化。"
+        ge=0, description="Complete cost of all primary and arbitration Judge calls; it is not optimized."
     )
     cost_eligible: bool = Field(
-        description="所有 call receipt 均可按 normalized usage 计费。"
+        description="Whether every call receipt can be priced from normalized usage."
     )
     status: Literal["completed"] = Field(
         default="completed",
-        description="所有选定格子完整、无 UNKNOWN/漏 report/漏 ledger 才 completed。",
+        description="Completed only when every selected cell is complete with no UNKNOWN, missing report, or missing ledger item.",
     )
     reason: str = Field(
-        min_length=1, description="run 完整性与主要 hit/support/K/N/I/precision 结论。"
+        min_length=1, description="Run-completeness and principal hit, support, K/N/I, and precision conclusions."
     )
     basis: str = Field(
         min_length=1,
-        description="逐条 PairJudgeResult 的确定性重算和 issue #195 公式。",
+        description="Deterministic recomputation from every PairJudgeResult and the issue #195 formulas.",
     )
 
 
@@ -1145,26 +1145,26 @@ class RunFailureSummary(FrozenModel):
 
     schema_version: Literal["paper1.semantic-judge.run-failure.v1"] = Field(
         default="paper1.semantic-judge.run-failure.v1",
-        description="不完整 run 终态版本；与 completed RunSummary 物理分离。",
+        description="Terminal schema version for an incomplete run, physically separated from completed RunSummary.",
     )
-    run_id: str = Field(min_length=1, description="对应失败 Judge run 的不可复用 ID。")
+    run_id: str = Field(min_length=1, description="Non-reusable ID of the corresponding failed Judge run.")
     manifest_hash: str = Field(
-        pattern=r"^sha256:[0-9a-f]{64}$", description="冻结 RunManifest bytes hash。"
+        pattern=r"^sha256:[0-9a-f]{64}$", description="Byte hash of the frozen RunManifest."
     )
     completed_pair_receipts: tuple[RunPairReceipt, ...] = Field(
-        description="失败前或并发期间完整完成的 pair；仅供审计，禁止拼接汇总。"
+        description="Pairs completed before or during concurrent failure; retained only for audit and never spliced into a summary."
     )
     failures: tuple[RunPairFailure, ...] = Field(
         min_length=1,
-        description="每个未完成 pair 的 typed terminal diagnostic；至少一条。",
+        description="Typed terminal diagnostic for every incomplete pair; at least one is required.",
     )
     status: Literal["failed"] = Field(
-        default="failed", description="选定格子未全部完成，因此没有正式指标。"
+        default="failed", description="Not every selected cell completed, so no formal metrics exist."
     )
     reason: str = Field(
-        min_length=1, description="run 未生成 completed summary 的直接原因。"
+        min_length=1, description="Direct reason the run produced no completed summary."
     )
     basis: str = Field(
         min_length=1,
-        description="manifest、成功 receipts、失败 artifacts 与 no-partial-summary 规则。",
+        description="Manifest, successful receipts, failure artifacts, and the no-partial-summary rule.",
     )

@@ -8,58 +8,60 @@ from pathlib import Path
 PROTOCOL_URL = "https://github.com/HansBug/research_ideas/issues/195"
 PROTOCOL_SHA256 = "45874c298781e23b712d9566e75719b1fede0197c1f668030911c77f8f86574c"
 PROTOCOL_VERSION = "github-issue-195.45874c298781"
-JUDGE_ALGORITHM_VERSION = "paper1.semantic-judge.v4"
-PROMPT_VERSION = "paper1.semantic-judge.prompt.v4"
+JUDGE_ALGORITHM_VERSION = "paper1.semantic-judge.v5"
+PROMPT_VERSION = "paper1.semantic-judge.prompt.v5"
 ARTIFACT_BUILDER_VERSION = "paper1.semantic-judge.artifact-closure.v2"
 ADAPTER_VERSION = "paper1.semantic-judge.arm-neutral-adapter.v1"
 METRICS_VERSION = "paper1.semantic-judge.metrics.v1"
 JUDGE_MAX_OUTPUT_TOKENS = 64_000
 
 
-SYSTEM_PROMPT = """你是 paper1 的统一 expected-issue 语义 Judge。你只裁定收到的匿名报告，不知道也不得猜测报告来自哪个实验臂。
+SYSTEM_PROMPT = """You are the unified expected-issue semantic Judge. You assess only the anonymous reports supplied in this request. You do not know, and must not infer, which experimental arm produced a report.
 
-唯一现行协议是 GitHub issue #195 的冻结快照。必须严格分开两个维度：
+The frozen snapshot of GitHub issue #195 is the only current protocol. Keep its two dimensions strictly separate:
 
-1. 维度 A 逐 report/expected 判断 FULL_MATCH、PARTIAL_MATCH、NO_MATCH。
-   - FULL_MATCH：报告与 expected 描述同一 defect instance、root cause、violated obligation，或同一根因的直接且可归因症状；报告建议的修复会消除或实质缓解 expected 核心违反。允许措辞、抽象层级、taxonomy、定位粒度和证据形式不同。复合 expected 的一个独立、可行动、可诊断核心 facet 可以 FULL。
-   - PARTIAL_MATCH：存在真实、可审计的局部或间接关系，但不足以唯一归因到同一缺陷，不能建立根因、违反义务或修复重叠。PARTIAL 不是 hit，也绝不是 false positive。
-   - NO_MATCH：不同问题、不同根因、方向相反、只提到同名元素，或修复报告后 expected 仍完整成立。
-2. 维度 B 独立判断 VALID_KNOWN、VALID_NOVEL、INVALID。
-   - VALID_KNOWN：报告核心主张经公共制品闭包审计成立，并对至少一条 expected 为 FULL 或 PARTIAL。是否 hit 只看 FULL。
-   - VALID_NOVEL：报告核心主张经独立制品证据审计成立，但对所有 expected 都是 NO_MATCH。不能只因 unmatched 自动判 novel。
-   - INVALID：报告核心主张被 NL、作者 PlantUML、closed FCSTM、确定性 facts 或完整语义审计反驳，或仍达不到最低举证责任。只有 INVALID 是 semantic FP。
+1. Dimension A assigns FULL_MATCH, PARTIAL_MATCH, or NO_MATCH to every report/expected pair.
+   - FULL_MATCH: the report describes the same defect instance, root cause, or violated obligation, or a direct and attributable symptom of that root cause; the report's repair would eliminate or materially mitigate the expected issue's core violation. Wording, abstraction level, taxonomy, localization granularity, and evidence form may differ. An independently actionable and diagnostic core facet of a composite expected issue may be FULL.
+   - PARTIAL_MATCH: there is a real and auditable local or indirect relationship, but it is insufficient to attribute the report uniquely to the same defect and does not establish root-cause, obligation, or repair overlap. PARTIAL is not a hit and is never a false positive.
+   - NO_MATCH: the report concerns a different issue or root cause, asserts the opposite direction, merely mentions an identically named element, or leaves the expected issue fully intact after its proposed repair.
+2. Dimension B independently assigns VALID_KNOWN, VALID_NOVEL, or INVALID.
+   - VALID_KNOWN: the report's core claim survives audit against the common artifact closure and has at least one FULL or PARTIAL relation. Only FULL determines whether it contributes a hit.
+   - VALID_NOVEL: independent artifact evidence establishes the report's core claim, but every expected relation is NO_MATCH. Being unmatched alone never proves novelty.
+   - INVALID: NL, authored PlantUML, the closed FCSTM, deterministic facts, or complete semantic audit refutes the report's core claim, or the report still fails the minimum burden of proof. Only INVALID is a semantic false positive.
 
-强制边界：
-- 不要求 exact locus/property/scope/direction 字段复刻，不要求相同 taxonomy、谓词、修复位置或台账全部措辞。
-- 一条足够宽且证据完整的报告可以分别 FULL 多个原子 expected，但每条映射必须有独立 reason/basis。
-- 同 root cause 的直接症状可以 FULL；仅共享背景、宽泛后果、wrong source 或 different property 不得补票。
-- match 强度与报告置信度分开：报告即使把主张表述为有限不符合、D1 式歧义或带 caveat，只要它明确指出与 expected 相同的 locus、故障机制和可行动违反，仍应 FULL；不能仅因语气保守降为 PARTIAL。
-- PARTIAL 必须有真实的根因、义务或修复重叠。只共享状态名、父子位置、邻近迁移或宽泛模型背景而修复互不消除时应 NO_MATCH，不得用 PARTIAL 把不同 property 粘在一起。
-- 同一 source state 上“多出一条 event/target 自环”和“缺少另一条不同 event/target 出边”默认是两个问题；除非前一条边明确占据或替换了后一条的 exact semantic slot，否则移除额外边不会补出缺失边，应 NO_MATCH 而不是 PARTIAL。
-- 复合报告中某个子断言被反驳时，只能保留报告文本已经独立陈述、同一 locus/property 下仍真实且可行动的 facet；不得由 Judge 另行推导一个邻近的正确问题来挽救错误 source、错误根因或错误运行叙述。
-- 报告结论偶然为真但它自己提供的全部 reason/where/basis 都依赖被制品反驳的前提时，报告没有拥有正确的 causal certificate，必须 INVALID；Judge 不得用公共制品替报告发明另一条正确原因。只有报告文本已独立陈述那个正确 facet 时才可保留。
-- 同一错误 partition/decomposition 的报告不必枚举全部缺失成员；若它直接定位同一复合结构且其修复会重建 expected 要求的区域/状态组成，可以 FULL cardinality/composition expected。
-- 已存在等价 semantic carrier 时，声称 carrier 缺失通常 INVALID；例如 transition label 中的 event/guard/effect、state-owned action、PlantUML / effect、UML 默认状态保持、真实 region separator 都必须按实际语义审计。
-- PlantUML 标签中 `/` 之后的文字就是作者声明的 transition effect carrier；若 NL 只要求该动作/效果，不能因没有额外变量、AST 字段或命令式实现而再报“未表达”。
-- 没有显式 `--` region separator 的 sibling composites 是顺序/互斥层次，不是并发 regions；各自 local `[*]` 只定义进入该 composite 后的局部默认入口，不证明多个 sibling 会同时激活。依赖这种并发前提的核心主张必须 INVALID，不能改写成 owner-entry 或 reachability 问题补票。
-- 源复合态边被 lowering 展开为多个叶态出边，只证明 source-side execution carrier；它不证明 target composite 已有 owner-local default entry。source exit、target entry 和 target reachability 必须分别审计。
-- declaration-only 的状态、consumer 或 label 不证明其运行序列可达；反之，报告若声称某段运行顺序但其前提状态根本不可达，不能靠已声明的同名 consumer 挽救。
-- 本轮冻结断言对象不含未声明的 clock/timer 执行语义。若制品没有 typed clock/timer object 和明确时间语义，纯 timer start/stop/elapsed-time 缺失主张超出可审计边界，判 INVALID；cooking-time 的 data display/update/cancel 等普通数据或动作义务不因此排除。
-- entry/exit/do/one-shot 等行为 phase 若由 NL 与作者源形成精确、实质的两种兼容阅读，可以作为 D1 式 VALID_NOVEL；但只偏好某个形式槽位、没有建立行为差异时仍不成立。
-- 没有台账匹配既不推出 INVALID，也不推出 VALID_NOVEL。真实性必须单独裁定。
-- report ID、expected ID 只是匿名引用，不承载语义；输入顺序不得影响判决。
-- 任何 W/D/L、predicate、历史 hit/FP 或实验臂信息即使被报告文字意外提到，也不得作为 match 或 validity gate。
-- 最终输出没有 UNKNOWN。材料足够则裁定；完整材料下报告仍不承担最低举证责任，判 INVALID。
+Mandatory boundaries:
+- Do not require exact replication of locus/property/scope/direction fields, taxonomy, predicates, repair location, or every ledger phrase.
+- One sufficiently broad and fully evidenced report may independently FULL-match multiple atomic expected issues, but every mapping requires its own reason and basis.
+- A direct symptom of the same root cause may be FULL. Shared context, a broad consequence, a wrong source, or a different property may not receive substitute credit.
+- Match strength is independent of report confidence. A report may express limited nonconformance, D1-like ambiguity, or a caveat and still be FULL when it clearly identifies the same locus, failure mechanism, and actionable violation. Do not reduce it to PARTIAL merely for cautious wording.
+- PARTIAL requires real root-cause, obligation, or repair overlap. A shared state name, parent/child location, nearby transition, or broad model context with non-overlapping repairs is NO_MATCH; PARTIAL must not glue together different properties.
+- An extra event/target self-loop and a missing different event/target outgoing edge at the same source state are different defects by default. Unless the extra edge explicitly occupies or replaces the exact semantic slot of the missing edge, removing it does not create the missing edge, so the relation is NO_MATCH rather than PARTIAL.
+- If one subclaim in a composite report is refuted, preserve only a true and actionable facet that the report text independently states under the same locus/property. The Judge must not derive a nearby correct issue to rescue a wrong source, wrong root cause, or false execution narrative.
+- If a conclusion happens to be true but all reason/where/basis supplied by the report depend on a premise refuted by the artifacts, the report lacks the correct causal certificate and is INVALID. The Judge must not invent a different correct reason from the common artifacts; preserve it only when the report text independently states that correct facet.
+- A report about the same defective partition or decomposition need not enumerate every missing member. It may FULL-match a cardinality/composition expected issue when it directly localizes the same composite structure and its repair would reconstruct the required region/state composition.
+- A claim that a semantic carrier is missing is normally INVALID when an equivalent carrier exists. Audit actual transition-label events, guards and effects, state-owned actions, PlantUML `/` effects, UML default-state semantics, and real region separators.
+- Text after `/` in a PlantUML transition label is an authored transition-effect carrier. When NL requires only that action/effect, the report may not call it unexpressed merely because no extra variable, AST field, or imperative implementation exists.
+- Sibling composites without an explicit `--` region separator form sequential/exclusive hierarchy, not concurrent regions. Their local `[*]` entries define only local defaults after entry and do not prove simultaneous activation. A core claim depending on that false concurrency premise is INVALID and may not be rewritten as an owner-entry or reachability issue.
+- Lowering a source-composite edge into several leaf-state edges proves only a source-side execution carrier. It does not prove that a target composite has an owner-local default entry. Audit source exit, target entry, and target reachability separately.
+- Declaration-only states, consumers, or labels do not prove reachable execution. Conversely, a report that asserts an execution sequence whose prerequisite state is unreachable cannot be rescued by a declared consumer with the same name.
+- The frozen assertion domain does not include undeclared clock/timer execution semantics. Without a typed clock/timer object and explicit timing semantics, pure missing timer start/stop/elapsed-time claims are outside the auditable boundary and are INVALID. Ordinary cooking-time data display/update/cancel obligations are not excluded by this rule.
+- Two precise and substantive compatible readings of an entry/exit/do/one-shot behavior phase, grounded in NL and author source, may support D1-like VALID_NOVEL. A mere preference for one formal slot without a behavioral difference does not.
+- No ledger match proves neither INVALID nor VALID_NOVEL. Decide truth independently.
+- Report and expected IDs are anonymous references with no semantic content. Input ordering must not change the decision.
+- W/D/L, predicates, historical hit/FP information, and experimental-arm information must never gate match or validity, even if report text accidentally mentions them.
+- Final output has no UNKNOWN. Decide when the materials suffice; when a report still fails the minimum burden of proof after complete review, classify it INVALID.
 
-每个 relation、report assessment、expected assessment 和顶层响应都必须给出非空 reason、basis、source_refs。basis 必须引用本次提供的报告、expected 或公共制品，不得使用泛化套话。root_cause_cluster_key 只合并同一可行动根因的重复报告；不同 source/property 的相邻主张不得因共享宽泛背景聚类。
+Every relation, report judgment, expected judgment, and top-level response must contain non-empty reason, basis, and source_refs. Basis must cite supplied reports, expected issues, or common artifacts rather than generic claims. root_cause_cluster_key merges only duplicate reports about the same actionable root cause; nearby claims with different sources or properties must not share a cluster.
 
-学术边界：本协议综合 MCeT 的 same-root-cause equivalence、NIST SATE 的 direct/indirect finding、Pearson 的 best-case fault localization、APR semantic/repair equivalence、Porter known-fault detection 与 Klees distinct-bug 去重；这是本项目 operationalization，不是任何单篇文献逐字提出的统一标准。宽 FULL 会提高 recall，因此 reason/basis 和双读仲裁必须可审计。"""
+Write every generated value in English, including claim summaries, root_cause_cluster_key, reason, basis, and all audit explanations. Preserve exact non-English text only when quoting or citing a supplied artifact; explain that quotation in English.
+
+Academic boundary: this protocol combines MCeT same-root-cause equivalence, NIST SATE direct/indirect findings, Pearson best-case fault localization, APR semantic/repair equivalence, Porter known-fault detection, and Klees distinct-bug deduplication. It is this project's operationalization, not a standard stated verbatim by any single paper. Broad FULL matching increases recall, so reason/basis and independent dual reading must remain auditable."""
 
 
-PRIMARY_INSTRUCTION = """请对下面匿名 pair 执行一次独立完整判读。先用公共 artifact closure 审计每条报告真实性，再逐一完成 report x expected 全矩阵关系，最后给出逐 report validity/root-cause 与逐 expected 语义说明。不得参考另一位判读者，也不得省略 NO_MATCH 行。FULL/PARTIAL/NO 的 ID 集合、hit、support 由后端从矩阵确定性派生，你不要重复填写。严格按 response schema 返回。"""
+PRIMARY_INSTRUCTION = """Perform one complete independent reading of the anonymous pair below. First audit each report's truth against the common artifact closure, then complete the full report-by-expected relation matrix, and finally provide report validity/root-cause judgments and expected-side semantic explanations. Do not consult another reading and do not omit NO_MATCH rows. The backend deterministically derives FULL/PARTIAL/NO ID sets, hit, and support from the matrix; do not repeat them. Return exactly the response schema. Write all generated judgments, reasons, bases, cluster keys, and explanations in English; preserve non-English text only inside exact source quotations."""
 
 
-ARBITRATION_INSTRUCTION = """下面包含同一匿名 pair、同一公共 artifact closure、两次独立判读和确定性识别的冲突。请重新审计原始制品并输出一份完整最终判读，不按多数投票，不为任何实验臂倾斜。逐项说明为何选择最终 relation/validity/cluster；仍须返回完整 report x expected 矩阵，不得保留 UNKNOWN。FULL/PARTIAL/NO 的 ID 集合、hit、support 由后端确定性派生，你不要重复填写。"""
+ARBITRATION_INSTRUCTION = """The payload below contains the same anonymous pair, the same common artifact closure, two independent readings, and deterministically identified conflicts. Re-audit the original artifacts and return one complete final reading. Do not use majority voting and do not favor any experimental arm. Explain each final relation, validity, and cluster choice; still return the complete report-by-expected matrix and retain no UNKNOWN. The backend deterministically derives FULL/PARTIAL/NO ID sets, hit, and support; do not repeat them. Write all generated judgments, reasons, bases, cluster keys, and explanations in English; preserve non-English text only inside exact source quotations."""
 
 
 def prompt_hash() -> str:

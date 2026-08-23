@@ -56,7 +56,7 @@ from ..semantics import (
     fallback_grounding,
     materialize_group_containment_contracts,
     materialize_segment_coverage,
-    materialize_v27_frontier,
+    materialize_typed_frontier,
     normalize_contract_state_roles,
     resolve_state_ref,
     resolve_transition_ref,
@@ -82,15 +82,15 @@ from .runtime import (
 )
 
 REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS = ("0004", "0023", "0029", "0035", "0046", "0053")
-METHOD_CELL_SCHEMA = "paper1.evidence_discovery.method_cell.v8"
-JUDGE_SCHEMA = "paper1.evidence_discovery.independent_judge.v5"
-SUMMARY_SCHEMA = "paper1.evidence_discovery.run_summary.v2"
-RUN_MANIFEST_SCHEMA = "paper1.evidence_discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-v27-flow.v41"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-v27-prompts.v36"
-JUDGE_EXACT_IDENTITY_CONTRACT_VERSION = "paper1.judge-exact-identity-contract.v1"
+METHOD_CELL_SCHEMA = "evidence-discovery.method_cell.v8"
+JUDGE_SCHEMA = "evidence-discovery.independent_judge.v5"
+SUMMARY_SCHEMA = "evidence-discovery.run_summary.v2"
+RUN_MANIFEST_SCHEMA = "evidence-discovery.run_manifest.v2"
+CODE_VERSION = "evidence-discovery-typed-flow.v42"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-prompts.v37"
+JUDGE_EXACT_IDENTITY_CONTRACT_VERSION = "evidence-discovery.judge-exact-identity-contract.v1"
 GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION = (
-    "paper1.grounding-exact-identity-contract.v2"
+    "evidence-discovery.grounding-exact-identity-contract.v2"
 )
 
 
@@ -109,57 +109,64 @@ _HIT_JUDGE_RELATIONS = frozenset(
 
 
 class JudgeRelationAssessment(BaseModel):
-    """一个 release issue 与一个 frozen ledger item 的显式语义关系。
+    """Explicit semantic relation between one release issue and one frozen ledger item.
 
-    independent pair-wide judge 产生该对象，metrics 只把 exact、
-    semantic_equivalent 和有完整蕴含依据的 candidate_subsumes_ledger 计为 hit。
-    它不改写 method release；负关系可稀疏记录，无需生成 ledger×release 矩阵。
+    The independent pair-wide Judge produces this object. Metrics count only
+    exact, semantic_equivalent, and candidate_subsumes_ledger with a complete
+    entailment basis as hits. It never rewrites a method release. Negative
+    relations may be sparse; no full ledger-by-release matrix is required.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.judge-relation.v1"] = Field(
-        default="paper1.judge-relation.v1",
-        description="JudgeRelationAssessment 的持久化 schema 版本。",
+    schema_version: Literal["evidence-discovery.judge-relation.v1"] = Field(
+        default="evidence-discovery.judge-relation.v1",
+        description="Persistence schema version for JudgeRelationAssessment.",
     )
     ledger_id: str = Field(
         min_length=1,
-        description="本关系比较的 exact frozen ledger ID；只能来自当前 pair-wide judge 输入。",
+        description="Exact frozen ledger ID compared by this relation; it must come from the current pair-wide Judge input.",
     )
     issue_id: str = Field(
         min_length=1,
-        description="本关系比较的 exact D1/D2 release issue ID；不得引用 D0 或未发布 candidate。",
+        description="Exact D1/D2 release issue ID compared by this relation; it may not reference D0 or an unpublished candidate.",
     )
     relation: JudgeRelation = Field(
         description=(
-            "同 locus/property/scope 下的闭集关系。D1 ledger 与 D1 release 若表达相同的"
-            "主要缺陷读法并保留相容的另一种称职读法，alternative survives 本身不使其降为"
-            "partial_overlap；same cause、wrong source、different property 或不相容 scope 仍不得升级为 hit。"
-            "当 candidate 只覆盖 ledger 明确枚举的一个 sibling/component 时必须使用"
-            "ledger_subsumes_candidate 或 partial_overlap。多个这种非 hit candidate 不能"
-            "通过集合并集升级为 hit；每个计入 matched/accounted 的 issue 都必须独立具有"
-            "exact、semantic_equivalent 或 candidate_subsumes_ledger 关系。一个完整 ledger"
-            " 若列出 A+B 两个 component，只主张 A 的 candidate 永远不能 candidate_subsumes_ledger；"
-            " 正确方向是 ledger_subsumes_candidate，B 的另一条 candidate 也不能与它联合补票。"
+            "Closed-set relation under the same locus/property/scope. If a D1 "
+            "ledger and D1 release express the same primary defect reading while "
+            "retaining another compatible competent reading, that surviving "
+            "alternative alone does not reduce the relation to partial_overlap. "
+            "Same cause, wrong source, different property, or incompatible scope "
+            "still cannot become a hit. A candidate covering only one explicitly "
+            "enumerated sibling/component requires ledger_subsumes_candidate or "
+            "partial_overlap. Multiple non-hit subset candidates cannot be unioned "
+            "into a hit; every matched/accounted issue must independently have "
+            "exact, semantic_equivalent, or candidate_subsumes_ledger. If a complete "
+            "ledger lists A+B, a candidate claiming only A can never subsume it; "
+            "the correct direction is ledger_subsumes_candidate, and a separate B "
+            "candidate cannot provide substitute credit by union."
         ),
     )
     entailment_basis: str | None = Field(
         default=None,
         min_length=1,
         description=(
-            "仅 candidate_subsumes_ledger 必填：说明 candidate 自身主张如何逻辑上建立完整"
-            "ledger defect。ledger 明确枚举多个 sibling scope/event/component 时，candidate"
-            "必须覆盖或蕴含全部组件；不得从 ledger detail 反向补全 candidate，shared cause"
-            "或 narrow manifestation 不是蕴含。"
+            "Required only for candidate_subsumes_ledger: explain how the "
+            "candidate's own claim logically establishes the complete ledger "
+            "defect. When the ledger enumerates multiple sibling scopes, events, "
+            "or components, the candidate must cover or entail all of them. Never "
+            "complete a candidate backward from ledger detail; shared cause or a "
+            "narrow manifestation is not entailment."
         ),
     )
     reason: str = Field(
         min_length=1,
-        description="解释 locus、property、scope 和方向为何形成该 relation。",
+        description="Explains why locus, property, scope, and direction produce this relation.",
     )
     basis: str = Field(
         min_length=1,
-        description="引用 supplied compact ledger/release 语义字段；不得读取 method audit tree 或历史结果。",
+        description="Cites supplied compact ledger/release semantic fields; never reads the method audit tree or historical results.",
     )
 
     @model_validator(mode="after")
@@ -186,11 +193,13 @@ class LedgerAssessment(BaseModel):
     matched_issue_ids: list[str] = Field(
         default_factory=list,
         description=(
-            "支持该 ledger round hit 的 exact supplied method issue IDs。每个 ID 都必须"
-            "独立拥有 exact、semantic_equivalent 或 candidate_subsumes_ledger typed relation，"
-            "并在对应 ReleaseAssessment.accounted_ledger_ids 中反向出现。不得把多个"
-            "ledger_subsumes_candidate/partial_overlap 子集 issue 合并后当作一个 hit；若没有"
-            "单条 release 建立完整 ledger defect，此列表为空且对应 hit_rN=false。"
+            "Exact supplied method issue IDs supporting this ledger-round hit. "
+            "Every ID must independently have an exact, semantic_equivalent, or "
+            "candidate_subsumes_ledger typed relation and appear reciprocally in "
+            "the corresponding ReleaseAssessment.accounted_ledger_ids. Multiple "
+            "ledger_subsumes_candidate or partial_overlap subset issues cannot be "
+            "combined into one hit. If no single release establishes the complete "
+            "ledger defect, this list is empty and hit_rN is false."
         ),
     )
     reason: str = Field(min_length=1, description="Non-empty explanation of why this ledger item is or is not semantically matched.")
@@ -205,20 +214,23 @@ class ReleaseAssessment(BaseModel):
     issue_id: str = Field(
         min_length=1,
         description=(
-            "被裁定的 exact released method issue ID，必须从 judge input 原样复制。"
-            "每个 supplied issue ID 都需要独立一行；即使多个 release 在语义上重复、"
-            "共享 cause 或映射到同一 ledger，也不得合并、去重或省略其中任何一行。"
+            "Exact released method issue ID being assessed, copied verbatim from "
+            "Judge input. Every supplied issue ID requires its own row. Even when "
+            "several releases are semantic duplicates, share a cause, or map to "
+            "one ledger item, no row may be merged, deduplicated, or omitted."
         ),
     )
     accounted_ledger_ids: list[str] = Field(
         default_factory=list,
         description=(
-            "以 hit-eligible typed relation 完整解释该 release 的 exact frozen ledger IDs。"
-            "每个 pair 必须在 ledger-side matched_issue_ids 中反向出现，且 relation 只能是"
-            "exact、semantic_equivalent 或带完整 entailment_basis 的 candidate_subsumes_ledger。"
-            "ledger_subsumes_candidate、partial_overlap、same_cause_different_property 和"
-            "unrelated 必须保持未计账，即使多个 subset release 的并集看似覆盖 ledger。"
-            "空列表精确表示没有 hit-eligible ledger relation。"
+            "Exact frozen ledger IDs fully explained by hit-eligible typed "
+            "relations for this release. Every pair must appear reciprocally in "
+            "ledger-side matched_issue_ids, and the relation must be exact, "
+            "semantic_equivalent, or candidate_subsumes_ledger with a complete "
+            "entailment_basis. ledger_subsumes_candidate, partial_overlap, "
+            "same_cause_different_property, and unrelated remain unaccounted even "
+            "when a union of subset releases appears to cover a ledger item. An "
+            "empty list means exactly that no hit-eligible ledger relation exists."
         ),
     )
     is_false_positive: bool = Field(description="True exactly when accounted_ledger_ids is empty. A true value means reason and basis must explain why no hit-eligible ledger relation exists; they must not describe the release as matching a frozen defect.")
@@ -235,18 +247,21 @@ class JudgeResponse(BaseModel):
     release_assessments: list[ReleaseAssessment] = Field(
         default_factory=list,
         description=(
-            "supplied release surface 中每个 exact method issue 各一行且仅一行。该列表"
-            "按 issue identity 完整覆盖，不按语义相似性 deduplicate；两个 release 即使"
-            "具有相同 locus/property/cause，也必须保留各自的 ReleaseAssessment。"
+            "Exactly one row for every exact method issue on the supplied release "
+            "surface. Coverage is by issue identity, not semantic-similarity "
+            "deduplication. Two releases with the same locus, property, or cause "
+            "still retain separate ReleaseAssessment rows."
         ),
     )
     relation_assessments: list[JudgeRelationAssessment] = Field(
         default_factory=list,
         description=(
-            "Plausible ledger/release pair 的 sparse typed relations。每个 claimed hit/accounting"
-            " pair 必须且只能有一行 hit-eligible relation；负关系可稀疏保留。relation 是逐"
-            " candidate 判断，禁止把多个 ledger_subsumes_candidate 或 partial_overlap 行的"
-            "集合并集升级成 ledger hit，也禁止生成完整 unrelated 矩阵。"
+            "Sparse typed relations for plausible ledger/release pairs. Every "
+            "claimed hit/accounting pair must have exactly one hit-eligible row; "
+            "negative relations may remain sparse. Relations are assessed per "
+            "candidate. Never union several ledger_subsumes_candidate or "
+            "partial_overlap rows into a ledger hit, and do not generate a full "
+            "unrelated matrix."
         ),
     )
     reason: str = Field(min_length=1, description="Non-empty explanation of the judge's overall assessment decision.")
@@ -401,9 +416,9 @@ class ExactGroundingResponse(GroundingResponse):
         return self
 
 
-METHOD_SYSTEM_PROMPT = """The method is staged. The public method-generation surface is the NL contract extraction stage followed by two v27 complementary discovery-grounding lenses that share one response schema and compact cross-view context. Use only the complete context manifest supplied to each stage. Never read ledger answers, baseline results, judge examples, or historical release outputs. Do not emit W, D, or L levels. Every structured object must contain non-empty reason and basis."""
+METHOD_SYSTEM_PROMPT = """The method is staged. Its public generation surface is the NL contract-extraction stage followed by two complementary discovery-grounding lenses that share one response schema and compact cross-view context. Use only the complete context manifest supplied to each stage. Never read evaluation ground truth, scores, reviewer examples, or previously generated reports. Do not emit W, D, or L levels. Every structured object must contain non-empty reason and basis. Write every generated title, statement, summary, reason, basis, and audit explanation in English; preserve non-English text only inside exact quotations or identifiers copied from supplied artifacts."""
 
-JUDGE_SYSTEM_PROMPT = """You are an independent judge separated from method generation. You may use the supplied frozen ledger entries to assess method D1/D2 release issues. Judge semantic identity of locus, property, scope, and direction, not string similarity. The release's typed property and violation_direction define its claim boundary: observed, basis, or shared causal facts may support that claim but cannot silently turn a termination release into a wrong-scope route release, or any other different property. Determine one release's asserted semantic scope from its title, requirement_quote, expected, observed, reason, and basis together with its typed locus/property/direction. contract_id, element_refs, source_refs, method_issue_hash, and audit_reference are provenance identities, not exhaustive lists of the semantic components asserted by the release. If one aggregate release explicitly states multiple supplied clauses or a complete enumerated scope in those semantic fields, do not narrow it to the first bound state/transition ref; conversely, never add a component that its own semantic fields do not assert. Operational reachable-consumer coverage and a ledger phrased as consumers being unreachable are the same property when both claims identify the same events, operating scope, empty reachable-consumer set, and direction; declaration-only consumer presence remains a weaker different fact. Emit sparse typed relation_assessments: exact, semantic_equivalent, or candidate_subsumes_ledger may count as a hit; candidate_subsumes_ledger requires a complete logical entailment basis from the candidate's own supplied claim. When a ledger explicitly enumerates multiple sibling scopes, events, states, or components, a candidate covering only a subset is ledger_subsumes_candidate or partial_overlap, even if it shares the same ancestor or cause. Relation direction is literal: if the complete ledger names A+B but one candidate claims only A, the ledger subsumes that candidate; the candidate does not subsume the ledger. A second candidate claiming only B does not change either pairwise relation, and A plus B cannot be unioned into a hit. Never use ledger detail to add a missing sibling/component to the candidate's claim. ledger_subsumes_candidate, partial_overlap, same_cause_different_property, and unrelated never count as hits. Multiple non-hit subset candidates cannot be unioned or counted collectively as one ledger hit: every issue_id in matched_issue_ids must independently have one exact, semantic_equivalent, or candidate_subsumes_ledger relation that establishes the complete ledger defect. If no single release does so, the ledger is a miss even when several releases together mention every enumerated sibling. For a D1 ledger, compare the represented ambiguity rather than requiring the method release to settle it or use the same D level: when the release identifies the same primary defect reading at the same locus/property/scope/direction and preserves a compatible competent alternative, the surviving alternative is part of the same D1 ambiguity and does not by itself make the relation partial_overlap. This rule never repairs a wrong source, different property, incompatible scope, narrow manifestation, or issue that merely shares a cause; those are not semantic equivalence. Do not emit a full ledger-by-release matrix. Release assessment coverage is identity-based: emit one row for every supplied issue_id even when two releases are semantic duplicates or share one cause/ledger mapping; never deduplicate release rows. The ledger matched_issue_ids, release accounted_ledger_ids, hit-eligible typed relations, hit booleans, false-positive boolean, reason, and basis must all describe the same decision. In particular, a release marked false positive must have accounted_ledger_ids=[] and must not have reason or basis claiming that it matches a frozen defect. Do not read baseline results, other pairs, other judge outputs, or historical examples. Every assessment, relation, and top-level response must contain non-empty reason and basis fields that explain the judgment and its supplied-input support. Preserve the model's original wording."""
+JUDGE_SYSTEM_PROMPT = """You are an independent judge separated from method generation. You may use the supplied frozen ledger entries to assess method D1/D2 release issues. Judge semantic identity of locus, property, scope, and direction, not string similarity. The release's typed property and violation_direction define its claim boundary: observed, basis, or shared causal facts may support that claim but cannot silently turn a termination release into a wrong-scope route release, or any other different property. Determine one release's asserted semantic scope from its title, requirement_quote, expected, observed, reason, and basis together with its typed locus/property/direction. contract_id, element_refs, source_refs, method_issue_hash, and audit_reference are provenance identities, not exhaustive lists of the semantic components asserted by the release. If one aggregate release explicitly states multiple supplied clauses or a complete enumerated scope in those semantic fields, do not narrow it to the first bound state/transition ref; conversely, never add a component that its own semantic fields do not assert. Operational reachable-consumer coverage and a ledger phrased as consumers being unreachable are the same property when both claims identify the same events, operating scope, empty reachable-consumer set, and direction; declaration-only consumer presence remains a weaker different fact. Emit sparse typed relation_assessments: exact, semantic_equivalent, or candidate_subsumes_ledger may count as a hit; candidate_subsumes_ledger requires a complete logical entailment basis from the candidate's own supplied claim. When a ledger explicitly enumerates multiple sibling scopes, events, states, or components, a candidate covering only a subset is ledger_subsumes_candidate or partial_overlap, even if it shares the same ancestor or cause. Relation direction is literal: if the complete ledger names A+B but one candidate claims only A, the ledger subsumes that candidate; the candidate does not subsume the ledger. A second candidate claiming only B does not change either pairwise relation, and A plus B cannot be unioned into a hit. Never use ledger detail to add a missing sibling/component to the candidate's claim. ledger_subsumes_candidate, partial_overlap, same_cause_different_property, and unrelated never count as hits. Multiple non-hit subset candidates cannot be unioned or counted collectively as one ledger hit: every issue_id in matched_issue_ids must independently have one exact, semantic_equivalent, or candidate_subsumes_ledger relation that establishes the complete ledger defect. If no single release does so, the ledger is a miss even when several releases together mention every enumerated sibling. For a D1 ledger, compare the represented ambiguity rather than requiring the method release to settle it or use the same D level: when the release identifies the same primary defect reading at the same locus/property/scope/direction and preserves a compatible competent alternative, the surviving alternative is part of the same D1 ambiguity and does not by itself make the relation partial_overlap. This rule never repairs a wrong source, different property, incompatible scope, narrow manifestation, or issue that merely shares a cause; those are not semantic equivalence. Do not emit a full ledger-by-release matrix. Release assessment coverage is identity-based: emit one row for every supplied issue_id even when two releases are semantic duplicates or share one cause/ledger mapping; never deduplicate release rows. The ledger matched_issue_ids, release accounted_ledger_ids, hit-eligible typed relations, hit booleans, false-positive boolean, reason, and basis must all describe the same decision. In particular, a release marked false positive must have accounted_ledger_ids=[] and must not have reason or basis claiming that it matches a frozen defect. Do not read baseline results, other pairs, other judge outputs, or historical examples. Every assessment, relation, and top-level response must contain non-empty reason and basis fields that explain the judgment and its supplied-input support. Write every generated assessment, reason, basis, and audit explanation in English; preserve non-English text only inside exact quotations or identifiers copied from supplied artifacts."""
 
 
 def _prompt_schema_hash() -> str:
@@ -564,7 +579,7 @@ def _retry_policy(transport_retries: int) -> dict[str, Any]:
         "schema_and_non_provider_retries_billable": True,
         "unavailable_non_provider_usage": "cost_ineligible_not_zero",
         "provider_retry_exemption": "Only a failed provider attempt followed by an actual same-request retry is exempt; the successful attempt remains billable.",
-        "reason": "The run uses v27-equivalent in-place provider recovery without cold cell reruns.",
+        "reason": "The run uses in-place provider recovery without cold cell reruns.",
         "basis": "utils.agent transport middleware plus row-local usage/retry identity",
     }
 
@@ -1524,7 +1539,7 @@ def _materialize_exact_s2_inventory_candidates(
     contracts: NLContractResponse,
     llm_candidates: list[CandidateIssue],
 ) -> tuple[list[CandidateIssue], list[dict[str, Any]]]:
-    """Compile exact missing-edge contracts that v27 scouts cannot let LLMs suppress."""
+    """Compile exact missing-edge contracts that LLM output cannot suppress."""
 
     materialized: list[CandidateIssue] = []
     receipts: list[dict[str, Any]] = []
@@ -1642,7 +1657,7 @@ def _materialize_exact_s2_inventory_candidates(
 
 
 def _prepared_is_finding_candidate(prepared: Mapping[str, Any]) -> bool:
-    """Restore v27's execute-batch boundary between passing checks and findings."""
+    """Apply the execute-batch boundary between passing checks and findings."""
 
     receipt = prepared.get("receipt")
     return not (
@@ -1851,7 +1866,7 @@ def _method_cell(
     run_identity: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if pair.context_manifest is None or pair.exact_source_inventory is None:
-        raise ValueError("method cell requires the complete v27-equivalent input closure")
+        raise ValueError("method cell requires the complete typed input closure")
     run_identity = run_identity or {
         "run_id": "0" * 32,
         "run_contract_hash": "sha256:" + "0" * 64,
@@ -1926,7 +1941,7 @@ def _method_cell(
             {
                 "stage": "contract_extraction",
                 "error": contract_outcome.result.get("error", "structured contract output unavailable"),
-                "reason": "The whole-cell v27 contract call failed; numbered NL is preserved only as an unresolved audit contract.",
+                "reason": "The whole-cell contract call failed; numbered NL is preserved only as an unresolved audit contract.",
                 "basis": "public structured runtime outcome and exact numbered NL fallback",
             }
         )
@@ -1941,7 +1956,7 @@ def _method_cell(
             output=contract_response,
             outcome=contract_outcome,
             diagnostics=tuple(contract_normalization_diagnostics),
-            projection_version="v27-contract-projection.v1",
+            projection_version="typed-contract-projection.v2",
             reason=contract_response.reason,
             basis=contract_response.basis,
         )
@@ -1963,7 +1978,7 @@ def _method_cell(
     ] = []
     grounding_normalization_diagnostics: list[dict[str, Any]] = []
     grounding_schema = _grounding_response_contract(contract_response.contracts)
-    # v27 samples the two complementary lenses sequentially inside one method
+    # The method samples the two complementary lenses sequentially inside one
     # cell. Pair workers provide process-level parallelism without changing the
     # public AgentApp/LangGraph call semantics or deadline handling.
     for lens, prompt in grounding_prompts.items():
@@ -2005,8 +2020,8 @@ def _method_cell(
                         "error",
                         f"{lens} discovery grounding output unavailable",
                     ),
-                    "reason": "One v27 discovery lens failed; its contracts remain unresolved and no fallback issue was manufactured.",
-                    "basis": "public structured runtime outcome and v27 lens-local failure rule",
+                    "reason": "One complementary discovery lens failed; its contracts remain unresolved and no fallback issue was manufactured.",
+                    "basis": "public structured runtime outcome and lens-local failure rule",
                 }
             )
     all_outcomes.extend(grounding_outcomes)
@@ -2030,7 +2045,7 @@ def _method_cell(
             receipt.model_dump(mode="json")
             for receipt in identity_normalization_receipts
         ],
-        "reason": "Two complementary v27 discovery lenses completed or retained explicit lens diagnostics; branch-local derived identities were normalized by the runner before merge.",
+        "reason": "Two complementary discovery lenses completed or retained explicit lens diagnostics; branch-local derived identities were normalized by the runner before merge.",
         "basis": "one shared GroundingResponse schema, compact cross-view context, and canonical ContractSemanticKey identities over the same contract plan",
     }
     stage_receipts.append(
@@ -2048,7 +2063,7 @@ def _method_cell(
             output=stage_outputs["discovery_grounding"],
             outcome=grounding_outcomes[-1],
             diagnostics=tuple(grounding_normalization_diagnostics),
-            projection_version="v27-complementary-grounding-projection.v1",
+            projection_version="complementary-grounding-projection.v2",
             reason=stage_outputs["discovery_grounding"]["reason"],
             basis=stage_outputs["discovery_grounding"]["basis"],
         )
@@ -2056,11 +2071,11 @@ def _method_cell(
 
     response = assemble_method_response(
         grounding_responses,
-        reason="The method merged two complementary v27 discovery lenses after NL contract extraction; typed semantic D is adjudicated separately and W remains deterministic downstream output.",
+        reason="The method merged two complementary discovery lenses after NL contract extraction; typed semantic D is adjudicated separately and W remains deterministic downstream output.",
         basis="two GroundingResponse objects over the same compact cross-view context manifest",
     )
     try:
-        frontier_batch = materialize_v27_frontier(
+        frontier_batch = materialize_typed_frontier(
             pair,
             contract_response,
             contracts_by_id,
@@ -2075,7 +2090,7 @@ def _method_cell(
                 "error_type": type(exc).__name__,
                 "message": str(exc),
                 "reason": "The deterministic frontier failed locally; existing grounding candidates remain available and the cell continues with an explicit diagnostic.",
-                "basis": "v27 local-stage downgrade rule; non-provider failures cannot erase prior semantic artifacts",
+                "basis": "local-stage downgrade rule; non-provider failures cannot erase prior semantic artifacts",
             }
         )
         frontier_batch = FrontierBatch(
@@ -2150,8 +2165,8 @@ def _method_cell(
             item["obligation_id"] for item in satisfied_candidates
         ],
         "candidates": [_jsonable(item) for item in prepared_candidates],
-        "reason": "Exact binding, the v27 typed domain frontier, the exact S2 inventory scout, frozen predicate compilation, and deterministic backend execution were applied inside one execute-batch; completed true receipts remain passing-check audit records while only counterexamples, unresolved W1/W0, or errors become v27 findings.",
-        "basis": "LLM-established typed contracts, owned source/ModelIR/inspection facts, frozen predicate registry, compiler plans, backend receipts, and the v27 passing-check exclusion rule",
+        "reason": "Exact binding, the typed domain frontier, the exact S2 inventory scout, frozen predicate compilation, and deterministic backend execution were applied inside one execute batch; completed true receipts remain passing-check audit records while only counterexamples, unresolved W1/W0, or errors become findings.",
+        "basis": "LLM-established typed contracts, owned source/ModelIR/inspection facts, frozen predicate registry, compiler plans, backend receipts, and the passing-check exclusion rule",
     }
     stage_receipts.append(
         _stage_receipt(
@@ -2559,7 +2574,7 @@ def _method_cell(
     eligibility_reasons = (
         [
             "real_contract_output",
-            "at_least_one_real_v27_grounding_lens",
+            "at_least_one_completed_grounding_lens",
             "auditable_semantic_result",
             "method_receipt_complete",
         ]
@@ -2630,7 +2645,7 @@ def _judge_ledger_projection(item: dict[str, Any]) -> dict[str, Any]:
 
 
 def _judge_issue_projection(issue: dict[str, Any]) -> dict[str, Any]:
-    """Project only the final v27-style D1/D2 semantic publication surface."""
+    """Project only the final D1/D2 semantic publication surface."""
 
     audit = issue.get("audit_bundle") or {}
     semantic = {
@@ -2674,7 +2689,7 @@ def _judge_issue_projection(issue: dict[str, Any]) -> dict[str, Any]:
             ),
             "path": issue.get("audit_bundle_path"),
             "reason": "The complete W2 audit bundle remains on disk; the judge receives its identity only.",
-            "basis": "v27-judge-release-projection.v2",
+            "basis": "semantic-judge-release-projection.v3",
         },
         "reason": semantic["reason"],
         "basis": semantic["basis"],
@@ -3036,7 +3051,7 @@ def _grounding_response_contract(
         ),
     )
     response_model.__doc__ = (
-        "Runtime-specialized v27 grounding response. All contract_id references "
+        "Runtime-specialized grounding response. All contract_id references "
         "must resolve to the supplied contract set or one typed additional "
         "contract declared in this response. Every supplied cardinality contract "
         "must also receive exactly one typed domain row in this lens, including an "
@@ -3298,7 +3313,7 @@ def _judge_pair(
     output_root: Path,
     run_identity: dict[str, Any],
 ) -> dict[str, Any]:
-    """Run the v27 pair-wide judge with at most one shape correction."""
+    """Run the pair-wide Judge with at most one shape correction."""
 
     ledger_items = _read_ledger_for_pair(ledger_path, pair.pair_id)
     judge_method_rounds = [
@@ -3879,7 +3894,7 @@ def _write_pair_status(
 ) -> dict[str, Any]:
     payload = PairRunStatus.model_validate(
         {
-            "schema": "paper1.evidence_discovery.pair_status.v2",
+            "schema": "evidence-discovery.pair_status.v2",
             "pair_id": pair_id,
             **status,
             "reason": status.get("reason", "Pair status was computed from terminal method and judge receipts."),
@@ -3910,7 +3925,7 @@ def _quarantine_incompatible(
     write_json(
         target.with_suffix(target.suffix + ".stale.json"),
         {
-            "schema": "paper1.evidence_discovery.stale_artifact.v1",
+            "schema": "evidence-discovery.stale_artifact.v1",
             "original_path": str(path),
             "preserved_path": str(target),
             "status": "stale_incompatible",
@@ -4205,7 +4220,7 @@ def _finalize_w2_audit_links_with_receipt(
         write_json(
             output_root / "pairs" / pair_id / f"audit-finalization-error-{uuid.uuid4().hex}.json",
             {
-                "schema": "paper1.evidence_discovery.audit_finalization_error.v1",
+                "schema": "evidence-discovery.audit_finalization_error.v1",
                 "pair_id": pair_id,
                 "error_type": type(exc).__name__,
                 "message": str(exc),
@@ -4417,7 +4432,7 @@ def run_experiment(
     run_id: str | None = None,
     predecessor_snapshot: str | None = None,
 ) -> dict[str, Any]:
-    """Execute a contract-compatible diagnostic or frozen full Luna run."""
+    """Execute a contract-compatible diagnostic or frozen full provider run."""
 
     if rounds not in {1, 3}:
         raise ValueError("rounds must be 1 for a diagnostic run or 3 for the frozen protocol")
@@ -4427,10 +4442,10 @@ def run_experiment(
         raise ValueError("transport_retries must be non-negative")
     if profile != "fixture" and not allow_live:
         raise RuntimeError(
-            "live Luna execution requires explicit allow_live=True after provider-free review"
+            "live provider execution requires explicit allow_live=True after provider-free review"
         )
     if profile == "gpt-5.6-sol" or profile.endswith("-sol"):
-        raise RuntimeError("Sol execution is outside this Luna-only construction and diagnostic run")
+        raise RuntimeError("the selected profile is outside the frozen construction and diagnostic protocol")
 
     selected_pair_ids = tuple(
         dict.fromkeys(FROZEN_PAIR_IDS if pair_ids is None else pair_ids)
@@ -4445,10 +4460,10 @@ def run_experiment(
         if full_protocol:
             if not allow_full_live:
                 raise RuntimeError(
-                    "the 54-pair live run requires explicit allow_full_live=True after six-pair review"
+                    "full-protocol provider execution requires explicit allow_full_live=True after bounded diagnostic review"
                 )
             if profile != "gpt-5.6-luna" or rounds != 3:
-                raise RuntimeError("full live execution is frozen to gpt-5.6-luna and three rounds")
+                raise RuntimeError("full live execution requires the frozen model profile and three rounds")
         else:
             if pair_ids is None:
                 raise RuntimeError("live diagnostic execution requires explicit pair_ids")
@@ -4664,7 +4679,7 @@ def run_experiment(
             "pair_ids": list(selected_pair_ids),
             "reason": "The selected pair grid was frozen in the run manifest before provider execution.",
             "basis": (
-                "v27-predecessor representative set: 0004, 0023, 0029, 0035, 0046, 0053"
+                "frozen representative diagnostic set"
                 if set(selected_pair_ids) == set(REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS)
                 else "frozen 54-pair protocol" if full_protocol else "explicit diagnostic pair_ids"
             ),
@@ -4697,7 +4712,7 @@ def run_experiment(
     write_json(
         output_root / "audit_index.json",
         {
-            "schema": "paper1.evidence_discovery.audit_index.v2",
+            "schema": "evidence-discovery.audit_index.v2",
             "run_id": manifest.run_id,
             "run_contract_hash": manifest.run_contract_hash,
             "pairs": per_pair,

@@ -31,7 +31,7 @@ FROZEN_PAIR_IDS = tuple(
 
 
 def load_pair(pair_dir: str | Path) -> PairInput:
-    """Load one frozen pair with the complete v27-equivalent input closure.
+    """Load one frozen pair with the complete method input closure.
 
     ``nl.txt``, ``plantuml.puml`` and ``fcstm.fcstm`` are necessary but not
     sufficient.  A formal method run also needs the published canonical source
@@ -48,12 +48,12 @@ def load_pair(pair_dir: str | Path) -> PairInput:
     fcstm_path = directory / "fcstm.fcstm"
     plantuml_path = directory / "plantuml.puml"
     report_root = directory.parent.parent
-    v27_id = f"llms_emp_feedback_final_{pair_id}"
-    canonical_path = report_root / "canonical" / f"{v27_id}.json"
-    inspection_path = report_root / "parse_inspect" / f"{v27_id}.json"
-    source_trace_path = report_root / "source_traces" / f"{v27_id}.json"
-    working_contract_path = report_root / "working_contracts" / f"{v27_id}.json"
-    case_report_path = report_root / "case_reports" / f"{v27_id}.json"
+    artifact_stem = f"llms_emp_feedback_final_{pair_id}"
+    canonical_path = report_root / "canonical" / f"{artifact_stem}.json"
+    inspection_path = report_root / "parse_inspect" / f"{artifact_stem}.json"
+    source_trace_path = report_root / "source_traces" / f"{artifact_stem}.json"
+    working_contract_path = report_root / "working_contracts" / f"{artifact_stem}.json"
+    case_report_path = report_root / "case_reports" / f"{artifact_stem}.json"
     required = {
         "nl.txt": nl_path,
         "plantuml.puml": plantuml_path,
@@ -67,7 +67,7 @@ def load_pair(pair_dir: str | Path) -> PairInput:
     missing = [name for name, path in required.items() if not path.is_file()]
     if missing:
         raise FileNotFoundError(
-            f"pair {pair_id} has incomplete v27 input closure; missing: {', '.join(missing)}"
+            f"pair {pair_id} has an incomplete method input closure; missing: {', '.join(missing)}"
         )
     nl_text = nl_path.read_text(encoding="utf-8")
     fcstm_text = fcstm_path.read_text(encoding="utf-8")
@@ -124,10 +124,10 @@ def load_pair(pair_dir: str | Path) -> PairInput:
         path=inspection_path,
         payload=inspection_payload,
         sha256=hashes["parse_inspect"],
-        schema_version=str(inspection_payload.get("schema_version") or "v27.parse-inspect-facts.v1"),
-        algorithm_version="v27-representation-fact-export.v1",
+        schema_version=str(inspection_payload.get("schema_version") or "representation.parse-inspect-facts.v1"),
+        algorithm_version="representation-fact-export.v1",
         producer="representation.parse_inspect.fact_export",
-        reason="The frozen v27 inspection-derived structured facts are retained as read-only context.",
+        reason="The frozen inspection-derived structured facts are retained as read-only context.",
         basis="published representation parse_inspect artifact; no legacy inspector is called",
     )
     working_artifact = file_artifact(
@@ -174,7 +174,7 @@ def load_pair(pair_dir: str | Path) -> PairInput:
         schema_version=inspection_facts.schema_version,
         algorithm_version=inspection_facts.algorithm_version,
         producer="evidence_discovery.inputs.context",
-        reason="Owned inspection-equivalent facts preserve v27's inventory/diagnostic role without calling forbidden inspection APIs.",
+        reason="Owned inspection-equivalent facts preserve the required inventory and diagnostic role without calling forbidden inspection APIs.",
         basis=inspection_facts.basis,
     )
     _persist_generated_artifact(inspection_equivalent_artifact)

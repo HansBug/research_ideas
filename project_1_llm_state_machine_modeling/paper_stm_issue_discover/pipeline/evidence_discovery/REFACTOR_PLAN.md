@@ -13,15 +13,15 @@ containment、cardinality、并发运行时、层级优先级或轨迹变量差�
 
 ### 1.1 效果对齐目标
 
-这次迁移不追求逐格复刻历史实现，但要以历史 v27 正式结果作为工程量级参照：在冻结
+这次迁移不追求逐格复刻历史实现，但要以冻结历史参考实现的正式结果作为工程量级参照：在冻结
 相同台账、54 个 pair、最终 D1/D2 发布边界、独立 judge 和统计分母后，新实现应取得与
-v27 **大体相当或更好**的 hit 和 FP/precision 表现。达到大体相当即可，不要求绝对完美或
-逐格相同；若超过 v27 则记录为改进。该目标是“不能出现无解释的明显回退”，不是新增
+参考实现**大体相当或更好**的 hit 和 FP/precision 表现。达到大体相当即可，不要求绝对完美或
+逐格相同；若超过参考实现则记录为改进。该目标是“不能出现无解释的明显回退”，不是新增
 谓词、放宽 soundness 或把 W1/W0/`UNKNOWN` 伪装成 W2/violation 的理由。
 
 对齐评估至少要同时看整体、L2、D2×L2 的 `hit@1`/`hit@3`/`hit@all`、release
 emission FP、precision、eligible rate、W0/W1/W2/`UNKNOWN` 分布和成本；不要求逐 pair、
-逐轮或每个谓词的使用量完全相同。v27 参照报告、台账版本、judge 和比较容差必须在
+逐轮或每个谓词的使用量完全相同。参考报告、台账版本、judge 和比较容差必须在
 正式运行前登记，不能运行后按结果选择参照物。若差异来自新四族的学术边界或 W1 fallback，
 必须在对账中说明，不能用 benchmark 覆盖率反向改定义。
 
@@ -39,7 +39,7 @@ pipeline/evidence_discovery/
 ├── predicate_registry.json        # 机器可读唯一注册表（迁移前置真源）
 ├── inputs/
 │   ├── models.py                  # NL、源模型、轨迹和绑定输入类型
-│   ├── context.py                 # v27 输入闭包、manifest 和自有事实算法
+│   ├── context.py                 # 完整输入闭包、manifest 和自有事实算法
 │   ├── loaders.py                 # pair、PlantUML、fcstm、工作合同和事实加载
 │   └── provenance.py              # 输入哈希、源位置和绑定回执
 ├── semantics/
@@ -85,9 +85,9 @@ pipeline/evidence_discovery/
 模块之间先传结构化记录，再接入真实后端。字段名是内部接口的冻结草案；实现阶段若要
 修改，必须同步 schema、迁移说明和测试。
 
-当前 v27 等价输入闭包由 ContextManifest 固定，至少覆盖编号 NL、PlantUML、canonical
+当前完整输入闭包由 ContextManifest 固定，至少覆盖编号 NL、PlantUML、canonical
 source IR、exact source/transition inventory、working contract/mapping、source trace、
-FCSTM/ModelIR、v27 inspect-derived facts、owned inspection-equivalent facts、verify
+FCSTM/ModelIR、reference inspection-derived facts、owned inspection-equivalent facts、verify
 facts 和 SMT summary。每个 artifact reference 都记录哈希、schema/algorithm version、
 producer、source role、reason 和 basis；缺失闭包时不得降级为三文件 prompt。
 
@@ -99,7 +99,7 @@ d-adjudication -> validate-d -> publish`。两个互补 grounding lens 是一个
 
 | 记录 | 必填字段 | 生产者 → 消费者 | 不能承载的含义 |
 |---|---|---|---|
-| ContextManifest | pair_id、artifacts、sections、forbidden_inputs、manifest_hash | inputs → semantics / orchestration | 不得省略 v27 source/model/fact closure 或混用来源角色 |
+| ContextManifest | pair_id、artifacts、sections、forbidden_inputs、manifest_hash | inputs → semantics / orchestration | 不得省略完整 source/model/fact closure 或混用来源角色 |
 | StageReceipt | stage_id、stage_name、input_manifest_hash、output_hash、context_budget、reason、basis | orchestration → audit/reporting | 不得把 provider/schema 诊断改写成 D/W 结论 |
 | `NLContract` | `contract_id`、source quote、locus kind/names、property、expected/violation direction、evidence types、binding hints、reason、basis | NL contract extraction → 两个 grounding lens | 不得读取闭模型结果、提前声称 violation 或把复合句留成一个义务 |
 | `GroundingDisposition` | `contract_id`、status、candidate_count、reason、basis | 两个 grounding lens → stage receipt | 漏项只能确定性补 unresolved，不得补 satisfied/miss/FP |
@@ -240,7 +240,7 @@ containment、child count、consumer scope、正交区和 trace delta 的旧证�
 
 ### 阶段 0：输入闭包和阶段边界
 
-- 恢复完整 v27 source/model/fact closure，并明确 PlantUML/source、FCSTM/closed model
+- 恢复完整 source/model/fact closure，并明确 PlantUML/source、FCSTM/closed model
   和 inspection/verify/SMT facts 的不相混角色。
 - 用 ContextManifest 固定每项哈希、版本、来源角色和 prompt 排除项。
 - 让 fixture 证明每个 grounding 分支实际收到完整闭包；每个阶段产出 Pydantic
@@ -295,9 +295,9 @@ D1/D2 才允许发布。所有模型节点和结构化项都要通过 `reason`/`
 退出条件：新包在固定 fixture、mutation、来源和报告测试上达到门槛；完成一次新旧
 结果只读对账，证明旧归档结果没有被静默改写。
 
-阶段 E 的新旧对账还必须包含 v27 量级对齐表：同一分母下列出新实现与 v27 的
+阶段 E 的新旧对账还必须包含历史参考实现量级对齐表：同一分母下列出新实现与参考实现的
 hit/FP/precision、W 分布、eligible 和成本；“大体相当”按运行前登记的比较容差判定，
-不以逐格相等或绝对完美为门；若新实现超过 v27，应同时报告改进。不允许只挑 L2 或只挑
+不以逐格相等或绝对完美为门；若新实现超过参考实现，应同时报告改进。不允许只挑 L2 或只挑
 precision 较好的切片报告。
 
 阶段 E 还必须完成公共基础设施切换：新入口通过 `utils.agent`/LangGraph/respond 调度，
@@ -306,23 +306,21 @@ precision 较好的切片报告。
 error 使格子死亡，原地重试该格一次；其它错误及由此触发的 retry 全部计费并作为实现缺陷
 修复，不能通过整格冷重跑掩盖。
 
-阶段 E 完成并通过固定六 pair 三轮 method + independent judge 放行门后，才使用
+阶段 E 完成并通过预先登记的诊断集 method + independent judge 放行门后，才使用
 `gpt-5.6-luna` 对冻结的 54 pair 做一次全量实验。实验输出必须
 落盘每个 pair/cell 的 W/D、reason/basis、重试和成本；随后修复错误并迭代，直至整体 hit
-显著高于 baseline、L2 大部分成功命中、FP 不高于 baseline，且总体达到 v27 大体相当量级。
-超过 v27 如实记录；不要求逐格复刻，也不允许为达指标新增谓词或放宽学术边界。
+显著高于冻结 baseline、L2 大部分成功命中、FP 不高于冻结 baseline，且总体达到历史参考实现大体相当量级。
+超过参考实现如实记录；不要求逐格复刻，也不允许为达指标新增谓词或放宽学术边界。
 
 当前施工安全门分两级：任意真实 Luna 调用都必须显式通过 `allow_live`；诊断阶段必须
 显式传入 pair IDs，且最多运行六个 pair。冻结 54-pair 三轮全量还必须额外通过
-`allow_full_live`，该门只可在 provider-free 契约检查与 0004/0023/0029/0035/0046/0053
-六 pair 三轮 method + independent judge 验收完成 review 后打开。每次运行在用户给定目录下新建 `run_id` 子目录；
+`allow_full_live`，该门只可在 provider-free 契约检查与预先登记的诊断集
+method + independent judge 验收完成 review 后打开。每次运行在用户给定目录下新建 `run_id` 子目录；
 manifest 冻结 commit、registry/prompt/schema/input hash、workers、retry 和 stream 模式，
 不兼容旧格移入 `stale/` 并重新生成，不能静默 resume，也不能以冷重跑替代故障修复。
 
-效果对账必须把重构前 v27 与 X1v2 baseline 分开。v27 量级参考为 overall hit@1
-276/435、overall hit@3 107/145、L2 hit@3 35/39、D2xL2 hit@3 30/34、release
-precision 45.74%；X1v2 baseline precision 为 41.60%。这些值是第一轮稳定运行后的能力
-分析参照，不是 provider-free 或六 pair 诊断的通过条件，也不能用来改写 19 谓词语义。
+效果对账必须把历史参考实现与 baseline 实现分开。冻结指标和 provenance 保存在实验记录中，
+不写入公开 method 术语，也不是 provider-free 或局部诊断的通过条件，不能用来改写 19 谓词语义。
 
 ### 阶段 F：退役历史运行入口
 
@@ -339,7 +337,7 @@ precision 45.74%；X1v2 baseline precision 为 41.60%。这些值是第一轮稳
 6. **变异门**：修改一个模型事实不得让无关谓词或族产生同样回执。
 7. **学术叙事门**：扫描文档，禁止把台账频率写成来源、把图路径写成运行保证、把旧谓词写成核心。
 8. **兼容性门**：旧归档可回放，新入口不依赖旧 `prototype` 模块名。
-9. **v27 量级门**：在预先冻结的同分母、同 judge 对账中，hit 与 FP/precision 没有
+9. **参考实现量级门**：在预先冻结的同分母、同 judge 对账中，hit 与 FP/precision 没有
    无解释的明显回退；差异必须能由 W1/W2、来源边界、后端能力或表示债务解释。
 10. **D/W/L 门**：D2/D1/D0 由方法自裁，只有 D2/D1 计入 release/hit/FP；W 由确定性
     状态机计算；方法不输出 L。

@@ -1,4 +1,4 @@
-"""Typed v27-style semantic frontier materialization.
+"""Typed semantic-frontier materialization.
 
 The LLM establishes normative contracts and semantic transition groups.  This
 module then expands those typed obligations against exact source, ModelIR, and
@@ -65,283 +65,287 @@ FrontierKind = Literal[
 
 
 class ContractSemanticKey(BaseModel):
-    """确定一个规范义务身份的 typed key，由 contract/grounding 产生并由 runner 合并。
+    """Typed key identifying one normative obligation across contract and grounding.
 
-    该对象只表达义务身份，不表达模型是否满足义务，也不携带 W、D、L 或 judge
-    信息。runner 使用其规范化 JSON 生成 derived contract 的权威 ID。
+    This object expresses only obligation identity. It says nothing about model
+    satisfaction and carries no W, D, L, or Judge information. The runner uses
+    its normalized JSON to generate the authoritative derived-contract ID.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.contract-semantic-key.v2"] = Field(
-        default="paper1.contract-semantic-key.v2",
-        description="该 typed identity 的 schema 版本；用于 artifact 与 resume 审计，不参与语义裁定。",
+    schema_version: Literal["evidence-discovery.contract-semantic-key.v2"] = Field(
+        default="evidence-discovery.contract-semantic-key.v2",
+        description="Schema version of this typed identity, used for artifact and resume audit and never for semantic adjudication.",
     )
     segment_id: str = Field(
         pattern=r"^NL[0-9]+(?:\.[0-9]+)?$",
-        description="义务所依据的编号 NL segment；它提供规范来源，但不等于 ledger 身份。",
+        description="Numbered NL segment grounding the obligation; it supplies normative provenance and is not a ledger identity.",
     )
     locus_kind: ObligationLocusKind = Field(
         min_length=1,
-        description="可被违反的领域 locus 类型；与 property 分离，不能用性质名冒充对象类型。",
+        description="Domain-locus type that can be violated, separate from property; a property name cannot substitute for an object type.",
     )
     locus_names: tuple[str, ...] = Field(
         min_length=1,
-        description="LLM 已建立的精确语义 locus 名称序列；顺序属于 identity，不做文本相似度归并。",
+        description="Exact semantic locus-name sequence established by the LLM; order is part of identity and no text-similarity merging is allowed.",
     )
     property: ObligationProperty = Field(
         min_length=1,
-        description="该义务唯一审查的原子性质；不同 property 即使共享原因也保持不同身份。",
+        description="Single atomic property examined by the obligation; different properties retain different identities even when they share a cause.",
     )
     state_role: StateSemanticRole | None = Field(
         default=None,
-        description="NL 建立的状态角色；null 表示该义务不以一个状态角色为中心，不能由名称推断。",
+        description="State role established by NL; null means the obligation is not centered on one state role, and a role may not be inferred from a name.",
     )
     expected_direction: ExpectedDirection = Field(
         min_length=1,
-        description="规范侧正向要求；用于区分 must-enter、must-reach、must-progress 等邻近义务。",
+        description="Positive normative requirement used to distinguish nearby obligations such as must-enter, must-reach, and must-progress.",
     )
     violation_direction: ViolationDirection = Field(
         min_length=1,
-        description="候选应审查的缺陷方向；missing、wrong-scope、unreachable 等不能互相覆盖。",
+        description="Defect direction the candidate must inspect; missing, wrong-scope, unreachable, and other directions cannot cover one another.",
     )
     cardinality_requirement: CardinalityRequirement | None = Field(
         default=None,
-        description="数量义务的规范 required count 与 typed member domain；非 cardinality identity 为 null，不能用自由文本补值。",
+        description="Normative required count and typed member domain for a cardinality obligation; null for non-cardinality identity and never populated from free text.",
     )
 
 
 class TransitionAlternativeSemanticKey(BaseModel):
-    """一个 transition-group member 的 typed identity，不包含 provider 字符串 ID。"""
+    """Typed identity of one transition-group member without a provider string ID."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.transition-alternative-key.v2"] = Field(default="paper1.transition-alternative-key.v2", description="Alternative semantic key 的 schema 版本；v2 分离 event 与 guard。")
-    target_name: str = Field(min_length=1, description="LLM 已完成 discourse binding 的规范目标；顺序和精确值参与 identity。")
-    event: str | None = Field(default=None, min_length=1, description="独立规范 event identity；null 表示该 relation 未建立 event，不是 observed trigger 结论。")
-    guard: str | None = Field(default=None, min_length=1, description="独立规范 guard；可与 event 同时存在，null 表示该 relation 未建立 guard。")
+    schema_version: Literal["evidence-discovery.transition-alternative-key.v2"] = Field(default="evidence-discovery.transition-alternative-key.v2", description="Schema version of the alternative semantic key; v2 separates event from guard.")
+    target_name: str = Field(min_length=1, description="Normative target after LLM discourse binding; sequence and exact value participate in identity.")
+    event: str | None = Field(default=None, min_length=1, description="Independent normative event identity; null means the relation establishes no event and is not an observed-trigger conclusion.")
+    guard: str | None = Field(default=None, min_length=1, description="Independent normative guard that may coexist with event; null means the relation establishes no guard.")
 
 
 class TransitionGroupSemanticKey(BaseModel):
-    """runner 合并 base/grounding transition group 所使用的权威 typed identity。"""
+    """Authoritative typed identity used by the runner to merge base and grounding transition groups."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.transition-group-key.v3"] = Field(default="paper1.transition-group-key.v3", description="Transition group semantic key 的 schema 版本；v3 以独立 event/guard member identity 替换单一 condition role。")
-    segment_id: str = Field(pattern=r"^NL[0-9]+(?:\.[0-9]+)?$", description="建立该 relation 的精确 numbered NL segment。")
-    source_name: str = Field(min_length=1, description="LLM discourse-resolved shared source；不得由 enclosing owner 自动替代。")
-    common_enclosing_owner_name: str | None = Field(default=None, min_length=1, description="LLM 明确建立的完整 sibling-group owner；null 表示该 relation 不授权 containment expansion。")
-    alternatives: tuple[TransitionAlternativeSemanticKey, ...] = Field(min_length=1, description="有序完整 alternatives；目标、条件或顺序不同即为不同 relation。")
+    schema_version: Literal["evidence-discovery.transition-group-key.v3"] = Field(default="evidence-discovery.transition-group-key.v3", description="Schema version of the transition-group semantic key; v3 replaces one condition role with separate event/guard member identity.")
+    segment_id: str = Field(pattern=r"^NL[0-9]+(?:\.[0-9]+)?$", description="Exact numbered NL segment establishing the relation.")
+    source_name: str = Field(min_length=1, description="Shared source resolved by LLM discourse analysis; the enclosing owner may not substitute automatically.")
+    common_enclosing_owner_name: str | None = Field(default=None, min_length=1, description="Complete sibling-group owner explicitly established by the LLM; null means the relation does not authorize containment expansion.")
+    alternatives: tuple[TransitionAlternativeSemanticKey, ...] = Field(min_length=1, description="Complete ordered alternatives; a different target, condition, or order creates a different relation.")
 
 
 class IdentityNormalizationReceipt(BaseModel):
-    """一条 grounding branch-local identity 的确定性规范化回执。
+    """Deterministic normalization receipt for one grounding branch-local identity.
 
-    runner 在 discovery-grounding 边界产生该对象，用 typed semantic key 替换
-    LLM 自由生成的字符串 ID。它只证明引用改写和 provenance，不代表 frontier
-    检查、模型满足性、W、D、L 或 judge 结论。
+    The runner produces this object at the discovery-grounding boundary and
+    replaces an LLM-generated string ID with a typed semantic key. It proves only
+    reference rewriting and provenance, not a frontier check, model satisfaction,
+    W, D, L, or a Judge conclusion.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.identity-normalization.v4"] = Field(
-        default="paper1.identity-normalization.v4",
-        description="identity normalization receipt 的持久化 schema 版本。",
+    schema_version: Literal["evidence-discovery.identity-normalization.v4"] = Field(
+        default="evidence-discovery.identity-normalization.v4",
+        description="Persistence schema version of the identity-normalization receipt.",
     )
     algorithm_version: Literal["typed-contract-identity.v4"] = Field(
         default="typed-contract-identity.v4",
-        description="生成 canonical ID、改写 exact branch-local 引用并恢复唯一 typed candidate 引用的确定性算法版本。",
+        description="Deterministic algorithm version that creates canonical IDs, rewrites exact branch-local references, and recovers unique typed candidate references.",
     )
     lens: Literal["contract_structure_contrast", "behavior_consequence"] = Field(
-        description="产生原始 additional contract 的 grounding lens；仅用于 provenance。",
+        description="Grounding lens that produced the raw additional contract; used only for provenance.",
     )
     raw_contract_id: str = Field(
         min_length=1,
-        description="provider 返回的 branch-local ID；只留作审计，不能决定语义身份。",
+        description="Branch-local ID returned by the provider; retained only for audit and never authoritative for semantic identity.",
     )
     canonical_contract_id: str = Field(
         min_length=1,
-        description="runner 根据完整 ContractSemanticKey 生成的权威 derived contract ID。",
+        description="Authoritative derived-contract ID generated by the runner from the complete ContractSemanticKey.",
     )
     semantic_key: ContractSemanticKey = Field(
-        description="用于 canonical ID 的完整 typed identity；不含满足、W、D 或 ledger 信息。",
+        description="Complete typed identity used for the canonical ID; contains no satisfaction, W, D, or ledger information.",
     )
     rewritten_candidate_count: int = Field(
         ge=0,
-        description="本 lens 中从 raw ID 精确改写到 canonical ID 的 candidate 引用数。",
+        description="Number of candidate references rewritten exactly from raw to canonical ID in this lens.",
     )
     projected_candidate_identity_count: int = Field(
         ge=0,
-        description="本 lens 中按 referenced contract 权威 typed key 投影 locus/property/direction 的 candidate 数；raw provider payload 仍保留在调用审计中。",
+        description="Number of candidates whose locus/property/direction was projected from the referenced contract's authoritative typed key in this lens; raw provider payload remains in call audit.",
     )
     recovered_candidate_reference_count: int = Field(
         default=0,
         ge=0,
-        description="provider 的 derived local reference 拼写漂移时，runner 仅凭唯一的 locus kind/names、property、direction 与 evidence-family typed projection 恢复到本 contract 的 candidate 数；0 表示没有执行这种恢复。",
+        description="Number of candidates recovered to this contract when provider-derived local-reference spelling drifted, using only a unique typed projection of locus kind/names, property, direction, and evidence family; zero means no such recovery occurred.",
     )
     rewritten_unresolved_count: int = Field(
         ge=0,
-        description="本 lens 中从 raw ID 精确改写到 canonical ID 的 unresolved 引用数。",
+        description="Number of unresolved references rewritten exactly from raw to canonical ID in this lens.",
     )
     rewritten_binding_count: int = Field(
         ge=0,
-        description="本 lens 中从 raw ID 精确改写到 canonical ID 的 SemanticBinding 引用数。",
+        description="Number of SemanticBinding references rewritten exactly from raw to canonical ID in this lens.",
     )
     rewritten_cardinality_binding_count: int = Field(
         ge=0,
-        description="本 lens 中从 raw ID 精确改写到 canonical ID 的 CardinalityDomainBinding 引用数。",
+        description="Number of CardinalityDomainBinding references rewritten exactly from raw to canonical ID in this lens.",
     )
     reason: str = Field(
         min_length=1,
-        description="解释为何 runner 必须以 typed identity 取代 branch-local 字符串身份。",
+        description="Explains why the runner must replace branch-local string identity with typed identity.",
     )
     basis: str = Field(
         min_length=1,
-        description="列出 lens、raw/canonical ID 和 ContractSemanticKey 的可复核依据。",
+        description="Auditable basis listing lens, raw/canonical IDs, and ContractSemanticKey.",
     )
 
 
 class GroupIdentityNormalizationReceipt(BaseModel):
-    """一条 grounding branch-local transition group 的 runner canonicalization 回执。"""
+    """Runner canonicalization receipt for one grounding branch-local transition group."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.group-identity-normalization.v3"] = Field(default="paper1.group-identity-normalization.v3", description="Group identity normalization receipt 的 schema 版本；v3 记录 event/guard-separated member identity。")
-    algorithm_version: Literal["typed-transition-group-identity.v3"] = Field(default="typed-transition-group-identity.v3", description="canonical group/alternative IDs 的确定性算法版本；v3 使用 target、event、guard 和 common owner。")
-    lens: Literal["contract_structure_contrast", "behavior_consequence"] = Field(description="产生原始 additional group 的 grounding lens；仅用于 provenance。")
-    raw_group_id: str = Field(min_length=1, description="provider 返回的 branch-local group ID；不再决定下游身份。")
-    canonical_group_id: str = Field(min_length=1, description="runner 根据 TransitionGroupSemanticKey 生成的权威 group ID。")
-    semantic_key: TransitionGroupSemanticKey = Field(description="生成 canonical group ID 的完整 typed relation identity。")
-    alternative_id_map: dict[str, str] = Field(description="branch-local alternative ID 到 canonical ordered-member ID 的精确改写表；空值表示 group 无成员，结构上不允许。")
-    reason: str = Field(min_length=1, description="解释为何 branch-local 字符串 identity 被 runner canonical identity 替换。")
-    basis: str = Field(min_length=1, description="列出 lens、raw/canonical group IDs 和 typed semantic key。")
+    schema_version: Literal["evidence-discovery.group-identity-normalization.v3"] = Field(default="evidence-discovery.group-identity-normalization.v3", description="Group identity-normalization receipt schema version; v3 records event/guard-separated member identity.")
+    algorithm_version: Literal["typed-transition-group-identity.v3"] = Field(default="typed-transition-group-identity.v3", description="Deterministic algorithm version for canonical group/alternative IDs; v3 uses target, event, guard, and common owner.")
+    lens: Literal["contract_structure_contrast", "behavior_consequence"] = Field(description="Grounding lens that produced the raw additional group; used only for provenance.")
+    raw_group_id: str = Field(min_length=1, description="Branch-local group ID returned by the provider; it no longer determines downstream identity.")
+    canonical_group_id: str = Field(min_length=1, description="Authoritative group ID generated by the runner from TransitionGroupSemanticKey.")
+    semantic_key: TransitionGroupSemanticKey = Field(description="Complete typed relation identity used to generate the canonical group ID.")
+    alternative_id_map: dict[str, str] = Field(description="Exact rewrite map from branch-local alternative ID to canonical ordered-member ID; an empty map would mean a structurally invalid memberless group.")
+    reason: str = Field(min_length=1, description="Explains why runner canonical identity replaces branch-local string identity.")
+    basis: str = Field(min_length=1, description="Lists lens, raw/canonical group IDs, and typed semantic key.")
 
 
 class FrontierCheckReceipt(BaseModel):
-    """一个 v27 frontier 检查的确定性回执，由 execute-batch 产生并供审计消费。
+    """Deterministic receipt for one typed frontier check from the execute batch.
 
-    回执说明 typed obligation 与 exact facts 的展开结果。它不是 issue release，也不
-    决定 D；candidate 状态只表示已形成一个待 D 裁定的精确主张。
+    The receipt records expansion of a typed obligation against exact facts. It
+    is not an issue release and does not decide D. candidate status means only
+    that an exact claim now awaits D adjudication.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.frontier-check.v1"] = Field(
-        default="paper1.frontier-check.v1",
-        description="frontier check receipt 的 schema 版本。",
+    schema_version: Literal["evidence-discovery.frontier-check.v1"] = Field(
+        default="evidence-discovery.frontier-check.v1",
+        description="Schema version of the frontier-check receipt.",
     )
-    algorithm_version: Literal["v27-typed-frontier.v21"] = Field(
-        default="v27-typed-frontier.v21",
-        description="产生该检查的确定性算法版本；v21 只允许与已知 contract 保持 exact typed identity 的既有候选占用 frontier 去重键，并保留 v20 的 canonical UML region 计数；不表示旧谓词或旧 inspect 后端。",
+    algorithm_version: Literal["typed-domain-frontier.v22"] = Field(
+        default="typed-domain-frontier.v22",
+        description="Deterministic algorithm version that produced the check. Only an existing candidate with exact typed identity matching a known contract may occupy a frontier deduplication key, and UML region counting uses the canonical author-source partition inventory.",
     )
     check_id: str = Field(
         min_length=1,
-        description="由 frontier kind、typed contract identity 与 exact refs 计算的稳定检查 ID。",
+        description="Stable check ID calculated from frontier kind, typed contract identity, and exact references.",
     )
     kind: FrontierKind = Field(
-        description="被系统化展开的领域前沿类型；它不是冻结谓词 ID。",
+        description="Domain-frontier type being systematically expanded; it is not a frozen predicate ID.",
     )
     source_contract_ids: tuple[str, ...] = Field(
         min_length=1,
-        description="建立该检查规范性的 base/derived contract IDs；不得包含 ledger ID。",
+        description="Base or derived contract IDs establishing the check's normativity; must contain no ledger ID.",
     )
     canonical_contract_id: str | None = Field(
         default=None,
-        description="若检查形成 candidate，则为 runner 生成的权威 contract ID；否则为 null。",
+        description="Authoritative runner-generated contract ID when the check forms a candidate; otherwise null.",
     )
     status: Literal["candidate", "satisfied", "unresolved", "not_applicable"] = Field(
-        description="确定性展开状态；candidate 仍需 D，satisfied 不发布，unresolved 不伪装成 miss。",
+        description="Deterministic expansion status; candidate still requires D, satisfied is not published, and unresolved is not disguised as a miss.",
     )
     model_refs: tuple[str, ...] = Field(
         default_factory=tuple,
-        description="检查实际使用的 closed ModelIR refs；author-source refs 不得混入。",
+        description="Closed ModelIR references actually used by the check; author-source references may not be mixed in.",
     )
     source_refs: tuple[str, ...] = Field(
         default_factory=tuple,
-        description="检查使用的 NL/PlantUML/canonical source refs；这些只负责规范与来源定位。",
+        description="NL, PlantUML, or canonical-source references used by the check; they provide only normativity and source localization.",
     )
     reason: str = Field(
         min_length=1,
-        description="解释为何 typed obligation 与 exact facts 形成当前 frontier 状态。",
+        description="Explains why the typed obligation and exact facts produce the current frontier status.",
     )
     basis: str = Field(
         min_length=1,
-        description="列出 contract key、ModelIR/inspection/source inventory 及算法版本等可复核依据。",
+        description="Auditable basis listing contract key, ModelIR, inspection, source inventory, and algorithm version.",
     )
 
 
 class FrontierObligation(BaseModel):
-    """由规范义务和 exact facts 共同触发的一个待裁定领域性质。
+    """Domain property awaiting adjudication, triggered by a normative obligation and exact facts.
 
-    runner 在 execute-batch 产生该对象，并把其中 candidate 交给冻结 19 谓词的
-    compiler/backend。它不是新谓词，也没有权威 D/W/L 等级。
+    The runner produces this object in the execute batch and sends its candidate
+    to the compiler/backend for the frozen 19 predicates. It is not a new
+    predicate and has no authoritative D, W, or L level.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.frontier-obligation.v1"] = Field(
-        default="paper1.frontier-obligation.v1",
-        description="frontier obligation 持久化 schema 版本。",
+    schema_version: Literal["evidence-discovery.frontier-obligation.v1"] = Field(
+        default="evidence-discovery.frontier-obligation.v1",
+        description="Persistence schema version for a frontier obligation.",
     )
     frontier_id: str = Field(
         min_length=1,
-        description="由 frontier kind、canonical contract 和 exact refs 生成的稳定 frontier identity。",
+        description="Stable frontier identity generated from frontier kind, canonical contract, and exact references.",
     )
     kind: FrontierKind = Field(
-        description="领域候选前沿类型；下游仍只能选择冻结的 19 个 predicate 或 null/W1。",
+        description="Domain candidate-frontier type; downstream stages may still choose only one of the frozen 19 predicates or null/W1.",
     )
     source_contract_ids: tuple[str, ...] = Field(
         min_length=1,
-        description="为该派生义务提供规范依据的 contract IDs；多个 ID 表示跨 contract 关系。",
+        description="Contract IDs providing normative support for the derived obligation; multiple IDs denote a cross-contract relation.",
     )
     contract: NLContract = Field(
-        description="candidate 实际绑定的权威 typed contract；derived ID 由 runner 生成而非 LLM 决定。",
+        description="Authoritative typed contract actually bound to the candidate; the runner generates the derived ID rather than the LLM.",
     )
     candidate: CandidateIssue = Field(
-        description="一个 locus/property/scope 下的原子可证伪主张；不含 W、D、L。",
+        description="Atomic falsifiable claim under one locus/property/scope; contains no W, D, or L.",
     )
     reason: str = Field(
         min_length=1,
-        description="解释为何该领域义务需要从既有 contract 与 exact facts 中展开。",
+        description="Explains why this domain obligation must be expanded from existing contracts and exact facts.",
     )
     basis: str = Field(
         min_length=1,
-        description="列出 typed contract、source/model/inspection facts 和确定性展开规则。",
+        description="Lists typed contract, source/model/inspection facts, and deterministic expansion rule.",
     )
 
 
 class FrontierBatch(BaseModel):
-    """一次 execute-batch 的完整 typed frontier 输出，供 runner 和 artifact 审计使用。"""
+    """Complete typed frontier output of one execute batch for runner and artifact audit."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.frontier-batch.v1"] = Field(
-        default="paper1.frontier-batch.v1",
-        description="该批 frontier artifact 的 schema 版本。",
+    schema_version: Literal["evidence-discovery.frontier-batch.v1"] = Field(
+        default="evidence-discovery.frontier-batch.v1",
+        description="Schema version of this frontier-batch artifact.",
     )
-    algorithm_version: Literal["v27-typed-frontier.v21"] = Field(
-        default="v27-typed-frontier.v21",
-        description="本批所有 check/obligation 使用的确定性算法版本；v21 防止 unknown 或 contract-identity-mismatched 的 LLM candidate 抑制 deterministic frontier，并保留 v20 的 exact-owner cardinality 语义。",
+    algorithm_version: Literal["typed-domain-frontier.v22"] = Field(
+        default="typed-domain-frontier.v22",
+        description="Deterministic algorithm version used by every check and obligation in this batch. Unknown or contract-identity-mismatched candidates cannot suppress deterministic frontier expansion, and cardinality remains bound to one exact normative owner.",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
         default_factory=tuple,
-        description="真正形成 candidate 的领域义务；每项仍需 compiler/backend、D 和 publish。",
+        description="Domain obligations that actually formed candidates; each still requires compiler/backend, D, and publish processing.",
     )
     checks: tuple[FrontierCheckReceipt, ...] = Field(
         default_factory=tuple,
-        description="候选、满足和未决检查的完整回执，避免只保存发布结果。",
+        description="Complete receipts for candidate, satisfied, and unresolved checks so audit does not retain only published results.",
     )
     superseded_candidate_contract_ids: tuple[str, ...] = Field(
         default_factory=tuple,
-        description="已被 exact typed frontier 对同一 contract/property 完整展开所替代的 provisional LLM candidate contract IDs；raw grounding output 仍保留审计，下游只跳过其重复 D dossier。",
+        description="Provisional LLM candidate contract IDs superseded by complete exact typed frontier expansion of the same contract/property; raw grounding output remains in audit and downstream processing skips only duplicate D dossiers.",
     )
     reason: str = Field(
         min_length=1,
-        description="说明本批如何恢复 v27 frontier，同时保持新 19 谓词仅负责 W 证据。",
+        description="Explains how the batch expands the typed discovery frontier while keeping the 19 predicates responsible only for W evidence.",
     )
     basis: str = Field(
         min_length=1,
-        description="本批使用的 contract/group、ModelIR、source inventory 和 inspection fact 版本依据。",
+        description="Version basis for contracts/groups, ModelIR, source inventory, and inspection facts used by this batch.",
     )
 
 
@@ -2309,7 +2313,7 @@ def _materialize_source_dead_ends(
     builder: _Builder,
     contracts: Sequence[NLContract],
 ) -> None:
-    """Restore v27's source-certified reachable non-final deadlock frontier.
+    """Materialize the source-certified reachable non-final deadlock frontier.
 
     The closed-model inspection fact identifies a reachable leaf. The canonical
     author source independently closes the sequential soundness fragment. An NL
@@ -2417,7 +2421,7 @@ def _materialize_source_dead_ends(
                 )
             ),
             reason=(
-                "The typed operating-state identity and the v27 sequential source "
+                "The typed operating-state identity and sequential source "
                 "certificate establish a domain deadlock obligation independently "
                 "of an NL-only progress contract."
             ),
@@ -2459,7 +2463,7 @@ def _materialize_source_dead_ends(
             tuple(contract.contract_id for contract in anchors),
             derived,
             candidate,
-            reason="A v27 source certificate closes one exact reachable non-final deadlock fragment.",
+            reason="A source certificate closes one exact reachable non-final deadlock fragment.",
             basis="typed operating-state anchor and exact source/inspection finite-graph facts",
         )
 
@@ -4296,14 +4300,14 @@ def _materialize_event_consumers(
         )
 
 
-def materialize_v27_frontier(
+def materialize_typed_frontier(
     pair: PairInput,
     contracts: NLContractResponse,
     contracts_by_id: dict[str, NLContract],
     grounding_responses: Sequence[GroundingResponse],
     llm_candidates: Sequence[CandidateIssue],
 ) -> FrontierBatch:
-    """Expand established typed obligations into systematic v27 frontier candidates."""
+    """Expand established typed obligations into systematic frontier candidates."""
 
     all_contracts = list(contracts_by_id.values())
     all_groups: list[NLTransitionGroup] = []
@@ -4348,7 +4352,7 @@ def materialize_v27_frontier(
         superseded_candidate_contract_ids=tuple(
             builder.superseded_candidate_contract_ids
         ),
-        reason="The runner systematically expanded LLM-established typed obligations through the v27 domain frontier before predicate selection.",
+        reason="The runner systematically expanded LLM-established typed obligations through the typed domain frontier before predicate selection.",
         basis=(
             "NLContractResponse and grounding semantic identities; owned ModelIR; "
             f"source_inventory={pair.exact_source_inventory.algorithm_version if pair.exact_source_inventory else 'unavailable'}; "
@@ -4370,6 +4374,6 @@ __all__ = [
     "canonical_transition_group_id",
     "canonicalize_grounding_response",
     "contract_semantic_key",
-    "materialize_v27_frontier",
+    "materialize_typed_frontier",
     "transition_group_semantic_key",
 ]

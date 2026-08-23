@@ -10,28 +10,29 @@ from ..semantics.obligations import PredicateId
 
 
 class PredicateInputsBase(BaseModel):
-    """确定性 compiler 产生、backend 消费的 predicate input 基类。
+    """Base predicate-input record produced by the compiler and consumed by the backend.
 
-    该对象的字段来自冻结 registry 与 runner 的 exact binding enrichment；它不表达
-    predicate verdict、W、D、L 或 judge 关系。所有具体子类都拒绝额外字段。
+    Fields come from the frozen registry and the runner's exact binding
+    enrichment. This record has no authority over a predicate verdict, W, D,
+    L, or Judge relation. Every concrete variant rejects extra fields.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["paper1.predicate-inputs.v1"] = Field(
-        default="paper1.predicate-inputs.v1",
-        description="Typed predicate inputs 的持久化 schema 版本；不属于 backend 业务输入。",
+    schema_version: Literal["evidence-discovery.predicate-inputs.v1"] = Field(
+        default="evidence-discovery.predicate-inputs.v1",
+        description="Persistence schema version for typed predicate inputs; this metadata is not a backend domain input.",
     )
     predicate_id: str = Field(
-        description="Discriminator；必须等于该 input variant 对应的冻结 predicate ID。",
+        description="Discriminator that must equal the frozen predicate ID represented by this input variant.",
     )
     element_refs: tuple[str, ...] = Field(
         default_factory=tuple,
-        description="runner 精确绑定的 closed ModelIR refs；用于限定执行对象，空值表示没有额外 ref 约束。",
+        description="Closed ModelIR references bound exactly by the runner to constrain execution; an empty tuple means no additional reference constraint.",
     )
     model_hash: str | None = Field(
         default=None,
-        description="执行所用 closed model 的内容 hash；null 仅允许在尚未进入真实 backend 的中间对象中。",
+        description="Content hash of the closed model used for execution; null is allowed only before the record enters a real backend.",
     )
 
     def to_backend_dict(self) -> dict[str, Any]:
@@ -224,16 +225,17 @@ class V5Inputs(PredicateInputsBase):
 
 
 class UnsupportedPredicateInputs(PredicateInputsBase):
-    """无法映射到一个合法 frozen predicate variant 的可审计 W1 输入。
+    """Auditable W1 input that cannot map to a valid frozen predicate variant.
 
-    compiler 在 predicate=null 或输入对象违反 typed schema 时产生它。`values` 仅保留
-    原始规范化数据供审计；backend 不执行它，也不得据此声称 W2。
+    The compiler produces this variant when predicate is null or the input
+    violates the typed schema. raw_values preserves normalized data only for
+    audit; the backend never executes it and cannot claim W2 from it.
     """
 
-    predicate_id: Literal["unsupported"] = Field(default="unsupported", description="Unsupported/null input discriminator；不是公开 predicate ID。")
-    claimed_predicate_id: PredicateId | None = Field(default=None, description="candidate 原本请求的 frozen predicate ID；null 表示 candidate 明确无适用谓词。")
-    raw_values: dict[str, JsonValue] = Field(default_factory=dict, description="无法通过 concrete variant 的规范化输入；仅供 failure/W1 审计，不进入 backend。")
-    validation_errors: tuple[str, ...] = Field(default_factory=tuple, description="具体可定位的 typed validation errors；空值表示 predicate 本来就是 null。")
+    predicate_id: Literal["unsupported"] = Field(default="unsupported", description="Unsupported/null input discriminator; it is not a public predicate ID.")
+    claimed_predicate_id: PredicateId | None = Field(default=None, description="Frozen predicate ID originally requested by the candidate; null means the candidate explicitly has no applicable predicate.")
+    raw_values: dict[str, JsonValue] = Field(default_factory=dict, description="Normalized inputs that failed every concrete variant; retained for failure/W1 audit and never sent to a backend.")
+    validation_errors: tuple[str, ...] = Field(default_factory=tuple, description="Specific, localizable typed validation errors; an empty tuple means the predicate was null rather than malformed.")
 
     def to_backend_dict(self) -> dict[str, Any]:
         """Return preserved values for audit-only callers; this variant is never executed."""

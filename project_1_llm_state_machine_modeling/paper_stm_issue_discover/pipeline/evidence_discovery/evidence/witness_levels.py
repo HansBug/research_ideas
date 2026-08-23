@@ -51,7 +51,7 @@ def build_evidence_record(
     else:
         coverage_class = "executable_evidence"
     record: dict[str, Any] = {
-        "schema": "paper1.evidence_discovery.evidence_record.v1",
+        "schema": "evidence-discovery.evidence_record.v1",
         "obligation_id": obligation_id,
         "predicate_id": plan.predicate_id,
         "binding": {

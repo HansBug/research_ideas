@@ -22,7 +22,7 @@ def write_json(path: Path, payload: Any) -> None:
 
 def write_markdown_summary(path: Path, summary: dict[str, Any]) -> None:
     lines = [
-        "# evidence_discovery Luna 运行审计",
+        "# Evidence-Discovery Run Audit",
         "",
         f"- run id: `{summary.get('run_id')}`",
         f"- run contract: `{summary.get('run_contract_hash')}`",
