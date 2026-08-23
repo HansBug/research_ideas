@@ -255,7 +255,11 @@ def _call_receipt(
                 raw_attempt_json=_stable_json(attempt),
             )
         )
-        for path_key in ("audit_path", "result_path"):
+        for path_key in (
+            "audit_path",
+            "result_path",
+            "schema_validation_failure_path",
+        ):
             if attempt.get(path_key):
                 artifact_paths.append(str(attempt[path_key]))
         for transport in attempt.get("retry_records") or ():

@@ -9,6 +9,10 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from pydantic import BaseModel, ValidationError
+from utils.agent import AgentError
+from utils.llm.config import LLMPricing, LLMTokenPrices
+
 from pipeline.evidence_discovery.backends import run_backend
 from pipeline.evidence_discovery.backends.bounded_verification import (
     _terminal_states,
@@ -68,11 +72,13 @@ from pipeline.evidence_discovery.orchestration.runtime import (
     FixtureStructuredRuntime,
     PublicStructuredRuntime,
     StructuredCallOutcome,
+    StructuredSchemaValidationBundle,
     StructuredStageTimeout,
     _annotate_usage_billing,
     _cost_for_usage,
     _is_provider_error,
     _provider_timeout_seconds,
+    _schema_validation_failures,
     _structured_stage_deadline,
 )
 from pipeline.evidence_discovery.registry import load_registry
@@ -105,10 +111,6 @@ from pipeline.evidence_discovery.semantics import (
     resolve_transition_ref,
 )
 from pipeline.evidence_discovery.semantics.binding import BindingResult
-from pydantic import BaseModel, ValidationError
-
-from utils.agent import AgentError
-from utils.llm.config import LLMPricing, LLMTokenPrices
 
 PAPER_ROOT = Path(__file__).parents[3]
 REPORT_ROOT = PAPER_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
@@ -3678,6 +3680,80 @@ def test_local_schema_failure_does_not_duplicate_in_memory_usage(
     assert outcome.usage[0]["model_call_id"] == "schema-failure-call"
     assert outcome.cost["eligible"] is True
     assert outcome.cost["total_usd"] > 0
+
+
+def test_schema_validation_failures_are_typed_and_persisted(tmp_path: Path) -> None:
+    class FixtureResponse(BaseModel):
+        value: str
+
+    audit_records = [
+        {
+            "record": "action",
+            "record_type": "action",
+            "turn": 2,
+            "tool_call_id": "fixture-tool-call",
+            "arguments": {},
+        }
+    ]
+    failures = _schema_validation_failures(
+        audit_records,
+        FixtureResponse,
+        outer_attempt=1,
+    )
+    assert len(failures) == 1
+    assert failures[0].turn == 2
+    assert failures[0].error_count == 1
+    assert "value" in failures[0].validation_error
+
+    class SchemaFailureApp:
+        def run(self, _prompt: str, **kwargs: object) -> object:
+            audit_path = Path(str(kwargs["audit_out"]))
+            audit_path.write_text(
+                json.dumps(audit_records[0]) + "\n",
+                encoding="utf-8",
+            )
+            return SimpleNamespace(
+                status="failed",
+                output=None,
+                error={
+                    "code": "limit_exceeded",
+                    "message": "fixture schema turns exhausted",
+                },
+                usage=[],
+                to_dict=lambda: {
+                    "status": "failed",
+                    "output": None,
+                    "error": {
+                        "code": "limit_exceeded",
+                        "message": "fixture schema turns exhausted",
+                    },
+                },
+            )
+
+    runtime = _provider_free_public_runtime(
+        tmp_path,
+        pricing=_runtime_fixture_pricing(),
+    )
+    runtime._app = lambda *_args, **_kwargs: SchemaFailureApp()
+    outcome = runtime._call_unlocked(
+        kind="fixture_schema_audit",
+        schema=FixtureResponse,
+        system_prompt="fixture system prompt",
+        prompt="fixture prompt",
+        artifact_id="fixture-schema-audit",
+        retry_cell_on_provider_error=True,
+    )
+
+    assert outcome.status == "failed"
+    assert outcome.schema_validation_failures == failures
+    failure_path = Path(
+        outcome.attempts[0]["schema_validation_failure_path"]
+    )
+    bundle = StructuredSchemaValidationBundle.model_validate_json(
+        failure_path.read_text(encoding="utf-8")
+    )
+    assert bundle.failures == tuple(failures)
+    assert "value" in bundle.failures[0].errors_json
 
 
 def test_provider_error_classification_uses_typed_ownership_not_message_text() -> None:

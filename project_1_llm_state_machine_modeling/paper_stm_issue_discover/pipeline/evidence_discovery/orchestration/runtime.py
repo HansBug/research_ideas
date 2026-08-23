@@ -7,8 +7,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Generic, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field
-
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from utils.agent import AgentApp, AgentError, AgentSpec
 from utils.llm import estimate_usage_cost_usd, load_llm_registry
 
@@ -199,6 +198,129 @@ def _read_audit_records(path: Path) -> list[dict[str, Any]]:
     return records
 
 
+class StructuredSchemaValidationFailure(BaseModel):
+    """One exact rejected structured action revalidated against its runtime schema."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    outer_attempt: int = Field(
+        ge=1,
+        description="One-based public runtime cell attempt containing the rejected structured action.",
+    )
+    turn: int = Field(
+        ge=1,
+        description="Agent turn that emitted arguments rejected by the exact Pydantic response schema.",
+    )
+    tool_call_id: str | None = Field(
+        default=None,
+        description="Provider tool-call ID for the rejected arguments; null means the audit adapter did not expose one.",
+    )
+    schema_name: str = Field(
+        min_length=1,
+        description="Exact runtime Pydantic response-model name used to reproduce the validation failure.",
+    )
+    error_count: int = Field(
+        ge=1,
+        description="Number of Pydantic validation errors reproduced for this rejected action.",
+    )
+    validation_error: str = Field(
+        min_length=1,
+        description="Complete English Pydantic ValidationError text, including object paths, constraints, and actual conflicts.",
+    )
+    errors_json: str = Field(
+        min_length=1,
+        description="Stable JSON array from ValidationError.errors(), normalized for direct machine audit.",
+    )
+
+
+class StructuredSchemaValidationBundle(BaseModel):
+    """Persistent typed audit of all schema-invalid actions in one runtime cell attempt."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    schema_version: str = Field(
+        default="evidence-discovery.structured-schema-validation.v1",
+        description="Public structured-validation audit schema version for persistence compatibility.",
+    )
+    schema_name: str = Field(
+        min_length=1,
+        description="Exact Pydantic response-model name applied to every rejected action in this bundle.",
+    )
+    failures: tuple[StructuredSchemaValidationFailure, ...] = Field(
+        min_length=1,
+        description="Complete ordered set of reproducible schema failures found in the public action audit.",
+    )
+    reason: str = Field(
+        min_length=1,
+        description="Why these rejected structured actions failed deterministic validation.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Exact runtime schema plus committed public action arguments used for reproduction.",
+    )
+
+
+def _schema_validation_failures(
+    records: list[dict[str, Any]],
+    schema: type[BaseModel],
+    *,
+    outer_attempt: int,
+) -> list[StructuredSchemaValidationFailure]:
+    """Reproduce exact Pydantic errors for every schema-invalid action record."""
+
+    failures: list[StructuredSchemaValidationFailure] = []
+    for record in records:
+        record_type = record.get("record_type") or record.get("record")
+        arguments = record.get("arguments")
+        if record_type != "action" or not isinstance(arguments, dict):
+            continue
+        try:
+            schema.model_validate(arguments)
+        except ValidationError as exc:
+            errors = _jsonable(
+                exc.errors(include_url=False, include_input=False)
+            )
+            failures.append(
+                StructuredSchemaValidationFailure(
+                    outer_attempt=outer_attempt,
+                    turn=int(record.get("turn") or 1),
+                    tool_call_id=(
+                        str(record["tool_call_id"])
+                        if record.get("tool_call_id")
+                        else None
+                    ),
+                    schema_name=schema.__name__,
+                    error_count=exc.error_count(),
+                    validation_error=str(exc),
+                    errors_json=json.dumps(
+                        errors,
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ),
+                )
+            )
+    return failures
+
+
+def _persist_schema_validation_failures(
+    path: Path,
+    schema: type[BaseModel],
+    failures: list[StructuredSchemaValidationFailure],
+) -> None:
+    """Persist a complete typed schema-failure audit beside public call artifacts."""
+
+    if not failures:
+        return
+    bundle = StructuredSchemaValidationBundle(
+        schema_name=schema.__name__,
+        failures=tuple(failures),
+        reason="Rejected structured actions did not satisfy the exact runtime Pydantic response contract.",
+        basis="Committed public audit arguments revalidated locally against the same runtime schema.",
+    )
+    path.write_text(bundle.model_dump_json(indent=2) + "\n", encoding="utf-8")
+
+
 def _retry_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [
         record
@@ -216,11 +338,10 @@ def _provider_failure_call_ids(
     call_ids: set[str] = set()
     for record in records:
         record_type = record.get("record_type") or record.get("record")
-        if record_type == "transport_retry":
-            if record.get("operation") == "scheduled":
-                call_id = record.get("failed_model_call_id")
-                if isinstance(call_id, str) and call_id:
-                    call_ids.add(call_id)
+        if record_type == "transport_retry" and record.get("operation") == "scheduled":
+            call_id = record.get("failed_model_call_id")
+            if isinstance(call_id, str) and call_id:
+                call_ids.add(call_id)
     return call_ids
 
 
@@ -316,6 +437,10 @@ class StructuredCallOutcome(BaseModel, Generic[T]):
     response: T | None = Field(default=None, description="Validated Pydantic structured response, or null when schema/runtime handling failed.")
     result: dict[str, Any] = Field(description="Raw public runtime result metadata retained for audit.")
     attempts: list[dict[str, Any]] = Field(default_factory=list, description="Per-cell outer attempts, provider diagnostics, retry receipts, and artifact paths.")
+    schema_validation_failures: list[StructuredSchemaValidationFailure] = Field(
+        default_factory=list,
+        description="Every rejected structured action that deterministically failed the exact runtime Pydantic schema, retained across cell attempts.",
+    )
     usage: list[dict[str, Any]] = Field(default_factory=list, description="Normalized usage rows with model-call identity and billing disposition.")
     cost: dict[str, Any] = Field(default_factory=dict, description="Cost calculation and eligibility for this cell's usage rows.")
     context_budget: StructuredContextBudget = Field(description="Prompt size, provider token, model window, and truncation receipt.")
@@ -338,6 +463,7 @@ class StructuredCallOutcome(BaseModel, Generic[T]):
             "response": _jsonable(self.response),
             "result": self.result,
             "attempts": self.attempts,
+            "schema_validation_failures": _jsonable(self.schema_validation_failures),
             "usage": self.usage,
             "cost": self.cost,
             "context_budget": self.context_budget.model_dump(mode="json"),
@@ -457,6 +583,7 @@ class PublicStructuredRuntime:
             raise ValueError("max_output_tokens must be positive")
         attempts: list[dict[str, Any]] = []
         all_usage: list[dict[str, Any]] = []
+        all_schema_validation_failures: list[StructuredSchemaValidationFailure] = []
         last_result: dict[str, Any] = {}
         response: T | None = None
         status = "failed"
@@ -486,6 +613,18 @@ class PublicStructuredRuntime:
                 captured_result = result.to_dict()
                 last_result = captured_result
                 audit_records = _read_audit_records(audit_path)
+                schema_validation_failures = _schema_validation_failures(
+                    audit_records,
+                    schema,
+                    outer_attempt=outer_attempt,
+                )
+                all_schema_validation_failures.extend(schema_validation_failures)
+                schema_validation_path = attempt_dir / "schema_validation_failures.json"
+                _persist_schema_validation_failures(
+                    schema_validation_path,
+                    schema,
+                    schema_validation_failures,
+                )
                 rows = _usage_rows(result, outer_attempt=outer_attempt)
                 all_usage.extend(rows)
                 error = result.error if isinstance(result.error, dict) else None
@@ -516,6 +655,14 @@ class PublicStructuredRuntime:
                     "usage_count": len(rows),
                     "billing_disposition": "provider_error_attempt_requires_row_level_join" if provider_error else "billable",
                     "retry_records": _retry_records(audit_records),
+                    "schema_validation_failures": _jsonable(
+                        schema_validation_failures
+                    ),
+                    "schema_validation_failure_path": (
+                        str(schema_validation_path)
+                        if schema_validation_failures
+                        else None
+                    ),
                 }
                 attempts.append(attempt)
                 if validated_response is not None:
@@ -528,6 +675,18 @@ class PublicStructuredRuntime:
                 break
             except (StructuredStageTimeout, AgentError, ValueError, TypeError) as exc:
                 audit_records = _read_audit_records(audit_path)
+                schema_validation_failures = _schema_validation_failures(
+                    audit_records,
+                    schema,
+                    outer_attempt=outer_attempt,
+                )
+                all_schema_validation_failures.extend(schema_validation_failures)
+                schema_validation_path = attempt_dir / "schema_validation_failures.json"
+                _persist_schema_validation_failures(
+                    schema_validation_path,
+                    schema,
+                    schema_validation_failures,
+                )
                 if captured_result is not None:
                     artifact_result = captured_result
                     recovery_source = "in_memory_public_result"
@@ -613,6 +772,14 @@ class PublicStructuredRuntime:
                     },
                     "billing_disposition": "provider_error_attempt_requires_row_level_join" if provider_error else "billable",
                     "retry_records": _retry_records(audit_records),
+                    "schema_validation_failures": _jsonable(
+                        schema_validation_failures
+                    ),
+                    "schema_validation_failure_path": (
+                        str(schema_validation_path)
+                        if schema_validation_failures
+                        else None
+                    ),
                 })
                 if provider_error and outer_attempt < max_outer_attempts:
                     continue
@@ -648,6 +815,7 @@ class PublicStructuredRuntime:
             response=response,
             result=last_result,
             attempts=attempts,
+            schema_validation_failures=all_schema_validation_failures,
             usage=all_usage,
             cost=cost,
             context_budget=context_budget,
