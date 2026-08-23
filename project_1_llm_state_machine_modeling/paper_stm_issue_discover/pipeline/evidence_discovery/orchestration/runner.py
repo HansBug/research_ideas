@@ -56,7 +56,6 @@ from ..semantics import (
     fallback_contracts,
     fallback_d_adjudication,
     fallback_grounding,
-    materialize_group_containment_contracts,
     materialize_segment_coverage,
     materialize_typed_frontier,
     normalize_contract_state_roles,
@@ -89,8 +88,8 @@ METHOD_CELL_SCHEMA = "evidence-discovery.method_cell.v8"
 JUDGE_SCHEMA = "evidence-discovery.independent_judge.v5"
 SUMMARY_SCHEMA = "evidence-discovery.run_summary.v2"
 RUN_MANIFEST_SCHEMA = "evidence-discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-typed-flow.v44"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-prompts.v39"
+CODE_VERSION = "evidence-discovery-typed-flow.v45"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-prompts.v40"
 JUDGE_EXACT_IDENTITY_CONTRACT_VERSION = "evidence-discovery.judge-exact-identity-contract.v1"
 GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION = (
     "evidence-discovery.grounding-exact-identity-contract.v2"
@@ -1940,7 +1939,6 @@ def _method_cell(
     contract_response, contract_normalization_diagnostics = (
         normalize_contract_state_roles(raw_contract_response)
     )
-    contract_response = materialize_group_containment_contracts(contract_response)
     contract_response = materialize_segment_coverage(
         contract_response,
         [segment.segment_id for segment in pair.nl_segments],

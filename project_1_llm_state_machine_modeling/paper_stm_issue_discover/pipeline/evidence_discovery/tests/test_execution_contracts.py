@@ -1590,7 +1590,7 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "satisfied `root/system -> Controller`" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "already-satisfied owner-local contract" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "Interpret containment at the depth stated by the contract" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
-    assert "Audit discourse-scoped transition groups" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "Ground containment only from explicit typed containment contracts" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "synthetic placeholders are not author-specified operating-state" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "an unreachable state that" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "not a deadlock/dead-end violation" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
@@ -3023,7 +3023,7 @@ def test_0046_contract_shape_separates_endpoint_and_event_consumer() -> None:
     owner_description = group_schema["properties"][
         "common_enclosing_owner_name"
     ]["description"]
-    assert "deterministic containment expansion" in owner_description
+    assert "does not create containment contracts" in owner_description
     assert "source itself is the owner" in owner_description
 
 

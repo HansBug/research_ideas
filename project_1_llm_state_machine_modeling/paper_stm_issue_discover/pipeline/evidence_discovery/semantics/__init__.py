@@ -63,7 +63,6 @@ from .workflow import (
     fallback_contracts,
     fallback_d_adjudication,
     fallback_grounding,
-    materialize_group_containment_contracts,
     materialize_segment_coverage,
     normalize_contract_state_roles,
 )
@@ -120,7 +119,6 @@ __all__ = [
     "fallback_contracts",
     "fallback_d_adjudication",
     "fallback_grounding",
-    "materialize_group_containment_contracts",
     "materialize_segment_coverage",
     "materialize_typed_frontier",
     "normalize_contract_state_roles",

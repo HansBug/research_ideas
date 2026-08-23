@@ -28,7 +28,6 @@ from pipeline.evidence_discovery.semantics import (
     SemanticBinding,
     bind_candidate,
     canonicalize_grounding_response,
-    materialize_group_containment_contracts,
     materialize_segment_coverage,
     materialize_typed_frontier,
 )
@@ -261,7 +260,7 @@ def test_transition_endpoint_contract_requires_exact_typed_endpoint_roles() -> N
     assert "requires exactly one source" in description
 
 
-def test_common_owner_group_materializes_complete_containment_contracts() -> None:
+def test_common_owner_group_does_not_materialize_containment_contracts() -> None:
     endpoints = [
         _contract(
             contract_id=f"NL-CONTRACT-NL2-ENDPOINT-{target.upper()}",
@@ -305,48 +304,15 @@ def test_common_owner_group_materializes_complete_containment_contracts() -> Non
     )
     response = _response(endpoints, (group,))
 
-    materialized = materialize_group_containment_contracts(response)
-
-    relations = {
-        (
-            next(h.value for h in item.binding_hints if h.role == "owner"),
-            next(h.value for h in item.binding_hints if h.role == "target"),
-        )
-        for item in materialized.contracts
-        if item.property == "containment"
-    }
-    assert relations == {
-        ("AutonomousMode", "InitialState"),
-        ("AutonomousMode", "HighwayMode"),
-        ("AutonomousMode", "UrbanMode"),
-    }
+    assert not any(item.property == "containment" for item in response.contracts)
     batch = materialize_typed_frontier(
         load_pair(REPORT_ROOT / "pairs" / "0029"),
-        materialized,
-        {item.contract_id: item for item in materialized.contracts},
+        response,
+        {item.contract_id: item for item in response.contracts},
         (),
         (),
     )
-    aggregate = next(
-        item for item in batch.obligations if item.kind == "aggregate_containment"
-    )
-    assert aggregate.candidate.locus_names == (
-        "AutonomousMode",
-        "InitialState",
-        "HighwayMode",
-        "UrbanMode",
-    )
-
-    ownerless = response.model_copy(
-        update={
-            "transition_groups": [
-                group.model_copy(update={"common_enclosing_owner_name": None})
-            ]
-        }
-    )
-    assert materialize_group_containment_contracts(ownerless) == ownerless
-    incomplete = _response(endpoints[:1], (group,))
-    assert materialize_group_containment_contracts(incomplete) == incomplete
+    assert not any(item.kind == "aggregate_containment" for item in batch.obligations)
 
 
 def test_containment_frontier_aggregates_only_complete_typed_group_scope() -> None:
