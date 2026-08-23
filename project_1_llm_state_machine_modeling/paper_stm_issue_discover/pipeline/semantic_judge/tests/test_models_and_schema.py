@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import inspect
 import json
 import re
 from pathlib import Path
 
 import pytest
-from pydantic import BaseModel, ValidationError
-
 from pipeline.semantic_judge import models
 from pipeline.semantic_judge.artifacts import (
     adapt_evidence_discovery_release,
@@ -40,6 +39,7 @@ from pipeline.semantic_judge.schema import (
     build_exact_response_model,
     materialize_reading,
 )
+from pydantic import BaseModel, ValidationError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
@@ -156,7 +156,6 @@ def reading_payload(
                 "causal_field_audits": [
                     {
                         "report_field": field_name,
-                        "exact_text": field_value,
                         "verdict": (
                             "REFUTED"
                             if core_truth == CoreClaimTruth.INVALID
@@ -170,7 +169,7 @@ def reading_payload(
                         ],
                     }
                     for field_name in ("reason", "basis", "observed")
-                    if isinstance((field_value := getattr(report, field_name)), str)
+                    if isinstance(getattr(report, field_name), str)
                 ],
                 "causal_certificate_field": "reason",
                 "supported_relations": positive_relations,
@@ -199,7 +198,7 @@ def reading_payload(
             }
         )
     return {
-        "schema_version": "semantic-judge.response.v7",
+        "schema_version": "semantic-judge.response.v8",
         "report_judgments": report_rows,
         "reason": "Complete provider-free fixture reading.",
         "basis": "Issue #195 fixture closure and artifact review.",
@@ -257,6 +256,8 @@ def test_runtime_schema_is_sparse_described_and_hides_derived_classes() -> None:
     assert "SUPPORTED" in serialized
     assert "MIXED" in serialized
     assert "REFUTED" in serialized
+    assert "exact_text" not in serialized
+    assert "exact_text_sha256" not in serialized
     assert "R0001" in serialized and "R0002" in serialized
     assert "E0001" in serialized and "E0002" in serialized
     assert "expected_judgments" not in schema["properties"]
@@ -396,7 +397,7 @@ def test_positive_relation_requires_owned_fields_and_report_certificate() -> Non
         schema.model_validate(payload)
 
 
-def test_causal_field_audit_requires_exact_complete_closure() -> None:
+def test_causal_field_audit_requires_exact_field_reference_closure() -> None:
     judge_input = minimal_input()
     report = judge_input.reports[0].model_copy(
         update={"basis": "complete basis", "observed": "complete observation"}
@@ -408,13 +409,53 @@ def test_causal_field_audit_requires_exact_complete_closure() -> None:
     with pytest.raises(ValidationError, match="causal_field_audits exact closure failed"):
         schema.model_validate(payload)
     payload = reading_payload(judge_input)
-    payload["report_judgments"][0]["causal_field_audits"][0]["exact_text"] = (
-        "incomplete"
+    payload["report_judgments"][0]["causal_field_audits"][0]["report_field"] = (
+        "observed"
     )
-    with pytest.raises(
-        ValidationError, match="must equal the complete CandidateReport.reason value"
-    ):
+    with pytest.raises(ValidationError, match="causal_field_audits exact closure failed"):
         schema.model_validate(payload)
+
+
+def test_backend_materializes_exact_causal_text_and_hash() -> None:
+    judge_input = minimal_input()
+    report = judge_input.reports[0].model_copy(
+        update={"reason": "Complete source-owned causal text that the provider must not copy."}
+    )
+    judge_input = judge_input.model_copy(update={"reports": (report,)})
+    payload = reading_payload(judge_input)
+    provider_audit = payload["report_judgments"][0]["causal_field_audits"][0]
+    assert "exact_text" not in provider_audit
+    response = build_exact_response_model(judge_input).model_validate(payload)
+    persisted_audit = materialize_reading(
+        response, judge_input
+    ).report_assessments[0].causal_field_audits[0]
+    assert persisted_audit.exact_text == report.reason
+    assert persisted_audit.exact_text_sha256 == "sha256:" + hashlib.sha256(
+        report.reason.encode("utf-8")
+    ).hexdigest()
+    invalid_persisted = persisted_audit.model_dump(mode="json")
+    invalid_persisted["exact_text_sha256"] = "sha256:" + "0" * 64
+    with pytest.raises(ValidationError, match="must equal the SHA-256 digest"):
+        models.ReportCausalFieldAudit.model_validate(invalid_persisted)
+
+
+def test_backend_canonicalizes_causal_audit_order() -> None:
+    judge_input = minimal_input()
+    report = judge_input.reports[0].model_copy(
+        update={"basis": "Complete basis.", "observed": "Complete observation."}
+    )
+    judge_input = judge_input.model_copy(update={"reports": (report,)})
+    payload = reading_payload(judge_input)
+    payload["report_judgments"][0]["causal_field_audits"].reverse()
+    response = build_exact_response_model(judge_input).model_validate(payload)
+    persisted = materialize_reading(
+        response, judge_input
+    ).report_assessments[0].causal_field_audits
+    assert [row.report_field.value for row in persisted] == [
+        "reason",
+        "basis",
+        "observed",
+    ]
 
 
 def test_core_truth_requires_compatible_whole_field_certificate() -> None:

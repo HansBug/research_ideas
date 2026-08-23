@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from .models import (
     ArbitrationResponse,
+    CausalFieldAuditJudgment,
     CausalFieldVerdict,
     CoreClaimTruth,
     ExpectedAssessment,
@@ -56,14 +57,9 @@ def _validate_report_judgment(
             f"{object_path}.causal_field_audits exact closure failed; "
             f"expected={sorted(expected_causal_fields)}, actual={actual_causal_fields}"
         )
-    audit_by_field: dict[str, ReportCausalFieldAudit] = {}
-    for index, audit in enumerate(row.causal_field_audits):
+    audit_by_field: dict[str, CausalFieldAuditJudgment] = {}
+    for audit in row.causal_field_audits:
         field_name = audit.report_field.value
-        if audit.exact_text != expected_causal_fields[field_name]:
-            raise ValueError(
-                f"{object_path}.causal_field_audits[{index}].exact_text must equal the "
-                f"complete CandidateReport.{field_name} value for report {row.report_id}"
-            )
         audit_by_field[field_name] = audit
     certificate_name = row.causal_certificate_field.value
     certificate = audit_by_field.get(certificate_name)
@@ -358,6 +354,29 @@ def _unique(values: Iterable[str]) -> tuple[str, ...]:
     return tuple(dict.fromkeys(values))
 
 
+def _materialized_causal_field_audit(
+    *, report, judgment: CausalFieldAuditJudgment
+) -> ReportCausalFieldAudit:
+    """Attach immutable source text and digest to one provider field verdict."""
+
+    field_value = getattr(report, judgment.report_field.value)
+    if not isinstance(field_value, str):
+        raise ValueError(  # noqa: TRY004 - validated closure makes this unreachable
+            f"cannot materialize null CandidateReport.{judgment.report_field.value} "
+            f"for {report.report_id}"
+        )
+    return ReportCausalFieldAudit(
+        report_field=judgment.report_field,
+        exact_text=field_value,
+        exact_text_sha256="sha256:"
+        + hashlib.sha256(field_value.encode("utf-8")).hexdigest(),
+        verdict=judgment.verdict,
+        reason=judgment.reason,
+        basis=judgment.basis,
+        source_refs=judgment.source_refs,
+    )
+
+
 def materialize_reading(
     response: JudgeResponse,
     judge_input: UnifiedJudgeInput,
@@ -484,6 +503,9 @@ def materialize_reading(
             if judgment.core_truth == CoreClaimTruth.VALID
             else ReportTextEvidenceRole.REFUTED_PREMISE
         )
+        causal_judgments_by_field = {
+            audit.report_field.value: audit for audit in judgment.causal_field_audits
+        }
         report_assessments.append(
             ReportAssessment(
                 report_id=report_id,
@@ -519,7 +541,14 @@ def materialize_reading(
                         basis=f"report_judgments[{report_id}].causal_certificate_field",
                     ),
                 ),
-                causal_field_audits=judgment.causal_field_audits,
+                causal_field_audits=tuple(
+                    _materialized_causal_field_audit(
+                        report=report,
+                        judgment=causal_judgments_by_field[field_name],
+                    )
+                    for field_name in ("reason", "basis", "observed")
+                    if isinstance(getattr(report, field_name), str)
+                ),
                 reason=f"{judgment.reason} {ownership_reason}",
                 basis=(
                     f"{judgment.basis}; deterministic ownership derivation from "

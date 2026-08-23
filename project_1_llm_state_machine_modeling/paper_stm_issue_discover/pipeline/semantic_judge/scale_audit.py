@@ -129,7 +129,6 @@ def _structural_response_payload(
                 "causal_field_audits": [
                     {
                         "report_field": field_name,
-                        "exact_text": getattr(report, field_name),
                         "verdict": "SUPPORTED",
                         "reason": "Every material assertion in this complete report-owned field is compatible with the common artifacts.",
                         "basis": "The complete field was checked against the natural language, authored model, closed model, and deterministic facts.",
@@ -164,7 +163,7 @@ def _structural_response_payload(
             }
         )
     return {
-        "schema_version": "semantic-judge.response.v7",
+        "schema_version": "semantic-judge.response.v8",
         "report_judgments": report_judgments,
         "reason": "Every report and expected issue has complete validity-first sparse relation closure.",
         "basis": "The exact provider schema validates report identity, causal fields, positive relations, and explicit NO coverage.",

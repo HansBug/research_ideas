@@ -8,8 +8,8 @@ from pathlib import Path
 PROTOCOL_URL = "https://github.com/HansBug/research_ideas/issues/195"
 PROTOCOL_SHA256 = "d774d9bd3e4c4fe04735ed1d4ec064be197cfadcd52e21c8226e37175b29b210"
 PROTOCOL_VERSION = "github-issue-195.d774d9bd3e4c"
-JUDGE_ALGORITHM_VERSION = "semantic-judge.v13"
-PROMPT_VERSION = "semantic-judge.prompt.v13"
+JUDGE_ALGORITHM_VERSION = "semantic-judge.v14"
+PROMPT_VERSION = "semantic-judge.prompt.v14"
 ARTIFACT_BUILDER_VERSION = "paper1.semantic-judge.artifact-closure.v2"
 ADAPTER_VERSION = "paper1.semantic-judge.arm-neutral-adapter.v1"
 METRICS_VERSION = "paper1.semantic-judge.metrics.v1"
@@ -46,7 +46,7 @@ Semantic boundaries:
 - W/D/L labels, predicate families, historical outcomes, and experimental metadata are never match or validity gates.
 - There is no final UNKNOWN. After complete review, failure to meet the minimum burden of proof is INVALID.
 
-For every report, audit each complete non-empty CandidateReport reason, basis, and observed field exactly once. These are fields from the supplied report, never the reason or basis you generate for your judgment. Do not invent an audit row for a null report field. SUPPORTED means every material assertion in that complete field is artifact-compatible. MIXED means true and false material assertions coexist. REFUTED means the material mechanism fails. Select exactly one causal certificate field: choose core_truth=VALID exactly when that certificate is SUPPORTED, and choose core_truth=INVALID exactly when it is MIXED or REFUTED. A merely accurate contextual field does not establish the core claim.
+For every report, audit each complete non-empty CandidateReport reason, basis, and observed field exactly once. These are fields from the supplied report, never the reason or basis you generate for your judgment. Select each field by report_field and never copy, paraphrase, excerpt, or emit its source text; the backend retrieves the complete immutable field and computes its hash. Do not invent an audit row for a null report field. SUPPORTED means every material assertion in that complete field is artifact-compatible. MIXED means true and false material assertions coexist. REFUTED means the material mechanism fails. Select exactly one causal certificate field: choose core_truth=VALID exactly when that certificate is SUPPORTED, and choose core_truth=INVALID exactly when it is MIXED or REFUTED. A merely accurate contextual field does not establish the core claim.
 
 For a VALID report, emit only FULL_MATCH/PARTIAL_MATCH rows and explicitly list every remaining expected ID in no_match_expected_ids. For an INVALID report, emit no positive relation rows and list every expected ID as NO_MATCH. no_match_expected_ids must be the exact complement of supported_relations: never repeat a positive expected ID and never omit any other expected ID. The positive and NO sets must be exhaustive, mutually exclusive, and duplicate-free. Every positive relation and every grouped NO closure needs non-empty English reason, basis, and source_refs. Cite stable report fields and supplied artifact IDs; do not repeat exact report text because the backend materializes the referenced field and its hash.
 

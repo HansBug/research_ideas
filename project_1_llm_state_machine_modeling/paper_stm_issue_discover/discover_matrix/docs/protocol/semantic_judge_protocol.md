@@ -58,7 +58,7 @@ redundancy rate；重复的 valid finding 进入 redundancy，不进入 FP。
 | Novel 需要独立真实性证据，不能由 unmatched 自动推出 | causal certificate 与 `core_truth=VALID` | VALID + all NO 才派生 `VALID_NOVEL` | valid-novel 与 invalid 对照测试 | `ground_truth_limitations.md` |
 | 只有 INVALID 是 Semantic FP | `ReportValidity.INVALID` 仅后端派生 | deterministic metrics / aggregate | invalid-only FP、duplicate-valid 测试 | `final_output_metrics_policy.md` §5 |
 | 无最终 UNKNOWN；双独立 reading，冲突定向仲裁 | primary/arbitration Pydantic schema | `runner.py::judge_pair`、targeted merge 后完整重验 | primary、arbitration、failure 测试 | `verdict_methodology.md` |
-| 每条 relation、validity、顶层结果有 reason/basis/source refs | 所有 provider model Field 约束 | exact refs、quote/hash 后端物化 | 空字段、错引用、whole-field audit 测试 | 本文件与 run record |
+| 每条 relation、validity、顶层结果有 reason/basis/source refs | provider 只输出 `CausalFieldAuditJudgment` 字段引用与裁定 | `ReportCausalFieldAudit` 的 exact text/hash 由后端物化 | 空字段、错引用、whole-field closure 与 exact materialization 测试 | 本文件与 run record |
 | 同一 expected 多报告只命中一次；一报告可 FULL 多 expected | sparse positive rows 按 report×expected exact closure | expected-side unique 聚合 | 三 expected FULL、duplicate-valid 测试 | `hit_criterion.md` |
 | W/D/L、谓词族、arm、历史结果不作 gate | `UnifiedJudgeInput` 不含这些字段 | 两臂共用 artifacts/runner/metrics | adapter diff、prompt leakage 测试 | 本文件“公平性合同” |
 | 公共 artifact closure 对两臂相同 | `JudgeArtifactClosure` | `build_artifact_closure` 单入口 | closure identity 与完整角色测试 | 本文件“公平性合同” |
@@ -75,9 +75,12 @@ closure、`gpt-5.6-luna` profile、双读、retry、仲裁和指标入口。prov
 
 规模协议只压缩重复表示，不裁剪 Judge 证据：provider 显式输出 FULL/PARTIAL 行，并用
 `no_match_expected_ids` 显式覆盖其余 expected；后端验证三组完整、互斥、exactly once，
-再物化完整 dense audit。仲裁仅重写冲突 report，未冲突报告复用已验证 primary，合并后
-重新执行全 closure validator。真实 `0029` provider-free scale audit 必须在任何 method
-六 pair 或 baseline 全量重判之前通过；live smoke 失败时转入原子裁定，而不是把失败当 miss。
+再物化完整 dense audit。whole-field causal audit 同样只让 provider 选择 `report_field`
+并给出 verdict/reason/basis/source refs；完整字段原文与 SHA-256 由后端从不可变输入
+确定性物化，既不允许摘取方便子句，也不要求模型复制长文本。仲裁仅重写冲突 report，
+未冲突报告复用已验证 primary，合并后重新执行全 closure validator。真实 `0029`
+provider-free scale audit 必须在任何 method 六 pair 或 baseline 全量重判之前通过；live
+smoke 失败时转入原子裁定，而不是把失败当 miss。
 
 ## 学术边界
 
