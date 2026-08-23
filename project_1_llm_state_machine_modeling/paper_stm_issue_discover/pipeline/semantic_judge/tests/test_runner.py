@@ -91,7 +91,8 @@ def test_system_prompt_carries_frozen_scope_and_carrier_boundaries() -> None:
     assert "Do not invent undeclared runtime semantics" in SYSTEM_PROMPT
     assert "summary and complete detail together" in SYSTEM_PROMPT
     assert "explicit core facet" in SYSTEM_PROMPT
-    assert "exact complement of supported_relations" in SYSTEM_PROMPT
+    assert "exact schema order" in SYSTEM_PROMPT
+    assert "minimal explicit NO_MATCH row" in SYSTEM_PROMPT
     assert "never the reason or basis you generate" in SYSTEM_PROMPT
     for benchmark_term in ("0053", "0035", "0046", "PumpState", "cooking-time"):
         assert benchmark_term not in SYSTEM_PROMPT
@@ -322,7 +323,7 @@ def test_single_entry_runs_both_readings_and_arbitration() -> None:
         matches={("R0001", "E0001"): MatchStrength.FULL_MATCH},
     )
     final = {
-        "schema_version": "semantic-judge.arbitration-response.v2",
+        "schema_version": "semantic-judge.arbitration-response.v3",
         "report_judgments": final_reading["report_judgments"],
         "reason": "Targeted arbitration selects the artifact-supported valid report.",
         "basis": "Fixture common artifacts and both primary report judgments.",
@@ -431,7 +432,7 @@ def test_targeted_arbitration_is_invariant_to_id_renaming_and_input_order() -> N
             judge_input, matches=final_matches, clusters=clusters
         )
         arbitration = {
-            "schema_version": "semantic-judge.arbitration-response.v2",
+            "schema_version": "semantic-judge.arbitration-response.v3",
             "report_judgments": [
                 row
                 for row in arbitration_full["report_judgments"]

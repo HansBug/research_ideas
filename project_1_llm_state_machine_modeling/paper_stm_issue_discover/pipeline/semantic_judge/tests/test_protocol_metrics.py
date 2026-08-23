@@ -131,9 +131,6 @@ def test_order_and_opaque_id_renaming_do_not_change_metrics() -> None:
     }
     first_payload = reading_payload(first_input, matches=first_matches)
     first_payload["report_judgments"].reverse()
-    for judgment in first_payload["report_judgments"]:
-        judgment["supported_relations"].reverse()
-        judgment["no_match_expected_ids"].reverse()
     first = compute_semantic_metrics(validate(first_input, first_payload))
 
     second_input = minimal_input(report_count=2, expected_count=2)

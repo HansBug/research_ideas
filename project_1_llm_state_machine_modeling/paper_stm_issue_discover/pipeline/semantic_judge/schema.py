@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Iterable
-from typing import Literal, cast
+from typing import Annotated, Literal, cast
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -18,6 +18,8 @@ from .models import (
     JudgeReading,
     JudgeResponse,
     MatchStrength,
+    NoMatchRelationJudgment,
+    PositiveMatchStrength,
     RelationAssessment,
     ReportAssessment,
     ReportCausalFieldAudit,
@@ -80,53 +82,58 @@ def _validate_report_judgment(
             f"expected={sorted(item.value for item in allowed_certificate_verdicts)}"
         )
 
-    positive_ids: list[str] = []
+    positive_relations: list[SupportedRelationJudgment] = []
+    no_match_ids: list[str] = []
     positive_keys: list[tuple[str, str]] = []
-    for index, relation in enumerate(row.supported_relations):
+    for index, decision in enumerate(row.relation_decisions):
+        if decision.match == MatchStrength.NO_MATCH:
+            no_match_ids.append(decision.expected_id)
+            continue
+        relation = cast(SupportedRelationJudgment, decision)
         if relation.report_id != row.report_id:
             raise ValueError(
-                f"{object_path}.supported_relations[{index}].report_id must equal "
+                f"{object_path}.relation_decisions[{index}].report_id must equal "
                 f"{row.report_id}; actual={relation.report_id}"
             )
         if relation.causal_certificate_field != row.causal_certificate_field:
             raise ValueError(
-                f"{object_path}.supported_relations[{index}].causal_certificate_field must "
+                f"{object_path}.relation_decisions[{index}].causal_certificate_field must "
                 f"reference report certificate {certificate_name}; "
                 f"actual={relation.causal_certificate_field.value}"
             )
         field_names = [item.value for item in relation.report_field_refs]
         if len(field_names) != len(set(field_names)):
             raise ValueError(
-                f"{object_path}.supported_relations[{index}].report_field_refs contains "
+                f"{object_path}.relation_decisions[{index}].report_field_refs contains "
                 f"duplicates: {field_names}"
             )
         if ReportField.CLAIM not in relation.report_field_refs:
             raise ValueError(
-                f"{object_path}.supported_relations[{index}].report_field_refs must include claim"
+                f"{object_path}.relation_decisions[{index}].report_field_refs must include claim"
             )
         for field_name in field_names:
             if not isinstance(getattr(report, field_name), str):
                 raise ValueError(  # noqa: TRY004 - Pydantic reports this as response-schema validation
-                    f"{object_path}.supported_relations[{index}].report_field_refs references "
+                    f"{object_path}.relation_decisions[{index}].report_field_refs references "
                     f"null CandidateReport.{field_name} for report {row.report_id}"
                 )
-        positive_ids.append(relation.expected_id)
+        positive_relations.append(relation)
         positive_keys.append((relation.report_id, relation.expected_id))
     if len(positive_keys) != len(set(positive_keys)):
         raise ValueError(
-            f"{object_path}.supported_relations contains duplicate report/expected keys: "
+            f"{object_path}.relation_decisions contains duplicate positive report/expected keys: "
             f"{positive_keys}"
         )
-    if row.core_truth == CoreClaimTruth.INVALID and row.supported_relations:
+    positive_ids = [relation.expected_id for relation in positive_relations]
+    if row.core_truth == CoreClaimTruth.INVALID and positive_relations:
         raise ValueError(
-            f"{object_path}.core_truth=INVALID requires supported_relations=[]; "
+            f"{object_path}.core_truth=INVALID requires every relation_decision to be NO_MATCH; "
             f"actual_positive_expected_ids={positive_ids}"
         )
 
-    no_match_ids = list(row.no_match_expected_ids)
     if len(no_match_ids) != len(set(no_match_ids)):
         raise ValueError(
-            f"{object_path}.no_match_expected_ids contains duplicates: {no_match_ids}"
+            f"{object_path}.relation_decisions contains duplicate NO expected IDs: {no_match_ids}"
         )
     if no_match_ids:
         if not row.no_match_reason or not row.no_match_basis or not row.no_match_source_refs:
@@ -151,10 +158,63 @@ def _validate_report_judgment(
         expected_ids
     ):
         raise ValueError(
-            f"{object_path} positive/NO relation closure must cover every expected ID "
+            f"{object_path}.relation_decisions must cover every expected ID "
             f"exactly once; expected={expected_ids}, positive={positive_ids}, "
             f"no_match={no_match_ids}"
         )
+
+
+def _exact_relation_decision_type(
+    *, report_id_type, expected_id: str, suffix: str
+):
+    """Build one discriminator union fixed to one expected position."""
+
+    expected_id_type = _literal((expected_id,))
+
+    class ExactFullRelationJudgment(SupportedRelationJudgment):
+        """One FULL relation fixed to an exact anonymous expected position."""
+
+        report_id: report_id_type = Field(  # type: ignore[valid-type]
+            description="Anonymous report ID from the exact input closure; it must equal the enclosing report judgment ID."
+        )
+        expected_id: expected_id_type = Field(  # type: ignore[valid-type]
+            description="Anonymous expected ID fixed by this exact relation position."
+        )
+        match: Literal[PositiveMatchStrength.FULL_MATCH] = Field(
+            default=PositiveMatchStrength.FULL_MATCH,
+            description="Artifact-supported FULL_MATCH relation at this exact expected position."
+        )
+
+    class ExactPartialRelationJudgment(SupportedRelationJudgment):
+        """One PARTIAL relation fixed to an exact anonymous expected position."""
+
+        report_id: report_id_type = Field(  # type: ignore[valid-type]
+            description="Anonymous report ID from the exact input closure; it must equal the enclosing report judgment ID."
+        )
+        expected_id: expected_id_type = Field(  # type: ignore[valid-type]
+            description="Anonymous expected ID fixed by this exact relation position."
+        )
+        match: Literal[PositiveMatchStrength.PARTIAL_MATCH] = Field(
+            default=PositiveMatchStrength.PARTIAL_MATCH,
+            description="Artifact-supported PARTIAL_MATCH relation at this exact expected position."
+        )
+
+    class ExactNoMatchRelationJudgment(NoMatchRelationJudgment):
+        """One explicit NO relation fixed to an exact anonymous expected position."""
+
+        expected_id: expected_id_type = Field(  # type: ignore[valid-type]
+            description="Anonymous expected ID fixed by this exact NO relation position."
+        )
+
+    ExactFullRelationJudgment.__name__ = f"ExactFullRelationJudgment_{suffix}"
+    ExactPartialRelationJudgment.__name__ = f"ExactPartialRelationJudgment_{suffix}"
+    ExactNoMatchRelationJudgment.__name__ = f"ExactNoMatchRelationJudgment_{suffix}"
+    return Annotated[
+        ExactFullRelationJudgment
+        | ExactPartialRelationJudgment
+        | ExactNoMatchRelationJudgment,
+        Field(discriminator="match"),
+    ]
 
 
 def _exact_report_model(
@@ -167,18 +227,16 @@ def _exact_report_model(
     expected_ids = tuple(item.expected_id for item in judge_input.expected_issues)
     report_id_type = _literal(report_ids)
     allowed_report_id_type = _literal(allowed_report_ids)
-    expected_id_type = _literal(expected_ids)
     reports_by_id = {item.report_id: item for item in judge_input.reports}
-
-    class ExactSupportedRelationJudgment(SupportedRelationJudgment):
-        """One positive relation restricted to the exact anonymous input IDs."""
-
-        report_id: report_id_type = Field(  # type: ignore[valid-type]
-            description="Anonymous report ID from the exact input closure; it must equal the enclosing report judgment ID."
+    relation_decision_types = tuple(
+        _exact_relation_decision_type(
+            report_id_type=report_id_type,
+            expected_id=expected_id,
+            suffix=f"{suffix}_{index}",
         )
-        expected_id: expected_id_type = Field(  # type: ignore[valid-type]
-            description="Anonymous expected ID from the exact input closure receiving FULL or PARTIAL support."
-        )
+        for index, expected_id in enumerate(expected_ids)
+    )
+    exact_relation_tuple = tuple.__class_getitem__(relation_decision_types)
 
     class ExactReportJudgment(ReportJudgment):
         """One validity-first sparse judgment restricted to exact closure IDs."""
@@ -186,11 +244,8 @@ def _exact_report_model(
         report_id: allowed_report_id_type = Field(  # type: ignore[valid-type]
             description="Anonymous report ID from the exact required closure; include each required report exactly once."
         )
-        supported_relations: tuple[ExactSupportedRelationJudgment, ...] = Field(
-            description="Only FULL/PARTIAL rows for this report; an empty tuple is valid only with exhaustive explicit NO closure."
-        )
-        no_match_expected_ids: tuple[expected_id_type, ...] = Field(  # type: ignore[valid-type]
-            description="Exact complement of supported_relations over the input expected IDs: list every non-positive ID exactly once, with no positive ID repeated."
+        relation_decisions: exact_relation_tuple = Field(  # type: ignore[valid-type]
+            description="One provider-native discriminated decision at each exact expected position, in input order; no expected ID can be omitted, duplicated, or moved."
         )
 
         @model_validator(mode="after")
@@ -203,15 +258,12 @@ def _exact_report_model(
             )
             return self
 
-    ExactSupportedRelationJudgment.__name__ = (
-        f"ExactSupportedRelationJudgment_{suffix}"
-    )
     ExactReportJudgment.__name__ = f"ExactReportJudgment_{suffix}"
     return ExactReportJudgment
 
 
 def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResponse]:
-    """Build a sparse provider schema over the exact report and expected IDs."""
+    """Build a sparse-evidence provider schema over exact report/expected IDs."""
 
     report_ids = tuple(item.report_id for item in judge_input.reports)
     expected_ids = tuple(item.expected_id for item in judge_input.expected_issues)
@@ -398,7 +450,9 @@ def materialize_reading(
         judgment = judgments_by_id[report_id]
         report = reports_by_id[report_id]
         positive_by_expected = {
-            row.expected_id: row for row in judgment.supported_relations
+            row.expected_id: cast(SupportedRelationJudgment, row)
+            for row in judgment.relation_decisions
+            if row.match != MatchStrength.NO_MATCH
         }
         full_expected_ids: list[str] = []
         partial_expected_ids: list[str] = []
@@ -415,7 +469,7 @@ def materialize_reading(
                             report_field=ReportField.CLAIM,
                             semantic_role=ReportTextEvidenceRole.CLAIM_BOUNDARY,
                             reason="The complete published claim defines the report boundary for this explicit NO relation.",
-                            basis=f"report_judgments[{report_id}].no_match_expected_ids",
+                            basis=f"report_judgments[{report_id}].relation_decisions",
                         ),
                     ),
                     reason=cast(str, judgment.no_match_reason),
@@ -599,7 +653,7 @@ def materialize_reading(
                     f"Expected issue {expected_id} has FULL support from {list(full_report_ids)} "
                     f"and PARTIAL support from {list(partial_report_ids)}; all remaining reports are NO_MATCH."
                 ),
-                basis="Deterministic materialization of every validated sparse positive row and explicit NO closure for this expected issue.",
+                basis="Deterministic materialization of every validated positional relation decision and grouped NO evidence for this expected issue.",
                 source_refs=_unique(
                     [f"expected:{expected_id}"]
                     + [ref for row in relation_rows for ref in row.source_refs]

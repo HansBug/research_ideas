@@ -59,10 +59,10 @@ redundancy rate；重复的 valid finding 进入 redundancy，不进入 FP。
 | 只有 INVALID 是 Semantic FP | `ReportValidity.INVALID` 仅后端派生 | deterministic metrics / aggregate | invalid-only FP、duplicate-valid 测试 | `final_output_metrics_policy.md` §5 |
 | 无最终 UNKNOWN；双独立 reading，冲突定向仲裁 | primary/arbitration Pydantic schema | `runner.py::judge_pair`、targeted merge 后完整重验 | primary、arbitration、failure 测试 | `verdict_methodology.md` |
 | 每条 relation、validity、顶层结果有 reason/basis/source refs | provider 只输出 `CausalFieldAuditJudgment` 字段引用与裁定 | `ReportCausalFieldAudit` 的 exact text/hash 由后端物化 | 空字段、错引用、whole-field closure 与 exact materialization 测试 | 本文件与 run record |
-| 同一 expected 多报告只命中一次；一报告可 FULL 多 expected | sparse positive rows 按 report×expected exact closure | expected-side unique 聚合 | 三 expected FULL、duplicate-valid 测试 | `hit_criterion.md` |
+| 同一 expected 多报告只命中一次；一报告可 FULL 多 expected | 每个 report 的 positional relation decisions | expected-side unique 聚合 | 三 expected FULL、duplicate-valid 测试 | `hit_criterion.md` |
 | W/D/L、谓词族、arm、历史结果不作 gate | `UnifiedJudgeInput` 不含这些字段 | 两臂共用 artifacts/runner/metrics | adapter diff、prompt leakage 测试 | 本文件“公平性合同” |
 | 公共 artifact closure 对两臂相同 | `JudgeArtifactClosure` | `build_artifact_closure` 单入口 | closure identity 与完整角色测试 | 本文件“公平性合同” |
-| 稀疏输出必须显式闭合全部 NO | `supported_relations` + `no_match_expected_ids` | exact partition validator、dense audit materializer | 0029 shape 与真实规模审计 | 本文件“规模合同” |
+| 稀疏证据输出必须显式闭合全部 NO | 固定位置 `relation_decisions`，NO 仅保留 ID/enum | provider-native positional schema、dense audit materializer | 0029 shape 与真实规模审计 | 本文件“规模合同” |
 | Judge 失败不产生分数且费用不消失 | failure Pydantic records、call receipts | CLI failure summary、normalized usage | failed-call cost/cache 测试 | `final_output_metrics_policy.md` §4/§8 |
 
 ## 公平性与规模合同
@@ -73,9 +73,11 @@ closure、`gpt-5.6-luna` profile、双读、retry、仲裁和指标入口。prov
 原始 ID、D/W/L、谓词、历史得分或旧判决。相同 pair 的公共闭包由一个 builder 构建，
 顺序、内容、provenance 与 hash 不因 arm 改变。
 
-规模协议只压缩重复表示，不裁剪 Judge 证据：provider 显式输出 FULL/PARTIAL 行，并用
-`no_match_expected_ids` 显式覆盖其余 expected；后端验证三组完整、互斥、exactly once，
-再物化完整 dense audit。whole-field causal audit 同样只让 provider 选择 `report_field`
+规模协议只压缩重复表示，不裁剪 Judge 证据：动态 Pydantic schema 为每个 expected
+建立固定位置的 discriminated `relation_decision`；FULL/PARTIAL 行保存 expected-specific
+reason/basis/source refs，NO 行显式保存 expected ID 与 `NO_MATCH`，共同的 NO 证据只在
+report 级保存一次。`prefixItems + minItems + maxItems` 在 provider schema 层保证每个
+expected 恰好出现一次，再由后端物化完整 dense audit。whole-field causal audit 同样只让 provider 选择 `report_field`
 并给出 verdict/reason/basis/source refs；完整字段原文与 SHA-256 由后端从不可变输入
 确定性物化，既不允许摘取方便子句，也不要求模型复制长文本。仲裁仅重写冲突 report，
 未冲突报告复用已验证 primary，合并后重新执行全 closure validator。真实 `0029`

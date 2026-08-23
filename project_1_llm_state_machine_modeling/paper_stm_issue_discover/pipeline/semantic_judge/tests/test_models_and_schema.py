@@ -121,14 +121,13 @@ def reading_payload(
             if selected_validity == ReportValidity.INVALID
             else CoreClaimTruth.VALID
         )
-        positive_relations = []
-        no_match_expected_ids = []
+        relation_decisions = []
         for expected in judge_input.expected_issues:
             match = matches.get(
                 (report.report_id, expected.expected_id), MatchStrength.NO_MATCH
             )
             if match in {MatchStrength.FULL_MATCH, MatchStrength.PARTIAL_MATCH}:
-                positive_relations.append(
+                relation_decisions.append(
                     {
                         "report_id": report.report_id,
                         "expected_id": expected.expected_id,
@@ -145,7 +144,12 @@ def reading_payload(
                     }
                 )
             else:
-                no_match_expected_ids.append(expected.expected_id)
+                relation_decisions.append(
+                    {"expected_id": expected.expected_id, "match": "NO_MATCH"}
+                )
+        has_no_match = any(
+            row["match"] == "NO_MATCH" for row in relation_decisions
+        )
         report_rows.append(
             {
                 "report_id": report.report_id,
@@ -172,21 +176,20 @@ def reading_payload(
                     if isinstance(getattr(report, field_name), str)
                 ],
                 "causal_certificate_field": "reason",
-                "supported_relations": positive_relations,
-                "no_match_expected_ids": no_match_expected_ids,
+                "relation_decisions": relation_decisions,
                 "no_match_reason": (
                     "The listed expected issues have no true defect relation to this report."
-                    if no_match_expected_ids
+                    if has_no_match
                     else None
                 ),
                 "no_match_basis": (
                     "Fixture report, expected issues, and common artifact closure."
-                    if no_match_expected_ids
+                    if has_no_match
                     else None
                 ),
                 "no_match_source_refs": (
                     [f"report:{report.report_id}", "artifact:natural_language"]
-                    if no_match_expected_ids
+                    if has_no_match
                     else None
                 ),
                 "reason": f"Artifact review classifies {report.report_id}.",
@@ -198,7 +201,7 @@ def reading_payload(
             }
         )
     return {
-        "schema_version": "semantic-judge.response.v8",
+        "schema_version": "semantic-judge.response.v9",
         "report_judgments": report_rows,
         "reason": "Complete provider-free fixture reading.",
         "basis": "Issue #195 fixture closure and artifact review.",
@@ -246,10 +249,9 @@ def test_runtime_schema_is_sparse_described_and_hides_derived_classes() -> None:
     serialized = json.dumps(schema, sort_keys=True)
     assert schema["description"]
     assert schema["properties"]["report_judgments"]["description"]
-    assert "supported_relations" in serialized
-    assert "no_match_expected_ids" in serialized
+    assert "relation_decisions" in serialized
     assert "FULL_MATCH" in serialized and "PARTIAL_MATCH" in serialized
-    assert "NO_MATCH" not in serialized
+    assert "NO_MATCH" in serialized
     assert "VALID_KNOWN" not in serialized
     assert "VALID_NOVEL" not in serialized
     assert '"VALID"' in serialized and '"INVALID"' in serialized
@@ -306,7 +308,7 @@ def test_all_report_relation_validity_combinations(
     )
     if validity == ReportValidity.INVALID and match != MatchStrength.NO_MATCH:
         with pytest.raises(
-            ValidationError, match="core_truth=INVALID requires supported_relations"
+                ValidationError, match="core_truth=INVALID requires every relation_decision"
         ):
             build_exact_response_model(judge_input).model_validate(provider_payload)
         return
@@ -343,24 +345,23 @@ def test_invalid_core_truth_rejects_full_and_partial_relations() -> None:
             validity={"R0001": ReportValidity.INVALID},
         )
         with pytest.raises(
-            ValidationError, match="core_truth=INVALID requires supported_relations"
+            ValidationError, match="core_truth=INVALID requires every relation_decision"
         ):
             build_exact_response_model(judge_input).model_validate(payload)
 
 
-def test_positive_and_no_sets_require_exact_exhaustive_closure() -> None:
+def test_positional_relation_schema_requires_exact_exhaustive_closure() -> None:
     judge_input = minimal_input(report_count=1, expected_count=2)
     schema = build_exact_response_model(judge_input)
     payload = reading_payload(judge_input)
-    payload["report_judgments"][0]["no_match_expected_ids"].pop()
-    with pytest.raises(ValidationError, match="must cover every expected ID exactly once"):
+    payload["report_judgments"][0]["relation_decisions"].pop()
+    with pytest.raises(ValidationError):
         schema.model_validate(payload)
-    payload = reading_payload(
-        judge_input,
-        matches={("R0001", "E0001"): MatchStrength.FULL_MATCH},
+    payload = reading_payload(judge_input)
+    payload["report_judgments"][0]["relation_decisions"][1]["expected_id"] = (
+        "E0001"
     )
-    payload["report_judgments"][0]["no_match_expected_ids"].append("E0001")
-    with pytest.raises(ValidationError, match="must cover every expected ID exactly once"):
+    with pytest.raises(ValidationError):
         schema.model_validate(payload)
 
 
@@ -382,7 +383,7 @@ def test_positive_relation_requires_owned_fields_and_report_certificate() -> Non
         judge_input,
         matches={("R0001", "E0001"): MatchStrength.FULL_MATCH},
     )
-    relation = payload["report_judgments"][0]["supported_relations"][0]
+    relation = payload["report_judgments"][0]["relation_decisions"][0]
     relation["report_field_refs"] = ["claim", "where"]
     with pytest.raises(ValidationError, match="references null CandidateReport.where"):
         schema.model_validate(payload)
@@ -390,7 +391,7 @@ def test_positive_relation_requires_owned_fields_and_report_certificate() -> Non
         judge_input,
         matches={("R0001", "E0001"): MatchStrength.FULL_MATCH},
     )
-    payload["report_judgments"][0]["supported_relations"][0][
+    payload["report_judgments"][0]["relation_decisions"][0][
         "causal_certificate_field"
     ] = "basis"
     with pytest.raises(ValidationError, match="must reference report certificate reason"):
@@ -521,19 +522,17 @@ def test_backend_materializes_dense_relations_ownership_hit_and_support() -> Non
     assert any("sha256:" in row.basis for row in evidence)
 
 
-def test_backend_canonicalizes_reversed_all_no_closure() -> None:
+def test_positional_relation_schema_rejects_moved_expected_ids() -> None:
     judge_input = minimal_input(report_count=1, expected_count=3)
     payload = reading_payload(judge_input)
-    payload["report_judgments"][0]["no_match_expected_ids"].reverse()
+    payload["report_judgments"][0]["relation_decisions"].reverse()
+    with pytest.raises(ValidationError):
+        build_exact_response_model(judge_input).model_validate(payload)
 
-    response = build_exact_response_model(judge_input).model_validate(payload)
-    reading = materialize_reading(response, judge_input)
-
-    assert response.report_judgments[0].no_match_expected_ids == (
-        "E0003",
-        "E0002",
-        "E0001",
+    response = build_exact_response_model(judge_input).model_validate(
+        reading_payload(judge_input)
     )
+    reading = materialize_reading(response, judge_input)
     assert reading.report_assessments[0].no_match_expected_ids == (
         "E0001",
         "E0002",
@@ -581,14 +580,18 @@ def test_0029_stage_projection_fits_context_without_dropping_core_evidence() -> 
         assert projection["truncation_applied"] is False
 
 
-def test_sparse_0029_scale_shape_fits_output_budget_without_implicit_no_rows() -> None:
+def test_sparse_0029_scale_shape_fits_output_budget_with_explicit_minimal_no_rows() -> None:
     judge_input = minimal_input(report_count=22, expected_count=8)
     payload = reading_payload(judge_input)
     validated = build_exact_response_model(judge_input).model_validate(payload)
     serialized = validated.model_dump_json()
     dense_relation_count = 22 * 8
-    assert sum(len(row.supported_relations) for row in validated.report_judgments) == 0
-    assert all(len(row.no_match_expected_ids) == 8 for row in validated.report_judgments)
+    assert all(len(row.relation_decisions) == 8 for row in validated.report_judgments)
+    assert all(
+        decision.match == MatchStrength.NO_MATCH
+        for row in validated.report_judgments
+        for decision in row.relation_decisions
+    )
     assert dense_relation_count == 176
     assert len(serialized) < 80_000
     assert (len(serialized) + 3) // 4 < 20_000

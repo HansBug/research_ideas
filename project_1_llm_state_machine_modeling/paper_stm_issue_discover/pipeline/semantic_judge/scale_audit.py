@@ -99,7 +99,7 @@ def _structural_response_payload(
     for report in judge_input.reports:
         causal_fields = _causal_field_names(report)
         certificate_field = "reason"
-        supported_relations = (
+        positive_relations = (
             [
                 {
                     "report_id": report.report_id,
@@ -120,7 +120,17 @@ def _structural_response_payload(
             if all_positive
             else []
         )
-        no_match_expected_ids = [] if all_positive else list(expected_ids)
+        positive_by_expected = {
+            row["expected_id"]: row for row in positive_relations
+        }
+        relation_decisions = [
+            positive_by_expected.get(
+                expected_id,
+                {"expected_id": expected_id, "match": "NO_MATCH"},
+            )
+            for expected_id in expected_ids
+        ]
+        has_no_match = not all_positive
         report_judgments.append(
             {
                 "report_id": report.report_id,
@@ -140,21 +150,20 @@ def _structural_response_payload(
                     for field_name in causal_fields
                 ],
                 "causal_certificate_field": certificate_field,
-                "supported_relations": supported_relations,
-                "no_match_expected_ids": no_match_expected_ids,
+                "relation_decisions": relation_decisions,
                 "no_match_reason": (
                     "The listed expected issues share no true defect instance, violated obligation, direct symptom, or repair overlap with this valid report."
-                    if no_match_expected_ids
+                    if has_no_match
                     else None
                 ),
                 "no_match_basis": (
                     "The complete report boundary, every expected issue, and the common artifact closure were compared explicitly."
-                    if no_match_expected_ids
+                    if has_no_match
                     else None
                 ),
                 "no_match_source_refs": (
                     [f"report:{report.report_id}:claim", artifact_ref]
-                    if no_match_expected_ids
+                    if has_no_match
                     else None
                 ),
                 "reason": "The report's complete causal certificate is artifact-compatible and meets the minimum burden of proof.",
@@ -163,7 +172,7 @@ def _structural_response_payload(
             }
         )
     return {
-        "schema_version": "semantic-judge.response.v8",
+        "schema_version": "semantic-judge.response.v9",
         "report_judgments": report_judgments,
         "reason": "Every report and expected issue has complete validity-first sparse relation closure.",
         "basis": "The exact provider schema validates report identity, causal fields, positive relations, and explicit NO coverage.",

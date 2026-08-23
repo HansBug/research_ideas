@@ -480,9 +480,10 @@ class UnifiedJudgeInput(FrozenModel):
 class RelationAssessment(FrozenModel):
     """One dense backend-materialized relation for an exact report/expected pair.
 
-    Provider output contains only positive rows plus an explicit NO closure. The
-    backend materializes this complete matrix after validating report truth. A
-    FULL or PARTIAL row therefore always belongs to a valid known report.
+    Provider output contains one compact positional decision per expected issue,
+    with detailed evidence only on positive rows and grouped evidence for NO rows.
+    The backend materializes this complete matrix after validating report truth.
+    A FULL or PARTIAL row therefore always belongs to a valid known report.
     """
 
     report_id: str = Field(
@@ -554,11 +555,29 @@ class SupportedRelationJudgment(FrozenModel):
     )
 
 
+class NoMatchRelationJudgment(FrozenModel):
+    """One explicit minimal NO relation in a provider relation partition.
+
+    NO rows carry only identity and the closed enum. Shared NO reason, basis, and
+    source references remain at report level, avoiding repeated prose without
+    allowing an omitted expected issue to default silently to NO.
+    """
+
+    expected_id: str = Field(
+        min_length=1,
+        description="Anonymous expected ID receiving an explicit NO_MATCH relation; the dynamic schema fixes its exact position and identity.",
+    )
+    match: Literal[MatchStrength.NO_MATCH] = Field(
+        default=MatchStrength.NO_MATCH,
+        description="Explicit NO_MATCH enum; omission never implies NO and this row can never carry FULL or PARTIAL.",
+    )
+
+
 class ReportJudgment(FrozenModel):
     """One validity-first provider judgment with sparse exhaustive relations.
 
-    The Judge produces core truth, a complete causal certificate, positive
-    relation rows, and an explicit NO closure. It never produces final
+    The Judge produces core truth, a complete causal certificate, and one typed
+    relation decision at every expected position. It never produces final
     VALID_KNOWN or VALID_NOVEL ownership; the backend derives that classification
     from core_truth and the validated relation partition.
     """
@@ -580,15 +599,15 @@ class ReportJudgment(FrozenModel):
     causal_certificate_field: CausalReportField = Field(
         description="One audited CandidateReport field carrying the core truth certificate. Its verdict and core_truth must agree exactly: SUPPORTED with VALID, or MIXED/REFUTED with INVALID."
     )
-    supported_relations: tuple[SupportedRelationJudgment, ...] = Field(
-        description="Only FULL/PARTIAL rows for this report. Empty means all expected issues are explicitly closed through no_match_expected_ids; it never means omitted review."
-    )
-    no_match_expected_ids: tuple[str, ...] = Field(
-        description="Exact complement of supported_relations over all expected IDs. Never repeat a positive ID or omit another ID; positive and NO sets must cover the closure exactly once."
+    relation_decisions: tuple[
+        SupportedRelationJudgment | NoMatchRelationJudgment, ...
+    ] = Field(
+        min_length=1,
+        description="Exactly one decision per expected issue in dynamic-schema order. FULL/PARTIAL rows retain expected-specific evidence; NO rows explicitly retain identity without repeated prose."
     )
     no_match_reason: str | None = Field(
         min_length=1,
-        description="English group explanation for the explicit NO closure. It is required when no_match_expected_ids is non-empty and must be null when that set is empty."
+        description="English group explanation for all explicit NO_MATCH decision rows. It is required when any NO row exists and must be null when every row is positive."
     )
     no_match_basis: str | None = Field(
         min_length=1,
@@ -612,11 +631,11 @@ class ReportJudgment(FrozenModel):
 
 
 class JudgeResponse(FrozenModel):
-    """Sparse validity-first provider response without deterministic summaries."""
+    """Validity-first provider response with sparse evidence and exact decisions."""
 
-    schema_version: Literal["semantic-judge.response.v8"] = Field(
-        default="semantic-judge.response.v8",
-        description="Provider response version implementing field-reference causal audits, core truth, sparse positive relations, and explicit exhaustive NO closure."
+    schema_version: Literal["semantic-judge.response.v9"] = Field(
+        default="semantic-judge.response.v9",
+        description="Provider response version implementing field-reference causal audits, core truth, and a provider-native exact positional relation partition."
     )
     report_judgments: tuple[ReportJudgment, ...] = Field(
         description="Core truth, causal certificate, sparse relation closure, root cause, reason, and basis for every report exactly once."
@@ -910,9 +929,9 @@ class ReadingDisagreement(FrozenModel):
 class ArbitrationInput(FrozenModel):
     """Complete typed arbitration input containing no arm or method-only metadata."""
 
-    schema_version: Literal["semantic-judge.arbitration-input.v3"] = Field(
-        default="semantic-judge.arbitration-input.v3",
-        description="Targeted arbitration-input version carrying field-reference causal audits only when independent sparse readings have a substantive conflict."
+    schema_version: Literal["semantic-judge.arbitration-input.v4"] = Field(
+        default="semantic-judge.arbitration-input.v4",
+        description="Targeted arbitration-input version carrying field-reference causal audits and positional relation partitions only for substantive conflicts."
     )
     judge_input: UnifiedJudgeInput = Field(
         description="Anonymous reports, expected issues, and common artifact closure identical to the primary input."
@@ -961,9 +980,9 @@ class ArbitrationInput(FrozenModel):
 class ArbitrationResponse(FrozenModel):
     """Targeted provider response replacing only conflicted report judgments."""
 
-    schema_version: Literal["semantic-judge.arbitration-response.v2"] = Field(
-        default="semantic-judge.arbitration-response.v2",
-        description="Conflict-only arbitration response version using field-reference causal audits; unchanged report judgments are never regenerated."
+    schema_version: Literal["semantic-judge.arbitration-response.v3"] = Field(
+        default="semantic-judge.arbitration-response.v3",
+        description="Conflict-only arbitration response version using field-reference causal audits and exact positional relation partitions; unchanged report judgments are never regenerated."
     )
     report_judgments: tuple[ReportJudgment, ...] = Field(
         min_length=1,
