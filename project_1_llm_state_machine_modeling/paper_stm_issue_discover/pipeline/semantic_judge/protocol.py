@@ -8,12 +8,12 @@ from pathlib import Path
 PROTOCOL_URL = "https://github.com/HansBug/research_ideas/issues/195"
 PROTOCOL_SHA256 = "d774d9bd3e4c4fe04735ed1d4ec064be197cfadcd52e21c8226e37175b29b210"
 PROTOCOL_VERSION = "github-issue-195.d774d9bd3e4c"
-JUDGE_ALGORITHM_VERSION = "semantic-judge.v15"
-PROMPT_VERSION = "semantic-judge.prompt.v15"
+JUDGE_ALGORITHM_VERSION = "semantic-judge.v16"
+PROMPT_VERSION = "semantic-judge.prompt.v16"
 ARTIFACT_BUILDER_VERSION = "paper1.semantic-judge.artifact-closure.v2"
 ADAPTER_VERSION = "paper1.semantic-judge.arm-neutral-adapter.v1"
 METRICS_VERSION = "paper1.semantic-judge.metrics.v1"
-JUDGE_MAX_OUTPUT_TOKENS = 64_000
+JUDGE_MAX_OUTPUT_TOKENS = 128_000
 
 
 SYSTEM_PROMPT = """You are an arm-neutral semantic Judge for expected issue discovery. Assess only the anonymous reports and common artifacts supplied in this request. Never infer which system produced a report.
@@ -46,9 +46,11 @@ Semantic boundaries:
 - W/D/L labels, predicate families, historical outcomes, and experimental metadata are never match or validity gates.
 - There is no final UNKNOWN. After complete review, failure to meet the minimum burden of proof is INVALID.
 
-For every report, audit each complete non-empty CandidateReport reason, basis, and observed field exactly once. These are fields from the supplied report, never the reason or basis you generate for your judgment. Select each field by report_field and never copy, paraphrase, excerpt, or emit its source text; the backend retrieves the complete immutable field and computes its hash. Do not invent an audit row for a null report field. SUPPORTED means every material assertion in that complete field is artifact-compatible. MIXED means true and false material assertions coexist. REFUTED means the material mechanism fails. Select exactly one causal certificate field: choose core_truth=VALID exactly when that certificate is SUPPORTED, and choose core_truth=INVALID exactly when it is MIXED or REFUTED. A merely accurate contextual field does not establish the core claim.
+For every report, audit each complete non-empty CandidateReport reason, basis, and observed field exactly once. These are fields from the supplied report, never the reason or basis you generate for your judgment. Select each field by report_field and never copy, paraphrase, excerpt, or emit its source text; the backend retrieves the complete immutable field and computes its hash. Do not invent an audit row for a null report field.
 
-For every report, complete relation_decisions in the exact schema order. Each expected position accepts exactly one discriminated decision: FULL_MATCH or PARTIAL_MATCH with expected-specific evidence, or a minimal explicit NO_MATCH row. Never move an expected ID to another position. For an INVALID report, every decision must be NO_MATCH. For a VALID report, use FULL/PARTIAL only where the report has genuine artifact-supported overlap and explicit NO everywhere else. When any NO row exists, provide one non-empty grouped no_match_reason, no_match_basis, and no_match_source_refs; make all three null only when every position is positive. Cite stable report fields and supplied artifact IDs; do not repeat exact report text because the backend materializes the referenced field and its hash.
+Within each field audit, enumerate every material factual assertion, modeling-semantic assumption, and causal link exactly once as A1, A2, and so on in source order. Use a separate assertion row for every independently testable premise. Do not combine a true assertion and a false assertion in one row. Do not omit or soften a false premise because the conclusion, a neighboring statement, or a different defect in the artifacts is true. Mark each assertion SUPPORTED only when that exact premise is artifact-compatible; otherwise mark it REFUTED and cite the contradicting or insufficient evidence. The backend derives the complete field verdict mechanically: all assertions SUPPORTED yields SUPPORTED, all REFUTED yields REFUTED, and any mixture yields MIXED. Select exactly one causal certificate field: choose core_truth=VALID exactly when the derived certificate verdict is SUPPORTED, and choose core_truth=INVALID exactly when it is MIXED or REFUTED. A merely accurate contextual field does not establish the core claim.
+
+For every report, complete relation_decisions in the exact schema order. Every row must explicitly include its expected_id and match key. Each expected position accepts exactly one discriminated decision: FULL_MATCH or PARTIAL_MATCH with expected-specific evidence, or a minimal explicit NO_MATCH row. Never move an expected ID to another position. For an INVALID report, every decision must be NO_MATCH. For a VALID report, use FULL/PARTIAL only where the report has genuine artifact-supported overlap and explicit NO everywhere else. When any NO row exists, provide one non-empty grouped no_match_reason, no_match_basis, and no_match_source_refs; make all three null only when every position is positive. Every non-nullable reason, basis, and source_refs key in the response schema must be present and non-empty. Cite stable report fields and supplied artifact IDs; do not repeat exact report text because the backend materializes the referenced field and its hash.
 
 root_cause_cluster_key merges only reports with the same actionable technical root cause. Do not merge nearby findings with different source, property, scope, or repair obligations. Write every generated value in English, including reasons, bases, cluster keys, and audit explanations. Preserve non-English content only in provider-external source quotations.
 

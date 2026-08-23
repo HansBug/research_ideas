@@ -7,6 +7,8 @@ import re
 from pathlib import Path
 
 import pytest
+from pydantic import BaseModel, ValidationError
+
 from pipeline.semantic_judge import models
 from pipeline.semantic_judge.artifacts import (
     adapt_evidence_discovery_release,
@@ -39,7 +41,6 @@ from pipeline.semantic_judge.schema import (
     build_exact_response_model,
     materialize_reading,
 )
-from pydantic import BaseModel, ValidationError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
@@ -160,12 +161,24 @@ def reading_payload(
                 "causal_field_audits": [
                     {
                         "report_field": field_name,
-                        "verdict": (
-                            "REFUTED"
-                            if core_truth == CoreClaimTruth.INVALID
-                            else "SUPPORTED"
-                        ),
-                        "reason": "The complete fixture causal field receives one artifact verdict.",
+                        "material_assertion_audits": [
+                            {
+                                "assertion_id": "A1",
+                                "assertion": "The fixture field states one material causal premise.",
+                                "verdict": (
+                                    "REFUTED"
+                                    if core_truth == CoreClaimTruth.INVALID
+                                    else "SUPPORTED"
+                                ),
+                                "reason": "The fixture artifacts determine this exact premise.",
+                                "basis": f"CandidateReport {report.report_id}.{field_name} and fixture artifacts.",
+                                "source_refs": [
+                                    f"report:{report.report_id}:{field_name}",
+                                    "artifact:natural_language",
+                                ],
+                            }
+                        ],
+                        "reason": "The complete fixture causal field receives an exhaustive assertion audit.",
                         "basis": f"CandidateReport {report.report_id}.{field_name} and fixture artifacts.",
                         "source_refs": [
                             f"report:{report.report_id}:{field_name}",
@@ -201,7 +214,7 @@ def reading_payload(
             }
         )
     return {
-        "schema_version": "semantic-judge.response.v9",
+        "schema_version": "semantic-judge.response.v10",
         "report_judgments": report_rows,
         "reason": "Complete provider-free fixture reading.",
         "basis": "Issue #195 fixture closure and artifact review.",
@@ -256,7 +269,6 @@ def test_runtime_schema_is_sparse_described_and_hides_derived_classes() -> None:
     assert "VALID_NOVEL" not in serialized
     assert '"VALID"' in serialized and '"INVALID"' in serialized
     assert "SUPPORTED" in serialized
-    assert "MIXED" in serialized
     assert "REFUTED" in serialized
     assert "exact_text" not in serialized
     assert "exact_text_sha256" not in serialized
@@ -357,6 +369,16 @@ def test_positional_relation_schema_requires_exact_exhaustive_closure() -> None:
     payload["report_judgments"][0]["relation_decisions"].pop()
     with pytest.raises(ValidationError):
         schema.model_validate(payload)
+
+
+def test_every_positional_relation_requires_an_explicit_match_discriminator() -> None:
+    judge_input = minimal_input(report_count=1, expected_count=3)
+    schema = build_exact_response_model(judge_input)
+    for position in range(3):
+        payload = reading_payload(judge_input)
+        del payload["report_judgments"][0]["relation_decisions"][position]["match"]
+        with pytest.raises(ValidationError):
+            schema.model_validate(payload)
     payload = reading_payload(judge_input)
     payload["report_judgments"][0]["relation_decisions"][1]["expected_id"] = (
         "E0001"
@@ -463,15 +485,17 @@ def test_core_truth_requires_compatible_whole_field_certificate() -> None:
     judge_input = minimal_input()
     schema = build_exact_response_model(judge_input)
     payload = reading_payload(judge_input)
-    payload["report_judgments"][0]["causal_field_audits"][0]["verdict"] = "MIXED"
+    payload["report_judgments"][0]["causal_field_audits"][0][
+        "material_assertion_audits"
+    ][0]["verdict"] = "REFUTED"
     with pytest.raises(ValidationError, match="core_truth=VALID conflicts"):
         schema.model_validate(payload)
     payload = reading_payload(
         judge_input, validity={"R0001": ReportValidity.INVALID}
     )
-    payload["report_judgments"][0]["causal_field_audits"][0]["verdict"] = (
-        "SUPPORTED"
-    )
+    payload["report_judgments"][0]["causal_field_audits"][0][
+        "material_assertion_audits"
+    ][0]["verdict"] = "SUPPORTED"
     with pytest.raises(ValidationError, match="core_truth=INVALID conflicts"):
         schema.model_validate(payload)
 
@@ -486,13 +510,98 @@ def test_invalid_report_may_retain_supported_context_without_rescuing_claim() ->
         judge_input, validity={"R0001": ReportValidity.INVALID}
     )
     audits = payload["report_judgments"][0]["causal_field_audits"]
-    next(row for row in audits if row["report_field"] == "basis")["verdict"] = (
-        "SUPPORTED"
-    )
+    next(row for row in audits if row["report_field"] == "basis")[
+        "material_assertion_audits"
+    ][0]["verdict"] = "SUPPORTED"
     validated = build_exact_response_model(judge_input).model_validate(payload)
     reading = materialize_reading(validated, judge_input)
     assert reading.report_assessments[0].validity == ReportValidity.INVALID
     assert all(row.match == MatchStrength.NO_MATCH for row in reading.relations)
+
+
+def test_material_assertions_derive_all_three_whole_field_verdicts() -> None:
+    judge_input = minimal_input()
+    schema = build_exact_response_model(judge_input)
+
+    supported_payload = reading_payload(judge_input)
+    supported = materialize_reading(
+        schema.model_validate(supported_payload), judge_input
+    ).report_assessments[0].causal_field_audits[0]
+    assert supported.verdict == models.CausalFieldVerdict.SUPPORTED
+
+    refuted_payload = reading_payload(
+        judge_input, validity={"R0001": ReportValidity.INVALID}
+    )
+    refuted = materialize_reading(
+        schema.model_validate(refuted_payload), judge_input
+    ).report_assessments[0].causal_field_audits[0]
+    assert refuted.verdict == models.CausalFieldVerdict.REFUTED
+
+    mixed_payload = reading_payload(
+        judge_input, validity={"R0001": ReportValidity.INVALID}
+    )
+    certificate = mixed_payload["report_judgments"][0]["causal_field_audits"][0]
+    certificate["material_assertion_audits"] = [
+        {
+            "assertion_id": "A1",
+            "assertion": "A nearby observation is true.",
+            "verdict": "SUPPORTED",
+            "reason": "The common artifacts support only this nearby observation.",
+            "basis": "The authored source contains the observation.",
+            "source_refs": ["report:R0001:reason", "artifact:plantuml_source"],
+        },
+        {
+            "assertion_id": "A2",
+            "assertion": "The report's stated causal mechanism is true.",
+            "verdict": "REFUTED",
+            "reason": "The common artifacts contradict the stated mechanism.",
+            "basis": "The authored syntax establishes a different semantic structure.",
+            "source_refs": ["report:R0001:reason", "artifact:plantuml_source"],
+        },
+    ]
+    mixed = materialize_reading(
+        schema.model_validate(mixed_payload), judge_input
+    ).report_assessments[0].causal_field_audits[0]
+    assert mixed.verdict == models.CausalFieldVerdict.MIXED
+
+
+def test_refuted_material_premise_cannot_be_rescued_by_nearby_true_assertion() -> None:
+    judge_input = minimal_input()
+    payload = reading_payload(judge_input)
+    certificate = payload["report_judgments"][0]["causal_field_audits"][0]
+    certificate["material_assertion_audits"] = [
+        {
+            "assertion_id": "A1",
+            "assertion": "A separate artifact fact is true.",
+            "verdict": "SUPPORTED",
+            "reason": "The common closure supports this separate fact.",
+            "basis": "A deterministic fact establishes the separate condition.",
+            "source_refs": ["report:R0001:reason", "artifact:verify_facts"],
+        },
+        {
+            "assertion_id": "A2",
+            "assertion": "The report's own modeling-semantic mechanism is true.",
+            "verdict": "REFUTED",
+            "reason": "The authored syntax refutes the report-owned mechanism.",
+            "basis": "The source inventory establishes incompatible typed semantics.",
+            "source_refs": [
+                "report:R0001:reason",
+                "artifact:exact_source_inventory",
+            ],
+        },
+    ]
+    with pytest.raises(ValidationError, match="core_truth=VALID conflicts"):
+        build_exact_response_model(judge_input).model_validate(payload)
+
+
+def test_material_assertion_ids_must_be_contiguous_in_source_order() -> None:
+    judge_input = minimal_input()
+    payload = reading_payload(judge_input)
+    payload["report_judgments"][0]["causal_field_audits"][0][
+        "material_assertion_audits"
+    ][0]["assertion_id"] = "A2"
+    with pytest.raises(ValidationError, match="contiguous IDs in source order"):
+        build_exact_response_model(judge_input).model_validate(payload)
 
 
 def test_backend_materializes_dense_relations_ownership_hit_and_support() -> None:
@@ -617,7 +726,10 @@ def test_typed_scale_audit_checks_exact_prompt_schema_and_sparse_envelopes() -> 
     assert audit.report_count == 22
     assert audit.expected_count == 8
     assert audit.relation_position_count == 176
-    assert audit.effective_max_output_tokens == 64_000
+    assert audit.effective_max_output_tokens == 128_000
+    assert audit.material_assertion_chars_per_row == 64
+    assert audit.material_assertion_envelope_count >= 22
+    assert audit.maximum_field_material_assertion_envelope_count >= 1
     assert audit.all_no_fits_output_limit
     assert audit.all_positive_fits_output_limit
     assert audit.reserved_context_fits_window

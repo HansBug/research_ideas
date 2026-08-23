@@ -5,6 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+
 from pipeline.semantic_judge import cli, runner
 from pipeline.semantic_judge.metrics import compute_semantic_metrics
 from pipeline.semantic_judge.models import (
@@ -323,7 +324,7 @@ def test_single_entry_runs_both_readings_and_arbitration() -> None:
         matches={("R0001", "E0001"): MatchStrength.FULL_MATCH},
     )
     final = {
-        "schema_version": "semantic-judge.arbitration-response.v3",
+        "schema_version": "semantic-judge.arbitration-response.v4",
         "report_judgments": final_reading["report_judgments"],
         "reason": "Targeted arbitration selects the artifact-supported valid report.",
         "basis": "Fixture common artifacts and both primary report judgments.",
@@ -432,7 +433,7 @@ def test_targeted_arbitration_is_invariant_to_id_renaming_and_input_order() -> N
             judge_input, matches=final_matches, clusters=clusters
         )
         arbitration = {
-            "schema_version": "semantic-judge.arbitration-response.v3",
+            "schema_version": "semantic-judge.arbitration-response.v4",
             "report_judgments": [
                 row
                 for row in arbitration_full["report_judgments"]

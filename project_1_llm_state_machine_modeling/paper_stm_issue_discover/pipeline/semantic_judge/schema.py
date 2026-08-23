@@ -30,6 +30,7 @@ from .models import (
     ReportValidity,
     SupportedRelationJudgment,
     UnifiedJudgeInput,
+    derive_causal_field_verdict,
 )
 
 
@@ -70,15 +71,18 @@ def _validate_report_judgment(
             f"{object_path}.causal_certificate_field={certificate_name} has no corresponding "
             "whole-field causal audit"
         )
+    certificate_verdict = derive_causal_field_verdict(
+        certificate.material_assertion_audits
+    )
     allowed_certificate_verdicts = (
         {CausalFieldVerdict.SUPPORTED}
         if row.core_truth == CoreClaimTruth.VALID
         else {CausalFieldVerdict.MIXED, CausalFieldVerdict.REFUTED}
     )
-    if certificate.verdict not in allowed_certificate_verdicts:
+    if certificate_verdict not in allowed_certificate_verdicts:
         raise ValueError(
             f"{object_path}.core_truth={row.core_truth.value} conflicts with "
-            f"causal_certificate_field={certificate_name} verdict={certificate.verdict.value}; "
+            f"causal_certificate_field={certificate_name} derived_verdict={certificate_verdict.value}; "
             f"expected={sorted(item.value for item in allowed_certificate_verdicts)}"
         )
 
@@ -181,7 +185,6 @@ def _exact_relation_decision_type(
             description="Anonymous expected ID fixed by this exact relation position."
         )
         match: Literal[PositiveMatchStrength.FULL_MATCH] = Field(
-            default=PositiveMatchStrength.FULL_MATCH,
             description="Artifact-supported FULL_MATCH relation at this exact expected position."
         )
 
@@ -195,7 +198,6 @@ def _exact_relation_decision_type(
             description="Anonymous expected ID fixed by this exact relation position."
         )
         match: Literal[PositiveMatchStrength.PARTIAL_MATCH] = Field(
-            default=PositiveMatchStrength.PARTIAL_MATCH,
             description="Artifact-supported PARTIAL_MATCH relation at this exact expected position."
         )
 
@@ -409,7 +411,7 @@ def _unique(values: Iterable[str]) -> tuple[str, ...]:
 def _materialized_causal_field_audit(
     *, report, judgment: CausalFieldAuditJudgment
 ) -> ReportCausalFieldAudit:
-    """Attach immutable source text and digest to one provider field verdict."""
+    """Attach source text, digest, and a derived verdict to one assertion audit."""
 
     field_value = getattr(report, judgment.report_field.value)
     if not isinstance(field_value, str):
@@ -422,7 +424,8 @@ def _materialized_causal_field_audit(
         exact_text=field_value,
         exact_text_sha256="sha256:"
         + hashlib.sha256(field_value.encode("utf-8")).hexdigest(),
-        verdict=judgment.verdict,
+        material_assertion_audits=judgment.material_assertion_audits,
+        verdict=derive_causal_field_verdict(judgment.material_assertion_audits),
         reason=judgment.reason,
         basis=judgment.basis,
         source_refs=judgment.source_refs,

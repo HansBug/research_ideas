@@ -58,7 +58,7 @@ redundancy rate；重复的 valid finding 进入 redundancy，不进入 FP。
 | Novel 需要独立真实性证据，不能由 unmatched 自动推出 | causal certificate 与 `core_truth=VALID` | VALID + all NO 才派生 `VALID_NOVEL` | valid-novel 与 invalid 对照测试 | `ground_truth_limitations.md` |
 | 只有 INVALID 是 Semantic FP | `ReportValidity.INVALID` 仅后端派生 | deterministic metrics / aggregate | invalid-only FP、duplicate-valid 测试 | `final_output_metrics_policy.md` §5 |
 | 无最终 UNKNOWN；双独立 reading，冲突定向仲裁 | primary/arbitration Pydantic schema | `runner.py::judge_pair`、targeted merge 后完整重验 | primary、arbitration、failure 测试 | `verdict_methodology.md` |
-| 每条 relation、validity、顶层结果有 reason/basis/source refs | provider 只输出 `CausalFieldAuditJudgment` 字段引用与裁定 | `ReportCausalFieldAudit` 的 exact text/hash 由后端物化 | 空字段、错引用、whole-field closure 与 exact materialization 测试 | 本文件与 run record |
+| 每条 relation、validity、顶层结果有 reason/basis/source refs | provider 输出字段引用与逐 material assertion 的 truth audit | `derive_causal_field_verdict` 派生 field verdict；`ReportCausalFieldAudit` 的 exact text/hash 由后端物化 | 空字段、错引用、assertion closure、whole-field derivation 与 exact materialization 测试 | 本文件与 run record |
 | 同一 expected 多报告只命中一次；一报告可 FULL 多 expected | 每个 report 的 positional relation decisions | expected-side unique 聚合 | 三 expected FULL、duplicate-valid 测试 | `hit_criterion.md` |
 | W/D/L、谓词族、arm、历史结果不作 gate | `UnifiedJudgeInput` 不含这些字段 | 两臂共用 artifacts/runner/metrics | adapter diff、prompt leakage 测试 | 本文件“公平性合同” |
 | 公共 artifact closure 对两臂相同 | `JudgeArtifactClosure` | `build_artifact_closure` 单入口 | closure identity 与完整角色测试 | 本文件“公平性合同” |
@@ -77,12 +77,18 @@ closure、`gpt-5.6-luna` profile、双读、retry、仲裁和指标入口。prov
 建立固定位置的 discriminated `relation_decision`；FULL/PARTIAL 行保存 expected-specific
 reason/basis/source refs，NO 行显式保存 expected ID 与 `NO_MATCH`，共同的 NO 证据只在
 report 级保存一次。`prefixItems + minItems + maxItems` 在 provider schema 层保证每个
-expected 恰好出现一次，再由后端物化完整 dense audit。whole-field causal audit 同样只让 provider 选择 `report_field`
-并给出 verdict/reason/basis/source refs；完整字段原文与 SHA-256 由后端从不可变输入
-确定性物化，既不允许摘取方便子句，也不要求模型复制长文本。仲裁仅重写冲突 report，
+expected 恰好出现一次，再由后端物化完整 dense audit。whole-field causal audit 同样只让
+provider 选择 `report_field`，并把字段中每个 material factual assertion、modeling-semantic
+assumption 和 causal link 按原文顺序拆成独立 assertion row；每行给出
+`SUPPORTED/REFUTED`、reason、basis 和 source refs。模型不自报 whole-field verdict，后端按
+“全 SUPPORTED = SUPPORTED、全 REFUTED = REFUTED、混合 = MIXED”机械派生。完整字段原文与
+SHA-256 也由后端从不可变输入确定性物化，既不允许摘取方便子句、用邻近真事实替换错误机制，
+也不要求模型复制长文本。仲裁仅重写冲突 report，
 未冲突报告复用已验证 primary，合并后重新执行全 closure validator。真实 `0029`
-provider-free scale audit 必须在任何 method 六 pair 或 baseline 全量重判之前通过；live
-smoke 失败时转入原子裁定，而不是把失败当 miss。
+provider-free scale audit 按真实 causal-field 长度每 64 字符至少预留一条 material assertion，
+同时验证 all-NO 与 all-positive envelope；只有在 profile 声明的输出上限和完整 context
+reserve 内均闭合才通过。该 audit 必须在任何 method 六 pair 或 baseline 全量重判之前通过；
+live smoke 失败时转入原子裁定，而不是把失败当 miss。
 
 ## 学术边界
 

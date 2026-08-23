@@ -36,6 +36,7 @@ from .runner import build_primary_prompt
 from .schema import build_exact_response_model, response_schema_hash
 
 SourceFormat = Literal["x1v2_record", "evidence_discovery_release"]
+MATERIAL_ASSERTION_CHARS_PER_ROW = 64
 
 
 def _sha256_text(value: str) -> str:
@@ -84,6 +85,37 @@ def _causal_field_names(report) -> tuple[str, ...]:
         for field_name in ("reason", "basis", "observed")
         if isinstance(getattr(report, field_name), str)
     )
+
+
+def _material_assertion_count(field_text: str) -> int:
+    """Reserve at least one assertion row per short source-text span."""
+
+    return max(
+        1,
+        (len(field_text) + MATERIAL_ASSERTION_CHARS_PER_ROW - 1)
+        // MATERIAL_ASSERTION_CHARS_PER_ROW,
+    )
+
+
+def _material_assertion_envelope(
+    *, report_id: str, field_name: str, field_text: str, artifact_ref: str
+) -> list[dict]:
+    """Build a conservative validated assertion envelope from real field length."""
+
+    return [
+        {
+            "assertion_id": f"A{index}",
+            "assertion": "One independently testable material premise from the complete report field.",
+            "verdict": "SUPPORTED",
+            "reason": "The exact premise is compatible with the complete common artifact closure.",
+            "basis": "The authored report field and common artifacts directly support this premise.",
+            "source_refs": [
+                f"report:{report_id}:{field_name}",
+                artifact_ref,
+            ],
+        }
+        for index in range(1, _material_assertion_count(field_text) + 1)
+    ]
 
 
 def _structural_response_payload(
@@ -139,8 +171,13 @@ def _structural_response_payload(
                 "causal_field_audits": [
                     {
                         "report_field": field_name,
-                        "verdict": "SUPPORTED",
-                        "reason": "Every material assertion in this complete report-owned field is compatible with the common artifacts.",
+                        "material_assertion_audits": _material_assertion_envelope(
+                            report_id=report.report_id,
+                            field_name=field_name,
+                            field_text=getattr(report, field_name),
+                            artifact_ref=artifact_ref,
+                        ),
+                        "reason": "Every material assertion in this complete report-owned field is represented and artifact-compatible.",
                         "basis": "The complete field was checked against the natural language, authored model, closed model, and deterministic facts.",
                         "source_refs": [
                             f"report:{report.report_id}:{field_name}",
@@ -172,7 +209,7 @@ def _structural_response_payload(
             }
         )
     return {
-        "schema_version": "semantic-judge.response.v9",
+        "schema_version": "semantic-judge.response.v10",
         "report_judgments": report_judgments,
         "reason": "Every report and expected issue has complete validity-first sparse relation closure.",
         "basis": "The exact provider schema validates report identity, causal fields, positive relations, and explicit NO coverage.",
@@ -214,6 +251,11 @@ def build_scale_audit(
     causal_text_lengths = [
         sum(len(getattr(report, field_name)) for field_name in _causal_field_names(report))
         for report in judge_input.reports
+    ]
+    assertion_counts = [
+        _material_assertion_count(getattr(report, field_name))
+        for report in judge_input.reports
+        for field_name in _causal_field_names(report)
     ]
     effective_max_output_tokens = min(
         profile_max_output_tokens, JUDGE_MAX_OUTPUT_TOKENS
@@ -258,6 +300,11 @@ def build_scale_audit(
         ),
         report_causal_text_chars=sum(causal_text_lengths),
         maximum_report_causal_text_chars=max(causal_text_lengths, default=0),
+        material_assertion_chars_per_row=MATERIAL_ASSERTION_CHARS_PER_ROW,
+        material_assertion_envelope_count=sum(assertion_counts),
+        maximum_field_material_assertion_envelope_count=max(
+            assertion_counts, default=0
+        ),
         serialized_input_hash=stable_model_hash(judge_input),
         artifact_closure_hash=judge_input.artifact_closure.closure_hash,
         system_prompt_hash=_sha256_text(SYSTEM_PROMPT),
@@ -282,8 +329,8 @@ def build_scale_audit(
         all_positive_fits_output_limit=fit_flags[1],
         reserved_context_fits_window=fit_flags[2],
         status="pass" if all(fit_flags) else "fail",
-        reason="The real unified input, exact dynamic schema, full output allowance, and both validated sparse structural envelopes were checked without a provider call.",
-        basis="Four-characters-per-token conservative estimates over the frozen system prompt, exact primary payload, stable response schema, and validated response envelopes.",
+        reason="The real unified input, exact dynamic schema, full output allowance, and source-length-derived material-assertion envelopes were checked without a provider call.",
+        basis=f"Four-characters-per-token estimates over the frozen prompt, exact payload and schema, plus at least one material assertion row per {MATERIAL_ASSERTION_CHARS_PER_ROW} causal-field characters in both validated response envelopes.",
         source_refs=(
             source_path,
             source_hash,
