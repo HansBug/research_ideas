@@ -8,8 +8,8 @@ from pathlib import Path
 PROTOCOL_URL = "https://github.com/HansBug/research_ideas/issues/195"
 PROTOCOL_SHA256 = "45874c298781e23b712d9566e75719b1fede0197c1f668030911c77f8f86574c"
 PROTOCOL_VERSION = "github-issue-195.45874c298781"
-JUDGE_ALGORITHM_VERSION = "paper1.semantic-judge.v7"
-PROMPT_VERSION = "paper1.semantic-judge.prompt.v7"
+JUDGE_ALGORITHM_VERSION = "paper1.semantic-judge.v8"
+PROMPT_VERSION = "paper1.semantic-judge.prompt.v8"
 ARTIFACT_BUILDER_VERSION = "paper1.semantic-judge.artifact-closure.v2"
 ADAPTER_VERSION = "paper1.semantic-judge.arm-neutral-adapter.v1"
 METRICS_VERSION = "paper1.semantic-judge.metrics.v1"
@@ -39,6 +39,7 @@ Mandatory boundaries:
 - If one subclaim in a composite report is refuted, preserve only a true and actionable facet that the report text independently states under the same locus/property. The Judge must not derive a nearby correct issue to rescue a wrong source, wrong root cause, or false execution narrative.
 - If a conclusion happens to be true but all reason/where/basis supplied by the report depend on a premise refuted by the artifacts, the report lacks the correct causal certificate and is INVALID. The Judge must not invent a different correct reason from the common artifacts; preserve it only when the report text independently states that correct facet.
 - A high-level conclusion alone is not an independently stated facet when the report's where/reason/basis explain it only through a refuted mechanism. Preserving a facet requires the report itself to identify the correct carrier, owner, source, target, scope, or violated obligation and to supply at least one artifact-compatible causal statement. Facts discovered solely by the Judge cannot fill that gap. For example, a report that says a required first state is not ensured because sibling regions activate concurrently may not be reinterpreted as a missing owner-local default entry when the concurrency premise is false, unless the report itself identifies that missing owner-level entry.
+- Treat a contrastive assertion such as "X rather than Y" as one core causal claim. If X is refuted, do not preserve Y as a separate true facet unless another complete report-owned reason, basis, or observation independently establishes Y through an artifact-compatible mechanism. A normative requirement, shared locus, or structural where phrase alone is not that mechanism.
 - A report about the same defective partition or decomposition need not enumerate every missing member. It may FULL-match a cardinality/composition expected issue when it directly localizes the same composite structure and its repair would reconstruct the required region/state composition.
 - A claim that a semantic carrier is missing is normally INVALID when an equivalent carrier exists. Audit actual transition-label events, guards and effects, state-owned actions, PlantUML `/` effects, UML default-state semantics, and real region separators.
 - Text after `/` in a PlantUML transition label is an authored transition-effect carrier. When NL requires only that action/effect, the report may not call it unexpressed merely because no extra variable, AST field, or imperative implementation exists.
@@ -54,7 +55,7 @@ Mandatory boundaries:
 
 Every relation, report judgment, expected judgment, and top-level response must contain non-empty reason, basis, and source_refs. Basis must cite supplied reports, expected issues, or common artifacts rather than generic claims. root_cause_cluster_key merges only duplicate reports about the same actionable root cause; nearby claims with different sources or properties must not share a cluster.
 
-For every relation and report judgment, populate report_text_evidence with case-sensitive exact quotations from the referenced CandidateReport field. Use CLAIM_BOUNDARY for text that defines what the report actually claims. A FULL/PARTIAL relation or valid report additionally requires CAUSAL_SUPPORT: report-owned text that states the artifact-compatible mechanism or obligation supporting that decision. An INVALID report requires REFUTED_PREMISE: report-owned text whose causal or factual premise the common artifacts refute. Never label a false premise as CAUSAL_SUPPORT, and never quote expected-issue or common-artifact text as though the report owned it.
+For every relation and report judgment, populate report_text_evidence with case-sensitive exact quotations from the referenced CandidateReport field. Use CLAIM_BOUNDARY for text that defines what the report actually claims. A FULL/PARTIAL relation or valid report additionally requires CAUSAL_SUPPORT: the complete report-owned reason, basis, or observed field that states the artifact-compatible causal mechanism supporting that decision. Do not use claim, where, property, expected, or violated_obligation alone as CAUSAL_SUPPORT, and do not excerpt a convenient clause from a longer causal field. An INVALID report requires REFUTED_PREMISE: report-owned text whose causal or factual premise the common artifacts refute. The same report field cannot be both CAUSAL_SUPPORT and REFUTED_PREMISE in one decision. Never label a false premise as CAUSAL_SUPPORT, and never quote expected-issue or common-artifact text as though the report owned it.
 
 Write every generated value in English, including claim summaries, root_cause_cluster_key, reason, basis, and all audit explanations. Preserve exact non-English text only when quoting or citing a supplied artifact; explain that quotation in English.
 

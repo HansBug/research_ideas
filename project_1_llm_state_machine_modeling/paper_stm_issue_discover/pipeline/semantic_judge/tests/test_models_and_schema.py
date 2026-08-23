@@ -327,6 +327,57 @@ def test_full_relation_requires_report_owned_causal_support() -> None:
         schema.model_validate(payload)
 
 
+def test_causal_support_cannot_use_where_or_excerpt_reason() -> None:
+    judge_input = minimal_input()
+    report = judge_input.reports[0].model_copy(
+        update={"where": "nested initial transitions", "reason": "complete causal reason"}
+    )
+    judge_input = judge_input.model_copy(update={"reports": (report,)})
+    schema = build_exact_response_model(judge_input)
+    payload = reading_payload(
+        judge_input,
+        matches={("R0001", "E0001"): MatchStrength.FULL_MATCH},
+    )
+    support = payload["relations"][0]["report_text_evidence"][1]
+    support["report_field"] = "where"
+    support["exact_quote"] = report.where
+    with pytest.raises(ValidationError, match="uses CandidateReport.where as CAUSAL_SUPPORT"):
+        schema.model_validate(payload)
+
+    payload = reading_payload(
+        judge_input,
+        matches={("R0001", "E0001"): MatchStrength.FULL_MATCH},
+    )
+    payload["relations"][0]["report_text_evidence"][1]["exact_quote"] = (
+        "causal reason"
+    )
+    with pytest.raises(ValidationError, match="must quote the complete CandidateReport.reason"):
+        schema.model_validate(payload)
+
+
+def test_one_report_field_cannot_support_and_refute_the_same_decision() -> None:
+    judge_input = minimal_input()
+    schema = build_exact_response_model(judge_input)
+    payload = reading_payload(
+        judge_input,
+        matches={("R0001", "E0001"): MatchStrength.FULL_MATCH},
+    )
+    payload["relations"][0]["report_text_evidence"].append(
+        {
+            "report_field": "reason",
+            "exact_quote": judge_input.reports[0].reason,
+            "semantic_role": "REFUTED_PREMISE",
+            "reason": "Fixture marks the same causal field as refuted.",
+            "basis": "CandidateReport R0001.reason",
+        }
+    )
+
+    with pytest.raises(
+        ValidationError, match="assigns both CAUSAL_SUPPORT and REFUTED_PREMISE"
+    ):
+        schema.model_validate(payload)
+
+
 def test_invalid_report_requires_an_exact_refuted_premise() -> None:
     judge_input = minimal_input()
     schema = build_exact_response_model(judge_input)

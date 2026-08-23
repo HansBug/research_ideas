@@ -129,6 +129,7 @@ def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResp
             ]
             for object_path, report_id, evidence in evidence_rows:
                 report = reports_by_id[report_id]
+                roles_by_field: dict[str, set[ReportTextEvidenceRole]] = {}
                 for index, item in enumerate(evidence):
                     field_value = getattr(report, item.report_field.value)
                     if not isinstance(field_value, str):
@@ -141,6 +142,37 @@ def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResp
                             f"{object_path}.report_text_evidence[{index}].exact_quote is not "
                             f"a case-sensitive substring of report {report_id} field "
                             f"{item.report_field.value}; actual_quote={item.exact_quote!r}"
+                        )
+                    roles_by_field.setdefault(item.report_field.value, set()).add(
+                        item.semantic_role
+                    )
+                    if item.semantic_role == ReportTextEvidenceRole.CAUSAL_SUPPORT:
+                        allowed_fields = {
+                            "reason",
+                            "basis",
+                            "observed",
+                        }
+                        if item.report_field.value not in allowed_fields:
+                            raise ValueError(
+                                f"{object_path}.report_text_evidence[{index}] uses "
+                                f"CandidateReport.{item.report_field.value} as CAUSAL_SUPPORT; "
+                                f"allowed_fields={sorted(allowed_fields)}"
+                            )
+                        if item.exact_quote != field_value:
+                            raise ValueError(
+                                f"{object_path}.report_text_evidence[{index}] CAUSAL_SUPPORT "
+                                f"must quote the complete CandidateReport.{item.report_field.value} "
+                                f"field for report {report_id}"
+                            )
+                for field_name, roles in roles_by_field.items():
+                    if {
+                        ReportTextEvidenceRole.CAUSAL_SUPPORT,
+                        ReportTextEvidenceRole.REFUTED_PREMISE,
+                    }.issubset(roles):
+                        raise ValueError(
+                            f"{object_path}.report_text_evidence assigns both CAUSAL_SUPPORT "
+                            f"and REFUTED_PREMISE to CandidateReport.{field_name} for report "
+                            f"{report_id}"
                         )
             for row in self.relations:
                 roles = {item.semantic_role for item in row.report_text_evidence}
