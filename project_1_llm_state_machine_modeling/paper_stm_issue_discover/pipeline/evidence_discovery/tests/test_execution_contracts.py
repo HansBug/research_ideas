@@ -45,6 +45,7 @@ from pipeline.evidence_discovery.orchestration.runner import (
     _failure_method_cell,
     _finalize_w2_audit_links,
     _grounding_response_contract,
+    _judge_issue_projection,
     _judge_pair,
     _judge_prompt,
     _judge_response_contract,
@@ -1430,6 +1431,23 @@ def test_judge_prompt_keeps_one_assessment_per_ledger_object() -> None:
                         "witness_level": "W1",
                         "reason": "The supplied facts support two competent readings.",
                         "basis": "final method publication",
+                        "candidate_reason": (
+                            "The complete aggregate covers display/update and "
+                            "cancel/update for one typed data subject."
+                        ),
+                        "candidate_basis": (
+                            "source_contract_ids=['NL-CONTRACT-NL5', "
+                            "'NL-CONTRACT-NL6']; variable='cooking time'"
+                        ),
+                        "facet_count": 2,
+                        "facet_issue_ids": [
+                            "0004:r1:issue:0",
+                            "0004:r1:issue:1",
+                        ],
+                        "contract_ids": [
+                            "NL-CONTRACT-NL5",
+                            "NL-CONTRACT-NL6",
+                        ],
                         "plan": {"formal_program": "must not enter judge"},
                         "receipt": {"trace": ["must not enter judge"]},
                         "audit_bundle": {"audit_hash": "sha256:" + "1" * 64},
@@ -1451,6 +1469,47 @@ def test_judge_prompt_keeps_one_assessment_per_ledger_object() -> None:
     assert '"formal_program"' not in prompt
     assert '"trace"' not in prompt
     assert '"pre_finalization_audit_hash": "sha256:' in prompt
+    assert "The complete aggregate covers display/update" in prompt
+    assert "source_contract_ids=['NL-CONTRACT-NL5'" in prompt
+    assert '"facet_count"' not in prompt
+    assert '"facet_issue_ids"' not in prompt
+    assert '"contract_ids"' not in prompt
+
+
+def test_judge_projection_prefers_candidate_semantics_over_publication_status() -> None:
+    projected = _judge_issue_projection(
+        {
+            "issue_id": "0035:r1:issue:aggregate",
+            "contract_id": "NL-CONTRACT-NL5-DERIVED-DATA",
+            "locus_kind": "variable",
+            "locus_names": ["cooking time"],
+            "property": "effect",
+            "violation_direction": "wrong_effect",
+            "expected": "Display/update and cancel/update must both be represented.",
+            "observed": "The complete action/effect inventories are empty.",
+            "reason": "A grounded violated obligation has no surviving defeater.",
+            "basis": "D publication status",
+            "candidate_reason": (
+                "One aggregate release covers both supplied cooking-time clauses."
+            ),
+            "candidate_basis": (
+                "source_contract_ids=['NL-CONTRACT-NL5', 'NL-CONTRACT-NL6']"
+            ),
+            "facet_count": 1,
+            "facet_issue_ids": ["0035:r1:issue:aggregate"],
+            "contract_ids": ["NL-CONTRACT-NL5-DERIVED-DATA"],
+        }
+    )
+
+    assert projected["reason"] == (
+        "One aggregate release covers both supplied cooking-time clauses."
+    )
+    assert projected["basis"] == (
+        "source_contract_ids=['NL-CONTRACT-NL5', 'NL-CONTRACT-NL6']"
+    )
+    assert "facet_count" not in projected
+    assert "facet_issue_ids" not in projected
+    assert "contract_ids" not in projected
 
 
 def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_issue() -> None:
@@ -2099,6 +2158,13 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
     assert "不按语义相似性 deduplicate" in judge_schema["properties"][
         "release_assessments"
     ]["description"]
+    cardinality_schema = CardinalityDomainBinding.model_json_schema()
+    assert "不能仅因某项活动发生在更深的子 composite" in cardinality_schema[
+        "properties"
+    ]["owner_source_id"]["description"]
+    assert "contract's normative `scope_concept`" in (
+        DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    )
     for model in (
         SourceProvenance,
         RunManifest,

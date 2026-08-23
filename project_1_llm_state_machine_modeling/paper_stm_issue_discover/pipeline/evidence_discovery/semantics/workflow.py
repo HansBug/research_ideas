@@ -622,7 +622,9 @@ class CardinalityDomainBinding(BaseModel):
         min_length=1,
         description=(
             "exact_source_inventory.states 中承载该成员域的唯一 source_id；null 表示 owner source "
-            "尚未闭合。它不是 raw line ref，也不能由 deterministic frontier 做字符串相似匹配。"
+            "尚未闭合。该 owner 必须实现 cardinality contract 的规范 scope_concept 与 owner/scope "
+            "binding hint；不能仅因某项活动发生在更深的子 composite 中就把 owner 下沉到该子项。"
+            "它不是 raw line ref，也不能由 deterministic frontier 做字符串相似匹配。"
         ),
     )
     owner_model_ref: str | None = Field(
@@ -1510,7 +1512,11 @@ only from the supplied NL/source semantics and bind its exact
 `owner_source_id` plus `owner_model_ref`; copy `owner_model_ref` exactly from the
 owned `closed_model_inventory.states[].ref`, not from a working-contract
 representation mapping. Never select the binding because the resulting observed
-count would pass or fail. A competing competent interpretation belongs
+count would pass or fail. The selected owner must realize the cardinality
+contract's normative `scope_concept` and owner/scope binding hints. Do not narrow
+that owner to a descendant composite merely because an activity mentioned in the
+same clause executes inside that descendant; narrowing requires supplied NL to
+make the descendant itself the counted scope. A competing competent interpretation belongs
 in `alternative_reading` and is assessed later by D; its existence does not by
 itself make the primary binding ambiguous. Use `status=ambiguous` and
 `member_domain=unresolved` only when the supplied semantics genuinely do not
