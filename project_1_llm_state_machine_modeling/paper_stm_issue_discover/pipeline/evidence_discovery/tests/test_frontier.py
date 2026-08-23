@@ -2998,7 +2998,13 @@ def test_frontier_pydantic_descriptions_reach_json_schema() -> None:
     assert "rather than labeling the whole conjunction as only an event" in alternative_schema[
         "properties"
     ]["event"]["description"]
+    assert "indicator, alarm, notification, or signal" in alternative_schema[
+        "properties"
+    ]["event"]["description"]
     assert "Preserve the complete guard conjunction" in alternative_schema[
+        "properties"
+    ]["guard"]["description"]
+    assert "transition-causing indicator or signal is not itself a guard" in alternative_schema[
         "properties"
     ]["guard"]["description"]
     definitions = frontier_schema["$defs"]

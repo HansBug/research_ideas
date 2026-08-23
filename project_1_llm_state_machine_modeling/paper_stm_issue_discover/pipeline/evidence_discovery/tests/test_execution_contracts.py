@@ -1571,6 +1571,7 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "broad capability context has not been converted" in CONTRACT_SYSTEM_PROMPT
     assert "common enclosing owner is not itself evidence" in CONTRACT_SYSTEM_PROMPT
     assert "independent `event` and `guard` fields" in CONTRACT_SYSTEM_PROMPT
+    assert "Do not relabel that stimulus as a guard" in CONTRACT_SYSTEM_PROMPT
     assert "variable=`setpoint`" in CONTRACT_SYSTEM_PROMPT
     assert "owner-initial-to-ModeA, ModeA-to-ModeB, and ModeB-to-ModeC" in CONTRACT_SYSTEM_PROMPT
     assert "activity to be performed continuously or repeatedly" in CONTRACT_SYSTEM_PROMPT

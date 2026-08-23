@@ -66,7 +66,7 @@ class NLTransitionAlternative(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["evidence-discovery.transition-alternative.v2"] = Field(default="evidence-discovery.transition-alternative.v2", description="Persistence schema version for a transition alternative; v2 separates event and guard into typed fields that may coexist.")
+    schema_version: Literal["evidence-discovery.transition-alternative.v3"] = Field(default="evidence-discovery.transition-alternative.v3", description="Persistence schema version for a transition alternative; this version keeps event and guard separate and classifies transition-causing signals as events.")
     alternative_id: str = Field(pattern=r"^ALT-[A-Za-z0-9_.-]+$", min_length=5, description="Stable response-local alternative ID copied by grounding when it discusses this exact member.")
     target_name: str = Field(
         min_length=1,
@@ -90,7 +90,10 @@ class NLTransitionAlternative(BaseModel):
             "that an observed transition lacks a trigger. Event and guard may "
             "both be non-null: for example, `door is closed with zero time set` "
             "projects event=`door closed` and guard=`cooking time equals zero`, "
-            "rather than labeling the whole conjunction as only an event."
+            "rather than labeling the whole conjunction as only an event. A "
+            "named indicator, alarm, notification, or signal that causes the "
+            "transition is an event/trigger unless NL separately states a data "
+            "predicate that must also hold."
         ),
     )
     guard: str | None = Field(
@@ -101,7 +104,9 @@ class NLTransitionAlternative(BaseModel):
             "exact alternative; null means NL establishes no guard, not that a "
             "model guard is satisfied or absent. Preserve the complete guard "
             "conjunction. A shared guard over coordinated targets applies to "
-            "every constrained alternative unless NL explicitly pairs them."
+            "every constrained alternative unless NL explicitly pairs them. A "
+            "transition-causing indicator or signal is not itself a guard; use "
+            "this field for an independently evaluated data condition or predicate."
         ),
     )
     observed_transition_ref: str | None = Field(default=None, min_length=1, description="Exact author-source or closed-model transition ref selected during cross-view grounding, or null in an NL-only group and whenever no exact transition realizes the relation.")
@@ -1207,6 +1212,7 @@ Atomic contract shape:
 - Alternative destinations are separate endpoint contracts. A guard conjunction for one exact transition remains one normalized guard hint; guards attached to different transitions are separate contracts.
 - A transition endpoint contract contains only the required source and target relation. Preserve an event or branch-selection condition on its `transition_groups` alternative instead of duplicating every mentioned qualifier into a standalone contract. Words such as "when", "if", or "based on" normally attach the condition to that alternative and do not by themselves establish a separate formal guard obligation. Emit a separate trigger_set or guard contract at NL extraction only when the clause independently requires that exact trigger/guard property beyond selecting the alternative. Grounding must derive a sparse atomic trigger/guard contract when exact cross-view comparison later reveals a mismatch. An independently required effect or state action remains its own atomic contract because transition_groups do not carry those properties. Do not leave a normative qualifier only inside an endpoint quote, locus name, or evidence_types list.
 - Project each transition-group alternative into independent `event` and `guard` fields. Both may be non-null: "on Door Closed when cooking time is zero" has event=`Door Closed` and guard=`cooking time is zero`; neither field may swallow the other. When one trailing qualifier semantically governs a coordinated target list, preserve the complete shared guard on every governed alternative. For example, "choose A or B based on x and y" normally gives both alternatives guard=`x and y`; it does not assign x only to A and y only to B unless the NL explicitly pairs them. This is semantic parsing by the LLM, never a string rule.
+- Treat a named indicator, alarm, notification, or signal as an `event` when it causes the transition. Do not relabel that stimulus as a guard merely because its name describes a status. Use `guard` only for a separately stated data condition or predicate that is evaluated in addition to the event. This remains a semantic reading of the supplied clause, not a keyword or identifier-shape rule.
 - A bidirectional or dynamic A-to-B/B-to-A requirement is two endpoint contracts. Never place two source hints or two target hints in one contract.
 - A conjunction such as `a and b and c` on one transition is one normalized guard hint with the complete conjunction as its value, not three guard hints. Alternative guards on different transitions remain separate contracts.
 - Initialization, containment, endpoint, trigger, guard, effect, action, reachability/progress, event-consumer coverage, region structure, and variable delta never share one contract merely because the NL states them in one sentence.
