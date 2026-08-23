@@ -43,6 +43,14 @@ class ReportField(str, Enum):
     BASIS = "basis"
 
 
+class CausalReportField(str, Enum):
+    """Report fields eligible for complete causal-certificate audit."""
+
+    OBSERVED = "observed"
+    REASON = "reason"
+    BASIS = "basis"
+
+
 class ReportTextEvidenceRole(str, Enum):
     """Closed semantic role played by an exact quotation from the candidate report."""
 
@@ -195,8 +203,8 @@ class ReportCausalFieldAudit(FrozenModel):
     MIXED or REFUTED even when another clause or the high-level conclusion is true.
     """
 
-    report_field: ReportField = Field(
-        description="Complete CandidateReport causal field being audited; runtime closure permits only reason, basis, and observed.",
+    report_field: CausalReportField = Field(
+        description="Complete CandidateReport causal field being audited; the closed enum permits only reason, basis, and observed, never claim, where, property, expected, or violated obligation.",
     )
     exact_text: str = Field(
         min_length=1,
@@ -501,9 +509,9 @@ class ExpectedJudgment(FrozenModel):
 class JudgeResponse(FrozenModel):
     """LLM response containing only semantic judgments, never deterministic summaries."""
 
-    schema_version: Literal["paper1.semantic-judge.response.v5"] = Field(
-        default="paper1.semantic-judge.response.v5",
-        description="Provider structured-output schema version; v5 keeps complete causal-field audit while separating dimension-A relation strength from dimension-B report truth.",
+    schema_version: Literal["paper1.semantic-judge.response.v6"] = Field(
+        default="paper1.semantic-judge.response.v6",
+        description="Provider structured-output schema version; v6 exposes a closed causal-field enum while keeping dimension-A relation strength separate from dimension-B report truth.",
     )
     relations: tuple[RelationAssessment, ...] = Field(
         description="Complete report-by-expected matrix including every NO_MATCH; it must not be sparse."

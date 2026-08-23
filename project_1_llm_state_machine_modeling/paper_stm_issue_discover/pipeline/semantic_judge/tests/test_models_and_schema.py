@@ -224,7 +224,7 @@ def reading_payload(
             }
         )
     return {
-        "schema_version": "paper1.semantic-judge.response.v5",
+        "schema_version": "paper1.semantic-judge.response.v6",
         "relations": relation_rows,
         "report_judgments": report_rows,
         "expected_judgments": expected_rows,
@@ -290,6 +290,12 @@ def test_runtime_schema_contains_descriptions_enums_and_exact_literals() -> None
     assert "MIXED" in serialized
     assert "REFUTED" in serialized
     assert "causal_field_audits" in serialized
+    causal_field_definition = next(
+        definition
+        for name, definition in schema["$defs"].items()
+        if name == "CausalReportField"
+    )
+    assert set(causal_field_definition["enum"]) == {"reason", "basis", "observed"}
     assert "R0001" in serialized and "R0002" in serialized
     assert "E0001" in serialized and "E0002" in serialized
     properties = schema["properties"]
