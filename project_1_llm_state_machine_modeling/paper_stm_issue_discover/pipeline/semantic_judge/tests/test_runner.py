@@ -383,11 +383,11 @@ def test_single_entry_runs_both_readings_and_arbitration() -> None:
         matches={("R0001", "E0001"): MatchStrength.FULL_MATCH},
     )
     final = {
-        "schema_version": "semantic-judge.arbitration-response.v5",
-        "report_judgments": final_reading["report_judgments"],
-        "reason": "Targeted arbitration selects the artifact-supported valid report.",
-        "basis": "Fixture common artifacts and both primary report judgments.",
-        "source_refs": ["artifact:natural_language"],
+        **final_reading["report_judgments"][0],
+        "schema_version": "semantic-judge.atomic-arbitration-response.v1",
+        "arbitration_reason": "Targeted arbitration selects the artifact-supported valid report.",
+        "arbitration_basis": "Fixture common artifacts and both primary report judgments.",
+        "arbitration_source_refs": ["artifact:natural_language"],
     }
     runtime = FakeRuntime((first, second, final))
     result = judge_pair(
@@ -418,16 +418,17 @@ def test_each_conflicted_report_receives_one_atomic_arbitration_call() -> None:
     arbitration_full = reading_payload(judge_input, matches=final_matches)
 
     def atomic_response(report_id: str) -> dict:
+        row = next(
+            row
+            for row in arbitration_full["report_judgments"]
+            if row["report_id"] == report_id
+        )
         return {
-            "schema_version": "semantic-judge.arbitration-response.v5",
-            "report_judgments": [
-                row
-                for row in arbitration_full["report_judgments"]
-                if row["report_id"] == report_id
-            ],
-            "reason": f"Atomic arbitration resolves {report_id}.",
-            "basis": "Fixture common artifacts and the report-specific conflict.",
-            "source_refs": ["artifact:natural_language"],
+            **row,
+            "schema_version": "semantic-judge.atomic-arbitration-response.v1",
+            "arbitration_reason": f"Atomic arbitration resolves {report_id}.",
+            "arbitration_basis": "Fixture common artifacts and the report-specific conflict.",
+            "arbitration_source_refs": ["artifact:natural_language"],
         }
 
     runtime = FakeRuntime(
@@ -533,16 +534,17 @@ def test_targeted_arbitration_is_invariant_to_id_renaming_and_input_order() -> N
         arbitration_full = reading_payload(
             judge_input, matches=final_matches, clusters=clusters
         )
+        arbitration_row = next(
+            row
+            for row in arbitration_full["report_judgments"]
+            if row["report_id"] == alpha_report_id
+        )
         arbitration = {
-            "schema_version": "semantic-judge.arbitration-response.v5",
-            "report_judgments": [
-                row
-                for row in arbitration_full["report_judgments"]
-                if row["report_id"] == alpha_report_id
-            ],
-            "reason": "Targeted arbitration restores the artifact-supported semantic relation.",
-            "basis": "Both primary judgments and the unchanged common artifact closure.",
-            "source_refs": ["artifact:natural_language"],
+            **arbitration_row,
+            "schema_version": "semantic-judge.atomic-arbitration-response.v1",
+            "arbitration_reason": "Targeted arbitration restores the artifact-supported semantic relation.",
+            "arbitration_basis": "Both primary judgments and the unchanged common artifact closure.",
+            "arbitration_source_refs": ["artifact:natural_language"],
         }
         return judge_pair(
             run_id="metamorphic-fixture",

@@ -38,6 +38,7 @@ from pipeline.semantic_judge.protocol import (
 )
 from pipeline.semantic_judge.scale_audit import build_scale_audit
 from pipeline.semantic_judge.schema import (
+    build_exact_arbitration_model,
     build_exact_response_model,
     materialize_reading,
 )
@@ -231,6 +232,14 @@ def test_judge_prompts_and_runtime_schema_use_english_audit_language() -> None:
         sort_keys=True,
     )
     assert not non_ascii.search(schema_text)
+    arbitration_schema_text = json.dumps(
+        build_exact_arbitration_model(
+            minimal_input(), ("R0001",)
+        ).model_json_schema(),
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    assert not non_ascii.search(arbitration_schema_text)
 
 
 def test_runtime_schema_is_sparse_described_and_hides_derived_classes() -> None:
@@ -258,6 +267,32 @@ def test_runtime_schema_is_sparse_described_and_hides_derived_classes() -> None:
     assert "no_match_reason" not in serialized
     assert "no_match_basis" not in serialized
     assert "no_match_source_refs" not in serialized
+
+
+def test_atomic_arbitration_schema_is_flat_and_exact() -> None:
+    judge_input = minimal_input(report_count=1, expected_count=2)
+    schema = build_exact_arbitration_model(judge_input, ("R0001",))
+    properties = schema.model_json_schema()["properties"]
+    assert "report_judgments" not in properties
+    assert properties["report_id"]["const"] == "R0001"
+    assert "relation_decisions" in properties
+    assert "no_match_closure" in properties
+    assert "arbitration_reason" in properties
+    assert "arbitration_basis" in properties
+    assert "arbitration_source_refs" in properties
+
+    row = reading_payload(judge_input)["report_judgments"][0]
+    response = schema.model_validate(
+        {
+            **row,
+            "schema_version": "semantic-judge.atomic-arbitration-response.v1",
+            "arbitration_reason": "The complete artifact re-audit resolves the conflict.",
+            "arbitration_basis": "The anonymous report, expected issues, and common artifacts.",
+            "arbitration_source_refs": ["artifact:natural_language"],
+        }
+    )
+    assert response.report_id == "R0001"
+    assert len(response.relation_decisions) == 2
 
 
 @pytest.mark.parametrize(

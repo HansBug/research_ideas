@@ -1049,6 +1049,33 @@ class ArbitrationResponse(FrozenModel):
     )
 
 
+class AtomicArbitrationResponse(ReportJudgment):
+    """Flat provider response for one report-level semantic arbitration.
+
+    The report judgment fields remain at the response root so a structured-output
+    model cannot accidentally close a one-item wrapper before emitting the exact
+    relation partition. The backend converts this response to the standard
+    ArbitrationResponse before merging it into a complete pair reading.
+    """
+
+    schema_version: Literal["semantic-judge.atomic-arbitration-response.v1"] = Field(
+        default="semantic-judge.atomic-arbitration-response.v1",
+        description="Flat single-report arbitration response version with an exact relation partition and no list wrapper.",
+    )
+    arbitration_reason: str = Field(
+        min_length=1,
+        description="English explanation of how the complete artifact re-audit resolves this report's substantive conflicts without voting.",
+    )
+    arbitration_basis: str = Field(
+        min_length=1,
+        description="English common-artifact and primary-disagreement basis for this final report judgment.",
+    )
+    arbitration_source_refs: tuple[str, ...] = Field(
+        min_length=1,
+        description="Supplied report, expected, and artifact references actually used for this atomic arbitration.",
+    )
+
+
 class UsageReceipt(FrozenModel):
     """Normalized provider usage for one Judge model call, including cache accounting."""
 
@@ -1569,8 +1596,8 @@ class AdapterAudit(FrozenModel):
 class PairJudgeResult(FrozenModel):
     """Self-contained pair result with two readings, arbitration, metrics, and audit."""
 
-    schema_version: Literal["paper1.semantic-judge.pair-result.v5"] = Field(
-        default="paper1.semantic-judge.pair-result.v5",
+    schema_version: Literal["paper1.semantic-judge.pair-result.v6"] = Field(
+        default="paper1.semantic-judge.pair-result.v6",
         description="Unified pair-Judge persistence version containing backend-hashed causal fields and assertion-derived audit verdicts.",
     )
     run_id: str = Field(

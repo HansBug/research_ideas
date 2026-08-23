@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from .models import (
     ArbitrationResponse,
+    AtomicArbitrationResponse,
     CausalFieldAuditJudgment,
     CausalFieldVerdict,
     CoreClaimTruth,
@@ -269,14 +270,13 @@ def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResp
 def build_exact_arbitration_model(
     judge_input: UnifiedJudgeInput,
     conflicted_report_ids: tuple[str, ...],
-) -> type[ArbitrationResponse]:
-    """Build a conflict-only replacement schema over exact report identities."""
+) -> type[AtomicArbitrationResponse]:
+    """Build one flat conflict-only response over one exact report identity."""
 
-    if not conflicted_report_ids or len(conflicted_report_ids) != len(
-        set(conflicted_report_ids)
-    ):
+    if len(conflicted_report_ids) != 1:
         raise ValueError(
-            f"conflicted_report_ids must be non-empty and unique: {conflicted_report_ids}"
+            "atomic arbitration requires exactly one conflicted report ID; "
+            f"actual={conflicted_report_ids}"
         )
     known_report_ids = {item.report_id for item in judge_input.reports}
     if not set(conflicted_report_ids) <= known_report_ids:
@@ -293,33 +293,42 @@ def build_exact_arbitration_model(
             + "::arbitration"
         ).encode("utf-8")
     ).hexdigest()[:12]
-    ExactReportJudgment = _exact_report_model(
-        judge_input,
-        allowed_report_ids=conflicted_report_ids,
-        suffix=suffix,
+    report_id = conflicted_report_ids[0]
+    report_id_type = _literal((report_id,))
+    reports_by_id = {item.report_id: item for item in judge_input.reports}
+    relation_decision_types = tuple(
+        _exact_relation_decision_type(
+            expected_id=expected_id,
+            suffix=f"{suffix}_{index}",
+        )
+        for index, expected_id in enumerate(expected_ids)
     )
+    exact_relation_tuple = tuple.__class_getitem__(relation_decision_types)
 
-    class ExactArbitrationResponse(ArbitrationResponse):
-        """Targeted replacements for every conflicted report and no other report."""
+    class ExactAtomicArbitrationResponse(AtomicArbitrationResponse):
+        """Flat final judgment for exactly one conflicted anonymous report."""
 
-        report_judgments: tuple[ExactReportJudgment, ...] = Field(
-            min_length=len(conflicted_report_ids),
-            max_length=len(conflicted_report_ids),
-            description="One complete sparse replacement for every conflicted report exactly once; unchanged reports are omitted."
+        report_id: report_id_type = Field(  # type: ignore[valid-type]
+            description="The one anonymous report ID fixed by this atomic arbitration call."
+        )
+        relation_decisions: exact_relation_tuple = Field(  # type: ignore[valid-type]
+            description="One provider-native discriminated decision at each exact expected position, in input order; keep this field at the response root."
         )
 
         @model_validator(mode="after")
-        def exact_conflict_identity(self) -> ExactArbitrationResponse:
-            actual = [row.report_id for row in self.report_judgments]
-            if set(actual) != set(conflicted_report_ids) or len(actual) != len(set(actual)):
-                raise ValueError(
-                    "arbitration report_judgments must replace every conflicted report "
-                    f"exactly once; expected={conflicted_report_ids}, actual={actual}"
-                )
+        def exact_atomic_closure(self) -> ExactAtomicArbitrationResponse:
+            _validate_report_judgment(
+                row=self,
+                report=reports_by_id[self.report_id],
+                expected_ids=expected_ids,
+                object_path=f"atomic_arbitration[{self.report_id}]",
+            )
             return self
 
-    ExactArbitrationResponse.__name__ = f"ExactArbitrationResponse_{suffix}"
-    return cast(type[ArbitrationResponse], ExactArbitrationResponse)
+    ExactAtomicArbitrationResponse.__name__ = (
+        f"ExactAtomicArbitrationResponse_{suffix}"
+    )
+    return cast(type[AtomicArbitrationResponse], ExactAtomicArbitrationResponse)
 
 
 def merge_arbitration_response(

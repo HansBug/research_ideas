@@ -17,6 +17,7 @@ from .models import (
     AdapterAudit,
     ArbitrationInput,
     ArbitrationResponse,
+    AtomicArbitrationResponse,
     ConflictKind,
     ConflictRecord,
     JudgeCallReceipt,
@@ -24,6 +25,7 @@ from .models import (
     JudgeResponse,
     PairJudgeResult,
     ReadingDisagreement,
+    ReportJudgment,
     RetryRecord,
     UnifiedJudgeInput,
     UsageReceipt,
@@ -350,12 +352,14 @@ def _validated_response(
 
 def _validated_arbitration_response(
     outcome: StructuredCallOutcome[Any], phase: str
-) -> ArbitrationResponse:
+) -> AtomicArbitrationResponse:
     if not outcome.succeeded or outcome.response is None:
         raise RuntimeError(
             f"semantic Judge {phase} failed after provider/schema handling: {outcome.reason}; {outcome.basis}"
         )
-    return ArbitrationResponse.model_validate(outcome.response.model_dump(mode="json"))
+    return AtomicArbitrationResponse.model_validate(
+        outcome.response.model_dump(mode="json")
+    )
 
 
 def _conflicted_report_ids(
@@ -450,7 +454,7 @@ def judge_pair(
         response_2_by_id = {
             row.report_id: row for row in response_2.report_judgments
         }
-        atomic_responses: list[ArbitrationResponse] = []
+        atomic_responses: list[AtomicArbitrationResponse] = []
         try:
             for report_id in conflicted_report_ids:
                 report_disagreements = tuple(
@@ -514,17 +518,21 @@ def judge_pair(
                 )
             arbitration_response = ArbitrationResponse(
                 report_judgments=tuple(
-                    response.report_judgments[0]
+                    ReportJudgment.model_validate(
+                        response.model_dump(
+                            mode="json", include=set(ReportJudgment.model_fields)
+                        )
+                    )
                     for response in atomic_responses
                 ),
                 reason=" ".join(
-                    f"{report_id}: {response.reason}"
+                    f"{report_id}: {response.arbitration_reason}"
                     for report_id, response in zip(
                         conflicted_report_ids, atomic_responses, strict=True
                     )
                 ),
                 basis=" ".join(
-                    f"{report_id}: {response.basis}"
+                    f"{report_id}: {response.arbitration_basis}"
                     for report_id, response in zip(
                         conflicted_report_ids, atomic_responses, strict=True
                     )
@@ -533,7 +541,7 @@ def judge_pair(
                     dict.fromkeys(
                         ref
                         for response in atomic_responses
-                        for ref in response.source_refs
+                        for ref in response.arbitration_source_refs
                     )
                 ),
             )
