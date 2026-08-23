@@ -230,9 +230,9 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v17"] = Field(
-        default="v27-typed-frontier.v17",
-        description="产生该检查的确定性算法版本；v17 增加 exact malformed source initial-entry identity，且保留 v16 的 source deadlock、typed event/guard 与 shared-variable aggregate；不表示旧谓词或旧 inspect 后端。",
+    algorithm_version: Literal["v27-typed-frontier.v18"] = Field(
+        default="v27-typed-frontier.v18",
+        description="产生该检查的确定性算法版本；v18 允许 shared-variable aggregate 使用 exact typed state locus 绑定 carrier，且保留 v17 的 malformed owner-local initial identity；不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
         min_length=1,
@@ -319,9 +319,9 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v17"] = Field(
-        default="v27-typed-frontier.v17",
-        description="本批所有 check/obligation 使用的确定性算法版本；v17 增加 malformed owner-local source initial-entry identity，并保留 v16 的 source deadlock、event/guard 与 shared-variable aggregate。",
+    algorithm_version: Literal["v27-typed-frontier.v18"] = Field(
+        default="v27-typed-frontier.v18",
+        description="本批所有 check/obligation 使用的确定性算法版本；v18 增加 exact typed state-locus carrier fallback，并保留 v17 的 malformed owner-local initial identity。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
         default_factory=tuple,
@@ -3772,6 +3772,30 @@ def _materialize_aggregate_data_semantics(
             if hint.role in {"state", "source", "target"}
             if (state := _state_for_value(pair, hint.value)) is not None
         }
+        for contract in rows:
+            if contract.locus_kind != "state" or len(contract.locus_names) != 1:
+                continue
+            locus_name = contract.locus_names[0]
+            state = _state_for_value(pair, locus_name)
+            if state is None:
+                continue
+            bound_states.setdefault(state.ref, state)
+            hints_by_key.setdefault(
+                ("state", locus_name),
+                ContractBindingHint(
+                    role="state",
+                    value=locus_name,
+                    source_ref=contract.segment_id,
+                    reason=(
+                        "The atomic contract's typed state locus is the exact "
+                        "carrier for this data-side obligation."
+                    ),
+                    basis=(
+                        f"contract_id={contract.contract_id}; locus_kind=state; "
+                        f"locus_names={[locus_name]}"
+                    ),
+                ),
+            )
         if not bound_states:
             continue
         bound_source_refs = [

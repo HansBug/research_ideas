@@ -2525,6 +2525,60 @@ def test_0035_data_frontier_aggregates_complete_shared_variable_gap() -> None:
     }
 
 
+def test_data_frontier_uses_exact_state_locus_without_redundant_state_hint() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0035")
+    display_update = _contract(
+        contract_id="NL-CONTRACT-NL5-TYPED-LOCUS-ACTION",
+        segment_id="NL5",
+        locus_kind="state",
+        locus_names=("ReadytoCook",),
+        property_name="state_action",
+        expected_direction="must_occur",
+        violation_direction="missing",
+        hints=(
+            _hint("action", "display and update cooking time", "NL5"),
+            _hint("variable", "cooking time", "NL5"),
+        ),
+        state_role="operating_state",
+    )
+    cancel_update = _contract(
+        contract_id="NL-CONTRACT-NL6-TYPED-LOCUS-EFFECT",
+        segment_id="NL6",
+        locus_kind="state",
+        locus_names=("ReadytoCook",),
+        property_name="effect",
+        expected_direction="must_occur",
+        violation_direction="wrong_effect",
+        hints=(
+            _hint("effect", "cancel or update cooking time", "NL6"),
+            _hint("variable", "cooking time", "NL6"),
+        ),
+        state_role="operating_state",
+    )
+    response = _response([display_update, cancel_update])
+
+    batch = materialize_v27_frontier(
+        pair,
+        response,
+        {item.contract_id: item for item in response.contracts},
+        (),
+        (),
+    )
+
+    aggregate = next(
+        item
+        for item in batch.obligations
+        if item.kind == "aggregate_data_semantics"
+    )
+    assert aggregate.candidate.locus_names == ("cooking time",)
+    assert aggregate.candidate.element_refs == [pair.model.state("ReadytoCook").ref]
+    state_hint = next(
+        hint for hint in aggregate.contract.binding_hints if hint.role == "state"
+    )
+    assert state_hint.value == "ReadytoCook"
+    assert state_hint.source_ref == "NL5"
+
+
 def test_data_frontier_rejects_different_subjects_or_existing_carrier() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0035")
 
