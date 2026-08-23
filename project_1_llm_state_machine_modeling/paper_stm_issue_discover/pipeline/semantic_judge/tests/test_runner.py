@@ -90,6 +90,10 @@ def test_system_prompt_carries_frozen_scope_and_carrier_boundaries() -> None:
     assert "generated lowering members" in SYSTEM_PROMPT
     assert "Infer hierarchy, concurrency, reachability, ownership" in SYSTEM_PROMPT
     assert "Do not invent undeclared runtime semantics" in SYSTEM_PROMPT
+    assert "summary and complete detail together" in SYSTEM_PROMPT
+    assert "explicit core facet" in SYSTEM_PROMPT
+    assert "exact complement of supported_relations" in SYSTEM_PROMPT
+    assert "never the reason or basis you generate" in SYSTEM_PROMPT
     for benchmark_term in ("0053", "0035", "0046", "PumpState", "cooking-time"):
         assert benchmark_term not in SYSTEM_PROMPT
 

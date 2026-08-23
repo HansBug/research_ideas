@@ -8,8 +8,8 @@ from pathlib import Path
 PROTOCOL_URL = "https://github.com/HansBug/research_ideas/issues/195"
 PROTOCOL_SHA256 = "d774d9bd3e4c4fe04735ed1d4ec064be197cfadcd52e21c8226e37175b29b210"
 PROTOCOL_VERSION = "github-issue-195.d774d9bd3e4c"
-JUDGE_ALGORITHM_VERSION = "semantic-judge.v12"
-PROMPT_VERSION = "semantic-judge.prompt.v12"
+JUDGE_ALGORITHM_VERSION = "semantic-judge.v13"
+PROMPT_VERSION = "semantic-judge.prompt.v13"
 ARTIFACT_BUILDER_VERSION = "paper1.semantic-judge.artifact-closure.v2"
 ADAPTER_VERSION = "paper1.semantic-judge.arm-neutral-adapter.v1"
 METRICS_VERSION = "paper1.semantic-judge.metrics.v1"
@@ -31,6 +31,8 @@ Follow the frozen protocol in this order.
 4. Output only core truth and relation closure. The backend derives VALID_KNOWN when a VALID report has any FULL/PARTIAL relation, VALID_NOVEL when a VALID report has only NO relations, and INVALID when an INVALID report has only NO relations.
 
 Semantic boundaries:
+- Read each expected issue's summary and complete detail together. Decompose all explicitly stated actionable causal facets before deciding; an opening structural phrase, taxonomy hint, or broad consequence does not erase a later explicit mechanism or violated obligation.
+- A valid report need not reproduce or repair every facet of a composite expected issue. Assign FULL when its own actionable defect and repair eliminate or materially mitigate an explicit core facet of that expected issue. For example, a specific missing transition may FULL-match a broader no-progress or unreachability finding when that same missing transition is an explicit causal facet, while remaining NO_MATCH for a distinct entry, ownership, or region obligation.
 - Do not require field-for-field equality of taxonomy, locus granularity, evidence form, predicate support, or repair location.
 - A broad valid report may FULL-match multiple atomic expected issues only when each mapping has an independent expected-specific reason and basis.
 - A direct symptom may be FULL; shared context, a wrong source, a different property, or a broad consequence without repair overlap is NO_MATCH.
@@ -44,9 +46,9 @@ Semantic boundaries:
 - W/D/L labels, predicate families, historical outcomes, and experimental metadata are never match or validity gates.
 - There is no final UNKNOWN. After complete review, failure to meet the minimum burden of proof is INVALID.
 
-For every report, audit each complete non-empty reason, basis, and observed field exactly once. SUPPORTED means every material assertion in that complete field is artifact-compatible. MIXED means true and false material assertions coexist. REFUTED means the material mechanism fails. Select exactly one causal certificate field: it must be SUPPORTED for VALID and MIXED or REFUTED for INVALID. A merely accurate contextual field does not establish the core claim.
+For every report, audit each complete non-empty CandidateReport reason, basis, and observed field exactly once. These are fields from the supplied report, never the reason or basis you generate for your judgment. Do not invent an audit row for a null report field. SUPPORTED means every material assertion in that complete field is artifact-compatible. MIXED means true and false material assertions coexist. REFUTED means the material mechanism fails. Select exactly one causal certificate field: choose core_truth=VALID exactly when that certificate is SUPPORTED, and choose core_truth=INVALID exactly when it is MIXED or REFUTED. A merely accurate contextual field does not establish the core claim.
 
-For a VALID report, emit only FULL_MATCH/PARTIAL_MATCH rows and explicitly list every remaining expected ID in no_match_expected_ids. For an INVALID report, emit no positive relation rows and list every expected ID as NO_MATCH. The positive and NO sets must be exhaustive, mutually exclusive, and duplicate-free. Every positive relation and every grouped NO closure needs non-empty English reason, basis, and source_refs. Cite stable report fields and supplied artifact IDs; do not repeat exact report text because the backend materializes the referenced field and its hash.
+For a VALID report, emit only FULL_MATCH/PARTIAL_MATCH rows and explicitly list every remaining expected ID in no_match_expected_ids. For an INVALID report, emit no positive relation rows and list every expected ID as NO_MATCH. no_match_expected_ids must be the exact complement of supported_relations: never repeat a positive expected ID and never omit any other expected ID. The positive and NO sets must be exhaustive, mutually exclusive, and duplicate-free. Every positive relation and every grouped NO closure needs non-empty English reason, basis, and source_refs. Cite stable report fields and supplied artifact IDs; do not repeat exact report text because the backend materializes the referenced field and its hash.
 
 root_cause_cluster_key merges only reports with the same actionable technical root cause. Do not merge nearby findings with different source, property, scope, or repair obligations. Write every generated value in English, including reasons, bases, cluster keys, and audit explanations. Preserve non-English content only in provider-external source quotations.
 

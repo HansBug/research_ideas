@@ -194,7 +194,7 @@ def _exact_report_model(
             description="Only FULL/PARTIAL rows for this report; an empty tuple is valid only with exhaustive explicit NO closure."
         )
         no_match_expected_ids: tuple[expected_id_type, ...] = Field(  # type: ignore[valid-type]
-            description="Every exact expected ID not present in supported_relations, listed explicitly and exactly once."
+            description="Exact complement of supported_relations over the input expected IDs: list every non-positive ID exactly once, with no positive ID repeated."
         )
 
         @model_validator(mode="after")
