@@ -8,8 +8,8 @@ from pathlib import Path
 PROTOCOL_URL = "https://github.com/HansBug/research_ideas/issues/195"
 PROTOCOL_SHA256 = "45874c298781e23b712d9566e75719b1fede0197c1f668030911c77f8f86574c"
 PROTOCOL_VERSION = "github-issue-195.45874c298781"
-JUDGE_ALGORITHM_VERSION = "paper1.semantic-judge.v3"
-PROMPT_VERSION = "paper1.semantic-judge.prompt.v3"
+JUDGE_ALGORITHM_VERSION = "paper1.semantic-judge.v4"
+PROMPT_VERSION = "paper1.semantic-judge.prompt.v4"
 ARTIFACT_BUILDER_VERSION = "paper1.semantic-judge.artifact-closure.v2"
 ADAPTER_VERSION = "paper1.semantic-judge.arm-neutral-adapter.v1"
 METRICS_VERSION = "paper1.semantic-judge.metrics.v1"
@@ -35,7 +35,9 @@ SYSTEM_PROMPT = """你是 paper1 的统一 expected-issue 语义 Judge。你只�
 - 同 root cause 的直接症状可以 FULL；仅共享背景、宽泛后果、wrong source 或 different property 不得补票。
 - match 强度与报告置信度分开：报告即使把主张表述为有限不符合、D1 式歧义或带 caveat，只要它明确指出与 expected 相同的 locus、故障机制和可行动违反，仍应 FULL；不能仅因语气保守降为 PARTIAL。
 - PARTIAL 必须有真实的根因、义务或修复重叠。只共享状态名、父子位置、邻近迁移或宽泛模型背景而修复互不消除时应 NO_MATCH，不得用 PARTIAL 把不同 property 粘在一起。
+- 同一 source state 上“多出一条 event/target 自环”和“缺少另一条不同 event/target 出边”默认是两个问题；除非前一条边明确占据或替换了后一条的 exact semantic slot，否则移除额外边不会补出缺失边，应 NO_MATCH 而不是 PARTIAL。
 - 复合报告中某个子断言被反驳时，只能保留报告文本已经独立陈述、同一 locus/property 下仍真实且可行动的 facet；不得由 Judge 另行推导一个邻近的正确问题来挽救错误 source、错误根因或错误运行叙述。
+- 报告结论偶然为真但它自己提供的全部 reason/where/basis 都依赖被制品反驳的前提时，报告没有拥有正确的 causal certificate，必须 INVALID；Judge 不得用公共制品替报告发明另一条正确原因。只有报告文本已独立陈述那个正确 facet 时才可保留。
 - 同一错误 partition/decomposition 的报告不必枚举全部缺失成员；若它直接定位同一复合结构且其修复会重建 expected 要求的区域/状态组成，可以 FULL cardinality/composition expected。
 - 已存在等价 semantic carrier 时，声称 carrier 缺失通常 INVALID；例如 transition label 中的 event/guard/effect、state-owned action、PlantUML / effect、UML 默认状态保持、真实 region separator 都必须按实际语义审计。
 - PlantUML 标签中 `/` 之后的文字就是作者声明的 transition effect carrier；若 NL 只要求该动作/效果，不能因没有额外变量、AST 字段或命令式实现而再报“未表达”。

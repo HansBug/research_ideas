@@ -82,7 +82,9 @@ def test_primary_prompt_has_no_adapter_or_method_metadata() -> None:
 
 def test_system_prompt_carries_frozen_scope_and_carrier_boundaries() -> None:
     assert "match 强度与报告置信度分开" in SYSTEM_PROMPT
+    assert "不同 event/target 出边" in SYSTEM_PROMPT
     assert "同一 locus/property 下仍真实且可行动的 facet" in SYSTEM_PROMPT
+    assert "全部 reason/where/basis 都依赖被制品反驳的前提" in SYSTEM_PROMPT
     assert "`/` 之后的文字就是作者声明的 transition effect carrier" in SYSTEM_PROMPT
     assert "没有显式 `--` region separator" in SYSTEM_PROMPT
     assert "它不证明 target composite 已有 owner-local default entry" in SYSTEM_PROMPT
