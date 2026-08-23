@@ -3490,7 +3490,8 @@ def test_structured_stage_timeout_recovers_committed_usage_without_outer_retry(
     assert outcome.usage[1]["billing_disposition"] == "billable"
     assert outcome.cost["attempts"][1]["eligible"] is False
     assert outcome.cost["attempts"][1]["total_usd"] is None
-    assert outcome.cost["total_usd"] is None
+    assert outcome.cost["total_usd"] > 0
+    assert outcome.cost["unpriced_usage_count"] == 1
 
 
 def test_exception_provider_failure_recovers_usage_and_exempts_only_retried_row(
@@ -3625,7 +3626,8 @@ def test_structured_stage_timeout_without_result_records_unknown_billable_usage(
         }
     ]
     assert outcome.cost["eligible"] is False
-    assert outcome.cost["total_usd"] is None
+    assert outcome.cost["total_usd"] == 0.0
+    assert outcome.cost["unpriced_usage_count"] == 1
 
 
 def test_local_schema_failure_does_not_duplicate_in_memory_usage(

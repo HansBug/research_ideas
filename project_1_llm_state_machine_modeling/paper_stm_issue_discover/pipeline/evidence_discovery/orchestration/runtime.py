@@ -383,7 +383,15 @@ def _annotate_usage_billing(
 
 def _cost_for_usage(rows: list[dict[str, Any]], pricing: Any) -> dict[str, Any]:
     if pricing is None:
-        return {"eligible": False, "total_usd": None, "reason": "profile has no pricing card", "attempts": []}
+        return {
+            "eligible": False,
+            "total_usd": 0.0,
+            "unpriced_usage_count": len(
+                [row for row in rows if row.get("cost_counted") is not False]
+            ),
+            "reason": "Profile has no pricing card; observable usage is retained but cannot be priced.",
+            "attempts": [],
+        }
     costs: list[dict[str, Any]] = []
     total = 0.0
     eligible = True
@@ -406,7 +414,14 @@ def _cost_for_usage(rows: list[dict[str, Any]], pricing: Any) -> dict[str, Any]:
             eligible = False
         if isinstance(cost.get("total_usd"), (int, float)):
             total += float(cost["total_usd"])
-    return {"eligible": eligible, "total_usd": total if eligible else None, "attempts": costs}
+    return {
+        "eligible": eligible,
+        "total_usd": total,
+        "unpriced_usage_count": sum(
+            not bool(item.get("eligible")) for item in costs
+        ),
+        "attempts": costs,
+    }
 
 
 class StructuredContextBudget(BaseModel):
