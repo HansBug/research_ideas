@@ -8,9 +8,9 @@ from pathlib import Path
 PROTOCOL_URL = "https://github.com/HansBug/research_ideas/issues/195"
 PROTOCOL_SHA256 = "45874c298781e23b712d9566e75719b1fede0197c1f668030911c77f8f86574c"
 PROTOCOL_VERSION = "github-issue-195.45874c298781"
-JUDGE_ALGORITHM_VERSION = "paper1.semantic-judge.v1"
-PROMPT_VERSION = "paper1.semantic-judge.prompt.v1"
-ARTIFACT_BUILDER_VERSION = "paper1.semantic-judge.artifact-closure.v1"
+JUDGE_ALGORITHM_VERSION = "paper1.semantic-judge.v2"
+PROMPT_VERSION = "paper1.semantic-judge.prompt.v2"
+ARTIFACT_BUILDER_VERSION = "paper1.semantic-judge.artifact-closure.v2"
 ADAPTER_VERSION = "paper1.semantic-judge.arm-neutral-adapter.v1"
 METRICS_VERSION = "paper1.semantic-judge.metrics.v1"
 JUDGE_MAX_OUTPUT_TOKENS = 64_000
@@ -44,10 +44,10 @@ SYSTEM_PROMPT = """你是 paper1 的统一 expected-issue 语义 Judge。你只�
 学术边界：本协议综合 MCeT 的 same-root-cause equivalence、NIST SATE 的 direct/indirect finding、Pearson 的 best-case fault localization、APR semantic/repair equivalence、Porter known-fault detection 与 Klees distinct-bug 去重；这是本项目 operationalization，不是任何单篇文献逐字提出的统一标准。宽 FULL 会提高 recall，因此 reason/basis 和双读仲裁必须可审计。"""
 
 
-PRIMARY_INSTRUCTION = """请对下面匿名 pair 执行一次独立完整判读。先用公共 artifact closure 审计每条报告真实性，再逐一完成 report x expected 全矩阵关系，最后给出逐 report 和逐 expected 汇总。不得参考另一位判读者，也不得省略 NO_MATCH 行。严格按 response schema 返回。"""
+PRIMARY_INSTRUCTION = """请对下面匿名 pair 执行一次独立完整判读。先用公共 artifact closure 审计每条报告真实性，再逐一完成 report x expected 全矩阵关系，最后给出逐 report validity/root-cause 与逐 expected 语义说明。不得参考另一位判读者，也不得省略 NO_MATCH 行。FULL/PARTIAL/NO 的 ID 集合、hit、support 由后端从矩阵确定性派生，你不要重复填写。严格按 response schema 返回。"""
 
 
-ARBITRATION_INSTRUCTION = """下面包含同一匿名 pair、同一公共 artifact closure、两次独立判读和确定性识别的冲突。请重新审计原始制品并输出一份完整最终判读，不按多数投票，不为任何实验臂倾斜。逐项说明为何选择最终 relation/validity/cluster；仍须返回完整 report x expected 矩阵，不得保留 UNKNOWN。"""
+ARBITRATION_INSTRUCTION = """下面包含同一匿名 pair、同一公共 artifact closure、两次独立判读和确定性识别的冲突。请重新审计原始制品并输出一份完整最终判读，不按多数投票，不为任何实验臂倾斜。逐项说明为何选择最终 relation/validity/cluster；仍须返回完整 report x expected 矩阵，不得保留 UNKNOWN。FULL/PARTIAL/NO 的 ID 集合、hit、support 由后端确定性派生，你不要重复填写。"""
 
 
 def prompt_hash() -> str:

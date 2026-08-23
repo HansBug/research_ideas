@@ -2,13 +2,17 @@ from __future__ import annotations
 
 from pipeline.semantic_judge.metrics import compute_semantic_metrics
 from pipeline.semantic_judge.models import MatchStrength, ReportValidity
-from pipeline.semantic_judge.schema import build_exact_reading_model
+from pipeline.semantic_judge.schema import (
+    build_exact_response_model,
+    materialize_reading,
+)
 
 from .test_models_and_schema import minimal_input, reading_payload
 
 
 def validate(judge_input, payload):
-    return build_exact_reading_model(judge_input).model_validate(payload)
+    response = build_exact_response_model(judge_input).model_validate(payload)
+    return materialize_reading(response)
 
 
 def test_0023_one_global_report_can_full_three_atomic_dead_ends() -> None:
@@ -127,8 +131,8 @@ def test_order_and_opaque_id_renaming_do_not_change_metrics() -> None:
     }
     first_payload = reading_payload(first_input, matches=first_matches)
     first_payload["relations"].reverse()
-    first_payload["report_assessments"].reverse()
-    first_payload["expected_assessments"].reverse()
+    first_payload["report_judgments"].reverse()
+    first_payload["expected_judgments"].reverse()
     first = compute_semantic_metrics(validate(first_input, first_payload))
 
     second_input = minimal_input(report_count=2, expected_count=2)

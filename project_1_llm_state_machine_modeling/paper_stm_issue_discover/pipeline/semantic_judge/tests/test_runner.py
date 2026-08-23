@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from types import SimpleNamespace
 
+from pipeline.semantic_judge import cli
 from pipeline.semantic_judge.metrics import compute_semantic_metrics
 from pipeline.semantic_judge.models import (
     AdapterAudit,
@@ -55,9 +58,7 @@ def adapter_audit(report_count: int, expected_count: int) -> AdapterAudit:
             for index in range(1, report_count + 1)
         ),
         expected_id_map=tuple(
-            AdapterIdMap(
-                anonymous_id=f"E{index:04d}", original_id=f"LEDGER-{index}"
-            )
+            AdapterIdMap(anonymous_id=f"E{index:04d}", original_id=f"LEDGER-{index}")
             for index in range(1, expected_count + 1)
         ),
         projected_field_names=("report_id", "claim"),
@@ -78,6 +79,66 @@ def test_primary_prompt_has_no_adapter_or_method_metadata() -> None:
     assert '"predicate_id"' not in prompt
 
 
+def test_cli_uses_one_runtime_and_persists_failure_without_partial_summary(
+    tmp_path: Path, monkeypatch
+) -> None:
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    source_path = source_root / "record.json"
+    source_path.write_text("{}", encoding="utf-8")
+    ledger = tmp_path / "ledger.json"
+    ledger.write_text("{}", encoding="utf-8")
+    output = tmp_path / "output"
+    runtimes = []
+
+    class RuntimeFixture:
+        def __init__(self, *args, **kwargs):
+            runtimes.append((args, kwargs))
+
+    monkeypatch.setattr(cli, "verify_snapshot", lambda _root: None)
+    monkeypatch.setattr(cli, "_require_clean_commit", lambda _root: "a" * 40)
+    monkeypatch.setattr(cli, "_source_path", lambda *_args: source_path)
+    monkeypatch.setattr(cli, "_source_root_hash", lambda *_args: "sha256:" + "b" * 64)
+    monkeypatch.setattr(cli, "PublicStructuredRuntime", RuntimeFixture)
+    monkeypatch.setattr(cli, "load_expected_issues", lambda *_args: ((), ()))
+
+    def fail_adapter(*_args):
+        raise RuntimeError("fixture pair failure")
+
+    monkeypatch.setattr(cli, "adapt_x1v2_record", fail_adapter)
+    status = cli.main(
+        [
+            "--report-root",
+            str(tmp_path / "reports"),
+            "--ledger",
+            str(ledger),
+            "--source-format",
+            "x1v2_record",
+            "--source-root",
+            str(source_root),
+            "--output-dir",
+            str(output),
+            "--run-id",
+            "fixture-failure",
+            "--round",
+            "1",
+            "--pair-id",
+            "0004",
+            "--allow-live",
+        ]
+    )
+    artifact_root = output / "fixture-failure"
+    failure = json.loads(
+        (artifact_root / "failure_summary.json").read_text(encoding="utf-8")
+    )
+    assert status == 1
+    assert len(runtimes) == 1
+    assert failure["status"] == "failed"
+    assert failure["failures"][0]["pair_id"] == "0004"
+    assert failure["failures"][0]["error_message"] == "fixture pair failure"
+    assert not (artifact_root / "summary.json").exists()
+
+
 def test_conflict_detection_ignores_reason_wording_but_catches_semantics() -> None:
     judge_input = minimal_input()
     schema_payload_1 = reading_payload(
@@ -88,11 +149,14 @@ def test_conflict_detection_ignores_reason_wording_but_catches_semantics() -> No
         judge_input,
         matches={("R0001", "E0001"): MatchStrength.PARTIAL_MATCH},
     )
-    from pipeline.semantic_judge.schema import build_exact_reading_model
+    from pipeline.semantic_judge.schema import (
+        build_exact_response_model,
+        materialize_reading,
+    )
 
-    schema = build_exact_reading_model(judge_input)
-    first = schema.model_validate(schema_payload_1)
-    second = schema.model_validate(schema_payload_2)
+    schema = build_exact_response_model(judge_input)
+    first = materialize_reading(schema.model_validate(schema_payload_1))
+    second = materialize_reading(schema.model_validate(schema_payload_2))
     conflicts = detect_disagreements(first, second)
     assert {item.kind.value for item in conflicts} == {"relation"}
     records = build_conflict_records(conflicts, first)

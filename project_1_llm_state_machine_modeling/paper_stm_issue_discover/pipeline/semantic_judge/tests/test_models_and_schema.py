@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import inspect
+import json
 from pathlib import Path
 
 import pytest
+from pydantic import BaseModel, ValidationError
+
 from pipeline.semantic_judge import models
 from pipeline.semantic_judge.artifacts import (
     adapt_evidence_discovery_release,
@@ -25,14 +28,18 @@ from pipeline.semantic_judge.models import (
     ReportValidity,
     UnifiedJudgeInput,
 )
-from pipeline.semantic_judge.schema import build_exact_reading_model
-from pydantic import BaseModel, ValidationError
+from pipeline.semantic_judge.schema import (
+    build_exact_response_model,
+    materialize_reading,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 REPOSITORY_ROOT = PROJECT_ROOT.parents[1]
 
 
-def minimal_input(*, report_count: int = 1, expected_count: int = 1) -> UnifiedJudgeInput:
+def minimal_input(
+    *, report_count: int = 1, expected_count: int = 1
+) -> UnifiedJudgeInput:
     artifact = ArtifactDocument(
         artifact_id="artifact:natural_language",
         role=ArtifactRole.NATURAL_LANGUAGE,
@@ -107,86 +114,52 @@ def reading_payload(
             )
     report_rows = []
     for report in judge_input.reports:
-        full = [
-            expected.expected_id
+        has_known_relation = any(
+            matches.get(
+                (report.report_id, expected.expected_id), MatchStrength.NO_MATCH
+            )
+            in {MatchStrength.FULL_MATCH, MatchStrength.PARTIAL_MATCH}
             for expected in judge_input.expected_issues
-            if matches.get((report.report_id, expected.expected_id), MatchStrength.NO_MATCH)
-            == MatchStrength.FULL_MATCH
-        ]
-        partial = [
-            expected.expected_id
-            for expected in judge_input.expected_issues
-            if matches.get((report.report_id, expected.expected_id), MatchStrength.NO_MATCH)
-            == MatchStrength.PARTIAL_MATCH
-        ]
-        no_match = [
-            expected.expected_id
-            for expected in judge_input.expected_issues
-            if expected.expected_id not in {*full, *partial}
-        ]
+        )
         selected_validity = validity.get(
             report.report_id,
             ReportValidity.VALID_KNOWN
-            if full or partial
+            if has_known_relation
             else ReportValidity.VALID_NOVEL,
         )
         report_rows.append(
             {
                 "report_id": report.report_id,
                 "validity": selected_validity.value,
-                "full_expected_ids": full,
-                "partial_expected_ids": partial,
-                "no_match_expected_ids": no_match,
                 "root_cause_cluster_key": clusters.get(
                     report.report_id, f"technical-cause-{report.report_id}"
                 ),
                 "reason": f"artifact review classifies {report.report_id}",
                 "basis": "fixture artifact truth review",
-                "source_refs": [f"report:{report.report_id}", "artifact:natural_language"],
+                "source_refs": [
+                    f"report:{report.report_id}",
+                    "artifact:natural_language",
+                ],
             }
         )
-    report_validity = {
-        row["report_id"]: ReportValidity(row["validity"]) for row in report_rows
-    }
     expected_rows = []
     for expected in judge_input.expected_issues:
-        full_reports = [
-            report.report_id
-            for report in judge_input.reports
-            if report_validity[report.report_id] == ReportValidity.VALID_KNOWN
-            and matches.get((report.report_id, expected.expected_id), MatchStrength.NO_MATCH)
-            == MatchStrength.FULL_MATCH
-        ]
-        partial_reports = [
-            report.report_id
-            for report in judge_input.reports
-            if report_validity[report.report_id] == ReportValidity.VALID_KNOWN
-            and matches.get((report.report_id, expected.expected_id), MatchStrength.NO_MATCH)
-            == MatchStrength.PARTIAL_MATCH
-        ]
-        unsupported = [
-            report.report_id
-            for report in judge_input.reports
-            if report.report_id not in {*full_reports, *partial_reports}
-        ]
         expected_rows.append(
             {
                 "expected_id": expected.expected_id,
-                "full_report_ids": full_reports,
-                "partial_report_ids": partial_reports,
-                "no_support_report_ids": unsupported,
-                "hit": bool(full_reports),
-                "supported": bool(full_reports or partial_reports),
                 "reason": f"coverage for {expected.expected_id}",
                 "basis": "fixture relation and validity matrix",
-                "source_refs": [f"expected:{expected.expected_id}", "artifact:natural_language"],
+                "source_refs": [
+                    f"expected:{expected.expected_id}",
+                    "artifact:natural_language",
+                ],
             }
         )
     return {
-        "schema_version": "paper1.semantic-judge.reading.v1",
+        "schema_version": "paper1.semantic-judge.response.v2",
         "relations": relation_rows,
-        "report_assessments": report_rows,
-        "expected_assessments": expected_rows,
+        "report_judgments": report_rows,
+        "expected_judgments": expected_rows,
         "reason": "Complete provider-free fixture reading.",
         "basis": "Issue #195 fixture matrix and artifact review.",
         "source_refs": ["artifact:natural_language"],
@@ -210,7 +183,7 @@ def test_every_pydantic_model_and_field_has_description() -> None:
 
 def test_runtime_schema_contains_descriptions_enums_and_exact_literals() -> None:
     judge_input = minimal_input(report_count=2, expected_count=2)
-    schema = build_exact_reading_model(judge_input).model_json_schema()
+    schema = build_exact_response_model(judge_input).model_json_schema()
     serialized = str(schema)
     assert schema["description"]
     assert schema["properties"]["relations"]["description"]
@@ -222,19 +195,48 @@ def test_runtime_schema_contains_descriptions_enums_and_exact_literals() -> None
     assert "INVALID" in serialized
     assert "R0001" in serialized and "R0002" in serialized
     assert "E0001" in serialized and "E0002" in serialized
+    properties = schema["properties"]
+    assert "report_judgments" in properties
+    assert "expected_judgments" in properties
+    assert "report_assessments" not in properties
+    assert "expected_assessments" not in properties
+    assert "full_expected_ids" not in serialized
 
 
-def test_exact_schema_rejects_missing_relation_and_inconsistent_summary() -> None:
+def test_exact_schema_rejects_missing_relation_and_inconsistent_validity() -> None:
     judge_input = minimal_input(report_count=1, expected_count=2)
-    schema = build_exact_reading_model(judge_input)
+    schema = build_exact_response_model(judge_input)
     payload = reading_payload(judge_input)
     payload["relations"].pop()
     with pytest.raises(ValidationError, match="relations"):
         schema.model_validate(payload)
-    payload = reading_payload(judge_input)
-    payload["expected_assessments"][0]["hit"] = True
-    with pytest.raises(ValidationError, match=r"expected_assessments\[E0001\]"):
+    payload = reading_payload(
+        judge_input,
+        matches={("R0001", "E0001"): MatchStrength.FULL_MATCH},
+        validity={"R0001": ReportValidity.VALID_NOVEL},
+    )
+    with pytest.raises(
+        ValidationError, match="VALID_NOVEL requires all relations NO_MATCH"
+    ):
         schema.model_validate(payload)
+
+
+def test_backend_materializes_relation_sets_hit_and_support() -> None:
+    judge_input = minimal_input(report_count=2, expected_count=2)
+    payload = reading_payload(
+        judge_input,
+        matches={
+            ("R0001", "E0001"): MatchStrength.FULL_MATCH,
+            ("R0002", "E0002"): MatchStrength.PARTIAL_MATCH,
+        },
+    )
+    response = build_exact_response_model(judge_input).model_validate(payload)
+    reading = materialize_reading(response)
+    assert reading.report_assessments[0].full_expected_ids == ("E0001",)
+    assert reading.report_assessments[1].partial_expected_ids == ("E0002",)
+    assert reading.expected_assessments[0].hit
+    assert reading.expected_assessments[1].supported
+    assert not reading.expected_assessments[1].hit
 
 
 def test_common_artifact_closure_is_adapter_independent() -> None:
@@ -247,7 +249,39 @@ def test_common_artifact_closure_is_adapter_independent() -> None:
     assert {item.role for item in first.artifacts} == set(ArtifactRole)
 
 
-def test_both_adapters_emit_one_candidate_schema_without_privileged_fields(tmp_path: Path) -> None:
+def test_0029_stage_projection_fits_context_without_dropping_core_evidence() -> None:
+    report_root = PROJECT_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
+    closure = build_artifact_closure(report_root, "0029")
+    by_role = {item.role: item for item in closure.artifacts}
+    total_characters = sum(len(item.content) for item in closure.artifacts)
+    assert total_characters < 300_000
+    for role in (
+        ArtifactRole.NATURAL_LANGUAGE,
+        ArtifactRole.PLANTUML_SOURCE,
+        ArtifactRole.FCSTM_MODEL,
+        ArtifactRole.EXACT_SOURCE_INVENTORY,
+        ArtifactRole.INSPECTION_EQUIVALENT_FACTS,
+        ArtifactRole.VERIFY_FACTS,
+        ArtifactRole.SMT_FACTS,
+        ArtifactRole.SOURCE_TRACE,
+    ):
+        assert by_role[role].content
+    for role in (
+        ArtifactRole.CANONICAL_SOURCE_IR,
+        ArtifactRole.REFERENCE_INSPECTION,
+        ArtifactRole.WORKING_CONTRACT,
+        ArtifactRole.CASE_REPORT,
+    ):
+        projection = json.loads(by_role[role].content)["projection"]
+        assert projection["source_sha256"].startswith("sha256:")
+        assert projection["included_fields"]
+        assert projection["omitted_fields"]
+        assert projection["truncation_applied"] is False
+
+
+def test_both_adapters_emit_one_candidate_schema_without_privileged_fields(
+    tmp_path: Path,
+) -> None:
     ledger = PROJECT_ROOT / "discover_matrix/ledger_v2/ledger.json"
     _, expected_map = load_expected_issues(ledger, "0004")
     baseline = tmp_path / "baseline.json"
@@ -266,9 +300,7 @@ def test_both_adapters_emit_one_candidate_schema_without_privileged_fields(tmp_p
         '"observed":"dead end","source_refs":["NL1"],"element_refs":["state:A"]}]}',
         encoding="utf-8",
     )
-    baseline_reports, baseline_audit, _, _ = adapt_x1v2_record(
-        baseline, expected_map
-    )
+    baseline_reports, baseline_audit, _, _ = adapt_x1v2_record(baseline, expected_map)
     method_reports, method_audit, _, _ = adapt_evidence_discovery_release(
         method, expected_map
     )
@@ -284,11 +316,13 @@ def test_both_adapters_emit_one_candidate_schema_without_privileged_fields(tmp_p
 
 def test_valid_novel_requires_all_no_match_structurally() -> None:
     judge_input = minimal_input()
-    schema = build_exact_reading_model(judge_input)
+    schema = build_exact_response_model(judge_input)
     payload = reading_payload(
         judge_input,
         matches={("R0001", "E0001"): MatchStrength.FULL_MATCH},
         validity={"R0001": ReportValidity.VALID_NOVEL},
     )
-    with pytest.raises(ValidationError, match="VALID_NOVEL requires all relations NO_MATCH"):
+    with pytest.raises(
+        ValidationError, match="VALID_NOVEL requires all relations NO_MATCH"
+    ):
         schema.model_validate(payload)

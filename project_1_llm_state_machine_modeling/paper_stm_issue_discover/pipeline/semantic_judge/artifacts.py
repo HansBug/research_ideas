@@ -7,8 +7,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from pipeline.evidence_discovery.inputs import load_pair
 from pydantic import TypeAdapter
+
+from pipeline.evidence_discovery.inputs import load_pair
 
 from .models import (
     AdapterAudit,
@@ -44,6 +45,32 @@ def _model_json(value: Any) -> str:
     return _stable_json(value)
 
 
+def _stage_projection(
+    payload: dict[str, Any],
+    *,
+    included_fields: tuple[str, ...],
+    source_hash: str,
+    purpose: str,
+) -> str:
+    """Project complete Judge-relevant fields with explicit non-truncation provenance."""
+
+    data = {key: payload[key] for key in included_fields if key in payload}
+    omitted = tuple(sorted(set(payload) - set(data)))
+    return _stable_json(
+        {
+            "projection": {
+                "version": ARTIFACT_BUILDER_VERSION,
+                "source_sha256": source_hash,
+                "included_fields": included_fields,
+                "omitted_fields": omitted,
+                "truncation_applied": False,
+                "purpose": purpose,
+            },
+            "data": data,
+        }
+    )
+
+
 def _document(
     *,
     role: ArtifactRole,
@@ -66,7 +93,9 @@ def _document(
     )
 
 
-def build_artifact_closure(report_root: str | Path, pair_id: str) -> JudgeArtifactClosure:
+def build_artifact_closure(
+    report_root: str | Path, pair_id: str
+) -> JudgeArtifactClosure:
     """Build the exact same complete pair evidence closure for every source adapter."""
 
     root = Path(report_root).expanduser().resolve()
@@ -81,6 +110,10 @@ def build_artifact_closure(report_root: str | Path, pair_id: str) -> JudgeArtifa
     assert pair.working_contract is not None
     assert pair.source_trace is not None
     assert pair.case_report is not None
+    canonical_payload = pair.canonical_source_ir.model_dump(mode="json")
+    reference_payload = pair.reference_inspection.payload
+    working_payload = pair.working_contract.payload
+    case_payload = pair.case_report.payload
 
     artifacts = (
         _document(
@@ -110,8 +143,21 @@ def build_artifact_closure(report_root: str | Path, pair_id: str) -> JudgeArtifa
         _document(
             role=ArtifactRole.CANONICAL_SOURCE_IR,
             authority=ArtifactAuthority.AUTHOR_SOURCE,
-            content=_model_json(pair.canonical_source_ir),
-            schema_version=pair.canonical_source_ir.schema_version,
+            content=_stage_projection(
+                canonical_payload,
+                included_fields=(
+                    "schema_version",
+                    "adapter",
+                    "source_format",
+                    "status",
+                    "status_reason_code",
+                    "diagnostics",
+                    "model",
+                ),
+                source_hash=pair.hashes["canonical"],
+                purpose="Retain complete author-source model identities and semantics while excluding duplicated generation metadata.",
+            ),
+            schema_version=f"{pair.canonical_source_ir.schema_version}.judge-projection.v2",
             reason="Canonical source IR supplies exact author-source identities without promoting lowering members to authored defects.",
             basis=f"published canonical artifact; adapter={pair.canonical_source_ir.adapter}",
         ),
@@ -126,8 +172,13 @@ def build_artifact_closure(report_root: str | Path, pair_id: str) -> JudgeArtifa
         _document(
             role=ArtifactRole.REFERENCE_INSPECTION,
             authority=ArtifactAuthority.DETERMINISTIC_FACT,
-            content=_model_json(pair.reference_inspection.payload),
-            schema_version=pair.reference_inspection.ref.schema_version,
+            content=_stage_projection(
+                reference_payload,
+                included_fields=("root_state_path", "metrics", "diagnostics"),
+                source_hash=pair.hashes["parse_inspect"],
+                purpose="Retain published diagnostic summary; full state/transition facts are supplied once by inspection_equivalent_facts.",
+            ),
+            schema_version=f"{pair.reference_inspection.ref.schema_version}.judge-projection.v2",
             reason="Published reference inspection provides structured diagnostics and inventory facts, not normative truth.",
             basis=pair.reference_inspection.ref.basis,
         ),
@@ -158,8 +209,22 @@ def build_artifact_closure(report_root: str | Path, pair_id: str) -> JudgeArtifa
         _document(
             role=ArtifactRole.WORKING_CONTRACT,
             authority=ArtifactAuthority.MAPPING,
-            content=_model_json(pair.working_contract.payload),
-            schema_version=pair.working_contract.ref.schema_version,
+            content=_stage_projection(
+                working_payload,
+                included_fields=(
+                    "schema_version",
+                    "artifact_role",
+                    "artifact_bindings",
+                    "attribution_policy",
+                    "diagnostic_attribution",
+                    "ownership_policy",
+                    "inventory_digests",
+                    "summary",
+                ),
+                source_hash=pair.hashes["working_contract"],
+                purpose="Retain role, attribution, ownership, and identity policy; method capability prompts and duplicated element inventories are not Judge inputs.",
+            ),
+            schema_version=f"{pair.working_contract.ref.schema_version}.judge-projection.v2",
             reason="Working mapping contract supplies representation ownership and eligibility boundaries without Judge answers.",
             basis=pair.working_contract.ref.basis,
         ),
@@ -174,17 +239,42 @@ def build_artifact_closure(report_root: str | Path, pair_id: str) -> JudgeArtifa
         _document(
             role=ArtifactRole.CASE_REPORT,
             authority=ArtifactAuthority.PROVENANCE,
-            content=_model_json(pair.case_report.payload),
-            schema_version=pair.case_report.ref.schema_version,
+            content=_stage_projection(
+                case_payload,
+                included_fields=(
+                    "schema_version",
+                    "case_id",
+                    "pair_id",
+                    "model_name",
+                    "selected_stage",
+                    "official_raw_status",
+                    "official_validation_status",
+                    "is_phase_i_fallback",
+                    "phase_i_changed",
+                    "canonical_sha256",
+                    "fcstm_sha256",
+                    "parse_inspect_sha256",
+                    "source_trace_sha256",
+                    "working_contract_sha256",
+                    "inspect_metrics",
+                    "inspect_diagnostic_severities",
+                    "official_identity_reconciliation",
+                    "name_mapping",
+                    "stage_lineage",
+                ),
+                source_hash=pair.hashes["case_report"],
+                purpose="Retain identity, validation status, name mapping, and stage provenance while excluding duplicated full model comparison payloads.",
+            ),
+            schema_version=f"{pair.case_report.ref.schema_version}.judge-projection.v2",
             reason="Case report closes artifact identity and representation status without supplying expected answers.",
             basis=pair.case_report.ref.basis,
         ),
     )
     unhashed = {
-        "schema_version": "paper1.semantic-judge.artifact-closure.v1",
+        "schema_version": "paper1.semantic-judge.artifact-closure.v2",
         "pair_id": pair_id,
         "artifacts": [item.model_dump(mode="json") for item in artifacts],
-        "reason": "Every report source is judged against one identical untruncated public pair closure.",
+        "reason": "Every report source is judged against one identical stage-scoped public pair closure without runtime truncation.",
         "basis": (
             f"{ARTIFACT_BUILDER_VERSION}; PairInput manifest "
             f"{pair.context_manifest.manifest_hash}"
@@ -241,10 +331,16 @@ def load_expected_issues(
                     defect_logic_kind=axes.get("defect_logic_kind"),
                     defect_reference=axes.get("defect_reference"),
                 ),
-                source_refs=(f"expected:{anonymous_id}", "artifact:natural_language", nl_id),
+                source_refs=(
+                    f"expected:{anonymous_id}",
+                    "artifact:natural_language",
+                    nl_id,
+                ),
             )
         )
-        mappings.append(AdapterIdMap(anonymous_id=anonymous_id, original_id=original_id))
+        mappings.append(
+            AdapterIdMap(anonymous_id=anonymous_id, original_id=original_id)
+        )
     if not expected:
         raise ValueError(f"pair {pair_id} has no D2/D1 expected issues in {path}")
     return tuple(expected), tuple(mappings)
@@ -333,7 +429,9 @@ def adapt_evidence_discovery_release(
     raw_bytes = path.read_bytes()
     record = json.loads(raw_bytes)
     if record.get("status") != "completed" or not record.get("eligible"):
-        raise ValueError(f"evidence-discovery method record is not eligible completed: {path}")
+        raise ValueError(
+            f"evidence-discovery method record is not eligible completed: {path}"
+        )
     pair_id = str(record["pair_id"])
     round_no = int(record["round"])
     raw_releases = record.get("report_issue_clusters") or []
@@ -344,7 +442,9 @@ def adapt_evidence_discovery_release(
         original_id = str(issue["issue_id"])
         locus_names = tuple(str(value) for value in issue.get("locus_names") or ())
         locus_kind = str(issue.get("locus_kind") or "unspecified")
-        where = f"{locus_kind}: " + " -> ".join(locus_names) if locus_names else locus_kind
+        where = (
+            f"{locus_kind}: " + " -> ".join(locus_names) if locus_names else locus_kind
+        )
         evidence: list[CandidateEvidence] = []
         if issue.get("requirement_quote"):
             evidence.append(
@@ -356,21 +456,35 @@ def adapt_evidence_discovery_release(
         source_refs = tuple(
             dict.fromkeys(
                 str(value)
-                for value in (*issue.get("source_refs", ()), *issue.get("element_refs", ()))
+                for value in (
+                    *issue.get("source_refs", ()),
+                    *issue.get("element_refs", ()),
+                )
                 if value
             )
         )
         reports.append(
             CandidateReport(
                 report_id=report_id,
-                claim=str(issue.get("title") or issue.get("candidate_reason") or original_id),
+                claim=str(
+                    issue.get("title") or issue.get("candidate_reason") or original_id
+                ),
                 where=where,
                 property=(str(issue["property"]) if issue.get("property") else None),
                 violated_obligation=None,
                 expected=(str(issue["expected"]) if issue.get("expected") else None),
                 observed=(str(issue["observed"]) if issue.get("observed") else None),
-                reason=str(issue.get("candidate_reason") or issue.get("reason") or issue.get("title") or original_id),
-                basis=(str(issue["candidate_basis"]) if issue.get("candidate_basis") else None),
+                reason=str(
+                    issue.get("candidate_reason")
+                    or issue.get("reason")
+                    or issue.get("title")
+                    or original_id
+                ),
+                basis=(
+                    str(issue["candidate_basis"])
+                    if issue.get("candidate_basis")
+                    else None
+                ),
                 source_refs=source_refs,
                 evidence=tuple(evidence),
             )

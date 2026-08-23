@@ -1,4 +1,4 @@
-"""Dynamic exact-closure Pydantic response schema for one Judge pair."""
+"""Exact-closure provider schema and deterministic Judge reading materialization."""
 
 from __future__ import annotations
 
@@ -6,13 +6,17 @@ import hashlib
 import json
 from typing import Literal, cast
 
-from pydantic import Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from .models import (
     ExpectedAssessment,
+    ExpectedJudgment,
     JudgeReading,
+    JudgeResponse,
+    MatchStrength,
     RelationAssessment,
     ReportAssessment,
+    ReportJudgment,
     ReportValidity,
     UnifiedJudgeInput,
 )
@@ -22,8 +26,8 @@ def _literal(values: tuple[str, ...]):
     return Literal.__getitem__(values or ("__EMPTY_CLOSURE__",))
 
 
-def build_exact_reading_model(judge_input: UnifiedJudgeInput) -> type[JudgeReading]:
-    """Build a provider schema that names only IDs in this exact pair closure."""
+def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResponse]:
+    """Build the provider schema over the exact anonymous IDs in one pair input."""
 
     report_ids = tuple(item.report_id for item in judge_input.reports)
     expected_ids = tuple(item.expected_id for item in judge_input.expected_issues)
@@ -32,7 +36,7 @@ def build_exact_reading_model(judge_input: UnifiedJudgeInput) -> type[JudgeReadi
     relation_count = len(report_ids) * len(expected_ids)
 
     class ExactRelationAssessment(RelationAssessment):
-        """One exact report/expected row whose IDs are closed by this pair input."""
+        """One exact report/expected relation whose IDs are closed by this input."""
 
         report_id: report_id_type = Field(  # type: ignore[valid-type]
             description="输入 exact closure 中的匿名 report ID；不得新建、改写或遗漏。"
@@ -41,59 +45,41 @@ def build_exact_reading_model(judge_input: UnifiedJudgeInput) -> type[JudgeReadi
             description="输入 exact closure 中的匿名 expected ID；不得新建、改写或遗漏。"
         )
 
-    class ExactReportAssessment(ReportAssessment):
-        """One exact report validity row closed over every expected ID."""
+    class ExactReportJudgment(ReportJudgment):
+        """One exact report validity/cluster judgment without derived relation sets."""
 
         report_id: report_id_type = Field(  # type: ignore[valid-type]
             description="输入 exact closure 中的匿名 report ID；每条 exactly once。"
         )
-        full_expected_ids: tuple[expected_id_type, ...] = Field(  # type: ignore[valid-type]
-            description="该报告 FULL_MATCH 的全部 expected IDs；允许为空。"
-        )
-        partial_expected_ids: tuple[expected_id_type, ...] = Field(  # type: ignore[valid-type]
-            description="该报告 PARTIAL_MATCH 的全部 expected IDs；允许为空。"
-        )
-        no_match_expected_ids: tuple[expected_id_type, ...] = Field(  # type: ignore[valid-type]
-            description="该报告 NO_MATCH 的全部 expected IDs；三组精确分割 closure。"
-        )
 
-    class ExactExpectedAssessment(ExpectedAssessment):
-        """One exact expected coverage row closed over every report ID."""
+    class ExactExpectedJudgment(ExpectedJudgment):
+        """One exact expected explanation without backend-derived coverage fields."""
 
         expected_id: expected_id_type = Field(  # type: ignore[valid-type]
             description="输入 exact closure 中的匿名 expected ID；每条 exactly once。"
         )
-        full_report_ids: tuple[report_id_type, ...] = Field(  # type: ignore[valid-type]
-            description="VALID_KNOWN + FULL_MATCH 的全部 report IDs；允许为空。"
-        )
-        partial_report_ids: tuple[report_id_type, ...] = Field(  # type: ignore[valid-type]
-            description="VALID_KNOWN + PARTIAL_MATCH 的全部 report IDs；允许为空。"
-        )
-        no_support_report_ids: tuple[report_id_type, ...] = Field(  # type: ignore[valid-type]
-            description="其余全部 report IDs；三组精确分割 closure。"
-        )
 
-    class ExactJudgeReading(JudgeReading):
-        """Full #195 reading with deterministic ID closure and derived consistency."""
+    class ExactJudgeResponse(JudgeResponse):
+        """Provider-authored #195 semantics with exact closure and no duplicated sums."""
 
         relations: tuple[ExactRelationAssessment, ...] = Field(
             min_length=relation_count,
             max_length=relation_count,
             description="完整 report x expected 关系矩阵；包含全部 NO_MATCH，数量固定。",
         )
-        report_assessments: tuple[ExactReportAssessment, ...] = Field(
+        report_judgments: tuple[ExactReportJudgment, ...] = Field(
             min_length=len(report_ids),
             max_length=len(report_ids),
-            description="每条匿名 report exactly once；空报告集时为空。",
+            description="每条匿名 report exactly once 的 validity、cluster 与依据；不重复填写 relation ID 集合。",
         )
-        expected_assessments: tuple[ExactExpectedAssessment, ...] = Field(
+        expected_judgments: tuple[ExactExpectedJudgment, ...] = Field(
             min_length=len(expected_ids),
             max_length=len(expected_ids),
-            description="每条匿名 expected exactly once。",
+            description="每条匿名 expected exactly once 的语义说明；hit/support 由后端派生。",
         )
 
         @model_validator(mode="after")
-        def exact_closure_and_derived_consistency(self) -> ExactJudgeReading:
+        def exact_closure_and_validity_consistency(self) -> ExactJudgeResponse:
             expected_relation_keys = {
                 (report_id, expected_id)
                 for report_id in report_ids
@@ -102,87 +88,54 @@ def build_exact_reading_model(judge_input: UnifiedJudgeInput) -> type[JudgeReadi
             actual_relation_keys = [
                 (row.report_id, row.expected_id) for row in self.relations
             ]
-            if set(actual_relation_keys) != expected_relation_keys or len(actual_relation_keys) != len(set(actual_relation_keys)):
-                missing = sorted(expected_relation_keys - set(actual_relation_keys))
-                extra = sorted(set(actual_relation_keys) - expected_relation_keys)
+            actual_relation_key_set = set(actual_relation_keys)
+            if actual_relation_key_set != expected_relation_keys or len(
+                actual_relation_keys
+            ) != len(actual_relation_key_set):
+                missing = sorted(expected_relation_keys - actual_relation_key_set)
+                extra = sorted(actual_relation_key_set - expected_relation_keys)
                 raise ValueError(
                     "relations exact closure failed; "
-                    f"missing={missing}, extra={extra}, duplicate_count={len(actual_relation_keys)-len(set(actual_relation_keys))}"
+                    f"missing={missing}, extra={extra}, "
+                    f"duplicate_count={len(actual_relation_keys) - len(actual_relation_key_set)}"
                 )
-            report_rows = [row.report_id for row in self.report_assessments]
-            if set(report_rows) != set(report_ids) or len(report_rows) != len(set(report_rows)):
+            report_rows = [row.report_id for row in self.report_judgments]
+            if set(report_rows) != set(report_ids) or len(report_rows) != len(
+                set(report_rows)
+            ):
                 raise ValueError(
-                    "report_assessments must contain each input report exactly once; "
+                    "report_judgments must contain each input report exactly once; "
                     f"expected={report_ids}, actual={report_rows}"
                 )
-            expected_rows = [row.expected_id for row in self.expected_assessments]
-            if set(expected_rows) != set(expected_ids) or len(expected_rows) != len(set(expected_rows)):
+            expected_rows = [row.expected_id for row in self.expected_judgments]
+            if set(expected_rows) != set(expected_ids) or len(expected_rows) != len(
+                set(expected_rows)
+            ):
                 raise ValueError(
-                    "expected_assessments must contain each input expected exactly once; "
+                    "expected_judgments must contain each input expected exactly once; "
                     f"expected={expected_ids}, actual={expected_rows}"
                 )
             relation_by_key = {
                 (row.report_id, row.expected_id): row.match for row in self.relations
             }
-            report_by_id = {row.report_id: row for row in self.report_assessments}
-            for report_id, row in report_by_id.items():
-                derived_full = {
-                    expected_id
+            for row in self.report_judgments:
+                has_known_relation = any(
+                    relation_by_key[(row.report_id, expected_id)]
+                    in {MatchStrength.FULL_MATCH, MatchStrength.PARTIAL_MATCH}
                     for expected_id in expected_ids
-                    if relation_by_key[(report_id, expected_id)].value == "FULL_MATCH"
-                }
-                derived_partial = {
-                    expected_id
-                    for expected_id in expected_ids
-                    if relation_by_key[(report_id, expected_id)].value == "PARTIAL_MATCH"
-                }
-                derived_none = set(expected_ids) - derived_full - derived_partial
-                actual_groups = (
-                    set(row.full_expected_ids),
-                    set(row.partial_expected_ids),
-                    set(row.no_match_expected_ids),
                 )
-                if actual_groups != (derived_full, derived_partial, derived_none):
-                    raise ValueError(
-                        f"report_assessments[{report_id}] relation groups conflict with matrix; "
-                        f"expected_full={sorted(derived_full)}, actual_full={sorted(actual_groups[0])}, "
-                        f"expected_partial={sorted(derived_partial)}, actual_partial={sorted(actual_groups[1])}, "
-                        f"expected_none={sorted(derived_none)}, actual_none={sorted(actual_groups[2])}"
-                    )
-                if row.validity == ReportValidity.VALID_KNOWN and not (derived_full or derived_partial):
-                    raise ValueError(
-                        f"report_assessments[{report_id}].validity=VALID_KNOWN requires at least one FULL/PARTIAL relation"
-                    )
-                if row.validity == ReportValidity.VALID_NOVEL and (derived_full or derived_partial):
-                    raise ValueError(
-                        f"report_assessments[{report_id}].validity=VALID_NOVEL requires all relations NO_MATCH"
-                    )
-            for expected_row in self.expected_assessments:
-                expected_id = expected_row.expected_id
-                derived_full_reports = {
-                    report_id
-                    for report_id in report_ids
-                    if report_by_id[report_id].validity == ReportValidity.VALID_KNOWN
-                    and relation_by_key[(report_id, expected_id)].value == "FULL_MATCH"
-                }
-                derived_partial_reports = {
-                    report_id
-                    for report_id in report_ids
-                    if report_by_id[report_id].validity == ReportValidity.VALID_KNOWN
-                    and relation_by_key[(report_id, expected_id)].value == "PARTIAL_MATCH"
-                }
-                derived_no_support = set(report_ids) - derived_full_reports - derived_partial_reports
                 if (
-                    set(expected_row.full_report_ids) != derived_full_reports
-                    or set(expected_row.partial_report_ids) != derived_partial_reports
-                    or set(expected_row.no_support_report_ids) != derived_no_support
-                    or expected_row.hit != bool(derived_full_reports)
-                    or expected_row.supported != bool(derived_full_reports or derived_partial_reports)
+                    row.validity == ReportValidity.VALID_KNOWN
+                    and not has_known_relation
                 ):
                     raise ValueError(
-                        f"expected_assessments[{expected_id}] conflicts with relation/validity matrix; "
-                        f"full={sorted(derived_full_reports)}, partial={sorted(derived_partial_reports)}, "
-                        f"no_support={sorted(derived_no_support)}"
+                        f"report_judgments[{row.report_id}].validity=VALID_KNOWN "
+                        "requires at least one FULL_MATCH or PARTIAL_MATCH relation"
+                    )
+                if row.validity == ReportValidity.VALID_NOVEL and has_known_relation:
+                    raise ValueError(
+                        f"report_judgments[{row.report_id}].validity=VALID_NOVEL "
+                        "requires all relations NO_MATCH"
                     )
             return self
 
@@ -190,13 +143,96 @@ def build_exact_reading_model(judge_input: UnifiedJudgeInput) -> type[JudgeReadi
         ("|".join(report_ids) + "::" + "|".join(expected_ids)).encode("utf-8")
     ).hexdigest()[:12]
     ExactRelationAssessment.__name__ = f"ExactRelationAssessment_{suffix}"
-    ExactReportAssessment.__name__ = f"ExactReportAssessment_{suffix}"
-    ExactExpectedAssessment.__name__ = f"ExactExpectedAssessment_{suffix}"
-    ExactJudgeReading.__name__ = f"ExactJudgeReading_{suffix}"
-    return cast(type[JudgeReading], ExactJudgeReading)
+    ExactReportJudgment.__name__ = f"ExactReportJudgment_{suffix}"
+    ExactExpectedJudgment.__name__ = f"ExactExpectedJudgment_{suffix}"
+    ExactJudgeResponse.__name__ = f"ExactJudgeResponse_{suffix}"
+    return cast(type[JudgeResponse], ExactJudgeResponse)
 
 
-def reading_schema_hash(schema: type[JudgeReading]) -> str:
+def materialize_reading(response: JudgeResponse) -> JudgeReading:
+    """Derive every score-bearing set from validated semantic rows exactly once."""
+
+    report_ids = tuple(row.report_id for row in response.report_judgments)
+    expected_ids = tuple(row.expected_id for row in response.expected_judgments)
+    relation_by_key = {
+        (row.report_id, row.expected_id): row for row in response.relations
+    }
+    report_judgment_by_id = {row.report_id: row for row in response.report_judgments}
+
+    report_assessments = tuple(
+        ReportAssessment(
+            report_id=judgment.report_id,
+            validity=judgment.validity,
+            full_expected_ids=tuple(
+                expected_id
+                for expected_id in expected_ids
+                if relation_by_key[(judgment.report_id, expected_id)].match
+                == MatchStrength.FULL_MATCH
+            ),
+            partial_expected_ids=tuple(
+                expected_id
+                for expected_id in expected_ids
+                if relation_by_key[(judgment.report_id, expected_id)].match
+                == MatchStrength.PARTIAL_MATCH
+            ),
+            no_match_expected_ids=tuple(
+                expected_id
+                for expected_id in expected_ids
+                if relation_by_key[(judgment.report_id, expected_id)].match
+                == MatchStrength.NO_MATCH
+            ),
+            root_cause_cluster_key=judgment.root_cause_cluster_key,
+            reason=judgment.reason,
+            basis=judgment.basis,
+            source_refs=judgment.source_refs,
+        )
+        for judgment in response.report_judgments
+    )
+    expected_assessments = []
+    for judgment in response.expected_judgments:
+        full_report_ids = tuple(
+            report_id
+            for report_id in report_ids
+            if report_judgment_by_id[report_id].validity == ReportValidity.VALID_KNOWN
+            and relation_by_key[(report_id, judgment.expected_id)].match
+            == MatchStrength.FULL_MATCH
+        )
+        partial_report_ids = tuple(
+            report_id
+            for report_id in report_ids
+            if report_judgment_by_id[report_id].validity == ReportValidity.VALID_KNOWN
+            and relation_by_key[(report_id, judgment.expected_id)].match
+            == MatchStrength.PARTIAL_MATCH
+        )
+        supported_report_ids = set(full_report_ids) | set(partial_report_ids)
+        expected_assessments.append(
+            ExpectedAssessment(
+                expected_id=judgment.expected_id,
+                full_report_ids=full_report_ids,
+                partial_report_ids=partial_report_ids,
+                no_support_report_ids=tuple(
+                    report_id
+                    for report_id in report_ids
+                    if report_id not in supported_report_ids
+                ),
+                hit=bool(full_report_ids),
+                supported=bool(supported_report_ids),
+                reason=judgment.reason,
+                basis=judgment.basis,
+                source_refs=judgment.source_refs,
+            )
+        )
+    return JudgeReading(
+        relations=response.relations,
+        report_assessments=report_assessments,
+        expected_assessments=tuple(expected_assessments),
+        reason=response.reason,
+        basis=response.basis,
+        source_refs=response.source_refs,
+    )
+
+
+def response_schema_hash(schema: type[BaseModel]) -> str:
     """Hash the actual provider structured-output schema, including descriptions."""
 
     payload = json.dumps(

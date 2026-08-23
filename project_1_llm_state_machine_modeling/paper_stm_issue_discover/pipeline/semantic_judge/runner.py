@@ -20,6 +20,7 @@ from .models import (
     ConflictRecord,
     JudgeCallReceipt,
     JudgeReading,
+    JudgeResponse,
     PairJudgeResult,
     ReadingDisagreement,
     RetryRecord,
@@ -37,7 +38,11 @@ from .protocol import (
     SYSTEM_PROMPT,
     prompt_hash,
 )
-from .schema import build_exact_reading_model, reading_schema_hash
+from .schema import (
+    build_exact_response_model,
+    materialize_reading,
+    response_schema_hash,
+)
 
 
 def _stable_json(value: Any) -> str:
@@ -79,14 +84,12 @@ def detect_disagreements(
     """Compare only semantic enum/validity/cluster values, never wording or order."""
 
     disagreements: list[ReadingDisagreement] = []
-    relations_1 = {
-        (row.report_id, row.expected_id): row for row in reading_1.relations
-    }
-    relations_2 = {
-        (row.report_id, row.expected_id): row for row in reading_2.relations
-    }
+    relations_1 = {(row.report_id, row.expected_id): row for row in reading_1.relations}
+    relations_2 = {(row.report_id, row.expected_id): row for row in reading_2.relations}
     if set(relations_1) != set(relations_2):
-        raise ValueError("primary reading relation closures differ after schema validation")
+        raise ValueError(
+            "primary reading relation closures differ after schema validation"
+        )
     for key in sorted(relations_1):
         value_1 = relations_1[key].match.value
         value_2 = relations_2[key].match.value
@@ -102,7 +105,9 @@ def detect_disagreements(
     reports_1 = {row.report_id: row for row in reading_1.report_assessments}
     reports_2 = {row.report_id: row for row in reading_2.report_assessments}
     if set(reports_1) != set(reports_2):
-        raise ValueError("primary reading report closures differ after schema validation")
+        raise ValueError(
+            "primary reading report closures differ after schema validation"
+        )
     for report_id in sorted(reports_1):
         first = reports_1[report_id]
         second = reports_2[report_id]
@@ -219,9 +224,7 @@ def _call_receipt(
                 or _cache_tokens(row, "cache_write")
             ),
             cost_counted=bool(row.get("cost_counted", True)),
-            billing_disposition=str(
-                row.get("billing_disposition") or "unspecified"
-            ),
+            billing_disposition=str(row.get("billing_disposition") or "unspecified"),
             raw_usage_json=_stable_json(row),
         )
         for row in outcome.usage
@@ -305,7 +308,8 @@ def _validated_reading(outcome: StructuredCallOutcome[Any], phase: str) -> Judge
         raise RuntimeError(
             f"semantic Judge {phase} failed after provider/schema handling: {outcome.reason}; {outcome.basis}"
         )
-    return JudgeReading.model_validate(outcome.response.model_dump(mode="json"))
+    response = JudgeResponse.model_validate(outcome.response.model_dump(mode="json"))
+    return materialize_reading(response)
 
 
 def judge_pair(
@@ -319,8 +323,8 @@ def judge_pair(
 ) -> PairJudgeResult:
     """Run two blind readings and a full arbitration on any substantive conflict."""
 
-    response_model = build_exact_reading_model(judge_input)
-    schema_hash = reading_schema_hash(response_model)
+    response_model = build_exact_response_model(judge_input)
+    schema_hash = response_schema_hash(response_model)
     primary_prompt = build_primary_prompt(judge_input)
     primary_prompt_hash = _sha256_text(SYSTEM_PROMPT + "\n" + primary_prompt)
     pair_id = judge_input.pair_id
@@ -392,9 +396,7 @@ def judge_pair(
                 JUDGE_MAX_OUTPUT_TOKENS, runtime.config.max_output_tokens
             ),
         )
-        arbitration_reading = _validated_reading(
-            arbitration_outcome, "arbitration"
-        )
+        arbitration_reading = _validated_reading(arbitration_outcome, "arbitration")
         receipts.append(
             _call_receipt(
                 call_id=f"{pair_id}:r{round_no}:arbitration",
@@ -409,9 +411,7 @@ def judge_pair(
     else:
         final_reading = reading_1
     conflicts = build_conflict_records(disagreements, final_reading)
-    report_outcomes, expected_outcomes = decode_outcomes(
-        final_reading, adapter_audit
-    )
+    report_outcomes, expected_outcomes = decode_outcomes(final_reading, adapter_audit)
     metrics = compute_semantic_metrics(final_reading)
     return PairJudgeResult(
         run_id=run_id,

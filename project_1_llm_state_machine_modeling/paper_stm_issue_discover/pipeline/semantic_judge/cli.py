@@ -22,7 +22,13 @@ from .artifacts import (
     load_expected_issues,
 )
 from .metrics import aggregate_outcomes
-from .models import RunManifest, RunPairReceipt, RunSummary
+from .models import (
+    RunFailureSummary,
+    RunManifest,
+    RunPairFailure,
+    RunPairReceipt,
+    RunSummary,
+)
 from .protocol import (
     JUDGE_ALGORITHM_VERSION,
     PROTOCOL_SHA256,
@@ -115,7 +121,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report-root", type=Path, required=True)
     parser.add_argument("--ledger", type=Path, required=True)
-    parser.add_argument("--source-format", choices=("x1v2_record", "evidence_discovery_release"), required=True)
+    parser.add_argument(
+        "--source-format",
+        choices=("x1v2_record", "evidence_discovery_release"),
+        required=True,
+    )
     parser.add_argument("--source-root", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--run-id", required=True)
@@ -175,6 +185,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     manifest_path = artifact_root / "run_manifest.json"
     manifest_hash = _write_model(manifest_path, manifest)
+    runtime = PublicStructuredRuntime(
+        args.profile,
+        artifact_root / "llm",
+        transport_retries=args.transport_retries,
+        streaming=True,
+    )
 
     def run_one(pair_id: str, source_path: Path):
         expected, expected_map = load_expected_issues(ledger_path, pair_id)
@@ -183,8 +199,8 @@ def main(argv: list[str] | None = None) -> int:
                 source_path, expected_map
             )
         else:
-            reports, adapter_audit, round_no, adapted_pair_id = adapt_evidence_discovery_release(
-                source_path, expected_map
+            reports, adapter_audit, round_no, adapted_pair_id = (
+                adapt_evidence_discovery_release(source_path, expected_map)
             )
         if adapted_pair_id != pair_id or round_no != args.round:
             raise ValueError(
@@ -202,12 +218,6 @@ def main(argv: list[str] | None = None) -> int:
         _write_model(
             artifact_root / "adapter_audits" / f"{pair_id}.json",
             adapter_audit,
-        )
-        runtime = PublicStructuredRuntime(
-            args.profile,
-            artifact_root / "llm",
-            transport_retries=args.transport_retries,
-            streaming=True,
         )
         result = judge_pair(
             run_id=args.run_id,
@@ -232,14 +242,48 @@ def main(argv: list[str] | None = None) -> int:
 
     results = []
     receipts = []
+    failures = []
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         futures = {
-            executor.submit(run_one, pair_id, path): pair_id
+            executor.submit(run_one, pair_id, path): (pair_id, path)
             for pair_id, path in zip(pair_ids, source_paths, strict=True)
         }
         for future in as_completed(futures):
-            pair_id = futures[future]
-            result, receipt = future.result()
+            pair_id, source_path = futures[future]
+            try:
+                result, receipt = future.result()
+            except Exception as exc:  # noqa: BLE001 - run boundary persists typed failures
+                input_path = artifact_root / "inputs" / f"{pair_id}.json"
+                adapter_path = artifact_root / "adapter_audits" / f"{pair_id}.json"
+                failure = RunPairFailure(
+                    pair_id=pair_id,
+                    round=args.round,
+                    source_path=str(source_path),
+                    input_path=str(input_path) if input_path.is_file() else None,
+                    adapter_audit_path=(
+                        str(adapter_path) if adapter_path.is_file() else None
+                    ),
+                    llm_artifact_path=str(artifact_root / "llm" / pair_id),
+                    error_type=type(exc).__name__,
+                    error_message=str(exc) or repr(exc),
+                    reason="The pair did not complete two validated readings and any required arbitration, so it is excluded from aggregation.",
+                    basis="Captured worker exception plus preserved unified input, adapter audit, and public runtime artifacts when available.",
+                )
+                _write_model(artifact_root / "failures" / f"{pair_id}.json", failure)
+                failures.append(failure)
+                print(
+                    json.dumps(
+                        {
+                            "pair_id": pair_id,
+                            "status": "failed",
+                            "error_type": failure.error_type,
+                            "error_message": failure.error_message,
+                        },
+                        ensure_ascii=False,
+                    ),
+                    flush=True,
+                )
+                continue
             results.append(result)
             receipts.append(receipt)
             print(
@@ -257,6 +301,20 @@ def main(argv: list[str] | None = None) -> int:
                 ),
                 flush=True,
             )
+    if failures:
+        receipts.sort(key=lambda item: item.pair_id)
+        failures.sort(key=lambda item: item.pair_id)
+        failure_summary = RunFailureSummary(
+            run_id=args.run_id,
+            manifest_hash=manifest_hash,
+            completed_pair_receipts=tuple(receipts),
+            failures=tuple(failures),
+            reason=f"{len(failures)} selected pair(s) failed; no completed summary or partial score was emitted.",
+            basis=f"{PROTOCOL_VERSION}; {JUDGE_ALGORITHM_VERSION}; typed pair failures and no-partial-summary policy",
+        )
+        _write_model(artifact_root / "failure_summary.json", failure_summary)
+        print(failure_summary.model_dump_json(indent=2), flush=True)
+        return 1
     results.sort(key=lambda item: item.pair_id)
     receipts.sort(key=lambda item: item.pair_id)
     overall = aggregate_outcomes(
@@ -295,9 +353,7 @@ def main(argv: list[str] | None = None) -> int:
         ),
         total_judge_cost_usd=total_cost,
         cost_eligible=all(
-            call.cost_eligible
-            for result in results
-            for call in result.call_receipts
+            call.cost_eligible for result in results for call in result.call_receipts
         ),
         reason="Every selected report and expected issue was judged twice, conflicts were arbitrated, and final metrics were deterministically recomputed.",
         basis=f"{PROTOCOL_VERSION}; {JUDGE_ALGORITHM_VERSION}; {len(results)} complete PairJudgeResult artifacts",
