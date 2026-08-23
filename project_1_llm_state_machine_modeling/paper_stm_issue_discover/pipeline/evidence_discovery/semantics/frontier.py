@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import defaultdict
-from typing import Literal, Sequence
+from typing import Literal, Mapping, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -230,9 +230,9 @@ class FrontierCheckReceipt(BaseModel):
         default="paper1.frontier-check.v1",
         description="frontier check receipt 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v20"] = Field(
-        default="v27-typed-frontier.v20",
-        description="产生该检查的确定性算法版本；v20 按 exact owner 计 canonical 显式/隐式 UML regions 并区分 missing/extra cardinality，且保留 v19 的跨 lens 竞争读法；不表示旧谓词或旧 inspect 后端。",
+    algorithm_version: Literal["v27-typed-frontier.v21"] = Field(
+        default="v27-typed-frontier.v21",
+        description="产生该检查的确定性算法版本；v21 只允许与已知 contract 保持 exact typed identity 的既有候选占用 frontier 去重键，并保留 v20 的 canonical UML region 计数；不表示旧谓词或旧 inspect 后端。",
     )
     check_id: str = Field(
         min_length=1,
@@ -319,9 +319,9 @@ class FrontierBatch(BaseModel):
         default="paper1.frontier-batch.v1",
         description="该批 frontier artifact 的 schema 版本。",
     )
-    algorithm_version: Literal["v27-typed-frontier.v20"] = Field(
-        default="v27-typed-frontier.v20",
-        description="本批所有 check/obligation 使用的确定性算法版本；v20 增加 exact owner 的 canonical UML region 计数与 cardinality mismatch direction，并保留 v19 的跨 lens 竞争读法。",
+    algorithm_version: Literal["v27-typed-frontier.v21"] = Field(
+        default="v27-typed-frontier.v21",
+        description="本批所有 check/obligation 使用的确定性算法版本；v21 防止 unknown 或 contract-identity-mismatched 的 LLM candidate 抑制 deterministic frontier，并保留 v20 的 exact-owner cardinality 语义。",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
         default_factory=tuple,
@@ -860,13 +860,22 @@ def _candidate(
 
 
 class _Builder:
-    def __init__(self, pair: PairInput, existing: Sequence[CandidateIssue]) -> None:
+    def __init__(
+        self,
+        pair: PairInput,
+        existing: Sequence[CandidateIssue],
+        contracts_by_id: Mapping[str, NLContract],
+    ) -> None:
         self.pair = pair
         self.obligations: list[FrontierObligation] = []
         self.checks: list[FrontierCheckReceipt] = []
         self.seen = {
             contract_semantic_key_from_candidate(candidate)
             for candidate in existing
+            if (
+                (contract := contracts_by_id.get(candidate.contract_id)) is not None
+                and candidate_preserves_contract_identity(candidate, contract)
+            )
         }
         self.obligation_index: dict[tuple[object, ...], int] = {}
         self.superseded_candidate_contract_ids: list[str] = []
@@ -988,6 +997,20 @@ def contract_semantic_key_from_candidate(candidate: CandidateIssue) -> tuple[obj
         candidate.locus_names,
         candidate.property,
         candidate.violation_direction,
+    )
+
+
+def candidate_preserves_contract_identity(
+    candidate: CandidateIssue,
+    contract: NLContract,
+) -> bool:
+    """Return whether a candidate exactly preserves its referenced contract key."""
+
+    return (
+        candidate.locus_kind == contract.locus_kind
+        and tuple(candidate.locus_names) == tuple(contract.locus_names)
+        and candidate.property == contract.property
+        and candidate.violation_direction == contract.violation_direction
     )
 
 
@@ -4303,7 +4326,7 @@ def materialize_v27_frontier(
             continue
         seen_group_keys.add(encoded_key)
         all_groups.append(group)
-    builder = _Builder(pair, llm_candidates)
+    builder = _Builder(pair, llm_candidates, contracts_by_id)
     _materialize_containment(builder, all_contracts, all_groups)
     _materialize_cardinality(
         builder, all_contracts, grounding_responses, llm_candidates

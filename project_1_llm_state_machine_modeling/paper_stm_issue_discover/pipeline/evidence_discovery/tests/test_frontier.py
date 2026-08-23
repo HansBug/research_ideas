@@ -2366,6 +2366,119 @@ def test_0053_frontier_preserves_three_leaf_and_global_properties() -> None:
     assert "named_source_transition_refs=[]" in aggregate.observed
 
 
+def test_0053_mismatched_llm_dead_ends_do_not_suppress_canonical_frontier() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0053")
+    contracts = [
+        _contract(
+            contract_id=f"NL-CONTRACT-NL{index}-{state}-ACTION",
+            segment_id=f"NL{index}",
+            locus_kind="state",
+            locus_names=(state,),
+            property_name="state_action",
+            expected_direction="must_occur",
+            violation_direction="wrong_effect",
+            hints=(_hint("state", state, f"NL{index}"),),
+            state_role="operating_state",
+        )
+        for index, state in (
+            (3, "PumpState"),
+            (4, "WaterState"),
+            (5, "MethaneState"),
+        )
+    ]
+    malformed_candidates = [
+        CandidateIssue(
+            contract_id=contract.contract_id,
+            locus_kind=contract.locus_kind,
+            locus_names=contract.locus_names,
+            property="deadlock_freedom",
+            violation_direction="dead_end",
+            evidence_types=("deadlock_frontier_fact",),
+            title=f"{contract.locus_names[0]} has no executable continuation",
+            requirement_quote=contract.quote,
+            element_refs=[pair.model.state(contract.locus_names[0]).ref],
+            source_refs=[contract.segment_id],
+            expected=f"{contract.locus_names[0]} must retain a continuation.",
+            observed="The reachable state has no outgoing transition.",
+            strongest_rebuttal="The referenced action contract does not establish this property identity.",
+            reason="This replays the six-pair run's property-mismatched grounding candidate.",
+            basis="provider-free replay of the cb406442 0053 grounding shape",
+        )
+        for contract in contracts
+    ]
+
+    batch = materialize_v27_frontier(
+        pair,
+        _response(contracts),
+        {contract.contract_id: contract for contract in contracts},
+        (),
+        malformed_candidates,
+    )
+
+    dead_ends = {
+        item.candidate.locus_names[0]: item
+        for item in batch.obligations
+        if item.kind == "reachable_dead_end"
+    }
+    assert set(dead_ends) == {"PumpState", "WaterState", "MethaneState"}
+    assert all(
+        item.contract.contract_id not in {contract.contract_id for contract in contracts}
+        for item in dead_ends.values()
+    )
+    assert batch.algorithm_version == "v27-typed-frontier.v21"
+
+
+def test_exact_existing_candidate_still_suppresses_duplicate_frontier() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0053")
+    contract = _contract(
+        contract_id="NL-CONTRACT-NL3-PUMP-DEADLOCK",
+        segment_id="NL3",
+        locus_kind="state",
+        locus_names=("PumpState",),
+        property_name="deadlock_freedom",
+        expected_direction="must_progress",
+        violation_direction="dead_end",
+        hints=(_hint("state", "PumpState", "NL3"),),
+        state_role="operating_state",
+    )
+    exact_candidate = CandidateIssue(
+        contract_id=contract.contract_id,
+        locus_kind=contract.locus_kind,
+        locus_names=contract.locus_names,
+        property=contract.property,
+        violation_direction=contract.violation_direction,
+        evidence_types=contract.evidence_types,
+        title="PumpState has no operational continuation",
+        requirement_quote=contract.quote,
+        element_refs=[pair.model.state("PumpState").ref],
+        source_refs=[contract.segment_id],
+        expected=contract.normative_statement,
+        observed="PumpState is reachable and has no outgoing transition.",
+        strongest_rebuttal="No explicit terminal role is supplied.",
+        reason="The existing candidate preserves the complete typed contract identity.",
+        basis="provider-free exact-identity duplicate fixture",
+    )
+
+    batch = materialize_v27_frontier(
+        pair,
+        _response([contract]),
+        {contract.contract_id: contract},
+        (),
+        (exact_candidate,),
+    )
+
+    assert not any(
+        item.kind == "reachable_dead_end"
+        and item.candidate.locus_names == ("PumpState",)
+        for item in batch.obligations
+    )
+    assert any(
+        item.kind == "reachable_dead_end"
+        and item.status == "not_applicable"
+        for item in batch.checks
+    )
+
+
 def test_0023_frontier_keeps_direct_leaf_dead_ends_independent() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0023")
     contracts = [
