@@ -224,7 +224,7 @@ def reading_payload(
             }
         )
     return {
-        "schema_version": "paper1.semantic-judge.response.v4",
+        "schema_version": "paper1.semantic-judge.response.v5",
         "relations": relation_rows,
         "report_judgments": report_rows,
         "expected_judgments": expected_rows,
@@ -332,12 +332,13 @@ def test_exact_schema_rejects_report_quote_not_owned_by_selected_field() -> None
         schema.model_validate(payload)
 
 
-def test_full_relation_requires_report_owned_causal_support() -> None:
+def test_full_relation_may_be_invalid_without_causal_support() -> None:
     judge_input = minimal_input()
     schema = build_exact_response_model(judge_input)
     payload = reading_payload(
         judge_input,
         matches={("R0001", "E0001"): MatchStrength.FULL_MATCH},
+        validity={"R0001": ReportValidity.INVALID},
     )
     payload["relations"][0]["report_text_evidence"] = [
         row
@@ -345,10 +346,11 @@ def test_full_relation_requires_report_owned_causal_support() -> None:
         if row["semantic_role"] != "CAUSAL_SUPPORT"
     ]
 
-    with pytest.raises(
-        ValidationError, match="requires CAUSAL_SUPPORT for FULL_MATCH"
-    ):
-        schema.model_validate(payload)
+    response = schema.model_validate(payload)
+    reading = materialize_reading(response)
+    assert reading.relations[0].match == MatchStrength.FULL_MATCH
+    assert reading.report_assessments[0].validity == ReportValidity.INVALID
+    assert not reading.expected_assessments[0].hit
 
 
 def test_causal_support_cannot_use_where_or_excerpt_reason() -> None:

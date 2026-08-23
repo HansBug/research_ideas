@@ -407,7 +407,12 @@ class UnifiedJudgeInput(FrozenModel):
 
 
 class RelationAssessment(FrozenModel):
-    """One required dimension-A decision for an exact report/expected pair."""
+    """One required dimension-A decision for an exact report/expected pair.
+
+    This row compares the semantic content of a report with an expected issue.
+    It does not decide whether the report is true; ReportJudgment owns that
+    independent dimension, so FULL_MATCH plus INVALID is representable.
+    """
 
     report_id: str = Field(
         min_length=1, description="Anonymous report ID being compared; it must come from the exact input closure."
@@ -421,7 +426,7 @@ class RelationAssessment(FrozenModel):
     )
     report_text_evidence: tuple[ReportTextEvidence, ...] = Field(
         min_length=1,
-        description="Exact report-owned quotations delimiting this pairwise relation. Every row needs CLAIM_BOUNDARY; FULL/PARTIAL additionally need CAUSAL_SUPPORT from the report itself.",
+        description="Exact report-owned quotations delimiting this pairwise relation. Every row needs CLAIM_BOUNDARY. CAUSAL_SUPPORT is optional here because report truth belongs to dimension B; when supplied, it must come from a whole-field SUPPORTED causal audit.",
     )
     reason: str = Field(
         min_length=1,
@@ -496,9 +501,9 @@ class ExpectedJudgment(FrozenModel):
 class JudgeResponse(FrozenModel):
     """LLM response containing only semantic judgments, never deterministic summaries."""
 
-    schema_version: Literal["paper1.semantic-judge.response.v4"] = Field(
-        default="paper1.semantic-judge.response.v4",
-        description="Provider structured-output schema version; v4 adds complete causal-field audit while only the backend generates derived sets, hit, and support.",
+    schema_version: Literal["paper1.semantic-judge.response.v5"] = Field(
+        default="paper1.semantic-judge.response.v5",
+        description="Provider structured-output schema version; v5 keeps complete causal-field audit while separating dimension-A relation strength from dimension-B report truth.",
     )
     relations: tuple[RelationAssessment, ...] = Field(
         description="Complete report-by-expected matrix including every NO_MATCH; it must not be sparse."

@@ -183,14 +183,6 @@ def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResp
                         f"relations[{row.report_id},{row.expected_id}].report_text_evidence "
                         "requires CLAIM_BOUNDARY"
                     )
-                if row.match in {
-                    MatchStrength.FULL_MATCH,
-                    MatchStrength.PARTIAL_MATCH,
-                } and ReportTextEvidenceRole.CAUSAL_SUPPORT not in roles:
-                    raise ValueError(
-                        f"relations[{row.report_id},{row.expected_id}].report_text_evidence "
-                        f"requires CAUSAL_SUPPORT for {row.match.value}"
-                    )
             for row in self.report_judgments:
                 roles = {item.semantic_role for item in row.report_text_evidence}
                 if ReportTextEvidenceRole.CLAIM_BOUNDARY not in roles:
