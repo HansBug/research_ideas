@@ -42,7 +42,6 @@ from .workflow import (
     StateSemanticRole,
 )
 
-
 FrontierKind = Literal[
     "containment",
     "aggregate_containment",
@@ -2471,7 +2470,10 @@ def _materialize_source_dead_ends(
 def _materialize_dead_ends(builder: _Builder, contracts: Sequence[NLContract]) -> None:
     pair = builder.pair
     for contract in contracts:
-        if contract.state_role != "operating_state" or contract.property not in {"state_action", "deadlock_freedom"}:
+        if (
+            contract.state_role != "operating_state"
+            or contract.property != "deadlock_freedom"
+        ):
             continue
         state_hint = _hint(contract, "state") or _hint(contract, "target") or _hint(contract, "owner")
         state = _state_for_value(pair, state_hint.value if state_hint else None)
@@ -2480,31 +2482,14 @@ def _materialize_dead_ends(builder: _Builder, contracts: Sequence[NLContract]) -
         fact = _inspection_state(pair, state.ref) if state else None
         if not state or not fact or not fact.reachable_from_initial or fact.outgoing_transition_refs:
             continue
-        target_contract = contract
-        if contract.property != "deadlock_freedom":
-            target_contract = _derived_contract(
-                contract,
-                locus_kind="state",
-                locus_names=(state.name,),
-                property_name="deadlock_freedom",
-                state_role="operating_state",
-                expected_direction="must_progress",
-                violation_direction="dead_end",
-                evidence_types=("source_identity", "closed_model_inventory", "deadlock_frontier_fact", "verify_fact"),
-                normative_statement=f"Required operating state {state.name} must retain an operational continuation.",
-                scope=f"Operational continuation of {state.name}",
-                source_refs=contract.source_refs,
-                reason="The base contract assigns explicit operating behavior to this state, allowing the exact reachable-leaf frontier to test continuation separately from action content.",
-                basis="typed operating state_action contract plus exact reachable leaf/no-outgoing fact",
-            )
         candidate = _candidate(
-            target_contract,
+            contract,
             title=f"{state.name} has no operational continuation",
             predicate_id="V4",
             predicate_inputs={"initial_scope": state.name},
             element_refs=(state.ref,),
-            source_refs=target_contract.source_refs,
-            expected=target_contract.normative_statement,
+            source_refs=contract.source_refs,
+            expected=contract.normative_statement,
             observed=f"{state.ref} is reachable_from_initial=true and outgoing_transition_refs=[].",
             strongest_rebuttal="No explicit terminal role or final edge is supplied for this typed operating state.",
             reason="An explicit operating-state contract and the deterministic reachable leaf frontier establish a reproducible no-continuation candidate.",
@@ -2513,10 +2498,10 @@ def _materialize_dead_ends(builder: _Builder, contracts: Sequence[NLContract]) -
         builder.add(
             "reachable_dead_end",
             (contract.contract_id,),
-            target_contract,
+            contract,
             candidate,
-            reason="An explicit operating-state obligation is bound to a reachable leaf with no outgoing transition.",
-            basis="typed state role plus inspection-equivalent deadlock frontier",
+            reason="An explicit deadlock-freedom obligation is bound to a reachable leaf with no outgoing transition.",
+            basis="typed deadlock-freedom contract plus inspection-equivalent deadlock frontier",
         )
     _materialize_source_dead_ends(builder, contracts)
 

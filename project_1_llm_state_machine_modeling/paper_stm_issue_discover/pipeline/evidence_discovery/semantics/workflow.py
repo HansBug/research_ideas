@@ -1491,10 +1491,13 @@ that actual mismatch and emit its candidate. Do not first enumerate standalone
 qualifier contracts for every satisfied alternative.
 
 Cross-view frontier discipline:
-- A required active control state with exact ongoing action/response semantics and
-  a deterministic reachable leaf/no-outgoing fact may justify one derived
-  `deadlock_freedom` contract for that state. Do not enumerate progress for every
-  state merely because it is named or entered.
+- A `state_action` obligation and a deterministic reachable leaf/no-outgoing fact
+  do not by themselves establish `deadlock_freedom`; action content and operational
+  continuation are independent properties. Emit a deadlock candidate only from an
+  explicit progress/response obligation or an independent deterministic source
+  certificate that closes reachable, non-final, sequential no-continuation
+  semantics. Do not enumerate progress for every state merely because it is named,
+  entered, or assigned an action.
 - A source/model composite that semantically owns required behavior but has no
   exact owner-local default entry may justify one derived `initial_entry` contract
   for that owner. Keep this separate from entry edges inside child regions.

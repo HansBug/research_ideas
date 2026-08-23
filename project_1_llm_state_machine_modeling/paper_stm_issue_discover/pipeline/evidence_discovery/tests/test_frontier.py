@@ -3,8 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
-
 from pipeline.evidence_discovery.backends import run_backend
 from pipeline.evidence_discovery.compiler import compile_plan
 from pipeline.evidence_discovery.evidence.witness_levels import calculate_witness_level
@@ -34,7 +32,7 @@ from pipeline.evidence_discovery.semantics import (
     materialize_segment_coverage,
     materialize_typed_frontier,
 )
-
+from pydantic import ValidationError
 
 PAPER_ROOT = Path(__file__).parents[3]
 REPORT_ROOT = PAPER_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
@@ -1974,13 +1972,13 @@ def test_frontier_merges_duplicate_typed_candidate_support() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0023")
     contracts = [
         _contract(
-            contract_id=f"NL-CONTRACT-NL{index}-PUMP-ACTION",
+            contract_id=f"NL-CONTRACT-NL{index}-PUMP-PROGRESS",
             segment_id=f"NL{index}",
             locus_kind="state",
             locus_names=("PumpState",),
-            property_name="state_action",
-            expected_direction="must_exist",
-            violation_direction="missing",
+            property_name="deadlock_freedom",
+            expected_direction="must_progress",
+            violation_direction="dead_end",
             hints=(_hint("state", "PumpState", f"NL{index}"),),
             state_role="operating_state",
         )
@@ -2245,7 +2243,7 @@ def test_0029_wrong_target_materializes_from_exact_cross_contract_roles() -> Non
     assert pair.model.state("exit_hwy").ref in obligation.candidate.element_refs
 
 
-def test_0053_frontier_preserves_three_leaf_and_global_properties() -> None:
+def test_global_zero_behavior_does_not_manufacture_leaf_deadlocks() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0053")
     owner_entry_contract = _contract(
         contract_id="NL-CONTRACT-NL3-PUMPCONTROL-ENTRY",
@@ -2327,7 +2325,7 @@ def test_0053_frontier_preserves_three_leaf_and_global_properties() -> None:
         for item in batch.obligations
         if item.kind == "reachable_dead_end"
     }
-    assert dead_ends == {"PumpState", "WaterState", "MethaneState"}
+    assert dead_ends == set()
     owner_entry = next(
         item.candidate
         for item in batch.obligations
@@ -2366,7 +2364,7 @@ def test_0053_frontier_preserves_three_leaf_and_global_properties() -> None:
     assert "named_source_transition_refs=[]" in aggregate.observed
 
 
-def test_0053_mismatched_llm_dead_ends_do_not_suppress_canonical_frontier() -> None:
+def test_property_mismatched_llm_dead_ends_do_not_create_progress_contracts() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0053")
     contracts = [
         _contract(
@@ -2420,11 +2418,7 @@ def test_0053_mismatched_llm_dead_ends_do_not_suppress_canonical_frontier() -> N
         for item in batch.obligations
         if item.kind == "reachable_dead_end"
     }
-    assert set(dead_ends) == {"PumpState", "WaterState", "MethaneState"}
-    assert all(
-        item.contract.contract_id not in {contract.contract_id for contract in contracts}
-        for item in dead_ends.values()
-    )
+    assert dead_ends == {}
     assert batch.algorithm_version == "typed-domain-frontier.v22"
 
 
@@ -2479,7 +2473,7 @@ def test_exact_existing_candidate_still_suppresses_duplicate_frontier() -> None:
     )
 
 
-def test_0023_frontier_keeps_direct_leaf_dead_ends_independent() -> None:
+def test_state_action_does_not_manufacture_deadlock_without_source_certificate() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0023")
     contracts = [
         _contract(
@@ -2540,11 +2534,7 @@ def test_0023_frontier_keeps_direct_leaf_dead_ends_independent() -> None:
         for item in batch.obligations
         if item.kind == "reachable_dead_end"
     ]
-    assert {item.locus_names for item in leaf_dead_ends} == {
-        ("PumpState",),
-        ("WaterState",),
-        ("MethaneState",),
-    }
+    assert leaf_dead_ends == []
     assert not any(
         item.kind == "aggregate_zero_behavior" for item in batch.obligations
     )

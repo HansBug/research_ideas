@@ -1594,6 +1594,7 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "synthetic placeholders are not author-specified operating-state" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "an unreachable state that" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "not a deadlock/dead-end violation" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    assert "do not by themselves establish `deadlock_freedom`" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "declared consumer with no consumer reachable" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "three independent frontier properties" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert "For every supplied `termination` contract" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
