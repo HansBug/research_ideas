@@ -580,6 +580,7 @@ def judge_pair(
             certificate.report_id: build_relation_input(judge_input, certificate)
             for certificate in ordered_certificates
             if certificate.core_truth == CoreClaimTruth.VALID
+            and judge_input.expected_issues
         }
         invalid_ids = tuple(
             certificate.report_id
@@ -634,11 +635,20 @@ def judge_pair(
                         exact_response.model_dump(mode="json")
                     )
                 )
+            empty_denominator = not judge_input.expected_issues
             return RelationStageReading(
                 responses=tuple(responses),
                 backend_invalid_report_ids=invalid_ids,
-                reason="Every frozen-valid report received one complete relation reading; invalid reports remain backend-owned all-NO closures.",
-                basis="Immutable validity certificates, every expected position, and the unchanged common artifacts.",
+                reason=(
+                    "The expected denominator is empty, so no relation model call is required; frozen-valid reports deterministically become VALID_NOVEL and invalid reports remain INVALID."
+                    if empty_denominator
+                    else "Every frozen-valid report received one complete relation reading; invalid reports remain backend-owned all-NO closures."
+                ),
+                basis=(
+                    "Immutable validity certificates and the explicit empty expected denominator."
+                    if empty_denominator
+                    else "Immutable validity certificates, every expected position, and the unchanged common artifacts."
+                ),
                 source_refs=tuple(
                     dict.fromkeys(
                         [

@@ -7,9 +7,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from pydantic import TypeAdapter
-
 from pipeline.evidence_discovery.inputs import load_pair
+from pydantic import TypeAdapter
 
 from .models import (
     AdapterAudit,
@@ -341,8 +340,6 @@ def load_expected_issues(
         mappings.append(
             AdapterIdMap(anonymous_id=anonymous_id, original_id=original_id)
         )
-    if not expected:
-        raise ValueError(f"pair {pair_id} has no D2/D1 expected issues in {path}")
     return tuple(expected), tuple(mappings)
 
 

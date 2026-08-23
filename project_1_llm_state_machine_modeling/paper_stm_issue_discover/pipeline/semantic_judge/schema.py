@@ -1085,11 +1085,12 @@ def materialize_two_stage_reading(
         if certificate.core_truth == CoreClaimTruth.VALID
     }
     responses_by_id = {item.report_id: item for item in relation_responses}
-    if set(responses_by_id) != valid_ids or len(responses_by_id) != len(
-        relation_responses
-    ):
+    expected_response_ids = valid_ids if expected_ids else set()
+    if set(responses_by_id) != expected_response_ids or len(
+        responses_by_id
+    ) != len(relation_responses):
         raise ValueError(
-            "relation responses must cover every and only VALID report exactly once"
+            "relation responses must cover every and only VALID report exactly once when the expected denominator is non-empty, and must be empty when the denominator is empty"
         )
 
     relations = []

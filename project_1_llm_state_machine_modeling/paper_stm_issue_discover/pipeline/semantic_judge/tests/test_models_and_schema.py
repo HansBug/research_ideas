@@ -875,6 +875,15 @@ def test_typed_scale_audit_checks_exact_prompt_schema_and_sparse_envelopes() -> 
     assert audit.response_schema_set_hash.startswith("sha256:")
 
 
+def test_load_expected_issues_preserves_an_explicit_empty_denominator() -> None:
+    ledger = PROJECT_ROOT / "discover_matrix/ledger_v2/ledger.json"
+
+    expected, mappings = load_expected_issues(ledger, "0003")
+
+    assert expected == ()
+    assert mappings == ()
+
+
 def test_both_adapters_emit_one_candidate_schema_without_privileged_fields(
     tmp_path: Path,
 ) -> None:

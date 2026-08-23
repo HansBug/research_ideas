@@ -653,8 +653,7 @@ class UnifiedJudgeInput(FrozenModel):
         description="Anonymous arm-neutral projections of actually published reports; may be empty, and may not add semantics absent from the source arm."
     )
     expected_issues: tuple[ExpectedIssue, ...] = Field(
-        min_length=1,
-        description="Anonymous projection of the pair's frozen D2+D1 expected denominator; contains no D or L.",
+        description="Anonymous projection of the pair's frozen D2+D1 expected denominator; it may be empty and contains no D or L.",
     )
     artifact_closure: JudgeArtifactClosure = Field(
         description="Common truth-audit closure serialized identically for every experimental arm."
@@ -1184,8 +1183,7 @@ class RelationResponse(FrozenModel):
     relation_decisions: tuple[
         SupportedRelationJudgment | AuditedNoMatchRelationJudgment, ...
     ] = Field(
-        min_length=1,
-        description="Exactly one FULL_MATCH, PARTIAL_MATCH, or explicit evidenced NO_MATCH decision per expected issue in dynamic-schema order.",
+        description="Exactly one FULL_MATCH, PARTIAL_MATCH, or explicit evidenced NO_MATCH decision per expected issue in dynamic-schema order; empty is legal only for an empty expected denominator and is backend-generated without a provider call.",
     )
     relation_reason: str = Field(
         min_length=1,
@@ -1239,7 +1237,7 @@ class RelationStageReading(FrozenModel):
         description="Relation response closure plus backend-owned invalid report IDs.",
     )
     responses: tuple[RelationResponse, ...] = Field(
-        description="Exactly one relation response for every report frozen as VALID."
+        description="Exactly one relation response for every report frozen as VALID when expected issues exist; empty when the expected denominator is empty or every report is INVALID."
     )
     backend_invalid_report_ids: tuple[str, ...] = Field(
         description="Reports frozen as INVALID and therefore assigned all-NO relations without a relation model call."

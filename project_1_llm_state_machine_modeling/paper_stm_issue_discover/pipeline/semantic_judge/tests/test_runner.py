@@ -306,6 +306,48 @@ def test_valid_novel_and_concise_report_remain_valid_without_formal_witness() ->
     assert len(result.call_receipts) == 4
 
 
+@pytest.mark.parametrize(
+    ("refuted", "expected_validity"),
+    [
+        (set(), ReportValidity.VALID_NOVEL),
+        ({("claim", "C1")}, ReportValidity.INVALID),
+    ],
+)
+def test_empty_expected_denominator_runs_validity_only_and_closes_ownership(
+    refuted: set[tuple[str, str]], expected_validity: ReportValidity
+) -> None:
+    judge_input = minimal_input(report_count=1, expected_count=0)
+    validity_input = build_validity_input(judge_input, "R0001")
+    response = validity_payload(validity_input, refuted=refuted)
+    runtime = FakeRuntime((response, response))
+
+    result = judge_pair(
+        run_id="fixture-empty-expected",
+        round_no=1,
+        judge_input=judge_input,
+        adapter_audit=adapter_audit(1, 0),
+        runtime=runtime,
+        judge_code_commit="d" * 40,
+    )
+
+    assert len(runtime.calls) == 2
+    assert all("validity" in item["kind"] for item in runtime.calls)
+    assert result.relation_reading_1.responses == ()
+    assert result.relation_reading_2.responses == ()
+    assert result.final_reading.relations == ()
+    assert result.final_reading.expected_assessments == ()
+    assert result.report_outcomes[0].validity == expected_validity
+    assert result.metrics.expected_count == 0
+    assert result.metrics.report_count == 1
+    assert result.metrics.valid_novel_count == (
+        expected_validity == ReportValidity.VALID_NOVEL
+    )
+    assert result.metrics.invalid_count == (
+        expected_validity == ReportValidity.INVALID
+    )
+    assert len(result.call_receipts) == 2
+
+
 def test_validity_conflict_is_arbitrated_before_relation_visibility() -> None:
     judge_input = minimal_input()
     validity_input = build_validity_input(judge_input, "R0001")

@@ -8,7 +8,7 @@ from pathlib import Path
 PROTOCOL_URL = "https://github.com/HansBug/research_ideas/issues/195"
 PROTOCOL_SHA256 = "d774d9bd3e4c4fe04735ed1d4ec064be197cfadcd52e21c8226e37175b29b210"
 PROTOCOL_VERSION = "github-issue-195.d774d9bd3e4c"
-JUDGE_ALGORITHM_VERSION = "semantic-judge.two-stage.v3"
+JUDGE_ALGORITHM_VERSION = "semantic-judge.two-stage.v3.1"
 PROMPT_VERSION = "semantic-judge.two-stage-prompt.v3"
 ARTIFACT_BUILDER_VERSION = "paper1.semantic-judge.artifact-closure.v2"
 ADAPTER_VERSION = "paper1.semantic-judge.arm-neutral-adapter.v1"
