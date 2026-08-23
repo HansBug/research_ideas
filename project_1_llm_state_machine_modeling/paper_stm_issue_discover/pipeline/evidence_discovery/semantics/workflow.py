@@ -1370,7 +1370,7 @@ State-role and discourse discipline:
 - Preserve every explicit parent/child relation as a separate `containment` contract. A clause that a scope transitions into, contains, or uses a named substate may establish both an endpoint/initial-entry relation and child containment; one does not replace the other. In particular, covered segment accounting never licenses omission of the containment row.
 - Preserve enclosing hierarchy across numbered-segment discourse when the supplied meaning, rather than identifier spelling or model layout, keeps a transition group inside one established owner. If an earlier clause establishes source `S` as a child of owner `P` and a later group presents `A` and `B` as sibling operating alternatives inside that same continuing scope, set `common_enclosing_owner_name=P` and emit separate containment contracts `S in P`, `A in P`, and `B in P` alongside the endpoint/group contracts. The typed owner field lets the runner restore a missing duplicate containment row without guessing from a transition. Set it to null when source is itself the owner, the relation crosses scopes, only some members share an owner, or the reading is ambiguous. Do not infer it merely because `S` transitions to `A`/`B`.
 - Put every direct-transition sentence in one `transition_groups` row with its semantically resolved shared source and complete target set. Sequential discourse continues from the preceding target when the supplied meaning supports that reading; it does not mechanically inherit the enclosing composite as source. When two alternatives from the same source are intended to be distinguishable or mutually exclusive, emit a separate `guard_disjointness` contract over that group. Two individually present guards do not establish disjointness.
-- Treat the current numbered segment's explicit semantic target or role as authoritative. Later segments may resolve genuine anaphora, but they must not overwrite an earlier local role that is already semantically complete. In particular, “leave/exit a mode” remains a distinct local-exit target concept unless the supplied NL explicitly equates it with a later named completion or termination state. Preserve every coordinated alternative's target exactly as stated. Do not infer normative target identity from PlantUML, FCSTM, or apparent model satisfaction during contract extraction; grounding binds the preserved concept later.
+- Treat the current numbered segment's explicit semantic target or role as authoritative. Later segments may resolve genuine anaphora, but they must not overwrite an earlier local role that is already semantically complete. In particular, "leave/exit a mode" remains a distinct local-exit target concept unless the supplied NL explicitly equates it with a later named completion or termination state. Preserve every coordinated alternative's target exactly as stated. Do not infer normative target identity from PlantUML, FCSTM, or apparent model satisfaction during contract extraction; grounding binds the preserved concept later.
 - Keep semantically distinct control effects distinct even when both eventually leave a scope. A local mode exit under one condition and a later mode/system completion under another condition are different targets unless the NL explicitly identifies them. For example, an earlier `LocalExitRole` alternative must not become `NamedCompletionState` merely because a later segment names that state as the target of a different completion condition.
 - An introductory statement that an enclosing controller "can transition to different substates" establishes context but no exact source-target relation until the later discourse supplies it. Do not turn that sentence into an `element_declaration` contract, and do not use it to override the sequential source resolved from later "first", "also", or "similarly" clauses. A common enclosing owner is not itself evidence of a common transition source.
 - Keep a state-owned action/effect independent from the endpoint that enters the state. The action may remain a precise unsupported W1 obligation even when the endpoint exists. Do not create standalone trigger/guard contracts that merely repeat every transition-group condition; use the group as the compact normative relation and let grounding derive only actual mismatches.
@@ -2164,14 +2164,14 @@ def assemble_method_response(
 
 
 __all__ = [
-    "CardinalityDomainBinding",
-    "CardinalityRequirement",
     "CONTRACT_SYSTEM_PROMPT",
     "DISCOVERY_GROUNDING_AUDIT_LENSES",
     "DISCOVERY_GROUNDING_SYSTEM_PROMPT",
     "D_SYSTEM_PROMPT",
-    "GroundingUnresolved",
+    "CardinalityDomainBinding",
+    "CardinalityRequirement",
     "GroundingResponse",
+    "GroundingUnresolved",
     "NLContract",
     "NLContractResponse",
     "NLTransitionAlternative",
@@ -2188,7 +2188,7 @@ __all__ = [
     "fallback_contracts",
     "fallback_d_adjudication",
     "fallback_grounding",
-    "materialize_segment_coverage",
     "materialize_group_containment_contracts",
+    "materialize_segment_coverage",
     "normalize_contract_state_roles",
 ]
