@@ -5,6 +5,8 @@ import re
 from types import SimpleNamespace
 
 import pytest
+from pydantic import ValidationError
+
 from pipeline.semantic_judge.artifacts import stable_model_hash
 from pipeline.semantic_judge.models import (
     AdapterAudit,
@@ -31,7 +33,6 @@ from pipeline.semantic_judge.schema import (
     build_validity_input,
     materialize_validity_certificate,
 )
-from pydantic import ValidationError
 
 from .test_models_and_schema import minimal_input
 
@@ -95,10 +96,29 @@ def validity_payload(
     """Build one exact fixed-field validity response fixture."""
 
     refuted = refuted or set()
+    core_refuted = any(field == "claim" for field, _clause in refuted)
+    mechanism_refuted = any(field == "reason" for field, _clause in refuted)
+
+    def gate(status: str, subject: str) -> dict:
+        return {
+            "status": status,
+            "reason": f"The complete common artifacts determine the {subject} gate.",
+            "basis": f"The immutable report clauses and common artifacts establish the {subject} status.",
+            "source_refs": ["artifact:natural_language"],
+        }
+
     payload = {
-        "schema_version": "semantic-judge.validity-response.v1",
+        "schema_version": "semantic-judge.validity-response.v2",
         "report_id": validity_input.report.report_id,
         "root_cause_cluster_key": cluster_key,
+        "core_claim_gate": gate(
+            "REFUTED" if core_refuted else "SATISFIED", "core claim"
+        ),
+        "indispensable_mechanism_gate": gate(
+            "REFUTED" if mechanism_refuted else "SATISFIED",
+            "indispensable mechanism",
+        ),
+        "minimum_evidence_gate": gate("SATISFIED", "minimum evidence"),
         "validity_reason": "Every immutable core clause was reviewed against the common artifacts.",
         "validity_basis": "The report source clauses and common artifacts determine every verdict.",
         "validity_source_refs": ["artifact:natural_language"],
@@ -108,6 +128,13 @@ def validity_payload(
             {
                 "clause_id": clause.clause_id,
                 "assertion": "This English assertion faithfully represents the complete immutable source clause.",
+                "validity_role": (
+                    "CORE_CLAIM"
+                    if field_plan.report_field.value == "claim"
+                    else "INDISPENSABLE_MECHANISM"
+                    if field_plan.report_field.value == "reason"
+                    else "AUXILIARY_CONTEXT"
+                ),
                 "verdict": (
                     "REFUTED"
                     if (field_plan.report_field.value, clause.clause_id)
@@ -304,6 +331,36 @@ def test_valid_novel_and_concise_report_remain_valid_without_formal_witness() ->
     assert result.metrics.invalid_count == 0
     assert result.report_outcomes[0].validity == ReportValidity.VALID_NOVEL
     assert len(result.call_receipts) == 4
+
+
+def test_refuted_auxiliary_reason_wording_does_not_kill_supported_core() -> None:
+    judge_input = minimal_input()
+    validity_input = build_validity_input(judge_input, "R0001")
+    payload = validity_payload(validity_input)
+    reason_row = payload["reason_audit"][0]
+    reason_row["validity_role"] = "AUXILIARY_CONTEXT"
+    reason_row["verdict"] = "REFUTED"
+    reason_row["reason"] = "One incidental phrase is inaccurate but is not needed to sustain the bounded claim."
+    payload["indispensable_mechanism_gate"]["status"] = "SATISFIED"
+
+    certificate = certificate_from_payload(validity_input, payload)
+
+    assert certificate.core_truth == CoreClaimTruth.VALID
+    assert [(item.report_field.value, item.clause_id) for item in certificate.auxiliary_warnings] == [
+        ("reason", "C1")
+    ]
+
+
+def test_refuted_indispensable_mechanism_invalidates_supported_conclusion() -> None:
+    judge_input = minimal_input()
+    validity_input = build_validity_input(judge_input, "R0001")
+    payload = validity_payload(validity_input, refuted={("reason", "C1")})
+
+    certificate = certificate_from_payload(validity_input, payload)
+
+    assert certificate.core_claim_gate.status.value == "SATISFIED"
+    assert certificate.indispensable_mechanism_gate.status.value == "REFUTED"
+    assert certificate.core_truth == CoreClaimTruth.INVALID
 
 
 @pytest.mark.parametrize(
@@ -847,6 +904,12 @@ def test_prompts_state_general_typed_carrier_and_relation_scope_boundaries() -> 
     assert "never expand the report to a different defect" in normalized_relation
     assert "initial transition inside a child composite is not a parent-level entry" in (
         normalized_relation
+    )
+    assert "unexpected reachable deadlock or no progress need not be stated verbatim" in (
+        normalized_validity
+    )
+    assert "without a typed predicate or formal witness can be valid" in (
+        normalized_validity
     )
     forbidden_calibration_terms = {
         "pumpstate",

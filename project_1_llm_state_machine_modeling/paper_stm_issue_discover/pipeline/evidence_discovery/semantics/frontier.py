@@ -11,7 +11,8 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import defaultdict
-from typing import Literal, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -232,8 +233,8 @@ class FrontierCheckReceipt(BaseModel):
         default="evidence-discovery.frontier-check.v1",
         description="Schema version of the frontier-check receipt.",
     )
-    algorithm_version: Literal["typed-domain-frontier.v22"] = Field(
-        default="typed-domain-frontier.v22",
+    algorithm_version: Literal["typed-domain-frontier.v23"] = Field(
+        default="typed-domain-frontier.v23",
         description="Deterministic algorithm version that produced the check. Only an existing candidate with exact typed identity matching a known contract may occupy a frontier deduplication key, and UML region counting uses the canonical author-source partition inventory.",
     )
     check_id: str = Field(
@@ -322,8 +323,8 @@ class FrontierBatch(BaseModel):
         default="evidence-discovery.frontier-batch.v1",
         description="Schema version of this frontier-batch artifact.",
     )
-    algorithm_version: Literal["typed-domain-frontier.v22"] = Field(
-        default="typed-domain-frontier.v22",
+    algorithm_version: Literal["typed-domain-frontier.v23"] = Field(
+        default="typed-domain-frontier.v23",
         description="Deterministic algorithm version used by every check and obligation in this batch. Unknown or contract-identity-mismatched candidates cannot suppress deterministic frontier expansion, and cardinality remains bound to one exact normative owner.",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
@@ -3676,9 +3677,10 @@ def _materialize_aggregate_zero_behavior(
         if (
             not state_contracts
             or state_fact is None
-            or not state_fact.reachable_from_initial
             or state_fact.outgoing_transition_refs
         ):
+            return
+        if direct_sibling_chain and not state_fact.reachable_from_initial:
             return
         operating_contracts.extend(state_contracts)
         state_facts.append(state_fact)
@@ -3748,9 +3750,10 @@ def _materialize_aggregate_zero_behavior(
         observed=(
             f"The complete closed transition inventory under {owner.name} has "
             f"named_source_transition_refs=[]; operating states "
-            f"{[state.name for state in states]} are reachable and each has "
-            "outgoing_transition_refs=[]. All scoped transitions are pseudo-state "
-            f"entries {scoped_transition_refs}."
+            f"{[state.name for state in states]} each have "
+            f"outgoing_transition_refs=[] with reachable_from_initial="
+            f"{[item.reachable_from_initial for item in state_facts]}. All scoped "
+            f"transitions are pseudo-state entries {scoped_transition_refs}."
         ),
         strongest_rebuttal=(
             "Pseudo-state entries make the states reachable, but an entry from [*] "
@@ -3758,9 +3761,10 @@ def _materialize_aggregate_zero_behavior(
             "operating sequence."
         ),
         reason=(
-            "Every state in the exact operating chain is a reachable "
-            "dead end, and the complete owner subtree contains no transition sourced "
-            "from any named state."
+            "Every named state in the exact operating chain has no outgoing behavior, "
+            "and the complete owner subtree contains no transition sourced from any "
+            "named state; unreachable wrapper-local states remain part of this global "
+            "zero-behavior defect without becoming reachable-deadlock findings."
         ),
         basis=(
             f"owner_ref={owner.ref}; state_refs={[item.state_ref for item in state_facts]}; "
@@ -3777,7 +3781,7 @@ def _materialize_aggregate_zero_behavior(
         candidate,
         reason=(
             "One typed operating sequence shares a complete zero-named-source "
-            "transition cause across all of its reachable leaf states."
+            "transition cause across all of its named operating states."
         ),
         basis=(
             "exact multi-contract chain, common-owner ancestry, operating-state "

@@ -7,13 +7,20 @@ import json
 from pathlib import Path
 from typing import Any
 
-from pipeline.evidence_discovery.inputs import load_pair
 from pydantic import TypeAdapter
+
+from pipeline.evidence_discovery.inputs import load_pair
+from pipeline.evidence_discovery.inputs.context import (
+    hierarchical_reachable_state_refs,
+)
 
 from .models import (
     AdapterAudit,
     AdapterIdMap,
     ArtifactAuthority,
+    ArtifactConsistencyFinding,
+    ArtifactConsistencyPreflight,
+    ArtifactConsistencyStatus,
     ArtifactDocument,
     ArtifactRole,
     CandidateEvidence,
@@ -92,13 +99,204 @@ def _document(
     )
 
 
-def build_artifact_closure(
+class ArtifactConsistencyError(RuntimeError):
+    """Raised before provider use when deterministic closure facts contradict."""
+
+    def __init__(self, preflight: ArtifactConsistencyPreflight) -> None:
+        self.preflight = preflight
+        super().__init__(preflight.reason)
+
+
+def _owned_state_paths(model: Any) -> dict[str, str]:
+    """Resolve stable dotted paths from the owned parser's scoped state rows."""
+
+    states = tuple(model.states)
+    by_name: dict[str, list[Any]] = {}
+    for state in states:
+        by_name.setdefault(state.name, []).append(state)
+    cache: dict[str, str] = {}
+
+    def path_for(state: Any, visiting: frozenset[str] = frozenset()) -> str:
+        if state.ref in cache:
+            return cache[state.ref]
+        if state.ref in visiting or state.parent is None:
+            result = state.name
+        else:
+            candidates = [
+                item
+                for item in by_name.get(state.parent, ())
+                if item.ref != state.ref and item.line < state.line
+            ]
+            parent = max(candidates, key=lambda item: item.line) if candidates else None
+            result = (
+                f"{path_for(parent, visiting | {state.ref})}.{state.name}"
+                if parent is not None
+                else state.name
+            )
+        cache[state.ref] = result
+        return result
+
+    return {state.ref: path_for(state) for state in states}
+
+
+def build_pair_artifact_consistency_preflight(
+    pair: Any,
+) -> ArtifactConsistencyPreflight:
+    """Cross-check reachability across graph, owned, verify, and reference facts."""
+
+    findings: list[ArtifactConsistencyFinding] = []
+    owned = pair.inspection_facts
+    verify = pair.verify_facts
+    graph_reachable = hierarchical_reachable_state_refs(pair.model)
+    owned_reachable = frozenset(owned.reachable_state_refs)
+    finding_no = 0
+
+    def add_finding(
+        *, fact_kind: str, subject_refs: tuple[str, ...], values: tuple[str, ...], reason: str, basis: str
+    ) -> None:
+        nonlocal finding_no
+        finding_no += 1
+        findings.append(
+            ArtifactConsistencyFinding(
+                finding_id=f"PRE-{finding_no}",
+                fact_kind=fact_kind,
+                subject_refs=subject_refs,
+                values=values,
+                reason=reason,
+                basis=basis,
+            )
+        )
+
+    if graph_reachable != owned_reachable:
+        add_finding(
+            fact_kind="closed_model_reachability_closure",
+            subject_refs=tuple(sorted(graph_reachable | owned_reachable)) or ("closed-model",),
+            values=(
+                "fcstm_graph=" + ",".join(sorted(graph_reachable)),
+                "owned_inspection=" + ",".join(sorted(owned_reachable)),
+            ),
+            reason="The recomputed scoped FCSTM graph and owned inspection artifact disagree on the complete reachable-state closure.",
+            basis="entry-transition-only hierarchical graph v3 versus InspectionEquivalentFacts.reachable_state_refs",
+        )
+
+    for state in owned.states:
+        expected = state.state_ref in owned_reachable
+        if state.reachable_from_initial != expected:
+            add_finding(
+                fact_kind="owned_state_reachability_flag",
+                subject_refs=(state.state_ref,),
+                values=(
+                    f"state_row={state.reachable_from_initial}",
+                    f"owned_closure={expected}",
+                ),
+                reason="The owned state row contradicts its own complete reachable-state closure.",
+                basis="InspectionStateFact.reachable_from_initial versus InspectionEquivalentFacts.reachable_state_refs",
+            )
+
+    verify_by_ref = {
+        check.subject_refs[0]: check
+        for check in verify.checks
+        if check.kind == "reachability" and len(check.subject_refs) == 1
+    }
+    for state in owned.states:
+        if state.state_ref == owned.machine_root_ref:
+            continue
+        check = verify_by_ref.get(state.state_ref)
+        expected_status = "proved" if state.state_ref in owned_reachable else "refuted"
+        if check is None or check.status != expected_status:
+            add_finding(
+                fact_kind="verify_reachability",
+                subject_refs=(state.state_ref,),
+                values=(
+                    f"owned={expected_status}",
+                    f"verify={check.status if check is not None else 'missing'}",
+                ),
+                reason="The finite verification summary does not agree with the owned reachability closure.",
+                basis="VerificationFacts reachability checks versus InspectionEquivalentFacts.reachable_state_refs",
+            )
+
+    paths_by_ref = _owned_state_paths(pair.model)
+    refs_by_path: dict[str, list[str]] = {}
+    for state_ref, state_path in paths_by_ref.items():
+        refs_by_path.setdefault(state_path, []).append(state_ref)
+    reference_diagnostics = pair.reference_inspection.payload.get("diagnostics", ())
+    for diagnostic in reference_diagnostics:
+        if not isinstance(diagnostic, dict) or diagnostic.get("code") != "W_UNREACHABLE_STATE":
+            continue
+        refs = diagnostic.get("refs")
+        reference_path = refs.get("state_path") if isinstance(refs, dict) else None
+        if not isinstance(reference_path, str):
+            continue
+        candidates = refs_by_path.get(reference_path, ())
+        if not candidates:
+            terminal = reference_path.rsplit(".", 1)[-1]
+            terminal_candidates = [
+                state.ref for state in pair.model.states if state.name == terminal
+            ]
+            candidates = terminal_candidates if len(terminal_candidates) == 1 else ()
+        contradicting = tuple(
+            state_ref for state_ref in candidates if state_ref in owned_reachable
+        )
+        if contradicting:
+            add_finding(
+                fact_kind="reference_unreachable_state",
+                subject_refs=(reference_path, *contradicting),
+                values=("reference=unreachable", "owned_and_fcstm_graph=reachable"),
+                reason="The published reference diagnostic marks the state unreachable while the owned closure marks the same state reachable.",
+                basis="reference W_UNREACHABLE_STATE versus owned path mapping and entry-transition-only FCSTM graph v3",
+            )
+
+    status = (
+        ArtifactConsistencyStatus.FAIL
+        if findings
+        else ArtifactConsistencyStatus.PASS
+    )
+    return ArtifactConsistencyPreflight(
+        algorithm_version="paper1.semantic-judge.artifact-preflight.v1",
+        pair_id=pair.pair_id,
+        status=status,
+        checked_fact_families=(
+            "fcstm_graph_reachability",
+            "owned_inspection_reachability",
+            "verify_reachability",
+            "reference_unreachable_diagnostics",
+        ),
+        findings=tuple(findings),
+        reason=(
+            "The common deterministic artifacts agree on every compared reachability fact."
+            if not findings
+            else f"The common deterministic artifacts contain {len(findings)} reachability contradiction(s); provider judging is blocked."
+        ),
+        basis="Exact FCSTM model, entry-transition-only graph v3, owned InspectionEquivalentFacts, VerificationFacts, and published structured reference diagnostics.",
+    )
+
+
+def build_artifact_consistency_preflight(
     report_root: str | Path, pair_id: str
+) -> ArtifactConsistencyPreflight:
+    """Build a typed consistency receipt without invoking a provider."""
+
+    root = Path(report_root).expanduser().resolve()
+    return build_pair_artifact_consistency_preflight(
+        load_pair(root / "pairs" / pair_id)
+    )
+
+
+def build_artifact_closure(
+    report_root: str | Path,
+    pair_id: str,
+    *,
+    preflight: ArtifactConsistencyPreflight | None = None,
 ) -> JudgeArtifactClosure:
     """Build the exact same complete pair evidence closure for every source adapter."""
 
     root = Path(report_root).expanduser().resolve()
     pair = load_pair(root / "pairs" / pair_id)
+    preflight = preflight or build_pair_artifact_consistency_preflight(pair)
+    if preflight.pair_id != pair_id:
+        raise ValueError("artifact preflight identifies a different pair")
+    if preflight.status != ArtifactConsistencyStatus.PASS:
+        raise ArtifactConsistencyError(preflight)
     assert pair.context_manifest is not None
     assert pair.canonical_source_ir is not None
     assert pair.exact_source_inventory is not None
@@ -120,7 +318,7 @@ def build_artifact_closure(
             authority=ArtifactAuthority.NORMATIVE_SOURCE,
             content=pair.nl_text,
             schema_version="text/plain.numbered-nl.v1",
-            reason="Natural language is the normative source used to decide whether a formal obligation exists.",
+            reason="Natural language establishes explicit requirements and compatibility boundaries; artifact-supported implicit testing or domain-essential obligations need not be stated verbatim.",
             basis="published pair nl.txt; exact bytes supplied without truncation",
         ),
         _document(
@@ -268,9 +466,17 @@ def build_artifact_closure(
             reason="Case report closes artifact identity and representation status without supplying expected answers.",
             basis=pair.case_report.ref.basis,
         ),
+        _document(
+            role=ArtifactRole.ARTIFACT_CONSISTENCY_PREFLIGHT,
+            authority=ArtifactAuthority.DETERMINISTIC_FACT,
+            content=_model_json(preflight),
+            schema_version=preflight.schema_version,
+            reason="The provider receives only a passing typed receipt proving that compared deterministic facts do not contradict.",
+            basis=preflight.basis,
+        ),
     )
     unhashed = {
-        "schema_version": "paper1.semantic-judge.artifact-closure.v2",
+        "schema_version": "paper1.semantic-judge.artifact-closure.v3",
         "pair_id": pair_id,
         "artifacts": [item.model_dump(mode="json") for item in artifacts],
         "reason": "Every report source is judged against one identical stage-scoped public pair closure without runtime truncation.",
@@ -499,6 +705,92 @@ def adapt_evidence_discovery_release(
         basis=f"{ADAPTER_VERSION}; report_issue_clusters with issue_emitted=true",
     )
     return tuple(reports), audit, round_no, pair_id
+
+
+def adapt_legacy_report_clusters(
+    record_path: str | Path,
+    expected_id_map: tuple[AdapterIdMap, ...],
+) -> tuple[tuple[CandidateReport, ...], AdapterAudit, int, str]:
+    """Adapt D1/D2 raw historical report clusters without method-only fields."""
+
+    path = Path(record_path).expanduser().resolve()
+    raw_bytes = path.read_bytes()
+    record = json.loads(raw_bytes)
+    raw_clusters = record.get("report_issue_clusters")
+    if not isinstance(raw_clusters, list):
+        raise TypeError(f"legacy record has no report_issue_clusters list: {path}")
+    pair_id = str(record.get("pair_id") or path.parent.name[:4])
+    round_no = record.get("round")
+    if round_no is None:
+        round_parent = next(
+            (parent.name for parent in path.parents if parent.name.startswith("run")),
+            "",
+        )
+        round_text = round_parent.removeprefix("run")
+        if not round_text.isdigit():
+            raise ValueError(f"cannot derive historical round from path: {path}")
+        round_no = int(round_text)
+    selected = [
+        cluster
+        for cluster in raw_clusters
+        if isinstance(cluster, dict) and cluster.get("d_level") in {"D1", "D2"}
+    ]
+    reports: list[CandidateReport] = []
+    mappings: list[AdapterIdMap] = []
+    for index, cluster in enumerate(selected, start=1):
+        report_id = f"R{index:04d}"
+        original_id = str(
+            cluster.get("report_issue_id")
+            or cluster.get("representative_finding_key")
+            or f"{pair_id}:r{round_no}:cluster:{index}"
+        )
+        claims = tuple(
+            str(value).strip()
+            for value in cluster.get("claims") or ()
+            if str(value).strip()
+        )
+        obligations = tuple(
+            str(value).strip()
+            for value in cluster.get("obligations") or ()
+            if str(value).strip()
+        )
+        locations = tuple(
+            str(value).strip()
+            for value in cluster.get("locations") or ()
+            if str(value).strip()
+        )
+        claim = " ".join(claims).strip() or original_id
+        obligation = " ".join(obligations).strip() or None
+        reports.append(
+            CandidateReport(
+                report_id=report_id,
+                claim=claim,
+                where="; ".join(locations) or None,
+                property=None,
+                violated_obligation=obligation,
+                expected=None,
+                observed=None,
+                reason=obligation or claim,
+                basis=None,
+                source_refs=(),
+                evidence=(),
+            )
+        )
+        mappings.append(
+            AdapterIdMap(anonymous_id=report_id, original_id=original_id)
+        )
+    audit = AdapterAudit(
+        source_format="legacy_report_clusters",
+        source_path=str(path),
+        source_hash=_sha256_bytes(raw_bytes),
+        report_id_map=tuple(mappings),
+        expected_id_map=expected_id_map,
+        projected_field_names=_candidate_field_names(),
+        excluded_field_names=EXCLUDED_PROVIDER_FIELDS,
+        reason="Only D1/D2 raw historical cluster claims, obligations, and locations were projected; D/W/L, predicates, arm identity, and historical outcomes were removed before provider serialization.",
+        basis=f"{ADAPTER_VERSION}; read-only report_issue_clusters D1/D2 projection",
+    )
+    return tuple(reports), audit, int(round_no), pair_id
 
 
 def build_unified_input(

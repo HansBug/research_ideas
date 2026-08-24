@@ -16,6 +16,14 @@
 
 ## 现行核心合同
 
+本轮实现版本为 `semantic-judge.two-stage.v3.2`。issue #195 的 relation 与计分定义保持
+不变；validity 按 issue #189 的义务口径作显式澄清：Judge 检查报告自己的核心技术主张与
+不可缺少的因果机制是否成立，不要求报告或义务逐字复述 NL。隐式测试预言（尤其非预期
+reachable deadlock / no-progress）和明确陈述的领域必备义务可以在 NL 未逐字写出时成立；
+“NL 没写”本身不是反驳。具体且可审计的自由文本 W1 也不因缺少 W2 谓词证书而失去 VALID
+或 FULL 的资格。反之，错误并发语义、虚构路径、错误 guard/event/effect/region 解释若是
+核心主张成立所必需的机制，仍必须判 INVALID。
+
 - 维度 A：`FULL_MATCH / PARTIAL_MATCH / NO_MATCH`。
 - 维度 B：`VALID_KNOWN / VALID_NOVEL / INVALID`。
 - `FULL_MATCH/PARTIAL_MATCH + INVALID` 与 `FULL_MATCH/PARTIAL_MATCH + VALID_NOVEL` 均为非法组合；`VALID_KNOWN` 必须至少有一个正向 relation。
@@ -52,6 +60,7 @@ redundancy rate；重复的 valid finding 进入 redundancy，不进入 FP。
 | issue snapshot 是唯一权威，变更即升版并使旧分数失效 | `protocol.py` 的 `PROTOCOL_*` 与 `verify_snapshot` | CLI 在运行前校验 snapshot | snapshot hash、prompt hash 测试 | 本文件“冻结版本” |
 | D2+D1 是唯一发布集合；D0 不进入 Judge | arm-neutral `CandidateReport` 不含 D/W/L | `artifacts.py` 只适配最终发布报告 | adapter 字段结构与排除字段测试 | `final_output_metrics_policy.md` |
 | 先判核心真值，再判 relation，后端派生 K/N/I | `ValidityJudgeInput` 物理不含 expected；`RelationJudgeInput` 只接受冻结 VALID certificate | `materialize_validity_certificate`、`materialize_two_stage_reading` | expected isolation、clause closure、two-stage replay 测试 | 本文件“现行核心合同” |
+| validity 只硬门核心主张、必要机制与最低举证责任 | 每条完整命题标记 `CORE_CLAIM / INDISPENSABLE_MECHANISM / AUXILIARY_CONTEXT`，另有三个显式 gate | 证书从 gate 机械派生真值；refuted auxiliary 只进入 warning | auxiliary-error、false-mechanism、claim omission 测试 | issue #189 与本文件“公平性与规模合同” |
 | INVALID、VALID_NOVEL 全 NO；VALID_KNOWN 至少一条 FULL/PARTIAL | INVALID 不进入 relation schema；relation 动态 exact closure | `judge_pair` 的 invalid all-NO closure、`ReportAssessment` validator | 非法组合、invalid-no-relation 测试 | snapshot §1.1 |
 | FULL 采用适度宽语义，不以字段复刻为 gate | `RELATION_SYSTEM_PROMPT` 的 root cause、obligation、symptom、repair overlap 规则 | relation enum 原样物化 | free-text FULL、多 expected FULL 测试 | `hit_criterion.md` |
 | PARTIAL 只算 supported，不算 hit/FP | `PositiveMatchStrength.PARTIAL_MATCH` | `metrics.py::compute_semantic_metrics` | partial 指标测试 | 本文件“确定性指标” |
@@ -62,6 +71,7 @@ redundancy rate；重复的 valid finding 进入 redundancy，不进入 FP。
 | 同一 expected 多报告只命中一次；一报告可 FULL 多 expected | 每个 report 的 positional relation decisions | expected-side unique 聚合 | 三 expected FULL、duplicate-valid 测试 | `hit_criterion.md` |
 | W/D/L、谓词族、arm、历史结果不作 gate | `UnifiedJudgeInput` 不含这些字段 | 两臂共用 artifacts/runner/metrics | adapter diff、prompt leakage 测试 | 本文件“公平性合同” |
 | 公共 artifact closure 对两臂相同 | `JudgeArtifactClosure` | `build_artifact_closure` 单入口 | closure identity 与完整角色测试 | 本文件“公平性合同” |
+| 矛盾 deterministic facts 不得进入 provider | `ArtifactConsistencyPreflight` | provider 前交叉检查 FCSTM graph、owned inspection、verify 与 reference unreachable diagnostics | 0053 reachability 与 contradiction-block 测试 | 本文件“公平性合同” |
 | 稀疏证据输出必须显式闭合全部 NO | 固定位置 `relation_decisions`，NO 仅保留 ID/enum | provider-native positional schema、dense audit materializer | 0029 shape 与真实规模审计 | 本文件“规模合同” |
 | Judge 失败不产生分数且费用不消失 | failure Pydantic records、call receipts | CLI failure summary、normalized usage | failed-call cost/cache 测试 | `final_output_metrics_policy.md` §4/§8 |
 
@@ -76,9 +86,12 @@ closure、`gpt-5.6-luna` profile、双读、retry、仲裁和指标入口。prov
 每条报告先单独进入 `ValidityJudgeInput`。该 Pydantic 类型只含当前匿名 report、固定
 `ReportCoreEnvelope` 与公共 artifact closure，物理上没有 expected/ledger 字段。两个独立
 validity reading 与必要的 validity-only 仲裁完成后，后端冻结
-`FrozenValidityCertificate`；核心 truth 由 `claim`、`property`、`violated_obligation`、
-`expected`、`observed`、`reason` 中所有非空字段的完整 clause verdict 机械派生，`basis`
-只作独立审计，`where` 只作 locus。任一核心字段含 material `REFUTED` 即 `INVALID`。
+`FrozenValidityCertificate`。后端对每个非空字段保留完整、gap-free 的 source-clause audit，
+但不再把所有字段作全称合取。每条完整语义命题由 Judge 标记为 `CORE_CLAIM`、
+`INDISPENSABLE_MECHANISM` 或 `AUXILIARY_CONTEXT`；核心主张、必要机制、最低举证责任三个
+hard gate 全部满足时才是 VALID。被反驳的核心主张或必要机制使报告 INVALID；被反驳的
+附带措辞保留为 `auxiliary_warnings`，不能单独杀死成立的核心主张。`basis` 只作支撑审计，
+`where` 只作 locus，均不能替换或救活错误核心机制。
 INVALID 不调用 relation LLM，后端直接为全部 expected 物化 `NO_MATCH`。只有冻结为 VALID
 的报告才进入 `RelationJudgeInput`；它看到 immutable certificate/hash、expected 和同一公共
 闭包，只能输出 FULL/PARTIAL/NO，不能重开 validity。
@@ -100,19 +113,17 @@ NO 不再依赖另一个条件式 closure 字段，避免 relation partition 与
 一次闭合的跨字段条件。`prefixItems + minItems + maxItems` 在 provider schema 层保证每个
 expected 恰好出现一次，再由后端物化完整 dense audit。validity schema 不让 provider
 自由选择 `report_field`，而是按实际输入动态生成 `claim_audit`、`reason_audit` 等固定顶层槽；
-每个字段中每条 material factual assertion、modeling-semantic assumption 和 causal link
-按原文顺序进入不可遗漏的 clause row；每行给出
-`SUPPORTED/REFUTED`、reason、basis 和 source refs。模型不自报 whole-field verdict 或
-aggregate core truth，后端按
-“全 SUPPORTED = SUPPORTED、全 REFUTED = REFUTED、混合 = MIXED”机械派生。完整字段原文与
-SHA-256 也由后端从不可变输入确定性物化，既不允许摘取方便子句、用邻近真事实替换错误机制，
-也不要求模型复制长文本。后端先把全部 auditable field 确定性分成不超过 64 字符的 gap-free
-source clauses，动态 schema 要求每个 clause exactly once 英文判读，原文、offset 与 hash
-由后端物化。两个 validity primary 都完全看不到 expected；两个 relation primary 只对 VALID
+每个字段中的完整语义命题按原文顺序进入不可遗漏的 clause row；每行给出 role、
+`SUPPORTED/REFUTED`、reason、basis 和 source refs。完整字段原文与 SHA-256 由后端从不可变
+输入确定性物化，既不允许摘取方便子句、用邻近真事实替换错误机制，也不要求模型复制长文本。
+分句只使用句号、分号、换行等完整命题边界，不再按 64 字符硬切；offset/hash closure 仍必须
+gap-free。模型不自报 aggregate core truth，后端从三个 hard gate 确定性派生。两个 validity
+primary 都完全看不到 expected；两个 relation primary 只对 VALID
 报告运行。真正冲突的 report 在对应隔离阶段逐条 atomic 仲裁；未冲突结果原样复用，全部
-replacement 合并后重验 pair closure。真实 `0029` provider-free scale audit 按 27 reports、
-8 expected、400 clauses，以及“所有报告均 VALID”的最坏 108 次 primary call 证明每个
-validity/relation target 的 prompt、schema、带逐 expected 证据的 all-NO/all-FULL envelope 在 profile context/output
+replacement 合并后重验 pair closure。真实 `0029` provider-free scale audit 必须从本轮选定
+raw report artifact 实测 report / expected / clause 数，并按“所有报告均 VALID”的最坏四次
+primary call / report 证明每个 validity/relation target 的 prompt、schema、带逐 expected
+证据的 all-NO/all-FULL envelope 在 profile context/output
 上限内闭合。该 audit 必须在任何 method 六 pair 或 baseline 全量重判之前通过；live smoke
 失败不得当作 miss 或从分母排除。
 

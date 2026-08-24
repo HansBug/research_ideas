@@ -146,7 +146,7 @@ def detect_validity_disagreements(
     certificate_1: FrozenValidityCertificate,
     certificate_2: FrozenValidityCertificate,
 ) -> tuple[ReadingDisagreement, ...]:
-    """Compare aggregate truth and every fixed clause verdict, never prose wording."""
+    """Compare aggregate truth, hard gates, and each fixed clause role/verdict."""
 
     if certificate_1.report_id != certificate_2.report_id:
         raise ValueError("validity certificates identify different reports")
@@ -161,6 +161,29 @@ def detect_validity_disagreements(
                 reading_2_value=certificate_2.core_truth.value,
             )
         )
+    gates = (
+        ("core_claim", certificate_1.core_claim_gate, certificate_2.core_claim_gate),
+        (
+            "indispensable_mechanism",
+            certificate_1.indispensable_mechanism_gate,
+            certificate_2.indispensable_mechanism_gate,
+        ),
+        (
+            "minimum_evidence",
+            certificate_1.minimum_evidence_gate,
+            certificate_2.minimum_evidence_gate,
+        ),
+    )
+    for gate_name, first_gate, second_gate in gates:
+        if first_gate.status != second_gate.status:
+            disagreements.append(
+                ReadingDisagreement(
+                    kind=ConflictKind.VALIDITY_GATE,
+                    object_ref=f"report:{report_id}/gate:{gate_name}",
+                    reading_1_value=first_gate.status.value,
+                    reading_2_value=second_gate.status.value,
+                )
+            )
     first_fields = {
         item.report_field.value: item for item in certificate_1.field_audits
     }
@@ -179,8 +202,13 @@ def detect_validity_disagreements(
         if set(first_clauses) != set(second_clauses):
             raise ValueError("validity certificate clause closures differ")
         for clause_id, first_clause in first_clauses.items():
-            first_value = first_clause.verdict.value
-            second_value = second_clauses[clause_id].verdict.value
+            first_value = (
+                f"{first_clause.validity_role.value}:{first_clause.verdict.value}"
+            )
+            second_clause = second_clauses[clause_id]
+            second_value = (
+                f"{second_clause.validity_role.value}:{second_clause.verdict.value}"
+            )
             if first_value != second_value:
                 disagreements.append(
                     ReadingDisagreement(
@@ -395,6 +423,20 @@ def _conflict_records(
             reason = certificate.reason
             basis = certificate.basis
             source_refs = certificate.source_refs
+        elif disagreement.kind == ConflictKind.VALIDITY_GATE:
+            gate_name = disagreement.object_ref.split("/gate:", 1)[1]
+            certificate = final_certificates[report_id]
+            gate = {
+                "core_claim": certificate.core_claim_gate,
+                "indispensable_mechanism": (
+                    certificate.indispensable_mechanism_gate
+                ),
+                "minimum_evidence": certificate.minimum_evidence_gate,
+            }[gate_name]
+            final_value = gate.status.value
+            reason = gate.reason
+            basis = gate.basis
+            source_refs = gate.source_refs
         else:
             _, field_part, clause_part = disagreement.object_ref.split("/")
             field_name = field_part.removeprefix("field:")
@@ -410,7 +452,7 @@ def _conflict_records(
                 for item in field_audit.clause_audits
                 if item.clause_id == clause_id
             )
-            final_value = clause.verdict.value
+            final_value = f"{clause.validity_role.value}:{clause.verdict.value}"
             reason = clause.reason
             basis = clause.basis
             source_refs = clause.source_refs

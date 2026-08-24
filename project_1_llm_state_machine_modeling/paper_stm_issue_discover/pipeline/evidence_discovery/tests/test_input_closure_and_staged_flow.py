@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import pytest
+
 from pipeline.evidence_discovery.inputs import load_pair, parse_fcstm
 from pipeline.evidence_discovery.inputs.context import (
     build_numbered_nl_segments,
@@ -21,8 +22,8 @@ from pipeline.evidence_discovery.orchestration.runtime import (
 from pipeline.evidence_discovery.semantics import (
     D_SYSTEM_PROMPT,
     DISCOVERY_GROUNDING_SYSTEM_PROMPT,
-    DAdjudicationResponse,
     ContractBindingHint,
+    DAdjudicationResponse,
     GroundingResponse,
     NLContract,
     NLContractResponse,
@@ -418,7 +419,7 @@ def test_representative_inspection_routes_use_exact_hierarchical_loci() -> None:
     expected_leaf_names = {
         "0004": {"EmergencyStopping", "Stopping"},
         "0023": {"PumpState", "WaterState", "MethaneState"},
-        "0053": {"PumpState", "WaterState", "MethaneState"},
+        "0053": {"UnspecifiedInitial"},
     }
     for pair_id, expected_names in expected_leaf_names.items():
         pair = load_pair(REPORT_ROOT / "pairs" / pair_id)
@@ -437,6 +438,13 @@ def test_representative_inspection_routes_use_exact_hierarchical_loci() -> None:
             state.is_composite and state.state_ref in leaf_refs
             for state in facts.states
         )
+        if pair_id == "0053":
+            unreachable_names = {
+                state.name
+                for state in facts.states
+                if not state.reachable_from_initial
+            }
+            assert {"PumpState", "WaterState", "MethaneState"} <= unreachable_names
 
     pair_0029 = load_pair(REPORT_ROOT / "pairs" / "0029")
     facts_0029 = pair_0029.inspection_facts

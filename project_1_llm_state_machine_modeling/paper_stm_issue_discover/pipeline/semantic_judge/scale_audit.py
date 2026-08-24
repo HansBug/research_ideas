@@ -15,13 +15,13 @@ from utils.llm import load_llm_registry
 
 from .artifacts import (
     adapt_evidence_discovery_release,
+    adapt_legacy_report_clusters,
     adapt_x1v2_record,
     build_artifact_closure,
     build_unified_input,
     load_expected_issues,
     stable_model_hash,
 )
-from .causal_audit import MAX_SOURCE_UNIT_CHARACTERS
 from .models import JudgeScaleAudit, UnifiedJudgeInput
 from .protocol import (
     JUDGE_ALGORITHM_VERSION,
@@ -44,8 +44,9 @@ from .schema import (
     response_schema_hash,
 )
 
-SourceFormat = Literal["x1v2_record", "evidence_discovery_release"]
-MATERIAL_ASSERTION_CHARS_PER_ROW = MAX_SOURCE_UNIT_CHARACTERS
+SourceFormat = Literal[
+    "x1v2_record", "evidence_discovery_release", "legacy_report_clusters"
+]
 
 
 def _sha256_text(value: str) -> str:
@@ -80,6 +81,10 @@ def _algorithm_source_hash() -> str:
             / "orchestration"
             / "runtime.py",
         ),
+        (
+            "evidence_discovery/inputs/context.py",
+            module_root.parent / "evidence_discovery" / "inputs" / "context.py",
+        ),
     )
     for name, path in paths:
         digest.update(name.encode("utf-8"))
@@ -110,9 +115,27 @@ def _validity_envelope(validity_input) -> dict:
 
     artifact_ref = validity_input.artifact_closure.artifacts[0].artifact_id
     payload = {
-        "schema_version": "semantic-judge.validity-response.v1",
+        "schema_version": "semantic-judge.validity-response.v2",
         "report_id": validity_input.report.report_id,
         "root_cause_cluster_key": "one actionable technical root cause",
+        "core_claim_gate": {
+            "status": "SATISFIED",
+            "reason": "The bounded core technical claim is supported by the common artifacts.",
+            "basis": "The complete claim clauses and deterministic artifact facts agree.",
+            "source_refs": [artifact_ref],
+        },
+        "indispensable_mechanism_gate": {
+            "status": "SATISFIED",
+            "reason": "Every premise indispensable to sustaining the claim is supported.",
+            "basis": "The complete mechanism clauses and deterministic artifact facts agree.",
+            "source_refs": [artifact_ref],
+        },
+        "minimum_evidence_gate": {
+            "status": "SATISFIED",
+            "reason": "The report supplies a clear artifact-auditable technical claim.",
+            "basis": "The report fields and common artifacts meet the minimum evidence burden.",
+            "source_refs": [artifact_ref],
+        },
         "validity_reason": "Every immutable report clause has one complete artifact truth judgment.",
         "validity_basis": "The report source clauses and complete common artifacts determine every verdict.",
         "validity_source_refs": [artifact_ref],
@@ -122,6 +145,13 @@ def _validity_envelope(validity_input) -> dict:
             {
                 "clause_id": clause.clause_id,
                 "assertion": "This English assertion faithfully represents every material premise in the complete immutable source clause.",
+                "validity_role": (
+                    "CORE_CLAIM"
+                    if field_plan.report_field.value == "claim"
+                    else "INDISPENSABLE_MECHANISM"
+                    if field_plan.report_field.value == "reason"
+                    else "AUXILIARY_CONTEXT"
+                ),
                 "verdict": "SUPPORTED",
                 "reason": "The complete common artifact closure supports every material premise in this clause.",
                 "basis": "The report-owned source clause and common artifacts provide direct evidence.",
@@ -204,6 +234,7 @@ def build_scale_audit(
     relation_no_responses = []
     relation_positive_responses = []
     assertion_counts = []
+    clause_character_counts = []
     for report in judge_input.reports:
         report_id = report.report_id
         validity_input = build_validity_input(judge_input, report_id)
@@ -249,6 +280,11 @@ def build_scale_audit(
         assertion_counts.extend(
             len(field_plan.clauses)
             for field_plan in validity_input.core_envelope.field_plans
+        )
+        clause_character_counts.extend(
+            clause.source_end - clause.source_start
+            for field_plan in validity_input.core_envelope.field_plans
+            for clause in field_plan.clauses
         )
 
         relation_input = build_relation_input(judge_input, certificate)
@@ -358,7 +394,7 @@ def build_scale_audit(
         ),
         report_causal_text_chars=sum(causal_text_lengths),
         maximum_report_causal_text_chars=max(causal_text_lengths, default=0),
-        material_assertion_chars_per_row=MATERIAL_ASSERTION_CHARS_PER_ROW,
+        material_assertion_chars_per_row=max(clause_character_counts, default=1),
         material_assertion_envelope_count=sum(assertion_counts),
         maximum_field_material_assertion_envelope_count=max(
             assertion_counts, default=0
@@ -412,7 +448,7 @@ def build_scale_audit(
         reserved_context_fits_window=fit_flags[3],
         status="pass" if all(fit_flags) else "fail",
         reason="Every real expected-isolated validity target and worst-case valid-report relation target fits the exact dynamic schema and configured context without a provider call.",
-        basis=f"Four-characters-per-token estimates over every validity and relation prompt/schema, plus one fixed clause row per at most {MATERIAL_ASSERTION_CHARS_PER_ROW} report-field characters and validated all-NO/all-FULL relation envelopes.",
+        basis="Four-characters-per-token estimates over every validity and relation prompt/schema, one fixed row per complete semantic source clause, and validated all-NO/all-FULL relation envelopes.",
         source_refs=(
             source_path,
             source_hash,
@@ -449,7 +485,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ledger", type=Path, required=True)
     parser.add_argument(
         "--source-format",
-        choices=("x1v2_record", "evidence_discovery_release"),
+        choices=(
+            "x1v2_record",
+            "evidence_discovery_release",
+            "legacy_report_clusters",
+        ),
         required=True,
     )
     parser.add_argument("--source-path", type=Path, required=True)
@@ -474,8 +514,12 @@ def main(argv: list[str] | None = None) -> int:
         reports, adapter_audit, round_no, pair_id = adapt_x1v2_record(
             source_path, expected_id_map
         )
-    else:
+    elif args.source_format == "evidence_discovery_release":
         reports, adapter_audit, round_no, pair_id = adapt_evidence_discovery_release(
+            source_path, expected_id_map
+        )
+    else:
+        reports, adapter_audit, round_no, pair_id = adapt_legacy_report_clusters(
             source_path, expected_id_map
         )
     if pair_id != args.pair_id or round_no != args.round:

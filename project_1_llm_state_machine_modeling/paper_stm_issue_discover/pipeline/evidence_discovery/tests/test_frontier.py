@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
+
 from pipeline.evidence_discovery.backends import run_backend
 from pipeline.evidence_discovery.compiler import compile_plan
 from pipeline.evidence_discovery.evidence.witness_levels import calculate_witness_level
@@ -31,7 +33,6 @@ from pipeline.evidence_discovery.semantics import (
     materialize_segment_coverage,
     materialize_typed_frontier,
 )
-from pydantic import ValidationError
 
 PAPER_ROOT = Path(__file__).parents[3]
 REPORT_ROOT = PAPER_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
@@ -2381,7 +2382,7 @@ def test_property_mismatched_llm_dead_ends_do_not_create_progress_contracts() ->
         if item.kind == "reachable_dead_end"
     }
     assert dead_ends == {}
-    assert batch.algorithm_version == "typed-domain-frontier.v22"
+    assert batch.algorithm_version == "typed-domain-frontier.v23"
 
 
 def test_exact_existing_candidate_still_suppresses_duplicate_frontier() -> None:
@@ -2428,11 +2429,7 @@ def test_exact_existing_candidate_still_suppresses_duplicate_frontier() -> None:
         and item.candidate.locus_names == ("PumpState",)
         for item in batch.obligations
     )
-    assert any(
-        item.kind == "reachable_dead_end"
-        and item.status == "not_applicable"
-        for item in batch.checks
-    )
+    assert not any(item.kind == "reachable_dead_end" for item in batch.checks)
 
 
 def test_exact_sibling_sequence_materializes_one_aggregate_zero_behavior_issue(

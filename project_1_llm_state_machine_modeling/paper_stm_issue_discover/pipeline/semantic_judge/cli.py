@@ -16,8 +16,10 @@ from pipeline.evidence_discovery.orchestration.runtime import PublicStructuredRu
 
 from .artifacts import (
     adapt_evidence_discovery_release,
+    adapt_legacy_report_clusters,
     adapt_x1v2_record,
     build_artifact_closure,
+    build_artifact_consistency_preflight,
     build_unified_input,
     load_expected_issues,
 )
@@ -90,6 +92,16 @@ def _source_path(
         if not path.is_file():
             raise FileNotFoundError(path)
         return path
+    if source_format == "legacy_report_clusters":
+        candidates = tuple(
+            sorted(source_root.glob(f"run{round_no}/{pair_id}-*/record.json"))
+        )
+        if len(candidates) != 1:
+            raise FileNotFoundError(
+                f"expected exactly one historical cluster record for pair {pair_id}, "
+                f"round {round_no} under {source_root}; actual={candidates}"
+            )
+        return candidates[0]
     candidates = tuple(sorted(source_root.glob(f"{pair_id}-*/record.json")))
     if len(candidates) != 1:
         raise FileNotFoundError(
@@ -123,7 +135,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ledger", type=Path, required=True)
     parser.add_argument(
         "--source-format",
-        choices=("x1v2_record", "evidence_discovery_release"),
+        choices=(
+            "x1v2_record",
+            "evidence_discovery_release",
+            "legacy_report_clusters",
+        ),
         required=True,
     )
     parser.add_argument("--source-root", type=Path, required=True)
@@ -198,16 +214,29 @@ def main(argv: list[str] | None = None) -> int:
             reports, adapter_audit, round_no, adapted_pair_id = adapt_x1v2_record(
                 source_path, expected_map
             )
-        else:
+        elif args.source_format == "evidence_discovery_release":
             reports, adapter_audit, round_no, adapted_pair_id = (
                 adapt_evidence_discovery_release(source_path, expected_map)
+            )
+        else:
+            reports, adapter_audit, round_no, adapted_pair_id = (
+                adapt_legacy_report_clusters(source_path, expected_map)
             )
         if adapted_pair_id != pair_id or round_no != args.round:
             raise ValueError(
                 f"source identity mismatch for {source_path}: expected pair={pair_id},round={args.round}; "
                 f"actual pair={adapted_pair_id},round={round_no}"
             )
-        closure = build_artifact_closure(report_root, pair_id)
+        preflight = build_artifact_consistency_preflight(report_root, pair_id)
+        _write_model(
+            artifact_root / "artifact_preflights" / f"{pair_id}.json",
+            preflight,
+        )
+        if preflight.status.value != "PASS":
+            raise RuntimeError(preflight.reason)
+        closure = build_artifact_closure(
+            report_root, pair_id, preflight=preflight
+        )
         judge_input = build_unified_input(
             reports=reports,
             expected_issues=expected,

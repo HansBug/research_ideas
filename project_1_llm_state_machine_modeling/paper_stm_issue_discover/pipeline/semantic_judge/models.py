@@ -103,6 +103,28 @@ class MaterialAssertionVerdict(str, Enum):
     REFUTED = "REFUTED"
 
 
+class ValidityClauseRole(str, Enum):
+    """Semantic role of one complete report clause in the validity decision."""
+
+    CORE_CLAIM = "CORE_CLAIM"
+    INDISPENSABLE_MECHANISM = "INDISPENSABLE_MECHANISM"
+    AUXILIARY_CONTEXT = "AUXILIARY_CONTEXT"
+
+
+class ValidityGateStatus(str, Enum):
+    """Closed status for one issue #195 expected-isolated validity gate."""
+
+    SATISFIED = "SATISFIED"
+    REFUTED = "REFUTED"
+
+
+class ArtifactConsistencyStatus(str, Enum):
+    """Deterministic status of the common-artifact consistency preflight."""
+
+    PASS = "PASS"
+    FAIL = "FAIL"
+
+
 class CausalAuditUnit(FrozenModel):
     """Backend-defined exact source unit that one provider assertion must audit."""
 
@@ -245,6 +267,85 @@ class ArtifactRole(str, Enum):
     WORKING_CONTRACT = "working_contract"
     SOURCE_TRACE = "source_trace"
     CASE_REPORT = "case_report"
+    ARTIFACT_CONSISTENCY_PREFLIGHT = "artifact_consistency_preflight"
+
+
+class ArtifactConsistencyFinding(FrozenModel):
+    """One exact deterministic contradiction found before any Judge model call."""
+
+    finding_id: str = Field(
+        pattern=r"^PRE-[1-9][0-9]*$",
+        description="Canonical finding ID in deterministic discovery order.",
+    )
+    fact_kind: str = Field(
+        min_length=1,
+        description="Stable fact family whose independent artifact projections disagree.",
+    )
+    subject_refs: tuple[str, ...] = Field(
+        min_length=1,
+        description="Exact model or artifact references implicated by the contradiction.",
+    )
+    values: tuple[str, ...] = Field(
+        min_length=2,
+        description="Conflicting deterministic values with their artifact-role labels.",
+    )
+    reason: str = Field(
+        min_length=1,
+        description="English explanation of why the values cannot both be true in the same closed model.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Exact reference-inspection, owned-inspection, verification, or FCSTM graph basis.",
+    )
+
+
+class ArtifactConsistencyPreflight(FrozenModel):
+    """Typed pre-provider consistency proof for one common pair artifact closure."""
+
+    schema_version: Literal["paper1.semantic-judge.artifact-preflight.v1"] = Field(
+        default="paper1.semantic-judge.artifact-preflight.v1",
+        description="Artifact consistency preflight schema version.",
+    )
+    algorithm_version: str = Field(
+        min_length=1,
+        description="Versioned deterministic cross-artifact comparison algorithm.",
+    )
+    pair_id: str = Field(
+        pattern=r"^\d{4}$",
+        description="Pair whose common artifacts were checked before any provider call.",
+    )
+    status: ArtifactConsistencyStatus = Field(
+        description="PASS only when no deterministic contradiction remains in the supplied closure.",
+    )
+    checked_fact_families: tuple[str, ...] = Field(
+        min_length=1,
+        description="Complete deterministic fact families compared by this preflight.",
+    )
+    findings: tuple[ArtifactConsistencyFinding, ...] = Field(
+        default_factory=tuple,
+        description="Exact contradictions; empty if and only if status is PASS.",
+    )
+    reason: str = Field(
+        min_length=1,
+        description="English deterministic explanation of the pass or fail result.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Versioned FCSTM graph, reference inspection, owned inspection, and verify-fact basis.",
+    )
+
+    @model_validator(mode="after")
+    def status_matches_findings(self) -> ArtifactConsistencyPreflight:
+        """Require PASS exactly for an empty contradiction set."""
+
+        expected = (
+            ArtifactConsistencyStatus.FAIL
+            if self.findings
+            else ArtifactConsistencyStatus.PASS
+        )
+        if self.status != expected:
+            raise ValueError("artifact preflight status must be derived from findings")
+        return self
 
 
 class CandidateEvidence(FrozenModel):
@@ -596,8 +697,8 @@ class ArtifactDocument(FrozenModel):
 class JudgeArtifactClosure(FrozenModel):
     """Arm-independent pair evidence closure used for report validity arbitration."""
 
-    schema_version: Literal["paper1.semantic-judge.artifact-closure.v2"] = Field(
-        default="paper1.semantic-judge.artifact-closure.v2",
+    schema_version: Literal["paper1.semantic-judge.artifact-closure.v3"] = Field(
+        default="paper1.semantic-judge.artifact-closure.v3",
         description="Common artifact-closure schema version; any content or truncation-policy change must alter the version or hash.",
     )
     pair_id: str = Field(
@@ -739,7 +840,7 @@ class ReportFieldClausePlan(FrozenModel):
         description="Exact CandidateReport field partitioned by this plan; where is never eligible."
     )
     is_core_field: bool = Field(
-        description="Whether a REFUTED clause in this field deterministically invalidates the report core envelope."
+        description="Whether this field conventionally carries core-envelope content; final validity is derived from clause semantic roles and explicit gates, not universal field conjunction."
     )
     clauses: tuple[ReportSourceClause, ...] = Field(
         min_length=1,
@@ -763,9 +864,9 @@ class ReportFieldClausePlan(FrozenModel):
 class ReportCoreEnvelope(FrozenModel):
     """Deterministic complete validity envelope for one anonymous report."""
 
-    schema_version: Literal["semantic-judge.report-core-envelope.v1"] = Field(
-        default="semantic-judge.report-core-envelope.v1",
-        description="Expected-isolated report source-clause envelope version.",
+    schema_version: Literal["semantic-judge.report-core-envelope.v2"] = Field(
+        default="semantic-judge.report-core-envelope.v2",
+        description="Expected-isolated complete-proposition report envelope version without fixed-width semantic chopping.",
     )
     report_id: str = Field(
         pattern=r"^R\d{4}$",
@@ -825,8 +926,8 @@ class ValidityJudgeInput(FrozenModel):
     evidence levels, predicates, historical scores, or experimental-arm labels.
     """
 
-    schema_version: Literal["semantic-judge.validity-input.v1"] = Field(
-        default="semantic-judge.validity-input.v1",
+    schema_version: Literal["semantic-judge.validity-input.v2"] = Field(
+        default="semantic-judge.validity-input.v2",
         description="Expected-isolated validity input version for one anonymous report.",
     )
     protocol_version: str = Field(
@@ -871,6 +972,9 @@ class ClauseAuditJudgment(FrozenModel):
         min_length=1,
         description="Faithful English rendering of all material factual and causal content in the complete source clause.",
     )
+    validity_role: ValidityClauseRole = Field(
+        description="CORE_CLAIM for the report's conclusion, INDISPENSABLE_MECHANISM for a premise required to sustain it, or AUXILIARY_CONTEXT for wording whose error is retained as a warning but cannot alone invalidate the report.",
+    )
     verdict: MaterialAssertionVerdict = Field(
         description="SUPPORTED only when every material premise in the complete clause is artifact-compatible; otherwise REFUTED."
     )
@@ -888,6 +992,50 @@ class ClauseAuditJudgment(FrozenModel):
     )
 
 
+class ValidityGateJudgment(FrozenModel):
+    """Provider explanation for one expected-isolated hard validity gate."""
+
+    status: ValidityGateStatus = Field(
+        description="SATISFIED when this hard gate holds under the complete common artifacts; REFUTED otherwise.",
+    )
+    reason: str = Field(
+        min_length=1,
+        description="English explanation of this gate without relying on expected issues or nearby unrelated defects.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Direct report-clause and common-artifact evidence for this gate.",
+    )
+    source_refs: tuple[str, ...] = Field(
+        min_length=1,
+        description="Supplied report-clause and common-artifact references actually used for this gate.",
+    )
+
+
+class ValidityAuditWarning(FrozenModel):
+    """A refuted auxiliary clause retained without automatically killing validity."""
+
+    report_field: ValidityReportField = Field(
+        description="CandidateReport field containing the auxiliary wording error."
+    )
+    clause_id: str = Field(
+        pattern=r"^C[1-9][0-9]*$",
+        description="Exact immutable clause ID carrying the auxiliary error.",
+    )
+    reason: str = Field(
+        min_length=1,
+        description="English explanation of the auxiliary error and why it is not indispensable to the core claim.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Common-artifact evidence refuting the auxiliary clause.",
+    )
+    source_refs: tuple[str, ...] = Field(
+        min_length=1,
+        description="Exact report and common-artifact references for the warning.",
+    )
+
+
 class ValidityResponse(FrozenModel):
     """Provider response base for one expected-isolated report-validity reading.
 
@@ -896,9 +1044,9 @@ class ValidityResponse(FrozenModel):
     aggregate validity; the backend derives it from the exact clause closure.
     """
 
-    schema_version: Literal["semantic-judge.validity-response.v1"] = Field(
-        default="semantic-judge.validity-response.v1",
-        description="Expected-isolated fixed-field validity response version.",
+    schema_version: Literal["semantic-judge.validity-response.v2"] = Field(
+        default="semantic-judge.validity-response.v2",
+        description="Expected-isolated response version separating hard validity gates from exhaustive auxiliary clause audit.",
     )
     report_id: str = Field(
         pattern=r"^R\d{4}$",
@@ -907,6 +1055,15 @@ class ValidityResponse(FrozenModel):
     root_cause_cluster_key: str = Field(
         min_length=1,
         description="English actionable technical root-cause phrase based only on this report and common artifacts.",
+    )
+    core_claim_gate: ValidityGateJudgment = Field(
+        description="Hard-gate judgment for the bounded core technical claim; it must agree with all CORE_CLAIM clause rows."
+    )
+    indispensable_mechanism_gate: ValidityGateJudgment = Field(
+        description="Hard-gate judgment for every causal or modeling-semantic premise indispensable to the core claim; SATISFIED is valid when no separate mechanism is required."
+    )
+    minimum_evidence_gate: ValidityGateJudgment = Field(
+        description="Hard-gate judgment for whether the report meets a minimum auditable evidentiary burden using any clear artifact-compatible report field."
     )
     validity_reason: str = Field(
         min_length=1,
@@ -929,7 +1086,7 @@ class FrozenFieldValidityAudit(FrozenModel):
         description="Exact CandidateReport field represented by this immutable audit."
     )
     is_core_field: bool = Field(
-        description="Whether any REFUTED clause in this field invalidates the report core envelope."
+        description="Whether the field conventionally belongs to the core envelope; clause role, not field membership alone, controls the hard validity gates."
     )
     exact_text: str = Field(
         min_length=1,
@@ -997,16 +1154,16 @@ class FrozenFieldValidityAudit(FrozenModel):
 class FrozenValidityCertificate(FrozenModel):
     """Immutable expected-isolated report-validity result used by relation judging."""
 
-    schema_version: Literal["semantic-judge.frozen-validity-certificate.v1"] = Field(
-        default="semantic-judge.frozen-validity-certificate.v1",
-        description="Frozen validity certificate version with complete source-clause closure.",
+    schema_version: Literal["semantic-judge.frozen-validity-certificate.v2"] = Field(
+        default="semantic-judge.frozen-validity-certificate.v2",
+        description="Frozen validity certificate version with three hard gates and complete auxiliary-warning closure.",
     )
     report_id: str = Field(
         pattern=r"^R\d{4}$",
         description="Anonymous report ID certified by this validity-only reading.",
     )
     core_truth: CoreClaimTruth = Field(
-        description="Backend-derived VALID only when every core field is fully SUPPORTED; otherwise INVALID."
+        description="Backend-derived VALID only when core claim, indispensable mechanism, and minimum evidence gates are all SATISFIED."
     )
     validity_input_hash: str = Field(
         pattern=r"^sha256:[0-9a-f]{64}$",
@@ -1019,6 +1176,19 @@ class FrozenValidityCertificate(FrozenModel):
     field_audits: tuple[FrozenFieldValidityAudit, ...] = Field(
         min_length=2,
         description="Exactly one complete backend-materialized audit for every field in the core envelope.",
+    )
+    core_claim_gate: ValidityGateJudgment = Field(
+        description="Frozen hard gate for the report's bounded core technical claim."
+    )
+    indispensable_mechanism_gate: ValidityGateJudgment = Field(
+        description="Frozen hard gate for causal or semantic premises indispensable to sustaining the claim; SATISFIED is allowed when no separate mechanism is required."
+    )
+    minimum_evidence_gate: ValidityGateJudgment = Field(
+        description="Frozen hard gate for the report's minimum auditable evidentiary burden."
+    )
+    auxiliary_warnings: tuple[ValidityAuditWarning, ...] = Field(
+        default_factory=tuple,
+        description="All REFUTED AUXILIARY_CONTEXT clauses retained for audit without becoming an automatic invalidity gate.",
     )
     root_cause_cluster_key: str = Field(
         min_length=1,
@@ -1045,16 +1215,75 @@ class FrozenValidityCertificate(FrozenModel):
     def truth_and_hash_are_derived(self) -> FrozenValidityCertificate:
         """Reject certificates whose truth or self-hash is not deterministic."""
 
-        core_audits = [item for item in self.field_audits if item.is_core_field]
-        if not core_audits:
-            raise ValueError("field_audits must contain core fields")
+        clause_rows = [
+            (field.report_field, clause)
+            for field in self.field_audits
+            for clause in field.clause_audits
+        ]
+        claim_rows = [
+            clause
+            for field, clause in clause_rows
+            if field == ValidityReportField.CLAIM
+            and clause.validity_role == ValidityClauseRole.CORE_CLAIM
+        ]
+        if not claim_rows:
+            raise ValueError("claim audit must contain at least one CORE_CLAIM clause")
+        core_refuted = any(
+            clause.validity_role == ValidityClauseRole.CORE_CLAIM
+            and clause.verdict == MaterialAssertionVerdict.REFUTED
+            for _field, clause in clause_rows
+        )
+        mechanism_refuted = any(
+            clause.validity_role == ValidityClauseRole.INDISPENSABLE_MECHANISM
+            and clause.verdict == MaterialAssertionVerdict.REFUTED
+            for _field, clause in clause_rows
+        )
+        expected_core_gate = (
+            ValidityGateStatus.REFUTED
+            if core_refuted
+            else ValidityGateStatus.SATISFIED
+        )
+        expected_mechanism_gate = (
+            ValidityGateStatus.REFUTED
+            if mechanism_refuted
+            else ValidityGateStatus.SATISFIED
+        )
+        if self.core_claim_gate.status != expected_core_gate:
+            raise ValueError("core_claim_gate must be derived from CORE_CLAIM clauses")
+        if self.indispensable_mechanism_gate.status != expected_mechanism_gate:
+            raise ValueError(
+                "indispensable_mechanism_gate must be derived from INDISPENSABLE_MECHANISM clauses"
+            )
+        expected_warning_keys = {
+            (field.value, clause.clause_id)
+            for field, clause in clause_rows
+            if clause.validity_role == ValidityClauseRole.AUXILIARY_CONTEXT
+            and clause.verdict == MaterialAssertionVerdict.REFUTED
+        }
+        actual_warning_keys = {
+            (warning.report_field.value, warning.clause_id)
+            for warning in self.auxiliary_warnings
+        }
+        if actual_warning_keys != expected_warning_keys or len(actual_warning_keys) != len(
+            self.auxiliary_warnings
+        ):
+            raise ValueError(
+                "auxiliary_warnings must exactly cover REFUTED AUXILIARY_CONTEXT clauses"
+            )
         expected_truth = (
             CoreClaimTruth.VALID
-            if all(item.verdict == CausalFieldVerdict.SUPPORTED for item in core_audits)
+            if all(
+                gate.status == ValidityGateStatus.SATISFIED
+                for gate in (
+                    self.core_claim_gate,
+                    self.indispensable_mechanism_gate,
+                    self.minimum_evidence_gate,
+                )
+            )
             else CoreClaimTruth.INVALID
         )
         if self.core_truth != expected_truth:
-            raise ValueError("core_truth must be derived from all core field audits")
+            raise ValueError("core_truth must be derived from the three hard validity gates")
         payload = self.model_dump(mode="json", exclude={"certificate_hash"})
         serialized = json.dumps(
             payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
@@ -1684,6 +1913,7 @@ class ConflictKind(str, Enum):
 
     RELATION = "relation"
     CORE_TRUTH = "core_truth"
+    VALIDITY_GATE = "validity_gate"
     VALIDITY_CLAUSE = "validity_clause"
     ROOT_CAUSE_CLUSTER = "root_cause_cluster"
 
@@ -1692,11 +1922,11 @@ class ConflictRecord(FrozenModel):
     """Audit trail for one primary-reading disagreement and arbitrated outcome."""
 
     kind: ConflictKind = Field(
-        description="Whether the conflict concerns relation, aggregate core truth, one validity clause, or root-cause clustering."
+        description="Whether the conflict concerns relation, aggregate core truth, one hard validity gate, one validity clause role/verdict, or root-cause clustering."
     )
     object_ref: str = Field(
         min_length=1,
-        description="Stable anonymous reference to the conflicted object, such as report:R0001/expected:E0002.",
+        description="Stable anonymous reference to the conflicted object, such as report:<report-id>/expected:<expected-id>.",
     )
     reading_1_value: str = Field(
         min_length=1, description="Enum or cluster value from the first independent reading."
@@ -1722,7 +1952,7 @@ class ReadingDisagreement(FrozenModel):
     """Provider-visible primary disagreement before a final value is selected."""
 
     kind: ConflictKind = Field(
-        description="Relation, aggregate core-truth, validity-clause, or root-cause-clustering conflict type requiring arbitration."
+        description="Relation, aggregate core-truth, hard-gate, validity-clause role/verdict, or root-cause-clustering conflict type requiring arbitration."
     )
     object_ref: str = Field(
         min_length=1,
@@ -2087,9 +2317,9 @@ class JudgeScaleAudit(FrozenModel):
     Judge model.
     """
 
-    schema_version: Literal["semantic-judge.scale-audit.v7"] = Field(
-        default="semantic-judge.scale-audit.v7",
-        description="Provider-free two-stage atomic scale-audit version with self-contained evidence in every explicit relation position.",
+    schema_version: Literal["semantic-judge.scale-audit.v8"] = Field(
+        default="semantic-judge.scale-audit.v8",
+        description="Provider-free two-stage atomic scale-audit version using complete-proposition validity clauses and self-contained relation positions.",
     )
     generated_at_utc: datetime = Field(
         description="UTC time when this deterministic scale audit was materialized."
@@ -2100,7 +2330,9 @@ class JudgeScaleAudit(FrozenModel):
     round: int = Field(
         ge=1, description="Round of the existing published reports used by the audit."
     )
-    source_format: Literal["x1v2_record", "evidence_discovery_release"] = Field(
+    source_format: Literal[
+        "x1v2_record", "evidence_discovery_release", "legacy_report_clusters"
+    ] = Field(
         description="Provider-external source adapter used to construct the anonymous reports."
     )
     source_path: str = Field(
@@ -2174,7 +2406,7 @@ class JudgeScaleAudit(FrozenModel):
     )
     material_assertion_chars_per_row: int = Field(
         gt=0,
-        description="Conservative maximum source-field characters represented by one synthetic assertion row in both validated output envelopes.",
+        description="Largest complete semantic source clause in characters across the measured reports; no fixed-width semantic split is applied.",
     )
     material_assertion_envelope_count: int = Field(
         ge=0,
@@ -2377,7 +2609,9 @@ class AdapterAudit(FrozenModel):
         default="paper1.semantic-judge.adapter-audit.v1",
         description="Provider-external adapter-audit schema.",
     )
-    source_format: Literal["x1v2_record", "evidence_discovery_release"] = Field(
+    source_format: Literal[
+        "x1v2_record", "evidence_discovery_release", "legacy_report_clusters"
+    ] = Field(
         description="Written only to local audit; this field and arm identity never enter UnifiedJudgeInput.",
     )
     source_path: str = Field(
@@ -2409,9 +2643,9 @@ class AdapterAudit(FrozenModel):
 class PairJudgeResult(FrozenModel):
     """Self-contained two-stage pair result with validity and relation audit."""
 
-    schema_version: Literal["paper1.semantic-judge.pair-result.v9"] = Field(
-        default="paper1.semantic-judge.pair-result.v9",
-        description="Two-stage pair-Judge persistence version with expected-isolated validity certificates and relation-only responses.",
+    schema_version: Literal["paper1.semantic-judge.pair-result.v10"] = Field(
+        default="paper1.semantic-judge.pair-result.v10",
+        description="Two-stage pair-Judge persistence version with three-gate expected-isolated validity certificates, artifact preflight, and relation-only responses.",
     )
     run_id: str = Field(
         min_length=1, description="Judge run ID; never reuse it across different protocol, code, or input versions."
@@ -2588,7 +2822,9 @@ class RunManifest(FrozenModel):
         description="Unified Judge run-manifest version.",
     )
     run_id: str = Field(min_length=1, description="Non-reusable Judge run ID.")
-    source_format: Literal["x1v2_record", "evidence_discovery_release"] = Field(
+    source_format: Literal[
+        "x1v2_record", "evidence_discovery_release", "legacy_report_clusters"
+    ] = Field(
         description="Local source-adapter type; it never enters the provider payload."
     )
     source_root: str = Field(

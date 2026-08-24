@@ -7,11 +7,16 @@ import re
 from pathlib import Path
 
 import pytest
+from pydantic import BaseModel, ValidationError
+
+from pipeline.evidence_discovery.inputs import load_pair
 from pipeline.semantic_judge import models
 from pipeline.semantic_judge.artifacts import (
     adapt_evidence_discovery_release,
+    adapt_legacy_report_clusters,
     adapt_x1v2_record,
     build_artifact_closure,
+    build_pair_artifact_consistency_preflight,
     build_unified_input,
     candidate_schema_field_set,
     load_expected_issues,
@@ -42,7 +47,6 @@ from pipeline.semantic_judge.schema import (
     build_exact_response_model,
     materialize_reading,
 )
-from pydantic import BaseModel, ValidationError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
@@ -773,8 +777,65 @@ def test_common_artifact_closure_is_adapter_independent() -> None:
     second = build_artifact_closure(report_root, "0004")
     assert first == second
     assert first.closure_hash == second.closure_hash
-    assert len(first.artifacts) == 12
+    assert len(first.artifacts) == 13
+    assert first.artifacts[-1].role == ArtifactRole.ARTIFACT_CONSISTENCY_PREFLIGHT
     assert {item.role for item in first.artifacts} == set(ArtifactRole)
+
+
+def test_hierarchical_reachability_uses_entry_edges_not_containment() -> None:
+    report_root = PROJECT_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
+    sequential = load_pair(report_root / "pairs" / "0053")
+    concurrent = load_pair(report_root / "pairs" / "0023")
+    sequential_reachable = {
+        state.name
+        for state in sequential.inspection_facts.states
+        if state.reachable_from_initial
+    }
+    concurrent_reachable = {
+        state.name
+        for state in concurrent.inspection_facts.states
+        if state.reachable_from_initial
+    }
+
+    assert sequential_reachable == {"PumpControl", "UnspecifiedInitial"}
+    assert {"PumpControl", "PumpState", "WaterState", "MethaneState"} <= (
+        concurrent_reachable
+    )
+
+
+def test_artifact_preflight_blocks_owned_graph_contradiction() -> None:
+    report_root = PROJECT_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
+    pair = load_pair(report_root / "pairs" / "0053")
+    target = next(
+        state for state in pair.inspection_facts.states if state.name == "PumpState"
+    )
+    contradictory_states = tuple(
+        state.model_copy(update={"reachable_from_initial": True})
+        if state.state_ref == target.state_ref
+        else state
+        for state in pair.inspection_facts.states
+    )
+    contradictory_inspection = pair.inspection_facts.model_copy(
+        update={
+            "states": contradictory_states,
+            "reachable_state_refs": (
+                *pair.inspection_facts.reachable_state_refs,
+                target.state_ref,
+            ),
+        }
+    )
+    contradictory_pair = pair.model_copy(
+        update={"inspection_facts": contradictory_inspection}
+    )
+
+    preflight = build_pair_artifact_consistency_preflight(contradictory_pair)
+
+    assert preflight.status.value == "FAIL"
+    assert {item.fact_kind for item in preflight.findings} >= {
+        "closed_model_reachability_closure",
+        "verify_reachability",
+        "reference_unreachable_state",
+    }
 
 
 def test_0029_stage_projection_fits_context_without_dropping_core_evidence() -> None:
@@ -850,7 +911,7 @@ def test_typed_scale_audit_checks_exact_prompt_schema_and_sparse_envelopes() -> 
     assert audit.expected_count == 8
     assert audit.relation_position_count == 176
     assert audit.effective_max_output_tokens == 128_000
-    assert audit.material_assertion_chars_per_row == 64
+    assert audit.material_assertion_chars_per_row == len("reason 22")
     assert audit.material_assertion_envelope_count >= 22
     assert audit.maximum_field_material_assertion_envelope_count >= 1
     assert audit.maximum_validity_response_fits_output_limit
@@ -919,3 +980,51 @@ def test_both_adapters_emit_one_candidate_schema_without_privileged_fields(
     forbidden = {"d_level", "witness_level", "predicate_id", "arm", "L"}
     assert forbidden.isdisjoint(baseline_reports[0].model_dump())
     assert forbidden.isdisjoint(method_reports[0].model_dump())
+
+
+def test_fixed_six_raw_adapters_preserve_exact_report_units() -> None:
+    ledger = PROJECT_ROOT / "discover_matrix/ledger_v2/ledger.json"
+    repository_root = PROJECT_ROOT.parents[1]
+    pair_ids = ("0004", "0023", "0029", "0035", "0046", "0053")
+    current_root = (
+        repository_root
+        / "runs/paper1/evidence-discovery-luna-six-r1-b288a54c"
+        / "b288a54c000400230029003500460053"
+    )
+    x1_root = (
+        repository_root
+        / "runs/paper1/luna-full-x3-20260819-v1/baseline-v2/run1"
+    )
+    v27_root = (
+        repository_root
+        / "runs/paper1/luna-full-x3-20260820-v27-stream/method-v27-stream/run1"
+    )
+
+    current_count = 0
+    x1_count = 0
+    v27_count = 0
+    for pair_id in pair_ids:
+        _expected, expected_map = load_expected_issues(ledger, pair_id)
+        current, current_audit, _round, _pair = adapt_evidence_discovery_release(
+            current_root / "method" / pair_id / "round-1.json", expected_map
+        )
+        x1_candidates = tuple(sorted(x1_root.glob(f"{pair_id}-*/record.json")))
+        assert len(x1_candidates) == 1
+        x1, _x1_audit, _round, _pair = adapt_x1v2_record(
+            x1_candidates[0], expected_map
+        )
+        v27_candidates = tuple(
+            sorted(v27_root.glob(f"{pair_id}-*/record.json"))
+        )
+        assert len(v27_candidates) == 1
+        v27, v27_audit, _round, _pair = adapt_legacy_report_clusters(
+            v27_candidates[0], expected_map
+        )
+        current_count += len(current)
+        x1_count += len(x1)
+        v27_count += len(v27)
+        assert current_audit.source_format == "evidence_discovery_release"
+        assert v27_audit.source_format == "legacy_report_clusters"
+        assert "accepted_report_issues" not in v27_audit.basis
+
+    assert (current_count, v27_count, x1_count) == (75, 77, 26)

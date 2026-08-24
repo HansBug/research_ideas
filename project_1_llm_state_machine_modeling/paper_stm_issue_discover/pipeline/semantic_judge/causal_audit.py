@@ -18,9 +18,7 @@ from .models import (
     ValidityReportField,
 )
 
-MAX_SOURCE_UNIT_CHARACTERS = 64
 _SENTENCE_BOUNDARIES = frozenset(".!?;。！？；\n")
-_PREFERRED_CHUNK_BOUNDARIES = frozenset(",，:")
 _VALIDITY_FIELDS = (
     ValidityReportField.CLAIM,
     ValidityReportField.PROPERTY,
@@ -56,29 +54,6 @@ def _sentence_segments(text: str) -> tuple[tuple[int, int], ...]:
     return tuple(segments)
 
 
-def _bounded_segments(text: str) -> tuple[tuple[int, int], ...]:
-    """Bound every source unit while preferring readable punctuation cuts."""
-
-    bounded: list[tuple[int, int]] = []
-    for segment_start, segment_end in _sentence_segments(text):
-        start = segment_start
-        while segment_end - start > MAX_SOURCE_UNIT_CHARACTERS:
-            hard_end = start + MAX_SOURCE_UNIT_CHARACTERS
-            preferred_end = next(
-                (
-                    position + 1
-                    for position in range(hard_end - 1, start + 31, -1)
-                    if text[position] in _PREFERRED_CHUNK_BOUNDARIES
-                ),
-                hard_end,
-            )
-            bounded.append((start, preferred_end))
-            start = preferred_end
-        if start < segment_end:
-            bounded.append((start, segment_end))
-    return tuple(bounded)
-
-
 def build_causal_audit_plan(
     reports: tuple[CandidateReport, ...],
 ) -> CausalAuditPlan:
@@ -101,7 +76,7 @@ def build_causal_audit_plan(
                     + hashlib.sha256(text[start:end].encode("utf-8")).hexdigest(),
                 )
                 for index, (start, end) in enumerate(
-                    _bounded_segments(text), start=1
+                    _sentence_segments(text), start=1
                 )
             )
             field_plans.append(
@@ -126,7 +101,7 @@ def report_core_envelope_hash(
     """Hash the immutable report ID and complete validity clause partition."""
 
     payload = {
-        "schema_version": "semantic-judge.report-core-envelope.v1",
+        "schema_version": "semantic-judge.report-core-envelope.v2",
         "report_id": report_id,
         "field_plans": [item.model_dump(mode="json") for item in field_plans],
     }
@@ -153,7 +128,7 @@ def build_report_core_envelope(report: CandidateReport) -> ReportCoreEnvelope:
                 exact_text_sha256="sha256:"
                 + hashlib.sha256(text[start:end].encode("utf-8")).hexdigest(),
             )
-            for index, (start, end) in enumerate(_bounded_segments(text), start=1)
+            for index, (start, end) in enumerate(_sentence_segments(text), start=1)
         )
         field_plans.append(
             ReportFieldClausePlan(
@@ -168,5 +143,5 @@ def build_report_core_envelope(report: CandidateReport) -> ReportCoreEnvelope:
         field_plans=frozen_plans,
         envelope_hash=report_core_envelope_hash(report.report_id, frozen_plans),
         reason="The envelope includes claim, reason, and every non-null semantic or evidence field while excluding the locus-only where field.",
-        basis=f"Deterministic gap-free source partition with a maximum of {MAX_SOURCE_UNIT_CHARACTERS} characters per clause and exact SHA-256 text hashes.",
+        basis="Deterministic gap-free complete-proposition partition at sentence, semicolon, or newline boundaries with exact offsets and SHA-256 text hashes; no fixed-width semantic chopping is applied.",
     )

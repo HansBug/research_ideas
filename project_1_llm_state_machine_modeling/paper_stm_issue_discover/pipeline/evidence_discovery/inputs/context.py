@@ -18,7 +18,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from .models import ModelIR
 from .provenance import sha256_text
 
-
 ArtifactRole = Literal[
     "natural_language",
     "plantuml_source",
@@ -576,7 +575,7 @@ def _canonical_source_ir(payload: dict[str, Any]) -> CanonicalSourceIR:
 
     model_payload = payload.get("model")
     if not isinstance(model_payload, dict):
-        raise ValueError("canonical source IR must contain a model object")
+        raise TypeError("canonical source IR must contain a model object")
     return CanonicalSourceIR(
         schema_version=str(payload.get("schema_version", "canonical-source-ir.unknown")),
         source_format=str(payload.get("source_format", "unknown")),
@@ -625,10 +624,9 @@ def build_numbered_nl_segments(text: str) -> tuple[NumberedNLSegment, ...]:
     last_line_number = 0
     for match in line_marker.finditer(text):
         number = int(match.group("number"))
-        if number == 1 and not line_matches:
-            line_matches.append(match)
-            last_line_number = number
-        elif line_matches and number in {last_line_number, last_line_number + 1}:
+        if (number == 1 and not line_matches) or (
+            line_matches and number in {last_line_number, last_line_number + 1}
+        ):
             line_matches.append(match)
             last_line_number = number
     if "\n" in text or "\r" in text:
@@ -744,7 +742,7 @@ def _endpoint_name(value: str) -> str:
     """Normalize only structural FCSTM endpoint markers, never free text."""
 
     normalized = value.strip().replace("[ * ]", "[*]")
-    return normalized[1:] if normalized.startswith("!") else normalized
+    return normalized.removeprefix("!")
 
 
 def _machine_scope(model: ModelIR) -> str | None:
@@ -791,23 +789,12 @@ def _hierarchical_graph_facts(
     """Resolve scoped transitions and traverse the finite hierarchy by refs.
 
     The representation exporter uses ``[*]`` for both machine and nested
-    initial entries.  Transition scope captured by the owned parser keeps
-    those entries separate.  The traversal also expands direct composite
-    children when a composite state is entered, which records structural
-    entry reachability without claiming a runtime scheduler or concurrency
-    semantics.
+    initial entries. Transition scope captured by the owned parser keeps those
+    entries separate. Entering a composite follows only its owner-local initial
+    transitions; containment alone never activates a child or a sibling.
     """
 
     machine_scope = _machine_scope(model)
-    children: dict[str | None, list[str]] = {}
-    for state in model.states:
-        children.setdefault(state.parent, []).append(state.ref)
-    composite_refs = {
-        state.ref
-        for state in model.states
-        if any(child.parent == state.name for child in model.states)
-    }
-
     def owner_for(item_scope: str | None) -> str | None:
         return machine_scope if item_scope == machine_scope else item_scope
 
@@ -848,12 +835,6 @@ def _hierarchical_graph_facts(
     queue = list(root_targets)
     while queue:
         current = queue.pop(0)
-        if current in composite_refs:
-            current_name = next(state.name for state in model.states if state.ref == current)
-            for child_ref in children.get(current_name, ()):
-                if child_ref not in reachable:
-                    reachable.add(child_ref)
-                    queue.append(child_ref)
         for target_ref, _transition_ref in edges.get(current, ()):
             if target_ref is not None and target_ref not in reachable:
                 reachable.add(target_ref)
@@ -864,10 +845,23 @@ def _hierarchical_graph_facts(
     return machine_scope, edges, tuple(dict.fromkeys(root_targets)), reachability, resolved_transitions, reachable
 
 
+def hierarchical_reachable_state_refs(model: ModelIR) -> frozenset[str]:
+    """Return exact refs reached only by scoped entry and runtime transitions."""
+
+    return frozenset(_hierarchical_graph_facts(model)[-1])
+
+
 def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> InspectionEquivalentFacts:
     """Compute versioned inventory, scoped reachability, and event facts."""
 
-    machine_scope, edges, _root_targets, reachability, resolved_transitions, reachable_refs = _hierarchical_graph_facts(model)
+    (
+        machine_scope,
+        edges,
+        _root_targets,
+        _reachability,
+        resolved_transitions,
+        reachable_refs,
+    ) = _hierarchical_graph_facts(model)
 
     outgoing: dict[str, list[str]] = {state.ref: [] for state in model.states}
     for source_ref, resolved_edges in edges.items():
@@ -915,7 +909,7 @@ def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> Inspec
                     line=item.line,
                     message="An initial pseudostate transition carries a trigger or guard.",
                     reason="Initial-entry conditionality is a deterministic structural fact.",
-                    basis="inspection-equivalent.initial-entry.v2 scoped transition",
+                    basis="inspection-equivalent.initial-entry.v3 scoped transition",
                 )
             )
         transitions.append(
@@ -932,7 +926,7 @@ def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> Inspec
                 resolved_target_ref=resolved_target_ref,
                 reachable_from_initial=bool(resolved_source_ref in reachable_refs),
                 reason="The row preserves parser fields and exact scoped endpoint resolution.",
-                basis="fcstm-line-parser.v2 plus inspection-equivalent hierarchical graph.v2",
+                basis="fcstm-line-parser.v2 plus inspection-equivalent hierarchical graph.v3",
             )
         )
 
@@ -948,7 +942,7 @@ def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> Inspec
                     line=state.line,
                     message=f"Reachable leaf state {state.name!r} has no outgoing FCSTM transition.",
                     reason="The exact leaf is reachable in the finite hierarchical graph and has no outgoing transition.",
-                    basis="inspection-equivalent.deadlock-frontier.v2 reachable leaf filter",
+                    basis="inspection-equivalent.deadlock-frontier.v3 reachable leaf filter",
                 )
             )
         if state.ref not in reachable_refs:
@@ -960,7 +954,7 @@ def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> Inspec
                     line=state.line,
                     message=f"State {state.name!r} is not reached from a top-level initial entry in the finite hierarchy.",
                     reason="Complete scoped traversal found no initial-entry path to this exact state ref.",
-                    basis="inspection-equivalent.hierarchical-reachability.v2",
+                    basis="inspection-equivalent.hierarchical-reachability.v3",
                 )
             )
 
@@ -1002,7 +996,7 @@ def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> Inspec
                 reachable_consumer_transition_refs=reachable_consumer_refs,
                 reachable_consumer_state_refs=reachable_consumer_states,
                 reason="The row joins exact declared/trigger names with resolved transition source refs and finite reachability.",
-                basis="fcstm-line-parser.v2 event trigger inventory plus hierarchical graph.v2",
+                basis="fcstm-line-parser.v2 event trigger inventory plus hierarchical graph.v3",
             )
         )
         refs = consumer_refs or ((declared_events[event_name],) if event_name in declared_events else ())
@@ -1039,7 +1033,7 @@ def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> Inspec
             reachable_from_initial=state.ref in reachable_refs,
             outgoing_transition_refs=tuple(outgoing.get(state.ref, ())),
             reason="The row is computed from owned-parser declarations, scoped transitions, and finite entry traversal.",
-            basis="fcstm-line-parser.v2 plus inspection-equivalent hierarchical graph.v2",
+            basis="fcstm-line-parser.v2 plus inspection-equivalent hierarchical graph.v3",
         )
         for state in model.states
     )
@@ -1059,8 +1053,8 @@ def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> Inspec
         "guarded_transition_count": sum(1 for item in model.transitions if item.guard),
     }
     return InspectionEquivalentFacts(
-        schema_version="evidence-discovery.inspection-equivalent.v2",
-        algorithm_version="inspection-equivalent.fcstm-graph.v2",
+        schema_version="evidence-discovery.inspection-equivalent.v3",
+        algorithm_version="inspection-equivalent.fcstm-graph.v3",
         fcstm_hash=fcstm_hash,
         states=state_facts,
         transitions=tuple(transitions),
@@ -1076,7 +1070,7 @@ def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> Inspec
         event_consumers=tuple(event_consumers),
         metrics=metrics,
         reason="The method receives deterministic scoped inventory, reachability, and event-consumer facts without invoking Python inspect, pyfcstm.inspect, or legacy inspect backends.",
-        basis="owned FCSTM scoped parser, exact endpoint resolution, hierarchical entry traversal, leaf filtering, and event coverage algorithm v2",
+        basis="owned FCSTM scoped parser, exact endpoint resolution, entry-transition-only hierarchical traversal, leaf filtering, and event coverage algorithm v3",
     )
 
 
@@ -1159,8 +1153,8 @@ def build_verification_facts(model: ModelIR, inspection: InspectionEquivalentFac
             )
         )
     return VerificationFacts(
-        schema_version="evidence-discovery.verify-facts.v2",
-        algorithm_version="verify-equivalent.finite-graph.v2",
+        schema_version="evidence-discovery.verify-facts.v3",
+        algorithm_version="verify-equivalent.finite-graph.v3",
         scope="closed_fcstm_finite_graph",
         checks=tuple(checks),
         terminal_state="completed",

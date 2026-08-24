@@ -41,6 +41,9 @@ from .models import (
     ReportValidity,
     SupportedRelationJudgment,
     UnifiedJudgeInput,
+    ValidityAuditWarning,
+    ValidityClauseRole,
+    ValidityGateStatus,
     ValidityJudgeInput,
     ValidityResponse,
     derive_causal_field_verdict,
@@ -451,19 +454,71 @@ def build_exact_validity_model(
             Field(
                 description=(
                     f"Required exact source-order audit for every immutable clause in CandidateReport.{field_plan.report_field.value}; "
-                    "judge the complete clause and mark REFUTED if any material premise in it is false."
+                    "judge the complete semantic proposition, classify its role in the bounded report claim, and retain auxiliary errors without promoting them to a hard gate."
                 )
             ),
         )
+    class ExactValidityResponseBase(ValidityResponse):
+        """Validity response with deterministic closure over this exact report."""
+
+        @model_validator(mode="after")
+        def exact_gate_closure(self) -> ExactValidityResponseBase:
+            clause_rows = [
+                (field_plan.report_field, clause)
+                for field_plan in validity_input.core_envelope.field_plans
+                for clause in getattr(
+                    self, f"{field_plan.report_field.value}_audit"
+                )
+            ]
+            claim_rows = [
+                clause
+                for field, clause in clause_rows
+                if field.value == "claim"
+                and clause.validity_role == ValidityClauseRole.CORE_CLAIM
+            ]
+            if not claim_rows:
+                raise ValueError(
+                    "claim_audit must classify at least one complete clause as CORE_CLAIM"
+                )
+            expected_core = (
+                ValidityGateStatus.REFUTED
+                if any(
+                    clause.validity_role == ValidityClauseRole.CORE_CLAIM
+                    and clause.verdict == MaterialAssertionVerdict.REFUTED
+                    for _field, clause in clause_rows
+                )
+                else ValidityGateStatus.SATISFIED
+            )
+            expected_mechanism = (
+                ValidityGateStatus.REFUTED
+                if any(
+                    clause.validity_role
+                    == ValidityClauseRole.INDISPENSABLE_MECHANISM
+                    and clause.verdict == MaterialAssertionVerdict.REFUTED
+                    for _field, clause in clause_rows
+                )
+                else ValidityGateStatus.SATISFIED
+            )
+            if self.core_claim_gate.status != expected_core:
+                raise ValueError(
+                    "core_claim_gate.status must agree with all CORE_CLAIM clause verdicts"
+                )
+            if self.indispensable_mechanism_gate.status != expected_mechanism:
+                raise ValueError(
+                    "indispensable_mechanism_gate.status must agree with all INDISPENSABLE_MECHANISM clause verdicts"
+                )
+            return self
+
     model = create_model(
         f"ExactValidityResponse_{suffix}",
-        __base__=ValidityResponse,
+        __base__=ExactValidityResponseBase,
         **field_definitions,
     )
     model.__doc__ = (
         "Expected-isolated validity response with one required fixed audit slot "
         "for every non-null report field."
     )
+
     return cast(type[ValidityResponse], model)
 
 
@@ -517,37 +572,60 @@ def materialize_validity_certificate(
             )
         )
     frozen_audits = tuple(field_audits)
+    auxiliary_warnings = tuple(
+        ValidityAuditWarning(
+            report_field=field.report_field,
+            clause_id=clause.clause_id,
+            reason=clause.reason,
+            basis=clause.basis,
+            source_refs=clause.source_refs,
+        )
+        for field in frozen_audits
+        for clause in field.clause_audits
+        if clause.validity_role == ValidityClauseRole.AUXILIARY_CONTEXT
+        and clause.verdict == MaterialAssertionVerdict.REFUTED
+    )
     core_truth = (
         CoreClaimTruth.VALID
         if all(
-            item.verdict == CausalFieldVerdict.SUPPORTED
-            for item in frozen_audits
-            if item.is_core_field
+            gate.status == ValidityGateStatus.SATISFIED
+            for gate in (
+                response.core_claim_gate,
+                response.indispensable_mechanism_gate,
+                response.minimum_evidence_gate,
+            )
         )
         else CoreClaimTruth.INVALID
     )
     values = {
-        "schema_version": "semantic-judge.frozen-validity-certificate.v1",
+        "schema_version": "semantic-judge.frozen-validity-certificate.v2",
         "report_id": validity_input.report.report_id,
         "core_truth": core_truth,
         "validity_input_hash": stable_model_hash(validity_input),
         "core_envelope_hash": validity_input.core_envelope.envelope_hash,
         "field_audits": frozen_audits,
+        "core_claim_gate": response.core_claim_gate,
+        "indispensable_mechanism_gate": response.indispensable_mechanism_gate,
+        "minimum_evidence_gate": response.minimum_evidence_gate,
+        "auxiliary_warnings": auxiliary_warnings,
         "root_cause_cluster_key": response.root_cause_cluster_key,
         "reason": response.validity_reason,
         "basis": response.validity_basis,
         "source_refs": tuple(response.validity_source_refs),
     }
-    hash_payload = {
-        key: (
-            [item.model_dump(mode="json") for item in value]
-            if key == "field_audits"
-            else value.value
-            if isinstance(value, CoreClaimTruth)
-            else value
-        )
-        for key, value in values.items()
-    }
+    hash_payload = {}
+    for key, value in values.items():
+        if isinstance(value, tuple):
+            hash_payload[key] = [
+                item.model_dump(mode="json") if isinstance(item, BaseModel) else item
+                for item in value
+            ]
+        elif isinstance(value, BaseModel):
+            hash_payload[key] = value.model_dump(mode="json")
+        elif isinstance(value, CoreClaimTruth):
+            hash_payload[key] = value.value
+        else:
+            hash_payload[key] = value
     serialized = json.dumps(
         hash_payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
     )
