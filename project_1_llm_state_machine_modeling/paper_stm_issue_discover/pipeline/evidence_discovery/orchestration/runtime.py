@@ -15,16 +15,20 @@ from utils.llm import estimate_usage_cost_usd, load_llm_registry, normalize_usag
 T = TypeVar("T", bound=BaseModel)
 
 # A streaming provider call gets a finite first-byte/read boundary. Each model
-# invocation has a separate complete-call deadline, while the enclosing
-# structured stage has enough time for one bounded schema-repair turn. For
-# non-streaming calls there is no first byte to wait for, so the provider
-# timeout itself is set to the complete-call deadline.
+# invocation has a separate complete-call deadline. The enclosing structured
+# stage is derived from the same reservation limit used by AgentApp, including
+# bounded transport retries and explicit finalization grace. For non-streaming
+# calls there is no first byte to wait for, so the provider timeout itself is
+# set to the complete-call deadline.
 PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS = 30
 PROVIDER_CALL_DEADLINE_SECONDS = 300
-STRUCTURED_STAGE_DEADLINE_SECONDS = 3 * PROVIDER_CALL_DEADLINE_SECONDS
 MAX_STRUCTURED_OUTPUT_TOKENS = 10_000
 DEFAULT_TRANSPORT_RETRIES = 8
 TRANSPORT_RETRY_DELAY_SCHEDULE_SECONDS = (5.0, 20.0, 60.0, 120.0, 240.0)
+STRUCTURED_TURN_LIMIT = 6
+STRUCTURED_BASE_MODEL_CALL_RESERVATIONS = 4
+STRUCTURED_STAGE_FINALIZATION_GRACE_SECONDS = 30
+STRUCTURED_WRAPPER_FINALIZATION_GRACE_SECONDS = 30
 
 
 def _transport_retry_delays(retries: int) -> tuple[float, ...]:
@@ -41,6 +45,47 @@ def _transport_retry_delays(retries: int) -> tuple[float, ...]:
         else tail
         for index in range(retries)
     )
+
+
+def _structured_model_call_reservation_limit(transport_retries: int) -> int:
+    """Return the shared AgentApp model-call reservation ceiling."""
+
+    if transport_retries < 0:
+        raise ValueError("transport_retries must be non-negative")
+    return max(
+        STRUCTURED_TURN_LIMIT,
+        transport_retries + STRUCTURED_BASE_MODEL_CALL_RESERVATIONS,
+    )
+
+
+def _structured_stage_deadline_seconds(
+    transport_retries: int,
+    *,
+    provider_call_deadline_seconds: float = PROVIDER_CALL_DEADLINE_SECONDS,
+    finalization_grace_seconds: float = STRUCTURED_STAGE_FINALIZATION_GRACE_SECONDS,
+) -> float:
+    """Budget every reservable provider attempt, retry delay, and commit grace."""
+
+    if provider_call_deadline_seconds <= 0:
+        raise ValueError("provider_call_deadline_seconds must be positive")
+    if finalization_grace_seconds < 0:
+        raise ValueError("finalization_grace_seconds must be non-negative")
+    reservation_limit = _structured_model_call_reservation_limit(transport_retries)
+    retry_delay_budget = sum(_transport_retry_delays(transport_retries))
+    return (
+        reservation_limit * provider_call_deadline_seconds
+        + retry_delay_budget
+        + finalization_grace_seconds
+    )
+
+
+STRUCTURED_STAGE_DEADLINE_SECONDS = _structured_stage_deadline_seconds(
+    DEFAULT_TRANSPORT_RETRIES
+)
+STRUCTURED_STAGE_WRAPPER_DEADLINE_SECONDS = (
+    STRUCTURED_STAGE_DEADLINE_SECONDS
+    + STRUCTURED_WRAPPER_FINALIZATION_GRACE_SECONDS
+)
 
 
 def _provider_timeout_seconds(streaming: bool) -> int:
@@ -684,16 +729,19 @@ class PublicStructuredRuntime:
     async def _arun_app(self, app: AgentApp, prompt: str, **options: Any):
         """Execute one app on the persistent loop with an async stage timeout."""
 
+        wrapper_deadline_seconds = _structured_stage_deadline_seconds(
+            self.transport_retries
+        ) + STRUCTURED_WRAPPER_FINALIZATION_GRACE_SECONDS
         async with self._async_call_lock:
             try:
                 return await asyncio.wait_for(
                     app.arun(prompt, **options),
-                    timeout=float(STRUCTURED_STAGE_DEADLINE_SECONDS),
+                    timeout=float(wrapper_deadline_seconds),
                 )
             except asyncio.TimeoutError as exc:
                 raise StructuredStageTimeout(
                     "structured stage exceeded its local "
-                    f"{STRUCTURED_STAGE_DEADLINE_SECONDS}-second deadline"
+                    f"{wrapper_deadline_seconds:g}-second wrapper deadline"
                 ) from exc
 
     def close(self) -> None:
@@ -731,15 +779,21 @@ class PublicStructuredRuntime:
         # shallow run-scoped model copy for callbacks, so reusing this process-
         # local base model preserves the provider client's connection pool while
         # keeping structured-output state and budgets isolated per cell.
+        reservation_limit = _structured_model_call_reservation_limit(
+            self.transport_retries
+        )
+        stage_deadline_seconds = _structured_stage_deadline_seconds(
+            self.transport_retries
+        )
         spec = AgentSpec(
             name=f"evidence-discovery-{kind}",
             system_prompt=system_prompt,
             output_schema=schema,
             limits={
-                "model_calls": max(6, self.transport_retries + 4),
-                "turns": 6,
+                "model_calls": reservation_limit,
+                "turns": STRUCTURED_TURN_LIMIT,
                 "model_call_seconds": PROVIDER_CALL_DEADLINE_SECONDS,
-                "seconds": STRUCTURED_STAGE_DEADLINE_SECONDS,
+                "seconds": stage_deadline_seconds,
             },
             require_tool_call=False,
             retry_missing_structured_output=True,
@@ -1018,6 +1072,15 @@ class PublicStructuredRuntime:
                 )
                 break
         cost = _cost_for_usage(all_usage, self.config.pricing)
+        reservation_limit = _structured_model_call_reservation_limit(
+            self.transport_retries
+        )
+        stage_deadline_seconds = _structured_stage_deadline_seconds(
+            self.transport_retries
+        )
+        wrapper_deadline_seconds = (
+            stage_deadline_seconds + STRUCTURED_WRAPPER_FINALIZATION_GRACE_SECONDS
+        )
         provider_input_tokens = sum(
             int(row["input_tokens"])
             for row in all_usage
@@ -1056,7 +1119,12 @@ class PublicStructuredRuntime:
                 f"utils.agent AgentApp; transport_retries={self.transport_retries}; "
                 f"stream_first_byte_timeout={PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS}s; "
                 f"provider_call_deadline={PROVIDER_CALL_DEADLINE_SECONDS}s; "
-                f"structured_stage_deadline={STRUCTURED_STAGE_DEADLINE_SECONDS}s"
+                "structured_model_call_reservations="
+                f"{reservation_limit}; "
+                "structured_stage_deadline="
+                f"{stage_deadline_seconds:g}s; "
+                "structured_stage_wrapper_deadline="
+                f"{wrapper_deadline_seconds:g}s"
             ),
         )
 

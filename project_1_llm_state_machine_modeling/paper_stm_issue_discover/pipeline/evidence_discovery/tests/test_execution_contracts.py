@@ -32,6 +32,7 @@ from pipeline.evidence_discovery.evidence.witness_levels import (
 )
 from pipeline.evidence_discovery.inputs import load_pair, parse_fcstm
 from pipeline.evidence_discovery.orchestration import runner as runner_module
+from pipeline.evidence_discovery.orchestration import runtime as runtime_module
 from pipeline.evidence_discovery.orchestration.contracts import (
     MethodCellReceipt,
     PairRunStatus,
@@ -60,6 +61,9 @@ from pipeline.evidence_discovery.orchestration.runtime import (
     PROVIDER_CALL_DEADLINE_SECONDS,
     PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS,
     STRUCTURED_STAGE_DEADLINE_SECONDS,
+    STRUCTURED_STAGE_FINALIZATION_GRACE_SECONDS,
+    STRUCTURED_STAGE_WRAPPER_DEADLINE_SECONDS,
+    STRUCTURED_WRAPPER_FINALIZATION_GRACE_SECONDS,
     FixtureStructuredRuntime,
     PublicStructuredRuntime,
     StructuredSchemaValidationBundle,
@@ -69,6 +73,8 @@ from pipeline.evidence_discovery.orchestration.runtime import (
     _is_provider_error,
     _provider_timeout_seconds,
     _schema_validation_failures,
+    _structured_model_call_reservation_limit,
+    _structured_stage_deadline_seconds,
     _usage_rows,
 )
 from pipeline.evidence_discovery.registry import load_registry
@@ -3301,10 +3307,60 @@ def test_terminal_provider_failure_without_an_actual_retry_remains_billable() ->
 def test_structured_stage_deadline_is_distinct_from_provider_timeout() -> None:
     assert PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS == 30
     assert PROVIDER_CALL_DEADLINE_SECONDS == 300
-    assert STRUCTURED_STAGE_DEADLINE_SECONDS == 900
+    assert _structured_model_call_reservation_limit(0) == 6
+    assert _structured_model_call_reservation_limit(8) == 12
+    assert STRUCTURED_STAGE_FINALIZATION_GRACE_SECONDS == 30
+    assert STRUCTURED_WRAPPER_FINALIZATION_GRACE_SECONDS == 30
+    assert STRUCTURED_STAGE_DEADLINE_SECONDS == 4795
+    assert STRUCTURED_STAGE_WRAPPER_DEADLINE_SECONDS == 4825
     assert _provider_timeout_seconds(True) == 30
     assert _provider_timeout_seconds(False) == 300
     assert PROVIDER_CALL_DEADLINE_SECONDS > PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS
+
+
+def test_four_call_structured_correction_fits_derived_stage_budget(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+) -> None:
+    per_call_seconds = 0.04
+    runtime = _provider_free_public_runtime(
+        tmp_path,
+        pricing=_runtime_fixture_pricing(),
+        request=request,
+    )
+    stage_deadline_seconds = _structured_stage_deadline_seconds(
+        0,
+        provider_call_deadline_seconds=per_call_seconds,
+        finalization_grace_seconds=0.02,
+    )
+    monkeypatch.setattr(
+        runtime_module,
+        "_structured_stage_deadline_seconds",
+        lambda _transport_retries: stage_deadline_seconds,
+    )
+    monkeypatch.setattr(
+        runtime_module,
+        "STRUCTURED_WRAPPER_FINALIZATION_GRACE_SECONDS",
+        0.02,
+    )
+
+    class FourCallCorrectionApp:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def arun(self, _prompt: str, **_kwargs: object) -> dict[str, int]:
+            for _ in range(4):
+                await asyncio.sleep(per_call_seconds)
+                self.calls += 1
+            return {"calls": self.calls}
+
+    app = FourCallCorrectionApp()
+    result = runtime._submit_to_event_loop(runtime._arun_app(app, "fixture"))
+
+    assert result == {"calls": 4}
+    assert app.calls == 4
+    assert stage_deadline_seconds > 4 * per_call_seconds
 
 
 def test_structured_stage_timeout_recovers_committed_usage_without_outer_retry(
@@ -3735,7 +3791,11 @@ def test_provider_free_run_manifest_resume_and_concurrent_atomic_writes(tmp_path
     assert manifest["workers"] == 2
     assert manifest["retry_policy"]["stream_first_byte_timeout_seconds"] == 30
     assert manifest["retry_policy"]["provider_call_total_timeout_seconds"] == 300
-    assert manifest["retry_policy"]["structured_stage_timeout_seconds"] == 900
+    assert manifest["retry_policy"]["structured_model_call_reservation_limit"] == 12
+    assert manifest["retry_policy"]["structured_stage_retry_delay_budget_seconds"] == 1165
+    assert manifest["retry_policy"]["structured_stage_finalization_grace_seconds"] == 30
+    assert manifest["retry_policy"]["structured_stage_timeout_seconds"] == 4795
+    assert manifest["retry_policy"]["structured_stage_wrapper_timeout_seconds"] == 4825
     assert manifest["retry_policy"]["structured_stage_timeout_owner"] == (
         "local_runtime"
     )

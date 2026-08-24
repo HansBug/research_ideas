@@ -74,18 +74,21 @@ from .runtime import (
     DEFAULT_TRANSPORT_RETRIES,
     PROVIDER_CALL_DEADLINE_SECONDS,
     PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS,
-    STRUCTURED_STAGE_DEADLINE_SECONDS,
+    STRUCTURED_STAGE_FINALIZATION_GRACE_SECONDS,
+    STRUCTURED_WRAPPER_FINALIZATION_GRACE_SECONDS,
     TRANSPORT_RETRY_DELAY_SCHEDULE_SECONDS,
     FixtureStructuredRuntime,
     PublicStructuredRuntime,
     StructuredCallOutcome,
+    _structured_model_call_reservation_limit,
+    _structured_stage_deadline_seconds,
 )
 
 REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS = ("0004", "0023", "0029", "0035", "0046", "0053")
 METHOD_CELL_SCHEMA = "evidence-discovery.method_cell.v8"
 SUMMARY_SCHEMA = "evidence-discovery.run_summary.v3"
 RUN_MANIFEST_SCHEMA = "evidence-discovery.run_manifest.v3"
-CODE_VERSION = "evidence-discovery-typed-flow.v52-method-only"
+CODE_VERSION = "evidence-discovery-typed-flow.v53-method-only"
 PROMPT_SCHEMA_VERSION = "evidence-discovery-prompts.v44-method-only"
 GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION = (
     "evidence-discovery.grounding-exact-identity-contract.v3"
@@ -344,12 +347,35 @@ def _retry_policy(transport_retries: int) -> dict[str, Any]:
         else tail
         for index in range(transport_retries)
     ]
+    reservation_limit = _structured_model_call_reservation_limit(
+        transport_retries
+    )
+    structured_stage_deadline = _structured_stage_deadline_seconds(
+        transport_retries
+    )
+    structured_wrapper_deadline = (
+        structured_stage_deadline
+        + STRUCTURED_WRAPPER_FINALIZATION_GRACE_SECONDS
+    )
     return {
         "transport_retries": transport_retries,
         "transport_retry_delays_seconds": delays,
         "stream_first_byte_timeout_seconds": PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS,
         "provider_call_total_timeout_seconds": PROVIDER_CALL_DEADLINE_SECONDS,
-        "structured_stage_timeout_seconds": STRUCTURED_STAGE_DEADLINE_SECONDS,
+        "structured_model_call_reservation_limit": reservation_limit,
+        "structured_stage_retry_delay_budget_seconds": sum(delays),
+        "structured_stage_finalization_grace_seconds": (
+            STRUCTURED_STAGE_FINALIZATION_GRACE_SECONDS
+        ),
+        "structured_stage_timeout_seconds": structured_stage_deadline,
+        "structured_stage_wrapper_finalization_grace_seconds": (
+            STRUCTURED_WRAPPER_FINALIZATION_GRACE_SECONDS
+        ),
+        "structured_stage_wrapper_timeout_seconds": structured_wrapper_deadline,
+        "structured_stage_timeout_formula": (
+            "reservation_limit*provider_call_total_timeout_seconds"
+            "+sum(transport_retry_delays_seconds)+finalization_grace_seconds"
+        ),
         "non_stream_provider_timeout_seconds": PROVIDER_CALL_DEADLINE_SECONDS,
         "dead_structured_call_retries_after_provider_error": 1,
         "structured_stage_timeout_owner": "local_runtime",
