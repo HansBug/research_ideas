@@ -4370,6 +4370,7 @@ def _run_pair_worker(task: dict[str, Any]) -> dict[str, Any]:
         pair_id=pair_id,
         run_identity=run_identity,
     )
+    runtime: Any | None = None
     try:
         rounds_data, judge = _load_pair_receipts(
             output_root=output_root,
@@ -4397,7 +4398,7 @@ def _run_pair_worker(task: dict[str, Any]) -> dict[str, Any]:
 
         pair = load_pair(report_root / "pairs" / pair_id)
         if task["profile"] == "fixture":
-            runtime: Any = FixtureStructuredRuntime()
+            runtime = FixtureStructuredRuntime()
         else:
             runtime = PublicStructuredRuntime(
                 str(task["profile"]),
@@ -4452,6 +4453,9 @@ def _run_pair_worker(task: dict[str, Any]) -> dict[str, Any]:
             started_at=started_at,
             error=exc,
         )
+    finally:
+        if isinstance(runtime, PublicStructuredRuntime):
+            runtime.close()
 
 
 def run_experiment(

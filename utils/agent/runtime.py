@@ -1368,6 +1368,21 @@ def _retryable_transport_error(exc: BaseException) -> bool:
     return False
 
 
+def _immediate_connection_setup_error(exc: BaseException) -> bool:
+    """Identify a pre-response API connection failure eligible for a short retry.
+
+    This deliberately excludes rate limits and HTTP 5xx responses. Those have a
+    provider response and retain the configured backoff or Retry-After policy.
+    """
+
+    return any(
+        type(item).__name__.lower() == "apiconnectionerror"
+        and getattr(item, "status_code", None) is None
+        and getattr(item, "response", None) is None
+        for item in _exception_chain(exc)
+    )
+
+
 def _provider_retry_after_seconds(exc: BaseException) -> float | None:
     """Read a numeric Retry-After hint from a provider exception when present."""
 
@@ -2873,11 +2888,28 @@ class _TransportRetryMiddleware(AgentMiddleware):
                         self.on_exhausted(payload)
                     raise
                 self.ledger.reserve(1)
-                delay = _provider_retry_after_seconds(exc) or self.delays[retry_index]
+                provider_delay = _provider_retry_after_seconds(exc)
+                short_connection_retry = bool(
+                    retry_index == 0
+                    and provider_delay is None
+                    and _immediate_connection_setup_error(exc)
+                )
+                delay = (
+                    0.1
+                    if short_connection_retry
+                    else provider_delay or self.delays[retry_index]
+                )
                 payload.update(
                     {
                         "next_attempt_no": attempt_no + 1,
                         "retry_after_seconds": delay,
+                        "retry_delay_policy": (
+                            "immediate_connection_setup_recovery"
+                            if short_connection_retry
+                            else "provider_retry_after"
+                            if provider_delay is not None
+                            else "configured_transport_backoff"
+                        ),
                     }
                 )
                 if self.on_retry is not None:

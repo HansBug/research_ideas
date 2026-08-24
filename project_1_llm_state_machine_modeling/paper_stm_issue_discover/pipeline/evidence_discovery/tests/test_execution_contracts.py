@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import re
@@ -75,7 +76,6 @@ from pipeline.evidence_discovery.orchestration.runtime import (
     _is_provider_error,
     _provider_timeout_seconds,
     _schema_validation_failures,
-    _structured_stage_deadline,
 )
 from pipeline.evidence_discovery.registry import load_registry
 from pipeline.evidence_discovery.semantics import (
@@ -3448,8 +3448,10 @@ def _provider_free_public_runtime(
     tmp_path: Path,
     *,
     pricing: LLMPricing,
+    request: pytest.FixtureRequest,
 ) -> PublicStructuredRuntime:
     runtime = PublicStructuredRuntime.__new__(PublicStructuredRuntime)
+    runtime.profile = "fixture"
     runtime.artifact_root = tmp_path
     runtime.streaming = True
     runtime.transport_retries = 0
@@ -3457,6 +3459,17 @@ def _provider_free_public_runtime(
         pricing=pricing,
         context_window_tokens=272_000,
     )
+    runtime._start_event_loop()
+
+    async def initialize() -> None:
+        runtime._async_call_lock = asyncio.Lock()
+        runtime._transport_model = SimpleNamespace(
+            root_async_client=None,
+            root_client=None,
+        )
+
+    runtime._submit_to_event_loop(initialize())
+    request.addfinalizer(runtime.close)
     return runtime
 
 
@@ -3557,20 +3570,17 @@ def test_structured_stage_deadline_is_distinct_from_provider_timeout() -> None:
     assert _provider_timeout_seconds(True) == 30
     assert _provider_timeout_seconds(False) == 300
     assert PROVIDER_CALL_DEADLINE_SECONDS > PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS
-    with pytest.raises(StructuredStageTimeout), _structured_stage_deadline(0.01):
-        import time
-
-        time.sleep(0.05)
 
 
 def test_structured_stage_timeout_recovers_committed_usage_without_outer_retry(
     tmp_path: Path,
+    request: pytest.FixtureRequest,
 ) -> None:
     class FixtureResponse(BaseModel):
         value: str
 
     class StageTimeoutApp:
-        def run(self, _prompt: str, **kwargs: object) -> object:
+        async def arun(self, _prompt: str, **kwargs: object) -> object:
             result_path = Path(str(kwargs["result_out"]))
             result_path.write_text(
                 json.dumps(
@@ -3606,6 +3616,7 @@ def test_structured_stage_timeout_recovers_committed_usage_without_outer_retry(
     runtime = _provider_free_public_runtime(
         tmp_path,
         pricing=_runtime_fixture_pricing(),
+        request=request,
     )
     runtime._app = lambda *_args, **_kwargs: StageTimeoutApp()
 
@@ -3640,12 +3651,13 @@ def test_structured_stage_timeout_recovers_committed_usage_without_outer_retry(
 
 def test_exception_provider_failure_recovers_usage_and_exempts_only_retried_row(
     tmp_path: Path,
+    request: pytest.FixtureRequest,
 ) -> None:
     class FixtureResponse(BaseModel):
         value: str
 
     class ProviderFailureApp:
-        def run(self, _prompt: str, **kwargs: object) -> object:
+        async def arun(self, _prompt: str, **kwargs: object) -> object:
             result_path = Path(str(kwargs["result_out"]))
             result_path.write_text(
                 json.dumps(
@@ -3695,15 +3707,18 @@ def test_exception_provider_failure_recovers_usage_and_exempts_only_retried_row(
     runtime = _provider_free_public_runtime(
         tmp_path,
         pricing=_runtime_fixture_pricing(),
+        request=request,
     )
     app_count = 0
+
+    class SuccessApp:
+        async def arun(self, *_args: object, **_kwargs: object) -> object:
+            return success_result
 
     def app_factory(*_args: object, **_kwargs: object) -> object:
         nonlocal app_count
         app_count += 1
-        return ProviderFailureApp() if app_count == 1 else SimpleNamespace(
-            run=lambda *_run_args, **_run_kwargs: success_result
-        )
+        return ProviderFailureApp() if app_count == 1 else SuccessApp()
 
     runtime._app = app_factory
     outcome = runtime._call_unlocked(
@@ -3730,17 +3745,19 @@ def test_exception_provider_failure_recovers_usage_and_exempts_only_retried_row(
 
 def test_structured_stage_timeout_without_result_records_unknown_billable_usage(
     tmp_path: Path,
+    request: pytest.FixtureRequest,
 ) -> None:
     class FixtureResponse(BaseModel):
         value: str
 
     class StageTimeoutWithoutResultApp:
-        def run(self, _prompt: str, **_kwargs: object) -> object:
+        async def arun(self, _prompt: str, **_kwargs: object) -> object:
             raise StructuredStageTimeout("fixture timeout before result commit")
 
     runtime = _provider_free_public_runtime(
         tmp_path,
         pricing=_runtime_fixture_pricing(),
+        request=request,
     )
     runtime._app = lambda *_args, **_kwargs: StageTimeoutWithoutResultApp()
 
@@ -3776,6 +3793,7 @@ def test_structured_stage_timeout_without_result_records_unknown_billable_usage(
 
 def test_local_schema_failure_does_not_duplicate_in_memory_usage(
     tmp_path: Path,
+    request: pytest.FixtureRequest,
 ) -> None:
     class FixtureResponse(BaseModel):
         value: str
@@ -3801,10 +3819,14 @@ def test_local_schema_failure_does_not_duplicate_in_memory_usage(
     runtime = _provider_free_public_runtime(
         tmp_path,
         pricing=_runtime_fixture_pricing(),
+        request=request,
     )
-    runtime._app = lambda *_args, **_kwargs: SimpleNamespace(
-        run=lambda *_run_args, **_run_kwargs: invalid_result
-    )
+
+    class InvalidResultApp:
+        async def arun(self, *_args: object, **_kwargs: object) -> object:
+            return invalid_result
+
+    runtime._app = lambda *_args, **_kwargs: InvalidResultApp()
 
     outcome = runtime._call_unlocked(
         kind="fixture_local_schema_failure",
@@ -3828,7 +3850,10 @@ def test_local_schema_failure_does_not_duplicate_in_memory_usage(
     assert outcome.cost["total_usd"] > 0
 
 
-def test_schema_validation_failures_are_typed_and_persisted(tmp_path: Path) -> None:
+def test_schema_validation_failures_are_typed_and_persisted(
+    tmp_path: Path,
+    request: pytest.FixtureRequest,
+) -> None:
     class FixtureResponse(BaseModel):
         value: str
 
@@ -3852,7 +3877,7 @@ def test_schema_validation_failures_are_typed_and_persisted(tmp_path: Path) -> N
     assert "value" in failures[0].validation_error
 
     class SchemaFailureApp:
-        def run(self, _prompt: str, **kwargs: object) -> object:
+        async def arun(self, _prompt: str, **kwargs: object) -> object:
             audit_path = Path(str(kwargs["audit_out"]))
             audit_path.write_text(
                 json.dumps(audit_records[0]) + "\n",
@@ -3879,6 +3904,7 @@ def test_schema_validation_failures_are_typed_and_persisted(tmp_path: Path) -> N
     runtime = _provider_free_public_runtime(
         tmp_path,
         pricing=_runtime_fixture_pricing(),
+        request=request,
     )
     runtime._app = lambda *_args, **_kwargs: SchemaFailureApp()
     outcome = runtime._call_unlocked(

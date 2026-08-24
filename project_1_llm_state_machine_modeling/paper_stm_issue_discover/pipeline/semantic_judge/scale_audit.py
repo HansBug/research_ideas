@@ -34,14 +34,22 @@ from .protocol import (
     prompt_hash,
     verify_snapshot,
 )
-from .runner import build_relation_prompt, build_validity_prompt
+from .runner import (
+    _relation_certificate_groups,
+    _stable_batch_id,
+    _validity_report_groups,
+    build_relation_batch_prompt,
+    build_validity_batch_prompt,
+)
 from .schema import (
-    build_exact_relation_model,
-    build_exact_validity_model,
-    build_relation_input,
-    build_validity_input,
+    build_exact_relation_batch_model,
+    build_exact_validity_batch_model,
+    build_relation_batch_input,
+    build_validity_batch_input,
     materialize_validity_certificate,
+    relation_item_input,
     response_schema_hash,
+    validity_item_input,
 )
 
 SourceFormat = Literal[
@@ -76,10 +84,7 @@ def _algorithm_source_hash() -> str:
         ("semantic_judge/schema.py", module_root / "schema.py"),
         (
             "evidence_discovery/orchestration/runtime.py",
-            module_root.parent
-            / "evidence_discovery"
-            / "orchestration"
-            / "runtime.py",
+            module_root.parent / "evidence_discovery" / "orchestration" / "runtime.py",
         ),
         (
             "evidence_discovery/inputs/context.py",
@@ -218,31 +223,48 @@ def build_scale_audit(
     measurements = []
     prompt_hashes: dict[str, str] = {}
     schema_hashes: dict[str, str] = {}
-    validity_responses = []
-    relation_no_responses = []
-    relation_positive_responses = []
+    validity_responses: list[str] = []
+    relation_no_responses: list[str] = []
+    relation_positive_responses: list[str] = []
     assertion_counts = []
     clause_character_counts = []
-    for report in judge_input.reports:
-        report_id = report.report_id
-        validity_input = build_validity_input(judge_input, report_id)
-        validity_model = build_exact_validity_model(validity_input)
-        validity_prompt = build_validity_prompt(validity_input)
+    certificates = []
+    validity_groups = _validity_report_groups(judge_input)
+    for batch_index, report_ids in enumerate(validity_groups, start=1):
+        batch_id = _stable_batch_id("VB", batch_index, report_ids)
+        batch_input = build_validity_batch_input(
+            judge_input, report_ids, batch_id=batch_id
+        )
+        validity_model = build_exact_validity_batch_model(batch_input)
+        validity_prompt = build_validity_batch_prompt(batch_input)
         validity_schema_text = json.dumps(
             validity_model.model_json_schema(),
             ensure_ascii=False,
             sort_keys=True,
             separators=(",", ":"),
         )
-        validity_response = validity_model.model_validate(
-            _validity_envelope(validity_input)
-        ).model_dump_json(indent=2)
-        validity_responses.append(validity_response)
-        certificate = materialize_validity_certificate(
-            validity_model.model_validate(_validity_envelope(validity_input)),
-            validity_input,
+        atomic_inputs = tuple(
+            validity_item_input(batch_input, index)
+            for index, _report in enumerate(batch_input.reports)
         )
-        validity_key = f"validity:{report_id}"
+        validity_payload = {
+            "schema_version": "semantic-judge.validity-batch-response.v1",
+            "batch_id": batch_id,
+            **{
+                f"item{index}": _validity_envelope(validity_input)
+                for index, validity_input in enumerate(atomic_inputs)
+            },
+        }
+        validated_validity = validity_model.model_validate(validity_payload)
+        validity_response = validated_validity.model_dump_json(indent=2)
+        validity_responses.append(validity_response)
+        certificates.extend(
+            materialize_validity_certificate(
+                getattr(validated_validity, f"item{index}"), validity_input
+            )
+            for index, validity_input in enumerate(atomic_inputs)
+        )
+        validity_key = f"validity-batch:{batch_id}"
         validity_prompt_hash = _sha256_text(
             VALIDITY_SYSTEM_PROMPT + "\n" + validity_prompt
         )
@@ -265,34 +287,67 @@ def build_scale_audit(
                 + validity_schema_tokens,
             }
         )
-        assertion_counts.extend(
-            len(field_plan.clauses)
-            for field_plan in validity_input.core_envelope.field_plans
-        )
-        clause_character_counts.extend(
-            clause.source_end - clause.source_start
-            for field_plan in validity_input.core_envelope.field_plans
-            for clause in field_plan.clauses
-        )
+        for validity_input in atomic_inputs:
+            assertion_counts.extend(
+                len(field_plan.clauses)
+                for field_plan in validity_input.core_envelope.field_plans
+            )
+            clause_character_counts.extend(
+                clause.source_end - clause.source_start
+                for field_plan in validity_input.core_envelope.field_plans
+                for clause in field_plan.clauses
+            )
 
-        relation_input = build_relation_input(judge_input, certificate)
-        relation_model = build_exact_relation_model(relation_input)
-        relation_prompt = build_relation_prompt(relation_input)
+    relation_groups = (
+        _relation_certificate_groups(
+            tuple(certificates), len(judge_input.expected_issues)
+        )
+        if judge_input.expected_issues
+        else ()
+    )
+    for batch_index, certificate_group in enumerate(relation_groups, start=1):
+        report_ids = tuple(item.report_id for item in certificate_group)
+        batch_id = _stable_batch_id("RB", batch_index, report_ids)
+        relation_input = build_relation_batch_input(
+            judge_input, certificate_group, batch_id=batch_id
+        )
+        relation_model = build_exact_relation_batch_model(relation_input)
+        relation_prompt = build_relation_batch_prompt(relation_input)
         relation_schema_text = json.dumps(
             relation_model.model_json_schema(),
             ensure_ascii=False,
             sort_keys=True,
             separators=(",", ":"),
         )
-        all_no_response = relation_model.model_validate(
-            _relation_envelope(relation_input, all_positive=False)
-        ).model_dump_json(indent=2)
+        atomic_relation_inputs = tuple(
+            relation_item_input(relation_input, index)
+            for index, _report in enumerate(relation_input.reports)
+        )
+        no_payload = {
+            "schema_version": "semantic-judge.relation-batch-response.v1",
+            "batch_id": batch_id,
+            **{
+                f"item{index}": _relation_envelope(
+                    relation_input=atomic_input,
+                    all_positive=False,
+                )
+                for index, atomic_input in enumerate(atomic_relation_inputs)
+            },
+        }
+        positive_payload = json.loads(json.dumps(no_payload))
+        for index, atomic in enumerate(atomic_relation_inputs):
+            positive_payload[f"item{index}"] = _relation_envelope(
+                atomic, all_positive=True
+            )
+        all_no_response = relation_model.model_validate(no_payload).model_dump_json(
+            indent=2
+        )
         all_positive_response = relation_model.model_validate(
-            _relation_envelope(relation_input, all_positive=True)
+            positive_payload
         ).model_dump_json(indent=2)
         relation_no_responses.append(all_no_response)
         relation_positive_responses.append(all_positive_response)
-        relation_key = f"relation:{report_id}"
+        relation_key = f"relation-batch:{batch_id}"
         prompt_hashes[relation_key] = _sha256_text(
             RELATION_SYSTEM_PROMPT + "\n" + relation_prompt
         )
@@ -325,9 +380,7 @@ def build_scale_audit(
     )
     maximum_request = max(measurements, key=lambda item: item["request_tokens"])
     maximum_validity_response = max(validity_responses, key=_estimated_tokens)
-    maximum_relation_all_no_response = max(
-        relation_no_responses, key=_estimated_tokens
-    )
+    maximum_relation_all_no_response = max(relation_no_responses, key=_estimated_tokens)
     maximum_relation_all_full_response = max(
         relation_positive_responses, key=_estimated_tokens
     )
@@ -339,9 +392,7 @@ def build_scale_audit(
     schema_tokens = maximum_request["schema_tokens"]
     request_tokens = maximum_request["request_tokens"]
     maximum_validity_tokens = _estimated_tokens(maximum_validity_response)
-    maximum_relation_all_no_tokens = _estimated_tokens(
-        maximum_relation_all_no_response
-    )
+    maximum_relation_all_no_tokens = _estimated_tokens(maximum_relation_all_no_response)
     maximum_relation_all_full_tokens = _estimated_tokens(
         maximum_relation_all_full_response
     )
@@ -374,7 +425,9 @@ def build_scale_audit(
         judge_max_output_tokens=JUDGE_MAX_OUTPUT_TOKENS,
         effective_max_output_tokens=effective_max_output_tokens,
         report_count=len(judge_input.reports),
-        atomic_primary_call_count=4 * len(judge_input.reports),
+        atomic_primary_call_count=2 * len(measurements),
+        validity_primary_batch_count=len(validity_groups),
+        relation_primary_batch_count=len(relation_groups),
         maximum_request_target_report_id=maximum_request["target_report_id"],
         expected_count=len(judge_input.expected_issues),
         relation_position_count=(
@@ -394,9 +447,7 @@ def build_scale_audit(
         primary_prompt_set_hash=_sha256_text(
             json.dumps(prompt_hashes, sort_keys=True, separators=(",", ":"))
         ),
-        response_schema_hash=schema_hashes[
-            maximum_request["target_report_id"]
-        ],
+        response_schema_hash=schema_hashes[maximum_request["target_report_id"]],
         response_schema_set_hash=_sha256_text(
             json.dumps(schema_hashes, sort_keys=True, separators=(",", ":"))
         ),
@@ -413,9 +464,7 @@ def build_scale_audit(
         maximum_relation_all_no_response_hash=_sha256_text(
             maximum_relation_all_no_response
         ),
-        maximum_relation_all_no_response_chars=len(
-            maximum_relation_all_no_response
-        ),
+        maximum_relation_all_no_response_chars=len(maximum_relation_all_no_response),
         maximum_relation_all_no_response_estimated_tokens=(
             maximum_relation_all_no_tokens
         ),

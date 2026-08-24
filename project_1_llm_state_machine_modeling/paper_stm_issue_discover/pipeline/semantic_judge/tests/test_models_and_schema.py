@@ -10,6 +10,7 @@ import pytest
 from pydantic import BaseModel, ValidationError
 
 from pipeline.evidence_discovery.inputs import load_pair
+from pipeline.semantic_judge import execution as execution_models
 from pipeline.semantic_judge import models
 from pipeline.semantic_judge.artifacts import (
     adapt_evidence_discovery_release,
@@ -109,9 +110,7 @@ def reading_payload(
     validity = validity or {}
     clusters = clusters or {}
     audit_plan = build_causal_audit_plan(judge_input.reports)
-    plans_by_report = {
-        item.report_id: item for item in audit_plan.report_plans
-    }
+    plans_by_report = {item.report_id: item for item in audit_plan.report_plans}
     report_rows = []
     for report in judge_input.reports:
         has_positive = any(
@@ -123,9 +122,7 @@ def reading_payload(
         )
         selected_validity = validity.get(
             report.report_id,
-            ReportValidity.VALID_KNOWN
-            if has_positive
-            else ReportValidity.VALID_NOVEL,
+            ReportValidity.VALID_KNOWN if has_positive else ReportValidity.VALID_NOVEL,
         )
         invalid = selected_validity == ReportValidity.INVALID
         relation_decisions = []
@@ -152,9 +149,7 @@ def reading_payload(
                 relation_decisions.append(
                     {"expected_id": expected.expected_id, "match": "NO_MATCH"}
                 )
-        has_no_match = any(
-            row["match"] == "NO_MATCH" for row in relation_decisions
-        )
+        has_no_match = any(row["match"] == "NO_MATCH" for row in relation_decisions)
         report_rows.append(
             {
                 "report_id": report.report_id,
@@ -168,11 +163,7 @@ def reading_payload(
                             {
                                 "assertion_id": unit.assertion_id,
                                 "assertion": "The fixture field states one material causal premise.",
-                                "verdict": (
-                                    "REFUTED"
-                                    if invalid
-                                    else "SUPPORTED"
-                                ),
+                                "verdict": ("REFUTED" if invalid else "SUPPORTED"),
                                 "reason": "The fixture artifacts determine this exact premise.",
                                 "basis": f"CandidateReport {report.report_id}.{field_name} and fixture artifacts.",
                                 "source_refs": [
@@ -219,13 +210,15 @@ def reading_payload(
 
 def test_every_pydantic_model_and_field_has_english_description() -> None:
     non_ascii = re.compile(r"[^\x00-\x7f]")
-    classes = [
-        value
-        for value in vars(models).values()
-        if inspect.isclass(value)
-        and issubclass(value, BaseModel)
-        and value.__module__ == models.__name__
-    ]
+    classes = []
+    for module in (models, execution_models):
+        classes.extend(
+            value
+            for value in vars(module).values()
+            if inspect.isclass(value)
+            and issubclass(value, BaseModel)
+            and value.__module__ == module.__name__
+        )
     assert classes
     for model in classes:
         assert inspect.getdoc(model), model.__name__
@@ -249,17 +242,13 @@ def test_judge_prompts_and_runtime_schema_use_english_audit_language() -> None:
     )
     assert not non_ascii.search(schema_text)
     arbitration_schema_text = json.dumps(
-        build_exact_arbitration_model(
-            minimal_input(), ("R0001",)
-        ).model_json_schema(),
+        build_exact_arbitration_model(minimal_input(), ("R0001",)).model_json_schema(),
         ensure_ascii=False,
         sort_keys=True,
     )
     assert not non_ascii.search(arbitration_schema_text)
     primary_schema_text = json.dumps(
-        build_exact_primary_model(
-            minimal_input(), "R0001"
-        ).model_json_schema(),
+        build_exact_primary_model(minimal_input(), "R0001").model_json_schema(),
         ensure_ascii=False,
         sort_keys=True,
     )
@@ -444,9 +433,7 @@ def test_every_positional_relation_requires_an_explicit_match_discriminator() ->
         with pytest.raises(ValidationError):
             schema.model_validate(payload)
     payload = reading_payload(judge_input)
-    payload["report_judgments"][0]["relation_decisions"][1]["expected_id"] = (
-        "E0001"
-    )
+    payload["report_judgments"][0]["relation_decisions"][1]["expected_id"] = "E0001"
     with pytest.raises(ValidationError):
         schema.model_validate(payload)
 
@@ -466,7 +453,9 @@ def test_empty_no_closure_requires_explicit_null_group_evidence() -> None:
         build_exact_response_model(judge_input).model_validate(payload)
 
 
-def test_positive_relation_requires_owned_fields_and_inherits_report_certificate() -> None:
+def test_positive_relation_requires_owned_fields_and_inherits_report_certificate() -> (
+    None
+):
     judge_input = minimal_input()
     schema = build_exact_response_model(judge_input)
     payload = reading_payload(
@@ -504,27 +493,34 @@ def test_causal_field_audit_requires_exact_field_reference_closure() -> None:
     payload["report_judgments"][0]["causal_field_audits"][0]["report_field"] = (
         "observed"
     )
-    with pytest.raises(ValidationError, match="causal_field_audits exact closure failed"):
+    with pytest.raises(
+        ValidationError, match="causal_field_audits exact closure failed"
+    ):
         schema.model_validate(payload)
 
 
 def test_backend_materializes_exact_causal_text_and_hash() -> None:
     judge_input = minimal_input()
     report = judge_input.reports[0].model_copy(
-        update={"reason": "Complete source-owned causal text that the provider must not copy."}
+        update={
+            "reason": "Complete source-owned causal text that the provider must not copy."
+        }
     )
     judge_input = judge_input.model_copy(update={"reports": (report,)})
     payload = reading_payload(judge_input)
     provider_audit = payload["report_judgments"][0]["causal_field_audits"][0]
     assert "exact_text" not in provider_audit
     response = build_exact_response_model(judge_input).model_validate(payload)
-    persisted_audit = materialize_reading(
-        response, judge_input
-    ).report_assessments[0].causal_field_audits[0]
+    persisted_audit = (
+        materialize_reading(response, judge_input)
+        .report_assessments[0]
+        .causal_field_audits[0]
+    )
     assert persisted_audit.exact_text == report.reason
-    assert persisted_audit.exact_text_sha256 == "sha256:" + hashlib.sha256(
-        report.reason.encode("utf-8")
-    ).hexdigest()
+    assert (
+        persisted_audit.exact_text_sha256
+        == "sha256:" + hashlib.sha256(report.reason.encode("utf-8")).hexdigest()
+    )
     invalid_persisted = persisted_audit.model_dump(mode="json")
     invalid_persisted["exact_text_sha256"] = "sha256:" + "0" * 64
     with pytest.raises(ValidationError, match="must equal the SHA-256 digest"):
@@ -540,9 +536,11 @@ def test_backend_canonicalizes_causal_audit_order() -> None:
     payload = reading_payload(judge_input)
     payload["report_judgments"][0]["causal_field_audits"].reverse()
     response = build_exact_response_model(judge_input).model_validate(payload)
-    persisted = materialize_reading(
-        response, judge_input
-    ).report_assessments[0].causal_field_audits
+    persisted = (
+        materialize_reading(response, judge_input)
+        .report_assessments[0]
+        .causal_field_audits
+    )
     assert [row.report_field.value for row in persisted] == [
         "reason",
         "basis",
@@ -561,9 +559,7 @@ def test_core_truth_is_derived_from_whole_field_certificate() -> None:
     assessment = reading.report_assessments[0]
     assert assessment.core_truth == CoreClaimTruth.INVALID
     assert assessment.validity == ReportValidity.INVALID
-    payload = reading_payload(
-        judge_input, validity={"R0001": ReportValidity.INVALID}
-    )
+    payload = reading_payload(judge_input, validity={"R0001": ReportValidity.INVALID})
     payload["report_judgments"][0]["causal_field_audits"][0][
         "material_assertion_audits"
     ][0]["verdict"] = "SUPPORTED"
@@ -609,7 +605,9 @@ def test_exact_source_units_prevent_omitting_a_refuted_mechanism() -> None:
     )
     audit = reading.report_assessments[0].causal_field_audits[0]
     assert audit.verdict == models.CausalFieldVerdict.MIXED
-    assert "".join(item.exact_source_quote for item in audit.source_units) == report.reason
+    assert (
+        "".join(item.exact_source_quote for item in audit.source_units) == report.reason
+    )
 
 
 def test_invalid_report_may_retain_supported_context_without_rescuing_claim() -> None:
@@ -618,9 +616,7 @@ def test_invalid_report_may_retain_supported_context_without_rescuing_claim() ->
         update={"basis": "The report cites the natural-language artifact."}
     )
     judge_input = judge_input.model_copy(update={"reports": (report,)})
-    payload = reading_payload(
-        judge_input, validity={"R0001": ReportValidity.INVALID}
-    )
+    payload = reading_payload(judge_input, validity={"R0001": ReportValidity.INVALID})
     audits = payload["report_judgments"][0]["causal_field_audits"]
     next(row for row in audits if row["report_field"] == "basis")[
         "material_assertion_audits"
@@ -634,23 +630,29 @@ def test_invalid_report_may_retain_supported_context_without_rescuing_claim() ->
 def test_material_assertions_derive_all_three_whole_field_verdicts() -> None:
     judge_input = minimal_input()
     report = judge_input.reports[0].model_copy(
-        update={"reason": "A nearby observation is true; the stated causal mechanism is false."}
+        update={
+            "reason": "A nearby observation is true; the stated causal mechanism is false."
+        }
     )
     judge_input = judge_input.model_copy(update={"reports": (report,)})
     schema = build_exact_response_model(judge_input)
 
     supported_payload = reading_payload(judge_input)
-    supported = materialize_reading(
-        schema.model_validate(supported_payload), judge_input
-    ).report_assessments[0].causal_field_audits[0]
+    supported = (
+        materialize_reading(schema.model_validate(supported_payload), judge_input)
+        .report_assessments[0]
+        .causal_field_audits[0]
+    )
     assert supported.verdict == models.CausalFieldVerdict.SUPPORTED
 
     refuted_payload = reading_payload(
         judge_input, validity={"R0001": ReportValidity.INVALID}
     )
-    refuted = materialize_reading(
-        schema.model_validate(refuted_payload), judge_input
-    ).report_assessments[0].causal_field_audits[0]
+    refuted = (
+        materialize_reading(schema.model_validate(refuted_payload), judge_input)
+        .report_assessments[0]
+        .causal_field_audits[0]
+    )
     assert refuted.verdict == models.CausalFieldVerdict.REFUTED
 
     mixed_payload = reading_payload(
@@ -675,16 +677,20 @@ def test_material_assertions_derive_all_three_whole_field_verdicts() -> None:
             "source_refs": ["report:R0001:reason", "artifact:plantuml_source"],
         },
     ]
-    mixed = materialize_reading(
-        schema.model_validate(mixed_payload), judge_input
-    ).report_assessments[0].causal_field_audits[0]
+    mixed = (
+        materialize_reading(schema.model_validate(mixed_payload), judge_input)
+        .report_assessments[0]
+        .causal_field_audits[0]
+    )
     assert mixed.verdict == models.CausalFieldVerdict.MIXED
 
 
 def test_refuted_material_premise_cannot_be_rescued_by_nearby_true_assertion() -> None:
     judge_input = minimal_input()
     report = judge_input.reports[0].model_copy(
-        update={"reason": "A separate artifact fact is true; the report mechanism is false."}
+        update={
+            "reason": "A separate artifact fact is true; the report mechanism is false."
+        }
     )
     judge_input = judge_input.model_copy(update={"reports": (report,)})
     payload = reading_payload(judge_input)
@@ -868,7 +874,9 @@ def test_0029_stage_projection_fits_context_without_dropping_core_evidence() -> 
         assert projection["truncation_applied"] is False
 
 
-def test_sparse_0029_scale_shape_fits_output_budget_with_explicit_minimal_no_rows() -> None:
+def test_sparse_0029_scale_shape_fits_output_budget_with_explicit_minimal_no_rows() -> (
+    None
+):
     judge_input = minimal_input(report_count=22, expected_count=8)
     payload = reading_payload(judge_input)
     validated = build_exact_response_model(judge_input).model_validate(payload)
@@ -903,14 +911,16 @@ def test_typed_scale_audit_checks_exact_prompt_schema_and_sparse_envelopes() -> 
 
     assert audit.status == "pass"
     assert audit.report_count == 22
-    assert audit.atomic_primary_call_count == 88
+    assert audit.atomic_primary_call_count == 12
+    assert audit.validity_primary_batch_count == 3
+    assert audit.relation_primary_batch_count == 3
     assert audit.maximum_request_target_report_id.split(":", 1)[0] in {
-        "validity",
-        "relation",
+        "validity-batch",
+        "relation-batch",
     }
     assert audit.expected_count == 8
     assert audit.relation_position_count == 176
-    assert audit.effective_max_output_tokens == 128_000
+    assert audit.effective_max_output_tokens == 24_000
     assert audit.material_assertion_chars_per_row == len("reason 22")
     assert audit.material_assertion_envelope_count >= 22
     assert audit.maximum_field_material_assertion_envelope_count >= 1
@@ -966,9 +976,7 @@ def test_both_adapters_emit_one_candidate_schema_without_privileged_fields(
         '"observed":"dead end","source_refs":["NL1"],"element_refs":["state:A"]}]}',
         encoding="utf-8",
     )
-    baseline_reports, baseline_audit, _, _ = adapt_x1v2_record(
-        baseline, expected_map
-    )
+    baseline_reports, baseline_audit, _, _ = adapt_x1v2_record(baseline, expected_map)
     method_reports, method_audit, _, _ = adapt_evidence_discovery_release(
         method, expected_map
     )
@@ -991,10 +999,7 @@ def test_fixed_six_raw_adapters_preserve_exact_report_units() -> None:
         / "runs/paper1/evidence-discovery-luna-six-r1-b288a54c"
         / "b288a54c000400230029003500460053"
     )
-    x1_root = (
-        repository_root
-        / "runs/paper1/luna-full-x3-20260819-v1/baseline-v2/run1"
-    )
+    x1_root = repository_root / "runs/paper1/luna-full-x3-20260819-v1/baseline-v2/run1"
     v27_root = (
         repository_root
         / "runs/paper1/luna-full-x3-20260820-v27-stream/method-v27-stream/run1"
@@ -1010,12 +1015,8 @@ def test_fixed_six_raw_adapters_preserve_exact_report_units() -> None:
         )
         x1_candidates = tuple(sorted(x1_root.glob(f"{pair_id}-*/record.json")))
         assert len(x1_candidates) == 1
-        x1, _x1_audit, _round, _pair = adapt_x1v2_record(
-            x1_candidates[0], expected_map
-        )
-        v27_candidates = tuple(
-            sorted(v27_root.glob(f"{pair_id}-*/record.json"))
-        )
+        x1, _x1_audit, _round, _pair = adapt_x1v2_record(x1_candidates[0], expected_map)
+        v27_candidates = tuple(sorted(v27_root.glob(f"{pair_id}-*/record.json")))
         assert len(v27_candidates) == 1
         v27, v27_audit, _round, _pair = adapt_legacy_report_clusters(
             v27_candidates[0], expected_map

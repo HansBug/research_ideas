@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import json
-import signal
 import threading
-from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Generic, TypeVar
 
+import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from utils.agent import AgentApp, AgentError, AgentSpec
 from utils.llm import estimate_usage_cost_usd, load_llm_registry
@@ -63,31 +63,6 @@ class StructuredStageTimeout(TimeoutError):
     """Raised when the enclosing structured stage exhausts its local deadline."""
 
 
-@contextmanager
-def _structured_stage_deadline(seconds: int):
-    """Bound one synchronous structured stage without changing its payload."""
-
-    if threading.current_thread() is not threading.main_thread():
-        # SIGALRM is process-global; callers using a worker thread still rely
-        # on the adapter timeout configured on the model itself.
-        yield
-        return
-    previous = signal.getsignal(signal.SIGALRM)
-
-    def _raise_timeout(_signum: int, _frame: Any) -> None:
-        raise StructuredStageTimeout(
-            f"structured stage exceeded its local {seconds}-second deadline"
-        )
-
-    signal.signal(signal.SIGALRM, _raise_timeout)
-    signal.setitimer(signal.ITIMER_REAL, float(seconds))
-    try:
-        yield
-    finally:
-        signal.setitimer(signal.ITIMER_REAL, 0.0)
-        signal.signal(signal.SIGALRM, previous)
-
-
 def _jsonable(value: Any) -> Any:
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
@@ -100,7 +75,9 @@ def _jsonable(value: Any) -> Any:
     return str(value)
 
 
-def _usage_rows(result: Any, *, outer_attempt: int | None = None) -> list[dict[str, Any]]:
+def _usage_rows(
+    result: Any, *, outer_attempt: int | None = None
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     usage = (
         result.get("usage", ())
@@ -113,7 +90,11 @@ def _usage_rows(result: Any, *, outer_attempt: int | None = None) -> list[dict[s
         value = item.get("usage")
         if isinstance(value, dict):
             row = dict(value)
-            row["source_record"] = {key: item.get(key) for key in ("call_id", "attempt_id", "call_kind") if key in item}
+            row["source_record"] = {
+                key: item.get(key)
+                for key in ("call_id", "attempt_id", "call_kind")
+                if key in item
+            }
             row["cost_counted"] = item.get("cost_counted", True)
             row["billing_disposition"] = item.get("billing_disposition", "billable")
             if outer_attempt is not None:
@@ -277,9 +258,7 @@ def _schema_validation_failures(
         try:
             schema.model_validate(arguments)
         except ValidationError as exc:
-            errors = _jsonable(
-                exc.errors(include_url=False, include_input=False)
-            )
+            errors = _jsonable(exc.errors(include_url=False, include_input=False))
             failures.append(
                 StructuredSchemaValidationFailure(
                     outer_attempt=outer_attempt,
@@ -397,13 +376,15 @@ def _cost_for_usage(rows: list[dict[str, Any]], pricing: Any) -> dict[str, Any]:
     eligible = True
     for row in rows:
         if row.get("cost_counted") is False:
-            costs.append({
-                "eligible": True,
-                "total_usd": 0.0,
-                "billing_disposition": row.get("billing_disposition", "excluded"),
-                "outer_attempt": row.get("outer_attempt"),
-                "model_call_id": row.get("model_call_id"),
-            })
+            costs.append(
+                {
+                    "eligible": True,
+                    "total_usd": 0.0,
+                    "billing_disposition": row.get("billing_disposition", "excluded"),
+                    "outer_attempt": row.get("outer_attempt"),
+                    "model_call_id": row.get("model_call_id"),
+                }
+            )
             continue
         cost = estimate_usage_cost_usd(row, pricing)
         cost["billing_disposition"] = row.get("billing_disposition", "billable")
@@ -417,9 +398,7 @@ def _cost_for_usage(rows: list[dict[str, Any]], pricing: Any) -> dict[str, Any]:
     return {
         "eligible": eligible,
         "total_usd": total,
-        "unpriced_usage_count": sum(
-            not bool(item.get("eligible")) for item in costs
-        ),
+        "unpriced_usage_count": sum(not bool(item.get("eligible")) for item in costs),
         "attempts": costs,
     }
 
@@ -429,17 +408,47 @@ class StructuredContextBudget(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    mode: str = Field(min_length=1, description="Structured LLM or provider-free fixture context mode.")
-    projection_version: str = Field(min_length=1, description="Versioned prompt projection applied before serialization.")
-    prompt_characters: int = Field(ge=0, description="Exact serialized user prompt character count.")
-    estimated_prompt_tokens: int = Field(ge=0, description="Conservative four-characters-per-token pre-provider estimate.")
-    provider_input_tokens: int | None = Field(default=None, ge=0, description="Actual provider-reported input tokens across audited attempts, when available.")
-    context_window_tokens: int | None = Field(default=None, gt=0, description="Configured model context window, when available in the public profile.")
-    max_output_tokens: int = Field(gt=0, description="Configured maximum structured output token count.")
-    truncation_applied: bool = Field(description="Whether runtime text truncation removed any supplied stage input.")
-    projection_decision: str = Field(min_length=1, description="Explicit stage projection and truncation decision.")
-    reason: str = Field(min_length=1, description="Non-empty explanation of context-budget handling.")
-    basis: str = Field(min_length=1, description="Non-empty prompt, profile, usage, and projection basis.")
+    mode: str = Field(
+        min_length=1,
+        description="Structured LLM or provider-free fixture context mode.",
+    )
+    projection_version: str = Field(
+        min_length=1,
+        description="Versioned prompt projection applied before serialization.",
+    )
+    prompt_characters: int = Field(
+        ge=0, description="Exact serialized user prompt character count."
+    )
+    estimated_prompt_tokens: int = Field(
+        ge=0,
+        description="Conservative four-characters-per-token pre-provider estimate.",
+    )
+    provider_input_tokens: int | None = Field(
+        default=None,
+        ge=0,
+        description="Actual provider-reported input tokens across audited attempts, when available.",
+    )
+    context_window_tokens: int | None = Field(
+        default=None,
+        gt=0,
+        description="Configured model context window, when available in the public profile.",
+    )
+    max_output_tokens: int = Field(
+        gt=0, description="Configured maximum structured output token count."
+    )
+    truncation_applied: bool = Field(
+        description="Whether runtime text truncation removed any supplied stage input."
+    )
+    projection_decision: str = Field(
+        min_length=1, description="Explicit stage projection and truncation decision."
+    )
+    reason: str = Field(
+        min_length=1, description="Non-empty explanation of context-budget handling."
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Non-empty prompt, profile, usage, and projection basis.",
+    )
 
 
 class StructuredCallOutcome(BaseModel, Generic[T]):
@@ -447,21 +456,50 @@ class StructuredCallOutcome(BaseModel, Generic[T]):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    kind: str = Field(min_length=1, description="Runtime operation kind, such as method or judge.")
-    status: str = Field(min_length=1, description="Terminal cell status, including success or failed diagnostics.")
-    response: T | None = Field(default=None, description="Validated Pydantic structured response, or null when schema/runtime handling failed.")
-    result: dict[str, Any] = Field(description="Raw public runtime result metadata retained for audit.")
-    attempts: list[dict[str, Any]] = Field(default_factory=list, description="Per-cell outer attempts, provider diagnostics, retry receipts, and artifact paths.")
+    kind: str = Field(
+        min_length=1, description="Runtime operation kind, such as method or judge."
+    )
+    status: str = Field(
+        min_length=1,
+        description="Terminal cell status, including success or failed diagnostics.",
+    )
+    response: T | None = Field(
+        default=None,
+        description="Validated Pydantic structured response, or null when schema/runtime handling failed.",
+    )
+    result: dict[str, Any] = Field(
+        description="Raw public runtime result metadata retained for audit."
+    )
+    attempts: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Per-cell outer attempts, provider diagnostics, retry receipts, and artifact paths.",
+    )
     schema_validation_failures: list[StructuredSchemaValidationFailure] = Field(
         default_factory=list,
         description="Every rejected structured action that deterministically failed the exact runtime Pydantic schema, retained across cell attempts.",
     )
-    usage: list[dict[str, Any]] = Field(default_factory=list, description="Normalized usage rows with model-call identity and billing disposition.")
-    cost: dict[str, Any] = Field(default_factory=dict, description="Cost calculation and eligibility for this cell's usage rows.")
-    context_budget: StructuredContextBudget = Field(description="Prompt size, provider token, model window, and truncation receipt.")
-    real_llm: bool = Field(description="Whether this outcome came from the configured real provider rather than a fixture runtime.")
-    reason: str = Field(min_length=1, description="Non-empty explanation of the structured call terminal outcome.")
-    basis: str = Field(min_length=1, description="Non-empty runtime, provider, schema, and retry basis for the terminal outcome.")
+    usage: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Normalized usage rows with model-call identity and billing disposition.",
+    )
+    cost: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Cost calculation and eligibility for this cell's usage rows.",
+    )
+    context_budget: StructuredContextBudget = Field(
+        description="Prompt size, provider token, model window, and truncation receipt."
+    )
+    real_llm: bool = Field(
+        description="Whether this outcome came from the configured real provider rather than a fixture runtime."
+    )
+    reason: str = Field(
+        min_length=1,
+        description="Non-empty explanation of the structured call terminal outcome.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Non-empty runtime, provider, schema, and retry basis for the terminal outcome.",
+    )
 
     @property
     def succeeded(self) -> bool:
@@ -489,7 +527,7 @@ class StructuredCallOutcome(BaseModel, Generic[T]):
 
 
 class PublicStructuredRuntime:
-    """One public AgentApp wrapper shared by method and independent judge."""
+    """One process-local AgentApp runtime with a persistent async event loop."""
 
     real_llm = True
 
@@ -509,11 +547,154 @@ class PublicStructuredRuntime:
         self.transport_retries = transport_retries
         self.transport_retry_delays = _transport_retry_delays(transport_retries)
         self.streaming = streaming
-        # AgentApp/LangGraph/provider adapters are process-local but are not
-        # safe to drive concurrently from multiple threads. Pair workers still
-        # provide cross-pair parallelism; this lock prevents same-process
-        # grounding/judge fanout from corrupting an event loop or receipt.
-        self._call_lock = threading.Lock()
+        self._start_event_loop()
+        self._transport_model = self._submit_to_event_loop(
+            self._initialize_async_runtime()
+        )
+
+    def _start_event_loop(self) -> None:
+        """Start the one background event loop owned by this runtime."""
+
+        self._event_loop: asyncio.AbstractEventLoop | None = None
+        self._event_loop_start_error: BaseException | None = None
+        self._event_loop_ready = threading.Event()
+        self._event_loop_thread = threading.Thread(
+            target=self._event_loop_main,
+            name=f"structured-runtime-{self.profile}",
+            daemon=True,
+        )
+        self._closed = False
+        self._event_loop_thread.start()
+        if not self._event_loop_ready.wait(timeout=10.0):
+            raise RuntimeError("persistent structured-runtime event loop did not start")
+        if self._event_loop_start_error is not None:
+            raise RuntimeError("persistent structured-runtime event loop failed") from (
+                self._event_loop_start_error
+            )
+        if self._event_loop is None:
+            raise RuntimeError("persistent structured-runtime event loop is unavailable")
+
+    def _event_loop_main(self) -> None:
+        """Own one event loop for every async client and cell in this runtime."""
+
+        loop: asyncio.AbstractEventLoop | None = None
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            self._event_loop = loop
+        except Exception as exc:  # noqa: BLE001 - propagate startup across threads
+            self._event_loop_start_error = exc
+            self._event_loop_ready.set()
+            return
+        self._event_loop_ready.set()
+        try:
+            loop.run_forever()
+        finally:
+            pending = asyncio.all_tasks(loop)
+            for task in pending:
+                task.cancel()
+            if pending:
+                loop.run_until_complete(
+                    asyncio.gather(*pending, return_exceptions=True)
+                )
+            loop.run_until_complete(loop.shutdown_asyncgens())
+            asyncio.set_event_loop(None)
+            loop.close()
+
+    def _submit_to_event_loop(self, coroutine):
+        """Run one coroutine on the runtime-owned loop and return synchronously."""
+
+        loop = self._event_loop
+        if loop is None or not loop.is_running() or self._closed:
+            coroutine.close()
+            raise RuntimeError("persistent structured-runtime event loop is closed")
+        if threading.current_thread() is self._event_loop_thread:
+            coroutine.close()
+            raise RuntimeError("synchronous submission from the runtime event loop")
+        return asyncio.run_coroutine_threadsafe(coroutine, loop).result()
+
+    async def _initialize_async_runtime(self):
+        """Construct the model and unshared async transport inside its owner loop."""
+
+        transport_spec = AgentSpec(
+            name="evidence-discovery-persistent-transport",
+            system_prompt="Persistent process-local transport holder; never invoked directly.",
+            limits={"model_calls": 1, "turns": 1},
+        )
+        transport_app = AgentApp.from_registry(
+            transport_spec,
+            self.registry,
+            profile=self.profile,
+            model_options={
+                "streaming": self.streaming,
+                "max_retries": 0,
+                # An unhashable timeout makes langchain-openai allocate an
+                # instance-owned async httpx client instead of its global cache.
+                "timeout": httpx.Timeout(
+                    float(_provider_timeout_seconds(self.streaming))
+                ),
+            },
+        )
+        self._async_call_lock = asyncio.Lock()
+        return transport_app.model
+
+    async def _aclose_transport_model(self) -> None:
+        """Close process-local async and sync clients before stopping the loop."""
+
+        async_client = getattr(self._transport_model, "root_async_client", None)
+        if async_client is None:
+            async_client = getattr(self._transport_model, "_async_client", None)
+        if async_client is not None:
+            close = getattr(async_client, "close", None)
+            if close is None:
+                close = getattr(async_client, "aclose", None)
+            if close is not None:
+                close_result = close()
+                if hasattr(close_result, "__await__"):
+                    await close_result
+        sync_client = getattr(self._transport_model, "root_client", None)
+        if sync_client is not None:
+            close = getattr(sync_client, "close", None)
+            if close is not None:
+                close()
+
+    async def _arun_app(self, app: AgentApp, prompt: str, **options: Any):
+        """Execute one app on the persistent loop with an async stage timeout."""
+
+        async with self._async_call_lock:
+            try:
+                return await asyncio.wait_for(
+                    app.arun(prompt, **options),
+                    timeout=float(STRUCTURED_STAGE_DEADLINE_SECONDS),
+                )
+            except asyncio.TimeoutError as exc:
+                raise StructuredStageTimeout(
+                    "structured stage exceeded its local "
+                    f"{STRUCTURED_STAGE_DEADLINE_SECONDS}-second deadline"
+                ) from exc
+
+    def close(self) -> None:
+        """Close async clients on their owner loop and stop the loop thread."""
+
+        if self._closed:
+            return
+        close_error: BaseException | None = None
+        try:
+            self._submit_to_event_loop(self._aclose_transport_model())
+        except Exception as exc:  # noqa: BLE001 - always stop the loop after close
+            close_error = exc
+        finally:
+            self._closed = True
+            loop = self._event_loop
+            if loop is not None and loop.is_running():
+                loop.call_soon_threadsafe(loop.stop)
+            self._event_loop_thread.join(timeout=10.0)
+        if self._event_loop_thread.is_alive():
+            raise RuntimeError("persistent structured-runtime event loop did not stop")
+        if close_error is not None:
+            raise RuntimeError("failed to close persistent async transport") from (
+                close_error
+            )
 
     def _app(
         self,
@@ -523,10 +704,10 @@ class PublicStructuredRuntime:
         *,
         streaming: bool,
     ) -> AgentApp:
-        # AgentApp owns a per-run call ledger, but the LangGraph/provider model
-        # wrapper can retain structured-output state across invocations. A fresh
-        # public app per cell keeps the frozen cell boundary explicit and avoids
-        # a previous cell exhausting the next cell's model-call budget.
+        # AgentApp owns a per-run call ledger and spec. AgentApp.arun() makes a
+        # shallow run-scoped model copy for callbacks, so reusing this process-
+        # local base model preserves the provider client's connection pool while
+        # keeping structured-output state and budgets isolated per cell.
         spec = AgentSpec(
             name=f"evidence-discovery-{kind}",
             system_prompt=system_prompt,
@@ -541,15 +722,15 @@ class PublicStructuredRuntime:
             retry_missing_structured_output=True,
             transport_retry_delays_seconds=self.transport_retry_delays,
         )
-        return AgentApp.from_registry(
+        if streaming != self.streaming:
+            raise ValueError(
+                "process-local persistent transport requires one streaming mode"
+            )
+        return AgentApp(
             spec,
-            self.registry,
+            self.config,
+            self._transport_model,
             profile=self.profile,
-            model_options={
-                "streaming": streaming,
-                "max_retries": 0,
-                "timeout": _provider_timeout_seconds(streaming),
-            },
         )
 
     def call(
@@ -564,17 +745,16 @@ class PublicStructuredRuntime:
         streaming: bool | None = None,
         max_output_tokens: int | None = None,
     ) -> StructuredCallOutcome[T]:
-        with self._call_lock:
-            return self._call_unlocked(
-                kind=kind,
-                schema=schema,
-                system_prompt=system_prompt,
-                prompt=prompt,
-                artifact_id=artifact_id,
-                retry_cell_on_provider_error=retry_cell_on_provider_error,
-                streaming=streaming,
-                max_output_tokens=max_output_tokens,
-            )
+        return self._call_unlocked(
+            kind=kind,
+            schema=schema,
+            system_prompt=system_prompt,
+            prompt=prompt,
+            artifact_id=artifact_id,
+            retry_cell_on_provider_error=retry_cell_on_provider_error,
+            streaming=streaming,
+            max_output_tokens=max_output_tokens,
+        )
 
     def _call_unlocked(
         self,
@@ -604,20 +784,23 @@ class PublicStructuredRuntime:
         status = "failed"
         max_outer_attempts = 2 if retry_cell_on_provider_error else 1
         for outer_attempt in range(1, max_outer_attempts + 1):
-            attempt_dir = self.artifact_root / artifact_id / f"cell-attempt-{outer_attempt}"
+            attempt_dir = (
+                self.artifact_root / artifact_id / f"cell-attempt-{outer_attempt}"
+            )
             attempt_dir.mkdir(parents=True, exist_ok=True)
             audit_path = attempt_dir / "audit.jsonl"
             result_path = attempt_dir / "result.json"
             captured_result: dict[str, Any] | None = None
             rows: list[dict[str, Any]] = []
             try:
-                with _structured_stage_deadline(STRUCTURED_STAGE_DEADLINE_SECONDS):
-                    result = self._app(
-                        kind,
-                        schema,
-                        system_prompt,
-                        streaming=use_streaming,
-                    ).run(
+                result = self._submit_to_event_loop(
+                    self._arun_app(
+                        self._app(
+                            kind,
+                            schema,
+                            system_prompt,
+                            streaming=use_streaming,
+                        ),
                         prompt,
                         renderer="quiet",
                         log_level="ERROR",
@@ -625,6 +808,7 @@ class PublicStructuredRuntime:
                         audit_out=audit_path,
                         result_out=result_path,
                     )
+                )
                 captured_result = result.to_dict()
                 last_result = captured_result
                 audit_records = _read_audit_records(audit_path)
@@ -668,11 +852,11 @@ class PublicStructuredRuntime:
                     "audit_path": str(audit_path),
                     "result_path": str(result_path),
                     "usage_count": len(rows),
-                    "billing_disposition": "provider_error_attempt_requires_row_level_join" if provider_error else "billable",
+                    "billing_disposition": "provider_error_attempt_requires_row_level_join"
+                    if provider_error
+                    else "billable",
                     "retry_records": _retry_records(audit_records),
-                    "schema_validation_failures": _jsonable(
-                        schema_validation_failures
-                    ),
+                    "schema_validation_failures": _jsonable(schema_validation_failures),
                     "schema_validation_failure_path": (
                         str(schema_validation_path)
                         if schema_validation_failures
@@ -759,43 +943,48 @@ class PublicStructuredRuntime:
                     final_error=error_payload,
                     actual_outer_retry=actual_outer_retry,
                 )
-                attempts.append({
-                    "outer_attempt": outer_attempt,
-                    "status": "exception",
-                    "provider_error": provider_error,
-                    "error": error_payload,
-                    "audit_path": str(audit_path),
-                    "result_path": str(result_path),
-                    "usage_count": len(rows),
-                    "usage_recovery": {
-                        "status": (
-                            "recovered"
-                            if artifact_result is not None and rows
-                            else "recovered_without_rows"
-                            if artifact_result is not None
-                            else "unavailable"
-                        ),
-                        "source": recovery_source,
+                attempts.append(
+                    {
+                        "outer_attempt": outer_attempt,
+                        "status": "exception",
+                        "provider_error": provider_error,
+                        "error": error_payload,
+                        "audit_path": str(audit_path),
                         "result_path": str(result_path),
-                        "reason": (
-                            "Usage rows were recovered from the committed public result artifact."
-                            if rows and recovery_source == "committed_result_artifact"
-                            else "Usage rows were retained from the in-memory public result before local validation failed."
-                            if rows and recovery_source == "in_memory_public_result"
-                            else "No committed usage rows were available; cost remains explicitly unobserved rather than assumed to be zero."
+                        "usage_count": len(rows),
+                        "usage_recovery": {
+                            "status": (
+                                "recovered"
+                                if artifact_result is not None and rows
+                                else "recovered_without_rows"
+                                if artifact_result is not None
+                                else "unavailable"
+                            ),
+                            "source": recovery_source,
+                            "result_path": str(result_path),
+                            "reason": (
+                                "Usage rows were recovered from the committed public result artifact."
+                                if rows
+                                and recovery_source == "committed_result_artifact"
+                                else "Usage rows were retained from the in-memory public result before local validation failed."
+                                if rows and recovery_source == "in_memory_public_result"
+                                else "No committed usage rows were available; cost remains explicitly unobserved rather than assumed to be zero."
+                            ),
+                        },
+                        "billing_disposition": "provider_error_attempt_requires_row_level_join"
+                        if provider_error
+                        else "billable",
+                        "retry_records": _retry_records(audit_records),
+                        "schema_validation_failures": _jsonable(
+                            schema_validation_failures
                         ),
-                    },
-                    "billing_disposition": "provider_error_attempt_requires_row_level_join" if provider_error else "billable",
-                    "retry_records": _retry_records(audit_records),
-                    "schema_validation_failures": _jsonable(
-                        schema_validation_failures
-                    ),
-                    "schema_validation_failure_path": (
-                        str(schema_validation_path)
-                        if schema_validation_failures
-                        else None
-                    ),
-                })
+                        "schema_validation_failure_path": (
+                            str(schema_validation_path)
+                            if schema_validation_failures
+                            else None
+                        ),
+                    }
+                )
                 if provider_error and outer_attempt < max_outer_attempts:
                     continue
                 status = "failed"
@@ -917,7 +1106,9 @@ class FixtureStructuredRuntime:
         elif schema.__name__ == "DAdjudicationResponse":
             parts = artifact_id.split("/")
             pair_id = parts[1] if len(parts) > 1 else "fixture"
-            round_id = next((item for item in parts if item.startswith("round-")), "round-1")
+            round_id = next(
+                (item for item in parts if item.startswith("round-")), "round-1"
+            )
             round_number = round_id.split("-", 1)[1] if "-" in round_id else "1"
             payload = {
                 "decisions": [

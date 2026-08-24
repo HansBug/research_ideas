@@ -12,7 +12,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from pipeline.evidence_discovery.inputs import FROZEN_PAIR_IDS
-from pipeline.evidence_discovery.orchestration.runtime import PublicStructuredRuntime
 
 from .artifacts import (
     adapt_evidence_discovery_release,
@@ -23,6 +22,7 @@ from .artifacts import (
     build_unified_input,
     load_expected_issues,
 )
+from .execution import ProcessStructuredRuntime
 from .metrics import aggregate_outcomes
 from .models import (
     RunFailureSummary,
@@ -37,7 +37,7 @@ from .protocol import (
     PROTOCOL_VERSION,
     verify_snapshot,
 )
-from .runner import judge_pair
+from .runner import MAX_REPORTS_PER_BATCH, judge_pair
 
 
 def _sha256_bytes(value: bytes) -> str:
@@ -195,15 +195,17 @@ def main(argv: list[str] | None = None) -> int:
         selected_pair_ids=pair_ids,
         selected_rounds=(args.round,),
         workers=args.workers,
+        max_reports_per_batch=MAX_REPORTS_PER_BATCH,
         transport_retries=args.transport_retries,
         reason="Existing published reports are rejudged without regeneration through the single arm-neutral issue #195 entry point.",
         basis="Frozen CLI selection, source bytes, issue #195 snapshot, clean Judge commit, and one utils.llm profile.",
     )
     manifest_path = artifact_root / "run_manifest.json"
     manifest_hash = _write_model(manifest_path, manifest)
-    runtime = PublicStructuredRuntime(
+    runtime = ProcessStructuredRuntime(
         args.profile,
         artifact_root / "llm",
+        workers=args.workers,
         transport_retries=args.transport_retries,
         streaming=True,
     )
@@ -234,9 +236,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         if preflight.status.value != "PASS":
             raise RuntimeError(preflight.reason)
-        closure = build_artifact_closure(
-            report_root, pair_id, preflight=preflight
-        )
+        closure = build_artifact_closure(report_root, pair_id, preflight=preflight)
         judge_input = build_unified_input(
             reports=reports,
             expected_issues=expected,
@@ -297,12 +297,8 @@ def main(argv: list[str] | None = None) -> int:
                     error_type=type(exc).__name__,
                     error_message=str(exc) or repr(exc),
                     call_receipts=call_receipts,
-                    total_judge_cost_usd=sum(
-                        call.cost_usd for call in call_receipts
-                    ),
-                    cost_eligible=all(
-                        call.cost_eligible for call in call_receipts
-                    ),
+                    total_judge_cost_usd=sum(call.cost_usd for call in call_receipts),
+                    cost_eligible=all(call.cost_eligible for call in call_receipts),
                     reason="The pair did not complete two validated readings and any required arbitration, so it is excluded from aggregation.",
                     basis="Captured worker exception plus preserved unified input, adapter audit, and public runtime artifacts when available.",
                 )
@@ -338,6 +334,7 @@ def main(argv: list[str] | None = None) -> int:
                 ),
                 flush=True,
             )
+    runtime.close()
     if failures:
         receipts.sort(key=lambda item: item.pair_id)
         failures.sort(key=lambda item: item.pair_id)
@@ -348,9 +345,7 @@ def main(argv: list[str] | None = None) -> int:
             failures=tuple(failures),
             total_judge_cost_usd=(
                 sum(
-                    call.cost_usd
-                    for result in results
-                    for call in result.call_receipts
+                    call.cost_usd for result in results for call in result.call_receipts
                 )
                 + sum(failure.total_judge_cost_usd for failure in failures)
             ),

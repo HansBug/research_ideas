@@ -49,6 +49,20 @@ class FakeRuntime:
     def call(self, **kwargs):
         self.calls.append(kwargs)
         payload = self.payloads.pop(0)
+        recipe = getattr(kwargs["schema"], "__semantic_judge_recipe__", None)
+        if recipe is not None and "batch_id" not in payload:
+            report_count = len(recipe["input"]["reports"])
+            items = [payload]
+            items.extend(self.payloads.pop(0) for _ in range(report_count - 1))
+            payload = {
+                "schema_version": (
+                    "semantic-judge.validity-batch-response.v1"
+                    if recipe["kind"] == "validity_batch"
+                    else "semantic-judge.relation-batch-response.v1"
+                ),
+                "batch_id": recipe["input"]["batch_id"],
+                **{f"item{index}": item for index, item in enumerate(items)},
+            }
         response = kwargs["schema"].model_validate(payload)
         return SimpleNamespace(
             succeeded=True,
@@ -96,6 +110,7 @@ def validity_payload(
     """Build one exact fixed-field validity response fixture."""
 
     refuted = refuted or set()
+
     def gate(status: str, subject: str) -> dict:
         return {
             "status": status,
@@ -127,14 +142,12 @@ def validity_payload(
                 ),
                 "verdict": (
                     "REFUTED"
-                    if (field_plan.report_field.value, clause.clause_id)
-                    in refuted
+                    if (field_plan.report_field.value, clause.clause_id) in refuted
                     else "SUPPORTED"
                 ),
                 "reason": (
                     "The common artifacts contradict a material premise in this complete clause."
-                    if (field_plan.report_field.value, clause.clause_id)
-                    in refuted
+                    if (field_plan.report_field.value, clause.clause_id) in refuted
                     else "The common artifacts support every material premise in this complete clause."
                 ),
                 "basis": "The authored source and deterministic artifact facts provide the direct evidence.",
@@ -199,7 +212,9 @@ def certificate_from_payload(validity_input, payload):
     )
 
 
-def test_validity_prompt_physically_excludes_expected_and_experimental_metadata() -> None:
+def test_validity_prompt_physically_excludes_expected_and_experimental_metadata() -> (
+    None
+):
     judge_input = minimal_input(report_count=1, expected_count=2)
     validity_input = build_validity_input(judge_input, "R0001")
     prompt = build_validity_prompt(validity_input)
@@ -211,9 +226,7 @@ def test_validity_prompt_physically_excludes_expected_and_experimental_metadata(
     serialized_input = prompt.split("<validity_input>\n", 1)[1].split(
         "\n</validity_input>", 1
     )[0]
-    serialized_keys = json.dumps(
-        json.loads(serialized_input), sort_keys=True
-    )
+    serialized_keys = json.dumps(json.loads(serialized_input), sort_keys=True)
     assert "expected_issues" not in serialized_keys
     assert "expected_id" not in serialized_keys
     assert "ledger" not in serialized_keys.lower()
@@ -232,14 +245,12 @@ def test_expected_changes_do_not_change_validity_input_or_hash() -> None:
             "expected_issues": tuple(
                 item.model_copy(
                     update={
-                        "expected_id": f"E{3-index:04d}",
+                        "expected_id": f"E{3 - index:04d}",
                         "summary": f"decoy summary {index}",
                         "detail": f"decoy detail {index}",
                     }
                 )
-                for index, item in enumerate(
-                    reversed(first.expected_issues), start=1
-                )
+                for index, item in enumerate(reversed(first.expected_issues), start=1)
             )
         }
     )
@@ -253,7 +264,9 @@ def test_expected_changes_do_not_change_validity_input_or_hash() -> None:
     )
 
 
-def test_fixed_validity_slots_reject_claim_or_clause_omission_and_where_injection() -> None:
+def test_fixed_validity_slots_reject_claim_or_clause_omission_and_where_injection() -> (
+    None
+):
     judge_input = minimal_input()
     validity_input = build_validity_input(judge_input, "R0001")
     schema = build_exact_validity_model(validity_input)
@@ -289,7 +302,9 @@ def test_fixed_validity_slots_reject_claim_or_clause_omission_and_where_injectio
 def test_invalid_certificate_never_enters_relation_stage() -> None:
     judge_input = minimal_input()
     validity_input = build_validity_input(judge_input, "R0001")
-    refuted = {("claim", validity_input.core_envelope.field_plans[0].clauses[0].clause_id)}
+    refuted = {
+        ("claim", validity_input.core_envelope.field_plans[0].clauses[0].clause_id)
+    }
     invalid = validity_payload(validity_input, refuted=refuted)
     runtime = FakeRuntime((invalid, invalid))
 
@@ -341,14 +356,17 @@ def test_refuted_auxiliary_reason_wording_does_not_kill_supported_core() -> None
     reason_row = payload["reason_audit"]["item0"]
     reason_row["validity_role"] = "AUXILIARY_CONTEXT"
     reason_row["verdict"] = "REFUTED"
-    reason_row["reason"] = "One incidental phrase is inaccurate but is not needed to sustain the bounded claim."
+    reason_row["reason"] = (
+        "One incidental phrase is inaccurate but is not needed to sustain the bounded claim."
+    )
 
     certificate = certificate_from_payload(validity_input, payload)
 
     assert certificate.core_truth == CoreClaimTruth.VALID
-    assert [(item.report_field.value, item.clause_id) for item in certificate.auxiliary_warnings] == [
-        ("reason", "C1")
-    ]
+    assert [
+        (item.report_field.value, item.clause_id)
+        for item in certificate.auxiliary_warnings
+    ] == [("reason", "C1")]
 
 
 def test_refuted_indispensable_mechanism_invalidates_supported_conclusion() -> None:
@@ -399,9 +417,7 @@ def test_empty_expected_denominator_runs_validity_only_and_closes_ownership(
     assert result.metrics.valid_novel_count == (
         expected_validity == ReportValidity.VALID_NOVEL
     )
-    assert result.metrics.invalid_count == (
-        expected_validity == ReportValidity.INVALID
-    )
+    assert result.metrics.invalid_count == (expected_validity == ReportValidity.INVALID)
     assert len(result.call_receipts) == 2
 
 
@@ -423,7 +439,7 @@ def test_validity_conflict_is_arbitrated_before_relation_visibility() -> None:
     )
 
     assert len(runtime.calls) == 3
-    assert runtime.calls[2]["kind"] == "semantic-judge-validity-arbitration"
+    assert runtime.calls[2]["kind"] == "semantic-judge-validity-arbitration-batch"
     assert "expected_issues" not in runtime.calls[2]["prompt"]
     assert result.validity_arbitration_certificates[0].core_truth == (
         CoreClaimTruth.INVALID
@@ -437,12 +453,8 @@ def test_relation_conflict_is_arbitrated_without_reopening_validity() -> None:
     valid = validity_payload(validity_input)
     certificate = certificate_from_payload(validity_input, valid)
     relation_input = build_relation_input(judge_input, certificate)
-    full = relation_payload(
-        relation_input, {"E0001": MatchStrength.FULL_MATCH}
-    )
-    partial = relation_payload(
-        relation_input, {"E0001": MatchStrength.PARTIAL_MATCH}
-    )
+    full = relation_payload(relation_input, {"E0001": MatchStrength.FULL_MATCH})
+    partial = relation_payload(relation_input, {"E0001": MatchStrength.PARTIAL_MATCH})
     runtime = FakeRuntime((valid, valid, full, partial, full))
 
     result = judge_pair(
@@ -455,22 +467,22 @@ def test_relation_conflict_is_arbitrated_without_reopening_validity() -> None:
     )
 
     assert len(runtime.calls) == 5
-    assert runtime.calls[-1]["kind"] == "semantic-judge-relation-arbitration"
+    assert runtime.calls[-1]["kind"] == "semantic-judge-relation-arbitration-batch"
     assert "field_audits" in runtime.calls[-1]["prompt"]
     assert result.final_reading.relations[0].match == MatchStrength.FULL_MATCH
     assert len(result.relation_arbitration_responses) == 1
 
 
-def test_relation_schema_replays_and_eliminates_conditional_no_closure_failure() -> None:
+def test_relation_schema_replays_and_eliminates_conditional_no_closure_failure() -> (
+    None
+):
     judge_input = minimal_input(expected_count=3)
     validity_input = build_validity_input(judge_input, "R0001")
     valid = validity_payload(validity_input)
     certificate = certificate_from_payload(validity_input, valid)
     relation_input = build_relation_input(judge_input, certificate)
     schema = build_exact_relation_model(relation_input)
-    corrected = relation_payload(
-        relation_input, {"E0003": MatchStrength.FULL_MATCH}
-    )
+    corrected = relation_payload(relation_input, {"E0003": MatchStrength.FULL_MATCH})
     old_failure = json.loads(json.dumps(corrected))
     for decision in old_failure["relation_decisions"]:
         if decision["match"] == "NO_MATCH":
@@ -604,9 +616,7 @@ def test_v19_replay_closes_0053_anchor_without_nearby_truth_rescue() -> None:
             "E0003": MatchStrength.FULL_MATCH,
         },
     )
-    runtime = FakeRuntime(
-        (*validity_payloads, *validity_payloads, relation, relation)
-    )
+    runtime = FakeRuntime((*validity_payloads, *validity_payloads, relation, relation))
 
     result = judge_pair(
         run_id="v19-0053-provider-free-replay",
@@ -617,16 +627,18 @@ def test_v19_replay_closes_0053_anchor_without_nearby_truth_rescue() -> None:
         judge_code_commit="e" * 40,
     )
 
-    assert [
-        item.core_truth for item in result.validity_reading_1.certificates
-    ] == [CoreClaimTruth.INVALID, CoreClaimTruth.VALID, CoreClaimTruth.INVALID]
-    assert [
-        item.core_truth for item in result.validity_reading_2.certificates
-    ] == [CoreClaimTruth.INVALID, CoreClaimTruth.VALID, CoreClaimTruth.INVALID]
-    assert result.validity_arbitration_certificates == ()
-    assert [item.report_id for item in result.relation_reading_1.responses] == [
-        "R0002"
+    assert [item.core_truth for item in result.validity_reading_1.certificates] == [
+        CoreClaimTruth.INVALID,
+        CoreClaimTruth.VALID,
+        CoreClaimTruth.INVALID,
     ]
+    assert [item.core_truth for item in result.validity_reading_2.certificates] == [
+        CoreClaimTruth.INVALID,
+        CoreClaimTruth.VALID,
+        CoreClaimTruth.INVALID,
+    ]
+    assert result.validity_arbitration_certificates == ()
+    assert [item.report_id for item in result.relation_reading_1.responses] == ["R0002"]
     matrix = {
         (item.report_id, item.expected_id): item.match
         for item in result.final_reading.relations
@@ -648,19 +660,20 @@ def test_v19_replay_closes_0053_anchor_without_nearby_truth_rescue() -> None:
         result.metrics.valid_novel_count,
         result.metrics.invalid_count,
     ) == (1, 0, 2)
-    assert len(runtime.calls) == 8
-    assert all(
-        "expected_issues" not in item["prompt"] for item in runtime.calls[:6]
-    )
+    assert len(runtime.calls) == 4
+    assert all("expected_issues" not in item["prompt"] for item in runtime.calls[:2])
     for certificate in result.validity_reading_1.certificates:
         for field_audit in certificate.field_audits:
-            assert "".join(
-                item.exact_text for item in field_audit.clauses
-            ) == field_audit.exact_text
+            assert (
+                "".join(item.exact_text for item in field_audit.clauses)
+                == field_audit.exact_text
+            )
             assert re.fullmatch(r"sha256:[0-9a-f]{64}", field_audit.exact_text_sha256)
 
 
-def test_two_stage_semantics_are_invariant_to_report_and_expected_ids_and_order() -> None:
+def test_two_stage_semantics_are_invariant_to_report_and_expected_ids_and_order() -> (
+    None
+):
     first = minimal_input(report_count=2, expected_count=2)
     first_reports = (
         first.reports[0].model_copy(
@@ -791,8 +804,7 @@ def test_two_stage_semantics_are_invariant_to_report_and_expected_ids_and_order(
             for relation_row in result.final_reading.relations
         }
         normalized_validity = {
-            item.original_report_id: item.validity
-            for item in result.report_outcomes
+            item.original_report_id: item.validity for item in result.report_outcomes
         }
         return result, normalized_relations, normalized_validity
 
@@ -802,10 +814,14 @@ def test_two_stage_semantics_are_invariant_to_report_and_expected_ids_and_order(
     )
 
     assert first_relations == second_relations
-    assert first_validity == second_validity == {
-        "artifact-supported report": ReportValidity.VALID_KNOWN,
-        "artifact-refuted report": ReportValidity.INVALID,
-    }
+    assert (
+        first_validity
+        == second_validity
+        == {
+            "artifact-supported report": ReportValidity.VALID_KNOWN,
+            "artifact-refuted report": ReportValidity.INVALID,
+        }
+    )
     assert first_result.metrics == second_result.metrics
     assert (
         first_result.metrics.full_hit_count,
@@ -902,11 +918,13 @@ def test_prompts_state_general_typed_carrier_and_relation_scope_boundaries() -> 
     assert "independently actionable causal facet" in normalized_relation
     assert "need not also identify every coequal facet" in normalized_relation
     assert "never expand the report to a different defect" in normalized_relation
-    assert "initial transition inside a child composite is not a parent-level entry" in (
-        normalized_relation
+    assert (
+        "initial transition inside a child composite is not a parent-level entry"
+        in (normalized_relation)
     )
-    assert "unexpected reachable deadlock or no progress need not be stated verbatim" in (
-        normalized_validity
+    assert (
+        "unexpected reachable deadlock or no progress need not be stated verbatim"
+        in (normalized_validity)
     )
     assert "without a typed predicate or formal witness can be valid" in (
         normalized_validity

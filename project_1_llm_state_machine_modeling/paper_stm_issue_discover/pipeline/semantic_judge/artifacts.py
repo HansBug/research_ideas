@@ -51,6 +51,58 @@ def _model_json(value: Any) -> str:
     return _stable_json(value)
 
 
+def _inspection_authority_projection(pair: Any) -> str:
+    """Add typed carrier and scoped-entry facts without changing source artifacts."""
+
+    inspection = pair.inspection_facts.model_dump(mode="json")
+    canonical = pair.canonical_source_ir.model_dump(mode="json")
+    canonical_states = canonical.get("model", {}).get("states", ())
+    state_carriers = []
+    for state in canonical_states:
+        attributes = state.get("attributes") or {}
+        state_carriers.append(
+            {
+                "state_id": state.get("id"),
+                "body_lines": attributes.get("body_lines") or [],
+                "lifecycle_actions": attributes.get("lifecycle_actions") or [],
+                "body_lines_are_executable": False,
+                "executable_lifecycle_carrier": "attributes.lifecycle_actions",
+            }
+        )
+    transitions = inspection.get("transitions") or []
+    initial_entries = [
+        {
+            "transition_ref": item.get("transition_ref"),
+            "owner_scope": item.get("scope"),
+            "resolved_target_ref": item.get("resolved_target_ref"),
+            "runtime_continuation": False,
+            "requires_owner_active": True,
+        }
+        for item in transitions
+        if str(item.get("source") or "").strip() == "[*]"
+    ]
+    runtime_transitions = [
+        {
+            "transition_ref": item.get("transition_ref"),
+            "resolved_source_ref": item.get("resolved_source_ref"),
+            "resolved_target_ref": item.get("resolved_target_ref"),
+        }
+        for item in transitions
+        if str(item.get("source") or "").strip() != "[*]"
+    ]
+    inspection["judge_typed_semantics"] = {
+        "schema_version": "paper1.semantic-judge.typed-artifact-semantics.v1",
+        "state_carriers": state_carriers,
+        "initial_entries": initial_entries,
+        "runtime_transitions": runtime_transitions,
+        "containment_implies_runtime_reachability": False,
+        "child_initial_requires_owner_entry": True,
+        "reason": "Presentation text and owner-scoped entry are separated from executable lifecycle behavior and runtime continuation.",
+        "basis": "canonical source IR typed attributes plus inspection-equivalent scoped transition resolution",
+    }
+    return _stable_json(inspection)
+
+
 def _stage_projection(
     payload: dict[str, Any],
     *,
@@ -152,7 +204,12 @@ def build_pair_artifact_consistency_preflight(
     finding_no = 0
 
     def add_finding(
-        *, fact_kind: str, subject_refs: tuple[str, ...], values: tuple[str, ...], reason: str, basis: str
+        *,
+        fact_kind: str,
+        subject_refs: tuple[str, ...],
+        values: tuple[str, ...],
+        reason: str,
+        basis: str,
     ) -> None:
         nonlocal finding_no
         finding_no += 1
@@ -170,7 +227,8 @@ def build_pair_artifact_consistency_preflight(
     if graph_reachable != owned_reachable:
         add_finding(
             fact_kind="closed_model_reachability_closure",
-            subject_refs=tuple(sorted(graph_reachable | owned_reachable)) or ("closed-model",),
+            subject_refs=tuple(sorted(graph_reachable | owned_reachable))
+            or ("closed-model",),
             values=(
                 "fcstm_graph=" + ",".join(sorted(graph_reachable)),
                 "owned_inspection=" + ",".join(sorted(owned_reachable)),
@@ -221,7 +279,10 @@ def build_pair_artifact_consistency_preflight(
         refs_by_path.setdefault(state_path, []).append(state_ref)
     reference_diagnostics = pair.reference_inspection.payload.get("diagnostics", ())
     for diagnostic in reference_diagnostics:
-        if not isinstance(diagnostic, dict) or diagnostic.get("code") != "W_UNREACHABLE_STATE":
+        if (
+            not isinstance(diagnostic, dict)
+            or diagnostic.get("code") != "W_UNREACHABLE_STATE"
+        ):
             continue
         refs = diagnostic.get("refs")
         reference_path = refs.get("state_path") if isinstance(refs, dict) else None
@@ -247,9 +308,7 @@ def build_pair_artifact_consistency_preflight(
             )
 
     status = (
-        ArtifactConsistencyStatus.FAIL
-        if findings
-        else ArtifactConsistencyStatus.PASS
+        ArtifactConsistencyStatus.FAIL if findings else ArtifactConsistencyStatus.PASS
     )
     return ArtifactConsistencyPreflight(
         algorithm_version="paper1.semantic-judge.artifact-preflight.v1",
@@ -382,10 +441,10 @@ def build_artifact_closure(
         _document(
             role=ArtifactRole.INSPECTION_EQUIVALENT_FACTS,
             authority=ArtifactAuthority.DETERMINISTIC_FACT,
-            content=_model_json(pair.inspection_facts),
-            schema_version=pair.inspection_facts.schema_version,
-            reason="Owned inspection-equivalent facts expose hierarchy, reachability, transition, carrier, and diagnostic closure.",
-            basis=pair.inspection_facts.basis,
+            content=_inspection_authority_projection(pair),
+            schema_version=f"{pair.inspection_facts.schema_version}.judge-typed-authority.v1",
+            reason="Owned inspection-equivalent facts expose hierarchy, scoped entry, runtime transition, typed carrier, reachability, and diagnostic closure.",
+            basis=f"{pair.inspection_facts.basis}; paper1.semantic-judge.typed-artifact-semantics.v1",
         ),
         _document(
             role=ArtifactRole.VERIFY_FACTS,
@@ -476,7 +535,7 @@ def build_artifact_closure(
         ),
     )
     unhashed = {
-        "schema_version": "paper1.semantic-judge.artifact-closure.v3",
+        "schema_version": "paper1.semantic-judge.artifact-closure.v4",
         "pair_id": pair_id,
         "artifacts": [item.model_dump(mode="json") for item in artifacts],
         "reason": "Every report source is judged against one identical stage-scoped public pair closure without runtime truncation.",
@@ -776,9 +835,7 @@ def adapt_legacy_report_clusters(
                 evidence=(),
             )
         )
-        mappings.append(
-            AdapterIdMap(anonymous_id=report_id, original_id=original_id)
-        )
+        mappings.append(AdapterIdMap(anonymous_id=report_id, original_id=original_id))
     audit = AdapterAudit(
         source_format="legacy_report_clusters",
         source_path=str(path),

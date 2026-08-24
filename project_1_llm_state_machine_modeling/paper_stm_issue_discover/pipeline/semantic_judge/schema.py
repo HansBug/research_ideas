@@ -30,6 +30,8 @@ from .models import (
     NoMatchRelationJudgment,
     PositiveMatchStrength,
     RelationAssessment,
+    RelationBatchJudgeInput,
+    RelationBatchResponse,
     RelationJudgeInput,
     RelationResponse,
     ReportAssessment,
@@ -42,6 +44,8 @@ from .models import (
     SupportedRelationJudgment,
     UnifiedJudgeInput,
     ValidityAuditWarning,
+    ValidityBatchJudgeInput,
+    ValidityBatchResponse,
     ValidityClauseRole,
     ValidityGateJudgment,
     ValidityGateStatus,
@@ -79,9 +83,7 @@ def _validate_report_judgment(
         )
     audit_by_field: dict[str, CausalFieldAuditJudgment] = {}
     audit_plan = build_causal_audit_plan((report,)).report_plans[0]
-    plan_by_field = {
-        item.report_field.value: item for item in audit_plan.field_plans
-    }
+    plan_by_field = {item.report_field.value: item for item in audit_plan.field_plans}
     for audit in row.causal_field_audits:
         field_name = audit.report_field.value
         expected_assertion_ids = [
@@ -166,9 +168,9 @@ def _validate_report_judgment(
             f"{object_path} has an empty NO_MATCH closure, so no_match_closure must be null"
         )
     actual_partition = positive_ids + no_match_ids
-    if len(actual_partition) != len(set(actual_partition)) or set(actual_partition) != set(
-        expected_ids
-    ):
+    if len(actual_partition) != len(set(actual_partition)) or set(
+        actual_partition
+    ) != set(expected_ids):
         raise ValueError(
             f"{object_path}.relation_decisions must cover every expected ID "
             f"exactly once; expected={expected_ids}, positive={positive_ids}, "
@@ -205,9 +207,7 @@ def _exact_relation_decision_type(
         )
 
     no_match_base = (
-        AuditedNoMatchRelationJudgment
-        if audited_no_match
-        else NoMatchRelationJudgment
+        AuditedNoMatchRelationJudgment if audited_no_match else NoMatchRelationJudgment
     )
 
     class ExactNoMatchRelationJudgment(no_match_base):  # type: ignore[valid-type,misc]
@@ -306,7 +306,7 @@ def build_exact_response_model(judge_input: UnifiedJudgeInput) -> type[JudgeResp
         report_judgments: tuple[ExactReportJudgment, ...] = Field(
             min_length=len(report_ids),
             max_length=len(report_ids),
-            description="One exact causal-certificate and exhaustive relation judgment for every anonymous report; report order is semantically irrelevant."
+            description="One exact causal-certificate and exhaustive relation judgment for every anonymous report; report order is semantically irrelevant.",
         )
 
         @model_validator(mode="after")
@@ -335,12 +335,7 @@ def build_exact_primary_model(
         )
     expected_ids = tuple(item.expected_id for item in judge_input.expected_issues)
     suffix = hashlib.sha256(
-        (
-            target_report_id
-            + "::"
-            + "|".join(expected_ids)
-            + "::primary"
-        ).encode("utf-8")
+        (target_report_id + "::" + "|".join(expected_ids) + "::primary").encode("utf-8")
     ).hexdigest()[:12]
     report_id_type = _literal((target_report_id,))
     exact_relation_tuple = _exact_relation_tuple(
@@ -377,11 +372,7 @@ def build_validity_input(
     """Project one report and common artifacts into an expected-isolated input."""
 
     report = next(
-        (
-            item
-            for item in judge_input.reports
-            if item.report_id == target_report_id
-        ),
+        (item for item in judge_input.reports if item.report_id == target_report_id),
         None,
     )
     if report is None:
@@ -402,6 +393,62 @@ def build_validity_input(
     )
 
 
+def build_validity_batch_input(
+    judge_input: UnifiedJudgeInput,
+    report_ids: tuple[str, ...],
+    *,
+    batch_id: str,
+) -> ValidityBatchJudgeInput:
+    """Project a bounded report set and one shared closure into validity input."""
+
+    reports_by_id = {item.report_id: item for item in judge_input.reports}
+    if not report_ids or len(report_ids) != len(set(report_ids)):
+        raise ValueError("validity batch report_ids must be non-empty and unique")
+    unknown = tuple(item for item in report_ids if item not in reports_by_id)
+    if unknown:
+        raise ValueError(
+            f"validity batch report IDs are outside the report closure: {unknown}"
+        )
+    reports = tuple(reports_by_id[item] for item in report_ids)
+    envelopes = tuple(build_report_core_envelope(item) for item in reports)
+    return ValidityBatchJudgeInput(
+        batch_id=batch_id,
+        protocol_version=judge_input.protocol_version,
+        reports=reports,
+        core_envelopes=envelopes,
+        artifact_closure=judge_input.artifact_closure,
+        reason=(
+            "This bounded input audits every report independently while physically "
+            "isolating validity from expected issues and experimental metadata."
+        ),
+        basis=(
+            f"{judge_input.protocol_version}; {batch_id}; "
+            + ",".join(item.envelope_hash for item in envelopes)
+            + f"; {judge_input.artifact_closure.closure_hash}"
+        ),
+    )
+
+
+def validity_item_input(
+    batch_input: ValidityBatchJudgeInput, index: int
+) -> ValidityJudgeInput:
+    """Reconstruct one atomic validity view without duplicating serialized artifacts."""
+
+    report = batch_input.reports[index]
+    envelope = batch_input.core_envelopes[index]
+    return ValidityJudgeInput(
+        protocol_version=batch_input.protocol_version,
+        report=report,
+        core_envelope=envelope,
+        artifact_closure=batch_input.artifact_closure,
+        reason="This input physically isolates report validity from expected-issue matching and experimental metadata.",
+        basis=(
+            f"{batch_input.protocol_version}; {envelope.envelope_hash}; "
+            f"{batch_input.artifact_closure.closure_hash}"
+        ),
+    )
+
+
 def _exact_clause_audit_group(field_plan, *, suffix: str) -> type[BaseModel]:
     """Build one fixed object property for every immutable source clause."""
 
@@ -416,9 +463,7 @@ def _exact_clause_audit_group(field_plan, *, suffix: str) -> type[BaseModel]:
                 description="Clause ID fixed by this exact source position; it cannot be omitted, duplicated, or moved."
             )
 
-        ExactClauseAuditJudgment.__name__ = (
-            f"ExactClauseAuditJudgment_{suffix}_{index}"
-        )
+        ExactClauseAuditJudgment.__name__ = f"ExactClauseAuditJudgment_{suffix}_{index}"
         field_definitions[f"item{index}"] = (
             ExactClauseAuditJudgment,
             Field(
@@ -494,6 +539,7 @@ def build_exact_validity_model(
                 )
             ),
         )
+
     class ExactValidityResponseBase(ValidityResponse):
         """Validity response with deterministic closure over this exact report."""
 
@@ -529,6 +575,75 @@ def build_exact_validity_model(
     return cast(type[ValidityResponse], model)
 
 
+def build_exact_validity_batch_model(
+    batch_input: ValidityBatchJudgeInput,
+) -> type[ValidityBatchResponse]:
+    """Build one fixed item slot for every report and every source clause."""
+
+    suffix = hashlib.sha256(
+        (
+            batch_input.batch_id
+            + "::"
+            + "|".join(item.envelope_hash for item in batch_input.core_envelopes)
+            + "::validity-batch"
+        ).encode("utf-8")
+    ).hexdigest()[:12]
+    batch_id_type = _literal((batch_input.batch_id,))
+    field_definitions: dict[str, tuple[object, Field]] = {
+        "batch_id": (
+            batch_id_type,
+            Field(description="The exact validity batch ID; return it unchanged."),
+        )
+    }
+    for index, report in enumerate(batch_input.reports):
+        exact_item = build_exact_validity_model(validity_item_input(batch_input, index))
+        field_definitions[f"item{index}"] = (
+            exact_item,
+            Field(
+                description=(
+                    f"Required independent complete validity audit for anonymous report "
+                    f"{report.report_id} at exact batch position {index}."
+                )
+            ),
+        )
+
+    class ExactValidityBatchResponseBase(ValidityBatchResponse):
+        """Exact expected-isolated response over one bounded report batch."""
+
+    model = create_model(
+        f"ExactValidityBatchResponse_{suffix}",
+        __base__=ExactValidityBatchResponseBase,
+        **field_definitions,
+    )
+    model.__doc__ = (
+        "Expected-isolated bounded-batch validity response with one required "
+        "fixed report item and complete clause slots at every input position."
+    )
+    model.__semantic_judge_recipe__ = {  # type: ignore[attr-defined]
+        "kind": "validity_batch",
+        "input": batch_input.model_dump(mode="json"),
+    }
+    return cast(type[ValidityBatchResponse], model)
+
+
+def validity_batch_responses(
+    response: BaseModel, batch_input: ValidityBatchJudgeInput
+) -> tuple[ValidityResponse, ...]:
+    """Extract exact validity responses in immutable batch order."""
+
+    rows = tuple(
+        getattr(response, f"item{index}")
+        for index, _report in enumerate(batch_input.reports)
+    )
+    actual_ids = [item.report_id for item in rows]
+    expected_ids = [item.report_id for item in batch_input.reports]
+    if actual_ids != expected_ids:
+        raise ValueError(
+            "validity batch response report closure differs from the input order"
+        )
+    return cast(tuple[ValidityResponse, ...], rows)
+
+
 def _field_verdict(
     clause_audits: tuple[ClauseAuditJudgment, ...],
 ) -> CausalFieldVerdict:
@@ -561,22 +676,19 @@ def _derive_clause_gate(
         else ValidityGateStatus.SATISFIED
     )
     if rows:
-        reason = (
-            f"Backend-derived {label} gate is {status.value}: "
-            + " ".join(
-                f"{row.clause_id}={row.verdict.value}: {row.reason}" for row in rows
-            )
+        reason = f"Backend-derived {label} gate is {status.value}: " + " ".join(
+            f"{row.clause_id}={row.verdict.value}: {row.reason}" for row in rows
         )
-        basis = " ".join(
-            f"{row.clause_id}: {row.basis}" for row in rows
-        )
+        basis = " ".join(f"{row.clause_id}: {row.basis}" for row in rows)
         source_refs = _unique(ref for row in rows for ref in row.source_refs)
     else:
         reason = (
             f"Backend-derived {label} gate is SATISFIED because the bounded claim "
             "requires no separate clause with this semantic role."
         )
-        basis = "Complete fixed clause-role closure contains no separate required premise."
+        basis = (
+            "Complete fixed clause-role closure contains no separate required premise."
+        )
         source_refs = fallback_source_refs
     return ValidityGateJudgment(
         status=status,
@@ -616,8 +728,7 @@ def materialize_validity_certificate(
                     for item in clause_audits
                 ),
                 basis=" ".join(
-                    f"{item.clause_id}: {item.basis}"
-                    for item in clause_audits
+                    f"{item.clause_id}: {item.basis}" for item in clause_audits
                 ),
                 source_refs=_unique(
                     ref for item in clause_audits for ref in item.source_refs
@@ -709,9 +820,7 @@ def build_relation_input(
     """Build one relation-only input from an immutable VALID certificate."""
 
     report = next(
-        item
-        for item in judge_input.reports
-        if item.report_id == certificate.report_id
+        item for item in judge_input.reports if item.report_id == certificate.report_id
     )
     return RelationJudgeInput(
         protocol_version=judge_input.protocol_version,
@@ -727,14 +836,63 @@ def build_relation_input(
     )
 
 
+def build_relation_batch_input(
+    judge_input: UnifiedJudgeInput,
+    certificates: tuple[FrozenValidityCertificate, ...],
+    *,
+    batch_id: str,
+) -> RelationBatchJudgeInput:
+    """Build one relation matrix input with shared expected and artifact closures."""
+
+    reports_by_id = {item.report_id: item for item in judge_input.reports}
+    if not certificates:
+        raise ValueError("relation batch requires at least one VALID certificate")
+    reports = tuple(reports_by_id[item.report_id] for item in certificates)
+    return RelationBatchJudgeInput(
+        batch_id=batch_id,
+        protocol_version=judge_input.protocol_version,
+        reports=reports,
+        validity_certificates=certificates,
+        expected_issues=judge_input.expected_issues,
+        artifact_closure=judge_input.artifact_closure,
+        reason=(
+            "This bounded input compares each frozen-valid report with the complete "
+            "expected denominator without reopening validity."
+        ),
+        basis=(
+            f"{judge_input.protocol_version}; {batch_id}; "
+            + ",".join(item.certificate_hash for item in certificates)
+            + f"; {judge_input.artifact_closure.closure_hash}"
+        ),
+    )
+
+
+def relation_item_input(
+    batch_input: RelationBatchJudgeInput, index: int
+) -> RelationJudgeInput:
+    """Reconstruct one atomic relation view from a shared serialized batch."""
+
+    return RelationJudgeInput(
+        protocol_version=batch_input.protocol_version,
+        report=batch_input.reports[index],
+        validity_certificate=batch_input.validity_certificates[index],
+        expected_issues=batch_input.expected_issues,
+        artifact_closure=batch_input.artifact_closure,
+        reason=batch_input.reason,
+        basis=(
+            f"{batch_input.protocol_version}; {batch_input.batch_id}; "
+            f"{batch_input.validity_certificates[index].certificate_hash}; "
+            f"{batch_input.artifact_closure.closure_hash}"
+        ),
+    )
+
+
 def build_exact_relation_model(
     relation_input: RelationJudgeInput,
 ) -> type[RelationResponse]:
     """Build a relation-only schema over one VALID report and every expected ID."""
 
-    expected_ids = tuple(
-        item.expected_id for item in relation_input.expected_issues
-    )
+    expected_ids = tuple(item.expected_id for item in relation_input.expected_issues)
     suffix = hashlib.sha256(
         (
             relation_input.report.report_id
@@ -799,6 +957,77 @@ def build_exact_relation_model(
     return cast(type[RelationResponse], ExactRelationResponse)
 
 
+def build_exact_relation_batch_model(
+    batch_input: RelationBatchJudgeInput,
+) -> type[RelationBatchResponse]:
+    """Build an exact report-by-expected matrix response for one bounded batch."""
+
+    suffix = hashlib.sha256(
+        (
+            batch_input.batch_id
+            + "::"
+            + "|".join(
+                item.certificate_hash for item in batch_input.validity_certificates
+            )
+            + "::relation-batch"
+        ).encode("utf-8")
+    ).hexdigest()[:12]
+    batch_id_type = _literal((batch_input.batch_id,))
+    field_definitions: dict[str, tuple[object, Field]] = {
+        "batch_id": (
+            batch_id_type,
+            Field(description="The exact relation batch ID; return it unchanged."),
+        )
+    }
+    for index, report in enumerate(batch_input.reports):
+        exact_item = build_exact_relation_model(relation_item_input(batch_input, index))
+        field_definitions[f"item{index}"] = (
+            exact_item,
+            Field(
+                description=(
+                    f"Required complete expected relation partition for anonymous "
+                    f"report {report.report_id} at exact batch position {index}."
+                )
+            ),
+        )
+
+    class ExactRelationBatchResponseBase(RelationBatchResponse):
+        """Exact response over one frozen-valid report-by-expected matrix."""
+
+    model = create_model(
+        f"ExactRelationBatchResponse_{suffix}",
+        __base__=ExactRelationBatchResponseBase,
+        **field_definitions,
+    )
+    model.__doc__ = (
+        "Relation-only bounded-batch response with one required report item and "
+        "one exact FULL, PARTIAL, or NO decision at every expected position."
+    )
+    model.__semantic_judge_recipe__ = {  # type: ignore[attr-defined]
+        "kind": "relation_batch",
+        "input": batch_input.model_dump(mode="json"),
+    }
+    return cast(type[RelationBatchResponse], model)
+
+
+def relation_batch_responses(
+    response: BaseModel, batch_input: RelationBatchJudgeInput
+) -> tuple[RelationResponse, ...]:
+    """Extract exact relation partitions in immutable batch order."""
+
+    rows = tuple(
+        getattr(response, f"item{index}")
+        for index, _report in enumerate(batch_input.reports)
+    )
+    actual_ids = [item.report_id for item in rows]
+    expected_ids = [item.report_id for item in batch_input.reports]
+    if actual_ids != expected_ids:
+        raise ValueError(
+            "relation batch response report closure differs from the input order"
+        )
+    return cast(tuple[RelationResponse, ...], rows)
+
+
 def build_exact_arbitration_model(
     judge_input: UnifiedJudgeInput,
     conflicted_report_ids: tuple[str, ...],
@@ -852,9 +1081,7 @@ def build_exact_arbitration_model(
             )
             return self
 
-    ExactAtomicArbitrationResponse.__name__ = (
-        f"ExactAtomicArbitrationResponse_{suffix}"
-    )
+    ExactAtomicArbitrationResponse.__name__ = f"ExactAtomicArbitrationResponse_{suffix}"
     return cast(type[AtomicArbitrationResponse], ExactAtomicArbitrationResponse)
 
 
@@ -865,11 +1092,10 @@ def merge_arbitration_response(
 ) -> JudgeResponse:
     """Replace conflicted reports and revalidate the complete sparse closure."""
 
-    replacements = {
-        row.report_id: row for row in arbitration_response.report_judgments
-    }
+    replacements = {row.report_id: row for row in arbitration_response.report_judgments}
     merged = [
-        replacements.get(row.report_id, row) for row in primary_response.report_judgments
+        replacements.get(row.report_id, row)
+        for row in primary_response.report_judgments
     ]
     payload = primary_response.model_dump(mode="json")
     payload["report_judgments"] = [row.model_dump(mode="json") for row in merged]
@@ -899,8 +1125,7 @@ def _materialized_text_evidence(
         reason=reason,
         basis=(
             f"{basis}; CandidateReport {report.report_id}.{report_field.value}; "
-            "sha256:"
-            + hashlib.sha256(field_value.encode("utf-8")).hexdigest()
+            "sha256:" + hashlib.sha256(field_value.encode("utf-8")).hexdigest()
         ),
     )
 
@@ -1025,12 +1250,14 @@ def materialize_reading(
                         report_field=field_ref,
                         semantic_role=(
                             ReportTextEvidenceRole.CAUSAL_SUPPORT
-                            if field_ref.value == judgment.causal_certificate_field.value
+                            if field_ref.value
+                            == judgment.causal_certificate_field.value
                             else ReportTextEvidenceRole.CLAIM_BOUNDARY
                         ),
                         reason=(
                             "The complete supported causal certificate establishes the report-owned premise used by this relation."
-                            if field_ref.value == judgment.causal_certificate_field.value
+                            if field_ref.value
+                            == judgment.causal_certificate_field.value
                             else "The complete referenced report field delimits the published technical claim used by this relation."
                         ),
                         basis=f"supported_relation:{report_id}/{expected_id}",
@@ -1152,9 +1379,7 @@ def materialize_reading(
             )
         )
 
-    relation_by_key = {
-        (row.report_id, row.expected_id): row for row in relations
-    }
+    relation_by_key = {(row.report_id, row.expected_id): row for row in relations}
     expected_assessments: list[ExpectedAssessment] = []
     for expected_id in expected_ids:
         full_report_ids = tuple(
@@ -1220,9 +1445,7 @@ def materialize_two_stage_reading(
     if set(certificates_by_id) != set(report_ids) or len(certificates_by_id) != len(
         certificates
     ):
-        raise ValueError(
-            "validity certificates must cover every report exactly once"
-        )
+        raise ValueError("validity certificates must cover every report exactly once")
     valid_ids = {
         report_id
         for report_id, certificate in certificates_by_id.items()
@@ -1230,9 +1453,9 @@ def materialize_two_stage_reading(
     }
     responses_by_id = {item.report_id: item for item in relation_responses}
     expected_response_ids = valid_ids if expected_ids else set()
-    if set(responses_by_id) != expected_response_ids or len(
-        responses_by_id
-    ) != len(relation_responses):
+    if set(responses_by_id) != expected_response_ids or len(responses_by_id) != len(
+        relation_responses
+    ):
         raise ValueError(
             "relation responses must cover every and only VALID report exactly once when the expected denominator is non-empty, and must be empty when the denominator is empty"
         )
@@ -1259,25 +1482,16 @@ def materialize_two_stage_reading(
             positive = positive_by_expected.get(expected_id)
             if positive is None:
                 if certificate.core_truth == CoreClaimTruth.INVALID:
-                    relation_reason = (
-                        "The expected-isolated validity certificate is INVALID, so issue #195 requires this relation to be NO_MATCH."
-                    )
-                    relation_basis = (
-                        f"{certificate.certificate_hash}; {certificate.reason}; all-NO invalid-report closure"
-                    )
+                    relation_reason = "The expected-isolated validity certificate is INVALID, so issue #195 requires this relation to be NO_MATCH."
+                    relation_basis = f"{certificate.certificate_hash}; {certificate.reason}; all-NO invalid-report closure"
                     relation_source_refs = certificate.source_refs
                 else:
                     no_match = decisions_by_expected.get(expected_id)
-                    if (
-                        no_match is None
-                        or no_match.match != MatchStrength.NO_MATCH
-                    ):
+                    if no_match is None or no_match.match != MatchStrength.NO_MATCH:
                         raise ValueError(
                             f"valid report {report_id} lacks explicit NO_MATCH evidence for {expected_id}"
                         )
-                    audited_no_match = cast(
-                        AuditedNoMatchRelationJudgment, no_match
-                    )
+                    audited_no_match = cast(AuditedNoMatchRelationJudgment, no_match)
                     relation_reason = audited_no_match.reason
                     relation_basis = audited_no_match.basis
                     relation_source_refs = audited_no_match.source_refs
@@ -1402,9 +1616,7 @@ def materialize_two_stage_reading(
             )
         )
 
-    relation_by_key = {
-        (item.report_id, item.expected_id): item for item in relations
-    }
+    relation_by_key = {(item.report_id, item.expected_id): item for item in relations}
     expected_assessments = []
     for expected_id in expected_ids:
         full_report_ids = tuple(
@@ -1442,9 +1654,7 @@ def materialize_two_stage_reading(
                     + [
                         ref
                         for report_id in report_ids
-                        for ref in relation_by_key[
-                            (report_id, expected_id)
-                        ].source_refs
+                        for ref in relation_by_key[(report_id, expected_id)].source_refs
                     ]
                 ),
             )
