@@ -13,8 +13,11 @@ from typing import Any
 from pydantic import BaseModel
 
 from pipeline import evidence_discovery
+from pipeline.evidence_discovery.inputs import load_pair
+from pipeline.evidence_discovery.inputs.context import prompt_context_payload
 
 METHOD_ROOT = Path(evidence_discovery.__file__).resolve().parent
+REPORT_ROOT = METHOD_ROOT.parent / "representation/reports/llms_emp_r45_java_60"
 HAN_TEXT = re.compile(r"[\u3400-\u9fff]")
 INTERNAL_ALIAS_PATTERNS = (
     re.compile(r"(?i)(?<![A-Za-z0-9])paper[ _-]*[0-9]+(?![A-Za-z0-9])"),
@@ -114,6 +117,30 @@ def test_runtime_prompt_constants_require_english_public_output() -> None:
                 violations.append(f"{name}: missing English-output instruction")
     assert generated_output_prompts >= 3
     assert not violations, "runtime prompt language violations:\n" + "\n".join(violations)
+
+
+def test_real_provider_contexts_do_not_expose_internal_aliases() -> None:
+    violations: list[str] = []
+    for pair_id in ("0000", "0029", "0046", "0053"):
+        pair = load_pair(REPORT_ROOT / "pairs" / pair_id)
+        for stage in (
+            "nl_contract_extraction",
+            "discovery_grounding",
+            "d_adjudication",
+        ):
+            serialized = json.dumps(
+                prompt_context_payload(pair, stage=stage),
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+            aliases = _internal_aliases(serialized)
+            if aliases:
+                violations.append(
+                    f"{pair_id}/{stage}: internal aliases {sorted(set(aliases))}"
+                )
+    assert not violations, "provider context language violations:\n" + "\n".join(
+        violations
+    )
 
 
 def test_all_method_models_project_english_docstrings_and_field_descriptions() -> None:

@@ -47,6 +47,10 @@ PromptStage = Literal[
     "d_adjudication",
 ]
 
+_PROVIDER_SCHEMA_VERSION_BY_ROLE: dict[ArtifactRole, str] = {
+    "working_contract": "working-model-contract.v2",
+}
+
 
 class ArtifactRef(BaseModel):
     """Versioned hash reference for one method-visible artifact.
@@ -73,11 +77,16 @@ class ArtifactRef(BaseModel):
 def _artifact_prompt_ref(ref: ArtifactRef) -> dict[str, Any]:
     """Project receipt identity without exposing filesystem layout to the provider."""
 
-    return {
+    projected = {
         key: value
         for key, value in ref.model_dump(mode="json").items()
         if key != "path"
     }
+    projected["schema_version"] = _PROVIDER_SCHEMA_VERSION_BY_ROLE.get(
+        ref.role,
+        ref.schema_version,
+    )
+    return projected
 
 
 class StructuredArtifact(BaseModel):
@@ -1815,7 +1824,7 @@ def _prompt_base(pair: Any, stage: PromptStage) -> dict[str, Any]:
         "artifact_refs": [
             {
                 key: value
-                for key, value in item.model_dump(mode="json").items()
+                for key, value in _artifact_prompt_ref(item).items()
                 if key
                 in {
                     "role",

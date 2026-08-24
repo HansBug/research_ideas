@@ -543,6 +543,30 @@ def test_method_context_excludes_historical_case_run_payloads() -> None:
     assert "required_for_issue_ids" not in source_trace_text
 
 
+def test_provider_context_uses_public_artifact_schema_names() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+
+    for stage in (
+        "nl_contract_extraction",
+        "discovery_grounding",
+        "d_adjudication",
+    ):
+        payload = prompt_context_payload(pair, stage=stage)
+        serialized = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+        assert "paper1" not in serialized.casefold()
+        working_refs = [
+            item
+            for item in payload["artifact_refs"]
+            if item["role"] == "working_contract"
+        ]
+        assert len(working_refs) == 1
+        assert working_refs[0]["schema_version"] == "working-model-contract.v2"
+        if "working_contract" in payload:
+            assert payload["working_contract"]["ref"]["schema_version"] == (
+                "working-model-contract.v2"
+            )
+
+
 def test_incomplete_three_file_surface_is_rejected(tmp_path: Path) -> None:
     pair_dir = tmp_path / "pairs" / "0000"
     pair_dir.mkdir(parents=True)
