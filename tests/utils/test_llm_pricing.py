@@ -38,6 +38,23 @@ def test_estimate_usage_cost_prices_each_cache_class_once() -> None:
     assert result["total_usd"] == 0.000845
 
 
+def test_estimate_usage_cost_normalizes_nested_provider_cache_fields() -> None:
+    result = estimate_usage_cost_usd(
+        {
+            "input_tokens": 100,
+            "output_tokens": 20,
+            "input_token_details": {"cache_read": 40, "cache_creation": 20},
+        },
+        _pricing(),
+    )
+
+    assert result["eligible"] is True
+    assert result["categories"]["input"]["tokens"] == 40
+    assert result["categories"]["cache_read"]["tokens"] == 40
+    assert result["categories"]["cache_write"]["tokens"] == 20
+    assert result["total_usd"] == 0.000845
+
+
 def test_estimate_usage_cost_does_not_double_bill_reasoning_tokens() -> None:
     result = estimate_usage_cost_usd(
         {

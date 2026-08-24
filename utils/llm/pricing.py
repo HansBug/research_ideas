@@ -9,6 +9,7 @@ from genai_prices import Usage
 from genai_prices.types import ModelPrice
 
 from .config import LLMPricing, LLMTokenPrices
+from .usage import normalize_usage
 
 
 def _token_count(usage: Mapping[str, Any], key: str) -> int | None:
@@ -44,16 +45,19 @@ def estimate_usage_cost_usd(
     class here.
     """
 
+    normalized_usage = normalize_usage(usage)
     errors: list[str] = []
-    input_tokens = _token_count(usage, "input_tokens")
-    output_tokens = _token_count(usage, "output_tokens")
+    input_tokens = _token_count(normalized_usage, "input_tokens")
+    output_tokens = _token_count(normalized_usage, "output_tokens")
     if input_tokens is None or output_tokens is None:
         errors.append("input_tokens and output_tokens must be available")
         input_tokens = input_tokens or 0
         output_tokens = output_tokens or 0
 
-    cache_read = _token_count(usage, "cache_read_input_tokens") or 0
-    cache_creation = _token_count(usage, "cache_creation_input_tokens") or 0
+    cache_read = _token_count(normalized_usage, "cache_read_input_tokens") or 0
+    cache_creation = (
+        _token_count(normalized_usage, "cache_creation_input_tokens") or 0
+    )
 
     uncached_input = input_tokens - cache_read - cache_creation
     if uncached_input < 0:

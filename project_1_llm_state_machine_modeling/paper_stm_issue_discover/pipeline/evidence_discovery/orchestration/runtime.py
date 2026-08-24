@@ -8,8 +8,9 @@ from typing import Any, Generic, TypeVar
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
 from utils.agent import AgentApp, AgentError, AgentSpec
-from utils.llm import estimate_usage_cost_usd, load_llm_registry
+from utils.llm import estimate_usage_cost_usd, load_llm_registry, normalize_usage
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -99,15 +100,38 @@ def _usage_rows(
             row["billing_disposition"] = item.get("billing_disposition", "billable")
             if outer_attempt is not None:
                 row["outer_attempt"] = outer_attempt
-            rows.append(row)
+            rows.append(_normalize_usage_pricing_fields(row))
         elif all(key in item for key in ("input_tokens", "output_tokens")):
             row = dict(item)
             row.setdefault("cost_counted", True)
             row.setdefault("billing_disposition", "billable")
             if outer_attempt is not None:
                 row["outer_attempt"] = outer_attempt
-            rows.append(row)
+            rows.append(_normalize_usage_pricing_fields(row))
     return rows
+
+
+def _normalize_usage_pricing_fields(row: dict[str, Any]) -> dict[str, Any]:
+    """Add canonical public cache fields without dropping receipt metadata."""
+
+    normalized = normalize_usage(
+        row,
+        source=row.get("source") if isinstance(row.get("source"), str) else None,
+        status=str(row.get("status") or "completed"),
+    )
+    result = dict(row)
+    for key in (
+        "input_tokens",
+        "output_tokens",
+        "total_tokens",
+        "cache_read_input_tokens",
+        "cache_creation_input_tokens",
+        "ephemeral_5m_input_tokens",
+        "ephemeral_1h_input_tokens",
+        "reasoning_tokens",
+    ):
+        result[key] = normalized[key]
+    return result
 
 
 def _read_result_artifact(path: Path) -> tuple[dict[str, Any] | None, str]:

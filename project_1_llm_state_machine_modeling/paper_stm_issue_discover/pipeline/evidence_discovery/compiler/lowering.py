@@ -14,9 +14,9 @@ from ..semantics.obligations import CandidateIssue
 from .inputs import (
     PredicateInputs,
     UnsupportedPredicateInputs,
+    project_predicate_input_values,
     validate_predicate_inputs,
 )
-
 
 SUPPORTED_PREDICATES = frozenset(
     {"S1", "S2", "S3", "S4", "S5", "S6", "G1", "G2", "G3", "G4", "V1", "V4"}
@@ -166,7 +166,8 @@ def compile_plan(
             reason="The candidate has no usable frozen predicate ID; preserve a precise binding as W1.",
             basis="frozen registry lookup rejected missing or unknown predicate",
         )
-    inputs = normalize_inputs(dict(candidate.predicate_inputs))
+    normalized_inputs = normalize_inputs(dict(candidate.predicate_inputs))
+    inputs = project_predicate_input_values(predicate.id, normalized_inputs)
     typed_inputs = validate_predicate_inputs(predicate.id, inputs)
     source_audit = (registry.source_audit or {}).get(predicate.id, {})
     source_status = source_audit.get("status") if isinstance(source_audit, dict) else None

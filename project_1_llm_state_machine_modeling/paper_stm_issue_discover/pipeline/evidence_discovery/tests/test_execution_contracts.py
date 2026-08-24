@@ -17,6 +17,10 @@ from pipeline.evidence_discovery.backends.bounded_verification import (
 )
 from pipeline.evidence_discovery.backends.topology import _graph, run_topology
 from pipeline.evidence_discovery.compiler import compile_plan
+from pipeline.evidence_discovery.compiler.inputs import (
+    UnsupportedPredicateInputs,
+    validate_predicate_inputs,
+)
 from pipeline.evidence_discovery.compiler.lowering import PredicatePlan
 from pipeline.evidence_discovery.evidence.audit_bundle import W2AuditBundle
 from pipeline.evidence_discovery.evidence.receipts import RawReceipt
@@ -32,6 +36,9 @@ from pipeline.evidence_discovery.orchestration.contracts import (
     RunManifest,
     RunSummaryReceipt,
     SourceProvenance,
+)
+from pipeline.evidence_discovery.orchestration.cost_correction import (
+    build_corrected_method_cost,
 )
 from pipeline.evidence_discovery.orchestration.runner import (
     ExactJudgeResponse,
@@ -76,6 +83,7 @@ from pipeline.evidence_discovery.orchestration.runtime import (
     _is_provider_error,
     _provider_timeout_seconds,
     _schema_validation_failures,
+    _usage_rows,
 )
 from pipeline.evidence_discovery.registry import load_registry
 from pipeline.evidence_discovery.semantics import (
@@ -184,7 +192,7 @@ def test_source_gate_and_input_aliases_are_deterministic() -> None:
         assert plan.supported is False, predicate_id
 
 
-def test_predicate_plan_uses_discriminated_inputs_and_invalid_shape_downgrades() -> None:
+def test_predicate_plan_projects_context_but_direct_strict_validation_rejects_extra() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     registry = load_registry()
     candidate = _candidate(
@@ -205,10 +213,19 @@ def test_predicate_plan_uses_discriminated_inputs_and_invalid_shape_downgrades()
         model=pair.model,
     )
 
-    assert plan.supported is False
-    assert plan.inputs.predicate_id == "unsupported"
-    assert plan.inputs.claimed_predicate_id == "S5"
-    assert plan.inputs.validation_errors
+    assert plan.inputs.predicate_id == "S5"
+    assert "not_a_registry_input" not in plan.inputs.to_backend_dict()
+    direct = validate_predicate_inputs(
+        "S5",
+        {
+            "transition": pair.model.transitions[0].ref,
+            "guard": "front_distance > 10",
+            "not_a_registry_input": "must remain invalid without compiler projection",
+        },
+    )
+    assert isinstance(direct, UnsupportedPredicateInputs)
+    assert direct.claimed_predicate_id == "S5"
+    assert direct.validation_errors
     schema = PredicatePlan.model_json_schema()
     discriminator = schema["properties"]["inputs"]["discriminator"]
     assert discriminator["propertyName"] == "predicate_id"
@@ -219,6 +236,42 @@ def test_predicate_plan_uses_discriminated_inputs_and_invalid_shape_downgrades()
         "V1", "V2", "V3", "V4", "V5",
         "unsupported",
     }
+
+
+def test_s3_s5_projection_keeps_typed_carrier_and_drops_redundant_endpoints() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    registry = load_registry()
+    transition = pair.model.transitions[0]
+    fixtures = (
+        ("S3", {"transition_ref": transition.ref, "triggers": ["Power On"]}),
+        ("S5", {"transition_ref": transition.ref, "guard": transition.guard or "none"}),
+    )
+
+    for predicate_id, predicate_inputs in fixtures:
+        candidate = _candidate(
+            pair,
+            predicate_id=predicate_id,
+            inputs={
+                **predicate_inputs,
+                "source": transition.source,
+                "target": transition.target,
+            },
+        )
+        plan = compile_plan(
+            candidate,
+            bind_candidate(candidate, pair.model),
+            registry,
+            obligation_id=f"0000:{predicate_id}-projection",
+            round_index=1,
+            model=pair.model,
+        )
+
+        assert plan.inputs.predicate_id == predicate_id
+        assert plan.inputs["transition"] == transition.ref
+        assert "source" not in plan.inputs.to_backend_dict()
+        assert "target" not in plan.inputs.to_backend_dict()
+        assert candidate.predicate_inputs["source"] == transition.source
+        assert candidate.predicate_inputs["target"] == transition.target
 
 
 def test_present_guarded_initial_edge_is_w1_not_false_s2_satisfaction() -> None:
@@ -3498,6 +3551,174 @@ def test_provider_retry_exemption_is_row_local_and_other_usage_is_billable() -> 
     assert cost["total_usd"] is not None and cost["total_usd"] > 0
     assert cost["attempts"][0]["total_usd"] == 0.0
     assert cost["attempts"][1]["total_usd"] > 0
+
+
+def test_usage_rows_normalize_nested_cache_fields_before_pricing() -> None:
+    rows = _usage_rows(
+        {
+            "usage": [
+                {
+                    "model_call_id": "nested-cache",
+                    "status": "completed",
+                    "input_tokens": 1_000,
+                    "output_tokens": 100,
+                    "input_token_details": {
+                        "cache_read": 800,
+                        "cache_creation": 50,
+                    },
+                },
+                {
+                    "model_call_id": "standard-cache",
+                    "status": "completed",
+                    "input_tokens": 500,
+                    "output_tokens": 20,
+                    "cache_read_input_tokens": 300,
+                    "cache_creation_input_tokens": 25,
+                },
+                {
+                    "model_call_id": "no-cache",
+                    "status": "completed",
+                    "input_tokens": 200,
+                    "output_tokens": 10,
+                },
+            ]
+        }
+    )
+
+    assert rows[0]["cache_read_input_tokens"] == 800
+    assert rows[0]["cache_creation_input_tokens"] == 50
+    assert rows[1]["cache_read_input_tokens"] == 300
+    assert rows[1]["cache_creation_input_tokens"] == 25
+    assert rows[2]["cache_read_input_tokens"] is None
+    assert rows[2]["cache_creation_input_tokens"] is None
+
+    cost = _cost_for_usage(rows, _runtime_fixture_pricing())
+    assert cost["eligible"] is True
+    assert cost["attempts"][0]["categories"]["input"]["tokens"] == 150
+    assert cost["attempts"][0]["categories"]["cache_read"]["tokens"] == 800
+    assert cost["attempts"][0]["categories"]["cache_write"]["tokens"] == 50
+    assert cost["attempts"][1]["categories"]["input"]["tokens"] == 175
+    assert cost["attempts"][2]["categories"]["input"]["tokens"] == 200
+
+
+def test_corrected_cost_aggregate_preserves_retry_billing_and_source_hashes(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "historical-run"
+    method_path = root / "method" / "0004" / "round-1.json"
+    billable_result = root / "llm" / "billable" / "result.json"
+    provider_result = root / "llm" / "provider-error" / "result.json"
+    method_path.parent.mkdir(parents=True)
+    billable_result.parent.mkdir(parents=True)
+    provider_result.parent.mkdir(parents=True)
+    (root / "run_manifest.json").write_text(
+        json.dumps(
+            {
+                "run_id": "historical-cost-fixture",
+                "profile": "fixture-profile",
+                "source_provenance": {"source_commit": "a" * 40},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (root / "summary.json").write_text(
+        json.dumps(
+            {
+                "run_id": "historical-cost-fixture",
+                "profile": "fixture-profile",
+                "source_commit": "a" * 40,
+                "method_cost_usd": 99.0,
+            }
+        ),
+        encoding="utf-8",
+    )
+    billable_result.write_text(
+        json.dumps(
+            {
+                "usage": [
+                    {
+                        "input_tokens": 1_000,
+                        "output_tokens": 100,
+                        "input_token_details": {
+                            "cache_read": 800,
+                            "cache_creation": 50,
+                        },
+                    },
+                    {
+                        "input_tokens": 500,
+                        "output_tokens": 20,
+                        "cache_read_input_tokens": 300,
+                        "cache_creation_input_tokens": 25,
+                    },
+                    {"input_tokens": 200, "output_tokens": 10},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    provider_result.write_text(
+        json.dumps(
+            {"usage": [{"input_tokens": 10_000, "output_tokens": 1_000}]}
+        ),
+        encoding="utf-8",
+    )
+    method_path.write_text(
+        json.dumps(
+            {
+                "run_id": "historical-cost-fixture",
+                "pair_id": "0004",
+                "round": 1,
+                "llm_calls": [
+                    {
+                        "kind": "contract_extraction",
+                        "schema_validation_failures": [{"turn": 1}],
+                        "attempts": [
+                            {
+                                "outer_attempt": 1,
+                                "result_path": str(billable_result.resolve()),
+                                "billing_disposition": "billable",
+                                "provider_error": False,
+                            }
+                        ],
+                    },
+                    {
+                        "kind": "grounding",
+                        "schema_validation_failures": [],
+                        "attempts": [
+                            {
+                                "outer_attempt": 2,
+                                "result_path": str(provider_result.resolve()),
+                                "billing_disposition": "provider_error_retry_exempt",
+                                "provider_error": True,
+                            }
+                        ],
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    aggregate = build_corrected_method_cost(
+        root, pricing=_runtime_fixture_pricing()
+    )
+
+    assert aggregate.method_cell_count == 1
+    assert aggregate.logical_call_count == 2
+    assert aggregate.outer_attempt_count == 2
+    assert aggregate.provider_request_count == 4
+    assert aggregate.billable_provider_request_count == 3
+    assert aggregate.provider_error_exempt_request_count == 1
+    assert aggregate.schema_validation_failure_count == 1
+    assert aggregate.breakdown.uncached_input.tokens == 525
+    assert aggregate.breakdown.cache_read.tokens == 1_100
+    assert aggregate.breakdown.cache_creation.tokens == 75
+    assert aggregate.breakdown.output.tokens == 130
+    assert aggregate.corrected_method_cost_usd == pytest.approx(0.00091)
+    assert aggregate.result_receipts[0].corrected_cost_usd > 0
+    assert aggregate.result_receipts[1].corrected_cost_usd == 0
+    assert len(aggregate.source_artifacts) == 5
+    assert aggregate.source_closure_hash.startswith("sha256:")
 
 
 def test_identified_provider_retry_does_not_exempt_unrelated_cancellation() -> None:

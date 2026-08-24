@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    JsonValue,
+    TypeAdapter,
+    ValidationError,
+)
 
 from ..semantics.obligations import PredicateId
 
@@ -243,6 +250,47 @@ class UnsupportedPredicateInputs(PredicateInputsBase):
         return dict(self.raw_values)
 
 
+_PREDICATE_INPUT_MODELS: dict[str, type[PredicateInputsBase]] = {
+    "S1": S1Inputs,
+    "S2": S2Inputs,
+    "S3": S3Inputs,
+    "S4": S4Inputs,
+    "S5": S5Inputs,
+    "S6": S6Inputs,
+    "G1": G1Inputs,
+    "G2": G2Inputs,
+    "G3": G3Inputs,
+    "G4": G4Inputs,
+    "R1": R1Inputs,
+    "R2": R2Inputs,
+    "R3": R3Inputs,
+    "R4": R4Inputs,
+    "V1": V1Inputs,
+    "V2": V2Inputs,
+    "V3": V3Inputs,
+    "V4": V4Inputs,
+    "V5": V5Inputs,
+}
+
+
+def project_predicate_input_values(
+    predicate_id: PredicateId,
+    values: dict[str, JsonValue],
+) -> dict[str, JsonValue]:
+    """Project enriched bindings to fields declared by one strict input variant.
+
+    Candidate and binding artifacts retain the complete raw context. The
+    executable adapter passes only the concrete Pydantic variant's declared
+    domain and provenance fields, so deterministic enrichment such as source
+    and target cannot become a spurious ``extra_forbidden`` failure for S3/S5.
+    Schema metadata and the discriminator remain backend-owned.
+    """
+
+    model = _PREDICATE_INPUT_MODELS[predicate_id]
+    allowed = set(model.model_fields) - {"schema_version", "predicate_id"}
+    return {key: value for key, value in values.items() if key in allowed}
+
+
 PredicateInputs = Annotated[
     S1Inputs
     | S2Inputs
@@ -289,7 +337,7 @@ def validate_predicate_inputs(
         return _PREDICATE_INPUT_ADAPTER.validate_python(
             {"predicate_id": predicate_id, **values}
         )
-    except Exception as exc:
+    except ValidationError as exc:
         return UnsupportedPredicateInputs(
             claimed_predicate_id=predicate_id,
             raw_values=values,
@@ -301,5 +349,6 @@ __all__ = [
     "PredicateInputs",
     "PredicateInputsBase",
     "UnsupportedPredicateInputs",
+    "project_predicate_input_values",
     "validate_predicate_inputs",
 ]
