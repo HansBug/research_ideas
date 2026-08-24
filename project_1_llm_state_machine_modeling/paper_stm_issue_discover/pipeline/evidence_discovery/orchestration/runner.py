@@ -85,10 +85,10 @@ REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS = ("0004", "0023", "0029", "0035", "0046", "0
 METHOD_CELL_SCHEMA = "evidence-discovery.method_cell.v8"
 SUMMARY_SCHEMA = "evidence-discovery.run_summary.v3"
 RUN_MANIFEST_SCHEMA = "evidence-discovery.run_manifest.v3"
-CODE_VERSION = "evidence-discovery-typed-flow.v50-method-only"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-prompts.v43-method-only"
+CODE_VERSION = "evidence-discovery-typed-flow.v51-method-only"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-prompts.v44-method-only"
 GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION = (
-    "evidence-discovery.grounding-exact-identity-contract.v2"
+    "evidence-discovery.grounding-exact-identity-contract.v3"
 )
 
 
@@ -103,6 +103,11 @@ class ExactGroundingResponse(GroundingResponse):
     It does not select that domain or decide whether an obligation exists,
     whether a candidate is valid, or any W, D, L, publication, or external
     evaluation result.
+
+    The supplied contract set may be empty when the NL-only stage finds no
+    independently violable atomic contract. In that case, the only legal
+    contract references are typed ``additional_contracts`` declared by the
+    same grounding response.
     """
 
     expected_contract_ids: ClassVar[tuple[str, ...]] = ()
@@ -232,7 +237,9 @@ def _prompt_schema_hash() -> str:
                         "Per method cell, supplied contract identities and the "
                         "cardinality-contract subset are closed; every cardinality "
                         "contract requires exactly one exact, ambiguous, or unbound "
-                        "typed domain row in each complementary grounding lens."
+                        "typed domain row in each complementary grounding lens. The "
+                        "supplied set may be empty; then only same-response typed "
+                        "additional contracts can be referenced."
                     ),
                 },
                 "d_adjudication": DAdjudicationResponse.model_json_schema(),
@@ -2432,8 +2439,6 @@ def _grounding_response_contract(
     expected_contract_ids = tuple(contract.contract_id for contract in contracts)
     if len(expected_contract_ids) != len(set(expected_contract_ids)):
         raise ValueError("grounding input contains duplicate contract IDs")
-    if not expected_contract_ids:
-        raise ValueError("grounding response contract requires at least one contract ID")
     expected_cardinality_contract_ids = tuple(
         contract.contract_id
         for contract in contracts
@@ -2467,7 +2472,9 @@ def _grounding_response_contract(
     response_model.__doc__ = (
         "Runtime-specialized grounding response. All contract_id references "
         "must resolve to the supplied contract set or one typed additional "
-        "contract declared in this response. Every supplied cardinality contract "
+        "contract declared in this response. The supplied set may be empty; in "
+        "that case only same-response additional contracts may be referenced. "
+        "Every supplied cardinality contract "
         "must also receive exactly one typed domain row in this lens, including an "
         "explicit ambiguous or unbound row when no exact reading closes. These "
         "structural checks have no authority over semantic discovery, W, D, L, "

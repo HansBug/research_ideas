@@ -1298,6 +1298,62 @@ def test_grounding_runtime_schema_closes_contract_references() -> None:
         )
 
 
+def test_grounding_runtime_schema_allows_empty_supplied_contract_set() -> None:
+    schema = _grounding_response_contract([])
+    empty = schema(
+        lens="contract_structure_contrast",
+        reason="The NL-only stage supplied no atomic contract to this lens.",
+        basis="provider-free empty supplied-contract fixture",
+    )
+    assert empty.additional_contracts == []
+
+    derived = NLContract(
+        contract_id="NL-CONTRACT-NL1-DERIVED-REACHABILITY",
+        segment_id="NL1",
+        quote="The controller enters its operating mode.",
+        normative_statement="The operating mode must be reachable.",
+        locus_kind="state",
+        locus_names=("OperatingMode",),
+        property="reachability",
+        state_role="operating_state",
+        expected_direction="must_reach",
+        violation_direction="unreachable",
+        evidence_types=("reachability_fact",),
+        scope="closed model root",
+        source_refs=("nl:NL1",),
+        reason="Cross-view facts establish one implicit reachability obligation.",
+        basis="provider-free empty supplied-contract fixture NL1",
+    )
+    accepted = schema(
+        lens="behavior_consequence",
+        additional_contracts=[derived],
+        unresolved=[
+            GroundingUnresolved(
+                contract_id=derived.contract_id,
+                reason="The derived obligation has no exact source binding.",
+                basis="provider-free same-response identity closure",
+            )
+        ],
+        reason="The lens derives and references one local contract.",
+        basis="provider-free empty supplied-contract fixture",
+    )
+    assert accepted.unresolved[0].contract_id == derived.contract_id
+
+    with pytest.raises(ValidationError, match="is not a supplied contract"):
+        schema(
+            lens="behavior_consequence",
+            unresolved=[
+                GroundingUnresolved(
+                    contract_id="NL-CONTRACT-NL1-DERIVED-INVENTED",
+                    reason="The fixture invents an undeclared identity.",
+                    basis="provider-free negative identity fixture",
+                )
+            ],
+            reason="The fixture must reject an invented identity.",
+            basis="provider-free empty supplied-contract fixture",
+        )
+
+
 def test_grounding_runtime_schema_requires_explicit_cardinality_accounting() -> None:
     cardinality_contract = NLContract(
         contract_id="NL-CONTRACT-NL2-CARDINALITY-1",
