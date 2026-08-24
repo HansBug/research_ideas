@@ -93,6 +93,92 @@ _RETRYABLE_TRANSPORT_MESSAGE_MARKERS = (
 )
 
 
+def _structured_output_error_path(location: Any) -> str:
+    """Render one Pydantic error location as an unambiguous schema path."""
+
+    if not isinstance(location, (list, tuple)):
+        return "<root>"
+    path = ""
+    for part in location:
+        if isinstance(part, int):
+            path += f"[{part}]"
+        else:
+            path += ("." if path else "") + str(part)
+    return path or "<root>"
+
+
+def _structured_output_repair_message(exception: Exception) -> str:
+    """Turn structured validation failures into exact, local repair directions.
+
+    LangChain's default feedback repeats a complete Pydantic traceback followed
+    by a generic request to fix it. Exact batch schemas need a stronger shape
+    invariant: tuple slots stay under their declared parent, forbidden paths are
+    removed, and literals are copied exactly. This formatter changes only the
+    repair feedback after validation has already failed; it does not alter the
+    output schema or accept an otherwise invalid value.
+    """
+
+    source = getattr(exception, "source", exception)
+    errors_method = getattr(source, "errors", None)
+    errors: list[Mapping[str, Any]] = []
+    if callable(errors_method):
+        try:
+            raw_errors = errors_method(include_url=False, include_input=False)
+        except TypeError:
+            raw_errors = errors_method()
+        except Exception:  # noqa: BLE001  # pragma: no cover - defensive provider fallback
+            raw_errors = []
+        if isinstance(raw_errors, list):
+            errors = [item for item in raw_errors if isinstance(item, Mapping)]
+
+    header = (
+        "The structured output failed exact schema validation. Return exactly one "
+        + "corrected structured-output tool call, preserve already-valid values, and "
+        + "apply every repair below in the same response:"
+    )
+    lines = [header]
+    for error in errors:
+        error_type = str(error.get("type") or "validation_error")
+        path = _structured_output_error_path(error.get("loc"))
+        if error_type == "extra_forbidden":
+            instruction = (
+                f"DELETE `{path}` completely. Do not keep it, rename it, or set it "
+                "to null."
+            )
+        elif error_type == "missing":
+            instruction = (
+                f"ADD the required value at `{path}` inside its exact existing "
+                "parent. If this is a fixed tuple/list slot, fill that slot there; "
+                "do not create another top-level item."
+            )
+        elif error_type == "literal_error":
+            context = error.get("ctx")
+            expected = context.get("expected") if isinstance(context, Mapping) else None
+            required = (
+                str(expected)
+                if expected is not None
+                else str(error.get("msg") or "the schema literal")
+            )
+            instruction = (
+                f"REPLACE `{path}` with the exact required literal {required}; copy "
+                "it character-for-character from this instruction/schema."
+            )
+        else:
+            instruction = (
+                f"FIX `{path}` ({error_type}): "
+                f"{(error.get('msg') or 'value does not satisfy the schema')!s}."
+            )
+        lines.append(f"- {instruction}")
+
+    if not errors:
+        lines.append(f"- Fix the reported structured-output error: {exception!s}")
+    lines.append(
+        "Do not move nested tuple/list entries into sibling top-level fields, and "
+        "do not return prose or multiple structured responses."
+    )
+    return "\n".join(lines)
+
+
 async def _iterate_and_close(stream: Any):
     """Consume a LangGraph async stream and close it on cancellation.
 
@@ -4853,7 +4939,10 @@ class AgentApp:
                 # provider profiles visible; pass ToolStrategy explicitly to
                 # preserve that established cross-provider behavior.
                 response_format=(
-                    ToolStrategy(self.spec.output_schema)
+                    ToolStrategy(
+                        self.spec.output_schema,
+                        handle_errors=_structured_output_repair_message,
+                    )
                     if self.spec.output_schema is not None
                     else None
                 ),
