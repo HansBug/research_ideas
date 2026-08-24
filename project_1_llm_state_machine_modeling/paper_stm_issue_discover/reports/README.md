@@ -5,7 +5,7 @@
 > `semantic-judge.two-stage.v3.2` 按 issue #195 产生。下表中早期报告若引用 runner 内置
 > Judge、旧 Luna/Sol Judge 或其费用/分数，只能按该报告的历史协议阅读，不与 v3.2 正式结果混用。
 
-> 本目录共 **15** 份 active human-facing report，跨 2026-06 至 2026-08：
+> 本目录共 **16** 份 active human-facing report，跨 2026-06 至 2026-08：
 >
 > | 份数 | 时间 | 是什么 |
 > | --: | :-- | :-- |
@@ -13,11 +13,12 @@
 > | 2 | 2026-07-08 | issue ledger / source trace 两份 v0 字段合同说明 |
 > | 1 | 2026-07-19 | Issue #161 PlantUML Java frontend 技术路线报告——当前 60 例语料的由来 |
 > | 1 | 2026-08-11 | 重构后 e2e smoke。⛔ **工程验证，不是研究性运行，数字不得进论文统计** |
-> | 4 | 2026-08-19 至 2026-08-20 | v26/v27 全量 x3 正式实验、Luna/Sol judge sensitivity、Luna/Terra provider 健康探针 |
+> | 5 | 2026-08-19 至 2026-08-25 | v26/v27 历史实验、v51 method-only 最终 54x3、Judge sensitivity、provider 健康探针 |
 >
 > | 你想找 | 去哪 |
 > | :-- | :-- |
-> | **当前 v27-stream Luna 全量 x3 正式结果** | [2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md](./2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md) |
+> | **当前 v51 method-only 54x3 + 冻结 v3.2 Judge 正式结果** | [2026-08-25-evidence-discovery-v51-final-54x3.md](./2026-08-25-evidence-discovery-v51-final-54x3.md) |
+> | v27-stream 旧 Judge 历史结果 | [2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md](./2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md) |
 > | v26 全量 x3 历史结果 | [2026-08-19-luna-full-x3-v26.md](./2026-08-19-luna-full-x3-v26.md) |
 > | Luna/Sol judge 对照与开发/正式分层 | [2026-08-19-judge-model-comparison.md](./2026-08-19-judge-model-comparison.md) |
 > | Luna/Terra 当前 provider 健康证据 | [2026-08-19-luna-terra-provider-health.md](./2026-08-19-luna-terra-provider-health.md) |
@@ -27,7 +28,7 @@
 >
 > 本目录只保存稳定的 human-facing 研究报告。逐格机器制品、运行记录和 usage 回到 [../pipeline/](../pipeline/) 或 `runs/`，判据与事前登记回到 [../discover_matrix/](../discover_matrix/)；GitHub PR/issue 继续只负责动态施工状态。
 >
-> ⚠️ 本目录**机器事实源为零**；统计一律回到 [../pipeline/](../pipeline/) 与 [../corpora/](../corpora/) 下的 JSON / JSONL / registry。
+> ⚠️ 本目录**机器事实源为零**；统计一律回到 [../pipeline/](../pipeline/)、[../corpora/](../corpora/) 与根目录 `runs/` 下的 JSON / JSONL / registry / immutable receipts。
 
 ## 1. 文库定位
 
@@ -39,10 +40,11 @@ R5.7 / Better STM / constructed `STM_k` / blind adjudication 报告链已经迁�
 
 | 时间 | report | 类型 | 当前使用方式 |
 |---|---|---|---|
+| 2026-08-25 | [2026-08-25-evidence-discovery-v51-final-54x3.md](./2026-08-25-evidence-discovery-v51-final-54x3.md) | 当前 method-only 54x3 正式实验 | 162/162 method 与外置 v3.2 Judge 闭包；给出 X1v2 公平对照、v27 六 pair 局部参照、D/W、W2 审计、corrected cost、retry 和逐 pair 结果。 |
 | 2026-08-19 | [2026-08-19-luna-terra-provider-health.md](./2026-08-19-luna-terra-provider-health.md) | provider 健康探针 | 四个时间窗的结构化请求证据；用于运行前健康判断、relay failure 分类和 retry 上限依据，不用于模型能力比较。 |
 | 2026-08-19 | [2026-08-19-judge-model-comparison.md](./2026-08-19-judge-model-comparison.md) | judge sensitivity 与分层协议 | Luna 用于开发期筛选，Sol 用于冻结候选正式评测；保存相关性、分歧和成本证据。 |
-| 2026-08-19 | [2026-08-19-luna-full-x3-v26.md](./2026-08-19-luna-full-x3-v26.md) | 当前全量 x3 正式实验 | 当前 release-only 54-pair 双臂结果、逐条台账、失败、W/D/L 和成本的 human-facing 入口。 |
-| 2026-08-20 | [2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md](./2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md) | 当前全量 x3 正式实验 | v27-stream 稳定版 54-pair 双臂结果、D1/D2 release-only 统计、逐条台账、FP、失败、W/D/L、成本与 54 份 Luna judge 证据入口。 |
+| 2026-08-19 | [2026-08-19-luna-full-x3-v26.md](./2026-08-19-luna-full-x3-v26.md) | 历史全量 x3 实验 | 旧 release-only 54-pair 双臂结果；Judge 与成本口径均不得和 v3.2 正式结果混用。 |
+| 2026-08-20 | [2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md](./2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md) | 历史全量 x3 实验 | v27-stream 旧 Judge 快照；冻结 v3.2 下只有六 pair x3 局部参照，正式当前结果读 2026-08-25 报告。 |
 | 2026-08-11 | [2026-08-11-post-refactor-e2e-smoke.md](./2026-08-11-post-refactor-e2e-smoke.md) | 重构后 e2e smoke | 大规模目录重构后的端到端验证：`0000` × claude / gpt 各 1 轮，两格均 completed / coverage=full / 零降级零重试，输入哈希与搬迁前逐字节相同，发现的 4 条与 v46 逐条对应。⛔ **工程验证，数字不得进论文统计**。 |
 | 2026-07-19 | [2026-07-19-issue-161-plantuml-java-frontend.md](./2026-07-19-issue-161-plantuml-java-frontend.md) | PlantUML Java frontend | **本表中与当前语料关系最直接的一份**：Issue #161 把 PlantUML canonical 从 SCXML 路线换成 Java source frontend，60 例 active 语料由此产生。技术路线报告，不是实验结果。 |
 | 2026-07-08 14:03:59 | [2026-07-08-14-03-59-pr-source-trace-contract.md](./2026-07-08-14-03-59-pr-source-trace-contract.md) | source trace contract | source trace v0 合同报告；定义 raw/source ↔ intermediate trace、projection status 与 negative attribution gate，不是实验结果。 |
@@ -80,6 +82,7 @@ R5.7 / Better STM / constructed `STM_k` / blind adjudication 报告链已经迁�
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-08-25 | 新增 v51 method-only 54x3 与冻结 v3.2 Judge 最终报告，active report 数由 15 更新为 16，并将 v26/v27 旧 Judge 数字明确降为历史协议。 |
 | 2026-08-20 | 新增 v27-stream Luna 全量 x3 结果，更新当前入口、逐条台账、judge 证据和 active report 数。 |
 | 2026-08-19 | 补录 v26 正式实验、judge 模型对照和 provider 健康探针，active report 数由 11 更新为 14，并修正“本目录无当前实验结果”的旧入口。 |
 | 2026-07-08 14:03:59 | `PR-source-trace` 新增 source trace v0 合同报告，并更新 active report 表。 |
