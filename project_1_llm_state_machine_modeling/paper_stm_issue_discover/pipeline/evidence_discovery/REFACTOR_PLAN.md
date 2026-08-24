@@ -7,6 +7,11 @@
 本计划只迁移发现链路的职责，不改输入语料、台账分母或既有实验结果；新实现未通过
 全部测试门前，旧代码只作历史复现。
 
+当前生产边界已经收敛为 method-only runner：`evidence_discovery` 只生成 D1/D2 release、
+D/W 证据、W2 audit、method status/summary 与 method cost。正式 validity/relation/hit/FP/
+precision 由独立冻结 `semantic-judge.two-stage.v3.2` 产生。历史 runner 内置 Judge 的新写入
+路径已经删除；历史 artifacts 保持不可变，仅作旧协议追溯。
+
 重构必须先落地 19 个谓词注册表和 W1 语义命中契约，再逐步接入后端。任何旧的
 containment、cardinality、并发运行时、层级优先级或轨迹变量差分逻辑，都不能因为
 迁移方便而重新成为核心谓词。
@@ -14,14 +19,14 @@ containment、cardinality、并发运行时、层级优先级或轨迹变量差�
 ### 1.1 效果对齐目标
 
 这次迁移不追求逐格复刻历史实现，但要以冻结历史参考实现的正式结果作为工程量级参照：在冻结
-相同台账、54 个 pair、最终 D1/D2 发布边界、独立 judge 和统计分母后，新实现应取得与
+相同台账、54 个 pair、最终 D1/D2 发布边界、冻结 v3.2 Judge 和统计分母后，新实现应取得与
 参考实现**大体相当或更好**的 hit 和 FP/precision 表现。达到大体相当即可，不要求绝对完美或
 逐格相同；若超过参考实现则记录为改进。该目标是“不能出现无解释的明显回退”，不是新增
 谓词、放宽 soundness 或把 W1/W0/`UNKNOWN` 伪装成 W2/violation 的理由。
 
 对齐评估至少要同时看整体、L2、D2×L2 的 `hit@1`/`hit@3`/`hit@all`、release
 emission FP、precision、eligible rate、W0/W1/W2/`UNKNOWN` 分布和成本；不要求逐 pair、
-逐轮或每个谓词的使用量完全相同。参考报告、台账版本、judge 和比较容差必须在
+逐轮或每个谓词的使用量完全相同。参考报告、台账版本、Judge commit/protocol 和比较容差必须在
 正式运行前登记，不能运行后按结果选择参照物。若差异来自新四族的学术边界或 W1 fallback，
 必须在对账中说明，不能用 benchmark 覆盖率反向改定义。
 
@@ -65,14 +70,14 @@ pipeline/evidence_discovery/
 │   └── audit_bundle.py             # W2 完整谓词、编译源码、哈希、结果和理由审计包
 ├── reporting/
 │   ├── findings.py                # issue、断言和证据链输出
-│   ├── coverage.py               # expressibility、semantic_hit、W2 分开统计
+│   ├── coverage.py               # expressibility、release、W2 分开统计
 │   └── export.py                  # JSON、审计包和人读报告
 ├── compatibility/
 │   ├── legacy_reader.py           # 只读旧运行结果，不暴露旧谓词为新 API
 │   └── schema_adapter.py          # 旧记录到内部记录的显式版本适配
 └── tests/
     ├── test_registry.py
-    ├── test_w1_hit_contract.py
+    ├── test_w1_release_contract.py
     ├── test_lowering.py
     ├── test_backend_contracts.py
     ├── test_provenance.py
@@ -145,11 +150,11 @@ v6 还保留 typed inventory/diagnostic/verify 字段和 exact refs，同时把�
 contract extraction 正常路径整格调用一次，不使用主动 chunk/token gate、逐 obligation
 fan-out 或 merge 协议。三轮 method 相互独立，前一轮 release 不进入下一轮 prompt。
 
-independent judge 只从 `eligible=True` 的 method cell 构造三轮最终 D1/D2 release surface；
-不合格格子的诊断性 release 保留在 method receipt，但不进入 relation/FP。judge 对每个 pair
-固定一次 pair-wide 调用，机械 shape 不闭合时至多一次定向 correction；仍失败标记
-`judge_unavailable`，不得把缺失关系补成 miss/FP，也不得使用 partition、release/token gate
-或 ledger x release atomic fallback。release 集精确为空时仍使用同一 pair-wide 评测边界。
+method runner 只从 `eligible=True` 的 method cell 导出三轮最终 D1/D2 release surface；
+不合格格子的诊断性 release 保留在 method receipt，但不进入外置正式评测。独立冻结 v3.2
+Judge 通过 adapter 读取不可变 release receipts，在自己的 run root 中完成 validity、relation、
+arbitration、receipt 和 metrics。method runner 不持有 ledger、Judge schema/prompt、Judge
+retry、Judge cost 或 relation/FP 状态。
 
 每条 W2 的 `audit_bundle` 是可独立复核的最小闭包，至少包含：谓词 ID 与注册表版本、
 完整谓词逻辑和绑定后的输入、编译后的 assertion/formal program 源码及其哈希、模型与
@@ -162,7 +167,7 @@ attribution、运行/重试记录以及 `reason`/`basis`。后端不能只返回
 需求义务
   ├─ 无精确可复现绑定 ───────────────→ W0 / coverage_gap
   └─ 已精确绑定
-       ├─ 无适用 sound 谓词或后端 ───→ W1 / semantic_hit
+       ├─ 无适用 sound 谓词或后端 ───→ W1 / 可发布
        └─ 有计划并执行
             ├─ 终止且回执满足 fragment ─→ W2
             ├─ UNKNOWN / 超时 / 工具错误 ─→ 保留 UNKNOWN 或执行失败
@@ -170,11 +175,11 @@ attribution、运行/重试记录以及 `reason`/`basis`。后端不能只返回
 ```
 
 W1 不能升级为 W2，除非同一条记录补齐注册表版本、计划、封闭输入、终止回执和来源归因；
-`UNKNOWN`、资源耗尽和后端异常也不能通过重命名或聚合器变成 violation。`semantic_hit`、
-`expressibility` 和 `W2` 必须使用不同字段和分母。
+`UNKNOWN`、资源耗尽和后端异常也不能通过重命名或聚合器变成 violation。method 的
+`expressibility`/W 分布与外置 Judge 的 FULL hit 必须使用不同字段和分母。
 
 `D2/D1/D0` 由方法自己的裁定模块给出，不能复制台账 D 标签；只有 D2/D1 进入 release
-issue、hit 和 FP，D0 仅保留审计。D2 是明确违反义务且最强反驳不成立，D1 是两种与事实
+issue，hit 和 FP 由外置 v3.2 Judge 产生，D0 仅保留审计。D2 是明确违反义务且最强反驳不成立，D1 是两种与事实
 相容的称职读法并立，D0 是设计选择或没有可陈述的违反义务。`L` 完全由台账侧提供，
 方法不生成 L。
 
@@ -196,7 +201,7 @@ inputs → semantics → compiler → backends → evidence → reporting
 - `backends` 只产生原始回执，不能直接发布 issue 或修改 W/D 等级；后端禁止使用 Python
   `inspect` 或旧 `inspect_*` 后端，需要类似能力时使用自有、可测试、有版本的算法。
 - `evidence` 统一处理终止、归因、UNKNOWN 和 W1/W2，不让单个后端自行发明等级。
-- `reporting` 只消费已裁决的记录；覆盖率、semantic hit 和 W2 必须使用不同字段和分母。
+- `reporting` 只消费已裁决的 method 记录；release、W 分布和 method cost 与外置 Judge 指标分开保存。
 - `orchestration` 只负责调用顺序、预算、隔离和落盘，不决定语义、不修改 W/D 等级；
   必须复用公共 `utils.agent` 的 respond/LangGraph runtime 和 `utils.llm` 的 registry、
   pricing、usage 基础设施，不从 `feedback_loop` 私有模块反向导入或复制计费/调度。
@@ -264,7 +269,7 @@ containment、child count、consumer scope、正交区和 trace delta 的旧证�
 - 对无适用谓词、来源未过门或后端不支持的义务，输出完整 W1 记录。
 - 为 W0、W1、W2、UNKNOWN 编写互斥测试，特别测试 UNKNOWN 不会变成 violation。
 
-退出条件：即使所有后端关闭，需求仍能产生可追溯的 W1 semantic hit；没有义务被静默丢弃。
+退出条件：即使所有后端关闭，精确绑定的需求仍能产生可追溯的 W1 release；没有义务被静默丢弃。
 
 阶段 B 还必须实现 D 自裁定：台账 D 只用于评测切片，不能进入方法裁定；D0 只审计，
 D1/D2 才允许发布。所有模型节点和结构化项都要通过 `reason`/`basis` schema 门。
@@ -288,14 +293,14 @@ D1/D2 才允许发布。所有模型节点和结构化项都要通过 `reason`/`
 ### 阶段 E：归因、报告和兼容性切换
 
 - 把 issue、断言、NL 原句、源模型元素和回执拆成独立字段。
-- 分开输出 expressibility、semantic_hit、W1/W2 比例和后端失败原因。
+- 分开输出 expressibility、W1/W2 比例、release 数和后端失败原因；method summary 不输出 hit/FP/precision。
 - 加入 schema、来源归因、重复 issue、覆盖分母和 prose non-interference 测试。
 - 编写旧结果读取适配器，但禁止新运行写入旧 schema 或旧谓词名。
 
 退出条件：新包在固定 fixture、mutation、来源和报告测试上达到门槛；完成一次新旧
 结果只读对账，证明旧归档结果没有被静默改写。
 
-阶段 E 的新旧对账还必须包含历史参考实现量级对齐表：同一分母下列出新实现与参考实现的
+阶段 E 的新旧对账由外置冻结 v3.2 完成，并包含历史参考实现量级对齐表：同一分母下列出新实现与参考实现的
 hit/FP/precision、W 分布、eligible 和成本；“大体相当”按运行前登记的比较容差判定，
 不以逐格相等或绝对完美为门；若新实现超过参考实现，应同时报告改进。不允许只挑 L2 或只挑
 precision 较好的切片报告。
@@ -306,16 +311,16 @@ precision 较好的切片报告。
 error 使格子死亡，原地重试该格一次；其它错误及由此触发的 retry 全部计费并作为实现缺陷
 修复，不能通过整格冷重跑掩盖。
 
-阶段 E 完成并通过预先登记的诊断集 method + independent judge 放行门后，才使用
+阶段 E 完成并通过预先登记的诊断集 method + 外置冻结 Judge 放行门后，才使用
 `gpt-5.6-luna` 对冻结的 54 pair 做一次全量实验。实验输出必须
-落盘每个 pair/cell 的 W/D、reason/basis、重试和成本；随后修复错误并迭代，直至整体 hit
-显著高于冻结 baseline、L2 大部分成功命中、FP 不高于冻结 baseline，且总体达到历史参考实现大体相当量级。
-超过参考实现如实记录；不要求逐格复刻，也不允许为达指标新增谓词或放宽学术边界。
+落盘每个 pair/cell 的 W/D、reason/basis、重试和成本，再由外置冻结 v3.2 独立评测。
+全量是冻结后的最终评估；普通 miss、轻微低于参考或边角 case 不反向触发 prompt/谓词调优，
+只有 crash、数据缺失、审计不闭合或确定实现 bug 才允许用新 run identity 修复重跑。
 
 当前施工安全门分两级：任意真实 Luna 调用都必须显式通过 `allow_live`；诊断阶段必须
 显式传入 pair IDs，且最多运行六个 pair。冻结 54-pair 三轮全量还必须额外通过
 `allow_full_live`，该门只可在 provider-free 契约检查与预先登记的诊断集
-method + independent judge 验收完成 review 后打开。每次运行在用户给定目录下新建 `run_id` 子目录；
+method + 外置冻结 Judge 验收完成 review 后打开。每次运行在用户给定目录下新建 `run_id` 子目录；
 manifest 冻结 commit、registry/prompt/schema/input hash、workers、retry 和 stream 模式，
 不兼容旧格移入 `stale/` 并重新生成，不能静默 resume，也不能以冷重跑替代故障修复。
 
@@ -330,17 +335,17 @@ manifest 冻结 commit、registry/prompt/schema/input hash、workers、retry 和
 ## 6. 必须保留的测试门
 
 1. **注册表门**：19 个唯一 ID、四族计数、版本和来源字段完整。
-2. **W1 合同门**：无谓词仍发布 W1 并计 `semantic_hit`，W0 不计命中。
+2. **W1 合同门**：无谓词仍发布 W1 并进入外置评测，W0 不进入 release。
 3. **后端 soundness 门**：后端不得越过声明 fragment；UNKNOWN 不得升级。
 4. **溯源门**：每条 W2 都有需求、模型元素、计划和终止回执四段链接。
 5. **覆盖记账门**：118/145、35/39、603/741 只能作为冻结设计快照；实测分母另存。
 6. **变异门**：修改一个模型事实不得让无关谓词或族产生同样回执。
 7. **学术叙事门**：扫描文档，禁止把台账频率写成来源、把图路径写成运行保证、把旧谓词写成核心。
 8. **兼容性门**：旧归档可回放，新入口不依赖旧 `prototype` 模块名。
-9. **参考实现量级门**：在预先冻结的同分母、同 judge 对账中，hit 与 FP/precision 没有
+9. **参考实现量级门**：在预先冻结的同分母、同 v3.2 Judge 对账中，hit 与 FP/precision 没有
    无解释的明显回退；差异必须能由 W1/W2、来源边界、后端能力或表示债务解释。
-10. **D/W/L 门**：D2/D1/D0 由方法自裁，只有 D2/D1 计入 release/hit/FP；W 由确定性
-    状态机计算；方法不输出 L。
+10. **D/W/L 门**：D2/D1/D0 由方法自裁，只有 D2/D1 计入 release；hit/FP 来自外置 v3.2；
+    W 由确定性状态机计算；方法不输出 L。
 11. **解释与审计门**：每条模型输出有非空 `reason`/`basis`；每条 W2 有完整审计包，
     包含谓词逻辑、编译源码、哈希和真实运行结果。
 12. **后端与基础设施门**：代码树无 Python `inspect`/旧 inspect 后端调用，新入口只复用
@@ -356,7 +361,7 @@ manifest 冻结 commit、registry/prompt/schema/input hash、workers、retry 和
 tests/fixtures/minimal_pair/
 ├── requirement.json       # 两条可绑定义务，一条无谓词义务
 ├── model.fcstm.json       # 一个状态、两条迁移、一个守卫和一条效果
-├── expected_w1.json       # 无后端时的 W1 semantic_hit
+├── expected_w1.json       # 无后端时仍可发布的 W1
 └── expected_w0.json       # 缺失元素时的 W0 coverage_gap
 ```
 

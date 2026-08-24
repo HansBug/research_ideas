@@ -43,9 +43,9 @@ class W2AuditBundle(BaseModel):
     retry_records: list[dict[str, Any]] = Field(default_factory=list, description="All model/provider retry and billing records associated with the cell.")
     source_attribution: dict[str, Any] = Field(description="Requirement, source/model, plan, and backend receipt attribution chain.")
     method_receipt: dict[str, Any] = Field(description="Terminal method receipt link or explicit pre-finalization state.")
-    judge_receipt: dict[str, Any] = Field(description="Terminal independent judge link or explicit pre-finalization state.")
-    pre_finalization_audit_hash: str | None = Field(default=None, pattern=r"^sha256:[0-9a-f]{64}$", description="Hash of the bundle identity embedded in the immutable method receipt and supplied to the judge before terminal receipt links were added.")
-    audit_finalization: dict[str, Any] | None = Field(default=None, description="Judge-time finalization timestamp, receipt hash, reason, and basis.")
+    judge_receipt: dict[str, Any] = Field(description="Explicit pending-independent-evaluation state; formal Judge linkage is owned by the external evaluation layer.")
+    pre_finalization_audit_hash: str | None = Field(default=None, pattern=r"^sha256:[0-9a-f]{64}$", description="Hash of the bundle identity embedded in the immutable method receipt before its terminal receipt link was added.")
+    audit_finalization: dict[str, Any] | None = Field(default=None, description="Method-time finalization timestamp, terminal method-receipt hash, reason, and basis.")
     issue_emitted: bool | None = Field(default=None, description="Whether deterministic D/W publication emitted this W2 record as a release issue.")
     reason: str = Field(min_length=1, description="Non-empty explanation of the deterministic evidence and D publication state.")
     basis: str = Field(min_length=1, description="Non-empty predicate, binding, program, backend, and source basis.")
@@ -168,8 +168,9 @@ def build_audit_bundle(
         },
         "judge_receipt": {
             "status": "pending_independent_judge",
-            "reason": "The independent judge runs only after every method round is terminal.",
-            "basis": "method/judge isolation boundary",
+            "protocol": "semantic-judge.two-stage.v3.2",
+            "reason": "Formal validity, relation, hit, and FP remain pending in the external frozen evaluation layer.",
+            "basis": "method/evaluation physical isolation boundary",
         },
         "pre_finalization_audit_hash": None,
         "audit_finalization": None,

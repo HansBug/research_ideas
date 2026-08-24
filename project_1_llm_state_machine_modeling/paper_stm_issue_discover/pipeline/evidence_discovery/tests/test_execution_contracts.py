@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
-import re
 from datetime import date
 from importlib import import_module
 from pathlib import Path
@@ -22,15 +21,18 @@ from pipeline.evidence_discovery.compiler.inputs import (
     validate_predicate_inputs,
 )
 from pipeline.evidence_discovery.compiler.lowering import PredicatePlan
-from pipeline.evidence_discovery.evidence.audit_bundle import W2AuditBundle
+from pipeline.evidence_discovery.evidence.audit_bundle import (
+    W2AuditBundle,
+    validate_and_hash_w2_audit_bundle,
+)
 from pipeline.evidence_discovery.evidence.receipts import RawReceipt
 from pipeline.evidence_discovery.evidence.witness_levels import (
     build_evidence_record,
     calculate_witness_level,
 )
 from pipeline.evidence_discovery.inputs import load_pair, parse_fcstm
+from pipeline.evidence_discovery.orchestration import runner as runner_module
 from pipeline.evidence_discovery.orchestration.contracts import (
-    IndependentJudgeReceipt,
     MethodCellReceipt,
     PairRunStatus,
     RunManifest,
@@ -41,41 +43,25 @@ from pipeline.evidence_discovery.orchestration.cost_correction import (
     build_corrected_method_cost,
 )
 from pipeline.evidence_discovery.orchestration.runner import (
-    ExactJudgeResponse,
-    JudgeRelationAssessment,
-    JudgeResponse,
-    LedgerAssessment,
-    ReleaseAssessment,
     _d_decision_consistency_errors,
     _deduplicate_release_issues,
     _enrich_candidate,
-    _failure_judge_payload,
     _failure_method_cell,
     _finalize_w2_audit_links,
     _grounding_response_contract,
-    _judge_issue_projection,
-    _judge_pair,
-    _judge_prompt,
-    _judge_response_contract,
-    _judge_shape_errors,
     _materialize_exact_s2_inventory_candidates,
     _merge_grounding_contracts,
-    _metrics,
     _normalize_grounding_exact_facts,
-    _normalize_judge_shape,
     _prepare_candidate,
     _prepared_is_finding_candidate,
     run_experiment,
 )
 from pipeline.evidence_discovery.orchestration.runtime import (
-    JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS,
-    MAX_STRUCTURED_OUTPUT_TOKENS,
     PROVIDER_CALL_DEADLINE_SECONDS,
     PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS,
     STRUCTURED_STAGE_DEADLINE_SECONDS,
     FixtureStructuredRuntime,
     PublicStructuredRuntime,
-    StructuredCallOutcome,
     StructuredSchemaValidationBundle,
     StructuredStageTimeout,
     _annotate_usage_billing,
@@ -119,6 +105,7 @@ from pipeline.evidence_discovery.semantics import (
     suppress_satisfied_source_transition_candidates,
 )
 from pipeline.evidence_discovery.semantics.binding import BindingResult
+from pipeline.semantic_judge.artifacts import adapt_evidence_discovery_release
 from pydantic import BaseModel, ValidationError
 
 from utils.agent import AgentError
@@ -688,25 +675,15 @@ def test_w2_audit_contains_logic_hashes_backend_and_retry_records(tmp_path: Path
             }
         ],
     }
-    judge = {
-        "schema": "evidence-discovery.independent_judge.v5",
-        "run_id": "1" * 32,
-        "run_contract_hash": "sha256:" + "1" * 64,
-        "status": "completed",
-        "eligible": True,
-        "adjudication_mode": "pair_wide",
-        "reason": "Fixture judge completed.",
-        "basis": "Fixture terminal receipt.",
-    }
     _finalize_w2_audit_links(
         output_root=tmp_path,
         pair_id="0000",
         rounds_data=[cell],
-        judge=judge,
     )
     finalized = json.loads(audit_path.read_text(encoding="utf-8"))
     assert finalized["pre_finalization_audit_hash"] == audit_hash
     assert finalized["audit_finalization"]["pre_finalization_audit_hash"] == audit_hash
+    assert finalized["judge_receipt"]["status"] == "pending_independent_judge"
     assert finalized["audit_hash"] != audit_hash
     W2AuditBundle.model_validate(finalized)
 
@@ -858,476 +835,6 @@ def test_both_complementary_grounding_lenses_contribute_exact_candidates() -> No
     }
 
 
-def test_judge_shape_normalization_does_not_rewrite_decision_fields() -> None:
-    ledger = [{"id": "L-1", "pair": "0000"}]
-    release = [{"issue_id": "0000:r1:issue:0"}]
-    response = JudgeResponse(
-        ledger_assessments=[
-            LedgerAssessment(
-                ledger_id="L-1",
-                hit_r1=False,
-                matched_issue_ids=["0000:r1:issue:0"],
-                reason="The fixture matched the exact issue ID.",
-                basis="exact relation fixture",
-            )
-        ],
-        release_assessments=[
-            ReleaseAssessment(
-                issue_id="0000:r1:issue:0",
-                accounted_ledger_ids=["L-1"],
-                is_false_positive=True,
-                reason="The fixture accounted for the exact ledger ID.",
-                basis="exact relation fixture",
-            )
-        ],
-        relation_assessments=[
-            JudgeRelationAssessment(
-                ledger_id="L-1",
-                issue_id="0000:r1:issue:0",
-                relation="exact",
-                reason="The exact locus, property, scope, and direction match.",
-                basis="provider-free typed judge relation fixture",
-            )
-        ],
-        reason="Fixture response.",
-        basis="Fixture response basis.",
-    )
-    normalized = _normalize_judge_shape(response, ledger, release, 1)
-    errors = _judge_shape_errors(normalized, ledger, release, 1)
-    assert normalized.ledger_assessments[0].hit_r1 is False
-    assert normalized.release_assessments[0].is_false_positive is True
-    assert any("hit_r1 must agree" in error for error in errors)
-    assert any("is_false_positive must equal" in error for error in errors)
-
-
-def test_judge_shape_rejects_asymmetric_exact_relations() -> None:
-    ledger = [{"id": "L-1", "pair": "0000"}]
-    release = [{"issue_id": "0000:r1:issue:0"}]
-    response = JudgeResponse(
-        ledger_assessments=[
-            LedgerAssessment(
-                ledger_id="L-1",
-                matched_issue_ids=[],
-                reason="The ledger side reports no match.",
-                basis="fixture ledger relation surface",
-            )
-        ],
-        release_assessments=[
-            ReleaseAssessment(
-                issue_id="0000:r1:issue:0",
-                accounted_ledger_ids=["L-1"],
-                is_false_positive=False,
-                reason="The release side reports a match.",
-                basis="fixture release relation surface",
-            )
-        ],
-        reason="The fixture intentionally disagrees across relation directions.",
-        basis="provider-free asymmetric relation fixture",
-    )
-
-    normalized = _normalize_judge_shape(response, ledger, release, 1)
-    errors = _judge_shape_errors(normalized, ledger, release, 1)
-    assert any("same exact relation pairs" in error for error in errors)
-    assert any(
-        'release-side-only=[["L-1", "0000:r1:issue:0"]]' in error
-        for error in errors
-    )
-
-
-def test_runtime_judge_contract_rejects_identity_deduplication() -> None:
-    schema = _judge_response_contract(
-        ledger_ids=("INS-0029-01", "INS-0029-05"),
-        release_ids=("0029:r1:issue:7", "0029:r1:issue:12"),
-        rounds=1,
-    )
-    json_schema = schema.model_json_schema()
-    ledger_property = json_schema["properties"]["ledger_assessments"]
-    release_property = json_schema["properties"]["release_assessments"]
-    assert ledger_property["minItems"] == ledger_property["maxItems"] == 2
-    assert release_property["minItems"] == release_property["maxItems"] == 2
-    release_definition = release_property["items"]["$ref"].rsplit("/", 1)[-1]
-    assert set(
-        json_schema["$defs"][release_definition]["properties"]["issue_id"]["enum"]
-    ) == {"0029:r1:issue:7", "0029:r1:issue:12"}
-
-    payload = {
-        "ledger_assessments": [
-            {
-                "ledger_id": ledger_id,
-                "matched_issue_ids": [],
-                "reason": "No exact release establishes this ledger item.",
-                "basis": "Provider-free exact identity fixture.",
-            }
-            for ledger_id in ("INS-0029-01", "INS-0029-05")
-        ],
-        "release_assessments": [
-            {
-                "issue_id": issue_id,
-                "accounted_ledger_ids": [],
-                "is_false_positive": True,
-                "reason": "This exact release identity has no hit-eligible relation.",
-                "basis": "Provider-free exact identity fixture.",
-            }
-            for issue_id in ("0029:r1:issue:7", "0029:r1:issue:12")
-        ],
-        "relation_assessments": [],
-        "reason": "Every exact ledger and release identity was retained.",
-        "basis": "Provider-free exact identity fixture.",
-    }
-    validated = schema.model_validate(payload)
-    assert isinstance(validated, ExactJudgeResponse)
-
-    identity_deduplicated = dict(payload)
-    identity_deduplicated["release_assessments"] = [
-        payload["release_assessments"][1],
-        payload["release_assessments"][1],
-    ]
-    with pytest.raises(
-        ValidationError,
-        match=r"missing=.*0029:r1:issue:7.*duplicates=.*0029:r1:issue:12",
-    ):
-        schema.model_validate(identity_deduplicated)
-
-
-def test_runtime_judge_contract_rejects_asymmetric_accounting() -> None:
-    schema = _judge_response_contract(
-        ledger_ids=("L-1",),
-        release_ids=("0000:r1:issue:0",),
-        rounds=1,
-    )
-    with pytest.raises(ValidationError, match="same exact relation pairs"):
-        schema.model_validate(
-            {
-                "ledger_assessments": [
-                    {
-                        "ledger_id": "L-1",
-                        "matched_issue_ids": [],
-                        "reason": "The ledger side reports no match.",
-                        "basis": "Provider-free asymmetric fixture.",
-                    }
-                ],
-                "release_assessments": [
-                    {
-                        "issue_id": "0000:r1:issue:0",
-                        "accounted_ledger_ids": ["L-1"],
-                        "is_false_positive": False,
-                        "reason": "The release side reports a match.",
-                        "basis": "Provider-free asymmetric fixture.",
-                    }
-                ],
-                "relation_assessments": [],
-                "reason": "The fixture intentionally disagrees across directions.",
-                "basis": "Provider-free asymmetric fixture.",
-            }
-        )
-
-
-def test_0053_typed_judge_relation_rejects_wrong_source_narrow_manifestation() -> None:
-    ledger = [{"id": "DIFF-0053-01", "pair": "0053"}]
-    release = [
-        {"issue_id": "0053:r1:issue:correct-sequence"},
-        {"issue_id": "0053:r1:issue:wrong-owner-source"},
-    ]
-    response = JudgeResponse(
-        ledger_assessments=[
-            LedgerAssessment(
-                ledger_id="DIFF-0053-01",
-                hit_r1=True,
-                matched_issue_ids=[
-                    "0053:r1:issue:correct-sequence",
-                ],
-                reason="Only the exact cross-wrapper sequence has the ledger property.",
-                basis="provider-free positive and negative relation fixture",
-            )
-        ],
-        release_assessments=[
-            ReleaseAssessment(
-                issue_id="0053:r1:issue:correct-sequence",
-                accounted_ledger_ids=["DIFF-0053-01"],
-                is_false_positive=False,
-                reason="The exact sequence establishes the ledger defect.",
-                basis="PumpState to WaterState to MethaneState relation",
-            ),
-            ReleaseAssessment(
-                issue_id="0053:r1:issue:wrong-owner-source",
-                accounted_ledger_ids=[],
-                is_false_positive=True,
-                reason="This nearby issue shares a global causal context only.",
-                basis="PumpControl to WaterState wrong-source relation",
-            ),
-        ],
-        relation_assessments=[
-            JudgeRelationAssessment(
-                ledger_id="DIFF-0053-01",
-                issue_id="0053:r1:issue:correct-sequence",
-                relation="semantic_equivalent",
-                reason="The source sequence, cross-wrapper scope, and missing connectivity property are equivalent.",
-                basis="typed correct-sequence positive fixture",
-            ),
-            JudgeRelationAssessment(
-                ledger_id="DIFF-0053-01",
-                issue_id="0053:r1:issue:wrong-owner-source",
-                relation="partial_overlap",
-                reason="The owner-source endpoint has the wrong locus and does not establish wrapper mutual unreachability.",
-                basis="typed owner-source negative fixture",
-            ),
-        ],
-        reason="The fixture distinguishes exact semantics from a shared-cause narrow manifestation.",
-        basis="provider-free sequential-source positive and negative examples",
-    )
-
-    normalized = _normalize_judge_shape(response, ledger, release, 1)
-
-    assert not _judge_shape_errors(normalized, ledger, release, 1)
-    assert normalized.ledger_assessments[0].matched_issue_ids == [
-        "0053:r1:issue:correct-sequence"
-    ]
-    release_by_id = {
-        item.issue_id: item for item in normalized.release_assessments
-    }
-    assert release_by_id["0053:r1:issue:correct-sequence"].is_false_positive is False
-    assert release_by_id["0053:r1:issue:wrong-owner-source"].is_false_positive is True
-
-
-def test_0046_d1_ambiguity_is_semantically_equivalent_not_partial_overlap() -> None:
-    ledger = [
-        {
-            "id": "EIS-0046-02",
-            "pair": "0046",
-            "D": "D1",
-            "D_basis": (
-                "The primary reading requires three search-period state areas and finds "
-                "the authored area structure short; a second competent reading counts "
-                "three named operating states and remains satisfied."
-            ),
-            "summary": "The search-period operating scope does not realize three state areas.",
-        }
-    ]
-    release = [
-        {
-            "issue_id": "0046:r1:issue:cardinality",
-            "d_level": "D1",
-            "locus_kind": "composite",
-            "locus_names": ["UAVSwarmStateMachine"],
-            "property": "cardinality",
-            "violation_direction": "missing",
-            "requirement_quote": "it operates within three different state areas",
-            "expected": (
-                "Within the target-search operating scope, UAVSwarmStateMachine must "
-                "realize three state areas under the primary direct-child reading."
-            ),
-            "observed": "The complete author-source inventory realizes two such direct areas.",
-            "strongest_rebuttal": (
-                "The phrase may instead count three named operating states; that "
-                "competent reading remains satisfied."
-            ),
-        }
-    ]
-    response = JudgeResponse(
-        ledger_assessments=[
-            LedgerAssessment(
-                ledger_id="EIS-0046-02",
-                hit_r1=True,
-                matched_issue_ids=["0046:r1:issue:cardinality"],
-                reason="Both sides represent the same search-scope D1 cardinality ambiguity.",
-                basis="The primary three-area shortfall and compatible alternative reading align.",
-            )
-        ],
-        release_assessments=[
-            ReleaseAssessment(
-                issue_id="0046:r1:issue:cardinality",
-                accounted_ledger_ids=["EIS-0046-02"],
-                is_false_positive=False,
-                reason="The D1 release is semantically equivalent to the frozen D1 defect.",
-                basis="Same owner, search scope, state-area cardinality, count, and direction.",
-            )
-        ],
-        relation_assessments=[
-            JudgeRelationAssessment(
-                ledger_id="EIS-0046-02",
-                issue_id="0046:r1:issue:cardinality",
-                relation="semantic_equivalent",
-                reason=(
-                    "The surviving satisfying reading is part of the same D1 ambiguity, "
-                    "not a locus or property mismatch."
-                ),
-                basis="Typed D1 ledger/release fields preserve compatible primary and alternative readings.",
-            )
-        ],
-        reason="The provider-free fixture preserves D1 ambiguity without weakening semantic identity.",
-        basis="provider-free positive cardinality relation fixture",
-    )
-
-    normalized = _normalize_judge_shape(response, ledger, release, 1)
-
-    assert not _judge_shape_errors(normalized, ledger, release, 1)
-    assert normalized.relation_assessments[0].relation == "semantic_equivalent"
-    prompt = _judge_prompt(
-        load_pair(REPORT_ROOT / "pairs" / "0046"),
-        ledger,
-        [{"round": 1, "report_issue_clusters": release}],
-    )
-    normalized_prompt = " ".join(prompt.split())
-    assert "a surviving satisfying alternative is part of the same D1 defect" in normalized_prompt
-    assert "must never repair a wrong source" in normalized_prompt
-    assert "the ledger subsumes that candidate" in normalized_prompt
-    assert "typed property and violation_direction are authoritative" in normalized_prompt
-    assert "possible negative evidence only after" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
-
-
-def test_aggregate_ledger_rejects_subset_candidate_subsumption() -> None:
-    ledger = [{"id": "L-AGGREGATE", "pair": "0000"}]
-    release = [
-        {"issue_id": "0000:r1:issue:whole-scope"},
-        {"issue_id": "0000:r1:issue:one-sibling"},
-    ]
-    response = JudgeResponse(
-        ledger_assessments=[
-            LedgerAssessment(
-                ledger_id="L-AGGREGATE",
-                hit_r1=True,
-                matched_issue_ids=["0000:r1:issue:whole-scope"],
-                reason="Only the whole-scope claim establishes every enumerated component.",
-                basis="The ledger enumerates sibling scopes A and B.",
-            )
-        ],
-        release_assessments=[
-            ReleaseAssessment(
-                issue_id="0000:r1:issue:whole-scope",
-                accounted_ledger_ids=["L-AGGREGATE"],
-                is_false_positive=False,
-                reason="Unreachability of the common owner entails both sibling failures.",
-                basis="The candidate claims that the owner containing A and B is unreachable.",
-            ),
-            ReleaseAssessment(
-                issue_id="0000:r1:issue:one-sibling",
-                accounted_ledger_ids=[],
-                is_false_positive=True,
-                reason="The candidate establishes A only and cannot account for sibling B.",
-                basis="Its supplied locus and observed facts mention only A.",
-            ),
-        ],
-        relation_assessments=[
-            JudgeRelationAssessment(
-                ledger_id="L-AGGREGATE",
-                issue_id="0000:r1:issue:whole-scope",
-                relation="candidate_subsumes_ledger",
-                entailment_basis=(
-                    "The candidate's own whole-owner unreachability claim entails that "
-                    "both contained sibling scopes A and B are unreachable."
-                ),
-                reason="The whole-owner claim covers every ledger component.",
-                basis="Typed owner scope contains both enumerated sibling scopes.",
-            ),
-            JudgeRelationAssessment(
-                ledger_id="L-AGGREGATE",
-                issue_id="0000:r1:issue:one-sibling",
-                relation="ledger_subsumes_candidate",
-                reason="The ledger includes sibling B, which the candidate does not establish.",
-                basis="The candidate's supplied claim is limited to sibling A.",
-            ),
-        ],
-        reason="The fixture separates complete logical entailment from a shared-cause subset.",
-        basis="Provider-free aggregate-ledger positive and negative relation fixture.",
-    )
-
-    normalized = _normalize_judge_shape(response, ledger, release, 1)
-
-    assert not _judge_shape_errors(normalized, ledger, release, 1)
-    by_issue = {
-        item.issue_id: item.relation for item in normalized.relation_assessments
-    }
-    assert by_issue["0000:r1:issue:whole-scope"] == "candidate_subsumes_ledger"
-    assert by_issue["0000:r1:issue:one-sibling"] == "ledger_subsumes_candidate"
-    prompt = _judge_prompt(
-        load_pair(REPORT_ROOT / "pairs" / "0000"),
-        ledger,
-        [{"round": 1, "report_issue_clusters": release}],
-    )
-    normalized_prompt = " ".join(prompt.split())
-    assert "a candidate that covers only a subset cannot subsume it" in normalized_prompt
-    assert "Do not use ledger detail to add an absent sibling" in normalized_prompt
-    assert "never semantic_equivalent" in normalized_prompt
-    assert "recount hits and misses" in normalized_prompt
-
-
-def test_aggregate_ledger_rejects_collective_subset_accounting() -> None:
-    ledger = [{"id": "L-AGGREGATE", "pair": "0000"}]
-    release = [
-        {"issue_id": "0000:r1:issue:sibling-a"},
-        {"issue_id": "0000:r1:issue:sibling-b"},
-    ]
-    response = JudgeResponse(
-        ledger_assessments=[
-            LedgerAssessment(
-                ledger_id="L-AGGREGATE",
-                hit_r1=True,
-                matched_issue_ids=[
-                    "0000:r1:issue:sibling-a",
-                    "0000:r1:issue:sibling-b",
-                ],
-                reason="The invalid fixture unions two subset candidates.",
-                basis="The ledger enumerates sibling scopes A and B.",
-            )
-        ],
-        release_assessments=[
-            ReleaseAssessment(
-                issue_id="0000:r1:issue:sibling-a",
-                accounted_ledger_ids=["L-AGGREGATE"],
-                is_false_positive=False,
-                reason="The invalid fixture accounts subset A.",
-                basis="The candidate establishes sibling A only.",
-            ),
-            ReleaseAssessment(
-                issue_id="0000:r1:issue:sibling-b",
-                accounted_ledger_ids=["L-AGGREGATE"],
-                is_false_positive=False,
-                reason="The invalid fixture accounts subset B.",
-                basis="The candidate establishes sibling B only.",
-            ),
-        ],
-        relation_assessments=[
-            JudgeRelationAssessment(
-                ledger_id="L-AGGREGATE",
-                issue_id="0000:r1:issue:sibling-a",
-                relation="ledger_subsumes_candidate",
-                reason="The ledger also requires sibling B.",
-                basis="The candidate scope contains sibling A only.",
-            ),
-            JudgeRelationAssessment(
-                ledger_id="L-AGGREGATE",
-                issue_id="0000:r1:issue:sibling-b",
-                relation="ledger_subsumes_candidate",
-                reason="The ledger also requires sibling A.",
-                basis="The candidate scope contains sibling B only.",
-            ),
-        ],
-        reason="The fixture reproduces invalid collective subset accounting.",
-        basis="Provider-free aggregate-ledger shape regression.",
-    )
-
-    normalized = _normalize_judge_shape(response, ledger, release, 1)
-    errors = _judge_shape_errors(normalized, ledger, release, 1)
-
-    relation_error = next(
-        error for error in errors if "typed hit relations" in error
-    )
-    assert "0000:r1:issue:sibling-a" in relation_error
-    assert "0000:r1:issue:sibling-b" in relation_error
-    assert "accounting-only" in relation_error
-
-
-def test_candidate_subsumes_ledger_requires_entailment_basis() -> None:
-    with pytest.raises(ValidationError, match="entailment_basis"):
-        JudgeRelationAssessment(
-            ledger_id="ledger-1",
-            issue_id="issue-1",
-            relation="candidate_subsumes_ledger",
-            reason="The fixture deliberately omits logical entailment.",
-            basis="provider-free invalid judge relation",
-        )
-
-
 def test_report_dedup_uses_exact_typed_defect_key_only() -> None:
     base = {
         "issue_id": "0000:r1:issue:0",
@@ -1452,123 +959,6 @@ def test_method_prompt_has_no_frozen_ledger_payload() -> None:
     assert "reviewer examples" in prompt
     assert "S2={source, target, scope}" in prompt
     assert "set predicate_id to null" in prompt
-
-
-def test_judge_prompt_keeps_one_assessment_per_ledger_object() -> None:
-    pair = load_pair(REPORT_ROOT / "pairs" / "0004")
-    ledger = json.loads(
-        (PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    ledger_items = [
-        item for item in ledger["items"].values() if item.get("pair") == "0004"
-    ]
-    prompt = _judge_prompt(
-        pair,
-        ledger_items,
-        [
-            {
-                "round": 1,
-                "stage_receipts": [{"stage_name": "execute_batch"}],
-                "report_issue_clusters": [
-                    {
-                        "issue_id": "0004:r1:issue:0",
-                        "contract_id": "NL-CONTRACT-NL1",
-                        "locus_kind": "state",
-                        "locus_names": ["Stopping"],
-                        "property": "deadlock_freedom",
-                        "violation_direction": "dead_end",
-                        "title": "Stopping has no progress",
-                        "requirement_quote": "The train can stop safely.",
-                        "element_refs": ["state:Stopping"],
-                        "source_refs": ["nl:NL1"],
-                        "expected": "Stopping can make progress.",
-                        "observed": "Stopping is a reachable non-final leaf.",
-                        "strongest_rebuttal": "Stopping may be intended as terminal.",
-                        "d_level": "D1",
-                        "witness_level": "W1",
-                        "reason": "The supplied facts support two competent readings.",
-                        "basis": "final method publication",
-                        "candidate_reason": (
-                            "The complete aggregate covers display/update and "
-                            "cancel/update for one typed data subject."
-                        ),
-                        "candidate_basis": (
-                            "source_contract_ids=['NL-CONTRACT-NL5', "
-                            "'NL-CONTRACT-NL6']; variable='cooking time'"
-                        ),
-                        "facet_count": 2,
-                        "facet_issue_ids": [
-                            "0004:r1:issue:0",
-                            "0004:r1:issue:1",
-                        ],
-                        "contract_ids": [
-                            "NL-CONTRACT-NL5",
-                            "NL-CONTRACT-NL6",
-                        ],
-                        "plan": {"formal_program": "must not enter judge"},
-                        "receipt": {"trace": ["must not enter judge"]},
-                        "audit_bundle": {"audit_hash": "sha256:" + "1" * 64},
-                        "audit_bundle_path": "/tmp/audit.json",
-                    }
-                ],
-            }
-        ],
-    )
-
-    assert len(ledger_items) == 3
-    assert prompt.count('"id": "EIS-0004-01"') == 1
-    normalized_prompt = " ".join(prompt.split())
-    assert "exactly one ledger assessment for each supplied object" in normalized_prompt
-    assert "Do not split one object into multiple assessments" in normalized_prompt
-    assert '"stage_receipts"' not in prompt
-    assert '"predicate_plan"' not in prompt
-    assert '"backend_receipt"' not in prompt
-    assert '"formal_program"' not in prompt
-    assert '"trace"' not in prompt
-    assert '"pre_finalization_audit_hash": "sha256:' in prompt
-    assert "The complete aggregate covers display/update" in prompt
-    assert "source_contract_ids=['NL-CONTRACT-NL5'" in prompt
-    assert '"facet_count"' not in prompt
-    assert '"facet_issue_ids"' not in prompt
-    assert '"contract_ids"' not in prompt
-
-
-def test_judge_projection_prefers_candidate_semantics_over_publication_status() -> None:
-    projected = _judge_issue_projection(
-        {
-            "issue_id": "0035:r1:issue:aggregate",
-            "contract_id": "NL-CONTRACT-NL5-DERIVED-DATA",
-            "locus_kind": "variable",
-            "locus_names": ["cooking time"],
-            "property": "effect",
-            "violation_direction": "wrong_effect",
-            "expected": "Display/update and cancel/update must both be represented.",
-            "observed": "The complete action/effect inventories are empty.",
-            "reason": "A grounded violated obligation has no surviving defeater.",
-            "basis": "D publication status",
-            "candidate_reason": (
-                "One aggregate release covers both supplied cooking-time clauses."
-            ),
-            "candidate_basis": (
-                "source_contract_ids=['NL-CONTRACT-NL5', 'NL-CONTRACT-NL6']"
-            ),
-            "facet_count": 1,
-            "facet_issue_ids": ["0035:r1:issue:aggregate"],
-            "contract_ids": ["NL-CONTRACT-NL5-DERIVED-DATA"],
-        }
-    )
-
-    assert projected["reason"] == (
-        "One aggregate release covers both supplied cooking-time clauses."
-    )
-    assert projected["basis"] == (
-        "source_contract_ids=['NL-CONTRACT-NL5', 'NL-CONTRACT-NL6']"
-    )
-    assert "facet_count" not in projected
-    assert "facet_issue_ids" not in projected
-    assert "contract_ids" not in projected
 
 
 def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_issue() -> None:
@@ -2387,7 +1777,6 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
 
     candidate_schema = CandidateIssue.model_json_schema()
     method_schema = MethodResponse.model_json_schema()
-    judge_schema = JudgeResponse.model_json_schema()
     candidate_properties = candidate_schema["properties"]
     for field_name in (
         "contract_id", "locus_kind", "locus_names", "property",
@@ -2396,35 +1785,9 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
         "source_refs", "expected", "observed", "strongest_rebuttal", "reason", "basis",
     ):
         assert candidate_properties[field_name].get("description"), field_name
-    for schema in (method_schema, judge_schema):
+    for schema in (method_schema,):
         for field_name, field in schema["properties"].items():
             assert field.get("description"), field_name
-    for schema_name in ("LedgerAssessment", "ReleaseAssessment"):
-        nested = judge_schema["$defs"][schema_name]
-        assert nested["properties"]["reason"].get("description")
-        assert nested["properties"]["basis"].get("description")
-    release_schema = judge_schema["$defs"]["ReleaseAssessment"]["properties"]
-    ledger_schema = judge_schema["$defs"]["LedgerAssessment"]["properties"]
-    relation_schema = judge_schema["$defs"]["JudgeRelationAssessment"][
-        "properties"
-    ]
-    assert "no row may be merged, deduplicated, or omitted" in release_schema[
-        "issue_id"
-    ]["description"]
-    assert "union of subset releases" in release_schema[
-        "accounted_ledger_ids"
-    ]["description"]
-    assert "Multiple" in ledger_schema["matched_issue_ids"]["description"]
-    assert "cannot become a hit" in relation_schema["relation"]["description"]
-    assert "must not describe the release as matching" in release_schema[
-        "is_false_positive"
-    ]["description"]
-    assert "must not claim a semantic match" in release_schema["basis"][
-        "description"
-    ]
-    assert "not semantic-similarity deduplication" in judge_schema["properties"][
-        "release_assessments"
-    ]["description"]
     cardinality_schema = CardinalityDomainBinding.model_json_schema()
     assert "Do not descend to a deeper child composite" in cardinality_schema[
         "properties"
@@ -2436,7 +1799,6 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
         SourceProvenance,
         RunManifest,
         MethodCellReceipt,
-        IndependentJudgeReceipt,
         PairRunStatus,
         RunSummaryReceipt,
         ContextBudgetReceipt,
@@ -2452,25 +1814,6 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
         for field_name, field in schema["properties"].items():
             assert field.get("description"), f"{model.__name__}.{field_name}"
 
-    assessment = LedgerAssessment(
-        ledger_id="ledger-1",
-        reason="This item matches the same locus and property.",
-        basis="frozen ledger entry and method release surface",
-    )
-    release = ReleaseAssessment(
-        issue_id="issue-1",
-        is_false_positive=False,
-        reason="A frozen ledger item accounts for this release issue.",
-        basis="semantic identity review",
-    )
-    judged = JudgeResponse(
-        ledger_assessments=[assessment],
-        release_assessments=[release],
-        reason="The supplied units were assessed.",
-        basis="independent judge input",
-    )
-    assert judged.ledger_assessments[0].reason
-    assert judged.release_assessments[0].basis
 
 
 def test_all_evidence_discovery_pydantic_models_have_docs_and_field_descriptions() -> None:
@@ -4196,651 +3539,14 @@ def test_pair_failure_receipts_are_written_for_all_cells(tmp_path: Path) -> None
             error=error,
             run_identity=run_identity,
         )
-    _failure_judge_payload(
-        pair_id="0000",
-        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
-        release=[],
-        output_root=tmp_path,
-        error=error,
-        run_identity=run_identity,
-    )
-
     assert len(list((tmp_path / "method" / "0000").glob("round-*.json"))) == 3
-    assert (tmp_path / "judge" / "0000.json").is_file()
-    judge = json.loads((tmp_path / "judge" / "0000.json").read_text(encoding="utf-8"))
-    assert judge["eligible"] is False
-    assert judge["judgement"] is None
-
-
-class _UnavailableJudgeFixtureRuntime:
-    """Provider-shaped fixture whose pair-wide shape never closes."""
-
-    real_llm = True
-
-    def __init__(self) -> None:
-        self.kinds: list[str] = []
-        self.max_output_tokens: list[int | None] = []
-
-    def call(self, *, kind, schema, system_prompt, prompt, artifact_id, **kwargs):
-        self.kinds.append(kind)
-        self.max_output_tokens.append(kwargs.get("max_output_tokens"))
-        if not issubclass(schema, ExactJudgeResponse) or kind not in {"judge", "judge_correction"}:
-            raise AssertionError(f"unexpected schema: {schema}")
-        response = JudgeResponse(
-            ledger_assessments=[],
-            release_assessments=[],
-            reason="The fixture intentionally returns an incomplete pair-wide shape.",
-            basis="provider-free pair-wide failure test",
-        )
-        return StructuredCallOutcome(
-            kind=kind,
-            status="success",
-            response=response,
-            result={"call_id": f"fixture:{kind}"},
-            attempts=[],
-            usage=[],
-            cost={"eligible": True, "total_usd": 0.0, "attempts": []},
-            context_budget={
-                "mode": "provider_free_fixture",
-                "projection_version": "stage-context-projection.v1",
-                "prompt_characters": len(prompt),
-                "estimated_prompt_tokens": (len(prompt) + 3) // 4,
-                "provider_input_tokens": 0,
-                "context_window_tokens": 1_000_000,
-                "max_output_tokens": kwargs.get("max_output_tokens", MAX_STRUCTURED_OUTPUT_TOKENS),
-                "truncation_applied": False,
-                "projection_decision": "The complete fixture prompt was retained.",
-                "reason": "The fixture records the judge prompt size.",
-                "basis": "provider-free pair-wide failure test",
-            },
-            real_llm=True,
-            reason="The provider-shaped fixture returned a validated response.",
-            basis="provider-free pair-wide failure test",
-        )
-
-
-class _PairWideJudgeFixtureRuntime:
-    """Provider-shaped fixture for one pair-wide call and one correction."""
-
-    real_llm = True
-
-    def __init__(
-        self,
-        ledger_ids: list[str],
-        *,
-        malformed_first: bool = False,
-        malformed_always: bool = False,
-        asymmetric_first: bool = False,
-    ) -> None:
-        self.ledger_ids = ledger_ids
-        self.kinds: list[str] = []
-        self.malformed_first = malformed_first
-        self.malformed_always = malformed_always
-        self.asymmetric_first = asymmetric_first
-        self.pair_wide_calls = 0
-        self.max_output_tokens: list[int | None] = []
-        self.prompts: list[str] = []
-
-    def call(self, *, kind, schema, system_prompt, prompt, artifact_id, **kwargs):
-        del system_prompt, artifact_id
-        self.kinds.append(kind)
-        self.prompts.append(prompt)
-        self.max_output_tokens.append(kwargs.get("max_output_tokens"))
-        if not issubclass(schema, ExactJudgeResponse) or kind not in {"judge", "judge_correction"}:
-            raise AssertionError(f"unexpected pair-wide call: {kind}, {schema}")
-        if kind == "judge":
-            self.pair_wide_calls += 1
-        issue_ids = list(dict.fromkeys(re.findall(r"0000:r[1-3]:issue:\d+", prompt)))
-        if self.malformed_always or (kind == "judge" and self.malformed_first):
-            issue_ids = issue_ids[:-1]
-        asymmetric = bool(
-            kind == "judge"
-            and self.asymmetric_first
-            and self.ledger_ids
-            and issue_ids
-        )
-        response = JudgeResponse(
-            ledger_assessments=[
-                LedgerAssessment(
-                    ledger_id=ledger_id,
-                    matched_issue_ids=[],
-                    reason="The pair-wide fixture found no semantic match.",
-                    basis="one pair-wide fixture with the supplied ledger and release IDs",
-                )
-                for ledger_id in self.ledger_ids
-            ],
-            release_assessments=[
-                ReleaseAssessment(
-                    issue_id=issue_id,
-                    accounted_ledger_ids=(
-                        [self.ledger_ids[0]]
-                        if asymmetric and issue_id == issue_ids[0]
-                        else []
-                    ),
-                    is_false_positive=not (
-                        asymmetric and issue_id == issue_ids[0]
-                    ),
-                    reason="The pair-wide fixture found no frozen ledger item with the same locus and property.",
-                    basis="one pair-wide fixture with the supplied ledger and release IDs",
-                )
-                for issue_id in issue_ids
-            ],
-            reason="The fixture closed one exact pair-wide release surface.",
-            basis="pair-wide fixture",
-        )
-        if not (
-            self.malformed_always
-            or (kind == "judge" and self.malformed_first)
-            or asymmetric
-        ):
-            response = schema.model_validate(response.model_dump(mode="json"))
-        return StructuredCallOutcome(
-            kind=kind,
-            status="success",
-            response=response,
-            result={"call_id": f"fixture:{kind}"},
-            attempts=[],
-            usage=[],
-            cost={"eligible": True, "total_usd": 0.0, "attempts": []},
-            context_budget={
-                "mode": "provider_free_fixture",
-                "projection_version": "stage-context-projection.v1",
-                "prompt_characters": len(prompt),
-                "estimated_prompt_tokens": (len(prompt) + 3) // 4,
-                "provider_input_tokens": 0,
-                "context_window_tokens": 1_000_000,
-                "max_output_tokens": kwargs.get("max_output_tokens", MAX_STRUCTURED_OUTPUT_TOKENS),
-                "truncation_applied": False,
-                "projection_decision": "The pair-wide prompt was retained.",
-                "reason": "The fixture records the pair-wide prompt size.",
-                "basis": "provider-free pair-wide fixture",
-            },
-            real_llm=True,
-            reason="The provider-shaped fixture returned a validated pair-wide response.",
-            basis="provider-free pair-wide fixture",
-        )
-
-
-def _fixture_run_identity(pair_id: str, pair_manifest_hash: str) -> dict:
-    return {
-        "run_id": "1" * 32,
-        "run_contract_hash": "sha256:" + "1" * 64,
-        "source_provenance": {
-            "source_commit": "1" * 40,
-            "source_branch": "fixture",
-            "source_dirty": False,
-            "reason": "Fixture source provenance.",
-            "basis": "provider-free test fixture",
-        },
-        "pair_input_hashes": {pair_id: pair_manifest_hash},
-    }
-
-
-def test_pair_wide_judge_shape_failure_becomes_unavailable_after_one_correction(tmp_path: Path) -> None:
-    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
-    runtime = _UnavailableJudgeFixtureRuntime()
-    issue = {
-        "issue_id": "0000:r1:issue:0",
-        "title": "Fixture unmatched release",
-        "requirement_quote": "Fixture requirement",
-        "predicate_id": None,
-        "predicate_inputs": {},
-        "binding": {"precise": True, "element_refs": [pair.model.states[0].ref]},
-        "expected": "Fixture expected behavior",
-        "observed": "Fixture observed behavior",
-        "d_level": "D1",
-        "witness_level": "W1",
-        "reason": "Fixture release reason.",
-        "basis": "Fixture release basis.",
-    }
-    judge = _judge_pair(
-        pair=pair,
-        method_rounds=[
-            {
-                "schema": "evidence-discovery.method_cell.v8",
-                "run_id": "1" * 32,
-                "run_contract_hash": "sha256:" + "1" * 64,
-                "pair_id": "0000",
-                "round": 1,
-                "status": "completed",
-                "eligible": True,
-                "eligibility_reasons": ["fixture"],
-                "prompt_hash": "sha256:" + "2" * 64,
-                "context_manifest": pair.context_manifest.model_dump(mode="json"),
-                "input_hashes": pair.hashes,
-                "stage_receipts": [],
-                "report_issue_clusters": [issue],
-                "reason": "Fixture method receipt.",
-                "basis": "Fixture method receipt basis.",
-            }
-        ],
-        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
-        runtime=runtime,
-        output_root=tmp_path,
-        run_identity=_fixture_run_identity(
-            "0000", pair.context_manifest.manifest_hash
-        ),
-    )
-
-    assert judge["eligible"] is False
-    assert judge["adjudication_mode"] == "judge_unavailable"
-    assert judge["judgement"] is None
-    assert runtime.kinds == ["judge", "judge_correction"]
-    assert runtime.max_output_tokens == [
-        JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS,
-        JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS,
-    ]
-    assert len(judge["llm_calls"]) == 2
-
-
-def test_large_release_surface_stays_one_pair_wide_call(tmp_path: Path) -> None:
-    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
-    ledger_payload = json.loads(
-        (PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    ledger_ids = [
-        str(item["id"])
-        for item in ledger_payload["items"].values()
-        if item.get("pair") == "0000"
-    ]
-    runtime = _PairWideJudgeFixtureRuntime(ledger_ids)
-    method_rounds = []
-    issue_index = 0
-    for round_index in range(1, 4):
-        issues = []
-        for _ in range(2):
-            issues.append(
-                {
-                    "issue_id": f"0000:r{round_index}:issue:{issue_index}",
-                    "title": "Pair-wide fixture issue",
-                    "requirement_quote": "Pair-wide fixture requirement",
-                    "predicate_id": None,
-                    "predicate_inputs": {},
-                    "binding": {"precise": True, "element_refs": [pair.model.states[0].ref]},
-                    "expected": "Pair-wide fixture expected behavior",
-                    "observed": "Pair-wide fixture observed behavior",
-                    "d_level": "D1",
-                    "witness_level": "W1",
-                    "reason": "Pair-wide fixture issue reason.",
-                    "basis": "Pair-wide fixture issue basis.",
-                }
-            )
-            issue_index += 1
-        method_rounds.append(
-            {
-                "schema": "evidence-discovery.method_cell.v8",
-                "run_id": "1" * 32,
-                "run_contract_hash": "sha256:" + "1" * 64,
-                "pair_id": "0000",
-                "round": round_index,
-                "status": "completed",
-                "eligible": True,
-                "eligibility_reasons": ["fixture"],
-                "prompt_hash": "sha256:" + "2" * 64,
-                "context_manifest": pair.context_manifest.model_dump(mode="json"),
-                "input_hashes": pair.hashes,
-                "stage_receipts": [],
-                "report_issue_clusters": issues,
-                "reason": "Fixture method receipt.",
-                "basis": "Fixture method receipt basis.",
-            }
-        )
-
-    judge = _judge_pair(
-        pair=pair,
-        method_rounds=method_rounds,
-        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
-        runtime=runtime,
-        output_root=tmp_path,
-        run_identity=_fixture_run_identity("0000", pair.context_manifest.manifest_hash),
-    )
-
-    assert judge["eligible"] is True
-    assert judge["adjudication_mode"] == "pair_wide"
-    assert judge["response_schema_hash"].startswith("sha256:")
-    assert runtime.kinds == ["judge"]
-    assert runtime.max_output_tokens == [JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS]
-    assert len(judge["judgement"]["release_assessments"]) == 6
-
-
-def test_pair_wide_shape_failure_gets_one_targeted_correction(tmp_path: Path) -> None:
-    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
-    ledger_payload = json.loads(
-        (PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    ledger_ids = [
-        str(item["id"])
-        for item in ledger_payload["items"].values()
-        if item.get("pair") == "0000"
-    ]
-    runtime = _PairWideJudgeFixtureRuntime(ledger_ids, malformed_first=True)
-    issues = [
-        {
-            "issue_id": f"0000:r1:issue:{index}",
-            "title": "Correction fixture issue",
-            "requirement_quote": "Correction fixture requirement",
-            "predicate_id": None,
-            "predicate_inputs": {},
-            "binding": {"precise": True, "element_refs": [pair.model.states[0].ref]},
-            "expected": "Correction fixture expected behavior",
-            "observed": "Correction fixture observed behavior",
-            "d_level": "D1",
-            "witness_level": "W1",
-            "reason": "Correction fixture issue reason.",
-            "basis": "Correction fixture issue basis.",
-        }
-        for index in range(6)
-    ]
-    method_rounds = [
-        {
-            "schema": "evidence-discovery.method_cell.v8",
-            "run_id": "1" * 32,
-            "run_contract_hash": "sha256:" + "1" * 64,
-            "pair_id": "0000",
-            "round": 1,
-            "status": "completed",
-            "eligible": True,
-            "eligibility_reasons": ["fixture"],
-            "prompt_hash": "sha256:" + "2" * 64,
-            "context_manifest": pair.context_manifest.model_dump(mode="json"),
-            "input_hashes": pair.hashes,
-            "stage_receipts": [],
-            "report_issue_clusters": issues,
-            "reason": "Correction fixture method receipt.",
-            "basis": "Correction fixture method receipt basis.",
-        }
-    ]
-    judge = _judge_pair(
-        pair=pair,
-        method_rounds=method_rounds,
-        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
-        runtime=runtime,
-        output_root=tmp_path,
-        run_identity=_fixture_run_identity("0000", pair.context_manifest.manifest_hash),
-    )
-
-    assert judge["eligible"] is True
-    assert judge["adjudication_mode"] == "pair_wide_corrected"
-    assert runtime.kinds == ["judge", "judge_correction"]
-    assert '"ledger_assessment_count"' in runtime.prompts[0]
-    assert '"release_assessment_count": 6' in runtime.prompts[0]
-    assert '"identity_contract_version"' in runtime.prompts[0]
-    assert judge["response_schema_hash"] in runtime.prompts[0]
-    assert "Previous pair-wide JudgeResponse to repair" in runtime.prompts[1]
-    assert "Merge duplicate rows for one ledger ID" in runtime.prompts[1]
-    assert '"missing_release_issue_ids": ["0000:r1:issue:5"]' in runtime.prompts[1]
-    assert "Never deduplicate release assessment rows" in runtime.prompts[1]
-    assert "mechanically compare both assessment ID sets" in runtime.prompts[1]
-    assert len(judge["judgement"]["release_assessments"]) == 6
-
-
-def test_pair_wide_relation_asymmetry_gets_exact_targeted_correction(
-    tmp_path: Path,
-) -> None:
-    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
-    ledger_payload = json.loads(
-        (PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    ledger_ids = [
-        str(item["id"])
-        for item in ledger_payload["items"].values()
-        if item.get("pair") == "0000"
-    ]
-    runtime = _PairWideJudgeFixtureRuntime(ledger_ids, asymmetric_first=True)
-    issue = {
-        "issue_id": "0000:r1:issue:0",
-        "title": "Asymmetric relation fixture issue",
-        "requirement_quote": "Asymmetric relation fixture requirement",
-        "predicate_id": None,
-        "predicate_inputs": {},
-        "binding": {"precise": True, "element_refs": [pair.model.states[0].ref]},
-        "expected": "Asymmetric relation fixture expected behavior",
-        "observed": "Asymmetric relation fixture observed behavior",
-        "d_level": "D1",
-        "witness_level": "W1",
-        "reason": "Asymmetric relation fixture issue reason.",
-        "basis": "Asymmetric relation fixture issue basis.",
-    }
-    judge = _judge_pair(
-        pair=pair,
-        method_rounds=[
-            {
-                "round": 1,
-                "status": "completed",
-                "eligible": True,
-                "eligibility_reasons": ["fixture"],
-                "report_issue_clusters": [issue],
-                "reason": "Asymmetric relation fixture method receipt.",
-                "basis": "Asymmetric relation fixture method receipt basis.",
-            }
-        ],
-        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
-        runtime=runtime,
-        output_root=tmp_path,
-        run_identity=_fixture_run_identity("0000", pair.context_manifest.manifest_hash),
-    )
-
-    assert judge["eligible"] is True
-    assert judge["adjudication_mode"] == "pair_wide_corrected"
-    assert runtime.kinds == ["judge", "judge_correction"]
-    assert (
-        f'release-side-only=[["{ledger_ids[0]}", "0000:r1:issue:0"]]'
-        in runtime.prompts[1]
-    )
-    assert (
-        "if one candidate independently establishes the complete ledger defect"
-        in runtime.prompts[1]
-    )
-    assert "otherwise remove the accounting pair" in runtime.prompts[1]
-    assert '"relation_accounting_rows"' in runtime.prompts[1]
-    assert "cannot be unioned into one hit" in runtime.prompts[1]
-
-
-def test_pair_wide_failure_does_not_expand_to_atomic_relation_matrix(
-    tmp_path: Path,
-) -> None:
-    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
-    ledger_payload = json.loads(
-        (PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    ledger_ids = [
-        str(item["id"])
-        for item in ledger_payload["items"].values()
-        if item.get("pair") == "0000"
-    ]
-    runtime = _PairWideJudgeFixtureRuntime(ledger_ids, malformed_always=True)
-    issues = [
-        {
-            "issue_id": f"0000:r1:issue:{index}",
-            "title": "Budget fixture issue",
-            "requirement_quote": "Budget fixture requirement",
-            "predicate_id": None,
-            "predicate_inputs": {},
-            "binding": {"precise": True, "element_refs": [pair.model.states[0].ref]},
-            "expected": "Budget fixture expected behavior",
-            "observed": "Budget fixture observed behavior",
-            "d_level": "D1",
-            "witness_level": "W1",
-            "reason": "Budget fixture issue reason.",
-            "basis": "Budget fixture issue basis.",
-        }
-        for index in range(6)
-    ]
-    judge = _judge_pair(
-        pair=pair,
-        method_rounds=[
-            {
-                "schema": "evidence-discovery.method_cell.v8",
-                "run_id": "1" * 32,
-                "run_contract_hash": "sha256:" + "1" * 64,
-                "pair_id": "0000",
-                "round": 1,
-                "status": "completed",
-                "eligible": True,
-                "eligibility_reasons": ["fixture"],
-                "prompt_hash": "sha256:" + "2" * 64,
-                "context_manifest": pair.context_manifest.model_dump(mode="json"),
-                "input_hashes": pair.hashes,
-                "stage_receipts": [],
-                "report_issue_clusters": issues,
-                "reason": "Budget fixture method receipt.",
-                "basis": "Budget fixture method receipt basis.",
-            }
-        ],
-        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
-        runtime=runtime,
-        output_root=tmp_path,
-        run_identity=_fixture_run_identity("0000", pair.context_manifest.manifest_hash),
-    )
-
-    assert judge["eligible"] is False
-    assert judge["adjudication_mode"] == "judge_unavailable"
-    assert judge["judgement"] is None
-    assert runtime.kinds == ["judge", "judge_correction"]
-    assert len(judge["llm_calls"]) == 2
-    assert all("atomic" not in json.dumps(error).lower() for error in judge["errors"])
-
-
-def test_exact_empty_release_still_uses_one_pair_wide_judge_call(tmp_path: Path) -> None:
-    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
-    ledger_payload = json.loads(
-        (PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json").read_text(encoding="utf-8")
-    )
-    ledger_ids = [
-        str(item["id"])
-        for item in ledger_payload["items"].values()
-        if item.get("pair") == "0000"
-    ]
-    runtime = _PairWideJudgeFixtureRuntime(ledger_ids)
-
-    judge = _judge_pair(
-        pair=pair,
-        method_rounds=[
-            {
-                "round": 1,
-                "status": "completed",
-                "eligible": True,
-                "eligibility_reasons": ["fixture"],
-                "report_issue_clusters": [],
-                "reason": "No release issue was produced.",
-                "basis": "Exact empty release fixture.",
-            }
-        ],
-        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
-        runtime=runtime,
-        output_root=tmp_path,
-        run_identity=_fixture_run_identity(
-            "0000", pair.context_manifest.manifest_hash
-        ),
-    )
-
-    assert judge["eligible"] is True
-    assert judge["adjudication_mode"] == "pair_wide"
-    assert runtime.kinds == ["judge"]
-    assert len(judge["llm_calls"]) == 1
-    assert all(not item["matched_issue_ids"] for item in judge["judgement"]["ledger_assessments"])
-
-
-def test_ineligible_diagnostic_release_never_enters_judge_surface(tmp_path: Path) -> None:
-    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
-    ledger_payload = json.loads(
-        (PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json").read_text(encoding="utf-8")
-    )
-    ledger_ids = [
-        str(item["id"])
-        for item in ledger_payload["items"].values()
-        if item.get("pair") == "0000"
-    ]
-    runtime = _PairWideJudgeFixtureRuntime(ledger_ids)
-
-    judge = _judge_pair(
-        pair=pair,
-        method_rounds=[
-            {
-                "round": 1,
-                "status": "completed_with_diagnostics",
-                "eligible": False,
-                "eligibility_reasons": ["provider_error"],
-                "report_issue_clusters": [
-                    {
-                        "issue_id": "0000:r1:diagnostic:0",
-                        "title": "Retained diagnostic issue",
-                        "d_level": "D1",
-                        "witness_level": "W1",
-                        "reason": "The partial method cell retained this diagnostic issue.",
-                        "basis": "Ineligible method receipt fixture.",
-                    }
-                ],
-                "reason": "The method cell retained diagnostics but is not eligible.",
-                "basis": "Provider-free ineligible-cell fixture.",
-            }
-        ],
-        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
-        runtime=runtime,
-        output_root=tmp_path,
-        run_identity=_fixture_run_identity(
-            "0000", pair.context_manifest.manifest_hash
-        ),
-    )
-
-    assert judge["eligible"] is True
-    assert judge["adjudication_mode"] == "pair_wide"
-    assert judge["release_count"] == 0
-    assert runtime.kinds == ["judge"]
-    assert len(judge["llm_calls"]) == 1
-    assert judge["judgement"]["release_assessments"] == []
-    assert all(
-        not item["matched_issue_ids"]
-        for item in judge["judgement"]["ledger_assessments"]
-    )
-
-
-def test_failed_judge_is_unadjudicated_not_a_miss_or_false_positive(tmp_path: Path) -> None:
-    run_identity = _fixture_run_identity("0000", "sha256:" + "3" * 64)
-    failed = _failure_judge_payload(
-        pair_id="0000",
-        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
-        release=[{"issue_id": "0000:r1:issue:0"}],
-        output_root=tmp_path,
-        error=RuntimeError("fixture judge unavailable"),
-        run_identity=run_identity,
-    )
-    metrics = _metrics(
-        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
-        pair_method={
-            "0000": [
-                {
-                    "round": 1,
-                    "eligible": True,
-                    "report_issue_clusters": [{"issue_id": "0000:r1:issue:0"}],
-                    "evidence_records": [],
-                    "errors": [],
-                }
-            ]
-        },
-        pair_judge={"0000": failed},
-        selected_pair_ids=["0000"],
-        rounds=1,
-    )
-
-    assert metrics["eligibility"]["eligible_judge_pairs"] == 0
-    assert metrics["emissions"]["false_positive"] == 0
-    assert metrics["emissions"]["unjudged_or_ineligible_release_issue_count"] == 1
+    assert not (tmp_path / "judge").exists()
 
 
 def test_provider_free_run_manifest_resume_and_concurrent_atomic_writes(tmp_path: Path) -> None:
     run_id = "2" * 32
     summary = run_experiment(
         report_root=REPORT_ROOT,
-        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
         output_dir=tmp_path,
         profile="fixture",
         rounds=1,
@@ -4871,7 +3577,10 @@ def test_provider_free_run_manifest_resume_and_concurrent_atomic_writes(tmp_path
     assert manifest["input_data_hash"].startswith("sha256:")
     assert manifest["pair_input_hashes"].keys() == {"0004", "0023"}
     assert len(list((run_root / "method").glob("*/round-1.json"))) == 2
-    assert len(list((run_root / "judge").glob("*.json"))) == 2
+    assert not (run_root / "judge").exists()
+    assert not (run_root / "llm" / "judge").exists()
+    assert "judge_cost_usd" not in summary
+    assert {"hit", "false_positive", "precision"}.isdisjoint(summary["metrics"])
     assert not list(run_root.rglob("*.tmp"))
     audit_files = list((run_root / "audit_bundles").glob("*.json"))
     assert audit_files == []
@@ -4889,7 +3598,6 @@ def test_provider_free_run_manifest_resume_and_concurrent_atomic_writes(tmp_path
 
     resumed = run_experiment(
         report_root=REPORT_ROOT,
-        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
         output_dir=tmp_path,
         profile="fixture",
         rounds=1,
@@ -4910,7 +3618,6 @@ def test_provider_free_run_manifest_resume_and_concurrent_atomic_writes(tmp_path
     )
     repaired = run_experiment(
         report_root=REPORT_ROOT,
-        ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
         output_dir=tmp_path,
         profile="fixture",
         rounds=1,
@@ -4929,3 +3636,196 @@ def test_provider_free_run_manifest_resume_and_concurrent_atomic_writes(tmp_path
         == "evidence-discovery.method_cell.v1"
         for path in stale_receipts
     )
+
+
+def test_method_terminal_smoke_exports_w2_release_without_builtin_judge(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fixture_method_cell(
+        *,
+        pair: object,
+        round_index: int,
+        runtime: object,
+        output_root: Path,
+        run_identity: dict[str, object] | None = None,
+    ) -> dict[str, object]:
+        del runtime
+        assert run_identity is not None
+        transition = pair.model.transitions[0]
+        candidate = _candidate(
+            pair,
+            predicate_id="S2",
+            inputs={
+                "source": transition.source,
+                "target": transition.target,
+                "scope": "closed_fcstm",
+            },
+            refs=[transition.ref],
+            expected="The required executable transition must be present.",
+            observed="The deterministic fixture establishes that it is absent.",
+        )
+        binding = bind_candidate(candidate, pair.model)
+        obligation_id = f"{pair.pair_id}:r{round_index}:fixture-w2"
+        plan = compile_plan(
+            candidate,
+            binding,
+            load_registry(),
+            obligation_id=obligation_id,
+            round_index=round_index,
+            model=pair.model,
+            model_hash=pair.hashes["fcstm"],
+        )
+        receipt = RawReceipt(
+            receipt_id=f"{obligation_id}:receipt",
+            backend="fixture",
+            terminal_state="completed",
+            verdict="false",
+            reason="The provider-free backend fixture returns a concrete violation.",
+            basis="fixed deterministic terminal-smoke fixture",
+            counterexample=[
+                {"source": transition.source, "target": transition.target}
+            ],
+        )
+        record = build_evidence_record(
+            pair=pair,
+            obligation_id=obligation_id,
+            candidate=candidate,
+            binding=binding,
+            plan=plan,
+            receipt=receipt,
+            source_attribution={
+                "requirement": {"path": "fixture:nl"},
+                "model": {"hash": pair.hashes["fcstm"]},
+            },
+            retry_records=[],
+            semantic_adjudication=SemanticAdjudication(
+                obligation_id=obligation_id,
+                grounding="established",
+                violated_obligation="The exact executable transition obligation is violated.",
+                strongest_defeater=None,
+                defeater_kind="none",
+                defeater_disposition="defeated",
+                reason="The fixture supplies an established obligation and exact typed binding.",
+                basis="fixed NL, model, predicate, and backend fixture",
+            ),
+        )
+        record["d_level"] = "D2"
+        record["issue_emitted"] = True
+        audit_bundle = dict(record["audit_bundle"])
+        audit_bundle["issue_emitted"] = True
+        audit_bundle = validate_and_hash_w2_audit_bundle(audit_bundle)
+        audit_path = output_root / "audit_bundles" / f"{obligation_id}.json"
+        audit_path.parent.mkdir(parents=True, exist_ok=True)
+        audit_path.write_text(
+            json.dumps(audit_bundle, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        record["audit_bundle"] = audit_bundle
+        record["audit_bundle_path"] = str(audit_path)
+        release = {
+            "issue_id": f"{pair.pair_id}:r{round_index}:issue:fixture-w2",
+            "title": "Required executable transition is absent",
+            "requirement_quote": "The controller shall provide the required transition.",
+            "locus_kind": "transition",
+            "locus_names": [transition.source, transition.target],
+            "property": "transition_endpoints",
+            "violation_direction": "missing",
+            "predicate_id": "S2",
+            "predicate_inputs": plan.inputs.model_dump(mode="json"),
+            "element_refs": [transition.ref],
+            "source_refs": ["fixture:nl", transition.ref],
+            "expected": candidate.expected,
+            "observed": candidate.observed,
+            "strongest_rebuttal": None,
+            "d_level": "D2",
+            "witness_level": "W2",
+            "candidate_reason": "The exact typed obligation and backend result establish the issue.",
+            "candidate_basis": "fixed provider-free W2 terminal fixture",
+            "reason": "The D2/W2 issue is eligible for external evaluation.",
+            "basis": "method-owned D/W publication receipt",
+        }
+        cell = MethodCellReceipt(
+            schema="evidence-discovery.method_cell.v8",
+            run_id=str(run_identity["run_id"]),
+            run_contract_hash=str(run_identity["run_contract_hash"]),
+            source_provenance=run_identity["source_provenance"],
+            pair_id=pair.pair_id,
+            pair_input_hash=pair.context_manifest.manifest_hash,
+            round=round_index,
+            status="completed",
+            prompt_hash="sha256:" + "1" * 64,
+            context_manifest=pair.context_manifest.model_dump(mode="json"),
+            input_hashes=dict(pair.hashes),
+            stage_outputs={"fixture": {"release_count": 1}},
+            stage_receipts=[],
+            model_output={
+                "issues": [release],
+                "reason": "The fixed fixture emitted one issue.",
+                "basis": "provider-free method terminal smoke",
+            },
+            llm_calls=[],
+            llm_call={
+                "status": "success",
+                "usage": [],
+                "cost": {"eligible": True, "total_usd": 0.0, "attempts": []},
+                "reason": "No provider call was required.",
+                "basis": "fixed provider-free method stub",
+            },
+            eligible=True,
+            eligibility_reasons=["fixed_provider_free_terminal_fixture"],
+            evidence_records=[record],
+            report_issue_clusters=[release],
+            errors=[],
+            reason="The method fixture completed with one release.",
+            basis="fixed provider-free method terminal smoke",
+        ).model_dump(mode="json")
+        method_path = (
+            output_root / "method" / pair.pair_id / f"round-{round_index}.json"
+        )
+        method_path.parent.mkdir(parents=True, exist_ok=True)
+        method_path.write_text(
+            json.dumps(cell, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        return cell
+
+    monkeypatch.setattr(runner_module, "_method_cell", fixture_method_cell)
+    run_id = "3" * 32
+    summary = run_experiment(
+        report_root=REPORT_ROOT,
+        output_dir=tmp_path,
+        profile="fixture",
+        rounds=1,
+        pair_ids=["0004"],
+        workers=1,
+        run_id=run_id,
+    )
+    run_root = tmp_path / run_id
+    method_path = run_root / "method" / "0004" / "round-1.json"
+    status = json.loads(
+        (run_root / "pairs" / "0004" / "status.json").read_text(encoding="utf-8")
+    )
+    method = json.loads(method_path.read_text(encoding="utf-8"))
+    audit_files = list((run_root / "audit_bundles").glob("*.json"))
+
+    assert summary["status"] == "completed"
+    assert status["status"] == "completed"
+    assert len(method["report_issue_clusters"]) == 1
+    assert len(audit_files) == 1
+    finalized_audit = json.loads(audit_files[0].read_text(encoding="utf-8"))
+    assert finalized_audit["judge_receipt"]["status"] == "pending_independent_judge"
+    assert finalized_audit["method_receipt"]["status"] == "completed"
+    assert not (run_root / "judge").exists()
+    assert not (run_root / "llm" / "judge").exists()
+    assert "judge_cost_usd" not in summary
+    assert {"hit", "false_positive", "precision"}.isdisjoint(summary["metrics"])
+
+    reports, adapter_audit, round_no, pair_id = adapt_evidence_discovery_release(
+        method_path,
+        (),
+    )
+    assert (round_no, pair_id) == (1, "0004")
+    assert len(reports) == 1
+    assert reports[0].claim == "Required executable transition is absent"
+    assert adapter_audit.source_format == "evidence_discovery_release"

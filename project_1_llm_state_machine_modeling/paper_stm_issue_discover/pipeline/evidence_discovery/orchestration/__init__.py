@@ -1,4 +1,4 @@
-"""Public runtime and full method/judge orchestration."""
+"""Public runtime and method-only evidence-discovery orchestration."""
 
 from .runner import run_experiment
 

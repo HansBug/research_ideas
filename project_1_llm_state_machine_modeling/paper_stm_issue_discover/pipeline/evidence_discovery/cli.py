@@ -8,9 +8,8 @@ from .orchestration.runner import run_experiment
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Run the frozen evidence_discovery method and independent judge.")
+    parser = argparse.ArgumentParser(description="Run the frozen evidence_discovery method.")
     parser.add_argument("--report-root", required=True)
-    parser.add_argument("--ledger", required=True)
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--profile", default="gpt-5.6-luna")
     parser.add_argument("--rounds", type=int, default=3)
@@ -39,7 +38,7 @@ def main(argv: list[str] | None = None) -> int:
         "--workers",
         type=int,
         default=1,
-        help="Independent pair processes; each pair owns its method and judge terminalization.",
+        help="Independent pair processes; each pair owns its method terminalization.",
     )
     parser.add_argument(
         "--transport-retries",
@@ -59,7 +58,6 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     summary = run_experiment(
         report_root=Path(args.report_root),
-        ledger_path=Path(args.ledger),
         output_dir=Path(args.output_dir),
         profile=args.profile,
         rounds=args.rounds,

@@ -4,15 +4,21 @@
 
 ⚠️ 下表中出现的「报告 §N」一律指那份 **v46 历史报告**，⛔ 只用于指路它记录的**方法性事实**（谓词词表、证据链形态、表示债务分类等，这些不随台账换代而失效）；⛔ **它里面的任何覆盖率数字都不是当前口径**。
 
+> **方法/评测边界（2026-08-24）**：现行 `pipeline.evidence_discovery` 只负责发现、
+> D1/D2 release、D/W 裁定、W2 audit 与 method cost，不读取台账、不调用 Judge、不生成
+> hit/FP/precision。L 只来自台账；正式 validity/relation/hit/FP/precision 唯一来源是独立冻结
+> `semantic-judge.two-stage.v3.2`（issue #195）。历史 run 内置 Judge 的文件、费用和数字保持
+> 不可变，但只作历史协议审计，不得进入新实验正式聚合。
+
 ## 1. 当前阶段
 
 **一次完整的全量运行、同模型 X1v2 运行和 v27-stream 的 54/54 Luna 语义判定均已完成；当前工作重心转入结果归档与论文写作。**
 
-> **方法配置迁移说明（2026-08-21）**：上段所述全量运行是迁移前的历史运行实现结果，
-> 不能读作新注册表已经完成实跑。当前正式方法契约是
+> **方法配置迁移说明（2026-08-24）**：上段所述全量运行是迁移前的历史运行实现结果，
+> 不能读作当前 method-only runner 的新全量结论。当前正式方法契约是
 > [`pipeline/evidence_discovery/`](./pipeline/evidence_discovery/) 中冻结的
-> `four-family-19-core.v1`；其覆盖数字是设计表达力快照。代码迁移完成前，
-> `feedback_loop/` 只作为过渡运行实现，新四族配置不产生新的 W2 结果。
+> `four-family-19-core.v1`；其覆盖数字是设计表达力快照。`feedback_loop/` 只作历史回放，
+> 新 method runner 与外置冻结 v3.2 使用独立 run identity 和费用口径。
 
 方法实现、语料、缺陷台账、双侧 raw run、54 份 Luna judgement 与调用审计均已就位；旧 v26 judge 错把包含 D0 的 raw finding 当成最终输出，故旧 `226/435` 与 `566/953 FP` 只能作为历史 raw-audit 数字保留。当前正式结果只读取 D1/D2 final clusters，完整报告、逐条双臂分表与 54 份 Luna judgement 见 [2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md](./reports/2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md) 及其同名目录；v26 报告仍保留为历史对照。最终输出、hit、FP、失败格、去重和成本的唯一口径已冻结在 [final_output_metrics_policy.md](./discover_matrix/docs/protocol/final_output_metrics_policy.md)，v27 的问题总账与大迭代计划见 [preregistered.md](./discover_matrix/docs/generations/v27/preregistered.md)。
 
@@ -31,11 +37,11 @@
 | ⛔ 第一版台账（126 条；扣 `00x8` 的 27 条后 99 条进入重标，能力分母 98 条） | **已由第二版取代**；⛔ 不再是任何分母，仅作证据链保留 | [discover_matrix/ledger_v2/provenance/expected_issue_set.json](./discover_matrix/ledger_v2/provenance/expected_issue_set.json) |
 | ⭐ **X1v2 基线在第二版台账上的精确命中** | **已完成**（145 × 6 = 870 位；56 条为本轮逐格人工新判） | [discover_matrix/ledger_v2/X1V2_RESULTS.md](./discover_matrix/ledger_v2/X1V2_RESULTS.md) |
 | ⭐ **Luna v27-stream 与 X1v2 同台账全量 x3 运行** | 已完成 54/54 pair 的 D1/D2-release Luna 对账；方法整体 hit@1=`276/435`、hit@3=`107/145`，L2 hit@3=`35/39`，D2×L2 hit@3=`30/34`，均高于同模型 X1v2；v26 保留为历史对照 | [reports/2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md](./reports/2026-08-20-luna-full-x3-v27-stream/REPORT-luna.md)、[reports/2026-08-19-judge-model-comparison.md](./reports/2026-08-19-judge-model-comparison.md)、[final_output_metrics_policy.md](./discover_matrix/docs/protocol/final_output_metrics_policy.md) |
-| 四族 19 谓词注册表 | 已冻结设计；代码迁移中 | [pipeline/evidence_discovery/](./pipeline/evidence_discovery/)，口径审计见 [POLICY_REVIEW.md](./pipeline/evidence_discovery/POLICY_REVIEW.md) |
+| 四族 19 谓词注册表 | 已冻结并由 method-only runner 使用 | [pipeline/evidence_discovery/](./pipeline/evidence_discovery/)，口径审计见 [POLICY_REVIEW.md](./pipeline/evidence_discovery/POLICY_REVIEW.md) |
 | W1/W2/W0 证据等级与变更门 | 契约已冻结 | [METHOD_PRINCIPLES.md](./pipeline/evidence_discovery/METHOD_PRINCIPLES.md) |
-| 方法实现（八阶段 + 定向反馈循环） | 旧实现已跑通历史全量；新配置迁移尚未完成 | [pipeline/evidence_discovery/REFACTOR_PLAN.md](./pipeline/evidence_discovery/REFACTOR_PLAN.md)；过渡代码见 [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
+| 方法实现（分阶段 discovery + D/W + release/audit） | method-only runner 已完成；正式评测物理解耦为外置 v3.2 | [pipeline/evidence_discovery/REFACTOR_PLAN.md](./pipeline/evidence_discovery/REFACTOR_PLAN.md)；旧实现只作历史回放 |
 | ⛔ 主臂 v46 全量实验（$54 \times 2 \times 3 = 324$ 格） | 已完成，但**建立在第一版台账上、已整体归档**；⭐ **已裁定不在第二版台账上重测**（2026-08-17 用户裁定），故它不再是欠账，也不进当前结论 | [archive/r10_ledger_v1_and_v46/v46/](./archive/r10_ledger_v1_and_v46/v46/) |
-| 命中判定（独立语义 judge） | 已完成：同一 Sol judge 同时评估 v26 与 X1v2 并覆盖 54/54 pair；judge 的 token/cache/retry/美元只做独立审计，不计入 method 成本倍率；Luna 保留为同输入对照 | [reports/2026-08-19-judge-model-comparison.md](./reports/2026-08-19-judge-model-comparison.md)、[discover_matrix/docs/protocol/final_output_metrics_policy.md](./discover_matrix/docs/protocol/final_output_metrics_policy.md) |
+| 命中判定（独立语义 Judge） | 当前正式来源为冻结 `semantic-judge.two-stage.v3.2`；早期 Luna/Sol 与 runner 内置 Judge 结果均保留为历史协议记录 | 外置 Judge 运行 manifests 与逐条 audit；历史敏感性报告见 [reports/2026-08-19-judge-model-comparison.md](./reports/2026-08-19-judge-model-comparison.md) |
 | 多报侧五类裁定（逐簇判据 + 逐组合并理由） | 已完成 | 报告 §7；口径 [discover_matrix/docs/protocol/unexpected_taxonomy.md](./discover_matrix/docs/protocol/unexpected_taxonomy.md) |
 | 表示债务的识别、子类划分与量化 | 已完成 | 报告 §7.5；[discover_matrix/docs/findings/representation_debt.md](./discover_matrix/docs/findings/representation_debt.md) |
 | 覆盖侧上界性的量化（不具判别力的谓词那条通道） | 已完成 | 报告 §6.2 |

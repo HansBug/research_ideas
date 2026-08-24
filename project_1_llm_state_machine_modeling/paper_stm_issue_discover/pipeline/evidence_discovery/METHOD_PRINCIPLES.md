@@ -12,16 +12,16 @@
 - **W2**：谓词后端正常终止，产生可复核、带源归因的执行回执，并且结果落在该谓词
   声称的 soundness fragment 内；
 - **W1**：需求义务和模型元素已精确绑定，可以定位问题，但没有适用的 sound 谓词或
-  后端。W1 仍是 `semantic_hit`，必须进入命中和覆盖统计；
-- **W0**：无法形成足够精确、可复现的绑定。W0 记录为 coverage gap，不算命中；
+  后端。W1 仍可发布并可被外置 Judge 判为 FULL；
+- **W0**：无法形成足够精确、可复现的绑定。W0 记录为 coverage gap，不进入 release；
 - **UNKNOWN**：后端不知道，不能改写成 violation，也不能用“没有结果”代替反例。
 
 这条分层同时保护两个事实：没有谓词不能压制一个合理的问题；没有可执行回执也不能
 把语义判断冒充成高等级证明。
 
 谓词不支持不是发 issue 的资格门。只要义务与模型元素已经精确绑定，方法仍必须发出
-该问题；若当前 19 个谓词或后端无法表达，则确定性状态机将其记为 W1，并计入
-`semantic_hit`。只有绑定本身不足以复现时才是 W0。模型不得因为“没有谓词”而静默丢弃
+该问题；若当前 19 个谓词或后端无法表达，则确定性状态机将其记为 W1。W 等级不是
+validity、relation 或 FULL_MATCH 的资格门。只有绑定本身不足以复现时才是 W0。模型不得因为“没有谓词”而静默丢弃
 问题，也不得为了覆盖率临时创造谓词。
 
 后端不得调用 Python `inspect` 或任何旧的 `inspect_*` 后端。需要源位置、字段、签名或
@@ -40,8 +40,9 @@
 - **D1**：存在与事实相容的两种称职读法，两读并立；
 - **D0**：可以合理解释为设计选择，或没有可陈述的违反义务。
 
-只有 D2 与 D1 可以形成 release issue，并参与 hit、FP 和 precision；D0 只保留审计，
-不参与结果。D 裁定必须由方法自己的 `semantics/adjudication.py`（或等价的确定性
+只有 D2 与 D1 可以形成 release issue；D0 只保留审计，不进入外置评测输入。hit、FP 和
+precision 不是 method 字段，只能由冻结 v3.2 Judge 从 release reports 计算。
+D 裁定必须由方法自己的 `semantics/adjudication.py`（或等价的确定性
 裁定边界）给出理由、反驳及依据，不能让台账标签或模型口头标签代裁。
 
 W2/W1/W0 同样由确定性逻辑根据绑定状态、谓词计划、后端状态、终止回执和来源归因
@@ -51,7 +52,20 @@ UNKNOWN、超时、资源耗尽和错误不得改写为 violation 或 W2。
 L0/L1/L2 是台账侧属性。方法不生成、不裁定、不在 release issue 中声称自己的 L 等级；
 评测时仅读取冻结台账的 L 字段并按台账分母切片统计。
 
-### 1.2 完整输入闭包与阶段信息流
+### 1.2 方法与独立评测的物理边界
+
+method runner 在 discovery、D/W 裁定、release reports、W2 audit 和 method usage receipt
+完整落盘后即终态化。它不读取 ledger，不构造 Judge prompt/schema，不调用 Judge，不写
+`llm/judge` 或 `judge/*.json`，也不汇总 Judge cost、hit、FP 或 precision。W2 bundle 在
+method 阶段只记录 `pending_independent_judge`，这不影响其 method 证据闭包。
+
+正式评测仅由独立 `pipeline.semantic_judge` 的冻结协议
+`semantic-judge.two-stage.v3.2` 完成。该层读取不可变 D1/D2 release reports 与冻结台账，
+执行 expected-isolated validity 和 relation 两轴裁决，并产生 FULL hit、
+supported、VALID_KNOWN、VALID_NOVEL、INVALID/FP 和 precision。历史 method artifact 中的
+内置 Judge 文件与数字不删除、不改写，但不得进入新实验正式聚合。
+
+### 1.3 完整输入闭包与阶段信息流
 
 方法不能把多阶段输入压缩成三个文本文件和一个自有 ModelIR。每个
 PairInput 必须同时保留并在 ContextManifest 中记录哈希、schema version、algorithm
@@ -126,13 +140,10 @@ reason/basis 与 capability eligibility ID 展开只以完整 artifact 的 hash/
 引用。该投影只去重 prompt，不修改完整输入或审计 receipt。stream 模式保持首字 30 秒，
 总 timeout 为 300 秒；non-stream 不设首字限制，只使用 300 秒总 timeout。
 
-三轮 method 相互独立，round 2/3 不读取前一轮 release。三轮结束后，independent judge
-只读取冻结 ledger 与三轮最终 D1/D2 report issue clusters 的最小语义字段；stage receipt、
-predicate plan、backend receipt 和完整 W2 audit bundle 不进入 judge prompt，W2 只保留
-audit hash/path。judge 正常路径只允许一次 pair-wide 调用；机械 shape 不闭合时至多一次
-定向 correction，仍失败即 `judge_unavailable`，不得 partition，也不得展开
-ledger x release 的 atomic 调用矩阵。即使 release 精确为空，也沿同一 pair-wide 边界完成
-独立裁定，不引入另一套统计协议。
+三轮 method 相互独立，round 2/3 不读取前一轮 release。每轮 release reports 完整落盘后
+即可由外置冻结 v3.2 adapter 读取；stage receipt、predicate plan、backend receipt 和完整
+W2 audit bundle 不进入 Judge prompt。Judge 的 batch、并发、重试、receipt 和统计均由
+`pipeline.semantic_judge` 自己的冻结 manifest 管理，不属于 method run identity。
 
 ### 1.3 确定性方法的准入边界
 
@@ -228,15 +239,15 @@ consumer scope、orthogonal runtime、hierarchy priority、trace variable delta�
 - [ ] 每条命题都有最小输入、soundness 边界和 `UNKNOWN` 处理。
 - [ ] 每个来源 ID 都能回到原始档案，且来源类型、命题匹配和并发/计时边界已核对。
 - [ ] 没有把 containment、cardinality、图路径、单轨迹或有限搜索写成更强的命题。
-- [ ] 没有谓词时仍输出 W1；W1 计入 `semantic_hit`；W0 和 UNKNOWN 不被静默升级。
+- [ ] 没有谓词时仍输出 W1；W1 可进入外置评测；W0 和 UNKNOWN 不被静默升级。
 - [ ] 设计覆盖数字标明是 expressibility snapshot，不冒充新实现实测结果。
 - [ ] 论文叙事不使用“从 54 pair 归纳”“来源数量代表普遍率”等循环或过强说法。
 - [ ] 旧实现只通过 archive 指针出现，现行入口不把 `prototype` 当方法名。
-- [ ] D2/D1/D0 由方法自行裁定；只有 D2/D1 进入 release、hit 和 FP，D0 仅审计。
+- [ ] D2/D1/D0 由方法自行裁定；只有 D2/D1 进入 release，hit 和 FP 只由外置 v3.2 产生，D0 仅审计。
 - [ ] W0/W1/W2 由确定性状态机计算，模型不能自报等级；L 只从台账读取，方法不输出 L。
 - [ ] 每一步、每一条模型结构化输出都有非空 `reason` 或 `basis`，且说明输入、规则和边界。
-- [ ] typed contract plan 的 locus/property/direction 在 grounding、binding、release 和 judge
-      projection 中保持 exact ID 闭合；逐 contract disposition 没有静默漏项。
+- [ ] typed contract plan 的 locus/property/direction 在 grounding、binding 和 release 中
+      保持 exact ID 闭合；逐 contract disposition 没有静默漏项。
 - [ ] 后端及输入解析不调用 `inspect`；类似能力使用自有、可测试且有版本的算法。
 - [ ] 正式运行复用公共 `utils.agent`/`utils.llm` 与 LangGraph/respond，不从 `feedback_loop`
       私有实现反向导入；19 个谓词保持冻结。
@@ -271,8 +282,8 @@ audit text must be English.
 
 ## 7. 迁移后的效果目标
 
-新实现的工程目标是：在相同台账、相同 54 个 pair、相同最终发布边界和可比的独立
-judge 下，使用本注册表和新规则取得与冻结参考结果**大体相当或更好**的 hit 与
+新实现的工程目标是：在相同台账、相同 54 个 pair、相同最终发布边界和冻结 v3.2
+Judge 下，使用本注册表和新规则取得与冻结参考结果**大体相当或更好**的 hit 与
 FP/precision 表现。参考结果只是量级参照，不是逐格相等或绝对完美的硬门；达到大体相当即可，
 若超过参考结果则如实记录为更好。这里不承诺逐格、逐轮或逐个数字复现，也不要求每个边角
 案例都覆盖；不得为了追平或超过历史数字放宽学术来源、把 W1 冒充 W2、把 `UNKNOWN`
@@ -280,6 +291,6 @@ FP/precision 表现。参考结果只是量级参照，不是逐格相等或绝�
 
 正式对账必须同时报告整体、L2、D2×L2 的 `hit@1`/`hit@3`/`hit@all`、release FP/
 precision、eligible rate、W0/W1/W2/`UNKNOWN` 分布和成本。比较前先冻结参考报告、
-台账版本、judge 和分母；若新实现与冻结参考有差异，优先按绑定、证据等级、后端边界和
+台账版本、Judge commit/protocol/prompt/schema 和分母；若新实现与冻结参考有差异，优先按绑定、证据等级、后端边界和
 表示债务解释，不能事后改比较口径。新实现即使 semantic hit 与历史相当，也必须单独
 证明其 W2 回执和来源归因闭合。

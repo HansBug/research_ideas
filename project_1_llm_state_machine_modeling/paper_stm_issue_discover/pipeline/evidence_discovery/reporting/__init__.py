@@ -1,4 +1,4 @@
-"""Machine-readable reports for method and independent judge runs."""
+"""Machine-readable reports for method-only evidence-discovery runs."""
 
 from .export import write_json, write_markdown_summary
 

@@ -15,7 +15,7 @@ class SourceProvenance(BaseModel):
 
     source_commit: str = Field(
         pattern=r"^(?:[0-9a-f]{40}|unknown)$",
-        description="Exact Git commit used by method and judge execution, or unknown after an audited lookup failure.",
+        description="Exact Git commit used by method execution, or unknown after an audited lookup failure.",
     )
     source_branch: str = Field(
         min_length=1,
@@ -35,16 +35,16 @@ class SourceProvenance(BaseModel):
 
 
 class RunManifest(BaseModel):
-    """Immutable experiment identity plus mutable terminal status for one run root."""
+    """Immutable method-run identity plus mutable terminal status for one run root."""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["evidence-discovery.run_manifest.v2"] = Field(
+    schema: Literal["evidence-discovery.run_manifest.v3"] = Field(
         description="Versioned run-manifest schema identifier."
     )
     run_id: str = Field(
         pattern=r"^[0-9a-f]{32}$",
-        description="Stable random identity shared by all method, judge, pair-status, and summary receipts in this run root.",
+        description="Stable random identity shared by all method, pair-status, and summary receipts in this run root.",
     )
     run_contract_hash: str = Field(
         pattern=r"^sha256:[0-9a-f]{64}$",
@@ -55,7 +55,7 @@ class RunManifest(BaseModel):
     )
     profile: str = Field(
         min_length=1,
-        description="Exact public utils.llm profile used for method and independent judge calls.",
+        description="Exact public utils.llm profile used for method calls.",
     )
     source_provenance: SourceProvenance = Field(
         description="Repository commit, branch, and tracked-worktree state used by the run."
@@ -74,23 +74,19 @@ class RunManifest(BaseModel):
     )
     prompt_schema_version: str = Field(
         min_length=1,
-        description="Version shared by staged method and independent-judge prompt/schema contracts."
+        description="Version of the staged method prompt/schema contracts."
     )
     prompt_schema_hash: str = Field(
         pattern=r"^sha256:[0-9a-f]{64}$",
-        description="Hash of system prompts and every structured LLM response schema used by the run."
+        description="Hash of system prompts and every structured method response schema used by the run."
     )
     input_data_hash: str = Field(
         pattern=r"^sha256:[0-9a-f]{64}$",
-        description="Hash of ordered pair context-manifest hashes and the judge-only frozen ledger hash."
+        description="Hash of the ordered pair context-manifest hashes consumed by the method."
     )
     pair_input_hashes: dict[str, str] = Field(
         min_length=1,
         description="Pair-keyed complete context-manifest hashes used for strict cell resume."
-    )
-    ledger_hash: str = Field(
-        pattern=r"^sha256:[0-9a-f]{64}$",
-        description="Hash of the frozen judge-only ledger; ledger content is never supplied to method generation."
     )
     rounds: Literal[1, 3] = Field(
         description="One diagnostic round or the frozen three-round protocol."
@@ -141,7 +137,7 @@ class PairRunStatus(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["evidence-discovery.pair_status.v2"] = Field(
+    schema: Literal["evidence-discovery.pair_status.v3"] = Field(
         description="Versioned pair-status schema identifier."
     )
     run_id: str = Field(
@@ -157,7 +153,7 @@ class PairRunStatus(BaseModel):
         description="Frozen pair identifier represented by this receipt."
     )
     status: Literal["completed", "completed_with_diagnostics", "failed_with_receipt"] = Field(
-        description="Terminal pair status after all requested method rounds and judge handling."
+        description="Terminal pair status after all requested method rounds and W2 audit finalization."
     )
     resume_action: Literal[
         "executed_fresh",
@@ -179,16 +175,9 @@ class PairRunStatus(BaseModel):
         ge=0,
         description="Number of method cells with real validated provider output and no provider/schema cell failure."
     )
-    judge_status: str = Field(
-        min_length=1,
-        description="Independent judge terminal status for this pair."
-    )
-    judge_eligible: bool = Field(
-        description="Whether every required judge position has a real semantic decision."
-    )
     errors: int = Field(
         ge=0,
-        description="Count of structured method and judge diagnostics retained for this pair."
+        description="Count of structured method and W2-audit diagnostics retained for this pair."
     )
     audit_errors: int = Field(
         ge=0,
@@ -201,20 +190,13 @@ class PairRunStatus(BaseModel):
     method_cost_eligible: bool = Field(
         description="Whether every method usage row had a resolvable pricing card and token accounting."
     )
-    judge_cost_usd: float = Field(
-        ge=0,
-        description="Billable independent judge cost after row-local provider retry exemptions."
-    )
-    judge_cost_eligible: bool = Field(
-        description="Whether every judge usage row had a resolvable pricing card and token accounting."
-    )
     reason: str = Field(
         min_length=1,
         description="Non-empty explanation of the pair terminal status."
     )
     basis: str = Field(
         min_length=1,
-        description="Non-empty method-cell, judge, usage, and run-contract basis for the pair status."
+        description="Non-empty method-cell, W2-audit, usage, and run-contract basis for the pair status."
     )
 
 
@@ -295,7 +277,7 @@ class MethodCellReceipt(BaseModel):
     )
     report_issue_clusters: list[dict[str, Any]] = Field(
         default_factory=list,
-        description="Only final D1/D2 release issues exposed to the independent judge."
+        description="Only final D1/D2 release issues exported for the external frozen evaluation layer."
     )
     errors: list[dict[str, Any]] = Field(
         default_factory=list,
@@ -311,109 +293,12 @@ class MethodCellReceipt(BaseModel):
     )
 
 
-class IndependentJudgeReceipt(BaseModel):
-    """Versioned terminal receipt for one independent pair-wide judge surface."""
-
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-
-    schema: Literal["evidence-discovery.independent_judge.v5"] = Field(
-        description="Versioned independent-judge schema identifier."
-    )
-    run_id: str = Field(
-        pattern=r"^[0-9a-f]{32}$",
-        description="Run identity owning this judge receipt."
-    )
-    run_contract_hash: str = Field(
-        pattern=r"^sha256:[0-9a-f]{64}$",
-        description="Immutable run contract hash used to reject mixed judge artifacts."
-    )
-    source_provenance: SourceProvenance = Field(
-        description="Exact repository identity that generated this judge receipt."
-    )
-    pair_id: str = Field(
-        pattern=r"^[0-9]{4}$",
-        description="Frozen pair identifier judged by this receipt."
-    )
-    pair_input_hash: str = Field(
-        pattern=r"^sha256:[0-9a-f]{64}$",
-        description="Complete method input manifest hash tied to this pair's judged release surface."
-    )
-    status: Literal["completed", "failed_with_receipt"] = Field(
-        description="Terminal judge status; failed receipts remain unadjudicated and ineligible."
-    )
-    eligible: bool = Field(
-        description="Whether every required judge position has a real semantic decision."
-    )
-    eligibility_reasons: list[str] = Field(
-        min_length=1,
-        description="Deterministic reasons supporting or denying judge eligibility."
-    )
-    adjudication_mode: Literal[
-        "pair_wide",
-        "pair_wide_corrected",
-        "judge_unavailable",
-        "not_started",
-    ] = Field(
-        description="Semantic judge path that produced the terminal judgement."
-    )
-    ledger_count: int = Field(
-        ge=0,
-        description="Number of frozen ledger entries supplied only to the independent judge."
-    )
-    release_count: int = Field(
-        ge=0,
-        description="Number of D1/D2 method release issues supplied to the judge."
-    )
-    ledger_source: str = Field(
-        min_length=1,
-        description="Path to the frozen ledger read only at the judge boundary."
-    )
-    prompt_hash: str | None = Field(
-        default=None,
-        pattern=r"^sha256:[0-9a-f]{64}$",
-        description="Hash of the pair-wide judge prompt, or null when judge setup did not start."
-    )
-    response_schema_hash: str | None = Field(
-        default=None,
-        pattern=r"^sha256:[0-9a-f]{64}$",
-        description=(
-            "Hash of the runtime-specialized Pydantic JudgeResponse schema that "
-            "freezes exact ledger/release identities for this pair, or null when "
-            "judge setup did not start. It has structural authority only and does "
-            "not encode semantic hit relations."
-        ),
-    )
-    llm_calls: list[dict[str, Any]] = Field(
-        default_factory=list,
-        description="The pair-wide judge call and, when required, its one targeted shape-correction call, including usage and retries."
-    )
-    llm_call: dict[str, Any] = Field(
-        description="Aggregate judge runtime and billing receipt."
-    )
-    judgement: dict[str, Any] | None = Field(
-        default=None,
-        description="Complete validated judge output, or null when semantic adjudication remains incomplete."
-    )
-    errors: list[dict[str, Any]] = Field(
-        default_factory=list,
-        description="Structured pair-wide shape, provider, and schema diagnostics; unavailable relations are never filled as misses or false positives."
-    )
-    reason: str = Field(
-        min_length=1,
-        description="Non-empty explanation of the independent judge terminal outcome."
-    )
-    basis: str = Field(
-        min_length=1,
-        description="Non-empty ledger, release, model-call, and exact-shape basis for the outcome."
-    )
-
-
 class RunSummaryReceipt(BaseModel):
-    """Validated final summary for one contract-compatible method and judge run."""
+    """Validated final summary for one contract-compatible method run."""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["evidence-discovery.run_summary.v2"] = Field(
+    schema: Literal["evidence-discovery.run_summary.v3"] = Field(
         description="Versioned run-summary schema identifier."
     )
     run_id: str = Field(
@@ -439,7 +324,7 @@ class RunSummaryReceipt(BaseModel):
     )
     profile: str = Field(
         min_length=1,
-        description="Exact utils.llm profile used for method and judge calls."
+        description="Exact utils.llm profile used for method calls."
     )
     source_commit: str = Field(
         pattern=r"^(?:[0-9a-f]{40}|unknown)$",
@@ -499,20 +384,12 @@ class RunSummaryReceipt(BaseModel):
         ge=0,
         description="Number of terminal method-cell receipts included in metrics."
     )
-    judge_pair_count: int = Field(
-        ge=0,
-        description="Number of terminal pair judge receipts included in metrics."
-    )
     method_cost_usd: float = Field(
         ge=0,
         description="Billable method cost after row-local provider retry exemptions."
     )
-    judge_cost_usd: float = Field(
-        ge=0,
-        description="Billable independent judge cost after row-local provider retry exemptions."
-    )
     metrics: dict[str, Any] = Field(
-        description="Paired-eligible readings, full-grid lower bounds, FP, W/D, and per-pair metrics."
+        description="Method eligibility, release, W/D, diagnostics, cost, and per-pair metrics."
     )
     per_pair: dict[str, dict[str, Any]] = Field(
         description="Validated PairRunStatus payload for every selected pair."
@@ -535,12 +412,11 @@ class RunSummaryReceipt(BaseModel):
     )
     basis: str = Field(
         min_length=1,
-        description="Non-empty registry, run manifest, frozen grid, and independent judge basis."
+        description="Non-empty registry, run manifest, frozen grid, method receipt, and W2 audit basis."
     )
 
 
 __all__ = [
-    "IndependentJudgeReceipt",
     "MethodCellReceipt",
     "PairRunStatus",
     "RunManifest",

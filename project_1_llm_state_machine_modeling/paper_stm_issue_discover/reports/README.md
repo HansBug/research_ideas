@@ -1,5 +1,10 @@
 # reports/ — 阶段性研究报告（按日期命名）
 
+> **现行评测边界（2026-08-24）**：method 只负责发现、D/W、release 和 W2 audit；L 只来自
+> 台账；正式 validity/relation/hit/FP/precision 只由独立冻结
+> `semantic-judge.two-stage.v3.2` 按 issue #195 产生。下表中早期报告若引用 runner 内置
+> Judge、旧 Luna/Sol Judge 或其费用/分数，只能按该报告的历史协议阅读，不与 v3.2 正式结果混用。
+
 > 本目录共 **15** 份 active human-facing report，跨 2026-06 至 2026-08：
 >
 > | 份数 | 时间 | 是什么 |

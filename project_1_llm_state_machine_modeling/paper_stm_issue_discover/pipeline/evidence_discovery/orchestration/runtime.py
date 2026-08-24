@@ -23,7 +23,6 @@ PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS = 30
 PROVIDER_CALL_DEADLINE_SECONDS = 300
 STRUCTURED_STAGE_DEADLINE_SECONDS = 3 * PROVIDER_CALL_DEADLINE_SECONDS
 MAX_STRUCTURED_OUTPUT_TOKENS = 10_000
-JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS = 20_000
 DEFAULT_TRANSPORT_RETRIES = 8
 TRANSPORT_RETRY_DELAY_SCHEDULE_SECONDS = (5.0, 20.0, 60.0, 120.0, 240.0)
 
@@ -481,7 +480,7 @@ class StructuredCallOutcome(BaseModel, Generic[T]):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     kind: str = Field(
-        min_length=1, description="Runtime operation kind, such as method or judge."
+        min_length=1, description="Runtime operation kind for one structured method stage."
     )
     status: str = Field(
         min_length=1,
@@ -1065,7 +1064,7 @@ class PublicStructuredRuntime:
 class FixtureStructuredRuntime:
     """Provider-free structured runtime for end-to-end fixture smoke runs.
 
-    This fixture returns no semantic candidates or judge relations. Dynamic
+    This fixture returns no semantic candidates. Dynamic
     grounding schemas still receive explicit unbound rows for every required
     cardinality contract, so structural coverage is exercised without making a
     semantic domain choice. It is never used for live results and carries no
@@ -1151,14 +1150,9 @@ class FixtureStructuredRuntime:
                 "basis": "provider-free fixture runtime",
             }
         else:
-            # The empty fixture response must fail the exact judge shape check;
-            # no ledger/release assessment is synthesized by deterministic code.
-            payload = {
-                "ledger_assessments": [],
-                "release_assessments": [],
-                "reason": "Fixture judge output intentionally leaves semantic relations unavailable.",
-                "basis": "provider-free fixture runtime",
-            }
+            raise TypeError(
+                f"FixtureStructuredRuntime does not support method schema {schema.__name__}"
+            )
         response = schema.model_validate(payload)
         context_budget = StructuredContextBudget(
             mode="provider_free_fixture",

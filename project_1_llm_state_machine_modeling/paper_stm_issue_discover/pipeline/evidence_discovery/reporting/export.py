@@ -34,22 +34,19 @@ def write_markdown_summary(path: Path, summary: dict[str, Any]) -> None:
         f"- registry: `{summary.get('registry_version')}`",
         f"- pair count: `{summary.get('pair_count')}`",
         f"- method cells: `{summary.get('method_cell_count')}`",
-        f"- judge pairs: `{summary.get('judge_pair_count')}`",
         f"- method cost USD: `{summary.get('method_cost_usd')}`",
-        f"- judge cost USD: `{summary.get('judge_cost_usd')}`",
         "",
-        "## Overall",
+        "## Method Metrics",
         "",
     ]
-    overall = summary.get("metrics", {}).get("overall", {})
-    for key, value in overall.items():
+    method_metrics = summary.get("metrics", {}).get("method", {})
+    for key, value in method_metrics.items():
         lines.append(f"- {key}: `{value}`")
-    lines.extend(["", "## Pair Status", "", "| pair | method cells | eligible | judge | errors | method USD | judge USD |", "|---|---:|---:|---|---:|---:|---:|"])
+    lines.extend(["", "## Pair Status", "", "| pair | method cells | eligible | errors | method USD |", "|---|---:|---:|---:|---:|"])
     for pair_id, row in sorted(summary.get("per_pair", {}).items()):
         lines.append(
             f"| {pair_id} | {row.get('method_cells')} | {row.get('eligible_method_cells')} | "
-            f"{row.get('judge_status')} | {row.get('errors')} | "
-            f"{row.get('method_cost_usd')} | {row.get('judge_cost_usd')} |"
+            f"{row.get('errors')} | {row.get('method_cost_usd')} |"
         )
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp")

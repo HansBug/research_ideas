@@ -12,17 +12,30 @@
 旧的 `witness_search_prototype` 已退出现行方法表面，仅在
 `pipeline/archive/` 中作为历史复现材料保存。
 
+## 方法与评测边界
+
+`pipeline.evidence_discovery` 只负责发现候选、发布 D1/D2 issue、确定性裁定 W 等级并
+保存证据审计和 method cost。method runner 不读取缺陷台账，不调用 Judge，也不生成
+hit、FP 或 precision；W2 audit 在 method 阶段以 `pending_independent_judge` 终态化。
+
+L0/L1/L2 只来自冻结台账。正式 technical validity、expected relation、FULL hit、
+supported、semantic FP/precision 及其费用，唯一来源是独立冻结的
+`pipeline.semantic_judge` / `semantic-judge.two-stage.v3.2` 及其冻结 validity/relation
+与指标口径。
+历史 method run 中若存在 `llm/judge`、`judge/*.json`、旧 Judge cost 或旧 hit/FP，均只作
+历史协议审计，不能与 v3.2 结果静默混用，也不能作为新实验正式指标。
+
 ## 方法原则
 
 1. **学术优先。** 谓词必须先有独立、命题匹配的领域或形式方法依据，再考虑台账覆盖；不能为了提高覆盖率从 benchmark 反向制造谓词。
 2. **四族按证据形态划分。** 结构族表达封闭源模型事实，拓扑族表达图投影上的路径性质，轨迹仿真族表达一条完全落地的执行轨迹，有界验证族表达带量化或界限的可检查性质。四族不是按台账类别切分。
 3. **19 个核心谓词冻结。** 宏可以组合已有谓词，但不能借宏名增加新的公开语义。
 4. **谓词不是问题提出门槛。** 需求条目先经过语义绑定和裁决；没有 sound 谓词或后端时，仍要提出问题并降级为 W1。
-5. **W1 是合法语义命中。** W1 表示需求和模型已精确绑定到可复现位置，但当前没有注册的 sound 判定器。W2 是更高一级的、终止且带来源归因的可执行证据。W0 则连精确绑定都没有，不能计为命中。
+5. **W1 是合法发布证据。** W1 表示需求和模型已精确绑定到可复现位置，但当前没有注册的 sound 判定器。W1 可以被外置 Judge 判为 FULL；W 等级本身不是 relation 或 validity 门。W2 是更高一级的、终止且带来源归因的可执行证据。W0 则连精确绑定都没有，不进入 release。
 6. **未知不等于违反。** 任何后端返回 `UNKNOWN` 的结果都不能改写成 violation。
 7. **D 由方法自裁，W 由确定性逻辑计算。** 方法按本目录冻结的语义裁定合同自行给出 D2/D1/D0，只有
-   D2/D1 进入 release、hit 和 FP；W2/W1/W0 由绑定、计划、后端状态和终止回执计算，不能
-   由模型口头指定。L 是台账侧属性，方法不生成 L。
+   D2/D1 进入 release；是否 hit 或 FP 由外置 v3.2 Judge 决定。W2/W1/W0 由绑定、计划、
+   后端状态和终止回执计算，不能由模型口头指定。L 是台账侧属性，方法不生成 L。
 8. **每条模型输出都可调试。** 每一步、每一条结构化结果必须带非空 `reason` 或 `basis`；
    每条 W2 还必须带完整谓词逻辑、编译源码、哈希、真实运行结果和来源归因。
 9. **后端和基础设施有边界。** 后端不使用 Python `inspect`；新入口复用公共
@@ -60,10 +73,11 @@ D adjudication -> validate D -> publish
 `discovery grounding` 内固定执行 structure/contrast 与 behavior/consequence 两个同 schema 互补 lens；exact binding、19-predicate
 compiler/backend 和 execution receipt 都留在 `execute batch` 内部审计。每轮正常逻辑调用
 形态为 `1 contract + 2 grounding + 1 D`，D 结构不闭合时至多再做一次 targeted repair。
-三个 method round 相互独立；随后每个 pair 只做一次 independent pair-wide judge，shape
-不闭合时至多 correction 一次，仍失败记为 unavailable，不做 partition 或 atomic 矩阵。
+三个 method round 相互独立；每轮在 release reports 与 W2 audit 完整落盘后即成为终态。
+正式评测由独立进程和独立输出目录中的冻结 v3.2 Judge 读取这些不可变 release reports，
+不属于 method runner 的 stage、receipt、resume identity 或费用。
 
-生成 prompt 不包含台账答案、baseline hit/FP、judge 示例或历史 release 输出。完整
+生成 prompt 不包含台账答案、baseline hit/FP、Judge 示例或历史 release 输出。完整
 case report 只作为哈希 receipt 保存，prompt 仅接收身份/状态白名单投影。LLM 的每个
 结构化对象和每个阶段 receipt 都由 Pydantic schema 约束并要求非空 reason/basis；
 W/D/L 不由模型自报。
@@ -78,9 +92,9 @@ W/D/L 不由模型自报。
 | L2 子集 | 35 | 39 | 89.7% | L2 中的直接可表达条目 |
 | 历史参考实现映射 | 603 | 741 | 81.4% | 仅作设计覆盖参照 |
 
-这三个数字是**可表达性快照**，不是新模块化实现的 W2 实测命中率。W1 计入
-`semantic_hit`，因此最终语义命中率不能把上述比例当作硬上限；实测时必须另外报告
-W0、W1、W2 以及各自的分母。
+这三个数字是**可表达性快照**，不是新模块化实现的 W2 实测命中率，也不是 v3.2 Judge
+的 FULL hit。W1 可正常发布且可被判为 FULL，因此不能把上述比例当作最终命中的硬上限；
+正式结果必须同时报告外置 Judge 指标以及 method 的 W0、W1、W2 分布。
 
 ## 来源与学术边界
 
@@ -113,11 +127,10 @@ W0、W1、W2 以及各自的分母。
 
 ## 施工状态边界
 
-当前代码已完成输入闭包、分阶段 method 最小垂直闭环、19 谓词编译/后端、确定性
-W、typed LLM semantic D 输入、公共 runtime 和审计 receipt 的第一版 fixture/smoke
-接入；仍需继续补齐 mutation、来源和非干扰测试，并审查短测诊断后再扩大运行范围。
-live runner 只接受显式 pair 子集且当前最多六格，54-pair 全量入口保持关闭；既有 Luna/audit 快照不被
-覆盖或冷重跑。旧实现只能用于历史复现，不能作为现行方法或新论文结果来源。
+当前代码已完成输入闭包、分阶段 method 闭环、19 谓词编译/后端、确定性 W、typed LLM
+semantic D、公共 runtime、W2 audit 和 method-only terminal receipt。live runner 对诊断子集
+与 54-pair 全量保留不同的显式安全门；method runner 已与正式评测物理解耦。既有 Luna/audit
+快照不被覆盖或冷重跑，旧实现只能用于历史复现，不能作为现行方法或新论文结果来源。
 
 实验特定的诊断 case 集、运行路径、比较臂和历史代次只记录在实验 provenance 中，不属于
 公开方法术语，也不得进入 method prompt、schema、类名、变量名或审计解释。局部诊断用于
@@ -140,14 +153,13 @@ receipt 计算。归档的 predecessor design records 只保留历史 provenance
 
 ## 当前代码状态
 
-当前文件和注册表已经可以作为正式配置与接口契约；代码迁移尚未完成。正式重构计划见
+当前文件、注册表和 method-only runner 已可作为正式配置与接口契约。正式重构记录见
 [`METHOD_PRINCIPLES.md`](METHOD_PRINCIPLES.md) 和 [`REFACTOR_PLAN.md`](REFACTOR_PLAN.md)。
-在新包通过计划中的测试门之前，旧实现只能用于历史复现，不能以 `prototype` 名义作为
-现行方法或新论文结果来源。
+旧实现只能用于历史复现，不能以 `prototype` 名义作为现行方法或新论文结果来源。
 
 ## 迁移后的效果目标
 
-新代码使用本注册表和新规则，在相同台账、54 个 pair、最终发布边界、独立 judge 和统计
+新代码使用本注册表和新规则，在相同台账、54 个 pair、最终发布边界、冻结 v3.2 Judge 和统计
 分母下，目标是取得与冻结历史参考实现**大体相当或更好**的 hit 与 FP/precision。参考实现是量级参照，
 不是逐格相等或绝对完美的硬门；达到大体相当即可，超过则记录改进。目标不能通过放宽
 学术来源、把 W1 冒充 W2、把 `UNKNOWN` 改成 violation 或新增覆盖专用谓词来实现。

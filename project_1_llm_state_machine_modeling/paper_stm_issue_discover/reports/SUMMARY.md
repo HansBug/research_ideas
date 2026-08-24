@@ -1,5 +1,10 @@
 # reports/SUMMARY.md — 研究报告总账
 
+> **现行评测边界（2026-08-24）**：`evidence_discovery` 的 method artifacts 不再包含正式
+> Judge 指标；L 来自台账，issue #195 的 validity/relation/hit/FP/precision 只来自冻结
+> `semantic-judge.two-stage.v3.2`。本总账保留的旧 Judge 报告与数字是历史快照，不得作为
+> 新实验正式可比结果或与 v3.2 静默聚合。
+
 ## 1. 当前总览
 
 | 项 | 数量 / 状态 |

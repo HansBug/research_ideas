@@ -11,9 +11,9 @@ from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, ClassVar, Literal
+from typing import Any, ClassVar
 
-from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
+from pydantic import Field, create_model, model_validator
 
 from ..backends import run_backend
 from ..compiler import compile_plan
@@ -64,7 +64,6 @@ from ..semantics import (
     suppress_satisfied_source_transition_candidates,
 )
 from .contracts import (
-    IndependentJudgeReceipt,
     MethodCellReceipt,
     PairRunStatus,
     RunManifest,
@@ -73,7 +72,6 @@ from .contracts import (
 )
 from .runtime import (
     DEFAULT_TRANSPORT_RETRIES,
-    JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS,
     PROVIDER_CALL_DEADLINE_SECONDS,
     PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS,
     STRUCTURED_STAGE_DEADLINE_SECONDS,
@@ -85,223 +83,13 @@ from .runtime import (
 
 REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS = ("0004", "0023", "0029", "0035", "0046", "0053")
 METHOD_CELL_SCHEMA = "evidence-discovery.method_cell.v8"
-JUDGE_SCHEMA = "evidence-discovery.independent_judge.v5"
-SUMMARY_SCHEMA = "evidence-discovery.run_summary.v2"
-RUN_MANIFEST_SCHEMA = "evidence-discovery.run_manifest.v2"
-CODE_VERSION = "evidence-discovery-typed-flow.v49"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-prompts.v42"
-JUDGE_EXACT_IDENTITY_CONTRACT_VERSION = "evidence-discovery.judge-exact-identity-contract.v1"
+SUMMARY_SCHEMA = "evidence-discovery.run_summary.v3"
+RUN_MANIFEST_SCHEMA = "evidence-discovery.run_manifest.v3"
+CODE_VERSION = "evidence-discovery-typed-flow.v50-method-only"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-prompts.v43-method-only"
 GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION = (
     "evidence-discovery.grounding-exact-identity-contract.v2"
 )
-
-
-JudgeRelation = Literal[
-    "exact",
-    "semantic_equivalent",
-    "candidate_subsumes_ledger",
-    "ledger_subsumes_candidate",
-    "partial_overlap",
-    "same_cause_different_property",
-    "unrelated",
-]
-_HIT_JUDGE_RELATIONS = frozenset(
-    {"exact", "semantic_equivalent", "candidate_subsumes_ledger"}
-)
-
-
-class JudgeRelationAssessment(BaseModel):
-    """Explicit semantic relation between one release issue and one frozen ledger item.
-
-    The independent pair-wide Judge produces this object. Metrics count only
-    exact, semantic_equivalent, and candidate_subsumes_ledger with a complete
-    entailment basis as hits. It never rewrites a method release. Negative
-    relations may be sparse; no full ledger-by-release matrix is required.
-    """
-
-    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
-
-    schema_version: Literal["evidence-discovery.judge-relation.v1"] = Field(
-        default="evidence-discovery.judge-relation.v1",
-        description="Persistence schema version for JudgeRelationAssessment.",
-    )
-    ledger_id: str = Field(
-        min_length=1,
-        description="Exact frozen ledger ID compared by this relation; it must come from the current pair-wide Judge input.",
-    )
-    issue_id: str = Field(
-        min_length=1,
-        description="Exact D1/D2 release issue ID compared by this relation; it may not reference D0 or an unpublished candidate.",
-    )
-    relation: JudgeRelation = Field(
-        description=(
-            "Closed-set relation under the same locus/property/scope. If a D1 "
-            "ledger and D1 release express the same primary defect reading while "
-            "retaining another compatible competent reading, that surviving "
-            "alternative alone does not reduce the relation to partial_overlap. "
-            "Same cause, wrong source, different property, or incompatible scope "
-            "still cannot become a hit. A candidate covering only one explicitly "
-            "enumerated sibling/component requires ledger_subsumes_candidate or "
-            "partial_overlap. Multiple non-hit subset candidates cannot be unioned "
-            "into a hit; every matched/accounted issue must independently have "
-            "exact, semantic_equivalent, or candidate_subsumes_ledger. If a complete "
-            "ledger lists A+B, a candidate claiming only A can never subsume it; "
-            "the correct direction is ledger_subsumes_candidate, and a separate B "
-            "candidate cannot provide substitute credit by union."
-        ),
-    )
-    entailment_basis: str | None = Field(
-        default=None,
-        min_length=1,
-        description=(
-            "Required only for candidate_subsumes_ledger: explain how the "
-            "candidate's own claim logically establishes the complete ledger "
-            "defect. When the ledger enumerates multiple sibling scopes, events, "
-            "or components, the candidate must cover or entail all of them. Never "
-            "complete a candidate backward from ledger detail; shared cause or a "
-            "narrow manifestation is not entailment."
-        ),
-    )
-    reason: str = Field(
-        min_length=1,
-        description="Explains why locus, property, scope, and direction produce this relation.",
-    )
-    basis: str = Field(
-        min_length=1,
-        description="Cites supplied compact ledger/release semantic fields; never reads the method audit tree or historical results.",
-    )
-
-    @model_validator(mode="after")
-    def validate_subsumption_basis(self) -> JudgeRelationAssessment:
-        """Require explicit entailment only for the relation that can broaden a hit."""
-
-        if self.relation == "candidate_subsumes_ledger" and not self.entailment_basis:
-            raise ValueError(
-                "candidate_subsumes_ledger requires non-empty entailment_basis "
-                "showing that the candidate establishes the complete ledger defect"
-            )
-        return self
-
-
-class LedgerAssessment(BaseModel):
-    """Independent judge assessment for one frozen ledger entry."""
-
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-
-    ledger_id: str = Field(min_length=1, description="Frozen ledger entry ID being assessed; copy it exactly from judge input.")
-    hit_r1: bool = Field(default=False, description="Whether method round 1 contains a semantically identical release issue.")
-    hit_r2: bool = Field(default=False, description="Whether method round 2 contains a semantically identical release issue.")
-    hit_r3: bool = Field(default=False, description="Whether method round 3 contains a semantically identical release issue.")
-    matched_issue_ids: list[str] = Field(
-        default_factory=list,
-        description=(
-            "Exact supplied method issue IDs supporting this ledger-round hit. "
-            "Every ID must independently have an exact, semantic_equivalent, or "
-            "candidate_subsumes_ledger typed relation and appear reciprocally in "
-            "the corresponding ReleaseAssessment.accounted_ledger_ids. Multiple "
-            "ledger_subsumes_candidate or partial_overlap subset issues cannot be "
-            "combined into one hit. If no single release establishes the complete "
-            "ledger defect, this list is empty and hit_rN is false."
-        ),
-    )
-    reason: str = Field(min_length=1, description="Non-empty explanation of why this ledger item is or is not semantically matched.")
-    basis: str = Field(min_length=1, description="Non-empty evidence basis for this ledger assessment, tied to the supplied ledger and method release data.")
-
-
-class ReleaseAssessment(BaseModel):
-    """Independent judge assessment for one released method issue."""
-
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-
-    issue_id: str = Field(
-        min_length=1,
-        description=(
-            "Exact released method issue ID being assessed, copied verbatim from "
-            "Judge input. Every supplied issue ID requires its own row. Even when "
-            "several releases are semantic duplicates, share a cause, or map to "
-            "one ledger item, no row may be merged, deduplicated, or omitted."
-        ),
-    )
-    accounted_ledger_ids: list[str] = Field(
-        default_factory=list,
-        description=(
-            "Exact frozen ledger IDs fully explained by hit-eligible typed "
-            "relations for this release. Every pair must appear reciprocally in "
-            "ledger-side matched_issue_ids, and the relation must be exact, "
-            "semantic_equivalent, or candidate_subsumes_ledger with a complete "
-            "entailment_basis. ledger_subsumes_candidate, partial_overlap, "
-            "same_cause_different_property, and unrelated remain unaccounted even "
-            "when a union of subset releases appears to cover a ledger item. An "
-            "empty list means exactly that no hit-eligible ledger relation exists."
-        ),
-    )
-    is_false_positive: bool = Field(description="True exactly when accounted_ledger_ids is empty. A true value means reason and basis must explain why no hit-eligible ledger relation exists; they must not describe the release as matching a frozen defect.")
-    reason: str = Field(min_length=1, description="Non-empty explanation consistent with is_false_positive and accounted_ledger_ids: explain the accepted hit relation when accounted, or the locus/property/scope/direction mismatch when false positive.")
-    basis: str = Field(min_length=1, description="Non-empty supplied ledger/release evidence consistent with the release decision; it must not claim a semantic match that the accounting and typed relations omit.")
-
-
-class JudgeResponse(BaseModel):
-    """Complete independent judge response with rationale for all decisions."""
-
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-
-    ledger_assessments: list[LedgerAssessment] = Field(default_factory=list, description="Exactly one assessment for every frozen ledger item supplied to the judge; never split one ledger ID into multiple rows.")
-    release_assessments: list[ReleaseAssessment] = Field(
-        default_factory=list,
-        description=(
-            "Exactly one row for every exact method issue on the supplied release "
-            "surface. Coverage is by issue identity, not semantic-similarity "
-            "deduplication. Two releases with the same locus, property, or cause "
-            "still retain separate ReleaseAssessment rows."
-        ),
-    )
-    relation_assessments: list[JudgeRelationAssessment] = Field(
-        default_factory=list,
-        description=(
-            "Sparse typed relations for plausible ledger/release pairs. Every "
-            "claimed hit/accounting pair must have exactly one hit-eligible row; "
-            "negative relations may remain sparse. Relations are assessed per "
-            "candidate. Never union several ledger_subsumes_candidate or "
-            "partial_overlap rows into a ledger hit, and do not generate a full "
-            "unrelated matrix."
-        ),
-    )
-    reason: str = Field(min_length=1, description="Non-empty explanation of the judge's overall assessment decision.")
-    basis: str = Field(min_length=1, description="Non-empty basis identifying the supplied ledger and method release facts used by the judge.")
-
-
-class ExactJudgeResponse(JudgeResponse):
-    """Per-call judge response whose exact input identities are runtime-bound.
-
-    The runner specializes this Pydantic model for one pair-wide judge input.
-    Its validator has authority only over structural identity closure, symmetric
-    accounting, round booleans, and typed-reference consistency. It never
-    chooses or rewrites a semantic relation, hit, or false-positive decision.
-    """
-
-    expected_ledger_ids: ClassVar[tuple[str, ...]] = ()
-    expected_release_ids: ClassVar[tuple[str, ...]] = ()
-    supplied_rounds: ClassVar[int] = 0
-    enforce_exact_identity_contract: ClassVar[bool] = False
-
-    @model_validator(mode="after")
-    def validate_exact_identity_contract(self) -> ExactJudgeResponse:
-        """Reject structurally incomplete pair-wide accounting in the schema path."""
-
-        if not type(self).enforce_exact_identity_contract:
-            return self
-        errors = _judge_contract_errors(
-            self,
-            expected_ledger=type(self).expected_ledger_ids,
-            expected_release=type(self).expected_release_ids,
-            rounds=type(self).supplied_rounds,
-        )
-        if errors:
-            raise ValueError(
-                "exact pair-wide judge identity contract failed:\n- "
-                + "\n- ".join(errors)
-            )
-        return self
 
 
 class ExactGroundingResponse(GroundingResponse):
@@ -313,7 +101,8 @@ class ExactGroundingResponse(GroundingResponse):
     reference supplied contracts or additional contracts declared in that same
     response, and every cardinality contract must receive one typed domain row.
     It does not select that domain or decide whether an obligation exists,
-    whether a candidate is valid, or any W, D, L, publish, or judge result.
+    whether a candidate is valid, or any W, D, L, publication, or external
+    evaluation result.
     """
 
     expected_contract_ids: ClassVar[tuple[str, ...]] = ()
@@ -420,11 +209,8 @@ class ExactGroundingResponse(GroundingResponse):
 
 METHOD_SYSTEM_PROMPT = """The method is staged. Its public generation surface is the NL contract-extraction stage followed by two complementary discovery-grounding lenses that share one response schema and compact cross-view context. Use only the complete context manifest supplied to each stage. Never read evaluation ground truth, scores, reviewer examples, or previously generated reports. Do not emit W, D, or L levels. Every structured object must contain non-empty reason and basis. Write every generated title, statement, summary, reason, basis, and audit explanation in English; preserve non-English text only inside exact quotations or identifiers copied from supplied artifacts."""
 
-JUDGE_SYSTEM_PROMPT = """You are an independent judge separated from method generation. You may use the supplied frozen ledger entries to assess method D1/D2 release issues. Judge semantic identity of locus, property, scope, and direction, not string similarity. The release's typed property and violation_direction define its claim boundary: observed, basis, or shared causal facts may support that claim but cannot silently turn a termination release into a wrong-scope route release, or any other different property. Determine one release's asserted semantic scope from its title, requirement_quote, expected, observed, reason, and basis together with its typed locus/property/direction. contract_id, element_refs, source_refs, method_issue_hash, and audit_reference are provenance identities, not exhaustive lists of the semantic components asserted by the release. If one aggregate release explicitly states multiple supplied clauses or a complete enumerated scope in those semantic fields, do not narrow it to the first bound state/transition ref; conversely, never add a component that its own semantic fields do not assert. Operational reachable-consumer coverage and a ledger phrased as consumers being unreachable are the same property when both claims identify the same events, operating scope, empty reachable-consumer set, and direction; declaration-only consumer presence remains a weaker different fact. Emit sparse typed relation_assessments: exact, semantic_equivalent, or candidate_subsumes_ledger may count as a hit; candidate_subsumes_ledger requires a complete logical entailment basis from the candidate's own supplied claim. When a ledger explicitly enumerates multiple sibling scopes, events, states, or components, a candidate covering only a subset is ledger_subsumes_candidate or partial_overlap, even if it shares the same ancestor or cause. Relation direction is literal: if the complete ledger names A+B but one candidate claims only A, the ledger subsumes that candidate; the candidate does not subsume the ledger. A second candidate claiming only B does not change either pairwise relation, and A plus B cannot be unioned into a hit. Never use ledger detail to add a missing sibling/component to the candidate's claim. ledger_subsumes_candidate, partial_overlap, same_cause_different_property, and unrelated never count as hits. Multiple non-hit subset candidates cannot be unioned or counted collectively as one ledger hit: every issue_id in matched_issue_ids must independently have one exact, semantic_equivalent, or candidate_subsumes_ledger relation that establishes the complete ledger defect. If no single release does so, the ledger is a miss even when several releases together mention every enumerated sibling. For a D1 ledger, compare the represented ambiguity rather than requiring the method release to settle it or use the same D level: when the release identifies the same primary defect reading at the same locus/property/scope/direction and preserves a compatible competent alternative, the surviving alternative is part of the same D1 ambiguity and does not by itself make the relation partial_overlap. This rule never repairs a wrong source, different property, incompatible scope, narrow manifestation, or issue that merely shares a cause; those are not semantic equivalence. Do not emit a full ledger-by-release matrix. Release assessment coverage is identity-based: emit one row for every supplied issue_id even when two releases are semantic duplicates or share one cause/ledger mapping; never deduplicate release rows. The ledger matched_issue_ids, release accounted_ledger_ids, hit-eligible typed relations, hit booleans, false-positive boolean, reason, and basis must all describe the same decision. In particular, a release marked false positive must have accounted_ledger_ids=[] and must not have reason or basis claiming that it matches a frozen defect. Do not read baseline results, other pairs, other judge outputs, or historical examples. Every assessment, relation, and top-level response must contain non-empty reason and basis fields that explain the judgment and its supplied-input support. Write every generated assessment, reason, basis, and audit explanation in English; preserve non-English text only inside exact quotations or identifiers copied from supplied artifacts."""
-
-
 def _prompt_schema_hash() -> str:
-    """Hash every prompt contract and structured response schema used by a run."""
+    """Hash every method prompt contract and response schema used by a run."""
 
     return _hash_json(
         {
@@ -435,7 +221,6 @@ def _prompt_schema_hash() -> str:
                 "discovery_grounding": DISCOVERY_GROUNDING_SYSTEM_PROMPT,
                 "discovery_lenses": DISCOVERY_GROUNDING_AUDIT_LENSES,
                 "d_adjudication": D_SYSTEM_PROMPT,
-                "judge": JUDGE_SYSTEM_PROMPT,
             },
             "schemas": {
                 "nl_contract": NLContractResponse.model_json_schema(),
@@ -451,16 +236,6 @@ def _prompt_schema_hash() -> str:
                     ),
                 },
                 "d_adjudication": DAdjudicationResponse.model_json_schema(),
-                "judge": JudgeResponse.model_json_schema(),
-                "judge_exact_identity_contract": {
-                    "version": JUDGE_EXACT_IDENTITY_CONTRACT_VERSION,
-                    "base_schema": ExactJudgeResponse.model_json_schema(),
-                    "specialization": (
-                        "Per pair, ledger/release IDs become closed Literal sets; "
-                        "assessment lengths become exact; the inherited validator "
-                        "enforces unique identity closure and symmetric accounting."
-                    ),
-                },
             },
         }
     )
@@ -550,12 +325,6 @@ def _hash_json(value: Any) -> str:
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def _hash_file(path: Path) -> str:
-    """Hash one exact input file without parsing or exposing its contents."""
-
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def _retry_policy(transport_retries: int) -> dict[str, Any]:
     """Return the run-scoped retry and row-local billing contract."""
 
@@ -628,7 +397,7 @@ def _source_provenance() -> dict[str, Any]:
             source_branch=branch,
             source_dirty=dirty,
             reason=(
-                "The run records the exact clean tracked repository revision used to construct method and judge artifacts."
+                "The run records the exact clean tracked repository revision used to construct method artifacts."
                 if not dirty
                 else "The repository has tracked changes; fixture checks may proceed, but live execution must fail closed."
             ),
@@ -659,7 +428,6 @@ def _manifest_contract_payload(
     prompt_schema_hash: str,
     input_data_hash: str,
     pair_input_hashes: dict[str, str],
-    ledger_hash: str,
     rounds: int,
     selected_pair_ids: Sequence[str],
     scope: str,
@@ -680,7 +448,6 @@ def _manifest_contract_payload(
         "prompt_schema_hash": prompt_schema_hash,
         "input_data_hash": input_data_hash,
         "pair_input_hashes": dict(pair_input_hashes),
-        "ledger_hash": ledger_hash,
         "rounds": rounds,
         "selected_pair_ids": list(selected_pair_ids),
         "scope": scope,
@@ -702,7 +469,6 @@ def _prepare_run_manifest(
     prompt_schema_hash: str,
     input_data_hash: str,
     pair_input_hashes: dict[str, str],
-    ledger_hash: str,
     rounds: int,
     selected_pair_ids: Sequence[str],
     workers: int,
@@ -726,7 +492,6 @@ def _prepare_run_manifest(
         prompt_schema_hash=prompt_schema_hash,
         input_data_hash=input_data_hash,
         pair_input_hashes=pair_input_hashes,
-        ledger_hash=ledger_hash,
         rounds=rounds,
         selected_pair_ids=selected_pair_ids,
         scope=scope,
@@ -755,9 +520,7 @@ def _prepare_run_manifest(
         write_json(manifest_path, resumed.model_dump(mode="json"))
         return resumed
 
-    existing_cells = any((output_root / "method").glob("*/round-*.json")) or any(
-        (output_root / "judge").glob("*.json")
-    )
+    existing_cells = any((output_root / "method").glob("*/round-*.json"))
     if existing_cells:
         raise RuntimeError(
             "output directory contains pre-manifest cells; preserve it as a snapshot and use a new contract-compatible run directory"
@@ -780,7 +543,6 @@ def _prepare_run_manifest(
         prompt_schema_hash=prompt_schema_hash,
         input_data_hash=input_data_hash,
         pair_input_hashes=pair_input_hashes,
-        ledger_hash=ledger_hash,
         rounds=rounds,  # type: ignore[arg-type]
         selected_pair_ids=tuple(selected_pair_ids),
         scope=scope,  # type: ignore[arg-type]
@@ -791,7 +553,7 @@ def _prepare_run_manifest(
         started_at=now,
         updated_at=now,
         predecessor_snapshot=predecessor_snapshot,
-        reason="This manifest freezes the current method/judge code, registry, pair grid, transport policy, and resume identity before provider execution.",
+        reason="This manifest freezes the current method code, registry, pair grid, transport policy, and resume identity before provider execution.",
         basis="four-family-19-core.v1 plus the explicit live/full review gate and current clean Git commit",
     )
     write_json(manifest_path, manifest.model_dump(mode="json"))
@@ -1028,8 +790,7 @@ def _endpoint_stem(value: Any) -> str:
     if text.startswith("@initial:"):
         text = "[*]"
     text = text.lstrip("!")
-    if text.startswith("state:"):
-        text = text[len("state:") :]
+    text = text.removeprefix("state:")
     return text.rsplit(".", 1)[-1]
 
 
@@ -1492,7 +1253,7 @@ def _prepare_candidate(
     validate_plan(plan)
     try:
         receipt = run_backend(plan, pair.model, f"{obligation_id}:receipt")
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - backend failures become structured uncertainty
         # Backend failures are execution uncertainty, not violations. Preserve
         # a structured receipt so the candidate remains auditable and W cannot
         # be promoted by an exception path.
@@ -2089,7 +1850,7 @@ def _method_cell(
             grounding_responses,
             response.issues,
         )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - preserve the cell as a diagnostic receipt
         all_errors.append(
             {
                 "stage": "execute_batch",
@@ -2164,7 +1925,7 @@ def _method_cell(
                 contracts_by_id,
             )
             prepared_candidates.append(prepared)
-        except Exception as exc:  # preserve a cell-level diagnostic instead of losing a candidate
+        except Exception as exc:  # noqa: BLE001 - preserve candidate diagnostics
             errors.append({"candidate_index": index, "error_type": type(exc).__name__, "message": str(exc), "reason": "Candidate processing failed; the cell remains readable.", "basis": "Candidate-level diagnostic preservation."})
     finding_candidates = [
         item for item in prepared_candidates if _prepared_is_finding_candidate(item)
@@ -2545,7 +2306,7 @@ def _method_cell(
                 audit_path = output_root / "audit_bundles" / f"{record['issue_id']}.json"
                 write_json(audit_path, record["audit_bundle"])
                 record["audit_bundle_path"] = str(audit_path)
-        except Exception as exc:  # preserve a cell-level diagnostic instead of losing a candidate
+        except Exception as exc:  # noqa: BLE001 - preserve publication diagnostics
             errors.append({"candidate_index": index, "error_type": type(exc).__name__, "message": str(exc), "reason": "Candidate publication failed; the cell remains readable.", "basis": "Candidate-level diagnostic preservation."})
     release = _deduplicate_release_issues(release)
     publish_output = {
@@ -2663,392 +2424,6 @@ def _method_cell(
     return validated
 
 
-def _judge_ledger_projection(item: dict[str, Any]) -> dict[str, Any]:
-    """Project one frozen ledger row to the independent judge surface."""
-
-    return {
-        key: item[key]
-        for key in (
-            "id",
-            "pair",
-            "D",
-            "L",
-            "D_basis",
-            "L_basis",
-            "summary",
-            "detail",
-            "axes",
-        )
-        if key in item
-    }
-
-
-def _judge_issue_projection(issue: dict[str, Any]) -> dict[str, Any]:
-    """Project only the final D1/D2 semantic publication surface."""
-
-    audit = issue.get("audit_bundle") or {}
-    semantic = {
-        key: issue[key]
-        for key in (
-            "issue_id",
-            "contract_id",
-            "locus_kind",
-            "locus_names",
-            "property",
-            "violation_direction",
-            "evidence_types",
-            "title",
-            "requirement_quote",
-            "element_refs",
-            "source_refs",
-            "expected",
-            "observed",
-            "strongest_rebuttal",
-            "d_level",
-            "witness_level",
-        )
-        if key in issue
-    }
-    semantic["reason"] = (
-        issue.get("candidate_reason")
-        or issue.get("reason")
-        or "The release issue carries a deterministic method rationale."
-    )
-    semantic["basis"] = (
-        issue.get("candidate_basis")
-        or issue.get("basis")
-        or "method final-publication projection"
-    )
-    return semantic | {
-        "method_issue_hash": _hash_json(semantic),
-        "audit_reference": {
-            "pre_finalization_audit_hash": (
-                audit.get("pre_finalization_audit_hash")
-                or audit.get("audit_hash")
-            ),
-            "path": issue.get("audit_bundle_path"),
-            "reason": "The complete W2 audit bundle remains on disk; the judge receives its identity only.",
-            "basis": "semantic-judge-release-projection.v3",
-        },
-        "reason": semantic["reason"],
-        "basis": semantic["basis"],
-    }
-
-
-def _normalize_judge_shape(
-    response: JudgeResponse,
-    ledger_items: list[dict[str, Any]],
-    release: list[dict[str, Any]],
-    rounds: int,
-) -> JudgeResponse:
-    """Canonicalize exact-ID ordering without rewriting judge decisions."""
-
-    del ledger_items, release, rounds
-
-    normalized_ledger: list[LedgerAssessment] = []
-    for assessment in response.ledger_assessments:
-        matched_issue_ids = sorted(assessment.matched_issue_ids)
-        normalized_ledger.append(
-            assessment.model_copy(
-                update={"matched_issue_ids": matched_issue_ids}
-            )
-        )
-    normalized_release = [
-        assessment.model_copy(
-            update={
-                "accounted_ledger_ids": sorted(assessment.accounted_ledger_ids),
-            }
-        )
-        for assessment in response.release_assessments
-    ]
-    return response.model_copy(
-        update={
-            "ledger_assessments": normalized_ledger,
-            "release_assessments": normalized_release,
-        }
-    )
-
-
-def _judge_prompt(
-    pair: PairInput,
-    ledger_items: list[dict[str, Any]],
-    method_rounds: list[dict[str, Any]],
-    *,
-    response_schema_hash: str | None = None,
-) -> str:
-    """Build the independent pair-wide judge prompt from release issues only."""
-
-    compact_rounds: list[dict[str, Any]] = []
-    for cell in method_rounds:
-        compact_rounds.append(
-            {
-                "round": cell.get("round"),
-                "release_issue_clusters": [
-                    _judge_issue_projection(issue)
-                    for issue in cell.get("report_issue_clusters", [])
-                ],
-            }
-        )
-    required_release_ids = [
-        str(issue.get("issue_id"))
-        for cell in method_rounds
-        for issue in cell.get("report_issue_clusters", [])
-    ]
-    required_ledger_ids = [str(item["id"]) for item in ledger_items]
-    if response_schema_hash is None:
-        response_schema = _judge_response_contract(
-            ledger_ids=required_ledger_ids,
-            release_ids=required_release_ids,
-            rounds=len(method_rounds),
-        )
-        response_schema_hash = _hash_json(response_schema.model_json_schema())
-    required_shape = {
-        "identity_contract_version": JUDGE_EXACT_IDENTITY_CONTRACT_VERSION,
-        "response_schema_hash": response_schema_hash,
-        "ledger_assessment_count": len(required_ledger_ids),
-        "ledger_ids_exactly_once": required_ledger_ids,
-        "release_assessment_count": len(required_release_ids),
-        "release_issue_ids_exactly_once": required_release_ids,
-    }
-    return f"""Assess the supplied method rounds for frozen pair {pair.pair_id} as an independent judge.
-
-Frozen ledger entries (the judge's only ground-truth answer source; method generation did not read them):
-{json.dumps([_judge_ledger_projection(item) for item in ledger_items], ensure_ascii=False, sort_keys=True)}
-
-Final D1/D2 report issue clusters for all supplied method rounds (D0, stage receipts, compiler/backend details, and W2 audit bundles are excluded):
-{json.dumps(compact_rounds, ensure_ascii=False, sort_keys=True)}
-
-The exact Pydantic response shape for this request is:
-{json.dumps(required_shape, ensure_ascii=False, sort_keys=True)}
-You must emit each listed release ID exactly once. Do not emit any other
-release ID, even if a similarly named issue appears in another round. Emit each
-frozen ledger ID exactly once as well. The frozen ledger list is an array of
-objects: emit exactly one ledger assessment for each supplied object. Do not
-split one object into multiple assessments because its summary, detail, or
-D_basis describes multiple defect aspects; those aspects remain one ledger
-unit under its supplied ID.
-
-A hit requires the same locus, property, scope, and defect direction. For every
-claimed hit/accounting pair emit exactly one sparse relation_assessment. Only
-exact, semantic_equivalent, and candidate_subsumes_ledger can count as hits;
-the release's typed property and violation_direction are authoritative claim
-boundaries. Supporting observed/basis facts cannot silently convert a termination
-release into a wrong-scope route release or any other different property.
-candidate_subsumes_ledger must explain how the candidate logically establishes
-the complete ledger defect in entailment_basis using the candidate's own supplied
-claim. If the ledger explicitly enumerates multiple sibling scopes, events,
-states, or components, a candidate that covers only a subset cannot subsume it:
-use ledger_subsumes_candidate or partial_overlap even when both share an ancestor
-or root cause. Relation direction is literal: when a complete ledger names A+B
-but a candidate claims only A, the ledger subsumes that candidate; another
-candidate claiming only B cannot be unioned with A into a hit. Do not use ledger
-detail to add an absent sibling or component to the candidate. This completeness
-requirement also applies to semantic_equivalent:
-for example, if a ledger says owner P is missing required children A, B, and C,
-a release stating only that A is outside P is ledger_subsumes_candidate or
-partial_overlap, never semantic_equivalent, even though its owner and property
-match. ledger_subsumes_candidate,
-partial_overlap, same_cause_different_property, and unrelated do not count. A
-wrong source, narrow manifestation sharing only a cause, broader category,
-opposite direction, passing mention, reference-artifact complaint, or unrelated
-bundle is not a hit. For a D1 ledger, do not demand that the method release use
-the same D level or resolve the ambiguity: if both sides preserve compatible
-competent readings and their primary violating reading has the same owner or locus, counted property,
-normative scope, required direction, and shortfall, a surviving satisfying
-alternative is part of the same D1 defect and is not by itself partial_overlap.
-This D1 rule does not relax any locus/property/scope/direction requirement and
-must never repair a wrong source, different property, partial manifestation, or
-shared-cause issue. You may record plausible negative nearby relations, but do
-not emit the full ledger-by-release matrix. Emit one ledger assessment for every
-ledger_id with separate r1/r2/r3 decisions. Emit one release assessment for every
-release issue; set is_false_positive=true only when no hit-eligible relation
-accounts for it. The release reason and basis must agree with that boolean: if
-true, explain why no supplied ledger has the same locus/property/scope/direction
-and do not call it a match; if false, name the hit-eligible typed relation that
-accounts for it. Do not omit units. The top-level reason and basis must summarize
-the final ledger rows exactly: recount hits and misses after all relation decisions
-and do not retain an earlier draft count or list that contradicts those rows.
-Every assessment, relation, and top-level response must have non-empty reason and
-basis fields. Do not read baseline
-results, other pairs, historical judge examples, or files outside this input.
-"""
-
-
-def _read_ledger_for_pair(ledger_path: Path, pair_id: str) -> list[dict[str, Any]]:
-    data = json.loads(ledger_path.read_text(encoding="utf-8"))
-    items = data.get("items")
-    if not isinstance(items, dict):
-        raise ValueError("ledger.json items must be a mapping")
-    return [dict(item) for item in items.values() if item.get("pair") == pair_id]
-
-
-def _judge_contract_errors(
-    response: JudgeResponse,
-    *,
-    expected_ledger: Sequence[str],
-    expected_release: Sequence[str],
-    rounds: int,
-) -> list[str]:
-    """Validate exact judge identity closure without semantic guessing."""
-
-    def issue_round(issue_id: str) -> int | None:
-        parts = issue_id.split(":")
-        if len(parts) != 4 or parts[2] != "issue" or not parts[1].startswith("r"):
-            return None
-        try:
-            return int(parts[1][1:])
-        except ValueError:
-            return None
-
-    errors: list[str] = []
-    expected_ledger = set(expected_ledger)
-    expected_release = set(expected_release)
-    ledger_ids = [item.ledger_id for item in response.ledger_assessments]
-    release_ids = [item.issue_id for item in response.release_assessments]
-    def coverage_error(
-        *,
-        label: str,
-        id_name: str,
-        expected: set[str],
-        actual: list[str],
-    ) -> str | None:
-        counts = Counter(actual)
-        missing = sorted(expected - set(actual))
-        unknown = sorted(set(actual) - expected)
-        duplicates = sorted(item_id for item_id, count in counts.items() if count > 1)
-        if not missing and not unknown and not duplicates:
-            return None
-        return (
-            f"{label} must contain each supplied {id_name} exactly once; "
-            f"missing={json.dumps(missing, ensure_ascii=False)}; "
-            f"unknown={json.dumps(unknown, ensure_ascii=False)}; "
-            f"duplicates={json.dumps(duplicates, ensure_ascii=False)}"
-        )
-
-    ledger_coverage_error = coverage_error(
-        label="ledger_assessments",
-        id_name="ledger_id",
-        expected=expected_ledger,
-        actual=ledger_ids,
-    )
-    if ledger_coverage_error:
-        errors.append(ledger_coverage_error)
-    release_coverage_error = coverage_error(
-        label="release_assessments",
-        id_name="issue_id",
-        expected=expected_release,
-        actual=release_ids,
-    )
-    if release_coverage_error:
-        errors.append(release_coverage_error)
-    for assessment in response.ledger_assessments:
-        matched = set(assessment.matched_issue_ids)
-        unknown = matched - expected_release
-        if unknown:
-            errors.append(f"{assessment.ledger_id} references unknown release IDs {sorted(unknown)}")
-        for round_index in range(1, 4):
-            round_ids = {
-                issue_id
-                for issue_id in matched
-                if issue_round(issue_id) == round_index
-            }
-            hit = bool(getattr(assessment, f"hit_r{round_index}"))
-            if round_index <= rounds and hit != bool(round_ids):
-                errors.append(
-                    f"{assessment.ledger_id}.hit_r{round_index} must agree with matched_issue_ids from that round"
-                )
-            if round_index > rounds and hit:
-                errors.append(f"{assessment.ledger_id}.hit_r{round_index} is outside the supplied round count")
-    for assessment in response.release_assessments:
-        accounted = set(assessment.accounted_ledger_ids)
-        unknown = accounted - expected_ledger
-        if unknown:
-            errors.append(f"{assessment.issue_id} references unknown ledger IDs {sorted(unknown)}")
-        if assessment.is_false_positive != (not bool(accounted)):
-            errors.append(
-                f"{assessment.issue_id}.is_false_positive must equal whether accounted_ledger_ids is empty"
-            )
-    relation_pairs = [
-        (assessment.ledger_id, assessment.issue_id)
-        for assessment in response.relation_assessments
-    ]
-    if len(relation_pairs) != len(set(relation_pairs)):
-        errors.append(
-            "relation_assessments must contain at most one typed relation per ledger_id/issue_id pair"
-        )
-    for assessment in response.relation_assessments:
-        if assessment.ledger_id not in expected_ledger:
-            errors.append(
-                f"relation assessment references unknown ledger ID {assessment.ledger_id}"
-            )
-        if assessment.issue_id not in expected_release:
-            errors.append(
-                f"relation assessment references unknown release ID {assessment.issue_id}"
-            )
-    matched_relations = {
-        (assessment.ledger_id, issue_id)
-        for assessment in response.ledger_assessments
-        for issue_id in assessment.matched_issue_ids
-        if assessment.ledger_id in expected_ledger and issue_id in expected_release
-    }
-    accounted_relations = {
-        (ledger_id, assessment.issue_id)
-        for assessment in response.release_assessments
-        for ledger_id in assessment.accounted_ledger_ids
-        if ledger_id in expected_ledger and assessment.issue_id in expected_release
-    }
-    typed_hit_relations = {
-        (assessment.ledger_id, assessment.issue_id)
-        for assessment in response.relation_assessments
-        if assessment.relation in _HIT_JUDGE_RELATIONS
-        and assessment.ledger_id in expected_ledger
-        and assessment.issue_id in expected_release
-    }
-    if matched_relations and not response.relation_assessments:
-        errors.append(
-            "every claimed hit/accounting pair requires a typed relation_assessment"
-        )
-    if response.relation_assessments and matched_relations != typed_hit_relations:
-        errors.append(
-            "typed hit relations must exactly equal ledger/release accounting pairs; "
-            f"typed-only={sorted(typed_hit_relations - matched_relations)}; "
-            f"accounting-only={sorted(matched_relations - typed_hit_relations)}"
-        )
-    if matched_relations != accounted_relations:
-        ledger_side_only = sorted(matched_relations - accounted_relations)
-        release_side_only = sorted(accounted_relations - matched_relations)
-        errors.append(
-            "ledger matched_issue_ids and release accounted_ledger_ids must encode the same exact relation pairs; "
-            f"ledger-side-only={json.dumps(ledger_side_only, ensure_ascii=False)}; "
-            f"release-side-only={json.dumps(release_side_only, ensure_ascii=False)}"
-        )
-    return errors
-
-
-def _judge_shape_errors(
-    response: JudgeResponse,
-    ledger_items: list[dict[str, Any]],
-    release: list[dict[str, Any]],
-    rounds: int,
-) -> list[str]:
-    """Validate the persisted judge response against its supplied pair surface."""
-
-    return _judge_contract_errors(
-        response,
-        expected_ledger=tuple(str(item["id"]) for item in ledger_items),
-        expected_release=tuple(str(item["issue_id"]) for item in release),
-        rounds=rounds,
-    )
-
-
-def _closed_literal(values: tuple[str, ...]) -> Any:
-    """Build a closed Literal type for one non-empty runtime identity set."""
-
-    if not values:
-        raise ValueError("a closed Literal identity set cannot be empty")
-    return Literal.__getitem__(values)
-
-
 def _grounding_response_contract(
     contracts: Sequence[NLContract],
 ) -> type[ExactGroundingResponse]:
@@ -3096,7 +2471,7 @@ def _grounding_response_contract(
         "must also receive exactly one typed domain row in this lens, including an "
         "explicit ambiguous or unbound row when no exact reading closes. These "
         "structural checks have no authority over semantic discovery, W, D, L, "
-        "publish, or judge decisions."
+        "publication or external evaluation decisions."
     )
     response_model.expected_contract_ids = expected_contract_ids
     response_model.expected_cardinality_contract_ids = (
@@ -3107,655 +2482,97 @@ def _grounding_response_contract(
     return response_model
 
 
-def _judge_response_contract(
+def _method_metrics(
     *,
-    ledger_ids: Sequence[str],
-    release_ids: Sequence[str],
-    rounds: int,
-) -> type[ExactJudgeResponse]:
-    """Specialize the judge schema to one exact pair-wide identity surface.
-
-    Literal item IDs and exact list cardinalities guide structured generation;
-    the inherited validator closes uniqueness, references, round booleans, and
-    symmetric accounting. The specialization does not encode semantic matches.
-    """
-
-    expected_ledger = tuple(str(item_id) for item_id in ledger_ids)
-    expected_release = tuple(str(item_id) for item_id in release_ids)
-    if len(expected_ledger) != len(set(expected_ledger)):
-        raise ValueError("judge ledger input contains duplicate ledger IDs")
-    if len(expected_release) != len(set(expected_release)):
-        raise ValueError("judge release input contains duplicate issue IDs")
-    if rounds not in {1, 3}:
-        raise ValueError(f"judge response contract requires 1 or 3 rounds, got {rounds}")
-
-    contract_key = _hash_json(
-        {
-            "version": JUDGE_EXACT_IDENTITY_CONTRACT_VERSION,
-            "ledger_ids": expected_ledger,
-            "release_ids": expected_release,
-            "rounds": rounds,
-        }
-    ).removeprefix("sha256:")[:16]
-    ledger_model: type[LedgerAssessment] = LedgerAssessment
-    if expected_ledger:
-        ledger_model = create_model(
-            f"ExactLedgerAssessment_{contract_key}",
-            __base__=LedgerAssessment,
-            ledger_id=(
-                _closed_literal(expected_ledger),
-                Field(
-                    description=(
-                        "Exact frozen ledger ID from this pair-wide call's closed "
-                        "identity set; every allowed ID must occur once overall."
-                    )
-                ),
-            ),
-        )
-    release_model: type[ReleaseAssessment] = ReleaseAssessment
-    if expected_release:
-        release_model = create_model(
-            f"ExactReleaseAssessment_{contract_key}",
-            __base__=ReleaseAssessment,
-            issue_id=(
-                _closed_literal(expected_release),
-                Field(
-                    description=(
-                        "Exact released issue ID from this pair-wide call's closed "
-                        "identity set; semantic duplicates remain separate rows."
-                    )
-                ),
-            ),
-        )
-    relation_model: type[JudgeRelationAssessment] = JudgeRelationAssessment
-    if expected_ledger and expected_release:
-        relation_model = create_model(
-            f"ExactJudgeRelationAssessment_{contract_key}",
-            __base__=JudgeRelationAssessment,
-            ledger_id=(
-                _closed_literal(expected_ledger),
-                Field(description="Exact ledger ID from this call's closed identity set."),
-            ),
-            issue_id=(
-                _closed_literal(expected_release),
-                Field(description="Exact release issue ID from this call's closed identity set."),
-            ),
-        )
-
-    response_model = create_model(
-        f"ExactJudgeResponse_{contract_key}",
-        __base__=ExactJudgeResponse,
-        ledger_assessments=(
-            list[ledger_model],
-            Field(
-                ...,
-                min_length=len(expected_ledger),
-                max_length=len(expected_ledger),
-                description=(
-                    "Exactly one assessment for every ledger ID in this call's closed "
-                    "identity set; IDs may not be omitted, duplicated, or invented."
-                ),
-            ),
-        ),
-        release_assessments=(
-            list[release_model],
-            Field(
-                ...,
-                min_length=len(expected_release),
-                max_length=len(expected_release),
-                description=(
-                    "Exactly one assessment for every release issue ID in this call's "
-                    "closed identity set, including semantically duplicate releases."
-                ),
-            ),
-        ),
-        relation_assessments=(
-            list[relation_model],
-            Field(
-                ...,
-                max_length=len(expected_ledger) * len(expected_release),
-                description=(
-                    "Sparse typed relations over only this call's closed ledger/release "
-                    "identity sets; it is not a request for a full relation matrix."
-                ),
-            ),
-        ),
-    )
-    response_model.__doc__ = (
-        "Runtime-specialized independent pair-wide judge response. The schema "
-        "has authority over exact identity closure only, not semantic relations."
-    )
-    response_model.expected_ledger_ids = expected_ledger
-    response_model.expected_release_ids = expected_release
-    response_model.supplied_rounds = rounds
-    response_model.enforce_exact_identity_contract = True
-    response_model.model_rebuild(force=True)
-    return response_model
-
-
-def _judge_correction_prompt(
-    pair: PairInput,
-    ledger_items: list[dict[str, Any]],
-    method_rounds: list[dict[str, Any]],
-    previous_response: JudgeResponse,
-    errors: list[str],
-    *,
-    response_schema_hash: str | None = None,
-) -> str:
-    """Build a billed same-node correction prompt for judge shape failures."""
-
-    previous = json.dumps(
-        previous_response.model_dump(mode="json"),
-        ensure_ascii=False,
-        sort_keys=True,
-    )
-    required_ledger_ids = [str(item["id"]) for item in ledger_items]
-    required_release_ids = [
-        str(issue["issue_id"])
-        for cell in method_rounds
-        for issue in cell.get("report_issue_clusters", [])
-    ]
-    previous_ledger_ids = [
-        assessment.ledger_id for assessment in previous_response.ledger_assessments
-    ]
-    previous_release_ids = [
-        assessment.issue_id for assessment in previous_response.release_assessments
-    ]
-    previous_ledger_counts = Counter(previous_ledger_ids)
-    previous_release_counts = Counter(previous_release_ids)
-    typed_relations = {
-        (item.ledger_id, item.issue_id): item.relation
-        for item in previous_response.relation_assessments
-    }
-    ledger_accounting_pairs = {
-        (item.ledger_id, issue_id)
-        for item in previous_response.ledger_assessments
-        for issue_id in item.matched_issue_ids
-    }
-    release_accounting_pairs = {
-        (ledger_id, item.issue_id)
-        for item in previous_response.release_assessments
-        for ledger_id in item.accounted_ledger_ids
-    }
-    relation_accounting_rows = [
-        {
-            "ledger_id": ledger_id,
-            "issue_id": issue_id,
-            "typed_relation": typed_relations.get((ledger_id, issue_id)),
-            "typed_hit_eligible": (
-                typed_relations.get((ledger_id, issue_id))
-                in _HIT_JUDGE_RELATIONS
-            ),
-            "ledger_side_accounted": (
-                (ledger_id, issue_id) in ledger_accounting_pairs
-            ),
-            "release_side_accounted": (
-                (ledger_id, issue_id) in release_accounting_pairs
-            ),
-        }
-        for ledger_id, issue_id in sorted(
-            set(typed_relations)
-            | ledger_accounting_pairs
-            | release_accounting_pairs
-        )
-    ]
-    replacement_checklist = {
-        "required_ledger_ids": required_ledger_ids,
-        "previous_ledger_ids": previous_ledger_ids,
-        "missing_ledger_ids": [
-            item_id
-            for item_id in required_ledger_ids
-            if previous_ledger_counts[item_id] == 0
-        ],
-        "duplicate_ledger_ids": sorted(
-            item_id
-            for item_id, count in previous_ledger_counts.items()
-            if count > 1
-        ),
-        "required_release_issue_ids": required_release_ids,
-        "previous_release_issue_ids": previous_release_ids,
-        "missing_release_issue_ids": [
-            item_id
-            for item_id in required_release_ids
-            if previous_release_counts[item_id] == 0
-        ],
-        "duplicate_release_issue_ids": sorted(
-            item_id
-            for item_id, count in previous_release_counts.items()
-            if count > 1
-        ),
-        "relation_accounting_rows": relation_accounting_rows,
-    }
-    return (
-        _judge_prompt(
-            pair,
-            ledger_items,
-            method_rounds,
-            response_schema_hash=response_schema_hash,
-        )
-        + "\nPrevious pair-wide JudgeResponse to repair:\n"
-        + previous
-        + "\nExact complete-replacement identity checklist:\n"
-        + json.dumps(replacement_checklist, ensure_ascii=False, sort_keys=True)
-        + "\nThe previous response violated these deterministic shape contracts:\n- "
-        + "\n- ".join(errors)
-        + "\nReturn one complete replacement response. First carry forward every prior valid ledger and release assessment whose ID is required, preserving its semantic decision unless a listed relation error implicates it; then add every missing required row. Merge duplicate rows for one ledger ID into its single required row, and collapse release rows only when they repeat the same exact issue_id. Never deduplicate release assessment rows because their content, cause, locus, property, or ledger mapping is similar: identity coverage is by exact issue_id, and the final release issue ID set must equal required_release_issue_ids. Every claimed hit/accounting pair must have one typed relation_assessment, and hit-eligible typed relations must appear on both ledger/release accounting sides. Read every relation_accounting_rows item mechanically: typed_hit_eligible=true requires ledger_side_accounted=true and release_side_accounted=true; typed_hit_eligible=false requires both accounting booleans false unless you make and justify a new semantic decision that changes the typed relation itself. Multiple ledger_subsumes_candidate or partial_overlap rows cannot be unioned into one hit, so do not use words such as jointly, together, collectively, or combined to account subset candidates. For each listed ledger-side-only, release-side-only, or typed-relation inconsistency, make one semantic locus/property/scope/direction decision: if one candidate independently establishes the complete ledger defect, use exact, semantic_equivalent, or a fully justified candidate_subsumes_ledger; otherwise remove the accounting pair and optionally preserve its sparse negative relation. Whenever accounting changes, rewrite that assessment's reason and basis to describe the corrected decision; is_false_positive must equal whether accounted_ledger_ids is empty, and a false-positive row must not retain wording that claims a frozen-ledger match. Before returning, mechanically compare both assessment ID sets and every relation_accounting_rows pair with the checklist and verify that no required ID is missing. Do not add a relation merely to fill shape, do not create a full matrix, and do not leave a claimed pair on only one side. This is schema/coverage correction, not a provider retry. Every supplied unit still requires a semantic reason and basis.\n"
-    )
-
-
-def _judge_pair(
-    *,
-    pair: PairInput,
-    method_rounds: list[dict[str, Any]],
-    ledger_path: Path,
-    runtime: PublicStructuredRuntime,
-    output_root: Path,
-    run_identity: dict[str, Any],
-) -> dict[str, Any]:
-    """Run the pair-wide Judge with at most one shape correction."""
-
-    ledger_items = _read_ledger_for_pair(ledger_path, pair.pair_id)
-    judge_method_rounds = [
-        {
-            **cell,
-            "report_issue_clusters": (
-                cell.get("report_issue_clusters", [])
-                if cell.get("eligible") is True
-                else []
-            ),
-        }
-        for cell in method_rounds
-    ]
-    release = [
-        issue
-        for cell in judge_method_rounds
-        for issue in cell.get("report_issue_clusters", [])
-    ]
-    response_schema = _judge_response_contract(
-        ledger_ids=tuple(str(item["id"]) for item in ledger_items),
-        release_ids=tuple(str(item["issue_id"]) for item in release),
-        rounds=len(judge_method_rounds),
-    )
-    response_schema_hash = _hash_json(response_schema.model_json_schema())
-    prompt = _judge_prompt(
-        pair,
-        ledger_items,
-        judge_method_rounds,
-        response_schema_hash=response_schema_hash,
-    )
-    outcomes: list[StructuredCallOutcome[Any]] = []
-    errors: list[dict[str, Any]] = []
-    mode = "pair_wide"
-    outcome: StructuredCallOutcome[Any] = runtime.call(
-        kind="judge",
-        schema=response_schema,
-        system_prompt=JUDGE_SYSTEM_PROMPT,
-        prompt=prompt,
-        artifact_id=f"judge/{pair.pair_id}",
-        max_output_tokens=JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS,
-    )
-    outcomes.append(outcome)
-    response = outcome.response if outcome.succeeded else None
-    if response is not None:
-        response = _normalize_judge_shape(
-            response,
-            ledger_items,
-            release,
-            len(judge_method_rounds),
-        )
-    shape_errors = (
-        _judge_shape_errors(
-            response,
-            ledger_items,
-            release,
-            len(judge_method_rounds),
-        )
-        if response is not None
-        else ["pair-wide judge output unavailable"]
-    )
-    if response is not None and shape_errors:
-        correction: StructuredCallOutcome[Any] = runtime.call(
-            kind="judge_correction",
-            schema=response_schema,
-            system_prompt=JUDGE_SYSTEM_PROMPT,
-            prompt=_judge_correction_prompt(
-                pair,
-                ledger_items,
-                judge_method_rounds,
-                response,
-                shape_errors,
-                response_schema_hash=response_schema_hash,
-            ),
-            artifact_id=f"judge/{pair.pair_id}/shape-correction",
-            max_output_tokens=JUDGE_MAX_STRUCTURED_OUTPUT_TOKENS,
-        )
-        outcomes.append(correction)
-        if correction.succeeded:
-            response = _normalize_judge_shape(
-                correction.response,
-                ledger_items,
-                release,
-                len(judge_method_rounds),
-            )
-            shape_errors = _judge_shape_errors(
-                response,
-                ledger_items,
-                release,
-                len(judge_method_rounds),
-            )
-            if not shape_errors:
-                mode = "pair_wide_corrected"
-        else:
-            shape_errors.append("judge shape correction output unavailable")
-    if response is None or shape_errors:
-        errors.append(
-            {
-                "stage": "pair_wide_judge",
-                "error": "; ".join(shape_errors),
-                "reason": "Pair-wide judge output did not close its exact shape contract and was not converted to deterministic misses or false positives.",
-                "basis": "exact ledger/release ID coverage and reference validation",
-            }
-        )
-        response = None
-        mode = "judge_unavailable"
-    semantic_outcome = outcomes[-1] if response is not None else None
-    eligible = bool(
-        response is not None
-        and semantic_outcome is not None
-        and semantic_outcome.real_llm
-        and semantic_outcome.succeeded
-        and not _judge_shape_errors(
-            response,
-            ledger_items,
-            release,
-            len(judge_method_rounds),
-        )
-    )
-    payload = IndependentJudgeReceipt.model_validate({
-        "schema": JUDGE_SCHEMA,
-        "run_id": run_identity["run_id"],
-        "run_contract_hash": run_identity["run_contract_hash"],
-        "source_provenance": run_identity["source_provenance"],
-        "pair_id": pair.pair_id,
-        "pair_input_hash": run_identity["pair_input_hashes"][pair.pair_id],
-        "status": "completed" if eligible else "failed_with_receipt",
-        "eligible": eligible,
-        "eligibility_reasons": (
-            ["real_semantic_judgement", "exact_judge_shape_complete"]
-            if eligible
-            else ["fixture_or_incomplete_semantic_judgement"]
-        ),
-        "adjudication_mode": mode,
-        "ledger_count": len(ledger_items),
-        "release_count": len(release),
-        "ledger_source": str(ledger_path),
-        "prompt_hash": "sha256:" + hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
-        "response_schema_hash": response_schema_hash,
-        "llm_calls": [item.to_dict() for item in outcomes],
-        "llm_call": _aggregate_outcomes(outcomes, kind="judge"),
-        "judgement": response.model_dump(mode="json") if response is not None else None,
-        "errors": errors,
-        "reason": (
-            response.reason
-            if response is not None
-            else "Independent semantic judging did not close; no missing unit was converted to a miss or false positive."
-        ),
-        "basis": (
-            response.basis
-            if response is not None
-            else "public runtime failure receipts and exact judge shape diagnostics"
-        ),
-    }).model_dump(mode="json")
-    write_json(output_root / "judge" / f"{pair.pair_id}.json", payload)
-    return payload
-
-
-def _metrics(
-    *,
-    ledger_path: Path,
     pair_method: dict[str, list[dict[str, Any]]],
-    pair_judge: dict[str, dict[str, Any]],
     selected_pair_ids: Sequence[str],
-    rounds: int,
     ineligible_pair_ids: Sequence[str] = (),
 ) -> dict[str, Any]:
-    """Compute paired-eligible readings and fixed-grid conservative bounds."""
+    """Aggregate only method-owned eligibility, releases, D/W, and diagnostics."""
 
-    data = json.loads(ledger_path.read_text(encoding="utf-8"))
-    selected_pair_set = set(selected_pair_ids)
-    all_items = [
-        item
-        for item in data["items"].values()
-        if item.get("pair") in selected_pair_set
-    ]
-    dimensions = {
-        "overall": lambda item: True,
-        "L2": lambda item: item.get("L") == "L2",
-        "D2xL2": lambda item: item.get("D") == "D2" and item.get("L") == "L2",
-    }
-    metrics: dict[str, Any] = {}
-    assessment_map: dict[str, dict[str, LedgerAssessment]] = {}
-    for pair_id, payload in pair_judge.items():
-        judgement = payload.get("judgement")
-        if not payload.get("eligible") or not isinstance(judgement, dict):
-            continue
-        assessment_map[pair_id] = {
-            item["ledger_id"]: LedgerAssessment.model_validate(item)
-            for item in judgement["ledger_assessments"]
-        }
     forced_ineligible = set(ineligible_pair_ids)
-    cell_eligible = {
-        (pair_id, int(cell["round"])): bool(
-            cell.get("eligible") and pair_id not in forced_ineligible
-        )
+    all_cells = [cell for cells in pair_method.values() for cell in cells]
+    eligible_cells = [
+        cell
         for pair_id, cells in pair_method.items()
         for cell in cells
-    }
-    judge_eligible = {
-        pair_id: bool(payload.get("eligible") and pair_id not in forced_ineligible)
-        for pair_id, payload in pair_judge.items()
-    }
-    for name, selector in dimensions.items():
-        selected_items = [item for item in all_items if selector(item)]
-        full_positions = len(selected_items) * rounds
-        eligible_positions = 0
-        hit_positions = 0
-        hit_any = 0
-        hit_all_eligible = 0
-        conservative_hit_all = 0
-        entries_with_eligible = 0
-        eligible_round_counts: Counter[int] = Counter()
-        for item in selected_items:
-            pair_id = str(item["pair"])
-            assessment = assessment_map.get(pair_id, {}).get(item["id"])
-            item_eligible: list[bool] = []
-            item_hits: list[bool] = []
-            for round_index in range(1, rounds + 1):
-                eligible = bool(
-                    cell_eligible.get((pair_id, round_index), False)
-                    and judge_eligible.get(pair_id, False)
-                    and assessment is not None
-                )
-                item_eligible.append(eligible)
-                item_hits.append(
-                    bool(getattr(assessment, f"hit_r{round_index}"))
-                    if eligible and assessment is not None
-                    else False
-                )
-            eligible_count = sum(item_eligible)
-            eligible_round_counts[eligible_count] += 1
-            eligible_positions += eligible_count
-            hit_positions += sum(item_hits)
-            if eligible_count:
-                entries_with_eligible += 1
-                eligible_hits = [
-                    hit
-                    for hit, eligible in zip(item_hits, item_eligible)
-                    if eligible
-                ]
-                hit_any += int(any(eligible_hits))
-                hit_all_eligible += int(all(eligible_hits))
-            conservative_hit_all += int(all(item_hits))
-        metrics[name] = {
-            "entries": len(selected_items),
-            "paired_eligible": {
-                "positions": eligible_positions,
-                "full_grid_positions": full_positions,
-                "eligible_rate": eligible_positions / full_positions if full_positions else 0.0,
-                "entries_with_eligible_round": entries_with_eligible,
-                "eligible_round_count_distribution": {
-                    str(key): value for key, value in sorted(eligible_round_counts.items())
-                },
-                "hit_at_1": hit_positions,
-                "hit_at_1_rate": hit_positions / eligible_positions if eligible_positions else 0.0,
-                "hit_at_3": hit_any,
-                "hit_at_3_rate": hit_any / entries_with_eligible if entries_with_eligible else 0.0,
-                "hit_at_all": hit_all_eligible,
-                "hit_at_all_rate": hit_all_eligible / entries_with_eligible if entries_with_eligible else 0.0,
-            },
-            "full_grid_lower_bound": {
-                "positions": full_positions,
-                "hit_at_1": hit_positions,
-                "hit_at_1_rate": hit_positions / full_positions if full_positions else 0.0,
-                "hit_at_3": hit_any,
-                "hit_at_3_rate": hit_any / len(selected_items) if selected_items else 0.0,
-                "hit_at_all": conservative_hit_all,
-                "hit_at_all_rate": conservative_hit_all / len(selected_items) if selected_items else 0.0,
-            },
-        }
-    emissions = [
+        if cell.get("eligible") and pair_id not in forced_ineligible
+    ]
+    records = [
+        record
+        for cell in all_cells
+        for record in cell.get("evidence_records", [])
+    ]
+    releases = [
         issue
-        for cells in pair_method.values()
-        for cell in cells
+        for cell in all_cells
         for issue in cell.get("report_issue_clusters", [])
     ]
-    release_by_pair = {
-        pair_id: {
-            item["issue_id"]: item
-            for item in payload["judgement"]["release_assessments"]
-        }
-        for pair_id, payload in pair_judge.items()
-        if payload.get("eligible") and isinstance(payload.get("judgement"), dict)
-    }
-    eligible_emissions: list[dict[str, Any]] = []
-    unjudged_emissions: list[dict[str, Any]] = []
-    false_positive_ids: set[str] = set()
-    for issue in emissions:
-        pair_id = issue["issue_id"].split(":", 1)[0]
-        round_index = int(issue["issue_id"].split(":r", 1)[1].split(":", 1)[0])
-        assessment = release_by_pair.get(pair_id, {}).get(issue["issue_id"])
-        if cell_eligible.get((pair_id, round_index), False) and assessment is not None:
-            eligible_emissions.append(issue)
-            if assessment.get("is_false_positive"):
-                false_positive_ids.add(issue["issue_id"])
-        else:
-            unjudged_emissions.append(issue)
-    exact_fp_cause_keys = {
-        _hash_json(
-            {
-                "pair_id": issue["issue_id"].split(":", 1)[0],
-                "contract_id": issue.get("contract_id"),
-                "locus_kind": issue.get("locus_kind"),
-                "locus_names": issue.get("locus_names"),
-                "property": issue.get("property"),
-                "violation_direction": issue.get("violation_direction"),
-                "predicate_id": issue.get("predicate_id"),
-                "predicate_inputs": issue.get("predicate_inputs"),
-                "binding": issue.get("binding"),
-                "element_refs": issue.get("element_refs"),
-            }
-        )
-        for issue in eligible_emissions
-        if issue["issue_id"] in false_positive_ids
-    }
-    eligible_release_count = len(eligible_emissions)
-    fp = len(false_positive_ids)
-    all_release_count = len(emissions)
-    method_cell_count = sum(len(cells) for cells in pair_method.values())
-    eligible_method_cells = sum(int(value) for value in cell_eligible.values())
-    eligible_judges = sum(int(value) for value in judge_eligible.values())
-    per_pair_metrics: dict[str, dict[str, Any]] = {}
+    eligible_releases = [
+        issue
+        for pair_id, cells in pair_method.items()
+        if pair_id not in forced_ineligible
+        for cell in cells
+        if cell.get("eligible")
+        for issue in cell.get("report_issue_clusters", [])
+    ]
+    per_pair: dict[str, dict[str, Any]] = {}
     for pair_id in selected_pair_ids:
-        pair_items = [item for item in all_items if item.get("pair") == pair_id]
-        pair_assessments = assessment_map.get(pair_id, {})
         pair_cells = pair_method.get(pair_id, [])
-        pair_release = [
-            issue
-            for cell in pair_cells
-            for issue in cell.get("report_issue_clusters", [])
-        ]
-
-        def pair_dimension(selector: Any) -> dict[str, Any]:
-            dimension_items = [item for item in pair_items if selector(item)]
-            positions = 0
-            hits = 0
-            hit_any = 0
-            for item in dimension_items:
-                assessment = pair_assessments.get(item["id"])
-                round_hits: list[bool] = []
-                for round_index in range(1, rounds + 1):
-                    eligible = bool(
-                        cell_eligible.get((pair_id, round_index), False)
-                        and judge_eligible.get(pair_id, False)
-                        and assessment is not None
-                    )
-                    if eligible:
-                        positions += 1
-                        round_hits.append(bool(getattr(assessment, f"hit_r{round_index}")))
-                hits += sum(round_hits)
-                hit_any += int(any(round_hits))
-            return {
-                "entries": len(dimension_items),
-                "eligible_positions": positions,
-                "hit_at_1": hits,
-                "hit_at_1_rate": hits / positions if positions else 0.0,
-                "hit_at_3": hit_any,
-                "hit_at_3_rate": hit_any / len(dimension_items) if dimension_items else 0.0,
-            }
-
-        pair_release_assessments = release_by_pair.get(pair_id, {})
-        pair_eligible_release = [
-            issue
-            for issue in pair_release
-            if cell_eligible.get(
-                (
-                    pair_id,
-                    int(issue["issue_id"].split(":r", 1)[1].split(":", 1)[0]),
-                ),
-                False,
-            )
-            and issue["issue_id"] in pair_release_assessments
-        ]
-        pair_fp = sum(
-            int(pair_release_assessments[issue["issue_id"]].get("is_false_positive", False))
-            for issue in pair_eligible_release
-        )
-        records = [
+        pair_records = [
             record
             for cell in pair_cells
             for record in cell.get("evidence_records", [])
         ]
-        per_pair_metrics[pair_id] = {
-            "overall": pair_dimension(lambda item: True),
-            "L2": pair_dimension(lambda item: item.get("L") == "L2"),
-            "D2xL2": pair_dimension(
-                lambda item: item.get("D") == "D2" and item.get("L") == "L2"
-            ),
+        pair_releases = [
+            issue
+            for cell in pair_cells
+            for issue in cell.get("report_issue_clusters", [])
+        ]
+        pair_eligible_cells = [
+            cell
+            for cell in pair_cells
+            if cell.get("eligible") and pair_id not in forced_ineligible
+        ]
+        per_pair[pair_id] = {
             "method_cells": len(pair_cells),
-            "eligible_method_cells": sum(
-                int(cell_eligible.get((pair_id, int(cell["round"])), False))
-                for cell in pair_cells
+            "eligible_method_cells": len(pair_eligible_cells),
+            "release_issue_count": len(pair_releases),
+            "eligible_release_issue_count": sum(
+                len(cell.get("report_issue_clusters", []))
+                for cell in pair_eligible_cells
             ),
-            "judge_eligible": judge_eligible.get(pair_id, False),
-            "release_issue_count": len(pair_release),
-            "eligible_release_issue_count": len(pair_eligible_release),
-            "false_positive": pair_fp,
-            "precision": (
-                (len(pair_eligible_release) - pair_fp) / len(pair_eligible_release)
-                if pair_eligible_release
-                else 0.0
+            "evidence_record_count": len(pair_records),
+            "witness_levels": dict(
+                Counter(record.get("witness_level") for record in pair_records)
             ),
-            "witness_levels": dict(Counter(record.get("witness_level") for record in records)),
+            "d_levels": dict(
+                Counter(record.get("d_level") for record in pair_records)
+            ),
+            "unresolved_or_error_records": sum(
+                int(
+                    record.get("d_level") == "D_UNRESOLVED"
+                    or record.get("witness_level") == "UNKNOWN"
+                )
+                for record in pair_records
+            ),
+            "method_diagnostics": sum(
+                len(cell.get("errors", [])) for cell in pair_cells
+            ),
+        }
+    return {
+        "method": {
+            "method_cells": len(all_cells),
+            "eligible_method_cells": len(eligible_cells),
+            "method_cell_eligible_rate": (
+                len(eligible_cells) / len(all_cells) if all_cells else 0.0
+            ),
+            "release_issue_count": len(releases),
+            "eligible_release_issue_count": len(eligible_releases),
+            "evidence_record_count": len(records),
+            "witness_levels": dict(
+                Counter(record.get("witness_level") for record in records)
+            ),
             "d_levels": dict(Counter(record.get("d_level") for record in records)),
             "unresolved_or_error_records": sum(
                 int(
@@ -3764,38 +2581,11 @@ def _metrics(
                 )
                 for record in records
             ),
-            "method_diagnostics": sum(len(cell.get("errors", [])) for cell in pair_cells),
-            "judge_diagnostics": len(pair_judge.get(pair_id, {}).get("errors", [])),
-        }
-    return {
-        "overall": metrics,
-        "eligibility": {
-            "method_cells": method_cell_count,
-            "eligible_method_cells": eligible_method_cells,
-            "method_cell_eligible_rate": eligible_method_cells / method_cell_count if method_cell_count else 0.0,
-            "judge_pairs": len(pair_judge),
-            "eligible_judge_pairs": eligible_judges,
-            "judge_pair_eligible_rate": eligible_judges / len(pair_judge) if pair_judge else 0.0,
-        },
-        "emissions": {
-            "all_release_issue_count": all_release_count,
-            "eligible_release_issue_count": eligible_release_count,
-            "unjudged_or_ineligible_release_issue_count": len(unjudged_emissions),
-            "false_positive": fp,
-            "ledger_accounted": eligible_release_count - fp,
-            "precision": (eligible_release_count - fp) / eligible_release_count if eligible_release_count else 0.0,
-            "full_grid_precision_lower_bound": (
-                (eligible_release_count - fp) / all_release_count
-                if all_release_count
-                else 0.0
+            "method_diagnostics": sum(
+                len(cell.get("errors", [])) for cell in all_cells
             ),
-            "unique_exact_cause_false_positive": len(exact_fp_cause_keys),
         },
-        "method_quality": {
-            "witness_levels": dict(Counter(record.get("witness_level") for cells in pair_method.values() for cell in cells for record in cell.get("evidence_records", []))),
-            "d_levels": dict(Counter(record.get("d_level") for cells in pair_method.values() for cell in cells for record in cell.get("evidence_records", []))),
-        },
-        "per_pair": per_pair_metrics,
+        "per_pair": per_pair,
     }
 
 
@@ -3857,75 +2647,6 @@ def _failure_method_cell(
     return validated
 
 
-def _failure_judge_payload(
-    *,
-    pair_id: str,
-    ledger_path: Path,
-    release: list[dict[str, Any]],
-    output_root: Path,
-    error: BaseException,
-    run_identity: dict[str, Any],
-) -> dict[str, Any]:
-    try:
-        ledger_items = _read_ledger_for_pair(ledger_path, pair_id)
-        ledger_error = None
-    except Exception as ledger_exc:
-        ledger_items = []
-        ledger_error = {
-            "error_type": type(ledger_exc).__name__,
-            "message": str(ledger_exc),
-            "reason": "The frozen ledger could not be loaded; no semantic position was fabricated.",
-            "basis": "ledger read failure receipt",
-        }
-    payload = {
-        "schema": JUDGE_SCHEMA,
-        "run_id": run_identity["run_id"],
-        "run_contract_hash": run_identity["run_contract_hash"],
-        "source_provenance": run_identity["source_provenance"],
-        "pair_id": pair_id,
-        "pair_input_hash": run_identity.get("pair_input_hashes", {}).get(
-            pair_id, "sha256:" + "0" * 64
-        ),
-        "status": "failed_with_receipt",
-        "eligible": False,
-        "eligibility_reasons": ["judge_setup_failure_unadjudicated"],
-        "adjudication_mode": "not_started",
-        "ledger_count": len(ledger_items),
-        "release_count": len(release),
-        "ledger_source": str(ledger_path),
-        "prompt_hash": None,
-        "response_schema_hash": None,
-        "llm_call": {
-            "kind": "judge",
-            "status": "not_started",
-            "real_llm": False,
-            "response": None,
-            "result": {},
-            "attempts": [],
-            "usage": [],
-            "cost": {"eligible": True, "total_usd": 0.0, "attempts": []},
-            "reason": "The independent judge provider path did not start.",
-            "basis": "pair-level judge setup failure receipt",
-        },
-        "llm_calls": [],
-        "judgement": None,
-        "reason": "The independent judge did not start; every required relation remains explicitly unadjudicated rather than becoming a miss or false positive.",
-        "basis": "deterministic no-silent-drop and no-fabricated-judgement failure contract",
-        "errors": [
-            {
-                "error_type": type(error).__name__,
-                "message": str(error),
-                "reason": "judge setup failure receipt",
-                "basis": "pair-level orchestration diagnostic",
-            },
-            *([ledger_error] if ledger_error else []),
-        ],
-    }
-    validated = IndependentJudgeReceipt.model_validate(payload).model_dump(mode="json")
-    write_json(output_root / "judge" / f"{pair_id}.json", validated)
-    return validated
-
-
 def _write_pair_status(
     output_root: Path,
     pair_id: str,
@@ -3933,11 +2654,11 @@ def _write_pair_status(
 ) -> dict[str, Any]:
     payload = PairRunStatus.model_validate(
         {
-            "schema": "evidence-discovery.pair_status.v2",
+            "schema": "evidence-discovery.pair_status.v3",
             "pair_id": pair_id,
             **status,
-            "reason": status.get("reason", "Pair status was computed from terminal method and judge receipts."),
-            "basis": status.get("basis", "frozen protocol cells, judge receipt, usage, and run contract"),
+            "reason": status.get("reason", "Pair status was computed from terminal method receipts and W2 audits."),
+            "basis": status.get("basis", "frozen method cells, W2 audit links, usage, and run contract"),
         }
     )
     write_json(
@@ -4015,47 +2736,14 @@ def _read_compatible_method_cell(
         return None
 
 
-def _read_compatible_judge(
-    path: Path,
-    *,
-    output_root: Path,
-    pair_id: str,
-    run_identity: dict[str, Any],
-) -> dict[str, Any] | None:
-    if not path.is_file():
-        return None
-    try:
-        receipt = IndependentJudgeReceipt.model_validate_json(
-            path.read_text(encoding="utf-8")
-        )
-        if receipt.run_id != run_identity["run_id"]:
-            raise ValueError("run_id mismatch")
-        if receipt.run_contract_hash != run_identity["run_contract_hash"]:
-            raise ValueError("run contract hash mismatch")
-        if receipt.pair_id != pair_id:
-            raise ValueError("pair mismatch")
-        if receipt.pair_input_hash != run_identity["pair_input_hashes"][pair_id]:
-            raise ValueError("pair input hash mismatch")
-        if receipt.source_provenance.model_dump(mode="json") != run_identity["source_provenance"]:
-            raise ValueError("source provenance mismatch")
-        return receipt.model_dump(mode="json")
-    except (OSError, ValueError, json.JSONDecodeError) as exc:
-        _quarantine_incompatible(
-            path,
-            output_root=output_root,
-            reason=f"Judge receipt is incompatible: {type(exc).__name__}: {exc}",
-        )
-        return None
-
-
 def _load_pair_receipts(
     *,
     output_root: Path,
     pair_id: str,
     rounds: int,
     run_identity: dict[str, Any],
-) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
-    """Load only a contiguous compatible method prefix and its terminal judge."""
+) -> list[dict[str, Any]]:
+    """Load only a contiguous compatible method-cell prefix."""
 
     rounds_data: list[dict[str, Any]] = []
     missing_predecessor = False
@@ -4080,22 +2768,7 @@ def _load_pair_receipts(
             missing_predecessor = True
         else:
             rounds_data.append(cell)
-
-    judge_path = output_root / "judge" / f"{pair_id}.json"
-    if len(rounds_data) != rounds:
-        if judge_path.exists():
-            _quarantine_incompatible(
-                judge_path,
-                output_root=output_root,
-                reason="Judge receipt cannot resume before all compatible method rounds are terminal.",
-            )
-        return rounds_data, None
-    return rounds_data, _read_compatible_judge(
-        judge_path,
-        output_root=output_root,
-        pair_id=pair_id,
-        run_identity=run_identity,
-    )
+    return rounds_data
 
 
 def _cost_total(receipt: dict[str, Any]) -> float:
@@ -4108,12 +2781,9 @@ def _finalize_w2_audit_links(
     output_root: Path,
     pair_id: str,
     rounds_data: list[dict[str, Any]],
-    judge: dict[str, Any],
 ) -> None:
-    """Link external W2 bundles to immutable method and judge receipts."""
+    """Link W2 bundles to immutable method receipts and leave Judge pending."""
 
-    judge_hash = _hash_json(judge)
-    judge_path = output_root / "judge" / f"{pair_id}.json"
     for cell in rounds_data:
         method_path = (
             output_root
@@ -4139,8 +2809,10 @@ def _finalize_w2_audit_links(
             finalization = bundle.get("audit_finalization")
             if (
                 isinstance(finalization, dict)
-                and finalization.get("judge_receipt_hash") == judge_hash
+                and finalization.get("method_receipt_hash") == method_hash
                 and bundle.get("method_receipt", {}).get("sha256") == method_hash
+                and bundle.get("judge_receipt", {}).get("status")
+                == "pending_independent_judge"
             ):
                 continue
             if bundle.get("pre_finalization_audit_hash") is None:
@@ -4155,29 +2827,23 @@ def _finalize_w2_audit_links(
                 "pair_input_hash": cell.get("pair_input_hash"),
                 "status": cell.get("status"),
                 "eligible": cell.get("eligible"),
-                "reason": "This is the exact terminal method receipt evaluated at the independent judge boundary.",
-                "basis": "atomically written v2 method-cell JSON",
+                "reason": "This is the exact terminal method receipt that owns the W2 evidence bundle.",
+                "basis": "atomically written method-cell JSON",
             }
             bundle["judge_receipt"] = {
-                "schema": judge.get("schema"),
-                "path": str(judge_path),
-                "sha256": judge_hash,
-                "run_id": judge.get("run_id"),
-                "run_contract_hash": judge.get("run_contract_hash"),
-                "status": judge.get("status"),
-                "eligible": judge.get("eligible"),
-                "adjudication_mode": judge.get("adjudication_mode"),
-                "reason": judge.get("reason"),
-                "basis": judge.get("basis"),
+                "status": "pending_independent_judge",
+                "protocol": "semantic-judge.two-stage.v3.2",
+                "reason": "Formal validity, relation, hit, and FP are produced only by the external frozen evaluation layer.",
+                "basis": "method/evaluation physical isolation boundary",
             }
             bundle["audit_finalization"] = {
                 "finalized_at": datetime.now(timezone.utc).isoformat(),
-                "judge_receipt_hash": judge_hash,
+                "method_receipt_hash": method_hash,
                 "pre_finalization_audit_hash": bundle[
                     "pre_finalization_audit_hash"
                 ],
-                "reason": "The external W2 bundle was finalized only after method and judge receipts became terminal.",
-                "basis": "method-before-judge orchestration and atomic receipt writes",
+                "reason": "The W2 bundle was finalized when its owning method receipt became terminal; independent evaluation remains pending.",
+                "basis": "method-only orchestration and atomic receipt writes",
             }
             write_json(audit_path, validate_and_hash_w2_audit_bundle(bundle))
 
@@ -4187,33 +2853,24 @@ def _pair_status(
     pair_id: str,
     started_at: str,
     rounds_data: list[dict[str, Any]],
-    judge: dict[str, Any],
     run_identity: dict[str, Any],
     audit_errors: int = 0,
     resume_action: str = "reconstructed_terminal_status",
 ) -> dict[str, Any]:
     method_errors = sum(len(cell.get("errors", [])) for cell in rounds_data)
-    judge_errors = len(judge.get("errors", []))
     method_eligible = sum(int(bool(cell.get("eligible"))) for cell in rounds_data)
-    judge_eligible = bool(judge.get("eligible"))
     method_cost_eligible = all(
         bool(cell.get("llm_call", {}).get("cost", {}).get("eligible"))
         for cell in rounds_data
     )
-    judge_cost_eligible = bool(
-        judge.get("llm_call", {}).get("cost", {}).get("eligible")
-    )
     failed = bool(
         audit_errors
         or any(cell.get("status") == "failed_with_receipt" for cell in rounds_data)
-        or judge.get("status") == "failed_with_receipt"
     )
     clean = bool(
         not failed
         and method_errors == 0
-        and judge_errors == 0
         and method_eligible == len(rounds_data)
-        and judge_eligible
         and all(cell.get("status") == "completed" for cell in rounds_data)
     )
     status = "failed_with_receipt" if failed else "completed" if clean else "completed_with_diagnostics"
@@ -4225,16 +2882,12 @@ def _pair_status(
         "started_at": started_at,
         "method_cells": len(rounds_data),
         "eligible_method_cells": method_eligible,
-        "judge_status": str(judge.get("status", "failed_with_receipt")),
-        "judge_eligible": judge_eligible,
-        "errors": method_errors + judge_errors + audit_errors,
+        "errors": method_errors + audit_errors,
         "audit_errors": audit_errors,
         "method_cost_usd": sum(_cost_total(cell) for cell in rounds_data),
         "method_cost_eligible": method_cost_eligible,
-        "judge_cost_usd": _cost_total(judge),
-        "judge_cost_eligible": judge_cost_eligible,
-        "reason": "Pair status was derived only from complete method cells, judge coverage, diagnostics, and audited usage.",
-        "basis": "v2 method/judge receipts sharing the exact run contract and pair input identity",
+        "reason": "Pair status was derived only from complete method cells, W2 audit links, diagnostics, and audited usage.",
+        "basis": "method receipts sharing the exact run contract and pair input identity",
     }
 
 
@@ -4243,7 +2896,6 @@ def _finalize_w2_audit_links_with_receipt(
     output_root: Path,
     pair_id: str,
     rounds_data: list[dict[str, Any]],
-    judge: dict[str, Any],
 ) -> int:
     """Keep an audit-finalization bug local to one pair and preserve its cause."""
 
@@ -4252,10 +2904,9 @@ def _finalize_w2_audit_links_with_receipt(
             output_root=output_root,
             pair_id=pair_id,
             rounds_data=rounds_data,
-            judge=judge,
         )
         return 0
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - audit failures must terminalize as receipts
         write_json(
             output_root / "pairs" / pair_id / f"audit-finalization-error-{uuid.uuid4().hex}.json",
             {
@@ -4264,8 +2915,8 @@ def _finalize_w2_audit_links_with_receipt(
                 "error_type": type(exc).__name__,
                 "message": str(exc),
                 "status": "error",
-                "reason": "A W2 bundle could not be linked to terminal method/judge receipts; the pair is failed with a receipt and the batch continues.",
-                "basis": "W2 v2 Pydantic validation and active run-root path boundary",
+                "reason": "A W2 bundle could not be linked to its terminal method receipt; the pair is failed with a receipt and the batch continues.",
+                "basis": "W2 Pydantic validation and active run-root path boundary",
             },
         )
         return 1
@@ -4302,13 +2953,12 @@ def _terminalize_pair_failure(
     *,
     pair_id: str,
     rounds: int,
-    ledger_path: Path,
     output_root: Path,
     run_identity: dict[str, Any],
     started_at: str,
     error: BaseException,
 ) -> dict[str, Any]:
-    rounds_data, judge = _load_pair_receipts(
+    rounds_data = _load_pair_receipts(
         output_root=output_root,
         pair_id=pair_id,
         rounds=rounds,
@@ -4324,31 +2974,15 @@ def _terminalize_pair_failure(
                 run_identity=run_identity,
             )
         )
-    if judge is None:
-        release = [
-            issue
-            for cell in rounds_data
-            for issue in cell.get("report_issue_clusters", [])
-        ]
-        judge = _failure_judge_payload(
-            pair_id=pair_id,
-            ledger_path=ledger_path,
-            release=release,
-            output_root=output_root,
-            error=error,
-            run_identity=run_identity,
-        )
     audit_errors = _finalize_w2_audit_links_with_receipt(
         output_root=output_root,
         pair_id=pair_id,
         rounds_data=rounds_data,
-        judge=judge,
     )
     status = _pair_status(
         pair_id=pair_id,
         started_at=started_at,
         rounds_data=rounds_data,
-        judge=judge,
         run_identity=run_identity,
         audit_errors=audit_errors,
         resume_action="terminalized_after_error",
@@ -4362,7 +2996,6 @@ def _run_pair_worker(task: dict[str, Any]) -> dict[str, Any]:
     pair_id = str(task["pair_id"])
     rounds = int(task["rounds"])
     output_root = Path(task["output_root"])
-    ledger_path = Path(task["ledger_path"])
     report_root = Path(task["report_root"])
     run_identity = dict(task["run_identity"])
     started_at = _pair_started_at(
@@ -4372,24 +3005,22 @@ def _run_pair_worker(task: dict[str, Any]) -> dict[str, Any]:
     )
     runtime: Any | None = None
     try:
-        rounds_data, judge = _load_pair_receipts(
+        rounds_data = _load_pair_receipts(
             output_root=output_root,
             pair_id=pair_id,
             rounds=rounds,
             run_identity=run_identity,
         )
-        if len(rounds_data) == rounds and judge is not None:
+        if len(rounds_data) == rounds:
             audit_errors = _finalize_w2_audit_links_with_receipt(
                 output_root=output_root,
                 pair_id=pair_id,
                 rounds_data=rounds_data,
-                judge=judge,
             )
             status = _pair_status(
                 pair_id=pair_id,
                 started_at=started_at,
                 rounds_data=rounds_data,
-                judge=judge,
                 run_identity=run_identity,
                 audit_errors=audit_errors,
                 resume_action="skipped_compatible_terminal",
@@ -4416,26 +3047,15 @@ def _run_pair_worker(task: dict[str, Any]) -> dict[str, Any]:
                 run_identity=run_identity,
             )
             rounds_data.append(cell)
-        if judge is None:
-            judge = _judge_pair(
-                pair=pair,
-                method_rounds=rounds_data,
-                ledger_path=ledger_path,
-                runtime=runtime,
-                output_root=output_root,
-                run_identity=run_identity,
-            )
         audit_errors = _finalize_w2_audit_links_with_receipt(
             output_root=output_root,
             pair_id=pair_id,
             rounds_data=rounds_data,
-            judge=judge,
         )
         status = _pair_status(
             pair_id=pair_id,
             started_at=started_at,
             rounds_data=rounds_data,
-            judge=judge,
             run_identity=run_identity,
             audit_errors=audit_errors,
             resume_action=(
@@ -4443,11 +3063,10 @@ def _run_pair_worker(task: dict[str, Any]) -> dict[str, Any]:
             ),
         )
         return _write_pair_status(output_root, pair_id, status)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - pair failures must terminalize as receipts
         return _terminalize_pair_failure(
             pair_id=pair_id,
             rounds=rounds,
-            ledger_path=ledger_path,
             output_root=output_root,
             run_identity=run_identity,
             started_at=started_at,
@@ -4461,7 +3080,6 @@ def _run_pair_worker(task: dict[str, Any]) -> dict[str, Any]:
 def run_experiment(
     *,
     report_root: str | Path,
-    ledger_path: str | Path,
     output_dir: str | Path,
     profile: str = "gpt-5.6-luna",
     rounds: int = 3,
@@ -4514,7 +3132,6 @@ def run_experiment(
                 raise RuntimeError("live diagnostic runs are capped at six explicit pair IDs")
 
     report_root_path = Path(report_root).expanduser().resolve()
-    ledger = Path(ledger_path).expanduser().resolve()
     source_provenance = _source_provenance()
     if profile != "fixture" and (
         source_provenance["source_dirty"]
@@ -4533,13 +3150,7 @@ def run_experiment(
         report_root_path,
         selected_pair_ids,
     )
-    ledger_hash = _hash_file(ledger)
-    input_data_hash = _hash_json(
-        {
-            "pair_input_hashes": pair_input_hashes,
-            "judge_only_ledger_hash": ledger_hash,
-        }
-    )
+    input_data_hash = _hash_json({"pair_input_hashes": pair_input_hashes})
     prompt_schema_hash = _prompt_schema_hash()
     manifest = _prepare_run_manifest(
         output_root=output_root,
@@ -4551,7 +3162,6 @@ def run_experiment(
         prompt_schema_hash=prompt_schema_hash,
         input_data_hash=input_data_hash,
         pair_input_hashes=pair_input_hashes,
-        ledger_hash=ledger_hash,
         rounds=rounds,
         selected_pair_ids=selected_pair_ids,
         workers=workers,
@@ -4571,7 +3181,6 @@ def run_experiment(
             "pair_id": pair_id,
             "rounds": rounds,
             "output_root": str(output_root),
-            "ledger_path": str(ledger),
             "report_root": str(report_root_path),
             "run_identity": run_identity,
             "profile": profile,
@@ -4594,11 +3203,10 @@ def run_experiment(
                 pair_id = futures[future]
                 try:
                     future.result()
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 - worker failures must terminalize
                     _terminalize_pair_failure(
                         pair_id=pair_id,
                         rounds=rounds,
-                        ledger_path=ledger,
                         output_root=output_root,
                         run_identity=run_identity,
                         started_at=datetime.now(timezone.utc).isoformat(),
@@ -4606,35 +3214,32 @@ def run_experiment(
                     )
 
     pair_method: dict[str, list[dict[str, Any]]] = {}
-    pair_judge: dict[str, dict[str, Any]] = {}
     per_pair: dict[str, dict[str, Any]] = {}
     for pair_id in selected_pair_ids:
-        rounds_data, judge = _load_pair_receipts(
+        rounds_data = _load_pair_receipts(
             output_root=output_root,
             pair_id=pair_id,
             rounds=rounds,
             run_identity=run_identity,
         )
-        if len(rounds_data) != rounds or judge is None:
+        if len(rounds_data) != rounds:
             _terminalize_pair_failure(
                 pair_id=pair_id,
                 rounds=rounds,
-                ledger_path=ledger,
                 output_root=output_root,
                 run_identity=run_identity,
                 started_at=datetime.now(timezone.utc).isoformat(),
                 error=RuntimeError("pair worker returned without a complete terminal receipt set"),
             )
-            rounds_data, judge = _load_pair_receipts(
+            rounds_data = _load_pair_receipts(
                 output_root=output_root,
                 pair_id=pair_id,
                 rounds=rounds,
                 run_identity=run_identity,
             )
-        if len(rounds_data) != rounds or judge is None:
+        if len(rounds_data) != rounds:
             raise RuntimeError(f"pair {pair_id} could not be terminalized")
         pair_method[pair_id] = rounds_data
-        pair_judge[pair_id] = judge
         status_path = output_root / "pairs" / pair_id / "status.json"
         try:
             status = PairRunStatus.model_validate_json(
@@ -4654,17 +3259,13 @@ def run_experiment(
                     pair_id=pair_id,
                     started_at=datetime.now(timezone.utc).isoformat(),
                     rounds_data=rounds_data,
-                    judge=judge,
                     run_identity=run_identity,
                 ),
             )
 
-    metrics = _metrics(
-        ledger_path=ledger,
+    metrics = _method_metrics(
         pair_method=pair_method,
-        pair_judge=pair_judge,
         selected_pair_ids=selected_pair_ids,
-        rounds=rounds,
         ineligible_pair_ids=[
             pair_id
             for pair_id, row in per_pair.items()
@@ -4676,17 +3277,11 @@ def run_experiment(
         for cells in pair_method.values()
         for cell in cells
     )
-    judge_cost = sum(_cost_total(payload) for payload in pair_judge.values())
-    all_cost_eligible = all(
-        row["method_cost_eligible"] and row["judge_cost_eligible"]
-        for row in per_pair.values()
-    )
+    all_cost_eligible = all(row["method_cost_eligible"] for row in per_pair.values())
     metrics["cost"] = {
         "eligible": all_cost_eligible,
         "method_usd": method_cost,
-        "judge_usd": judge_cost,
-        "total_usd": method_cost + judge_cost,
-        "reason": "Method and independent judge costs remain separate and use row-local provider retry exemptions.",
+        "reason": "The method cost uses row-local provider retry exemptions and excludes all independent evaluation calls.",
         "basis": "public utils.llm pricing and per-call normalized usage receipts",
     }
     final_status = (
@@ -4728,9 +3323,7 @@ def run_experiment(
             ),
         },
         method_cell_count=sum(len(value) for value in pair_method.values()),
-        judge_pair_count=len(pair_judge),
         method_cost_usd=method_cost,
-        judge_cost_usd=judge_cost,
         metrics=metrics,
         per_pair=per_pair,
         failed_pairs=[
@@ -4747,22 +3340,21 @@ def run_experiment(
             or not cell.get("eligible")
         ],
         predecessor_snapshot=predecessor_snapshot,
-        reason="Every selected pair has terminal method and independent-judge receipts under one strict run identity.",
-        basis="four-family-19-core.v1, v2 run manifest, exact input closure hashes, and no-fabricated-judge metrics",
+        reason="Every selected pair has terminal method receipts and method-owned W2 audits under one strict run identity.",
+        basis="four-family-19-core.v1, v3 method-only run manifest, and exact input closure hashes",
     ).model_dump(mode="json")
     write_json(output_root / "summary.json", summary)
     write_markdown_summary(output_root / "SUMMARY.md", summary)
     write_json(
         output_root / "audit_index.json",
         {
-            "schema": "evidence-discovery.audit_index.v2",
+            "schema": "evidence-discovery.audit_index.v3",
             "run_id": manifest.run_id,
             "run_contract_hash": manifest.run_contract_hash,
             "pairs": per_pair,
             "method_cell_count": summary["method_cell_count"],
-            "judge_pair_count": summary["judge_pair_count"],
             "reason": "The index points only to artifacts validated under the active run identity.",
-            "basis": "v2 method, judge, pair-status, and run-summary receipts",
+            "basis": "v3 method-only pair-status and run-summary receipts",
         },
     )
     final_manifest = manifest.model_copy(

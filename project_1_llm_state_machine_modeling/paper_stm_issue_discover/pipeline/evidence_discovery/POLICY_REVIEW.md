@@ -14,8 +14,13 @@
 | 模块化施工顺序 | [`REFACTOR_PLAN.md`](REFACTOR_PLAN.md) |
 
 当前配置为结构 6、拓扑 4、轨迹仿真 4、有界验证 5，共 19 个谓词。没有适用谓词时仍
-提出问题并输出 W1；W1 计入 `semantic_hit`。W0 是无法精确绑定的覆盖缺口；
+提出问题并输出 W1；W1 可以进入外置 v3.2 评测且可被判为 FULL。W0 是无法精确绑定的覆盖缺口；
 `UNKNOWN` 永远不能转成 violation。
+
+现行 method/evaluation 边界已物理拆分：`evidence_discovery` 只负责发现、D/W、release、
+W2 audit 和 method cost；L 只来自台账；正式 validity/relation/hit/FP/precision 只来自独立
+冻结 `semantic-judge.two-stage.v3.2`。历史 run 中的内置 Judge artifacts 与数字保持不可变，
+但不再进入新实验正式聚合。
 
 ## 2. 已完成的归档处理
 
@@ -63,8 +68,8 @@ git diff --check
 python tools/check_md_links.py project_1_llm_state_machine_modeling/paper_stm_issue_discover
 ```
 
-在新代码迁移完成并通过 `REFACTOR_PLAN.md` 的全部测试门之前，不得声称当前四族配置已有
-新的 W2 全量实测结果。
+局部 W2 或诊断集结果不能冒充 54x3 全量结论；正式全量能力数字必须由清理后冻结 method
+产物与外置 v3.2 Judge 的独立 manifests 共同支撑。
 
 ## 6. 本轮 active 文档审计结论
 
@@ -73,14 +78,14 @@ python tools/check_md_links.py project_1_llm_state_machine_modeling/paper_stm_is
 | 审计项 | 结果 | 处理方式 |
 |---|---|---|
 | 当前注册表和人读表是否唯一 | 通过 | 只指向 `predicate_registry.json` / `PREDICATE_REGISTRY.md`，版本固定为 `four-family-19-core.v1` |
-| W1 是否保留为合法命中 | 通过 | `METHOD_PRINCIPLES.md`、出处政策、最终指标政策和测试均明确 W1 计入 `semantic_hit` |
+| W1 是否保留为合法发布证据 | 通过 | `METHOD_PRINCIPLES.md` 和测试均明确 W1 不因缺少谓词被丢弃，且 W 等级不作为 v3.2 FULL/validity 门 |
 | W0 与 `UNKNOWN` 是否被误升格 | 通过 | 统一写明 W0 是 coverage gap，`UNKNOWN` 不得变成 violation；测试覆盖该边界 |
 | 旧谓词和旧三族数字是否仍被当作当前方法 | 通过（历史文件除外） | active 叙事/协议在顶部标历史边界；旧设计、来源表和单体实现已移入 archive；评测侧旧断言仅保留为历史编码 |
 | `prototype` 是否仍是正式方法名 | 通过 | 正式名只用 `evidence_discovery`；旧目录只能由 legacy replay / archive reader 访问 |
 | 入口句是否把历史迭代数字冒充当前结果 | 已修正 | story 入口改为“历史报告只支撑历史结果；当前数字回到对应版本正式报告” |
 | 来源严格门是否全部通过 | 未通过，且已显式保守 | 机器目录保留 `candidate` / `w1_only_*` 状态；未闭合命题只能 W1-only，不能写成 W2 来源依据 |
-| 新四族代码是否已实跑 | 未完成 | 当前 `feedback_loop` 仅作迁移期旧回放；必须按重构计划完成阶段 A-E 后才切换入口 |
-| 新实现的效果目标 | 已写入计划，待实跑验证 | 在同台账、同发布边界、同 judge 和同分母下，hit 与 FP/precision 达到冻结历史参考实现大体相当或更好；参考实现不是逐格相等硬门，不要求绝对完美，也不能靠放宽学术口径追平 |
+| 新四族代码是否已实跑 | 已完成局部冻结证据 | 新 `evidence_discovery` 已形成 method-only receipt 与不可变 release，质量结论由外置 v3.2 产生；历史 `feedback_loop` 不再是现行入口 |
+| 新实现的效果目标 | 已按统一评测边界验证 | 在同台账、同发布边界、冻结 v3.2 和同分母下比较；参考实现不是逐格相等硬门，也不能靠放宽学术口径追平 |
 
 本轮审计的自动门包括：注册表/来源目录解析、19 个谓词和四族计数、W1/W0/`UNKNOWN`
 契约、来源路径、历史归档指针以及 active 入口政策标记。它们只证明口径没有被静默改写，
@@ -93,10 +98,10 @@ python tools/check_md_links.py project_1_llm_state_machine_modeling/paper_stm_is
 
 - 后端禁止 Python `inspect` 及旧 `inspect_*` 后端；类似能力必须由新包自有算法实现并
   记录算法版本与输入哈希。
-- 谓词不支持不阻止发 issue；精确绑定但无法表达时必须降级 W1，W1 仍是
-  `semantic_hit`；19 个公开谓词继续冻结。
-- D2/D1/D0 由方法按照冻结语义裁定合同自行裁定；只有 D2/D1 参与 release、hit 和 FP，
-  D0 只保留审计。W2/W1/W0 由确定性状态机计算，不能由模型口头指定。
+- 谓词不支持不阻止发 issue；精确绑定但无法表达时必须降级 W1，W1 仍可进入外置评测；
+  19 个公开谓词继续冻结。
+- D2/D1/D0 由方法按照冻结语义裁定合同自行裁定；只有 D2/D1 参与 release，hit 和 FP 由
+  外置 v3.2 产生，D0 只保留审计。W2/W1/W0 由确定性状态机计算，不能由模型口头指定。
 - L 是台账侧属性，方法不生成 L；模型每一步、每条结构化输出必须带非空 `reason` 或
   `basis`。
 - 新入口必须复用公共 `utils.agent`/`utils.llm` 与现有 respond/LangGraph，不能从
@@ -126,8 +131,9 @@ live runner 使用双门：任意真实 provider 调用要求 `allow_live`；预
 契约检查及诊断集 review 后打开。既有 provider 与 audit
 产物是只读诊断快照，不删除、不覆盖、不冷重跑；新结果进入独立 `run_id` 子目录。
 
-run manifest 与版本化 method/judge receipt 冻结 commit、19 谓词 registry hash、prompt/schema hash、
-pair ContextManifest hash、judge-only ledger hash、workers、stream/timeout 和 retry policy。
+method run manifest 冻结 commit、19 谓词 registry hash、method prompt/schema hash、pair
+ContextManifest hash、workers、stream/timeout 和 retry policy；外置 v3.2 另有独立 Judge
+manifest，冻结 Judge commit/protocol/prompt/schema、ledger 与 release source hash。
 resume 同时校验 run ID、contract hash、schema、source provenance 与 pair input hash；不
 兼容文件显式保存为 `stale_incompatible` 后重跑，不能混入指标。所有 JSON/Markdown
 终态使用同目录临时文件加原子 rename，避免并发 worker 留下半写制品。

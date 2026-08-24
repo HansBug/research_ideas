@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from pipeline.evidence_discovery.inputs import load_pair, parse_fcstm
 from pipeline.evidence_discovery.inputs.context import (
     build_numbered_nl_segments,
@@ -955,7 +954,6 @@ def test_full_live_runner_requires_explicit_review_gate() -> None:
     with pytest.raises(RuntimeError, match="allow_live=True"):
         run_experiment(
             report_root=REPORT_ROOT,
-            ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
             output_dir=PAPER_ROOT / "runs" / "should-not-start",
             profile="gpt-5.6-luna",
             allow_live=False,
@@ -966,7 +964,6 @@ def test_full_live_runner_requires_second_explicit_gate() -> None:
     with pytest.raises(RuntimeError, match="allow_full_live=True"):
         run_experiment(
             report_root=REPORT_ROOT,
-            ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
             output_dir=PAPER_ROOT / "runs" / "should-not-start-without-subset",
             profile="gpt-5.6-luna",
             allow_live=True,
@@ -977,7 +974,6 @@ def test_live_runner_caps_diagnostic_subset_at_six_pairs() -> None:
     with pytest.raises(RuntimeError, match="capped at six"):
         run_experiment(
             report_root=REPORT_ROOT,
-            ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
             output_dir=PAPER_ROOT / "runs" / "should-not-start-over-five",
             profile="gpt-5.6-luna",
             allow_live=True,
@@ -989,7 +985,6 @@ def test_live_runner_rejects_profile_outside_construction_protocol() -> None:
     with pytest.raises(RuntimeError, match="outside the frozen construction"):
         run_experiment(
             report_root=REPORT_ROOT,
-            ledger_path=PAPER_ROOT / "discover_matrix/ledger_v2/ledger.json",
             output_dir=PAPER_ROOT / "runs" / "should-not-start-sol",
             profile="gpt-5.6-sol",
             allow_live=True,
