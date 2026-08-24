@@ -4,6 +4,9 @@
 `four-family-19-core.v1`，包含四个按证据形态划分的谓词族和 19 个公开原子谓词。
 注册表见 [`predicate_registry.json`](predicate_registry.json)，人读版见
 [`PREDICATE_REGISTRY.md`](PREDICATE_REGISTRY.md)。
+最终 54 pair x 3 rounds 实验的机器可读冻结身份见
+[`METHOD_FREEZE_MANIFEST.json`](METHOD_FREEZE_MANIFEST.json)；该清单冻结 method-only
+实现、外置 Judge、质量证据、计费闭包和全量运行参数，不作为新的方法语义入口。
 
 本轮口径审计见 [`POLICY_REVIEW.md`](POLICY_REVIEW.md)。它记录旧材料的归档位置、迁移期
 代码的隔离边界和当前尚不能声称的实测结论。
