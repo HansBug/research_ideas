@@ -2202,88 +2202,6 @@ def _materialize_root_reachability(
     return scopes
 
 
-def _materialize_scope_entries(
-    builder: _Builder,
-    scopes: dict[str, tuple[StateNode, StateNode, NLContract]],
-) -> None:
-    pair = builder.pair
-    for scope, descendant, base in scopes.values():
-        target = _direct_child_under(pair, descendant, scope)
-        if target is None:
-            continue
-        source_scope = _source_state_by_name(pair, scope.name)
-        source_target = _source_state_by_name(pair, target.name)
-        source_children = (
-            _source_direct_children(pair, source_scope) if source_scope else []
-        )
-        source_initial = (
-            _source_initial_transitions(pair, source_scope) if source_scope else []
-        )
-        if (
-            source_scope is None
-            or source_target is None
-            or source_target.parent != source_scope.source_id
-            or len(source_children) < 2
-        ):
-            continue
-        if any(item.target == source_target.source_id for item in source_initial):
-            continue
-        initial = _initial_transitions(pair, scope)
-        derived = _derived_contract(
-            base,
-            locus_kind="composite",
-            locus_names=(scope.name, target.name),
-            property_name="initial_entry",
-            state_role="operating_state",
-            expected_direction="must_enter",
-            violation_direction="missing",
-            evidence_types=("source_identity", "closed_model_inventory", "initial_entry_fact", "containment_fact"),
-            normative_statement=f"{scope.name} must have an owner-local default entry into required operating child {target.name}.",
-            scope=f"Owner-local default entry of {scope.name}",
-            source_refs=base.source_refs,
-            reason="The LLM-established behavior is owned below this composite, so the owner's default entry must activate the exact required child scope.",
-            basis="typed root-reachability frontier plus exact child ancestry and owner-local initial edges",
-        )
-        refs = [scope.ref, target.ref, *[item.ref for item in initial]]
-        refs.extend(ref for item in initial if (ref := _transition_target_ref(pair, item)))
-        source_refs = tuple(
-            dict.fromkeys(
-                [
-                    *derived.source_refs,
-                    source_scope.raw_ref,
-                    *[item.raw_ref for item in source_children],
-                    *[item.raw_ref for item in source_initial],
-                ]
-            )
-        )
-        candidate = _candidate(
-            derived,
-            title=f"{scope.name} lacks default entry into {target.name}",
-            predicate_id=None,
-            predicate_inputs={},
-            element_refs=refs,
-            source_refs=source_refs,
-            expected=derived.normative_statement,
-            observed=(
-                f"The exact author-source composite has direct children "
-                f"{[item.source_id for item in source_children]} and owner-local "
-                f"initial targets {[item.target for item in source_initial]}; the "
-                f"closed model records initial targets {[item.target for item in initial]}."
-            ),
-            strongest_rebuttal="An initial edge inside the child scope does not provide the missing owner-level entry.",
-            reason="Exact owner/child binding and complete owner-local initial inventory establish the missing default entry.",
-            basis=f"source_owner={source_scope.source_id}; source_child={source_target.source_id}; source_initial_refs={[item.raw_ref for item in source_initial]}; owner_ref={scope.ref}; child_ref={target.ref}; model_initial_refs={[item.ref for item in initial]}",
-        )
-        builder.add(
-            "owner_initial_entry",
-            (base.contract_id,),
-            derived,
-            candidate,
-            reason="The required operating child has no unconditional entry from its exact composite owner.",
-            basis="root frontier, exact hierarchy, and scoped initial-transition inventory",
-        )
-
-
 def _operating_state_contracts(
     pair: PairInput,
     contracts: Sequence[NLContract],
@@ -4347,7 +4265,6 @@ def materialize_typed_frontier(
     )
     _materialize_initial_entries(builder, all_contracts, all_groups)
     scopes = _materialize_root_reachability(builder, all_contracts, llm_candidates)
-    _materialize_scope_entries(builder, scopes)
     _materialize_dead_ends(builder, all_contracts)
     _materialize_termination(builder, all_contracts)
     _materialize_group_guards(builder, all_groups, all_contracts)

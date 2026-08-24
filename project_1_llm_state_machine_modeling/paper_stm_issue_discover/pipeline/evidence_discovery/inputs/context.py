@@ -1808,7 +1808,7 @@ def _prompt_base(pair: Any, stage: PromptStage) -> dict[str, Any]:
         raise ValueError("stage prompt requires a complete context manifest")
     manifest = pair.context_manifest
     return {
-        "prompt_projection_version": "stage-context-projection.v7",
+        "prompt_projection_version": "stage-context-projection.v8",
         "stage": stage,
         "context_manifest": {
             "schema_version": manifest.schema_version,
@@ -1852,7 +1852,7 @@ def _prompt_base(pair: Any, stage: PromptStage) -> dict[str, Any]:
             "smt_facts": "normalized_formal_inputs_not_solver_result",
         },
         "reason": "Stage context is role-scoped while the complete artifact closure remains identified by the manifest.",
-        "basis": "context-manifest.v1 and stage-context-projection.v7",
+        "basis": "context-manifest.v1 and stage-context-projection.v8",
     }
 
 

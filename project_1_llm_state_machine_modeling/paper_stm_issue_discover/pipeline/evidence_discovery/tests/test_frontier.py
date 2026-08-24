@@ -1365,16 +1365,8 @@ def test_0046_frontier_separates_root_entry_and_reachable_consumers() -> None:
 
     keys = _keys(batch)
     assert any(item[0] == "root_reachability" for item in keys)
-    assert any(item[0] == "owner_initial_entry" for item in keys)
+    assert not any(item[0] == "owner_initial_entry" for item in keys)
     assert any(item[0] == "event_consumer_coverage" for item in keys)
-    owner_entry = next(
-        item.candidate
-        for item in batch.obligations
-        if item.kind == "owner_initial_entry"
-    )
-    assert owner_entry.locus_names == ("UAVSwarmStateMachine", "SearchRegion")
-    assert any(ref.endswith("puml:line:2") for ref in owner_entry.source_refs)
-    assert "MissionRegion" in owner_entry.observed
     consumer = next(
         item.candidate
         for item in batch.obligations
@@ -1416,7 +1408,7 @@ def test_0046_continuous_action_survives_same_segment_cardinality() -> None:
     }
     assert any(item.kind == "cardinality" for item in batch.obligations)
     assert any(item.kind == "root_reachability" for item in batch.obligations)
-    assert any(item.kind == "owner_initial_entry" for item in batch.obligations)
+    assert not any(item.kind == "owner_initial_entry" for item in batch.obligations)
 
 
 def test_0046_frontier_does_not_invent_owner_entry_without_operating_obligation() -> None:

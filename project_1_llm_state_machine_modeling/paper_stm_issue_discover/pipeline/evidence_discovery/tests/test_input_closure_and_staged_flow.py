@@ -915,7 +915,7 @@ def test_large_working_contract_is_role_scoped_before_prompt_serialization(tmp_p
         sort_keys=True,
     )
     assert len(grounding_context_text) < 150_000
-    assert grounding_context["prompt_projection_version"] == "stage-context-projection.v7"
+    assert grounding_context["prompt_projection_version"] == "stage-context-projection.v8"
     assert '"model_refs"' in grounding_context_text
     assert '"raw_ref"' in grounding_context_text
     for role in (
