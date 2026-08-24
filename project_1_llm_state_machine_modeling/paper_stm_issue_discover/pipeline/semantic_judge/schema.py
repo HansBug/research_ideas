@@ -7,7 +7,7 @@ import json
 from collections.abc import Iterable
 from typing import Annotated, Literal, cast
 
-from pydantic import BaseModel, Field, create_model, model_validator
+from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
 
 from .artifacts import stable_model_hash
 from .causal_audit import build_causal_audit_plan, build_report_core_envelope
@@ -401,10 +401,10 @@ def build_validity_input(
     )
 
 
-def _exact_clause_audit_tuple(field_plan, *, suffix: str):
-    """Build one fixed tuple position for every immutable source clause."""
+def _exact_clause_audit_group(field_plan, *, suffix: str) -> type[BaseModel]:
+    """Build one fixed object property for every immutable source clause."""
 
-    exact_types = []
+    field_definitions: dict[str, tuple[object, Field]] = {}
     for index, clause in enumerate(field_plan.clauses):
         clause_id_type = _literal((clause.clause_id,))
 
@@ -418,8 +418,43 @@ def _exact_clause_audit_tuple(field_plan, *, suffix: str):
         ExactClauseAuditJudgment.__name__ = (
             f"ExactClauseAuditJudgment_{suffix}_{index}"
         )
-        exact_types.append(ExactClauseAuditJudgment)
-    return tuple.__class_getitem__(tuple(exact_types))
+        field_definitions[f"item{index}"] = (
+            ExactClauseAuditJudgment,
+            Field(
+                description=(
+                    f"Required audit for immutable source clause {clause.clause_id} "
+                    f"at exact position {index}; the property name and clause ID are fixed."
+                )
+            ),
+        )
+
+    class ExactClauseAuditGroup(BaseModel):
+        """Provider-stable object containing exact source-clause audit slots."""
+
+        model_config = ConfigDict(extra="forbid", frozen=True)
+
+    model = create_model(
+        f"ExactClauseAuditGroup_{suffix}",
+        __base__=ExactClauseAuditGroup,
+        **field_definitions,
+    )
+    model.__doc__ = (
+        "Provider-stable fixed object with one required itemN property for every "
+        "immutable source clause in source order."
+    )
+    return model
+
+
+def _ordered_clause_audits(
+    response: BaseModel, field_plan
+) -> tuple[ClauseAuditJudgment, ...]:
+    """Read one fixed audit object back in immutable source order."""
+
+    group = getattr(response, f"{field_plan.report_field.value}_audit")
+    return tuple(
+        getattr(group, f"item{index}")
+        for index, _clause in enumerate(field_plan.clauses)
+    )
 
 
 def build_exact_validity_model(
@@ -446,15 +481,15 @@ def build_exact_validity_model(
     }
     for field_plan in validity_input.core_envelope.field_plans:
         field_name = f"{field_plan.report_field.value}_audit"
-        exact_tuple = _exact_clause_audit_tuple(
+        exact_group = _exact_clause_audit_group(
             field_plan, suffix=f"{suffix}_{field_plan.report_field.value}"
         )
         field_definitions[field_name] = (
-            exact_tuple,
+            exact_group,
             Field(
                 description=(
-                    f"Required exact source-order audit for every immutable clause in CandidateReport.{field_plan.report_field.value}; "
-                    "judge the complete semantic proposition, classify its role in the bounded report claim, and retain auxiliary errors without promoting them to a hard gate."
+                    f"Required fixed audit object for every immutable clause in CandidateReport.{field_plan.report_field.value}; "
+                    "fill each itemN property exactly once, judge the complete semantic proposition, classify its role in the bounded report claim, and retain auxiliary errors without promoting them to a hard gate."
                 )
             ),
         )
@@ -466,9 +501,7 @@ def build_exact_validity_model(
             clause_rows = [
                 (field_plan.report_field, clause)
                 for field_plan in validity_input.core_envelope.field_plans
-                for clause in getattr(
-                    self, f"{field_plan.report_field.value}_audit"
-                )
+                for clause in _ordered_clause_audits(self, field_plan)
             ]
             claim_rows = [
                 clause
@@ -542,7 +575,7 @@ def materialize_validity_certificate(
     field_audits = []
     for field_plan in validity_input.core_envelope.field_plans:
         field_name = field_plan.report_field.value
-        clause_audits = tuple(getattr(response, f"{field_name}_audit"))
+        clause_audits = _ordered_clause_audits(response, field_plan)
         exact_text = getattr(validity_input.report, field_name)
         if not isinstance(exact_text, str):
             raise TypeError(

@@ -124,8 +124,8 @@ def validity_payload(
         "validity_source_refs": ["artifact:natural_language"],
     }
     for field_plan in validity_input.core_envelope.field_plans:
-        payload[f"{field_plan.report_field.value}_audit"] = [
-            {
+        payload[f"{field_plan.report_field.value}_audit"] = {
+            f"item{index}": {
                 "clause_id": clause.clause_id,
                 "assertion": "This English assertion faithfully represents the complete immutable source clause.",
                 "validity_role": (
@@ -150,8 +150,8 @@ def validity_payload(
                 "basis": "The authored source and deterministic artifact facts provide the direct evidence.",
                 "source_refs": ["artifact:natural_language"],
             }
-            for clause in field_plan.clauses
-        ]
+            for index, clause in enumerate(field_plan.clauses)
+        }
     return payload
 
 
@@ -269,14 +269,22 @@ def test_fixed_validity_slots_reject_claim_or_clause_omission_and_where_injectio
     schema = build_exact_validity_model(validity_input)
     payload = validity_payload(validity_input)
 
+    provider_schema = schema.model_json_schema()
+    claim_group_ref = provider_schema["properties"]["claim_audit"]["$ref"]
+    claim_group = provider_schema["$defs"][claim_group_ref.rsplit("/", 1)[-1]]
+    assert claim_group["type"] == "object"
+    assert claim_group["required"] == ["item0"]
+    assert claim_group["additionalProperties"] is False
+    assert "prefixItems" not in claim_group
+
     missing_claim = dict(payload)
     missing_claim.pop("claim_audit")
     with pytest.raises(ValidationError, match="claim_audit"):
         schema.model_validate(missing_claim)
 
     missing_clause = json.loads(json.dumps(payload))
-    missing_clause["reason_audit"] = []
-    with pytest.raises(ValidationError, match="reason_audit"):
+    missing_clause["reason_audit"].pop("item0")
+    with pytest.raises(ValidationError, match="item0"):
         schema.model_validate(missing_clause)
 
     with_where = dict(payload)
@@ -337,7 +345,7 @@ def test_refuted_auxiliary_reason_wording_does_not_kill_supported_core() -> None
     judge_input = minimal_input()
     validity_input = build_validity_input(judge_input, "R0001")
     payload = validity_payload(validity_input)
-    reason_row = payload["reason_audit"][0]
+    reason_row = payload["reason_audit"]["item0"]
     reason_row["validity_role"] = "AUXILIARY_CONTEXT"
     reason_row["verdict"] = "REFUTED"
     reason_row["reason"] = "One incidental phrase is inaccurate but is not needed to sustain the bounded claim."
@@ -885,7 +893,7 @@ def test_prompts_and_generated_fixture_audit_language_are_english() -> None:
     ] + [
         value
         for field_plan in validity_input.core_envelope.field_plans
-        for row in payload[f"{field_plan.report_field.value}_audit"]
+        for row in payload[f"{field_plan.report_field.value}_audit"].values()
         for value in (row["assertion"], row["reason"], row["basis"])
     ]
     assert all(not non_ascii.search(value) for value in generated_values)

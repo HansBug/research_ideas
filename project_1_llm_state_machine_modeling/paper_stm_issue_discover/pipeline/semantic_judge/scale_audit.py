@@ -141,8 +141,8 @@ def _validity_envelope(validity_input) -> dict:
         "validity_source_refs": [artifact_ref],
     }
     for field_plan in validity_input.core_envelope.field_plans:
-        payload[f"{field_plan.report_field.value}_audit"] = [
-            {
+        payload[f"{field_plan.report_field.value}_audit"] = {
+            f"item{index}": {
                 "clause_id": clause.clause_id,
                 "assertion": "This English assertion faithfully represents every material premise in the complete immutable source clause.",
                 "validity_role": (
@@ -157,8 +157,8 @@ def _validity_envelope(validity_input) -> dict:
                 "basis": "The report-owned source clause and common artifacts provide direct evidence.",
                 "source_refs": [artifact_ref],
             }
-            for clause in field_plan.clauses
-        ]
+            for index, clause in enumerate(field_plan.clauses)
+        }
     return payload
 
 
