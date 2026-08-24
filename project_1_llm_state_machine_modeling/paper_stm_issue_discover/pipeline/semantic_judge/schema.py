@@ -43,6 +43,7 @@ from .models import (
     UnifiedJudgeInput,
     ValidityAuditWarning,
     ValidityClauseRole,
+    ValidityGateJudgment,
     ValidityGateStatus,
     ValidityJudgeInput,
     ValidityResponse,
@@ -513,33 +514,6 @@ def build_exact_validity_model(
                 raise ValueError(
                     "claim_audit must classify at least one complete clause as CORE_CLAIM"
                 )
-            expected_core = (
-                ValidityGateStatus.REFUTED
-                if any(
-                    clause.validity_role == ValidityClauseRole.CORE_CLAIM
-                    and clause.verdict == MaterialAssertionVerdict.REFUTED
-                    for _field, clause in clause_rows
-                )
-                else ValidityGateStatus.SATISFIED
-            )
-            expected_mechanism = (
-                ValidityGateStatus.REFUTED
-                if any(
-                    clause.validity_role
-                    == ValidityClauseRole.INDISPENSABLE_MECHANISM
-                    and clause.verdict == MaterialAssertionVerdict.REFUTED
-                    for _field, clause in clause_rows
-                )
-                else ValidityGateStatus.SATISFIED
-            )
-            if self.core_claim_gate.status != expected_core:
-                raise ValueError(
-                    "core_claim_gate.status must agree with all CORE_CLAIM clause verdicts"
-                )
-            if self.indispensable_mechanism_gate.status != expected_mechanism:
-                raise ValueError(
-                    "indispensable_mechanism_gate.status must agree with all INDISPENSABLE_MECHANISM clause verdicts"
-                )
             return self
 
     model = create_model(
@@ -564,6 +538,52 @@ def _field_verdict(
     if verdicts == {MaterialAssertionVerdict.REFUTED}:
         return CausalFieldVerdict.REFUTED
     return CausalFieldVerdict.MIXED
+
+
+def _derive_clause_gate(
+    field_audits: tuple[FrozenFieldValidityAudit, ...],
+    *,
+    role: ValidityClauseRole,
+    label: str,
+    fallback_source_refs: tuple[str, ...],
+) -> ValidityGateJudgment:
+    """Materialize one non-redundant hard gate from exact clause judgments."""
+
+    rows = tuple(
+        clause
+        for field in field_audits
+        for clause in field.clause_audits
+        if clause.validity_role == role
+    )
+    status = (
+        ValidityGateStatus.REFUTED
+        if any(row.verdict == MaterialAssertionVerdict.REFUTED for row in rows)
+        else ValidityGateStatus.SATISFIED
+    )
+    if rows:
+        reason = (
+            f"Backend-derived {label} gate is {status.value}: "
+            + " ".join(
+                f"{row.clause_id}={row.verdict.value}: {row.reason}" for row in rows
+            )
+        )
+        basis = " ".join(
+            f"{row.clause_id}: {row.basis}" for row in rows
+        )
+        source_refs = _unique(ref for row in rows for ref in row.source_refs)
+    else:
+        reason = (
+            f"Backend-derived {label} gate is SATISFIED because the bounded claim "
+            "requires no separate clause with this semantic role."
+        )
+        basis = "Complete fixed clause-role closure contains no separate required premise."
+        source_refs = fallback_source_refs
+    return ValidityGateJudgment(
+        status=status,
+        reason=reason,
+        basis=basis,
+        source_refs=source_refs,
+    )
 
 
 def materialize_validity_certificate(
@@ -618,13 +638,26 @@ def materialize_validity_certificate(
         if clause.validity_role == ValidityClauseRole.AUXILIARY_CONTEXT
         and clause.verdict == MaterialAssertionVerdict.REFUTED
     )
+    response_source_refs = tuple(response.validity_source_refs)
+    core_claim_gate = _derive_clause_gate(
+        frozen_audits,
+        role=ValidityClauseRole.CORE_CLAIM,
+        label="core claim",
+        fallback_source_refs=response_source_refs,
+    )
+    indispensable_mechanism_gate = _derive_clause_gate(
+        frozen_audits,
+        role=ValidityClauseRole.INDISPENSABLE_MECHANISM,
+        label="indispensable mechanism",
+        fallback_source_refs=response_source_refs,
+    )
     core_truth = (
         CoreClaimTruth.VALID
         if all(
             gate.status == ValidityGateStatus.SATISFIED
             for gate in (
-                response.core_claim_gate,
-                response.indispensable_mechanism_gate,
+                core_claim_gate,
+                indispensable_mechanism_gate,
                 response.minimum_evidence_gate,
             )
         )
@@ -637,14 +670,14 @@ def materialize_validity_certificate(
         "validity_input_hash": stable_model_hash(validity_input),
         "core_envelope_hash": validity_input.core_envelope.envelope_hash,
         "field_audits": frozen_audits,
-        "core_claim_gate": response.core_claim_gate,
-        "indispensable_mechanism_gate": response.indispensable_mechanism_gate,
+        "core_claim_gate": core_claim_gate,
+        "indispensable_mechanism_gate": indispensable_mechanism_gate,
         "minimum_evidence_gate": response.minimum_evidence_gate,
         "auxiliary_warnings": auxiliary_warnings,
         "root_cause_cluster_key": response.root_cause_cluster_key,
         "reason": response.validity_reason,
         "basis": response.validity_basis,
-        "source_refs": tuple(response.validity_source_refs),
+        "source_refs": response_source_refs,
     }
     hash_payload = {}
     for key, value in values.items():

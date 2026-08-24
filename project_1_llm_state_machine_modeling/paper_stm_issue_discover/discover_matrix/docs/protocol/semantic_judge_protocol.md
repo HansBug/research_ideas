@@ -60,7 +60,7 @@ redundancy rate；重复的 valid finding 进入 redundancy，不进入 FP。
 | issue snapshot 是唯一权威，变更即升版并使旧分数失效 | `protocol.py` 的 `PROTOCOL_*` 与 `verify_snapshot` | CLI 在运行前校验 snapshot | snapshot hash、prompt hash 测试 | 本文件“冻结版本” |
 | D2+D1 是唯一发布集合；D0 不进入 Judge | arm-neutral `CandidateReport` 不含 D/W/L | `artifacts.py` 只适配最终发布报告 | adapter 字段结构与排除字段测试 | `final_output_metrics_policy.md` |
 | 先判核心真值，再判 relation，后端派生 K/N/I | `ValidityJudgeInput` 物理不含 expected；`RelationJudgeInput` 只接受冻结 VALID certificate | `materialize_validity_certificate`、`materialize_two_stage_reading` | expected isolation、clause closure、two-stage replay 测试 | 本文件“现行核心合同” |
-| validity 只硬门核心主张、必要机制与最低举证责任 | 每条完整命题标记 `CORE_CLAIM / INDISPENSABLE_MECHANISM / AUXILIARY_CONTEXT`，另有三个显式 gate | 证书从 gate 机械派生真值；refuted auxiliary 只进入 warning | auxiliary-error、false-mechanism、claim omission 测试 | issue #189 与本文件“公平性与规模合同” |
+| validity 只硬门核心主张、必要机制与最低举证责任 | 每条完整命题标记 `CORE_CLAIM / INDISPENSABLE_MECHANISM / AUXILIARY_CONTEXT`；模型只额外判断不可由 clause 机械推出的 minimum-evidence gate | 后端从 clause 派生 core/mechanism gate，再由三门机械派生真值；refuted auxiliary 只进入 warning | auxiliary-error、false-mechanism、claim omission 测试 | issue #189 与本文件“公平性与规模合同” |
 | INVALID、VALID_NOVEL 全 NO；VALID_KNOWN 至少一条 FULL/PARTIAL | INVALID 不进入 relation schema；relation 动态 exact closure | `judge_pair` 的 invalid all-NO closure、`ReportAssessment` validator | 非法组合、invalid-no-relation 测试 | snapshot §1.1 |
 | FULL 采用适度宽语义，不以字段复刻为 gate | `RELATION_SYSTEM_PROMPT` 的 root cause、obligation、symptom、repair overlap 规则 | relation enum 原样物化 | free-text FULL、多 expected FULL 测试 | `hit_criterion.md` |
 | PARTIAL 只算 supported，不算 hit/FP | `PositiveMatchStrength.PARTIAL_MATCH` | `metrics.py::compute_semantic_metrics` | partial 指标测试 | 本文件“确定性指标” |

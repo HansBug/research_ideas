@@ -1044,9 +1044,9 @@ class ValidityResponse(FrozenModel):
     aggregate validity; the backend derives it from the exact clause closure.
     """
 
-    schema_version: Literal["semantic-judge.validity-response.v2"] = Field(
-        default="semantic-judge.validity-response.v2",
-        description="Expected-isolated response version separating hard validity gates from exhaustive auxiliary clause audit.",
+    schema_version: Literal["semantic-judge.validity-response.v3"] = Field(
+        default="semantic-judge.validity-response.v3",
+        description="Expected-isolated response version where clause rows determine core and mechanism gates and the provider judges only the non-redundant minimum-evidence gate.",
     )
     report_id: str = Field(
         pattern=r"^R\d{4}$",
@@ -1056,14 +1056,8 @@ class ValidityResponse(FrozenModel):
         min_length=1,
         description="English actionable technical root-cause phrase based only on this report and common artifacts.",
     )
-    core_claim_gate: ValidityGateJudgment = Field(
-        description="Hard-gate judgment for the bounded core technical claim; it must agree with all CORE_CLAIM clause rows."
-    )
-    indispensable_mechanism_gate: ValidityGateJudgment = Field(
-        description="Hard-gate judgment for every causal or modeling-semantic premise indispensable to the core claim; SATISFIED is valid when no separate mechanism is required."
-    )
     minimum_evidence_gate: ValidityGateJudgment = Field(
-        description="Hard-gate judgment for whether the report meets a minimum auditable evidentiary burden using any clear artifact-compatible report field."
+        description="Non-redundant hard-gate judgment for whether the report meets a minimum auditable evidentiary burden using any clear artifact-compatible report field; core and mechanism gates are backend-derived from clause rows."
     )
     validity_reason: str = Field(
         min_length=1,

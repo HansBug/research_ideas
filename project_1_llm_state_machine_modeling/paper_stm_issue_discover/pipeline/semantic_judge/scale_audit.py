@@ -115,21 +115,9 @@ def _validity_envelope(validity_input) -> dict:
 
     artifact_ref = validity_input.artifact_closure.artifacts[0].artifact_id
     payload = {
-        "schema_version": "semantic-judge.validity-response.v2",
+        "schema_version": "semantic-judge.validity-response.v3",
         "report_id": validity_input.report.report_id,
         "root_cause_cluster_key": "one actionable technical root cause",
-        "core_claim_gate": {
-            "status": "SATISFIED",
-            "reason": "The bounded core technical claim is supported by the common artifacts.",
-            "basis": "The complete claim clauses and deterministic artifact facts agree.",
-            "source_refs": [artifact_ref],
-        },
-        "indispensable_mechanism_gate": {
-            "status": "SATISFIED",
-            "reason": "Every premise indispensable to sustaining the claim is supported.",
-            "basis": "The complete mechanism clauses and deterministic artifact facts agree.",
-            "source_refs": [artifact_ref],
-        },
         "minimum_evidence_gate": {
             "status": "SATISFIED",
             "reason": "The report supplies a clear artifact-auditable technical claim.",

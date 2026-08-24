@@ -96,9 +96,6 @@ def validity_payload(
     """Build one exact fixed-field validity response fixture."""
 
     refuted = refuted or set()
-    core_refuted = any(field == "claim" for field, _clause in refuted)
-    mechanism_refuted = any(field == "reason" for field, _clause in refuted)
-
     def gate(status: str, subject: str) -> dict:
         return {
             "status": status,
@@ -108,16 +105,9 @@ def validity_payload(
         }
 
     payload = {
-        "schema_version": "semantic-judge.validity-response.v2",
+        "schema_version": "semantic-judge.validity-response.v3",
         "report_id": validity_input.report.report_id,
         "root_cause_cluster_key": cluster_key,
-        "core_claim_gate": gate(
-            "REFUTED" if core_refuted else "SATISFIED", "core claim"
-        ),
-        "indispensable_mechanism_gate": gate(
-            "REFUTED" if mechanism_refuted else "SATISFIED",
-            "indispensable mechanism",
-        ),
         "minimum_evidence_gate": gate("SATISFIED", "minimum evidence"),
         "validity_reason": "Every immutable core clause was reviewed against the common artifacts.",
         "validity_basis": "The report source clauses and common artifacts determine every verdict.",
@@ -270,6 +260,9 @@ def test_fixed_validity_slots_reject_claim_or_clause_omission_and_where_injectio
     payload = validity_payload(validity_input)
 
     provider_schema = schema.model_json_schema()
+    assert "minimum_evidence_gate" in provider_schema["properties"]
+    assert "core_claim_gate" not in provider_schema["properties"]
+    assert "indispensable_mechanism_gate" not in provider_schema["properties"]
     claim_group_ref = provider_schema["properties"]["claim_audit"]["$ref"]
     claim_group = provider_schema["$defs"][claim_group_ref.rsplit("/", 1)[-1]]
     assert claim_group["type"] == "object"
@@ -349,7 +342,6 @@ def test_refuted_auxiliary_reason_wording_does_not_kill_supported_core() -> None
     reason_row["validity_role"] = "AUXILIARY_CONTEXT"
     reason_row["verdict"] = "REFUTED"
     reason_row["reason"] = "One incidental phrase is inaccurate but is not needed to sustain the bounded claim."
-    payload["indispensable_mechanism_gate"]["status"] = "SATISFIED"
 
     certificate = certificate_from_payload(validity_input, payload)
 
