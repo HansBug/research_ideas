@@ -85,7 +85,7 @@ REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS = ("0004", "0023", "0029", "0035", "0046", "0
 METHOD_CELL_SCHEMA = "evidence-discovery.method_cell.v8"
 SUMMARY_SCHEMA = "evidence-discovery.run_summary.v3"
 RUN_MANIFEST_SCHEMA = "evidence-discovery.run_manifest.v3"
-CODE_VERSION = "evidence-discovery-typed-flow.v51-method-only"
+CODE_VERSION = "evidence-discovery-typed-flow.v52-method-only"
 PROMPT_SCHEMA_VERSION = "evidence-discovery-prompts.v44-method-only"
 GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION = (
     "evidence-discovery.grounding-exact-identity-contract.v3"
@@ -2363,16 +2363,7 @@ def _method_cell(
         outcome.real_llm and outcome.succeeded
         for outcome in grounding_outcomes
     ]
-    closed_semantic_records = [
-        record
-        for record in records
-        if record.get("d_level") in {"D0", "D1", "D2"}
-    ]
-    semantic_result_available = (
-        bool(closed_semantic_records)
-        if candidates
-        else all(grounding_ready)
-    )
+    semantic_result_available = bool(records) or all(grounding_ready)
     eligible = bool(
         contract_ready
         and any(grounding_ready)

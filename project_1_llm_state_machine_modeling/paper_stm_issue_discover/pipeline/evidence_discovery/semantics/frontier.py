@@ -233,8 +233,8 @@ class FrontierCheckReceipt(BaseModel):
         default="evidence-discovery.frontier-check.v1",
         description="Schema version of the frontier-check receipt.",
     )
-    algorithm_version: Literal["typed-domain-frontier.v23"] = Field(
-        default="typed-domain-frontier.v23",
+    algorithm_version: Literal["typed-domain-frontier.v24"] = Field(
+        default="typed-domain-frontier.v24",
         description="Deterministic algorithm version that produced the check. Only an existing candidate with exact typed identity matching a known contract may occupy a frontier deduplication key, and UML region counting uses the canonical author-source partition inventory.",
     )
     check_id: str = Field(
@@ -323,8 +323,8 @@ class FrontierBatch(BaseModel):
         default="evidence-discovery.frontier-batch.v1",
         description="Schema version of this frontier-batch artifact.",
     )
-    algorithm_version: Literal["typed-domain-frontier.v23"] = Field(
-        default="typed-domain-frontier.v23",
+    algorithm_version: Literal["typed-domain-frontier.v24"] = Field(
+        default="typed-domain-frontier.v24",
         description="Deterministic algorithm version used by every check and obligation in this batch. Unknown or contract-identity-mismatched candidates cannot suppress deterministic frontier expansion, and cardinality remains bound to one exact normative owner.",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
@@ -805,11 +805,13 @@ def _derived_contract(
     reason: str,
     basis: str,
     cardinality_requirement: CardinalityRequirement | None = None,
+    quote: str | None = None,
+    binding_hints: Sequence[ContractBindingHint] | None = None,
 ) -> NLContract:
     contract = NLContract(
         contract_id=f"NL-CONTRACT-{base.segment_id}-DERIVED-PENDING",
         segment_id=base.segment_id,
-        quote=base.quote,
+        quote=quote if quote is not None else base.quote,
         normative_statement=normative_statement,
         locus_kind=locus_kind,
         locus_names=tuple(locus_names),
@@ -818,7 +820,11 @@ def _derived_contract(
         expected_direction=expected_direction,
         violation_direction=violation_direction,
         evidence_types=tuple(dict.fromkeys(evidence_types)),
-        binding_hints=base.binding_hints,
+        binding_hints=(
+            tuple(binding_hints)
+            if binding_hints is not None
+            else base.binding_hints
+        ),
         cardinality_requirement=cardinality_requirement,
         scope=scope,
         source_refs=tuple(dict.fromkeys(source_refs)),
@@ -3903,11 +3909,17 @@ def _materialize_aggregate_data_semantics(
         source_refs = tuple(
             dict.fromkeys([*_source_refs(rows), *bound_source_refs])
         )
+        aggregate_hints = tuple(hints_by_key.values())
+        aggregate_property: ObligationProperty = (
+            "variable_delta"
+            if sum(hint.role == "effect" for hint in aggregate_hints) > 1
+            else "effect"
+        )
         derived = _derived_contract(
             base,
             locus_kind="variable",
             locus_names=(variable_name,),
-            property_name="effect",
+            property_name=aggregate_property,
             state_role="operating_state",
             expected_direction="must_exist",
             violation_direction="wrong_effect",
@@ -3929,16 +3941,10 @@ def _materialize_aggregate_data_semantics(
                 "variable concept and jointly establish its complete data-side behavior."
             ),
             basis="exact variable-role equality across contracts; no prose similarity or ledger data",
-        ).model_copy(
-            update={
-                "quote": " | ".join(
-                    f"[{contract.segment_id}] {contract.quote}" for contract in rows
-                ),
-                "binding_hints": tuple(hints_by_key.values()),
-            }
-        )
-        derived = derived.model_copy(
-            update={"contract_id": canonical_contract_id(derived)}
+            quote=" | ".join(
+                f"[{contract.segment_id}] {contract.quote}" for contract in rows
+            ),
+            binding_hints=aggregate_hints,
         )
         candidate = _candidate(
             derived,

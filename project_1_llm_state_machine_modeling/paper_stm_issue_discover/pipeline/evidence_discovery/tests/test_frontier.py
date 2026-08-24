@@ -3,8 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
-
 from pipeline.evidence_discovery.backends import run_backend
 from pipeline.evidence_discovery.compiler import compile_plan
 from pipeline.evidence_discovery.evidence.witness_levels import calculate_witness_level
@@ -33,6 +31,7 @@ from pipeline.evidence_discovery.semantics import (
     materialize_segment_coverage,
     materialize_typed_frontier,
 )
+from pydantic import ValidationError
 
 PAPER_ROOT = Path(__file__).parents[3]
 REPORT_ROOT = PAPER_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
@@ -2382,7 +2381,7 @@ def test_property_mismatched_llm_dead_ends_do_not_create_progress_contracts() ->
         if item.kind == "reachable_dead_end"
     }
     assert dead_ends == {}
-    assert batch.algorithm_version == "typed-domain-frontier.v23"
+    assert batch.algorithm_version == "typed-domain-frontier.v24"
 
 
 def test_exact_existing_candidate_still_suppresses_duplicate_frontier() -> None:
@@ -2817,6 +2816,78 @@ def test_0035_data_frontier_aggregates_complete_shared_variable_gap() -> None:
         "source",
         "effect",
     }
+
+
+def test_data_frontier_keeps_multiple_effects_in_one_valid_variable_delta() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0035")
+    rows = [
+        _contract(
+            contract_id="NL-CONTRACT-NL5-DATA-ACTION",
+            segment_id="NL5",
+            locus_kind="state",
+            locus_names=("ReadytoCook",),
+            property_name="state_action",
+            expected_direction="must_occur",
+            violation_direction="missing",
+            hints=(
+                _hint("state", "ReadytoCook", "NL5"),
+                _hint("action", "display cooking time", "NL5"),
+                _hint("variable", "cooking time", "NL5"),
+            ),
+            state_role="operating_state",
+        ),
+        _contract(
+            contract_id="NL-CONTRACT-NL5-DATA-EFFECT",
+            segment_id="NL5",
+            locus_kind="state",
+            locus_names=("ReadytoCook",),
+            property_name="effect",
+            expected_direction="must_occur",
+            violation_direction="wrong_effect",
+            hints=(
+                _hint("state", "ReadytoCook", "NL5"),
+                _hint("effect", "update cooking time", "NL5"),
+                _hint("variable", "cooking time", "NL5"),
+            ),
+            state_role="operating_state",
+        ),
+        _contract(
+            contract_id="NL-CONTRACT-NL6-DATA-EFFECT",
+            segment_id="NL6",
+            locus_kind="state",
+            locus_names=("ReadytoCook",),
+            property_name="effect",
+            expected_direction="must_occur",
+            violation_direction="wrong_effect",
+            hints=(
+                _hint("state", "ReadytoCook", "NL6"),
+                _hint("effect", "cancel cooking time", "NL6"),
+                _hint("variable", "cooking time", "NL6"),
+            ),
+            state_role="operating_state",
+        ),
+    ]
+    response = _response(rows)
+
+    batch = materialize_typed_frontier(
+        pair,
+        response,
+        {item.contract_id: item for item in rows},
+        (),
+        (),
+    )
+
+    aggregate = next(
+        item
+        for item in batch.obligations
+        if item.kind == "aggregate_data_semantics"
+    )
+    assert aggregate.contract.property == "variable_delta"
+    assert aggregate.candidate.property == "variable_delta"
+    assert sum(
+        hint.role == "effect" for hint in aggregate.contract.binding_hints
+    ) == 2
+    NLContract.model_validate(aggregate.contract.model_dump(mode="json"))
 
 
 def test_data_frontier_uses_exact_state_locus_without_redundant_state_hint() -> None:

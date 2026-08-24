@@ -743,6 +743,120 @@ def test_one_grounding_failure_does_not_erase_closed_w1_release(tmp_path: Path) 
     )
 
 
+def test_unresolved_w0_record_is_an_eligible_diagnostic_result(tmp_path: Path) -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+
+    class UnresolvedRuntime(FixtureStructuredRuntime):
+        def call(self, **kwargs):
+            outcome = super().call(**kwargs).model_copy(update={"real_llm": True})
+            if isinstance(outcome.response, GroundingResponse):
+                response = outcome.response.model_copy(
+                    update={
+                        "candidates": [
+                            candidate.model_copy(
+                                update={
+                                    "predicate_id": None,
+                                    "predicate_inputs": {},
+                                    "element_refs": [],
+                                }
+                            )
+                            for candidate in outcome.response.candidates
+                        ]
+                    }
+                )
+                return outcome.model_copy(update={"response": response})
+            if not isinstance(outcome.response, DAdjudicationResponse):
+                return outcome
+            response = outcome.response.model_copy(
+                update={
+                    "decisions": [
+                        decision.model_copy(
+                            update={
+                                "grounding": "unresolved",
+                                "strongest_defeater": "The supplied fixture cannot close the semantic reading.",
+                                "defeater_kind": "undercutting",
+                                "defeater_disposition": "unresolved",
+                            }
+                        )
+                        for decision in outcome.response.decisions
+                    ]
+                }
+            )
+            return outcome.model_copy(update={"response": response})
+
+    cell = _method_cell(
+        pair=pair,
+        round_index=1,
+        runtime=UnresolvedRuntime(),
+        output_root=tmp_path,
+    )
+
+    assert cell["eligible"] is True
+    assert cell["status"] == "completed"
+    assert cell["eligibility_reasons"] == [
+        "real_contract_output",
+        "at_least_one_completed_grounding_lens",
+        "auditable_semantic_result",
+        "method_receipt_complete",
+    ]
+    assert cell["evidence_records"]
+    assert {record["d_level"] for record in cell["evidence_records"]} == {
+        "D_UNRESOLVED"
+    }
+    assert {record["witness_level"] for record in cell["evidence_records"]} == {
+        "W0"
+    }
+
+
+def test_successful_zero_finding_cell_is_eligible(tmp_path: Path) -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+
+    class ZeroFindingRuntime(FixtureStructuredRuntime):
+        def call(self, **kwargs):
+            outcome = super().call(**kwargs).model_copy(update={"real_llm": True})
+            if isinstance(outcome.response, NLContractResponse):
+                base = outcome.response.contracts[0]
+                contract = base.model_copy(
+                    update={
+                        "locus_kind": "other",
+                        "locus_names": ("provider-free passing check",),
+                        "property": "other",
+                        "expected_direction": "must_exist",
+                        "violation_direction": "other",
+                        "evidence_types": ("semantic_comparison",),
+                        "binding_hints": (),
+                    }
+                )
+                return outcome.model_copy(
+                    update={
+                        "response": outcome.response.model_copy(
+                            update={"contracts": [contract]}
+                        )
+                    }
+                )
+            if isinstance(outcome.response, GroundingResponse):
+                return outcome.model_copy(
+                    update={
+                        "response": outcome.response.model_copy(
+                            update={"candidates": [], "additional_contracts": []}
+                        )
+                    }
+                )
+            return outcome
+
+    cell = _method_cell(
+        pair=pair,
+        round_index=1,
+        runtime=ZeroFindingRuntime(),
+        output_root=tmp_path,
+    )
+
+    assert cell["eligible"] is True
+    assert cell["status"] == "completed"
+    assert cell["evidence_records"] == []
+    assert cell["report_issue_clusters"] == []
+
+
 def test_sparse_grounding_omission_is_normal_but_unknown_derived_segment_is_audited(
     tmp_path: Path,
 ) -> None:
