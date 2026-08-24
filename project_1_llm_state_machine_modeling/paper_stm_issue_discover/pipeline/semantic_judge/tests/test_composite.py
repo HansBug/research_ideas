@@ -11,6 +11,7 @@ from pipeline.semantic_judge.composite import (
     CrossRoundCoverage,
     RecoveredPairFailure,
     _call_audit,
+    _replacement_result_cost,
 )
 from pipeline.semantic_judge.models import JudgeCallReceipt, RetryRecord, UsageReceipt
 
@@ -122,3 +123,18 @@ def test_composite_pydantic_models_document_every_field() -> None:
             field.description and field.description.strip()
             for field in model.model_fields.values()
         )
+
+
+def test_replacement_result_cost_counts_same_commit_repairs() -> None:
+    selected_costs = {
+        (1, "0015"): 0.0564816,
+        (2, "0029"): 0.82282,
+        (3, "0053"): 0.25,
+    }
+
+    cost = _replacement_result_cost(
+        selected_costs,
+        ((1, "0015"), (2, "0029")),
+    )
+
+    assert cost == 0.8793016

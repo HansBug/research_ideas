@@ -418,6 +418,15 @@ def _call_audit(calls: Sequence[JudgeCallReceipt]) -> CompositeCallAudit:
     )
 
 
+def _replacement_result_cost(
+    selected_cost_by_key: Mapping[tuple[int, str], float],
+    recovered_keys: Iterable[tuple[int, str]],
+) -> float:
+    """Return selected-result cost for cells that replace recorded failures."""
+
+    return sum(selected_cost_by_key[key] for key in recovered_keys)
+
+
 def _ledger_l2_ids(path: Path) -> set[str]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     items = payload.get("items") if isinstance(payload, Mapping) else None
@@ -732,21 +741,17 @@ def build_composite(
         reason="Raw novel reports remain report counts; pair-namespaced root-cause keys provide a separate cross-round shape count.",
         basis="FULL/support ledger IDs across rounds and pair-namespaced final root_cause_cluster_key values.",
     )
-    selected_result_cost = sum(
-        call.cost_usd for result in ordered_results for call in result.call_receipts
-    )
+    selected_cost_by_key = {
+        key: sum(call.cost_usd for call in result.call_receipts)
+        for key, (result, _receipt) in pair_results.items()
+    }
+    selected_result_cost = sum(selected_cost_by_key.values())
     original_failure_cost = sum(
         failure.total_judge_cost_usd for failure, _run_id, _path in failures
     )
-    repair_result_cost = (
-        sum(
-            call.cost_usd
-            for result in ordered_results
-            if result.judge_code_commit == execution_erratum_commit
-            for call in result.call_receipts
-        )
-        if execution_erratum_commit is not None
-        else 0.0
+    repair_result_cost = _replacement_result_cost(
+        selected_cost_by_key,
+        ((item.round, item.pair_id) for item in recovered),
     )
     call_audit = _call_audit(all_calls)
     if abs(call_audit.cost_usd - total_incurred_cost) > 1e-9:
