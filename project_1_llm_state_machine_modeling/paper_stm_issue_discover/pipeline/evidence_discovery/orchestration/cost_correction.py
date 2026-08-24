@@ -316,6 +316,28 @@ def build_corrected_method_cost(
             attempts = call.get("attempts")
             if not isinstance(attempts, list):
                 raise TypeError(f"method call has no attempts list: {method_path}")
+            receipt_usage = call.get("usage")
+            if receipt_usage is not None and not isinstance(receipt_usage, list):
+                raise TypeError(f"method call has no valid usage list: {method_path}")
+            receipt_rows = (
+                _usage_rows({"usage": receipt_usage})
+                if isinstance(receipt_usage, list)
+                else []
+            )
+            attempt_numbers = {
+                int(attempt.get("outer_attempt") or 0)
+                for attempt in attempts
+                if isinstance(attempt, dict)
+            }
+            unmatched_receipt_rows = [
+                row
+                for row in receipt_rows
+                if int(row.get("outer_attempt") or 0) not in attempt_numbers
+            ]
+            if unmatched_receipt_rows:
+                raise ValueError(
+                    f"method usage rows do not close over outer attempts: {method_path}"
+                )
             for attempt in attempts:
                 if not isinstance(attempt, dict):
                     raise TypeError(f"invalid attempt receipt: {method_path}")
@@ -332,14 +354,22 @@ def build_corrected_method_cost(
                 outer_attempt = int(attempt.get("outer_attempt") or 0)
                 if outer_attempt < 1:
                     raise ValueError(f"invalid outer attempt: {result_path}")
-                rows = _usage_rows(result, outer_attempt=outer_attempt)
+                canonical_rows = [
+                    dict(row)
+                    for row in receipt_rows
+                    if int(row.get("outer_attempt") or 0) == outer_attempt
+                ]
+                rows = canonical_rows or _usage_rows(
+                    result, outer_attempt=outer_attempt
+                )
                 disposition = str(attempt.get("billing_disposition") or "billable")
                 provider_error = bool(attempt.get("provider_error")) or (
                     disposition == "provider_error_retry_exempt"
                 )
-                for row in rows:
-                    row["billing_disposition"] = disposition
-                    row["cost_counted"] = not provider_error
+                if not canonical_rows:
+                    for row in rows:
+                        row["billing_disposition"] = disposition
+                        row["cost_counted"] = not provider_error
                 result_cost = _cost_for_usage(rows, selected_pricing)
                 all_rows.extend(rows)
                 pair_total["rows"] += len(rows)
@@ -358,7 +388,9 @@ def build_corrected_method_cost(
                         result_path=result_artifact.path,
                         result_sha256=result_artifact.sha256,
                         reason=(
-                            "Explicit provider-owned usage is retained but excluded from cost."
+                            "Row-level billing exempts only provider-owned failed requests; earlier completed schema-repair requests in the same outer attempt remain billable."
+                            if provider_error and canonical_rows
+                            else "Explicit provider-owned usage is retained but excluded from cost."
                             if provider_error
                             else "All provider usage, including schema-repair turns, is billable."
                         ),

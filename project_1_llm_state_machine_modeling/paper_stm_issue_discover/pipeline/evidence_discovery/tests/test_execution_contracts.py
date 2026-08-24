@@ -3064,6 +3064,121 @@ def test_corrected_cost_aggregate_preserves_retry_billing_and_source_hashes(
     assert aggregate.source_closure_hash.startswith("sha256:")
 
 
+def test_corrected_cost_preserves_billable_rows_before_provider_failure(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "mixed-provider-error-run"
+    method_path = root / "method" / "0004" / "round-1.json"
+    failed_result = root / "llm" / "failed-attempt" / "result.json"
+    retry_result = root / "llm" / "successful-retry" / "result.json"
+    method_path.parent.mkdir(parents=True)
+    failed_result.parent.mkdir(parents=True)
+    retry_result.parent.mkdir(parents=True)
+    (root / "run_manifest.json").write_text(
+        json.dumps(
+            {
+                "run_id": "mixed-provider-error-fixture",
+                "profile": "fixture-profile",
+                "source_provenance": {"source_commit": "a" * 40},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (root / "summary.json").write_text(
+        json.dumps(
+            {
+                "run_id": "mixed-provider-error-fixture",
+                "profile": "fixture-profile",
+                "source_commit": "a" * 40,
+                "method_cost_usd": 0.0018,
+            }
+        ),
+        encoding="utf-8",
+    )
+    failed_result.write_text(
+        json.dumps(
+            {
+                "usage": [
+                    {"input_tokens": 10_000, "output_tokens": 1_000},
+                    {"input_tokens": None, "output_tokens": None},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    retry_result.write_text(
+        json.dumps({"usage": [{"input_tokens": 500, "output_tokens": 50}]}),
+        encoding="utf-8",
+    )
+    method_path.write_text(
+        json.dumps(
+            {
+                "run_id": "mixed-provider-error-fixture",
+                "pair_id": "0004",
+                "round": 1,
+                "llm_calls": [
+                    {
+                        "kind": "grounding",
+                        "schema_validation_failures": [{"turn": 1}],
+                        "attempts": [
+                            {
+                                "outer_attempt": 1,
+                                "result_path": str(failed_result.resolve()),
+                                "billing_disposition": "provider_error_attempt_requires_row_level_join",
+                                "provider_error": True,
+                            },
+                            {
+                                "outer_attempt": 2,
+                                "result_path": str(retry_result.resolve()),
+                                "billing_disposition": "billable",
+                                "provider_error": False,
+                            },
+                        ],
+                        "usage": [
+                            {
+                                "outer_attempt": 1,
+                                "input_tokens": 1_000,
+                                "output_tokens": 100,
+                                "cost_counted": True,
+                                "billing_disposition": "billable",
+                            },
+                            {
+                                "outer_attempt": 1,
+                                "input_tokens": None,
+                                "output_tokens": None,
+                                "cost_counted": False,
+                                "billing_disposition": "provider_error_retry_exempt",
+                            },
+                            {
+                                "outer_attempt": 2,
+                                "input_tokens": 500,
+                                "output_tokens": 50,
+                                "cost_counted": True,
+                                "billing_disposition": "billable",
+                            },
+                        ],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    aggregate = build_corrected_method_cost(
+        root, pricing=_runtime_fixture_pricing()
+    )
+
+    assert aggregate.provider_request_count == 3
+    assert aggregate.billable_provider_request_count == 2
+    assert aggregate.provider_error_exempt_request_count == 1
+    assert aggregate.breakdown.uncached_input.tokens == 1_500
+    assert aggregate.breakdown.output.tokens == 150
+    assert aggregate.corrected_method_cost_usd == pytest.approx(0.0018)
+    assert aggregate.result_receipts[0].provider_error is True
+    assert aggregate.result_receipts[0].corrected_cost_usd == pytest.approx(0.0012)
+    assert "earlier completed schema-repair requests" in aggregate.result_receipts[0].reason
+
+
 def test_identified_provider_retry_does_not_exempt_unrelated_cancellation() -> None:
     rows = [
         {
