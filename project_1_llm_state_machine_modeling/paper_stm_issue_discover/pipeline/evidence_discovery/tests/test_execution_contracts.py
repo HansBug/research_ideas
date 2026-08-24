@@ -9,6 +9,10 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from pydantic import BaseModel, ValidationError
+from utils.agent import AgentError
+from utils.llm.config import LLMPricing, LLMTokenPrices
+
 from pipeline.evidence_discovery.backends import run_backend
 from pipeline.evidence_discovery.backends.bounded_verification import (
     _terminal_states,
@@ -112,10 +116,6 @@ from pipeline.evidence_discovery.semantics import (
 )
 from pipeline.evidence_discovery.semantics.binding import BindingResult
 from pipeline.semantic_judge.artifacts import adapt_evidence_discovery_release
-from pydantic import BaseModel, ValidationError
-
-from utils.agent import AgentError
-from utils.llm.config import LLMPricing, LLMTokenPrices
 
 PAPER_ROOT = Path(__file__).parents[3]
 REPORT_ROOT = PAPER_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
@@ -3208,8 +3208,9 @@ def test_corrected_cost_preserves_billable_rows_before_provider_failure(
                                 "outer_attempt": 1,
                                 "input_tokens": None,
                                 "output_tokens": None,
-                                "cost_counted": False,
-                                "billing_disposition": "provider_error_retry_exempt",
+                                "status": "failed",
+                                "cost_counted": True,
+                                "billing_disposition": "billable",
                             },
                             {
                                 "outer_attempt": 2,
@@ -3236,7 +3237,9 @@ def test_corrected_cost_preserves_billable_rows_before_provider_failure(
     assert aggregate.breakdown.uncached_input.tokens == 1_500
     assert aggregate.breakdown.output.tokens == 150
     assert aggregate.corrected_method_cost_usd == pytest.approx(0.0018)
+    assert aggregate.cost_eligible is True
     assert aggregate.result_receipts[0].provider_error is True
+    assert aggregate.result_receipts[0].cost_eligible is True
     assert aggregate.result_receipts[0].corrected_cost_usd == pytest.approx(0.0012)
     assert "earlier completed schema-repair requests" in aggregate.result_receipts[0].reason
 

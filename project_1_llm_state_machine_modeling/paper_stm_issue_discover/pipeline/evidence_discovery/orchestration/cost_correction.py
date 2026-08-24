@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
-
 from utils.llm import LLMPricing, load_llm_registry
 
 from .runtime import _cost_for_usage, _usage_rows
@@ -366,7 +365,22 @@ def build_corrected_method_cost(
                 provider_error = bool(attempt.get("provider_error")) or (
                     disposition == "provider_error_retry_exempt"
                 )
-                if not canonical_rows:
+                if canonical_rows and provider_error:
+                    # Historical receipts may predate row-level provider-error
+                    # annotation. Keep completed schema-repair turns billable,
+                    # but exempt the failed provider request that caused the
+                    # outer retry.
+                    for row in rows:
+                        if row.get("status") in {
+                            "failed",
+                            "unavailable",
+                            "cancelled",
+                        }:
+                            row["billing_disposition"] = (
+                                "provider_error_retry_exempt"
+                            )
+                            row["cost_counted"] = False
+                elif not canonical_rows:
                     for row in rows:
                         row["billing_disposition"] = disposition
                         row["cost_counted"] = not provider_error
@@ -465,8 +479,9 @@ def build_corrected_method_cost(
         per_pair=per_pair,
         result_receipts=tuple(result_receipts),
         reason=(
-            "The historical runtime priced nested provider cache-read usage as ordinary "
-            "input; this separate aggregate corrects only the token classification."
+            "The source summary remains immutable; this standalone aggregate "
+            "normalizes cache classes, applies row-level provider-error exemptions, "
+            "and retains every priced row from otherwise ineligible cells."
         ),
         basis=(
             "Immutable method/result bytes, original billing dispositions, shared "
