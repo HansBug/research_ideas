@@ -57,6 +57,7 @@ from pipeline.evidence_discovery.orchestration.runner import (
     _finalize_w2_audit_links,
     _grounding_response_contract,
     _materialize_exact_s2_inventory_candidates,
+    _materialize_deterministic_execution_probes,
     _merge_grounding_contracts,
     _normalize_d_decision_shape,
     _normalize_grounding_exact_facts,
@@ -1077,6 +1078,234 @@ def test_source_gate_keeps_w1_but_preserves_real_execution_receipt() -> None:
     assert execution["execution_status"] == "executed"
     assert execution["verdict"] in {"pass", "violation"}
     assert execution["source_gate_passed"] is False
+
+
+def _probe_contract(
+    *,
+    contract_id: str,
+    property_name: str,
+    locus_kind: str = "transition",
+    locus_names: tuple[str, ...] = ("Source", "Target"),
+    cardinality_requirement=None,
+    binding_hints=(),
+) -> NLContract:
+    return NLContract(
+        contract_id=contract_id,
+        segment_id="NL1",
+        quote="The supplied requirement establishes this typed obligation.",
+        normative_statement="The supplied typed obligation must hold.",
+        locus_kind=locus_kind,
+        locus_names=locus_names,
+        property=property_name,
+        expected_direction="must_exist",
+        violation_direction="missing",
+        evidence_types=("source_identity", "closed_model_inventory"),
+        binding_hints=binding_hints,
+        cardinality_requirement=cardinality_requirement,
+        scope="provider-free probe scope",
+        source_refs=("NL1",),
+        reason="The fixture establishes one atomic contract.",
+        basis="provider-free deterministic execution-probe fixture",
+    )
+
+
+def _exact_binding(
+    *,
+    contract_id: str,
+    role: str,
+    model_ref: str,
+    carrier_ref: str | None = None,
+) -> SemanticBinding:
+    return SemanticBinding(
+        binding_id=f"BIND-{contract_id.rsplit('-', 1)[-1]}-{role}",
+        contract_id=contract_id,
+        role=role,
+        concept_name=role,
+        status="exact",
+        source_element_ref=f"source:{model_ref}",
+        model_element_ref=model_ref,
+        carrier_transition_ref=carrier_ref,
+        reason="The fixture supplies one exact closed-model reference.",
+        basis="provider-free exact SemanticBinding fixture",
+    )
+
+
+def test_execution_probe_admission_requires_exact_carrier_and_keeps_s1_supporting(
+) -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    transition = pair.model.transitions[0]
+    contract = _probe_contract(
+        contract_id="NL-CONTRACT-PROBE-ENDPOINT",
+        property_name="transition_endpoints",
+        locus_names=(transition.source, transition.target),
+        binding_hints=(
+            ContractBindingHint(
+                role="source",
+                value=transition.source,
+                reason="The fixture identifies the exact transition source.",
+                basis="provider-free transition endpoint fixture",
+            ),
+            ContractBindingHint(
+                role="target",
+                value=transition.target,
+                reason="The fixture identifies the exact transition target.",
+                basis="provider-free transition endpoint fixture",
+            ),
+        ),
+    )
+    grounding = GroundingResponse(
+        lens="contract_structure_contrast",
+        semantic_bindings=(
+            _exact_binding(
+                contract_id=contract.contract_id,
+                role="transition",
+                model_ref=transition.ref,
+                carrier_ref=transition.ref,
+            ),
+        ),
+        reason="The exact endpoint carrier is available.",
+        basis="provider-free exact carrier probe fixture",
+    )
+
+    probes, probe_contracts, dispositions = _materialize_deterministic_execution_probes(
+        pair,
+        {contract.contract_id: contract},
+        (grounding,),
+        (),
+    )
+
+    assert len(probes) == 1
+    assert probes[0].predicate_id == "S1"
+    assert probes[0].property == "element_declaration"
+    assert probes[0].element_refs == [transition.ref]
+    assert probes[0].contract_id in probe_contracts
+    assert dispositions[0]["status"] == "admitted_exact_carrier"
+
+    prepared = _prepare_candidate(
+        pair,
+        probes[0],
+        round_index=1,
+        index=0,
+        contracts_by_id=probe_contracts,
+    )
+    assert prepared["receipt"].terminal_state == "completed"
+    assert prepared["receipt"].verdict == "true"
+    assert _prepared_is_finding_candidate(prepared) is False
+
+
+@pytest.mark.parametrize("property_name", ["containment", "cardinality", "initial_entry"])
+def test_execution_probe_does_not_relabel_non_declaration_contracts_as_s1(
+    property_name: str,
+) -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    state = pair.model.states[1]
+    transition = pair.model.transitions[0]
+    cardinality_requirement = None
+    if property_name == "cardinality":
+        from pipeline.evidence_discovery.semantics import CardinalityRequirement
+
+        cardinality_requirement = CardinalityRequirement(
+            required_count=1,
+            member_domain="explicit_named_members",
+            scope_concept=state.name,
+            member_concept="member",
+            reason="The fixture supplies a finite named domain.",
+            basis="provider-free cardinality probe fixture",
+        )
+    contract = _probe_contract(
+        contract_id=f"NL-CONTRACT-PROBE-{property_name.upper()}",
+        property_name=property_name,
+        locus_kind="state" if property_name != "containment" else "composite",
+        locus_names=(state.name,),
+        cardinality_requirement=cardinality_requirement,
+    )
+    grounding = GroundingResponse(
+        lens="contract_structure_contrast",
+        semantic_bindings=(
+            _exact_binding(
+                contract_id=contract.contract_id,
+                role="state",
+                model_ref=state.ref,
+                carrier_ref=transition.ref,
+            ),
+        ),
+        reason="The fixture has an exact state binding.",
+        basis="provider-free non-declaration probe fixture",
+    )
+
+    probes, _, _ = _materialize_deterministic_execution_probes(
+        pair,
+        {contract.contract_id: contract},
+        (grounding,),
+        (),
+    )
+
+    assert probes == []
+
+
+def test_g4_execution_probe_requires_exact_owner_and_marked_target() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    owner, target = pair.model.states[1:3]
+    contract = _probe_contract(
+        contract_id="NL-CONTRACT-PROBE-TERMINATION",
+        property_name="termination",
+        locus_kind="state",
+        locus_names=(owner.name, target.name),
+    )
+    grounding = GroundingResponse(
+        lens="contract_structure_contrast",
+        semantic_bindings=(
+            _exact_binding(
+                contract_id=contract.contract_id,
+                role="owner",
+                model_ref=owner.ref,
+            ),
+            _exact_binding(
+                contract_id=contract.contract_id,
+                role="target",
+                model_ref=target.ref,
+            ),
+        ),
+        reason="The fixture supplies exact termination endpoints.",
+        basis="provider-free exact termination probe fixture",
+    )
+
+    probes, probe_contracts, dispositions = _materialize_deterministic_execution_probes(
+        pair,
+        {contract.contract_id: contract},
+        (grounding,),
+        (),
+    )
+
+    assert len(probes) == 1
+    assert probes[0].predicate_id == "G4"
+    assert probes[0].predicate_inputs == {
+        "roots": [owner.name],
+        "marked": [target.name],
+    }
+    assert probes[0].contract_id == contract.contract_id
+    assert probe_contracts == {}
+    assert dispositions[0]["status"] == "admitted_exact_termination"
+
+    missing_target = GroundingResponse(
+        lens="contract_structure_contrast",
+        semantic_bindings=(
+            _exact_binding(
+                contract_id=contract.contract_id,
+                role="owner",
+                model_ref=owner.ref,
+            ),
+        ),
+        reason="The target remains unresolved.",
+        basis="provider-free incomplete termination fixture",
+    )
+    probes, _, _ = _materialize_deterministic_execution_probes(
+        pair,
+        {contract.contract_id: contract},
+        (missing_target,),
+        (),
+    )
+    assert probes == []
 
 
 def test_trajectory_receipt_requires_closed_contract_and_checks_retention() -> None:

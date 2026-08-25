@@ -2127,6 +2127,233 @@ def _materialize_exact_s2_inventory_candidates(
     return materialized, receipts
 
 
+def _exact_grounding_model_refs(
+    pair: PairInput,
+    grounding_responses: Sequence[GroundingResponse],
+    contract_id: str,
+) -> list[str]:
+    """Collect unique exact closed-model refs for one grounded contract.
+
+    This helper is deliberately limited to ``SemanticBinding.status=exact``.
+    It does not resolve names, source IDs, or display labels, so an execution
+    probe can never manufacture a carrier from an ambiguous grounding row.
+    """
+
+    model_refs = set(pair.model.all_refs)
+    refs: list[str] = []
+    for response in grounding_responses:
+        for binding in response.semantic_bindings:
+            if binding.contract_id != contract_id or binding.status != "exact":
+                continue
+            for ref in (binding.model_element_ref, binding.carrier_transition_ref):
+                if ref in model_refs and ref not in refs:
+                    refs.append(ref)
+    return refs
+
+
+def _s1_probe_descriptor(pair: PairInput, model_ref: str) -> tuple[str, str] | None:
+    """Return the frozen S1 kind and declaration identity for one exact ref."""
+
+    state = next((item for item in pair.model.states if item.ref == model_ref), None)
+    if state is not None:
+        return "state", state.name
+    event = next((item for item in pair.model.events if item.ref == model_ref), None)
+    if event is not None:
+        return "event", event.name
+    transition = next(
+        (item for item in pair.model.transitions if item.ref == model_ref), None
+    )
+    if transition is not None:
+        return "transition", transition.ref
+    return None
+
+
+def _materialize_deterministic_execution_probes(
+    pair: PairInput,
+    contracts_by_id: Mapping[str, NLContract],
+    grounding_responses: Sequence[GroundingResponse],
+    existing_candidates: Sequence[CandidateIssue],
+) -> tuple[list[CandidateIssue], dict[str, NLContract], list[dict[str, Any]]]:
+    """Create executable probes from exact method-owned bindings only.
+
+    Probes are audit executions, not extra obligations.  S1 checks declaration
+    membership for an exact carrier named by an endpoint/trigger contract; the
+    primary contract remains unchanged.  G4 checks finite coaccessibility only
+    when a termination contract supplies exact owner and marked target states.
+    Runtime predicates are intentionally absent here: static source/model facts
+    cannot be promoted to a trajectory scenario.
+    """
+
+    probes: list[CandidateIssue] = []
+    probe_contracts: dict[str, NLContract] = {}
+    dispositions: list[dict[str, Any]] = []
+    existing_predicates = {
+        (candidate.contract_id, candidate.predicate_id)
+        for candidate in existing_candidates
+    }
+
+    # An element probe is a supporting closed-declaration check.  It is only
+    # derived for endpoint/trigger contracts: containment, cardinality, and
+    # initial-entry contracts are never relabelled as S1.
+    for contract in sorted(contracts_by_id.values(), key=lambda item: item.contract_id):
+        if contract.property not in {"transition_endpoints", "trigger_set"}:
+            continue
+        refs = _exact_grounding_model_refs(pair, grounding_responses, contract.contract_id)
+        if not refs:
+            continue
+        model_ref = refs[0]
+        descriptor = _s1_probe_descriptor(pair, model_ref)
+        if descriptor is None:
+            continue
+        kind, element = descriptor
+        probe_id = (
+            f"{contract.contract_id}-S1-PROBE-"
+            f"{_hash_json(model_ref).removeprefix('sha256:')[:12]}"
+        )
+        probe_contract = contract.model_copy(
+            update={
+                "contract_id": probe_id,
+                "locus_kind": "model" if kind == "transition" else kind,
+                "locus_names": (element,),
+                "property": "element_declaration",
+                "expected_direction": "must_exist",
+                "violation_direction": "missing",
+                "normative_statement": (
+                    f"The exact closed-model {kind} carrier {element} must belong "
+                    "to the declaration inventory."
+                ),
+                "scope": "closed_fcstm_declaration_inventory",
+                "reason": (
+                    "This supporting probe checks the exact grounded carrier's "
+                    "declaration membership without replacing the parent contract."
+                ),
+                "basis": (
+                    f"parent_contract={contract.contract_id}; exact_model_ref={model_ref}; "
+                    "grounding SemanticBinding.status=exact"
+                ),
+                "binding_hints": (),
+            }
+        )
+        candidate = CandidateIssue(
+            contract_id=probe_id,
+            locus_kind=probe_contract.locus_kind,
+            locus_names=probe_contract.locus_names,
+            property=probe_contract.property,
+            violation_direction=probe_contract.violation_direction,
+            evidence_types=("closed_model_inventory", "source_identity"),
+            title=f"Declaration probe for exact {kind} carrier {element}",
+            requirement_quote=contract.quote,
+            predicate_id="S1",
+            predicate_inputs={
+                "kind": kind,
+                "element": element,
+                "scope": "closed_fcstm",
+            },
+            element_refs=[model_ref],
+            source_refs=list(contract.source_refs),
+            expected=probe_contract.normative_statement,
+            observed=f"The exact ModelIR ref {model_ref} is checked against the closed declaration inventory.",
+            strongest_rebuttal="The probe is supporting execution evidence only; it does not decide the parent endpoint or trigger obligation.",
+            reason="An exact grounded carrier is available for a standalone declaration-membership execution.",
+            basis=(
+                f"parent_contract={contract.contract_id}; model_ref={model_ref}; "
+                "S1 element_exists supporting probe"
+            ),
+        )
+        if (probe_id, "S1") not in existing_predicates:
+            probe_contracts[probe_id] = probe_contract
+            probes.append(candidate)
+            dispositions.append(
+                {
+                    "probe": "S1",
+                    "status": "admitted_exact_carrier",
+                    "contract_id": probe_id,
+                    "parent_contract_id": contract.contract_id,
+                    "model_ref": model_ref,
+                    "reason": candidate.reason,
+                    "basis": candidate.basis,
+                }
+            )
+            break
+
+    # G4 is a termination/coaccessibility check, not a generic termination
+    # alias.  Both owner and marked target must come from exact grounding and
+    # the author-source model must be finite and non-concurrent.
+    concurrent = bool(
+        pair.canonical_source_ir is not None
+        and pair.canonical_source_ir.model.concurrent_regions
+    )
+    if not concurrent:
+        for contract in sorted(contracts_by_id.values(), key=lambda item: item.contract_id):
+            if contract.property != "termination":
+                continue
+            exact_by_role: dict[str, set[str]] = {}
+            for response in grounding_responses:
+                for binding in response.semantic_bindings:
+                    if binding.contract_id != contract.contract_id or binding.status != "exact":
+                        continue
+                    ref = binding.model_element_ref or binding.carrier_transition_ref
+                    if ref in pair.model.all_refs:
+                        exact_by_role.setdefault(binding.role, set()).add(ref)
+            owners = exact_by_role.get("owner", set()) | exact_by_role.get("source", set())
+            targets = exact_by_role.get("target", set())
+            if len(owners) != 1 or len(targets) != 1:
+                continue
+            owner_ref = next(iter(owners))
+            target_ref = next(iter(targets))
+            owner = next((item for item in pair.model.states if item.ref == owner_ref), None)
+            target = next((item for item in pair.model.states if item.ref == target_ref), None)
+            if owner is None or target is None:
+                continue
+            if (contract.contract_id, "G4") in existing_predicates:
+                continue
+            candidate = CandidateIssue(
+                contract_id=contract.contract_id,
+                locus_kind=contract.locus_kind,
+                locus_names=contract.locus_names,
+                property=contract.property,
+                violation_direction=contract.violation_direction,
+                evidence_types=tuple(
+                    dict.fromkeys([*contract.evidence_types, "reachability_fact"])
+                ),
+                title=f"Termination coaccessibility from {owner.name} to {target.name}",
+                requirement_quote=contract.quote,
+                predicate_id="G4",
+                predicate_inputs={
+                    "roots": [owner.name],
+                    "marked": [target.name],
+                },
+                element_refs=[owner_ref, target_ref],
+                source_refs=list(contract.source_refs),
+                expected=contract.normative_statement,
+                observed=(
+                    f"Finite coaccessibility is checked from exact owner {owner.ref} "
+                    f"to marked termination target {target.ref}."
+                ),
+                strongest_rebuttal="The G4 probe is admitted only for an exact owner/target termination contract and a non-concurrent finite source model.",
+                reason="The termination contract supplies explicit roots and marked target states for the registered G4 coaccessibility fragment.",
+                basis=(
+                    f"contract={contract.contract_id}; owner_ref={owner_ref}; "
+                    f"target_ref={target_ref}; finite_model=true; concurrent_regions=false"
+                ),
+            )
+            probes.append(candidate)
+            dispositions.append(
+                {
+                    "probe": "G4",
+                    "status": "admitted_exact_termination",
+                    "contract_id": contract.contract_id,
+                    "owner_ref": owner_ref,
+                    "target_ref": target_ref,
+                    "reason": candidate.reason,
+                    "basis": candidate.basis,
+                }
+            )
+            break
+
+    return probes, probe_contracts, dispositions
+
+
 def _prepared_is_finding_candidate(prepared: Mapping[str, Any]) -> bool:
     """Apply the execute-batch boundary between passing checks and findings."""
 
@@ -2704,10 +2931,20 @@ def _method_cell(
             source_transition_closures,
         )
     )
+    execution_probe_candidates, execution_probe_contracts, execution_probe_dispositions = (
+        _materialize_deterministic_execution_probes(
+            pair,
+            contracts_by_id,
+            grounding_responses,
+            [*admitted_llm_candidates, *frontier_candidates, *exact_s2_candidates],
+        )
+    )
+    contracts_by_id.update(execution_probe_contracts)
     candidates = [
         *admitted_llm_candidates,
         *frontier_candidates,
         *exact_s2_candidates,
+        *execution_probe_candidates,
     ]
     records: list[dict[str, Any]] = []
     release: list[dict[str, Any]] = []
@@ -2779,6 +3016,8 @@ def _method_cell(
         "frontier_batch": frontier_batch.model_dump(mode="json"),
         "exact_s2_scout_candidate_count": len(exact_s2_candidates),
         "exact_s2_scout_receipts": exact_s2_receipts,
+        "execution_probe_count": len(execution_probe_candidates),
+        "execution_probe_dispositions": execution_probe_dispositions,
         "prepared_count": len(prepared_candidates),
         "finding_count": len(finding_candidates),
         "satisfied_count": len(satisfied_candidates),
