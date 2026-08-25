@@ -2752,6 +2752,79 @@ def test_source_deadlock_certificate_rejects_unsound_or_unbound_states() -> None
     assert not has_stopping(pair, contract("UnboundState"))
 
 
+def test_source_deadlock_certificate_expands_from_resolved_domain_context() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0001")
+    contract = _contract(
+        contract_id="NL-CONTRACT-NL2-OPERATIONAL-CONTEXT",
+        segment_id="NL2",
+        locus_kind="state",
+        locus_names=("OperationalState",),
+        property_name="state_action",
+        expected_direction="must_exist",
+        violation_direction="missing",
+        hints=(_hint("state", "OperationalState", "NL2"),),
+        state_role="operating_state",
+    )
+    response = _response([contract])
+
+    batch = materialize_typed_frontier(
+        pair,
+        response,
+        {contract.contract_id: contract},
+        (),
+        (),
+    )
+
+    dead_ends = {
+        item.candidate.locus_names[0]: item
+        for item in batch.obligations
+        if item.kind == "reachable_dead_end"
+    }
+    assert set(dead_ends) == {"ClampingState", "ClampingLoseState"}
+    assert dead_ends["ClampingLoseState"].source_contract_ids == (
+        contract.contract_id,
+    )
+    assert (
+        dead_ends["ClampingLoseState"].contract.binding_hints[0].basis
+        .split("; ")[1]
+        == "anchor_kind=domain_context"
+    )
+
+
+def test_source_deadlock_certificate_uses_resolved_pair_context_for_terminate() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0012")
+    contract = _contract(
+        contract_id="NL-CONTRACT-NL1-OPERATE-CONTEXT",
+        segment_id="NL1",
+        locus_kind="state",
+        locus_names=("Operate",),
+        property_name="initial_entry",
+        expected_direction="must_enter",
+        violation_direction="wrong_target",
+        hints=(_hint("target", "Operate", "NL1"),),
+        state_role="operating_state",
+    )
+    response = _response([contract])
+
+    batch = materialize_typed_frontier(
+        pair,
+        response,
+        {contract.contract_id: contract},
+        (),
+        (),
+    )
+
+    terminate = next(
+        item
+        for item in batch.obligations
+        if item.kind == "reachable_dead_end"
+        and item.candidate.locus_names == ("Terminate",)
+    )
+    assert terminate.candidate.predicate_id == "V4"
+    assert terminate.candidate.element_refs == [pair.model.state("Terminate").ref]
+    assert "explicit_final=false" in terminate.candidate.observed
+
+
 def test_source_deadlock_certificate_uses_exact_grounding_target_binding() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0001")
     contract = _contract(
@@ -2818,6 +2891,27 @@ def test_source_deadlock_certificate_uses_exact_grounding_target_binding() -> No
     assert dead_end.candidate.element_refs == [
         pair.model.state("ClampingState").ref
     ]
+
+    non_operating_contract = contract.model_copy(update={"state_role": None})
+    non_operating_response = _response([non_operating_contract])
+    non_operating_binding = exact_binding.model_copy(
+        update={"contract_id": non_operating_contract.contract_id}
+    )
+    non_operating_grounding = grounding.model_copy(
+        update={"semantic_bindings": [non_operating_binding]}
+    )
+    exact_only_batch = materialize_typed_frontier(
+        pair,
+        non_operating_response,
+        {non_operating_contract.contract_id: non_operating_contract},
+        (non_operating_grounding,),
+        (),
+    )
+    assert any(
+        item.kind == "reachable_dead_end"
+        and item.candidate.locus_names == ("ClampingState",)
+        for item in exact_only_batch.obligations
+    )
 
     conflicting = GroundingResponse(
         lens="contract_structure_contrast",

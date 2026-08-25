@@ -2209,12 +2209,17 @@ def _materialize_root_reachability(
     return scopes
 
 
-def _operating_state_contracts(
+def _source_state_contracts(
     pair: PairInput,
     contracts: Sequence[NLContract],
     grounding_responses: Sequence[GroundingResponse],
 ) -> dict[str, list[NLContract]]:
-    """Index exact operating-state anchors without interpreting contract prose."""
+    """Index exact state anchors without interpreting contract prose.
+
+    Operating-state contracts may use their exact typed hints. Other contract
+    kinds enter this index only through an exact grounding binding, so a broad
+    transition contract cannot turn a prose name into a state identity.
+    """
 
     exact_bindings: dict[tuple[str, str], list[SemanticBinding]] = defaultdict(list)
     for response in grounding_responses:
@@ -2224,8 +2229,6 @@ def _operating_state_contracts(
 
     result: dict[str, list[NLContract]] = defaultdict(list)
     for contract in contracts:
-        if contract.state_role != "operating_state":
-            continue
         hints = [
             hint
             for hint in contract.binding_hints
@@ -2244,17 +2247,73 @@ def _operating_state_contracts(
                 if state is not None:
                     states[state.ref] = state
                 continue
+            if contract.state_role != "operating_state":
+                continue
             for hint in (item for item in hints if item.role == role):
                 state = _state_for_value(pair, hint.value)
                 if state is not None:
                     states[state.ref] = state
-        if not states and not has_exact_binding and len(contract.locus_names) == 1:
+        if (
+            contract.state_role == "operating_state"
+            and not states
+            and not has_exact_binding
+            and len(contract.locus_names) == 1
+        ):
             state = _state_for_value(pair, contract.locus_names[0])
             if state is not None:
                 states[state.ref] = state
         for state_ref in states:
             result[state_ref].append(contract)
     return result
+
+
+def _source_dead_end_anchors(
+    pair: PairInput,
+    state: StateNode,
+    source_path: tuple[tuple[str, ...], tuple[str, ...]],
+    anchors_by_ref: Mapping[str, Sequence[NLContract]],
+) -> tuple[list[NLContract], bool]:
+    """Choose a typed domain context for one exact source dead-end state.
+
+    Direct state identity remains strongest. When the authored target is not
+    named by NL, the nearest already-bound source-path state supplies only the
+    surrounding domain context. A stable context fallback is allowed only when
+    another contract in the same pair already resolves to an exact state; this
+    prevents an unresolved or empty extraction from licensing source-wide
+    candidate generation.
+    """
+
+    direct = list(anchors_by_ref.get(state.ref, ()))
+    if direct:
+        return direct, True
+
+    inventory = pair.exact_source_inventory
+    if inventory is not None:
+        source_states = {item.source_id: item for item in inventory.states}
+        for source_state_id in reversed(source_path[0][:-1]):
+            source_state = source_states.get(source_state_id)
+            if source_state is None:
+                continue
+            path_state = _state_by_name(pair, source_state.name)
+            if path_state is None:
+                continue
+            nearest = list(anchors_by_ref.get(path_state.ref, ()))
+            if nearest:
+                return nearest, False
+
+    context = {
+        contract.contract_id: contract
+        for rows in anchors_by_ref.values()
+        for contract in rows
+    }
+    if not context:
+        return [], False
+    return [
+        min(
+            context.values(),
+            key=lambda contract: (contract.segment_id, contract.contract_id),
+        )
+    ], False
 
 
 def _materialize_source_dead_ends(
@@ -2265,9 +2324,11 @@ def _materialize_source_dead_ends(
     """Materialize the source-certified reachable non-final deadlock frontier.
 
     The closed-model inspection fact identifies a reachable leaf. The canonical
-    author source independently closes the sequential soundness fragment. An NL
-    contract is required only as an exact operating-state identity anchor; it is
-    not rewritten into a fabricated NL progress requirement.
+    author source independently closes the sequential soundness fragment. A
+    typed NL contract supplies domain context, but need not name every authored
+    target state. Exact state identity and the no-continuation claim come only
+    from the source inventory and closed-model facts; the contract is not
+    rewritten into a literal NL progress statement.
     """
 
     pair = builder.pair
@@ -2275,7 +2336,7 @@ def _materialize_source_dead_ends(
     source_ir = pair.canonical_source_ir
     if facts is None or source_ir is None or pair.exact_source_inventory is None:
         return
-    anchors_by_ref = _operating_state_contracts(
+    anchors_by_ref = _source_state_contracts(
         pair,
         contracts,
         grounding_responses,
@@ -2292,8 +2353,7 @@ def _materialize_source_dead_ends(
         ):
             continue
         state = _state_by_ref(pair, state_fact.state_ref)
-        anchors = anchors_by_ref.get(state_fact.state_ref, [])
-        if state is None or not anchors:
+        if state is None:
             continue
         source_matches = [
             item
@@ -2306,6 +2366,14 @@ def _materialize_source_dead_ends(
         canonical_state = source_states.get(source_state.source_id)
         source_path = _source_path(pair, source_state.source_id)
         if canonical_state is None or source_path is None:
+            continue
+        anchors, direct_anchor = _source_dead_end_anchors(
+            pair,
+            state,
+            source_path,
+            anchors_by_ref,
+        )
+        if not anchors:
             continue
 
         ancestor_ids: list[str] = []
@@ -2341,8 +2409,16 @@ def _materialize_source_dead_ends(
             role="state",
             value=state.name,
             source_ref=base.segment_id,
-            reason="The supplied operating-state contract binds this exact author/source and closed-model state identity.",
-            basis=f"anchor_contract={base.contract_id}; state_ref={state.ref}; source_id={source_state.source_id}",
+            reason=(
+                "The supplied contract binds this exact author/source and closed-model state identity."
+                if direct_anchor
+                else "The supplied contract establishes domain context; exact state identity comes only from the author-source inventory and closed model."
+            ),
+            basis=(
+                f"anchor_contract={base.contract_id}; "
+                f"anchor_kind={'direct_state' if direct_anchor else 'domain_context'}; "
+                f"state_ref={state.ref}; source_id={source_state.source_id}"
+            ),
         )
         derived = _derived_contract(
             base,
@@ -2374,7 +2450,7 @@ def _materialize_source_dead_ends(
                 )
             ),
             reason=(
-                "The typed operating-state identity and sequential source "
+                "The typed domain context and sequential source "
                 "certificate establish a domain deadlock obligation independently "
                 "of an NL-only progress contract."
             ),
@@ -2417,7 +2493,7 @@ def _materialize_source_dead_ends(
             derived,
             candidate,
             reason="A source certificate closes one exact reachable non-final deadlock fragment.",
-            basis="typed operating-state anchor and exact source/inspection finite-graph facts",
+            basis="typed domain context and exact source/inspection finite-graph facts",
         )
 
 
