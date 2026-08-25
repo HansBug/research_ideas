@@ -84,7 +84,20 @@ from .runtime import (
     _structured_stage_deadline_seconds,
 )
 
-REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS = ("0004", "0023", "0029", "0035", "0046", "0053")
+REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS = (
+    "0004",
+    "0023",
+    "0029",
+    "0035",
+    "0046",
+    "0053",
+    "0001",
+    "0002",
+    "0010",
+    "0012",
+    "0024",
+    "0056",
+)
 METHOD_CELL_SCHEMA = "evidence-discovery.method_cell.v8"
 SUMMARY_SCHEMA = "evidence-discovery.run_summary.v3"
 RUN_MANIFEST_SCHEMA = "evidence-discovery.run_manifest.v3"
@@ -3153,7 +3166,7 @@ def run_experiment(
             if pair_ids is None:
                 raise RuntimeError("live diagnostic execution requires explicit pair_ids")
             if len(selected_pair_ids) > len(REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS):
-                raise RuntimeError("live diagnostic runs are capped at six explicit pair IDs")
+                raise RuntimeError("live diagnostic runs are capped at 12 explicit pair IDs")
 
     report_root_path = Path(report_root).expanduser().resolve()
     source_provenance = _source_provenance()

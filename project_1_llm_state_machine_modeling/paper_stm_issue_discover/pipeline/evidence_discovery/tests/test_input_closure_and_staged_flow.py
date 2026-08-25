@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import pytest
+
 from pipeline.evidence_discovery.inputs import load_pair, parse_fcstm
 from pipeline.evidence_discovery.inputs.context import (
     build_numbered_nl_segments,
@@ -1084,14 +1085,28 @@ def test_full_live_runner_requires_second_explicit_gate() -> None:
         )
 
 
-def test_live_runner_caps_diagnostic_subset_at_six_pairs() -> None:
-    with pytest.raises(RuntimeError, match="capped at six"):
+def test_live_runner_caps_diagnostic_subset_at_twelve_pairs() -> None:
+    with pytest.raises(RuntimeError, match="capped at 12"):
         run_experiment(
             report_root=REPORT_ROOT,
-            output_dir=PAPER_ROOT / "runs" / "should-not-start-over-five",
+            output_dir=PAPER_ROOT / "runs" / "should-not-start-over-twelve",
             profile="gpt-5.6-luna",
             allow_live=True,
-            pair_ids=["0000", "0001", "0002", "0003", "0004", "0005", "0006"],
+            pair_ids=[
+                "0004",
+                "0023",
+                "0029",
+                "0035",
+                "0046",
+                "0053",
+                "0001",
+                "0002",
+                "0010",
+                "0012",
+                "0024",
+                "0056",
+                "0011",
+            ],
         )
 
 

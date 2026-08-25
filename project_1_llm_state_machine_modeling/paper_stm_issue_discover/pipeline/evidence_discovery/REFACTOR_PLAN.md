@@ -318,7 +318,7 @@ error 使格子死亡，原地重试该格一次；其它错误及由此触发�
 只有 crash、数据缺失、审计不闭合或确定实现 bug 才允许用新 run identity 修复重跑。
 
 当前施工安全门分两级：任意真实 Luna 调用都必须显式通过 `allow_live`；诊断阶段必须
-显式传入 pair IDs，且最多运行六个 pair。冻结 54-pair 三轮全量还必须额外通过
+显式传入 pair IDs，且最多运行预注册的十二个开发 pair。冻结 54-pair 三轮全量还必须额外通过
 `allow_full_live`，该门只可在 provider-free 契约检查与预先登记的诊断集
 method + 外置冻结 Judge 验收完成 review 后打开。每次运行在用户给定目录下新建 `run_id` 子目录；
 manifest 冻结 commit、registry/prompt/schema/input hash、workers、retry 和 stream 模式，
