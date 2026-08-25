@@ -3411,6 +3411,50 @@ def test_inspection_projection_keeps_exact_initial_carrier_and_reachable_leaf() 
     assert "outgoing_transition_refs=[]" in leaf_issue.observed
 
 
+def test_inspection_projection_admits_leaf_from_exact_parent_scope_anchor() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0002")
+    anchor = _contract(
+        contract_id="NL-CONTRACT-NL1-PUMP-SCOPE",
+        segment_id="NL1",
+        locus_kind="composite",
+        locus_names=("PumpControl",),
+        property_name="cardinality",
+        expected_direction="must_cover",
+        violation_direction="missing",
+        hints=(_hint("scope", "PumpControl", "NL1"),),
+        state_role="operating_state",
+        cardinality_requirement=CardinalityRequirement(
+            required_count=3,
+            member_domain="direct_child_states",
+            scope_concept="PumpControl",
+            member_concept="main substates",
+            alternative_reading=None,
+            reason="The fixture establishes a finite direct-child count.",
+            basis="provider-free exact parent-scope cardinality fixture",
+        ),
+    )
+
+    batch = materialize_typed_frontier(
+        pair,
+        _response([anchor]),
+        {anchor.contract_id: anchor},
+        (),
+        (),
+    )
+
+    leaf = next(
+        item
+        for item in batch.obligations
+        if item.kind == "reachable_dead_end"
+        and item.candidate.locus_names == ("InitialState",)
+    )
+    assert leaf.source_contract_ids == (anchor.contract_id,)
+    assert leaf.candidate.property == "deadlock_freedom"
+    assert leaf.candidate.predicate_id is None
+    assert leaf.candidate.element_refs == [pair.model.state("InitialState").ref]
+    assert leaf.candidate.reason and leaf.candidate.basis
+
+
 def test_inspection_projection_anchors_child_initial_edges_to_exact_scope_contracts() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0002")
     contracts = [

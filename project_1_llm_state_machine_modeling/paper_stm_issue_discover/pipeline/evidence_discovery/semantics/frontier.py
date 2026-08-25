@@ -4424,6 +4424,8 @@ def _inspection_scope_contract(
     contracts: Sequence[NLContract],
     grounding_responses: Sequence[GroundingResponse],
     scope: StateNode,
+    *,
+    allowed_properties: frozenset[str] | None = None,
 ) -> NLContract | None:
     """Find one supplied contract that exactly anchors a model scope."""
 
@@ -4445,6 +4447,8 @@ def _inspection_scope_contract(
     )
     candidates: list[NLContract] = []
     for contract in contracts:
+        if allowed_properties is not None and contract.property not in allowed_properties:
+            continue
         if contract.contract_id in exact_bindings:
             candidates.append(contract)
             continue
@@ -4631,6 +4635,67 @@ def _materialize_inspection_diagnostics(
                 ),
                 None,
             )
+            source_contract_ids: tuple[str, ...]
+            if contract is None and state.parent:
+                owner = _state_by_name(pair, state.parent)
+                anchor = (
+                    _inspection_scope_contract(
+                        pair,
+                        contracts,
+                        grounding_responses,
+                        owner,
+                        allowed_properties=frozenset({"cardinality"}),
+                    )
+                    if owner is not None
+                    else None
+                )
+                if anchor is not None and owner is not None:
+                    contract = _derived_contract(
+                        anchor,
+                        locus_kind="state",
+                        locus_names=(state.name,),
+                        property_name="deadlock_freedom",
+                        state_role="operating_state",
+                        expected_direction="must_progress",
+                        violation_direction="dead_end",
+                        evidence_types=(
+                            *anchor.evidence_types,
+                            "closed_model_inventory",
+                            "reachability_fact",
+                            "deadlock_frontier_fact",
+                        ),
+                        normative_statement=(
+                            f"The exact reachable leaf {state.name} under "
+                            f"operating scope {owner.name} must retain an "
+                            "operational continuation."
+                        ),
+                        scope=f"Exact leaf continuation in {owner.name}",
+                        source_refs=anchor.source_refs,
+                        reason=(
+                            "The inspection fact identifies an exact reachable "
+                            "leaf, while the enclosing operating-scope contract "
+                            "supplies the normative anchor; no state identity "
+                            "was inferred from display text."
+                        ),
+                        basis=(
+                            "exact StateNode.parent binding plus inspection-equivalent "
+                            "LEAF_WITHOUT_OUTGOING fact"
+                        ),
+                        binding_hints=(
+                            ContractBindingHint(
+                                role="state",
+                                value=state.name,
+                                source_ref=anchor.segment_id,
+                                reason="The parser-resolved leaf state is the exact carrier.",
+                                basis=f"owner_ref={owner.ref}; state_ref={state.ref}",
+                            ),
+                        ),
+                    )
+                    source_contract_ids = (anchor.contract_id,)
+                else:
+                    source_contract_ids = ()
+            else:
+                source_contract_ids = (contract.contract_id,) if contract else ()
             if contract is None:
                 continue
             candidate = _candidate(
@@ -4643,12 +4708,19 @@ def _materialize_inspection_diagnostics(
                 expected=contract.normative_statement,
                 observed=f"Exact reachable leaf {state.ref} has no outgoing transition refs.",
                 strongest_rebuttal="A transition owned by another state cannot provide continuation for this exact leaf carrier.",
-                reason=diagnostic.reason,
-                basis=f"diagnostic={diagnostic.code}; refs={list(diagnostic.refs)}; state={state.ref}",
+                reason=(
+                    diagnostic.reason
+                    if source_contract_ids == (contract.contract_id,)
+                    else contract.reason
+                ),
+                basis=(
+                    f"diagnostic={diagnostic.code}; refs={list(diagnostic.refs)}; "
+                    f"state={state.ref}; source_contract_ids={list(source_contract_ids)}"
+                ),
             )
             builder.add(
                 "reachable_dead_end",
-                (contract.contract_id,),
+                source_contract_ids,
                 contract,
                 candidate,
                 reason="The supplied deadlock-freedom contract is joined to the exact reachable leaf reported by inspection facts.",
