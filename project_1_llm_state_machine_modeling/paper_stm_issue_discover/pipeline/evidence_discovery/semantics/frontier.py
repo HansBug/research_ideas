@@ -2212,8 +2212,15 @@ def _materialize_root_reachability(
 def _operating_state_contracts(
     pair: PairInput,
     contracts: Sequence[NLContract],
+    grounding_responses: Sequence[GroundingResponse],
 ) -> dict[str, list[NLContract]]:
     """Index exact operating-state anchors without interpreting contract prose."""
+
+    exact_bindings: dict[tuple[str, str], list[SemanticBinding]] = defaultdict(list)
+    for response in grounding_responses:
+        for binding in response.semantic_bindings:
+            if binding.status == "exact" and binding.role in {"state", "target"}:
+                exact_bindings[(binding.contract_id, binding.role)].append(binding)
 
     result: dict[str, list[NLContract]] = defaultdict(list)
     for contract in contracts:
@@ -2224,12 +2231,24 @@ def _operating_state_contracts(
             for hint in contract.binding_hints
             if hint.role in {"state", "target"}
         ]
-        states = {
-            state.ref: state
-            for hint in hints
-            if (state := _state_for_value(pair, hint.value)) is not None
-        }
-        if not states and len(contract.locus_names) == 1:
+        states: dict[str, StateNode] = {}
+        has_exact_binding = False
+        for role in {hint.role for hint in hints}:
+            bindings = exact_bindings.get((contract.contract_id, role), [])
+            if bindings:
+                has_exact_binding = True
+                refs = {binding.model_element_ref for binding in bindings}
+                if len(refs) != 1 or None in refs:
+                    continue
+                state = _state_by_ref(pair, next(iter(refs)))
+                if state is not None:
+                    states[state.ref] = state
+                continue
+            for hint in (item for item in hints if item.role == role):
+                state = _state_for_value(pair, hint.value)
+                if state is not None:
+                    states[state.ref] = state
+        if not states and not has_exact_binding and len(contract.locus_names) == 1:
             state = _state_for_value(pair, contract.locus_names[0])
             if state is not None:
                 states[state.ref] = state
@@ -2241,6 +2260,7 @@ def _operating_state_contracts(
 def _materialize_source_dead_ends(
     builder: _Builder,
     contracts: Sequence[NLContract],
+    grounding_responses: Sequence[GroundingResponse],
 ) -> None:
     """Materialize the source-certified reachable non-final deadlock frontier.
 
@@ -2255,7 +2275,11 @@ def _materialize_source_dead_ends(
     source_ir = pair.canonical_source_ir
     if facts is None or source_ir is None or pair.exact_source_inventory is None:
         return
-    anchors_by_ref = _operating_state_contracts(pair, contracts)
+    anchors_by_ref = _operating_state_contracts(
+        pair,
+        contracts,
+        grounding_responses,
+    )
     source_states = {item.id: item for item in source_ir.model.states}
     source_transitions = {item.id: item for item in source_ir.model.transitions}
     final_states = set(source_ir.model.final_states)
@@ -2397,7 +2421,11 @@ def _materialize_source_dead_ends(
         )
 
 
-def _materialize_dead_ends(builder: _Builder, contracts: Sequence[NLContract]) -> None:
+def _materialize_dead_ends(
+    builder: _Builder,
+    contracts: Sequence[NLContract],
+    grounding_responses: Sequence[GroundingResponse],
+) -> None:
     pair = builder.pair
     for contract in contracts:
         if (
@@ -2433,7 +2461,7 @@ def _materialize_dead_ends(builder: _Builder, contracts: Sequence[NLContract]) -
             reason="An explicit deadlock-freedom obligation is bound to a reachable leaf with no outgoing transition.",
             basis="typed deadlock-freedom contract plus inspection-equivalent deadlock frontier",
         )
-    _materialize_source_dead_ends(builder, contracts)
+    _materialize_source_dead_ends(builder, contracts, grounding_responses)
 
 
 def _source_state_id(pair: PairInput, state: StateNode) -> str | None:
@@ -4275,7 +4303,7 @@ def materialize_typed_frontier(
     )
     _materialize_initial_entries(builder, all_contracts, all_groups)
     scopes = _materialize_root_reachability(builder, all_contracts, llm_candidates)
-    _materialize_dead_ends(builder, all_contracts)
+    _materialize_dead_ends(builder, all_contracts, grounding_responses)
     _materialize_termination(builder, all_contracts)
     _materialize_group_guards(builder, all_groups, all_contracts)
     _materialize_group_collisions(builder, all_groups, all_contracts)

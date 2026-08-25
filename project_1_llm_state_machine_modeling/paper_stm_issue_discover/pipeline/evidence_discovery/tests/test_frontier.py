@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
+
 from pipeline.evidence_discovery.backends import run_backend
 from pipeline.evidence_discovery.compiler import compile_plan
 from pipeline.evidence_discovery.evidence.witness_levels import calculate_witness_level
@@ -31,7 +33,6 @@ from pipeline.evidence_discovery.semantics import (
     materialize_segment_coverage,
     materialize_typed_frontier,
 )
-from pydantic import ValidationError
 
 PAPER_ROOT = Path(__file__).parents[3]
 REPORT_ROOT = PAPER_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
@@ -2749,6 +2750,149 @@ def test_source_deadlock_certificate_rejects_unsound_or_unbound_states() -> None
     )
     assert not has_stopping(concurrent_pair, contract())
     assert not has_stopping(pair, contract("UnboundState"))
+
+
+def test_source_deadlock_certificate_uses_exact_grounding_target_binding() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0001")
+    contract = _contract(
+        contract_id="NL-CONTRACT-NL3-CLAMPING-ENDPOINT",
+        segment_id="NL3",
+        locus_kind="transition",
+        locus_names=("braking state", "brake caliper clamping state"),
+        property_name="transition_endpoints",
+        expected_direction="must_exist",
+        violation_direction="wrong_target",
+        hints=(
+            _hint("source", "braking state", "NL3"),
+            _hint("target", "brake caliper clamping state", "NL3"),
+        ),
+        state_role="operating_state",
+    )
+    response = _response([contract])
+
+    no_binding = materialize_typed_frontier(
+        pair,
+        response,
+        {contract.contract_id: contract},
+        (),
+        (),
+    )
+    assert not any(
+        item.kind == "reachable_dead_end" for item in no_binding.obligations
+    )
+
+    exact_binding = SemanticBinding(
+        binding_id="BIND-NL3-CLAMPING-TARGET",
+        contract_id=contract.contract_id,
+        role="target",
+        concept_name="brake caliper clamping state",
+        status="exact",
+        source_element_ref="source:state:ClampingState",
+        model_element_ref=pair.model.state("ClampingState").ref,
+        carrier_transition_ref=pair.model.transition("transition:line:15").ref,
+        reason="The supplied source and closed model uniquely bind the descriptive target to ClampingState.",
+        basis="fixed source inventory and exact transition carrier fixture",
+    )
+    grounding = GroundingResponse(
+        lens="behavior_consequence",
+        semantic_bindings=[exact_binding],
+        reason="The fixture supplies one exact target binding.",
+        basis="provider-free exact-binding frontier regression",
+    )
+    batch = materialize_typed_frontier(
+        pair,
+        response,
+        {contract.contract_id: contract},
+        (grounding,),
+        (),
+    )
+    dead_end = next(
+        item
+        for item in batch.obligations
+        if item.kind == "reachable_dead_end"
+    )
+    assert dead_end.source_contract_ids == (contract.contract_id,)
+    assert dead_end.candidate.locus_names == ("ClampingState",)
+    assert dead_end.candidate.property == "deadlock_freedom"
+    assert dead_end.candidate.predicate_id == "V4"
+    assert dead_end.candidate.element_refs == [
+        pair.model.state("ClampingState").ref
+    ]
+
+    conflicting = GroundingResponse(
+        lens="contract_structure_contrast",
+        semantic_bindings=[
+            exact_binding.model_copy(
+                update={
+                    "binding_id": "BIND-NL3-CONFLICTING-TARGET",
+                    "source_element_ref": "source:state:ClampingLoseState",
+                    "model_element_ref": pair.model.state("ClampingLoseState").ref,
+                }
+            )
+        ],
+        reason="The fixture supplies a conflicting target binding.",
+        basis="provider-free cross-lens conflict regression",
+    )
+    conflict_batch = materialize_typed_frontier(
+        pair,
+        response,
+        {contract.contract_id: contract},
+        (grounding, conflicting),
+        (),
+    )
+    assert not any(
+        item.kind == "reachable_dead_end" for item in conflict_batch.obligations
+    )
+
+    direct_contract = _contract(
+        contract_id="NL-CONTRACT-NL3-CLAMPING-ACTION",
+        segment_id="NL3",
+        locus_kind="state",
+        locus_names=("ClampingState",),
+        property_name="state_action",
+        expected_direction="must_occur",
+        violation_direction="missing",
+        hints=(_hint("state", "ClampingState", "NL3"),),
+        state_role="operating_state",
+    )
+    direct_response = _response([direct_contract])
+    conflicting_direct_bindings = tuple(
+        GroundingResponse(
+            lens=lens,
+            semantic_bindings=[
+                exact_binding.model_copy(
+                    update={
+                        "binding_id": f"BIND-NL3-DIRECT-{index}",
+                        "contract_id": direct_contract.contract_id,
+                        "role": "state",
+                        "concept_name": "ClampingState",
+                        "source_element_ref": f"source:state:{name}",
+                        "model_element_ref": pair.model.state(name).ref,
+                    }
+                )
+            ],
+            reason="The fixture supplies one direct-state binding.",
+            basis="provider-free direct-name conflict regression",
+        )
+        for index, (lens, name) in enumerate(
+            (
+                ("behavior_consequence", "ClampingState"),
+                ("contract_structure_contrast", "ClampingLoseState"),
+            ),
+            start=1,
+        )
+    )
+    direct_conflict_batch = materialize_typed_frontier(
+        pair,
+        direct_response,
+        {direct_contract.contract_id: direct_contract},
+        conflicting_direct_bindings,
+        (),
+    )
+    assert not any(
+        item.kind == "reachable_dead_end"
+        for item in direct_conflict_batch.obligations
+    )
 
 
 def test_0035_data_frontier_aggregates_complete_shared_variable_gap() -> None:
