@@ -29,12 +29,14 @@ from .frontier import (
 )
 from .obligations import CandidateIssue, ContractBindingHint, MethodResponse
 from .source_transition_closure import (
+    SourceTransitionBindingDispositionReceipt,
     SourceTransitionCandidateDispositionReceipt,
     SourceTransitionClosureHashes,
     SourceTransitionClosureMemberReceipt,
     SourceTransitionClosureReceipt,
     endpoint_candidate_is_satisfied_by_macro,
     evaluate_source_transition_closure,
+    suppress_contradicted_ambiguous_source_candidates,
     suppress_satisfied_source_transition_candidates,
 )
 from .workflow import (
@@ -95,6 +97,7 @@ __all__ = [
     "SegmentCoverage",
     "SemanticAdjudication",
     "SemanticBinding",
+    "SourceTransitionBindingDispositionReceipt",
     "SourceTransitionCandidateDispositionReceipt",
     "SourceTransitionClosureHashes",
     "SourceTransitionClosureMemberReceipt",
@@ -124,6 +127,7 @@ __all__ = [
     "normalize_contract_state_roles",
     "resolve_state_ref",
     "resolve_transition_ref",
+    "suppress_contradicted_ambiguous_source_candidates",
     "suppress_satisfied_source_transition_candidates",
     "transition_group_semantic_key",
 ]

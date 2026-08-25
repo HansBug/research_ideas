@@ -61,6 +61,7 @@ from ..semantics import (
     normalize_contract_state_roles,
     resolve_state_ref,
     resolve_transition_ref,
+    suppress_contradicted_ambiguous_source_candidates,
     suppress_satisfied_source_transition_candidates,
 )
 from .contracts import (
@@ -1930,6 +1931,13 @@ def _method_cell(
         if contract.property == "transition_endpoints"
         and contract.expected_direction == "must_exist"
     }
+    raw_admitted_llm_candidates, binding_dispositions = (
+        suppress_contradicted_ambiguous_source_candidates(
+            pair,
+            raw_admitted_llm_candidates,
+            grounding_responses,
+        )
+    )
     admitted_llm_candidates, llm_macro_dispositions = (
         suppress_satisfied_source_transition_candidates(
             raw_admitted_llm_candidates,
@@ -1988,11 +1996,16 @@ def _method_cell(
             receipt.model_dump(mode="json")
             for receipt in source_transition_closures.values()
         ],
-        "source_transition_suppressed_candidate_count": len(llm_macro_dispositions)
+        "source_transition_suppressed_candidate_count": len(binding_dispositions)
+        + len(llm_macro_dispositions)
         + len(frontier_macro_dispositions),
         "source_transition_candidate_dispositions": [
             receipt.model_dump(mode="json")
-            for receipt in (*llm_macro_dispositions, *frontier_macro_dispositions)
+            for receipt in (
+                *binding_dispositions,
+                *llm_macro_dispositions,
+                *frontier_macro_dispositions,
+            )
         ],
         "superseded_llm_candidate_contract_ids": list(
             frontier_batch.superseded_candidate_contract_ids

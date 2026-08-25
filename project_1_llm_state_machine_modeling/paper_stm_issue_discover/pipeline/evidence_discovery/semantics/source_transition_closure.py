@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..inputs.models import PairInput
 from .obligations import CandidateIssue
-from .workflow import NLContract
+from .workflow import GroundingResponse, NLContract
 
 ClosureStatus = Literal["satisfied", "unresolved", "not_applicable"]
 CandidateDisposition = Literal[
@@ -255,6 +255,77 @@ class SourceTransitionCandidateDispositionReceipt(BaseModel):
     basis: str = Field(
         min_length=1,
         description="Exact closure receipt identities supporting suppression.",
+    )
+
+
+class SourceTransitionBindingDispositionReceipt(BaseModel):
+    """Audit row for source ambiguity contradicted by one exact endpoint carrier.
+
+    This receipt records only a deterministic contradiction between a candidate's
+    indispensable ambiguous-source mechanism and exact typed source/model facts.
+    It does not infer a requirement, validity category, W/D/L level, or Judge
+    relation.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    schema_version: Literal[
+        "evidence-discovery.source-transition-binding-disposition.v1"
+    ] = Field(
+        default="evidence-discovery.source-transition-binding-disposition.v1",
+        description="Persistence schema version for one exact-carrier binding disposition.",
+    )
+    algorithm_version: Literal[
+        "source-transition-binding-contradiction.v1"
+    ] = Field(
+        default="source-transition-binding-contradiction.v1",
+        description="Version of the exact binding, author-transition, and closed-carrier endpoint join.",
+    )
+    contract_id: str = Field(
+        min_length=1,
+        description="Exact typed endpoint contract copied from the suppressed candidate.",
+    )
+    candidate_title: str = Field(
+        min_length=1,
+        description="English title of the suppressed candidate for audit traceability.",
+    )
+    supporting_lenses: tuple[str, ...] = Field(
+        min_length=2,
+        description="Both independent grounding lenses that supplied the ambiguous source and same exact target carrier.",
+    )
+    ambiguous_source_binding_ids: tuple[str, ...] = Field(
+        min_length=1,
+        description="Complete sorted IDs of ambiguous source bindings for this contract.",
+    )
+    exact_target_binding_ids: tuple[str, ...] = Field(
+        min_length=1,
+        description="Complete sorted IDs of exact target bindings that identify the same closed carrier.",
+    )
+    author_transition_id: str = Field(
+        min_length=1,
+        description="Unique exact author-source transition cited by the candidate.",
+    )
+    author_transition_raw_ref: str = Field(
+        min_length=1,
+        description="Exact author-source line reference for the cited transition.",
+    )
+    closed_carrier_ref: str = Field(
+        min_length=1,
+        description="Unique exact closed-model transition supplied by the target bindings.",
+    )
+    disposition: Literal[
+        "suppressed_contradicted_ambiguous_source"
+    ] = Field(
+        default="suppressed_contradicted_ambiguous_source",
+        description="Deterministic disposition when identical typed endpoints contradict the candidate's indispensable source ambiguity.",
+    )
+    reason: str = Field(
+        min_length=1,
+        description="English explanation of why the source-ambiguity mechanism is contradicted.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Exact binding IDs, transition refs, and endpoint values supporting suppression.",
     )
 
 
@@ -730,6 +801,127 @@ def endpoint_candidate_is_satisfied_by_macro(
     )
 
 
+def suppress_contradicted_ambiguous_source_candidates(
+    pair: PairInput,
+    candidates: Sequence[CandidateIssue],
+    grounding_responses: Sequence[GroundingResponse],
+) -> tuple[list[CandidateIssue], list[SourceTransitionBindingDispositionReceipt]]:
+    """Suppress endpoint candidates whose source ambiguity is exactly refuted.
+
+    Suppression requires a unique author transition cited by the candidate, no
+    exact source binding, and agreement from both independent grounding lenses
+    on an ambiguous source plus the same exact target carrier. The author
+    transition and closed carrier must have identical typed source and target
+    endpoints. Any incomplete or conflicting join retains the candidate.
+    """
+
+    if pair.exact_source_inventory is None:
+        return list(candidates), []
+
+    bindings_by_contract: dict[str, list[tuple[str, Any]]] = {}
+    for response in grounding_responses:
+        for binding in response.semantic_bindings:
+            bindings_by_contract.setdefault(binding.contract_id, []).append(
+                (response.lens, binding)
+            )
+
+    retained: list[CandidateIssue] = []
+    dispositions: list[SourceTransitionBindingDispositionReceipt] = []
+    for candidate in candidates:
+        if not (
+            candidate.property == "transition_endpoints"
+            and candidate.violation_direction == "wrong_target"
+        ):
+            retained.append(candidate)
+            continue
+
+        bindings = bindings_by_contract.get(candidate.contract_id, [])
+        source_bindings = [item for item in bindings if item[1].role == "source"]
+        ambiguous_sources = [
+            item for item in source_bindings if item[1].status == "ambiguous"
+        ]
+        if not ambiguous_sources or any(
+            item[1].status == "exact" for item in source_bindings
+        ):
+            retained.append(candidate)
+            continue
+
+        exact_targets = [
+            item
+            for item in bindings
+            if item[1].role == "target"
+            and item[1].status == "exact"
+            and item[1].carrier_transition_ref is not None
+        ]
+        carrier_refs = sorted(
+            {
+                item[1].carrier_transition_ref
+                for item in exact_targets
+                if item[1].carrier_transition_ref
+            }
+        )
+        supporting_lenses = tuple(
+            sorted(
+                {item[0] for item in ambiguous_sources}
+                & {item[0] for item in exact_targets}
+            )
+        )
+        if len(carrier_refs) != 1 or len(supporting_lenses) < 2:
+            retained.append(candidate)
+            continue
+        closed_carrier = pair.model.transition(carrier_refs[0])
+        if closed_carrier is None:
+            retained.append(candidate)
+            continue
+
+        candidate_source_refs = set(candidate.source_refs)
+        author_transitions = [
+            item
+            for item in pair.exact_source_inventory.transitions
+            if item.raw_ref in candidate_source_refs
+            or f"source:transition:{item.transition_id}" in candidate_source_refs
+        ]
+        if len(author_transitions) != 1:
+            retained.append(candidate)
+            continue
+        author_transition = author_transitions[0]
+        if (
+            author_transition.source != closed_carrier.source
+            or author_transition.target != closed_carrier.target
+        ):
+            retained.append(candidate)
+            continue
+
+        ambiguous_ids = tuple(
+            sorted({item[1].binding_id for item in ambiguous_sources})
+        )
+        exact_target_ids = tuple(
+            sorted({item[1].binding_id for item in exact_targets})
+        )
+        dispositions.append(
+            SourceTransitionBindingDispositionReceipt(
+                contract_id=candidate.contract_id,
+                candidate_title=candidate.title,
+                supporting_lenses=supporting_lenses,
+                ambiguous_source_binding_ids=ambiguous_ids,
+                exact_target_binding_ids=exact_target_ids,
+                author_transition_id=author_transition.transition_id,
+                author_transition_raw_ref=author_transition.raw_ref,
+                closed_carrier_ref=closed_carrier.ref,
+                reason="Both independent grounding lenses identify an ambiguous source and the same exact target carrier, while the candidate's unique cited author transition and that closed carrier have identical typed endpoints; this contradicts the indispensable source-ambiguity mechanism.",
+                basis=(
+                    f"contract_id={candidate.contract_id}; ambiguous_source_binding_ids={list(ambiguous_ids)}; "
+                    f"exact_target_binding_ids={list(exact_target_ids)}; "
+                    f"supporting_lenses={list(supporting_lenses)}; "
+                    f"author_transition={author_transition.transition_id}:{author_transition.source}->{author_transition.target}; "
+                    f"author_raw_ref={author_transition.raw_ref}; "
+                    f"closed_carrier={closed_carrier.ref}:{closed_carrier.source}->{closed_carrier.target}"
+                ),
+            )
+        )
+    return retained, dispositions
+
+
 def suppress_satisfied_source_transition_candidates(
     candidates: Sequence[CandidateIssue],
     receipts: Mapping[str, SourceTransitionClosureReceipt],
@@ -767,11 +959,13 @@ def suppress_satisfied_source_transition_candidates(
 
 
 __all__ = [
+    "SourceTransitionBindingDispositionReceipt",
     "SourceTransitionCandidateDispositionReceipt",
     "SourceTransitionClosureHashes",
     "SourceTransitionClosureMemberReceipt",
     "SourceTransitionClosureReceipt",
     "endpoint_candidate_is_satisfied_by_macro",
     "evaluate_source_transition_closure",
+    "suppress_contradicted_ambiguous_source_candidates",
     "suppress_satisfied_source_transition_candidates",
 ]

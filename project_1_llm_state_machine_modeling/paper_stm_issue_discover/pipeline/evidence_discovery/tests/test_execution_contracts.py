@@ -99,6 +99,7 @@ from pipeline.evidence_discovery.semantics import (
     NLTransitionAlternative,
     NLTransitionGroup,
     SemanticAdjudication,
+    SemanticBinding,
     SourceTransitionClosureReceipt,
     adjudicate_disposition,
     assemble_method_response,
@@ -112,6 +113,7 @@ from pipeline.evidence_discovery.semantics import (
     fallback_grounding,
     normalize_contract_state_roles,
     resolve_transition_ref,
+    suppress_contradicted_ambiguous_source_candidates,
     suppress_satisfied_source_transition_candidates,
 )
 from pipeline.evidence_discovery.semantics.binding import BindingResult
@@ -2885,6 +2887,143 @@ def test_incomplete_source_transition_macro_remains_unresolved_and_keeps_candida
     assert missing_member_id not in receipt.observed_member_ids
     assert any(not member.closed for member in receipt.member_receipts)
     assert any("protected ownership" in item for item in receipt.diagnostics)
+
+
+def _ambiguous_source_endpoint_fixture(
+    *,
+    carrier_ref: str = "transition:line:40",
+    target_model_ref: str = "state:FormationAdjustment:line:38",
+) -> tuple[CandidateIssue, GroundingResponse]:
+    candidate = CandidateIssue(
+        contract_id="NL-CONTRACT-NL3-ENDPOINT-1",
+        locus_kind="transition",
+        locus_names=("unresolved source state", "formation adjustment state"),
+        property="transition_endpoints",
+        violation_direction="wrong_target",
+        evidence_types=(
+            "source_identity",
+            "transition_fact",
+            "closed_model_inventory",
+        ),
+        title="Interception transition source is not uniquely grounded",
+        requirement_quote="When intercepted, transition to formation adjustment.",
+        predicate_id=None,
+        predicate_inputs={},
+        element_refs=[carrier_ref, target_model_ref],
+        source_refs=[
+            "llms_emp_feedback_final_0056.puml:line:16",
+            "source:transition:tr_0009",
+        ],
+        expected="The intended interception source enters FormationAdjustment.",
+        observed="The exact target carrier is present but its source is called ambiguous.",
+        strongest_rebuttal="The cited author transition and closed carrier may have identical endpoints.",
+        reason="The source is described as ambiguous despite one cited author transition.",
+        basis="provider-free exact-carrier contradiction fixture",
+    )
+    grounding = GroundingResponse(
+        lens="contract_structure_contrast",
+        semantic_bindings=[
+            SemanticBinding(
+                binding_id="BIND-NL3-SOURCE",
+                contract_id=candidate.contract_id,
+                role="source",
+                concept_name="interception response source state",
+                status="ambiguous",
+                reason="The source was left ambiguous by this grounding branch.",
+                basis="provider-free ambiguous source fixture",
+            ),
+            SemanticBinding(
+                binding_id="BIND-NL3-TARGET",
+                contract_id=candidate.contract_id,
+                role="target",
+                concept_name="formation adjustment state",
+                status="exact",
+                source_element_ref="source:state:FormationAdjustment",
+                model_element_ref=target_model_ref,
+                carrier_transition_ref=carrier_ref,
+                reason="The target and its closed carrier are exact.",
+                basis="provider-free exact target fixture",
+            ),
+        ],
+        reason="The fixture isolates typed source ambiguity and one exact target carrier.",
+        basis="provider-free source-transition binding fixture",
+    )
+    return candidate, grounding
+
+
+def test_exact_author_and_closed_endpoints_suppress_only_contradicted_source_ambiguity() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0056")
+    candidate, grounding = _ambiguous_source_endpoint_fixture()
+    second_grounding = grounding.model_copy(
+        update={"lens": "behavior_consequence"}
+    )
+
+    retained, dispositions = suppress_contradicted_ambiguous_source_candidates(
+        pair,
+        [candidate],
+        [grounding],
+    )
+    assert retained == [candidate]
+    assert dispositions == []
+
+    retained, dispositions = suppress_contradicted_ambiguous_source_candidates(
+        pair,
+        [candidate],
+        [grounding, second_grounding],
+    )
+
+    assert retained == []
+    assert len(dispositions) == 1
+    assert dispositions[0].disposition == (
+        "suppressed_contradicted_ambiguous_source"
+    )
+    assert dispositions[0].author_transition_id == "tr_0009"
+    assert dispositions[0].closed_carrier_ref == "transition:line:40"
+    assert dispositions[0].supporting_lenses == (
+        "behavior_consequence",
+        "contract_structure_contrast",
+    )
+    assert dispositions[0].ambiguous_source_binding_ids == ("BIND-NL3-SOURCE",)
+    assert dispositions[0].exact_target_binding_ids == ("BIND-NL3-TARGET",)
+
+    exact_source = SemanticBinding(
+        binding_id="BIND-NL3-SOURCE-EXACT",
+        contract_id=candidate.contract_id,
+        role="source",
+        concept_name="SearchState",
+        status="exact",
+        source_element_ref="source:state:SearchState",
+        model_element_ref="state:SearchState:line:9",
+        reason="The fixture supplies an exact source binding.",
+        basis="provider-free exact source fixture",
+    )
+    grounding_with_exact_source = grounding.model_copy(
+        update={
+            "semantic_bindings": [*grounding.semantic_bindings, exact_source],
+        }
+    )
+    retained, dispositions = suppress_contradicted_ambiguous_source_candidates(
+        pair,
+        [candidate],
+        [grounding_with_exact_source, second_grounding],
+    )
+    assert retained == [candidate]
+    assert dispositions == []
+
+    mismatched_candidate, mismatched_grounding = _ambiguous_source_endpoint_fixture(
+        carrier_ref="transition:line:41",
+        target_model_ref="state:AttackState:line:39",
+    )
+    retained, dispositions = suppress_contradicted_ambiguous_source_candidates(
+        pair,
+        [mismatched_candidate],
+        [
+            mismatched_grounding,
+            mismatched_grounding.model_copy(update={"lens": "behavior_consequence"}),
+        ],
+    )
+    assert retained == [mismatched_candidate]
+    assert dispositions == []
 
 
 def _runtime_fixture_pricing() -> LLMPricing:
