@@ -1860,6 +1860,55 @@ def _d_decision_consistency_errors(
     return errors
 
 
+def _normalize_d_decision_shape(
+    decision: SemanticAdjudication,
+    *,
+    stage: str,
+    normalization_log: list[dict[str, Any]],
+) -> SemanticAdjudication:
+    """Repair the one context-free D shape invariant before semantic mapping.
+
+    ``defeater_kind=none`` has no alternative reading to preserve.  Therefore
+    its defeater payload must be null and its disposition must be defeated.
+    This is a structural normalization, not a semantic D decision: all
+    grounding, violated-obligation, reason, and basis fields remain untouched.
+    Other invalid combinations stay unresolved and continue through the
+    existing targeted correction path.
+    """
+
+    if decision.defeater_kind != "none":
+        return decision
+    updates: dict[str, Any] = {}
+    changes: list[str] = []
+    if decision.strongest_defeater is not None:
+        updates["strongest_defeater"] = None
+        changes.append("strongest_defeater=null")
+    if decision.defeater_disposition != "defeated":
+        updates["defeater_disposition"] = "defeated"
+        changes.append("defeater_disposition=defeated")
+    if not updates:
+        return decision
+    normalized = decision.model_copy(
+        update={
+            **updates,
+            "basis": (
+                f"{decision.basis}; deterministic D shape normalization "
+                f"({', '.join(changes)})"
+            ),
+        }
+    )
+    normalization_log.append(
+        {
+            "stage": stage,
+            "obligation_id": decision.obligation_id,
+            "changes": changes,
+            "reason": "The typed defeater-none invariant was normalized without interpreting free text or changing semantic grounding.",
+            "basis": "defeater_kind=none requires strongest_defeater=null and defeater_disposition=defeated",
+        }
+    )
+    return normalized
+
+
 def _release_semantic_key(issue: Mapping[str, Any]) -> tuple[Any, ...]:
     """Return the exact typed defect identity used for report-level dedup."""
 
@@ -2318,9 +2367,11 @@ def _method_cell(
         "repair_duplicate_ids": [],
         "repair_invalid_decisions": {},
         "final_unresolved_ids": [],
+        "deterministic_shape_normalizations": [],
         "reason": "D validation checked exact obligation coverage, uniqueness, closed enums, and decidable typed-fact contradictions.",
         "basis": "obligation IDs, typed SemanticAdjudication fields, and exact closed-model outgoing-transition inventory",
     }
+    d_shape_normalizations: list[dict[str, Any]] = []
     if finding_candidates:
         dossiers = [
             {
@@ -2364,7 +2415,11 @@ def _method_cell(
             response: DAdjudicationResponse,
         ) -> tuple[list[SemanticAdjudication], list[str], list[str], list[str]]:
             supplied_decisions = [
-                decision
+                _normalize_d_decision_shape(
+                    decision,
+                    stage="initial",
+                    normalization_log=d_shape_normalizations,
+                )
                 for decision in response.decisions
                 if decision.obligation_id in expected_id_set
             ]
@@ -2437,7 +2492,14 @@ def _method_cell(
             all_outcomes.append(correction_outcome)
             d_stage_outcome = correction_outcome
             if correction_outcome.succeeded:
-                correction_rows = correction_outcome.response.decisions
+                correction_rows = [
+                    _normalize_d_decision_shape(
+                        decision,
+                        stage="correction",
+                        normalization_log=d_shape_normalizations,
+                    )
+                    for decision in correction_outcome.response.decisions
+                ]
                 correction_extra = [
                     decision.obligation_id
                     for decision in correction_rows
@@ -2560,6 +2622,7 @@ def _method_cell(
         decisions = {
             decision.obligation_id: decision for decision in ordered_decisions
         }
+        validation_output["deterministic_shape_normalizations"] = d_shape_normalizations
 
     stage_outputs["d_adjudication"] = d_response.model_dump(mode="json")
     stage_receipts.append(

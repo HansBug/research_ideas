@@ -53,6 +53,7 @@ from pipeline.evidence_discovery.orchestration.runner import (
     _grounding_response_contract,
     _materialize_exact_s2_inventory_candidates,
     _merge_grounding_contracts,
+    _normalize_d_decision_shape,
     _normalize_grounding_exact_facts,
     _preflight_existing_endpoint_candidates,
     _prepare_candidate,
@@ -331,6 +332,36 @@ def test_existing_ordinary_endpoint_suppresses_missing_transition_candidate() ->
     assert retained == []
     assert dispositions[0]["status"] == "suppressed_existing_endpoint"
     assert transition.ref in dispositions[0]["carrier_refs"]
+
+
+def test_d_none_shape_is_normalized_without_changing_semantic_fields() -> None:
+    decision = SemanticAdjudication(
+        obligation_id="0000:r1:i1",
+        grounding="established",
+        violated_obligation="The typed obligation is under review.",
+        strongest_defeater="spurious alternative",
+        defeater_kind="none",
+        defeater_disposition="survives",
+        reason="The provider supplied a structurally inconsistent defeater row.",
+        basis="provider-free D shape fixture",
+    )
+    log: list[dict[str, object]] = []
+
+    normalized = _normalize_d_decision_shape(
+        decision,
+        stage="initial",
+        normalization_log=log,
+    )
+
+    assert normalized.strongest_defeater is None
+    assert normalized.defeater_disposition == "defeated"
+    assert normalized.grounding == decision.grounding
+    assert normalized.reason == decision.reason
+    assert "D shape normalization" in normalized.basis
+    assert log[0]["changes"] == [
+        "strongest_defeater=null",
+        "defeater_disposition=defeated",
+    ]
 
 
 def test_predicate_plan_projects_context_but_direct_strict_validation_rejects_extra() -> None:
