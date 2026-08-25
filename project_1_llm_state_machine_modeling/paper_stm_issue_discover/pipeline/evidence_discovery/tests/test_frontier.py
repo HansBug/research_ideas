@@ -3411,6 +3411,56 @@ def test_inspection_projection_keeps_exact_initial_carrier_and_reachable_leaf() 
     assert "outgoing_transition_refs=[]" in leaf_issue.observed
 
 
+def test_inspection_projection_anchors_child_initial_edges_to_exact_scope_contracts() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0002")
+    contracts = [
+        _contract(
+            contract_id=f"NL-CONTRACT-{state}-SCOPE",
+            segment_id="NL1",
+            locus_kind="state",
+            locus_names=(state,),
+            property_name="state_action",
+            expected_direction="must_exist",
+            violation_direction="missing",
+            hints=(_hint("state", state, "NL1"),),
+            state_role="operating_state",
+        )
+        for state in ("PumpState", "WaterState", "MethaneState")
+    ]
+    response = _response(contracts)
+
+    batch = materialize_typed_frontier(
+        pair,
+        response,
+        {item.contract_id: item for item in response.contracts},
+        (),
+        (),
+    )
+
+    initial_edges = [
+        item.candidate
+        for item in batch.obligations
+        if item.kind == "owner_initial_entry"
+        and "INITIAL_ENTRY_CONDITIONAL" in item.candidate.basis
+    ]
+    assert {
+        tuple(item.element_refs)
+        for item in initial_edges
+    } == {
+        (
+            pair.model.state(owner).ref,
+            pair.model.state(target).ref,
+            transition_ref,
+        )
+        for owner, target, transition_ref in (
+            ("PumpState", "RunningState", "transition:line:10"),
+            ("WaterState", "MonitoringWaterFlow", "transition:line:16"),
+            ("MethaneState", "MonitoringMethaneFlow", "transition:line:22"),
+        )
+    }
+    assert all(item.reason and item.basis for item in initial_edges)
+
+
 def test_inspection_projection_materializes_zero_trigger_completion_edge() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0012")
     contract = _contract(
@@ -3476,6 +3526,32 @@ def test_inspection_projection_materializes_same_scope_event_target_collision() 
     assert "transition:line:26" in collision.element_refs
     assert "Intercepted" in collision.observed
     assert collision.reason and collision.basis
+
+
+def test_inspection_projection_does_not_merge_distinct_source_states() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0035")
+    contract = _contract(
+        contract_id="NL-CONTRACT-NL1-OUTER-SCOPE",
+        segment_id="NL1",
+        locus_kind="scope",
+        locus_names=("llms_emp_feedback_final_0035",),
+        property_name="guard_disjointness",
+        expected_direction="must_exist",
+        violation_direction="wrong_guard",
+        hints=(_hint("owner", "llms_emp_feedback_final_0035", "NL1"),),
+        state_role="operating_state",
+    )
+    batch = materialize_typed_frontier(
+        pair,
+        _response([contract]),
+        {contract.contract_id: contract},
+        (),
+        (),
+    )
+
+    assert not any(
+        item.kind == "transition_group_collision" for item in batch.obligations
+    )
 
 
 def test_frontier_pydantic_descriptions_reach_json_schema() -> None:

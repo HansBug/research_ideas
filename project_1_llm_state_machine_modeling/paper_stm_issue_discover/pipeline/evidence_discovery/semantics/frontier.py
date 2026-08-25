@@ -4500,12 +4500,41 @@ def _materialize_inspection_diagnostics(
                 if fact
                 else None
             )
-            if fact is None or contract is None:
+            if fact is None:
                 continue
             owner = _inspection_scope_state(pair, fact)
             target = _inspection_target_state(pair, fact)
             if owner is None or target is None:
                 continue
+            # A conditional child initial edge is still an auditable carrier
+            # when the NL contract describes the bound child scope but does
+            # not separately name that initial edge.  Keep the scope contract
+            # as provenance and derive the structural initial-entry obligation
+            # from the exact inspection fact.
+            if contract is None:
+                contract = _inspection_scope_contract(
+                    pair, contracts, grounding_responses, owner
+                )
+            if contract is None:
+                continue
+            is_fallback_anchor = contract.property != "initial_entry"
+            if not is_fallback_anchor and any(
+                item.kind == "owner_initial_entry"
+                and contract.contract_id in item.source_contract_ids
+                for item in builder.obligations
+            ):
+                # The typed initial-entry frontier already owns this contract;
+                # the inspection diagnostic is supporting evidence, not a
+                # second report for the same atomic obligation.
+                continue
+            normative_statement = (
+                contract.normative_statement
+                if not is_fallback_anchor
+                else (
+                    f"The owner-local initial entry of {owner.name} must enter "
+                    f"{target.name} without a trigger or guard."
+                )
+            )
             derived = _derived_contract(
                 contract,
                 locus_kind="composite",
@@ -4523,11 +4552,23 @@ def _materialize_inspection_diagnostics(
                         ]
                     )
                 ),
-                normative_statement=contract.normative_statement,
-                scope=contract.scope,
+                normative_statement=normative_statement,
+                scope=(
+                    contract.scope
+                    if not is_fallback_anchor
+                    else f"Owner-local initial entry of {owner.name}"
+                ),
                 source_refs=contract.source_refs,
                 reason="An exact initial-entry carrier is conditional, so it does not establish the required unconditional owner-local entry.",
-                basis="typed initial-entry contract plus inspection-equivalent INITIAL_ENTRY_CONDITIONAL fact",
+                basis=(
+                    "typed initial-entry contract plus inspection-equivalent "
+                    "INITIAL_ENTRY_CONDITIONAL fact"
+                    if not is_fallback_anchor
+                    else (
+                        "typed scope anchor plus inspection-equivalent "
+                        "INITIAL_ENTRY_CONDITIONAL fact"
+                    )
+                ),
             )
             derived = derived.model_copy(
                 update={"contract_id": canonical_contract_id(derived)}
@@ -4615,16 +4656,36 @@ def _materialize_inspection_diagnostics(
             )
             continue
 
+    concurrent_scopes = {
+        owner_scope
+        for region in (
+            pair.canonical_source_ir.model.concurrent_regions
+            if pair.canonical_source_ir
+            else ()
+        )
+        if (owner_scope := getattr(region, "owner_scope", None)) is not None
+    }
     grouped: dict[tuple[str, tuple[str, ...], str | None], list[InspectionTransitionFact]] = defaultdict(list)
     for fact in facts.transitions:
-        if not fact.scope or not fact.triggers or fact.resolved_source_ref is None:
+        # In an ordinary (non-concurrent) scope, different source states are
+        # alternatives and cannot be active together.  In an explicitly
+        # concurrent scope, the enclosing owner is the active carrier because
+        # one event can reach consumers in multiple regions.
+        if not fact.resolved_source_ref or not fact.triggers:
             continue
-        grouped[(fact.scope, tuple(fact.triggers), fact.guard)].append(fact)
-    for (scope_name, triggers, guard), rows in sorted(grouped.items()):
+        source_key = (
+            fact.scope if fact.scope in concurrent_scopes else fact.resolved_source_ref
+        )
+        grouped[(source_key, tuple(fact.triggers), fact.guard)].append(fact)
+    for (source_key, triggers, guard), rows in sorted(grouped.items()):
         target_keys = {fact.resolved_target_ref or "[*]" for fact in rows}
         if len(rows) < 2 or len(target_keys) < 2:
             continue
-        scope = _state_for_value(pair, scope_name)
+        scope = (
+            _state_for_value(pair, source_key)
+            if source_key in concurrent_scopes
+            else _state_by_ref(pair, source_key)
+        )
         if scope is None:
             continue
         contract = _inspection_scope_contract(pair, contracts, grounding_responses, scope)
