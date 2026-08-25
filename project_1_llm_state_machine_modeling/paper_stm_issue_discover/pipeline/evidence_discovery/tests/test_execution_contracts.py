@@ -1193,6 +1193,62 @@ def test_execution_probe_admission_requires_exact_carrier_and_keeps_s1_supportin
     assert _prepared_is_finding_candidate(prepared) is False
 
 
+def test_execution_probe_maps_exact_trigger_binding_to_s3_execution() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0010")
+    transition = next(
+        item for item in pair.model.transitions if item.triggers == ("Power_On",)
+    )
+    event = next(item for item in pair.model.events if item.name == "Power_On")
+    contract = _probe_contract(
+        contract_id="NL-CONTRACT-PROBE-TRIGGER",
+        property_name="trigger_set",
+        locus_names=(transition.source, transition.target),
+    )
+    grounding = GroundingResponse(
+        lens="contract_structure_contrast",
+        semantic_bindings=(
+            _exact_binding(
+                contract_id=contract.contract_id,
+                role="event",
+                model_ref=event.ref,
+                carrier_ref=transition.ref,
+            ),
+        ),
+        reason="The fixture supplies an exact event and carrier transition.",
+        basis="provider-free exact trigger-set probe fixture",
+    )
+
+    probes, probe_contracts, dispositions = _materialize_deterministic_execution_probes(
+        pair,
+        {contract.contract_id: contract},
+        (grounding,),
+        (),
+    )
+
+    s3_probe = next(item for item in probes if item.predicate_id == "S3")
+    assert s3_probe.predicate_inputs == {
+        "transition": transition.ref,
+        "triggers": ["Power_On"],
+    }
+    assert any(item.predicate_id == "S1" for item in probes)
+    assert any(
+        item["status"] == "admitted_exact_trigger_carrier"
+        for item in dispositions
+    )
+
+    prepared = _prepare_candidate(
+        pair,
+        s3_probe,
+        round_index=1,
+        index=0,
+        contracts_by_id={contract.contract_id: contract, **probe_contracts},
+    )
+    assert prepared["plan"].source_gate_passed is False
+    assert prepared["receipt"].terminal_state == "completed"
+    assert prepared["receipt"].verdict == "true"
+    assert _prepared_is_finding_candidate(prepared) is False
+
+
 @pytest.mark.parametrize("property_name", ["containment", "cardinality", "initial_entry"])
 def test_execution_probe_does_not_relabel_non_declaration_contracts_as_s1(
     property_name: str,

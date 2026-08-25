@@ -2351,6 +2351,119 @@ def _materialize_deterministic_execution_probes(
             )
             break
 
+    # A trigger-set contract can be executed when grounding supplies one
+    # exact event and its exact transition carrier.  The event name is the
+    # normative trigger input; the parsed transition remains the observed
+    # carrier, so a mismatch yields a real S3 result instead of a relabelled
+    # endpoint or a source-only plan.
+    trigger_bindings: dict[tuple[str, str, str], SemanticBinding] = {}
+    for response in grounding_responses:
+        for binding in response.semantic_bindings:
+            if (
+                binding.status == "exact"
+                and binding.role == "event"
+                and binding.model_element_ref in pair.model.all_refs
+                and binding.carrier_transition_ref in pair.model.transition_refs
+            ):
+                trigger_bindings[
+                    (
+                        binding.contract_id,
+                        binding.model_element_ref or "",
+                        binding.carrier_transition_ref or "",
+                    )
+                ] = binding
+    for contract in sorted(contracts_by_id.values(), key=lambda item: item.contract_id):
+        if contract.property != "trigger_set":
+            continue
+        rows = [
+            binding
+            for (contract_id, _event_ref, _transition_ref), binding in trigger_bindings.items()
+            if contract_id == contract.contract_id
+        ]
+        unique_rows = {
+            (
+                binding.model_element_ref,
+                binding.carrier_transition_ref,
+            ): binding
+            for binding in rows
+        }
+        if len(unique_rows) != 1:
+            continue
+        binding = next(iter(unique_rows.values()))
+        event = next(
+            (
+                item
+                for item in pair.model.events
+                if item.ref == binding.model_element_ref
+            ),
+            None,
+        )
+        transition = pair.model.transition(binding.carrier_transition_ref)
+        if event is None or transition is None:
+            continue
+        if (contract.contract_id, "S3") in existing_predicates:
+            continue
+        source_refs = list(contract.source_refs)
+        if binding.source_element_ref and binding.source_element_ref not in source_refs:
+            source_refs.append(binding.source_element_ref)
+        candidate = CandidateIssue(
+            contract_id=contract.contract_id,
+            locus_kind=contract.locus_kind,
+            locus_names=contract.locus_names,
+            property=contract.property,
+            violation_direction=contract.violation_direction,
+            evidence_types=tuple(
+                dict.fromkeys(
+                    [*contract.evidence_types, "closed_model_inventory", "transition_fact"]
+                )
+            ),
+            title=(
+                f"Trigger set for {transition.source} -> {transition.target} "
+                f"uses {event.name}"
+            ),
+            requirement_quote=contract.quote,
+            predicate_id="S3",
+            predicate_inputs={
+                "transition": transition.ref,
+                "triggers": [event.name],
+            },
+            element_refs=[event.ref, transition.ref],
+            source_refs=source_refs,
+            expected=contract.normative_statement,
+            observed=(
+                f"The exact carrier {transition.ref} has parsed trigger set "
+                f"{list(transition.triggers)!r}."
+            ),
+            strongest_rebuttal=(
+                "The S3 execution compares the exact grounded required event "
+                "with the exact parsed carrier trigger set; another carrier "
+                "cannot satisfy this contract."
+            ),
+            reason=(
+                "One exact event binding and one exact carrier transition are "
+                "available for a standalone trigger-set equality execution."
+            ),
+            basis=(
+                f"contract={contract.contract_id}; event_ref={event.ref}; "
+                f"carrier_transition_ref={transition.ref}; "
+                "grounding SemanticBinding.status=exact"
+            ),
+        )
+        probes.append(candidate)
+        dispositions.append(
+            {
+                "probe": "S3",
+                "status": "admitted_exact_trigger_carrier",
+                "contract_id": contract.contract_id,
+                "event_ref": event.ref,
+                "carrier_transition_ref": transition.ref,
+                "required_trigger": event.name,
+                "reason": candidate.reason,
+                "basis": candidate.basis,
+            }
+        )
+        break
+
     return probes, probe_contracts, dispositions
 
 
