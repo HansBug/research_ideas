@@ -3054,7 +3054,7 @@ def _materialize_group_collisions(
             expected_direction="must_cover",
             violation_direction="wrong_guard",
             evidence_types=("source_identity", "closed_model_inventory", "transition_fact", "guard_fact", "semantic_comparison"),
-            normative_statement=f"Distinct alternatives in {group.group_id} must remain operationally distinguishable.",
+            normative_statement=f"Distinct alternatives in {group.group_id} must have distinguishable selection conditions.",
             scope=f"Transition group {group.group_id}",
             source_refs=group.source_refs,
             reason="The LLM transition group establishes distinct alternatives, and a typed owner-entry relation resolves the operational source when the group is stated at composite scope.",
@@ -3064,15 +3064,15 @@ def _materialize_group_collisions(
         refs.extend(item.ref for item in ([source] if source else []) + targets)
         candidate = _candidate(
             derived,
-            title=f"Alternatives in {group.group_id} are operationally indistinguishable",
+            title=f"Alternatives in {group.group_id} compete under the same selection conditions",
             predicate_id=None,
             predicate_inputs={},
             element_refs=refs,
             source_refs=derived.source_refs,
             expected=derived.normative_statement,
-            observed=f"The exact transitions {[transition.ref for _, transition in rows]} share trigger/guard signature {next(iter(signatures))}.",
-            strongest_rebuttal="Individual endpoint existence does not establish that distinct alternatives are distinguishable.",
-            reason="Distinct typed event/guard alternatives map to multiple exact targets whose closed transition signatures are identical.",
+            observed=f"The exact transitions {[transition.ref for _, transition in rows]} share trigger/guard signature {next(iter(signatures))} while targeting distinct states {[transition.target for _, transition in rows]}.",
+            strongest_rebuttal="Distinct targets preserve different post-transition behavior, but they do not disambiguate simultaneous enablement at the shared source.",
+            reason="Distinct alternatives map to different exact targets but have identical typed trigger/guard signatures, so their selection conditions overlap.",
             basis=f"group={group.group_id}; normative_conditions={sorted(map(str, normative_conditions))}; transition_refs={[transition.ref for _, transition in rows]}",
         )
         builder.add(
@@ -3091,7 +3091,7 @@ def _materialize_group_collisions(
             or (base.contract_id,),
             derived,
             candidate,
-            reason="A typed multi-target relation has identical exact trigger/guard signatures for distinct alternatives.",
+            reason="A typed multi-target relation has distinct exact targets but identical trigger/guard signatures, creating overlapping selection conditions without claiming identical post-transition behavior.",
             basis="transition group semantic identity and exact closed-model signatures",
         )
 

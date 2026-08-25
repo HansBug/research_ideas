@@ -1045,6 +1045,14 @@ def test_0029_grounding_group_identity_is_canonical_and_consumed() -> None:
     ]
     assert len(collisions) == 1
     assert collisions[0].contract.property == "guard_disjointness"
+    assert collisions[0].candidate.title.endswith(
+        "compete under the same selection conditions"
+    )
+    assert "operationally indistinguishable" not in collisions[0].candidate.title
+    assert "targeting distinct states" in collisions[0].candidate.observed
+    assert "different post-transition behavior" in (
+        collisions[0].candidate.strongest_rebuttal or ""
+    )
 
 
 def test_0029_group_frontier_resolves_composite_source_through_typed_entry() -> None:
@@ -1122,6 +1130,10 @@ def test_0029_group_frontier_resolves_composite_source_through_typed_entry() -> 
         "lane_change",
     )
     assert collision.candidate.property == "guard_disjointness"
+    assert collision.candidate.expected.endswith(
+        "must have distinguishable selection conditions."
+    )
+    assert "different exact targets" in collision.candidate.reason
 
 
 def test_transition_group_frontier_rejects_distinct_exact_signatures() -> None:
