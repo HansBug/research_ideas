@@ -45,6 +45,7 @@ from pipeline.evidence_discovery.orchestration.cost_correction import (
 )
 from pipeline.evidence_discovery.orchestration.runner import (
     _admit_grounding_unresolved,
+    _admit_frontier_unresolved,
     _d_decision_consistency_errors,
     _deduplicate_release_issues,
     _enrich_candidate,
@@ -55,6 +56,7 @@ from pipeline.evidence_discovery.orchestration.runner import (
     _merge_grounding_contracts,
     _normalize_d_decision_shape,
     _normalize_grounding_exact_facts,
+    _normalize_state_retention_carriers,
     _preflight_existing_endpoint_candidates,
     _preflight_synthetic_root_wrapper_reachability,
     _prepare_candidate,
@@ -92,6 +94,8 @@ from pipeline.evidence_discovery.semantics import (
     ContextBudgetReceipt,
     ContractBindingHint,
     GroundingResponse,
+    FrontierBatch,
+    FrontierCheckReceipt,
     GroundingUnresolved,
     MethodResponse,
     NLContract,
@@ -260,6 +264,158 @@ def test_grounding_unresolved_with_exact_binding_is_admitted_as_predicate_null_c
     assert admitted[0].element_refs == [state.ref]
     assert dispositions[0]["status"] == "admitted_w1"
     assert "frozen registry" in admitted[0].reason
+
+
+def test_frontier_unresolved_admission_preserves_exact_w1_w0_and_existing_candidate() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    exact_state = pair.model.states[0]
+    exact_contract = NLContract(
+        contract_id="NL-CONTRACT-NL1-FRONTIER-EXACT",
+        segment_id="NL1",
+        quote="The exact state must retain its operational obligation.",
+        normative_statement="The exact state must retain its operational obligation.",
+        locus_kind="state",
+        locus_names=(exact_state.name,),
+        property="state_action",
+        state_role="operating_state",
+        expected_direction="must_exist",
+        violation_direction="missing",
+        evidence_types=("source_identity", "closed_model_inventory"),
+        binding_hints=(),
+        scope=exact_state.name,
+        source_refs=("NL1",),
+        reason="The fixture supplies one typed frontier obligation.",
+        basis="provider-free frontier unresolved admission fixture",
+    )
+    unresolved_contract = exact_contract.model_copy(
+        update={
+            "contract_id": "NL-CONTRACT-NL2-FRONTIER-W0",
+            "segment_id": "NL2",
+            "scope": "unresolved scope",
+            "source_refs": ("NL2",),
+        }
+    )
+    frontier = FrontierBatch(
+        checks=(
+            FrontierCheckReceipt(
+                check_id="FRONTIER-EXACT",
+                kind="cardinality",
+                source_contract_ids=(exact_contract.contract_id,),
+                status="unresolved",
+                model_refs=(exact_state.ref,),
+                source_refs=("NL1",),
+                reason="The owner and carrier are exact but the member domain remains unresolved.",
+                basis="provider-free exact frontier check",
+            ),
+            FrontierCheckReceipt(
+                check_id="FRONTIER-W0",
+                kind="cardinality",
+                source_contract_ids=(unresolved_contract.contract_id,),
+                status="unresolved",
+                model_refs=(),
+                source_refs=("NL2",),
+                reason="The identity cannot be closed from the supplied facts.",
+                basis="provider-free unresolved identity frontier check",
+            ),
+        ),
+        reason="The fixture retains both unresolved checks.",
+        basis="provider-free frontier unresolved admission fixture",
+    )
+    admitted, dispositions = _admit_frontier_unresolved(
+        pair,
+        {
+            exact_contract.contract_id: exact_contract,
+            unresolved_contract.contract_id: unresolved_contract,
+        },
+        frontier,
+        (),
+    )
+
+    assert [item.contract_id for item in admitted] == [
+        exact_contract.contract_id,
+        unresolved_contract.contract_id,
+    ]
+    assert admitted[0].predicate_id is None
+    assert admitted[0].element_refs == [exact_state.ref]
+    assert admitted[1].predicate_id is None
+    assert admitted[1].element_refs == []
+    assert [item["status"] for item in dispositions] == [
+        "admitted_w1",
+        "admitted_w0",
+    ]
+    assert all(item.reason and item.basis for item in admitted)
+
+    retained, retained_dispositions = _admit_frontier_unresolved(
+        pair,
+        {exact_contract.contract_id: exact_contract},
+        frontier.model_copy(update={"checks": (frontier.checks[0],)}),
+        (admitted[0],),
+    )
+    assert retained == []
+    assert retained_dispositions[0]["status"] == (
+        "existing_candidate_preserved_with_frontier_audit"
+    )
+
+
+def test_state_retention_normalization_preserves_exact_hierarchical_carrier_chain() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0024")
+    contract = NLContract(
+        contract_id="NL-CONTRACT-NL3-RETENTION",
+        segment_id="NL3",
+        quote="Approaching must retain the required motion behavior.",
+        normative_statement="Approaching must retain the required motion behavior.",
+        locus_kind="state",
+        locus_names=("Approaching",),
+        property="state_retention",
+        state_role="operating_state",
+        expected_direction="must_exist",
+        violation_direction="missing",
+        evidence_types=("source_identity", "transition_fact"),
+        binding_hints=(
+            ContractBindingHint(
+                role="state",
+                value="Approaching",
+                source_ref="NL3",
+                reason="The fixture names the exact retained state.",
+                basis="provider-free retention carrier fixture",
+            ),
+        ),
+        scope="InMotion",
+        source_refs=("NL3",),
+        reason="The fixture supplies one state-retention obligation.",
+        basis="provider-free retention carrier fixture",
+    )
+    candidate = CandidateIssue(
+        contract_id=contract.contract_id,
+        locus_kind=contract.locus_kind,
+        locus_names=contract.locus_names,
+        property=contract.property,
+        violation_direction=contract.violation_direction,
+        evidence_types=contract.evidence_types,
+        title="Approaching loses retention behavior",
+        requirement_quote=contract.quote,
+        element_refs=[pair.model.state("Approaching").ref],
+        source_refs=["NL3"],
+        expected=contract.normative_statement,
+        observed="The retained state does not preserve its source-level continuation.",
+        strongest_rebuttal="The exact state-to-owner carrier can be checked in the closed model.",
+        reason="provider-free retention candidate",
+        basis="provider-free retention carrier fixture",
+    )
+
+    normalized, dispositions = _normalize_state_retention_carriers(
+        pair,
+        [candidate],
+        {contract.contract_id: contract},
+    )
+
+    assert len(normalized) == 1
+    assert {
+        pair.model.transition("transition:line:18").ref,
+        pair.model.transition("transition:line:29").ref,
+    }.issubset(set(normalized[0].element_refs))
+    assert "tr_0007" in normalized[0].basis
+    assert dispositions[0]["status"] == "normalized_exact_retention_carrier"
 
 
 def test_existing_ordinary_endpoint_suppresses_missing_transition_candidate() -> None:

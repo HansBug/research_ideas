@@ -3335,6 +3335,149 @@ def test_cross_wrapper_frontier_does_not_overclaim_mutual_disconnection() -> Non
     assert "cannot reach one another in any direction" not in issue.observed
 
 
+def test_inspection_projection_keeps_exact_initial_carrier_and_reachable_leaf() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0002")
+    initial = _contract(
+        contract_id="NL-CONTRACT-NL1-PUMP-INITIAL",
+        segment_id="NL1",
+        locus_kind="composite",
+        locus_names=("PumpState", "RunningState"),
+        property_name="initial_entry",
+        expected_direction="must_enter",
+        violation_direction="missing",
+        hints=(
+            _hint("owner", "PumpState", "NL1"),
+            _hint("target", "RunningState", "NL1"),
+        ),
+        state_role="initial_state",
+    )
+    dead_end = _contract(
+        contract_id="NL-CONTRACT-NL2-INITIAL-LEAF",
+        segment_id="NL2",
+        locus_kind="state",
+        locus_names=("InitialState",),
+        property_name="deadlock_freedom",
+        expected_direction="must_progress",
+        violation_direction="dead_end",
+        hints=(_hint("state", "InitialState", "NL2"),),
+        state_role="operating_state",
+    )
+    response = _response([initial, dead_end])
+    grounding = GroundingResponse(
+        lens="behavior_consequence",
+        semantic_bindings=[
+            SemanticBinding(
+                binding_id="BIND-NL1-RUNNING-INITIAL",
+                contract_id=initial.contract_id,
+                role="target",
+                concept_name="RunningState",
+                status="exact",
+                source_element_ref="source:state:RunningState",
+                model_element_ref=pair.model.state("RunningState").ref,
+                carrier_transition_ref="transition:line:10",
+                reason="The target is resolved by one exact grounding binding.",
+                basis="provider-free exact ModelIR target ref",
+            )
+        ],
+        reason="The fixture supplies one exact initial target binding.",
+        basis="provider-free inspection projection fixture",
+    )
+
+    batch = materialize_typed_frontier(
+        pair,
+        response,
+        {item.contract_id: item for item in response.contracts},
+        (grounding,),
+        (),
+    )
+
+    initial_issue = next(
+        item.candidate
+        for item in batch.obligations
+        if item.kind == "owner_initial_entry"
+        and item.source_contract_ids == (initial.contract_id,)
+        and item.candidate.element_refs
+        and "transition:line:10" in item.candidate.element_refs
+    )
+    assert pair.model.state("RunningState").ref in initial_issue.element_refs
+    assert "transition:line:10" in initial_issue.element_refs
+    leaf_issue = next(
+        item.candidate
+        for item in batch.obligations
+        if item.kind == "reachable_dead_end"
+        and item.source_contract_ids == (dead_end.contract_id,)
+    )
+    assert leaf_issue.element_refs == [pair.model.state("InitialState").ref]
+    assert "outgoing_transition_refs=[]" in leaf_issue.observed
+
+
+def test_inspection_projection_materializes_zero_trigger_completion_edge() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0012")
+    contract = _contract(
+        contract_id="NL-CONTRACT-NL1-OFF-LIFECYCLE",
+        segment_id="NL1",
+        locus_kind="state",
+        locus_names=("Off",),
+        property_name="termination",
+        expected_direction="must_terminate",
+        violation_direction="missing",
+        hints=(_hint("owner", "Off", "NL1"),),
+        state_role="termination_state",
+    )
+    batch = materialize_typed_frontier(
+        pair,
+        _response([contract]),
+        {contract.contract_id: contract},
+        (),
+        (),
+    )
+
+    issue = next(
+        item.candidate
+        for item in batch.obligations
+        if item.kind == "stable_termination"
+        and "transition:line:25" in item.candidate.element_refs
+    )
+    assert issue.element_refs == [
+        pair.model.state("Off").ref,
+        pair.model.state("Terminate").ref,
+        "transition:line:25",
+    ]
+    assert "zero-trigger" in issue.reason.lower() or "zero-trigger" in issue.basis.lower()
+
+
+def test_inspection_projection_materializes_same_scope_event_target_collision() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0056")
+    contract = _contract(
+        contract_id="NL-CONTRACT-NL1-SEARCH-COLLISION",
+        segment_id="NL1",
+        locus_kind="scope",
+        locus_names=("SearchState",),
+        property_name="guard_disjointness",
+        expected_direction="must_exist",
+        violation_direction="wrong_guard",
+        hints=(_hint("owner", "SearchState", "NL1"),),
+    )
+    batch = materialize_typed_frontier(
+        pair,
+        _response([contract]),
+        {contract.contract_id: contract},
+        (),
+        (),
+    )
+
+    collision = next(
+        item.candidate
+        for item in batch.obligations
+        if item.kind == "transition_group_collision"
+        and item.source_contract_ids == (contract.contract_id,)
+    )
+    assert "transition:line:20" in collision.element_refs
+    assert "transition:line:26" in collision.element_refs
+    assert "Intercepted" in collision.observed
+    assert collision.reason and collision.basis
+
+
 def test_frontier_pydantic_descriptions_reach_json_schema() -> None:
     identity_schema = IdentityNormalizationReceipt.model_json_schema()
     frontier_schema = FrontierBatch.model_json_schema()

@@ -1314,6 +1314,136 @@ def _admit_grounding_unresolved(
     return admitted, dispositions
 
 
+def _admit_frontier_unresolved(
+    pair: PairInput,
+    contracts_by_id: Mapping[str, NLContract],
+    frontier_batch: FrontierBatch,
+    existing_candidates: Sequence[CandidateIssue],
+) -> tuple[list[CandidateIssue], list[dict[str, Any]]]:
+    """Publish unresolved deterministic checks as W1/W0 audit candidates.
+
+    Frontier checks are complete deterministic receipts, but an unresolved check
+    must not disappear merely because it did not form a normal frontier
+    obligation. Exact closed-model refs produce a predicate-null W1 candidate;
+    partial or absent identity produces a predicate-null W0 candidate with no
+    guessed model carrier.
+    """
+
+    checks_by_contract: dict[str, list[Any]] = {}
+    for check in frontier_batch.checks:
+        if check.status != "unresolved":
+            continue
+        for contract_id in check.source_contract_ids:
+            checks_by_contract.setdefault(contract_id, []).append(check)
+
+    admitted: list[CandidateIssue] = []
+    dispositions: list[dict[str, Any]] = []
+    existing_by_contract = {candidate.contract_id for candidate in existing_candidates}
+    for contract_id in sorted(checks_by_contract):
+        checks = checks_by_contract[contract_id]
+        contract = contracts_by_id.get(contract_id)
+        if contract is None:
+            dispositions.append(
+                {
+                    "contract_id": contract_id,
+                    "status": "frontier_unresolved_unknown_contract",
+                    "check_ids": [check.check_id for check in checks],
+                    "reason": "The unresolved frontier check has no accepted typed contract, so no candidate can be published without inventing its semantic identity.",
+                    "basis": "exact frontier source_contract_ids membership",
+                }
+            )
+            continue
+
+        raw_model_refs = list(
+            dict.fromkeys(ref for check in checks for ref in check.model_refs)
+        )
+        valid_model_refs = [
+            ref for ref in raw_model_refs if ref in pair.model.all_refs
+        ]
+        exact_model_refs = bool(raw_model_refs) and (
+            valid_model_refs == raw_model_refs
+        )
+        source_refs = list(
+            dict.fromkeys(
+                [
+                    *contract.source_refs,
+                    *[ref for check in checks for ref in check.source_refs],
+                ]
+            )
+        )
+        check_reasons = [
+            f"{check.kind}/{check.check_id}: {check.reason}" for check in checks
+        ]
+        check_bases = [
+            f"{check.kind}/{check.check_id}: {check.basis}" for check in checks
+        ]
+        binding_status = "exact_refs" if exact_model_refs else "identity_unresolved"
+        if contract_id in existing_by_contract:
+            dispositions.append(
+                {
+                    "contract_id": contract_id,
+                    "status": "existing_candidate_preserved_with_frontier_audit",
+                    "binding_status": binding_status,
+                    "model_refs": valid_model_refs,
+                    "raw_model_refs": raw_model_refs,
+                    "check_ids": [check.check_id for check in checks],
+                    "reason": "An existing candidate already carries this exact typed contract; unresolved frontier checks remain supporting audit and do not create a duplicate dossier.",
+                    "basis": "; ".join(check_bases),
+                }
+            )
+            continue
+
+        candidate = CandidateIssue(
+            contract_id=contract.contract_id,
+            locus_kind=contract.locus_kind,
+            locus_names=contract.locus_names,
+            property=contract.property,
+            violation_direction=contract.violation_direction,
+            evidence_types=tuple(
+                dict.fromkeys(
+                    [
+                        *contract.evidence_types,
+                        "closed_model_inventory",
+                        "semantic_comparison",
+                    ]
+                )
+            ),
+            title=f"Deterministic {checks[0].kind} frontier remains unresolved for {contract.scope}",
+            requirement_quote=contract.quote,
+            predicate_id=None,
+            predicate_inputs={},
+            element_refs=valid_model_refs if exact_model_refs else [],
+            source_refs=source_refs,
+            expected=contract.normative_statement,
+            observed="The deterministic frontier retained an unresolved check instead of selecting a model identity or silently dropping the obligation.",
+            strongest_rebuttal="A later exact owner/carrier binding could close this check; no identity was inferred from names, display text, or an incomplete ref set.",
+            reason=(
+                "The deterministic frontier explicitly retained this typed obligation as unresolved. "
+                + " | ".join(check_reasons)
+            ),
+            basis=(
+                f"contract={contract.contract_id}; binding_status={binding_status}; "
+                f"model_refs={valid_model_refs}; raw_model_refs={raw_model_refs}; "
+                + "; ".join(check_bases)
+            ),
+        )
+        admitted.append(candidate)
+        dispositions.append(
+            {
+                "contract_id": contract_id,
+                "status": "admitted_w1" if exact_model_refs else "admitted_w0",
+                "binding_status": binding_status,
+                "model_refs": valid_model_refs,
+                "raw_model_refs": raw_model_refs,
+                "check_ids": [check.check_id for check in checks],
+                "candidate_property": contract.property,
+                "reason": candidate.reason,
+                "basis": candidate.basis,
+            }
+        )
+    return admitted, dispositions
+
+
 def _preflight_existing_endpoint_candidates(
     pair: PairInput,
     candidates: Sequence[CandidateIssue],
@@ -1366,6 +1496,154 @@ def _preflight_existing_endpoint_candidates(
                 "carrier_refs": carrier_refs,
                 "reason": "The exact ordinary source-to-target transition exists in the parsed ModelIR, so a missing-transition claim is not publishable.",
                 "basis": f"source_ref={source_ref}; target_ref={target_ref}; carrier_refs={carrier_refs}; ordinary-transition-only preflight",
+            }
+        )
+    return retained, dispositions
+
+
+def _normalize_state_retention_carriers(
+    pair: PairInput,
+    candidates: Sequence[CandidateIssue],
+    contracts_by_id: Mapping[str, NLContract],
+) -> tuple[list[CandidateIssue], list[dict[str, Any]]]:
+    """Attach an exact hierarchical exit carrier to state-retention claims."""
+
+    retained: list[CandidateIssue] = []
+    dispositions: list[dict[str, Any]] = []
+    inventory = pair.exact_source_inventory
+    if inventory is None:
+        return list(candidates), dispositions
+
+    for candidate in candidates:
+        contract = contracts_by_id.get(candidate.contract_id)
+        if contract is None or contract.property != "state_retention":
+            retained.append(candidate)
+            continue
+        state_refs = [
+            ref
+            for ref in candidate.element_refs
+            if any(state.ref == ref for state in pair.model.states)
+        ]
+        if not state_refs:
+            for hint in contract.binding_hints:
+                if hint.role not in {"state", "owner", "scope"}:
+                    continue
+                ref = resolve_state_ref(hint.value, pair.model)
+                if ref is not None:
+                    state_refs.append(ref)
+        state_refs = list(dict.fromkeys(state_refs))
+        if len(state_refs) != 1:
+            retained.append(candidate)
+            continue
+        state = next(item for item in pair.model.states if item.ref == state_refs[0])
+        if state.parent is None:
+            retained.append(candidate)
+            continue
+        source_rows = [
+            row
+            for row in inventory.transitions
+            if _endpoint_stem(row.source) == state.name
+            and _endpoint_stem(row.target) == state.parent
+        ]
+        if len(source_rows) != 1:
+            retained.append(candidate)
+            continue
+        source_row = source_rows[0]
+        def carrier_token(value: str | None) -> str:
+            return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+
+        source_event = carrier_token(source_row.event)
+        exit_rows = [
+            row
+            for row in pair.model.transitions
+            if row.source == state.name
+            and row.target == "[*]"
+            and source_event
+            and any(carrier_token(trigger) == source_event for trigger in row.triggers)
+        ]
+        parent_rows = []
+        if len(exit_rows) == 1 and state.parent is not None:
+            route_values = re.findall(
+                r"R45RouteToken\s*=\s*(\d+)",
+                " ".join(exit_rows[0].effects),
+            )
+            parent_rows = [
+                row
+                for row in pair.model.transitions
+                if row.source == state.parent
+                and row.target == state.parent
+                and not row.triggers
+                and route_values
+                and any(
+                    f"R45RouteToken == {value}" in (row.guard or "")
+                    for value in route_values
+                )
+            ]
+        model_rows = [*exit_rows, *parent_rows]
+        if len(source_rows) != 1 or len(model_rows) not in {1, 2}:
+            retained.append(candidate)
+            dispositions.append(
+                {
+                    "contract_id": candidate.contract_id,
+                    "candidate_title": candidate.title,
+                    "status": "retention_carrier_unresolved",
+                    "source_transition": f"{source_row.source}->{source_row.target}",
+                    "source_transition_id": source_row.transition_id,
+                    "model_candidate_refs": [row.ref for row in model_rows],
+                    "reason": "The source retention edge did not join to one exact closed-model carrier or one exact route continuation.",
+                    "basis": "exact source endpoint, normalized event token, and route-controller guard join",
+                }
+            )
+            continue
+        parent = next(
+            (item for item in pair.model.states if item.name == state.parent),
+            None,
+        )
+        element_refs = list(
+            dict.fromkeys(
+                [
+                    *candidate.element_refs,
+                    state.ref,
+                    *([parent.ref] if parent is not None else []),
+                    *[row.ref for row in model_rows],
+                ]
+            )
+        )
+        retained.append(
+            candidate.model_copy(
+                update={
+                    "element_refs": element_refs,
+                    "source_refs": list(
+                        dict.fromkeys([*candidate.source_refs, source_row.raw_ref])
+                    ),
+                    "observed": (
+                        candidate.observed
+                        + f" Exact retention carrier is {source_row.source}->{source_row.target} "
+                        f"with closed-model carrier chain {[row.ref for row in model_rows]}."
+                    ),
+                    "reason": (
+                        candidate.reason
+                        + " The exact source inventory and closed model both retain the state-to-owner carrier, including its deterministic route continuation."
+                    ),
+                    "basis": (
+                        candidate.basis
+                        + f"; source_transition={source_row.transition_id}; model_transitions={[row.ref for row in model_rows]}; "
+                        "hierarchical retention-carrier normalization via exact event/route join"
+                    ),
+                }
+            )
+        )
+        dispositions.append(
+            {
+                "contract_id": candidate.contract_id,
+                "candidate_title": candidate.title,
+                "status": "normalized_exact_retention_carrier",
+                "state_ref": state.ref,
+                "source_transition_id": source_row.transition_id,
+                "source_transition": f"{source_row.source}->{source_row.target}",
+                "model_transition_refs": [row.ref for row in model_rows],
+                "reason": "The state-retention candidate now preserves the exact source-to-owner carrier and its parsed closed-model exit/continuation carrier chain.",
+                "basis": "exact source inventory, state parent relation, normalized event token, and unique ModelIR route continuation",
             }
         )
     return retained, dispositions
@@ -2266,10 +2544,17 @@ def _method_cell(
         grounding_responses,
         response.issues,
     )
+    initial_candidates, retention_carrier_dispositions = (
+        _normalize_state_retention_carriers(
+            pair,
+            [*response.issues, *unresolved_candidates],
+            contracts_by_id,
+        )
+    )
     initial_candidates, endpoint_preflight_dispositions = (
         _preflight_existing_endpoint_candidates(
             pair,
-            [*response.issues, *unresolved_candidates],
+            initial_candidates,
             contracts_by_id,
         )
     )
@@ -2318,6 +2603,15 @@ def _method_cell(
         contracts_by_id.setdefault(
             obligation.contract.contract_id, obligation.contract
         )
+    frontier_unresolved_candidates, frontier_unresolved_admission = (
+        _admit_frontier_unresolved(
+            pair,
+            contracts_by_id,
+            frontier_batch,
+            initial_candidates,
+        )
+    )
+    frontier_candidates.extend(frontier_unresolved_candidates)
     source_transition_closures = {
         contract_id: evaluate_source_transition_closure(pair, contract)
         for contract_id, contract in contracts_by_id.items()
@@ -2385,6 +2679,7 @@ def _method_cell(
         "llm_candidate_count": len(response.issues),
         "unresolved_admitted_candidate_count": len(unresolved_candidates),
         "unresolved_admission": unresolved_admission,
+        "retention_carrier_dispositions": retention_carrier_dispositions,
         "carrier_preflight_dispositions": endpoint_preflight_dispositions,
         "root_wrapper_preflight_dispositions": root_wrapper_preflight_dispositions,
         "route_controller_preflight_dispositions": route_controller_preflight_dispositions,
@@ -2409,6 +2704,10 @@ def _method_cell(
             frontier_batch.superseded_candidate_contract_ids
         ),
         "frontier_candidate_count": len(frontier_candidates),
+        "frontier_unresolved_admission": frontier_unresolved_admission,
+        "frontier_unresolved_admitted_candidate_count": len(
+            frontier_unresolved_candidates
+        ),
         "frontier_batch": frontier_batch.model_dump(mode="json"),
         "exact_s2_scout_candidate_count": len(exact_s2_candidates),
         "exact_s2_scout_receipts": exact_s2_receipts,

@@ -17,6 +17,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..inputs.context import (
+    InspectionTransitionFact,
     InspectionStateFact,
     SourceInventoryState,
     SourceInventoryTransition,
@@ -4342,6 +4343,447 @@ def _materialize_event_consumers(
         )
 
 
+def _inspection_scope_state(pair: PairInput, fact: InspectionTransitionFact) -> StateNode | None:
+    """Resolve one transition's exact enclosing scope from owned facts."""
+
+    return _state_for_value(pair, fact.scope) if fact.scope else None
+
+
+def _inspection_target_state(pair: PairInput, fact: InspectionTransitionFact) -> StateNode | None:
+    """Resolve an inspection transition target without interpreting display text."""
+
+    return _state_by_ref(pair, fact.resolved_target_ref)
+
+
+def _inspection_initial_contract(
+    pair: PairInput,
+    contracts: Sequence[NLContract],
+    grounding_responses: Sequence[GroundingResponse],
+    fact: InspectionTransitionFact,
+) -> NLContract | None:
+    """Choose an exact initial-entry contract for one conditional edge."""
+
+    owner = _inspection_scope_state(pair, fact)
+    target = _inspection_target_state(pair, fact)
+    if owner is None or target is None:
+        return None
+    matches: list[tuple[int, NLContract]] = []
+    for contract in contracts:
+        if contract.property != "initial_entry":
+            continue
+        exact_owner_refs = {
+            binding.model_element_ref
+            for response in grounding_responses
+            for binding in response.semantic_bindings
+            if (
+                binding.contract_id == contract.contract_id
+                and binding.status == "exact"
+                and binding.role in {"owner", "scope"}
+                and binding.model_element_ref is not None
+            )
+        }
+        exact_target_refs = {
+            binding.model_element_ref
+            for response in grounding_responses
+            for binding in response.semantic_bindings
+            if (
+                binding.contract_id == contract.contract_id
+                and binding.status == "exact"
+                and binding.role in {"target", "state"}
+                and binding.model_element_ref is not None
+            )
+        }
+        owner_hints = [
+            hint for hint in contract.binding_hints if hint.role in {"owner", "scope"}
+        ]
+        target_hints = [
+            hint for hint in contract.binding_hints if hint.role in {"target", "state"}
+        ]
+        owner_match = owner.ref in exact_owner_refs or any(
+            (_state_for_value(pair, hint.value) is not None)
+            and _state_for_value(pair, hint.value).ref == owner.ref
+            for hint in owner_hints
+        )
+        target_match = target.ref in exact_target_refs or any(
+            (_state_for_value(pair, hint.value) is not None)
+            and _state_for_value(pair, hint.value).ref == target.ref
+            for hint in target_hints
+        )
+        if target_match and owner_match:
+            matches.append((0, contract))
+        elif target_match:
+            matches.append((1, contract))
+    if not matches:
+        return None
+    matches.sort(key=lambda item: (item[0], item[1].contract_id))
+    return matches[0][1]
+
+
+def _inspection_scope_contract(
+    pair: PairInput,
+    contracts: Sequence[NLContract],
+    grounding_responses: Sequence[GroundingResponse],
+    scope: StateNode,
+) -> NLContract | None:
+    """Find one supplied contract that exactly anchors a model scope."""
+
+    exact_bindings = {
+        binding.contract_id
+        for response in grounding_responses
+        for binding in response.cardinality_bindings
+        if binding.status == "exact" and binding.owner_model_ref == scope.ref
+    }
+    exact_bindings.update(
+        binding.contract_id
+        for response in grounding_responses
+        for binding in response.semantic_bindings
+        if (
+            binding.status == "exact"
+            and binding.role in {"owner", "scope"}
+            and binding.model_element_ref == scope.ref
+        )
+    )
+    candidates: list[NLContract] = []
+    for contract in contracts:
+        if contract.contract_id in exact_bindings:
+            candidates.append(contract)
+            continue
+        for hint in contract.binding_hints:
+            if hint.role not in {"owner", "scope", "state"}:
+                continue
+            bound = _state_for_value(pair, hint.value)
+            if bound is not None and bound.ref == scope.ref:
+                candidates.append(contract)
+                break
+    if not candidates:
+        return None
+    return min(candidates, key=lambda item: item.contract_id)
+
+
+def _materialize_inspection_diagnostics(
+    builder: _Builder,
+    contracts: Sequence[NLContract],
+    grounding_responses: Sequence[GroundingResponse],
+) -> None:
+    """Project exact inspection diagnostics only through supplied norm anchors.
+
+    Inspection facts identify a carrier and a deterministic structural fact; they
+    do not create a normative obligation by themselves.  A candidate is therefore
+    emitted only when an existing typed contract binds the same owner, state, or
+    scope.  The projection keeps the real leaf/transition refs so a parent entry
+    or display label cannot substitute for the observed carrier.
+    """
+
+    pair = builder.pair
+    facts = pair.inspection_facts
+    if facts is None:
+        return
+
+    for diagnostic in facts.diagnostics:
+        if diagnostic.code == "INITIAL_ENTRY_CONDITIONAL":
+            transition_ref = next(
+                (ref for ref in diagnostic.refs if ref.startswith("transition:")),
+                None,
+            )
+            fact = next(
+                (
+                    item
+                    for item in facts.transitions
+                    if item.transition_ref == transition_ref
+                ),
+                None,
+            )
+            contract = (
+                _inspection_initial_contract(
+                    pair, contracts, grounding_responses, fact
+                )
+                if fact
+                else None
+            )
+            if fact is None or contract is None:
+                continue
+            owner = _inspection_scope_state(pair, fact)
+            target = _inspection_target_state(pair, fact)
+            if owner is None or target is None:
+                continue
+            derived = _derived_contract(
+                contract,
+                locus_kind="composite",
+                locus_names=(owner.name, target.name),
+                property_name="initial_entry",
+                state_role=contract.state_role,
+                expected_direction="must_enter",
+                violation_direction="missing",
+                evidence_types=tuple(
+                    dict.fromkeys(
+                        [
+                            *contract.evidence_types,
+                            "initial_entry_fact",
+                            "transition_fact",
+                        ]
+                    )
+                ),
+                normative_statement=contract.normative_statement,
+                scope=contract.scope,
+                source_refs=contract.source_refs,
+                reason="An exact initial-entry carrier is conditional, so it does not establish the required unconditional owner-local entry.",
+                basis="typed initial-entry contract plus inspection-equivalent INITIAL_ENTRY_CONDITIONAL fact",
+            )
+            derived = derived.model_copy(
+                update={"contract_id": canonical_contract_id(derived)}
+            )
+            candidate = _candidate(
+                derived,
+                title=f"{owner.name} initial entry to {target.name} is conditional",
+                predicate_id=None,
+                predicate_inputs={},
+                element_refs=(owner.ref, target.ref, fact.transition_ref),
+                source_refs=contract.source_refs,
+                expected=derived.normative_statement,
+                observed=(
+                    f"Exact initial carrier {fact.transition_ref} has triggers={list(fact.triggers)} "
+                    f"and guard={fact.guard!r}."
+                ),
+                strongest_rebuttal="A separate ordinary transition or display label cannot replace the owner-local initial carrier's unconditional entry semantics.",
+                reason=diagnostic.reason,
+                basis=f"diagnostic={diagnostic.code}; refs={list(diagnostic.refs)}; scope={owner.ref}; target={target.ref}",
+            )
+            builder.add(
+                "owner_initial_entry",
+                (contract.contract_id,),
+                derived,
+                candidate,
+                reason="The supplied initial-entry contract is joined to one exact conditional pseudostate edge.",
+                basis="inspection-equivalent INITIAL_ENTRY_CONDITIONAL and exact ModelIR transition ref",
+            )
+            continue
+
+        if diagnostic.code == "LEAF_WITHOUT_OUTGOING":
+            state_ref = next(
+                (ref for ref in diagnostic.refs if ref.startswith("state:")),
+                None,
+            )
+            state = _state_by_ref(pair, state_ref)
+            if state is None:
+                continue
+            contract = next(
+                (
+                    item
+                    for item in contracts
+                    if item.property == "deadlock_freedom"
+                    and (
+                        any(
+                            binding.contract_id == item.contract_id
+                            and binding.status == "exact"
+                            and binding.role in {"state", "owner", "scope", "target"}
+                            and binding.model_element_ref == state.ref
+                            for response in grounding_responses
+                            for binding in response.semantic_bindings
+                        )
+                        or any(
+                            (bound := _state_for_value(pair, hint.value)) is not None
+                            and bound.ref == state.ref
+                            for hint in item.binding_hints
+                            if hint.role in {"state", "owner", "scope", "target"}
+                        )
+                    )
+                ),
+                None,
+            )
+            if contract is None:
+                continue
+            candidate = _candidate(
+                contract,
+                title=f"{state.name} is a reachable leaf without outgoing transition",
+                predicate_id=None,
+                predicate_inputs={},
+                element_refs=(state.ref,),
+                source_refs=contract.source_refs,
+                expected=contract.normative_statement,
+                observed=f"Exact reachable leaf {state.ref} has no outgoing transition refs.",
+                strongest_rebuttal="A transition owned by another state cannot provide continuation for this exact leaf carrier.",
+                reason=diagnostic.reason,
+                basis=f"diagnostic={diagnostic.code}; refs={list(diagnostic.refs)}; state={state.ref}",
+            )
+            builder.add(
+                "reachable_dead_end",
+                (contract.contract_id,),
+                contract,
+                candidate,
+                reason="The supplied deadlock-freedom contract is joined to the exact reachable leaf reported by inspection facts.",
+                basis="inspection-equivalent LEAF_WITHOUT_OUTGOING and exact state inventory",
+            )
+            continue
+
+    grouped: dict[tuple[str, tuple[str, ...], str | None], list[InspectionTransitionFact]] = defaultdict(list)
+    for fact in facts.transitions:
+        if not fact.scope or not fact.triggers or fact.resolved_source_ref is None:
+            continue
+        grouped[(fact.scope, tuple(fact.triggers), fact.guard)].append(fact)
+    for (scope_name, triggers, guard), rows in sorted(grouped.items()):
+        target_keys = {fact.resolved_target_ref or "[*]" for fact in rows}
+        if len(rows) < 2 or len(target_keys) < 2:
+            continue
+        scope = _state_for_value(pair, scope_name)
+        if scope is None:
+            continue
+        contract = _inspection_scope_contract(pair, contracts, grounding_responses, scope)
+        if contract is None:
+            continue
+        targets = [
+            _state_by_ref(pair, fact.resolved_target_ref)
+            for fact in rows
+            if fact.resolved_target_ref is not None
+        ]
+        targets = [item for item in targets if item is not None]
+        derived = _derived_contract(
+            contract,
+            locus_kind="scope",
+            locus_names=(scope.name, *[item.name for item in targets]),
+            property_name="guard_disjointness",
+            state_role=contract.state_role,
+            expected_direction="must_cover",
+            violation_direction="wrong_guard",
+            evidence_types=(
+                "closed_model_inventory",
+                "transition_fact",
+                "trigger_fact",
+                "guard_fact",
+            ),
+            normative_statement=(
+                f"Transitions in {scope.name} selected by the same event/guard "
+                "must not expose competing target outcomes."
+            ),
+            scope=f"Inspection event/guard frontier in {scope.name}",
+            source_refs=contract.source_refs,
+            reason="Exact transitions in one owned scope share an event/guard signature while exposing different target outcomes.",
+            basis="inspection-equivalent transition scope, trigger, guard, and resolved-target refs",
+        )
+        derived = derived.model_copy(
+            update={"contract_id": canonical_contract_id(derived)}
+        )
+        element_refs = tuple(
+            dict.fromkeys(
+                [scope.ref, *[fact.transition_ref for fact in rows], *[item.ref for item in targets]]
+            )
+        )
+        candidate = _candidate(
+            derived,
+            title=f"{scope.name} has competing targets for the same event/guard",
+            predicate_id=None,
+            predicate_inputs={},
+            element_refs=element_refs,
+            source_refs=contract.source_refs,
+            expected=derived.normative_statement,
+            observed=(
+                f"Exact transitions {[fact.transition_ref for fact in rows]} share "
+                f"triggers={list(triggers)} and guard={guard!r}, with targets={sorted(target_keys)}."
+            ),
+            strongest_rebuttal="Different source scopes or different event/guard signatures would separate the alternatives; this candidate is limited to one exact scope signature.",
+            reason="The deterministic inspection inventory found one exact same-scope event/guard group with more than one target outcome.",
+            basis=f"scope={scope.ref}; triggers={list(triggers)}; guard={guard!r}; transition_refs={[fact.transition_ref for fact in rows]}",
+        )
+        builder.add(
+            "transition_group_collision",
+            (contract.contract_id,),
+            derived,
+            candidate,
+            reason="The existing scope contract anchors a deterministic same-event/guard collision frontier.",
+            basis="owned inspection transition grouping; no ledger or expected-specific input",
+        )
+
+    # A zero-trigger edge into an exact leaf is a completion transition.  It is
+    # only a publishable frontier fact when an existing typed operating or
+    # termination contract supplies the lifecycle anchor; inspection facts do
+    # not create a norm by themselves.
+    anchors = sorted(
+        (
+            contract
+            for contract in contracts
+            if contract.state_role in {"operating_state", "termination_state"}
+        ),
+        key=lambda item: item.contract_id,
+    )
+    if not anchors:
+        return
+    for fact in facts.transitions:
+        if (
+            fact.resolved_source_ref is None
+            or fact.resolved_target_ref is None
+            or fact.triggers
+            or fact.guard is not None
+        ):
+            continue
+        target_fact = _inspection_state(pair, fact.resolved_target_ref)
+        if target_fact is None or target_fact.outgoing_transition_refs:
+            continue
+        source = _state_by_ref(pair, fact.resolved_source_ref)
+        target = _state_by_ref(pair, fact.resolved_target_ref)
+        if source is None or target is None:
+            continue
+        anchor = anchors[0]
+        derived = _derived_contract(
+            anchor,
+            locus_kind="transition",
+            locus_names=(source.name, target.name),
+            property_name="trigger_set",
+            state_role=anchor.state_role,
+            expected_direction="must_exist",
+            violation_direction="missing",
+            evidence_types=(
+                "source_identity",
+                "closed_model_inventory",
+                "transition_fact",
+                "trigger_fact",
+                "deadlock_frontier_fact",
+            ),
+            normative_statement=(
+                f"The lifecycle transition from {source.name} to {target.name} "
+                "must remain event-controlled rather than an untriggered completion edge."
+            ),
+            scope=f"Completion-edge control from {source.name} to {target.name}",
+            source_refs=anchor.source_refs,
+            reason="An exact zero-trigger transition enters a reachable leaf target under an existing lifecycle obligation.",
+            basis="typed operating/termination anchor plus inspection-equivalent zero-trigger leaf-transition fact",
+        )
+        derived = derived.model_copy(
+            update={"contract_id": canonical_contract_id(derived)}
+        )
+        candidate = _candidate(
+            derived,
+            title=f"{source.name} reaches {target.name} without a trigger",
+            predicate_id=None,
+            predicate_inputs={},
+            element_refs=(source.ref, target.ref, fact.transition_ref),
+            source_refs=anchor.source_refs,
+            expected=derived.normative_statement,
+            observed=(
+                f"Exact transition {fact.transition_ref} has source={fact.source!r}, "
+                f"target={fact.target!r}, triggers=[], guard=null; target {target.ref} "
+                "has no outgoing transition refs."
+            ),
+            strongest_rebuttal="A deliberate terminal boundary would need an explicit typed termination reading; this candidate preserves the exact lifecycle carrier and leaves that distinction for D.",
+            reason=(
+                "The exact inspection fact records a zero-trigger transition into a leaf target. "
+                + fact.reason
+            ),
+            basis=(
+                f"diagnostic-free transition fact={fact.transition_ref}; "
+                f"source_ref={source.ref}; target_ref={target.ref}; "
+                f"anchor_contract={anchor.contract_id}; triggers=[]; guard=null; "
+                "target_outgoing_transition_refs=[]"
+            ),
+        )
+        builder.add(
+            "stable_termination",
+            (anchor.contract_id,),
+            derived,
+            candidate,
+            reason="The exact lifecycle anchor is joined to one untriggered transition into a leaf target.",
+            basis="owned ModelIR transition fields and inspection-equivalent leaf inventory",
+        )
+
+
 def materialize_typed_frontier(
     pair: PairInput,
     contracts: NLContractResponse,
@@ -4387,6 +4829,7 @@ def materialize_typed_frontier(
     _materialize_aggregate_data_semantics(builder, all_contracts)
     _materialize_cross_wrapper(builder, all_contracts)
     _materialize_event_consumers(builder, all_contracts, scopes)
+    _materialize_inspection_diagnostics(builder, all_contracts, grounding_responses)
     return FrontierBatch(
         obligations=tuple(builder.obligations),
         checks=tuple(builder.checks),
