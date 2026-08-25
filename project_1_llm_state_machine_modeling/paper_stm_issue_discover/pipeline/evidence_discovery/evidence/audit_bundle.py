@@ -34,6 +34,7 @@ class W2AuditBundle(BaseModel):
     model_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$", description="Hash of the exact executed FCSTM model.")
     program_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$", description="Hash of the exact compiled assertion or formal program.")
     backend_result: dict[str, Any] = Field(description="Complete real deterministic backend receipt.")
+    execution_receipt: dict[str, Any] | None = Field(default=None, description="Normalized predicate execution receipt for the same backend run.")
     structured_run_summary: dict[str, Any] = Field(description="Backend terminal summary plus available stdout/stderr or explicit unavailability.")
     execution_environment: dict[str, Any] = Field(description="Non-secret Python and platform execution environment identity.")
     terminal_state: str = Field(min_length=1, description="Actual backend terminal state used by deterministic W publication.")
@@ -77,6 +78,7 @@ def build_audit_bundle(
     basis: str,
     retry_records: list[dict[str, Any]],
     semantic_adjudication: SemanticAdjudication | None = None,
+    execution_receipt: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     program = plan.formal_program or "UNCOMPILED_W1_PLAN"
     program_hash = plan.formal_program_hash or (
@@ -133,6 +135,7 @@ def build_audit_bundle(
         "model_hash": pair.hashes["fcstm"],
         "program_hash": program_hash,
         "backend_result": receipt.to_dict(),
+        "execution_receipt": execution_receipt,
         "structured_run_summary": {
             "backend": receipt.backend,
             "terminal_state": receipt.terminal_state,

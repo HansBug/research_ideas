@@ -19,7 +19,12 @@ from .inputs import (
 )
 
 SUPPORTED_PREDICATES = frozenset(
-    {"S1", "S2", "S3", "S4", "S5", "S6", "G1", "G2", "G3", "G4", "V1", "V4"}
+    {
+        "S1", "S2", "S3", "S4", "S5", "S6",
+        "G1", "G2", "G3", "G4",
+        "R1", "R2", "R4",
+        "V1", "V4",
+    }
 )
 
 # A source-catalog ``partial_pass`` is the current strict W2 entry state. All
@@ -76,6 +81,7 @@ class PredicatePlan(BaseModel):
     formal_program: str | None = Field(default=None, description="Compiled assertion or formal-program source, present only for an executable supported plan.")
     formal_program_hash: str | None = Field(default=None, description="SHA-256 hash of formal_program, when compiled.")
     supported: bool = Field(description="Whether this plan passed deterministic backend, source, and input gates.")
+    executable: bool = Field(default=False, description="Whether typed inputs and a deterministic backend are sufficient to run, even when the source gate keeps W2 closed.")
     reason: str = Field(min_length=1, description="Non-empty explanation of the plan support or downgrade decision.")
     basis: str = Field(min_length=1, description="Non-empty registry, source, binding, or capability basis for the plan decision.")
     predicate_name: str | None = Field(default=None, min_length=1, description="Registered predicate name, when predicate_id is present.")
@@ -187,11 +193,14 @@ def compile_plan(
     )
     backend_supported = predicate.id in SUPPORTED_PREDICATES
     input_shape_valid = not isinstance(typed_inputs, UnsupportedPredicateInputs)
-    supported = (
+    executable = (
         backend_supported
-        and source_gate_passed
         and binding_complete
         and input_shape_valid
+    )
+    supported = (
+        executable
+        and source_gate_passed
     )
     if not input_shape_valid:
         reason = "The normalized predicate inputs violate the exact discriminated Pydantic variant; the candidate remains auditable W1 and is not executed."
@@ -215,9 +224,10 @@ def compile_plan(
         inputs=typed_inputs,
         soundness_fragment=predicate.soundness_fragment,
         assumptions=("closed_fcstm_input", model.algorithm_version),
-        formal_program=formal_program if supported else None,
-        formal_program_hash=_hash_text(formal_program) if supported else None,
+        formal_program=formal_program if executable else None,
+        formal_program_hash=_hash_text(formal_program) if executable else None,
         supported=supported,
+        executable=executable,
         reason=reason,
         basis=basis,
         predicate_name=predicate.name,

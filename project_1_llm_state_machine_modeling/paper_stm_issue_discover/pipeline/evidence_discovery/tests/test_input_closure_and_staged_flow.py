@@ -1085,8 +1085,8 @@ def test_full_live_runner_requires_second_explicit_gate() -> None:
         )
 
 
-def test_live_runner_caps_diagnostic_subset_at_twelve_pairs() -> None:
-    with pytest.raises(RuntimeError, match="capped at 12"):
+def test_live_runner_caps_diagnostic_subset_at_fifteen_pairs() -> None:
+    with pytest.raises(RuntimeError, match="capped at 15"):
         run_experiment(
             report_root=REPORT_ROOT,
             output_dir=PAPER_ROOT / "runs" / "should-not-start-over-twelve",
@@ -1106,6 +1106,9 @@ def test_live_runner_caps_diagnostic_subset_at_twelve_pairs() -> None:
                 "0024",
                 "0056",
                 "0011",
+                "0013",
+                "0049",
+                "0054",
             ],
         )
 

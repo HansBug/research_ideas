@@ -15,6 +15,7 @@ from pipeline.evidence_discovery.backends.bounded_verification import (
     run_bounded_verification,
 )
 from pipeline.evidence_discovery.backends.topology import _graph, run_topology
+from pipeline.evidence_discovery.backends.trajectory import run_trajectory
 from pipeline.evidence_discovery.compiler import compile_plan
 from pipeline.evidence_discovery.compiler.inputs import (
     UnsupportedPredicateInputs,
@@ -25,7 +26,10 @@ from pipeline.evidence_discovery.evidence.audit_bundle import (
     W2AuditBundle,
     validate_and_hash_w2_audit_bundle,
 )
-from pipeline.evidence_discovery.evidence.receipts import RawReceipt
+from pipeline.evidence_discovery.evidence.receipts import (
+    RawReceipt,
+    build_predicate_execution_receipt,
+)
 from pipeline.evidence_discovery.evidence.witness_levels import (
     build_evidence_record,
     calculate_witness_level,
@@ -181,6 +185,7 @@ def test_source_gate_and_input_aliases_are_deterministic() -> None:
     assert plan.source_audit_status == "candidate"
     assert plan.inputs["guard"] == "front_distance > 10"
     assert plan.inputs["transition"] == pair.model.transitions[0].ref
+    assert plan.executable is True
     assert "expected_guard" not in plan.inputs
     assert "transition_name" not in plan.inputs
 
@@ -977,6 +982,9 @@ def test_w2_audit_contains_logic_hashes_backend_and_retry_records(tmp_path: Path
     assert bundle["model_hash"] == pair.hashes["fcstm"]
     assert bundle["program_hash"] == bundle["compiled_program"]["sha256"]
     assert bundle["backend_result"]["terminal_state"] == "completed"
+    assert bundle["execution_receipt"]["verdict"] == "violation"
+    assert bundle["execution_receipt"]["typed_inputs_hash"].startswith("sha256:")
+    assert bundle["execution_receipt"]["receipt_hash"].startswith("sha256:")
     assert bundle["generated_at"]
     assert bundle["execution_environment"]["python_version"]
     assert bundle["structured_run_summary"]["terminal_state"] == "completed"
@@ -1029,6 +1037,78 @@ def test_w2_audit_contains_logic_hashes_backend_and_retry_records(tmp_path: Path
     assert finalized["judge_receipt"]["status"] == "pending_independent_judge"
     assert finalized["audit_hash"] != audit_hash
     W2AuditBundle.model_validate(finalized)
+
+
+def test_source_gate_keeps_w1_but_preserves_real_execution_receipt() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    transition = pair.model.transitions[0]
+    candidate = _candidate(
+        pair,
+        predicate_id="S5",
+        inputs={
+            "transition": transition.ref,
+            "guard": "front_distance > 10",
+        },
+        refs=[transition.ref],
+    )
+    binding = bind_candidate(candidate, pair.model)
+    plan = compile_plan(
+        candidate,
+        binding,
+        load_registry(),
+        obligation_id="0000:source-gate-execution",
+        round_index=1,
+        model=pair.model,
+    )
+    receipt = run_backend(plan, pair.model, "0000:source-gate-execution:receipt")
+    execution = build_predicate_execution_receipt(
+        pair_id="0000",
+        run_id="1" * 32,
+        contract_id=candidate.contract_id,
+        obligation_id="0000:source-gate-execution",
+        plan=plan,
+        receipt=receipt,
+    )
+
+    assert plan.source_gate_passed is False
+    assert plan.executable is True
+    assert plan.supported is False
+    assert receipt.terminal_state == "completed"
+    assert execution["execution_status"] == "executed"
+    assert execution["verdict"] in {"pass", "violation"}
+    assert execution["source_gate_passed"] is False
+
+
+def test_trajectory_receipt_requires_closed_contract_and_checks_retention() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    candidate = _candidate(
+        pair,
+        predicate_id="R4",
+        inputs={
+            "scenario": {
+                "trace": [
+                    {"step": 0, "active_states": ["Ready"]},
+                    {"step": 1, "active_states": ["Ready"]},
+                ]
+            },
+            "state": "Ready",
+            "interval": [0, 1],
+        },
+        refs=[pair.model.states[0].ref],
+    )
+    plan = compile_plan(
+        candidate,
+        bind_candidate(candidate, pair.model),
+        load_registry(),
+        obligation_id="0000:r4-trajectory",
+        round_index=1,
+        model=pair.model,
+    )
+    receipt = run_trajectory(plan, pair.model, "0000:r4-trajectory:receipt")
+
+    assert plan.executable is True
+    assert receipt.terminal_state == "completed"
+    assert receipt.verdict == "true"
 
 
 def test_d_mapping_is_invariant_to_free_text_and_uses_typed_semantics() -> None:

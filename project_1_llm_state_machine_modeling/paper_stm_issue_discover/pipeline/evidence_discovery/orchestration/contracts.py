@@ -34,6 +34,40 @@ class SourceProvenance(BaseModel):
     )
 
 
+class SelectionPreflightReference(BaseModel):
+    """Immutable pointer to the deterministic pair/predicate preflight."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    artifact_schema: str = Field(
+        min_length=1,
+        description="Schema identifier of the external applicability preflight artifact.",
+    )
+    artifact_path: str = Field(
+        min_length=1,
+        description="Resolved path of the preflight artifact used only for selection provenance.",
+    )
+    artifact_hash: str = Field(
+        pattern=r"^sha256:[0-9a-f]{64}$",
+        description="Hash of the complete preflight artifact excluding its self-hash field.",
+    )
+    selected_pair_ids: tuple[str, ...] = Field(
+        min_length=1,
+        description="Exact pair order selected by the preflight artifact.",
+    )
+    candidate_predicates_e15: tuple[str, ...] = Field(
+        description="Deterministic E15 candidate predicate set recorded by the preflight.",
+    )
+    reason: str = Field(
+        min_length=1,
+        description="Why this preflight is attached to the run manifest.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Hash and exact selected-pair checks supporting the reference.",
+    )
+
+
 class RunManifest(BaseModel):
     """Immutable method-run identity plus mutable terminal status for one run root."""
 
@@ -121,6 +155,10 @@ class RunManifest(BaseModel):
     predecessor_snapshot: str | None = Field(
         default=None,
         description="Optional preserved diagnostic run root that motivated this fresh contract-compatible run; it is never imported as current cells.",
+    )
+    selection_preflight: SelectionPreflightReference | None = Field(
+        default=None,
+        description="Optional deterministic applicability preflight attached to a diagnostic selection; it is provenance only and never method input.",
     )
     reason: str = Field(
         min_length=1,
@@ -275,6 +313,10 @@ class MethodCellReceipt(BaseModel):
         default_factory=list,
         description="All deterministic W/D evidence records, including non-release and coverage-gap records."
     )
+    predicate_execution_receipts: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="All normalized predicate execution receipts, including passing checks that are not published as issues."
+    )
     report_issue_clusters: list[dict[str, Any]] = Field(
         default_factory=list,
         description="Only final D1/D2 release issues exported for the external frozen evaluation layer."
@@ -421,5 +463,6 @@ __all__ = [
     "PairRunStatus",
     "RunManifest",
     "RunSummaryReceipt",
+    "SelectionPreflightReference",
     "SourceProvenance",
 ]

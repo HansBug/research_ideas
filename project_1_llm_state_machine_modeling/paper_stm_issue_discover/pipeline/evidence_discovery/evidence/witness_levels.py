@@ -7,7 +7,7 @@ from ..semantics.adjudication import SemanticAdjudication, adjudicate_dispositio
 from ..semantics.binding import BindingResult
 from ..semantics.obligations import CandidateIssue
 from .audit_bundle import build_audit_bundle
-from .receipts import RawReceipt
+from .receipts import RawReceipt, build_predicate_execution_receipt
 
 
 def calculate_witness_level(binding: BindingResult, plan: PredicatePlan, receipt: RawReceipt) -> str:
@@ -33,6 +33,7 @@ def build_evidence_record(
     source_attribution: dict[str, Any],
     retry_records: list[dict[str, Any]],
     semantic_adjudication: SemanticAdjudication | None = None,
+    run_id: str = "00000000000000000000000000000000",
 ) -> dict[str, Any]:
     disposition = adjudicate_disposition(
         candidate,
@@ -41,6 +42,14 @@ def build_evidence_record(
         receipt=receipt,
     )
     witness_level = calculate_witness_level(binding, plan, receipt)
+    execution_receipt = build_predicate_execution_receipt(
+        pair_id=pair.pair_id,
+        run_id=run_id,
+        contract_id=candidate.contract_id,
+        obligation_id=obligation_id,
+        plan=plan,
+        receipt=receipt,
+    )
     issue_emitted = disposition["d_level"] in {"D1", "D2"}
     if witness_level == "W0":
         coverage_class = "coverage_gap"
@@ -63,6 +72,7 @@ def build_evidence_record(
         },
         "plan": plan.to_dict(),
         "receipt": receipt.to_dict(),
+        "execution_receipt": execution_receipt,
         "witness_level": witness_level,
         "d_level": disposition["d_level"],
         "semantic_adjudication": disposition["semantic_adjudication"],
@@ -91,6 +101,7 @@ def build_evidence_record(
             basis=record["basis"],
             retry_records=retry_records,
             semantic_adjudication=semantic_adjudication,
+            execution_receipt=execution_receipt,
         )
     else:
         record["audit_bundle"] = None

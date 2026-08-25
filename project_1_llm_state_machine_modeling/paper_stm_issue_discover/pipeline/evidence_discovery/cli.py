@@ -55,6 +55,10 @@ def main(argv: list[str] | None = None) -> int:
         "--predecessor-snapshot",
         help="Preserved diagnostic run root recorded for provenance only; no cells are imported.",
     )
+    parser.add_argument(
+        "--selection-preflight",
+        help="Deterministic pair/predicate applicability artifact used for run provenance only.",
+    )
     args = parser.parse_args(argv)
     summary = run_experiment(
         report_root=Path(args.report_root),
@@ -70,6 +74,7 @@ def main(argv: list[str] | None = None) -> int:
         streaming=not args.no_stream,
         run_id=args.run_id,
         predecessor_snapshot=args.predecessor_snapshot,
+        selection_preflight=args.selection_preflight,
     )
     print(json.dumps({"output_dir": summary["artifact_root"], "run_id": summary["run_id"], "summary": summary}, ensure_ascii=False))
     return 0

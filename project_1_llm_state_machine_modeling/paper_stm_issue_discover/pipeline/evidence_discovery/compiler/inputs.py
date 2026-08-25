@@ -291,6 +291,16 @@ def project_predicate_input_values(
     return {key: value for key, value in values.items() if key in allowed}
 
 
+def predicate_input_schema(predicate_id: PredicateId) -> dict[str, Any]:
+    """Return the frozen Pydantic input schema for preflight and audit tooling.
+
+    The schema describes the executable input contract only.  It does not
+    provide values, infer applicability, or create a method candidate.
+    """
+
+    return _PREDICATE_INPUT_MODELS[predicate_id].model_json_schema()
+
+
 PredicateInputs = Annotated[
     S1Inputs
     | S2Inputs
@@ -350,5 +360,6 @@ __all__ = [
     "PredicateInputsBase",
     "UnsupportedPredicateInputs",
     "project_predicate_input_values",
+    "predicate_input_schema",
     "validate_predicate_inputs",
 ]

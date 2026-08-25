@@ -10,7 +10,7 @@ from .trajectory import run_trajectory
 
 
 def run_backend(plan: PredicatePlan, model: ModelIR, receipt_id: str) -> RawReceipt:
-    if not plan.supported or plan.predicate_id is None:
+    if plan.predicate_id is None or not (plan.supported or plan.executable):
         return RawReceipt(
             receipt_id=receipt_id,
             backend="none",

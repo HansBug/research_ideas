@@ -18,7 +18,11 @@ from pydantic import Field, create_model, model_validator
 from ..backends import run_backend
 from ..compiler import compile_plan
 from ..compiler.plans import validate_plan
-from ..evidence import build_evidence_record, validate_and_hash_w2_audit_bundle
+from ..evidence import (
+    build_evidence_record,
+    build_predicate_execution_receipt,
+    validate_and_hash_w2_audit_bundle,
+)
 from ..evidence.receipts import RawReceipt
 from ..evidence.source_attribution import build_source_attribution
 from ..inputs import FROZEN_PAIR_IDS, load_pair
@@ -70,6 +74,7 @@ from .contracts import (
     PairRunStatus,
     RunManifest,
     RunSummaryReceipt,
+    SelectionPreflightReference,
     SourceProvenance,
 )
 from .runtime import (
@@ -99,6 +104,9 @@ REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS = (
     "0012",
     "0024",
     "0056",
+    "0013",
+    "0049",
+    "0054",
 )
 METHOD_CELL_SCHEMA = "evidence-discovery.method_cell.v8"
 SUMMARY_SCHEMA = "evidence-discovery.run_summary.v3"
@@ -482,6 +490,7 @@ def _manifest_contract_payload(
     workers: int,
     transport_retries: int,
     streaming: bool,
+    selection_preflight: dict[str, Any] | None,
 ) -> dict[str, Any]:
     """Return the immutable identity projection shared by run artifacts."""
 
@@ -502,8 +511,51 @@ def _manifest_contract_payload(
         "workers": workers,
         "transport_retries": transport_retries,
         "streaming": streaming,
+        "selection_preflight": selection_preflight,
         "retry_policy": _retry_policy(transport_retries),
     }
+
+
+def _load_selection_preflight(
+    path: str | Path | None,
+    *,
+    selected_pair_ids: Sequence[str],
+) -> dict[str, Any] | None:
+    """Validate selection metadata without importing it into method execution."""
+
+    if path is None:
+        return None
+    preflight_path = Path(path).expanduser().resolve()
+    payload = json.loads(preflight_path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("selection preflight must be a JSON object")
+    claimed_hash = payload.get("artifact_hash")
+    if not isinstance(claimed_hash, str):
+        raise ValueError("selection preflight has no artifact_hash")
+    unsigned = dict(payload)
+    unsigned.pop("artifact_hash", None)
+    computed_hash = _hash_json(unsigned)
+    if claimed_hash != computed_hash:
+        raise ValueError(
+            f"selection preflight hash mismatch: claimed={claimed_hash} computed={computed_hash}"
+        )
+    preflight_pairs = tuple(payload.get("selected_pair_ids", ()))
+    if preflight_pairs != tuple(selected_pair_ids):
+        raise ValueError(
+            "selection preflight pair order does not match the run's selected_pair_ids"
+        )
+    candidate_predicates = tuple(payload.get("candidate_predicates_e15", ()))
+    if not isinstance(payload.get("schema"), str) or not candidate_predicates:
+        raise ValueError("selection preflight is missing schema or E15 predicate set")
+    return SelectionPreflightReference(
+        artifact_schema=payload["schema"],
+        artifact_path=str(preflight_path),
+        artifact_hash=claimed_hash,
+        selected_pair_ids=preflight_pairs,
+        candidate_predicates_e15=candidate_predicates,
+        reason="The run records the deterministic pair/predicate preflight used before provider execution; it is not supplied to method prompts.",
+        basis="preflight artifact self-hash and exact selected-pair equality",
+    ).model_dump(mode="json")
 
 
 def _prepare_run_manifest(
@@ -522,6 +574,7 @@ def _prepare_run_manifest(
     workers: int,
     transport_retries: int,
     streaming: bool,
+    selection_preflight: dict[str, Any] | None,
     resume: bool,
     predecessor_snapshot: str | None,
 ) -> RunManifest:
@@ -546,6 +599,7 @@ def _prepare_run_manifest(
         workers=workers,
         transport_retries=transport_retries,
         streaming=streaming,
+        selection_preflight=selection_preflight,
     )
     contract_hash = _run_contract_hash(contract)
     manifest_path = output_root / "run_manifest.json"
@@ -601,6 +655,7 @@ def _prepare_run_manifest(
         started_at=now,
         updated_at=now,
         predecessor_snapshot=predecessor_snapshot,
+        selection_preflight=selection_preflight,
         reason="This manifest freezes the current method code, registry, pair grid, transport policy, and resume identity before provider execution.",
         basis="four-family-19-core.v1 plus the explicit live/full review gate and current clean Git commit",
     )
@@ -2092,6 +2147,7 @@ def _deterministic_candidate(
     *,
     semantic_adjudication: SemanticAdjudication | None = None,
     prepared: dict[str, Any] | None = None,
+    run_id: str = "00000000000000000000000000000000",
 ) -> tuple[dict[str, Any], dict[str, Any] | None]:
     prepared = prepared or _prepare_candidate(pair, candidate, round_index, index)
     candidate = prepared["candidate"]
@@ -2110,6 +2166,7 @@ def _deterministic_candidate(
         source_attribution=attribution,
         retry_records=retry_records,
         semantic_adjudication=semantic_adjudication,
+        run_id=run_id,
     )
     record.update(
         {
@@ -2674,6 +2731,17 @@ def _method_cell(
     satisfied_candidates = [
         item for item in prepared_candidates if not _prepared_is_finding_candidate(item)
     ]
+    execution_receipts = [
+        build_predicate_execution_receipt(
+            pair_id=pair.pair_id,
+            run_id=run_identity["run_id"],
+            contract_id=item["candidate"].contract_id,
+            obligation_id=item["obligation_id"],
+            plan=item["plan"],
+            receipt=item["receipt"],
+        )
+        for item in prepared_candidates
+    ]
     stage_outputs["execute_batch"] = {
         "candidate_count": len(candidates),
         "llm_candidate_count": len(response.issues),
@@ -2720,6 +2788,7 @@ def _method_cell(
         "satisfied_obligation_ids": [
             item["obligation_id"] for item in satisfied_candidates
         ],
+        "predicate_execution_receipts": execution_receipts,
         "candidates": [_jsonable(item) for item in prepared_candidates],
         "reason": "Exact binding, protected source-transition macro closure, the typed domain frontier, the exact S2 inventory scout, frozen predicate compilation, and deterministic backend execution were applied inside one execute batch; completed true receipts remain passing-check audit records while only counterexamples, unresolved W1/W0, or errors become findings.",
         "basis": "LLM-established typed contracts, exact source inventory, published working-contract macro membership, owned source/ModelIR/inspection facts, frozen predicate registry, compiler plans, backend receipts, and the passing-check exclusion rule",
@@ -3068,6 +3137,7 @@ def _method_cell(
                 retry_records,
                 semantic_adjudication=decisions.get(prepared["obligation_id"]),
                 prepared=prepared,
+                run_id=run_identity["run_id"],
             )
             records.append(record)
             if emitted is not None:
@@ -3172,6 +3242,7 @@ def _method_cell(
         "eligible": eligible,
         "eligibility_reasons": eligibility_reasons,
         "evidence_records": records,
+        "predicate_execution_receipts": execution_receipts,
         "report_issue_clusters": release,
         "errors": errors,
         "reason": response.reason,
@@ -3251,6 +3322,7 @@ def _method_metrics(
 ) -> dict[str, Any]:
     """Aggregate only method-owned eligibility, releases, D/W, and diagnostics."""
 
+    registry = load_registry()
     forced_ineligible = set(ineligible_pair_ids)
     all_cells = [cell for cells in pair_method.values() for cell in cells]
     eligible_cells = [
@@ -3269,6 +3341,25 @@ def _method_metrics(
         for cell in all_cells
         for issue in cell.get("report_issue_clusters", [])
     ]
+    execution_receipts = [
+        receipt
+        for cell in all_cells
+        for receipt in cell.get("predicate_execution_receipts", [])
+    ]
+    executed_predicates = sorted(
+        {
+            receipt.get("predicate_id")
+            for receipt in execution_receipts
+            if receipt.get("execution_status") == "executed"
+            and receipt.get("predicate_id")
+        }
+    )
+    w2_records = [
+        record
+        for record in records
+        if record.get("witness_level") == "W2"
+    ]
+    planned_mapping = registry.raw.get("coverage_snapshot", {})
     eligible_releases = [
         issue
         for pair_id, cells in pair_method.items()
@@ -3289,6 +3380,11 @@ def _method_metrics(
             issue
             for cell in pair_cells
             for issue in cell.get("report_issue_clusters", [])
+        ]
+        pair_execution_receipts = [
+            receipt
+            for cell in pair_cells
+            for receipt in cell.get("predicate_execution_receipts", [])
         ]
         pair_eligible_cells = [
             cell
@@ -3320,6 +3416,15 @@ def _method_metrics(
             "method_diagnostics": sum(
                 len(cell.get("errors", [])) for cell in pair_cells
             ),
+            "predicate_execution_receipts": len(pair_execution_receipts),
+            "executed_predicates": sorted(
+                {
+                    receipt.get("predicate_id")
+                    for receipt in pair_execution_receipts
+                    if receipt.get("execution_status") == "executed"
+                    and receipt.get("predicate_id")
+                }
+            ),
         }
     return {
         "method": {
@@ -3345,6 +3450,32 @@ def _method_metrics(
             "method_diagnostics": sum(
                 len(cell.get("errors", [])) for cell in all_cells
             ),
+            "predicate_execution_receipts": len(execution_receipts),
+            "executed_predicates": executed_predicates,
+            "execution_verdicts": dict(
+                Counter(receipt.get("verdict") for receipt in execution_receipts)
+            ),
+            "coverage_accounting": {
+                "planned_ledger_mapping": planned_mapping,
+                "predicate_execution_coverage": {
+                    "executed_distinct_predicates": len(executed_predicates),
+                    "registry_predicate_denominator": len(registry.predicates),
+                    "executed_predicates": executed_predicates,
+                    "basis": "terminal PredicateExecutionReceipt records only; prompt appearance and plans do not count",
+                },
+                "w2_finding_coverage": {
+                    "w2_evidence_record_count": len(w2_records),
+                    "w2_finding_record_count": sum(
+                        bool(record.get("issue_emitted")) for record in w2_records
+                    ),
+                    "basis": "method-owned evidence records and deterministic witness level",
+                },
+                "full_w2_ledger_coverage": {
+                    "status": "pending_external_judge_mapping",
+                    "reason": "The method does not read ledger expectations; FULL/W2 ledger coverage is computed only after frozen external Judge expected mapping.",
+                    "basis": "method/evaluation physical isolation boundary",
+                },
+            },
         },
         "per_pair": per_pair,
     }
@@ -3853,6 +3984,7 @@ def run_experiment(
     streaming: bool = True,
     run_id: str | None = None,
     predecessor_snapshot: str | None = None,
+    selection_preflight: str | Path | None = None,
 ) -> dict[str, Any]:
     """Execute a contract-compatible diagnostic or frozen full provider run."""
 
@@ -3890,7 +4022,9 @@ def run_experiment(
             if pair_ids is None:
                 raise RuntimeError("live diagnostic execution requires explicit pair_ids")
             if len(selected_pair_ids) > len(REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS):
-                raise RuntimeError("live diagnostic runs are capped at 12 explicit pair IDs")
+                raise RuntimeError(
+                    f"live diagnostic runs are capped at {len(REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS)} explicit pair IDs"
+                )
 
     report_root_path = Path(report_root).expanduser().resolve()
     source_provenance = _source_provenance()
@@ -3913,6 +4047,10 @@ def run_experiment(
     )
     input_data_hash = _hash_json({"pair_input_hashes": pair_input_hashes})
     prompt_schema_hash = _prompt_schema_hash()
+    selection_preflight_reference = _load_selection_preflight(
+        selection_preflight,
+        selected_pair_ids=selected_pair_ids,
+    )
     manifest = _prepare_run_manifest(
         output_root=output_root,
         profile=profile,
@@ -3928,6 +4066,7 @@ def run_experiment(
         workers=workers,
         transport_retries=transport_retries,
         streaming=streaming,
+        selection_preflight=selection_preflight_reference,
         resume=resume,
         predecessor_snapshot=predecessor_snapshot,
     )
