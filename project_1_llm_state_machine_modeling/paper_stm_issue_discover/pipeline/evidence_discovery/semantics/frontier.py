@@ -1372,6 +1372,7 @@ def _materialize_cardinality(
         if effective_requirement.member_domain not in {
             "direct_child_states",
             "concurrent_regions",
+            "explicit_named_members",
         }:
             builder.checks.append(
                 builder.receipt(
@@ -1563,6 +1564,47 @@ def _materialize_cardinality(
             )
             frontier_basis = (
                 "CardinalityRequirement and canonical source concurrent-region inventory"
+            )
+        elif member_domain == "explicit_named_members":
+            actual_count = len(direct_children)
+            source_members = direct_children
+            region_source_refs = ()
+            inventory_ids = [item.name for item in direct_children]
+            observed = (
+                f"For the normative scope '{contract.scope}', the primary "
+                f"explicitly named-member reading has {actual_count} exact "
+                f"source members under {source_owner.source_id}: {inventory_ids}."
+            )
+            inventory_basis = (
+                f"member_names={inventory_ids}; "
+                f"source_ids={[item.source_id for item in direct_children]}"
+            )
+            domain_phrase = "exact explicitly named members"
+            scope_phrase = (
+                f"the exact source members under {owner.name} enumerated by the "
+                "normative contract"
+            )
+            requirement_reason = (
+                "The NL contract explicitly enumerates a finite named member "
+                "domain, and the complete exact source inventory supplies the "
+                "owner's members for deterministic comparison."
+            )
+            requirement_basis = (
+                "typed CardinalityRequirement plus exact source owner/member "
+                "rows for the explicit named-member domain"
+            )
+            satisfied_reason = (
+                "The complete exact source inventory for the explicitly named "
+                "member domain has the required finite cardinality."
+            )
+            candidate_reason = (
+                "The contract's exact owner, required count, and explicit named "
+                "member domain are preserved, while the complete source "
+                "inventory exposes the observed extra or missing member."
+            )
+            frontier_basis = (
+                "CardinalityRequirement and exact source inventory for explicit "
+                "named members"
             )
         else:
             actual_count = len(direct_children)

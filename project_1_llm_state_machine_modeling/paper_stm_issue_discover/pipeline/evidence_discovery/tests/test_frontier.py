@@ -1621,6 +1621,70 @@ def test_cardinality_frontier_counts_explicit_regions_for_the_exact_owner() -> N
     assert "actual=3" in receipt.basis
 
 
+def test_cardinality_frontier_projects_explicit_named_members() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0002")
+    contract = _contract(
+        contract_id="NL-CONTRACT-NL2-EXPLICIT-MEMBERS",
+        segment_id="NL2",
+        locus_kind="composite",
+        locus_names=("PumpControl",),
+        property_name="cardinality",
+        expected_direction="must_cover",
+        violation_direction="missing",
+        hints=(_hint("owner", "PumpControl", "NL2"),),
+        state_role="operating_state",
+        cardinality_requirement=CardinalityRequirement(
+            required_count=3,
+            member_domain="explicit_named_members",
+            scope_concept="PumpControl",
+            member_concept="main substates",
+            alternative_reading=None,
+            reason="NL2 explicitly enumerates the three named main substates.",
+            basis="provider-free explicit named-member cardinality fixture",
+        ),
+    )
+    owner = pair.model.state("PumpControl")
+    assert owner is not None
+    grounding = GroundingResponse(
+        lens="contract_structure_contrast",
+        cardinality_bindings=[
+            CardinalityDomainBinding(
+                binding_id="CARD-BIND-explicit-members",
+                contract_id=contract.contract_id,
+                status="exact",
+                member_domain="explicit_named_members",
+                owner_source_id="PumpControl",
+                owner_model_ref=owner.ref,
+                alternative_reading=None,
+                reason="The fixture binds the exact named-member owner.",
+                basis="0002 exact source owner and closed ModelIR owner ref",
+            )
+        ],
+        reason="The fixture supplies one exact explicit named-member binding.",
+        basis="provider-free cardinality grounding fixture",
+    )
+
+    batch = materialize_typed_frontier(
+        pair,
+        _response([contract]),
+        {contract.contract_id: contract},
+        (grounding,),
+        (),
+    )
+
+    obligation = next(item for item in batch.obligations if item.kind == "cardinality")
+    issue = obligation.candidate
+    assert issue.predicate_id is None
+    assert issue.violation_direction == "extra"
+    assert issue.element_refs == [
+        pair.model.state(name).ref
+        for name in ("PumpControl", "PumpState", "WaterState", "MethaneState", "InitialState")
+    ]
+    assert "explicitly named-member reading has 4" in issue.observed
+    assert "InitialState" in issue.observed
+    assert issue.reason and issue.basis
+
+
 def test_cardinality_frontier_marks_over_count_as_extra_not_missing() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0046")
     contract = _0046_cardinality_contract(required_count=1)
