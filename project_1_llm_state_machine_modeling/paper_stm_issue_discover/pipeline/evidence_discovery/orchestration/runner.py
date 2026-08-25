@@ -61,6 +61,7 @@ from ..semantics import (
     normalize_contract_state_roles,
     resolve_state_ref,
     resolve_transition_ref,
+    suppress_closed_route_controller_candidates,
     suppress_contradicted_ambiguous_source_candidates,
     suppress_satisfied_source_transition_candidates,
 )
@@ -1370,6 +1371,88 @@ def _preflight_existing_endpoint_candidates(
     return retained, dispositions
 
 
+def _preflight_synthetic_root_wrapper_reachability(
+    pair: PairInput,
+    candidates: Sequence[CandidateIssue],
+) -> tuple[list[CandidateIssue], list[dict[str, Any]]]:
+    """Do not transfer a generated root-wrapper diagnostic to a reachable child."""
+
+    facts = pair.inspection_facts
+    root_ref = facts.machine_root_ref if facts else None
+    reachable_refs = set(facts.reachable_state_refs) if facts else set()
+    if root_ref is None or not reachable_refs:
+        return list(candidates), []
+
+    retained: list[CandidateIssue] = []
+    dispositions: list[dict[str, Any]] = []
+    for candidate in candidates:
+        source_values = candidate.predicate_inputs.get("source")
+        source_values = (
+            list(source_values)
+            if isinstance(source_values, (list, tuple))
+            else [source_values]
+        )
+        if not (
+            candidate.property == "reachability"
+            and candidate.violation_direction == "unreachable"
+            and candidate.predicate_id == "G1"
+            and root_ref in source_values
+        ):
+            retained.append(candidate)
+            continue
+        target_values = candidate.predicate_inputs.get("target")
+        target_values = (
+            list(target_values)
+            if isinstance(target_values, (list, tuple))
+            else [target_values]
+        )
+        target_states = []
+        for value in target_values:
+            if not isinstance(value, str):
+                continue
+            state = next(
+                (item for item in pair.model.states if item.ref == value),
+                None,
+            )
+            if state is None:
+                ref = resolve_state_ref(value, pair.model)
+                state = next(
+                    (item for item in pair.model.states if item.ref == ref),
+                    None,
+                )
+            if state is not None:
+                target_states.append(state)
+        initial_rows = []
+        if pair.exact_source_inventory is not None:
+            target_names = {state.name for state in target_states}
+            initial_rows = [
+                item
+                for item in pair.exact_source_inventory.transitions
+                if item.source.startswith("@initial:")
+                and _endpoint_stem(item.target) in target_names
+            ]
+        if (
+            not target_states
+            or any(state.ref not in reachable_refs for state in target_states)
+            or not initial_rows
+        ):
+            retained.append(candidate)
+            continue
+        dispositions.append(
+            {
+                "contract_id": candidate.contract_id,
+                "candidate_title": candidate.title,
+                "status": "suppressed_synthetic_root_wrapper_projection",
+                "root_wrapper_ref": root_ref,
+                "reachable_target_refs": [state.ref for state in target_states],
+                "source_initial_refs": [item.raw_ref for item in initial_rows],
+                "reason": "The G1 source is the compiler-owned machine wrapper, while the exact target is reached by a supplied top-level initial transition and is marked reachable by the owned hierarchical projection.",
+                "basis": "InspectionEquivalentFacts.machine_root_ref/reachable_state_refs plus exact author-source initial-transition inventory",
+            }
+        )
+    return retained, dispositions
+
+
 def _merge_grounding_contracts(
     pair: PairInput,
     contracts: NLContractResponse,
@@ -2190,6 +2273,15 @@ def _method_cell(
             contracts_by_id,
         )
     )
+    initial_candidates, root_wrapper_preflight_dispositions = (
+        _preflight_synthetic_root_wrapper_reachability(
+            pair,
+            initial_candidates,
+        )
+    )
+    initial_candidates, route_controller_preflight_dispositions = (
+        suppress_closed_route_controller_candidates(pair, initial_candidates)
+    )
     try:
         frontier_batch = materialize_typed_frontier(
             pair,
@@ -2294,6 +2386,8 @@ def _method_cell(
         "unresolved_admitted_candidate_count": len(unresolved_candidates),
         "unresolved_admission": unresolved_admission,
         "carrier_preflight_dispositions": endpoint_preflight_dispositions,
+        "root_wrapper_preflight_dispositions": root_wrapper_preflight_dispositions,
+        "route_controller_preflight_dispositions": route_controller_preflight_dispositions,
         "admitted_llm_candidate_count": len(admitted_llm_candidates),
         "source_transition_macro_closure_count": len(source_transition_closures),
         "source_transition_macro_closures": [

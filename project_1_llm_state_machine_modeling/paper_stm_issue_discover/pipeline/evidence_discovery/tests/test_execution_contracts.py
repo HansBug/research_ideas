@@ -56,6 +56,7 @@ from pipeline.evidence_discovery.orchestration.runner import (
     _normalize_d_decision_shape,
     _normalize_grounding_exact_facts,
     _preflight_existing_endpoint_candidates,
+    _preflight_synthetic_root_wrapper_reachability,
     _prepare_candidate,
     _prepared_is_finding_candidate,
     run_experiment,
@@ -113,6 +114,7 @@ from pipeline.evidence_discovery.semantics import (
     normalize_contract_state_roles,
     resolve_state_ref,
     resolve_transition_ref,
+    suppress_closed_route_controller_candidates,
     suppress_contradicted_ambiguous_source_candidates,
     suppress_satisfied_source_transition_candidates,
 )
@@ -3031,6 +3033,107 @@ def test_complete_protected_source_transition_macro_suppresses_endpoint_candidat
     )
     assert materialized == []
     assert scout_receipts == []
+
+
+def test_cross_scope_target_entry_closes_source_transition_macro() -> None:
+    """A cross-scope descendant entry is still the exact macro target carrier."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    base = _completion_endpoint_contract()
+    contract = base.model_copy(
+        update={
+            "contract_id": "NL-CONTRACT-CROSS-SCOPE-ENDPOINT",
+            "locus_names": ("UrbanMode", "FinishState"),
+            "binding_hints": (
+                base.binding_hints[0].model_copy(update={"value": "UrbanMode"}),
+                base.binding_hints[1].model_copy(update={"value": "FinishState"}),
+            ),
+            "source_refs": ("NL10",),
+        }
+    )
+
+    receipt = evaluate_source_transition_closure(pair, contract)
+
+    assert receipt.status == "satisfied"
+    assert receipt.source_transition_id == "tr_0026"
+    assert receipt.target_entry_fcstm_ref == "fcstm:line:26"
+    assert not receipt.diagnostics
+
+
+def test_closed_route_controller_macro_suppresses_representation_gap_candidate() -> None:
+    """Complete event/effect/guard/target closure is not a missing guard."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0024")
+    candidate = CandidateIssue(
+        contract_id="NL-CONTRACT-NL2-GUARD-EMERGENCY-1",
+        locus_kind="transition",
+        locus_names=("InMotion", "EmergencyStopping"),
+        property="guard",
+        violation_direction="wrong_guard",
+        evidence_types=("guard_fact", "transition_fact"),
+        title="Emergency alternative lacks the required obstacle guard",
+        requirement_quote="The emergency branch requires obstacle detection.",
+        predicate_id=None,
+        predicate_inputs={},
+        element_refs=["transition:line:31"],
+        source_refs=["NL2", "source:transition:tr_0009"],
+        expected="The emergency branch requires obstacle detection.",
+        observed="The parent carrier uses a route-token guard.",
+        strongest_rebuttal="The protected macro may encode the source event.",
+        reason="Provider-free route-controller representation fixture.",
+        basis="Exact source transition and protected macro fixture.",
+    )
+
+    retained, dispositions = suppress_closed_route_controller_candidates(
+        pair, [candidate]
+    )
+
+    assert retained == []
+    assert len(dispositions) == 1
+    assert dispositions[0]["status"] == (
+        "suppressed_closed_route_controller_equivalence"
+    )
+    assert dispositions[0]["macro_ids"] == ["macro:transition:tr_0009"]
+
+
+def test_synthetic_root_wrapper_does_not_make_reachable_child_unreachable() -> None:
+    """A generated machine container is not an additional runtime root state."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0056")
+    facts = pair.inspection_facts
+    assert facts is not None
+    candidate = CandidateIssue(
+        contract_id="NL-CONTRACT-ROOT-WRAPPER-REACHABILITY",
+        locus_kind="composite",
+        locus_names=("SearchState",),
+        property="reachability",
+        violation_direction="unreachable",
+        evidence_types=("reachability_fact",),
+        title="SearchState is unreachable from the wrapper",
+        requirement_quote="SearchState must be reachable.",
+        predicate_id="G1",
+        predicate_inputs={
+            "source": [facts.machine_root_ref],
+            "target": ["state:SearchState:line:9"],
+        },
+        element_refs=[facts.machine_root_ref, "state:SearchState:line:9"],
+        source_refs=["source:transition:tr_0001"],
+        expected="SearchState must be reachable.",
+        observed="The synthetic wrapper is marked unreachable.",
+        strongest_rebuttal="The exact top-level initial source transition enters SearchState.",
+        reason="Provider-free synthetic-wrapper fixture.",
+        basis="Exact inspection and source-inventory fixture.",
+    )
+
+    retained, dispositions = _preflight_synthetic_root_wrapper_reachability(
+        pair, [candidate]
+    )
+
+    assert retained == []
+    assert len(dispositions) == 1
+    assert dispositions[0]["status"] == (
+        "suppressed_synthetic_root_wrapper_projection"
+    )
 
 
 def test_incomplete_source_transition_macro_remains_unresolved_and_keeps_candidate() -> None:

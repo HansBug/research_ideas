@@ -36,6 +36,7 @@ from .source_transition_closure import (
     SourceTransitionClosureReceipt,
     endpoint_candidate_is_satisfied_by_macro,
     evaluate_source_transition_closure,
+    suppress_closed_route_controller_candidates,
     suppress_contradicted_ambiguous_source_candidates,
     suppress_satisfied_source_transition_candidates,
 )

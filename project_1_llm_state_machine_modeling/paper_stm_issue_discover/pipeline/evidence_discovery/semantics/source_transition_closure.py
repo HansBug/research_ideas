@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Mapping, Sequence
 from typing import Any, Literal
 
@@ -677,7 +678,11 @@ def evaluate_source_transition_closure(
     target_entries = [
         receipt
         for receipt in member_receipts
-        if receipt.generated_role == "composite_source_target_entry_segment"
+        if receipt.generated_role
+        in {
+            "composite_source_target_entry_segment",
+            "cross_scope_target_entry_segment",
+        }
     ]
     target_entry = target_entries[0] if len(target_entries) == 1 else None
     if target_entry is None or target_entry.resolved_fcstm_line is None:
@@ -958,6 +963,222 @@ def suppress_satisfied_source_transition_candidates(
     return retained, dispositions
 
 
+def _semantic_token(value: str | None) -> str:
+    """Normalize source/display event spellings for one typed equivalence join."""
+
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+
+
+def _route_assignments(value: str | None) -> set[tuple[str, str]]:
+    """Extract only explicit variable/value assignments from a closed effect."""
+
+    return {
+        (name, number)
+        for name, number in re.findall(
+            r"([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(-?\d+)",
+            str(value or ""),
+        )
+    }
+
+
+def _route_guards(value: str | None) -> set[tuple[str, str]]:
+    """Extract only explicit variable/value equality guards from a closed edge."""
+
+    return {
+        (name, number)
+        for name, number in re.findall(
+            r"([A-Za-z_][A-Za-z0-9_]*)\s*==\s*(-?\d+)",
+            str(value or ""),
+        )
+    }
+
+
+def _route_member_transition(pair: PairInput, element: Mapping[str, Any]) -> Any:
+    """Resolve one protected macro member to its exact parsed transition."""
+
+    metadata = element.get("metadata")
+    if not isinstance(metadata, Mapping):
+        return None
+    declared_line = metadata.get("line")
+    if not isinstance(declared_line, str):
+        return None
+    source_lines = pair.model.source_text.splitlines()
+    return next(
+        (
+            transition
+            for transition in pair.model.transitions
+            if 0 < transition.line <= len(source_lines)
+            and source_lines[transition.line - 1].strip() == declared_line.strip()
+        ),
+        None,
+    )
+
+
+def _closed_route_controller_macro(
+    pair: PairInput,
+    source_transition_id: str,
+) -> tuple[str, dict[str, Any]] | None:
+    """Return a complete route macro only when its typed carrier is closed.
+
+    The join proves one source event reaches a compiler effect, the effect is
+    consumed by a guarded parent edge, and that edge reaches the author target.
+    It does not infer equivalence from prose or from a route-token name alone.
+    """
+
+    inventory = pair.exact_source_inventory
+    working = pair.working_contract
+    if inventory is None or working is None:
+        return None
+    source_rows = [
+        row for row in inventory.transitions if row.transition_id == source_transition_id
+    ]
+    if len(source_rows) != 1:
+        return None
+    source_row = source_rows[0]
+    payload = working.payload
+    elements = [
+        item for item in payload.get("elements", []) if isinstance(item, Mapping)
+    ]
+    macros = [
+        item for item in payload.get("macros", []) if isinstance(item, Mapping)
+    ]
+    source_element_id = f"source:transition:{source_transition_id}"
+    source_elements = [
+        item for item in elements if item.get("element_id") == source_element_id
+    ]
+    matching_macros = [
+        item
+        for item in macros
+        if source_element_id in (item.get("source_element_ids") or [])
+        and "protected_single_consumption_route_controller"
+        in (item.get("capability_effects") or [])
+    ]
+    if len(source_elements) != 1 or len(matching_macros) != 1:
+        return None
+    macro = matching_macros[0]
+    macro_id = macro.get("macro_id")
+    member_ids = tuple(
+        sorted(
+            value
+            for value in (macro.get("member_element_ids") or [])
+            if isinstance(value, str) and value
+        )
+    )
+    if (
+        not isinstance(macro_id, str)
+        or not member_ids
+        or len(member_ids) != len(set(member_ids))
+        or macro.get("member_digest") != _sha256_json(list(member_ids))
+    ):
+        return None
+    elements_by_id: dict[str, list[Mapping[str, Any]]] = {}
+    for element in elements:
+        element_id = element.get("element_id")
+        if isinstance(element_id, str):
+            elements_by_id.setdefault(element_id, []).append(element)
+    member_rows: list[Mapping[str, Any]] = []
+    for member_id in member_ids:
+        rows = elements_by_id.get(member_id, [])
+        if len(rows) != 1:
+            return None
+        row = rows[0]
+        if not (
+            row.get("origin") == "compiler_owned"
+            and row.get("edit_policy") == "protected"
+        ):
+            return None
+        member_rows.append(row)
+    transitions = [
+        transition
+        for row in member_rows
+        if (transition := _route_member_transition(pair, row)) is not None
+    ]
+    event_token = _semantic_token(source_row.event)
+    target_token = _semantic_token(source_row.target.rsplit(".", 1)[-1])
+    event_edges = [
+        transition
+        for transition in transitions
+        if any(_semantic_token(trigger) == event_token for trigger in transition.triggers)
+        and any(_route_assignments(effect) for effect in transition.effects)
+    ]
+    target_edges = [
+        transition
+        for transition in transitions
+        if _semantic_token(transition.target.rsplit(".", 1)[-1]) == target_token
+        and transition.guard
+    ]
+    if not event_edges or not target_edges:
+        return None
+    assignment_pairs = {
+        pair_value
+        for transition in event_edges
+        for effect in transition.effects
+        for pair_value in _route_assignments(effect)
+    }
+    guard_pairs = {
+        pair_value
+        for transition in target_edges
+        for pair_value in _route_guards(transition.guard)
+    }
+    shared_pairs = sorted(assignment_pairs & guard_pairs)
+    if not shared_pairs:
+        return None
+    return macro_id, {
+        "source_transition_id": source_transition_id,
+        "source_event": source_row.event,
+        "source_target": source_row.target,
+        "route_assignments": shared_pairs,
+        "member_ids": list(member_ids),
+    }
+
+
+def suppress_closed_route_controller_candidates(
+    pair: PairInput,
+    candidates: Sequence[CandidateIssue],
+) -> tuple[list[CandidateIssue], list[dict[str, Any]]]:
+    """Suppress representation-gap candidates discharged by closed route macros."""
+
+    retained: list[CandidateIssue] = []
+    dispositions: list[dict[str, Any]] = []
+    for candidate in candidates:
+        if candidate.property not in {"guard", "other"} or candidate.violation_direction not in {
+            "missing",
+            "wrong_guard",
+        }:
+            retained.append(candidate)
+            continue
+        source_ids = tuple(
+            sorted(
+                {
+                    ref.removeprefix("source:transition:")
+                    for ref in candidate.source_refs
+                    if ref.startswith("source:transition:")
+                }
+            )
+        )
+        closures = {
+            source_id: _closed_route_controller_macro(pair, source_id)
+            for source_id in source_ids
+        }
+        if not source_ids or any(value is None for value in closures.values()):
+            retained.append(candidate)
+            continue
+        macro_ids = [value[0] for value in closures.values() if value is not None]
+        dispositions.append(
+            {
+                "contract_id": candidate.contract_id,
+                "candidate_title": candidate.title,
+                "status": "suppressed_closed_route_controller_equivalence",
+                "source_transition_ids": list(source_ids),
+                "macro_ids": macro_ids,
+                "route_closures": [value[1] for value in closures.values() if value is not None],
+                "reason": "The exact source event, compiler effect, parent guard, and author target are joined by complete protected route-controller macros; the closed carrier is a representation of the source condition, not a missing guard or transition relation.",
+                "basis": "exact source inventory, protected working-contract macro membership/digest, parsed FCSTM event/effect/guard/target fields",
+            }
+        )
+    return retained, dispositions
+
+
 __all__ = [
     "SourceTransitionBindingDispositionReceipt",
     "SourceTransitionCandidateDispositionReceipt",
@@ -967,5 +1188,6 @@ __all__ = [
     "endpoint_candidate_is_satisfied_by_macro",
     "evaluate_source_transition_closure",
     "suppress_contradicted_ambiguous_source_candidates",
+    "suppress_closed_route_controller_candidates",
     "suppress_satisfied_source_transition_candidates",
 ]
