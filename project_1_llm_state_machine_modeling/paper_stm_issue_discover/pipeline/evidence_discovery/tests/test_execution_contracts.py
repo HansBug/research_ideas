@@ -9,10 +9,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from pydantic import BaseModel, ValidationError
-from utils.agent import AgentError
-from utils.llm.config import LLMPricing, LLMTokenPrices
-
 from pipeline.evidence_discovery.backends import run_backend
 from pipeline.evidence_discovery.backends.bounded_verification import (
     _terminal_states,
@@ -48,6 +44,7 @@ from pipeline.evidence_discovery.orchestration.cost_correction import (
     build_corrected_method_cost,
 )
 from pipeline.evidence_discovery.orchestration.runner import (
+    _admit_grounding_unresolved,
     _d_decision_consistency_errors,
     _deduplicate_release_issues,
     _enrich_candidate,
@@ -57,6 +54,7 @@ from pipeline.evidence_discovery.orchestration.runner import (
     _materialize_exact_s2_inventory_candidates,
     _merge_grounding_contracts,
     _normalize_grounding_exact_facts,
+    _preflight_existing_endpoint_candidates,
     _prepare_candidate,
     _prepared_is_finding_candidate,
     run_experiment,
@@ -112,12 +110,17 @@ from pipeline.evidence_discovery.semantics import (
     evaluate_source_transition_closure,
     fallback_grounding,
     normalize_contract_state_roles,
+    resolve_state_ref,
     resolve_transition_ref,
     suppress_contradicted_ambiguous_source_candidates,
     suppress_satisfied_source_transition_candidates,
 )
 from pipeline.evidence_discovery.semantics.binding import BindingResult
 from pipeline.semantic_judge.artifacts import adapt_evidence_discovery_release
+from pydantic import BaseModel, ValidationError
+
+from utils.agent import AgentError
+from utils.llm.config import LLMPricing, LLMTokenPrices
 
 PAPER_ROOT = Path(__file__).parents[3]
 REPORT_ROOT = PAPER_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
@@ -185,6 +188,149 @@ def test_source_gate_and_input_aliases_are_deterministic() -> None:
             model=pair.model,
         )
         assert plan.supported is False, predicate_id
+
+
+def test_grounding_unresolved_with_exact_binding_is_admitted_as_predicate_null_candidate() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    state = pair.model.states[0]
+    contract = NLContract(
+        contract_id="NL-CONTRACT-NL1-UNRESOLVED-ACTION",
+        segment_id="NL1",
+        quote="The state must continue its operation.",
+        normative_statement="The state must provide the required operation.",
+        locus_kind="state",
+        locus_names=(state.name,),
+        property="state_action",
+        state_role="operating_state",
+        expected_direction="must_exist",
+        violation_direction="missing",
+        evidence_types=("source_identity", "action_fact"),
+        binding_hints=(
+            ContractBindingHint(
+                role="state",
+                value=state.name,
+                source_ref="NL1",
+                reason="The state is the exact normative locus.",
+                basis="provider-free unresolved-admission fixture",
+            ),
+        ),
+        scope=state.name,
+        source_refs=("NL1",),
+        reason="The fixture supplies one atomic state-action contract.",
+        basis="provider-free unresolved-admission fixture",
+    )
+    response = GroundingResponse(
+        lens="contract_structure_contrast",
+        semantic_bindings=[
+            SemanticBinding(
+                binding_id="BIND-UNRESOLVED-STATE",
+                contract_id=contract.contract_id,
+                role="state",
+                concept_name=state.name,
+                status="exact",
+                source_element_ref=f"source:state:{state.name}",
+                model_element_ref=state.ref,
+                reason="The state resolves uniquely in ModelIR.",
+                basis="provider-free exact state binding",
+            ),
+        ],
+        unresolved=[
+            GroundingUnresolved(
+                contract_id=contract.contract_id,
+                reason="The frozen registry cannot express this precise action obligation.",
+                basis="exact state binding and action obligation from NL1",
+            ),
+        ],
+        reason="The fixture retains one unresolved contract.",
+        basis="provider-free unresolved-admission fixture",
+    )
+
+    admitted, dispositions = _admit_grounding_unresolved(
+        pair,
+        {contract.contract_id: contract},
+        [response],
+        [],
+    )
+
+    assert len(admitted) == 1
+    assert admitted[0].predicate_id is None
+    assert admitted[0].element_refs == [state.ref]
+    assert dispositions[0]["status"] == "admitted_w1"
+    assert "frozen registry" in admitted[0].reason
+
+
+def test_existing_ordinary_endpoint_suppresses_missing_transition_candidate() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    transition = next(
+        item
+        for item in pair.model.transitions
+        if resolve_state_ref(item.source, pair.model) is not None
+        and resolve_state_ref(item.target, pair.model) is not None
+    )
+    contract = NLContract(
+        contract_id="NL-CONTRACT-NL2-EXACT-ENDPOINT",
+        segment_id="NL2",
+        quote="The source enters the target.",
+        normative_statement=f"A transition from {transition.source} to {transition.target} must exist.",
+        locus_kind="transition",
+        locus_names=(transition.source, transition.target),
+        property="transition_endpoints",
+        expected_direction="must_exist",
+        violation_direction="missing",
+        evidence_types=("source_identity", "transition_fact"),
+        binding_hints=(
+            ContractBindingHint(
+                role="source",
+                value=transition.source,
+                source_ref="NL2",
+                reason="The source endpoint is explicit.",
+                basis="provider-free endpoint preflight fixture",
+            ),
+            ContractBindingHint(
+                role="target",
+                value=transition.target,
+                source_ref="NL2",
+                reason="The target endpoint is explicit.",
+                basis="provider-free endpoint preflight fixture",
+            ),
+        ),
+        scope=f"{transition.source}->{transition.target}",
+        source_refs=("NL2",),
+        reason="The fixture supplies an exact endpoint contract.",
+        basis="provider-free endpoint preflight fixture",
+    )
+    candidate = CandidateIssue(
+        contract_id=contract.contract_id,
+        locus_kind=contract.locus_kind,
+        locus_names=contract.locus_names,
+        property=contract.property,
+        violation_direction=contract.violation_direction,
+        evidence_types=contract.evidence_types,
+        title="The required transition is missing",
+        requirement_quote=contract.quote,
+        predicate_id="S2",
+        predicate_inputs={
+            "source": transition.source,
+            "target": transition.target,
+        },
+        element_refs=[],
+        source_refs=["NL2"],
+        expected=contract.normative_statement,
+        observed="No transition was found.",
+        strongest_rebuttal="The exact transition may exist.",
+        reason="Provider-free missing-transition candidate.",
+        basis="provider-free endpoint preflight fixture",
+    )
+
+    retained, dispositions = _preflight_existing_endpoint_candidates(
+        pair,
+        [candidate],
+        {contract.contract_id: contract},
+    )
+
+    assert retained == []
+    assert dispositions[0]["status"] == "suppressed_existing_endpoint"
+    assert transition.ref in dispositions[0]["carrier_refs"]
 
 
 def test_predicate_plan_projects_context_but_direct_strict_validation_rejects_extra() -> None:

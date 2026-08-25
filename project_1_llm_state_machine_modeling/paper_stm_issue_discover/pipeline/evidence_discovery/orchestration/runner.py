@@ -1131,6 +1131,245 @@ def _normalize_grounding_exact_facts(
     )
 
 
+def _unresolved_exact_refs(
+    pair: PairInput,
+    grounding_responses: Sequence[GroundingResponse],
+    contract_id: str,
+) -> tuple[list[str], list[str], list[str]]:
+    """Collect only exact typed refs for one unresolved contract.
+
+    Grounding unresolved rows are not permission to guess from names.  A ref is
+    admitted only when the grounding schema marks it ``exact`` and the ref is
+    present in the closed ModelIR.  Conflicting exact refs for the same role
+    are retained as an audit conflict and are excluded from the executable
+    binding, which deterministically leaves the candidate at W0.
+    """
+
+    model_refs: list[str] = []
+    source_refs: list[str] = []
+    conflicts: list[str] = []
+    model_ref_set = set(pair.model.all_refs)
+    refs_by_role: dict[str, set[str]] = {}
+    for response in grounding_responses:
+        for binding in response.semantic_bindings:
+            if binding.contract_id != contract_id or binding.status != "exact":
+                continue
+            exact_model_refs = [
+                ref
+                for ref in (binding.model_element_ref, binding.carrier_transition_ref)
+                if ref is not None and ref in model_ref_set
+            ]
+            refs_by_role.setdefault(binding.role, set()).update(exact_model_refs)
+            if binding.source_element_ref:
+                source_refs.append(binding.source_element_ref)
+    for role, refs in sorted(refs_by_role.items()):
+        if len(refs) > 1:
+            conflicts.append(f"role={role}; refs={sorted(refs)}")
+            continue
+        model_refs.extend(sorted(refs))
+    return (
+        list(dict.fromkeys(model_refs)),
+        list(dict.fromkeys(source_refs)),
+        conflicts,
+    )
+
+
+def _admit_grounding_unresolved(
+    pair: PairInput,
+    contracts_by_id: Mapping[str, NLContract],
+    grounding_responses: Sequence[GroundingResponse],
+    existing_candidates: Sequence[CandidateIssue],
+) -> tuple[list[CandidateIssue], list[dict[str, Any]]]:
+    """Publish every valid unresolved row as a W1/W0-auditable candidate.
+
+    ``GroundingUnresolved`` is a sparse audit row, not a terminal drop.  When
+    exact state/carrier refs exist, the candidate is predicate-null and binds
+    those refs, so the compiler assigns W1.  When identity remains genuinely
+    open, the same typed contract is retained with no guessed model ref and
+    deterministic binding assigns W0.  Existing candidates win over a second
+    candidate while the unresolved reason remains in this disposition log.
+    """
+
+    existing_ids = {candidate.contract_id for candidate in existing_candidates}
+    unresolved_by_contract: dict[str, list[tuple[str, Any]]] = {}
+    for response in grounding_responses:
+        for unresolved in response.unresolved:
+            unresolved_by_contract.setdefault(unresolved.contract_id, []).append(
+                (response.lens, unresolved)
+            )
+
+    admitted: list[CandidateIssue] = []
+    dispositions: list[dict[str, Any]] = []
+    for contract_id in sorted(unresolved_by_contract):
+        rows = unresolved_by_contract[contract_id]
+        contract = contracts_by_id.get(contract_id)
+        if contract is None:
+            dispositions.append(
+                {
+                    "contract_id": contract_id,
+                    "status": "unresolved_unknown_contract",
+                    "reason": "The grounding unresolved row has no accepted typed contract and cannot be published as an issue.",
+                    "basis": "exact contract-ID membership check",
+                }
+            )
+            continue
+        row_reasons = [f"{lens}: {row.reason}" for lens, row in rows]
+        row_bases = [f"{lens}: {row.basis}" for lens, row in rows]
+        model_refs, binding_source_refs, conflicts = _unresolved_exact_refs(
+            pair, grounding_responses, contract_id
+        )
+        source_refs = list(
+            dict.fromkeys([*contract.source_refs, *binding_source_refs])
+        )
+        cardinality_rows = [
+            binding
+            for response in grounding_responses
+            for binding in response.cardinality_bindings
+            if binding.contract_id == contract_id
+        ]
+        for binding in cardinality_rows:
+            if binding.owner_source_id:
+                source_refs.append(f"source:state:{binding.owner_source_id}")
+            if (
+                binding.owner_model_ref
+                and binding.owner_model_ref in pair.model.all_refs
+                and binding.owner_model_ref not in model_refs
+            ):
+                model_refs.append(binding.owner_model_ref)
+        source_refs = list(dict.fromkeys(source_refs))
+        cardinality_context = ""
+        if contract.cardinality_requirement is not None:
+            requirement = contract.cardinality_requirement
+            cardinality_context = (
+                f" required_count={requirement.required_count};"
+                f" member_domain={requirement.member_domain};"
+                f" scope_concept={requirement.scope_concept};"
+                f" member_concept={requirement.member_concept};"
+                f" alternative_readings={[row.alternative_reading for row in cardinality_rows if row.alternative_reading]}"
+            )
+        binding_status = "exact_refs" if model_refs and not conflicts else "identity_unresolved"
+        if contract_id in existing_ids:
+            dispositions.append(
+                {
+                    "contract_id": contract_id,
+                    "status": "existing_candidate_preserved",
+                    "binding_status": binding_status,
+                    "model_refs": model_refs,
+                    "conflicts": conflicts,
+                    "reason": "An existing candidate already carries this exact typed contract; unresolved rows were retained as supporting audit facts.",
+                    "basis": "; ".join(row_bases),
+                }
+            )
+            continue
+        candidate = CandidateIssue(
+            contract_id=contract.contract_id,
+            locus_kind=contract.locus_kind,
+            locus_names=contract.locus_names,
+            property=contract.property,
+            violation_direction=contract.violation_direction,
+            evidence_types=tuple(
+                dict.fromkeys([*contract.evidence_types, "semantic_comparison"])
+            ),
+            title=f"Grounding remains unresolved for {contract.scope}",
+            requirement_quote=contract.quote,
+            predicate_id=None,
+            predicate_inputs={},
+            element_refs=model_refs,
+            source_refs=source_refs,
+            expected=contract.normative_statement,
+            observed=(
+                "The grounding lens did not close this typed obligation."
+                f"{cardinality_context}"
+            ),
+            strongest_rebuttal=(
+                "A complete exact binding or a typed satisfying fact could resolve the obligation;"
+                " no model identity was inferred from names or display text."
+            ),
+            reason=(
+                "The grounding response explicitly retained this contract as unresolved;"
+                " the method preserves it instead of silently dropping the candidate. "
+                + " | ".join(row_reasons)
+            ),
+            basis=(
+                f"contract={contract.contract_id}; binding_status={binding_status}; "
+                f"model_refs={model_refs}; conflicts={conflicts}; "
+                + "; ".join(row_bases)
+            ),
+        )
+        admitted.append(candidate)
+        dispositions.append(
+            {
+                "contract_id": contract_id,
+                "status": "admitted_w1" if binding_status == "exact_refs" else "admitted_w0",
+                "binding_status": binding_status,
+                "model_refs": model_refs,
+                "source_refs": source_refs,
+                "conflicts": conflicts,
+                "candidate_property": contract.property,
+                "reason": candidate.reason,
+                "basis": candidate.basis,
+            }
+        )
+    return admitted, dispositions
+
+
+def _preflight_existing_endpoint_candidates(
+    pair: PairInput,
+    candidates: Sequence[CandidateIssue],
+    contracts_by_id: Mapping[str, NLContract],
+) -> tuple[list[CandidateIssue], list[dict[str, Any]]]:
+    """Prevent a missing-edge claim when an exact ordinary carrier exists.
+
+    This is a typed endpoint check only.  It distinguishes ordinary transition
+    carriers from owner-local initial edges by requiring the candidate contract
+    to provide exact source and target hints and by checking the parsed
+    transition inventory directly.  Labels, display text, and route tokens do
+    not participate in the decision.
+    """
+
+    retained: list[CandidateIssue] = []
+    dispositions: list[dict[str, Any]] = []
+    for candidate in candidates:
+        contract = contracts_by_id.get(candidate.contract_id)
+        if not (
+            contract is not None
+            and contract.property == "transition_endpoints"
+            and contract.expected_direction == "must_exist"
+            and contract.violation_direction == "missing"
+        ):
+            retained.append(candidate)
+            continue
+        source_hints = [hint for hint in contract.binding_hints if hint.role == "source"]
+        target_hints = [hint for hint in contract.binding_hints if hint.role == "target"]
+        source_ref = resolve_state_ref(source_hints[0].value, pair.model) if len(source_hints) == 1 else None
+        target_ref = resolve_state_ref(target_hints[0].value, pair.model) if len(target_hints) == 1 else None
+        source = next((state.name for state in pair.model.states if state.ref == source_ref), None)
+        target = next((state.name for state in pair.model.states if state.ref == target_ref), None)
+        carriers = [
+            transition
+            for transition in pair.model.transitions
+            if source is not None
+            and target is not None
+            and transition.source == source
+            and transition.target == target
+        ]
+        if not carriers:
+            retained.append(candidate)
+            continue
+        carrier_refs = [transition.ref for transition in carriers]
+        dispositions.append(
+            {
+                "contract_id": candidate.contract_id,
+                "candidate_title": candidate.title,
+                "status": "suppressed_existing_endpoint",
+                "carrier_refs": carrier_refs,
+                "reason": "The exact ordinary source-to-target transition exists in the parsed ModelIR, so a missing-transition claim is not publishable.",
+                "basis": f"source_ref={source_ref}; target_ref={target_ref}; carrier_refs={carrier_refs}; ordinary-transition-only preflight",
+            }
+        )
+    return retained, dispositions
+
+
 def _merge_grounding_contracts(
     pair: PairInput,
     contracts: NLContractResponse,
@@ -1889,13 +2128,26 @@ def _method_cell(
         reason="The method merged two complementary discovery lenses after NL contract extraction; typed semantic D is adjudicated separately and W remains deterministic downstream output.",
         basis="two GroundingResponse objects over the same compact cross-view context manifest",
     )
+    unresolved_candidates, unresolved_admission = _admit_grounding_unresolved(
+        pair,
+        contracts_by_id,
+        grounding_responses,
+        response.issues,
+    )
+    initial_candidates, endpoint_preflight_dispositions = (
+        _preflight_existing_endpoint_candidates(
+            pair,
+            [*response.issues, *unresolved_candidates],
+            contracts_by_id,
+        )
+    )
     try:
         frontier_batch = materialize_typed_frontier(
             pair,
             contract_response,
             contracts_by_id,
             grounding_responses,
-            response.issues,
+            initial_candidates,
         )
     except Exception as exc:  # noqa: BLE001 - preserve the cell as a diagnostic receipt
         all_errors.append(
@@ -1917,7 +2169,7 @@ def _method_cell(
     ]
     raw_admitted_llm_candidates = [
         candidate
-        for candidate in response.issues
+        for candidate in initial_candidates
         if candidate.contract_id
         not in frontier_batch.superseded_candidate_contract_ids
     ]
@@ -1990,6 +2242,9 @@ def _method_cell(
     stage_outputs["execute_batch"] = {
         "candidate_count": len(candidates),
         "llm_candidate_count": len(response.issues),
+        "unresolved_admitted_candidate_count": len(unresolved_candidates),
+        "unresolved_admission": unresolved_admission,
+        "carrier_preflight_dispositions": endpoint_preflight_dispositions,
         "admitted_llm_candidate_count": len(admitted_llm_candidates),
         "source_transition_macro_closure_count": len(source_transition_closures),
         "source_transition_macro_closures": [
