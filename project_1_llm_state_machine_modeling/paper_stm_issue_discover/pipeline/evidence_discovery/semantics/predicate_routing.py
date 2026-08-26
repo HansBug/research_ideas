@@ -20,6 +20,7 @@ from ..backends.fcstm_native import (
     all_states,
     all_transition_carriers,
     load_native_fcstm,
+    parse_effect_operation,
     resolve_event,
     resolve_state,
     state_path,
@@ -80,6 +81,7 @@ _PREDICATE_BACKENDS: dict[PredicateId, str] = {
 
 _COLD_MACROSTEP_WINDOW = re.compile(r"^cold_macrosteps=(?P<count>[1-9][0-9]*)$")
 _MAX_COLD_MACROSTEPS = 32
+_STRICT_REBIND_PREDICATES = frozenset({"S4", "S6"})
 
 
 class PredicateRouteTelemetry(BaseModel):
@@ -614,6 +616,15 @@ def _route_candidate(
         predicate = "S5" if property_name == "guard" else "S6"
         input_key = "guard" if predicate == "S5" else "effect"
         value: object = values[0] if predicate == "S5" else [values[0]]
+        if predicate == "S6":
+            try:
+                native = load_native_fcstm(pair.model)
+            except Exception as exc:  # noqa: BLE001 - preserve the precise W1 path.
+                return candidate, None, "S6 routing cannot close the native effect operation because the current FCSTM model did not load.", f"carrier={transition_basis}; native_load={type(exc).__name__}"
+            if transition_by_ref(native, transition.ref) is None:
+                return candidate, None, "S6 routing requires an exact transition carrier that resolves through native FCSTM provenance.", f"transition_ref={transition.ref}; native_transition_resolution=false"
+            if parse_effect_operation(native, values[0]) is None:
+                return candidate, None, "S6 routing retains the precise effect candidate because its requirement-side value is not one exact native FCSTM operation.", f"transition_ref={transition.ref}; input_contract_missing/out_of_fragment: native effect operation parser rejected {values[0]!r}"
         return (
             _routed_candidate(candidate, predicate, {"transition": transition.ref, input_key: value}, (transition.ref,), reason=f"The primary route bound one exact transition carrier and one requirement-side {property_name} value for native AST comparison.", basis=f"predicate={predicate}; transition_ref={transition.ref}; {property_name}={values[0]!r}; carrier={transition_basis}"),
             predicate,
@@ -723,10 +734,11 @@ def route_primary_candidates(
 ) -> PrimaryRouteProjection:
     """Route current primary candidates without changing contract semantic keys.
 
-    Existing non-null candidates remain authoritative LLM selections subject to
-    the compiler boundary.  Predicate-null candidates are augmented only by a
-    route whose full typed input set closes deterministically.  Unsupported
-    properties retain their precise W1 path and a machine-readable reason.
+    Predicate-null candidates are augmented only by a route whose full typed
+    input set closes deterministically.  Existing S4/S6 selections are also
+    rebuilt through that route: an LLM predicate label and its raw values never
+    bypass native lifecycle-slot or operation parsing.  Unsupported properties
+    retain their precise W1 path and a machine-readable reason.
     """
 
     updated: list[CandidateIssue] = []
@@ -736,9 +748,42 @@ def route_primary_candidates(
         if contract is None:
             updated.append(candidate)
             continue
-        routed, selected, reason, basis = _route_candidate(
-            pair, contract, candidate, grounding
+        strict_rebind = candidate.predicate_id in _STRICT_REBIND_PREDICATES
+        route_input = (
+            candidate.model_copy(update={"predicate_id": None})
+            if strict_rebind
+            else candidate
         )
+        routed, selected, reason, basis = _route_candidate(
+            pair, contract, route_input, grounding
+        )
+        if strict_rebind and selected != candidate.predicate_id:
+            selected_predicate = str(candidate.predicate_id)
+            routed = candidate.model_copy(
+                update={
+                    "predicate_id": None,
+                    "predicate_inputs": {},
+                    "reason": (
+                        candidate.reason
+                        + " The preselected "
+                        + selected_predicate
+                        + " label was removed because strict primary rebinding did not close legal native inputs."
+                    ),
+                    "basis": (
+                        candidate.basis
+                        + "; strict-primary-rebinding="
+                        + selected_predicate
+                        + "; "
+                        + basis
+                    ),
+                }
+            )
+            reason = (
+                f"The preselected {selected_predicate} candidate remains a precise semantic candidate, "
+                "but strict primary rebinding did not close executable native inputs: "
+                + reason
+            )
+            basis = basis + "; raw selected predicate inputs were not admitted as an execution plan"
         updated.append(routed)
         if candidate.contract_id not in outcomes or selected is not None:
             outcomes[candidate.contract_id] = (selected, reason, basis)

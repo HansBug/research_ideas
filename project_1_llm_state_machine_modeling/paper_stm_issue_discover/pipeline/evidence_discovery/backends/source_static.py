@@ -15,6 +15,7 @@ from .fcstm_native import (
     native_load_failure,
     native_receipt,
     native_transition_endpoints,
+    parse_effect_operation,
     resolve_event,
     resolve_state,
     state_path,
@@ -110,54 +111,6 @@ def _parse_required_guard(value: object) -> Any | None:
         return None
 
 
-def _parse_required_effect(native: NativeFCSTM, value: object) -> Any | None:
-    """Parse one required effect with a native FCSTM model wrapper.
-
-    FCSTM exposes its operation parser through model construction.  The wrapper
-    keeps the actual model's declaration environment, then asks that public
-    loader to build a single carrier transition.  This prevents S6 from
-    accepting a variable delta, event label, or hand-normalised text as an
-    effect membership witness.
-    """
-
-    if not isinstance(value, str) or not value.strip():
-        return None
-    declarations = "\n".join(
-        str(definition.to_ast_node())
-        for definition in native.machine.defines.values()
-    )
-    effect = value.strip()
-    if effect.endswith(";"):
-        effect = effect[:-1].rstrip()
-    wrapper_source = "\n".join(
-        part
-        for part in (
-            declarations,
-            "state EvidenceDiscoveryEffectWrapper {",
-            "    state Carrier;",
-            "    state Sink;",
-            "    [*] -> Carrier;",
-            f"    Carrier -> Sink effect {{ {effect}; }};",
-            "}",
-        )
-        if part
-    )
-    try:
-        from pyfcstm.model import load_state_machine_from_text
-
-        wrapper = load_state_machine_from_text(wrapper_source)
-    except Exception:  # noqa: BLE001 - invalid effect input never becomes a verdict.
-        return None
-    carriers = [
-        transition
-        for transition in wrapper.root_state.transitions
-        if transition.from_state == "Carrier" and transition.to_state == "Sink"
-    ]
-    if len(carriers) != 1 or len(carriers[0].effects) != 1:
-        return None
-    return carriers[0].effects[0].to_ast_node()
-
-
 def run_source_static(plan: PredicatePlan, model: ModelIR, receipt_id: str):
     """Evaluate S1--S6 only through native FCSTM model classes."""
 
@@ -251,7 +204,7 @@ def run_source_static(plan: PredicatePlan, model: ModelIR, receipt_id: str):
         values = inputs.get("effect") or ()
         if not isinstance(values, (list, tuple)) or len(values) != 1 or not isinstance(values[0], str):
             return native_receipt(receipt_id, predicate, native, "unknown", "S6 requires exactly one exact effect expression on the exact transition carrier.", "S6 typed effect contract", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1")
-        expected_ast = _parse_required_effect(native, values[0])
+        expected_ast = parse_effect_operation(native, values[0])
         if expected_ast is None:
             return native_receipt(receipt_id, predicate, native, "unknown", "S6 requires one effect that parses as a single native FCSTM operation in the current declaration environment.", "S6 native FCSTM operation-model wrapper", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", failure_kind="invalid_input")
         observed = [effect.to_ast_node() for effect in transition.effects]

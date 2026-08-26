@@ -35,6 +35,8 @@ V5 `state_invariant` 可从小 bound 递增检查：若较小 bound 得到可 re
 
 主 route 依次执行 `typed contract -> compatible predicate set -> exact input binder -> compiler -> native backend`。它仅使用当前 pair 的 method 输入；ledger、Judge、答案、其他 pair 与 pair-ID 特判都不在输入边界内。
 
+LLM 的预选 `predicate_id` 不构成 typed execution plan。S4/S6 即使已被模型标注，也必须回到 exact input binder：S4 需分别闭合 native state、`entry/do/exit` 和 action；S6 需闭合 native transition carrier 与 pyfcstm 可解析的单一 operation effect。无法闭合时删除 execution plan、保留精确 W1，不得把状态名、业务阶段、事件名或自然语言动作短语伪装为 FCSTM lifecycle/effect 输入。
+
 - R1 需要 exact event/carrier、唯一 native cold entry 和唯一无 guard direct carrier，才能构造 cold-start event queue、schedule 和 macrostep。
 - R4 需要 requirement 明示 `scenario=cold` 和 `window=cold_macrosteps=N`，其中 `N <= 32`；开放 prose 时间窗保持 W1。
 - V1 需要 native same-choice guarded group、完整 exact carrier 集和 requirement 独立给出的有限 JSON `domain`；不得从 guard 或观察到的变量值补造 domain。

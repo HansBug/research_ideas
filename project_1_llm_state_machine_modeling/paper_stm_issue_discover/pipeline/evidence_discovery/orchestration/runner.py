@@ -4586,7 +4586,6 @@ def _method_metrics(
         for record in records
         if record.get("witness_level") == "W2"
     ]
-    planned_mapping = registry.raw.get("coverage_snapshot", {})
     eligible_releases = [
         issue
         for pair_id, cells in pair_method.items()
@@ -4683,7 +4682,6 @@ def _method_metrics(
                 Counter(receipt.get("verdict") for receipt in execution_receipts)
             ),
             "coverage_accounting": {
-                "planned_ledger_mapping": planned_mapping,
                 "predicate_execution_coverage": {
                     "executed_distinct_predicates": len(executed_predicates),
                     "registry_predicate_denominator": len(registry.predicates),

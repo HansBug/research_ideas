@@ -49,6 +49,54 @@ def transition_by_ref(native: NativeFCSTM, reference: object) -> NativeTransitio
     return transition_by_reference(native, reference)
 
 
+def parse_effect_operation(native: NativeFCSTM, value: object) -> Any | None:
+    """Parse one requirement-side effect with the native FCSTM operation grammar.
+
+    The synthetic wrapper carries the current native declaration environment and
+    is parsed by ``pyfcstm`` itself.  It never interprets the inspected FCSTM
+    source with method-owned text logic.  A null result means the supplied
+    requirement phrase is not one executable FCSTM operation and must not
+    become an S6 verdict.
+    """
+
+    if not isinstance(value, str) or not value.strip():
+        return None
+    declarations = "\n".join(
+        str(definition.to_ast_node())
+        for definition in native.machine.defines.values()
+    )
+    effect = value.strip()
+    if effect.endswith(";"):
+        effect = effect[:-1].rstrip()
+    wrapper_source = "\n".join(
+        part
+        for part in (
+            declarations,
+            "state EvidenceDiscoveryEffectWrapper {",
+            "    state Carrier;",
+            "    state Sink;",
+            "    [*] -> Carrier;",
+            f"    Carrier -> Sink effect {{ {effect}; }};",
+            "}",
+        )
+        if part
+    )
+    try:
+        from pyfcstm.model import load_state_machine_from_text
+
+        wrapper = load_state_machine_from_text(wrapper_source)
+    except Exception:  # noqa: BLE001 - invalid typed input is not a verdict.
+        return None
+    carriers = [
+        transition
+        for transition in wrapper.root_state.transitions
+        if transition.from_state == "Carrier" and transition.to_state == "Sink"
+    ]
+    if len(carriers) != 1 or len(carriers[0].effects) != 1:
+        return None
+    return carriers[0].effects[0].to_ast_node()
+
+
 def native_receipt(
     receipt_id: str,
     predicate: str,

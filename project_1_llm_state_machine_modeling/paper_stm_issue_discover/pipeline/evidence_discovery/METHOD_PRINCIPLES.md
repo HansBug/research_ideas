@@ -45,6 +45,8 @@ W2 的归因链至少包含当前 NL、PlantUML、canonical source IR、FCSTM、
 
 主链固定为 `typed contract -> compatible predicate set -> exact input binder -> compiler -> native backend`。route 只可读取当前 pair 的 NL、PlantUML、canonical source IR、FCSTM、inspect-equivalent facts、working contracts 与封闭 `ModelIR`；不得读取 ledger expected、Judge、答案、其他 pair 输出或 `pair_id` 特判。
 
+LLM 已填写的 `predicate_id` 也不是执行准入。尤其 S4 与 S6 必须由同一 exact input binder 重建：S4 只能闭合为独立的 native state、`entry/do/exit` lifecycle slot 和 action；S6 必须闭合为 exact native transition carrier 与可由 pyfcstm operation grammar 解析的单一 effect。任一项未闭合时清除该执行计划，保留原精确语义候选为 W1；不得把自然语言动作、事件名、状态名或业务阶段当作 action/effect/phase 执行。
+
 - R1 只在一个 exact transition carrier、一个 exact event、唯一 native cold entry、唯一直接无 guard event carrier 都闭合时，构造 method-owned cold-start event queue、schedule 和 macrostep；不补造 guard valuation、并发调度或 event identity。
 - R4 只接受 requirement 明示的 `scenario=cold` 与 `window=cold_macrosteps=N`（`N <= 32`）。自然语言中的 `until`、`while` 或开放时间短语不能被转换成 interval，必须以 `input_contract_missing` 或 `out_of_fragment` 留作 W1。
 - V1 必须同时闭合一个 native same-source/same-event guarded choice group、与该 group 完全相等的 exact carrier 集，以及 requirement 独立声明的有限 JSON `domain`。domain 不得从 guard、变量观察值、fixture、台账或答案推断。

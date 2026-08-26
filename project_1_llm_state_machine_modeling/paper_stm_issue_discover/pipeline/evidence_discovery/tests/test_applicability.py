@@ -8,7 +8,10 @@ from pipeline.evidence_discovery.reporting.applicability import (
     GLOBAL_PLANNED_PREDICATES,
     build_applicability_matrix,
 )
-from pipeline.evidence_discovery.orchestration.runner import _load_selection_preflight
+from pipeline.evidence_discovery.orchestration.runner import (
+    _load_selection_preflight,
+    _method_metrics,
+)
 
 
 PAPER_ROOT = Path(__file__).parents[3]
@@ -68,3 +71,13 @@ def test_selection_preflight_reference_validates_hash_and_pair_order(tmp_path: P
     assert tuple(reference["candidate_predicates_e15"]) == tuple(
         payload["candidate_predicates_e15"]
     )
+
+
+def test_method_summary_does_not_expose_registry_ledger_mapping() -> None:
+    """Method-owned metrics retain execution counts but never ledger mappings."""
+
+    metrics = _method_metrics(pair_method={}, selected_pair_ids=())
+
+    coverage = metrics["method"]["coverage_accounting"]
+    assert "planned_ledger_mapping" not in coverage
+    assert "predicate_execution_coverage" in coverage

@@ -26,6 +26,18 @@ state Root {
 }
 """
 
+_LIFECYCLE_EFFECT_SOURCE = """
+def int x = 0;
+state Root {
+    state A {
+        enter abstract Start;
+    }
+    state B;
+    [*] -> A;
+    A -> B effect { x = 1; };
+}
+"""
+
 
 def _hint(role: str, value: str) -> ContractBindingHint:
     """Build one source-side contract hint with complete audit rationale."""
@@ -169,6 +181,111 @@ def test_state_action_without_legal_lifecycle_inputs_stays_predicate_null() -> N
     assert telemetry.selected_predicate is None
     assert telemetry.binding_complete is False
     assert "entry/do/exit" in telemetry.reason
+
+
+def test_preselected_s4_is_rebuilt_or_downgraded_by_strict_primary_inputs() -> None:
+    """An S4 label cannot bypass the lifecycle binder with state-name phases."""
+
+    model = parse_fcstm(_LIFECYCLE_EFFECT_SOURCE)
+    pair = PairInput(
+        pair_id="fixture-lifecycle",
+        pair_dir=Path("fixture-lifecycle"),
+        nl_text="A enters with Start.",
+        fcstm_text=_LIFECYCLE_EFFECT_SOURCE,
+        plantuml_text="",
+        model=model,
+        hashes={},
+    )
+    state = next(item for item in model.states if item.name == "A")
+    contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-PRESELECTED-S4-1",
+        segment_id="NL1",
+        quote="A performs Start on entry.",
+        normative_statement="A must own Start in its entry lifecycle slot.",
+        locus_kind="state",
+        locus_names=("A",),
+        property="state_action",
+        expected_direction="must_occur",
+        violation_direction="wrong_effect",
+        evidence_types=("source_identity", "action_fact"),
+        binding_hints=(_hint("state", "A"), _hint("phase", "entry"), _hint("action", "Start")),
+        scope="A lifecycle",
+        source_refs=("NL1",),
+        reason="The fixture supplies all three distinct S4 arguments.",
+        basis="S4 strict preselection fixture",
+    )
+    selected = _candidate(contract, [state.ref]).model_copy(
+        update={
+            "predicate_id": "S4",
+            "predicate_inputs": {"state": state.ref, "phase": "A", "action": "Start"},
+        }
+    )
+
+    projection = route_primary_candidates(pair, {contract.contract_id: contract}, (), [selected])
+
+    assert projection.candidates[0].predicate_id == "S4"
+    assert projection.candidates[0].predicate_inputs == {
+        "state": state.canonical_path,
+        "phase": "entry",
+        "action": "Start",
+    }
+
+    invalid_contract = contract.model_copy(
+        update={
+            "binding_hints": (_hint("state", "A"), _hint("phase", "operating"), _hint("action", "Start")),
+        }
+    )
+    invalid_projection = route_primary_candidates(
+        pair, {invalid_contract.contract_id: invalid_contract}, (), [selected]
+    )
+    assert invalid_projection.candidates[0].predicate_id is None
+    assert invalid_projection.candidates[0].predicate_inputs == {}
+    assert "strict primary rebinding" in invalid_projection.candidates[0].reason
+
+
+def test_preselected_s6_requires_a_native_effect_operation() -> None:
+    """A natural-language action phrase cannot be executed as an S6 effect."""
+
+    model = parse_fcstm(_LIFECYCLE_EFFECT_SOURCE)
+    pair = PairInput(
+        pair_id="fixture-effect",
+        pair_dir=Path("fixture-effect"),
+        nl_text="A to B sends the Stop signal.",
+        fcstm_text=_LIFECYCLE_EFFECT_SOURCE,
+        plantuml_text="",
+        model=model,
+        hashes={},
+    )
+    transition = next(item for item in model.transitions if item.source == "A" and item.target == "B")
+    contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-PRESELECTED-S6-1",
+        segment_id="NL1",
+        quote="A to B performs timer stops.",
+        normative_statement="The exact A-to-B transition must contain the timer stops effect.",
+        locus_kind="transition",
+        locus_names=("A", "B"),
+        property="effect",
+        expected_direction="must_occur",
+        violation_direction="wrong_effect",
+        evidence_types=("source_identity", "effect_fact"),
+        binding_hints=(_hint("transition", transition.ref), _hint("effect", "timer stops")),
+        scope="A-to-B transition",
+        source_refs=("NL1",),
+        reason="The fixture deliberately supplies prose rather than an FCSTM operation.",
+        basis="S6 strict preselection fixture",
+    )
+    selected = _candidate(contract, [transition.ref]).model_copy(
+        update={
+            "predicate_id": "S6",
+            "predicate_inputs": {"transition": transition.ref, "effect": "timer stops"},
+        }
+    )
+
+    projection = route_primary_candidates(pair, {contract.contract_id: contract}, (), [selected])
+
+    assert projection.candidates[0].predicate_id is None
+    assert projection.candidates[0].predicate_inputs == {}
+    assert "native FCSTM operation" in projection.telemetry[0].reason
 
 
 def test_event_consumption_routes_to_a_native_cold_runtime_scenario() -> None:
