@@ -31,6 +31,8 @@ FCSTM DSL 只由 `pyfcstm` 原生 parser/AST/model class 解释。兼容入口 `
 
 V5 `state_invariant` 可从小 bound 递增检查：若较小 bound 得到可 replay 的 counterexample，该 trace 是请求 horizon 内的有效反例，可提前返回 W2 `false`；较小 bound 的 `true` 只是中间进展，必须继续到请求 horizon 或在共享全链路 deadline 后诚实退化。
 
+D 阶段使用 `dossier-prompt-projection.v4`：原始 FBMCQ/SMT 公式和 solver dump 只保存在不可变 backend receipt，prompt 仅保留 canonical hash、原始字段名/字符数、typed plan、真实 verdict、telemetry 与 witness/replay 事实。完整语义 dossier 不做文本截断，并按 `obligation_id` 与实际 prompt size 稳定分批；当前每批最多 40,000 estimated tokens，且还要服从 profile context 的 65% 减去 output/schema reserve。单条 dossier 超限或单批失败只使该批 ID 进入 `D_UNRESOLVED`，不能触发 issue、覆盖成功批次或让整个 cell 挂死；correction 也只处理对应未闭合 ID。`utils.agent` 的 compact fail-closed 保持不变，runner 必须在调用前完成预算控制。
+
 ## 主 route 与保存 A/B
 
 主 route 依次执行 `typed contract -> compatible predicate set -> exact input binder -> compiler -> native backend`。它仅使用当前 pair 的 method 输入；ledger、Judge、答案、其他 pair 与 pair-ID 特判都不在输入边界内。

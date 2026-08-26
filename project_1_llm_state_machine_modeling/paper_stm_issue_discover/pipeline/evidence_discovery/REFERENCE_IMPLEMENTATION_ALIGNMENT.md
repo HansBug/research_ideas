@@ -16,3 +16,5 @@
 生产代码不得以正则、`splitlines`、brace stack 或字符串切片重新解释 FCSTM source。方法可以在 pyfcstm 原生 object/path 上实现 Pydantic projection、集合算法、route、输入闭包与审计；这些二次算法不能改变 native hierarchy、forced/combo、runtime 或 `.fbmcq` 的语义。`fcstm_native_projection_audit` 与静态 allowlist 是防止双模型回退的验收证据。
 
 route 同样受 native 边界约束。G2 对 composite source 的唯一执行投影只能递归读取 `State.init_transitions`，每层恰有一条才能下降到 leaf；不得用 ModelIR reachability 任取后代。R2 的 event/target obligation 只能由 typed transition alternative、唯一 canonical author-source carrier 和 exact native Event 联结形成，scenario 只能由 target-independent `SimulationRuntime` prefix 搜索形成。provider-free 验收必须把 saved-candidate route replay 与 saved-extraction/grounding frontier replay 分开落盘、分开解释。
+
+D prompt 不是 execution receipt 的第二份副本。原始 `.fbmcq`/SMT formula 与 solver payload 必须完整留在 backend/audit receipt，D 通过 canonical hash、size、typed plan、terminal result、telemetry 和 replay witness 引用它们。语义 dossier 按 obligation ID 稳定、按实际序列化预算分批且不截断；某批失败只退化该批 D，不得改变 backend truth、W、其他批次或 Judge。

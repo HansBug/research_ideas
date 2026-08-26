@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -893,6 +893,47 @@ class StageReceipt(BaseModel):
     basis: str = Field(min_length=1, description="Concrete input, algorithm, schema, or runtime basis for the stage outcome.")
 
 
+class DAdjudicationPromptBatch(BaseModel):
+    """One stable, complete-dossier D prompt bounded before provider execution."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    kind: Literal["initial", "correction"] = Field(
+        description="Whether this batch performs initial D adjudication or targeted contract correction."
+    )
+    batch_index: int = Field(
+        ge=1,
+        description="One-based stable batch position after sorting exact obligation IDs.",
+    )
+    obligation_ids: tuple[str, ...] = Field(
+        min_length=1,
+        description="Exact obligation IDs included once in this prompt, in stable lexical order.",
+    )
+    prompt: str = Field(
+        min_length=1,
+        description="Complete serialized D prompt for these obligation dossiers without dossier truncation.",
+    )
+    prompt_characters: int = Field(
+        ge=1,
+        description="Exact character count of the serialized prompt supplied to the runtime.",
+    )
+    character_budget: int = Field(
+        ge=1,
+        description="Pre-provider character budget used to form this stable batch.",
+    )
+    exceeds_budget: bool = Field(
+        description="Whether one indivisible dossier alone exceeds the configured prompt budget."
+    )
+    reason: str = Field(
+        min_length=1,
+        description="Why these obligations form one complete and deterministic prompt batch.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Exact ordering, projection, and serialized-size basis for this batch.",
+    )
+
+
 def _hash(value: Any) -> str:
     """Hash canonical JSON for prompt and receipt identity."""
 
@@ -1744,6 +1785,37 @@ Decision protocol:
 """
 
 
+def _compact_d_receipt_run_metadata(value: Any) -> Any:
+    """Keep semantic execution facts while leaving raw FBMCQ formula text receipt-only."""
+
+    if not isinstance(value, dict):
+        return value
+    projected = dict(value)
+    fbmcq_formula = projected.get("fbmcq_formula")
+    if not isinstance(fbmcq_formula, dict):
+        return projected
+    formulas = fbmcq_formula.get("formulas")
+    if not isinstance(formulas, dict):
+        return projected
+    serialized = json.dumps(
+        formulas,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    compact_formula = dict(fbmcq_formula)
+    compact_formula["formulas"] = {
+        "formula_keys": sorted(str(key) for key in formulas),
+        "formula_hash": _hash(formulas),
+        "serialized_characters": len(serialized),
+        "prompt_included": False,
+        "reason": "Raw solver formulas remain in the immutable backend receipt; D receives their exact hash and semantic execution result.",
+        "basis": "dossier-prompt-projection.v4 and canonical JSON hashing",
+    }
+    projected["fbmcq_formula"] = compact_formula
+    return projected
+
+
 def _compact_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
     """Project one D dossier to semantic facts without duplicating audit bytes."""
 
@@ -1779,12 +1851,15 @@ def _compact_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
             "verdict",
             "counterexample",
             "trace",
-            "run_metadata",
             "reason",
             "basis",
         )
         if key in receipt
     }
+    if "run_metadata" in receipt:
+        compact_receipt["run_metadata"] = _compact_d_receipt_run_metadata(
+            receipt["run_metadata"]
+        )
     return {
         "obligation_id": dossier.get("obligation_id"),
         "candidate": {
@@ -1814,7 +1889,7 @@ def _compact_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
         "plan": compact_plan,
         "receipt": compact_receipt,
         "reason": "D receives the exact candidate, binding, predicate semantics, and backend result; repeated paths, attribution metadata, raw audit, and retry payloads remain receipt-only.",
-        "basis": "dossier-prompt-projection.v3",
+        "basis": "dossier-prompt-projection.v4",
     }
 
 
@@ -1861,6 +1936,121 @@ frozen valid decision or any extra ID. If the supplied dossier cannot decide,
 use grounding=unresolved with a non-empty reason and basis. Do not emit W/D/L/L
 levels, evaluation ground truth, scores, or reviewer examples.
 """
+
+
+def _partition_d_prompt_batches(
+    dossiers: list[dict[str, Any]],
+    *,
+    kind: Literal["initial", "correction"],
+    character_budget: int,
+    prompt_factory: Callable[[list[dict[str, Any]]], str],
+) -> tuple[DAdjudicationPromptBatch, ...]:
+    """Partition complete dossiers by exact serialized prompt size."""
+
+    if character_budget <= 0:
+        raise ValueError("D prompt character budget must be positive")
+    ordered = sorted(dossiers, key=lambda item: str(item.get("obligation_id", "")))
+    obligation_ids = [str(item.get("obligation_id", "")) for item in ordered]
+    if any(not obligation_id for obligation_id in obligation_ids):
+        raise ValueError("every D dossier requires a non-empty obligation_id")
+    if len(obligation_ids) != len(set(obligation_ids)):
+        raise ValueError("D dossiers require unique obligation_id values")
+
+    groups: list[tuple[list[dict[str, Any]], str]] = []
+    current: list[dict[str, Any]] = []
+    current_prompt = ""
+    for dossier in ordered:
+        tentative = [*current, dossier]
+        tentative_prompt = prompt_factory(tentative)
+        if current and len(tentative_prompt) > character_budget:
+            groups.append((current, current_prompt))
+            current = [dossier]
+            current_prompt = prompt_factory(current)
+        else:
+            current = tentative
+            current_prompt = tentative_prompt
+    if current:
+        groups.append((current, current_prompt))
+
+    return tuple(
+        DAdjudicationPromptBatch(
+            kind=kind,
+            batch_index=index,
+            obligation_ids=tuple(
+                str(dossier["obligation_id"]) for dossier in batch_dossiers
+            ),
+            prompt=prompt,
+            prompt_characters=len(prompt),
+            character_budget=character_budget,
+            exceeds_budget=len(prompt) > character_budget,
+            reason=(
+                "The stable obligation-ID batch retains every selected semantic dossier in full."
+            ),
+            basis=(
+                f"dossier-prompt-projection.v4; kind={kind}; "
+                f"prompt_characters={len(prompt)}; character_budget={character_budget}"
+            ),
+        )
+        for index, (batch_dossiers, prompt) in enumerate(groups, start=1)
+    )
+
+
+def build_d_adjudication_batches(
+    pair: PairInput,
+    dossiers: list[dict[str, Any]],
+    *,
+    character_budget: int,
+) -> tuple[DAdjudicationPromptBatch, ...]:
+    """Build stable initial D batches without splitting or truncating a dossier."""
+
+    return _partition_d_prompt_batches(
+        dossiers,
+        kind="initial",
+        character_budget=character_budget,
+        prompt_factory=lambda selected: build_d_adjudication_prompt(pair, selected),
+    )
+
+
+def build_d_correction_batches(
+    pair: PairInput,
+    dossiers: list[dict[str, Any]],
+    *,
+    missing_ids: list[str],
+    duplicate_ids: list[str],
+    extra_ids: list[str],
+    invalid_decisions: dict[str, list[str]] | None = None,
+    character_budget: int,
+) -> tuple[DAdjudicationPromptBatch, ...]:
+    """Build stable targeted-correction batches over only defective obligation IDs."""
+
+    invalid_decisions = invalid_decisions or {}
+    repair_ids = set(missing_ids) | set(duplicate_ids) | set(invalid_decisions)
+    selected = [
+        dossier
+        for dossier in dossiers
+        if str(dossier.get("obligation_id", "")) in repair_ids
+    ]
+
+    def correction_prompt(batch: list[dict[str, Any]]) -> str:
+        batch_ids = {str(item["obligation_id"]) for item in batch}
+        return build_d_correction_prompt(
+            pair,
+            batch,
+            missing_ids=sorted(batch_ids & set(missing_ids)),
+            duplicate_ids=sorted(batch_ids & set(duplicate_ids)),
+            extra_ids=sorted(extra_ids),
+            invalid_decisions={
+                obligation_id: invalid_decisions[obligation_id]
+                for obligation_id in sorted(batch_ids & set(invalid_decisions))
+            },
+        )
+
+    return _partition_d_prompt_batches(
+        selected,
+        kind="correction",
+        character_budget=character_budget,
+        prompt_factory=correction_prompt,
+    )
 
 
 def fallback_d_adjudication(obligation_ids: list[str], reason: str) -> DAdjudicationResponse:
@@ -2045,6 +2235,7 @@ __all__ = [
     "D_SYSTEM_PROMPT",
     "CardinalityDomainBinding",
     "CardinalityRequirement",
+    "DAdjudicationPromptBatch",
     "GroundingResponse",
     "GroundingUnresolved",
     "NLContract",
@@ -2056,7 +2247,9 @@ __all__ = [
     "StageReceipt",
     "assemble_method_response",
     "build_contract_prompt",
+    "build_d_adjudication_batches",
     "build_d_adjudication_prompt",
+    "build_d_correction_batches",
     "build_d_correction_prompt",
     "build_grounding_prompt",
     "build_method_prompt",

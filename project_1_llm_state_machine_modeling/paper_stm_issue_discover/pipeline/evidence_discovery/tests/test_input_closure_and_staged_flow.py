@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from pipeline.evidence_discovery.inputs import load_pair, parse_fcstm
 from pipeline.evidence_discovery.inputs.context import (
     build_numbered_nl_segments,
@@ -29,6 +28,8 @@ from pipeline.evidence_discovery.semantics import (
     NLContractResponse,
     StageReceipt,
     build_contract_prompt,
+    build_d_adjudication_batches,
+    build_d_adjudication_prompt,
     fallback_contracts,
 )
 
@@ -194,12 +195,16 @@ class FixtureStructuredRuntime:
             self.d_call_count += 1
             if self.omit_second_d_decision and kind == "d_adjudication_correction":
                 decision_ids = [f"{pair_id}:r1:i1"]
+            elif kind == "d_adjudication":
+                marker = "Required obligation IDs, exactly once each:\n"
+                id_start = prompt.index(marker) + len(marker)
+                decision_ids, _ = json.JSONDecoder().raw_decode(prompt[id_start:])
+                if self.omit_second_d_decision:
+                    decision_ids = decision_ids[:1]
             else:
                 decision_ids = [f"{pair_id}:r1:i0"]
-            if self.include_second_candidate and not self.omit_second_d_decision:
-                decision_ids.append(f"{pair_id}:r1:i1")
             if self.duplicate_first_d_decision and kind == "d_adjudication":
-                decision_ids.append(f"{pair_id}:r1:i0")
+                decision_ids.append(decision_ids[0])
             response = DAdjudicationResponse(
                 decisions=[
                     {
@@ -1012,6 +1017,181 @@ def test_d_duplicate_id_is_targeted_and_valid_decisions_remain_frozen(
     )
     assert 'duplicate_ids_to_repair:\n["0000:r1:i0"]' in correction_prompt
     assert '"obligation_id": "0000:r1:i0"' in correction_prompt
+
+
+def test_d_prompt_keeps_raw_fbmcq_formulas_receipt_only() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    raw_formula_marker = "RAW-FBMCQ-FORMULA-MUST-STAY-RECEIPT-ONLY"
+    raw_formula = raw_formula_marker + ("x" * 300_000)
+    dossier = {
+        "obligation_id": "0000:r1:i0",
+        "candidate": {
+            "reason": "The candidate supplies one exact semantic allegation.",
+            "basis": "provider-free D projection fixture",
+        },
+        "binding": {
+            "precise": True,
+            "element_refs": ["state:Fixture:line:1"],
+            "source_refs": ["nl:NL1"],
+            "reason": "The fixture binding is exact.",
+            "basis": "provider-free D projection fixture",
+        },
+        "plan": {
+            "formal_program": "G2(source='Fixture', target='Target')",
+            "formal_program_hash": "sha256:" + ("a" * 64),
+            "reason": "The frozen predicate plan is supplied.",
+            "basis": "provider-free D projection fixture",
+        },
+        "receipt": {
+            "receipt_id": "fixture-receipt",
+            "backend": "fbmcq:G2",
+            "terminal_state": "completed",
+            "verdict": "false",
+            "counterexample": [],
+            "trace": [{"state": "Fixture"}],
+            "run_metadata": {
+                "algorithm_version": "pyfcstm.fbmcq.isolated.v2",
+                "fbmcq_query_hash": "sha256:" + ("b" * 64),
+                "fbmcq_formula": {
+                    "bound": 2,
+                    "kind": "must_reach",
+                    "formulas": {"solve": raw_formula},
+                },
+            },
+            "reason": "The native backend completed with a replayed result.",
+            "basis": "provider-free D projection fixture",
+        },
+    }
+
+    prompt = build_d_adjudication_prompt(pair, [dossier])
+
+    assert raw_formula_marker not in prompt
+    assert '"prompt_included": false' in prompt
+    assert '"formula_hash": "sha256:' in prompt
+    assert '"serialized_characters": 300' in prompt
+    assert "pyfcstm.fbmcq.isolated.v2" in prompt
+    assert '"verdict": "false"' in prompt
+
+
+def test_d_prompt_batches_are_stable_complete_and_bounded() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    payload_by_id = {
+        obligation_id: f"PAYLOAD-{obligation_id}-" + (character * 8_000)
+        for obligation_id, character in (
+            ("0000:r1:i2", "a"),
+            ("0000:r1:i0", "b"),
+            ("0000:r1:i1", "c"),
+        )
+    }
+    dossiers = [
+        {
+            "obligation_id": obligation_id,
+            "candidate": {
+                "reason": payload,
+                "basis": "provider-free stable batching fixture",
+            },
+            "binding": {
+                "precise": True,
+                "element_refs": [],
+                "source_refs": [],
+                "reason": "The fixture binding is exact.",
+                "basis": "provider-free stable batching fixture",
+            },
+            "plan": {},
+            "receipt": {},
+        }
+        for obligation_id, payload in payload_by_id.items()
+    ]
+    singleton_budget = max(
+        len(build_d_adjudication_prompt(pair, [dossier])) for dossier in dossiers
+    )
+
+    batches = build_d_adjudication_batches(
+        pair,
+        dossiers,
+        character_budget=singleton_budget,
+    )
+
+    assert [
+        obligation_id for batch in batches for obligation_id in batch.obligation_ids
+    ] == sorted(payload_by_id)
+    assert len(batches) >= 2
+    assert all(not batch.exceeds_budget for batch in batches)
+    assert all(batch.prompt_characters <= singleton_budget for batch in batches)
+    for batch in batches:
+        for obligation_id in batch.obligation_ids:
+            assert payload_by_id[obligation_id] in batch.prompt
+
+
+def test_one_failed_d_batch_degrades_only_its_obligations(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    probe_runtime = FixtureStructuredRuntime(include_second_candidate=True)
+    _method_cell(
+        pair=pair,
+        round_index=1,
+        runtime=probe_runtime,
+        output_root=tmp_path / "probe",
+    )
+    full_prompt = next(
+        prompt for kind, prompt in probe_runtime.prompts if kind == "d_adjudication"
+    )
+    monkeypatch.setattr(
+        "pipeline.evidence_discovery.orchestration.runner._d_prompt_character_budget",
+        lambda _runtime: len(full_prompt) - 1,
+    )
+
+    class SecondBatchFailureRuntime(FixtureStructuredRuntime):
+        """Return one successful D batch followed by one audited batch failure."""
+
+        def call(self, **kwargs):
+            outcome = super().call(**kwargs)
+            if kwargs["kind"] == "d_adjudication" and self.d_call_count == 2:
+                return outcome.model_copy(
+                    update={
+                        "status": "failed",
+                        "response": None,
+                        "result": {"error": "controlled D batch failure"},
+                        "reason": "The controlled second D batch failed.",
+                        "basis": "provider-free batch degradation fixture",
+                    }
+                )
+            return outcome
+
+    runtime = SecondBatchFailureRuntime(include_second_candidate=True)
+    cell = _method_cell(
+        pair=pair,
+        round_index=1,
+        runtime=runtime,
+        output_root=tmp_path / "failure",
+    )
+
+    batches = cell["stage_outputs"]["validate_d"]["initial_batches"]
+    assert runtime.d_call_count == 2
+    assert [batch["status"] for batch in batches] == [
+        "completed",
+        "failed_with_receipt",
+    ]
+    assert cell["stage_outputs"]["validate_d"]["final_unresolved_ids"] == []
+    d_receipt = next(
+        receipt
+        for receipt in cell["stage_receipts"]
+        if receipt["stage_name"] == "d_adjudication"
+    )
+    assert d_receipt["status"] == "completed_with_diagnostics"
+    assert len(cell["evidence_records"]) == 2
+    assert {record["d_level"] for record in cell["evidence_records"]} == {
+        "D2",
+        "D_UNRESOLVED",
+    }
+    assert len(cell["report_issue_clusters"]) == 1
+    assert any(
+        error.get("stage") == "d_adjudication"
+        and error.get("batch_index") == 2
+        for error in cell["errors"]
+    )
 
 
 def test_large_working_contract_is_role_scoped_before_prompt_serialization(tmp_path: Path) -> None:

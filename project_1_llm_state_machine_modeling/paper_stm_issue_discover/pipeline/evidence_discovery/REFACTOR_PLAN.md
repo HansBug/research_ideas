@@ -12,6 +12,7 @@
 4. 每次 W2 写入 typed input、编译后的 assertion/formal program、code/hash、真实 result、backend version、artifact attribution、reason、basis 与 receipt hash 到 `audit_bundle`。
 5. provider error 原调用重试且不计费；schema、解析、业务和其他 retry 均计费并修复根因。禁止 Python `inspect`。
 6. FCSTM 只允许 `pyfcstm` 原生 parser/AST/StateMachine 作为语义源。`parse_fcstm`/`ModelIR` 必须是 native compatibility projection，保留 canonical path、pseudo-state、owner、lifecycle action、forced/combo provenance、span 与唯一 legacy-ref mapping；禁止恢复或扩展 FCSTM regex/line parser。`native_projection_audit` 必须达到 60/60 source load、54/54 frozen input closure、零 parity difference、零未批准文本处理后才解释 replay 数据。
+7. D adjudication 使用 receipt-only raw payload 边界：完整 FBMCQ/SMT 公式留在 execution/audit artifact，D semantic dossier 只携带 hash、size、typed plan、verdict、telemetry 与 witness/replay。dossier 按 obligation ID 和序列化预算稳定分批，不截断单条义务；超预算/失败批次仅退 `D_UNRESOLVED`，其他批次保持，targeted correction 只补对应 ID。不得削弱 `utils.agent` compact fail-closed，也不得用增加 context/retry 掩盖 prompt 投影 bug。
 
 ## 阶段 B：provider-free replay
 
