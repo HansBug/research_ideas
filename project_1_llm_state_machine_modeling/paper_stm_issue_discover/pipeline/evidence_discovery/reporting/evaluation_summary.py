@@ -12,7 +12,11 @@ from typing import Any
 from .expected_issue_witness import build_expected_issue_witness_audit
 from .export import write_json
 from .judge_cost_audit import build_judge_cost_audit
-from .stage_loss import build_stage_loss_audit
+from .stage_loss import (
+    _is_composite_judge_summary,
+    _judge_result_index,
+    build_stage_loss_audit,
+)
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -53,6 +57,13 @@ def _counts(rows: list[dict[str, Any]], field: str, allowed: set[str] | None = N
     return dict(sorted(Counter(values).items()))
 
 
+def _merge_counts(rows: list[dict[str, int]]) -> dict[str, int]:
+    total: Counter[str] = Counter()
+    for row in rows:
+        total.update(row)
+    return dict(sorted(total.items()))
+
+
 def build_evaluation_summary(
     *,
     method_root: str | Path,
@@ -78,68 +89,132 @@ def build_evaluation_summary(
     )
     judge_cost_audit = build_judge_cost_audit(judge_root=judge_root_path)
     judge_summary = _load(judge_summary_path)
-    expected_by_pair: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    pair_ids = tuple(str(value) for value in stage_loss["selected_pair_ids"])
+    rounds = tuple(int(value) for value in stage_loss["selected_rounds"])
+    judge_results, _, _ = _judge_result_index(judge_root_path)
+    expected_by_cell: dict[tuple[int, str], list[dict[str, Any]]] = defaultdict(list)
     for row in expected_audit["rows"]:
-        expected_by_pair[str(row["pair_id"])].append(row)
-    stage_rows_by_pair: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        expected_by_cell[(int(row["round"]), str(row["pair_id"]))].append(row)
+    stage_rows_by_cell: dict[tuple[int, str], list[dict[str, Any]]] = defaultdict(list)
     for row in stage_loss["rows"]:
-        stage_rows_by_pair[str(row["pair_id"])].append(row)
+        stage_rows_by_cell[(int(row["round"]), str(row["pair_id"]))].append(row)
 
-    per_pair: dict[str, dict[str, Any]] = {}
+    per_cell: dict[str, dict[str, Any]] = {}
     all_receipts: list[dict[str, Any]] = []
     all_evidence: list[dict[str, Any]] = []
-    for pair_id in stage_loss["selected_pair_ids"]:
-        method_payload = _load(method_root_path / "method" / pair_id / "round-1.json")
-        judge_payload = _load(judge_root_path / "pairs" / f"{pair_id}.json")
-        evidence = _items(method_payload.get("evidence_records"))
-        receipts = _items(method_payload.get("predicate_execution_receipts"))
-        if not receipts:
-            receipts = _items(
-                method_payload.get("stage_outputs", {})
-                .get("execute_batch", {})
-                .get("predicate_execution_receipts")
+    for round_no in rounds:
+        for pair_id in pair_ids:
+            cell_key = f"r{round_no}:{pair_id}"
+            method_payload = _load(
+                method_root_path / "method" / pair_id / f"round-{round_no}.json"
             )
-        all_evidence.extend(evidence)
-        all_receipts.extend(receipts)
-        expected_rows = expected_by_pair[pair_id]
-        full_rows = [row for row in expected_rows if row["match_status"] == "FULL"]
-        terminal_predicates = sorted({
-            str(receipt.get("predicate_id"))
-            for receipt in receipts
-            if receipt.get("execution_state") == "completed"
-            and receipt.get("terminal_state") == "completed"
-            and receipt.get("predicate_verdict") in {"true", "false"}
-        })
-        report_outcomes = _items(judge_payload.get("report_outcomes"))
+            judge_payload = _load(judge_results[(round_no, pair_id)])
+            evidence = _items(method_payload.get("evidence_records"))
+            receipts = _items(method_payload.get("predicate_execution_receipts"))
+            if not receipts:
+                receipts = _items(
+                    method_payload.get("stage_outputs", {})
+                    .get("execute_batch", {})
+                    .get("predicate_execution_receipts")
+                )
+            all_evidence.extend(evidence)
+            all_receipts.extend(receipts)
+            expected_rows = expected_by_cell[(round_no, pair_id)]
+            full_rows = [row for row in expected_rows if row["match_status"] == "FULL"]
+            terminal_predicates = sorted({
+                str(receipt.get("predicate_id"))
+                for receipt in receipts
+                if receipt.get("execution_state") == "completed"
+                and receipt.get("terminal_state") == "completed"
+                and receipt.get("predicate_verdict") in {"true", "false"}
+            })
+            report_outcomes = _items(judge_payload.get("report_outcomes"))
+            stage_rows = stage_rows_by_cell[(round_no, pair_id)]
+            per_cell[cell_key] = {
+                "pair_id": pair_id,
+                "round": round_no,
+                "expected_count": len(expected_rows),
+                "full_hit_count": len(full_rows),
+                "partial_match_count": sum(row["match_status"] == "PARTIAL" for row in expected_rows),
+                "full_max_w2_count": sum(row["max_witness_level"] == "W2" for row in full_rows),
+                "full_max_w2_share": (
+                    sum(row["max_witness_level"] == "W2" for row in full_rows) / len(full_rows)
+                    if full_rows else None
+                ),
+                "w2_all_expected_count": sum(row["max_witness_level"] == "W2" for row in expected_rows),
+                "method_witness_levels": _counts(evidence, "witness_level", {"W0", "W1", "W2"}),
+                "method_d_levels": _counts(evidence, "d_level", {"D0", "D1", "D2", "D_UNRESOLVED"}),
+                "terminal_predicates": terminal_predicates,
+                "judge_metrics": judge_payload.get("metrics", {}),
+                "judge_report_validity": _counts(report_outcomes, "validity"),
+                "route_stage_loss": {
+                    "all_expected_root_cause_owner": _counts(stage_rows, "root_cause_owner"),
+                    "non_full_root_cause_owner": _counts(
+                        [row for row in stage_rows if row["match_status"] != "FULL"],
+                        "root_cause_owner",
+                    ),
+                    "non_full_last_method_stage": _counts(
+                        [row for row in stage_rows if row["match_status"] != "FULL"],
+                        "last_method_stage",
+                    ),
+                },
+                "reason": "Pair-round metrics join immutable method evidence/receipts with one complete frozen Judge result.",
+                "basis": "frozen witness/determinacy fields, frozen semantic Judge rows, and evaluator-only expected/report joins",
+            }
+
+    per_pair: dict[str, dict[str, Any]] = {}
+    for pair_id in pair_ids:
+        cells = [per_cell[f"r{round_no}:{pair_id}"] for round_no in rounds]
+        expected_rows = [
+            row
+            for round_no in rounds
+            for row in expected_by_cell[(round_no, pair_id)]
+        ]
+        by_expected: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for row in expected_rows:
+            by_expected[str(row["expected_id"])].append(row)
+        full_hit_count = sum(cell["full_hit_count"] for cell in cells)
         per_pair[pair_id] = {
-            "expected_count": len(expected_rows),
-            "full_hit_count": len(full_rows),
-            "partial_match_count": sum(row["match_status"] == "PARTIAL" for row in expected_rows),
-            "full_max_w2_count": sum(row["max_witness_level"] == "W2" for row in full_rows),
-            "full_max_w2_share": (
-                sum(row["max_witness_level"] == "W2" for row in full_rows) / len(full_rows)
-                if full_rows else None
+            "rounds": list(rounds),
+            "expected_issue_count": len(by_expected),
+            "expected_position_count": len(expected_rows),
+            "full_hit_count": full_hit_count,
+            "partial_match_count": sum(cell["partial_match_count"] for cell in cells),
+            "full_hit_at_least_once_count": sum(
+                any(row["match_status"] == "FULL" for row in values)
+                for values in by_expected.values()
             ),
-            "w2_all_expected_count": sum(row["max_witness_level"] == "W2" for row in expected_rows),
-            "method_witness_levels": _counts(evidence, "witness_level", {"W0", "W1", "W2"}),
-            "method_d_levels": _counts(evidence, "d_level", {"D0", "D1", "D2", "D_UNRESOLVED"}),
-            "terminal_predicates": terminal_predicates,
-            "judge_metrics": judge_payload.get("metrics", {}),
-            "judge_report_validity": _counts(report_outcomes, "validity"),
+            "full_hit_all_rounds_count": sum(
+                len(values) == len(rounds)
+                and all(row["match_status"] == "FULL" for row in values)
+                for values in by_expected.values()
+            ),
+            "full_max_w2_count": sum(cell["full_max_w2_count"] for cell in cells),
+            "full_max_w2_share": (
+                sum(cell["full_max_w2_count"] for cell in cells) / full_hit_count
+                if full_hit_count else None
+            ),
+            "w2_all_expected_count": sum(cell["w2_all_expected_count"] for cell in cells),
+            "method_witness_levels": _merge_counts([cell["method_witness_levels"] for cell in cells]),
+            "method_d_levels": _merge_counts([cell["method_d_levels"] for cell in cells]),
+            "terminal_predicates": sorted({value for cell in cells for value in cell["terminal_predicates"]}),
+            "judge_report_validity": _merge_counts([cell["judge_report_validity"] for cell in cells]),
             "route_stage_loss": {
-                "all_expected_root_cause_owner": _counts(stage_rows_by_pair[pair_id], "root_cause_owner"),
-                "non_full_root_cause_owner": _counts(
-                    [row for row in stage_rows_by_pair[pair_id] if row["match_status"] != "FULL"],
-                    "root_cause_owner",
-                ),
-                "non_full_last_method_stage": _counts(
-                    [row for row in stage_rows_by_pair[pair_id] if row["match_status"] != "FULL"],
-                    "last_method_stage",
-                ),
+                key: _merge_counts([cell["route_stage_loss"][key] for cell in cells])
+                for key in (
+                    "all_expected_root_cause_owner",
+                    "non_full_root_cause_owner",
+                    "non_full_last_method_stage",
+                )
             },
-            "reason": "Pair metrics join immutable method evidence/receipts with one complete frozen Judge pair result.",
-            "basis": "frozen witness/determinacy fields, frozen semantic Judge rows, and evaluator-only expected/report joins",
+            "per_round": {str(cell["round"]): cell for cell in cells},
+            "reason": "Pair metrics preserve every round position and separately report at-least-once and all-round coverage.",
+            "basis": "complete pair-round cells and ledger-ID grouping after immutable Judge mapping",
         }
+
+    is_composite = _is_composite_judge_summary(judge_summary)
+    l2_expected_count = judge_summary.get("l2_expected_count")
+    l2_full_hit_count = judge_summary.get("l2_full_hit_count")
 
     payload: dict[str, Any] = {
         "schema": "evidence-discovery.evaluation-summary.v1",
@@ -155,11 +230,24 @@ def build_evaluation_summary(
         "evaluation_boundary": expected_audit["evaluation_boundary"],
         "judge": {
             "overall": judge_summary.get("overall", {}),
-            "l2_expected_count": judge_summary.get("l2_expected_count"),
-            "l2_full_hit_count": judge_summary.get("l2_full_hit_count"),
-            "l2_hit_rate": judge_summary.get("l2_hit_rate"),
-            "total_judge_cost_usd": judge_summary.get("total_judge_cost_usd"),
-            "cost_eligible": judge_summary.get("cost_eligible"),
+            "round_summaries": judge_summary.get("round_summaries", []),
+            "cross_round": judge_summary.get("cross_round"),
+            "l2_expected_count": l2_expected_count,
+            "l2_full_hit_count": l2_full_hit_count,
+            "l2_hit_rate": (
+                l2_full_hit_count / l2_expected_count
+                if is_composite and l2_expected_count
+                else judge_summary.get("l2_hit_rate")
+            ),
+            "total_judge_cost_usd": (
+                judge_summary.get("total_incurred_cost_usd")
+                if is_composite
+                else judge_summary.get("total_judge_cost_usd")
+            ),
+            "selected_result_cost_usd": judge_summary.get("selected_result_cost_usd"),
+            "original_failure_cost_usd": judge_summary.get("original_failure_cost_usd"),
+            "repair_result_cost_usd": judge_summary.get("repair_result_cost_usd"),
+            "cost_eligible": judge_cost_audit["billing"]["cost_eligible"],
             "cost_audit": judge_cost_audit["billing"],
             "unpriced_billable_calls": judge_cost_audit["unpriced_billable_calls"],
         },
@@ -175,6 +263,7 @@ def build_evaluation_summary(
         "witness_ledger": expected_audit["summary"],
         "predicate_feasibility": stage_loss["predicate_feasibility"],
         "w2_receipt_closure": stage_loss["w2_receipt_closure"],
+        "per_cell": per_cell,
         "per_pair": per_pair,
         "reason": (
             "The summary keeps hit, max-W, W2/all-expected, method W/D, Judge precision/INVALID, "

@@ -85,8 +85,66 @@ def _max_witness_level(rows: Iterable[dict[str, Any]]) -> str | None:
     return max(levels, key=WITNESS_RANK.__getitem__) if levels else None
 
 
-def _method_path(method_root: Path, pair_id: str) -> Path:
-    return method_root / "method" / pair_id / "round-1.json"
+def _method_path(method_root: Path, pair_id: str, round_no: int) -> Path:
+    return method_root / "method" / pair_id / f"round-{round_no}.json"
+
+
+def _method_rounds(manifest: dict[str, Any]) -> tuple[int, ...]:
+    selected = manifest.get("selected_rounds")
+    if isinstance(selected, list | tuple) and selected:
+        return tuple(sorted({int(value) for value in selected}))
+    round_count = int(manifest.get("rounds") or 1)
+    if round_count < 1:
+        raise ValueError("method manifest rounds must be positive")
+    return tuple(range(1, round_count + 1))
+
+
+def _file_hash(path: Path) -> str:
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _is_composite_judge_summary(summary: dict[str, Any]) -> bool:
+    return str(summary.get("schema_version") or "").endswith(
+        "semantic-judge.composite-summary.v1"
+    )
+
+
+def _judge_result_index(
+    judge_root: Path,
+) -> tuple[dict[tuple[int, str], Path], tuple[str, ...], tuple[int, ...]]:
+    summary = _load(judge_root / "summary.json")
+    if _is_composite_judge_summary(summary):
+        pair_ids = tuple(str(value) for value in summary.get("pair_ids", ()) if value)
+        rounds = tuple(int(value) for value in summary.get("selected_rounds", ()) if value)
+        receipts = _items(summary.get("pair_receipts"))
+        index: dict[tuple[int, str], Path] = {}
+        for receipt in receipts:
+            key = (int(receipt["round"]), str(receipt["pair_id"]))
+            path = Path(str(receipt["result_path"])).expanduser().resolve()
+            if not path.is_file():
+                raise FileNotFoundError(path)
+            expected_hash = str(receipt.get("result_hash") or "")
+            if expected_hash and _file_hash(path) != expected_hash:
+                raise ValueError(f"composite Judge result hash mismatch: {path}")
+            if key in index:
+                raise ValueError(f"duplicate composite Judge result: {key}")
+            index[key] = path
+        return index, pair_ids, rounds
+
+    manifest = _load(judge_root / "run_manifest.json")
+    pair_ids = tuple(str(value) for value in manifest.get("selected_pair_ids", ()) if value)
+    selected_rounds = tuple(
+        int(value) for value in manifest.get("selected_rounds", ()) if value
+    )
+    rounds = selected_rounds or (1,)
+    index = {}
+    for round_no in rounds:
+        for pair_id in pair_ids:
+            path = judge_root / "pairs" / f"{pair_id}.json"
+            if not path.is_file():
+                raise FileNotFoundError(path)
+            index[(round_no, pair_id)] = path
+    return index, pair_ids, rounds
 
 
 def _index_method(payload: dict[str, Any]) -> dict[str, Any]:
@@ -118,6 +176,9 @@ def _index_method(payload: dict[str, Any]) -> dict[str, Any]:
     evidence = _items(payload.get("evidence_records"))
     issue_ids = {str(item) for item in execute.get("publish", {}).get("report_issue_ids", ()) if item}
     issue_ids.update(str(item) for item in stages.get("publish", {}).get("report_issue_ids", ()) if item)
+    method_eligible = bool(payload.get("eligible", True))
+    if not method_eligible:
+        issue_ids.clear()
     by_contract: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for item in contracts + grounding_rows + checks + candidates:
         contract_id = item.get("contract_id") or item.get("canonical_contract_id")
@@ -150,6 +211,8 @@ def _index_method(payload: dict[str, Any]) -> dict[str, Any]:
         "by_issue": by_issue,
         "by_predicate": by_predicate,
         "publish_issue_ids": sorted(issue_ids),
+        "method_status": payload.get("status", "completed"),
+        "method_eligible": method_eligible,
     }
 
 
@@ -225,6 +288,7 @@ def _method_stage(contract_rows: list[dict[str, Any]], grounding: list[dict[str,
 def _expected_row(
     *,
     pair_id: str,
+    round_no: int,
     method_path: Path,
     index: dict[str, Any],
     expected: dict[str, Any],
@@ -330,6 +394,7 @@ def _expected_row(
         root_cause_owner = STAGE_OWNERS.get(last_stage, last_stage)
     return {
         "pair_id": pair_id,
+        "round": round_no,
         "expected_id": expected.get("ledger_id"),
         "summary": expected.get("reason"),
         "method_artifact": str(method_path.resolve()),
@@ -461,7 +526,7 @@ def _expected_row(
 
 def _predicate_feasibility(
     *,
-    method_indexes: dict[str, dict[str, Any]],
+    method_indexes: dict[tuple[int, str], dict[str, Any]],
     applicability: dict[str, Any] | None,
 ) -> dict[str, Any]:
     rows = _items(applicability.get("rows")) if applicability else []
@@ -517,9 +582,11 @@ def _predicate_feasibility(
     return output
 
 
-def _w2_closure(method_indexes: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+def _w2_closure(
+    method_indexes: dict[tuple[int, str], dict[str, Any]]
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for pair_id, index in sorted(method_indexes.items()):
+    for (round_no, pair_id), index in sorted(method_indexes.items()):
         receipt_by_obligation = {
             item.get("obligation_id"): item for item in index["receipts"] if item.get("obligation_id")
         }
@@ -531,6 +598,7 @@ def _w2_closure(method_indexes: dict[str, dict[str, Any]]) -> list[dict[str, Any
             attribution = evidence.get("source_attribution") if isinstance(evidence.get("source_attribution"), dict) else {}
             rows.append({
                 "pair_id": pair_id,
+                "round": round_no,
                 "obligation_id": evidence.get("obligation_id"),
                 "issue_id": evidence.get("issue_id"),
                 "contract_id": evidence.get("contract_id"),
@@ -566,39 +634,60 @@ def build_stage_loss_audit(
     pair_ids = tuple(str(item) for item in manifest.get("selected_pair_ids", ()))
     if not pair_ids:
         raise ValueError("method manifest has no selected_pair_ids")
-    method_indexes: dict[str, dict[str, Any]] = {}
+    rounds = _method_rounds(manifest)
+    judge_results, judge_pair_ids, judge_rounds = _judge_result_index(judge_root_path)
+    if set(judge_pair_ids) != set(pair_ids) or set(judge_rounds) != set(rounds):
+        raise ValueError(
+            "method/Judge pair-round closure mismatch: "
+            f"method_pairs={pair_ids}, judge_pairs={judge_pair_ids}, "
+            f"method_rounds={rounds}, judge_rounds={judge_rounds}"
+        )
+    expected_keys = {(round_no, pair_id) for round_no in rounds for pair_id in pair_ids}
+    if set(judge_results) != expected_keys:
+        raise ValueError(
+            f"Judge result closure mismatch: missing={sorted(expected_keys - set(judge_results))}, "
+            f"extra={sorted(set(judge_results) - expected_keys)}"
+        )
+    method_indexes: dict[tuple[int, str], dict[str, Any]] = {}
     method_paths: dict[str, str] = {}
-    for pair_id in pair_ids:
-        path = _method_path(method_root_path, pair_id)
-        payload = _load(path)
-        method_indexes[pair_id] = _index_method(payload)
-        method_paths[pair_id] = str(path)
+    for round_no in rounds:
+        for pair_id in pair_ids:
+            path = _method_path(method_root_path, pair_id, round_no)
+            payload = _load(path)
+            if str(payload.get("pair_id", pair_id)) != pair_id or int(
+                payload.get("round", round_no)
+            ) != round_no:
+                raise ValueError(f"method pair-round identity mismatch: {path}")
+            method_indexes[(round_no, pair_id)] = _index_method(payload)
+            method_paths[f"r{round_no}:{pair_id}"] = str(path)
     rows: list[dict[str, Any]] = []
     judge_pair_paths: dict[str, str] = {}
-    for pair_id in pair_ids:
-        judge_pair_path = judge_root_path / "pairs" / f"{pair_id}.json"
-        judge_pair_paths[pair_id] = str(judge_pair_path)
-        judge_payload = _load(judge_pair_path)
-        validity = {
-            str(item.get("original_report_id")): {
-                "validity": item.get("validity"),
-                "full_ledger_ids": item.get("full_ledger_ids", []),
-                "partial_ledger_ids": item.get("partial_ledger_ids", []),
+    for round_no in rounds:
+        for pair_id in pair_ids:
+            judge_pair_path = judge_results[(round_no, pair_id)]
+            judge_pair_paths[f"r{round_no}:{pair_id}"] = str(judge_pair_path)
+            judge_payload = _load(judge_pair_path)
+            validity = {
+                str(item.get("original_report_id")): {
+                    "validity": item.get("validity"),
+                    "full_ledger_ids": item.get("full_ledger_ids", []),
+                    "partial_ledger_ids": item.get("partial_ledger_ids", []),
+                }
+                for item in _items(judge_payload.get("report_outcomes"))
+                if isinstance(item.get("original_report_id"), str)
             }
-            for item in _items(judge_payload.get("report_outcomes"))
-            if isinstance(item.get("original_report_id"), str)
-        }
-        for expected in _items(judge_payload.get("expected_outcomes")):
-            rows.append(
-                _expected_row(
-                    pair_id=pair_id,
-                    method_path=_method_path(method_root_path, pair_id),
-                    index=method_indexes[pair_id],
-                    expected=expected,
-                    judge_pair_path=judge_pair_path,
-                    report_validity=validity,
+            for expected in _items(judge_payload.get("expected_outcomes")):
+                rows.append(
+                    _expected_row(
+                        pair_id=pair_id,
+                        round_no=round_no,
+                        method_path=_method_path(method_root_path, pair_id, round_no),
+                        index=method_indexes[(round_no, pair_id)],
+                        expected=expected,
+                        judge_pair_path=judge_pair_path,
+                        report_validity=validity,
+                    )
                 )
-            )
     applicability = _load(Path(applicability_path).expanduser().resolve()) if applicability_path else None
     feasibility = _predicate_feasibility(method_indexes=method_indexes, applicability=applicability)
     receipt_rows = [receipt for index in method_indexes.values() for receipt in index["receipts"]]
@@ -613,6 +702,8 @@ def build_stage_loss_audit(
         "source_commit": manifest.get("source_provenance", {}).get("source_commit"),
         "registry_hash": manifest.get("registry_hash"),
         "selected_pair_ids": list(pair_ids),
+        "selected_rounds": list(rounds),
+        "cell_count": len(method_indexes),
         "pair_count": len(pair_ids),
         "method_summary_path": str((method_root_path / "summary.json").resolve()),
         "judge_pair_paths": judge_pair_paths,

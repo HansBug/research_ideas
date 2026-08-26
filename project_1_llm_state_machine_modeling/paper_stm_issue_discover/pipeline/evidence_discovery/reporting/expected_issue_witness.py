@@ -37,6 +37,7 @@ def build_expected_issue_witness_audit(
     rows = [
         {
             "pair_id": row["pair_id"],
+            "round": row["round"],
             "expected_id": row["expected_id"],
             "summary": row["summary"],
             "match_status": row["match_status"],

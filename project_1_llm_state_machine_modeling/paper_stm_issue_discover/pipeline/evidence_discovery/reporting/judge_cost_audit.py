@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .export import write_json
+from .stage_loss import _is_composite_judge_summary
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -55,20 +56,92 @@ def _schema_failure_count(call: dict[str, Any]) -> int:
     return count
 
 
+def _composite_calls(
+    summary: dict[str, Any],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    calls: list[dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
+    for source in _items(summary.get("source_runs")):
+        terminal_path = Path(str(source["terminal_path"])).expanduser().resolve()
+        terminal = _load(terminal_path)
+        receipts = _items(terminal.get("pair_receipts"))
+        if not receipts:
+            receipts = _items(terminal.get("completed_pair_receipts"))
+        for receipt in receipts:
+            result_path = Path(str(receipt["result_path"])).expanduser().resolve()
+            result = _load(result_path)
+            for call in _items(result.get("call_receipts")):
+                calls.append(
+                    {
+                        "source_run_id": source.get("run_id"),
+                        "pair_id": result.get("pair_id") or receipt.get("pair_id"),
+                        "round": result.get("round") or receipt.get("round"),
+                        **call,
+                    }
+                )
+        for failure in _items(terminal.get("failures")):
+            failures.append(
+                {
+                    "source_run_id": source.get("run_id"),
+                    "pair_id": failure.get("pair_id"),
+                    "round": failure.get("round"),
+                    "error_type": failure.get("error_type"),
+                    "error_message": failure.get("error_message"),
+                    "total_judge_cost_usd": failure.get("total_judge_cost_usd", 0.0),
+                    "cost_eligible": failure.get("cost_eligible", False),
+                    "reason": failure.get("reason"),
+                    "basis": failure.get("basis"),
+                }
+            )
+            for call in _items(failure.get("call_receipts")):
+                calls.append(
+                    {
+                        "source_run_id": source.get("run_id"),
+                        "pair_id": failure.get("pair_id"),
+                        "round": failure.get("round"),
+                        **call,
+                    }
+                )
+    return calls, failures
+
+
 def build_judge_cost_audit(*, judge_root: str | Path) -> dict[str, Any]:
     """Audit price completeness without changing frozen Judge results or costs."""
 
     root = Path(judge_root).expanduser().resolve()
-    manifest = _load(root / "run_manifest.json")
     summary = _load(root / "summary.json")
-    pair_ids = tuple(str(value) for value in manifest.get("selected_pair_ids", ()) if value)
+    is_composite = _is_composite_judge_summary(summary)
+    if is_composite:
+        pair_ids = tuple(str(value) for value in summary.get("pair_ids", ()) if value)
+        calls, source_failures = _composite_calls(summary)
+        judge_code_commit = summary.get("semantic_judge_commit")
+        protocol_sha256 = summary.get("protocol_sha256")
+        model_profile = summary.get("model_profile")
+        workers = [
+            _load(Path(str(source["manifest_path"])).expanduser().resolve()).get("workers")
+            for source in _items(summary.get("source_runs"))
+        ]
+        summary_cost = float(summary.get("total_incurred_cost_usd") or 0.0)
+        summary_cost_eligible = bool(
+            (summary.get("call_audit") or {}).get("cost_eligible")
+        )
+    else:
+        manifest = _load(root / "run_manifest.json")
+        pair_ids = tuple(str(value) for value in manifest.get("selected_pair_ids", ()) if value)
+        calls = []
+        source_failures = []
+        for pair_id in pair_ids:
+            payload = _load(root / "pairs" / f"{pair_id}.json")
+            for call in _items(payload.get("call_receipts")):
+                calls.append({"pair_id": pair_id, **call})
+        judge_code_commit = manifest.get("judge_code_commit")
+        protocol_sha256 = manifest.get("protocol_sha256")
+        model_profile = manifest.get("model_profile")
+        workers = manifest.get("workers")
+        summary_cost = float(summary.get("total_judge_cost_usd") or 0.0)
+        summary_cost_eligible = bool(summary.get("cost_eligible"))
     if not pair_ids:
         raise ValueError("Judge manifest has no selected_pair_ids")
-    calls: list[dict[str, Any]] = []
-    for pair_id in pair_ids:
-        payload = _load(root / "pairs" / f"{pair_id}.json")
-        for call in _items(payload.get("call_receipts")):
-            calls.append({"pair_id": pair_id, **call})
     unpriced_calls = []
     provider_retries = 0
     non_provider_retries = 0
@@ -108,15 +181,15 @@ def build_judge_cost_audit(*, judge_root: str | Path) -> dict[str, Any]:
                 "basis": "frozen JudgeCallReceipt.cost_eligible=false and its preserved normalized usage rows",
             })
     recorded_cost = sum(float(call.get("cost_usd") or 0.0) for call in calls)
-    summary_cost = float(summary.get("total_judge_cost_usd") or 0.0)
     payload: dict[str, Any] = {
         "schema": "evidence-discovery.judge-cost-audit.v1",
-        "run_id": summary.get("run_id"),
+        "run_id": summary.get("run_id") or summary.get("composite_id"),
         "judge_root": str(root),
-        "judge_code_commit": manifest.get("judge_code_commit"),
-        "protocol_sha256": manifest.get("protocol_sha256"),
-        "model_profile": manifest.get("model_profile"),
-        "workers": manifest.get("workers"),
+        "judge_code_commit": judge_code_commit,
+        "protocol_sha256": protocol_sha256,
+        "model_profile": model_profile,
+        "workers": workers,
+        "source_failures": source_failures,
         "billing": {
             "logical_call_count": len(calls),
             "priced_call_count": sum(bool(call.get("cost_eligible")) for call in calls),
@@ -124,7 +197,8 @@ def build_judge_cost_audit(*, judge_root: str | Path) -> dict[str, Any]:
             "recorded_cost_usd": recorded_cost,
             "summary_cost_usd": summary_cost,
             "recorded_cost_matches_summary": abs(recorded_cost - summary_cost) < 1e-9,
-            "cost_eligible": not unpriced_calls and bool(summary.get("cost_eligible")),
+            "cost_eligible": not unpriced_calls and summary_cost_eligible,
+            "source_failure_count": len(source_failures),
             "provider_error_retry_count": provider_retries,
             "non_provider_outer_retry_count": non_provider_retries,
             "schema_validation_failure_count": schema_failure_count,
@@ -136,7 +210,7 @@ def build_judge_cost_audit(*, judge_root: str | Path) -> dict[str, Any]:
             "prompts, binding, routing, execution, W, D, publication, or Judge semantic decisions."
         ),
         "reason": (
-            "All successful, retried, and unpriced Judge calls are retained. A missing provider usage record is reported "
+            "All successful, failed, retried, and unpriced Judge calls are retained. A missing provider usage record is reported "
             "as an unpriced billable call, never estimated as an exact cost and never treated as a semantic failure."
         ),
         "basis": "immutable semantic Judge run manifest, summary, pair call receipts, and normalized provider usage metadata",
