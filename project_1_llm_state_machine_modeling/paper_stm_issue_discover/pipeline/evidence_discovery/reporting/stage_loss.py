@@ -755,12 +755,24 @@ def build_stage_loss_audit(
     evidence_rows = [evidence for index in method_indexes.values() for evidence in index["evidence"]]
     w2_rows = _w2_closure(method_indexes)
     summary = _load(method_root_path / "summary.json")
+    method_source_commits = [
+        str(value)
+        for value in manifest.get(
+            "method_source_commits",
+            (manifest.get("source_provenance", {}).get("source_commit"),),
+        )
+        if value
+    ]
     payload: dict[str, Any] = {
         "schema": "evidence-discovery.stage-loss-audit.v1",
         "run_id": manifest.get("run_id"),
         "method_root": str(method_root_path),
         "judge_root": str(judge_root_path),
         "source_commit": manifest.get("source_provenance", {}).get("source_commit"),
+        "method_source_commits": method_source_commits,
+        "method_composite": str(manifest.get("schema") or "").endswith(
+            "method-composite.v1"
+        ),
         "registry_hash": manifest.get("registry_hash"),
         "selected_pair_ids": list(pair_ids),
         "selected_rounds": list(rounds),

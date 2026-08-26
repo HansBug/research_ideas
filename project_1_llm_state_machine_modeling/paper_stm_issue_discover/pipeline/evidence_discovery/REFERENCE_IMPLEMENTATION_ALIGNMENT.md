@@ -18,3 +18,5 @@
 route 同样受 native 边界约束。G2 对 composite source 的唯一执行投影只能递归读取 `State.init_transitions`，每层恰有一条才能下降到 leaf；不得用 ModelIR reachability 任取后代。R2 的 event/target obligation 只能由 typed transition alternative、唯一 canonical author-source carrier 和 exact native Event 联结形成，scenario 只能由 target-independent `SimulationRuntime` prefix 搜索形成。provider-free 验收必须把 saved-candidate route replay 与 saved-extraction/grounding frontier replay 分开落盘、分开解释。
 
 D prompt 不是 execution receipt 的第二份副本。原始 `.fbmcq`/SMT formula 与 solver payload 必须完整留在 backend/audit receipt，D 通过 canonical hash、size、typed plan、terminal result、telemetry 和 replay witness 引用它们。语义 dossier 按 obligation ID 稳定、按实际序列化预算分批且不截断；某批失败只退化该批 D，不得改变 backend truth、W、其他批次或 Judge。
+
+pair-local method recovery 属于新的完整 sample，不是旧 cell 的就地 D 重算。evaluation 必须先通过 `reporting.method_composite` 验证同 pair/round、pair input hash 和 registry/profile，硬链接未替换 method/status/W2 audit 字节，并明确记录 base/recovery source commit、replacement hash、selected/superseded/total-incurred cost 与 retry/schema-repair。该 composite 只统一 evaluator 输入，不修改 backend truth、W/D、publication 或冻结 Judge。

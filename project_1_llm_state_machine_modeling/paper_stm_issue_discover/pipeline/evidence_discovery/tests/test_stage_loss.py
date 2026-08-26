@@ -381,6 +381,11 @@ def test_expected_issue_witness_audit_keeps_full_witness_and_receipt_chain(tmp_p
 
 def test_evaluation_summary_keeps_hit_witness_precision_and_stage_loss_separate(tmp_path: Path) -> None:
     method_root, judge_root = _write_fixture(tmp_path)
+    manifest_path = method_root / "run_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["schema"] = "evidence-discovery.method-composite.v1"
+    manifest["method_source_commits"] = ["1" * 40, "2" * 40]
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     payload = build_evaluation_summary(method_root=method_root, judge_root=judge_root)
 
     assert payload["judge"]["overall"]["full_hit_count"] == 1
@@ -392,6 +397,8 @@ def test_evaluation_summary_keeps_hit_witness_precision_and_stage_loss_separate(
     assert pair["route_stage_loss"]["non_full_last_method_stage"] == {}
     assert payload["planned_predicate_scope"] == "diagnostic-12"
     assert payload["planned_predicate_count"] == 12
+    assert payload["method_composite"] is True
+    assert payload["method_source_commits"] == ["1" * 40, "2" * 40]
 
 
 def test_judge_cost_audit_keeps_unpriced_billable_call_visible(tmp_path: Path) -> None:

@@ -225,6 +225,8 @@ def build_evaluation_summary(
         "schema": "evidence-discovery.evaluation-summary.v1",
         "run_id": stage_loss["run_id"],
         "source_commit": stage_loss["source_commit"],
+        "method_source_commits": stage_loss["method_source_commits"],
+        "method_composite": stage_loss["method_composite"],
         "registry_hash": stage_loss["registry_hash"],
         "method_root": str(method_root_path),
         "judge_root": str(judge_root_path),

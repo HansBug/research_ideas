@@ -78,6 +78,8 @@ def build_expected_issue_witness_audit(
         "schema": "evidence-discovery.expected-issue-witness-audit.v1",
         "run_id": stage_loss["run_id"],
         "source_commit": stage_loss["source_commit"],
+        "method_source_commits": stage_loss["method_source_commits"],
+        "method_composite": stage_loss["method_composite"],
         "registry_hash": stage_loss["registry_hash"],
         "method_root": stage_loss["method_root"],
         "judge_root": stage_loss["judge_root"],
