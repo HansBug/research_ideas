@@ -10,6 +10,7 @@ from pipeline.evidence_discovery.reporting.judge_input_projection import (
     JudgeInputProjectionCellAudit,
     ProjectedMethodRelease,
     build_judge_input_projection,
+    main,
 )
 from pipeline.semantic_judge.artifacts import adapt_evidence_discovery_release
 
@@ -159,3 +160,30 @@ def test_projection_models_have_documented_fields() -> None:
     ):
         assert model.__doc__
         assert all(field.description for field in model.model_fields.values())
+
+
+def test_cli_defaults_require_frozen_54_by_3_closure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "source"
+    _write_cell(
+        source,
+        pair_id="0001",
+        round_no=1,
+        status="completed",
+        eligible=True,
+        report_count=0,
+    )
+    monkeypatch.setattr(
+        "pipeline.evidence_discovery.reporting.judge_input_projection._require_clean_commit",
+        lambda _path: "a" * 40,
+    )
+    with pytest.raises(ValueError, match="method release closure mismatch"):
+        main(
+            (
+                "--source-root",
+                str(source),
+                "--projection-root",
+                str(tmp_path / "projection"),
+            )
+        )

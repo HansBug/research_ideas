@@ -13,6 +13,8 @@ from typing import Any, Literal, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..inputs import FROZEN_PAIR_IDS
+
 
 PROJECTION_SCHEMA = "evidence-discovery.judge-input-projection.v1"
 AUDIT_SCHEMA = "evidence-discovery.judge-input-projection-audit.v1"
@@ -493,8 +495,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         args.source_root,
         args.projection_root,
         projection_code_commit=code_commit,
-        expected_pair_ids=tuple(args.pair_ids) if args.pair_ids else None,
-        expected_rounds=tuple(args.rounds) if args.rounds else None,
+        expected_pair_ids=tuple(args.pair_ids or FROZEN_PAIR_IDS),
+        expected_rounds=tuple(args.rounds or (1, 2, 3)),
     )
     print(audit.model_dump_json(indent=2, by_alias=True))
     return 0
