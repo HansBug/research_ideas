@@ -1250,6 +1250,148 @@ def test_execution_probe_maps_exact_trigger_binding_to_s3_execution() -> None:
     assert _prepared_is_finding_candidate(prepared) is False
 
 
+def test_runtime_r1_probe_executes_public_fcstm_macrostep_and_stays_nonfinding() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0010")
+    transition = next(
+        item for item in pair.model.transitions if item.triggers == ("Power_On",)
+    )
+    event = next(item for item in pair.model.events if item.name == "Power_On")
+    contract = _probe_contract(
+        contract_id="NL-CONTRACT-PROBE-RUNTIME-R1",
+        property_name="transition_endpoints",
+        locus_names=(transition.source, transition.target),
+        binding_hints=(
+            ContractBindingHint(
+                role="source",
+                value=transition.source,
+                reason="The fixture names the exact runtime source state.",
+                basis="provider-free runtime R1 fixture",
+            ),
+            ContractBindingHint(
+                role="target",
+                value=transition.target,
+                reason="The fixture names the exact runtime target state.",
+                basis="provider-free runtime R1 fixture",
+            ),
+        ),
+    ).model_copy(update={"segment_id": "NL3"})
+    group = NLTransitionGroup(
+        group_id="NL-GROUP-PROBE-RUNTIME-R1",
+        segment_id="NL3",
+        source_name="system",
+        alternatives=(
+            NLTransitionAlternative(
+                alternative_id="ALT-PROBE-RUNTIME-R1",
+                target_name="human driving mode",
+                event="power on",
+                guard=None,
+                observed_transition_ref=None,
+                source_refs=("NL3",),
+                reason="The fixture keeps one exact event alternative.",
+                basis="provider-free runtime R1 fixture",
+            ),
+        ),
+        source_refs=("NL3",),
+        reason="The fixture supplies one typed transition group.",
+        basis="provider-free runtime R1 fixture",
+    )
+
+    probes, probe_contracts, dispositions = _materialize_deterministic_execution_probes(
+        pair,
+        {contract.contract_id: contract},
+        (),
+        (),
+        transition_groups=(group,),
+    )
+
+    r1_probe = next(item for item in probes if item.predicate_id == "R1")
+    assert r1_probe.predicate_inputs["event"] == event.name
+    assert r1_probe.predicate_inputs["scenario"]["selected_transition_ref"] == transition.ref
+    assert any(
+        item["status"] == "admitted_closed_fcstm_runtime_macrostep"
+        for item in dispositions
+    )
+
+    prepared = _prepare_candidate(
+        pair,
+        r1_probe,
+        round_index=1,
+        index=0,
+        contracts_by_id={contract.contract_id: contract, **probe_contracts},
+    )
+    execution = build_predicate_execution_receipt(
+        pair_id=pair.pair_id,
+        run_id="00000000000000000000000000000000",
+        contract_id=r1_probe.contract_id,
+        obligation_id=prepared["obligation_id"],
+        plan=prepared["plan"],
+        receipt=prepared["receipt"],
+    )
+
+    assert prepared["plan"].predicate_id == "R1"
+    assert prepared["plan"].source_gate_passed is False
+    assert prepared["receipt"].terminal_state == "completed"
+    assert prepared["receipt"].verdict == "true"
+    assert prepared["receipt"].run_metadata["algorithm_version"] == "trajectory-fcstm-runtime.v1"
+    assert prepared["receipt"].trace[1]["consumed_events"] == [
+        "llms_emp_feedback_final_0010.Power_On"
+    ]
+    assert execution["execution_status"] == "executed"
+    assert execution["verdict"] == "pass"
+    assert _prepared_is_finding_candidate(prepared) is False
+
+
+def test_runtime_r1_receipt_preserves_a_wrong_runtime_target_as_violation() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0010")
+    transition = next(
+        item for item in pair.model.transitions if item.triggers == ("Power_On",)
+    )
+    event = next(item for item in pair.model.events if item.name == "Power_On")
+    scenario = runner_module._r1_cold_runtime_scenario(pair, transition, event)
+    assert scenario is not None
+    scenario["expected_active_after"] = "llms_emp_feedback_final_0010.HumanDriving"
+    candidate = CandidateIssue(
+        contract_id="NL-CONTRACT-PROBE-RUNTIME-R1-COUNTEREXAMPLE",
+        locus_kind="scenario",
+        locus_names=(transition.source, event.name),
+        property="event_consumption",
+        violation_direction="unconsumed",
+        evidence_types=("closed_model_inventory", "transition_fact", "trigger_fact", "trace_fact"),
+        title="Runtime R1 counterexample fixture",
+        requirement_quote="The exact event is consumed in the selected macrostep.",
+        predicate_id="R1",
+        predicate_inputs={"scenario": scenario, "event": event.name, "step": 1},
+        element_refs=[event.ref, transition.ref],
+        source_refs=["NL3"],
+        expected="The queued event is consumed by the exact runtime macrostep.",
+        observed="The fixture requires a deliberately incorrect post-state observation.",
+        strongest_rebuttal="The backend executes the frozen FCSTM rather than trusting the scenario expectation.",
+        reason="The fixture changes only the expected post-state identity.",
+        basis="provider-free public FCSTM runtime counterexample fixture",
+    )
+    plan = compile_plan(
+        candidate,
+        bind_candidate(candidate, pair.model),
+        load_registry(),
+        obligation_id="0010:r1-runtime-counterexample",
+        round_index=1,
+        model=pair.model,
+    )
+    receipt = run_trajectory(plan, pair.model, "0010:r1-runtime-counterexample:receipt")
+
+    assert plan.executable is True
+    assert receipt.terminal_state == "completed"
+    assert receipt.verdict == "false"
+    assert receipt.counterexample == [{
+        "queued": True,
+        "consumed": True,
+        "unconsumed": False,
+        "root_matches": True,
+        "source_matches": True,
+        "target_matches": False,
+    }]
+
+
 def test_execution_probe_maps_exact_effect_binding_to_s6_execution() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     transition = next(item for item in pair.model.transitions if item.effects)

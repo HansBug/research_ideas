@@ -2394,6 +2394,102 @@ def _working_event_transition_context(
     return transition_refs, macro_ids, source_refs
 
 
+def _r1_cold_runtime_scenario(
+    pair: PairInput,
+    transition: Any,
+    event: Any,
+) -> dict[str, Any] | None:
+    """Build one narrow cold-start runtime scenario from exact ModelIR carriers.
+
+    This is deliberately more restrictive than graph reachability.  It accepts
+    only one sequential root with a unique root initial edge, a direct leaf-to-
+    leaf unguarded transition, and one exact root event.  The backend still runs
+    the supplied FCSTM; these facts merely prevent the runner from inventing a
+    runtime setup, a guard valuation, or an event identity.
+    """
+
+    if (
+        pair.canonical_source_ir is None
+        or pair.canonical_source_ir.model.concurrent_regions
+        or transition.guard is not None
+        or len(transition.triggers) != 1
+        or transition.triggers[0] != event.name
+        or transition.source == "[*]"
+        or transition.target == "[*]"
+    ):
+        return None
+    roots = [state for state in pair.model.states if state.parent is None]
+    if len(roots) != 1:
+        return None
+    root = roots[0]
+    if transition.scope != root.name:
+        return None
+    source_rows = [
+        state
+        for state in pair.model.states
+        if state.name == transition.source and state.parent == root.name
+    ]
+    target_rows = [
+        state
+        for state in pair.model.states
+        if state.name == transition.target and state.parent == root.name
+    ]
+    if len(source_rows) != 1 or len(target_rows) != 1:
+        return None
+    source, target = source_rows[0], target_rows[0]
+    if any(state.parent == source.name for state in pair.model.states):
+        return None
+    initial_rows = [
+        item
+        for item in pair.model.transitions
+        if (
+            item.source == "[*]"
+            and item.target == source.name
+            and item.scope == root.name
+            and not item.triggers
+            and item.guard is None
+        )
+    ]
+    same_trigger_rows = [
+        item
+        for item in pair.model.transitions
+        if (
+            item.source == source.name
+            and item.scope == root.name
+            and item.triggers == (event.name,)
+            and item.guard is None
+        )
+    ]
+    event_rows = [item for item in pair.model.events if item.name == event.name]
+    if len(initial_rows) != 1 or len(same_trigger_rows) != 1 or len(event_rows) != 1:
+        return None
+    event_path = f"{root.name}.{event.name}"
+    source_path = f"{root.name}.{source.name}"
+    target_path = f"{root.name}.{target.name}"
+    return {
+        "schema": "evidence-discovery.fcstm-runtime-scenario.v1",
+        "initialization": "cold",
+        "root_state": root.name,
+        "expected_active_before": source_path,
+        "expected_active_after": target_path,
+        "event_queue": [event_path],
+        "schedule": [
+            {"step": 0, "event_paths": []},
+            {"step": 1, "event_paths": [event_path]},
+        ],
+        "selected_step": 1,
+        "selected_event_path": event_path,
+        "selected_transition_ref": transition.ref,
+        "reason": "A cold-start execution is bounded by one unique unguarded root-level event transition with exact source and target state paths.",
+        "basis": (
+            f"root_ref={root.ref}; initial_transition_ref={initial_rows[0].ref}; "
+            f"source_ref={source.ref}; target_ref={target.ref}; "
+            f"event_ref={event_rows[0].ref}; transition_ref={transition.ref}; "
+            "sequential canonical source model"
+        ),
+    }
+
+
 def _materialize_deterministic_execution_probes(
     pair: PairInput,
     contracts_by_id: Mapping[str, NLContract],
@@ -2950,9 +3046,13 @@ def _materialize_deterministic_execution_probes(
     # Project one such group through the compiler-owned event projection and
     # its macro/segment carrier. This remains a supporting execution probe: it
     # never replaces the group's endpoint obligation or creates a new norm.
-    if not any(item.predicate_id == "S3" for item in probes) and not any(
+    needs_s3_probe = not any(item.predicate_id == "S3" for item in probes) and not any(
         candidate.predicate_id == "S3" for candidate in existing_candidates
-    ):
+    )
+    needs_r1_probe = not any(item.predicate_id == "R1" for item in probes) and not any(
+        candidate.predicate_id == "R1" for candidate in existing_candidates
+    )
+    if needs_s3_probe or needs_r1_probe:
         for group in sorted(transition_groups, key=lambda item: item.group_id):
             segment_contract_ids = {
                 contract.contract_id
@@ -3063,6 +3163,97 @@ def _materialize_deterministic_execution_probes(
                     f"carrier_transition_ref={transition.ref}; "
                     f"segment_exact_refs={sorted(segment_transition_refs)}"
                 )
+                r1_scenario = _r1_cold_runtime_scenario(pair, transition, event)
+                r1_admitted = False
+                if needs_r1_probe and parent_contract is not None and r1_scenario is not None:
+                    r1_probe_id = f"NL-CONTRACT-{group.group_id}-R1-PROBE-{digest}"
+                    r1_reason = (
+                        "One exact transition-group event and a unique cold-start "
+                        "FCSTM runtime setup are available for a supporting event-"
+                        "consumption execution."
+                    )
+                    r1_basis = (
+                        f"{basis}; runtime_scenario_basis={r1_scenario['basis']}"
+                    )
+                    r1_contract = parent_contract.model_copy(
+                        update={
+                            "contract_id": r1_probe_id,
+                            "locus_kind": "scenario",
+                            "locus_names": (transition.source, event.name),
+                            "property": "event_consumption",
+                            "expected_direction": "must_occur",
+                            "violation_direction": "unconsumed",
+                            "evidence_types": (
+                                "source_identity",
+                                "closed_model_inventory",
+                                "transition_fact",
+                                "trigger_fact",
+                                "trace_fact",
+                            ),
+                            "binding_hints": (),
+                            "cardinality_requirement": None,
+                            "normative_statement": (
+                                f"The exact queued event {event.name} must be consumed "
+                                f"in the closed macrostep from {transition.source}."
+                            ),
+                            "scope": "closed_fcstm_cold_runtime_macrostep",
+                            "source_refs": tuple(source_refs),
+                            "reason": r1_reason,
+                            "basis": r1_basis,
+                        }
+                    )
+                    r1_candidate = CandidateIssue(
+                        contract_id=r1_probe_id,
+                        locus_kind="scenario",
+                        locus_names=(transition.source, event.name),
+                        property="event_consumption",
+                        violation_direction="unconsumed",
+                        evidence_types=(
+                            "source_identity",
+                            "closed_model_inventory",
+                            "transition_fact",
+                            "trigger_fact",
+                            "trace_fact",
+                        ),
+                        title=f"Closed macrostep consumes {event.name} from {transition.source}",
+                        requirement_quote=parent_contract.quote,
+                        predicate_id="R1",
+                        predicate_inputs={
+                            "scenario": r1_scenario,
+                            "event": event.name,
+                            "step": 1,
+                        },
+                        element_refs=[event.ref, transition.ref],
+                        source_refs=source_refs,
+                        expected=r1_contract.normative_statement,
+                        observed=(
+                            f"The frozen FCSTM will be cold-started and execute the "
+                            f"exact queued event path {r1_scenario['selected_event_path']}."
+                        ),
+                        strongest_rebuttal=(
+                            "The probe is admitted only when the runtime setup has a "
+                            "unique initial source and one unguarded same-source event "
+                            "carrier; otherwise no R1 scenario is materialized."
+                        ),
+                        reason=r1_reason,
+                        basis=r1_basis,
+                    )
+                    probe_contracts[r1_probe_id] = r1_contract
+                    probes.append(r1_candidate)
+                    r1_admitted = True
+                    dispositions.append(
+                        {
+                            "probe": "R1",
+                            "status": "admitted_closed_fcstm_runtime_macrostep",
+                            "contract_id": r1_probe_id,
+                            "group_id": group.group_id,
+                            "event_ref": event.ref,
+                            "carrier_transition_ref": transition.ref,
+                            "runtime_scenario": r1_scenario,
+                            "reason": r1_reason,
+                            "basis": r1_basis,
+                        }
+                    )
                 if parent_contract is not None:
                     probe_contract = parent_contract.model_copy(
                         update={
@@ -3113,6 +3304,10 @@ def _materialize_deterministic_execution_probes(
                         reason=reason,
                         basis=basis,
                     )
+                if not needs_s3_probe:
+                    if r1_admitted:
+                        return probes, probe_contracts, dispositions
+                    continue
                 candidate = CandidateIssue(
                     contract_id=probe_id,
                     locus_kind="transition",
