@@ -31,7 +31,7 @@ selection preflight 的 15x12 表只保存固定 12 谓词的通用 capability/s
 
 阶段 C 的基准 A/B 只能以保存的最终 `predicate_id=null` W1 evidence 为 cohort。当前有效 artifact ID 是 `f993bb21aa5c39e8a93f8ba1899c29e9`（`evidence-discovery-15x1-primary-route-replay-05699769`），包含 88 条 cohort、0 provider 调用、0 Judge 调用、20 条确定性路由和 17 条 W2；历史上使用 113 条辅助 `execute_batch` candidate 的制品不是本阶段指标依据。A/B 仅证明确定性 route 收益，不能取代新 15x1 的独立 method/Judge 验收。
 
-15-pair 的检查包括 15/15 terminal、无 diagnostics、FULL expected 的 max-W2、W2/全部 expected、overall/L2 hit、precision/FP、12 分母 execution、W2 audit closure 和成本。Judge 在 method 完成后独立补齐，不能改 Judge 语义迁就 method。
+15-pair 的检查包括 15/15 terminal、无 diagnostics、FULL expected 的 max-W2、W2/全部 expected、overall/L2 hit、precision/FP、12 分母 execution、W2 audit closure 和成本。Judge 在 method 完成后独立补齐，不能改 Judge 语义迁就 method。Judge 完成后必须在 evaluation artifact 写入 `expected_issue_witness_audit.json`：每个 expected 保留 `FULL/PARTIAL/NONE`、匹配 report 的 predicate/W/D、typed/backend/receipt 链、`max_W` 与 stage-loss；该制品只读不可变 method/Judge artifact，绝不反向进入 method。
 
 ## 阶段 D：54x3
 

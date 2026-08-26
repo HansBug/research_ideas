@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from pipeline.evidence_discovery.reporting.expected_issue_witness import (
+    build_expected_issue_witness_audit,
+)
 from pipeline.evidence_discovery.reporting.stage_loss import build_stage_loss_audit
 
 
@@ -182,3 +185,22 @@ def test_stage_loss_audit_does_not_feed_judge_fields_into_method_rows(tmp_path: 
     assert all(
         row["method_artifact"].endswith("round-1.json") for row in payload["rows"]
     )
+
+
+def test_expected_issue_witness_audit_keeps_full_witness_and_receipt_chain(tmp_path: Path) -> None:
+    method_root, judge_root = _write_fixture(tmp_path)
+    payload = build_expected_issue_witness_audit(method_root=method_root, judge_root=judge_root)
+
+    assert payload["summary"]["expected_count"] == 1
+    assert payload["summary"]["full_expected_count"] == 1
+    assert payload["summary"]["full_max_w2_count"] == 1
+    row = payload["rows"][0]
+    assert row["match_status"] == "FULL"
+    assert row["max_witness_level"] == "W2"
+    assert row["matching_report_ids"] == ["0004:r1:issue:0"]
+    report = row["matching_reports"][0]
+    assert report["predicate_id"] == "S2"
+    assert report["witness_level"] == "W2"
+    assert report["d_level"] == "D2"
+    assert report["receipt_chain"]["receipt_hash"] == "sha256:receipt"
+    assert "method prompts" in payload["evaluation_boundary"]

@@ -44,6 +44,7 @@ STAGE_OWNERS = {
     "publish": "publish_adapter",
     "judge_mapping": "external_judge",
 }
+WITNESS_RANK = {"W0": 0, "W1": 1, "W2": 2}
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -71,6 +72,17 @@ def _hash(value: Any) -> str:
     return "sha256:" + hashlib.sha256(
         json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
+
+
+def _max_witness_level(rows: Iterable[dict[str, Any]]) -> str | None:
+    """Return the strongest observed three-level witness without inventing one."""
+
+    levels = [
+        str(row.get("witness_level"))
+        for row in rows
+        if row.get("witness_level") in WITNESS_RANK
+    ]
+    return max(levels, key=WITNESS_RANK.__getitem__) if levels else None
 
 
 def _method_path(method_root: Path, pair_id: str) -> Path:
@@ -147,6 +159,7 @@ def _compact_candidate(item: dict[str, Any], *, evidence: dict[str, Any] | None 
     if not isinstance(receipt, dict):
         receipt = item.get("receipt") if isinstance(item.get("receipt"), dict) else {}
     return {
+        "issue_id": (evidence or {}).get("issue_id"),
         "obligation_id": item.get("obligation_id"),
         "contract_id": item.get("contract_id"),
         "predicate_id": item.get("predicate_id"),
@@ -247,6 +260,51 @@ def _expected_row(
     obligation_ids = {item.get("obligation_id") for item in candidates if item.get("obligation_id")}
     receipts = [item for item in index["receipts"] if item.get("obligation_id") in obligation_ids]
     published = [report_id for report_id in mapped_reports if report_id in index["publish_issue_ids"]]
+    receipt_by_obligation = {
+        str(item.get("obligation_id")): item
+        for item in receipts
+        if item.get("obligation_id")
+    }
+    report_match = {
+        **{report_id: "FULL" for report_id in full_reports},
+        **{report_id: "PARTIAL" for report_id in partial_reports},
+    }
+    matching_reports: list[dict[str, Any]] = []
+    for report_id in mapped_reports:
+        evidence_row = index["by_issue"].get(report_id)
+        obligation_id = evidence_row.get("obligation_id") if evidence_row else None
+        receipt = receipt_by_obligation.get(str(obligation_id), {}) if obligation_id else {}
+        plan = evidence_row.get("plan") if isinstance((evidence_row or {}).get("plan"), dict) else {}
+        audit_bundle = evidence_row.get("audit_bundle") if isinstance((evidence_row or {}).get("audit_bundle"), dict) else {}
+        matching_reports.append({
+            "report_id": report_id,
+            "match_status": report_match[report_id],
+            "predicate_id": (evidence_row or {}).get("predicate_id"),
+            "witness_level": (evidence_row or {}).get("witness_level"),
+            "d_level": (evidence_row or {}).get("d_level"),
+            "published": report_id in published,
+            "receipt_chain": {
+                "obligation_id": obligation_id,
+                "predicate_logic": plan.get("semantics") or plan.get("formal_program"),
+                "typed_inputs": receipt.get("typed_inputs") or plan.get("inputs"),
+                "typed_inputs_hash": receipt.get("typed_inputs_hash"),
+                "compiled_program": receipt.get("compiled_program") or plan.get("formal_program"),
+                "compiled_program_hash": receipt.get("compiled_program_hash") or plan.get("formal_program_hash"),
+                "backend": receipt.get("backend"),
+                "algorithm_version": receipt.get("algorithm_version"),
+                "execution_state": receipt.get("execution_state"),
+                "terminal_state": receipt.get("terminal_state"),
+                "predicate_verdict": receipt.get("predicate_verdict"),
+                "verdict": receipt.get("verdict"),
+                "failure_kind": receipt.get("failure_kind"),
+                "artifact_attribution_complete": receipt.get("artifact_attribution_complete"),
+                "receipt_hash": receipt.get("receipt_hash"),
+                "audit_bundle_hash": audit_bundle.get("audit_hash"),
+                "reason": receipt.get("reason") or (evidence_row or {}).get("reason"),
+                "basis": receipt.get("basis") or (evidence_row or {}).get("basis"),
+            },
+        })
+    max_witness_level = _max_witness_level(matching_reports)
     last_stage = _method_stage(contract_rows, grounding, frontier, candidates, receipts, evidence, published)
     if full_reports:
         judge_disposition = "FULL"
@@ -379,6 +437,16 @@ def _expected_row(
             "reason": expected.get("reason"),
             "basis": expected.get("basis"),
         },
+        "match_status": (
+            "FULL" if full_reports else "PARTIAL" if partial_reports else "NONE"
+        ),
+        "matching_report_ids": mapped_reports,
+        "matching_reports": matching_reports,
+        "max_witness_level": max_witness_level,
+        "max_witness_basis": (
+            "max(W) is computed over matching reports with the fixed ordering W2 > W1 > W0; "
+            "a missing evidence record never manufactures a witness level."
+        ),
         "last_method_stage": last_stage,
         "last_observed_stage": "judge_mapping",
         "method_disposition": method_disposition,

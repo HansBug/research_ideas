@@ -63,6 +63,8 @@ route 只能基于当前 pair 的 typed contract、compatible predicate set、ex
 
 Judge 在独立 evaluation 路径执行，保持冻结口径；method 与 Judge 的 artifact 物理分离。15-pair 与 54x3 运行均须保存 immutable run identity、source commit、prompt/schema/registry/input hash、完整成本与 terminal cell receipt。先做 provider-free replay，后做一次新 15x1；只有协议、typed/backend 和小规模 gate 稳定后才启动 54x3。
 
+外置 Judge 终结后，evaluation 侧使用 `python -m pipeline.evidence_discovery.reporting.expected_issue_witness` 生成 `expected_issue_witness_audit.json`。它逐 expected issue 保存 `FULL/PARTIAL/NONE`、匹配 report 的 predicate/W/D、完整 typed/backend/receipt 链、`max_W` 和 `contract extraction -> identity binding -> predicate route -> typed inputs -> backend -> W -> D -> publication -> Judge relation` 的 stage-loss；其输入只能是不可变 method/Judge artifact。该文件及其 summary 不是 method input，不能作为 prompt、binding、route、execution、W、D、publication 或 preflight 的任何条件。
+
 ## 5. Public implementation language
 
 Public implementation language: provider prompts、Pydantic class docstrings、Field descriptions、production class/function/variable names、registry text、generated explanations 与 deterministic audit prose must be English；本中文协议不进入 provider prompt。Exact source quotations 可保留原文。Provider-free tests 必须检查 W 状态、native backend、失败退化、归因闭合和无答案泄漏。
