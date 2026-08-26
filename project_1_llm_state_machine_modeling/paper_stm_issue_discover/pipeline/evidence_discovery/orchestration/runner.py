@@ -2696,6 +2696,103 @@ def _materialize_deterministic_execution_probes(
         )
         break
 
+    # An effect contract can be executed by S6 only when grounding supplies
+    # one exact transition carrier.  The effect hint remains the normative
+    # input; event names, variable deltas, state scope, and display labels are
+    # not transition-effect evidence and must not be used to guess a carrier.
+    effect_bindings: dict[tuple[str, str], SemanticBinding] = {}
+    for response in grounding_responses:
+        for binding in response.semantic_bindings:
+            if binding.status != "exact" or binding.role != "transition":
+                continue
+            carrier_ref = binding.carrier_transition_ref
+            if not carrier_ref or carrier_ref not in pair.model.transition_refs:
+                continue
+            resolved_refs = _resolved_exact_binding_refs(pair, binding)
+            transition_refs = tuple(
+                ref for ref in resolved_refs if ref in pair.model.transition_refs
+            )
+            if len(transition_refs) != 1 or transition_refs[0] != carrier_ref:
+                continue
+            effect_bindings[(binding.contract_id, carrier_ref)] = binding
+    for contract in sorted(contracts_by_id.values(), key=lambda item: item.contract_id):
+        if contract.property != "effect":
+            continue
+        effect_hints = [hint for hint in contract.binding_hints if hint.role == "effect"]
+        carrier_rows = [
+            (carrier_ref, binding)
+            for (contract_id, carrier_ref), binding in effect_bindings.items()
+            if contract_id == contract.contract_id
+        ]
+        if len(effect_hints) != 1 or len(carrier_rows) != 1:
+            continue
+        effect_hint = effect_hints[0]
+        carrier_ref, binding = carrier_rows[0]
+        transition = pair.model.transition(carrier_ref)
+        if transition is None:
+            continue
+        if (contract.contract_id, "S6") in existing_predicates:
+            continue
+        source_refs = list(contract.source_refs)
+        for source_ref in (effect_hint.source_ref, binding.source_element_ref):
+            if source_ref and source_ref not in source_refs:
+                source_refs.append(source_ref)
+        candidate = CandidateIssue(
+            contract_id=contract.contract_id,
+            locus_kind=contract.locus_kind,
+            locus_names=contract.locus_names,
+            property=contract.property,
+            violation_direction=contract.violation_direction,
+            evidence_types=tuple(
+                dict.fromkeys([*contract.evidence_types, "transition_fact", "effect_fact"])
+            ),
+            title=(
+                f"Effect {effect_hint.value!r} on exact transition "
+                f"{transition.source} -> {transition.target}"
+            ),
+            requirement_quote=contract.quote,
+            predicate_id="S6",
+            predicate_inputs={
+                "transition": transition.ref,
+                "effect": [effect_hint.value],
+            },
+            element_refs=[transition.ref],
+            source_refs=source_refs,
+            expected=contract.normative_statement,
+            observed=(
+                f"The exact carrier {transition.ref} has parsed effects "
+                f"{list(transition.effects)!r}."
+            ),
+            strongest_rebuttal=(
+                "The S6 execution is limited to the one exact grounded carrier; "
+                "a state scope, event name, variable delta, or another transition "
+                "cannot satisfy this effect attachment check."
+            ),
+            reason=(
+                "One exact transition binding and one explicit effect hint are "
+                "available for a standalone transition-effect membership execution."
+            ),
+            basis=(
+                f"contract={contract.contract_id}; effect_hint={effect_hint.value!r}; "
+                f"carrier_transition_ref={transition.ref}; binding_id={binding.binding_id}; "
+                "grounding SemanticBinding.status=exact"
+            ),
+        )
+        probes.append(candidate)
+        dispositions.append(
+            {
+                "probe": "S6",
+                "status": "admitted_exact_effect_carrier",
+                "contract_id": contract.contract_id,
+                "carrier_transition_ref": transition.ref,
+                "effect": effect_hint.value,
+                "binding_id": binding.binding_id,
+                "reason": candidate.reason,
+                "basis": candidate.basis,
+            }
+        )
+        break
+
     # An aggregate stable-termination check already contains the exact
     # coaccessibility obligation, but it used to stop at the predicate-null
     # frontier candidate. Project only the frontier's typed root/marked refs:

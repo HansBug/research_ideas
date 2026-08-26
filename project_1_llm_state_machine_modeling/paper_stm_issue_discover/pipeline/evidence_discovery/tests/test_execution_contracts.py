@@ -1250,6 +1250,186 @@ def test_execution_probe_maps_exact_trigger_binding_to_s3_execution() -> None:
     assert _prepared_is_finding_candidate(prepared) is False
 
 
+def test_execution_probe_maps_exact_effect_binding_to_s6_execution() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    transition = next(item for item in pair.model.transitions if item.effects)
+    contract = _probe_contract(
+        contract_id="NL-CONTRACT-PROBE-EFFECT",
+        property_name="effect",
+        locus_kind="state",
+        locus_names=(transition.source,),
+        binding_hints=(
+            ContractBindingHint(
+                role="effect",
+                value="Obstacle Detected",
+                source_ref="NL3",
+                reason="The fixture names the required transition effect.",
+                basis="provider-free effect binding hint fixture",
+            ),
+        ),
+    )
+    grounding = GroundingResponse(
+        lens="contract_structure_contrast",
+        semantic_bindings=(
+            _exact_binding(
+                contract_id=contract.contract_id,
+                role="transition",
+                model_ref=transition.ref,
+                carrier_ref=transition.ref,
+            ),
+        ),
+        reason="The fixture supplies one exact transition carrier.",
+        basis="provider-free exact effect carrier probe fixture",
+    )
+
+    probes, probe_contracts, dispositions = _materialize_deterministic_execution_probes(
+        pair,
+        {contract.contract_id: contract},
+        (grounding,),
+        (),
+    )
+
+    s6_probe = next(item for item in probes if item.predicate_id == "S6")
+    assert s6_probe.contract_id == contract.contract_id
+    assert s6_probe.predicate_inputs == {
+        "transition": transition.ref,
+        "effect": ["Obstacle Detected"],
+    }
+    assert s6_probe.element_refs == [transition.ref]
+    assert any(
+        item["status"] == "admitted_exact_effect_carrier"
+        for item in dispositions
+    )
+
+    prepared = _prepare_candidate(
+        pair,
+        s6_probe,
+        round_index=1,
+        index=0,
+        contracts_by_id={contract.contract_id: contract, **probe_contracts},
+    )
+    assert prepared["plan"].predicate_id == "S6"
+    assert prepared["plan"].inputs["transition"] == transition.ref
+    assert prepared["receipt"].terminal_state == "completed"
+    assert prepared["receipt"].verdict in {"true", "false"}
+
+
+def _effect_probe_contract(
+    pair_transition,
+    *,
+    contract_id: str = "NL-CONTRACT-PROBE-EFFECT-BOUNDARY",
+    property_name: str = "effect",
+) -> NLContract:
+    return _probe_contract(
+        contract_id=contract_id,
+        property_name=property_name,
+        locus_kind="state",
+        locus_names=(pair_transition.source,),
+        binding_hints=(
+            ContractBindingHint(
+                role="effect",
+                value="Obstacle Detected",
+                reason="The fixture names the required effect.",
+                basis="provider-free effect boundary fixture",
+            ),
+        ),
+    )
+
+
+def test_effect_probe_rejects_missing_exact_carrier() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    transition = next(item for item in pair.model.transitions if item.effects)
+    contract = _effect_probe_contract(transition)
+    grounding = GroundingResponse(
+        lens="contract_structure_contrast",
+        semantic_bindings=(
+            _exact_binding(
+                contract_id=contract.contract_id,
+                role="transition",
+                model_ref=transition.ref,
+                carrier_ref=None,
+            ),
+        ),
+        reason="The fixture supplies a boundary binding.",
+        basis="provider-free effect boundary fixture",
+    )
+
+    probes, _, _ = _materialize_deterministic_execution_probes(
+        pair,
+        {contract.contract_id: contract},
+        (grounding,),
+        (),
+    )
+
+    assert not any(item.predicate_id == "S6" for item in probes)
+
+
+def test_effect_probe_rejects_multiple_exact_carriers() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    transitions = [item for item in pair.model.transitions if item.effects]
+    transition = transitions[0]
+    other_transition = next(
+        item for item in pair.model.transitions if item.ref != transition.ref
+    )
+    contract = _effect_probe_contract(transition)
+    grounding = GroundingResponse(
+        lens="contract_structure_contrast",
+        semantic_bindings=(
+            _exact_binding(
+                contract_id=contract.contract_id,
+                role="transition",
+                model_ref=transition.ref,
+                carrier_ref=transition.ref,
+            ),
+            _exact_binding(
+                contract_id=contract.contract_id,
+                role="transition",
+                model_ref=other_transition.ref,
+                carrier_ref=other_transition.ref,
+            ).model_copy(update={"binding_id": "BIND-EFFECT-OTHER"}),
+        ),
+        reason="The fixture supplies two competing exact carriers.",
+        basis="provider-free ambiguous effect carrier fixture",
+    )
+
+    probes, _, _ = _materialize_deterministic_execution_probes(
+        pair,
+        {contract.contract_id: contract},
+        (grounding,),
+        (),
+    )
+
+    assert not any(item.predicate_id == "S6" for item in probes)
+
+
+def test_variable_delta_contract_is_not_relabelled_as_s6() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    transition = next(item for item in pair.model.transitions if item.effects)
+    contract = _effect_probe_contract(transition, property_name="variable_delta")
+    grounding = GroundingResponse(
+        lens="contract_structure_contrast",
+        semantic_bindings=(
+            _exact_binding(
+                contract_id=contract.contract_id,
+                role="transition",
+                model_ref=transition.ref,
+                carrier_ref=transition.ref,
+            ),
+        ),
+        reason="The fixture supplies a variable-delta contract with a carrier.",
+        basis="provider-free variable-delta boundary fixture",
+    )
+
+    probes, _, _ = _materialize_deterministic_execution_probes(
+        pair,
+        {contract.contract_id: contract},
+        (grounding,),
+        (),
+    )
+
+    assert not any(item.predicate_id == "S6" for item in probes)
+
+
 def test_working_contract_root_and_segment_join_to_unique_model_carrier() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0002")
 
