@@ -30,4 +30,6 @@
 
 registry/backend 与单次输入可行性是两个字段轴。19 个冻结 ID 当前全部 `backend_implemented=true`；单次 `invalid_input`、soundness fragment 不满足或 scenario/domain/carrier 未闭合，只能分别报告 `input_contract_missing`/`out_of_fragment` 和 W1/W0，不能写成 `backend_missing`。receipt 中的 `backend=none` 只表示该计划没有进入 backend，不能推翻 19/19 backend conformance。
 
+route/input binder 不改变注册表语义。G2 source 已是 leaf 时直接绑定；composite 只有通过 native `State.init_transitions` 每层唯一下降到 leaf 时才可进入同一 `.fbmcq must_reach` backend。R2 的 event/target 只能由 typed transition relation、唯一 canonical source carrier 与 exact native Event 闭合，目标真值仍由 `SimulationRuntime` receipt 判断。无法唯一闭合只影响当前 evidence 的 W1/W0，不影响 G2/R2 或其他冻结谓词的学术资格和 backend 状态。
+
 下列语义边界不是谓词：requirement-relative containment、direct-member cardinality、initial vertex count、宽泛 event consumer coverage、orthogonal concurrency、hierarchy priority、trace variable delta。它们不得伪装为 S1--V5；精确语义问题可作为 W1 保留。

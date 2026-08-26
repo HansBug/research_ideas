@@ -18,7 +18,6 @@ from pipeline.evidence_discovery.semantics.predicate_routing import (
     route_primary_candidates,
 )
 
-
 PAPER_ROOT = Path(__file__).parents[3]
 REPORT_ROOT = PAPER_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
 
@@ -347,7 +346,7 @@ def test_event_consumption_routes_to_a_native_cold_runtime_scenario() -> None:
 
 
 def test_universal_reachability_routes_only_from_one_native_leaf() -> None:
-    """G2 receives exact native states and never chooses a leaf for a composite."""
+    """G2 maps a composite only through one unique native initial descent."""
 
     model = parse_fcstm(_RUNTIME_SOURCE)
     pair = PairInput(
@@ -407,8 +406,64 @@ def test_universal_reachability_routes_only_from_one_native_leaf() -> None:
         (),
         [_candidate(composite_contract, [root.ref, target.ref])],
     )
-    assert composite_projection.candidates[0].predicate_id is None
-    assert "leaf-state" in composite_projection.telemetry[0].basis
+    composite = composite_projection.candidates[0]
+    assert composite.predicate_id == "G2"
+    assert composite.predicate_inputs == {
+        "source": source.canonical_path,
+        "target": target.canonical_path,
+    }
+    assert "State.init_transitions" in composite.basis
+
+
+def test_g2_rejects_non_unique_native_initial_descent() -> None:
+    source_text = """
+state Root {
+    state A;
+    state B;
+    [*] -> A;
+    [*] -> B;
+}
+"""
+    model = parse_fcstm(source_text)
+    pair = PairInput(
+        pair_id="fixture-g2-ambiguous-initial",
+        pair_dir=Path("fixture-g2-ambiguous-initial"),
+        nl_text="Every execution from Root must reach B.",
+        fcstm_text=source_text,
+        plantuml_text="",
+        model=model,
+        hashes={},
+    )
+    root = model.state("Root")
+    target = model.state("B")
+    assert root is not None and target is not None
+    contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-G2-AMBIGUOUS-1",
+        segment_id="NL1",
+        quote="Every execution from Root must reach B.",
+        normative_statement="Every bounded execution from Root must reach B.",
+        locus_kind="state",
+        locus_names=("Root", "B"),
+        property="universal_reachability",
+        expected_direction="must_reach",
+        violation_direction="unreachable",
+        evidence_types=("source_identity", "reachability_fact"),
+        binding_hints=(_hint("source", "Root"), _hint("target", "B")),
+        scope="Root bounded execution",
+        source_refs=("NL1",),
+        reason="The fixture supplies exact universal-reachability endpoints.",
+        basis="G2 ambiguous native initial-descent regression fixture",
+    )
+
+    projection = route_primary_candidates(
+        pair,
+        {contract.contract_id: contract},
+        (),
+        [_candidate(contract, [root.ref, target.ref])],
+    )
+
+    assert projection.candidates[0].predicate_id is None
+    assert "2 initial transitions" in projection.telemetry[0].basis
 
 
 def test_route_avoidance_requires_three_exact_native_leaf_states() -> None:

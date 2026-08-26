@@ -9,10 +9,10 @@ candidate prose as an identity resolver.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
-from itertools import product
 import json
 import re
+from collections.abc import Mapping, Sequence
+from itertools import product
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -33,7 +33,6 @@ from ..inputs.models import EventNode, PairInput, StateNode, Transition
 from .binding import resolve_state_ref, resolve_transition_ref
 from .obligations import CandidateIssue
 from .workflow import GroundingResponse, NLContract
-
 
 PredicateId = Literal[
     "S1", "S2", "S3", "S4", "S5", "S6",
@@ -238,6 +237,49 @@ def _native_state_fragment(
     return True, "pyfcstm native State identity and leaf-state fragment" if require_leaf else "pyfcstm native State identity"
 
 
+def _native_initial_leaf_source(
+    pair: PairInput,
+    source: StateNode,
+) -> tuple[str | None, str]:
+    """Resolve one source to its unique executable native initial leaf.
+
+    FCSTM composite entry follows ``State.init_transitions`` recursively. The
+    route accepts a composite only when every level has exactly one initial
+    transition to one native substate. It never chooses from multiple leaves or
+    substitutes graph reachability for initial-descent semantics.
+    """
+
+    try:
+        native = load_native_fcstm(pair.model)
+    except Exception as exc:  # noqa: BLE001 - route failure remains W1.
+        return None, f"native FCSTM load failed: {type(exc).__name__}"
+    current = resolve_state(native, source.canonical_path)
+    if current is None:
+        return None, "the exact projected source does not resolve to a pyfcstm native State"
+    visited: set[str] = set()
+    descent: list[str] = [state_path(current)]
+    while not current.is_leaf_state:
+        current_path = state_path(current)
+        if current_path in visited:
+            return None, "native initial descent contains a cycle"
+        visited.add(current_path)
+        initial = tuple(current.init_transitions)
+        if len(initial) != 1:
+            return None, (
+                f"native composite {current_path} has {len(initial)} initial "
+                "transitions; one executable source leaf is not unique"
+            )
+        target_name = initial[0].to_state
+        if not isinstance(target_name, str):
+            return None, "native initial transition does not target one named substate"
+        target = current.substates.get(target_name)
+        if target is None:
+            return None, "native initial transition target is absent from its owner State"
+        current = target
+        descent.append(state_path(current))
+    return state_path(current), f"unique pyfcstm State.init_transitions descent={descent}"
+
+
 def _transition_for_candidate(
     pair: PairInput,
     contract: NLContract,
@@ -381,7 +423,7 @@ def build_r1_cold_runtime_scenario(
         return None
     try:
         native = load_native_fcstm(pair.model)
-    except Exception:
+    except Exception:  # noqa: BLE001 - native load failure leaves R1 unmaterialized.
         return None
     root = native.machine.root_state
     root_path = state_path(root)
@@ -491,7 +533,7 @@ def _cold_retention_scenario(
             return None, None, f"R4 cold window exceeds the method-owned bounded scenario fragment of {_MAX_COLD_MACROSTEPS} macrosteps."
         try:
             native = load_native_fcstm(pair.model)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - native load failure degrades R4.
             return None, None, f"R4 could not load the current FCSTM native model for scenario closure: {type(exc).__name__}."
         native_state = resolve_state(native, state.canonical_path)
         if native_state is None:
@@ -663,7 +705,7 @@ def _cold_entry_quiescence_scenario(
 
     try:
         native = load_native_fcstm(pair.model)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - native load failure degrades R4.
         return None, None, f"R4 could not load the current FCSTM native model for cold-entry closure: {type(exc).__name__}."
     native_state = resolve_state(native, state.canonical_path)
     if native_state is None:
@@ -751,7 +793,7 @@ def _v1_native_choice_inputs(
         return None, (), "V1 requires at least two exact transition carriers from one grounded choice group."
     try:
         native = load_native_fcstm(pair.model)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - native load failure degrades V1.
         return None, (), f"V1 could not load the current FCSTM native model for choice-group closure: {type(exc).__name__}."
     native_source = resolve_state(native, source.canonical_path)
     if native_source is None:
@@ -934,20 +976,23 @@ def _route_candidate(
         )
 
     if property_name in {"universal_reachability", "termination"}:
-        source, source_basis = _state_for_roles(pair, contract, grounding, {"source", "root"})
+        source, source_binding_basis = _state_for_roles(pair, contract, grounding, {"source", "root"})
         target, target_basis = _state_for_roles(pair, contract, grounding, {"target", "marked", "state"})
         if source is None or target is None:
-            return candidate, None, "G2 routing requires one exact source and one exact target state.", f"source={source_basis}; target={target_basis}"
+            return candidate, None, "G2 routing requires one exact source and one exact target state.", f"source={source_binding_basis}; target={target_basis}"
         fragment_ok, fragment_basis = _native_state_fragment(
-            pair, (source,), require_leaf=True
+            pair, (source, target), require_leaf=False
         )
         if not fragment_ok:
             return candidate, None, "G2 routing retains the precise universal-reachability candidate because its native source fragment is not closed.", f"source_ref={source.ref}; target_ref={target.ref}; input_contract_missing/out_of_fragment: {fragment_basis}"
+        executable_source, descent_basis = _native_initial_leaf_source(pair, source)
+        if executable_source is None:
+            return candidate, None, "G2 routing retains the precise universal-reachability candidate because its native initial source descent is not unique.", f"source_ref={source.ref}; target_ref={target.ref}; input_contract_missing/out_of_fragment: {descent_basis}"
         return (
-            _routed_candidate(candidate, "G2", {"source": source.canonical_path, "target": target.canonical_path}, (source.ref, target.ref), reason="The primary route bound one exact native leaf source and exact target for the frozen bounded universal-reachability predicate.", basis=f"predicate=G2; source_ref={source.ref}; target_ref={target.ref}; source={source_basis}; target={target_basis}; fragment={fragment_basis}"),
+            _routed_candidate(candidate, "G2", {"source": executable_source, "target": target.canonical_path}, (source.ref, target.ref), reason="The primary route bound one exact native source, its unique executable initial-descent leaf, and one exact target for the frozen bounded universal-reachability predicate.", basis=f"predicate=G2; source_ref={source.ref}; executable_source={executable_source}; target_ref={target.ref}; source={source_binding_basis}; target={target_basis}; fragment={fragment_basis}; descent={descent_basis}"),
             "G2",
-            "G2 universal-reachability inputs close through exact current-pair state identities.",
-            f"source_ref={source.ref}; target_ref={target.ref}; {fragment_basis}",
+            "G2 universal-reachability inputs close through exact current-pair identities and one unique native initial descent.",
+            f"source_ref={source.ref}; executable_source={executable_source}; target_ref={target.ref}; {descent_basis}",
         )
 
     if property_name == "route_avoidance":

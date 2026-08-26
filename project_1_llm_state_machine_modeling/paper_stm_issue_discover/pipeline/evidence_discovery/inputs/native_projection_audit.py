@@ -11,10 +11,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import io
-import json
+import tokenize
 from pathlib import Path
 from typing import Literal
-import tokenize
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -110,6 +109,7 @@ _TEXT_HANDLING_ALLOWANCES: tuple[NativeTextHandlingAllowance, ...] = (
     NativeTextHandlingAllowance(path="inputs/native_projection_audit.py", text_construct="splitlines", purpose="Static-contract scanner reads Python source lines only."),
     NativeTextHandlingAllowance(path="orchestration/runner.py", text_construct="regular_expression", purpose="Run-id validation and cross-artifact display-token normalization; native refs decide all FCSTM identities."),
     NativeTextHandlingAllowance(path="orchestration/runtime.py", text_construct="splitlines", purpose="Provider transport framing only."),
+    NativeTextHandlingAllowance(path="frontier_replay.py", text_construct="regular_expression", purpose="Immutable run and pair identifier validation only; no FCSTM source text is inspected."),
     NativeTextHandlingAllowance(path="route_replay.py", text_construct="regular_expression", purpose="Immutable historical run-id validation only."),
     NativeTextHandlingAllowance(path="semantics/binding.py", text_construct="regular_expression", purpose="Method candidate and historical-ref format parsing, never FCSTM source parsing."),
     NativeTextHandlingAllowance(path="semantics/predicate_routing.py", text_construct="regular_expression", purpose="Method-owned cold_macrosteps typed hint validation only."),

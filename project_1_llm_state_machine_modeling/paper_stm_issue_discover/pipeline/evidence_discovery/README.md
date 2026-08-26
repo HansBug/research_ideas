@@ -49,15 +49,15 @@ R4 仅在 exact retained state 有唯一最短的 native cold-entry event prefix
 
 reporting 对可行性采用结构化失败口径：`failure_kinds` 保留原 receipt 分类，`input_contract_missing` 仅计 `invalid_input`，`out_of_fragment` 表示 backend 已实现但当前 typed/soundness fragment 未闭合，`backend_missing` 只表示冻结 ID 没有 dispatch 实现。当前 19/19 backend 均已实现，所以不能再根据 `backend=none` 的展示值把 V1 的非法 finite domain、S6 的 prose effect 或其他未执行计划误报为 backend 缺失。
 
-G2/G3/R2 的 primary route 不靠文本图近似。G2 的 exact source 必须落在当前 pyfcstm leaf-state `.fbmcq` fragment，G3 的 source/target/forbidden 必须是 exact native leaf state；R2 从 exact native event 出发，用 `SimulationRuntime` 搜索唯一最短、最多 3 个事件的 stimulus-consuming cold prefix并追加一个空观察步。该搜索不接收或检查 target state，target 仅由 R2 backend 在真实 trace 上求值；任何歧义或运行失败保持 W1。
+G2/G3/R2 的 primary route 不靠文本图近似。G2 的 exact source 可以是 native leaf，或经每层恰好一条 `State.init_transitions` 唯一下降到 leaf 的 composite；多 initial、无 initial、循环或 owner/target 不闭合时不得任取 leaf。G3 的 source/target/forbidden 必须是 exact native leaf state。R2 先由 typed transition group、唯一 canonical source carrier 和 native Event 形成 event/target identity，再用 `SimulationRuntime` 搜索唯一最短、最多 3 个事件的 stimulus-consuming cold prefix并追加一个空观察步。搜索不接收或检查 target state，target 仅由 R2 backend 在真实 trace 上求值；任何歧义或运行失败保持 W1。
 
-当前正确的 provider-free A/B artifact ID 是 `f993bb21aa5c39e8a93f8ba1899c29e9`（`evidence-discovery-15x1-primary-route-replay-05699769`）。它只重放保存的最终 `predicate_id=null` W1 evidence（88 条），不使用较宽的辅助 `execute_batch` candidate 集，且 provider/Judge 调用均为 0；20 条候选已完成确定性路由，其中 17 条获得 W2。该 A/B 只报告 route、execution 和 W 的确定性变化，不能代替 hit、precision 或 Judge 评测。
+provider-free A/B 分成两个不可互换的制品。`evidence-discovery-15x1-primary-route-replay-current/280a6ec53b61fb28c775a365247a402b` 只重放代表集源 run 最终 `predicate_id=null` W1 evidence：76 条中当前 4 条 W2，相对源 commit 基线净增 2 条 G2 completed/false；它不重新生成 frontier。`evidence-discovery-15x1-frontier-replay-current/0f9d383071b29a11eb0474d655553706` 只重放保存 extraction/grounding 与 runner 的 deterministic prefrontier chain：15/15 frontier 成功，旧 frontier error 从 1 降为 0，added=40、removed=0，新增 W2/W1=13/27。两者均为 0 provider/Judge 调用，不是 hit、precision 或 Judge 评测。
 
 ## 隔离与审计
 
 method 只读取当前 pair 的 NL、PlantUML、canonical source IR、FCSTM、inspect-equivalent facts、working contracts 与封闭 ModelIR。它不读取台账 expected、L、Judge、答案、其他 pair 或未来结果。Judge 是独立 evaluation 层，冻结口径不参与 method 的 W/D/candidate。
 
-每个 W2 的 `audit_bundle` 必须闭合：typed inputs、compiled program/hash、backend/algorithm version、真实 result、receipt hash、NL/PlantUML/canonical IR/FCSTM/facts/model 的当前制品归因、reason、basis 和 retry/billing。完整运行还保存 immutable run ID、source commit、prompt/schema/registry/input hash 与成本。
+每个 W2 的 `audit_bundle` 必须闭合：typed inputs、compiled program/hash、backend/algorithm version、真实 result、receipt hash、NL/PlantUML/canonical IR/FCSTM/facts/model 的当前制品归因、reason、basis 和 retry/billing。完整运行还保存 immutable run ID、source commit、prompt/schema/registry/input hash、实际 worker 数与成本。后续新启动的 method、Judge 及可并行审计默认使用 `--workers 16`；已闭合或正在执行的 run 不得为调整并发而重启、覆盖或混入新版本。
 
 method 制品冻结且外置 Judge 完成后，evaluation 路径必须生成 `expected_issue_witness_audit.json`、`judge_cost_audit.json` 和 `evaluation_summary.json`。前者逐条保留每个 expected issue 的 `FULL/PARTIAL/NONE`、匹配 report ID、每个匹配报告的 predicate/W/D、typed/backend/receipt 链、`max_W` 与未命中的 stage-loss；`judge_cost_audit.json` 保留每个 unpriced billable call、provider/non-provider retry 与 schema retry，禁止把缺失 provider usage 估计成精确成本；后者将 FULL hit、W2/全部 expected、每 pair hit/max-W/D/precision/INVALID/route-stage loss、19 谓词 feasibility、W2 closure 和成本分别汇总。它们只读取不可变 method/Judge artifact，不能进入 method prompt、binding、route、backend、W、D 或 publication。
 

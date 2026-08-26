@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from pipeline.evidence_discovery.backends import run_backend
 from pipeline.evidence_discovery.compiler import compile_plan
 from pipeline.evidence_discovery.evidence.witness_levels import calculate_witness_level
+from pipeline.evidence_discovery.frontier_replay import _execute_added
 from pipeline.evidence_discovery.inputs import (
     CanonicalConcurrentRegion,
     PairInput,
@@ -32,6 +33,9 @@ from pipeline.evidence_discovery.semantics import (
     canonicalize_grounding_response,
     materialize_segment_coverage,
     materialize_typed_frontier,
+)
+from pipeline.evidence_discovery.semantics.predicate_routing import (
+    route_primary_candidates,
 )
 
 PAPER_ROOT = Path(__file__).parents[3]
@@ -1278,6 +1282,184 @@ def test_0035_transition_alternative_preserves_event_and_missing_guard() -> None
     assert "guard=null" in issue.observed
 
 
+def test_group_guard_frontier_validates_each_alternative_with_its_own_hints() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0035")
+    endpoint = _contract(
+        contract_id="NL-CONTRACT-NL4-MULTI-GUARD",
+        segment_id="NL4",
+        locus_kind="transition",
+        locus_names=("DoorOpenWithItem", "DoorShutWithItem"),
+        property_name="transition_endpoints",
+        expected_direction="must_exist",
+        violation_direction="missing",
+        hints=(
+            _hint("source", "DoorOpenWithItem", "NL4"),
+            _hint("target", "DoorShutWithItem", "NL4"),
+            _hint("guard", "cooking time equals zero", "NL4"),
+            _hint("guard", "temperature below limit", "NL4"),
+        ),
+        state_role="operating_state",
+    )
+    group = NLTransitionGroup(
+        group_id="NL-GROUP-NL4-MULTI-GUARD",
+        segment_id="NL4",
+        source_name="DoorOpenWithItem",
+        alternatives=(
+            NLTransitionAlternative(
+                alternative_id="ALT-NL4-ZERO",
+                target_name="DoorShutWithItem",
+                event="Door Closed",
+                guard="cooking time equals zero",
+                source_refs=("NL4",),
+                reason="This alternative has one exact independent guard.",
+                basis="provider-free alternative-specific guard fixture",
+            ),
+        ),
+        source_refs=("NL4",),
+        reason="The base endpoint contract intentionally carries multiple alternative guards.",
+        basis="provider-free regression for derived-contract validation order",
+    )
+    response = _response([endpoint], [group])
+
+    batch = materialize_typed_frontier(
+        pair,
+        response,
+        {endpoint.contract_id: endpoint},
+        (),
+        (),
+    )
+
+    obligation = next(
+        item
+        for item in batch.obligations
+        if item.kind == "transition_guard_presence"
+    )
+    guard_hints = [
+        hint.value
+        for hint in obligation.contract.binding_hints
+        if hint.role == "guard"
+    ]
+    assert guard_hints == ["cooking time equals zero"]
+    assert obligation.candidate.predicate_inputs["expected_guard"] == (
+        "cooking time equals zero"
+    )
+
+
+def test_0054_group_post_state_closes_native_r2_without_target_leakage() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0054")
+    stopping = _contract(
+        contract_id="NL-CONTRACT-NL2-STOPPING",
+        segment_id="NL2",
+        locus_kind="transition",
+        locus_names=("InMotion", "Stopping"),
+        property_name="transition_endpoints",
+        expected_direction="must_exist",
+        violation_direction="wrong_target",
+        hints=(
+            _hint("source", "InMotion", "NL2"),
+            _hint("target", "Stopping", "NL2"),
+        ),
+    )
+    emergency = _contract(
+        contract_id="NL-CONTRACT-NL2-EMERGENCY",
+        segment_id="NL2",
+        locus_kind="transition",
+        locus_names=("InMotion", "EmergencyStopping"),
+        property_name="transition_endpoints",
+        expected_direction="must_exist",
+        violation_direction="wrong_target",
+        hints=(
+            _hint("source", "InMotion", "NL2"),
+            _hint("target", "EmergencyStopping", "NL2"),
+        ),
+    )
+    group = NLTransitionGroup(
+        group_id="NL-GROUP-NL2-INMOTION",
+        segment_id="NL2",
+        source_name="InMotion",
+        alternatives=(
+            NLTransitionAlternative(
+                alternative_id="ALT-NL2-STOPPING",
+                target_name="Stopping",
+                event="Arrived/Stop, Send Arrived",
+                source_refs=("NL2",),
+                reason="The exact event selects the stopping target.",
+                basis="provider-free 0054 typed relation",
+            ),
+            NLTransitionAlternative(
+                alternative_id="ALT-NL2-EMERGENCY",
+                target_name="EmergencyStopping",
+                event="Obstacle Detected",
+                source_refs=("NL2",),
+                reason="The exact obstacle stimulus selects EmergencyStopping.",
+                basis="provider-free 0054 typed relation",
+            ),
+        ),
+        source_refs=("NL2",),
+        reason="The typed group preserves two event/post-state alternatives.",
+        basis="provider-free 0054 transition-group fixture",
+    )
+    response = _response([stopping, emergency], [group])
+
+    batch = materialize_typed_frontier(
+        pair,
+        response,
+        {item.contract_id: item for item in response.contracts},
+        (),
+        (),
+    )
+
+    obligation = next(
+        item
+        for item in batch.obligations
+        if item.kind == "state_after_stimulus"
+        and item.contract.locus_names[-1] == "EmergencyStopping"
+    )
+    event_hint = next(
+        hint for hint in obligation.contract.binding_hints if hint.role == "event"
+    )
+    assert event_hint.value == "[obstacle detected]"
+    projection = route_primary_candidates(
+        pair,
+        {obligation.contract.contract_id: obligation.contract},
+        (),
+        (obligation.candidate,),
+    )
+    routed = projection.candidates[0]
+    assert routed.predicate_id == "R2"
+    assert "independent of the asserted target state" in routed.reason
+
+    binding = bind_candidate(routed, pair.model)
+    plan = compile_plan(
+        routed,
+        binding,
+        load_registry(),
+        obligation_id="fixture:0054:r2",
+        round_index=1,
+        model=pair.model,
+    )
+    receipt = run_backend(plan, pair.model, "fixture:0054:r2:receipt")
+    assert receipt.terminal_state == "completed"
+    assert receipt.verdict == "true"
+    assert any(
+        "EmergencyStopping" in state
+        for frame in receipt.trace[2:]
+        for state in frame["active_states"]
+    )
+
+    replayed = _execute_added(
+        pair=pair,
+        contracts_by_id={obligation.contract.contract_id: obligation.contract},
+        grounding=(),
+        added=[obligation],
+        replay_id="0" * 32,
+        registry=load_registry(),
+    )
+    assert replayed[0].frontier_id == obligation.frontier_id
+    assert replayed[0].witness_level == "W2"
+    assert replayed[0].audit_bundle is not None
+
+
 def test_transition_guard_frontier_rejects_event_only_and_present_guard() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0035")
     endpoint = _contract(
@@ -2475,7 +2657,7 @@ def test_property_mismatched_llm_dead_ends_do_not_create_progress_contracts() ->
         if item.kind == "reachable_dead_end"
     }
     assert dead_ends == {}
-    assert batch.algorithm_version == "typed-domain-frontier.v24"
+    assert batch.algorithm_version == "typed-domain-frontier.v25"
 
 
 def test_exact_existing_candidate_still_suppresses_duplicate_frontier() -> None:

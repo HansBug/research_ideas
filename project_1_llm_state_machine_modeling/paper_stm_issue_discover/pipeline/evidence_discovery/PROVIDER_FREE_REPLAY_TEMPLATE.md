@@ -13,6 +13,8 @@
 
 运行时 W 严格遵循冻结的三层 witness protocol，只由冻结 predicate、精确 binding、合法 typed input、backend/命题一致性、制品归因闭合和 terminal `true`/`false` 决定。`completed/true` 是 W2 satisfaction receipt，不能发布 issue；`completed/false` 才可能在 D1/D2 下发布。timeout、backend error、invalid input 和 unsupported backend 记录在 execution audit，按 binding 精度退化为 W1/W0，绝不成为 violation。
 
-全部 19 个冻结谓词均已完成学术资格审查；学术 provenance 继续留在 registry 和 source catalog，但不参与任何单次运行的 W 或 backend 准入。历史 method artifact 中的旧 runtime-gate 字段仅存在于源制品，replay 输出不再携带它们。
+全部 19 个冻结谓词均已完成学术资格审查，并具有 typed contract、compiled form 与 native backend。学术 provenance 继续留在 registry 和 source catalog，但不参与任何单次运行的 W 或 backend 准入。
 
 `replay_evidence.json` 保存逐 record 的新 W/D/publication、typed execution audit 和 W2 bundle；`audit_bundles/` 仅保存 W2 bundle；`summary.json` 包含机器验收；`replay_manifest.json` 绑定源制品、registry 和 replay 实现哈希。
+
+W-state replay、saved-candidate route replay 与 saved-extraction/grounding frontier replay 是三类不同制品。W-state replay 不重跑 backend；route replay 只对源 run 最终 predicate-null evidence 尝试当前 route/backend；frontier replay 先复用 runner deterministic prefrontier chain，再重物化 frontier并只执行新增 obligation。三者必须分别保存 cohort、实现 hash、provider/Judge 调用数和能力边界，不得合并统计或冒充 method/Judge hit。

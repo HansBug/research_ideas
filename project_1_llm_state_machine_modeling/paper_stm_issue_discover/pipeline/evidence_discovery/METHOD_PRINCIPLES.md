@@ -59,9 +59,11 @@ R4 的默认 method-owned fragment 也不得伪造 trace：它只接受精确 re
 
 `backend_missing` 只表示冻结谓词没有真实 dispatch/backend 实现；当前 19 个冻结谓词均有 backend，因此该值应为 0。某个 receipt 的 `failure_kind=invalid_input` 必须计入 `input_contract_missing`；backend 已实现但输入落在 soundness fragment 外时计入 `out_of_fragment`，同时原样保留 receipt 的 `failure_kind` 分布。不得再因为 receipt 的展示 backend 为 `none`，就把 V1/S6 的非法 domain/effect 或其他输入闭包失败写成 backend 缺失。
 
-全量主 route 对新增计划项采用保守 native 闭包：G2 只接受 exact source/target，且当前 `.fbmcq` fragment 的 source 必须是一个 pyfcstm leaf state；G3 只接受 exact leaf source、target、forbidden；R2 只接受 exact native event 和 target state。R2 的 method-owned schedule 从 cold `SimulationRuntime` 枚举至多 3 个事件的唯一最短 stimulus-consuming prefix，再追加一个空 observation macrostep；前缀选择函数不接收 target state，target truth 只由 R2 backend 在真实 trace 上判断。非唯一、未消费、并发或运行失败均保留 W1，不制造 schedule 或 verdict。
+全量主 route 对新增计划项采用保守 native 闭包：G2 只接受 exact source/target；source 可以已经是 pyfcstm leaf，也可以是每一层都恰有一条 `State.init_transitions`、最终唯一下降到 leaf 的 composite。多 initial、无 initial、循环或目标不属于当前 owner 时不得任取 leaf，继续 W1。G3 只接受 exact leaf source、target、forbidden。R2 只接受 typed transition alternative、唯一 canonical author-source carrier、exact native event 和 exact target 同时闭合的输入；其 method-owned schedule 从 cold `SimulationRuntime` 枚举至多 3 个事件的唯一最短 stimulus-consuming prefix，再追加一个空 observation macrostep。前缀选择函数不接收 target state，target truth 只由 R2 backend 在真实 trace 上判断。非唯一、未消费、并发或运行失败均保留 W1，不制造 schedule 或 verdict。
 
-主 route 修改必须先在保存的 extraction/grounding/candidate 上做 provider-free A/B。当前有效 A/B 制品为 `evidence-discovery-15x1-primary-route-replay-05699769/f993bb21aa5c39e8a93f8ba1899c29e9`：cohort 固定为历史最终 `predicate_id=null` 的 88 条 W1 evidence，不是较宽的 `execute_batch` 辅助候选集；provider/Judge 调用均为 0，确定性结果为 20 条完成路由、其中 17 条 W2。它只度量 route/execution/W 的确定性变化，不是 hit、precision 或 Judge 指标。
+主 route 修改必须先做两类彼此独立的 provider-free A/B，不得混算。保存 candidate replay 的 cohort 固定为源 run 最终 `predicate_id=null` W1 evidence；当前代表集制品 `evidence-discovery-15x1-primary-route-replay-current/280a6ec53b61fb28c775a365247a402b` 含 76 条，0 provider/Judge 调用，当前路由 4 条 W2，其中相对源 commit 基线净新增 2 条 G2 completed/false，另 2 条 S2 completed/true 为既有 satisfaction coverage。它不重物化 frontier，也不是 hit、precision 或 Judge 指标。
+
+保存 extraction/grounding 的 deterministic frontier replay 使用独立制品 `evidence-discovery-15x1-frontier-replay-current/0f9d383071b29a11eb0474d655553706`。它复用 runner 在 frontier 前的确定性归一化链，15/15 pair 当前 frontier 成功，保存运行中的 1 个 frontier error 清零，typed identity 为 added=40、removed=0；新增结果为 W2=13、W1=27，0 provider/Judge 调用。22 条 `state_after_stimulus` 中 10 条形成 R2 completed/true satisfaction receipt；0039 恢复的 guard frontier 仅 1 条 S5 completed/false，其余非法输入退 W1。该制品只证明 frontier/route/backend 的确定性变化，不重建 publication、D、Judge 或 FULL hit。
 
 ## 4. 实验与评测隔离
 

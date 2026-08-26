@@ -61,6 +61,7 @@ FrontierKind = Literal[
     "cross_wrapper_reachability",
     "aggregate_zero_behavior",
     "transition_guard_presence",
+    "state_after_stimulus",
     "initial_entry_trigger_set",
     "aggregate_data_semantics",
 ]
@@ -235,9 +236,11 @@ class FrontierCheckReceipt(BaseModel):
         default="evidence-discovery.frontier-check.v2",
         description="Schema version of the frontier-check receipt.",
     )
-    algorithm_version: Literal["typed-domain-frontier.v24"] = Field(
-        default="typed-domain-frontier.v24",
-        description="Deterministic algorithm version that produced the check. Only an existing candidate with exact typed identity matching a known contract may occupy a frontier deduplication key, and UML region counting uses the canonical author-source partition inventory.",
+    algorithm_version: Literal[
+        "typed-domain-frontier.v24", "typed-domain-frontier.v25"
+    ] = Field(
+        default="typed-domain-frontier.v25",
+        description="Deterministic algorithm version that produced the check. The current value adds event/post-state projection only when one typed transition alternative, one canonical author-source carrier, and one native FCSTM event identity close exactly; the previous accepted value remains readable for immutable replay artifacts.",
     )
     check_id: str = Field(
         min_length=1,
@@ -333,9 +336,11 @@ class FrontierBatch(BaseModel):
         default="evidence-discovery.frontier-batch.v1",
         description="Schema version of this frontier-batch artifact.",
     )
-    algorithm_version: Literal["typed-domain-frontier.v24"] = Field(
-        default="typed-domain-frontier.v24",
-        description="Deterministic algorithm version used by every check and obligation in this batch. Unknown or contract-identity-mismatched candidates cannot suppress deterministic frontier expansion, and cardinality remains bound to one exact normative owner.",
+    algorithm_version: Literal[
+        "typed-domain-frontier.v24", "typed-domain-frontier.v25"
+    ] = Field(
+        default="typed-domain-frontier.v25",
+        description="Deterministic algorithm version used by every check and obligation in this batch. The current value preserves prior behavior and adds exact transition-group event/post-state projection through canonical source and native FCSTM identities; the previous accepted value remains readable for historical replay.",
     )
     obligations: tuple[FrontierObligation, ...] = Field(
         default_factory=tuple,
@@ -3278,7 +3283,8 @@ def _materialize_group_guards(
                 ),
                 reason="The typed relation separately establishes an event and guard, allowing exact carrier guard-presence audit.",
                 basis="NLTransitionAlternative.guard and exact ModelIR transition endpoint identity",
-            ).model_copy(update={"binding_hints": tuple(hints)})
+                binding_hints=tuple(hints),
+            )
             derived = derived.model_copy(
                 update={"contract_id": canonical_contract_id(derived)}
             )
@@ -3315,6 +3321,130 @@ def _source_endpoint_name(value: str) -> str:
     """Return the exact leaf identifier from a canonical qualified source endpoint."""
 
     return value.rsplit(".", 1)[-1]
+
+
+def _materialize_group_post_states(
+    builder: _Builder,
+    groups: Sequence[NLTransitionGroup],
+    contracts: Sequence[NLContract],
+) -> None:
+    """Project exact typed event alternatives into native R2 input contracts.
+
+    The transition group establishes the normative event/post-state relation.
+    Canonical author source supplies the event identity for the unique exact
+    source-target carrier, and the closed FCSTM projection must resolve that
+    identity to one native Event. No event spelling or target verdict is
+    inferred from the inspected model.
+    """
+
+    pair = builder.pair
+    inventory = pair.exact_source_inventory
+    if inventory is None:
+        return
+    for group in groups:
+        source = _state_for_value(pair, group.source_name)
+        if source is None:
+            continue
+        for alternative in group.alternatives:
+            if alternative.event is None:
+                continue
+            target = _state_for_value(pair, alternative.target_name)
+            if target is None:
+                continue
+            bases = [
+                contract
+                for contract in contracts
+                if contract.segment_id == group.segment_id
+                and contract.property == "transition_endpoints"
+                and (source_hint := _hint(contract, "source")) is not None
+                and source_hint.value in {group.source_name, source.name}
+                and (target_hint := _hint(contract, "target")) is not None
+                and target_hint.value in {alternative.target_name, target.name}
+            ]
+            if len(bases) != 1:
+                continue
+            source_rows = [
+                row
+                for row in inventory.transitions
+                if _source_endpoint_name(row.source) == source.name
+                and _source_endpoint_name(row.target) == target.name
+                and row.event is not None
+            ]
+            if len(source_rows) != 1:
+                continue
+            source_row = source_rows[0]
+            event = pair.model.event(source_row.event or "")
+            if event is None:
+                continue
+            hints = (
+                ContractBindingHint(
+                    role="event",
+                    value=event.display_name,
+                    source_ref=source_row.raw_ref,
+                    reason="The typed alternative has an event, and its unique canonical author-source carrier supplies the exact native event identity.",
+                    basis=f"group={group.group_id}; source_transition={source_row.transition_id}; event_ref={event.ref}",
+                ),
+                ContractBindingHint(
+                    role="target",
+                    value=target.canonical_path,
+                    source_ref=source_row.raw_ref,
+                    reason="The typed alternative and unique canonical author-source carrier bind the exact required post-stimulus target.",
+                    basis=f"alternative={alternative.alternative_id}; target_ref={target.ref}",
+                ),
+            )
+            base = bases[0]
+            derived = _derived_contract(
+                base,
+                locus_kind="scenario",
+                locus_names=(event.display_name, target.name),
+                property_name="state_after_stimulus",
+                state_role=base.state_role,
+                expected_direction="must_reach",
+                violation_direction="wrong_target",
+                evidence_types=("source_identity", "transition_fact", "trace_fact"),
+                normative_statement=(
+                    f"After the exact {event.display_name!r} stimulus, the current "
+                    f"artifact must enter {target.name}."
+                ),
+                scope=f"Transition alternative {source.name} -> {target.name}",
+                source_refs=tuple(
+                    dict.fromkeys(
+                        [
+                            *group.source_refs,
+                            *alternative.source_refs,
+                            source_row.raw_ref,
+                        ]
+                    )
+                ),
+                reason="One typed event alternative and one unique canonical author-source carrier establish an executable event/post-state obligation.",
+                basis=(
+                    f"group={group.group_id}; alternative={alternative.alternative_id}; "
+                    f"source_transition={source_row.transition_id}; event_ref={event.ref}; "
+                    f"target_ref={target.ref}"
+                ),
+                binding_hints=hints,
+            )
+            candidate = _candidate(
+                derived,
+                title=f"{event.display_name} may not leave the system in {target.name}",
+                predicate_id=None,
+                predicate_inputs={},
+                element_refs=(source.ref, event.ref, target.ref),
+                source_refs=derived.source_refs,
+                expected=derived.normative_statement,
+                observed="The exact post-stimulus state is delegated to a fresh native FCSTM runtime scenario.",
+                strongest_rebuttal="A native runtime execution may establish that the exact stimulus reaches and retains the required target.",
+                reason="The event and target identities close independently of runtime truth, so R2 can evaluate the current artifact without a source trace or expected answer.",
+                basis=derived.basis,
+            )
+            builder.add(
+                "state_after_stimulus",
+                (base.contract_id,),
+                derived,
+                candidate,
+                reason="A typed event alternative, unique canonical source carrier, and native Event identity close one R2 candidate.",
+                basis="NLTransitionGroup plus ExactSourceInventory transition identity and native FCSTM event projection",
+            )
 
 
 def _source_carrier_for_contract(
@@ -5148,6 +5278,7 @@ def materialize_typed_frontier(
     _materialize_dead_ends(builder, all_contracts, grounding_responses)
     _materialize_termination(builder, all_contracts)
     _materialize_group_guards(builder, all_groups, all_contracts)
+    _materialize_group_post_states(builder, all_groups, all_contracts)
     _materialize_group_collisions(builder, all_groups, all_contracts)
     _materialize_wrong_targets(builder, all_contracts, all_groups, grounding_responses)
     _materialize_aggregate_data_semantics(builder, all_contracts)

@@ -29,7 +29,7 @@ R1 的 cold-start execution 必须由 exact event/carrier、唯一 native cold e
 
 selection preflight 的 15x12 表只保存固定 12 谓词的通用 capability/schema、当前输入 hash 与 semantic-shape set cover，不读取或存储 ledger、expected issue、Judge、答案、D/L 或评测结果。run manifest 只保存经校验的 preflight hash/reference；method worker 不消费 preflight 内容。未计划使用不等于学术或 backend 边界，19 个冻结谓词仍全部保留 native backend 和 conformance coverage。
 
-阶段 C 的基准 A/B 只能以保存的最终 `predicate_id=null` W1 evidence 为 cohort。当前有效 artifact ID 是 `f993bb21aa5c39e8a93f8ba1899c29e9`（`evidence-discovery-15x1-primary-route-replay-05699769`），包含 88 条 cohort、0 provider 调用、0 Judge 调用、20 条确定性路由和 17 条 W2；历史上使用 113 条辅助 `execute_batch` candidate 的制品不是本阶段指标依据。A/B 仅证明确定性 route 收益，不能取代新 15x1 的独立 method/Judge 验收。
+阶段 C 使用两条分离的 A/B。保存 candidate route cohort 只能取最终 `predicate_id=null` W1 evidence；当前代表集 route artifact `280a6ec53b61fb28c775a365247a402b` 含 76 条、0 provider/Judge 调用，当前 4 条 W2，相对源 commit 基线净增 2 条 G2 completed/false。保存 extraction/grounding 的 frontier artifact `0f9d383071b29a11eb0474d655553706` 必须复用 runner prefrontier deterministic chain，当前 15/15 frontier 成功、旧 error 1->0、added=40、removed=0、新增 W2/W1=13/27。前者不重生成 frontier，后者不重建完整 runner；二者均不能取代新 15x1 的独立 method/Judge 验收。
 
 15-pair 的检查包括 15/15 terminal、无 diagnostics、FULL expected 的 max-W2、W2/全部 expected、overall/L2 hit、precision/FP、12 分母 execution、W2 audit closure 和成本。Judge 在 method 完成后独立补齐，不能改 Judge 语义迁就 method。Judge 完成后必须在 evaluation artifact 写入 `expected_issue_witness_audit.json` 和 `evaluation_summary.json`：前者逐 expected 保留 `FULL/PARTIAL/NONE`、匹配 report 的 predicate/W/D、typed/backend/receipt 链、`max_W` 与 stage-loss，后者分别汇总每 pair hit/max-W/D/precision/INVALID/route-stage loss、19 谓词 feasibility、W2 closure 和成本；两者只读不可变 method/Judge artifact，绝不反向进入 method。
 
@@ -41,7 +41,7 @@ selection preflight 的 15x12 表只保存固定 12 谓词的通用 capability/s
 
 full-scale stage-loss 必须区分实现可用性与实例闭包：`backend_missing` 只在 frozen predicate 没有 dispatch/backend 时成立，当前 19/19 实现下应为 0；`invalid_input` 进入 `input_contract_missing`，backend 已实现但 soundness fragment 不满足进入 `out_of_fragment`，并另外保留原始 `failure_kinds`。禁止再用 `backend=none` 这个未执行展示值推断 V1/S6 或其他谓词没有 backend。
 
-G2/G3/R2 的局部 route 修复不改谓词定义和 Judge。G2 只路由 exact source/target，当前 source 限于一个 pyfcstm leaf state；G3 要求 exact leaf source/target/forbidden；R2 要求 exact native event/target，并由 `SimulationRuntime` 在不读取 target truth 的前提下搜索唯一最短、最多 3 个事件的 stimulus-consuming cold prefix，追加一个空 observation step 后交给 backend 判断 target。保存输出先做 provider-free A/B；未形成这些闭包时继续 W1，不能制造 scenario 或缩小分母。
+G2/G3/R2 的局部 route 修复不改谓词定义和 Judge。G2 只路由 exact source/target；source 已是 leaf 时直接使用，composite 仅在每层恰有一条 native initial transition 并最终唯一下降到 leaf 时执行，绝不任取 leaf。G3 要求 exact leaf source/target/forbidden。R2 要求 typed alternative、唯一 canonical source carrier、exact native event/target，并由 `SimulationRuntime` 在不读取 target truth 的前提下搜索唯一最短、最多 3 个事件的 stimulus-consuming cold prefix，追加一个空 observation step后交给 backend 判断 target。保存输出先做两类分离的 provider-free A/B；未形成这些闭包时继续 W1，不能制造 scenario 或缩小分母。
 
 method terminal schema 与冻结 Judge adapter 的状态词表不一致时，不修改任一原制品。evaluation 侧建立独立 Pydantic compatibility projection：eligible diagnostic cell 只规范化 adapter status 且 report payload 逐值不变；ineligible failed cell 只提供空发布面，保留固定 expected 分母并产生 `NONE`。未变 cell 以 hash 相同的硬链接复用；恢复 run 只处理缺失 `(round,pair)`，最终 composite 对全部 result/source hash、失败、retry 和成本闭合。
 
