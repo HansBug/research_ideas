@@ -235,7 +235,7 @@ def load_pair(pair_dir: str | Path) -> PairInput:
             algorithm_version=model.algorithm_version,
             producer="evidence_discovery.inputs.models",
             reason="FCSTM is the closed model used for exact binding and backend execution.",
-            basis="owned FCSTM parser",
+            basis="pyfcstm native loader and native compatibility projection",
         ),
         canonical_ref,
         source_inventory_artifact.ref,
