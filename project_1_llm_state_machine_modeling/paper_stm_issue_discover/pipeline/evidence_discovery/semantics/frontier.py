@@ -17,8 +17,8 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..inputs.context import (
-    InspectionTransitionFact,
     InspectionStateFact,
+    InspectionTransitionFact,
     SourceInventoryState,
     SourceInventoryTransition,
 )
@@ -230,8 +230,8 @@ class FrontierCheckReceipt(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema_version: Literal["evidence-discovery.frontier-check.v1"] = Field(
-        default="evidence-discovery.frontier-check.v1",
+    schema_version: Literal["evidence-discovery.frontier-check.v2"] = Field(
+        default="evidence-discovery.frontier-check.v2",
         description="Schema version of the frontier-check receipt.",
     )
     algorithm_version: Literal["typed-domain-frontier.v24"] = Field(
@@ -259,6 +259,14 @@ class FrontierCheckReceipt(BaseModel):
     model_refs: tuple[str, ...] = Field(
         default_factory=tuple,
         description="Closed ModelIR references actually used by the check; author-source references may not be mixed in.",
+    )
+    root_refs: tuple[str, ...] = Field(
+        default_factory=tuple,
+        description="Exact closed-model root references for a topology projection, when the frontier check has a typed root role; empty for other frontier kinds or incomplete identity.",
+    )
+    marked_refs: tuple[str, ...] = Field(
+        default_factory=tuple,
+        description="Exact closed-model marked-target references for a topology projection, when the frontier check has a typed marked role; empty for other frontier kinds or incomplete identity.",
     )
     source_refs: tuple[str, ...] = Field(
         default_factory=tuple,
@@ -900,6 +908,8 @@ class _Builder:
         *,
         reason: str,
         basis: str,
+        root_refs: Sequence[str] = (),
+        marked_refs: Sequence[str] = (),
     ) -> None:
         identity = contract_semantic_key_from_candidate(candidate)
         if identity in self.seen:
@@ -946,6 +956,8 @@ class _Builder:
                     contract=contract,
                     model_refs=candidate.element_refs,
                     source_refs=candidate.source_refs,
+                    root_refs=root_refs,
+                    marked_refs=marked_refs,
                     reason="An existing candidate or frontier obligation already carries this exact typed semantic identity.",
                     basis="typed locus kind, locus names, property, and violation direction equality; duplicate refs remain supporting evidence",
                 )
@@ -972,6 +984,8 @@ class _Builder:
                 contract=contract,
                 model_refs=candidate.element_refs,
                 source_refs=candidate.source_refs,
+                root_refs=root_refs,
+                marked_refs=marked_refs,
                 reason=reason,
                 basis=basis,
             )
@@ -986,16 +1000,20 @@ class _Builder:
         contract: NLContract | None = None,
         model_refs: Sequence[str] = (),
         source_refs: Sequence[str] = (),
+        root_refs: Sequence[str] = (),
+        marked_refs: Sequence[str] = (),
         reason: str,
         basis: str,
     ) -> FrontierCheckReceipt:
         return FrontierCheckReceipt(
-            check_id=f"frontier-check:{kind}:{_hash_payload([list(source_contract_ids), list(model_refs), status])}",
+            check_id=f"frontier-check:{kind}:{_hash_payload([list(source_contract_ids), list(model_refs), list(root_refs), list(marked_refs), status])}",
             kind=kind,
             source_contract_ids=tuple(source_contract_ids),
             canonical_contract_id=contract.contract_id if contract else None,
             status=status,
             model_refs=tuple(dict.fromkeys(model_refs)),
+            root_refs=tuple(dict.fromkeys(root_refs)),
+            marked_refs=tuple(dict.fromkeys(marked_refs)),
             source_refs=tuple(dict.fromkeys(source_refs)),
             reason=reason,
             basis=basis,
@@ -2959,6 +2977,8 @@ def _materialize_termination(builder: _Builder, contracts: Sequence[NLContract])
                 "through one complete non-final continuation certificate."
             ),
             basis="typed termination owners, shared target identity, and canonical author-source continuation inventory",
+            root_refs=tuple(owner.ref for owner in owners),
+            marked_refs=(target.ref,),
         )
         for contract_id in source_contract_ids:
             if contract_id not in builder.superseded_candidate_contract_ids:

@@ -46,6 +46,7 @@ from ..semantics import (
     NLContractResponse,
     NLTransitionGroup,
     SemanticAdjudication,
+    SemanticBinding,
     SourceTransitionClosureReceipt,
     StageReceipt,
     assemble_method_response,
@@ -2399,6 +2400,7 @@ def _materialize_deterministic_execution_probes(
     grounding_responses: Sequence[GroundingResponse],
     existing_candidates: Sequence[CandidateIssue],
     transition_groups: Sequence[NLTransitionGroup] = (),
+    frontier_batch: FrontierBatch | None = None,
 ) -> tuple[list[CandidateIssue], dict[str, NLContract], list[dict[str, Any]]]:
     """Create executable probes from exact method-owned bindings only.
 
@@ -2407,7 +2409,9 @@ def _materialize_deterministic_execution_probes(
     primary contract remains unchanged.  G4 checks finite coaccessibility only
     when a termination contract supplies exact owner and marked target states.
     Runtime predicates are intentionally absent here: static source/model facts
-    cannot be promoted to a trajectory scenario.
+    cannot be promoted to a trajectory scenario. An aggregate stable-termination
+    frontier check may additionally project one supporting G4 topology execution
+    when its typed root and marked refs are complete.
     """
 
     probes: list[CandidateIssue] = []
@@ -2692,6 +2696,158 @@ def _materialize_deterministic_execution_probes(
         )
         break
 
+    # An aggregate stable-termination check already contains the exact
+    # coaccessibility obligation, but it used to stop at the predicate-null
+    # frontier candidate. Project only the frontier's typed root/marked refs:
+    # no role is recovered from prose, a contract ID, or the basis string.
+    if frontier_batch is not None and not any(
+        item.predicate_id == "G4" for item in probes
+    ) and not any(
+        candidate.predicate_id == "G4" for candidate in existing_candidates
+    ):
+        concurrent = bool(
+            pair.canonical_source_ir is not None
+            and pair.canonical_source_ir.model.concurrent_regions
+        )
+        aggregate_checks = sorted(
+            (
+                check
+                for check in frontier_batch.checks
+                if check.kind == "aggregate_stable_termination"
+                and check.status == "candidate"
+            ),
+            key=lambda check: check.check_id,
+        )
+        for check in aggregate_checks:
+            contract = contracts_by_id.get(check.canonical_contract_id or "")
+            if contract is None:
+                dispositions.append(
+                    {
+                        "probe": "G4",
+                        "status": "frontier_aggregate_missing_contract",
+                        "check_id": check.check_id,
+                        "canonical_contract_id": check.canonical_contract_id,
+                        "reason": "The aggregate termination check has no accepted typed contract, so a G4 probe would require inventing its semantic owner.",
+                        "basis": "exact FrontierCheckReceipt.canonical_contract_id lookup",
+                    }
+                )
+                continue
+            if concurrent or pair.canonical_source_ir is None:
+                dispositions.append(
+                    {
+                        "probe": "G4",
+                        "status": "frontier_aggregate_blocked_non_sequential_model",
+                        "check_id": check.check_id,
+                        "reason": "G4 coaccessibility projection requires the finite sequential author-source model; concurrent or unavailable source IR remains outside this fragment.",
+                        "basis": "canonical_source_ir.model.concurrent_regions and source-IR availability",
+                    }
+                )
+                continue
+            root_refs = tuple(dict.fromkeys(check.root_refs))
+            marked_refs = tuple(dict.fromkeys(check.marked_refs))
+            frontier_refs = set(check.model_refs)
+            topology_refs = set(root_refs) | set(marked_refs)
+            if (
+                not root_refs
+                or not marked_refs
+                or topology_refs != frontier_refs
+                or not topology_refs.issubset(set(pair.model.all_refs))
+                or set(root_refs) & set(marked_refs)
+            ):
+                dispositions.append(
+                    {
+                        "probe": "G4",
+                        "status": "frontier_aggregate_incomplete_typed_refs",
+                        "check_id": check.check_id,
+                        "model_refs": list(check.model_refs),
+                        "root_refs": list(root_refs),
+                        "marked_refs": list(marked_refs),
+                        "reason": "The aggregate frontier check does not provide a complete disjoint root/marked partition of its exact ModelIR refs.",
+                        "basis": "exact typed root_refs, marked_refs, model_refs, and closed ModelIR reference membership",
+                    }
+                )
+                continue
+            states_by_ref = {
+                state.ref: state for state in pair.model.states
+            }
+            roots = [states_by_ref.get(ref) for ref in root_refs]
+            marked = [states_by_ref.get(ref) for ref in marked_refs]
+            if any(state is None for state in (*roots, *marked)):
+                dispositions.append(
+                    {
+                        "probe": "G4",
+                        "status": "frontier_aggregate_non_state_refs",
+                        "check_id": check.check_id,
+                        "root_refs": list(root_refs),
+                        "marked_refs": list(marked_refs),
+                        "reason": "G4 topology inputs must be exact state refs; event or transition refs cannot be promoted to roots or marked nodes.",
+                        "basis": "closed ModelIR state inventory membership",
+                    }
+                )
+                continue
+            root_names = [state.name for state in roots if state is not None]
+            marked_names = [state.name for state in marked if state is not None]
+            source_refs = list(
+                dict.fromkeys([*contract.source_refs, *check.source_refs])
+            )
+            candidate = CandidateIssue(
+                contract_id=contract.contract_id,
+                locus_kind=contract.locus_kind,
+                locus_names=contract.locus_names,
+                property=contract.property,
+                violation_direction=contract.violation_direction,
+                evidence_types=tuple(
+                    dict.fromkeys([*contract.evidence_types, "reachability_fact"])
+                ),
+                title=(
+                    f"Aggregate termination coaccessibility from "
+                    f"{root_names!r} to {marked_names!r}"
+                ),
+                requirement_quote=contract.quote,
+                predicate_id="G4",
+                predicate_inputs={"roots": root_names, "marked": marked_names},
+                element_refs=[*root_refs, *marked_refs],
+                source_refs=source_refs,
+                expected=contract.normative_statement,
+                observed=(
+                    f"The exact aggregate frontier carrier supplies roots="
+                    f"{list(root_refs)!r} and marked={list(marked_refs)!r} "
+                    "for finite coaccessibility execution."
+                ),
+                strongest_rebuttal=(
+                    "The G4 probe is supporting execution evidence only; it is "
+                    "admitted from the aggregate frontier's exact typed partition "
+                    "and does not replace the termination obligation."
+                ),
+                reason=(
+                    "The deterministic aggregate termination frontier supplied a "
+                    "complete exact root/marked partition over the closed model, "
+                    "so the registered G4 coaccessibility fragment can execute "
+                    "without inferring identity from prose."
+                ),
+                basis=(
+                    f"frontier_check={check.check_id}; "
+                    f"canonical_contract={contract.contract_id}; "
+                    f"root_refs={list(root_refs)}; marked_refs={list(marked_refs)}; "
+                    "finite_model=true; concurrent_regions=false"
+                ),
+            )
+            probes.append(candidate)
+            dispositions.append(
+                {
+                    "probe": "G4",
+                    "status": "admitted_frontier_aggregate_termination",
+                    "check_id": check.check_id,
+                    "contract_id": contract.contract_id,
+                    "root_refs": list(root_refs),
+                    "marked_refs": list(marked_refs),
+                    "source_refs": source_refs,
+                    "reason": candidate.reason,
+                    "basis": candidate.basis,
+                }
+            )
+            break
+
     # Contract extraction usually keeps an event as a transition-group
     # alternative rather than emitting a duplicate trigger_set contract.
     # Project one such group through the compiler-owned event projection and
@@ -2700,7 +2856,6 @@ def _materialize_deterministic_execution_probes(
     if not any(item.predicate_id == "S3" for item in probes) and not any(
         candidate.predicate_id == "S3" for candidate in existing_candidates
     ):
-        records = _working_contract_records(pair)
         for group in sorted(transition_groups, key=lambda item: item.group_id):
             segment_contract_ids = {
                 contract.contract_id
@@ -3511,6 +3666,7 @@ def _method_cell(
                     for group in grounding_response.additional_transition_groups
                 ],
             ),
+            frontier_batch=frontier_batch,
         )
     )
     contracts_by_id.update(execution_probe_contracts)

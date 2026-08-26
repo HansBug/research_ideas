@@ -1524,6 +1524,132 @@ def test_g4_execution_probe_requires_exact_owner_and_marked_target() -> None:
     assert probes == []
 
 
+def test_g4_execution_probe_projects_exact_aggregate_frontier_and_executes() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    owner, target = pair.model.states[1:3]
+    contract = _probe_contract(
+        contract_id="NL-CONTRACT-PROBE-AGGREGATE-TERMINATION",
+        property_name="termination",
+        locus_kind="scope",
+        locus_names=(owner.name, target.name),
+    )
+    check = FrontierCheckReceipt(
+        check_id="provider-free:frontier:aggregate-termination",
+        kind="aggregate_stable_termination",
+        source_contract_ids=(contract.contract_id,),
+        canonical_contract_id=contract.contract_id,
+        status="candidate",
+        model_refs=(owner.ref, target.ref),
+        root_refs=(owner.ref,),
+        marked_refs=(target.ref,),
+        source_refs=("NL1",),
+        reason="The fixture supplies one complete aggregate termination check.",
+        basis="provider-free typed root/marked frontier fixture",
+    )
+    frontier = FrontierBatch(
+        checks=(check,),
+        reason="The fixture supplies a deterministic frontier batch.",
+        basis="provider-free aggregate termination frontier fixture",
+    )
+
+    probes, probe_contracts, dispositions = _materialize_deterministic_execution_probes(
+        pair,
+        {contract.contract_id: contract},
+        (),
+        (),
+        frontier_batch=frontier,
+    )
+
+    g4_probe = next(item for item in probes if item.predicate_id == "G4")
+    assert g4_probe.contract_id == contract.contract_id
+    assert g4_probe.element_refs == [owner.ref, target.ref]
+    assert g4_probe.predicate_inputs == {
+        "roots": [owner.name],
+        "marked": [target.name],
+    }
+    assert probe_contracts == {}
+    assert dispositions[0]["status"] == "admitted_frontier_aggregate_termination"
+
+    prepared = _prepare_candidate(
+        pair,
+        g4_probe,
+        round_index=1,
+        index=0,
+        contracts_by_id={contract.contract_id: contract},
+    )
+    assert prepared["plan"].predicate_id == "G4"
+    assert prepared["plan"].inputs["roots"] == [owner.name]
+    assert prepared["plan"].inputs["marked"] == [target.name]
+    assert prepared["receipt"].terminal_state == "completed"
+    assert prepared["receipt"].verdict in {"true", "false"}
+
+
+def test_g4_frontier_projection_rejects_concurrent_or_incomplete_typed_partition() -> None:
+    concurrent_pair = load_pair(REPORT_ROOT / "pairs" / "0002")
+    owner, target = concurrent_pair.model.states[1:3]
+    contract = _probe_contract(
+        contract_id="NL-CONTRACT-PROBE-CONCURRENT-TERMINATION",
+        property_name="termination",
+        locus_kind="scope",
+        locus_names=(owner.name, target.name),
+    )
+
+    complete_check = FrontierCheckReceipt(
+        check_id="provider-free:frontier:concurrent-aggregate-termination",
+        kind="aggregate_stable_termination",
+        source_contract_ids=(contract.contract_id,),
+        canonical_contract_id=contract.contract_id,
+        status="candidate",
+        model_refs=(owner.ref, target.ref),
+        root_refs=(owner.ref,),
+        marked_refs=(target.ref,),
+        reason="The fixture supplies complete typed refs.",
+        basis="provider-free concurrent-model boundary fixture",
+    )
+    complete_frontier = FrontierBatch(
+        checks=(complete_check,),
+        reason="The fixture supplies a deterministic frontier batch.",
+        basis="provider-free concurrent-model boundary fixture",
+    )
+    probes, _, dispositions = _materialize_deterministic_execution_probes(
+        concurrent_pair,
+        {contract.contract_id: contract},
+        (),
+        (),
+        frontier_batch=complete_frontier,
+    )
+    assert not any(item.predicate_id == "G4" for item in probes)
+    assert dispositions[0]["status"] == (
+        "frontier_aggregate_blocked_non_sequential_model"
+    )
+
+    incomplete_check = complete_check.model_copy(
+        update={"root_refs": (), "marked_refs": ()}
+    )
+    incomplete_frontier = FrontierBatch(
+        checks=(incomplete_check,),
+        reason="The fixture supplies an incomplete frontier check.",
+        basis="provider-free incomplete typed partition fixture",
+    )
+    sequential_pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    owner, target = sequential_pair.model.states[1:3]
+    incomplete_check = incomplete_check.model_copy(
+        update={"model_refs": (owner.ref, target.ref)}
+    )
+    incomplete_frontier = incomplete_frontier.model_copy(
+        update={"checks": (incomplete_check,)}
+    )
+    probes, _, dispositions = _materialize_deterministic_execution_probes(
+        sequential_pair,
+        {contract.contract_id: contract},
+        (),
+        (),
+        frontier_batch=incomplete_frontier,
+    )
+    assert not any(item.predicate_id == "G4" for item in probes)
+    assert dispositions[0]["status"] == "frontier_aggregate_incomplete_typed_refs"
+
+
 def test_trajectory_receipt_requires_closed_contract_and_checks_retention() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     candidate = _candidate(

@@ -59,6 +59,24 @@ BACKENDS = {
     **{predicate_id: "bounded_verification" for predicate_id in ("V1", "V4")},
 }
 
+PREDICATE_ROUTE_BASIS = {
+    "S1": "closed declaration membership of an explicitly named element",
+    "S2": "exact source/target/scope transition endpoint inventory",
+    "S3": "exact transition trigger-set comparison with a closed event inventory",
+    "S4": "typed state lifecycle phase and action attachment",
+    "S5": "exact typed equality between a requirement guard and transition guard",
+    "S6": "exact effect attachment to a specified transition",
+    "G1": "finite may-reach graph path from typed source to typed target",
+    "G2": "finite universal reachability from a closed source set to a target set",
+    "G3": "finite route avoidance with an explicit forbidden node/edge set",
+    "G4": "finite coaccessibility from typed roots to typed marked nodes",
+    "R1": "closed scenario event-consumption trace over a selected macrostep",
+    "R2": "closed finite trace window after an exact stimulus",
+    "R4": "closed finite trace interval for an exact retained state",
+    "V1": "finite guard domain and independently justified guard disjointness",
+    "V4": "finite closed-model progress check from an exact initial scope",
+}
+
 
 def _hash_payload(payload: Any) -> str:
     return "sha256:" + hashlib.sha256(
@@ -134,6 +152,7 @@ def build_applicability_matrix(
             "route_baseline": sorted(routes),
             "ledger_ids": ledger_ids.get(pair_id, []),
             "ledger_mapping_status": "pair_only_no_predicate_column",
+            "ledger_id_basis": "All IDs are the complete pair-level ledger inventory; ledger_v2 has no reliable predicate annotation.",
             "model_anchors": anchors,
         }
         for predicate_id in GLOBAL_PLANNED_PREDICATES:
@@ -145,19 +164,19 @@ def build_applicability_matrix(
             if not applicable:
                 status = "not_applicable"
                 feasibility = "not_applicable"
-                basis = "The deterministic registered route baseline does not assign this predicate shape to this pair."
+                basis = "The deterministic pre-registered semantic-shape route does not assign this predicate to this pair; this is selection provenance, not a method rule."
             elif predicate_id not in BACKENDS:
                 status = "unresolved"
                 feasibility = "backend_missing"
-                basis = "The frozen registry route is applicable, but no deterministic backend is registered."
+                basis = "The pre-registered semantic shape is applicable, but the frozen registry has no deterministic backend for this route."
             elif source_status != "partial_pass":
                 status = "applicable"
                 feasibility = "source_gate_blocked"
-                basis = "The typed route is applicable and backend-addressable; source catalog status keeps W2 closed."
+                basis = f"{PREDICATE_ROUTE_BASIS[predicate_id]}; the typed route and backend are addressable, but source status {source_status!r} keeps W2 closed."
             else:
                 status = "applicable"
                 feasibility = "routable_now"
-                basis = "The typed route, registered backend, and W2 source gate are available; exact contract inputs remain method-owned."
+                basis = f"{PREDICATE_ROUTE_BASIS[predicate_id]}; the typed route, backend, and W2 source gate are available; exact contract inputs remain method-owned."
             rows.append({
                 "pair_id": pair_id,
                 "predicate_id": predicate_id,
@@ -166,12 +185,15 @@ def build_applicability_matrix(
                 "ledger_ids": ledger_ids.get(pair_id, []),
                 "predicate_ledger_ids": [],
                 "ledger_mapping_status": "pair_only_no_predicate_column",
+                "ledger_id_basis": "No predicate-specific ID is asserted because ledger_v2 does not provide a reliable predicate column; pair-level IDs remain available for evaluator-side audit only.",
                 "nl_row_anchors": anchors["nl"],
                 "stm_row_anchors": anchors["states"] + anchors["transitions"] + anchors["events"],
                 "typed_input_contract": _typed_input_contract(predicate_id, predicate),
                 "planned_backend": BACKENDS.get(predicate_id),
                 "source_audit_status": source_status,
                 "source_ids": list(predicate.sources),
+                "route_basis": PREDICATE_ROUTE_BASIS[predicate_id],
+                "value_status": "not_materialized; method-owned typed values are required before execution",
                 "basis": basis,
                 "reason": "Applicability is preflight metadata only; it does not create a method candidate, supply typed values, or execute a predicate.",
             })
@@ -186,7 +208,9 @@ def build_applicability_matrix(
         "candidate_predicates_e15": applicable_predicates,
         "candidate_predicate_count_e15": len(applicable_predicates),
         "registered_route_baseline": {key: list(value) for key, value in REGISTERED_ROUTE_BASELINE.items() if key in pair_ids},
-        "ledger_policy": "Ledger IDs are pair-level supporting references only because ledger_v2 has no reliable predicate column; no D/L/answer field is consumed.",
+        "selection_policy": "The route table is fixed preflight provenance for semantic-shape set cover only. It is never imported by the method runner and cannot create a candidate or predicate input.",
+        "ledger_policy": "Ledger IDs are complete pair-level supporting references only because ledger_v2 has no reliable predicate column; no D/L/answer/expected field is consumed.",
+        "ledger_mapping_limitation": "Formal E15 is a candidate applicability set, not a claim that every route has a predicate-specific ledger annotation. Predicate-specific ledger IDs remain empty until the ledger is manually and independently annotated.",
         "method_boundary": "This artifact is not supplied to contract extraction, grounding, D adjudication, or backend execution.",
         "pairs": pairs,
         "rows": rows,

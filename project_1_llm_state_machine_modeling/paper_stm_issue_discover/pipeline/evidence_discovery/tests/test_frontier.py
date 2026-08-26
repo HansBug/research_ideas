@@ -588,6 +588,23 @@ def test_0029_frontier_aggregates_complete_same_property_scopes() -> None:
     assert termination.candidate.property == "termination"
     assert termination.candidate.violation_direction == "not_completed"
     assert termination.candidate.predicate_id is None
+    termination_check = next(
+        item
+        for item in batch.checks
+        if item.kind == "aggregate_stable_termination"
+        and item.canonical_contract_id == termination.contract.contract_id
+    )
+    assert set(termination_check.root_refs) == {
+        pair.model.state("HighwayMode").ref,
+        pair.model.state("UrbanMode").ref,
+    }
+    assert termination_check.marked_refs == (
+        pair.model.state("FinishState").ref,
+    )
+    assert set(termination_check.model_refs) == {
+        *termination_check.root_refs,
+        *termination_check.marked_refs,
+    }
     assert not any(
         item.kind == "stable_termination" for item in batch.obligations
     )
