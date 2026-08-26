@@ -106,21 +106,21 @@ from .runtime import (
 )
 
 REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS = (
+    "0001",
+    "0002",
     "0004",
+    "0010",
+    "0012",
+    "0013",
     "0023",
+    "0024",
     "0029",
     "0035",
     "0046",
-    "0053",
-    "0001",
-    "0002",
-    "0010",
-    "0012",
-    "0024",
-    "0056",
-    "0013",
     "0049",
+    "0053",
     "0054",
+    "0056",
 )
 METHOD_CELL_SCHEMA = "evidence-discovery.method_cell.v8"
 SUMMARY_SCHEMA = "evidence-discovery.run_summary.v3"

@@ -39,6 +39,8 @@ V5 `state_invariant` 可从小 bound 递增检查：若较小 bound 得到可 re
 - R4 需要 requirement 明示 `scenario=cold` 和 `window=cold_macrosteps=N`，其中 `N <= 32`；开放 prose 时间窗保持 W1。
 - V1 需要 native same-choice guarded group、完整 exact carrier 集和 requirement 独立给出的有限 JSON `domain`；不得从 guard 或观察到的变量值补造 domain。
 
+15-pair 的固定 planned 分母为 S1、S2、S3、S4、S5、S6、G1、G4、R1、R4、V1、V4。selection preflight 仅保存这 12 个谓词的通用能力、typed schema、语义形状和输入 hash，不包含 ledger、expected、Judge、答案、D/L 或评测字段；它只以 hash/reference 进入 run manifest，不进入 method worker 的 candidate、binding、route 或 backend 输入。未列入该分母的冻结谓词仍全部具有学术资格和 native backend。
+
 当前正确的 provider-free A/B artifact ID 是 `f993bb21aa5c39e8a93f8ba1899c29e9`（`evidence-discovery-15x1-primary-route-replay-05699769`）。它只重放保存的最终 `predicate_id=null` W1 evidence（88 条），不使用较宽的辅助 `execute_batch` candidate 集，且 provider/Judge 调用均为 0；20 条候选已完成确定性路由，其中 17 条获得 W2。该 A/B 只报告 route、execution 和 W 的确定性变化，不能代替 hit、precision 或 Judge 评测。
 
 ## 隔离与审计

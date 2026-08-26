@@ -167,7 +167,7 @@ def test_stage_loss_audit_reports_zero_use_without_counting_plans(tmp_path: Path
     assert feasibility["S2"]["terminal_execution_count"] == 1
     assert feasibility["S2"]["executed_violation"] == 1
     assert feasibility["G2"]["terminal_execution_count"] == 0
-    assert feasibility["G2"]["planned_global"] is True
+    assert feasibility["G2"]["planned_global"] is False
     assert feasibility["R3"]["planned_global"] is False
 
 

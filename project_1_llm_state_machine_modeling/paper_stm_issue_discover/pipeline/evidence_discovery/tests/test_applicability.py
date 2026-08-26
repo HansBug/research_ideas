@@ -39,16 +39,14 @@ def test_applicability_rows_expose_typed_schema_without_execution_or_evaluation_
     assert {field["name"] for field in s1["typed_input_contract"]["fields"]} == {
         "kind", "element", "scope"
     }
-    assert s1["predicate_ledger_ids"] == []
-    assert s1["ledger_mapping_status"] == "pair_only_no_predicate_column"
     assert "method candidate" in s1["reason"]
 
-    g2 = next(item for item in rows if item["pair_id"] == "0002" and item["predicate_id"] == "G2")
-    assert g2["status"] == "not_applicable"
-    assert g2["feasibility"] == "not_applicable"
-    forbidden = {"judge", "expected", "answer", "hit", "fp", "precision"}
+    assert tuple(payload["global_planned_predicates"]) == GLOBAL_PLANNED_PREDICATES
+    assert len(GLOBAL_PLANNED_PREDICATES) == 12
+    forbidden = {"judge", "expected", "answer", "hit", "fp", "precision", "ledger"}
     assert not forbidden.intersection(payload.keys())
-    assert not forbidden.intersection(g2.keys())
+    assert not any(forbidden.intersection(item.keys()) for item in rows)
+    assert not any(forbidden.intersection(item.keys()) for item in payload["pairs"].values())
 
 
 def test_selection_preflight_reference_validates_hash_and_pair_order(tmp_path: Path) -> None:

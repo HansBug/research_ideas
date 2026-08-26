@@ -20,14 +20,14 @@ from .export import write_json
 
 GLOBAL_PLANNED_PREDICATES = (
     "S1", "S2", "S3", "S4", "S5", "S6",
-    "G1", "G2", "G3", "G4",
-    "R1", "R2", "R4",
+    "G1", "G4",
+    "R1", "R4",
     "V1", "V4",
 )
 
 DEFAULT_DIAGNOSTIC_PAIRS = (
-    "0001", "0002", "0004", "0010", "0012", "0023", "0024",
-    "0029", "0035", "0046", "0053", "0056", "0013", "0049", "0054",
+    "0001", "0002", "0004", "0010", "0012", "0013", "0023", "0024",
+    "0029", "0035", "0046", "0049", "0053", "0054", "0056",
 )
 
 # This is a pre-registered diagnostic route baseline, not a method rule.  It
@@ -88,15 +88,6 @@ def _hash_payload(payload: Any) -> str:
     ).hexdigest()
 
 
-def _ledger_ids_by_pair(paper_root: Path) -> dict[str, list[str]]:
-    payload = json.loads((paper_root / "discover_matrix/ledger_v2/ledger.json").read_text(encoding="utf-8"))
-    result: dict[str, list[str]] = {}
-    for ledger_id, item in payload["items"].items():
-        pair_id = str(item.get("pair", ""))
-        result.setdefault(pair_id, []).append(str(ledger_id))
-    return {pair_id: sorted(ids) for pair_id, ids in result.items()}
-
-
 def _model_anchors(pair: Any) -> dict[str, Any]:
     return {
         "nl": [segment.segment_id for segment in pair.nl_segments],
@@ -140,9 +131,7 @@ def build_applicability_matrix(
     """Build a machine-readable preflight without reading method/Judge outputs."""
 
     report_root_path = Path(report_root).expanduser().resolve()
-    paper_root = Path(__file__).resolve().parents[3]
     registry = load_registry()
-    ledger_ids = _ledger_ids_by_pair(paper_root)
     pairs: dict[str, Any] = {}
     rows: list[dict[str, Any]] = []
     for pair_id in pair_ids:
@@ -154,9 +143,6 @@ def build_applicability_matrix(
             "input_manifest_hash": pair.context_manifest.manifest_hash if pair.context_manifest else None,
             "input_hashes": dict(pair.hashes),
             "route_baseline": sorted(routes),
-            "ledger_ids": ledger_ids.get(pair_id, []),
-            "ledger_mapping_status": "pair_only_no_predicate_column",
-            "ledger_id_basis": "All IDs are the complete pair-level ledger inventory; ledger_v2 has no reliable predicate annotation.",
             "model_anchors": anchors,
         }
         for predicate_id in GLOBAL_PLANNED_PREDICATES:
@@ -179,10 +165,6 @@ def build_applicability_matrix(
                 "predicate_id": predicate_id,
                 "status": status,
                 "feasibility": feasibility,
-                "ledger_ids": ledger_ids.get(pair_id, []),
-                "predicate_ledger_ids": [],
-                "ledger_mapping_status": "pair_only_no_predicate_column",
-                "ledger_id_basis": "No predicate-specific ID is asserted because ledger_v2 does not provide a reliable predicate column; pair-level IDs remain available for evaluator-side audit only.",
                 "nl_row_anchors": anchors["nl"],
                 "stm_row_anchors": anchors["states"] + anchors["transitions"] + anchors["events"],
                 "typed_input_contract": _typed_input_contract(predicate_id, predicate),
@@ -204,10 +186,8 @@ def build_applicability_matrix(
         "candidate_predicates_e15": applicable_predicates,
         "candidate_predicate_count_e15": len(applicable_predicates),
         "registered_route_baseline": {key: list(value) for key, value in REGISTERED_ROUTE_BASELINE.items() if key in pair_ids},
-        "selection_policy": "The route table is fixed preflight provenance for semantic-shape set cover only. It is never imported by the method runner and cannot create a candidate or predicate input.",
-        "ledger_policy": "Ledger IDs are complete pair-level supporting references only because ledger_v2 has no reliable predicate column; no D/L/answer/expected field is consumed.",
-        "ledger_mapping_limitation": "Formal E15 is a candidate applicability set, not a claim that every route has a predicate-specific ledger annotation. Predicate-specific ledger IDs remain empty until the ledger is manually and independently annotated.",
-        "method_boundary": "This artifact is not supplied to contract extraction, grounding, D adjudication, or backend execution.",
+        "selection_policy": "The route table is fixed preflight provenance for semantic-shape set cover only. It is never imported by the method worker and cannot create a candidate or predicate input.",
+        "method_boundary": "This artifact contains no ledger, expected-issue, Judge, answer, D, L, hit, precision, or evaluation field. It is recorded only as immutable run provenance and is not supplied to contract extraction, grounding, D adjudication, routing, or backend execution.",
         "pairs": pairs,
         "rows": rows,
     }

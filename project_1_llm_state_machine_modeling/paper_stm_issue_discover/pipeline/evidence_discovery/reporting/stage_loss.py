@@ -422,7 +422,7 @@ def _predicate_feasibility(
         elif backend_missing and not terminal:
             zero_use_reason = "backend_missing"
         elif predicate_id not in GLOBAL_PLANNED_PREDICATES:
-            zero_use_reason = "academic_boundary"
+            zero_use_reason = "not_planned_in_selected_protocol"
         elif applicable_rows and not_applicable == len(applicable_rows):
             zero_use_reason = "not_applicable_in_selected_pairs"
         else:
@@ -438,7 +438,7 @@ def _predicate_feasibility(
             "executed_violation": violation_count,
             "input_contract_missing": input_missing,
             "backend_missing": backend_missing,
-            "academic_boundary": predicate_id not in GLOBAL_PLANNED_PREDICATES,
+            "outside_selected_planned_denominator": predicate_id not in GLOBAL_PLANNED_PREDICATES,
             "finding_count": len(evidence),
             "pass_count": pass_count,
             "witness_counts": dict(w_counts),
