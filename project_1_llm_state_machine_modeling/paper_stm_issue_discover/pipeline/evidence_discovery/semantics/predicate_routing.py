@@ -10,6 +10,7 @@ candidate prose as an identity resolver.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from itertools import product
 import json
 import re
 from typing import Literal
@@ -17,6 +18,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..backends.fcstm_native import (
+    all_events,
     all_states,
     all_transition_carriers,
     load_native_fcstm,
@@ -81,6 +83,8 @@ _PREDICATE_BACKENDS: dict[PredicateId, str] = {
 
 _COLD_MACROSTEP_WINDOW = re.compile(r"^cold_macrosteps=(?P<count>[1-9][0-9]*)$")
 _MAX_COLD_MACROSTEPS = 32
+_MAX_R4_ENTRY_EVENTS = 3
+_MAX_R4_EVENT_VOCABULARY = 12
 _STRICT_REBIND_PREDICATES = frozenset({"S4", "S6"})
 
 
@@ -396,45 +400,148 @@ def _cold_retention_scenario(
     pair: PairInput,
     contract: NLContract,
     state: StateNode,
-) -> tuple[dict[str, object] | None, str]:
-    """Build R4 input only from an explicit requirement-declared cold window."""
+) -> tuple[dict[str, object] | None, list[int] | None, str]:
+    """Build R4 from an explicit window or one native cold-entry fragment."""
 
     scenarios = _contract_values(contract, {"scenario"})
     windows = _contract_values(contract, {"window"})
-    if scenarios != ("cold",) or len(windows) != 1:
-        return None, "R4 requires exact source-side scenario=cold and window=cold_macrosteps=N hints; a natural-language until/while phrase cannot be converted to a trace interval."
-    match = _COLD_MACROSTEP_WINDOW.fullmatch(windows[0])
-    if match is None:
-        return None, "R4 accepts only the explicit finite window spelling cold_macrosteps=N; no interval is inferred from prose."
-    count = int(match.group("count"))
-    if count > _MAX_COLD_MACROSTEPS:
-        return None, f"R4 cold window exceeds the method-owned bounded scenario fragment of {_MAX_COLD_MACROSTEPS} macrosteps."
+    if scenarios or windows:
+        if scenarios != ("cold",) or len(windows) != 1:
+            return None, None, "R4 requires exact source-side scenario=cold and window=cold_macrosteps=N hints when either explicit scenario field is supplied."
+        match = _COLD_MACROSTEP_WINDOW.fullmatch(windows[0])
+        if match is None:
+            return None, None, "R4 accepts only the explicit finite window spelling cold_macrosteps=N; no interval is inferred from an untyped scenario/window value."
+        count = int(match.group("count"))
+        if count > _MAX_COLD_MACROSTEPS:
+            return None, None, f"R4 cold window exceeds the method-owned bounded scenario fragment of {_MAX_COLD_MACROSTEPS} macrosteps."
+        try:
+            native = load_native_fcstm(pair.model)
+        except Exception as exc:
+            return None, None, f"R4 could not load the current FCSTM native model for scenario closure: {type(exc).__name__}."
+        native_state = resolve_state(native, state.canonical_path)
+        if native_state is None:
+            return None, None, "R4 exact state binding does not resolve to one native FCSTM state."
+        root_path = state_path(native.machine.root_state)
+        return (
+            {
+                "schema": "evidence-discovery.fcstm-runtime-scenario.v2",
+                "initialization": "cold",
+                "root_state": root_path,
+                "event_queue": [],
+                "schedule": [
+                    {"step": step, "event_paths": []}
+                    for step in range(count)
+                ],
+                "reason": "The requirement explicitly declares a finite cold-start observation window, so the method owns a no-injected-event native runtime scenario rather than reusing a source trace.",
+                "basis": (
+                    f"state_ref={state.ref}; native_state={state_path(native_state)}; "
+                    f"native_root={root_path}; source_window={windows[0]!r}; "
+                    "pyfcstm.model.StateMachine cold initialization"
+                ),
+            },
+            [0, count - 1],
+            "R4 closed cold-start scenario and inclusive interval are fully materialized from the declared finite source window.",
+        )
+
+    return _cold_entry_quiescence_scenario(pair, state)
+
+
+def _native_active_paths(runtime: object) -> tuple[str, ...]:
+    """Read canonical active paths from one native runtime configuration."""
+
+    if bool(getattr(runtime, "is_ended", False)):
+        return ()
+    current_state = getattr(runtime, "current_state", None)
+    path = getattr(current_state, "path", ())
+    parts = tuple(str(item) for item in path)
+    return tuple(".".join(parts[:index]) for index in range(1, len(parts) + 1))
+
+
+def _run_native_event_prefix(native: object, event_paths: tuple[str, ...]) -> tuple[tuple[str, ...] | None, str | None]:
+    """Run a cold native event prefix, rejecting unconsumed or failed inputs."""
+
+    try:
+        from pyfcstm.simulate import SimulationRuntime
+
+        runtime = SimulationRuntime(native.machine, abstract_error_mode="log")
+        runtime.cycle([])
+        for event_path in event_paths:
+            result = runtime.cycle([event_path])
+            if tuple(result.consumed_events) != (event_path,) or result.unconsumed_events:
+                return None, "an entry-prefix event was not uniquely consumed by native SimulationRuntime"
+        if runtime.is_ended:
+            return None, "the native cold entry prefix reached a terminal configuration"
+        return _native_active_paths(runtime), None
+    except Exception as exc:  # noqa: BLE001 - no runtime failure becomes a verdict.
+        return None, f"native SimulationRuntime failed while replaying the cold entry prefix: {type(exc).__name__}"
+
+
+def _cold_entry_quiescence_scenario(
+    pair: PairInput,
+    state: StateNode,
+) -> tuple[dict[str, object] | None, list[int] | None, str]:
+    """Close one bounded R4 trace from a unique native cold entry path.
+
+    A retention contract supplies the target state.  This fragment searches only
+    short, single-event native runtime prefixes, accepts exactly one shortest
+    path that enters that state, and appends one empty macrostep.  The route
+    never derives events from source text, a fixture, or an evaluation artifact.
+    Multiple paths leave the scenario open instead of selecting a convenient
+    counterexample.
+    """
+
     try:
         native = load_native_fcstm(pair.model)
     except Exception as exc:
-        return None, f"R4 could not load the current FCSTM native model for scenario closure: {type(exc).__name__}."
+        return None, None, f"R4 could not load the current FCSTM native model for cold-entry closure: {type(exc).__name__}."
     native_state = resolve_state(native, state.canonical_path)
     if native_state is None:
-        return None, "R4 exact state binding does not resolve to one native FCSTM state."
-    root_path = state_path(native.machine.root_state)
+        return None, None, "R4 exact state binding does not resolve to one native FCSTM state."
+    event_paths = tuple(sorted(event.path_name for event in all_events(native)))
+    if len(event_paths) > _MAX_R4_EVENT_VOCABULARY:
+        return None, None, f"R4 cold-entry fragment refuses an event vocabulary larger than {_MAX_R4_EVENT_VOCABULARY}; no arbitrary schedule is selected."
+    target_path = state_path(native_state)
+    selected: tuple[str, ...] | None = None
+    for length in range(_MAX_R4_ENTRY_EVENTS + 1):
+        matches: list[tuple[str, ...]] = []
+        for prefix in product(event_paths, repeat=length):
+            active_paths, failure = _run_native_event_prefix(native, prefix)
+            if failure is None and active_paths is not None and target_path in active_paths:
+                matches.append(prefix)
+        if len(matches) == 1:
+            selected = matches[0]
+            break
+        if len(matches) > 1:
+            return None, None, "R4 cold-entry fragment found multiple shortest native event prefixes for the retained state, so it cannot choose a schedule."
+    if selected is None:
+        return None, None, f"R4 cold-entry fragment found no unique native event prefix of at most {_MAX_R4_ENTRY_EVENTS} macrosteps for the exact retained state."
+    active_after_entry, failure = _run_native_event_prefix(native, selected)
+    if failure is not None or active_after_entry is None or target_path not in active_after_entry:
+        return None, None, f"R4 native entry-prefix replay did not close the exact retained state: {failure or 'target absent'}"
+    schedule = [
+        {"step": 0, "event_paths": []},
+        *(
+            {"step": index, "event_paths": [event_path]}
+            for index, event_path in enumerate(selected, start=1)
+        ),
+        {"step": len(selected) + 1, "event_paths": []},
+    ]
     return (
         {
             "schema": "evidence-discovery.fcstm-runtime-scenario.v2",
             "initialization": "cold",
-            "root_state": root_path,
-            "event_queue": [],
-            "schedule": [
-                {"step": step, "event_paths": []}
-                for step in range(count)
-            ],
-            "reason": "The requirement explicitly declares a finite cold-start observation window, so the method owns a no-injected-event native runtime scenario rather than reusing a source trace.",
+            "root_state": state_path(native.machine.root_state),
+            "event_queue": list(selected),
+            "schedule": schedule,
+            "reason": "The exact retained state has one shortest native cold-entry event prefix, followed by one no-injected-event macrostep. This is a method-owned runtime input, not a source trace.",
             "basis": (
-                f"state_ref={state.ref}; native_state={state_path(native_state)}; "
-                f"native_root={root_path}; source_window={windows[0]!r}; "
-                "pyfcstm.model.StateMachine cold initialization"
+                f"state_ref={state.ref}; native_state={target_path}; native_root={state_path(native.machine.root_state)}; "
+                f"entry_event_prefix={list(selected)}; prefix_bound={_MAX_R4_ENTRY_EVENTS}; "
+                "pyfcstm SimulationRuntime cold replay and unique shortest-prefix enumeration"
             ),
         },
-        "R4 closed cold-start scenario and inclusive interval are fully materialized from the declared finite source window.",
+        [len(selected), len(selected) + 1],
+        "R4 closed a unique native cold-entry prefix and one subsequent zero-event macrostep for the exact retained state.",
     )
 
 
@@ -681,10 +788,9 @@ def _route_candidate(
         state, state_basis = _state_for_roles(pair, contract, grounding, {"state"})
         if state is None:
             return candidate, None, "R4 routing requires one exact state binding before constructing a finite runtime interval.", f"state={state_basis}"
-        scenario, scenario_reason = _cold_retention_scenario(pair, contract, state)
-        if scenario is None:
+        scenario, interval, scenario_reason = _cold_retention_scenario(pair, contract, state)
+        if scenario is None or interval is None:
             return candidate, None, "R4 routing retains the precise temporal candidate because its method-owned scenario/interval input contract is not closed.", f"state_ref={state.ref}; input_contract_missing/out_of_fragment: {scenario_reason}"
-        interval = [0, len(scenario["schedule"]) - 1]
         return (
             _routed_candidate(candidate, "R4", {"scenario": scenario, "state": state.canonical_path, "interval": interval}, (state.ref,), reason="The primary route materialized an explicit finite cold-start retention interval and delegates every trace point to native SimulationRuntime.", basis=f"predicate=R4; state_ref={state.ref}; interval={interval}; scenario_basis={scenario['basis']}"),
             "R4",

@@ -4016,6 +4016,7 @@ def test_0046_contract_shape_separates_endpoint_and_event_consumer() -> None:
     assert "bidirectional or dynamic A-to-B/B-to-A requirement" in CONTRACT_SYSTEM_PROMPT
     assert "one normalized guard hint" in CONTRACT_SYSTEM_PROMPT
     assert "`property=state_action` uses `evidence_types=[action_fact]`" in CONTRACT_SYSTEM_PROMPT
+    assert "Entry/Accelerate" in CONTRACT_SYSTEM_PROMPT
     assert "return the complete replacement" in build_contract_prompt(pair, 1)
     assert "Never return only the" in " ".join(build_contract_prompt(pair, 1).split())
     contract_schema = NLContractResponse.model_json_schema()

@@ -4,8 +4,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from pipeline.evidence_discovery.backends import run_backend
+from pipeline.evidence_discovery.compiler import compile_plan
 from pipeline.evidence_discovery.inputs import PairInput, load_pair, parse_fcstm
-from pipeline.evidence_discovery.semantics import CandidateIssue, ContractBindingHint, NLContract
+from pipeline.evidence_discovery.registry import load_registry
+from pipeline.evidence_discovery.semantics import (
+    CandidateIssue,
+    ContractBindingHint,
+    NLContract,
+    bind_candidate,
+)
 from pipeline.evidence_discovery.semantics.predicate_routing import (
     route_primary_candidates,
 )
@@ -377,6 +385,57 @@ def test_state_retention_requires_an_explicit_finite_cold_window() -> None:
     )
     assert open_projection.candidates[0].predicate_id is None
     assert "input_contract_missing/out_of_fragment" in open_projection.telemetry[0].basis
+
+
+def test_state_retention_closes_unique_native_cold_entry_quiescence() -> None:
+    """R4 builds and replays only one unique native cold-entry retention path."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0024")
+    state = next(item for item in pair.model.states if item.name == "Approaching")
+    contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-R4-NATIVE-ENTRY-1",
+        segment_id="NL10",
+        quote="Approaching remains active until the train is ready to stop or decelerate.",
+        normative_statement="Approaching must be retained before a later stop/deceleration input.",
+        locus_kind="state",
+        locus_names=("Approaching",),
+        property="state_retention",
+        expected_direction="must_remain",
+        violation_direction="not_retained",
+        evidence_types=("source_identity", "trace_fact"),
+        binding_hints=(_hint("state", "Approaching"),),
+        scope="Approaching retention",
+        source_refs=("NL10",),
+        reason="The requirement establishes state retention before a later input.",
+        basis="R4 native cold-entry regression fixture",
+    )
+
+    projection = route_primary_candidates(
+        pair, {contract.contract_id: contract}, (), [_candidate(contract, [state.ref])]
+    )
+    routed = projection.candidates[0]
+    assert routed.predicate_id == "R4"
+    scenario = routed.predicate_inputs["scenario"]
+    assert scenario["event_queue"] == [
+        "llms_emp_feedback_final_0024.Closed_SendDeparted",
+        "llms_emp_feedback_final_0024.Approached_Decelerate",
+    ]
+    assert scenario["schedule"][-1]["event_paths"] == []
+    assert routed.predicate_inputs["interval"] == [2, 3]
+
+    binding = bind_candidate(routed, pair.model)
+    plan = compile_plan(
+        routed,
+        binding,
+        load_registry(),
+        obligation_id="fixture:r4-native-entry",
+        round_index=1,
+        model=pair.model,
+    )
+    receipt = run_backend(plan, pair.model, "fixture:r4-native-entry:receipt")
+    assert receipt.terminal_state == "completed"
+    assert receipt.verdict == "true"
+    assert len(receipt.trace) == 4
 
 
 def test_guard_disjointness_requires_native_group_and_independent_domain() -> None:
