@@ -1,8 +1,10 @@
 # OMG UML 2.5.1 状态机良构性规则的开采结果
 
-> **历史来源扫描说明：** 本文件是形式资料的原始摘录和审计，不是当前谓词表，也不
-> 自动证明任何核心谓词已经通过严格来源门。当前注册表和来源三分类以
-> [`pipeline/evidence_discovery/`](../../pipeline/evidence_discovery/) 为准。
+> **材料定位：** 本文件是形式资料的原始摘录和审计，不是当前谓词表。冻结
+> `four-family-19-core.v1` 的 19 个谓词均已完成学术资格审查；本材料保留其可复核
+> 的 formal provenance 与适用边界。当前 registry 和执行协议以
+> [`pipeline/evidence_discovery/`](../../pipeline/evidence_discovery/) 为准，bibliography
+> metadata 不参与任何运行时 W、D、route、backend 或 publication 决定。
 
 > ⭐ **本文件记的是一次定向开采**：⭐ OMG UML 2.5.1（formal/2017-12-05）官方 PDF 全文 796 页，⭐ Chapter 14 StateMachines 逐条读完。⛔ 它**不是** 19 行分级表（那在 [predicate_provenance.md](./predicate_provenance.md)），⭐ 也不是证据总账。
 >

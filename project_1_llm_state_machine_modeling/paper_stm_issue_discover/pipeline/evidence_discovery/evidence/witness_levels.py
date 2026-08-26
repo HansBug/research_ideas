@@ -11,15 +11,27 @@ from .receipts import RawReceipt, build_predicate_execution_receipt
 
 
 def calculate_witness_level(binding: BindingResult, plan: PredicatePlan, receipt: RawReceipt) -> str:
+    """Apply the frozen three-level W protocol without bibliography metadata."""
+
     if not binding.precise:
         return "W0"
-    if not plan.supported:
+    readiness = all(
+        (
+            bool(getattr(plan, "predicate_registered", plan.predicate_id is not None)),
+            bool(getattr(plan, "input_shape_valid", plan.executable)),
+            bool(getattr(plan, "binding_complete", plan.executable)),
+            bool(getattr(plan, "backend_available", plan.executable)),
+            bool(getattr(plan, "soundness_fragment_satisfied", plan.executable)),
+            bool(getattr(plan, "artifact_attribution_complete", plan.executable)),
+        )
+    )
+    if not readiness:
         return "W1"
     if receipt.terminal_state == "completed" and receipt.verdict in {"true", "false"}:
         return "W2"
-    # UNKNOWN, timeout, unsupported execution and errors are a third state:
-    # they are not semantic W1 and can never become a violation or W2.
-    return "UNKNOWN"
+    # Timeout, unsupported execution, and errors are represented in the
+    # execution audit. They are W1 with a precise binding, never a fourth W.
+    return "W1"
 
 
 def build_evidence_record(
@@ -41,7 +53,10 @@ def build_evidence_record(
         semantic_adjudication,
         receipt=receipt,
     )
-    witness_level = calculate_witness_level(binding, plan, receipt)
+    independent_semantic_basis = bool(
+        semantic_adjudication is not None
+        and semantic_adjudication.grounding == "established"
+    )
     execution_receipt = build_predicate_execution_receipt(
         pair_id=pair.pair_id,
         run_id=run_id,
@@ -49,14 +64,36 @@ def build_evidence_record(
         obligation_id=obligation_id,
         plan=plan,
         receipt=receipt,
+        source_attribution=source_attribution,
+        retry_records=retry_records,
+        independent_semantic_basis=independent_semantic_basis,
+        binding_precise=binding.precise,
     )
+    witness_level = execution_receipt["witness_level"]
+    # A failed or unavailable backend cannot manufacture a D1/D2 finding. A
+    # separately established semantic adjudication may still support a W1
+    # issue, but the failure itself remains only an execution-audit fact.
+    if (
+        binding.precise
+        and
+        execution_receipt["execution_state"] != "completed"
+        and not independent_semantic_basis
+    ):
+        disposition = {
+            **disposition,
+            "d_level": "D0",
+            "reason": disposition["reason"] + " The backend failure/absence is not independent violation evidence, so deterministic publication is D0.",
+            "basis": disposition["basis"] + "; execution audit requires an independently established semantic basis before D1/D2 publication",
+        }
     issue_emitted = disposition["d_level"] in {"D1", "D2"}
     if witness_level == "W0":
         coverage_class = "coverage_gap"
     elif witness_level == "W1":
-        coverage_class = "semantic_hit"
-    elif witness_level == "UNKNOWN":
-        coverage_class = "execution_unknown"
+        coverage_class = (
+            "execution_degraded"
+            if execution_receipt["execution_state"] != "not_attempted"
+            else "semantic_hit"
+        )
     else:
         coverage_class = "executable_evidence"
     record: dict[str, Any] = {
@@ -78,10 +115,7 @@ def build_evidence_record(
         "semantic_adjudication": disposition["semantic_adjudication"],
         "issue_emitted": bool(
             issue_emitted
-            and (
-                witness_level == "W1"
-                or (witness_level == "W2" and receipt.verdict == "false")
-            )
+            and (witness_level == "W1" or (witness_level == "W2" and receipt.verdict == "false"))
         ),
         "coverage_class": coverage_class,
         "reason": disposition["reason"],

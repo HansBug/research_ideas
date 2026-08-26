@@ -10,7 +10,7 @@ from .trajectory import run_trajectory
 
 
 def run_backend(plan: PredicatePlan, model: ModelIR, receipt_id: str) -> RawReceipt:
-    if plan.predicate_id is None or not (plan.supported or plan.executable):
+    if plan.predicate_id is None or not plan.executable:
         return RawReceipt(
             receipt_id=receipt_id,
             backend="none",
@@ -18,7 +18,10 @@ def run_backend(plan: PredicatePlan, model: ModelIR, receipt_id: str) -> RawRece
             verdict="unknown",
             reason="The plan has no sound executable backend; preserve a precise candidate as W1.",
             basis="deterministic backend capability table",
-            run_metadata={"algorithm_version": "backend-dispatch.v1"},
+            run_metadata={
+                "algorithm_version": "backend-dispatch.v1",
+                "failure_kind": "invalid_input" if plan.predicate_id else "unsupported_backend",
+            },
         )
     if plan.predicate_id.startswith("S"):
         return run_source_static(plan, model, receipt_id)

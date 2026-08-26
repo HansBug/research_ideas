@@ -8,7 +8,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..inputs.models import ModelIR
-from ..registry.model import PredicateRegistry, SourceAdmission
+from ..registry.model import PredicateRegistry
 from ..semantics.binding import BindingResult
 from ..semantics.obligations import CandidateIssue
 from .inputs import (
@@ -22,15 +22,10 @@ SUPPORTED_PREDICATES = frozenset(
     {
         "S1", "S2", "S3", "S4", "S5", "S6",
         "G1", "G2", "G3", "G4",
-        "R1", "R2", "R4",
-        "V1", "V4",
+        "R1", "R2", "R3", "R4",
+        "V1", "V2", "V3", "V4", "V5",
     }
 )
-
-# A source-catalog ``partial_pass`` is the current strict W2 entry state. All
-# candidate or explicitly W1-only source states remain executable candidates,
-# but cannot be represented as W2 until the catalog is independently updated.
-W2_SOURCE_STATUSES = frozenset({"partial_pass"})
 
 _INPUT_ALIASES: dict[str, str] = {
     "transition_ref": "transition",
@@ -73,28 +68,30 @@ class PredicatePlan(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
     plan_id: str = Field(min_length=1, description="Stable plan identifier tied to the pair, round, and candidate obligation.")
-    predicate_id: str | None = Field(default=None, description="Frozen predicate identifier, or null for a W1-only/unexpressed candidate.")
+    predicate_id: str | None = Field(default=None, description="Frozen predicate identifier, or null when the precise candidate has no applicable frozen predicate route.")
     registry_version: str = Field(min_length=1, description="Registry version used to compile this plan.")
     inputs: PredicateInputs = Field(description="Typed canonical inputs discriminated by frozen predicate ID; the unsupported variant represents null or invalid inputs, forces downgrade, and cannot execute as W2.")
     soundness_fragment: str = Field(min_length=1, description="Registered soundness boundary for the planned check.")
     assumptions: tuple[str, ...] = Field(description="Closed-input and algorithm assumptions required by the plan.")
     formal_program: str | None = Field(default=None, description="Compiled assertion or formal-program source, present only for an executable supported plan.")
     formal_program_hash: str | None = Field(default=None, description="SHA-256 hash of formal_program, when compiled.")
-    supported: bool = Field(description="Whether this plan passed deterministic backend, source, and input gates.")
-    executable: bool = Field(default=False, description="Whether typed inputs and a deterministic backend are sufficient to run, even when the source gate keeps W2 closed.")
+    predicate_registered: bool = Field(default=False, description="Whether predicate_id resolves to one of the frozen 19 registry predicates; bibliography review status never changes this field.")
+    binding_precise: bool = Field(default=False, description="Whether the candidate has an exact reliable semantic and element binding before execution.")
+    input_shape_valid: bool = Field(default=False, description="Whether normalized typed inputs satisfy the predicate-specific Pydantic schema.")
+    binding_complete: bool = Field(default=False, description="Whether every registry-minimal typed input is present after normalization.")
+    backend_available: bool = Field(default=False, description="Whether the frozen predicate has a deterministic backend dispatch implementation.")
+    soundness_fragment_satisfied: bool = Field(default=False, description="Whether the plan meets the predicate's local finite-model, scope, carrier, and input-fragment preconditions.")
+    artifact_attribution_complete: bool = Field(default=False, description="Whether the compiled plan carries the closed executed-model identity and program hash required for later artifact attribution.")
+    execution_state: str = Field(default="not_attempted", description="Compilation-time execution state. Runtime receipts independently record not_attempted, completed, or failed outcomes.")
+    predicate_verdict: str | None = Field(default=None, description="Compilation-time predicate verdict, always null before a backend receipt is produced.")
+    supported: bool = Field(default=False, description="Deprecated compatibility synonym for execution readiness. It is derived only from executable typed/backend conditions and never from bibliography provenance.")
+    executable: bool = Field(default=False, description="Whether typed inputs and a deterministic backend are sufficient to run under the frozen predicate contract.")
     reason: str = Field(min_length=1, description="Non-empty explanation of the plan support or downgrade decision.")
     basis: str = Field(min_length=1, description="Non-empty registry, source, binding, or capability basis for the plan decision.")
     predicate_name: str | None = Field(default=None, min_length=1, description="Registered predicate name, when predicate_id is present.")
     family: str | None = Field(default=None, min_length=1, description="Registered predicate family, when predicate_id is present.")
     semantics: str | None = Field(default=None, min_length=1, description="Registered predicate semantics, when predicate_id is present.")
     source_ids: tuple[str, ...] = Field(default=(), description="Registered source identifiers for this predicate.")
-    source_audit_status: str | None = Field(default=None, min_length=1, description="Current source-catalog status used by the W2 admission gate.")
-    source_gate_passed: bool = Field(default=False, description="Whether the source audit status passed the current W2 gate.")
-    source_admission_id: str | None = Field(default=None, min_length=1, description="Restricted catalog admission that passed the W2 source gate for this exact typed candidate, or null when predicate-wide source status was used.")
-    source_admission_citations: tuple[str, ...] = Field(default=(), description="Exact source locations supporting a restricted admission; empty unless source_admission_id is present.")
-    source_admission_proposition: str | None = Field(default=None, min_length=1, description="Scoped source proposition applied to this plan, or null when no restricted admission was used.")
-    source_admission_boundary: str | None = Field(default=None, min_length=1, description="Boundary that prevents a restricted source admission from being generalized, or null when no restricted admission was used.")
-    binding_complete: bool = Field(default=True, description="Whether all registry-minimal inputs are present after normalization.")
     missing_inputs: tuple[str, ...] = Field(default=(), description="Required registry inputs missing from the candidate binding.")
 
     @model_validator(mode="before")
@@ -117,9 +114,9 @@ class PredicatePlan(BaseModel):
     def validate_input_support_consistency(self) -> PredicatePlan:
         """Prevent an invalid typed input object from entering a W2 backend."""
 
-        if isinstance(self.inputs, UnsupportedPredicateInputs) and self.supported:
+        if isinstance(self.inputs, UnsupportedPredicateInputs) and self.executable:
             raise ValueError(
-                "PredicatePlan.inputs is unsupported/invalid but supported=true; "
+                "PredicatePlan.inputs is unsupported/invalid but executable=true; "
                 "typed input failures must deterministically downgrade to W1"
             )
         return self
@@ -128,51 +125,35 @@ class PredicatePlan(BaseModel):
         return self.model_dump(mode="json")
 
 
-def _restricted_source_admission(
-    *,
-    candidate: CandidateIssue,
-    binding: BindingResult,
-    model: ModelIR,
+def assess_soundness_fragment(
     predicate_id: str,
-    inputs: dict[str, Any],
-    registry: PredicateRegistry,
-) -> SourceAdmission | None:
-    """Return a catalog admission only after its exact typed shape is proven.
+    inputs: Mapping[str, Any],
+    *,
+    model_hash: str | None,
+) -> tuple[bool, str]:
+    """Check local executable-fragment preconditions without bibliography state.
 
-    This is deliberately not a predicate-wide status override. The sole
-    currently admitted shape is the UML initial-pseudostate prohibition on a
-    trigger: one exact ``[*]`` carrier, an explicitly empty required trigger
-    set, and a non-empty observed trigger set. A guard-only initial defect,
-    ordinary transition, or arbitrary S3 equality claim remains governed by
-    the predicate-wide source status.
+    This function intentionally verifies only deterministic input shape and
+    ownership facts. It does not infer a requirement, a verdict, or any
+    academic eligibility from historical provenance metadata.
     """
 
-    if predicate_id != "S3" or not binding.precise:
-        return None
-    transition_ref = inputs.get("transition")
-    triggers = inputs.get("triggers")
-    if not isinstance(transition_ref, str) or not isinstance(triggers, (list, tuple)):
-        return None
-    transition = model.transition(transition_ref)
-    if (
-        candidate.property != "trigger_set"
-        or candidate.violation_direction != "mismatched"
-        or "initial_entry_fact" not in candidate.evidence_types
-        or tuple(triggers)
-        or transition is None
-        or transition.source.strip().replace("[ * ]", "[*]") != "[*]"
-        or not transition.triggers
-        or transition.ref not in binding.element_refs
-    ):
-        return None
-    return next(
-        (
-            item
-            for item in registry.source_admissions.get(predicate_id, ())
-            if item.kind == "s3_initial_outgoing_without_trigger"
-        ),
-        None,
-    )
+    if not model_hash:
+        return False, "the closed ModelIR hash is missing"
+    if predicate_id == "S4" and inputs.get("phase") not in {"entry", "do", "exit"}:
+        return False, "S4 phase must be one of entry, do, or exit"
+    if predicate_id == "S2" and not isinstance(inputs.get("scope"), str):
+        return False, "S2 requires one exact owner scope"
+    if predicate_id in {"S3", "S5", "S6"} and not isinstance(inputs.get("transition"), str):
+        return False, f"{predicate_id} requires one exact transition carrier"
+    if predicate_id == "V1":
+        domain = inputs.get("domain")
+        guards = inputs.get("guards")
+        if not isinstance(inputs.get("source"), str) or domain is None:
+            return False, "V1 requires an exact choice source and a declared finite domain"
+        if not isinstance(guards, (list, tuple)) or len(guards) < 2:
+            return False, "V1 requires at least two exact guards from one choice group"
+    return True, "typed inputs satisfy the local executable soundness fragment"
 
 
 def compile_plan(
@@ -219,31 +200,34 @@ def compile_plan(
             assumptions=(),
             formal_program=None,
             formal_program_hash=None,
+            predicate_registered=False,
+            binding_precise=binding.precise,
+            input_shape_valid=False,
+            binding_complete=False,
+            backend_available=False,
+            soundness_fragment_satisfied=False,
+            artifact_attribution_complete=False,
             supported=False,
+            executable=False,
             reason="The candidate has no usable frozen predicate ID; preserve a precise binding as W1.",
             basis="frozen registry lookup rejected missing or unknown predicate",
         )
     normalized_inputs = normalize_inputs(dict(candidate.predicate_inputs))
     inputs = project_predicate_input_values(predicate.id, normalized_inputs)
     typed_inputs = validate_predicate_inputs(predicate.id, inputs)
-    source_audit = (registry.source_audit or {}).get(predicate.id, {})
-    source_status = source_audit.get("status") if isinstance(source_audit, dict) else None
-    source_status = str(source_status) if source_status is not None else None
-    source_admission = _restricted_source_admission(
-        candidate=candidate,
-        binding=binding,
-        model=model,
-        predicate_id=predicate.id,
-        inputs=inputs,
-        registry=registry,
-    )
-    source_gate_passed = source_status in W2_SOURCE_STATUSES or source_admission is not None
     missing_inputs = tuple(
         input_name
         for input_name in predicate.inputs
         if (
             input_name not in inputs
-            or inputs[input_name] in (None, "")
+            or (
+                inputs[input_name] in (None, "")
+                and not (
+                    predicate.id in {"V1", "V2"}
+                    and input_name == "trigger"
+                    and input_name in inputs
+                )
+            )
             or (
                 inputs[input_name] == []
                 and not (predicate.id == "S3" and input_name == "triggers")
@@ -259,15 +243,24 @@ def compile_plan(
     )
     backend_supported = predicate.id in SUPPORTED_PREDICATES
     input_shape_valid = not isinstance(typed_inputs, UnsupportedPredicateInputs)
+    soundness_fragment_satisfied, fragment_reason = assess_soundness_fragment(
+        predicate.id,
+        inputs,
+        model_hash=normalized_inputs.get("model_hash") if isinstance(normalized_inputs.get("model_hash"), str) else None,
+    )
+    artifact_attribution_complete = bool(
+        normalized_inputs.get("model_hash") and formal_program
+    )
     executable = (
         backend_supported
         and binding_complete
         and input_shape_valid
+        and soundness_fragment_satisfied
     )
-    supported = (
-        executable
-        and source_gate_passed
-    )
+    # ``supported`` remains only as a backward-compatible serialization field.
+    # It is exactly execution readiness and bibliography provenance cannot
+    # modify it. W calculation reads the explicit readiness dimensions below.
+    supported = executable
     if not input_shape_valid:
         reason = "The normalized predicate inputs violate the exact discriminated Pydantic variant; the candidate remains auditable W1 and is not executed."
         basis = f"typed predicate input validation errors={list(typed_inputs.validation_errors)}"
@@ -275,20 +268,14 @@ def compile_plan(
         reason = f"The predicate execution binding lacks required inputs {list(missing_inputs)}; an exact semantic element binding remains W1, while an imprecise semantic binding remains W0."
         basis = "registry minimal-input completeness check; deterministic W state machine retains the independent semantic binding boundary"
     elif not backend_supported:
-        reason = "The predicate is registered but has no sound backend in the current runtime; a precise candidate is W1."
+        reason = "The predicate is registered but its deterministic backend dispatch is unavailable; a precise candidate remains W1 with an execution audit."
         basis = "registry lookup plus explicit backend capability table"
-    elif not source_gate_passed:
-        reason = "The backend exists, but the predicate source gate has not passed; a precise candidate remains W1."
-        basis = f"predicate_audit status={source_status!r}; W2 requires one of {sorted(W2_SOURCE_STATUSES)}"
-    elif source_admission is not None:
-        reason = "The predicate-wide source status remains closed, but this exact typed candidate satisfies one catalog-backed restricted source admission."
-        basis = (
-            f"predicate_audit status={source_status!r}; admission={source_admission.id}; "
-            f"proposition={source_admission.proposition}; boundary={source_admission.boundary}"
-        )
+    elif not soundness_fragment_satisfied:
+        reason = "The predicate binding is typed but does not meet this frozen predicate's executable soundness fragment; retain the precise semantic candidate as W1."
+        basis = f"local executable-fragment validation: {fragment_reason}"
     else:
-        reason = "The predicate passes the frozen registry, source gate, and deterministic backend capability checks."
-        basis = f"registry lookup, source gate status={source_status!r}, and backend capability table"
+        reason = "The frozen predicate, exact typed binding, executable fragment, and deterministic backend are ready for one real evaluation."
+        basis = "frozen registry lookup, typed input validation, executable fragment, and deterministic backend capability table"
     return PredicatePlan(
         plan_id=plan_id,
         predicate_id=predicate.id,
@@ -298,6 +285,13 @@ def compile_plan(
         assumptions=("closed_fcstm_input", model.algorithm_version),
         formal_program=formal_program if executable else None,
         formal_program_hash=_hash_text(formal_program) if executable else None,
+        predicate_registered=True,
+        binding_precise=binding.precise,
+        input_shape_valid=input_shape_valid,
+        binding_complete=binding_complete,
+        backend_available=backend_supported,
+        soundness_fragment_satisfied=soundness_fragment_satisfied,
+        artifact_attribution_complete=artifact_attribution_complete and executable,
         supported=supported,
         executable=executable,
         reason=reason,
@@ -306,12 +300,5 @@ def compile_plan(
         family=predicate.family,
         semantics=predicate.semantics,
         source_ids=predicate.sources,
-        source_audit_status=source_status,
-        source_gate_passed=source_gate_passed,
-        source_admission_id=source_admission.id if source_admission else None,
-        source_admission_citations=source_admission.citations if source_admission else (),
-        source_admission_proposition=source_admission.proposition if source_admission else None,
-        source_admission_boundary=source_admission.boundary if source_admission else None,
-        binding_complete=binding_complete,
         missing_inputs=missing_inputs,
     )

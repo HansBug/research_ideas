@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import multiprocessing
+import time
 from datetime import date
 from importlib import import_module
 from pathlib import Path
@@ -10,11 +12,14 @@ from types import SimpleNamespace
 
 import pytest
 from pipeline.evidence_discovery.backends import run_backend
-from pipeline.evidence_discovery.backends.bounded_verification import (
-    _terminal_states,
-    run_bounded_verification,
+from pipeline.evidence_discovery.backends.bounded_verification import run_bounded_verification
+from pipeline.evidence_discovery.backends.fcstm_native import (
+    execute_fbmcq,
+    load_native_fcstm,
+    transition_by_ref,
+    transition_owner_path,
 )
-from pipeline.evidence_discovery.backends.topology import _graph, run_topology
+from pipeline.evidence_discovery.backends.topology import run_topology
 from pipeline.evidence_discovery.backends.trajectory import run_trajectory
 from pipeline.evidence_discovery.compiler import compile_plan
 from pipeline.evidence_discovery.compiler.inputs import (
@@ -169,7 +174,7 @@ def _candidate(
     )
 
 
-def test_source_gate_and_input_aliases_are_deterministic() -> None:
+def test_input_aliases_and_runtime_witness_readiness_are_deterministic() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     registry = load_registry()
     candidate = _candidate(
@@ -183,8 +188,14 @@ def test_source_gate_and_input_aliases_are_deterministic() -> None:
     binding = bind_candidate(candidate, pair.model)
     plan = compile_plan(candidate, binding, registry, obligation_id="0000:test", round_index=1, model=pair.model)
 
-    assert plan.supported is False
-    assert plan.source_audit_status == "candidate"
+    assert plan.supported is True
+    assert plan.predicate_registered is True
+    assert plan.binding_precise is True
+    assert plan.input_shape_valid is True
+    assert plan.binding_complete is True
+    assert plan.backend_available is True
+    assert plan.soundness_fragment_satisfied is True
+    assert plan.artifact_attribution_complete is True
     assert plan.inputs["guard"] == "front_distance > 10"
     assert plan.inputs["transition"] == pair.model.transitions[0].ref
     assert plan.executable is True
@@ -204,7 +215,7 @@ def test_source_gate_and_input_aliases_are_deterministic() -> None:
         assert plan.supported is False, predicate_id
 
 
-def test_restricted_s3_source_admission_requires_exact_triggered_initial_carrier() -> None:
+def test_exact_s3_initial_carrier_reaches_w2_without_bibliography_admission() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0002")
     transition = next(
         item
@@ -237,12 +248,7 @@ def test_restricted_s3_source_admission_requires_exact_triggered_initial_carrier
         model=pair.model,
     )
 
-    assert plan.source_audit_status == "candidate"
-    assert plan.source_gate_passed is True
     assert plan.supported is True
-    assert plan.source_admission_id == "S3.uml_initial_outgoing_without_trigger.v1"
-    assert plan.source_admission_citations
-    assert "does not admit guard-only defects" in (plan.source_admission_boundary or "")
     receipt = run_backend(plan, pair.model, "0002:initial-trigger:receipt")
     assert receipt.terminal_state == "completed"
     assert receipt.verdict == "false"
@@ -254,10 +260,9 @@ def test_restricted_s3_source_admission_requires_exact_triggered_initial_carrier
         plan=plan,
         receipt=receipt,
     )
-    assert execution["source_admission_id"] == plan.source_admission_id
-    assert execution["source_admission_citations"] == list(plan.source_admission_citations)
-    assert execution["source_admission_proposition"] == plan.source_admission_proposition
-    assert execution["source_admission_boundary"] == plan.source_admission_boundary
+    assert execution["witness_level"] == "W2"
+    assert execution["execution_state"] == "completed"
+    assert execution["predicate_verdict"] == "false"
     record = build_evidence_record(
         pair=pair,
         obligation_id="0002:initial-trigger",
@@ -265,19 +270,22 @@ def test_restricted_s3_source_admission_requires_exact_triggered_initial_carrier
         binding=bind_candidate(candidate, pair.model),
         plan=plan,
         receipt=receipt,
-        source_attribution={"requirement": {"path": "nl.txt"}},
+        source_attribution={
+            "requirement": {"path": "nl.txt"},
+            "model": {"hash": pair.hashes["fcstm"]},
+            "plan": {"hash": plan.formal_program_hash},
+            "receipt": {"id": receipt.receipt_id},
+        },
         retry_records=[],
         run_id="2" * 32,
     )
     bundle = record["audit_bundle"]
     assert bundle is not None
-    assert bundle["predicate_logic"]["source_admission"]["id"] == plan.source_admission_id
-    assert bundle["predicate_logic"]["source_admission"]["citations"] == list(
-        plan.source_admission_citations
-    )
+    assert bundle["predicate_logic"]["academic_provenance"].startswith("All 19 frozen predicates")
+    assert bundle["backend_result"]["verdict"] == "false"
 
 
-def test_restricted_s3_source_admission_rejects_ordinary_trigger_equality() -> None:
+def test_ordinary_s3_trigger_equality_is_not_bibliography_gated() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0010")
     transition = next(item for item in pair.model.transitions if item.triggers)
     candidate = _candidate(
@@ -307,9 +315,11 @@ def test_restricted_s3_source_admission_rejects_ordinary_trigger_equality() -> N
     )
 
     assert transition.source != "[*]"
-    assert plan.source_audit_status == "candidate"
-    assert plan.source_gate_passed is False
-    assert plan.source_admission_id is None
+    assert plan.supported is True
+    receipt = run_backend(plan, pair.model, "0010:ordinary-trigger:receipt")
+    assert receipt.terminal_state == "completed"
+    assert receipt.verdict == "false"
+    assert calculate_witness_level(bind_candidate(candidate, pair.model), plan, receipt) == "W2"
 
 
 def test_grounding_unresolved_with_exact_binding_is_admitted_as_predicate_null_candidate() -> None:
@@ -815,7 +825,7 @@ def test_absent_exact_initial_edge_remains_an_s2_executable_claim() -> None:
     assert prepared["receipt"].verdict == "false"
 
 
-def test_w0_w1_and_unknown_are_mutually_exclusive() -> None:
+def test_w0_w1_w2_and_execution_failures_are_orthogonal() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     registry = load_registry()
     transition = pair.model.transitions[0]
@@ -841,7 +851,7 @@ def test_w0_w1_and_unknown_are_mutually_exclusive() -> None:
         reason="fixture completed",
         basis="fixture basis",
     )
-    unknown = RawReceipt(
+    timeout = RawReceipt(
         receipt_id="r2",
         backend="fixture",
         terminal_state="timeout",
@@ -852,23 +862,7 @@ def test_w0_w1_and_unknown_are_mutually_exclusive() -> None:
 
     assert precise_binding.precise is True
     assert calculate_witness_level(precise_binding, executable_plan, completed) == "W2"
-    assert calculate_witness_level(precise_binding, executable_plan, unknown) == "UNKNOWN"
-
-    unsupported_candidate = _candidate(
-        pair,
-        predicate_id="S5",
-        inputs={"transition": transition.ref, "guard": transition.guard or "none"},
-    )
-    unsupported_binding = bind_candidate(unsupported_candidate, pair.model)
-    unsupported_plan = compile_plan(
-        unsupported_candidate,
-        unsupported_binding,
-        registry,
-        obligation_id="0000:w1",
-        round_index=1,
-        model=pair.model,
-    )
-    assert calculate_witness_level(unsupported_binding, unsupported_plan, completed) == "W1"
+    assert calculate_witness_level(precise_binding, executable_plan, timeout) == "W1"
 
     missing_input_candidate = _candidate(
         pair,
@@ -901,6 +895,17 @@ def test_w0_w1_and_unknown_are_mutually_exclusive() -> None:
         basis="fixture binding basis",
     )
     assert calculate_witness_level(incomplete, executable_plan, completed) == "W0"
+    execution_with_imprecise_binding = build_predicate_execution_receipt(
+        pair_id=pair.pair_id,
+        run_id="0" * 32,
+        contract_id=candidate.contract_id,
+        obligation_id="0000:imprecise-binding-cannot-be-w2",
+        plan=executable_plan,
+        receipt=completed,
+        binding_precise=incomplete.precise,
+    )
+    assert execution_with_imprecise_binding["execution_state"] == "completed"
+    assert execution_with_imprecise_binding["witness_level"] == "W0"
 
 
 def test_binding_normalizes_display_refs_but_rejects_ambiguous_edges() -> None:
@@ -920,7 +925,7 @@ def test_binding_normalizes_display_refs_but_rejects_ambiguous_edges() -> None:
     assert resolve_transition_ref(candidate.predicate_inputs["transition"], pair.model) == "transition:line:20"
 
     ambiguous = parse_fcstm(
-        "state A\nstate B\nA -> B : first\nA -> B : second\n"
+        "state Root {\nstate A;\nstate B;\n[*] -> A;\nA -> B;\nA -> B;\n}\n"
     )
     assert resolve_transition_ref(None, ambiguous, source="A", target="B") is None
 
@@ -941,7 +946,7 @@ def test_binding_normalizes_display_refs_but_rejects_ambiguous_edges() -> None:
     )
     invalid_receipt = run_backend(invalid_plan, pair.model, "invalid-kind-receipt")
     assert invalid_receipt.verdict == "unknown"
-    assert calculate_witness_level(invalid_binding, invalid_plan, invalid_receipt) == "UNKNOWN"
+    assert calculate_witness_level(invalid_binding, invalid_plan, invalid_receipt) == "W1"
 
 
 def test_enrich_candidate_replaces_typed_transition_endpoints_with_canonical_model_values() -> None:
@@ -950,6 +955,9 @@ def test_enrich_candidate_replaces_typed_transition_endpoints_with_canonical_mod
         item for item in pair.model.transitions
         if item.source == "Searching" and item.target == "FormationAdjustment"
     )
+    native_transition = transition_by_ref(load_native_fcstm(pair.model), transition.ref)
+    assert native_transition is not None
+    owner_scope = transition_owner_path(native_transition)
     candidate = _candidate(
         pair,
         predicate_id="S2",
@@ -958,7 +966,7 @@ def test_enrich_candidate_replaces_typed_transition_endpoints_with_canonical_mod
             "transition_ref": transition.ref,
             "source": f"state:{transition.source}:line:13",
             "target": f"state:{transition.target}:line:14",
-            "scope": "closed_fcstm",
+            "scope": owner_scope,
         },
         refs=[transition.ref, f"state:{transition.source}:line:13", f"state:{transition.target}:line:14"],
     )
@@ -1028,7 +1036,9 @@ def test_enrich_candidate_preserves_required_s2_endpoints_when_supporting_edge_d
     )
     receipt = run_backend(plan, pair.model, "0035:required-initial-s2:receipt")
     assert receipt.verdict == "false"
-    assert receipt.counterexample == [{"source": "[*]", "target": "DoorShut"}]
+    assert receipt.counterexample == [
+        {"source": "[*]", "target": "DoorShut", "scope": "closed_fcstm"}
+    ]
 
 
 def test_w2_audit_contains_logic_hashes_backend_and_retry_records(tmp_path: Path) -> None:
@@ -1067,7 +1077,12 @@ def test_w2_audit_contains_logic_hashes_backend_and_retry_records(tmp_path: Path
         binding=binding,
         plan=plan,
         receipt=receipt,
-        source_attribution={"requirement": {"path": "nl.txt"}, "model": {"hash": pair.hashes["fcstm"]}},
+        source_attribution={
+            "requirement": {"path": "nl.txt"},
+            "model": {"hash": pair.hashes["fcstm"]},
+            "plan": {"hash": plan.formal_program_hash},
+            "receipt": {"id": receipt.receipt_id},
+        },
         retry_records=retry_records,
         semantic_adjudication=SemanticAdjudication(
             obligation_id="0000:audit",
@@ -1149,7 +1164,7 @@ def test_w2_audit_contains_logic_hashes_backend_and_retry_records(tmp_path: Path
     W2AuditBundle.model_validate(finalized)
 
 
-def test_source_gate_keeps_w1_but_preserves_real_execution_receipt() -> None:
+def test_completed_receipt_is_w2_regardless_of_bibliography_metadata() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     transition = pair.model.transitions[0]
     candidate = _candidate(
@@ -1166,27 +1181,26 @@ def test_source_gate_keeps_w1_but_preserves_real_execution_receipt() -> None:
         candidate,
         binding,
         load_registry(),
-        obligation_id="0000:source-gate-execution",
+        obligation_id="0000:completed-execution",
         round_index=1,
         model=pair.model,
     )
-    receipt = run_backend(plan, pair.model, "0000:source-gate-execution:receipt")
+    receipt = run_backend(plan, pair.model, "0000:completed-execution:receipt")
     execution = build_predicate_execution_receipt(
         pair_id="0000",
         run_id="1" * 32,
         contract_id=candidate.contract_id,
-        obligation_id="0000:source-gate-execution",
+        obligation_id="0000:completed-execution",
         plan=plan,
         receipt=receipt,
     )
 
-    assert plan.source_gate_passed is False
     assert plan.executable is True
-    assert plan.supported is False
+    assert plan.supported is True
     assert receipt.terminal_state == "completed"
     assert execution["execution_status"] == "executed"
     assert execution["verdict"] in {"pass", "violation"}
-    assert execution["source_gate_passed"] is False
+    assert execution["witness_level"] == "W2"
 
 
 def _probe_contract(
@@ -1352,7 +1366,7 @@ def test_execution_probe_maps_exact_trigger_binding_to_s3_execution() -> None:
         index=0,
         contracts_by_id={contract.contract_id: contract, **probe_contracts},
     )
-    assert prepared["plan"].source_gate_passed is False
+    assert prepared["plan"].supported is True
     assert prepared["receipt"].terminal_state == "completed"
     assert prepared["receipt"].verdict == "true"
     assert _prepared_is_finding_candidate(prepared) is False
@@ -1437,10 +1451,10 @@ def test_runtime_r1_probe_executes_public_fcstm_macrostep_and_stays_nonfinding()
     )
 
     assert prepared["plan"].predicate_id == "R1"
-    assert prepared["plan"].source_gate_passed is False
+    assert prepared["plan"].supported is True
     assert prepared["receipt"].terminal_state == "completed"
     assert prepared["receipt"].verdict == "true"
-    assert prepared["receipt"].run_metadata["algorithm_version"] == "trajectory-fcstm-runtime.v1"
+    assert prepared["receipt"].run_metadata["algorithm_version"] == "pyfcstm.runtime.v1"
     assert prepared["receipt"].trace[1]["consumed_events"] == [
         "llms_emp_feedback_final_0010.Power_On"
     ]
@@ -1455,7 +1469,9 @@ def test_runtime_r1_receipt_preserves_a_wrong_runtime_target_as_violation() -> N
         item for item in pair.model.transitions if item.triggers == ("Power_On",)
     )
     event = next(item for item in pair.model.events if item.name == "Power_On")
-    scenario = runner_module._r1_cold_runtime_scenario(pair, transition, event)
+    scenario = runner_module.build_r1_cold_runtime_scenario(
+        pair, transition, event.name
+    )
     assert scenario is not None
     scenario["expected_active_after"] = "llms_emp_feedback_final_0010.HumanDriving"
     candidate = CandidateIssue(
@@ -1491,16 +1507,16 @@ def test_runtime_r1_receipt_preserves_a_wrong_runtime_target_as_violation() -> N
     assert receipt.terminal_state == "completed"
     assert receipt.verdict == "false"
     assert receipt.counterexample == [{
-        "queued": True,
+        "event_matches": True,
+        "carrier_matches": True,
+        "before_matches": True,
+        "after_matches": False,
         "consumed": True,
         "unconsumed": False,
-        "root_matches": True,
-        "source_matches": True,
-        "target_matches": False,
     }]
 
 
-def test_execution_probe_maps_exact_effect_binding_to_s6_execution() -> None:
+def test_execution_probe_preserves_non_operation_effect_binding_as_w1() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     transition = next(item for item in pair.model.transitions if item.effects)
     contract = _probe_contract(
@@ -1560,8 +1576,19 @@ def test_execution_probe_maps_exact_effect_binding_to_s6_execution() -> None:
     )
     assert prepared["plan"].predicate_id == "S6"
     assert prepared["plan"].inputs["transition"] == transition.ref
-    assert prepared["receipt"].terminal_state == "completed"
-    assert prepared["receipt"].verdict in {"true", "false"}
+    assert prepared["receipt"].terminal_state == "unsupported"
+    assert prepared["receipt"].run_metadata["failure_kind"] == "invalid_input"
+    execution = build_predicate_execution_receipt(
+        pair_id=pair.pair_id,
+        run_id="1" * 32,
+        contract_id=contract.contract_id,
+        obligation_id="0000:non-operation-effect",
+        plan=prepared["plan"],
+        receipt=prepared["receipt"],
+    )
+    assert execution["witness_level"] == "W1"
+    assert execution["execution_state"] == "not_attempted"
+    assert execution["failure_kind"] == "invalid_input"
 
 
 def _effect_probe_contract(
@@ -2082,17 +2109,24 @@ def test_g4_frontier_projection_rejects_concurrent_or_incomplete_typed_partition
 
 def test_trajectory_receipt_requires_closed_contract_and_checks_retention() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    root_path = ".".join(str(part) for part in load_native_fcstm(pair.model).machine.root_state.path)
     candidate = _candidate(
         pair,
         predicate_id="R4",
         inputs={
             "scenario": {
-                "trace": [
-                    {"step": 0, "active_states": ["Ready"]},
-                    {"step": 1, "active_states": ["Ready"]},
-                ]
+                "schema": "evidence-discovery.fcstm-runtime-scenario.v2",
+                "initialization": "cold",
+                "root_state": root_path,
+                "event_queue": [],
+                "schedule": [
+                    {"step": 0, "event_paths": []},
+                    {"step": 1, "event_paths": []},
+                ],
+                "reason": "The closed FCSTM has no queued event in this retention fixture.",
+                "basis": "native FCSTM cold initialization and explicit two-step schedule",
             },
-            "state": "Ready",
+            "state": root_path,
             "interval": [0, 1],
         },
         refs=[pair.model.states[0].ref],
@@ -2293,26 +2327,47 @@ def test_report_dedup_uses_exact_typed_defect_key_only() -> None:
     assert merged["deduplication"]["algorithm_version"] == "exact-typed-defect-key.v1"
 
 
-def test_terminality_uses_exact_final_pseudostate_edges_not_state_names() -> None:
-    named_model = parse_fcstm(
-        "state terminal_named\nstate EndState\n[*] -> terminal_named\n"
+def test_native_terminal_edges_do_not_infer_semantics_from_state_names() -> None:
+    from pyfcstm.model import load_state_machine_from_text
+    from pyfcstm.dsl import EXIT_STATE
+
+    named_native = load_state_machine_from_text(
+        "state Root {\nstate terminal_named;\nstate EndState;\n[*] -> terminal_named;\n}\n"
     )
-    assert _terminal_states(named_model) == set()
-
-    formal_model = parse_fcstm(
-        "state terminal_named\nstate EndState\nterminal_named -> [*]\n"
+    assert all(
+        transition.to_state is not EXIT_STATE
+        for state in named_native.walk_states()
+        for transition in state.transitions
     )
-    assert _terminal_states(formal_model) == {"terminal_named"}
+
+    formal_native = load_state_machine_from_text(
+        "state Root {\nstate terminal_named;\nstate EndState;\n[*] -> terminal_named;\nterminal_named -> [*];\n}\n"
+    )
+    exits = [
+        transition
+        for state in formal_native.walk_states()
+        for transition in state.transitions
+        if transition.to_state is EXIT_STATE
+    ]
+    assert len(exits) == 1
+    assert exits[0].from_state == "terminal_named"
 
 
-def test_topology_preserves_outer_initial_edges_and_excludes_nested_initial_roots() -> None:
+def test_native_topology_keeps_outer_initial_entry_separate_from_nested_entry() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0029")
-    graph = _graph(pair.model)
-    assert "AutonomousMode" in graph["[*]"]
-    assert "CollisionAvoidance" not in graph["[*]"]
+    from pyfcstm.dsl import INIT_STATE
+
+    native = load_native_fcstm(pair.model)
+    root_initial_targets = {
+        transition.to_state
+        for transition in native.machine.root_state.transitions
+        if transition.from_state is INIT_STATE
+    }
+    assert "AutonomousMode" in root_initial_targets
+    assert "CollisionAvoidance" not in root_initial_targets
 
 
-def test_v4_uses_exact_leaf_scope_and_rejects_composite_or_unreachable_scope() -> None:
+def test_v4_uses_native_stable_leaves_and_rejects_unknown_scope() -> None:
     registry = load_registry()
     pair = load_pair(REPORT_ROOT / "pairs" / "0023")
     leaf_refs = [
@@ -2323,7 +2378,7 @@ def test_v4_uses_exact_leaf_scope_and_rejects_composite_or_unreachable_scope() -
     candidate = _candidate(
         pair,
         predicate_id="V4",
-        inputs={"initial_scope": "closed_fcstm_initial_scope", "element_refs": leaf_refs},
+        inputs={"initial_scope": "closed_fcstm", "element_refs": leaf_refs},
         refs=leaf_refs,
     )
     binding = bind_candidate(candidate, pair.model)
@@ -2335,36 +2390,137 @@ def test_v4_uses_exact_leaf_scope_and_rejects_composite_or_unreachable_scope() -
         round_index=1,
         model=pair.model,
         model_hash=pair.hashes["fcstm"],
-    ).model_copy(update={"supported": True, "formal_program": "fixture", "formal_program_hash": "sha256:" + "0" * 64})
+    )
     receipt = run_bounded_verification(plan, pair.model, "0023:v4-receipt")
     assert receipt.verdict == "false"
-    assert set(receipt.run_metadata["nonterminal_deadlock_state_refs"]) == set(leaf_refs)
+    assert {
+        probe["state"].rsplit(".", 1)[-1]
+        for probe in receipt.run_metadata["v4_native_progress_probes"]
+        if probe["verdict"] == "false"
+    } == {"PumpState", "WaterState", "MethaneState"}
 
     pair_0029 = load_pair(REPORT_ROOT / "pairs" / "0029")
-    collision_ref = next(
-        state.state_ref
-        for state in pair_0029.inspection_facts.states
-        if state.name == "CollisionAvoidance"
-    )
-    composite_candidate = _candidate(
+    invalid_candidate = _candidate(
         pair_0029,
         predicate_id="V4",
-        inputs={"initial_scope": "closed_fcstm_initial_scope", "element_refs": [collision_ref]},
-        refs=[collision_ref],
+        inputs={"initial_scope": "not_a_native_scope"},
     )
-    composite_binding = bind_candidate(composite_candidate, pair_0029.model)
-    composite_plan = compile_plan(
-        composite_candidate,
-        composite_binding,
+    invalid_binding = bind_candidate(invalid_candidate, pair_0029.model)
+    invalid_plan = compile_plan(
+        invalid_candidate,
+        invalid_binding,
         registry,
-        obligation_id="0029:v4-composite",
+        obligation_id="0029:v4-invalid-scope",
         round_index=1,
         model=pair_0029.model,
         model_hash=pair_0029.hashes["fcstm"],
-    ).model_copy(update={"supported": True, "formal_program": "fixture", "formal_program_hash": "sha256:" + "0" * 64})
-    composite_receipt = run_bounded_verification(composite_plan, pair_0029.model, "0029:v4-receipt")
-    assert composite_receipt.verdict == "unknown"
-    assert "not a deadlock verdict" in composite_receipt.basis
+    )
+    invalid_receipt = run_bounded_verification(invalid_plan, pair_0029.model, "0029:v4-invalid-receipt")
+    assert invalid_receipt.verdict == "unknown"
+    assert "does not resolve" in invalid_receipt.basis
+
+
+def test_v5_0029_counterexample_terminates_at_first_replayed_bound() -> None:
+    registry = load_registry()
+    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
+    state = next(item for item in pair.inspection_facts.states if item.name == "CollisionAvoidance")
+    candidate = _candidate(
+        pair,
+        predicate_id="V5",
+        inputs={
+            "state": "CollisionAvoidance",
+            "expected": 1,
+            "initial_scope": "closed_fcstm",
+            "element_refs": [state.state_ref],
+        },
+        refs=[state.state_ref],
+    )
+    binding = bind_candidate(candidate, pair.model)
+    plan = compile_plan(
+        candidate,
+        binding,
+        registry,
+        obligation_id="0029:v5-incremental",
+        round_index=1,
+        model=pair.model,
+        model_hash=pair.hashes["fcstm"],
+    )
+
+    receipt = run_bounded_verification(plan, pair.model, "0029:v5-incremental-receipt")
+
+    assert receipt.terminal_state == "completed"
+    assert receipt.verdict == "false"
+    assert receipt.run_metadata["fbmcq_replay"]["ok"] is True
+    incremental = receipt.run_metadata["v5_incremental"]
+    assert incremental["requested_horizon"] == len(tuple(load_native_fcstm(pair.model).machine.walk_states()))
+    assert incremental["witness_horizon"] == 1
+    assert incremental["counterexample_early_termination"] is True
+    assert len(incremental["attempts"]) == 1
+
+
+def test_isolated_fbmcq_small_fixture_completes_with_replayed_witness() -> None:
+    model = parse_fcstm("state Root {\nstate Idle;\n[*] -> Idle;\n}\n")
+    native = load_native_fcstm(model)
+
+    receipt = execute_fbmcq(
+        receipt_id="fixture:fbmcq:replay",
+        predicate="V5",
+        native=native,
+        query='init cold;\ncheck invariant <= 1: !active("Root.Idle");',
+        reason="The fixture checks an exact native invariant.",
+        basis="fixture native FBMCQ pipeline",
+        wall_clock_timeout_ms=5_000,
+    )
+
+    assert receipt.terminal_state == "completed"
+    assert receipt.verdict == "false"
+    assert receipt.run_metadata["fbmcq_witness"]
+    assert receipt.run_metadata["fbmcq_replay"]["ok"] is True
+    stages = receipt.run_metadata["fbmcq_execution"]["stage_telemetry"]
+    assert {row["stage"] for row in stages} == {
+        "native_load",
+        "query_prepare",
+        "core_build",
+        "property_compile",
+        "solve",
+        "decode",
+        "replay",
+    }
+
+
+def test_isolated_fbmcq_core_build_deadline_returns_terminal_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    if "fork" not in multiprocessing.get_all_start_methods():
+        pytest.skip("the controlled in-process FBMCQ core-build delay fixture requires fork")
+    from pyfcstm.bmc import relation as relation_module
+
+    model = parse_fcstm("state Root {\nstate Idle;\n[*] -> Idle;\n}\n")
+    native = load_native_fcstm(model)
+    original_build = relation_module.build_bmc_core_formula
+
+    def delayed_core_build(context):
+        time.sleep(0.5)
+        return original_build(context)
+
+    monkeypatch.setattr(relation_module, "build_bmc_core_formula", delayed_core_build)
+
+    receipt = execute_fbmcq(
+        receipt_id="fixture:fbmcq:core-timeout",
+        predicate="V5",
+        native=native,
+        query='init cold;\ncheck invariant <= 1: !active("Root.Idle");',
+        reason="The fixture must not claim a Boolean result after core-build timeout.",
+        basis="controlled native core-build deadline fixture",
+        # Leave enough worker bootstrap time to reach the controlled delay;
+        # the 500ms core build sleep still deterministically exceeds it.
+        wall_clock_timeout_ms=250,
+        worker_start_method="fork",
+    )
+
+    assert receipt.terminal_state == "timeout"
+    assert receipt.verdict == "unknown"
+    assert receipt.run_metadata["failure_kind"] == "timeout"
+    assert receipt.run_metadata["fbmcq_execution"]["failure_stage"] == "core_build"
+    assert not receipt.counterexample
 
 
 def test_method_prompt_has_no_frozen_ledger_payload() -> None:
@@ -3076,7 +3232,7 @@ def test_branch_local_additional_contracts_merge_by_canonical_typed_identity() -
     }
 
 
-def test_g1_flattens_list_valued_source_and_target_inputs() -> None:
+def test_g1_expands_native_root_and_composite_state_inputs() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0029")
     target = next(
         item.name for item in pair.model.states if item.name == "CollisionAvoidance"
@@ -3093,7 +3249,6 @@ def test_g1_flattens_list_valued_source_and_target_inputs() -> None:
         supported=True,
         reason="The fixture exercises exact list-valued topology inputs.",
         basis="provider-free topology input-normalization regression",
-        source_gate_passed=True,
     )
 
     receipt = run_topology(plan, pair.model, "provider-free:g1:list-inputs:receipt")
@@ -3101,9 +3256,15 @@ def test_g1_flattens_list_valued_source_and_target_inputs() -> None:
     assert receipt.terminal_state == "completed"
     assert receipt.verdict in {"true", "false"}
     if receipt.verdict == "false":
-        assert receipt.counterexample == [
-            {"sources": ["[*]"], "targets": [target]}
-        ]
+        assert receipt.counterexample
+        assert all(
+            path.startswith("llms_emp_feedback_final_0029.")
+            for path in receipt.counterexample[0]["sources"]
+        )
+        assert all(
+            path.startswith("llms_emp_feedback_final_0029.CollisionAvoidance.")
+            for path in receipt.counterexample[0]["targets"]
+        )
 
 
 def test_unsupported_backend_does_not_turn_satisfied_semantics_into_d1() -> None:
@@ -4218,7 +4379,7 @@ def test_complete_protected_source_transition_macro_suppresses_endpoint_candidat
     assert len(receipt.expected_member_ids) == 9
     assert receipt.expected_member_ids == receipt.observed_member_ids
     assert receipt.published_member_digest == receipt.recomputed_member_digest
-    assert receipt.target_entry_fcstm_ref == "fcstm:line:27"
+    assert receipt.target_entry_fcstm_ref == "transition:line:27"
     assert all(member.closed for member in receipt.member_receipts)
     assert receipt.hashes.source_inventory_sha256 is not None
     assert not receipt.diagnostics
@@ -4293,7 +4454,7 @@ def test_cross_scope_target_entry_closes_source_transition_macro() -> None:
 
     assert receipt.status == "satisfied"
     assert receipt.source_transition_id == "tr_0026"
-    assert receipt.target_entry_fcstm_ref == "fcstm:line:26"
+    assert receipt.target_entry_fcstm_ref == "transition:line:26"
     assert not receipt.diagnostics
 
 
@@ -5587,6 +5748,8 @@ def test_method_terminal_smoke_exports_w2_release_without_builtin_judge(
             source_attribution={
                 "requirement": {"path": "fixture:nl"},
                 "model": {"hash": pair.hashes["fcstm"]},
+                "plan": {"hash": plan.formal_program_hash},
+                "receipt": {"id": receipt.receipt_id},
             },
             retry_records=[],
             semantic_adjudication=SemanticAdjudication(

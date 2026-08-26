@@ -55,8 +55,8 @@ REGISTERED_ROUTE_BASELINE: dict[str, tuple[str, ...]] = {
 BACKENDS = {
     **{predicate_id: "source_static" for predicate_id in ("S1", "S2", "S3", "S4", "S5", "S6")},
     **{predicate_id: "topology" for predicate_id in ("G1", "G2", "G3", "G4")},
-    **{predicate_id: "trajectory" for predicate_id in ("R1", "R2", "R4")},
-    **{predicate_id: "bounded_verification" for predicate_id in ("V1", "V4")},
+    **{predicate_id: "trajectory" for predicate_id in ("R1", "R2", "R3", "R4")},
+    **{predicate_id: "bounded_verification" for predicate_id in ("V1", "V2", "V3", "V4", "V5")},
 }
 
 PREDICATE_ROUTE_BASIS = {
@@ -72,9 +72,13 @@ PREDICATE_ROUTE_BASIS = {
     "G4": "finite coaccessibility from typed roots to typed marked nodes",
     "R1": "closed scenario event-consumption trace over a selected macrostep",
     "R2": "closed finite trace window after an exact stimulus",
+    "R3": "closed finite trace window for an exact owner, slot, and behavior occurrence",
     "R4": "closed finite trace interval for an exact retained state",
     "V1": "finite guard domain and independently justified guard disjointness",
+    "V2": "finite guard domain and exact choice-group coverage check",
+    "V3": "finite closed trace response check with an explicit bound and unit",
     "V4": "finite closed-model progress check from an exact initial scope",
+    "V5": "finite reachable-state occupancy invariant check from an exact initial scope",
 }
 
 
@@ -158,9 +162,6 @@ def build_applicability_matrix(
         for predicate_id in GLOBAL_PLANNED_PREDICATES:
             predicate = registry.require(predicate_id)
             applicable = predicate_id in routes
-            source_status = None
-            if registry.source_audit and predicate_id in registry.source_audit:
-                source_status = registry.source_audit[predicate_id].get("status")
             if not applicable:
                 status = "not_applicable"
                 feasibility = "not_applicable"
@@ -169,14 +170,10 @@ def build_applicability_matrix(
                 status = "unresolved"
                 feasibility = "backend_missing"
                 basis = "The pre-registered semantic shape is applicable, but the frozen registry has no deterministic backend for this route."
-            elif source_status != "partial_pass":
-                status = "applicable"
-                feasibility = "source_gate_blocked"
-                basis = f"{PREDICATE_ROUTE_BASIS[predicate_id]}; the typed route and backend are addressable, but source status {source_status!r} keeps W2 closed."
             else:
                 status = "applicable"
                 feasibility = "routable_now"
-                basis = f"{PREDICATE_ROUTE_BASIS[predicate_id]}; the typed route, backend, and W2 source gate are available; exact contract inputs remain method-owned."
+                basis = f"{PREDICATE_ROUTE_BASIS[predicate_id]}; the frozen predicate and backend are available; exact contract inputs remain method-owned."
             rows.append({
                 "pair_id": pair_id,
                 "predicate_id": predicate_id,
@@ -190,7 +187,6 @@ def build_applicability_matrix(
                 "stm_row_anchors": anchors["states"] + anchors["transitions"] + anchors["events"],
                 "typed_input_contract": _typed_input_contract(predicate_id, predicate),
                 "planned_backend": BACKENDS.get(predicate_id),
-                "source_audit_status": source_status,
                 "source_ids": list(predicate.sources),
                 "route_basis": PREDICATE_ROUTE_BASIS[predicate_id],
                 "value_status": "not_materialized; method-owned typed values are required before execution",

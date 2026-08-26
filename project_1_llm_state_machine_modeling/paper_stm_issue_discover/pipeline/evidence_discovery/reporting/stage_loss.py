@@ -411,7 +411,6 @@ def _predicate_feasibility(
         evidence = [item for index in method_indexes.values() for item in index["evidence"] if item.get("predicate_id") == predicate_id]
         w_counts = Counter(item.get("witness_level") for item in evidence if item.get("witness_level") in {"W0", "W1", "W2"})
         applicable_rows = app_by_predicate.get(predicate_id, [])
-        source_blocked = sum(row.get("feasibility") == "source_gate_blocked" for row in applicable_rows)
         not_applicable = sum(row.get("feasibility") == "not_applicable" for row in applicable_rows)
         unsupported = [receipt for receipt in receipts if receipt.get("execution_status") == "unsupported"]
         input_missing = sum("missing" in str(receipt.get("reason", "")).lower() for receipt in unsupported)
@@ -420,8 +419,6 @@ def _predicate_feasibility(
             zero_use_reason = None
         elif unsupported and input_missing:
             zero_use_reason = "input_contract_missing"
-        elif source_blocked and not terminal:
-            zero_use_reason = "source_gate_blocked"
         elif backend_missing and not terminal:
             zero_use_reason = "backend_missing"
         elif predicate_id not in GLOBAL_PLANNED_PREDICATES:
@@ -439,7 +436,6 @@ def _predicate_feasibility(
             "terminal_execution_count": len(terminal),
             "executed_pass": pass_count,
             "executed_violation": violation_count,
-            "source_gate_blocked": source_blocked,
             "input_contract_missing": input_missing,
             "backend_missing": backend_missing,
             "academic_boundary": predicate_id not in GLOBAL_PLANNED_PREDICATES,
@@ -447,7 +443,7 @@ def _predicate_feasibility(
             "pass_count": pass_count,
             "witness_counts": dict(w_counts),
             "zero_use_reason": zero_use_reason,
-            "reason": "Terminal execution counts only validated PredicateExecutionReceipt records with pass or violation; plans, prompt IDs, unsupported rows, and source-gate records do not count.",
+            "reason": "Terminal execution counts only validated PredicateExecutionReceipt records with pass or violation; plans, prompt IDs, and nonterminal receipts do not count.",
             "basis": "method-owned receipt and evidence joins plus external preflight metadata",
         }
     return output
@@ -481,12 +477,6 @@ def _w2_closure(method_indexes: dict[str, dict[str, Any]]) -> list[dict[str, Any
                 "terminal_state": receipt.get("terminal_state"),
                 "verdict": receipt.get("verdict"),
                 "receipt_hash": receipt.get("receipt_hash"),
-                "source_admission": {
-                    "id": receipt.get("source_admission_id"),
-                    "citations": receipt.get("source_admission_citations", []),
-                    "proposition": receipt.get("source_admission_proposition"),
-                    "boundary": receipt.get("source_admission_boundary"),
-                },
                 "source_attribution": attribution,
                 "reason": evidence.get("reason"),
                 "basis": evidence.get("basis"),

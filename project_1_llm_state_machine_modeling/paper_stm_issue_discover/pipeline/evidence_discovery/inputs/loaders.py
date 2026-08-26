@@ -78,6 +78,7 @@ def load_pair(pair_dir: str | Path) -> PairInput:
     working_contract_payload = _read_json_object(working_contract_path)
     case_report_payload = _read_json_object(case_report_path)
 
+    # Compatibility ModelIR is produced only by the pyfcstm-native projection.
     model = parse_fcstm(fcstm_text)
     hashes = {
         "nl": sha256_file(nl_path),

@@ -638,7 +638,11 @@ def _state_for_value(pair: PairInput, value: str | None) -> StateNode | None:
 def _state_by_name(pair: PairInput, name: str | None) -> StateNode | None:
     if not name:
         return None
-    matches = [item for item in pair.model.states if item.name == name]
+    matches = [
+        item
+        for item in pair.model.states
+        if name in {item.name, item.canonical_path}
+    ]
     return matches[0] if len(matches) == 1 else None
 
 
@@ -729,8 +733,8 @@ def _ancestor_chain(pair: PairInput, state: StateNode) -> list[StateNode]:
     chain = [state]
     cursor = state
     seen = {state.ref}
-    while cursor.parent:
-        parent = _state_by_name(pair, cursor.parent)
+    while cursor.parent_ref:
+        parent = _state_by_ref(pair, cursor.parent_ref)
         if parent is None or parent.ref in seen:
             break
         chain.append(parent)
@@ -768,14 +772,11 @@ def _direct_child_under(pair: PairInput, descendant: StateNode, owner: StateNode
 
 def _initial_transitions(pair: PairInput, owner: StateNode | None) -> list[Transition]:
     root = _machine_root(pair)
-    if owner is None:
-        scopes = {None, root.name if root else None}
-    else:
-        scopes = {owner.name}
+    owner_refs = {owner.ref} if owner is not None else ({root.ref} if root else set())
     return [
         item
         for item in pair.model.transitions
-        if item.source.replace("[ * ]", "[*]") == "[*]" and item.scope in scopes
+        if item.source == "[*]" and item.owner_ref in owner_refs
     ]
 
 
@@ -3003,14 +3004,18 @@ def _group_operating_source(
     group: NLTransitionGroup,
     contracts: Sequence[NLContract],
 ) -> StateNode | None:
-    target_names = {item.target_name for item in group.alternatives}
+    target_refs = {
+        target.ref
+        for item in group.alternatives
+        if (target := _state_for_value(pair, item.target_name)) is not None
+    }
 
     def matching_target_count(source: StateNode) -> int:
         return len(
             {
-                item.target
+                item.target_ref
                 for item in pair.model.transitions
-                if item.source == source.name and item.target in target_names
+                if item.source_ref == source.ref and item.target_ref in target_refs
             }
         )
 
@@ -3053,7 +3058,7 @@ def _group_transitions(
         matches = [
             item
             for item in pair.model.transitions
-            if item.source == source.name and item.target == target.name
+            if item.source_ref == source.ref and item.target_ref == target.ref
         ]
         if len(matches) == 1:
             rows.append((alternative, matches[0]))
@@ -3193,7 +3198,7 @@ def _materialize_group_guards(
             matches = [
                 item
                 for item in pair.model.transitions
-                if item.source == source.name and item.target == target.name
+                if item.source_ref == source.ref and item.target_ref == target.ref
             ]
             if len(matches) != 1:
                 continue
@@ -3360,12 +3365,14 @@ def _model_carrier_for_source_row(
     pair: PairInput,
     source_row: SourceInventoryTransition,
 ) -> Transition | None:
-    source_name = _source_endpoint_name(source_row.source)
-    target_name = _source_endpoint_name(source_row.target)
+    source = _state_for_value(pair, _source_endpoint_name(source_row.source))
+    target = _state_for_value(pair, _source_endpoint_name(source_row.target))
+    if source is None or target is None:
+        return None
     rows = [
         item
         for item in pair.model.transitions
-        if item.source == source_name and item.target == target_name
+        if item.source_ref == source.ref and item.target_ref == target.ref
     ]
     return rows[0] if len(rows) == 1 else None
 
@@ -3761,7 +3768,10 @@ def _missing_endpoint_rows(
         target = _state_for_value(pair, target_hint.value if target_hint else None)
         if not source or not target:
             continue
-        if any(item.source == source.name and item.target == target.name for item in pair.model.transitions):
+        if any(
+            item.source_ref == source.ref and item.target_ref == target.ref
+            for item in pair.model.transitions
+        ):
             continue
         rows.append((contract, source, target))
     return rows
@@ -4817,8 +4827,8 @@ def _materialize_inspection_diagnostics(
                 None,
             )
             source_contract_ids: tuple[str, ...]
-            if contract is None and state.parent:
-                owner = _state_by_name(pair, state.parent)
+            if contract is None and state.parent_ref:
+                owner = _state_by_ref(pair, state.parent_ref)
                 anchor = (
                     _inspection_scope_contract(
                         pair,

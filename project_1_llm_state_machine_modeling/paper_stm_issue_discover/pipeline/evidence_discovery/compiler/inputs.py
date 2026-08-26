@@ -45,11 +45,17 @@ class PredicateInputsBase(BaseModel):
     def to_backend_dict(self) -> dict[str, Any]:
         """Return registry/backend fields without protocol metadata."""
 
-        return self.model_dump(
+        values = self.model_dump(
             mode="json",
             exclude={"schema_version", "predicate_id"},
             exclude_none=True,
         )
+        # A missing trigger and an eventless choice group are not equivalent.
+        # V1/V2 require the field, but use an explicit JSON null to bind the
+        # latter to native ``Transition.event is None``.
+        if self.predicate_id in {"V1", "V2"} and "trigger" in type(self).model_fields:
+            values["trigger"] = self.model_dump(mode="json").get("trigger")
+        return values
 
     def __getitem__(self, key: str) -> Any:
         return self.to_backend_dict()[key]
@@ -95,7 +101,7 @@ class S4Inputs(PredicateInputsBase):
 
     predicate_id: Literal["S4"] = Field(description="Frozen S4 discriminator.")
     state: str | None = Field(default=None, description="Exact state name/ref owning the required action; null is incomplete.")
-    phase: str | None = Field(default=None, description="Exact lifecycle phase such as entry/do/exit; null is incomplete.")
+    phase: Literal["entry", "do", "exit"] | None = Field(default=None, description="Exact UML lifecycle slot. Only entry, do, or exit is legal; a business phase, state name, or natural-language time phrase is invalid input.")
     action: JsonValue | None = Field(default=None, description="Required normalized action expression; null is incomplete, not absence evidence.")
 
 
@@ -190,7 +196,7 @@ class V1Inputs(PredicateInputsBase):
 
     predicate_id: Literal["V1"] = Field(description="Frozen V1 discriminator.")
     source: str | None = Field(default=None, description="Exact choice-group source state; null is incomplete.")
-    trigger: JsonValue | None = Field(default=None, description="Exact shared trigger/event condition; null is incomplete.")
+    trigger: JsonValue | None = Field(description="Exact shared native trigger/event identity. This field is required; explicit null denotes an eventless choice group and is valid only when every selected native transition has no event.")
     domain: JsonValue | None = Field(default=None, description="Declared finite guard variable domain; null is incomplete.")
     guards: tuple[str, ...] = Field(default_factory=tuple, description="Exact group guard expressions compiled for execution; empty prevents a sound verdict.")
 
@@ -200,7 +206,7 @@ class V2Inputs(PredicateInputsBase):
 
     predicate_id: Literal["V2"] = Field(description="Frozen V2 discriminator.")
     source: str | None = Field(default=None, description="Exact choice-group source state; null is incomplete.")
-    trigger: JsonValue | None = Field(default=None, description="Exact shared trigger/event condition; null is incomplete.")
+    trigger: JsonValue | None = Field(description="Exact shared native trigger/event identity. This field is required; explicit null denotes an eventless choice group and is valid only when every selected native transition has no event.")
     domain: JsonValue | None = Field(default=None, description="Declared finite guard variable domain; null is incomplete.")
 
 

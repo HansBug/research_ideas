@@ -1,26 +1,21 @@
 from __future__ import annotations
 
 import hashlib
-import re
 from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
-_STATE_RE = re.compile(r"^\s*state\s+([^\s{]+)(?:\s+named\s+\"([^\"]*)\")?")
-_EVENT_RE = re.compile(r"^\s*event\s+([^\s{]+)(?:\s+named\s+\"([^\"]*)\")?")
-_TRANSITION_RE = re.compile(
-    r"^\s*(\[\s*\*\s*\]|!?[A-Za-z_][\w.-]*)\s*->\s*"
-    r"(\[\s*\*\s*\]|[A-Za-z_][\w.-]*)(?:\s*:\s*(.*?))?\s*;?\s*$"
+from .fcstm_native_projection import (
+    NativeFCSTMDocument,
+    NativeTransitionCarrier,
+    all_events,
+    all_states,
+    all_transition_carriers,
+    load_native_document,
+    state_path,
+    transition_carrier_reference,
 )
-_ACTION_RE = re.compile(r"^\s*(entry|exit|do)\s*/\s*(.+?)\s*;?\s*$", re.I)
-_GUARD_RE = re.compile(r"\[([^\]]+)\]")
-_EFFECT_RE = re.compile(r"effect\s*\{([^}]*)\}", re.I)
-
-
-def _clean_name(value: str) -> str:
-    return re.sub(r"\s+", " ", value.strip().strip('"'))
 
 
 def _sha(text: str) -> str:
@@ -28,55 +23,70 @@ def _sha(text: str) -> str:
 
 
 class StateNode(BaseModel):
-    """Parsed state declaration with stable source-location identity."""
+    """Native pyfcstm state projection with canonical and compatibility identities."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    name: str = Field(min_length=1, description="Canonical state identifier parsed from the FCSTM source.")
-    display_name: str = Field(min_length=1, description="Human-facing state name parsed from the optional quoted label.")
-    parent: str | None = Field(default=None, min_length=1, description="Canonical enclosing state identifier, or null for a top-level state.")
-    line: int = Field(ge=1, description="One-based source line where this state declaration starts.")
-    ref: str = Field(min_length=1, description="Stable source reference for binding and audit attribution.")
-    actions: dict[str, tuple[str, ...]] = Field(default_factory=dict, description="Lifecycle action text grouped by entry, exit, and do slots.")
+    name: str = Field(min_length=1, description="Native FCSTM local state identifier.")
+    display_name: str = Field(min_length=1, description="Native FCSTM display label or the local state identifier.")
+    canonical_path: str = Field(min_length=1, description="Native pyfcstm canonical dotted state path, which distinguishes local-name collisions.")
+    parent: str | None = Field(default=None, min_length=1, description="Immediate native parent local name retained for compatibility displays, or null for the root state.")
+    parent_ref: str | None = Field(default=None, min_length=1, description="Exact projected parent state reference, or null for the root state.")
+    is_pseudo: bool = Field(description="Whether pyfcstm classifies this native state as a pseudo-state.")
+    line: int = Field(ge=1, description="One-based native AST source line where this state declaration starts.")
+    ref: str = Field(min_length=1, description="Stable canonical projection reference for binding and audit attribution.")
+    legacy_refs: tuple[str, ...] = Field(default_factory=tuple, description="Historical state references that map uniquely and semantically identically to this native state.")
+    actions: dict[str, tuple[str, ...]] = Field(default_factory=dict, description="Native lifecycle action identities grouped by entry, do, and exit slots.")
 
 
 class EventNode(BaseModel):
-    """Parsed event declaration with stable source-location identity."""
+    """Native pyfcstm event projection with canonical ownership identity."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    name: str = Field(min_length=1, description="Canonical event identifier parsed from the FCSTM source.")
-    display_name: str = Field(min_length=1, description="Human-facing event name parsed from the optional quoted label.")
-    line: int = Field(ge=1, description="One-based source line where this event declaration starts.")
-    ref: str = Field(min_length=1, description="Stable source reference for binding and audit attribution.")
+    name: str = Field(min_length=1, description="Native FCSTM local event identifier.")
+    display_name: str = Field(min_length=1, description="Native FCSTM display label or the local event identifier.")
+    canonical_path: str = Field(min_length=1, description="Native pyfcstm canonical event path including its declaring state path.")
+    line: int = Field(ge=1, description="One-based native AST source line where this event declaration starts.")
+    ref: str = Field(min_length=1, description="Stable canonical projection reference for binding and audit attribution.")
+    legacy_refs: tuple[str, ...] = Field(default_factory=tuple, description="Historical event references that map uniquely and semantically identically to this native event.")
 
 
 class Transition(BaseModel):
-    """Parsed transition with normalized trigger, guard, and effect fragments."""
+    """Native authored-transition carrier projection with exact provenance."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    source: str = Field(min_length=1, description="Canonical source state or initial pseudo-state identifier.")
-    target: str = Field(min_length=1, description="Canonical target state identifier.")
-    label: str = Field(description="Original normalized transition label, possibly empty.")
-    triggers: tuple[str, ...] = Field(description="Normalized trigger/event names parsed from the label.")
-    guard: str | None = Field(default=None, min_length=1, description="Normalized guard expression, or null when no guard is present.")
-    effects: tuple[str, ...] = Field(description="Normalized effect fragments parsed from the label.")
-    line: int = Field(ge=1, description="One-based source line where this transition starts.")
-    ref: str = Field(min_length=1, description="Stable source reference for binding and audit attribution.")
-    scope: str | None = Field(default=None, min_length=1, description="Nearest enclosing FCSTM state scope for a scoped initial or internal transition, or null for a top-level transition.")
+    source: str = Field(min_length=1, description="Native authored-carrier source endpoint name, or [*] for an initial marker.")
+    target: str = Field(min_length=1, description="Native authored-carrier target endpoint name, or [*] for an exit marker.")
+    source_ref: str | None = Field(default=None, min_length=1, description="Exact native-projected source state reference, or null for [*].")
+    target_ref: str | None = Field(default=None, min_length=1, description="Exact native-projected target state reference, or null for [*].")
+    label: str = Field(description="Deterministic presentation rendering from native event, guard, and effect AST objects; it is never reparsed as FCSTM.")
+    triggers: tuple[str, ...] = Field(description="Exact native event local names carried by this authored transition.")
+    trigger_refs: tuple[str, ...] = Field(default_factory=tuple, description="Exact native-projected event references carried by this authored transition.")
+    guard: str | None = Field(default=None, min_length=1, description="Rendering of the native guard AST, or null when the carrier has no guard.")
+    effects: tuple[str, ...] = Field(description="Renderings of native effect operation AST nodes in authored-carrier order.")
+    line: int = Field(ge=1, description="One-based native provenance source line for this authored carrier.")
+    ref: str = Field(min_length=1, description="Stable canonical projection reference for binding and audit attribution.")
+    legacy_refs: tuple[str, ...] = Field(default_factory=tuple, description="Historical transition references that map uniquely and semantically identically to this native authored carrier.")
+    scope: str | None = Field(default=None, min_length=1, description="Immediate native owner local name retained for compatibility displays, or null only when unavailable.")
+    owner_ref: str | None = Field(default=None, min_length=1, description="Exact native-projected owner state reference for scope-sensitive predicates.")
+    owner_path: str = Field(min_length=1, description="Canonical native owner state path for the authored carrier.")
+    is_forced: bool = Field(default=False, description="Whether the carrier is an authored native forced-transition declaration.")
+    combo_origin_id: str | None = Field(default=None, min_length=1, description="Native combo-origin group identity, or null for a non-combo carrier.")
+    native_transition_count: int = Field(ge=1, description="Number of native implementation edges represented by this authored carrier.")
 
 
 class ModelIR(BaseModel):
-    """Closed intermediate representation produced by the owned FCSTM parser."""
+    """Compatibility projection derived exclusively from one native pyfcstm document."""
 
-    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
-    states: tuple[StateNode, ...] = Field(description="All parsed state declarations in source order.")
-    events: tuple[EventNode, ...] = Field(description="All parsed event declarations in source order.")
-    transitions: tuple[Transition, ...] = Field(description="All parsed transitions in source order.")
-    source_text: str = Field(description="Exact FCSTM source text consumed by the parser.")
-    algorithm_version: str = Field(default="fcstm-line-parser.v2", min_length=1, description="Versioned parser algorithm identifier used in evidence receipts.")
+    states: tuple[StateNode, ...] = Field(description="All native-projected states, including pseudo-states, in pyfcstm traversal order.")
+    events: tuple[EventNode, ...] = Field(description="All native-projected event objects in pyfcstm traversal order.")
+    transitions: tuple[Transition, ...] = Field(description="All authored native transition carriers in stable provenance order.")
+    source_text: str = Field(description="Exact FCSTM source text accepted by pyfcstm; retained only for attribution and isolated native execution.")
+    algorithm_version: str = Field(default="pyfcstm-native-projection.v1", min_length=1, description="Versioned native pyfcstm projection algorithm identifier used in evidence receipts.")
 
     @property
     def state_names(self) -> set[str]:
@@ -98,22 +108,46 @@ class ModelIR(BaseModel):
             | self.transition_refs
         )
 
+    @property
+    def legacy_ref_map(self) -> dict[str, str]:
+        """Return only one-to-one historical-reference compatibility mappings."""
+
+        candidates: dict[str, list[str]] = {}
+        for item in (*self.states, *self.events, *self.transitions):
+            for legacy_ref in item.legacy_refs:
+                candidates.setdefault(legacy_ref, []).append(item.ref)
+        return {
+            legacy_ref: refs[0]
+            for legacy_ref, refs in candidates.items()
+            if len(set(refs)) == 1
+        }
+
+    def normalize_ref(self, reference: str | None) -> str | None:
+        """Resolve a canonical ref or a unique historical native-equivalent ref."""
+
+        if reference in self.all_refs:
+            return reference
+        return self.legacy_ref_map.get(reference or "")
+
     def state(self, name: str) -> StateNode | None:
-        for state in self.states:
-            if state.name == name or state.display_name == name:
-                return state
-        return None
+        exact = [state for state in self.states if name in {state.ref, state.canonical_path}]
+        if len(exact) == 1:
+            return exact[0]
+        matches = [state for state in self.states if name in {state.name, state.display_name}]
+        return matches[0] if len(matches) == 1 else None
 
     def event(self, name: str) -> EventNode | None:
-        for event in self.events:
-            if event.name == name or event.display_name == name:
-                return event
-        return None
+        exact = [event for event in self.events if name in {event.ref, event.canonical_path}]
+        if len(exact) == 1:
+            return exact[0]
+        matches = [event for event in self.events if name in {event.name, event.display_name}]
+        return matches[0] if len(matches) == 1 else None
 
     def transition(self, ref: str | None) -> Transition | None:
         if not ref:
             return None
-        return next((item for item in self.transitions if item.ref == ref), None)
+        normalized = self.normalize_ref(ref) or ref
+        return next((item for item in self.transitions if item.ref == normalized), None)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -126,7 +160,7 @@ class ModelIR(BaseModel):
 
 
 class PairInput(BaseModel):
-    """One frozen pair's complete method-visible input closure and parsed model IR.
+    """One frozen pair's complete method-visible input closure and native projection.
 
     The source text and closed FCSTM are kept as separate fields because they
     have different authority.  The additional context fields are populated by
@@ -140,9 +174,9 @@ class PairInput(BaseModel):
     pair_id: str = Field(min_length=1, description="Frozen pair identifier used for run partitioning and audit joins.")
     pair_dir: Path = Field(description="Resolved directory containing the pair's source artifacts.")
     nl_text: str = Field(description="Exact natural-language requirement artifact supplied to method generation.")
-    fcstm_text: str = Field(description="Exact FCSTM artifact supplied to the owned parser and method generation.")
+    fcstm_text: str = Field(description="Exact FCSTM artifact supplied to the pyfcstm native loader and method generation.")
     plantuml_text: str = Field(description="Exact PlantUML artifact supplied for source localization, if present.")
-    model: ModelIR = Field(description="Owned-parser IR derived only from fcstm_text.")
+    model: ModelIR = Field(description="Compatibility projection derived only from the pyfcstm native FCSTM document.")
     hashes: dict[str, str] = Field(description="SHA-256 hashes for the source artifacts used by this pair.")
     nl_segments: tuple["NumberedNLSegment", ...] = Field(default_factory=tuple, description="Deterministically numbered NL segments supplied to contract extraction.")
     canonical_source_ir: "CanonicalSourceIR | None" = Field(default=None, description="Canonical author-source IR supplied for source localization; never treated as the FCSTM execution model.")
@@ -176,113 +210,141 @@ class PairInput(BaseModel):
         return value
 
 
-def parse_fcstm(text: str) -> ModelIR:
-    """Parse the stable line-oriented FCSTM subset without Python reflection."""
+def _span_line(value: Any) -> int:
+    """Return a native AST line with a non-zero audit fallback."""
 
-    states: list[StateNode] = []
-    events: list[EventNode] = []
-    transitions: list[Transition] = []
-    state_stack: list[tuple[str, int, str, dict[str, list[str]]]] = []
-    pending_state: tuple[str, str, int, str | None] | None = None
+    line = getattr(getattr(value, "_span", None), "line", None)
+    return line if isinstance(line, int) and line >= 1 else 1
 
-    for line_no, raw_line in enumerate(text.splitlines(), start=1):
-        line = raw_line.strip()
-        if not line or line.startswith("//"):
-            continue
-        # Only leading closing braces change declaration scope.  The old
-        # parser also counted every ``}`` in a transition effect, which could
-        # silently pop the enclosing state stack and flatten later facts.
-        while line.startswith("}"):
-            if state_stack:
-                state_stack.pop()
-            line = line[1:].strip()
-        if not line:
-            continue
-        state_match = _STATE_RE.match(raw_line)
-        if state_match:
-            name = _clean_name(state_match.group(1))
-            display = _clean_name(state_match.group(2) or name)
-            parent = state_stack[-1][0] if state_stack else None
-            actions: dict[str, list[str]] = {"entry": [], "exit": [], "do": []}
-            state = StateNode(
-                name=name,
-                display_name=display,
-                parent=parent,
-                line=line_no,
-                ref=f"state:{name}:line:{line_no}",
-                actions={key: tuple(value) for key, value in actions.items()},
-            )
-            states.append(state)
-            if "{" in raw_line:
-                state_stack.append((name, line_no, state.ref, actions))
-            continue
-        event_match = _EVENT_RE.match(raw_line)
-        if event_match:
-            name = _clean_name(event_match.group(1))
-            display = _clean_name(event_match.group(2) or name)
-            events.append(
-                EventNode(
-                    name=name,
-                    display_name=display,
-                    line=line_no,
-                    ref=f"event:{name}:line:{line_no}",
-                )
-            )
-            continue
-        action_match = _ACTION_RE.match(raw_line)
-        if action_match and state_stack:
-            phase, action = action_match.groups()
-            state_name, state_line, state_ref, actions = state_stack[-1]
-            actions[phase.lower()].append(_clean_name(action))
-            for index, state in enumerate(states):
-                if state.ref == state_ref:
-                    states[index] = StateNode(
-                        name=state.name,
-                        display_name=state.display_name,
-                        parent=state.parent,
-                        line=state.line,
-                        ref=state.ref,
-                        actions={key: tuple(value) for key, value in actions.items()},
-                    )
-            continue
-        transition_match = _TRANSITION_RE.match(raw_line)
-        if transition_match:
-            source, target, label = transition_match.groups()
-            source = _clean_name(source).replace("[ * ]", "[*]")
-            target = _clean_name(target).replace("[ * ]", "[*]")
-            label = _clean_name(label or "")
-            guards = _GUARD_RE.findall(label)
-            effect_match = _EFFECT_RE.search(label)
-            effect_values = tuple(_clean_name(value) for value in (effect_match.group(1).split(",") if effect_match else ()))
-            label_without_meta = _EFFECT_RE.sub("", _GUARD_RE.sub("", label)).strip()
-            label_without_meta = re.sub(r"^if\s*", "", label_without_meta, flags=re.I)
-            label_without_meta = label_without_meta.strip(" /")
-            triggers = tuple(
-                _clean_name(value)
-                for value in re.split(r"\s*,\s*", label_without_meta)
-                if _clean_name(value)
-            )
-            transitions.append(
-                Transition(
-                    source=source,
-                    target=target,
-                    label=label,
-                    triggers=triggers,
-                    guard=_clean_name(guards[0]) if guards else None,
-                    effects=effect_values,
-                    line=line_no,
-                    ref=f"transition:line:{line_no}",
-                    scope=state_stack[-1][0] if state_stack else None,
-                )
-            )
-        if "{" in raw_line and state_match is None:
-            pending_state = pending_state
-    return ModelIR(
-        states=tuple(states),
-        events=tuple(events),
-        transitions=tuple(transitions),
-        source_text=text,
+
+def _native_text(value: Any) -> str:
+    """Render a native AST node for display without reparsing FCSTM source."""
+
+    node = value.to_ast_node() if hasattr(value, "to_ast_node") else value
+    return " ".join(str(node).strip().rstrip(";").split())
+
+
+def _native_action_texts(actions: tuple[Any, ...] | list[Any]) -> tuple[str, ...]:
+    """Project exact native lifecycle action identities for S4-facing context."""
+
+    values: list[str] = []
+    for action in actions:
+        if getattr(action, "name", None):
+            values.append(str(action.name))
+        if not getattr(action, "is_abstract", False) and not getattr(action, "is_ref", False):
+            values.extend(_native_text(operation) for operation in getattr(action, "operations", ()))
+    return tuple(dict.fromkeys(value for value in values if value))
+
+
+def _state_ref(state: Any) -> str:
+    """Create a span-stable reference whose canonical path remains separately recorded."""
+
+    return f"state:{state.name}:line:{_span_line(state)}"
+
+
+def _event_ref(event: Any) -> str:
+    """Create a span-stable event reference from one native event object."""
+
+    return f"event:{event.name}:line:{_span_line(event)}"
+
+
+def _carrier_label(triggers: tuple[str, ...], guard: str | None, effects: tuple[str, ...]) -> str:
+    """Render native transition components for human context without source parsing."""
+
+    parts = list(triggers)
+    if guard:
+        parts.append(f"[{guard}]")
+    if effects:
+        parts.append("effect { " + ", ".join(effects) + " }")
+    return " ".join(parts)
+
+
+def _project_native_document(document: NativeFCSTMDocument) -> ModelIR:
+    """Project one native FCSTM document into the compatibility Pydantic interface."""
+
+    native_states = all_states(document)
+    state_refs_by_path = {state_path(state): _state_ref(state) for state in native_states}
+    states = tuple(
+        StateNode(
+            name=str(state.name),
+            display_name=str(state.extra_name or state.name),
+            canonical_path=state_path(state),
+            parent=str(state.parent.name) if state.parent is not None else None,
+            parent_ref=state_refs_by_path.get(state_path(state.parent)) if state.parent is not None else None,
+            is_pseudo=bool(state.is_pseudo),
+            line=_span_line(state),
+            ref=state_refs_by_path[state_path(state)],
+            legacy_refs=(f"state:{state.name}:line:{_span_line(state)}",),
+            actions={
+                "entry": _native_action_texts(state.on_enters),
+                "do": _native_action_texts(tuple(state.on_durings) + tuple(state.on_during_aspects)),
+                "exit": _native_action_texts(state.on_exits),
+            },
+        )
+        for state in native_states
     )
+    native_events = all_events(document)
+    event_refs_by_path = {event.path_name: _event_ref(event) for event in native_events}
+    events = tuple(
+        EventNode(
+            name=str(event.name),
+            display_name=str(event.extra_name or event.name),
+            canonical_path=event.path_name,
+            line=_span_line(event),
+            ref=event_refs_by_path[event.path_name],
+            legacy_refs=(f"event:{event.name}:line:{_span_line(event)}",),
+        )
+        for event in native_events
+    )
+    carriers = all_transition_carriers(document)
+    line_counts: dict[int, int] = {}
+    for carrier in carriers:
+        line = carrier.source_line if isinstance(carrier.source_line, int) and carrier.source_line >= 1 else 0
+        line_counts[line] = line_counts.get(line, 0) + 1
+    transitions: list[Transition] = []
+    for ordinal, carrier in enumerate(carriers, start=1):
+        line = carrier.source_line if isinstance(carrier.source_line, int) and carrier.source_line >= 1 else ordinal
+        ref = transition_carrier_reference(carrier, ordinal)
+        owner_ref = state_refs_by_path.get(carrier.owner_path)
+        owner = next((state for state in native_states if state_path(state) == carrier.owner_path), None)
+        source_path = f"{carrier.owner_path}.{carrier.source}"
+        target_path = f"{carrier.owner_path}.{carrier.target}"
+        source_ref = None if carrier.source == "[*]" else state_refs_by_path.get(source_path)
+        target_ref = None if carrier.target == "[*]" else state_refs_by_path.get(target_path)
+        triggers = tuple(str(event.name) for event in carrier.events)
+        trigger_refs = tuple(event_refs_by_path[event.path_name] for event in carrier.events if event.path_name in event_refs_by_path)
+        guard = _native_text(carrier.guard) if carrier.guard is not None else None
+        effects = tuple(_native_text(effect) for effect in carrier.effects)
+        legacy_refs = (f"transition:line:{line}",) if line_counts.get(line) == 1 else ()
+        transitions.append(
+            Transition(
+                source=carrier.source,
+                target=carrier.target,
+                source_ref=source_ref,
+                target_ref=target_ref,
+                label=_carrier_label(triggers, guard, effects),
+                triggers=triggers,
+                trigger_refs=trigger_refs,
+                guard=guard,
+                effects=effects,
+                line=line,
+                ref=ref,
+                legacy_refs=legacy_refs,
+                scope=str(owner.name) if owner is not None else None,
+                owner_ref=owner_ref,
+                owner_path=carrier.owner_path,
+                is_forced=carrier.forced_origin is not None,
+                combo_origin_id=carrier.combo_origin_id,
+                native_transition_count=len(carrier.native_transitions),
+            )
+        )
+    return ModelIR(states=states, events=events, transitions=tuple(transitions), source_text=document.source_text)
+
+
+def parse_fcstm(text: str) -> ModelIR:
+    """Compatibility entry point that projects only a native pyfcstm load."""
+
+    return _project_native_document(load_native_document(text))
 
 
 # The context models are kept in a separate module to keep the owned FCSTM

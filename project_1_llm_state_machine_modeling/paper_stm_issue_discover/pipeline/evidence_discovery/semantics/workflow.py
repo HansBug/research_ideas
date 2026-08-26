@@ -1188,16 +1188,17 @@ COMMON_RULES = """Use only the supplied input closure. Never read, infer, or rep
 
 # These are semantic routing rules for the frozen registry, not additional
 # predicates. They keep the model from encoding a known structural fact as a
-# merely related existence check or silently discarding a W1-only candidate.
+# merely related existence check or silently discarding a precise unexecuted
+# candidate.
 PREDICATE_ROUTING_GUIDANCE = """Frozen predicate routing discipline:
 - Use S1 only for closed-model declaration membership (kind, element, scope). It does not prove containment, cardinality, initial-entry semantics, or a runtime state.
 - Use S2 for one exact transition endpoint pair, including an initial pseudo-state endpoint when the obligation is an initial edge. Use S3 for one exact transition trigger set, S4 for one state lifecycle action, S5 for one exact transition guard, and S6 for one exact transition effect.
 - Use G1 for a finite path-existence or unreachable-target claim, G2 for universal eventual target reachability, G3 only when the forbidden node/edge set is explicit, and G4 only for the registered coaccessibility form.
-- Use V4(initial_scope) for a supplied finite deadlock-frontier or reachable nonterminal-no-progress fact. V4 is currently W1-only under the source audit, so preserve a precise V4 candidate and its backend result without claiming W2. Do not replace V4 with S1/S2 or call termination, liveness, fairness, or concurrency semantics deadlock evidence.
+- Use V4(initial_scope) for a supplied finite deadlock-frontier or reachable nonterminal-no-progress fact. Do not replace V4 with S1/S2 or call termination, liveness, fairness, or concurrency semantics deadlock evidence.
 - Use V1/V2 only for the declared guard-domain formulas. Use R1-R4 only when a concrete scenario, window, and trace are supplied; do not infer trajectory facts from static text.
 - Route deterministic facts by property: LEAF_WITHOUT_OUTGOING/deadlock-frontier facts may yield one V4(initial_scope) candidate with exact leaf refs as supporting binding; failed finite reachability yields G1. A refuted initial-entry fact uses S2 only when the required exact pseudo-state edge is absent. If that endpoint edge exists but is conditional or fails broader default-owner semantics, S2 cannot decide the initial-entry property; preserve a predicate=null W1 candidate unless a separate explicit guard contract supports S5. Do not turn a leaf/deadlock fact into S1 or an arbitrary present S2 edge.
 - Missing containment, region/consumer scope, initial-owner existence, or variable-delta semantics may remain a precise predicate=null W1 candidate. Preserve the exact owner/event/state refs and state the unsupported boundary; do not silently drop or rename it.
-- A predicate that is registered but source-gated as candidate or W1-only is still a valid precise candidate. The downstream deterministic state machine decides W1/W2; the grounding branch must not drop it merely because it cannot reach W2.
+- Every frozen predicate has scholarly eligibility. The downstream deterministic state machine decides W1/W2 from exact typed binding, executable fragment, artifact attribution, and the actual receipt; grounding must never use bibliography metadata as a routing condition.
 - For a missing fact, bind the expected exact model/source element and the observed absence or counterexample. For a present fact, preserve it as a non-violation observation unless the supplied dossier identifies a distinct violated obligation."""
 
 
@@ -1560,7 +1561,7 @@ DISCOVERY_GROUNDING_AUDIT_LENSES: dict[GroundingLens, str] = {
 
 D_SYSTEM_PROMPT = """You are the method's semantic D adjudication stage. Use only the supplied NL contracts, author-source facts, exact bindings, predicate plan, and backend receipt. Never read or infer evaluation ground truth, scores, reviewer examples, artifacts from other evaluation cases, or previously generated reports. Do not output D0/D1/D2, W0/W1/W2, L, a hit, or a release decision. Instead return one SemanticAdjudication per supplied obligation using only the closed grounding and defeater enums. `reason` must explain the supplied NL clause, exact source/model facts, and strongest alternative reading; `basis` must identify the supplied artifacts. Write every generated decision, violated-obligation summary, defeater, reason, and basis in English. Preserve non-English text only inside exact quotations or identifiers copied from supplied artifacts, and explain each quotation in English. Free-text wording is for audit only: do not decide from keyword, substring, regex, spelling, identifier shape, or text similarity.
 
-D boundary: an unsupported or W1-only predicate does not erase a precise issue. When exact supplied source/model facts establish the candidate's semantic obligation, use grounding=established and describe the surviving ambiguity as a typed defeater when appropriate; deterministic code will keep it at W1. Use grounding=unresolved only when the supplied dossier genuinely cannot decide. A completed predicate result that is true for the requirement is not a violation merely because the candidate text sounds concerning.
+D boundary: a predicate-null route, incomplete typed input, or unavailable execution does not erase a precise issue. When exact supplied source/model facts establish the candidate's semantic obligation, use grounding=established and describe the surviving ambiguity as a typed defeater when appropriate; deterministic code will keep it at W1. Use grounding=unresolved only when the supplied dossier genuinely cannot decide. A completed predicate result that is true for the requirement is not a violation merely because the candidate text sounds concerning.
 
 Predicate/backend availability is a W question, never a D defeater by itself. If
 the supplied exact facts satisfy the candidate's expected property, use
@@ -1757,8 +1758,6 @@ def _compact_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
             "supported",
             "binding_complete",
             "missing_inputs",
-            "source_audit_status",
-            "source_gate_passed",
             "reason",
             "basis",
         )

@@ -10,6 +10,15 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..inputs.fcstm_native_projection import (
+    NativeFCSTMDocument,
+    attribute_declared_source_line,
+    load_native_document,
+    native_assignment_pairs,
+    native_guard_equality_pairs,
+    native_variable_names,
+    transition_by_reference,
+)
 from ..inputs.models import PairInput
 from .obligations import CandidateIssue
 from .workflow import GroundingResponse, NLContract
@@ -54,9 +63,10 @@ class SourceTransitionClosureMemberReceipt(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
     schema_version: Literal[
-        "evidence-discovery.source-transition-closure-member.v1"
+        "evidence-discovery.source-transition-closure-member.v1",
+        "evidence-discovery.source-transition-closure-member.v2",
     ] = Field(
-        default="evidence-discovery.source-transition-closure-member.v1",
+        default="evidence-discovery.source-transition-closure-member.v2",
         description="Persistence schema version for one protected macro-member closure receipt.",
     )
     macro_id: str = Field(
@@ -91,20 +101,20 @@ class SourceTransitionClosureMemberReceipt(BaseModel):
     )
     resolved_fcstm_ref: str | None = Field(
         default=None,
-        description="Stable FCSTM line reference materialized from the exact closed artifact, or null when unresolved.",
+        description="Canonical native transition, event, or variable reference resolved from pyfcstm provenance, or null when unresolved; never a source-line identity.",
     )
     protected_compiler_member: bool = Field(
         description="Whether origin, edit policy, and macro membership all identify a protected compiler-owned member.",
     )
     exact_line_match: bool = Field(
-        description="Whether the declared member line occurs uniquely and exactly in the closed FCSTM artifact.",
+        description="Whether the declared source excerpt has unique non-semantic attribution and any required native member identity also resolves uniquely.",
     )
     source_refs: tuple[str, ...] = Field(
         default_factory=tuple,
         description="Exact author-source references attributed to this macro member by the working contract.",
     )
     closed: bool = Field(
-        description="Whether this member passes both protected ownership and exact FCSTM line closure.",
+        description="Whether this member passes protected ownership, source attribution, and required native semantic identity closure.",
     )
     reason: str = Field(
         min_length=1,
@@ -125,9 +135,12 @@ class SourceTransitionClosureReceipt(BaseModel):
         default="evidence-discovery.source-transition-closure.v1",
         description="Persistence schema version for deterministic source-transition macro closure.",
     )
-    algorithm_version: Literal["source-transition-macro-closure.v1"] = Field(
-        default="source-transition-macro-closure.v1",
-        description="Version of the deterministic endpoint, macro, digest, ownership, and exact-line join.",
+    algorithm_version: Literal[
+        "source-transition-macro-closure.v1",
+        "source-transition-macro-closure.v2",
+    ] = Field(
+        default="source-transition-macro-closure.v2",
+        description="Version of the deterministic endpoint, macro, digest, ownership, attribution, and native-carrier join.",
     )
     contract_id: str = Field(
         min_length=1,
@@ -182,7 +195,7 @@ class SourceTransitionClosureReceipt(BaseModel):
     )
     target_entry_fcstm_ref: str | None = Field(
         default=None,
-        description="Exact closed FCSTM line reference for the target-entry segment, or null when unresolved.",
+        description="Exact canonical native carrier reference for the target-entry segment, or null when unresolved.",
     )
     member_receipts: tuple[SourceTransitionClosureMemberReceipt, ...] = Field(
         default_factory=tuple,
@@ -387,8 +400,66 @@ def _source_line(pair: PairInput, line: int | None) -> tuple[str | None, str | N
     return f"plantuml:line:{line}", _sha256_text(lines[line - 1])
 
 
+def _declared_native_member_ref(
+    native_document: NativeFCSTMDocument,
+    element: Mapping[str, Any],
+) -> tuple[str | None, int | None, tuple[int, ...]]:
+    """Resolve one compiler member through native provenance, never DSL text.
+
+    The working contract retains a literal emitted line only as an immutable
+    attribution excerpt.  A transition member is admissible only when that
+    excerpt maps to exactly one pyfcstm carrier.  Event and variable members
+    must additionally resolve against native model identities; no source line
+    is promoted to a semantic reference.
+    """
+
+    metadata = element.get("metadata")
+    metadata = metadata if isinstance(metadata, Mapping) else {}
+    attribution = attribute_declared_source_line(native_document, metadata.get("line"))
+    if attribution is None:
+        return None, None, ()
+    member_kind = element.get("kind")
+    if member_kind == "transition_segment":
+        if len(attribution.native_carrier_refs) != 1:
+            return None, attribution.resolved_source_line, attribution.matching_source_lines
+        reference = attribution.native_carrier_refs[0]
+        if transition_by_reference(native_document, reference) is None:
+            return None, attribution.resolved_source_line, attribution.matching_source_lines
+        return reference, attribution.resolved_source_line, attribution.matching_source_lines
+
+    model_refs = tuple(
+        value for value in element.get("model_refs", []) if isinstance(value, str) and value
+    )
+    if member_kind == "route_control_variable":
+        variable_refs = tuple(ref for ref in model_refs if ref.startswith("variable:"))
+        if len(variable_refs) != 1:
+            return None, attribution.resolved_source_line, attribution.matching_source_lines
+        variable_name = variable_refs[0].removeprefix("variable:")
+        if variable_name not in native_variable_names(native_document):
+            return None, attribution.resolved_source_line, attribution.matching_source_lines
+        return variable_refs[0], attribution.resolved_source_line, attribution.matching_source_lines
+
+    if member_kind == "opaque_event_projection":
+        event_refs = tuple(ref for ref in model_refs if ref.startswith("event:"))
+        if len(event_refs) != 1:
+            return None, attribution.resolved_source_line, attribution.matching_source_lines
+        expected_path = event_refs[0].removeprefix("event:")
+        matching_events = [
+            event
+            for state in native_document.machine.walk_states()
+            for event in state.events.values()
+            if event.path_name == expected_path
+        ]
+        if len({id(event) for event in matching_events}) != 1:
+            return None, attribution.resolved_source_line, attribution.matching_source_lines
+        return event_refs[0], attribution.resolved_source_line, attribution.matching_source_lines
+
+    return None, attribution.resolved_source_line, attribution.matching_source_lines
+
+
 def _member_receipt(
     pair: PairInput,
+    native_document: NativeFCSTMDocument,
     *,
     macro_id: str,
     member_id: str,
@@ -411,23 +482,12 @@ def _member_receipt(
     declared_line = (
         declared_line if isinstance(declared_line, str) and declared_line else None
     )
-    matching_lines = (
-        [
-            line_no
-            for line_no, line_text in enumerate(pair.fcstm_text.splitlines(), start=1)
-            if line_text.strip() == declared_line.strip()
-        ]
-        if declared_line
-        else []
-    )
-    resolved_line = matching_lines[0] if len(matching_lines) == 1 else None
     member_kind = element.get("kind")
-    transition_line_closed = True
-    if member_kind == "transition_segment" and resolved_line is not None:
-        transition_line_closed = any(
-            transition.line == resolved_line for transition in pair.model.transitions
-        )
-    exact_line_match = resolved_line is not None and transition_line_closed
+    resolved_ref, resolved_line, matching_lines = _declared_native_member_ref(
+        native_document,
+        element,
+    )
+    exact_line_match = resolved_ref is not None
     protected = (
         element.get("origin") == "compiler_owned"
         and element.get("edit_policy") == "protected"
@@ -440,11 +500,11 @@ def _member_receipt(
         if isinstance(value, str) and value
     )
     if closed:
-        reason = "The compiler-owned protected member resolves to one exact closed-FCSTM line."
+        reason = "The compiler-owned protected member has unique source attribution and one native pyfcstm identity."
     elif not protected:
         reason = "The member does not close the required compiler-owned protected ownership boundary."
     else:
-        reason = "The protected member does not resolve to one unique exact closed-FCSTM line."
+        reason = "The protected member lacks unique source attribution or a required native pyfcstm identity."
     return SourceTransitionClosureMemberReceipt(
         macro_id=macro_id,
         member_element_id=member_id,
@@ -461,9 +521,7 @@ def _member_receipt(
         ),
         declared_line_sha256=_sha256_text(declared_line) if declared_line else None,
         resolved_fcstm_line=resolved_line,
-        resolved_fcstm_ref=(
-            f"fcstm:line:{resolved_line}" if resolved_line is not None else None
-        ),
+        resolved_fcstm_ref=resolved_ref,
         protected_compiler_member=protected,
         exact_line_match=exact_line_match,
         source_refs=source_refs,
@@ -471,7 +529,8 @@ def _member_receipt(
         reason=reason,
         basis=(
             f"macro_id={macro_id}; member_element_id={member_id}; "
-            f"matching_fcstm_lines={matching_lines}; model_refs={list(element.get('model_refs', []))}"
+            f"attribution_source_lines={list(matching_lines)}; native_member_ref={resolved_ref}; "
+            f"model_refs={list(element.get('model_refs', []))}"
         ),
     )
 
@@ -650,18 +709,30 @@ def evaluate_source_transition_closure(
         element_id = element.get("element_id")
         if isinstance(element_id, str):
             elements_by_id.setdefault(element_id, []).append(element)
-    member_receipts = tuple(
-        _member_receipt(
-            pair,
-            macro_id=macro_id or "unresolved-macro",
-            member_id=member_id,
-            element=(
-                elements_by_id[member_id][0]
-                if len(elements_by_id.get(member_id, [])) == 1
-                else None
-            ),
+    try:
+        native_document = load_native_document(pair.model.source_text)
+    except Exception as exc:  # noqa: BLE001 - retain candidates when native provenance is unavailable.
+        diagnostics.append(
+            f"The closed FCSTM artifact cannot supply native macro-member provenance: {type(exc).__name__}: {exc}"
         )
-        for member_id in expected_member_ids
+        native_document = None
+    member_receipts = (
+        tuple(
+            _member_receipt(
+                pair,
+                native_document,
+                macro_id=macro_id or "unresolved-macro",
+                member_id=member_id,
+                element=(
+                    elements_by_id[member_id][0]
+                    if len(elements_by_id.get(member_id, [])) == 1
+                    else None
+                ),
+            )
+            for member_id in expected_member_ids
+        )
+        if native_document is not None
+        else ()
     )
     observed_member_ids = tuple(
         sorted(
@@ -670,9 +741,9 @@ def evaluate_source_transition_closure(
             if len(elements_by_id.get(member_id, [])) == 1
         )
     )
-    if any(not receipt.closed for receipt in member_receipts):
+    if len(member_receipts) != len(expected_member_ids) or any(not receipt.closed for receipt in member_receipts):
         diagnostics.append(
-            "At least one published macro member lacks protected ownership or one unique exact FCSTM line."
+            "At least one published macro member lacks protected ownership, unique attribution, or a required native FCSTM identity."
         )
 
     target_entries = [
@@ -685,19 +756,12 @@ def evaluate_source_transition_closure(
         }
     ]
     target_entry = target_entries[0] if len(target_entries) == 1 else None
-    if target_entry is None or target_entry.resolved_fcstm_line is None:
+    if target_entry is None or target_entry.resolved_fcstm_ref is None:
         diagnostics.append(
-            "The complete macro does not expose exactly one closed target-entry segment."
+            "The complete macro does not expose exactly one closed native target-entry carrier."
         )
     else:
-        transition = next(
-            (
-                item
-                for item in pair.model.transitions
-                if item.line == target_entry.resolved_fcstm_line
-            ),
-            None,
-        )
+        transition = pair.model.transition(target_entry.resolved_fcstm_ref)
         if (
             transition is None
             or transition.source != "[*]"
@@ -969,49 +1033,17 @@ def _semantic_token(value: str | None) -> str:
     return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
 
 
-def _route_assignments(value: str | None) -> set[tuple[str, str]]:
-    """Extract only explicit variable/value assignments from a closed effect."""
-
-    return {
-        (name, number)
-        for name, number in re.findall(
-            r"([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(-?\d+)",
-            str(value or ""),
-        )
-    }
-
-
-def _route_guards(value: str | None) -> set[tuple[str, str]]:
-    """Extract only explicit variable/value equality guards from a closed edge."""
-
-    return {
-        (name, number)
-        for name, number in re.findall(
-            r"([A-Za-z_][A-Za-z0-9_]*)\s*==\s*(-?\d+)",
-            str(value or ""),
-        )
-    }
-
-
 def _route_member_transition(pair: PairInput, element: Mapping[str, Any]) -> Any:
-    """Resolve one protected macro member to its exact parsed transition."""
+    """Resolve one protected transition member through one native carrier ref."""
 
-    metadata = element.get("metadata")
-    if not isinstance(metadata, Mapping):
+    try:
+        native_document = load_native_document(pair.model.source_text)
+    except Exception:  # noqa: BLE001 - caller retains the candidate on native-load failure.
         return None
-    declared_line = metadata.get("line")
-    if not isinstance(declared_line, str):
+    reference, _, _ = _declared_native_member_ref(native_document, element)
+    if reference is None or not reference.startswith("transition:"):
         return None
-    source_lines = pair.model.source_text.splitlines()
-    return next(
-        (
-            transition
-            for transition in pair.model.transitions
-            if 0 < transition.line <= len(source_lines)
-            and source_lines[transition.line - 1].strip() == declared_line.strip()
-        ),
-        None,
-    )
+    return pair.model.transition(reference)
 
 
 def _closed_route_controller_macro(
@@ -1093,32 +1125,38 @@ def _closed_route_controller_macro(
         for row in member_rows
         if (transition := _route_member_transition(pair, row)) is not None
     ]
+    native_document = load_native_document(pair.model.source_text)
+    native_transitions = {
+        transition.ref: transition_by_reference(native_document, transition.ref)
+        for transition in transitions
+    }
     event_token = _semantic_token(source_row.event)
     target_token = _semantic_token(source_row.target.rsplit(".", 1)[-1])
     event_edges = [
         transition
         for transition in transitions
         if any(_semantic_token(trigger) == event_token for trigger in transition.triggers)
-        and any(_route_assignments(effect) for effect in transition.effects)
+        and native_transitions[transition.ref] is not None
+        and native_assignment_pairs(native_transitions[transition.ref])
     ]
     target_edges = [
         transition
         for transition in transitions
         if _semantic_token(transition.target.rsplit(".", 1)[-1]) == target_token
-        and transition.guard
+        and native_transitions[transition.ref] is not None
+        and native_guard_equality_pairs(native_transitions[transition.ref])
     ]
     if not event_edges or not target_edges:
         return None
     assignment_pairs = {
         pair_value
         for transition in event_edges
-        for effect in transition.effects
-        for pair_value in _route_assignments(effect)
+        for pair_value in native_assignment_pairs(native_transitions[transition.ref])
     }
     guard_pairs = {
         pair_value
         for transition in target_edges
-        for pair_value in _route_guards(transition.guard)
+        for pair_value in native_guard_equality_pairs(native_transitions[transition.ref])
     }
     shared_pairs = sorted(assignment_pairs & guard_pairs)
     if not shared_pairs:
@@ -1173,7 +1211,7 @@ def suppress_closed_route_controller_candidates(
                 "macro_ids": macro_ids,
                 "route_closures": [value[1] for value in closures.values() if value is not None],
                 "reason": "The exact source event, compiler effect, parent guard, and author target are joined by complete protected route-controller macros; the closed carrier is a representation of the source condition, not a missing guard or transition relation.",
-                "basis": "exact source inventory, protected working-contract macro membership/digest, parsed FCSTM event/effect/guard/target fields",
+                "basis": "exact source inventory, protected working-contract macro membership/digest, and pyfcstm native event/effect/guard/target objects",
             }
         )
     return retained, dispositions

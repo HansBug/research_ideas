@@ -1,4 +1,4 @@
-"""Input loading, typed context closure, and deterministic source-model parsing."""
+"""Input loading, typed context closure, and pyfcstm-native FCSTM projection."""
 
 from .loaders import FROZEN_PAIR_IDS, load_pair, load_pairs
 from .context import (

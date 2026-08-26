@@ -48,6 +48,9 @@ def validate_registry(data: dict[str, Any]) -> None:
         raise ValueError("public predicate count mismatch")
     if data.get("w1_is_semantic_hit") is not True:
         raise ValueError("W1 semantic hit contract missing")
-    if data.get("unknown_is_violation") is not False:
-        raise ValueError("UNKNOWN violation contract missing")
-
+    if data.get("academic_eligibility") != "all_19_frozen_predicates_reviewed":
+        raise ValueError("all frozen predicates must retain reviewed academic provenance")
+    if data.get("runtime_witness_policy") != "bibliography_metadata_is_not_a_runtime_witness_gate":
+        raise ValueError("runtime witness policy must exclude bibliography metadata")
+    if data.get("execution_failure_is_violation") is not False:
+        raise ValueError("execution failure must not be interpreted as a violation")

@@ -25,7 +25,14 @@ from ..evidence import (
 )
 from ..evidence.receipts import RawReceipt
 from ..evidence.source_attribution import build_source_attribution
+from ..evidence.witness_levels import calculate_witness_level
 from ..inputs import FROZEN_PAIR_IDS, load_pair
+from ..inputs.fcstm_native_projection import (
+    load_native_document,
+    native_assignment_pairs,
+    native_guard_equality_pairs,
+    transition_by_reference,
+)
 from ..inputs.models import PairInput
 from ..registry import load_registry
 from ..reporting.export import write_json, write_markdown_summary
@@ -70,6 +77,11 @@ from ..semantics import (
     suppress_closed_route_controller_candidates,
     suppress_contradicted_ambiguous_source_candidates,
     suppress_satisfied_source_transition_candidates,
+)
+from ..semantics.predicate_routing import (
+    build_r1_cold_runtime_scenario,
+    finalize_route_telemetry,
+    route_primary_candidates,
 )
 from .contracts import (
     MethodCellReceipt,
@@ -1307,10 +1319,10 @@ def _normalize_grounding_exact_facts(
             if state.ref in binding.element_refs
         ]
         outgoing_by_state = {
-            state.name: [
+            state.ref: [
                 transition.ref
                 for transition in pair.model.transitions
-                if transition.source == state.name
+                if transition.source_ref == state.ref
             ]
             for state in bound_states
         }
@@ -1319,7 +1331,7 @@ def _normalize_grounding_exact_facts(
             and normalized.property == "deadlock_freedom"
             and normalized.violation_direction == "dead_end"
             and bound_states
-            and all(outgoing_by_state[state.name] for state in bound_states)
+            and all(outgoing_by_state[state.ref] for state in bound_states)
         )
         if not exact_local_progress:
             kept.append(normalized)
@@ -1329,7 +1341,14 @@ def _normalize_grounding_exact_facts(
             "contract_id": normalized.contract_id,
             "candidate_hash": _hash_json(normalized),
             "bound_state_refs": [state.ref for state in bound_states],
-            "outgoing_transition_refs": outgoing_by_state,
+            # Keep the legacy display-keyed field for existing consumers. It is
+            # audit presentation only; duplicate local names are never used by
+            # the actual exact-progress decision.
+            "outgoing_transition_refs": {
+                state.name: outgoing_by_state[state.ref]
+                for state in bound_states
+            },
+            "outgoing_transition_refs_by_state_ref": outgoing_by_state,
         }
         diagnostics.append(
             {
@@ -1337,8 +1356,8 @@ def _normalize_grounding_exact_facts(
                 "lens": response.lens,
                 "class": "exact_local_progress_satisfied",
                 **fact,
-                "reason": "Every exactly bound state in this dead_end claim has at least one parsed outgoing transition, so unreachability cannot be relabeled as a local dead-end violation.",
-                "basis": "typed deadlock_freedom/dead_end identity, exact binding refs, and owned ModelIR transition endpoints",
+                "reason": "Every exactly bound state in this dead_end claim has at least one native-projected outgoing transition, so unreachability cannot be relabeled as a local dead-end violation.",
+                "basis": "typed deadlock_freedom/dead_end identity, exact binding refs, and pyfcstm native carrier endpoint projection",
             }
         )
 
@@ -1713,15 +1732,13 @@ def _preflight_existing_endpoint_candidates(
         target_hints = [hint for hint in contract.binding_hints if hint.role == "target"]
         source_ref = resolve_state_ref(source_hints[0].value, pair.model) if len(source_hints) == 1 else None
         target_ref = resolve_state_ref(target_hints[0].value, pair.model) if len(target_hints) == 1 else None
-        source = next((state.name for state in pair.model.states if state.ref == source_ref), None)
-        target = next((state.name for state in pair.model.states if state.ref == target_ref), None)
         carriers = [
             transition
             for transition in pair.model.transitions
-            if source is not None
-            and target is not None
-            and transition.source == source
-            and transition.target == target
+            if source_ref is not None
+            and target_ref is not None
+            and transition.source_ref == source_ref
+            and transition.target_ref == target_ref
         ]
         if not carriers:
             retained.append(candidate)
@@ -1733,8 +1750,8 @@ def _preflight_existing_endpoint_candidates(
                 "candidate_title": candidate.title,
                 "status": "suppressed_existing_endpoint",
                 "carrier_refs": carrier_refs,
-                "reason": "The exact ordinary source-to-target transition exists in the parsed ModelIR, so a missing-transition claim is not publishable.",
-                "basis": f"source_ref={source_ref}; target_ref={target_ref}; carrier_refs={carrier_refs}; ordinary-transition-only preflight",
+                "reason": "The exact ordinary source-to-target transition exists in the native FCSTM projection, so a missing-transition claim is not publishable.",
+                "basis": f"source_ref={source_ref}; target_ref={target_ref}; carrier_refs={carrier_refs}; native authored-carrier preflight",
             }
         )
     return retained, dispositions
@@ -1752,6 +1769,16 @@ def _normalize_state_retention_carriers(
     inventory = pair.exact_source_inventory
     if inventory is None:
         return list(candidates), dispositions
+    try:
+        native_document = load_native_document(pair.model.source_text)
+    except Exception as exc:  # noqa: BLE001 - retain precise candidates for W1 degradation upstream.
+        return list(candidates), [
+            {
+                "status": "retention_carrier_native_load_failed",
+                "reason": "The closed FCSTM artifact could not be loaded through pyfcstm, so no retention carrier was inferred.",
+                "basis": f"pyfcstm native load; exception={type(exc).__name__}: {exc}",
+            }
+        ]
 
     for candidate in candidates:
         contract = contracts_by_id.get(candidate.contract_id)
@@ -1775,14 +1802,15 @@ def _normalize_state_retention_carriers(
             retained.append(candidate)
             continue
         state = next(item for item in pair.model.states if item.ref == state_refs[0])
-        if state.parent is None:
+        if state.parent_ref is None:
             retained.append(candidate)
             continue
         source_rows = [
             row
             for row in inventory.transitions
-            if _endpoint_stem(row.source) == state.name
-            and _endpoint_stem(row.target) == state.parent
+            if resolve_state_ref(_endpoint_stem(row.source), pair.model) == state.ref
+            and resolve_state_ref(_endpoint_stem(row.target), pair.model)
+            == state.parent_ref
         ]
         if len(source_rows) != 1:
             retained.append(candidate)
@@ -1795,27 +1823,39 @@ def _normalize_state_retention_carriers(
         exit_rows = [
             row
             for row in pair.model.transitions
-            if row.source == state.name
-            and row.target == "[*]"
+            if row.source_ref == state.ref
+            and row.target_ref is None
             and source_event
-            and any(carrier_token(trigger) == source_event for trigger in row.triggers)
+            and (
+                (native_carrier := transition_by_reference(native_document, row.ref))
+                is not None
+            )
+            and any(
+                carrier_token(event.name) == source_event
+                for event in native_carrier.events
+            )
         ]
         parent_rows = []
-        if len(exit_rows) == 1 and state.parent is not None:
-            route_values = re.findall(
-                r"R45RouteToken\s*=\s*(\d+)",
-                " ".join(exit_rows[0].effects),
+        if len(exit_rows) == 1:
+            exit_carrier = transition_by_reference(native_document, exit_rows[0].ref)
+            assignment_pairs = (
+                native_assignment_pairs(exit_carrier)
+                if exit_carrier is not None
+                else frozenset()
             )
             parent_rows = [
                 row
                 for row in pair.model.transitions
-                if row.source == state.parent
-                and row.target == state.parent
-                and not row.triggers
-                and route_values
-                and any(
-                    f"R45RouteToken == {value}" in (row.guard or "")
-                    for value in route_values
+                if row.source_ref == state.parent_ref
+                and row.target_ref == state.parent_ref
+                and (
+                    (native_carrier := transition_by_reference(native_document, row.ref))
+                    is not None
+                )
+                and not native_carrier.events
+                and bool(
+                    assignment_pairs
+                    & native_guard_equality_pairs(native_carrier)
                 )
             ]
         model_rows = [*exit_rows, *parent_rows]
@@ -1834,10 +1874,7 @@ def _normalize_state_retention_carriers(
                 }
             )
             continue
-        parent = next(
-            (item for item in pair.model.states if item.name == state.parent),
-            None,
-        )
+        parent = next((item for item in pair.model.states if item.ref == state.parent_ref), None)
         element_refs = list(
             dict.fromkeys(
                 [
@@ -1867,7 +1904,7 @@ def _normalize_state_retention_carriers(
                     "basis": (
                         candidate.basis
                         + f"; source_transition={source_row.transition_id}; model_transitions={[row.ref for row in model_rows]}; "
-                        "hierarchical retention-carrier normalization via exact event/route join"
+                        "hierarchical retention-carrier normalization via pyfcstm native event, assignment, and guard-AST join"
                     ),
                 }
             )
@@ -1881,8 +1918,8 @@ def _normalize_state_retention_carriers(
                 "source_transition_id": source_row.transition_id,
                 "source_transition": f"{source_row.source}->{source_row.target}",
                 "model_transition_refs": [row.ref for row in model_rows],
-                "reason": "The state-retention candidate now preserves the exact source-to-owner carrier and its parsed closed-model exit/continuation carrier chain.",
-                "basis": "exact source inventory, state parent relation, normalized event token, and unique ModelIR route continuation",
+                "reason": "The state-retention candidate now preserves the exact source-to-owner carrier and its native closed-model exit/continuation carrier chain.",
+                "basis": "exact source inventory, native parent identity, normalized event identity, and unique pyfcstm effect/guard AST route continuation",
             }
         )
     return retained, dispositions
@@ -2225,8 +2262,8 @@ def _materialize_exact_s2_inventory_candidates(
         if source_state is None or target_state is None:
             continue
         if any(
-            transition.source == source_state.name
-            and transition.target == target_state.name
+            transition.source_ref == source_ref
+            and transition.target_ref == target_ref
             for transition in pair.model.transitions
         ):
             continue
@@ -2392,102 +2429,6 @@ def _working_event_transition_context(
             if source_ref not in source_refs:
                 source_refs.append(source_ref)
     return transition_refs, macro_ids, source_refs
-
-
-def _r1_cold_runtime_scenario(
-    pair: PairInput,
-    transition: Any,
-    event: Any,
-) -> dict[str, Any] | None:
-    """Build one narrow cold-start runtime scenario from exact ModelIR carriers.
-
-    This is deliberately more restrictive than graph reachability.  It accepts
-    only one sequential root with a unique root initial edge, a direct leaf-to-
-    leaf unguarded transition, and one exact root event.  The backend still runs
-    the supplied FCSTM; these facts merely prevent the runner from inventing a
-    runtime setup, a guard valuation, or an event identity.
-    """
-
-    if (
-        pair.canonical_source_ir is None
-        or pair.canonical_source_ir.model.concurrent_regions
-        or transition.guard is not None
-        or len(transition.triggers) != 1
-        or transition.triggers[0] != event.name
-        or transition.source == "[*]"
-        or transition.target == "[*]"
-    ):
-        return None
-    roots = [state for state in pair.model.states if state.parent is None]
-    if len(roots) != 1:
-        return None
-    root = roots[0]
-    if transition.scope != root.name:
-        return None
-    source_rows = [
-        state
-        for state in pair.model.states
-        if state.name == transition.source and state.parent == root.name
-    ]
-    target_rows = [
-        state
-        for state in pair.model.states
-        if state.name == transition.target and state.parent == root.name
-    ]
-    if len(source_rows) != 1 or len(target_rows) != 1:
-        return None
-    source, target = source_rows[0], target_rows[0]
-    if any(state.parent == source.name for state in pair.model.states):
-        return None
-    initial_rows = [
-        item
-        for item in pair.model.transitions
-        if (
-            item.source == "[*]"
-            and item.target == source.name
-            and item.scope == root.name
-            and not item.triggers
-            and item.guard is None
-        )
-    ]
-    same_trigger_rows = [
-        item
-        for item in pair.model.transitions
-        if (
-            item.source == source.name
-            and item.scope == root.name
-            and item.triggers == (event.name,)
-            and item.guard is None
-        )
-    ]
-    event_rows = [item for item in pair.model.events if item.name == event.name]
-    if len(initial_rows) != 1 or len(same_trigger_rows) != 1 or len(event_rows) != 1:
-        return None
-    event_path = f"{root.name}.{event.name}"
-    source_path = f"{root.name}.{source.name}"
-    target_path = f"{root.name}.{target.name}"
-    return {
-        "schema": "evidence-discovery.fcstm-runtime-scenario.v1",
-        "initialization": "cold",
-        "root_state": root.name,
-        "expected_active_before": source_path,
-        "expected_active_after": target_path,
-        "event_queue": [event_path],
-        "schedule": [
-            {"step": 0, "event_paths": []},
-            {"step": 1, "event_paths": [event_path]},
-        ],
-        "selected_step": 1,
-        "selected_event_path": event_path,
-        "selected_transition_ref": transition.ref,
-        "reason": "A cold-start execution is bounded by one unique unguarded root-level event transition with exact source and target state paths.",
-        "basis": (
-            f"root_ref={root.ref}; initial_transition_ref={initial_rows[0].ref}; "
-            f"source_ref={source.ref}; target_ref={target.ref}; "
-            f"event_ref={event_rows[0].ref}; transition_ref={transition.ref}; "
-            "sequential canonical source model"
-        ),
-    }
 
 
 def _materialize_deterministic_execution_probes(
@@ -3163,7 +3104,9 @@ def _materialize_deterministic_execution_probes(
                     f"carrier_transition_ref={transition.ref}; "
                     f"segment_exact_refs={sorted(segment_transition_refs)}"
                 )
-                r1_scenario = _r1_cold_runtime_scenario(pair, transition, event)
+                r1_scenario = build_r1_cold_runtime_scenario(
+                    pair, transition, event.name
+                )
                 r1_admitted = False
                 if needs_r1_probe and parent_contract is not None and r1_scenario is not None:
                     r1_probe_id = f"NL-CONTRACT-{group.group_id}-R1-PROBE-{digest}"
@@ -3480,7 +3423,7 @@ def _d_decision_consistency_errors(
             states_with_outgoing = [
                 state.name
                 for state in bound_states
-                if any(edge.source == state.name for edge in pair.model.transitions)
+                if any(edge.source_ref == state.ref for edge in pair.model.transitions)
             ]
             if bound_states and len(states_with_outgoing) == len(bound_states):
                 errors.append(
@@ -3936,11 +3879,18 @@ def _method_cell(
             candidate_origin="deterministic_frontier",
         )
     )
+    primary_route_projection = route_primary_candidates(
+        pair,
+        contracts_by_id,
+        grounding_responses,
+        [*admitted_llm_candidates, *frontier_candidates],
+    )
+    routed_primary_candidates = list(primary_route_projection.candidates)
     exact_s2_candidates, exact_s2_receipts = (
         _materialize_exact_s2_inventory_candidates(
             pair,
             contract_response,
-            [*admitted_llm_candidates, *frontier_candidates],
+            routed_primary_candidates,
             source_transition_closures,
         )
     )
@@ -3949,7 +3899,7 @@ def _method_cell(
             pair,
             contracts_by_id,
             grounding_responses,
-            [*admitted_llm_candidates, *frontier_candidates, *exact_s2_candidates],
+            [*routed_primary_candidates, *exact_s2_candidates],
             transition_groups=(
                 *contract_response.transition_groups,
                 *[
@@ -3963,8 +3913,7 @@ def _method_cell(
     )
     contracts_by_id.update(execution_probe_contracts)
     candidates = [
-        *admitted_llm_candidates,
-        *frontier_candidates,
+        *routed_primary_candidates,
         *exact_s2_candidates,
         *execution_probe_candidates,
     ]
@@ -3998,9 +3947,23 @@ def _method_cell(
             obligation_id=item["obligation_id"],
             plan=item["plan"],
             receipt=item["receipt"],
+            source_attribution=item["source_attribution"],
+            binding_precise=item["binding"].precise,
         )
         for item in prepared_candidates
     ]
+    primary_route_witness_levels = {
+        str(item["obligation_id"]): calculate_witness_level(
+            item["binding"], item["plan"], item["receipt"]
+        )
+        for item in prepared_candidates
+        if item["candidate"].predicate_id is not None
+    }
+    primary_route_telemetry = finalize_route_telemetry(
+        primary_route_projection.telemetry,
+        prepared_candidates,
+        primary_route_witness_levels,
+    )
     stage_outputs["execute_batch"] = {
         "candidate_count": len(candidates),
         "llm_candidate_count": len(response.issues),
@@ -4011,6 +3974,9 @@ def _method_cell(
         "root_wrapper_preflight_dispositions": root_wrapper_preflight_dispositions,
         "route_controller_preflight_dispositions": route_controller_preflight_dispositions,
         "admitted_llm_candidate_count": len(admitted_llm_candidates),
+        "primary_route_telemetry": [
+            row.model_dump(mode="json") for row in primary_route_telemetry
+        ],
         "source_transition_macro_closure_count": len(source_transition_closures),
         "source_transition_macro_closures": [
             receipt.model_dump(mode="json")
@@ -4051,8 +4017,8 @@ def _method_cell(
         ],
         "predicate_execution_receipts": execution_receipts,
         "candidates": [_jsonable(item) for item in prepared_candidates],
-        "reason": "Exact binding, protected source-transition macro closure, the typed domain frontier, the exact S2 inventory scout, frozen predicate compilation, and deterministic backend execution were applied inside one execute batch; completed true receipts remain passing-check audit records while only counterexamples, unresolved W1/W0, or errors become findings.",
-        "basis": "LLM-established typed contracts, exact source inventory, published working-contract macro membership, owned source/ModelIR/inspection facts, frozen predicate registry, compiler plans, backend receipts, and the passing-check exclusion rule",
+        "reason": "Exact binding, protected source-transition macro closure, primary typed-contract predicate routing, the typed domain frontier, the exact S2 inventory scout, frozen predicate compilation, and deterministic backend execution were applied inside one execute batch; completed true receipts remain passing-check audit records while only counterexamples, unresolved W1/W0, or errors become findings.",
+        "basis": "LLM-established typed contracts, exact source inventory, published working-contract macro membership, owned source/ModelIR/inspection facts, frozen predicate registry, compiler plans, backend receipts, primary-route telemetry, and the passing-check exclusion rule",
     }
     stage_receipts.append(
         _stage_receipt(
@@ -4670,7 +4636,7 @@ def _method_metrics(
             "unresolved_or_error_records": sum(
                 int(
                     record.get("d_level") == "D_UNRESOLVED"
-                    or record.get("witness_level") == "UNKNOWN"
+                    or record.get("execution_receipt", {}).get("execution_state") == "failed"
                 )
                 for record in pair_records
             ),
@@ -4704,7 +4670,7 @@ def _method_metrics(
             "unresolved_or_error_records": sum(
                 int(
                     record.get("d_level") == "D_UNRESOLVED"
-                    or record.get("witness_level") == "UNKNOWN"
+                    or record.get("execution_receipt", {}).get("execution_state") == "failed"
                 )
                 for record in records
             ),

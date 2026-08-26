@@ -144,10 +144,11 @@ class ContractBindingHint(BaseModel):
         "forbidden",
         "scenario",
         "window",
+        "domain",
         "bound",
         "unit",
         "other",
-    ] = Field(description="Semantic argument role of this source-side hint; event names an event concept while trigger names the trigger attached to one transition. action/effect name the required behavior carrier, while variable names only the data subject read or written by that carrier; contracts may share an exact variable value without merging their distinct action/effect properties. This is not a frozen predicate input name unless grounding later binds it exactly. For transition_endpoints, source is the normative transition origin and target is its destination; when a mode or composite itself transitions to a completion state, that mode/composite is source even if it also defines the surrounding scope. Owner records hierarchy or initial-entry ownership and never substitutes for an endpoint source. For initial_entry, owner is the scope that owns the required initial pseudostate edge and target is the state entered by that edge; the entered state is not its own owner unless the NL explicitly states a nested self-owned obligation.")
+    ] = Field(description="Semantic argument role of this source-side hint; event names an event concept while trigger names the trigger attached to one transition. action/effect name the required behavior carrier, while variable names only the data subject read or written by that carrier; contracts may share an exact variable value without merging their distinct action/effect properties. domain is an independently requirement-declared finite JSON domain for V1/V2 and must never be synthesized from observed guards, ledger data, or a backend fixture. This is not a frozen predicate input name unless grounding later binds it exactly. For transition_endpoints, source is the normative transition origin and target is its destination; when a mode or composite itself transitions to a completion state, that mode/composite is source even if it also defines the surrounding scope. Owner records hierarchy or initial-entry ownership and never substitutes for an endpoint source. For initial_entry, owner is the scope that owns the required initial pseudostate edge and target is the state entered by that edge; the entered state is not its own owner unless the NL explicitly states a nested self-owned obligation.")
     value: str = Field(
         min_length=1,
         description=(

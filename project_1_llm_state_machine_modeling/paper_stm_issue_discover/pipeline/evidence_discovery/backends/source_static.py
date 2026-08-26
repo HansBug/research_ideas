@@ -1,164 +1,264 @@
+"""Structural predicates evaluated over native ``pyfcstm.model`` objects."""
+
 from __future__ import annotations
 
-import hashlib
-from typing import Any
+import re
+from typing import Any, Iterable
 
 from ..compiler.lowering import PredicatePlan
-from ..evidence.receipts import RawReceipt
-from ..inputs.models import ModelIR, Transition
+from ..inputs.models import ModelIR
+from .fcstm_native import (
+    NativeFCSTM,
+    all_states,
+    all_transition_carriers,
+    load_native_fcstm,
+    native_load_failure,
+    native_receipt,
+    native_transition_endpoints,
+    resolve_event,
+    resolve_state,
+    state_path,
+    transition_by_ref,
+    transition_owner_path,
+)
 
 
-def _formal_fragment(value: Any) -> str:
-    """Return the parser's exact formal fragment without semantic rewriting."""
+def _normal(value: object) -> str:
+    """Normalize presentation whitespace without rewriting FCSTM semantics."""
 
-    return str(value or "").strip()
-
-
-def _metadata(model: ModelIR) -> dict[str, Any]:
-    return {
-        "algorithm_version": "source-static-line-parser.v1",
-        "input_hash": "sha256:" + hashlib.sha256(model.source_text.encode("utf-8")).hexdigest(),
-        "closed_input": True,
-    }
+    return re.sub(r"\s+", " ", str(value or "").strip()).rstrip(";")
 
 
-def _transition(plan: PredicatePlan, model: ModelIR) -> Transition | None:
-    ref = plan.inputs.get("transition_ref") or plan.inputs.get("transition")
-    if isinstance(ref, str):
-        found = model.transition(ref)
-        if found is not None:
-            return found
-        found = next((item for item in model.transitions if item.label == ref), None)
-        if found is not None:
-            return found
-    refs = plan.inputs.get("element_refs")
-    if isinstance(refs, list):
-        for ref in refs:
-            found = model.transition(ref)
-            if found is not None:
-                return found
-    return None
+def _scope_matches(native: NativeFCSTM, transition: Any, scope: object) -> bool:
+    """Require the exact owner scope represented by the native transition."""
+
+    if not isinstance(scope, str) or not scope.strip():
+        return False
+    requested = scope.strip()
+    owner_path = transition_owner_path(transition)
+    root_path = state_path(native.machine.root_state)
+    if requested in {"closed_fcstm", root_path, native.machine.root_state.name}:
+        return owner_path == root_path
+    owner = resolve_state(native, requested)
+    return owner is not None and owner_path == state_path(owner)
 
 
-def _receipt(
-    receipt_id: str,
-    predicate: str,
-    model: ModelIR,
-    verdict: str,
-    reason: str,
-    basis: str,
-    *,
-    counterexample: list[dict[str, Any]] | None = None,
-    trace: list[dict[str, Any]] | None = None,
-) -> RawReceipt:
-    return RawReceipt(
-        receipt_id=receipt_id,
-        backend=f"source_static:{predicate}",
-        terminal_state="completed" if verdict in {"true", "false"} else "unknown",
-        verdict=verdict,
-        reason=reason,
-        basis=basis,
-        counterexample=counterexample or [],
-        trace=trace or [],
-        run_metadata=_metadata(model),
+def _endpoint_matches(native: NativeFCSTM, transition: Any, source: object, target: object) -> bool:
+    """Match one exact native transition endpoint pair."""
+
+    observed_source, observed_target = native_transition_endpoints(transition)
+    if not isinstance(source, str) or not isinstance(target, str):
+        return False
+    owner_path = transition_owner_path(transition)
+
+    def endpoint_paths(observed: str) -> frozenset[str]:
+        if observed == "[*]":
+            return frozenset()
+        return frozenset({observed, f"{owner_path}.{observed}"})
+
+    source_ok = source == observed_source
+    target_ok = target == observed_target
+    if not source_ok and observed_source != "[*]":
+        source_state = resolve_state(native, source)
+        source_ok = (
+            source_state is not None
+            and state_path(source_state) in endpoint_paths(observed_source)
+        )
+    if not target_ok and observed_target != "[*]":
+        target_state = resolve_state(native, target)
+        target_ok = (
+            target_state is not None
+            and state_path(target_state) in endpoint_paths(observed_target)
+        )
+    return source_ok and target_ok
+
+
+def _native_transition(plan: PredicatePlan, native: NativeFCSTM) -> Any | None:
+    """Resolve an exact carrier only through the native FCSTM grammar span."""
+
+    return transition_by_ref(native, plan.inputs.get("transition"))
+
+
+def _action_texts(actions: Iterable[Any]) -> set[str]:
+    """Collect the canonical names and operations exposed by native actions."""
+
+    values: set[str] = set()
+    for action in actions:
+        if action.name:
+            values.add(_normal(action.name))
+        values.add(_normal(action.func_name))
+        if not action.is_abstract and not action.is_ref:
+            values.update(_normal(operation.to_ast_node()) for operation in action.operations)
+    return values
+
+
+def _parse_required_guard(value: object) -> Any | None:
+    """Parse one required guard through the public FCSTM expression parser.
+
+    S5 compares syntax-tree identity, not a hand-written string approximation.
+    The candidate-side expression is parsed with the same FCSTM expression
+    grammar that created ``Transition.guard`` before either AST is compared.
+    """
+
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        from pyfcstm.model import parse_expr_from_string
+
+        return parse_expr_from_string(value, mode="logical").to_ast_node()
+    except Exception:  # noqa: BLE001 - malformed typed input is an execution audit fact.
+        return None
+
+
+def _parse_required_effect(native: NativeFCSTM, value: object) -> Any | None:
+    """Parse one required effect with a native FCSTM model wrapper.
+
+    FCSTM exposes its operation parser through model construction.  The wrapper
+    keeps the actual model's declaration environment, then asks that public
+    loader to build a single carrier transition.  This prevents S6 from
+    accepting a variable delta, event label, or hand-normalised text as an
+    effect membership witness.
+    """
+
+    if not isinstance(value, str) or not value.strip():
+        return None
+    declarations = "\n".join(
+        str(definition.to_ast_node())
+        for definition in native.machine.defines.values()
     )
+    effect = value.strip()
+    if effect.endswith(";"):
+        effect = effect[:-1].rstrip()
+    wrapper_source = "\n".join(
+        part
+        for part in (
+            declarations,
+            "state EvidenceDiscoveryEffectWrapper {",
+            "    state Carrier;",
+            "    state Sink;",
+            "    [*] -> Carrier;",
+            f"    Carrier -> Sink effect {{ {effect}; }};",
+            "}",
+        )
+        if part
+    )
+    try:
+        from pyfcstm.model import load_state_machine_from_text
+
+        wrapper = load_state_machine_from_text(wrapper_source)
+    except Exception:  # noqa: BLE001 - invalid effect input never becomes a verdict.
+        return None
+    carriers = [
+        transition
+        for transition in wrapper.root_state.transitions
+        if transition.from_state == "Carrier" and transition.to_state == "Sink"
+    ]
+    if len(carriers) != 1 or len(carriers[0].effects) != 1:
+        return None
+    return carriers[0].effects[0].to_ast_node()
 
 
-def run_source_static(plan: PredicatePlan, model: ModelIR, receipt_id: str) -> RawReceipt:
-    predicate = plan.predicate_id
+def run_source_static(plan: PredicatePlan, model: ModelIR, receipt_id: str):
+    """Evaluate S1--S6 only through native FCSTM model classes."""
+
+    predicate = plan.predicate_id or "unknown"
+    try:
+        native = load_native_fcstm(model)
+    except Exception as exc:  # noqa: BLE001 - recorded as a failed backend execution.
+        return native_load_failure(receipt_id, predicate, model, exc)
     inputs = plan.inputs
+
     if predicate == "S1":
-        element = str(inputs.get("element") or "")
-        kind = str(inputs.get("kind") or "state").lower()
-        if kind not in {"state", "event", "transition", "edge"}:
-            return _receipt(
+        kind = inputs.get("kind")
+        element = inputs.get("element")
+        scope = inputs.get("scope")
+        if not isinstance(kind, str) or not isinstance(element, str) or not isinstance(scope, str):
+            return native_receipt(receipt_id, predicate, native, "unknown", "S1 requires exact kind, element, and declaration scope inputs.", "S1 typed input contract", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1")
+        root_path = state_path(native.machine.root_state)
+        if scope not in {"closed_fcstm", root_path, native.machine.root_state.name}:
+            return native_receipt(receipt_id, predicate, native, "unknown", "S1 currently admits only the exact closed-model declaration scope; a narrower scope needs a typed owner binding.", "native StateMachine declaration scope boundary", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1")
+        if kind == "state":
+            found = resolve_state(native, element) is not None
+        elif kind == "event":
+            found = resolve_event(native, element) is not None
+        elif kind in {"transition", "edge"}:
+            found = transition_by_ref(native, element) is not None
+        else:
+            return native_receipt(receipt_id, predicate, native, "unknown", "S1 kind is outside the frozen native FCSTM state/event/transition vocabulary.", "native StateMachine vocabulary boundary", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1")
+        return native_receipt(receipt_id, predicate, native, "true" if found else "false", f"The native FCSTM declaration inventory {'contains' if found else 'does not contain'} the exact requested {kind}.", "pyfcstm.model.StateMachine native declaration objects", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", counterexample=[] if found else [{"kind": kind, "element": element, "scope": scope}])
+
+    if predicate == "S2":
+        source, target, scope = inputs.get("source"), inputs.get("target"), inputs.get("scope")
+        if not isinstance(source, str) or not isinstance(target, str) or not isinstance(scope, str):
+            return native_receipt(receipt_id, predicate, native, "unknown", "S2 requires exact source, target, and owner scope inputs.", "S2 typed input contract", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1")
+        root_path = state_path(native.machine.root_state)
+        if scope not in {"closed_fcstm", root_path, native.machine.root_state.name} and resolve_state(native, scope) is None:
+            return native_receipt(
                 receipt_id,
                 predicate,
-                model,
+                native,
                 "unknown",
-                "The S1 kind input is outside the parser's decidable state/event/edge vocabulary.",
-                "invalid S1 kind is preserved as UNKNOWN rather than treated as a missing element",
+                "S2 cannot evaluate an exact owner-local transition because the declared owner scope does not resolve to one native FCSTM state.",
+                "S2 typed owner-scope binding and pyfcstm.model.StateMachine state resolution",
+                backend_family="fcstm_model",
+                algorithm_version="pyfcstm.model.v1",
+                failure_kind="invalid_input",
             )
-        found = model.state(element) if kind == "state" else model.event(element)
-        if found is None and kind in {"transition", "edge"}:
-            found = next((item for item in model.transitions if element in {item.ref, item.label}), None)
-        verdict = "true" if found is not None else "false"
-        return _receipt(
-            receipt_id, predicate, model, verdict,
-            f"The closed declaration list {'contains' if found else 'does not contain'} the requested {kind} element {element!r}.",
-            "ModelIR exact name/ref membership",
-            counterexample=[] if found else [{"element": element, "kind": kind}],
-        )
-    if predicate == "S2":
-        transition = _transition(plan, model)
-        source = str(inputs.get("source") or (transition.source if transition else ""))
-        target = str(inputs.get("target") or (transition.target if transition else ""))
-        found = next(
-            (item for item in model.transitions if item.source == source and item.target == target),
-            None,
-        )
-        verdict = "true" if found is not None else "false"
-        return _receipt(
-            receipt_id, predicate, model, verdict,
-            f"The closed model {'contains' if found else 'does not contain'} a transition from {source} to {target}.",
-            "ModelIR exact transition endpoint membership",
-            counterexample=[] if found else [{"source": source, "target": target}],
-            trace=[{"transition_ref": found.ref}] if found else [],
-        )
-    transition = _transition(plan, model)
+        carrier = _native_transition(plan, native)
+        candidates = (carrier,) if carrier is not None else all_transition_carriers(native)
+        found = any(_scope_matches(native, transition, scope) and _endpoint_matches(native, transition, source, target) for transition in candidates)
+        return native_receipt(receipt_id, predicate, native, "true" if found else "false", f"The native FCSTM model {'contains' if found else 'does not contain'} the exact owner-local transition.", "pyfcstm Transition owner, endpoint, and grammar-span carrier", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", counterexample=[] if found else [{"source": source, "target": target, "scope": scope}])
+
+    transition = _native_transition(plan, native)
     if predicate in {"S3", "S5", "S6"} and transition is None:
-        return _receipt(
-            receipt_id, predicate, model, "unknown",
-            "The plan is not bound to a concrete transition, so the static backend cannot soundly decide it.",
-            "missing transition binding",
-        )
+        return native_receipt(receipt_id, predicate, native, "unknown", f"{predicate} requires an exact transition:line:<n> carrier that resolves to exactly one native FCSTM transition.", "native transition grammar-span binding", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1")
+
     if predicate == "S3":
-        expected = {_formal_fragment(item) for item in inputs.get("triggers", [])}
-        observed = {_formal_fragment(item) for item in (transition.triggers if transition else ())}
+        expected_values = inputs.get("triggers") or ()
+        if not isinstance(expected_values, (list, tuple)):
+            return native_receipt(receipt_id, predicate, native, "unknown", "S3 requires one typed trigger tuple.", "S3 typed input contract", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1")
+        if any(not isinstance(value, str) or not value.strip() for value in expected_values):
+            return native_receipt(receipt_id, predicate, native, "unknown", "S3 requires every required trigger to be one exact non-empty trigger token; the empty tuple remains the deliberate no-trigger value.", "S3 typed trigger-token contract", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", failure_kind="invalid_input")
+        # The expected side is a requirement binding and may deliberately name
+        # an event absent from the model.  The observed side must therefore be
+        # read directly from the exact native carrier, rather than resolving
+        # expected names through the current model and making a missing-trigger
+        # violation uncheckable.
+        expected = set(expected_values)
+        observed = {event.name for event in transition.events}
         verdict = "true" if expected == observed else "false"
-        return _receipt(
-            receipt_id, predicate, model, verdict,
-            "The parsed transition trigger sets were compared for equality.",
-            "normalized parsed transition trigger sets",
-            counterexample=[] if verdict == "true" else [{"expected": sorted(expected), "observed": sorted(observed)}],
-        )
+        return native_receipt(receipt_id, predicate, native, verdict, "The required exact trigger token set was compared with the event identity on the native FCSTM transition carrier.", "pyfcstm Transition.event native event identity plus typed requirement trigger tokens", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", counterexample=[] if verdict == "true" else [{"expected": sorted(expected), "observed": sorted(observed)}])
+
     if predicate == "S4":
-        state = model.state(str(inputs.get("state") or ""))
-        phase = str(inputs.get("phase") or "entry").lower()
-        action = _formal_fragment(inputs.get("action"))
-        observed = {_formal_fragment(item) for item in (state.actions.get(phase, ()) if state else ())}
-        verdict = "true" if state is not None and action in observed else "false"
-        return _receipt(
-            receipt_id, predicate, model, verdict,
-            f"The action was {'found' if verdict == 'true' else 'not found'} in the {phase} lifecycle slot of the state.",
-            "ModelIR state action slot membership",
-            counterexample=[] if verdict == "true" else [{"state": inputs.get("state"), "phase": phase, "action": action}],
-        )
+        state = resolve_state(native, inputs.get("state"))
+        phase = inputs.get("phase")
+        action = inputs.get("action")
+        if state is None or phase not in {"entry", "do", "exit"} or not isinstance(action, str):
+            return native_receipt(receipt_id, predicate, native, "unknown", "S4 requires one native state, one of entry/do/exit, and one exact action identity.", "strict S4 typed lifecycle binding", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1")
+        actions = {"entry": state.on_enters, "do": state.on_durings, "exit": state.on_exits}[phase]
+        found = _normal(action) in _action_texts(actions)
+        return native_receipt(receipt_id, predicate, native, "true" if found else "false", f"The exact action {'is' if found else 'is not'} attached to the native FCSTM {phase} lifecycle slot.", "pyfcstm State lifecycle action collections", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", counterexample=[] if found else [{"state": state_path(state), "phase": phase, "action": action}])
+
     if predicate == "S5":
-        expected = _formal_fragment(inputs.get("guard"))
-        observed = _formal_fragment(transition.guard if transition else None)
-        verdict = "true" if expected == observed else "false"
-        return _receipt(
-            receipt_id, predicate, model, verdict,
-            "The normalized requirement guard was compared with the parsed transition guard.",
-            "parsed transition guard equality",
-            counterexample=[] if verdict == "true" else [{"expected": expected, "observed": observed}],
-        )
+        expected_ast = _parse_required_guard(inputs.get("guard"))
+        if expected_ast is None:
+            return native_receipt(receipt_id, predicate, native, "unknown", "S5 requires one non-empty guard that parses through the FCSTM logical-expression grammar.", "S5 native typed guard parser", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", failure_kind="invalid_input")
+        observed_ast = transition.guard.to_ast_node() if transition.guard is not None else None
+        verdict = "true" if expected_ast == observed_ast else "false"
+        return native_receipt(receipt_id, predicate, native, verdict, "The required guard AST was compared with the exact native FCSTM transition guard AST.", "pyfcstm.model.parse_expr_from_string and Transition.guard.to_ast_node", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", counterexample=[] if verdict == "true" else [{"expected": str(expected_ast), "observed": str(observed_ast) if observed_ast is not None else None}])
+
     if predicate == "S6":
-        raw_effects = inputs.get("effects") or inputs.get("effect") or []
-        if isinstance(raw_effects, str):
-            raw_effects = [raw_effects]
-        expected = {_formal_fragment(item) for item in raw_effects}
-        observed = {_formal_fragment(item) for item in (transition.effects if transition else ())}
-        verdict = "true" if expected <= observed else "false"
-        return _receipt(
-            receipt_id, predicate, model, verdict,
-            "The expected effects were checked for membership in the parsed transition effects.",
-            "parsed transition effect membership",
-            counterexample=[] if verdict == "true" else [{"expected": sorted(expected), "observed": sorted(observed)}],
-        )
-    return _receipt(
-        receipt_id, predicate or "unknown", model, "unknown",
-        "The source-static backend has no implementation branch for this plan.",
-        "explicit source-static capability boundary",
-    )
+        values = inputs.get("effect") or ()
+        if not isinstance(values, (list, tuple)) or len(values) != 1 or not isinstance(values[0], str):
+            return native_receipt(receipt_id, predicate, native, "unknown", "S6 requires exactly one exact effect expression on the exact transition carrier.", "S6 typed effect contract", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1")
+        expected_ast = _parse_required_effect(native, values[0])
+        if expected_ast is None:
+            return native_receipt(receipt_id, predicate, native, "unknown", "S6 requires one effect that parses as a single native FCSTM operation in the current declaration environment.", "S6 native FCSTM operation-model wrapper", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", failure_kind="invalid_input")
+        observed = [effect.to_ast_node() for effect in transition.effects]
+        verdict = "true" if any(expected_ast == effect for effect in observed) else "false"
+        return native_receipt(receipt_id, predicate, native, verdict, "The required native effect AST was checked against operation ASTs on the exact native transition carrier.", "pyfcstm StateMachine operation parsing and Transition.effects AST membership", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", counterexample=[] if verdict == "true" else [{"expected": str(expected_ast), "observed": [str(effect) for effect in observed]}])
+
+    return native_receipt(receipt_id, predicate, native, "unknown", "The native structural backend has no branch for this predicate.", "explicit native structural backend dispatch boundary", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1")
+
+
+__all__ = ["run_source_static"]

@@ -31,11 +31,16 @@ def test_registry_has_frozen_four_family_shape() -> None:
     }
 
 
-def test_w1_is_a_hit_and_unknown_is_not_a_violation() -> None:
+def test_w_protocol_has_three_levels_and_failures_are_not_violations() -> None:
     data = load_registry()
 
     assert data["w1_is_semantic_hit"] is True
-    assert data["unknown_is_violation"] is False
+    assert data["execution_failure_is_violation"] is False
+    assert "unknown_is_violation" not in data
+    assert data["runtime_witness_policy"] == "bibliography_metadata_is_not_a_runtime_witness_gate"
+    assert data["academic_eligibility"] == "all_19_frozen_predicates_reviewed"
+    assert set(data["evidence_levels"]) == {"W0", "W1", "W2"}
+    assert "terminating true or false" in data["evidence_levels"]["W2"]
     assert "semantic finding" in data["evidence_levels"]["W1"]
     assert "not as an established finding" in data["evidence_levels"]["W0"]
 
@@ -62,8 +67,11 @@ def test_every_source_id_resolves_to_current_catalog() -> None:
     assert source_ids
     assert all(set(p["sources"]) <= source_ids for p in predicates)
     assert all(source["paths"] for source in catalog["sources"])
-    assert all(source["status"] in {"reviewed_partial", "candidate", "rejected_for_scope"}
+    assert all(source["title"] and source["supports"] and source["boundary"]
                for source in catalog["sources"])
+    assert all(set(source["types"]) <= {"domain", "formal", "technical"}
+               for source in catalog["sources"])
+    assert not any("status" in source for source in catalog["sources"])
     assert all(
         (PROJECT_ROOT / path).exists()
         for source in catalog["sources"]
@@ -71,42 +79,21 @@ def test_every_source_id_resolves_to_current_catalog() -> None:
     )
 
 
-def test_predicate_source_audit_covers_all_public_predicates() -> None:
+def test_catalog_remains_academic_provenance_not_runtime_admission_data() -> None:
     data = load_registry()
     catalog = json.loads(
         (PROJECT_ROOT / data["source_catalog_path"]).read_text(encoding="utf-8")
     )
-    predicates = {p["id"] for family in data["families"] for p in family["predicates"]}
-    audit = catalog["predicate_audit"]
-    allowed = {
-        "partial_pass",
-        "candidate",
-        "w1_only_pending_source",
-        "w1_only_no_current_domain_source",
-        "w1_only_pending_independent_rule",
-        "w1_only_pending_bounded_semantics",
-        "w1_only_parallel_sources_only",
+    predicate_source_ids = {
+        source_id
+        for family in data["families"]
+        for predicate in family["predicates"]
+        for source_id in predicate["sources"]
     }
 
-    assert set(audit) == predicates
-    assert all(item["status"] in allowed for item in audit.values())
-    assert all(item["note"] for item in audit.values())
-
-
-def test_restricted_source_admissions_do_not_change_predicate_wide_audits() -> None:
-    data = load_registry()
-    catalog = json.loads(
-        (PROJECT_ROOT / data["source_catalog_path"]).read_text(encoding="utf-8")
-    )
-    admissions = catalog["candidate_admissions"]
-    s3 = admissions["S3"]
-
-    assert catalog["predicate_audit"]["S3"]["status"] == "candidate"
-    assert len(s3) == 1
-    assert s3[0]["id"] == "S3.uml_initial_outgoing_without_trigger.v1"
-    assert s3[0]["status"] == "partial_pass"
-    assert s3[0]["source_ids"] == ["ST1"]
-    assert s3[0]["citations"] and s3[0]["proposition"] and s3[0]["boundary"]
+    assert predicate_source_ids <= {source["id"] for source in catalog["sources"]}
+    assert "predicate_audit" not in catalog
+    assert "candidate_admissions" not in catalog
 
 
 def test_coverage_snapshot_is_explicitly_a_design_mapping() -> None:
@@ -138,7 +125,8 @@ def test_current_method_entrypoints_repeat_the_frozen_policy() -> None:
     assert "four-family-19-core.v1" in text
     assert "W1" in text and "semantic_hit" in text
     assert "W0" in text and "coverage gap" in text
-    assert "UNKNOWN" in text and "violation" in text
+    assert "W2/W1/W0" in text
+    assert "bibliography" in text and "运行时" in text
     assert "不得新增谓词或修改" in text or "禁止新增谓词或修改" in text
 
 

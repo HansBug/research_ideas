@@ -1,3 +1,5 @@
+"""Trajectory predicates executed by native FCSTM runtime and ``.fbmcq``."""
+
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
@@ -6,306 +8,268 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from ..compiler.lowering import PredicatePlan
-from ..evidence.receipts import RawReceipt
 from ..inputs.models import ModelIR
+from .fcstm_native import (
+    NativeFCSTM,
+    all_states,
+    execute_fbmcq,
+    load_native_fcstm,
+    native_load_failure,
+    native_receipt,
+    resolve_state,
+    state_path,
+    transition_by_ref,
+)
 
 
 class RuntimeMacrostep(BaseModel):
-    """One closed public-runtime cycle supplied to a trajectory predicate."""
+    """One fully specified native FCSTM runtime cycle in a closed scenario."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    step: int = Field(ge=0, description="Zero-based macrostep position in the closed runtime schedule.")
-    event_paths: tuple[str, ...] = Field(description="Exact fully-qualified FCSTM event paths supplied to this macrostep.")
+    step: int = Field(ge=0, description="Zero-based contiguous macrostep index supplied to the native FCSTM runtime.")
+    event_paths: tuple[str, ...] = Field(default_factory=tuple, description="Complete exact FCSTM event paths dispatched during this macrostep; omitted events are not silently inferred.")
 
 
 class FCSTMRuntimeScenario(BaseModel):
-    """Restricted cold-start FCSTM execution contract for a real R1 receipt.
+    """Method-owned, fully instantiated scenario for native FCSTM execution.
 
-    The contract deliberately admits one sequential, unguarded macrostep only.
-    It preserves the runtime input independently from the resulting trace, so a
-    static source trace can never be presented as an execution receipt.
+    The scenario is an input, never a copied source trace.  The backend loads
+    the closed FCSTM model and obtains all active states and consumption facts
+    afresh through ``SimulationRuntime``.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    schema: Literal["evidence-discovery.fcstm-runtime-scenario.v1"] = Field(
-        description="Versioned schema identifier for the closed FCSTM runtime scenario."
-    )
-    initialization: Literal["cold"] = Field(description="The runtime starts only from the frozen model's cold initial configuration.")
-    root_state: str = Field(min_length=1, description="Exact closed-FCSTM root state name used to qualify queued events.")
-    expected_active_before: str = Field(min_length=1, description="Exact active state path required after initialization and before the selected macrostep.")
-    expected_active_after: str = Field(min_length=1, description="Exact active state path required after the selected macrostep for carrier attribution.")
-    event_queue: tuple[str, ...] = Field(min_length=1, description="Complete finite queue of fully-qualified event paths supplied by the scenario.")
-    schedule: tuple[RuntimeMacrostep, ...] = Field(min_length=2, description="Complete ordered runtime schedule, including explicit initialization and selected macrosteps.")
-    selected_step: int = Field(ge=0, description="Macrostep whose event-consumption result is the R1 observation window.")
-    selected_event_path: str = Field(min_length=1, description="Exact queued event path expected to be consumed in selected_step.")
-    selected_transition_ref: str = Field(min_length=1, description="Exact ModelIR transition carrier used only for local runtime attribution.")
-    reason: str = Field(min_length=1, description="Non-empty explanation of why this closed runtime scenario is admissible.")
-    basis: str = Field(min_length=1, description="Non-empty exact ModelIR and transition-group basis for this scenario.")
+    schema: Literal[
+        "evidence-discovery.fcstm-runtime-scenario.v1",
+        "evidence-discovery.fcstm-runtime-scenario.v2",
+    ] = Field(description="Versioned closed FCSTM runtime scenario schema.")
+    initialization: Literal["cold"] = Field(description="The runtime always begins from the closed model's cold initial configuration.")
+    root_state: str = Field(min_length=1, description="Exact native FCSTM root state path expected by this scenario.")
+    event_queue: tuple[str, ...] = Field(default_factory=tuple, description="Complete finite multiset of event paths authorized across the schedule.")
+    schedule: tuple[RuntimeMacrostep, ...] = Field(min_length=1, description="Complete ordered macrostep schedule executed by the native runtime.")
+    selected_step: int | None = Field(default=None, ge=0, description="Optional exact macrostep used by R1 event-consumption attribution.")
+    selected_event_path: str | None = Field(default=None, min_length=1, description="Optional exact queued event observed by R1.")
+    selected_transition_ref: str | None = Field(default=None, min_length=1, description="Optional exact transition:line:<n> carrier for R1 local attribution.")
+    expected_active_before: str | None = Field(default=None, min_length=1, description="Optional exact active state before the selected R1 macrostep.")
+    expected_active_after: str | None = Field(default=None, min_length=1, description="Optional exact active state after the selected R1 macrostep.")
+    reason: str = Field(min_length=1, description="Non-empty explanation of how the current pair's requirement and closed model determine this scenario.")
+    basis: str = Field(min_length=1, description="Non-empty FCSTM/native-runtime basis for the scenario closure.")
 
     @model_validator(mode="after")
     def validate_closed_schedule(self) -> "FCSTMRuntimeScenario":
-        """Reject incomplete or ambiguous runtime schedule identities deterministically."""
+        """Reject non-contiguous schedules and unauthorised event injections."""
 
-        steps = tuple(item.step for item in self.schedule)
-        if steps != tuple(sorted(steps)) or len(set(steps)) != len(steps):
-            raise ValueError("runtime schedule steps must be strictly increasing")
-        selected = [item for item in self.schedule if item.step == self.selected_step]
-        if len(selected) != 1:
-            raise ValueError("runtime scenario must contain exactly one selected_step row")
-        if self.selected_event_path not in self.event_queue:
-            raise ValueError("selected_event_path must be present in the closed event_queue")
-        if self.selected_event_path not in selected[0].event_paths:
-            raise ValueError("selected_event_path must be dispatched in selected_step")
+        steps = tuple(row.step for row in self.schedule)
+        if steps != tuple(range(len(steps))):
+            raise ValueError("runtime schedule steps must be contiguous from zero")
+        scheduled_events = tuple(event for row in self.schedule for event in row.event_paths)
+        if any(event not in self.event_queue for event in scheduled_events):
+            raise ValueError("every scheduled event must occur in the closed event_queue")
+        selected_values = (
+            self.selected_step,
+            self.selected_event_path,
+            self.selected_transition_ref,
+            self.expected_active_before,
+            self.expected_active_after,
+        )
+        if any(value is not None for value in selected_values) and any(value is None for value in selected_values):
+            raise ValueError("R1 scenario attribution requires selected step/event/carrier and before/after states together")
+        if self.selected_step is not None:
+            if self.selected_step >= len(self.schedule):
+                raise ValueError("selected_step is outside the closed schedule")
+            row = self.schedule[self.selected_step]
+            if self.selected_event_path not in row.event_paths or self.selected_event_path not in self.event_queue:
+                raise ValueError("selected R1 event must be queued and dispatched in selected_step")
         return self
 
 
-def _mapping(value: Any) -> Mapping[str, Any] | None:
-    return value if isinstance(value, Mapping) else None
+def _scenario(value: object) -> FCSTMRuntimeScenario | None:
+    """Validate a scenario input without treating a saved trace as runtime data."""
+
+    if not isinstance(value, Mapping):
+        return None
+    try:
+        return FCSTMRuntimeScenario.model_validate(value)
+    except ValidationError:
+        return None
 
 
-def _rows(value: Any) -> list[Mapping[str, Any]]:
-    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
-        return []
-    return [item for item in value if isinstance(item, Mapping)]
+def _active_paths(runtime: Any) -> list[str]:
+    """Read the public native runtime active-state path after one macrostep."""
 
-
-def _same_step(value: Any, expected: Any) -> bool:
-    return value == expected or str(value) == str(expected)
-
-
-def _receipt(
-    receipt_id: str,
-    predicate: str,
-    model: ModelIR,
-    verdict: str,
-    reason: str,
-    basis: str,
-    *,
-    counterexample: list[dict[str, Any]] | None = None,
-    trace: list[dict[str, Any]] | None = None,
-    metadata: dict[str, Any] | None = None,
-) -> RawReceipt:
-    run_metadata = {
-        "algorithm_version": "trajectory-closed-window.v1",
-        "model_hash": plan_model_hash(model),
-        "closed_trace_contract": True,
-    }
-    if metadata:
-        run_metadata.update(metadata)
-    return RawReceipt(
-        receipt_id=receipt_id,
-        backend=f"trajectory:{predicate}",
-        terminal_state="completed" if verdict in {"true", "false"} else "unknown",
-        verdict=verdict,
-        reason=reason,
-        basis=basis,
-        counterexample=counterexample or [],
-        trace=trace or [],
-        run_metadata=run_metadata,
-    )
-
-
-def plan_model_hash(model: ModelIR) -> str:
-    """Return the same source-text identity used by the other deterministic backends."""
-
-    import hashlib
-
-    return "sha256:" + hashlib.sha256(model.source_text.encode("utf-8")).hexdigest()
-
-
-def _active_state_paths(runtime: Any) -> list[str]:
-    """Return the public runtime's active leaf ancestry without reflection."""
-
-    if bool(runtime.is_ended):
+    if runtime.is_ended:
         return []
     path = tuple(str(item) for item in runtime.current_state.path)
     return [".".join(path[:index]) for index in range(1, len(path) + 1)]
 
 
-def _run_fcstm_runtime_r1(
-    plan: PredicatePlan,
-    model: ModelIR,
-    receipt_id: str,
-    scenario: Mapping[str, Any],
-) -> RawReceipt:
-    """Execute one restricted R1 macrostep through public pyfcstm APIs.
+def _run_scenario(native: NativeFCSTM, scenario: FCSTMRuntimeScenario) -> tuple[list[dict[str, Any]], str | None]:
+    """Execute the complete typed schedule through native ``SimulationRuntime``."""
 
-    No inspection API or historical source trace is used here.  A failed parse,
-    runtime rejection, or incomplete result is retained as an unsupported
-    trajectory boundary rather than causing a method-cell failure.
-    """
+    from pyfcstm.simulate import SimulationRuntime
 
-    predicate = plan.predicate_id or "unknown"
+    if scenario.root_state != state_path(native.machine.root_state):
+        return [], "scenario root_state does not equal the native FCSTM root path"
+    runtime = SimulationRuntime(native.machine, abstract_error_mode="log")
+    trace: list[dict[str, Any]] = []
     try:
-        spec = FCSTMRuntimeScenario.model_validate(scenario)
-    except ValidationError as exc:
-        return _receipt(
-            receipt_id,
-            predicate,
-            model,
-            "unknown",
-            "The FCSTM runtime scenario does not satisfy the closed macrostep contract.",
-            f"FCSTMRuntimeScenario validation errors={exc.error_count()}",
-            metadata={"algorithm_version": "trajectory-fcstm-runtime.v1"},
-        )
-    if predicate != "R1":
-        return _receipt(
-            receipt_id,
-            predicate,
-            model,
-            "unknown",
-            "The FCSTM runtime scenario is currently defined only for R1 event-consumption execution.",
-            "runtime scenario schema boundary",
-            metadata={"algorithm_version": "trajectory-fcstm-runtime.v1"},
-        )
-    event = plan.inputs.get("event")
-    if not isinstance(event, str) or not event:
-        return _receipt(
-            receipt_id,
-            predicate,
-            model,
-            "unknown",
-            "R1 requires one exact canonical event identity in addition to the runtime event path.",
-            "R1 typed event input",
-            metadata={"algorithm_version": "trajectory-fcstm-runtime.v1"},
-        )
-    if spec.selected_event_path.rsplit(".", 1)[-1] != event:
-        return _receipt(
-            receipt_id,
-            predicate,
-            model,
-            "unknown",
-            "The canonical R1 event does not match the selected fully-qualified runtime event path.",
-            "exact event identity versus runtime path suffix",
-            metadata={"algorithm_version": "trajectory-fcstm-runtime.v1"},
-        )
-    try:
-        from pyfcstm.model import load_state_machine_from_text
-        from pyfcstm.simulate import SimulationRuntime
-
-        state_machine = load_state_machine_from_text(model.source_text)
-        runtime = SimulationRuntime(state_machine, abstract_error_mode="log")
-        trace: list[dict[str, Any]] = []
-        for macrostep in spec.schedule:
-            active_before = _active_state_paths(runtime)
-            result = runtime.cycle(events=list(macrostep.event_paths))
+        for macrostep in scenario.schedule:
+            before = _active_paths(runtime)
+            result = runtime.cycle(list(macrostep.event_paths))
             trace.append(
                 {
                     "step": macrostep.step,
                     "input_events": list(result.input_events),
                     "consumed_events": list(result.consumed_events),
                     "unconsumed_events": list(result.unconsumed_events),
-                    "active_states_before": active_before,
-                    "active_states": _active_state_paths(runtime),
+                    "active_states_before": before,
+                    "active_states": _active_paths(runtime),
                     "is_ended": bool(runtime.is_ended),
+                    "delta": bool(result.delta),
                 }
             )
-    except Exception as exc:  # noqa: BLE001 - backend boundaries must preserve the cell.
-        return _receipt(
-            receipt_id,
-            predicate,
-            model,
-            "unknown",
-            "The public FCSTM runtime could not complete the closed R1 macrostep; no execution claim is made.",
-            f"pyfcstm public simulation boundary; exception_type={type(exc).__name__}",
-            metadata={"algorithm_version": "trajectory-fcstm-runtime.v1"},
-        )
-    selected = next(item for item in trace if item["step"] == spec.selected_step)
-    queued = spec.selected_event_path in spec.event_queue
-    consumed = spec.selected_event_path in selected["consumed_events"]
-    unconsumed = spec.selected_event_path in selected["unconsumed_events"]
-    actual_root = selected["active_states_before"][0] if selected["active_states_before"] else None
-    root_matches = actual_root == spec.root_state
-    source_matches = spec.expected_active_before in selected["active_states_before"]
-    target_matches = spec.expected_active_after in selected["active_states"]
-    verdict = "true" if queued and consumed and not unconsumed and root_matches and source_matches and target_matches else "false"
-    return _receipt(
-        receipt_id,
-        predicate,
-        model,
-        verdict,
-        "The frozen FCSTM was cold-started and the selected queued event was checked against actual public-runtime consumption and state observations.",
-        "public pyfcstm load_state_machine_from_text and SimulationRuntime.cycle; no inspect API or static source trace",
-        counterexample=[] if verdict == "true" else [{
-            "queued": queued,
-            "consumed": consumed,
-            "unconsumed": unconsumed,
-            "root_matches": root_matches,
-            "source_matches": source_matches,
-            "target_matches": target_matches,
-        }],
-        trace=trace,
-        metadata={
-            "algorithm_version": "trajectory-fcstm-runtime.v1",
-            "runtime_engine": "pyfcstm.SimulationRuntime",
-            "runtime_scenario_schema": spec.schema,
-            "actual_root_state": actual_root,
-            "selected_transition_ref": spec.selected_transition_ref,
-        },
-    )
+    except Exception as exc:  # noqa: BLE001 - a runtime failure becomes execution audit data.
+        return trace, f"native SimulationRuntime error: {type(exc).__name__}: {exc}"
+    return trace, None
 
 
-def run_trajectory(plan: PredicatePlan, model: ModelIR, receipt_id: str) -> RawReceipt:
+def _window(value: object, length: int) -> tuple[int, int] | None:
+    """Validate one closed inclusive macrostep interval against the schedule."""
+
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)) or len(value) != 2:
+        return None
+    start, end = value
+    if isinstance(start, bool) or isinstance(end, bool) or not isinstance(start, int) or not isinstance(end, int):
+        return None
+    if start < 0 or end < start or end >= length:
+        return None
+    return start, end
+
+
+def _event_assumptions(native: NativeFCSTM, scenario: FCSTMRuntimeScenario) -> str:
+    """Freeze every native event input for the ``.fbmcq`` execution schedule."""
+
+    all_events = tuple(event.path_name for state in all_states(native) for event in state.events.values())
+    lines: list[str] = []
+    for row in scenario.schedule:
+        selected = set(row.event_paths)
+        for event_path in all_events:
+            value = "true" if event_path in selected else "false"
+            lines.append(f'assume event("{event_path}", {row.step}) == {value};')
+    return "\n".join(lines)
+
+
+def _behavior_path(native: NativeFCSTM, behavior: object) -> str | None:
+    """Resolve one named abstract native lifecycle action for R3.
+
+    FBMCQ's public ``called()`` observation records named abstract lifecycle
+    calls. Concrete operation blocks are real FCSTM behavior, but they are not
+    a callable action record in that solver fragment and must be retained as an
+    out-of-fragment W1 rather than sent to FBMCQ as a backend error.
+    """
+
+    def abstract_actions(actions: Sequence[Any]) -> list[Any]:
+        return [action for action in actions if action.is_abstract and action.name]
+
+    if isinstance(behavior, str):
+        wanted = behavior
+        candidates = [
+            action.func_name
+            for state in all_states(native)
+            for actions in (state.on_enters, state.on_durings, state.on_exits)
+            for action in abstract_actions(actions)
+            if action.func_name == wanted
+        ]
+        return candidates[0] if len(candidates) == 1 else None
+    if not isinstance(behavior, Mapping):
+        return None
+    owner = resolve_state(native, behavior.get("owner"))
+    phase = behavior.get("phase")
+    action_name = behavior.get("action")
+    if owner is None or phase not in {"entry", "do", "exit"} or not isinstance(action_name, str):
+        return None
+    actions = {"entry": owner.on_enters, "do": owner.on_durings, "exit": owner.on_exits}[phase]
+    matches = [
+        action.func_name
+        for action in abstract_actions(actions)
+        if action.name == action_name or action.func_name == action_name
+    ]
+    return matches[0] if len(matches) == 1 else None
+
+
+def run_trajectory(plan: PredicatePlan, model: ModelIR, receipt_id: str):
+    """Evaluate R1--R4 through actual FCSTM execution, never supplied traces."""
+
     predicate = plan.predicate_id or "unknown"
-    scenario = _mapping(plan.inputs.get("scenario"))
+    try:
+        native = load_native_fcstm(model)
+    except Exception as exc:  # noqa: BLE001 - preserve as an execution failure.
+        return native_load_failure(receipt_id, predicate, model, exc)
+    scenario = _scenario(plan.inputs.get("scenario"))
     if scenario is None:
-        return _receipt(receipt_id, predicate, model, "unknown", "The trajectory predicate lacks a structured scenario contract.", "scenario must be a closed JSON object")
+        return native_receipt(receipt_id, predicate, native, "unknown", "The trajectory predicate requires a valid method-owned closed FCSTM runtime scenario; a source trace is not an executable scenario.", "FCSTMRuntimeScenario Pydantic validation", backend_family="fcstm_runtime", algorithm_version="pyfcstm.runtime.v1")
+    if scenario.root_state != state_path(native.machine.root_state):
+        return native_receipt(receipt_id, predicate, native, "unknown", "The trajectory scenario root does not match the loaded native FCSTM root, so the execution scope is not closed.", "FCSTMRuntimeScenario.root_state and pyfcstm StateMachine.root_state identity", backend_family="fcstm_runtime", algorithm_version="pyfcstm.runtime.v1", failure_kind="invalid_input")
+
+    if predicate == "R3":
+        behavior_path = _behavior_path(native, plan.inputs.get("behavior"))
+        window = _window(plan.inputs.get("window"), len(scenario.schedule))
+        if behavior_path is None or window is None:
+            return native_receipt(receipt_id, predicate, native, "unknown", "R3 requires one exact named abstract native lifecycle action and a closed macrostep observation window; concrete operation blocks are outside FBMCQ called()'s action-record fragment.", "R3 typed named-abstract behavior/window contract", backend_family="fbmcq", algorithm_version="pyfcstm.fbmcq.v1", failure_kind="invalid_input")
+        start, end = window
+        query = "\n".join(
+            ["init cold;", _event_assumptions(native, scenario), f'check reach <= {len(scenario.schedule)}: called("{behavior_path}", step={start}..{end});']
+        )
+        return execute_fbmcq(receipt_id=receipt_id, predicate=predicate, native=native, query=query, reason="The native .fbmcq execution checked the exact lifecycle behavior over the fully instantiated FCSTM event schedule.", basis="R3 typed scenario/behavior/window plus pyfcstm .fbmcq called()", timeout_ms=5_000)
+
+    trace, error = _run_scenario(native, scenario)
+    if error is not None:
+        return native_receipt(receipt_id, predicate, native, "unknown", "The native FCSTM runtime did not complete the closed scenario; no trajectory verdict is claimed.", error, backend_family="fcstm_runtime", algorithm_version="pyfcstm.runtime.v1", terminal_state="error", trace=trace, metadata={"runtime_scenario_schema": scenario.schema})
 
     if predicate == "R1":
-        if scenario.get("schema") == "evidence-discovery.fcstm-runtime-scenario.v1":
-            return _run_fcstm_runtime_r1(plan, model, receipt_id, scenario)
         event = plan.inputs.get("event")
-        step = plan.inputs.get("step")
-        queue = scenario.get("event_queue")
-        schedule = scenario.get("schedule")
-        macrosteps = _rows(scenario.get("macrosteps"))
-        if not isinstance(event, str) or not event or queue is None or schedule is None or not macrosteps:
-            return _receipt(receipt_id, predicate, model, "unknown", "R1 requires event_queue, schedule, and a closed macrosteps list.", "event-consumption input contract")
-        step_rows = [row for row in macrosteps if step is None or _same_step(row.get("step", row.get("id")), step)]
-        if not step_rows:
-            return _receipt(receipt_id, predicate, model, "unknown", "The requested R1 macrostep is not present in the closed trace window.", "exact macrostep identity")
-        queued = any(
-            item == event or (isinstance(item, Mapping) and item.get("event") == event)
-            for item in queue if isinstance(queue, Sequence) and not isinstance(queue, (str, bytes))
-        )
-        consumed = any(
-            event in set(row.get("consumed_events", ()))
-            or any(item.get("event") == event for item in _rows(row.get("dispatch")))
-            for row in step_rows
-        )
-        verdict = "true" if queued and consumed else "false"
-        return _receipt(receipt_id, predicate, model, verdict, "The exact queued event was checked against the selected macrostep dispatch records.", "closed event queue, schedule, macrostep, and dispatch facts", counterexample=[] if verdict == "true" else [{"event": event, "queued": queued, "consumed": consumed}])
-
-    trace = _rows(scenario.get("trace"))
-    if not trace:
-        return _receipt(receipt_id, predicate, model, "unknown", "The trajectory scenario has no closed trace window.", "trace window is required for R2/R4")
+        if not isinstance(event, str) or scenario.selected_step is None or scenario.selected_event_path is None:
+            return native_receipt(receipt_id, predicate, native, "unknown", "R1 requires an exact event and complete selected-step native runtime attribution.", "R1 typed event/scenario contract", backend_family="fcstm_runtime", algorithm_version="pyfcstm.runtime.v1", trace=trace)
+        carrier = transition_by_ref(native, scenario.selected_transition_ref)
+        selected = trace[scenario.selected_step]
+        event_matches = scenario.selected_event_path.rsplit(".", 1)[-1] == event
+        carrier_matches = carrier is not None and carrier.event is not None and carrier.event.path_name == scenario.selected_event_path
+        before_matches = scenario.expected_active_before in selected["active_states_before"]
+        after_matches = scenario.expected_active_after in selected["active_states"]
+        consumed = scenario.selected_event_path in selected["consumed_events"]
+        unconsumed = scenario.selected_event_path in selected["unconsumed_events"]
+        verdict = "true" if event_matches and carrier_matches and before_matches and after_matches and consumed and not unconsumed else "false"
+        return native_receipt(receipt_id, predicate, native, verdict, "The exact queued event was checked against native FCSTM runtime consumption, carrier identity, and before/after state observations.", "pyfcstm SimulationRuntime.cycle and native transition grammar-span carrier", backend_family="fcstm_runtime", algorithm_version="pyfcstm.runtime.v1", counterexample=[] if verdict == "true" else [{"event_matches": event_matches, "carrier_matches": carrier_matches, "before_matches": before_matches, "after_matches": after_matches, "consumed": consumed, "unconsumed": unconsumed}], trace=trace, metadata={"runtime_scenario_schema": scenario.schema, "selected_transition_ref": scenario.selected_transition_ref})
 
     if predicate == "R2":
         stimulus = plan.inputs.get("stimulus")
-        state = plan.inputs.get("state")
-        window = plan.inputs.get("window")
-        if stimulus is None or not isinstance(state, str) or not isinstance(window, Sequence) or len(window) != 2:
-            return _receipt(receipt_id, predicate, model, "unknown", "R2 requires stimulus, target state, and a two-ended trace window.", "state-after-stimulus input contract")
+        target = resolve_state(native, plan.inputs.get("state"))
+        window = _window(plan.inputs.get("window"), len(trace))
+        if not isinstance(stimulus, str) or target is None or window is None:
+            return native_receipt(receipt_id, predicate, native, "unknown", "R2 requires one exact stimulus, native target state, and closed observation window.", "R2 typed runtime contract", backend_family="fcstm_runtime", algorithm_version="pyfcstm.runtime.v1", trace=trace)
         start, end = window
-        rows = [row for row in trace if start <= row.get("step", row.get("time", start)) <= end]
-        stimulus_seen = any(row.get("stimulus") == stimulus or row.get("event") == stimulus for row in rows)
-        state_seen = any(state in set(row.get("active_states", ())) or row.get("state") == state for row in rows)
-        verdict = "true" if stimulus_seen and state_seen else "false"
-        return _receipt(receipt_id, predicate, model, verdict, "The closed trace window was checked for the exact stimulus followed by the requested state.", "finite trace rows and exact stimulus/state identity", counterexample=[] if verdict == "true" else [{"stimulus_seen": stimulus_seen, "state_seen": state_seen}])
+        rows = trace[start : end + 1]
+        occurrences = [index for index, row in enumerate(rows) if stimulus in row["input_events"]]
+        trailing = rows[occurrences[-1] + 1 :] if occurrences else []
+        target_path = state_path(target)
+        holds = bool(trailing) and all(target_path in row["active_states"] for row in trailing)
+        verdict = "true" if occurrences and holds else "false"
+        return native_receipt(receipt_id, predicate, native, verdict, "The actual native FCSTM runtime trace was checked for the exact stimulus followed by target-state activity in every trailing observation.", "pyfcstm SimulationRuntime.cycle trace", backend_family="fcstm_runtime", algorithm_version="pyfcstm.runtime.v1", counterexample=[] if verdict == "true" else [{"stimulus_seen": bool(occurrences), "trailing_rows": len(trailing), "target_path": target_path, "holds": holds}], trace=trace)
 
     if predicate == "R4":
-        state = plan.inputs.get("state")
-        interval = plan.inputs.get("interval")
-        if not isinstance(state, str) or not isinstance(interval, Sequence) or len(interval) != 2:
-            return _receipt(receipt_id, predicate, model, "unknown", "R4 requires a retained state and a two-ended closed interval.", "state-retention input contract")
+        target = resolve_state(native, plan.inputs.get("state"))
+        interval = _window(plan.inputs.get("interval"), len(trace))
+        if target is None or interval is None:
+            return native_receipt(receipt_id, predicate, native, "unknown", "R4 requires one exact native state and a closed inclusive runtime interval.", "R4 typed runtime contract", backend_family="fcstm_runtime", algorithm_version="pyfcstm.runtime.v1", trace=trace)
         start, end = interval
-        rows = [row for row in trace if start <= row.get("step", row.get("time", start)) <= end]
-        if not rows:
-            return _receipt(receipt_id, predicate, model, "unknown", "The closed interval contains no trace observations.", "non-empty closed trace interval")
-        missing = [row for row in rows if not (state in set(row.get("active_states", ())) or row.get("state") == state)]
+        target_path = state_path(target)
+        missing = [row for row in trace[start : end + 1] if target_path not in row["active_states"]]
         verdict = "false" if missing else "true"
-        return _receipt(receipt_id, predicate, model, verdict, "Every recorded point in the closed interval was checked for the exact retained state.", "finite trace window with exact active-state observations", counterexample=missing)
+        return native_receipt(receipt_id, predicate, native, verdict, "Every point of the closed interval was obtained from and checked against the actual native FCSTM runtime trace.", "pyfcstm SimulationRuntime.cycle trace", backend_family="fcstm_runtime", algorithm_version="pyfcstm.runtime.v1", counterexample=missing, trace=trace)
 
-    return _receipt(receipt_id, predicate, model, "unknown", "The trajectory backend has no branch for this frozen predicate.", "explicit trajectory capability boundary")
+    return native_receipt(receipt_id, predicate, native, "unknown", "The native trajectory backend has no branch for this predicate.", "explicit native trajectory dispatch boundary", backend_family="fcstm_runtime", algorithm_version="pyfcstm.runtime.v1")
+
+
+__all__ = ["FCSTMRuntimeScenario", "RuntimeMacrostep", "run_trajectory"]

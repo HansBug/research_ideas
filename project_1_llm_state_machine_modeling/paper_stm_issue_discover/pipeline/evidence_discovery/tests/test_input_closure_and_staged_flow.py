@@ -381,7 +381,7 @@ def test_representative_diagnostic_cases_have_complete_input_closure() -> None:
         assert pair.smt_facts is not None
 
 
-def test_owned_fcstm_parser_preserves_semicolon_only_transitions() -> None:
+def test_native_projection_preserves_semicolon_only_transitions() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0023")
     parsed = parse_fcstm(pair.fcstm_text)
     assert len(parsed.transitions) == 4
@@ -393,13 +393,15 @@ def test_owned_fcstm_parser_preserves_semicolon_only_transitions() -> None:
     }
 
 
-def test_owned_fcstm_parser_preserves_forced_source_marker() -> None:
-    parsed = parse_fcstm("state Root;\nstate Target;\n!Root -> Target : /Closed;")
+def test_native_projection_preserves_forced_authored_provenance() -> None:
+    parsed = parse_fcstm((REPORT_ROOT / "pairs" / "0004" / "fcstm.fcstm").read_text())
 
-    assert len(parsed.transitions) == 1
-    assert parsed.transitions[0].source == "!Root"
-    assert parsed.transitions[0].target == "Target"
-    assert parsed.transitions[0].triggers == ("Closed",)
+    forced = [item for item in parsed.transitions if item.is_forced]
+    assert len(forced) == 1
+    assert forced[0].source == "DoorsClosing"
+    assert forced[0].target == "InMotion"
+    assert forced[0].triggers == ("Closed_SendDeparted",)
+    assert forced[0].ref.startswith("transition:forced:")
 
 
 def test_microwave_pair_keeps_source_and_closed_model_roles_separate() -> None:
@@ -643,7 +645,7 @@ def test_staged_method_receives_full_context_and_writes_stage_receipts(tmp_path:
     assert '"dossier_input_policy": {' in prompts["d_adjudication"]
     assert '"plantuml_source": {' not in prompts["d_adjudication"]
     assert '"fcstm_model": {' not in prompts["d_adjudication"]
-    assert "an unsupported or W1-only predicate does not erase a precise issue" in D_SYSTEM_PROMPT
+    assert "a predicate-null route, incomplete typed input, or unavailable execution does not erase a precise issue" in D_SYSTEM_PROMPT
 
     receipt_names = [item["stage_name"] for item in cell["stage_receipts"]]
     assert receipt_names == [

@@ -1,60 +1,29 @@
 # 方法谓词与出处政策
 
-**状态：** 当前有效  
-**适用范围：** paper1 的证据发现流水线、评测记录和论文叙事  
-**唯一注册表：** [`pipeline/evidence_discovery/predicate_registry.json`](../../../pipeline/evidence_discovery/predicate_registry.json)
+**状态：** 当前有效。**适用范围：** paper1 method、评测记录和论文叙事。唯一 registry 是 [predicate_registry.json](../../../pipeline/evidence_discovery/predicate_registry.json)。
 
-## 1. 当前方法口径
+## 冻结谓词与来源
 
-当前正式配置是 `four-family-19-core.v1`，公开原子谓词共 19 个：结构 6、拓扑 4、
-轨迹仿真 4、有界验证 5。四族按证据产生方式划分，不是按 benchmark 类别切分。
-完整命题、最小输入、来源 ID 和 W1-only 清单以注册表和
-[`METHOD_PRINCIPLES.md`](../../../pipeline/evidence_discovery/METHOD_PRINCIPLES.md) 为准。
+`four-family-19-core.v1` 的 19 个公开原子谓词已经完成学术资格审查。来源目录保存每个谓词的 `domain`、`formal`、`technical` 支持、引用与边界，用于说明研究命题和限制论文声明。来源数量不表示总体普遍率，台账使用量不构成学术出处。
 
-谓词是证据升级，不是问题提出门槛。需求先做语义绑定和裁决：
+来源 metadata 与运行时执行严格正交：所有 19 个谓词均可在合法 typed inputs 与对应 soundness fragment 下产生 W2；bibliography 不参与 backend dispatch、W、D、publication、route 或实验分母。
 
-- W2：终止、可执行且带源归因的回执在声明 soundness fragment 内证明命题；
-- W1：绑定精确到可复现位置，但没有适用的 sound 谓词或后端。W1 是合法的
-  `semantic_hit`，必须计入命中统计；
-- W0：无法精确绑定，不算命中，记录为 coverage gap；
-- `UNKNOWN`：永远不能改写为 violation。
+FCSTM 一侧同样只有一个语义权威：`pyfcstm` 原生 parser/AST/StateMachine/topology/runtime/`.fbmcq`。`ModelIR` 只是从 native document 得到的 compatibility projection，保留 canonical path、owner、pseudo-state、lifecycle action、forced/combo provenance 和 span；不得用正则、逐行 parser、brace stack 或字符串切片重新解释 FCSTM DSL。method 可在 native object identity 上实现 route、事实投影和审计，但不能以这些算法替换 native truth。`fcstm_native_projection_audit` 要求 60/60 source load、54/54 frozen input closure、零 projection difference 和零未批准文本处理。
 
-因此，缺少谓词不能抑制问题提出；只能降低证据等级。表达力快照 118/145（81.4%）、
-L2 35/39（89.7%）和 v27 603/741（81.4%）是冻结设计映射，不是新实现的 W2 实测结果。
+## W、D 与评测
 
-## 2. 三类学术来源
+- W2：当前制品的冻结谓词、精确合法 typed binding、native backend、完整 artifact attribution 和 terminal `true|false` receipt。
+- W1：精确语义问题没有合法完成的 predicate evaluation；失败只写入 execution audit。
+- W0：binding 不精确，作为 coverage gap。
 
-来源审查要区分“命题为什么值得检查”和“后端如何正确求值”：
+completed false 仅在 D2/D1 时发布；completed true 只保留 pass receipt。D2/D1/D0 是 method 的确定性裁决，method 不得生成、裁定或在 release issue 中声称自己的 `l_level`。Ledger L 与冻结 Judge 仅在独立 evaluation 层使用，不能进入 method prompt 或生产分支。
 
-1. **领域来源**：真实控制系统、状态机工程和需求分析中反复出现的检查命题；
-2. **形式来源**：状态机语义、性质模式、模型检查或标准资料中对相关命题的正式讨论；
-3. **技术来源**：工具/算法语义和实现资料，只用于限定输入、求值和回执边界。
+## Primary route 与保存重放
 
-来源 ID 必须能够回到 `related_work/provenance/` 的原始摘录或档案，并说明命题匹配、
-模型边界以及是否含 timed、parallel 或 hybrid 语义。来源数量表示存在性和来源多样性，
-不表示总体普遍率；台账或 v27 使用量不构成学术出处。
+主 route 只使用当前 pair 的 typed contract、compatible predicate set、exact binding、当前制品与封闭模型。R1 只对 exact event/carrier、唯一 native cold entry 和唯一 direct unguarded carrier 构造 runtime scenario；R4 仅对 requirement 明示 `scenario=cold`、`window=cold_macrosteps=N`（`N <= 32`）构造 interval；V1 仅对完整 native same-choice guarded group、exact carrier 集和 requirement 独立有限 JSON `domain` 调用 `.fbmcq`。缺少任一输入时留下精确 W1 和 `input_contract_missing`/`out_of_fragment`，不从 prose、guard、fixture、ledger 或答案补造。
 
-当前逐条审计见 [`related_work/provenance/CURRENT_SOURCE_AUDIT.md`](../../../related_work/provenance/CURRENT_SOURCE_AUDIT.md)，
-机器目录见 [`related_work/provenance/current_source_catalog.json`](../../../related_work/provenance/current_source_catalog.json)。
+route A/B 必须是 provider-free，并以保存的最终 `predicate_id=null` W1 evidence 作为 cohort。当前有效 artifact ID 是 `1bf7555fdbb9661008fc1e14b0ae16be`（`evidence-discovery-15x1-primary-route-replay-78506646`）：88 条 cohort、0 provider 调用、0 Judge 调用。它不使用历史较宽的辅助 candidate 集，也不是 hit/precision/Judge 指标。
 
-当前来源集合仍有部分未完成项目规定的 T0、非并发、多源和命题匹配严格准入。因此现阶段
-只能说候选依据已登记，不能声称 19 个谓词的来源门全部通过。来源不足的命题保持
-W1-only，不得通过改名或扩大语义来补覆盖。
+## 禁止事项
 
-## 3. 变更门
-
-除非同时具备独立于本台账的命题匹配来源、清晰的最小输入和 soundness 边界、完整学术
-叙事审查、兼容性迁移说明，以及注册表/来源/W1-W2/后端/mutation/prose non-interference
-测试，否则禁止新增谓词或修改现有谓词定义。覆盖率目标、单个案例、LLM 生成便利和旧
-实现结构都不是变更理由。低频边角需求可以合法地输出 W1。
-
-containment、exact cardinality、initial existence/outdegree、consumer scope、
-orthogonal runtime、hierarchy priority、trace variable delta 等命题目前只走 W1，
-不是核心谓词。派生宏必须展开为现有原子，不增加公开 ID。
-
-## 4. 归档纪律
-
-`pipeline/archive/witness_search_prototype_legacy_20260821/` 和本目录下的
-`archive/legacy_20260821/` 只保存历史代码、旧设计和旧出处审计。它们不在运行路径，
-不得作为当前方法名、当前谓词表或新结果证据。任何引用旧材料的现行报告都必须明确
-标注历史版本，并回链当前注册表。
+不得新增或改写 19 谓词，不得为 coverage 硬挂邻近谓词，不得将 timeout/error/invalid input 变成 violation，不得用 source trace 或答案构造 runtime input，也不得借 ledger expected、Judge relation 或 pair ID 驱动 route。变更 predicate 定义属于独立研究决策，不是本政策的日常维护。

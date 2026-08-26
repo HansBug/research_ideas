@@ -1,9 +1,9 @@
-"""Typed input closure and deterministic inspection-equivalent facts.
+"""Typed input closure and native-FCSTM-derived deterministic facts.
 
-This module is deliberately independent from ``pyfcstm`` and from the legacy
-feedback-loop inspection helpers.  It reads already published representation
-artifacts as facts, and computes the small closed-world inventory needed by the
-new evidence method with algorithms owned by this package.
+FCSTM syntax and object semantics come only from ``pyfcstm``.  This module
+projects public native state, transition, topology, and guard-AST APIs into
+method-owned Pydantic context; it neither invokes a legacy inspect backend nor
+reparses FCSTM source text.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from .fcstm_native_projection import all_transition_carriers, load_native_document, state_path
 from .models import ModelIR
 from .provenance import sha256_text
 
@@ -399,15 +400,15 @@ class InspectionStateFact(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    state_ref: str = Field(min_length=1, description="Stable owned-parser state reference.")
+    state_ref: str = Field(min_length=1, description="Stable native-projection state reference.")
     name: str = Field(min_length=1, description="FCSTM state identifier.")
     parent: str | None = Field(default=None, description="FCSTM enclosing state identifier, if any.")
     line: int = Field(ge=1, description="One-based FCSTM declaration line.")
-    is_composite: bool = Field(description="Whether the state has a nested declaration in the owned parser model.")
-    reachable_from_initial: bool = Field(description="Whether the state is reached by the owned finite hierarchical entry traversal.")
-    outgoing_transition_refs: tuple[str, ...] = Field(default_factory=tuple, description="Exact owned-parser transition refs leaving this state.")
+    is_composite: bool = Field(description="Whether the native state has projected nested native children.")
+    reachable_from_initial: bool = Field(description="Whether public pyfcstm topology reaches this state or one of its descendants from the root initial descent.")
+    outgoing_transition_refs: tuple[str, ...] = Field(default_factory=tuple, description="Exact native-authored carrier refs leaving this projected state.")
     reason: str = Field(min_length=1, description="Why this is a deterministic inventory fact.")
-    basis: str = Field(min_length=1, description="Owned FCSTM parser fields used for this row.")
+    basis: str = Field(min_length=1, description="Native pyfcstm object and topology facts used for this row.")
 
 
 class InspectionTransitionFact(BaseModel):
@@ -415,19 +416,20 @@ class InspectionTransitionFact(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
-    transition_ref: str = Field(min_length=1, description="Stable owned-parser transition reference.")
+    transition_ref: str = Field(min_length=1, description="Stable native-authored carrier reference.")
     source: str = Field(min_length=1, description="FCSTM transition source endpoint.")
     target: str = Field(min_length=1, description="FCSTM transition target endpoint.")
     triggers: tuple[str, ...] = Field(default_factory=tuple, description="Normalized FCSTM trigger set.")
+    trigger_refs: tuple[str, ...] = Field(default_factory=tuple, description="Exact native-projected event refs carried by this transition.")
     guard: str | None = Field(default=None, description="Normalized FCSTM guard, if any.")
     effects: tuple[str, ...] = Field(default_factory=tuple, description="Normalized FCSTM effect fragments.")
     line: int = Field(ge=1, description="One-based FCSTM transition line.")
     scope: str | None = Field(default=None, min_length=1, description="Nearest enclosing FCSTM state scope, or null for a top-level transition.")
-    resolved_source_ref: str | None = Field(default=None, min_length=1, description="Exact state ref resolved for the transition source, when the owned scope algorithm can resolve it.")
-    resolved_target_ref: str | None = Field(default=None, min_length=1, description="Exact state ref resolved for the transition target, or null for a final pseudostate.")
-    reachable_from_initial: bool = Field(description="Whether the transition source is reachable in the finite hierarchical entry traversal.")
+    resolved_source_ref: str | None = Field(default=None, min_length=1, description="Exact state ref supplied by native transition provenance, or null for an initial marker.")
+    resolved_target_ref: str | None = Field(default=None, min_length=1, description="Exact state ref supplied by native transition provenance, or null for an exit marker.")
+    reachable_from_initial: bool = Field(description="Whether public native topology reaches the transition source.")
     reason: str = Field(min_length=1, description="Why this is a deterministic inventory fact.")
-    basis: str = Field(min_length=1, description="Owned FCSTM parser fields used for this row.")
+    basis: str = Field(min_length=1, description="Native pyfcstm authored-carrier and topology facts used for this row.")
 
 
 class EventConsumerFact(BaseModel):
@@ -738,42 +740,11 @@ def build_exact_source_inventory(canonical: CanonicalSourceIR, canonical_hash: s
     )
 
 
-def _endpoint_name(value: str) -> str:
-    """Normalize only structural FCSTM endpoint markers, never free text."""
-
-    normalized = value.strip().replace("[ * ]", "[*]")
-    return normalized.removeprefix("!")
-
-
 def _machine_scope(model: ModelIR) -> str | None:
-    """Identify the optional outer FCSTM container used by representation exports."""
+    """Return the native-projected root state reference, when available."""
 
-    for state in model.states:
-        if state.parent is None and (
-            any(child.parent == state.name for child in model.states)
-            or any(item.scope == state.name for item in model.transitions)
-        ):
-            return state.name
-    return None
-
-
-def _resolve_state_ref(
-    model: ModelIR,
-    value: str,
-    *,
-    owner: str | None,
-) -> str | None:
-    """Resolve an endpoint within its exact declaration scope."""
-
-    normalized = _endpoint_name(value)
-    if normalized in {"[*]", ""}:
-        return None
-    matches = [
-        state
-        for state in model.states
-        if state.parent == owner and state.name == normalized
-    ]
-    return matches[0].ref if len(matches) == 1 else None
+    roots = [state.ref for state in model.states if state.parent_ref is None]
+    return roots[0] if len(roots) == 1 else None
 
 
 def _hierarchical_graph_facts(
@@ -786,63 +757,43 @@ def _hierarchical_graph_facts(
     dict[str, tuple[str | None, str | None]],
     set[str],
 ]:
-    """Resolve scoped transitions and traverse the finite hierarchy by refs.
+    """Project public pyfcstm topology into stable method references.
 
-    The representation exporter uses ``[*]`` for both machine and nested
-    initial entries. Transition scope captured by the owned parser keeps those
-    entries separate. Entering a composite follows only its owner-local initial
-    transitions; containment alone never activates a child or a sibling.
+    The native verifier performs hierarchy entry descent, exits, and macro-step
+    topology.  The small method-owned joins below only attach its canonical
+    paths to Pydantic refs; they do not reconstruct FCSTM semantics.
     """
 
-    machine_scope = _machine_scope(model)
-    def owner_for(item_scope: str | None) -> str | None:
-        return machine_scope if item_scope == machine_scope else item_scope
+    from pyfcstm.verify.topology import build_leaf_level_macro_graph, topological_reachable_set
 
-    def resolve(value: str, owner: str | None) -> str | None:
-        return _resolve_state_ref(model, value, owner=owner)
-
-    def owner_ref(owner: str | None) -> str | None:
-        if owner is None:
-            return None
-        matches = [state.ref for state in model.states if state.name == owner]
-        return matches[0] if len(matches) == 1 else None
-
-    edges: dict[str, list[tuple[str | None, str]]] = {
-        state.ref: [] for state in model.states
+    document = load_native_document(model.source_text)
+    root_path = state_path(document.machine.root_state)
+    native_reachability = topological_reachable_set(document.machine)
+    leaf_paths = set(native_reachability.get(root_path, ()))
+    path_to_ref = {state.canonical_path: state.ref for state in model.states}
+    reachable: set[str] = {
+        state.ref
+        for state in model.states
+        if state.canonical_path == root_path
+        or state.canonical_path in leaf_paths
+        or any(path.startswith(state.canonical_path + ".") for path in leaf_paths)
     }
-    root_targets: list[str] = []
-    resolved_transitions: dict[str, tuple[str | None, str | None]] = {}
+    resolved_transitions = {
+        transition.ref: (transition.source_ref, transition.target_ref)
+        for transition in model.transitions
+    }
+    edges: dict[str, list[tuple[str | None, str]]] = {state.ref: [] for state in model.states}
     for transition in model.transitions:
-        owner = owner_for(transition.scope)
-        if _endpoint_name(transition.source) == "[*]":
-            target_ref = resolve(transition.target, owner)
-            resolved_transitions[transition.ref] = (None, target_ref)
-            if target_ref is not None:
-                if owner is None or owner == machine_scope:
-                    root_targets.append(target_ref)
-                else:
-                    enclosing_ref = owner_ref(owner)
-                    if enclosing_ref is not None:
-                        edges.setdefault(enclosing_ref, []).append((target_ref, transition.ref))
-            continue
-        source_ref = resolve(transition.source, owner)
-        target_ref = resolve(transition.target, owner)
-        resolved_transitions[transition.ref] = (source_ref, target_ref)
-        if source_ref is not None:
-            edges.setdefault(source_ref, []).append((target_ref, transition.ref))
-
-    reachable: set[str] = set(root_targets)
-    queue = list(root_targets)
-    while queue:
-        current = queue.pop(0)
-        for target_ref, _transition_ref in edges.get(current, ()):
-            if target_ref is not None and target_ref not in reachable:
-                reachable.add(target_ref)
-                queue.append(target_ref)
-
+        if transition.source_ref is not None:
+            edges.setdefault(transition.source_ref, []).append((transition.target_ref, transition.ref))
+    graph = build_leaf_level_macro_graph(document.machine)
+    root_targets = tuple(
+        path_to_ref[path]
+        for path in graph.nodes
+        if path in leaf_paths and path_to_ref.get(path) is not None
+    )
     names = tuple(state.name for state in model.states if state.ref in reachable)
-    reachability = {"[*]": names}
-    return machine_scope, edges, tuple(dict.fromkeys(root_targets)), reachability, resolved_transitions, reachable
+    return _machine_scope(model), edges, root_targets, {"[*]": names}, resolved_transitions, reachable
 
 
 def hierarchical_reachable_state_refs(model: ModelIR) -> frozenset[str]:
@@ -869,14 +820,14 @@ def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> Inspec
             transition_ref for _target_ref, transition_ref in resolved_edges
         )
     is_composite = {
-        state.ref: any(child.parent == state.name for child in model.states)
+        state.ref: any(child.parent_ref == state.ref for child in model.states)
         for state in model.states
     }
     diagnostics: list[InspectionDiagnostic] = []
     transitions: list[InspectionTransitionFact] = []
     for item in model.transitions:
         resolved_source_ref, resolved_target_ref = resolved_transitions.get(item.ref, (None, None))
-        if _endpoint_name(item.source) != "[*]" and resolved_source_ref is None:
+        if item.source != "[*]" and resolved_source_ref is None:
             diagnostics.append(
                 InspectionDiagnostic(
                     code="FCSTM_SOURCE_UNRESOLVED",
@@ -885,10 +836,10 @@ def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> Inspec
                     line=item.line,
                     message=f"Transition source {item.source!r} is not resolvable in its declared scope.",
                     reason="The scoped endpoint does not identify exactly one declared FCSTM state.",
-                    basis="fcstm-line-parser.v2 scoped endpoint membership",
+                    basis="pyfcstm native transition provenance and projected canonical identity",
                 )
             )
-        if _endpoint_name(item.target) != "[*]" and resolved_target_ref is None:
+        if item.target != "[*]" and resolved_target_ref is None:
             diagnostics.append(
                 InspectionDiagnostic(
                     code="FCSTM_TARGET_UNRESOLVED",
@@ -897,10 +848,10 @@ def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> Inspec
                     line=item.line,
                     message=f"Transition target {item.target!r} is not resolvable in its declared scope.",
                     reason="The scoped endpoint does not identify exactly one declared FCSTM state.",
-                    basis="fcstm-line-parser.v2 scoped endpoint membership",
+                    basis="pyfcstm native transition provenance and projected canonical identity",
                 )
             )
-        if _endpoint_name(item.source) == "[*]" and (item.triggers or item.guard):
+        if item.source == "[*]" and (item.triggers or item.guard):
             diagnostics.append(
                 InspectionDiagnostic(
                     code="INITIAL_ENTRY_CONDITIONAL",
@@ -918,6 +869,7 @@ def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> Inspec
                 source=item.source,
                 target=item.target,
                 triggers=item.triggers,
+                trigger_refs=item.trigger_refs,
                 guard=item.guard,
                 effects=item.effects,
                 line=item.line,
@@ -925,8 +877,8 @@ def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> Inspec
                 resolved_source_ref=resolved_source_ref,
                 resolved_target_ref=resolved_target_ref,
                 reachable_from_initial=bool(resolved_source_ref in reachable_refs),
-                reason="The row preserves parser fields and exact scoped endpoint resolution.",
-                basis="fcstm-line-parser.v2 plus inspection-equivalent hierarchical graph.v3",
+                reason="The row preserves native carrier fields and exact native endpoint references.",
+                basis="pyfcstm native transition carrier projection plus public topology.v1",
             )
         )
 
@@ -958,15 +910,13 @@ def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> Inspec
                 )
             )
 
-    declared_events = {event.name: event.ref for event in model.events}
-    event_names = list(declared_events)
-    for transition in model.transitions:
-        for trigger in transition.triggers:
-            if trigger not in event_names:
-                event_names.append(trigger)
+    event_name_counts: dict[str, int] = {}
+    for event in model.events:
+        event_name_counts[event.name] = event_name_counts.get(event.name, 0) + 1
     event_consumers: list[EventConsumerFact] = []
-    for event_name in event_names:
-        consumer_rows = [item for item in transitions if event_name in item.triggers]
+    for event in model.events:
+        event_name = event.name if event_name_counts[event.name] == 1 else event.canonical_path
+        consumer_rows = [item for item in transitions if event.ref in item.trigger_refs]
         consumer_refs = tuple(item.transition_ref for item in consumer_rows)
         consumer_states = tuple(
             dict.fromkeys(
@@ -990,16 +940,16 @@ def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> Inspec
         event_consumers.append(
             EventConsumerFact(
                 event=event_name,
-                declared_ref=declared_events.get(event_name),
+                declared_ref=event.ref,
                 consumer_transition_refs=consumer_refs,
                 consumer_state_refs=consumer_states,
                 reachable_consumer_transition_refs=reachable_consumer_refs,
                 reachable_consumer_state_refs=reachable_consumer_states,
                 reason="The row joins exact declared/trigger names with resolved transition source refs and finite reachability.",
-                basis="fcstm-line-parser.v2 event trigger inventory plus hierarchical graph.v3",
+                basis="pyfcstm Event identity, native transition carriers, and public topology.v1",
             )
         )
-        refs = consumer_refs or ((declared_events[event_name],) if event_name in declared_events else ())
+        refs = consumer_refs or (event.ref,)
         if not consumer_refs:
             diagnostics.append(
                 InspectionDiagnostic(
@@ -1032,8 +982,8 @@ def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> Inspec
             is_composite=is_composite[state.ref],
             reachable_from_initial=state.ref in reachable_refs,
             outgoing_transition_refs=tuple(outgoing.get(state.ref, ())),
-            reason="The row is computed from owned-parser declarations, scoped transitions, and finite entry traversal.",
-            basis="fcstm-line-parser.v2 plus inspection-equivalent hierarchical graph.v3",
+            reason="The row is computed from native state objects, authored carrier provenance, and public finite topology.",
+            basis="pyfcstm StateMachine and verify.topology native projection.v1",
         )
         for state in model.states
     )
@@ -1043,7 +993,7 @@ def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> Inspec
     metrics: dict[str, int | float] = {
         "state_count": len(model.states),
         "composite_state_count": sum(is_composite.values()),
-        "event_count": len(event_names),
+        "event_count": len(model.events),
         "event_consumer_count": sum(bool(item.consumer_transition_refs) for item in event_consumers),
         "reachable_state_count": len(reachable_refs),
         "unreachable_state_count": len(model.states) - len(reachable_refs),
@@ -1058,24 +1008,16 @@ def build_inspection_equivalent_facts(model: ModelIR, fcstm_hash: str) -> Inspec
         fcstm_hash=fcstm_hash,
         states=state_facts,
         transitions=tuple(transitions),
-        events=tuple(event_names),
+        events=tuple(event.name if event_name_counts[event.name] == 1 else event.canonical_path for event in model.events),
         diagnostics=tuple(diagnostics),
         reachability={"[*]": reachability_names},
-        machine_root_ref=(
-            next((state.ref for state in model.states if state.name == machine_scope and state.parent is None), None)
-            if machine_scope
-            else None
-        ),
+        machine_root_ref=machine_scope,
         reachable_state_refs=tuple(state.ref for state in model.states if state.ref in reachable_refs),
         event_consumers=tuple(event_consumers),
         metrics=metrics,
         reason="The method receives deterministic scoped inventory, reachability, and event-consumer facts without invoking Python inspect, pyfcstm.inspect, or legacy inspect backends.",
-        basis="owned FCSTM scoped parser, exact endpoint resolution, entry-transition-only hierarchical traversal, leaf filtering, and event coverage algorithm v3",
+        basis="pyfcstm StateMachine native objects, authored transition provenance, public topology projection, and method-owned ref joins v1",
     )
-
-
-_IDENTIFIER_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
-_FORMULA_KEYWORDS = {"and", "or", "not", "true", "false", "if", "else"}
 
 
 def build_verification_facts(model: ModelIR, inspection: InspectionEquivalentFacts) -> VerificationFacts:
@@ -1164,19 +1106,19 @@ def build_verification_facts(model: ModelIR, inspection: InspectionEquivalentFac
 
 
 def build_smt_facts(model: ModelIR) -> SMTFacts:
-    """Build a bounded formula inventory with an explicit no-solver boundary."""
+    """Build a native-guard-AST formula inventory with an explicit no-solver boundary."""
 
     formulas: list[SMTFormulaFact] = []
+    document = load_native_document(model.source_text)
+    native_by_ref = {
+        transition.ref: carrier
+        for transition, carrier in zip(model.transitions, all_transition_carriers(document), strict=True)
+    }
     for transition in model.transitions:
-        if not transition.guard:
+        carrier = native_by_ref[transition.ref]
+        if carrier.guard is None or not transition.guard:
             continue
-        variables = tuple(
-            dict.fromkeys(
-                token
-                for token in _IDENTIFIER_RE.findall(transition.guard)
-                if token.lower() not in _FORMULA_KEYWORDS
-            )
-        )
+        variables = tuple(dict.fromkeys(str(value) for value in carrier.guard.list_variables()))
         formulas.append(
             SMTFormulaFact(
                 formula_id=f"guard:{transition.ref}",
@@ -1185,7 +1127,7 @@ def build_smt_facts(model: ModelIR) -> SMTFacts:
                 variables=variables,
                 solver_status="not_run",
                 reason="The guard is retained as a normalized bounded-verification input, not evaluated by this summary builder.",
-                basis="fcstm-line-parser.v2 guard normalization",
+                basis="pyfcstm native Transition.guard AST and Expr.list_variables",
             )
         )
     return SMTFacts(
@@ -1195,7 +1137,7 @@ def build_smt_facts(model: ModelIR) -> SMTFacts:
         formulas=tuple(formulas),
         solver_status="not_run",
         reason="This summary preserves formal-program inputs and makes the solver boundary explicit; unknown is never promoted to violation or W2.",
-        basis="owned FCSTM guard fields; no pyfcstm.inspect, legacy inspect backend, or hidden solver result is used",
+        basis="pyfcstm native guard AST; no pyfcstm.inspect, legacy inspect backend, source-text parser, or hidden solver result is used",
     )
 
 

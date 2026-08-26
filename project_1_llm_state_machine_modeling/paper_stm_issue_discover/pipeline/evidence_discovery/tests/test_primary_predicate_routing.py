@@ -1,0 +1,324 @@
+"""Regression tests for deterministic typed-contract primary predicate routing."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from pipeline.evidence_discovery.inputs import PairInput, load_pair, parse_fcstm
+from pipeline.evidence_discovery.semantics import CandidateIssue, ContractBindingHint, NLContract
+from pipeline.evidence_discovery.semantics.predicate_routing import (
+    route_primary_candidates,
+)
+
+
+PAPER_ROOT = Path(__file__).parents[3]
+REPORT_ROOT = PAPER_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
+
+_CHOICE_SOURCE = """
+def int x = 0;
+state Root {
+    state Disjoint;
+    state B;
+    state C;
+    [*] -> Disjoint;
+    Disjoint -> B : Choice + [x < 0];
+    Disjoint -> C : Choice + [x >= 0];
+}
+"""
+
+
+def _hint(role: str, value: str) -> ContractBindingHint:
+    """Build one source-side contract hint with complete audit rationale."""
+
+    return ContractBindingHint(
+        role=role,
+        value=value,
+        source_ref="NL1",
+        reason="The fixture supplies one typed source-side argument.",
+        basis="primary route regression fixture",
+    )
+
+
+def _candidate(contract: NLContract, refs: list[str]) -> CandidateIssue:
+    """Build one exact predicate-null candidate preserving contract identity."""
+
+    return CandidateIssue(
+        contract_id=contract.contract_id,
+        locus_kind=contract.locus_kind,
+        locus_names=contract.locus_names,
+        property=contract.property,
+        violation_direction=contract.violation_direction,
+        evidence_types=contract.evidence_types,
+        title="Typed primary route fixture",
+        requirement_quote=contract.quote,
+        predicate_id=None,
+        predicate_inputs={},
+        element_refs=refs,
+        source_refs=list(contract.source_refs),
+        expected=contract.normative_statement,
+        observed="The closed model is evaluated only after exact typed route closure.",
+        strongest_rebuttal="An incomplete route must preserve this candidate as W1.",
+        reason="The fixture preserves a precise semantic candidate before deterministic predicate routing.",
+        basis="typed primary route regression fixture",
+    )
+
+
+def test_initial_entry_routes_to_owner_local_s2() -> None:
+    """Initial-entry routing keeps owner scope distinct from target state."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0002")
+    owner = next(item for item in pair.model.states if item.name == "PumpControl")
+    target = next(item for item in pair.model.states if item.name == "PumpState")
+    contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-INITIAL-1",
+        segment_id="NL1",
+        quote="PumpControl must enter PumpState by its local default entry.",
+        normative_statement="PumpControl must have an owner-local default entry to PumpState.",
+        locus_kind="composite",
+        locus_names=("PumpControl", "PumpState"),
+        property="initial_entry",
+        expected_direction="must_enter",
+        violation_direction="missing",
+        evidence_types=("source_identity", "closed_model_inventory", "initial_entry_fact"),
+        binding_hints=(_hint("owner", owner.name), _hint("target", target.name)),
+        scope="PumpControl local initial pseudostate",
+        source_refs=("NL1",),
+        reason="The requirement establishes a local default-entry obligation.",
+        basis="NL1 fixture",
+    )
+
+    projection = route_primary_candidates(
+        pair, {contract.contract_id: contract}, (), [_candidate(contract, [owner.ref, target.ref])]
+    )
+
+    routed = projection.candidates[0]
+    assert routed.predicate_id == "S2"
+    assert routed.predicate_inputs == {
+        "source": "[*]",
+        "target": target.canonical_path,
+        "scope": owner.canonical_path,
+    }
+    telemetry = projection.telemetry[0]
+    assert telemetry.applicable_predicates == ("S2",)
+    assert telemetry.selected_predicate == "S2"
+    assert telemetry.binding_complete is True
+
+
+def test_deadlock_route_requires_one_reachable_state_scope() -> None:
+    """V4 never receives an aggregate or unreachable deadlock carrier."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0023")
+    state = next(item for item in pair.model.states if item.name == "PumpState")
+    contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-DEADLOCK-1",
+        segment_id="NL2",
+        quote="PumpState must continue operating.",
+        normative_statement="PumpState must retain progress in the closed model.",
+        locus_kind="state",
+        locus_names=("PumpState",),
+        property="deadlock_freedom",
+        expected_direction="must_progress",
+        violation_direction="dead_end",
+        evidence_types=("closed_model_inventory", "deadlock_frontier_fact"),
+        binding_hints=(_hint("state", state.name),),
+        scope="PumpState progress",
+        source_refs=("NL2",),
+        reason="The requirement establishes one state-local progress obligation.",
+        basis="NL2 fixture",
+    )
+
+    projection = route_primary_candidates(
+        pair, {contract.contract_id: contract}, (), [_candidate(contract, [state.ref])]
+    )
+
+    routed = projection.candidates[0]
+    assert routed.predicate_id == "V4"
+    assert routed.predicate_inputs == {"initial_scope": state.canonical_path}
+    assert projection.telemetry[0].selected_predicate == "V4"
+
+
+def test_state_action_without_legal_lifecycle_inputs_stays_predicate_null() -> None:
+    """S4 must not coerce business wording into a lifecycle phase or action."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0024")
+    state = next(item for item in pair.model.states if item.name == "Accelerating")
+    contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-ACTION-1",
+        segment_id="NL1",
+        quote="Accelerating performs an action while operating.",
+        normative_statement="Accelerating must own the stated action in a lifecycle slot.",
+        locus_kind="state",
+        locus_names=("Accelerating",),
+        property="state_action",
+        expected_direction="must_occur",
+        violation_direction="wrong_effect",
+        evidence_types=("source_identity", "action_fact"),
+        binding_hints=(_hint("state", state.name), _hint("phase", "operating")),
+        scope="Accelerating lifecycle",
+        source_refs=("NL1",),
+        reason="The fixture intentionally lacks a legal FCSTM lifecycle phase/action closure.",
+        basis="S4 strict phase regression fixture",
+    )
+
+    projection = route_primary_candidates(
+        pair, {contract.contract_id: contract}, (), [_candidate(contract, [state.ref])]
+    )
+
+    assert projection.candidates[0].predicate_id is None
+    telemetry = projection.telemetry[0]
+    assert telemetry.selected_predicate is None
+    assert telemetry.binding_complete is False
+    assert "entry/do/exit" in telemetry.reason
+
+
+def test_event_consumption_routes_to_a_native_cold_runtime_scenario() -> None:
+    """R1 primary routing requires a unique FCSTM cold-start macrostep."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0010")
+    transition = next(
+        item for item in pair.model.transitions if item.triggers == ("Power_On",)
+    )
+    event = next(item for item in pair.model.events if item.name == "Power_On")
+    contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-R1-1",
+        segment_id="NL1",
+        quote="Power_On must be consumed by the selected macrostep.",
+        normative_statement="The exact Power_On event must be consumed in the declared transition macrostep.",
+        locus_kind="scenario",
+        locus_names=(transition.source, event.name),
+        property="event_consumption",
+        expected_direction="must_occur",
+        violation_direction="unconsumed",
+        evidence_types=("source_identity", "transition_fact", "trigger_fact", "trace_fact"),
+        binding_hints=(_hint("event", event.name),),
+        scope="unique cold-start event consumption",
+        source_refs=("NL1",),
+        reason="The fixture supplies one exact event-consumption obligation.",
+        basis="R1 native route regression fixture",
+    )
+
+    projection = route_primary_candidates(
+        pair,
+        {contract.contract_id: contract},
+        (),
+        [_candidate(contract, [transition.ref, event.ref])],
+    )
+
+    routed = projection.candidates[0]
+    assert routed.predicate_id == "R1"
+    assert routed.predicate_inputs["event"] == event.canonical_path
+    assert routed.predicate_inputs["scenario"]["selected_transition_ref"] == transition.ref
+    assert projection.telemetry[0].selected_predicate == "R1"
+
+
+def test_state_retention_requires_an_explicit_finite_cold_window() -> None:
+    """R4 does not turn an open-ended retention phrase into a synthetic trace."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    root = next(item for item in pair.model.states if item.parent is None)
+    contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-R4-1",
+        segment_id="NL1",
+        quote="At cold start the root remains active for two macrosteps.",
+        normative_statement="The root state must remain active during the explicit cold-start window.",
+        locus_kind="state",
+        locus_names=(root.name,),
+        property="state_retention",
+        expected_direction="must_remain",
+        violation_direction="not_retained",
+        evidence_types=("source_identity", "trace_fact"),
+        binding_hints=(
+            _hint("state", root.name),
+            _hint("scenario", "cold"),
+            _hint("window", "cold_macrosteps=2"),
+        ),
+        scope="cold-start bounded retention",
+        source_refs=("NL1",),
+        reason="The fixture explicitly declares the only admissible runtime window.",
+        basis="R4 native route regression fixture",
+    )
+
+    projection = route_primary_candidates(
+        pair, {contract.contract_id: contract}, (), [_candidate(contract, [root.ref])]
+    )
+
+    routed = projection.candidates[0]
+    assert routed.predicate_id == "R4"
+    assert routed.predicate_inputs["interval"] == [0, 1]
+    assert routed.predicate_inputs["scenario"]["event_queue"] == []
+
+    open_contract = contract.model_copy(
+        update={
+            "binding_hints": (_hint("state", root.name), _hint("window", "while ready")),
+        }
+    )
+    open_projection = route_primary_candidates(
+        pair,
+        {open_contract.contract_id: open_contract},
+        (),
+        [_candidate(open_contract, [root.ref])],
+    )
+    assert open_projection.candidates[0].predicate_id is None
+    assert "input_contract_missing/out_of_fragment" in open_projection.telemetry[0].basis
+
+
+def test_guard_disjointness_requires_native_group_and_independent_domain() -> None:
+    """V1 reads guards from native FCSTM and rejects a missing source domain."""
+
+    model = parse_fcstm(_CHOICE_SOURCE)
+    pair = PairInput(
+        pair_id="fixture-choice",
+        pair_dir=Path("fixture-choice"),
+        nl_text="The Choice alternatives must be disjoint over the declared x domain.",
+        fcstm_text=_CHOICE_SOURCE,
+        plantuml_text="",
+        model=model,
+        hashes={},
+    )
+    source = next(item for item in model.states if item.name == "Disjoint")
+    rows = [item for item in model.transitions if item.source == "Disjoint"]
+    contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-V1-1",
+        segment_id="NL1",
+        quote="Choice alternatives must be disjoint for x in {-1, 0, 1}.",
+        normative_statement="The exact Choice guard alternatives must be pairwise disjoint over the declared finite x domain.",
+        locus_kind="transition",
+        locus_names=("Disjoint", "B", "C"),
+        property="guard_disjointness",
+        expected_direction="must_equal",
+        violation_direction="wrong_guard",
+        evidence_types=("source_identity", "guard_fact", "smt_fact"),
+        binding_hints=(
+            _hint("source", "Disjoint"),
+            _hint("event", "Choice"),
+            _hint("domain", '{"x":{"values":[-1,0,1]}}'),
+        ),
+        scope="Disjoint Choice group",
+        source_refs=("NL1",),
+        reason="The fixture declares both the exact choice group and an independent finite domain.",
+        basis="V1 native route regression fixture",
+    )
+
+    projection = route_primary_candidates(
+        pair,
+        {contract.contract_id: contract},
+        (),
+        [_candidate(contract, [source.ref, *(row.ref for row in rows)])],
+    )
+
+    routed = projection.candidates[0]
+    assert routed.predicate_id == "V1"
+    assert routed.predicate_inputs["domain"] == {"x": {"values": [-1, 0, 1]}}
+    assert routed.predicate_inputs["guards"] == ["x < 0", "x >= 0"]
+
+    domainless_contract = contract.model_copy(
+        update={"binding_hints": (_hint("source", "Disjoint"), _hint("event", "Choice"))}
+    )
+    domainless_projection = route_primary_candidates(
+        pair,
+        {domainless_contract.contract_id: domainless_contract},
+        (),
+        [_candidate(domainless_contract, [source.ref, *(row.ref for row in rows)])],
+    )
+    assert domainless_projection.candidates[0].predicate_id is None
+    assert "finite domain" in domainless_projection.telemetry[0].basis

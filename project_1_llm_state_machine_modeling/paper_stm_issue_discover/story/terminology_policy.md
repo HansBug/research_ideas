@@ -78,9 +78,9 @@
 | 谓词族 | predicate family | 结构 6 / 拓扑 4 / 轨迹仿真 4 / 有界验证 5；当前注册表为 `four-family-19-core.v1` |
 | 断言 | assertion | 一条谓词调用。角色分 `primary` / `supporting` |
 | 定向反馈 | targeted feedback | 审查者给出「哪条不合格、缺什么、期望什么形状」；⛔ **不是重试** |
-| W1 降级 | W1 fallback | 已精确绑定但没有 sound 谓词/后端时仍提出问题；计为 `semantic_hit` |
+| W1 降级 | W1 fallback | 已精确绑定但未得到一次合法、完成的 Boolean 谓词求值时仍提出问题；计为 `semantic_hit` |
 | W2 证据 | W2 evidence | 终止、可执行且带源归因的回执在声明边界内证明命题 |
-| 拒答 / 未知 | refusal / `UNKNOWN` | 无法给出可靠真值时保留拒答或 `UNKNOWN`，**而不是猜真假**；`UNKNOWN` 不得变成 violation |
+| 执行失败 | execution failure | 输入无法闭合、timeout、provider error 或 backend error 的独立审计轴；**不是 W 等级**，也不得变成 violation |
 | 覆盖缺口 | coverage gap | 某条义务无法用闭合词表表达时的**显式记录** |
 | 降级 | degradation | 内部配额耗尽时封存已有产物并落盘，⛔ **不中止、不丢弃** |
 | 归因绑定 | attribution binding | 把每个求值为假挂回它依赖的模型元素 |

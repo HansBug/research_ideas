@@ -58,7 +58,9 @@ def _endpoint_aliases(value: str) -> set[str]:
 
 
 def _label(value: str) -> str:
-    return _endpoint(value).rstrip(" ;")
+    """Normalize a typed display label without interpreting FCSTM source text."""
+
+    return _endpoint(value).strip(" /;")
 
 
 def _transition_matches(
@@ -76,11 +78,23 @@ def _transition_matches(
     output useful while preventing an arbitrary first-edge selection.
     """
 
+    def endpoint_matches(item: object, endpoint: str, field: str) -> bool:
+        """Prefer one canonical native-derived state ref over display aliases."""
+
+        resolved_ref = resolve_state_ref(endpoint, model)
+        if resolved_ref is not None:
+            return getattr(item, f"{field}_ref", None) == resolved_ref
+        return bool(
+            _endpoint_aliases(getattr(item, field))
+            & _endpoint_aliases(endpoint)
+        )
+
     raw = value.strip()
     if not raw.startswith("transition:") and "->" in raw:
         raw = "transition:" + raw
-    if raw in model.transition_refs:
-        return [raw]
+    normalized_ref = model.normalize_ref(raw)
+    if normalized_ref in model.transition_refs:
+        return [normalized_ref]
     if not raw.startswith("transition:"):
         return []
     body = raw[len("transition:") :]
@@ -95,8 +109,8 @@ def _transition_matches(
             candidates = [
                 item
                 for item in candidates
-                if _endpoint_aliases(item.source) & _endpoint_aliases(expected_source)
-                and _endpoint_aliases(item.target) & _endpoint_aliases(expected_target)
+                if endpoint_matches(item, expected_source, "source")
+                and endpoint_matches(item, expected_target, "target")
                 and (not expected_label or _label(item.label) == expected_label)
             ]
         else:
@@ -105,13 +119,13 @@ def _transition_matches(
         candidates = [
             item
             for item in candidates
-            if _endpoint_aliases(item.source) & _endpoint_aliases(source)
+            if endpoint_matches(item, source, "source")
         ]
     if target is not None:
         candidates = [
             item
             for item in candidates
-            if _endpoint_aliases(item.target) & _endpoint_aliases(target)
+            if endpoint_matches(item, target, "target")
         ]
     return [item.ref for item in candidates]
 
@@ -131,8 +145,22 @@ def resolve_transition_ref(
         matches = [
             item.ref
             for item in model.transitions
-            if (source is None or _endpoint_aliases(item.source) & _endpoint_aliases(source))
-            and (target is None or _endpoint_aliases(item.target) & _endpoint_aliases(target))
+            if (
+                source is None
+                or (
+                    item.source_ref == resolve_state_ref(source, model)
+                    if resolve_state_ref(source, model) is not None
+                    else bool(_endpoint_aliases(item.source) & _endpoint_aliases(source))
+                )
+            )
+            and (
+                target is None
+                or (
+                    item.target_ref == resolve_state_ref(target, model)
+                    if resolve_state_ref(target, model) is not None
+                    else bool(_endpoint_aliases(item.target) & _endpoint_aliases(target))
+                )
+            )
         ]
     return matches[0] if len(matches) == 1 else None
 
@@ -140,11 +168,19 @@ def resolve_transition_ref(
 def resolve_state_ref(value: str, model: ModelIR) -> str | None:
     """Resolve one typed state identity only when the ModelIR match is unique."""
 
-    if value in {state.ref for state in model.states}:
-        return value
+    normalized_ref = model.normalize_ref(value)
+    if normalized_ref in {state.ref for state in model.states}:
+        return normalized_ref
     name = value
     if value.startswith("state:"):
         name = _LINE_SUFFIX.sub("", value[len("state:") :])
+    canonical_matches = [
+        state
+        for state in model.states
+        if name == state.canonical_path
+    ]
+    if len(canonical_matches) == 1:
+        return canonical_matches[0].ref
     matches = [
         state
         for state in model.states
@@ -155,8 +191,9 @@ def resolve_state_ref(value: str, model: ModelIR) -> str | None:
 
 
 def _resolve_ref(value: str, model: ModelIR) -> str | None:
-    if value in model.all_refs:
-        return value
+    normalized_ref = model.normalize_ref(value)
+    if normalized_ref is not None:
+        return normalized_ref
     if value.startswith("state:"):
         state_ref = resolve_state_ref(value, model)
         if state_ref is not None:

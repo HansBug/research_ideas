@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .model import Predicate, PredicateRegistry, SourceAdmission
+from .model import Predicate, PredicateRegistry
 from .validation import validate_registry
 
 
@@ -20,8 +20,6 @@ def load_registry(path: str | Path | None = None) -> PredicateRegistry:
     validate_registry(raw)
     source_catalog_value = raw.get("source_catalog_path")
     source_catalog_path = None
-    source_audit: dict[str, dict[str, Any]] | None = None
-    source_admissions: dict[str, tuple[SourceAdmission, ...]] = {}
     if isinstance(source_catalog_value, str) and source_catalog_value.strip():
         # The registry path is two directory levels below the paper root:
         # <paper>/pipeline/evidence_discovery/predicate_registry.json.
@@ -29,31 +27,19 @@ def load_registry(path: str | Path | None = None) -> PredicateRegistry:
         catalog = json.loads(source_catalog_path.read_text(encoding="utf-8"))
         if not isinstance(catalog, dict) or catalog.get("registry_version") != raw.get("registry_version"):
             raise ValueError("predicate source catalog does not match frozen registry")
-        audit = catalog.get("predicate_audit")
-        if not isinstance(audit, dict):
-            raise ValueError("predicate source catalog is missing predicate_audit")
-        source_audit = {
-            str(predicate_id): dict(value)
-            for predicate_id, value in audit.items()
-            if isinstance(value, dict)
-        }
-        raw_admissions = catalog.get("candidate_admissions", {})
-        if not isinstance(raw_admissions, dict):
-            raise ValueError("predicate source catalog candidate_admissions must be an object")
         source_ids = {
             str(item.get("id"))
             for item in catalog.get("sources", [])
             if isinstance(item, dict) and isinstance(item.get("id"), str)
         }
-        for predicate_id, rows in raw_admissions.items():
-            if not isinstance(predicate_id, str) or not isinstance(rows, list):
-                raise ValueError("predicate source catalog admission shape is invalid")
-            admissions = tuple(SourceAdmission.model_validate(row) for row in rows)
-            if any(item.predicate_id != predicate_id for item in admissions):
-                raise ValueError("predicate source catalog admission predicate mismatch")
-            if any(not set(item.source_ids) <= source_ids for item in admissions):
-                raise ValueError("predicate source catalog admission references an unknown source")
-            source_admissions[predicate_id] = admissions
+        registered_source_ids = {
+            source_id
+            for family in raw["families"]
+            for predicate in family["predicates"]
+            for source_id in predicate["sources"]
+        }
+        if not registered_source_ids <= source_ids:
+            raise ValueError("predicate registry references an unknown scholarly provenance source")
     predicates: dict[str, Predicate] = {}
     families: dict[str, tuple[str, ...]] = {}
     for family in raw["families"]:
@@ -82,6 +68,4 @@ def load_registry(path: str | Path | None = None) -> PredicateRegistry:
         families=families,
         raw=raw,
         source_catalog_path=source_catalog_path,
-        source_audit=source_audit,
-        source_admissions=source_admissions,
     )
