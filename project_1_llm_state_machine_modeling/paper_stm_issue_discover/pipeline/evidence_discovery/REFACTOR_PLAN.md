@@ -25,7 +25,7 @@ S4/S6 的 LLM 预选标签必须经过同一 binder 复核，不能绕过输入�
 
 R4 的 method-owned runtime closure 固定为受限 native cold-entry fragment：只有精确 retained state 的唯一最短 event prefix 加一轮 zero-event macrostep 才可执行；任何路径歧义、runtime failure 或 fragment 越界均退化 W1。不得从 source trace、台账或人工答案构造 schedule。
 
-R1 的 cold-start execution 必须由 exact event/carrier、唯一 native cold entry 和唯一 direct unguarded carrier 闭合；R4 仅接受 requirement 明示的 `scenario=cold` 与 `window=cold_macrosteps=N`（`N <= 32`）；V1 必须具有完整 native same-choice guarded group、exact carrier 集与 requirement 独立提供的有限 JSON `domain`。不满足时记录 `input_contract_missing`/`out_of_fragment` 并保留 W1，禁止从 prose、guard、fixture 或答案补造输入。
+R1 的 cold-start execution 必须由 exact event/carrier、唯一 native cold entry 和唯一 direct unguarded carrier 闭合；R4 的显式 typed control 仅接受 requirement 明示的 `scenario=cold` 与 `window=cold_macrosteps=N`（`N <= 32`），但 generic prose window 只能保留语义限定，不能阻断独立的唯一 native cold-entry closure；V1 必须具有完整 native same-choice guarded group、exact carrier 集与 requirement 独立提供的有限 JSON `domain`。不满足时记录 `input_contract_missing`/`out_of_fragment` 并保留 W1，禁止从 prose、guard、fixture 或答案补造输入。
 
 selection preflight 的 15x12 表只保存固定 12 谓词的通用 capability/schema、当前输入 hash 与 semantic-shape set cover，不读取或存储 ledger、expected issue、Judge、答案、D/L 或评测结果。run manifest 只保存经校验的 preflight hash/reference；method worker 不消费 preflight 内容。未计划使用不等于学术或 backend 边界，19 个冻结谓词仍全部保留 native backend 和 conformance coverage。
 

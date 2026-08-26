@@ -401,16 +401,28 @@ def _cold_retention_scenario(
     contract: NLContract,
     state: StateNode,
 ) -> tuple[dict[str, object] | None, list[int] | None, str]:
-    """Build R4 from an explicit window or one native cold-entry fragment."""
+    """Build R4 from a typed cold window or one native cold-entry fragment.
+
+    A ``window`` binding hint normally preserves the natural-language temporal
+    qualification (for example, ``while nearing the destination``).  It is not
+    itself a runtime input.  Only the method's exact ``cold`` /
+    ``cold_macrosteps=N`` vocabulary opts into the source-declared runtime
+    fragment.  Generic prose therefore cannot manufacture an interval, but it
+    also cannot prevent the separate, conservative native cold-entry closure.
+    """
 
     scenarios = _contract_values(contract, {"scenario"})
     windows = _contract_values(contract, {"window"})
-    if scenarios or windows:
+    has_typed_cold_window = (
+        "cold" in scenarios
+        or any(value.startswith("cold_macrosteps=") for value in windows)
+    )
+    if has_typed_cold_window:
         if scenarios != ("cold",) or len(windows) != 1:
-            return None, None, "R4 requires exact source-side scenario=cold and window=cold_macrosteps=N hints when either explicit scenario field is supplied."
+            return None, None, "R4 source-declared runtime execution requires exactly scenario=cold and window=cold_macrosteps=N; incomplete typed control hints cannot select a runtime interval."
         match = _COLD_MACROSTEP_WINDOW.fullmatch(windows[0])
         if match is None:
-            return None, None, "R4 accepts only the explicit finite window spelling cold_macrosteps=N; no interval is inferred from an untyped scenario/window value."
+            return None, None, "R4 accepts only the explicit finite window spelling cold_macrosteps=N; malformed typed control hints cannot select a runtime interval."
         count = int(match.group("count"))
         if count > _MAX_COLD_MACROSTEPS:
             return None, None, f"R4 cold window exceeds the method-owned bounded scenario fragment of {_MAX_COLD_MACROSTEPS} macrosteps."

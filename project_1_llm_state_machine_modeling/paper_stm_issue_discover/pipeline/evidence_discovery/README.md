@@ -40,7 +40,7 @@ LLM 的预选 `predicate_id` 不构成 typed execution plan。S4/S6 即使已被
 R4 仅在 exact retained state 有唯一最短的 native cold-entry event prefix 时构造运行输入，并追加一个无注入事件的 macrostep；`SimulationRuntime` 负责重放完整 event queue/schedule/interval。路径不唯一、超出受限 fragment 或 runtime 不闭合均保留 W1，不能用 source trace 或任意 schedule 替代。
 
 - R1 需要 exact event/carrier、唯一 native cold entry 和唯一无 guard direct carrier，才能构造 cold-start event queue、schedule 和 macrostep。
-- R4 需要 requirement 明示 `scenario=cold` 和 `window=cold_macrosteps=N`，其中 `N <= 32`；开放 prose 时间窗保持 W1。
+- R4 的显式 typed control 只能是 requirement 明示的 `scenario=cold` 和 `window=cold_macrosteps=N`（`N <= 32`）。开放 prose 时间窗不能自行产生 interval；它也不会阻断已由 exact retained state、唯一 native cold-entry prefix 和 zero-event macrostep 闭合的 method-owned 路径。两种闭包都失败时才保持 W1。
 - V1 需要 native same-choice guarded group、完整 exact carrier 集和 requirement 独立给出的有限 JSON `domain`；不得从 guard 或观察到的变量值补造 domain。
 
 15-pair 的固定 planned 分母为 S1、S2、S3、S4、S5、S6、G1、G4、R1、R4、V1、V4。selection preflight 仅保存这 12 个谓词的通用能力、typed schema、语义形状和输入 hash，不包含 ledger、expected、Judge、答案、D/L 或评测字段；它只以 hash/reference 进入 run manifest，不进入 method worker 的 candidate、binding、route 或 backend 输入。未列入该分母的冻结谓词仍全部具有学术资格和 native backend。

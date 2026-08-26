@@ -336,8 +336,8 @@ def test_event_consumption_routes_to_a_native_cold_runtime_scenario() -> None:
     assert projection.telemetry[0].selected_predicate == "R1"
 
 
-def test_state_retention_requires_an_explicit_finite_cold_window() -> None:
-    """R4 does not turn an open-ended retention phrase into a synthetic trace."""
+def test_state_retention_distinguishes_generic_window_from_runtime_control() -> None:
+    """Generic temporal prose cannot block a separately closed native fragment."""
 
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     root = next(item for item in pair.model.states if item.parent is None)
@@ -372,19 +372,39 @@ def test_state_retention_requires_an_explicit_finite_cold_window() -> None:
     assert routed.predicate_inputs["interval"] == [0, 1]
     assert routed.predicate_inputs["scenario"]["event_queue"] == []
 
-    open_contract = contract.model_copy(
+    generic_window_contract = contract.model_copy(
         update={
             "binding_hints": (_hint("state", root.name), _hint("window", "while ready")),
         }
     )
-    open_projection = route_primary_candidates(
+    generic_window_projection = route_primary_candidates(
         pair,
-        {open_contract.contract_id: open_contract},
+        {generic_window_contract.contract_id: generic_window_contract},
         (),
-        [_candidate(open_contract, [root.ref])],
+        [_candidate(generic_window_contract, [root.ref])],
     )
-    assert open_projection.candidates[0].predicate_id is None
-    assert "input_contract_missing/out_of_fragment" in open_projection.telemetry[0].basis
+    generic_window_route = generic_window_projection.candidates[0]
+    assert generic_window_route.predicate_id == "R4"
+    assert generic_window_route.predicate_inputs["scenario"]["event_queue"] == []
+    assert "native cold-entry" in generic_window_route.predicate_inputs["scenario"]["reason"]
+
+    incomplete_control_contract = contract.model_copy(
+        update={
+            "binding_hints": (
+                _hint("state", root.name),
+                _hint("scenario", "cold"),
+                _hint("window", "while ready"),
+            ),
+        }
+    )
+    incomplete_control_projection = route_primary_candidates(
+        pair,
+        {incomplete_control_contract.contract_id: incomplete_control_contract},
+        (),
+        [_candidate(incomplete_control_contract, [root.ref])],
+    )
+    assert incomplete_control_projection.candidates[0].predicate_id is None
+    assert "input_contract_missing/out_of_fragment" in incomplete_control_projection.telemetry[0].basis
 
 
 def test_state_retention_closes_unique_native_cold_entry_quiescence() -> None:

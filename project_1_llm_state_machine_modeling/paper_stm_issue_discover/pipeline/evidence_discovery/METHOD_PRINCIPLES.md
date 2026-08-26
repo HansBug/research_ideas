@@ -50,7 +50,7 @@ LLM 已填写的 `predicate_id` 也不是执行准入。尤其 S4 与 S6 必须�
 R4 的默认 method-owned fragment 也不得伪造 trace：它只接受精确 retained state 的唯一最短 native cold-entry event prefix，再追加一个零事件 macrostep；全部 event queue、schedule、interval 与实际 active state 均由 pyfcstm `SimulationRuntime` 重放。多个同长路径、guard/运行失败、超出小型 event vocabulary/bound 或未到达目标时不选择方便样本，保留 W1。显式 `scenario=cold` 与 `window=cold_macrosteps=N` 仍按其原样闭合。
 
 - R1 只在一个 exact transition carrier、一个 exact event、唯一 native cold entry、唯一直接无 guard event carrier 都闭合时，构造 method-owned cold-start event queue、schedule 和 macrostep；不补造 guard valuation、并发调度或 event identity。
-- R4 只接受 requirement 明示的 `scenario=cold` 与 `window=cold_macrosteps=N`（`N <= 32`）。自然语言中的 `until`、`while` 或开放时间短语不能被转换成 interval，必须以 `input_contract_missing` 或 `out_of_fragment` 留作 W1。
+- R4 有两条彼此独立的合法闭包：requirement 明示 `scenario=cold` 与 `window=cold_macrosteps=N`（`N <= 32`）时，按该严格 typed control 构造 cold window；否则只可尝试精确 retained state 的唯一最短 native cold-entry prefix 加一个零事件 macrostep。自然语言中的 `until`、`while` 或开放时间短语只是语义限定，不能自行转换成 interval，也不能阻断后一条已由 native runtime 唯一闭合的路径。若两条均不能闭合，才以 `input_contract_missing` 或 `out_of_fragment` 保留 W1。
 - V1 必须同时闭合一个 native same-source/same-event guarded choice group、与该 group 完全相等的 exact carrier 集，以及 requirement 独立声明的有限 JSON `domain`。domain 不得从 guard、变量观察值、fixture、台账或答案推断。
 
 15-pair 的固定 planned 分母仅为 S1、S2、S3、S4、S5、S6、G1、G4、R1、R4、V1、V4。selection preflight 只记录这 12 个冻结谓词的通用 typed contract、当前输入 hash 和预注册语义形状；它不含 ledger、expected issue、Judge、答案、D/L、hit 或 precision 字段，且 worker 只将其 hash/reference 写入 immutable manifest，绝不读取它来生成 candidate、绑定值、route 或 backend 输入。其余 7 个冻结谓词未进入本次 planned 分母不影响其学术资格或 19/19 backend 义务。
