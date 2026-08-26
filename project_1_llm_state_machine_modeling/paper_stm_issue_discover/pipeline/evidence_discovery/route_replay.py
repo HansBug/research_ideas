@@ -37,6 +37,7 @@ from .semantics import (
     GroundingResponse,
     NLContract,
     bind_candidate,
+    contract_semantic_key,
 )
 from .semantics.predicate_routing import PredicateRouteTelemetry, route_primary_candidates
 
@@ -181,7 +182,7 @@ def _contracts_and_grounding(cell: dict[str, Any]) -> tuple[dict[str, NLContract
     for response in grounding:
         for contract in response.additional_contracts:
             prior = contracts.setdefault(contract.contract_id, contract)
-            if prior != contract:
+            if contract_semantic_key(prior) != contract_semantic_key(contract):
                 raise ValueError(f"conflicting saved contract identity: {contract.contract_id}")
     return contracts, grounding
 
