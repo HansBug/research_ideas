@@ -44,6 +44,7 @@ from ..semantics import (
     IdentityNormalizationReceipt,
     NLContract,
     NLContractResponse,
+    NLTransitionGroup,
     SemanticAdjudication,
     SourceTransitionClosureReceipt,
     StageReceipt,
@@ -897,6 +898,23 @@ def _endpoint_stem(value: Any) -> str:
     return text.rsplit(".", 1)[-1]
 
 
+def _endpoint_aliases_for_runner(value: Any) -> set[str]:
+    """Return structural endpoint aliases for working-contract joins."""
+
+    normalized = " ".join(str(value or "").strip().split())
+    aliases = {normalized}
+    if normalized.startswith("@initial:"):
+        aliases.add("[*]")
+        normalized = normalized[len("@initial:") :]
+    normalized = normalized.lstrip("!")
+    if normalized.startswith("state:"):
+        normalized = normalized[len("state:") :]
+    aliases.add(normalized)
+    if "." in normalized:
+        aliases.add(normalized.rsplit(".", 1)[-1])
+    return {item for item in aliases if item}
+
+
 def _model_ref_for_state(pair: PairInput, value: Any) -> str | None:
     stem = _endpoint_stem(value)
     matches = [
@@ -905,6 +923,263 @@ def _model_ref_for_state(pair: PairInput, value: Any) -> str | None:
         if state.name == stem or state.display_name == stem
     ]
     return matches[0] if len(matches) == 1 else None
+
+
+def _identity_key(value: Any) -> str:
+    """Normalize one structured identity for exact case/space comparison."""
+
+    return " ".join(str(value or "").strip().split()).casefold()
+
+
+def _model_ref_for_event(pair: PairInput, value: Any) -> str | None:
+    """Resolve an event only when its structured name/display identity is unique."""
+
+    key = _identity_key(value)
+    if not key:
+        return None
+    matches = [
+        event.ref
+        for event in pair.model.events
+        if _identity_key(event.name) == key
+        or _identity_key(event.display_name) == key
+    ]
+    return matches[0] if len(matches) == 1 else None
+
+
+def _working_contract_records(pair: PairInput) -> list[dict[str, Any]]:
+    """Return mapping rows from the immutable working-contract artifact."""
+
+    artifact = pair.working_contract
+    if artifact is None:
+        return []
+    return [
+        item
+        for item in artifact.payload.get("elements", [])
+        if isinstance(item, dict)
+    ]
+
+
+def _working_record_matches(record: Mapping[str, Any], raw: str) -> bool:
+    """Match a raw identity against explicit working-contract identity fields."""
+
+    return (
+        record.get("element_id") == raw
+        or raw in (record.get("source_refs") or [])
+        or raw in (record.get("model_refs") or [])
+    )
+
+
+def _working_transition_ref(
+    pair: PairInput,
+    record: Mapping[str, Any],
+    records: Sequence[Mapping[str, Any]],
+) -> str | None:
+    """Resolve one working transition row through explicit endpoint metadata."""
+
+    direct = [
+        ref
+        for ref in record.get("model_refs") or []
+        if ref in pair.model.transition_refs
+    ]
+    if len(set(direct)) == 1:
+        return direct[0]
+
+    metadata = record.get("metadata")
+    metadata = metadata if isinstance(metadata, Mapping) else {}
+    semantic = record.get("semantic_fields")
+    semantic = semantic if isinstance(semantic, Mapping) else {}
+
+    # A protected transition segment carries the source transition ID but not
+    # the source/target/event fields. Resolve its macro root first so a
+    # segment never becomes an independent guessed carrier.
+    source_transition_id = metadata.get("source_transition_id")
+    if source_transition_id:
+        roots = [
+            item
+            for item in records
+            if item.get("element_id") == f"source:transition:{source_transition_id}"
+            or (
+                (item.get("metadata") or {}).get("transition_id")
+                == source_transition_id
+                and "transition_macro_root" in str(item.get("kind") or "")
+            )
+        ]
+        root_refs = [
+            ref
+            for root in roots
+            for ref in [_working_transition_ref(pair, root, records)]
+            if ref is not None
+        ]
+        if len(set(root_refs)) == 1:
+            return root_refs[0]
+        if len(set(root_refs)) > 1:
+            return None
+
+    source = metadata.get("source") or semantic.get("source_endpoint")
+    target = metadata.get("target") or semantic.get("target_endpoint")
+    if source is None or target is None:
+        return None
+
+    candidates = [
+        transition
+        for transition in pair.model.transitions
+        if _endpoint_aliases_for_runner(transition.source)
+        & _endpoint_aliases_for_runner(str(source))
+        and _endpoint_aliases_for_runner(transition.target)
+        & _endpoint_aliases_for_runner(str(target))
+    ]
+    if len(candidates) == 1:
+        return candidates[0].ref
+
+    # Endpoint identity alone is intentionally insufficient when several
+    # transitions share endpoints. A working-contract event interpretation is
+    # a declared disambiguator, not a free-text similarity fallback.
+    event_value = (
+        metadata.get("raw_label")
+        or metadata.get("event_interpretation")
+        or semantic.get("raw_label")
+        or semantic.get("event_interpretation")
+    )
+    event_ref = _model_ref_for_event(pair, event_value)
+    event = next(
+        (item for item in pair.model.events if item.ref == event_ref),
+        None,
+    )
+    if event is not None:
+        candidates = [
+            transition
+            for transition in candidates
+            if event.name in transition.triggers
+        ]
+    return candidates[0].ref if len(candidates) == 1 else None
+
+
+def _working_record_model_refs(
+    pair: PairInput,
+    record: Mapping[str, Any],
+    records: Sequence[Mapping[str, Any]],
+) -> list[str]:
+    """Project one working-contract row to unique closed ModelIR references."""
+
+    kind = str(record.get("kind") or "")
+    if "transition" in kind or str(record.get("element_id") or "").startswith(
+        ("source:transition:", "compiler:transition_segment:")
+    ):
+        ref = _working_transition_ref(pair, record, records)
+        return [ref] if ref is not None else []
+
+    refs = [
+        ref
+        for ref in record.get("model_refs") or []
+        if ref in pair.model.all_refs
+    ]
+    metadata = record.get("metadata")
+    metadata = metadata if isinstance(metadata, Mapping) else {}
+    semantic = record.get("semantic_fields")
+    semantic = semantic if isinstance(semantic, Mapping) else {}
+
+    # Event projections have a compiler-owned FCSTM identifier and may share
+    # a name with a state (for example ``Intercepted``). Never interpret an
+    # event projection's identifier as a state path.
+    if "event" in kind:
+        event_value = metadata.get("raw_label") or semantic.get("raw_label")
+        event_ref = _model_ref_for_event(pair, event_value)
+        if event_ref is not None:
+            refs.append(event_ref)
+        return list(dict.fromkeys(refs))
+
+    state_path = metadata.get("fcstm_path") or semantic.get("fcstm_identifier")
+    if state_path is not None:
+        state_ref = _model_ref_for_state(pair, state_path)
+        if state_ref is not None:
+            refs.append(state_ref)
+    return list(dict.fromkeys(refs))
+
+
+def _resolve_working_contract_refs(
+    pair: PairInput,
+    *,
+    element_ids: Sequence[str] = (),
+    source_refs: Sequence[str] = (),
+    model_refs: Sequence[str] = (),
+) -> tuple[list[str], list[str]]:
+    """Join explicit working-contract identities to closed ModelIR refs.
+
+    The join accepts only declared mapping fields and unique ModelIR results.
+    It does not compare free text, display labels, embeddings, or historical
+    evaluation data.  The second return value contains unresolved model-side
+    requests so callers can retain a W0/W1 audit disposition.
+    """
+
+    records = _working_contract_records(pair)
+    resolved: list[str] = []
+    unresolved: list[str] = []
+    source_owned_unmapped: list[str] = []
+    requests = [
+        ("element", value) for value in element_ids
+    ] + [
+        ("source", value) for value in source_refs
+    ] + [
+        ("model", value) for value in model_refs
+    ]
+    seen_requests: set[tuple[str, str]] = set()
+    for kind, raw_value in requests:
+        raw = str(raw_value or "").strip()
+        if not raw or (kind, raw) in seen_requests:
+            continue
+        seen_requests.add((kind, raw))
+        if raw in pair.model.all_refs:
+            if raw not in resolved:
+                resolved.append(raw)
+            continue
+        matching_records = [
+            record for record in records if _working_record_matches(record, raw)
+        ]
+        mapped = list(
+            dict.fromkeys(
+                ref
+                for record in matching_records
+                for ref in _working_record_model_refs(pair, record, records)
+            )
+        )
+        if mapped:
+            for ref in mapped:
+                if ref not in resolved:
+                    resolved.append(ref)
+        elif raw.startswith(("source:", "macro:")):
+            source_owned_unmapped.append(raw)
+        elif kind != "source":
+            unresolved.append(raw)
+    if not resolved:
+        unresolved.extend(source_owned_unmapped)
+    return resolved, list(dict.fromkeys(unresolved))
+
+
+def _resolved_exact_binding_refs(
+    pair: PairInput,
+    binding: Any,
+) -> list[str]:
+    """Project one exact grounding binding to closed ModelIR refs."""
+
+    resolved, _ = _resolve_working_contract_refs(
+        pair,
+        element_ids=tuple(
+            ref
+            for ref in (binding.model_element_ref,)
+            if ref
+        ),
+        source_refs=tuple(
+            ref
+            for ref in (binding.source_element_ref,)
+            if ref
+        ),
+        model_refs=tuple(
+            ref
+            for ref in (binding.carrier_transition_ref,)
+            if ref
+        ),
+    )
+    return [ref for ref in resolved if ref in pair.model.all_refs]
 
 
 def _mapped_model_refs(pair: PairInput, candidate: CandidateIssue) -> list[str]:
@@ -917,103 +1192,11 @@ def _mapped_model_refs(pair: PairInput, candidate: CandidateIssue) -> list[str]:
     structured IDs and endpoint fields and never performs textual similarity.
     """
 
-    artifact = pair.working_contract
-    elements = artifact.payload.get("elements", []) if artifact else []
-    records = [item for item in elements if isinstance(item, dict)]
-    raw_refs = list(candidate.element_refs)
-    resolved: list[str] = []
-    unresolved: list[str] = []
-    source_owned_unmapped: list[str] = []
-    for raw in raw_refs:
-        if raw in pair.model.all_refs:
-            if raw not in resolved:
-                resolved.append(raw)
-            continue
-        matches = [
-            item
-            for item in records
-            if item.get("element_id") == raw
-            or raw in (item.get("source_refs") or [])
-        ]
-        mapped: list[str] = []
-        for item in matches:
-            metadata = item.get("metadata") or {}
-            semantic = item.get("semantic_fields") or {}
-            kind = str(item.get("kind") or "")
-            if "transition" in kind:
-                source = metadata.get("source") or semantic.get("source_endpoint")
-                target = metadata.get("target") or semantic.get("target_endpoint")
-                if source is not None and target is not None:
-                    ref = resolve_transition_ref(
-                        None,
-                        pair.model,
-                        source=str(source),
-                        target=str(target),
-                    )
-                    if ref is not None:
-                        mapped.append(ref)
-            else:
-                state_path = (
-                    metadata.get("fcstm_path")
-                    or semantic.get("fcstm_identifier")
-                )
-                ref = _model_ref_for_state(pair, state_path)
-                if ref is not None:
-                    mapped.append(ref)
-                for model_ref in item.get("model_refs") or []:
-                    ref = _model_ref_for_state(pair, model_ref)
-                    if ref is not None:
-                        mapped.append(ref)
-        if mapped:
-            for ref in mapped:
-                if ref not in resolved:
-                    resolved.append(ref)
-        elif raw not in pair.model.all_refs:
-            if raw.startswith(("source:", "macro:")):
-                source_owned_unmapped.append(raw)
-            else:
-                unresolved.append(raw)
-
-    # Source refs are provenance, not mandatory FCSTM bindings. They may fill
-    # an otherwise empty model side through the published mapping contract,
-    # but an unmapped source identity must not invalidate exact FCSTM refs that
-    # the candidate already supplied.
-    if not resolved:
-        for raw in candidate.source_refs:
-            if not raw.startswith(("source:", "macro:")):
-                continue
-            matches = [
-                item
-                for item in records
-                if item.get("element_id") == raw
-                or raw in (item.get("source_refs") or [])
-            ]
-            for item in matches:
-                metadata = item.get("metadata") or {}
-                semantic = item.get("semantic_fields") or {}
-                kind = str(item.get("kind") or "")
-                if "transition" in kind:
-                    source = metadata.get("source") or semantic.get("source_endpoint")
-                    target = metadata.get("target") or semantic.get("target_endpoint")
-                    if source is not None and target is not None:
-                        ref = resolve_transition_ref(
-                            None,
-                            pair.model,
-                            source=str(source),
-                            target=str(target),
-                        )
-                        if ref is not None and ref not in resolved:
-                            resolved.append(ref)
-                else:
-                    state_path = metadata.get("fcstm_path") or semantic.get(
-                        "fcstm_identifier"
-                    )
-                    ref = _model_ref_for_state(pair, state_path)
-                    if ref is not None and ref not in resolved:
-                        resolved.append(ref)
-
-    if not resolved:
-        unresolved.extend(source_owned_unmapped)
+    resolved, unresolved = _resolve_working_contract_refs(
+        pair,
+        element_ids=candidate.element_refs,
+        source_refs=candidate.source_refs,
+    )
 
     # Predicate inputs are authoritative for the typed check.  Binding itself
     # will validate their endpoint/element identity, so this list only fills
@@ -2139,14 +2322,13 @@ def _exact_grounding_model_refs(
     probe can never manufacture a carrier from an ambiguous grounding row.
     """
 
-    model_refs = set(pair.model.all_refs)
     refs: list[str] = []
     for response in grounding_responses:
         for binding in response.semantic_bindings:
             if binding.contract_id != contract_id or binding.status != "exact":
                 continue
-            for ref in (binding.model_element_ref, binding.carrier_transition_ref):
-                if ref in model_refs and ref not in refs:
+            for ref in _resolved_exact_binding_refs(pair, binding):
+                if ref not in refs:
                     refs.append(ref)
     return refs
 
@@ -2168,11 +2350,55 @@ def _s1_probe_descriptor(pair: PairInput, model_ref: str) -> tuple[str, str] | N
     return None
 
 
+def _working_event_transition_context(
+    pair: PairInput,
+    event_ref: str,
+) -> tuple[set[str], set[str], list[str]]:
+    """Return transitions linked to an event projection through macro IDs.
+
+    The working contract is the only authority for this join. A transition
+    segment is resolved through its protected macro root, and an ambiguous
+    endpoint/event mapping contributes no carrier instead of selecting a first
+    row.
+    """
+
+    records = _working_contract_records(pair)
+    event_rows = [
+        record
+        for record in records
+        if "event" in str(record.get("kind") or "")
+        and event_ref in _working_record_model_refs(pair, record, records)
+    ]
+    macro_ids = {
+        macro_id
+        for record in event_rows
+        for macro_id in (record.get("macro_ids") or [])
+    }
+    transition_refs: set[str] = set()
+    source_refs: list[str] = []
+    for record in records:
+        record_macros = set(record.get("macro_ids") or [])
+        if not macro_ids.intersection(record_macros):
+            continue
+        if "transition" not in str(record.get("kind") or "") and not str(
+            record.get("element_id") or ""
+        ).startswith(("source:transition:", "compiler:transition_segment:")):
+            continue
+        ref = _working_transition_ref(pair, record, records)
+        if ref is not None:
+            transition_refs.add(ref)
+        for source_ref in record.get("source_refs") or []:
+            if source_ref not in source_refs:
+                source_refs.append(source_ref)
+    return transition_refs, macro_ids, source_refs
+
+
 def _materialize_deterministic_execution_probes(
     pair: PairInput,
     contracts_by_id: Mapping[str, NLContract],
     grounding_responses: Sequence[GroundingResponse],
     existing_candidates: Sequence[CandidateIssue],
+    transition_groups: Sequence[NLTransitionGroup] = (),
 ) -> tuple[list[CandidateIssue], dict[str, NLContract], list[dict[str, Any]]]:
     """Create executable probes from exact method-owned bindings only.
 
@@ -2292,8 +2518,10 @@ def _materialize_deterministic_execution_probes(
                 for binding in response.semantic_bindings:
                     if binding.contract_id != contract.contract_id or binding.status != "exact":
                         continue
-                    ref = binding.model_element_ref or binding.carrier_transition_ref
-                    if ref in pair.model.all_refs:
+                    raw_ref = binding.model_element_ref or binding.carrier_transition_ref
+                    binding_refs = _resolved_exact_binding_refs(pair, binding)
+                    if raw_ref and binding_refs:
+                        ref = binding_refs[0]
                         exact_by_role.setdefault(binding.role, set()).add(ref)
             owners = exact_by_role.get("owner", set()) | exact_by_role.get("source", set())
             targets = exact_by_role.get("target", set())
@@ -2463,6 +2691,231 @@ def _materialize_deterministic_execution_probes(
             }
         )
         break
+
+    # Contract extraction usually keeps an event as a transition-group
+    # alternative rather than emitting a duplicate trigger_set contract.
+    # Project one such group through the compiler-owned event projection and
+    # its macro/segment carrier. This remains a supporting execution probe: it
+    # never replaces the group's endpoint obligation or creates a new norm.
+    if not any(item.predicate_id == "S3" for item in probes) and not any(
+        candidate.predicate_id == "S3" for candidate in existing_candidates
+    ):
+        records = _working_contract_records(pair)
+        for group in sorted(transition_groups, key=lambda item: item.group_id):
+            segment_contract_ids = {
+                contract.contract_id
+                for contract in contracts_by_id.values()
+                if contract.segment_id == group.segment_id
+            }
+            segment_transition_refs = {
+                binding.carrier_transition_ref
+                for response in grounding_responses
+                for binding in response.semantic_bindings
+                if (
+                    binding.contract_id in segment_contract_ids
+                    and binding.status == "exact"
+                    and binding.carrier_transition_ref in pair.model.transition_refs
+                )
+            }
+            for alternative in group.alternatives:
+                event_ref = _model_ref_for_event(pair, alternative.event)
+                if event_ref is None:
+                    continue
+                macro_transition_refs, macro_ids, working_source_refs = (
+                    _working_event_transition_context(pair, event_ref)
+                )
+                if not macro_transition_refs:
+                    continue
+                candidate_transition_refs = set(macro_transition_refs)
+                shared_refs = candidate_transition_refs.intersection(
+                    segment_transition_refs
+                )
+                if shared_refs:
+                    candidate_transition_refs = shared_refs
+                elif len(candidate_transition_refs) > 1 and len(
+                    segment_transition_refs
+                ) == 1:
+                    segment_ref = next(iter(segment_transition_refs))
+                    if segment_ref in candidate_transition_refs:
+                        candidate_transition_refs = {segment_ref}
+                observed_ref = alternative.observed_transition_ref
+                if observed_ref:
+                    observed_matches = resolve_transition_ref(
+                        observed_ref,
+                        pair.model,
+                    )
+                    if observed_matches is not None:
+                        candidate_transition_refs.intersection_update(
+                            {observed_matches}
+                        )
+                if len(candidate_transition_refs) != 1:
+                    continue
+                transition_ref = next(iter(candidate_transition_refs))
+                transition = pair.model.transition(transition_ref)
+                event = next(
+                    (item for item in pair.model.events if item.ref == event_ref),
+                    None,
+                )
+                if transition is None or event is None:
+                    continue
+                parent_contract = next(
+                    (
+                        contract
+                        for contract in sorted(
+                            contracts_by_id.values(),
+                            key=lambda item: item.contract_id,
+                        )
+                        if contract.segment_id == group.segment_id
+                        and contract.property in {
+                            "transition_endpoints",
+                            "trigger_set",
+                        }
+                    ),
+                    None,
+                )
+                digest = _hash_json(
+                    {
+                        "group_id": group.group_id,
+                        "alternative_id": alternative.alternative_id,
+                        "event_ref": event.ref,
+                        "transition_ref": transition.ref,
+                    }
+                ).removeprefix("sha256:")[:16]
+                probe_id = (
+                    f"NL-CONTRACT-{group.group_id}-S3-PROBE-{digest}"
+                )
+                source_refs = list(
+                    dict.fromkeys(
+                        [
+                            *(parent_contract.source_refs if parent_contract else ()),
+                            *group.source_refs,
+                            *alternative.source_refs,
+                            *working_source_refs,
+                        ]
+                    )
+                )
+                normative = (
+                    f"The {group.source_name} transition alternative to "
+                    f"{alternative.target_name} must use the exact event "
+                    f"{event.name}."
+                )
+                reason = (
+                    "A typed transition-group event resolves to one compiler "
+                    "event projection and one working-contract macro/segment "
+                    "carrier; the supporting S3 equality check preserves that "
+                    "exact relation."
+                )
+                basis = (
+                    f"group={group.group_id}; segment={group.segment_id}; "
+                    f"event_ref={event.ref}; macro_ids={sorted(macro_ids)}; "
+                    f"carrier_transition_ref={transition.ref}; "
+                    f"segment_exact_refs={sorted(segment_transition_refs)}"
+                )
+                if parent_contract is not None:
+                    probe_contract = parent_contract.model_copy(
+                        update={
+                            "contract_id": probe_id,
+                            "locus_kind": "transition",
+                            "locus_names": (transition.source, transition.target),
+                            "property": "trigger_set",
+                            "expected_direction": "must_equal",
+                            "violation_direction": "mismatched",
+                            "evidence_types": (
+                                "source_identity",
+                                "closed_model_inventory",
+                                "transition_fact",
+                                "trigger_fact",
+                            ),
+                            "binding_hints": (),
+                            "cardinality_requirement": None,
+                            "normative_statement": normative,
+                            "scope": f"transition-group {group.group_id}",
+                            "source_refs": tuple(source_refs),
+                            "reason": reason,
+                            "basis": basis,
+                        }
+                    )
+                else:
+                    probe_contract = NLContract(
+                        contract_id=probe_id,
+                        segment_id=group.segment_id,
+                        quote=(
+                            f"Typed transition-group {group.group_id} alternative "
+                            f"{alternative.alternative_id}."
+                        ),
+                        normative_statement=normative,
+                        locus_kind="transition",
+                        locus_names=(transition.source, transition.target),
+                        property="trigger_set",
+                        expected_direction="must_equal",
+                        violation_direction="mismatched",
+                        evidence_types=(
+                            "source_identity",
+                            "closed_model_inventory",
+                            "transition_fact",
+                            "trigger_fact",
+                        ),
+                        binding_hints=(),
+                        scope=f"transition-group {group.group_id}",
+                        source_refs=tuple(source_refs),
+                        reason=reason,
+                        basis=basis,
+                    )
+                candidate = CandidateIssue(
+                    contract_id=probe_id,
+                    locus_kind="transition",
+                    locus_names=(transition.source, transition.target),
+                    property="trigger_set",
+                    violation_direction="mismatched",
+                    evidence_types=(
+                        "source_identity",
+                        "closed_model_inventory",
+                        "transition_fact",
+                        "trigger_fact",
+                    ),
+                    title=(
+                        f"Trigger set for {transition.source} -> "
+                        f"{transition.target} uses {event.name}"
+                    ),
+                    requirement_quote=probe_contract.quote,
+                    predicate_id="S3",
+                    predicate_inputs={
+                        "transition": transition.ref,
+                        "triggers": [event.name],
+                    },
+                    element_refs=[event.ref, transition.ref],
+                    source_refs=source_refs,
+                    expected=normative,
+                    observed=(
+                        f"The exact carrier {transition.ref} has parsed trigger "
+                        f"set {list(transition.triggers)!r}."
+                    ),
+                    strongest_rebuttal=(
+                        "The event projection or macro membership would have to "
+                        "identify a different exact carrier to defeat this probe."
+                    ),
+                    reason=reason,
+                    basis=basis,
+                )
+                probe_contracts[probe_id] = probe_contract
+                probes.append(candidate)
+                dispositions.append(
+                    {
+                        "probe": "S3",
+                        "status": "admitted_transition_group_event_carrier",
+                        "contract_id": probe_id,
+                        "group_id": group.group_id,
+                        "segment_id": group.segment_id,
+                        "alternative_id": alternative.alternative_id,
+                        "event_ref": event.ref,
+                        "carrier_transition_ref": transition.ref,
+                        "macro_ids": sorted(macro_ids),
+                        "segment_exact_refs": sorted(segment_transition_refs),
+                        "reason": reason,
+                        "basis": basis,
+                    }
+                )
+                return probes, probe_contracts, dispositions
 
     return probes, probe_contracts, dispositions
 
@@ -3050,6 +3503,14 @@ def _method_cell(
             contracts_by_id,
             grounding_responses,
             [*admitted_llm_candidates, *frontier_candidates, *exact_s2_candidates],
+            transition_groups=(
+                *contract_response.transition_groups,
+                *[
+                    group
+                    for grounding_response in grounding_responses
+                    for group in grounding_response.additional_transition_groups
+                ],
+            ),
         )
     )
     contracts_by_id.update(execution_probe_contracts)

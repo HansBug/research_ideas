@@ -66,6 +66,7 @@ from pipeline.evidence_discovery.orchestration.runner import (
     _preflight_synthetic_root_wrapper_reachability,
     _prepare_candidate,
     _prepared_is_finding_candidate,
+    _resolve_working_contract_refs,
     run_experiment,
 )
 from pipeline.evidence_discovery.orchestration.runtime import (
@@ -1247,6 +1248,165 @@ def test_execution_probe_maps_exact_trigger_binding_to_s3_execution() -> None:
     assert prepared["receipt"].terminal_state == "completed"
     assert prepared["receipt"].verdict == "true"
     assert _prepared_is_finding_candidate(prepared) is False
+
+
+def test_working_contract_root_and_segment_join_to_unique_model_carrier() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0002")
+
+    refs, unresolved = _resolve_working_contract_refs(
+        pair,
+        element_ids=(
+            "source:transition:tr_0003",
+            "compiler:transition_segment:tr_0003:segment:1",
+        ),
+    )
+
+    assert refs == ["transition:line:10"]
+    assert unresolved == []
+
+
+def test_exact_grounding_binding_uses_working_contract_model_projection() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0002")
+    grounding = GroundingResponse(
+        lens="contract_structure_contrast",
+        semantic_bindings=(
+            SemanticBinding(
+                binding_id="BIND-WORKING-PUMPSTATE",
+                contract_id="NL-CONTRACT-PROBE-STATE",
+                role="state",
+                concept_name="PumpState",
+                status="exact",
+                model_element_ref=(
+                    "state:llms_emp_feedback_final_0002.PumpControl.PumpState"
+                ),
+                reason="The working contract provides one exact mapped state identity.",
+                basis="provider-free working-contract projection fixture",
+            ),
+        ),
+        reason="The fixture supplies one exact working-contract binding.",
+        basis="provider-free working-contract projection fixture",
+    )
+
+    assert runner_module._exact_grounding_model_refs(
+        pair,
+        (grounding,),
+        "NL-CONTRACT-PROBE-STATE",
+    ) == ["state:PumpState:line:7"]
+
+
+def test_working_contract_event_disambiguates_shared_endpoints_without_guessing() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0010")
+
+    refs, unresolved = _resolve_working_contract_refs(
+        pair,
+        element_ids=("source:transition:tr_0002",),
+    )
+    assert refs == ["transition:line:14"]
+    assert unresolved == []
+
+    payload = json.loads(json.dumps(pair.working_contract.payload))
+    root = next(
+        item
+        for item in payload["elements"]
+        if item["element_id"] == "source:transition:tr_0002"
+    )
+    root["semantic_fields"].pop("raw_label", None)
+    root["semantic_fields"].pop("event_interpretation", None)
+    ambiguous_pair = pair.model_copy(
+        update={
+            "working_contract": pair.working_contract.model_copy(
+                update={"payload": payload}
+            )
+        }
+    )
+
+    refs, unresolved = _resolve_working_contract_refs(
+        ambiguous_pair,
+        element_ids=("source:transition:tr_0002",),
+    )
+    assert refs == []
+    assert unresolved == ["source:transition:tr_0002"]
+
+
+def test_event_projection_never_adds_same_named_state_to_event_binding() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0056")
+    event_ref = "event:Intercepted:line:3"
+    records = runner_module._working_contract_records(pair)
+    event_projection = next(
+        item
+        for item in records
+        if item.get("kind") == "opaque_event_projection"
+        and event_ref in runner_module._working_record_model_refs(
+            pair, item, records
+        )
+    )
+
+    assert runner_module._working_record_model_refs(
+        pair, event_projection, records
+    ) == [event_ref]
+
+
+def test_transition_group_event_projection_admits_s3_or_blocks_ambiguity() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0010")
+    group = NLTransitionGroup(
+        group_id="NL-GROUP-NL3-POWERON-FIXTURE",
+        segment_id="NL3",
+        source_name="system",
+        alternatives=(
+            NLTransitionAlternative(
+                alternative_id="ALT-NL3-POWERON-FIXTURE",
+                target_name="human driving mode",
+                event="power on",
+                reason="The fixture supplies one typed event alternative.",
+                basis="provider-free transition-group event fixture",
+            ),
+        ),
+        reason="The fixture supplies one shared-source transition group.",
+        basis="provider-free transition-group event fixture",
+    )
+
+    probes, probe_contracts, dispositions = (
+        _materialize_deterministic_execution_probes(
+            pair,
+            {},
+            (),
+            (),
+            (group,),
+        )
+    )
+    s3_probe = next(item for item in probes if item.predicate_id == "S3")
+    assert s3_probe.predicate_inputs == {
+        "transition": "transition:line:14",
+        "triggers": ["Power_On"],
+    }
+    assert s3_probe.contract_id in probe_contracts
+    assert dispositions[-1]["status"] == (
+        "admitted_transition_group_event_carrier"
+    )
+
+    ambiguous_group = group.model_copy(
+        update={
+            "group_id": "NL-GROUP-NL4-DISTANCE-FIXTURE",
+            "segment_id": "NL4",
+            "alternatives": (
+                NLTransitionAlternative(
+                    alternative_id="ALT-NL4-DISTANCE-FIXTURE",
+                    target_name="autonomous state",
+                    event="front_distance > 10",
+                    reason="The fixture supplies one ambiguous event carrier.",
+                    basis="provider-free ambiguous transition-group fixture",
+                ),
+            ),
+        }
+    )
+    probes, _, _ = _materialize_deterministic_execution_probes(
+        pair,
+        {},
+        (),
+        (),
+        (ambiguous_group,),
+    )
+    assert not any(item.predicate_id == "S3" for item in probes)
 
 
 @pytest.mark.parametrize("property_name", ["containment", "cardinality", "initial_entry"])
