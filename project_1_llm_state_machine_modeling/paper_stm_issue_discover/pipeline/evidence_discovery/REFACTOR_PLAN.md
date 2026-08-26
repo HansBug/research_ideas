@@ -35,6 +35,6 @@ selection preflight 的 15x12 表只保存固定 12 谓词的通用 capability/s
 
 ## 阶段 D：54x3
 
-新的 15-pair 协议稳定后冻结 current，启动一次并发 54 pair x3。每个 cell 保存 source commit、prompt/schema/registry/input hash、成本与 terminal receipt。报告 overall/L2 `hit@1`、`hit@3`、`hit@all`、precision、FP、FULL expected max-W2、W2/435、15 个 planned predicate execution 与 cost，并与冻结 baseline 和冻结全量参考结果公平对照。
+新的 15-pair 协议稳定后冻结 current，启动一次并发 54 pair x3。新的 live method/Judge run 默认目标为 `--workers 16`；run manifest 必须固定实际 worker 数、provider 限流与重试策略。provider error 只原地重试受影响调用/cell，修复后只重跑失败 cell，禁止为了局部失败串行化、重启或覆盖其他已闭合 artifact。每个 cell 保存 source commit、prompt/schema/registry/input hash、成本与 terminal receipt。报告 overall/L2 `hit@1`、`hit@3`、`hit@all`、precision、FP、FULL expected max-W2、W2/435、15 个 planned predicate execution 与 cost，并与冻结 baseline 和冻结全量参考结果公平对照。
 
 若 54 pair 未达 soft gate，先完成 `contract extraction -> identity binding -> predicate route -> typed inputs -> backend -> W -> D -> publication -> Judge relation` stage-loss，选择 12--15 个代表 pair 做一次局部修复；同一版本不得重复抽样刷结果。
