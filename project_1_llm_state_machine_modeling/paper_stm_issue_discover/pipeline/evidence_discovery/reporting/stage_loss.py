@@ -481,6 +481,12 @@ def _w2_closure(method_indexes: dict[str, dict[str, Any]]) -> list[dict[str, Any
                 "terminal_state": receipt.get("terminal_state"),
                 "verdict": receipt.get("verdict"),
                 "receipt_hash": receipt.get("receipt_hash"),
+                "source_admission": {
+                    "id": receipt.get("source_admission_id"),
+                    "citations": receipt.get("source_admission_citations", []),
+                    "proposition": receipt.get("source_admission_proposition"),
+                    "boundary": receipt.get("source_admission_boundary"),
+                },
                 "source_attribution": attribution,
                 "reason": evidence.get("reason"),
                 "basis": evidence.get("basis"),

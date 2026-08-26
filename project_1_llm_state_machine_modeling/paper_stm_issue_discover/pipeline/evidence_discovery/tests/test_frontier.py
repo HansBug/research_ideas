@@ -3584,6 +3584,22 @@ def test_inspection_projection_anchors_child_initial_edges_to_exact_scope_contra
         )
     }
     assert all(item.reason and item.basis for item in initial_edges)
+    trigger_candidates = [
+        item.candidate
+        for item in batch.obligations
+        if item.kind == "initial_entry_trigger_set"
+    ]
+    assert {
+        (item.predicate_inputs["transition"], tuple(item.predicate_inputs["triggers"]))
+        for item in trigger_candidates
+    } == {
+        ("transition:line:10", ()),
+        ("transition:line:16", ()),
+        ("transition:line:22", ()),
+    }
+    assert all(item.predicate_id == "S3" for item in trigger_candidates)
+    assert all(item.property == "trigger_set" for item in trigger_candidates)
+    assert all("NL1" in item.source_refs for item in trigger_candidates)
 
 
 def test_inspection_projection_materializes_zero_trigger_completion_edge() -> None:

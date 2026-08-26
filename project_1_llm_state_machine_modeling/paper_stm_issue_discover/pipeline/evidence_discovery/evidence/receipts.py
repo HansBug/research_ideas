@@ -60,6 +60,10 @@ class PredicateExecutionReceipt(BaseModel):
     execution_status: Literal["executed", "unsupported", "blocked"] = Field(description="Whether a backend reached a terminal result.")
     source_audit_status: str | None = Field(default=None, description="Predicate source-catalog status at compilation.")
     source_gate_passed: bool = Field(description="Whether the source gate admitted W2 publication.")
+    source_admission_id: str | None = Field(default=None, description="Restricted catalog admission that admitted this exact typed execution, or null when predicate-wide source status was used.")
+    source_admission_citations: tuple[str, ...] = Field(default=(), description="Stable source locations for the restricted admission; empty when no restricted admission was used.")
+    source_admission_proposition: str | None = Field(default=None, description="Scoped proposition applied by the restricted admission, or null when predicate-wide source status was used.")
+    source_admission_boundary: str | None = Field(default=None, description="Explicit boundary preventing the restricted admission from being generalized, or null when predicate-wide source status was used.")
     backend_result: dict[str, Any] = Field(description="Complete immutable RawReceipt payload.")
     reason: str = Field(min_length=1, description="Non-empty explanation of the execution result and its boundary.")
     basis: str = Field(min_length=1, description="Non-empty typed-input, compiler, source, and backend basis.")
@@ -116,6 +120,14 @@ def build_predicate_execution_receipt(
         "execution_status": execution_status,
         "source_audit_status": plan.source_audit_status,
         "source_gate_passed": bool(plan.source_gate_passed),
+        "source_admission_id": getattr(plan, "source_admission_id", None),
+        "source_admission_citations": tuple(
+            getattr(plan, "source_admission_citations", ())
+        ),
+        "source_admission_proposition": getattr(
+            plan, "source_admission_proposition", None
+        ),
+        "source_admission_boundary": getattr(plan, "source_admission_boundary", None),
         "backend_result": receipt.to_dict(),
         "reason": receipt.reason,
         "basis": (

@@ -8,7 +8,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..inputs.models import ModelIR
-from ..registry.model import PredicateRegistry
+from ..registry.model import PredicateRegistry, SourceAdmission
 from ..semantics.binding import BindingResult
 from ..semantics.obligations import CandidateIssue
 from .inputs import (
@@ -90,6 +90,10 @@ class PredicatePlan(BaseModel):
     source_ids: tuple[str, ...] = Field(default=(), description="Registered source identifiers for this predicate.")
     source_audit_status: str | None = Field(default=None, min_length=1, description="Current source-catalog status used by the W2 admission gate.")
     source_gate_passed: bool = Field(default=False, description="Whether the source audit status passed the current W2 gate.")
+    source_admission_id: str | None = Field(default=None, min_length=1, description="Restricted catalog admission that passed the W2 source gate for this exact typed candidate, or null when predicate-wide source status was used.")
+    source_admission_citations: tuple[str, ...] = Field(default=(), description="Exact source locations supporting a restricted admission; empty unless source_admission_id is present.")
+    source_admission_proposition: str | None = Field(default=None, min_length=1, description="Scoped source proposition applied to this plan, or null when no restricted admission was used.")
+    source_admission_boundary: str | None = Field(default=None, min_length=1, description="Boundary that prevents a restricted source admission from being generalized, or null when no restricted admission was used.")
     binding_complete: bool = Field(default=True, description="Whether all registry-minimal inputs are present after normalization.")
     missing_inputs: tuple[str, ...] = Field(default=(), description="Required registry inputs missing from the candidate binding.")
 
@@ -122,6 +126,53 @@ class PredicatePlan(BaseModel):
 
     def to_dict(self) -> dict[str, Any]:
         return self.model_dump(mode="json")
+
+
+def _restricted_source_admission(
+    *,
+    candidate: CandidateIssue,
+    binding: BindingResult,
+    model: ModelIR,
+    predicate_id: str,
+    inputs: dict[str, Any],
+    registry: PredicateRegistry,
+) -> SourceAdmission | None:
+    """Return a catalog admission only after its exact typed shape is proven.
+
+    This is deliberately not a predicate-wide status override. The sole
+    currently admitted shape is the UML initial-pseudostate prohibition on a
+    trigger: one exact ``[*]`` carrier, an explicitly empty required trigger
+    set, and a non-empty observed trigger set. A guard-only initial defect,
+    ordinary transition, or arbitrary S3 equality claim remains governed by
+    the predicate-wide source status.
+    """
+
+    if predicate_id != "S3" or not binding.precise:
+        return None
+    transition_ref = inputs.get("transition")
+    triggers = inputs.get("triggers")
+    if not isinstance(transition_ref, str) or not isinstance(triggers, (list, tuple)):
+        return None
+    transition = model.transition(transition_ref)
+    if (
+        candidate.property != "trigger_set"
+        or candidate.violation_direction != "mismatched"
+        or "initial_entry_fact" not in candidate.evidence_types
+        or tuple(triggers)
+        or transition is None
+        or transition.source.strip().replace("[ * ]", "[*]") != "[*]"
+        or not transition.triggers
+        or transition.ref not in binding.element_refs
+    ):
+        return None
+    return next(
+        (
+            item
+            for item in registry.source_admissions.get(predicate_id, ())
+            if item.kind == "s3_initial_outgoing_without_trigger"
+        ),
+        None,
+    )
 
 
 def compile_plan(
@@ -178,11 +229,26 @@ def compile_plan(
     source_audit = (registry.source_audit or {}).get(predicate.id, {})
     source_status = source_audit.get("status") if isinstance(source_audit, dict) else None
     source_status = str(source_status) if source_status is not None else None
-    source_gate_passed = source_status in W2_SOURCE_STATUSES
+    source_admission = _restricted_source_admission(
+        candidate=candidate,
+        binding=binding,
+        model=model,
+        predicate_id=predicate.id,
+        inputs=inputs,
+        registry=registry,
+    )
+    source_gate_passed = source_status in W2_SOURCE_STATUSES or source_admission is not None
     missing_inputs = tuple(
         input_name
         for input_name in predicate.inputs
-        if input_name not in inputs or inputs[input_name] in (None, "", [])
+        if (
+            input_name not in inputs
+            or inputs[input_name] in (None, "")
+            or (
+                inputs[input_name] == []
+                and not (predicate.id == "S3" and input_name == "triggers")
+            )
+        )
     )
     binding_complete = not missing_inputs
     formal_program = (
@@ -214,6 +280,12 @@ def compile_plan(
     elif not source_gate_passed:
         reason = "The backend exists, but the predicate source gate has not passed; a precise candidate remains W1."
         basis = f"predicate_audit status={source_status!r}; W2 requires one of {sorted(W2_SOURCE_STATUSES)}"
+    elif source_admission is not None:
+        reason = "The predicate-wide source status remains closed, but this exact typed candidate satisfies one catalog-backed restricted source admission."
+        basis = (
+            f"predicate_audit status={source_status!r}; admission={source_admission.id}; "
+            f"proposition={source_admission.proposition}; boundary={source_admission.boundary}"
+        )
     else:
         reason = "The predicate passes the frozen registry, source gate, and deterministic backend capability checks."
         basis = f"registry lookup, source gate status={source_status!r}, and backend capability table"
@@ -236,6 +308,10 @@ def compile_plan(
         source_ids=predicate.sources,
         source_audit_status=source_status,
         source_gate_passed=source_gate_passed,
+        source_admission_id=source_admission.id if source_admission else None,
+        source_admission_citations=source_admission.citations if source_admission else (),
+        source_admission_proposition=source_admission.proposition if source_admission else None,
+        source_admission_boundary=source_admission.boundary if source_admission else None,
         binding_complete=binding_complete,
         missing_inputs=missing_inputs,
     )

@@ -61,6 +61,7 @@ FrontierKind = Literal[
     "cross_wrapper_reachability",
     "aggregate_zero_behavior",
     "transition_guard_presence",
+    "initial_entry_trigger_set",
     "aggregate_data_semantics",
 ]
 
@@ -817,6 +818,11 @@ def _derived_contract(
     quote: str | None = None,
     binding_hints: Sequence[ContractBindingHint] | None = None,
 ) -> NLContract:
+    resolved_hints = (
+        tuple(binding_hints)
+        if binding_hints is not None
+        else base.binding_hints
+    )
     contract = NLContract(
         contract_id=f"NL-CONTRACT-{base.segment_id}-DERIVED-PENDING",
         segment_id=base.segment_id,
@@ -829,14 +835,21 @@ def _derived_contract(
         expected_direction=expected_direction,
         violation_direction=violation_direction,
         evidence_types=tuple(dict.fromkeys(evidence_types)),
-        binding_hints=(
-            tuple(binding_hints)
-            if binding_hints is not None
-            else base.binding_hints
-        ),
+        binding_hints=resolved_hints,
         cardinality_requirement=cardinality_requirement,
         scope=scope,
-        source_refs=tuple(dict.fromkeys(source_refs)),
+        source_refs=tuple(
+            dict.fromkeys(
+                [
+                    *source_refs,
+                    *[
+                        hint.source_ref
+                        for hint in resolved_hints
+                        if hint.source_ref
+                    ],
+                ]
+            )
+        ),
         reason=reason,
         basis=basis,
     )
@@ -4663,6 +4676,112 @@ def _materialize_inspection_diagnostics(
                 reason="The supplied initial-entry contract is joined to one exact conditional pseudostate edge.",
                 basis="inspection-equivalent INITIAL_ENTRY_CONDITIONAL and exact ModelIR transition ref",
             )
+            # The broader owner-local default-entry obligation is not an S3
+            # claim.  A non-empty trigger on the same exact initial carrier is
+            # independently expressible as S3 with an empty required set and
+            # is separately supported by the restricted UML source admission.
+            if fact.triggers:
+                trigger_hints = (
+                    ContractBindingHint(
+                        role="owner",
+                        value=owner.name,
+                        source_ref=contract.segment_id,
+                        reason="The scoped initial carrier belongs to this exact composite owner.",
+                        basis=f"owner_ref={owner.ref}; diagnostic={diagnostic.code}",
+                    ),
+                    ContractBindingHint(
+                        role="target",
+                        value=target.name,
+                        source_ref=contract.segment_id,
+                        reason="The initial carrier enters this exact parser-resolved target.",
+                        basis=f"target_ref={target.ref}; transition_ref={fact.transition_ref}",
+                    ),
+                    ContractBindingHint(
+                        role="transition",
+                        value=fact.transition_ref,
+                        source_ref=contract.segment_id,
+                        reason="The inspection fact names one exact conditional initial transition carrier.",
+                        basis=f"diagnostic={diagnostic.code}; transition_ref={fact.transition_ref}",
+                    ),
+                )
+                trigger_contract = _derived_contract(
+                    derived,
+                    locus_kind="transition",
+                    locus_names=(owner.name, target.name),
+                    property_name="trigger_set",
+                    state_role=derived.state_role,
+                    expected_direction="must_equal",
+                    violation_direction="mismatched",
+                    evidence_types=tuple(
+                        dict.fromkeys(
+                            [
+                                *derived.evidence_types,
+                                "trigger_fact",
+                            ]
+                        )
+                    ),
+                    normative_statement=(
+                        f"The exact initial transition {fact.transition_ref} from "
+                        f"{owner.name} to {target.name} must have an empty trigger set."
+                    ),
+                    scope=f"Initial pseudostate transition {fact.transition_ref}",
+                    source_refs=derived.source_refs,
+                    reason=(
+                        "The exact initial transition carries a non-empty parsed "
+                        "trigger set, which is independently checked without "
+                        "relabeling the broader owner-local entry obligation."
+                    ),
+                    basis=(
+                        f"diagnostic={diagnostic.code}; transition_ref={fact.transition_ref}; "
+                        f"parsed_triggers={list(fact.triggers)}; "
+                        "UML 2.5.1 14.5.6.7 Pseudostate::outgoing_from_initial"
+                    ),
+                    binding_hints=trigger_hints,
+                )
+                trigger_candidate = _candidate(
+                    trigger_contract,
+                    title=f"Initial transition {fact.transition_ref} has a trigger",
+                    predicate_id="S3",
+                    predicate_inputs={
+                        "transition": fact.transition_ref,
+                        "triggers": [],
+                    },
+                    element_refs=(owner.ref, target.ref, fact.transition_ref),
+                    source_refs=trigger_contract.source_refs,
+                    expected=trigger_contract.normative_statement,
+                    observed=(
+                        f"The exact initial carrier {fact.transition_ref} has "
+                        f"parsed triggers={list(fact.triggers)}."
+                    ),
+                    strongest_rebuttal=(
+                        "The admission checks only this exact initial transition's "
+                        "trigger field; a guard-only defect or an ordinary transition "
+                        "does not satisfy its typed source boundary."
+                    ),
+                    reason=(
+                        "The inspection-equivalent fact proves that one exact initial "
+                        "transition has a non-empty trigger set."
+                    ),
+                    basis=(
+                        f"diagnostic={diagnostic.code}; transition_ref={fact.transition_ref}; "
+                        f"owner_ref={owner.ref}; target_ref={target.ref}; "
+                        f"parsed_triggers={list(fact.triggers)}"
+                    ),
+                )
+                builder.add(
+                    "initial_entry_trigger_set",
+                    (contract.contract_id,),
+                    trigger_contract,
+                    trigger_candidate,
+                    reason=(
+                        "The conditional initial-entry diagnostic contains a non-empty "
+                        "trigger field that is independently expressible by S3."
+                    ),
+                    basis=(
+                        "inspection-equivalent INITIAL_ENTRY_CONDITIONAL, exact "
+                        "ModelIR transition, and restricted UML initial-transition rule"
+                    ),
+                )
             continue
 
         if diagnostic.code == "LEAF_WITHOUT_OUTGOING":

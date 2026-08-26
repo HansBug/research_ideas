@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .model import Predicate, PredicateRegistry
+from .model import Predicate, PredicateRegistry, SourceAdmission
 from .validation import validate_registry
 
 
@@ -21,6 +21,7 @@ def load_registry(path: str | Path | None = None) -> PredicateRegistry:
     source_catalog_value = raw.get("source_catalog_path")
     source_catalog_path = None
     source_audit: dict[str, dict[str, Any]] | None = None
+    source_admissions: dict[str, tuple[SourceAdmission, ...]] = {}
     if isinstance(source_catalog_value, str) and source_catalog_value.strip():
         # The registry path is two directory levels below the paper root:
         # <paper>/pipeline/evidence_discovery/predicate_registry.json.
@@ -36,6 +37,23 @@ def load_registry(path: str | Path | None = None) -> PredicateRegistry:
             for predicate_id, value in audit.items()
             if isinstance(value, dict)
         }
+        raw_admissions = catalog.get("candidate_admissions", {})
+        if not isinstance(raw_admissions, dict):
+            raise ValueError("predicate source catalog candidate_admissions must be an object")
+        source_ids = {
+            str(item.get("id"))
+            for item in catalog.get("sources", [])
+            if isinstance(item, dict) and isinstance(item.get("id"), str)
+        }
+        for predicate_id, rows in raw_admissions.items():
+            if not isinstance(predicate_id, str) or not isinstance(rows, list):
+                raise ValueError("predicate source catalog admission shape is invalid")
+            admissions = tuple(SourceAdmission.model_validate(row) for row in rows)
+            if any(item.predicate_id != predicate_id for item in admissions):
+                raise ValueError("predicate source catalog admission predicate mismatch")
+            if any(not set(item.source_ids) <= source_ids for item in admissions):
+                raise ValueError("predicate source catalog admission references an unknown source")
+            source_admissions[predicate_id] = admissions
     predicates: dict[str, Predicate] = {}
     families: dict[str, tuple[str, ...]] = {}
     for family in raw["families"]:
@@ -65,4 +83,5 @@ def load_registry(path: str | Path | None = None) -> PredicateRegistry:
         raw=raw,
         source_catalog_path=source_catalog_path,
         source_audit=source_audit,
+        source_admissions=source_admissions,
     )

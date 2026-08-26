@@ -50,6 +50,15 @@
 | V4 | `w1_only_parallel_sources_only` | 现有死锁资料依赖并发或超界语义。 |
 | V5 | `candidate` | 不变式命题常见，但实例化和闭包条件待核。 |
 
+## 受限准入
+
+`S3` 的谓词级状态仍为 `candidate`，不得因此把一般的需求触发集合等同性升级为 W2。
+唯一已审计的候选级例外是 `S3.uml_initial_outgoing_without_trigger.v1`：UML 2.5.1
+14.5.6.7 / p.350 的 `Pseudostate::outgoing_from_initial` 明确规定初始顶点的出边不得有
+trigger 或 guard。编译器只在一个精确 `[*]` 载体、要求集合为空且解析出的 trigger 集合非空时
+使用该准入，并把引用、命题和边界写入计划与回执。它不覆盖 guard-only 缺陷、普通迁移的
+trigger 等同性，亦不改变 `S3` 的全局 source gate。
+
 ## 三类来源的使用纪律
 
 - `domain` 只说明真实控制系统中有相应检查命题，不能替代形式定义。

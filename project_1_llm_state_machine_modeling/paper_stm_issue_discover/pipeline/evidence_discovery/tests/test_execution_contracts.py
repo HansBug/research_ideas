@@ -204,6 +204,114 @@ def test_source_gate_and_input_aliases_are_deterministic() -> None:
         assert plan.supported is False, predicate_id
 
 
+def test_restricted_s3_source_admission_requires_exact_triggered_initial_carrier() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0002")
+    transition = next(
+        item
+        for item in pair.model.transitions
+        if item.source == "[*]" and item.triggers
+    )
+    candidate = _candidate(
+        pair,
+        predicate_id="S3",
+        inputs={"transition": transition.ref, "triggers": []},
+        refs=[transition.ref],
+    ).model_copy(
+        update={
+            "property": "trigger_set",
+            "violation_direction": "mismatched",
+            "evidence_types": (
+                "source_identity",
+                "initial_entry_fact",
+                "transition_fact",
+                "trigger_fact",
+            ),
+        }
+    )
+    plan = compile_plan(
+        candidate,
+        bind_candidate(candidate, pair.model),
+        load_registry(),
+        obligation_id="0002:initial-trigger",
+        round_index=1,
+        model=pair.model,
+    )
+
+    assert plan.source_audit_status == "candidate"
+    assert plan.source_gate_passed is True
+    assert plan.supported is True
+    assert plan.source_admission_id == "S3.uml_initial_outgoing_without_trigger.v1"
+    assert plan.source_admission_citations
+    assert "does not admit guard-only defects" in (plan.source_admission_boundary or "")
+    receipt = run_backend(plan, pair.model, "0002:initial-trigger:receipt")
+    assert receipt.terminal_state == "completed"
+    assert receipt.verdict == "false"
+    execution = build_predicate_execution_receipt(
+        pair_id=pair.pair_id,
+        run_id="2" * 32,
+        contract_id=candidate.contract_id,
+        obligation_id="0002:initial-trigger",
+        plan=plan,
+        receipt=receipt,
+    )
+    assert execution["source_admission_id"] == plan.source_admission_id
+    assert execution["source_admission_citations"] == list(plan.source_admission_citations)
+    assert execution["source_admission_proposition"] == plan.source_admission_proposition
+    assert execution["source_admission_boundary"] == plan.source_admission_boundary
+    record = build_evidence_record(
+        pair=pair,
+        obligation_id="0002:initial-trigger",
+        candidate=candidate,
+        binding=bind_candidate(candidate, pair.model),
+        plan=plan,
+        receipt=receipt,
+        source_attribution={"requirement": {"path": "nl.txt"}},
+        retry_records=[],
+        run_id="2" * 32,
+    )
+    bundle = record["audit_bundle"]
+    assert bundle is not None
+    assert bundle["predicate_logic"]["source_admission"]["id"] == plan.source_admission_id
+    assert bundle["predicate_logic"]["source_admission"]["citations"] == list(
+        plan.source_admission_citations
+    )
+
+
+def test_restricted_s3_source_admission_rejects_ordinary_trigger_equality() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0010")
+    transition = next(item for item in pair.model.transitions if item.triggers)
+    candidate = _candidate(
+        pair,
+        predicate_id="S3",
+        inputs={"transition": transition.ref, "triggers": []},
+        refs=[transition.ref],
+    ).model_copy(
+        update={
+            "property": "trigger_set",
+            "violation_direction": "mismatched",
+            "evidence_types": (
+                "source_identity",
+                "initial_entry_fact",
+                "transition_fact",
+                "trigger_fact",
+            ),
+        }
+    )
+    plan = compile_plan(
+        candidate,
+        bind_candidate(candidate, pair.model),
+        load_registry(),
+        obligation_id="0010:ordinary-trigger",
+        round_index=1,
+        model=pair.model,
+    )
+
+    assert transition.source != "[*]"
+    assert plan.source_audit_status == "candidate"
+    assert plan.source_gate_passed is False
+    assert plan.source_admission_id is None
+
+
 def test_grounding_unresolved_with_exact_binding_is_admitted_as_predicate_null_candidate() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     state = pair.model.states[0]

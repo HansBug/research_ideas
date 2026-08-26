@@ -93,6 +93,22 @@ def test_predicate_source_audit_covers_all_public_predicates() -> None:
     assert all(item["note"] for item in audit.values())
 
 
+def test_restricted_source_admissions_do_not_change_predicate_wide_audits() -> None:
+    data = load_registry()
+    catalog = json.loads(
+        (PROJECT_ROOT / data["source_catalog_path"]).read_text(encoding="utf-8")
+    )
+    admissions = catalog["candidate_admissions"]
+    s3 = admissions["S3"]
+
+    assert catalog["predicate_audit"]["S3"]["status"] == "candidate"
+    assert len(s3) == 1
+    assert s3[0]["id"] == "S3.uml_initial_outgoing_without_trigger.v1"
+    assert s3[0]["status"] == "partial_pass"
+    assert s3[0]["source_ids"] == ["ST1"]
+    assert s3[0]["citations"] and s3[0]["proposition"] and s3[0]["boundary"]
+
+
 def test_coverage_snapshot_is_explicitly_a_design_mapping() -> None:
     snapshot = load_registry()["coverage_snapshot"]
 

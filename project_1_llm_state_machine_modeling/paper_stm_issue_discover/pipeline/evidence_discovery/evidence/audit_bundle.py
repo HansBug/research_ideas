@@ -119,6 +119,12 @@ def build_audit_bundle(
             "source_ids": list(plan.source_ids),
             "source_audit_status": plan.source_audit_status,
             "source_gate_passed": plan.source_gate_passed,
+            "source_admission": {
+                "id": plan.source_admission_id,
+                "citations": list(plan.source_admission_citations),
+                "proposition": plan.source_admission_proposition,
+                "boundary": plan.source_admission_boundary,
+            },
             "binding_complete": plan.binding_complete,
             "missing_inputs": list(plan.missing_inputs),
         },
