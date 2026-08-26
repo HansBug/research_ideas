@@ -803,7 +803,11 @@ def test_hierarchical_reachability_uses_entry_edges_not_containment() -> None:
         if state.reachable_from_initial
     }
 
-    assert sequential_reachable == {"PumpControl", "UnspecifiedInitial"}
+    assert sequential_reachable == {
+        "llms_emp_feedback_final_0053",
+        "PumpControl",
+        "UnspecifiedInitial",
+    }
     assert {"PumpControl", "PumpState", "WaterState", "MethaneState"} <= (
         concurrent_reachable
     )

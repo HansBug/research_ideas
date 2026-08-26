@@ -138,7 +138,7 @@ def build_evaluation_summary(
                 ),
             },
             "reason": "Pair metrics join immutable method evidence/receipts with one complete frozen Judge pair result.",
-            "basis": "issue #189 W/D fields, issue #195 final Judge rows, and evaluator-only expected/report joins",
+            "basis": "frozen witness/determinacy fields, frozen semantic Judge rows, and evaluator-only expected/report joins",
         }
 
     payload: dict[str, Any] = {
