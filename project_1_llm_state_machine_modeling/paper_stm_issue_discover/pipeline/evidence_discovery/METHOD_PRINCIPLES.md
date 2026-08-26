@@ -63,7 +63,7 @@ route 只能基于当前 pair 的 typed contract、compatible predicate set、ex
 
 Judge 在独立 evaluation 路径执行，保持冻结口径；method 与 Judge 的 artifact 物理分离。15-pair 与 54x3 运行均须保存 immutable run identity、source commit、prompt/schema/registry/input hash、完整成本与 terminal cell receipt。先做 provider-free replay，后做一次新 15x1；只有协议、typed/backend 和小规模 gate 稳定后才启动 54x3。
 
-外置 Judge 终结后，evaluation 侧使用 `python -m pipeline.evidence_discovery.reporting.expected_issue_witness` 生成 `expected_issue_witness_audit.json`。它逐 expected issue 保存 `FULL/PARTIAL/NONE`、匹配 report 的 predicate/W/D、完整 typed/backend/receipt 链、`max_W` 和 `contract extraction -> identity binding -> predicate route -> typed inputs -> backend -> W -> D -> publication -> Judge relation` 的 stage-loss；其输入只能是不可变 method/Judge artifact。该文件及其 summary 不是 method input，不能作为 prompt、binding、route、execution、W、D、publication 或 preflight 的任何条件。
+外置 Judge 终结后，evaluation 侧使用 `python -m pipeline.evidence_discovery.reporting.expected_issue_witness` 生成 `expected_issue_witness_audit.json`，再使用 `python -m pipeline.evidence_discovery.reporting.evaluation_summary` 生成 `evaluation_summary.json`。前者逐 expected issue 保存 `FULL/PARTIAL/NONE`、匹配 report 的 predicate/W/D、完整 typed/backend/receipt 链、`max_W` 和 `contract extraction -> identity binding -> predicate route -> typed inputs -> backend -> W -> D -> publication -> Judge relation` 的 stage-loss；后者将 FULL hit、W2/全部 expected、每 pair hit/max-W/D/precision/INVALID/route-stage loss、predicate feasibility、W2 closure 和成本分母分别固定。二者输入只能是不可变 method/Judge artifact，不能作为 prompt、binding、route、execution、W、D、publication 或 preflight 的任何条件。
 
 ## 5. Public implementation language
 

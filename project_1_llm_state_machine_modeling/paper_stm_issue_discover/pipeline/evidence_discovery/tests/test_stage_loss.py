@@ -6,6 +6,9 @@ from pathlib import Path
 from pipeline.evidence_discovery.reporting.expected_issue_witness import (
     build_expected_issue_witness_audit,
 )
+from pipeline.evidence_discovery.reporting.evaluation_summary import (
+    build_evaluation_summary,
+)
 from pipeline.evidence_discovery.reporting.stage_loss import build_stage_loss_audit
 
 
@@ -146,6 +149,19 @@ def _write_fixture(root: Path) -> tuple[Path, Path]:
     (judge_root / "pairs" / f"{pair_id}.json").write_text(
         json.dumps(judge_payload), encoding="utf-8"
     )
+    (judge_root / "summary.json").write_text(
+        json.dumps(
+            {
+                "overall": {"expected_count": 1, "full_hit_count": 1, "semantic_precision": 1.0},
+                "l2_expected_count": 0,
+                "l2_full_hit_count": 0,
+                "l2_hit_rate": 0.0,
+                "total_judge_cost_usd": 0.1,
+                "cost_eligible": True,
+            }
+        ),
+        encoding="utf-8",
+    )
     return method_root, judge_root
 
 
@@ -204,3 +220,16 @@ def test_expected_issue_witness_audit_keeps_full_witness_and_receipt_chain(tmp_p
     assert report["d_level"] == "D2"
     assert report["receipt_chain"]["receipt_hash"] == "sha256:receipt"
     assert "method prompts" in payload["evaluation_boundary"]
+
+
+def test_evaluation_summary_keeps_hit_witness_precision_and_stage_loss_separate(tmp_path: Path) -> None:
+    method_root, judge_root = _write_fixture(tmp_path)
+    payload = build_evaluation_summary(method_root=method_root, judge_root=judge_root)
+
+    assert payload["judge"]["overall"]["full_hit_count"] == 1
+    assert payload["witness_ledger"]["w2_all_expected_denominator"] == 1
+    pair = payload["per_pair"]["0004"]
+    assert pair["full_hit_count"] == 1
+    assert pair["full_max_w2_count"] == 1
+    assert pair["method_d_levels"] == {"D2": 1}
+    assert pair["route_stage_loss"]["non_full_last_method_stage"] == {}

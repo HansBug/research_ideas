@@ -53,6 +53,6 @@ method 只读取当前 pair 的 NL、PlantUML、canonical source IR、FCSTM、in
 
 每个 W2 的 `audit_bundle` 必须闭合：typed inputs、compiled program/hash、backend/algorithm version、真实 result、receipt hash、NL/PlantUML/canonical IR/FCSTM/facts/model 的当前制品归因、reason、basis 和 retry/billing。完整运行还保存 immutable run ID、source commit、prompt/schema/registry/input hash 与成本。
 
-method 制品冻结且外置 Judge 完成后，evaluation 路径必须生成 `expected_issue_witness_audit.json`。该制品逐条保留每个 expected issue 的 `FULL/PARTIAL/NONE`、匹配 report ID、每个匹配报告的 predicate/W/D、typed/backend/receipt 链、`max_W` 与未命中的 stage-loss。它只读取不可变 method/Judge artifact，不能进入 method prompt、binding、route、backend、W、D 或 publication。
+method 制品冻结且外置 Judge 完成后，evaluation 路径必须生成 `expected_issue_witness_audit.json` 和 `evaluation_summary.json`。前者逐条保留每个 expected issue 的 `FULL/PARTIAL/NONE`、匹配 report ID、每个匹配报告的 predicate/W/D、typed/backend/receipt 链、`max_W` 与未命中的 stage-loss；后者将 FULL hit、W2/全部 expected、每 pair hit/max-W/D/precision/INVALID/route-stage loss、19 谓词 feasibility、W2 closure 和成本分别汇总。它们只读取不可变 method/Judge artifact，不能进入 method prompt、binding、route、backend、W、D 或 publication。
 
 详细规则见 [METHOD_PRINCIPLES.md](METHOD_PRINCIPLES.md)、[PREDICATE_REGISTRY.md](PREDICATE_REGISTRY.md)、[REFACTOR_PLAN.md](REFACTOR_PLAN.md) 和 [POLICY_REVIEW.md](POLICY_REVIEW.md)。
