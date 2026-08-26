@@ -2601,6 +2601,9 @@ def test_failed_grounding_fallback_is_unresolved_and_never_fabricates_frontier_i
     assert "segment already has a cardinality or structure contract" in CONTRACT_SYSTEM_PROMPT
     assert "Generic words such as area, section, or part" in CONTRACT_SYSTEM_PROMPT
     assert "simultaneously active partitions" in CONTRACT_SYSTEM_PROMPT
+    assert "Extract `event_consumption` and `state_retention` contracts" in CONTRACT_SYSTEM_PROMPT
+    assert "downstream native binder may only construct" in CONTRACT_SYSTEM_PROMPT
+    assert "do not synthesize that domain from guards" in CONTRACT_SYSTEM_PROMPT
     hint_schema = ContractBindingHint.model_json_schema()
     assert "owns the required initial pseudostate edge" in hint_schema["properties"]["role"]["description"]
     assert "variable names only the data subject" in hint_schema["properties"]["role"]["description"]

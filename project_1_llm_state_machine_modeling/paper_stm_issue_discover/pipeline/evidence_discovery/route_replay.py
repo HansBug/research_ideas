@@ -502,7 +502,7 @@ def run_primary_route_replay(
             "implementation": implementation_hashes,
         }
     ).removeprefix("sha256:")[:32]
-    default_parent = source_root.parent.parent / "evidence-discovery-15x1-primary-route-replay-78506646"
+    default_parent = source_root.parent.parent / "evidence-discovery-15x1-primary-route-replay-05699769"
     final_parent = Path(output_parent).expanduser().resolve() if output_parent else default_parent
     final_parent.mkdir(parents=True, exist_ok=True)
     final_root = final_parent / replay_id

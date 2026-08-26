@@ -39,7 +39,7 @@ V5 `state_invariant` 可从小 bound 递增检查：若较小 bound 得到可 re
 - R4 需要 requirement 明示 `scenario=cold` 和 `window=cold_macrosteps=N`，其中 `N <= 32`；开放 prose 时间窗保持 W1。
 - V1 需要 native same-choice guarded group、完整 exact carrier 集和 requirement 独立给出的有限 JSON `domain`；不得从 guard 或观察到的变量值补造 domain。
 
-当前正确的 provider-free A/B artifact ID 是 `1bf7555fdbb9661008fc1e14b0ae16be`（`evidence-discovery-15x1-primary-route-replay-78506646`）。它只重放保存的最终 `predicate_id=null` W1 evidence（88 条），不使用较宽的辅助 `execute_batch` candidate 集，且 provider/Judge 调用均为 0。该 A/B 只报告 route、execution 和 W 的确定性变化，不能代替 hit、precision 或 Judge 评测。
+当前正确的 provider-free A/B artifact ID 是 `f993bb21aa5c39e8a93f8ba1899c29e9`（`evidence-discovery-15x1-primary-route-replay-05699769`）。它只重放保存的最终 `predicate_id=null` W1 evidence（88 条），不使用较宽的辅助 `execute_batch` candidate 集，且 provider/Judge 调用均为 0；20 条候选已完成确定性路由，其中 17 条获得 W2。该 A/B 只报告 route、execution 和 W 的确定性变化，不能代替 hit、precision 或 Judge 评测。
 
 ## 隔离与审计
 

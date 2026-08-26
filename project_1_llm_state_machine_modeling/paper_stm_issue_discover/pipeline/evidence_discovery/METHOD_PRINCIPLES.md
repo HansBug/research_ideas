@@ -49,7 +49,7 @@ W2 的归因链至少包含当前 NL、PlantUML、canonical source IR、FCSTM、
 - R4 只接受 requirement 明示的 `scenario=cold` 与 `window=cold_macrosteps=N`（`N <= 32`）。自然语言中的 `until`、`while` 或开放时间短语不能被转换成 interval，必须以 `input_contract_missing` 或 `out_of_fragment` 留作 W1。
 - V1 必须同时闭合一个 native same-source/same-event guarded choice group、与该 group 完全相等的 exact carrier 集，以及 requirement 独立声明的有限 JSON `domain`。domain 不得从 guard、变量观察值、fixture、台账或答案推断。
 
-主 route 修改必须先在保存的 extraction/grounding/candidate 上做 provider-free A/B。当前有效 A/B 制品为 `evidence-discovery-15x1-primary-route-replay-78506646/1bf7555fdbb9661008fc1e14b0ae16be`：cohort 固定为历史最终 `predicate_id=null` 的 88 条 W1 evidence，不是较宽的 `execute_batch` 辅助候选集；provider/Judge 调用均为 0。它只度量 route/execution/W 的确定性变化，不是 hit、precision 或 Judge 指标。
+主 route 修改必须先在保存的 extraction/grounding/candidate 上做 provider-free A/B。当前有效 A/B 制品为 `evidence-discovery-15x1-primary-route-replay-05699769/f993bb21aa5c39e8a93f8ba1899c29e9`：cohort 固定为历史最终 `predicate_id=null` 的 88 条 W1 evidence，不是较宽的 `execute_batch` 辅助候选集；provider/Judge 调用均为 0，确定性结果为 20 条完成路由、其中 17 条 W2。它只度量 route/execution/W 的确定性变化，不是 hit、precision 或 Judge 指标。
 
 ## 4. 实验与评测隔离
 

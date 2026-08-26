@@ -23,7 +23,7 @@ route 使用 `typed contract -> compatible predicate set -> exact input binder`�
 
 R1 的 cold-start execution 必须由 exact event/carrier、唯一 native cold entry 和唯一 direct unguarded carrier 闭合；R4 仅接受 requirement 明示的 `scenario=cold` 与 `window=cold_macrosteps=N`（`N <= 32`）；V1 必须具有完整 native same-choice guarded group、exact carrier 集与 requirement 独立提供的有限 JSON `domain`。不满足时记录 `input_contract_missing`/`out_of_fragment` 并保留 W1，禁止从 prose、guard、fixture 或答案补造输入。
 
-阶段 C 的基准 A/B 只能以保存的最终 `predicate_id=null` W1 evidence 为 cohort。当前有效 artifact ID 是 `1bf7555fdbb9661008fc1e14b0ae16be`（`evidence-discovery-15x1-primary-route-replay-78506646`），包含 88 条 cohort、0 provider 调用、0 Judge 调用；历史上使用 113 条辅助 `execute_batch` candidate 的制品不是本阶段指标依据。A/B 仅证明确定性 route 收益，不能取代新 15x1 的独立 method/Judge 验收。
+阶段 C 的基准 A/B 只能以保存的最终 `predicate_id=null` W1 evidence 为 cohort。当前有效 artifact ID 是 `f993bb21aa5c39e8a93f8ba1899c29e9`（`evidence-discovery-15x1-primary-route-replay-05699769`），包含 88 条 cohort、0 provider 调用、0 Judge 调用、20 条确定性路由和 17 条 W2；历史上使用 113 条辅助 `execute_batch` candidate 的制品不是本阶段指标依据。A/B 仅证明确定性 route 收益，不能取代新 15x1 的独立 method/Judge 验收。
 
 15-pair 的检查包括 15/15 terminal、无 diagnostics、FULL expected 的 max-W2、W2/全部 expected、overall/L2 hit、precision/FP、12 分母 execution、W2 audit closure 和成本。Judge 在 method 完成后独立补齐，不能改 Judge 语义迁就 method。
 
