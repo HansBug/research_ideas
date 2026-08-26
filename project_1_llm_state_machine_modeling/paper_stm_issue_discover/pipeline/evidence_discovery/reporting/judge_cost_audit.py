@@ -1,0 +1,163 @@
+"""Evaluator-only cost-closure audit for a completed frozen semantic Judge run."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from collections import Counter
+from pathlib import Path
+from typing import Any
+
+from .export import write_json
+
+
+def _load(path: Path) -> dict[str, Any]:
+    """Load a JSON object from a completed external Judge artifact."""
+
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError(f"expected JSON object: {path}")
+    return value
+
+
+def _items(value: Any) -> list[dict[str, Any]]:
+    """Normalize a JSON list or mapping into JSON object rows."""
+
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, dict)]
+    if isinstance(value, dict):
+        return [item for item in value.values() if isinstance(item, dict)]
+    return []
+
+
+def _artifact_hash(payload: dict[str, Any]) -> str:
+    """Return a stable integrity hash for this JSON-compatible audit payload."""
+
+    return "sha256:" + hashlib.sha256(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def _schema_failure_count(call: dict[str, Any]) -> int:
+    """Count retained Pydantic failures without interpreting their text as semantics."""
+
+    count = 0
+    for retry in _items(call.get("retries")):
+        raw = retry.get("raw_attempt_json")
+        if not isinstance(raw, str):
+            continue
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        count += len(_items(payload.get("schema_validation_failures")))
+    return count
+
+
+def build_judge_cost_audit(*, judge_root: str | Path) -> dict[str, Any]:
+    """Audit price completeness without changing frozen Judge results or costs."""
+
+    root = Path(judge_root).expanduser().resolve()
+    manifest = _load(root / "run_manifest.json")
+    summary = _load(root / "summary.json")
+    pair_ids = tuple(str(value) for value in manifest.get("selected_pair_ids", ()) if value)
+    if not pair_ids:
+        raise ValueError("Judge manifest has no selected_pair_ids")
+    calls: list[dict[str, Any]] = []
+    for pair_id in pair_ids:
+        payload = _load(root / "pairs" / f"{pair_id}.json")
+        for call in _items(payload.get("call_receipts")):
+            calls.append({"pair_id": pair_id, **call})
+    unpriced_calls = []
+    provider_retries = 0
+    non_provider_retries = 0
+    schema_failure_count = 0
+    for call in calls:
+        retries = _items(call.get("retries"))
+        provider_retries += sum(bool(retry.get("provider_error")) for retry in retries)
+        non_provider_retries += sum(
+            not bool(retry.get("provider_error")) and int(retry.get("attempt_no") or 1) > 1
+            for retry in retries
+        )
+        schema_failure_count += _schema_failure_count(call)
+        if not call.get("cost_eligible", False):
+            unpriced_calls.append({
+                "call_id": call.get("call_id"),
+                "pair_id": call.get("pair_id"),
+                "phase": call.get("phase"),
+                "status": call.get("status"),
+                "recorded_cost_usd": call.get("cost_usd"),
+                "usage": [
+                    {
+                        "model_call_id": usage.get("model_call_id"),
+                        "status": usage.get("status"),
+                        "input_tokens": usage.get("input_tokens"),
+                        "output_tokens": usage.get("output_tokens"),
+                        "cache_read_input_tokens": usage.get("cache_read_input_tokens"),
+                        "cost_counted": usage.get("cost_counted"),
+                        "billing_disposition": usage.get("billing_disposition"),
+                    }
+                    for usage in _items(call.get("usage"))
+                ],
+                "artifact_paths": call.get("artifact_paths", []),
+                "reason": (
+                    "The successful Judge call has billable provider usage with incomplete token metadata, "
+                    "so exact price reconstruction is unavailable."
+                ),
+                "basis": "frozen JudgeCallReceipt.cost_eligible=false and its preserved normalized usage rows",
+            })
+    recorded_cost = sum(float(call.get("cost_usd") or 0.0) for call in calls)
+    summary_cost = float(summary.get("total_judge_cost_usd") or 0.0)
+    payload: dict[str, Any] = {
+        "schema": "evidence-discovery.judge-cost-audit.v1",
+        "run_id": summary.get("run_id"),
+        "judge_root": str(root),
+        "judge_code_commit": manifest.get("judge_code_commit"),
+        "protocol_sha256": manifest.get("protocol_sha256"),
+        "model_profile": manifest.get("model_profile"),
+        "workers": manifest.get("workers"),
+        "billing": {
+            "logical_call_count": len(calls),
+            "priced_call_count": sum(bool(call.get("cost_eligible")) for call in calls),
+            "unpriced_billable_call_count": len(unpriced_calls),
+            "recorded_cost_usd": recorded_cost,
+            "summary_cost_usd": summary_cost,
+            "recorded_cost_matches_summary": abs(recorded_cost - summary_cost) < 1e-9,
+            "cost_eligible": not unpriced_calls and bool(summary.get("cost_eligible")),
+            "provider_error_retry_count": provider_retries,
+            "non_provider_outer_retry_count": non_provider_retries,
+            "schema_validation_failure_count": schema_failure_count,
+        },
+        "unpriced_billable_calls": unpriced_calls,
+        "phase_counts": dict(sorted(Counter(str(call.get("phase")) for call in calls).items())),
+        "evaluation_boundary": (
+            "This artifact only audits frozen external Judge billing receipts. It must never be imported by method "
+            "prompts, binding, routing, execution, W, D, publication, or Judge semantic decisions."
+        ),
+        "reason": (
+            "All successful, retried, and unpriced Judge calls are retained. A missing provider usage record is reported "
+            "as an unpriced billable call, never estimated as an exact cost and never treated as a semantic failure."
+        ),
+        "basis": "immutable semantic Judge run manifest, summary, pair call receipts, and normalized provider usage metadata",
+    }
+    unsigned = dict(payload)
+    payload["artifact_hash"] = _artifact_hash(unsigned)
+    return payload
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Write an evaluator-only frozen Judge cost-closure audit."""
+
+    parser = argparse.ArgumentParser(description="Build a frozen semantic Judge cost audit.")
+    parser.add_argument("--judge-root", required=True)
+    parser.add_argument("--output", required=True)
+    args = parser.parse_args(argv)
+    payload = build_judge_cost_audit(judge_root=args.judge_root)
+    write_json(Path(args.output), payload)
+    print(json.dumps({"output": str(Path(args.output).resolve()), "artifact_hash": payload["artifact_hash"], "cost_eligible": payload["billing"]["cost_eligible"]}, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

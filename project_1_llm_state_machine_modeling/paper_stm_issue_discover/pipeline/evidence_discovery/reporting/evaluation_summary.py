@@ -11,6 +11,7 @@ from typing import Any
 
 from .expected_issue_witness import build_expected_issue_witness_audit
 from .export import write_json
+from .judge_cost_audit import build_judge_cost_audit
 from .stage_loss import build_stage_loss_audit
 
 
@@ -75,6 +76,7 @@ def build_evaluation_summary(
         judge_root=judge_root_path,
         applicability_path=applicability_path,
     )
+    judge_cost_audit = build_judge_cost_audit(judge_root=judge_root_path)
     judge_summary = _load(judge_summary_path)
     expected_by_pair: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in expected_audit["rows"]:
@@ -149,6 +151,7 @@ def build_evaluation_summary(
         "judge_summary_path": str(judge_summary_path),
         "stage_loss_artifact_hash": stage_loss["artifact_hash"],
         "expected_issue_witness_artifact_hash": expected_audit["artifact_hash"],
+        "judge_cost_audit_hash": judge_cost_audit["artifact_hash"],
         "evaluation_boundary": expected_audit["evaluation_boundary"],
         "judge": {
             "overall": judge_summary.get("overall", {}),
@@ -157,6 +160,8 @@ def build_evaluation_summary(
             "l2_hit_rate": judge_summary.get("l2_hit_rate"),
             "total_judge_cost_usd": judge_summary.get("total_judge_cost_usd"),
             "cost_eligible": judge_summary.get("cost_eligible"),
+            "cost_audit": judge_cost_audit["billing"],
+            "unpriced_billable_calls": judge_cost_audit["unpriced_billable_calls"],
         },
         "method": {
             "metrics": _load(method_root_path / "summary.json").get("metrics", {}).get("method", {}),

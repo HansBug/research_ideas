@@ -9,6 +9,7 @@ from pipeline.evidence_discovery.reporting.expected_issue_witness import (
 from pipeline.evidence_discovery.reporting.evaluation_summary import (
     build_evaluation_summary,
 )
+from pipeline.evidence_discovery.reporting.judge_cost_audit import build_judge_cost_audit
 from pipeline.evidence_discovery.reporting.stage_loss import build_stage_loss_audit
 
 
@@ -162,6 +163,18 @@ def _write_fixture(root: Path) -> tuple[Path, Path]:
         ),
         encoding="utf-8",
     )
+    (judge_root / "run_manifest.json").write_text(
+        json.dumps(
+            {
+                "selected_pair_ids": [pair_id],
+                "judge_code_commit": "fixture-judge-commit",
+                "protocol_sha256": "fixture-protocol",
+                "model_profile": "fixture-profile",
+                "workers": 1,
+            }
+        ),
+        encoding="utf-8",
+    )
     return method_root, judge_root
 
 
@@ -233,3 +246,44 @@ def test_evaluation_summary_keeps_hit_witness_precision_and_stage_loss_separate(
     assert pair["full_max_w2_count"] == 1
     assert pair["method_d_levels"] == {"D2": 1}
     assert pair["route_stage_loss"]["non_full_last_method_stage"] == {}
+
+
+def test_judge_cost_audit_keeps_unpriced_billable_call_visible(tmp_path: Path) -> None:
+    _, judge_root = _write_fixture(tmp_path)
+    pair_path = judge_root / "pairs" / "0004.json"
+    pair = json.loads(pair_path.read_text(encoding="utf-8"))
+    pair["call_receipts"] = [
+        {
+            "call_id": "0004:r1:validity_arbitration:fixture",
+            "pair_id": "0004",
+            "phase": "validity_arbitration",
+            "status": "success",
+            "cost_usd": 0.0,
+            "cost_eligible": False,
+            "usage": [
+                {
+                    "model_call_id": "fixture-call",
+                    "status": "completed",
+                    "input_tokens": None,
+                    "output_tokens": None,
+                    "cache_read_input_tokens": None,
+                    "cost_counted": True,
+                    "billing_disposition": "billable",
+                }
+            ],
+            "retries": [],
+            "artifact_paths": ["fixture/result.json"],
+        }
+    ]
+    pair_path.write_text(json.dumps(pair), encoding="utf-8")
+    summary_path = judge_root / "summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["cost_eligible"] = False
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+    payload = build_judge_cost_audit(judge_root=judge_root)
+
+    assert payload["billing"]["logical_call_count"] == 1
+    assert payload["billing"]["unpriced_billable_call_count"] == 1
+    assert payload["billing"]["cost_eligible"] is False
+    assert payload["unpriced_billable_calls"][0]["pair_id"] == "0004"
