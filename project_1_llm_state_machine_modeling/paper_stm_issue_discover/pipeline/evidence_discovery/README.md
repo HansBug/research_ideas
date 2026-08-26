@@ -55,4 +55,6 @@ method 只读取当前 pair 的 NL、PlantUML、canonical source IR、FCSTM、in
 
 method 制品冻结且外置 Judge 完成后，evaluation 路径必须生成 `expected_issue_witness_audit.json`、`judge_cost_audit.json` 和 `evaluation_summary.json`。前者逐条保留每个 expected issue 的 `FULL/PARTIAL/NONE`、匹配 report ID、每个匹配报告的 predicate/W/D、typed/backend/receipt 链、`max_W` 与未命中的 stage-loss；`judge_cost_audit.json` 保留每个 unpriced billable call、provider/non-provider retry 与 schema retry，禁止把缺失 provider usage 估计成精确成本；后者将 FULL hit、W2/全部 expected、每 pair hit/max-W/D/precision/INVALID/route-stage loss、19 谓词 feasibility、W2 closure 和成本分别汇总。它们只读取不可变 method/Judge artifact，不能进入 method prompt、binding、route、backend、W、D 或 publication。
 
+冻结 Judge adapter 与 method terminal status 版本不一致时，只能生成独立的 evaluator-only compatibility projection：`completed_with_diagnostics + eligible=true` 可将状态规范化为 `completed`，但 published report payload 必须逐值不变；`failed_with_receipt + eligible=false` 只能投影为空发布面，使固定 expected 分母产生 `NONE`，原 cell 中的任何 cluster 都不得进入 Judge。未变 cell 使用 hash 相同的硬链接，全部投影保存原始/投影 hash、status、eligible、report count、reason 与 basis；原 method JSON、Judge 代码和 Judge 语义均不可修改。多轮恢复结果必须经 composite receipt 对每个 `(round,pair)` 闭合，54x3 expected position 分母固定为 435。
+
 详细规则见 [METHOD_PRINCIPLES.md](METHOD_PRINCIPLES.md)、[PREDICATE_REGISTRY.md](PREDICATE_REGISTRY.md)、[REFACTOR_PLAN.md](REFACTOR_PLAN.md) 和 [POLICY_REVIEW.md](POLICY_REVIEW.md)。

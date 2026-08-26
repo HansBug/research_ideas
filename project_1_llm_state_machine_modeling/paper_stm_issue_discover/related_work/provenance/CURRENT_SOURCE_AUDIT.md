@@ -11,6 +11,8 @@
 - 对冻结谓词定义的支持说明；
 - 不可越过的模型、语义和论文声明边界。
 
+catalog 的来源记录只允许 `id/types/title/paths/supports/boundary` 六类字段；所有记录都已完成核验，不设置或推导可靠性等级。
+
 审计的作用是保持论文叙事、注册表定义和实现边界可追溯。它不产生 runtime status，不参与 W、D、publication、route、backend dispatch 或 predicate execution coverage。
 
 ## 运行时分工

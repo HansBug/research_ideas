@@ -71,7 +71,15 @@ def test_every_source_id_resolves_to_current_catalog() -> None:
                for source in catalog["sources"])
     assert all(set(source["types"]) <= {"domain", "formal", "technical"}
                for source in catalog["sources"])
-    assert not any("status" in source for source in catalog["sources"])
+    assert all(
+        set(source) == {"id", "types", "title", "paths", "supports", "boundary"}
+        for source in catalog["sources"]
+    )
+    assert not any(
+        marker in source["title"] + source["supports"] + source["boundary"]
+        for source in catalog["sources"]
+        for marker in ("候选", "待补", "取证限制")
+    )
     assert all(
         (PROJECT_ROOT / path).exists()
         for source in catalog["sources"]
