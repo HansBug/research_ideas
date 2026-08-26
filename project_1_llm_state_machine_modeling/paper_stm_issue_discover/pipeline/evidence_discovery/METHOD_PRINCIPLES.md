@@ -55,6 +55,12 @@ R4 的默认 method-owned fragment 也不得伪造 trace：它只接受精确 re
 
 15-pair 的固定 planned 分母仅为 S1、S2、S3、S4、S5、S6、G1、G4、R1、R4、V1、V4。selection preflight 只记录这 12 个冻结谓词的通用 typed contract、当前输入 hash 和预注册语义形状；它不含 ledger、expected issue、Judge、答案、D/L、hit 或 precision 字段，且 worker 只将其 hash/reference 写入 immutable manifest，绝不读取它来生成 candidate、绑定值、route 或 backend 输入。其余 7 个冻结谓词未进入本次 planned 分母不影响其学术资格或 19/19 backend 义务。
 
+54x3 的固定 planned 分母是 S1、S2、S3、S4、S5、S6、G1、G2、G3、G4、R1、R2、R4、V1、V4，共 15 个，与冻结 registry 中非零 planned mapping 一致。该分母与 15-pair 的诊断 12 分母分别记录；不得用实际 terminal execution 集合反向缩小。特别是 G2、G3、R2 没有执行时必须报告 route/typed-input stage-loss，不能写成“不在全量计划内”。任意 54-pair 后续修复子集都必须显式沿用 `full-scale-15`，不得因子集规模为 12--15 pair 自动退回 `diagnostic-12`。
+
+`backend_missing` 只表示冻结谓词没有真实 dispatch/backend 实现；当前 19 个冻结谓词均有 backend，因此该值应为 0。某个 receipt 的 `failure_kind=invalid_input` 必须计入 `input_contract_missing`；backend 已实现但输入落在 soundness fragment 外时计入 `out_of_fragment`，同时原样保留 receipt 的 `failure_kind` 分布。不得再因为 receipt 的展示 backend 为 `none`，就把 V1/S6 的非法 domain/effect 或其他输入闭包失败写成 backend 缺失。
+
+全量主 route 对新增计划项采用保守 native 闭包：G2 只接受 exact source/target，且当前 `.fbmcq` fragment 的 source 必须是一个 pyfcstm leaf state；G3 只接受 exact leaf source、target、forbidden；R2 只接受 exact native event 和 target state。R2 的 method-owned schedule 从 cold `SimulationRuntime` 枚举至多 3 个事件的唯一最短 stimulus-consuming prefix，再追加一个空 observation macrostep；前缀选择函数不接收 target state，target truth 只由 R2 backend 在真实 trace 上判断。非唯一、未消费、并发或运行失败均保留 W1，不制造 schedule 或 verdict。
+
 主 route 修改必须先在保存的 extraction/grounding/candidate 上做 provider-free A/B。当前有效 A/B 制品为 `evidence-discovery-15x1-primary-route-replay-05699769/f993bb21aa5c39e8a93f8ba1899c29e9`：cohort 固定为历史最终 `predicate_id=null` 的 88 条 W1 evidence，不是较宽的 `execute_batch` 辅助候选集；provider/Judge 调用均为 0，确定性结果为 20 条完成路由、其中 17 条 W2。它只度量 route/execution/W 的确定性变化，不是 hit、precision 或 Judge 指标。
 
 ## 4. 实验与评测隔离

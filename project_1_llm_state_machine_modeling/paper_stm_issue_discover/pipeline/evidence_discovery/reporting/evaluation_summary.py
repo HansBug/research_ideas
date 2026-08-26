@@ -13,6 +13,8 @@ from .expected_issue_witness import build_expected_issue_witness_audit
 from .export import write_json
 from .judge_cost_audit import build_judge_cost_audit
 from .stage_loss import (
+    PLANNED_PREDICATES_BY_SCOPE,
+    PlannedPredicateScope,
     _is_composite_judge_summary,
     _judge_result_index,
     build_stage_loss_audit,
@@ -69,6 +71,7 @@ def build_evaluation_summary(
     method_root: str | Path,
     judge_root: str | Path,
     applicability_path: str | Path | None = None,
+    planned_predicate_scope: PlannedPredicateScope | None = None,
 ) -> dict[str, Any]:
     """Aggregate immutable method and complete frozen-Judge artifacts by pair."""
 
@@ -81,11 +84,13 @@ def build_evaluation_summary(
         method_root=method_root_path,
         judge_root=judge_root_path,
         applicability_path=applicability_path,
+        planned_predicate_scope=planned_predicate_scope,
     )
     expected_audit = build_expected_issue_witness_audit(
         method_root=method_root_path,
         judge_root=judge_root_path,
         applicability_path=applicability_path,
+        planned_predicate_scope=planned_predicate_scope,
     )
     judge_cost_audit = build_judge_cost_audit(judge_root=judge_root_path)
     judge_summary = _load(judge_summary_path)
@@ -261,6 +266,9 @@ def build_evaluation_summary(
             ),
         },
         "witness_ledger": expected_audit["summary"],
+        "planned_predicate_scope": stage_loss["planned_predicate_scope"],
+        "planned_predicates": stage_loss["planned_predicates"],
+        "planned_predicate_count": stage_loss["planned_predicate_count"],
         "predicate_feasibility": stage_loss["predicate_feasibility"],
         "w2_receipt_closure": stage_loss["w2_receipt_closure"],
         "per_cell": per_cell,
@@ -283,12 +291,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--method-root", required=True)
     parser.add_argument("--judge-root", required=True)
     parser.add_argument("--applicability", default=None)
+    parser.add_argument(
+        "--planned-predicate-scope",
+        choices=tuple(PLANNED_PREDICATES_BY_SCOPE),
+        default=None,
+    )
     parser.add_argument("--output", required=True)
     args = parser.parse_args(argv)
     payload = build_evaluation_summary(
         method_root=args.method_root,
         judge_root=args.judge_root,
         applicability_path=args.applicability,
+        planned_predicate_scope=args.planned_predicate_scope,
     )
     write_json(Path(args.output), payload)
     print(json.dumps({"output": str(Path(args.output).resolve()), "artifact_hash": payload["artifact_hash"], "pairs": len(payload["per_pair"])}, ensure_ascii=False))

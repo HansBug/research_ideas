@@ -10,7 +10,11 @@ from pathlib import Path
 from typing import Any
 
 from .export import write_json
-from .stage_loss import build_stage_loss_audit
+from .stage_loss import (
+    PLANNED_PREDICATES_BY_SCOPE,
+    PlannedPredicateScope,
+    build_stage_loss_audit,
+)
 
 
 def _artifact_hash(payload: dict[str, Any]) -> str:
@@ -26,6 +30,7 @@ def build_expected_issue_witness_audit(
     method_root: str | Path,
     judge_root: str | Path,
     applicability_path: str | Path | None = None,
+    planned_predicate_scope: PlannedPredicateScope | None = None,
 ) -> dict[str, Any]:
     """Join external expected rows to method witness chains without feeding them back."""
 
@@ -33,6 +38,7 @@ def build_expected_issue_witness_audit(
         method_root=method_root,
         judge_root=judge_root,
         applicability_path=applicability_path,
+        planned_predicate_scope=planned_predicate_scope,
     )
     rows = [
         {
@@ -75,6 +81,9 @@ def build_expected_issue_witness_audit(
         "registry_hash": stage_loss["registry_hash"],
         "method_root": stage_loss["method_root"],
         "judge_root": stage_loss["judge_root"],
+        "planned_predicate_scope": stage_loss["planned_predicate_scope"],
+        "planned_predicates": stage_loss["planned_predicates"],
+        "planned_predicate_count": stage_loss["planned_predicate_count"],
         "stage_loss_artifact_hash": stage_loss["artifact_hash"],
         "evaluation_boundary": (
             "This evaluator-only artifact is created after method artifacts are immutable. "
@@ -109,12 +118,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--method-root", required=True)
     parser.add_argument("--judge-root", required=True)
     parser.add_argument("--applicability", default=None)
+    parser.add_argument(
+        "--planned-predicate-scope",
+        choices=tuple(PLANNED_PREDICATES_BY_SCOPE),
+        default=None,
+    )
     parser.add_argument("--output", required=True)
     args = parser.parse_args(argv)
     payload = build_expected_issue_witness_audit(
         method_root=args.method_root,
         judge_root=args.judge_root,
         applicability_path=args.applicability,
+        planned_predicate_scope=args.planned_predicate_scope,
     )
     write_json(Path(args.output), payload)
     print(json.dumps({"output": str(Path(args.output).resolve()), "artifact_hash": payload["artifact_hash"], "rows": len(payload["rows"])}, ensure_ascii=False))

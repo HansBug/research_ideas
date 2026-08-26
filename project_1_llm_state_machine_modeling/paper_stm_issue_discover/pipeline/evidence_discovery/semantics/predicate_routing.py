@@ -29,7 +29,7 @@ from ..backends.fcstm_native import (
     transition_by_ref,
 )
 from ..inputs.fcstm_native_projection import transition_carrier_reference
-from ..inputs.models import PairInput, StateNode, Transition
+from ..inputs.models import EventNode, PairInput, StateNode, Transition
 from .binding import resolve_state_ref, resolve_transition_ref
 from .obligations import CandidateIssue
 from .workflow import GroundingResponse, NLContract
@@ -51,12 +51,15 @@ _PROPERTY_PREDICATES: dict[str, tuple[PredicateId, ...]] = {
     "guard": ("S5",),
     "effect": ("S6",),
     "reachability": ("G1",),
+    "universal_reachability": ("G2",),
+    "route_avoidance": ("G3",),
     "coaccessibility": ("G4",),
     "event_consumption": ("R1",),
+    "state_after_stimulus": ("R2",),
     "state_retention": ("R4",),
     "guard_disjointness": ("V1",),
     "deadlock_freedom": ("V4",),
-    "termination": ("G4",),
+    "termination": ("G2", "G4"),
 }
 
 _PREDICATE_BACKENDS: dict[PredicateId, str] = {
@@ -85,6 +88,8 @@ _COLD_MACROSTEP_WINDOW = re.compile(r"^cold_macrosteps=(?P<count>[1-9][0-9]*)$")
 _MAX_COLD_MACROSTEPS = 32
 _MAX_R4_ENTRY_EVENTS = 3
 _MAX_R4_EVENT_VOCABULARY = 12
+_MAX_R2_PREFIX_EVENTS = 3
+_MAX_R2_EVENT_VOCABULARY = 12
 _STRICT_REBIND_PREDICATES = frozenset({"S4", "S6"})
 
 
@@ -173,6 +178,64 @@ def _state_for_roles(
     if len(refs) != 1:
         return None, "typed contract hints do not resolve to one exact closed ModelIR state"
     return _state_for_ref(pair, next(iter(refs))), "unique typed-contract hint and closed ModelIR resolution"
+
+
+def _event_for_roles(
+    pair: PairInput,
+    contract: NLContract,
+    grounding: Sequence[GroundingResponse],
+    roles: set[str],
+) -> tuple[EventNode | None, str]:
+    """Close one event through exact native-derived identity, never prose similarity."""
+
+    relevant = [
+        binding
+        for response in grounding
+        for binding in response.semantic_bindings
+        if binding.contract_id == contract.contract_id and binding.role in roles
+    ]
+    exact_refs = {
+        binding.model_element_ref
+        for binding in relevant
+        if binding.status == "exact" and binding.model_element_ref is not None
+    }
+    if exact_refs:
+        if len(exact_refs) != 1:
+            return None, "conflicting exact grounding event bindings"
+        event = pair.model.event(next(iter(exact_refs)))
+        return event, "exact grounding semantic binding" if event else "exact binding does not name one native-derived event"
+    if relevant:
+        return None, "grounding explicitly left the required event role ambiguous or unbound"
+    events = {
+        event.ref: event
+        for hint in contract.binding_hints
+        if hint.role in roles
+        for event in (pair.model.event(hint.value),)
+        if event is not None
+    }
+    if len(events) != 1:
+        return None, "typed contract hints do not resolve to one exact native-derived event"
+    return next(iter(events.values())), "unique typed-contract hint and native-derived event resolution"
+
+
+def _native_state_fragment(
+    pair: PairInput,
+    states: Sequence[StateNode],
+    *,
+    require_leaf: bool,
+) -> tuple[bool, str]:
+    """Validate exact state carriers against pyfcstm model classes."""
+
+    try:
+        native = load_native_fcstm(pair.model)
+    except Exception as exc:  # noqa: BLE001 - route failure remains W1.
+        return False, f"native FCSTM load failed: {type(exc).__name__}"
+    resolved = [resolve_state(native, state.canonical_path) for state in states]
+    if any(state is None for state in resolved):
+        return False, "one exact projected state does not resolve to a pyfcstm native State"
+    if require_leaf and any(not state.is_leaf_state for state in resolved if state is not None):
+        return False, "the current native fragment requires exact pyfcstm leaf-state carriers"
+    return True, "pyfcstm native State identity and leaf-state fragment" if require_leaf else "pyfcstm native State identity"
 
 
 def _transition_for_candidate(
@@ -488,6 +551,102 @@ def _run_native_event_prefix(native: object, event_paths: tuple[str, ...]) -> tu
         return None, f"native SimulationRuntime failed while replaying the cold entry prefix: {type(exc).__name__}"
 
 
+def _run_native_stimulus_prefix(
+    native: object,
+    event_paths: tuple[str, ...],
+    stimulus_path: str,
+) -> tuple[bool, str | None]:
+    """Check whether one cold prefix permits exact native stimulus consumption."""
+
+    try:
+        from pyfcstm.simulate import SimulationRuntime
+
+        runtime = SimulationRuntime(native.machine, abstract_error_mode="log")
+        runtime.cycle([])
+        for event_path in event_paths:
+            result = runtime.cycle([event_path])
+            if tuple(result.consumed_events) != (event_path,) or result.unconsumed_events:
+                return False, "an entry-prefix event was not uniquely consumed by native SimulationRuntime"
+        result = runtime.cycle([stimulus_path])
+        consumed = tuple(result.consumed_events) == (stimulus_path,)
+        if not consumed or result.unconsumed_events:
+            return False, "the exact stimulus was not uniquely consumed after this native prefix"
+        return True, None
+    except Exception as exc:  # noqa: BLE001 - no runtime failure becomes a route verdict.
+        return False, f"native SimulationRuntime failed while checking stimulus consumption: {type(exc).__name__}"
+
+
+def _cold_state_after_stimulus_scenario(
+    pair: PairInput,
+    stimulus: EventNode,
+) -> tuple[dict[str, object] | None, list[int] | None, str]:
+    """Build an R2 schedule from a unique target-independent stimulus prefix.
+
+    Prefix selection uses only native event consumption.  It deliberately does
+    not receive the target state, whose truth is evaluated later by the R2
+    backend over the resulting runtime trace.
+    """
+
+    if pair.canonical_source_ir is not None and pair.canonical_source_ir.model.concurrent_regions:
+        return None, None, "R2 does not select one sequential prefix for a model with declared concurrent regions."
+    try:
+        native = load_native_fcstm(pair.model)
+    except Exception as exc:  # noqa: BLE001 - route failure remains W1.
+        return None, None, f"R2 could not load the current FCSTM native model: {type(exc).__name__}."
+    native_stimulus = resolve_event(native, stimulus.canonical_path)
+    if native_stimulus is None:
+        return None, None, "R2 exact stimulus binding does not resolve to one native FCSTM event."
+    event_paths = tuple(sorted(event.path_name for event in all_events(native)))
+    if len(event_paths) > _MAX_R2_EVENT_VOCABULARY:
+        return None, None, f"R2 refuses an event vocabulary larger than {_MAX_R2_EVENT_VOCABULARY}; no arbitrary schedule is selected."
+    stimulus_path = native_stimulus.path_name
+    selected: tuple[str, ...] | None = None
+    failures: list[str] = []
+    for length in range(_MAX_R2_PREFIX_EVENTS + 1):
+        matches: list[tuple[str, ...]] = []
+        for prefix in product(event_paths, repeat=length):
+            consumed, failure = _run_native_stimulus_prefix(native, prefix, stimulus_path)
+            if consumed:
+                matches.append(prefix)
+            elif failure:
+                failures.append(failure)
+        if len(matches) == 1:
+            selected = matches[0]
+            break
+        if len(matches) > 1:
+            return None, None, "R2 found multiple shortest native prefixes that consume the exact stimulus, so it cannot choose a scenario."
+    if selected is None:
+        detail = failures[0] if failures else "no consumable prefix"
+        return None, None, f"R2 found no unique native stimulus-consuming prefix of at most {_MAX_R2_PREFIX_EVENTS} events: {detail}."
+    stimulus_step = len(selected) + 1
+    schedule = [
+        {"step": 0, "event_paths": []},
+        *(
+            {"step": index, "event_paths": [event_path]}
+            for index, event_path in enumerate(selected, start=1)
+        ),
+        {"step": stimulus_step, "event_paths": [stimulus_path]},
+        {"step": stimulus_step + 1, "event_paths": []},
+    ]
+    return (
+        {
+            "schema": "evidence-discovery.fcstm-runtime-scenario.v2",
+            "initialization": "cold",
+            "root_state": state_path(native.machine.root_state),
+            "event_queue": [*selected, stimulus_path],
+            "schedule": schedule,
+            "reason": "One unique shortest native cold prefix permits the exact stimulus to be consumed, followed by one empty observation macrostep; prefix selection is target-independent and does not inspect target-state truth.",
+            "basis": (
+                f"stimulus_ref={stimulus.ref}; native_stimulus={stimulus_path}; "
+                f"entry_event_prefix={list(selected)}; prefix_bound={_MAX_R2_PREFIX_EVENTS}; "
+                "pyfcstm SimulationRuntime consumption replay independent of the R2 target state"
+            ),
+        },
+        [0, stimulus_step + 1],
+        "R2 closed one unique native stimulus-consuming schedule and a trailing observation step without consulting target-state truth.",
+    )
+
+
 def _cold_entry_quiescence_scenario(
     pair: PairInput,
     state: StateNode,
@@ -774,6 +933,58 @@ def _route_candidate(
             f"source={source}; target_ref={target.ref}",
         )
 
+    if property_name in {"universal_reachability", "termination"}:
+        source, source_basis = _state_for_roles(pair, contract, grounding, {"source", "root"})
+        target, target_basis = _state_for_roles(pair, contract, grounding, {"target", "marked", "state"})
+        if source is None or target is None:
+            return candidate, None, "G2 routing requires one exact source and one exact target state.", f"source={source_basis}; target={target_basis}"
+        fragment_ok, fragment_basis = _native_state_fragment(
+            pair, (source,), require_leaf=True
+        )
+        if not fragment_ok:
+            return candidate, None, "G2 routing retains the precise universal-reachability candidate because its native source fragment is not closed.", f"source_ref={source.ref}; target_ref={target.ref}; input_contract_missing/out_of_fragment: {fragment_basis}"
+        return (
+            _routed_candidate(candidate, "G2", {"source": source.canonical_path, "target": target.canonical_path}, (source.ref, target.ref), reason="The primary route bound one exact native leaf source and exact target for the frozen bounded universal-reachability predicate.", basis=f"predicate=G2; source_ref={source.ref}; target_ref={target.ref}; source={source_basis}; target={target_basis}; fragment={fragment_basis}"),
+            "G2",
+            "G2 universal-reachability inputs close through exact current-pair state identities.",
+            f"source_ref={source.ref}; target_ref={target.ref}; {fragment_basis}",
+        )
+
+    if property_name == "route_avoidance":
+        source, source_basis = _state_for_roles(pair, contract, grounding, {"source"})
+        target, target_basis = _state_for_roles(pair, contract, grounding, {"target"})
+        forbidden, forbidden_basis = _state_for_roles(pair, contract, grounding, {"forbidden", "avoid"})
+        if source is None or target is None or forbidden is None:
+            return candidate, None, "G3 routing requires exact source, target, and forbidden state carriers.", f"source={source_basis}; target={target_basis}; forbidden={forbidden_basis}"
+        fragment_ok, fragment_basis = _native_state_fragment(
+            pair, (source, target, forbidden), require_leaf=True
+        )
+        if not fragment_ok:
+            return candidate, None, "G3 routing retains the precise route-avoidance candidate because the native leaf-state fragment is not closed.", f"source_ref={source.ref}; target_ref={target.ref}; forbidden_ref={forbidden.ref}; input_contract_missing/out_of_fragment: {fragment_basis}"
+        return (
+            _routed_candidate(candidate, "G3", {"source": source.canonical_path, "target": target.canonical_path, "forbidden": [forbidden.canonical_path]}, (source.ref, target.ref, forbidden.ref), reason="The primary route bound exact native leaf source, target, and forbidden carriers for route avoidance.", basis=f"predicate=G3; source_ref={source.ref}; target_ref={target.ref}; forbidden_ref={forbidden.ref}; fragment={fragment_basis}"),
+            "G3",
+            "G3 route-avoidance inputs close through three exact native leaf-state identities.",
+            f"source_ref={source.ref}; target_ref={target.ref}; forbidden_ref={forbidden.ref}",
+        )
+
+    if property_name == "coaccessibility":
+        root, root_basis = _state_for_roles(pair, contract, grounding, {"root", "source"})
+        marked, marked_basis = _state_for_roles(pair, contract, grounding, {"marked", "target", "state"})
+        if root is None or marked is None:
+            return candidate, None, "G4 routing requires one exact root and one exact marked state.", f"root={root_basis}; marked={marked_basis}"
+        fragment_ok, fragment_basis = _native_state_fragment(
+            pair, (root, marked), require_leaf=False
+        )
+        if not fragment_ok:
+            return candidate, None, "G4 routing retains the precise coaccessibility candidate because native state identity did not close.", f"root_ref={root.ref}; marked_ref={marked.ref}; input_contract_missing/out_of_fragment: {fragment_basis}"
+        return (
+            _routed_candidate(candidate, "G4", {"roots": root.canonical_path, "marked": marked.canonical_path}, (root.ref, marked.ref), reason="The primary route bound exact native root and marked-state identities for frozen coaccessibility.", basis=f"predicate=G4; root_ref={root.ref}; marked_ref={marked.ref}; fragment={fragment_basis}"),
+            "G4",
+            "G4 coaccessibility inputs close through exact current-pair root and marked identities.",
+            f"root_ref={root.ref}; marked_ref={marked.ref}",
+        )
+
     if property_name == "event_consumption":
         transition, transition_basis = _transition_for_candidate(
             pair, contract, candidate, grounding
@@ -794,6 +1005,27 @@ def _route_candidate(
             "R1",
             "R1 event-consumption inputs close through one exact native event carrier and a unique cold-start runtime scenario.",
             f"transition_ref={transition.ref}; event_ref={event_rows[0].ref}",
+        )
+
+    if property_name == "state_after_stimulus":
+        stimulus, stimulus_basis = _event_for_roles(
+            pair, contract, grounding, {"stimulus", "event", "trigger"}
+        )
+        target, target_basis = _state_for_roles(
+            pair, contract, grounding, {"target", "state"}
+        )
+        if stimulus is None or target is None:
+            return candidate, None, "R2 routing requires one exact native stimulus event and one exact target state.", f"stimulus={stimulus_basis}; target={target_basis}"
+        scenario, window, scenario_reason = _cold_state_after_stimulus_scenario(
+            pair, stimulus
+        )
+        if scenario is None or window is None:
+            return candidate, None, "R2 routing retains the precise state-after-stimulus candidate because a unique target-independent native scenario did not close.", f"stimulus_ref={stimulus.ref}; target_ref={target.ref}; input_contract_missing/out_of_fragment: {scenario_reason}"
+        return (
+            _routed_candidate(candidate, "R2", {"scenario": scenario, "stimulus": stimulus.canonical_path, "state": target.canonical_path, "window": window}, (stimulus.ref, target.ref), reason="The primary route materialized a method-owned native FCSTM stimulus schedule whose prefix selection is independent of the asserted target state.", basis=f"predicate=R2; stimulus_ref={stimulus.ref}; target_ref={target.ref}; stimulus={stimulus_basis}; target={target_basis}; scenario_basis={scenario['basis']}"),
+            "R2",
+            "R2 state-after-stimulus inputs close through an exact native event, target state, and target-independent runtime scenario.",
+            f"stimulus_ref={stimulus.ref}; target_ref={target.ref}; window={window}",
         )
 
     if property_name == "state_retention":

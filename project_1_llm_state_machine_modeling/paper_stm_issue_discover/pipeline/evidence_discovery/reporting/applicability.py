@@ -18,10 +18,17 @@ from ..inputs import load_pair
 from ..registry import load_registry
 from .export import write_json
 
-GLOBAL_PLANNED_PREDICATES = (
+DIAGNOSTIC_PLANNED_PREDICATES = (
     "S1", "S2", "S3", "S4", "S5", "S6",
     "G1", "G4",
     "R1", "R4",
+    "V1", "V4",
+)
+
+FULL_SCALE_PLANNED_PREDICATES = (
+    "S1", "S2", "S3", "S4", "S5", "S6",
+    "G1", "G2", "G3", "G4",
+    "R1", "R2", "R4",
     "V1", "V4",
 )
 
@@ -145,7 +152,7 @@ def build_applicability_matrix(
             "route_baseline": sorted(routes),
             "model_anchors": anchors,
         }
-        for predicate_id in GLOBAL_PLANNED_PREDICATES:
+        for predicate_id in DIAGNOSTIC_PLANNED_PREDICATES:
             predicate = registry.require(predicate_id)
             applicable = predicate_id in routes
             if not applicable:
@@ -177,12 +184,13 @@ def build_applicability_matrix(
             })
     applicable_predicates = sorted({row["predicate_id"] for row in rows if row["status"] == "applicable"})
     payload: dict[str, Any] = {
-        "schema": "evidence-discovery.pair_predicate_applicability.v1",
+        "schema": "evidence-discovery.pair_predicate_applicability.v2",
         "registry_version": registry.version,
         "registry_hash": registry.registry_hash,
         "selected_pair_ids": list(pair_ids),
         "pair_count": len(pair_ids),
-        "global_planned_predicates": list(GLOBAL_PLANNED_PREDICATES),
+        "planned_predicate_scope": "diagnostic-12",
+        "planned_predicates": list(DIAGNOSTIC_PLANNED_PREDICATES),
         "candidate_predicates_e15": applicable_predicates,
         "candidate_predicate_count_e15": len(applicable_predicates),
         "registered_route_baseline": {key: list(value) for key, value in REGISTERED_ROUTE_BASELINE.items() if key in pair_ids},

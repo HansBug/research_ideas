@@ -37,6 +37,12 @@ selection preflight 的 15x12 表只保存固定 12 谓词的通用 capability/s
 
 新的 15-pair 协议稳定后冻结 current，启动一次并发 54 pair x3。新的 live method/Judge run 默认目标为 `--workers 16`；run manifest 必须固定实际 worker 数、provider 限流与重试策略。provider error 只原地重试受影响调用/cell，修复后只重跑失败 cell，禁止为了局部失败串行化、重启或覆盖其他已闭合 artifact。每个 cell 保存 source commit、prompt/schema/registry/input hash、成本与 terminal receipt。报告 overall/L2 `hit@1`、`hit@3`、`hit@all`、precision、FP、FULL expected max-W2、W2/435、15 个 planned predicate execution 与 cost，并与冻结 baseline 和冻结全量参考结果公平对照。
 
+全量 planned 分母固定为 S1、S2、S3、S4、S5、S6、G1、G2、G3、G4、R1、R2、R4、V1、V4，共 15 个；目标至少 13/15 有真实 terminal receipt。reporting 自动将完整 54-pair universe 解析为 `full-scale-15`，其他代表子集必须显式指定该 scope。不得把 15-pair 的 `diagnostic-12`、候选中出现的 ID、preflight row 或实际执行集合代替全量分母；G2/G3/R2 的零执行必须进入 stage-loss 和输入闭包结论。
+
+full-scale stage-loss 必须区分实现可用性与实例闭包：`backend_missing` 只在 frozen predicate 没有 dispatch/backend 时成立，当前 19/19 实现下应为 0；`invalid_input` 进入 `input_contract_missing`，backend 已实现但 soundness fragment 不满足进入 `out_of_fragment`，并另外保留原始 `failure_kinds`。禁止再用 `backend=none` 这个未执行展示值推断 V1/S6 或其他谓词没有 backend。
+
+G2/G3/R2 的局部 route 修复不改谓词定义和 Judge。G2 只路由 exact source/target，当前 source 限于一个 pyfcstm leaf state；G3 要求 exact leaf source/target/forbidden；R2 要求 exact native event/target，并由 `SimulationRuntime` 在不读取 target truth 的前提下搜索唯一最短、最多 3 个事件的 stimulus-consuming cold prefix，追加一个空 observation step 后交给 backend 判断 target。保存输出先做 provider-free A/B；未形成这些闭包时继续 W1，不能制造 scenario 或缩小分母。
+
 method terminal schema 与冻结 Judge adapter 的状态词表不一致时，不修改任一原制品。evaluation 侧建立独立 Pydantic compatibility projection：eligible diagnostic cell 只规范化 adapter status 且 report payload 逐值不变；ineligible failed cell 只提供空发布面，保留固定 expected 分母并产生 `NONE`。未变 cell 以 hash 相同的硬链接复用；恢复 run 只处理缺失 `(round,pair)`，最终 composite 对全部 result/source hash、失败、retry 和成本闭合。
 
 若 54 pair 未达 soft gate，先完成 `contract extraction -> identity binding -> predicate route -> typed inputs -> backend -> W -> D -> publication -> Judge relation` stage-loss，选择 12--15 个代表 pair 做一次局部修复；同一版本不得重复抽样刷结果。

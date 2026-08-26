@@ -12,10 +12,16 @@ import hashlib
 import json
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Literal
 
+from ..compiler.lowering import SUPPORTED_PREDICATES
+from ..inputs import FROZEN_PAIR_IDS
 from ..registry import load_registry
-from .applicability import GLOBAL_PLANNED_PREDICATES
+from .applicability import (
+    DEFAULT_DIAGNOSTIC_PAIRS,
+    DIAGNOSTIC_PLANNED_PREDICATES,
+    FULL_SCALE_PLANNED_PREDICATES,
+)
 from .export import write_json
 
 ALL_FROZEN_PREDICATES = (
@@ -45,6 +51,11 @@ STAGE_OWNERS = {
     "judge_mapping": "external_judge",
 }
 WITNESS_RANK = {"W0": 0, "W1": 1, "W2": 2}
+PlannedPredicateScope = Literal["diagnostic-12", "full-scale-15"]
+PLANNED_PREDICATES_BY_SCOPE: dict[PlannedPredicateScope, tuple[str, ...]] = {
+    "diagnostic-12": DIAGNOSTIC_PLANNED_PREDICATES,
+    "full-scale-15": FULL_SCALE_PLANNED_PREDICATES,
+}
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -83,6 +94,31 @@ def _max_witness_level(rows: Iterable[dict[str, Any]]) -> str | None:
         if row.get("witness_level") in WITNESS_RANK
     ]
     return max(levels, key=WITNESS_RANK.__getitem__) if levels else None
+
+
+def _resolve_planned_predicate_scope(
+    *,
+    pair_ids: tuple[str, ...],
+    requested_scope: PlannedPredicateScope | None,
+    applicability: dict[str, Any] | None,
+) -> tuple[PlannedPredicateScope, tuple[str, ...]]:
+    """Resolve one frozen denominator without shrinking it to observed execution."""
+
+    if requested_scope is not None:
+        return requested_scope, PLANNED_PREDICATES_BY_SCOPE[requested_scope]
+    applicability_scope = applicability.get("planned_predicate_scope") if applicability else None
+    if applicability_scope in PLANNED_PREDICATES_BY_SCOPE:
+        scope = applicability_scope
+        return scope, PLANNED_PREDICATES_BY_SCOPE[scope]
+    pair_set = set(pair_ids)
+    if pair_set == set(FROZEN_PAIR_IDS):
+        return "full-scale-15", FULL_SCALE_PLANNED_PREDICATES
+    if pair_set.issubset(DEFAULT_DIAGNOSTIC_PAIRS):
+        return "diagnostic-12", DIAGNOSTIC_PLANNED_PREDICATES
+    raise ValueError(
+        "planned predicate denominator is ambiguous for this pair subset; "
+        "select diagnostic-12 or full-scale-15 explicitly"
+    )
 
 
 def _method_path(method_root: Path, pair_id: str, round_no: int) -> Path:
@@ -528,6 +564,7 @@ def _predicate_feasibility(
     *,
     method_indexes: dict[tuple[int, str], dict[str, Any]],
     applicability: dict[str, Any] | None,
+    planned_predicates: tuple[str, ...],
 ) -> dict[str, Any]:
     rows = _items(applicability.get("rows")) if applicability else []
     app_by_predicate: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -546,15 +583,25 @@ def _predicate_feasibility(
         applicable_rows = app_by_predicate.get(predicate_id, [])
         not_applicable = sum(row.get("feasibility") == "not_applicable" for row in applicable_rows)
         unsupported = [receipt for receipt in receipts if receipt.get("execution_status") == "unsupported"]
-        input_missing = sum("missing" in str(receipt.get("reason", "")).lower() for receipt in unsupported)
-        backend_missing = sum(receipt.get("backend") in {None, "none"} for receipt in unsupported)
+        failure_kinds = Counter(
+            receipt.get("failure_kind")
+            for receipt in receipts
+            if receipt.get("failure_kind")
+        )
+        input_missing = failure_kinds["invalid_input"]
+        unsupported_backend_failures = failure_kinds["unsupported_backend"]
+        backend_implemented = predicate_id in SUPPORTED_PREDICATES
+        backend_missing = len(unsupported) if not backend_implemented else 0
+        out_of_fragment = unsupported_backend_failures if backend_implemented else 0
         if terminal:
             zero_use_reason = None
         elif unsupported and input_missing:
             zero_use_reason = "input_contract_missing"
-        elif backend_missing and not terminal:
+        elif unsupported and out_of_fragment:
+            zero_use_reason = "out_of_fragment"
+        elif not backend_implemented:
             zero_use_reason = "backend_missing"
-        elif predicate_id not in GLOBAL_PLANNED_PREDICATES:
+        elif predicate_id not in planned_predicates:
             zero_use_reason = "not_planned_in_selected_protocol"
         elif applicable_rows and not_applicable == len(applicable_rows):
             zero_use_reason = "not_applicable_in_selected_pairs"
@@ -562,7 +609,7 @@ def _predicate_feasibility(
             zero_use_reason = "no_method_route_or_contract"
         output[predicate_id] = {
             "predicate_id": predicate_id,
-            "planned_global": predicate_id in GLOBAL_PLANNED_PREDICATES,
+            "planned_in_selected_protocol": predicate_id in planned_predicates,
             "applicable_pair_count": sum(row.get("status") == "applicable" for row in applicable_rows),
             "applicability_feasibility": dict(Counter(row.get("feasibility") for row in applicable_rows)),
             "receipt_count": len(receipts),
@@ -570,8 +617,12 @@ def _predicate_feasibility(
             "executed_pass": pass_count,
             "executed_violation": violation_count,
             "input_contract_missing": input_missing,
+            "out_of_fragment": out_of_fragment,
+            "failure_kinds": dict(failure_kinds),
+            "unsupported_backend_failure_count": unsupported_backend_failures,
+            "backend_implemented": backend_implemented,
             "backend_missing": backend_missing,
-            "outside_selected_planned_denominator": predicate_id not in GLOBAL_PLANNED_PREDICATES,
+            "outside_selected_planned_denominator": predicate_id not in planned_predicates,
             "finding_count": len(evidence),
             "pass_count": pass_count,
             "witness_counts": dict(w_counts),
@@ -625,6 +676,7 @@ def build_stage_loss_audit(
     method_root: str | Path,
     judge_root: str | Path,
     applicability_path: str | Path | None = None,
+    planned_predicate_scope: PlannedPredicateScope | None = None,
 ) -> dict[str, Any]:
     """Build stage-loss, feasibility, and W2 closure artifacts from completed runs."""
 
@@ -689,7 +741,16 @@ def build_stage_loss_audit(
                     )
                 )
     applicability = _load(Path(applicability_path).expanduser().resolve()) if applicability_path else None
-    feasibility = _predicate_feasibility(method_indexes=method_indexes, applicability=applicability)
+    resolved_scope, planned_predicates = _resolve_planned_predicate_scope(
+        pair_ids=pair_ids,
+        requested_scope=planned_predicate_scope,
+        applicability=applicability,
+    )
+    feasibility = _predicate_feasibility(
+        method_indexes=method_indexes,
+        applicability=applicability,
+        planned_predicates=planned_predicates,
+    )
     receipt_rows = [receipt for index in method_indexes.values() for receipt in index["receipts"]]
     evidence_rows = [evidence for index in method_indexes.values() for evidence in index["evidence"]]
     w2_rows = _w2_closure(method_indexes)
@@ -705,6 +766,9 @@ def build_stage_loss_audit(
         "selected_rounds": list(rounds),
         "cell_count": len(method_indexes),
         "pair_count": len(pair_ids),
+        "planned_predicate_scope": resolved_scope,
+        "planned_predicates": list(planned_predicates),
+        "planned_predicate_count": len(planned_predicates),
         "method_summary_path": str((method_root_path / "summary.json").resolve()),
         "judge_pair_paths": judge_pair_paths,
         "method_boundary": "This report is evaluator-side only and is never imported into method prompts or backend routing.",
@@ -740,12 +804,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--method-root", required=True)
     parser.add_argument("--judge-root", required=True)
     parser.add_argument("--applicability", default=None)
+    parser.add_argument(
+        "--planned-predicate-scope",
+        choices=tuple(PLANNED_PREDICATES_BY_SCOPE),
+        default=None,
+    )
     parser.add_argument("--output", required=True)
     args = parser.parse_args(argv)
     payload = build_stage_loss_audit(
         method_root=args.method_root,
         judge_root=args.judge_root,
         applicability_path=args.applicability,
+        planned_predicate_scope=args.planned_predicate_scope,
     )
     write_json(Path(args.output), payload)
     print(json.dumps({"output": str(Path(args.output).resolve()), "artifact_hash": payload["artifact_hash"], "rows": payload["row_count"]}, ensure_ascii=False))

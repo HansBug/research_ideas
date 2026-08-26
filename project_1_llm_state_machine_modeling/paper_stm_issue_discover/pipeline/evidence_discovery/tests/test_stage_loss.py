@@ -4,6 +4,8 @@ import json
 import hashlib
 from pathlib import Path
 
+import pytest
+
 from pipeline.evidence_discovery.reporting.expected_issue_witness import (
     build_expected_issue_witness_audit,
 )
@@ -11,7 +13,15 @@ from pipeline.evidence_discovery.reporting.evaluation_summary import (
     build_evaluation_summary,
 )
 from pipeline.evidence_discovery.reporting.judge_cost_audit import build_judge_cost_audit
-from pipeline.evidence_discovery.reporting.stage_loss import build_stage_loss_audit
+from pipeline.evidence_discovery.inputs import FROZEN_PAIR_IDS
+from pipeline.evidence_discovery.reporting.applicability import (
+    FULL_SCALE_PLANNED_PREDICATES,
+)
+from pipeline.evidence_discovery.reporting.stage_loss import (
+    _predicate_feasibility,
+    _resolve_planned_predicate_scope,
+    build_stage_loss_audit,
+)
 
 
 def _write_fixture(root: Path) -> tuple[Path, Path]:
@@ -228,6 +238,8 @@ def test_stage_loss_audit_keeps_every_external_expected_row(tmp_path: Path) -> N
     assert len(payload["w2_receipt_closure"]) == 1
     assert payload["rows"][0]["judge_disposition"] == "FULL"
     assert payload["rows"][0]["last_method_stage"] == "publish"
+    assert payload["planned_predicate_scope"] == "diagnostic-12"
+    assert payload["planned_predicate_count"] == 12
 
 
 def test_stage_loss_audit_reports_zero_use_without_counting_plans(tmp_path: Path) -> None:
@@ -238,8 +250,66 @@ def test_stage_loss_audit_reports_zero_use_without_counting_plans(tmp_path: Path
     assert feasibility["S2"]["terminal_execution_count"] == 1
     assert feasibility["S2"]["executed_violation"] == 1
     assert feasibility["G2"]["terminal_execution_count"] == 0
-    assert feasibility["G2"]["planned_global"] is False
-    assert feasibility["R3"]["planned_global"] is False
+    assert feasibility["G2"]["planned_in_selected_protocol"] is False
+    assert feasibility["R3"]["planned_in_selected_protocol"] is False
+
+
+def test_invalid_v1_input_is_not_reported_as_a_missing_backend() -> None:
+    feasibility = _predicate_feasibility(
+        method_indexes={
+            (1, "0029"): {
+                "receipts": [
+                    {
+                        "predicate_id": "V1",
+                        "execution_status": "unsupported",
+                        "terminal_state": "unsupported",
+                        "verdict": "unsupported",
+                        "failure_kind": "invalid_input",
+                        "backend": "none",
+                    }
+                ],
+                "evidence": [],
+            }
+        },
+        applicability=None,
+        planned_predicates=FULL_SCALE_PLANNED_PREDICATES,
+    )
+
+    row = feasibility["V1"]
+    assert row["backend_implemented"] is True
+    assert row["backend_missing"] == 0
+    assert row["input_contract_missing"] == 1
+    assert row["failure_kinds"] == {"invalid_input": 1}
+    assert row["zero_use_reason"] == "input_contract_missing"
+
+
+def test_full_pair_universe_uses_the_fixed_fifteen_predicate_denominator() -> None:
+    scope, predicates = _resolve_planned_predicate_scope(
+        pair_ids=FROZEN_PAIR_IDS,
+        requested_scope=None,
+        applicability=None,
+    )
+
+    assert scope == "full-scale-15"
+    assert predicates == FULL_SCALE_PLANNED_PREDICATES
+    assert {"G2", "G3", "R2"}.issubset(predicates)
+
+
+def test_representative_subset_requires_an_explicit_predicate_denominator() -> None:
+    with pytest.raises(ValueError, match="denominator is ambiguous"):
+        _resolve_planned_predicate_scope(
+            pair_ids=("0000", "0004"),
+            requested_scope=None,
+            applicability=None,
+        )
+
+    scope, predicates = _resolve_planned_predicate_scope(
+        pair_ids=("0000", "0004"),
+        requested_scope="full-scale-15",
+        applicability=None,
+    )
+    assert scope == "full-scale-15"
+    assert predicates == FULL_SCALE_PLANNED_PREDICATES
 
 
 def test_stage_loss_audit_does_not_feed_judge_fields_into_method_rows(tmp_path: Path) -> None:
@@ -305,6 +375,8 @@ def test_expected_issue_witness_audit_keeps_full_witness_and_receipt_chain(tmp_p
     assert report["d_level"] == "D2"
     assert report["receipt_chain"]["receipt_hash"] == "sha256:receipt"
     assert "method prompts" in payload["evaluation_boundary"]
+    assert payload["planned_predicate_scope"] == "diagnostic-12"
+    assert payload["planned_predicate_count"] == 12
 
 
 def test_evaluation_summary_keeps_hit_witness_precision_and_stage_loss_separate(tmp_path: Path) -> None:
@@ -318,6 +390,8 @@ def test_evaluation_summary_keeps_hit_witness_precision_and_stage_loss_separate(
     assert pair["full_max_w2_count"] == 1
     assert pair["method_d_levels"] == {"D2": 1}
     assert pair["route_stage_loss"]["non_full_last_method_stage"] == {}
+    assert payload["planned_predicate_scope"] == "diagnostic-12"
+    assert payload["planned_predicate_count"] == 12
 
 
 def test_judge_cost_audit_keeps_unpriced_billable_call_visible(tmp_path: Path) -> None:

@@ -45,6 +45,12 @@ R4 仅在 exact retained state 有唯一最短的 native cold-entry event prefix
 
 15-pair 的固定 planned 分母为 S1、S2、S3、S4、S5、S6、G1、G4、R1、R4、V1、V4。selection preflight 仅保存这 12 个谓词的通用能力、typed schema、语义形状和输入 hash，不包含 ledger、expected、Judge、答案、D/L 或评测字段；它只以 hash/reference 进入 run manifest，不进入 method worker 的 candidate、binding、route 或 backend 输入。未列入该分母的冻结谓词仍全部具有学术资格和 native backend。
 
+54x3 使用另一套冻结分母：S1、S2、S3、S4、S5、S6、G1、G2、G3、G4、R1、R2、R4、V1、V4，共 15 个。evaluation artifact 必须保存 `planned_predicate_scope` 和完整 ID 列表；全量或其后续代表子集均不得按“本轮实际执行了几个”缩小分母。G2、G3、R2 缺少 terminal receipt 时属于待解释的 route/input closure loss，不属于计划外谓词。
+
+reporting 对可行性采用结构化失败口径：`failure_kinds` 保留原 receipt 分类，`input_contract_missing` 仅计 `invalid_input`，`out_of_fragment` 表示 backend 已实现但当前 typed/soundness fragment 未闭合，`backend_missing` 只表示冻结 ID 没有 dispatch 实现。当前 19/19 backend 均已实现，所以不能再根据 `backend=none` 的展示值把 V1 的非法 finite domain、S6 的 prose effect 或其他未执行计划误报为 backend 缺失。
+
+G2/G3/R2 的 primary route 不靠文本图近似。G2 的 exact source 必须落在当前 pyfcstm leaf-state `.fbmcq` fragment，G3 的 source/target/forbidden 必须是 exact native leaf state；R2 从 exact native event 出发，用 `SimulationRuntime` 搜索唯一最短、最多 3 个事件的 stimulus-consuming cold prefix并追加一个空观察步。该搜索不接收或检查 target state，target 仅由 R2 backend 在真实 trace 上求值；任何歧义或运行失败保持 W1。
+
 当前正确的 provider-free A/B artifact ID 是 `f993bb21aa5c39e8a93f8ba1899c29e9`（`evidence-discovery-15x1-primary-route-replay-05699769`）。它只重放保存的最终 `predicate_id=null` W1 evidence（88 条），不使用较宽的辅助 `execute_batch` candidate 集，且 provider/Judge 调用均为 0；20 条候选已完成确定性路由，其中 17 条获得 W2。该 A/B 只报告 route、execution 和 W 的确定性变化，不能代替 hit、precision 或 Judge 评测。
 
 ## 隔离与审计

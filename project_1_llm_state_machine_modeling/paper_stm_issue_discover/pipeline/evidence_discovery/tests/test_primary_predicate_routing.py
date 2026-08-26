@@ -46,6 +46,16 @@ state Root {
 }
 """
 
+_RUNTIME_SOURCE = """
+state Root {
+    state A;
+    state B;
+    state C;
+    [*] -> A;
+    A -> B : Go;
+}
+"""
+
 
 def _hint(role: str, value: str) -> ContractBindingHint:
     """Build one source-side contract hint with complete audit rationale."""
@@ -334,6 +344,196 @@ def test_event_consumption_routes_to_a_native_cold_runtime_scenario() -> None:
     assert routed.predicate_inputs["event"] == event.canonical_path
     assert routed.predicate_inputs["scenario"]["selected_transition_ref"] == transition.ref
     assert projection.telemetry[0].selected_predicate == "R1"
+
+
+def test_universal_reachability_routes_only_from_one_native_leaf() -> None:
+    """G2 receives exact native states and never chooses a leaf for a composite."""
+
+    model = parse_fcstm(_RUNTIME_SOURCE)
+    pair = PairInput(
+        pair_id="fixture-g2",
+        pair_dir=Path("fixture-g2"),
+        nl_text="Every execution from A must reach B.",
+        fcstm_text=_RUNTIME_SOURCE,
+        plantuml_text="",
+        model=model,
+        hashes={},
+    )
+    source = model.state("A")
+    target = model.state("B")
+    assert source is not None and target is not None
+    contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-G2-1",
+        segment_id="NL1",
+        quote="Every execution from A must reach B.",
+        normative_statement="Every bounded execution from exact state A must reach exact state B.",
+        locus_kind="state",
+        locus_names=("A", "B"),
+        property="universal_reachability",
+        expected_direction="must_reach",
+        violation_direction="unreachable",
+        evidence_types=("source_identity", "closed_model_inventory", "reachability_fact"),
+        binding_hints=(_hint("source", "A"), _hint("target", "B")),
+        scope="A to B bounded execution",
+        source_refs=("NL1",),
+        reason="The requirement supplies exact universal-reachability endpoints.",
+        basis="G2 native leaf route fixture",
+    )
+
+    projection = route_primary_candidates(
+        pair,
+        {contract.contract_id: contract},
+        (),
+        [_candidate(contract, [source.ref, target.ref])],
+    )
+    routed = projection.candidates[0]
+    assert routed.predicate_id == "G2"
+    assert routed.predicate_inputs == {
+        "source": source.canonical_path,
+        "target": target.canonical_path,
+    }
+
+    root = next(state for state in model.states if state.parent is None)
+    composite_contract = contract.model_copy(
+        update={
+            "contract_id": "NL-CONTRACT-ROUTE-G2-COMPOSITE-1",
+            "property": "termination",
+            "binding_hints": (_hint("source", root.canonical_path), _hint("target", "B")),
+        }
+    )
+    composite_projection = route_primary_candidates(
+        pair,
+        {composite_contract.contract_id: composite_contract},
+        (),
+        [_candidate(composite_contract, [root.ref, target.ref])],
+    )
+    assert composite_projection.candidates[0].predicate_id is None
+    assert "leaf-state" in composite_projection.telemetry[0].basis
+
+
+def test_route_avoidance_requires_three_exact_native_leaf_states() -> None:
+    """G3 binds source, target, and forbidden identities without text topology."""
+
+    model = parse_fcstm(_RUNTIME_SOURCE)
+    pair = PairInput(
+        pair_id="fixture-g3",
+        pair_dir=Path("fixture-g3"),
+        nl_text="A to B routes must avoid C.",
+        fcstm_text=_RUNTIME_SOURCE,
+        plantuml_text="",
+        model=model,
+        hashes={},
+    )
+    source = model.state("A")
+    target = model.state("B")
+    forbidden = model.state("C")
+    assert source is not None and target is not None and forbidden is not None
+    contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-G3-1",
+        segment_id="NL1",
+        quote="A to B routes must avoid C.",
+        normative_statement="Every A-to-B route must avoid exact state C.",
+        locus_kind="state",
+        locus_names=("A", "B", "C"),
+        property="route_avoidance",
+        expected_direction="must_avoid",
+        violation_direction="other",
+        evidence_types=("source_identity", "closed_model_inventory", "reachability_fact"),
+        binding_hints=(
+            _hint("source", "A"),
+            _hint("target", "B"),
+            _hint("forbidden", "C"),
+        ),
+        scope="A to B route",
+        source_refs=("NL1",),
+        reason="The requirement supplies all three route-avoidance carriers.",
+        basis="G3 native leaf route fixture",
+    )
+
+    projection = route_primary_candidates(
+        pair,
+        {contract.contract_id: contract},
+        (),
+        [_candidate(contract, [source.ref, target.ref, forbidden.ref])],
+    )
+    routed = projection.candidates[0]
+    assert routed.predicate_id == "G3"
+    assert routed.predicate_inputs == {
+        "source": source.canonical_path,
+        "target": target.canonical_path,
+        "forbidden": [forbidden.canonical_path],
+    }
+
+
+def test_state_after_stimulus_uses_target_independent_native_scenario() -> None:
+    """R2 scenario selection uses stimulus consumption, then backend checks target."""
+
+    model = parse_fcstm(_RUNTIME_SOURCE)
+    pair = PairInput(
+        pair_id="fixture-r2",
+        pair_dir=Path("fixture-r2"),
+        nl_text="After Go the system must be in B.",
+        fcstm_text=_RUNTIME_SOURCE,
+        plantuml_text="",
+        model=model,
+        hashes={},
+    )
+    event = model.event("Go")
+    target_b = model.state("B")
+    target_c = model.state("C")
+    assert event is not None and target_b is not None and target_c is not None
+
+    def contract_for(target_name: str, suffix: str) -> NLContract:
+        return NLContract(
+            contract_id=f"NL-CONTRACT-ROUTE-R2-{suffix}",
+            segment_id="NL1",
+            quote=f"After Go the system must be in {target_name}.",
+            normative_statement=f"The exact Go stimulus must leave the system in {target_name}.",
+            locus_kind="scenario",
+            locus_names=("Go", target_name),
+            property="state_after_stimulus",
+            expected_direction="must_reach",
+            violation_direction="wrong_target",
+            evidence_types=("source_identity", "trace_fact"),
+            binding_hints=(_hint("event", "Go"), _hint("target", target_name)),
+            scope="cold native stimulus scenario",
+            source_refs=("NL1",),
+            reason="The requirement supplies one exact event and post-stimulus target.",
+            basis="R2 target-independent native scenario fixture",
+        )
+
+    contract_b = contract_for("B", "TRUE-1")
+    contract_c = contract_for("C", "FALSE-1")
+    routed_candidates = []
+    for contract, target in ((contract_b, target_b), (contract_c, target_c)):
+        projection = route_primary_candidates(
+            pair,
+            {contract.contract_id: contract},
+            (),
+            [_candidate(contract, [event.ref, target.ref])],
+        )
+        routed = projection.candidates[0]
+        assert routed.predicate_id == "R2"
+        routed_candidates.append(routed)
+
+    assert routed_candidates[0].predicate_inputs["scenario"] == routed_candidates[1].predicate_inputs["scenario"]
+    assert "independent" in routed_candidates[0].predicate_inputs["scenario"]["reason"]
+
+    verdicts = []
+    for index, routed in enumerate(routed_candidates, start=1):
+        binding = bind_candidate(routed, pair.model)
+        plan = compile_plan(
+            routed,
+            binding,
+            load_registry(),
+            obligation_id=f"fixture:r2:{index}",
+            round_index=1,
+            model=pair.model,
+        )
+        receipt = run_backend(plan, pair.model, f"fixture:r2:{index}:receipt")
+        assert receipt.terminal_state == "completed"
+        verdicts.append(receipt.verdict)
+    assert verdicts == ["true", "false"]
 
 
 def test_state_retention_distinguishes_generic_window_from_runtime_control() -> None:

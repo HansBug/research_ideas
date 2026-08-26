@@ -5,7 +5,8 @@ from pathlib import Path
 
 from pipeline.evidence_discovery.reporting.applicability import (
     DEFAULT_DIAGNOSTIC_PAIRS,
-    GLOBAL_PLANNED_PREDICATES,
+    DIAGNOSTIC_PLANNED_PREDICATES,
+    FULL_SCALE_PLANNED_PREDICATES,
     build_applicability_matrix,
 )
 from pipeline.evidence_discovery.orchestration.runner import (
@@ -23,7 +24,7 @@ def test_applicability_preflight_is_fixed_15_by_15_and_has_twelve_e15_predicates
 
     assert tuple(payload["selected_pair_ids"]) == DEFAULT_DIAGNOSTIC_PAIRS
     assert payload["pair_count"] == 15
-    assert len(payload["rows"]) == 15 * len(GLOBAL_PLANNED_PREDICATES)
+    assert len(payload["rows"]) == 15 * len(DIAGNOSTIC_PLANNED_PREDICATES)
     assert payload["candidate_predicates_e15"] == [
         "G1", "G4", "R1", "R4", "S1", "S2", "S3", "S4", "S5", "S6", "V1", "V4"
     ]
@@ -44,12 +45,30 @@ def test_applicability_rows_expose_typed_schema_without_execution_or_evaluation_
     }
     assert "method candidate" in s1["reason"]
 
-    assert tuple(payload["global_planned_predicates"]) == GLOBAL_PLANNED_PREDICATES
-    assert len(GLOBAL_PLANNED_PREDICATES) == 12
+    assert payload["planned_predicate_scope"] == "diagnostic-12"
+    assert tuple(payload["planned_predicates"]) == DIAGNOSTIC_PLANNED_PREDICATES
+    assert len(DIAGNOSTIC_PLANNED_PREDICATES) == 12
     forbidden = {"judge", "expected", "answer", "hit", "fp", "precision", "ledger"}
     assert not forbidden.intersection(payload.keys())
     assert not any(forbidden.intersection(item.keys()) for item in rows)
     assert not any(forbidden.intersection(item.keys()) for item in payload["pairs"].values())
+
+
+def test_full_scale_denominator_is_the_fifteen_nonzero_frozen_ledger_mappings() -> None:
+    registry = json.loads(
+        (PAPER_ROOT / "pipeline/evidence_discovery/predicate_registry.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    mapped = tuple(
+        predicate["id"]
+        for family in registry["families"]
+        for predicate in family["predicates"]
+        if predicate["ledger"] > 0
+    )
+
+    assert mapped == FULL_SCALE_PLANNED_PREDICATES
+    assert len(FULL_SCALE_PLANNED_PREDICATES) == 15
 
 
 def test_selection_preflight_reference_validates_hash_and_pair_order(tmp_path: Path) -> None:
