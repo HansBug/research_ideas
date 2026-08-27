@@ -392,6 +392,67 @@ def test_grounding_unresolved_with_exact_binding_is_admitted_as_predicate_null_c
     assert "frozen registry" in admitted[0].reason
 
 
+def test_grounding_unresolved_recovers_unique_native_contract_hint_binding() -> None:
+    """A unique typed contract hint closes W1 binding without a grounding row."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    state = pair.model.states[0]
+    contract = NLContract(
+        contract_id="NL-CONTRACT-NL1-HINT-ONLY-UNRESOLVED",
+        segment_id="NL1",
+        quote="The state must retain its specified behavior.",
+        normative_statement="The exact state must retain the specified behavior.",
+        locus_kind="state",
+        locus_names=(state.name,),
+        property="state_action",
+        state_role="operating_state",
+        expected_direction="must_exist",
+        violation_direction="missing",
+        evidence_types=("source_identity", "action_fact"),
+        binding_hints=(
+            ContractBindingHint(
+                role="state",
+                value=state.canonical_path,
+                source_ref="NL1",
+                reason="The numbered requirement names one exact state locus.",
+                basis="provider-free unique native compatibility projection fixture",
+            ),
+        ),
+        scope=state.canonical_path,
+        source_refs=("NL1",),
+        reason="The fixture supplies an unresolved atomic state-action contract.",
+        basis="provider-free contract-hint unresolved-admission fixture",
+    )
+    response = GroundingResponse(
+        lens="contract_structure_contrast",
+        semantic_bindings=[],
+        unresolved=[
+            GroundingUnresolved(
+                contract_id=contract.contract_id,
+                reason="No frozen predicate was selected for this exact obligation.",
+                basis="the contract retains one unique typed native state hint",
+            ),
+        ],
+        reason="The fixture intentionally omits SemanticBinding rows.",
+        basis="provider-free contract-hint unresolved-admission fixture",
+    )
+
+    admitted, dispositions = _admit_grounding_unresolved(
+        pair,
+        {contract.contract_id: contract},
+        [response],
+        [],
+    )
+
+    assert len(admitted) == 1
+    assert admitted[0].element_refs == [state.ref]
+    assert dispositions[0]["status"] == "admitted_w1"
+    assert dispositions[0]["resolved_contract_hint_roles"] == {
+        "state": [state.ref]
+    }
+    assert "unique native-derived contract-hint resolutions" in admitted[0].basis
+
+
 def test_frontier_unresolved_admission_preserves_exact_w1_w0_and_existing_candidate() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     exact_state = pair.model.states[0]

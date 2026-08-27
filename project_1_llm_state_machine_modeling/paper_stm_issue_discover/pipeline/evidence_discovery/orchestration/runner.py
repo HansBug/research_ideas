@@ -1426,15 +1426,18 @@ def _normalize_grounding_exact_facts(
 def _unresolved_exact_refs(
     pair: PairInput,
     grounding_responses: Sequence[GroundingResponse],
-    contract_id: str,
-) -> tuple[list[str], list[str], list[str]]:
+    contract: NLContract,
+) -> tuple[list[str], list[str], list[str], dict[str, list[str]]]:
     """Collect only exact typed refs for one unresolved contract.
 
     Grounding unresolved rows are not permission to guess from names.  A ref is
     admitted only when the grounding schema marks it ``exact`` and the ref is
-    present in the closed ModelIR.  Conflicting exact refs for the same role
-    are retained as an audit conflict and are excluded from the executable
-    binding, which deterministically leaves the candidate at W0.
+    present in the native-derived compatibility projection. When grounding
+    omitted an otherwise exact binding, a contract's typed state/transition
+    hint may close that same role only through the unique native ref resolver.
+    Conflicting exact refs for the same role are retained as an audit conflict
+    and are excluded from the executable binding, which deterministically
+    leaves the candidate at W0.
     """
 
     model_refs: list[str] = []
@@ -1444,7 +1447,7 @@ def _unresolved_exact_refs(
     refs_by_role: dict[str, set[str]] = {}
     for response in grounding_responses:
         for binding in response.semantic_bindings:
-            if binding.contract_id != contract_id or binding.status != "exact":
+            if binding.contract_id != contract.contract_id or binding.status != "exact":
                 continue
             exact_model_refs = [
                 ref
@@ -1454,6 +1457,23 @@ def _unresolved_exact_refs(
             refs_by_role.setdefault(binding.role, set()).update(exact_model_refs)
             if binding.source_element_ref:
                 source_refs.append(binding.source_element_ref)
+
+    hint_resolutions: dict[str, set[str]] = {}
+    state_hint_roles = {"state", "target", "source", "owner", "scope"}
+    for hint in contract.binding_hints:
+        if hint.role in refs_by_role:
+            continue
+        if hint.role in state_hint_roles:
+            resolved_ref = resolve_state_ref(hint.value, pair.model)
+        elif hint.role == "transition":
+            resolved_ref = resolve_transition_ref(hint.value, pair.model)
+        else:
+            continue
+        if resolved_ref is None or resolved_ref not in model_ref_set:
+            continue
+        refs_by_role.setdefault(hint.role, set()).add(resolved_ref)
+        hint_resolutions.setdefault(hint.role, set()).add(resolved_ref)
+
     for role, refs in sorted(refs_by_role.items()):
         if len(refs) > 1:
             conflicts.append(f"role={role}; refs={sorted(refs)}")
@@ -1463,6 +1483,7 @@ def _unresolved_exact_refs(
         list(dict.fromkeys(model_refs)),
         list(dict.fromkeys(source_refs)),
         conflicts,
+        {role: sorted(refs) for role, refs in sorted(hint_resolutions.items())},
     )
 
 
@@ -1507,8 +1528,8 @@ def _admit_grounding_unresolved(
             continue
         row_reasons = [f"{lens}: {row.reason}" for lens, row in rows]
         row_bases = [f"{lens}: {row.basis}" for lens, row in rows]
-        model_refs, binding_source_refs, conflicts = _unresolved_exact_refs(
-            pair, grounding_responses, contract_id
+        model_refs, binding_source_refs, conflicts, hint_resolutions = _unresolved_exact_refs(
+            pair, grounding_responses, contract
         )
         source_refs = list(
             dict.fromkeys([*contract.source_refs, *binding_source_refs])
@@ -1548,8 +1569,15 @@ def _admit_grounding_unresolved(
                     "binding_status": binding_status,
                     "model_refs": model_refs,
                     "conflicts": conflicts,
+                    "resolved_contract_hint_roles": hint_resolutions,
                     "reason": "An existing candidate already carries this exact typed contract; unresolved rows were retained as supporting audit facts.",
-                    "basis": "; ".join(row_bases),
+                    "basis": "; ".join(
+                        [
+                            *row_bases,
+                            "unique native-derived contract-hint resolutions="
+                            f"{hint_resolutions}",
+                        ]
+                    ),
                 }
             )
             continue
@@ -1585,7 +1613,13 @@ def _admit_grounding_unresolved(
             basis=(
                 f"contract={contract.contract_id}; binding_status={binding_status}; "
                 f"model_refs={model_refs}; conflicts={conflicts}; "
-                + "; ".join(row_bases)
+                + "; ".join(
+                    [
+                        *row_bases,
+                        "unique native-derived contract-hint resolutions="
+                        f"{hint_resolutions}",
+                    ]
+                )
             ),
         )
         admitted.append(candidate)
@@ -1597,6 +1631,7 @@ def _admit_grounding_unresolved(
                 "model_refs": model_refs,
                 "source_refs": source_refs,
                 "conflicts": conflicts,
+                "resolved_contract_hint_roles": hint_resolutions,
                 "candidate_property": contract.property,
                 "reason": candidate.reason,
                 "basis": candidate.basis,
@@ -2161,16 +2196,18 @@ def _merge_grounding_contracts(
 
 def _contract_completion_required(
     pair: PairInput,
-    contracts: NLContractResponse,
+    _contracts: NLContractResponse,
 ) -> bool:
-    """Return the structural under-extraction signal for one primary response.
+    """Return whether one bounded property-coverage pass must run.
 
-    This deliberately uses only response and numbered-NL cardinalities. It is a
-    trigger for a sparse LLM self-correction, not a semantic validator and not
-    a conclusion that every segment should yield one contract.
+    A primary response can contain many contracts while still omitting an
+    independent obligation from one of the same numbered NL segments. Contract
+    count is therefore not a coverage proof. Every successful live primary
+    extraction with numbered NL receives exactly one additive correction call;
+    typed semantic-key union remains the deterministic admission boundary.
     """
 
-    return len(contracts.contracts) < len(pair.nl_segments)
+    return bool(pair.nl_segments)
 
 
 def _typed_semantic_key_json(value: Any) -> str:
@@ -4047,6 +4084,7 @@ def _method_cell(
 
     contract_completion_prompt: str | None = None
     contract_completion_diagnostics: list[dict[str, Any]] = []
+    contract_completion_merge_dispositions: list[dict[str, Any]] = []
     contract_completion_output: dict[str, Any] = {
         "triggered": False,
         "primary_contract_count": len(contract_response.contracts),
@@ -4054,8 +4092,9 @@ def _method_cell(
         "response": None,
         "admitted_contract_ids": [],
         "admitted_transition_group_ids": [],
-        "reason": "The primary typed contract response did not meet the deterministic sparse-completion trigger, or was not a successful real provider response.",
-        "basis": "primary response contract count, numbered-NL segment count, and public runtime provenance",
+        "merge_dispositions": [],
+        "reason": "The bounded property-coverage pass was not run because the primary extraction was not a successful real provider response.",
+        "basis": "public runtime provenance and numbered-NL availability",
     }
     contract_completion_outcome: StructuredCallOutcome[ContractCompletionResponse] | None = None
     if (
@@ -4085,28 +4124,41 @@ def _method_cell(
             else None
         )
         if contract_completion_outcome.succeeded:
-            contract_response, contract_completion_diagnostics = _merge_contract_completion(
+            contract_response, contract_completion_merge_dispositions = _merge_contract_completion(
                 pair,
                 contract_response,
                 contract_completion_outcome.response,
             )
+            contract_completion_diagnostics = [
+                item
+                for item in contract_completion_merge_dispositions
+                if item["class"]
+                in {
+                    "unknown_completion_contract_segment",
+                    "completion_contract_id_collision",
+                    "unknown_completion_group_segment",
+                    "completion_group_id_collision",
+                }
+            ]
+            all_errors.extend(contract_completion_diagnostics)
             contract_response = materialize_segment_coverage(
                 contract_response,
                 [segment.segment_id for segment in pair.nl_segments],
             )
             contract_completion_output.update(
                 {
+                    "merge_dispositions": contract_completion_merge_dispositions,
                     "admitted_contract_ids": [
                         item["canonical_contract_id"]
-                        for item in contract_completion_diagnostics
+                        for item in contract_completion_merge_dispositions
                         if item["class"] == "admitted_completion_contract"
                     ],
                     "admitted_transition_group_ids": [
                         item["canonical_group_id"]
-                        for item in contract_completion_diagnostics
+                        for item in contract_completion_merge_dispositions
                         if item["class"] == "admitted_completion_transition_group"
                     ],
-                    "reason": "The sparse completion response was unioned only through exact typed identities; the primary contract plan was preserved.",
+                    "reason": "The bounded property-coverage response was unioned only through exact typed identities; the primary contract plan was preserved.",
                     "basis": "ContractSemanticKey/TransitionGroupSemanticKey equality, canonical IDs, and the immutable primary response",
                 }
             )
@@ -4118,13 +4170,13 @@ def _method_cell(
                 {
                     "stage": "contract_completion",
                     "error": completion_error,
-                    "reason": "The sparse completeness call failed; the successful primary contract response remains available without fabricated additions.",
+                    "reason": "The bounded property-coverage call failed; the successful primary contract response remains available without fabricated additions.",
                     "basis": "public structured runtime outcome and no-primary-overwrite fallback",
                 }
             )
             contract_completion_output.update(
                 {
-                    "reason": "The sparse completion call failed and the primary contract response was retained unchanged.",
+                    "reason": "The bounded property-coverage call failed and the primary contract response was retained unchanged.",
                     "basis": "public structured runtime failure receipt and no-fabricated-addition rule",
                 }
             )

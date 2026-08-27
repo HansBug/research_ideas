@@ -523,7 +523,7 @@ class NLContractResponse(BaseModel):
 
 
 class ContractCompletionResponse(BaseModel):
-    """Sparse typed additions emitted by the in-node contract completeness pass.
+    """Typed additions emitted by one bounded contract property-coverage pass.
 
     The response never replaces the primary NL contract plan. It can only add
     independently violable obligations or transition groups which the current
@@ -568,7 +568,7 @@ class ContractCompletionResponse(BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_sparse_completion_ids(self) -> ContractCompletionResponse:
+    def validate_completion_ids(self) -> ContractCompletionResponse:
         """Reject only duplicate response-local IDs without interpreting prose."""
 
         contract_ids = [item.contract_id for item in self.additional_contracts]
@@ -1768,11 +1768,10 @@ def build_contract_completion_prompt(
     round_index: int,
     primary_contracts: NLContractResponse,
 ) -> str:
-    """Build one sparse in-node correction prompt for clear under-extraction.
+    """Build one bounded in-node correction prompt for property coverage.
 
-    The deterministic caller is responsible for deciding that a correction is
-    warranted. This prompt asks only for additions, preserving the successful
-    primary response rather than asking a second model call to regenerate it.
+    This prompt asks only for additions, preserving the successful primary
+    response rather than asking a second model call to regenerate it.
     """
 
     context = prompt_context_payload(pair, stage="nl_contract_extraction")
@@ -1780,18 +1779,24 @@ def build_contract_completion_prompt(
 
 Stage: contract-completion-correction
 Round: {round_index}
-The primary contract extraction returned fewer atomic contracts than supplied
-numbered NL segments. This is an in-node completeness correction, not a new
-method round and not a model-satisfaction check. Use only the supplied
-numbered NL, source context, and primary typed plan. Do not read or infer a
-ledger, expected issue, Judge result, historical report, score, W/D/L level, or
-another pair.
+This is one bounded in-node property-coverage correction, not a new method
+round and not a model-satisfaction check. A numbered NL segment may establish
+multiple independently violable obligations even when the primary typed plan
+already has many contracts. Use only the supplied numbered NL, source context,
+and primary typed plan. Do not read or infer a ledger, expected issue, Judge
+result, historical report, score, W/D/L level, or another pair.
 
 Return only independently violable obligations or complete transition groups
 that the current NL establishes but the primary plan omitted. Do not repeat,
 edit, merge, weaken, or replace any existing contract/group. Preserve complete
 source, target, owner/scope, event, guard, effect/output, lifecycle role,
 member set/count, and transition-group roles where the NL establishes them.
+Check independently whether the current NL establishes cardinality/member-set,
+owner-local entry, source/target endpoint, event, guard, effect/output,
+lifecycle action, event-consumer coverage, transition group, progress, or
+termination obligations not already represented by the primary typed identity.
+One retained property never substitutes for another merely because the carrier
+or domain vocabulary is similar.
 When no additional typed obligation is justified, return empty lists with a
 non-empty reason and basis. A coarse satisfied predicate check cannot erase an
 exact obligation retained here.

@@ -122,7 +122,7 @@ class FixtureStructuredRuntime:
                 additional_contracts=[],
                 additional_transition_groups=[],
                 reason="The provider-free completion fixture adds no semantic obligation.",
-                basis="provider-free sparse completion fixture",
+                basis="provider-free bounded completion fixture",
             )
         elif issubclass(schema, GroundingResponse):
             pair = load_pair(REPORT_ROOT / "pairs" / pair_id)
@@ -386,11 +386,11 @@ def test_contract_fallback_preserves_all_numbered_nl_without_merge_protocol() ->
     assert fallback.reason and fallback.basis
 
 
-def test_sparse_contract_completion_unions_new_typed_rows_without_overwrite() -> None:
+def test_contract_completion_unions_new_typed_rows_without_overwrite() -> None:
     """A low-count primary plan retains its rows while adding one new typed key."""
 
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
-    fallback = fallback_contracts(pair, "provider-free sparse completion fixture")
+    fallback = fallback_contracts(pair, "provider-free bounded completion fixture")
     primary = fallback.model_copy(
         update={
             "contracts": [fallback.contracts[0]],
@@ -404,7 +404,7 @@ def test_sparse_contract_completion_unions_new_typed_rows_without_overwrite() ->
         additional_contracts=[additional],
         additional_transition_groups=[],
         reason="The fixture supplies one independent omitted numbered-NL contract.",
-        basis="provider-free sparse completion fixture",
+        basis="provider-free bounded completion fixture",
     )
 
     assert _contract_completion_required(pair, primary) is True
@@ -424,7 +424,7 @@ def test_sparse_contract_completion_unions_new_typed_rows_without_overwrite() ->
     ]
 
 
-def test_sparse_contract_completion_deduplicates_exact_primary_identity() -> None:
+def test_contract_completion_deduplicates_exact_primary_identity() -> None:
     """A completion response cannot revise a primary contract under a new ID."""
 
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
@@ -451,14 +451,39 @@ def test_sparse_contract_completion_deduplicates_exact_primary_identity() -> Non
     assert diagnostics[0]["class"] == "duplicate_completion_contract_semantic_key"
 
 
+def test_contract_completion_checks_property_coverage_for_high_count_primary_plan() -> None:
+    """Multiple primary contracts never prove every independent NL property is present."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    fallback = fallback_contracts(pair, "provider-free high-count completion fixture")
+    extra_property = fallback.contracts[0].model_copy(
+        update={
+            "contract_id": "NL-CONTRACT-NL1-INDEPENDENT-PROPERTY",
+            "property": "state_action",
+            "state_role": "operating_state",
+            "evidence_types": ("action_fact",),
+        }
+    )
+    primary = fallback.model_copy(
+        update={"contracts": [*fallback.contracts, extra_property]}
+    )
+
+    assert len(primary.contracts) >= len(pair.nl_segments)
+    assert extra_property.property != fallback.contracts[0].property
+    assert _contract_completion_required(pair, primary) is True
+    prompt = build_contract_completion_prompt(pair, 1, primary)
+    assert "property-coverage correction" in prompt
+    assert "multiple independently violable obligations" in prompt
+
+
 def test_real_low_count_contract_extraction_runs_one_completion_without_overwrite(
     tmp_path: Path,
 ) -> None:
-    """A live-provenance sparse primary plan gets one additive correction call."""
+    """A live-provenance primary plan gets one additive correction call."""
 
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
 
-    class LiveSparseCompletionRuntime(FixtureStructuredRuntime):
+    class LiveCompletionRuntime(FixtureStructuredRuntime):
         """Return deterministic typed rows while exercising real-call provenance."""
 
         def call(self, **kwargs):
@@ -481,7 +506,7 @@ def test_real_low_count_contract_extraction_runs_one_completion_without_overwrit
                 )
             return outcome.model_copy(update={"real_llm": True})
 
-    runtime = LiveSparseCompletionRuntime()
+    runtime = LiveCompletionRuntime()
     cell = _method_cell(
         pair=pair,
         round_index=1,
@@ -493,7 +518,15 @@ def test_real_low_count_contract_extraction_runs_one_completion_without_overwrit
     completion = cell["stage_outputs"]["contract_completion"]
     assert completion["triggered"] is True
     assert len(completion["admitted_contract_ids"]) == 1
+    assert completion["merge_dispositions"][0]["class"] == "admitted_completion_contract"
     assert len(cell["stage_outputs"]["contract_extraction"]["contracts"]) == 1
+    completion_receipt = next(
+        item
+        for item in cell["stage_receipts"]
+        if item["stage_name"] == "contract_completion"
+    )
+    assert completion_receipt["status"] == "completed"
+    assert completion_receipt["diagnostics"] == []
     grounding_prompts = [
         prompt
         for kind, prompt in runtime.prompts
@@ -505,6 +538,64 @@ def test_real_low_count_contract_extraction_runs_one_completion_without_overwrit
         for prompt in grounding_prompts
     )
     assert cell["status"] == "completed"
+
+
+def test_contract_completion_unknown_segment_is_a_cell_diagnostic(
+    tmp_path: Path,
+) -> None:
+    """Only an invalid completion identity propagates beyond merge audit."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+
+    class LiveInvalidCompletionRuntime(FixtureStructuredRuntime):
+        """Return one completion row outside the current numbered-NL closure."""
+
+        def call(self, **kwargs):
+            outcome = super().call(**kwargs)
+            if kwargs["schema"] is ContractCompletionResponse:
+                invalid = fallback_contracts(
+                    pair,
+                    "provider-free invalid completion segment fixture",
+                ).contracts[0].model_copy(
+                    update={
+                        "contract_id": "NL-CONTRACT-NL999-OUTSIDE-CLOSURE",
+                        "segment_id": "NL999",
+                    }
+                )
+                return outcome.model_copy(
+                    update={
+                        "response": ContractCompletionResponse(
+                            additional_contracts=[invalid],
+                            additional_transition_groups=[],
+                            reason="The fixture intentionally violates segment closure.",
+                            basis="provider-free invalid completion segment fixture",
+                        ),
+                        "real_llm": True,
+                    }
+                )
+            return outcome.model_copy(update={"real_llm": True})
+
+    cell = _method_cell(
+        pair=pair,
+        round_index=1,
+        runtime=LiveInvalidCompletionRuntime(),
+        output_root=tmp_path,
+    )
+
+    completion_receipt = next(
+        item
+        for item in cell["stage_receipts"]
+        if item["stage_name"] == "contract_completion"
+    )
+    assert completion_receipt["status"] == "completed_with_diagnostics"
+    assert completion_receipt["diagnostics"][0]["class"] == (
+        "unknown_completion_contract_segment"
+    )
+    assert cell["status"] == "completed_with_diagnostics"
+    assert any(
+        item.get("class") == "unknown_completion_contract_segment"
+        for item in cell["errors"]
+    )
 
 
 def test_representative_diagnostic_cases_have_complete_input_closure() -> None:
