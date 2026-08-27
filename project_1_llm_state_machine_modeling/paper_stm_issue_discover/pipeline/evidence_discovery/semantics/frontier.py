@@ -4725,19 +4725,13 @@ def _materialize_inspection_diagnostics(
             target = _inspection_target_state(pair, fact)
             if owner is None or target is None:
                 continue
-            # A conditional child initial edge is still an auditable carrier
-            # when the NL contract describes the bound child scope but does
-            # not separately name that initial edge.  Keep the scope contract
-            # as provenance and derive the structural initial-entry obligation
-            # from the exact inspection fact.
             if contract is None:
-                contract = _inspection_scope_contract(
-                    pair, contracts, grounding_responses, owner
-                )
-            if contract is None:
+                # An inspection diagnostic is an observed FCSTM fact, not a
+                # source-side initial-entry obligation.  A containment, action,
+                # cardinality, or generic scope contract cannot be relabelled
+                # as an unconditional owner-local entry requirement.
                 continue
-            is_fallback_anchor = contract.property != "initial_entry"
-            if not is_fallback_anchor and any(
+            if any(
                 item.kind == "owner_initial_entry"
                 and contract.contract_id in item.source_contract_ids
                 for item in builder.obligations
@@ -4746,14 +4740,6 @@ def _materialize_inspection_diagnostics(
                 # the inspection diagnostic is supporting evidence, not a
                 # second report for the same atomic obligation.
                 continue
-            normative_statement = (
-                contract.normative_statement
-                if not is_fallback_anchor
-                else (
-                    f"The owner-local initial entry of {owner.name} must enter "
-                    f"{target.name} without a trigger or guard."
-                )
-            )
             derived = _derived_contract(
                 contract,
                 locus_kind="composite",
@@ -4771,22 +4757,13 @@ def _materialize_inspection_diagnostics(
                         ]
                     )
                 ),
-                normative_statement=normative_statement,
-                scope=(
-                    contract.scope
-                    if not is_fallback_anchor
-                    else f"Owner-local initial entry of {owner.name}"
-                ),
+                normative_statement=contract.normative_statement,
+                scope=contract.scope,
                 source_refs=contract.source_refs,
                 reason="An exact initial-entry carrier is conditional, so it does not establish the required unconditional owner-local entry.",
                 basis=(
                     "typed initial-entry contract plus inspection-equivalent "
                     "INITIAL_ENTRY_CONDITIONAL fact"
-                    if not is_fallback_anchor
-                    else (
-                        "typed scope anchor plus inspection-equivalent "
-                        "INITIAL_ENTRY_CONDITIONAL fact"
-                    )
                 ),
             )
             derived = derived.model_copy(
@@ -5081,7 +5058,13 @@ def _materialize_inspection_diagnostics(
         )
         if scope is None:
             continue
-        contract = _inspection_scope_contract(pair, contracts, grounding_responses, scope)
+        contract = _inspection_scope_contract(
+            pair,
+            contracts,
+            grounding_responses,
+            scope,
+            allowed_properties=frozenset({"guard_disjointness"}),
+        )
         if contract is None:
             continue
         targets = [
@@ -5142,7 +5125,7 @@ def _materialize_inspection_diagnostics(
             (contract.contract_id,),
             derived,
             candidate,
-            reason="The existing scope contract anchors a deterministic same-event/guard collision frontier.",
+            reason="The explicit guard-disjointness contract anchors a deterministic same-event/guard collision frontier.",
             basis="owned inspection transition grouping; no ledger or expected-specific input",
         )
 

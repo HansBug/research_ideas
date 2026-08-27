@@ -49,6 +49,8 @@ W2 的归因链至少包含当前 NL、PlantUML、canonical source IR、FCSTM、
 
 主链固定为 `typed contract -> compatible predicate set -> exact input binder -> compiler -> native backend`。route 只可读取当前 pair 的 NL、PlantUML、canonical source IR、FCSTM、inspect-equivalent facts、working contracts 与封闭 `ModelIR`；不得读取 ledger expected、Judge、答案、其他 pair 输出或 `pair_id` 特判。
 
+inspection-equivalent、verify、SMT 与 native topology 只提供当前制品的观察事实，不能自行创造 source-side 规范义务。尤其 `INITIAL_ENTRY_CONDITIONAL` 只有在同一 owner/target 已有精确 `initial_entry` contract 时才可形成 initial-entry 或其 exact-carrier S3 finding；containment、cardinality、state action 或泛 scope contract 只能作为审计上下文。相同地，同 event/guard 多目标事实只有在 NL 已明确 `guard_disjointness` contract 时才可形成 V1/guard-disjointness frontier；不得从任意 scope、事件消费或 action contract 推出互斥义务。未被同属性 contract 规范化的 native fact 必须保留 audit，而不是发布候选。
+
 LLM 已填写的 `predicate_id` 也不是执行准入。尤其 S4 与 S6 必须由同一 exact input binder 重建：S4 只能闭合为独立的 native state、`entry/do/exit` lifecycle slot 和 action；S6 必须闭合为 exact native transition carrier 与可由 pyfcstm operation grammar 解析的单一 effect。任一项未闭合时清除该执行计划，保留原精确语义候选为 W1；不得把自然语言动作、事件名、状态名或业务阶段当作 action/effect/phase 执行。
 
 R4 的默认 method-owned fragment 也不得伪造 trace：它只接受精确 retained state 的唯一最短 native cold-entry event prefix，再追加一个零事件 macrostep；全部 event queue、schedule、interval 与实际 active state 均由 pyfcstm `SimulationRuntime` 重放。多个同长路径、guard/运行失败、超出小型 event vocabulary/bound 或未到达目标时不选择方便样本，保留 W1。显式 `scenario=cold` 与 `window=cold_macrosteps=N` 仍按其原样闭合。

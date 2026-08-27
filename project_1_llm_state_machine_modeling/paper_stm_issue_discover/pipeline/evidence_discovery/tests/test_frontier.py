@@ -3718,7 +3718,7 @@ def test_inspection_projection_admits_leaf_from_exact_parent_scope_anchor() -> N
     assert leaf.candidate.reason and leaf.candidate.basis
 
 
-def test_inspection_projection_anchors_child_initial_edges_to_exact_scope_contracts() -> None:
+def test_inspection_projection_does_not_invent_initial_entry_from_scope_contracts() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0002")
     contracts = [
         _contract(
@@ -3744,44 +3744,46 @@ def test_inspection_projection_anchors_child_initial_edges_to_exact_scope_contra
         (),
     )
 
-    initial_edges = [
-        item.candidate
-        for item in batch.obligations
-        if item.kind == "owner_initial_entry"
+    assert not any(
+        item.kind == "owner_initial_entry"
         and "INITIAL_ENTRY_CONDITIONAL" in item.candidate.basis
-    ]
-    assert {
-        tuple(item.element_refs)
-        for item in initial_edges
-    } == {
-        (
-            pair.model.state(owner).ref,
-            pair.model.state(target).ref,
-            transition_ref,
-        )
-        for owner, target, transition_ref in (
-            ("PumpState", "RunningState", "transition:line:10"),
-            ("WaterState", "MonitoringWaterFlow", "transition:line:16"),
-            ("MethaneState", "MonitoringMethaneFlow", "transition:line:22"),
-        )
-    }
-    assert all(item.reason and item.basis for item in initial_edges)
-    trigger_candidates = [
-        item.candidate
         for item in batch.obligations
-        if item.kind == "initial_entry_trigger_set"
-    ]
-    assert {
-        (item.predicate_inputs["transition"], tuple(item.predicate_inputs["triggers"]))
-        for item in trigger_candidates
-    } == {
-        ("transition:line:10", ()),
-        ("transition:line:16", ()),
-        ("transition:line:22", ()),
-    }
-    assert all(item.predicate_id == "S3" for item in trigger_candidates)
-    assert all(item.property == "trigger_set" for item in trigger_candidates)
-    assert all("NL1" in item.source_refs for item in trigger_candidates)
+    )
+    assert not any(
+        item.kind == "initial_entry_trigger_set"
+        for item in batch.obligations
+    )
+
+
+def test_inspection_collision_requires_explicit_guard_disjointness_contract() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0056")
+    action = _contract(
+        contract_id="NL-CONTRACT-NL2-SEARCH-ACTION",
+        segment_id="NL2",
+        locus_kind="action",
+        locus_names=("SearchState", "target search tasks"),
+        property_name="state_action",
+        expected_direction="must_occur",
+        violation_direction="other",
+        hints=(
+            _hint("scope", "SearchState", "NL2"),
+            _hint("action", "target search tasks", "NL2"),
+        ),
+        state_role="operating_state",
+    )
+
+    batch = materialize_typed_frontier(
+        pair,
+        _response([action]),
+        {action.contract_id: action},
+        (),
+        (),
+    )
+
+    assert not any(
+        item.kind == "transition_group_collision"
+        for item in batch.obligations
+    )
 
 
 def test_inspection_projection_materializes_zero_trigger_completion_edge() -> None:
