@@ -29,6 +29,7 @@ from pipeline.evidence_discovery.semantics import (
     StageReceipt,
     build_contract_prompt,
     build_d_adjudication_batches,
+    build_d_correction_prompt,
     build_d_adjudication_prompt,
     fallback_contracts,
 )
@@ -1017,6 +1018,25 @@ def test_d_duplicate_id_is_targeted_and_valid_decisions_remain_frozen(
     )
     assert 'duplicate_ids_to_repair:\n["0000:r1:i0"]' in correction_prompt
     assert '"obligation_id": "0000:r1:i0"' in correction_prompt
+
+
+def test_d_correction_prompt_uses_one_unambiguous_repair_id_contract() -> None:
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    prompt = build_d_correction_prompt(
+        pair,
+        [
+            {"obligation_id": "0000:r1:i0"},
+            {"obligation_id": "0000:r1:i5"},
+        ],
+        missing_ids=["0000:r1:i5"],
+        duplicate_ids=["0000:r1:i0"],
+        extra_ids=[],
+    )
+
+    assert 'repair_ids:\n["0000:r1:i0", "0000:r1:i5"]' in prompt
+    assert "Return decisions\nonly for the repair IDs below" in prompt
+    assert "only for the missing IDs below" not in prompt
+    assert "Return exactly one decision for every ID in repair_ids" in prompt
 
 
 def test_d_prompt_keeps_raw_fbmcq_formulas_receipt_only() -> None:

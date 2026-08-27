@@ -1906,6 +1906,7 @@ def build_d_correction_prompt(
 
     invalid_decisions = invalid_decisions or {}
     repair_ids = set(missing_ids) | set(duplicate_ids) | set(invalid_decisions)
+    ordered_repair_ids = sorted(repair_ids)
     selected = [
         dossier
         for dossier in dossiers
@@ -1916,7 +1917,11 @@ def build_d_correction_prompt(
 Stage: d_adjudication_correction
 The previous structured response violated the exact obligation coverage contract.
 This is an in-node contract correction, not a new method round. Return decisions
-only for the missing IDs below, preserving their exact spelling:
+only for the repair IDs below, preserving their exact spelling. A duplicate ID
+requires a replacement decision just as a missing ID does.
+
+repair_ids:
+{json.dumps(ordered_repair_ids, ensure_ascii=False)}
 
 missing_ids:
 {json.dumps(missing_ids, ensure_ascii=False)}
@@ -1930,11 +1935,11 @@ extra_ids_to_ignore:
 Correction dossiers:
 {json.dumps([_compact_dossier(item) for item in selected], ensure_ascii=False, sort_keys=True, indent=2)}
 
-Return exactly one decision per repair ID (the union of missing_ids,
-duplicate_ids_to_repair, and the keys of invalid_decisions). Do not repeat any
-frozen valid decision or any extra ID. If the supplied dossier cannot decide,
-use grounding=unresolved with a non-empty reason and basis. Do not emit W/D/L/L
-levels, evaluation ground truth, scores, or reviewer examples.
+Return exactly one decision for every ID in repair_ids and no decision for any
+other ID. Do not repeat any frozen valid decision or any extra ID. If the
+supplied dossier cannot decide, use grounding=unresolved with a non-empty reason
+and basis. Do not emit W/D/L levels, evaluation ground truth, scores, or
+reviewer examples.
 """
 
 

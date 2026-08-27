@@ -41,7 +41,7 @@ V5 的有限 invariant 允许 counterexample-first incremental execution。请�
 
 D adjudication 不得把 backend receipt 的原始大对象重复送入模型。完整 `.fbmcq` 公式、solver dump 与其他 raw execution payload 永久保留在不可变 execution/audit receipt；D 的 semantic dossier 只携带 typed candidate/binding/plan、terminal verdict、replay witness/trace、算法与阶段 telemetry，以及 raw payload 的 canonical hash、字段名和字符数。这里的“完整 dossier”指每条义务的语义判定事实完整且不被截断，不表示把可由 hash 回指的原始 SMT 文本复制进 prompt。
 
-D dossier 按 `obligation_id` 稳定排序，并按实际序列化字符数在 provider 调用前装入有限批次。单批上限最多按 40,000 estimated tokens 计算，同时受当前 profile context window 的 65% 减去 output/schema reserve 约束；禁止依赖运行时 compact 挽救超预算输入，禁止静默裁剪或拆开单条 dossier。某一完整 dossier 单独仍超预算，或某一批 provider/schema 调用失败时，只将该批 obligation 明确退为 `D_UNRESOLVED`，保留 batch ID、prompt size、budget、call/failure receipt、reason 和 basis；其他成功批次的 D 结果不得被覆盖或重跑。targeted correction 同样只处理对应未闭合 ID，并遵守相同预算与稳定合并规则。
+D dossier 按 `obligation_id` 稳定排序，并按实际序列化字符数在 provider 调用前装入有限批次。单批上限最多按 40,000 estimated tokens 计算，同时受当前 profile context window 的 65% 减去 output/schema reserve 约束；禁止依赖运行时 compact 挽救超预算输入，禁止静默裁剪或拆开单条 dossier。某一完整 dossier 单独仍超预算，或某一批 provider/schema 调用失败时，只将该批 obligation 明确退为 `D_UNRESOLVED`，保留 batch ID、prompt size、budget、call/failure receipt、reason 和 basis；其他成功批次的 D 结果不得被覆盖或重跑。targeted correction 的唯一输入集合为 `repair_ids = missing_ids ∪ duplicate_ids ∪ invalid_decision_ids`，每个 `repair_id` 必须恰好返回一次，不得把“missing IDs”误写为整个修复集合，并遵守相同预算与稳定合并规则。
 
 W2 的归因链至少包含当前 NL、PlantUML、canonical source IR、FCSTM、inspect-equivalent facts、model hash、编译后的 assertion/formal program、program hash 与真实 receipt。bibliography 只作为冻结谓词的 academic provenance metadata 留在 registry 和 audit bundle。
 
