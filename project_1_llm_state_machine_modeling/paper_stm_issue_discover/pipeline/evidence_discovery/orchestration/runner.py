@@ -132,7 +132,7 @@ REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS = (
 METHOD_CELL_SCHEMA = "evidence-discovery.method_cell.v9"
 SUMMARY_SCHEMA = "evidence-discovery.run_summary.v3"
 RUN_MANIFEST_SCHEMA = "evidence-discovery.run_manifest.v3"
-CODE_VERSION = "evidence-discovery-typed-flow.v59-method-only"
+CODE_VERSION = "evidence-discovery-typed-flow.v60-soundness-s2"
 PROMPT_SCHEMA_VERSION = "evidence-discovery-prompts.v47-method-only"
 GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION = (
     "evidence-discovery.grounding-exact-identity-contract.v4"
