@@ -20,6 +20,7 @@ from pipeline.evidence_discovery.semantics.predicate_routing import (
 from pipeline.evidence_discovery.structural_rebind_replay import (
     STRUCTURAL_PREDICATES,
     _merge_saved_frontier_contracts,
+    _saved_selected_structural_contract,
     _summary as structural_rebind_summary,
 )
 
@@ -574,6 +575,141 @@ def test_structural_rebind_summary_rejects_unclosed_w2() -> None:
     summary = structural_rebind_summary("a" * 32, "b" * 32, [record])
     assert STRUCTURAL_PREDICATES == frozenset({"S2", "S3", "S4", "S5", "S6"})
     assert summary["acceptance"]["no_unclosed_or_failed_row_claims_w2"] is False
+
+
+def test_structural_rebind_reconstructs_saved_selected_probe_contract() -> None:
+    """A post-primary S3 probe must not inherit a null primary route row."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0001")
+    transition = next(item for item in pair.model.transitions if item.triggers)
+    trigger = transition.triggers[0]
+    contract = NLContract(
+        contract_id="NL-CONTRACT-REPLAY-SAVED-S3-PROBE-1",
+        segment_id="NL1",
+        quote="The selected transition must retain its exact trigger.",
+        normative_statement="The selected transition must use the declared trigger.",
+        locus_kind="transition",
+        locus_names=(transition.source, transition.target),
+        property="trigger_set",
+        expected_direction="must_equal",
+        violation_direction="mismatched",
+        evidence_types=("source_identity", "transition_fact", "trigger_fact"),
+        binding_hints=(
+            _hint("transition", transition.ref),
+            _hint("event", trigger),
+        ),
+        scope="saved deterministic probe",
+        source_refs=("NL1",),
+        reason="The fixture records a post-primary selected structural probe.",
+        basis="saved selected probe reconstruction regression fixture",
+    )
+    selected_probe = _candidate(contract, [transition.ref]).model_copy(
+        update={
+            "predicate_id": "S3",
+            "predicate_inputs": {
+                "transition": transition.ref,
+                "triggers": [trigger],
+            },
+        }
+    )
+
+    reconstructed = _saved_selected_structural_contract(selected_probe)
+
+    assert reconstructed is not None
+    assert reconstructed.contract_id == selected_probe.contract_id
+    assert reconstructed.segment_id == "NL1"
+    assert reconstructed.expected_direction == "must_equal"
+    assert [item.value for item in reconstructed.binding_hints if item.role == "event"] == [
+        trigger
+    ]
+    assert {item.source_ref for item in reconstructed.binding_hints} == {"NL1"}
+    projection = route_primary_candidates(
+        pair,
+        {reconstructed.contract_id: reconstructed},
+        (),
+        [selected_probe],
+    )
+    assert projection.candidates[0].predicate_id == "S3"
+    assert projection.candidate_telemetry[0].selected_predicate == "S3"
+
+
+def test_structural_rebind_rejects_ambiguous_saved_probe_segment() -> None:
+    """A cross-segment saved probe cannot receive an invented replay segment."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0001")
+    transition = next(item for item in pair.model.transitions if item.triggers)
+    selected_probe = _candidate(
+        NLContract(
+            contract_id="NL-CONTRACT-NL1-NL2-REPLAY-SAVED-S3-PROBE-1",
+            segment_id="NL1",
+            quote="The selected transition must retain its exact trigger.",
+            normative_statement="The selected transition must use the declared trigger.",
+            locus_kind="transition",
+            locus_names=(transition.source, transition.target),
+            property="trigger_set",
+            expected_direction="must_equal",
+            violation_direction="mismatched",
+            evidence_types=("source_identity", "transition_fact", "trigger_fact"),
+            binding_hints=(
+                _hint("transition", transition.ref),
+                _hint("event", transition.triggers[0]),
+            ),
+            scope="cross-segment saved deterministic probe",
+            source_refs=("NL1", "NL2"),
+            reason="The fixture deliberately retains two source segments.",
+            basis="ambiguous saved structural probe reconstruction regression fixture",
+        ),
+        [transition.ref],
+    ).model_copy(
+        update={
+            "predicate_id": "S3",
+            "predicate_inputs": {
+                "transition": transition.ref,
+                "triggers": [transition.triggers[0]],
+            },
+        }
+    )
+
+    assert _saved_selected_structural_contract(selected_probe) is None
+
+
+def test_structural_rebind_preserves_initial_entry_direction() -> None:
+    """Saved S2 initial-entry probes retain must_enter rather than must_exist."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0001")
+    owner = pair.model.states[0]
+    target = pair.model.states[1]
+    selected_probe = _candidate(
+        NLContract(
+            contract_id="NL-CONTRACT-NL7-REPLAY-SAVED-INITIAL-1",
+            segment_id="NL7",
+            quote="The owner must enter the named state through its local initial edge.",
+            normative_statement="The owner has one initial entry to the named state.",
+            locus_kind="composite",
+            locus_names=(owner.name, target.name),
+            property="initial_entry",
+            expected_direction="must_enter",
+            violation_direction="missing",
+            evidence_types=("source_identity", "initial_entry_fact"),
+            binding_hints=(_hint("owner", owner.name), _hint("target", target.name)),
+            scope="saved initial-entry deterministic probe",
+            source_refs=("NL7",),
+            reason="The fixture records one selected local initial-entry probe.",
+            basis="saved initial-entry reconstruction regression fixture",
+        ),
+        [owner.ref, target.ref],
+    ).model_copy(
+        update={
+            "predicate_id": "S2",
+            "predicate_inputs": {"scope": owner.ref, "target": target.ref},
+        }
+    )
+
+    reconstructed = _saved_selected_structural_contract(selected_probe)
+
+    assert reconstructed is not None
+    assert reconstructed.segment_id == "NL7"
+    assert reconstructed.expected_direction == "must_enter"
 
 
 def test_structural_rebind_replay_merges_saved_derived_frontier_contract() -> None:

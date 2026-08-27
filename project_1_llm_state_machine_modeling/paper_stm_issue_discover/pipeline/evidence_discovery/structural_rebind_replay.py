@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import tempfile
 from collections import Counter
@@ -36,13 +37,36 @@ from .route_replay import (
     _saved_candidate_envelopes,
     _source_attribution,
 )
-from .semantics import CandidateIssue, FrontierBatch, bind_candidate, contract_semantic_key
+from .semantics import (
+    CandidateIssue,
+    ContractBindingHint,
+    FrontierBatch,
+    NLContract,
+    bind_candidate,
+    contract_semantic_key,
+)
 from .semantics.predicate_routing import route_primary_candidates
 
 
 STRUCTURAL_REBIND_REPLAY_SCHEMA = "evidence-discovery.structural_rebind_replay.v1"
 STRUCTURAL_REBIND_REPLAY_POLICY_VERSION = "saved-selected-s2-s6-native-rebind.v1"
 STRUCTURAL_PREDICATES = frozenset({"S2", "S3", "S4", "S5", "S6"})
+_STRUCTURAL_PROPERTY_BY_PREDICATE = {
+    "S2": frozenset({"initial_entry", "transition_endpoints"}),
+    "S3": frozenset({"trigger_set"}),
+    "S4": frozenset({"state_action"}),
+    "S5": frozenset({"guard"}),
+    "S6": frozenset({"effect"}),
+}
+_STRUCTURAL_EXPECTED_DIRECTION = {
+    "initial_entry": "must_enter",
+    "transition_endpoints": "must_exist",
+    "trigger_set": "must_equal",
+    "state_action": "must_occur",
+    "guard": "must_equal",
+    "effect": "must_occur",
+}
+_NL_SEGMENT_REF = re.compile(r"(?<![A-Za-z0-9])NL[0-9]+(?:\.[0-9]+)?(?![A-Za-z0-9])")
 # Historical replay must not revive a frontier kind removed after a soundness
 # audit.  This is an input-compatibility boundary only: production FrontierBatch
 # remains strict, and the replay summary exposes every excluded saved item.
@@ -91,6 +115,11 @@ class StructuralRebindReplayRecord(BaseModel):
     contract_id: str = Field(
         min_length=1,
         description="Typed current-pair NL contract used by the deterministic binder.",
+    )
+    contract_origin: Literal[
+        "saved_contract", "saved_selected_candidate", "unavailable"
+    ] = Field(
+        description="Whether replay used an immutable saved NL/frontier contract, reconstructed one replay-only contract from a complete selected structural candidate, or could not obtain a legal contract. The latter never executes.",
     )
     baseline_predicate_id: Literal["S2", "S3", "S4", "S5", "S6"] = Field(
         description="Saved selected structural predicate before current native rebinding.",
@@ -294,6 +323,9 @@ def _record_unclosed(
     baseline: CandidateIssue,
     routed: CandidateIssue,
     telemetry: dict[str, Any],
+    contract_origin: Literal[
+        "saved_contract", "saved_selected_candidate", "unavailable"
+    ],
 ) -> dict[str, Any]:
     """Record an exact but unexecuted structural route without fabricating a verdict."""
 
@@ -307,6 +339,7 @@ def _record_unclosed(
         source_candidate_sha256=_canonical_hash(envelope),
         source_obligation_id=str(envelope["obligation_id"]),
         contract_id=baseline.contract_id,
+        contract_origin=contract_origin,
         baseline_predicate_id=baseline.predicate_id,
         baseline_candidate=baseline.model_dump(mode="json"),
         baseline_plan=envelope.get("plan") if isinstance(envelope.get("plan"), dict) else None,
@@ -363,6 +396,158 @@ def _merge_saved_frontier_contracts(
     return excluded
 
 
+def _saved_selected_structural_contract(
+    candidate: CandidateIssue,
+) -> NLContract | None:
+    """Reconstruct one strict replay-only contract from a selected S2--S6 row.
+
+    Older immutable method artifacts can contain deterministic execution probes
+    appended after the primary route.  Those probes deliberately have no
+    extraction or frontier ``NLContract`` row, but their saved candidate carries
+    the complete typed structural inputs that the original compiler executed.
+    This helper turns that immutable input envelope into a constrained replay
+    contract so the *current* primary route can rebind every native identity.
+    It never infers an input from prose, a model observation, an evaluation
+    artifact, or another candidate.  Any incomplete or property-incoherent row
+    remains unavailable and is recorded as an unexecuted W1/W0 replay row.
+    """
+
+    predicate = candidate.predicate_id
+    if predicate not in STRUCTURAL_PREDICATES:
+        return None
+    if candidate.property not in _STRUCTURAL_PROPERTY_BY_PREDICATE[predicate]:
+        return None
+
+    # The contract ID and supplied source refs are method-owned provenance, not
+    # FCSTM text.  A replay-only contract may use them only when they identify
+    # exactly one numbered requirement segment; cross-segment probes remain
+    # unclosed rather than inheriting an arbitrary NL1 identity.
+    segment_ids = {
+        match
+        for value in (*candidate.source_refs, candidate.contract_id)
+        for match in _NL_SEGMENT_REF.findall(value)
+    }
+    if len(segment_ids) != 1:
+        return None
+    segment_id = next(iter(segment_ids))
+
+    inputs = candidate.predicate_inputs
+
+    def one_string(name: str) -> str | None:
+        value = inputs.get(name)
+        return value if isinstance(value, str) and value.strip() else None
+
+    def one_effect() -> str | None:
+        value = inputs.get("effect")
+        if isinstance(value, str) and value.strip():
+            return value
+        if (
+            isinstance(value, (list, tuple))
+            and len(value) == 1
+            and isinstance(value[0], str)
+            and value[0].strip()
+        ):
+            return value[0]
+        return None
+
+    hints: list[ContractBindingHint] = []
+
+    def hint(role: str, value: str) -> None:
+        hints.append(
+            ContractBindingHint(
+                role=role,
+                value=value,
+                source_ref=segment_id,
+                reason=(
+                    "The immutable selected structural candidate carries this "
+                    "typed input for replay-only native rebinding."
+                ),
+                basis=(
+                    f"candidate_contract={candidate.contract_id}; "
+                    f"predicate={predicate}; input={role}"
+                ),
+            )
+        )
+
+    if predicate == "S2":
+        target = one_string("target")
+        if candidate.property == "initial_entry":
+            owner = one_string("scope")
+            if owner is None or target is None:
+                return None
+            hint("owner", owner)
+            hint("target", target)
+        else:
+            source = one_string("source")
+            if source is None or target is None:
+                return None
+            hint("source", source)
+            hint("target", target)
+    elif predicate == "S3":
+        transition = one_string("transition") or one_string("transition_ref")
+        triggers = inputs.get("triggers")
+        if (
+            transition is None
+            or not isinstance(triggers, (list, tuple))
+            or not all(isinstance(item, str) and item.strip() for item in triggers)
+        ):
+            return None
+        hint("transition", transition)
+        for trigger in triggers:
+            hint("event", trigger)
+    elif predicate == "S4":
+        state = one_string("state")
+        phase = one_string("phase")
+        action = one_string("action")
+        if state is None or phase not in {"entry", "do", "exit"} or action is None:
+            return None
+        hint("state", state)
+        hint("phase", phase)
+        hint("action", action)
+    elif predicate == "S5":
+        transition = one_string("transition") or one_string("transition_ref")
+        guard = one_string("guard") or one_string("expected_guard")
+        if transition is None or guard is None:
+            return None
+        hint("transition", transition)
+        hint("guard", guard)
+    else:
+        transition = one_string("transition") or one_string("transition_ref")
+        effect = one_effect()
+        if transition is None or effect is None:
+            return None
+        hint("transition", transition)
+        hint("effect", effect)
+
+    return NLContract(
+        contract_id=candidate.contract_id,
+        segment_id=segment_id,
+        quote=candidate.requirement_quote,
+        normative_statement=candidate.expected,
+        locus_kind=candidate.locus_kind,
+        locus_names=candidate.locus_names,
+        property=candidate.property,
+        expected_direction=_STRUCTURAL_EXPECTED_DIRECTION[candidate.property],
+        violation_direction=candidate.violation_direction,
+        evidence_types=candidate.evidence_types,
+        binding_hints=tuple(hints),
+        scope=(
+            one_string("scope")
+            or "saved_selected_structural_candidate_replay"
+        ),
+        source_refs=tuple(dict.fromkeys((segment_id, *candidate.source_refs))),
+        reason=(
+            "A complete immutable selected structural candidate lacks a saved "
+            "NL/frontier contract, so replay reconstructs only its typed inputs "
+            "for strict current native rebinding."
+        ),
+        basis=(
+            f"candidate_contract={candidate.contract_id}; predicate={predicate}; "
+            "saved execute_batch candidate inputs; replay-only contract reconstruction"
+        ),
+    )
+
+
 def _record_routed(
     *,
     pair: Any,
@@ -373,6 +558,7 @@ def _record_routed(
     baseline: CandidateIssue,
     routed: CandidateIssue,
     telemetry: dict[str, Any],
+    contract_origin: Literal["saved_contract", "saved_selected_candidate"],
     replay_id: str,
     registry: Any,
 ) -> dict[str, Any]:
@@ -426,6 +612,7 @@ def _record_routed(
         source_candidate_sha256=_canonical_hash(envelope),
         source_obligation_id=str(envelope["obligation_id"]),
         contract_id=baseline.contract_id,
+        contract_origin=contract_origin,
         baseline_predicate_id=baseline.predicate_id,
         baseline_candidate=baseline.model_dump(mode="json"),
         baseline_plan=envelope.get("plan") if isinstance(envelope.get("plan"), dict) else None,
@@ -648,7 +835,32 @@ def run_selected_structural_rebind_replay(
             )
             if len(candidates) != len(envelopes):
                 raise ValueError(f"method cell has a candidate envelope without a candidate object: {method_path}")
-            projection = route_primary_candidates(pair, contracts, grounding, candidates)
+            replay_contracts = dict(contracts)
+            reconstructed_origins: dict[
+                str, Literal["saved_contract", "saved_selected_candidate"]
+            ] = {
+                contract_id: "saved_contract" for contract_id in replay_contracts
+            }
+            candidate_contract_origins: list[
+                Literal["saved_contract", "saved_selected_candidate", "unavailable"]
+            ] = []
+            for baseline in candidates:
+                known_origin = reconstructed_origins.get(baseline.contract_id)
+                if known_origin is not None:
+                    candidate_contract_origins.append(known_origin)
+                    continue
+                reconstructed = _saved_selected_structural_contract(baseline)
+                if reconstructed is None:
+                    candidate_contract_origins.append("unavailable")
+                    continue
+                replay_contracts[reconstructed.contract_id] = reconstructed
+                reconstructed_origins[reconstructed.contract_id] = (
+                    "saved_selected_candidate"
+                )
+                candidate_contract_origins.append("saved_selected_candidate")
+            projection = route_primary_candidates(
+                pair, replay_contracts, grounding, candidates
+            )
             if len(projection.candidate_telemetry) != len(candidates):
                 raise ValueError(
                     f"primary route emitted {len(projection.candidate_telemetry)} candidate telemetry rows for {len(candidates)} candidates in {method_path}"
@@ -666,19 +878,17 @@ def run_selected_structural_rebind_replay(
             ):
                 if baseline.predicate_id not in STRUCTURAL_PREDICATES:
                     continue
+                contract_origin = candidate_contract_origins[index]
                 telemetry = route.model_dump(mode="json")
                 if (
                     route.candidate_index != index
                     or route.contract_id != baseline.contract_id
-                    or route.selected_predicate != routed.predicate_id
                 ):
                     raise ValueError(
                         "primary route candidate telemetry does not match its exact structural replay candidate: "
                         f"index={index}; contract={baseline.contract_id}; "
                         f"telemetry_index={route.candidate_index}; "
-                        f"telemetry_contract={route.contract_id}; "
-                        f"telemetry_selected={route.selected_predicate}; "
-                        f"candidate_selected={routed.predicate_id}"
+                        f"telemetry_contract={route.contract_id}"
                     )
                 if not route.route_attempted:
                     routed = baseline.model_copy(
@@ -694,12 +904,30 @@ def run_selected_structural_rebind_replay(
                             baseline=baseline,
                             routed=routed,
                             telemetry={
-                                "reason": "The saved selected structural candidate has no extraction, grounding, or saved-frontier typed contract available for current native rebinding.",
-                                "basis": "immutable execute_batch candidate plus complete saved contract/frontier contract lookup",
+                                "reason": (
+                                    "The saved selected structural candidate has no "
+                                    "extraction, grounding, saved-frontier, or complete "
+                                    "replay-only typed contract available for current native rebinding."
+                                ),
+                                "basis": (
+                                    "immutable execute_batch candidate plus complete saved "
+                                    "contract/frontier lookup and constrained structural-input "
+                                    "reconstruction"
+                                ),
                             },
+                            contract_origin=contract_origin,
                         )
                     )
                     continue
+                if route.selected_predicate != routed.predicate_id:
+                    raise ValueError(
+                        "attempted primary route telemetry does not match its exact "
+                        "structural replay candidate: "
+                        f"index={index}; contract={baseline.contract_id}; "
+                        f"origin={contract_origin}; "
+                        f"telemetry_selected={route.selected_predicate}; "
+                        f"candidate_selected={routed.predicate_id}"
+                    )
                 if routed.predicate_id is None:
                     records.append(
                         _record_unclosed(
@@ -711,6 +939,7 @@ def run_selected_structural_rebind_replay(
                             baseline=baseline,
                             routed=routed,
                             telemetry=telemetry,
+                            contract_origin=contract_origin,
                         )
                     )
                     continue
@@ -724,6 +953,7 @@ def run_selected_structural_rebind_replay(
                         baseline=baseline,
                         routed=routed,
                         telemetry=telemetry,
+                        contract_origin=contract_origin,
                         replay_id=replay_id,
                         registry=registry,
                     )
