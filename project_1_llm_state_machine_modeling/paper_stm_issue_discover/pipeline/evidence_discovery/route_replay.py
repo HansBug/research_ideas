@@ -34,6 +34,7 @@ from .registry import load_registry
 from .reporting.export import write_json
 from .semantics import (
     CandidateIssue,
+    FrontierBatch,
     GroundingResponse,
     NLContract,
     bind_candidate,
@@ -48,6 +49,7 @@ from .semantics.predicate_routing import (
 ROUTE_REPLAY_SCHEMA = "evidence-discovery.primary_route_replay.v1"
 ROUTE_REPLAY_POLICY_VERSION = "primary-route-current-pair-only.v1"
 METHOD_COMPOSITE_SCHEMA = "evidence-discovery.method-composite.v1"
+RETIRED_HISTORICAL_FRONTIER_KINDS = frozenset({"wrong_scope_route"})
 _IMPLEMENTATION_FILES = (
     Path(__file__),
     Path(__file__).parent / "semantics" / "predicate_routing.py",
@@ -55,6 +57,7 @@ _IMPLEMENTATION_FILES = (
     Path(__file__).parent / "backends" / "fcstm_native.py",
     Path(__file__).parent / "backends" / "trajectory.py",
     Path(__file__).parent / "backends" / "bounded_verification.py",
+    Path(__file__).parent / "semantics" / "frontier.py",
 )
 _REPORT_ROOT = (
     Path(__file__).parent.parent
@@ -137,6 +140,7 @@ class RouteReplaySummary(BaseModel):
     execution_states: dict[str, int] = Field(description="Orthogonal completed/not_attempted/failed distribution for newly routed candidates.")
     witness_levels: dict[str, int] = Field(description="W0/W1/W2 distribution across every historical predicate-null candidate after A/B routing.")
     w2_audit_bundle_count: int = Field(ge=0, description="Count of newly routed W2 records carrying complete audit bundles.")
+    historical_frontier_items_excluded: dict[str, int] = Field(description="Retired historical frontier rows explicitly excluded before schema validation; these rows never reopen current production kinds.")
     per_pair: dict[str, dict[str, Any]] = Field(description="Per-pair route, execution, W, and reason/basis accounting.")
     acceptance: dict[str, bool] = Field(description="Machine-checkable provider, Judge, source-immutability, and W2-audit acceptance results.")
     reason: str = Field(min_length=1, description="Non-empty summary of what the A/B replay measures and does not measure.")
@@ -262,6 +266,53 @@ def _contracts_and_grounding(cell: dict[str, Any]) -> tuple[dict[str, NLContract
             if contract_semantic_key(prior) != contract_semantic_key(contract):
                 raise ValueError(f"conflicting saved contract identity: {contract.contract_id}")
     return contracts, grounding
+
+
+def merge_saved_frontier_contracts(
+    cell: dict[str, Any],
+    contracts: dict[str, NLContract],
+) -> Counter[str]:
+    """Merge saved typed frontier contracts into a provider-free replay index.
+
+    The production runner adds every frontier obligation contract before primary
+    routing. A faithful replay must preserve that same input set rather than
+    falsely treating a candidate backed by the immutable frontier artifact as
+    contractless. Retired historical kinds remain explicit exclusions and are
+    never admitted to the current ``FrontierBatch`` schema.
+    """
+
+    stages = cell.get("stage_outputs")
+    execute_batch = stages.get("execute_batch") if isinstance(stages, dict) else None
+    payload = (
+        execute_batch.get("frontier_batch")
+        if isinstance(execute_batch, dict)
+        else None
+    )
+    if not isinstance(payload, dict):
+        return Counter()
+    filtered_payload = dict(payload)
+    excluded: Counter[str] = Counter()
+    for key in ("obligations", "checks"):
+        rows = payload.get(key)
+        if not isinstance(rows, list):
+            continue
+        retained_rows = []
+        for row in rows:
+            kind = row.get("kind") if isinstance(row, dict) else None
+            if kind in RETIRED_HISTORICAL_FRONTIER_KINDS:
+                excluded[str(kind)] += 1
+                continue
+            retained_rows.append(row)
+        filtered_payload[key] = retained_rows
+    frontier = FrontierBatch.model_validate(filtered_payload)
+    for obligation in frontier.obligations:
+        prior = contracts.setdefault(obligation.contract.contract_id, obligation.contract)
+        if contract_semantic_key(prior) != contract_semantic_key(obligation.contract):
+            raise ValueError(
+                "saved frontier contract conflicts with extraction/grounding contract: "
+                + obligation.contract.contract_id
+            )
+    return excluded
 
 
 def _saved_candidate_envelopes(cell: dict[str, Any]) -> list[dict[str, Any]]:
@@ -463,7 +514,13 @@ def _record_routed(
     ).model_dump(mode="json")
 
 
-def _summary(replay_id: str, source_run_id: str, records: list[dict[str, Any]]) -> dict[str, Any]:
+def _summary(
+    replay_id: str,
+    source_run_id: str,
+    records: list[dict[str, Any]],
+    *,
+    historical_frontier_items_excluded: Counter[str] | None = None,
+) -> dict[str, Any]:
     """Build aggregate A/B accounting after all current route attempts terminate."""
 
     routed = [row for row in records if row["route_status"] != "route_unclosed"]
@@ -523,6 +580,9 @@ def _summary(replay_id: str, source_run_id: str, records: list[dict[str, Any]]) 
         execution_states=dict(execution_states),
         witness_levels=dict(witness_levels),
         w2_audit_bundle_count=len(audit_rows),
+        historical_frontier_items_excluded=dict(
+            historical_frontier_items_excluded or Counter()
+        ),
         per_pair=per_pair,
         acceptance=acceptance,
         reason="The A/B compares saved predicate-null candidates with the current exact primary route. It is not a method rerun, a Judge run, or a hit metric.",
@@ -546,8 +606,9 @@ def _render_readme(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
             f"- newly routed candidates: `{summary['routed_candidate_count']}`",
             f"- route-unclosed candidates: `{summary['route_unclosed_count']}`",
             f"- W0/W1/W2: `{summary['witness_levels']}`",
+            f"- excluded retired historical frontier items: `{summary['historical_frontier_items_excluded']}`",
             "",
-            "This artifact reads only saved contract extraction, grounding, and predicate-null candidates. route_telemetry.json is contract-level coverage only; candidate_route_telemetry.json and every record's route_telemetry are index-aligned candidate decisions, so one candidate never inherits a sibling candidate's selected predicate. It never reads ledger expected values, L, Judge output, answers, other-pair output, or future output; it invokes the existing deterministic FCSTM backend only for inputs newly closed by current code. W2 bundles are stored outside the immutable method artifact, and the external Judge does not participate in this A/B.",
+            "This artifact reads only saved contract extraction, grounding, immutable typed frontier contracts, and predicate-null candidates. route_telemetry.json is contract-level coverage only; candidate_route_telemetry.json and every record's route_telemetry are index-aligned candidate decisions, so one candidate never inherits a sibling candidate's selected predicate. It never reads ledger expected values, L, Judge output, answers, other-pair output, or future output; it invokes the existing deterministic FCSTM backend only for inputs newly closed by current code. W2 bundles are stored outside the immutable method artifact, and the external Judge does not participate in this A/B.",
             "",
         ]
     )
@@ -626,6 +687,7 @@ def run_primary_route_replay(
             basis="immutable source method cells, frozen registry, current primary route/compiler/backend hashes, and no evaluation artifacts",
         ).model_dump(mode="json")
         records: list[dict[str, Any]] = []
+        historical_frontier_items_excluded: Counter[str] = Counter()
         telemetry_by_pair: dict[str, list[dict[str, Any]]] = {}
         candidate_telemetry_by_pair: dict[str, list[dict[str, Any]]] = {}
         for method_path, cell in source_cells:
@@ -637,6 +699,9 @@ def run_primary_route_replay(
                 raise ValueError(f"method cell has no valid frozen pair_id: {method_path}")
             pair = _load_current_pair_for_source_cell(pair_id, cell)
             contracts, grounding = _contracts_and_grounding(cell)
+            historical_frontier_items_excluded.update(
+                merge_saved_frontier_contracts(cell, contracts)
+            )
             envelopes = _saved_candidate_envelopes(cell)
             target_evidence = _predicate_null_evidence_rows(cell)
             candidates = tuple(CandidateIssue.model_validate(row["candidate"]) for row in envelopes if isinstance(row.get("candidate"), dict))
@@ -717,7 +782,12 @@ def run_primary_route_replay(
                     f"predicate-null W1 evidence rows have no execute_batch source candidate in {method_path}: {unrepresented}"
                 )
         records.sort(key=lambda row: (row["pair_id"], row["source_candidate_index"]))
-        summary = _summary(replay_id, source_run_id, records)
+        summary = _summary(
+            replay_id,
+            source_run_id,
+            records,
+            historical_frontier_items_excluded=historical_frontier_items_excluded,
+        )
         if not all(summary["acceptance"].values()):
             raise ValueError(f"primary route replay acceptance failed: {summary['acceptance']}")
         audit_index: dict[str, dict[str, Any]] = {}

@@ -36,14 +36,13 @@ from .route_replay import (
     _read_json,
     _saved_candidate_envelopes,
     _source_attribution,
+    merge_saved_frontier_contracts,
 )
 from .semantics import (
     CandidateIssue,
     ContractBindingHint,
-    FrontierBatch,
     NLContract,
     bind_candidate,
-    contract_semantic_key,
 )
 from .semantics.predicate_routing import route_primary_candidates
 
@@ -67,13 +66,10 @@ _STRUCTURAL_EXPECTED_DIRECTION = {
     "effect": "must_occur",
 }
 _NL_SEGMENT_REF = re.compile(r"(?<![A-Za-z0-9])NL[0-9]+(?:\.[0-9]+)?(?![A-Za-z0-9])")
-# Historical replay must not revive a frontier kind removed after a soundness
-# audit.  This is an input-compatibility boundary only: production FrontierBatch
-# remains strict, and the replay summary exposes every excluded saved item.
-_RETIRED_HISTORICAL_FRONTIER_KINDS = frozenset({"wrong_scope_route"})
 _IMPLEMENTATION_FILES = (
     Path(__file__),
     Path(__file__).parent / "semantics" / "predicate_routing.py",
+    Path(__file__).parent / "route_replay.py",
     Path(__file__).parent / "compiler" / "lowering.py",
     Path(__file__).parent / "backends" / "fcstm_native.py",
     Path(__file__).parent / "backends" / "source_static.py",
@@ -352,48 +348,6 @@ def _record_unclosed(
         reason="The saved selected structural candidate could not be rebuilt with complete current native typed inputs, so it is retained as a precise unexecuted route instead of reusing a legacy input or manufacturing a Boolean verdict.",
         basis=str(telemetry["basis"]),
     ).model_dump(mode="json")
-
-
-def _merge_saved_frontier_contracts(
-    cell: dict[str, Any],
-    contracts: dict[str, Any],
-) -> Counter[str]:
-    """Add saved derived frontier contracts without regenerating any semantic input.
-
-    Frontier materialization may create a typed derived contract that backs a
-    selected candidate but is not present in the original extraction/grounding
-    response.  The immutable saved ``frontier_batch`` is the only admissible
-    additional source for this replay; a missing contract remains unclosed.
-    """
-
-    stages = cell.get("stage_outputs")
-    execute_batch = stages.get("execute_batch") if isinstance(stages, dict) else None
-    payload = execute_batch.get("frontier_batch") if isinstance(execute_batch, dict) else None
-    if not isinstance(payload, dict):
-        return Counter()
-    filtered_payload = dict(payload)
-    excluded: Counter[str] = Counter()
-    for key in ("obligations", "checks"):
-        rows = payload.get(key)
-        if not isinstance(rows, list):
-            continue
-        retained_rows = []
-        for row in rows:
-            kind = row.get("kind") if isinstance(row, dict) else None
-            if kind in _RETIRED_HISTORICAL_FRONTIER_KINDS:
-                excluded[str(kind)] += 1
-                continue
-            retained_rows.append(row)
-        filtered_payload[key] = retained_rows
-    frontier = FrontierBatch.model_validate(filtered_payload)
-    for obligation in frontier.obligations:
-        prior = contracts.setdefault(obligation.contract.contract_id, obligation.contract)
-        if contract_semantic_key(prior) != contract_semantic_key(obligation.contract):
-            raise ValueError(
-                "saved frontier contract conflicts with extraction/grounding contract: "
-                + obligation.contract.contract_id
-            )
-    return excluded
 
 
 def _saved_selected_structural_contract(
@@ -825,7 +779,7 @@ def run_selected_structural_rebind_replay(
             pair = _load_current_pair_for_source_cell(pair_id, cell)
             contracts, grounding = _contracts_and_grounding(cell)
             historical_frontier_items_excluded.update(
-                _merge_saved_frontier_contracts(cell, contracts)
+                merge_saved_frontier_contracts(cell, contracts)
             )
             envelopes = _saved_candidate_envelopes(cell)
             candidates = tuple(

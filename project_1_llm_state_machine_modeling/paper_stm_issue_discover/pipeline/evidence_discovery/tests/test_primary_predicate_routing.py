@@ -19,10 +19,10 @@ from pipeline.evidence_discovery.semantics.predicate_routing import (
 )
 from pipeline.evidence_discovery.structural_rebind_replay import (
     STRUCTURAL_PREDICATES,
-    _merge_saved_frontier_contracts,
     _saved_selected_structural_contract,
     _summary as structural_rebind_summary,
 )
+from pipeline.evidence_discovery.route_replay import merge_saved_frontier_contracts
 
 PAPER_ROOT = Path(__file__).parents[3]
 REPORT_ROOT = PAPER_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
@@ -758,7 +758,7 @@ def test_structural_rebind_replay_merges_saved_derived_frontier_contract() -> No
     }
     contracts: dict[str, NLContract] = {}
 
-    exclusions = _merge_saved_frontier_contracts(cell, contracts)
+    exclusions = merge_saved_frontier_contracts(cell, contracts)
 
     assert contracts == {contract.contract_id: contract}
     assert exclusions == {}
@@ -811,7 +811,7 @@ def test_structural_rebind_replay_excludes_retired_frontier_kind_with_accounting
     }
     contracts: dict[str, NLContract] = {}
 
-    exclusions = _merge_saved_frontier_contracts(cell, contracts)
+    exclusions = merge_saved_frontier_contracts(cell, contracts)
 
     assert contracts == {contract.contract_id: contract}
     assert exclusions == {"wrong_scope_route": 2}

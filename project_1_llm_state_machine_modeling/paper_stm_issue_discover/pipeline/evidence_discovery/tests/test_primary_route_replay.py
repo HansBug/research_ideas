@@ -11,8 +11,9 @@ from pipeline.evidence_discovery.route_replay import (
     _contracts_and_grounding,
     _predicate_null_evidence_rows,
     _source_cell_run_id,
+    merge_saved_frontier_contracts,
 )
-from pipeline.evidence_discovery.semantics import GroundingResponse, NLContract
+from pipeline.evidence_discovery.semantics import CandidateIssue, GroundingResponse, NLContract
 
 
 def _record(obligation_id: str, predicate_id: str | None, witness_level: str) -> dict[str, object]:
@@ -138,6 +139,54 @@ def test_primary_route_replay_rejects_same_id_with_different_typed_identity() ->
                 }
             }
         )
+
+
+def test_primary_route_replay_merges_saved_frontier_contract_before_routing() -> None:
+    """Saved frontier obligations are typed replay inputs, not absent contracts."""
+
+    contract = _derived_contract()
+    candidate = CandidateIssue(
+        contract_id=contract.contract_id,
+        locus_kind=contract.locus_kind,
+        locus_names=contract.locus_names,
+        property=contract.property,
+        violation_direction=contract.violation_direction,
+        evidence_types=contract.evidence_types,
+        title="Saved frontier candidate",
+        requirement_quote=contract.quote,
+        expected=contract.normative_statement,
+        observed="The saved frontier retains the exact closed-model observation.",
+        strongest_rebuttal="The fixture supplies no alternate source contract.",
+        reason="The candidate is backed by the saved derived frontier contract.",
+        basis="route replay saved frontier merge fixture",
+    )
+    cell = {
+        "stage_outputs": {
+            "execute_batch": {
+                "frontier_batch": {
+                    "obligations": [
+                        {
+                            "frontier_id": "route-replay-frontier-1",
+                            "kind": "root_reachability",
+                            "contract": contract.model_dump(mode="json"),
+                            "candidate": candidate.model_dump(mode="json"),
+                            "source_contract_ids": [contract.contract_id],
+                            "reason": "The fixture persists one typed frontier contract.",
+                            "basis": "route replay saved frontier fixture",
+                        }
+                    ],
+                    "reason": "Saved fixture frontier.",
+                    "basis": "route replay saved frontier fixture",
+                }
+            }
+        }
+    }
+    contracts: dict[str, NLContract] = {}
+
+    exclusions = merge_saved_frontier_contracts(cell, contracts)
+
+    assert exclusions == {}
+    assert contracts == {contract.contract_id: contract}
 
 
 def _sha256(path: Path) -> str:
