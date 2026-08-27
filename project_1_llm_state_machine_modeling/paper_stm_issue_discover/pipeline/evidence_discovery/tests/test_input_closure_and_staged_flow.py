@@ -11,6 +11,7 @@ from pipeline.evidence_discovery.inputs.context import (
     prompt_context_payload,
 )
 from pipeline.evidence_discovery.orchestration.runner import (
+    _complete_explicit_member_cardinality_contracts,
     _contract_completion_required,
     _merge_contract_completion,
     _method_cell,
@@ -449,6 +450,123 @@ def test_contract_completion_deduplicates_exact_primary_identity() -> None:
 
     assert merged.contracts == primary.contracts
     assert diagnostics[0]["class"] == "duplicate_completion_contract_semantic_key"
+
+
+def _explicit_member_containment_contract(
+    member: str,
+    *,
+    quote: str,
+) -> NLContract:
+    """Build one generic containment row from a closed named-member list."""
+
+    return NLContract(
+        contract_id=f"NL-CONTRACT-NL1-EXPLICIT-MEMBER-{member}",
+        segment_id="NL1",
+        quote=quote,
+        normative_statement=f"{member} must be contained in Controller.",
+        locus_kind="state",
+        locus_names=(member, "Controller"),
+        property="containment",
+        expected_direction="must_be_contained",
+        violation_direction="wrong_scope",
+        evidence_types=("source_identity", "containment_fact"),
+        binding_hints=(
+            ContractBindingHint(
+                role="owner",
+                value="Controller",
+                source_ref="NL1",
+                reason="The fixture names one enclosing owner for every member.",
+                basis="generic explicit-member completion fixture",
+            ),
+            ContractBindingHint(
+                role="target",
+                value=member,
+                source_ref="NL1",
+                reason="The fixture names this member in the closed enumeration.",
+                basis="generic explicit-member completion fixture",
+            ),
+        ),
+        scope="Controller member hierarchy",
+        source_refs=("NL1",),
+        reason="The fixture retains one atomic containment obligation per named member.",
+        basis="generic explicit-member completion fixture",
+    )
+
+
+def test_contract_completion_derives_closed_explicit_member_cardinality() -> None:
+    """A strict numeric enumeration remains additive to its containment rows."""
+
+    members = ("Alpha", "Beta", "Gamma")
+    response = NLContractResponse(
+        contracts=[
+            _explicit_member_containment_contract(
+                member,
+                quote="Controller has three named states: Alpha, Beta, and Gamma.",
+            )
+            for member in members
+        ],
+        segment_disposition={"NL1": "covered"},
+        reason="The fixture supplies three independently typed containment contracts.",
+        basis="generic explicit-member completion fixture",
+    )
+
+    completed, dispositions = _complete_explicit_member_cardinality_contracts(response)
+
+    assert completed.contracts[:3] == response.contracts
+    assert len(completed.contracts) == 4
+    cardinality = completed.contracts[-1]
+    assert cardinality.property == "cardinality"
+    assert cardinality.cardinality_requirement is not None
+    assert cardinality.cardinality_requirement.required_count == 3
+    assert cardinality.cardinality_requirement.member_domain == "explicit_named_members"
+    assert [
+        hint.value for hint in cardinality.binding_hints if hint.role == "target"
+    ] == list(members)
+    assert dispositions[0]["class"] == "admitted_deterministic_explicit_member_cardinality"
+
+
+def test_contract_completion_rejects_hedged_member_enumeration() -> None:
+    """Open examples do not become a closed cardinality obligation."""
+
+    response = NLContractResponse(
+        contracts=[
+            _explicit_member_containment_contract(
+                member,
+                quote="Controller has three named states: Alpha, Beta, and Gamma, for example.",
+            )
+            for member in ("Alpha", "Beta", "Gamma")
+        ],
+        segment_disposition={"NL1": "covered"},
+        reason="The fixture supplies a deliberately open member list.",
+        basis="generic hedged-enumeration completion fixture",
+    )
+
+    completed, dispositions = _complete_explicit_member_cardinality_contracts(response)
+
+    assert completed is response
+    assert dispositions == []
+
+
+def test_contract_completion_rejects_untyped_member_from_closed_list() -> None:
+    """A typed subset cannot turn a longer source list into a smaller count."""
+
+    response = NLContractResponse(
+        contracts=[
+            _explicit_member_containment_contract(
+                member,
+                quote="Controller has three named states: Alpha, Beta, Gamma, and Delta.",
+            )
+            for member in ("Alpha", "Beta", "Gamma")
+        ],
+        segment_disposition={"NL1": "covered"},
+        reason="The fixture keeps one listed member out of the typed containment rows.",
+        basis="generic incomplete-enumeration completion fixture",
+    )
+
+    completed, dispositions = _complete_explicit_member_cardinality_contracts(response)
+
+    assert completed is response
+    assert dispositions == []
 
 
 def test_contract_completion_checks_property_coverage_for_high_count_primary_plan() -> None:

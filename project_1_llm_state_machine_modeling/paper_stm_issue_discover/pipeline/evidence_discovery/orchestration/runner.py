@@ -43,6 +43,8 @@ from ..semantics import (
     DISCOVERY_GROUNDING_SYSTEM_PROMPT,
     CandidateIssue,
     CardinalityDomainBinding,
+    CardinalityRequirement,
+    ContractBindingHint,
     ContractCompletionResponse,
     ContextBudgetReceipt,
     DAdjudicationResponse,
@@ -2262,6 +2264,242 @@ def _contract_completion_required(
     return bool(pair.nl_segments)
 
 
+_EXPLICIT_ENUMERATION_COUNT_WORDS = {
+    "zero": 0,
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+}
+_EXPLICIT_ENUMERATION_PATTERN = re.compile(
+    r"\b(?P<count>\d+|zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)"
+    r"\b(?P<label>(?:\s+[A-Za-z][A-Za-z_-]*){1,5})\s*:\s*(?P<members>[^.!?;]+)",
+    flags=re.IGNORECASE,
+)
+_EXPLICIT_ENUMERATION_MEMBER_TERMS = frozenset(
+    {"state", "states", "substate", "substates", "mode", "modes", "member", "members"}
+)
+_EXPLICIT_ENUMERATION_HEDGE_PATTERN = re.compile(
+    r"\b(?:for\s+example|e\.?g\.?|including|such\s+as|etc\.?|among\s+others|at\s+least|up\s+to|or\s+more)\b",
+    flags=re.IGNORECASE,
+)
+
+
+def _single_contract_hint(
+    contract: NLContract,
+    role: str,
+) -> ContractBindingHint | None:
+    """Return one unambiguous source-side contract argument for completion."""
+
+    matches = [hint for hint in contract.binding_hints if hint.role == role]
+    return matches[0] if len(matches) == 1 else None
+
+
+def _strict_explicit_enumeration_count(
+    quote: str,
+    members: tuple[str, ...],
+) -> int | None:
+    """Read one closed NL member enumeration without examining FCSTM text.
+
+    This intentionally accepts only a numeric, colon-introduced list whose
+    typed members occur once and in source order.  It rejects open examples or
+    hedged lists, leaving their original containment contracts intact.
+    """
+
+    if _EXPLICIT_ENUMERATION_HEDGE_PATTERN.search(quote):
+        return None
+    matches = list(_EXPLICIT_ENUMERATION_PATTERN.finditer(quote))
+    if len(matches) != 1:
+        return None
+    match = matches[0]
+    label_terms = set(match.group("label").casefold().split())
+    if not label_terms & _EXPLICIT_ENUMERATION_MEMBER_TERMS:
+        return None
+    count_token = match.group("count").casefold()
+    required_count = (
+        int(count_token)
+        if count_token.isdigit()
+        else _EXPLICIT_ENUMERATION_COUNT_WORDS[count_token]
+    )
+    member_text = match.group("members")
+    positions: list[int] = []
+    unmatched_member_text = member_text
+    for member in members:
+        member_pattern = (
+            rf"(?<![A-Za-z0-9_]){re.escape(member)}(?![A-Za-z0-9_])"
+        )
+        occurrences = list(
+            re.finditer(
+                member_pattern,
+                member_text,
+                flags=re.IGNORECASE,
+            )
+        )
+        if len(occurrences) != 1:
+            return None
+        positions.append(occurrences[0].start())
+        unmatched_member_text = re.sub(
+            member_pattern,
+            "",
+            unmatched_member_text,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+    residual = re.sub(
+        r"\b(?:and|or)\b|[\s,/&()]+",
+        "",
+        unmatched_member_text,
+        flags=re.IGNORECASE,
+    )
+    if (
+        positions != sorted(positions)
+        or required_count != len(members)
+        or residual
+    ):
+        return None
+    return required_count
+
+
+def _complete_explicit_member_cardinality_contracts(
+    response: NLContractResponse,
+) -> tuple[NLContractResponse, list[dict[str, Any]]]:
+    """Add only closed NL enumerations that containment rows already establish.
+
+    This is a deterministic source-contract completion step, not FCSTM parsing:
+    it sees only typed containment rows and their requirement quote.  The
+    frontier later obtains the observed owner/member inventory from the native
+    projection.  No pair ID, ledger, Judge result, or observed FCSTM count
+    participates in admission.
+    """
+
+    grouped: dict[tuple[str, str, str], list[tuple[NLContract, str]]] = {}
+    for contract in response.contracts:
+        if contract.property != "containment":
+            continue
+        owner = _single_contract_hint(contract, "owner")
+        target = _single_contract_hint(contract, "target")
+        if owner is None or target is None:
+            continue
+        grouped.setdefault(
+            (contract.segment_id, owner.value, contract.quote), []
+        ).append((contract, target.value))
+
+    derived: list[NLContract] = []
+    dispositions: list[dict[str, Any]] = []
+    cardinality_scopes = {
+        (contract.segment_id, contract.cardinality_requirement.scope_concept)
+        for contract in response.contracts
+        if contract.property == "cardinality"
+        and contract.cardinality_requirement is not None
+    }
+    for (segment_id, owner_value, quote), rows in sorted(grouped.items()):
+        source_contracts = [item[0] for item in rows]
+        members = tuple(item[1] for item in rows)
+        if (
+            (segment_id, owner_value) in cardinality_scopes
+            or len(source_contracts) < 2
+            or len(set(members)) != len(members)
+        ):
+            continue
+        required_count = _strict_explicit_enumeration_count(quote, members)
+        if required_count is None:
+            continue
+        base = source_contracts[0]
+        source_refs = tuple(
+            dict.fromkeys(
+                source_ref
+                for contract in source_contracts
+                for source_ref in contract.source_refs
+            )
+        )
+        binding_hints = tuple(
+            [
+                ContractBindingHint(
+                    role="owner",
+                    value=owner_value,
+                    source_ref=_single_contract_hint(base, "owner").source_ref,
+                    reason="The shared containment contracts retain one exact requirement-side owner for the closed member enumeration.",
+                    basis=f"segment={segment_id}; source_contract_ids={[item.contract_id for item in source_contracts]}",
+                ),
+                *[
+                    ContractBindingHint(
+                        role="target",
+                        value=member,
+                        source_ref=_single_contract_hint(contract, "target").source_ref,
+                        reason="This member is one explicitly enumerated requirement-side member retained from its atomic containment contract.",
+                        basis=f"segment={segment_id}; source_contract={contract.contract_id}",
+                    )
+                    for contract, member in rows
+                ],
+            ]
+        )
+        requirement = CardinalityRequirement(
+            required_count=required_count,
+            member_domain="explicit_named_members",
+            scope_concept=owner_value,
+            member_concept="explicitly enumerated named members",
+            alternative_reading=None,
+            reason="A strict numeric, colon-introduced, unhedged NL enumeration closes the finite requirement-side member set.",
+            basis=f"segment={segment_id}; source_contract_ids={[item.contract_id for item in source_contracts]}; required_count={required_count}; members={list(members)}",
+        )
+        raw_contract = NLContract(
+            contract_id=f"NL-CONTRACT-{segment_id}-EXPLICIT-MEMBER-CARDINALITY",
+            segment_id=segment_id,
+            quote=quote,
+            normative_statement=(
+                f"{owner_value} must contain exactly {required_count} explicitly "
+                f"enumerated members: {', '.join(members)}."
+            ),
+            locus_kind="composite",
+            locus_names=(owner_value, *members),
+            property="cardinality",
+            expected_direction="must_cover",
+            violation_direction="missing",
+            evidence_types=(
+                "source_identity",
+                "closed_model_inventory",
+                "containment_fact",
+                "semantic_comparison",
+            ),
+            binding_hints=binding_hints,
+            cardinality_requirement=requirement,
+            scope=f"{owner_value} explicit named-member enumeration",
+            source_refs=source_refs,
+            reason="The independent atomic containment rows have one shared owner and their unchanged NL quote closes a finite numbered member set.",
+            basis=f"segment={segment_id}; owner={owner_value}; source_contract_ids={[item.contract_id for item in source_contracts]}",
+        )
+        cardinality_contract = raw_contract.model_copy(
+            update={"contract_id": canonical_contract_id(raw_contract)}
+        )
+        derived.append(cardinality_contract)
+        cardinality_scopes.add((segment_id, owner_value))
+        dispositions.append(
+            {
+                "stage": "contract_completion",
+                "class": "admitted_deterministic_explicit_member_cardinality",
+                "segment_id": segment_id,
+                "canonical_contract_id": cardinality_contract.contract_id,
+                "source_contract_ids": [item.contract_id for item in source_contracts],
+                "owner": owner_value,
+                "required_count": required_count,
+                "members": list(members),
+                "reason": "Strict typed containment rows preserve a closed explicit member enumeration as an additive cardinality contract.",
+                "basis": "shared segment/owner/quote, unique typed targets, and numeric colon-introduced unhedged source-NL enumeration",
+            }
+        )
+    if not derived:
+        return response, dispositions
+    return response.model_copy(update={"contracts": [*response.contracts, *derived]}), dispositions
+
+
 def _typed_semantic_key_json(value: Any) -> str:
     """Serialize one already typed identity for exact set membership."""
 
@@ -4148,6 +4386,7 @@ def _method_cell(
         "admitted_contract_ids": [],
         "admitted_transition_group_ids": [],
         "merge_dispositions": [],
+        "deterministic_cardinality_dispositions": [],
         "reason": "The bounded property-coverage pass was not run because the primary extraction was not a successful real provider response.",
         "basis": "public runtime provenance and numbered-NL availability",
     }
@@ -4235,6 +4474,13 @@ def _method_cell(
                     "basis": "public structured runtime failure receipt and no-fabricated-addition rule",
                 }
             )
+    (
+        contract_response,
+        deterministic_cardinality_dispositions,
+    ) = _complete_explicit_member_cardinality_contracts(contract_response)
+    contract_completion_output["deterministic_cardinality_dispositions"] = (
+        deterministic_cardinality_dispositions
+    )
     stage_outputs["contract_completion"] = contract_completion_output
     stage_receipts.append(
         _stage_receipt(

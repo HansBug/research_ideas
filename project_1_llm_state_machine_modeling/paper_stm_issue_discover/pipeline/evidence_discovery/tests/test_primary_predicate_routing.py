@@ -151,6 +151,60 @@ def test_initial_entry_routes_to_owner_local_s2() -> None:
     assert telemetry.binding_complete is True
 
 
+def test_event_qualified_initial_entry_stays_precise_when_s2_cannot_decide_it() -> None:
+    """A coarse S2 endpoint pass cannot erase an event-qualified entry obligation."""
+
+    model = parse_fcstm(_RUNTIME_SOURCE)
+    pair = PairInput(
+        pair_id="fixture-qualified-initial-entry",
+        pair_dir=Path("fixture-qualified-initial-entry"),
+        nl_text="The system enters A when Start occurs.",
+        fcstm_text=_RUNTIME_SOURCE,
+        plantuml_text="",
+        model=model,
+        hashes={},
+    )
+    root = model.state("Root")
+    target = model.state("A")
+    assert root is not None and target is not None
+    contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-QUALIFIED-INITIAL-1",
+        segment_id="NL1",
+        quote="The system enters A when Start occurs.",
+        normative_statement="The root initial entry to A is selected by Start.",
+        locus_kind="scope",
+        locus_names=("Root", "A"),
+        property="initial_entry",
+        expected_direction="must_enter",
+        violation_direction="missing",
+        evidence_types=("source_identity", "initial_entry_fact", "trigger_fact"),
+        binding_hints=(
+            _hint("owner", root.name),
+            _hint("target", target.name),
+            _hint("event", "Start"),
+        ),
+        scope="root initial entry",
+        source_refs=("NL1",),
+        reason="The fixture keeps the entry event distinct from the endpoint.",
+        basis="event-qualified initial-entry route regression fixture",
+    )
+
+    projection = route_primary_candidates(
+        pair,
+        {contract.contract_id: contract},
+        (),
+        [_candidate(contract, [root.ref, target.ref])],
+    )
+
+    routed = projection.candidates[0]
+    assert routed.predicate_id is None
+    assert routed.predicate_inputs == {}
+    telemetry = projection.telemetry[0]
+    assert telemetry.selected_predicate is None
+    assert telemetry.binding_complete is False
+    assert "event/trigger/guard qualifier" in telemetry.reason
+
+
 def test_deadlock_route_requires_one_reachable_state_scope() -> None:
     """V4 never receives an aggregate or unreachable deadlock carrier."""
 

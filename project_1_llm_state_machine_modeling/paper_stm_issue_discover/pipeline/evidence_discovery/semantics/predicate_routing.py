@@ -61,6 +61,11 @@ _PROPERTY_PREDICATES: dict[str, tuple[PredicateId, ...]] = {
     "termination": ("G2", "G4"),
 }
 
+# S2 establishes only the owner-local initial pseudo-state endpoint.  A
+# source-side event, trigger, or guard is an independent qualifier which S2
+# cannot decide from its three endpoint inputs.
+_INITIAL_ENTRY_S2_UNDECIDED_ROLES = frozenset({"event", "trigger", "guard"})
+
 _PREDICATE_BACKENDS: dict[PredicateId, str] = {
     "S1": "fcstm_model",
     "S2": "fcstm_model",
@@ -937,6 +942,23 @@ def _route_candidate(
 
     property_name = contract.property
     if property_name == "initial_entry":
+        undecided_roles = tuple(
+            sorted(
+                {
+                    hint.role
+                    for hint in contract.binding_hints
+                    if hint.role in _INITIAL_ENTRY_S2_UNDECIDED_ROLES
+                }
+            )
+        )
+        if undecided_roles:
+            return (
+                candidate,
+                None,
+                "The exact initial-entry obligation retains its event/trigger/guard qualifier because S2 decides only the owner-local endpoint.",
+                "predicate=S2; undecided_initial_entry_roles="
+                f"{list(undecided_roles)}; S2_inputs=[source,target,scope]",
+            )
         owner, owner_basis = _state_for_roles(pair, contract, grounding, {"owner", "scope"})
         target, target_basis = _state_for_roles(pair, contract, grounding, {"target", "state"})
         if owner is None or target is None:
