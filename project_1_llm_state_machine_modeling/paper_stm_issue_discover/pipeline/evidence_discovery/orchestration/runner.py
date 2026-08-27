@@ -132,10 +132,10 @@ REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS = (
 METHOD_CELL_SCHEMA = "evidence-discovery.method_cell.v9"
 SUMMARY_SCHEMA = "evidence-discovery.run_summary.v3"
 RUN_MANIFEST_SCHEMA = "evidence-discovery.run_manifest.v3"
-CODE_VERSION = "evidence-discovery-typed-flow.v55-method-only"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-prompts.v46-method-only"
+CODE_VERSION = "evidence-discovery-typed-flow.v56-method-only"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-prompts.v47-method-only"
 GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION = (
-    "evidence-discovery.grounding-exact-identity-contract.v3"
+    "evidence-discovery.grounding-exact-identity-contract.v4"
 )
 D_ADJUDICATION_MAX_PROMPT_TOKENS = 40_000
 D_ADJUDICATION_CONTEXT_FRACTION = 0.65
@@ -168,9 +168,13 @@ class ExactGroundingResponse(GroundingResponse):
 
     The runner specializes this Pydantic model for one method cell. Its
     authority is limited to exact contract-reference closure and structurally
-    complete accounting for supplied cardinality contracts: grounding rows may
-    reference supplied contracts or additional contracts declared in that same
-    response, and every cardinality contract must receive one typed domain row.
+    complete accounting for supplied cardinality contracts.  Supplied contracts
+    may expose short, response-local aliases so a provider need not repeatedly
+    copy a long canonical hash identifier; aliases are a closed one-to-one map
+    that this model deterministically replaces before any semantic validation.
+    Grounding rows may otherwise reference supplied contracts or additional
+    contracts declared in that same response, and every cardinality contract
+    must receive one typed domain row.
     It does not select that domain or decide whether an obligation exists,
     whether a candidate is valid, or any W, D, L, publication, or external
     evaluation result.
@@ -183,7 +187,55 @@ class ExactGroundingResponse(GroundingResponse):
 
     expected_contract_ids: ClassVar[tuple[str, ...]] = ()
     expected_cardinality_contract_ids: ClassVar[tuple[str, ...]] = ()
+    contract_reference_aliases: ClassVar[dict[str, str]] = {}
     enforce_exact_identity_contract: ClassVar[bool] = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_contract_reference_aliases(cls, value: Any) -> Any:
+        """Map closed response-local aliases before nested typed validation.
+
+        The raw provider action remains separately persisted by the structured
+        runtime.  This normalization only replaces an exact alias key from the
+        runtime-specialized table; it never repairs a near match, changes an
+        additional-contract ID, or resolves a semantic binding.
+        """
+
+        aliases = cls.contract_reference_aliases
+        if not aliases or not isinstance(value, Mapping):
+            return value
+        normalized = dict(value)
+        substitutions: list[str] = []
+        for field_name in (
+            "semantic_bindings",
+            "cardinality_bindings",
+            "candidates",
+            "unresolved",
+        ):
+            rows = normalized.get(field_name)
+            if not isinstance(rows, list):
+                continue
+            normalized_rows: list[Any] = []
+            for row in rows:
+                if not isinstance(row, Mapping):
+                    normalized_rows.append(row)
+                    continue
+                row_copy = dict(row)
+                alias = row_copy.get("contract_id")
+                canonical = aliases.get(alias) if isinstance(alias, str) else None
+                if canonical is not None:
+                    row_copy["contract_id"] = canonical
+                    substitutions.append(f"{field_name}:{alias}->{canonical}")
+                normalized_rows.append(row_copy)
+            normalized[field_name] = normalized_rows
+        if substitutions:
+            basis = normalized.get("basis")
+            if isinstance(basis, str) and basis.strip():
+                normalized["basis"] = (
+                    f"{basis}; deterministic supplied-contract alias normalization "
+                    f"({'; '.join(substitutions)})"
+                )
+        return normalized
 
     @model_validator(mode="after")
     def validate_exact_contract_reference_closure(self) -> ExactGroundingResponse:
@@ -3903,6 +3955,9 @@ def _normalize_d_decision_shape(
     if decision.defeater_disposition != "defeated":
         updates["defeater_disposition"] = "defeated"
         changes.append("defeater_disposition=defeated")
+    if decision.defeater_evidence_refs:
+        updates["defeater_evidence_refs"] = ()
+        changes.append("defeater_evidence_refs=[]")
     if not updates:
         return decision
     normalized = decision.model_copy(
@@ -4206,12 +4261,16 @@ def _method_cell(
         )
     )
 
+    contract_reference_aliases = _grounding_contract_reference_aliases(
+        contract_response.contracts
+    )
     grounding_prompts = {
         lens: build_grounding_prompt(
             pair,
             lens=lens,
             round_index=round_index,
             contracts=contract_response,
+            contract_reference_aliases=contract_reference_aliases,
         )
         for lens in DISCOVERY_GROUNDING_AUDIT_LENSES
     }
@@ -4221,7 +4280,10 @@ def _method_cell(
         IdentityNormalizationReceipt | GroupIdentityNormalizationReceipt
     ] = []
     grounding_normalization_diagnostics: list[dict[str, Any]] = []
-    grounding_schema = _grounding_response_contract(contract_response.contracts)
+    grounding_schema = _grounding_response_contract(
+        contract_response.contracts,
+        contract_reference_aliases=contract_reference_aliases,
+    )
     # The method samples the two complementary lenses sequentially inside one
     # cell. Pair workers provide process-level parallelism without changing the
     # public AgentApp/LangGraph call semantics or deadline handling.
@@ -5177,8 +5239,25 @@ def _method_cell(
     return validated
 
 
+def _grounding_contract_reference_aliases(
+    contracts: Sequence[NLContract],
+) -> dict[str, str]:
+    """Build deterministic short response aliases for supplied contracts only."""
+
+    aliases = {
+        f"NL-CONTRACT-REF-{index:03d}": contract.contract_id
+        for index, contract in enumerate(contracts, start=1)
+    }
+    canonical_ids = {contract.contract_id for contract in contracts}
+    if len(aliases) != len(contracts) or set(aliases) & canonical_ids:
+        raise ValueError("grounding contract-reference aliases must be unique")
+    return aliases
+
+
 def _grounding_response_contract(
     contracts: Sequence[NLContract],
+    *,
+    contract_reference_aliases: Mapping[str, str] | None = None,
 ) -> type[ExactGroundingResponse]:
     """Specialize grounding identity and cardinality coverage to one method cell."""
 
@@ -5190,11 +5269,22 @@ def _grounding_response_contract(
         for contract in contracts
         if contract.property == "cardinality"
     )
+    aliases = dict(contract_reference_aliases or {})
+    if contract_reference_aliases is not None:
+        if set(aliases.values()) != set(expected_contract_ids):
+            raise ValueError(
+                "grounding contract-reference aliases must cover each supplied contract exactly once"
+            )
+        if set(aliases) & set(expected_contract_ids):
+            raise ValueError(
+                "grounding contract-reference aliases overlap canonical IDs"
+            )
     contract_key = _hash_json(
         {
             "version": GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION,
             "contract_ids": expected_contract_ids,
             "cardinality_contract_ids": expected_cardinality_contract_ids,
+            "contract_reference_aliases": aliases,
         }
     ).removeprefix("sha256:")[:16]
     cardinality_description = (
@@ -5205,7 +5295,12 @@ def _grounding_response_contract(
         "lens cannot select a domain or owner. Schema correction must return a "
         "complete replacement response retaining every previously valid row. "
         "Rows never contain observed counts, W, D, L, or ledger data. Required "
-        f"supplied cardinality contract IDs={list(expected_cardinality_contract_ids)!r}."
+        f"supplied cardinality contract IDs={list(expected_cardinality_contract_ids)!r}. "
+    ) + (
+        "For response-side contract_id fields, use only the supplied alias "
+        f"keys; closed alias table={aliases!r}."
+        if aliases
+        else "Response-side contract_id fields use the supplied canonical IDs."
     )
     response_model = create_model(
         f"ExactGroundingResponse_{contract_key}",
@@ -5223,6 +5318,9 @@ def _grounding_response_contract(
         "Every supplied cardinality contract "
         "must also receive exactly one typed domain row in this lens, including an "
         "explicit ambiguous or unbound row when no exact reading closes. These "
+        "response-local alias keys are deterministically mapped back to their "
+        "canonical supplied contract IDs before typed validation and are recorded "
+        "in the response basis; they never apply to additional_contracts. "
         "structural checks have no authority over semantic discovery, W, D, L, "
         "publication or external evaluation decisions."
     )
@@ -5230,6 +5328,7 @@ def _grounding_response_contract(
     response_model.expected_cardinality_contract_ids = (
         expected_cardinality_contract_ids
     )
+    response_model.contract_reference_aliases = aliases
     response_model.enforce_exact_identity_contract = True
     response_model.model_rebuild(force=True)
     return response_model

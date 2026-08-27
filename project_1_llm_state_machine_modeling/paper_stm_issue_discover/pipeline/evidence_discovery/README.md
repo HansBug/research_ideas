@@ -67,6 +67,8 @@ provider-free A/B 至少按 predicate-null route、保存 frontier 与已选 str
 
 每次 successful live primary extraction 都只执行一次 `contract_completion` property-coverage pass。它使用同一 pair 的 NL/context/primary typed plan，检查同一 numbered-NL segment 内尚未表示的独立义务，而不是用 contract 数与 segment 数的比较冒充覆盖证明。它只能追加 typed-new `NLContract`/完整 `NLTransitionGroup`，以 canonical semantic identity 去重，绝不改写 primary rows；正常 admitted/duplicate 记录只进入 merge audit，未知 segment 或 canonical-ID collision 才产生诊断，失败只留下 receipt。correction 仍必须走 grounding -> route -> W/D -> publication，不能直接形成 hit。D 阶段的 surviving undercutting/rebutting 还必须给出当前 candidate/binding 的 exact `defeater_evidence_refs`；没有具体 catalog ref 的“隐藏实现可能性”只会触发 targeted correction，不能压制 issue。
 
+为避免 provider 在长 hash 型 canonical ID 上反复产生字符复制错误，grounding response 对 supplied contract 使用当前 cell 专属的短 `NL-CONTRACT-REF-###` alias。alias 与 canonical ID 的闭合一对一表进入 prompt、dynamic schema、raw action 和 response `basis`；runner 只对表内 exact alias 做确定性映射，然后才执行 binding、route、W/D 与 publication。它不容忍近似 ID，不读取评测数据，也不改变 `additional_contracts` 的 local identity 或任何冻结谓词语义。
+
 ## 隔离与审计
 
 method 只读取当前 pair 的 NL、PlantUML、canonical source IR、FCSTM、inspect-equivalent facts、working contracts 与封闭 ModelIR。它不读取台账 expected、L、Judge、答案、其他 pair 或未来结果。Judge 是独立 evaluation 层，冻结口径不参与 method 的 W/D/candidate。

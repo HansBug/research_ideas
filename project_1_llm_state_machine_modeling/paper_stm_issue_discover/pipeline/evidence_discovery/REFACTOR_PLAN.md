@@ -29,6 +29,8 @@
 
 route 使用 `typed contract -> compatible predicate set -> exact input binder`，只读取当前 pair 的方法输入。先在保存 extraction/grounding 输入上做 provider-free A/B，再以新 commit 和 immutable run identity 运行一次 15x1。固定 12 谓词分母为 S1、S2、S3、S4、S5、S6、G1、G4、R1、R4、V1、V4；R1/R4/V1 必须有 method-owned scenario/trace/domain 闭包，不能以 pass probe 代替 finding。
 
+grounding transport 使用 cell-local `NL-CONTRACT-REF-### -> canonical contract_id` 闭合 alias 表，专门避免长 canonical hash 的无语义复制失败。alias 只允许出现在 response-side supplied-contract reference；dynamic Pydantic model 在 nested validation 前做 exact table replacement，并把变换写入 `basis`，raw action 不改写。任何不在表中的值继续 schema fail；禁止 fuzzy repair、跨 cell 映射、将 alias 用于 branch-local `additional_contracts`，或据此修改 typed obligation/W/D/publication。
+
 S4/S6 的 LLM 预选标签必须经过同一 binder 复核，不能绕过输入闭包：S4 的 phase 只允许 `entry/do/exit`；S6 的 effect 必须是 pyfcstm native operation grammar 可解析的单一操作并绑定到 exact carrier。S5/V1 也必须先区分 native Event selector 与 guard AST：可解析为 Event 的 requirement value 只能是 `event`/`trigger`，不能借 guard 字段进入错误谓词。失败时只退化执行计划和 W，不改 contract/candidate 语义，不产生 false、W2 或 publication。
 
 候选的精确义务、owner、source/target、event/guard/effect/action role 与 repair delta 必须在 route、D 和 publication 全程保留。邻近或粗粒度谓词的 `true` receipt 只说明其自身命题成立，不能删除另一条精确 candidate；没有可绑定且与当前 closed facts 兼容的具体替代实现时，不得以抽象“可能存在隐藏机制”作为 D defeater。

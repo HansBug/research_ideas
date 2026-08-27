@@ -687,6 +687,7 @@ def test_d_none_shape_is_normalized_without_changing_semantic_fields() -> None:
         strongest_defeater="spurious alternative",
         defeater_kind="none",
         defeater_disposition="survives",
+        defeater_evidence_refs=("transition:line:12",),
         reason="The provider supplied a structurally inconsistent defeater row.",
         basis="provider-free D shape fixture",
     )
@@ -700,12 +701,14 @@ def test_d_none_shape_is_normalized_without_changing_semantic_fields() -> None:
 
     assert normalized.strongest_defeater is None
     assert normalized.defeater_disposition == "defeated"
+    assert normalized.defeater_evidence_refs == ()
     assert normalized.grounding == decision.grounding
     assert normalized.reason == decision.reason
     assert "D shape normalization" in normalized.basis
     assert log[0]["changes"] == [
         "strongest_defeater=null",
         "defeater_disposition=defeated",
+        "defeater_evidence_refs=[]",
     ]
 
 
@@ -3270,6 +3273,35 @@ def test_grounding_runtime_schema_requires_explicit_cardinality_accounting() -> 
         basis="provider-free exact cardinality coverage fixture",
     )
     assert exact.cardinality_bindings[0].member_domain == "concurrent_regions"
+
+    alias = "NL-CONTRACT-REF-001"
+    alias_schema = _grounding_response_contract(
+        [cardinality_contract, non_cardinality_contract],
+        contract_reference_aliases={
+            alias: cardinality_contract.contract_id,
+            "NL-CONTRACT-REF-002": non_cardinality_contract.contract_id,
+        },
+    )
+    aliased = alias_schema(
+        lens="contract_structure_contrast",
+        cardinality_bindings=[
+            {
+                "binding_id": "CARD-BIND-ALIASED",
+                "contract_id": alias,
+                "status": "unbound",
+                "member_domain": "unresolved",
+                "owner_source_id": None,
+                "owner_model_ref": None,
+                "reason": "The provider-free response uses its closed short reference.",
+                "basis": "provider-free compact contract-reference fixture",
+            }
+        ],
+        reason="The fixture verifies closed alias mapping before typed validation.",
+        basis="provider-free compact contract-reference fixture",
+    )
+    assert aliased.cardinality_bindings[0].contract_id == cardinality_contract.contract_id
+    assert "deterministic supplied-contract alias normalization" in aliased.basis
+    assert alias in aliased.basis
 
     with pytest.raises(
         ValidationError,

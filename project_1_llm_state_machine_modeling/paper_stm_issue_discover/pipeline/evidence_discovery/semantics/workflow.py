@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -1815,10 +1815,28 @@ def build_grounding_prompt(
     lens: GroundingLens,
     round_index: int,
     contracts: NLContractResponse,
+    contract_reference_aliases: Mapping[str, str] | None = None,
 ) -> str:
     """Build one complementary-lens prompt over the shared compact cross-view closure."""
 
     contract_ids = [contract.contract_id for contract in contracts.contracts]
+    aliases = dict(contract_reference_aliases or {})
+    reference_protocol = (
+        "The supplied contract IDs are:\n"
+        f"{json.dumps(contract_ids, ensure_ascii=False)}\n"
+        "Candidates, bindings, cardinality rows, and unresolved rows may use these IDs."
+        if not aliases
+        else (
+            "The primary typed plan below retains persistent canonical contract IDs. "
+            "For every response-side `contract_id` that refers to a supplied contract, "
+            "use the exact short alias key from this closed table, not the long canonical "
+            "value. The runner deterministically maps only these listed aliases back to "
+            "their paired canonical IDs before semantic validation and records that map in "
+            "the audit; it never repairs near matches. Do not use aliases for a "
+            "branch-local `additional_contracts` row:\n"
+            f"{json.dumps(aliases, ensure_ascii=False, sort_keys=True)}"
+        )
+    )
 
     return f"""Stage: discovery-grounding
 Round: {round_index}
@@ -1836,9 +1854,8 @@ its target; an initial edge in a different owner scope is a different fact. When
 the exact owner-local edge reaches the required target, emit no candidate for
 that contract. Do not use an initial edge owned by the target or one of its
 descendants to manufacture a defect in the satisfied outer entry contract.
-The supplied contract IDs are:
-{json.dumps(contract_ids, ensure_ascii=False)}
-Candidates and unresolved rows may use these IDs. A branch-local derived
+{reference_protocol}
+A branch-local derived
 candidate must instead name one exact row returned in `additional_contracts`.
 Every branch-local additional contract reference must be unique within this
 response. It need not predict the runner's canonical ID and must never be used
