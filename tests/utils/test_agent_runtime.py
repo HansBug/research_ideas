@@ -2399,6 +2399,55 @@ def test_output_target_cannot_use_audit_sidecar_path(tmp_path: Path) -> None:
         _validate_output_paths(audit, audit.with_name(audit.name + ".lock"))
 
 
+def test_interrupted_output_part_is_archived_after_locks_and_audited(tmp_path: Path) -> None:
+    def lookup() -> str:
+        """Return a deterministic test observation."""
+        return "ok"
+
+    audit = tmp_path / "trace.jsonl"
+    stale_part = tmp_path / ".trace.jsonl.interrupted.part"
+    stale_part.write_text('{"record":"partial"}\n', encoding="utf-8")
+
+    result = AgentApp._for_test(
+        AgentSpec(name="recover-output-part", system_prompt="answer", tools=(lookup,)),
+        LLMConfig(model="gpt-5.5"),
+        FakeStreamingModel(),
+    ).run("run", renderer="quiet", audit_out=audit)
+
+    assert result.status == "success", result.error
+    assert not stale_part.exists()
+    archives = list((tmp_path / ".abandoned-output-parts").glob("*.part"))
+    assert len(archives) == 1
+    recovery = json.loads(
+        archives[0].with_name(archives[0].name + ".recovery.json").read_text(encoding="utf-8")
+    )
+    assert recovery["target_path"] == str(audit.resolve())
+    assert recovery["original_part_path"] == str(stale_part.resolve())
+    records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
+    assert records[0]["recovered_output_parts"] == [recovery]
+
+
+def test_active_output_lock_is_never_recovered(tmp_path: Path) -> None:
+    import fcntl
+
+    audit = tmp_path / "trace.jsonl"
+    stale_part = tmp_path / ".trace.jsonl.interrupted.part"
+    stale_part.write_text('{"record":"partial"}\n', encoding="utf-8")
+    lock_path = audit.with_name(audit.name + ".lock")
+    with lock_path.open("a+", encoding="utf-8") as lock_file:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        app = AgentApp._for_test(
+            AgentSpec(name="locked-output-part", system_prompt="answer"),
+            LLMConfig(model="gpt-5.5"),
+            FakeStreamingModel(),
+        )
+        with pytest.raises(AgentError, match="audit_write_failed"):
+            app.run("run", renderer="quiet", audit_out=audit)
+
+    assert stale_part.exists()
+    assert not (tmp_path / ".abandoned-output-parts").exists()
+
+
 def test_result_and_audit_redact_configured_key_across_boundaries(tmp_path: Path) -> None:
     class _LeakModel(BaseChatModel):
         @property

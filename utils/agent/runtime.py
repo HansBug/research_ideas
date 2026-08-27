@@ -1512,6 +1512,50 @@ def _atomic_write(path: Path, payload: Mapping[str, Any], *, run_id: str | None 
         raise
 
 
+def _recover_uncommitted_output_parts(
+    targets: Sequence[Path],
+    *,
+    recovery_id: str,
+) -> list[dict[str, Any]]:
+    """Archive interrupted output parts after their canonical targets are locked.
+
+    A process can die after it has opened an atomic ``.part`` file but before
+    publishing it. Retaining that file is useful provenance, but treating it
+    as a permanent configuration error makes a cell impossible to resume.
+    Callers must hold every target lock before invoking this helper so a live
+    writer can never be mistaken for an interrupted attempt.
+    """
+
+    recovered: list[dict[str, Any]] = []
+    for target in targets:
+        for part in sorted(target.parent.glob(f".{target.name}.*.part")):
+            if not part.is_file():
+                raise OSError(f"uncommitted output part is not a regular file: {part}")
+            digest = _file_sha256(part)
+            archive_root = target.parent / ".abandoned-output-parts"
+            archive_root.mkdir(parents=True, exist_ok=True)
+            archive_path = archive_root / f"{target.name}.{recovery_id}.{uuid.uuid4().hex}.part"
+            os.replace(part, archive_path)
+            _fsync_parent(archive_path)
+            entry = {
+                "schema": "utils.agent.abandoned_output_part.v1",
+                "target_path": str(target),
+                "original_part_path": str(part),
+                "archived_part_path": str(archive_path),
+                "part_sha256": digest,
+                "recovered_at_utc": _utc_now().isoformat(),
+                "reason": "The canonical output locks were acquired and this uncommitted part was therefore retained as an interrupted prior attempt before a new attempt began.",
+                "basis": "exclusive audit/result/receipt file locks and the atomic-output recovery protocol",
+            }
+            _atomic_write(
+                archive_path.with_name(archive_path.name + ".recovery.json"),
+                entry,
+                run_id=recovery_id,
+            )
+            recovered.append(entry)
+    return recovered
+
+
 def _fsync_parent(path: Path) -> None:
     try:
         fd = os.open(path.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
@@ -1531,6 +1575,7 @@ class _AuditWriter:
         self.temporary: Path | None = None
         self.trace_commit_id = uuid.uuid4().hex
         self.published = False
+        self.recovered_parts: list[dict[str, Any]] = []
         self.lock_paths: list[Path] = []
         self._lock_files: list[Any] = []
         self.sensitive_values: tuple[str, ...] = ()
@@ -1555,6 +1600,10 @@ class _AuditWriter:
                         lock_file.close()
                         raise OSError("audit/result output is already locked") from exc
                     self._lock_files.append(lock_file)
+                self.recovered_parts = _recover_uncommitted_output_parts(
+                    [target for target in (path, result_path) if target is not None],
+                    recovery_id=self.trace_commit_id,
+                )
                 if path is not None:
                     self.temporary = path.with_name(f".{path.name}.{run_id}.part")
                     if self.temporary.exists():
@@ -1692,13 +1741,6 @@ def _validate_output_paths(audit_path: Path | None, result_path: Path | None) ->
             continue
     derived = [path for path in (audit, result, receipt) if path is not None]
     derived.extend(path.with_name(path.name + ".lock") for path in (audit, result, receipt) if path is not None)
-    for target in (audit, result):
-        if target is None:
-            continue
-        stale_parts = list(target.parent.glob(f".{target.name}.*.part"))
-        if stale_parts:
-            raise AgentError("config_error", f"output part already exists: {stale_parts[0]}")
-        derived.extend(stale_parts)
     for index, left in enumerate(derived):
         for right in derived[index + 1 :]:
             if not left.exists() or not right.exists():
@@ -4834,6 +4876,7 @@ class AgentApp:
                     "retry_missing_structured_output": self.spec.retry_missing_structured_output,
                     "redaction_report": [],
                     "eligibility_scope": _ELIGIBILITY_SCOPE,
+                    "recovered_output_parts": audit.recovered_parts,
                 }
             )
             if context_error is not None:
