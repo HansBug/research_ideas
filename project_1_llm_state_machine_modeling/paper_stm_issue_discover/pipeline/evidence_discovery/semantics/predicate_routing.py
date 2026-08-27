@@ -89,7 +89,11 @@ _MAX_R4_ENTRY_EVENTS = 3
 _MAX_R4_EVENT_VOCABULARY = 12
 _MAX_R2_PREFIX_EVENTS = 3
 _MAX_R2_EVENT_VOCABULARY = 12
-_STRICT_REBIND_PREDICATES = frozenset({"S4", "S6"})
+# Every structural predicate needs the same native identity closure, regardless
+# of whether an upstream candidate already carried a predicate label.  In
+# particular, historical ModelIR refs such as ``state:X:line:N`` are audit
+# identities, not native StateMachine argument values.
+_STRICT_REBIND_PREDICATES = frozenset({"S2", "S3", "S4", "S5", "S6"})
 
 
 class PredicateRouteTelemetry(BaseModel):
@@ -773,6 +777,39 @@ def _finite_domain_from_contract(contract: NLContract) -> tuple[dict[str, object
     return domain, "exact source-side finite-domain JSON"
 
 
+def _native_event_misbound_as_guard(
+    pair: PairInput,
+    values: Sequence[str],
+) -> tuple[bool, str]:
+    """Reject guard routing when a source-side value is a native FCSTM event.
+
+    A condition phrase can be a requirement-side selector without itself being
+    a guard.  When pyfcstm resolves that phrase to a declared Event, sending it
+    to S5 or V1 would compare the wrong native proposition.  The caller keeps
+    the precise candidate at W1 and records the role-closure boundary instead.
+    """
+
+    if not values:
+        return False, "no guard values require native event-role closure"
+    try:
+        native = load_native_fcstm(pair.model)
+    except Exception as exc:  # noqa: BLE001 - exact routing remains open on native load failure.
+        return False, f"native FCSTM load unavailable for guard-role closure: {type(exc).__name__}"
+    event_paths = tuple(
+        event.path_name
+        for value in values
+        for event in (resolve_event(native, value),)
+        if event is not None
+    )
+    if not event_paths:
+        return False, "guard values do not resolve to declared native FCSTM Event identities"
+    return (
+        True,
+        "guard-role values resolve to declared native FCSTM Event identities "
+        f"{list(event_paths)}; event/trigger and guard propositions are not interchangeable",
+    )
+
+
 def _v1_native_choice_inputs(
     pair: PairInput,
     contract: NLContract,
@@ -936,6 +973,10 @@ def _route_candidate(
         predicate = "S5" if property_name == "guard" else "S6"
         input_key = "guard" if predicate == "S5" else "effect"
         value: object = values[0] if predicate == "S5" else [values[0]]
+        if predicate == "S5":
+            event_role_conflict, role_basis = _native_event_misbound_as_guard(pair, values)
+            if event_role_conflict:
+                return candidate, None, "S5 routing preserves the precise candidate because the claimed guard is a native FCSTM Event; an event/trigger must not be compared as a guard AST.", f"transition_ref={transition.ref}; input_contract_missing/out_of_fragment: {role_basis}"
         if predicate == "S6":
             try:
                 native = load_native_fcstm(pair.model)
@@ -1091,6 +1132,10 @@ def _route_candidate(
         source, source_basis = _state_for_roles(pair, contract, grounding, {"source"})
         if source is None:
             return candidate, None, "V1 routing requires one exact source state for the native same-choice-group closure.", f"source={source_basis}"
+        guard_values = _contract_values(contract, {"guard"})
+        event_role_conflict, role_basis = _native_event_misbound_as_guard(pair, guard_values)
+        if event_role_conflict:
+            return candidate, None, "V1 routing preserves the precise candidate because its asserted guards are native FCSTM Events; event-trigger alternatives do not form a guard-disjointness query.", f"source_ref={source.ref}; input_contract_missing/out_of_fragment: {role_basis}"
         inputs, refs, choice_basis = _v1_native_choice_inputs(
             pair, contract, candidate, grounding, source
         )
@@ -1130,10 +1175,11 @@ def route_primary_candidates(
     """Route current primary candidates without changing contract semantic keys.
 
     Predicate-null candidates are augmented only by a route whose full typed
-    input set closes deterministically.  Existing S4/S6 selections are also
-    rebuilt through that route: an LLM predicate label and its raw values never
-    bypass native lifecycle-slot or operation parsing.  Unsupported properties
-    retain their precise W1 path and a machine-readable reason.
+    input set closes deterministically. Existing selected structural
+    predicates (S2--S6) are rebuilt through that route as well: an LLM label,
+    a historical projection ref, or a legacy input spelling never bypasses
+    native state/carrier/lifecycle/AST closure. Unsupported properties retain
+    their precise W1 path and a machine-readable reason.
     """
 
     updated: list[CandidateIssue] = []

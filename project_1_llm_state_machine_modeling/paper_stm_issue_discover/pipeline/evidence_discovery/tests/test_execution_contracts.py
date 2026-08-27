@@ -1372,6 +1372,88 @@ def test_execution_probe_maps_exact_trigger_binding_to_s3_execution() -> None:
     assert _prepared_is_finding_candidate(prepared) is False
 
 
+def test_execution_probe_materializes_exact_native_lifecycle_action() -> None:
+    """A closed S4 contract executes even when grounding emitted no issue row."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0004")
+    state = next(item for item in pair.model.states if item.name == "Accelerating")
+    contract = _probe_contract(
+        contract_id="NL-CONTRACT-PROBE-LIFECYCLE",
+        property_name="state_action",
+        locus_kind="state",
+        locus_names=(state.name,),
+        binding_hints=(
+            ContractBindingHint(
+                role="state",
+                value=state.name,
+                reason="The requirement identifies one native state.",
+                basis="provider-free lifecycle contract fixture",
+            ),
+            ContractBindingHint(
+                role="phase",
+                value="entry",
+                reason="The requirement explicitly names the entry lifecycle slot.",
+                basis="provider-free lifecycle contract fixture",
+            ),
+            ContractBindingHint(
+                role="action",
+                value="Accelerate",
+                reason="The requirement explicitly names the native abstract action.",
+                basis="provider-free lifecycle contract fixture",
+            ),
+        ),
+    ).model_copy(
+        update={
+            "normative_statement": "Accelerating must perform Accelerate on entry.",
+            "expected_direction": "must_occur",
+            "violation_direction": "other",
+        }
+    )
+
+    probes, probe_contracts, dispositions = _materialize_deterministic_execution_probes(
+        pair,
+        {contract.contract_id: contract},
+        (),
+        (),
+    )
+
+    assert probe_contracts == {}
+    assert len(probes) == 1
+    s4_probe = probes[0]
+    assert s4_probe.predicate_id == "S4"
+    assert s4_probe.predicate_inputs == {
+        "state": state.canonical_path,
+        "phase": "entry",
+        "action": "Accelerate",
+    }
+    assert s4_probe.element_refs == [state.ref]
+    assert dispositions == [
+        {
+            "probe": "S4",
+            "status": "admitted_exact_lifecycle_contract",
+            "contract_id": contract.contract_id,
+            "state_ref": state.ref,
+            "phase": "entry",
+            "action": "Accelerate",
+            "reason": s4_probe.reason,
+            "basis": s4_probe.basis,
+        }
+    ]
+
+    prepared = _prepare_candidate(
+        pair,
+        s4_probe,
+        round_index=1,
+        index=0,
+        contracts_by_id={contract.contract_id: contract},
+    )
+    assert prepared["plan"].predicate_id == "S4"
+    assert prepared["receipt"].terminal_state == "completed"
+    assert prepared["receipt"].verdict == "true"
+    assert prepared["receipt"].run_metadata["execution_model"] == "pyfcstm.model.StateMachine"
+    assert _prepared_is_finding_candidate(prepared) is False
+
+
 def test_runtime_r1_probe_executes_public_fcstm_macrostep_and_stays_nonfinding() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0010")
     transition = next(

@@ -56,7 +56,6 @@ FrontierKind = Literal[
     "aggregate_stable_termination",
     "transition_group_collision",
     "wrong_target",
-    "wrong_scope_route",
     "reachable_dead_end",
     "cross_wrapper_reachability",
     "aggregate_zero_behavior",
@@ -2779,62 +2778,11 @@ def _materialize_termination(builder: _Builder, contracts: Sequence[NLContract])
                     tuple(continuing),
                 )
             )
-        if owner and not _is_descendant(pair, target, owner):
-            actual_parent = target.parent or "model root"
-            derived = _derived_contract(
-                contract,
-                locus_kind="path",
-                locus_names=(owner.name, target.name, actual_parent),
-                property_name="route_avoidance",
-                state_role="termination_state",
-                expected_direction="must_avoid",
-                violation_direction="wrong_scope",
-                evidence_types=("source_identity", "closed_model_inventory", "transition_fact", "containment_fact", "reachability_fact"),
-                normative_statement=f"Completion of {owner.name} must not route into a termination target owned by another operating scope.",
-                scope=f"Completion route from {owner.name}",
-                source_refs=tuple(
-                    dict.fromkeys(
-                        [
-                            *contract.source_refs,
-                            *(endpoint_contract.source_refs if endpoint_contract else ()),
-                        ]
-                    )
-                ),
-                reason="The typed termination owner and target resolve exactly, and the target ancestry belongs to a different scope.",
-                basis="termination owner plus exact same-segment completion endpoint target and complete ModelIR parent chain",
-            )
-            candidate = _candidate(
-                derived,
-                title=f"{owner.name} completion routes into {actual_parent}",
-                predicate_id=None,
-                predicate_inputs={},
-                element_refs=(owner.ref, target.ref),
-                source_refs=derived.source_refs,
-                expected=derived.normative_statement,
-                observed=f"The exact target {target.ref} is owned by {actual_parent}, not {owner.name}.",
-                strongest_rebuttal="A same-named termination state in another scope is not the required owner-local target.",
-                reason="Exact target ancestry refutes the owner-scoped completion route.",
-                basis=f"owner_ref={owner.ref}; target_ref={target.ref}; target_parent={actual_parent}",
-            )
-            builder.add(
-                "wrong_scope_route",
-                tuple(
-                    dict.fromkeys(
-                        [
-                            contract.contract_id,
-                            *(
-                                [endpoint_contract.contract_id]
-                                if endpoint_contract
-                                else []
-                            ),
-                        ]
-                    )
-                ),
-                derived,
-                candidate,
-                reason="The exact termination target lies under a different operating owner.",
-                basis="typed termination owner, same-segment completion endpoint, and exact target ancestor chain",
-            )
+        # A termination contract's source/owner identifies the scope that
+        # completes; its explicit target is an independent endpoint. A named
+        # completion target may intentionally be an ancestor, sibling, or
+        # root-level state, so target ancestry alone cannot manufacture a
+        # route-avoidance obligation or contradict the completion relation.
 
     grouped: dict[
         str,
@@ -5026,36 +4974,21 @@ def _materialize_inspection_diagnostics(
             )
             continue
 
-    concurrent_scopes = {
-        owner_scope
-        for region in (
-            pair.canonical_source_ir.model.concurrent_regions
-            if pair.canonical_source_ir
-            else ()
-        )
-        if (owner_scope := getattr(region, "owner_scope", None)) is not None
-    }
     grouped: dict[tuple[str, tuple[str, ...], str | None], list[InspectionTransitionFact]] = defaultdict(list)
     for fact in facts.transitions:
-        # In an ordinary (non-concurrent) scope, different source states are
-        # alternatives and cannot be active together.  In an explicitly
-        # concurrent scope, the enclosing owner is the active carrier because
-        # one event can reach consumers in multiple regions.
+        # V1 and its guard-disjointness frontier are defined over one exact
+        # native choice source.  A concurrent owner may contain multiple active
+        # regions, but it is not itself the StateMachine source of every child
+        # transition and cannot merge their event consumers into a synthetic
+        # same-source nondeterministic choice.
         if not fact.resolved_source_ref or not fact.triggers:
             continue
-        source_key = (
-            fact.scope if fact.scope in concurrent_scopes else fact.resolved_source_ref
-        )
-        grouped[(source_key, tuple(fact.triggers), fact.guard)].append(fact)
+        grouped[(fact.resolved_source_ref, tuple(fact.triggers), fact.guard)].append(fact)
     for (source_key, triggers, guard), rows in sorted(grouped.items()):
         target_keys = {fact.resolved_target_ref or "[*]" for fact in rows}
         if len(rows) < 2 or len(target_keys) < 2:
             continue
-        scope = (
-            _state_for_value(pair, source_key)
-            if source_key in concurrent_scopes
-            else _state_by_ref(pair, source_key)
-        )
+        scope = _state_by_ref(pair, source_key)
         if scope is None:
             continue
         contract = _inspection_scope_contract(
@@ -5093,8 +5026,8 @@ def _materialize_inspection_diagnostics(
             ),
             scope=f"Inspection event/guard frontier in {scope.name}",
             source_refs=contract.source_refs,
-            reason="Exact transitions in one owned scope share an event/guard signature while exposing different target outcomes.",
-            basis="inspection-equivalent transition scope, trigger, guard, and resolved-target refs",
+            reason="Exact transitions from one native source share an event/guard signature while exposing different target outcomes.",
+            basis="inspection-equivalent native source ref, trigger, guard, and resolved-target refs",
         )
         derived = derived.model_copy(
             update={"contract_id": canonical_contract_id(derived)}
@@ -5116,17 +5049,17 @@ def _materialize_inspection_diagnostics(
                 f"Exact transitions {[fact.transition_ref for fact in rows]} share "
                 f"triggers={list(triggers)} and guard={guard!r}, with targets={sorted(target_keys)}."
             ),
-            strongest_rebuttal="Different source scopes or different event/guard signatures would separate the alternatives; this candidate is limited to one exact scope signature.",
-            reason="The deterministic inspection inventory found one exact same-scope event/guard group with more than one target outcome.",
-            basis=f"scope={scope.ref}; triggers={list(triggers)}; guard={guard!r}; transition_refs={[fact.transition_ref for fact in rows]}",
+            strongest_rebuttal="Different native source states or different event/guard signatures separate the alternatives; this candidate is limited to one exact source-state signature.",
+            reason="The deterministic inspection inventory found one exact native-source event/guard group with more than one target outcome.",
+            basis=f"source_ref={scope.ref}; triggers={list(triggers)}; guard={guard!r}; transition_refs={[fact.transition_ref for fact in rows]}",
         )
         builder.add(
             "transition_group_collision",
             (contract.contract_id,),
             derived,
             candidate,
-            reason="The explicit guard-disjointness contract anchors a deterministic same-event/guard collision frontier.",
-            basis="owned inspection transition grouping; no ledger or expected-specific input",
+            reason="The explicit guard-disjointness contract anchors a deterministic native-same-source event/guard collision frontier.",
+            basis="native-source inspection transition grouping; no ledger or expected-specific input",
         )
 
     # A zero-trigger edge into an exact leaf is a completion transition.  It is

@@ -27,6 +27,8 @@ FCSTM DSL 只由 `pyfcstm` 原生 parser/AST/model class 解释。兼容入口 `
 
 所有 FCSTM 语义处理均使用 native state/event/transition/AST identity：包含 hierarchy/path、pseudo-state、forced/combo authored carrier、trigger、guard/effect、lifecycle action、topology、runtime 和 `.fbmcq`。禁止用正则、`splitlines`、brace stack 或文本切片重新解析 FCSTM source。允许方法在 native identity 上构建 Pydantic facts、route、输入闭包和审计算法；PlantUML/canonical source 仍可由其专用 source parser 处理，但不是 FCSTM execution model。每次冻结使用 `inputs.native_projection_audit` 生成审计制品，要求 60/60 source、54/54 input closure、projection parity 和 static allowlist 全部通过。
 
+provider-free replay 也必须按输入 cohort 隔离。`route_replay`、`frontier_replay` 与 `structural_rebind_replay` 分别审计 predicate-null route、保存 frontier 与保存的 selected S2--S6 native rebind；它们不调用 provider/Judge，不读评估答案，也不报告 hit、precision 或 publication。不得合并这些 replay 的 evidence/W 数，或把某个 replay 的 W2 当作新的 method finding。历史保存 frontier 若含已移除的 `wrong_scope_route`，replay 只排除并在 summary 计数；生产 schema 继续拒绝该 kind，不能为兼容旧制品重新启用。最新 selected-structural replay 为 `eb5820b1151c4271ffd287032da55128`，其完整 manifest、records、failure audit 与 W2 bundles 位于独立 immutable run artifact。
+
 `.fbmcq` 的 native load、query prepare、core build、property compile、solve、decode 和 replay 全部在可终止 worker 中运行。父进程执行全链路 wall-clock deadline 和 RSS 安全上限，默认分别为 15 秒与 2 GiB，可通过 `EVIDENCE_FBMCQ_WALL_CLOCK_TIMEOUT_MS`、`EVIDENCE_FBMCQ_MEMORY_LIMIT_BYTES` 显式配置；`timeout_ms` 仅是 solver 内部预算，绝不能代替前两者。回执保存每一阶段的开始/结束/耗时、query/model hash、bound、state/transition/variable 计数、失败阶段和资源终止原因。worker timeout、memory limit 或 backend exception 只生成 terminal failure receipt，并按精确 binding 退化 W1/W0，绝不产生 `false`、W2 或 issue。
 
 V5 `state_invariant` 可从小 bound 递增检查：若较小 bound 得到可 replay 的 counterexample，该 trace 是请求 horizon 内的有效反例，可提前返回 W2 `false`；较小 bound 的 `true` 只是中间进展，必须继续到请求 horizon 或在共享全链路 deadline 后诚实退化。
@@ -43,7 +45,7 @@ R4 仅在 exact retained state 有唯一最短的 native cold-entry event prefix
 
 - R1 需要 exact event/carrier、唯一 native cold entry 和唯一无 guard direct carrier，才能构造 cold-start event queue、schedule 和 macrostep。
 - R4 的显式 typed control 只能是 requirement 明示的 `scenario=cold` 和 `window=cold_macrosteps=N`（`N <= 32`）。开放 prose 时间窗不能自行产生 interval；它也不会阻断已由 exact retained state、唯一 native cold-entry prefix 和 zero-event macrostep 闭合的 method-owned 路径。两种闭包都失败时才保持 W1。
-- V1 需要 native same-choice guarded group、完整 exact carrier 集和 requirement 独立给出的有限 JSON `domain`；不得从 guard 或观察到的变量值补造 domain。
+- V1 需要 native same-choice guarded group、完整 exact carrier 集和 requirement 独立给出的有限 JSON `domain`；不得从 guard 或观察到的变量值补造 domain。原生 Event 只能作为 `event`/`trigger`，不能把 Event selector 写成 guard 来构造 S5 或 V1；不能闭合真实 guard AST 时保持 W1。
 
 15-pair 的固定 planned 分母为 S1、S2、S3、S4、S5、S6、G1、G4、R1、R4、V1、V4。selection preflight 仅保存这 12 个谓词的通用能力、typed schema、语义形状和输入 hash，不包含 ledger、expected、Judge、答案、D/L 或评测字段；它只以 hash/reference 进入 run manifest，不进入 method worker 的 candidate、binding、route 或 backend 输入。未列入该分母的冻结谓词仍全部具有学术资格和 native backend。
 

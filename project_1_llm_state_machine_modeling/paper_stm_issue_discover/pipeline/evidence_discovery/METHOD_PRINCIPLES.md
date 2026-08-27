@@ -23,7 +23,7 @@ bibliography metadata 只解释“为什么该谓词在学术与领域叙事中�
 
 ## 3. Typed、native backend 与来源归因
 
-所有 Pydantic model 都必须有 class docstring 和 Field description；所有结构化模型输出、失败、退化与未执行记录都必须有非空 `reason` 与 `basis`。S4 的 `phase` 只能是 `entry`、`do` 或 `exit`；S2 必须检验 owner-local scope；S5 比较原生 guard AST；S6 只检验 exact transition 的 effect membership。
+所有 Pydantic model 都必须有 class docstring 和 Field description；所有结构化模型输出、失败、退化与未执行记录都必须有非空 `reason` 与 `basis`。S4 的 `phase` 只能是 `entry`、`do` 或 `exit`；S2 必须检验 owner-local scope；S5 比较原生 guard AST；S6 只检验 exact transition 的 effect membership。pyfcstm 可解析为 Event 的条件必须以 `event`/`trigger` 绑定，绝不能作为 S5/V1 的 `guard`；角色无法由当前原生 carrier 闭合时保留 W1。
 
 结构事实必须从 `pyfcstm.model` 的原生 model class 读取，不能由 ModelIR 或字符串近似判断。轨迹必须由 `SimulationRuntime` 在 method-owned closed scenario 中运行。有界检查必须使用 `.fbmcq` compile/solve/witness/replay，不得手写守卫计算、图遍历替代 solver、赋值枚举或静态 trace。后端不得调用 Python `inspect`。
 
@@ -49,7 +49,13 @@ W2 的归因链至少包含当前 NL、PlantUML、canonical source IR、FCSTM、
 
 主链固定为 `typed contract -> compatible predicate set -> exact input binder -> compiler -> native backend`。route 只可读取当前 pair 的 NL、PlantUML、canonical source IR、FCSTM、inspect-equivalent facts、working contracts 与封闭 `ModelIR`；不得读取 ledger expected、Judge、答案、其他 pair 输出或 `pair_id` 特判。
 
+已带 predicate label 的候选不享有绕过权：S2--S6 一律由同一 exact input binder 重建 native state path、owner scope、authored transition carrier、lifecycle slot 与 guard/effect AST 输入。`state:<name>:line:<N>` 等 projection ref 只用于 binding/audit attribution，绝不是 pyfcstm backend 的 state argument；旧字段（例如 `expected_guard`）也不得直接进入执行。重绑不能闭合时清除执行计划，保留精确 W1 和完整 route reason/basis，禁止把历史输入、timeout 或 parser 兼容猜测伪造成 `false`/W2。
+
+保存制品重放按 cohort 物理隔离：`route_replay` 只审计最终 predicate-null W1 的当前主 route；`frontier_replay` 只审计保存的 frontier 输入；`structural_rebind_replay` 只审计已选择 S2--S6 在当前 native binder 下是否仍具备合法输入。三者都不得读取 ledger expected、Judge、答案或其他 pair，均不产生 hit、precision、publication 或 Judge 结论，W 分布也不得互相相加。历史制品若含已因 soundness audit 移除的 frontier kind（当前为 `wrong_scope_route`），replay 只可显式排除并计数，不能放宽生产 `FrontierBatch` schema、重写原制品或把它恢复为当前 frontier。当前 structural-rebind 制品 `eb5820b1151c4271ffd287032da55128` 固定审计 122 条保存的 selected-structural candidates：57 条具备 W2 audit bundle，65 条因 route/input/execution 退化为 W1；provider/Judge 调用均为 0。这是历史输入的 typed-safety 对拍，不是一次新的 method 效果。
+
 inspection-equivalent、verify、SMT 与 native topology 只提供当前制品的观察事实，不能自行创造 source-side 规范义务。尤其 `INITIAL_ENTRY_CONDITIONAL` 只有在同一 owner/target 已有精确 `initial_entry` contract 时才可形成 initial-entry 或其 exact-carrier S3 finding；containment、cardinality、state action 或泛 scope contract 只能作为审计上下文。相同地，同 event/guard 多目标事实只有在 NL 已明确 `guard_disjointness` contract 时才可形成 V1/guard-disjointness frontier；不得从任意 scope、事件消费或 action contract 推出互斥义务。未被同属性 contract 规范化的 native fact 必须保留 audit，而不是发布候选。
+
+termination 的 source/owner 与 explicit target 是两个独立 typed role。`HighwayMode -> FinishState` 一类合同允许 `FinishState` 位于 owner 的外层、同层或其他明确 scope；target ancestry 不能自行制造 `route_avoidance`/wrong-scope candidate，也不能把完成目标改写为 owner-local state。只有合同自身声明的 endpoint、termination 或其他冻结可表达属性才可进入后续 route。
 
 LLM 已填写的 `predicate_id` 也不是执行准入。尤其 S4 与 S6 必须由同一 exact input binder 重建：S4 只能闭合为独立的 native state、`entry/do/exit` lifecycle slot 和 action；S6 必须闭合为 exact native transition carrier 与可由 pyfcstm operation grammar 解析的单一 effect。任一项未闭合时清除该执行计划，保留原精确语义候选为 W1；不得把自然语言动作、事件名、状态名或业务阶段当作 action/effect/phase 执行。
 

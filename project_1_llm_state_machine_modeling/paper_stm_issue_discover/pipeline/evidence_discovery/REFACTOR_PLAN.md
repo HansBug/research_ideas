@@ -22,11 +22,13 @@
 
 route 使用 `typed contract -> compatible predicate set -> exact input binder`，只读取当前 pair 的方法输入。先在保存 extraction/grounding 输入上做 provider-free A/B，再以新 commit 和 immutable run identity 运行一次 15x1。固定 12 谓词分母为 S1、S2、S3、S4、S5、S6、G1、G4、R1、R4、V1、V4；R1/R4/V1 必须有 method-owned scenario/trace/domain 闭包，不能以 pass probe 代替 finding。
 
-S4/S6 的 LLM 预选标签必须经过同一 binder 复核，不能绕过输入闭包：S4 的 phase 只允许 `entry/do/exit`；S6 的 effect 必须是 pyfcstm native operation grammar 可解析的单一操作并绑定到 exact carrier。失败时只退化执行计划和 W，不改 contract/candidate 语义，不产生 false、W2 或 publication。
+S4/S6 的 LLM 预选标签必须经过同一 binder 复核，不能绕过输入闭包：S4 的 phase 只允许 `entry/do/exit`；S6 的 effect 必须是 pyfcstm native operation grammar 可解析的单一操作并绑定到 exact carrier。S5/V1 也必须先区分 native Event selector 与 guard AST：可解析为 Event 的 requirement value 只能是 `event`/`trigger`，不能借 guard 字段进入错误谓词。失败时只退化执行计划和 W，不改 contract/candidate 语义，不产生 false、W2 或 publication。
 
 R4 的 method-owned runtime closure 固定为受限 native cold-entry fragment：只有精确 retained state 的唯一最短 event prefix 加一轮 zero-event macrostep 才可执行；任何路径歧义、runtime failure 或 fragment 越界均退化 W1。不得从 source trace、台账或人工答案构造 schedule。
 
 R1 的 cold-start execution 必须由 exact event/carrier、唯一 native cold entry 和唯一 direct unguarded carrier 闭合；R4 的显式 typed control 仅接受 requirement 明示的 `scenario=cold` 与 `window=cold_macrosteps=N`（`N <= 32`），但 generic prose window 只能保留语义限定，不能阻断独立的唯一 native cold-entry closure；V1 必须具有完整 native same-choice guarded group、exact carrier 集与 requirement 独立提供的有限 JSON `domain`。不满足时记录 `input_contract_missing`/`out_of_fragment` 并保留 W1，禁止从 prose、guard、fixture 或答案补造输入。
+
+保存数据的 deterministic A/B 不是一次完整 method run。predicate-null route、frontier 和已选择 structural candidate 分别使用 `route_replay`、`frontier_replay`、`structural_rebind_replay`；三种 artifact 的 W/receipt 只能说明各自固定 cohort 在当前实现下的合法性，禁止混算为 hit、precision、execution coverage 或新 finding。已选择 S2--S6 的 replay 必须强制 current exact native rebind；历史 `state:<name>:line:<N>`、carrier ref 或 legacy `expected_guard` 不能跳过 typed binder。保存 frontier 里已被 soundness audit 删除的 `wrong_scope_route` 只能在 replay 读取时显式排除并计数，不能放宽当前 schema 或重启该规则。当前 `eb5820b1151c4271ffd287032da55128` 是该 structural 安全门的已闭合制品，随后仍须以一次新的 15x1 才能验证完整 native context/frontier/routing 链。
 
 selection preflight 的 15x12 表只保存固定 12 谓词的通用 capability/schema、当前输入 hash 与 semantic-shape set cover，不读取或存储 ledger、expected issue、Judge、答案、D/L 或评测结果。run manifest 只保存经校验的 preflight hash/reference；method worker 不消费 preflight 内容。未计划使用不等于学术或 backend 边界，19 个冻结谓词仍全部保留 native backend 和 conformance coverage。
 

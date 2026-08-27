@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from pipeline.evidence_discovery.backends import run_backend
 from pipeline.evidence_discovery.compiler import compile_plan
 from pipeline.evidence_discovery.evidence.witness_levels import calculate_witness_level
-from pipeline.evidence_discovery.frontier_replay import _execute_added
+from pipeline.evidence_discovery.frontier_replay import _execute_added, _saved_frontier
 from pipeline.evidence_discovery.inputs import (
     CanonicalConcurrentRegion,
     PairInput,
@@ -106,6 +106,24 @@ def _keys(batch: FrontierBatch) -> set[tuple[str, tuple[str, ...], str, str]]:
         )
         for item in batch.obligations
     }
+
+
+def test_frontier_replay_excludes_retired_historical_kind_before_schema_validation() -> None:
+    """A removed frontier kind remains auditable history, not current input."""
+
+    payload = FrontierBatch(
+        reason="The fixture starts with an empty current frontier.",
+        basis="historical frontier compatibility regression fixture",
+    ).model_dump(mode="json")
+    retired_row = {"kind": "wrong_scope_route"}
+    payload.update({"obligations": [retired_row], "checks": [retired_row]})
+    cell = {"stage_outputs": {"execute_batch": {"frontier_batch": payload}}}
+
+    baseline, exclusions = _saved_frontier(cell)
+
+    assert baseline.obligations == ()
+    assert baseline.checks == ()
+    assert exclusions == {"wrong_scope_route": 2}
 
 
 def test_0029_frontier_materializes_relational_domain_obligations() -> None:
@@ -225,7 +243,6 @@ def test_0029_frontier_materializes_relational_domain_obligations() -> None:
     ) in keys
     assert any(item[0] == "aggregate_stable_termination" for item in keys)
     assert any(item[0] == "transition_group_collision" for item in keys)
-    assert any(item[0] == "wrong_scope_route" for item in keys)
 
 
 def test_transition_endpoint_contract_requires_exact_typed_endpoint_roles() -> None:
@@ -890,11 +907,6 @@ def test_termination_frontier_treats_source_hint_as_owner_with_explicit_target()
         "UrbanMode",
         "FinishState",
     )
-    assert any(
-        item.kind == "wrong_scope_route"
-        and item.source_contract_ids == (contracts[1].contract_id,)
-        for item in batch.obligations
-    )
     assert set(batch.superseded_candidate_contract_ids) == {
         contract.contract_id for contract in contracts
     }
@@ -948,9 +960,6 @@ def test_termination_frontier_joins_same_segment_completion_endpoint() -> None:
         for item in batch.obligations
         if item.kind == "aggregate_stable_termination"
     )
-    wrong_scope = next(
-        item for item in batch.obligations if item.kind == "wrong_scope_route"
-    )
     assert aggregate.source_contract_ids == tuple(
         item.contract_id for item in termination_contracts
     )
@@ -959,14 +968,8 @@ def test_termination_frontier_joins_same_segment_completion_endpoint() -> None:
         "UrbanMode",
         "FinishState",
     )
-    assert wrong_scope.source_contract_ids == (
-        termination_contracts[1].contract_id,
-        endpoint_contracts[1].contract_id,
-    )
-    assert wrong_scope.candidate.locus_names == (
-        "UrbanMode",
-        "FinishState",
-        "HighwayMode",
+    assert not any(
+        item.kind == "wrong_scope_route" for item in batch.obligations
     )
     assert set(batch.superseded_candidate_contract_ids) == {
         item.contract_id for item in termination_contracts
@@ -3821,17 +3824,17 @@ def test_inspection_projection_materializes_zero_trigger_completion_edge() -> No
     assert "zero-trigger" in issue.reason.lower() or "zero-trigger" in issue.basis.lower()
 
 
-def test_inspection_projection_materializes_same_scope_event_target_collision() -> None:
+def test_inspection_projection_materializes_same_native_source_event_target_collision() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0056")
     contract = _contract(
         contract_id="NL-CONTRACT-NL1-SEARCH-COLLISION",
         segment_id="NL1",
         locus_kind="scope",
-        locus_names=("SearchState",),
+        locus_names=("NoIntercept",),
         property_name="guard_disjointness",
         expected_direction="must_exist",
         violation_direction="wrong_guard",
-        hints=(_hint("owner", "SearchState", "NL1"),),
+        hints=(_hint("owner", "NoIntercept", "NL1"),),
     )
     batch = materialize_typed_frontier(
         pair,
@@ -3848,7 +3851,9 @@ def test_inspection_projection_materializes_same_scope_event_target_collision() 
         and item.source_contract_ids == (contract.contract_id,)
     )
     assert "transition:line:20" in collision.element_refs
-    assert "transition:line:26" in collision.element_refs
+    assert "transition:line:25" in collision.element_refs
+    assert "transition:line:26" not in collision.element_refs
+    assert "state:NoIntercept:line:13" in collision.element_refs
     assert "Intercepted" in collision.observed
     assert collision.reason and collision.basis
 

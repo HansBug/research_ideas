@@ -2758,6 +2758,92 @@ def _materialize_deterministic_execution_probes(
         )
         break
 
+    # A state-action contract is directly executable only when the requirement
+    # itself closes all three S4 arguments.  The native backend, rather than
+    # the route, determines whether that exact lifecycle slot contains the
+    # action.  This prevents a missing LLM issue candidate from suppressing a
+    # valid native satisfaction/violation receipt, while never inventing a
+    # lifecycle phase from source text or state names.
+    for contract in sorted(contracts_by_id.values(), key=lambda item: item.contract_id):
+        if contract.property != "state_action":
+            continue
+        state_hints = [hint for hint in contract.binding_hints if hint.role == "state"]
+        phase_hints = [hint for hint in contract.binding_hints if hint.role == "phase"]
+        action_hints = [hint for hint in contract.binding_hints if hint.role == "action"]
+        if (
+            len(state_hints) != 1
+            or len(phase_hints) != 1
+            or phase_hints[0].value not in {"entry", "do", "exit"}
+            or len(action_hints) != 1
+        ):
+            continue
+        state_ref = resolve_state_ref(state_hints[0].value, pair.model)
+        state = next(
+            (item for item in pair.model.states if item.ref == state_ref), None
+        )
+        if state is None or (contract.contract_id, "S4") in existing_predicates:
+            continue
+        source_refs = list(contract.source_refs)
+        for hint in (*state_hints, *phase_hints, *action_hints):
+            if hint.source_ref and hint.source_ref not in source_refs:
+                source_refs.append(hint.source_ref)
+        candidate = CandidateIssue(
+            contract_id=contract.contract_id,
+            locus_kind=contract.locus_kind,
+            locus_names=contract.locus_names,
+            property=contract.property,
+            violation_direction=contract.violation_direction,
+            evidence_types=tuple(
+                dict.fromkeys([*contract.evidence_types, "closed_model_inventory", "action_fact"])
+            ),
+            title=(
+                f"Lifecycle action {action_hints[0].value!r} on "
+                f"{state.name} {phase_hints[0].value}"
+            ),
+            requirement_quote=contract.quote,
+            predicate_id="S4",
+            predicate_inputs={
+                "state": state.canonical_path,
+                "phase": phase_hints[0].value,
+                "action": action_hints[0].value,
+            },
+            element_refs=[state.ref],
+            source_refs=source_refs,
+            expected=contract.normative_statement,
+            observed=(
+                f"The exact native lifecycle slot {phase_hints[0].value} on "
+                f"{state.ref} is evaluated by S4."
+            ),
+            strongest_rebuttal=(
+                "Only the exact native State lifecycle collection for this "
+                "state and phase is compared; an event, effect, body text, or "
+                "another lifecycle slot cannot discharge this contract."
+            ),
+            reason=(
+                "The typed contract supplies one exact state, one legal lifecycle "
+                "phase, and one action without inferring any input from model text."
+            ),
+            basis=(
+                f"contract={contract.contract_id}; state_ref={state.ref}; "
+                f"phase={phase_hints[0].value}; action={action_hints[0].value!r}; "
+                "unique native-derived state identity plus requirement-side typed hints"
+            ),
+        )
+        probes.append(candidate)
+        dispositions.append(
+            {
+                "probe": "S4",
+                "status": "admitted_exact_lifecycle_contract",
+                "contract_id": contract.contract_id,
+                "state_ref": state.ref,
+                "phase": phase_hints[0].value,
+                "action": action_hints[0].value,
+                "reason": candidate.reason,
+                "basis": candidate.basis,
+            }
+        )
+        break
+
     # An effect contract can be executed by S6 only when grounding supplies
     # one exact transition carrier.  The effect hint remains the normative
     # input; event names, variable deltas, state scope, and display labels are

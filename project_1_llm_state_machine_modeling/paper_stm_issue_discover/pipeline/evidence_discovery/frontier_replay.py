@@ -47,6 +47,10 @@ from .semantics.predicate_routing import route_primary_candidates
 
 FRONTIER_REPLAY_SCHEMA = "evidence-discovery.frontier_replay.v1"
 FRONTIER_REPLAY_POLICY_VERSION = "saved-extraction-grounding-frontier-only.v1"
+# A historical replay may encounter a frontier kind removed after a soundness
+# audit. Production FrontierBatch remains strict; replay excludes and reports
+# these rows rather than reviving the retired semantics or aborting all cells.
+_RETIRED_HISTORICAL_FRONTIER_KINDS = frozenset({"wrong_scope_route"})
 _IMPLEMENTATION_FILES = (
     Path(__file__),
     Path(__file__).parent / "semantics" / "frontier.py",
@@ -172,6 +176,9 @@ class FrontierReplayPairRecord(BaseModel):
     baseline_kinds: dict[str, int] = Field(
         description="Saved frontier obligation distribution by kind.",
     )
+    historical_frontier_items_excluded: dict[str, int] = Field(
+        description="Saved frontier obligation/check rows excluded because their kind is retired from the current production schema; they remain a historical compatibility audit, not a current result.",
+    )
     current_kinds: dict[str, int] = Field(
         description="Current rematerialized frontier obligation distribution by kind.",
     )
@@ -289,6 +296,9 @@ class FrontierReplaySummary(BaseModel):
         ge=0,
         description="Total saved typed obligation identities absent currently.",
     )
+    historical_frontier_items_excluded: dict[str, int] = Field(
+        description="Aggregate saved frontier obligation/check rows excluded for a retired kind; production frontier did not admit these rows.",
+    )
     added_kinds: dict[str, int] = Field(
         description="New obligation distribution by deterministic frontier kind.",
     )
@@ -404,7 +414,7 @@ def _saved_inputs(
     return contracts, contracts_by_id, grounding
 
 
-def _saved_frontier(cell: dict[str, Any]) -> FrontierBatch:
+def _saved_frontier(cell: dict[str, Any]) -> tuple[FrontierBatch, Counter[str]]:
     """Recover the exact deterministic frontier stored in one source method cell."""
 
     stages = cell.get("stage_outputs")
@@ -414,7 +424,21 @@ def _saved_frontier(cell: dict[str, Any]) -> FrontierBatch:
     )
     if not isinstance(frontier, dict):
         raise TypeError("source method cell has no execute_batch.frontier_batch")
-    return FrontierBatch.model_validate(frontier)
+    filtered_frontier = dict(frontier)
+    excluded: Counter[str] = Counter()
+    for key in ("obligations", "checks"):
+        rows = frontier.get(key)
+        if not isinstance(rows, list):
+            continue
+        retained_rows = []
+        for row in rows:
+            kind = row.get("kind") if isinstance(row, dict) else None
+            if kind in _RETIRED_HISTORICAL_FRONTIER_KINDS:
+                excluded[str(kind)] += 1
+                continue
+            retained_rows.append(row)
+        filtered_frontier[key] = retained_rows
+    return FrontierBatch.model_validate(filtered_frontier), excluded
 
 
 def _saved_frontier_error(cell: dict[str, Any]) -> dict[str, Any] | None:
@@ -641,6 +665,7 @@ def _render_readme(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
             f"- pairs: `{summary['pair_count']}`",
             f"- saved/current frontier errors: `{summary['baseline_frontier_error_count']}/{summary['current_frontier_error_count']}`",
             f"- added/removed obligations: `{summary['added_obligation_count']}/{summary['removed_obligation_count']}`",
+            f"- excluded retired historical frontier items: `{summary['historical_frontier_items_excluded']}`",
             f"- W0/W1/W2 over added obligations: `{summary['witness_levels']}`",
             "",
             "This artifact replays only saved contract extraction and grounding before running the current deterministic frontier, primary route, and required native backends. It does not call a method provider or Judge, read ledger expected values, L, answers, other-pair output, or future output, or claim to reconstruct the complete runner. Saved-candidate route replay remains a separate artifact and statistic.",
@@ -727,7 +752,7 @@ def run_frontier_replay(
             contracts_by_id, initial_candidates, prefrontier_diagnostics = (
                 _reconstruct_prefrontier_inputs(pair, extraction, grounding)
             )
-            baseline = _saved_frontier(cell)
+            baseline, historical_frontier_items_excluded = _saved_frontier(cell)
             baseline_error = _saved_frontier_error(cell)
             current_error: dict[str, Any] | None = None
             try:
@@ -785,6 +810,9 @@ def run_frontier_replay(
                     baseline_kinds=dict(
                         Counter(row.kind for row in baseline.obligations)
                     ),
+                    historical_frontier_items_excluded=dict(
+                        historical_frontier_items_excluded
+                    ),
                     current_kinds=dict(
                         Counter(row.kind for row in current.obligations)
                     ),
@@ -797,6 +825,11 @@ def run_frontier_replay(
         executions = [
             execution for record in records for execution in record.executions
         ]
+        excluded_historical_frontier_items: Counter[str] = Counter()
+        for record in records:
+            excluded_historical_frontier_items.update(
+                record.historical_frontier_items_excluded
+            )
         added_kinds = Counter(
             obligation["kind"]
             for record in records
@@ -839,6 +872,9 @@ def run_frontier_replay(
             ),
             removed_obligation_count=sum(
                 record.removed_obligation_count for record in records
+            ),
+            historical_frontier_items_excluded=dict(
+                excluded_historical_frontier_items
             ),
             added_kinds=dict(added_kinds),
             routed_predicates=dict(Counter(str(row.predicate_id) for row in routed)),

@@ -17,6 +17,11 @@ from pipeline.evidence_discovery.semantics import (
 from pipeline.evidence_discovery.semantics.predicate_routing import (
     route_primary_candidates,
 )
+from pipeline.evidence_discovery.structural_rebind_replay import (
+    STRUCTURAL_PREDICATES,
+    _merge_saved_frontier_contracts,
+    _summary as structural_rebind_summary,
+)
 
 PAPER_ROOT = Path(__file__).parents[3]
 REPORT_ROOT = PAPER_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
@@ -52,6 +57,18 @@ state Root {
     state C;
     [*] -> A;
     A -> B : Go;
+}
+"""
+
+_EVENT_SELECTOR_SOURCE = """
+state Root {
+    event ModeShift;
+    state A;
+    state B;
+    state C;
+    [*] -> A;
+    A -> B : ModeShift;
+    A -> C : ModeShift;
 }
 """
 
@@ -258,6 +275,354 @@ def test_preselected_s4_is_rebuilt_or_downgraded_by_strict_primary_inputs() -> N
     assert invalid_projection.candidates[0].predicate_id is None
     assert invalid_projection.candidates[0].predicate_inputs == {}
     assert "strict primary rebinding" in invalid_projection.candidates[0].reason
+
+
+def test_preselected_s2_rebuilds_legacy_projection_refs_before_native_execution() -> None:
+    """An already-labelled S2 cannot send audit refs to the native backend."""
+
+    model = parse_fcstm(_RUNTIME_SOURCE)
+    pair = PairInput(
+        pair_id="fixture-s2-native-rebind",
+        pair_dir=Path("fixture-s2-native-rebind"),
+        nl_text="A must transition to B.",
+        fcstm_text=_RUNTIME_SOURCE,
+        plantuml_text="",
+        model=model,
+        hashes={},
+    )
+    root = model.state("Root")
+    source = model.state("A")
+    target = model.state("B")
+    assert root is not None and source is not None and target is not None
+    contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-PRESELECTED-S2-1",
+        segment_id="NL1",
+        quote="A must transition to B.",
+        normative_statement="A transition from A to B must exist.",
+        locus_kind="transition",
+        locus_names=("A", "B"),
+        property="transition_endpoints",
+        expected_direction="must_exist",
+        violation_direction="missing",
+        evidence_types=("source_identity", "transition_fact"),
+        binding_hints=(_hint("source", "A"), _hint("target", "B")),
+        scope="A-to-B transition",
+        source_refs=("NL1",),
+        reason="The fixture supplies one exact endpoint obligation.",
+        basis="S2 native rebinding regression fixture",
+    )
+    selected = _candidate(contract, [source.ref, target.ref]).model_copy(
+        update={
+            "predicate_id": "S2",
+            "predicate_inputs": {
+                "source": source.ref,
+                "target": target.ref,
+                "scope": root.ref,
+            },
+        }
+    )
+
+    projection = route_primary_candidates(pair, {contract.contract_id: contract}, (), [selected])
+    routed = projection.candidates[0]
+    assert routed.predicate_id == "S2"
+    assert routed.predicate_inputs == {
+        "source": source.canonical_path,
+        "target": target.canonical_path,
+        "scope": root.canonical_path,
+    }
+
+    binding = bind_candidate(routed, pair.model)
+    plan = compile_plan(
+        routed,
+        binding,
+        load_registry(),
+        obligation_id="fixture:s2:native-rebind",
+        round_index=1,
+        model=pair.model,
+    )
+    receipt = run_backend(plan, pair.model, "fixture:s2:native-rebind:receipt")
+    assert receipt.terminal_state == "completed"
+    assert receipt.verdict == "true"
+
+
+def test_native_event_selector_cannot_be_rebound_as_guard_predicate() -> None:
+    """Native events remain event/trigger inputs rather than guard AST inputs."""
+
+    model = parse_fcstm(_EVENT_SELECTOR_SOURCE)
+    pair = PairInput(
+        pair_id="fixture-event-selector-role",
+        pair_dir=Path("fixture-event-selector-role"),
+        nl_text="ModeShift selects two alternatives.",
+        fcstm_text=_EVENT_SELECTOR_SOURCE,
+        plantuml_text="",
+        model=model,
+        hashes={},
+    )
+    source = model.state("A")
+    first = next(
+        item for item in model.transitions if item.source == "A" and item.target == "B"
+    )
+    second = next(
+        item for item in model.transitions if item.source == "A" and item.target == "C"
+    )
+    assert source is not None
+
+    guard_contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-EVENT-AS-GUARD-1",
+        segment_id="NL1",
+        quote="ModeShift selects the A-to-B alternative.",
+        normative_statement="The A-to-B transition must use ModeShift as a guard.",
+        locus_kind="transition",
+        locus_names=("A", "B"),
+        property="guard",
+        expected_direction="must_equal",
+        violation_direction="wrong_guard",
+        evidence_types=("source_identity", "guard_fact"),
+        binding_hints=(
+            _hint("source", "A"),
+            _hint("target", "B"),
+            _hint("transition", first.ref),
+            _hint("guard", "ModeShift"),
+        ),
+        scope="A-to-B selector",
+        source_refs=("NL1",),
+        reason="The fixture deliberately assigns a declared FCSTM event the wrong guard role.",
+        basis="native Event-versus-guard routing regression fixture",
+    )
+    guard_candidate = _candidate(guard_contract, [source.ref, first.ref]).model_copy(
+        update={"predicate_id": "S5", "predicate_inputs": {"transition": first.ref, "guard": "ModeShift"}}
+    )
+
+    guard_projection = route_primary_candidates(
+        pair, {guard_contract.contract_id: guard_contract}, (), [guard_candidate]
+    )
+    assert guard_projection.candidates[0].predicate_id is None
+    assert guard_projection.candidates[0].predicate_inputs == {}
+    assert "native FCSTM Event" in guard_projection.telemetry[0].reason
+
+    choice_contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-EVENT-AS-V1-GUARD-1",
+        segment_id="NL1",
+        quote="ModeShift keeps A's alternatives distinct.",
+        normative_statement="The A alternatives must have disjoint ModeShift guards.",
+        locus_kind="transition",
+        locus_names=("A", "B", "C"),
+        property="guard_disjointness",
+        expected_direction="must_remain",
+        violation_direction="wrong_guard",
+        evidence_types=("source_identity", "guard_fact"),
+        binding_hints=(
+            _hint("source", "A"),
+            _hint("guard", "ModeShift"),
+            _hint("domain", '{"x": [0]}'),
+        ),
+        scope="A selector group",
+        source_refs=("NL1",),
+        reason="The fixture keeps an event selector out of V1 guard-domain inputs.",
+        basis="native Event-versus-V1 routing regression fixture",
+    )
+    choice_candidate = _candidate(choice_contract, [source.ref, first.ref, second.ref])
+
+    choice_projection = route_primary_candidates(
+        pair, {choice_contract.contract_id: choice_contract}, (), [choice_candidate]
+    )
+    assert choice_projection.candidates[0].predicate_id is None
+    assert "native FCSTM Events" in choice_projection.telemetry[0].reason
+
+
+def test_preselected_s5_rebuilds_legacy_guard_field_before_native_execution() -> None:
+    """A selected S5 uses the contract guard and exact native carrier only."""
+
+    model = parse_fcstm(_CHOICE_SOURCE)
+    pair = PairInput(
+        pair_id="fixture-s5-native-rebind",
+        pair_dir=Path("fixture-s5-native-rebind"),
+        nl_text="Disjoint to B uses x < 0.",
+        fcstm_text=_CHOICE_SOURCE,
+        plantuml_text="",
+        model=model,
+        hashes={},
+    )
+    source = model.state("Disjoint")
+    target = model.state("B")
+    transition = next(
+        item for item in model.transitions if item.source == "Disjoint" and item.target == "B"
+    )
+    assert source is not None and target is not None
+    contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-PRESELECTED-S5-1",
+        segment_id="NL1",
+        quote="Disjoint to B uses x < 0.",
+        normative_statement="The Disjoint-to-B transition must use guard x < 0.",
+        locus_kind="transition",
+        locus_names=("Disjoint", "B"),
+        property="guard",
+        expected_direction="must_equal",
+        violation_direction="wrong_guard",
+        evidence_types=("source_identity", "guard_fact"),
+        binding_hints=(
+            _hint("source", "Disjoint"),
+            _hint("target", "B"),
+            _hint("transition", transition.ref),
+            _hint("guard", "x < 0"),
+        ),
+        scope="Disjoint-to-B transition",
+        source_refs=("NL1",),
+        reason="The fixture supplies one exact guard carrier and expression.",
+        basis="S5 native rebinding regression fixture",
+    )
+    selected = _candidate(contract, [source.ref, target.ref, transition.ref]).model_copy(
+        update={
+            "predicate_id": "S5",
+            "predicate_inputs": {
+                "transition": transition.ref,
+                "expected_guard": "x < 0",
+            },
+        }
+    )
+
+    projection = route_primary_candidates(pair, {contract.contract_id: contract}, (), [selected])
+    routed = projection.candidates[0]
+    assert routed.predicate_id == "S5"
+    assert routed.predicate_inputs == {"transition": transition.ref, "guard": "x < 0"}
+
+    binding = bind_candidate(routed, pair.model)
+    plan = compile_plan(
+        routed,
+        binding,
+        load_registry(),
+        obligation_id="fixture:s5:native-rebind",
+        round_index=1,
+        model=pair.model,
+    )
+    receipt = run_backend(plan, pair.model, "fixture:s5:native-rebind:receipt")
+    assert receipt.terminal_state == "completed"
+    assert receipt.verdict == "true"
+
+
+def test_structural_rebind_summary_rejects_unclosed_w2() -> None:
+    """The isolated selected-candidate audit retains the W failure boundary."""
+
+    record = {
+        "pair_id": "0000",
+        "baseline_predicate_id": "S2",
+        "baseline_candidate": {"predicate_inputs": {"source": "A"}},
+        "baseline_receipt": {"verdict": "false"},
+        "route_status": "route_unclosed",
+        "candidate": {"predicate_id": None, "predicate_inputs": {}},
+        "receipt": None,
+        "witness_level": "W2",
+        "audit_bundle": {},
+    }
+
+    summary = structural_rebind_summary("a" * 32, "b" * 32, [record])
+    assert STRUCTURAL_PREDICATES == frozenset({"S2", "S3", "S4", "S5", "S6"})
+    assert summary["acceptance"]["no_unclosed_or_failed_row_claims_w2"] is False
+
+
+def test_structural_rebind_replay_merges_saved_derived_frontier_contract() -> None:
+    """Derived contracts are replay inputs, not absent-contract guesses."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0002")
+    state = next(item for item in pair.model.states if item.name == "PumpState")
+    contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-SAVED-FRONTIER-1",
+        segment_id="NL1",
+        quote="PumpState must progress.",
+        normative_statement="PumpState must retain progress.",
+        locus_kind="state",
+        locus_names=("PumpState",),
+        property="deadlock_freedom",
+        expected_direction="must_progress",
+        violation_direction="dead_end",
+        evidence_types=("source_identity", "deadlock_frontier_fact"),
+        binding_hints=(_hint("state", state.name),),
+        scope="PumpState progress",
+        source_refs=("NL1",),
+        reason="The fixture defines one derived frontier obligation.",
+        basis="saved frontier contract regression fixture",
+    )
+    candidate = _candidate(contract, [state.ref])
+    cell = {
+        "stage_outputs": {
+            "execute_batch": {
+                "frontier_batch": {
+                    "obligations": [
+                        {
+                                "frontier_id": "fixture-frontier-1",
+                                "kind": "reachable_dead_end",
+                                "contract": contract.model_dump(mode="json"),
+                                "candidate": candidate.model_dump(mode="json"),
+                                "source_contract_ids": [contract.contract_id],
+                            "reason": "The fixture persists a derived contract.",
+                            "basis": "provider-free saved frontier fixture",
+                        }
+                    ],
+                    "reason": "Saved fixture frontier.",
+                    "basis": "saved frontier fixture",
+                }
+            }
+        }
+    }
+    contracts: dict[str, NLContract] = {}
+
+    exclusions = _merge_saved_frontier_contracts(cell, contracts)
+
+    assert contracts == {contract.contract_id: contract}
+    assert exclusions == {}
+
+
+def test_structural_rebind_replay_excludes_retired_frontier_kind_with_accounting() -> None:
+    """Historical retired frontier rows cannot reopen the current production schema."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0002")
+    state = next(item for item in pair.model.states if item.name == "PumpState")
+    contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-RETIRED-FRONTIER-1",
+        segment_id="NL1",
+        quote="PumpState must progress.",
+        normative_statement="PumpState must retain progress.",
+        locus_kind="state",
+        locus_names=("PumpState",),
+        property="deadlock_freedom",
+        expected_direction="must_progress",
+        violation_direction="dead_end",
+        evidence_types=("source_identity", "deadlock_frontier_fact"),
+        binding_hints=(_hint("state", state.name),),
+        scope="PumpState progress",
+        source_refs=("NL1",),
+        reason="The fixture isolates one retired saved frontier row.",
+        basis="historical frontier compatibility regression fixture",
+    )
+    candidate = _candidate(contract, [state.ref])
+    live_row = {
+        "frontier_id": "fixture-frontier-live",
+        "kind": "reachable_dead_end",
+        "contract": contract.model_dump(mode="json"),
+        "candidate": candidate.model_dump(mode="json"),
+        "source_contract_ids": [contract.contract_id],
+        "reason": "A live saved frontier contract remains available.",
+        "basis": "provider-free saved frontier fixture",
+    }
+    retired_row = {**live_row, "frontier_id": "fixture-frontier-retired", "kind": "wrong_scope_route"}
+    cell = {
+        "stage_outputs": {
+            "execute_batch": {
+                "frontier_batch": {
+                    "obligations": [live_row, retired_row],
+                    "checks": [retired_row],
+                    "reason": "Saved fixture with one retired frontier kind.",
+                    "basis": "historical frontier compatibility fixture",
+                }
+            }
+        }
+    }
+    contracts: dict[str, NLContract] = {}
+
+    exclusions = _merge_saved_frontier_contracts(cell, contracts)
+
+    assert contracts == {contract.contract_id: contract}
+    assert exclusions == {"wrong_scope_route": 2}
 
 
 def test_preselected_s6_requires_a_native_effect_operation() -> None:
