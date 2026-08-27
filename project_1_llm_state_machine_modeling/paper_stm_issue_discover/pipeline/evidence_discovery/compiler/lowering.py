@@ -11,6 +11,7 @@ from ..inputs.models import ModelIR
 from ..registry.model import PredicateRegistry
 from ..semantics.binding import BindingResult
 from ..semantics.obligations import CandidateIssue
+from .soundness import SoundnessAssessment, assess_soundness
 from .inputs import (
     PredicateInputs,
     UnsupportedPredicateInputs,
@@ -81,6 +82,7 @@ class PredicatePlan(BaseModel):
     binding_complete: bool = Field(default=False, description="Whether every registry-minimal typed input is present after normalization.")
     backend_available: bool = Field(default=False, description="Whether the frozen predicate has a deterministic backend dispatch implementation.")
     soundness_fragment_satisfied: bool = Field(default=False, description="Whether the plan meets the predicate's local finite-model, scope, carrier, and input-fragment preconditions.")
+    soundness_assessment: SoundnessAssessment | None = Field(default=None, description="Predicate-specific machine assessment of the executable soundness fragment, including native model and algorithm boundary.")
     artifact_attribution_complete: bool = Field(default=False, description="Whether the compiled plan carries the closed executed-model identity and program hash required for later artifact attribution.")
     execution_state: str = Field(default="not_attempted", description="Compilation-time execution state. Runtime receipts independently record not_attempted, completed, or failed outcomes.")
     predicate_verdict: str | None = Field(default=None, description="Compilation-time predicate verdict, always null before a backend receipt is produced.")
@@ -130,6 +132,7 @@ def assess_soundness_fragment(
     inputs: Mapping[str, Any],
     *,
     model_hash: str | None,
+    model: ModelIR | None = None,
 ) -> tuple[bool, str]:
     """Check local executable-fragment preconditions without bibliography state.
 
@@ -138,22 +141,28 @@ def assess_soundness_fragment(
     academic eligibility from historical provenance metadata.
     """
 
-    if not model_hash:
-        return False, "the closed ModelIR hash is missing"
-    if predicate_id == "S4" and inputs.get("phase") not in {"entry", "do", "exit"}:
-        return False, "S4 phase must be one of entry, do, or exit"
-    if predicate_id == "S2" and not isinstance(inputs.get("scope"), str):
-        return False, "S2 requires one exact owner scope"
-    if predicate_id in {"S3", "S5", "S6"} and not isinstance(inputs.get("transition"), str):
-        return False, f"{predicate_id} requires one exact transition carrier"
-    if predicate_id == "V1":
-        domain = inputs.get("domain")
-        guards = inputs.get("guards")
-        if not isinstance(inputs.get("source"), str) or domain is None:
-            return False, "V1 requires an exact choice source and a declared finite domain"
-        if not isinstance(guards, (list, tuple)) or len(guards) < 2:
-            return False, "V1 requires at least two exact guards from one choice group"
-    return True, "typed inputs satisfy the local executable soundness fragment"
+    if model is None:
+        # Historical provider-free replay fixtures may retain a legal plan and
+        # model hash but not the immutable FCSTM bytes required for native
+        # rebinding.  This compatibility path is never used by live compile.
+        if not model_hash:
+            return False, "the closed ModelIR hash is missing"
+        if predicate_id == "S4" and inputs.get("phase") not in {"entry", "do", "exit"}:
+            return False, "S4 phase must be one of entry, do, or exit"
+        if predicate_id == "S2" and not isinstance(inputs.get("scope"), str):
+            return False, "S2 requires one declared scope"
+        if predicate_id in {"S3", "S5", "S6"} and not isinstance(inputs.get("transition"), str):
+            return False, f"{predicate_id} requires one exact transition carrier"
+        if predicate_id == "V1" and (not isinstance(inputs.get("source"), str) or inputs.get("domain") is None or not isinstance(inputs.get("guards"), (list, tuple)) or len(inputs["guards"]) < 2):
+            return False, "V1 requires an exact source, finite domain, and two guards"
+        return True, "historical replay has a closed model hash but no FCSTM bytes for current native rebinding"
+    assessment = assess_soundness(
+        predicate_id,
+        inputs,
+        model=model,
+        model_hash=model_hash,
+    )
+    return assessment.satisfied, assessment.reason
 
 
 def compile_plan(
@@ -250,11 +259,14 @@ def compile_plan(
     )
     backend_supported = predicate.id in SUPPORTED_PREDICATES
     input_shape_valid = not isinstance(typed_inputs, UnsupportedPredicateInputs)
-    soundness_fragment_satisfied, fragment_reason = assess_soundness_fragment(
+    soundness_assessment = assess_soundness(
         predicate.id,
         inputs,
+        model=model,
         model_hash=normalized_inputs.get("model_hash") if isinstance(normalized_inputs.get("model_hash"), str) else None,
     )
+    soundness_fragment_satisfied = soundness_assessment.satisfied
+    fragment_reason = soundness_assessment.reason
     artifact_attribution_complete = bool(
         normalized_inputs.get("model_hash") and formal_program
     )
@@ -298,6 +310,7 @@ def compile_plan(
         binding_complete=binding_complete,
         backend_available=backend_supported,
         soundness_fragment_satisfied=soundness_fragment_satisfied,
+        soundness_assessment=soundness_assessment,
         artifact_attribution_complete=artifact_attribution_complete and executable,
         supported=supported,
         executable=executable,

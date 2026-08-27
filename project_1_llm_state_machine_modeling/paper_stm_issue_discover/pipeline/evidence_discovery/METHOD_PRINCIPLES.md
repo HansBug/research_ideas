@@ -104,3 +104,9 @@ Judge 在独立 evaluation 路径执行，保持冻结口径；method 与 Judge 
 ## 5. Public implementation language
 
 Public implementation language: provider prompts、Pydantic class docstrings、Field descriptions、production class/function/variable names、registry text、generated explanations 与 deterministic audit prose must be English；本中文协议不进入 provider prompt。Exact source quotations 可保留原文。Provider-free tests 必须检查 W 状态、native backend、失败退化、归因闭合和无答案泄漏。
+
+## 6. Soundness 与 S2 scope
+
+学术来源资格、逐谓词 soundness fragment 与一次 backend 真值是三个不同维度：19 个冻结谓词均保留学术资格和 backend 义务，bibliography 不参与运行时 W2 gate。W2 仅在逐谓词 machine soundness、合法 typed inputs、当前制品归因和真实 terminal true/false 同时成立时产生；invalid input、out-of-fragment、timeout 或 backend failure 只进入 execution audit，并按精确 binding 退 W1/W0，绝不产生 `UNKNOWN` 或伪造 violation。
+
+S2 的 `closed_fcstm` 是完整封闭 FCSTM 的全部 native authored transition carrier inventory，source/target 必须先唯一绑定到 canonical native identity；`scope=<exact owner canonical path>` 才是 owner-local inventory。二者都由 pyfcstm 原生对象决定，不能用名字 first-match、正则或源码文本推断。soundness/S2 迁移必须先对冻结 method artifact 做 provider-free shadow，保证 candidate/report/D/publication 不变，再运行新的不可变实验。

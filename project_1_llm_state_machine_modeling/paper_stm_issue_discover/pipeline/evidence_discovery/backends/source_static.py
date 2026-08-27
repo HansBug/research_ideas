@@ -31,15 +31,16 @@ def _normal(value: object) -> str:
 
 
 def _scope_matches(native: NativeFCSTM, transition: Any, scope: object) -> bool:
-    """Require the exact owner scope represented by the native transition."""
+    """Apply the frozen S2 global or exact-owner transition scope contract."""
 
     if not isinstance(scope, str) or not scope.strip():
         return False
     requested = scope.strip()
     owner_path = transition_owner_path(transition)
-    root_path = state_path(native.machine.root_state)
-    if requested in {"closed_fcstm", root_path, native.machine.root_state.name}:
-        return owner_path == root_path
+    if requested == "closed_fcstm":
+        # A closed FCSTM inventory ranges over every native authored carrier,
+        # including nested owners.  It is not a synonym for the root owner.
+        return True
     owner = resolve_state(native, requested)
     return owner is not None and owner_path == state_path(owner)
 
@@ -57,15 +58,15 @@ def _endpoint_matches(native: NativeFCSTM, transition: Any, source: object, targ
             return frozenset()
         return frozenset({observed, f"{owner_path}.{observed}"})
 
-    source_ok = source == observed_source
-    target_ok = target == observed_target
-    if not source_ok and observed_source != "[*]":
+    source_ok = source == "[*]" and observed_source == "[*]"
+    target_ok = target == "[*]" and observed_target == "[*]"
+    if observed_source != "[*]":
         source_state = resolve_state(native, source)
         source_ok = (
             source_state is not None
             and state_path(source_state) in endpoint_paths(observed_source)
         )
-    if not target_ok and observed_target != "[*]":
+    if observed_target != "[*]":
         target_state = resolve_state(native, target)
         target_ok = (
             target_state is not None
@@ -144,8 +145,7 @@ def run_source_static(plan: PredicatePlan, model: ModelIR, receipt_id: str):
         source, target, scope = inputs.get("source"), inputs.get("target"), inputs.get("scope")
         if not isinstance(source, str) or not isinstance(target, str) or not isinstance(scope, str):
             return native_receipt(receipt_id, predicate, native, "unknown", "S2 requires exact source, target, and owner scope inputs.", "S2 typed input contract", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1")
-        root_path = state_path(native.machine.root_state)
-        if scope not in {"closed_fcstm", root_path, native.machine.root_state.name} and resolve_state(native, scope) is None:
+        if scope != "closed_fcstm" and resolve_state(native, scope) is None:
             return native_receipt(
                 receipt_id,
                 predicate,
@@ -160,7 +160,8 @@ def run_source_static(plan: PredicatePlan, model: ModelIR, receipt_id: str):
         carrier = _native_transition(plan, native)
         candidates = (carrier,) if carrier is not None else all_transition_carriers(native)
         found = any(_scope_matches(native, transition, scope) and _endpoint_matches(native, transition, source, target) for transition in candidates)
-        return native_receipt(receipt_id, predicate, native, "true" if found else "false", f"The native FCSTM model {'contains' if found else 'does not contain'} the exact owner-local transition.", "pyfcstm Transition owner, endpoint, and grammar-span carrier", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", counterexample=[] if found else [{"source": source, "target": target, "scope": scope}])
+        scope_kind = "closed-model" if scope == "closed_fcstm" else "exact-owner-local"
+        return native_receipt(receipt_id, predicate, native, "true" if found else "false", f"The native FCSTM model {'contains' if found else 'does not contain'} the exact {scope_kind} transition.", "pyfcstm Transition owner, canonical endpoint identity, and grammar-span carrier", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", counterexample=[] if found else [{"source": source, "target": target, "scope": scope}])
 
     transition = _native_transition(plan, native)
     if predicate in {"S3", "S5", "S6"} and transition is None:

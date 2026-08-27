@@ -19,4 +19,8 @@ route 同样受 native 边界约束。G2 对 composite source 的唯一执行投
 
 D prompt 不是 execution receipt 的第二份副本。原始 `.fbmcq`/SMT formula 与 solver payload 必须完整留在 backend/audit receipt，D 通过 canonical hash、size、typed plan、terminal result、telemetry 和 replay witness 引用它们。语义 dossier 按 obligation ID 稳定、按实际序列化预算分批且不截断；某批失败只退化该批 D，不得改变 backend truth、W、其他批次或 Judge。
 
+## Soundness/S2 alignment
+
+registry 的学术来源 metadata、predicate-specific executable soundness fragment 与 backend 的单次 true/false receipt 分层保存。19/19 均有 backend；未注册 validator、非法 typed identity、fragment 外输入、timeout 或 backend failure 不能进入 W2，且不能当作 false/violation。S2 的 `closed_fcstm` 明确为全局 native authored-transition inventory，exact owner scope 明确为 canonical owner-local inventory；两种路径均要求 unique native endpoint binding，并禁止 FCSTM text parsing 或 local-name guessing。任何迁移先在冻结 artifact 上作 provider-free shadow，再进行新的 method/Judge 对照实验。
+
 pair-local method recovery 属于新的完整 sample，不是旧 cell 的就地 D 重算。evaluation 必须先通过 `reporting.method_composite` 验证同 pair/round、pair input hash 和 registry/profile/prompt contract。recovery sample 为完整性包含未失败 round 时，只能用显式 replacement-key 选择实际失败 round；未选 recovery cell 不改结果指标，只进入 total-incurred cost。所有选中 method/W2 audit 字节和每个来源 pair status 都按 source-run 硬链接，并以逐 pair round-to-source 映射代替伪造的跨 source pair status；明确记录 base/recovery source commit、replacement hash、selected/superseded/total-incurred cost 与 retry/schema-repair。该 composite 只统一 evaluator 输入，不修改 backend truth、W/D、publication 或冻结 Judge。

@@ -1112,7 +1112,7 @@ def test_w2_audit_contains_logic_hashes_backend_and_retry_records(tmp_path: Path
     candidate = _candidate(
         pair,
         predicate_id="S2",
-        inputs={"source": "[*]", "target": "Ready", "scope": "closed_fcstm"},
+            inputs={"source": "[*]", "target": "HumanDrivingMode", "scope": "closed_fcstm"},
     )
     binding = bind_candidate(candidate, pair.model)
     plan = compile_plan(
@@ -1131,7 +1131,7 @@ def test_w2_audit_contains_logic_hashes_backend_and_retry_records(tmp_path: Path
         verdict="false",
         reason="fixture counterexample",
         basis="fixture backend",
-        counterexample=[{"source": "[*]", "target": "Ready"}],
+            counterexample=[{"source": "[*]", "target": "HumanDrivingMode"}],
         trace=[{"node": "[*]"}],
     )
     retry_records = [{"outer_attempt": 1, "retry_records": [{"operation": "scheduled"}]}]
