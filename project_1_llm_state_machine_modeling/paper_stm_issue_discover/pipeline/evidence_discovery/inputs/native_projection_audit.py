@@ -111,6 +111,7 @@ _TEXT_HANDLING_ALLOWANCES: tuple[NativeTextHandlingAllowance, ...] = (
     NativeTextHandlingAllowance(path="orchestration/runtime.py", text_construct="splitlines", purpose="Provider transport framing only."),
     NativeTextHandlingAllowance(path="frontier_replay.py", text_construct="regular_expression", purpose="Immutable run and pair identifier validation only; no FCSTM source text is inspected."),
     NativeTextHandlingAllowance(path="route_replay.py", text_construct="regular_expression", purpose="Immutable historical run-id validation only."),
+    NativeTextHandlingAllowance(path="structural_rebind_replay.py", text_construct="regular_expression", purpose="Historical NL segment-reference compatibility only; no FCSTM source text or semantic identity is parsed."),
     NativeTextHandlingAllowance(path="semantics/binding.py", text_construct="regular_expression", purpose="Method candidate and historical-ref format parsing, never FCSTM source parsing."),
     NativeTextHandlingAllowance(path="semantics/predicate_routing.py", text_construct="regular_expression", purpose="Method-owned cold_macrosteps typed hint validation only."),
     NativeTextHandlingAllowance(path="semantics/source_transition_closure.py", text_construct="regular_expression", purpose="Cross-artifact display-token normalization, never FCSTM source parsing."),
