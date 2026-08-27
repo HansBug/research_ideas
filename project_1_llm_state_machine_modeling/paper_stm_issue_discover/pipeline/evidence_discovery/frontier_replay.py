@@ -565,19 +565,25 @@ def _execute_added(
         grounding,
         tuple(obligation.candidate for obligation in added),
     )
-    telemetry = {row.contract_id: row for row in projection.telemetry}
     records: list[FrontierReplayExecution] = []
-    for obligation, candidate in zip(added, projection.candidates, strict=True):
+    for index, (obligation, candidate, route) in enumerate(
+        zip(added, projection.candidates, projection.candidate_telemetry, strict=True)
+    ):
         key = _obligation_key(obligation)
-        route = telemetry.get(candidate.contract_id)
-        route_payload = (
-            route.model_dump(mode="json")
-            if route is not None
-            else {
-                "reason": "No current deterministic route telemetry was emitted.",
-                "basis": "added frontier obligation and exact contract identity",
-            }
-        )
+        if (
+            route.candidate_index != index
+            or route.contract_id != candidate.contract_id
+            or route.selected_predicate != candidate.predicate_id
+        ):
+            raise ValueError(
+                "primary route candidate telemetry does not match its exact frontier obligation: "
+                f"index={index}; contract={candidate.contract_id}; "
+                f"telemetry_index={route.candidate_index}; "
+                f"telemetry_contract={route.contract_id}; "
+                f"telemetry_selected={route.selected_predicate}; "
+                f"candidate_selected={candidate.predicate_id}"
+            )
+        route_payload = route.model_dump(mode="json")
         if candidate.predicate_id is None:
             records.append(
                 FrontierReplayExecution(

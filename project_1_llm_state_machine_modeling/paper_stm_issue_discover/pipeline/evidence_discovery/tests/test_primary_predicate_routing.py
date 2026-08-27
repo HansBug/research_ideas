@@ -430,6 +430,62 @@ def test_native_event_selector_cannot_be_rebound_as_guard_predicate() -> None:
     assert "native FCSTM Events" in choice_projection.telemetry[0].reason
 
 
+def test_candidate_route_telemetry_never_inherits_sibling_contract_route() -> None:
+    """A contract-level S3 success cannot close a sibling's two-carrier claim."""
+
+    model = parse_fcstm(_EVENT_SELECTOR_SOURCE)
+    pair = PairInput(
+        pair_id="fixture-candidate-route-telemetry",
+        pair_dir=Path("fixture-candidate-route-telemetry"),
+        nl_text="The A-to-B transition must use ModeShift.",
+        fcstm_text=_EVENT_SELECTOR_SOURCE,
+        plantuml_text="",
+        model=model,
+        hashes={},
+    )
+    first = next(
+        item for item in model.transitions if item.source == "A" and item.target == "B"
+    )
+    second = next(
+        item for item in model.transitions if item.source == "A" and item.target == "C"
+    )
+    contract = NLContract(
+        contract_id="NL-CONTRACT-ROUTE-CANDIDATE-TELEMETRY-1",
+        segment_id="NL1",
+        quote="The A-to-B transition must use ModeShift.",
+        normative_statement="The exact A-to-B transition must have the ModeShift trigger set.",
+        locus_kind="transition",
+        locus_names=("A", "B"),
+        property="trigger_set",
+        expected_direction="must_equal",
+        violation_direction="mismatched",
+        evidence_types=("source_identity", "trigger_fact"),
+        binding_hints=(_hint("trigger", "ModeShift"),),
+        scope="A-to-B exact transition",
+        source_refs=("NL1",),
+        reason="The fixture declares one exact transition trigger obligation.",
+        basis="candidate-level route telemetry regression fixture",
+    )
+
+    projection = route_primary_candidates(
+        pair,
+        {contract.contract_id: contract},
+        (),
+        [
+            _candidate(contract, [first.ref, second.ref]),
+            _candidate(contract, [first.ref]),
+        ],
+    )
+
+    assert projection.candidates[0].predicate_id is None
+    assert projection.candidates[1].predicate_id == "S3"
+    assert projection.telemetry[0].selected_predicate == "S3"
+    assert projection.candidate_telemetry[0].candidate_index == 0
+    assert projection.candidate_telemetry[0].selected_predicate is None
+    assert projection.candidate_telemetry[1].candidate_index == 1
+    assert projection.candidate_telemetry[1].selected_predicate == "S3"
+
+
 def test_preselected_s5_rebuilds_legacy_guard_field_before_native_execution() -> None:
     """A selected S5 uses the contract guard and exact native carrier only."""
 

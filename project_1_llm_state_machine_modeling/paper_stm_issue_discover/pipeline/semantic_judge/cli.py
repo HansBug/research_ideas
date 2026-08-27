@@ -148,7 +148,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--profile", default="gpt-5.6-luna")
     parser.add_argument("--round", type=int, required=True)
     parser.add_argument("--pair-id", action="append", dest="pair_ids")
-    parser.add_argument("--workers", type=int, default=1)
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=16,
+        help="Independent pair processes (default: 16).",
+    )
     parser.add_argument("--transport-retries", type=int, default=8)
     parser.add_argument("--allow-live", action="store_true")
     return parser

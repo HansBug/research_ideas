@@ -20,7 +20,7 @@ import tempfile
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Mapping
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -39,11 +39,15 @@ from .semantics import (
     bind_candidate,
     contract_semantic_key,
 )
-from .semantics.predicate_routing import PredicateRouteTelemetry, route_primary_candidates
+from .semantics.predicate_routing import (
+    CandidateRouteTelemetry,
+    route_primary_candidates,
+)
 
 
 ROUTE_REPLAY_SCHEMA = "evidence-discovery.primary_route_replay.v1"
 ROUTE_REPLAY_POLICY_VERSION = "primary-route-current-pair-only.v1"
+METHOD_COMPOSITE_SCHEMA = "evidence-discovery.method-composite.v1"
 _IMPLEMENTATION_FILES = (
     Path(__file__),
     Path(__file__).parent / "semantics" / "predicate_routing.py",
@@ -71,6 +75,7 @@ class RouteReplayRecord(BaseModel):
     pair_id: str = Field(pattern=r"^[0-9]{4}$", description="Frozen current-pair identifier whose saved method artifacts are replayed.")
     source_file: str = Field(min_length=1, description="Historical method-cell JSON path relative to the immutable source run root.")
     source_file_sha256: str = Field(pattern=r"^sha256:[0-9a-f]{64}$", description="SHA-256 of the complete immutable source method-cell file.")
+    source_cell_run_id: str = Field(pattern=r"^[0-9a-f]{32}$", description="Original method run that produced this selected cell. It equals source_run_id for an ordinary run and is retained separately for a hash-closed method composite.")
     source_candidate_index: int = Field(ge=0, description="Zero-based execute_batch candidate index in the immutable source method cell.")
     source_candidate_sha256: str = Field(pattern=r"^sha256:[0-9a-f]{64}$", description="SHA-256 of the exact source candidate envelope before A/B routing.")
     source_evidence_index: int = Field(ge=0, description="Zero-based final evidence-record index proving that this historical predicate-null candidate belongs to the 88-row target cohort.")
@@ -79,7 +84,7 @@ class RouteReplayRecord(BaseModel):
     contract_id: str = Field(min_length=1, description="Atomic current-pair NL contract identifier used by the route replay.")
     baseline_predicate_id: None = Field(default=None, description="Historical predicate selection, fixed to null because this artifact measures predicate-null route recovery only.")
     route_status: Literal["route_unclosed", "routed_executed", "routed_execution_degraded"] = Field(description="Whether exact primary inputs remained open, reached a terminal backend receipt, or reached a non-Boolean execution failure.")
-    route_telemetry: dict[str, Any] = Field(description="Per-contract deterministic routing telemetry produced without evaluation inputs.")
+    route_telemetry: dict[str, Any] = Field(description="Candidate-specific deterministic routing telemetry produced without evaluation inputs; it cannot inherit a sibling candidate's route result.")
     candidate: dict[str, Any] = Field(description="Current routed candidate preserving the historical semantic identity and source-facing reason/basis.")
     binding: dict[str, Any] | None = Field(default=None, description="Current deterministic binding for a routed candidate, or null when no route closed.")
     plan: dict[str, Any] | None = Field(default=None, description="Current typed compiled plan for a routed candidate, or null when no route closed.")
@@ -100,7 +105,8 @@ class RouteReplayManifest(BaseModel):
     replay_id: str = Field(pattern=r"^[0-9a-f]{32}$", description="Deterministic immutable replay identity.")
     generated_at: datetime = Field(description="Timezone-aware route-replay artifact creation time.")
     source_run_path: str = Field(min_length=1, description="Absolute immutable source method-run directory read by the replay.")
-    source_run_id: str = Field(pattern=r"^[0-9a-f]{32}$", description="Run identity declared by every source method cell.")
+    source_run_id: str = Field(pattern=r"^[0-9a-f]{32}$", description="Immutable source artifact identity. For a method composite this is the composite ID, not a replacement for each selected cell's original run ID.")
+    source_cell_run_ids: tuple[str, ...] = Field(min_length=1, description="Distinct original method run IDs of every replayed cell. A non-composite source has exactly one entry; a composite records every manifest-validated selected source.")
     source_run_manifest_sha256: str = Field(pattern=r"^sha256:[0-9a-f]{64}$", description="SHA-256 of the source run manifest.")
     source_summary_sha256: str = Field(pattern=r"^sha256:[0-9a-f]{64}$", description="SHA-256 of the source summary.")
     registry_version: str = Field(min_length=1, description="Frozen registry version used by current compilation.")
@@ -120,7 +126,8 @@ class RouteReplaySummary(BaseModel):
 
     schema: Literal["evidence-discovery.primary_route_replay_summary.v1"] = Field(description="Versioned route-replay summary schema identifier.")
     replay_id: str = Field(pattern=r"^[0-9a-f]{32}$", description="Immutable replay identity shared with the manifest and every output file.")
-    source_run_id: str = Field(pattern=r"^[0-9a-f]{32}$", description="Historical method run whose saved contracts, grounding, and candidates were replayed.")
+    source_run_id: str = Field(pattern=r"^[0-9a-f]{32}$", description="Immutable source artifact identity whose selected cells were replayed.")
+    source_cell_run_ids: tuple[str, ...] = Field(min_length=1, description="Distinct original method run IDs of replayed cells, retained separately when source_run_id names a method composite.")
     provider_calls: Literal[0] = Field(description="Provider call count, fixed to zero for this replay.")
     judge_calls: Literal[0] = Field(description="Judge call count, fixed to zero for this replay.")
     source_predicate_null_candidates: int = Field(ge=0, description="Number of saved execute_batch candidates with predicate_id=null considered by A/B replay.")
@@ -157,6 +164,76 @@ def _read_json(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"expected JSON object: {path}")
     return payload
+
+
+def _source_cell_run_id(
+    source_manifest: Mapping[str, Any],
+    source_root: Path,
+    method_path: Path,
+    cell: Mapping[str, Any],
+) -> str:
+    """Validate one replay cell against an ordinary run or composite receipt.
+
+    A composite intentionally hardlinks selected cells from more than one
+    original immutable run. Its own run ID identifies the evaluation artifact,
+    whereas each cell keeps the method run ID that actually generated its LLM
+    output. The replay accepts that form only after checking the composite's
+    pair/round receipt, hardlinked destination, and byte hashes.
+    """
+
+    declared = cell.get("run_id")
+    if not isinstance(declared, str) or not re.fullmatch(r"[0-9a-f]{32}", declared):
+        raise ValueError(f"method cell has no valid source run identity: {method_path}")
+    source_run_id = source_manifest.get("run_id")
+    if not isinstance(source_run_id, str) or not re.fullmatch(r"[0-9a-f]{32}", source_run_id):
+        raise ValueError("source run manifest has no valid immutable run_id")
+    if source_manifest.get("schema") != METHOD_COMPOSITE_SCHEMA:
+        if declared != source_run_id:
+            raise ValueError(f"mixed source run identity in {method_path}")
+        return declared
+
+    pair_id = cell.get("pair_id")
+    round_index = cell.get("round")
+    if not isinstance(pair_id, str) or not re.fullmatch(r"[0-9]{4}", pair_id):
+        raise ValueError(f"composite method cell has no valid pair identity: {method_path}")
+    if not isinstance(round_index, int) or round_index < 1:
+        raise ValueError(f"composite method cell has no valid round: {method_path}")
+    receipts = source_manifest.get("cell_receipts")
+    if not isinstance(receipts, list):
+        raise ValueError("method composite manifest has no cell_receipts list")
+    matches = [
+        item
+        for item in receipts
+        if isinstance(item, dict)
+        and item.get("pair_id") == pair_id
+        and item.get("round") == round_index
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            "method composite must contain exactly one selected receipt for "
+            f"{pair_id}:r{round_index}"
+        )
+    receipt = matches[0]
+    expected_run_id = receipt.get("source_run_id")
+    artifact = receipt.get("method_artifact")
+    if not isinstance(expected_run_id, str) or not re.fullmatch(r"[0-9a-f]{32}", expected_run_id):
+        raise ValueError(f"composite receipt has no valid source run identity for {pair_id}:r{round_index}")
+    if not isinstance(artifact, dict):
+        raise ValueError(f"composite receipt has no method artifact for {pair_id}:r{round_index}")
+    composite_path = artifact.get("composite_path")
+    expected_hash = artifact.get("composite_hash")
+    source_hash = artifact.get("source_hash")
+    if not isinstance(composite_path, str) or Path(composite_path).resolve() != method_path.resolve():
+        raise ValueError(f"method path is not the selected composite artifact for {pair_id}:r{round_index}")
+    if not isinstance(expected_hash, str) or expected_hash != _file_hash(method_path):
+        raise ValueError(f"method composite hash mismatch for {pair_id}:r{round_index}")
+    if source_hash != expected_hash or artifact.get("hardlink_identity_preserved") is not True:
+        raise ValueError(f"method composite receipt is not a hash-closed hardlink for {pair_id}:r{round_index}")
+    if declared != expected_run_id:
+        raise ValueError(f"method cell run identity does not match composite receipt for {pair_id}:r{round_index}")
+    if method_path.resolve().parent.parent.parent != source_root.resolve():
+        raise ValueError(f"method path is outside the declared composite source root: {method_path}")
+    return declared
 
 
 def _contracts_and_grounding(cell: dict[str, Any]) -> tuple[dict[str, NLContract], tuple[GroundingResponse, ...]]:
@@ -262,12 +339,13 @@ def _record_unclosed(
     pair_id: str,
     source_file: str,
     source_file_hash: str,
+    source_cell_run_id: str,
     candidate_index: int,
     envelope: dict[str, Any],
     evidence_index: int,
     evidence_record: dict[str, Any],
     candidate: CandidateIssue,
-    telemetry: PredicateRouteTelemetry | None,
+    telemetry: CandidateRouteTelemetry | None,
 ) -> dict[str, Any]:
     """Record a precise W1 predicate-null route without fabricating execution."""
 
@@ -282,6 +360,7 @@ def _record_unclosed(
         pair_id=pair_id,
         source_file=source_file,
         source_file_sha256=source_file_hash,
+        source_cell_run_id=source_cell_run_id,
         source_candidate_index=candidate_index,
         source_candidate_sha256=_canonical_hash(envelope),
         source_evidence_index=evidence_index,
@@ -302,12 +381,13 @@ def _record_routed(
     pair: Any,
     source_file: str,
     source_file_hash: str,
+    source_cell_run_id: str,
     candidate_index: int,
     envelope: dict[str, Any],
     evidence_index: int,
     evidence_record: dict[str, Any],
     candidate: CandidateIssue,
-    telemetry: PredicateRouteTelemetry,
+    telemetry: CandidateRouteTelemetry,
     replay_id: str,
     registry: Any,
 ) -> dict[str, Any]:
@@ -362,6 +442,7 @@ def _record_routed(
         pair_id=pair.pair_id,
         source_file=source_file,
         source_file_sha256=source_file_hash,
+        source_cell_run_id=source_cell_run_id,
         source_candidate_index=candidate_index,
         source_candidate_sha256=_canonical_hash(envelope),
         source_evidence_index=evidence_index,
@@ -430,6 +511,9 @@ def _summary(replay_id: str, source_run_id: str, records: list[dict[str, Any]]) 
         schema="evidence-discovery.primary_route_replay_summary.v1",
         replay_id=replay_id,
         source_run_id=source_run_id,
+        source_cell_run_ids=tuple(
+            sorted({str(row["source_cell_run_id"]) for row in records})
+        ),
         provider_calls=0,
         judge_calls=0,
         source_predicate_null_candidates=len(records),
@@ -453,7 +537,8 @@ def _render_readme(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         [
             "# Primary Route Provider-Free A/B",
             "",
-            f"- source run: `{manifest['source_run_id']}`",
+            f"- source artifact: `{manifest['source_run_id']}`",
+            f"- source method runs: `{', '.join(manifest['source_cell_run_ids'])}`",
             f"- replay id: `{manifest['replay_id']}`",
             f"- provider calls: `{manifest['provider_calls']}`",
             f"- Judge calls: `{manifest['judge_calls']}`",
@@ -462,7 +547,7 @@ def _render_readme(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
             f"- route-unclosed candidates: `{summary['route_unclosed_count']}`",
             f"- W0/W1/W2: `{summary['witness_levels']}`",
             "",
-            "This artifact reads only saved contract extraction, grounding, and predicate-null candidates. It never reads ledger expected values, L, Judge output, answers, other-pair output, or future output; it invokes the existing deterministic FCSTM backend only for inputs newly closed by current code. W2 bundles are stored outside the immutable method artifact, and the external Judge does not participate in this A/B.",
+            "This artifact reads only saved contract extraction, grounding, and predicate-null candidates. route_telemetry.json is contract-level coverage only; candidate_route_telemetry.json and every record's route_telemetry are index-aligned candidate decisions, so one candidate never inherits a sibling candidate's selected predicate. It never reads ledger expected values, L, Judge output, answers, other-pair output, or future output; it invokes the existing deterministic FCSTM backend only for inputs newly closed by current code. W2 bundles are stored outside the immutable method artifact, and the external Judge does not participate in this A/B.",
             "",
         ]
     )
@@ -488,6 +573,17 @@ def run_primary_route_replay(
     method_paths = sorted((source_root / "method").glob("*/round-1.json"))
     if not method_paths:
         raise FileNotFoundError("source run has no method/*/round-1.json artifacts")
+    source_cells = [
+        (method_path, _read_json(method_path)) for method_path in method_paths
+    ]
+    source_cell_run_ids = tuple(
+        sorted(
+            {
+                _source_cell_run_id(source_manifest, source_root, method_path, cell)
+                for method_path, cell in source_cells
+            }
+        )
+    )
     registry = load_registry()
     implementation_hashes = {
         path.relative_to(Path(__file__).parent).as_posix() if path != Path(__file__) else path.name: _file_hash(path)
@@ -517,6 +613,7 @@ def run_primary_route_replay(
             generated_at=datetime.now(timezone.utc).isoformat(),
             source_run_path=str(source_root),
             source_run_id=source_run_id,
+            source_cell_run_ids=source_cell_run_ids,
             source_run_manifest_sha256=_file_hash(manifest_path),
             source_summary_sha256=_file_hash(summary_path),
             registry_version=registry.version,
@@ -530,10 +627,11 @@ def run_primary_route_replay(
         ).model_dump(mode="json")
         records: list[dict[str, Any]] = []
         telemetry_by_pair: dict[str, list[dict[str, Any]]] = {}
-        for method_path in method_paths:
-            cell = _read_json(method_path)
-            if cell.get("run_id") != source_run_id:
-                raise ValueError(f"mixed source run identity in {method_path}")
+        candidate_telemetry_by_pair: dict[str, list[dict[str, Any]]] = {}
+        for method_path, cell in source_cells:
+            source_cell_run_id = _source_cell_run_id(
+                source_manifest, source_root, method_path, cell
+            )
             pair_id = cell.get("pair_id")
             if not isinstance(pair_id, str) or not pair_id.isdigit() or len(pair_id) != 4:
                 raise ValueError(f"method cell has no valid frozen pair_id: {method_path}")
@@ -545,8 +643,14 @@ def run_primary_route_replay(
             if len(candidates) != len(envelopes):
                 raise ValueError(f"method cell has a candidate envelope without a candidate object: {method_path}")
             projection = route_primary_candidates(pair, contracts, grounding, candidates)
-            telemetry_by_contract = {row.contract_id: row for row in projection.telemetry}
+            if len(projection.candidate_telemetry) != len(candidates):
+                raise ValueError(
+                    f"primary route emitted {len(projection.candidate_telemetry)} candidate telemetry rows for {len(candidates)} candidates in {method_path}"
+                )
             telemetry_by_pair[pair_id] = [row.model_dump(mode="json") for row in projection.telemetry]
+            candidate_telemetry_by_pair[pair_id] = [
+                row.model_dump(mode="json") for row in projection.candidate_telemetry
+            ]
             source_file = method_path.relative_to(source_root).as_posix()
             source_file_hash = _file_hash(method_path)
             represented_obligation_ids: set[str] = set()
@@ -561,13 +665,27 @@ def run_primary_route_replay(
                     )
                 represented_obligation_ids.add(source_obligation_id)
                 evidence_index, evidence_record = target_evidence[source_obligation_id]
-                telemetry = telemetry_by_contract.get(baseline.contract_id)
-                if routed.predicate_id is None or telemetry is None:
+                telemetry = projection.candidate_telemetry[index]
+                if (
+                    telemetry.candidate_index != index
+                    or telemetry.contract_id != baseline.contract_id
+                    or telemetry.selected_predicate != routed.predicate_id
+                ):
+                    raise ValueError(
+                        "primary route candidate telemetry does not match its exact replay candidate: "
+                        f"index={index}; contract={baseline.contract_id}; "
+                        f"telemetry_index={telemetry.candidate_index}; "
+                        f"telemetry_contract={telemetry.contract_id}; "
+                        f"telemetry_selected={telemetry.selected_predicate}; "
+                        f"candidate_selected={routed.predicate_id}"
+                    )
+                if routed.predicate_id is None:
                     records.append(
                         _record_unclosed(
                             pair_id=pair_id,
                             source_file=source_file,
                             source_file_hash=source_file_hash,
+                            source_cell_run_id=source_cell_run_id,
                             candidate_index=index,
                             envelope=envelope,
                             evidence_index=evidence_index,
@@ -582,6 +700,7 @@ def run_primary_route_replay(
                         pair=pair,
                         source_file=source_file,
                         source_file_hash=source_file_hash,
+                        source_cell_run_id=source_cell_run_id,
                         candidate_index=index,
                         envelope=envelope,
                         evidence_index=evidence_index,
@@ -618,6 +737,10 @@ def run_primary_route_replay(
         write_json(stage_root / "route_replay_manifest.json", manifest)
         write_json(stage_root / "route_replay_records.json", {"schema": ROUTE_REPLAY_SCHEMA, "records": records})
         write_json(stage_root / "route_telemetry.json", telemetry_by_pair)
+        write_json(
+            stage_root / "candidate_route_telemetry.json",
+            candidate_telemetry_by_pair,
+        )
         write_json(stage_root / "audit_index.json", audit_index)
         write_json(stage_root / "summary.json", summary)
         (stage_root / "README.md").write_text(_render_readme(manifest, summary), encoding="utf-8")

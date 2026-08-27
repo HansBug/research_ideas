@@ -75,6 +75,8 @@ R4 的默认 method-owned fragment 也不得伪造 trace：它只接受精确 re
 
 主 route 修改必须先做两类彼此独立的 provider-free A/B，不得混算。保存 candidate replay 的 cohort 固定为源 run 最终 `predicate_id=null` W1 evidence；当前代表集制品 `evidence-discovery-15x1-primary-route-replay-current/280a6ec53b61fb28c775a365247a402b` 含 76 条，0 provider/Judge 调用，当前路由 4 条 W2，其中相对源 commit 基线净新增 2 条 G2 completed/false，另 2 条 S2 completed/true 为既有 satisfaction coverage。它不重物化 frontier，也不是 hit、precision 或 Judge 指标。
 
+`route_replay` 同时保存两种不可混用的 route telemetry：`route_telemetry.json` 是 contract 级 coverage 汇总，回答“该 contract 是否至少有一条候选闭合”；每个 replay record 的 `route_telemetry` 与 `candidate_route_telemetry.json` 是 source candidate index 对齐的逐候选决策，回答“这一条候选实际是否闭合”。逐 evidence 的 W、stage-loss、execution 或 publication 审计只能使用候选级记录；contract 级成功绝不能为同 contract 的另一条未闭合候选生成 predicate、receipt 或 W2。
+
 保存 extraction/grounding 的 deterministic frontier replay 使用独立制品 `evidence-discovery-15x1-frontier-replay-current/0f9d383071b29a11eb0474d655553706`。它复用 runner 在 frontier 前的确定性归一化链，15/15 pair 当前 frontier 成功，保存运行中的 1 个 frontier error 清零，typed identity 为 added=40、removed=0；新增结果为 W2=13、W1=27，0 provider/Judge 调用。22 条 `state_after_stimulus` 中 10 条形成 R2 completed/true satisfaction receipt；0039 恢复的 guard frontier 仅 1 条 S5 completed/false，其余非法输入退 W1。该制品只证明 frontier/route/backend 的确定性变化，不重建 publication、D、Judge 或 FULL hit。
 
 ## 4. 实验与评测隔离

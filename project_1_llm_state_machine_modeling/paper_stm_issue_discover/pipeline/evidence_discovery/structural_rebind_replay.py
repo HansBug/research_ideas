@@ -649,19 +649,38 @@ def run_selected_structural_rebind_replay(
             if len(candidates) != len(envelopes):
                 raise ValueError(f"method cell has a candidate envelope without a candidate object: {method_path}")
             projection = route_primary_candidates(pair, contracts, grounding, candidates)
-            telemetry_by_contract = {
-                row.contract_id: row.model_dump(mode="json")
-                for row in projection.telemetry
-            }
+            if len(projection.candidate_telemetry) != len(candidates):
+                raise ValueError(
+                    f"primary route emitted {len(projection.candidate_telemetry)} candidate telemetry rows for {len(candidates)} candidates in {method_path}"
+                )
             source_file = method_path.relative_to(source_root).as_posix()
             source_file_hash = _file_hash(method_path)
-            for index, (envelope, baseline, routed) in enumerate(
-                zip(envelopes, candidates, projection.candidates, strict=True)
+            for index, (envelope, baseline, routed, route) in enumerate(
+                zip(
+                    envelopes,
+                    candidates,
+                    projection.candidates,
+                    projection.candidate_telemetry,
+                    strict=True,
+                )
             ):
                 if baseline.predicate_id not in STRUCTURAL_PREDICATES:
                     continue
-                telemetry = telemetry_by_contract.get(baseline.contract_id)
-                if telemetry is None:
+                telemetry = route.model_dump(mode="json")
+                if (
+                    route.candidate_index != index
+                    or route.contract_id != baseline.contract_id
+                    or route.selected_predicate != routed.predicate_id
+                ):
+                    raise ValueError(
+                        "primary route candidate telemetry does not match its exact structural replay candidate: "
+                        f"index={index}; contract={baseline.contract_id}; "
+                        f"telemetry_index={route.candidate_index}; "
+                        f"telemetry_contract={route.contract_id}; "
+                        f"telemetry_selected={route.selected_predicate}; "
+                        f"candidate_selected={routed.predicate_id}"
+                    )
+                if not route.route_attempted:
                     routed = baseline.model_copy(
                         update={"predicate_id": None, "predicate_inputs": {}}
                     )

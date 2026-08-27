@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import hashlib
+from pathlib import Path
+
 import pytest
 
 from pipeline.evidence_discovery.route_replay import (
     _contracts_and_grounding,
     _predicate_null_evidence_rows,
+    _source_cell_run_id,
 )
 from pipeline.evidence_discovery.semantics import GroundingResponse, NLContract
 
@@ -133,4 +137,76 @@ def test_primary_route_replay_rejects_same_id_with_different_typed_identity() ->
                     },
                 }
             }
+        )
+
+
+def _sha256(path: Path) -> str:
+    """Return the receipt-form SHA-256 for one fixture artifact."""
+
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_primary_route_replay_accepts_hash_closed_composite_cell(tmp_path: Path) -> None:
+    """A selected recovery cell retains its original run ID inside a composite."""
+
+    method_path = tmp_path / "method" / "0001" / "round-1.json"
+    method_path.parent.mkdir(parents=True)
+    method_path.write_text("{}", encoding="utf-8")
+    artifact_hash = _sha256(method_path)
+    source_cell_run_id = "a" * 32
+    cell = {"pair_id": "0001", "round": 1, "run_id": source_cell_run_id}
+    manifest = {
+        "schema": "evidence-discovery.method-composite.v1",
+        "run_id": "b" * 32,
+        "cell_receipts": [
+            {
+                "pair_id": "0001",
+                "round": 1,
+                "source_run_id": source_cell_run_id,
+                "method_artifact": {
+                    "composite_path": str(method_path),
+                    "source_hash": artifact_hash,
+                    "composite_hash": artifact_hash,
+                    "hardlink_identity_preserved": True,
+                },
+            }
+        ],
+    }
+
+    assert _source_cell_run_id(manifest, tmp_path, method_path, cell) == source_cell_run_id
+
+
+def test_primary_route_replay_rejects_composite_cell_with_wrong_original_run(
+    tmp_path: Path,
+) -> None:
+    """A composite cannot silently substitute a cell from an unselected run."""
+
+    method_path = tmp_path / "method" / "0001" / "round-1.json"
+    method_path.parent.mkdir(parents=True)
+    method_path.write_text("{}", encoding="utf-8")
+    artifact_hash = _sha256(method_path)
+    manifest = {
+        "schema": "evidence-discovery.method-composite.v1",
+        "run_id": "b" * 32,
+        "cell_receipts": [
+            {
+                "pair_id": "0001",
+                "round": 1,
+                "source_run_id": "a" * 32,
+                "method_artifact": {
+                    "composite_path": str(method_path),
+                    "source_hash": artifact_hash,
+                    "composite_hash": artifact_hash,
+                    "hardlink_identity_preserved": True,
+                },
+            }
+        ],
+    }
+
+    with pytest.raises(ValueError, match="does not match composite receipt"):
+        _source_cell_run_id(
+            manifest,
+            tmp_path,
+            method_path,
+            {"pair_id": "0001", "round": 1, "run_id": "c" * 32},
         )

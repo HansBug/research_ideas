@@ -119,6 +119,29 @@ class PredicateRouteTelemetry(BaseModel):
     basis: str = Field(min_length=1, description="Closed contract, binding, ModelIR, and method-visible-fact basis for the route decision.")
 
 
+class CandidateRouteTelemetry(BaseModel):
+    """One deterministic route decision for one input candidate.
+
+    Contract-level telemetry is intentionally an aggregate coverage view: more
+    than one candidate may express the same contract and one may close while
+    another remains unclosed.  This row preserves the exact decision for the
+    candidate at ``candidate_index`` so replay, evidence, and audit code never
+    attribute a sibling candidate's route to the current semantic claim.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    candidate_index: int = Field(ge=0, description="Zero-based index of this candidate in the exact input sequence supplied to route_primary_candidates.")
+    contract_id: str = Field(min_length=1, description="Atomic NLContract identifier carried by this exact candidate, including IDs no longer present in the current contract mapping.")
+    applicable_predicates: tuple[PredicateId, ...] = Field(default_factory=tuple, description="Frozen predicates compatible with this candidate's typed contract property before exact input closure.")
+    route_attempted: bool = Field(description="Whether the deterministic primary binder evaluated this exact candidate against a current typed contract.")
+    selected_predicate: PredicateId | None = Field(default=None, description="Frozen predicate actually retained on this routed candidate after strict native input closure, or null when this candidate remains unclosed.")
+    binding_complete: bool = Field(default=False, description="Whether this exact candidate retains a fully closed typed input set for its selected predicate.")
+    backend: str | None = Field(default=None, description="Native backend family for this exact candidate's retained selected predicate, or null when it remains unclosed.")
+    reason: str = Field(min_length=1, description="Non-empty candidate-specific explanation of the route outcome or the exact missing closure.")
+    basis: str = Field(min_length=1, description="Current-pair contract, binding, native inventory, and deterministic route basis for this candidate-specific outcome.")
+
+
 class PrimaryRouteProjection(BaseModel):
     """Candidate replacement and telemetry output of the primary route stage."""
 
@@ -126,6 +149,7 @@ class PrimaryRouteProjection(BaseModel):
 
     candidates: tuple[CandidateIssue, ...] = Field(description="Candidates retaining their original semantic identity, with predicate inputs filled only where an exact route closes.")
     telemetry: tuple[PredicateRouteTelemetry, ...] = Field(description="One route row for every current typed contract.")
+    candidate_telemetry: tuple[CandidateRouteTelemetry, ...] = Field(description="One index-aligned route decision for every input candidate; unlike contract telemetry it cannot aggregate a sibling candidate's result.")
     reason: str = Field(min_length=1, description="Non-empty summary of the deterministic primary routing stage.")
     basis: str = Field(min_length=1, description="Allowed input authorities and frozen predicate compatibility basis.")
 
@@ -1183,11 +1207,21 @@ def route_primary_candidates(
     """
 
     updated: list[CandidateIssue] = []
-    outcomes: dict[str, tuple[PredicateId | None, str, str]] = {}
-    for candidate in candidates:
+    candidate_telemetry: list[CandidateRouteTelemetry] = []
+    for candidate_index, candidate in enumerate(candidates):
         contract = contracts_by_id.get(candidate.contract_id)
         if contract is None:
             updated.append(candidate)
+            candidate_telemetry.append(
+                CandidateRouteTelemetry(
+                    candidate_index=candidate_index,
+                    contract_id=candidate.contract_id,
+                    applicable_predicates=(),
+                    route_attempted=False,
+                    reason="The candidate has no current typed contract row, so the primary binder did not infer a predicate or typed inputs from a sibling candidate.",
+                    basis="candidate.contract_id absent from current contract extraction and grounding contract mapping",
+                )
+            )
             continue
         strict_rebind = candidate.predicate_id in _STRICT_REBIND_PREDICATES
         route_input = (
@@ -1226,8 +1260,31 @@ def route_primary_candidates(
             )
             basis = basis + "; raw selected predicate inputs were not admitted as an execution plan"
         updated.append(routed)
-        if candidate.contract_id not in outcomes or selected is not None:
-            outcomes[candidate.contract_id] = (selected, reason, basis)
+        effective_selected = routed.predicate_id
+        candidate_telemetry.append(
+            CandidateRouteTelemetry(
+                candidate_index=candidate_index,
+                contract_id=candidate.contract_id,
+                applicable_predicates=_PROPERTY_PREDICATES.get(contract.property, ()),
+                route_attempted=True,
+                selected_predicate=effective_selected,
+                binding_complete=effective_selected is not None,
+                backend=_PREDICATE_BACKENDS.get(effective_selected) if effective_selected is not None else None,
+                reason=reason,
+                basis=basis,
+            )
+        )
+
+    outcomes: dict[str, tuple[PredicateId | None, str, str]] = {}
+    for row in candidate_telemetry:
+        if row.contract_id not in contracts_by_id:
+            continue
+        if row.contract_id not in outcomes or row.selected_predicate is not None:
+            outcomes[row.contract_id] = (
+                row.selected_predicate,
+                row.reason,
+                row.basis,
+            )
 
     telemetry: list[PredicateRouteTelemetry] = []
     for contract_id, contract in sorted(contracts_by_id.items()):
@@ -1255,6 +1312,7 @@ def route_primary_candidates(
     return PrimaryRouteProjection(
         candidates=tuple(updated),
         telemetry=tuple(telemetry),
+        candidate_telemetry=tuple(candidate_telemetry),
         reason="The deterministic primary route evaluated each typed contract and filled a predicate only after its current-pair typed inputs closed exactly.",
         basis="typed NL contracts, exact grounding bindings, closed ModelIR, and method-visible deterministic facts; no ledger, Judge, answer, or cross-pair input",
     )
@@ -1309,6 +1367,7 @@ def finalize_route_telemetry(
 
 
 __all__ = [
+    "CandidateRouteTelemetry",
     "PredicateRouteTelemetry",
     "PrimaryRouteProjection",
     "build_r1_cold_runtime_scenario",

@@ -5448,7 +5448,7 @@ def run_experiment(
     allow_live: bool = False,
     allow_full_live: bool = False,
     pair_ids: Sequence[str] | None = None,
-    workers: int = 1,
+    workers: int = 16,
     transport_retries: int = DEFAULT_TRANSPORT_RETRIES,
     streaming: bool = True,
     run_id: str | None = None,

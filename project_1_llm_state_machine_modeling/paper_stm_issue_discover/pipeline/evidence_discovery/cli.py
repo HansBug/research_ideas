@@ -37,8 +37,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--workers",
         type=int,
-        default=1,
-        help="Independent pair processes; each pair owns its method terminalization.",
+        default=16,
+        help="Independent pair processes (default: 16); each pair owns its method terminalization.",
     )
     parser.add_argument(
         "--transport-retries",
