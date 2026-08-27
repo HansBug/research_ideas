@@ -43,8 +43,10 @@ from ..semantics import (
     DISCOVERY_GROUNDING_SYSTEM_PROMPT,
     CandidateIssue,
     CardinalityDomainBinding,
+    ContractCompletionResponse,
     ContextBudgetReceipt,
     DAdjudicationResponse,
+    DomainInvariantContract,
     FrontierBatch,
     GroundingResponse,
     GroupIdentityNormalizationReceipt,
@@ -59,10 +61,12 @@ from ..semantics import (
     assemble_method_response,
     bind_candidate,
     build_contract_prompt,
+    build_contract_completion_prompt,
     build_d_adjudication_batches,
     build_d_correction_batches,
     build_grounding_prompt,
     canonical_contract_id,
+    canonical_transition_group_id,
     canonicalize_grounding_response,
     contract_semantic_key,
     evaluate_source_transition_closure,
@@ -70,6 +74,7 @@ from ..semantics import (
     fallback_d_adjudication,
     fallback_grounding,
     materialize_segment_coverage,
+    materialize_domain_invariant_contracts,
     materialize_typed_frontier,
     normalize_contract_state_roles,
     resolve_state_ref,
@@ -77,6 +82,7 @@ from ..semantics import (
     suppress_closed_route_controller_candidates,
     suppress_contradicted_ambiguous_source_candidates,
     suppress_satisfied_source_transition_candidates,
+    transition_group_semantic_key,
 )
 from ..semantics.predicate_routing import (
     build_r1_cold_runtime_scenario,
@@ -123,11 +129,11 @@ REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS = (
     "0054",
     "0056",
 )
-METHOD_CELL_SCHEMA = "evidence-discovery.method_cell.v8"
+METHOD_CELL_SCHEMA = "evidence-discovery.method_cell.v9"
 SUMMARY_SCHEMA = "evidence-discovery.run_summary.v3"
 RUN_MANIFEST_SCHEMA = "evidence-discovery.run_manifest.v3"
-CODE_VERSION = "evidence-discovery-typed-flow.v54-method-only"
-PROMPT_SCHEMA_VERSION = "evidence-discovery-prompts.v45-method-only"
+CODE_VERSION = "evidence-discovery-typed-flow.v55-method-only"
+PROMPT_SCHEMA_VERSION = "evidence-discovery-prompts.v46-method-only"
 GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION = (
     "evidence-discovery.grounding-exact-identity-contract.v3"
 )
@@ -288,12 +294,14 @@ def _prompt_schema_hash() -> str:
             "system_prompts": {
                 "method_boundary": METHOD_SYSTEM_PROMPT,
                 "contract": CONTRACT_SYSTEM_PROMPT,
+                "contract_completion": CONTRACT_SYSTEM_PROMPT,
                 "discovery_grounding": DISCOVERY_GROUNDING_SYSTEM_PROMPT,
                 "discovery_lenses": DISCOVERY_GROUNDING_AUDIT_LENSES,
                 "d_adjudication": D_SYSTEM_PROMPT,
             },
             "schemas": {
                 "nl_contract": NLContractResponse.model_json_schema(),
+                "contract_completion": ContractCompletionResponse.model_json_schema(),
                 "grounding": GroundingResponse.model_json_schema(),
                 "grounding_exact_identity_contract": {
                     "version": GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION,
@@ -2151,12 +2159,197 @@ def _merge_grounding_contracts(
     return merged, diagnostics
 
 
+def _contract_completion_required(
+    pair: PairInput,
+    contracts: NLContractResponse,
+) -> bool:
+    """Return the structural under-extraction signal for one primary response.
+
+    This deliberately uses only response and numbered-NL cardinalities. It is a
+    trigger for a sparse LLM self-correction, not a semantic validator and not
+    a conclusion that every segment should yield one contract.
+    """
+
+    return len(contracts.contracts) < len(pair.nl_segments)
+
+
+def _typed_semantic_key_json(value: Any) -> str:
+    """Serialize one already typed identity for exact set membership."""
+
+    if hasattr(value, "model_dump"):
+        value = value.model_dump(mode="json")
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def _canonical_completion_transition_group(
+    group: NLTransitionGroup,
+) -> NLTransitionGroup:
+    """Assign deterministic IDs to a completion-only transition group."""
+
+    group_id = canonical_transition_group_id(group)
+    suffix = group_id.rsplit("-", 1)[-1]
+    alternatives = tuple(
+        alternative.model_copy(
+            update={
+                "alternative_id": (
+                    f"ALT-{group.segment_id}-DERIVED-{suffix}-{index:02d}"
+                )
+            }
+        )
+        for index, alternative in enumerate(group.alternatives, start=1)
+    )
+    return group.model_copy(update={"group_id": group_id, "alternatives": alternatives})
+
+
+def _merge_contract_completion(
+    pair: PairInput,
+    primary: NLContractResponse,
+    completion: ContractCompletionResponse,
+) -> tuple[NLContractResponse, list[dict[str, Any]]]:
+    """Append only new typed completion rows without replacing primary output."""
+
+    supplied_segments = {item.segment_id for item in pair.nl_segments}
+    contracts = list(primary.contracts)
+    groups = list(primary.transition_groups)
+    contract_ids = {item.contract_id for item in contracts}
+    group_ids = {item.group_id for item in groups}
+    contract_keys = {
+        _typed_semantic_key_json(contract_semantic_key(item)) for item in contracts
+    }
+    group_keys = {
+        _typed_semantic_key_json(transition_group_semantic_key(item))
+        for item in groups
+    }
+    diagnostics: list[dict[str, Any]] = []
+
+    for item in completion.additional_contracts:
+        key = _typed_semantic_key_json(contract_semantic_key(item))
+        diagnostic = {
+            "stage": "contract_completion",
+            "raw_contract_id": item.contract_id,
+            "segment_id": item.segment_id,
+        }
+        if item.segment_id not in supplied_segments:
+            diagnostics.append(
+                {
+                    **diagnostic,
+                    "class": "unknown_completion_contract_segment",
+                    "reason": "The completion row names a segment absent from the current numbered-NL input.",
+                    "basis": "exact supplied segment-ID membership check",
+                }
+            )
+            continue
+        if key in contract_keys:
+            diagnostics.append(
+                {
+                    **diagnostic,
+                    "class": "duplicate_completion_contract_semantic_key",
+                    "reason": "The completion row has the same complete typed semantic key as an existing primary or admitted completion contract.",
+                    "basis": "ContractSemanticKey equality; primary contracts remain unchanged",
+                }
+            )
+            continue
+        canonical_id = canonical_contract_id(item)
+        if canonical_id in contract_ids:
+            diagnostics.append(
+                {
+                    **diagnostic,
+                    "class": "completion_contract_id_collision",
+                    "canonical_contract_id": canonical_id,
+                    "reason": "A distinct typed completion contract collided with an existing runner-authoritative identifier and was not admitted.",
+                    "basis": "canonical contract ID equality plus ContractSemanticKey inequality",
+                }
+            )
+            continue
+        contracts.append(item.model_copy(update={"contract_id": canonical_id}))
+        contract_ids.add(canonical_id)
+        contract_keys.add(key)
+        diagnostics.append(
+            {
+                **diagnostic,
+                "class": "admitted_completion_contract",
+                "canonical_contract_id": canonical_id,
+                "reason": "The completion row adds an independently typed obligation without changing any primary contract.",
+                "basis": "new ContractSemanticKey and runner-authoritative canonical ID",
+            }
+        )
+
+    for item in completion.additional_transition_groups:
+        key = _typed_semantic_key_json(transition_group_semantic_key(item))
+        diagnostic = {
+            "stage": "contract_completion",
+            "raw_group_id": item.group_id,
+            "segment_id": item.segment_id,
+        }
+        if item.segment_id not in supplied_segments:
+            diagnostics.append(
+                {
+                    **diagnostic,
+                    "class": "unknown_completion_group_segment",
+                    "reason": "The completion transition group names a segment absent from the current numbered-NL input.",
+                    "basis": "exact supplied segment-ID membership check",
+                }
+            )
+            continue
+        if key in group_keys:
+            diagnostics.append(
+                {
+                    **diagnostic,
+                    "class": "duplicate_completion_group_semantic_key",
+                    "reason": "The completion group has the same ordered typed relation as an existing primary or admitted group.",
+                    "basis": "TransitionGroupSemanticKey equality; primary groups remain unchanged",
+                }
+            )
+            continue
+        canonical_group = _canonical_completion_transition_group(item)
+        if canonical_group.group_id in group_ids:
+            diagnostics.append(
+                {
+                    **diagnostic,
+                    "class": "completion_group_id_collision",
+                    "canonical_group_id": canonical_group.group_id,
+                    "reason": "A distinct typed completion group collided with an existing runner-authoritative identifier and was not admitted.",
+                    "basis": "canonical transition-group ID equality plus semantic-key inequality",
+                }
+            )
+            continue
+        groups.append(canonical_group)
+        group_ids.add(canonical_group.group_id)
+        group_keys.add(key)
+        diagnostics.append(
+            {
+                **diagnostic,
+                "class": "admitted_completion_transition_group",
+                "canonical_group_id": canonical_group.group_id,
+                "reason": "The completion row adds a new ordered typed transition relation without changing any primary group.",
+                "basis": "new TransitionGroupSemanticKey and runner-authoritative canonical ID",
+            }
+        )
+
+    merged = primary.model_copy(
+        update={
+            "contracts": contracts,
+            "transition_groups": groups,
+            "reason": (
+                f"{primary.reason} Contract-completion additions were unioned only "
+                "when their complete typed identities were new."
+            ),
+            "basis": (
+                f"{primary.basis}; contract-completion typed-union with "
+                "canonical identity and no-primary-overwrite rule"
+            ),
+        }
+    )
+    return merged, diagnostics
+
+
 def _prepare_candidate(
     pair: PairInput,
     candidate: CandidateIssue,
     round_index: int,
     index: int,
     contracts_by_id: Mapping[str, NLContract] | None = None,
+    domain_invariants_by_id: Mapping[str, DomainInvariantContract] | None = None,
 ) -> dict[str, Any]:
     """Bind, compile, and execute once before the separate semantic D call."""
 
@@ -2168,7 +2361,15 @@ def _prepare_candidate(
         contract = contracts_by_id.get(candidate.contract_id)
         mismatch_fields: list[str] = []
         if contract is None:
-            mismatch_fields.append("contract_id")
+            invariant = (
+                domain_invariants_by_id.get(candidate.contract_id)
+                if domain_invariants_by_id is not None
+                else None
+            )
+            if invariant is None:
+                mismatch_fields.append("contract_id")
+            else:
+                mismatch_fields.extend(invariant.candidate_mismatches(candidate))
         else:
             if candidate.locus_kind != contract.locus_kind:
                 mismatch_fields.append("locus_kind")
@@ -2182,8 +2383,8 @@ def _prepare_candidate(
             binding = binding.model_copy(
                 update={
                     "precise": False,
-                    "reason": "The candidate does not preserve the exact typed semantic key of one supplied atomic NL contract.",
-                    "basis": "exact contract ID and typed locus/property/direction comparison; mismatched fields: "
+                    "reason": "The candidate does not preserve the exact typed semantic key of one supplied atomic contract or frozen domain invariant.",
+                    "basis": "exact contract/domain-invariant ID and typed locus/property/direction comparison; mismatched fields: "
                     + ", ".join(mismatch_fields)
                     + "; W0 and D_UNRESOLVED are required",
                 }
@@ -3095,16 +3296,31 @@ def _materialize_deterministic_execution_probes(
 
     # Contract extraction usually keeps an event as a transition-group
     # alternative rather than emitting a duplicate trigger_set contract.
-    # Project one such group through the compiler-owned event projection and
-    # its macro/segment carrier. This remains a supporting execution probe: it
-    # never replaces the group's endpoint obligation or creates a new norm.
-    needs_s3_probe = not any(item.predicate_id == "S3" for item in probes) and not any(
-        candidate.predicate_id == "S3" for candidate in existing_candidates
-    )
+    # Every exact alternative remains independently violable: one satisfied
+    # carrier cannot suppress another alternative whose trigger is absent or
+    # attached elsewhere. Project each uniquely closed event/carrier pair
+    # through the compiler-owned event projection and macro/segment carrier.
+    # A completed true receipt stays audit-only; a completed false receipt is
+    # the only path from this projection to a finding.
+    existing_s3_keys = {
+        (
+            str(
+                candidate.predicate_inputs.get("transition")
+                or candidate.predicate_inputs.get("transition_ref")
+                or ""
+            ),
+            tuple(
+                str(value)
+                for value in candidate.predicate_inputs.get("triggers", ())
+            ),
+        )
+        for candidate in (*existing_candidates, *probes)
+        if candidate.predicate_id == "S3"
+    }
     needs_r1_probe = not any(item.predicate_id == "R1" for item in probes) and not any(
         candidate.predicate_id == "R1" for candidate in existing_candidates
     )
-    if needs_s3_probe or needs_r1_probe:
+    if transition_groups:
         for group in sorted(transition_groups, key=lambda item: item.group_id):
             segment_contract_ids = {
                 contract.contract_id
@@ -3295,6 +3511,7 @@ def _materialize_deterministic_execution_probes(
                     probe_contracts[r1_probe_id] = r1_contract
                     probes.append(r1_candidate)
                     r1_admitted = True
+                    needs_r1_probe = False
                     dispositions.append(
                         {
                             "probe": "R1",
@@ -3358,9 +3575,8 @@ def _materialize_deterministic_execution_probes(
                         reason=reason,
                         basis=basis,
                     )
-                if not needs_s3_probe:
-                    if r1_admitted:
-                        return probes, probe_contracts, dispositions
+                s3_key = (transition.ref, (event.name,))
+                if s3_key in existing_s3_keys:
                     continue
                 candidate = CandidateIssue(
                     contract_id=probe_id,
@@ -3400,6 +3616,7 @@ def _materialize_deterministic_execution_probes(
                 )
                 probe_contracts[probe_id] = probe_contract
                 probes.append(candidate)
+                existing_s3_keys.add(s3_key)
                 dispositions.append(
                     {
                         "probe": "S3",
@@ -3416,7 +3633,7 @@ def _materialize_deterministic_execution_probes(
                         "basis": basis,
                     }
                 )
-                return probes, probe_contracts, dispositions
+                continue
 
     return probes, probe_contracts, dispositions
 
@@ -3501,6 +3718,37 @@ def _deterministic_candidate(
     return record, record if record["issue_emitted"] else None
 
 
+def _d_defeater_evidence_reference_catalog(
+    prepared: Mapping[str, Any] | None,
+) -> tuple[str, ...]:
+    """Build the exact per-obligation catalog available to a surviving defeater."""
+
+    if prepared is None:
+        return ()
+    candidate = prepared.get("candidate")
+    binding = prepared.get("binding")
+    references: set[str] = set()
+    if isinstance(candidate, CandidateIssue):
+        references.update(
+            f"candidate:model:{reference}"
+            for reference in candidate.element_refs
+        )
+        references.update(
+            f"candidate:source:{reference}"
+            for reference in candidate.source_refs
+        )
+    if binding is not None:
+        references.update(
+            f"binding:model:{reference}"
+            for reference in getattr(binding, "element_refs", ())
+        )
+        references.update(
+            f"binding:source:{reference}"
+            for reference in getattr(binding, "source_refs", ())
+        )
+    return tuple(sorted(references))
+
+
 def _d_decision_consistency_errors(
     decision: SemanticAdjudication,
     *,
@@ -3515,8 +3763,28 @@ def _d_decision_consistency_errors(
             errors.append("defeater_kind=none requires strongest_defeater=null")
         if decision.defeater_disposition != "defeated":
             errors.append("defeater_kind=none requires defeater_disposition=defeated")
+        if decision.defeater_evidence_refs:
+            errors.append("defeater_kind=none requires defeater_evidence_refs=[]")
     elif decision.strongest_defeater is None:
         errors.append("a typed defeater requires a non-null strongest_defeater")
+    allowed_defeater_refs = set(_d_defeater_evidence_reference_catalog(prepared))
+    supplied_defeater_refs = set(decision.defeater_evidence_refs)
+    if len(supplied_defeater_refs) != len(decision.defeater_evidence_refs):
+        errors.append("defeater_evidence_refs must not repeat a catalog reference")
+    unknown_defeater_refs = sorted(supplied_defeater_refs - allowed_defeater_refs)
+    if unknown_defeater_refs:
+        errors.append(
+            "defeater_evidence_refs contains references absent from this obligation's "
+            f"exact catalog: {unknown_defeater_refs}"
+        )
+    if (
+        decision.defeater_kind in {"undercutting", "rebutting"}
+        and decision.defeater_disposition == "survives"
+        and not supplied_defeater_refs
+    ):
+        errors.append(
+            "a surviving typed defeater requires at least one exact defeater_evidence_ref"
+        )
     if prepared is not None and pair is not None and decision.grounding == "established":
         candidate = prepared.get("candidate")
         binding = prepared.get("binding")
@@ -3777,6 +4045,115 @@ def _method_cell(
         )
     )
 
+    contract_completion_prompt: str | None = None
+    contract_completion_diagnostics: list[dict[str, Any]] = []
+    contract_completion_output: dict[str, Any] = {
+        "triggered": False,
+        "primary_contract_count": len(contract_response.contracts),
+        "numbered_nl_segment_count": len(pair.nl_segments),
+        "response": None,
+        "admitted_contract_ids": [],
+        "admitted_transition_group_ids": [],
+        "reason": "The primary typed contract response did not meet the deterministic sparse-completion trigger, or was not a successful real provider response.",
+        "basis": "primary response contract count, numbered-NL segment count, and public runtime provenance",
+    }
+    contract_completion_outcome: StructuredCallOutcome[ContractCompletionResponse] | None = None
+    if (
+        contract_outcome.succeeded
+        and contract_outcome.real_llm
+        and _contract_completion_required(pair, contract_response)
+    ):
+        contract_completion_prompt = build_contract_completion_prompt(
+            pair,
+            round_index,
+            contract_response,
+        )
+        contract_completion_outcome = runtime.call(
+            kind="contract_completion",
+            schema=ContractCompletionResponse,
+            system_prompt=CONTRACT_SYSTEM_PROMPT,
+            prompt=contract_completion_prompt,
+            artifact_id=(
+                f"method/{pair.pair_id}/round-{round_index}/contract-completion"
+            ),
+        )
+        all_outcomes.append(contract_completion_outcome)
+        contract_completion_output["triggered"] = True
+        contract_completion_output["response"] = (
+            contract_completion_outcome.response.model_dump(mode="json")
+            if contract_completion_outcome.succeeded
+            else None
+        )
+        if contract_completion_outcome.succeeded:
+            contract_response, contract_completion_diagnostics = _merge_contract_completion(
+                pair,
+                contract_response,
+                contract_completion_outcome.response,
+            )
+            contract_response = materialize_segment_coverage(
+                contract_response,
+                [segment.segment_id for segment in pair.nl_segments],
+            )
+            contract_completion_output.update(
+                {
+                    "admitted_contract_ids": [
+                        item["canonical_contract_id"]
+                        for item in contract_completion_diagnostics
+                        if item["class"] == "admitted_completion_contract"
+                    ],
+                    "admitted_transition_group_ids": [
+                        item["canonical_group_id"]
+                        for item in contract_completion_diagnostics
+                        if item["class"] == "admitted_completion_transition_group"
+                    ],
+                    "reason": "The sparse completion response was unioned only through exact typed identities; the primary contract plan was preserved.",
+                    "basis": "ContractSemanticKey/TransitionGroupSemanticKey equality, canonical IDs, and the immutable primary response",
+                }
+            )
+        else:
+            completion_error = contract_completion_outcome.result.get(
+                "error", "structured contract-completion output unavailable"
+            )
+            all_errors.append(
+                {
+                    "stage": "contract_completion",
+                    "error": completion_error,
+                    "reason": "The sparse completeness call failed; the successful primary contract response remains available without fabricated additions.",
+                    "basis": "public structured runtime outcome and no-primary-overwrite fallback",
+                }
+            )
+            contract_completion_output.update(
+                {
+                    "reason": "The sparse completion call failed and the primary contract response was retained unchanged.",
+                    "basis": "public structured runtime failure receipt and no-fabricated-addition rule",
+                }
+            )
+    stage_outputs["contract_completion"] = contract_completion_output
+    stage_receipts.append(
+        _stage_receipt(
+            pair=pair,
+            stage_id=f"{pair.pair_id}:r{round_index}:contract-completion",
+            stage_name="contract_completion",
+            status=(
+                "completed"
+                if contract_completion_outcome is None
+                or contract_completion_outcome.succeeded
+                and not contract_completion_diagnostics
+                else "completed_with_diagnostics"
+                if contract_completion_outcome is not None
+                and contract_completion_outcome.succeeded
+                else "failed_with_receipt"
+            ),
+            artifact_roles=("natural_language", "working_contract", "source_trace"),
+            output=contract_completion_output,
+            outcome=contract_completion_outcome,
+            diagnostics=tuple(contract_completion_diagnostics),
+            projection_version="typed-contract-completion.v1",
+            reason=contract_completion_output["reason"],
+            basis=contract_completion_output["basis"],
+        )
+    )
+
     grounding_prompts = {
         lens: build_grounding_prompt(
             pair,
@@ -3963,6 +4340,16 @@ def _method_cell(
         )
     )
     frontier_candidates.extend(frontier_unresolved_candidates)
+    domain_invariant_contracts, domain_invariant_candidates, domain_invariant_dispositions = (
+        materialize_domain_invariant_contracts(
+            pair,
+            existing_candidates=[*initial_candidates, *frontier_candidates],
+        )
+    )
+    domain_invariants_by_id = {
+        contract.contract_id: contract for contract in domain_invariant_contracts
+    }
+    frontier_candidates.extend(domain_invariant_candidates)
     source_transition_closures = {
         contract_id: evaluate_source_transition_closure(pair, contract)
         for contract_id, contract in contracts_by_id.items()
@@ -4040,6 +4427,7 @@ def _method_cell(
                 round_index,
                 index,
                 contracts_by_id,
+                domain_invariants_by_id,
             )
             prepared_candidates.append(prepared)
         except Exception as exc:  # noqa: BLE001 - preserve candidate diagnostics
@@ -4112,6 +4500,12 @@ def _method_cell(
         "frontier_unresolved_admitted_candidate_count": len(
             frontier_unresolved_candidates
         ),
+        "domain_invariant_contracts": [
+            contract.model_dump(mode="json")
+            for contract in domain_invariant_contracts
+        ],
+        "domain_invariant_candidate_count": len(domain_invariant_candidates),
+        "domain_invariant_dispositions": list(domain_invariant_dispositions),
         "frontier_batch": frontier_batch.model_dump(mode="json"),
         "exact_s2_scout_candidate_count": len(exact_s2_candidates),
         "exact_s2_scout_receipts": exact_s2_receipts,
@@ -4128,8 +4522,8 @@ def _method_cell(
         ],
         "predicate_execution_receipts": execution_receipts,
         "candidates": [_jsonable(item) for item in prepared_candidates],
-        "reason": "Exact binding, protected source-transition macro closure, primary typed-contract predicate routing, the typed domain frontier, the exact S2 inventory scout, frozen predicate compilation, and deterministic backend execution were applied inside one execute batch; completed true receipts remain passing-check audit records while only counterexamples, unresolved W1/W0, or errors become findings.",
-        "basis": "LLM-established typed contracts, exact source inventory, published working-contract macro membership, owned source/ModelIR/inspection facts, frozen predicate registry, compiler plans, backend receipts, primary-route telemetry, and the passing-check exclusion rule",
+        "reason": "Exact binding, protected source-transition macro closure, primary typed-contract predicate routing, frozen domain-invariant projection, the typed domain frontier, the exact S2 inventory scout, frozen predicate compilation, and deterministic backend execution were applied inside one execute batch; completed true receipts remain passing-check audit records while only counterexamples, unresolved W1/W0, or errors become findings.",
+        "basis": "LLM-established typed contracts, frozen language invariants, exact source inventory, published working-contract macro membership, owned pyfcstm-native ModelIR/inspection facts, frozen predicate registry, compiler plans, backend receipts, primary-route telemetry, and the passing-check exclusion rule",
     }
     stage_receipts.append(
         _stage_receipt(
@@ -4187,6 +4581,9 @@ def _method_cell(
                 "plan": item["plan"].to_dict(),
                 "receipt": item["receipt"].to_dict(),
                 "source_attribution": item["source_attribution"],
+                "defeater_evidence_reference_catalog": list(
+                    _d_defeater_evidence_reference_catalog(item)
+                ),
                 "reason": "The dossier contains exact method outputs and formal execution facts for semantic adjudication.",
                 "basis": "prepared candidate, exact binding, frozen predicate plan, and backend receipt",
             }
@@ -4656,6 +5053,7 @@ def _method_cell(
     prompt_hash = _hash_json(
         {
             "contract_extraction": contract_prompt,
+            "contract_completion": contract_completion_prompt,
             "discovery_grounding": grounding_prompts,
             "d_adjudication": d_prompts,
             "d_adjudication_correction": d_correction_prompts,

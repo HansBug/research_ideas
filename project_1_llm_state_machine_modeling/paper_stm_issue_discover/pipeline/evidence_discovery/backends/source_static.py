@@ -193,9 +193,15 @@ def run_source_static(plan: PredicatePlan, model: ModelIR, receipt_id: str):
         return native_receipt(receipt_id, predicate, native, "true" if found else "false", f"The exact action {'is' if found else 'is not'} attached to the native FCSTM {phase} lifecycle slot.", "pyfcstm State lifecycle action collections", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", counterexample=[] if found else [{"state": state_path(state), "phase": phase, "action": action}])
 
     if predicate == "S5":
-        expected_ast = _parse_required_guard(inputs.get("guard"))
-        if expected_ast is None:
-            return native_receipt(receipt_id, predicate, native, "unknown", "S5 requires one non-empty guard that parses through the FCSTM logical-expression grammar.", "S5 native typed guard parser", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", failure_kind="invalid_input")
+        required_guard = inputs.get("guard")
+        if required_guard == "":
+            expected_ast = None
+        elif not isinstance(required_guard, str):
+            return native_receipt(receipt_id, predicate, native, "unknown", "S5 requires either an explicit empty guard or one guard that parses through the FCSTM logical-expression grammar.", "S5 native typed guard parser", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", failure_kind="invalid_input")
+        else:
+            expected_ast = _parse_required_guard(required_guard)
+            if expected_ast is None:
+                return native_receipt(receipt_id, predicate, native, "unknown", "S5 requires either an explicit empty guard or one guard that parses through the FCSTM logical-expression grammar.", "S5 native typed guard parser", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", failure_kind="invalid_input")
         observed_ast = transition.guard.to_ast_node() if transition.guard is not None else None
         verdict = "true" if expected_ast == observed_ast else "false"
         return native_receipt(receipt_id, predicate, native, verdict, "The required guard AST was compared with the exact native FCSTM transition guard AST.", "pyfcstm.model.parse_expr_from_string and Transition.guard.to_ast_node", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", counterexample=[] if verdict == "true" else [{"expected": str(expected_ast), "observed": str(observed_ast) if observed_ast is not None else None}])

@@ -11,6 +11,8 @@ from pipeline.evidence_discovery.inputs.context import (
     prompt_context_payload,
 )
 from pipeline.evidence_discovery.orchestration.runner import (
+    _contract_completion_required,
+    _merge_contract_completion,
     _method_cell,
     run_experiment,
 )
@@ -22,12 +24,14 @@ from pipeline.evidence_discovery.semantics import (
     D_SYSTEM_PROMPT,
     DISCOVERY_GROUNDING_SYSTEM_PROMPT,
     ContractBindingHint,
+    ContractCompletionResponse,
     DAdjudicationResponse,
     GroundingResponse,
     NLContract,
     NLContractResponse,
     StageReceipt,
     build_contract_prompt,
+    build_contract_completion_prompt,
     build_d_adjudication_batches,
     build_d_correction_prompt,
     build_d_adjudication_prompt,
@@ -113,6 +117,13 @@ class FixtureStructuredRuntime:
                 reason="Fixture contract response reason.",
                 basis="Fixture contract response basis.",
             )
+        elif schema is ContractCompletionResponse:
+            response = ContractCompletionResponse(
+                additional_contracts=[],
+                additional_transition_groups=[],
+                reason="The provider-free completion fixture adds no semantic obligation.",
+                basis="provider-free sparse completion fixture",
+            )
         elif issubclass(schema, GroundingResponse):
             pair = load_pair(REPORT_ROOT / "pairs" / pair_id)
             existing_endpoints = {
@@ -195,7 +206,9 @@ class FixtureStructuredRuntime:
         elif schema is DAdjudicationResponse:
             self.d_call_count += 1
             if self.omit_second_d_decision and kind == "d_adjudication_correction":
-                decision_ids = [f"{pair_id}:r1:i1"]
+                marker = "repair_ids:\n"
+                id_start = prompt.index(marker) + len(marker)
+                decision_ids, _ = json.JSONDecoder().raw_decode(prompt[id_start:])
             elif kind == "d_adjudication":
                 marker = "Required obligation IDs, exactly once each:\n"
                 id_start = prompt.index(marker) + len(marker)
@@ -371,6 +384,127 @@ def test_contract_fallback_preserves_all_numbered_nl_without_merge_protocol() ->
     assert list(fallback.segment_disposition) == [f"NL{number}" for number in range(1, 14)]
     assert len({item.contract_id for item in fallback.contracts}) == 13
     assert fallback.reason and fallback.basis
+
+
+def test_sparse_contract_completion_unions_new_typed_rows_without_overwrite() -> None:
+    """A low-count primary plan retains its rows while adding one new typed key."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    fallback = fallback_contracts(pair, "provider-free sparse completion fixture")
+    primary = fallback.model_copy(
+        update={
+            "contracts": [fallback.contracts[0]],
+            "segment_disposition": {fallback.contracts[0].segment_id: "covered"},
+        }
+    )
+    additional = fallback.contracts[1].model_copy(
+        update={"contract_id": "NL-CONTRACT-NL2-COMPLETION-FIXTURE"}
+    )
+    completion = ContractCompletionResponse(
+        additional_contracts=[additional],
+        additional_transition_groups=[],
+        reason="The fixture supplies one independent omitted numbered-NL contract.",
+        basis="provider-free sparse completion fixture",
+    )
+
+    assert _contract_completion_required(pair, primary) is True
+    prompt = build_contract_completion_prompt(pair, 1, primary)
+    assert "contract-completion-correction" in prompt
+    assert "Primary typed plan" in prompt
+    assert "evaluation ground truth" in prompt
+
+    merged, diagnostics = _merge_contract_completion(pair, primary, completion)
+
+    assert primary.contracts == [fallback.contracts[0]]
+    assert len(merged.contracts) == 2
+    assert merged.contracts[0].contract_id == fallback.contracts[0].contract_id
+    assert merged.contracts[1].contract_id.startswith("NL-CONTRACT-NL2-DERIVED-")
+    assert [item["class"] for item in diagnostics] == [
+        "admitted_completion_contract"
+    ]
+
+
+def test_sparse_contract_completion_deduplicates_exact_primary_identity() -> None:
+    """A completion response cannot revise a primary contract under a new ID."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    fallback = fallback_contracts(pair, "provider-free duplicate completion fixture")
+    primary = fallback.model_copy(
+        update={
+            "contracts": [fallback.contracts[0]],
+            "segment_disposition": {fallback.contracts[0].segment_id: "covered"},
+        }
+    )
+    duplicate = fallback.contracts[0].model_copy(
+        update={"contract_id": "NL-CONTRACT-NL1-DUPLICATE-COMPLETION"}
+    )
+    completion = ContractCompletionResponse(
+        additional_contracts=[duplicate],
+        additional_transition_groups=[],
+        reason="The fixture deliberately repeats the primary typed identity.",
+        basis="provider-free duplicate completion fixture",
+    )
+
+    merged, diagnostics = _merge_contract_completion(pair, primary, completion)
+
+    assert merged.contracts == primary.contracts
+    assert diagnostics[0]["class"] == "duplicate_completion_contract_semantic_key"
+
+
+def test_real_low_count_contract_extraction_runs_one_completion_without_overwrite(
+    tmp_path: Path,
+) -> None:
+    """A live-provenance sparse primary plan gets one additive correction call."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+
+    class LiveSparseCompletionRuntime(FixtureStructuredRuntime):
+        """Return deterministic typed rows while exercising real-call provenance."""
+
+        def call(self, **kwargs):
+            outcome = super().call(**kwargs)
+            if kwargs["schema"] is ContractCompletionResponse:
+                omitted = fallback_contracts(
+                    pair,
+                    "live-provenance contract-completion fixture",
+                ).contracts[1].model_copy(
+                    update={"contract_id": "NL-CONTRACT-NL2-LIVE-COMPLETION"}
+                )
+                response = ContractCompletionResponse(
+                    additional_contracts=[omitted],
+                    additional_transition_groups=[],
+                    reason="The fixture adds one omitted independently violable contract.",
+                    basis="typed numbered-NL completion fixture",
+                )
+                return outcome.model_copy(
+                    update={"response": response, "real_llm": True}
+                )
+            return outcome.model_copy(update={"real_llm": True})
+
+    runtime = LiveSparseCompletionRuntime()
+    cell = _method_cell(
+        pair=pair,
+        round_index=1,
+        runtime=runtime,
+        output_root=tmp_path,
+    )
+
+    assert [kind for kind, _ in runtime.prompts].count("contract_completion") == 1
+    completion = cell["stage_outputs"]["contract_completion"]
+    assert completion["triggered"] is True
+    assert len(completion["admitted_contract_ids"]) == 1
+    assert len(cell["stage_outputs"]["contract_extraction"]["contracts"]) == 1
+    grounding_prompts = [
+        prompt
+        for kind, prompt in runtime.prompts
+        if kind in {"contract_structure_contrast", "behavior_consequence"}
+    ]
+    assert grounding_prompts
+    assert all(
+        completion["admitted_contract_ids"][0] in prompt
+        for prompt in grounding_prompts
+    )
+    assert cell["status"] == "completed"
 
 
 def test_representative_diagnostic_cases_have_complete_input_closure() -> None:
@@ -657,6 +791,7 @@ def test_staged_method_receives_full_context_and_writes_stage_receipts(tmp_path:
     assert receipt_names == [
         "prepare",
         "contract_extraction",
+        "contract_completion",
         "discovery_grounding",
         "execute_batch",
         "d_adjudication",
@@ -742,9 +877,20 @@ def test_one_grounding_failure_does_not_erase_closed_w1_release(tmp_path: Path) 
 
     assert cell["eligible"] is True
     assert cell["status"] == "completed_with_diagnostics"
-    assert len(cell["report_issue_clusters"]) == 1
-    assert cell["report_issue_clusters"][0]["witness_level"] == "W1"
-    assert cell["report_issue_clusters"][0]["d_level"] == "D2"
+    llm_release = next(
+        record
+        for record in cell["report_issue_clusters"]
+        if record["contract_id"].startswith("NL-CONTRACT-")
+    )
+    assert llm_release["witness_level"] == "W1"
+    assert llm_release["d_level"] == "D2"
+    domain_releases = [
+        record
+        for record in cell["report_issue_clusters"]
+        if record["contract_id"].startswith("DOMAIN-INVARIANT-")
+    ]
+    assert domain_releases
+    assert all(record["witness_level"] == "W2" for record in domain_releases)
     assert any(
         error.get("stage") == "discovery_grounding"
         and error.get("lens") == "contract_structure_contrast"
@@ -812,12 +958,21 @@ def test_unresolved_w0_record_is_an_eligible_diagnostic_result(tmp_path: Path) -
     assert {record["d_level"] for record in cell["evidence_records"]} == {
         "D_UNRESOLVED"
     }
-    assert {record["witness_level"] for record in cell["evidence_records"]} == {
-        "W0"
-    }
+    assert any(
+        record["witness_level"] == "W0"
+        and record["contract_id"].startswith("NL-CONTRACT-")
+        for record in cell["evidence_records"]
+    )
+    assert any(
+        record["witness_level"] == "W2"
+        and record["contract_id"].startswith("DOMAIN-INVARIANT-")
+        for record in cell["evidence_records"]
+    )
 
 
-def test_successful_zero_finding_cell_is_eligible(tmp_path: Path) -> None:
+def test_successful_zero_llm_finding_cell_retains_frozen_domain_invariants(
+    tmp_path: Path,
+) -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
 
     class ZeroFindingRuntime(FixtureStructuredRuntime):
@@ -862,8 +1017,16 @@ def test_successful_zero_finding_cell_is_eligible(tmp_path: Path) -> None:
 
     assert cell["eligible"] is True
     assert cell["status"] == "completed"
-    assert cell["evidence_records"] == []
-    assert cell["report_issue_clusters"] == []
+    assert cell["stage_outputs"]["execute_batch"]["llm_candidate_count"] == 0
+    assert cell["stage_outputs"]["execute_batch"]["domain_invariant_candidate_count"] > 0
+    assert cell["evidence_records"]
+    assert all(
+        record["contract_id"].startswith("DOMAIN-INVARIANT-")
+        for record in cell["evidence_records"]
+    )
+    assert all(
+        record["witness_level"] == "W2" for record in cell["evidence_records"]
+    )
 
 
 def test_sparse_grounding_omission_is_normal_but_unknown_derived_segment_is_audited(
@@ -975,7 +1138,7 @@ def test_d_coverage_correction_is_in_node_and_no_silent_drop(tmp_path: Path) -> 
     d_output = cell["stage_outputs"]["d_adjudication"]
     assert {
         decision["obligation_id"] for decision in d_output["decisions"]
-    } == {"0000:r1:i0", "0000:r1:i1"}
+    } == set(cell["stage_outputs"]["validate_d"]["expected_obligation_ids"])
     d_receipt = next(
         item for item in cell["stage_receipts"] if item["stage_name"] == "d_adjudication"
     )
@@ -984,7 +1147,9 @@ def test_d_coverage_correction_is_in_node_and_no_silent_drop(tmp_path: Path) -> 
         error.get("stage") in {"d_adjudication", "d_adjudication_correction"}
         for error in cell["errors"]
     )
-    assert len(cell["evidence_records"]) == 2
+    assert len(cell["evidence_records"]) == len(
+        cell["stage_outputs"]["validate_d"]["expected_obligation_ids"]
+    )
     assert all(record["semantic_adjudication"] for record in cell["evidence_records"])
 
 
@@ -1010,7 +1175,9 @@ def test_d_duplicate_id_is_targeted_and_valid_decisions_remain_frozen(
     assert validation["repair_duplicate_ids"] == []
     assert validation["repair_invalid_decisions"] == {}
     assert validation["final_unresolved_ids"] == []
-    assert len(cell["evidence_records"]) == 1
+    assert len(cell["evidence_records"]) == len(
+        cell["stage_outputs"]["validate_d"]["expected_obligation_ids"]
+    )
     correction_prompt = next(
         prompt
         for kind, prompt in runtime.prompts
@@ -1201,12 +1368,26 @@ def test_one_failed_d_batch_degrades_only_its_obligations(
         if receipt["stage_name"] == "d_adjudication"
     )
     assert d_receipt["status"] == "completed_with_diagnostics"
-    assert len(cell["evidence_records"]) == 2
-    assert {record["d_level"] for record in cell["evidence_records"]} == {
-        "D2",
-        "D_UNRESOLVED",
+    assert len(cell["evidence_records"]) == len(
+        cell["stage_outputs"]["validate_d"]["expected_obligation_ids"]
+    )
+    failed_batch_ids = set(batches[1]["obligation_ids"])
+    unresolved = {
+        record["obligation_id"]
+        for record in cell["evidence_records"]
+        if record["d_level"] == "D_UNRESOLVED"
     }
-    assert len(cell["report_issue_clusters"]) == 1
+    assert failed_batch_ids <= unresolved
+    assert all(
+        record["d_level"] == "D_UNRESOLVED"
+        for record in cell["evidence_records"]
+        if record["obligation_id"] in failed_batch_ids
+    )
+    released_count = sum(
+        record["d_level"] in {"D1", "D2"}
+        for record in cell["evidence_records"]
+    )
+    assert len(cell["report_issue_clusters"]) == released_count
     assert any(
         error.get("stage") == "d_adjudication"
         and error.get("batch_index") == 2

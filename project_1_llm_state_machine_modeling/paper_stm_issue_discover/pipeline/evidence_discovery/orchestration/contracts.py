@@ -243,8 +243,13 @@ class MethodCellReceipt(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["evidence-discovery.method_cell.v8"] = Field(
-        description="Versioned method-cell schema identifier."
+    schema: Literal[
+        "evidence-discovery.method_cell.v8", "evidence-discovery.method_cell.v9"
+    ] = Field(
+        description=(
+            "Versioned method-cell schema identifier. v8 remains readable for "
+            "historical artifacts; new runs emit v9 with contract-completion audit."
+        )
     )
     run_id: str = Field(
         pattern=r"^[0-9a-f]{32}$",

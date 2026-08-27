@@ -110,7 +110,7 @@ class S5Inputs(PredicateInputsBase):
 
     predicate_id: Literal["S5"] = Field(description="Frozen S5 discriminator.")
     transition: str | None = Field(default=None, description="Exact carrier transition ref; null makes deterministic comparison incomplete.")
-    guard: JsonValue | None = Field(default=None, description="Required normalized guard expression; null means the required value was not bound.")
+    guard: str | None = Field(default=None, description="Required normalized guard expression. Empty string is the deliberate typed value for an absent guard; null means the required value was not bound.")
 
 
 class S6Inputs(PredicateInputsBase):

@@ -6,6 +6,10 @@
 
 bibliography metadata 只解释“为什么该谓词在学术与领域叙事中成立”。运行时只回答“该谓词是否在当前制品上以合法输入真实执行”。两者正交；来源管理信息不得影响 W、backend、D 或 publication。
 
+## Provider-Free Probe Replay
+
+`execution_probe_replay` 是独立的第四个 provider-free cohort：它只使用保存的 extraction/grounding 重建当前 production deterministic chain，并审计本次新物化的 `DomainInvariantContract`/transition-group execution probe。每条记录必须标明该 contract ID 是否已经存在于 source `execute_batch.candidates`。新增 `false` 只证明当前 native route/backend/audit 已闭合，不能倒写为历史 candidate、publication、hit 或 precision，也不能与 route/frontier/structural/W-state replay 的 W 或 receipt 相加。
+
 ## 2. W 与执行审计
 
 本方法使用 `W2/W1/W0` 三档确定性逻辑：
@@ -23,7 +27,7 @@ bibliography metadata 只解释“为什么该谓词在学术与领域叙事中�
 
 ## 3. Typed、native backend 与来源归因
 
-所有 Pydantic model 都必须有 class docstring 和 Field description；所有结构化模型输出、失败、退化与未执行记录都必须有非空 `reason` 与 `basis`。S4 的 `phase` 只能是 `entry`、`do` 或 `exit`；S2 必须检验 owner-local scope；S5 比较原生 guard AST；S6 只检验 exact transition 的 effect membership。pyfcstm 可解析为 Event 的条件必须以 `event`/`trigger` 绑定，绝不能作为 S5/V1 的 `guard`；角色无法由当前原生 carrier 闭合时保留 W1。
+所有 Pydantic model 都必须有 class docstring 和 Field description；所有结构化模型输出、失败、退化与未执行记录都必须有非空 `reason` 与 `basis`。S4 的 `phase` 只能是 `entry`、`do` 或 `exit`；S2 必须检验 owner-local scope；S5 比较原生 guard AST；S6 只检验 exact transition 的 effect membership。S5 的 `guard=""` 是“要求 absence of guard”的合法显式 typed 值，`guard=null` 才是未绑定输入。pyfcstm 可解析为 Event 的条件必须以 `event`/`trigger` 绑定，绝不能作为 S5/V1 的 `guard`；角色无法由当前原生 carrier 闭合时保留 W1。
 
 结构事实必须从 `pyfcstm.model` 的原生 model class 读取，不能由 ModelIR 或字符串近似判断。轨迹必须由 `SimulationRuntime` 在 method-owned closed scenario 中运行。有界检查必须使用 `.fbmcq` compile/solve/witness/replay，不得手写守卫计算、图遍历替代 solver、赋值枚举或静态 trace。后端不得调用 Python `inspect`。
 
@@ -43,17 +47,21 @@ D adjudication 不得把 backend receipt 的原始大对象重复送入模型。
 
 D dossier 按 `obligation_id` 稳定排序，并按实际序列化字符数在 provider 调用前装入有限批次。单批上限最多按 40,000 estimated tokens 计算，同时受当前 profile context window 的 65% 减去 output/schema reserve 约束；禁止依赖运行时 compact 挽救超预算输入，禁止静默裁剪或拆开单条 dossier。某一完整 dossier 单独仍超预算，或某一批 provider/schema 调用失败时，只将该批 obligation 明确退为 `D_UNRESOLVED`，保留 batch ID、prompt size、budget、call/failure receipt、reason 和 basis；其他成功批次的 D 结果不得被覆盖或重跑。targeted correction 的唯一输入集合为 `repair_ids = missing_ids ∪ duplicate_ids ∪ invalid_decision_ids`，每个 `repair_id` 必须恰好返回一次，不得把“missing IDs”误写为整个修复集合，并遵守相同预算与稳定合并规则。
 
+`SemanticAdjudication` 的 `defeater_evidence_refs` 是存活 alternative 的强制证据链。每个 D dossier 都给出只属于当前 obligation 的 exact catalog（candidate/binding 的 native model ref 与 source ref）。`undercutting` 或 `rebutting` 标为 `survives` 时必须至少引用一个 catalog token；没有具体、可绑定、与当前 closed facts 兼容的替代实现，不能以“或许有隐藏机制”压制 candidate。`none` 不能携带该引用。缺引用、重复引用或引用 catalog 外 ID 都进入既有 targeted D correction；仍不能修复时只退 `D_UNRESOLVED`，绝不把自由文本当成 rebuttal。
+
 W2 的归因链至少包含当前 NL、PlantUML、canonical source IR、FCSTM、inspect-equivalent facts、model hash、编译后的 assertion/formal program、program hash 与真实 receipt。bibliography 只作为冻结谓词的 academic provenance metadata 留在 registry 和 audit bundle。
 
 ## 3.1 主 route 的输入闭包与 A/B
 
 主链固定为 `typed contract -> compatible predicate set -> exact input binder -> compiler -> native backend`。route 只可读取当前 pair 的 NL、PlantUML、canonical source IR、FCSTM、inspect-equivalent facts、working contracts 与封闭 `ModelIR`；不得读取 ledger expected、Judge、答案、其他 pair 输出或 `pair_id` 特判。
 
+primary contract extraction 成功但 atomic contract 数严格少于当前 numbered-NL segment 数时，runner 只执行一次 in-node `contract_completion` sparse correction。该计数是 under-extraction 信号，不是“每段必有一合同”的语义 validator。correction 只可追加当前 NL 独立建立的 `NLContract` 或完整 `NLTransitionGroup`；runner 以完整 typed semantic key 去重并生成 canonical ID，既有 primary contract/group 永不被重写、删除或以同义文字覆盖。correction 失败只保留 primary plan 与 failure receipt，不补造合同。该阶段不读台账、Judge、答案、旧 report 或其他 pair，且其新增 contract 必须经过正常 grounding、route、W/D/publication 链，不能直接算 hit。
+
 已带 predicate label 的候选不享有绕过权：S2--S6 一律由同一 exact input binder 重建 native state path、owner scope、authored transition carrier、lifecycle slot 与 guard/effect AST 输入。`state:<name>:line:<N>` 等 projection ref 只用于 binding/audit attribution，绝不是 pyfcstm backend 的 state argument；旧字段（例如 `expected_guard`）也不得直接进入执行。重绑不能闭合时清除执行计划，保留精确 W1 和完整 route reason/basis，禁止把历史输入、timeout 或 parser 兼容猜测伪造成 `false`/W2。
 
 保存制品重放按 cohort 物理隔离：`route_replay` 只审计最终 predicate-null W1 的当前主 route；`frontier_replay` 只审计保存的 frontier 输入；`structural_rebind_replay` 只审计已选择 S2--S6 在当前 native binder 下是否仍具备合法输入。三者都不得读取 ledger expected、Judge、答案或其他 pair，均不产生 hit、precision、publication 或 Judge 结论，W 分布也不得互相相加。`route_replay` 与 `structural_rebind_replay` 都必须在 route 前合并 immutable `execute_batch.frontier_batch` 中的 typed obligation contracts，这与 production runner 的输入顺序一致；不得把这类已保存、可验证的契约误记为 contract absent。历史制品若含已因 soundness audit 移除的 frontier kind（当前为 `wrong_scope_route`），replay 只可显式排除并计数，不能放宽生产 `FrontierBatch` schema、重写原制品或把它恢复为当前 frontier。对没有保存 extraction/frontier contract 的 selected structural probe，replay 只可在候选 `source_refs` 与 `contract_id` 合并后唯一解析出同一个真实 `NL...` segment 时，从其完整保存 typed input 重建 replay-only contract；跨段、冲突或缺失 segment 一律标为 `unavailable` 并退化，禁止默认写成 `NL1`。`initial_entry` 重建为 `must_enter`，`transition_endpoints` 为 `must_exist`，`trigger_set`/`guard` 为 `must_equal`，`state_action`/`effect` 为 `must_occur`。当前 structural-rebind 制品 `c9b461924c636ae6a92809b117934be9` 固定审计 108 条保存的 selected-structural candidates：57 条具备 W2 audit bundle，16 条 route/input 未闭合、35 条 execution-degraded，合计 51 条退化为 W1；provider/Judge 调用均为 0，历史 `wrong_scope_route` 显式排除 4 条。这是历史输入的 typed-safety 对拍，不是一次新的 method 效果。
 
-inspection-equivalent、verify、SMT 与 native topology 只提供当前制品的观察事实，不能自行创造 source-side 规范义务。尤其 `INITIAL_ENTRY_CONDITIONAL` 只有在同一 owner/target 已有精确 `initial_entry` contract 时才可形成 initial-entry 或其 exact-carrier S3 finding；containment、cardinality、state action 或泛 scope contract 只能作为审计上下文。相同地，同 event/guard 多目标事实只有在 NL 已明确 `guard_disjointness` contract 时才可形成 V1/guard-disjointness frontier；不得从任意 scope、事件消费或 action contract 推出互斥义务。未被同属性 contract 规范化的 native fact 必须保留 audit，而不是发布候选。
+inspection-equivalent、verify、SMT 与 native topology 只提供当前制品的观察事实，不能自行创造 source-side 的 NL 规范义务。唯一受控例外是预先冻结、带 authority 的 `DomainInvariantContract`：它的规范义务来自领域规则，native fact 只将该规则绑定到当前精确 carrier。当前冻结的 `uml_initial_pseudostate_outgoing_unconditional` 可把原生 `INITIAL_ENTRY_CONDITIONAL` 投影为 exact-carrier S3（要求 `triggers=[]`）或 S5（要求 `guard=""`）候选；同一 carrier 的 S2 endpoint satisfaction 既不能否定也不能抑制该 trigger/guard issue。每一个唯一闭合到 native carrier 的 transition-group event alternative 都须独立执行 S3；仅完全相同的 `(transition_ref, required_trigger_set)` 可以去重，任一 completed/true receipt 仅审计自身，不能中止或抑制其他 alternative。除该类显式冻结领域不变量外，`INITIAL_ENTRY_CONDITIONAL` 仍须有同属性 NL contract 才可形成 NL initial-entry finding；containment、cardinality、state action 或泛 scope contract 只能作为审计上下文。相同地，同 event/guard 多目标事实只有在 NL 已明确 `guard_disjointness` contract 时才可形成 V1/guard-disjointness frontier；不得从任意 scope、事件消费或 action contract 推出互斥义务。未被同属性 contract 或冻结领域不变量规范化的 native fact 必须保留 audit，而不是发布候选。
 
 termination 的 source/owner 与 explicit target 是两个独立 typed role。`HighwayMode -> FinishState` 一类合同允许 `FinishState` 位于 owner 的外层、同层或其他明确 scope；target ancestry 不能自行制造 `route_avoidance`/wrong-scope candidate，也不能把完成目标改写为 owner-local state。只有合同自身声明的 endpoint、termination 或其他冻结可表达属性才可进入后续 route。
 
@@ -82,6 +90,8 @@ R4 的默认 method-owned fragment 也不得伪造 trace：它只接受精确 re
 ## 4. 实验与评测隔离
 
 route 只能基于当前 pair 的 typed contract、compatible predicate set、exact input binder 和封闭模型。它不读取 ledger expected、Judge relation、答案或 pair ID 特判。supporting pass probe 只用于审计，不能当作 finding、FULL hit 或 W2 violation。
+
+当前优化主指标是外置 Judge 的 exact FULL hit 与 report claim 完整性，而不是单纯增加 pass receipt、W2 数量或 predicate usage。15-pair 固定 planned 分母仍为 12；已达到 12/15 即为稳定合格，后续不得为了追逐低频 13--15/15 而扩大 unsafe route、堆 supporting pass probe、牺牲 exact binding 或延后 hit 修复。发布报告必须保留 violated obligation、exact carrier/locus、完整 member set/count、owner/source/target、event/guard/effect/action role、repair delta、reason 与 basis；粗粒度 predicate 的 `true` 只证明它自身命题，不能删除不同 property/role/scope 的精确 candidate。
 
 Judge 在独立 evaluation 路径执行，保持冻结口径；method 与 Judge 的 artifact 物理分离。15-pair 与 54x3 运行均须保存 immutable run identity、source commit、prompt/schema/registry/input hash、完整成本与 terminal cell receipt。新的 live run 默认以 `--workers 16` 启动，并在 manifest 固定实际并发、限流和 retry policy；provider error 只就地重试受影响调用/cell，修复后只重跑该 cell，绝不通过串行化或重启整个 run 处理局部错误。先做 provider-free replay，后做一次新 15x1；只有协议、typed/backend 和小规模 gate 稳定后才启动 54x3。
 

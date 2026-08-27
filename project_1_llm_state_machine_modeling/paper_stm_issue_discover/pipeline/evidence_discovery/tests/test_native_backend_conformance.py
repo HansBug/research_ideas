@@ -210,6 +210,7 @@ def _fixture_cases() -> dict[str, dict[str, Any]]:
     choice = _model(_CHOICE_SOURCE)
     invariant = _model(_V5_SOURCE)
     ab = _transition_ref(structural, "A", "B")
+    bb = _transition_ref(structural, "B", "B")
     go = _event_path(structural, "Go")
     choice_event = _event_path(choice, "Choice")
     overlap_event = _event_path(choice, "OverlapEvent")
@@ -247,6 +248,8 @@ def _fixture_cases() -> dict[str, dict[str, Any]]:
             "positive": {"transition": ab, "guard": "x >= 0"},
             "negative": {"transition": ab, "guard": "x > 3"},
             "out": {"transition": ab, "guard": "x >"},
+            "empty_positive": {"transition": bb, "guard": ""},
+            "empty_negative": {"transition": ab, "guard": ""},
         },
         "S6": {
             "model": structural,
@@ -388,6 +391,27 @@ def test_each_predicate_uses_native_positive_and_negative_truth(
     assert (negative.terminal_state, negative.verdict) == ("completed", "false")
     assert positive.run_metadata["execution_model"] == "pyfcstm.model.StateMachine"
     assert negative.run_metadata["execution_model"] == "pyfcstm.model.StateMachine"
+
+
+def test_s5_compares_explicit_empty_guard_with_native_absence(
+    native_cases: dict[str, dict[str, Any]],
+) -> None:
+    """Empty guard is a deliberate equality value, not an incomplete input."""
+
+    case = native_cases["S5"]
+    absent = run_backend(
+        _plan("S5", case["empty_positive"]),
+        case["model"],
+        "fixture:S5:empty-guard-positive",
+    )
+    guarded = run_backend(
+        _plan("S5", case["empty_negative"]),
+        case["model"],
+        "fixture:S5:empty-guard-negative",
+    )
+
+    assert (absent.terminal_state, absent.verdict) == ("completed", "true")
+    assert (guarded.terminal_state, guarded.verdict) == ("completed", "false")
 
 
 @pytest.mark.parametrize("predicate_id", sorted(SUPPORTED_PREDICATES))

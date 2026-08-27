@@ -4,6 +4,10 @@
 
 实现维持 `four-family-19-core.v1`、冻结 Judge 与独立 evaluation。19/19 谓词 backend 必须真实可调用、可终止并返回 `true` 或 `false`；某次 pair 无法闭合输入只能形成 W1/W0 execution audit，不能改变谓词资格或缩小 planned 分母。`utils.agent`、`utils.llm`、既有 LangGraph、缓存和成本基础设施继续作为唯一调用路径。当前真实运行 profile 为 `gpt-5.6-luna`。
 
+## Provider-Free Probe Replay
+
+`execution_probe_replay` 是 route/frontier/selected-structural 之外的第四个 deterministic cohort。它从保存 extraction/grounding 重建当前 production chain，执行新物化的 domain-invariant 与 transition-group probe，并分别保存 source candidate ID、current typed input、native receipt 与 W2 audit bundle。它只验证新确定性链路，不重写历史 candidate、不调用 provider/Judge、不进入 publication/hit/precision，也不得与其他 replay 的 W/receipt 混算；新的 15x1 才验证完整 method 效果。
+
 ## 阶段 A：确定性协议与 conformance
 
 1. 使用三档 W 状态机和正交 execution audit；bibliography 不进入任何运行时分支。
@@ -13,6 +17,9 @@
 5. provider error 原调用重试且不计费；schema、解析、业务和其他 retry 均计费并修复根因。禁止 Python `inspect`。
 6. FCSTM 只允许 `pyfcstm` 原生 parser/AST/StateMachine 作为语义源。`parse_fcstm`/`ModelIR` 必须是 native compatibility projection，保留 canonical path、pseudo-state、owner、lifecycle action、forced/combo provenance、span 与唯一 legacy-ref mapping；禁止恢复或扩展 FCSTM regex/line parser。`native_projection_audit` 必须达到 60/60 source load、54/54 frozen input closure、零 parity difference、零未批准文本处理后才解释 replay 数据。
 7. D adjudication 使用 receipt-only raw payload 边界：完整 FBMCQ/SMT 公式留在 execution/audit artifact，D semantic dossier 只携带 hash、size、typed plan、verdict、telemetry 与 witness/replay。dossier 按 obligation ID 和序列化预算稳定分批，不截断单条义务；超预算/失败批次仅退 `D_UNRESOLVED`，其他批次保持。targeted correction 的 `repair_ids` 是 missing、duplicate 与 invalid decision ID 的并集，必须对其中每个 ID 恰好补一条，不能以“missing”缩窄或覆盖该集合。不得削弱 `utils.agent` compact fail-closed，也不得用增加 context/retry 掩盖 prompt 投影 bug。
+8. 冻结的 `DomainInvariantContract` 只从预先审查的领域规则和 authority 派生，不能由 native inventory 临时发明。native facts 只负责 exact carrier binding；例如 initial pseudostate outgoing transition 的 frozen unconditional invariant 使用 S3 `triggers=[]` 或 S5 `guard=""` 比较。S2 endpoint pass 不得抑制同 carrier 的 trigger/guard candidate，S5 的 `guard=null` 仍是 input incomplete。transition-group 的 S3 projection 按唯一 `(native transition carrier, required trigger set)` 独立执行；前一 alternative 的 pass 只生成其自身 satisfaction receipt，不能遮蔽后续 alternative 的 false receipt 或原始 exact claim。
+9. primary contract extraction 的 atomic contract 数严格少于 numbered-NL segment 数时，成功的 live provider cell 只执行一次 `contract_completion` sparse correction。该 correction 只追加 typed-new `NLContract`/完整 `NLTransitionGroup`，以 canonical semantic key 去重，不覆盖 primary response；失败保留 primary response 并写 receipt。计数只是统一的 under-extraction signal，不是按 pair/台账/关键词的 semantic gate。
+10. 任何 `undercutting/rebutting + survives` D decision 都必须引用当前 dossier 的 `defeater_evidence_refs` catalog。catalog 仅由该 candidate/binding 的 exact native/source refs 构成；空、重复或 catalog 外引用进入 targeted correction，持续失败退 `D_UNRESOLVED`。抽象隐藏机制、未绑定 external implementation 或自由文本不能作为 D defeater。
 
 ## 阶段 B：provider-free replay
 
@@ -23,6 +30,10 @@
 route 使用 `typed contract -> compatible predicate set -> exact input binder`，只读取当前 pair 的方法输入。先在保存 extraction/grounding 输入上做 provider-free A/B，再以新 commit 和 immutable run identity 运行一次 15x1。固定 12 谓词分母为 S1、S2、S3、S4、S5、S6、G1、G4、R1、R4、V1、V4；R1/R4/V1 必须有 method-owned scenario/trace/domain 闭包，不能以 pass probe 代替 finding。
 
 S4/S6 的 LLM 预选标签必须经过同一 binder 复核，不能绕过输入闭包：S4 的 phase 只允许 `entry/do/exit`；S6 的 effect 必须是 pyfcstm native operation grammar 可解析的单一操作并绑定到 exact carrier。S5/V1 也必须先区分 native Event selector 与 guard AST：可解析为 Event 的 requirement value 只能是 `event`/`trigger`，不能借 guard 字段进入错误谓词。失败时只退化执行计划和 W，不改 contract/candidate 语义，不产生 false、W2 或 publication。
+
+候选的精确义务、owner、source/target、event/guard/effect/action role 与 repair delta 必须在 route、D 和 publication 全程保留。邻近或粗粒度谓词的 `true` receipt 只说明其自身命题成立，不能删除另一条精确 candidate；没有可绑定且与当前 closed facts 兼容的具体替代实现时，不得以抽象“可能存在隐藏机制”作为 D defeater。
+
+15-pair 的 predicate usage 达到 12/15 后视为稳定合格，13/15 是加分但不是阻塞项；禁止为了增加低频 predicate 出场而堆 pass probe、放宽 binding 或扩大不可靠 route。下一轮优先通过完整 typed contract、grounding 与 publication claim 恢复 exact FULL hit。每份 report 必须明确 obligation、root locus/carrier、expected/actual carrier 或 member set、owner/source/target path、event/guard/effect/output/completion distinction、minimal repair delta、reason 与 basis；同址邻近后果不能冒充根因 FULL。
 
 R4 的 method-owned runtime closure 固定为受限 native cold-entry fragment：只有精确 retained state 的唯一最短 event prefix 加一轮 zero-event macrostep 才可执行；任何路径歧义、runtime failure 或 fragment 越界均退化 W1。不得从 source trace、台账或人工答案构造 schedule。
 

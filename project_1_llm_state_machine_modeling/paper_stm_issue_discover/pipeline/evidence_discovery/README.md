@@ -2,9 +2,15 @@
 
 本目录是当前 method 的唯一实现入口。冻结注册表为 `four-family-19-core.v1`：结构 6、拓扑 4、轨迹 4、有界验证 5，共 19 个谓词。不得新增、删除、改名或重定义谓词。
 
+## Provider-Free Probe Replay
+
+`execution_probe_replay` 固定读取历史 extraction/grounding，重建当前 deterministic candidate chain，并只审计新物化的 domain-invariant 与 execution probe。它不调用 provider/Judge、不读 ledger/答案、不改历史制品、不发布 issue，也不报告 hit/precision；记录中的 `candidate_previously_materialized=false` 仅表示当前实现新增的确定性执行链，不能把 replay receipt 当作旧 run finding 或其他 replay cohort 的 W2。
+
 ## 当前协议
 
 19 个冻结谓词都已经完成学术资格审查。`related_work/provenance/current_source_catalog.json` 的 bibliography 记录只保存来源 ID、三类来源、引用和适用边界；它不参与运行时 W、backend 准入、publication 或 coverage 计算。
+
+当前固定 15-pair 的优化重点是外置冻结 Judge 下的 exact FULL hit 与 claim 完整性。planned predicate usage 固定按 12 个诊断谓词报告，12/15 已是稳定合格，不以追逐 15/15 取代 hit/precision 修复。一个 completed `true` 只保存其自身 pass receipt，不能抑制同 carrier 上不同 trigger/guard/effect/property/role 的精确 candidate。
 
 W 只有 `W2/W1/W0`：
 
@@ -13,6 +19,8 @@ W 只有 `W2/W1/W0`：
 - `W0`：未形成精确可靠的语义/元素绑定；不参与 hit 或 FP。
 
 运行回执必须分别保存 `execution_state`、`predicate_verdict`、`failure_kind`、`degraded_from`、`degradation_reason`、`attempt_count`、`retry_records`、`billable`、`independent_semantic_basis`、`reason` 与 `basis`。不存在第四个 W 等级。
+
+冻结的 `DomainInvariantContract` 与 NL contract 分开保存：前者只承载预先审查的 UML/状态机语言规则及其 authority，后者承载当前需求的规范义务。两者均须通过 pyfcstm 原生事实闭合 exact carrier。现有 `uml_initial_pseudostate_outgoing_unconditional` 只检查初始伪状态的 authored outgoing transition：非空 trigger 用 S3 的 `triggers=[]` 比较，非空 guard 用 S5 的 `guard=""` 比较。S2 的 endpoint pass 只能说明边存在，不能删除这类精确 trigger/guard candidate；`guard=null` 仍表示 S5 输入未闭合。每一个唯一闭合到 native carrier 的 transition-group event alternative 都独立执行 S3；仅相同 `(transition_ref, required_trigger_set)` 可去重，一个 S3 pass 不得中止后续 alternative 或删除其 exact candidate。
 
 ## 原生执行边界
 
@@ -56,6 +64,8 @@ reporting 对可行性采用结构化失败口径：`failure_kinds` 保留原 re
 G2/G3/R2 的 primary route 不靠文本图近似。G2 的 exact source 可以是 native leaf，或经每层恰好一条 `State.init_transitions` 唯一下降到 leaf 的 composite；多 initial、无 initial、循环或 owner/target 不闭合时不得任取 leaf。G3 的 source/target/forbidden 必须是 exact native leaf state。R2 先由 typed transition group、唯一 canonical source carrier 和 native Event 形成 event/target identity，再用 `SimulationRuntime` 搜索唯一最短、最多 3 个事件的 stimulus-consuming cold prefix并追加一个空观察步。搜索不接收或检查 target state，target 仅由 R2 backend 在真实 trace 上求值；任何歧义或运行失败保持 W1。
 
 provider-free A/B 至少按 predicate-null route、保存 frontier 与已选 structural rebind 三个不可互换 cohort 落盘。当前 predicate-null route 制品为 `evidence-discovery-15x1-native-route-replay-3dec97be4/479bb22f064ec72327b422b57cfbd0cb`：它读取 source run `7140b9c7a4f1c8ee6902b600e47a60c3` 的最终 51 条 `predicate_id=null` W1 evidence，先合并 immutable typed frontier contracts，再以当前 native route/backend 得到 3 条 W2（S2=2、R4=1）与 48 条 W1，0 provider/Judge 调用，不重物化 frontier。`evidence-discovery-15x1-frontier-replay-current/0f9d383071b29a11eb0474d655553706` 只重放保存 extraction/grounding 与 runner 的 deterministic prefrontier chain：15/15 frontier 成功，旧 frontier error 从 1 降为 0，added=40、removed=0，新增 W2/W1=13/27。三者均不是 hit、precision 或 Judge 评测。
+
+当 successful live primary extraction 的 atomic contract 数严格少于 numbered-NL segment 数时，runner 只执行一次 `contract_completion` sparse correction。它使用同一 pair 的 NL/context/primary typed plan，只能追加 typed-new `NLContract`/完整 `NLTransitionGroup`，以 canonical semantic identity 去重，绝不改写 primary rows；失败只留下 receipt。correction 仍必须走 grounding -> route -> W/D -> publication，不能直接形成 hit。D 阶段的 surviving undercutting/rebutting 还必须给出当前 candidate/binding 的 exact `defeater_evidence_refs`；没有具体 catalog ref 的“隐藏实现可能性”只会触发 targeted correction，不能压制 issue。
 
 ## 隔离与审计
 

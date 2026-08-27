@@ -49,6 +49,16 @@ class SemanticAdjudication(BaseModel):
             "name or zero outgoing transitions is not terminal-intent evidence."
         ),
     )
+    defeater_evidence_refs: tuple[str, ...] = Field(
+        default_factory=tuple,
+        description=(
+            "Exact reference tokens from this obligation's supplied defeater-evidence "
+            "catalog that support the alternative reading. A surviving undercutting "
+            "or rebutting defeater requires at least one catalog token; an empty list "
+            "is valid only when no defeater survives. Do not invent paths, identifiers, "
+            "or citations, and do not cite a general possibility as evidence."
+        ),
+    )
     defeater_kind: Literal["none", "undercutting", "rebutting"] = Field(
         description="Typed kind of the strongest defeater: none when no competent alternative exists; undercutting only when a second semantic reading remains compatible with the same facts (D1 boundary), never merely because a predicate/backend is unsupported; rebutting only when supplied facts satisfy the exact expected property, defeat the alleged violation, or positively support a reasonable design choice (D0 boundary when it survives). Satisfaction of a weaker property is not rebutting evidence: for example, a declared but unreachable event consumer does not rebut a reachable-consumer coverage violation. A bare possibility contradicted by an explicit supplied obligation is not a rebutting defeater."
     )

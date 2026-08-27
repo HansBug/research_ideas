@@ -27,6 +27,7 @@ from .frontier import (
     materialize_typed_frontier,
     transition_group_semantic_key,
 )
+from .domain_invariants import DomainInvariantContract, materialize_domain_invariant_contracts
 from .obligations import CandidateIssue, ContractBindingHint, MethodResponse
 from .source_transition_closure import (
     SourceTransitionBindingDispositionReceipt,
@@ -47,6 +48,7 @@ from .workflow import (
     DISCOVERY_GROUNDING_SYSTEM_PROMPT,
     CardinalityDomainBinding,
     CardinalityRequirement,
+    ContractCompletionResponse,
     ContextBudgetReceipt,
     DAdjudicationPromptBatch,
     GroundingResponse,
@@ -60,6 +62,7 @@ from .workflow import (
     StageReceipt,
     assemble_method_response,
     build_contract_prompt,
+    build_contract_completion_prompt,
     build_d_adjudication_batches,
     build_d_adjudication_prompt,
     build_d_correction_batches,
@@ -82,6 +85,7 @@ __all__ = [
     "CandidateIssue",
     "CardinalityDomainBinding",
     "CardinalityRequirement",
+    "ContractCompletionResponse",
     "ContextBudgetReceipt",
     "ContractBindingHint",
     "ContractSemanticKey",
@@ -114,6 +118,7 @@ __all__ = [
     "assemble_method_response",
     "bind_candidate",
     "build_contract_prompt",
+    "build_contract_completion_prompt",
     "build_d_adjudication_batches",
     "build_d_adjudication_prompt",
     "build_d_correction_batches",
@@ -122,6 +127,7 @@ __all__ = [
     "build_method_prompt",
     "canonical_contract_id",
     "canonical_transition_group_id",
+    "DomainInvariantContract",
     "canonicalize_grounding_response",
     "contract_semantic_key",
     "endpoint_candidate_is_satisfied_by_macro",
@@ -131,6 +137,7 @@ __all__ = [
     "fallback_grounding",
     "materialize_segment_coverage",
     "materialize_typed_frontier",
+    "materialize_domain_invariant_contracts",
     "normalize_contract_state_roles",
     "resolve_state_ref",
     "resolve_transition_ref",

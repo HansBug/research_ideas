@@ -179,7 +179,7 @@ class CandidateIssue(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    contract_id: str = Field(pattern=r"^NL-CONTRACT-[A-Za-z0-9_.-]+$", min_length=14, description="Exact atomic contract ID evaluated by this candidate. Copy it from the supplied contract plan or from this grounding response's branch-local additional_contracts; never invent an unreported ID, merge contracts, or omit the binding contract.")
+    contract_id: str = Field(pattern=r"^(?:NL-CONTRACT|DOMAIN-INVARIANT)-[A-Za-z0-9_.-]+$", min_length=14, description="Exact atomic contract ID evaluated by this candidate. NL-derived candidates must copy one supplied NL contract or accepted branch-local derived contract. Deterministic candidates may use a DOMAIN-INVARIANT ID only when a typed frozen DomainInvariantContract records its independent authority, exact native carrier, and reason/basis; neither path may invent or merge obligations.")
     locus_kind: ObligationLocusKind = Field(description="Typed semantic kind of the requirement locus; preserve the contract's locus kind rather than substituting a nearby declared element.")
     locus_names: tuple[Annotated[str, Field(min_length=1)], ...] = Field(min_length=1, description="One or more source-grounded names identifying the exact semantic locus; these are semantic identities, while element_refs carry exact FCSTM refs.")
     property: ObligationProperty = Field(description="Exact atomic property being evaluated; preserve the contract property even when no frozen predicate fully expresses it.")
@@ -198,7 +198,7 @@ class CandidateIssue(BaseModel):
         ),
     )
     title: str = Field(min_length=1, description="Short human-readable issue title; do not include a verdict level.")
-    requirement_quote: str = Field(min_length=1, description="Required exact or faithful quote of the supplied numbered requirement supporting this candidate. Every candidates list item must include this field independently; contract_id, source_refs, or a top-level basis do not substitute for the quote.")
+    requirement_quote: str = Field(min_length=1, description="Required exact or faithful numbered-NL quote for an NL contract, or the frozen normative statement for a typed DOMAIN-INVARIANT contract. Every candidates list item includes this field independently; contract_id, source_refs, or a top-level basis do not substitute for its normative authority.")
     predicate_id: PredicateId | None = Field(default=None, description="One frozen predicate ID, or null when the precise claim is not expressible by the registry.")
     predicate_inputs: dict[str, Any] = Field(default_factory=dict, description="Only the frozen predicate's named inputs; do not invent semantic fields or answer data.")
     element_refs: list[Annotated[str, Field(min_length=1)]] = Field(default_factory=list, description="Stable closed-FCSTM element references that bind the candidate to the executable model. For an absent required edge, bind its exact existing endpoint-state refs because the missing edge has no ref of its own. For a missing guard, action, or effect, bind the exact existing carrier transition/state ref; absence of the required field is evidence, not a reason to leave the carrier unbound. Put PlantUML/canonical/source/macro identities in source_refs, not here. A source identity is provenance and must not masquerade as a closed-model element.")

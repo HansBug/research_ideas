@@ -56,6 +56,7 @@ from pipeline.evidence_discovery.orchestration.runner import (
     _admit_grounding_unresolved,
     _admit_frontier_unresolved,
     _d_decision_consistency_errors,
+    _d_defeater_evidence_reference_catalog,
     _deduplicate_release_issues,
     _enrich_candidate,
     _failure_method_cell,
@@ -1885,7 +1886,7 @@ def test_event_projection_never_adds_same_named_state_to_event_binding() -> None
     ) == [event_ref]
 
 
-def test_transition_group_event_projection_admits_s3_or_blocks_ambiguity() -> None:
+def test_transition_group_event_projection_keeps_each_exact_alternative_or_blocks_ambiguity() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0010")
     group = NLTransitionGroup(
         group_id="NL-GROUP-NL3-POWERON-FIXTURE",
@@ -1922,6 +1923,47 @@ def test_transition_group_event_projection_admits_s3_or_blocks_ambiguity() -> No
     assert dispositions[-1]["status"] == (
         "admitted_transition_group_event_carrier"
     )
+
+    steering_group = NLTransitionGroup(
+        group_id="NL-GROUP-NL4-STEERING-FIXTURE",
+        segment_id="NL4",
+        source_name="autonomous state",
+        alternatives=(
+            NLTransitionAlternative(
+                alternative_id="ALT-NL4-STEERING-FIXTURE",
+                target_name="human driving mode",
+                event="human steering cmd",
+                reason="The fixture supplies a second independently violable event alternative.",
+                basis="provider-free transition-group alternative fixture",
+            ),
+        ),
+        reason="The fixture keeps a second exact event relation.",
+        basis="provider-free transition-group alternative fixture",
+    )
+    probes, _, dispositions = _materialize_deterministic_execution_probes(
+        pair,
+        {},
+        (),
+        (),
+        (group, steering_group),
+    )
+    s3_inputs = {
+        (
+            probe.predicate_inputs["transition"],
+            tuple(probe.predicate_inputs["triggers"]),
+        )
+        for probe in probes
+        if probe.predicate_id == "S3"
+    }
+    assert s3_inputs == {
+        ("transition:line:14", ("Power_On",)),
+        ("transition:line:17", ("Human_Steering_Cmd",)),
+    }
+    assert [
+        row["group_id"]
+        for row in dispositions
+        if row["status"] == "admitted_transition_group_event_carrier"
+    ] == [group.group_id, steering_group.group_id]
 
     ambiguous_group = group.model_copy(
         update={
@@ -2302,6 +2344,48 @@ def test_typed_defeater_protocol_distinguishes_undercutting_from_rebutting() -> 
         ]
         == "D_UNRESOLVED"
     )
+
+
+def test_surviving_d_defeater_requires_an_exact_catalog_reference() -> None:
+    """A concrete alternative cannot survive on a free-text hidden mechanism."""
+
+    pair = load_pair(REPORT_ROOT / "pairs" / "0000")
+    candidate = _candidate(
+        pair,
+        predicate_id=None,
+        inputs={},
+        refs=[pair.model.states[0].ref],
+    )
+    binding = bind_candidate(candidate, pair.model)
+    prepared = {"candidate": candidate, "binding": binding}
+    missing_reference = SemanticAdjudication(
+        obligation_id="0000:r1:defeater",
+        grounding="established",
+        violated_obligation="The supplied facts establish one candidate reading.",
+        strongest_defeater="A separate supplied reading remains compatible.",
+        defeater_kind="undercutting",
+        defeater_disposition="survives",
+        reason="The fixture asks the deterministic boundary to require a source.",
+        basis="provider-free defeater-reference fixture",
+    )
+
+    missing_errors = _d_decision_consistency_errors(
+        missing_reference,
+        prepared=prepared,
+        pair=pair,
+    )
+    catalog = _d_defeater_evidence_reference_catalog(prepared)
+    referenced = missing_reference.model_copy(
+        update={"defeater_evidence_refs": (catalog[0],)}
+    )
+
+    assert catalog
+    assert any("requires at least one exact" in error for error in missing_errors)
+    assert _d_decision_consistency_errors(
+        referenced,
+        prepared=prepared,
+        pair=pair,
+    ) == []
 
 
 def test_completed_true_backend_result_closes_candidate_as_d0() -> None:
@@ -5766,7 +5850,7 @@ def test_provider_free_run_manifest_resume_and_concurrent_atomic_writes(tmp_path
     current = json.loads(stale_path.read_text(encoding="utf-8"))
     stale_receipts = list((run_root / "stale").rglob("round-1.json"))
     assert repaired["run_id"] == run_id
-    assert current["schema"] == "evidence-discovery.method_cell.v8"
+    assert current["schema"] == "evidence-discovery.method_cell.v9"
     assert stale_receipts
     assert any(
         json.loads(path.read_text(encoding="utf-8"))["schema"]

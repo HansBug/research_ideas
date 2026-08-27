@@ -223,9 +223,16 @@ def compile_plan(
             or (
                 inputs[input_name] in (None, "")
                 and not (
-                    predicate.id in {"V1", "V2"}
-                    and input_name == "trigger"
-                    and input_name in inputs
+                    (
+                        predicate.id == "S5"
+                        and input_name == "guard"
+                        and input_name in inputs
+                    )
+                    or (
+                        predicate.id in {"V1", "V2"}
+                        and input_name == "trigger"
+                        and input_name in inputs
+                    )
                 )
             )
             or (

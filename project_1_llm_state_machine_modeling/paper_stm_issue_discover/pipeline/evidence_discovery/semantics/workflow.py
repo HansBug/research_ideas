@@ -522,6 +522,66 @@ class NLContractResponse(BaseModel):
         return self
 
 
+class ContractCompletionResponse(BaseModel):
+    """Sparse typed additions emitted by the in-node contract completeness pass.
+
+    The response never replaces the primary NL contract plan. It can only add
+    independently violable obligations or transition groups which the current
+    numbered NL establishes and the primary response omitted. The runner
+    derives authoritative identities and rejects semantic duplicates before the
+    additions enter grounding.
+    """
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    additional_contracts: list[NLContract] = Field(
+        default_factory=list,
+        description=(
+            "Only independently violable NL contracts absent from the supplied "
+            "primary plan. Do not repeat, revise, weaken, or replace a primary "
+            "contract. Each row retains the exact numbered segment, typed roles, "
+            "cardinality/member information where applicable, reason, and basis."
+        ),
+    )
+    additional_transition_groups: list[NLTransitionGroup] = Field(
+        default_factory=list,
+        description=(
+            "Only complete typed transition groups absent from the supplied primary "
+            "plan. Preserve the shared source, owner, ordered alternatives, event, "
+            "guard, and source references; do not restate an existing group."
+        ),
+    )
+    reason: str = Field(
+        min_length=1,
+        description=(
+            "Non-empty explanation of the completeness comparison over the supplied "
+            "numbered NL and primary typed plan."
+        ),
+    )
+    basis: str = Field(
+        min_length=1,
+        description=(
+            "Non-empty basis naming only the supplied NL, context manifest, and "
+            "primary plan; never cite a ledger, Judge, score, historical report, or "
+            "other pair."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def validate_sparse_completion_ids(self) -> ContractCompletionResponse:
+        """Reject only duplicate response-local IDs without interpreting prose."""
+
+        contract_ids = [item.contract_id for item in self.additional_contracts]
+        if len(contract_ids) != len(set(contract_ids)):
+            raise ValueError("additional_contracts must contain unique contract_id values")
+        group_ids = [item.group_id for item in self.additional_transition_groups]
+        if len(group_ids) != len(set(group_ids)):
+            raise ValueError(
+                "additional_transition_groups must contain unique group_id values"
+            )
+        return self
+
+
 class GroundingUnresolved(BaseModel):
     """One exact contract that this grounding lens could not bind or assess.
 
@@ -876,6 +936,7 @@ class StageReceipt(BaseModel):
     stage_name: Literal[
         "prepare",
         "contract_extraction",
+        "contract_completion",
         "discovery_grounding",
         "execute_batch",
         "d_adjudication",
@@ -1611,6 +1672,13 @@ D_SYSTEM_PROMPT = """You are the method's semantic D adjudication stage. Use onl
 
 D boundary: a predicate-null route, incomplete typed input, or unavailable execution does not erase a precise issue. When exact supplied source/model facts establish the candidate's semantic obligation, use grounding=established and describe the surviving ambiguity as a typed defeater when appropriate; deterministic code will keep it at W1. Use grounding=unresolved only when the supplied dossier genuinely cannot decide. A completed predicate result that is true for the requirement is not a violation merely because the candidate text sounds concerning.
 
+Every supplied dossier includes `defeater_evidence_reference_catalog`. When an
+undercutting or rebutting defeater survives, copy one or more exact catalog
+tokens into `defeater_evidence_refs`; a conceivable hidden mechanism, an
+unbound label, or free-text assertion is not evidence. Keep the list empty for
+defeater_kind=none, and never invent an identifier absent from that obligation's
+catalog.
+
 Predicate/backend availability is a W question, never a D defeater by itself. If
 the supplied exact facts satisfy the candidate's expected property, use
 grounding=not_established (or a surviving rebutting defeater when a first reading
@@ -1692,6 +1760,47 @@ If Pydantic schema feedback requests a correction, return the complete replaceme
 NLContractResponse: preserve and repeat every already valid contract and transition
 group, correct each invalid row in place, and keep every segment disposition. Never
 return only the row named by the latest validation error.
+"""
+
+
+def build_contract_completion_prompt(
+    pair: PairInput,
+    round_index: int,
+    primary_contracts: NLContractResponse,
+) -> str:
+    """Build one sparse in-node correction prompt for clear under-extraction.
+
+    The deterministic caller is responsible for deciding that a correction is
+    warranted. This prompt asks only for additions, preserving the successful
+    primary response rather than asking a second model call to regenerate it.
+    """
+
+    context = prompt_context_payload(pair, stage="nl_contract_extraction")
+    return f"""{CONTRACT_SYSTEM_PROMPT}
+
+Stage: contract-completion-correction
+Round: {round_index}
+The primary contract extraction returned fewer atomic contracts than supplied
+numbered NL segments. This is an in-node completeness correction, not a new
+method round and not a model-satisfaction check. Use only the supplied
+numbered NL, source context, and primary typed plan. Do not read or infer a
+ledger, expected issue, Judge result, historical report, score, W/D/L level, or
+another pair.
+
+Return only independently violable obligations or complete transition groups
+that the current NL establishes but the primary plan omitted. Do not repeat,
+edit, merge, weaken, or replace any existing contract/group. Preserve complete
+source, target, owner/scope, event, guard, effect/output, lifecycle role,
+member set/count, and transition-group roles where the NL establishes them.
+When no additional typed obligation is justified, return empty lists with a
+non-empty reason and basis. A coarse satisfied predicate check cannot erase an
+exact obligation retained here.
+
+Primary typed plan:
+{json.dumps(_compact_contract_plan(primary_contracts), ensure_ascii=False, sort_keys=True, indent=2)}
+
+Stage-scoped context projection and complete artifact manifest:
+{json.dumps(context, ensure_ascii=False, sort_keys=True, indent=2)}
 """
 
 
@@ -1862,6 +1971,9 @@ def _compact_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
         )
     return {
         "obligation_id": dossier.get("obligation_id"),
+        "defeater_evidence_reference_catalog": dossier.get(
+            "defeater_evidence_reference_catalog", []
+        ),
         "candidate": {
             key: candidate[key]
             for key in (
@@ -2240,6 +2352,7 @@ __all__ = [
     "D_SYSTEM_PROMPT",
     "CardinalityDomainBinding",
     "CardinalityRequirement",
+    "ContractCompletionResponse",
     "DAdjudicationPromptBatch",
     "GroundingResponse",
     "GroundingUnresolved",
@@ -2252,6 +2365,7 @@ __all__ = [
     "StageReceipt",
     "assemble_method_response",
     "build_contract_prompt",
+    "build_contract_completion_prompt",
     "build_d_adjudication_batches",
     "build_d_adjudication_prompt",
     "build_d_correction_batches",
