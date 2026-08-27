@@ -9,6 +9,7 @@ from pipeline.evidence_discovery.reporting.method_composite import (
     CompositeBuildProvenance,
     CompositeCellReceipt,
     CompositeFileReceipt,
+    CompositePairStatusSelection,
     CompositeReplacementReceipt,
     CompositeRetryAudit,
     CompositeSourceRun,
@@ -31,6 +32,7 @@ def _cell(
     source_commit: str,
     pair_id: str,
     cost: float,
+    round_no: int = 1,
     schema_failures: int = 0,
 ) -> dict[str, object]:
     failures = [
@@ -53,7 +55,7 @@ def _cell(
         },
         "pair_id": pair_id,
         "pair_input_hash": INPUT_HASHES[pair_id],
-        "round": 1,
+        "round": round_no,
         "status": "completed",
         "prompt_hash": None,
         "context_manifest": None,
@@ -102,6 +104,7 @@ def _write_source(
     pairs: tuple[str, ...],
     costs: dict[str, float],
     schema_failures: dict[str, int] | None = None,
+    rounds: int = 1,
 ) -> None:
     schema_failures = schema_failures or {}
     root.mkdir(parents=True)
@@ -116,7 +119,7 @@ def _write_source(
         "registry_version": "four-family-19-core.v1",
         "registry_hash": REGISTRY_HASH,
         "profile": "fixture",
-        "rounds": 1,
+        "rounds": rounds,
         "selected_pair_ids": list(pairs),
         "scope": "diagnostic_subset",
         "workers": 16,
@@ -124,17 +127,19 @@ def _write_source(
     }
     total_cost = 0.0
     for pair_id in pairs:
-        cell = _cell(
-            run_id=run_id,
-            source_commit=source_commit,
-            pair_id=pair_id,
-            cost=costs[pair_id],
-            schema_failures=schema_failures.get(pair_id, 0),
-        )
-        total_cost += costs[pair_id]
-        method_path = root / "method" / pair_id / "round-1.json"
-        method_path.parent.mkdir(parents=True)
-        method_path.write_text(json.dumps(cell, indent=2) + "\n", encoding="utf-8")
+        for round_no in range(1, rounds + 1):
+            cell = _cell(
+                run_id=run_id,
+                source_commit=source_commit,
+                pair_id=pair_id,
+                cost=costs[pair_id],
+                round_no=round_no,
+                schema_failures=schema_failures.get(pair_id, 0),
+            )
+            total_cost += costs[pair_id]
+            method_path = root / "method" / pair_id / f"round-{round_no}.json"
+            method_path.parent.mkdir(parents=True, exist_ok=True)
+            method_path.write_text(json.dumps(cell, indent=2) + "\n", encoding="utf-8")
         status = {
             "schema": "evidence-discovery.pair_status.v3",
             "run_id": run_id,
@@ -143,11 +148,11 @@ def _write_source(
             "status": "completed",
             "resume_action": "executed_fresh",
             "started_at": "2026-08-27T00:00:00Z",
-            "method_cells": 1,
-            "eligible_method_cells": 1,
+            "method_cells": rounds,
+            "eligible_method_cells": rounds,
             "errors": 0,
             "audit_errors": 0,
-            "method_cost_usd": costs[pair_id],
+            "method_cost_usd": costs[pair_id] * rounds,
             "method_cost_eligible": True,
             "reason": "Fixture pair is terminal.",
             "basis": "Fixture cell and cost.",
@@ -155,9 +160,10 @@ def _write_source(
         status_path = root / "pairs" / pair_id / "status.json"
         status_path.parent.mkdir(parents=True)
         status_path.write_text(json.dumps(status, indent=2) + "\n", encoding="utf-8")
-        bundle = root / "audit_bundles" / f"{pair_id}:r1:issue:0.json"
-        bundle.parent.mkdir(parents=True, exist_ok=True)
-        bundle.write_text(json.dumps({"pair_id": pair_id}) + "\n", encoding="utf-8")
+        for round_no in range(1, rounds + 1):
+            bundle = root / "audit_bundles" / f"{pair_id}:r{round_no}:issue:0.json"
+            bundle.parent.mkdir(parents=True, exist_ok=True)
+            bundle.write_text(json.dumps({"pair_id": pair_id}) + "\n", encoding="utf-8")
     (root / "run_manifest.json").write_text(
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )
@@ -277,6 +283,58 @@ def test_method_composite_rejects_recovery_with_different_pair_input(
         )
 
 
+def test_method_composite_replaces_only_explicit_recovery_rounds(
+    tmp_path: Path,
+) -> None:
+    base = tmp_path / "base"
+    recovery = tmp_path / "recovery"
+    _write_source(
+        base,
+        run_id="a" * 32,
+        source_commit="1" * 40,
+        pairs=("0001", "0002"),
+        costs={"0001": 0.1, "0002": 0.2},
+        rounds=3,
+    )
+    _write_source(
+        recovery,
+        run_id="b" * 32,
+        source_commit="2" * 40,
+        pairs=("0002",),
+        costs={"0002": 0.3},
+        rounds=3,
+    )
+
+    manifest, summary = build_method_composite(
+        composite_id="d" * 32,
+        base_run_root=base,
+        replacement_run_roots=(recovery,),
+        output_root=tmp_path / "composite",
+        build_provenance=_provenance(),
+        replacement_keys=(("0002", 2),),
+    )
+
+    selected = {(row.pair_id, row.round): row for row in manifest.cell_receipts}
+    assert selected[("0002", 1)].source_run_id == "a" * 32
+    assert selected[("0002", 2)].source_run_id == "b" * 32
+    assert selected[("0002", 3)].source_run_id == "a" * 32
+    assert len(manifest.replacements) == 1
+    pair_selection = next(
+        row for row in manifest.pair_status_selections if row.pair_id == "0002"
+    )
+    assert pair_selection.single_source_pair_status is False
+    assert pair_selection.selected_round_source_run_ids == {
+        1: "a" * 32,
+        2: "b" * 32,
+        3: "a" * 32,
+    }
+    assert len(pair_selection.source_status_artifacts) == 2
+    assert summary.selected_result_cost_usd == pytest.approx(1.0)
+    assert summary.superseded_cell_cost_usd == pytest.approx(0.2)
+    assert summary.unselected_source_cost_usd == pytest.approx(0.6)
+    assert summary.method_cost_usd == pytest.approx(1.8)
+
+
 def test_method_composite_models_document_every_field() -> None:
     for model in (
         CompositeFileReceipt,
@@ -284,6 +342,7 @@ def test_method_composite_models_document_every_field() -> None:
         CompositeSourceRun,
         CompositeCellReceipt,
         CompositeReplacementReceipt,
+        CompositePairStatusSelection,
         CompositeBuildProvenance,
         MethodCompositeManifest,
         MethodCompositeSummary,

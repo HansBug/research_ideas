@@ -242,6 +242,36 @@ class CompositeReplacementReceipt(BaseModel):
     )
 
 
+class CompositePairStatusSelection(BaseModel):
+    """Source status receipts retained for one pair whose selected rounds may span runs."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    pair_id: str = Field(
+        pattern=r"^[0-9]{4}$",
+        description="Frozen pair whose selected round cells are described.",
+    )
+    selected_round_source_run_ids: dict[int, str] = Field(
+        min_length=1,
+        description="Per-round source run selected by the composite without rewriting a method cell.",
+    )
+    source_status_artifacts: tuple[CompositeFileReceipt, ...] = Field(
+        min_length=1,
+        description="Immutable source pair-status receipts hardlinked under the composite audit tree.",
+    )
+    single_source_pair_status: bool = Field(
+        description="Whether every selected round originated from one source pair status receipt.",
+    )
+    reason: str = Field(
+        min_length=1,
+        description="Why one or more immutable pair statuses are retained for this selected pair.",
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Round-to-run mapping and hardlink hashes closing the selected pair status provenance.",
+    )
+
+
 class CompositeBuildProvenance(BaseModel):
     """Clean repository identity used only to build the evaluator-side composite."""
 
@@ -331,6 +361,10 @@ class MethodCompositeManifest(BaseModel):
     )
     replacements: tuple[CompositeReplacementReceipt, ...] = Field(
         min_length=1, description="Explicit base-to-recovery replacement decisions."
+    )
+    pair_status_selections: tuple[CompositePairStatusSelection, ...] = Field(
+        min_length=1,
+        description="Per-pair selected-round source mapping and immutable pair-status audit receipts.",
     )
     reason: str = Field(
         min_length=1, description="Why deterministic pair-local composition is used."
@@ -624,6 +658,7 @@ def build_method_composite(
     replacement_run_roots: Sequence[Path],
     output_root: Path,
     build_provenance: CompositeBuildProvenance,
+    replacement_keys: Sequence[tuple[str, int]] | None = None,
 ) -> tuple[MethodCompositeManifest, MethodCompositeSummary]:
     """Build one source-explicit evaluator root from a base run and recoveries."""
 
@@ -652,47 +687,78 @@ def build_method_composite(
         source_manifests.append(_load(root / "run_manifest.json"))
 
     base_manifest = source_manifests[0]
-    shared_fields = ("registry_version", "registry_hash", "profile")
+    shared_fields = (
+        "registry_version",
+        "registry_hash",
+        "profile",
+        "code_version",
+        "prompt_schema_version",
+        "prompt_schema_hash",
+    )
     for manifest in source_manifests[1:]:
         for field in shared_fields:
             if manifest.get(field) != base_manifest.get(field):
                 raise ValueError(f"source runs disagree on {field}")
 
     selected: dict[tuple[str, int], int] = {key: 0 for key in source_cells[0]}
+    requested_replacements = (
+        None
+        if replacement_keys is None
+        else tuple(dict.fromkeys((str(pair_id), int(round_no)) for pair_id, round_no in replacement_keys))
+    )
+    if requested_replacements is not None:
+        unknown_requested = sorted(set(requested_replacements) - set(selected))
+        if unknown_requested:
+            raise ValueError(
+                f"replacement key is absent from base run: {unknown_requested}"
+            )
     replacements: list[CompositeReplacementReceipt] = []
+    candidate_replacements: dict[tuple[str, int], list[tuple[int, dict[str, Any]]]] = {}
     for source_index, cells in enumerate(source_cells[1:], start=1):
         for key, replacement in sorted(cells.items()):
             if key not in source_cells[0]:
                 raise ValueError(f"replacement key is absent from base run: {key}")
-            if selected[key] != 0:
-                raise ValueError(f"replacement key supplied more than once: {key}")
-            base = source_cells[0][key]
-            input_equal = base.get("pair_input_hash") == replacement.get(
-                "pair_input_hash"
+            candidate_replacements.setdefault(key, []).append((source_index, replacement))
+
+    keys_to_replace = (
+        tuple(sorted(candidate_replacements))
+        if requested_replacements is None
+        else tuple(sorted(requested_replacements))
+    )
+    for key in keys_to_replace:
+        candidates = candidate_replacements.get(key, ())
+        if not candidates:
+            raise ValueError(f"replacement key is absent from every recovery run: {key}")
+        if len(candidates) != 1:
+            raise ValueError(f"replacement key supplied more than once: {key}")
+        source_index, replacement = candidates[0]
+        base = source_cells[0][key]
+        input_equal = base.get("pair_input_hash") == replacement.get(
+            "pair_input_hash"
+        )
+        if not input_equal:
+            raise ValueError(f"replacement pair input mismatch: {key}")
+        selected[key] = source_index
+        replacements.append(
+            CompositeReplacementReceipt(
+                pair_id=key[0],
+                round=key[1],
+                base_run_id=source_runs[0].run_id,
+                base_cell_path=str(source_paths[0][key].resolve()),
+                base_cell_hash=_sha256(source_paths[0][key]),
+                base_cell_cost_usd=_cost_total(base),
+                base_retry_audit=_retry_audit(base),
+                replacement_run_id=source_runs[source_index].run_id,
+                replacement_cell_hash=_sha256(source_paths[source_index][key]),
+                replacement_cell_cost_usd=_cost_total(replacement),
+                input_identity_equal=True,
+                reason="A complete pair-local recovery cell replaces the diagnosed base cell without resampling any other pair.",
+                basis=(
+                    f"pair={key[0]}; round={key[1]}; input={base.get('pair_input_hash')}; "
+                    f"base={_sha256(source_paths[0][key])}; replacement={_sha256(source_paths[source_index][key])}"
+                ),
             )
-            if not input_equal:
-                raise ValueError(f"replacement pair input mismatch: {key}")
-            selected[key] = source_index
-            replacements.append(
-                CompositeReplacementReceipt(
-                    pair_id=key[0],
-                    round=key[1],
-                    base_run_id=source_runs[0].run_id,
-                    base_cell_path=str(source_paths[0][key].resolve()),
-                    base_cell_hash=_sha256(source_paths[0][key]),
-                    base_cell_cost_usd=_cost_total(base),
-                    base_retry_audit=_retry_audit(base),
-                    replacement_run_id=source_runs[source_index].run_id,
-                    replacement_cell_hash=_sha256(source_paths[source_index][key]),
-                    replacement_cell_cost_usd=_cost_total(replacement),
-                    input_identity_equal=True,
-                    reason="A complete pair-local recovery cell replaces the diagnosed base cell without resampling any other pair.",
-                    basis=(
-                        f"pair={key[0]}; round={key[1]}; input={base.get('pair_input_hash')}; "
-                        f"base={_sha256(source_paths[0][key])}; replacement={_sha256(source_paths[source_index][key])}"
-                    ),
-                )
-            )
+        )
 
     pair_ids = tuple(str(value) for value in base_manifest["selected_pair_ids"])
     selected_rounds = _rounds(base_manifest)
@@ -701,19 +767,12 @@ def build_method_composite(
     }
     if set(selected) != expected_keys:
         raise ValueError("base run does not close the declared pair-round grid")
-    for pair_id in pair_ids:
-        pair_sources = {selected[(pair_id, round_no)] for round_no in selected_rounds}
-        if len(pair_sources) != 1:
-            raise ValueError(
-                f"all rounds of one pair must use one source pair status: {pair_id}"
-            )
-
     cell_receipts: list[CompositeCellReceipt] = []
     selected_cells: dict[str, list[dict[str, Any]]] = {
         pair_id: [] for pair_id in pair_ids
     }
     selected_statuses: dict[str, dict[str, Any]] = {}
-    status_artifacts: dict[str, CompositeFileReceipt] = {}
+    status_artifacts: dict[tuple[int, str], CompositeFileReceipt] = {}
     for pair_id in pair_ids:
         for round_no in selected_rounds:
             key = (pair_id, round_no)
@@ -727,7 +786,8 @@ def build_method_composite(
                 output_root / "method" / pair_id / f"round-{round_no}.json",
                 reason="This exact source method cell was selected for external evaluation.",
             )
-            if pair_id not in status_artifacts:
+            status_key = (source_index, pair_id)
+            if status_key not in status_artifacts:
                 status_source = source_root / "pairs" / pair_id / "status.json"
                 status_model = PairRunStatus.model_validate_json(
                     status_source.read_text(encoding="utf-8")
@@ -739,13 +799,18 @@ def build_method_composite(
                     raise ValueError(
                         f"source pair status identity mismatch: {status_source}"
                     )
-                status_artifacts[pair_id] = _hardlink(
+                status_artifacts[status_key] = _hardlink(
                     status_source,
-                    output_root / "pairs" / pair_id / "status.json",
-                    reason="The selected source pair status retains its original run identity.",
+                    output_root
+                    / "source_pair_statuses"
+                    / source_run.run_id
+                    / pair_id
+                    / "status.json",
+                    reason="The selected source pair status retains its original run identity in the composite audit tree.",
                 )
-                selected_statuses[pair_id] = status_model.model_dump(mode="json")
-            status_artifact = status_artifacts[pair_id]
+                if pair_id not in selected_statuses:
+                    selected_statuses[pair_id] = status_model.model_dump(mode="json")
+            status_artifact = status_artifacts[status_key]
             bundle_receipts = tuple(
                 _hardlink(
                     bundle,
@@ -790,6 +855,47 @@ def build_method_composite(
                 )
             )
             selected_cells[pair_id].append(cell)
+
+    pair_status_selections = tuple(
+        CompositePairStatusSelection(
+            pair_id=pair_id,
+            selected_round_source_run_ids={
+                round_no: source_runs[selected[(pair_id, round_no)]].run_id
+                for round_no in selected_rounds
+            },
+            source_status_artifacts=tuple(
+                status_artifacts[(source_index, pair_id)]
+                for source_index in sorted(
+                    {selected[(pair_id, round_no)] for round_no in selected_rounds}
+                )
+            ),
+            single_source_pair_status=len(
+                {selected[(pair_id, round_no)] for round_no in selected_rounds}
+            )
+            == 1,
+            reason=(
+                "All selected rounds share one immutable source pair status."
+                if len({selected[(pair_id, round_no)] for round_no in selected_rounds})
+                == 1
+                else "Selected rounds intentionally span the base and an exact pair-round recovery; each immutable source status is retained instead of synthesizing a misleading combined status."
+            ),
+            basis=(
+                "round_sources="
+                + ",".join(
+                    f"r{round_no}:{source_runs[selected[(pair_id, round_no)]].run_id}"
+                    for round_no in selected_rounds
+                )
+                + "; status_hashes="
+                + ",".join(
+                    status_artifacts[(source_index, pair_id)].source_hash
+                    for source_index in sorted(
+                        {selected[(pair_id, round_no)] for round_no in selected_rounds}
+                    )
+                )
+            ),
+        )
+        for pair_id in pair_ids
+    )
 
     metrics = _method_metrics(
         pair_method=selected_cells,
@@ -845,8 +951,9 @@ def build_method_composite(
         source_runs=tuple(source_runs),
         cell_receipts=tuple(cell_receipts),
         replacements=tuple(replacements),
-        reason="The composite replaces only explicitly recovered pair-round cells and preserves all other source bytes by hardlink.",
-        basis="Source-explicit cell selection, equal pair input hashes, shared registry/profile, byte hashes, hardlinks, and complete cost/retry audits.",
+        pair_status_selections=pair_status_selections,
+        reason="The composite replaces only explicitly recovered pair-round cells and preserves every selected source byte by hardlink.",
+        basis="Source-explicit cell selection, equal pair input hashes, shared registry/profile/prompt contract, byte hashes, hardlinks, pair-status provenance, and complete cost/retry audits.",
     )
     summary = MethodCompositeSummary(
         run_id=composite_id,
@@ -891,7 +998,28 @@ def _parser() -> argparse.ArgumentParser:
         "--replacement-run-root", action="append", type=Path, required=True
     )
     parser.add_argument("--output-root", type=Path, required=True)
+    parser.add_argument(
+        "--replacement-key",
+        action="append",
+        dest="replacement_keys",
+        help="Exact pair-round key to replace, formatted as 0004:r3; repeat to leave other recovery-run cells unselected.",
+    )
     return parser
+
+
+def _parse_replacement_key(value: str) -> tuple[str, int]:
+    """Parse one non-semantic evaluator key without inspecting FCSTM source text."""
+
+    pair_id, separator, round_text = value.partition(":r")
+    if (
+        separator != ":r"
+        or len(pair_id) != 4
+        or not pair_id.isdigit()
+        or not round_text.isdigit()
+        or int(round_text) < 1
+    ):
+        raise ValueError(f"invalid replacement key {value!r}; expected 0004:r3")
+    return pair_id, int(round_text)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -906,6 +1034,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         replacement_run_roots=tuple(args.replacement_run_root),
         output_root=args.output_root,
         build_provenance=provenance,
+        replacement_keys=(
+            tuple(_parse_replacement_key(value) for value in args.replacement_keys)
+            if args.replacement_keys
+            else None
+        ),
     )
     print(
         json.dumps(
