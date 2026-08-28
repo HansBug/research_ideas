@@ -646,8 +646,13 @@ def validate(args: argparse.Namespace) -> int:
     """Validate schemas, links, hashes, and regenerated metrics without a provider."""
 
     archive = args.archive_root.resolve()
+    repository_root = (
+        args.repository_root.resolve()
+        if args.repository_root is not None
+        else _repository_root()
+    )
     _validate_archive_metadata(archive)
-    _validate_markdown_links(archive)
+    _validate_markdown_links(archive, repository_root=repository_root)
     for manifest_path in (
         archive / "archive_manifest.json",
         archive / "raw" / "v60_current" / "archive_manifest.json",
@@ -665,7 +670,7 @@ def validate(args: argparse.Namespace) -> int:
     if witness_audit.is_file() or witness_hit_audit.is_file():
         if not (witness_audit.is_file() and witness_hit_audit.is_file()):
             raise ValueError("X1v2 witness audit and full-hit witness audit must be present together")
-        validate_x1v2_witness_audit_artifacts(archive, _repository_root())
+        validate_x1v2_witness_audit_artifacts(archive, repository_root)
     regenerated = _summary(paths)
     recorded = _load(archive / "derived" / "recomputed_summary.json")
     if regenerated != recorded:
@@ -703,6 +708,11 @@ def _parser() -> argparse.ArgumentParser:
     build_parser.add_argument("--source-catalog", type=Path, required=True)
     validate_parser = subparsers.add_parser("validate")
     validate_parser.add_argument("--archive-root", type=Path, required=True)
+    validate_parser.add_argument(
+        "--repository-root",
+        type=Path,
+        help="Optional checked-out repository root for archive-relative Markdown and witness references when the evaluator is installed outside that checkout.",
+    )
     recompute_parser = subparsers.add_parser("recompute")
     recompute_parser.add_argument("--archive-root", type=Path, required=True)
     finalize_parser = subparsers.add_parser("finalize")

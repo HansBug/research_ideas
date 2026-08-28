@@ -74,3 +74,23 @@ def test_judge_release_allowlist_excludes_method_and_evaluation() -> None:
     sources = {entry["source"] for entry in allowlist["entries"]}
     assert all(not source.startswith(("method/", "evaluation/")) for source in sources)
     assert "utils/stm_artifacts" in sources
+
+
+def test_installed_evaluator_can_receive_an_explicit_repository_root(tmp_path: Path) -> None:
+    """Archive link validation supports an evaluator installed outside the checkout."""
+
+    from paper_stm_evaluation.final_results_archive import _parser
+
+    archive = tmp_path / "archive"
+    repository = tmp_path / "repository"
+    args = _parser().parse_args(
+        [
+            "validate",
+            "--archive-root",
+            str(archive),
+            "--repository-root",
+            str(repository),
+        ]
+    )
+    assert args.archive_root == archive
+    assert args.repository_root == repository
