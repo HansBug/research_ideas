@@ -1,100 +1,121 @@
-# v60 `VALID_NOVEL` post-hoc 复核记录
+# v60 `VALID_NOVEL` 全量严格复核
 
-本文件记录对冻结 v60 Judge 中 444 条 `VALID_NOVEL` report 的复核结果。它不改写 Judge 输出，也不替代正式实验指标。逐条证据见 [`12_v60_valid_novel_posthoc_reaudit.json`](./12_v60_valid_novel_posthoc_reaudit.json)。
+本审计逐条复核冻结 Judge v3.2 的 444 条 `VALID_NOVEL` report。结果是 `K/N/I = 21/219/204`：21 条与 ledger 建立正关系，219 条保留为 ledger-unmatched valid report，204 条按现行 D/A 闭包转为 I。冻结 raw 和正式 `721/444/106` headline 均未改写。
+
+逐条裁决见 [TSV](./12_v60_valid_novel_posthoc_reaudit.tsv)，结构化镜像、分轮/分 pair 统计和闭包元数据见 [JSON](./12_v60_valid_novel_posthoc_reaudit.json)。
 
 ## 口径
 
-- #189 P2：判断作者 PlantUML 源，不把编译器生成的 FCSTM 路由当成作者缺陷。
-- #189 D/A 边界：承重事实不成立于作者源时走 A0；事实成立但没有违反可定位义务时走 D0。
-- #195：同一根因、直接归因症状或 repair overlap 可以构成 `FULL`。
-- 方法自报的 D 只留作来源字段，不参与本次分类。
+- 作者源事实成立后，存在明确违反义务为 D2；两种 competent reading 均成立为 D1；没有存活的违反义务为 D0。
+- 承重事实不成立、归错制品，或只是方法侧 unresolved/derived representation claim 时为 A0。A0 只允许 `FALSE_POSITIVE` 和 `NOT_A_DEFECT_CLAIM`。
+- D0/A0 进入 I；D2/D1 按 ledger relation 进入 K 或 N。backend/predicate support 只影响 W。
+- 明确 boolean/condition 但作者只用 free-text transition label 承载时保留 D1；NL 明确称其为 signal/event/trigger 并反驳额外 guard 义务时为 D0；R45/projected carrier 为 A0。
 
-## 全量机械统计
+## 全量结果
 
-| 项目 | 数量 | 性质 |
-|---|---:|---|
-| `VALID_NOVEL` report | 444 | exact mechanical |
-| pair | 46 | exact mechanical |
-| pair-round 精确 phrase-key cluster | 419 | exact mechanical |
-| same-pair 跨轮精确文本 key | 396 | exact mechanical |
-| `(pair, property, actionable locus)` | 256 | exact mechanical |
-| 方法自报 D2/D1 | 405/39 | exact mechanical，不作 verdict |
-| 原子/可操作 facet | 约 242 | estimate |
-| 全局 repair-root 上界 | 约 163–173 | 12-pair 人工样本外推 |
-
-最后两行不是 444 条全量精确计数。12 个已审 pair 的 135 个 carrier group 合并为约 42–52 个 pair-local repair root；这里只保留估计范围。
-
-## 保守 INVALID 下界
-
-45 条 report、31 个 carrier group 已按现行协议确认不能保留为有效 source-defect report。
-
-| 分类 | report |
-|---|---:|
-| A0 / `NOT_A_DEFECT_CLAIM`：compiler-owned `R45RouteToken` 初始路由 | 26 |
-| A0 / `NOT_A_DEFECT_CLAIM`：unresolved grounding/frontier，不是 source-defect claim | 10 |
-| A0 / `NOT_A_DEFECT_CLAIM`：delegated runtime scenario，没有形成作者源缺陷主张 | 6 |
-| D0：certificate-only termination overclaim | 3 |
-
-这 45 条逐项给出了 report ID、pair/round、原始 claim、Judge reason/basis、source refs 和审计依据，见 JSON 的 `confirmed_invalid_lower_bound.items`。
-
-只应用这 45 条纠错时，v60 report-level precision 从 `1165/1271 = 91.66%` 变为 `1120/1271 = 88.12%`。这是 post-hoc sensitivity，不是冻结主结果。42 条 A0 的正式 subtype 都是 `NOT_A_DEFECT_CLAIM`；`compiler route`、`unresolved grounding` 和 `delegated scenario` 只是技术机制，不是额外 A0 类别。
-
-## Ledger 关系候选
-
-11 条 report、10 个 carrier group 是高可信 `FULL`/same-repair-root 候选。
-
-| ledger | report | 关系依据 |
-|---|---:|---|
-| `EIS-0014-01` | 4 | 缺少 root initial 直接造成 InMotion/EmergencyStopping 及事件消费者不可达 |
-| `EIS-0029-01` | 1 | AutonomousMode owner-local entry 缺失是层次丢失的直接 facet |
-| `EIS-0043-02` | 2 | Region2 与消费者不可达来自 ledger 已记的 region entry 错位 |
-| `VU-0040-01` | 1 | Power On consumer 不可达是 triggered root initial 的直接症状 |
-| `EIS-0057-01` | 1 | CA 无默认子入口使三路 collision consumer 不可达 |
-| `EIS-0039-02` | 1 | 修正 parent-scoped mode edge 的 source 同时修复缺失的 UrbanMode→HighwayMode 关系 |
-| `EIS-0056-02` | 1 | 两者都要求把 Decrease UAV Count 从 guard 槽移到 effect |
-
-这些关系仍需第二位 reviewer 签字。当前没有证据表明它们会增加 hit@3；目标 expected 已在其他 round 命中。它们可能改变 round-level `FULL` 和 K/N 归属。
-
-## 人工样本
-
-人工源文件检查已经确认几类 P2 风险：
-
-- pair `0016` 的作者源直接写了 Interception Detected、Task Assignment Received 和 UAV-count decrease；7 条额外报告攻击的是 route-token lowering。
-- pair `0059` 的作者源已经写了方括号 guard；24 条 `guard=null`/guard-disjointness 报告不能据此判作者源有缺陷。
-- train signal-to-guard 家族筛出 58 条 D0 候选。NL 把 `Closed/SendDeparted`、`Reached Cruising/Cruise` 等写成触发信号，报告另加了独立 guard 义务。这一族尚未完成第二人逐条审阅。
-- pair `0005` 的 11 条 endpoint 报告要求 composite-direct edge；作者源由复合态内的活动子状态提供相同行为。这一族仍是 D0 candidate，不计入 45 条下界。
-- 自报 D1 中，pair `0006`、`0017`、`0056`、`0057` 的 9 条 region/cardinality report 有两个具体、结构相容的读法，可作为 genuine D1 下界。
-
-## 敏感性范围
-
-`114–202` 是当前筛查得到的 N→I candidate range，不是全量定稿。
-
-| 情景 | K/N/I | precision |
+| 指标 | 数量 | 占 444 条 |
 |---|---:|---:|
-| frozen | `721/444/106` | `1165/1271 = 91.66%` |
-| 45 条确认 INVALID + 11 条关系候选 | `732/388/151` | `1120/1271 = 88.12%` |
-| candidate invalid=114 | `732/319/220` | `1051/1271 = 82.69%` |
-| candidate invalid=202 | `732/231/308` | `963/1271 = 75.77%` |
+| D2 | 44 | 44/444 = 9.91% |
+| D1 | 196 | 196/444 = 44.14% |
+| D0 | 111 | 111/444 = 25.00% |
+| A0 | 93 | 93/444 = 20.95% |
+| corrected K | 21 | 21/444 = 4.73% |
+| corrected N | 219 | 219/444 = 49.32% |
+| corrected I | 204 | 204/444 = 45.95% |
 
-关系候选只做 N→K，不改变 precision。区间两端依赖尚未完成第二审的 D0/P2 family，不可写成正式实验事实。
+93 条 A0 全部是 `NOT_A_DEFECT_CLAIM`；本次 N 宇宙中没有 `FALSE_POSITIVE` subtype。21 条 K 包含 17 条 `FULL_MATCH` 和 4 条 `PARTIAL_MATCH`。246 个 `group_key` 只用于同 pair 内的 property、locus 和 repair-obligation 归并，不是全局独立缺陷数。
 
-## 与 INVALID 全量复审的组合读法
+## 分轮结果
 
-[`11_v60_invalid_manual_reaudit.md`](./11_v60_invalid_manual_reaudit.md) 已对冻结的 106 条 I
-逐条复审。两个审计层互不重叠，因此可给出下列组合敏感性，但仍不得改写冻结主指标：
+| Round | Reports | D2/D1/D0/A0 | K/N/I | FULL/PARTIAL/NO_MATCH |
+|---|---:|---:|---:|---:|
+| r1 | 138 | 12/64/34/28 | 10/66/62 | 8/2/128 |
+| r2 | 159 | 16/68/44/31 | 6/78/75 | 4/2/153 |
+| r3 | 147 | 16/64/33/34 | 5/75/67 | 5/0/142 |
 
-| 组合情景 | K/N/I | 性质 |
-|---|---:|---|
-| frozen v3.2 | `721/444/106` | 冻结机器输出 |
-| 仅应用 I strict 复审 | `729/456/86` | 106 条 I 的完整人工复审 |
-| 再应用 45 条 confirmed N→I | `729/411/131` | I 完整复审 + N 保守确认下界 |
-| 再应用 11 条 pending N→K | `740/400/131` | 另含尚待第二 reviewer 的 relation 候选 |
+## Ledger 关系
 
-最后一行的 11 条仍是候选，不能写成已确认修正；`114–202` 的 N→I 区间也不能与本表
-混成一个新的“正式结果”。
+| Ledger ID | FULL | PARTIAL | 正关系合计 |
+|---|---:|---:|---:|
+| `EIS-0014-01` | 4 | 0 | 4 |
+| `EIS-0029-01` | 1 | 0 | 1 |
+| `EIS-0035-04` | 1 | 0 | 1 |
+| `EIS-0039-02` | 1 | 0 | 1 |
+| `EIS-0043-02` | 2 | 0 | 2 |
+| `EIS-0045-01` | 3 | 4 | 7 |
+| `EIS-0055-01` | 2 | 0 | 2 |
+| `EIS-0056-02` | 1 | 0 | 1 |
+| `EIS-0057-01` | 1 | 0 | 1 |
+| `VU-0040-01` | 1 | 0 | 1 |
 
-## 历史条目
+同一 ledger 下的多条 report 可能是跨轮重复或同一 repair root 的直接症状，不能把 21 条 report 写成 21 个独立 expected issue。
 
-backend 或 predicate 不支持只影响 W，不能提供 D 的 scope 出口。原来标为 concurrency 的条目现按作者源重新判断；详细 provisional 状态见 JSON。
+## 分 pair 统计
 
-pair `0008` 和 `0018` 的 timing 项统一标为 `PENDING_D2_D1_D0_READJUDICATION`。本文件不再使用 `OUT_OF_SCOPE_CURRENT`。
+| Pair | Reports | D2/D1/D0/A0 | K/N/I |
+|---|---:|---:|---:|
+| 0001 | 2 | 0/2/0/0 | 0/2/0 |
+| 0003 | 4 | 0/0/3/1 | 0/0/4 |
+| 0004 | 12 | 0/0/11/1 | 0/0/12 |
+| 0005 | 11 | 0/0/11/0 | 0/0/11 |
+| 0006 | 17 | 11/3/0/3 | 0/14/3 |
+| 0009 | 37 | 0/33/1/3 | 0/33/4 |
+| 0010 | 2 | 0/1/0/1 | 0/1/1 |
+| 0011 | 2 | 0/2/0/0 | 0/2/0 |
+| 0012 | 4 | 0/0/2/2 | 0/0/4 |
+| 0013 | 4 | 0/4/0/0 | 0/4/0 |
+| 0014 | 15 | 4/0/11/0 | 4/0/11 |
+| 0015 | 7 | 4/1/0/2 | 0/5/2 |
+| 0016 | 11 | 0/1/2/8 | 0/1/10 |
+| 0017 | 4 | 0/4/0/0 | 0/4/0 |
+| 0019 | 32 | 0/32/0/0 | 0/32/0 |
+| 0020 | 3 | 0/1/2/0 | 0/1/2 |
+| 0021 | 3 | 0/2/1/0 | 0/2/1 |
+| 0022 | 1 | 0/0/0/1 | 0/0/1 |
+| 0023 | 6 | 6/0/0/0 | 0/6/0 |
+| 0024 | 8 | 0/0/7/1 | 0/0/8 |
+| 0025 | 4 | 4/0/0/0 | 0/4/0 |
+| 0026 | 2 | 0/0/0/2 | 0/0/2 |
+| 0029 | 33 | 1/26/0/6 | 1/26/6 |
+| 0031 | 2 | 0/2/0/0 | 0/2/0 |
+| 0032 | 4 | 0/0/2/2 | 0/0/4 |
+| 0033 | 7 | 0/1/6/0 | 0/1/6 |
+| 0034 | 9 | 0/3/5/1 | 0/3/6 |
+| 0035 | 1 | 0/1/0/0 | 1/0/0 |
+| 0036 | 12 | 6/2/1/3 | 0/8/4 |
+| 0039 | 32 | 0/25/0/7 | 1/24/7 |
+| 0040 | 5 | 1/1/2/1 | 1/1/3 |
+| 0041 | 4 | 0/4/0/0 | 0/4/0 |
+| 0043 | 6 | 2/1/3/0 | 2/1/3 |
+| 0044 | 18 | 0/0/14/4 | 0/0/18 |
+| 0045 | 11 | 0/7/0/4 | 7/0/4 |
+| 0046 | 2 | 0/1/0/1 | 0/1/1 |
+| 0049 | 43 | 0/29/7/7 | 0/29/14 |
+| 0050 | 1 | 0/0/0/1 | 0/0/1 |
+| 0051 | 3 | 0/2/1/0 | 0/2/1 |
+| 0052 | 6 | 0/0/3/3 | 0/0/6 |
+| 0053 | 2 | 0/0/2/0 | 0/0/2 |
+| 0054 | 13 | 0/0/12/1 | 0/0/13 |
+| 0055 | 2 | 0/2/0/0 | 2/0/0 |
+| 0056 | 6 | 0/3/0/3 | 1/2/3 |
+| 0057 | 5 | 5/0/0/0 | 1/4/0 |
+| 0059 | 26 | 0/0/2/24 | 0/0/26 |
+
+## 与 frozen I 复核的组合敏感性
+
+[106 条 frozen I 全量复核](./11_v60_invalid_manual_reaudit.md) 给出 `K/N/I = 8/12/86`。将两个互不重叠的追加审计层组合，并保持 721 条 frozen K 不变，得到下表。它不是 1271 条 report 的全量重审结果。
+
+| 情景 | K/N/I | report precision |
+|---|---:|---:|
+| frozen Judge v3.2 | 721/444/106 | 1165/1271 = 91.66% |
+| 仅应用 frozen N 严格复核 | 742/219/310 | 961/1271 = 75.61% |
+| 仅应用 frozen I 严格复核 | 729/456/86 | 1185/1271 = 93.23% |
+| 同时应用 frozen I 与 N 严格复核 | 750/231/290 | 981/1271 = 77.18% |
+
+## 审查与限制
+
+- 444/444 report ID 与 raw Judge 的 frozen `VALID_NOVEL` 集合完全相等；无缺行、重行或额外行。
+- TSV 固定 12 列；每条均有 `reason`、`basis` 和 `source_refs`。D/A、K/N/I、relation 和 ledger ID 闭包已机械验证。
+- 主审读取 raw Judge reason/basis、method report、作者 NL/PlantUML 和 pair ledger；独立 subagent 已复核全部 `444/444` 条。最后 `0001-0014` adversarial review 保持所有 D/A、K/N/I 和 relation 裁决，同时修正一处 property 误归并、四个 ledger fragment、一个串线 method adjudication 的排除说明，以及三条与作者源比较符不一致的 D1 basis。
+- 这份结果是追加语义审计，不修改冻结 Judge，不替代论文主表中的 frozen headline。
+- `D1` 明确保留解释不确定性；报告不能把 D1、group 数或本次 combined sensitivity 写成已证明的全球新缺陷数。

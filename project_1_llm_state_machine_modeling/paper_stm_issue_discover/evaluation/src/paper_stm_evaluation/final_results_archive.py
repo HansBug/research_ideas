@@ -8,6 +8,7 @@ imports an archive into discovery, grounding, routing, evidence, or Judge code.
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import json
 import re
@@ -33,6 +34,21 @@ EXCLUDED_RULES = [
     {"rule": "**/*.lock and **/*.part", "reason": "Transient runtime synchronization or interrupted-write state is not evidence."},
     {"rule": "**/launcher.log", "reason": "Reproducible process log is not required for metric, evidence, or cost recomputation."},
 ]
+
+_VALID_NOVEL_REAUDIT_COLUMNS = (
+    "report_id",
+    "pair_id",
+    "round",
+    "strict_da",
+    "a0_type",
+    "corrected_kni",
+    "relation",
+    "ledger_ids",
+    "group_key",
+    "reason",
+    "basis",
+    "source_refs",
+)
 
 
 def _manifest_generation_metadata(command: str) -> dict[str, str]:
@@ -91,6 +107,141 @@ def _copy_tree(source: Path, destination: Path) -> int:
         shutil.copy2(item, target)
         copied += 1
     return copied
+
+
+def _validate_v60_valid_novel_reaudit(archive: Path) -> None:
+    """Validate the additive 444-row D/A and K/N/I reaudit against frozen Judge data."""
+
+    review_root = archive / "reviews"
+    tsv_path = review_root / "12_v60_valid_novel_posthoc_reaudit.tsv"
+    json_path = review_root / "12_v60_valid_novel_posthoc_reaudit.json"
+    if not tsv_path.is_file() and not json_path.is_file():
+        return
+    if not tsv_path.is_file() or not json_path.is_file():
+        raise ValueError("v60 VALID_NOVEL reaudit requires both TSV and JSON")
+
+    with tsv_path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle, delimiter="\t")
+        if tuple(reader.fieldnames or ()) != _VALID_NOVEL_REAUDIT_COLUMNS:
+            raise ValueError("v60 VALID_NOVEL reaudit TSV must have the fixed 12-column schema")
+        tsv_rows = list(reader)
+
+    audit = _load(json_path)
+    decisions = audit.get("decisions")
+    if not isinstance(decisions, list) or not all(isinstance(item, dict) for item in decisions):
+        raise ValueError("v60 VALID_NOVEL reaudit JSON decisions must be an object list")
+    if len(tsv_rows) != 444 or len(decisions) != 444:
+        raise ValueError("v60 VALID_NOVEL reaudit must contain exactly 444 rows")
+
+    def decision_as_tsv(decision: dict[str, Any]) -> dict[str, str]:
+        return {
+            "report_id": str(decision.get("report_id", "")),
+            "pair_id": str(decision.get("pair_id", "")),
+            "round": str(decision.get("round", "")),
+            "strict_da": str(decision.get("strict_da", "")),
+            "a0_type": str(decision.get("a0_type") or ""),
+            "corrected_kni": str(decision.get("corrected_kni", "")),
+            "relation": str(decision.get("relation", "")),
+            "ledger_ids": ";".join(str(value) for value in decision.get("ledger_ids", [])),
+            "group_key": str(decision.get("group_key", "")),
+            "reason": str(decision.get("reason", "")),
+            "basis": str(decision.get("basis", "")),
+            "source_refs": ";".join(str(value) for value in decision.get("source_refs", [])),
+        }
+
+    if tsv_rows != [decision_as_tsv(decision) for decision in decisions]:
+        raise ValueError("v60 VALID_NOVEL reaudit TSV and JSON decisions differ")
+
+    report_ids = [str(decision["report_id"]) for decision in decisions]
+    if len(set(report_ids)) != len(report_ids):
+        raise ValueError("v60 VALID_NOVEL reaudit contains duplicate report IDs")
+    current_root = archive / "raw" / "v60_current"
+    composite = _load(current_root / "judge" / "composite" / "summary.json")
+    frozen_novel_ids = {
+        str(outcome["original_report_id"])
+        for result in _pair_results(current_root, composite)
+        for outcome in result.get("report_outcomes", [])
+        if isinstance(outcome, dict) and outcome.get("validity") == "VALID_NOVEL"
+    }
+    if set(report_ids) != frozen_novel_ids:
+        raise ValueError("v60 VALID_NOVEL reaudit report IDs do not close over frozen Judge N")
+
+    da_counts: Counter[str] = Counter()
+    kni_counts: Counter[str] = Counter()
+    relation_counts: Counter[str] = Counter()
+    a0_counts: Counter[str] = Counter()
+    group_verdicts: dict[str, set[tuple[str, str, str, str, tuple[str, ...]]]] = defaultdict(set)
+    for decision in decisions:
+        report_id = str(decision["report_id"])
+        pair_id = str(decision["pair_id"])
+        strict_da = str(decision["strict_da"])
+        a0_type = decision.get("a0_type")
+        corrected_kni = str(decision["corrected_kni"])
+        relation = str(decision["relation"])
+        ledger_ids = tuple(str(value) for value in decision.get("ledger_ids", []))
+        group_key = str(decision.get("group_key", ""))
+        source_refs = decision.get("source_refs")
+        if not report_id.startswith(f"{pair_id}:r{decision['round']}:"):
+            raise ValueError(f"reaudit identity fields disagree: {report_id}")
+        if strict_da not in {"D2", "D1", "D0", "A0"}:
+            raise ValueError(f"invalid strict D/A value for {report_id}: {strict_da}")
+        if strict_da == "A0":
+            if a0_type not in {"FALSE_POSITIVE", "NOT_A_DEFECT_CLAIM"}:
+                raise ValueError(f"invalid A0 subtype for {report_id}: {a0_type!r}")
+            a0_counts[str(a0_type)] += 1
+        elif a0_type is not None:
+            raise ValueError(f"non-A0 row carries an A0 subtype: {report_id}")
+        if strict_da in {"D0", "A0"}:
+            expected_kni, expected_relations = "I", {"NO_MATCH"}
+        elif relation in {"FULL_MATCH", "PARTIAL_MATCH"}:
+            expected_kni, expected_relations = "K", {"FULL_MATCH", "PARTIAL_MATCH"}
+        else:
+            expected_kni, expected_relations = "N", {"NO_MATCH"}
+        if corrected_kni != expected_kni or relation not in expected_relations:
+            raise ValueError(f"D/A, relation, and K/N/I do not close for {report_id}")
+        if (corrected_kni == "K") != bool(ledger_ids):
+            raise ValueError(f"only K rows may carry ledger IDs, and every K row must carry one: {report_id}")
+        if re.match(rf"^{re.escape(pair_id)}[:|]", group_key) is None:
+            raise ValueError(f"reaudit group crosses or omits its pair boundary: {report_id}")
+        if not str(decision.get("reason", "")).strip() or not str(decision.get("basis", "")).strip():
+            raise ValueError(f"reaudit reason/basis is empty: {report_id}")
+        if not isinstance(source_refs, list) or not source_refs:
+            raise ValueError(f"reaudit source_refs is empty: {report_id}")
+        for source_ref in source_refs:
+            value = str(source_ref)
+            if value.startswith(("raw/", "reference/")):
+                relative_path, _, fragment = value.partition("#")
+                target = archive / relative_path
+                if not target.is_file():
+                    raise ValueError(f"reaudit archive source does not exist for {report_id}: {value}")
+                if target.name == "ledger.json" and fragment:
+                    pointed: Any = _load(target)
+                    for component in fragment.strip("/").split("/"):
+                        if not isinstance(pointed, dict) or component not in pointed:
+                            raise ValueError(f"reaudit ledger fragment does not resolve for {report_id}: {value}")
+                        pointed = pointed[component]
+        da_counts[strict_da] += 1
+        kni_counts[corrected_kni] += 1
+        relation_counts[relation] += 1
+        group_verdicts[group_key].add((strict_da, str(a0_type or ""), corrected_kni, relation, ledger_ids))
+
+    if any(len(verdicts) != 1 for verdicts in group_verdicts.values()):
+        raise ValueError("v60 VALID_NOVEL reaudit has a group with heterogeneous verdicts")
+    summary = audit.get("summary", {})
+    expected_summary = {
+        "report_rows": len(decisions),
+        "decision_groups": len(group_verdicts),
+        "strict_da": {key: da_counts[key] for key in ("D2", "D1", "D0", "A0")},
+        "corrected_kni": {key: kni_counts[key] for key in ("K", "N", "I")},
+        "relation": {key: relation_counts[key] for key in ("FULL_MATCH", "PARTIAL_MATCH", "NO_MATCH")},
+        "a0_type": {key: a0_counts[key] for key in ("FALSE_POSITIVE", "NOT_A_DEFECT_CLAIM")},
+    }
+    for key, value in expected_summary.items():
+        if summary.get(key) != value:
+            raise ValueError(f"v60 VALID_NOVEL reaudit summary mismatch: {key}")
+    recorded_hash = str(audit.get("artifacts", {}).get("tsv_sha256", ""))
+    if recorded_hash != _sha256(tsv_path).removeprefix("sha256:"):
+        raise ValueError("v60 VALID_NOVEL reaudit TSV hash is stale")
 
 
 def _copy_file(source: Path, destination: Path) -> None:
@@ -653,6 +804,7 @@ def validate(args: argparse.Namespace) -> int:
     )
     _validate_archive_metadata(archive)
     _validate_markdown_links(archive, repository_root=repository_root)
+    _validate_v60_valid_novel_reaudit(archive)
     for manifest_path in (
         archive / "archive_manifest.json",
         archive / "raw" / "v60_current" / "archive_manifest.json",

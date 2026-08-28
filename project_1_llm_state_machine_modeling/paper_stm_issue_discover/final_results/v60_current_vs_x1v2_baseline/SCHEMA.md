@@ -34,9 +34,10 @@ D2/D1 才能按 relation 进入 K/N。因而本归档的 K/N/I 数字必须标�
 
 追加审计有两个互补层次：[106 条 frozen I 的完整逐条复审](./reviews/11_v60_invalid_manual_reaudit.md)
 给出 strict `D2/D1/D0/A0 = 5/15/10/76` 和局部 corrected `K/N/I = 8/12/86`；
-[444 条 frozen N 的后置复核](./reviews/12_v60_valid_novel_posthoc_reaudit.md) 给出精确机械
-归并、45 条 confirmed N→I 下界，以及未完成第二审的候选/估计范围。前者是全量人工复审，
-后者不是 444 条全量最终裁决。组合敏感性必须明确假设审计集合互不重叠，不得替换
+[444 条 frozen N 的后置复核](./reviews/12_v60_valid_novel_posthoc_reaudit.md) 给出全量逐条
+`D2/D1/D0/A0 = 44/196/111/93` 和局部 corrected `K/N/I = 21/219/204`。两层都已独立
+复核，组合敏感性为 `750/231/290`，但它保持 721 条 frozen K 不变，不是 1271 条 report
+的全量重审。组合敏感性必须明确假设审计集合互不重叠，不得替换
 `derived/recomputed_summary.json` 的冻结指标。
 
 ## W 与谓词

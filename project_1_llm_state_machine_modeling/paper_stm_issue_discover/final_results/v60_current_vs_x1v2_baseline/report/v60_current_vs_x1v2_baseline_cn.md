@@ -62,11 +62,13 @@ N 直接解释为 444 个已确认新缺陷，也不能把 106 条 I 都解释�
 追加审计已经给出更细的组成信息。对 106 条 frozen I 的[完整逐条复审](../reviews/11_v60_invalid_manual_reaudit.md)
 得到 strict `D2/D1/D0/A0 = 5/15/10/76`，即其中 20 条是 frozen Judge false negative，
 局部 corrected `K/N/I = 8/12/86`。对 444 条 frozen N 的[后置复核](../reviews/12_v60_valid_novel_posthoc_reaudit.md)
-完成了全量机械归并，确认至少 45 条应从 N 转 I，并列出 11 条尚待第二 reviewer 的 N→K
-候选。前者覆盖全部 frozen I；后者不是 444 条的全量最终人工裁决。两层审计的组合敏感性
-为：仅应用 I strict 时 `729/456/86`，再应用 confirmed 45 条 N→I 时
-`729/411/131`；若进一步纳入 11 条未签字的 relation 候选则为 `740/400/131`。这些数字
-只用于定位 Judge 系统误差，不能替换本报告的冻结主指标。
+得到全量逐条 strict `D2/D1/D0/A0 = 44/196/111/93`，局部 corrected
+`K/N/I = 21/219/204`；其中 21 条 K 为 17 FULL、4 PARTIAL。两层同时应用且保持 721 条
+frozen K 不变时，组合敏感性为 `K/N/I = 750/231/290`、report precision
+`981/1271 = 77.18%`。relation 复核对应的 hit overlay 为 overall FULL `306→310`、L2 FULL
+`104→105`、hit@3 `118→119`、hit@all `84→86`。这些数字只用于定位 Judge 系统误差：
+721 条 frozen K 尚未逐条复审，因而不能替换本报告的冻结主指标，也不能写成 1271 条 report
+的全量人工真值。
 
 ## FULL hit 中的最高 W 与全部 expected 的 W2
 

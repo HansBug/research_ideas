@@ -194,11 +194,13 @@ def _documentation_changes(repository: Path, baseline: dict[str, object]) -> dic
         changes[change.path] = change
     expected_paths = {
         str(ARCHIVE / "README.md"),
+        str(ARCHIVE / "SCHEMA.md"),
         str(ARCHIVE / "archive_manifest.json"),
         str(ARCHIVE / "publication_manifest.json"),
+        str(ARCHIVE / "report/v60_current_vs_x1v2_baseline_cn.md"),
     }
     if set(changes) != expected_paths:
-        raise RuntimeError("documentation change record must be limited to README and root manifests")
+        raise RuntimeError("documentation change record must be limited to current-facing docs and root manifests")
     return changes
 
 
