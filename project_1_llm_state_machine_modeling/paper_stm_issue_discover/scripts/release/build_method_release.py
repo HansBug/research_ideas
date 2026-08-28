@@ -63,7 +63,10 @@ class ReleaseManifest(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    schema_version: Literal["paper1.method-release-manifest.v1"] = Field(description="Versioned generated release manifest schema identifier.")
+    schema_version: Literal["paper1.method-release-manifest.v1"] = Field(
+        default="paper1.method-release-manifest.v1",
+        description="Versioned generated release manifest schema identifier.",
+    )
     source_commit: str = Field(pattern=r"^[0-9a-f]{40}$", description="Clean Git commit supplying every copied release byte.")
     allowlist_sha256: str = Field(pattern=r"^sha256:[0-9a-f]{64}$", description="SHA-256 of the exact allowlist JSON bytes.")
     files: tuple[ReleaseFile, ...] = Field(min_length=1, description="Sorted exhaustive list of files copied into the release tree.")
