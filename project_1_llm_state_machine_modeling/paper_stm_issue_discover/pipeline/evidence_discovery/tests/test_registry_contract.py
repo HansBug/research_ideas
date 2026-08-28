@@ -7,8 +7,10 @@ import json
 from pathlib import Path
 
 
-REGISTRY = Path(__file__).parents[1] / "predicate_registry.json"
-PROJECT_ROOT = REGISTRY.parents[2]
+PAPER_ROOT = Path(__file__).parents[3]
+REGISTRY = PAPER_ROOT / "method/src/paper_stm_method/resources/predicate_registry.json"
+CATALOG = PAPER_ROOT / "method/src/paper_stm_method/resources/current_source_catalog.json"
+PROJECT_ROOT = PAPER_ROOT
 
 
 def load_registry() -> dict:
@@ -58,8 +60,7 @@ def test_registry_uses_current_source_types() -> None:
 
 def test_every_source_id_resolves_to_current_catalog() -> None:
     data = load_registry()
-    catalog_path = PROJECT_ROOT / data["source_catalog_path"]
-    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
     source_ids = {source["id"] for source in catalog["sources"]}
     predicates = [p for family in data["families"] for p in family["predicates"]]
 
@@ -80,6 +81,8 @@ def test_every_source_id_resolves_to_current_catalog() -> None:
         for source in catalog["sources"]
         for marker in ("候选", "待补", "取证限制")
     )
+    # The packaged mirror keeps runtime provenance self-contained. Scholarly
+    # source paths remain relative to the repository's related-work catalog.
     assert all(
         (PROJECT_ROOT / path).exists()
         for source in catalog["sources"]
@@ -89,9 +92,7 @@ def test_every_source_id_resolves_to_current_catalog() -> None:
 
 def test_catalog_remains_academic_provenance_not_runtime_admission_data() -> None:
     data = load_registry()
-    catalog = json.loads(
-        (PROJECT_ROOT / data["source_catalog_path"]).read_text(encoding="utf-8")
-    )
+    catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
     predicate_source_ids = {
         source_id
         for family in data["families"]
@@ -166,7 +167,7 @@ def test_new_execution_boundaries_are_explicit() -> None:
 
 def test_evidence_discovery_source_has_no_inspect_backend_dependency() -> None:
     """新正式包不得把旧 inspect 后端或 Python inspect 引入运行代码。"""
-    source_root = PROJECT_ROOT / "pipeline/evidence_discovery"
+    source_root = PROJECT_ROOT / "method/src/paper_stm_method"
     forbidden_fragments = ("import inspect", "from inspect import", "inspect_model(",
                            "inspect_fcstm(", "compact_inspect(")
     violations = []
@@ -198,8 +199,8 @@ def test_legacy_surface_is_archived_or_explicitly_replay_only() -> None:
         assert (PROJECT_ROOT / target).exists(), target
 
     pointer_files = {
-        "pipeline/feedback_loop/README.md": ("legacy", "回放"),
-        "pipeline/feedback_loop/src/paper_stm_feedback_loop/discover/predicates.py":
+        "archive/legacy/feedback_loop/README.md": ("历史", "回放"),
+        "archive/legacy/feedback_loop/src/paper_stm_feedback_loop/discover/predicates.py":
             ("legacy", "evidence_discovery"),
         "story/blueprint_proposal.md": ("历史", "archive/legacy_20260821"),
         "related_work/CONTINGENCY_L1.md": ("归档指针", "archive/legacy_20260821"),

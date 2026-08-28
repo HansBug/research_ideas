@@ -79,7 +79,7 @@ PYTHONPATH=$P/readiness_audit/src:$P/representation/src:$P/conversion/src \
 python -m pytest $P/conversion/tests $P/representation/tests $P/readiness_audit/tests $P/evaluation/tests
 ```
 
-各套当前规模：`conversion` 144、`representation` 129、`readiness_audit` 8、`evaluation` 45，合计 326；`feedback_loop` 另有 1755；`agent_loop` 已于 2026-08-11 归档，其测试数不再计入本表66。
+`feedback_loop` 已移至 [`../archive/legacy/feedback_loop/`](../archive/legacy/feedback_loop/)；它不属于当前 pipeline、默认安装或 method release。当前 method、Judge 和 evaluation 的发布边界分别在 [`../method/`](../method/)、[`../judge/`](../judge/) 和 [`../evaluation/`](../evaluation/)。
 
 ## 4. Python 包名：三个已去掉 `repair`，一个随归档冻结
 

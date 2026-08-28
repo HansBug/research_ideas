@@ -9,8 +9,8 @@ import pytest
 import utils.agent.runtime as agent_runtime
 from pydantic import ValidationError
 
-from pipeline.evidence_discovery.orchestration import runtime as structured_runtime
-from pipeline.evidence_discovery.orchestration.runtime import PublicStructuredRuntime
+from utils import structured_runtime
+from utils.structured_runtime import PublicStructuredRuntime
 from pipeline.semantic_judge import execution as judge_execution
 from pipeline.semantic_judge.artifacts import build_artifact_closure, stable_model_hash
 from pipeline.semantic_judge.execution import run_provider_free_process_probe

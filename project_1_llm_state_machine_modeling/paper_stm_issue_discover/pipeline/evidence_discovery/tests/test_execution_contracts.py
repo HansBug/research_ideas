@@ -49,7 +49,7 @@ from pipeline.evidence_discovery.orchestration.contracts import (
     RunSummaryReceipt,
     SourceProvenance,
 )
-from pipeline.evidence_discovery.orchestration.cost_correction import (
+from paper_stm_evaluation.cost_correction import (
     build_corrected_method_cost,
 )
 from pipeline.evidence_discovery.orchestration.runner import (
@@ -3721,17 +3721,17 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
 
 def test_all_evidence_discovery_pydantic_models_have_docs_and_field_descriptions() -> None:
     module_names = (
-        "pipeline.evidence_discovery.inputs.models",
-        "pipeline.evidence_discovery.inputs.context",
-        "pipeline.evidence_discovery.semantics.binding",
-        "pipeline.evidence_discovery.semantics.obligations",
-        "pipeline.evidence_discovery.semantics.adjudication",
-        "pipeline.evidence_discovery.semantics.workflow",
-        "pipeline.evidence_discovery.semantics.frontier",
-        "pipeline.evidence_discovery.orchestration.contracts",
-        "pipeline.evidence_discovery.orchestration.runtime",
-        "pipeline.evidence_discovery.orchestration.runner",
-        "pipeline.evidence_discovery.evidence.audit_bundle",
+        "utils.stm_artifacts.models",
+        "utils.stm_artifacts.context",
+        "paper_stm_method.semantics.binding",
+        "paper_stm_method.semantics.obligations",
+        "paper_stm_method.semantics.adjudication",
+        "paper_stm_method.semantics.workflow",
+        "paper_stm_method.semantics.frontier",
+        "paper_stm_method.orchestration.contracts",
+        "utils.structured_runtime",
+        "paper_stm_method.orchestration.runner",
+        "paper_stm_method.evidence.audit_bundle",
     )
     checked = 0
     for module_name in module_names:

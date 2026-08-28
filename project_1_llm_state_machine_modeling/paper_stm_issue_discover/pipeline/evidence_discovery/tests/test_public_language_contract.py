@@ -17,6 +17,9 @@ from pipeline.evidence_discovery.inputs import load_pair
 from pipeline.evidence_discovery.inputs.context import prompt_context_payload
 
 METHOD_ROOT = Path(evidence_discovery.__file__).resolve().parent
+METHOD_SOURCE_ROOT = (
+    METHOD_ROOT.parents[1] / "method/src/paper_stm_method"
+)
 REPORT_ROOT = METHOD_ROOT.parent / "representation/reports/llms_emp_r45_java_60"
 HAN_TEXT = re.compile(r"[\u3400-\u9fff]")
 INTERNAL_ALIAS_PATTERNS = (
@@ -29,14 +32,22 @@ INTERNAL_ALIAS_PATTERNS = (
 
 
 def _public_modules() -> list[ModuleType]:
-    modules: list[ModuleType] = [evidence_discovery]
+    modules: list[ModuleType] = [importlib.import_module("paper_stm_method")]
     for module_info in pkgutil.walk_packages(
-        evidence_discovery.__path__, evidence_discovery.__name__ + "."
+        [str(METHOD_SOURCE_ROOT)], "paper_stm_method."
     ):
-        # Evaluator-only reporting is physically isolated from method/provider surfaces.
-        if ".tests" in module_info.name or ".reporting" in module_info.name:
+        if ".tests" in module_info.name:
             continue
         modules.append(importlib.import_module(module_info.name))
+    for shared_module in (
+        "utils.stm_artifacts",
+        "utils.stm_artifacts.context",
+        "utils.stm_artifacts.fcstm_native_projection",
+        "utils.stm_artifacts.loaders",
+        "utils.stm_artifacts.models",
+        "utils.structured_runtime",
+    ):
+        modules.append(importlib.import_module(shared_module))
     return modules
 
 
@@ -48,7 +59,9 @@ def _method_models(modules: list[ModuleType]) -> list[type[BaseModel]]:
                 isinstance(value, type)
                 and issubclass(value, BaseModel)
                 and value is not BaseModel
-                and value.__module__.startswith("pipeline.evidence_discovery")
+                and value.__module__.startswith(
+                    ("paper_stm_method", "utils.stm_artifacts", "utils.structured_runtime")
+                )
             ):
                 models[(value.__module__, value.__qualname__)] = value
     return [models[key] for key in sorted(models)]
@@ -73,17 +86,21 @@ def _description_values(value: Any) -> list[str]:
 
 def test_production_source_and_registry_use_public_english_terminology() -> None:
     violations: list[str] = []
-    for path in sorted((*METHOD_ROOT.rglob("*.py"), *METHOD_ROOT.rglob("*.json"))):
+    for path in sorted((*METHOD_SOURCE_ROOT.rglob("*.py"), *METHOD_SOURCE_ROOT.rglob("*.json"))):
         # Archive labels and provenance identifiers are not method public language.
-        if "tests" in path.parts or "reporting" in path.parts:
+        if (
+            "tests" in path.parts
+            or "reporting" in path.parts
+            or path.name == "current_source_catalog.json"
+        ):
             continue
         text = path.read_text(encoding="utf-8")
         if HAN_TEXT.search(text):
-            violations.append(f"{path.relative_to(METHOD_ROOT)}: contains Han text")
+            violations.append(f"{path.relative_to(METHOD_SOURCE_ROOT)}: contains Han text")
         aliases = _internal_aliases(text)
         if aliases:
             violations.append(
-                f"{path.relative_to(METHOD_ROOT)}: internal aliases {sorted(set(aliases))}"
+                f"{path.relative_to(METHOD_SOURCE_ROOT)}: internal aliases {sorted(set(aliases))}"
             )
     assert not violations, "public method language violations:\n" + "\n".join(violations)
 

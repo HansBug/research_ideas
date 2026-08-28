@@ -70,7 +70,7 @@ $$ M = (S, E, V, Tr, A) $$
 
 | 目录 | 是什么 | 什么时候进去 |
 | :-- | :-- | :-- |
-| [pipeline/](./pipeline/) | **方法实现与规范配置**。`evidence_discovery/` 是当前四族 19 谓词和重构契约；迁移完成前 `feedback_loop/` 仍是运行实现；`conversion/` 与 `representation/` 是输入准备与表示桥；历史单体实现位于 `pipeline/archive/` | 改方法、改谓词、改提示词 |
+| [method/](./method/) | **current method 发布包**。包含四族 19 谓词、typed execution 与运行契约；`judge/` 与 `evaluation/` 维持独立边界。`pipeline/conversion/` 与 `pipeline/representation/` 是输入准备与表示桥；[archive/legacy/feedback_loop/](./archive/legacy/feedback_loop/) 仅保留历史回放 | 改方法、改谓词、改提示词 |
 | ⭐ [discover_matrix/](./discover_matrix/) | **实验与评测**。只有两个子目录：[ledger_v2/](./discover_matrix/ledger_v2/) 是⭐ **唯一有效的台账**（145 条）+ 它的判定协议 + X1v2 结果 + [证据链 `provenance/`](./discover_matrix/ledger_v2/provenance/)（含 54 份工作单与全部人工裁决）；[docs/](./discover_matrix/docs/) 是学术口径（判定协议、边界裁定、出处政策、历代事前登记） | 看结果、复算数字、查判定口径、追溯某条缺陷怎么定的 |
 | [selected_seed_examples/](./selected_seed_examples/) | **60 个 pair 的人读镜像**，每个目录含 `nl.txt`、`stm0.puml` 与溯源元数据。⚠️ 它**不是**流水线的运行时输入根——真实输入是 `pipeline/representation/reports/llms_emp_r45_java_60/pairs/`，两者逐字节相同 | 查某个 pair 的原文 |
 | [corpora/](./corpora/) | 更广的语料库与候选集。⚠️ 其中 `nl_segmentation/overrides.json` **在运行路径上**（被 `feedback_loop/common/nl_segmentation.py` 运行时读取），不是纯资料 | 扩充语料、改分句覆盖 |

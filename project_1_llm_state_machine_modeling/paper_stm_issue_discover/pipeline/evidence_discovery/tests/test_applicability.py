@@ -17,6 +17,10 @@ from pipeline.evidence_discovery.orchestration.runner import (
 
 PAPER_ROOT = Path(__file__).parents[3]
 REPORT_ROOT = PAPER_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
+REGISTRY = (
+    PAPER_ROOT
+    / "method/src/paper_stm_method/resources/predicate_registry.json"
+)
 
 
 def test_applicability_preflight_is_fixed_15_by_15_and_has_twelve_e15_predicates() -> None:
@@ -55,11 +59,7 @@ def test_applicability_rows_expose_typed_schema_without_execution_or_evaluation_
 
 
 def test_full_scale_denominator_is_the_fifteen_nonzero_frozen_ledger_mappings() -> None:
-    registry = json.loads(
-        (PAPER_ROOT / "pipeline/evidence_discovery/predicate_registry.json").read_text(
-            encoding="utf-8"
-        )
-    )
+    registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
     mapped = tuple(
         predicate["id"]
         for family in registry["families"]

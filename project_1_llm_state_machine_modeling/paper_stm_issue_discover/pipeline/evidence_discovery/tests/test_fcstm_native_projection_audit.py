@@ -41,7 +41,9 @@ def test_native_parser_accepts_semicolon_terminated_state_and_event_declarations
 
     assert model.state("Root.Disjoint") is not None
     assert model.event("Root.Signal") is not None
-    models_source = (Path(__file__).resolve().parents[1] / "inputs" / "models.py").read_text(encoding="utf-8")
+    models_source = (
+        Path(__file__).parents[5] / "utils/stm_artifacts/models.py"
+    ).read_text(encoding="utf-8")
     assert all(
         marker not in models_source
         for marker in (
@@ -101,7 +103,7 @@ def test_native_projection_audit_covers_all_real_sources_and_known_regressions()
 def test_only_native_projection_can_split_fcstm_source_for_attribution() -> None:
     """Semantic modules must not recover carriers from FCSTM source lines."""
 
-    evidence_root = Path(__file__).resolve().parents[1]
+    evidence_root = Path(__file__).parents[5] / "utils/stm_artifacts"
     direct_source_reads = []
     for path in evidence_root.rglob("*.py"):
         if "tests" in path.parts:
@@ -109,7 +111,7 @@ def test_only_native_projection_can_split_fcstm_source_for_attribution() -> None
         text = path.read_text(encoding="utf-8")
         if ".source_text.splitlines()" in text or ".fcstm_text.splitlines()" in text:
             direct_source_reads.append(path.relative_to(evidence_root).as_posix())
-    assert direct_source_reads == ["inputs/fcstm_native_projection.py"]
+    assert direct_source_reads == ["fcstm_native_projection.py"]
 
 
 def test_duplicate_native_local_names_require_canonical_path_or_unique_legacy_ref() -> None:

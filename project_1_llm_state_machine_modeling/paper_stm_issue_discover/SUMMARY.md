@@ -18,7 +18,8 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 | ⚠️ 历史实验事实（v46） | [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | 建立在**已归档的第一版台账**上，⛔ 不是当前口径 |
 | 判定口径 | [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/) | 命中判据、多报五类、方法出处、建模对象边界判据、规则出处纪律，以及 Luna 开发筛选 → Sol 正式评测的两级 judge 合同。**改它们等于改研究规则** |
 | 实验产地 | [reports/](./reports/) 与 [discover_matrix/](./discover_matrix/) | reports 保存当前同模型对照和逐条台账导出；discover_matrix 保存唯一台账、历史 X1v2 精确网格、协议与证据链。 |
-| 方法实现 | [pipeline/feedback_loop/](./pipeline/feedback_loop/) | 当前活的实现（八阶段 + 定向反馈循环） |
+| 当前方法实现 | [method/](./method/) | 已冻结 current typed evidence-discovery method；Judge 与 evaluation 独立维护 |
+| 历史 feedback loop | [archive/legacy/feedback_loop/](./archive/legacy/feedback_loop/) | 仅历史回放，不参与当前方法、发布包或论文结果 |
 | 语料 | [selected_seed_examples/](./selected_seed_examples/) | 60 个 pair，各含 `nl.txt`、`stm0.puml` 与溯源元数据 |
 | 论文叙事 | [story/](./story/) | thesis、章节结构与 RQ、claim-evidence、任务边界、建模对象、术语 |
 | 当前状态 | [STATUS.md](./STATUS.md) | 已完成 / 未完成 / 可声称 / 不可声称 / 风险 |
@@ -31,7 +32,7 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 | 理解这篇论文 | [README.md](./README.md) → 实验报告。两份读完即可完整理解方法与结果 |
 | 写论文某一节 | [story/paper_outline.md](./story/paper_outline.md) 找结构 → [story/claim_evidence_map.md](./story/claim_evidence_map.md) 核 claim → [story/terminology_policy.md](./story/terminology_policy.md) 核措辞 |
 | 复算某个数字 | [discover_matrix/README.md](./discover_matrix/README.md) 导航页 |
-| 改方法 / 谓词 / 提示词 | 先读 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/)，再动 [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
+| 改方法 / 谓词 / 提示词 | 先读 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/)，再动 [method/](./method/)；冻结实验语义不得在发布整理中改变 |
 | 查某个 pair 的原文 | [selected_seed_examples/](./selected_seed_examples/) |
 | 追溯某条结论的来源 | [evidence/](./evidence/) |
 | 考古（历史路线） | [archive/](./archive/)（本工作区快照）、[../archive/](../archive/)（已停用旧路线） |
@@ -41,7 +42,8 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 | 类别 | 状态 | 入口 |
 | :-- | :-- | :-- |
 | 论文叙事（story） | 已按 discover 口径整体改写 | [story/](./story/) |
-| 方法实现 | active，已跑通全量 | [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
+| current 方法实现 | active，已冻结实验并进入发布整理 | [method/](./method/) |
+| feedback loop | legacy，仅历史回放 | [archive/legacy/feedback_loop/](./archive/legacy/feedback_loop/) |
 | 输入准备与表示桥、语料准入检查 | active，作为 infrastructure | [pipeline/conversion/](./pipeline/conversion/)、[pipeline/representation/](./pipeline/representation/)、[pipeline/readiness_audit/](./pipeline/readiness_audit/) |
 | 上一版单 Agent 实现 | 已归档（2026-08-11），完整保留可复活 | [archive/r9_agent_loop_pipeline/](./archive/r9_agent_loop_pipeline/) |
 | 实验与评测 | active；⭐ 第二版台账、历史 X1v2 精确网格和 Luna v27-stream 同模型双臂报告均已就位；v26 与 v46 仅作历史对照 | [reports/](./reports/)、[discover_matrix/](./discover_matrix/) |
