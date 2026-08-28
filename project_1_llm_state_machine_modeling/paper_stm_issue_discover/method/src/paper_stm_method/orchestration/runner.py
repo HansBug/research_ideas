@@ -516,10 +516,15 @@ def _git_source_provenance() -> dict[str, Any] | None:
 
     try:
         repo_root = next(
-            parent
-            for parent in Path(__file__).resolve().parents
-            if (parent / ".git").exists()
+            (
+                parent
+                for parent in Path(__file__).resolve().parents
+                if (parent / ".git").exists()
+            ),
+            None,
         )
+        if repo_root is None:
+            return None
         commit = subprocess.run(
             ["git", "-C", str(repo_root), "rev-parse", "HEAD"],
             check=True,
