@@ -26,4 +26,16 @@ def test_release_provenance_fallback_is_fail_closed_without_a_packaged_manifest(
     """A source checkout without Git or generated package manifest cannot claim a live provenance."""
 
     monkeypatch.setattr(runner, "_git_source_provenance", lambda: None)
+    monkeypatch.setattr(runner, "_release_source_provenance", lambda: None)
     assert runner._source_provenance()["source_commit"] == "unknown"
+
+
+def test_packaged_release_manifest_verifies_its_embedded_commit() -> None:
+    """A built release exposes verified provenance without relying on an environment variable."""
+
+    provenance = runner._release_source_provenance()
+    if provenance is None:
+        return
+    assert len(provenance["source_commit"]) == 40
+    assert provenance["source_branch"] == "release-package"
+    assert provenance["source_dirty"] is False
