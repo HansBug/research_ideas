@@ -4,7 +4,7 @@
 
 在相同的 54 pair、3 round、145 条 expected issue 和冻结 Judge 口径下，v60/current 的 overall hit@1/FULL 为 `306/435 = 70.34%`，高于 X1v2 baseline 的 `211/435 = 48.51%`，差值为 `+21.83` 个百分点。L2 FULL 为 `104/117 = 88.89%`，相对 baseline 的 `46/117 = 39.32%` 提高 `+49.57` 个百分点。report-level semantic precision 为 `91.66%`，比 baseline 高 `11.58` 个百分点。
 
-v60 的 FULL-hit max-W2 为 `211/306 = 68.95%`，另有 `95/306 = 31.05%` 的 FULL hit 最高为 W1，W0 为 `0/306 = 0%`。`W2/全部 expected = 219/435 = 50.34%` 的分母不同，不能互换。X1v2 早于 19 谓词 W0/W1/W2 receipt 模型，不能把其相应字段写成 0 或直接比较。
+v60 的 FULL-hit max-W2 为 `211/306 = 68.95%`，另有 `95/306 = 31.05%` 的 FULL hit 最高为 W1，W0 为 `0/306 = 0%`。`W2/全部 expected = 219/435 = 50.34%` 的分母不同，不能互换。X1v2 没有同构的 19 谓词 receipt schema，但 W 并不依赖该谓词体系：对其 512 条冻结 finding 的 Judge-blinded 两轮独立逐条回溯审计得到 `W0/W1/W2 = 1/511/0`。因此 X1v2 的 predicate usage 不适用，W 轴适用且可比较。
 
 这些结果说明该冻结 v60 制品在本 ledger 和 Judge 口径上的覆盖更高；它们不证明对未包含在 ledger 的全部缺陷空间、其他 FCSTM 片段或其他模型的同等效果。当前证据也不覆盖时钟、不变式、正交 region/并发、hybrid 或无界时序语义。v60 与其他完整运行是独立 LLM 采样，不能把运行间差异归因为某一项代码修改。
 
@@ -58,12 +58,14 @@ v60 的 FULL-hit max-W2 为 `211/306 = 68.95%`，另有 `95/306 = 31.05%` 的 FU
 
 | 口径 | v60/current | X1v2 baseline |
 |---|---:|---:|
-| FULL hit 的 max-W2 | `211/306 = 68.95%` | `not_applicable` |
-| FULL hit 的 max-W1 | `95/306 = 31.05%` | `not_applicable` |
-| FULL hit 的 max-W0 | `0/306 = 0%` | `not_applicable` |
-| W2 / 全部 expected | `219/435 = 50.34%` | `not_applicable` |
+| FULL hit 的 max-W2 | `211/306 = 68.95%` | `0/211 = 0.00%` |
+| FULL hit 的 max-W1 | `95/306 = 31.05%` | `211/211 = 100.00%` |
+| FULL hit 的 max-W0 | `0/306 = 0%` | `0/211 = 0%` |
+| W2 / 全部 expected | `219/435 = 50.34%` | `0/435 = 0.00%` |
 
-该表从 [expected-witness audit](../raw/v60_current/judge/composite/evaluator/expected_issue_witness_audit.json) 的 supporting witness 计算；不是 finding-level W 分布。v60 的 `627` 条 W2 evidence record 与 `627` 个 W2 audit bundle 一一对应，无孤儿 bundle。X1v2 的 162 个 record 没有 `witness_level`、`evidence_records` 或 `predicate_execution_receipts`，因此这些字段不适用。
+该表不是 finding-level W 分布。v60 的数值来自 [expected-witness audit](../raw/v60_current/judge/composite/evaluator/expected_issue_witness_audit.json)；X1v2 的数值来自 [X1v2 finding 审计](../derived/x1v2_witness_level_audit.json) 和 [X1v2 FULL-hit 审计](../derived/x1v2_full_hit_max_witness_audit.json)。两侧都只在每个 `FULL` expected row 的 `full_report_ids` 内取最高 W。v60 的 `627` 条 W2 evidence record 与 `627` 个 W2 audit bundle 一一对应，无孤儿 bundle。X1v2 没有原运行期 executable witness、evaluation receipt、精确 evaluated-artifact hash 和 terminal result，所以 W2 为 `0`；这不是 Judge 事后核验的倒灌结果。
+
+X1v2 finding-level W 为 `W0/W1/W2 = 1/511/0`，分母 `512`。按 round 分别为 r1=`1/172/0`（`173`）、r2=`0/163/0`（`163`）、r3=`0/176/0`（`176`）。按 frozen Judge validity 的后置关联分层为 `VALID_KNOWN=0/276/0`、`VALID_NOVEL=1/133/0`、`INVALID=0/102/0`；这些 association 只在双审后用于分层，未参与 W 判定。overall 的 211 个 FULL hit 为 `W2/W1/W0 = 0/211/0`；L2 的 46 个 FULL hit 为 `0/46/0`。两次 Judge-blinded 独立审阅覆盖均为 `512/512`，两轮标签没有 W 级分歧；独立语义复核支持一条受限 post-review correction，将 `0036:r1:0036:r1:baseline_issue_4` 从共同 W1 裁为 W0。它不是 FULL supporting report，所以 hit 级结果不变，详见 [审计决策记录](../reviews/05_x1v2_witness_level_reaudit.md)。
 
 ## Predicate usage
 
@@ -93,7 +95,7 @@ v60 的 FULL-hit max-W2 为 `211/306 = 68.95%`，另有 `95/306 = 31.05%` 的 FU
 | V4 | verification / deadlock free | 是 | `88/88` | `94` | `6/82` | `82` | `6` input missing，W1=`6` |
 | V5 | verification / state invariant | 否 | `0/0` | `0` | `0/0` | `0` | not planned |
 
-X1v2 没有同构的 19 谓词 registry 或 terminal receipt schema，因此不能将 v60 的 predicate usage、W、pass/violation 或退化项对它强行填为可比指标。
+X1v2 没有同构的 19 谓词 registry 或 terminal receipt schema，因此不能将 v60 的 predicate usage、pass/violation 或退化项对它强行填为可比指标。W 不属于这个限制：X1v2 的 W1 由具体定位质量决定，W2 则严格要求其自身运行期的可执行对象和 terminal 记录。
 
 ## K/N/I 的语义边界与学术来源
 
@@ -124,7 +126,7 @@ v60 method 的五个阶段成本占总 method cost 分别为 `21.47%`、`10.00%`
 ## 限制与复算入口
 
 - ledger 不是完整缺陷宇宙；结果只对当前 145 条 expected、54 pair 和该冻结 input closure 作陈述，也不覆盖时钟、不变式、正交 region/并发、hybrid 或无界时序语义。
-- X1v2 缺失顶层 method commit、W/predicate receipt schema 和同构阶段成本字段；这些指标保持 `not_applicable` 或明确披露缺口。
+- X1v2 缺失顶层 method commit、19-predicate receipt schema 和同构阶段成本字段；predicate usage 保持 `not_applicable`。W 已通过 512 条双审回溯补齐，其中 W2 为零来自缺少 baseline 自身的运行期可执行见证，不由 later Judge 填补。
 - v60 Judge 的 10 个无可定价 usage 调用使 Judge 和 method+Judge 合并成本不具完整资格；不得估算补齐。
 - method/Judge 原始 JSON 仍保留 provenance 的绝对源路径；离线复算只使用 archive 内稳定相对路径。源根与 archive 目标的映射见 manifest，原始 `runs/` 路径不构成复算依赖。
 - 本报告未启动新 method、Judge 或 provider 调用，也未修改冻结 method/Judge、19 谓词、registry、prompt、route、W/D 或 issue #195 口径。

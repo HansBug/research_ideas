@@ -104,6 +104,7 @@ _TEXT_HANDLING_ALLOWANCES: tuple[NativeTextHandlingAllowance, ...] = (
     NativeTextHandlingAllowance(path="backends/fcstm_native.py", text_construct="splitlines", purpose="Linux /proc worker RSS telemetry only."),
     NativeTextHandlingAllowance(path="backends/source_static.py", text_construct="regular_expression", purpose="Presentation whitespace normalization of typed action values; native AST parsers decide FCSTM semantics."),
     NativeTextHandlingAllowance(path="inputs/context.py", text_construct="regular_expression", purpose="Numbered NL segment and audit-reference formatting, never FCSTM DSL parsing."),
+    NativeTextHandlingAllowance(path="reporting/final_results_archive.py", text_construct="regular_expression", purpose="Markdown local-link syntax validation for the final archive; it never reads or interprets FCSTM source."),
     NativeTextHandlingAllowance(path="inputs/fcstm_native_projection.py", text_construct="splitlines", purpose="Working-contract excerpt attribution to a pyfcstm source span; native carrier refs, never source lines, decide FCSTM semantics."),
     NativeTextHandlingAllowance(path="inputs/native_projection_audit.py", text_construct="regular_expression", purpose="Static-contract scanner self-identification only."),
     NativeTextHandlingAllowance(path="inputs/native_projection_audit.py", text_construct="splitlines", purpose="Static-contract scanner reads Python source lines only."),

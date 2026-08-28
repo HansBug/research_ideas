@@ -33,7 +33,8 @@ def _public_modules() -> list[ModuleType]:
     for module_info in pkgutil.walk_packages(
         evidence_discovery.__path__, evidence_discovery.__name__ + "."
     ):
-        if ".tests" in module_info.name:
+        # Evaluator-only reporting is physically isolated from method/provider surfaces.
+        if ".tests" in module_info.name or ".reporting" in module_info.name:
             continue
         modules.append(importlib.import_module(module_info.name))
     return modules
@@ -73,7 +74,8 @@ def _description_values(value: Any) -> list[str]:
 def test_production_source_and_registry_use_public_english_terminology() -> None:
     violations: list[str] = []
     for path in sorted((*METHOD_ROOT.rglob("*.py"), *METHOD_ROOT.rglob("*.json"))):
-        if "tests" in path.parts:
+        # Archive labels and provenance identifiers are not method public language.
+        if "tests" in path.parts or "reporting" in path.parts:
             continue
         text = path.read_text(encoding="utf-8")
         if HAN_TEXT.search(text):

@@ -19,7 +19,7 @@
 | report K/N/I；precision | `721/444/106；91.66%` | `276/134/102；80.08%` |
 | cluster K/N/I；precision | `689/419/100；91.72%` | `276/133/102；80.04%` |
 
-v60 FULL-hit max W 为 `W2/W1/W0 = 211/95/0`，`W2/全部 expected = 219/435`。`627` 条 W2 evidence record 与 `627` 个 audit bundle 一一对应。实际 terminal predicate execution 为 `1,237` 次，其中 pass=`608`、violation=`629`；使用的计划谓词为 `12/15`。baseline 的 162 个 record 没有 W 或 predicate receipt 字段，因此这些字段为 `not_applicable`。
+v60 FULL-hit max W 为 `W2/W1/W0 = 211/95/0`，`W2/全部 expected = 219/435`。`627` 条 W2 evidence record 与 `627` 个 audit bundle 一一对应。实际 terminal predicate execution 为 `1,237` 次，其中 pass=`608`、violation=`629`；使用的计划谓词为 `12/15`。X1v2 的 512 条 finding 已由 Judge-blinded 两轮独立逐条回溯审计覆盖：finding-level `W0/W1/W2 = 1/511/0`，r1=`1/172/0`、r2=`0/163/0`、r3=`0/176/0`；FULL-hit max `W2/W1/W0 = 0/211/0`，L2 FULL-hit max `0/46/0`，`W2/全部 expected = 0/435`。两轮标签没有 W 级分歧，独立语义复核支持一条 W1->W0 的受限 post-review correction。X1v2 predicate usage 仍为 `not_applicable`，因为它没有同构的 19-predicate terminal receipt schema。
 
 ## 发现与裁定
 

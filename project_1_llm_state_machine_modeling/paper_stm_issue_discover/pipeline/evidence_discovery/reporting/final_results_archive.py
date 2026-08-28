@@ -13,9 +13,16 @@ import json
 import re
 import shutil
 from collections import Counter, defaultdict
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
+from pipeline.evidence_discovery.reporting.x1v2_witness_audit import (
+    X1v2FullHitMaxWitnessAudit,
+    X1v2WitnessLevelAudit,
+    validate_x1v2_witness_audit_artifacts,
+    witness_audit_statistics,
+)
 
 ARCHIVE_SCHEMA = "paper1.final-results-archive.v1"
 SUMMARY_SCHEMA = "paper1.final-results-summary.v1"
@@ -26,6 +33,16 @@ EXCLUDED_RULES = [
     {"rule": "**/*.lock and **/*.part", "reason": "Transient runtime synchronization or interrupted-write state is not evidence."},
     {"rule": "**/launcher.log", "reason": "Reproducible process log is not required for metric, evidence, or cost recomputation."},
 ]
+
+
+def _manifest_generation_metadata(command: str) -> dict[str, str]:
+    """Describe the provider-free tool invocation that generated one manifest."""
+
+    return {
+        "generator": "pipeline.evidence_discovery.reporting.final_results_archive",
+        "generation_command": command,
+        "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+    }
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -452,6 +469,16 @@ def _summary(paths: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(f"expected 162 archived X1v2 records, found {len(baseline_records)}")
     baseline_record = _load(baseline_records[0])
     baseline_cost = _load(baseline / "method" / "corrected_cost_audit.json")
+    baseline_witness_path = archive / "derived" / "x1v2_witness_level_audit.json"
+    baseline_hit_witness_path = archive / "derived" / "x1v2_full_hit_max_witness_audit.json"
+    baseline_witness = (
+        witness_audit_statistics(
+            X1v2WitnessLevelAudit.model_validate(_load(baseline_witness_path)),
+            X1v2FullHitMaxWitnessAudit.model_validate(_load(baseline_hit_witness_path)),
+        )
+        if baseline_witness_path.is_file() and baseline_hit_witness_path.is_file()
+        else {"status": "not_applicable", "reason": "This archived summary predates the evaluator-only X1v2 manual W audit; once the audit is finalized, X1v2 W is derived from its manual finding labels rather than the predicate receipt schema."}
+    )
     current_cost = _load(current_eval / "judge_cost_audit.json").get("billing", {})
     return {
         "schema": SUMMARY_SCHEMA,
@@ -478,7 +505,7 @@ def _summary(paths: dict[str, Any]) -> dict[str, Any]:
                 "method": {"record_count": len(baseline_records), "profile": baseline_record.get("profile"), "configured_model": baseline_record.get("configured_model"), "source_commit": None, "reason": "The legacy X1v2 method record schema has 162 per-cell record.json files and no top-level source-commit summary."},
                 "judge": {"commit": baseline_composite.get("semantic_judge_commit"), "protocol": baseline_composite.get("protocol_version"), "profile": baseline_composite.get("model_profile"), "execution_erratum_commit": baseline_composite.get("execution_erratum_commit")},
                 "metrics": baseline_metrics,
-                "witness": {"status": "not_applicable", "reason": "X1v2 predates the 19-predicate W0/W1/W2 evidence model; its immutable method records contain neither typed predicate receipts nor witness levels."},
+                "witness": baseline_witness,
                 "predicate_usage": {"status": "not_applicable", "reason": "X1v2 has no isomorphic 19-predicate registry or terminal PredicateExecutionReceipt schema."},
                 "cost": {"method_usd": baseline_cost.get("corrected_method_cost_usd"), "method_cost_eligible": baseline_cost.get("cost_eligible"), "judge_recorded_usd": baseline_composite.get("total_incurred_cost_usd"), "judge_cost_eligible": True},
             },
@@ -507,6 +534,9 @@ def _write_manifests(paths: dict[str, Any], summary: dict[str, Any], source_args
             "known_data_gaps": summary["sides"][side].get("witness", {}).get("reason"),
             "reason": "Structured raw audit evidence is preserved separately from evaluator-derived summaries.",
             "basis": "File SHA-256 values and the provider-free recomputation command in README.md.",
+            **_manifest_generation_metadata(
+                "python3 -m pipeline.evidence_discovery.reporting.final_results_archive recompute --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline"
+            ),
         })
     _write(archive / "archive_manifest.json", {
         "schema": ARCHIVE_SCHEMA,
@@ -517,7 +547,28 @@ def _write_manifests(paths: dict[str, Any], summary: dict[str, Any], source_args
         "offline_recomputation_complete": True,
         "reason": "Final paper archive for two frozen experimental arms.",
         "basis": "Per-side manifests and deterministic offline recomputation.",
+        **_manifest_generation_metadata(
+            "python3 -m pipeline.evidence_discovery.reporting.final_results_archive recompute --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline"
+        ),
     })
+
+
+def recompute(args: argparse.Namespace) -> int:
+    """Refresh only evaluator-derived summary and manifests from archived immutable data."""
+
+    archive = args.archive_root.resolve()
+    paths = {"archive": archive, "current": archive / "raw" / "v60_current", "baseline": archive / "raw" / "x1v2_baseline"}
+    summary = _summary(paths)
+    _write(archive / "derived" / "recomputed_summary.json", summary)
+    source_args = argparse.Namespace(
+        current_method_root=Path(str(_load(paths["current"] / "archive_manifest.json")["source"]["method_root"])),
+        current_judge_root=Path(str(_load(paths["current"] / "archive_manifest.json")["source"]["judge_root"])),
+        baseline_method_root=Path(str(_load(paths["baseline"] / "archive_manifest.json")["source"]["method_root"])),
+        baseline_judge_composite=Path(str(_load(paths["baseline"] / "archive_manifest.json")["source"]["judge_composite"])),
+        baseline_cost_audit=Path(str(_load(paths["baseline"] / "archive_manifest.json")["source"]["cost_audit"])),
+    )
+    _write_manifests(paths, summary, source_args)
+    return 0
 
 
 def finalize(args: argparse.Namespace) -> int:
@@ -552,6 +603,19 @@ def finalize(args: argparse.Namespace) -> int:
         "basis": "Per-side archive manifests generated from the declared immutable source roots.",
         "mappings": mappings,
     })
+    _write(archive / "archive_manifest.json", {
+        "schema": ARCHIVE_SCHEMA,
+        "artifact_id": "v60-current-vs-x1v2-baseline",
+        "archive_relative_path": str(archive.relative_to(archive.parents[4])),
+        "included_files": _file_manifest(archive, excluded_relative_paths={"archive_manifest.json", "publication_manifest.json"}),
+        "excluded_rules": EXCLUDED_RULES,
+        "offline_recomputation_complete": True,
+        "reason": "Top-level archive manifest regenerated after all evaluator-derived reports and review records are present.",
+        "basis": "Every listed file has a stable repository-relative path, byte count, and SHA-256; publication_manifest.json is finalized afterward.",
+        **_manifest_generation_metadata(
+            "python3 -m pipeline.evidence_discovery.reporting.final_results_archive finalize --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline"
+        ),
+    })
     _write(archive / "publication_manifest.json", {
         "schema": ARCHIVE_SCHEMA,
         "artifact_id": "v60-current-vs-x1v2-baseline-publication",
@@ -561,6 +625,9 @@ def finalize(args: argparse.Namespace) -> int:
         "offline_recomputation_complete": True,
         "reason": "Publication manifest for archived raw evidence, derived summaries, report, and review records.",
         "basis": "The validate command checks every listed SHA-256, then recomputes the metrics from archived raw inputs without a provider.",
+        **_manifest_generation_metadata(
+            "python3 -m pipeline.evidence_discovery.reporting.final_results_archive finalize --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline"
+        ),
     })
     return 0
 
@@ -581,7 +648,11 @@ def validate(args: argparse.Namespace) -> int:
     archive = args.archive_root.resolve()
     _validate_archive_metadata(archive)
     _validate_markdown_links(archive)
-    for manifest_path in (archive / "raw" / "v60_current" / "archive_manifest.json", archive / "raw" / "x1v2_baseline" / "archive_manifest.json"):
+    for manifest_path in (
+        archive / "archive_manifest.json",
+        archive / "raw" / "v60_current" / "archive_manifest.json",
+        archive / "raw" / "x1v2_baseline" / "archive_manifest.json",
+    ):
         manifest = _load(manifest_path)
         root = manifest_path.parent
         for item in manifest["included_files"]:
@@ -589,6 +660,12 @@ def validate(args: argparse.Namespace) -> int:
             if not path.is_file() or path.stat().st_size != item["bytes"] or _sha256(path) != item["sha256"]:
                 raise ValueError(f"manifest mismatch: {path}")
     paths = {"archive": archive, "current": archive / "raw" / "v60_current", "baseline": archive / "raw" / "x1v2_baseline"}
+    witness_audit = archive / "derived" / "x1v2_witness_level_audit.json"
+    witness_hit_audit = archive / "derived" / "x1v2_full_hit_max_witness_audit.json"
+    if witness_audit.is_file() or witness_hit_audit.is_file():
+        if not (witness_audit.is_file() and witness_hit_audit.is_file()):
+            raise ValueError("X1v2 witness audit and full-hit witness audit must be present together")
+        validate_x1v2_witness_audit_artifacts(archive, _repository_root())
     regenerated = _summary(paths)
     recorded = _load(archive / "derived" / "recomputed_summary.json")
     if regenerated != recorded:
@@ -626,6 +703,8 @@ def _parser() -> argparse.ArgumentParser:
     build_parser.add_argument("--source-catalog", type=Path, required=True)
     validate_parser = subparsers.add_parser("validate")
     validate_parser.add_argument("--archive-root", type=Path, required=True)
+    recompute_parser = subparsers.add_parser("recompute")
+    recompute_parser.add_argument("--archive-root", type=Path, required=True)
     finalize_parser = subparsers.add_parser("finalize")
     finalize_parser.add_argument("--archive-root", type=Path, required=True)
     return parser
@@ -639,6 +718,8 @@ def main(argv: list[str] | None = None) -> int:
         return build(args)
     if args.command == "finalize":
         return finalize(args)
+    if args.command == "recompute":
+        return recompute(args)
     return validate(args)
 
 

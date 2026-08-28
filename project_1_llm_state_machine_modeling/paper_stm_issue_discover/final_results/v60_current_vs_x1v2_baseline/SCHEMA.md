@@ -4,7 +4,7 @@
 
 `raw/<side>/method/` 与 `raw/<side>/judge/` 是从冻结运行制品复制的结构化审计面；它们不由本目录内的 reporting 工具修改。`derived/recomputed_summary.json` 是唯一的派生汇总，生成器为 `pipeline.evidence_discovery.reporting.final_results_archive`。`reference/ledger.json` 只由 evaluator 用于识别 expected issue 和 L2，不进入 method 输入。
 
-每侧 `archive_manifest.json` 列出原始审计文件、字节数和 `sha256`。顶层 `archive_manifest.json` 覆盖 raw、reference 和当时的派生文件；最终的 `publication_manifest.json` 覆盖除自身外的整个目录，包括报告和审查记录。`validate` 同时验证 side manifests、publication manifest（存在时）、manifest/summary/provenance schema、archive-relative provenance 映射、Markdown 本地链接和离线重算结果。Markdown 链接可指向同一仓库的稳定文件，但不得回指临时 `runs/`。
+每侧 `archive_manifest.json` 列出原始审计文件、字节数和 `sha256`，并记录 `generator`、`generation_command` 与 `generated_at_utc`。顶层 `archive_manifest.json` 覆盖 raw、reference 和派生文件；最终的 `publication_manifest.json` 覆盖除自身外的整个目录，包括报告和审查记录。`validate` 同时验证 side manifests、top-level manifest、publication manifest（存在时）、manifest/summary/provenance schema、archive-relative provenance 映射、Markdown 本地链接和离线重算结果。Markdown 链接可指向同一仓库的稳定文件，但不得回指临时 `runs/`。
 
 ## Universe 与 hit
 
@@ -28,7 +28,9 @@ cluster-level 先以 `pair_id + round + root_cause_cluster_key` 分组。一个 
 
 ## W 与谓词
 
-v60 的 `full_hit_max_witness` 对每个 `FULL` expected row 取其 supporting witness 中最高的 `W2`、`W1` 或 `W0`，分母是 FULL hit 数，而非全部 finding。`w2_all_expected` 的分母为 435，二者不能互换。
+W 是 finding 的证据/见证强度，而不是 19 谓词专属字段。W0 没有足够具体、可核对的模型元素或路径定位；W1 已定位 state、transition、guard、action、缺失边、模型片段或有限路径，但没有该方法产生且在精确制品上终止求值的对象；W2 还需要原方法产生的可执行对象、运行期 terminal receipt、精确 artifact hash 和 terminal result。later Judge 的事实核验不能倒灌形成 method W2。
+
+v60 的 `full_hit_max_witness` 对每个 `FULL` expected row 取其 supporting witness 中最高的 `W2`、`W1` 或 `W0`，分母是 FULL hit 数，而非全部 finding。`w2_all_expected` 的分母为 435，二者不能互换。X1v2 的 `witness` 来自 `derived/x1v2_witness_level_audit.json`：两名独立 reviewer 对全部 512 条冻结 finding 逐条阅读原始 finding、hash-verified NL/PlantUML 和 record；其 `paper1.x1v2-witness-review-packet.v2` 审阅包不包含 Judge 路径、hash、validity、expected relation 或 ledger ID，Judge 关联只在双审后用于 evaluator 聚合。`paper1.x1v2-witness-level-audit.v3` 保留两次 review；pane5 裁决实际 W-level 分歧，或在 archive 内独立 review 明确指出共同误标时记录受 allowlist 限制的 `post_review_correction`。`derived/x1v2_full_hit_max_witness_audit.json` 只对 `expected_outcomes[].full_report_ids` 聚合，绝不以 `partial_report_ids` 抬高 FULL hit。
 
 `predicate_table` 按冻结 registry 的 19 个 ID 给出：
 
@@ -39,7 +41,7 @@ v60 的 `full_hit_max_witness` 对每个 `FULL` expected row 取其 supporting w
 - `input_contract_missing`、`out_of_fragment`、`failure_kinds`：未形成 terminal W2 的结构化退化原因。
 - `witness_counts`：该 predicate 支持的 W0/W1/W2 finding 数；它不是 FULL-hit max-W 分布。
 
-19 个 registry predicate 是冻结实现全集；`planned_predicates` 是本次 full-scale-15 的 15 个计划 ID；实际使用是其中 terminal receipt 大于零的 ID 数。X1v2 不具有同构的 19 谓词 receipt schema，因此其 W 与 predicate 统计为 `not_applicable`。
+19 个 registry predicate 是冻结实现全集；`planned_predicates` 是本次 full-scale-15 的 15 个计划 ID；实际使用是其中 terminal receipt 大于零的 ID 数。X1v2 不具有同构的 19 谓词 receipt schema，因此其 predicate usage、pass/violation 与 terminal receipt 统计为 `not_applicable`；X1v2 的 W 仍以人工回溯审计独立报告。
 
 ## 成本和已知缺口
 

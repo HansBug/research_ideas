@@ -6,13 +6,14 @@
 
 ## 结论
 
-未发现高严重度语义错误。报告正确地区分 W、Judge relation、K/N/I、predicate provenance 与 runtime W2；未把 bibliography 当作 W2 gate，未将 `VALID_NOVEL` 写成 FP，也未排除 W1 对 `VALID_KNOWN`/FULL 的支持。
+未发现高严重度语义错误。报告正确地区分 W、Judge relation、K/N/I、predicate provenance 与 runtime W2；未把 bibliography 当作 W2 gate，未将 `VALID_NOVEL` 写成 FP，也未排除 W1 对 `VALID_KNOWN`/FULL 的支持。X1v2 的 W 被正确视为 finding evidence axis，而不是 19-predicate receipt 的别名。
 
 ## 发现与修正
 
 - M：原稿只写“publication 依赖 D 判定”，未说明 D 与 Judge validity 不同。已补充：`D2/D1` 进入方法发布面，`D0` 不发布；Judge 独立裁定 validity 与 expected relation。
 - M：原稿的 “L1/L2 只来自外置 ledger”可能被读成重定义 L。已改为：报告 L2 子集取 ledger `l_level`；L 是 issue #189 信息需求维度，method 不在运行时输出或裁定 `l_level`。
 - M：原稿的泛化限制过于笼统。已明确不覆盖时钟、不变式、正交 region/并发、hybrid 或无界时序语义。
+- M：原稿把 X1v2 W 写为 `not_applicable`，混淆“无同构谓词 usage”与“没有证据等级”。已按 issue #189 的三档语义完成 512 条 Judge-blinded 回溯双审：X1v2 无自身运行期 executable witness，因此不产生 W2；具体定位的 finding 仍可为 W1，不能因无工具被一律写成 W0。审阅包不暴露 Judge 路径、hash、validity、expected relation 或 ledger ID，Judge 关联仅在双审后用于 hit 聚合。后续独立语义复核发现 `0036:r1:0036:r1:baseline_issue_4` 的 whole-model 表述没有可核对 carrier；两轮虽共同标 W1，最终以受限 post-review correction 裁为 W0。该修正不使用 Judge linkage，也不影响 hit 级 W。
 
 registry `source_types` 与 catalog 实际 `types` 在 `G1/G2/G4/R1/R2/R4/V1/V2/V4/V5` 上存在元数据差异。报告没有生成来源类型覆盖统计，也没有断言所有谓词具有同一来源类型组合；该风险不阻断报告，但后续不能直接按 registry `source_types` 统计类型覆盖。
 
