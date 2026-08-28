@@ -157,6 +157,19 @@ def _judge_result_index(
         for receipt in receipts:
             key = (int(receipt["round"]), str(receipt["pair_id"]))
             path = Path(str(receipt["result_path"])).expanduser().resolve()
+            # Archived composite summaries retain the original run path as
+            # provenance.  Prefer the archive-local selected pair bytes even
+            # when the transient original run happens to remain on this host.
+            source_run_id = str(receipt.get("source_run_id") or "")
+            archived_path = (
+                judge_root.parent
+                / "source_runs"
+                / source_run_id
+                / "pairs"
+                / f"{key[1]}.json"
+            )
+            if archived_path.is_file():
+                path = archived_path.resolve()
             if not path.is_file():
                 raise FileNotFoundError(path)
             expected_hash = str(receipt.get("result_hash") or "")
@@ -677,29 +690,42 @@ def build_stage_loss_audit(
     judge_root: str | Path,
     applicability_path: str | Path | None = None,
     planned_predicate_scope: PlannedPredicateScope | None = None,
+    selected_pair_ids: tuple[str, ...] | None = None,
+    selected_rounds: tuple[int, ...] | None = None,
 ) -> dict[str, Any]:
-    """Build stage-loss, feasibility, and W2 closure artifacts from completed runs."""
+    """Build stage-loss, feasibility, and W2 closure artifacts from completed runs.
+
+    Optional selections only restrict an already terminal method/Judge universe;
+    they never synthesize cells or alter the default full-run behavior.
+    """
 
     method_root_path = Path(method_root).expanduser().resolve()
     judge_root_path = Path(judge_root).expanduser().resolve()
     manifest = _load(method_root_path / "run_manifest.json")
-    pair_ids = tuple(str(item) for item in manifest.get("selected_pair_ids", ()))
-    if not pair_ids:
+    manifest_pair_ids = tuple(str(item) for item in manifest.get("selected_pair_ids", ()))
+    if not manifest_pair_ids:
         raise ValueError("method manifest has no selected_pair_ids")
-    rounds = _method_rounds(manifest)
+    pair_ids = selected_pair_ids or manifest_pair_ids
+    if not pair_ids or not set(pair_ids).issubset(manifest_pair_ids):
+        raise ValueError("stage-loss selected pairs must be a non-empty method-manifest subset")
+    manifest_rounds = _method_rounds(manifest)
+    rounds = selected_rounds or manifest_rounds
+    if not rounds or not set(rounds).issubset(manifest_rounds):
+        raise ValueError("stage-loss selected rounds must be a non-empty method-manifest subset")
     judge_results, judge_pair_ids, judge_rounds = _judge_result_index(judge_root_path)
-    if set(judge_pair_ids) != set(pair_ids) or set(judge_rounds) != set(rounds):
+    expected_keys = {(round_no, pair_id) for round_no in rounds for pair_id in pair_ids}
+    if not expected_keys.issubset(judge_results):
         raise ValueError(
             "method/Judge pair-round closure mismatch: "
             f"method_pairs={pair_ids}, judge_pairs={judge_pair_ids}, "
             f"method_rounds={rounds}, judge_rounds={judge_rounds}"
         )
-    expected_keys = {(round_no, pair_id) for round_no in rounds for pair_id in pair_ids}
-    if set(judge_results) != expected_keys:
+    if selected_pair_ids is None and selected_rounds is None and set(judge_results) != expected_keys:
         raise ValueError(
             f"Judge result closure mismatch: missing={sorted(expected_keys - set(judge_results))}, "
             f"extra={sorted(set(judge_results) - expected_keys)}"
         )
+    judge_results = {key: judge_results[key] for key in expected_keys}
     method_indexes: dict[tuple[int, str], dict[str, Any]] = {}
     method_paths: dict[str, str] = {}
     for round_no in rounds:

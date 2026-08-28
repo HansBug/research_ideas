@@ -127,3 +127,25 @@ def test_installed_evaluator_can_receive_an_explicit_repository_root(tmp_path: P
     )
     assert args.archive_root == archive
     assert args.repository_root == repository
+
+
+def test_release_validation_planned_usage_excludes_extra_terminal_predicates() -> None:
+    """The fixed 12-predicate denominator cannot be inflated by extra receipts."""
+
+    from paper_stm_evaluation.release_validation import _planned_terminal_distinct_count
+
+    legacy_usage = {
+        "planned_predicates": ["S1", "S2", "S3", "S4", "S5", "S6", "G1", "G4", "R1", "R4", "V1", "V4"],
+        "terminal_distinct_predicates": ["S1", "S2", "S3", "S4", "S5", "G1", "G4", "R1", "R4", "V4", "R2"],
+    }
+    assert _planned_terminal_distinct_count(legacy_usage) == 10
+
+
+def test_release_validation_subset_input_hash_is_canonical() -> None:
+    """Subset input contracts use the same stable JSON hash form as the runner."""
+
+    from paper_stm_evaluation.release_validation import _canonical_hash
+
+    assert _canonical_hash({"pair_input_hashes": {"0002": "sha256:b", "0001": "sha256:a"}}) == _canonical_hash(
+        {"pair_input_hashes": {"0001": "sha256:a", "0002": "sha256:b"}}
+    )
