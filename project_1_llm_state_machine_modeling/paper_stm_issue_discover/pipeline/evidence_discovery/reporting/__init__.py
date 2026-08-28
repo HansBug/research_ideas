@@ -22,7 +22,6 @@ _COMPATIBLE_MODULES = (
     "cost_correction",
     "evaluation_summary",
     "expected_issue_witness",
-    "final_results_archive",
     "judge_cost_audit",
     "judge_input_projection",
     "method_composite",
