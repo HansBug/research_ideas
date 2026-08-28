@@ -26,6 +26,11 @@
 
 predicate registry、source catalog 和 Judge issue #195 snapshot 保留原始字节与哈希。发布包内的受控副本由资源一致性测试对拍权威来源；加载使用 `importlib.resources` 或显式资源根，不允许依赖仓库深度。旧模块路径可保留无业务逻辑的兼容 re-export，兼容层不进入 method release allowlist。
 
+`build_method_release.py` 与 `build_judge_release.py` 都只能从干净 tracked Git tree
+按其机器可读 allowlist 作字节复制，输出必须位于 checkout 外。method 发布清单只含
+method 和中立 `utils`；Judge 发布清单只含 Judge、issue #195 snapshot 和同一份中立
+`utils`。两者都不复制对方的业务代码、ledger、baseline、final results 或 runs。
+
 ## 风险与暂缓项
 
 - `runner.py`、`frontier.py` 不做内部拆分；只允许整体机械迁移。

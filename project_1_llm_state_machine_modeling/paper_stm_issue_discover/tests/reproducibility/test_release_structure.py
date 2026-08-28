@@ -58,3 +58,19 @@ def test_release_builder_refuses_to_write_inside_the_source_checkout() -> None:
 
     with pytest.raises(ValueError, match="outside the source checkout"):
         module._validate_output_path(REPOSITORY, REPOSITORY / "release-output")
+
+
+def test_judge_release_allowlist_excludes_method_and_evaluation() -> None:
+    """The independent Judge release keeps only Judge and neutral utility sources."""
+
+    import json
+
+    allowlist = json.loads(
+        (
+            REPOSITORY
+            / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/judge/release_allowlist.json"
+        ).read_text(encoding="utf-8")
+    )
+    sources = {entry["source"] for entry in allowlist["entries"]}
+    assert all(not source.startswith(("method/", "evaluation/")) for source in sources)
+    assert "utils/stm_artifacts" in sources

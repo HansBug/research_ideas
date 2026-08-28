@@ -12,3 +12,16 @@ live Judge run. Provider use remains explicit through `--allow-live`.
 
 Repository-based development adds the root `utils/` package to the import
 path. The method release intentionally excludes this Judge package.
+
+Build an independent Judge release with its exact neutral utility allowlist:
+
+```bash
+venv/bin/python project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/release/build_judge_release.py \
+  --output /tmp/paper-stm-judge-release
+python -m pip install "/tmp/paper-stm-judge-release[test]"
+paper-stm-semantic-judge --help
+```
+
+The builder never copies method, evaluation, ledger, baseline, final-results,
+run, or legacy material. The released package has no provider side effect until
+the explicit Judge live-run gate is invoked.

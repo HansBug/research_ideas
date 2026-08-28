@@ -39,7 +39,7 @@ class ReleaseAllowlist(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    schema_version: Literal["paper1.method-release-allowlist.v1"] = Field(description="Versioned release allowlist schema identifier.")
+    schema_version: Literal["paper1.release-allowlist.v1"] = Field(description="Versioned release allowlist schema identifier.")
     package_name: str = Field(min_length=1, description="Published distribution name represented by this allowlist.")
     source_commit_requirement: str = Field(min_length=1, description="Required source-tree provenance condition before a release build.")
     entries: tuple[ReleaseEntry, ...] = Field(min_length=1, description="Complete, ordered set of permitted source copy rules.")
@@ -63,8 +63,8 @@ class ReleaseManifest(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    schema_version: Literal["paper1.method-release-manifest.v1"] = Field(
-        default="paper1.method-release-manifest.v1",
+    schema_version: Literal["paper1.release-manifest.v1"] = Field(
+        default="paper1.release-manifest.v1",
         description="Versioned generated release manifest schema identifier.",
     )
     source_commit: str = Field(pattern=r"^[0-9a-f]{40}$", description="Clean Git commit supplying every copied release byte.")
@@ -181,12 +181,17 @@ def _validate_output_path(repository: Path, output: Path) -> None:
     raise ValueError("release output must be outside the source checkout")
 
 
-def build(*, output: Path, root: Path | None = None) -> ReleaseManifest:
-    """Copy exactly allowlisted bytes into an empty output directory and manifest them."""
+def build(
+    *,
+    output: Path,
+    root: Path | None = None,
+    allowlist_relative: str = "method/release_allowlist.json",
+) -> ReleaseManifest:
+    """Copy one paper1 release allowlist into an empty output directory and manifest it."""
 
     repository = root or _repository_root()
     commit = _clean_commit(repository)
-    allowlist_path = repository / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/method/release_allowlist.json"
+    allowlist_path = repository / PAPER_ROOT / _safe_relative(allowlist_relative)
     allowlist_bytes = allowlist_path.read_bytes()
     allowlist = ReleaseAllowlist.model_validate_json(allowlist_bytes)
     output = output.expanduser().resolve()
