@@ -21,7 +21,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
-    manifest = build(output=args.output, allowlist_relative="judge/release_allowlist.json")
+    manifest = build(
+        output=args.output,
+        allowlist_relative="judge/release_allowlist.json",
+        manifest_schema_version="paper-stm-judge.release-manifest.v1",
+    )
     print(manifest.model_dump_json(indent=2))
     return 0
 

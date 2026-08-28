@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+from importlib import resources as package_resources
 import json
 import os
+import re
 import subprocess
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -81,13 +83,80 @@ def _require_clean_commit(repository_root: Path) -> str:
     return _git_value(repository_root, "rev-parse", "HEAD")
 
 
-def _repository_root() -> Path:
-    """Resolve the enclosing Git root without depending on package depth."""
+def _source_repository_root() -> Path | None:
+    """Find a source checkout enclosing the Judge package, if this is one."""
 
-    return Path(
-        subprocess.check_output(("git", "rev-parse", "--show-toplevel"), text=True)
-        .strip()
+    return next(
+        (parent for parent in Path(__file__).resolve().parents if (parent / ".git").exists()),
+        None,
     )
+
+
+def _release_manifest_file(destination: str):
+    """Map a release manifest destination to an installed executable package resource."""
+
+    prefix = "src/paper_stm_judge/"
+    if destination.startswith(prefix):
+        return package_resources.files("paper_stm_judge").joinpath(
+            destination.removeprefix(prefix)
+        )
+    prefix = "src/utils/"
+    if destination.startswith(prefix):
+        return package_resources.files("utils").joinpath(destination.removeprefix(prefix))
+    return None
+
+
+def _release_source_commit() -> str | None:
+    """Verify installed Judge bytes against the builder manifest and return its commit."""
+
+    try:
+        manifest = json.loads(
+            package_resources.files("paper_stm_judge")
+            .joinpath("release_manifest.json")
+            .read_text(encoding="utf-8")
+        )
+        source_commit = str(manifest["source_commit"])
+        files = manifest["files"]
+        if (
+            manifest.get("schema_version") != "paper-stm-judge.release-manifest.v1"
+            or not re.fullmatch(r"[0-9a-f]{40}", source_commit)
+            or not isinstance(files, list)
+        ):
+            return None
+        checked_files = 0
+        for item in files:
+            if not isinstance(item, dict):
+                return None
+            destination = item.get("destination")
+            expected_hash = item.get("sha256")
+            if not isinstance(destination, str) or not isinstance(expected_hash, str):
+                return None
+            resource = _release_manifest_file(destination)
+            if resource is None:
+                continue
+            actual_hash = "sha256:" + hashlib.sha256(resource.read_bytes()).hexdigest()
+            if actual_hash != expected_hash:
+                return None
+            checked_files += 1
+        if checked_files == 0:
+            return None
+    except (KeyError, OSError, TypeError, ValueError):
+        return None
+    return source_commit
+
+
+def _code_commit() -> str:
+    """Read clean Git provenance or a verified installed-release provenance manifest."""
+
+    repository_root = _source_repository_root()
+    if repository_root is not None:
+        return _require_clean_commit(repository_root)
+    source_commit = _release_source_commit()
+    if source_commit is None:
+        raise RuntimeError(
+            "live semantic Judge requires a clean source checkout or a valid installed release manifest"
+        )
+    return source_commit
 
 
 def _source_path(
@@ -172,9 +241,8 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if not args.allow_live:
         raise SystemExit("real Judge calls require explicit --allow-live")
-    repository_root = _repository_root()
     verify_snapshot()
-    code_commit = _require_clean_commit(repository_root)
+    code_commit = _code_commit()
     report_root = args.report_root.expanduser().resolve()
     ledger_path = args.ledger.expanduser().resolve()
     source_root = args.source_root.expanduser().resolve()

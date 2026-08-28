@@ -62,12 +62,18 @@ class ReleaseFile(BaseModel):
     purpose: str = Field(min_length=1, description="Allowlist purpose inherited from the source entry.")
 
 
+ReleaseManifestSchema = Literal[
+    "paper-stm-method.release-manifest.v1",
+    "paper-stm-judge.release-manifest.v1",
+]
+
+
 class ReleaseManifest(BaseModel):
-    """Deterministic generated manifest for one method release build."""
+    """Deterministic generated manifest for one allowlisted package release build."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    schema_version: Literal["paper-stm-method.release-manifest.v1"] = Field(
+    schema_version: ReleaseManifestSchema = Field(
         default="paper-stm-method.release-manifest.v1",
         description="Versioned generated release manifest schema identifier.",
     )
@@ -190,6 +196,7 @@ def build(
     output: Path,
     root: Path | None = None,
     allowlist_relative: str = "method/release_allowlist.json",
+    manifest_schema_version: ReleaseManifestSchema = "paper-stm-method.release-manifest.v1",
 ) -> ReleaseManifest:
     """Copy one paper1 release allowlist into an empty output directory and manifest it."""
 
@@ -228,6 +235,7 @@ def build(
     ordered = tuple(sorted(files, key=lambda item: item.destination))
     _reject_leaks(repository, ordered)
     manifest = ReleaseManifest(
+        schema_version=manifest_schema_version,
         source_commit=commit,
         allowlist_sha256="sha256:" + hashlib.sha256(allowlist_bytes).hexdigest(),
         files=ordered,

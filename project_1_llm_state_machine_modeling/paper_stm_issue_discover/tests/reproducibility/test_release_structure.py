@@ -76,6 +76,39 @@ def test_judge_release_allowlist_excludes_method_and_evaluation() -> None:
     assert "utils/stm_artifacts" in sources
 
 
+def test_release_manifest_supports_distinct_method_and_judge_namespaces() -> None:
+    """The shared byte-copy builder does not label a Judge release as method material."""
+
+    builder_path = REPOSITORY / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/release/build_method_release.py"
+    specification = importlib.util.spec_from_file_location("method_release_schema", builder_path)
+    assert specification and specification.loader
+    module = importlib.util.module_from_spec(specification)
+    sys.modules[specification.name] = module
+    specification.loader.exec_module(module)
+
+    manifest = module.ReleaseManifest(
+        schema_version="paper-stm-judge.release-manifest.v1",
+        source_commit="a" * 40,
+        allowlist_sha256="sha256:" + "b" * 64,
+        files=(
+            module.ReleaseFile(
+                source="judge/src/paper_stm_judge/__init__.py",
+                destination="src/paper_stm_judge/__init__.py",
+                sha256="sha256:" + "c" * 64,
+                byte_count=1,
+                purpose="Judge package marker.",
+            ),
+        ),
+        file_count=1,
+        total_bytes=1,
+        provider_call_count=0,
+        billable_call_count=0,
+        reason="Provider-free byte copy.",
+        basis="Test fixture.",
+    )
+    assert manifest.schema_version == "paper-stm-judge.release-manifest.v1"
+
+
 def test_installed_evaluator_can_receive_an_explicit_repository_root(tmp_path: Path) -> None:
     """Archive link validation supports an evaluator installed outside the checkout."""
 
