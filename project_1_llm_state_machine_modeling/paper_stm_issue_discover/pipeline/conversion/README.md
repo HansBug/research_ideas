@@ -1,6 +1,6 @@
 # conversion/ — PlantUML → canonical JSON（输入准备链第一段）
 
-> 🟡 **产物已冻结，按需重跑。** 本目录不是方法主张，是**输入准备**：把作者生成的 PlantUML / Umple `STM_0` 转成结构化 canonical，交给 [../representation/](../representation/) 降到 `.fcstm`，最终喂给 [../feedback_loop/](../feedback_loop/)。
+本目录保存输入准备和 provenance 工具，不是当前 method 的运行入口。它把作者 PlantUML / Umple `STM_0` 转成 structured canonical，交给 [representation/](../representation/README.md) 形成冻结输入闭包；当前方法从 [method/](../../method/README.md) 的输入闭包读取这些制品。`feedback_loop` 已归档到 [archive/legacy/feedback_loop/](../../archive/legacy/feedback_loop/README.md)，不属于当前流程。
 >
 > | 问题 | 答案 |
 > | :-- | :-- |

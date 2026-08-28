@@ -49,3 +49,9 @@ release structure，而不能声称可公开再分发，也不能创建最终 re
 
 除 method source 的权利人许可证授权外，未发现仍存的技术高严重度发布问题。本复核没有
 修改文件、调用 provider 或启动实验。
+
+## 2026-08-28 后续裁定
+
+本节是后续 resolution，不倒改上文审查时的事实。权利人尚未指定 method-source LICENSE，`method/NOTICE.md` 也不授予公开再分发许可；因此它仍阻塞正式对外公开分发及相应法律声明。
+
+该许可证缺口不阻塞仓库内部 technical release candidate、发布包构建、clean-install 技术验收或固定 15-pair x 1 method + Judge 回归。后续技术制品和独立 raw audit 已保存于 [release_validation/](../../release_validation/README.md)，其结论不把内部 RC 表述为对外发布。正式公开再分发前仍须由权利人明确选择并提交 LICENSE。

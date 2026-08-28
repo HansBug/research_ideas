@@ -75,7 +75,7 @@
 2. ⭐ **前车之鉴，必读**：[../discover_matrix/docs/generations/v25/wellformedness_axioms.md](../../../discover_matrix/docs/generations/v25/wellformedness_axioms.md)。本文件 §2 是对它的机制拆解。
 3. 口径真源：[../discover_matrix/docs/protocol/method_provenance_policy.md](../../../discover_matrix/docs/protocol/archive/legacy_20260821/method_provenance_policy.md)（尤其 §一.2 的三类来源表与 §二 的 R1–R4）。
 4. 数字真源：`python3 discover_matrix/predicate_usage.py`（[../discover_matrix/predicate_usage.py](../../../archive/r10_ledger_v1_and_v46/scripts/predicate_usage.py)）。
-5. 谓词定义真源：[../pipeline/feedback_loop/src/paper_stm_feedback_loop/discover/predicates.py](../../../pipeline/feedback_loop/src/paper_stm_feedback_loop/discover/predicates.py)。
+5. 谓词定义真源：[../archive/legacy/feedback_loop/src/paper_stm_feedback_loop/discover/predicates.py](../../../archive/legacy/feedback_loop/src/paper_stm_feedback_loop/discover/predicates.py)。
 
 ⚠️ **本文件引用 `story/paper_story.md` 的 §号与逐字片段，取自 S1 冻结前的 placeholder 版本**（仓库 commit `12f245f3` 时点）。伞 PR §3 第 3 条要求 S1 交付时冻结 §编号；L2 执行者**开工第一件事是拿冻结版重新对齐本文件 §3.5 / §5.4 / §6.3 的锚点**，对不上的逐条改写、不得沿用。
 

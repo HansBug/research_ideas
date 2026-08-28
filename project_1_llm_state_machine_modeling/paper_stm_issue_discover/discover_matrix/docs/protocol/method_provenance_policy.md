@@ -1,6 +1,6 @@
 # 方法谓词与出处政策
 
-**状态：** 当前有效。**适用范围：** paper1 method、评测记录和论文叙事。唯一 registry 是 [predicate_registry.json](../../../pipeline/evidence_discovery/predicate_registry.json)。
+**状态：** 当前有效。**适用范围：** paper1 method、评测记录和论文叙事。唯一 registry 是 [predicate_registry.json](../../../method/src/paper_stm_method/resources/predicate_registry.json)。
 
 ## 冻结谓词与来源
 

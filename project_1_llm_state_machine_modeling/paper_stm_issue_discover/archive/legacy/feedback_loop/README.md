@@ -53,7 +53,7 @@ prepare
 
 ## 5. 输入从哪来
 
-`--pair-id` 模式下，输入根**不是** [../../selected_seed_examples/](../../selected_seed_examples/)，而是由 [`discover/cli.py`](./src/paper_stm_feedback_loop/discover/cli.py) 的 `REPORT_ROOT` 硬指向：
+`--pair-id` 模式下，输入根**不是** [../../../selected_seed_examples/](../../../selected_seed_examples/)，而是由 [`discover/cli.py`](./src/paper_stm_feedback_loop/discover/cli.py) 的 `REPORT_ROOT` 硬指向：
 
 ```text
 ../representation/reports/llms_emp_r45_java_60/
@@ -75,15 +75,15 @@ make discover-pair DISCOVER_PAIR=llms_emp_feedback_final_0029 DISCOVER_PROFILE=g
 make discover-test
 
 # 本目录 Makefile
-make -C .../pipeline/feedback_loop discover-demo
-make -C .../pipeline/feedback_loop discover-pair PAIR_ID=llms_emp_feedback_final_0029 PROFILE=gpt-5.5
-make -C .../pipeline/feedback_loop test        # 亦有 lint / compileall / help
+make -C .../archive/legacy/feedback_loop discover-demo
+make -C .../archive/legacy/feedback_loop discover-pair PAIR_ID=llms_emp_feedback_final_0029 PROFILE=gpt-5.5
+make -C .../archive/legacy/feedback_loop test        # 亦有 lint / compileall / help
 ```
 
 等价 Python 入口：
 
 ```bash
-PYTHONPATH=.../pipeline/feedback_loop/src:$PWD \
+PYTHONPATH=.../archive/legacy/feedback_loop/src:$PWD \
 python -m paper_stm_feedback_loop.discover --help
 ```
 
@@ -112,7 +112,7 @@ python -m paper_stm_feedback_loop.discover --help
 
 ## 8. 相关入口
 
-- [../README.md](../README.md)：pipeline 导航与「哪个目录在跑」判定表
-- [../../discover_matrix/](../../discover_matrix/)：评测、台账、判定口径、代次结果
-- [../../discover_matrix/docs/protocol/](../../discover_matrix/docs/protocol/)：判定口径文档；**改它们等于改研究规则**
-- [../../archive/r9_agent_loop_pipeline/agent_loop/README.md](../../archive/r9_agent_loop_pipeline/agent_loop/README.md)：上一版实现的设计记录（⚠️ 2026-08-11 已归档，复活导引见 [ARCHIVE_README.md](../../archive/r9_agent_loop_pipeline/ARCHIVE_README.md)）
+- [../../../pipeline/README.md](../../../pipeline/README.md)：pipeline 导航与「哪个目录在跑」判定表
+- [../../../discover_matrix/](../../../discover_matrix/)：评测、台账、判定口径、代次结果
+- [../../../discover_matrix/docs/protocol/](../../../discover_matrix/docs/protocol/)：判定口径文档；**改它们等于改研究规则**
+- [../../r9_agent_loop_pipeline/agent_loop/README.md](../../r9_agent_loop_pipeline/agent_loop/README.md)：上一版实现的设计记录（⚠️ 2026-08-11 已归档，复活导引见 [ARCHIVE_README.md](../../r9_agent_loop_pipeline/ARCHIVE_README.md)）

@@ -29,6 +29,11 @@ def test_release_validator_preserves_frozen_archive_nodes_resources_and_boundari
 
     result = _module().validate(REPOSITORY, REPOSITORY / "venv/bin/python")
     assert result.frozen_archive_files_checked == 2671
+    assert result.documented_archive_change_paths == (
+        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/README.md",
+        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/archive_manifest.json",
+        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/publication_manifest.json",
+    )
     assert (result.baseline_node_count, result.current_node_count) == (465, 465)
     assert result.resource_hashes["registry"] == "sha256:38fa2e8060ff822836a3e6437a271998690d36cf60822053316eb21cda2015ca"
     assert result.resource_hashes["judge_protocol"] == "sha256:d774d9bd3e4c4fe04735ed1d4ec064be197cfadcd52e21c8226e37175b29b210"

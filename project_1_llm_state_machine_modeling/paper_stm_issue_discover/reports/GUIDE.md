@@ -1,6 +1,6 @@
-# reports/GUIDE.md — 研究报告维护规范
+# reports/GUIDE.md — 历史报告维护规范
 
-本文件约束 `paper_stm_issue_discover/reports/` 的 Markdown report 维护。目标是让报告能直接支撑 paper story、实验设计和 reviewer 审查，同时不把 Markdown 变成第二机器事实源。
+本文件只约束 `paper_stm_issue_discover/reports/` 中保留的历史 Markdown report 及其 provenance。当前实验结果、publication manifest 与离线复算以 [final_results/v60_current_vs_x1v2_baseline/](../final_results/v60_current_vs_x1v2_baseline/README.md) 和 `paper_stm_evaluation.final_results_archive` 为准；不得将本目录或 `pipeline/` 的旧机器制品写成当前论文事实源。
 
 ## 1. 事实源优先级
 

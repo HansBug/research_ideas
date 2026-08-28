@@ -2,7 +2,7 @@
 
 > **评测侧边界**：本文件服务于台账建立和人工复核，文中的 `cardinality`、`containment`
 > 等旧表达是台账侧描述，不是当前核心谓词。当前方法的公开谓词只读
-> [`pipeline/evidence_discovery/predicate_registry.json`](../../../pipeline/evidence_discovery/predicate_registry.json)，
+> [`method/src/paper_stm_method/resources/predicate_registry.json`](../../../method/src/paper_stm_method/resources/predicate_registry.json)，
 > 无适用谓词时仍提出问题并降级为 W1。
 
 ## 你在判断什么

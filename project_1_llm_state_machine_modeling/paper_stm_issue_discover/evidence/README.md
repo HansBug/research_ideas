@@ -6,7 +6,7 @@
 > | :-- | :-- |
 > | 论文的实验证据链、台账、判定 | [../discover_matrix/](../discover_matrix/) |
 > | 当前语料事实 | [../corpora/seed_library/SUMMARY.md](../corpora/seed_library/SUMMARY.md) |
-> | 当前方法实现 | [../pipeline/feedback_loop/](../pipeline/feedback_loop/) |
+> | 当前方法实现 | [../method/](../method/) |
 >
 > ⚠️ **不要从本目录选样本、定 baseline 或引统计。** 这里的候选矩阵与筛选台账全部是 R1 口径，已被 [../corpora/](../corpora/) 的三件套取代。
 >

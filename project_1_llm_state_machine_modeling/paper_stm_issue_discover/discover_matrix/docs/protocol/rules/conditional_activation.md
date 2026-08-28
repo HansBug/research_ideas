@@ -5,6 +5,6 @@
 
 历史文件保留在
 [`archive/legacy_20260821/rules/conditional_activation.md`](../archive/legacy_20260821/rules/conditional_activation.md)。
-当前的公开语义以 [`pipeline/evidence_discovery/predicate_registry.json`](../../../../pipeline/evidence_discovery/predicate_registry.json)
+当前的公开语义以 [`method/src/paper_stm_method/resources/predicate_registry.json`](../../../../method/src/paper_stm_method/resources/predicate_registry.json)
 和 [`METHOD_PRINCIPLES.md`](../../../../pipeline/evidence_discovery/METHOD_PRINCIPLES.md) 为准；没有
 适用谓词时仍输出 W1 `semantic_hit`。

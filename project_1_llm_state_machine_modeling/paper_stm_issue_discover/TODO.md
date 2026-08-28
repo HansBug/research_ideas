@@ -1,4 +1,6 @@
-# paper1（STM issue discover）待办总清单
+# 历史待办清单（2026-08-11）
+
+> 本文件是历史 planning snapshot，不是当前实验或发布状态的真源。请先读 [README.md](./README.md)、[STATUS.md](./STATUS.md) 和 [最终归档](./final_results/v60_current_vs_x1v2_baseline/README.md)。其中未完成项、旧版本名和旧路径不能被当作现行执行授权。
 
 > ⭐ **需要人拍板的事项另见 [PENDING_DECISIONS.md](./PENDING_DECISIONS.md)**（2026-08-11 整理，9 条，分 🔴 必须定 / 🟡 建议定 / 🟢 确认即可 三档，每条含前因后果、全部可选方案与代价、我的建议）。⛔ 那份是**给人读的决策简报**，本文件仍是待办的唯一入口。
 
@@ -39,9 +41,9 @@
 
 ## B. 领域考据（导师点名要重点展开）
 
-* [x] **✅ 已冻结（2026-08-21；2026-08-26 口径更正）· 四族 19 谓词注册表。** 当前唯一配置是 [predicate_registry.json](./pipeline/evidence_discovery/predicate_registry.json)：结构 6、拓扑 4、轨迹仿真 4、有界验证 5。19 个谓词均已完成学术资格审查且均有 native backend；W1 是精确绑定但尚未取得一次合法、完成 Boolean 求值时的合法 `semantic_hit`。predicate-null 不抑制问题提出；来源档案和台账使用量不参与运行时 W/D/backend 判断。
+* [x] **✅ 已冻结（2026-08-21；2026-08-26 口径更正）· 四族 19 谓词注册表。** 当前唯一配置是 [predicate_registry.json](./method/src/paper_stm_method/resources/predicate_registry.json)：结构 6、拓扑 4、轨迹仿真 4、有界验证 5。19 个谓词均已完成学术资格审查且均有 native backend；W1 是精确绑定但尚未取得一次合法、完成 Boolean 求值时的合法 `semantic_hit`。predicate-null 不抑制问题提出；来源档案和台账使用量不参与运行时 W/D/backend 判断。
 * [x] **✅ 已替换（2026-08-21）· 方法出处政策。** 旧的 hold-out、来源分级和“③ 不删除”口径已移入 `discover_matrix/docs/protocol/archive/legacy_20260821/`；现行文件只定义四族 19 谓词、领域/形式/技术三类来源、W1/W2/W0 和严格变更门。旧材料只能追溯，不能作为当前政策。
-* [x] **✅ 已交付（2026-08-21；2026-08-26 口径更正）· 19 行当前注册表映射。** 人读版见 [PREDICATE_REGISTRY.md](./pipeline/evidence_discovery/PREDICATE_REGISTRY.md)，机器版见 [predicate_registry.json](./pipeline/evidence_discovery/predicate_registry.json)。映射列固定为谓词、族、语义、最小输入、设计快照和来源 ID；来源分领域、形式、技术三类。19 个谓词的学术资格已完成审查；旧分级和旧谓词表只在 archive 中保留，不能恢复为当前运行时字段。
+* [x] **✅ 已交付（2026-08-21；2026-08-26 口径更正）· 19 行当前注册表映射。** 人读版见 [method/README.md](./method/README.md)，机器版见 [predicate_registry.json](./method/src/paper_stm_method/resources/predicate_registry.json)。映射列固定为谓词、族、语义、最小输入、设计快照和来源 ID；来源分领域、形式、技术三类。19 个谓词的学术资格已完成审查；旧分级和旧谓词表只在 archive 中保留，不能恢复为当前运行时字段。
 * [x] **✅ 已交付（2026-08-21；2026-08-26 口径更正）· 当前来源 ID 落点与审计。** 逐条来源见 [CURRENT_SOURCE_AUDIT.md](./related_work/provenance/CURRENT_SOURCE_AUDIT.md)，机器目录见 [current_source_catalog.json](./related_work/provenance/current_source_catalog.json)。档案保存来源 ID、三类来源、引用和适用边界，且不参与 runtime W、D、backend、publication、route 或 coverage。
 * [x] **✅ 已确定来源边界（2026-08-21）。** 不把任何单一官方形式主义或工具实现当作现行谓词的唯一语义权威。形式资料用于命题定义和求值边界，领域资料用于证明检查命题有真实需求，技术资料用于后端实现约束；三者职责分开，具体来源 ID 以当前注册表为准。
 * [ ] **P2 · 复核低频核心谓词的必要性与后端边界。** 当前快照中 `V2`、`V3`、`V5` 及部分轨迹谓词使用量较低；这不是立即退役或新增谓词的理由。需要区分语料缺少该类义务、生成侧未识别和后端不支持三种原因，并优先保持学术上清晰的语义与 W1 fallback：

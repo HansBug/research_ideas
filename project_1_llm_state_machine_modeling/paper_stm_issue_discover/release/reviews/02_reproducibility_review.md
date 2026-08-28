@@ -59,3 +59,9 @@ shadow warnings。工作树无 tracked 改动，且本次复核没有调用 prov
 冻结复现和远端引用已闭合。公开再分发的剩余硬阻塞是权利人提供并授权 method-source
 `LICENSE`；许可证解决后，仍应按 release-candidate 协议完成最终离线/clean-install 验收，
 才可执行唯一允许的 15x1 回归。
+
+## 2026-08-28 后续裁定
+
+本节记录后续范围裁定，不改变上文当时的审查结论。method-source 的权利人 LICENSE 仍是正式公开再分发和法律声明的前置条件，但不是内部技术验收的前置条件。
+
+在该裁定下，internal RC 的发布包、clean-install、固定 15-pair x 1 method + Judge 回归及其对照审计均已完成，材料见 [release_validation/](../../release_validation/README.md)。这不表示 method source 已获得对外再分发许可；公开发布前仍需权利人明确提交 LICENSE。

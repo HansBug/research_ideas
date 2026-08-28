@@ -22,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field
 PAPER_ROOT = Path("project_1_llm_state_machine_modeling/paper_stm_issue_discover")
 ARCHIVE = PAPER_ROOT / "final_results" / "v60_current_vs_x1v2_baseline"
 BASELINE = PAPER_ROOT / "release" / "baseline_manifest.json"
+DOCUMENTATION_CHANGES = PAPER_ROOT / "release" / "documentation_audit" / "final_archive_documentation_changes.json"
 
 
 class ValidationResult(BaseModel):
@@ -34,7 +35,10 @@ class ValidationResult(BaseModel):
         description="Versioned schema identifier for this release validation."
     )
     frozen_archive_files_checked: int = Field(
-        ge=0, description="Number of immutable final-results files hash-checked."
+        ge=0, description="Number of final-results files checked against the baseline or an approved documentation change."
+    )
+    documented_archive_change_paths: tuple[str, ...] = Field(
+        description="Narrow set of non-data archive paths approved for this documentation-only update."
     )
     baseline_node_count: int = Field(
         ge=1, description="Number of historical pytest nodes required by the baseline."
@@ -56,6 +60,49 @@ class ValidationResult(BaseModel):
     )
     reason: str = Field(description="Human-readable validation conclusion.")
     basis: str = Field(description="Baseline, archive, resource, and AST evidence used.")
+
+
+class DocumentedArchivePathChange(BaseModel):
+    """One bounded final-results documentation path allowed to differ from the refactor baseline."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    path: str = Field(description="Repository-relative path of the documented archive change.")
+    baseline_bytes: int = Field(ge=0, description="Byte count recorded by the release-refactor baseline.")
+    baseline_sha256: str = Field(description="Baseline SHA-256 prefixed with sha256:.")
+    current_bytes: int = Field(ge=0, description="Expected byte count after the documentation-only update.")
+    current_sha256: str = Field(description="Expected current SHA-256 prefixed with sha256:.")
+    reason: str = Field(description="Why this path may change without changing experiment evidence.")
+    basis: str = Field(description="Command or manifest basis for the approved change.")
+
+
+class FinalArchiveDocumentationChanges(BaseModel):
+    """Bounded exception record for current-facing archive documentation maintenance."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
+
+    schema_id: Literal["paper1.final-archive-documentation-changes.v1"] = Field(
+        alias="schema", description="Versioned schema identifier for this exception record."
+    )
+    archive_root: str = Field(description="Repository-relative frozen archive root covered by this record.")
+    baseline_manifest: str = Field(description="Release baseline manifest that supplies original file identities.")
+    protected_prefixes: tuple[str, ...] = Field(
+        description="Archive-relative evidence prefixes that no documentation exception may change."
+    )
+    protected_file_count: int = Field(
+        ge=0, description="Number of raw, derived, and reference baseline files kept byte-identical."
+    )
+    allowed_changes: tuple[DocumentedArchivePathChange, ...] = Field(
+        description="Exact non-data files and hashes permitted to differ from the release baseline."
+    )
+    provider_call_count: Literal[0] = Field(
+        description="Provider calls made to produce this documentation record; structurally zero."
+    )
+    billable_call_count: Literal[0] = Field(
+        description="Billable calls made to produce this documentation record; structurally zero."
+    )
+    reason: str = Field(description="Why the documentation update is compatible with frozen experiment evidence.")
+    basis: str = Field(description="Baseline manifest, authoritative finalizer, and byte-level comparison basis.")
 
 
 def _hash(path: Path) -> str:
@@ -113,15 +160,61 @@ def _collect_nodes(repository: Path, python: Path) -> tuple[str, ...]:
     return tuple(sorted(line.strip() for line in output.splitlines() if "::" in line))
 
 
+def _documentation_changes(repository: Path, baseline: dict[str, object]) -> dict[str, DocumentedArchivePathChange]:
+    """Load a narrow, hash-pinned documentation exception without weakening data checks."""
+
+    record = FinalArchiveDocumentationChanges.model_validate_json(
+        (repository / DOCUMENTATION_CHANGES).read_text(encoding="utf-8")
+    )
+    if record.archive_root != ARCHIVE.as_posix() or record.baseline_manifest != BASELINE.as_posix():
+        raise RuntimeError("documentation change record targets the wrong archive or baseline")
+    if record.protected_prefixes != ("raw/", "derived/", "reference/"):
+        raise RuntimeError("documentation change record weakens protected archive prefixes")
+    baseline_files = {
+        str(item["path"]): item
+        for item in baseline["frozen_archive_files"]
+        if isinstance(item, dict)
+    }
+    expected_protected_count = sum(
+        path.startswith(str(ARCHIVE) + "/" + prefix)
+        for path in baseline_files
+        for prefix in record.protected_prefixes
+    )
+    if record.protected_file_count != expected_protected_count:
+        raise RuntimeError("documentation change record has the wrong protected-file count")
+    changes: dict[str, DocumentedArchivePathChange] = {}
+    for change in record.allowed_changes:
+        if change.path in changes or change.path not in baseline_files:
+            raise RuntimeError("documentation change record contains duplicate or unknown path")
+        if any(change.path == str(ARCHIVE / prefix.rstrip("/")) or change.path.startswith(str(ARCHIVE / prefix)) for prefix in record.protected_prefixes):
+            raise RuntimeError("documentation change record cannot alter raw, derived, or reference evidence")
+        original = baseline_files[change.path]
+        if original.get("bytes") != change.baseline_bytes or original.get("sha256") != change.baseline_sha256:
+            raise RuntimeError("documentation change record does not match the release baseline")
+        changes[change.path] = change
+    expected_paths = {
+        str(ARCHIVE / "README.md"),
+        str(ARCHIVE / "archive_manifest.json"),
+        str(ARCHIVE / "publication_manifest.json"),
+    }
+    if set(changes) != expected_paths:
+        raise RuntimeError("documentation change record must be limited to README and root manifests")
+    return changes
+
+
 def validate(repository: Path, python: Path) -> ValidationResult:
     """Validate frozen archive hashes, historical test nodes, resources, and imports."""
 
     baseline = json.loads((repository / BASELINE).read_text(encoding="utf-8"))
+    changes = _documentation_changes(repository, baseline)
     missing_or_changed = [
         item["path"]
         for item in baseline["frozen_archive_files"]
         if not (repository / item["path"]).is_file()
-        or _hash(repository / item["path"]) != item["sha256"]
+        or (repository / item["path"]).stat().st_size
+        != (changes[item["path"]].current_bytes if item["path"] in changes else item["bytes"])
+        or _hash(repository / item["path"])
+        != (changes[item["path"]].current_sha256 if item["path"] in changes else item["sha256"])
     ]
     if missing_or_changed:
         raise RuntimeError("frozen final-results hash mismatch: " + ", ".join(missing_or_changed[:5]))
@@ -153,14 +246,15 @@ def validate(repository: Path, python: Path) -> ValidationResult:
     return ValidationResult(
         schema_id="paper1.release-structure-validation.v1",
         frozen_archive_files_checked=len(baseline["frozen_archive_files"]),
+        documented_archive_change_paths=tuple(sorted(changes)),
         baseline_node_count=len(expected_nodes),
         current_node_count=len(current_nodes),
         resource_hashes=resources,
         boundary_violations=violations,
         provider_call_count=0,
         billable_call_count=0,
-        reason="Frozen artifacts, historical node IDs, resource hashes, and one-way import boundaries were checked without provider access.",
-        basis="release/baseline_manifest.json, byte-level SHA-256, pytest collection, and Python AST imports.",
+        reason="Frozen data, bounded documentation changes, historical node IDs, resource hashes, and one-way import boundaries were checked without provider access.",
+        basis="release/baseline_manifest.json, documentation exception hashes, byte-level SHA-256, pytest collection, and Python AST imports.",
     )
 
 

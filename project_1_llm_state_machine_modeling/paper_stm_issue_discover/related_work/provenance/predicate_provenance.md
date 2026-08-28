@@ -5,7 +5,7 @@
 
 当前唯一有效映射是：
 
-- 机器表：[`pipeline/evidence_discovery/predicate_registry.json`](../../pipeline/evidence_discovery/predicate_registry.json)；
+- 机器表：[`method/src/paper_stm_method/resources/predicate_registry.json`](../../method/src/paper_stm_method/resources/predicate_registry.json)；
 - 人读表：[`pipeline/evidence_discovery/PREDICATE_REGISTRY.md`](../../pipeline/evidence_discovery/PREDICATE_REGISTRY.md)；
 - 学术和变更契约：[`METHOD_PRINCIPLES.md`](../../pipeline/evidence_discovery/METHOD_PRINCIPLES.md)。
 
