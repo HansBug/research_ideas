@@ -52,15 +52,16 @@ class DifferenceRow(BaseModel):
 class PairedComparisonArtifact(BaseModel):
     """Evaluator-only before/after comparison with no method feedback channel."""
 
-    schema: str = Field(default="evidence-discovery.paired-comparison.v2", description="Stable schema identifier for this evaluator artifact.")
+    schema: str = Field(default="evidence-discovery.paired-comparison.v3", description="Stable schema identifier for this evaluator artifact.")
     before: ComparisonSide = Field(description="Immutable pre-correction baseline snapshot.")
     after: ComparisonSide = Field(description="Immutable soundness/S2-corrected snapshot.")
     aggregate_deltas: dict[str, Any] = Field(description="Numerical before/after deltas over fixed denominators.")
     expected_relation_changes: list[DifferenceRow] = Field(description="Expected pair-round FULL/PARTIAL/NONE changes only.")
     report_surface_changes: list[DifferenceRow] = Field(description="Typed report semantic-key additions, removals, and W/D changes by pair-round.")
-    s2_verdict_changes: list[DifferenceRow] = Field(description="S2 verdict flips only where the exact typed canonical carrier occurs in both runs.")
-    s2_introduced_receipts: list[DifferenceRow] = Field(description="S2 receipts present only in the corrected run, kept separate from same-input verdict flips.")
-    s2_removed_receipts: list[DifferenceRow] = Field(description="S2 receipts present only in the baseline run, kept separate from same-input verdict flips.")
+    matched_input_verdict_flips: list[DifferenceRow] = Field(description="Terminal verdict flips only for exact typed canonical carrier keys present in both runs.")
+    before_only_carriers: list[DifferenceRow] = Field(description="S2 typed canonical carrier keys present only in the before run and excluded from matched-input verdict flips.")
+    after_only_carriers: list[DifferenceRow] = Field(description="S2 typed canonical carrier keys present only in the after run and excluded from matched-input verdict flips.")
+    matched_input_carrier_count: int = Field(description="Number of exact typed canonical carrier keys in the before/after intersection, the only denominator for same-input verdict flips.")
     sampling_interpretation: str = Field(description="Boundary statement separating observed deltas from unsupported causal claims.")
     reason: str = Field(description="Why this comparison is external and read-only.")
     basis: str = Field(description="Frozen artifact and deterministic-key basis for all fields.")
@@ -323,29 +324,29 @@ def _report_changes(before_root: Path, after_root: Path) -> list[DifferenceRow]:
 
 def _s2_changes(
     before_inventory: dict[str, dict[str, Any]], after_inventory: dict[str, dict[str, Any]]
-) -> tuple[list[DifferenceRow], list[DifferenceRow], list[DifferenceRow]]:
-    """Separate shared-carrier verdict flips from introduced and removed receipts."""
+) -> tuple[list[DifferenceRow], list[DifferenceRow], list[DifferenceRow], int]:
+    """Separate matched-input verdict flips from before-only and after-only carriers."""
 
     verdict_changes: list[DifferenceRow] = []
-    introduced: list[DifferenceRow] = []
-    removed: list[DifferenceRow] = []
+    before_only: list[DifferenceRow] = []
+    after_only: list[DifferenceRow] = []
     for key in sorted(set(before_inventory) | set(after_inventory)):
         before, after = before_inventory.get(key), after_inventory.get(key)
         if before is None:
-            introduced.append(DifferenceRow(
+            after_only.append(DifferenceRow(
                 key=key,
                 before=None,
                 after=after,
-                reason="This exact S2 typed canonical carrier has a terminal receipt only in the corrected run.",
+                reason="This exact S2 typed canonical carrier exists only in the after run and is not a same-input verdict comparison.",
                 basis="S2 receipt key is pair/round plus scope, canonical source, target, transition, and element refs.",
             ))
             continue
         if after is None:
-            removed.append(DifferenceRow(
+            before_only.append(DifferenceRow(
                 key=key,
                 before=before,
                 after=None,
-                reason="This exact S2 typed canonical carrier has a terminal receipt only in the baseline run.",
+                reason="This exact S2 typed canonical carrier exists only in the before run and is not a same-input verdict comparison.",
                 basis="S2 receipt key is pair/round plus scope, canonical source, target, transition, and element refs.",
             ))
             continue
@@ -358,7 +359,7 @@ def _s2_changes(
             reason="The same exact S2 typed canonical carrier has a changed terminal verdict.",
             basis="S2 receipt key is pair/round plus scope, canonical source, target, transition, and element refs.",
         ))
-    return verdict_changes, introduced, removed
+    return verdict_changes, before_only, after_only, len(set(before_inventory) & set(after_inventory))
 
 
 def _configuration(method_root: Path, judge_root: Path, evaluation: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -523,7 +524,7 @@ def build_paired_comparison(
         evaluator_root=Path(after_evaluator_root).expanduser().resolve(),
         levels=levels,
     )
-    s2_verdict_changes, s2_introduced_receipts, s2_removed_receipts = _s2_changes(before_s2, after_s2)
+    matched_input_verdict_flips, before_only_carriers, after_only_carriers, matched_input_carrier_count = _s2_changes(before_s2, after_s2)
     return PairedComparisonArtifact(
         before=before,
         after=after,
@@ -533,9 +534,10 @@ def build_paired_comparison(
             Path(before_method_root).expanduser().resolve(),
             Path(after_method_root).expanduser().resolve(),
         ),
-        s2_verdict_changes=s2_verdict_changes,
-        s2_introduced_receipts=s2_introduced_receipts,
-        s2_removed_receipts=s2_removed_receipts,
+        matched_input_verdict_flips=matched_input_verdict_flips,
+        before_only_carriers=before_only_carriers,
+        after_only_carriers=after_only_carriers,
+        matched_input_carrier_count=matched_input_carrier_count,
         sampling_interpretation=(
             "Both sides use the same fixed input universe and frozen Judge, but each method round is a fresh LLM sample. "
             "A one-pair/round delta is therefore recorded as an observed paired difference, not attributed solely to "
@@ -568,11 +570,20 @@ def _markdown(artifact: PairedComparisonArtifact) -> str:
         f"- L2 FULL: {l2['before']['count']}/{l2['before']['denominator']} -> {l2['after']['count']}/{l2['after']['denominator']} (delta {l2['count_delta']:+}).",
         f"- Semantic precision: {precision['before']:.4f} -> {precision['after']:.4f} (delta {precision['delta']:+.4f}).",
         f"- FULL-hit max-W2 share: {w2['before']:.4f} -> {w2['after']:.4f} (delta {w2['delta']:+.4f}).",
-        f"- S2 same-input verdict flips: {len(artifact.s2_verdict_changes)}; introduced receipts: {len(artifact.s2_introduced_receipts)}; removed receipts: {len(artifact.s2_removed_receipts)}.",
+        _s2_summary_line(artifact),
         f"- Expected pair-round relation changes: {len(artifact.expected_relation_changes)}; typed report-surface changes: {len(artifact.report_surface_changes)}.",
         "- \u5355\u6b21\u914d\u5bf9\u7ed3\u679c\u4ecd\u5305\u542b\u65b0 LLM \u91c7\u6837\u6ce2\u52a8\uff1b\u672c\u6458\u8981\u4e0d\u5c06\u4efb\u4e00\u5355\u683c\u5dee\u5f02\u5355\u72ec\u5f52\u56e0\u4e8e soundness \u6216 S2 \u4fee\u6b63\u3002",
         "",
     ])
+
+
+def _s2_summary_line(artifact: PairedComparisonArtifact) -> str:
+    """Render the three mutually exclusive S2 comparison counts from JSON fields."""
+
+    return (
+        f"- S2 matched-input verdict flips: {len(artifact.matched_input_verdict_flips)}/{artifact.matched_input_carrier_count}; "
+        f"before-only carriers: {len(artifact.before_only_carriers)}; after-only carriers: {len(artifact.after_only_carriers)}."
+    )
 
 
 def _parser() -> argparse.ArgumentParser:
