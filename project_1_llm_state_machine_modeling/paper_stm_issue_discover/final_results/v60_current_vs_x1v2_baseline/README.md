@@ -35,7 +35,7 @@ python3 -m pipeline.evidence_discovery.reporting.final_results_archive finalize 
   --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline
 ```
 
-`finalize` 只更新 `publication_manifest.json`，将报告和 review 与 raw/derived/reference 一并纳入哈希清单。随后再次运行 `validate`；它会检查全部发布文件的 SHA-256，并重新生成 `recomputed_summary.json` 进行逐值比较。
+`finalize` 只更新 `publication_manifest.json`，将报告和 review 与 raw/derived/reference 一并纳入哈希清单。随后再次运行 `validate`；它会检查 manifest/summary/provenance schema、归档内映射和 Markdown 本地链接、全部发布文件的 SHA-256，并重新生成 `recomputed_summary.json` 进行逐值比较。
 
 ## 不可变性与限制
 

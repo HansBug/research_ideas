@@ -4,7 +4,7 @@
 
 `raw/<side>/method/` 与 `raw/<side>/judge/` 是从冻结运行制品复制的结构化审计面；它们不由本目录内的 reporting 工具修改。`derived/recomputed_summary.json` 是唯一的派生汇总，生成器为 `pipeline.evidence_discovery.reporting.final_results_archive`。`reference/ledger.json` 只由 evaluator 用于识别 expected issue 和 L2，不进入 method 输入。
 
-每侧 `archive_manifest.json` 列出原始审计文件、字节数和 `sha256`。顶层 `archive_manifest.json` 覆盖 raw、reference 和当时的派生文件；最终的 `publication_manifest.json` 覆盖除自身外的整个目录，包括报告和审查记录。`validate` 同时验证 side manifests、publication manifest（存在时）和离线重算结果。
+每侧 `archive_manifest.json` 列出原始审计文件、字节数和 `sha256`。顶层 `archive_manifest.json` 覆盖 raw、reference 和当时的派生文件；最终的 `publication_manifest.json` 覆盖除自身外的整个目录，包括报告和审查记录。`validate` 同时验证 side manifests、publication manifest（存在时）、manifest/summary/provenance schema、archive-relative provenance 映射、Markdown 本地链接和离线重算结果。Markdown 链接可指向同一仓库的稳定文件，但不得回指临时 `runs/`。
 
 ## Universe 与 hit
 

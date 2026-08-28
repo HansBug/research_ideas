@@ -18,3 +18,9 @@
 - I：X1v2 legacy method schema 不保存 source commit；必须披露，不能补造。
 
 处理决定：`final_results_archive finalize` 生成 `publication_manifest.json`，覆盖报告、review、README、SCHEMA、raw、reference 与 derived；同时生成 `provenance_path_mapping.json`，把每个 source root 映射到 archive-relative 目录。完成后必须再次运行 `validate`。这一处理保留 raw JSON 原件，不改写其 provenance 字段。
+
+## 交班前独立复核与处理
+
+当前 pane5 session 再次组织只读 artifact 审查。审查确认：`publication_manifest.json` 的 `2,365/2,365` SHA-256、v60 side manifest 的 `1,508/1,508`、X1v2 side manifest 的 `842/842` 均可复核；`2,357` 个 JSON 均可解析，无符号链接；两侧均为 `162` 个 method cell 和 `162` 个 Judge composite receipt；归档 Markdown 没有指向 `runs/` 的链接。
+
+审查发现旧版 `validate` 没有自动检查 manifest schema 和 Markdown 链接。该缺口已在 evaluator-only 验证器中处理：现行 `validate` 同时检查 manifest/summary/provenance schema、archive-relative provenance 映射和所有归档 Markdown 本地链接，且拒绝 `runs/` 路径。相应 provider-free 测试覆盖正确 schema、错误 schema、缺失/越界 provenance、有效/缺失/越界/`runs/` 链接。该处理不修改 raw method/Judge JSON 或任何实验数值。

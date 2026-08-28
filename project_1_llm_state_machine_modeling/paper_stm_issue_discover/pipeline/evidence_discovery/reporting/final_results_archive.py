@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import shutil
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -18,6 +19,8 @@ from typing import Any, Iterable
 
 ARCHIVE_SCHEMA = "paper1.final-results-archive.v1"
 SUMMARY_SCHEMA = "paper1.final-results-summary.v1"
+PROVENANCE_SCHEMA = "paper1.final-results-provenance-map.v1"
+_MARKDOWN_LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)\s]+)(?:\s+[^)]*)?\)")
 EXCLUDED_RULES = [
     {"rule": "**/llm/**", "reason": "Provider request/response stream and cache; structured method, W2, Judge, usage, and cost audit surfaces are copied separately."},
     {"rule": "**/*.lock and **/*.part", "reason": "Transient runtime synchronization or interrupted-write state is not evidence."},
@@ -327,6 +330,88 @@ def _file_manifest(root: Path, *, excluded_relative_paths: set[str] | None = Non
     return files
 
 
+def _repository_root() -> Path:
+    """Locate the checked-out repository that owns this evaluator-only module."""
+
+    for candidate in Path(__file__).resolve().parents:
+        if (candidate / ".git").exists():
+            return candidate
+    raise ValueError("could not locate repository root for archive link validation")
+
+
+def _resolve_relative(path: Path, root: Path, *, label: str) -> Path:
+    """Resolve one archive reference while refusing paths that escape its root."""
+
+    resolved_root = root.resolve()
+    resolved_path = path.resolve()
+    try:
+        resolved_path.relative_to(resolved_root)
+    except ValueError as error:
+        raise ValueError(f"{label} escapes its allowed root: {path}") from error
+    return resolved_path
+
+
+def _validate_archive_metadata(archive: Path) -> None:
+    """Check declared schemas and stable archive-relative provenance mappings."""
+
+    manifest_specs = (
+        (archive / "archive_manifest.json", ARCHIVE_SCHEMA),
+        (archive / "raw" / "v60_current" / "archive_manifest.json", ARCHIVE_SCHEMA),
+        (archive / "raw" / "x1v2_baseline" / "archive_manifest.json", ARCHIVE_SCHEMA),
+    )
+    for manifest_path, expected_schema in manifest_specs:
+        manifest = _load(manifest_path)
+        if manifest.get("schema") != expected_schema:
+            raise ValueError(f"unexpected manifest schema in {manifest_path}: {manifest.get('schema')!r}")
+        if not isinstance(manifest.get("included_files"), list):
+            raise ValueError(f"manifest does not declare included_files: {manifest_path}")
+
+    summary = _load(archive / "derived" / "recomputed_summary.json")
+    if summary.get("schema") != SUMMARY_SCHEMA:
+        raise ValueError(f"unexpected summary schema: {summary.get('schema')!r}")
+
+    provenance_path = archive / "provenance_path_mapping.json"
+    provenance = _load(provenance_path)
+    if provenance.get("schema") != PROVENANCE_SCHEMA:
+        raise ValueError(f"unexpected provenance schema: {provenance.get('schema')!r}")
+    mappings = provenance.get("mappings")
+    if not isinstance(mappings, list) or not mappings:
+        raise ValueError("provenance mapping is missing stable archive-relative paths")
+    for mapping in mappings:
+        if not isinstance(mapping, dict) or not isinstance(mapping.get("archive_relative_path"), str):
+            raise ValueError("invalid provenance mapping entry")
+        target = _resolve_relative(
+            archive / mapping["archive_relative_path"],
+            archive,
+            label="provenance mapping",
+        )
+        if not target.exists():
+            raise ValueError(f"provenance mapping target is absent: {target}")
+
+
+def _validate_markdown_links(archive: Path, *, repository_root: Path | None = None) -> None:
+    """Require every local Markdown link to resolve inside the checked-out repository."""
+
+    repository = (repository_root or _repository_root()).resolve()
+    for markdown_path in sorted(archive.rglob("*.md")):
+        for match in _MARKDOWN_LINK.finditer(markdown_path.read_text(encoding="utf-8")):
+            destination = match.group(1).strip()
+            if destination.startswith(("#", "http://", "https://", "mailto:")):
+                continue
+            local_path = destination.split("#", maxsplit=1)[0].split("?", maxsplit=1)[0]
+            if not local_path:
+                continue
+            resolved = (markdown_path.parent / local_path).resolve()
+            try:
+                relative_to_repository = resolved.relative_to(repository)
+            except ValueError as error:
+                raise ValueError(f"Markdown link escapes repository: {markdown_path} -> {destination}") from error
+            if "runs" in relative_to_repository.parts:
+                raise ValueError(f"Markdown link points to transient runs data: {markdown_path} -> {destination}")
+            if not resolved.exists():
+                raise ValueError(f"Markdown link is missing: {markdown_path} -> {destination}")
+
+
 def _copy_inputs(args: argparse.Namespace) -> dict[str, Any]:
     """Create the stable raw/reference archive from the declared immutable roots."""
 
@@ -462,7 +547,7 @@ def finalize(args: argparse.Namespace) -> int:
                 "archive_relative_path": target,
             })
     _write(archive / "provenance_path_mapping.json", {
-        "schema": "paper1.final-results-provenance-map.v1",
+        "schema": PROVENANCE_SCHEMA,
         "reason": "Raw evidence retains original absolute provenance paths; this map supplies stable archive-relative roots for offline review.",
         "basis": "Per-side archive manifests generated from the declared immutable source roots.",
         "mappings": mappings,
@@ -491,9 +576,11 @@ def build(args: argparse.Namespace) -> int:
 
 
 def validate(args: argparse.Namespace) -> int:
-    """Validate manifest hashes and regenerate metrics without any provider access."""
+    """Validate schemas, links, hashes, and regenerated metrics without a provider."""
 
     archive = args.archive_root.resolve()
+    _validate_archive_metadata(archive)
+    _validate_markdown_links(archive)
     for manifest_path in (archive / "raw" / "v60_current" / "archive_manifest.json", archive / "raw" / "x1v2_baseline" / "archive_manifest.json"):
         manifest = _load(manifest_path)
         root = manifest_path.parent
@@ -509,6 +596,8 @@ def validate(args: argparse.Namespace) -> int:
     publication_manifest = archive / "publication_manifest.json"
     if publication_manifest.is_file():
         manifest = _load(publication_manifest)
+        if manifest.get("schema") != ARCHIVE_SCHEMA:
+            raise ValueError(f"unexpected publication manifest schema: {manifest.get('schema')!r}")
         expected = _file_manifest(archive, excluded_relative_paths={"publication_manifest.json"})
         if manifest.get("included_files") != expected:
             raise ValueError("publication manifest does not cover the current archive")

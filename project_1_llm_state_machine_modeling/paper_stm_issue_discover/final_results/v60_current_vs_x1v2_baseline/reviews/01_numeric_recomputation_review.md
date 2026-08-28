@@ -28,3 +28,7 @@ v60 FULL-hit max W 为 `W2/W1/W0 = 211/95/0`，`W2/全部 expected = 219/435`。
 - 无 C/I 级数值错误。
 
 审查者初稿把 X1v2 selected-result Judge cost `$10.79275320` 汇总为 Judge 成本。主 session 回到 [baseline composite](../raw/x1v2_baseline/judge/composite-summary.json) 裁定：正式成本须报告 `total_incurred_cost_usd=$11.45008520`，并单列 selected result cost `$10.79275320` 与原始失败成本 `$0.65733200`。最终报告采用此裁定。
+
+## 交班前独立复核
+
+当前 pane5 session 另行组织只读复算，不读取报告汇总，不调用 provider，也不修改实验制品。复核再次运行归档 `validate`，并以 composite-selected `PairJudgeResult`、expected-witness、method/cost audit、ledger 和 registry JSON 交叉检查。v60 与 X1v2 的 hit、L2、hit@3、hit@all、K/N/I、cluster、W、predicate usage、cost eligibility 和 S2 paired comparison 三分法均与本记录和 `derived/recomputed_summary.json` 一致；未发现新的事实错误。
