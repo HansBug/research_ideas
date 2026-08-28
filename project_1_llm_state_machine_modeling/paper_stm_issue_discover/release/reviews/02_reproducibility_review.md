@@ -40,3 +40,22 @@ provider 调用。
 
 冻结资源、归档与测试 universe 均无漂移。许可证授权、最终 candidate 后的完整离线验收和
 远端 ref 复核完成前，不得启动唯一允许的 15x1 live regression。
+
+## 最终复核追加
+
+独立 reviewer 在 `0377c74f376653025cb752f0eec941fb7663c721` 复核：本地 HEAD 与
+`origin/paper1/m-witness-discovery` 一致。远端 annotated tag
+`paper1-v60-method-66b5d71ae` 的 peel target 为
+`66b5d71aecd73f6eeddac082037f7c34e04da057`，
+`paper1-semantic-judge-05cf0da6f` 的 peel target 为
+`05cf0da6f7d9fcf1de26c349b586fc71c268f1c5`；冻结实验引用与远端 ref 已闭合。
+
+`validate_release_structure.py` 再次通过：2671/2671 冻结归档文件、465/465 历史
+pytest node ID、registry/source catalog/Judge protocol hash 和 AST import boundary 均
+一致，无 boundary violation；provider/billable calls 均为 0。两个 archive validator
+入口仍均返回 `final-results archive validation passed`，仅出现既有 Pydantic `schema`
+shadow warnings。工作树无 tracked 改动，且本次复核没有调用 provider 或启动实验。
+
+冻结复现和远端引用已闭合。公开再分发的剩余硬阻塞是权利人提供并授权 method-source
+`LICENSE`；许可证解决后，仍应按 release-candidate 协议完成最终离线/clean-install 验收，
+才可执行唯一允许的 15x1 回归。

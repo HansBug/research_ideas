@@ -29,3 +29,23 @@ allowlisted 文件；二者均无 method/Judge 交叉业务 import、ledger/base
 独立开源发布仍取决于权利人提供 method source 的许可证；在此之前只能称为内部可复现的
 release structure，而不能声称可公开再分发，也不能创建最终 release candidate 或启动
 15x1 live regression。
+
+## 最终只读复核
+
+独立 reviewer 在 `0377c74f376653025cb752f0eec941fb7663c721` 对修复后的发布树复核：
+
+- 独立安装的 Judge 从非 Git 目录读取包内 `release_manifest.json`，逐文件 SHA-256 校验后
+  返回提交 `0377c74f376653025cb752f0eec941fb7663c721`。`--allow-live` 已越过 provenance
+  前置检查，只因刻意提供的不存在 method cell 在输入加载处报 `FileNotFoundError`；未再出现
+  Git-only 失败，也未初始化 provider。
+- Judge 发布 manifest 为 `paper-stm-judge.release-manifest.v1`，顶层与嵌入副本字节一致，
+  38 个 payload 文件均存在且 SHA-256 匹配。新构建的 method/Judge 发布树分别含 71/38 个
+  allowlisted 文件。
+- 除测试后产生的瞬态缓存外，manifest payload 无额外文件、无 hash 差异、无
+  method/Judge/evaluation/pipeline 跨边界 import、无 secret 或本机绝对路径。
+- `validate_release_structure.py` 通过：冻结归档 `2671/2671`、历史 pytest node `465/465`、
+  boundary violation `0`、provider/billable calls `0/0`。Judge fixture 与结构测试为
+  `9 passed, 7 warnings`。
+
+除 method source 的权利人许可证授权外，未发现仍存的技术高严重度发布问题。本复核没有
+修改文件、调用 provider 或启动实验。
