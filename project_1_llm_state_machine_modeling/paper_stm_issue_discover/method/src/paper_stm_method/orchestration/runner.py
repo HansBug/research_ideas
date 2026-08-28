@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import multiprocessing
+import os
 import re
 import subprocess
 import uuid
@@ -510,8 +511,8 @@ def _retry_policy(transport_retries: int) -> dict[str, Any]:
     }
 
 
-def _source_provenance() -> dict[str, Any]:
-    """Capture the repository revision that produced a run receipt."""
+def _git_source_provenance() -> dict[str, Any] | None:
+    """Return Git provenance when the executing package retains a repository checkout."""
 
     try:
         repo_root = next(
@@ -562,14 +563,47 @@ def _source_provenance() -> dict[str, Any]:
             ),
             basis="git rev-parse HEAD, git branch --show-current, and tracked git status",
         ).model_dump(mode="json")
-    except (OSError, subprocess.SubprocessError, RuntimeError) as exc:
-        return SourceProvenance(
-            source_commit="unknown",
-            source_branch="unknown",
-            source_dirty=True,
-            reason="Repository provenance could not be resolved; a live formal run must fail closed.",
-            basis=f"git provenance error: {type(exc).__name__}",
-        ).model_dump(mode="json")
+    except (OSError, subprocess.SubprocessError, RuntimeError):
+        return None
+
+
+def _release_source_provenance() -> dict[str, Any] | None:
+    """Read an explicit immutable release commit when no Git metadata ships with a package."""
+
+    source_commit = os.environ.get("PAPER_STM_RELEASE_SOURCE_COMMIT", "").strip()
+    if not re.fullmatch(r"[0-9a-f]{40}", source_commit):
+        return None
+    return SourceProvenance(
+        source_commit=source_commit,
+        source_branch="release-package",
+        source_dirty=False,
+        reason=(
+            "The installed release package has no Git metadata; its immutable source commit "
+            "was supplied explicitly by the release operator."
+        ),
+        basis=(
+            "PAPER_STM_RELEASE_SOURCE_COMMIT validated as a 40-hex commit; "
+            "the accompanying release_manifest.json must record the same source commit and per-file SHA-256."
+        ),
+    ).model_dump(mode="json")
+
+
+def _source_provenance() -> dict[str, Any]:
+    """Capture Git provenance or an explicit immutable release-manifest provenance fallback."""
+
+    git_provenance = _git_source_provenance()
+    if git_provenance is not None:
+        return git_provenance
+    release_provenance = _release_source_provenance()
+    if release_provenance is not None:
+        return release_provenance
+    return SourceProvenance(
+        source_commit="unknown",
+        source_branch="unknown",
+        source_dirty=True,
+        reason="Repository provenance could not be resolved and no valid release manifest commit was supplied; a live formal run must fail closed.",
+        basis="Git lookup unavailable and PAPER_STM_RELEASE_SOURCE_COMMIT absent or invalid.",
+    ).model_dump(mode="json")
 
 
 def _run_contract_hash(payload: dict[str, Any]) -> str:

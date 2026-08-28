@@ -11,7 +11,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
+from utils import structured_runtime
 from utils.llm import load_llm_registry
+from utils.stm_artifacts import context as artifact_context
+from utils.stm_artifacts import fcstm_native_projection, loaders, models, provenance
 
 from .artifacts import (
     adapt_evidence_discovery_release,
@@ -82,14 +85,15 @@ def _algorithm_source_hash() -> str:
         ("semantic_judge/runner.py", module_root / "runner.py"),
         ("semantic_judge/scale_audit.py", module_root / "scale_audit.py"),
         ("semantic_judge/schema.py", module_root / "schema.py"),
+        ("utils/structured_runtime.py", Path(structured_runtime.__file__)),
+        ("utils/stm_artifacts/context.py", Path(artifact_context.__file__)),
         (
-            "evidence_discovery/orchestration/runtime.py",
-            module_root.parent / "evidence_discovery" / "orchestration" / "runtime.py",
+            "utils/stm_artifacts/fcstm_native_projection.py",
+            Path(fcstm_native_projection.__file__),
         ),
-        (
-            "evidence_discovery/inputs/context.py",
-            module_root.parent / "evidence_discovery" / "inputs" / "context.py",
-        ),
+        ("utils/stm_artifacts/loaders.py", Path(loaders.__file__)),
+        ("utils/stm_artifacts/models.py", Path(models.__file__)),
+        ("utils/stm_artifacts/provenance.py", Path(provenance.__file__)),
     )
     for name, path in paths:
         digest.update(name.encode("utf-8"))

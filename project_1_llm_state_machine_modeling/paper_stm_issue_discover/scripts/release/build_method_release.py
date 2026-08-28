@@ -171,6 +171,16 @@ def _reject_leaks(repository: Path, files: tuple[ReleaseFile, ...]) -> None:
         raise RuntimeError("method release leakage check failed: " + "; ".join(violations))
 
 
+def _validate_output_path(repository: Path, output: Path) -> None:
+    """Reject an output nested in the source checkout before creating any directory."""
+
+    try:
+        output.relative_to(repository)
+    except ValueError:
+        return
+    raise ValueError("release output must be outside the source checkout")
+
+
 def build(*, output: Path, root: Path | None = None) -> ReleaseManifest:
     """Copy exactly allowlisted bytes into an empty output directory and manifest them."""
 
@@ -180,6 +190,7 @@ def build(*, output: Path, root: Path | None = None) -> ReleaseManifest:
     allowlist_bytes = allowlist_path.read_bytes()
     allowlist = ReleaseAllowlist.model_validate_json(allowlist_bytes)
     output = output.expanduser().resolve()
+    _validate_output_path(repository, output)
     if output.exists() and any(output.iterdir()):
         raise FileExistsError(f"release output must be empty: {output}")
     output.mkdir(parents=True, exist_ok=True)
