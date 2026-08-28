@@ -20,6 +20,8 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+PAPER_ROOT = Path("project_1_llm_state_machine_modeling/paper_stm_issue_discover")
+
 class ReleaseEntry(BaseModel):
     """One immutable source-to-destination rule in the release allowlist."""
 
@@ -120,7 +122,12 @@ def _entry_files(root: Path, entry: ReleaseEntry) -> tuple[tuple[Path, Path], ..
 
     source_relative = _safe_relative(entry.source)
     destination_relative = _safe_relative(entry.destination)
+    # The allowlist has two explicit domains: top-level neutral ``utils`` and
+    # paper1-local method material.  Resolve only within those roots, never by
+    # inferring a caller directory or rewriting a path in the release tree.
     source = root / source_relative
+    if not source.exists():
+        source = root / PAPER_ROOT / source_relative
     if entry.recursive:
         if not source.is_dir() or not entry.allowed_suffixes:
             raise ValueError(f"recursive allowlist entry is invalid: {entry.source}")
