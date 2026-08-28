@@ -1108,7 +1108,7 @@ class ValidityResponse(FrozenModel):
         description="English actionable technical root-cause phrase based only on this report and common artifacts.",
     )
     minimum_evidence_gate: ValidityGateJudgment = Field(
-        description="Non-redundant hard-gate judgment for whether the report meets a minimum auditable evidentiary burden using any clear artifact-compatible report field; core and mechanism gates are backend-derived from clause rows."
+        description="Non-redundant hard gate. SATISFIED requires both a load-bearing fact true of the author-source work product and a surviving violated obligation (D2/D1). REFUTED covers a true fact without a violated obligation (D0) and a fact false of or wrongly attributed to the author source (A0). Predicate/backend support affects W, not this gate."
     )
     validity_reason: str = Field(
         min_length=1,
@@ -1247,7 +1247,7 @@ class FrozenValidityCertificate(FrozenModel):
         description="Frozen hard gate for causal or semantic premises indispensable to sustaining the claim; SATISFIED is allowed when no separate mechanism is required."
     )
     minimum_evidence_gate: ValidityGateJudgment = Field(
-        description="Frozen hard gate for the report's minimum auditable evidentiary burden."
+        description="Frozen hard gate requiring an author-source-supported load-bearing fact and a surviving violated obligation; D0 and A0 are REFUTED, while missing executable predicate/backend support alone is not."
     )
     auxiliary_warnings: tuple[ValidityAuditWarning, ...] = Field(
         default_factory=tuple,

@@ -6,6 +6,13 @@
 > 最低举证责任时才是 `INVALID`，且全部 relation 为 NO。不得从 ledger-unmatched 自动推出
 > novel，也不得从 ledger-unmatched 自动推出 invalid。
 
+> **2026-08-29 缺陷口径更正**：下文的 pair-universe 筛选和旧 `out_of_scope`
+> 计数是冻结 benchmark 的覆盖限制，只能用于复现历史分母；它们不再定义缺陷类别。
+> 对作者源制品提出的时钟、并发或其他当前 backend 不支持的缺陷主张仍须裁为
+> D2/D1/D0，无法执行只降低 W。D0 与 A0 都属于 `INVALID`；只有 D2/D1 才能进入
+> K 或 N。现行闭合见 [issue #189](https://github.com/HansBug/research_ideas/issues/189)
+> 与 [issue #195](https://github.com/HansBug/research_ideas/issues/195)。
+
 > **评测侧边界**：本文件只说明台账分母的已知缺口，不定义当前谓词。文中的历史断言
 > 名称和旧分层只用于解释台账形成过程；当前四族注册表、W1/W2 和变更门以
 > [`pipeline/evidence_discovery/`](../../../pipeline/evidence_discovery/) 为准。
@@ -46,7 +53,11 @@
 
 ## 2. 缺口一：正交并发（问题定义边界，不补）
 
-**裁决：不补进 expected issue，作为 limitation 如实陈述。**
+**历史 benchmark 裁决：不补进冻结 expected issue，作为 coverage limitation 如实陈述。**
+
+这不表示相关报告“不算缺陷”或可以走 scope 出口。冻结台账不追加条目与逐报告的
+D/A 判定是两件事：作者源事实成立后仍要依据义务裁 D2/D1/D0；当前谓词/backend
+无法执行只影响 W。
 
 原论文的最大语义问题类是 `missing regions`（18 条 / 18 个 case，论文 Table 9 记 20 条）。台帐对其覆盖率仅 39%，其余 11 个 case 被排除，排除类型为 `E2a/pump_hierarchy_or_concurrency_ambiguity`、`E3/uav_concurrency_or_textual_effect_boundary`、`E2c/orthogonal_region_assertion_missing`。
 

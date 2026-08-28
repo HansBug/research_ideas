@@ -11,7 +11,7 @@
 | `derived/x1v2_witness_level_audit.json` | 512 条 baseline finding 的两轮独立 W 审计与裁决记录 |
 | `derived/x1v2_full_hit_max_witness_audit.json` | 435 条 expected row 的 FULL-only max-W 聚合 |
 | `report/` | 当前 [中文正式报告](./report/v60_current_vs_x1v2_baseline_cn.md) |
-| `reviews/` | 数值、语义、文风与审计审查记录 |
+| `reviews/` | 数值、语义、文风与审计审查记录；含 [106 条 frozen I 全量复审](./reviews/11_v60_invalid_manual_reaudit.md) 与 [444 条 frozen N 后置复核](./reviews/12_v60_valid_novel_posthoc_reaudit.md) |
 | `archive_manifest.json` 与 `publication_manifest.json` | 归档与发布面文件的 SHA-256 清单 |
 
 字段、分母、适用范围和数据缺口见 [SCHEMA.md](./SCHEMA.md)。当前主宇宙为 54 pair、3 round、145 expected issue、435 round-level expected row；L2 为 39 expected、117 row。`FULL/PARTIAL/NONE` 是 expected relation，`VALID_KNOWN/VALID_NOVEL/INVALID` 是 report validity，只有 `INVALID` 进入 semantic FP。
@@ -28,6 +28,12 @@
 | FULL-hit max-W2 / W1 / W0 | 211/95/0（分母 306） | 0/211/0（分母 211） |
 
 W 不绑定 19 谓词。X1v2 的 predicate usage 因其没有同构 registry/receipt schema 而不适用；其 W 仍经 512 条冻结 finding 的双审回溯得到 W0/W1/W2 = 1/511/0。baseline 没有运行期 executable witness，因此没有 W2；Judge 的事后事实核验不会倒灌为 baseline method W2。
+
+表中 K/N/I 与 precision 是冻结 Judge v3.2 输出。现行 D/A 闭包要求 D0/A0 都进入 I，
+只有 D2/D1 才能进入 K/N。106 条 frozen I 的 strict 全量复审得到其中
+`D2/D1/D0/A0 = 5/15/10/76`，对应局部 `K/N/I = 8/12/86`；444 条 frozen N 的
+后置复核确认了至少 45 条 N→I，并另列出 11 条尚待第二 reviewer 的 N→K 候选。
+这些追加审计不回写 raw 或冻结主指标，估计区间也不冒充全量人工真值。
 
 ## 离线复算
 

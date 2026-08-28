@@ -16,7 +16,7 @@
 
 ## 现行核心合同
 
-本轮实现版本为 `semantic-judge.two-stage.v3.2`。issue #195 的 relation 与计分定义保持
+本轮实现版本为 `semantic-judge.two-stage.v3.3`。issue #195 的 relation 与计分定义保持
 不变；validity 按 issue #189 的义务口径作显式澄清：Judge 检查报告自己的核心技术主张与
 不可缺少的因果机制是否成立，不要求报告或义务逐字复述 NL。隐式测试预言（尤其非预期
 reachable deadlock / no-progress）和明确陈述的领域必备义务可以在 NL 未逐字写出时成立；
@@ -36,6 +36,25 @@ reachable deadlock / no-progress）和明确陈述的领域必备义务可以在
 必须为 `NO_MATCH`；有效报告再逐 expected 裁定 relation；最后由后端从核心真值和
 relation closure 派生 `VALID_KNOWN / VALID_NOVEL / INVALID`。provider 不输出最终
 K/N/I，也不输出 hit、FP、precision 或 expected-side 汇总。
+
+validity 必须先闭合 issue #189 的 D/A 语义。第一问是承重事实是否成立于作者源
+work product，而不是当前 backend 能否执行：事实不成立，或只在 PlantUML→FCSTM
+派生表示中成立而归错制品，属于 A0；事实成立后才问是否存在存活的被违反义务，存在则为
+D2/D1，不存在则为 D0。A0 分为 `FALSE_POSITIVE` 与 `NOT_A_DEFECT_CLAIM` 两类；后者
+专指本方法 PlantUML→FCSTM 分析/表示链的错误归因（包括 unresolved/deferred analysis
+status 或只在派生 IR 上成立的现象），X1v2 baseline 不经该链，故没有这一
+subtype。不设 `OUT_OF_SCOPE`。当前谓词或 backend 不支持只影响 W，不得把 D2/D1 改判 I。
+
+| D/A 结果 | relation closure | K/N/I |
+| :-- | :-- | :-- |
+| `D2` / `D1` | 至少一个 `FULL_MATCH` / `PARTIAL_MATCH` | `VALID_KNOWN` (K) |
+| `D2` / `D1` | 全部 `NO_MATCH` | `VALID_NOVEL` (N) |
+| `D0` / `FALSE_POSITIVE` / `NOT_A_DEFECT_CLAIM` | 只允许全部 `NO_MATCH` | `INVALID` (I) |
+
+因此 D0 与 A0 都不能因 ledger-unmatched 进入 N；二者的区别保留在逐条 reason/basis
+审计中。该闭合引用 [issue #189](https://github.com/HansBug/research_ideas/issues/189)
+的 D/A 定义，并与 [issue #195](https://github.com/HansBug/research_ideas/issues/195)
+§1、§3、§4 的 K/N/I 定义共同构成现行协议。
 
 ## 确定性指标
 
@@ -60,7 +79,7 @@ redundancy rate；重复的 valid finding 进入 redundancy，不进入 FP。
 | issue snapshot 是唯一权威，变更即升版并使旧分数失效 | `protocol.py` 的 `PROTOCOL_*` 与 `verify_snapshot` | CLI 在运行前校验 snapshot | snapshot hash、prompt hash 测试 | 本文件“冻结版本” |
 | D2+D1 是唯一发布集合；D0 不进入 Judge | arm-neutral `CandidateReport` 不含 D/W/L | `artifacts.py` 只适配最终发布报告 | adapter 字段结构与排除字段测试 | `final_output_metrics_policy.md` |
 | 先判核心真值，再判 relation，后端派生 K/N/I | `ValidityJudgeInput` 物理不含 expected；`RelationJudgeInput` 只接受冻结 VALID certificate | `materialize_validity_certificate`、`materialize_two_stage_reading` | expected isolation、clause closure、two-stage replay 测试 | 本文件“现行核心合同” |
-| validity 只硬门核心主张、必要机制与最低举证责任 | 每条完整命题标记 `CORE_CLAIM / INDISPENSABLE_MECHANISM / AUXILIARY_CONTEXT`；模型只额外判断不可由 clause 机械推出的 minimum-evidence gate | 后端从 clause 派生 core/mechanism gate，再由三门机械派生真值；refuted auxiliary 只进入 warning | auxiliary-error、false-mechanism、claim omission 测试 | issue #189 与本文件“公平性与规模合同” |
+| validity 只硬门核心主张、必要机制与最低举证责任 | 每条完整命题标记 `CORE_CLAIM / INDISPENSABLE_MECHANISM / AUXILIARY_CONTEXT`；minimum-evidence gate 同时要求作者源事实成立与存活的被违反义务 | 后端从 clause 派生 core/mechanism gate，再由三门机械派生真值；D0/A0 的 minimum-evidence 为 REFUTED，refuted auxiliary 只进入 warning | auxiliary-error、false-mechanism、D0/A0、unsupported-backend 非 validity gate 测试 | issue #189 与本文件“公平性与规模合同” |
 | INVALID、VALID_NOVEL 全 NO；VALID_KNOWN 至少一条 FULL/PARTIAL | INVALID 不进入 relation schema；relation 动态 exact closure | `judge_pair` 的 invalid all-NO closure、`ReportAssessment` validator | 非法组合、invalid-no-relation 测试 | snapshot §1.1 |
 | FULL 采用适度宽语义，不以字段复刻为 gate | `RELATION_SYSTEM_PROMPT` 的 root cause、obligation、symptom、repair overlap 规则 | relation enum 原样物化 | free-text FULL、多 expected FULL 测试 | `hit_criterion.md` |
 | PARTIAL 只算 supported，不算 hit/FP | `PositiveMatchStrength.PARTIAL_MATCH` | `metrics.py::compute_semantic_metrics` | partial 指标测试 | 本文件“确定性指标” |

@@ -54,6 +54,20 @@ v60 的 FULL-hit max-W2 为 `211/306 = 68.95%`，另有 `95/306 = 31.05%` 的 FU
 
 `VALID_NOVEL` 不是 FP；ledger-unmatched report 和 `PARTIAL` 也不是 FP。这里的 semantic FP 以 `INVALID` 计。v60 的 INVALID report 从 `102` 变为 `106`，但报告总数由 `512` 增至 `1271`，所以 precision 仍提高；报告必须同时给出绝对数和比例，不能只保留有利的一侧。
 
+上述 `721/444/106` 是冻结 Judge v3.2 的机器输出，不是 2026-08-29 D0/A0 口径下的
+全量人工真值。现行闭合要求 D0/A0 都进入 I，只有 D2/D1 能进入 K/N；因此不能把 444 条
+N 直接解释为 444 个已确认新缺陷，也不能把 106 条 I 都解释为已确认误报。冻结 raw 与
+正式复算数字保持不变，后续人工复核以追加审计层报告，不回写历史 Judge 制品。
+
+追加审计已经给出更细的组成信息。对 106 条 frozen I 的[完整逐条复审](../reviews/11_v60_invalid_manual_reaudit.md)
+得到 strict `D2/D1/D0/A0 = 5/15/10/76`，即其中 20 条是 frozen Judge false negative，
+局部 corrected `K/N/I = 8/12/86`。对 444 条 frozen N 的[后置复核](../reviews/12_v60_valid_novel_posthoc_reaudit.md)
+完成了全量机械归并，确认至少 45 条应从 N 转 I，并列出 11 条尚待第二 reviewer 的 N→K
+候选。前者覆盖全部 frozen I；后者不是 444 条的全量最终人工裁决。两层审计的组合敏感性
+为：仅应用 I strict 时 `729/456/86`，再应用 confirmed 45 条 N→I 时
+`729/411/131`；若进一步纳入 11 条未签字的 relation 候选则为 `740/400/131`。这些数字
+只用于定位 Judge 系统误差，不能替换本报告的冻结主指标。
+
 ## FULL hit 中的最高 W 与全部 expected 的 W2
 
 | 口径 | v60/current | X1v2 baseline |

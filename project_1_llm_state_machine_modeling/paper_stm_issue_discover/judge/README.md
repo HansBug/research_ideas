@@ -23,4 +23,8 @@ paper-stm-semantic-judge --help
 
 发布树只包含 Judge、稳定 protocol resource 和 manifest 列出的中立 `utils` 子模块；不包含 method、evaluation、ledger、baseline、final_results、run 或 legacy 数据。真实 Judge 调用需要操作方显式配置 profile 并给出 `--allow-live`；`--help`、安装和资源读取不调用 provider。
 
-v60/current 的 Judge 实验提交为 `05cf0da6f7d9fcf1de26c349b586fc71c268f1c5`，协议标识为 `github-issue-195.d774d9bd3e4c.issue-189-clarification.v3.2`。完整输入、输出和独立复算见 [最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md)。
+当前实现是 `semantic-judge.two-stage.v3.3`：先区分作者源承重事实是否成立，再判断是否存在
+存活的被违反义务；D0/A0 都派生为 I，只有 D2/D1 能按 relation 进入 K/N。当前谓词或
+backend 不支持只影响 W，不设 scope 出口。
+
+v60/current 的冻结 Judge 实验提交为 `05cf0da6f7d9fcf1de26c349b586fc71c268f1c5`，协议标识为 `github-issue-195.d774d9bd3e4c.issue-189-clarification.v3.2`。完整输入、输出和独立复算见 [最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md)；该历史标识不得改写成 v3.3。

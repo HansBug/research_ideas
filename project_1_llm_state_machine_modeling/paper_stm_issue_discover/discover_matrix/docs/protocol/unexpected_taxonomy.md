@@ -5,6 +5,11 @@
 > ledger-unmatched 可能包含 partial-only known、valid novel 或 invalid，不能由本历史桶名
 > 自动决定 FP。现行定义见 [issue #195 同步入口](./semantic_judge_protocol.md)。
 
+> **2026-08-29 supersession**：本页保留的 `OUT_OF_SCOPE`、`OOS-*` 与五类旧计数仅用于
+> 复现历史多报分析，不是现行 A0/D 分类。现行缺陷判定没有 scope 出口：作者源承重事实
+> 成立后裁 D2/D1/D0；事实不成立才是 A0。D0/A0 都映射 `INVALID`，只有 D2/D1 才可能
+> 映射 K/N。不得用本页旧决策树裁定新报告。
+
 > **评测侧边界**：本文是历史运行结果的多报侧裁定协议。示例中的旧谓词名只描述
 > 当时产物或台账，不属于当前四族公开词表；新实现必须遵守
 > [`pipeline/evidence_discovery/METHOD_PRINCIPLES.md`](../../../pipeline/evidence_discovery/METHOD_PRINCIPLES.md)。

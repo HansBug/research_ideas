@@ -26,6 +26,19 @@ Judge report 的正式 validity 字段为 `VALID_KNOWN`、`VALID_NOVEL` 和 `INV
 
 cluster-level 先以 `pair_id + round + root_cause_cluster_key` 分组。一个 cluster 含 `VALID_KNOWN` 时计 `VALID_KNOWN`；不含 `VALID_KNOWN`、但含 `VALID_NOVEL` 时计 `VALID_NOVEL`；仅含 `INVALID` 时计 `INVALID`。cluster precision 使用 valid/total。`VALID_NOVEL`、ledger-unmatched report 与 `PARTIAL` 都不是 FP；本归档中 semantic FP 对应 `INVALID`。
 
+本目录保存的是冻结 Judge v3.2 输出，不是 2026-08-29 后按 D0/A0 边界完成的全量人工真值。
+现行语义要求：作者源承重事实成立后，有存活的被违反义务才是 D2/D1；事实成立但义务
+不成立是 D0；事实不成立或只在派生表示中成立而归错制品是 A0。D0/A0 都应为 I，只有
+D2/D1 才能按 relation 进入 K/N。因而本归档的 K/N/I 数字必须标为冻结 Judge 输出，不能
+把 `VALID_NOVEL` 逐条等同于已由人确认的新缺陷。逐条复核应作为新审计层追加，不改写 raw。
+
+追加审计有两个互补层次：[106 条 frozen I 的完整逐条复审](./reviews/11_v60_invalid_manual_reaudit.md)
+给出 strict `D2/D1/D0/A0 = 5/15/10/76` 和局部 corrected `K/N/I = 8/12/86`；
+[444 条 frozen N 的后置复核](./reviews/12_v60_valid_novel_posthoc_reaudit.md) 给出精确机械
+归并、45 条 confirmed N→I 下界，以及未完成第二审的候选/估计范围。前者是全量人工复审，
+后者不是 444 条全量最终裁决。组合敏感性必须明确假设审计集合互不重叠，不得替换
+`derived/recomputed_summary.json` 的冻结指标。
+
 ## W 与谓词
 
 W 是 finding 的证据/见证强度，而不是 19 谓词专属字段。W0 没有足够具体、可核对的模型元素或路径定位；W1 已定位 state、transition、guard、action、缺失边、模型片段或有限路径，但没有该方法产生且在精确制品上终止求值的对象；W2 还需要原方法产生的可执行对象、运行期 terminal receipt、精确 artifact hash 和 terminal result。later Judge 的事实核验不能倒灌形成 method W2。
