@@ -624,7 +624,7 @@ def _release_source_provenance() -> dict[str, Any] | None:
         return None
     return SourceProvenance(
         source_commit=source_commit,
-        source_branch="release-package",
+        source_branch="package-release",
         source_dirty=False,
         reason=(
             "The installed release package has no Git metadata; its package resources "

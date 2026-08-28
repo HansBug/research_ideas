@@ -37,5 +37,5 @@ def test_packaged_release_manifest_verifies_its_embedded_commit() -> None:
     if provenance is None:
         return
     assert len(provenance["source_commit"]) == 40
-    assert provenance["source_branch"] == "release-package"
+    assert provenance["source_branch"] == "package-release"
     assert provenance["source_dirty"] is False
