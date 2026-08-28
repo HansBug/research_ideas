@@ -43,6 +43,10 @@ class ReleaseAllowlist(BaseModel):
     package_name: str = Field(min_length=1, description="Published distribution name represented by this allowlist.")
     source_commit_requirement: str = Field(min_length=1, description="Required source-tree provenance condition before a release build.")
     entries: tuple[ReleaseEntry, ...] = Field(min_length=1, description="Complete, ordered set of permitted source copy rules.")
+    embedded_manifest_destination: str = Field(
+        min_length=1,
+        description="Release-relative package-data destination for the generated manifest used to verify installed provenance.",
+    )
     excluded_categories: tuple[str, ...] = Field(min_length=1, description="Classes of data intentionally excluded from the method release.")
 
 
@@ -235,9 +239,11 @@ def build(
         basis="Clean Git commit, release_allowlist.json, and SHA-256 for every copied file.",
     )
     manifest_path = output / "release_manifest.json"
-    manifest_path.write_bytes(
-        manifest.model_dump_json(indent=2).encode("utf-8") + b"\n"
-    )
+    manifest_bytes = manifest.model_dump_json(indent=2).encode("utf-8") + b"\n"
+    manifest_path.write_bytes(manifest_bytes)
+    embedded_manifest = output / _safe_relative(allowlist.embedded_manifest_destination)
+    embedded_manifest.parent.mkdir(parents=True, exist_ok=True)
+    embedded_manifest.write_bytes(manifest_bytes)
     return manifest
 
 

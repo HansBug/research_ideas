@@ -21,6 +21,6 @@ setup(
     extras_require={"test": ("pytest>=8,<10",)},
     package_dir={"": "src"},
     packages=find_packages("src", include=("paper_stm_method*", "utils*")),
-    package_data={"paper_stm_method": ["resources/*.json"]},
+    package_data={"paper_stm_method": ["resources/*.json", "release_manifest.json"]},
     entry_points={"console_scripts": ["paper-stm-method=paper_stm_method.cli:main"]},
 )

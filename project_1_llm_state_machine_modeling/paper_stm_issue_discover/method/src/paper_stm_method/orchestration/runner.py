@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.resources as package_resources
 import json
 import multiprocessing
-import os
 import re
 import subprocess
 import uuid
@@ -567,29 +567,73 @@ def _git_source_provenance() -> dict[str, Any] | None:
         return None
 
 
-def _release_source_provenance() -> dict[str, Any] | None:
-    """Read an explicit immutable release commit when no Git metadata ships with a package."""
+def _release_manifest_file(destination: str):
+    """Map one generated-release destination to an installed package resource, if executable."""
 
-    source_commit = os.environ.get("PAPER_STM_RELEASE_SOURCE_COMMIT", "").strip()
-    if not re.fullmatch(r"[0-9a-f]{40}", source_commit):
+    prefix = "src/paper_stm_method/"
+    if destination.startswith(prefix):
+        return package_resources.files("paper_stm_method").joinpath(
+            destination.removeprefix(prefix)
+        )
+    prefix = "src/utils/"
+    if destination.startswith(prefix):
+        return package_resources.files("utils").joinpath(destination.removeprefix(prefix))
+    return None
+
+
+def _release_source_provenance() -> dict[str, Any] | None:
+    """Verify installed package bytes against its builder-generated provenance manifest."""
+
+    try:
+        manifest = json.loads(
+            package_resources.files("paper_stm_method")
+            .joinpath("release_manifest.json")
+            .read_text(encoding="utf-8")
+        )
+        source_commit = str(manifest["source_commit"])
+        files = manifest["files"]
+        if (
+            manifest.get("schema_version") != "paper1.release-manifest.v1"
+            or not re.fullmatch(r"[0-9a-f]{40}", source_commit)
+            or not isinstance(files, list)
+        ):
+            return None
+        checked_files = 0
+        for item in files:
+            if not isinstance(item, dict):
+                return None
+            destination = item.get("destination")
+            expected_hash = item.get("sha256")
+            if not isinstance(destination, str) or not isinstance(expected_hash, str):
+                return None
+            resource = _release_manifest_file(destination)
+            if resource is None:
+                continue
+            actual_hash = "sha256:" + hashlib.sha256(resource.read_bytes()).hexdigest()
+            if actual_hash != expected_hash:
+                return None
+            checked_files += 1
+        if checked_files == 0:
+            return None
+    except (KeyError, OSError, TypeError, ValueError):
         return None
     return SourceProvenance(
         source_commit=source_commit,
         source_branch="release-package",
         source_dirty=False,
         reason=(
-            "The installed release package has no Git metadata; its immutable source commit "
-            "was supplied explicitly by the release operator."
+            "The installed release package has no Git metadata; its package resources "
+            "match the builder-generated immutable release manifest."
         ),
         basis=(
-            "PAPER_STM_RELEASE_SOURCE_COMMIT validated as a 40-hex commit; "
-            "the accompanying release_manifest.json must record the same source commit and per-file SHA-256."
+            "paper_stm_method.release_manifest.json source commit plus SHA-256 checks "
+            "for every installed method and neutral utility package file."
         ),
     ).model_dump(mode="json")
 
 
 def _source_provenance() -> dict[str, Any]:
-    """Capture Git provenance or an explicit immutable release-manifest provenance fallback."""
+    """Capture Git provenance or verify the installed immutable release-manifest fallback."""
 
     git_provenance = _git_source_provenance()
     if git_provenance is not None:
@@ -601,8 +645,8 @@ def _source_provenance() -> dict[str, Any]:
         source_commit="unknown",
         source_branch="unknown",
         source_dirty=True,
-        reason="Repository provenance could not be resolved and no valid release manifest commit was supplied; a live formal run must fail closed.",
-        basis="Git lookup unavailable and PAPER_STM_RELEASE_SOURCE_COMMIT absent or invalid.",
+        reason="Repository provenance could not be resolved and no valid installed release manifest was available; a live formal run must fail closed.",
+        basis="Git lookup unavailable and package release_manifest.json absent, malformed, or hash-inconsistent.",
     ).model_dump(mode="json")
 
 

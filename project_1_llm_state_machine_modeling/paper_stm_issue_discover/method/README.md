@@ -19,10 +19,10 @@ The release metadata pins the required `pyfcstm` revision. A real run also
 requires a valid `utils.llm` profile configuration supplied by the operator;
 credentials are never included in the package.
 
-When running an extracted release package without a Git checkout, set
-`PAPER_STM_RELEASE_SOURCE_COMMIT` to the exact `source_commit` in the generated
-`release_manifest.json`; retain that manifest beside the run records. This
-preserves the live-run provenance gate without rewriting installed source files.
+When running an extracted release package without a Git checkout, the packaged
+`paper_stm_method.release_manifest.json` verifies the exact builder commit and
+the installed method/neutral-utility file hashes. Retain the top-level generated
+`release_manifest.json` beside run records as the full per-file audit list.
 
 ## Method CLI
 
