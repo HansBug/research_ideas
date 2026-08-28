@@ -18,6 +18,7 @@ setup(
         "openai==2.41.0",
         "pyfcstm @ git+https://github.com/HansBug/pyfcstm.git@901f30e981c29eb8e304b33d61985652d2e85b2e",
     ),
+    extras_require={"test": ("pytest>=8,<10",)},
     package_dir={"": "src"},
     packages=find_packages("src", include=("paper_stm_method*", "utils*")),
     package_data={"paper_stm_method": ["resources/*.json"]},

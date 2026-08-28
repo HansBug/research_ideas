@@ -12,6 +12,7 @@ Build the release tree from a clean repository checkout:
 venv/bin/python project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/release/build_method_release.py \
   --output /tmp/paper-stm-method-release
 python -m pip install /tmp/paper-stm-method-release
+python -m pip install "/tmp/paper-stm-method-release[test]"
 ```
 
 The release metadata pins the required `pyfcstm` revision. A real run also
@@ -20,8 +21,8 @@ credentials are never included in the package.
 
 When running an extracted release package without a Git checkout, set
 `PAPER_STM_RELEASE_SOURCE_COMMIT` to the exact `source_commit` in the generated
-`release_manifest.json`; retain that manifest beside the run records. This preserves the live-run provenance gate without
-rewriting installed source files.
+`release_manifest.json`; retain that manifest beside the run records. This
+preserves the live-run provenance gate without rewriting installed source files.
 
 ## Method CLI
 
