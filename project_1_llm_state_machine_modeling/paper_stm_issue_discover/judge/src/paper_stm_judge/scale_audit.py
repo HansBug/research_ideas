@@ -541,8 +541,9 @@ def main(argv: list[str] | None = None) -> int:
     """Persist a reproducible real-input audit without contacting a provider."""
 
     args = build_parser().parse_args(argv)
-    project_root = Path(__file__).resolve().parents[2]
-    verify_snapshot(project_root)
+    # The packaged protocol resource is the only authority for a standalone
+    # Judge; do not reconstruct a repository parent from the installed path.
+    verify_snapshot()
     source_path = args.source_path.expanduser().resolve()
     expected_issues, expected_id_map = load_expected_issues(
         args.ledger.expanduser().resolve(), args.pair_id

@@ -26,6 +26,7 @@ from utils.stm_artifacts.fcstm_native_projection import (
     state_path,
     transition_carrier_reference,
 )
+from utils import stm_artifacts
 from utils.stm_artifacts import FROZEN_PAIR_IDS, load_pair
 from utils.stm_artifacts.models import ModelIR, parse_fcstm
 
@@ -101,23 +102,16 @@ class NativeProjectionAudit(BaseModel):
 
 
 _TEXT_HANDLING_ALLOWANCES: tuple[NativeTextHandlingAllowance, ...] = (
-    NativeTextHandlingAllowance(path="backends/fcstm_native.py", text_construct="splitlines", purpose="Linux /proc worker RSS telemetry only."),
-    NativeTextHandlingAllowance(path="backends/source_static.py", text_construct="regular_expression", purpose="Presentation whitespace normalization of typed action values; native AST parsers decide FCSTM semantics."),
-    NativeTextHandlingAllowance(path="inputs/context.py", text_construct="regular_expression", purpose="Numbered NL segment and audit-reference formatting, never FCSTM DSL parsing."),
-    NativeTextHandlingAllowance(path="reporting/final_results_archive.py", text_construct="regular_expression", purpose="Markdown local-link syntax validation for the final archive; it never reads or interprets FCSTM source."),
-    NativeTextHandlingAllowance(path="inputs/fcstm_native_projection.py", text_construct="splitlines", purpose="Working-contract excerpt attribution to a pyfcstm source span; native carrier refs, never source lines, decide FCSTM semantics."),
-    NativeTextHandlingAllowance(path="inputs/native_projection_audit.py", text_construct="regular_expression", purpose="Static-contract scanner self-identification only."),
-    NativeTextHandlingAllowance(path="inputs/native_projection_audit.py", text_construct="splitlines", purpose="Static-contract scanner reads Python source lines only."),
-    NativeTextHandlingAllowance(path="orchestration/runner.py", text_construct="regular_expression", purpose="Run-id validation and cross-artifact display-token normalization; native refs decide all FCSTM identities."),
-    NativeTextHandlingAllowance(path="orchestration/runtime.py", text_construct="splitlines", purpose="Provider transport framing only."),
-    NativeTextHandlingAllowance(path="frontier_replay.py", text_construct="regular_expression", purpose="Immutable run and pair identifier validation only; no FCSTM source text is inspected."),
-    NativeTextHandlingAllowance(path="execution_probe_replay.py", text_construct="regular_expression", purpose="Immutable run identifier validation only; no FCSTM source text or semantic identity is parsed."),
-    NativeTextHandlingAllowance(path="route_replay.py", text_construct="regular_expression", purpose="Immutable historical run-id validation only."),
-    NativeTextHandlingAllowance(path="structural_rebind_replay.py", text_construct="regular_expression", purpose="Historical NL segment-reference compatibility only; no FCSTM source text or semantic identity is parsed."),
-    NativeTextHandlingAllowance(path="semantics/binding.py", text_construct="regular_expression", purpose="Method candidate and historical-ref format parsing, never FCSTM source parsing."),
-    NativeTextHandlingAllowance(path="semantics/predicate_routing.py", text_construct="regular_expression", purpose="Method-owned cold_macrosteps typed hint validation only."),
-    NativeTextHandlingAllowance(path="semantics/source_transition_closure.py", text_construct="regular_expression", purpose="Cross-artifact display-token normalization, never FCSTM source parsing."),
-    NativeTextHandlingAllowance(path="semantics/source_transition_closure.py", text_construct="splitlines", purpose="PlantUML and declared source-line attribution only; native span/carrier refs decide FCSTM identity."),
+    NativeTextHandlingAllowance(path="method/backends/fcstm_native.py", text_construct="splitlines", purpose="Linux /proc worker RSS telemetry only."),
+    NativeTextHandlingAllowance(path="method/backends/source_static.py", text_construct="regular_expression", purpose="Presentation whitespace normalization of typed action values; native AST parsers decide FCSTM semantics."),
+    NativeTextHandlingAllowance(path="utils/stm_artifacts/context.py", text_construct="regular_expression", purpose="Numbered NL segment and audit-reference formatting, never FCSTM DSL parsing."),
+    NativeTextHandlingAllowance(path="utils/stm_artifacts/fcstm_native_projection.py", text_construct="splitlines", purpose="Working-contract excerpt attribution to a pyfcstm source span; native carrier refs, never source lines, decide FCSTM semantics."),
+    NativeTextHandlingAllowance(path="method/orchestration/runner.py", text_construct="regular_expression", purpose="Run-id validation and cross-artifact display-token normalization; native refs decide all FCSTM identities."),
+    NativeTextHandlingAllowance(path="utils/structured_runtime.py", text_construct="splitlines", purpose="Provider transport framing only."),
+    NativeTextHandlingAllowance(path="method/semantics/binding.py", text_construct="regular_expression", purpose="Method candidate and historical-ref format parsing, never FCSTM source parsing."),
+    NativeTextHandlingAllowance(path="method/semantics/predicate_routing.py", text_construct="regular_expression", purpose="Method-owned cold_macrosteps typed hint validation only."),
+    NativeTextHandlingAllowance(path="method/semantics/source_transition_closure.py", text_construct="regular_expression", purpose="Cross-artifact display-token normalization, never FCSTM source parsing."),
+    NativeTextHandlingAllowance(path="method/semantics/source_transition_closure.py", text_construct="splitlines", purpose="PlantUML and declared source-line attribution only; native span/carrier refs decide FCSTM identity."),
 )
 
 
@@ -305,7 +299,9 @@ def audit_pair_source(pair_id: str, source_path: Path, *, input_closure_loaded: 
     )
 
 
-def _text_handling_hits(evidence_root: Path) -> tuple[NativeTextHandlingHit, ...]:
+def _text_handling_hits(
+    semantic_roots: tuple[tuple[str, Path], ...],
+) -> tuple[NativeTextHandlingHit, ...]:
     """Scan semantic production files for text processing that could parse FCSTM.
 
     The ``tools`` package contains provider-free maintenance and replay CLIs.
@@ -319,42 +315,48 @@ def _text_handling_hits(evidence_root: Path) -> tuple[NativeTextHandlingHit, ...
         for item in _TEXT_HANDLING_ALLOWANCES
     }
     hits: list[NativeTextHandlingHit] = []
-    for path in sorted(evidence_root.rglob("*.py")):
-        relative = path.relative_to(evidence_root).as_posix()
-        if relative.startswith(("tests/", "tools/")):
-            continue
-        source_text = path.read_text(encoding="utf-8")
-        source_lines = source_text.splitlines()
-        tokens = tuple(tokenize.generate_tokens(io.StringIO(source_text).readline))
-        for index, token in enumerate(tokens):
-            construct: Literal["regular_expression", "splitlines"] | None = None
-            if (
-                token.type == tokenize.NAME
-                and token.string == "re"
-                and index + 1 < len(tokens)
-                and tokens[index + 1].type == tokenize.OP
-                and tokens[index + 1].string == "."
-            ):
-                construct = "regular_expression"
-            elif (
-                token.type == tokenize.NAME
-                and token.string == "splitlines"
-                and index > 0
-                and tokens[index - 1].type == tokenize.OP
-                and tokens[index - 1].string == "."
-            ):
-                construct = "splitlines"
-            if construct is None or token.start[0] > len(source_lines):
+    for root_label, root in semantic_roots:
+        for path in sorted(root.rglob("*.py")):
+            relative = f"{root_label}/{path.relative_to(root).as_posix()}"
+            if relative.startswith(("method/tests/", "method/tools/")):
                 continue
-            hits.append(
-                NativeTextHandlingHit(
-                    path=relative,
-                    line=token.start[0],
-                    text_construct=construct,
-                    allowance_purpose=purposes.get((relative, construct)),
-                    source_line=source_lines[token.start[0] - 1].strip(),
+            if root_label == "utils" and not (
+                relative == "utils/structured_runtime.py"
+                or relative.startswith("utils/stm_artifacts/")
+            ):
+                continue
+            source_text = path.read_text(encoding="utf-8")
+            source_lines = source_text.splitlines()
+            tokens = tuple(tokenize.generate_tokens(io.StringIO(source_text).readline))
+            for index, token in enumerate(tokens):
+                construct: Literal["regular_expression", "splitlines"] | None = None
+                if (
+                    token.type == tokenize.NAME
+                    and token.string == "re"
+                    and index + 1 < len(tokens)
+                    and tokens[index + 1].type == tokenize.OP
+                    and tokens[index + 1].string == "."
+                ):
+                    construct = "regular_expression"
+                elif (
+                    token.type == tokenize.NAME
+                    and token.string == "splitlines"
+                    and index > 0
+                    and tokens[index - 1].type == tokenize.OP
+                    and tokens[index - 1].string == "."
+                ):
+                    construct = "splitlines"
+                if construct is None or token.start[0] > len(source_lines):
+                    continue
+                hits.append(
+                    NativeTextHandlingHit(
+                        path=relative,
+                        line=token.start[0],
+                        text_construct=construct,
+                        allowance_purpose=purposes.get((relative, construct)),
+                        source_line=source_lines[token.start[0] - 1].strip(),
+                    )
                 )
-            )
     return tuple(hits)
 
 
@@ -380,7 +382,12 @@ def build_native_projection_audit(report_root: str | Path) -> NativeProjectionAu
         )
         for source_path in source_paths
     )
-    hits = _text_handling_hits(Path(__file__).resolve().parents[1])
+    hits = _text_handling_hits(
+        (
+            ("method", Path(__file__).resolve().parents[1]),
+            ("utils", Path(stm_artifacts.__file__).resolve().parent.parent),
+        )
+    )
     unapproved = tuple(hit for hit in hits if hit.allowance_purpose is None)
     return NativeProjectionAudit(
         report_root=str(root),
