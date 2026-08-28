@@ -598,7 +598,7 @@ def _release_source_provenance() -> dict[str, Any] | None:
         source_commit = str(manifest["source_commit"])
         files = manifest["files"]
         if (
-            manifest.get("schema_version") != "paper1.release-manifest.v1"
+            manifest.get("schema_version") != "paper-stm-method.release-manifest.v1"
             or not re.fullmatch(r"[0-9a-f]{40}", source_commit)
             or not isinstance(files, list)
         ):

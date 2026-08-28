@@ -67,8 +67,8 @@ class ReleaseManifest(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    schema_version: Literal["paper1.release-manifest.v1"] = Field(
-        default="paper1.release-manifest.v1",
+    schema_version: Literal["paper-stm-method.release-manifest.v1"] = Field(
+        default="paper-stm-method.release-manifest.v1",
         description="Versioned generated release manifest schema identifier.",
     )
     source_commit: str = Field(pattern=r"^[0-9a-f]{40}$", description="Clean Git commit supplying every copied release byte.")
