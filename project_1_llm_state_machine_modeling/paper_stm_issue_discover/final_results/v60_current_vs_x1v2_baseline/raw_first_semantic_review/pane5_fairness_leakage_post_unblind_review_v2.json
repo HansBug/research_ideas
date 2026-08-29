@@ -1,0 +1,262 @@
+{
+  "schema": "pane5.fairness-leakage-post-unblind-review.v2",
+  "review_state": "SUBAGENT_PROPOSAL",
+  "proposal_status": "POST_UNBLIND_COMPARISON_ONLY",
+  "reviewer_role": "subagent_proposal",
+  "pane": "pane5",
+  "review_role": "fairness/leakage",
+  "is_final": false,
+  "provider_free": true,
+  "canonical_decisions_read_after_blind_submission": true,
+  "blind_proposal": {
+    "path": "raw_first_semantic_review/pane5_fairness_leakage_blind_proposal_v2.json",
+    "sha256": "sha256:5c58da26c114725ae792c7526f453dbdc8cb686a48a465f3ab5a0d0fa9c6c3b5",
+    "submitted_before_canonical_read": true
+  },
+  "canonical_inputs_read_after_submission": [
+    {
+      "path": "derived/manual_adjudication_v2/pane5_evidence_reads.json",
+      "sha256": "sha256:04254d908b81526d3ae90e7d22bf53b7ab6a1fccaf1d14716a6acc5b84c0ad66",
+      "pointers": ["/report_count", "/rows", "/provider_calls"]
+    },
+    {
+      "path": "derived/manual_adjudication_v2/review_log.json",
+      "sha256": "sha256:51226acf2b53c453fee2f2f1ceef000ee8ceb8ceed6c63469673720d54302a55",
+      "pointers": ["/review_status", "/entries", "/workflow", "/authorization"]
+    },
+    {
+      "path": "derived/manual_adjudication_v2/README.md",
+      "sha256": "sha256:74325c1c4be3ab67fd5069eb1538b20a69bf783227e0a5d2bbf0f41bb702eb56",
+      "pointers": "lines 1, 8, 20-29, 38-41"
+    },
+    {
+      "path": "derived/manual_adjudication_v2/MANIFEST",
+      "sha256": "sha256:c65ac5e9b7a01afa6a0630278a1dc0f8973f08ff89c03b3321d968843b53573b",
+      "pointers": "line 1: status=FINAL and canonical file hashes"
+    }
+  ],
+  "canonical_snapshot": {
+    "evidence_read_rows": 1783,
+    "current_rows": 1271,
+    "baseline_rows": 512,
+    "provider_calls_root": 0,
+    "raw_read_rows": 1783,
+    "author_source_read_rows": 1783,
+    "review_log_entries": 1783,
+    "review_log_final_entries": 1783,
+    "human_confirmation_entries": 1783,
+    "primary_visible_true": 0,
+    "reference_visible_true": 0,
+    "independent_reviewer_role": "subagent_proposal",
+    "independent_submission_timestamp": "2026-08-29T04:14:42Z",
+    "primary_submission_timestamp": "2026-08-29T07:56:05Z",
+    "unblinded_timestamp": "2026-08-29T07:56:06Z",
+    "out_of_order_timestamp_entries": 0,
+    "unique_referenced_raw_paths": 303,
+    "missing_referenced_raw_paths": 0
+  },
+  "findings": [
+    {
+      "finding_id": "P5-FL-B2-001",
+      "status": "FAIL",
+      "severity": "I",
+      "relation_to_blind": "CONFIRMED_AFTER_UNBLIND",
+      "reason": "The blind proposal identified provider/model/profile and prompt co-location in all 162 baseline method records. Canonical evidence-read records do not remove that exposure from the frozen raw tree, so a reviewer with raw access can still condition review on provider or model identity.",
+      "basis": "Blind evidence: raw/x1v2_baseline/method/run1/0000-luna/record.json lines 20, 37, 54, 59, 64, 106; 162/162 records contain all six fields. Canonical evidence-read scope is 1783 rows but has no field that establishes those raw metadata were projected out.",
+      "raw_paths": [
+        {
+          "path": "raw/x1v2_baseline/method/run1/0000-luna/record.json",
+          "hash": "sha256:91718e94c96ae95b9609f04f4fd1c0342fd914074dafaa8e237c5fa717b15828",
+          "pointer": "/configured_model,/observed_model,/profile,/provider,/system_prompt,/user_prompt",
+          "lines": [20, 37, 54, 59, 64, 106]
+        }
+      ],
+      "canonical_refs": [
+        {
+          "path": "derived/manual_adjudication_v2/pane5_evidence_reads.json",
+          "hash": "sha256:04254d908b81526d3ae90e7d22bf53b7ab6a1fccaf1d14716a6acc5b84c0ad66",
+          "pointer": "/rows[side=x1v2_baseline]",
+          "count": 512
+        }
+      ],
+      "recompute_command": "find raw/x1v2_baseline/method -type f -name record.json -print0 | xargs -0 jq -r 'select(has(\"configured_model\") and has(\"observed_model\") and has(\"profile\") and has(\"provider\") and has(\"system_prompt\") and has(\"user_prompt\"))|1' | wc -l",
+      "evidence_pointer": "blind proposal P5-FL-B2-001; result 162; canonical rows=1783",
+      "disposition": "BLOCK_FINAL_PENDING_REMEDIATION",
+      "repair_commit": null,
+      "targeted_re_review": "Review the provider/model-blinded projection over all 162 baseline records and all 512 canonical baseline rows. PASS requires zero provider/model/profile/adapter/prompt fields in reviewer-visible input, preserved pair/round/source-hash identity, and no provider-conditioned path hint."
+    },
+    {
+      "finding_id": "P5-FL-B2-002",
+      "status": "FAIL",
+      "severity": "I",
+      "relation_to_blind": "CONFIRMED_AFTER_UNBLIND",
+      "reason": "All three current source-run manifests expose model_profile next to pair and round selection. The canonical log records a clean blind chronology, but does not establish that this run-level model identity was hidden from the reviewer.",
+      "basis": "Each raw run_manifest.json has model_profile=gpt-5.6-luna at line 14 and 54 selected pairs at line 15 onward; selected_rounds is at line 71. The three runs cover rounds 1, 2, and 3.",
+      "raw_paths": [
+        {
+          "path": "raw/v60_current/judge/source_runs/77404499c3ac4511a218f0ad3f91c45b/run_manifest.json",
+          "hash": "sha256:13572ee159ad126b9a154d6288e5f6037f920576d2a5ca0d136a3986faeaca7d",
+          "pointer": "/model_profile",
+          "line": 14
+        },
+        {
+          "path": "raw/v60_current/judge/source_runs/86407845e4d5428ab8334fce3398cf60/run_manifest.json",
+          "hash": "sha256:322b072337a8aa69b99fc6401c41b7b7aef65424525da6a16bef9020905a56ac",
+          "pointer": "/model_profile",
+          "line": 14
+        },
+        {
+          "path": "raw/v60_current/judge/source_runs/a93f5773cd3d4e6387b68b6fd1f9113d/run_manifest.json",
+          "hash": "sha256:48769b92250481fb579275478e1ec6fbb520b7746f476a6483d835681cb0c354",
+          "pointer": "/model_profile",
+          "line": 14
+        }
+      ],
+      "canonical_refs": [
+        {
+          "path": "derived/manual_adjudication_v2/review_log.json",
+          "hash": "sha256:51226acf2b53c453fee2f2f1ceef000ee8ceb8ceed6c63469673720d54302a55",
+          "pointer": "/workflow/provider_calls",
+          "value": 0
+        }
+      ],
+      "recompute_command": "for f in raw/v60_current/judge/source_runs/*/run_manifest.json; do rg -n '\"model_profile\"|\"selected_pair_ids\"|\"selected_rounds\"' \"$f\"; done",
+      "evidence_pointer": "blind proposal P5-FL-B2-002; raw run manifests: model_profile line 14 in all 3 runs",
+      "disposition": "BLOCK_FINAL_PENDING_REMEDIATION",
+      "repair_commit": null,
+      "targeted_re_review": "Replace reviewer-visible model identity with an opaque run token and keep the identity in a sealed ledger. Re-run the scan on all three manifests and verify 54 pairs x 3 rounds plus raw/source hashes are unchanged."
+    },
+    {
+      "finding_id": "P5-FL-B2-003",
+      "status": "PASS",
+      "severity": null,
+      "relation_to_blind": "CONFIRMED",
+      "reason": "Canonical audit records preserve raw/source-read flags for every row and report zero provider calls; primary/reference visibility flags are false for every review-log entry.",
+      "basis": "pane5_evidence_reads.json has 1783 rows, raw_read=1783, author_source_read=1783, provider_calls=0. review_log.json has 1783 entries, primary_visible_true=0, reference_visible_true=0, and provider_calls=0.",
+      "canonical_refs": [
+        {
+          "path": "derived/manual_adjudication_v2/pane5_evidence_reads.json",
+          "hash": "sha256:04254d908b81526d3ae90e7d22bf53b7ab6a1fccaf1d14716a6acc5b84c0ad66",
+          "pointer": "/report_count,/rows,/provider_calls"
+        },
+        {
+          "path": "derived/manual_adjudication_v2/review_log.json",
+          "hash": "sha256:51226acf2b53c453fee2f2f1ceef000ee8ceb8ceed6c63469673720d54302a55",
+          "pointer": "/entries[*]/primary_visible,/entries[*]/reference_visible,/workflow/provider_calls"
+        }
+      ],
+      "recompute_command": "jq -r '{rows:(.rows|length),raw_read:(.rows|map(select(.raw_read==true))|length),author_source_read:(.rows|map(select(.author_source_read==true))|length),provider_calls}' derived/manual_adjudication_v2/pane5_evidence_reads.json; jq -r '{entries:(.entries|length),primary_visible_true:(.entries|map(select(.primary_visible==true))|length),reference_visible_true:(.entries|map(select(.reference_visible==true))|length),provider_calls:(.entries|map(.provider_calls // 0)|add)}' derived/manual_adjudication_v2/review_log.json",
+      "evidence_pointer": "command result: rows=1783, raw_read=1783, author_source_read=1783, provider_calls=0; entries=1783, visible flags=0, provider_calls=0",
+      "disposition": "ACCEPT_AS_AUDIT_CONTROL_ONLY",
+      "repair_commit": null,
+      "targeted_re_review": "Repeat after leakage projection. This PASS does not override P5-FL-B2-001/002 or authorize FINAL."
+    },
+    {
+      "finding_id": "P5-FL-B2-004",
+      "status": "PASS",
+      "severity": null,
+      "relation_to_blind": "CONFIRMED",
+      "reason": "The canonical log records the independent reviewer as a subagent proposal and stores independent submission, primary submission, and unblind timestamps in the expected order for all 1783 entries.",
+      "basis": "review_log.json has independent_reviewer_role=subagent_proposal, independent_submission_at=2026-08-29T04:14:42Z, primary_submission_at=2026-08-29T07:56:05Z, unblinded_at=2026-08-29T07:56:06Z, and zero out-of-order entries.",
+      "canonical_refs": [
+        {
+          "path": "derived/manual_adjudication_v2/review_log.json",
+          "hash": "sha256:51226acf2b53c453fee2f2f1ceef000ee8ceb8ceed6c63469673720d54302a55",
+          "pointer": "/entries[*]/independent_reviewer_role,/entries[*]/independent_submission_at,/entries[*]/primary_submission_at,/entries[*]/unblinded_at,/entries[*]/blind_event_sequence"
+        }
+      ],
+      "recompute_command": "jq -r '[.entries[]|select(.independent_reviewer_role==\"subagent_proposal\" and .independent_submission_at!=null and .primary_submission_at!=null and .unblinded_at!=null)]|length' derived/manual_adjudication_v2/review_log.json; jq -r '[.entries[]|select(.independent_submission_at > .primary_submission_at or .primary_submission_at > .unblinded_at)]|length' derived/manual_adjudication_v2/review_log.json",
+      "evidence_pointer": "command result: 1783 complete chronology entries; 0 out-of-order entries",
+      "disposition": "ACCEPT_AS_PROVENANCE_CONTROL",
+      "repair_commit": null,
+      "targeted_re_review": "Retain the chronology when regenerating any canonical log; ensure the proposal remains labeled subagent_proposal and cannot be promoted by the log generator."
+    },
+    {
+      "finding_id": "P5-FL-B2-005",
+      "status": "FAIL",
+      "severity": "I",
+      "relation_to_blind": "NEW_AFTER_UNBLIND",
+      "title": "Canonical finality status contradicts its own README contract",
+      "reason": "README says the submission is unfinished, that v60/current 1271 and X1v2 512 decisions are pending human work, that review_log.json is pending, and that MANIFEST is pending finalization. MANIFEST line 1 and review_log.json instead declare FINAL. This leaves the formal status ambiguous and can cause unfinished data to be consumed as final.",
+      "basis": "README.md lines 1, 8, 20-29, 38-41 versus MANIFEST line 1 status=FINAL and review_log.json root /review_status=FINAL with all 1783 entries marked FINAL.",
+      "canonical_refs": [
+        {
+          "path": "derived/manual_adjudication_v2/README.md",
+          "hash": "sha256:74325c1c4be3ab67fd5069eb1538b20a69bf783227e0a5d2bbf0f41bb702eb56",
+          "lines": [1, 8, 20, 21, 28, 29, 38, 41]
+        },
+        {
+          "path": "derived/manual_adjudication_v2/MANIFEST",
+          "hash": "sha256:c65ac5e9b7a01afa6a0630278a1dc0f8973f08ff89c03b3321d968843b53573b",
+          "pointer": "status=FINAL",
+          "line": 1
+        },
+        {
+          "path": "derived/manual_adjudication_v2/review_log.json",
+          "hash": "sha256:51226acf2b53c453fee2f2f1ceef000ee8ceb8ceed6c63469673720d54302a55",
+          "pointer": "/review_status and /entries[*]/review_status",
+          "line": 1
+        }
+      ],
+      "recompute_command": "rg -n '当前提交只冻结|1271 条|512 条|review_log.json.*待人工|待最终化|正式出数前必须' derived/manual_adjudication_v2/README.md; rg -o 'status:\"[A-Z_]+' derived/manual_adjudication_v2/MANIFEST; jq -r '[.review_status, (.entries|map(.review_status)|group_by(.)|map({status:.[0],count:length}))] | @json' derived/manual_adjudication_v2/review_log.json",
+      "evidence_pointer": "README lines 1/8/20-29/38-41; MANIFEST line 1; review_log.json line 1",
+      "disposition": "BLOCK_FINALITY_UNTIL_STATUS_RECONCILED",
+      "repair_commit": null,
+      "targeted_re_review": "Choose one status contract and update all status-bearing files atomically. If data is not actually final, use PROPOSAL/INDEPENDENT_REVIEW and remove FINAL promotion; if final, update README and prove all stated gates. Re-run MANIFEST hash validation and a status-consistency check."
+    },
+    {
+      "finding_id": "P5-FL-B2-006",
+      "status": "PASS",
+      "severity": null,
+      "relation_to_blind": "CONFIRMED",
+      "reason": "Every canonical evidence-read row and every canonical referenced raw path is present and the referenced path scan found no missing paths.",
+      "basis": "Canonical rows=1783 and 303 unique raw_method_path values; path existence scan returned PASS 303 and no MISSING result. The source closure independently passed 108/108 hashes in the blind phase.",
+      "canonical_refs": [
+        {
+          "path": "derived/manual_adjudication_v2/pane5_evidence_reads.json",
+          "hash": "sha256:04254d908b81526d3ae90e7d22bf53b7ab6a1fccaf1d14716a6acc5b84c0ad66",
+          "pointer": "/rows[*]/raw_method_path"
+        }
+      ],
+      "recompute_command": "jq -r '.rows[].raw_method_path' derived/manual_adjudication_v2/pane5_evidence_reads.json | sort -u | while IFS= read -r p; do test -f \"$p\" && echo PASS:$p || echo MISSING:$p; done | awk -F: '{n[$1]++; print} END{for(k in n) print k,n[k]}'",
+      "evidence_pointer": "command result: PASS 303; missing=0",
+      "disposition": "ACCEPT",
+      "repair_commit": null,
+      "targeted_re_review": "Repeat path and hash checks after any canonical regeneration."
+    }
+  ],
+  "repair_and_re_review": {
+    "repair_commit_by_this_subagent": null,
+    "frozen_raw_modified": false,
+    "canonical_modified": false,
+    "main_session_action": "Save this as subagent proposal evidence only; do not treat any field here as a FINAL decision."
+  },
+  "shuorenhua_audit": {
+    "scene": "status/docs",
+    "protected_spans": [
+      "canonical/raw paths, hashes, line numbers, JSON pointers",
+      "PASS/FAIL, C/I/M, finding IDs, counts and timestamps",
+      "subagent_proposal identity and is_final=false",
+      "repair_commit=null and targeted re-review conditions"
+    ],
+    "first_pass_issue_list": [
+      "P5-FL-B2-001 and 002 remain raw/provider leakage FAIL/I findings.",
+      "P5-FL-B2-003, 004, and 006 are bounded PASS controls.",
+      "P5-FL-B2-005 is a new canonical status-consistency FAIL/I finding."
+    ],
+    "fidelity_reread": {
+      "performed": true,
+      "result": "Counts, hashes, paths, pointers, chronology, status qualifiers, and proposal-only boundary were checked from input to output and back to evidence. No canonical label was copied into the blind proposal."
+    },
+    "residual_audit": {
+      "performed": true,
+      "result": "No finality claim was made for this file; FINAL appears only as the quoted contradictory value in canonical evidence. No new provider, label, or repair fact was introduced."
+    }
+  },
+  "finality": {
+    "is_final": false,
+    "review_state": "SUBAGENT_PROPOSAL",
+    "not_a_canonical_decision": true,
+    "targeted_re_review_required": true
+  }
+}

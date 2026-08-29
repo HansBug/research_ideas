@@ -1,56 +1,84 @@
-# v60/current 与 X1v2 baseline 最终结果归档
+# v60/current 与 X1v2 baseline 最终人工评测归档
 
-本目录是 Paper1 当前实验结果、复核和交班的唯一稳定入口。它保存 v60/current 与 X1v2 baseline 的冻结方法/Judge 制品、引用数据、离线派生汇总、正式中文报告、审查记录与 publication manifest。归档不包含 provider request/response stream、缓存、凭据、锁文件、`.part` 或 launcher 日志；保留的结构化 JSON 足以离线复算报告指标。
+本目录是 Paper1 当前 v60/current 与 X1v2 baseline 评测的稳定入口。论文主结果只使用
+`derived/manual_adjudication_v2/` 的最终人工监督逐条裁定；旧 Judge v3.2、旧 witness
+audit、`reviews/11` 和 `reviews/12` 只作为显式标记的 calibration/proposal 或历史资料，
+不混入主结果。
 
-| 路径 | 内容 |
-| --- | --- |
-| `raw/v60_current/` | v60 method、Judge composite 与 composite-selected source runs |
-| `raw/x1v2_baseline/` | 162 个 X1v2 method record、冻结 Judge composite、source runs 与 method-cost audit |
-| `reference/` | 145 条 ledger、冻结 19-predicate registry、source catalog 与输入闭包引用 |
-| `derived/recomputed_summary.json` | 从 raw/reference 和完整 X1v2 W audit 机械复算的主汇总 |
-| `derived/x1v2_witness_level_audit.json` | 512 条 baseline finding 的两轮独立 W 审计与裁决记录 |
-| `derived/x1v2_full_hit_max_witness_audit.json` | 435 条 expected row 的 FULL-only max-W 聚合 |
-| `report/` | 当前 [中文正式报告](./report/v60_current_vs_x1v2_baseline_cn.md) |
-| `reviews/` | 数值、语义、文风与审计审查记录；含 [106 条 frozen I 全量复审](./reviews/11_v60_invalid_manual_reaudit.md) 与 [444 条 frozen N 后置复核](./reviews/12_v60_valid_novel_posthoc_reaudit.md) |
-| `archive_manifest.json` 与 `publication_manifest.json` | 归档与发布面文件的 SHA-256 清单 |
+版本边界：冻结 raw 中的 `v3.2` 是历史 Judge 输入/输出身份；`v3.3` 是后续
+evaluator/protocol implementation 版本。两者都不是本次论文人工真值，不能被重命名为
+人工标签；当前真值只来自 `manual_adjudication_v2` 的逐条 pane5 监督确认和确定性派生。
 
-字段、分母、适用范围和数据缺口见 [SCHEMA.md](./SCHEMA.md)。当前主宇宙为 54 pair、3 round、145 expected issue、435 round-level expected row；L2 为 39 expected、117 row。`FULL/PARTIAL/NONE` 是 expected relation，`VALID_KNOWN/VALID_NOVEL/INVALID` 是 report validity，只有 `INVALID` 进入 semantic FP。
+## 数据闭合
 
-## 当前比较
+| 项目 | 数量 |
+| --- | ---: |
+| v60/current method cells / reports | `162 / 1271` |
+| X1v2 baseline method cells / findings | `162 / 512` |
+| expected issue / round-level expected | `145 / 435` |
+| dense relation rows | `258535` |
 
-| 指标 | v60/current | X1v2 baseline |
-| --- | ---: | ---: |
-| overall FULL / hit@1 | 306/435 = 70.34% | 211/435 = 48.51% |
-| L2 FULL / hit@1 | 104/117 = 88.89% | 46/117 = 39.32% |
-| hit@3 | 118/145 = 81.38% | 104/145 = 71.72% |
-| hit@all | 84/145 = 57.93% | 37/145 = 25.52% |
-| report semantic precision | 1165/1271 = 91.66% | 410/512 = 80.08% |
-| FULL-hit max-W2 / W1 / W0 | 211/95/0（分母 306） | 0/211/0（分母 211） |
+每条 report/finding 恰有一条 FINAL decision；每条 decision 包含 raw path/pointer/hash、
+作者 NL/PlantUML source refs、专属 reason/basis、W 证据、逐 expected relation，以及
+pane5 人工监督确认、独立 subagent proposal、解盲和仲裁记录。结构化入口是
+[manual adjudication v2](./derived/manual_adjudication_v2/README.md)、[v60 decisions](./derived/manual_adjudication_v2/v60_report_decisions.json)、
+[X1v2 decisions](./derived/manual_adjudication_v2/x1v2_report_decisions.json)、[summary](./derived/manual_adjudication_v2/summary.json)
+和 [review log](./derived/manual_adjudication_v2/review_log.json)。
 
-W 不绑定 19 谓词。X1v2 的 predicate usage 因其没有同构 registry/receipt schema 而不适用；其 W 仍经 512 条冻结 finding 的双审回溯得到 W0/W1/W2 = 1/511/0。baseline 没有运行期 executable witness，因此没有 W2；Judge 的事后事实核验不会倒灌为 baseline method W2。
+## 当前主结果
 
-表中 K/N/I 与 precision 是冻结 Judge v3.2 输出。现行 D/A 闭包要求 D0/A0 都进入 I，
-只有 D2/D1 才能进入 K/N。106 条 frozen I 的 strict 全量复审得到其中
-`D2/D1/D0/A0 = 5/15/10/76`，对应局部 `K/N/I = 8/12/86`；444 条 frozen N 的
-全量逐条复核得到 `D2/D1/D0/A0 = 44/196/111/93`，对应局部
-`K/N/I = 21/219/204`。在保持 721 条 frozen K 不变的敏感性分析中，两层同时应用得到
-`K/N/I = 750/231/290`、precision `981/1271 = 77.18%`。这些追加审计不回写 raw 或冻结
-主指标；由于 721 条 frozen K 尚未逐条复审，组合结果也不冒充 1271 条全量人工真值。
+数值从 canonical JSON 离线重算，完整并列表格见[正式中文报告](./report/v60_current_vs_x1v2_baseline_cn.md)。
+下列仅列入口，不另建第二事实源：
+
+- v60/current：`D2/D1/D0/A0 = 721/259/120/171`；`K/N/I = 749/231/291`；ledger `K_hit/N_group/I_group = 119/121/189`。
+- X1v2 baseline：`D2/D1/D0/A0 = 408/3/2/99`；`K/N/I = 279/132/101`；ledger `K_hit/N_group/I_group = 104/132/101`。
+- v60/current 与 X1v2 的 report-based precision 分别为 `980/1271 = 77.10%` 与 `411/512 = 80.27%`；ledger-based precision 分别为 `119/429 = 27.74%` 与 `104/337 = 30.86%`。
+
+这些数字的单位不同：report precision 使用逐条 validity；ledger precision 使用台账
+`K_hit` 与同 side、同 pair 的跨 round N/I substantive groups。PARTIAL 只进入 supported
+coverage，不进入主 hit 或 FP。L2 ledger precision/FP 为 `not_applicable`，因为 N/I
+group 没有自然的 L2 expected 归属。
+
+## 协议与边界
+
+评测协议为 `issue-189-195-manual-evidence-v2`：先核事实，再判 D/A，再逐条判
+`FULL_MATCH/PARTIAL_MATCH/NO_MATCH`，最后由后端派生 validity 与 K/N/I。`D0/A0 -> I`；
+`D2/D1 + positive relation -> K`；`D2/D1 + all NO_MATCH -> N`。A0 只允许
+`FALSE_POSITIVE` 与 current-only `NOT_A_DEFECT_CLAIM`。W0/W1/W2 是独立证据轴，W2
+必须有原始 executable object、typed input、精确 artifact hash、terminal true/false 和
+receipt；baseline 没有同构 predicate receipt，predicate usage 显式为 `not_applicable`，
+但 baseline W 仍按相同证据等级人工审计。
+
+冻结 raw 中保留的 provider/model/prompt provenance 未被改写；这些历史元数据不进入
+canonical semantic label，也不作为任一侧能力证据。raw-first reviewer 使用去除这些字段
+的 [reviewer projection](./derived/manual_adjudication_v2/reviewer_projection_audit.json)，
+两侧保留稳定 arm/pair/round token 和 source hash。X1v2 缺少同构 method commit、v60 Judge
+仍有未定价 usage；这两项按 manifest 和报告披露为数据缺口，未用推算补齐。predicate planned
+scope 与逐报告 report-bound usage 在 predicate audit 中分开保存。台账不完整、
+人工归并粒度、L2 边界、baseline schema 差异以及观察性比较不能推出因果，均是当前限制。
+
+raw-first 输入按同一字段 allowlist 投影：两侧 report 都映射到统一的 claim/reason，固定的
+`location_text` 对两侧均为空；双方都附 pair 对应的 NL、PlantUML 和 source hash。projection
+去除 `report_index`、raw JSON pointer、raw target hash、`element_refs` 和 baseline `where`，并为
+每个 pair/round 提供两臂相同的 slot universe；无原始报告的 padding slot 为空，不是 finding，
+也不进入审计或统计分母。精确 pointer/hash 只在 inventory、canonical decision 和提交后解盲的
+`reviewer_unblind_mapping.json` 中保存。current 独有的 predicate、
+receipt、W 或旧 Judge 字段，以及 baseline 不具备的字段，都不进入 reviewer 投影。完整
+field-level mapping 见 [semantic Judge protocol](../../discover_matrix/docs/protocol/semantic_judge_protocol.md#双侧-reviewer-输入映射)。
 
 ## 离线复算
 
-从仓库根执行下列权威入口。命令只读取归档、不会调用 provider，也不依赖未跟踪 `runs/`：
+从仓库根执行：
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/evaluation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover \
-venv/bin/python -m paper_stm_evaluation.final_results_archive validate \
-  --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/evaluation/src \
+python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/validate_manual_adjudication.py \
+  --directory project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v2
+
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/evaluation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation \
+python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/recompute_manual_adjudication.py \
+  --directory project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v2
 ```
 
-维护者在明确需要更新报告或 review 的 publication manifest 时可运行同一模块的 `finalize`，随后必须再次 `validate`。`pipeline.evidence_discovery.reporting.final_results_archive` 保留为兼容入口；它不是 archive 的正式所有者。
-
-## 冻结引用与限制
-
-v60 method commit 为 `66b5d71aecd73f6eeddac082037f7c34e04da057`，method run ID 为 `915d56e45a634c27aa03866f03818c6d`，Judge commit 为 `05cf0da6f7d9fcf1de26c349b586fc71c268f1c5`，协议为 `github-issue-195.d774d9bd3e4c.issue-189-clarification.v3.2`。registry、prompt/schema、input、run contract 与 Judge protocol 的完整 SHA-256 位于 manifests 和正式报告。
-
-本结果只支持冻结 ledger、输入闭包、Judge、`gpt-5.6-luna` 和已声明 FCSTM/soundness fragment。历史 X1v2 `59.8%/70.3%/47.9%` 使用旧 Judge 与不同网格，已被当前 rejudge 替代；历史材料见 [实验历史索引](../../archive/experiment_history/README.md)。
+归档和发布面的文件清单分别见 [archive_manifest.json](./archive_manifest.json) 和
+[publication_manifest.json](./publication_manifest.json)。

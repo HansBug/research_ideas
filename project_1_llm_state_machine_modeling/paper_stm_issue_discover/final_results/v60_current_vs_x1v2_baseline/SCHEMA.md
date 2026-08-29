@@ -1,62 +1,120 @@
-# 归档字段与指标口径
+# Final Results Schema
 
-## 制品关系
+本归档的论文主结果来自 `derived/manual_adjudication_v2/`。旧 Judge v3.2、旧 witness
+audit、`reviews/11` 和 `reviews/12` 是 frozen calibration/proposal 或历史诊断，不是本次
+人工真值。冻结 raw、reference ledger、method/Judge 输入和 predicate registry 不由本次
+重评修改。
 
-`raw/<side>/method/` 与 `raw/<side>/judge/` 是从冻结运行制品复制的结构化审计面；它们不由本目录内的 reporting 工具修改。`derived/recomputed_summary.json` 是唯一的派生汇总，生成器为 `pipeline.evidence_discovery.reporting.final_results_archive`。`reference/ledger.json` 只由 evaluator 用于识别 expected issue 和 L2，不进入 method 输入。
+版本边界：`v3.2` 是冻结 raw 中历史 Judge 的输入/输出身份，不能被重命名为人工标签；
+`v3.3` 是后续 evaluator/protocol implementation 版本，也不是论文人工真值。论文真值
+只来自本目录 v2 的逐条 pane5 人工监督确认和确定性派生。
 
-每侧 `archive_manifest.json` 列出原始审计文件、字节数和 `sha256`，并记录 `generator`、`generation_command` 与 `generated_at_utc`。顶层 `archive_manifest.json` 覆盖 raw、reference 和派生文件；最终的 `publication_manifest.json` 覆盖除自身外的整个目录，包括报告和审查记录。`validate` 同时验证 side manifests、top-level manifest、publication manifest（存在时）、manifest/summary/provenance schema、archive-relative provenance 映射、Markdown 本地链接和离线重算结果。Markdown 链接可指向同一仓库的稳定文件，但不得回指临时 `runs/`。
+## 输入闭包
 
-## Universe 与 hit
+`inventory.json` 从 raw 重新枚举 `162` 个 v60/current cells、`162` 个 X1v2 cells、
+`1271` 条 current report 和 `512` 条 baseline finding，并保存每条的 side、pair、round、
+report index、raw repository-relative path、JSON Pointer 和 SHA-256。`pane5_evidence_reads.json`
+再逐条闭合 raw target、作者 NL、PlantUML、145 条 ledger digest 和 source hash。
 
-- pair universe：54 个 pair；round universe：每个 pair 3 轮，共 162 个 method cells。
-- expected universe：145 个 ledger issue；round-level expected universe：`145 * 3 = 435`。
-- `round_level_full`（报告中的 overall hit@1/FULL）：435 个 round-level expected 中 Judge 判为 `FULL` 的数量。
-- `hit_at_3`：145 个 expected issue 中，三轮至少一次 `FULL` 的数量。
-- `hit_at_all`：145 个 expected issue 中，三轮全部 `FULL` 的数量。
-- L2 指标使用 39 个 L2 expected issue；round-level L2 分母为 117。
-- `match_counts` 将 round-level non-FULL 拆为 `PARTIAL`（`supported=true`）和 `NONE`（`supported=false`）。
+## ReportDecision
 
-## K/N/I 与 cluster
+`v60_report_decisions.json` 与 `x1v2_report_decisions.json` 是 Pydantic
+`ReportDecisionSet` 的 canonical JSON；TSV 是固定列、逐字段相同的镜像。每条决策至少保存：
 
-Judge report 的正式 validity 字段为 `VALID_KNOWN`、`VALID_NOVEL` 和 `INVALID`。report-level precision 为：
+- `side`, `pair_id`, `round`, `report_id`, `report_index`；
+- raw method record path、report JSON Pointer、claim/where pointer 和 SHA-256；
+- `fact_status`, `strict_da`, `a0_type`, `validity`, `corrected_kni`；
+- 145 个 expected 的 `FULL_MATCH`, `PARTIAL_MATCH` 或 `NO_MATCH` relation，每行有专属
+  reason、basis、source refs 和 report-owned field refs；
+- `witness.level`、具体定位，及 W2 所需的 executable object、typed input、terminal receipt、
+  artifact hash 和 terminal result；
+- 专属 `reason`, `basis`, `source_refs`；
+- primary/independent/final reviewer IDs、blind event、分歧/仲裁、授权 attestation、
+  `human_confirmation`、`human_supervised_session` 和 `review_blockers`。
+
+所有正式 model class 位于
+`evaluation/src/paper_stm_evaluation/manual_adjudication.py`，每个 class 有 docstring，
+字段使用带 description 的 Pydantic `Field`。`review_status` 只有 `PROPOSAL`,
+`INDEPENDENT_REVIEW`, `ARBITRATED`, `FINAL`；FINAL 不能保留 blocker。最终数据不接受
+`UNKNOWN`, `PENDING_REVIEW` 或 `OUT_OF_SCOPE`。
+
+## 确定性闭合
+
+先判断作者源事实，再判断义务：事实成立且义务明确为 D2，事实成立但有两种具体存活读法
+为 D1，事实成立但没有违反义务或设计正当为 D0，事实不成立/归错制品/方法表示债务为 A0。
+A0 只允许 `FALSE_POSITIVE` 与 current-only `NOT_A_DEFECT_CLAIM`。
+
+| D/A | relation | validity | K/N/I |
+| --- | --- | --- | --- |
+| D2/D1 | 至少一个 FULL 或 PARTIAL | VALID_KNOWN | K |
+| D2/D1 | 全部 NO_MATCH | VALID_NOVEL | N |
+| D0/A0 | 强制全部 NO_MATCH | INVALID | I |
+
+`PARTIAL_MATCH` 是真实但不充分的 expected 关系，提供 supported coverage，不贡献主 hit，
+也不计 FP。W、L、predicate usage、method 自报 D 和 method 自报 valid 不参与上述闭合。
+
+## Relation、hit 和 precision
+
+`relation_decisions.json` 必须覆盖 `(1271 + 512) * 145 = 258535` 行，每个 report/expected
+恰好一次。`hit@1` 是 435 个 expected-round 单元中有 `VALID_KNOWN + FULL_MATCH` 的单元数；
+`hit@3` 是 145 个 expected 中至少一轮 FULL 的数量；`hit@all` 是三轮均 FULL 的数量。
+L2 对应分母是 `117` 和 `39`。
+
+`report-based precision = (VALID_KNOWN + VALID_NOVEL) / all final reports`，
+`report-based FP rate = INVALID / all final reports`。发布级 operational composition 使用：
 
 ```text
-(VALID_KNOWN + VALID_NOVEL) / (VALID_KNOWN + VALID_NOVEL + INVALID)
+K_hit = unique expected issue with at least one FULL across three rounds
+N_group = same-side, same-pair, cross-round merged VALID_NOVEL substantive groups
+I_group = same-side, same-pair, cross-round merged INVALID substantive groups
+ledger-based precision = K_hit / (K_hit + N_group + I_group)
+ledger-based FP rate = I_group / (K_hit + N_group + I_group)
 ```
 
-cluster-level 先以 `pair_id + round + root_cause_cluster_key` 分组。一个 cluster 含 `VALID_KNOWN` 时计 `VALID_KNOWN`；不含 `VALID_KNOWN`、但含 `VALID_NOVEL` 时计 `VALID_NOVEL`；仅含 `INVALID` 时计 `INVALID`。cluster precision 使用 valid/total。`VALID_NOVEL`、ledger-unmatched report 与 `PARTIAL` 都不是 FP；本归档中 semantic FP 对应 `INVALID`。
+N/I group identity 至少包含 `side + pair_id + canonical_group_key`，并由人工确认的
+property、author-source locus、repair obligation 和 substantive cause 支持；不跨 side/pair，
+不按文本相似度、状态名或 expected ID 自动合并。`partial_only_known_report` 和
+`partial_only_known_expected` 单独报告，不进入 K_hit 或 FP。L2 ledger precision/FP 是
+`not_applicable`，因为 N/I group 没有自然的 L2 expected 归属。
 
-本目录保存的是冻结 Judge v3.2 输出，不是 2026-08-29 后按 D0/A0 边界完成的全量人工真值。
-现行语义要求：作者源承重事实成立后，有存活的被违反义务才是 D2/D1；事实成立但义务
-不成立是 D0；事实不成立或只在派生表示中成立而归错制品是 A0。D0/A0 都应为 I，只有
-D2/D1 才能按 relation 进入 K/N。因而本归档的 K/N/I 数字必须标为冻结 Judge 输出，不能
-把 `VALID_NOVEL` 逐条等同于已由人确认的新缺陷。逐条复核应作为新审计层追加，不改写 raw。
+## W 和 predicate
 
-追加审计有两个互补层次：[106 条 frozen I 的完整逐条复审](./reviews/11_v60_invalid_manual_reaudit.md)
-给出 strict `D2/D1/D0/A0 = 5/15/10/76` 和局部 corrected `K/N/I = 8/12/86`；
-[444 条 frozen N 的后置复核](./reviews/12_v60_valid_novel_posthoc_reaudit.md) 给出全量逐条
-`D2/D1/D0/A0 = 44/196/111/93` 和局部 corrected `K/N/I = 21/219/204`。两层都已独立
-复核，组合敏感性为 `750/231/290`，但它保持 721 条 frozen K 不变，不是 1271 条 report
-的全量重审。组合敏感性必须明确假设审计集合互不重叠，不得替换
-`derived/recomputed_summary.json` 的冻结指标。
+W0 只有散文主张；W1 有具体模型元素/路径定位但无精确 terminal receipt；W2 必须同时有
+原始 executable object、typed input、精确 artifact hash、terminal true/false 和 receipt。
+`hit_max_witness.json` 只在 FULL supporting reports 内按 `W2 > W1 > W0` 取最高档，分母
+是 hit 单元；`W2/all-expected` 分母是 435。finding-level W 单独报告，不能混用。
 
-## W 与谓词
+`predicate_witness_audit.json` 的 `planned_scope` 从冻结 evaluator summary 读取完整 planned
+scope（当前为 `full-scale-15` 的 15 个 ID），并以 `planned_in_frozen_scope` 明确每个 registry
+predicate 的 membership；逐报告的 `report_bound_plan_count`、route、precise-binding、receipt/
+terminal/failure 和 W0/W1/W2 是另一条 usage 轴。receipt 缺失/失败的合法 binding 仍
+留在 all-usage 分母；FULL-hit supporting usage 单独给出。一个 finding 绑定多个 predicate
+不增加 finding 数。X1v2 没有同构 receipt schema，predicate usage 明确为 `not_applicable`，
+但 baseline W 仍按相同三档证据轴审计。
 
-W 是 finding 的证据/见证强度，而不是 19 谓词专属字段。W0 没有足够具体、可核对的模型元素或路径定位；W1 已定位 state、transition、guard、action、缺失边、模型片段或有限路径，但没有该方法产生且在精确制品上终止求值的对象；W2 还需要原方法产生的可执行对象、运行期 terminal receipt、精确 artifact hash 和 terminal result。later Judge 的事实核验不能倒灌形成 method W2。
+## Review、provenance 和 manifest
 
-v60 的 `full_hit_max_witness` 对每个 `FULL` expected row 取其 supporting witness 中最高的 `W2`、`W1` 或 `W0`，分母是 FULL hit 数，而非全部 finding。`w2_all_expected` 的分母为 435，二者不能互换。X1v2 的 `witness` 来自 `derived/x1v2_witness_level_audit.json`：两名独立 reviewer 对全部 512 条冻结 finding 逐条阅读原始 finding、hash-verified NL/PlantUML 和 record；其 `paper1.x1v2-witness-review-packet.v2` 审阅包不包含 Judge 路径、hash、validity、expected relation 或 ledger ID，Judge 关联只在双审后用于 evaluator 聚合。`paper1.x1v2-witness-level-audit.v3` 保留两次 review；pane5 裁决实际 W-level 分歧，或在 archive 内独立 review 明确指出共同误标时记录受 allowlist 限制的 `post_review_correction`。`derived/x1v2_full_hit_max_witness_audit.json` 只对 `expected_outcomes[].full_report_ids` 聚合，绝不以 `partial_report_ids` 抬高 FULL hit。
+`review_log.json` 每条 report 恰一条，记录 subagent raw-first blind proposal、pane5 主 session
+逐条确认、解盲、冲突和最终 attestation。`human_supervised_authorization.json` 保存用户
+授权消息、时间和 session。`reviewer_input_projection.jsonl` 与
+`reviewer_projection_audit.json` 是去除 provider/model/profile/prompt/endpoint/credential、
+report index、raw pointer、raw target hash 和 producer-specific location fields 的 raw-first
+reviewer 输入投影。`location_text` 在两臂均固定为空；精确 raw identity/hash 只在独立
+proposal 提交后可见的 `reviewer_unblind_mapping.json` 与 canonical evidence 中保存。
+每个 pair/round 使用两臂相同的 slot universe；padding slot 是空输入闭合记录，不能成为
+finding、semantic label 或统计单位。冻结 raw 中保留的历史元数据和精确 pointer 只在
+inventory/canonical evidence 中保存。`MANIFEST` 绑定上述 canonical 文件、TSV、输入 manifests、projection 和 supporting
+artifacts；顶层 `archive_manifest.json` 与 `publication_manifest.json` 绑定整个归档发布面。
 
-`predicate_table` 按冻结 registry 的 19 个 ID 给出：
+## 可复现与限制
 
-- `candidate_route_count`：带该 predicate 的 issue-candidate evidence record 数；pass-only receipt 不会增加该计数。
-- `precise_binding_count`：前一类 evidence record 中 `binding.precise=true` 的数目。
-- `receipt_count`：已验证 `PredicateExecutionReceipt` 数；这是 route/receipt 审计面。
-- `terminal_execution_count` 与 `executed_pass`/`executed_violation`：真实 backend terminal receipt 的数量及其结果。
-- `input_contract_missing`、`out_of_fragment`、`failure_kinds`：未形成 terminal W2 的结构化退化原因。
-- `witness_counts`：该 predicate 支持的 W0/W1/W2 finding 数；它不是 FULL-hit max-W 分布。
+```bash
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/evaluation/src \
+python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/validate_manual_adjudication.py \
+  --directory project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v2
+```
 
-19 个 registry predicate 是冻结实现全集；`planned_predicates` 是本次 full-scale-15 的 15 个计划 ID；实际使用是其中 terminal receipt 大于零的 ID 数。X1v2 不具有同构的 19 谓词 receipt schema，因此其 predicate usage、pass/violation 与 terminal receipt 统计为 `not_applicable`；X1v2 的 W 仍以人工回溯审计独立报告。
-
-## 成本和已知缺口
-
-method 与 Judge 成本必须分开读取。`method_cost_eligible`/`judge_cost_eligible` 决定该记录成本能否视为完整可定价总额。v60 Judge 的 `judge_recorded_usd` 只是已记录成本，因 10 个应计费调用缺 usage 而 `judge_cost_eligible=false`。X1v2 的 corrected method-cost audit 与 Judge composite 都标记为 eligible。任何缺失项按 manifest 的 `known_data_gaps` 和报告说明披露，不能写成零或用推算补齐。
+所有指标由 canonical JSON provider-free 重算。X1v2 缺少同构 method commit，v60 Judge 有
+未定价 usage；source catalog 中缺失的作者/出版物字段也保留为 evidence gap，不能从标题或
+二手摘要补造。台账不完备、人工归并粒度、L2 语义边界、baseline schema 差异和观察性比较
+不能推出因果。

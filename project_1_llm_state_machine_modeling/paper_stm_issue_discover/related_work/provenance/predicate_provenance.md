@@ -13,4 +13,8 @@
 （后端、算法和回执边界）。来源 ID 只是档案索引，不是普遍率分母；台账/v27 使用量
 只是冻结设计的表达力映射。
 
-`four-family-19-core.v1` 的 19 个冻结谓词均已完成学术资格审查。来源档案保留独立来源、命题匹配、学术 review 和实现边界的可复核记录，但不参与 runtime W、D、backend、publication 或 route。新增谓词或修改冻结定义仍须走独立研究决策与完整 conformance，而不是借来源档案字段变化。
+`four-family-19-core.v1` 的 19 个冻结谓词已完成 source-ID mapping、supports/boundary 对照；这不等于
+完整书目、DOI 或全文逐字核验。当前 source catalog 缺少这部分 metadata，缺失项在
+`derived/manual_adjudication_v2/predicate_source_provenance.json` 中显式保留为 evidence gap，
+没有由标题或路径补造。来源档案不参与 runtime W、D、backend、publication 或 route。新增谓词或
+修改冻结定义仍须走独立研究决策与完整 conformance，而不是借来源档案字段变化。

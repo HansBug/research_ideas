@@ -2,7 +2,9 @@
 
 > **历史来源扫描说明：** 本文件保留旧来源扫描的原始审计和数字，不是当前 19 行注册表
 > 或学术资格结论。当前来源类型、命题边界和运行时隔离规则以 [`pipeline/evidence_discovery/`](../../pipeline/evidence_discovery/)
-> 为准：19 个冻结谓词均已完成学术资格审查，bibliography metadata 不参与 W、backend、D 或 publication；旧分类和旧统计只能作为历史材料引用。
+> 为准：19 个冻结谓词均已完成 source-ID mapping 与 claim-boundary 对照；bibliography/full-text
+> metadata 的缺口必须显式保留，不能把 mapping 写成完整学术资格审查。bibliography metadata 不参与
+> W、backend、D 或 publication；旧分类和旧统计只能作为历史材料引用。
 
 > **这份文件记的是「扫了 313 个界内案例之后知道了什么」**，⛔ 不是 19 行分级表本身（那在 [predicate_provenance.md](./predicate_provenance.md)）。
 >

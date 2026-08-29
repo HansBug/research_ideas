@@ -1,0 +1,297 @@
+{
+  "schema": "pane5.fairness-leakage-blind-proposal.v2",
+  "review_state": "SUBAGENT_PROPOSAL",
+  "proposal_status": "PROPOSAL_ONLY",
+  "reviewer_role": "subagent_proposal",
+  "pane": "pane5",
+  "review_role": "fairness/leakage",
+  "provider_free": true,
+  "provider_calls_by_this_subagent": 0,
+  "canonical_decisions_read_before_submission": false,
+  "old_reference_labels_read_before_submission": false,
+  "old_judge_audits_read_before_submission": false,
+  "prior_proposals_read_before_submission": false,
+  "blind_submission_boundary": {
+    "meaning": "This file is the independent first-round raw-first proposal and is not a FINAL decision.",
+    "canonical_read_after_write_and_hash": true,
+    "canonical_read_after_write_and_hash_at": null
+  },
+  "scope": {
+    "allowed_inputs": [
+      "raw/v60_current",
+      "raw/x1v2_baseline",
+      "reference/x1v2_input_closure"
+    ],
+    "excluded_inputs": [
+      "derived/manual_adjudication_v2",
+      "old Judge audit outputs outside the frozen raw scope",
+      "primary decision files",
+      "reference decision labels",
+      "proposal files"
+    ],
+    "file_counts": {
+      "raw/v60_current": 1509,
+      "raw/x1v2_baseline": 843,
+      "reference/x1v2_input_closure": 218,
+      "total": 2570
+    },
+    "current_source_runs": {
+      "run_count": 3,
+      "pair_count_per_run": 54,
+      "rounds": [1, 2, 3],
+      "pair_receipt_count": 162,
+      "report_count": 1271,
+      "expected_count": 435,
+      "completed_run_receipts": 162,
+      "run_ids": [
+        "77404499c3ac4511a218f0ad3f91c45b",
+        "86407845e4d5428ab8334fce3398cf60",
+        "a93f5773cd3d4e6387b68b6fd1f9113d"
+      ]
+    },
+    "baseline_method": {
+      "record_count": 162,
+      "pair_count": 54,
+      "round_count": 3,
+      "records_per_field_complete": 162
+    },
+    "input_closure": {
+      "pair_keys": 54,
+      "copied_nl_and_plantuml_files": 108,
+      "hash_checks_passed": 108,
+      "hash_checks_failed": 0
+    }
+  },
+  "blind_signature": {
+    "algorithm": "For each component, sort relative file paths bytewise; emit sha256sum for each file in that order; hash the resulting lines. Aggregate the three component signature lines in fixed listed order and hash them.",
+    "components": {
+      "raw/v60_current/judge/source_runs": "sha256:886a683f3722fae47ce8d1ffec0ea166ae00d9b0abdc32cc7b00f98bafc43687",
+      "raw/x1v2_baseline/method": "sha256:38b4486281121e02c681003f51c04d00fff7fd4c5f0ad24e8c1da7c3c8792243",
+      "reference/x1v2_input_closure": "sha256:db22f5bf8cda5bfea4254e87eabfc8982547850bbf583e42d5f42920c141061c"
+    },
+    "aggregate": "sha256:d5dfa277a3f06a1fce8bbe8aad985514ee189604b28d6a3afd69cab497af7571",
+    "captured_before_proposal_write": true,
+    "captured_before_canonical_read": true
+  },
+  "findings": [
+    {
+      "finding_id": "P5-FL-B2-001",
+      "status": "FAIL",
+      "severity": "I",
+      "title": "Baseline reviewer-visible records expose provider and model identity together with prompts",
+      "raw_paths": [
+        {
+          "path": "raw/x1v2_baseline/method/run1/0000-luna/record.json",
+          "hash": "sha256:91718e94c96ae95b9609f04f4fd1c0342fd914074dafaa8e237c5fa717b15828",
+          "pointers": [
+            "/configured_model",
+            "/observed_model",
+            "/profile",
+            "/provider",
+            "/system_prompt",
+            "/user_prompt"
+          ],
+          "lines": [20, 37, 54, 59, 64, 106]
+        },
+        {
+          "path": "raw/x1v2_baseline/method/run*/????-luna/record.json",
+          "hash": "sha256:38b4486281121e02c681003f51c04d00fff7fd4c5f0ad24e8c1da7c3c8792243",
+          "pointers": "All 162 record.json files contain all six fields; line positions are stable in the representative schema."
+        }
+      ],
+      "source_refs": [
+        {
+          "path": "reference/x1v2_input_closure/manifest.json",
+          "hash": "sha256:a68bc45acf1a6dafb42e363358c1a82e0caf4898077a9dcb5e275e21d848db95",
+          "pointer": "/inputs/0000",
+          "lines": [2, 4, 9, 12, 15],
+          "reason": "The closure identifies the frozen NL and PlantUML inputs corresponding to the baseline records."
+        }
+      ],
+      "reason": "The frozen baseline artifact exposes the model/provider/profile identity and the full prompts in the same reviewer-visible record as the adjudication payload. A fairness reviewer can therefore infer arm or provider provenance from fields unrelated to the semantic evidence, even without making a provider call.",
+      "basis": "Raw-only inspection found 162/162 records with configured_model, observed_model, profile, provider, system_prompt, and user_prompt. The representative record also exposes the absolute NL/PlantUML source paths and hashes at lines 28-32.",
+      "recompute_command": "find raw/x1v2_baseline/method -type f -name record.json -print0 | xargs -0 jq -r 'select(has(\"configured_model\") and has(\"observed_model\") and has(\"profile\") and has(\"provider\") and has(\"system_prompt\") and has(\"user_prompt\"))|1' | wc -l",
+      "evidence_pointer": "raw/x1v2_baseline/method/run1/0000-luna/record.json:20,28-32,37,54,59,64,106; command result 162",
+      "disposition": "BLOCK_FINAL_PENDING_REMEDIATION",
+      "repair_commit": null,
+      "targeted_re_review": "Create a reviewer-visible projection that removes provider, model, profile, adapter, prompt, and provider-specific path hints while retaining opaque pair/round IDs and source hashes; re-run the same 162-record field scan and a blinded sample over all 54 pairs x 3 rounds. PASS requires zero exposed provider/model/profile fields in the projection and preserved source-byte hashes."
+    },
+    {
+      "finding_id": "P5-FL-B2-002",
+      "status": "FAIL",
+      "severity": "I",
+      "title": "Current source-run manifests expose the selected model profile to a reviewer",
+      "raw_paths": [
+        {
+          "path": "raw/v60_current/judge/source_runs/77404499c3ac4511a218f0ad3f91c45b/run_manifest.json",
+          "hash": "sha256:13572ee159ad126b9a154d6288e5f6037f920576d2a5ca0d136a3986faeaca7d",
+          "pointer": "/model_profile",
+          "line": 14
+        },
+        {
+          "path": "raw/v60_current/judge/source_runs/86407845e4d5428ab8334fce3398cf60/run_manifest.json",
+          "hash": "sha256:322b072337a8aa69b99fc6401c41b7b7aef65424525da6a16bef9020905a56ac",
+          "pointer": "/model_profile",
+          "line": 14
+        },
+        {
+          "path": "raw/v60_current/judge/source_runs/a93f5773cd3d4e6387b68b6fd1f9113d/run_manifest.json",
+          "hash": "sha256:48769b92250481fb579275478e1ec6fbb520b7746f476a6483d835681cb0c354",
+          "pointer": "/model_profile",
+          "line": 14
+        }
+      ],
+      "source_refs": [
+        {
+          "path": "raw/v60_current/judge/source_runs/*/run_manifest.json",
+          "pointer": "/selected_pair_ids and /selected_rounds",
+          "lines": [14, 15, 71],
+          "reason": "Each manifest identifies the same model profile while covering 54 pairs in one round."
+        }
+      ],
+      "reason": "The current-side run manifest places the model profile next to the pair and round selection metadata. This allows provider/model-conditioned expectations or post-hoc stratification by run, weakening a provider-free fairness review even though the current audit bundles themselves contain no provider_calls field.",
+      "basis": "All 3 current run manifests report model_profile=gpt-5.6-luna at line 14, with 54 selected pair IDs and one selected round per manifest. The raw source-run component contains 654 files and is part of the frozen audit evidence tree.",
+      "recompute_command": "for f in raw/v60_current/judge/source_runs/*/run_manifest.json; do rg -n '\"model_profile\"|\"selected_pair_ids\"|\"selected_rounds\"' \"$f\"; done",
+      "evidence_pointer": "raw/v60_current/judge/source_runs/{77404499c3ac4511a218f0ad3f91c45b,86407845e4d5428ab8334fce3398cf60,a93f5773cd3d4e6387b68b6fd1f9113d}/run_manifest.json:14-15,71",
+      "disposition": "BLOCK_FINAL_PENDING_REMEDIATION",
+      "repair_commit": null,
+      "targeted_re_review": "Move model/provider/profile identity to a sealed non-reviewer manifest or replace it with a stable opaque run token in the reviewer-visible tree. Re-run the manifest scan across all three runs and verify that the 54-pair x 3-round coverage and raw/source aggregate hashes remain unchanged."
+    },
+    {
+      "finding_id": "P5-FL-B2-003",
+      "status": "PASS",
+      "severity": null,
+      "title": "No direct adjudication or old-label marker found in the allowed raw/source scope",
+      "raw_paths": [
+        {
+          "path": "raw/v60_current; raw/x1v2_baseline; reference/x1v2_input_closure",
+          "hash": "sha256:d5dfa277a3f06a1fce8bbe8aad985514ee189604b28d6a3afd69cab497af7571",
+          "pointer": "content search across 2570 frozen files",
+          "line": "no matching line"
+        }
+      ],
+      "source_refs": [],
+      "reason": "The allowed raw/source inputs do not contain the searched direct markers for manual adjudication, primary decision, reference label, or canonical decision.",
+      "basis": "Raw-first content scan returned zero matching files for all seven marker variants in each of the three allowed roots.",
+      "recompute_command": "for p in raw/v60_current raw/x1v2_baseline reference/x1v2_input_closure; do for pat in manual_adjudication primary_decision 'primary decision' reference_label 'reference label' canonical_decision 'canonical decision'; do rg -l -i --hidden --glob '*.json' --glob '*.md' --glob '*.txt' --glob '*.puml' \"$pat\" \"$p\"; done; done",
+      "evidence_pointer": "command result: 0 matching files for every marker variant in all three allowed roots",
+      "disposition": "ACCEPT_FOR_BLIND_PHASE",
+      "repair_commit": null,
+      "targeted_re_review": "Repeat the same marker scan after any projection change; any newly introduced direct label or decision marker is a FAIL and must be removed from the reviewer-visible scope."
+    },
+    {
+      "finding_id": "P5-FL-B2-004",
+      "status": "PASS",
+      "severity": null,
+      "title": "Input closure hashes match all copied NL and PlantUML files",
+      "raw_paths": [
+        {
+          "path": "reference/x1v2_input_closure/manifest.json",
+          "hash": "sha256:a68bc45acf1a6dafb42e363358c1a82e0caf4898077a9dcb5e275e21d848db95",
+          "pointer": "/inputs",
+          "lines": [2, 4, 760, 761, 762, 763]
+        },
+        {
+          "path": "reference/x1v2_input_closure/pairs/*/{nl.txt,plantuml.puml}",
+          "hash": "sha256:db22f5bf8cda5bfea4254e87eabfc8982547850bbf583e42d5f42920c141061c",
+          "pointer": "108 copied input files"
+        }
+      ],
+      "source_refs": [
+        {
+          "path": "reference/x1v2_input_closure/manifest.json",
+          "pointer": "/basis and /inputs",
+          "lines": [2, 762],
+          "reason": "The manifest states that copied inputs are checked against the frozen record hashes."
+        }
+      ],
+      "reason": "Every manifest-listed copied NL and PlantUML file independently recomputed to the manifest hash.",
+      "basis": "108/108 hash checks passed and 0 failed for the 54 input keys, each with NL and PlantUML closure entries.",
+      "recompute_command": "jq -r '.inputs[][] | [.repository_path,.sha256] | @tsv' reference/x1v2_input_closure/manifest.json | while IFS=$'\\t' read -r p expected; do actual=$(sha256sum \"$p\" | awk '{print \"sha256:\"$1}'); test \"$actual\" = \"$expected\" && echo PASS || echo FAIL:$p:$expected:$actual; done | sort | uniq -c",
+      "evidence_pointer": "command result: 108 PASS",
+      "disposition": "ACCEPT",
+      "repair_commit": null,
+      "targeted_re_review": "Recompute all 108 checks after any source projection or relocation; do not substitute a path-only check for the byte hash check."
+    }
+  ],
+  "shuorenhua_audit": {
+    "scene": "status/docs",
+    "tier": "Tier 1 for leakage/boundary claims; no stylistic rewrite of technical evidence",
+    "edit_level": "minimal",
+    "scope": "in-place",
+    "protected_spans": [
+      "all absolute and repository-relative raw/source paths",
+      "all line numbers and JSON pointers",
+      "all pair, round, report, file, and hash counts",
+      "all SHA-256 values and the aggregate-signature algorithm",
+      "finding IDs, PASS/FAIL, C/I/M severity, disposition, and repair-commit state",
+      "commands, field names, model/profile/provider identifiers, and quoted marker variants",
+      "the distinction between subagent proposal and FINAL decision"
+    ],
+    "fact_relation_ledger": [
+      "162 baseline records -> all six provider/model/prompt fields present",
+      "3 current manifests -> 54 selected pairs per run, rounds 1/2/3, same model_profile field",
+      "54 closure keys -> 108 copied input files -> 108 hash passes",
+      "2570 allowed files -> zero direct adjudication/reference-label marker matches",
+      "2 raw leakage FAIL findings -> no repair commit made by this subagent"
+    ],
+    "first_pass_issue_list": [
+      {
+        "issue_id": "SP-1",
+        "finding": "Baseline raw records co-locate provider/model/profile identity and prompts with review payloads.",
+        "action": "Keep as FAIL/I; require reviewer-visible projection or sealed metadata."
+      },
+      {
+        "issue_id": "SP-2",
+        "finding": "Current run manifests expose model_profile alongside pair/round selection.",
+        "action": "Keep as FAIL/I; require sealed identity or opaque run token."
+      },
+      {
+        "issue_id": "SP-3",
+        "finding": "No direct adjudication/reference-label marker in raw/source scan.",
+        "action": "Keep as PASS, subject to repeat scan after projection."
+      },
+      {
+        "issue_id": "SP-4",
+        "finding": "Input closure hashes all pass.",
+        "action": "Keep as PASS; retain byte-level recheck."
+      }
+    ],
+    "fidelity_reread": {
+      "performed": true,
+      "checks": {
+        "paths_lines_pointers_hashes_preserved": true,
+        "counts_and_relations_preserved": true,
+        "no_new_canonical_label_added": true,
+        "no_provider_call_claimed_for_this_subagent": true,
+        "subagent_proposal_not_final": true,
+        "repair_commit_remains_null": true
+      },
+      "result": "All protected paths, counts, hashes, commands, finding IDs, statuses, and proposal boundary were re-read against the raw-only notes before submission."
+    },
+    "residual_audit": {
+      "performed": true,
+      "checks": {
+        "no_summary_or_finality_claim": true,
+        "no_narrator_or_empty_assurance": true,
+        "no_un sourced_authority_claim": true,
+        "no_new_fact_or_relationship": true,
+        "technical_register_consistent": true,
+        "sentence_structure_not_used_to_hide_qualifiers": true
+      },
+      "result": "The proposal remains a concise technical status record; residual stylistic cleanup was not allowed to alter evidence, qualifiers, or responsibility."
+    }
+  },
+  "verification_pending_after_write": [
+    "jq empty this file",
+    "sha256sum this file",
+    "git status --short -- raw/v60_current raw/x1v2_baseline reference/x1v2_input_closure",
+    "confirm canonical files remain unmodified after optional post-unblind comparison"
+  ],
+  "finality": {
+    "is_final": false,
+    "may_be_saved_to_formal_review_log_by_main_session": true,
+    "repair_commit": null,
+    "targeted_re_review_required": true
+  }
+}

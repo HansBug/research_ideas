@@ -79,7 +79,7 @@ def test_markdown_links_must_resolve_without_using_transient_runs(tmp_path: Path
     archive = repository / "final_results"
     archive.mkdir(parents=True)
     (archive / "target.json").write_text("{}", encoding="utf-8")
-    (archive / "README.md").write_text("[ok](target.json)\n", encoding="utf-8")
+    (archive / "README.md").write_text("[ok](target.json)\n[located](target.json:7)\n", encoding="utf-8")
 
     _validate_markdown_links(archive, repository_root=repository)
 

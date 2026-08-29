@@ -567,6 +567,12 @@ def _validate_markdown_links(archive: Path, *, repository_root: Path | None = No
             if destination.startswith(("#", "http://", "https://", "mailto:")):
                 continue
             local_path = destination.split("#", maxsplit=1)[0].split("?", maxsplit=1)[0]
+            # Repository review Markdown uses ``path:line`` as a stable source
+            # location.  Resolve the file portion while preserving the line
+            # number in the rendered link text.
+            line_suffix = re.search(r":\d+$", local_path)
+            if line_suffix:
+                local_path = local_path[:line_suffix.start()]
             if not local_path:
                 continue
             resolved = (markdown_path.parent / local_path).resolve()

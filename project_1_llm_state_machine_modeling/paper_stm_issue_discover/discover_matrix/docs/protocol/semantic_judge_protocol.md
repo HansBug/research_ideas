@@ -56,6 +56,46 @@ subtype。不设 `OUT_OF_SCOPE`。当前谓词或 backend 不支持只影响 W�
 的 D/A 定义，并与 [issue #195](https://github.com/HansBug/research_ideas/issues/195)
 §1、§3、§4 的 K/N/I 定义共同构成现行协议。
 
+## 人工监督发布层（v2）
+
+论文主结果不把 Judge 输出改名为人工真值。最终发布层位于
+[`manual_adjudication_v2`](../../../final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v2/README.md)：
+每条 v60/current report 与 X1v2 finding 都由用户授权的 pane5 主 session 逐条读取冻结
+raw、作者 NL/PlantUML 和必要的 ledger/artifact evidence 后确认，subagent/LLM 仅提交
+raw-first proposal。canonical JSON 逐条保存 reason、basis、source refs、blind chronology、
+human-supervised attestation 和最终 blocker closure；TSV 只是镜像。
+
+该发布层沿用本文件的 issue #195 relation 语义，但使用 issue #189 的事实优先 D/A 闭合：
+`D2/D1 + FULL/PARTIAL -> VALID_KNOWN -> K`，`D2/D1 + all NO_MATCH -> VALID_NOVEL -> N`，
+`D0/A0 -> INVALID -> I` 且强制全 `NO_MATCH`。`PARTIAL` 不计主 hit 或 FP，W 不参与
+validity/relation/hit/FP，最终不接受 `UNKNOWN`、`PENDING_REVIEW` 或 `OUT_OF_SCOPE`。
+v60/current 与 X1v2 的主数字、N/I pair-local groups、W、predicate audit 和成本只能从
+该目录 JSON 及其 provider-free recompute 得到；本文件前述 v3.3 运行协议和旧 headline
+仍作为历史 Judge 工具协议，不作为新的人工真值来源。
+
+### 双侧 reviewer 输入映射
+
+raw-first reviewer 只接收 `reviewer_input_projection.jsonl` 的共同 allowlist；`arm-a` 与
+`arm-b` 在解盲前不映射到语义侧名。字段映射固定如下：
+
+| 统一投影字段 | v60/current 冻结 raw | X1v2 baseline 冻结 raw | 用途 |
+| :-- | :-- | :-- | :-- |
+| `round`, `pair_token`, `slot` | `/round` 与 inventory 的 pair/record 顺序 | `/round` 与 inventory 的 pair/record 顺序 | 解盲前稳定位置；每个 pair/round 两臂使用同一 slot 宇宙 |
+| `report_evidence.claim_text` | 归一化的 report claim prose | 归一化的 finding claim prose | 原始主张；不携带 producer schema、ID 或 pointer |
+| `report_evidence.reason_text` | 归一化的 report reason prose | 归一化的 finding reason prose | finding 理由；不作自动标签 |
+| `report_evidence.location_text` | 固定空字符串 | 固定空字符串 | 保持统一形状；producer-specific locus 仅在解盲后供主 session 回读 |
+| `author_source.nl` | `reference/x1v2_input_closure/pairs/llms_emp_feedback_final_<pair>/nl.txt` | `reference/x1v2_input_closure/pairs/<pair>/nl.txt` | 作者需求 |
+| `author_source.plantuml` | `reference/x1v2_input_closure/pairs/llms_emp_feedback_final_<pair>/plantuml.puml` | `reference/x1v2_input_closure/pairs/<pair>/plantuml.puml` | 作者模型 |
+| `author_source` hashes | 作者源 bytes | 作者源 bytes | raw-first 可见的作者源闭合；两臂同 slot 必须完全相同 |
+
+`expected ledger`、旧 Judge 标签、predicate/receipt、W、D/A、validity、relation 和 K/N/I
+均不在该 raw-first 投影中；`report_index`、raw JSON Pointer、raw target hash、`element_refs`
+和 baseline `where` 也只留在 inventory/canonical 审计或 sealed
+`reviewer_unblind_mapping.json` 中，不进入盲审输入。它们只能在独立 proposal 提交后、主
+session 完成证据核对时进入解盲/仲裁与确定性派生。padding 不是 finding，也不进入任何分母或
+semantic label；它只防止缺少某个 pair/round 行成为臂别线索。该映射与 [manual adjudication v2 schema](../../../final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v2/schema.md)
+共同约束最终审计数据。
+
 ## 确定性指标
 
 ```text

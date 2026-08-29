@@ -1,4 +1,4 @@
-# 独立事实与数值复算审查
+# 独立事实与数值复算审查（历史冻结 Judge v3.2 快照）
 
 ## 范围和方法
 
@@ -8,7 +8,8 @@
 
 ## 结果
 
-下列结果与 [机器汇总](../derived/recomputed_summary.json) 一致，无数值差异。
+下列结果是当时冻结的 Judge v3.2 快照，与 [历史机器汇总](../derived/recomputed_summary.json) 一致；
+它们不替代当前 `derived/manual_adjudication_v2/summary.json` 的最终人工监督主结果。
 
 | 指标 | v60/current | X1v2 baseline |
 |---|---:|---:|
