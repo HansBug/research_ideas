@@ -39,6 +39,10 @@ PYTHONPATH=evaluation/src python -m paper_stm_evaluation.final_results_archive v
 - v2 `MANIFEST` is Git-trackable and currently tracked: the `.gitignore`
   allow rule applies and `git ls-files --error-unmatch` succeeds.
 
+> Historical snapshot: this review records the pre-finalization manifest state. Its `FAIL`
+> verdict is superseded by the later v3/top-level manifest validation; the stale-entry
+> evidence is retained for auditability.
+
 ## Finding
 
 `ART24-I001` (`I`, release manifest closure): the newest recompute/review
@@ -49,8 +53,8 @@ artifacts have not been followed by a top-level archive finalization.
 ValueError: manifest mismatch: .../derived/manual_adjudication_v2/MANIFEST
 ```
 
-Both [archive_manifest.json](../archive_manifest.json:1) and
-[publication_manifest.json](../publication_manifest.json:1) have 11 stale
+Both [archive_manifest.json](../archive_manifest.json) (line 1) and
+[publication_manifest.json](../publication_manifest.json) (line 1) have 11 stale
 entries. The shared mismatches are:
 
 ```text

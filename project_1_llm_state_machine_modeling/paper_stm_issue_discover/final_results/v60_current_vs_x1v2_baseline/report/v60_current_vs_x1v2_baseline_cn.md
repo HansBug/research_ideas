@@ -1,121 +1,251 @@
 # v60/current 与 X1v2 baseline 的最终人工监督评测
 
-> 本报告的主结果只来自 `derived/manual_adjudication_v2/` 的最终人工监督裁定；旧 Judge v3.2、reviews/11、reviews/12 和旧 witness audit 只作为 calibration/proposal 或历史诊断，不作为本次论文真值。
+> 主结果使用 v60/current 的既有最终人工监督裁定与 X1v2 baseline v3 对全部非 K 报告的逐条人工重审。v2 是历史输入；v3 不覆盖或修改 frozen K、raw、current、method 或 Judge 制品。
 
 ## 口径与范围
 
-协议版本为 `issue-189-195-manual-evidence-v2`，按 issue #189 的 D/A 事实与义务审查、issue #195 的 expected relation 与 validity 轴执行。先判断作者 NL/PlantUML 上的承重事实，再判 `D2/D1/D0/A0`，逐条对 145 个 expected 给出 `FULL_MATCH/PARTIAL_MATCH/NO_MATCH`，最后由后端确定性闭合 `VALID_KNOWN/VALID_NOVEL/INVALID` 与 `K/N/I`。`D0/A0 -> INVALID -> I`；`D2/D1` 且存在正关系为 `VALID_KNOWN -> K`，全部 `NO_MATCH` 才是 `VALID_NOVEL -> N`。
+协议版本为 `issue-189-195-baseline-ni-v3`，按 issue #189/#195 的事实、D/A、expected relation 和机械 K/N/I 闭合执行。顺序固定为：作者源事实 -> D2/D1/D0/A0 -> validity -> 全部 145 个 expected relation -> K/N/I。
 
-A0 只有 `FALSE_POSITIVE` 和 current-only 的 `NOT_A_DEFECT_CLAIM`；X1v2 不使用后者。W 是独立证据轴：W2 必须同时有原始 executable object、typed input、精确 artifact hash、terminal true/false 和 receipt；缺一项退为 W1/W0。W、L、predicate usage 和方法自报标签不参与 validity、relation、hit 或 FP。
+v3 只重审 baseline 原非 K 的 233 条；279 条已有 K 从 v2 按字节内容/字段快照冻结复制。D0/A0 均为 I，A0 仅使用 `FALSE_POSITIVE`；W、predicate、Judge 输出和 ledger 缺失不能决定 validity。
 
-raw-first reviewer 输入使用双方共同 allowlist：两侧 report 均映射为 claim/reason，`location_text` 固定为空；双方都附对应 pair 的 NL、PlantUML 和 source SHA-256。raw target pointer/hash、producer-specific location、predicate、receipt、W、旧 Judge 标签和最终语义标签不进入盲审投影；精确 raw identity/hash 只在 proposal 提交后通过 sealed unblind mapping 进入主 session 的回读与仲裁。字段缺失按 schema 差异保留，不填零。完整 field-level mapping 见 [semantic Judge protocol](../../../discover_matrix/docs/protocol/semantic_judge_protocol.md#双侧-reviewer-输入映射)。
-
-raw inventory 从冻结归档重新枚举：v60/current `1271` reports、X1v2 `512` findings，双方各 `162` method cells；expected ledger `145` 条，dense relation 为 `258535` 行。详情见 [inventory](../derived/manual_adjudication_v2/inventory.json) 和 [protocol](../derived/manual_adjudication_v2/protocol_freeze_v2.md)。
+raw inventory 与 ledger 均由归档重新读取：current `1271` 条、baseline `512` 条、expected `145` 条。结构化来源是 [current v2 summary](../derived/manual_adjudication_v2/summary.json)、[baseline v3 summary](../derived/manual_adjudication_v3_baseline_ni/recomputed_summary_v3.json) 和 [v3 manifest](../derived/manual_adjudication_v3_baseline_ni/publication_manifest_v3_baseline_ni.json)。
 
 ## 主结果
 
-表中 delta 均为 v60/current 减 X1v2 baseline；分号前为 numerator 差，后为百分点差。结构化来源是 [summary.json](../derived/manual_adjudication_v2/summary.json)，每个 report 的稳定审计键是 `report_id`。
+delta 为 v60/current 减 X1v2 baseline；分号前是 numerator 差，分号后是百分点差。hit@1 的分母是 145 个 expected × 3 个 round，即 435 个 expected-round units；不是单轮的 145。
 
 | 指标 | v60/current | X1v2 baseline | delta (n; pp) |
 |---|---:|---:|---:|
-| overall hit@1 / FULL | `310/435 = 71.26%` | `212/435 = 48.74%` | `+98; +22.53 pp` |
-| L2 hit@1 / FULL | `105/117 = 89.74%` | `46/117 = 39.32%` | `+59; +50.43 pp` |
-| hit@3 | `119/145 = 82.07%` | `104/145 = 71.72%` | `+15; +10.34 pp` |
-| hit@all | `86/145 = 59.31%` | `38/145 = 26.21%` | `+48; +33.10 pp` |
+| overall hit@1 / FULL | `310/435 = 71.26%` | `227/435 = 52.18%` | `+83; +19.08 pp` |
+| L2 hit@1 / FULL | `105/117 = 89.74%` | `50/117 = 42.74%` | `+55; +47.01 pp` |
+| hit@3 | `119/145 = 82.07%` | `106/145 = 73.10%` | `+13; +8.97 pp` |
+| hit@all | `86/145 = 59.31%` | `46/145 = 31.72%` | `+40; +27.59 pp` |
 | L2 hit@3 | `37/39 = 94.87%` | `26/39 = 66.67%` | `+11; +28.21 pp` |
-| L2 hit@all | `33/39 = 84.62%` | `5/39 = 12.82%` | `+28; +71.79 pp` |
-| supported coverage, round units | `337/435 = 77.47%` | `245/435 = 56.32%` | `+92; +21.15 pp` |
-| supported coverage, unique expected | `128/145 = 88.28%` | `116/145 = 80.00%` | `+12; +8.28 pp` |
-| report-based precision | `980/1271 = 77.10%` | `411/512 = 80.27%` | `+569; -3.17 pp` |
-| report-based FP rate | `291/1271 = 22.90%` | `101/512 = 19.73%` | `+190; +3.17 pp` |
-| partial_only_known_report | `110/1271 = 8.65%` | `45/512 = 8.79%` | `+65; -0.13 pp` |
-| partial_only_known_expected | `21/145 = 14.48%` | `24/145 = 16.55%` | `-3; -2.07 pp` |
-| ledger K_hit | `119/145 = 82.07%` | `104/145 = 71.72%` | `+15; +10.34 pp` |
-| ledger N_group composition | `121/429 = 28.21%` | `132/337 = 39.17%` | `-11; -10.96 pp` |
-| ledger I_group composition | `189/429 = 44.06%` | `101/337 = 29.97%` | `+88; +14.09 pp` |
-| ledger-based precision | `119/429 = 27.74%` | `104/337 = 30.86%` | `+15; -3.12 pp` |
-| ledger-based FP rate | `189/429 = 44.06%` | `101/337 = 29.97%` | `+88; +14.09 pp` |
-| FULL-hit max W2 | `197/310 = 63.55%` | `0/212 = 0.00%` | `+197; +63.55 pp` |
-| FULL-hit max W1 | `113/310 = 36.45%` | `212/212 = 100.00%` | `-99; -63.55 pp` |
-| FULL-hit max W0 | `0/310 = 0.00%` | `0/212 = 0.00%` | `+0; +0.00 pp` |
+| L2 hit@all | `33/39 = 84.62%` | `8/39 = 20.51%` | `+25; +64.10 pp` |
+| supported coverage, round units | `337/435 = 77.47%` | `264/435 = 60.69%` | `+73; +16.78 pp` |
+| supported coverage, unique expected | `128/145 = 88.28%` | `119/145 = 82.07%` | `+9; +6.21 pp` |
+| report-based precision | `980/1271 = 77.10%` | `417/512 = 81.45%` | `+563; -4.34 pp` |
+| report-based FP rate | `291/1271 = 22.90%` | `95/512 = 18.55%` | `+196; +4.34 pp` |
+| partial_only_known_report | `110/1271 = 8.65%` | `56/512 = 10.94%` | `+54; -2.28 pp` |
+| partial_only_known_expected | `21/145 = 14.48%` | `13/145 = 8.97%` | `+8; +5.52 pp` |
+| ledger K_hit | `119/145 = 82.07%` | `106/145 = 73.10%` | `+13; +8.97 pp` |
+| ledger/group precision | `240/429 = 55.94%` | `204/299 = 68.23%` | `+36; -12.28 pp` |
+| ledger/group FP rate | `189/429 = 44.06%` | `95/299 = 31.77%` | `+94; +12.28 pp` |
+| FULL-hit max W2 | `197/310 = 63.55%` | `0/227 = 0.00%` | `+197; +63.55 pp` |
+| FULL-hit max W1 | `113/310 = 36.45%` | `227/227 = 100.00%` | `-114; -63.55 pp` |
+| FULL-hit max W0 | `0/310 = 0.00%` | `0/227 = 0.00%` | `+0; +0.00 pp` |
 | W2 / all expected | `197/435 = 45.29%` | `0/435 = 0.00%` | `+197; +45.29 pp` |
 
-`K_hit` 是三轮中至少一次 FULL 的 unique expected issue；N/I 是同一 side、同一 pair 内按人工确认的 substantive property、author-source locus、repair obligation 和 cause 合并的操作性 group。当前 N/I group counts 为 `121`/`189`，baseline 为 `132`/`101`；不跨 side、pair，也不按文本相似度合并。L2 ledger precision/FP 为 `not_applicable`，因为 N/I group 没有自然的 L2 expected 归属。
+baseline ledger/group composition 为 `K_hit=106`、`N_group=98`、`I_group=95`，分母为三者之和；I group 仅为 invalid diagnostic cluster，不是真实缺陷。L2 ledger precision 与 baseline predicate usage 均为 `not_applicable`，并保留 reason。
 
-## D/A、K/N/I 与关系
-
-以下表格使用 report 分母；relation 表使用 dense `(report, expected)` 分母。完整逐条记录见 [v60 decisions](../derived/manual_adjudication_v2/v60_report_decisions.json)、[baseline decisions](../derived/manual_adjudication_v2/x1v2_report_decisions.json) 和 [dense relations](../derived/manual_adjudication_v2/relation_decisions.json)。
+## D/A 与 K/N/I
 
 | 类别 | v60/current | X1v2 baseline | delta (n; pp) |
 |---|---:|---:|---:|
-| D2 | `721/1271 = 56.73%` | `408/512 = 79.69%` | `+313; -22.96 pp` |
-| D1 | `259/1271 = 20.38%` | `3/512 = 0.59%` | `+256; +19.79 pp` |
-| D0 | `120/1271 = 9.44%` | `2/512 = 0.39%` | `+118; +9.05 pp` |
-| A0 | `171/1271 = 13.45%` | `99/512 = 19.34%` | `+72; -5.88 pp` |
-| K | `749/1271 = 58.93%` | `279/512 = 54.49%` | `+470; +4.44 pp` |
-| N | `231/1271 = 18.17%` | `132/512 = 25.78%` | `+99; -7.61 pp` |
-| I | `291/1271 = 22.90%` | `101/512 = 19.73%` | `+190; +3.17 pp` |
-| FULL_MATCH | `685/184295 = 0.37%` | `265/74240 = 0.36%` | `+420; +0.01 pp` |
-| PARTIAL_MATCH | `279/184295 = 0.15%` | `110/74240 = 0.15%` | `+169; +0.00 pp` |
-| NO_MATCH | `183331/184295 = 99.48%` | `73865/74240 = 99.49%` | `+109466; -0.02 pp` |
+| D2 | `721/1271 = 56.73%` | `342/512 = 66.80%` | `+379; -10.07 pp` |
+| D1 | `259/1271 = 20.38%` | `75/512 = 14.65%` | `+184; +5.73 pp` |
+| D0 | `120/1271 = 9.44%` | `85/512 = 16.60%` | `+35; -7.16 pp` |
+| A0 | `171/1271 = 13.45%` | `10/512 = 1.95%` | `+161; +11.50 pp` |
+| K | `749/1271 = 58.93%` | `312/512 = 60.94%` | `+437; -2.01 pp` |
+| N | `231/1271 = 18.17%` | `105/512 = 20.51%` | `+126; -2.33 pp` |
+| I | `291/1271 = 22.90%` | `95/512 = 18.55%` | `+196; +4.34 pp` |
+| FULL_MATCH | `685/184295 = 0.37%` | `288/74240 = 0.39%` | `+397; -0.02 pp` |
+| PARTIAL_MATCH | `279/184295 = 0.15%` | `124/74240 = 0.17%` | `+155; -0.02 pp` |
+| NO_MATCH | `183331/184295 = 99.48%` | `73828/74240 = 99.45%` | `+109503; +0.03 pp` |
 
-`PARTIAL_MATCH` 提供 supported coverage，但不计主 hit，也不计 FP。只有最终 `INVALID` 计 report-based FP；`VALID_NOVEL` 不是 FP。hit@1 的分母是 435 个 expected-round 单元，hit@3/all 的分母是 145 个 unique expected；L2 对应 117/39。
+`PARTIAL_MATCH` 进入 supported coverage，不进入主 FULL hit；只有 INVALID/I 进入 report-based FP。K hit 在 expected ID 层去重，N 以 substantive group 展示，I cluster 独立命名。
 
 ## W 与 predicate
 
-| W 轴 | v60/current | X1v2 baseline |
+W0/W1/W2 是独立证据轴，不参与 validity、relation、hit 或 FP。W2 只接受报告自带 executable object、typed input、精确 artifact hash、terminal result 和原始 receipt；后验 Judge 不能升级 baseline W。
+
+| finding-level W | v60/current | X1v2 baseline |
 |---|---:|---:|
-| finding-level W0/W1/W2 | `0/749/522` / `1271` | `1/511/0` / `512` |
-| FULL-hit max W2/W1/W0 | `197/113/0` / `310` | `0/212/0` / `212` |
-| W2/all-expected | `197/435 = 45.29%` | `0/435 = 0.00%` |
+| W0 | `0/1271` | `1/512` |
+| W1 | `749/1271` | `511/512` |
+| W2 | `522/1271` | `0/512` |
 
-W-on-hits 的分母是有 FULL 的 expected-round hit 单元；W2/all-expected 的分母固定为全部 435 个 expected-round 单元，二者不能互换。
+| FULL-hit witness | v60/current | X1v2 baseline |
+|---|---:|---:|
+| maximum W2 | `197/310 = 63.55%` | `0/227 = 0.00%` |
+| maximum W1 | `113/310 = 36.45%` | `227/227 = 100.00%` |
+| maximum W0 | `0/310 = 0.00%` | `0/227 = 0.00%` |
 
-current 的 predicate usage 只统计 frozen 19-registry 中的合法 precise binding。冻结 evaluator 的 planned scope（`planned_scope`，当前 15 个 ID）与逐报告观察到的 `report_bound_plan_count` 分开；每行另记录 route、precise binding、receipt present、terminal true/false、全部 usage 的 W0/W1/W2 以及 FULL-hit supporting usage。receipt 缺失或失败仍留在 usage 分母。baseline 没有同构 predicate schema，predicate usage 明确为 `not_applicable`，不填 0。详见 [predicate_witness_audit.json](../derived/manual_adjudication_v2/predicate_witness_audit.json) 和 [predicate_source_provenance.json](../derived/manual_adjudication_v2/predicate_source_provenance.json)。
+W-on-hits 的分母分别是 current `310` 与 baseline `227` 个 FULL expected-round units；W2/all-expected 的分母固定为 `435`，不能互换。
 
-| predicate | frozen scope / report-bound plan | routed / precise | receipt | terminal true / false | all usage W0/W1/W2 | FULL-hit usage W0/W1/W2 |
+current predicate usage 见 [predicate_witness_audit.json](../derived/manual_adjudication_v2/predicate_witness_audit.json)，planned scope 为 `full-scale-15`、`15` 个 ID。全部 usage 与 FULL-hit supporting usage 分母分开，receipt 缺失/失败仍留在 usage 分母；baseline predicate usage 为 `not_applicable`，不是零。
+
+| predicate | planned | report-bound | precise | receipt | all usage W0/W1/W2 | FULL-hit usage W0/W1/W2 |
 |---|---:|---:|---:|---:|---:|---:|
-| `S1` | `yes/0` | `0/0` | `0` | `0/0` | `0/0/0` / `0` | `0/0/0` / `0` |
-| `S2` | `yes/166` | `166/166` | `166` | `0/166` | `0/0/166` / `166` | `0/0/80` / `80` |
-| `S3` | `yes/93` | `93/93` | `93` | `0/93` | `0/0/93` / `93` | `0/0/63` / `63` |
-| `S4` | `yes/6` | `6/6` | `6` | `0/6` | `0/0/6` / `6` | `0/0/6` / `6` |
-| `S5` | `yes/337` | `337/337` | `337` | `0/63` | `0/274/63` / `337` | `0/27/7` / `34` |
-| `S6` | `yes/0` | `0/0` | `0` | `0/0` | `0/0/0` / `0` | `0/0/0` / `0` |
-| `G1` | `yes/105` | `105/105` | `105` | `0/79` | `0/26/79` / `105` | `0/23/72` / `95` |
-| `G2` | `yes/1` | `1/1` | `1` | `0/1` | `0/0/1` / `1` | `0/0/0` / `0` |
-| `G3` | `yes/0` | `0/0` | `0` | `0/0` | `0/0/0` / `0` | `0/0/0` / `0` |
-| `G4` | `yes/0` | `0/0` | `0` | `0/0` | `0/0/0` / `0` | `0/0/0` / `0` |
-| `R1` | `yes/0` | `0/0` | `0` | `0/0` | `0/0/0` / `0` | `0/0/0` / `0` |
-| `R2` | `yes/32` | `32/32` | `32` | `0/32` | `0/0/32` / `32` | `0/0/0` / `0` |
-| `R3` | `no/0` | `0/0` | `0` | `0/0` | `0/0/0` / `0` | `0/0/0` / `0` |
-| `R4` | `yes/0` | `0/0` | `0` | `0/0` | `0/0/0` / `0` | `0/0/0` / `0` |
-| `V1` | `yes/0` | `0/0` | `0` | `0/0` | `0/0/0` / `0` | `0/0/0` / `0` |
-| `V2` | `no/0` | `0/0` | `0` | `0/0` | `0/0/0` / `0` | `0/0/0` / `0` |
-| `V3` | `no/0` | `0/0` | `0` | `0/0` | `0/0/0` / `0` | `0/0/0` / `0` |
-| `V4` | `yes/85` | `85/85` | `85` | `0/82` | `0/3/82` / `85` | `0/3/72` / `75` |
-| `V5` | `no/0` | `0/0` | `0` | `0/0` | `0/0/0` / `0` | `0/0/0` / `0` |
+| `S1` | `yes` | `0` | `0` | `0` | `0/0/0 / 0` | `0/0/0 / 0` |
+| `S2` | `yes` | `166` | `166` | `166` | `0/0/166 / 166` | `0/0/80 / 80` |
+| `S3` | `yes` | `93` | `93` | `93` | `0/0/93 / 93` | `0/0/63 / 63` |
+| `S4` | `yes` | `6` | `6` | `6` | `0/0/6 / 6` | `0/0/6 / 6` |
+| `S5` | `yes` | `337` | `337` | `337` | `0/274/63 / 337` | `0/27/7 / 34` |
+| `S6` | `yes` | `0` | `0` | `0` | `0/0/0 / 0` | `0/0/0 / 0` |
+| `G1` | `yes` | `105` | `105` | `105` | `0/26/79 / 105` | `0/23/72 / 95` |
+| `G2` | `yes` | `1` | `1` | `1` | `0/0/1 / 1` | `0/0/0 / 0` |
+| `G3` | `yes` | `0` | `0` | `0` | `0/0/0 / 0` | `0/0/0 / 0` |
+| `G4` | `yes` | `0` | `0` | `0` | `0/0/0 / 0` | `0/0/0 / 0` |
+| `R1` | `yes` | `0` | `0` | `0` | `0/0/0 / 0` | `0/0/0 / 0` |
+| `R2` | `yes` | `32` | `32` | `32` | `0/0/32 / 32` | `0/0/0 / 0` |
+| `R3` | `no` | `0` | `0` | `0` | `0/0/0 / 0` | `0/0/0 / 0` |
+| `R4` | `yes` | `0` | `0` | `0` | `0/0/0 / 0` | `0/0/0 / 0` |
+| `V1` | `yes` | `0` | `0` | `0` | `0/0/0 / 0` | `0/0/0 / 0` |
+| `V2` | `no` | `0` | `0` | `0` | `0/0/0 / 0` | `0/0/0 / 0` |
+| `V3` | `no` | `0` | `0` | `0` | `0/0/0 / 0` | `0/0/0 / 0` |
+| `V4` | `yes` | `85` | `85` | `85` | `0/3/82 / 85` | `0/3/72 / 75` |
+| `V5` | `no` | `0` | `0` | `0` | `0/0/0 / 0` | `0/0/0 / 0` |
 
-## Calibration 与审查
+## 成本
 
-444 条 frozen N 与 106 条 frozen I 共 550 条 calibration/reference rows。raw-first blind calibration 的 strict D/A agreement 为 `546/550 = 99.27%`，dense relation agreement 为 `549/550 = 99.82%`；mismatch `5` 条，[targeted reread](../derived/manual_adjudication_v2/pane5_targeted_re_review.json) 对 mismatch 的闭合为 `5/5`，总 targeted reread 记录为 `15` 条，closure=`True`，sentinel 为 `True`，calibration status 为 `PASS`。reference 同单位聚合见 [reference_ledger_aggregate.json](../derived/manual_adjudication_v2/reference_ledger_aggregate.json)。
-
-主 session 是用户授权的 pane5 人类监督 adjudication session。每条最终记录都有 `human_confirmation=true`、`human_supervised_session=true`、primary/final `human:pane5-supervised-adjudicator`；independent reviewer 如实记录为 `subagent:raw-first-independent-proposal`，先 raw-first blind，再解盲比较，未冒充真人。逐条 evidence-read、授权消息/时间、attestation 和 closure 见 [pane5_evidence_reads.json](../derived/manual_adjudication_v2/pane5_evidence_reads.json)、[pane5_adjudications.json](../derived/manual_adjudication_v2/pane5_adjudications.json)、[human_supervised_authorization.json](../derived/manual_adjudication_v2/human_supervised_authorization.json) 与 [review_log.json](../derived/manual_adjudication_v2/review_log.json)。
-
-## 成本与限制
+成本只报告冻结 run record 中已有的金额和 eligibility；本 v3 重审没有新增 provider、method 或 Judge 调用。
 
 | 阶段 | v60/current | X1v2 baseline |
 |---|---:|---:|
-| method cost | `$7.18277320`; eligible=True | `$6.77501040`; eligible=True |
-| Judge cost | `$39.78176580`; eligible=False | `$11.45008520`; eligible=True |
-| Judge logical calls | `1374` | `not recorded` |
+| method | `$7.18277320`; eligible=`True` | `$6.77501040`; eligible=`True` |
+| Judge | `$39.78176580`; eligible=`False` | `$11.45008520`; eligible=`True` |
 
-台账不是完整缺陷宇宙；人工归并是本协议下的 operational group，不宣称本体论上的唯一缺陷数。L2 的语义边界、baseline schema 差异、baseline 缺少原始 predicate receipt、v60 Judge 成本中未定价调用，以及观察性比较不能推出因果，都是限制。v27/v46 和旧 v3.2 headline 只保留在 archive/history，不混入本报告主分母。
+## Baseline round/pair 分布
 
-## 复算入口
+下表只展示 baseline v3；完整 pair-level JSON 位于 [recomputed summary](../derived/manual_adjudication_v3_baseline_ni/recomputed_summary_v3.json)。
+
+| round | reports | K | N | I | D2 | D1 | D0 | A0 |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 173 | 99 | 40 | 34 | 110 | 29 | 31 | 3 |
+| 2 | 163 | 99 | 36 | 28 | 113 | 22 | 25 | 3 |
+| 3 | 176 | 114 | 29 | 33 | 119 | 24 | 29 | 4 |
+
+| pair | reports | K | N | I | D2 | D1 | D0 | A0 |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0000 | 7 | 5 | 1 | 1 | 4 | 2 | 1 | 0 |
+| 0001 | 4 | 4 | 0 | 0 | 4 | 0 | 0 | 0 |
+| 0002 | 7 | 7 | 0 | 0 | 6 | 1 | 0 | 0 |
+| 0003 | 6 | 0 | 3 | 3 | 0 | 3 | 2 | 1 |
+| 0004 | 12 | 5 | 6 | 1 | 4 | 7 | 1 | 0 |
+| 0005 | 9 | 9 | 0 | 0 | 7 | 2 | 0 | 0 |
+| 0006 | 7 | 3 | 4 | 0 | 4 | 3 | 0 | 0 |
+| 0007 | 9 | 4 | 5 | 0 | 7 | 2 | 0 | 0 |
+| 0009 | 13 | 7 | 2 | 4 | 7 | 2 | 4 | 0 |
+| 0010 | 18 | 18 | 0 | 0 | 18 | 0 | 0 | 0 |
+| 0011 | 6 | 5 | 1 | 0 | 5 | 1 | 0 | 0 |
+| 0012 | 5 | 2 | 1 | 2 | 2 | 1 | 2 | 0 |
+| 0013 | 9 | 9 | 0 | 0 | 9 | 0 | 0 | 0 |
+| 0014 | 15 | 12 | 0 | 3 | 11 | 1 | 3 | 0 |
+| 0015 | 4 | 4 | 0 | 0 | 4 | 0 | 0 | 0 |
+| 0016 | 2 | 1 | 1 | 0 | 1 | 1 | 0 | 0 |
+| 0017 | 3 | 1 | 2 | 0 | 1 | 2 | 0 | 0 |
+| 0019 | 19 | 13 | 6 | 0 | 15 | 4 | 0 | 0 |
+| 0020 | 11 | 6 | 2 | 3 | 4 | 4 | 3 | 0 |
+| 0021 | 5 | 0 | 1 | 4 | 0 | 1 | 4 | 0 |
+| 0022 | 7 | 0 | 4 | 3 | 0 | 4 | 3 | 0 |
+| 0023 | 5 | 5 | 0 | 0 | 4 | 1 | 0 | 0 |
+| 0024 | 18 | 17 | 0 | 1 | 17 | 0 | 1 | 0 |
+| 0025 | 14 | 13 | 1 | 0 | 13 | 1 | 0 | 0 |
+| 0026 | 7 | 7 | 0 | 0 | 7 | 0 | 0 | 0 |
+| 0027 | 9 | 5 | 4 | 0 | 5 | 4 | 0 | 0 |
+| 0029 | 18 | 15 | 2 | 1 | 13 | 4 | 1 | 0 |
+| 0030 | 10 | 10 | 0 | 0 | 10 | 0 | 0 | 0 |
+| 0031 | 8 | 0 | 0 | 8 | 0 | 0 | 8 | 0 |
+| 0032 | 10 | 5 | 3 | 2 | 3 | 5 | 2 | 0 |
+| 0033 | 11 | 8 | 2 | 1 | 10 | 0 | 1 | 0 |
+| 0034 | 29 | 22 | 0 | 7 | 22 | 0 | 6 | 1 |
+| 0035 | 11 | 7 | 2 | 2 | 9 | 0 | 2 | 0 |
+| 0036 | 17 | 0 | 13 | 4 | 8 | 5 | 4 | 0 |
+| 0037 | 10 | 5 | 4 | 1 | 6 | 3 | 1 | 0 |
+| 0039 | 5 | 3 | 1 | 1 | 2 | 2 | 0 | 1 |
+| 0040 | 6 | 2 | 3 | 1 | 2 | 3 | 1 | 0 |
+| 0041 | 8 | 0 | 2 | 6 | 2 | 0 | 6 | 0 |
+| 0042 | 4 | 3 | 1 | 0 | 4 | 0 | 0 | 0 |
+| 0043 | 7 | 6 | 0 | 1 | 6 | 0 | 1 | 0 |
+| 0044 | 4 | 2 | 0 | 2 | 2 | 0 | 2 | 0 |
+| 0045 | 6 | 3 | 3 | 0 | 6 | 0 | 0 | 0 |
+| 0046 | 13 | 5 | 4 | 4 | 5 | 4 | 3 | 1 |
+| 0047 | 11 | 10 | 1 | 0 | 11 | 0 | 0 | 0 |
+| 0049 | 19 | 9 | 6 | 4 | 15 | 0 | 3 | 1 |
+| 0050 | 1 | 1 | 0 | 0 | 1 | 0 | 0 | 0 |
+| 0051 | 6 | 0 | 0 | 6 | 0 | 0 | 6 | 0 |
+| 0052 | 4 | 0 | 2 | 2 | 2 | 0 | 2 | 0 |
+| 0053 | 8 | 5 | 0 | 3 | 5 | 0 | 0 | 3 |
+| 0054 | 9 | 5 | 0 | 4 | 3 | 2 | 3 | 1 |
+| 0055 | 8 | 4 | 2 | 2 | 6 | 0 | 1 | 1 |
+| 0056 | 10 | 7 | 0 | 3 | 7 | 0 | 3 | 0 |
+| 0057 | 6 | 4 | 2 | 0 | 6 | 0 | 0 | 0 |
+| 0059 | 22 | 9 | 8 | 5 | 17 | 0 | 5 | 0 |
+
+## 非 K 迁移与分组
+
+v3 non-K 迁移计数来自 [summary_v3.json](../derived/manual_adjudication_v3_baseline_ni/summary_v3.json)：`{"I->I": 28, "I->K": 30, "I->N": 43, "N->I": 67, "N->K": 3, "N->N": 62}`。新增 K 的完整 report/expected 映射见 summary 的 `non_k_migrations.rows`。
+
+| migration | count |
+|---|---:|
+| `I->I` | `28` |
+| `I->K` | `30` |
+| `I->N` | `43` |
+| `N->I` | `67` |
+| `N->K` | `3` |
+| `N->N` | `62` |
+
+新增 K 共 `33` 条非 K report，全部标记为 `reclassified_from_non_k=true`；下面保留其 report 到 ledger relation 的可追溯映射，完整字段仍以 summary JSON 为准。
+
+| report_id | FULL ledger IDs | PARTIAL ledger IDs |
+|---|---|---|
+| `0000:r1:baseline_issue_2` | `EIS-0000-02` | `-` |
+| `0002:r1:baseline_issue_3` | `EIS-0002-03` | `-` |
+| `0002:r2:baseline_issue_1` | `EIS-0002-01` | `EIS-0002-02` |
+| `0002:r3:baseline_issue_1` | `EIS-0002-01, EIS-0002-02` | `-` |
+| `0002:r3:baseline_issue_2` | `EIS-0002-01` | `-` |
+| `0004:r3:baseline_issue_5` | `-` | `EIS-0004-01` |
+| `0005:r3:baseline_issue_2` | `-` | `EIS-0005-02` |
+| `0005:r3:baseline_issue_3` | `-` | `EIS-0005-02` |
+| `0005:r3:baseline_issue_8` | `-` | `EIS-0005-03` |
+| `0007:r1:baseline_issue_2` | `-` | `EIS-0007-02` |
+| `0007:r2:baseline_issue_3` | `-` | `EIS-0007-02` |
+| `0015:r3:baseline_issue_2` | `-` | `EIS-0015-01` |
+| `0015:r3:baseline_issue_3` | `-` | `EIS-0015-01` |
+| `0019:r1:baseline_issue_2` | `-` | `EIS-0019-03` |
+| `0019:r1:baseline_issue_3` | `EIS-0019-02` | `-` |
+| `0019:r3:baseline_issue_2` | `EIS-0019-03` | `-` |
+| `0019:r3:baseline_issue_5` | `EIS-0019-03` | `-` |
+| `0020:r1:baseline_issue_1` | `EIS-0020-02` | `-` |
+| `0020:r2:baseline_issue_1` | `EIS-0020-02` | `-` |
+| `0027:r1:baseline_issue_1` | `EIS-0027-01` | `-` |
+| `0027:r2:baseline_issue_1` | `-` | `EIS-0027-01` |
+| `0027:r2:baseline_issue_2` | `EIS-0027-01` | `-` |
+| `0029:r1:baseline_issue_1` | `EIS-0029-02` | `-` |
+| `0032:r1:baseline_issue_1` | `DIFF-0032-03` | `EIS-0032-01` |
+| `0032:r3:baseline_issue_1` | `EIS-0032-01` | `-` |
+| `0033:r1:baseline_issue_3` | `EIS-0033-02` | `-` |
+| `0037:r2:baseline_issue_3` | `EIS-0037-01` | `-` |
+| `0039:r3:baseline_issue_1` | `-` | `EIS-0039-02` |
+| `0053:r2:baseline_issue_3` | `EIS-0053-01` | `-` |
+| `0054:r2:baseline_issue_1` | `VU-0054-01` | `-` |
+| `0054:r3:baseline_issue_1` | `VU-0054-01` | `-` |
+| `0056:r3:baseline_issue_4` | `EIS-0056-02` | `-` |
+| `0059:r1:baseline_issue_2` | `EIS-0059-01` | `INS-0059-03` |
+
+N report/group 视图：原始非 K N `132`，corrected N `105`，substantive N group `98`，root-cause group `98`；N 的 D2/D1 为 `50/55`，group size distribution 为 `{"1": 92, "2": 5, "3": 1}`。
+I 构成见 `a0_subtypes`：`{"FALSE_POSITIVE": 10}`；I 不被表述为 novel defect。
+
+| historical comparison | K | N | I |
+|---|---:|---:|---:|
+| v2 frozen scope | `279` | `132` | `101` |
+| v3 combined | `312` | `105` | `95` |
+
+未合并 I 的敏感性为 `204/299 = 68.23%`；主结果使用 `204/299`，因为 I 只作为诊断 cluster，不是真实缺陷实体。
+
+## 审计与限制
+
+每条 v3 非 K 记录保留 raw/source refs、hash、145 relations、两份独立 proposal 和 pane5 confirmation；当前 review log 记录 `8` 个独立 reviewer、`233/233` 决策覆盖、`146` 条分歧和 `233` 条 pane5 仲裁。Track B proposal 是 blind proposal，不是最终人工裁定。旧 v2/Judge 只作冻结 scope、历史 provenance 或工具诊断，不倒灌 v3 标签。
+
+审计限制包括：台账不保证覆盖完整缺陷宇宙；人工归并是 operationalization；L2 对 N/I 无自然归属；baseline 没有 current-side predicate schema；观察性比较不推出因果。legacy/probe proposal 保留但被 v3 manifest 明确排除。
+
+## 离线复算
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/evaluation/src python project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/validate_manual_adjudication.py --directory project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v2
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/evaluation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation python project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/recompute_manual_adjudication.py --directory project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v2
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/evaluation/src python project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/build_manual_adjudication_v3_baseline_ni.py --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline --output project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni
+python project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/build_baseline_n_groups_v3.py --decisions project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/baseline_report_decisions_v3.json --output project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/baseline_n_groups_v3.json
+python project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/recompute_baseline_v3_summary.py --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline --output project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/recomputed_summary_v3.json
+python project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/validate_baseline_v3.py --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline
+python project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/build_baseline_v3_manifest.py --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline
 ```
-
-上述命令只读取冻结 raw/reference 和 canonical decisions，不调用 provider，不重跑 method/Judge，也不修改 raw。MANIFEST 绑定所有 canonical JSON/TSV、过程审计、输入 hash 和 supporting artifact。

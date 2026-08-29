@@ -56,22 +56,24 @@ subtype。不设 `OUT_OF_SCOPE`。当前谓词或 backend 不支持只影响 W�
 的 D/A 定义，并与 [issue #195](https://github.com/HansBug/research_ideas/issues/195)
 §1、§3、§4 的 K/N/I 定义共同构成现行协议。
 
-## 人工监督发布层（v2）
+## 人工监督发布层（current v2 + baseline v3）
 
-论文主结果不把 Judge 输出改名为人工真值。最终发布层位于
-[`manual_adjudication_v2`](../../../final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v2/README.md)：
-每条 v60/current report 与 X1v2 finding 都由用户授权的 pane5 主 session 逐条读取冻结
-raw、作者 NL/PlantUML 和必要的 ledger/artifact evidence 后确认，subagent/LLM 仅提交
-raw-first proposal。canonical JSON 逐条保存 reason、basis、source refs、blind chronology、
-human-supervised attestation 和最终 blocker closure；TSV 只是镜像。
+论文主结果不把 Judge 输出改名为人工真值。current/v60 的发布层位于
+[`manual_adjudication_v2`](../../../final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v2/README.md)。
+X1v2 baseline 非 K 的版本化重审层位于
+[`manual_adjudication_v3_baseline_ni`](../../../final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/README.md)。
+每条当前发布 report/finding 都由用户授权的 pane5 主 session 逐条读取冻结 raw、作者
+NL/PlantUML 和必要的 ledger/artifact evidence 后确认，subagent/LLM 仅提交 raw-first
+proposal。两个层的 canonical JSON 都逐条保存 reason、basis、source refs、审阅链和
+human-supervised attestation；TSV 只是镜像。
 
-该发布层沿用本文件的 issue #195 relation 语义，但使用 issue #189 的事实优先 D/A 闭合：
+current v2 与 baseline v3 都沿用本文件的 issue #195 relation 语义，但使用 issue #189 的事实优先 D/A 闭合：
 `D2/D1 + FULL/PARTIAL -> VALID_KNOWN -> K`，`D2/D1 + all NO_MATCH -> VALID_NOVEL -> N`，
 `D0/A0 -> INVALID -> I` 且强制全 `NO_MATCH`。`PARTIAL` 不计主 hit 或 FP，W 不参与
 validity/relation/hit/FP，最终不接受 `UNKNOWN`、`PENDING_REVIEW` 或 `OUT_OF_SCOPE`。
 v60/current 与 X1v2 的主数字、N/I pair-local groups、W、predicate audit 和成本只能从
-该目录 JSON 及其 provider-free recompute 得到；本文件前述 v3.3 运行协议和旧 headline
-仍作为历史 Judge 工具协议，不作为新的人工真值来源。
+各自版本化目录的 JSON 及其 provider-free recompute 得到；本文件前述 v3.3 运行协议和旧
+headline 仍作为历史 Judge 工具协议，不作为新的人工真值来源。
 
 ### 双侧 reviewer 输入映射
 

@@ -335,6 +335,10 @@ L2 ledger precision and FP rate remain `not_applicable` for both sides, with the
 ### Targeted rereview status
 
 Numerical recomputation, report/TSV closure, dense relation closure, raw path/hash/pointer closure, W2 receipt checks, group checks, predicate audit, cost fields and canonical per-file hashes are `PASS`. The formal release validator is `FAIL` solely because `inventory.json` has not been regenerated for the current top-level manifest hashes. No repair commit or successful targeted rereview is present; final status is therefore `FAIL`, not `PASS`.
+> Historical snapshot: this review records the pre-finalization metadata state. Its `FAIL`
+> verdict and `PENDING_FIX` dispositions are superseded by the later v3 manifest and
+> publication rereview; the findings remain as audit history.
+
 ## Current working-tree independent numeric review (2026-08-29)
 
 身份：`subagent:numeric-artifact-targeted-rereview`，仅为独立 provider-free proposal/review。本节不采用此前 review 中的数值，直接从当前 canonical JSON/TSV、ledger、raw inventory、group/hit/predicate files、报告和现行脚本重算；没有修改 raw 或 canonical artifacts。
@@ -343,9 +347,9 @@ Numerical recomputation, report/TSV closure, dense relation closure, raw path/ha
 
 数值、闭合和报告表均通过，但 release metadata 尚未闭合，故不能给 PASS。
 
-`NUM13-I005` (`I`, fresh-inventory closure): [inventory.json](../derived/manual_adjudication_v2/inventory.json) 的 `/source_manifests/archive_manifest.json` 与 `/source_manifests/publication_manifest.json` 仍分别记录旧 hash `93e31b...`、`b0d494...`；当前文件 hash 是 `1c8834...`、`ab93ec...`。其余两个 frozen raw archive manifest hash 一致。正式 validator 因 [validate_manual_adjudication.py](../../../scripts/evaluation/validate_manual_adjudication.py:135) 的 fresh-enumeration equality fail-closed。
+`NUM13-I005` (`I`, fresh-inventory closure): [inventory.json](../derived/manual_adjudication_v2/inventory.json) 的 `/source_manifests/archive_manifest.json` 与 `/source_manifests/publication_manifest.json` 仍分别记录旧 hash `93e31b...`、`b0d494...`；当前文件 hash 是 `1c8834...`、`ab93ec...`。其余两个 frozen raw archive manifest hash 一致。正式 validator 因 [validate_manual_adjudication.py](../../../scripts/evaluation/validate_manual_adjudication.py)（line 135）的 fresh-enumeration equality fail-closed。
 
-`NUM13-I006` (`I`, canonical MANIFEST closure): [MANIFEST](../derived/manual_adjudication_v2/MANIFEST:1) 的 `/canonical_files/reviewer_input_projection.jsonl` 记录 `384437...`，当前是 `5b6e4a...`；`/canonical_files/reviewer_projection_audit.json` 记录 `b8f8fc...`，当前是 `2cbbe9...`。该错误在 inventory 修复后会由 [validate_manual_adjudication.py](../../../scripts/evaluation/validate_manual_adjudication.py:635) 的 manifest gate 捕获。
+`NUM13-I006` (`I`, canonical MANIFEST closure): [MANIFEST](../derived/manual_adjudication_v2/MANIFEST)（line 1）的 `/canonical_files/reviewer_input_projection.jsonl` 记录 `384437...`，当前是 `5b6e4a...`；`/canonical_files/reviewer_projection_audit.json` 记录 `b8f8fc...`，当前是 `2cbbe9...`。该错误在 inventory 修复后会由 [validate_manual_adjudication.py](../../../scripts/evaluation/validate_manual_adjudication.py)（line 635）的 manifest gate 捕获。
 
 两项 finding 的 disposition 均为 `PENDING_FIX`。当前 `HEAD` 是 `af7cab04aa10061febc356d62fdf6efac759ad6b`，没有覆盖上述 metadata 的 repair commit；顶层 `archive_manifest.json` 和 `publication_manifest.json` 仍为未提交修改。Targeted rereview 建议：先用 current archive rebuild `inventory.json`，再运行 `build_reviewer_projection.py` 重建两份 projection，随后 provider-free recompute 重建 MANIFEST，最后重跑 full validator 和本 review。不要修改 raw 或 decisions。
 
@@ -379,4 +383,4 @@ Fresh raw inventory passed: v60/current `162` cells and `1271` reports (`415/446
 
 Relation counts are v60 `685/279/183331` and baseline `265/110/73865` for FULL/PARTIAL/NO across dense denominators `184295`/`74240`; PARTIAL is separate from hits and FP. Supported coverage is `337/435` and `128/145` for v60, `245/435` and `116/145` for baseline. Partial-only known is `110/1271`, `21/145` versus `45/512`, `24/145`. Current predicate audit covers all 19 registry rows, frozen planned scope `15/19`, `825` all usages and `353` FULL-hit usages; baseline is `not_applicable`. L2 ledger precision/FP is `not_applicable` on both sides. Costs remain v60 method `$7.18277320`, Judge `$39.78176580` (1374 logical calls, 10 unpriced billable calls); baseline method `$6.77501040`, Judge `$11.45008520`.
 
-The report numeric table agrees with the current summary for all checked metrics at [v60_current_vs_x1v2_baseline_cn.md](../report/v60_current_vs_x1v2_baseline_cn.md:21) through [v60_current_vs_x1v2_baseline_cn.md](../report/v60_current_vs_x1v2_baseline_cn.md:70). Once `NUM13-I005` and `NUM13-I006` are repaired, rerun the validator and repeat this targeted rereview; until then the independent review remains `FAIL`.
+The report numeric table agrees with the pre-finalization summary for all checked metrics at [v60_current_vs_x1v2_baseline_cn.md](../report/v60_current_vs_x1v2_baseline_cn.md) (lines 21-70). `NUM13-I005` and `NUM13-I006` were later closed by manifest regeneration; this historical review remains `FAIL` by design.

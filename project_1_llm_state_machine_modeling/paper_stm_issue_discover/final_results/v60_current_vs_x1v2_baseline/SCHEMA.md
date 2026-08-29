@@ -1,13 +1,28 @@
 # Final Results Schema
 
-本归档的论文主结果来自 `derived/manual_adjudication_v2/`。旧 Judge v3.2、旧 witness
-audit、`reviews/11` 和 `reviews/12` 是 frozen calibration/proposal 或历史诊断，不是本次
-人工真值。冻结 raw、reference ledger、method/Judge 输入和 predicate registry 不由本次
-重评修改。
+current/v60 的既有结果来自 `derived/manual_adjudication_v2/`；X1v2 baseline 非 K 的本次
+发布结果来自 `derived/manual_adjudication_v3_baseline_ni/`。两层共同支撑当前并列报告；旧
+Judge v3.2、旧 witness audit、旧 reviews 是历史诊断，不是 v3 人工真值。冻结 raw、reference
+ledger、method/Judge 输入和 predicate registry 不由本次重评修改。
 
 版本边界：`v3.2` 是冻结 raw 中历史 Judge 的输入/输出身份，不能被重命名为人工标签；
 `v3.3` 是后续 evaluator/protocol implementation 版本，也不是论文人工真值。论文真值
-只来自本目录 v2 的逐条 pane5 人工监督确认和确定性派生。
+current/v60 只来自本目录 v2 的逐条 pane5 人工监督确认和确定性派生；baseline v3 只写入
+非 K 重审层，原 K 不被再次语义修改。
+
+## v3 baseline non-K layer
+
+`baseline_report_decisions_v3.json` 保存 233 条原非 K report 的 Pydantic-validated final
+decision，`baseline_report_decisions_v3.tsv` 是固定列镜像，`baseline_relation_decisions_v3.json`
+是每条 report 对全部 145 expected 的 dense relation。每条保存 raw pointer/hash、完整原文、
+作者 NL/PlantUML source refs、事实/D/A、validity、K/N/I、W、迁移和 report-specific
+reason/basis。`ReviewChain` 保存两份 blind `subagent:` proposal、disagreement、pane5
+arbitration、`reviews/arbitration_log_v3.json` 的逐条 pointer、human confirmation 和 session
+reference；proposal 不能冒充人工真值。
+
+`frozen_k_snapshot_v3.json` 是原有 279 K 的精确 v2 projection，`baseline_combined_512_v3.json`
+只把该 projection 与 233 条 v3 decision 组合。v3 不修改 current/v60、method、Judge、predicate、
+prompt、raw 或既有 v2 目录。
 
 ## 输入闭包
 
@@ -66,8 +81,8 @@ L2 对应分母是 `117` 和 `39`。
 ```text
 K_hit = unique expected issue with at least one FULL across three rounds
 N_group = same-side, same-pair, cross-round merged VALID_NOVEL substantive groups
-I_group = same-side, same-pair, cross-round merged INVALID substantive groups
-ledger-based precision = K_hit / (K_hit + N_group + I_group)
+I_group = same-side, same-pair, cross-round merged INVALID diagnostic clusters
+ledger-based precision = (K_hit + N_group) / (K_hit + N_group + I_group)
 ledger-based FP rate = I_group / (K_hit + N_group + I_group)
 ```
 
@@ -94,7 +109,9 @@ terminal/failure 和 W0/W1/W2 是另一条 usage 轴。receipt 缺失/失败的�
 
 ## Review、provenance 和 manifest
 
-`review_log.json` 每条 report 恰一条，记录 subagent raw-first blind proposal、pane5 主 session
+`derived/manual_adjudication_v3_baseline_ni/reviews/` 保存 v3 的独立复算、证据闭合、grouping、
+academic、fairness/leakage 和文风 review；`reviews/arbitration_log_v3.json` 为每条 v3 report
+提供可定位的 pane5 仲裁记录。`review_log.json` 每条 report 恰一条，记录 subagent raw-first blind proposal、pane5 主 session
 逐条确认、解盲、冲突和最终 attestation。`human_supervised_authorization.json` 保存用户
 授权消息、时间和 session。`reviewer_input_projection.jsonl` 与
 `reviewer_projection_audit.json` 是去除 provider/model/profile/prompt/endpoint/credential、
@@ -105,6 +122,8 @@ proposal 提交后可见的 `reviewer_unblind_mapping.json` 与 canonical eviden
 finding、semantic label 或统计单位。冻结 raw 中保留的历史元数据和精确 pointer 只在
 inventory/canonical evidence 中保存。`MANIFEST` 绑定上述 canonical 文件、TSV、输入 manifests、projection 和 supporting
 artifacts；顶层 `archive_manifest.json` 与 `publication_manifest.json` 绑定整个归档发布面。
+`reviews/shuorenhua_process_v3.json` 另存 docs 场景的 protected spans、首轮问题清单、
+二次回读和 fidelity diff；它是文风与文档保真审计，不是语义标签来源。
 
 ## 可复现与限制
 

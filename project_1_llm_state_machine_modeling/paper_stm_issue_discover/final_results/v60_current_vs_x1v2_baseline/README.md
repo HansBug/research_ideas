@@ -1,13 +1,14 @@
 # v60/current 与 X1v2 baseline 最终人工评测归档
 
-本目录是 Paper1 当前 v60/current 与 X1v2 baseline 评测的稳定入口。论文主结果只使用
-`derived/manual_adjudication_v2/` 的最终人工监督逐条裁定；旧 Judge v3.2、旧 witness
-audit、`reviews/11` 和 `reviews/12` 只作为显式标记的 calibration/proposal 或历史资料，
-不混入主结果。
+本目录是 Paper1 当前 v60/current 与 X1v2 baseline 评测的稳定入口。current/v60 的主结果
+来自 `derived/manual_adjudication_v2/`，X1v2 baseline 的本次非 K 重审来自
+`derived/manual_adjudication_v3_baseline_ni/`；两层共同组成当前并列发布结果。旧 Judge v3.2、
+旧 witness audit 和 superseded reviews 只作为历史资料，不混入当前人工真值。
 
 版本边界：冻结 raw 中的 `v3.2` 是历史 Judge 输入/输出身份；`v3.3` 是后续
 evaluator/protocol implementation 版本。两者都不是本次论文人工真值，不能被重命名为
-人工标签；当前真值只来自 `manual_adjudication_v2` 的逐条 pane5 监督确认和确定性派生。
+人工标签；current/v60 真值只来自 `manual_adjudication_v2` 的逐条 pane5 监督确认和确定性
+派生；baseline v3 只对原非 K 逐条读 raw/source/ledger 后确认，原 K 是 v2 冻结副本。
 
 ## 数据闭合
 
@@ -23,25 +24,30 @@ evaluator/protocol implementation 版本。两者都不是本次论文人工真�
 pane5 人工监督确认、独立 subagent proposal、解盲和仲裁记录。结构化入口是
 [manual adjudication v2](./derived/manual_adjudication_v2/README.md)、[v60 decisions](./derived/manual_adjudication_v2/v60_report_decisions.json)、
 [X1v2 decisions](./derived/manual_adjudication_v2/x1v2_report_decisions.json)、[summary](./derived/manual_adjudication_v2/summary.json)
-和 [review log](./derived/manual_adjudication_v2/review_log.json)。
+和 [review log](./derived/manual_adjudication_v2/review_log.json)。baseline v3 的入口见
+[v3 README](./derived/manual_adjudication_v3_baseline_ni/README.md)、[v3 decisions](./derived/manual_adjudication_v3_baseline_ni/baseline_report_decisions_v3.json)、
+[v3 summary](./derived/manual_adjudication_v3_baseline_ni/recomputed_summary_v3.json) 和
+[v3 reviews](./derived/manual_adjudication_v3_baseline_ni/reviews/)。
 
 ## 当前主结果
 
-数值从 canonical JSON 离线重算，完整并列表格见[正式中文报告](./report/v60_current_vs_x1v2_baseline_cn.md)。
+数值从 canonical JSON 离线重算，完整并列表格见[正式中文报告](./report/v60_current_vs_x1v2_baseline_cn.md)。该报告明确区分 current/v2 冻结层与 baseline/v3 非 K 重审层。
 下列仅列入口，不另建第二事实源：
 
 - v60/current：`D2/D1/D0/A0 = 721/259/120/171`；`K/N/I = 749/231/291`；ledger `K_hit/N_group/I_group = 119/121/189`。
-- X1v2 baseline：`D2/D1/D0/A0 = 408/3/2/99`；`K/N/I = 279/132/101`；ledger `K_hit/N_group/I_group = 104/132/101`。
-- v60/current 与 X1v2 的 report-based precision 分别为 `980/1271 = 77.10%` 与 `411/512 = 80.27%`；ledger-based precision 分别为 `119/429 = 27.74%` 与 `104/337 = 30.86%`。
+- X1v2 baseline v3：`D2/D1/D0/A0 = 342/75/85/10`；`K/N/I = 312/105/95`；ledger `K_hit/N_group/I_group = 106/98/95`。
+- v60/current 与 X1v2 baseline v3 的 report-based precision 分别为 `980/1271 = 77.10%` 与 `417/512 = 81.45%`；按各自有效单位公式的 ledger/group precision 分别为 `240/429 = 55.94%` 与 `204/299 = 68.23%`。
 
 这些数字的单位不同：report precision 使用逐条 validity；ledger precision 使用台账
-`K_hit` 与同 side、同 pair 的跨 round N/I substantive groups。PARTIAL 只进入 supported
-coverage，不进入主 hit 或 FP。L2 ledger precision/FP 为 `not_applicable`，因为 N/I
-group 没有自然的 L2 expected 归属。
+`K_hit` 与同 side、同 pair 的跨 round N substantive groups；precision 的有效分子为
+`K_hit + N_group`，I diagnostic cluster 只进无效分母。PARTIAL 只进入 supported coverage，
+不进入主 hit 或 FP。L2 ledger precision/FP 为 `not_applicable`，因为 N/I group 没有自然的
+L2 expected 归属。
 
 ## 协议与边界
 
-评测协议为 `issue-189-195-manual-evidence-v2`：先核事实，再判 D/A，再逐条判
+current/v60 评测协议为 `issue-189-195-manual-evidence-v2`；baseline 非 K v3 使用
+`issue-189-195-baseline-ni-v3`。两者都先核事实，再判 D/A，再逐条判
 `FULL_MATCH/PARTIAL_MATCH/NO_MATCH`，最后由后端派生 validity 与 K/N/I。`D0/A0 -> I`；
 `D2/D1 + positive relation -> K`；`D2/D1 + all NO_MATCH -> N`。A0 只允许
 `FALSE_POSITIVE` 与 current-only `NOT_A_DEFECT_CLAIM`。W0/W1/W2 是独立证据轴，W2
