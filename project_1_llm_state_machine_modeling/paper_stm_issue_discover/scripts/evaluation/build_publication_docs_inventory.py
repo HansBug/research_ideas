@@ -70,6 +70,8 @@ ARCHIVE_PROVENANCE_PATHS = {
 VERSION_RE = re.compile(r"\b(?:v(?:2|3|4|27|46|60)|v\d+\.\d+|X1v2|x1v2)\b", re.IGNORECASE)
 ABSOLUTE_RE = re.compile(r"(?<![A-Za-z0-9_:/])/(?:home|data|tmp|mnt|opt|srv|workspace)/[^\s`\]\)>,;]+")
 LINK_RE = re.compile(r"!?(?:\[[^\]]*\])\(([^)]+)\)")
+FENCED_CODE_RE = re.compile(r"(?:```|~~~).*?(?:```|~~~)", re.DOTALL)
+INLINE_CODE_RE = re.compile(r"(?P<ticks>`+)[^\n]*?(?P=ticks)")
 
 
 def _is_candidate(path: Path) -> bool:
@@ -141,9 +143,10 @@ def _row(path: Path, paper_root: Path, repository_root: Path) -> DocumentationIn
     raw = path.read_bytes()
     text = raw.decode("utf-8", errors="replace")
     publication, historical, action = _classification(path, paper_root, text)
-    broken = sorted({bad for target in LINK_RE.findall(text) if path.suffix.lower() == ".md" and (bad := _resolve_link(path, target, repository_root))})
+    link_text = INLINE_CODE_RE.sub("", FENCED_CODE_RE.sub("", text))
+    broken = sorted({bad for target in LINK_RE.findall(link_text) if path.suffix.lower() == ".md" and (bad := _resolve_link(path, target, repository_root))})
     legacy = sorted({number for number in LEGACY_NUMBERS if number in text})
-    versions = sorted(set(VERSION_RE.findall(text)), key=str.lower)
+    versions = sorted(set(VERSION_RE.findall(text)), key=lambda value: (value.lower(), value))
     old_protocols = sorted({protocol for protocol in OLD_PROTOCOLS if protocol in text})
     abs_paths = sorted(set(ABSOLUTE_RE.findall(text)))
     duplicate = []

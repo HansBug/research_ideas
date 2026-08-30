@@ -54,3 +54,38 @@ Final provider-free checks passed with current `1271`, baseline `512`, combined
 `1783`, expected `145`, current precision `980/1271`, baseline precision
 `417/512`, and byte-valid publication/fair/archive manifests. No provider,
 method or Judge run was used.
+
+## Publication-scope rerun before finalization (2026-08-31)
+
+Reviewer `codex:track-a-numeric-provenance:a69ef442` independently recomputed
+the current v4 and baseline v3 headline from canonical JSON/TSV and scanned all
+2953 archive-manifest entries. Reports, K/N/I, D/A, report precision, FULL and
+L2 hits, W-on-hits, N groups, I diagnostics, predicate headline values and all
+JSON/TSV mirrors passed. The only FAIL was expected pre-finalization hash drift:
+the edited fair README and v4 report had not yet been written back to the fair,
+publication and archive manifests. Exactly those two files mismatched; no file
+was missing and no canonical value differed.
+
+The reviewer used the three provider-free validators, `cmp` on each summary
+mirror, independent JSON/TSV arithmetic, and a full SHA-256 manifest scan. The
+finding affects publication provenance only. It does not change canonical data
+and is retained here until the post-edit manifest rebuild and independent
+closure rerun below.
+
+## Final publication-summary narrow closure (2026-08-31)
+
+Reviewer `codex-track-a-narrow-readonly-20260831` checked the final predicate
+field boundary, summary mirrors, manifests, tracked inventory and all headline
+values. Current and fair publication summaries now contain exactly four
+predicate keys: `status`, `report_bound_binding`,
+`legacy_semantic_hit_marker_among_report_bound_bindings`, and
+`naming_boundary`. The three historical method/witness fields are absent.
+
+Current and fair summary mirrors compare byte-identical. The reviewer checked
+2953 archive entries, 88 publication entries, 21 current-manifest references
+and 25 fair-manifest references with no missing file or hash mismatch. The
+tracked inventory is `1217` rows, `30` publication rows and `0` broken-link
+rows; two independent in-memory generations matched the saved JSON/TSV after
+the stable `(value.lower(), value)` sort fix. `test_publication_surface_v4.py`
+reported `7 passed`. Headline numbers did not change, and no provider, method
+or Judge run occurred. Final result: **PASS**, with no residual Track A item.

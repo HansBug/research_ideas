@@ -2,7 +2,7 @@
 
 > **档位标记**：全文除标注为【实测】【仓库裁定】【用户明确裁定】者外，均为【AI 建议·待确认】。⛔ 本文件不给任何超出第二档的强度断言。
 >
-> **读法**：先读 [README.md](./README.md)（证据轴与三类定义）→ 本文件（结论与总账）→ 需要细节时跳 [predicate_provenance.md](./predicate_provenance.md)（Q1 逐条）· [c3_differentiation.md](../../c3_differentiation.md) + ⭐⭐ [c3_iii_supplement.md](../../c3_iii_supplement.md)（Q2，⛔ **后者推翻了前者的结论**）· [corpus_scan_findings.md](../../corpus_scan_findings.md)（语料层发现）· [methodology.md](./methodology.md)（怎么做的、可靠性如何）。
+> **读法**：先读 [README.md](../../README.md)（证据轴与三类定义）→ 本文件（结论与总账）→ 需要细节时跳 [predicate_provenance.md](./predicate_provenance.md)（Q1 逐条）· [c3_differentiation.md](../../c3_differentiation.md) + ⭐⭐ [c3_iii_supplement.md](../../c3_iii_supplement.md)（Q2，⛔ **后者推翻了前者的结论**）· [corpus_scan_findings.md](../../corpus_scan_findings.md)（语料层发现）· [methodology.md](./methodology.md)（怎么做的、可靠性如何）。
 
 ## 0. 一页结论
 

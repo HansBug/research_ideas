@@ -69,13 +69,12 @@ K expected、N substantive group 与 I 诊断单元的组成敏感性，不是�
 
 | 项目 | v60/current | X1v2 baseline v3 |
 | --- | ---: | ---: |
-| source-layer N reports / corrected N reports | 231 / 231 | 132 / 105 |
+| N reports | 231 | 105 |
 | N D2/D1 reports | 38 / 193 | 50 / 55 |
 | conservative substantive N groups | 121 | 98 |
 | group size distribution | 1:52, 2:31, 3:36, 4:1, 5:1 | 1:92, 2:5, 3:1 |
 
-前一行的 132 是 baseline v2 的历史输入计数，105 才是 baseline v3 当前结果；
-它不是另一套 headline。current N 在 v4 没有迁移。baseline 非 K 迁移为
+current N 在 v4 没有迁移。baseline v3 非 K 迁移为
 `N->I=67`、`N->K=3`、`N->N=62`、`I->N=43`、`I->K=30`、`I->I=28`；逐条
 记录在 [migration_index_v4.json](../derived/fair_comparison_v4/migration_index_v4.json)。
 baseline 非 K 重审产生 33 条 K report，其中 unique expected relation 为：
@@ -99,7 +98,7 @@ root cause 和最小 repair intent。singleton 是保守的“没有证据支持
 | --- | ---: | ---: |
 | D0 | 120 | 85 |
 | A0 / FALSE_POSITIVE | 53 | 10 |
-| A0 / NOT_A_DEFECT_CLAIM | 118 | 0 |
+| A0 / NOT_A_DEFECT_CLAIM (NADC) | 118 | 0 |
 | I reports | 291 | 95 |
 | diagnostic clusters | 189 | 95 |
 
@@ -121,71 +120,20 @@ guard 归因，以及 `0044:r1:issue:16` 的 route/lowering/runtime 归因。它
 | FULL-hit max W0/W1/W2 | 0/113/197（分母 310） | 0/227/0（分母 227） |
 | report-bound predicate receipt usage | 825/1271 = 64.91% | N/A，baseline 无同构 binding schema |
 | report-bound predicate contribution marker | 303/825 = 36.73% | N/A |
-| method terminal predicate usage | 12/15 个 planned-scope ID；1237 条 terminal receipt | N/A，baseline 无同构 execution schema |
-| report-bound predicate binding（诊断） | 8/15 个 ID；825 条 binding row | N/A，baseline 无同构 binding schema |
-| report-bound completed receipts（诊断） | 522 条，其中 terminal=false/violation 为 522 条 | N/A |
 
 “N/A”表示该字段在 baseline 运行契约中不存在，不是零。全部 finding 的 W 分布
 不能替代 hit 单位的 max-W 分布。
 
 ### Predicate usage 与 contribution 的定义
 
-本报告同时保留发布层的 report-bound 指标和 method 执行指标，二者不能互换：
+本报告只发布 current v4 的 report-bound 指标；旧 witness audit 的 planned mapping、
+registry 明细和 method receipt 统计留在历史 provenance，不作为当前 headline：
 
 - **report-bound usage**：最终 finding 保留 registered predicate binding 和
   receipt 的记录，共 `825/1271`。这是逐报告诊断分母，不是完整 method 执行次数。
 - **report-bound contribution marker**：上述 825 条中，继承的
   `coverage_class=semantic_hit` 标记为真者共 `303/825`。该字段保留既有 v4
-  发布口径，但不能解释成 terminal-false receipt 数，也不能由 violation 自动推出。
-- **method terminal usage**：原始 execution receipt 到达 `pass` 或
-  `violation`；两者都计入 method usage。unsupported receipt 不计 terminal usage。
-
-因此，method 层面的结论是 **12/15 个 planned-scope 谓词被实际执行**，共
-1237 条 terminal receipt，其中 `608 pass + 629 violation`。`report-bound binding`
-是另一层统计：它只统计挂到最终 finding 的绑定记录，不能代替 method usage；当前
-共有 8 个 ID、825 条 binding row，其中只有 522 条有 completed terminal receipt，
-且这 522 条均为 `terminal_result=false/violation`。反过来也不能把 522 条 violation
-写成 522 条 contribution；本文保留的 contribution diagnostic 是上面的 `303/825`。
-
-本轮 full-scale-15 的 planned scope 为：
-`S1,S2,S3,S4,S5,S6,G1,G2,G3,G4,R1,R2,R4,V1,V4`。
-因此，未出现 completed terminal receipt 的 planned predicate 是 `S6,G3,V1`。
-registry 中另外四个谓词 `R3,V2,V3,V5` 不属于本轮 full-scale-15 operational
-scope；它们不能被解释为本轮“漏执行”。
-
-### 19 个 registry predicate 的审计统计
-
-`method terminal receipts` 和 `method false contribution` 来自 v60 raw method
-的全部 162 个 round 文件；`report-bound binding rows` 与其对应的
-`report-bound false contribution` 来自 predicate witness audit。后两列只作
-绑定诊断，不改变前面的 usage 定义。
-
-| ID | family | 台账期望 | method terminal receipts | method violation receipts | report-bound binding rows | report-bound terminal violations |
-| --- | --- | ---: | ---: | ---: | ---: | ---: |
-| S1 | Structure | 14 | 119 | 0 | 0 | 0 |
-| S2 | Structure | 20 | 387 | 235 | 166 | 166 |
-| S3 | Structure | 22 | 249 | 96 | 93 | 93 |
-| S4 | Structure | 10 | 18 | 6 | 6 | 6 |
-| S5 | Structure | 3 | 81 | 81 | 337 | 63 |
-| S6 | Structure | 3 | 0 | 0 | 0 | 0 |
-| G1 | Topology | 16 | 81 | 81 | 105 | 79 |
-| G2 | Topology | 1 | 2 | 2 | 1 | 1 |
-| G3 | Topology | 3 | 0 | 0 | 0 | 0 |
-| G4 | Topology | 5 | 12 | 0 | 0 | 0 |
-| R1 | Trajectory simulation | 9 | 34 | 0 | 0 | 0 |
-| R2 | Trajectory simulation | 1 | 162 | 46 | 32 | 32 |
-| R3 | Trajectory simulation | 0 | 0 | 0 | 0 | 0 |
-| R4 | Trajectory simulation | 3 | 4 | 0 | 0 | 0 |
-| V1 | Bounded verification | 4 | 0 | 0 | 0 | 0 |
-| V2 | Bounded verification | 0 | 0 | 0 | 0 | 0 |
-| V3 | Bounded verification | 0 | 0 | 0 | 0 | 0 |
-| V4 | Bounded verification | 4 | 88 | 82 | 85 | 82 |
-| V5 | Bounded verification | 0 | 0 | 0 | 0 | 0 |
-| **合计** |  | **118** | **1237** | **629** | **825** | **522** |
-
-四个“实际执行但 violation=0”的 method predicate 是 `S1/G4/R1/R4`：它们
-分别有 119/12/34/4 条 terminal receipt，全部为 `pass`。这解释了为什么它们
-出现在 12/15 的 method usage 中，却不出现在 8/15 的 report-bound ID 集合中。
+  发布口径；它不能解释成 terminal-false receipt 数，也不能由 violation 自动推出。
 
 ## 学术解释与限制
 
@@ -198,11 +146,19 @@ al.（MODELS 2025, DOI `10.1109/MODELS67397.2025.00014`）支持 equivalent issu
 与人工确认的 new true issue；Pearson et al.（ICSE 2017, DOI
 `10.1109/ICSE.2017.62`）说明报告粒度影响 fault 分解；Martinez et al.（EMSE
 2017, DOI `10.1007/s10664-016-9470-4`）支持 semantic/repair equivalence 不
-要求 patch 文本相同。IEEE 1044-2009 与 Goodenough, Weinstock & Klein 支持
-`not found`、intended behavior 和 defect disposition 的边界；Barr et al. 支持
-implicit test oracle 的限制；Zave & Jackson 支持把经验证的 domain knowledge
-纳入 requirements reasoning；Massey et al. 与 Pollock 支持 reasonable
-alternative interpretation 以及 rebutting/undercutting defeater 的区分。
+要求 patch 文本相同。IEEE Std 1044-2009，*IEEE Standard Classification for
+Software Anomalies*（DOI `10.1109/IEEESTD.2010.5399061`）给出包含 `Not found`、
+intended behavior 在内的 anomaly disposition；Goodenough, Weinstock & Klein，
+*Eliminative Argumentation: A Basis for Arguing Confidence in System Properties*
+（CMU/SEI-2015-TR-005，DOI `10.1184/R1/6573413.v1`）区分作用于 claim、evidence
+和 inference rule 的 defeater。Barr et al.，*The Oracle Problem in Software Testing:
+A Survey*（DOI `10.1109/TSE.2014.2372785`）界定 implicit test oracle 的能力边界；
+Zave & Jackson，*Four Dark Corners of Requirements Engineering*（DOI
+`10.1145/237432.237434`）说明经过验证的 domain knowledge 可进入 requirements
+reasoning。Massey et al.，*Identifying and Classifying Ambiguity for Regulatory
+Requirements*（DOI `10.1109/RE.2014.6912250`）讨论 reasonable alternative
+interpretation；Pollock，*Defeasible Reasoning*（DOI
+`10.1207/s15516709cog1104_4`）区分 rebutting 与 undercutting defeater。
 
 这些文献分别支持 distinct bug、relatedness、修复等价、false positive、需求
 有效性与歧义裁决；“同 side + 同 pair + 同义务 + 同 source/root cause + 同修复
@@ -224,5 +180,5 @@ python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/ev
 
 逐侧入口：[current v4](../derived/manual_adjudication_v4_current_reaudit/README.md)、
 [baseline v3](../derived/manual_adjudication_v3_baseline_ni/README.md)、[比较层](../derived/fair_comparison_v4/README.md)。
-Manifest、输入输出 hash 和 review 记录位于比较层；旧 v2 和历史 report 未被覆盖，
+Manifest、输入输出 hash 和 review 记录位于比较层；历史层和旧报告未被覆盖，
 baseline v3 仍是当前冻结对照层。

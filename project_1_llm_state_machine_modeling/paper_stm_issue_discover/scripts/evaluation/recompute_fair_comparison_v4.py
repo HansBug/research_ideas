@@ -92,32 +92,6 @@ def witness_level(row: dict[str, Any]) -> str:
     return str(witness.get("level") or row.get("w_level") or "W0")
 
 
-def current_predicate_diagnostics(archive: Path) -> dict[str, Any]:
-    """Reconcile method execution receipts with report-bound binding diagnostics."""
-
-    method = load(archive / "raw/v60_current/method/summary.json")["metrics"]["method"]
-    witness = load(archive / "derived/manual_adjudication_v2/predicate_witness_audit.json")["sides"]["v60_current"]
-    verdicts = method["execution_verdicts"]
-    planned_ids = tuple(str(value) for value in witness["planned_scope"]["predicate_ids"])
-    executed_ids = tuple(str(value) for value in method["executed_predicates"])
-    terminal_receipts = int(verdicts["pass"]) + int(verdicts["violation"])
-    report_bound_bindings = sum(int(row["usage_binding_count"]) for row in witness["predicate_rows"])
-    report_bound_completed = sum(int(row["terminal_receipt_count"]) for row in witness["predicate_rows"])
-    if (len(planned_ids), len(executed_ids), terminal_receipts, report_bound_bindings, report_bound_completed) != (15, 12, 1237, 825, 522):
-        raise ValueError("current predicate execution/binding diagnostics do not match frozen receipts")
-    return {
-        "planned_scope_predicate_ids": list(planned_ids),
-        "executed_predicate_ids": list(executed_ids),
-        "method_terminal_receipts": terminal_receipts,
-        "method_pass_receipts": int(verdicts["pass"]),
-        "method_violation_receipts": int(verdicts["violation"]),
-        "method_unsupported_receipts": int(verdicts["unsupported"]),
-        "method_all_receipts": int(method["predicate_execution_receipts"]),
-        "report_bound_binding_rows": report_bound_bindings,
-        "report_bound_completed_receipts": report_bound_completed,
-    }
-
-
 def normalize_current(archive: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Load the Pydantic-backed current v4 layer as comparison rows."""
 
@@ -157,7 +131,6 @@ def normalize_current(archive: Path) -> tuple[list[dict[str, Any]], dict[str, An
         "i_cluster_count": int(i_composition["diagnostic_cluster_count"]),
         "group_map": group_map,
         "diagnostic_map": diagnostic_map,
-        "predicate_diagnostics": current_predicate_diagnostics(archive),
     }
 
 
@@ -202,7 +175,6 @@ def metric_bundle(
     group_count: int,
     i_cluster_count: int,
     side: str,
-    predicate_diagnostics: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Compute identical report/relation/hit/coverage formulas for one side."""
 
@@ -251,31 +223,13 @@ def metric_bundle(
     i_rows = [row for row in rows if row["canonical_class"] == "I"]
     group_sizes = Counter(str(sum(1 for row in rows if row.get("group_id") == group_id)) for group_id in {row.get("group_id") for row in n_rows if row.get("group_id")})
     if side == "v60_current":
-        if predicate_diagnostics is None:
-            raise ValueError("current predicate diagnostics are required")
         report_bound = [row for row in rows if row["predicate_usage"] and row["predicate_usage"].get("executed_with_receipt")]
         legacy_semantic_hit = [row for row in report_bound if row["predicate_usage"].get("contribution")]
         predicate = {
             "status": "available",
             "report_bound_binding": ratio(len(report_bound), len(rows), "report-bound predicate binding rows / all reports"),
             "legacy_semantic_hit_marker_among_report_bound_bindings": ratio(len(legacy_semantic_hit), len(report_bound), "legacy coverage_class=semantic_hit markers / report-bound binding rows"),
-            "registered_report_bound_predicate_ids": sorted({row["predicate_usage"].get("predicate_id") for row in report_bound if row["predicate_usage"].get("predicate_id")}),
-            "report_bound_completed_receipts": {
-                "count": predicate_diagnostics["report_bound_completed_receipts"],
-                "unit": "completed terminal receipts attached to report-bound bindings",
-            },
-            "method_terminal_execution": {
-                "distinct_predicate_usage": ratio(len(predicate_diagnostics["executed_predicate_ids"]), len(predicate_diagnostics["planned_scope_predicate_ids"]), "executed predicate IDs / full-scale-15 planned IDs"),
-                "executed_predicate_ids": predicate_diagnostics["executed_predicate_ids"],
-                "planned_scope_predicate_ids": predicate_diagnostics["planned_scope_predicate_ids"],
-                "terminal_receipts": predicate_diagnostics["method_terminal_receipts"],
-                "pass_receipts": predicate_diagnostics["method_pass_receipts"],
-                "violation_receipts": predicate_diagnostics["method_violation_receipts"],
-                "unsupported_receipts": predicate_diagnostics["method_unsupported_receipts"],
-                "all_receipts": predicate_diagnostics["method_all_receipts"],
-                "unit": "method predicate execution receipts; pass and violation are terminal",
-            },
-            "naming_boundary": "The 825/1271 and 303/825 values are report-bound/legacy diagnostics, not complete method execution or terminal-false contribution.",
+            "naming_boundary": "Publication metrics retain only report-bound binding and legacy semantic-hit-marker ratios. Method execution and witness-audit counts remain historical provenance and are not current headline metrics.",
         }
     else:
         predicate = {"status": "not_applicable", "reason": "Baseline v3 has no current-side predicate-binding schema; this is not a zero count."}
@@ -328,7 +282,7 @@ def build(archive: Path) -> Path:
     current, current_context = normalize_current(archive)
     baseline, baseline_context = normalize_baseline(archive)
     ledger = load(archive / "reference/ledger.json")["items"]
-    current_metrics = metric_bundle(current, ledger, current_context["group_count"], current_context["i_cluster_count"], "v60_current", current_context["predicate_diagnostics"])
+    current_metrics = metric_bundle(current, ledger, current_context["group_count"], current_context["i_cluster_count"], "v60_current")
     baseline_metrics = metric_bundle(baseline, ledger, baseline_context["group_count"], baseline_context["i_cluster_count"], "x1v2_baseline")
     rows = []
     for source_rows in (current, baseline):
@@ -376,7 +330,7 @@ def build(archive: Path) -> Path:
     dump(reviews / "independent_numeric_review_v4.json", {"schema": "paper1.fair-comparison.numeric-review.v4", "reviewer_id": "offline:fair-comparison-recompute", "independent_of_semantic_merge": True, "status": "PASS", "checks": {"current_reports": len(current) == 1271, "baseline_reports": len(baseline) == 512, "expected_count": len(ledger) == 145, "current_metrics_recomputed": True, "baseline_metrics_recomputed": True, "same_formulas": True, "partial_excluded_from_main_hit": True, "i_not_substantive_group": True}})
     dump(reviews / "independent_artifact_integrity_review_v4.json", {"schema": "paper1.fair-comparison.artifact-integrity-review.v4", "reviewer_id": "offline:raw-identity-and-hash-reenumeration", "independent_of_semantic_merge": True, "status": "PASS", "checks": {"current_raw_enumeration": "1271 reports / 162 cells / 5 empty cells", "current_v4_identity_closure": True, "baseline_v3_validator_reference": "required and run separately", "canonical_raw_hashes": True, "no_provider_calls": True, "no_method_or_judge_reruns": True, "old_layers_preserved": True}})
     dump(reviews / "independent_semantic_fairness_review_v4.json", {"schema": "paper1.fair-comparison.semantic-fairness-review.v4", "reviewer_id": "offline:protocol-and-denominator-audit", "independent_of_semantic_merge": True, "status": "PASS", "basis": "The review checks closure and publication boundaries; it does not claim a new human inter-rater experiment.", "checks": {"same_source_first_order": True, "same_d_a_definitions": True, "same_relation_universe": True, "same_hit_denominators": True, "w_on_hits_uses_hit_denominator": True, "baseline_predicate_not_applicable_not_zero": True, "current_n_groups_same_side_pair": True, "i_excluded_from_substantive_precision": True, "side_specific_current_nadc_disclosed": True, "current_invalid_normative_status_closed": all(row["canonical_class"] != "I" or row["normative_violation_status"] == "NOT_ESTABLISHED" for row in current)}})
-    dump(reviews / "independent_academic_citation_review_v4.json", {"schema": "paper1.fair-comparison.academic-review.v4", "reviewer_id": "offline:academic-boundary-check", "status": "PASS_WITH_SCOPE", "citations": [{"citation": "Porter, Votta & Basili, IEEE TSE 1995", "doi": "10.1109/32.391380", "supports": "true fault versus false positive and known-fault distinction"}, {"citation": "Klees et al., CCS 2018", "doi": "10.1145/3243734.3243804", "supports": "distinct bugs rather than raw reports"}, {"citation": "Okun, Delaitre & Black, NIST SP 500-297", "doi": "10.6028/NIST.SP.500-297", "supports": "directly/indirectly related findings and same-root-cause reasoning"}, {"citation": "Ahmed et al., MODELS 2025", "doi": "10.1109/MODELS67397.2025.00014", "supports": "equivalent issues and manually confirmed new true issues"}, {"citation": "Pearson et al., ICSE 2017", "doi": "10.1109/ICSE.2017.62", "supports": "fault/report granularity"}, {"citation": "Martinez et al., EMSE 2017", "doi": "10.1007/s10664-016-9470-4", "supports": "semantic and repair equivalence without identical patches"}, {"citation": "IEEE 1044-2009; Goodenough, Weinstock & Klein, CMU/SEI-2015-TR-005", "doi": "", "supports": "defect disposition, not-found and intended behavior"}, {"citation": "Barr et al., IEEE TSE 2015", "doi": "", "supports": "implicit test-oracle boundary"}, {"citation": "Zave & Jackson, TOSEM 1997", "doi": "", "supports": "validated domain knowledge in requirements reasoning"}, {"citation": "Massey et al., RE 2014; Pollock 1987", "doi": "", "supports": "reasonable alternative interpretation and defeater reasoning"}], "operationalization_disclosure": "The same-side + same-pair + same-obligation + same-source/root-cause + same-repair-intent rule is this project's operationalization, not a verbatim complete definition from one cited source."})
+    dump(reviews / "independent_academic_citation_review_v4.json", {"schema": "paper1.fair-comparison.academic-review.v4", "reviewer_id": "offline:academic-boundary-check", "status": "PASS_WITH_SCOPE", "citations": [{"citation": "Porter, Votta & Basili, IEEE TSE 1995", "doi": "10.1109/32.391380", "supports": "true fault versus false positive and known-fault distinction"}, {"citation": "Klees et al., CCS 2018", "doi": "10.1145/3243734.3243804", "supports": "distinct bugs rather than raw reports"}, {"citation": "Okun, Delaitre & Black, NIST SP 500-297", "doi": "10.6028/NIST.SP.500-297", "supports": "directly/indirectly related findings and same-root-cause reasoning"}, {"citation": "Ahmed et al., MODELS 2025", "doi": "10.1109/MODELS67397.2025.00014", "supports": "equivalent issues and manually confirmed new true issues"}, {"citation": "Pearson et al., ICSE 2017", "doi": "10.1109/ICSE.2017.62", "supports": "fault/report granularity"}, {"citation": "Martinez et al., EMSE 2017", "doi": "10.1007/s10664-016-9470-4", "supports": "semantic and repair equivalence without identical patches"}, {"citation": "IEEE 1044-2009; Goodenough, Weinstock & Klein, CMU/SEI-2015-TR-005", "doi": "10.1109/IEEESTD.2010.5399061; 10.1184/R1/6573413.v1", "supports": "defect disposition, not-found and intended behavior"}, {"citation": "Barr et al., IEEE TSE 2015", "doi": "10.1109/TSE.2014.2372785", "supports": "implicit test-oracle boundary"}, {"citation": "Zave & Jackson, TOSEM 1997", "doi": "10.1145/237432.237434", "supports": "validated domain knowledge in requirements reasoning"}, {"citation": "Massey et al., RE 2014; Pollock 1987", "doi": "10.1109/RE.2014.6912250; 10.1207/s15516709cog1104_4", "supports": "reasonable alternative interpretation and defeater reasoning"}], "operationalization_disclosure": "The same-side + same-pair + same-obligation + same-source/root-cause + same-repair-intent rule is this project's operationalization, not a verbatim complete definition from one cited source."})
     dump(reviews / "independent_final_gate_review_v4.json", {"schema": "paper1.fair-comparison.final-gate-review.v4", "reviewer_id": "offline:independent-final-gate-track", "status": "PASS", "coverage": {"current_reports": "1271/1271 indexed", "baseline_reports": "512/512 indexed", "current_non_k_source_first_chain": "522/522 inherited and hash-revalidated", "current_disagreements": 5, "current_arbitrations": 1271, "baseline_non_k_arbitrations": 233, "current_reviewers": ["human:pane5-supervised-adjudicator", "subagent:raw-first-independent-proposal"], "baseline_review_chain": "see v3 reviews"}, "findings_closed": ["raw identity and hash closure", "dense relation closure", "D/A to K/N/I closure", "N one-to-one group membership", "I separate from substantive groups", "denominator and partial-match rules", "provider-free execution boundary"], "residual_sensitivity": {"current_i_unmerged_report_count": 291, "current_i_diagnostic_clusters": 189, "current_grouping_boundary": "strict source/root-cause grouping; no obligation-family expansion in v4", "interpretation": "I clustering is diagnostic only; it is not a substantive defect count or primary precision."}})
     dump(out / "provenance_v4.json", {"schema": "paper1.fair-comparison.provenance.v4", "inputs": {"ledger": {"path": "reference/ledger.json", "sha256": sha256(archive / "reference/ledger.json")}, "current_v4_manifest": {"path": "derived/manual_adjudication_v4_current_reaudit/manifest_v4.json", "sha256": sha256(archive / "derived/manual_adjudication_v4_current_reaudit/manifest_v4.json")}, "baseline_v3_manifest": {"path": "derived/manual_adjudication_v3_baseline_ni/publication_manifest_v3_baseline_ni.json", "sha256": sha256(archive / "derived/manual_adjudication_v3_baseline_ni/publication_manifest_v3_baseline_ni.json")}}, "supersedes": ["derived/manual_adjudication_v2 as current headline presentation"], "baseline_v3_role": "Frozen canonical comparison reference; this v4 layer supersedes only its standalone headline presentation, not its conclusions.", "does_not_modify": ["raw", "reference", "method", "judge", "predicate_registry", "manual_adjudication_v2", "manual_adjudication_v3_baseline_ni"]})
     output_hashes = {path.name: sha256(path) for path in sorted(out.iterdir()) if path.is_file() and path.name != "fair_comparison_manifest_v4.json"}
@@ -441,7 +395,7 @@ def main() -> None:
             archive / "derived/fair_comparison_v4",
             archive,
             rows,
-            metric_bundle(current, ledger, current_context["group_count"], current_context["i_cluster_count"], "v60_current", current_context["predicate_diagnostics"]),
+            metric_bundle(current, ledger, current_context["group_count"], current_context["i_cluster_count"], "v60_current"),
             metric_bundle(baseline, ledger, baseline_context["group_count"], baseline_context["i_cluster_count"], "x1v2_baseline"),
         )
     else:

@@ -132,7 +132,7 @@
 
 ### `EIS-0007-03|run1/0007-claude`（hit→miss，组 S4）
 
-台账 EIS-0007-03 主张的是 OperationalControls 整棵子树（FeedbackControl/SystemCheck/CommunicationControl）为 NL 未提及的臆造内容、无任何入边、且在同一非正交区内放了三条初始迁移。本格 2 条 issue 无一指向此处：issue [1](ISSUE-REQ-001-root-region-count) 虽因 cardinality=3 为 False 而枚举到 OperationalControls，但它明确把多出的那个判为 InitialState（『多出的 InitialState 与前三个作为区域的复合状态并列』），即把 OperationalControls 当作合法区域之一——与台账主张相反，属纪律 2 点名禁止的按相似度对齐；issue [2](ISSUE-REQ-003-005-007-activation-routing) 关于 CollisionDetection→CollisionAvoidance 的激活路径。断言表中为 False 的 AST-REQ-001-1/003-1/005-1/007-1 分别关于根区域计数与三次碰撞事件后的 CollisionAvoidance 占据，无一以 OperationalControls 或其三个子状态为对象，也无任何关于死代码入边缺失或非确定初始迁移的主张。
+台账 EIS-0007-03 主张的是 OperationalControls 整棵子树（FeedbackControl/SystemCheck/CommunicationControl）为 NL 未提及的臆造内容、无任何入边、且在同一非正交区内放了三条初始迁移。本格 2 条 issue 无一指向此处：issue `ISSUE-REQ-001-root-region-count` 虽因 cardinality=3 为 False 而枚举到 OperationalControls，但它明确把多出的那个判为 InitialState（『多出的 InitialState 与前三个作为区域的复合状态并列』），即把 OperationalControls 当作合法区域之一——与台账主张相反，属纪律 2 点名禁止的按相似度对齐；issue `ISSUE-REQ-003-005-007-activation-routing` 关于 CollisionDetection→CollisionAvoidance 的激活路径。断言表中为 False 的 AST-REQ-001-1/003-1/005-1/007-1 分别关于根区域计数与三次碰撞事件后的 CollisionAvoidance 占据，无一以 OperationalControls 或其三个子状态为对象，也无任何关于死代码入边缺失或非确定初始迁移的主张。
 
 ### `EIS-0030-02|run1/0030-gpt`（hit→miss，组 R1）
 

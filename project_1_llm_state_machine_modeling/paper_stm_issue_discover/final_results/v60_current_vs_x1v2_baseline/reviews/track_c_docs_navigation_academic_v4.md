@@ -59,3 +59,48 @@ mapping; its detailed fidelity record is in
 `derived/fair_comparison_v4/reviews/shuorenhua_review_v4.{json,md}`. Final
 tracked-only inventory, relative-link and publication/archive manifest checks
 pass. This remains internal QA, not a new inter-rater study.
+
+## Publication-scope rerun before finalization (2026-08-31)
+
+Reviewer `codex:track-c-docs-navigation-academic-shuorenhua-readonly` confirmed
+the unique route `SUMMARY -> final-results README -> v4 report/versioned
+canonical data`, the seven-line historical redirect, the archive-only status of
+raw/reference/history/v2, and the single report on the publication surface.
+Operationalization boundaries and the distinction between data, protocol
+deduction and sensitivity also passed.
+
+The reviewer retained four pre-finalization FAILs with exact evidence:
+
+1. the edited report hash was stale in the fair, publication and archive manifests;
+2. `pipeline/evidence_discovery/PREDICATE_REGISTRY.md` linked a non-existent sibling file;
+3. supplemental academic references lacked complete discoverable identifiers;
+4. the Shuorenhua record still claimed that old witness-audit values remained in the headline.
+
+Pane5 fixed the link to the method registry truth source, added exact titles and
+DOIs, and recorded removal of old witness details as a publication-scope choice
+rather than a style edit. The manifest FAIL remains intentionally open until all
+review records and the tracked-only inventory are regenerated. The review was
+read-only and made no canonical-data or experiment change.
+
+## Final navigation and academic narrow closure (2026-08-31)
+
+Reviewer `codex:track-c-final-narrow-readonly` checked the final working tree.
+`SUMMARY.md` routes to the final-results README, which names the v4 Chinese
+report as the only paper headline. The publication manifest contains 88 files
+and one report; raw, reference, v2, history and the historical redirect remain
+archive-only. The archive manifest contains 2953 files.
+
+An independent scan covered 898 tracked Markdown files and 6142 relative file
+links with zero broken target. The main report and final publication review no
+longer publish the old witness values; current predicate presentation contains
+only `825/1271`, `303/825` and baseline `N/A`. All 12 cited DOI registrations
+resolved, including the six supplemental titles. The project-specific grouping
+rule remains labeled as an operationalization rather than a verbatim literature
+definition.
+
+The bounded Shuorenhua record preserves numbers, definitions, responsibility,
+limitations and evidence paths, and identifies removal of old witness fields
+as a publication-scope decision. Publication tests reported `7 passed`; all
+publication, archive and fair-manifest hashes matched at review time. The
+reviewer made no edit and recorded zero provider, method, Judge or experiment
+run. Final result: **PASS**, with no unresolved in-scope evidence gap.

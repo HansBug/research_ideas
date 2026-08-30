@@ -56,3 +56,38 @@ Final validators pass for `1271/1271` current and `512/512` baseline reports;
 there are no null I diagnostic pointers, and no canonical semantic decision was
 changed. The retained I merge boundary remains a diagnostic sensitivity, not a
 claim of 189 substantive defects.
+
+## Publication-scope rerun before finalization (2026-08-31)
+
+Reviewer `codex:track-b-semantic-fairness-readonly:a69ef442` independently
+checked protocol identity, `source -> D/A -> all relations -> K/N/I`, dense
+relation closure, FULL/PARTIAL/NO, W independence, N grouping, I non-grouping,
+baseline predicate `not_applicable`, NADC limits and the manual-supervision
+boundary. Canonical semantic data passed with zero closure violations across
+current `1271 x 145` and baseline `512 x 145` relations. The reviewer suggested
+the low-risk first-use expansion `NOT_A_DEFECT_CLAIM (NADC)`, now applied.
+
+The only gate FAIL was the same expected pre-finalization manifest drift for
+the edited report and fair README. The reviewer classified it as publication
+provenance, not a D/A, relation, K/N/I or grouping error. Commands included the
+three provider-free validators plus independent `jq` closure and one-to-one
+group-membership checks. No file was edited by the reviewer and no provider,
+method or Judge run occurred.
+
+## Final predicate-publication narrow closure (2026-08-31)
+
+Reviewer `codex:track-b-predicate-publication-narrow:a69ef442` confirmed that
+current and fair publication summaries expose only the two report-bound ratios,
+their status and their naming boundary. `method_terminal_execution`,
+`registered_report_bound_predicate_ids`, `report_bound_completed_receipts`,
+planned IDs and executed IDs are absent from all four publication summaries;
+their historical provenance remains archive-only. Baseline predicate status is
+`not_applicable`, explicitly not zero.
+
+The same review reran current (`1271` reports, `184295` relations), baseline
+(`512` reports, `233` reviewed non-K and `279` frozen K) and fair (`1783`
+reports, `145` expected) validators. Protocol IDs, D/A-to-relation-to-K/N/I
+closure, N grouping, I non-grouping and the inherited manual-supervision
+boundary all passed. Current/fair mirrors and top-level manifests were
+hash-consistent at review time. No semantic decision or experiment artifact
+changed. Final result: **PASS**.

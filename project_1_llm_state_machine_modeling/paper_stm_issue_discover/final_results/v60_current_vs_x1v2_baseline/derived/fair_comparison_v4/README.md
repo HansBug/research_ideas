@@ -2,8 +2,9 @@
 
 This is the paper-facing comparison layer. The only headline sides are
 `v60_current` from current re-audit v4 and `x1v2_baseline` from the frozen
-baseline v3 layer. Historical v2/v46/v27/Judge outputs remain in their source
-directories and are not a headline result.
+baseline v3 layer. Historical v2/v46/v27/Judge outputs remain byte-preserved,
+but current navigation and manifests expose them only as archive/provenance,
+not as headline results.
 
 ## Canonical outputs
 

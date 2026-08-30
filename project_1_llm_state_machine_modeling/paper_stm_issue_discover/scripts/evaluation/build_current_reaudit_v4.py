@@ -488,35 +488,11 @@ def ratio(numerator: int, denominator: int) -> dict[str, Any]:
     return {"numerator": numerator, "denominator": denominator, "percentage": numerator / denominator if denominator else None}
 
 
-def current_predicate_diagnostics(archive: Path) -> dict[str, Any]:
-    """Read frozen method execution and report-bound binding counts."""
-
-    method = load_json(archive / "raw/v60_current/method/summary.json")["metrics"]["method"]
-    witness = load_json(archive / "derived/manual_adjudication_v2/predicate_witness_audit.json")["sides"]["v60_current"]
-    verdicts = method["execution_verdicts"]
-    planned_ids = [str(value) for value in witness["planned_scope"]["predicate_ids"]]
-    executed_ids = [str(value) for value in method["executed_predicates"]]
-    completed = sum(int(row["terminal_receipt_count"]) for row in witness["predicate_rows"])
-    if (len(planned_ids), len(executed_ids), int(verdicts["pass"]) + int(verdicts["violation"]), completed) != (15, 12, 1237, 522):
-        raise ValueError("frozen predicate method/binding diagnostics do not close")
-    return {
-        "planned_ids": planned_ids,
-        "executed_ids": executed_ids,
-        "all_receipts": int(method["predicate_execution_receipts"]),
-        "terminal_receipts": int(verdicts["pass"]) + int(verdicts["violation"]),
-        "pass_receipts": int(verdicts["pass"]),
-        "violation_receipts": int(verdicts["violation"]),
-        "unsupported_receipts": int(verdicts["unsupported"]),
-        "report_bound_completed_receipts": completed,
-    }
-
-
 def metric_bundle(
     decisions: list[CanonicalDecision],
     ledger: dict[str, Any],
     n_group_count: int,
     i_cluster_count: int,
-    predicate_diagnostics: dict[str, Any],
 ) -> dict[str, Any]:
     """Recompute current report, relation, hit, W and predicate metrics."""
 
@@ -564,20 +540,7 @@ def metric_bundle(
             "status": "available",
             "report_bound_binding": {**ratio(len(predicate_usage), len(decisions)), "unit": "report-bound predicate binding rows / all reports"},
             "legacy_semantic_hit_marker_among_report_bound_bindings": {**ratio(len(predicate_contribution), len(predicate_usage)), "unit": "legacy coverage_class=semantic_hit markers / report-bound binding rows"},
-            "registered_report_bound_predicate_ids": sorted({item.predicate_id for item in predicate_usage if item.predicate_id}),
-            "report_bound_completed_receipts": {"count": predicate_diagnostics["report_bound_completed_receipts"], "unit": "completed terminal receipts attached to report-bound bindings"},
-            "method_terminal_execution": {
-                "distinct_predicate_usage": {**ratio(len(predicate_diagnostics["executed_ids"]), len(predicate_diagnostics["planned_ids"])), "unit": "executed predicate IDs / full-scale-15 planned IDs"},
-                "executed_predicate_ids": predicate_diagnostics["executed_ids"],
-                "planned_scope_predicate_ids": predicate_diagnostics["planned_ids"],
-                "terminal_receipts": predicate_diagnostics["terminal_receipts"],
-                "pass_receipts": predicate_diagnostics["pass_receipts"],
-                "violation_receipts": predicate_diagnostics["violation_receipts"],
-                "unsupported_receipts": predicate_diagnostics["unsupported_receipts"],
-                "all_receipts": predicate_diagnostics["all_receipts"],
-                "unit": "method predicate execution receipts; pass and violation are terminal",
-            },
-            "naming_boundary": "The 825/1271 and 303/825 values are report-bound/legacy diagnostics, not complete method execution or terminal-false contribution.",
+            "naming_boundary": "Publication metrics retain only report-bound binding and legacy semantic-hit-marker ratios. Method execution and witness-audit counts remain historical provenance and are not current headline metrics.",
         },
         "n_substantive_groups": n_group_count, "i_diagnostic_clusters": i_cluster_count, "i_substantive_group_metric": "N/A",
         "ledger_group_diagnostic_ratio": {**ratio(len(full_expected) + n_group_count, ledger_denominator), "unit": "unique K expected + N groups + I diagnostic clusters", "i_clusters_are_not_defects": True},
@@ -645,7 +608,7 @@ def build(archive: Path) -> Path:
     i_composition = {"schema": "paper1.current-reaudit.i-composition.v4", "side": "v60_current", "report_count": sum(item.canonical_class == "I" for item in decisions), "by_d_tier": dict(Counter(item.d_tier for item in decisions if item.canonical_class == "I")), "a0_subtypes": dict(Counter(item.a0_subtype for item in decisions if item.canonical_class == "I" and item.a0_subtype)), "diagnostic_cluster_count": sum(1 for group in load_json(archive / "derived" / "manual_adjudication_v2" / "group_decisions.json")["groups"] if group.get("side") == "v60_current" and group.get("group_verdict") == "I"), "clusters_are_not_substantive_defects": True, "ungrouped_i_sensitivity_report_count": sum(item.canonical_class == "I" for item in decisions)}
     write_json(out / "current_i_diagnostic_composition_v4.json", i_composition)
     i_cluster_count = int(i_composition["diagnostic_cluster_count"])
-    summary = {"schema": "paper1.current-reaudit.summary.v4", "protocol_version": PROTOCOL, "semantic_protocol_id": "issue-189-195-manual-evidence-v2", "side": "v60_current", "generated_at_utc": inventory["generated_at_utc"], "metrics": metric_bundle(decisions, context["ledger"], len(groups), i_cluster_count, current_predicate_diagnostics(archive)), "n_grouping": {"raw_n_reports_previous_v2": 231, "corrected_n_reports": sum(item.canonical_class == "N" for item in decisions), "substantive_n_groups": len(groups), "group_size_distribution": dict(Counter(str(len(item.member_report_ids)) for item in groups)), "root_cause_group_count": len(groups)}, "i_composition": i_composition, "v4_delta_from_v2": {"changed_report_count": sum(item.previous_class != item.canonical_class for item in decisions), "migrations": dict(Counter(f"{item.previous_class}->{item.canonical_class}" for item in decisions if item.previous_class != item.canonical_class)), "statement": "No current report changed class during v4 raw/source/hash/relation revalidation; all 522 prior non-K reports remain in the source-first canonical layer."}, "scope": {"baseline_reference": "manual_adjudication_v3_baseline_ni", "current_only": True, "provider_calls": 0, "method_reruns": 0, "judge_reruns": 0}}
+    summary = {"schema": "paper1.current-reaudit.summary.v4", "protocol_version": PROTOCOL, "semantic_protocol_id": "issue-189-195-manual-evidence-v2", "side": "v60_current", "generated_at_utc": inventory["generated_at_utc"], "metrics": metric_bundle(decisions, context["ledger"], len(groups), i_cluster_count), "n_grouping": {"raw_n_reports_previous_v2": 231, "corrected_n_reports": sum(item.canonical_class == "N" for item in decisions), "substantive_n_groups": len(groups), "group_size_distribution": dict(Counter(str(len(item.member_report_ids)) for item in groups)), "root_cause_group_count": len(groups)}, "i_composition": i_composition, "v4_delta_from_v2": {"changed_report_count": sum(item.previous_class != item.canonical_class for item in decisions), "migrations": dict(Counter(f"{item.previous_class}->{item.canonical_class}" for item in decisions if item.previous_class != item.canonical_class)), "statement": "No current report changed class during v4 raw/source/hash/relation revalidation; all 522 prior non-K reports remain in the source-first canonical layer."}, "scope": {"baseline_reference": "manual_adjudication_v3_baseline_ni", "current_only": True, "provider_calls": 0, "method_reruns": 0, "judge_reruns": 0}}
     write_json(out / "summary_v4.json", summary)
     write_json(out / "recomputed_summary_v4.json", summary)
     write_tsv(out / "current_report_decisions_v4.tsv", [item.model_dump(mode="json") for item in decisions], ("side", "pair_id", "round", "original_report_id", "finding_index", "raw_method_path", "raw_json_pointer", "raw_sha256", "source_sha256", "issue", "where", "raw_reason", "raw_basis", "reason", "basis", "factual_status", "normative_violation_status", "defect_claim_status", "d_tier", "a0_subtype", "full_ledger_ids", "partial_ledger_ids", "no_match_ledger_ids", "w_level", "validity", "canonical_class", "previous_class", "reclassification_reason", "reviewer_ids", "reviewer_consensus", "disagreement_flag", "arbitration_id", "confidence", "reviewed_at", "evidence_digest"))
@@ -680,7 +643,6 @@ def refresh_summaries(archive: Path) -> None:
         ledger,
         len(groups),
         int(composition["diagnostic_cluster_count"]),
-        current_predicate_diagnostics(archive),
     )
     write_json(out / "summary_v4.json", summary)
     write_json(out / "recomputed_summary_v4.json", summary)
@@ -753,7 +715,6 @@ def validate(out: Path, archive: Path, decisions: list[CanonicalDecision], group
         ledger,
         len(groups),
         int(i_composition["diagnostic_cluster_count"]),
-        current_predicate_diagnostics(archive),
     )
     if summary != recomputed_summary or summary.get("metrics") != expected_metrics:
         raise ValueError("current v4 summary mirrors or predicate metric naming are stale")

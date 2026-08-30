@@ -18,11 +18,11 @@ metrics, not a second semantic label source.
 All metrics use `Metric`-style numerator/denominator/percentage objects. Hit
 and supported coverage use expected-round units (`145 x 3 = 435`) or unique
 expected IDs as stated beside each field. W-on-hits uses FULL expected-round
-hits as its denominator. Predicate metrics keep two units separate:
-`report_bound_binding` is the inherited per-report binding diagnostic, while
-`method_terminal_execution` counts terminal method receipts. The legacy
-`semantic_hit` contribution marker is named explicitly and is not equated with
-a terminal-false receipt. Baseline is `not_applicable`, not zero.
+hits as its denominator. Publication predicate metrics retain only the
+inherited `report_bound_binding` ratio and the explicitly named legacy
+`semantic_hit` marker ratio. Method-execution and witness-audit counts remain
+historical provenance and are not current headline fields. The marker is not
+equated with a terminal-false receipt. Baseline is `not_applicable`, not zero.
 
 The main precision is report-level `(K+N)/all reports`. The diagnostic
 composition records unique K expected IDs, substantive N groups, and invalid I

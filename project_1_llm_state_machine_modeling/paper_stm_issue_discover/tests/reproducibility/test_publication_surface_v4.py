@@ -77,3 +77,60 @@ def test_inventory_treats_current_protocol_and_absolute_reviews_correctly() -> N
         assert row["historical_or_archive"] is True
         assert row["publication_surface"] is False
         assert row["recommended_action"] == "archive provenance"
+
+
+def test_tracked_document_inventory_has_no_broken_relative_links() -> None:
+    """Code examples are ignored and every real tracked Markdown target resolves."""
+
+    inventory = _load(ARCHIVE / "reviews/publication_docs_inventory_v4.json")
+    broken = {
+        str(row["path"]): row["broken_relative_links"]
+        for row in inventory["rows"]
+        if row["broken_relative_links"]
+    }
+    assert broken == {}
+
+
+def test_only_current_predicate_and_n_counts_appear_in_the_headline_report() -> None:
+    """Historical v2 and witness-audit counts stay out of the sole paper headline."""
+
+    report = (ARCHIVE / "report/v60_current_vs_x1v2_baseline_v4_cn.md").read_text(
+        encoding="utf-8"
+    )
+    assert "| N reports | 231 | 105 |" in report
+    assert "132 / 105" not in report
+    assert "12/15 个 planned-scope" not in report
+    assert "1237 条 terminal receipt" not in report
+    assert "| **合计** |  | **118**" not in report
+    assert "825/1271 = 64.91%" in report
+    assert "303/825 = 36.73%" in report
+
+
+def test_publication_summaries_exclude_historical_witness_audit_fields() -> None:
+    """Current and fair summaries expose only the two report-bound predicate ratios."""
+
+    current = _load(
+        ARCHIVE / "derived/manual_adjudication_v4_current_reaudit/summary_v4.json"
+    )["metrics"]["predicate_usage"]
+    fair = _load(ARCHIVE / "derived/fair_comparison_v4/combined_summary_v4.json")
+    fair_current = fair["sides"]["v60_current"]["predicate"]
+    expected_fields = {
+        "status",
+        "report_bound_binding",
+        "legacy_semantic_hit_marker_among_report_bound_bindings",
+        "naming_boundary",
+    }
+    assert set(current) == expected_fields
+    assert set(fair_current) == expected_fields
+    assert fair["sides"]["x1v2_baseline"]["predicate"]["status"] == "not_applicable"
+
+    for path in (
+        ARCHIVE / "derived/manual_adjudication_v4_current_reaudit/summary_v4.json",
+        ARCHIVE / "derived/manual_adjudication_v4_current_reaudit/recomputed_summary_v4.json",
+        ARCHIVE / "derived/fair_comparison_v4/combined_summary_v4.json",
+        ARCHIVE / "derived/fair_comparison_v4/recomputed_summary_v4.json",
+    ):
+        text = path.read_text(encoding="utf-8")
+        assert "method_terminal_execution" not in text
+        assert "registered_report_bound_predicate_ids" not in text
+        assert "report_bound_completed_receipts" not in text

@@ -56,8 +56,8 @@ receipt；baseline 没有同构 predicate receipt，predicate usage 显式为 `n
 只作附录诊断，不能替代 report-based precision。
 
 冻结 raw 中保留的 provider/model/prompt provenance 未被改写；这些历史元数据不进入
-canonical semantic label，也不作为任一侧能力证据。raw-first reviewer 使用去除这些字段的历史
-的 [reviewer projection](./derived/manual_adjudication_v2/reviewer_projection_audit.json)，
+canonical semantic label，也不作为任一侧能力证据。历史 raw-first review 使用已去除这些字段的
+[reviewer projection](./derived/manual_adjudication_v2/reviewer_projection_audit.json)，
 两侧保留稳定 arm/pair/round token 和 source hash。X1v2 缺少同构 method commit、v60 Judge
 仍有未定价 usage；这两项按 manifest 和报告披露为数据缺口，未用推算补齐。predicate planned
 scope 与逐报告 report-bound usage 在 predicate audit 中分开保存。台账不完整、

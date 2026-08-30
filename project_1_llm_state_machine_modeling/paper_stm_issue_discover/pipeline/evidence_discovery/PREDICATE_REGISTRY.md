@@ -1,6 +1,6 @@
 # 四族 19 谓词注册表
 
-**版本：** `four-family-19-core.v1`。机器真源为 [predicate_registry.json](predicate_registry.json)。19 个谓词均已完成学术资格审查，并且均有与冻结语义一致的 typed contract、compiled form 和 native backend。来源 ID、类型和边界可审计，但不构成运行时准入门。
+**版本：** `four-family-19-core.v1`。机器真源为 [predicate_registry.json](../../method/src/paper_stm_method/resources/predicate_registry.json)。19 个谓词均已完成学术资格审查，并且均有与冻结语义一致的 typed contract、compiled form 和 native backend。来源 ID、类型和边界可审计，但不构成运行时准入门。
 
 | ID | 语义 | 原生执行 |
 |---|---|---|

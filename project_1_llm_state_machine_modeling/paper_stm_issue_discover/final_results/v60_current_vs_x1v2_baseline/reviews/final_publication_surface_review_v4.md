@@ -65,9 +65,9 @@ The fresh Track A/B/C reruns preserved their initial FAIL findings instead of
 overwriting them. Pane5 resolved every finding at the publication/derived-index
 layer:
 
-- fixed report-bound predicate diagnostics remain `825/1271` and `303/825`;
-  method execution is separately `12/15` predicate IDs and `1237` terminal
-  receipts (`608 pass`, `629 violation`);
+- report-bound predicate diagnostics remain `825/1271` and `303/825`;
+  method-execution and witness-audit counts stay in historical provenance and
+  are not current publication-summary fields;
 - all 291 current I reports map exactly once to 189 same-pair diagnostic
   clusters, with `substantive_defect=false` and
   `grouped_precision_unit=false`;
@@ -88,3 +88,36 @@ boundary; all are disclosed in the report.
 
 Final execution boundary: `provider_calls=0`, `method_reruns=0`,
 `judge_reruns=0`; no 15x1 or 54x3 run occurred.
+
+## Final narrow review closure (2026-08-31)
+
+| Track | Final reviewer | Result | Final scope |
+| --- | --- | --- | --- |
+| A numeric/provenance | `codex-track-a-narrow-readonly-20260831` | PASS | Four publication summaries, mirrors, 2953 archive entries, 88 publication entries, current/fair manifests, stable 1217-row inventory and headline arithmetic |
+| B semantic/fairness | `codex:track-b-predicate-publication-narrow:a69ef442` | PASS | Predicate publication boundary, baseline N/A, protocol IDs, D/A-relation-K/N/I closure, N grouping, I non-grouping and manual-supervision scope |
+| C docs/navigation/academic | `codex:track-c-final-narrow-readonly` | PASS | Unique route, historical markings, publication/archive split, 898 tracked Markdown files, 6142 relative links, DOI/title metadata and Shuorenhua fidelity |
+
+The final current/fair publication summaries contain only `status`,
+`report_bound_binding`,
+`legacy_semantic_hit_marker_among_report_bound_bindings` and
+`naming_boundary` for current predicate reporting. Historical method/witness
+fields remain archive provenance. All three reviewers were read-only internal
+QA tracks; they are not presented as a human inter-rater study. Their detailed
+evidence and commands remain in the three track logs above.
+
+## Post-review machine gate
+
+The final provider-free run, after all review logs were written, produced:
+
+| Check | Result |
+| --- | --- |
+| current v4 validator | PASS: `1271` reports, `184295` dense relations, `231` N reports, `291` I reports, `121` N groups |
+| baseline v3 validator | PASS: `512` reports, `233` reviewed non-K, `279` frozen K, `98` N groups, `95` I clusters |
+| fair recomputation | PASS: `1783` combined reports, `145` expected IDs |
+| final-results archive validator | PASS |
+| publication/release/archive tests | `20 passed`; only existing Pydantic `schema` shadow warnings |
+| Markdown links | `0` invalid references in Paper1 |
+| summary mirrors | current, baseline and fair pairs are byte-identical |
+| protected evidence diff | empty for raw, reference and both sides' canonical decision/relation files relative to `4683524f203c6bd77f18a1a32aae8e9c53fdc399` |
+
+This gate made no provider call and did not run method, Judge, 15x1 or 54x3.
