@@ -31,18 +31,30 @@ pane5 人工监督确认、独立 subagent proposal、解盲和仲裁记录。�
 
 ## 当前主结果
 
-数值从 canonical JSON 离线重算，完整并列表格见[正式中文报告](./report/v60_current_vs_x1v2_baseline_cn.md)。该报告明确区分 current/v2 冻结层与 baseline/v3 非 K 重审层。
+完整的并列表格和论文口径见[正式中文报告](./report/v60_current_vs_x1v2_baseline_cn.md)。报告是当前发布面的唯一 headline 入口；current/v2 和 baseline/v3 的逐侧 canonical JSON 是可审计事实源，不能把旧的 v2 baseline summary 当成 v3 并列结果。
 下列仅列入口，不另建第二事实源：
+
+- current/v60 的逐条裁定：[v60 decisions](./derived/manual_adjudication_v2/v60_report_decisions.json) 与 [current summary](./derived/manual_adjudication_v2/summary.json)；
+- X1v2 baseline v3 的逐条非 K 重审：[baseline v3 decisions](./derived/manual_adjudication_v3_baseline_ni/baseline_report_decisions_v3.json) 与 [baseline v3 summary](./derived/manual_adjudication_v3_baseline_ni/recomputed_summary_v3.json)。`derived/manual_adjudication_v2/x1v2_report_decisions.json` 仅作为 v3 冻结 K 的历史 provenance，不是当前 baseline headline 的事实源。
 
 - v60/current：`D2/D1/D0/A0 = 721/259/120/171`；`K/N/I = 749/231/291`；ledger `K_hit/N_group/I_group = 119/121/189`。
 - X1v2 baseline v3：`D2/D1/D0/A0 = 342/75/85/10`；`K/N/I = 312/105/95`；ledger `K_hit/N_group/I_group = 106/98/95`。
-- v60/current 与 X1v2 baseline v3 的 report-based precision 分别为 `980/1271 = 77.10%` 与 `417/512 = 81.45%`；按各自有效单位公式的 ledger/group precision 分别为 `240/429 = 55.94%` 与 `204/299 = 68.23%`。
+- v60/current 与 X1v2 baseline v3 的 report-based precision 分别为 `980/1271 = 77.10%` 与 `417/512 = 81.45%`；按各自有效单位公式得到的 ledger/group 诊断比值 `240/429 = 55.94%` 与 `204/299 = 68.23%` 只作诊断，不是论文主 precision。
 
-这些数字的单位不同：report precision 使用逐条 validity；ledger precision 使用台账
-`K_hit` 与同 side、同 pair 的跨 round N substantive groups；precision 的有效分子为
-`K_hit + N_group`，I diagnostic cluster 只进无效分母。PARTIAL 只进入 supported coverage，
-不进入主 hit 或 FP。L2 ledger precision/FP 为 `not_applicable`，因为 N/I group 没有自然的
-L2 expected 归属。
+这些数字的单位不同。论文主结果只使用逐条 report-based precision：
+`(K reports + N reports) / all reports`。ledger/group 数值使用台账 `K_hit` 与同 side、同
+pair、跨 round 的 N substantive groups；I 只能保留为 invalid diagnostic cluster，不能被
+当作实质缺陷 group，因此该数值不用于主 precision。PARTIAL 只进入 supported coverage，
+不进入主 hit 或 FP。L2 ledger precision/FP 为 `not_applicable`，因为 N/I 没有自然的 L2
+expected 归属。
+
+### 数据源优先级与版本边界
+
+报告中的 current headline 来自 `derived/manual_adjudication_v2`，baseline headline 来自
+`derived/manual_adjudication_v3_baseline_ni`。如果旧的独立派生文件仍出现
+`306/435`、`118/145` 或 `84/145` 等历史数字，它们只能作为历史复算记录，不能和当前报告
+混用。更新任何 headline 后，必须重新运行 provider-free recompute、校验 manifest hash，
+并使报告、README、SCHEMA 与逐侧 summary 一致。
 
 ## 协议与边界
 
@@ -53,7 +65,8 @@ current/v60 评测协议为 `issue-189-195-manual-evidence-v2`；baseline 非 K 
 `FALSE_POSITIVE` 与 current-only `NOT_A_DEFECT_CLAIM`。W0/W1/W2 是独立证据轴，W2
 必须有原始 executable object、typed input、精确 artifact hash、terminal true/false 和
 receipt；baseline 没有同构 predicate receipt，predicate usage 显式为 `not_applicable`，
-但 baseline W 仍按相同证据等级人工审计。
+但 baseline W 仍按相同证据等级人工审计。I 不建立实质性 defect group；任何 I cluster
+只作附录诊断，不能替代 report-based precision。
 
 冻结 raw 中保留的 provider/model/prompt provenance 未被改写；这些历史元数据不进入
 canonical semantic label，也不作为任一侧能力证据。raw-first reviewer 使用去除这些字段

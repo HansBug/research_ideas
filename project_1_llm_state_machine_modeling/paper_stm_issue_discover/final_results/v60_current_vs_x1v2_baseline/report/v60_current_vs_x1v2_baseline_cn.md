@@ -4,7 +4,7 @@
 
 ## 口径与范围
 
-协议版本为 `issue-189-195-baseline-ni-v3`，按 issue #189/#195 的事实、D/A、expected relation 和机械 K/N/I 闭合执行。顺序固定为：作者源事实 -> D2/D1/D0/A0 -> validity -> 全部 145 个 expected relation -> K/N/I。
+current/v60 使用 `issue-189-195-manual-evidence-v2`；baseline 非 K 重审使用 `issue-189-195-baseline-ni-v3`。两侧都按 issue #189/#195 的事实、D/A、expected relation 和机械 K/N/I 闭合执行。顺序固定为：作者源事实 -> D2/D1/D0/A0 -> validity -> 全部 145 个 expected relation -> K/N/I。
 
 v3 只重审 baseline 原非 K 的 233 条；279 条已有 K 从 v2 按字节内容/字段快照冻结复制。D0/A0 均为 I，A0 仅使用 `FALSE_POSITIVE`；W、predicate、Judge 输出和 ledger 缺失不能决定 validity。
 
@@ -29,8 +29,8 @@ delta 为 v60/current 减 X1v2 baseline；分号前是 numerator 差，分号后
 | partial_only_known_report | `110/1271 = 8.65%` | `56/512 = 10.94%` | `+54; -2.28 pp` |
 | partial_only_known_expected | `21/145 = 14.48%` | `13/145 = 8.97%` | `+8; +5.52 pp` |
 | ledger K_hit | `119/145 = 82.07%` | `106/145 = 73.10%` | `+13; +8.97 pp` |
-| ledger/group precision | `240/429 = 55.94%` | `204/299 = 68.23%` | `+36; -12.28 pp` |
-| ledger/group FP rate | `189/429 = 44.06%` | `95/299 = 31.77%` | `+94; +12.28 pp` |
+| ledger/group diagnostic ratio | `240/429 = 55.94%` | `204/299 = 68.23%` | `+36; -12.28 pp` |
+| ledger/group diagnostic invalid share | `189/429 = 44.06%` | `95/299 = 31.77%` | `+94; +12.28 pp` |
 | FULL-hit max W2 | `197/310 = 63.55%` | `0/227 = 0.00%` | `+197; +63.55 pp` |
 | FULL-hit max W1 | `113/310 = 36.45%` | `227/227 = 100.00%` | `-114; -63.55 pp` |
 | FULL-hit max W0 | `0/310 = 0.00%` | `0/227 = 0.00%` | `+0; +0.00 pp` |
@@ -224,21 +224,39 @@ v3 non-K 迁移计数来自 [summary_v3.json](../derived/manual_adjudication_v3_
 | `0056:r3:baseline_issue_4` | `EIS-0056-02` | `-` |
 | `0059:r1:baseline_issue_2` | `EIS-0059-01` | `INS-0059-03` |
 
-N report/group 视图：原始非 K N `132`，corrected N `105`，substantive N group `98`，root-cause group `98`；N 的 D2/D1 为 `50/55`，group size distribution 为 `{"1": 92, "2": 5, "3": 1}`。
-I 构成见 `a0_subtypes`：`{"FALSE_POSITIVE": 10}`；I 不被表述为 novel defect。
+N report/group 视图：原始非 K N `132`，corrected N `105`，substantive N group `98`，root-cause group `98`；N 的 D2/D1 为 `50/55`，group size distribution 为 `{"1": 92, "2": 5, "3": 1}`。current/v60 的 N 为 `231` 条报告，其中 D2/D1 为 `38/193`；当前 `121` 个 group 是 mechanical grouping count，不能直接写成 `121` 个已经完成同深度人工语义复核的独立缺陷。
+I 构成见 `a0_subtypes`：baseline 的 `{"FALSE_POSITIVE": 10}`；current 的 A0 subtype 当前记录为 `NOT_A_DEFECT_CLAIM=118`、`FALSE_POSITIVE=53`。抽样复核提示其中一部分来源于 projection/lowering/runtime delegation 归因，subtype 仍应作为诊断成分解释，不能把 I cluster 表述为 novel defect。
 
 | historical comparison | K | N | I |
 |---|---:|---:|---:|
 | v2 frozen scope | `279` | `132` | `101` |
 | v3 combined | `312` | `105` | `95` |
 
-未合并 I 的敏感性为 `204/299 = 68.23%`；主结果使用 `204/299`，因为 I 只作为诊断 cluster，不是真实缺陷实体。
+未合并 I 的敏感性为 `204/299 = 68.23%`；这是未合并 invalid 报告时的诊断性 ledger/group 比值，只用于说明聚类对分母的影响，不是论文主 precision。主 precision 始终使用 report-level `(K+N)/all reports`，因为 I 不是实质缺陷实体。
+
+## 论文解释口径
+
+本报告把 K、N、I 的统计单位明确分开：K 按 expected ledger ID 认领并在 expected 层去重；N
+才按同一 side、同一 pair、同一规范义务、source locus/root cause、property 和最小修复意图
+归并，允许跨 round；I 不做 substantive defect grouping，只保留 report-level invalid 统计，
+必要时另报 diagnostic cluster。该划分与软件测试中 known-fault/false-positive disposition
+和 distinct-bug evaluation unit 的区分一致，但完整的 same-pair/same-obligation 规则是本项目
+在文献启发下的 operationalization，不是任一单篇论文的原定义。
+
+台账是由博士生/研究人员依据作者 NL、PlantUML 和来源材料人工维护的
+`expert-annotated expected issue ledger`，属于 source-backed expected inventory，不宣称穷尽
+未知缺陷空间。论文不应把它称为 complete ground truth。
+
+文献依据与适用边界见 [academic citation review](../derived/manual_adjudication_v3_baseline_ni/reviews/academic_citation_review.md)。主要锚点包括 Porter et al. (IEEE TSE 1995, DOI `10.1109/32.391380`)、Klees et al. (CCS 2018, DOI `10.1145/3243734.3243804`)、NIST SATE IV (SP 500-297, DOI `10.6028/NIST.SP.500-297`)、Pearson et al. (ICSE 2017, DOI `10.1109/ICSE.2017.62`)、Ahmed et al. (MODELS 2025, DOI `10.1109/MODELS67397.2025.00014`) 和 Martinez et al. (EMSE, DOI `10.1007/s10664-016-9470-4`)。
 
 ## 审计与限制
 
 每条 v3 非 K 记录保留 raw/source refs、hash、145 relations、两份独立 proposal 和 pane5 confirmation；当前 review log 记录 `8` 个独立 reviewer、`233/233` 决策覆盖、`146` 条分歧和 `233` 条 pane5 仲裁。Track B proposal 是 blind proposal，不是最终人工裁定。旧 v2/Judge 只作冻结 scope、历史 provenance 或工具诊断，不倒灌 v3 标签。
 
-审计限制包括：台账不保证覆盖完整缺陷宇宙；人工归并是 operationalization；L2 对 N/I 无自然归属；baseline 没有 current-side predicate schema；观察性比较不推出因果。legacy/probe proposal 保留但被 v3 manifest 明确排除。
+审计限制包括：台账不保证覆盖完整缺陷宇宙；人工归并是 operationalization；current N 的
+mechanical groups 中仍有少量条目需要更深的 source-first 复核；current I 的 A0 subtype 可能
+混入表示/归因债务；L2 对 N/I 无自然归属；baseline 没有 current-side predicate schema；观察性
+比较不推出因果。legacy/probe proposal 保留但被 v3 manifest 明确排除。
 
 ## 离线复算
 

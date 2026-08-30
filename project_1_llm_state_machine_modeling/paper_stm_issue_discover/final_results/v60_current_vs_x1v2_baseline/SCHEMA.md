@@ -75,22 +75,38 @@ A0 只允许 `FALSE_POSITIVE` 与 current-only `NOT_A_DEFECT_CLAIM`。
 `hit@3` 是 145 个 expected 中至少一轮 FULL 的数量；`hit@all` 是三轮均 FULL 的数量。
 L2 对应分母是 `117` 和 `39`。
 
-`report-based precision = (VALID_KNOWN + VALID_NOVEL) / all final reports`，
-`report-based FP rate = INVALID / all final reports`。发布级 operational composition 使用：
+论文主指标固定为：
+
+```text
+report-based precision = (VALID_KNOWN + VALID_NOVEL) / all final reports
+report-based FP rate = INVALID / all final reports
+```
+
+它们使用逐条 report 作为分母，不使用 N/I group。发布级 operational composition 另行记录：
 
 ```text
 K_hit = unique expected issue with at least one FULL across three rounds
 N_group = same-side, same-pair, cross-round merged VALID_NOVEL substantive groups
-I_group = same-side, same-pair, cross-round merged INVALID diagnostic clusters
-ledger-based precision = (K_hit + N_group) / (K_hit + N_group + I_group)
-ledger-based FP rate = I_group / (K_hit + N_group + I_group)
+I_group = same-side, same-pair, cross-round merged INVALID diagnostic clusters (diagnostic only)
+ledger/group diagnostic ratio = (K_hit + N_group) / (K_hit + N_group + I_group)
+ledger/group diagnostic invalid share = I_group / (K_hit + N_group + I_group)
 ```
 
 N/I group identity 至少包含 `side + pair_id + canonical_group_key`，并由人工确认的
 property、author-source locus、repair obligation 和 substantive cause 支持；不跨 side/pair，
 不按文本相似度、状态名或 expected ID 自动合并。`partial_only_known_report` 和
-`partial_only_known_expected` 单独报告，不进入 K_hit 或 FP。L2 ledger precision/FP 是
-`not_applicable`，因为 N/I group 没有自然的 L2 expected 归属。
+`partial_only_known_expected` 单独报告，不进入 K_hit 或 FP。N group 是实质性问题的
+secondary analysis；I group 不是缺陷实体，只是诊断聚类，不能用于论文主 precision 或 FP
+结论。I 中的 D0、A0/`FALSE_POSITIVE`、A0/`NOT_A_DEFECT_CLAIM` 没有共同的
+normative obligation、source locus 或 repair intent，不能仅凭 subtype、文本相似或同一
+pair 合并。L2 ledger precision/FP 是 `not_applicable`，因为 N/I group 没有自然的 L2
+expected 归属。
+
+台账是研究人员/博士生基于作者 NL、PlantUML 和来源证据人工维护的
+`expert-annotated expected issue ledger`，是 source-backed expected inventory，不是
+穷尽所有缺陷的绝对 ground truth。K 按 expected ledger ID 去重；N 才按同一 side、同一
+pair、同一实质义务/source locus/root cause/property/最小修复意图归并，允许跨 round，
+不允许跨 pair；I 保留 report-level invalid 统计，cluster 仅用于敏感性分析。
 
 ## W 和 predicate
 

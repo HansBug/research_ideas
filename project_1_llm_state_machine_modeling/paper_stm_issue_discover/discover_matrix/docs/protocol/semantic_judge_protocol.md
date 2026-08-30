@@ -111,8 +111,28 @@ Ledger-Unmatched = 只有 PARTIAL 的 VALID_KNOWN + VALID_NOVEL + INVALID
 ```
 
 `Ledger-Unmatched` 仅是兼容旧 closed-ledger 报告的诊断项，禁止再命名为 Semantic FP。
-此外必须分别报告 raw-report Semantic Precision、root-cause-cluster precision 和
-redundancy rate；重复的 valid finding 进入 redundancy，不进入 FP。
+此外必须分别报告 raw-report Semantic Precision、N substantive root-cause grouping 的诊断
+统计和 redundancy rate；I 不建立 substantive grouped precision。重复的 valid finding 进入
+redundancy，不进入 FP。
+
+论文主 precision 固定使用 raw-report 单位：
+
+```text
+report-based precision = (VALID_KNOWN reports + VALID_NOVEL reports) / all final reports
+report-based FP rate = INVALID reports / all final reports
+```
+
+I 不适用 substantive grouped precision。`INVALID` 表示没有可接受的缺陷实体：D0 是事实
+成立但不存在被违反的存活义务，A0 是事实不成立或归因到错误制品；两类记录没有可稳定
+共享的 normative obligation、source locus、root cause 或 repair intent。I cluster 可以
+作为附录诊断或敏感性分析，但不得被写成独立缺陷，也不得与 K ledger ID 和 N root-cause
+group 混成论文主 precision 分母。N 的 group 归并是本项目在文献启发下的
+operationalization，不应伪称为任一单篇论文的原定义。
+
+台账应在论文中称为 `expert-annotated expected issue ledger` 或
+`manually curated source-backed issue inventory`。它用于 known-issue coverage 的参照，
+不宣称穷尽未知缺陷空间；K 以 ledger expected ID 去重，N 才按同一 side、同一 pair、同一
+实质义务/source locus/root cause/property/最小修复意图归并，允许跨 round，不跨 pair。
 
 ## 条款追踪矩阵
 
