@@ -23,6 +23,7 @@ PAPER_ROOT = Path("project_1_llm_state_machine_modeling/paper_stm_issue_discover
 ARCHIVE = PAPER_ROOT / "final_results" / "v60_current_vs_x1v2_baseline"
 BASELINE = PAPER_ROOT / "release" / "baseline_manifest.json"
 DOCUMENTATION_CHANGES = PAPER_ROOT / "release" / "documentation_audit" / "final_archive_documentation_changes.json"
+TEST_UNIVERSE_CHANGES = PAPER_ROOT / "release" / "documentation_audit" / "test_universe_change.json"
 
 
 class ValidationResult(BaseModel):
@@ -103,6 +104,42 @@ class FinalArchiveDocumentationChanges(BaseModel):
     )
     reason: str = Field(description="Why the documentation update is compatible with frozen experiment evidence.")
     basis: str = Field(description="Baseline manifest, authoritative finalizer, and byte-level comparison basis.")
+
+
+class ApprovedTestNodeAddition(BaseModel):
+    """One explicitly reviewed pytest node added after the release baseline."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    node_id: str = Field(description="Exact repository-relative pytest node ID approved as an additive test.")
+    source_path: str = Field(description="Repository-relative source file defining the approved node.")
+    source_sha256: str = Field(description="SHA-256 of the complete source file containing the approved node.")
+    introduced_by_commit: str = Field(description="Git commit that added the source file and approved nodes.")
+    reason: str = Field(description="Why the node is a necessary provider-free release invariant test.")
+    basis: str = Field(description="Source, commit, and collection evidence for the addition.")
+
+
+class TestUniverseChange(BaseModel):
+    """Hash-pinned exception for a known additive test change after baseline capture."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
+
+    schema_id: Literal["paper1.test-universe-change.v1"] = Field(
+        alias="schema", description="Versioned schema identifier for this test-universe exception."
+    )
+    baseline_manifest: str = Field(description="Release baseline manifest supplying the original node universe.")
+    baseline_node_count: int = Field(ge=1, description="Number of nodes in the immutable release baseline.")
+    baseline_node_ids_sha256: str = Field(description="Digest of the baseline node IDs in stored order.")
+    approved_added_nodes: tuple[ApprovedTestNodeAddition, ...] = Field(
+        min_length=1,
+        description="Complete set of explicitly approved additive nodes; no other node change is permitted.",
+    )
+    current_node_count: int = Field(ge=1, description="Expected current node count after the approved additions.")
+    current_node_ids_sha256: str = Field(description="Digest of the expected current sorted node IDs.")
+    provider_call_count: Literal[0] = Field(description="Provider calls used to establish this exception; structurally zero.")
+    billable_call_count: Literal[0] = Field(description="Billable calls used to establish this exception; structurally zero.")
+    reason: str = Field(description="Why the additive tests do not alter production or experiment evidence.")
+    basis: str = Field(description="Baseline manifest, source hash, Git history, and provider-free collection evidence.")
 
 
 def _hash(path: Path) -> str:
@@ -198,10 +235,45 @@ def _documentation_changes(repository: Path, baseline: dict[str, object]) -> dic
         str(ARCHIVE / "archive_manifest.json"),
         str(ARCHIVE / "publication_manifest.json"),
         str(ARCHIVE / "report/v60_current_vs_x1v2_baseline_cn.md"),
+        str(ARCHIVE / "reviews/01_numeric_recomputation_review.md"),
     }
     if set(changes) != expected_paths:
         raise RuntimeError("documentation change record must be limited to current-facing docs and root manifests")
     return changes
+
+
+def _test_universe_change(repository: Path, baseline: dict[str, object]) -> TestUniverseChange:
+    """Load and validate the exact, hash-pinned additive test exception."""
+
+    record = TestUniverseChange.model_validate_json(
+        (repository / TEST_UNIVERSE_CHANGES).read_text(encoding="utf-8")
+    )
+    if record.baseline_manifest != BASELINE.as_posix():
+        raise RuntimeError("test-universe exception targets the wrong baseline manifest")
+    expected_nodes = tuple(baseline["test_baseline"]["node_ids"])
+    expected_hash = baseline["test_baseline"]["node_ids_sha256"]
+    if record.baseline_node_count != len(expected_nodes) or record.baseline_node_ids_sha256 != expected_hash:
+        raise RuntimeError("test-universe exception does not match the immutable baseline")
+    node_ids = tuple(item.node_id for item in record.approved_added_nodes)
+    if len(set(node_ids)) != len(node_ids) or any(node_id in expected_nodes for node_id in node_ids):
+        raise RuntimeError("test-universe exception contains duplicate or historical nodes")
+    source_paths = {item.source_path for item in record.approved_added_nodes}
+    commits = {item.introduced_by_commit for item in record.approved_added_nodes}
+    source_hashes = {item.source_sha256 for item in record.approved_added_nodes}
+    if source_paths != {
+        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/evidence_discovery/tests/test_manual_adjudication_v2.py"
+    } or commits != {"5f70a12b5797da19d1b5c963fcfd00683b477840"} or len(source_hashes) != 1:
+        raise RuntimeError("test-universe exception has an unexpected source or introducing commit")
+    source_path = repository / next(iter(source_paths))
+    if _hash(source_path) != next(iter(source_hashes)):
+        raise RuntimeError("approved additive test source hash changed")
+    if subprocess.run(
+        ("git", "merge-base", "--is-ancestor", next(iter(commits)), "HEAD"),
+        cwd=repository,
+        check=False,
+    ).returncode != 0:
+        raise RuntimeError("approved additive test commit is not an ancestor of HEAD")
+    return record
 
 
 def validate(repository: Path, python: Path) -> ValidationResult:
@@ -209,6 +281,7 @@ def validate(repository: Path, python: Path) -> ValidationResult:
 
     baseline = json.loads((repository / BASELINE).read_text(encoding="utf-8"))
     changes = _documentation_changes(repository, baseline)
+    test_universe_change = _test_universe_change(repository, baseline)
     missing_or_changed = [
         item["path"]
         for item in baseline["frozen_archive_files"]
@@ -222,8 +295,20 @@ def validate(repository: Path, python: Path) -> ValidationResult:
         raise RuntimeError("frozen final-results hash mismatch: " + ", ".join(missing_or_changed[:5]))
     expected_nodes = tuple(baseline["test_baseline"]["node_ids"])
     current_nodes = _collect_nodes(repository, python)
-    if current_nodes != expected_nodes:
-        raise RuntimeError("historical pytest node universe changed")
+    approved_nodes = tuple(sorted(item.node_id for item in test_universe_change.approved_added_nodes))
+    expected_current_nodes = tuple(sorted((*expected_nodes, *approved_nodes)))
+    if current_nodes != expected_current_nodes:
+        added = sorted(set(current_nodes) - set(expected_nodes))
+        missing = sorted(set(expected_current_nodes) - set(current_nodes))
+        raise RuntimeError(
+            "pytest node universe differs from baseline plus approved additions: "
+            f"added={added[:5]}, missing={missing[:5]}"
+        )
+    if len(current_nodes) != test_universe_change.current_node_count:
+        raise RuntimeError("test-universe exception has the wrong current node count")
+    current_payload = "\n".join(current_nodes).encode("utf-8")
+    if "sha256:" + hashlib.sha256(current_payload).hexdigest() != test_universe_change.current_node_ids_sha256:
+        raise RuntimeError("test-universe exception has the wrong current node hash")
     resources = {
         "registry": _hash(repository / PAPER_ROOT / "method/src/paper_stm_method/resources/predicate_registry.json"),
         "source_catalog": _hash(repository / PAPER_ROOT / "method/src/paper_stm_method/resources/current_source_catalog.json"),

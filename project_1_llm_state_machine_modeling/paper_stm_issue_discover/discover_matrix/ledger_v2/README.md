@@ -12,6 +12,6 @@
 
 `D` 表示问题主张在 ledger 形成时的裁定，`L` 表示陈述该问题所需的分析层级。它们不等同于 method 的 W 或 D，也不等同于 Judge 的 relation/validity。方法不读取此 ledger；Semantic Judge 的 relation 阶段只接收评测层显式投影的 expected material，evaluation 再以其输出计算 hit 和 precision。
 
-当前实验结果、W-on-hits、K/N/I、predicate usage 与成本资格只以 [v60/current 与 X1v2 baseline 最终归档](../../final_results/v60_current_vs_x1v2_baseline/README.md) 为准。特别是，X1v2 在当前 issue #195 rejudge 中的 overall FULL 为 211/435 = 48.51%，不是本目录历史表中的百分比。
+当前实验结果、W-on-hits、K/N/I、predicate usage 与成本资格只以 [v60/current 与 X1v2 baseline 最终归档](../../final_results/v60_current_vs_x1v2_baseline/README.md) 的 v4 公平对照层为准。特别是，X1v2 baseline v3 的 overall FULL 为 227/435 = 52.18%，不是本目录保留的历史数字。
 
 历史 v46、v27-stream、v26 及旧 X1v2 Judge 网格的可比性说明见 [实验历史索引](../../archive/experiment_history/README.md)。

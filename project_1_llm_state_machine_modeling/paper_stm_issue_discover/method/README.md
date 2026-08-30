@@ -38,4 +38,4 @@ python -c "from paper_stm_method.inputs import parse_fcstm; print(parse_fcstm('s
 
 ## 实验引用与边界
 
-本发布结构不是 v60 的实际实验实现。v60 method 运行于 `66b5d71aecd73f6eeddac082037f7c34e04da057`，run ID 为 `915d56e45a634c27aa03866f03818c6d`；Judge 使用 `05cf0da6f7d9fcf1de26c349b586fc71c268f1c5`。实际输入、registry、prompt/schema 和 run contract hash 见 [最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md)。方法 source 的正式公开再分发仍需要权利人指定 LICENSE；[NOTICE.md](./NOTICE.md) 不构成此授权。
+本发布结构是可复用的 method package，不绑定任何单一实验运行或评测对照。具体运行的 input、resource、prompt/schema、run contract 和 source provenance 由调用方的 run manifest 与相应归档保存；这些外部评测材料不属于 method package 的输入读取路径。方法 source 的正式公开再分发仍需要权利人指定 LICENSE；[NOTICE.md](./NOTICE.md) 不构成此授权。

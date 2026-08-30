@@ -16,7 +16,7 @@ W 描述方法发现的证据强度，D 描述方法内对问题主张的裁定�
 
 ## 当前证据
 
-当前实验证据来自 54 个 pair、3 个 round、145 条 expected issue 和 435 条 round-level expected row。v60/current 的 overall FULL 为 306/435 = 70.34%，X1v2 baseline 为 211/435 = 48.51%；L2 FULL 分别为 104/117 = 88.89% 与 46/117 = 39.32%。完整指标、W 分布、成本资格、raw/derived 制品与复算命令以 [最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md) 和 [中文正式报告](../final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_cn.md) 为准。
+当前实验证据来自 54 个 pair、3 个 round、145 条 expected issue 和 435 条 round-level expected row。按 v4 公平对照层，v60/current 的 overall FULL 为 310/435 = 71.26%，X1v2 baseline v3 为 227/435 = 52.18%；L2 FULL 分别为 105/117 = 89.74% 与 50/117 = 42.74%。完整指标、D/A、K/N/I、W-on-hits、成本资格、raw/derived 制品与复算命令以 [最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md) 和 [v4 中文正式报告](../final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md) 为准。
 
 当前比较只支持冻结 ledger、输入闭包、issue #195 Judge、`gpt-5.6-luna` 和已声明 fragment 下的结论。它不能证明跨模型、跨台账或跨状态机语义片段的普遍效果，也不能把 X1v2 的 legacy Judge 数字与 current baseline 混用。
 

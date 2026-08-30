@@ -1,4 +1,8 @@
-# v60/current 与 X1v2 baseline 的最终人工监督评测
+# v60/current 与 X1v2 baseline 的历史 v3 评测记录
+
+> **Superseded.** 当前论文主结果已迁移到
+> [v4 公平对照报告](./v60_current_vs_x1v2_baseline_v4_cn.md)。本文件保留作历史复算
+> 记录，不是当前 headline，不用于当前主结论或 precision/hit 表。
 
 > 主结果使用 v60/current 的既有最终人工监督裁定与 X1v2 baseline v3 对全部非 K 报告的逐条人工重审。v2 是历史输入；v3 不覆盖或修改 frozen K、raw、current、method 或 Judge 制品。
 

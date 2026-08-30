@@ -65,3 +65,17 @@ shadow warnings。工作树无 tracked 改动，且本次复核没有调用 prov
 本节记录后续范围裁定，不改变上文当时的审查结论。method-source 的权利人 LICENSE 仍是正式公开再分发和法律声明的前置条件，但不是内部技术验收的前置条件。
 
 在该裁定下，internal RC 的发布包、clean-install、固定 15-pair x 1 method + Judge 回归及其对照审计均已完成，材料见 [release_validation/](../../release_validation/README.md)。这不表示 method source 已获得对外再分发许可；公开发布前仍需权利人明确提交 LICENSE。
+
+## 2026-08-30 v4 复核追加
+
+后续 current re-audit v4 增加了 10 个已提交的 v2 manual-adjudication contract tests。原始
+release baseline `bebcd749ef7d283675971b8ad3c185596f2c878c` 的 465 个 node 保持不变；
+`release/documentation_audit/test_universe_change.json` 逐项记录了新增 node、源码 SHA-256
+和引入提交 `5f70a12b5797da19d1b5c963fcfd00683b477840`。因此当前精确集合为
+`465 + 10 = 475`，不是对历史基线的静默重写；validator 只接受这 10 个 additions，任何
+其他 node 漂移仍失败。
+
+在该例外记录下，release structure validator 通过（2671/2671 冻结归档文件、475 当前
+pytest node、资源 hash、AST import boundary），精确 release test universe 的 provider-free
+测试为 `475 passed`。
+本追加没有调用 provider，也没有运行 method/Judge 或修改 raw、reference 和冻结结果。

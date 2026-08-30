@@ -13,7 +13,7 @@ Paper1 当前冻结实验是 [v60/current 与 X1v2 baseline](./final_results/v60
 | ledger | 当前唯一台账为 145 条 `ledger_v2` | [ledger_v2](./discover_matrix/ledger_v2/README.md) |
 | 结构复现 | 内部 RC、clean-install、固定 15-pair 技术回归和审查材料已另行保存 | [release_validation/](./release_validation/README.md) |
 
-当前 headline 是 current 的 overall FULL 306/435 = 70.34% 与 baseline 的 211/435 = 48.51%。其余指标、分母、成本资格和 W 定义不得从本页转述，应回到最终归档。X1v2 的 legacy 59.8%/70.3%/47.9% 来自不同 Judge 与网格，只作为历史材料保留。
+当前 headline 以 [v4 公平对照报告](./final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md) 为准：current 的 overall FULL 为 310/435 = 71.26%，X1v2 baseline v3 为 227/435 = 52.18%；report precision 分别为 980/1271 = 77.10% 和 417/512 = 81.45%。其余指标、分母、成本资格和 W 定义回到最终归档的 v4 comparison layer。历史 Judge 与旧网格数字只保留在 archive/history，不进入当前主结果。
 
 ## 不属于当前结论
 

@@ -1,14 +1,14 @@
 # v60/current 与 X1v2 baseline 最终人工评测归档
 
-本目录是 Paper1 当前 v60/current 与 X1v2 baseline 评测的稳定入口。current/v60 的主结果
-来自 `derived/manual_adjudication_v2/`，X1v2 baseline 的本次非 K 重审来自
-`derived/manual_adjudication_v3_baseline_ni/`；两层共同组成当前并列发布结果。旧 Judge v3.2、
-旧 witness audit 和 superseded reviews 只作为历史资料，不混入当前人工真值。
+本目录是 Paper1 当前 v60/current 与 X1v2 baseline v3 评测的稳定入口。当前 headline 来自
+`derived/fair_comparison_v4/`：current 使用 `derived/manual_adjudication_v4_current_reaudit/`，
+baseline 使用冻结的 `derived/manual_adjudication_v3_baseline_ni/`。旧 Judge v3.2、旧 witness
+audit 和 superseded reviews 只作为历史资料，不混入当前人工真值。
 
 版本边界：冻结 raw 中的 `v3.2` 是历史 Judge 输入/输出身份；`v3.3` 是后续
 evaluator/protocol implementation 版本。两者都不是本次论文人工真值，不能被重命名为
-人工标签；current/v60 真值只来自 `manual_adjudication_v2` 的逐条 pane5 监督确认和确定性
-派生；baseline v3 只对原非 K 逐条读 raw/source/ledger 后确认，原 K 是 v2 冻结副本。
+人工标签；current/v60 v4 是对既有 pane5 source-first 确认的逐条 raw/source/hash/relation
+再验证；baseline v3 只对原非 K 逐条读 raw/source/ledger 后确认，原 K 是 v2 冻结副本。
 
 ## 数据闭合
 
@@ -22,19 +22,19 @@ evaluator/protocol implementation 版本。两者都不是本次论文人工真�
 每条 report/finding 恰有一条 FINAL decision；每条 decision 包含 raw path/pointer/hash、
 作者 NL/PlantUML source refs、专属 reason/basis、W 证据、逐 expected relation，以及
 pane5 人工监督确认、独立 subagent proposal、解盲和仲裁记录。结构化入口是
-[manual adjudication v2](./derived/manual_adjudication_v2/README.md)、[v60 decisions](./derived/manual_adjudication_v2/v60_report_decisions.json)、
-[X1v2 decisions](./derived/manual_adjudication_v2/x1v2_report_decisions.json)、[summary](./derived/manual_adjudication_v2/summary.json)
-和 [review log](./derived/manual_adjudication_v2/review_log.json)。baseline v3 的入口见
+[fair comparison v4](./derived/fair_comparison_v4/README.md)、[current v4](./derived/manual_adjudication_v4_current_reaudit/README.md)、
+[current v4 decisions](./derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.json)、
+[combined summary](./derived/fair_comparison_v4/combined_summary_v4.json)。baseline v3 的入口见
 [v3 README](./derived/manual_adjudication_v3_baseline_ni/README.md)、[v3 decisions](./derived/manual_adjudication_v3_baseline_ni/baseline_report_decisions_v3.json)、
 [v3 summary](./derived/manual_adjudication_v3_baseline_ni/recomputed_summary_v3.json) 和
 [v3 reviews](./derived/manual_adjudication_v3_baseline_ni/reviews/)。
 
 ## 当前主结果
 
-完整的并列表格和论文口径见[正式中文报告](./report/v60_current_vs_x1v2_baseline_cn.md)。报告是当前发布面的唯一 headline 入口；current/v2 和 baseline/v3 的逐侧 canonical JSON 是可审计事实源，不能把旧的 v2 baseline summary 当成 v3 并列结果。
+完整的并列表格和论文口径见[正式中文报告](./report/v60_current_vs_x1v2_baseline_v4_cn.md)。报告是当前发布面的 headline 入口；current v4 和 baseline v3 的逐侧 canonical JSON 是可审计事实源，不能把旧的 v2 summary 当成当前并列结果。
 下列仅列入口，不另建第二事实源：
 
-- current/v60 的逐条裁定：[v60 decisions](./derived/manual_adjudication_v2/v60_report_decisions.json) 与 [current summary](./derived/manual_adjudication_v2/summary.json)；
+- current/v60 的逐条裁定：[v4 decisions](./derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.json) 与 [v4 summary](./derived/manual_adjudication_v4_current_reaudit/summary_v4.json)；v2 只作为 v4 review provenance。
 - X1v2 baseline v3 的逐条非 K 重审：[baseline v3 decisions](./derived/manual_adjudication_v3_baseline_ni/baseline_report_decisions_v3.json) 与 [baseline v3 summary](./derived/manual_adjudication_v3_baseline_ni/recomputed_summary_v3.json)。`derived/manual_adjudication_v2/x1v2_report_decisions.json` 仅作为 v3 冻结 K 的历史 provenance，不是当前 baseline headline 的事实源。
 
 - v60/current：`D2/D1/D0/A0 = 721/259/120/171`；`K/N/I = 749/231/291`；ledger `K_hit/N_group/I_group = 119/121/189`。
@@ -50,11 +50,10 @@ expected 归属。
 
 ### 数据源优先级与版本边界
 
-报告中的 current headline 来自 `derived/manual_adjudication_v2`，baseline headline 来自
-`derived/manual_adjudication_v3_baseline_ni`。如果旧的独立派生文件仍出现
-`306/435`、`118/145` 或 `84/145` 等历史数字，它们只能作为历史复算记录，不能和当前报告
-混用。更新任何 headline 后，必须重新运行 provider-free recompute、校验 manifest hash，
-并使报告、README、SCHEMA 与逐侧 summary 一致。
+报告中的 current headline 来自 `derived/manual_adjudication_v4_current_reaudit`，baseline
+headline 来自 `derived/manual_adjudication_v3_baseline_ni`，统一指标来自
+`derived/fair_comparison_v4`。旧数字不进入本报告；更新 headline 后必须重新运行
+provider-free recompute、校验 manifest hash，并使报告、README、schema 与逐侧 summary 一致。
 
 ## 协议与边界
 

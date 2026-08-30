@@ -1,0 +1,38 @@
+# v60/current versus X1v2 baseline v3 fair comparison
+
+This is the paper-facing comparison layer. The only headline sides are
+`v60_current` from current re-audit v4 and `x1v2_baseline` from the frozen
+baseline v3 layer. Historical v2/v46/v27/Judge outputs remain in their source
+directories and are not a headline result.
+
+## Canonical outputs
+
+| File | Purpose |
+| --- | --- |
+| `combined_report_index_v4.json` / `.tsv` | 1271 current + 512 baseline report index with raw pointers, hashes, class, D/A, relation projections, and group IDs. |
+| `combined_summary_v4.json` / `recomputed_summary_v4.json` | Same provider-free metric result; numerator and denominator are explicit in every ratio. |
+| `migration_index_v4.json` | Current v4 zero-change index plus all 233 baseline-v3 non-K migrations. |
+| `provenance_v4.json` | Input hashes and superseded/source-layer boundaries. |
+| `reviews/` | Independent numeric, artifact, fairness, academic, and final-gate review records. |
+| `fair_comparison_manifest_v4.json` | Output and review hashes plus execution boundary. |
+
+The full narrative is [the v4 paper report](../../report/v60_current_vs_x1v2_baseline_v4_cn.md).
+
+## Publication rule
+
+Report precision is the primary precision: `(K reports + N reports) / all
+reports`. FULL hit is deduplicated at expected-ID and round level; PARTIAL is
+supported coverage only. K expected IDs and N substantive groups are separate
+issue views. I is invalid and has no substantive-group metric; I clusters are
+diagnostic only. Current has a side-specific `NOT_A_DEFECT_CLAIM` subtype;
+baseline does not manufacture that subtype.
+
+Run the comparison from the repository root:
+
+```bash
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/evaluation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation \
+python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/recompute_fair_comparison_v4.py \
+  --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline
+```
+
+This command is provider-free and performs no method or Judge run.

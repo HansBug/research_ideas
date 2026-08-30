@@ -1,5 +1,9 @@
 # 数字与实验事实独立审查
 
+> **Historical review record.** 本审查记录针对旧 v2 headline；当前论文口径已由
+> [v4 公平对照报告](../../final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)
+> supersede。下文旧数字保留用于审计时间线，不得作为当前主结果。
+
 审查范围：`derived/recomputed_summary.json`、两臂 Judge composite、v60 method manifest、X1v2 W audit、正式报告、archive/publication manifest，以及 current README、STATUS、story、evaluation、ledger 文档。
 
 ## 复核方法

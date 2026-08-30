@@ -1,14 +1,30 @@
 # Final Results Schema
 
-current/v60 的既有结果来自 `derived/manual_adjudication_v2/`；X1v2 baseline 非 K 的本次
-发布结果来自 `derived/manual_adjudication_v3_baseline_ni/`。两层共同支撑当前并列报告；旧
+current/v60 的当前 headline 来自 `derived/manual_adjudication_v4_current_reaudit/`；X1v2
+baseline 非 K 的当前发布结果来自 `derived/manual_adjudication_v3_baseline_ni/`。两层共同支撑当前并列报告；旧
 Judge v3.2、旧 witness audit、旧 reviews 是历史诊断，不是 v3 人工真值。冻结 raw、reference
 ledger、method/Judge 输入和 predicate registry 不由本次重评修改。
 
 版本边界：`v3.2` 是冻结 raw 中历史 Judge 的输入/输出身份，不能被重命名为人工标签；
 `v3.3` 是后续 evaluator/protocol implementation 版本，也不是论文人工真值。论文真值
-current/v60 只来自本目录 v2 的逐条 pane5 人工监督确认和确定性派生；baseline v3 只写入
-非 K 重审层，原 K 不被再次语义修改。
+current/v60 来自本目录 v4 对既有 pane5 source-first 确认的逐条 raw/source/hash/relation
+再验证和确定性派生；v2 仅是该审计链的 provenance。baseline v3 只写入非 K 重审层，原 K
+不被再次语义修改。
+
+## v4 current re-audit layer
+
+`derived/manual_adjudication_v4_current_reaudit/` 保存 current 全部 1271 条报告的
+Pydantic-validated canonical decision、145 条 expected 的 dense relation、N substantive
+groups、I diagnostic composition、review/arbitration log、summary 和 manifest。v4 不改变
+v2 的语义裁定；它重新从 raw/source/hash 闭合既有 pane5 source-first 证据，并将 v4 结果作为
+公平比较 headline。current v2 目录仍完整保留，只作为历史输入与 provenance。
+
+v4 的每条 decision 还必须满足：D2/D1 的 source fact 与 normative duty 均为
+`ESTABLISHED`；D0 的 source fact 为 `ESTABLISHED`、义务为 `NOT_ESTABLISHED`；A0 的
+source fact 为 `REFUTED`、义务为 `NOT_ESTABLISHED`。D0/A0 均为 I，且 145 条正式 relation
+全部为 `NO_MATCH`。这组字段闭合由
+[`build_current_reaudit_v4.py`](../../scripts/evaluation/build_current_reaudit_v4.py) 的
+Pydantic model validator 和 fair-comparison validator 同时检查。
 
 ## v3 baseline non-K layer
 
@@ -30,6 +46,8 @@ prompt、raw 或既有 v2 目录。
 `1271` 条 current report 和 `512` 条 baseline finding，并保存每条的 side、pair、round、
 report index、raw repository-relative path、JSON Pointer 和 SHA-256。`pane5_evidence_reads.json`
 再逐条闭合 raw target、作者 NL、PlantUML、145 条 ledger digest 和 source hash。
+current v4 的输入闭包另见 `derived/manual_adjudication_v4_current_reaudit/inventory_v4.json`；
+公平比较总索引见 `derived/fair_comparison_v4/combined_report_index_v4.json`。
 
 ## ReportDecision
 
@@ -70,7 +88,7 @@ A0 只允许 `FALSE_POSITIVE` 与 current-only `NOT_A_DEFECT_CLAIM`。
 
 ## Relation、hit 和 precision
 
-`relation_decisions.json` 必须覆盖 `(1271 + 512) * 145 = 258535` 行，每个 report/expected
+两侧 relation projection 合计必须覆盖 `(1271 + 512) * 145 = 258535` 行，每个 report/expected
 恰好一次。`hit@1` 是 435 个 expected-round 单元中有 `VALID_KNOWN + FULL_MATCH` 的单元数；
 `hit@3` 是 145 个 expected 中至少一轮 FULL 的数量；`hit@all` 是三轮均 FULL 的数量。
 L2 对应分母是 `117` 和 `39`。
@@ -142,6 +160,17 @@ artifacts；顶层 `archive_manifest.json` 与 `publication_manifest.json` 绑�
 二次回读和 fidelity diff；它是文风与文档保真审计，不是语义标签来源。
 
 ## 可复现与限制
+
+当前 v4 和公平比较的 provider-free 验证入口：
+
+```bash
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/evaluation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation \
+python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/build_current_reaudit_v4.py \
+  --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline --validate-only
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/evaluation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation \
+python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/recompute_fair_comparison_v4.py \
+  --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline --validate-only
+```
 
 ```bash
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/evaluation/src \

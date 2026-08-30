@@ -15,10 +15,10 @@ venv/bin/python -m paper_stm_evaluation.final_results_archive validate \
 
 | 严重度 | Finding | Evidence | 处理 |
 | --- | --- | --- | --- |
-| High | 最终归档 README 修改后未重建 root manifests，导致 authoritative validator 失败。 | validator 报 README manifest mismatch。 | pending: 运行受控 `finalize`，验证 raw/derived/reference 未变。 |
-| Medium | `story/blueprint_proposal.md` 指向 compatibility `pipeline/evidence_discovery`。 | current method 在 `method/`。 | pending: 改为 method resources 与 frozen protocol。 |
-| Medium | `reports/GUIDE.md` 没有说明只管历史 report，仍把 pipeline 写成通用 current facts。 | reports README 已降级为 historical。 | pending: 添加 historical scope 与 current final archive/evaluation 入口。 |
-| Medium | current-facing inventory 以目录聚合，不能逐项证明 historical exceptions。 | `story/blueprint_proposal.md` 是 historical redirect。 | pending: 展开 current files，并提供历史关键词逐文件清单。 |
+| High | 最终归档 README 修改后未重建 root manifests，导致 authoritative validator 失败。 | validator 报 README manifest mismatch。 | fixed: 运行受控 `finalize`，并验证 raw/derived/reference 未变。 |
+| Medium | `story/blueprint_proposal.md` 指向 compatibility `pipeline/evidence_discovery`。 | current method 在 `method/`。 | fixed; rereview passed: 改为 method resources 与 frozen protocol。 |
+| Medium | `reports/GUIDE.md` 没有说明只管历史 report，仍把 pipeline 写成通用 current facts。 | reports README 已降级为 historical。 | fixed; rereview passed: 添加 historical scope 与 current final archive/evaluation 入口。 |
+| Medium | current-facing inventory 以目录聚合，不能逐项证明 historical exceptions。 | `story/blueprint_proposal.md` 是 historical redirect。 | fixed; rereview passed: 展开 current files，并提供历史关键词逐文件清单。 |
 
 审查为只读；provider 调用与 billable 调用均为 0。结论：处理以上问题并回读后可作 targeted rereview。
 
