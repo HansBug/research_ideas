@@ -1,7 +1,7 @@
 # Track B: semantic and fairness review
 
-**Reviewer:** `01a05261-c0b9-79a1-9cbc-2a099331b0b0`  
-**Mode:** independent, read-only subagent review; no provider, method, or Judge run  
+**Reviewer:** `01a05261-c0b9-79a1-9cbc-2a099331b0b0`
+**Mode:** independent, read-only subagent review; no provider, method, or Judge run
 **Scope:** current v4, baseline v3, fair-comparison protocol/schema, report and canonical closure
 
 ## Final disposition

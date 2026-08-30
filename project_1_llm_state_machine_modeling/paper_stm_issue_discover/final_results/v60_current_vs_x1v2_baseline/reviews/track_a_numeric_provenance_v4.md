@@ -1,6 +1,6 @@
 # Track A: numeric and provenance review
 
-**Reviewer:** `01a05261-bfcb-7c60-b697-b146093725a3`  
+**Reviewer:** `01a05261-bfcb-7c60-b697-b146093725a3`
 **Mode:** independent, read-only subagent review; no provider, method, or Judge run
 
 ## Commands

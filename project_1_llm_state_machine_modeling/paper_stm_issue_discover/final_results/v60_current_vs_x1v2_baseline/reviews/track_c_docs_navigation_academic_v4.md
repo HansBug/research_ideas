@@ -1,7 +1,7 @@
 # Track C: documentation, navigation and academic review
 
-**Reviewer:** `01a05261-c0f1-7591-933a-8349b1275b52`  
-**Mode:** independent, read-only subagent review; no provider, method, or Judge run  
+**Reviewer:** `01a05261-c0f1-7591-933a-8349b1275b52`
+**Mode:** independent, read-only subagent review; no provider, method, or Judge run
 **Scope:** recursive publication surface, links, manifest claims, academic boundaries and wording
 
 ## Initial findings and pane5 disposition
