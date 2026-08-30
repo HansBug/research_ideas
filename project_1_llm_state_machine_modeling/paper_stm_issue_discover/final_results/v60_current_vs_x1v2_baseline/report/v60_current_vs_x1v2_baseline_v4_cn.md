@@ -116,11 +116,72 @@ guard 归因，以及 `0044:r1:issue:16` 的 route/lowering/runtime 归因。它
 | 指标 | v60/current | X1v2 baseline v3 |
 | --- | ---: | ---: |
 | FULL-hit max W0/W1/W2 | 0/113/197（分母 310） | 0/227/0（分母 227） |
-| report-bound predicate receipt usage | 825/1271 = 64.91% | N/A，baseline 无同构 binding schema |
-| contribution among receipt usage | 303/825 = 36.73% | N/A |
+| method terminal predicate usage | 12/15 个 planned-scope ID；1237 条 terminal receipt | N/A，baseline 无同构 execution schema |
+| report-bound predicate binding（诊断） | 8/15 个 ID；825 条 binding row | N/A，baseline 无同构 binding schema |
+| report-bound completed receipts（诊断） | 522 条，其中 terminal=false/violation 为 522 条 | N/A |
 
 “N/A”表示该字段在 baseline 运行契约中不存在，不是零。全部 finding 的 W 分布
 不能替代 hit 单位的 max-W 分布。
+
+### Predicate usage 与 contribution 的定义
+
+本报告固定使用以下两个定义，不能互换：
+
+- **usage**：谓词有对应的 execution receipt，且 receipt 已到达 terminal
+  `pass` 或 `violation` 状态。`pass` 和 `violation` 都计入 usage；只出现在
+  prompt、plan、unsupported receipt 或未完成 binding 中的不计入。
+- **contribution**：仅当该 execution receipt 的 `terminal_result=false`
+  （在当前 receipt schema 中对应 `predicate_verdict=false`、规范化
+  `verdict=violation`）时计入。`pass` 不贡献 false。当前 schema 没有独立的
+  `terminal_result` 字段；本文用这个概念名指代上述 terminal Boolean 结果。
+
+因此，method 层面的正确结论是 **12/15 个 planned-scope 谓词被实际执行**，共
+1237 条 terminal receipt，其中 `608 pass + 629 violation`。`report-bound binding`
+是另一层统计：它只统计挂到最终 finding 的绑定记录，不能代替 method usage；当前
+共有 8 个 ID、825 条 binding row，其中只有 522 条有 completed terminal receipt，
+且这 522 条均为 `terminal_result=false/violation`。原先的 `303/825` 是旧的
+`coverage_class=semantic_hit` 标记，不是按本定义得到的 contribution，不能再这样
+命名。
+
+本轮 full-scale-15 的 planned scope 为：
+`S1,S2,S3,S4,S5,S6,G1,G2,G3,G4,R1,R2,R4,V1,V4`。
+因此，未出现 completed terminal receipt 的 planned predicate 是 `S6,G3,V1`。
+registry 中另外四个谓词 `R3,V2,V3,V5` 不属于本轮 full-scale-15 operational
+scope；它们不能被解释为本轮“漏执行”。
+
+### 19 个 registry predicate 的审计统计
+
+`method terminal receipts` 和 `method false contribution` 来自 v60 raw method
+的全部 162 个 round 文件；`report-bound binding rows` 与其对应的
+`report-bound false contribution` 来自 predicate witness audit。后两列只作
+绑定诊断，不改变前面的 usage 定义。
+
+| ID | family | 台账期望 | method terminal receipts | method false contribution | report-bound binding rows | report-bound false contribution |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| S1 | Structure | 14 | 119 | 0 | 0 | 0 |
+| S2 | Structure | 20 | 387 | 235 | 166 | 166 |
+| S3 | Structure | 22 | 249 | 96 | 93 | 93 |
+| S4 | Structure | 10 | 18 | 6 | 6 | 6 |
+| S5 | Structure | 3 | 81 | 81 | 337 | 63 |
+| S6 | Structure | 3 | 0 | 0 | 0 | 0 |
+| G1 | Topology | 16 | 81 | 81 | 105 | 79 |
+| G2 | Topology | 1 | 2 | 2 | 1 | 1 |
+| G3 | Topology | 3 | 0 | 0 | 0 | 0 |
+| G4 | Topology | 5 | 12 | 0 | 0 | 0 |
+| R1 | Trajectory simulation | 9 | 34 | 0 | 0 | 0 |
+| R2 | Trajectory simulation | 1 | 162 | 46 | 32 | 32 |
+| R3 | Trajectory simulation | 0 | 0 | 0 | 0 | 0 |
+| R4 | Trajectory simulation | 3 | 4 | 0 | 0 | 0 |
+| V1 | Bounded verification | 4 | 0 | 0 | 0 | 0 |
+| V2 | Bounded verification | 0 | 0 | 0 | 0 | 0 |
+| V3 | Bounded verification | 0 | 0 | 0 | 0 | 0 |
+| V4 | Bounded verification | 4 | 88 | 82 | 85 | 82 |
+| V5 | Bounded verification | 0 | 0 | 0 | 0 | 0 |
+| **合计** |  | **118** | **1237** | **629** | **825** | **522** |
+
+四个“实际执行但 contribution=0”的 method predicate 是 `S1/G4/R1/R4`：它们
+分别有 119/12/34/4 条 terminal receipt，全部为 `pass`。这解释了为什么它们
+出现在 12/15 的 method usage 中，却不出现在 8/15 的 report-bound ID 集合中。
 
 ## 学术解释与限制
 
