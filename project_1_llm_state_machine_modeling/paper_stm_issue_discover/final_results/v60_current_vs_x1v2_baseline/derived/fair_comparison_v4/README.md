@@ -27,6 +27,11 @@ issue views. I is invalid and has no substantive-group metric; I clusters are
 diagnostic only. Current has a side-specific `NOT_A_DEFECT_CLAIM` subtype;
 baseline does not manufacture that subtype.
 
+The report index gives every N report its substantive group ID and every I
+report its diagnostic cluster ID. Current I membership is reconstructed in
+`../manual_adjudication_v4_current_reaudit/current_i_diagnostic_clusters_v4.json`;
+those IDs remain excluded from substantive grouped precision.
+
 Run the comparison from the repository root:
 
 ```bash

@@ -2,13 +2,10 @@
 
 本目录是 Paper1 当前 v60/current 与 X1v2 baseline v3 评测的稳定入口。当前 headline 来自
 `derived/fair_comparison_v4/`：current 使用 `derived/manual_adjudication_v4_current_reaudit/`，
-baseline 使用冻结的 `derived/manual_adjudication_v3_baseline_ni/`。旧 Judge v3.2、旧 witness
-audit 和 superseded reviews 只作为历史资料，不混入当前人工真值。
-
-版本边界：冻结 raw 中的 `v3.2` 是历史 Judge 输入/输出身份；`v3.3` 是后续
-evaluator/protocol implementation 版本。两者都不是本次论文人工真值，不能被重命名为
-人工标签；current/v60 v4 是对既有 pane5 source-first 确认的逐条 raw/source/hash/relation
-再验证；baseline v3 只对原非 K 逐条读 raw/source/ledger 后确认，原 K 是 v2 冻结副本。
+baseline 使用冻结的 `derived/manual_adjudication_v3_baseline_ni/`。旧 Judge、旧 witness
+audit 和 superseded reviews 只由 archive/provenance 入口保留，不混入当前人工真值。
+current/v60 v4 是对既有 pane5 source-first 确认的逐条 raw/source/hash/relation
+再验证；baseline v3 只对原非 K 逐条读 raw/source/ledger 后确认，原 K 是冻结副本。
 
 ## 数据闭合
 

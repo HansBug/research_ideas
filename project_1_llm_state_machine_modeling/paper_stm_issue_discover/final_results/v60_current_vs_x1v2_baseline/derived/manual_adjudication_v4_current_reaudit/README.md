@@ -21,6 +21,7 @@ raw, reference, method, Judge, predicate, v2, or baseline-v3 artifacts.
 | `current_relation_projection_v4.json` / `.tsv` | 1271 x 145 relation projection. |
 | `current_n_groups_v4.json` / `.tsv` | 231 final-N reports assigned exactly once to 121 same-side, same-pair substantive groups. |
 | `current_i_diagnostic_composition_v4.json` | D0/A0 and A0 subtype composition; I clusters are diagnostic only. |
+| `current_i_diagnostic_clusters_v4.json` | Traceable 291-report to 189-cluster diagnostic membership; clusters are invalid-claim patterns, not defects or grouped-precision units. |
 | `summary_v4.json` / `recomputed_summary_v4.json` | Provider-free current metrics and the identical recomputation copy. |
 | `review_log_v4.json` and `reviews/` | Review-chain provenance, arbitration entries, deterministic integrity/fairness checks, and final-gate review. |
 | `manifest_v4.json` | Input/output hashes, scope, superseded pointer, and execution boundary. |
@@ -48,3 +49,8 @@ python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/ev
 ```
 
 The command is provider-free and performs no method or Judge run.
+
+To rebuild only the I diagnostic membership projection, run
+`scripts/evaluation/build_current_i_diagnostic_clusters_v4.py`; to refresh only
+derived summary terminology without rewriting decisions, use
+`build_current_reaudit_v4.py --refresh-summaries-only`.

@@ -32,3 +32,25 @@ manifest hashes, the pre-finalization broad publication list, and a broken
 relative link introduced by moving the historical report. These were closed
 without changing canonical data. The raw/source/hash identity and all metric
 numerators and denominators remain unchanged.
+
+## HEAD-specific independent rerun and closure (2026-08-31)
+
+Reviewer `track-a:numeric-provenance-independent-v4` independently checked the
+current v4, baseline v3 and fair v4 JSON/TSV/manifests. The canonical metrics
+passed, but the reviewer recorded two publication FAILs at input commit
+`848d9832dad6f0267e3848b5f0f3c33121a89915`: the report omitted the fixed
+report-bound `825/1271` and `303/825` rows, and three manifests still carried
+the pre-edit report hash `a7ada7...4970ca`.
+
+Pane5 preserved both report-bound values and named their units explicitly. The
+fair/current summaries now expose `report_bound_binding=825/1271` and
+`legacy_semantic_hit_marker_among_report_bound_bindings=303/825`, while method
+execution remains a separate `12/15` predicates and `1237` terminal receipts.
+This resolves the review disagreement without changing a decision or treating
+303 as a terminal-false count. The baseline historical input `132` is now
+labeled as source-layer context rather than a second headline.
+
+Final provider-free checks passed with current `1271`, baseline `512`, combined
+`1783`, expected `145`, current precision `980/1271`, baseline precision
+`417/512`, and byte-valid publication/fair/archive manifests. No provider,
+method or Judge run was used.

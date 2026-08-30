@@ -11,10 +11,11 @@ import argparse
 import hashlib
 import json
 import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DocumentationInventoryRow(BaseModel):
@@ -39,7 +40,9 @@ class DocumentationInventoryRow(BaseModel):
 class DocumentationInventory(BaseModel):
     """Deterministic document inventory used by the v4 publication-surface review."""
 
-    schema: str = Field(description="Versioned inventory schema identifier.")
+    model_config = ConfigDict(populate_by_name=True)
+
+    schema_version: str = Field(alias="schema", description="Versioned inventory schema identifier serialized as schema.")
     repository_root: str = Field(description="Repository-relative scope root used for this inventory.")
     generated_by: str = Field(description="Provider-free command or script that generated the inventory.")
     current_sources: dict[str, str] = Field(description="The only current headline source for each side and comparison layer.")
@@ -58,11 +61,12 @@ LEGACY_NUMBERS = (
 )
 OLD_PROTOCOLS = (
     "issue-189-195-manual-evidence-v1",
-    "issue-189-195-manual-evidence-v2",
-    "manual_adjudication_v2",
-    "semantic_judge_issue_195",
     "v3.2",
 )
+ARCHIVE_PROVENANCE_PATHS = {
+    "final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/reviews/academic_citation_review.md",
+    "final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/reviews/numeric_recompute_review_v3.md",
+}
 VERSION_RE = re.compile(r"\b(?:v(?:2|3|4|27|46|60)|v\d+\.\d+|X1v2|x1v2)\b", re.IGNORECASE)
 ABSOLUTE_RE = re.compile(r"(?<![A-Za-z0-9_:/])/(?:home|data|tmp|mnt|opt|srv|workspace)/[^\s`\]\)>,;]+")
 LINK_RE = re.compile(r"!?(?:\[[^\]]*\])\(([^)]+)\)")
@@ -80,6 +84,10 @@ def _is_candidate(path: Path) -> bool:
 
 def _classification(path: Path, paper_root: Path, text: str) -> tuple[bool, bool, str]:
     rel = path.relative_to(paper_root).as_posix()
+    if rel in ARCHIVE_PROVENANCE_PATHS or rel.startswith(
+        "final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/proposals/"
+    ):
+        return False, True, "archive provenance"
     historical = any(token in rel.lower() for token in ("archive/", "history", "superseded", "/v27", "/v46", "manual_adjudication_v2"))
     current_layer = any(token in rel for token in ("manual_adjudication_v4_current_reaudit", "manual_adjudication_v3_baseline_ni", "fair_comparison_v4"))
     publication = rel in {
@@ -139,15 +147,25 @@ def _row(path: Path, paper_root: Path, repository_root: Path) -> DocumentationIn
     old_protocols = sorted({protocol for protocol in OLD_PROTOCOLS if protocol in text})
     abs_paths = sorted(set(ABSOLUTE_RE.findall(text)))
     duplicate = []
-    if publication and any(marker in text for marker in ("| v60/current |", "| v60/current", "K/N/I", "hit@1")):
+    if publication and rel != "final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md" and "| v60/current |" in text:
         duplicate.append("current headline metrics are present; keep only the canonical report as the paper table")
     missing = []
     if publication and ("hit@" in text or "precision" in text) and not any(marker in text for marker in ("/", "denom", "分母", "denominator")):
         missing.append("metric text has no nearby numerator/denominator marker")
-    file_type = "markdown" if path.suffix.lower() == ".md" else "manifest" if "MANIFEST" in path.name.upper() else "entrance script" if path.suffix.lower() == ".py" else "json"
+    file_type = (
+        "markdown"
+        if path.suffix.lower() == ".md"
+        else "manifest"
+        if "MANIFEST" in path.name.upper()
+        else "inventory"
+        if path.name == "publication_docs_inventory_v4.json"
+        else "entrance script"
+        if path.suffix.lower() == ".py"
+        else "json"
+    )
     digest = (
         "sha256:dynamic-manifest-see-manifest"
-        if file_type == "manifest"
+        if file_type in {"manifest", "inventory"}
         else "sha256:" + hashlib.sha256(raw).hexdigest()
     )
     return DocumentationInventoryRow(
@@ -168,6 +186,22 @@ def _row(path: Path, paper_root: Path, repository_root: Path) -> DocumentationIn
     )
 
 
+def _tracked_candidates(paper_root: Path, repository_root: Path) -> list[Path]:
+    """Return only Git-tracked files under the paper root.
+
+    This prevents unrelated local run products or work-in-progress files from
+    silently entering a publication inventory. Newly added publication files
+    must be staged before this mode is used.
+    """
+
+    relative_root = paper_root.relative_to(repository_root).as_posix()
+    output = subprocess.check_output(
+        ("git", "ls-files", "-z", "--", relative_root),
+        cwd=repository_root,
+    )
+    return [repository_root / item.decode("utf-8") for item in output.split(b"\0") if item]
+
+
 def _write_tsv(path: Path, rows: list[DocumentationInventoryRow]) -> None:
     columns = list(DocumentationInventoryRow.model_fields)
     lines = ["\t".join(columns)]
@@ -183,14 +217,24 @@ def main() -> None:
     parser.add_argument("--repository-root", type=Path, default=Path.cwd())
     parser.add_argument("--output-json", type=Path, required=True)
     parser.add_argument("--output-tsv", type=Path, required=True)
+    parser.add_argument(
+        "--tracked-only",
+        action="store_true",
+        help="Scan only Git-tracked files so unrelated local artifacts cannot enter the inventory.",
+    )
     args = parser.parse_args()
     paper_root = args.paper_root.resolve()
     repository_root = args.repository_root.resolve()
-    rows = [_row(path, paper_root, repository_root) for path in sorted(paper_root.rglob("*")) if path.is_file() and _is_candidate(path)]
+    candidates = _tracked_candidates(paper_root, repository_root) if args.tracked_only else list(paper_root.rglob("*"))
+    rows = [_row(path, paper_root, repository_root) for path in sorted(candidates) if path.is_file() and _is_candidate(path)]
     inventory = DocumentationInventory(
-        schema="paper1.publication-docs-inventory.v4",
+        schema_version="paper1.publication-docs-inventory.v4",
         repository_root=paper_root.relative_to(Path.cwd().resolve()).as_posix(),
-        generated_by="build_publication_docs_inventory.py; provider-free filesystem scan",
+        generated_by=(
+            "build_publication_docs_inventory.py --tracked-only; provider-free Git-tracked scan"
+            if args.tracked_only
+            else "build_publication_docs_inventory.py; provider-free filesystem scan"
+        ),
         current_sources={
             "current": "final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit",
             "baseline": "final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni",
@@ -200,7 +244,7 @@ def main() -> None:
         rows=rows,
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
-    args.output_json.write_text(inventory.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    args.output_json.write_text(inventory.model_dump_json(indent=2, by_alias=True) + "\n", encoding="utf-8")
     _write_tsv(args.output_tsv, rows)
     print(json.dumps({"rows": len(rows), "publication_rows": sum(row.publication_surface for row in rows), "broken_link_rows": sum(bool(row.broken_relative_links) for row in rows)}, ensure_ascii=False))
 

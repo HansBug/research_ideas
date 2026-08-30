@@ -92,6 +92,32 @@ def witness_level(row: dict[str, Any]) -> str:
     return str(witness.get("level") or row.get("w_level") or "W0")
 
 
+def current_predicate_diagnostics(archive: Path) -> dict[str, Any]:
+    """Reconcile method execution receipts with report-bound binding diagnostics."""
+
+    method = load(archive / "raw/v60_current/method/summary.json")["metrics"]["method"]
+    witness = load(archive / "derived/manual_adjudication_v2/predicate_witness_audit.json")["sides"]["v60_current"]
+    verdicts = method["execution_verdicts"]
+    planned_ids = tuple(str(value) for value in witness["planned_scope"]["predicate_ids"])
+    executed_ids = tuple(str(value) for value in method["executed_predicates"])
+    terminal_receipts = int(verdicts["pass"]) + int(verdicts["violation"])
+    report_bound_bindings = sum(int(row["usage_binding_count"]) for row in witness["predicate_rows"])
+    report_bound_completed = sum(int(row["terminal_receipt_count"]) for row in witness["predicate_rows"])
+    if (len(planned_ids), len(executed_ids), terminal_receipts, report_bound_bindings, report_bound_completed) != (15, 12, 1237, 825, 522):
+        raise ValueError("current predicate execution/binding diagnostics do not match frozen receipts")
+    return {
+        "planned_scope_predicate_ids": list(planned_ids),
+        "executed_predicate_ids": list(executed_ids),
+        "method_terminal_receipts": terminal_receipts,
+        "method_pass_receipts": int(verdicts["pass"]),
+        "method_violation_receipts": int(verdicts["violation"]),
+        "method_unsupported_receipts": int(verdicts["unsupported"]),
+        "method_all_receipts": int(method["predicate_execution_receipts"]),
+        "report_bound_binding_rows": report_bound_bindings,
+        "report_bound_completed_receipts": report_bound_completed,
+    }
+
+
 def normalize_current(archive: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Load the Pydantic-backed current v4 layer as comparison rows."""
 
@@ -103,6 +129,10 @@ def normalize_current(archive: Path) -> tuple[list[dict[str, Any]], dict[str, An
     group_map = groups["report_to_group"]
     if set(group_map) != {row["original_report_id"] for row in rows if row["canonical_class"] == "N"}:
         raise ValueError("current N report-to-group map is not closed")
+    diagnostics = load(archive / "derived/manual_adjudication_v4_current_reaudit/current_i_diagnostic_clusters_v4.json")
+    diagnostic_map = diagnostics["report_to_cluster"]
+    if set(diagnostic_map) != {row["original_report_id"] for row in rows if row["canonical_class"] == "I"}:
+        raise ValueError("current I report-to-diagnostic-cluster map is not closed")
     result = []
     for row in rows:
         result.append({
@@ -112,14 +142,23 @@ def normalize_current(archive: Path) -> tuple[list[dict[str, Any]], dict[str, An
             "partial_ledger_ids": tuple(row["partial_ledger_ids"]), "raw_method_path": row["raw_method_path"],
             "raw_json_pointer": row["raw_json_pointer"], "raw_sha256": row["raw_sha256"], "source_layer": "manual_adjudication_v4_current_reaudit",
             "canonical_path": "derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.json",
-            "group_id": group_map.get(row["original_report_id"]), "predicate_usage": row["predicate_usage"],
+            "group_id": group_map.get(row["original_report_id"]) or diagnostic_map.get(row["original_report_id"]), "predicate_usage": row["predicate_usage"],
             "a0_subtype": row.get("a0_subtype"),
             "factual_status": row["factual_status"], "normative_violation_status": row["normative_violation_status"],
         })
     i_composition = load(archive / "derived/manual_adjudication_v4_current_reaudit/current_i_diagnostic_composition_v4.json")
     if i_composition.get("report_count") != sum(row["canonical_class"] == "I" for row in rows):
         raise ValueError("current I composition does not close over canonical decisions")
-    return result, {"canonical_path": str(path.relative_to(archive)), "group_count": len(groups["groups"]), "i_cluster_count": int(i_composition["diagnostic_cluster_count"]), "group_map": group_map}
+    if diagnostics["report_count"] != i_composition["report_count"] or diagnostics["diagnostic_cluster_count"] != i_composition["diagnostic_cluster_count"]:
+        raise ValueError("current I diagnostic index and composition disagree")
+    return result, {
+        "canonical_path": str(path.relative_to(archive)),
+        "group_count": len(groups["groups"]),
+        "i_cluster_count": int(i_composition["diagnostic_cluster_count"]),
+        "group_map": group_map,
+        "diagnostic_map": diagnostic_map,
+        "predicate_diagnostics": current_predicate_diagnostics(archive),
+    }
 
 
 def normalize_baseline(archive: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -157,7 +196,14 @@ def normalize_baseline(archive: Path) -> tuple[list[dict[str, Any]], dict[str, A
     return result, {"canonical_path": "derived/manual_adjudication_v3_baseline_ni/baseline_combined_512_v3.json", "group_count": len(groups["n_groups"]), "i_cluster_count": len(groups["invalid_clusters"]), "group_map": group_map}
 
 
-def metric_bundle(rows: list[dict[str, Any]], ledger: dict[str, Any], group_count: int, i_cluster_count: int, side: str) -> dict[str, Any]:
+def metric_bundle(
+    rows: list[dict[str, Any]],
+    ledger: dict[str, Any],
+    group_count: int,
+    i_cluster_count: int,
+    side: str,
+    predicate_diagnostics: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Compute identical report/relation/hit/coverage formulas for one side."""
 
     expected_ids = tuple(sorted(ledger))
@@ -205,9 +251,32 @@ def metric_bundle(rows: list[dict[str, Any]], ledger: dict[str, Any], group_coun
     i_rows = [row for row in rows if row["canonical_class"] == "I"]
     group_sizes = Counter(str(sum(1 for row in rows if row.get("group_id") == group_id)) for group_id in {row.get("group_id") for row in n_rows if row.get("group_id")})
     if side == "v60_current":
-        receipt_usage = [row for row in rows if row["predicate_usage"] and row["predicate_usage"].get("executed_with_receipt")]
-        contribution = [row for row in receipt_usage if row["predicate_usage"].get("contribution")]
-        predicate = {"status": "available", "receipt_usage": ratio(len(receipt_usage), len(rows), "report-bound receipt usage / all reports"), "contribution_among_receipt_usage": ratio(len(contribution), len(receipt_usage), "contributing reports / receipt-usage reports"), "registered_receipt_predicate_ids": sorted({row["predicate_usage"].get("predicate_id") for row in receipt_usage if row["predicate_usage"].get("predicate_id")})}
+        if predicate_diagnostics is None:
+            raise ValueError("current predicate diagnostics are required")
+        report_bound = [row for row in rows if row["predicate_usage"] and row["predicate_usage"].get("executed_with_receipt")]
+        legacy_semantic_hit = [row for row in report_bound if row["predicate_usage"].get("contribution")]
+        predicate = {
+            "status": "available",
+            "report_bound_binding": ratio(len(report_bound), len(rows), "report-bound predicate binding rows / all reports"),
+            "legacy_semantic_hit_marker_among_report_bound_bindings": ratio(len(legacy_semantic_hit), len(report_bound), "legacy coverage_class=semantic_hit markers / report-bound binding rows"),
+            "registered_report_bound_predicate_ids": sorted({row["predicate_usage"].get("predicate_id") for row in report_bound if row["predicate_usage"].get("predicate_id")}),
+            "report_bound_completed_receipts": {
+                "count": predicate_diagnostics["report_bound_completed_receipts"],
+                "unit": "completed terminal receipts attached to report-bound bindings",
+            },
+            "method_terminal_execution": {
+                "distinct_predicate_usage": ratio(len(predicate_diagnostics["executed_predicate_ids"]), len(predicate_diagnostics["planned_scope_predicate_ids"]), "executed predicate IDs / full-scale-15 planned IDs"),
+                "executed_predicate_ids": predicate_diagnostics["executed_predicate_ids"],
+                "planned_scope_predicate_ids": predicate_diagnostics["planned_scope_predicate_ids"],
+                "terminal_receipts": predicate_diagnostics["method_terminal_receipts"],
+                "pass_receipts": predicate_diagnostics["method_pass_receipts"],
+                "violation_receipts": predicate_diagnostics["method_violation_receipts"],
+                "unsupported_receipts": predicate_diagnostics["method_unsupported_receipts"],
+                "all_receipts": predicate_diagnostics["method_all_receipts"],
+                "unit": "method predicate execution receipts; pass and violation are terminal",
+            },
+            "naming_boundary": "The 825/1271 and 303/825 values are report-bound/legacy diagnostics, not complete method execution or terminal-false contribution.",
+        }
     else:
         predicate = {"status": "not_applicable", "reason": "Baseline v3 has no current-side predicate-binding schema; this is not a zero count."}
     return {
@@ -240,7 +309,7 @@ def write_tsv(path: Path, rows: list[dict[str, Any]], fields: tuple[str, ...]) -
     """Write a stable fixed-column JSON-valued TSV mirror."""
 
     with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t", extrasaction="ignore")
+        writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t", extrasaction="ignore", lineterminator="\n")
         writer.writeheader()
         for row in rows:
             encoded = {}
@@ -259,7 +328,7 @@ def build(archive: Path) -> Path:
     current, current_context = normalize_current(archive)
     baseline, baseline_context = normalize_baseline(archive)
     ledger = load(archive / "reference/ledger.json")["items"]
-    current_metrics = metric_bundle(current, ledger, current_context["group_count"], current_context["i_cluster_count"], "v60_current")
+    current_metrics = metric_bundle(current, ledger, current_context["group_count"], current_context["i_cluster_count"], "v60_current", current_context["predicate_diagnostics"])
     baseline_metrics = metric_bundle(baseline, ledger, baseline_context["group_count"], baseline_context["i_cluster_count"], "x1v2_baseline")
     rows = []
     for source_rows in (current, baseline):
@@ -349,6 +418,9 @@ def validate(out: Path, archive: Path, rows: list[ReportIndexRow], current_metri
     for name, digest in manifest["reviews"].items():
         if sha256(out / "reviews" / name) != digest:
             raise ValueError(f"manifest review hash mismatch: {name}")
+    for relative_path, digest in manifest["publication_surface"].items():
+        if sha256(archive / relative_path) != digest:
+            raise ValueError(f"manifest publication hash mismatch: {relative_path}")
     print(json.dumps({"status": "PASS", "current_reports": 1271, "baseline_reports": 512, "combined_reports": len(rows), "expected": 145, "current_precision": current_metrics["report_based_precision"], "baseline_precision": baseline_metrics["report_based_precision"]}, sort_keys=True))
 
 
@@ -365,7 +437,13 @@ def main() -> None:
         baseline, baseline_context = normalize_baseline(archive)
         ledger = load(archive / "reference/ledger.json")["items"]
         rows = [ReportIndexRow.model_validate(row) for row in load(archive / "derived/fair_comparison_v4/combined_report_index_v4.json")["rows"]]
-        validate(archive / "derived/fair_comparison_v4", archive, rows, metric_bundle(current, ledger, current_context["group_count"], current_context["i_cluster_count"], "v60_current"), metric_bundle(baseline, ledger, baseline_context["group_count"], baseline_context["i_cluster_count"], "x1v2_baseline"))
+        validate(
+            archive / "derived/fair_comparison_v4",
+            archive,
+            rows,
+            metric_bundle(current, ledger, current_context["group_count"], current_context["i_cluster_count"], "v60_current", current_context["predicate_diagnostics"]),
+            metric_bundle(baseline, ledger, baseline_context["group_count"], baseline_context["i_cluster_count"], "x1v2_baseline"),
+        )
     else:
         print(build(archive))
 

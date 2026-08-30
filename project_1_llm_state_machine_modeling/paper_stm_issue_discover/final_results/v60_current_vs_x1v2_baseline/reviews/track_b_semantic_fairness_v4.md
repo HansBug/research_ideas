@@ -32,3 +32,27 @@ D/A-to-K/N/I invariants pass, and I relations are all `NO_MATCH`.
 Pane5 accepted the source-backed document corrections, regenerated the top-level
 manifests, and preserved all canonical JSON/TSV, raw, reference and historical
 layers. This review is QA provenance, not a human inter-rater study.
+
+## HEAD-specific independent rerun and closure (2026-08-31)
+
+Reviewer `Track-B/offline-semantic-fairness-2026-08-31` rechecked all current
+N/I, baseline v3, both protocols, fair schema and the paper report without
+reading Track A/C conclusions. Canonical D/A-to-K/N/I closure, 145-relation
+density, N grouping and baseline predicate N/A all passed. Three publication
+FAILs were retained in this log:
+
+1. the report-bound predicate headline disagreed with the saved summary;
+2. current's `189` I diagnostic clusters had no report-to-cluster projection;
+3. baseline protocol prose placed validity before the complete relation pass.
+
+Pane5 resolved them by preserving `825/1271` and `303/825` as explicitly named
+report-bound diagnostics, adding the Pydantic-backed
+`current_i_diagnostic_clusters_v4.json` map (`291/291` reports, 189 same-pair
+clusters), carrying those diagnostic IDs into the fair index, and correcting
+the order to `source fact -> D/A -> all relations -> validity/K/N/I`. Every I
+cluster is structurally marked non-defect and excluded from grouped precision.
+
+Final validators pass for `1271/1271` current and `512/512` baseline reports;
+there are no null I diagnostic pointers, and no canonical semantic decision was
+changed. The retained I merge boundary remains a diagnostic sensitivity, not a
+claim of 189 substantive defects.

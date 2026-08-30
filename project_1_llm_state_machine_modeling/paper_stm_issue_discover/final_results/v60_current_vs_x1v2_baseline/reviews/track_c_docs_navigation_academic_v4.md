@@ -33,3 +33,29 @@
 Pane5 accepted the bounded documentation fixes, retained the historical report copy,
 and re-ran link/path and manifest validation. The review is documentation QA and
 academic citation-boundary review, not an inter-rater study and not a canonical label source.
+
+## HEAD-specific independent rerun and closure (2026-08-31)
+
+Reviewer `pane5:independent-track-c-docs-navigation-academic-v4` scanned 27 core
+documents, all publication entries, the full archive manifest and active links.
+Navigation and academic operationalization boundaries passed. The reviewer
+retained FAIL findings for stale report hashes, predicate-unit mismatch,
+baseline decision-order prose, excluded baseline proposal files on the top-level
+publication surface, absolute-path review provenance, and two experiment-history
+rows still labeled current.
+
+The finalizer now excludes the baseline proposal directory and the two
+absolute-path review records from the current publication allowlist; the latter
+remain byte-preserved archive provenance. The inventory classifies the same
+records as `archive provenance`. Historical v60/Judge and X1v2/Judge rows now
+say `historical / superseded` and point directly to the v4 report. The old full
+report remains under `report/history/v3/`, while its former path stays a short
+historical redirect.
+
+The requested Shuorenhua docs/public-writing rereview used minimal strength and
+protected all metrics, paths, protocol IDs, responsibility statements and
+limitations. It changed only the predicate-unit presentation and citation claim
+mapping; its detailed fidelity record is in
+`derived/fair_comparison_v4/reviews/shuorenhua_review_v4.{json,md}`. Final
+tracked-only inventory, relative-link and publication/archive manifest checks
+pass. This remains internal QA, not a new inter-rater study.

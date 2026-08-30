@@ -58,3 +58,33 @@ baseline is `512`, `312/105/95`, `342/75/85/10`, report precision
 W-on-FULL-hits is current `197/113/0` and baseline `0/227/0`, with denominators
 310 and 227. Current predicate usage/contribution is `825/1271` and `303/825`;
 baseline is `N/A`, not zero.
+
+## Final HEAD-specific gate closure (2026-08-31)
+
+The fresh Track A/B/C reruns preserved their initial FAIL findings instead of
+overwriting them. Pane5 resolved every finding at the publication/derived-index
+layer:
+
+- fixed report-bound predicate diagnostics remain `825/1271` and `303/825`;
+  method execution is separately `12/15` predicate IDs and `1237` terminal
+  receipts (`608 pass`, `629 violation`);
+- all 291 current I reports map exactly once to 189 same-pair diagnostic
+  clusters, with `substantive_defect=false` and
+  `grouped_precision_unit=false`;
+- baseline v3 decision-order and diagnostic-ratio prose now matches the
+  mechanical closure;
+- excluded proposals and absolute-path-only review provenance are archive-only;
+  historical Judge rows are explicitly superseded;
+- fair validation now checks every `publication_surface` hash, not only output
+  and review hashes.
+
+The resulting headline remains current `749/231/291`, baseline `312/105/95`,
+FULL hit@1 `310/435` versus `227/435`, and report precision `980/1271` versus
+`417/512`. Current and baseline decision/relation files, raw artifacts and the
+reference ledger remained byte-identical. The only remaining sensitivities are
+the conservative N merge boundary, diagnostic-only I clustering, inherited
+current source-first review depth, and the baseline predicate-schema N/A
+boundary; all are disclosed in the report.
+
+Final execution boundary: `provider_calls=0`, `method_reruns=0`,
+`judge_reruns=0`; no 15x1 or 54x3 run occurred.

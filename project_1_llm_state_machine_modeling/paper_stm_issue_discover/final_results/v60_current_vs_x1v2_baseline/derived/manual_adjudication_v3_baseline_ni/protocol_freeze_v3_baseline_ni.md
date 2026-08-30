@@ -12,7 +12,7 @@ rerun or edited.
 
 Every report is read in this order:
 
-`author-source fact -> D/A -> validity -> all 145 expected relations -> K/N/I`
+`author-source fact -> D/A -> all 145 expected relations -> mechanically derived validity/K/N/I`
 
 The source of truth is the report's full raw `issue`, `where`, `reason`, and
 `basis`, the complete pair NL, the complete author PlantUML, and the full
@@ -106,9 +106,11 @@ proposed the entire protocol.
 ## Publication units
 
 The combined baseline has 512 raw report rows. Report precision uses raw report
-rows. Ledger/group precision uses unique FULL-hit expected IDs plus substantive
-N groups plus separately named invalid diagnostic clusters; a sensitivity value
-leaves I ungrouped. L2 ledger precision is `not_applicable` because N/I groups
+rows. A separately named diagnostic composition ratio uses unique FULL-hit
+expected IDs, substantive N groups, and invalid diagnostic clusters; a
+sensitivity value leaves I ungrouped. Neither value is substantive grouped
+precision because I clusters are not defect entities. L2 ledger precision is
+`not_applicable` because N/I groups
 have no natural L2 attribution. `hit@1` is deduplicated expected-round-unit
 coverage across all three rounds (`145 x 3` denominator as in the archive),
 `hit@3` is an expected ID hit in any of three rounds, and `hit@all` requires

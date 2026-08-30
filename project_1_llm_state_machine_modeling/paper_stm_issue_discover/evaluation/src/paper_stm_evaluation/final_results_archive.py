@@ -517,12 +517,21 @@ def _publication_file_manifest(root: Path) -> list[dict[str, Any]]:
         "derived/manual_adjudication_v4_current_reaudit/",
         "derived/manual_adjudication_v3_baseline_ni/",
     )
+    excluded_prefixes = (
+        "derived/manual_adjudication_v3_baseline_ni/proposals/",
+    )
+    archive_only_provenance = {
+        "derived/manual_adjudication_v3_baseline_ni/reviews/academic_citation_review.md",
+        "derived/manual_adjudication_v3_baseline_ni/reviews/numeric_recompute_review_v3.md",
+    }
     files: list[dict[str, Any]] = []
     for path in sorted(root.rglob("*")):
         if not path.is_file():
             continue
         relative_path = path.relative_to(root).as_posix()
         if relative_path not in exact and not relative_path.startswith(prefixes):
+            continue
+        if relative_path in archive_only_provenance or relative_path.startswith(excluded_prefixes):
             continue
         files.append({"path": relative_path, "bytes": path.stat().st_size, "sha256": _sha256(path)})
     return files

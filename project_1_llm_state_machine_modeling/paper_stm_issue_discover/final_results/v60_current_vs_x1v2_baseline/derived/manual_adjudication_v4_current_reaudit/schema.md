@@ -32,10 +32,17 @@ review evidence only; it is not silently promoted to a human label.
 3. `D2` or `D1` plus 145 NO rows requires `VALID_NOVEL/N`.
 4. `A0` requires `FALSE_POSITIVE` or `NOT_A_DEFECT_CLAIM`; the latter is
    current-only and must be source-backed.
-5. W0/W1/W2 and predicate receipt/contribution are independent fields and
-   cannot alter D/A, relations, validity, or K/N/I.
+5. W0/W1/W2 and predicate binding/contribution markers are independent fields
+   and cannot alter D/A, relations, validity, or K/N/I. The retained
+   `contribution` Boolean is the legacy `coverage_class=semantic_hit` marker;
+   it is not a terminal-false execution count.
 6. Every final-N report appears in exactly one N group; groups never cross
    side or pair. I clusters never enter substantive N group counts.
+
+`current_i_diagnostic_clusters_v4.json` uses Pydantic-described cluster,
+source-reference and assertion models. It maps all 291 I reports exactly once
+to 189 same-pair diagnostic IDs and structurally marks every ID as
+`substantive_defect=false` and `grouped_precision_unit=false`.
 
 ## Inventory and review coverage
 

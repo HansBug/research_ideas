@@ -89,7 +89,7 @@ class PredicateUsage(BaseModel):
     receipt_present: bool = Field(description="Whether the frozen report carries a predicate execution receipt; not nullable and not a prompt field.")
     executed_with_receipt: bool = Field(description="Whether predicate usage is counted under the receipt rule; not nullable and not a prompt field.")
     terminal_result: Literal["true", "false"] | None = Field(default=None, description="Recorded terminal Boolean when present; nullable and not a prompt field.")
-    contribution: bool = Field(description="Raw method contribution marker, separate from usage and validity; not nullable and not a prompt field.")
+    contribution: bool = Field(description="Legacy coverage_class=semantic_hit marker retained from frozen raw; not a terminal-false contribution metric and not nullable.")
 
 
 class CanonicalDecision(BaseModel):
@@ -126,7 +126,7 @@ class CanonicalDecision(BaseModel):
     no_match_ledger_ids: tuple[str, ...] = Field(description="Expected IDs with NO_MATCH; not nullable and not a prompt field.")
     w_level: Literal["W0", "W1", "W2"] = Field(description="Independent finding evidence level; not nullable and not a prompt field.")
     predicate_usage: PredicateUsage = Field(description="Frozen predicate usage facts independent of K/N/I; not nullable and not a prompt field.")
-    predicate_contribution: bool = Field(description="Whether raw method marks the predicate execution as contributing; not nullable and not a prompt field.")
+    predicate_contribution: bool = Field(description="Legacy coverage_class=semantic_hit marker mirrored for compatibility; not a terminal-false contribution metric and not nullable.")
     validity: Literal["VALID_KNOWN", "VALID_NOVEL", "INVALID"] = Field(description="Mechanical validity projection from D/A and dense expected relations; not nullable and not a prompt field.")
     canonical_class: Literal["K", "N", "I"] = Field(description="Mechanically closed K/N/I class; not nullable and not a prompt field.")
     previous_class: Literal["K", "N", "I"] = Field(description="Previous v2 pane5 class used only for explicit delta reporting; not nullable and not a prompt field.")
@@ -488,7 +488,36 @@ def ratio(numerator: int, denominator: int) -> dict[str, Any]:
     return {"numerator": numerator, "denominator": denominator, "percentage": numerator / denominator if denominator else None}
 
 
-def metric_bundle(decisions: list[CanonicalDecision], ledger: dict[str, Any], n_group_count: int, i_cluster_count: int) -> dict[str, Any]:
+def current_predicate_diagnostics(archive: Path) -> dict[str, Any]:
+    """Read frozen method execution and report-bound binding counts."""
+
+    method = load_json(archive / "raw/v60_current/method/summary.json")["metrics"]["method"]
+    witness = load_json(archive / "derived/manual_adjudication_v2/predicate_witness_audit.json")["sides"]["v60_current"]
+    verdicts = method["execution_verdicts"]
+    planned_ids = [str(value) for value in witness["planned_scope"]["predicate_ids"]]
+    executed_ids = [str(value) for value in method["executed_predicates"]]
+    completed = sum(int(row["terminal_receipt_count"]) for row in witness["predicate_rows"])
+    if (len(planned_ids), len(executed_ids), int(verdicts["pass"]) + int(verdicts["violation"]), completed) != (15, 12, 1237, 522):
+        raise ValueError("frozen predicate method/binding diagnostics do not close")
+    return {
+        "planned_ids": planned_ids,
+        "executed_ids": executed_ids,
+        "all_receipts": int(method["predicate_execution_receipts"]),
+        "terminal_receipts": int(verdicts["pass"]) + int(verdicts["violation"]),
+        "pass_receipts": int(verdicts["pass"]),
+        "violation_receipts": int(verdicts["violation"]),
+        "unsupported_receipts": int(verdicts["unsupported"]),
+        "report_bound_completed_receipts": completed,
+    }
+
+
+def metric_bundle(
+    decisions: list[CanonicalDecision],
+    ledger: dict[str, Any],
+    n_group_count: int,
+    i_cluster_count: int,
+    predicate_diagnostics: dict[str, Any],
+) -> dict[str, Any]:
     """Recompute current report, relation, hit, W and predicate metrics."""
 
     expected_ids = tuple(sorted(ledger))
@@ -531,7 +560,25 @@ def metric_bundle(decisions: list[CanonicalDecision], ledger: dict[str, Any], n_
         "report_based_fp_rate": {**ratio(class_counts["I"], len(decisions)), "unit": "raw report"},
         "full_partial_none": {key: ratio(relation_counts[key], len(decisions) * len(expected_ids)) for key in RELATIONS},
         "w_on_hits": {level: {"numerator": max_w[level], "denominator": len(full_units), "percentage": max_w[level] / len(full_units) if full_units else None, "unit": "FULL expected-round hit units"} for level in W_LEVELS},
-        "predicate_usage": {"receipt_usage": ratio(len(predicate_usage), len(decisions)), "contribution_among_receipt_usage": ratio(len(predicate_contribution), len(predicate_usage)), "registered_receipt_predicate_ids": sorted({item.predicate_id for item in predicate_usage if item.predicate_id})},
+        "predicate_usage": {
+            "status": "available",
+            "report_bound_binding": {**ratio(len(predicate_usage), len(decisions)), "unit": "report-bound predicate binding rows / all reports"},
+            "legacy_semantic_hit_marker_among_report_bound_bindings": {**ratio(len(predicate_contribution), len(predicate_usage)), "unit": "legacy coverage_class=semantic_hit markers / report-bound binding rows"},
+            "registered_report_bound_predicate_ids": sorted({item.predicate_id for item in predicate_usage if item.predicate_id}),
+            "report_bound_completed_receipts": {"count": predicate_diagnostics["report_bound_completed_receipts"], "unit": "completed terminal receipts attached to report-bound bindings"},
+            "method_terminal_execution": {
+                "distinct_predicate_usage": {**ratio(len(predicate_diagnostics["executed_ids"]), len(predicate_diagnostics["planned_ids"])), "unit": "executed predicate IDs / full-scale-15 planned IDs"},
+                "executed_predicate_ids": predicate_diagnostics["executed_ids"],
+                "planned_scope_predicate_ids": predicate_diagnostics["planned_ids"],
+                "terminal_receipts": predicate_diagnostics["terminal_receipts"],
+                "pass_receipts": predicate_diagnostics["pass_receipts"],
+                "violation_receipts": predicate_diagnostics["violation_receipts"],
+                "unsupported_receipts": predicate_diagnostics["unsupported_receipts"],
+                "all_receipts": predicate_diagnostics["all_receipts"],
+                "unit": "method predicate execution receipts; pass and violation are terminal",
+            },
+            "naming_boundary": "The 825/1271 and 303/825 values are report-bound/legacy diagnostics, not complete method execution or terminal-false contribution.",
+        },
         "n_substantive_groups": n_group_count, "i_diagnostic_clusters": i_cluster_count, "i_substantive_group_metric": "N/A",
         "ledger_group_diagnostic_ratio": {**ratio(len(full_expected) + n_group_count, ledger_denominator), "unit": "unique K expected + N groups + I diagnostic clusters", "i_clusters_are_not_defects": True},
         "ledger_group_sensitivity_unmerged_i": {**ratio(len(full_expected) + n_group_count, len(full_expected) + n_group_count + class_counts["I"]), "unit": "unique K expected + N groups + raw I reports"},
@@ -548,7 +595,7 @@ def write_tsv(path: Path, rows: list[dict[str, Any]], fields: tuple[str, ...]) -
     """Write a fixed-column JSON-valued TSV mirror."""
 
     with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t", extrasaction="ignore")
+        writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t", extrasaction="ignore", lineterminator="\n")
         writer.writeheader()
         for row in rows:
             writer.writerow({field: row.get(field, "") if isinstance(row.get(field, ""), str) else canonical_json(row.get(field)) for field in fields})
@@ -598,7 +645,7 @@ def build(archive: Path) -> Path:
     i_composition = {"schema": "paper1.current-reaudit.i-composition.v4", "side": "v60_current", "report_count": sum(item.canonical_class == "I" for item in decisions), "by_d_tier": dict(Counter(item.d_tier for item in decisions if item.canonical_class == "I")), "a0_subtypes": dict(Counter(item.a0_subtype for item in decisions if item.canonical_class == "I" and item.a0_subtype)), "diagnostic_cluster_count": sum(1 for group in load_json(archive / "derived" / "manual_adjudication_v2" / "group_decisions.json")["groups"] if group.get("side") == "v60_current" and group.get("group_verdict") == "I"), "clusters_are_not_substantive_defects": True, "ungrouped_i_sensitivity_report_count": sum(item.canonical_class == "I" for item in decisions)}
     write_json(out / "current_i_diagnostic_composition_v4.json", i_composition)
     i_cluster_count = int(i_composition["diagnostic_cluster_count"])
-    summary = {"schema": "paper1.current-reaudit.summary.v4", "protocol_version": PROTOCOL, "side": "v60_current", "generated_at_utc": inventory["generated_at_utc"], "metrics": metric_bundle(decisions, context["ledger"], len(groups), i_cluster_count), "n_grouping": {"raw_n_reports_previous_v2": 231, "corrected_n_reports": sum(item.canonical_class == "N" for item in decisions), "substantive_n_groups": len(groups), "group_size_distribution": dict(Counter(str(len(item.member_report_ids)) for item in groups)), "root_cause_group_count": len(groups)}, "i_composition": i_composition, "v4_delta_from_v2": {"changed_report_count": sum(item.previous_class != item.canonical_class for item in decisions), "migrations": dict(Counter(f"{item.previous_class}->{item.canonical_class}" for item in decisions if item.previous_class != item.canonical_class)), "statement": "No current report changed class during v4 raw/source/hash/relation revalidation; all 522 prior non-K reports remain in the source-first canonical layer."}, "scope": {"baseline_reference": "manual_adjudication_v3_baseline_ni", "current_only": True, "provider_calls": 0, "method_reruns": 0, "judge_reruns": 0}}
+    summary = {"schema": "paper1.current-reaudit.summary.v4", "protocol_version": PROTOCOL, "semantic_protocol_id": "issue-189-195-manual-evidence-v2", "side": "v60_current", "generated_at_utc": inventory["generated_at_utc"], "metrics": metric_bundle(decisions, context["ledger"], len(groups), i_cluster_count, current_predicate_diagnostics(archive)), "n_grouping": {"raw_n_reports_previous_v2": 231, "corrected_n_reports": sum(item.canonical_class == "N" for item in decisions), "substantive_n_groups": len(groups), "group_size_distribution": dict(Counter(str(len(item.member_report_ids)) for item in groups)), "root_cause_group_count": len(groups)}, "i_composition": i_composition, "v4_delta_from_v2": {"changed_report_count": sum(item.previous_class != item.canonical_class for item in decisions), "migrations": dict(Counter(f"{item.previous_class}->{item.canonical_class}" for item in decisions if item.previous_class != item.canonical_class)), "statement": "No current report changed class during v4 raw/source/hash/relation revalidation; all 522 prior non-K reports remain in the source-first canonical layer."}, "scope": {"baseline_reference": "manual_adjudication_v3_baseline_ni", "current_only": True, "provider_calls": 0, "method_reruns": 0, "judge_reruns": 0}}
     write_json(out / "summary_v4.json", summary)
     write_json(out / "recomputed_summary_v4.json", summary)
     write_tsv(out / "current_report_decisions_v4.tsv", [item.model_dump(mode="json") for item in decisions], ("side", "pair_id", "round", "original_report_id", "finding_index", "raw_method_path", "raw_json_pointer", "raw_sha256", "source_sha256", "issue", "where", "raw_reason", "raw_basis", "reason", "basis", "factual_status", "normative_violation_status", "defect_claim_status", "d_tier", "a0_subtype", "full_ledger_ids", "partial_ledger_ids", "no_match_ledger_ids", "w_level", "validity", "canonical_class", "previous_class", "reclassification_reason", "reviewer_ids", "reviewer_consensus", "disagreement_flag", "arbitration_id", "confidence", "reviewed_at", "evidence_digest"))
@@ -612,6 +659,40 @@ def build(archive: Path) -> Path:
     write_json(out / "manifest_v4.json", {"schema": "paper1.current-reaudit.manifest.v4", "artifact_id": "v60-current-reaudit-v4", "generated_at_utc": inventory["generated_at_utc"], "scope": "current all 1271 reports; current N/I source-first revalidation; baseline v3 read-only reference", "supersedes": ["derived/manual_adjudication_v2"], "does_not_modify": ["raw", "reference", "method", "judge", "predicate_registry", "derived/manual_adjudication_v3_baseline_ni"], "inputs": {"v2_current_decisions": context["old_v2_sha256"], "ledger": sha256_file(archive / "reference" / "ledger.json")}, "outputs": {path.name: sha256_file(path) for path in sorted(out.iterdir()) if path.is_file() and path.name != "manifest_v4.json"}, "review_outputs": {path.name: sha256_file(path) for path in sorted((out / "reviews").iterdir()) if path.is_file()}, "execution_boundary": {"provider_calls": 0, "method_reruns": 0, "judge_reruns": 0, "raw_modified": False}})
     validate(out, archive, decisions, groups, context["ledger"])
     return out
+
+
+def refresh_summaries(archive: Path) -> None:
+    """Refresh only derived summary metrics and their manifest hashes.
+
+    This mode deliberately leaves canonical decisions, relations, inventories,
+    groups, review records, and raw/reference inputs byte-identical.
+    """
+
+    out = archive / "derived/manual_adjudication_v4_current_reaudit"
+    decisions = [CanonicalDecision.model_validate(item) for item in load_json(out / "current_report_decisions_v4.json")["decisions"]]
+    groups = [NGroup.model_validate(item) for item in load_json(out / "current_n_groups_v4.json")["groups"]]
+    ledger = load_json(archive / "reference/ledger.json")["items"]
+    composition = load_json(out / "current_i_diagnostic_composition_v4.json")
+    summary = load_json(out / "summary_v4.json")
+    summary["semantic_protocol_id"] = "issue-189-195-manual-evidence-v2"
+    summary["metrics"] = metric_bundle(
+        decisions,
+        ledger,
+        len(groups),
+        int(composition["diagnostic_cluster_count"]),
+        current_predicate_diagnostics(archive),
+    )
+    write_json(out / "summary_v4.json", summary)
+    write_json(out / "recomputed_summary_v4.json", summary)
+    manifest_path = out / "manifest_v4.json"
+    manifest = load_json(manifest_path)
+    manifest["outputs"] = {
+        path.name: sha256_file(path)
+        for path in sorted(out.iterdir())
+        if path.is_file() and path.name != "manifest_v4.json"
+    }
+    write_json(manifest_path, manifest)
+    validate(out, archive, decisions, groups, ledger)
 
 
 def validate(out: Path, archive: Path, decisions: list[CanonicalDecision], groups: list[NGroup], ledger: dict[str, Any]) -> None:
@@ -664,6 +745,20 @@ def validate(out: Path, archive: Path, decisions: list[CanonicalDecision], group
     decision_by_id = {item.original_report_id: item for item in decisions}
     if any(any(decision_by_id[report_id].pair_id != group.pair_id for report_id in group.member_report_ids) for group in groups):
         raise ValueError("N group crosses a pair boundary")
+    summary = load_json(out / "summary_v4.json")
+    recomputed_summary = load_json(out / "recomputed_summary_v4.json")
+    i_composition = load_json(out / "current_i_diagnostic_composition_v4.json")
+    expected_metrics = metric_bundle(
+        decisions,
+        ledger,
+        len(groups),
+        int(i_composition["diagnostic_cluster_count"]),
+        current_predicate_diagnostics(archive),
+    )
+    if summary != recomputed_summary or summary.get("metrics") != expected_metrics:
+        raise ValueError("current v4 summary mirrors or predicate metric naming are stale")
+    if summary.get("semantic_protocol_id") != "issue-189-195-manual-evidence-v2":
+        raise ValueError("current v4 summary does not name the semantic protocol")
     manifest = load_json(out / "manifest_v4.json")
     for name, digest in manifest.get("outputs", {}).items():
         path = out / name
@@ -681,7 +776,9 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--archive-root", type=Path, required=True)
-    parser.add_argument("--validate-only", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--validate-only", action="store_true")
+    mode.add_argument("--refresh-summaries-only", action="store_true")
     args = parser.parse_args()
     archive = args.archive_root.resolve()
     if args.validate_only:
@@ -689,6 +786,8 @@ def main() -> None:
         decisions = [CanonicalDecision.model_validate(item) for item in envelope["decisions"]]
         groups = [NGroup.model_validate(item) for item in load_json(archive / "derived" / "manual_adjudication_v4_current_reaudit" / "current_n_groups_v4.json")["groups"]]
         validate(archive / "derived" / "manual_adjudication_v4_current_reaudit", archive, decisions, groups, load_json(archive / "reference" / "ledger.json")["items"])
+    elif args.refresh_summaries_only:
+        refresh_summaries(archive)
     else:
         print(build(archive))
 

@@ -2,13 +2,11 @@
 
 current/v60 的当前 headline 来自 `derived/manual_adjudication_v4_current_reaudit/`；X1v2
 baseline 非 K 的当前发布结果来自 `derived/manual_adjudication_v3_baseline_ni/`。两层共同支撑当前并列报告；旧
-Judge v3.2、旧 witness audit、旧 reviews 是历史诊断，不是 v3 人工真值。冻结 raw、reference
-ledger、method/Judge 输入和 predicate registry 不由本次重评修改。
+Judge、旧 witness audit、旧 reviews 只由 archive/provenance 入口保留，不是当前人工真值。
+冻结 raw、reference ledger、method/Judge 输入和 predicate registry 不由本次重评修改。
 
-版本边界：`v3.2` 是冻结 raw 中历史 Judge 的输入/输出身份，不能被重命名为人工标签；
-`v3.3` 是后续 evaluator/protocol implementation 版本，也不是论文人工真值。论文真值
-current/v60 来自本目录 v4 对既有 pane5 source-first 确认的逐条 raw/source/hash/relation
-再验证和确定性派生；v2 仅是该审计链的 provenance。baseline v3 只写入非 K 重审层，原 K
+论文真值中，current/v60 来自本目录 v4 对既有 pane5 source-first 确认的逐条
+raw/source/hash/relation 再验证和确定性派生；v2 仅是该审计链的 provenance。baseline v3 只写入非 K 重审层，原 K
 不被再次语义修改。
 
 ## v4 current re-audit layer

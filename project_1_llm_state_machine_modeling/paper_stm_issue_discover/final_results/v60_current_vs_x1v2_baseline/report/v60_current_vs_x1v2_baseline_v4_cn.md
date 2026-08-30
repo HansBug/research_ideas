@@ -69,12 +69,13 @@ K expected、N substantive group 与 I 诊断单元的组成敏感性，不是�
 
 | 项目 | v60/current | X1v2 baseline v3 |
 | --- | ---: | ---: |
-| 原始/当前 N reports | 231 / 231 | 132 / 105 |
+| source-layer N reports / corrected N reports | 231 / 231 | 132 / 105 |
 | N D2/D1 reports | 38 / 193 | 50 / 55 |
 | conservative substantive N groups | 121 | 98 |
 | group size distribution | 1:52, 2:31, 3:36, 4:1, 5:1 | 1:92, 2:5, 3:1 |
 
-current N 在 v4 没有迁移。baseline 非 K 迁移为
+前一行的 132 是 baseline v2 的历史输入计数，105 才是 baseline v3 当前结果；
+它不是另一套 headline。current N 在 v4 没有迁移。baseline 非 K 迁移为
 `N->I=67`、`N->K=3`、`N->N=62`、`I->N=43`、`I->K=30`、`I->I=28`；逐条
 记录在 [migration_index_v4.json](../derived/fair_comparison_v4/migration_index_v4.json)。
 baseline 非 K 重审产生 33 条 K report，其中 unique expected relation 为：
@@ -103,7 +104,9 @@ root cause 和最小 repair intent。singleton 是保守的“没有证据支持
 | diagnostic clusters | 189 | 95 |
 
 I cluster 只帮助描述 invalid claim 的重复形态，不是实质 defect 数，也不进入
-substantive grouped precision。current 的 NADC 是 method-owned 的表示、分析或
+substantive grouped precision。current 的 291 条 I 到 189 个 cluster 的逐条映射见
+[current I diagnostic index](../derived/manual_adjudication_v4_current_reaudit/current_i_diagnostic_clusters_v4.json)。
+current 的 NADC 是 method-owned 的表示、分析或
 归因主张，只有在证据说明报告没有提出作者 source 缺陷时才使用。代表证据包括：
 `0014:r3:issue:1` 的 retention receipt 缺口、`0045:r1:issue:4` 的 lowering
 guard 归因，以及 `0044:r1:issue:16` 的 route/lowering/runtime 归因。它们支持
@@ -116,6 +119,8 @@ guard 归因，以及 `0044:r1:issue:16` 的 route/lowering/runtime 归因。它
 | 指标 | v60/current | X1v2 baseline v3 |
 | --- | ---: | ---: |
 | FULL-hit max W0/W1/W2 | 0/113/197（分母 310） | 0/227/0（分母 227） |
+| report-bound predicate receipt usage | 825/1271 = 64.91% | N/A，baseline 无同构 binding schema |
+| report-bound predicate contribution marker | 303/825 = 36.73% | N/A |
 | method terminal predicate usage | 12/15 个 planned-scope ID；1237 条 terminal receipt | N/A，baseline 无同构 execution schema |
 | report-bound predicate binding（诊断） | 8/15 个 ID；825 条 binding row | N/A，baseline 无同构 binding schema |
 | report-bound completed receipts（诊断） | 522 条，其中 terminal=false/violation 为 522 条 | N/A |
@@ -125,23 +130,22 @@ guard 归因，以及 `0044:r1:issue:16` 的 route/lowering/runtime 归因。它
 
 ### Predicate usage 与 contribution 的定义
 
-本报告固定使用以下两个定义，不能互换：
+本报告同时保留发布层的 report-bound 指标和 method 执行指标，二者不能互换：
 
-- **usage**：谓词有对应的 execution receipt，且 receipt 已到达 terminal
-  `pass` 或 `violation` 状态。`pass` 和 `violation` 都计入 usage；只出现在
-  prompt、plan、unsupported receipt 或未完成 binding 中的不计入。
-- **contribution**：仅当该 execution receipt 的 `terminal_result=false`
-  （在当前 receipt schema 中对应 `predicate_verdict=false`、规范化
-  `verdict=violation`）时计入。`pass` 不贡献 false。当前 schema 没有独立的
-  `terminal_result` 字段；本文用这个概念名指代上述 terminal Boolean 结果。
+- **report-bound usage**：最终 finding 保留 registered predicate binding 和
+  receipt 的记录，共 `825/1271`。这是逐报告诊断分母，不是完整 method 执行次数。
+- **report-bound contribution marker**：上述 825 条中，继承的
+  `coverage_class=semantic_hit` 标记为真者共 `303/825`。该字段保留既有 v4
+  发布口径，但不能解释成 terminal-false receipt 数，也不能由 violation 自动推出。
+- **method terminal usage**：原始 execution receipt 到达 `pass` 或
+  `violation`；两者都计入 method usage。unsupported receipt 不计 terminal usage。
 
-因此，method 层面的正确结论是 **12/15 个 planned-scope 谓词被实际执行**，共
+因此，method 层面的结论是 **12/15 个 planned-scope 谓词被实际执行**，共
 1237 条 terminal receipt，其中 `608 pass + 629 violation`。`report-bound binding`
 是另一层统计：它只统计挂到最终 finding 的绑定记录，不能代替 method usage；当前
 共有 8 个 ID、825 条 binding row，其中只有 522 条有 completed terminal receipt，
-且这 522 条均为 `terminal_result=false/violation`。原先的 `303/825` 是旧的
-`coverage_class=semantic_hit` 标记，不是按本定义得到的 contribution，不能再这样
-命名。
+且这 522 条均为 `terminal_result=false/violation`。反过来也不能把 522 条 violation
+写成 522 条 contribution；本文保留的 contribution diagnostic 是上面的 `303/825`。
 
 本轮 full-scale-15 的 planned scope 为：
 `S1,S2,S3,S4,S5,S6,G1,G2,G3,G4,R1,R2,R4,V1,V4`。
@@ -156,7 +160,7 @@ scope；它们不能被解释为本轮“漏执行”。
 `report-bound false contribution` 来自 predicate witness audit。后两列只作
 绑定诊断，不改变前面的 usage 定义。
 
-| ID | family | 台账期望 | method terminal receipts | method false contribution | report-bound binding rows | report-bound false contribution |
+| ID | family | 台账期望 | method terminal receipts | method violation receipts | report-bound binding rows | report-bound terminal violations |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
 | S1 | Structure | 14 | 119 | 0 | 0 | 0 |
 | S2 | Structure | 20 | 387 | 235 | 166 | 166 |
@@ -179,7 +183,7 @@ scope；它们不能被解释为本轮“漏执行”。
 | V5 | Bounded verification | 0 | 0 | 0 | 0 | 0 |
 | **合计** |  | **118** | **1237** | **629** | **825** | **522** |
 
-四个“实际执行但 contribution=0”的 method predicate 是 `S1/G4/R1/R4`：它们
+四个“实际执行但 violation=0”的 method predicate 是 `S1/G4/R1/R4`：它们
 分别有 119/12/34/4 条 terminal receipt，全部为 `pass`。这解释了为什么它们
 出现在 12/15 的 method usage 中，却不出现在 8/15 的 report-bound ID 集合中。
 
@@ -194,9 +198,11 @@ al.（MODELS 2025, DOI `10.1109/MODELS67397.2025.00014`）支持 equivalent issu
 与人工确认的 new true issue；Pearson et al.（ICSE 2017, DOI
 `10.1109/ICSE.2017.62`）说明报告粒度影响 fault 分解；Martinez et al.（EMSE
 2017, DOI `10.1007/s10664-016-9470-4`）支持 semantic/repair equivalence 不
-要求 patch 文本相同。IEEE 1044-2009、Goodenough et al.、Barr et al.、Zave &
-Jackson、Massey et al. 和 Pollock 分别支撑 disposition、oracle、需求推理与
-称职 alternative reading 的边界。
+要求 patch 文本相同。IEEE 1044-2009 与 Goodenough, Weinstock & Klein 支持
+`not found`、intended behavior 和 defect disposition 的边界；Barr et al. 支持
+implicit test oracle 的限制；Zave & Jackson 支持把经验证的 domain knowledge
+纳入 requirements reasoning；Massey et al. 与 Pollock 支持 reasonable
+alternative interpretation 以及 rebutting/undercutting defeater 的区分。
 
 这些文献分别支持 distinct bug、relatedness、修复等价、false positive、需求
 有效性与歧义裁决；“同 side + 同 pair + 同义务 + 同 source/root cause + 同修复
@@ -218,4 +224,5 @@ python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/ev
 
 逐侧入口：[current v4](../derived/manual_adjudication_v4_current_reaudit/README.md)、
 [baseline v3](../derived/manual_adjudication_v3_baseline_ni/README.md)、[比较层](../derived/fair_comparison_v4/README.md)。
-Manifest、输入输出 hash 和 review 记录位于比较层；旧 v2/v3 目录未被覆盖。
+Manifest、输入输出 hash 和 review 记录位于比较层；旧 v2 和历史 report 未被覆盖，
+baseline v3 仍是当前冻结对照层。
