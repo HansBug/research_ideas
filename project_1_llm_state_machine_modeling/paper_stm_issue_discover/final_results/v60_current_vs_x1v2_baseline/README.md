@@ -31,22 +31,13 @@ pane5 人工监督确认、独立 subagent proposal、解盲和仲裁记录。�
 
 ## 当前主结果
 
-完整的并列表格和论文口径见[正式中文报告](./report/v60_current_vs_x1v2_baseline_v4_cn.md)。报告是当前发布面的 headline 入口；current v4 和 baseline v3 的逐侧 canonical JSON 是可审计事实源，不能把旧的 v2 summary 当成当前并列结果。
-下列仅列入口，不另建第二事实源：
+完整的并列表格和论文口径只见[正式 v4 中文报告](./report/v60_current_vs_x1v2_baseline_v4_cn.md)。报告是当前唯一的纸面 headline 入口；current v4、baseline v3 和 fair comparison 的 JSON/TSV 是可审计事实源。旧 v2 summary、旧 report 和旧 Judge 只作为历史 provenance，不再构成当前并列结果。
 
-- current/v60 的逐条裁定：[v4 decisions](./derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.json) 与 [v4 summary](./derived/manual_adjudication_v4_current_reaudit/summary_v4.json)；v2 只作为 v4 review provenance。
-- X1v2 baseline v3 的逐条非 K 重审：[baseline v3 decisions](./derived/manual_adjudication_v3_baseline_ni/baseline_report_decisions_v3.json) 与 [baseline v3 summary](./derived/manual_adjudication_v3_baseline_ni/recomputed_summary_v3.json)。`derived/manual_adjudication_v2/x1v2_report_decisions.json` 仅作为 v3 冻结 K 的历史 provenance，不是当前 baseline headline 的事实源。
+结构化入口如下：
 
-- v60/current：`D2/D1/D0/A0 = 721/259/120/171`；`K/N/I = 749/231/291`；ledger `K_hit/N_group/I_group = 119/121/189`。
-- X1v2 baseline v3：`D2/D1/D0/A0 = 342/75/85/10`；`K/N/I = 312/105/95`；ledger `K_hit/N_group/I_group = 106/98/95`。
-- v60/current 与 X1v2 baseline v3 的 report-based precision 分别为 `980/1271 = 77.10%` 与 `417/512 = 81.45%`；按各自有效单位公式得到的 ledger/group 诊断比值 `240/429 = 55.94%` 与 `204/299 = 68.23%` 只作诊断，不是论文主 precision。
-
-这些数字的单位不同。论文主结果只使用逐条 report-based precision：
-`(K reports + N reports) / all reports`。ledger/group 数值使用台账 `K_hit` 与同 side、同
-pair、跨 round 的 N substantive groups；I 只能保留为 invalid diagnostic cluster，不能被
-当作实质缺陷 group，因此该数值不用于主 precision。PARTIAL 只进入 supported coverage，
-不进入主 hit 或 FP。L2 ledger precision/FP 为 `not_applicable`，因为 N/I 没有自然的 L2
-expected 归属。
+- current/v60：[v4 decisions](./derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.json)、[v4 TSV](./derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.tsv)、[v4 summary](./derived/manual_adjudication_v4_current_reaudit/summary_v4.json)。
+- X1v2 baseline v3：[decisions](./derived/manual_adjudication_v3_baseline_ni/baseline_report_decisions_v3.json)、[TSV](./derived/manual_adjudication_v3_baseline_ni/baseline_report_decisions_v3.tsv)、[summary](./derived/manual_adjudication_v3_baseline_ni/recomputed_summary_v3.json)。
+- 统一比较层：[fair comparison README](./derived/fair_comparison_v4/README.md)、[combined summary](./derived/fair_comparison_v4/combined_summary_v4.json)、[manifest](./derived/fair_comparison_v4/fair_comparison_manifest_v4.json)。
 
 ### 数据源优先级与版本边界
 
@@ -68,7 +59,7 @@ receipt；baseline 没有同构 predicate receipt，predicate usage 显式为 `n
 只作附录诊断，不能替代 report-based precision。
 
 冻结 raw 中保留的 provider/model/prompt provenance 未被改写；这些历史元数据不进入
-canonical semantic label，也不作为任一侧能力证据。raw-first reviewer 使用去除这些字段
+canonical semantic label，也不作为任一侧能力证据。raw-first reviewer 使用去除这些字段的历史
 的 [reviewer projection](./derived/manual_adjudication_v2/reviewer_projection_audit.json)，
 两侧保留稳定 arm/pair/round token 和 source hash。X1v2 缺少同构 method commit、v60 Judge
 仍有未定价 usage；这两项按 manifest 和报告披露为数据缺口，未用推算补齐。predicate planned
@@ -89,14 +80,19 @@ field-level mapping 见 [semantic Judge protocol](../../discover_matrix/docs/pro
 从仓库根执行：
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/evaluation/src \
-python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/validate_manual_adjudication.py \
-  --directory project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v2
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/evaluation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation \
+python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/build_current_reaudit_v4.py \
+  --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline --validate-only
 
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/evaluation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation \
-python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/recompute_manual_adjudication.py \
-  --directory project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v2
+python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/validate_baseline_v3.py \
+  --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline
+
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/evaluation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation \
+python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/recompute_fair_comparison_v4.py \
+  --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline --validate-only
 ```
 
 归档和发布面的文件清单分别见 [archive_manifest.json](./archive_manifest.json) 和
-[publication_manifest.json](./publication_manifest.json)。
+[publication_manifest.json](./publication_manifest.json)。publication manifest 只绑定 v4 report、
+current v4、baseline v3、fair v4 和本轮 review；raw、v2 及其他历史层只由 archive manifest 保留。

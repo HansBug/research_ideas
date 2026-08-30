@@ -498,6 +498,36 @@ def _file_manifest(root: Path, *, excluded_relative_paths: set[str] | None = Non
     return files
 
 
+def _publication_file_manifest(root: Path) -> list[dict[str, Any]]:
+    """List only the current v4 publication surface, excluding raw and superseded layers."""
+
+    exact = {
+        "README.md",
+        "SCHEMA.md",
+        "report/v60_current_vs_x1v2_baseline_v4_cn.md",
+        "reviews/publication_docs_inventory_v4.json",
+        "reviews/publication_docs_inventory_v4.tsv",
+        "reviews/track_a_numeric_provenance_v4.md",
+        "reviews/track_b_semantic_fairness_v4.md",
+        "reviews/track_c_docs_navigation_academic_v4.md",
+        "reviews/final_publication_surface_review_v4.md",
+    }
+    prefixes = (
+        "derived/fair_comparison_v4/",
+        "derived/manual_adjudication_v4_current_reaudit/",
+        "derived/manual_adjudication_v3_baseline_ni/",
+    )
+    files: list[dict[str, Any]] = []
+    for path in sorted(root.rglob("*")):
+        if not path.is_file():
+            continue
+        relative_path = path.relative_to(root).as_posix()
+        if relative_path not in exact and not relative_path.startswith(prefixes):
+            continue
+        files.append({"path": relative_path, "bytes": path.stat().st_size, "sha256": _sha256(path)})
+    return files
+
+
 def _repository_root() -> Path:
     """Locate the checked-out repository that owns this evaluator-only module."""
 
@@ -773,15 +803,23 @@ def finalize(args: argparse.Namespace) -> int:
             "python3 -m paper_stm_evaluation.final_results_archive finalize --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline"
         ),
     })
+    publication_files = _publication_file_manifest(archive)
     _write(archive / "publication_manifest.json", {
         "schema": ARCHIVE_SCHEMA,
         "artifact_id": "v60-current-vs-x1v2-baseline-publication",
         "archive_relative_path": str(archive.relative_to(archive.parents[4])),
-        "included_files": _file_manifest(archive, excluded_relative_paths={"publication_manifest.json"}),
+        "included_files": publication_files,
         "excluded_rules": EXCLUDED_RULES,
+        "publication_surface": {
+            "current_headline": "report/v60_current_vs_x1v2_baseline_v4_cn.md",
+            "current_canonical_prefix": "derived/manual_adjudication_v4_current_reaudit/",
+            "baseline_canonical_prefix": "derived/manual_adjudication_v3_baseline_ni/",
+            "comparison_prefix": "derived/fair_comparison_v4/",
+            "historical_pointer": "archive_manifest.json",
+        },
         "offline_recomputation_complete": True,
-        "reason": "Publication manifest for archived raw evidence, derived summaries, report, and review records.",
-        "basis": "The validate command checks every listed SHA-256, then recomputes the metrics from archived raw inputs without a provider.",
+        "reason": "Publication manifest for the current v4 report and versioned canonical/derived layers only; raw and superseded layers remain bound by archive_manifest.json.",
+        "basis": "The validate command checks every listed SHA-256 and validates the explicit v4 allowlist without treating raw or superseded layers as current headline data.",
         **_manifest_generation_metadata(
             "python3 -m paper_stm_evaluation.final_results_archive finalize --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline"
         ),
@@ -838,7 +876,7 @@ def validate(args: argparse.Namespace) -> int:
         manifest = _load(publication_manifest)
         if manifest.get("schema") != ARCHIVE_SCHEMA:
             raise ValueError(f"unexpected publication manifest schema: {manifest.get('schema')!r}")
-        expected = _file_manifest(archive, excluded_relative_paths={"publication_manifest.json"})
+        expected = _publication_file_manifest(archive)
         if manifest.get("included_files") != expected:
             raise ValueError("publication manifest does not cover the current archive")
         for item in manifest["included_files"]:

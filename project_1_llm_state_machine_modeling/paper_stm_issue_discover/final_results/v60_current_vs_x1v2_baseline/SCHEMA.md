@@ -51,8 +51,9 @@ current v4 的输入闭包另见 `derived/manual_adjudication_v4_current_reaudit
 
 ## ReportDecision
 
-`v60_report_decisions.json` 与 `x1v2_report_decisions.json` 是 Pydantic
-`ReportDecisionSet` 的 canonical JSON；TSV 是固定列、逐字段相同的镜像。每条决策至少保存：
+`derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.json` 与
+`derived/manual_adjudication_v3_baseline_ni/baseline_report_decisions_v3.json` 是两侧
+Pydantic canonical JSON；各自 TSV 是固定列、逐字段相同的镜像。每条决策至少保存：
 
 - `side`, `pair_id`, `round`, `report_id`, `report_index`；
 - raw method record path、report JSON Pointer、claim/where pointer 和 SHA-256；
@@ -105,16 +106,16 @@ report-based FP rate = INVALID / all final reports
 ```text
 K_hit = unique expected issue with at least one FULL across three rounds
 N_group = same-side, same-pair, cross-round merged VALID_NOVEL substantive groups
-I_group = same-side, same-pair, cross-round merged INVALID diagnostic clusters (diagnostic only)
-ledger/group diagnostic ratio = (K_hit + N_group) / (K_hit + N_group + I_group)
-ledger/group diagnostic invalid share = I_group / (K_hit + N_group + I_group)
+I_diagnostic_cluster = same-side, same-pair, cross-round merged INVALID diagnostic cluster (diagnostic only; not a substantive defect entity)
+ledger/group diagnostic ratio = (K_hit + N_group) / (K_hit + N_group + I_diagnostic_cluster)
+ledger/group diagnostic invalid share = I_diagnostic_cluster / (K_hit + N_group + I_diagnostic_cluster)
 ```
 
-N/I group identity 至少包含 `side + pair_id + canonical_group_key`，并由人工确认的
+N/I identity 至少包含 `side + pair_id + canonical_group_key`，并由人工确认的
 property、author-source locus、repair obligation 和 substantive cause 支持；不跨 side/pair，
 不按文本相似度、状态名或 expected ID 自动合并。`partial_only_known_report` 和
 `partial_only_known_expected` 单独报告，不进入 K_hit 或 FP。N group 是实质性问题的
-secondary analysis；I group 不是缺陷实体，只是诊断聚类，不能用于论文主 precision 或 FP
+secondary analysis；I diagnostic cluster 不是缺陷实体，只是诊断聚类，不能用于论文主 precision 或 FP
 结论。I 中的 D0、A0/`FALSE_POSITIVE`、A0/`NOT_A_DEFECT_CLAIM` 没有共同的
 normative obligation、source locus 或 repair intent，不能仅凭 subtype、文本相似或同一
 pair 合并。L2 ledger precision/FP 是 `not_applicable`，因为 N/I group 没有自然的 L2
@@ -170,12 +171,6 @@ python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/ev
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/evaluation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation \
 python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/recompute_fair_comparison_v4.py \
   --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline --validate-only
-```
-
-```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/evaluation/src \
-python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/evaluation/validate_manual_adjudication.py \
-  --directory project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v2
 ```
 
 所有指标由 canonical JSON provider-free 重算。X1v2 缺少同构 method commit，v60 Judge 有

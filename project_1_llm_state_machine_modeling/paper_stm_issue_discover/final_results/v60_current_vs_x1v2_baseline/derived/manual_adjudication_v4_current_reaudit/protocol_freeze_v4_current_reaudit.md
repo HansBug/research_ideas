@@ -1,6 +1,7 @@
 # v60/current re-audit v4 protocol freeze
 
-Protocol ID: `issue-189-195-current-reaudit-v4`.
+Semantic protocol ID: `issue-189-195-manual-evidence-v2`.
+Layer/version: `current-reaudit-v4` (revalidation layer, not a new semantic protocol).
 
 This is a source-first evaluation-layer revalidation. The fixed order is:
 

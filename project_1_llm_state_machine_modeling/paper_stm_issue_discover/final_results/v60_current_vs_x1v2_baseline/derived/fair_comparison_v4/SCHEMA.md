@@ -13,7 +13,7 @@ metrics, not a second semantic label source.
 | `source_layer`, `canonical_path` | Versioned source of the row | required repository-relative paths |
 | `raw_method_path`, `raw_json_pointer`, `raw_sha256` | Immutable raw evidence address | required path/pointer/hash |
 | `full_ledger_ids`, `partial_ledger_ids` | Positive relation projections | required arrays, possibly empty |
-| `group_id` | N group only | nullable for K/I |
+| `group_id` | N substantive group or I diagnostic cluster; I IDs are diagnostic only and never a defect/group-precision unit | nullable for K |
 
 All metrics use `Metric`-style numerator/denominator/percentage objects. Hit
 and supported coverage use expected-round units (`145 x 3 = 435`) or unique

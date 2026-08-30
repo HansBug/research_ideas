@@ -69,7 +69,8 @@ log.
 The materializer carries a small, explicit pane5 correction table for
 cross-instance positives discovered during source reread.  It resets omitted
 ledger IDs to `NO_MATCH`, downgrades family-only matches to `PARTIAL_MATCH`,
-and records two source-refuted candidate claims as `D0`/`A0`.  This table is
+and records source-backed D/A corrections, including `D0`, `A0/FALSE_POSITIVE`
+and the explicitly reviewed `D1` cases. This table is
 provider-free, versioned in `build_pane5_register_v3.py`, and applied before
 the canonical rebuild; it is intentionally not inferred from a majority vote.
 
