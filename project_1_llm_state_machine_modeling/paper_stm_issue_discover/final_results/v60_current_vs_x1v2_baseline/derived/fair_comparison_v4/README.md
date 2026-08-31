@@ -2,7 +2,7 @@
 
 This is the paper-facing comparison layer. The only headline sides are
 `v60_current` from current re-audit v4 and `x1v2_baseline` from the frozen
-baseline v3 layer. Historical v2/v46/v27/Judge outputs remain byte-preserved,
+baseline v3 layer. Historical v2/v46/v27 and superseded manual-adjudication outputs remain byte-preserved,
 but current navigation and manifests expose them only as archive/provenance,
 not as headline results.
 
@@ -18,7 +18,7 @@ issue-level coverage claim. X1v2 has no corresponding predicate
 binding/receipt schema, so its predicate usage is `N/A`, not zero.
 
 The summary also retains `825/1271` report-bound binding rows and `303/825`
-legacy `coverage_class=semantic_hit` markers as row-level diagnostics. These are
+legacy `coverage_class` markers as row-level diagnostics. These are
 not substitutes for 12/19 or 8/19. The detailed per-entry property/input and
 predicate-capability audit remain internal evaluation-only material.
 
@@ -36,10 +36,10 @@ predicate-capability audit remain internal evaluation-only material.
 The full narrative is [the v4 paper report](../../report/v60_current_vs_x1v2_baseline_v4_cn.md).
 
 The provider-free [conversion attribution v1 overlay](../conversion_attribution_v1/README.md)
-explains all 291 current invalid report dispositions (including 118 current-only NADC
-dispositions) without changing this comparison layer or its headline. It confirms 110
+classifies all 291 current invalid report dispositions (including 118 current-only NADC
+dispositions) without changing this comparison layer or its headline. It records 110
 method-owned internal mechanisms, leaves 8 records indeterminate, and confirms no
-lowering-only semantic error; baseline v3 has no isomorphic NADC classification.
+lowering-only confirmed error; baseline v3 has no isomorphic NADC classification.
 
 ## Publication rule
 
@@ -63,4 +63,4 @@ python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/ev
   --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline
 ```
 
-This command is provider-free and performs no method or Judge run.
+This command is provider-free and performs no method run or new manual adjudication.

@@ -1,3 +1,5 @@
+> Historical/partially superseded record. Retained for route provenance only; it is not a current Paper1 result source. Use the [final v60/current v4 vs X1v2 baseline v3 report](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md) and [final handoff talk](./2026-08-31-paper1-v60-current与X1v2-baseline最终定性与PR收尾.md).
+
 # 2026-07-07 导师讨论：paper1 从 Better STM 转向 source-level 问题发现与闭合
 
 ## 1. 执行摘要

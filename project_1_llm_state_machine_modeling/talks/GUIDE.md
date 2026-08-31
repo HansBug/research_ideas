@@ -1,4 +1,6 @@
-# project_1 正式导师讨论文库维护指南
+# project_1 Paper1 talks 维护指南
+
+> 本目录同时保存导师记录、实验/调研 provenance 和 Paper1 交班 talk。默认入口见 [README.md](./README.md)；当前结果必须回到 [final-results v4](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/README.md)。
 
 ## 1. 与 `discussions/` 的区别
 
@@ -59,6 +61,14 @@ yyyy-mm-dd-导师-主题.md
 4. 对已有结论的覆盖关系要写清楚，例如“本次导师意见覆盖 PR #31 原先 Path-2/Hybrid 倾向”。
 5. 若涉及术语定义、baseline、评价口径、样本选择、贡献定位，应写成后续 paper drafting 可以直接复用的句子。
 6. 若某项建议是“暂缓/不做”，也必须写清楚理由，避免后续 agent 反复把它加回计划。
+
+## 4.1 当前结果与历史边界
+
+1. 当前 Paper1 只讨论 v60/current v4 与 X1v2 baseline v3；v46、v27、v2、旧人工裁定记录和旧 witness audit 只能保留在 historical/provenance 位置。
+2. 当前 headline 只存在于 final-results v4 正式报告；talk 可以解释它，但不能建立第二套数字事实源。所有数字、单位、分母、路径和限定词必须能回链到 canonical JSON/TSV 或正式报告。
+3. `current route decision` 只表示路线已选定，不表示实验结果；`provenance` 只表示可复用背景；`historical/superseded` 明确表示历史/已被覆盖，不可作为当前结果来源。
+4. 默认阅读路径为 `talks/README.md -> 最终交班 talk -> final-results v4 report -> current v4 / baseline v3 / fair v4`。SUMMARY 只做导航，不重复 headline 表格。
+5. 新增或更新流程性文本时，按 docs 场景先列 protected spans，再做保真回读；不得删除失败、限制、证据等级或责任主体来改善文风。
 
 ## 5. 优先级规则
 

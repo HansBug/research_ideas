@@ -2,14 +2,14 @@
 
 **Scope:** Paper1 current v4 versus X1v2 baseline v3 documentation, navigation,
 manifest and provider-free recomputation. This review does not relabel canonical
-semantic decisions.
+decisions.
 
 ## Independent tracks
 
 | Track | Reviewer | Initial result | Final result |
 | --- | --- | --- | --- |
 | A numeric/provenance | `01a05261-bfcb-7c60-b697-b146093725a3` | Canonical numbers PASS; manifest/link FAIL | PASS after link repair and manifest regeneration |
-| B semantic/fairness | `01a05261-c0b9-79a1-9cbc-2a099331b0b0` | Canonical closure PASS; protocol/schema prose FAIL | PASS after protocol and field-description fixes |
+| B fairness | `01a05261-c0b9-79a1-9cbc-2a099331b0b0` | Canonical closure PASS; protocol/schema prose FAIL | PASS after protocol and field-description fixes |
 | C docs/navigation/academic | `01a05261-c0f1-7591-933a-8349b1275b52` | Entry/manifest/link FAIL | PASS after surface, link and manifest fixes |
 
 These are independent subagent QA tracks, not a claim of a new human
@@ -93,8 +93,8 @@ Final execution boundary: `provider_calls=0`, `method_reruns=0`,
 
 | Track | Final reviewer | Result | Final scope |
 | --- | --- | --- | --- |
-| A numeric/provenance | `codex-track-a-narrow-readonly-20260831` | PASS | Four publication summaries, mirrors, 2953 archive entries, 88 publication entries, current/fair manifests, stable 1217-row inventory and headline arithmetic |
-| B semantic/fairness | `codex:track-b-predicate-publication-narrow:a69ef442` | PASS | Predicate publication boundary, baseline N/A, protocol IDs, D/A-relation-K/N/I closure, N grouping, I non-grouping and manual-supervision scope |
+| A numeric/provenance | `codex-track-a-narrow-readonly-20260831` | PASS | Four publication summaries, mirrors, 2982 archive entries, 90 publication entries, current/fair manifests, stable 1217-row inventory and headline arithmetic |
+| B fairness | `codex:track-b-predicate-publication-narrow:a69ef442` | PASS | Predicate publication boundary, baseline N/A, protocol IDs, D/A-relation-K/N/I closure, N grouping, I non-grouping and manual-supervision scope |
 | C docs/navigation/academic | `codex:track-c-final-narrow-readonly` | PASS | Unique route, historical markings, publication/archive split, 898 tracked Markdown files, 6142 relative links, DOI/title metadata and Shuorenhua fidelity |
 
 The final current/fair publication summaries contain only `status`,
@@ -120,4 +120,26 @@ The final provider-free run, after all review logs were written, produced:
 | summary mirrors | current, baseline and fair pairs are byte-identical |
 | protected evidence diff | empty for raw, reference and both sides' canonical decision/relation files relative to `4683524f203c6bd77f18a1a32aae8e9c53fdc399` |
 
-This gate made no provider call and did not run method, Judge, 15x1 or 54x3.
+This gate made no provider call and did not run method, Judge, 15x1 or 54x3. All validity,
+relation, D/A, K/N/I and component-analysis decisions cited by this review were completed by
+human adjudication; the machine checks only read those artifacts and recomputed their summaries.
+
+## Final pane5 arbitration after wording review (2026-09-01)
+
+The final pane5 review incorporated three independent read-only tracks. Track A
+confirmed the canonical arithmetic and the distinction between `12/19` and
+`8/19`; Track B confirmed the #189/#195 closure and the disjunctive FULL rule;
+Track C confirmed navigation, citations, history labels and the final talk.
+The only pre-finalizer findings were stale publication prose or hashes. Pane5
+resolved them without changing canonical data: paper-facing text describes all
+validity, relation, D/A, K/N/I and component-analysis decisions as completed by
+human adjudication, while provider-free code only validates, closes fixed
+records and recomputes numbers.
+
+The current release surface remains one v4 headline report, current v4 and
+baseline v3 canonical layers, fair v4, conversion attribution v1, required
+schemas/reviews and the final handoff talk. Historical reports, old manual
+judgment records, v2/v27/v46 materials and provenance-only artifacts remain
+excluded from the current headline. Finalizer and fresh validators must be
+rerun after this review entry so the top-level manifest hashes cover this exact
+text.

@@ -5,11 +5,11 @@ comparison with X1v2 baseline v3. It revalidates the existing pane5-confirmed
 current decisions against the immutable raw records, author NL/PlantUML
 sources, source hashes, and the complete 145-item relation closure. It does
 not claim a new human inter-rater experiment and it does not infer labels from
-Judge output, predicates, W level, or ledger absence.
+completed manual-adjudication records, predicates, W level, or ledger absence.
 
 The current v2 layer is retained and is the evidence source for the prior
 source-first review chain. This v4 layer is new and is not a replacement for
-raw, reference, method, Judge, predicate, v2, or baseline-v3 artifacts.
+raw, reference, method, manual-adjudication, predicate, v2, or baseline-v3 artifacts.
 
 ## Predicate facts
 
@@ -59,7 +59,7 @@ python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/ev
   --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline
 ```
 
-The command is provider-free and performs no method or Judge run.
+The command is provider-free and performs no method run or new manual adjudication.
 
 To rebuild only the I diagnostic membership projection, run
 `scripts/evaluation/build_current_i_diagnostic_clusters_v4.py`; to refresh only

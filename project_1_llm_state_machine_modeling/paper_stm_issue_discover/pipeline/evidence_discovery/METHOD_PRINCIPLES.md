@@ -2,7 +2,7 @@
 
 ## 1. 冻结边界
 
-`four-family-19-core.v1` 的 19 个谓词均已完成学术资格审查。注册表冻结的是定义、最小 typed contract、来源 metadata、soundness fragment 和 backend 实现义务，不是某次运行的结果。不得新增谓词或修改冻结定义；也不得以成本、台账覆盖率、单个 pair 或文献管理标签把无关语义挂到邻近谓词。
+`four-family-19-core.v1` 的 19 个谓词均有冻结定义、最小 typed contract、来源映射、soundness fragment 和 backend 实现义务；当前 provenance 已完成 source-ID mapping、claim-support 和 boundary 对照，但不是完整书目或全文逐字资格审查。注册表冻结的内容不是某次运行的结果。不得新增谓词或修改冻结定义；也不得以成本、台账覆盖率、单个 pair 或文献管理标签把无关语义挂到邻近谓词。
 
 bibliography metadata 只解释“为什么该谓词在学术与领域叙事中成立”。运行时只回答“该谓词是否在当前制品上以合法输入真实执行”。两者正交；来源管理信息不得影响 W、backend、D 或 publication。
 

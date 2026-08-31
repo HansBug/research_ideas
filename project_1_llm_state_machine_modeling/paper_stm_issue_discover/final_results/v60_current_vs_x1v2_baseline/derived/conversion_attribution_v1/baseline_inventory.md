@@ -1,8 +1,8 @@
 # Baseline inventory
 
 - branch: `paper1/m-witness-discovery`
-- HEAD: `7364ec4c429997b20c39d975396ec0d0ecf311b4`
-- latest commit: `7364ec4c429997b20c39d975396ec0d0ecf311b4 docs(paper1): align predicate narrative with frozen results`
+- HEAD: `9b512558123f305971e16746b9b48560c832cd6f`
+- latest commit: `9b512558123f305971e16746b9b48560c832cd6f docs(paper1): attribute current invalid reports and gate rerun`
 - execution scope: provider calls `0`; method reruns `0`; Judge reruns `0`
 
 | fact | value | frozen source |

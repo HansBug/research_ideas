@@ -1,6 +1,6 @@
 # 谓词学术来源档案
 
-本目录保存 `four-family-19-core.v1` 的来源 ID、原始落点、三类来源与适用边界。19 个冻结谓词均已完成学术资格审查；本目录提供可复核的 scholarly provenance，而不是运行时资格判定。
+本目录保存 `four-family-19-core.v1` 的来源 ID、原始落点、三类来源与适用边界。当前已完成 19 个冻结谓词的 source-ID mapping、claim-support 和 boundary 对照；这不是完整书目、DOI 或全文逐字核验。本目录提供可复核的 scholarly provenance，而不是运行时资格判定。
 
 机器目录是 [current_source_catalog.json](current_source_catalog.json)，人工入口是 [CURRENT_SOURCE_AUDIT.md](CURRENT_SOURCE_AUDIT.md)。每个来源记录 `id`、`types`、`title`、`paths`、`supports` 与 `boundary`，并可由 registry 的 `source_ids` 回链。
 

@@ -1,3 +1,5 @@
+> Current route decision only. This record fixes the Paper1 scope; it is not an experiment result or a second headline source. Use the [final v60/current v4 vs X1v2 baseline v3 report](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md) for current data.
+
 # 2026-08-07 / 08-08 导师讨论：paper1 收窄为 issue discover，单独成篇
 
 > **性质**：正式导师讨论记录。本文件是 paper1 当前定位的**最高优先级依据**，覆盖此前 [2026-07-07](./2026-07-07-导师-paper1发现修正与BetterSTM归档.md) 的「discovery **and closure**」口径。

@@ -11,7 +11,7 @@
 | [provenance/](./provenance/README.md) | 逐 pair review、人工裁决、去重和来源追溯 |
 | [X1V2_RESULTS.md](./X1V2_RESULTS.md) | 已替代的历史 X1v2 Judge 结果，仅保留 provenance |
 
-`D` 表示问题主张在 ledger 形成时的裁定，`L` 表示陈述该问题所需的分析层级。它们不等同于 method 的 W 或 D，也不等同于 Judge 的 relation/validity。方法不读取此 ledger；Semantic Judge 的 relation 阶段只接收评测层显式投影的 expected material，evaluation 再以其输出计算 hit 和 precision。
+`D` 表示问题主张在 ledger 形成时的裁定，`L` 表示陈述该问题所需的分析层级。它们不等同于 method 的 W 或 D，也不等同于人工 Judge 的 relation/validity。方法不读取此 ledger；issue #195 的人工 relation 裁定只接收评测层显式投影的 expected material，evaluation 再以人工输出机械计算 hit 和 precision。
 
 `predicate_gold_v1/` 保存内部的 source-backed executable-property 与输入审计。它不进入 method registry、prompt、routing 或 package data，也不改变既有 hit、W、K/N/I。旧 registry 的 `118/145` 只是一份 `planned_mapping_not_new_method_measurement` 设计期快照；当前审计记录以该目录的 canonical JSON 为准。
 

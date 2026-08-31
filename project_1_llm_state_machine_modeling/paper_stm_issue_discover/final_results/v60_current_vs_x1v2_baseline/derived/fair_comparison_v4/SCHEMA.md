@@ -22,7 +22,7 @@ hits as its denominator. The current predicate block contains four separate
 units: registry size/family counts; distinct predicate IDs with a terminal
 receipt (12/19); distinct predicate IDs in report-bound findings (8/19); and
 row-level diagnostics (`report_bound_binding` 825/1271 plus the legacy
-`semantic_hit` marker 303/825). The distinct-ID metrics are sourced from the
+legacy coverage marker 303/825). The distinct-ID metrics are sourced from the
 frozen method summary and current v4 canonical decisions; the row-level
 diagnostics are not substitutes for them. None is a finding, W2, hit, or
 issue-level coverage metric. The marker is not equated with a

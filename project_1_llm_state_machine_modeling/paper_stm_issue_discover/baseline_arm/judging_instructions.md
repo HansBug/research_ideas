@@ -2,7 +2,7 @@
 
 > **Legacy judging material.** 本文件仅用于复现历史 X1/X1v2 人工判定，不是现行 Judge
 > prompt，也不得再发给正式判定者。现行 baseline 与 method 共用
-> [issue #195 统一 Judge](../discover_matrix/docs/protocol/semantic_judge_protocol.md)：
+> [issue #195 人工 Judge](../discover_matrix/docs/protocol/semantic_judge_protocol.md)：
 > validity-first、FULL/PARTIAL/NO、后端派生 K/N/I、双读与冲突仲裁。本文旧 hit 枚举、
 > 单读输出和 exact-field 边界不能覆盖新协议。
 

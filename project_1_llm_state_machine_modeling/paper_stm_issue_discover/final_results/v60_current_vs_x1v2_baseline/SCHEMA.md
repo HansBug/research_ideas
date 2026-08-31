@@ -2,8 +2,8 @@
 
 current/v60 的当前 headline 来自 `derived/manual_adjudication_v4_current_reaudit/`；X1v2
 baseline 非 K 的当前发布结果来自 `derived/manual_adjudication_v3_baseline_ni/`。两层共同支撑当前并列报告；旧
-Judge、旧 witness audit、旧 reviews 只由 archive/provenance 入口保留，不是当前人工真值。
-冻结 raw、reference ledger、method/Judge 输入和 predicate registry 不由本次重评修改。
+旧人工裁定记录、旧 witness audit、旧 reviews 只由 archive/provenance 入口保留，不是当前人工真值。
+冻结 raw、reference ledger、method 输入和 predicate registry 不由本次重评修改。
 
 论文真值中，current/v60 来自本目录 v4 对既有 pane5 source-first 确认的逐条
 raw/source/hash/relation 再验证和确定性派生；v2 仅是该审计链的 provenance。baseline v3 只写入非 K 重审层，原 K
@@ -35,7 +35,7 @@ arbitration、`reviews/arbitration_log_v3.json` 的逐条 pointer、human confir
 reference；proposal 不能冒充人工真值。
 
 `frozen_k_snapshot_v3.json` 是原有 279 K 的精确 v2 projection，`baseline_combined_512_v3.json`
-只把该 projection 与 233 条 v3 decision 组合。v3 不修改 current/v60、method、Judge、predicate、
+只把该 projection 与 233 条 v3 decision 组合。v3 不修改 current/v60、method、人工裁定、predicate、
 prompt、raw 或既有 v2 目录。
 
 ## 输入闭包
@@ -156,11 +156,11 @@ report index、raw pointer、raw target hash 和 producer-specific location fiel
 reviewer 输入投影。`location_text` 在两臂均固定为空；精确 raw identity/hash 只在独立
 proposal 提交后可见的 `reviewer_unblind_mapping.json` 与 canonical evidence 中保存。
 每个 pair/round 使用两臂相同的 slot universe；padding slot 是空输入闭合记录，不能成为
-finding、semantic label 或统计单位。冻结 raw 中保留的历史元数据和精确 pointer 只在
+finding、classification 或统计单位。冻结 raw 中保留的历史元数据和精确 pointer 只在
 inventory/canonical evidence 中保存。`MANIFEST` 绑定上述 canonical 文件、TSV、输入 manifests、projection 和 supporting
 artifacts；顶层 `archive_manifest.json` 与 `publication_manifest.json` 绑定整个归档发布面。
 `reviews/shuorenhua_process_v3.json` 另存 docs 场景的 protected spans、首轮问题清单、
-二次回读和 fidelity diff；它是文风与文档保真审计，不是语义标签来源。
+二次回读和 fidelity diff；它是文风与文档保真审计，不是分类来源。
 
 ## 可复现与限制
 
@@ -175,7 +175,7 @@ python3 project_1_llm_state_machine_modeling/paper_stm_issue_discover/scripts/ev
   --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline --validate-only
 ```
 
-所有指标由 canonical JSON provider-free 重算。X1v2 缺少同构 method commit，v60 Judge 有
+所有指标由 canonical JSON provider-free 重算。X1v2 缺少同构 method commit，v60 人工裁定有
 未定价 usage；source catalog 中缺失的作者/出版物字段也保留为 evidence gap，不能从标题或
 二手摘要补造。台账不完备、人工归并粒度、L2 语义边界、baseline schema 差异和观察性比较
 不能推出因果。

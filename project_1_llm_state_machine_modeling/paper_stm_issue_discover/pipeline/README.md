@@ -1,6 +1,6 @@
 # pipeline：输入准备与基础设施导航
 
-当前可发布的运行时实现不再位于 `pipeline/`：方法、Semantic Judge 和评测分别在 [../method/](../method/README.md)、[../judge/](../judge/README.md) 与 [../evaluation/](../evaluation/README.md)。本目录保留输入准备、转换制品、兼容 namespace 和需要追溯的基础设施材料；它不是当前论文的结果入口。
+当前可发布的运行时实现不再位于 `pipeline/`：方法、人工 Judge 协议与评测分别在 [../method/](../method/README.md)、[../judge/](../judge/README.md) 与 [../evaluation/](../evaluation/README.md)。本目录保留输入准备、转换制品、兼容 namespace 和需要追溯的基础设施材料；它不是当前论文的结果入口。
 
 | 路径 | 当前职责 | 边界 |
 | --- | --- | --- |

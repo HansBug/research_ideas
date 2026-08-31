@@ -86,9 +86,9 @@ read-only and made no canonical-data or experiment change.
 
 Reviewer `codex:track-c-final-narrow-readonly` checked the final working tree.
 `SUMMARY.md` routes to the final-results README, which names the v4 Chinese
-report as the only paper headline. The publication manifest contains 88 files
+report as the only paper headline. The publication manifest contains 90 files
 and one report; raw, reference, v2, history and the historical redirect remain
-archive-only. The archive manifest contains 2953 files.
+archive-only. The archive manifest contains 2982 files.
 
 An independent scan covered 898 tracked Markdown files and 6142 relative file
 links with zero broken target. The main report and final publication review no
@@ -103,4 +103,27 @@ limitations and evidence paths, and identifies removal of old witness fields
 as a publication-scope decision. Publication tests reported `7 passed`; all
 publication, archive and fair-manifest hashes matched at review time. The
 reviewer made no edit and recorded zero provider, method, Judge or experiment
-run. Final result: **PASS**, with no unresolved in-scope evidence gap.
+run. Final result: **PASS**, with no unresolved in-scope evidence gap. The earlier
+`88/2953` values remain only as a pre-finalization snapshot retained above; the
+current HEAD surface is `90/2982`. All Judge, validity, relation, D/A, K/N/I and
+component-analysis decisions are described as human adjudications; this track only
+checks navigation, metadata and links.
+
+## Post-fix HEAD-specific closure (2026-09-01)
+
+Reviewer `01a05884-8317-7fa1-9564-9d259f0fbfbe` rechecked the current working
+tree after the final talk and current-facing wording fixes. The unique route,
+current/history boundaries, issue #189/#195 links, relative links, citation
+metadata, and explicit human-adjudication wording all pass. The reviewer also
+confirmed that the FULL definition must retain #195's disjunctive rule: same
+defect instance, root cause, violated obligation, or a directly attributable
+manifestation, with compatible source/context.
+
+The earlier findings were publication-layer issues only: an untracked final
+talk, stale relation wording, and stale manifest counts. The talk is now in the
+tracked release set, relation wording is aligned with the issue source, and the
+`90` publication / `2982` archive counts are the current manifest counts. The
+paper-facing text calls validity, relation, D/A, K/N/I and component analysis
+human adjudications; the evaluator only performs deterministic closure,
+validation and arithmetic. No canonical data or experiment artifact changed.
+Final disposition: **PASS after manifest finalization**.

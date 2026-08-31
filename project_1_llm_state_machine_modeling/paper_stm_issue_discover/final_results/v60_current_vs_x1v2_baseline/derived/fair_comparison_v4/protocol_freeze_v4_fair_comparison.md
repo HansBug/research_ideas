@@ -20,7 +20,7 @@ is a substantive group unit, and I is an invalid report with optional
 diagnostic clusters. I clusters are not defects and are not used as a
 substantive grouped precision denominator.
 
-This layer is provider-free. It does not call method, Judge, or any provider,
-and does not modify raw, reference, method, Judge, predicate, v2, or v3
+This layer is provider-free. It does not call method or any provider, and does
+not perform new manual adjudication or modify raw, reference, method, predicate, v2, or v3
 artifacts. It is a deterministic projection and recomputation over saved
 canonical layers.

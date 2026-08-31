@@ -1,6 +1,6 @@
 # Paper STM Evaluation
 
-`paper-stm-evaluation` 负责 provider-free 的评测和报告：headline comparison 读取已经完成的 method 与 Judge 制品、ledger 和冻结参考数据，计算并验证跨 arm 指标。method 和 Judge 都不 import evaluation；evaluation 不参与发现、discovery-time method predicate execution 或 Semantic Judge 判定。隔离的 predicate-gold 子模块可以执行和重放预冻结 evaluation-only query，边界见下文。
+`paper-stm-evaluation` 负责 provider-free 的评测和报告：headline comparison 读取已经完成的 method 与人工裁定制品、ledger 和冻结参考数据，计算并验证跨 arm 指标。所有 validity、relation、D/A、K/N/I 和成分分析先由人工完成；evaluation 不参与发现，也不重新裁定，只做结构校验、机械汇总和算术复算。method 不 import evaluation。隔离的 predicate-gold 子模块可以执行和重放预冻结 evaluation-only query，边界见下文。
 
 ## 指标所有权
 
@@ -10,11 +10,11 @@
 | hit@3 | 每条 expected 在 3 个 round 中至少一次 `FULL`，分母 145 |
 | hit@all | 每条 expected 在 3 个 round 中均为 `FULL`，分母 145 |
 | L2 | 仅 ledger 的 L2 expected；当前分母分别为 117 round-level row 或 39 expected |
-| semantic precision | `VALID_KNOWN + VALID_NOVEL` 除以全部 report；`INVALID` 才是 semantic FP |
-| K/N/I | report-level 与 root-cause cluster-level 的 `VALID_KNOWN`、`VALID_NOVEL`、`INVALID` 汇总 |
+| report-based precision | `VALID_KNOWN + VALID_NOVEL` 除以全部 report；`INVALID` report 才进入 ordinary FP |
+| K/N/I | 人工裁定后的 report-level 与 root-cause cluster-level 的 `VALID_KNOWN`、`VALID_NOVEL`、`INVALID` 汇总 |
 | W-on-hits | 对每条 `FULL` expected 聚合其 supporting report 的最高 W；分母是 FULL hits，不是 finding 数 |
 | predicate execution usage | registry 中产生至少一条 terminal receipt 的 distinct predicate-ID 覆盖；v60 为 12/19 |
-| cost | method/Judge 调用、token、cache、retry 与 cost eligibility；缺少可定价 usage 时不以估算值补齐 |
+| cost | method 调用、token、cache、retry 与 cost eligibility；缺少可定价 usage 时不以估算值补齐 |
 
 W 不依赖 19 谓词体系。X1v2 的 predicate usage 不适用，但其 W 来自 512 条冻结 finding 的两轮独立逐条审计；evaluation 将此 finding-level 结果按冻结 `full_report_ids` 聚合为 hit-level max-W。
 
@@ -41,7 +41,7 @@ decisions 显示，8 个 distinct predicate IDs 至少绑定到一条 report-bou
 N/A，不是零。
 
 fair-comparison summary 同时保留 `825/1271` report-bound binding rows 和
-`303/825` legacy `coverage_class=semantic_hit` marker，作为行级审计诊断；它们
+`303/825` legacy `coverage_class` marker，作为行级审计诊断；它们
 不替代上面的 12/19、8/19 distinct-ID 指标。逐条 property/input 审计及其详细
 能力审计属于 evaluation-only 材料，不是 paper1 方法输入或主结果。
 

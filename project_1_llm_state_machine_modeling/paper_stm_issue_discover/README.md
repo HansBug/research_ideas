@@ -12,20 +12,20 @@
 
 ## 当前方法与评测
 
-现行 runner 的顺序是：输入闭包准备，NL contract extraction，必要时一次有界的 contract completion，两个互补的 discovery-grounding lens，确定性 frontier、predicate routing、typed input binding 与 backend execution，方法内 D adjudication 和受限定向 correction，确定性 W，D1/D2 publication 与 exact typed deduplication。随后独立 Semantic Judge 按 issue #195 执行 relation 与 validity 两个正交维度的裁定，最后由 provider-free evaluation 汇总指标。
+现行 runner 的顺序是：输入闭包准备，NL contract extraction，必要时一次有界的 contract completion，两个互补的 discovery-grounding lens，确定性 frontier、predicate routing、typed input binding 与 backend execution，人工 D adjudication 和受限定向 correction，确定性 W，D1/D2 publication 与 exact typed deduplication。随后由人工按 issue #195 对 relation 与 validity 两个正交维度作裁定，最后由 provider-free evaluation 机械汇总指标。Paper1 的全部 validity、relation、D/A、K/N/I 和成分分析判断均以人工裁定为准；机器只读取已完成的裁定制品并做校验、镜像和算术复算。
 
-冻结的 19 个谓词来自相关状态机、形式化验证和执行语义文献，分为 Structure (6)、Topology (4)、Trajectory simulation (4) 和 Bounded verification (5) 四族。v60 中有 12 个不同的 predicate ID 产生过 terminal receipt，其中 8 个不同的 predicate ID 出现在至少一条 report-bound finding 中。这里的执行统计和 report-bound presence 是两个不同的 distinct-ID 指标，不等于 finding 数、W2 数或 hit 数。谓词不是问题发现的准入门；没有适合谓词的具体问题仍可按 W1 或 W0 进入方法内 D 裁定。D2/D1 才会发布，D0 不发布；L 是 ledger 的分类字段，方法不输出 L。方法不读取 ledger、评测裁定、Judge 输出或历史 report。
+冻结的 19 个谓词来自相关状态机、形式化验证和执行语义文献，分为 Structure (6)、Topology (4)、Trajectory simulation (4) 和 Bounded verification (5) 四族。v60 中有 12 个不同的 predicate ID 产生过 terminal receipt，其中 8 个不同的 predicate ID 出现在至少一条 report-bound finding 中。这里的执行统计和 report-bound presence 是两个不同的 distinct-ID 指标，不等于 finding 数、W2 数或 hit 数。谓词不是问题发现的准入门；没有适合谓词的具体问题仍可按 W1 或 W0 进入方法内 D 裁定。D2/D1 才会发布，D0 不发布；L 是 ledger 的分类字段，方法不输出 L。方法不读取 ledger、评测裁定输出或历史 report。
 
 这里的“发布”只指方法的 finding publication surface；独立评测和归档仍保留全部 report、validity、relation 与 D/A decision，供复核和复算使用。
 
 [内部谓词后端审计](./discover_matrix/ledger_v2/predicate_gold_v1/README.md) 保存 evaluation-only 的后端能力、输入和 receipt 审计。它用于复核证据闭合，不属于 paper1 主叙事，不进入 method registry、prompt、routing 或 package data，也不改写 hit、W、K/N/I。旧 registry 的 planned mapping 与旧 126 条 provenance 都不是当前主结果。
 
-当前 headline 表格只保留在[正式 v4 公平对照报告](./final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)。该报告的 JSON、TSV、分母和限制由[最终归档 README](./final_results/v60_current_vs_x1v2_baseline/README.md)链接；本页不再复制第二套结果表。X1v2 没有同构的 19 谓词或 receipt schema，所以 predicate usage 不适用；W 轴仍适用，Judge 后续核验不会倒灌为 baseline method 的 W2。
+当前 headline 表格只保留在[正式 v4 公平对照报告](./final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)。该报告的 JSON、TSV、分母和限制由[最终归档 README](./final_results/v60_current_vs_x1v2_baseline/README.md)链接；本页不再复制第二套结果表。X1v2 没有同构的 19 谓词或 receipt schema，所以 predicate usage 不适用；W 轴仍适用，后续人工核验不会倒灌为 baseline method 的 W2。
 
 ## 阅读与复现
 
 1. [最终归档](./final_results/v60_current_vs_x1v2_baseline/README.md) 是结果、分母、限制和复算的唯一入口；纸面 headline 只见[中文 v4 正式报告](./final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)。
-2. [method/](./method/)、[judge/](./judge/) 与 [evaluation/](./evaluation/) 分别说明运行时方法、独立 Semantic Judge 和离线评测的边界。
+2. [method/](./method/)、[judge/](./judge/) 与 [evaluation/](./evaluation/) 分别说明运行时方法、人工裁定和离线评测的边界。
 3. [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/README.md) 是当前 145 条台账与其 provenance；它不是 current headline 的第二份结果表。
 4. [内部谓词后端审计](./discover_matrix/ledger_v2/predicate_gold_v1/README.md) 是后端能力、receipt、review 和离线成分分析入口，不是 paper1 的主结果入口。
 5. [story/](./story/README.md) 给出论文叙事、claim 与术语；[archive/experiment_history/](./archive/experiment_history/README.md) 给出重要历史代次的可比性边界。
@@ -41,6 +41,6 @@ venv/bin/python -m paper_stm_evaluation.final_results_archive validate \
 
 ## 目录边界
 
-`method/` 只产生发现和方法证据；`judge/` 只执行冻结 issue #195 判定。headline evaluation 只读取完成的制品并计算 hit、precision、W-on-hits、K/N/I、predicate usage 与成本；隔离的内部后端审计工具可以在 evaluation 层执行或重放预冻结 query，但不参与 discovery-time method predicate execution，也不进入 method 或 Judge。顶层 `utils/` 只提供中立运行时和制品读取能力。[archive/legacy/feedback_loop/](./archive/legacy/feedback_loop/README.md) 是保留的旧实现，不是现行方法。
+`method/` 只产生发现和方法证据；`judge/` 只执行冻结 issue #195 判定。headline evaluation 只读取完成的制品并计算 hit、precision、W-on-hits、K/N/I、predicate usage 与成本；隔离的内部后端审计工具可以在 evaluation 层执行或重放预冻结 query，但不参与 discovery-time method predicate execution，也不进入 method 或人工裁定流程。顶层 `utils/` 只提供中立运行时和制品读取能力。[archive/legacy/feedback_loop/](./archive/legacy/feedback_loop/README.md) 是保留的旧实现，不是现行方法。
 
 当前技术发布结构、内部 release candidate 与固定 15-pair 技术回归记录在 [release_validation/](./release_validation/README.md)。它们证明重构后的包结构和复现边界，不改变本页的冻结主实验。method source 的正式对外再分发仍需权利人明确指定 LICENSE；这不改变内部技术制品的复现状态。

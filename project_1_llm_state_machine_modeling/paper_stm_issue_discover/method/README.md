@@ -1,6 +1,6 @@
 # Paper STM Method
 
-`paper-stm-method` 是 Paper1 当前的 typed evidence-discovery method。它面向需要审计 NL 与作者状态机是否一致的使用者：读取完整输入闭包，生成具体发现和方法证据，并把结果写到调用者指定的新目录。它不包含 Semantic Judge、evaluation、ledger、expected answer、baseline、final_results、历史运行记录或旧实现。
+`paper-stm-method` 是 Paper1 当前的 typed evidence-discovery method。它面向需要审计 NL 与作者状态机是否一致的使用者：读取完整输入闭包，生成具体发现和方法证据，并把结果写到调用者指定的新目录。它不包含人工裁定接口、evaluation、ledger、expected answer、baseline、final_results、历史运行记录或旧实现。
 
 ## 输入与输出
 

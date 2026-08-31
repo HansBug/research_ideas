@@ -2,7 +2,7 @@
 
 > **Legacy result, incomparable with issue #195.** 本文所有 hit、差值、precision 与成本
 > 结论保留用于历史复现，但不是当前 baseline 正式表。新正式引用必须等待
-> [统一语义 Judge](../../discover_matrix/docs/protocol/semantic_judge_protocol.md) 对既有
+> [issue #195 人工 Judge](../../discover_matrix/docs/protocol/semantic_judge_protocol.md) 对既有
 > X1v2 54 pair x 3 原始报告完成重判；旧 unmatched 不得命名为 Semantic FP。
 
 > ⛔⛔ **2026-08-12 追记 · 本文件的 X1 数字已被取代。**

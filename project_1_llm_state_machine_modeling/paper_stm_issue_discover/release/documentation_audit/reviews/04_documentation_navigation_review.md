@@ -33,3 +33,12 @@ reviewer 确认 Markdown 链接为零失效，`scripts/README.md` 与实际脚�
 reviewer 独立复算得到 `rg=176`、rows=`176`、missing/extra=`0`，并核对汇总审计已写为最终 176。
 
 结论：通过。无剩余高/中严重度 finding；未修改文件，provider 与 billable 调用均为 0。
+
+## HEAD-specific recheck (2026-09-01)
+
+本次只读复核以当前工作树为输入，重新确认 SUMMARY -> final-results README -> v4 报告的
+唯一入口、历史 banner、相对链接和 publication/archive 边界。当前 manifests 的实际 surface
+为 publication `90` entries、archive `2982` entries；旧复核中的计数只保留为历史快照，
+不参与当前结论。Paper1 当前所有 Judge、validity、relation、D/A、K/N/I 与成分分析均按
+人工裁定表述，机器只做机械汇总、校验和复算。没有调用 provider，也没有重跑 method、Judge
+或实验。

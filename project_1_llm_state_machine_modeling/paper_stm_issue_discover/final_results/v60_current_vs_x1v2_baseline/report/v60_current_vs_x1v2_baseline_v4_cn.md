@@ -1,7 +1,7 @@
 # v60/current 与 X1v2 baseline v3：公平对照结果
 
 本文只使用 v60/current re-audit v4 和 X1v2 baseline v3。没有重新运行
-method、Judge、provider、15x1 或 54x3。current v4 是对既有 pane5
+method、provider、15x1 或 54x3，也没有重新进行人工裁定。current v4 是对既有 pane5
 source-first 证据的 raw/source/hash/relation 再验证；baseline v3 对原非 K
 报告已完成逐条重审，原有 K 保持冻结。
 
@@ -9,6 +9,10 @@ source-first 证据的 raw/source/hash/relation 再验证；baseline v3 对原�
 
 两侧都按同一顺序处理：读作者 source 和原始 report，判事实与 D/A，枚举该
 pair 的全部 145 个 expected relation，机械派生 K/N/I，再只对最终 N 做归并。
+所有 validity、relation、D/A、K/N/I 与成分分析判断均由人工完成；程序只读取带有
+reason、basis、source refs 和审计记录的人工裁定，执行确定性闭合、校验和算术复算。
+内部 reviewer/subagent 记录仅作质量审阅与 provenance，不构成独立的人类 inter-rater
+研究，也不替代人工裁定。
 
 | 档位/关系 | 定义 | 结果去向 |
 | --- | --- | --- |
@@ -21,7 +25,7 @@ pair 的全部 145 个 expected relation，机械派生 K/N/I，再只对最终 
 | NO | 没有可接受的该 expected 关系 | D2/D1 全 NO 时进入 N；I 必须全 NO |
 
 W0/W1/W2 只表示证据强度。W2 需要 finding 自带 executable object、typed
-input、精确 artifact hash、terminal result 和原始 receipt；Judge 后验不能升级
+input、精确 artifact hash、terminal result 和原始 receipt；后续人工裁定不能升级
 baseline W。predicate execution usage 与 report-bound predicate-ID presence 分开统计，也不参与 D/A
 或 K/N/I。
 
@@ -165,7 +169,7 @@ report-bound finding。两者都是 predicate-ID 统计，不是 finding、W2、
 | --- | ---: | ---: |
 | FULL-hit max W0/W1/W2 | 0/113/197（分母 310） | 0/227/0（分母 227） |
 | report-bound binding rows / all reports | 825/1271 = 64.91% | N/A，baseline 无同构 binding schema |
-| legacy `coverage_class=semantic_hit` markers / report-bound rows | 303/825 = 36.73% | N/A |
+| legacy `coverage_class` markers / report-bound rows | 303/825 = 36.73% | N/A |
 
 “N/A”表示该字段在 baseline 运行契约中不存在，不是零。全部 finding 的 W 分布
 不能替代 hit 单位的 max-W 分布。上表后两行是 report-level 审计诊断，不能替代
@@ -182,7 +186,7 @@ report-bound finding。两者都是 predicate-ID 统计，不是 finding、W2、
   finding 数。
 - **report-bound binding rows**：最终 finding 保留 registered predicate binding 和
   receipt 的记录，共 `825/1271`；这是逐报告诊断分母，不是完整 method 执行次数。
-- **legacy semantic-hit marker**：上述绑定行中继承的 `coverage_class=semantic_hit`
+- **legacy coverage marker**：上述绑定行中继承的历史 `coverage_class` 标记
   标记共 `303/825`；该字段不能解释成 terminal-false receipt、W2 数或 8 个谓词
   的贡献数。
 
@@ -227,7 +231,7 @@ precision 较低；在当前各自分类和记账边界下，观察到的 I-rate
 C（影响范围不可局部隔离）没有同时成立：审计没有发现 FCSTM-only 或 compiler-owned
 现象进入 current K/N，现有 invalid 成本已计入主 precision，归因和文档修正均可在
 evaluation-only overlay 中完成。因此保留 current v60 headline；本次归因执行没有重新运行
-method、Judge 或 provider。
+method 或 provider，也没有重新进行人工裁定。
 
 ## 复算和归档
 
