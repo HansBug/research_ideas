@@ -237,7 +237,7 @@ venv/bin/python project_1_llm_state_machine_modeling/paper_stm_issue_discover/sc
 
 ### H.3 交班状态
 
-- branch：`paper1/m-witness-discovery`；开始本次 closeout 时 HEAD 为 `9b512558123f305971e16746b9b48560c832cd6f`，远端同 hash。最终提交和 push hash 以 sessionlog 与 PR comment 的最后复核为准。
+- branch：`paper1/m-witness-discovery`；开始本次 closeout 时 HEAD 为 `9b512558123f305971e16746b9b48560c832cd6f`，远端同 hash。受控 release documentation 的第一笔提交为 `cb9365f5c098319b282343d9ad1aa8491416fec2`；最终 push hash 以 sessionlog 与 PR comment 的最后复核为准。
 - 本次修改范围：talks 入口/状态导航、历史 banner、本最终 talk、release documentation audit 的 HEAD-specific review、受控 documentation exception 和由 authoritative finalizer 更新的 publication/archive manifest；未修改 raw、reference、canonical decision/relation、registry、method 实现或实验输入。
 - 执行纪律：`provider_calls=0`、`billable_calls=0`、`method_reruns=0`、`judge_reruns=0`，并且没有运行 15x1、54x3、162-cell 或 replay。
 - PR #193 的目标是从旧 v25 Draft 叙事收敛到 v4 release/documentation closeout；是否 Ready、required checks 和 mergeability 以 push 后 GitHub 只读复核为准。
