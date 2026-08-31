@@ -1,0 +1,205 @@
+{
+  "instructions": [
+    "Recover obligation O from the complete NL, author PlantUML, ledger reasoning, and cited formal semantics before proposing any executable property.",
+    "Do not infer inputs from state-name similarity, old planned mappings, v60 actual outputs, reference models, or execution results.",
+    "State missing quantifier, scope, timing, domain, bound, or environment information explicitly instead of inventing it."
+  ],
+  "ledger_items": [
+    {
+      "axes": {
+        "defect_element": null,
+        "defect_locus": "global",
+        "defect_logic_kind": "unintended_terminal",
+        "defect_qualifier": null,
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D2。这是一个可达且无任何出路的非预期终止：状态可达、模型平坦无可继承出边、全文无终止声明。这一类判定不依赖领域知识也不依赖形式化规约——机器进得去出不来本身就是失效。三个判读臂一致认定成立，且没有任何一臂能拿出「作者显式声明这是合法终止」的依据。配合 NL 第 1、2 句的反复使用定位，「松钳即终点」的读法也站不住。",
+      "d_tier": "D2",
+      "detail": "制品在 `:14` 建了 `OperationalState --> ClampingLoseState : Transition to Clamping Lose State`，`:15` 给它加了描述文字 `ClampingLoseState : Clamping Lose State`。此后它再没有作为任何迁移的源端出现。\n\n这是一个可达的死锁：从 `:2 [*] --> InitialState` 出发，经 `:6 InitialState --> OperationalState : Signal Transmission Fails`，再经 `:14` 即可到达。模型是平坦的（没有复合态），因此没有可继承的祖先出边；全文也没有任何 `--> [*]`，即没有终止声明。\n\n为什么这是缺陷。NL 第 1 句把这台装置定位为「the final execution unit for train braking operations」，即反复使用的制动执行单元；NL 第 2 句给出了完整循环：「When the basic braking device receives a brake signal, it transitions from the initial state to the braking state. If the signal transmission fails, it proceeds to the operational state. Once the signal feedback is sent, it returns to the initial state.」松钳在物理上是「松开卡钳」的结果状态，按语义应当是这个循环的收尾，回到初始态或运行态；做成吸收态意味着装置松开一次卡钳之后再也不能参与制动。\n\n附带一个事实：`ClampingLoseState` 在 NL 里没有任何对应句子——NL 只点名了 initial、braking、operational、brake caliper clamping 四态。所以除了缺出边之外，这个状态本身是否该存在也可质疑。但 NL 的沉默只说明修法未定（补回边还是整个删掉），不构成「它是合法终点」的声明。\n\n本 pair 还有一个同类死端 `ClampingState`，记在 VU-0011-01。同一份 NL 的 pair 0001 出现了完全相同的两处死端（INS-0001-02 与 VU-0001-01），两份制品的源文本逐字节相同。",
+      "l_basis": "判 L2。陈述这条错误需要两件事同时成立：`ClampingLoseState` 可达（给出路径 `:2` → `:6` → `:14`），以及从它出发不存在任何后继——后者要穷尽检查全部迁移。两者都是对行为的构造与排除，超出单个系统状态的范围。",
+      "l_tier": "L2",
+      "ledger_id": "INS-0011-02",
+      "ledger_json_pointer": "/items/INS-0011-02",
+      "origin_family": "pyfcstm inspect 诊断归一化",
+      "pair_id": "0011",
+      "source_text": {
+        "l_basis_rule": "须证明可达且无出路（全路径）",
+        "l_decided_by": "规则档",
+        "meta_review": "**判 D2**：三臂一致认定它是死锁（进去出不来）——这一类免领域知识、免形式规约即可判为失效，且没人拿出「作者显式声明合法终止」的依据，是 `D2-impl`。",
+        "statement": "根因是另一条**缺失的出边**：ClampingLoseState（松夹态）由 OperationalState 在第 14 行引入后没有任何出边，成为吸收态。松夹本应是回到初始/运行态、完成 NL 第 2 句所述循环的收尾动作；且该状态在 NL 中没有任何对应句子，判读者可一并质疑其存在本身。",
+        "verdict_reason": null
+      },
+      "summary": "`ClampingLoseState`（:14 由 `OperationalState` 引入）没有任何出边，进入后系统永久停在松钳态，而 NL 第 2 句要求装置在信号反馈发出后回到初始态、可以再次工作。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0001/0011.md",
+        "sha256": "sha256:1303eea1c788ee34e7351268572dfe7de6395eb8ff2db56bcccebdd2479c7935"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": null,
+        "defect_locus": "global",
+        "defect_logic_kind": "unintended_terminal",
+        "defect_qualifier": null,
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D2。这是一个可达且无任何出路的非预期终止。三个判读臂一致认定成立，且没有任何一臂能拿出「作者显式声明这是合法终止」的依据（既无 `ClampingState --> [*]`，名字也不含终止语义，NL 里更没有对应句子）。判读中考虑过的第二种读法是「夹紧即为流程终点」，但它与 NL 第 1 句的反复使用定位、以及 NL 第 2 句的反馈复位循环都冲突，不存活。",
+      "d_tier": "D2",
+      "detail": "制品在 `:8` 建了 `BrakingState --> ClampingState : Entering Clamping State`，`:9` 给它加了描述文字 `ClampingState : Brake Caliper Clamping State`。此后它再没有作为任何迁移的源端出现。\n\n这是一个可达的死锁：从 `:2 [*] --> InitialState` 出发，经 `:5 InitialState --> BrakingState : Brake Signal Received`，再经 `:8` 即可到达。模型平坦，无可继承的祖先出边；全文无 `--> [*]`。\n\n对照 NL 可以看出漏在哪里。NL 第 3 句「After entering the braking state, the system transitions to the brake caliper clamping state」只交代了怎么进夹紧态，没交代怎么出来；NL 第 2 句给出了那条复位边「Once the signal feedback is sent, it returns to the initial state」，而制品把这条回边只挂在了 `:12` 的 `BrakingState` 与 `:11` 的 `OperationalState` 上，夹紧态被漏掉了。\n\n根因是逐句直译：模型的每条迁移都能在 NL 里找到对应的一句，而 NL 里没有哪一句显式说「从夹紧态出来」，那条边就没被建出来。NL 第 1 句「the final execution unit for train braking operations」所隐含的「这是个反复使用的装置」是跨句的整体约束，逐句直译看不到。\n\n本 pair 还有一个同类死端 `ClampingLoseState`，记在 INS-0011-02。本条属于第一版台账漏记、后从各实验臂未被认领的产出中提取回来的一类。同一份 NL 的 pair 0001 出现了完全相同的两处死端（VU-0001-01 与 INS-0001-02），两份制品的源文本逐字节相同。",
+      "l_basis": "判 L2。陈述这条错误需要先给出一条到达 `ClampingState` 的路径（`:2` → `:5` → `:8`），再穷尽检查全部迁移以确认没有任何一条以它为源。两者都是对行为的构造与排除，不是单个系统状态上的静态判断。",
+      "l_tier": "L2",
+      "ledger_id": "VU-0011-01",
+      "ledger_json_pointer": "/items/VU-0011-01",
+      "origin_family": "valid_unrecorded（原台账漏记，从各臂未认领产出提取）",
+      "pair_id": "0011",
+      "source_text": {
+        "l_basis_rule": "须证明可达且无出路（全路径）",
+        "l_decided_by": "规则档",
+        "meta_review": "**判 D2**：三臂一致认定它是死锁（进去出不来）——这一类免领域知识、免形式规约即可判为失效，且没人拿出「作者显式声明合法终止」的依据，是 `D2-impl`。",
+        "statement": "进入 ClampingState 后没有任何返回路径，Signal Feedback Sent 回到 InitialState 的复位行为无法发生。",
+        "verdict_reason": null
+      },
+      "summary": "`ClampingState`（:8 由 `BrakingState` 引入）没有任何出边，卡钳一旦夹紧就永久停住，NL 第 2 句「信号反馈发出后回到初始态」的复位行为在该状态上无法发生。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0001/0011.md",
+        "sha256": "sha256:1303eea1c788ee34e7351268572dfe7de6395eb8ff2db56bcccebdd2479c7935"
+      }
+    }
+  ],
+  "ledger_sha256": "sha256:b5a38d3d24a51e980e5b9f5afc7c8c66aded59f3b51f16afe67e0deb592d0e36",
+  "metadata_refs": [
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0011/source_meta.json",
+      "role": "SOURCE_META",
+      "selected_fields": {
+        "selected_stage": "phase_ii_semantic",
+        "source_locator": "sheet=STM Results; row=11; excel_row=13; selected_cell=AE13; selected=Result with Semantic Checking",
+        "source_pair_id": "llms_emp_feedback_final_0011",
+        "stm0_role": "author_feedback_final_plantuml"
+      },
+      "sha256": "sha256:b0f3484c9484e25d73af091ede4bdc32ec60039c30e60ba701095efa709bb98f"
+    },
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0011/fcstm_meta.json",
+      "role": "FCSTM_META",
+      "selected_fields": {
+        "academic_eligible": false,
+        "academic_ineligibility_reason": "whole_model_behavior_equivalence_and_simulation_not_claimed; use only the working-contract attribution-scoped source-static capability",
+        "artifact_role": "r4_5_attribution_scoped_discover_input",
+        "parse_status": "ok",
+        "simulation_status": "ineligible",
+        "source_static_discover_eligible": true
+      },
+      "sha256": "sha256:a4ea15fd3d55f970555002ef37cf7a14917affc253463241788315cf86fa2e74"
+    }
+  ],
+  "nl": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "1 This state machine model represents the train's basic braking device, which serves as the final execution unit for train braking operations."
+      },
+      {
+        "number": 2,
+        "text": "2 When the basic braking device receives a brake signal, it transitions from the initial state to the braking state. If the signal transmission fails, it proceeds to the operational state. Once the signal feedback is sent, it returns to the initial state."
+      },
+      {
+        "number": 3,
+        "text": "3 After entering the braking state, the system transitions to the brake caliper clamping state."
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0011/nl.txt",
+    "role": "AUTHOR_NL",
+    "sha256": "sha256:abb20a2187c100d7c75a3038df101c91b369df70a07dfafd6eafc72da859fc99"
+  },
+  "packet_sha256": "sha256:b36c7112a81473856a77d6f19abbf9664e1f1da4c6fa1d5ba0aa4d1793e57f89",
+  "pair_id": "0011",
+  "plantuml": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "@startuml"
+      },
+      {
+        "number": 2,
+        "text": "[*] --> InitialState"
+      },
+      {
+        "number": 3,
+        "text": "InitialState: Initial State"
+      },
+      {
+        "number": 4,
+        "text": ""
+      },
+      {
+        "number": 5,
+        "text": "InitialState --> BrakingState : Brake Signal Received"
+      },
+      {
+        "number": 6,
+        "text": "InitialState --> OperationalState : Signal Transmission Fails"
+      },
+      {
+        "number": 7,
+        "text": ""
+      },
+      {
+        "number": 8,
+        "text": "BrakingState --> ClampingState : Entering Clamping State"
+      },
+      {
+        "number": 9,
+        "text": "ClampingState : Brake Caliper Clamping State"
+      },
+      {
+        "number": 10,
+        "text": ""
+      },
+      {
+        "number": 11,
+        "text": "OperationalState --> InitialState : Signal Feedback Sent"
+      },
+      {
+        "number": 12,
+        "text": "BrakingState --> InitialState : Signal Feedback Sent"
+      },
+      {
+        "number": 13,
+        "text": ""
+      },
+      {
+        "number": 14,
+        "text": "OperationalState --> ClampingLoseState : Transition to Clamping Lose State"
+      },
+      {
+        "number": 15,
+        "text": "ClampingLoseState : Clamping Lose State"
+      },
+      {
+        "number": 16,
+        "text": "@enduml"
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0011/stm0.puml",
+    "role": "AUTHOR_PLANTUML",
+    "sha256": "sha256:a609a81454607877775487b2b020a85ab1e4ad859a7dc98f20e2df0a93104c12"
+  },
+  "schema_version": "paper1.predicate-gold.review-input-packet.v1",
+  "visibility": {
+    "execution_results_visible": false,
+    "other_track_conclusions_visible": false,
+    "planned_predicate_mapping_visible": false,
+    "v60_actual_predicate_visible": false
+  }
+}

@@ -1,0 +1,193 @@
+{
+  "instructions": [
+    "Recover obligation O from the complete NL, author PlantUML, ledger reasoning, and cited formal semantics before proposing any executable property.",
+    "Do not infer inputs from state-name similarity, old planned mappings, v60 actual outputs, reference models, or execution results.",
+    "State missing quantifier, scope, timing, domain, bound, or environment information explicitly instead of inventing it."
+  ],
+  "ledger_items": [
+    {
+      "axes": {
+        "defect_element": "trigger",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "missing",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D2。被违反的义务有成文出处：NL 第 1 句要求上电后进入 `Operate`，这是无条件的；NL 第 2 句要求 `start` 与 `keyOff` 可以反复开关。制品里 `Off` 不可驻留使这两条都无法保证。判读中出现过一种反驳：主张这是「一次性会话」的设计意图，`keyOff` 之后故意终止、不再重启。这条反驳不存活——NL 第 2 句明写 start 与 keyOff 两个信号可以反复切换，与「故意终止不再重启」正面冲突。",
+      "d_tier": "D2",
+      "detail": "NL 第 1 句要求「Once the device is powered on, the system enters the `Operate` state」，第 2 句要求「The system can be turned on with the `start` signal and turned off with the `keyOff` signal」——这两句合起来给出的是一个可以反复开关的设备。\n\n制品里 `Off` 有两条出边：`:3 Off --> Operate : start` 带触发，`:11 Off --> Terminate` 不带任何触发。无触发的迁移在 UML 里是完成迁移，进入源状态后立即可发，不需要等待任何事件。\n\n后果是 `Off` 不可驻留：系统一进入 `Off`（无论是 `:2` 的冷启动，还是 `:10 Operate --> Off : keyOff` 之后），只要 `start` 没有已经排在队里，机器就会不等任何事件地走 `:11` 去 `Terminate`，而 `Terminate` 是个死端（那一层单独记在 INS-0012-01）。于是 NL 第 1、2 句要求的 start→Operate 只在「上电后第一个周期立刻给出 start」这一种情形下才成立，`keyOff` 之后的再次启动一般不可达。若按 UML 完成迁移优先于事件触发迁移的规则读，情况更严重——`start` 直接不可达。\n\n这里需要把一个说法纠正过来，因为它容易被写错。本条承重的**不是**「无触发边吃掉了 start 信号」。实际的选边行为是：投影工具按声明顺序选边，`start` 那条边声明在无触发边之前，所以同一周期内两条竞争时 `start` 会胜出。真正成立的主张是**`Off` 不可驻留**——只要那一个周期内 `start` 没到，机会就永远失去了。\n\n这一点可以被观测到：断言「在 `Off` 收到 `start` 后处于 `Operate`」实测为假，原因是该断言同时要求触发被消费，而无触发的完成迁移使得 `start` 在 `Off` 处根本不会被消费。\n\n修法是删掉 `:11` 或给它补一个触发。这与 INS-0012-01 记录的「Terminate 是假终态」是两处不同的编辑（那一条要改的是 `Terminate` 本身的性质），两条不重复。",
+      "l_basis": "判 L0。陈述这条错误只需就地读 `:11` 这一行，看 `Off --> Terminate` 后面有没有冒号跟触发——没有，它就是完成迁移。这是纯词法层面的模式匹配；由此推出的「Off 不可驻留」是完成迁移语义的直接含义，不需要构造具体执行序列，也不需要可达性论证。",
+      "l_tier": "L0",
+      "ledger_id": "EIS-0012-01",
+      "ledger_json_pointer": "/items/EIS-0012-01",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0012",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "codex主张Off是'一次性会话、keyOff后故意终止'的设计意图,但claude与dsh都指出NL第2句明写start/keyOff可反复切换,这与'故意终止不再重启'的读法正面冲突,undercutting不成立。",
+        "statement": "Off 出边中存在一条无触发迁移，使 Off 不再是稳定等待态：任何没有 start 事件的周期都会不可逆地落入 Terminate 汇态。因此 NL 第 1、2 句要求的 start→Operate 只有在上电后第一个周期立刻给出 start 才成立，而 Operate --keyOff--> Off 之后的再次启动一般不可达。按 UML 完成迁移优先级读则更严重，start 直接不可达。注意 pyfcstm 按声明顺序选边（fcstm 第 24 行 start 边在第 25 行无触发边之前），故同周期竞争由 start 胜出——所以『无触发边吃掉 start 信号』这一说法需要修正为『Off 不可驻留』。该不可驻留可由 occupancy_after 暴露：corroborating 断言 occupancy_after(Off, start, Operate) 实测为 False，因为 occupancy_after 还要求 trigger 被消费，而无触发 completion 边使 start 在 Off 根本不被消费。",
+        "verdict_reason": "判 D2-lit：:11 `Off --> Terminate` 是无触发的普通完成迁移，使首次进入 Off 或 :10 经 keyOff 返回 Off 后，只要没有预先排队的 start 就会无事件滑向 Terminate，因而 NL-L001 无条件要求的“上电后进入 Operate”无法保证；本条承重的是 Off 不可驻留，修复应删除或为 :11 补触发，与 INS-0012-01 所记“Terminate 假终态”是不同编辑，不重复。"
+      },
+      "summary": "`:11 Off --> Terminate` 是一条不带任何触发的完成迁移，使 `Off` 不再是可驻留的等待态——上电后或 `keyOff` 返回 `Off` 之后，只要没有已排队的 `start`，系统就会无事件地滑向 `Terminate`。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0003/0012.md",
+        "sha256": "sha256:788a5a4e1d5236420761ffb720ec6cfafb67e1e591c8bfe38e7d7f82974331e4"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": null,
+        "defect_locus": "global",
+        "defect_logic_kind": "unintended_terminal",
+        "defect_qualifier": null,
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D2。这是一个可达且无任何出路的非预期终止：状态可达（`:2` → `:11`）、自身无出边、顶层无外层可继承。这一类判定不依赖领域知识也不依赖形式化规约。三个判读臂一致认定成立，且没有任何一臂能拿出「作者显式声明合法终止」的依据——恰恰相反，`:12` 的那行 `final` 说明作者本意就是要一个终态，只是用错了记法，所以「他有意让机器停在活状态里」这个读法自己就站不住。",
+      "d_tier": "D2",
+      "detail": "PlantUML 里把一个状态标成终止有两种写法：`X --> [*]`，或者给状态加 `<<end>>` 构造型。作者两种都没用。\n\n他写的是 `:11 Off --> Terminate` 与 `:12 Terminate : final`。前一行在建一条通向 `Terminate` 的边、并顺带声明了这个状态；后一行是 `状态名 : 文本` 的描述语法，只往状态框里加一行显示文字，不改变它的任何性质。所以 `Terminate` 是一个普通的顶层命名状态，投影时也被忠实保留为普通状态，没有合成任何终止元素。\n\n后果是真死锁。全文检索 `Terminate` 只命中 `:11` 与 `:12` 两处，其中 `:11` 里它在箭头右侧（是目标不是源），所以没有任何迁移以它为源端；它又位于顶层、不在任何 `state X { }` 块内，因此不存在外层复合态的成组迁移能把机器带出去。进入 `Terminate` 之后机器不会终止，只是永远停在那里。\n\n配套说明一个诊断码的适用性，以免误判。结构分析工具从两个角度报了同一个状态：一是「叶态无出边」，二是拓扑上「既不是根出口汇点、也走不到任何出口汇点」，反例类型为死锁。其中第一个码对「嵌在复合态里、而外层有成组迁移」的叶态有系统性假阳性——它只数叶态自身的出边，完全不做外层检查。本条不受这个假阳性影响，因为 `Terminate` 是顶层状态，压根没有外层可言。\n\n本条与 EIS-0012-01 是两处不同的编辑：那一条要改 `:11` 这条无触发边（删掉或补触发），本条要改 `Terminate` 的性质（应当写成 `Off --> [*]`）。",
+      "l_basis": "判 L2。陈述这条错误需要两件事同时成立：`Terminate` 可达（给出路径 `:2` → `:11`），以及从它出发不存在任何后继——后者要穷尽检查全部迁移，还要确认它没有外层可以继承成组迁移。两者都是对行为的构造与排除。",
+      "l_tier": "L2",
+      "ledger_id": "INS-0012-01",
+      "ledger_json_pointer": "/items/INS-0012-01",
+      "origin_family": "pyfcstm inspect 诊断归一化",
+      "pair_id": "0012",
+      "source_text": {
+        "l_basis_rule": "须证明可达且无出路（全路径）",
+        "l_decided_by": "规则档",
+        "meta_review": "**判 D2**：三臂一致认定它是死锁（进去出不来）——这一类免领域知识、免形式规约即可判为失效，且没人拿出「作者显式声明合法终止」的依据，是 `D2-impl`。",
+        "statement": "作者用「普通状态 + 一行描述文字」冒充终止伪状态。L11 `Off --> Terminate` 顺手声明了一个名为 Terminate 的普通顶层状态，L12 `Terminate : final` 只是给它挂了一行说明——PlantUML 的 `X : text` 是描述行，不会把 X 变成 final（真正的写法是 `--> [*]` 或 `<<end>>`，作者两种都没用）。投影忠实保留为 fcstm:21 的普通 state，没有合成任何元素。后果：Terminate 没有任何出边（`grep -n Terminate stm0.puml` 全文只命中 L11/L12 两处，且 L11 里它在箭头右侧），且它位于顶层、不在任何 `state X {` 块内，因此不存在外层复合态的成组迁移能把机器带出去——进入 Terminate 即真死锁。inspect 从两个角度报同一个状态：W_DEADLOCK_LEAF（叶态无出边）与 W_TOPOLOGICAL_NOEXIT 的 `counterexample_kind = deadlock`（该态既不是根 exit sink，也走不到 exit sink）。⚠️ 给判读者的排雷提示：W_DEADLOCK_LEAF 这个码对「嵌在复合态里、而外层有成组迁移」的叶态有系统性假阳性（pyfcstm `analyzers/structural.py:75-93` 只数叶态自身出边、完全不做外层检查）；本条不受该假阳性影响，因为 Terminate 是顶层态，压根没有外层可言。",
+        "verdict_reason": null
+      },
+      "summary": "作者用「普通状态加一行描述文字」冒充了终止伪状态：`:11 Off --> Terminate` 顺手声明了一个顶层普通状态 `Terminate`，`:12 Terminate : final` 只是给它挂了说明文字——它没有任何出边，进去就是真死锁。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0003/0012.md",
+        "sha256": "sha256:788a5a4e1d5236420761ffb720ec6cfafb67e1e591c8bfe38e7d7f82974331e4"
+      }
+    }
+  ],
+  "ledger_sha256": "sha256:b5a38d3d24a51e980e5b9f5afc7c8c66aded59f3b51f16afe67e0deb592d0e36",
+  "metadata_refs": [
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0012/source_meta.json",
+      "role": "SOURCE_META",
+      "selected_fields": {
+        "selected_stage": "phase_ii_semantic",
+        "source_locator": "sheet=STM Results; row=12; excel_row=14; selected_cell=AE14; selected=Result with Semantic Checking",
+        "source_pair_id": "llms_emp_feedback_final_0012",
+        "stm0_role": "author_feedback_final_plantuml"
+      },
+      "sha256": "sha256:7f2ed2c8cc5203d472112100a9d1cdf514e5deba0e5ba564aced3585c4d32599"
+    },
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0012/fcstm_meta.json",
+      "role": "FCSTM_META",
+      "selected_fields": {
+        "academic_eligible": false,
+        "academic_ineligibility_reason": "whole_model_behavior_equivalence_and_simulation_not_claimed; use only the working-contract attribution-scoped source-static capability",
+        "artifact_role": "r4_5_attribution_scoped_discover_input",
+        "parse_status": "ok",
+        "simulation_status": "ineligible",
+        "source_static_discover_eligible": true
+      },
+      "sha256": "sha256:be34b64424d6c250219b21282e413af6a3667107985e3e56d66be057c236cefe"
+    }
+  ],
+  "nl": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "1. Once the device is powered on, the system enters the `Operate` state, and based on user actions, it transitions between `Idle`, `Accelerating or Cruising`, and `Braking` states."
+      },
+      {
+        "number": 2,
+        "text": "2. The system can be turned on with the `start` signal and turned off with the `keyOff` signal."
+      },
+      {
+        "number": 3,
+        "text": "3. Within the `Operate` state, the system transitions between different substates depending on actions like accelerating, braking, or stopping."
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0012/nl.txt",
+    "role": "AUTHOR_NL",
+    "sha256": "sha256:9fe426ba761d5a52c3b670f35410502a5289bdd9489c4a9bfa983e34d565040c"
+  },
+  "packet_sha256": "sha256:268e73f32d39f87f366d174bab4ba10da21f8353e52740eedb4fc21928bc546e",
+  "pair_id": "0012",
+  "plantuml": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "@startuml"
+      },
+      {
+        "number": 2,
+        "text": "[*] --> Off"
+      },
+      {
+        "number": 3,
+        "text": "Off --> Operate : start"
+      },
+      {
+        "number": 4,
+        "text": "state Operate {"
+      },
+      {
+        "number": 5,
+        "text": "[*] --> Idle"
+      },
+      {
+        "number": 6,
+        "text": "Idle --> AcceleratingOrCruising : accelerate"
+      },
+      {
+        "number": 7,
+        "text": "AcceleratingOrCruising --> Braking : brake"
+      },
+      {
+        "number": 8,
+        "text": "Braking --> Idle : stop"
+      },
+      {
+        "number": 9,
+        "text": "}"
+      },
+      {
+        "number": 10,
+        "text": "Operate --> Off : keyOff"
+      },
+      {
+        "number": 11,
+        "text": "Off --> Terminate"
+      },
+      {
+        "number": 12,
+        "text": "Terminate : final"
+      },
+      {
+        "number": 13,
+        "text": "@enduml"
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0012/stm0.puml",
+    "role": "AUTHOR_PLANTUML",
+    "sha256": "sha256:780040c1be8a0ce29cc3e2373d8634e4b5819020097c04e0ac33ab4fcea5b9e8"
+  },
+  "schema_version": "paper1.predicate-gold.review-input-packet.v1",
+  "visibility": {
+    "execution_results_visible": false,
+    "other_track_conclusions_visible": false,
+    "planned_predicate_mapping_visible": false,
+    "v60_actual_predicate_visible": false
+  }
+}

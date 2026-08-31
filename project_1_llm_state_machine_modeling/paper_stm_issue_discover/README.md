@@ -16,6 +16,8 @@
 
 冻结的四族 19 谓词用于把一部分发现变为可执行证据，并在满足完整 receipt 时形成 W2。谓词不是问题发现的准入门；没有适合谓词的具体问题仍可按 W1 或 W0 进入方法内 D 裁定。D2/D1 才会发布，D0 不发布；L 是 ledger 的分类字段，方法不输出 L。方法不读取 ledger、expected answer、Judge 输出或历史 report。
 
+[predicate gold v1](./discover_matrix/ledger_v2/predicate_gold_v1/README.md) 为 145 条台账义务保存 method-independent expected predicate、typed inputs、exact/proxy/unsupported 裁决和 provider-free receipt。它是 evaluation-only 参考层，不进入 method registry、prompt、routing 或 package data，也不改写 hit、W、K/N/I。旧 registry 的 planned mapping 与旧 126 条 provenance 都不是当前逐条 gold。
+
 当前 headline 表格只保留在[正式 v4 公平对照报告](./final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)。该报告的 JSON、TSV、分母和限制由[最终归档 README](./final_results/v60_current_vs_x1v2_baseline/README.md)链接；本页不再复制第二套结果表。X1v2 没有同构的 19 谓词或 receipt schema，所以 predicate usage 不适用；W 轴仍适用，Judge 后续核验不会倒灌为 baseline method 的 W2。
 
 ## 阅读与复现
@@ -23,8 +25,9 @@
 1. [最终归档](./final_results/v60_current_vs_x1v2_baseline/README.md) 是结果、分母、限制和复算的唯一入口；纸面 headline 只见[中文 v4 正式报告](./final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)。
 2. [method/](./method/)、[judge/](./judge/) 与 [evaluation/](./evaluation/) 分别说明运行时方法、独立 Semantic Judge 和离线评测的边界。
 3. [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/README.md) 是当前 145 条台账与其 provenance；它不是 current headline 的第二份结果表。
-4. [story/](./story/README.md) 给出论文叙事、claim 与术语；[archive/experiment_history/](./archive/experiment_history/README.md) 给出重要历史代次的可比性边界。
-5. [scripts/](./scripts/README.md) 列出所有薄命令行入口；[pipeline/](./pipeline/README.md) 仅保留输入准备和基础设施导航。
+4. [predicate gold v1](./discover_matrix/ledger_v2/predicate_gold_v1/README.md) 是 expected property/input、receipt、review 和离线 expected-vs-actual 分析入口。
+5. [story/](./story/README.md) 给出论文叙事、claim 与术语；[archive/experiment_history/](./archive/experiment_history/README.md) 给出重要历史代次的可比性边界。
+6. [scripts/](./scripts/README.md) 列出所有薄命令行入口；[pipeline/](./pipeline/README.md) 仅保留输入准备和基础设施导航。
 
 从仓库根可用下列 provider-free 命令验证最终归档：
 
@@ -36,6 +39,6 @@ venv/bin/python -m paper_stm_evaluation.final_results_archive validate \
 
 ## 目录边界
 
-`method/` 只产生发现和方法证据；`judge/` 只执行冻结 issue #195 判定；`evaluation/` 只读取完成的制品并计算 hit、precision、W-on-hits、K/N/I、predicate usage 与成本。三者不互相承担对方的业务逻辑。顶层 `utils/` 只提供中立运行时和制品读取能力。[archive/legacy/feedback_loop/](./archive/legacy/feedback_loop/README.md) 是保留的旧实现，不是现行方法。
+`method/` 只产生发现和方法证据；`judge/` 只执行冻结 issue #195 判定。headline evaluation 只读取完成的制品并计算 hit、precision、W-on-hits、K/N/I、predicate usage 与成本；隔离的 predicate-gold 工具可以在 evaluation 层执行或重放预冻结 query，但不参与 discovery-time method predicate execution，也不进入 method 或 Judge。顶层 `utils/` 只提供中立运行时和制品读取能力。[archive/legacy/feedback_loop/](./archive/legacy/feedback_loop/README.md) 是保留的旧实现，不是现行方法。
 
 当前技术发布结构、内部 release candidate 与固定 15-pair 技术回归记录在 [release_validation/](./release_validation/README.md)。它们证明重构后的包结构和复现边界，不改变本页的冻结主实验。method source 的正式对外再分发仍需权利人明确指定 LICENSE；这不改变内部技术制品的复现状态。

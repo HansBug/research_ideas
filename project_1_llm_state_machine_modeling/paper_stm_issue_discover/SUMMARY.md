@@ -10,6 +10,7 @@
 | issue #195 Semantic Judge 的两阶段判定 | [judge/](./judge/README.md) |
 | 离线 hit、precision、W、K/N/I、谓词使用和成本 | [evaluation/](./evaluation/README.md) |
 | 当前 145 条 ledger 与 provenance | [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/README.md) |
+| 145 条 expected predicate/input gold、receipt 与离线 expected-vs-actual 分析 | [discover_matrix/ledger_v2/predicate_gold_v1/](./discover_matrix/ledger_v2/predicate_gold_v1/README.md) |
 | 论文叙事、claim 与术语 | [story/](./story/README.md) |
 | 输入准备、转换与历史兼容入口 | [pipeline/](./pipeline/README.md) |
 | 发布、复放与维护脚本 | [scripts/](./scripts/README.md) |

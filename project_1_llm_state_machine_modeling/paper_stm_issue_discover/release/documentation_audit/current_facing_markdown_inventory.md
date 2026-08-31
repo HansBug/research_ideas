@@ -26,6 +26,10 @@
 | `scripts/README.md` | current/public | 薄 CLI 的用途、读写边界和 provider 状态 |
 | `discover_matrix/README.md` | current/ledger | 145 条 ledger 的入口，结果链接 final archive |
 | `discover_matrix/ledger_v2/README.md` | current/ledger | 当前 ledger 与 provenance |
+| `discover_matrix/ledger_v2/predicate_gold_v1/README.md` | current/evaluation | 当前 145 条 expected predicate/input gold 的唯一导航入口 |
+| `discover_matrix/ledger_v2/predicate_gold_v1/predicate_gold_report_cn.md` | current/evaluation | 从 canonical JSON 机械生成的状态、执行、review、unsupported 与 expected-vs-actual 报告 |
+| `discover_matrix/ledger_v2/predicate_gold_v1/predicate_gold_protocol.md` | current/protocol | obligation-equivalent exactness、typed-input、执行、review 与防泄漏协议 |
+| `discover_matrix/ledger_v2/predicate_gold_v1/unsupported_exact.md` | current/evaluation | 从 canonical JSON 机械生成的 unsupported ID 与 capability-gap 清单 |
 | `discover_matrix/ledger_v2/X1V2_RESULTS.md` | historical/provenance | legacy X1v2 数字的迁移说明，指向 current final report |
 | `final_results/v60_current_vs_x1v2_baseline/README.md` | current/result | 当前唯一的实验事实源和冻结结果归档 |
 | `archive/README.md` | historical/archive | 历史路线与唯一实验历史索引 |

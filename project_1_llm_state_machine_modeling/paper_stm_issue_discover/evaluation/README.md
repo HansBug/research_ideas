@@ -1,6 +1,6 @@
 # Paper STM Evaluation
 
-`paper-stm-evaluation` 只负责 provider-free 的评测和报告：它读取已经完成的 method 与 Judge 制品、ledger 和冻结参考数据，计算并验证跨 arm 指标。method 和 Judge 都不 import evaluation；evaluation 不参与发现、predicate 执行或 Semantic Judge 判定。
+`paper-stm-evaluation` 负责 provider-free 的评测和报告：headline comparison 读取已经完成的 method 与 Judge 制品、ledger 和冻结参考数据，计算并验证跨 arm 指标。method 和 Judge 都不 import evaluation；evaluation 不参与发现、discovery-time method predicate execution 或 Semantic Judge 判定。隔离的 predicate-gold 子模块可以执行和重放预冻结 evaluation-only query，边界见下文。
 
 ## 指标所有权
 
@@ -29,3 +29,21 @@ venv/bin/python -m paper_stm_evaluation.final_results_archive validate \
 ```
 
 当前结论和机器可读汇总在 [最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md)。`pipeline.evidence_discovery.reporting.final_results_archive` 仅是兼容入口，不是新的 evaluation 所有权。
+
+## Predicate gold v1
+
+[predicate gold v1](../discover_matrix/ledger_v2/predicate_gold_v1/README.md) 是当前 145 条 ledger 义务的 method-independent expected-property/typed-input overlay。evaluation 可以调用冻结 method backend 或 pyfcstm-native evaluation-only oracle 来执行、重放和验证已冻结 query；依赖方向只能是 evaluation -> frozen backend。method 不得 import、打包或读取 gold。
+
+gold 的 provider-free 工具负责 canonical/schema/TSV/summary 校验、47 条 executable exact/proxy 的 defective/control 全量 replay、manifest/hash 检查，以及冻结 v60 expected-vs-actual 成分分析。expected-vs-actual 只解释 predicate/input 使用；不同但 sound、归因正确且完成执行的 method 证据不会因不复现 gold ID 而降级。gold 不重算或改写 FULL/PARTIAL hit、W、K/N/I。
+
+```bash
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/evaluation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/method/src:. \
+python -m paper_stm_evaluation.predicate_gold_release validate \
+  --canonical project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/predicate_gold_v1/predicate_gold_v1.json \
+  --inventory project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/predicate_gold_v1/inventory.json \
+  --summary project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/predicate_gold_v1/summary.json \
+  --tsv project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/predicate_gold_v1/predicate_gold_v1.tsv \
+  --schema project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/predicate_gold_v1/predicate_gold_v1.schema.json \
+  --review-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/predicate_gold_v1/review \
+  --active-review-manifest project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/predicate_gold_v1/review/active_review_manifest.json
+```

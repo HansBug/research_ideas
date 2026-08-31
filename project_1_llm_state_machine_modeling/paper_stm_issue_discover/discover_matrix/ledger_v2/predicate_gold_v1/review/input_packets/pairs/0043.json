@@ -1,0 +1,229 @@
+{
+  "instructions": [
+    "Recover obligation O from the complete NL, author PlantUML, ledger reasoning, and cited formal semantics before proposing any executable property.",
+    "Do not infer inputs from state-name similarity, old planned mappings, v60 actual outputs, reference models, or execution results.",
+    "State missing quantifier, scope, timing, domain, bound, or environment information explicitly instead of inventing it."
+  ],
+  "ledger_items": [
+    {
+      "axes": {
+        "defect_element": "state",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "other",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D1，两读并立。第一种读法把 NL 第 2 句读作对 `PumpControl` 顶层分解的封闭规定：恰由那三个具名子态构成，而制品的顶层分解是两个 Region、其中一个装着 NL 没有的 Idle/Active，规定被违反。第二种读法注意到 `three main substates` 里的 main 是限定词：它只枚举主要子态，并没有封闭全部后代，也没有要求三者必须直接挂在 `PumpControl` 下面。而 `PumpState`、`WaterState`、`MethaneState` 三个在制品里都真实存在（`:6`-`:10`），`Region1`/`Region2` 可以读作包裹层、`Idle`/`Active` 可以读作辅助态。第二种读法与结构事实相容，故判 D1。",
+      "d_tier": "D1",
+      "detail": "NL 第 2 句逐字为「Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState.」。\n\n制品在 `:4` 开 `state PumpControl {`，块内用 `:12` 的 `--` 分成两个区，各装一个具名复合态：`:5 state \"Region1\" as Region1 {` 内含 `PumpState`、`WaterState`、`MethaneState`（`:6`-`:10`）；`:13 state \"Region2\" as Region2 {` 内含 `Idle` 与 `Active`（`:14`-`:16`）。\n\n按第一种读法，问题不在包了几层，而在分解的成员被替换了：`PumpControl` 的顶层分解由两个 Region 构成，而 `Idle`/`Active`/`Activation Signal`/`Deactivation Signal` 这些名字在 NL 五句话里一个都没出现。",
+      "l_basis": "判 L1。陈述这条错误需要导出一个静态结构事实：`PumpControl` 的顶层分解有几个成员、分别是谁。这要把 PlantUML 的块与 `--` 分区解析一遍才能得出，比单纯的名字比对深一层；但它只涉及静态切面上的包含关系，不需要执行序列，故不到 L2。",
+      "l_tier": "L1",
+      "ledger_id": "EIS-0043-01",
+      "ledger_json_pointer": "/items/EIS-0043-01",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0043",
+      "source_text": {
+        "l_basis_rule": "顶层分解的成员构成与数量 —— 静态结构导出",
+        "l_decided_by": "人工逐条",
+        "meta_review": "「three main substates」中的 `main` 是限定词而非封闭基数断言，Region1/Region2 的包裹层与 Idle/Active 辅助态可以并存，属主 session 同族既有处理 已直接裁定的一族。",
+        "statement": "NL 2 是显式枚举式数量断言（\"three main substates: PumpState, WaterState, and MethaneState\"）。生成侧的顶层分解只有两个成员，且其中一个（Region2）承载的是 NL 里根本不存在的 Idle/Active。无论按直接子态还是后代读法，「PumpControl 的顶层分解恰由这三个具名子态构成」都被违反——这一点不受台帐 E2a 排除理由的影响，因为问题不是包裹层数，而是分解成员被替换了。",
+        "verdict_reason": "判 D1：NL 的 `three main substates` 只枚举主要子态，并未封闭全部后代或要求三者必须直接挂在 PumpControl 下；PumpState、WaterState、MethaneState 均真实存在，Region1/Region2 与 Idle/Active 可读作包裹层和辅助态，因此第二读法存活。"
+      },
+      "summary": "NL 第 2 句枚举了 `PumpState`、`WaterState`、`MethaneState` 三个子态，而 `PumpControl` 的顶层分解只有两个成员（`Region1`、`Region2`），且 `Region2` 装的是 NL 里根本不存在的 `Idle` 与 `Active`。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0002/0043.md",
+        "sha256": "sha256:f8987a5faf6467467c29e6792846662e33383a801952e49d53fa6eac0192f6b7"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "transition",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "missing",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D2。被违反的义务有成文出处，即 NL 第 3 句「The system first transitions to the PumpState substate」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——两条 `[*]` 的层级由花括号配对唯一确定，它们确实比区低一层，不存在「其实它们就是区级入口」的解释余地。反驳不存活。",
+      "d_tier": "D2",
+      "detail": "关键在于数括号，确认那两条 `[*]` 到底在哪一层。\n\n`:4 state PumpControl {` 开了复合态，`:12` 的 `--` 把它分成两个区。第一个区里唯一的元素是 `:5 state \"Region1\" as Region1 {` … `:11 }` 这个具名复合态；`:6 [*] --> PumpState` 写在 `Region1` 的花括号**内**，所以它是 `Region1` 的内部默认入口，只在已经进入 `Region1` 之后才起作用。第二个区同理：`:14 [*] --> Idle` 在 `Region2` 内部。\n\n于是 `PumpControl` 的两个区在自己那一层都没有 `[*] -->`。进入 `PumpControl` 时，两个区都不知道该落到哪个子态上（`Region1` 与 `Region2` 都不会被进入），`PumpState` 因此不可达。投影为此注入了占位的未指定初始状态。\n\n第一版台账没有记录这一条。它与台账已接受为有效条目的 EXP-0019-IT-001（碰撞规避缺初始边）是完全同型的证据：同样是作者源没写区级初始边、同样由投影注入占位、同样用结构族的初始目标谓词断言，两处标准应当一致。\n\n被违反的是 NL 第 3 句「The system first transitions to the PumpState substate, where the pump is activated or controlled」：它指定了进入 PumpControl 之后的第一个落点，而制品在那一层根本没有落点可言。",
+      "l_basis": "判 L0。陈述这条错误只需数花括号，确认 `:6` 与 `:14` 两条 `[*]` 各自落在哪一层，再看两个区自己那一层有没有 `[*] -->`（没有）。这是纯词法层面的检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "EIS-0043-02",
+      "ledger_json_pointer": "/items/EIS-0043-02",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0043",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "**判 D2**：`PumpControl` 的两个正交区(L12 `--` 分隔)都没有区级初始伪态 —— 两个 `[*]`(L6/L14) 分别嵌在 Region1/Region2 **内部**,比区低一层,故进入 PumpControl 时哪个子态都不会被进入,NL 3 的「先进入 PumpState」不可实现。",
+        "statement": "NL 3 明确 \"The system first transitions to the PumpState substate\"，参考侧用区域初始边保证了这一点。生成侧在 PumpControl 层级没有任何默认进入点，投影因此注入 UnspecifiedInitial，Region1 与 Region2 都不会被进入，PumpState 不可达。台帐未记录此条，但它与台帐已接受为 E1 的 EXP-0019-IT-001（collision_avoidance_initial_missing）是完全同型的证据：同样是作者源没写初始边、同样由投影注入 UnspecifiedInitial、同样用 initial_target 结构族谓词断言。标准不一致。",
+        "verdict_reason": "判 D2-lit：数括号可确认 :6 与 :14 的 `[*]` 分别位于具名复合态 Region1、Region2 内部，比 PumpControl 的两个 region 低一层；两个 region 本身没有默认入口，进入 PumpControl 后 PumpState 不会被激活，NL 3 的首进义务不可实现。"
+      },
+      "summary": "`PumpControl` 的两个正交区都没有区级的默认入口——两条 `[*]`（`:6`、`:14`）分别嵌在 `Region1`、`Region2` **内部**，比区低一层——所以进入 `PumpControl` 时哪个子态都不会被激活，NL 第 3 句要求的「首先进入 PumpState」不可实现。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0002/0043.md",
+        "sha256": "sha256:f8987a5faf6467467c29e6792846662e33383a801952e49d53fa6eac0192f6b7"
+      }
+    }
+  ],
+  "ledger_sha256": "sha256:b5a38d3d24a51e980e5b9f5afc7c8c66aded59f3b51f16afe67e0deb592d0e36",
+  "metadata_refs": [
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0043/source_meta.json",
+      "role": "SOURCE_META",
+      "selected_fields": {
+        "selected_stage": "phase_ii_semantic",
+        "source_locator": "sheet=STM Results; row=43; excel_row=45; selected_cell=AE45; selected=Result with Semantic Checking",
+        "source_pair_id": "llms_emp_feedback_final_0043",
+        "stm0_role": "author_feedback_final_plantuml"
+      },
+      "sha256": "sha256:21c38b0286e8bdefdd01be43f1e84e00fbbfb93cc7865ebcbf375fcb039c22b1"
+    },
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0043/fcstm_meta.json",
+      "role": "FCSTM_META",
+      "selected_fields": {
+        "academic_eligible": false,
+        "academic_ineligibility_reason": "whole_model_behavior_equivalence_and_simulation_not_claimed; use only the working-contract attribution-scoped source-static capability",
+        "artifact_role": "r4_5_attribution_scoped_discover_input",
+        "parse_status": "ok",
+        "simulation_status": "ineligible",
+        "source_static_discover_eligible": true
+      },
+      "sha256": "sha256:48298aa240854dac1cfe318b493d65196c0a6bae8ee971e9ef938274586220a5"
+    }
+  ],
+  "nl": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "1. The system begins in the PumpControl state, from which it can transition to different substates based on specific conditions."
+      },
+      {
+        "number": 2,
+        "text": "2. Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState."
+      },
+      {
+        "number": 3,
+        "text": "3. The system first transitions to the PumpState substate, where the pump is activated or controlled."
+      },
+      {
+        "number": 4,
+        "text": "4. The system can also transition to the WaterState substate, indicating that the pump is controlling or monitoring the water flow."
+      },
+      {
+        "number": 5,
+        "text": "5. Similarly, the system can transition to the MethaneState substate, indicating that the pump is controlling or monitoring the methane flow."
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0043/nl.txt",
+    "role": "AUTHOR_NL",
+    "sha256": "sha256:a391765dba935d89e6d2467c97b218c0136d106ea9c00bac91e6525e28ac04f1"
+  },
+  "packet_sha256": "sha256:b1d227788e0e8953f096cf661843fa458a6767766631ee3f401c5fe9151703a8",
+  "pair_id": "0043",
+  "plantuml": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "@startuml"
+      },
+      {
+        "number": 2,
+        "text": "[*] --> PumpControl"
+      },
+      {
+        "number": 3,
+        "text": ""
+      },
+      {
+        "number": 4,
+        "text": "state PumpControl {"
+      },
+      {
+        "number": 5,
+        "text": "state \"Region1\" as Region1 {"
+      },
+      {
+        "number": 6,
+        "text": "[*] --> PumpState"
+      },
+      {
+        "number": 7,
+        "text": "PumpState --> WaterState : [Water Flow Detected]"
+      },
+      {
+        "number": 8,
+        "text": "PumpState --> MethaneState : [Methane Flow Detected]"
+      },
+      {
+        "number": 9,
+        "text": "WaterState --> PumpState : [Water Flow Completed]"
+      },
+      {
+        "number": 10,
+        "text": "MethaneState --> PumpState : [Methane Flow Completed]"
+      },
+      {
+        "number": 11,
+        "text": "}"
+      },
+      {
+        "number": 12,
+        "text": "--"
+      },
+      {
+        "number": 13,
+        "text": "state \"Region2\" as Region2 {"
+      },
+      {
+        "number": 14,
+        "text": "[*] --> Idle"
+      },
+      {
+        "number": 15,
+        "text": "Idle --> Active : [Activation Signal]"
+      },
+      {
+        "number": 16,
+        "text": "Active --> Idle : [Deactivation Signal]"
+      },
+      {
+        "number": 17,
+        "text": "}"
+      },
+      {
+        "number": 18,
+        "text": "}"
+      },
+      {
+        "number": 19,
+        "text": ""
+      },
+      {
+        "number": 20,
+        "text": "@enduml"
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0043/stm0.puml",
+    "role": "AUTHOR_PLANTUML",
+    "sha256": "sha256:8bc45430d366c7bb9ac30e65bd644f947f805ea11e5d359480fe55053b846baa"
+  },
+  "schema_version": "paper1.predicate-gold.review-input-packet.v1",
+  "visibility": {
+    "execution_results_visible": false,
+    "other_track_conclusions_visible": false,
+    "planned_predicate_mapping_visible": false,
+    "v60_actual_predicate_visible": false
+  }
+}
