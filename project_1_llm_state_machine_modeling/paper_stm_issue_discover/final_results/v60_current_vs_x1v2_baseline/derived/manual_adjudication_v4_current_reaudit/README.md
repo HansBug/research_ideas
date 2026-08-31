@@ -11,6 +11,17 @@ The current v2 layer is retained and is the evidence source for the prior
 source-first review chain. This v4 layer is new and is not a replacement for
 raw, reference, method, Judge, predicate, v2, or baseline-v3 artifacts.
 
+## Predicate facts
+
+The v60 registry contains 19 predicates in four families: Structure (6),
+Topology (4), Trajectory simulation (4), and Bounded verification (5). The
+method summary records 12 distinct IDs with a terminal receipt; the canonical
+v4 decisions record 8 distinct IDs bound to at least one report-bound finding.
+These are distinct-ID metrics and are independent of W, D/A, K/N/I, hit counts,
+and the report-level diagnostic ratios (`825/1271` and `303/825`). Detailed
+expected-property/input capability audits remain in the separate internal
+predicate-gold overlay.
+
 ## Canonical files
 
 | File | Meaning |

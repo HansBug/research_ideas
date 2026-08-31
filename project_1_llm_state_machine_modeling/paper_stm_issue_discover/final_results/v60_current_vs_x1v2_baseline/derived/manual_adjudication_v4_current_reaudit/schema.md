@@ -35,7 +35,9 @@ review evidence only; it is not silently promoted to a human label.
 5. W0/W1/W2 and predicate binding/contribution markers are independent fields
    and cannot alter D/A, relations, validity, or K/N/I. The retained
    `contribution` Boolean is the legacy `coverage_class=semantic_hit` marker;
-   it is not a terminal-false execution count.
+   it is not a terminal-false execution count. The summary's 12/19 terminal
+   receipt and 8/19 report-bound predicate metrics are distinct-ID counts; the
+   row-level 825/1271 and 303/825 ratios are separate diagnostics.
 6. Every final-N report appears in exactly one N group; groups never cross
    side or pair. I clusters never enter substantive N group counts.
 

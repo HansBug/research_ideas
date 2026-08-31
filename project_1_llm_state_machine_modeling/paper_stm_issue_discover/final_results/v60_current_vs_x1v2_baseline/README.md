@@ -26,6 +26,17 @@ pane5 人工监督确认、独立 subagent proposal、解盲和仲裁记录。�
 [v3 summary](./derived/manual_adjudication_v3_baseline_ni/recomputed_summary_v3.json) 和
 [v3 reviews](./derived/manual_adjudication_v3_baseline_ni/reviews/)。
 
+### Paper-facing predicate summary
+
+v60 使用冻结的 19 个谓词 registry，分为 Structure (6)、Topology (4)、Trajectory
+simulation (4) 和 Bounded verification (5) 四族。method summary 中有 12/19 个
+distinct predicate IDs 产生过 terminal receipt；current v4 canonical decisions
+中有 8/19 个 distinct predicate IDs 至少绑定到一条 report-bound finding。两者都是
+ID 级指标，不是 finding、W2 或 hit 的覆盖率。X1v2 没有同构
+predicate binding/receipt schema，因此 predicate usage 为 N/A，不是零。825/1271
+和 303/825 仍保存在 fair-comparison summary 中，作为行级审计诊断，不替代 12/19
+与 8/19。详细后端能力审计只属于内部 evaluation-only 目录。
+
 ## 当前主结果
 
 完整的并列表格和论文口径只见[正式 v4 中文报告](./report/v60_current_vs_x1v2_baseline_v4_cn.md)。报告是当前唯一的纸面 headline 入口；current v4、baseline v3 和 fair comparison 的 JSON/TSV 是可审计事实源。旧 v2 summary、旧 report 和旧 Judge 只作为历史 provenance，不再构成当前并列结果。

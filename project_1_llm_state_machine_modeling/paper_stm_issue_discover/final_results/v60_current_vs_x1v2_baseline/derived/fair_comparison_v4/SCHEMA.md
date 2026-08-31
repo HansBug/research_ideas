@@ -18,11 +18,28 @@ metrics, not a second semantic label source.
 All metrics use `Metric`-style numerator/denominator/percentage objects. Hit
 and supported coverage use expected-round units (`145 x 3 = 435`) or unique
 expected IDs as stated beside each field. W-on-hits uses FULL expected-round
-hits as its denominator. Publication predicate metrics retain only the
-inherited `report_bound_binding` ratio and the explicitly named legacy
-`semantic_hit` marker ratio. Method-execution and witness-audit counts remain
-historical provenance and are not current headline fields. The marker is not
-equated with a terminal-false receipt. Baseline is `not_applicable`, not zero.
+hits as its denominator. The current predicate block contains four separate
+units: registry size/family counts; distinct predicate IDs with a terminal
+receipt (12/19); distinct predicate IDs in report-bound findings (8/19); and
+row-level diagnostics (`report_bound_binding` 825/1271 plus the legacy
+`semantic_hit` marker 303/825). The distinct-ID metrics are sourced from the
+frozen method summary and current v4 canonical decisions; the row-level
+diagnostics are not substitutes for them. None is a finding, W2, hit, or
+issue-level coverage metric. The marker is not equated with a
+terminal-false receipt. Baseline is `not_applicable`, not zero.
+
+The current `predicate` object uses these names:
+
+| Field | Meaning |
+| --- | --- |
+| `registry_predicate_count`, `registry_version`, `family_counts` | Frozen registry identity and four-family composition |
+| `distinct_terminal_receipt_predicates` | `predicate_ids` and a `Metric` ratio; v60 is 12/19 |
+| `distinct_report_bound_predicates` | `predicate_ids` and a `Metric` ratio; v60 is 8/19 |
+| `report_bound_binding`, `legacy_semantic_hit_marker_among_report_bound_bindings` | Row-level diagnostic ratios; v60 is 825/1271 and 303/825 |
+| `sources`, `naming_boundary`, `report_level_naming_boundary` | Evidence paths and explicit non-equivalence boundaries |
+
+For X1v2, `predicate` remains an explicit `not_applicable` object because the
+baseline contract has no current-side binding or receipt schema.
 
 The main precision is report-level `(K+N)/all reports`. The diagnostic
 composition records unique K expected IDs, substantive N groups, and invalid I

@@ -22,7 +22,7 @@ pair 的全部 145 个 expected relation，机械派生 K/N/I，再只对最终 
 
 W0/W1/W2 只表示证据强度。W2 需要 finding 自带 executable object、typed
 input、精确 artifact hash、terminal result 和原始 receipt；Judge 后验不能升级
-baseline W。predicate usage 与 predicate contribution 分开统计，也不参与 D/A
+baseline W。predicate execution usage 与 report-bound predicate-ID presence 分开统计，也不参与 D/A
 或 K/N/I。
 
 ## 主结果
@@ -115,25 +115,53 @@ guard 归因，以及 `0044:r1:issue:16` 的 route/lowering/runtime 归因。它
 
 ## W 与 predicate
 
+### Paper-facing predicate summary
+
+| 指标 | v60/current | X1v2 baseline v3 |
+| --- | ---: | ---: |
+| registry predicates | 19（Structure 6、Topology 4、Trajectory simulation 4、Bounded verification 5） | N/A |
+| distinct IDs with terminal receipt | 12/19 | N/A，无同构 schema |
+| distinct IDs bound to report-bound findings | 8/19 | N/A，无同构 schema |
+
+v60 的 12 个实际执行 ID 为 `G1, G2, G4, R1, R2, R4, S1, S2, S3, S4, S5, V4`；
+8 个 report-bound distinct ID 为 `G1, G2, R2, S2, S3, S4, S5, V4`。这里的
+“执行”指至少产生一条 terminal receipt；“report-bound”指至少绑定到一条最终
+report-bound finding。两者都是 predicate-ID 统计，不是 finding、W2、hit 或缺陷
+类型覆盖率。X1v2 没有同构 predicate binding/receipt schema，因此写作和机器
+汇总均使用 N/A，而不是零。
+
 | 指标 | v60/current | X1v2 baseline v3 |
 | --- | ---: | ---: |
 | FULL-hit max W0/W1/W2 | 0/113/197（分母 310） | 0/227/0（分母 227） |
-| report-bound predicate receipt usage | 825/1271 = 64.91% | N/A，baseline 无同构 binding schema |
-| report-bound predicate contribution marker | 303/825 = 36.73% | N/A |
+| report-bound binding rows / all reports | 825/1271 = 64.91% | N/A，baseline 无同构 binding schema |
+| legacy `coverage_class=semantic_hit` markers / report-bound rows | 303/825 = 36.73% | N/A |
 
 “N/A”表示该字段在 baseline 运行契约中不存在，不是零。全部 finding 的 W 分布
-不能替代 hit 单位的 max-W 分布。
+不能替代 hit 单位的 max-W 分布。上表后两行是 report-level 审计诊断，不能替代
+前面的 distinct-ID 指标。
 
-### Predicate usage 与 contribution 的定义
+### Predicate usage 与 report-bound presence 的定义
 
-本报告只发布 current v4 的 report-bound 指标；旧 witness audit 的 planned mapping、
-registry 明细和 method receipt 统计留在历史 provenance，不作为当前 headline：
+本报告把 distinct-ID 指标和 report-level 诊断分开发布：
 
-- **report-bound usage**：最终 finding 保留 registered predicate binding 和
-  receipt 的记录，共 `825/1271`。这是逐报告诊断分母，不是完整 method 执行次数。
-- **report-bound contribution marker**：上述 825 条中，继承的
-  `coverage_class=semantic_hit` 标记为真者共 `303/825`。该字段保留既有 v4
-  发布口径；它不能解释成 terminal-false receipt 数，也不能由 violation 自动推出。
+- **predicate execution usage**：registry 中至少产生一条 terminal receipt 的
+  distinct predicate IDs，v60 为 `12/19`。
+- **report-bound predicate IDs**：至少绑定到一条最终 report-bound finding 的
+  distinct predicate IDs，v60 为 `8/19`。这不是谓词布尔贡献字段、W2 数或
+  finding 数。
+- **report-bound binding rows**：最终 finding 保留 registered predicate binding 和
+  receipt 的记录，共 `825/1271`；这是逐报告诊断分母，不是完整 method 执行次数。
+- **legacy semantic-hit marker**：上述绑定行中继承的 `coverage_class=semantic_hit`
+  标记共 `303/825`；该字段不能解释成 terminal-false receipt、W2 数或 8 个谓词
+  的贡献数。
+
+谓词是证据生成后端，不是缺陷发现的准入条件。详细的后端能力审计留在内部
+evaluation-only 材料，不作为本文方法输入或主结果。
+
+本文聚焦于建立缺陷存在的证据：一个有来源依据的 sound violation 或具体反例已经足够
+建立缺陷证据；当静态证据已经闭合时，不需要为形式完整性强行升级到 trajectory
+simulation 或 BMC。只有 guard、时序、RTC、变量效果或全局终止等性质无法由静态
+证据表达时，才使用这些更强的后端。
 
 ## 学术解释与限制
 
@@ -146,23 +174,13 @@ al.（MODELS 2025, DOI `10.1109/MODELS67397.2025.00014`）支持 equivalent issu
 与人工确认的 new true issue；Pearson et al.（ICSE 2017, DOI
 `10.1109/ICSE.2017.62`）说明报告粒度影响 fault 分解；Martinez et al.（EMSE
 2017, DOI `10.1007/s10664-016-9470-4`）支持 semantic/repair equivalence 不
-要求 patch 文本相同。IEEE Std 1044-2009，*IEEE Standard Classification for
-Software Anomalies*（DOI `10.1109/IEEESTD.2010.5399061`）给出包含 `Not found`、
-intended behavior 在内的 anomaly disposition；Goodenough, Weinstock & Klein，
-*Eliminative Argumentation: A Basis for Arguing Confidence in System Properties*
-（CMU/SEI-2015-TR-005，DOI `10.1184/R1/6573413.v1`）区分作用于 claim、evidence
-和 inference rule 的 defeater。Barr et al.，*The Oracle Problem in Software Testing:
-A Survey*（DOI `10.1109/TSE.2014.2372785`）界定 implicit test oracle 的能力边界；
-Zave & Jackson，*Four Dark Corners of Requirements Engineering*（DOI
-`10.1145/237432.237434`）说明经过验证的 domain knowledge 可进入 requirements
-reasoning。Massey et al.，*Identifying and Classifying Ambiguity for Regulatory
-Requirements*（DOI `10.1109/RE.2014.6912250`）讨论 reasonable alternative
-interpretation；Pollock，*Defeasible Reasoning*（DOI
-`10.1207/s15516709cog1104_4`）区分 rebutting 与 undercutting defeater。
+要求 patch 文本相同；IEEE Std 1044-2009，*IEEE Standard Classification for
+Software Anomalies*（DOI `10.1109/IEEESTD.2010.5399061`）给出 anomaly disposition
+与 intended behavior 的分类依据。
 
-这些文献分别支持 distinct bug、relatedness、修复等价、false positive、需求
-有效性与歧义裁决；“同 side + 同 pair + 同义务 + 同 source/root cause + 同修复
-意图”是本项目的 operationalization，不是任何一篇文献逐字给出的完整标准。
+这些文献分别支持 distinct bug、relatedness、修复等价、false positive 和 anomaly
+disposition；“同 side + 同 pair + 同义务 + 同 source/root cause + 同修复意图”是
+本项目的 operationalization，不是任何一篇文献逐字给出的完整标准。
 
 数据直接支持：current 的 FULL hit、supported coverage 和 L2 hit 较高，report
 precision 较低；current 的 I 差额由 D0、A0/FP 和 current-only NADC 共同组成。

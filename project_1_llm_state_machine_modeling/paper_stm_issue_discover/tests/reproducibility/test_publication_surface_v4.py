@@ -107,7 +107,7 @@ def test_only_current_predicate_and_n_counts_appear_in_the_headline_report() -> 
 
 
 def test_publication_summaries_exclude_historical_witness_audit_fields() -> None:
-    """Current and fair summaries expose only the two report-bound predicate ratios."""
+    """Current and fair summaries expose the frozen distinct-ID and row metrics."""
 
     current = _load(
         ARCHIVE / "derived/manual_adjudication_v4_current_reaudit/summary_v4.json"
@@ -116,9 +116,16 @@ def test_publication_summaries_exclude_historical_witness_audit_fields() -> None
     fair_current = fair["sides"]["v60_current"]["predicate"]
     expected_fields = {
         "status",
+        "registry_predicate_count",
+        "registry_version",
+        "family_counts",
+        "distinct_terminal_receipt_predicates",
+        "distinct_report_bound_predicates",
+        "sources",
+        "naming_boundary",
         "report_bound_binding",
         "legacy_semantic_hit_marker_among_report_bound_bindings",
-        "naming_boundary",
+        "report_level_naming_boundary",
     }
     assert set(current) == expected_fields
     assert set(fair_current) == expected_fields

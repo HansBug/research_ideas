@@ -92,6 +92,59 @@ def witness_level(row: dict[str, Any]) -> str:
     return str(witness.get("level") or row.get("w_level") or "W0")
 
 
+def current_predicate_metrics(archive: Path, report_bound_ids: set[str]) -> dict[str, Any]:
+    """Load paper-facing distinct-ID predicate metrics from canonical evidence."""
+
+    registry_path = archive / "reference/predicate_registry.json"
+    method_summary_path = archive / "raw/v60_current/method/summary.json"
+    registry = load(registry_path)
+    families = registry.get("families", [])
+    registry_ids = [str(predicate["id"]) for family in families for predicate in family.get("predicates", [])]
+    family_counts = {
+        str(family["id"]): len(family.get("predicates", []))
+        for family in families
+    }
+    method_summary = load(method_summary_path)
+    execution = method_summary["metrics"]["method"]["coverage_accounting"]["predicate_execution_coverage"]
+    executed_ids = sorted({str(predicate_id) for predicate_id in execution["executed_predicates"]})
+    if set(executed_ids) - set(registry_ids) or execution.get("registry_predicate_denominator") != len(registry_ids):
+        raise ValueError("frozen method predicate execution does not close over the registry")
+    report_bound_ids = sorted({str(predicate_id) for predicate_id in report_bound_ids if predicate_id})
+    if set(report_bound_ids) - set(registry_ids):
+        raise ValueError("canonical current decisions contain an unregistered report-bound ID")
+
+    def distinct_metric(ids: list[str], unit: str) -> dict[str, Any]:
+        denominator = len(registry_ids)
+        return {
+            "numerator": len(ids),
+            "denominator": denominator,
+            "percentage": len(ids) / denominator if denominator else None,
+            "unit": unit,
+            "predicate_ids": ids,
+        }
+
+    return {
+        "status": "available",
+        "registry_predicate_count": len(registry_ids),
+        "registry_version": str(registry.get("registry_version", "")),
+        "family_counts": family_counts,
+        "distinct_terminal_receipt_predicates": distinct_metric(
+            executed_ids,
+            "distinct registered predicate IDs with >=1 terminal receipt / registry predicate IDs",
+        ),
+        "distinct_report_bound_predicates": distinct_metric(
+            report_bound_ids,
+            "distinct registered predicate IDs in >=1 report-bound finding / registry predicate IDs",
+        ),
+        "sources": {
+            "registry": "reference/predicate_registry.json",
+            "execution": "raw/v60_current/method/summary.json#/metrics/method/coverage_accounting/predicate_execution_coverage",
+            "report_bound": "derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.json#/decisions[*]/predicate_usage",
+        },
+        "naming_boundary": "Distinct-ID execution and report-bound metrics are separate from finding counts, W2 counts, hit counts, report-bound row ratios, and legacy semantic-hit markers. This summary does not encode the internal per-entry predicate mapping as a method requirement.",
+    }
+
+
 def normalize_current(archive: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Load the Pydantic-backed current v4 layer as comparison rows."""
 
@@ -175,6 +228,7 @@ def metric_bundle(
     group_count: int,
     i_cluster_count: int,
     side: str,
+    predicate_metrics: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Compute identical report/relation/hit/coverage formulas for one side."""
 
@@ -227,9 +281,10 @@ def metric_bundle(
         legacy_semantic_hit = [row for row in report_bound if row["predicate_usage"].get("contribution")]
         predicate = {
             "status": "available",
+            **(predicate_metrics or {}),
             "report_bound_binding": ratio(len(report_bound), len(rows), "report-bound predicate binding rows / all reports"),
             "legacy_semantic_hit_marker_among_report_bound_bindings": ratio(len(legacy_semantic_hit), len(report_bound), "legacy coverage_class=semantic_hit markers / report-bound binding rows"),
-            "naming_boundary": "Publication metrics retain only report-bound binding and legacy semantic-hit-marker ratios. Method execution and witness-audit counts remain historical provenance and are not current headline metrics.",
+            "report_level_naming_boundary": "Report-bound binding rows and legacy semantic-hit markers are diagnostic ratios; they are not the distinct-ID execution or report-bound predicate metrics.",
         }
     else:
         predicate = {"status": "not_applicable", "reason": "Baseline v3 has no current-side predicate-binding schema; this is not a zero count."}
@@ -282,7 +337,15 @@ def build(archive: Path) -> Path:
     current, current_context = normalize_current(archive)
     baseline, baseline_context = normalize_baseline(archive)
     ledger = load(archive / "reference/ledger.json")["items"]
-    current_metrics = metric_bundle(current, ledger, current_context["group_count"], current_context["i_cluster_count"], "v60_current")
+    predicate_metrics = current_predicate_metrics(
+        archive,
+        {
+            str(row["predicate_usage"]["predicate_id"])
+            for row in current
+            if row.get("predicate_usage") and row["predicate_usage"].get("executed_with_receipt") and row["predicate_usage"].get("predicate_id")
+        },
+    )
+    current_metrics = metric_bundle(current, ledger, current_context["group_count"], current_context["i_cluster_count"], "v60_current", predicate_metrics)
     baseline_metrics = metric_bundle(baseline, ledger, baseline_context["group_count"], baseline_context["i_cluster_count"], "x1v2_baseline")
     rows = []
     for source_rows in (current, baseline):
@@ -395,7 +458,21 @@ def main() -> None:
             archive / "derived/fair_comparison_v4",
             archive,
             rows,
-            metric_bundle(current, ledger, current_context["group_count"], current_context["i_cluster_count"], "v60_current"),
+            metric_bundle(
+                current,
+                ledger,
+                current_context["group_count"],
+                current_context["i_cluster_count"],
+                "v60_current",
+                current_predicate_metrics(
+                    archive,
+                    {
+                        str(row["predicate_usage"]["predicate_id"])
+                        for row in current
+                        if row.get("predicate_usage") and row["predicate_usage"].get("executed_with_receipt") and row["predicate_usage"].get("predicate_id")
+                    },
+                ),
+            ),
             metric_bundle(baseline, ledger, baseline_context["group_count"], baseline_context["i_cluster_count"], "x1v2_baseline"),
         )
     else:

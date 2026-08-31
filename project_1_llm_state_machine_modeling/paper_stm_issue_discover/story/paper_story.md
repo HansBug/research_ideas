@@ -10,13 +10,15 @@
 
 方法从受 hash 约束的输入闭包开始：NL、作者 PlantUML、canonical source IR、FCSTM、native/inspection facts、working contract 与 source trace 各自承担不同角色。方法先抽取 NL contract；只在固定条件满足时进行一次有界 contract completion；随后使用两个互补的 discovery-grounding lens 提出并定位候选。确定性 frontier、predicate routing、typed binding、compiler 和 backend 对可执行候选给出可复核证据。方法再作 D adjudication 和受限定向 correction，最后计算 W，并只发布 D2/D1 的 exact typed-deduplicated reports。
 
-W 描述方法发现的证据强度，D 描述方法内对问题主张的裁定，L 仅是 ledger 的层级分类。W2 需要准确制品上的合法可执行对象、typed input、backend terminal true/false 与完整 receipt；缺少这些条件的具体发现仍可能是 W1，无法具体定位的主张是 W0。四族 19 谓词服务于可执行证据，不是问题发现或发布的准入门。
+谓词体系依据相关状态机、形式化验证和执行语义文献归纳为四族 19 个谓词：Structure (6)、Topology (4)、Trajectory simulation (4) 和 Bounded verification (5)。在 v60 中，12 个不同的 predicate ID 产生过 terminal receipt，8 个不同的 predicate ID 出现在至少一条 report-bound finding 中。前者是 distinct-ID 执行统计，后者是 distinct-ID 的 report-bound presence，不能与 finding 数、W2 数或 hit 数混用。
 
-独立 Semantic Judge 按冻结 issue #195 协议先判 report validity，再在冻结 validity certificate 约束下判 report 与 expected issue 的 relation。evaluation 独立汇总 FULL/PARTIAL/NONE、VALID_KNOWN/VALID_NOVEL/INVALID、hit、precision、W-on-hits、K/N/I、predicate usage 与成本。方法本身不读取 ledger、expected answer、Judge 输出或历史 report。
+W 描述方法发现的证据强度，D 描述方法内对问题主张的裁定，L 仅是 ledger 的层级分类。W2 需要准确制品上的合法可执行对象、typed input、backend terminal true/false 与完整 receipt；缺少这些条件的具体发现仍可能是 W1，无法具体定位的主张是 W0。四族 19 谓词服务于可执行证据，不是问题发现或发布的准入门。方法的公开 finding surface 只发布 D2/D1；独立评测归档仍保留全部 report 和 decision。本文的目标是发现并证实缺陷，不是证明模型对所有行为都正确；因此，来源约束下的明确违规证据或一个具体反例已经足够时，不再强行升级到轨迹仿真或 BMC。只有静态证据不足以处理 guard、时序、RTC、变量效果或全局终止语义时，才使用这些更强的后端。
+
+独立 Semantic Judge 按冻结 issue #195 协议先判 report validity，再在冻结 validity certificate 约束下判 report 与 expected issue 的 relation。evaluation 独立汇总 FULL/PARTIAL/NONE、VALID_KNOWN/VALID_NOVEL/INVALID、hit、precision、W-on-hits、K/N/I、predicate usage 与成本。方法本身不读取评测裁定、Judge 输出或历史 report。
 
 ## 当前证据
 
-当前实验证据来自 54 个 pair、3 个 round、145 条 expected issue 和 435 条 round-level expected row。按 v4 公平对照层，v60/current 的 overall FULL 为 310/435 = 71.26%，X1v2 baseline v3 为 227/435 = 52.18%；L2 FULL 分别为 105/117 = 89.74% 与 50/117 = 42.74%。完整指标、D/A、K/N/I、W-on-hits、成本资格、raw/derived 制品与复算命令以 [最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md) 和 [v4 中文正式报告](../final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md) 为准。
+当前实验证据来自 54 个 pair、3 个 round、145 条参考缺陷条目和 435 个 round-level evaluation units。按 v4 公平对照层，v60/current 的 overall FULL 为 310/435 = 71.26%，X1v2 baseline v3 为 227/435 = 52.18%；L2 FULL 分别为 105/117 = 89.74% 与 50/117 = 42.74%。完整指标、D/A、K/N/I、W-on-hits、成本资格、raw/derived 制品与复算命令以 [最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md) 和 [v4 中文正式报告](../final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md) 为准。
 
 当前比较只支持冻结 ledger、输入闭包、issue #195 Judge、`gpt-5.6-luna` 和已声明 fragment 下的结论。它不能证明跨模型、跨台账或跨状态机语义片段的普遍效果，也不能把 X1v2 的 legacy Judge 数字与 current baseline 混用。
 

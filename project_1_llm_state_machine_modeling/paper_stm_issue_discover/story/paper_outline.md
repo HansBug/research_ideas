@@ -7,7 +7,7 @@
 | 3. 方法 | 输入闭包、contract extraction/completion、双 lens、frontier、谓词执行、D/W 与 publication | [method/](../method/README.md) 和冻结方法制品 |
 | 4. 独立判定与评测 | issue #195 Judge 的 validity/relation 两轴，以及 evaluator 的分母与指标所有权 | [judge/](../judge/README.md) 与 [evaluation/](../evaluation/README.md) |
 | 5. 实验设计 | 54 pair、145 条 ledger、3 round、X1v2 baseline、输入与 hash 固定方式 | [最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md) |
-| 6. 结果 | hit、L2、precision、W-on-hits、谓词使用与成本资格 | [中文正式报告](../final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md) |
+| 6. 结果 | hit、L2、precision、W-on-hits、19/12/8 predicate-ID 指标与成本资格 | [中文正式报告](../final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md) |
 | 7. 威胁与限制 | ledger/Judge 测量边界、片段范围、执行模型与成本资格 | 正式报告的限制与 [claim map](./claim_evidence_map.md) |
 | 8. 结论 | 在冻结范围内总结可审计发现链路及其结果 | 前述冻结证据 |
 

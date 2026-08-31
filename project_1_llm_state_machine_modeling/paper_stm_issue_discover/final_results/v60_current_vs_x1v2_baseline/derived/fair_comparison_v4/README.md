@@ -6,6 +6,22 @@ baseline v3 layer. Historical v2/v46/v27/Judge outputs remain byte-preserved,
 but current navigation and manifests expose them only as archive/provenance,
 not as headline results.
 
+## Paper-facing predicate summary
+
+The frozen v60 registry contains 19 predicates in four families: Structure (6),
+Topology (4), Trajectory simulation (4), and Bounded verification (5). The v60
+method summary records 12 distinct predicate IDs with at least one terminal
+receipt. The current v4 canonical decisions record 8 distinct predicate IDs
+bound to at least one report-bound finding. Both are distinct-ID metrics over the
+19-ID registry; neither is a finding count, W2 count, hit count, or
+issue-level coverage claim. X1v2 has no corresponding predicate
+binding/receipt schema, so its predicate usage is `N/A`, not zero.
+
+The summary also retains `825/1271` report-bound binding rows and `303/825`
+legacy `coverage_class=semantic_hit` markers as row-level diagnostics. These are
+not substitutes for 12/19 or 8/19. The detailed per-entry property/input and
+predicate-capability audit remain internal evaluation-only material.
+
 ## Canonical outputs
 
 | File | Purpose |
