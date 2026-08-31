@@ -35,6 +35,12 @@ predicate-capability audit remain internal evaluation-only material.
 
 The full narrative is [the v4 paper report](../../report/v60_current_vs_x1v2_baseline_v4_cn.md).
 
+The provider-free [conversion attribution v1 overlay](../conversion_attribution_v1/README.md)
+explains all 291 current invalid report dispositions (including 118 current-only NADC
+dispositions) without changing this comparison layer or its headline. It confirms 110
+method-owned internal mechanisms, leaves 8 records indeterminate, and confirms no
+lowering-only semantic error; baseline v3 has no isomorphic NADC classification.
+
 ## Publication rule
 
 Report precision is the primary precision: `(K reports + N reports) / all

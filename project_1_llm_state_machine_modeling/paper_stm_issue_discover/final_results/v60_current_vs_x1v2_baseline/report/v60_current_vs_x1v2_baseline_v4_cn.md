@@ -55,9 +55,9 @@ expected ID 不增加 hit。
 | L2 hit@3 FULL | 37/39 = 94.87% | 26/39 = 66.67% | +11 IDs; +28.21 pp |
 | L2 hit@all FULL | 33/39 = 84.62% | 8/39 = 20.51% | +25 IDs; +64.10 pp |
 
-为了避免把不同去重单位混成一个“综合分数”，比较层还保留两种诊断性
-ledger/group 比值。current 为 `(119 + 121)/(119 + 121 + 189) = 55.94%`，baseline
-为 `(106 + 98)/(106 + 98 + 95) = 68.23%`；若 I 不做 diagnostic cluster，分别为
+比较层保留两种诊断性 ledger/group 比值；它们不构成综合分数。current 为
+`(119 + 121)/(119 + 121 + 189) = 55.94%`，baseline 为
+`(106 + 98)/(106 + 98 + 95) = 68.23%`；若 I 不做 diagnostic cluster，分别为
 `240/(240 + 291) = 45.20%` 和 `204/(204 + 95) = 68.23%`。这些数只描述
 K expected、N substantive group 与 I 诊断单元的组成敏感性，不是论文主 precision，
 因为 I 不是 substantive defect unit。
@@ -98,20 +98,51 @@ root cause 和最小 repair intent。singleton 是保守的“没有证据支持
 | --- | ---: | ---: |
 | D0 | 120 | 85 |
 | A0 / FALSE_POSITIVE | 53 | 10 |
-| A0 / NOT_A_DEFECT_CLAIM (NADC) | 118 | 0 |
+| A0 / NOT_A_DEFECT_CLAIM (NADC) | 118 | N/A（baseline v3 未分类） |
 | I reports | 291 | 95 |
 | diagnostic clusters | 189 | 95 |
 
 I cluster 只帮助描述 invalid claim 的重复形态，不是实质 defect 数，也不进入
 substantive grouped precision。current 的 291 条 I 到 189 个 cluster 的逐条映射见
 [current I diagnostic index](../derived/manual_adjudication_v4_current_reaudit/current_i_diagnostic_clusters_v4.json)。
-current 的 NADC 是 method-owned 的表示、分析或
-归因主张，只有在证据说明报告没有提出作者 source 缺陷时才使用。代表证据包括：
-`0014:r3:issue:1` 的 retention receipt 缺口、`0045:r1:issue:4` 的 lowering
-guard 归因，以及 `0044:r1:issue:16` 的 route/lowering/runtime 归因。它们支持
-“部分 I 与 current conversion/projection/runtime 证据边界有关”，但不能推出
-全部 I 都是转换债务。FALSE_POSITIVE 仍单列，例如
-`0001:r3:issue:1` 与 `0003:r2:issue:3` 的 source 已存在边。
+291 条是 report-level invalid dispositions，不是 291 个独立领域缺陷，也不能统称为
+false positives。D0=120 表示 source fact 成立但没有 surviving violated obligation；
+A0/`FALSE_POSITIVE`=53 表示作者 source 已经反驳报告核心主张；A0/`NOT_A_DEFECT_CLAIM`
+(NADC)=118 表示报告没有成立为作者模型缺陷，而落在方法内部的表示、归因或证据闭合边界。
+
+NADC 的 evaluation-only attribution overlay 将 118 条分为 compiler-owned artifact=38、
+projection/trace boundary=24、runtime/evidence closure=48 和 attribution-indeterminate=8。
+前 110 条是已确认的方法机制，8 条仍不能唯一归因；`CONVERSION_LOWERING_CONFIRMED` 为
+0。也就是说，当前证据确认了方法内部的 compiler/projection/closure 成本，但没有确认
+一条具体的 PlantUML-to-FCSTM lowering-only 语义错误。baseline v3 未提供该 current-only
+subtype 的同构分类（此前机械汇总的 0 仅是未分类占位），不是已证明 baseline 没有同类
+representation 或 evidence cost。全部 invalid report 仍计入 report-level precision。详细记录见
+[conversion attribution overlay](../derived/conversion_attribution_v1/README.md)。
+
+### Precision 差距的描述性分解
+
+current 输出 1271 条 report，baseline 输出 512 条；因此绝对 I 条数不能解释为独立缺陷数。
+两侧的 report-level validity precision 分别为 `980/1271 = 77.10%` 和
+`417/512 = 81.45%`，差异为 `-4.34 pp`。因为 precision 与 I rate 互补，I rate 的
+差异正好为 `+4.34 pp`：
+
+| I 成分 | current rate | baseline rate | current - baseline |
+| --- | ---: | ---: | ---: |
+| D0 | `120/1271 = 9.44%` | `85/512 = 16.60%` | `-7.16 pp` |
+| ordinary source-level FP | `53/1271 = 4.17%` | `10/512 = 1.95%` | `+2.22 pp` |
+| current-only NADC | `118/1271 = 9.28%` | N/A（baseline v3 未分类） | 不可比 |
+| I rate | `291/1271 = 22.90%` | `95/512 = 18.55%` | `+4.34 pp` |
+
+这张表是 side-specific 的算术分解，不是无 projection 的反事实，也不证明 lowering 是
+precision 缺口的主要原因。baseline v3 没有该 current-only subtype 的同构分类，故 NADC
+只报告 current-side rate；若为 bookkeeping 将缺失 baseline cell 机械记为 0，残差为
+`+9.28 pp`，但这不是可比成分，也不应被当作同构的“零成本”。
+
+可写的结果结论是：在共同的 435 个 expected-round units 上，ours 的 FULL hit@1 为
+`71.26%`，baseline 为 `52.18%`，提高 `19.08 pp`；同时 ours 承担 `4.34 pp` 的
+report-level validity precision 成本。这描述的是当前冻结协议下更高发现覆盖、伴随适度
+invalid-output burden 的 operating point，不是“ours 在所有指标上都更好”，也不是
+“conversion error 已解释全部 precision 差距”。
 
 ## W 与 predicate
 
@@ -183,10 +214,20 @@ disposition；“同 side + 同 pair + 同义务 + 同 source/root cause + 同�
 本项目的 operationalization，不是任何一篇文献逐字给出的完整标准。
 
 数据直接支持：current 的 FULL hit、supported coverage 和 L2 hit 较高，report
-precision 较低；current 的 I 差额由 D0、A0/FP 和 current-only NADC 共同组成。
+precision 较低；在当前各自分类和记账边界下，观察到的 I-rate 差异包含 D0、A0/FP
+以及 current-side NADC disposition 的不同构成，但 baseline v3 未提供同构 NADC 分类，
+因此不能把 NADC 机械地写成可比跨臂成分。
 协议推导：I 不进入 substantive defect grouped precision，且 PARTIAL 不进主 hit。
 仍有敏感性：N 的 conservative merge 边界、I cluster 是否合并，以及台账是否覆盖
 完整缺陷宇宙；因此本文以 report precision 为主，不用诊断性 group 比值替代它。
+
+## 重跑决策
+
+唯一结论：`NO_RERUN`。A（headline soundness leak）、B（evaluation-only 修复不足）和
+C（影响范围不可局部隔离）没有同时成立：审计没有发现 FCSTM-only 或 compiler-owned
+现象进入 current K/N，现有 invalid 成本已计入主 precision，归因和文档修正均可在
+evaluation-only overlay 中完成。因此保留 current v60 headline；本次归因执行没有重新运行
+method、Judge 或 provider。
 
 ## 复算和归档
 

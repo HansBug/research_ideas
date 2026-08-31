@@ -41,6 +41,8 @@ predicate binding/receipt schema，因此 predicate usage 为 N/A，不是零。
 
 完整的并列表格和论文口径只见[正式 v4 中文报告](./report/v60_current_vs_x1v2_baseline_v4_cn.md)。报告是当前唯一的纸面 headline 入口；current v4、baseline v3 和 fair comparison 的 JSON/TSV 是可审计事实源。旧 v2 summary、旧 report 和旧 Judge 只作为历史 provenance，不再构成当前并列结果。
 
+本次 provider-free evaluation-only 归因见 [conversion attribution v1 overlay](./derived/conversion_attribution_v1/README.md)。它覆盖全部 291 条 current I（其中 118 条 NADC），确认 110 条方法内部机制、8 条 indeterminate，严格 confirmed lowering-only 为 0；不修改 canonical decisions、主 precision 或 headline。重跑 gate 的唯一结论为 `NO_RERUN`。
+
 结构化入口如下：
 
 - current/v60：[v4 decisions](./derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.json)、[v4 TSV](./derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.tsv)、[v4 summary](./derived/manual_adjudication_v4_current_reaudit/summary_v4.json)。

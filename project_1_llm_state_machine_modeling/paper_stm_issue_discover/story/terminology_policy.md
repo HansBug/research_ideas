@@ -8,7 +8,14 @@
 | finding / report | 方法产生并发布的具体问题主张 | expected issue 或 Judge decision |
 | expected issue | ledger 中预先存在的被评测条目 | 方法输出的 L 标签 |
 | FULL / PARTIAL / NONE | Judge 给出的 report-to-expected relation | report validity 或 W 等级 |
-| VALID_KNOWN / VALID_NOVEL / INVALID | Judge 的 report validity | expected relation；仅 INVALID 进入 semantic FP |
+| VALID_KNOWN / VALID_NOVEL / INVALID | Judge 的 report validity | expected relation；INVALID 进入 I/invalid-output 统计，ordinary FP 只是其中一类 |
+| invalid report disposition | 被 source-first 评为 INVALID 的用户可见 report 记录；v60/current 为 291/1271 | 291 个独立领域缺陷或 291 条 ordinary false positive |
+| report-level validity precision | `(K reports + N reports) / all reports`；current `980/1271 = 77.10%`，baseline `417/512 = 81.45%` | 无 projection 的反事实精度或跨输出粒度不变的语义精度 |
+| D0 non-violation | source fact 成立但没有 surviving violated obligation；current I 为 120 | ordinary source-level false positive 或 conversion error |
+| NADC (`NOT_A_DEFECT_CLAIM`) | A0 下报告未成立为作者模型缺陷的 disposition；current 为 118，其中 confirmed method-owned mechanisms 110、indeterminate 8 | 单一 lowering 根因或 baseline 中可直接比较的同构类别 |
+| confirmed method-owned invalid | compiler-owned artifact、projection/trace boundary、runtime/evidence closure 和 confirmed lowering 类别的合计；current 为 110/291 | 包含 attribution-indeterminate 的 NADC 总量 118 |
+| conversion-lowering confirmed | 同时有 source absence/semantic mismatch 与具体 lowering/loss/ownership 证据的 invalid attribution；v60 为 0 | 看到 FCSTM、loss code、identity-only trace 或 unsupported receipt |
+| NO_RERUN | deny-by-default gate 的唯一当前结论；A/B/C 未同时满足时保留 v60 headline | “建议重跑”“可能重跑”或 conversion cost 的豁免 |
 | W0 / W1 / W2 | 方法 finding 的见证强度 | predicate usage 或 Judge 的有效性裁定 |
 | D0 / D1 / D2 | 方法内问题裁定；D1/D2 才发布 | ledger 的 L0/L1/L2 |
 | L0 / L1 / L2 | ledger 对陈述问题所需分析层级的分类 | 方法输出或 W/D 等级 |

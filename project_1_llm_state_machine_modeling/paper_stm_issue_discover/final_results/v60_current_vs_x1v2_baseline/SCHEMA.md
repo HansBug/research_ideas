@@ -99,6 +99,10 @@ report-based precision = (VALID_KNOWN + VALID_NOVEL) / all final reports
 report-based FP rate = INVALID / all final reports
 ```
 
+### Conversion attribution overlay
+
+`derived/conversion_attribution_v1/` 是对冻结 current v4 invalid decisions 的 provider-free、evaluation-only 派生层。`report_attribution_v1.json` 对 291 条 I report 各保留一条记录，并以七类互斥 `primary_attribution` 区分 D0、普通 source-level FP、compiler/projection/runtime 机制和 indeterminate。`CONVERSION_LOWERING_CONFIRMED` 必须同时有 source absence/semantic mismatch 与具体 lowering/loss/ownership 证据；本版本为 0。118 条 NADC 中 110 条为已确认 method-owned mechanisms，8 条为 indeterminate。overlay 不修改 K/N/I 或 report-based precision；全部 I 仍在 `(K+N)/all reports` 分母。baseline v3 未提供同构 NADC subtype，故 precision-gap summary 对 NADC 只保留 current-side rate，机械零值残差仅作 bookkeeping。
+
 它们使用逐条 report 作为分母，不使用 N/I group。发布级 operational composition 另行记录：
 
 ```text
