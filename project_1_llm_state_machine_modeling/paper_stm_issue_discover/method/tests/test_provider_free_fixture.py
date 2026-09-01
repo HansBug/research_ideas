@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from paper_stm_method.inputs import parse_fcstm
+from paper_stm_method.inputs.fcstm_native_projection import load_native_document
+from paper_stm_method.compiler.soundness import assess_soundness
 from paper_stm_method.registry import load_registry
 from paper_stm_method.orchestration import runner
 
@@ -39,3 +41,27 @@ def test_packaged_release_manifest_verifies_its_embedded_commit() -> None:
     assert len(provenance["source_commit"]) == 40
     assert provenance["source_branch"] == "package-release"
     assert provenance["source_dirty"] is False
+
+
+def test_v3_milliseconds_is_outside_the_native_executable_fragment() -> None:
+    """The soundness gate must agree with V3's discrete backend contract."""
+
+    source = (Path(__file__).parent / "fixtures" / "minimal.fcstm").read_text(
+        encoding="utf-8"
+    )
+    model = parse_fcstm(source)
+    native = load_native_document(source)
+    assessment = assess_soundness(
+        "V3",
+        {
+            "p": "Idle",
+            "q": "Active",
+            "bound": 1,
+            "unit": "milliseconds",
+            "scope": "cold",
+        },
+        model=model,
+        model_hash=native.source_hash,
+    )
+
+    assert assessment.satisfied is False

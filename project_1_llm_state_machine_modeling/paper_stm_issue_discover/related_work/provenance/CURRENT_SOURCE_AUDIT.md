@@ -2,9 +2,9 @@
 
 ## 结论
 
-截至 2026-09-01，冻结注册表的 19 个谓词都能回链到来源标识映射、主张支持和边界，但该映射不能单独支撑“19 个谓词已完成学术资格审查”的论文表述。旧目录缺少作者、年份、发表载体、DOI、稳定 URL、检索日期、全文定位与逐句核验字段，并且包含本地领域摘录和技术记录。
+截至 2026-09-02，R1 已把冻结 registry 的 source-ID pool、legacy 19、typed obligation surface 和当前四族 19 条逐项交叉映射。完整书目、全文原句、页码、责任分层、chronology、backend fragment 和逐 polarity 发表资格只见[谓词来源审计](./predicate_provenance.md)；本文件不复制第二份来源表。
 
-R1 的独立外部审阅将 8 个谓词标为“条件可写”，6 个标为 `TODO-CITATION`，5 个标为注册表语义与现有有界后端不完全同形。三种状态互相独立，逐条状态和禁止推论见[谓词来源审计](./predicate_provenance.md)。冻结来源标识目录尚未提供从其 `ST/TP/TR/BV` 标识到本审计 `D1--F7/T1--T2` 角色的完整可机读交叉映射，因此逐条角色仍是待复核的 citation audit，而非运行时元数据。这不改变已冻结的谓词标识、类型化约定、后端、W、D/A、关系、K/N/I 或结果数字。
+冻结 registry 的标识映射是设计注册事实，而不是 runtime academic gate。R1 的结构化 audit metadata 明确将外部学术资格、方法自有执行语义和实例 authority 分开，且不改变冻结谓词、类型化约定、后端、W、D/A、relation、K/N/I 或结果数字。G2、V4 与 V5 的论文解释收窄为 publication boundary，不反写 canonical runtime record；V3 的 provider-free soundness gate 只将 `steps` 视为可执行单位，以与 native backend 一致。
 
 ## 来源与全文状态
 
@@ -21,4 +21,4 @@ R1 的独立外部审阅将 8 个谓词标为“条件可写”，6 个标为 `T
 | T1 | [SMT-LIB standard](https://smt-lib.org/standard.shtml) | 全文核验；有限输入域的 SMT 技术边界。 |
 | T2 | [UPPAAL query semantics](https://docs.uppaal.org/language-reference/query-semantics/symb_queries/) | 全文核验；模型查询及状态空间回执的技术边界。 |
 
-本地 `STM.md` 摘录和方法或 FCSTM 技术制品仅标为“本地领域摘录”或“本地技术制品”。它们不能替代上表的外部学术引文。`TODO-CITATION` 的详细缺口是版本化 FCSTM 执行语义、G2/V3/V4/V5 的有界模型检查完备性、V1/V2 有限输入域的需求来源，以及 `called()` 的公开语义规范。
+本地 `STM.md` 摘录和方法或 FCSTM 技术制品只能补充领域实例或执行语义，不能替代外部学术引文。FCSTM token/AST、`macrostep`、`called()`、hot start、projection、horizon 与 replay 由版本化方法规范、代码和测试承担；实例 finite domain、bound、scope 与 expected value 由逐 pair NL/source binding 承担，不能由 SMT-LIB 或后端能力反推。

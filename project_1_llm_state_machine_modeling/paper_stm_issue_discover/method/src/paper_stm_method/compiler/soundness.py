@@ -141,7 +141,10 @@ def assess_soundness(
         ok = resolve_state(document, inputs["source"]) is not None and (trigger is None or resolve_event(document, trigger) is not None) and isinstance(inputs["domain"], Mapping) and bool(inputs["domain"])
         if predicate_id == "V1": ok = ok and isinstance(inputs.get("guards"), Sequence) and len(inputs["guards"]) >= 2
     elif predicate_id == "V3":
-        ok = isinstance(inputs["bound"], int) and not isinstance(inputs["bound"], bool) and inputs["bound"] > 0 and inputs["unit"] in {"steps", "milliseconds"} and (scope in {"closed_fcstm", "cold"} or resolve_state(document, scope) is not None)
+        # The native V3 backend only compiles a discrete FBMCQ step bound.
+        # Treating milliseconds as executable here would promote a plan that
+        # the backend must return as unknown.
+        ok = isinstance(inputs["bound"], int) and not isinstance(inputs["bound"], bool) and inputs["bound"] > 0 and inputs["unit"] == "steps" and (scope in {"closed_fcstm", "cold"} or resolve_state(document, scope) is not None)
     elif predicate_id == "V4":
         initial_scope = inputs["initial_scope"]
         ok = initial_scope in {"closed_fcstm", "cold"} or resolve_state(document, initial_scope) is not None

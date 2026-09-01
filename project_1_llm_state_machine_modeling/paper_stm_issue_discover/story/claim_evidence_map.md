@@ -1,25 +1,11 @@
-# 主张、证据与风险映射
+# 主张、证据与边界映射
 
-本表只列 R1 可写的最小主张。术语见[术语政策](./terminology_policy.md)：NL 为自然语言需求，FCSTM 为分析工作表示，`FULL hit@1` 为完全命中主端点。数字的唯一事实源是[最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md)及其规范 JSON/TSV；相关工作的可写范围由[最接近工作矩阵](../related_work/closest_work_matrix.md)决定。
-
-| 主张 | 证据与来源 | 最接近工作/新颖性风险 | 最低可防守措辞 | 限制与 RQ |
-| --- | --- | --- | --- | --- |
-| Paper1 研究给定 NL 和作者源状态机的可定位问题发现 | 输入闭包、来源追踪、方法制品；PlantUML 案例研究 | 需求-模型一致性、LLM 建模和状态机检查已有相邻工作 | “本文提出一条以 FCSTM 为工作表示的通用状态机问题发现架构，并在冻结 PlantUML 案例研究中实例化从 NL 与作者状态机到可审计发现的链路。” | 当前实现只含 PlantUML 适配器。其他语言只有在声明子集能形成可追溯 FCSTM 投影，并完成作者源属追踪、能力约定、失败关闭边界和独立实证后，才能另行报告。 |
-| C1 提供确定性、可定位的分析上下文 | 作者源、规范化表示、FCSTM、原生检查事实和来源追踪 | 工作表示可能被误读为语义保持转换 | “C1 为发现提供确定性工作表示和可定位上下文。” | `TODO-ABLATION`；不声称单独导致命中提升。 |
-| C2 可为适用候选留下类型化绑定、终止回执和 W2 条件 | 注册表、绑定、原生回执、W 政策 | 谓词、仿真和模型检查已有长期传统 | “C2 将适用候选的执行证据与作者源定位关联起来。” | `TODO-CITATION`；不把 19 谓词写成闭合集合或有效性门。 |
-| 主臂在本协议下整体与 L2 FULL hit 较高 | `combined_summary_v4.json`、正式报告 | 端到端比较，不识别组件作用 | “在冻结的 435 个预期问题轮次单元上，主臂 FULL hit@1 为 71.26%，基线为 52.18%。” | RQ1；不外推至其他模型、台账、片段或语言。 |
-| 主臂的报告级有效性精确率较低 | 正式报告、人工有效性结果 | 输出粒度和人工协议影响比例 | “报告级有效性精确率为 77.10% 对 81.45%。” | RQ1；不视作方法语义精度或因果差距。 |
-| 一部分主臂 FULL 命中有 W2 | W-on-hits 与回执制品 | 回执不是有效性或覆盖的替代品 | “310 个主臂 FULL 单元中有 197 个最高 W 为 W2。” | RQ2；不说所有发现由谓词贡献。 |
-| 谓词使用情况可审计 | 19 个注册谓词、`12/19` 终止回执、`8/19` 报告绑定 | 不同标识不是覆盖单位 | “使用统计描述不同谓词标识，不估计缺陷覆盖或边际贡献。” | RQ2；基线为 N/A。 |
-| 主臂 I 包含方法边界诊断 | [当前 v4 裁定制品](../final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.json)、转换归因覆盖层 | NADC 没有基线同构分类 | “NADC 仅描述主臂输出边界，不构成跨臂成分比较。” | RQ3；I 聚类和原始报告不是缺陷数。 |
-| 成本只能报告主臂完整工作点 | 成本审计 v1 | 基线有缺失的可计费用量 | “主臂 162 个方法格的完整回执成本为 `$7.18277320`。” | `TODO-BASELINE-COST`；无完整跨臂倍率。 |
-| 方法支持审查、回归和证据复核 | 来源锚点、回执、人工责任边界 | 没有用户研究 | “该制品形态支持后续审查与证据复核。” | `TODO-USER-STUDY`；不声称节省工时、认证或部署效果。 |
-
-## 明确不写的主张
-
-- C1、C2 或某一个后端单独造成覆盖率差距。
-- 19 个谓词构成全部缺陷类型，或其文献资格已经全部完成。
-- W2、回执或通过的谓词自动决定有效性、D/A、关系、K/N/I，或证明不存在问题。
-- 145 条台账是完整缺陷空间，报告数、N 实质问题组或 I 聚类是独立缺陷数。
-- 基线的已记录成本小计可构成完整成本或精确倍率。
-- 专家工时、安全认证、生产率或部署已得到测量。
+| claim ID | strongest defensible wording | 证据 | 不能推出 |
+| --- | --- | --- | --- |
+| CLM-PROBLEM | 本文研究 free-form NL 与分析中固定、带来源归属 STM 的定位问题发现。 | [paper story](./paper_story.md)、[scope](./model_scope.md)、source attribution contracts。 | 模型由人创作、本文生成/修复输入模型，或已实现所有 STM languages。 |
+| CLM-NOVELTY | 本文提出并评估一个面向状态机的工作流：它比较 free-form NL 与分析期间保持不变、具有来源归属的既有 STM，并返回定位发现。 | [closest-work matrix](../related_work/closest_work_matrix.md) 的四字段协议、MCeT 全文和 IET 风险处置。 | “未发现先前工作”、scoped `first`、LLM/SMT/model checking/traceability/replay/人工 relation adjudication 首创，或 universal first/only；IET 四字段全文裁定未闭合时不写这些优先权主张。 |
+| CLM-C1 | C1 提供保留来源的 executable working representation 与 deterministic inspect augmentation。 | FCSTM adapter/projection implementation、native projection audit、方法原则。 | 全语言语义保持或 C1 的独立 causal gain。 |
+| CLM-C2 | C2 将适用候选连接到 literature-informed typed obligations 与 source-bound native replay receipts。 | [19 条 predicate audit](../related_work/provenance/predicate_provenance.md)、registry、receipts。 | 19 条是完备 taxonomy，W2 自动为有效发现，或所有 W2 都是无界证明。 |
+| CLM-RQ1 | current 在本案例研究的 FULL discovery coverage 高于 baseline，同时报告级 precision 低 `4.34 pp`。 | `combined_summary_v4.json`、[result inventory](./paper_result_inventory.md)。 | 跨语言、总体显著性或 C1/C2 因果效应。 |
+| CLM-RQ2 | current FULL hits 中最高 W 为 `0/113/197`，12/19 predicate IDs 有 terminal receipt，8/19 有 report binding。 | canonical fair-comparison summary。 | defect coverage、边际贡献或 baseline 等价零值。 |
+| CLM-RQ3 | current 的 I boundary 与 cost eligibility 可审计；current `$7.18277320` 完整，baseline `$0.22523328` 不完整。 | attribution and cost audits。 | baseline 成本倍率、生产率或 deployment outcome。 |

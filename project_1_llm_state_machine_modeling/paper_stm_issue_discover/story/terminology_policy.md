@@ -1,25 +1,25 @@
 # Paper1 术语政策
 
-| 术语 | 本文含义 | 不应混同为 |
-| --- | --- | --- |
-| 作者源状态机 | 被评测的状态机制品，是问题定位和作者层面归因的对象；本案例研究的作者源为 PlantUML | FCSTM、编译制品、原生检查事实或台账答案 |
-| 规范化源中间表示 | 作者源的规范化、可追溯表示 | 新的需求义务或作者语义等价证明 |
-| FCSTM 与原生检查事实 | 方法为图、仿真和有界分析建立的工作表示与确定性事实 | 作者模型本身或人工真值 |
-| C1 | 确定性模型信息增强，提供可定位的分析上下文。通用架构通过适配器接收能在声明子集上形成可追溯 FCSTM 投影的状态机建模语言；适配器须提供作者源属追踪、规则相关能力约定和失败关闭边界 | 已证实的跨语言效果或经过消融验证的覆盖率因果来源 |
-| C2 | 有来源映射的可执行证据升级，包含类型化绑定、原生后端和回执 | 闭合缺陷词表、自动有效性门或 19 个全新逻辑 |
-| 发现/报告 | 方法输出的具体问题主张 | 台账预期问题或人工裁定 |
-| 预期问题 | 台账中预先存在、有来源依据的评测条目 | 方法输出、谓词输入或 LLM 可见答案 |
-| L0/L1/L2 | 台账对问题所需信息范围的分类：点状或表面对齐、结构或局部状态、跨迁移或路径的全局行为 | 方法阶段、证据等级或缺陷位置 |
-| W0/W1/W2 | 报告见证强度。W2 需精确制品、合法类型化输入、原生后端、终止布尔结果和完整回执 | 有效性、D、关系、K/N/I 或谓词使用率 |
-| D0/D1/D2 与 A0 | 人工对事实、义务和归因确定程度的裁定。D0 为无存活的违反义务，A0 为报告事实或归因不成立 | 由模型自报、后端结果或 W 等级自动给出的真值 |
-| FULL/PARTIAL/NONE | 人工对报告与预期条目关系的裁定，对应规范值 `FULL_MATCH`、`PARTIAL_MATCH`、`NO_MATCH`。FULL 可为同一根因、同一义务或直接可归因表现；PARTIAL 只是实际但不足以确认同一缺陷身份的局部或间接关系 | 报告有效性或 W 等级 |
-| 有效性 | 人工裁定的 `VALID_KNOWN`、`VALID_NOVEL` 或 `INVALID` | 关系、W、D 或预期问题标签 |
-| K/N/I | 人工完成有效性和关系裁定后，由程序确定性派生的记账：有效且有正关系为 K；有效且全部 NONE 为 N；其余为 I | 三类独立领域缺陷或可互换的统计单位 |
-| 报告级有效性精确率 | `(K reports + N reports) / all reports` | 组级精确率、无投影反事实或跨粒度不变的语义精度 |
-| N 实质问题组 | 同一侧、同一配对、可跨轮次的保守同质问题归并 | 跨臂同一缺陷、原始 N 报告或 I 聚类 |
-| I 聚类 | 无效报告的诊断形态 | 实质缺陷数或报告级有效性精确率的替代分母 |
-| NADC | 主臂 `NOT_A_DEFECT_CLAIM` 的方法边界诊断，118 条，基线无同构分类 | 一种转换根因、基线的零值或跨臂因果成分 |
-| 谓词标识使用 | 至少一个终止回执的不同谓词标识为 `12/19`；至少一次报告绑定的不同标识为 `8/19` | 缺陷覆盖、W2 数、命中数或贡献率 |
-| 人工裁定 | 人工完成 D/A、有效性、关系、K/N/I 输入和成分分析；程序只校验、镜像与汇总 | 发现方法、谓词后端或内部质量审阅 |
+本表是 `paper_outline.md` 的可机检术语合同。首次出现位置以大纲 section anchor 为准；后续正文使用“后续允许形式”。代码、公式、路径、正式论文/工具名称和表中 `protected exceptions` 不参加英文全称检查。
 
-当前冻结比较中的主臂与基线是同一结果宇宙的两个比较臂。历史版本只在明确的归档或来源语境中出现，不进入本文主结果。
+| term_id | 中文 | English | 缩写 | 首次出现位置 | 后续允许形式 | protected exceptions |
+| --- | --- | --- | --- | --- | --- | --- |
+| natural_language | 自然语言 | natural language | NL | `outline-0` | 自然语言；`NL` 仅在公式、表列或代码字段 | `<free-form NL requirements, ...>` 任务合同与 `NL` 字段 |
+| state_machine | 状态机 | state machine | STM | `outline-0` | 状态机；`STM` 仅在任务合同、表列、代码或文献题名 | `STM`、`source STM`、论文与工具正式题名 |
+| source_stm | 源状态机制品 | source-attributed state-machine artifact | 无 | `outline-0` | 源状态机制品 | `<..., pre-existing source-attributed STM held fixed>`、`source STM` |
+| large_language_model | 大语言模型 | large language model | LLM | `outline-0` | 大语言模型；`LLM` 仅在公式、表列或代码字段 | `LLM`、论文与工具正式题名 |
+| fcstm | 有限控制状态机 | finite control state machine | FCSTM | `outline-0` | 有限控制状态机；`FCSTM` 在代码、公式、表列和字段中保留 | `FCSTM`、`fcstm`、路径和 API 名 |
+| plantuml_adapter | PlantUML 适配器 | PlantUML adapter | 无 | `outline-0` | PlantUML 适配器 | `PlantUML` 正式语言名和源文件扩展名 |
+| provenance | 来源归属 | provenance | 无 | `outline-0` | 来源归属 | `provenance-preserving`、`source attribution`、文件/字段名 |
+| inspect_facts | 确定性检查事实 | deterministic inspect facts | 无 | `outline-0` | 确定性检查事实 | `inspect facts`、代码、字段和图标签 |
+| typed_predicate | 类型化谓词 | typed predicate | 无 | `outline-0` | 类型化谓词 | predicate ID、`typed predicate plan`、代码字段 |
+| replay_receipt | 回放回执 | replay receipt | 无 | `outline-0` | 回放回执 | `source-bound replay receipt`、代码字段 |
+| witness_strength | 见证强度 | witness strength | W | `outline-3` | 见证强度；`W0/W1/W2` 在表、公式和字段中保留 | `W0`、`W1`、`W2` |
+| ledger_depth | 台账信息层级 | ledger depth | L | `outline-3` | 台账信息层级；`L0/L1/L2` 在表、公式和字段中保留 | `L0`、`L1`、`L2` |
+| adjudication | 人工裁定 | human adjudication | D/A | `outline-3` | 人工裁定；`D0/D1/D2/A0` 在表、公式和字段中保留 | `D0`、`D1`、`D2`、`A0` |
+| relation | 对应关系 | relation | 无 | `outline-3` | 对应关系；`FULL/PARTIAL/NONE` 在表、公式和字段中保留 | `FULL_MATCH`、`PARTIAL_MATCH`、`NO_MATCH` |
+| bookkeeping | 记账类别 | bookkeeping category | K/N/I | `outline-3` | 记账类别；`K/N/I` 在表、公式和字段中保留 | `VALID_KNOWN`、`VALID_NOVEL`、`INVALID` |
+| nadc | 非缺陷主张 | not-a-defect claim | NADC | `outline-9-3` | 非缺陷主张；`NADC` 在表、公式和字段中保留 | `NOT_A_DEFECT_CLAIM` |
+| current_baseline | 当前方法/基线 | current/baseline | 无 | `outline-0` | 当前方法、基线 | `current`、`baseline`、canonical artifact keys |
+
+责任边界保持不变：人工完成 D/A、有效性、对应关系和最终确认；程序只在已完成的人工字段上确定性闭合 K/N/I 并复算汇总；C2 的回执不替代人工有效性或对应关系。PlantUML 是唯一已实现并评测的适配器，有限控制状态机是通用方法架构的工作表示，不是语言范围的限定。

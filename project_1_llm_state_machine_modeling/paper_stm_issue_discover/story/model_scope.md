@@ -1,13 +1,7 @@
-# 建模对象、语言适配与证据范围
+# 模型与案例研究范围
 
-Paper1 研究 `M = (S, E, V, Tr, A)`：状态、事件、变量、迁移和动作。它覆盖离散有限状态机、层次状态机以及带变量、守卫条件（guard）和动作（action）的扩展有限状态机子集。本文中的 D/A、W1 和 W2 沿用[术语政策](./terminology_policy.md)的定义：D/A 是人工的事实与义务裁定，W1/W2 是报告证据强度。
+Paper1 的方法对象是状态机语言族，而不是 PlantUML-only method。适配器把声明子集内的 source STM 投影为 `M=(S,E,V,Tr,A)` 形式的 FCSTM，并维护 source carrier 到 projection/native facts 的映射。另一个语言只有在 adapter 明确给出 supported fragment、source attribution、rule capability、failure disposition 和独立实证时，才能进入方法声称范围。
 
-Paper1 的方法架构以 FCSTM 为分析工作表示，适用于能经语言适配器进入该表示的状态机建模语言。原则上，只要某语言的声明子集能够形成可追溯的 FCSTM 投影，就可为它实现这一架构的适配器。适配器须同时提供：作者源属的位置和归因追踪；规则相关语义与可用能力的映射约定；不能表示或不能可靠映射的语言特征的失败关闭策略；该语言独立的输入与评测材料；以及投影到本文 FCSTM 片段的边界。当前实现只有 PlantUML 适配器。完成这些工作后，该语言才能报告为这一架构的方法实例。规范化源中间表示、FCSTM 和原生检查事实都是分析工作表示，不是作者模型本身，也不产生新的需求义务。
+当前实现和冻结结果仅包含 PlantUML adapter。54 个输入制品是来自 Wang 等上游 LLM generation/feedback pipeline 的选定 stage/fallback outputs；`source artifact` 只表示本文分析的归因对象，绝不表示人类作者。方法在分析期不生成、不修改该制品。
 
-FCSTM 投影支持封闭图分析、仿真和有界验证，但不证明作者源语言与 FCSTM 行为等价。来源追踪只建立定位、证据载体和归因链。无法回到作者源的现象，或只存在于投影、编译、运行时或证据闭合边界的现象，属于方法诊断，不能被归为作者模型缺陷。人工完成事实、D/A、有效性和关系裁定；程序只验证和汇总已保存的人工决定。
-
-本文不评测也不报告时钟、不变式、正交或并发区域、混成语义和无界时序性质。与这些范围外特征相关的主张不进入 Paper1 finding，也不得仅因尚未执行而登记为 W1。只有仍在已声明模型与源语言子集内、已有精确作者源定位、但某个谓词的类型化约定、后端能力或可靠性片段未闭合时，才按 W1 记录证据未闭合；这也是方法政策中 `out_of_fragment` 的限定含义。
-
-本论文的经验结论只来自 54 个 PlantUML 配对。它们作为案例研究，检验这条通用技术路线在声明的 PlantUML 到 FCSTM 适配边界内是否可行；不检验其他语言适配器的正确性、成本或效果。每种新增建模语言都需要独立定义作者源追踪、规则相关能力约定、投影与失败关闭边界、语义片段和评测输入，之后才能报告该语言上的方法结果。
-
-四族谓词的 W2 条件、类型化约定和可靠性边界见[谓词来源审计](../related_work/provenance/predicate_provenance.md)及[最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md)。通过的谓词只描述声明片段内一个已求值命题的结果，不能证明模型不存在其他问题。
+当前支持片段不覆盖时钟、不变式、正交 region/并发、hybrid semantics 或未声明 FCSTM fragment。source text、canonical source IR、FCSTM、inspect facts、typed binding、compiled program 和 receipt 共同组成可追溯证据链。projection/compiler/runtime/evidence boundary 的失败须与 source-artifact issue 分开记录。

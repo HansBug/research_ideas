@@ -94,3 +94,22 @@
 | 时间 | 内容 |
 | :-- | :-- |
 | 2026-08-12 | 建立。10 个目标 9 个取到全文；两个伪缺口的错因查清；三处元数据被证伪并回写；三条可复用取件结论。 |
+
+## 2026-09-02：Li--Zheng 2025 直接工作取件记录
+
+此节只记录 R1 对直接任务风险候选的可复现取件，不改变上文历史来源回收的结论，也不把本地工作卡当成外部全文。目标是 Haibo Li 和 Lixiao Zheng，*Enhancing Requirements via Structured Formalization and Process-State Consistency Validation: An LLM-Assisted Test-Driven Framework*，*IET Software*，2025，DOI `10.1049/sfw2/6714956`。
+
+| 入口或索引 | 2026-09-02 实测结果 | 可用于什么，不能用于什么 |
+| :-- | :-- | :-- |
+| Crossref `works/10.1049/sfw2/6714956` | 返回 VOR PDF、VOR XML text-mining URL 和 CC-BY 4.0 license metadata。 | 书目、VOR 身份、许可和正式取件入口；不提供全文载荷。 |
+| Unpaywall / Semantic Scholar / DOAJ / OpenAIRE | 一致标识为 Gold OA/CC-BY，并只回指 Wiley publisher PDF；OpenAIRE 的独立 instance 也只回到 DOI/出版方，未发现机构库或作者稿 URL。 | 证明存在合法开放 VOR；不提供独立可读全文。 |
+| Wiley `doi/`、`doi/pdf/`、`doi/epdf/`、`doi/pdfdirect/`、`doi/full-xml/` | 使用浏览器 UA、PDF/XML `Accept` 和 `download=true` 均返回 `403`、`cf-mitigated: challenge` 的 Cloudflare 验证页面，而不是 PDF/XML。 | 记录当前访问异常；不得据此推断该论文不存在、内容较弱或四字段不满足。 |
+| 旧 IET 域名 `digital-library.theiet.org` 的 `full/pdf/epdf` 入口 | 同样返回 Cloudflare `403` challenge。 | 排除一个同出版方别名入口，仍非全文。 |
+| 作者 Haibo Li 的华侨大学主页 | `faculty.hqu.edu.cn/lihaibo/.../58822.htm` 可读，确认作者、期刊、卷年、Article ID 与 DOI；页面无可下载作者稿或附件链接。 | 书目与作者归属的独立核验；不提供全文。 |
+| 仓库旧 IET card | 含先前会话的摘录，但不含可独立复读的原始 PDF/XML 载荷。 | 仅作历史发现线索；禁止作为 R1 全文引文或四字段 disposition 依据。 |
+
+同日的后续公开入口复查也没有产生可读副本。Semantic Scholar Graph API 返回 `openAccessPdf.status=GOLD`、`license=CCBY`，其 URL 仍是 Wiley 的 `pdfdirect`；DOAJ API 的唯一记录同样将 `fulltext` 指向 DOI。CORE v3 以 DOI 检索返回 0 个结果。Wiley 官方 TDM endpoint 对 `10.1049/sfw2.6714956` 和 DOI 斜杠形式均返回 HTTP 400 的空响应；这说明无凭据公开端点没有提供载荷，不是可以绕过网页挑战的替代通道。OpenAlex API 当时返回 HTTP 429 的账户预算响应，因此本轮不从该响应推断 location。以上均是 2026-09-02 使用公开 API、未使用代理或挑战绕过得到的结果。
+
+同日补查确认了这一结论。Crossref 仍将 PDF 与 XML 标为 VOR text-mining links，DOAJ 记录只将 `fulltext` 回指 DOI，OpenAIRE 的 Gold-OA record 只由 Crossref/DBLP 聚合，并未给出 repository instance。常规 `doi/am-pdf/`、`doi/epdf/` 和 `onlinelibrary.wiley.com/doi/am-pdf/` 也都返回 Cloudflare `403` HTML challenge，而非作者稿或 PDF。该轮没有采用代理、绕过挑战或把聚合元数据升级为全文。
+
+因此，截至本次记录，Li--Zheng 仍是直接问题风险候选。已核验的出版社摘要可以用于发现与范围提示；`free_form_nl_input`、`preexisting_fixed_stm_input`、`localized_requirement_relevant_issues_output` 和 `implemented_and_evaluated_on_stm_artifacts` 的最终四字段裁定仍必须等待可复核的一手全文。R1 不能在此之前写 scoped `first` 或“未发现先前工作”。
