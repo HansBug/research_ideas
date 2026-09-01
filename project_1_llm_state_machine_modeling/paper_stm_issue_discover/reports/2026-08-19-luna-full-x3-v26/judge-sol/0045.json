@@ -1,0 +1,190 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0045",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0045-01",
+      "pair": "0045",
+      "D": "D1",
+      "L": "L0",
+      "summary": "NL 第 5、6 句要求显示与更新 cooking time，而制品全篇只有状态与触发，零变量声明、零迁移 effect、零动作段，这条数据侧语义没有载体。",
+      "detail": "NL 里有四处提到计时与烹饪时间，需要先按建模对象边界切分。建模对象是 $M = (S, E, V, Tr, A)$，不含时钟变量与不变式，所以 NL 第 7 句「where the timer starts」与第 8 句「opening the door stops the timer」属时间语义、在界外，不计入本条。NL 第 5 句「where the cooking time is displayed and updated」与第 6 句「canceling or updating the cooking time」要求的是用户设定的一个普通数据变量上的读写与取消／更新动作，落在 $V$ 与 $A$ 里，属界内。上游参考模型用迁移 effect 承载了它们。\n\n制品对界内这部分零表达。全文 `:1`-`:33` 没有任何变量声明；`:12`-`:31` 全部迁移的标签冒号后只有事件名（`:19` 那条另带一个 `[zero time set]` 守卫），没有 `/` 引出的效果；`:3`-`:8` 六行状态声明都没有块体，因此没有动作段。\n\n值得一提的是，本份制品在 `:19 DoorOpenWithItem --> DoorShutWithItem : Door Closed [zero time set]` 上写出了零时守卫——这是同一份 NL 的六份制品里唯一写了这个守卫的（同组的 0025、0035 那条边都没有守卫，各自记为 EIS-0025-01、EIS-0035-03）。也就是说这份制品触及了 cooking time 这个量的取值，却仍然没有为它声明变量。",
+      "D_basis": "判 D1，两读并立。第一种读法：NL 第 5、6 句点名的 cooking-time 显示与更新属界内的变量与动作，制品零变量零 effect，义务落空。第二种读法：「处于 `Cooking` 状态」本身可以抽象表示计时器在运行、离开即停止，`Timer Expired` 则作为外部输入接入；全源零 effect 体现的是一致的控制骨架粒度，而不是遗漏。即便模型在 `:19` 触及了零时条件，那个数据仍然可以由外部维护。第二种读法未被封死，故判 D1。这个读法与同族其它三条（EIS-0005-03、EIS-0015-01、EIS-0025-02、EIS-0035-04）采用的是同一个，说明它是对整族的统一处理而非为本条临时构造。",
+      "L_basis": "判 L0。陈述这条错误只需把 NL 第 5、6 句点名的那样东西（cooking time 这个量及其显示 / 更新动作）拿去模型里找，发现全文没有变量声明、没有 effect、没有动作段。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "effect",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "ReadytoCook 状态未建模烹饪时间的显示和更新行为。",
+          "reason": "规格第 5 条明确要求进入 ReadytoCook 后显示并更新烹饪时间；模型仅定义了 ReadytoCook 状态和进入/离开的转移，没有状态行为、entry/do/exit 动作或其他表示显示与更新时间的内容。",
+          "where": "ReadytoCook 状态及其相关转移"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "进入 Cooking 时未建模“启动计时器”动作。",
+          "reason": "规格第 7 条要求 Start 触发后进入 Cooking，并在 Cooking 状态启动计时器；模型只表示状态转移，没有启动计时器的动作。",
+          "where": "ReadytoCook --> Cooking : Start"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "Cooking 状态开门时未建模“停止计时器”动作。",
+          "reason": "规格第 8 条明确要求开门会停止计时器并转入 DoorOpenWithItem；模型表示了转移，但没有表示停止计时器的动作。",
+          "where": "Cooking --> DoorOpenWithItem : Door Opened"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型未显式表示 ReadytoCook 状态中烹饪时间的显示与更新行为。",
+          "reason": "规格第5条明确要求在 ReadytoCook 中显示并更新烹饪时间，但模型只定义了进入该状态的转移，没有状态活动、变量或事件用于表示时间显示和更新。",
+          "where": "ReadytoCook 状态及其相关转移：`DoorShutWithItem --> ReadytoCook : Cooking Time Entered`、`DoorOpenWithItem --> ReadytoCook : Cooking Time Entered`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型未显式表示 ReadytoCook 中 Cancel 对烹饪时间的取消或更新效果。",
+          "reason": "规格第6条要求 Cancel 返回 DoorShutWithItem 的同时取消或更新烹饪时间；该转移标签仅标明 Cancel，未表达相应的时间数据处理。",
+          "where": "`ReadytoCook --> DoorShutWithItem : Cancel`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型未显式表示 Cooking 状态进入时启动计时器，以及开门时停止计时器。",
+          "reason": "规格第7、8条分别要求 Start 后 timer starts，以及 Cooking 中开门 stops the timer。模型仅表达状态转移，没有 entry/exit 动作或计时器语义来表示启动和停止。",
+          "where": "`ReadytoCook --> Cooking : Start`、`Cooking --> DoorOpenWithItem : Door Opened`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0045",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0045-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出 finding，未对第5、6句合并的数据侧缺失主张作出断言。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出 finding，未对第5、6句合并的数据侧缺失主张作出断言。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出 finding，未对第5、6句合并的数据侧缺失主张作出断言。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出 finding，未对第5、6句合并的数据侧缺失主张作出断言。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_1 仅指认第5句在 ReadytoCook 中显示和更新 cooking time 的行为缺失；baseline_issue_2、3 指认的是第7、8句的 timer 启停动作。没有任何单条 issue 同时主张台账所含第5句与第6句的数据变量/动作载体缺失，不能拼接多条 issue 形成命中。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_1 只覆盖第5句的显示/更新缺失，baseline_issue_2 只覆盖第6句 Cancel 转移上的取消或更新 effect 缺失；二者合起来才接近冻结台账的完整合并主张，规则禁止拼接。baseline_issue_3 属第7、8句 timer 启停语义，台账明确将其排除。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 与台账在第5句 ReadytoCook 的 cooking time 显示/更新缺失上同处同性质，但只覆盖冻结条目的一部分，未包含第6句 Cancel 的取消/更新数据效果缺失；不能以部分主张或与其他 issue 拼接来命中。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 指认第7句进入 Cooking 时缺少启动 timer 动作；冻结台账明确把 timer starts 的时间语义划在本条建模边界之外，与本条第5、6句普通 cooking-time 数据读写缺失不是同一性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 指认第8句开门时缺少停止 timer 动作；冻结台账明确排除该时间语义，和本条第5、6句 cooking-time 数据变量及动作载体缺失不属于同一主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 只主张第5句 ReadytoCook 中显示/更新 cooking time 的表示缺失，没有主张冻结条目同时包含的第6句 Cancel 取消或更新效果缺失，因此只是不可单独计中的部分覆盖。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 只主张第6句 ReadytoCook --Cancel--> DoorShutWithItem 上缺少 cooking-time 取消/更新效果，没有覆盖冻结条目同时包含的第5句显示/更新缺失；不能与 baseline_issue_1 拼接后计中。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 指认第7、8句 timer 启停动作缺失，而冻结台账明确将这些时间语义排除在 EIS-0045-01 之外；其位置和性质均不等于第5、6句的数据侧载体缺失。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "冻结台账 EIS-0045-01 是一个不可拆分的合并主张：NL 第5句的 ReadytoCook 中 cooking time 显示/更新，以及第6句 Cancel 对该数据的取消/更新，都缺少变量、effect 或动作载体。baseline_run2 的 issue 1 和 baseline_run3 的 issue 1 只覆盖第5句；baseline_run3 的 issue 2 只覆盖第6句。按“不得把多条输出拼起来才凑成台账主张”的规则，这些部分主张均不能单独命中该台账。其余输出针对台账明确排除在本条之外的 timer 启停时间语义。故六格均未完整覆盖该冻结条目，所有已发出 issue 在本冻结台账集合下均为 false positive。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

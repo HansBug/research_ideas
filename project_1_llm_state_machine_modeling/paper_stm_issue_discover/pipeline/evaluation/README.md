@@ -1,17 +1,8 @@
-# evaluation/ — 两份 v0 schema 的残留脚手架（**不是论文的评测**）
+# pipeline/evaluation — 历史 v0 schema
 
-> 🔴 **别被目录名骗了。paper1 的评测不在这里。**
->
-> | 你想找 | 去哪 |
-> | :-- | :-- |
-> | 实验结果、命中率、`hit@k`、多报统计 | [../../discover_matrix/](../../discover_matrix/) |
-> | 判定口径、命中判据、台账规则 | [../../discover_matrix/docs/protocol/](../../discover_matrix/docs/protocol/) |
-> | 给导师的自包含全量报告 | [../../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) |
-> | 旧 Better STM evaluation gate 全树 | [../../archive/r5_7_better_stm_snapshot/pipeline/evaluation/](../../archive/r5_7_better_stm_snapshot/pipeline/evaluation/) |
+本目录只保留 2026-07 的两份 v0 JSON Schema、fixture 与门禁测试，供历史 provenance 复核。它不参与 v60/current 或 X1v2 baseline 的评测，也不是论文的结果或复算入口。当前评测包为 [evaluation/](../../evaluation/README.md)，当前结果为 [最终归档](../../final_results/v60_current_vs_x1v2_baseline/README.md)，冻结判定定义见 [issue #195 snapshot](../../judge/src/paper_stm_judge/resources/semantic_judge_issue_195.snapshot.md)。
 
-本目录现在只剩两份 v0 JSON Schema、它们的 fixture 与门禁测试。它诞生于 2026-07 的「source-level issue lifecycle」设计阶段，用于冻结 issue ledger 与 source trace 的字段合同。后来实际的评测改由 [../../discover_matrix/](../../discover_matrix/) 以台账 + 判定表的方式承担，本目录**没有再往下建**，也不参与任何一格实验。
-
-⚠️ **原先写在这里的后续路线已作废。** paper1 收窄为 issue discover 单独成篇（repair 另立后续论文），因此「Discover → 多轮 Repair-Confirm → B-final → post-Confirm export → closure/regression」这条链**不再是主线**，`closure` / `regression` 也不再是待建的评测终点。
+本目录原先的 Discover → Repair-Confirm → B-final → post-Confirm export → closure/regression 设计已经归档，不能被读作当前计划或待建 endpoint。
 
 ## 有什么
 
@@ -24,7 +15,7 @@
 | 门禁测试 | 45 个 | [tests/](./tests/) |
 | closure rubric / regression protocol / judge prompt / baseline contract | 未定义，且**不再计划在此定义** | — |
 
-本目录**没有 `src/`**，不含任何可执行方法代码；两份 schema 的消费方是 fixture 与测试本身。
+本目录没有 `src/`，不含当前方法、Judge 或 evaluation 代码；两份 schema 的消费方是 fixture 与测试本身。
 
 两份 schema 的设计报告（属稳定合同说明，不是实验结果）：[2026-07-08-10-15-00-pr-issue-ledger-contract.md](../../reports/2026-07-08-10-15-00-pr-issue-ledger-contract.md)、[2026-07-08-14-03-59-pr-source-trace-contract.md](../../reports/2026-07-08-14-03-59-pr-source-trace-contract.md)；对应设计入口 [../../experiment_design/issue_lifecycle/](../../archive/r7_issue_lifecycle_scaffold/experiment_design/issue_lifecycle/) 与 [../../experiment_design/source_trace/](../../archive/r7_issue_lifecycle_scaffold/experiment_design/source_trace/)。
 
@@ -43,7 +34,7 @@ python -m pytest $P/evaluation/tests
 1. 不把 archived `EVALUATION_GATE.md` 当作 active gate。
 2. 不把 archived `better_stm_checklist.schema.json` 或 `can_claim_better_stm` 当作 active endpoint。
 3. 不把 archived dry-run examples 或 blind judge outputs 写成真实运行证据。
-4. 不把本目录的两份 v0 schema 当成论文评测口径——**论文的判定口径在 [../../discover_matrix/docs/protocol/](../../discover_matrix/docs/protocol/)**。
+4. 不把本目录的两份 v0 schema 当成当前论文评测口径；当前口径、指标与复算由 [evaluation/](../../evaluation/README.md) 和 [最终归档](../../final_results/v60_current_vs_x1v2_baseline/README.md) 固定。
 
 ## 更新日志
 

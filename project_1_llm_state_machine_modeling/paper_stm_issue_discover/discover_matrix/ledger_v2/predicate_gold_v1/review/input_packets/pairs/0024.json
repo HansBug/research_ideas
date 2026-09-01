@@ -1,0 +1,389 @@
+{
+  "instructions": [
+    "Recover obligation O from the complete NL, author PlantUML, ledger reasoning, and cited formal semantics before proposing any executable property.",
+    "Do not infer inputs from state-name similarity, old planned mappings, v60 actual outputs, reference models, or execution results.",
+    "State missing quantifier, scope, timing, domain, bound, or environment information explicitly instead of inventing it."
+  ],
+  "ledger_items": [
+    {
+      "axes": {
+        "defect_element": "transition",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "extraneous",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D1，两读并立。第一种读法：这条边在 NL 里没有任何依据，是模型凭空添加的恢复通路，属多出的元素。第二种读法：`:19` 的标签 `exit/Send Obstacle Detected` 更像是作者想把 NL 第 3 句要求的那个输出动作放到某个位置，只是放错了地方——他要写的是 EmergencyStopping 的退出动作，顺手写成了一条迁移，而不是有意设计一条恢复触发。这个读法与文本相容（`exit/动作` 正是 UML 退出动作的记法），也解释了为什么这条边没有任何有意义的触发条件。两种读法都不否认这条边客观存在，但对「它是不是一处有意的过度规定」给出不同答案，故判 D1。",
+      "d_tier": "D1",
+      "detail": "NL 关于 EmergencyStopping 只说了第 3 句：「When an obstacle is detected, the system enters the EmergencyStopping state, which includes the actions \"Emergency Stop\" and sends the \"Obstacle Detected\" signal.」——只交代了怎么进去和进去之后做什么，没有任何一句说怎么出来。上游参考模型同样没有给这个状态出边。\n\n制品在 `:19` 建了一条 `EmergencyStopping --> InMotion`。也就是说，紧急停车之后系统会自动回到运动状态。\n\n这条边在 NL 里没有依据，属于模型多出的元素。\n\n分类上记作 extra 而不是违规，理由是：NL 并没有对 EmergencyStopping 下过显式的 remain / only / never 一类的义务（对比 NL 第 10 句对 Approaching 就下了「remains ... until」这样的显式义务，那种情形下多一条出边才构成直接违反）。按台账对「模型多出、NL 未点名」这类的处理口径，不足以升级为违规。\n\n不过从领域语义看，这是最不该凭空添加的一类行为：障碍导致的紧急停车自动回到运动状态，在列车控制里是安全性上的严重问题——障碍是否已被清除完全没有被检查。\n\n同一行文本还造成另外两个后果，各自独立成条：`exit/Send Obstacle Detected` 这个标签把输出动作写成了迁移标签（记在 EIS-0024-04），以及这条边使 `EmergencyStopping` 不再是死端（与本 pair 的 `Stopping` 形成对照，见 INS-0024-01）。",
+      "l_basis": "判 L0。陈述这条错误只需把模型里以 `EmergencyStopping` 为源的迁移清单与 NL 里关于这个状态的句子比对，发现模型多出一条 NL 未点名的边。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "DIFF-0024-04",
+      "ledger_json_pointer": "/items/DIFF-0024-04",
+      "origin_family": "review_diff（人工审阅 agent 产出，未进原台账）",
+      "pair_id": "0024",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "line 19 的 exit/Send Obstacle Detected 标签更像是把 NL 第3句要求的输出动作错放到了这条边上，而不是蓄意设计的恢复触发，两种读法都不否认边本身存在。",
+        "statement": "除动作反转外，这行还凭空造出一条从 EmergencyStopping 回到 InMotion 的恢复边。NL 全文没有任何 EmergencyStopping 的出边，也没有 obstacle 清除后恢复运行的描述；参考模型同样没有。因为 NL 并未对 EmergencyStopping 给出显式的 remain/only/never 义务（不同于 Approaching 的第 10 句），按台帐 UA 口径不足以升级为违规，故记 extra。但从领域语义看，障碍物导致的紧急停车自动回到运动状态是安全性上最不该凭空添加的行为。",
+        "verdict_reason": null
+      },
+      "summary": "`:19 EmergencyStopping --> InMotion:exit/Send Obstacle Detected` 凭空造出一条从紧急停车回到运动状态的恢复边，而 NL 全文没有任何 EmergencyStopping 的出边、也没有障碍清除后恢复行驶的描述。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0004/0024.md",
+        "sha256": "sha256:62bdf61c75cef851d425e2ae9468f50c9a43281dce5eac233009145757688615"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "effect",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "missing",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D2。被违反的义务有成文出处，即 NL 第 8 句「marked by the \"Entry/Accelerate\" action」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——`Accelerate` 这个字符串在制品的动作位、效果位、乃至任何标签上都不出现，`:7` 是纯描述文字，没有任何结构可以被解释成「这个动作已经建出来了」。反驳不存活。",
+      "d_tier": "D2",
+      "detail": "NL 第 8 句逐字为「The system enters the Accelerating substate when motion begins, marked by the \"Entry/Accelerate\" action.」。这是全语料里少数逐字点名动作相位的句子之一。\n\n制品里 `Accelerating` 由 `:6 [*] --> Accelerating` 引入，`:7` 给它加了一行 `Accelerating: Accelerating`——`状态名 : 文本` 描述语法，内容恰好就是状态自己的名字，不携带任何动作语义。投影后这个状态的显示名变成 `Accelerating` 后接 `[PlantUML body] Accelerating`，没有任何 enter 抽象动作。\n\n检索全模型也找不到 `Accelerate` 这个动作：`:8`、`:9` 两条以它为源的迁移标签里没有，其它状态的描述行里也没有。\n\n所以这不是相位差异（entry 还是 do），而是这个动作在模型里根本没有载体。\n\n对照同一份 NL 的 pair 0014：那份至少把整串 `Entry/Accelerate` 搬到了初始迁移的标签上（记在 EIS-0014-02，因为动作在唯一入口上执行、行为等价，判了 D1）。本 pair 连这个都没有——`Accelerate` 这个词一次都没出现。",
+      "l_basis": "判 L0。陈述这条错误只需把 NL 第 8 句点名的 `Accelerate` 拿去模型里检索动作位与效果位，发现一处都没有。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "EIS-0024-01",
+      "ledger_json_pointer": "/items/EIS-0024-01",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0024",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "**判 D2**：三臂一致认定它违反了 NL 里这句「The system enters the Accelerating substate when motion begins, marked by the \"Entry/Accel」，且三方都尝试过推翻、都没找到站得住的第二种读法 —— 义务有成文条文可引、反驳不存活，是 `D2-lit`。",
+        "statement": "NL 第 8 句逐字要求 'Entry/Accelerate' 动作。作者模型里 Accelerating 只有一行与自身同名的空描述，Accelerate 这个动作在全模型不存在（FCSTM 中 Accelerating 仅有 named 'Accelerating\\n[PlantUML body] Accelerating'，无 enter abstract）。这是丢失 NL 明确点名的动作。",
+        "verdict_reason": null
+      },
+      "summary": "NL 第 8 句逐字要求 `Accelerating` 有 `Entry/Accelerate` 动作，而制品里 `Accelerating` 只有 `:7 Accelerating: Accelerating` 这一行与自身同名的描述文字，`Accelerate` 这个动作在全模型不存在。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0004/0024.md",
+        "sha256": "sha256:62bdf61c75cef851d425e2ae9468f50c9a43281dce5eac233009145757688615"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "effect",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "other",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D2。被违反的义务有成文出处，即 NL 第 9 句，它是一个合取：发出 Send 信号，并且继续接近目的地。判读中出现过一种较宽松的读法，把 `exit/Send` 拆成触发 `exit` 加效果 `Send`，以此论证输出方向没有被反转。这条反驳不存活——即便按它读，`Send` 也发生在离开 `Approaching`、重入 `InMotion` 并经内部初始边重置到 `Accelerating` 的时刻，NL 第 9 句的第二个合取项直接被破坏。两种读法下义务都未满足。",
+      "d_tier": "D2",
+      "detail": "NL 第 9 句逐字为「In the Approaching substate, the system sends the \"Send\" signal and continues to approach the destination.」。这句话有两个合取的要求：发出 Send 信号，并且继续接近目的地（即留在 Approaching 里）。\n\n制品把它写成了 `:14 Approaching --> InMotion:exit/Send`。PlantUML 的迁移标签文法是 `触发[守卫]/效果`，整串 `exit/Send` 被解析成触发 `exit` 加效果 `Send`；投影确认生成了一个名为 `exit_Send`、显示名为 `exit/Send` 的事件。也就是说本该由系统发出的输出，变成了一个要等环境送进来的输入事件，方向完全相反。同时 `Approaching` 这个状态本身不再声明任何动作。\n\n这与相位差异性质不同。同一份 NL 的 pair 0004 把它写成 `do/Send`（放在状态体内，是动作，只是相位可能与参考不同）；本 pair 是把动作整个搬到了迁移上并被读成事件，是语义方向的错误。\n\n值得单独说明的是：即便退一步采纳更宽松的读法——把 `exit` 当触发、`Send` 当效果，从而认为输出方向没有被反转——本条仍然成立。因为在那个读法下，`Send` 发生的时刻是**离开** Approaching 的时候：这条边的目标是 `InMotion`（Approaching 自己的外层复合态），执行它会退出 Approaching、重入 InMotion，并经 `:6 [*] --> Accelerating` 重置回加速阶段。NL 第 9 句的第二个合取项「继续接近目的地」因此被破坏。所以本条不依赖投影结果，从源文本直接可判。\n\n同一行文本造成的第二个独立后果（阶段被重置、违反 NL 第 10 句的 remain-until 义务）记在 EIS-0024-03。",
+      "l_basis": "判 L1。陈述这条错误需要导出一个静态事实：`:14` 那串标签按 PlantUML 的 `触发[守卫]/效果` 文法落到了哪个语法槽位上，以及由此产生的方向（输出被读成输入），同时 `Approaching` 的动作段是空的。这要把记法文法应用一遍才能得出，比查某个字符串在不在深一层；但它只涉及模型的静态切面，不需要构造执行序列，故不到 L2。",
+      "l_tier": "L1",
+      "ledger_id": "EIS-0024-02",
+      "ledger_json_pointer": "/items/EIS-0024-02",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0024",
+      "source_text": {
+        "l_basis_rule": "输出动作被反转成输入事件 —— 记法槽位方向的静态导出",
+        "l_decided_by": "人工逐条",
+        "meta_review": "claude把line14的'exit/Send'读成trigger=exit、effect=Send以证明输出方向未被反转,但codex指出即便按这个更宽松的读法,Send发生在离开Approaching之时,仍无法实现NL'发送后继续接近目的地'的要求。",
+        "statement": "NL 第 9 句的 Send 是系统发出的输出信号。作者把它写成一条迁移的标签，PlantUML 下整串 'exit/Send' 成为触发器；FCSTM 确认 event exit_Send named 'exit/Send'，即输出动作被反转成必须由环境提供的输入事件，方向完全相反。同时 Approaching 不再声明任何动作。这与相位差异（0004 的 do/Send）性质不同，是真实语义错误。",
+        "verdict_reason": "NL-L009 要求“发送 Send 并继续接近目的地”；即使采纳 trigger=`exit`、effect=`Send` 的宽松迁移标签读法，:14 的 Send 仍发生在离开 Approaching、重入 InMotion 并经 :6 重置到 Accelerating 时，第二个合取义务依然被破坏，故无需依赖 FCSTM 投影即可判 D2-lit。"
+      },
+      "summary": "NL 第 9 句的 `Send` 是系统发出的输出信号，而 `:14 Approaching --> InMotion:exit/Send` 把它写成了迁移标签——按 PlantUML 的标签文法整串成为触发器，输出被反转成必须由环境提供的输入；同时 `Approaching` 不再声明任何动作。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0004/0024.md",
+        "sha256": "sha256:62bdf61c75cef851d425e2ae9468f50c9a43281dce5eac233009145757688615"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": null,
+        "defect_locus": "pair",
+        "defect_logic_kind": "hierarchy_entry",
+        "defect_qualifier": null,
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D2。被违反的义务有成文出处，即 NL 第 10 句的 remain-until 表述。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——从子态指向外层复合态的迁移在 UML 里的语义是确定的（退出并重入、重跑默认入口），不存在「其实它只是个内部动作、不会离开」的解释余地；而它的触发也确实不是 NL 允许的那两个条件之一。反驳不存活。",
+      "d_tier": "D2",
+      "detail": "NL 第 10 句逐字为「The system remains in the Approaching substate while nearing the destination, until it is ready to stop or decelerate.」。这是一条显式的 remain-until 义务：在 ready to stop 或 decelerate 之前不得离开 Approaching。\n\n`:14` 这条边写在 `state InMotion {`（:5）与 `}`（:15）之间，源是 `Approaching`（InMotion 的子态），目标是 `InMotion` 本身。在 UML 里，从子态指向自己祖先的迁移等价于该祖先的自迁移：执行时会退出 InMotion（连带退出 Approaching）、再重新进入 InMotion，并重跑它的默认入口边 `:6 [*] --> Accelerating`。投影确认了这一路由结果。\n\n后果是运动阶段被重置回加速。而这条边的触发既不是 ready to stop 也不是 decelerate（它的标签是 `exit/Send`，被解析成一个名为 `exit` 的事件），所以它在 NL 明令不得离开的条件下离开了 Approaching。\n\n本条与 EIS-0024-02 出自同一行文本但是两个独立后果：那一条说输出动作被写成了触发（记法方向错误），本条说这条边的目标选错了层级（结构后果）。两条的修法也不同——把 `Send` 改回状态的动作段能解决前者，但只要这条边还指向 `InMotion`，后者依然成立。",
+      "l_basis": "判 L1。陈述这条错误需要导出一个静态结构事实：`:14` 的目标 `InMotion` 是其源 `Approaching` 的祖先，因此这条边构成外层复合态的自迁移，会重跑 `:6` 的默认入口。这要把层次归属与 UML 的迁移语义对上才能得出，比查名字在不在深一层；但它只涉及静态切面（这条边的性质由结构直接决定），不需要构造执行序列，故不到 L2。",
+      "l_tier": "L1",
+      "ledger_id": "EIS-0024-03",
+      "ledger_json_pointer": "/items/EIS-0024-03",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0024",
+      "source_text": {
+        "l_basis_rule": "迁移指向复合态导致内部阶段重置 —— 静态结构",
+        "l_decided_by": "规则档",
+        "meta_review": "**判 D2**：三臂一致认定它违反了 NL 里这句「The system remains in the Approaching substate while nearing the destination, until it is 」，且三方都尝试过推翻、都没找到站得住的第二种读法 —— 义务有成文条文可引、反驳不存活，是 `D2-lit`。",
+        "statement": "同一行文本还造成第二个独立后果：Approaching 多出一条指向自身外层复合状态 InMotion 的迁移。UML 下这等价于 InMotion 的自迁移，退出并重入复合状态、重跑内部初始，把运动阶段重置回 Accelerating；FCSTM 确认被路由成 InMotion -> InMotion : if [R45RouteToken == 7]。NL 第 10 句明确要求 'remains in the Approaching substate ... until it is ready to stop or decelerate'，该边在既不 ready to stop 也不 decelerate 的条件下离开 Approaching，直接违反这条 remain-until 义务。",
+        "verdict_reason": null
+      },
+      "summary": "`:14 Approaching --> InMotion` 的目标是 Approaching 自己的外层复合态，等价于 `InMotion` 的自迁移——退出并重入复合态、重跑内部初始边，把运动阶段重置回 `Accelerating`，直接违反 NL 第 10 句的 remain-until 义务。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0004/0024.md",
+        "sha256": "sha256:62bdf61c75cef851d425e2ae9468f50c9a43281dce5eac233009145757688615"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "effect",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "missing",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D1，两读并立。第一种读法按 PlantUML 的迁移标签文法：`exit/Send Obstacle Detected` 被解析成触发 `exit`（模型里没有这个事件）加效果，于是 NL 要求的输出被反转成了输入，而 `EmergencyStopping` 的动作段是空的，义务未兑现。第二种读法注意到 `exit/动作` 恰恰正是 UML 退出动作的标准记法——作者极可能就是想表达「离开该状态时发送 Obstacle Detected」；而 NL 第 3 句只说这个状态包含动作并发送信号，并没有限定必须在 entry 或 do 时点完成，退出时发送也满足字面要求。两种读法都与逐字文本相容，故判 D1。这一点与同 pair 的 EIS-0024-02 不同：那一条即便按宽松读法也仍然违反 NL 第 9 句的第二个合取项（继续接近目的地），所以判 D2；本条的 NL 句子没有那样的附加约束。",
+      "d_tier": "D1",
+      "detail": "NL 第 3 句逐字为「When an obstacle is detected, the system enters the EmergencyStopping state, which includes the actions \"Emergency Stop\" and sends the \"Obstacle Detected\" signal.」。\n\n制品在 `:18 EmergencyStopping: Emergency Stop` 用描述语法放了第一个动作的文字（那一行不产生动作语义），在 `:19` 把第二个输出写成了迁移标签 `exit/Send Obstacle Detected`。按 PlantUML 的 `触发[守卫]/效果` 文法，整串被解析成一个名为 `exit` 的触发加一个效果；投影生成了名为 `exit_Send_Obstacle_Detected`、显示名为 `exit/Send Obstacle Detected` 的事件。也就是说输出被反转成了输入。同时 `EmergencyStopping` 这个状态本身没有声明任何动作。\n\n这与 Approaching 上的那一处（EIS-0024-02）是同一类错误，作者在两个地方用了同一种写法。\n\n本条另外还带出一条 NL 里没有的恢复边，那一层单独记在 DIFF-0024-04。",
+      "l_basis": "判 L0。陈述这条错误只需把 NL 第 3 句点名的输出 `Obstacle Detected` 拿去模型里检索动作位，发现 `EmergencyStopping` 的动作段是空的、这串字只出现在 `:19` 的迁移标签里。这是一次词项层面的存在性与位置比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "EIS-0024-04",
+      "ledger_json_pointer": "/items/EIS-0024-04",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0024",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": ":19 `EmergencyStopping --> InMotion:exit/Send Obstacle Detected` —— `exit/动作` 正是 UML 退出动作的记法，作者极可能就是此意；而按迁移标签文法 `trigger[guard]/effect` 又解析成 trigger=`exit`（模型中无此事件）。两读都与逐字文本相容 ⇒ D1。",
+        "statement": "与 Approaching 同一类错误：NL 第 3 句要求 EmergencyStopping 发送 'Obstacle Detected' 信号，作者把这个输出写成迁移标签，FCSTM 生成 event exit_Send_Obstacle_Detected named 'exit/Send Obstacle Detected'，输出动作被反转为输入事件，EmergencyStopping 也不再声明任何动作。",
+        "verdict_reason": ":19 一方面可按迁移标签读为 trigger=`exit`、effect=`Send Obstacle Detected`，使输出发生在离开 EmergencyStopping 时；另一方面 `exit/Send Obstacle Detected` 又可体现作者想表达该状态退出动作的意图，而 NL-L003 只说该状态包含动作并发送信号、未限定必须在 entry/do 时点完成。输出相位是否满足该句存在两种称职读法，故判 D1。"
+      },
+      "summary": "NL 第 3 句要求 `EmergencyStopping` 发送 `Obstacle Detected` 信号，而 `:19 EmergencyStopping --> InMotion:exit/Send Obstacle Detected` 把这个输出写成了迁移标签；按标签文法整串被读成触发 `exit` 加效果，且 `EmergencyStopping` 本身不再声明任何动作。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0004/0024.md",
+        "sha256": "sha256:62bdf61c75cef851d425e2ae9468f50c9a43281dce5eac233009145757688615"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": null,
+        "defect_locus": "global",
+        "defect_logic_kind": "unintended_terminal",
+        "defect_qualifier": null,
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D2。这是一个可达且无任何出路的非预期终止：状态可达、无出边、无可继承的成组出边、全文无终止声明。这一类判定不依赖领域知识也不依赖形式化规约。三个判读臂一致认定成立，且没有任何一臂能拿出「作者显式声明合法终止」的依据。本 pair 的内部对照进一步削弱了「到站即有意终点」这个读法：作者给 EmergencyStopping 写了恢复边，说明他会写，只是这里漏了。",
+      "d_tier": "D2",
+      "detail": "`Stopping` 这个名字在全文只出现一次，就是 `:16` 的箭头右侧。它没有被 `state Stopping { }` 显式定义，也没有任何迁移以它为源端。\n\n退路不存在：它的父是根，根层除 `:2 [*] --> DoorsClosing` 外没有其它可继承的成组出边；全文没有任何 `--> [*]`。它是可达的：`:2` → `:4` → `:16`。所以这是一个可达的死锁。\n\n本 pair 有一处很有说服力的内部对照：`EmergencyStopping` 反而有出路——`:19 EmergencyStopping --> InMotion:exit/Send Obstacle Detected` 把它接回了运动状态。也就是说作者并不是不会写恢复边，唯独没有给「到站」这条路径接后续。\n\n从 NL 看，第 2 句「the system can either transition to the Stopping state when it arrives」只说了怎么进去，没说这是终点。这是列车控制系统，到站是一次行程的结束而不是设备生命周期的结束，正常语义应当是开门、复位、准备下一趟。\n\n同一份 NL 的 pair 0004 与 pair 0054 上出现了同型的 Stopping 死锁（分别记为 INS-0004-02 与 INS-0054-01）。",
+      "l_basis": "判 L2。陈述这条错误需要先给出一条到达 `Stopping` 的路径（`:2` → `:4` → `:16`），再穷尽检查全部迁移以确认没有任何一条以它为源，并确认根层无成组出边、全文无终止符。这些都是对行为的构造与排除。",
+      "l_tier": "L2",
+      "ledger_id": "INS-0024-01",
+      "ledger_json_pointer": "/items/INS-0024-01",
+      "origin_family": "pyfcstm inspect 诊断归一化",
+      "pair_id": "0024",
+      "source_text": {
+        "l_basis_rule": "须证明可达且无出路（全路径）",
+        "l_decided_by": "规则档",
+        "meta_review": "**判 D2**：三臂一致认定它是死锁（进去出不来）——这一类免领域知识、免形式规约即可判为失效，且没人拿出「作者显式声明合法终止」的依据，是 `D2-impl`。",
+        "statement": "Stopping 由 line 16 的边隐式声明，只有这一条入边、没有任何出边；父为根，根层无成组出边、全文无 `--> [*]`，所以到站停车后系统永久停住。⚠️ 本 pair 的 EmergencyStopping 反而有出路（line 19 回到 InMotion），说明作者并非不会写恢复边，唯独没给到站这条路径接后续。判读者要判的是 NL 是否要求到站后开门 / 复位 / 继续下一趟。",
+        "verdict_reason": null
+      },
+      "summary": "`Stopping` 由 `:16 InMotion --> Stopping: Arrived/Stop, Send Arrived` 隐式声明，只有这一条入边、没有任何出边；父为根、根层无成组出边、全文无 `--> [*]`，到站停车后系统永久停住。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0004/0024.md",
+        "sha256": "sha256:62bdf61c75cef851d425e2ae9468f50c9a43281dce5eac233009145757688615"
+      }
+    }
+  ],
+  "ledger_sha256": "sha256:b5a38d3d24a51e980e5b9f5afc7c8c66aded59f3b51f16afe67e0deb592d0e36",
+  "metadata_refs": [
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0024/source_meta.json",
+      "role": "SOURCE_META",
+      "selected_fields": {
+        "selected_stage": "phase_ii_semantic",
+        "source_locator": "sheet=STM Results; row=24; excel_row=26; selected_cell=AE26; selected=Result with Semantic Checking",
+        "source_pair_id": "llms_emp_feedback_final_0024",
+        "stm0_role": "author_feedback_final_plantuml"
+      },
+      "sha256": "sha256:cf6e6f1697d9766d45c9f8109a82dc68c20735314a3cc08a5853bfb3ad03a4d2"
+    },
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0024/fcstm_meta.json",
+      "role": "FCSTM_META",
+      "selected_fields": {
+        "academic_eligible": false,
+        "academic_ineligibility_reason": "whole_model_behavior_equivalence_and_simulation_not_claimed; use only the working-contract attribution-scoped source-static capability",
+        "artifact_role": "r4_5_attribution_scoped_discover_input",
+        "parse_status": "ok",
+        "simulation_status": "ineligible",
+        "source_static_discover_eligible": true
+      },
+      "sha256": "sha256:8756d8050478d63126eb1b0af48500104142ffb0ae509fe08f2d3059b74a07c8"
+    }
+  ],
+  "nl": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "1. The system starts in the DoorsClosing state and transitions to InMotion when the doors are closed, triggered by the \"Closed/SendDeparted\" signal."
+      },
+      {
+        "number": 2,
+        "text": "2. In the InMotion state, the system can either transition to the Stopping state when it arrives, indicated by the \"Arrived/Stop, Send Arrived\" signal, or to the EmergencyStopping state if an obstacle is detected."
+      },
+      {
+        "number": 3,
+        "text": "3. When an obstacle is detected, the system enters the EmergencyStopping state, which includes the actions \"Emergency Stop\" and sends the \"Obstacle Detected\" signal."
+      },
+      {
+        "number": 4,
+        "text": "4. Within the InMotion state, the system operates in three substates: Accelerating, Cruising, and Approaching, which represent different phases of the train's motion."
+      },
+      {
+        "number": 5,
+        "text": "5. The system begins in the Accelerating substate, moving to the Cruising substate once cruising speed is reached, as indicated by the \"Reached Cruising/Cruise\" signal."
+      },
+      {
+        "number": 6,
+        "text": "6. If the system is in the Accelerating substate and approaches its destination, it transitions to the Approaching substate upon receiving the \"Approached/Decelerate\" signal."
+      },
+      {
+        "number": 7,
+        "text": "7. The system in the Cruising substate transitions to the Approaching substate when it approaches the destination, triggered by the \"Approached/Decelerate\" signal."
+      },
+      {
+        "number": 8,
+        "text": "8. The system enters the Accelerating substate when motion begins, marked by the \"Entry/Accelerate\" action."
+      },
+      {
+        "number": 9,
+        "text": "9. In the Approaching substate, the system sends the \"Send\" signal and continues to approach the destination."
+      },
+      {
+        "number": 10,
+        "text": "10. The system remains in the Approaching substate while nearing the destination, until it is ready to stop or decelerate."
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0024/nl.txt",
+    "role": "AUTHOR_NL",
+    "sha256": "sha256:3110cbcf15bfb507f0326965970888eada5541b791b5fa661698dfc74e82c2ce"
+  },
+  "packet_sha256": "sha256:3393e89185124ef7d70d0e07010f0c8b190743f12c2e8488b272689f3aeb9335",
+  "pair_id": "0024",
+  "plantuml": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "@startuml"
+      },
+      {
+        "number": 2,
+        "text": "[*] --> DoorsClosing"
+      },
+      {
+        "number": 3,
+        "text": "DoorsClosing: Doors are closing"
+      },
+      {
+        "number": 4,
+        "text": "DoorsClosing --> InMotion: Closed/SendDeparted"
+      },
+      {
+        "number": 5,
+        "text": "state InMotion {"
+      },
+      {
+        "number": 6,
+        "text": "[*] --> Accelerating"
+      },
+      {
+        "number": 7,
+        "text": "Accelerating: Accelerating"
+      },
+      {
+        "number": 8,
+        "text": "Accelerating --> Cruising: Reached Cruising/Cruise"
+      },
+      {
+        "number": 9,
+        "text": "Accelerating --> Approaching: Approached/Decelerate"
+      },
+      {
+        "number": 10,
+        "text": ""
+      },
+      {
+        "number": 11,
+        "text": "Cruising: Cruising"
+      },
+      {
+        "number": 12,
+        "text": "Cruising --> Approaching: Approached/Decelerate"
+      },
+      {
+        "number": 13,
+        "text": "Approaching: Approaching"
+      },
+      {
+        "number": 14,
+        "text": "Approaching --> InMotion:exit/Send"
+      },
+      {
+        "number": 15,
+        "text": "}"
+      },
+      {
+        "number": 16,
+        "text": "InMotion --> Stopping: Arrived/Stop, Send Arrived"
+      },
+      {
+        "number": 17,
+        "text": "InMotion --> EmergencyStopping: Obstacle Detected"
+      },
+      {
+        "number": 18,
+        "text": "EmergencyStopping: Emergency Stop"
+      },
+      {
+        "number": 19,
+        "text": "EmergencyStopping --> InMotion:exit/Send Obstacle Detected"
+      },
+      {
+        "number": 20,
+        "text": "@enduml"
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0024/stm0.puml",
+    "role": "AUTHOR_PLANTUML",
+    "sha256": "sha256:5900a03e9a58e6079bacd2857c82133e549809bb532a33c62ecbbe3077cb5745"
+  },
+  "schema_version": "paper1.predicate-gold.review-input-packet.v1",
+  "visibility": {
+    "execution_results_visible": false,
+    "other_track_conclusions_visible": false,
+    "planned_predicate_mapping_visible": false,
+    "v60_actual_predicate_visible": false
+  }
+}

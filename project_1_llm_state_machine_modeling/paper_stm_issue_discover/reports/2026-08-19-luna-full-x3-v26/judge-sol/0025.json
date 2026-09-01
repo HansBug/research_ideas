@@ -1,0 +1,639 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0025",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0025-01",
+      "pair": "0025",
+      "D": "D1",
+      "L": "L1",
+      "summary": "`:8 DoorOpenWithItem --> DoorShutWithItem: Door Closed` 既没有守卫也没在事件名里点出零时，于是在已经输入烹饪时间的情形下关门仍会落到 `DoorShutWithItem`——NL 第 4 句把这个去向限定在「with zero time set」。",
+      "detail": "NL 第 4 句逐字为「From DoorOpenWithItem, the system can transition to DoorShutWithItem if the door is closed with zero time set or to ReadytoCook if cooking time is entered.」。这句话给出的是一个二选一的依赖关系：从 DoorOpenWithItem 关门之后去哪里，取决于时间设没设。\n\n制品建了两条边：`:8` 目标是 `DoorShutWithItem`、触发是 `Door Closed`；`:9` 目标是 `ReadytoCook`、触发是 `Cooking Time Entered`。前一条既没有 `[...]` 形式的守卫，事件名里也没有零时这个条件。\n\n后果是 NL 那条依赖关系在模型里消失了：关门这个动作无论时间设没设，结果都一样。NL 第 4 句里那个 `if` 所承载的对偶义务——时间已设时不应落到 DoorShutWithItem——没有被表达。\n\n这是本 case 与同一份 NL 的其它三份制品（0015、0045、0055）唯一的实质差别。",
+      "D_basis": "判 D1，两读并立。第一种读法把 NL 第 4 句的 `if` 读作排他条件：只有在零时的情况下关门才去 DoorShutWithItem，那么 `:8` 缺守卫就是把限定丢了。第二种读法有两条支撑，都与作者源相容：其一，`if` 也可以读作充分条件而非排他条件，那么 `:8` 无守卫并不违反它；其二，作者可能把「时间设没设」这件事编码进了状态划分本身（`ReadytoCook` 表示已设时间、`DoorShutWithItem` 表示未设时间），那样就不需要额外的守卫，而 NL 也没有说明从 `ReadytoCook` 开门之后此前设的时间是否保留。两种读法都站得住，故判 D1。补充一点边界说明：这里的零时是一个普通数据条件（用户设定的值是否为零），属界内的变量判断，不是必须依赖时钟语义的界外约束。",
+      "L_basis": "判 L1。陈述这条错误的对象是守卫层面的一个静态事实：`:8` 这条边上没有任何守卫，因而它在「时间已设」的情形下同样可发。这属于从模型结构导出的静态判断（issue #189 §1.3.1 把「某守卫恒假」这类守卫层面的判断明列为 L1），只涉及单个系统状态上的一次可发性检查，不需要构造执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "guard",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0025-02",
+      "pair": "0025",
+      "D": "D1",
+      "L": "L0",
+      "summary": "NL 第 5、6 句要求显示与更新 cooking time，而制品全篇 18 行只有状态与触发，零变量声明、零迁移 effect、零动作段，这条数据侧语义没有载体。",
+      "detail": "NL 里有四处提到计时与烹饪时间，需要先按建模对象边界切分。建模对象是 $M = (S, E, V, Tr, A)$，不含时钟变量与不变式，所以 NL 第 7 句「where the timer starts」与第 8 句「opening the door stops the timer」属时间语义、在界外，不计入本条。NL 第 5 句「where the cooking time is displayed and updated」与第 6 句「canceling or updating the cooking time」要求的是用户设定的一个普通数据变量上的读写与取消／更新动作，落在 $V$ 与 $A$ 里，属界内。\n\n制品对界内这部分零表达。全文 `:1`-`:18` 没有任何变量声明；`:3`-`:17` 全部十五条迁移的标签冒号后只有一个事件名，没有 `/` 引出的效果；文件里没有任何状态体，因此也没有 entry/exit/do 动作。\n\n所以这不是「换了种写法」，而是无论怎么求值都问不出 cooking time 现在是多少、被谁改过。\n\n根因是制品统一停在「状态加触发」这一层控制骨架的粒度上。`:16 Cooking --> DoorShutWithItem: Timer Expired` 是这种处理的典型：计时部件被当作产生事件的外部环境接进来，模型自己不持有任何量。\n\n本条与 pair 0005 的 EIS-0005-03、pair 0015 的 EIS-0015-01 是同一份 NL 上的同一个缺口，三条同判 D1。",
+      "D_basis": "判 D1，两读并立。第一种读法：NL 第 5、6 句点名的 cooking-time 显示与更新属界内的变量与动作，制品零变量零 effect，义务落空。第二种读法：全图始终只保留控制态、触发与 `Timer Expired` 这个环境事件，可以把状态驻留与外部的人机界面／计时部件读作这些动作的抽象实现；这个抽象层次是全图一以贯之的，不是为本条临时编出来的。它足以削弱「必须显式写 effect」这条推理，但不能完全否掉显示与更新的缺失，故判 D1。另需说明本条最初的记录把界外与界内两类主张捆在了一起（NL 第 7、8 句的 timer 启停属时钟语义、在界外），现按界内那一半判。",
+      "L_basis": "判 L0。陈述这条错误只需把 NL 第 5、6 句点名的那样东西（cooking time 这个量及其显示 / 更新动作）拿去模型里找，发现全文没有变量声明、没有 effect、没有动作段。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "effect",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "hypothesis:68b4f55bacba8d00",
+          "claims": [
+            "The initial target contract is directly represented by the source initial edge."
+          ],
+          "locations": [
+            "NL1",
+            "PUML:L2",
+            "F16"
+          ],
+          "obligations": [
+            "The microwave starts in DoorShut."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:68b4f55bacba8d00:facet:d56c175d012e"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "hypothesis:2daadb58bbe626e2",
+          "claims": [
+            "The DoorOpenWithItem to DoorShutWithItem transition omits the NL-required zero-time condition."
+          ],
+          "locations": [
+            "NL4",
+            "PUML:L8",
+            "tr_0007"
+          ],
+          "obligations": [
+            "The DoorOpenWithItem to DoorShutWithItem transition has the specified zero-time guard."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:2daadb58bbe626e2:facet:4a7537112d48"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:transition:DoorOpen:the item is removed:DoorOpen",
+          "claims": [
+            "Source has no matching transition from 'DoorOpen' to 'DoorOpen' under 'the item is removed'."
+          ],
+          "locations": [
+            "NL3"
+          ],
+          "obligations": [
+            "DoorOpen must transition directly to DoorOpen under the item is removed."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:transition:DoorOpen:the item is removed:DoorOpen:facet:f564e85cff98",
+            "source:transition:DoorOpen:the item is removed:DoorOpen:facet:b55236bcd17a"
+          ]
+        },
+        {
+          "finding_id": "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem",
+          "claims": [
+            "The required DoorOpenWithItem -> DoorShutWithItem transition under the door is closed with zero time set is absent or loses its condition."
+          ],
+          "locations": [
+            "NL4"
+          ],
+          "obligations": [
+            "DoorOpenWithItem must transition directly to DoorShutWithItem under the door is closed with zero time set."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem:facet:ed4603d94890"
+          ]
+        },
+        {
+          "finding_id": "source:guard_presence:DoorOpenWithItem:DoorShutWithItem",
+          "claims": [
+            "The DoorOpenWithItem to DoorShutWithItem transition lacks the required zero-time guard."
+          ],
+          "locations": [
+            "NL4",
+            "PUML:L8",
+            "F22"
+          ],
+          "obligations": [
+            "The zero-time door-closing condition must be attached as a guard to the DoorOpenWithItem to DoorShutWithItem transition."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:guard_presence:DoorOpenWithItem:DoorShutWithItem:facet:4bb3078cc1b4"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:6f4600ce832c9bd3",
+          "claims": [
+            "The model has no realized cooking-time display/update effect in ReadytoCook."
+          ],
+          "locations": [
+            "NL5",
+            "F14"
+          ],
+          "obligations": [
+            "ReadytoCook must realize an effect that displays and updates the cooking time."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:6f4600ce832c9bd3:facet:cbfe0b7f9aaf"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:b7e5cf50efd1bcfc",
+          "claims": [
+            "The model has no realized timer-start action or effect for Cooking."
+          ],
+          "locations": [
+            "NL7",
+            "F15"
+          ],
+          "obligations": [
+            "Entry into Cooking must perform a timer-start action."
+          ],
+          "basis": [
+            "unattributed"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:b7e5cf50efd1bcfc:facet:404f41ca24c9"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:97a4ee6ed784141e",
+          "claims": [
+            "The model has no realized timer-stop effect on the Cooking to DoorOpenWithItem route."
+          ],
+          "locations": [
+            "NL8",
+            "PUML:L15",
+            "F29"
+          ],
+          "obligations": [
+            "The Cooking door-opening transition must stop the timer."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:97a4ee6ed784141e:facet:6de81517d237"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "缺少“零时间设定”的条件",
+          "reason": "规格明确要求只有在关门且设定时间为零时，DoorOpenWithItem 才转移到 DoorShutWithItem；模型仅标注 Door Closed，允许任意关门直接转移，放宽了转移条件。",
+          "where": "DoorOpenWithItem --> DoorShutWithItem: Door Closed"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "未体现进入烹饪时间时的条件/语义约束",
+          "reason": "规格将该转移描述为从 DoorOpenWithItem 在输入烹饪时间后进入 ReadytoCook，并与零时间关门路径形成条件区分。模型使用无条件的 Cooking Time Entered 标签，未明确时间必须为非零或有效烹饪时间；若“时间输入”可包括零值，则与规格的分支条件不一致。",
+          "where": "DoorOpenWithItem --> ReadytoCook: Cooking Time Entered"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "未表达取消动作会取消或更新烹饪时间",
+          "reason": "规格要求 Cancel 返回 DoorShutWithItem，并取消或更新烹饪时间；模型只表示状态转移，没有对应的动作/副作用说明。",
+          "where": "ReadytoCook --> DoorShutWithItem: Cancel"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "未表达开门时停止计时器",
+          "reason": "规格要求 Cooking 状态开门会停止计时器后转移到 DoorOpenWithItem；模型只表示转移，没有 stop timer 的动作。",
+          "where": "Cooking --> DoorOpenWithItem: Door Opened"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "未表达计时器到期事件与计时完成动作的语义",
+          "reason": "模型以 Timer Expired 作为转移触发条件并转移到目标状态，基本覆盖路径；但没有显式说明计时器停止/完成等动作。若模型要求完整表达规格行为，这是行为遗漏，不过该项相比其他问题属于动作语义未建模。",
+          "where": "Cooking --> DoorShutWithItem: Timer Expired"
+        },
+        {
+          "finding_id": "baseline_issue_6",
+          "issue": "与Cooking Time Entered转移存在未消除的竞争/歧义",
+          "reason": "同一源状态下，Door Closed 和 Cooking Time Entered 均可触发不同目标，但模型没有守卫条件来区分“零时间设定”和“已输入烹饪时间”，因此不能保证规格要求的条件分流。",
+          "where": "DoorOpenWithItem --> DoorShutWithItem: Door Closed"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "DoorOpenWithItem 到 DoorShutWithItem 的转移缺少“零时间设定”的条件约束",
+          "reason": "规格明确要求只有“门关闭且设定时间为零”时才能进入 DoorShutWithItem；模型仅标注 Door Closed，因此任意关门操作都可能进入该状态，未表达零时间条件。",
+          "where": "`DoorOpenWithItem --> DoorShutWithItem: Door Closed`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "DoorOpenWithItem 到 ReadytoCook 的转移条件表达不完整",
+          "reason": "规格要求从 DoorOpenWithItem 在输入烹饪时间时进入 ReadytoCook，且与关门零时间的条件构成明确区分。模型没有说明输入的时间是否为非零或如何排除零时间情形，因而无法保证与规格中的条件分支一致。",
+          "where": "`DoorOpenWithItem --> ReadytoCook: Cooking Time Entered`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "从 DoorOpenWithItem 关门的转移未限定“烹饪时间为零”。",
+          "reason": "规格明确要求只有在关门且已设置时间为零时才能进入 DoorShutWithItem；模型对任意 Door Closed 都执行该转移，因此允许已设置非零时间时错误地进入该状态。",
+          "where": "DoorOpenWithItem --> DoorShutWithItem: Door Closed"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "从 DoorOpenWithItem 进入 ReadytoCook 的条件未体现关门要求。",
+          "reason": "规格第4条将两种结果描述为：关门且零时间进入 DoorShutWithItem，或输入烹饪时间进入 ReadytoCook。若“输入时间”可在开门状态发生，则该转移可以符合文字；但模型没有表达时间值条件以及与门状态/动作顺序的约束，导致状态语义不完整。",
+          "where": "DoorOpenWithItem --> ReadytoCook: Cooking Time Entered"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型未表达 ReadytoCook 中“烹饪时间被显示和更新”的行为。",
+          "reason": "规格第5条明确要求进入 ReadytoCook 后显示并更新烹饪时间；该 PlantUML 仅表示状态转移，没有对应的 entry/do/action 或时间更新行为。",
+          "where": "DoorShutWithItem --> ReadytoCook: Cooking Time Entered"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "Cancel 转移没有表达“取消或更新时间”的动作语义。",
+          "reason": "规格要求 Cancel 返回 DoorShutWithItem，同时取消或更新烹饪时间；模型仅画出状态转移，未建模时间清除/更新效果。",
+          "where": "ReadytoCook --> DoorShutWithItem: Cancel"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "开门停止计时的动作未建模。",
+          "reason": "规格第8条要求开门时停止计时并转入 DoorOpenWithItem；模型只表示转移，没有 stop timer 的动作，因此状态机未保证该必要副作用。",
+          "where": "Cooking --> DoorOpenWithItem: Door Opened"
+        },
+        {
+          "finding_id": "baseline_issue_6",
+          "issue": "计时器启动行为未建模。",
+          "reason": "规格第7条要求进入 Cooking 时启动计时器；模型只有 Start 触发的状态转移，没有进入动作或其他计时器启动语义，因而 Timer Expired 事件没有可追溯的计时器启动来源。",
+          "where": "Cooking --> DoorShutWithItem: Timer Expired"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0025",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0025-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出只确认初始边正确，未指认 DoorOpenWithItem→DoorShutWithItem 边或零时守卫缺失。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:2daadb58bbe626e2"
+          ],
+          "reason": "输出直接定位 PUML L8 的 DoorOpenWithItem→DoorShutWithItem 迁移，并主张缺少 NL4 要求的零时条件，与台账同处且同为守卫缺失。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem",
+            "source:guard_presence:DoorOpenWithItem:DoorShutWithItem"
+          ],
+          "reason": "两条输出各自都完整指认同一迁移丢失零时条件：前者明确说所需条件化迁移缺失或条件丢失，后者明确说零时守卫缺失；任一条均可独立覆盖台账。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1",
+            "baseline_issue_6"
+          ],
+          "reason": "issue_1 直接主张该边缺少零时限定；issue_6 也独立主张同一源边因缺少区分零时与已输入时间的守卫而不能保证条件分流，均与台账同处同性质。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "输出直接定位 DoorOpenWithItem→DoorShutWithItem，并主张缺少“设定时间为零”的条件约束。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "输出明确指出该关门边未限定烹饪时间为零，因而非零时间也会错误进入 DoorShutWithItem，完整复现台账主张。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0025-02",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出仅确认初始状态契约，与 cooking time 的显示、更新、取消及其变量/effect/动作载体无关。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出只报告零时守卫缺失，没有主张 NL5 与 NL6 的 cooking-time 数据语义整体无载体。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "其中一条只覆盖 NL5 的 ReadytoCook 显示/更新 effect；其余相关条目是界外的 timer 启停。没有任何单条输出同时主张台账所含 NL5 显示/更新与 NL6 取消/更新在全图中均无变量、effect 或动作载体，不能拼接输出形成命中。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "issue_3 只报告 Cancel 边缺少 NL6 的取消/更新副作用，未覆盖 NL5 的显示/更新及全图无数据载体这一完整主张；其他条目不能与其拼接成命中。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "两条输出都讨论 NL4 的分支条件，没有报告 cooking-time 显示、更新、取消动作整体缺少数据载体。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "issue_3 与 issue_4 分别报告 NL5 和 NL6 的局部遗漏，但没有任何单条输出完整主张两部分共同缺少变量/effect/动作载体；依规则不得把两条输出拼起来覆盖该冻结条目。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:68b4f55bacba8d00",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出是初始目标契约已被正确表示的正面陈述，不对应任何冻结缺陷条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:2daadb58bbe626e2",
+        "matched_ledger_ids": [
+          "EIS-0025-01"
+        ],
+        "false_positive": false,
+        "reason": "同一 DoorOpenWithItem→DoorShutWithItem 迁移上缺少零时条件，和 EIS-0025-01 同处同性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:transition:DoorOpen:the item is removed:DoorOpen",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "输出主张 DoorOpen 上缺少“移除物品”自迁移；冻结台账没有这一位置和性质的条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem",
+        "matched_ledger_ids": [
+          "EIS-0025-01"
+        ],
+        "false_positive": false,
+        "reason": "输出明确允许其问题形态为所需迁移“丢失条件”，即同一边缺少零时限定。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:guard_presence:DoorOpenWithItem:DoorShutWithItem",
+        "matched_ledger_ids": [
+          "EIS-0025-01"
+        ],
+        "false_positive": false,
+        "reason": "直接定位同一边并主张所需零时守卫缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:6f4600ce832c9bd3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "只主张 ReadytoCook 中缺少 NL5 的显示/更新 effect，未完整覆盖 EIS-0025-02 同时包含的 NL6 取消/更新及全图无数据载体主张，不能与别的输出拼接。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:b7e5cf50efd1bcfc",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Cooking 缺少 timer-start 动作；冻结台账明确将 NL7 的时钟启停语义排除在 EIS-0025-02 之外。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:97a4ee6ed784141e",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Cooking 开门边缺少 timer-stop effect；冻结台账明确将 NL8 的时钟启停语义排除在 EIS-0025-02 之外。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0025-01"
+        ],
+        "false_positive": false,
+        "reason": "同一关门迁移缺少零时间条件，并明确指出条件被放宽。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它攻击的是 DoorOpenWithItem→ReadytoCook 边缺少非零/有效时间约束；EIS-0025-01 指认的是另一条去往 DoorShutWithItem 的边缺少零时守卫，位置不同。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "只报告 Cancel 边缺少 NL6 的副作用，没有完整覆盖 EIS-0025-02 的 NL5、NL6 联合数据语义及全图载体缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张开门时缺少停止计时器动作，属于冻结台账明确排除的 NL8 时钟语义。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Timer Expired 边缺少停止/完成动作；冻结台账没有该位置和性质的缺陷。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_6",
+        "matched_ledger_ids": [
+          "EIS-0025-01"
+        ],
+        "false_positive": false,
+        "reason": "定位同一 DoorOpenWithItem 关门边，并主张因守卫缺失而丢失零时与已输入时间的条件分流。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0025-01"
+        ],
+        "false_positive": false,
+        "reason": "直接主张同一 DoorOpenWithItem→DoorShutWithItem 边缺少零时约束。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "指认的是 DoorOpenWithItem→ReadytoCook 边自身缺少非零值排除，和台账所指的 DoorShutWithItem 目标边不是同一处。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0025-01"
+        ],
+        "false_positive": false,
+        "reason": "同一关门边未限定烹饪时间为零，并明确给出非零时间错误落入 DoorShutWithItem 的后果。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "输出攻击 ReadytoCook 转移缺少关门、时间值或顺序约束；冻结台账未收录该边的这种缺陷。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "只覆盖 NL5 的 ReadytoCook 显示/更新行为，未独立覆盖 EIS-0025-02 同时包含的 NL6 取消/更新和全图数据载体缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "只覆盖 NL6 的 Cancel 清除/更新效果，未独立覆盖 EIS-0025-02 同时包含的 NL5 显示/更新和全图数据载体缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Cooking 开门时缺少停止计时动作，属于冻结台账排除的 NL8 时钟语义。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_6",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张缺少计时器启动行为，属于冻结台账排除的 NL7 时钟语义；其 where 标到 Timer Expired 边也不改变该主张性质。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "按“同一处且同一性质”逐项对齐。EIS-0025-01 是 DoorOpenWithItem→DoorShutWithItem 边缺少零时守卫；凡直接主张该边丢失零时限定的输出均命中。EIS-0025-02 是一个完整的复合台账主张，要求同时覆盖 NL5 的显示/更新与 NL6 的取消/更新在全图中无变量、effect 或动作载体；现有输出只分别报告其中一个局部义务，依规则不能拼接多条输出补成该台账主张，故六格均不命中该条。计时器启停属于冻结台账明确排除的时钟语义，其他新增条件或错误迁移主张也不对应台账。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

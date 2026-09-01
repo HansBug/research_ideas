@@ -1,0 +1,602 @@
+"""Provider-free scale audit for the exact unified semantic Judge payload."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Literal
+
+from utils import structured_runtime
+from utils.llm import load_llm_registry
+from utils.stm_artifacts import context as artifact_context
+from utils.stm_artifacts import fcstm_native_projection, loaders, models, provenance
+
+from .artifacts import (
+    adapt_evidence_discovery_release,
+    adapt_legacy_report_clusters,
+    adapt_x1v2_record,
+    build_artifact_closure,
+    build_unified_input,
+    load_expected_issues,
+    stable_model_hash,
+)
+from .models import JudgeScaleAudit, UnifiedJudgeInput
+from .protocol import (
+    JUDGE_ALGORITHM_VERSION,
+    JUDGE_MAX_OUTPUT_TOKENS,
+    PROMPT_VERSION,
+    PROTOCOL_SHA256,
+    PROTOCOL_VERSION,
+    RELATION_SYSTEM_PROMPT,
+    VALIDITY_SYSTEM_PROMPT,
+    prompt_hash,
+    verify_snapshot,
+)
+from .runner import (
+    _relation_certificate_groups,
+    _stable_batch_id,
+    _validity_report_groups,
+    build_relation_batch_prompt,
+    build_validity_batch_prompt,
+)
+from .schema import (
+    build_exact_relation_batch_model,
+    build_exact_validity_batch_model,
+    build_relation_batch_input,
+    build_validity_batch_input,
+    materialize_validity_certificate,
+    relation_item_input,
+    response_schema_hash,
+    validity_item_input,
+)
+
+SourceFormat = Literal[
+    "x1v2_record", "evidence_discovery_release", "legacy_report_clusters"
+]
+
+
+def _sha256_text(value: str) -> str:
+    return "sha256:" + hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _estimated_tokens(value: str) -> int:
+    """Return the runtime's conservative four-characters-per-token estimate."""
+
+    return (len(value) + 3) // 4
+
+
+def _algorithm_source_hash() -> str:
+    """Hash modules that define Judge input, semantics, execution, and scale."""
+
+    module_root = Path(__file__).resolve().parent
+    digest = hashlib.sha256()
+    paths = (
+        ("semantic_judge/artifacts.py", module_root / "artifacts.py"),
+        ("semantic_judge/causal_audit.py", module_root / "causal_audit.py"),
+        ("semantic_judge/cli.py", module_root / "cli.py"),
+        ("semantic_judge/metrics.py", module_root / "metrics.py"),
+        ("semantic_judge/models.py", module_root / "models.py"),
+        ("semantic_judge/protocol.py", module_root / "protocol.py"),
+        ("semantic_judge/runner.py", module_root / "runner.py"),
+        ("semantic_judge/scale_audit.py", module_root / "scale_audit.py"),
+        ("semantic_judge/schema.py", module_root / "schema.py"),
+        ("utils/structured_runtime.py", Path(structured_runtime.__file__)),
+        ("utils/stm_artifacts/context.py", Path(artifact_context.__file__)),
+        (
+            "utils/stm_artifacts/fcstm_native_projection.py",
+            Path(fcstm_native_projection.__file__),
+        ),
+        ("utils/stm_artifacts/loaders.py", Path(loaders.__file__)),
+        ("utils/stm_artifacts/models.py", Path(models.__file__)),
+        ("utils/stm_artifacts/provenance.py", Path(provenance.__file__)),
+    )
+    for name, path in paths:
+        digest.update(name.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return "sha256:" + digest.hexdigest()
+
+
+def _auditable_field_names(report) -> tuple[str, ...]:
+    return tuple(
+        field_name
+        for field_name in (
+            "claim",
+            "property",
+            "violated_obligation",
+            "expected",
+            "observed",
+            "reason",
+            "basis",
+        )
+        if isinstance(getattr(report, field_name), str)
+    )
+
+
+def _validity_envelope(validity_input) -> dict:
+    """Build one all-SUPPORTED fixed-clause validity size envelope."""
+
+    artifact_ref = validity_input.artifact_closure.artifacts[0].artifact_id
+    payload = {
+        "schema_version": "semantic-judge.validity-response.v3",
+        "report_id": validity_input.report.report_id,
+        "root_cause_cluster_key": "one actionable technical root cause",
+        "minimum_evidence_gate": {
+            "status": "SATISFIED",
+            "reason": "The report supplies a clear artifact-auditable technical claim.",
+            "basis": "The report fields and common artifacts meet the minimum evidence burden.",
+            "source_refs": [artifact_ref],
+        },
+        "validity_reason": "Every immutable report clause has one complete artifact truth judgment.",
+        "validity_basis": "The report source clauses and complete common artifacts determine every verdict.",
+        "validity_source_refs": [artifact_ref],
+    }
+    for field_plan in validity_input.core_envelope.field_plans:
+        payload[f"{field_plan.report_field.value}_audit"] = {
+            f"item{index}": {
+                "clause_id": clause.clause_id,
+                "assertion": "This English assertion faithfully represents every material premise in the complete immutable source clause.",
+                "validity_role": (
+                    "CORE_CLAIM"
+                    if field_plan.report_field.value == "claim"
+                    else "INDISPENSABLE_MECHANISM"
+                    if field_plan.report_field.value == "reason"
+                    else "AUXILIARY_CONTEXT"
+                ),
+                "verdict": "SUPPORTED",
+                "reason": "The complete common artifact closure supports every material premise in this clause.",
+                "basis": "The report-owned source clause and common artifacts provide direct evidence.",
+                "source_refs": [artifact_ref],
+            }
+            for index, clause in enumerate(field_plan.clauses)
+        }
+    return payload
+
+
+def _relation_envelope(relation_input, *, all_positive: bool) -> dict:
+    """Build one validated all-NO or all-FULL relation size envelope."""
+
+    artifact_ref = relation_input.artifact_closure.artifacts[0].artifact_id
+    decisions = []
+    for expected in relation_input.expected_issues:
+        if all_positive:
+            decisions.append(
+                {
+                    "expected_id": expected.expected_id,
+                    "match": "FULL_MATCH",
+                    "report_field_refs": ["claim", "reason"],
+                    "reason": "The valid report states the same independently actionable defect facet for this expected issue.",
+                    "basis": "The frozen validity certificate, expected obligation, and common artifacts establish direct repair overlap.",
+                    "source_refs": [
+                        f"expected:{expected.expected_id}",
+                        artifact_ref,
+                    ],
+                }
+            )
+        else:
+            decisions.append(
+                {
+                    "expected_id": expected.expected_id,
+                    "match": "NO_MATCH",
+                    "reason": "This valid report concerns a different defect, obligation, or repair target from this expected issue.",
+                    "basis": "The report, complete expected issue, and common artifacts establish this expected-specific boundary.",
+                    "source_refs": [
+                        f"expected:{expected.expected_id}",
+                        artifact_ref,
+                    ],
+                }
+            )
+    return {
+        "schema_version": "semantic-judge.relation-response.v2",
+        "report_id": relation_input.report.report_id,
+        "validity_certificate_hash": (
+            relation_input.validity_certificate.certificate_hash
+        ),
+        "relation_decisions": decisions,
+        "relation_reason": "Every exact expected position has one complete relation decision.",
+        "relation_basis": "The immutable validity certificate and common artifact closure are preserved.",
+        "relation_source_refs": [artifact_ref],
+    }
+
+
+def build_scale_audit(
+    judge_input: UnifiedJudgeInput,
+    *,
+    round_no: int,
+    source_format: SourceFormat,
+    source_path: str,
+    source_hash: str,
+    algorithm_source_hash: str,
+    model_profile: str,
+    model_id: str,
+    profile_fingerprint: str,
+    context_window_tokens: int,
+    profile_max_output_tokens: int,
+    generated_at_utc: datetime | None = None,
+) -> JudgeScaleAudit:
+    """Measure every validity and worst-case relation target without a provider."""
+
+    if not judge_input.reports:
+        raise ValueError("scale audit requires at least one published report")
+    measurements = []
+    prompt_hashes: dict[str, str] = {}
+    schema_hashes: dict[str, str] = {}
+    validity_responses: list[str] = []
+    relation_no_responses: list[str] = []
+    relation_positive_responses: list[str] = []
+    assertion_counts = []
+    clause_character_counts = []
+    certificates = []
+    validity_groups = _validity_report_groups(judge_input)
+    for batch_index, report_ids in enumerate(validity_groups, start=1):
+        batch_id = _stable_batch_id("VB", batch_index, report_ids)
+        batch_input = build_validity_batch_input(
+            judge_input, report_ids, batch_id=batch_id
+        )
+        validity_model = build_exact_validity_batch_model(batch_input)
+        validity_prompt = build_validity_batch_prompt(batch_input)
+        validity_schema_text = json.dumps(
+            validity_model.model_json_schema(),
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        atomic_inputs = tuple(
+            validity_item_input(batch_input, index)
+            for index, _report in enumerate(batch_input.reports)
+        )
+        validity_payload = {
+            "schema_version": "semantic-judge.validity-batch-response.v1",
+            "batch_id": batch_id,
+            **{
+                f"item{index}": _validity_envelope(validity_input)
+                for index, validity_input in enumerate(atomic_inputs)
+            },
+        }
+        validated_validity = validity_model.model_validate(validity_payload)
+        validity_response = validated_validity.model_dump_json(indent=2)
+        validity_responses.append(validity_response)
+        certificates.extend(
+            materialize_validity_certificate(
+                getattr(validated_validity, f"item{index}"), validity_input
+            )
+            for index, validity_input in enumerate(atomic_inputs)
+        )
+        validity_key = f"validity-batch:{batch_id}"
+        validity_prompt_hash = _sha256_text(
+            VALIDITY_SYSTEM_PROMPT + "\n" + validity_prompt
+        )
+        validity_schema_hash = response_schema_hash(validity_model)
+        prompt_hashes[validity_key] = validity_prompt_hash
+        schema_hashes[validity_key] = validity_schema_hash
+        validity_prompt_tokens = _estimated_tokens(validity_prompt)
+        validity_schema_tokens = _estimated_tokens(validity_schema_text)
+        measurements.append(
+            {
+                "target_report_id": validity_key,
+                "system_prompt": VALIDITY_SYSTEM_PROMPT,
+                "primary_prompt": validity_prompt,
+                "schema_text": validity_schema_text,
+                "response": validity_response,
+                "primary_tokens": validity_prompt_tokens,
+                "schema_tokens": validity_schema_tokens,
+                "request_tokens": _estimated_tokens(VALIDITY_SYSTEM_PROMPT)
+                + validity_prompt_tokens
+                + validity_schema_tokens,
+            }
+        )
+        for validity_input in atomic_inputs:
+            assertion_counts.extend(
+                len(field_plan.clauses)
+                for field_plan in validity_input.core_envelope.field_plans
+            )
+            clause_character_counts.extend(
+                clause.source_end - clause.source_start
+                for field_plan in validity_input.core_envelope.field_plans
+                for clause in field_plan.clauses
+            )
+
+    relation_groups = (
+        _relation_certificate_groups(
+            tuple(certificates), len(judge_input.expected_issues)
+        )
+        if judge_input.expected_issues
+        else ()
+    )
+    for batch_index, certificate_group in enumerate(relation_groups, start=1):
+        report_ids = tuple(item.report_id for item in certificate_group)
+        batch_id = _stable_batch_id("RB", batch_index, report_ids)
+        relation_input = build_relation_batch_input(
+            judge_input, certificate_group, batch_id=batch_id
+        )
+        relation_model = build_exact_relation_batch_model(relation_input)
+        relation_prompt = build_relation_batch_prompt(relation_input)
+        relation_schema_text = json.dumps(
+            relation_model.model_json_schema(),
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        atomic_relation_inputs = tuple(
+            relation_item_input(relation_input, index)
+            for index, _report in enumerate(relation_input.reports)
+        )
+        no_payload = {
+            "schema_version": "semantic-judge.relation-batch-response.v1",
+            "batch_id": batch_id,
+            **{
+                f"item{index}": _relation_envelope(
+                    relation_input=atomic_input,
+                    all_positive=False,
+                )
+                for index, atomic_input in enumerate(atomic_relation_inputs)
+            },
+        }
+        positive_payload = json.loads(json.dumps(no_payload))
+        for index, atomic in enumerate(atomic_relation_inputs):
+            positive_payload[f"item{index}"] = _relation_envelope(
+                atomic, all_positive=True
+            )
+        all_no_response = relation_model.model_validate(no_payload).model_dump_json(
+            indent=2
+        )
+        all_positive_response = relation_model.model_validate(
+            positive_payload
+        ).model_dump_json(indent=2)
+        relation_no_responses.append(all_no_response)
+        relation_positive_responses.append(all_positive_response)
+        relation_key = f"relation-batch:{batch_id}"
+        prompt_hashes[relation_key] = _sha256_text(
+            RELATION_SYSTEM_PROMPT + "\n" + relation_prompt
+        )
+        schema_hashes[relation_key] = response_schema_hash(relation_model)
+        relation_prompt_tokens = _estimated_tokens(relation_prompt)
+        relation_schema_tokens = _estimated_tokens(relation_schema_text)
+        measurements.append(
+            {
+                "target_report_id": relation_key,
+                "system_prompt": RELATION_SYSTEM_PROMPT,
+                "primary_prompt": relation_prompt,
+                "schema_text": relation_schema_text,
+                "response": all_positive_response,
+                "primary_tokens": relation_prompt_tokens,
+                "schema_tokens": relation_schema_tokens,
+                "request_tokens": _estimated_tokens(RELATION_SYSTEM_PROMPT)
+                + relation_prompt_tokens
+                + relation_schema_tokens,
+            }
+        )
+    causal_text_lengths = [
+        sum(
+            len(getattr(report, field_name))
+            for field_name in _auditable_field_names(report)
+        )
+        for report in judge_input.reports
+    ]
+    effective_max_output_tokens = min(
+        profile_max_output_tokens, JUDGE_MAX_OUTPUT_TOKENS
+    )
+    maximum_request = max(measurements, key=lambda item: item["request_tokens"])
+    maximum_validity_response = max(validity_responses, key=_estimated_tokens)
+    maximum_relation_all_no_response = max(relation_no_responses, key=_estimated_tokens)
+    maximum_relation_all_full_response = max(
+        relation_positive_responses, key=_estimated_tokens
+    )
+    system_prompt = maximum_request["system_prompt"]
+    system_tokens = _estimated_tokens(system_prompt)
+    primary_prompt = maximum_request["primary_prompt"]
+    schema_text = maximum_request["schema_text"]
+    primary_tokens = maximum_request["primary_tokens"]
+    schema_tokens = maximum_request["schema_tokens"]
+    request_tokens = maximum_request["request_tokens"]
+    maximum_validity_tokens = _estimated_tokens(maximum_validity_response)
+    maximum_relation_all_no_tokens = _estimated_tokens(maximum_relation_all_no_response)
+    maximum_relation_all_full_tokens = _estimated_tokens(
+        maximum_relation_all_full_response
+    )
+    reserved_context_tokens = request_tokens + effective_max_output_tokens
+    context_headroom_tokens = context_window_tokens - reserved_context_tokens
+    fit_flags = (
+        maximum_validity_tokens <= effective_max_output_tokens,
+        maximum_relation_all_no_tokens <= effective_max_output_tokens,
+        maximum_relation_all_full_tokens <= effective_max_output_tokens,
+        context_headroom_tokens >= 0,
+    )
+    return JudgeScaleAudit(
+        generated_at_utc=generated_at_utc or datetime.now(timezone.utc),
+        pair_id=judge_input.pair_id,
+        round=round_no,
+        source_format=source_format,
+        source_path=source_path,
+        source_hash=source_hash,
+        protocol_version=PROTOCOL_VERSION,
+        protocol_sha256=PROTOCOL_SHA256,
+        judge_algorithm_version=JUDGE_ALGORITHM_VERSION,
+        algorithm_source_hash=algorithm_source_hash,
+        prompt_version=PROMPT_VERSION,
+        prompt_template_hash=prompt_hash(),
+        model_profile=model_profile,
+        model_id=model_id,
+        profile_fingerprint=profile_fingerprint,
+        context_window_tokens=context_window_tokens,
+        profile_max_output_tokens=profile_max_output_tokens,
+        judge_max_output_tokens=JUDGE_MAX_OUTPUT_TOKENS,
+        effective_max_output_tokens=effective_max_output_tokens,
+        report_count=len(judge_input.reports),
+        atomic_primary_call_count=2 * len(measurements),
+        validity_primary_batch_count=len(validity_groups),
+        relation_primary_batch_count=len(relation_groups),
+        maximum_request_target_report_id=maximum_request["target_report_id"],
+        expected_count=len(judge_input.expected_issues),
+        relation_position_count=(
+            len(judge_input.reports) * len(judge_input.expected_issues)
+        ),
+        report_causal_text_chars=sum(causal_text_lengths),
+        maximum_report_causal_text_chars=max(causal_text_lengths, default=0),
+        material_assertion_chars_per_row=max(clause_character_counts, default=1),
+        material_assertion_envelope_count=sum(assertion_counts),
+        maximum_field_material_assertion_envelope_count=max(
+            assertion_counts, default=0
+        ),
+        serialized_input_hash=stable_model_hash(judge_input),
+        artifact_closure_hash=judge_input.artifact_closure.closure_hash,
+        system_prompt_hash=_sha256_text(system_prompt),
+        primary_prompt_hash=_sha256_text(primary_prompt),
+        primary_prompt_set_hash=_sha256_text(
+            json.dumps(prompt_hashes, sort_keys=True, separators=(",", ":"))
+        ),
+        response_schema_hash=schema_hashes[maximum_request["target_report_id"]],
+        response_schema_set_hash=_sha256_text(
+            json.dumps(schema_hashes, sort_keys=True, separators=(",", ":"))
+        ),
+        system_prompt_chars=len(system_prompt),
+        system_prompt_estimated_tokens=system_tokens,
+        primary_prompt_chars=len(primary_prompt),
+        primary_prompt_estimated_tokens=primary_tokens,
+        response_schema_chars=len(schema_text),
+        response_schema_estimated_tokens=schema_tokens,
+        request_estimated_tokens=request_tokens,
+        maximum_validity_response_hash=_sha256_text(maximum_validity_response),
+        maximum_validity_response_chars=len(maximum_validity_response),
+        maximum_validity_response_estimated_tokens=maximum_validity_tokens,
+        maximum_relation_all_no_response_hash=_sha256_text(
+            maximum_relation_all_no_response
+        ),
+        maximum_relation_all_no_response_chars=len(maximum_relation_all_no_response),
+        maximum_relation_all_no_response_estimated_tokens=(
+            maximum_relation_all_no_tokens
+        ),
+        maximum_relation_all_full_response_hash=_sha256_text(
+            maximum_relation_all_full_response
+        ),
+        maximum_relation_all_full_response_chars=len(
+            maximum_relation_all_full_response
+        ),
+        maximum_relation_all_full_response_estimated_tokens=(
+            maximum_relation_all_full_tokens
+        ),
+        reserved_context_tokens=reserved_context_tokens,
+        context_headroom_tokens=context_headroom_tokens,
+        maximum_validity_response_fits_output_limit=fit_flags[0],
+        maximum_relation_all_no_response_fits_output_limit=fit_flags[1],
+        maximum_relation_all_full_response_fits_output_limit=fit_flags[2],
+        reserved_context_fits_window=fit_flags[3],
+        status="pass" if all(fit_flags) else "fail",
+        reason="Every real expected-isolated validity target and worst-case valid-report relation target fits the exact dynamic schema and configured context without a provider call.",
+        basis="Four-characters-per-token estimates over every validity and relation prompt/schema, one fixed row per complete semantic source clause, and validated all-NO/all-FULL relation envelopes.",
+        source_refs=(
+            source_path,
+            source_hash,
+            algorithm_source_hash,
+            stable_model_hash(judge_input),
+            judge_input.artifact_closure.closure_hash,
+        ),
+    )
+
+
+def _write_model(path: Path, value: JudgeScaleAudit) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = value.model_dump_json(indent=2).encode("utf-8") + b"\n"
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", dir=path.parent
+    )
+    temporary_path = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_path, path)
+    finally:
+        if temporary_path.exists():
+            temporary_path.unlink()
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build the provider-free scale-audit command-line contract."""
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--report-root", type=Path, required=True)
+    parser.add_argument("--ledger", type=Path, required=True)
+    parser.add_argument(
+        "--source-format",
+        choices=(
+            "x1v2_record",
+            "evidence_discovery_release",
+            "legacy_report_clusters",
+        ),
+        required=True,
+    )
+    parser.add_argument("--source-path", type=Path, required=True)
+    parser.add_argument("--pair-id", required=True)
+    parser.add_argument("--round", type=int, required=True)
+    parser.add_argument("--profile", default="gpt-5.6-luna")
+    parser.add_argument("--output", type=Path, required=True)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Persist a reproducible real-input audit without contacting a provider."""
+
+    args = build_parser().parse_args(argv)
+    # The packaged protocol resource is the only authority for a standalone
+    # Judge; do not reconstruct a repository parent from the installed path.
+    verify_snapshot()
+    source_path = args.source_path.expanduser().resolve()
+    expected_issues, expected_id_map = load_expected_issues(
+        args.ledger.expanduser().resolve(), args.pair_id
+    )
+    if args.source_format == "x1v2_record":
+        reports, adapter_audit, round_no, pair_id = adapt_x1v2_record(
+            source_path, expected_id_map
+        )
+    elif args.source_format == "evidence_discovery_release":
+        reports, adapter_audit, round_no, pair_id = adapt_evidence_discovery_release(
+            source_path, expected_id_map
+        )
+    else:
+        reports, adapter_audit, round_no, pair_id = adapt_legacy_report_clusters(
+            source_path, expected_id_map
+        )
+    if pair_id != args.pair_id or round_no != args.round:
+        raise ValueError(
+            f"source identity mismatch: expected pair={args.pair_id},round={args.round}; "
+            f"actual pair={pair_id},round={round_no}"
+        )
+    closure = build_artifact_closure(args.report_root, pair_id)
+    judge_input = build_unified_input(
+        reports=reports,
+        expected_issues=expected_issues,
+        artifact_closure=closure,
+    )
+    profile = load_llm_registry().require(args.profile)
+    if profile.context_window_tokens is None or profile.max_output_tokens is None:
+        raise ValueError(
+            "scale audit requires explicit context_window_tokens and max_output_tokens"
+        )
+    audit = build_scale_audit(
+        judge_input,
+        round_no=round_no,
+        source_format=args.source_format,
+        source_path=str(source_path),
+        source_hash=adapter_audit.source_hash,
+        algorithm_source_hash=_algorithm_source_hash(),
+        model_profile=args.profile,
+        model_id=profile.model,
+        profile_fingerprint=profile.fingerprint(),
+        context_window_tokens=profile.context_window_tokens,
+        profile_max_output_tokens=profile.max_output_tokens,
+    )
+    _write_model(args.output.expanduser().resolve(), audit)
+    print(audit.model_dump_json(indent=2), flush=True)
+    return 0 if audit.status == "pass" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

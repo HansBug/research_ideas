@@ -1,0 +1,918 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0007",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0007-01",
+      "pair": "0007",
+      "D": "D2",
+      "L": "L2",
+      "summary": "顶层唯一的初始迁移 `:2 [*] --> InitialState` 落在 `InitialState` 上，而这个状态只有入边没有出边，于是整机永久停在那里——碰撞检测与避撞控制两棵子树都不可达。",
+      "detail": "`:2` 是全文唯一的根层初始边，目标是 `InitialState`。这个名字此后只在 `:32 CollisionAvoidance --> InitialState : Collision Resolved` 中再次出现，仍然是作为目标。全文没有任何迁移以 `InitialState` 为源端，它也没有被声明为复合态（没有 `state InitialState { }`），因此没有内部结构可以走。\n\n后果是整台机器一启动就停住。`CollisionDetection`（:4-:9）与 `CollisionAvoidance`（:11-:23）虽然彼此之间有 `:31` 相连，但没有任何一条边从 `InitialState` 通向它们，所以两棵子树都不可达。更进一步，`:32` 那条「碰撞解决后回到 InitialState」的边即使能被触发，回来之后系统也再出不去——无法重新武装，第二次碰撞不会再被处理。\n\n这直接违反 NL 第 2 句：「This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected.」这句要求子机在检测到碰撞时变为活动，而制品里它永远不会活动。\n\n根因可以从上游工作簿追到：Phase-I（列 I）的原始生成里，`InitialState` 是一个包含整个检测流程的复合状态，语义是连通的；上游论文的语义修复阶段把它改成了一个空的叶状态，同时把检测流程拆出来做成同级的 `CollisionDetection`——拆的时候没有补上从 `InitialState` 到 `CollisionDetection` 的边，可达性就此断掉。也就是说这是修复动作注入的缺陷，不是生成模型原本的错误。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 2 句「This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected」——子机必须能变为活动，而制品里它不可达。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法：`InitialState` 没有任何出边、没有内部结构、也没有任何祖先可以继承出边，不存在任何解释能让检测流程被进入。反驳不存活。",
+      "L_basis": "判 L2。陈述这条错误的核心是一个可达性论证：要说明从 `:2` 出发的全部执行路径都到不了 `CollisionDetection` 与 `CollisionAvoidance`。这需要对行为集合做穷尽排除，不是在某个系统状态上读出来的静态事实。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unintended_terminal",
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0007-02",
+      "pair": "0007",
+      "D": "D1",
+      "L": "L0",
+      "summary": "`CollisionAvoidance` 三个区的初始迁移 `:13`、`:17`、`:21` 各自带了一个标签（`Start Braking` / `Steering Engaged` / `Alerts Activated`），若按触发事件读则违反 UML 对初始伪状态出边的规定，且这三个事件在模型里无人产生。",
+      "detail": "`:11` 开 `state CollisionAvoidance {`，块内用 `:12`、`:16`、`:20` 的三个 `--` 分成三个区。每个区的第一行都是一条带标签的默认入口边：`:13 [*] --> AutomaticBraking : Start Braking`、`:17 [*] --> SteeringControl : Steering Engaged`、`:21 [*] --> AlertSystem : Alerts Activated`。\n\n若把冒号后的文本读作触发事件，那么有两层问题。语言层面：UML 2.5.1 规定从初始伪状态出发的迁移不得带触发事件，也不得带守卫。语义层面：这三个事件名在全文（`:1`-`:33`）的其它任何位置都没有出现过，即模型里没有任何迁移的 effect 会产生它们，也没有任何声明把它们标为外部事件——按这个读法，进入 CollisionAvoidance 之后三个区都不会激活任何控制。这与 NL 第 2、3 句的「检测到即激活」语义相冲突（第 3 句「The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls」）。\n\n根因是把「这个控制要开始做什么」写成了进入这个控制的条件。三个标签的文字（开始制动、转向介入、告警启动）读起来更像是进入状态时要执行的动作，而不是等待的事件。",
+      "D_basis": "判 D1，两读并立，且有两条彼此独立的削弱理由。其一，PlantUML 的迁移标签是自由文本，工具不赋予它角色，`:13`/`:17`/`:21` 冒号后的文字既可以读作触发事件，也可以读作 effect（进入时执行的动作）；按 effect 读，UML 那条规定就没有被违反，而且从文字含义看（开始制动、转向介入、告警启动）effect 读法反而更自然。其二，退一步说，即便按触发事件读，「模型内无人产生该事件」也推不出「控制不会激活」——事件完全可以来自模型外部的环境，本文件对 `:6`/`:7`/`:8` 的三个检测事件用的就是同样的处理方式（它们也没有模型内的产生者）。两条削弱理由都成立且都未被排除，故不判 D2。",
+      "L_basis": "判 L0。陈述这条错误只需就地读 `:13`、`:17`、`:21` 这三行，看 `[*] -->` 后面的冒号有没有跟内容；配套的「这三个事件名在全文别处没出现过」也只是对文本做一次名字检索。都在词法层面，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "extraneous",
+        "defect_logic_kind": null,
+        "defect_reference": "language"
+      }
+    },
+    {
+      "ledger_id": "EIS-0007-03",
+      "pair": "0007",
+      "D": "D2",
+      "L": "L0",
+      "summary": "`OperationalControls`（:25-:29）整棵子树——信号反馈、健康检查、通信控制——在 NL 里完全没有提及，且它没有任何入边（是死代码），内部还在同一个非正交区里并列写了三条初始迁移。",
+      "detail": "`:25` 开 `state OperationalControls {`，块内是三行默认入口边：`:26 [*] --> FeedbackControl : Signal Feedback`、`:27 [*] --> SystemCheck : Health Check`、`:28 [*] --> CommunicationControl : Communicate Control`。\n\n三个问题叠在一起。\n\n第一，无 NL 依据。NL 只有三句话：第 1 句「There are three region in this diagram」，第 2 句说这个子机在检测到前向碰撞、追尾或行人碰撞时变为活动，第 3 句说避撞的活动模式由正交区支持并发激活不同的避撞控制。信号反馈、健康检查、通信控制这三样在 NL 全文里一个字都没有，也不在避撞这个主题范围内。\n\n第二，死代码。全文只有 `:31 CollisionDetection -down-> CollisionAvoidance : Collision Mode Active` 与 `:32 CollisionAvoidance --> InitialState : Collision Resolved` 两条跨顶层状态的迁移，没有任何一条以 `OperationalControls` 为目标。它既没有入边、也不是根层初始边的目标，因此永远不会被进入。\n\n第三，非确定初始。`:26`-`:28` 三行都是 `[*] -->`，而它们之间没有 `--` 分隔——对比同一文件的 `:11`-`:23`，作者在 CollisionAvoidance 里是用 `--` 明确分区的，说明他知道怎么写正交区。所以这三条初始边处在同一个区里，一个区有三个默认入口，进入时该走哪一条没有定义。\n\n根因是补足了一套「看起来一个控制系统总该有」的通用功能，而不是照着 NL 建。NL 第 1 句只说了三个区，制品在避撞里给了三个区之后又多加了这一整棵与 NL 无关的子树。",
+      "D_basis": "判 D2。三条各自独立的违反：其一，NL 第 1 句「There are three region in this diagram」与第 2、3 句共同界定了这份图的范围就是碰撞检测与避撞控制，`OperationalControls` 的三项功能在 NL 全文没有任何对应，属无依据的过度规定；其二，一个没有任何入边的顶层复合态在任何执行下都不会被进入，是死代码；其三，同一个区里并列三条默认入口边违反 UML 对区域默认入口唯一性的要求，且同文件的 `:12`/`:16`/`:20` 证明作者知道用 `--` 分区。三个判读臂一致认定成立。需要如实记下的是：三臂在给理由时都没有主动引出上面任一条出处，出处是本次重写时补齐的。 三条子主张各自都没有可存活的反驳：NL 全文三句里找不到信号反馈、健康检查、通信控制中的任何一个；「没有入边但仍会被进入」在顺序状态机里不存在这种可能；「三条默认入口其实分属三个区」也被同文件 `:12`/`:16`/`:20` 的 `--` 用法否掉——作者会分区，这里没分。",
+      "L_basis": "判 L0。三条子主张的陈述都在词法层面：把 NL 里出现过的名字集合与模型里的状态名集合比对，即可看出 `OperationalControls` 一族多出；检索全文有没有以它为目标的迁移，是一次名字检索；数 `:25`-`:29` 块内有几条 `[*] -->` 而中间有没有 `--`，是读那五行。都不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "state",
+        "defect_qualifier": "extraneous",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:CollisionAvoidance",
+          "claims": [
+            "Initial pseudostate scope 'CollisionAvoidance' has 3 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0007.puml:line:13, llms_emp_feedback_final_0007.puml:line:17, llms_emp_feedback_final_0007.puml:line:21); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0007.CollisionAvoidance"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:CollisionAvoidance:facet:41e3e6378754"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:OperationalControls",
+          "claims": [
+            "Initial pseudostate scope 'OperationalControls' has 3 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0007.puml:line:26, llms_emp_feedback_final_0007.puml:line:27, llms_emp_feedback_final_0007.puml:line:28); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0007.OperationalControls"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:OperationalControls:facet:eb2ae377d7d7"
+          ]
+        },
+        {
+          "finding_id": "source:child_count:CollisionAvoidance",
+          "claims": [
+            "The authored structure may expose a fourth concurrent region in addition to the three control regions required by NL3.",
+            "The authored CollisionAvoidance scope exposes four concurrent-region records, including an empty region 0, rather than the three regions required by NL1."
+          ],
+          "locations": [
+            "NL1",
+            "author_source_inventory.concurrent_regions",
+            "CollisionAvoidance:region:0",
+            "CollisionAvoidance:region:1",
+            "CollisionAvoidance:region:2",
+            "CollisionAvoidance:region:3"
+          ],
+          "obligations": [
+            "The collision-avoidance active mode has three orthogonal regions.",
+            "The collision-avoidance mode has three orthogonal regions."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:child_count:CollisionAvoidance:facet:c38dba6e364d"
+          ]
+        },
+        {
+          "finding_id": "source:transition:CollisionDetection.PossibleCollision:Frontend Detected:CollisionAvoidance",
+          "claims": [
+            "Source has no matching transition from 'CollisionDetection.PossibleCollision' to 'CollisionAvoidance' under 'Frontend Detected'."
+          ],
+          "locations": [
+            "NL2"
+          ],
+          "obligations": [
+            "CollisionDetection.PossibleCollision must transition directly to CollisionAvoidance under Frontend Detected."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:CollisionDetection.PossibleCollision:Frontend Detected:CollisionAvoidance:facet:254303753d2c"
+          ]
+        },
+        {
+          "finding_id": "source:transition:CollisionDetection.PossibleCollision:Rear-end Detected:CollisionAvoidance",
+          "claims": [
+            "Source has no matching transition from 'CollisionDetection.PossibleCollision' to 'CollisionAvoidance' under 'Rear-end Detected'."
+          ],
+          "locations": [
+            "NL2"
+          ],
+          "obligations": [
+            "CollisionDetection.PossibleCollision must transition directly to CollisionAvoidance under Rear-end Detected."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:CollisionDetection.PossibleCollision:Rear-end Detected:CollisionAvoidance:facet:b80680988dee"
+          ]
+        },
+        {
+          "finding_id": "source:transition:CollisionDetection.PossibleCollision:Pedestrian Detected:CollisionAvoidance",
+          "claims": [
+            "Source has no matching transition from 'CollisionDetection.PossibleCollision' to 'CollisionAvoidance' under 'Pedestrian Detected'."
+          ],
+          "locations": [
+            "NL2"
+          ],
+          "obligations": [
+            "CollisionDetection.PossibleCollision must transition directly to CollisionAvoidance under Pedestrian Detected."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:CollisionDetection.PossibleCollision:Pedestrian Detected:CollisionAvoidance:facet:39c8c7ecc993"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:CollisionAvoidance",
+          "claims": [
+            "Initial pseudostate scope 'CollisionAvoidance' has 3 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0007.puml:line:13, llms_emp_feedback_final_0007.puml:line:17, llms_emp_feedback_final_0007.puml:line:21); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0007.CollisionAvoidance"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:CollisionAvoidance:facet:61c60ddfb0a9"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:OperationalControls",
+          "claims": [
+            "Initial pseudostate scope 'OperationalControls' has 3 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0007.puml:line:26, llms_emp_feedback_final_0007.puml:line:27, llms_emp_feedback_final_0007.puml:line:28); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0007.OperationalControls"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:OperationalControls:facet:eb2ae377d7d7"
+          ]
+        },
+        {
+          "finding_id": "source:transition:CollisionDetection.PossibleCollision:Frontend Detected:CollisionAvoidance",
+          "claims": [
+            "Source transition 'tr_0003' reaches observed target 'CollisionDetection.FrontendCollision', but the exact transition contract requires target 'CollisionAvoidance'."
+          ],
+          "locations": [
+            "NL2"
+          ],
+          "obligations": [
+            "CollisionDetection.PossibleCollision must transition directly to CollisionAvoidance under Frontend Detected."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:CollisionDetection.PossibleCollision:Frontend Detected:CollisionAvoidance:facet:83fc22c22a44"
+          ]
+        },
+        {
+          "finding_id": "source:transition:CollisionDetection.PossibleCollision:Rear-end Detected:CollisionAvoidance",
+          "claims": [
+            "Source transition 'tr_0004' reaches observed target 'CollisionDetection.RearendCollision', but the exact transition contract requires target 'CollisionAvoidance'."
+          ],
+          "locations": [
+            "NL2"
+          ],
+          "obligations": [
+            "CollisionDetection.PossibleCollision must transition directly to CollisionAvoidance under Rear-end Detected."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:CollisionDetection.PossibleCollision:Rear-end Detected:CollisionAvoidance:facet:0169f86fc977"
+          ]
+        },
+        {
+          "finding_id": "source:transition:CollisionDetection.PossibleCollision:Pedestrian Detected:CollisionAvoidance",
+          "claims": [
+            "Source transition 'tr_0005' reaches observed target 'CollisionDetection.PedestrianCollision', but the exact transition contract requires target 'CollisionAvoidance'."
+          ],
+          "locations": [
+            "NL2"
+          ],
+          "obligations": [
+            "CollisionDetection.PossibleCollision must transition directly to CollisionAvoidance under Pedestrian Detected."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:CollisionDetection.PossibleCollision:Pedestrian Detected:CollisionAvoidance:facet:1273f4379546"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:e57a3e847a455295",
+          "claims": [
+            "CollisionAvoidance initial entries may be incorrectly event-gated, preventing the concurrent mode from entering its controls by default."
+          ],
+          "locations": [
+            "NL3",
+            "tr_0006",
+            "tr_0008",
+            "tr_0010",
+            "F38",
+            "F40",
+            "F42",
+            "CollisionAvoidance:region:1",
+            "CollisionAvoidance:region:2",
+            "CollisionAvoidance:region:3"
+          ],
+          "obligations": [
+            "Initial entry into each collision-avoidance operating region must be unconditional."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:e57a3e847a455295:facet:e575b2dd8d54"
+          ]
+        },
+        {
+          "finding_id": "source:child_count:CollisionAvoidance",
+          "claims": [
+            "The source inventory may contain an extra empty concurrent region relative to the requirement's declared count of three.",
+            "The formal inventory may realize four regions for CollisionAvoidance, including an empty region, rather than the three regions required by NL1."
+          ],
+          "locations": [
+            "NL1",
+            "CollisionAvoidance:region:0",
+            "CollisionAvoidance:region:1",
+            "CollisionAvoidance:region:2",
+            "CollisionAvoidance:region:3"
+          ],
+          "obligations": [
+            "The diagram declares three orthogonal regions for collision avoidance.",
+            "The active collision-avoidance mode has three orthogonal regions."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:child_count:CollisionAvoidance:facet:c38dba6e364d"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:415c73a04e99d639",
+          "claims": [
+            "The authored detection transitions may terminate in collision-specific leaf states instead of activating CollisionAvoidance."
+          ],
+          "locations": [
+            "NL2",
+            "tr_0003",
+            "tr_0004",
+            "tr_0005",
+            "CollisionDetection.PossibleCollision",
+            "CollisionDetection.FrontendCollision",
+            "CollisionDetection.RearendCollision",
+            "CollisionDetection.PedestrianCollision"
+          ],
+          "obligations": [
+            "Each detected collision type must directly activate CollisionAvoidance from the collision-detection decision state."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L2",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:415c73a04e99d639:facet:55155b50bd37"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:CollisionAvoidance",
+          "claims": [
+            "Initial pseudostate scope 'CollisionAvoidance' has 3 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0007.puml:line:13, llms_emp_feedback_final_0007.puml:line:17, llms_emp_feedback_final_0007.puml:line:21); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0007.CollisionAvoidance"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:CollisionAvoidance:facet:77ddf1c190ed"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:OperationalControls",
+          "claims": [
+            "Initial pseudostate scope 'OperationalControls' has 3 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0007.puml:line:26, llms_emp_feedback_final_0007.puml:line:27, llms_emp_feedback_final_0007.puml:line:28); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0007.OperationalControls"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:OperationalControls:facet:eb2ae377d7d7"
+          ]
+        },
+        {
+          "finding_id": "source:child_count:CollisionAvoidance",
+          "claims": [
+            "The CollisionAvoidance composite may expose an incorrect orthogonal-region cardinality relative to the requirement.",
+            "CollisionAvoidance may expose four parsed concurrent regions, including an empty region, instead of the three regions required by NL1."
+          ],
+          "locations": [
+            "NL1",
+            "NL3",
+            "CollisionAvoidance:region:0",
+            "CollisionAvoidance:region:1",
+            "CollisionAvoidance:region:2",
+            "CollisionAvoidance:region:3",
+            "F31"
+          ],
+          "obligations": [
+            "The collision-avoidance active mode has three orthogonal regions.",
+            "The diagram has three orthogonal regions for concurrent collision-avoidance controls."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:child_count:CollisionAvoidance:facet:179abd088727",
+            "source:child_count:CollisionAvoidance:facet:c38dba6e364d"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "碰撞规避子机没有在检测到三类碰撞可能性时被激活",
+          "reason": "规格明确要求在检测到可能的前端碰撞、追尾碰撞或行人碰撞时激活碰撞规避子机。模型只把 CollisionDetection 状态整体连接到 CollisionAvoidance，并没有从三个检测结果状态连接到 CollisionAvoidance，也没有表明这些检测事件会触发 Collision Mode Active，因此三类检测结果均无法按规定激活该子机。",
+          "where": "CollisionDetection 内的 PossibleCollision -> FrontendCollision、RearendCollision、PedestrianCollision 转移，以及 CollisionDetection -down-> CollisionAvoidance : Collision Mode Active"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "CollisionAvoidance 的正交区域数量与模型表达不一致，且缺少对三种不同控制并发激活的完整语义",
+          "reason": "规格要求活动碰撞规避模式包含正交区域，以允许不同碰撞规避控制并发激活。模型在 CollisionAvoidance 中实际只声明了两个正交区域，并将制动、转向、警报混在这两个区域中，无法让三个控制都按独立区域并发启动；OperationalControls 虽含三个初始转移，但它是 CollisionAvoidance 外的独立顶层状态，既不是其正交区域，也没有连接到碰撞规避活动模式，不能补足该并发要求。",
+          "where": "CollisionAvoidance 内两个 `--` 分隔的区域：AutomaticBraking、SteeringControl、AlertSystem；以及独立的 OperationalControls 状态"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型未体现“检测到前端、追尾或行人碰撞可能性”是进入碰撞规避的条件",
+          "reason": "该转移的源是整个 CollisionDetection 状态，而不是三个具体碰撞检测结果，并且标签仅描述模式激活，没有与 Frontend Detected、Rear-end Detected、Pedestrian Detected 事件建立条件对应关系。这样模型可能在进入 CollisionDetection 后直接激活 CollisionAvoidance，甚至在未检测到任何规定碰撞类型时激活，违反规格的触发条件。",
+          "where": "CollisionDetection 到 CollisionAvoidance 的无条件转移 `CollisionDetection -down-> CollisionAvoidance : Collision Mode Active`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "碰撞避免子状态机未覆盖“可能的前端碰撞、追尾碰撞或行人碰撞”三种检测结果的进入条件",
+          "reason": "规格要求该子机器在检测到 possible frontend collision、rear-end collision 或 collision with pedestrian 时变为 active。模型虽定义了 FrontendCollision、RearendCollision、PedestrianCollision 三个状态，但从这些状态没有分别连接到 CollisionAvoidance；只有从复合状态 CollisionDetection 整体出发的一条无明确触发语义的转移，因此无法表达三种检测结果各自触发碰撞避免子机器激活。",
+          "where": "CollisionDetection 内部状态及 `CollisionDetection -down-> CollisionAvoidance : Collision Mode Active` 转移"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "OperationalControls 被建模为第三个顶层复合状态，但未体现其与碰撞避免活动模式的正交并发关系",
+          "reason": "规格中的“三个 region”应属于 active mode of collision avoidance 的正交区域，并允许不同 collision avoidance controls 并发激活。模型在 CollisionAvoidance 内确实用三个 `--` 分隔区域表达了 AutomaticBraking、SteeringControl 和 AlertSystem 的并发区域；但 OperationalControls 位于 CollisionAvoidance 外部，且没有与其建立正交区域关系，因而不能作为该活动模式中的第三个 region。",
+          "where": "`state OperationalControls { ... }` 以及顶层状态结构"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型将碰撞避免控制错误地限定为固定的三个控制类别，且没有清晰表达“不同控制可并发激活”的三种检测触发关系",
+          "reason": "规格只要求碰撞避免活动模式的正交区域支持不同碰撞避免控制的并发激活；模型虽然语法上有三个正交区域，但没有从 FrontendCollision、RearendCollision、PedestrianCollision 或统一的有效检测事件向这些区域建立可触发的进入/激活逻辑。仅声明各区域的初始转移不足以证明检测后会并发启动这些控制。",
+          "where": "CollisionAvoidance 的三个区域及其初始转移：`Start Braking`、`Steering Engaged`、`Alerts Activated`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "碰撞避免子机器没有按三类碰撞检测结果分别定义激活转换",
+          "reason": "规格明确要求在检测到可能的前端碰撞、后端碰撞或行人碰撞时激活该子机器。模型只从`CollisionDetection`复合状态整体连接到`CollisionAvoidance`，没有从`FrontendCollision`、`RearendCollision`和`PedestrianCollision`分别建立到碰撞避免的转换，因此这些检测结果与激活条件之间的对应关系未被建模。",
+          "where": "`CollisionDetection -down-> CollisionAvoidance : Collision Mode Active`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "碰撞检测状态到碰撞避免状态的触发条件不完整且可能无法触发",
+          "reason": "`CollisionDetection`的初始状态进入`PossibleCollision`，随后进入三个具体碰撞状态；这些具体状态均没有离开该复合状态的转换。若按状态机语义，复合状态只有在其内部达到终止伪状态时才可能完成，而模型既没有内部终止状态，也没有从三个检测状态离开的路径，因此`CollisionAvoidance`可能不可达。",
+          "where": "`CollisionDetection`内部状态及其到`CollisionAvoidance`的外部转换"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "未明确表达三个碰撞避免控制区域可并发启动的语义",
+          "reason": "模型确实用三个正交区域分别放置自动制动、转向控制和告警系统，但每个区域的初始转换都带有事件触发条件（`Start Braking`、`Steering Engaged`、`Alerts Activated`）。在未定义事件可独立并发发生、也未定义区域运行语义的情况下，图中没有清楚保证不同控制能够在碰撞避免模式激活时并发激活；规格要求的是正交区域支持不同碰撞避免控制的并发激活，模型对此缺少明确的并发触发/语义表达。",
+          "where": "`CollisionAvoidance`中的三个`--`分隔区域及各区域的初始转换"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0007",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0007-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "Method findings identify missing detection transitions, region count, and initial-edge notation, but none covers InitialState's root location and absent outgoing edge.",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "The method's detection-transition hypotheses and exact transition findings concern CollisionDetection, while the initial-contract finding concerns CollisionAvoidance or OperationalControls; none covers InitialState.",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "Only region cardinality and initial-edge notation are reported; the root InitialState terminal/unreachable-subtree claim is absent.",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "All three baseline issues concern detection-to-avoidance activation, region structure, or activation conditions; none identifies the root initial edge entering InitialState and the absence of InitialState outgoing behavior.",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "The reported missing exits are inside CollisionDetection and the other findings concern OperationalControls placement and control startup; none covers the root InitialState terminal state.",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "The baseline discusses missing detection exits and unclear control concurrency, but never identifies the unique root initial transition to InitialState as the terminal cause.",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0007-02",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:CollisionAvoidance"
+          ],
+          "reason": "The exact CollisionAvoidance scope and lines 13, 17, and 21 are identified, with the same claim that initial pseudostate outgoing edges must not carry triggers or guards.",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:CollisionAvoidance"
+          ],
+          "reason": "The exact initial-contract finding matches all three CollisionAvoidance initial edges and the same UML prohibition.",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:CollisionAvoidance"
+          ],
+          "reason": "The exact CollisionAvoidance initial-contract finding asserts the same forbidden trigger-or-guard property on the same three edges.",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "The baseline's third issue concerns unclear detection conditions on a top-level transition, not forbidden labels on CollisionAvoidance initial pseudostate exits.",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "The third issue says startup semantics are insufficiently clear, but does not assert that the labels on the CollisionAvoidance initial exits are extraneous triggers forbidden by UML.",
+          "confidence": "medium"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "The third issue notes event-triggered initial conversions as a concurrency ambiguity, but its property is unclear concurrent activation rather than the ledger's forbidden trigger/guard notation claim.",
+          "confidence": "medium"
+        }
+      },
+      {
+        "ledger_id": "EIS-0007-03",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "The OperationalControls finding reports forbidden trigger/guard notation on its initial edges, which is not the ledger's unsupported, unreachable, or same-region multi-initial-edge claim.",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "The OperationalControls initial-contract finding has the wrong property: trigger/guard prohibition rather than the ledger's extra/dead/misplaced subtree and non-orthogonal initial entries.",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "The only OperationalControls finding is the initial-contract trigger/guard assertion, not the ledger's structural claims about the subtree.",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "Its second issue explicitly locates OperationalControls outside CollisionAvoidance's orthogonal regions and rejects it as the required concurrent control structure, matching the ledger's structural misplacement claim.",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "Its second issue explicitly says OperationalControls is a top-level composite state rather than a region of the active CollisionAvoidance mode, matching the same hierarchy/location defect.",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "The three baseline issues discuss detection activation, internal exits, and CollisionAvoidance initial triggers, but do not identify OperationalControls as the unsupported or misplaced extra top-level subtree.",
+          "confidence": "medium"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:child_count:CollisionAvoidance",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Claims an incorrect CollisionAvoidance region count, which is distinct from all three ledger defects: the frozen entries concern the InitialState terminal root, trigger-bearing initial edges, and the extraneous OperationalControls subtree.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:CollisionAvoidance",
+        "matched_ledger_ids": [
+          "EIS-0007-02"
+        ],
+        "false_positive": false,
+        "reason": "Identifies the three initial outgoing edges in CollisionAvoidance and the same forbidden trigger-or-guard property asserted by EIS-0007-02.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:OperationalControls",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Identifies trigger or guard text on OperationalControls initial edges, but none of the ledger entries asserts that notation defect at this location; EIS-0007-03 concerns the subtree's unsupported, unreachable, and non-orthogonal structure.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:transition:CollisionDetection.PossibleCollision:Frontend Detected:CollisionAvoidance",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Claims a missing direct detection-to-CollisionAvoidance transition, not the missing outgoing behavior of the root InitialState asserted by EIS-0007-01.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:transition:CollisionDetection.PossibleCollision:Pedestrian Detected:CollisionAvoidance",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Claims a missing direct detection-to-CollisionAvoidance transition, which is a different transition location and property from every frozen ledger entry.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:transition:CollisionDetection.PossibleCollision:Rear-end Detected:CollisionAvoidance",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Claims a missing direct detection-to-CollisionAvoidance transition, which is a different transition location and property from every frozen ledger entry.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:415c73a04e99d639",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Claims collision-detection transitions terminate in collision-specific leaves rather than activating CollisionAvoidance; this is not the root InitialState no-outgoing-edge defect in EIS-0007-01.",
+        "confidence": "medium"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:e57a3e847a455295",
+        "matched_ledger_ids": [
+          "EIS-0007-02"
+        ],
+        "false_positive": false,
+        "reason": "Claims the CollisionAvoidance initial entries are event-gated and therefore incorrectly prevent default entry, matching the ledger's same initial-edge trigger defect.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:child_count:CollisionAvoidance",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Claims an extra empty CollisionAvoidance region, a cardinality defect not asserted by the frozen ledger.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_contract:CollisionAvoidance",
+        "matched_ledger_ids": [
+          "EIS-0007-02"
+        ],
+        "false_positive": false,
+        "reason": "Identifies the same CollisionAvoidance initial edges and the same forbidden trigger-or-guard property as EIS-0007-02.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_contract:OperationalControls",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Its trigger/guard prohibition is at OperationalControls and does not correspond to the ledger's unsupported/dead/non-orthogonal subtree claims.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:CollisionDetection.PossibleCollision:Frontend Detected:CollisionAvoidance",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Claims the Frontend Detected transition reaches the wrong target, not the InitialState terminal-root defect or either local ledger defect.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:CollisionDetection.PossibleCollision:Pedestrian Detected:CollisionAvoidance",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Claims the Pedestrian Detected transition reaches the wrong target, not any same-location same-property ledger defect.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:CollisionDetection.PossibleCollision:Rear-end Detected:CollisionAvoidance",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Claims the Rear-end Detected transition reaches the wrong target, not any same-location same-property ledger defect.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:child_count:CollisionAvoidance",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Claims CollisionAvoidance has four rather than three regions, which is not one of the frozen ledger claims.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:CollisionAvoidance",
+        "matched_ledger_ids": [
+          "EIS-0007-02"
+        ],
+        "false_positive": false,
+        "reason": "Identifies the same three trigger-bearing initial edges in CollisionAvoidance and the same UML initial-transition prohibition.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:OperationalControls",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Claims forbidden triggers on OperationalControls initial edges, while EIS-0007-03 asserts unsupported/dead/non-orthogonal structure there, not this notation rule.",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Concerns missing transitions from collision-result states to CollisionAvoidance; EIS-0007-01 instead concerns the unique root initial transition entering a terminal InitialState.",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0007-03"
+        ],
+        "false_positive": false,
+        "reason": "Explicitly places OperationalControls outside CollisionAvoidance's orthogonal regions and says it cannot supply the required concurrent control structure, matching the ledger's hierarchy/structure defect at that subtree.",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Claims the external CollisionDetection-to-CollisionAvoidance transition lacks the three detection conditions; it does not claim the root InitialState has no outgoing edge.",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Concerns missing result-state activation transitions, distinct from the InitialState root terminal defect and from the local trigger or OperationalControls defects.",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0007-03"
+        ],
+        "false_positive": false,
+        "reason": "Directly asserts that OperationalControls is a top-level state rather than a region of CollisionAvoidance, matching the ledger's layer/structural misplacement claim.",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Discusses missing activation logic for the three controls, but does not assert the ledger's specific forbidden trigger notation on CollisionAvoidance initial pseudostate edges.",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Claims absent per-result activation transitions, not the unique root InitialState transition with no outgoing behavior.",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Claims the detection submachine may be unable to leave because its internal result states have no exits; that is a different location and cause from InitialState being a terminal root target.",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Claims unclear concurrent-start semantics due to event-triggered initial transitions, but does not make the same UML extraneous-trigger/guard assertion as EIS-0007-02.",
+        "confidence": "medium"
+      }
+    ],
+    "pair_reason": "Semantic alignment yields three clear method hits for EIS-0007-02 and two baseline hits for the OperationalControls structural claim EIS-0007-03. The root InitialState terminal defect EIS-0007-01 is missed in all six cells. Region-count findings, detection-transition findings, and OperationalControls trigger-contract findings are false positives against this frozen ledger; ambiguous concurrency wording does not establish the ledger's specific forbidden-trigger property."
+  },
+  "status": "ok",
+  "attempts": 1
+}

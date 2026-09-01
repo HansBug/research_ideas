@@ -17,8 +17,8 @@ import pytest
 ARM = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ARM / "src"))
 
-import runner  # noqa: E402
-from schema import NaiveIssue, NaiveReview  # noqa: E402
+import runner
+from schema import NaiveIssue, NaiveReview
 
 
 class _FakeConfig:
@@ -28,8 +28,22 @@ class _FakeConfig:
     context_window_tokens = 400000
 
 
+def test_runner_cli_streams_by_default_and_allows_explicit_opt_out() -> None:
+    parser = runner.build_parser()
+    required = ["--case", "0000", "--profile", "fake", "--output-dir", "out"]
+
+    assert parser.parse_args(required).streaming is True
+    assert parser.parse_args(required).effort is None
+    assert parser.parse_args([*required, "--effort", "xhigh"]).effort == "xhigh"
+    assert parser.parse_args([*required, "--stream"]).streaming is True
+    assert parser.parse_args([*required, "--no-stream"]).streaming is False
+
+    with pytest.raises(SystemExit):
+        parser.parse_args([*required, "--stream", "--no-stream"])
+
+
 class _FakeRegistry:
-    def require(self, profile: str) -> _FakeConfig:  # noqa: ARG002
+    def require(self, profile: str) -> _FakeConfig:
         return _FakeConfig()
 
 
@@ -53,7 +67,7 @@ class _FakeModel:
         self._structured = structured
         self.structured_options: dict[str, object] = {}
 
-    def with_structured_output(self, schema: object, **options: object) -> _FakeStructured:  # noqa: ARG002
+    def with_structured_output(self, schema: object, **options: object) -> _FakeStructured:
         self.structured_options = dict(options)
         return self._structured
 
@@ -83,9 +97,11 @@ def wired(monkeypatch: pytest.MonkeyPatch):
         # ⛔ 刻意**不** mock `adapter_name`：它是纯查表函数、不碰凭据，让真函数跑才能抓住
         # 调用侧传错参数。⚠️ 初版把 config 整个传了进去，mock 掉之后测试全绿、真实 smoke 才炸。
         # 每一个被 mock 掉的纯函数都是一处测试盲区。
-        monkeypatch.setattr(
-            runner, "create_chat_model", lambda *a, **k: model  # noqa: ARG005
-        )
+        def create_model(*_args, **kwargs):
+            model.create_kwargs = kwargs
+            return model
+
+        monkeypatch.setattr(runner, "create_chat_model", create_model)
         monkeypatch.setattr(runner, "normalize_model_output_usage", lambda _raw: {})
         monkeypatch.setattr(runner.time, "sleep", lambda _s: None)
         return model
@@ -146,7 +162,10 @@ def test_real_corpus_has_54_in_scope_pairs() -> None:
 def test_ok_cell_records_everything_needed_for_audit(wired, tmp_path: Path) -> None:
     model = wired([_ok_response(3)])
     record = runner.run_cell(
-        case="0000", profile="fake", report_root=_corpus_stub(tmp_path)
+        case="0000",
+        profile="fake",
+        report_root=_corpus_stub(tmp_path),
+        effort="high",
     )
     assert record["status"] == "ok"
     assert record["issue_count"] == 3
@@ -156,6 +175,7 @@ def test_ok_cell_records_everything_needed_for_audit(wired, tmp_path: Path) -> N
         "user_prompt",
         "prompt_sha256",
         "configured_model",
+        "requested_effort",
         "adapter",
         "provider",
         "profile_max_output_tokens",
@@ -166,6 +186,8 @@ def test_ok_cell_records_everything_needed_for_audit(wired, tmp_path: Path) -> N
         assert key in record, f"record is missing audit field {key!r}"
     # 真 `adapter_name` 的返回值，证明它是按字符串调用的。
     assert record["provider"] == "langchain-openai/chat-completions", record["provider"]
+    assert record["requested_effort"] == "high"
+    assert model.create_kwargs["effort"] == "high"
     assert record["inputs"]["truncated"] is False
     # ⭐ 证明没压输出预算，也没覆盖采样参数。
     assert record["max_output_tokens_override"] is None
@@ -203,7 +225,23 @@ def test_transport_error_retries_then_records_failure(wired, tmp_path: Path) -> 
     assert record["failure_class"] == "transport_exhausted"
     assert record["parsed_output"] is None
     kinds = [a["status"] for a in record["attempts"]]
-    assert kinds.count("transport_error") == 3, kinds
+    assert kinds.count("provider_error") == 3, kinds
+    assert record["attempts"][0]["billing_disposition"] == "provider_error_retry_exempt"
+    assert record["attempts"][-1]["billing_disposition"] == "counted"
+
+
+def test_unknown_error_is_recorded_without_transport_retry(wired, tmp_path: Path) -> None:
+    """未知内部异常不得被误分类为 provider failure。"""
+
+    wired([RuntimeError("local invariant failed")] * 6)
+    record = runner.run_cell(
+        case="0000", profile="fake", report_root=_corpus_stub(tmp_path), transport_retries=2
+    )
+    assert record["status"] == "failed"
+    assert record["failure_class"] == "internal_error"
+    assert len(record["attempts"]) == 1
+    assert record["attempts"][0]["status"] == "internal_error"
+    assert record["attempts"][0]["billing_disposition"] == "counted"
 
 
 def test_transport_error_then_success(wired, tmp_path: Path) -> None:
@@ -211,6 +249,19 @@ def test_transport_error_then_success(wired, tmp_path: Path) -> None:
     record = runner.run_cell(case="0000", profile="fake", report_root=_corpus_stub(tmp_path))
     assert record["status"] == "ok"
     assert record["issue_count"] == 1
+
+
+def test_responses_relay_upstream_receipt_is_retryable() -> None:
+    class RelayedProviderError(Exception):
+        body = {
+            "error": {
+                "code": "upstream_error",
+                "message": "Upstream request failed request-id=fixture",
+                "type": "new_api_error",
+            }
+        }
+
+    assert runner._retryable_provider_error(RelayedProviderError()) is True
 
 
 def test_schema_error_feeds_targeted_feedback_back(wired, tmp_path: Path) -> None:

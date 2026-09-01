@@ -1,0 +1,233 @@
+{
+  "instructions": [
+    "Recover obligation O from the complete NL, author PlantUML, ledger reasoning, and cited formal semantics before proposing any executable property.",
+    "Do not infer inputs from state-name similarity, old planned mappings, v60 actual outputs, reference models, or execution results.",
+    "State missing quantifier, scope, timing, domain, bound, or environment information explicitly instead of inventing it."
+  ],
+  "ledger_items": [
+    {
+      "axes": {
+        "defect_element": "transition",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "missing",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D2。被违反的义务有成文出处，即 NL 第 2、3 句要求避撞控制能被激活。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——`CA` 这一层确实没有 `[*] -->`，三条 `[*]` 的层级由花括号配对唯一确定；而三个子状态之间也没有任何迁移可以充当替代入口。反驳不存活。",
+      "d_tier": "D2",
+      "detail": "`:2` 开 `state \"Collision Avoidance\" as CA {`，块内直接放了三个具名复合态：`:3 state Frontend {`、`:9 state RearEnd {`、`:15 state Pedestrian {`。三者之间没有 `--` 分隔符，因此它们是同一个区域里的三个顺序子状态。\n\n这一层没有默认入口：`:3`-`:19` 之间除了三个块本身，没有任何 `[*] -->`。三条 `[*]`（`:4`、`:10`、`:16`）都写在各自块的内部，比这一层低一层。\n\n后果是 `:22 [*] --> CA : Possible collision detected` 把系统送进 `CA` 之后不知道该落到哪一个子状态；投影为此合成了一个占位的未指定初始状态。三个控制的待机态 `FCIdle`、`RCIdle`、`PCIdle` 因此全部不可达——用一句话说就是「子机被激活了，但没有任何避撞控制被激活」。\n\n这与 NL 第 2 句「This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected」和第 3 句「The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls」都冲突。\n\n需要说明这条与并发议题可分开判定：本条主张的是「进入 CA 之后落点未定义、三路控制不可达」，这在顺序语义下就成立，不依赖它们本该是不是并发区。",
+      "l_basis": "判 L0。陈述这条错误只需读 `state \"Collision Avoidance\" as CA { }` 这一层，数它直接包含几个子状态（三个）、这一层有没有 `[*] -->`（没有）。这是纯词法层面的检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "EIS-0057-01",
+      "ledger_json_pointer": "/items/EIS-0057-01",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0057",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "**判 D2**：三臂一致认定它违反了 NL 里这句「The orthogonal regions of the active mode of collision avoidance allow for concurrent acti」，且三方都尝试过推翻、都没找到站得住的第二种读法 —— 义务有成文条文可引、反驳不存活，是 `D2-lit`。",
+        "statement": "CA 有三个子状态却无初始子状态，`Possible collision detected` 把系统送进 CA 后落到合成的 UnspecifiedInitial（FCSTM 确认 `state UnspecifiedInitial` + `[*] -> UnspecifiedInitial`），FCIdle / RCIdle / PCIdle 三路控制全部不可达——即\"子机被激活但没有任何避撞控制被激活\"，与 NL 第2、3句冲突。这是顺序化改写留下的结构缺陷，与并发本身可分开判定。",
+        "verdict_reason": null
+      },
+      "summary": "`CA`（:2-:20）有三个子状态却没有任何默认入口边——`:22` 把系统送进 CA 之后落到合成的占位状态，`FCIdle`/`RCIdle`/`PCIdle` 三路控制全部不可达。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0007/0057.md",
+        "sha256": "sha256:ed3aa7439479c64d1678bef1286a7018d8ca95a3d6d7f85acaafcfd48970532c"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "trigger",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "extraneous",
+        "defect_reference": "language"
+      },
+      "d_basis": "判 D2。被违反的义务来自建模语言：UML 2.5.1 规定初始伪状态的出边不得带触发或守卫，这条规定对任何层级的初始伪状态都适用，「本图是子机摘录」不提供豁免。`Possible collision detected` 是环境产生的检测触发，发生态措辞没有称职的 effect 读法。判读中出现过的「子机摘录加 «create» 例外」读法在检测类事件上不成立——作者已经在图内用这条边承载了激活条件。反驳不存活。",
+      "d_tier": "D2",
+      "detail": "`:22` 是全文唯一的根层初始边，冒号后带了 `Possible collision detected`。\n\nUML 2.5.1 规定从初始伪状态出发的迁移不得带触发事件也不得带守卫。后果是这台机器没有无条件的起点。\n\n此处标签的角色没有争议余地：`Possible collision detected`（检测到可能的碰撞）是明确的发生态措辞，描述的是「某件事发生了」，不可能读成一个要执行的动作。诊断统计的「带条件的初始边」计数为 1，与作者源一字不差，没有区域展平参与。\n\n因果链上还需说明一点洁净性：投影确实在 `CA` 内部合成了一个未指定初始状态（那是 EIS-0057-01 记录的另一条缺陷），但本条的落点在**根层**，与那个合成元素无关。\n\n本条与 pair 0017 的 VU-0017-01 情形不同：那一份制品完全没有根初始边、也没有任何入边，因此存在「本图是子机摘录、入口由图外父机提供」这个称职读法，判了 D1；本条的作者已经在图内用这条边承载了激活条件，外部入口读法推翻不了它的语言违规。",
+      "l_basis": "判 L0。陈述这条错误只需就地读 `:22` 这一行，看 `[*] -->` 后面的冒号有没有跟内容——纯词法层面的模式匹配，不需要从模型结构导出新事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "INS-0057-01",
+      "ledger_json_pointer": "/items/INS-0057-01",
+      "origin_family": "pyfcstm inspect 诊断归一化",
+      "pair_id": "0057",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "`Possible collision detected` 是纯粹的检测措辞，没有 effect 读法的空间，claude 的子机摘录 + «create» 例外读法在检测类事件上不成立，判 D2。",
+        "statement": "整台机器唯一的根初始迁移带着触发事件：L22 `[*] --> CA : Possible collision detected`。UML 规定初始伪状态的出边不得带 trigger，故这台机器没有无条件起点 —— 事件不来就不进入任何状态。此处标签角色无可争议：「Possible collision detected」是明确的发生态措辞，没有 effect 读法的空间；refs 的 `existing_conditional_count: 1` 与作者源一字不差，无区展平参与。⚠️ 另需说明因果链的洁净性：投影确实在 `CA` 内部合成了 `UnspecifiedInitial`，但本条落点在 **root**，与那个合成元素无关。",
+        "verdict_reason": ":22 `[*] --> CA : Possible collision detected` 的标签是环境产生的检测触发，现行 §6.5 已将其逐字列入 trigger 强侧，且发生态措辞没有称职的 effect 读法；UML 对任何层级的初始伪态出迁移都禁止 trigger/guard，子机摘录不能提供豁免。与完全无边、可由图外父机激活的 `VU-0017-01` 不同，本条作者已在图内用该边承载激活条件，故外部入口读法不能推翻语言违规，按 D2-lang 采纳。"
+      },
+      "summary": "整台机器唯一的根初始迁移 `:22 [*] --> CA : Possible collision detected` 带了触发事件，而 UML 规定初始伪状态的出边不得带触发——事件不来就不进入任何状态。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0007/0057.md",
+        "sha256": "sha256:ed3aa7439479c64d1678bef1286a7018d8ca95a3d6d7f85acaafcfd48970532c"
+      }
+    }
+  ],
+  "ledger_sha256": "sha256:b5a38d3d24a51e980e5b9f5afc7c8c66aded59f3b51f16afe67e0deb592d0e36",
+  "metadata_refs": [
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0057/source_meta.json",
+      "role": "SOURCE_META",
+      "selected_fields": {
+        "selected_stage": "phase_ii_semantic",
+        "source_locator": "sheet=STM Results; row=57; excel_row=59; selected_cell=AE59; selected=Result with Semantic Checking",
+        "source_pair_id": "llms_emp_feedback_final_0057",
+        "stm0_role": "author_feedback_final_plantuml"
+      },
+      "sha256": "sha256:465fc1ac31cf1eba8d728c5f7666e2ae5e29b94c9500fb5c576173ea17a7ba2b"
+    },
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0057/fcstm_meta.json",
+      "role": "FCSTM_META",
+      "selected_fields": {
+        "academic_eligible": false,
+        "academic_ineligibility_reason": "whole_model_behavior_equivalence_and_simulation_not_claimed; use only the working-contract attribution-scoped source-static capability",
+        "artifact_role": "r4_5_attribution_scoped_discover_input",
+        "parse_status": "ok",
+        "simulation_status": "ineligible",
+        "source_static_discover_eligible": true
+      },
+      "sha256": "sha256:f7899c3cadb1d9a6d128999e548bb57a6695ef76a1e99f2c47dc98afa32aed1f"
+    }
+  ],
+  "nl": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "1. There are three region in this diagram"
+      },
+      {
+        "number": 2,
+        "text": "2. This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected."
+      },
+      {
+        "number": 3,
+        "text": "3. The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls."
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0057/nl.txt",
+    "role": "AUTHOR_NL",
+    "sha256": "sha256:49854d044ad99f16a710021500f5e972da93b27635a41144d9b91d32444c0f63"
+  },
+  "packet_sha256": "sha256:10f6a2cb6b17cb2b26dc69bc4e93a7162f5e4d565548fc14f2ab421c9f946334",
+  "pair_id": "0057",
+  "plantuml": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "@startuml"
+      },
+      {
+        "number": 2,
+        "text": "state \"Collision Avoidance\" as CA {"
+      },
+      {
+        "number": 3,
+        "text": "state Frontend {"
+      },
+      {
+        "number": 4,
+        "text": "[*] --> FCIdle"
+      },
+      {
+        "number": 5,
+        "text": "FCIdle --> FCActive : Frontend collision detected"
+      },
+      {
+        "number": 6,
+        "text": "FCActive --> FCIdle : Collision avoided"
+      },
+      {
+        "number": 7,
+        "text": "}"
+      },
+      {
+        "number": 8,
+        "text": ""
+      },
+      {
+        "number": 9,
+        "text": "state RearEnd {"
+      },
+      {
+        "number": 10,
+        "text": "[*] --> RCIdle"
+      },
+      {
+        "number": 11,
+        "text": "RCIdle --> RCActive : Rear-end collision detected"
+      },
+      {
+        "number": 12,
+        "text": "RCActive --> RCIdle : Collision avoided"
+      },
+      {
+        "number": 13,
+        "text": "}"
+      },
+      {
+        "number": 14,
+        "text": ""
+      },
+      {
+        "number": 15,
+        "text": "state Pedestrian {"
+      },
+      {
+        "number": 16,
+        "text": "[*] --> PCIdle"
+      },
+      {
+        "number": 17,
+        "text": "PCIdle --> PCActive : Pedestrian collision detected"
+      },
+      {
+        "number": 18,
+        "text": "PCActive --> PCIdle : Collision avoided"
+      },
+      {
+        "number": 19,
+        "text": "}"
+      },
+      {
+        "number": 20,
+        "text": "}"
+      },
+      {
+        "number": 21,
+        "text": ""
+      },
+      {
+        "number": 22,
+        "text": "[*] --> CA : Possible collision detected"
+      },
+      {
+        "number": 23,
+        "text": "@enduml"
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0057/stm0.puml",
+    "role": "AUTHOR_PLANTUML",
+    "sha256": "sha256:dad4f00d0dfce1ab40970f524ea2c95d2c8c9b1e1480b91287c5a009e2662c3c"
+  },
+  "schema_version": "paper1.predicate-gold.review-input-packet.v1",
+  "visibility": {
+    "execution_results_visible": false,
+    "other_track_conclusions_visible": false,
+    "planned_predicate_mapping_visible": false,
+    "v60_actual_predicate_visible": false
+  }
+}

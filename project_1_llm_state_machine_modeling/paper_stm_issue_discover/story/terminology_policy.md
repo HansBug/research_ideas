@@ -1,175 +1,30 @@
-# terminology_policy.md — 术语口径（placeholder 版）
+# 术语政策
 
-> 本文件是写作时的**术语裁定表**。凡本文件与其它 story 文件冲突，以本文件为准；凡本文件与 [../discover_matrix/docs/protocol/](../discover_matrix/docs/protocol/) 下的判定口径文档冲突，**以后者为准**——那里是机器判定的事实源，这里只管论文措辞。
->
-> ⚠️ **placeholder 版**：术语口径基本完整；contribution 相关的英文措辞与「领域分析」一节的新术语待定，见 §7。
+| 术语 | 本文含义 | 不应混同为 |
+| --- | --- | --- |
+| 作者 PlantUML | 被评模型的作者源，用于问题定位 | compiler 生成的 FCSTM 或 inspection facts |
+| canonical source IR | 作者源的规范化表示与可追溯中间表示 | 新的规范义务来源 |
+| FCSTM / native facts | 可执行闭包和确定性检查所需的模型、投影与事实 | 作者模型本身或 ledger answer |
+| finding / report | 方法产生并发布的具体问题主张 | expected issue 或人工裁定 |
+| expected issue | ledger 中预先存在的被评测条目 | 方法输出的 L 标签 |
+| FULL / PARTIAL / NONE（canonical fields: `FULL_MATCH` / `PARTIAL_MATCH` / `NO_MATCH`） | 人工给出的 report-to-expected relation | report validity 或 W 等级 |
+| VALID_KNOWN / VALID_NOVEL / INVALID | 人工裁定的 report validity | expected relation；INVALID 进入 I/invalid-output 统计，ordinary FP 只是其中一类 |
+| invalid report disposition | 被 source-first 评为 INVALID 的用户可见 report 记录；v60/current 为 291/1271 | 291 个独立领域缺陷或 291 条 ordinary false positive |
+| report-level validity precision | `(K reports + N reports) / all reports`；current `980/1271 = 77.10%`，baseline `417/512 = 81.45%` | 无 projection 的反事实精度或跨输出粒度不变的语义精度 |
+| D0 non-violation | source fact 成立但没有 surviving violated obligation；current I 为 120 | ordinary source-level false positive 或 conversion error |
+| NADC (`NOT_A_DEFECT_CLAIM`) | A0 下报告未成立为作者模型缺陷的 disposition；current 为 118，其中 confirmed method-owned mechanisms 110、indeterminate 8 | 单一 lowering 根因或 baseline 中可直接比较的同构类别 |
+| confirmed method-owned invalid | compiler-owned artifact、projection/trace boundary、runtime/evidence closure 和 confirmed lowering 类别的合计；current 为 110/291 | 包含 attribution-indeterminate 的 NADC 总量 118 |
+| conversion-lowering confirmed | 同时有 source absence/semantic mismatch 与具体 lowering/loss/ownership 证据的 invalid attribution；v60 为 0 | 看到 FCSTM、loss code、identity-only trace 或 unsupported receipt |
+| NO_RERUN | deny-by-default gate 的唯一当前结论；A/B/C 未同时满足时保留 v60 headline | “建议重跑”“可能重跑”或 conversion cost 的豁免 |
+| W0 / W1 / W2 | 方法 finding 的见证强度 | predicate usage 或人工有效性裁定 |
+| D0 / D1 / D2 | 方法内问题裁定；D1/D2 才发布 | ledger 的 L0/L1/L2 |
+| L0 / L1 / L2 | ledger 对陈述问题所需分析层级的分类 | 方法输出或 W/D 等级 |
+| predicate execution usage | registry 中产生至少一条 terminal receipt 的 distinct predicate-ID 覆盖；v60 为 12/19 | candidate 数、W2 finding 数、report-bound binding rows 或 W2-on-hits |
+| report-bound predicate IDs | 至少绑定到一条最终 report-bound finding 的 distinct predicate-ID presence；v60 为 8/19 | terminal receipt 总数、W2 数、legacy `semantic_hit` marker 或缺陷类型覆盖 |
+| report-bound binding ratio | 绑定记录行数 / 全部 report；v60 为 825/1271 | distinct predicate-ID usage 或 8/19 |
+| legacy coverage marker ratio | 绑定记录中继承 `coverage_class` 的行数 / 绑定记录；v60 为 303/825 | terminal-false receipt、W2 或 8 个谓词的贡献数 |
+| 人工裁定 | 由人工执行 issue #195 两阶段协议的裁定角色 | 方法 discovery、predicate backend 或机械 evaluator |
 
----
+`v60/current` 是当前冻结方法臂，`X1v2 baseline` 是当前比较臂，不是方法迭代代次。`v46`、`v27-stream` 与 `v26` 是历史里程碑，只能在明确的 historical/provenance 语境中出现。
 
-## 1. ⚠️ 四组必须区分的易混术语
-
-这四组一旦混用，读者会得出与数据**相反**的结论。它们排在最前面。
-
-### 1.1 「作者」= 生成被评审模型的 LLM；「上游论文作者」= 人类
-
-| 术语 | 指谁 | 用在哪 |
-| :-- | :-- | :-- |
-| **作者** author | 生成被评审模型的那个 LLM，即语料里 6 个生成方之一 | 「作者在 `stm0.puml` 里写了 `A or B`」 |
-| **上游论文作者** upstream authors | 提供语料的那篇已发表实证研究的人类作者 | 「上游论文作者为每份需求人工撰写了参考模型」 |
-
-**为什么关键**：一条额外产出算「表示债务」还是「真漏记」，取决于**生成该模型的 LLM 在它写的 PlantUML 原文里究竟写没写那个东西**。把「作者」读成人类，整条判定链就断了。
-
-### 1.2 生成方（6 个，属语料）vs 执行方（2 个，跑我们的方法）
-
-| 轴 | 是谁 | 数量 | 我们控制吗 |
-| :-- | :-- | --: | :-- |
-| **生成方** generator | 写出被评审模型的 LLM：GPT-4o、GPT-4、Claude、DeepSeek、Kimi、Llama | 6 | 不控制，属语料 |
-| **执行方** executor | 跑本方法的 LLM：`claude-opus-4-7`、`gpt-5.5` | 2 | 控制，是实验变量 |
-
-⛔ 全文任何提到「模型」的地方，若不能立刻分辨是哪一轴，**必须加限定词**。「两个模型相差 4.4pp」指执行方；「6 个 LLM 各生成一份」指生成方。
-
-### 1.3 `over_specification`（被评审模型多写了）vs 过度规定（我们的断言多要了）
-
-**两者主体相反，方向相反，不可混谈。**
-
-| 术语 | 谁多了 | 出现在哪 | v46 数量 |
-| :-- | :-- | :-- | --: |
-| 台账归因层 `over_specification` | **被评审模型**比需求多要求了东西 | 缺陷台账的四个归因层之一 | 6 条记录 |
-| 多报侧「无需求依据」= **断言侧过度规定** | **我们的断言**要得比需求多 | 多报侧五类裁定之一 | 119 条目 / 67 去重 |
-
-英文写作时用不同词根避免歧义：前者 `over-specified model`，后者 `over-demanding assertion` / `assertion-side over-specification`。
-
-### 1.4 三层计数单位：逐格 / 条目（簇）/ 去重组
-
-| 单位 | 是什么 | v46 数量 |
-| :-- | :-- | --: |
-| **逐格 issue** | 方法发布的一条发现，同一条发现在 6 个格里算 6 条 | **1105** |
-| **簇（条目）** | 同一 pair 内指向同一元素、陈述同一命题的产出合并为一簇 | 未认领 **304**，进入分析 **288** |
-| **去重组** | 同一 pair 内**根因相同**的多个簇再合并一层 | **124** |
-
-⛔ **1105 与 288 分母不同质，不可相除算「误报率」。** 多报侧全部比例在 288 内部计算。⛔ **条目份额与去重份额不可互换**，引用时必须写清用的是哪一套；两套给出**相反的主要矛盾**（按条目最大的是编译损失 46.5%，按去重最大的是断言侧过度规定 54.0%）。
-
-📌 差异来自**同根因重述**：编译损失的条目/去重比 **4.47**，断言侧过度规定只有 **1.78**。⚠️ 正确的读法不是「表示债务更容易跨格复现」（跨格重复两类几乎持平：52 vs 50），而是「**同一处编译损失会被拆成更多条不同的产出反复陈述**」。
-
----
-
-## 2. 推荐术语表
-
-### 2.1 任务与对象
-
-| 中文 | English | 口径 |
-| :-- | :-- | :-- |
-| 状态机模型的问题发现 | state-machine issue discovery | 本文任务。**不含修复** |
-| 自然语言需求 | natural-language requirement `NL` | 输入之一，**义务的唯一来源** |
-| 被评审模型 | model under review / `STM_0` | 输入之二，**唯一的求值对象** |
-| 参考模型 | reference model | 上游论文作者人工撰写。⛔ **只在人工标注台账时用过，方法全程不使用** |
-| 缺陷台账 | expected issue ledger | ⛔ **不是输入**。只在评测侧使用，且只在图终止之后用于审计 |
-| 建模对象 | modeling scope $M = (S, E, V, Tr, A)$ | 见 [model_scope.md](./model_scope.md) |
-| 中间表示 | intermediate representation | 带形式语义的状态机 DSL；**求值介质，不是贡献** |
-| 表示债务 | representation debt | 编译（PlantUML → DSL）造成的信息损失，**非模型缺陷、非方法误判** |
-
-### 2.2 方法内部
-
-| 中文 | English | 口径 |
-| :-- | :-- | :-- |
-| 义务 | obligation | 从需求原文拆出的一条待验证要求。是断言的上游 |
-| 需求条目 | requirement item | 拆分后的一条，带 `verification_kind`、量词、触发、结果、覆盖义务 |
-| 闭合谓词词表 | closed predicate vocabulary | **19 个先验定义的谓词，不可自造** |
-| 谓词族 | predicate family | 结构（10）/ 仿真（6）/ 有界模型检查（3） |
-| 断言 | assertion | 一条谓词调用。角色分 `primary` / `supporting` |
-| 定向反馈 | targeted feedback | 审查者给出「哪条不合格、缺什么、期望什么形状」；⛔ **不是重试** |
-| 拒答 | refusal / `UnsupportedEvidence` | 谓词无法给出可靠真值时返回拒答，**而不是猜真假** |
-| 覆盖缺口 | coverage gap | 某条义务无法用闭合词表表达时的**显式记录** |
-| 降级 | degradation | 内部配额耗尽时封存已有产物并落盘，⛔ **不中止、不丢弃** |
-| 归因绑定 | attribution binding | 把每个求值为假挂回它依赖的模型元素 |
-| 发现 / issue | published issue | 过了结果裁决、正式发布的一条 |
-| 回归防护 | regression guard | 求值为真的那部分断言构成的保护面 |
-
-### 2.3 评测侧
-
-| 中文 | English | 口径 |
-| :-- | :-- | :-- |
-| 归因层 | attribution layer | `nl_named` / `nl_contradiction` / `wellformedness` / `over_specification` |
-| 判定位 | verdict bit | (台账记录, 执行模型, 轮) 三元组，v46 共 588 个 |
-| 格 | cell | 一次完整运行 = 一个 pair × 一个执行模型 × 一轮，v46 共 324 个 |
-| 命中 | hit | 我们的断言所表达的命题与台账那条**指向同一个作者源缺陷** |
-| 多报侧 | over-report side | 未被任何台账记录认领的产出 |
-| 边界排除 | scope exclusion | 因建模对象边界而先验排除的需求；⛔ **不是样本取舍** |
-
----
-
-## 3. 指标的写法
-
-| 指标 | 定义 | 必须怎么写 |
-| :-- | :-- | :-- |
-| `hit@1` | 命中位 / 判定位总数 | ⛔ **必须带 $\le$**：可写的只有 $\mathrm{hit@1} \le 60.4\%$ |
-| `hit@3` | 三轮至少命中一次的 (记录, 执行模型) 比例 | 「该缺陷**是否在能力范围内**」 |
-| `hit@all` | 三轮全部命中的比例 | 「**稳定性**」。说「稳定命中」时指的必须是 `hit@all = 1` |
-| `over@1` | 每轮平均多报数 | 多报侧的逐轮口径 |
-| `over@any` | 三轮中出现过多报的条目数 | 多报侧的存在性口径 |
-
-⛔ **三者（`hit@1`/`@3`/`@all`）必须同时报。** `hit@3` 高而 `hit@all` 低 = 能力够、稳定性不足；两者都低才是能力问题。⛔ **不得写成点估计或区间估计。** 已知扣除项只给出上界方向，下界取决于尚未做的对称审计；写成区间等于宣称了一个并不掌握的下界。⛔ **覆盖率必须与算力代价一起给**（v46：每百万输出 token 换得 20.7 个命中位）。⛔ **不得解读小于采样噪声底的差异**：v46 三轮 `hit@1` 极差 **2.0pp**；⚠️ 但 $n = 3$ 且未计入需求族聚类，**2.0pp 不是一个方差估计**，只是三轮实测的极差。
-
----
-
-## 4. 禁用或降级术语
-
-| 术语 | 当前处理 |
-| :-- | :-- |
-| 多轮 Repair-Confirm、B-final、post-Confirm export | ⛔ **禁止**出现在本文方法或贡献中。repair 是后续论文 |
-| closure audit / regression audit（作为主线） | ⛔ **禁止**作为本文的方法阶段或评价框架 |
-| 「loop + verification feedback 是 headline contribution」 | ⛔ **禁止**。已被 2026-08-07 / 08-08 定调取代 |
-| Better STM / which STM is better | ⛔ **禁止**作为 active 框架；只允许在解释历史转向时出现 |
-| `fcstm` / `pyfcstm` 是贡献 | ⛔ **禁止**。中间表示是介质 |
-| ledger / audit / 证据簿记是贡献 | ⛔ **禁止**。属方法支撑与评价纪律 |
-| conversion gain | ⛔ **禁止**。编译只是输入准备，且它自身有损耗 |
-| 「误报率」 | ⛔ **禁止**用于多报侧整体。逐条读完后该读法是错的 |
-| model runnable = correct | ⛔ **禁止** |
-| 「这些模型没有并发 / 时间问题」 | ⛔ **禁止**。我们排除的是无法判断的部分 |
-| 「谓词 X 不好用」 | ⛔ **禁止**据 `hit@1` 分层得出。谓词与缺陷类型高度共线 |
-| 「有界模型检查没有用」 | ⛔ **禁止**。正确说法是「这批语料缺乏足以到达该层面的案例」 |
-| 「从这批 pair 归纳出谓词词表」 | ⛔ **禁止**。口径是从领域分析 / 文献与技术资料归纳，应用于 54 案例 |
-| 「我们调查了 N 篇文献」 | ⛔ **禁止**。报**锚定关系**，不报数量；报数量会招来 SLR 方法论质询 |
-| 「留出集」/ hold-out | ⛔ **禁止**出现在论文里——**「为什么不留出」在本方法的论证结构里根本不出现**。✅ 已裁定〔用户明确裁定 2026-08-11〕：永久放弃留出集（谓词元模型来自领域调研而非这批 pair，故不存在「在训练样本上评测」这个问题）。⛔ 连**辩护性的一句**也不要写——专门辩护反而暗示它本该存在 |
-| 「排除 `00x8` 不是剔除不利样本」式的辩护 | ⛔ **禁止**。边界写在问题定义里就不需要辩护；写了反而暗示需要 |
-
----
-
-## 5. 写作替换规则
-
-| 避免写法 | 推荐写法 |
-| :-- | :-- |
-| 发现并修复模型缺陷 | 发现模型不符合需求之处，并把每条发现落成可机械求值的断言 |
-| 我们的方法误报了 N 条 | 未被台账认领的 N 条，逐条裁定后落入五类；最大一块是评审入口的编译损失 |
-| 方法找到了 60.4% 的缺陷 | 在一个**已知不完整**的分母（98 条）上，$\mathrm{hit@1} \le 60.4\%$ |
-| LLM 直接报缺陷 | 由需求条目转换而来的断言在被评审模型上求值，为假者挂钩 issue |
-| 变量未声明是一条发现 | ⚠️ 该谓词在 PlantUML 语料上**不具判别力**，属上界成因，须单独扣除 |
-| folded event 是错误 | 融合事件是**编译压缩**的结果，需回读作者源判断是表示债务还是真缺陷 |
-| 这套流程可以自动修复模型 | 每条发现带可执行判据与闭合证据链，**因而便于后续修复与回归确认**（讨论一节，一小段） |
-| 我们排除了 fork/join 那批样本 | 本文的建模对象是 $M$；那份需求的忠实模型在 $M$ 中无法表达，其派生 pair 不在研究范围内 |
-| 循环让模型多试几次 | 审查者给出定向反馈，被审查者据此修订——**不是换个随机数重来** |
-
----
-
-## 6. 中英一致性
-
-- 首次出现写「已发布的问题（published issue）」，之后可简写 issue。
-- `hit@1` / `hit@3` / `hit@all`、`primary` / `supporting`、`nl_named` 一类**字段名保留英文原形**，与判定表和 run record 对齐。
-- 「表示债务」（representation debt）**首次出现必须附英文**——它与既有文献的 spurious counterexample、program representation fault 同构，需要让审稿人挂上钩。
-- **谓词名一律保留英文原形**（`reaches`、`occupancy_after`……），中文只作括注。
-- 数学对象用 `$...$`，不用反引号：写 $M = (S, E, V, Tr, A)$、$\mathrm{hit@1} \le 60.4\%$；工具名、文件名、字段名用反引号：`pyfcstm`、`stm0.puml`、`verification_kind`。
-
----
-
-## 7. 待定的术语
-
-> **TODO(后续PR) `TODO-T1`**：**三条 contribution 的英文措辞。**
-> - **中文形状已定**〔用户明确裁定 2026-08-11〕，三条逐字为：  ① **基于模型转换 + 模型形式化检查 / 仿真 / 验证的模型错误发现方法**；  ② **基于归纳后的谓词逻辑的断言体系**（⚠️ **它就是谓词逻辑元模型本身**，只是从「用于构建断言」的角度陈述，⛔ 不要在英文里把元模型与断言体系拆成两个并列名词）；  ③ **issue 证据链体系**。原文见 [paper_story.md](./paper_story.md) §7。
-> - **为什么仍做不了**：第三条的**形状**受冲突 X3 阻塞（`TODO-S2`，解锁条件是文献调研）；  且三条各自的 **claim 强度**尚未定（用户明示待文献调研），  而英文措辞里的强度词（novel / first / general…）跟着强度走。⛔ 在强度定下来之前不得选定这类词。
-> - **需要定的几个词**：「模型错误发现方法」（model defect discovery? issue discovery?  ⚠️ 要与 detection 一词的既有用法拉开距离）；  「谓词逻辑元模型 / 断言体系」（predicate-logic metamodel? predicate metamodel?   ⚠️ metamodel 在 MDE 里有确定含义，用它要确认不会误导；⚠️ 这两个中文词现在指**同一个东西**，英文里也应当只有一个主名词 + 一个从属说明）；  「issue 证据链体系」（closed evidence chain? traceable evidence chain?）。
-> - **做完之后应该长什么样**：三条 contribution 的中英对照，各附一句「为什么不用另一个词」。
-
-> **TODO(后续PR) `TODO-T2`**：**「领域分析」一节的新术语中英口径。**
-> - **为什么现在做不了**：[paper_outline.md](./paper_outline.md) §4 领域分析的交付形态尚未确定（`TODO-O1`），  表的列名（「来源类」「锚点」「实例化」「未实例化的部分」）都还是草稿。
-> - **需要定的几个词**：来源类（source class? provenance category?）、  锚点（anchor? grounding?）、实例化（instantiation on $M$）、  表达力边界（expressiveness boundary? coverage boundary? ⚠️ 后者会与 `hit@k` 的「覆盖」撞车）。
-> - ⚠️ **「覆盖」这个词在本文已经有三个不同用法**，必须在术语表里区分开：  ① 断言体系对需求义务的**覆盖性**（来自构造）；  ② `hit@k` 意义上的**缺陷覆盖率**；  ③ 元模型的**表达力覆盖**（哪些来源类未实例化）。  **做完这条 TODO 时必须一并给出三者的英文区分。**
+逐条属性/输入审计与详细谓词能力审计属于内部 evaluation-only 材料，不是 paper1 主叙事。paper1 只描述谓词作为可复核证据后端，不把内部审计映射写成方法输入或完整覆盖承诺。

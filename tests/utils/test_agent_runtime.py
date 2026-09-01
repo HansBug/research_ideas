@@ -15,7 +15,9 @@ from langchain_core.outputs import ChatGeneration, ChatResult
 
 from utils.agent import AgentApp, AgentError, AgentEvent, AgentSpec
 from utils.agent.runtime import (
+    _ModelCallDeadlineMiddleware,
     _ModelOptionsMiddleware,
+    _iterate_and_close,
     _message_ref,
     _prepare_recovery_history,
     _provider_retry_after_seconds,
@@ -23,6 +25,70 @@ from utils.agent.runtime import (
     _tool_completion_status,
 )
 from utils.llm import LLMConfig
+
+
+def test_cancelled_agent_stream_is_closed_before_loop_teardown() -> None:
+    class HangingStream:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def __aiter__(self) -> "HangingStream":
+            return self
+
+        async def __anext__(self) -> Any:
+            await asyncio.Event().wait()
+            raise StopAsyncIteration
+
+        async def aclose(self) -> None:
+            self.closed = True
+
+    async def scenario() -> HangingStream:
+        stream = HangingStream()
+
+        async def consume() -> None:
+            async for _ in _iterate_and_close(stream):
+                pass
+
+        task = asyncio.create_task(consume())
+        await asyncio.sleep(0)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        return stream
+
+    stream = asyncio.run(scenario())
+    assert stream.closed is True
+
+
+def test_model_call_deadline_is_typed_and_transport_retryable() -> None:
+    middleware = _ModelCallDeadlineMiddleware(0.01)
+
+    async def scenario() -> AgentError:
+        async def handler(_request: object) -> object:
+            await asyncio.sleep(0.05)
+            return object()
+
+        with pytest.raises(AgentError) as caught:
+            await middleware.awrap_model_call(object(), handler)
+        return caught.value
+
+    error = asyncio.run(scenario())
+    assert error.code == "provider_timeout"
+    assert error.details == {
+        "source": "provider",
+        "type": "ProviderCallTimeout",
+        "timeout_seconds": 0.01,
+    }
+    assert _retryable_transport_error(error) is True
+
+
+def test_agent_spec_accepts_separate_model_and_run_deadlines() -> None:
+    spec = AgentSpec(
+        name="separate-deadlines",
+        system_prompt="Answer with the requested schema.",
+        limits={"model_call_seconds": 300, "seconds": 900},
+    )
+    assert spec.limits == {"model_call_seconds": 300, "seconds": 900}
 
 
 def test_unknown_tool_request_has_one_rejected_terminal_action(tmp_path: Path) -> None:
@@ -2331,6 +2397,55 @@ def test_output_target_cannot_use_audit_sidecar_path(tmp_path: Path) -> None:
     audit = tmp_path / "trace.jsonl"
     with pytest.raises(AgentError, match="derived sidecar"):
         _validate_output_paths(audit, audit.with_name(audit.name + ".lock"))
+
+
+def test_interrupted_output_part_is_archived_after_locks_and_audited(tmp_path: Path) -> None:
+    def lookup() -> str:
+        """Return a deterministic test observation."""
+        return "ok"
+
+    audit = tmp_path / "trace.jsonl"
+    stale_part = tmp_path / ".trace.jsonl.interrupted.part"
+    stale_part.write_text('{"record":"partial"}\n', encoding="utf-8")
+
+    result = AgentApp._for_test(
+        AgentSpec(name="recover-output-part", system_prompt="answer", tools=(lookup,)),
+        LLMConfig(model="gpt-5.5"),
+        FakeStreamingModel(),
+    ).run("run", renderer="quiet", audit_out=audit)
+
+    assert result.status == "success", result.error
+    assert not stale_part.exists()
+    archives = list((tmp_path / ".abandoned-output-parts").glob("*.part"))
+    assert len(archives) == 1
+    recovery = json.loads(
+        archives[0].with_name(archives[0].name + ".recovery.json").read_text(encoding="utf-8")
+    )
+    assert recovery["target_path"] == str(audit.resolve())
+    assert recovery["original_part_path"] == str(stale_part.resolve())
+    records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
+    assert records[0]["recovered_output_parts"] == [recovery]
+
+
+def test_active_output_lock_is_never_recovered(tmp_path: Path) -> None:
+    import fcntl
+
+    audit = tmp_path / "trace.jsonl"
+    stale_part = tmp_path / ".trace.jsonl.interrupted.part"
+    stale_part.write_text('{"record":"partial"}\n', encoding="utf-8")
+    lock_path = audit.with_name(audit.name + ".lock")
+    with lock_path.open("a+", encoding="utf-8") as lock_file:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        app = AgentApp._for_test(
+            AgentSpec(name="locked-output-part", system_prompt="answer"),
+            LLMConfig(model="gpt-5.5"),
+            FakeStreamingModel(),
+        )
+        with pytest.raises(AgentError, match="audit_write_failed"):
+            app.run("run", renderer="quiet", audit_out=audit)
+
+    assert stale_part.exists()
+    assert not (tmp_path / ".abandoned-output-parts").exists()
 
 
 def test_result_and_audit_redact_configured_key_across_boundaries(tmp_path: Path) -> None:

@@ -33,4 +33,4 @@
 1. 本目录规则不得因后续 R6/R7/R8 结果好坏反向漂移。
 2. 若 dry-run 或真实 run 发现规则缺陷，必须在 findings ledger 中记录触发样例、旧规则失败方式和新规则修订理由，再更新本目录。
 3. 新增 target 必须补齐 [repair_target_taxonomy.md](./repair_target_taxonomy.md) 的 11 字段，并说明 `repair_action_allowed`。
-4. 修改 Better STM gate 必须同步检查 [../evaluation_logic.md](../evaluation_logic.md)、[../eligibility/README.md](../eligibility/README.md)、[../protocols/README.md](../protocols/README.md)、[../metrics/README.md](../../../r7_issue_lifecycle_scaffold/experiment_design/metrics/README.md) 与 [../../story/claim_evidence_map.md](../../story/claim_evidence_map.md)。
+4. 修改 Better STM gate 必须同步检查 [../evaluation_logic.md](../evaluation_logic.md)、[../eligibility/README.md](../eligibility/README.md)、[../protocols/README.md](../protocols/README.md)、[../metrics/README.md](../../../r7_issue_lifecycle_scaffold/experiment_design/metrics/README.md) 与 [../../story/claim_evidence_map.md](../../../../story/claim_evidence_map.md)。

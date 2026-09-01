@@ -10,6 +10,7 @@ manifest 才发现它不存在。
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -73,6 +74,65 @@ def test_arms_are_the_same_two_models_as_the_main_arm() -> None:
 
     assert launch.ARMS == (("gpt-5.5", "gpt"), ("claude-opus-4-7", "claude"))
     assert launch.ROUNDS == (1, 2, 3)
+
+
+def test_parse_arms_supports_an_explicit_smoke_profile() -> None:
+    assert launch.parse_arms("gpt-5.6-terra:terra") == (("gpt-5.6-terra", "terra"),)
+
+
+def test_parse_arms_rejects_malformed_entries() -> None:
+    import pytest
+
+    with pytest.raises(SystemExit, match="profile:label"):
+        launch.parse_arms("gpt-5.6-terra")
+
+
+def test_grid_cli_streams_by_default_and_allows_explicit_opt_out(
+    monkeypatch,
+) -> None:
+    captured: list[dict[str, object]] = []
+    monkeypatch.setattr(launch, "find_stale_workers", lambda: [])
+    monkeypatch.setattr(launch, "in_scope_cases", lambda: ("0000",))
+
+    def capture(**kwargs) -> dict[str, object]:
+        captured.append(kwargs)
+        return {"status": "ok"}
+
+    monkeypatch.setattr(launch, "_one", capture)
+
+    common = [
+        "--output-root",
+        "/tmp/baseline-stream-contract",
+        "--profiles",
+        "gpt-5.6-luna:luna",
+        "--rounds",
+        "1",
+        "--cases",
+        "0000",
+        "--parallel",
+        "1",
+    ]
+    assert launch.main(common) == 0
+    first = captured.pop()
+    assert first["streaming"] is True
+    assert first["effort"] is None
+
+    assert launch.main([*common, "--no-stream", "--effort", "low"]) == 0
+    second = captured.pop()
+    assert second["streaming"] is False
+    assert second["effort"] == "low"
+
+
+def test_idempotence_is_scoped_to_requested_effort(tmp_path: Path) -> None:
+    cell = tmp_path / "run1" / "0000-luna"
+    cell.mkdir(parents=True)
+    (cell / "record.json").write_text(
+        json.dumps({"status": "ok", "requested_effort": "low"}), encoding="utf-8"
+    )
+
+    assert launch.already_done(cell, "low") is True
+    assert launch.already_done(cell, "high") is False
+    assert launch.already_done(cell) is False
 
 
 def test_cell_dir_layout_matches_the_judging_material_reader() -> None:

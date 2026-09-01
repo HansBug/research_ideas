@@ -1,5 +1,10 @@
 # 重判指令（发给每个判定组的**物理同一份**文本）
 
+> **Legacy judging material.** 本文件只复现历史 rejudge，不是现行 Judge prompt。
+> 当前正式重判必须走 [issue #195 人工 Judge](../../../discover_matrix/docs/protocol/semantic_judge_protocol.md)
+> 的唯一代码入口、Pydantic schema、公共 artifact closure、双读仲裁与确定性 metrics；
+> 本文的 `hit: true/false/null` 单轴输出不可转换成新 FULL/PARTIAL/NO 与 K/N/I。
+
 > ⭐ 本文件的 §二 与 §三 逐字取自 X1 臂的 `baseline_arm/judging_instructions.md`。**唯一的改动**是把「六格」「issue」这些 X1 侧的名词换成本次材料的对应物，以及补上主臂产出特有的区块说明。⛔ 判据本身一个字都没改。
 
 ---

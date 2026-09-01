@@ -1,26 +1,15 @@
-# discover_matrix — 实验与评测
+# discover_matrix：ledger 与判定 provenance
 
-> ⭐⭐ **本论文的缺陷台账只有一份**：[ledger_v2/ledger.json](./ledger_v2/ledger.json)，**145** 条（`D2` 98 + `D1` 47，每条逐条落定 `L0`/`L1`/`L2`）。⛔ 仓库里出现过的 99 / 126 / 319 / 321 / 323 / 380 / 429 **一个都不是台账条目数**。
+本目录保存 Paper1 当前 145 条 expected issue ledger、判定协议及其形成证据。它是 ledger 事实与研究口径的入口，不是当前实验 headline 的第二份来源。v60/current 与 X1v2 baseline 的唯一结果入口为 [最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md)。
 
-⭐ **本页只做路由，不做第二事实源。** 全部数字、口径、限制与复验命令都在 [ledger_v2/README.md](./ledger_v2/README.md)。
+| 路径 | 职责 |
+| --- | --- |
+| [ledger_v2/](./ledger_v2/README.md) | 当前 `ledger.json`、L tier、Judge 输入所需 expected material 与 ledger provenance |
+| [ledger_v2/predicate_gold_v1/](./ledger_v2/predicate_gold_v1/README.md) | 145 条内部谓词后端能力/typed-input 的 evaluation-only canonical overlay、receipt、review 与复算入口；不是实验 headline |
+| [docs/protocol/](./docs/protocol/) | 冻结协议、范围、分类和方法出处政策 |
+| [docs/findings/](./docs/findings/README.md) | 已保存的研究发现与说明 |
+| [docs/generations/](./docs/generations/) | 历代 preregistration 和过程材料；不是 current result 入口 |
 
-## 一、两个子目录
+当前 ledger 有 145 条 expected issue，其中 `D2` 为 98、`D1` 为 47；L0/L1/L2 的分布为 71/35/39。`FULL/PARTIAL/NONE` 和 report validity 不是 ledger 字段，而由独立 issue #195 Judge 对具体 method report 评定。谓词后端审计是 ledger 的 evaluation-only overlay，不替代 ledger 义务，也不参与 method discovery。
 
-| 路径 | 内容 | 什么时候进去 |
-| :-- | :-- | :-- |
-| ⭐ [ledger_v2/](./ledger_v2/) | **台账**（145 条）· **判定协议**（判定前写定）· **X1v2 基线在台账上的精确结果** · **证据链** [`provenance/`](./ledger_v2/provenance/)（第一版台账、60 份逐 pair 复审、54 份工作单含全部人工裁决与逐条 meta review、三方 D 档判读包、去重台账） | 看结果、复算数字、追溯某条缺陷怎么定的 |
-| [docs/](./docs/) | 学术口径：`protocol/`（判定协议、缺陷分类学、边界裁定、出处政策）· `findings/`（已裁定的发现）· `generations/`（历代事前登记，每代次一个子目录、文件名 `preregistered.md`） | 查判定规则、查某条规则为什么这么定 |
-
-⛔ **v46 主臂与 v46 时代的评测数据、分析脚本已整体转入冷归档** [../archive/r10_ledger_v1_and_v46/](../archive/r10_ledger_v1_and_v46/)（归档不是删除，那里有复活导引）。⛔ 本目录**不含任何 v46 数字**：历史上出现过的 `hit@1 60.4%`、`76.2%` 一律不是当前口径。
-
-## 二、三句话读懂当前状态
-
-1. ⭐ **台账**：145 条，`D` 档（缺陷主张站不站得住）与 `L` 档（陈述这个错误需要哪一层）逐条落定，无第四类、无「界外」。
-2. ⭐ **基线**：当前有结果的只有 **X1v2**（朴素基线，单次提示、无循环、无工具），全台账 `hit@1` **59.8%** · `hit@3` **70.3%** · `hit@all` **47.9%**；⛔ 最弱处是 `D2 × L2`（34 条，`hit@all` 仅 **29.4%**）。
-3. ⚠️ **口径限制**：⭐ v46 已裁定不在新台账上重测（2026-08-17），故本文**没有**两臂在同一台账上的对照 —— X1v2 的数字是单臂读数，⛔ 不可与 v46 的任何历史数字相减；另外本轮 336 个人工判定**只有一位判读者**，无一致性系数。
-
-⭐ 以上三条的完整表、逐档拆分与全部五条限制，读 [ledger_v2/README.md](./ledger_v2/README.md) 与 [ledger_v2/X1V2_RESULTS.md](./ledger_v2/X1V2_RESULTS.md)。
-
-## 三、边界（不随台账换代而变）
-
-建模对象是 $M = (S, E, V, Tr, A)$：**无时钟变量 $C$、无不变式 $Inv$、无正交区并发语义**。由此导出的两项永久裁定 —— `00x8` 六个 pair 永久排除（故全量网格恒为 54 pair）、hold-out 永久不用 —— 见 [docs/protocol/nl_scope_rule.md](./docs/protocol/nl_scope_rule.md) 与 [docs/protocol/method_provenance_policy.md](./docs/protocol/method_provenance_policy.md)。
+历史 X1v2 Judge 网格的 `59.8%/70.3%/47.9%` 记录保留在 [ledger_v2/X1V2_RESULTS.md](./ledger_v2/X1V2_RESULTS.md)，且已明确标为 superseded。它使用不同 Judge 与网格，不能与 v60/current 或 current X1v2 baseline 比较。历史实验代次的统一入口为 [实验历史索引](../archive/experiment_history/README.md)。

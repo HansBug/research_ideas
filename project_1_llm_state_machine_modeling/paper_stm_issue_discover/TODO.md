@@ -1,4 +1,6 @@
-# paper1（STM issue discover）待办总清单
+# 历史待办清单（2026-08-11）
+
+> 本文件是历史 planning snapshot，不是当前实验或发布状态的真源。请先读 [README.md](./README.md)、[STATUS.md](./STATUS.md) 和 [最终归档](./final_results/v60_current_vs_x1v2_baseline/README.md)。其中未完成项、旧版本名和旧路径不能被当作现行执行授权。
 
 > ⭐ **需要人拍板的事项另见 [PENDING_DECISIONS.md](./PENDING_DECISIONS.md)**（2026-08-11 整理，9 条，分 🔴 必须定 / 🟡 建议定 / 🟢 确认即可 三档，每条含前因后果、全部可选方案与代价、我的建议）。⛔ 那份是**给人读的决策简报**，本文件仍是待办的唯一入口。
 
@@ -12,6 +14,11 @@
 > - **P2** —— 提升质量，可延后
 > - **P3** —— 工程整洁，与论文结论无关
 
+> **当前方法配置声明（2026-08-21）**：本清单中的历史实验、旧谓词名和旧运行实现只用于
+> 追溯未完成事项。当前唯一配置是 [`pipeline/evidence_discovery/`](./pipeline/evidence_discovery/)
+> 的四族 19 谓词；W1 是合法 `semantic_hit`，没有谓词不能阻碍问题提出。除非通过当前
+> 注册表的独立来源、学术审查、兼容性和回归测试变更门，否则不得新增谓词或修改定义。
+
 ---
 
 ## A. 论文骨架与叙事
@@ -24,6 +31,7 @@
 * [x] **✅ 已裁定（2026-08-11，PR [#180](https://github.com/HansBug/research_ideas/pull/180)）· 骨架里已有独立的 Problem Formulation 节。** ⚠️ 本条与下面 `TODO-O2` 那条**是同一个问题的两次登记**，一并关闭：裁定为**加一节**（新 §3 问题形式化），不在 §1 与 §3 之间二选一，全篇由九节变十节。详见 `TODO-O2` 条。
 * [ ] **P2 · 「覆盖」一词在本文有三个互不相同的含义**：构造覆盖性（断言由全覆盖需求条目转换而来）/ `hit@k` 缺陷覆盖率 / 元模型表达力覆盖。中文尚可靠上下文区分，**英文写作会撞车**，需一并给出三者的英文区分。
 * [x] **✅ 已裁定（2026-08-11）· fork/join 在定义层面排除。** 〔用户明确裁定〕「**这东西现在不在问题定义范围内，我建议直接定义层面排除，顶多 limitation 这边提一嘴**」。落法：在**问题定义**处给出建模对象边界 $M = (S, E, V, Tr, A)$，fork/join 与并发自然落在界外；**Limitations 一句话带过**即可。⛔ 不展开、不做 RQ、不做专门分析、不写成 finding。⚠️ session 7de1b210 里那套「fork/join 的四层写法」提案**已被本裁定取代**，不得复活。
+  * **2026-08-29 supersession**：该历史裁定只保留为冻结 benchmark pair-universe 的覆盖限制，不再是逐报告缺陷定义。现行 D/A 协议不设 scope 出口；相关作者源事实照常裁 D2/D1/D0，当前 backend 不支持只降低 W。
 
 * [x] **✅ 已裁定（2026-08-11）· 永久不设留出集。** 论证结构是：谓词逻辑元模型**来自领域调研**（文献、标准、技术资料），**不来自这批 pair**；既然方法的由来与 pair 无关，就不存在「在训练样本上评测」这个问题，因此 hold-out **没有任何存在必要**。⛔ 这**不是**「我们选择不用 hold-out」——按 [docs/protocol/method_provenance_policy.md](./discover_matrix/docs/protocol/method_provenance_policy.md) 的口径，**「为什么不留出」这个问题在本方法的论证结构里根本不出现**，论文里一笔带过即可，**不要专门辩护**。⚠️ 由此 BLUEPRINT 那版依赖 10-pair 留出集的 RQ2 设计**作废**，RQ2 的证据来源就是已有的 v46 全量（54 pair × 2 模型 × 3 轮）。
 * [x] **✅ 已裁定（2026-08-11）· T1/T2 分层作废。** 〔用户明确裁定〕「**老的说法可以丢了，现在不谈人工的事情**」。T1 的动机是省人工判定成本，而 v46 已跑完 324 格全量，该动机不再成立。⛔ 正文**不谈人工判定成本**，也不按 T1/T2 分层组织实验节。⚠️ 冲突 X2 就此关闭。
@@ -34,20 +42,14 @@
 
 ## B. 领域考据（导师点名要重点展开）
 
-* [x] **✅ 已交付（2026-08-12，PR [#183](https://github.com/HansBug/research_ideas/pull/183)）· 19 个谓词的领域出处。** ⭐ 代码侧 **19 条 `#: universality:` 注释**已落在 [predicates.py](./pipeline/feedback_loop/src/paper_stm_feedback_loop/discover/predicates.py) 的 `PREDICATES` 词表定义点，逐条给出三类归属 · 独立来源数与领域数 · 2 个代表来源（含 DOI/arXiv）· 该谓词的扣分项。⭐ 论文侧的 19 行表见 [related_work/provenance/predicate_provenance.md](./related_work/provenance/predicate_provenance.md)（**① 11 条 · ② 6 条 · ③ 2 条**）。⚠️ **一处口径澄清**：本条原先写「只有 3 个挂了 `provenance` 注释」—— ⛔ 那 3 条（以及全库 15 条）**全部是求值程序正当性**，按 `method_provenance_policy.md` §一.3 **它们不是义务出处**。⛔ 故新注释另立 `#: universality:` 标签，⛔ 不与 `#: provenance:` 混用（混用会重演 §2.4 明令禁止的两栏混淆）。⚠️ **仍未完成的两项**：⭐ R4 的**投稿前出处审计**；⛔ 以及 [coverage_audit.md](./related_work/provenance/coverage_audit.md) §必补的六项（⚠️ 前两项未做之前，「某谓词在领域里没有对应检查」这类陈述不成立）。
-* [x] **✅ 已修（2026-08-12，PR [#183](https://github.com/HansBug/research_ideas/pull/183)）· `method_provenance_policy.md` R1 自己的漏洞。** ⚠️ 逐条核实为真，⛔ 且比本条登记的**更严重**——上一版给的**三个示例三个都违反**该文件自己的 §一.3：① `UML 2.5.1 §14.2.3.4（… **必须是** …）` 取的是**要求**而非存在性事实（符合性论证）；② `FCSTM grammar guide` 是**工具规约**，⛔ §一.3 表格逐字把它列为「不是出处」，⚠️ 且它引的正是明令不得充当语义权威的 `pyfcstm` 一系；③ `需求工程通则` 不可查证。⭐ 已整块重写为按三类给形态的示例，并加三条硬要求（先写分类 / ① 类须落到具体篇目与领域覆盖 / 只取存在性事实），⛔ 三个旧示例各自错在哪逐条留痕。
-* [x] **✅ 已交付（2026-08-12，PR [#183](https://github.com/HansBug/research_ideas/pull/183)）· 19 行谓词→领域来源映射表。** ⭐ 落点 [related_work/provenance/predicate_provenance.md](./related_work/provenance/predicate_provenance.md)，⭐ 与代码侧 `#: universality:` 注释**同批交付**（本条原先就要求一并做）。⚠️ **列已按三类口径重定**：`谓词 | 族 | 台账断言 | primary | 已发布支撑 | 分类 ①②③ | 界内真实系统 | 文献 | 语料领域 | 备注（扣分项）`。⛔ **原列名「具体文献/标准锚点」已废** —— 它把证据轴引向**符合性**。⚠️ **候选来源类的核对结果**（本条要求「AI 凭记忆给出，必须自己核」）：⭐ Dwyer/Avrunin/Corbett ICSE 1999 **已核并取到全文**；⭐ Konrad & Cheng 的 real-time patterns 确认**整族界外**（$M$ 无 $C$ 与 $Inv$）；⛔ **Autili et al. TSE 2015 三路各自撞付费墙、未取到** —— ⚠️ 它是 Dwyer 之后最被引的模式目录，⭐ 回收在跑；⛔ **Egyed 一系与 ISO 26262 本轮未系统进入**。⚠️ 另加一条本条未预见的：⭐ **RQ1「表达力边界」的输入不止「未实例化的部分」** —— ⛔ 裁定层暴露出**四条词表缺项信号**（见 [SUMMARY.md](./related_work/provenance/SUMMARY.md) §4.5），最硬的是 `terminates` 的证据其实指向词表缺一条**进展 / 死锁自由**谓词。
-* [x] **⛔ 不适用（2026-08-12）· 查 OMG PSSM —— ⛔ 整条作废，⛔ 不是「做完了」。** ⚠️ 本条的前提是「PSSM 是仿真族谓词最正当的**规范出处**」，⛔ **而那个前提已被裁定推翻**：〔用户明确裁定 2026-08-11〕「我们这套谓词逻辑是我们自己定义的啊，我们和某个官方不绝对一致又说明的了什么呢」。⭐ 证据轴是**普遍性**不是**符合性** —— ⛔ 我们不作任何符合性主张，⛔ 因此不为一个不作的主张取证（见 [PENDING_DECISIONS.md](./PENDING_DECISIONS.md) §A3）。⚠️ 仿真族谓词的正当性改由**领域普遍性证据**承担，见 [related_work/provenance/](./related_work/provenance/)。
-* [ ] **P2 · 处理 4 个「台账侧 primary 计数为 0」的谓词。** `variable_declared` / `variable_delta_after` / `invariant` / `response_within`——它们的共同点是**台账从未把它们用作 primary**，⛔ **不是「从未被激活」**。实际使用情况差别极大（v46 报告 §6.6 谓词表）：
+* [x] **✅ 已冻结（2026-08-21；2026-08-26 口径更正）· 四族 19 谓词注册表。** 当前唯一配置是 [predicate_registry.json](./method/src/paper_stm_method/resources/predicate_registry.json)：结构 6、拓扑 4、轨迹仿真 4、有界验证 5。19 个谓词均已完成学术资格审查且均有 native backend；W1 是精确绑定但尚未取得一次合法、完成 Boolean 求值时的合法 `semantic_hit`。predicate-null 不抑制问题提出；来源档案和台账使用量不参与运行时 W/D/backend 判断。
+* [x] **✅ 已替换（2026-08-21）· 方法出处政策。** 旧的 hold-out、来源分级和“③ 不删除”口径已移入 `discover_matrix/docs/protocol/archive/legacy_20260821/`；现行文件只定义四族 19 谓词、领域/形式/技术三类来源、W1/W2/W0 和严格变更门。旧材料只能追溯，不能作为当前政策。
+* [x] **✅ 已交付（2026-08-21；2026-08-26 口径更正）· 19 行当前注册表映射。** 人读版见 [method/README.md](./method/README.md)，机器版见 [predicate_registry.json](./method/src/paper_stm_method/resources/predicate_registry.json)。映射列固定为谓词、族、语义、最小输入、设计快照和来源 ID；来源分领域、形式、技术三类。19 个谓词的学术资格已完成审查；旧分级和旧谓词表只在 archive 中保留，不能恢复为当前运行时字段。
+* [x] **✅ 已交付（2026-08-21；2026-08-26 口径更正）· 当前来源 ID 落点与审计。** 逐条来源见 [CURRENT_SOURCE_AUDIT.md](./related_work/provenance/CURRENT_SOURCE_AUDIT.md)，机器目录见 [current_source_catalog.json](./related_work/provenance/current_source_catalog.json)。档案保存来源 ID、三类来源、引用和适用边界，且不参与 runtime W、D、backend、publication、route 或 coverage。
+* [x] **✅ 已确定来源边界（2026-08-21）。** 不把任何单一官方形式主义或工具实现当作现行谓词的唯一语义权威。形式资料用于命题定义和求值边界，领域资料用于证明检查命题有真实需求，技术资料用于后端实现约束；三者职责分开，具体来源 ID 以当前注册表为准。
+* [ ] **P2 · 复核低频核心谓词的必要性与后端边界。** 当前快照中 `V2`、`V3`、`V5` 及部分轨迹谓词使用量较低；这不是立即退役或新增谓词的理由。需要区分语料缺少该类义务、生成侧未识别和后端不支持三种原因，并优先保持学术上清晰的语义与 W1 fallback：
 
-  | 谓词 | 台账侧 | 其中 primary | 产出侧已发布 | 产出侧生成 | 发布率 |
-  | :-- | --: | --: | --: | --: | --: |
-  | `variable_declared` | 2 | **0** | **197** | 240 | **82%**（全表最高） |
-  | `variable_delta_after` | 2 | **0** | 6 | 43 | 14% |
-  | `invariant` | 0 | **0** | 4 | 8 | 50% |
-  | `response_within` | 1 | **0** | **0** | **0** | — |
-
-  ⚠️ **`variable_declared` 的高发布率恰恰是坏消息**：PlantUML 没有变量声明语法，所以它对**任何**模型都为真、不具判别力——它是 `hit@1` 上界的**头号成因**（51 个命中位的判据引用了它，见报告 §6.2）。补出处时要把这一点写进去，而不是把它当成「好用的谓词」。⛔ **只有 `response_within` 是真正零使用。** 但也**不要**据此退役——见 D 组「查清 BMC 为什么用得少」，三个候选原因指向相反的行动。
+  低频复核必须只读当前注册表的语义和新实现回执；不得把旧 v46 产出量、旧谓词名称或旧报告中的零使用直接迁移成新方法结论。
 
 ## C. 文献与 baseline 考据
 

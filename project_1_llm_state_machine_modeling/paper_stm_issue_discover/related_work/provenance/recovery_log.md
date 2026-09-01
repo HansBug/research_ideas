@@ -1,6 +1,9 @@
 # 伪缺口与付费墙回收：⭐ 10 个目标 9 个取到全文
 
-> ⭐ **它闭合的是 [coverage_audit.md](./coverage_audit.md) 里最damning的一条** —— ⛔ 「一部分自报『未见』其实是工具状态而不是文献状态」。⭐ 回收完成后，那条限制**已解除**（[methodology.md](./methodology.md) §6 局限 #5）。
+> **历史来源回收记录**：本文件只记录旧来源档案的取件过程，不定义当前谓词或来源政策。
+> 当前唯一政策以 [`pipeline/evidence_discovery/METHOD_PRINCIPLES.md`](../../pipeline/evidence_discovery/METHOD_PRINCIPLES.md) 为准。
+
+> ⭐ **它闭合的是 [coverage_audit.md](./coverage_audit.md) 里最damning的一条** —— ⛔ 「一部分自报『未见』其实是工具状态而不是文献状态」。⭐ 回收完成后，那条限制**已解除**（[历史 methodology](./archive/legacy_20260821/methodology.md) §6 局限 #5）。
 >
 > **档位标记**：全文为【实测】—— ⭐ 每条都有可复现的入口 URL、抽取命令与逐字片段。
 
@@ -80,7 +83,7 @@
 
 ## ⭐ 它解除了哪条限制
 
-⛔ [methodology.md](./methodology.md) §6 局限 **#5** 原文：「⛔⛔ **一部分自报「未见」是工具状态而不是文献状态。**」
+⛔ [历史 methodology](./archive/legacy_20260821/methodology.md) §6 局限 **#5** 原文：「⛔⛔ **一部分自报「未见」是工具状态而不是文献状态。**」
 
 ⭐ **两个已核实的伪缺口现已全部取到全文**，⛔ 且原诊断的错因逐条查清（一个是路径错叠加证书问题、一个是「需要 OCR」的判断本身错）。⭐ 故该限制**解除**；⚠️ **但它留下一条纪律**：
 

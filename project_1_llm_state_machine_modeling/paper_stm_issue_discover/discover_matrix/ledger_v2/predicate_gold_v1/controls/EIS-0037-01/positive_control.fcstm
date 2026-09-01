@@ -1,0 +1,39 @@
+def int R45RouteToken = 0;
+state llms_emp_feedback_final_0037 named "llms_emp_feedback_final_0037" {
+    event Frontend_Collision_Detected named "Frontend Collision Detected";
+    event Collision_Avoided named "Collision Avoided";
+    event Rear_End_Collision_Detected named "Rear-End Collision Detected";
+    event Pedestrian_Collision_Detected named "Pedestrian Collision Detected";
+    event Collision_Detected named "Collision Detected";
+    state ActiveState named "ActiveState" {
+        state FrontendCollisionRegion named "FrontendCollisionRegion" {
+            state BrakingControl named "BrakingControl\n[PlantUML body] Braking Control";
+            [*] -> BrakingControl;
+            BrakingControl -> [*] : /Collision_Avoided effect { R45RouteToken = 5; };
+        }
+        state RearEndCollisionRegion named "RearEndCollisionRegion" {
+            state SteeringControl named "SteeringControl\n[PlantUML body] Steering Control";
+            [*] -> SteeringControl;
+            SteeringControl -> [*] : /Collision_Avoided effect { R45RouteToken = 8; };
+        }
+        state PedestrianCollisionRegion named "PedestrianCollisionRegion" {
+            state EmergencyStop named "EmergencyStop\n[PlantUML body] Emergency Stop";
+            [*] -> EmergencyStop;
+            EmergencyStop -> [*] : /Collision_Avoided effect { R45RouteToken = 11; };
+        }
+        state Inactive named "Inactive\n[PlantUML body] Inactive";
+        state FrontendCollision named "FrontendCollision";
+        state RearEndCollision named "RearEndCollision";
+        state PedestrianCollision named "PedestrianCollision";
+        FrontendCollisionRegion -> Inactive : if [R45RouteToken == 5] effect { R45RouteToken = 0; };
+        RearEndCollisionRegion -> Inactive : if [R45RouteToken == 8] effect { R45RouteToken = 0; };
+        PedestrianCollisionRegion -> Inactive : if [R45RouteToken == 11] effect { R45RouteToken = 0; };
+        [*] -> Inactive;
+        Inactive -> FrontendCollisionRegion : /Frontend_Collision_Detected;
+        Inactive -> RearEndCollision : /Rear_End_Collision_Detected;
+        Inactive -> PedestrianCollision : /Pedestrian_Collision_Detected;
+    }
+    state InitialState named "InitialState\n[PlantUML body] Initial State";
+    [*] -> InitialState;
+    InitialState -> ActiveState : /Collision_Detected;
+}

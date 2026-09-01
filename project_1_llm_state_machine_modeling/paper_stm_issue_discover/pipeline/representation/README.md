@@ -1,8 +1,8 @@
-# representation/ — canonical → `.fcstm` 表示桥（**discover 的输入根在这里**）
+# representation/ — canonical → `.fcstm` 表示准备与 provenance
 
-> 🟢 **本目录在运行路径上，但角色容易被忽略：它产出 discover 每次真正读的那个目录。**
->
-> [`feedback_loop/discover/cli.py`](../feedback_loop/src/paper_stm_feedback_loop/discover/cli.py) 的 `REPORT_ROOT` 硬指向 [`reports/llms_emp_r45_java_60/`](./reports/llms_emp_r45_java_60/)：
+本目录保存 canonical 到 `.fcstm` 的输入准备代码、冻结表示制品和历史说明。它不承载当前 method discovery、Judge 或评测；现行方法经 [method/](../../method/README.md) 的输入闭包读取已冻结的 NL、作者 PlantUML、canonical source IR、FCSTM、native facts、working contract 与 source trace。旧 `feedback_loop` 已在 [archive/legacy/feedback_loop/](../../archive/legacy/feedback_loop/README.md) 归档。
+
+下列段落记录旧 `paper_stm_representation` 的 loader、产物与输入 provenance。它们可用于核对冻结输入，不构成重新运行当前实验的入口：
 >
 > ```text reports/llms_emp_r45_java_60/   pairs/<NNNN>/            nl.txt、plantuml.puml、fcstm.fcstm、README.md   source_traces/<pair_id>.json   working_contracts/<pair_id>.json   MANUAL_REVIEW.jsonl      60 行人工复核台账（loader 会强校验）  PUBLICATION_SEAL.json    发布封印 ```
 >
@@ -17,13 +17,13 @@
 >
 > ⚠️ **`.fcstm` 是编译产物，不是作者源。** 判缺陷读 `plantuml.puml`；只读 `.fcstm` 会把编译债务（`FinalWait*`、`R45RouteToken` 等 compiler-owned 支架）当成模型缺陷。
 >
-> ⚠️ **下文含一段已作废的路线描述。** 2026-08 导师定调把 paper1 **收窄为 issue discover 单独成篇**，repair 另立后续论文。因此 §2 末段（`Discover → Repair → Confirm → B-final → post-Confirm export` 那条链）与 §8 对 [../evaluation/](../evaluation/) 的定性都已过期，两处均已就地标注。**本目录自身的职责没变**——它仍然产出 discover 每次真正读的那个目录，上文的表照旧有效。paper1 当前的贡献口径见 [../../README.md](../../README.md) §2。
+> ⚠️ **下文含一段已作废的路线描述。** 2026-08 导师定调把 paper1 **收窄为 issue discover 单独成篇**，repair 另立后续论文。因此 §2 末段（`Discover → Repair → Confirm → B-final → post-Confirm export` 那条链）与 §8 对 [../evaluation/](../evaluation/) 的定性都已过期，两处均已就地标注。**本目录自身的职责没变**：它保存当前输入闭包所引用的冻结表示制品和 loader，但不再承担 discover runner 或评测入口。paper1 当前的贡献口径见 [../../README.md](../../README.md) §2。
 
 ## 0. 有什么
 
 | 路径 | 内容 |
 | :-- | :-- |
-| [reports/llms_emp_r45_java_60/](./reports/llms_emp_r45_java_60/) | 🟢 **active 60 例证据目录 = discover 的输入根**。含 `pairs/`、`fcstm/`、`canonical/`、`source_traces/`、`working_contracts/`、`case_reports/`、`parse_inspect/`、[SUMMARY.md](./reports/llms_emp_r45_java_60/SUMMARY.md)、[PAIR_INDEX.md](./reports/llms_emp_r45_java_60/PAIR_INDEX.md) |
+| [reports/llms_emp_r45_java_60/](./reports/llms_emp_r45_java_60/) | 60 例冻结输入与 provenance 制品。它们由 current method 的输入闭包引用，但不是独立 runner 或评测入口；含 `pairs/`、`fcstm/`、`canonical/`、`source_traces/`、`working_contracts/`、`case_reports/`、`parse_inspect/`、[SUMMARY.md](./reports/llms_emp_r45_java_60/SUMMARY.md)、[PAIR_INDEX.md](./reports/llms_emp_r45_java_60/PAIR_INDEX.md) |
 | [src/paper_stm_representation/](./src/paper_stm_representation/) | `plantuml_source_lowering.py`（active 60 例）、`plantuml_source_audit.py`（独立 AST 审计）、`plantuml_working_contract.py`、`plantuml_working_bundle.py`（唯一 loader）、`manual_pair_review.py`、`lowering.py`（历史 4 例）、`pyfcstm_names.py`、`cli.py` |
 | [schemas/](./schemas/) | 6 份 JSON Schema：export report、export loss ledger、lowering inventory、manual pair review、name mapping、working fcstm contract |
 | [reports/fcstm_exports/](./reports/fcstm_exports/) | 🔴 历史 4 例 legacy 输出 |
@@ -243,7 +243,7 @@ pytest -q project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline
 ## 8. 与上下游关系
 
 - 上游 R3：[../conversion/README.md](../conversion/README.md) 提供规范化 JSON、conversion report 与 loss ledger。
-- 历史 R4/R5.7 evaluation：[../../archive/r5_7_better_stm_snapshot/pipeline/evaluation/](../../archive/r5_7_better_stm_snapshot/pipeline/evaluation/) 已冷归档。⚠️ **原文「active [../evaluation/](../evaluation/) 只是 future source-level closure / regression placeholder」已作废**：该目录**不是 placeholder，也不再计划往下建**——它是两份 v0 schema 的残留脚手架，`closure` / `regression` 已随论文收窄不再是评测终点（见 [../evaluation/README.md](../evaluation/README.md) 顶部）。**paper1 的评测在 [../../discover_matrix/](../../discover_matrix/)，不在 `evaluation/`。**
+- 历史 R4/R5.7 evaluation：[../../archive/r5_7_better_stm_snapshot/pipeline/evaluation/](../../archive/r5_7_better_stm_snapshot/pipeline/evaluation/) 已冷归档。原文把 `pipeline/evaluation/` 说成 future source-level closure / regression placeholder 的表述已作废；该目录只保留两份 v0 schema。**当前 paper1 evaluation 由 [../../evaluation/](../../evaluation/README.md) 拥有，冻结结果和复算入口在 [../../final_results/v60_current_vs_x1v2_baseline/](../../final_results/v60_current_vs_x1v2_baseline/README.md)。**
 - 下游 R5 只消费 R4.5 已提交 `.fcstm` / report，不应在 R5 再补写 exporter。
 
 ## 9. 学术注意点

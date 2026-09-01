@@ -1,6 +1,6 @@
 # seed_library — 上游 `NL -> STM_0` seed 方法 / 来源文库
 
-> 🟢 **论文语料的实际出处在本目录。** 60 例 `<NL, STM_0>` 全部来自条目 [llms-emp-stm-subset/](./llms-emp-stm-subset/)，其 `assets/extracted/pairs.jsonl` 是 pair 池定义；经 [../../pipeline/conversion/](../../pipeline/conversion/) 与 [../../pipeline/representation/](../../pipeline/representation/) 加工后，由 [../../pipeline/feedback_loop/](../../pipeline/feedback_loop/) 消费。人读镜像在 [../../selected_seed_examples/](../../selected_seed_examples/)。
+> 🟢 **论文语料的实际出处在本目录。** 60 例 `<NL, STM_0>` 全部来自条目 [llms-emp-stm-subset/](./llms-emp-stm-subset/)，其 `assets/extracted/pairs.jsonl` 是 pair 池定义；经 [../../pipeline/conversion/](../../pipeline/conversion/) 与 [../../pipeline/representation/](../../pipeline/representation/) 加工后，由 [`archive/legacy/feedback_loop/`](../../archive/legacy/feedback_loop/) 消费。人读镜像在 [../../selected_seed_examples/](../../selected_seed_examples/)。
 >
 > ⚠️ **本目录另外 35 个条目目录都不是论文语料**（36 个条目目录，另加 `schemas/` 与 `tools/` 两个非条目目录），只是候选池与检索证据。别把 registry 里的条目当成实验样本。
 >

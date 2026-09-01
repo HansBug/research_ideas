@@ -4,13 +4,13 @@
 >
 > | 问题 | 答案 |
 > | :-- | :-- |
-> | 当前活的实现在哪 | [../../../pipeline/feedback_loop/](../../../pipeline/feedback_loop/)，包 `paper_stm_feedback_loop` |
+> | 后续历史实现在哪 | [../../legacy/feedback_loop/](../../legacy/feedback_loop/)，包 `paper_stm_feedback_loop` |
 > | 本目录的包名 | `paper_stm_repair_loop`（旧名，见 [../../../pipeline/README.md](../../../pipeline/README.md) §4） |
 > | 入口还能跑吗 | 能，但**前缀已改**：`make legacy-discover-*`，不是 `make discover-*` |
 > | 为什么保留 | 一次性代码搬运与 golden fixture 来源；作为架构对照的历史记录 |
 > | 测试规模 | 266 个（`make legacy-discover-test`） |
 >
-> ⚠️ **`make discover-demo` / `make discover-test` 现在转发到 [../../../pipeline/feedback_loop/](../../../pipeline/feedback_loop/)。** 本文件下文 §8、§10 里写的这两条命令**已经不指向本目录**——正确的 legacy 入口见 §8.0。
+> ⚠️ **`make discover-demo` / `make discover-test` 曾转发到 [../../legacy/feedback_loop/](../../legacy/feedback_loop/)。** 本文件下文 §8、§10 里写的这两条命令**已经不指向本目录**——正确的 legacy 入口见 §8.0。
 >
 > ⚠️ **本目录没有自己的 `Makefile`。** 所有 `make` 目标都定义在**仓库根 `Makefile`** 里。
 >
@@ -18,7 +18,7 @@
 
 ## 0. 与当前实现的架构差异（这是本目录唯一的现存价值）
 
-| 维度 | 本目录（旧） | [../../../pipeline/feedback_loop/](../../../pipeline/feedback_loop/)（当前） |
+| 维度 | 本目录（旧） | [../../legacy/feedback_loop/](../../legacy/feedback_loop/)（后续历史实现） |
 | :-- | :-- | :-- |
 | 编排 | 一个顶层 Discover Agent + 11 个工具，Agent 自行决定调用顺序 | 确定性 LangGraph StateGraph，阶段固定 |
 | 审查 | Agent 主动调 `review_discovery_coverage`，内含两个隔离 reviewer | 每个生产阶段配一个审查者，路由强制打回 |
@@ -225,7 +225,7 @@ System prompt 要求同一个 Discover run 完成：
 
 ### 8.0 当前正确的 legacy 入口（本节为更名后补正）
 
-根 `Makefile` 已把无前缀的 `discover*` 目标让给 [../../../pipeline/feedback_loop/](../../../pipeline/feedback_loop/)。要跑**本目录**必须用 `legacy-` 前缀：
+根 `Makefile` 曾把无前缀的 `discover*` 目标让给 [../../legacy/feedback_loop/](../../legacy/feedback_loop/)。要跑**本目录**必须用 `legacy-` 前缀：
 
 ```bash
 source .env

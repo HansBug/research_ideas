@@ -1,0 +1,335 @@
+{
+  "instructions": [
+    "Recover obligation O from the complete NL, author PlantUML, ledger reasoning, and cited formal semantics before proposing any executable property.",
+    "Do not infer inputs from state-name similarity, old planned mappings, v60 actual outputs, reference models, or execution results.",
+    "State missing quantifier, scope, timing, domain, bound, or environment information explicitly instead of inventing it."
+  ],
+  "ledger_items": [
+    {
+      "axes": {
+        "defect_element": "transition",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "missing",
+        "defect_reference": "other"
+      },
+      "d_basis": "判 D2。被违反的义务来自建模语言：一个区域必须有确定的默认入口，否则进入该区域时的初始配置未定义；有两个候选子状态时这一点是二值可判的。三个判读臂一致认定成立。需要如实记下：三臂在给理由时都没有主动引出上面这条依据，出处是本次重写时补齐的；同时 NL 第 1、2 句要求蜂群在任务完成前持续执行搜索，这也隐含了「起点应当是搜索侧」，可作旁证。",
+      "d_tier": "D2",
+      "detail": "`:2` 开 `state UAVSwarmStateMachine {`，块内直接放了两个具名复合态：`:3 state SearchRegion {` … `:17 }` 与 `:19 state MissionRegion {` … `:24 }`。两者之间没有 `--` 分隔符，所以它们是同一个区域里的两个顺序（互斥）子状态。\n\n这个区域没有默认入口：`:3`-`:24` 之间除了两个块本身，没有任何 `[*] -->`。两个 `[*]`（`:4`、`:20`）分别写在两个块内部，是各自的内部入口，比包壳低一层。\n\n后果是进入 `UAVSwarmStateMachine` 时不知道该落到 `SearchRegion` 还是 `MissionRegion`。投影为此在根与包壳内各插入了一个占位的未指定初始状态。\n\n这与只有单个子女的包壳情形不同（例如 pair 0006 的外层包壳）：那种情形下即使没写默认入口，候选也只有一个；本 pair 有两个候选，入口是真歧义。\n\n被违反的义务有两层。语言层：一个区域必须有确定的默认入口，否则进入时的初始配置未定义。需求层：NL 第 1 句「This state machine model describes the state transitions of a UAV swarm」与第 2 句要求蜂群在任务完成前持续执行搜索，隐含了起点应当落在搜索侧，而制品连落在哪一侧都没定。",
+      "l_basis": "判 L0。陈述这条错误只需读 `state UAVSwarmStateMachine { }` 这一层，数它直接包含几个子状态（两个）、这一层有没有 `[*] -->`（没有）。这是纯词法层面的检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "EIS-0046-01",
+      "ledger_json_pointer": "/items/EIS-0046-01",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0046",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "**判 D2**：三臂一致判它成立，⚠️ 但都没给出可引的 NL 原句或领域义务 —— ⛔ 建议你顺手核一眼它的义务出处，若拿不出出处应降到 D1。",
+        "statement": "包壳 composite 有两个顺序子状态却没有初始子状态，进入哪个区域完全未定义（投影在根与包壳内各插入一个 UnspecifiedInitial）。与 0006 的单子女包壳不同，这里的入口是真歧义，构成 IT 类缺陷。",
+        "verdict_reason": null
+      },
+      "summary": "外层包壳 `UAVSwarmStateMachine`（:2-:25）有两个顺序子状态 `SearchRegion` 与 `MissionRegion`，却没有任何默认入口边——进入哪一个完全未定义。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0006/0046.md",
+        "sha256": "sha256:1a223c3c94fa848a2a138f0f3ff10509c6d493255e994c67f85e6c8eb80707e8"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "region",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "missing",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D1，两读并立。第一种读法把 NL 第 2 句的 state areas 读作并发区域：制品没有任何 `--` 分区，`MissionRegion` 也不在搜索期间的范围内，三区域断言不满足。第二种读法把它读作三个自命名带 State 的运行态——`Searching`、`FormationAdjustment`、`Attacking` 恰好是三个，与 NL 第 2、3、4 句描述的三种作业相位一一对应；而 `MissionRegion` 承载的是同一句里提到的「任务完成」这个条件，不是无关元素。第二种读法与结构相容，故判 D1。本条与 pair 0026 的 EIS-0026-01 同型同判。",
+      "d_tier": "D1",
+      "detail": "NL 第 2 句逐字为「Before the mission is completed, the UAV swarm continuously performs target search tasks, during which it operates within three different state areas.」——during which 把这三个区域限定在搜索期间。\n\n制品有两个名字带 Region 的复合态。`SearchRegion`（:3-:17）里装的是 `Idle`、`Searching`、`FormationAdjustment`、`Attacking` 四个状态；`MissionRegion`（:19-:24）里装的是 `MissionActive` 与 `MissionComplete`，讲的是任务完成流程。两者之间没有 `--`，所以它们不是 UML 意义上的并发区域，只是两个顺序的兄弟复合态。\n\n按第一种读法，搜索期间真正涉及的区域只有 `SearchRegion` 一个，NL 第 2 句的三区域数量断言不满足。\n\n这里有一处值得单独记下的方法学观察，与 pair 0026 的 EIS-0026-01 相同：用现有谓词检查这条义务会得到误导性结果——以 `SearchRegion` 为范围数子状态会数出 4 个叶态，而 NL 说的是区域数不是状态数。19 个谓词里没有「区域数」这个谓词，这是一处词表缺口。",
+      "l_basis": "判 L1。陈述这条错误需要导出一个静态结构事实：数清模型里有几个区域（检查有没有 `--`，结果是零个并发区域、两个顺序兄弟复合态），并判断兄弟叶态算不算区域。这要把 PlantUML 的区域记法与 UML 的区域概念对上；但只涉及静态切面，不需要执行序列，故不到 L2。",
+      "l_tier": "L1",
+      "ledger_id": "EIS-0046-02",
+      "ledger_json_pointer": "/items/EIS-0046-02",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0046",
+      "source_text": {
+        "l_basis_rule": "须数模型里有几个区域并判断兄弟叶态算不算区域 —— 静态结构导出",
+        "l_decided_by": "规则档",
+        "meta_review": "与 EIS-0026-01 同型——state areas 可读作三个自命名为 State 的运行态（Searching/FormationAdjustment/Attacking）而非平级 composite region，MissionRegion 承载的是同句提及的任务完成条件而非无关元素。",
+        "statement": "只有两个所谓 region，且都不是 -- 并发区域；其中 MissionRegion 与『搜索期间所处的状态区域』无关，实质搜索区域只有一个。NL 第 2 句三区域数量断言不满足。cardinality(scope=SearchRegion, count=3) 会数出 4 个叶状态，同样无法表达区域数——谓词缺口。",
+        "verdict_reason": null
+      },
+      "summary": "NL 第 2 句要求搜索期间存在三个不同的状态区域，而制品只有 `SearchRegion` 与 `MissionRegion` 两个所谓 region，且两者都不是 `--` 并发区域——`MissionRegion` 装的是任务完成流程，与「搜索期间所处的区域」无关，实质的搜索区域只有一个。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0006/0046.md",
+        "sha256": "sha256:1a223c3c94fa848a2a138f0f3ff10509c6d493255e994c67f85e6c8eb80707e8"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": null,
+        "defect_locus": "global",
+        "defect_logic_kind": "unreachable",
+        "defect_qualifier": null,
+        "defect_reference": "language"
+      },
+      "d_basis": "判 D2。被违反的义务有成文出处，即 NL 第 3 句「When the UAV swarm is intercepted, it transitions to the formation adjustment state」——这条行为必须能够发生，而它所依赖的迁移位于一个进不去的区域内。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法：包壳那一层确实没有 `[*] -->`，两个 Region 的不可达是结构事实。反驳不存活。",
+      "d_tier": "D2",
+      "detail": "本条的字面形态是「六个事件没有可达的 consumer」，但要理解它必须先排除一个误导方向：接线本身是健全的。四条计数为 1 的事件与作者源逐字一一对应——`Intercepted` 对 `:9`、`Formation Adjusted` 对 `:13`、`Task Assignment Received` 对 `:10`、`Attack Completed / UAV Count Decreased` 对 `:16`。事件被声明了、也被某条迁移消费了，没有悬空。\n\n真正的问题是那些消费者所在的位置。`SearchRegion` 与 `MissionRegion` 都是外层包壳 `UAVSwarmStateMachine` 的子状态，而那一层没有默认入口边（见 EIS-0046-01），两个 Region 都进不去。于是它们内部的全部迁移永远不可能触发，NL 第 3 句「When the UAV swarm is intercepted, it transitions to the formation adjustment state」与第 4 句描述的行为一次都不会发生。\n\n还有两条计数需要判读者知道，否则会被工具输出误导：`Mission Completed` 被报了 5 个消费者，而作者源全文只有 `:22` 与 `:27` 两处；`Start Mission` 被报了 3 个，作者源只有 `:7` 与 `:28` 两处。多出来的是投影为改写跨复合态迁移而合成的成组退出边（它们带一个合成的路由变量，该变量名在 `stm0.puml` 里检索不到）。这些是投影产物，不是作者源的事实。\n\n所以本条与 EIS-0046-01 是同一个根因的两种表现：那一条说包壳没有默认入口，本条说由此导致的全部事件消费者不可达。",
+      "l_basis": "判 L2。陈述这条错误的核心是一个可达性论证：要说明从模型的入口出发，全部执行路径都到不了 `SearchRegion` 与 `MissionRegion` 内部，因而那些消费者永远不会被激活。这需要对行为集合做穷尽排除，不是在某个系统状态上读出来的静态事实。",
+      "l_tier": "L2",
+      "ledger_id": "INS-0046-03",
+      "ledger_json_pointer": "/items/INS-0046-03",
+      "origin_family": "pyfcstm inspect 诊断归一化",
+      "pair_id": "0046",
+      "source_text": {
+        "l_basis_rule": "须给出可达性论证",
+        "l_decided_by": "规则档",
+        "meta_review": "**判 D2**：三臂一致认定它违反了 NL 里这句「When the UAV swarm is intercepted, it transitions to the formation adjustment state.」，且三方都尝试过推翻、都没找到站得住的第二种读法 —— 义务有成文条文可引、反驳不存活，是 `D2-lit`。",
+        "statement": "六个事件（`Intercepted` / `Formation_Adjusted` / `Task_Assignment_Received` / `Attack_Completed_UAV_Count_Decreased` / `Mission_Completed` / `Start_Mission`）各自被报「没有可达的 consumer 源」。根因与 INS-0046-01 同一处：消费这些事件的迁移全部位于两个进不去的 Region 内，所以那些迁移永远不可能触发。⛔ **本族的字面主张会把判读者引向错误方向**——它读起来像「事件接线有问题」，而接线本身是健全的：四条 consumer_count=1 的与作者源逐字一一对应（line 9 / line 13 / line 10 / line 16）。⚠️ 另有两条计数被投影灌水，判读者必须知道：`Mission_Completed` 报 5 个 consumer，而作者源全文只有 line 22 与 line 27 两处；`Start_Mission` 报 3 个，作者源只有 line 7 与 line 28 两处。多出来的是投影为改写跨复合态迁移而合成的成组退出边（带合成变量 `R45RouteToken`，grep 确认该串不在 stm0.puml）。真正该被裁决的缺陷是 INS-0046-01。",
+        "verdict_reason": null
+      },
+      "summary": "六个事件（`Intercepted`、`Formation Adjusted`、`Task Assignment Received`、`Attack Completed / UAV Count Decreased`、`Mission Completed`、`Start Mission`）都没有可达的消费者——消费它们的迁移全部位于两个进不去的 Region 内，因此永远不会触发。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0006/0046.md",
+        "sha256": "sha256:1a223c3c94fa848a2a138f0f3ff10509c6d493255e994c67f85e6c8eb80707e8"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "transition",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "missing",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D1，两读并立。第一种读法把 NL 第 3 句读作无状态限定的反应规则：任何时候被拦截都应当转入编队调整，而制品只覆盖了一个状态。第二种读法把它限定在 NL 第 2 句框定的搜索作业相位内——第 2 句说的是「搜索期间」，第 3 句紧接其后，可以读作只作用于正在执行搜索这个相位（即 `Searching` 态）；而 `Idle` 是任务前待机、`FormationAdjustment` 与 `Attacking` 本身就是搜索被打断之后的子阶段，这三处缺该事件出边并不构成对 NL 的违反。第二种读法与结构相容，故判 D1。",
+      "d_tier": "D1",
+      "detail": "NL 第 3 句逐字为「When the UAV swarm is intercepted, it transitions to the formation adjustment state.」，句中没有限定蜂群此时处于哪个状态。\n\n制品只在 `:9` 一处消费这个事件。`SearchRegion` 里的另外三个状态——`Idle`（:4-:7）、`FormationAdjustment`（:12-:13）、`Attacking`（:15-:16）——都没有以 `Intercepted` 为触发的出边；`SearchRegion` 这个复合态本身在外层也没有带该事件的成组出边（`:27` 的触发是 `Mission Completed`）。\n\n所以按第一种读法，拦截反应的作用域过窄：在待机、正在调整编队、或正在攻击时被拦截，模型不会有任何反应。\n\n本条属于第一版台账漏记、后从各实验臂未被认领的产出中提取回来的一类。",
+      "l_basis": "判 L0。陈述这条错误只需检索模型里有哪些状态消费 `Intercepted`（只有 `Searching`），再与搜索区域内的状态清单比对。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "VU-0046-01",
+      "ledger_json_pointer": "/items/VU-0046-01",
+      "origin_family": "valid_unrecorded（原台账漏记，从各臂未认领产出提取）",
+      "pair_id": "0046",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "NL 第3句的拦截反应规则可读作只作用于第2句框定的搜索作业相位（Searching 态），Idle 是任务前待机、FormationAdjustment/Attacking 是搜索内子阶段，此读法下三态缺该事件出边不构成对 NL 的违反。",
+        "statement": "拦截只能从 Searching 进入 FormationAdjustment，未覆盖从 Attacking 等其它状态被拦截的情形，作用域过窄",
+        "verdict_reason": null
+      },
+      "summary": "`Intercepted` 只在 `:9 Searching --> FormationAdjustment : Intercepted` 一处被消费，`Idle`、`FormationAdjustment`、`Attacking` 三个状态都不响应它——从这三处被拦截的情形没有被覆盖。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0006/0046.md",
+        "sha256": "sha256:1a223c3c94fa848a2a138f0f3ff10509c6d493255e994c67f85e6c8eb80707e8"
+      }
+    }
+  ],
+  "ledger_sha256": "sha256:b5a38d3d24a51e980e5b9f5afc7c8c66aded59f3b51f16afe67e0deb592d0e36",
+  "metadata_refs": [
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0046/source_meta.json",
+      "role": "SOURCE_META",
+      "selected_fields": {
+        "selected_stage": "phase_ii_semantic",
+        "source_locator": "sheet=STM Results; row=46; excel_row=48; selected_cell=AE48; selected=Result with Semantic Checking",
+        "source_pair_id": "llms_emp_feedback_final_0046",
+        "stm0_role": "author_feedback_final_plantuml"
+      },
+      "sha256": "sha256:8047fbd8a6ad996a9330284957a51f48d28b717e9405d3cbc3506a682462a4bd"
+    },
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0046/fcstm_meta.json",
+      "role": "FCSTM_META",
+      "selected_fields": {
+        "academic_eligible": false,
+        "academic_ineligibility_reason": "whole_model_behavior_equivalence_and_simulation_not_claimed; use only the working-contract attribution-scoped source-static capability",
+        "artifact_role": "r4_5_attribution_scoped_discover_input",
+        "parse_status": "ok",
+        "simulation_status": "ineligible",
+        "source_static_discover_eligible": true
+      },
+      "sha256": "sha256:b52049bf17c708eea1e2880c36bf5b1a1218debf7195a2114ca1437d79ddf21a"
+    }
+  ],
+  "nl": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "1 This state machine model describes the state transitions of a UAV swarm."
+      },
+      {
+        "number": 2,
+        "text": "2 Before the mission is completed, the UAV swarm continuously performs target search tasks, during which it operates within three different state areas."
+      },
+      {
+        "number": 3,
+        "text": "3 When the UAV swarm is intercepted, it transitions to the formation adjustment state."
+      },
+      {
+        "number": 4,
+        "text": "4 During flight, if task assignment information is received, it enters the attack state. After completing the attack, the number of UAVs in the swarm decreases accordingly."
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0046/nl.txt",
+    "role": "AUTHOR_NL",
+    "sha256": "sha256:a01c022f5380700b6c13800497291640b4d64abbadce1d8984be0c14880ebeb3"
+  },
+  "packet_sha256": "sha256:e7b8ee4a1e5994e8bc7b5d2fa5129b9b2603d412d20e70bceda9dee9d57fa990",
+  "pair_id": "0046",
+  "plantuml": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "@startuml"
+      },
+      {
+        "number": 2,
+        "text": "state UAVSwarmStateMachine {"
+      },
+      {
+        "number": 3,
+        "text": "state SearchRegion {"
+      },
+      {
+        "number": 4,
+        "text": "[*] --> Idle"
+      },
+      {
+        "number": 5,
+        "text": "Idle : Initial State"
+      },
+      {
+        "number": 6,
+        "text": ""
+      },
+      {
+        "number": 7,
+        "text": "Idle --> Searching : Start Mission"
+      },
+      {
+        "number": 8,
+        "text": "Searching : Target Search State"
+      },
+      {
+        "number": 9,
+        "text": "Searching --> FormationAdjustment : Intercepted"
+      },
+      {
+        "number": 10,
+        "text": "Searching --> Attacking : Task Assignment Received"
+      },
+      {
+        "number": 11,
+        "text": ""
+      },
+      {
+        "number": 12,
+        "text": "FormationAdjustment : Formation Adjustment State"
+      },
+      {
+        "number": 13,
+        "text": "FormationAdjustment --> Searching : Formation Adjusted"
+      },
+      {
+        "number": 14,
+        "text": ""
+      },
+      {
+        "number": 15,
+        "text": "Attacking : Attack State"
+      },
+      {
+        "number": 16,
+        "text": "Attacking --> Searching : Attack Completed / UAV Count Decreased"
+      },
+      {
+        "number": 17,
+        "text": "}"
+      },
+      {
+        "number": 18,
+        "text": ""
+      },
+      {
+        "number": 19,
+        "text": "state MissionRegion {"
+      },
+      {
+        "number": 20,
+        "text": "[*] --> MissionActive"
+      },
+      {
+        "number": 21,
+        "text": "MissionActive : Mission Active State"
+      },
+      {
+        "number": 22,
+        "text": "MissionActive --> MissionComplete : Mission Completed"
+      },
+      {
+        "number": 23,
+        "text": "MissionComplete : Mission Complete State"
+      },
+      {
+        "number": 24,
+        "text": "}"
+      },
+      {
+        "number": 25,
+        "text": "}"
+      },
+      {
+        "number": 26,
+        "text": ""
+      },
+      {
+        "number": 27,
+        "text": "SearchRegion --> MissionRegion : Mission Completed"
+      },
+      {
+        "number": 28,
+        "text": "MissionRegion --> SearchRegion : Start Mission"
+      },
+      {
+        "number": 29,
+        "text": ""
+      },
+      {
+        "number": 30,
+        "text": "@enduml"
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0046/stm0.puml",
+    "role": "AUTHOR_PLANTUML",
+    "sha256": "sha256:de64704c2571b8915067365e1dfe1b336b93228e5776eeca7fcf92a9a29d9ddc"
+  },
+  "schema_version": "paper1.predicate-gold.review-input-packet.v1",
+  "visibility": {
+    "execution_results_visible": false,
+    "other_track_conclusions_visible": false,
+    "planned_predicate_mapping_visible": false,
+    "v60_actual_predicate_visible": false
+  }
+}

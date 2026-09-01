@@ -1,17 +1,265 @@
 default: gpt-5.5
 
-profiles:
-  gpt-5.5:
-    adapter: openai
+# ---------------------------------------------------------------------------
+# upstreams
+#
+# 同一个 upstream 的 adapter / base_url / api_key 只在这里写一次，profiles 用
+# YAML merge key (`<<: *anchor`) 引用，避免重复粘贴凭据。
+#
+# 为什么这样可行：
+#   1. load_llm_registry() 只读顶层 `default` 与 `profiles`，其他顶层键被忽略，
+#      所以 `upstreams` 不需要任何代码改动。
+#   2. 锚点由 YAML parser 在 pydantic 之前展开，profile 拿到的是普通字典，
+#      LLMConfig(extra="forbid") 仍然成立。
+#   3. profile 内显式写同名键即可覆盖锚点值 —— 见下面 glm-5.2 覆盖 adapter。
+#
+# ⚠️ `python -m utils.llm init --from-env` 走 yaml.safe_dump，会把锚点展平；
+#    它是引导命令，覆盖配置需要 --force，正常改配置请直接编辑本文件。
+# ---------------------------------------------------------------------------
+upstreams:
+  openai-relay: &openai_relay
+    adapter: openai-responses
     base_url: https://api.example.invalid
     api_key: replace-me
-    model: gpt-5.5
-    context_window_tokens: 1050000
-    max_output_tokens: 128000
-  glm-5.2:
-    adapter: openai-responses
+
+  anthropic: &anthropic
+    adapter: anthropic
+    base_url: https://api.anthropic.com
+    api_key: replace-me
+
+  deepseek: &deepseek
+    adapter: deepseek
+    base_url: https://api.deepseek.com
+    api_key: replace-me
+
+  relay: &relay
+    adapter: openai
     base_url: https://relay.example.invalid/v1
     api_key: replace-me
+
+profiles:
+  # --- OpenAI relay ------------------------------------------------------
+  gpt-5.5:
+    <<: *openai_relay
+    model: gpt-5.5
+    context_window_tokens: 272000
+    max_output_tokens: 128000
+    pricing:
+      prices:
+        input_usd_per_million_tokens: 5.0
+        output_usd_per_million_tokens: 30.0
+        cache_read_usd_per_million_tokens: 0.5
+        cache_write_usd_per_million_tokens: 5.0
+      source_url: https://developers.openai.com/api/docs/pricing
+      verified_on: 2026-08-18
+      basis: official_list_price
+      scope_note: 'OpenAI direct Standard list price; relay charges may differ; cache misses use ordinary input pricing.'
+  gpt-5.6-sol:
+    <<: *openai_relay
+    model: gpt-5.6-sol
+    context_window_tokens: 272000
+    max_output_tokens: 128000
+    pricing:
+      prices:
+        input_usd_per_million_tokens: 5.0
+        output_usd_per_million_tokens: 30.0
+        cache_read_usd_per_million_tokens: 0.5
+        cache_write_usd_per_million_tokens: 6.25
+      source_url: https://developers.openai.com/api/docs/pricing
+      verified_on: 2026-08-18
+      basis: official_list_price
+      scope_note: 'OpenAI direct Standard short-context list price for the flagship GPT-5.6 tier (the gpt-5.6 alias points here); the model page states a 1,050,000-token window, but the pricing page labels only gpt-5.5 as "<272K context length" and states no long-context threshold for the 5.6 family, so context_window_tokens is capped at 272000 to keep the declared short-context rates valid; long-context rates would be 10.00 in / 1.00 cached / 45.00 out with 12.50 cache writes; relay charges may differ.'
+  gpt-5.6-terra:
+    <<: *openai_relay
+    model: gpt-5.6-terra
+    context_window_tokens: 272000
+    max_output_tokens: 128000
+    pricing:
+      prices:
+        input_usd_per_million_tokens: 2.0
+        output_usd_per_million_tokens: 12.0
+        cache_read_usd_per_million_tokens: 0.2
+        cache_write_usd_per_million_tokens: 2.5
+      source_url: https://developers.openai.com/api/docs/pricing
+      verified_on: 2026-08-18
+      basis: official_list_price
+      scope_note: 'OpenAI direct Standard short-context list price for the mid GPT-5.6 tier; the model page states a 1,050,000-token window, but the pricing page labels only gpt-5.5 as "<272K context length" and states no long-context threshold for the 5.6 family, so context_window_tokens is capped at 272000 to keep the declared short-context rates valid; long-context rates would be 4.00 in / 0.40 cached / 18.00 out with 5.00 cache writes; relay charges may differ.'
+  gpt-5.6-luna:
+    <<: *openai_relay
+    adapter: openai-responses
+    model: gpt-5.6-luna
+    context_window_tokens: 272000
+    max_output_tokens: 128000
+    pricing:
+      prices:
+        input_usd_per_million_tokens: 0.2
+        output_usd_per_million_tokens: 1.2
+        cache_read_usd_per_million_tokens: 0.02
+        cache_write_usd_per_million_tokens: 0.25
+      source_url: https://developers.openai.com/api/docs/pricing
+      verified_on: 2026-08-18
+      basis: official_list_price
+      scope_note: 'OpenAI direct Standard short-context list price for the low-cost GPT-5.6 tier; the model page states a 1,050,000-token window, but the pricing page labels only gpt-5.5 as "<272K context length" and states no long-context threshold for the 5.6 family, so context_window_tokens is capped at 272000 to keep the declared short-context rates valid; long-context rates would be 0.40 in / 0.04 cached / 1.80 out with 0.50 cache writes; relay charges may differ.'
+  gpt-5.4-mini:
+    <<: *openai_relay
+    model: gpt-5.4-mini
+    context_window_tokens: 272000
+    max_output_tokens: 128000
+    pricing:
+      prices:
+        input_usd_per_million_tokens: 0.75
+        output_usd_per_million_tokens: 4.5
+        cache_read_usd_per_million_tokens: 0.075
+        cache_write_usd_per_million_tokens: 0.75
+      source_url: https://developers.openai.com/api/docs/pricing
+      verified_on: 2026-08-18
+      basis: official_list_price
+      scope_note: 'OpenAI direct Standard list price for the low-cost GPT-5.4 tier; the model page states a 400,000-token window with 272,000 max input tokens, and the pricing page lists no long-context tier, so one rate covers the whole window; cache writes are not listed separately and fall back to ordinary input pricing; relay charges may differ. Sibling gpt-5.4-nano is deliberately absent: the relay answered 503 with an identical failure signature on 3 of 3 attempts while this profile succeeded 3 of 3 on the same key, so it is unroutable here rather than intermittently slow.'
+
+  # --- Anthropic ---------------------------------------------------------
+  claude-opus-5:
+    <<: *anthropic
+    model: claude-opus-5
+    context_window_tokens: 1000000
+    max_output_tokens: 128000
+    pricing:
+      prices:
+        input_usd_per_million_tokens: 5.0
+        output_usd_per_million_tokens: 25.0
+        cache_read_usd_per_million_tokens: 0.5
+        cache_write_usd_per_million_tokens: 6.25
+      source_url: https://platform.claude.com/docs/en/about-claude/pricing
+      verified_on: 2026-08-18
+      basis: official_list_price
+      scope_note: 'Anthropic global Standard list price; cache writes use the 5-minute list price as the study''s single cache-write rate; current Opus line and the top of the main haiku/sonnet/opus series; generation 4.7 and later use the newer tokenizer, so the same text yields roughly 30% more tokens than on Sonnet 4.6 and earlier -- the per-token rate is unchanged but effective cost per unit of text is higher; the full 1M window is standard-priced.'
+  claude-opus-4-8:
+    <<: *anthropic
+    model: claude-opus-4-8
+    context_window_tokens: 1000000
+    max_output_tokens: 128000
+    pricing:
+      prices:
+        input_usd_per_million_tokens: 5.0
+        output_usd_per_million_tokens: 25.0
+        cache_read_usd_per_million_tokens: 0.5
+        cache_write_usd_per_million_tokens: 6.25
+      source_url: https://platform.claude.com/docs/en/about-claude/pricing
+      verified_on: 2026-08-18
+      basis: official_list_price
+      scope_note: 'Anthropic global Standard list price; cache writes use the 5-minute list price as the study''s single cache-write rate; legacy but still served, priced identically to Opus 5; generation 4.7 and later use the newer tokenizer, so the same text yields roughly 30% more tokens than on Sonnet 4.6 and earlier -- the per-token rate is unchanged but effective cost per unit of text is higher; the full 1M window is standard-priced.'
+  claude-opus-4-7:
+    <<: *anthropic
+    model: claude-opus-4-7
+    context_window_tokens: 1000000
+    max_output_tokens: 128000
+    pricing:
+      prices:
+        input_usd_per_million_tokens: 5.0
+        output_usd_per_million_tokens: 25.0
+        cache_read_usd_per_million_tokens: 0.5
+        cache_write_usd_per_million_tokens: 6.25
+      source_url: https://platform.claude.com/docs/en/about-claude/pricing
+      verified_on: 2026-08-18
+      basis: official_list_price
+      scope_note: 'Anthropic global Standard list price; cache writes use the 5-minute list price as the study''s single cache-write rate; legacy but still served, priced identically to Opus 5; generation 4.7 and later use the newer tokenizer, so the same text yields roughly 30% more tokens than on Sonnet 4.6 and earlier -- the per-token rate is unchanged but effective cost per unit of text is higher; the full 1M window is standard-priced.'
+  claude-opus-4-6:
+    <<: *anthropic
+    model: claude-opus-4-6
+    context_window_tokens: 1000000
+    max_output_tokens: 128000
+    pricing:
+      prices:
+        input_usd_per_million_tokens: 5.0
+        output_usd_per_million_tokens: 25.0
+        cache_read_usd_per_million_tokens: 0.5
+        cache_write_usd_per_million_tokens: 6.25
+      source_url: https://platform.claude.com/docs/en/about-claude/pricing
+      verified_on: 2026-08-18
+      basis: official_list_price
+      scope_note: 'Anthropic global Standard list price; cache writes use the 5-minute list price as the study''s single cache-write rate; oldest Opus at the >=4.6 bar, priced identically to Opus 5 but uses the pre-4.7 tokenizer, so the same text yields roughly 30% fewer tokens than on generation 4.7 and later, so it is the cheapest Opus per unit of text; the full 1M window is standard-priced.'
+  claude-sonnet-5:
+    <<: *anthropic
+    model: claude-sonnet-5
+    context_window_tokens: 1000000
+    max_output_tokens: 128000
+    pricing:
+      prices:
+        input_usd_per_million_tokens: 2.0
+        output_usd_per_million_tokens: 10.0
+        cache_read_usd_per_million_tokens: 0.2
+        cache_write_usd_per_million_tokens: 2.5
+      source_url: https://platform.claude.com/docs/en/about-claude/pricing
+      verified_on: 2026-08-18
+      basis: official_list_price
+      scope_note: 'Anthropic global Standard list price; cache writes use the 5-minute list price as the study''s single cache-write rate; cheapest Claude generation >= 4.6 and cheaper than Sonnet 4.6 (3/15); the 2/10 launch rate is now the standard price and the announced 2026-09-01 rise to 3/15 was cancelled; generation 4.7 and later use the newer tokenizer, so the same text yields roughly 30% more tokens than on Sonnet 4.6 and earlier -- the per-token rate is unchanged but effective cost per unit of text is higher; the full 1M window is standard-priced.'
+  claude-sonnet-4-6:
+    <<: *anthropic
+    model: claude-sonnet-4-6
+    context_window_tokens: 1000000
+    max_output_tokens: 128000
+    pricing:
+      prices:
+        input_usd_per_million_tokens: 3.0
+        output_usd_per_million_tokens: 15.0
+        cache_read_usd_per_million_tokens: 0.3
+        cache_write_usd_per_million_tokens: 3.75
+      source_url: https://platform.claude.com/docs/en/about-claude/pricing
+      verified_on: 2026-08-18
+      basis: official_list_price
+      scope_note: 'Anthropic global Standard list price; cache writes use the 5-minute list price as the study''s single cache-write rate; costs more per token than Sonnet 5 (2/10) yet uses the pre-4.7 tokenizer, so the same text yields roughly 30% fewer tokens than on generation 4.7 and later, so the per-token gap overstates the gap per unit of text; the full 1M window is standard-priced.'
+  claude-haiku-4-5:
+    <<: *anthropic
+    model: claude-haiku-4-5-20251001
+    context_window_tokens: 200000
+    max_output_tokens: 64000
+    pricing:
+      prices:
+        input_usd_per_million_tokens: 1.0
+        output_usd_per_million_tokens: 5.0
+        cache_read_usd_per_million_tokens: 0.1
+        cache_write_usd_per_million_tokens: 1.25
+      source_url: https://platform.claude.com/docs/en/about-claude/pricing
+      verified_on: 2026-08-18
+      basis: official_list_price
+      scope_note: 'Anthropic global Standard list price; cache writes use the 5-minute list price as the study''s single cache-write rate; cheapest Claude overall but generation 4.5, i.e. below the >=4.6 bar, because no Haiku of generation 4.6 or newer exists -- probing claude-haiku-4-6 and claude-haiku-5 both returned 404 not_found on the verification date; pinned to the dated snapshot claude-haiku-4-5-20251001 so observed_model matches; uses the pre-4.7 tokenizer, so the same text yields roughly 30% fewer tokens than on generation 4.7 and later; window is 200K with a 64K output cap, both lower than the Sonnet/Opus lines.'
+
+  # --- DeepSeek ----------------------------------------------------------
+  deepseek-v4-pro:
+    <<: *deepseek
+    model: deepseek-v4-pro
+    context_window_tokens: 1000000
+    max_output_tokens: 384000
+    pricing:
+      prices:
+        input_usd_per_million_tokens: 1.32
+        output_usd_per_million_tokens: 3.96
+        cache_read_usd_per_million_tokens: 0.044
+        cache_write_usd_per_million_tokens: 1.32
+      source_url: https://api-docs.deepseek.com/quick_start/pricing
+      verified_on: 2026-08-18
+      basis: official_list_price
+      scope_note: 'Conservative DeepSeek direct API peak-price upper bound; cache misses use input pricing.'
+  deepseek-v4-flash:
+    <<: *deepseek
+    model: deepseek-v4-flash
+    context_window_tokens: 1000000
+    max_output_tokens: 384000
+    pricing:
+      prices:
+        input_usd_per_million_tokens: 0.44
+        output_usd_per_million_tokens: 1.32
+        cache_read_usd_per_million_tokens: 0.014
+        cache_write_usd_per_million_tokens: 0.44
+      source_url: https://api-docs.deepseek.com/quick_start/pricing
+      verified_on: 2026-08-18
+      basis: official_list_price
+      scope_note: 'Conservative DeepSeek direct API peak-price upper bound; cache misses use input pricing.'
+
+  # --- Relay -------------------------------------------------------------
+  # 覆盖示例：继承 relay 的 base_url / api_key，但把 adapter 换成 responses 协议。
+  glm-5.2:
+    <<: *relay
+    adapter: openai-responses
     model: glm-5.2
     context_window_tokens: 1000000
     max_output_tokens: 128000

@@ -1,0 +1,699 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0030",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0030-01",
+      "pair": "0030",
+      "D": "D2",
+      "L": "L0",
+      "summary": "`Autonomous`（:7-:13）内部只有 `Navigating` 与 `Parking` 两个状态，没有任何 final 子态或 `--> [*]` 完成结构，NL 第 5 句里的 `in (auto final)` 没有指代对象。",
+      "detail": "NL 第 2 句「The autonomous mode has sub-states and is represented by a sub machine state」与第 5 句「transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)」合起来要求：自动驾驶模式内部存在一个可以被 `in (...)` 指代的 auto final 子状态。\n\n制品的 `Autonomous` 块（`:7`-`:13`）里只有三样东西：`:8 state Navigating`、`:9 state Parking`、`:10 [*] --> Navigating`，加上 `:11`/`:12` 两条互相往返的边。没有任何名字带 final 的状态，也没有任何 `--> [*]` 完成结构。所以 `Navigating` 与 `Parking` 构成一个来回的死循环，永远到不了任何终点。\n\n有一处容易误认的地方要排除：`:16 Autonomous --> HumanDriving : Human Steering Cmd / Brake Pressed / [*]` 这条边的标签末尾出现了 `[*]` 三个字符。但它出现在迁移标签的自由文本内部，PlantUML 不会因此声明任何顶点，也不会赋予它完成语义——那只是三个普通字符。\n\n本条与 pair 0020 的 EIS-0020-02 不同：那份制品里 `AutoFinalState` 是真实存在的状态（问题在于返回边的触发），本条是连载体都没有。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 5 句里的 `in (auto final)`——无论把它读成一个具名子态、一个状态谓词、还是一个完成条件，都需要一个真实存在且可判定的 final 载体。判读中出现过一种反驳：把 `auto final` 重读为完成条件，并把 `:16` 标签末尾那个裸 `[*]` 当作该条件的符号化标记。这条反驳不存活——`[*]` 出现在迁移标签文本内部时不具备声明状态或表达语义标记的语法功能，这个读法找不到真正的结构支点，只是把同一处缺失换了个名字。",
+      "L_basis": "判 L0。陈述这条错误只需把 NL 第 5 句点名的 auto final 拿去 `Autonomous` 块内检索，清点块内有哪些状态（只有 Navigating 与 Parking）、有没有 `--> [*]`（没有）。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "state",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0030-02",
+      "pair": "0030",
+      "D": "D2",
+      "L": "L0",
+      "summary": "Power Off 只在 `:18 HumanDriving --> [*]` 一处被消费，`Autonomous` 及其子态 `Navigating`、`Parking` 都不响应它——自动驾驶激活期间无法断电。",
+      "detail": "NL 第 5 句逐字为「when power off, it will transit to final state」。这句话的响应主体是「系统」（NL 第 3 句已经以 the system 立主语），没有限定处于哪个模式。上游参考模型的做法可作佐证：它从人工与自动两个模式各给了一条断电边。\n\n制品只在一处消费这个事件：`:18 HumanDriving --> [*] : Power Off`。`Autonomous`（:7-:13）以及它的两个子态都不消费 Power Off。\n\n判读中出现过一种辩护，值得单独写清楚为什么不成立。辩护是：`:16 Autonomous --> HumanDriving : ...` 挂在复合态 `Autonomous` 上，所以两个子态都能先经这条边接管回 `HumanDriving`，再在那里断电——终态是可达的。反驳有两点。其一，「终态经另一个事件序列可达」不等于「当前的 Power Off 事件被响应」；NL 第 5 句要求的是对断电事件的响应，不是「最终能走到终态」。其二，断电是随时可能到达的环境事件，把它的可用性建立在「必须先完成一次模式交接」这个前提上，在语义上就不对。\n\n还需要说明为什么不能把 NL 第 5 句限定成「回到 HumanDriving 之后才适用」：NL 第 3 句已经以 the system 为主语，五个编号需求是并列的条目而不是一个连续场景的分镜，没有文本锚点支持这种作用域收窄。\n\n同一份 NL 的 pair 0010 与 pair 0040 上有同型条目。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 5 句，其响应主体是系统整体。判读中的反驳（子态可先接管回 HumanDriving 再断电）被两点驳倒且驳倒成立：终态经另一事件序列可达不等于响应当前事件；断电作为环境事件不能以先完成模式交接为前提。此外把 NL 第 5 句限定为「返回 HumanDriving 后才适用」没有文本锚点——NL 第 3 句已立 the system 为主语，五句是并列编号需求而非场景序列。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需把 NL 第 5 句点名的 Power Off 拿去模型里检索，看有哪些状态消费它——结果只有 `HumanDriving`，自动驾驶侧一个都没有。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0030-03",
+      "pair": "0030",
+      "D": "D1",
+      "L": "L1",
+      "summary": "NL 第 5 句的三个接管条件在 `:16` 被压成一个不可分解的事件标签 `Human Steering Cmd / Brake Pressed / [*]`（斜杠与 `[*]` 都被当作普通字符），任一单独条件都无法触发接管。",
+      "detail": "NL 第 5 句逐字为「transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)」，用逗号并列了三样东西。\n\n制品在 `:16` 写 `Autonomous --> HumanDriving : Human Steering Cmd / Brake Pressed / [*]`。PlantUML 的迁移标签在冒号之后是自由文本，斜杠在这里并不表示析取（它在标签文法里本是 `触发/效果` 的分隔符，但这里出现了两个，整串无法按该文法拆开），`[*]` 也只是三个普通字符。投影之后整个标签成为单一事件名 `Human_Steering_Cmd_Brake_Pressed`。\n\n后果是机器只能对这个「三合一」事件整体作出反应，无法对单独的 human steering cmd 或单独的 brake pressed 作出反应。\n\n计数上需说明：本条只记录「三项是否应当各自独立触发」这一歧义；`auto final` 没有指代对象这一结构缺失由 EIS-0030-01 单独承载，不在此重复计。另需说明投影生成的融合事件名只是这一源级写法的见证，不是判定作者源的直接依据——判定依据是 `:16` 那一行本身。",
+      "D_basis": "判 D1，两读并立。第一种读法把 NL 第 5 句的三样东西读成三个各自充分的接管条件，那么把它们压成一个复合事件就使任一单独条件都无法触发接管，缺陷成立。第二种读法注意到 NL 用逗号并列而没有写 and 或 or——它同样可以读成一个需要同时成立的复合条件（收到转向指令且踩下刹车且处于 auto final 时接管），而 `:16` 的单条斜杠标签恰好与这种复合条件读法相容。第二种读法能切断「必须拆成三条独立触发」这条推理，且与结构事实相容，故判 D1。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态事实：`:16` 的标签按 PlantUML 的解析规则投影之后得到的事件集合里只有一个事件名，而不是三个。这要把标签解析规则应用一遍才能得出，比单纯的词项比对深一层；但它只涉及模型的静态切面，不需要执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "other",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "INS-0030-01",
+      "pair": "0030",
+      "D": "D2",
+      "L": "L0",
+      "summary": "根层唯一的初始边 `:2 [*] --> HumanDriving : Power On` 带了标签，于是这台机器没有无条件的默认入口；而同文件 `:10 [*] --> Navigating` 是裸边，对照说明作者区分得开两种写法。",
+      "detail": "`:2` 是全文唯一的根层初始边，冒号后带了标签 `Power On`。UML 2.5.1 规定从初始伪状态出发的迁移不得带触发事件也不得带守卫（该迁移在进入所属区域时隐式立即执行）。后果是这台状态机没有确定的启动状态：上电之后、`Power On` 到达之前，它不处在任何状态里。\n\n本条的证据强度靠一个同文件对照顶起来：同一份文件第 `:10` 行的 `[*] --> Navigating` 是裸的，没有带任何标签，而且它没有被诊断报出（投影后它仍是一条裸的初始边）。这正面说明诊断在区分作者的两种写法，不是投影副作用。\n\n判读时有两点需要按落点裁准。其一，缺的到底是什么：正确的修法是把 `:2` 上那项多余的标签删掉或重构，而不是再补一条裸初始边——一个区域只能有一个默认入口，补第二条会引入新的违规。所以缺陷对象是那个多余的触发。其二，判定的落点是「已有的那条入口边带了触发」，**不是**「没有入口边」。这个区分很要紧，因为缺陷类型学里明确提醒过：「复合态缺默认入口」本身不能判为语言层缺陷（UML 把它留作语义变异点），能判语言层的是初始伪状态出边带了触发或守卫这条二值规定。\n\n根因是把 NL 第 3 句「when power on, the system turn into human driving mode」里的 power on 当成了一个需要显式建模的事件。在状态机的建模惯例里，上电通常就是机器开始运行本身。\n\n同一份 NL 下另外几份制品出现了同型形态（INS-0000-04、INS-0040-01、INS-0050-01）。",
+      "D_basis": "判 D2。被违反的义务来自建模语言：UML 2.5.1 规定初始伪状态的出边不得带触发或守卫。判读中出现过一种反驳，主张顶层初始边可以按对象创建（«create»）来读，那样标签就不算触发；这条反驳不存活——源里没有任何 «create» 构造支持它，而 `Power On` 是一个名词性的事件名，按触发读的证据强。同文件对照进一步定案：`:10` 的内层初始边是裸的，作者区分得开两种写法，`:2` 上的标签是刻意的。另需如实记下：本条最初的 meta review 引用了一份「名词性事件名示例词表」作为依据，经核那份示例并不存在，已改按上面的语言规定与同文件对照定案，结论不变。",
+      "L_basis": "判 L0。陈述这条错误只需就地读 `:2` 这一行，看 `[*] -->` 后面的冒号有没有跟内容——纯词法层面的模式匹配。配套的同文件对照（看 `:10` 是不是裸边）同样只是读一行。不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "extraneous",
+        "defect_logic_kind": null,
+        "defect_reference": "language"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Initial pseudostate scope '__root__' has 1 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0030.puml:line:2); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0030"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:eb2ae377d7d7"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Initial pseudostate scope '__root__' has 1 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0030.puml:line:2); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0030"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:eb2ae377d7d7"
+          ]
+        },
+        {
+          "finding_id": "source:transition:HumanDriving:front_distance > 10:Autonomous",
+          "claims": [
+            "The required HumanDriving -> Autonomous transition under front_distance > 10 is absent or loses its condition."
+          ],
+          "locations": [
+            "NL4"
+          ],
+          "obligations": [
+            "HumanDriving must transition directly to Autonomous under front_distance > 10."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:HumanDriving:front_distance > 10:Autonomous:facet:6c404a7f37f2"
+          ]
+        },
+        {
+          "finding_id": "source:guard_presence:HumanDriving:Autonomous",
+          "claims": [
+            "The front-distance qualifier may be modeled as an event label instead of a formal guard."
+          ],
+          "locations": [
+            "NL4",
+            "PUML15",
+            "tr_0005",
+            "F21",
+            "F6"
+          ],
+          "obligations": [
+            "The qualified condition front_distance > 10 must be represented as a guard on the HumanDriving-to-Autonomous transition."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D1",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:guard_presence:HumanDriving:Autonomous:facet:3ee25090c8ad"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:2270f74cfb4e8aa9",
+          "claims": [
+            "The source inventory classifies HumanDriving as composite although NL explicitly calls it a simple state."
+          ],
+          "locations": [
+            "NL1",
+            "PUML:L4",
+            "FCSTM:F9",
+            "HumanDriving"
+          ],
+          "obligations": [
+            "HumanDriving must be realized as a simple ordinary state rather than a composite state."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:2270f74cfb4e8aa9:facet:7a110175af4b"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Initial pseudostate scope '__root__' has 1 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0030.puml:line:2); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0030"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:eb2ae377d7d7"
+          ]
+        },
+        {
+          "finding_id": "source:guard_presence:HumanDriving:Autonomous",
+          "claims": [
+            "The selected front_distance > 10 route may be modeled as an event label rather than the qualified guard required by the NL.",
+            "The selected transition may encode `front_distance > 10` only as an event label rather than as a formal guard."
+          ],
+          "locations": [
+            "NL4",
+            "PUML15",
+            "FCSTM F6",
+            "FCSTM F21",
+            "tr_0005",
+            "I_EFFECT_GUARD_CONTRADICT",
+            "PUML:L15",
+            "F21"
+          ],
+          "obligations": [
+            "The front-distance condition must be represented as a guard on the HumanDriving-to-Autonomous transition."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:guard_presence:HumanDriving:Autonomous:facet:59a946027632",
+            "source:guard_presence:HumanDriving:Autonomous:facet:3ee25090c8ad"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "关机转终态的转换只建模在 HumanDriving 状态下，Autonomous 状态没有对应的 Power Off 到终态转换。",
+          "reason": "规格第5条要求系统在 power off 时转入 final state，未限定只能在人工驾驶模式下；模型处于 Autonomous 时收到 Power Off 无法按规格进入终态。",
+          "where": "HumanDriving --> [*] : Power Off"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "将“Human Steering Cmd”“Brake Pressed”和“[*]”写成同一条转换标签，未明确表达自动模式的三个独立触发条件；其中 [*] 还被错误地用作“auto final”的触发条件。",
+          "reason": "规格第4条要求收到人工转向命令、踩下刹车、处于 auto final 时均转入 HumanDriving。PlantUML 中 [*] 通常表示初始/终止伪状态，不表示 Autonomous 的 auto final 状态或事件，因此模型没有显式建模 auto final，也不能可靠表达这三个条件。",
+          "where": "Autonomous --> HumanDriving : Human Steering Cmd / Brake Pressed / [*]"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "Autonomous 子状态机没有定义表示 auto final 的终止伪状态及从子状态到该终态的转换。",
+          "reason": "规格明确要求在“in (auto final)”时转入 human driving mode；模型只有 Navigating 和 Parking，以及子状态机初始转入 Navigating，没有任何自动模式终态路径，导致该触发条件不可达/未建模。",
+          "where": "state Autonomous { state Navigating; state Parking; [*] --> Navigating; ... }"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "缺少“断电时转入最终状态”的全局转换",
+          "reason": "规格要求系统在 power off 时转入 final state，未限定只能发生在人类驾驶模式。模型只允许 HumanDriving 状态响应 Power Off；处于 Autonomous（及其 Navigating/Parking 子状态）时没有断电转最终状态的路径，因此不满足全局断电行为。",
+          "where": "PlantUML 中仅有 `HumanDriving --> [*] : Power Off`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "自动模式到人类驾驶模式的触发条件被错误合并为一个转换标签",
+          "reason": "规格要求收到 human steering cmd、brake pressed，或处于 auto final 时转入人类驾驶模式。模型用斜杠把三个条件写在同一条消息/标签中，PlantUML 不会将其明确建模为三个独立的可触发条件；这会造成触发语义不清，不能可靠表达“任一条件成立即可转换”。",
+          "where": "`Autonomous --> HumanDriving : Human Steering Cmd / Brake Pressed / [*]`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "“auto final”未被明确建模为自动模式的最终/完成状态",
+          "reason": "规格明确要求在 auto final 时转入 HumanDriving。模型没有名为或语义明确的 auto final 状态，也没有从自动子状态到该完成状态的转换；`[*]` 在该外部转换标签中不是一个表示“auto final 条件”的标准状态触发建模，因此无法表达该要求。",
+          "where": "Autonomous 子状态仅包含 `Navigating` 和 `Parking`，并以 `[*]` 表示初始伪状态；转换标签中的 `[*]` 出现在 `Autonomous --> HumanDriving` 上"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "自动模式的层级状态未完整表达自动驾驶内部状态到外部人类模式的退出",
+          "reason": "模型将 Autonomous 定义为复合状态并包含 Navigating/Parking，符合存在子状态的要求，但退出转换只写在复合状态边界上，未明确说明从其内部任一子状态（尤其是 auto final 或断电）如何退出。对于规格要求的 auto final 退出以及断电退出，模型缺少对应的内部路径/完成语义。",
+          "where": "`state Autonomous { ... }` 与 `Autonomous --> HumanDriving ...`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "“Human Steering Cmd / Brake Pressed / [*]”被建模为同一条带有斜杠分隔文本的转换，而不是三个独立的可识别触发条件；尤其“Brake Pressed”没有按规范明确表示为独立事件。",
+          "reason": "规范要求收到人工转向命令、踩刹车、或处于自动驾驶最终状态时，分别都能转入人驾模式。PlantUML中斜杠通常表示动作/效果分隔，而不是多个并列触发器，因此该写法未可靠表达三个独立的转换条件。",
+          "where": "Autonomous --> HumanDriving : Human Steering Cmd / Brake Pressed / [*]"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "自动驾驶子状态机没有定义“自动驾驶最终状态”，却用嵌套初始伪状态“[*]”作为回到人驾的条件。",
+          "reason": "规范中的“in (auto final)”指自动驾驶子状态机达到最终状态时转入人驾。模型只定义了Navigating和Parking及其初始状态，没有任何final状态（例如[*] --> Final、Final --> [*]），因此不存在可触发该转换的自动驾驶最终状态；模型中的[*]是初始/终止伪状态符号，不能这样作为该事件条件使用。",
+          "where": "Autonomous --> HumanDriving : ... / [*]"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "自动驾驶子状态机缺少终止状态及进入终止状态的路径。",
+          "reason": "为了满足“在 auto final 时转入人驾”，自动驾驶区域应至少存在一个终止子状态以及从自动驾驶流程到该终止状态的路径。当前仅有Navigating与Parking之间的循环，没有任何自动驾驶完成/终止路径，因而该规范场景无法发生。",
+          "where": "state Autonomous { state Navigating ... state Parking ... [*] --> Navigating ... }"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0030",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0030-02",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "唯一输出是根层初始边触发违规，与 Autonomous 侧 Power Off 消费无关。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出涉及根层初始边、HumanDriving 到 Autonomous 的迁移/守卫及 HumanDriving 层次，不涉及 Autonomous 侧 Power Off 响应。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出仅涉及根层初始边和 HumanDriving 到 Autonomous 的守卫，不涉及 Power Off。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 明确覆盖 Autonomous 对 Power Off 无响应。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 明确覆盖 Autonomous 及其子态缺少 Power Off 到终态的路径。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "三条输出均针对接管触发合并或 auto final 缺失，没有主张 Autonomous 侧对 Power Off 事件的缺失消费。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0030-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "根层初始边的触发违规不涉及 Autonomous 内部 final 子态或完成结构。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "所有输出均涉及根层入口、HumanDriving 到 Autonomous 的迁移/守卫或 HumanDriving 层次，未指认 Autonomous 内 final 缺失。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出只涉及根层初始边和 HumanDriving 到 Autonomous 的守卫，没有指认 auto final 载体。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2",
+            "baseline_issue_3"
+          ],
+          "reason": "baseline_issue_2 和 baseline_issue_3 分别主张 :16 所用 [*] 无法提供 auto final，以及 Autonomous 内没有终止结构。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2",
+            "baseline_issue_3",
+            "baseline_issue_4"
+          ],
+          "reason": "baseline_issue_2 和 baseline_issue_3 直接覆盖 :16 的 auto final 引用及 Autonomous 内 final 结构缺失；baseline_issue_4 也主张完成语义缺失。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2",
+            "baseline_issue_3"
+          ],
+          "reason": "baseline_issue_2 和 baseline_issue_3 直接主张不存在自动驾驶最终状态及其进入路径。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0030-03",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "根层初始边触发违规与 Autonomous 到 HumanDriving 的接管触发标签无关。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出关于 front_distance 守卫和其他迁移，不涉及 :16 的三个接管条件合并。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出仅关于 front_distance 守卫和根层初始边，不涉及接管触发标签。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_2 指向 :16 并明确主张三个条件被写成同一标签，任一独立条件无法可靠触发。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_2 指向同一 :16 标签并明确主张三个接管条件被错误合并。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 指向同一标签并明确主张斜杠文本不是三个独立触发条件。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "INS-0030-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:__root__"
+          ],
+          "reason": "唯一输出直接指认根层初始伪状态出边带有触发或守卫，并援引该 UML 约束。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:__root__"
+          ],
+          "reason": "source:initial_contract:__root__ 直接覆盖 :2 根层初始边上的 Power On 触发。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:__root__"
+          ],
+          "reason": "source:initial_contract:__root__ 直接覆盖根层初始伪状态出边带触发或守卫。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_run1 没有输出根层初始边带 Power On 触发的语言层问题。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_run2 的输出均针对断电覆盖、接管标签、auto final 和复合态退出，没有指认根层 :2 初始边带触发。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_run3 只讨论 Autonomous 的接管标签和终止结构，没有根层初始边问题。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [
+          "INS-0030-01"
+        ],
+        "false_positive": false,
+        "reason": "同一根层初始伪状态出边 :2 带有 Power On 触发标签，且输出主张该语言层约束被违反。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:2270f74cfb4e8aa9",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "输出针对 HumanDriving 被错误建模为复合状态；冻结台账没有关于 HumanDriving 层次归属的条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:guard_presence:HumanDriving:Autonomous",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "输出针对 HumanDriving 到 Autonomous 的 front_distance > 10 守卫槽位；冻结台账没有该迁移的守卫记法问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [
+          "INS-0030-01"
+        ],
+        "false_positive": false,
+        "reason": "同一根层初始伪状态出边 :2 带有触发标签，主张与 INS-0030-01 的多余初始边触发完全对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:HumanDriving:front_distance > 10:Autonomous",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "输出针对 HumanDriving 到 Autonomous 的 front_distance > 10 迁移缺失或条件丢失；冻结台账未记录该迁移问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:guard_presence:HumanDriving:Autonomous",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "输出针对 HumanDriving 到 Autonomous 的 front_distance > 10 守卫表达；冻结台账没有这一处性质的条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [
+          "INS-0030-01"
+        ],
+        "false_positive": false,
+        "reason": "同一根层初始边带触发或守卫的语言违规，对应 INS-0030-01。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0030-02"
+        ],
+        "false_positive": false,
+        "reason": "明确指向仅有 HumanDriving --> [*] : Power Off，并主张 Autonomous 收到 Power Off 时缺少终态转换，正是台账所述自动驾驶侧未消费断电事件。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0030-01",
+          "EIS-0030-03"
+        ],
+        "false_positive": false,
+        "reason": "同一 :16 Autonomous 到 HumanDriving 标签同时主张 auto final 载体缺失和三个接管条件被合并，分别对应 final 子态缺失与触发条件不可独立触发。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "EIS-0030-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指向 Autonomous 子状态机没有 auto final 终止伪状态及其转换，覆盖台账关于 final 子态或完成结构缺失的主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0030-02"
+        ],
+        "false_positive": false,
+        "reason": "明确主张仅 HumanDriving 消费 Power Off、Autonomous 及其子态没有断电到终态的响应，完全对应台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0030-01",
+          "EIS-0030-03"
+        ],
+        "false_positive": false,
+        "reason": "指向同一 Autonomous --> HumanDriving 标签，并分别主张 auto final 未建模及三个触发条件被错误合并。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "EIS-0030-01"
+        ],
+        "false_positive": false,
+        "reason": "指向 Autonomous 内部仅有 Navigating/Parking 且没有 auto final，覆盖 final 载体与完成结构缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [
+          "EIS-0030-01",
+          "EIS-0030-02"
+        ],
+        "false_positive": false,
+        "reason": "该 issue 明确涉及 Autonomous 边界退出对 auto final 和断电退出缺少内部路径；其中断电部分对应自动驾驶侧缺少 Power Off 响应，完成语义部分对应 final 载体缺失。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0030-03"
+        ],
+        "false_positive": false,
+        "reason": "指向同一 :16 标签，明确主张斜杠文本不是三个独立触发条件，覆盖条件被压成单一标签的触发性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0030-01"
+        ],
+        "false_positive": false,
+        "reason": "指向同一 :16 标签中的 [*] 及 Autonomous 子状态机，明确主张不存在 auto final 状态，覆盖 final 载体缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "EIS-0030-01"
+        ],
+        "false_positive": false,
+        "reason": "明确主张 Autonomous 子状态机没有终止状态及进入终止状态的路径，覆盖台账的 final 完成结构缺失。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "四条冻结台账中，方法三轮稳定覆盖根层初始边触发违规但未覆盖三条 Autonomous 相关缺陷；baseline 三轮覆盖 final 载体缺失和接管触发合并，前两轮覆盖自动驾驶侧 Power Off 缺失，第三轮未覆盖该条。"
+  },
+  "status": "ok",
+  "attempts": 3
+}

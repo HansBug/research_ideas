@@ -22,7 +22,7 @@ from urllib.parse import quote, urlsplit
 
 from pydantic import BaseModel
 
-from utils.llm import LLMConfig, LLMRegistry
+from utils.llm import LLMConfig, LLMRegistry, prompt_cache_policy
 
 try:
     from langchain.agents import create_agent
@@ -69,6 +69,7 @@ _RETRYABLE_TRANSPORT_EXCEPTION_NAMES = frozenset(
         "connecttimeout",
         "networkerror",
         "pooltimeout",
+        "providercalltimeout",
         "readerror",
         "readtimeout",
         "remoteprotocolerror",
@@ -90,6 +91,113 @@ _RETRYABLE_TRANSPORT_MESSAGE_MARKERS = (
     "temporarily unavailable",
     "service unavailable",
 )
+
+
+def _structured_output_error_path(location: Any) -> str:
+    """Render one Pydantic error location as an unambiguous schema path."""
+
+    if not isinstance(location, (list, tuple)):
+        return "<root>"
+    path = ""
+    for part in location:
+        if isinstance(part, int):
+            path += f"[{part}]"
+        else:
+            path += ("." if path else "") + str(part)
+    return path or "<root>"
+
+
+def _structured_output_repair_message(exception: Exception) -> str:
+    """Turn structured validation failures into exact, local repair directions.
+
+    LangChain's default feedback repeats a complete Pydantic traceback followed
+    by a generic request to fix it. Exact batch schemas need a stronger shape
+    invariant: tuple slots stay under their declared parent, forbidden paths are
+    removed, and literals are copied exactly. This formatter changes only the
+    repair feedback after validation has already failed; it does not alter the
+    output schema or accept an otherwise invalid value.
+    """
+
+    source = getattr(exception, "source", exception)
+    errors_method = getattr(source, "errors", None)
+    errors: list[Mapping[str, Any]] = []
+    if callable(errors_method):
+        try:
+            raw_errors = errors_method(include_url=False, include_input=False)
+        except TypeError:
+            raw_errors = errors_method()
+        except Exception:  # noqa: BLE001  # pragma: no cover - defensive provider fallback
+            raw_errors = []
+        if isinstance(raw_errors, list):
+            errors = [item for item in raw_errors if isinstance(item, Mapping)]
+
+    header = (
+        "The structured output failed exact schema validation. Return exactly one "
+        + "corrected structured-output tool call, preserve already-valid values, and "
+        + "apply every repair below in the same response:"
+    )
+    lines = [header]
+    for error in errors:
+        error_type = str(error.get("type") or "validation_error")
+        path = _structured_output_error_path(error.get("loc"))
+        if error_type == "extra_forbidden":
+            instruction = (
+                f"DELETE `{path}` completely. Do not keep it, rename it, or set it "
+                "to null."
+            )
+        elif error_type == "missing":
+            instruction = (
+                f"ADD the required value at `{path}` inside its exact existing "
+                "parent. If this is a fixed tuple/list slot, fill that slot there; "
+                "do not create another top-level item."
+            )
+        elif error_type == "literal_error":
+            context = error.get("ctx")
+            expected = context.get("expected") if isinstance(context, Mapping) else None
+            required = (
+                str(expected)
+                if expected is not None
+                else str(error.get("msg") or "the schema literal")
+            )
+            instruction = (
+                f"REPLACE `{path}` with the exact required literal {required}; copy "
+                "it character-for-character from this instruction/schema."
+            )
+        else:
+            instruction = (
+                f"FIX `{path}` ({error_type}): "
+                f"{(error.get('msg') or 'value does not satisfy the schema')!s}."
+            )
+        lines.append(f"- {instruction}")
+
+    if not errors:
+        lines.append(f"- Fix the reported structured-output error: {exception!s}")
+    lines.append(
+        "Do not move nested tuple/list entries into sibling top-level fields, and "
+        "do not return prose or multiple structured responses."
+    )
+    return "\n".join(lines)
+
+
+async def _iterate_and_close(stream: Any):
+    """Consume a LangGraph async stream and close it on cancellation.
+
+    ``asyncio.wait_for`` cancels the consumer coroutine when the agent's
+    explicit wall-clock budget expires.  Some provider-backed LangGraph
+    streams otherwise leave an ``async_generator_asend`` pending; the next
+    public call then observes ``Event loop is closed`` while that orphan is
+    finalized.  Keeping closure inside the still-running loop makes provider
+    retry a local operation and leaves the audit/runtime boundary intact.
+    """
+
+    try:
+        async for item in stream:
+            yield item
+    finally:
+        close = getattr(stream, "aclose", None)
+        if close is not None:
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await close()
 _IDENTITY_KEYS = frozenset(
     {"model", "base_url", "api_key", "headers", "authorization", "openai_api_key", "default_headers"}
 )
@@ -170,6 +278,7 @@ class AgentSpec:
     limits: Mapping[str, int | float | None] | None = None
     require_tool_call: bool = False
     retry_missing_structured_output: bool = False
+    transport_retry_delays_seconds: tuple[float, ...] | None = None
 
     def __post_init__(self) -> None:
         if not self.name.strip() or not self.system_prompt.strip():
@@ -178,7 +287,13 @@ class AgentSpec:
         if len(names) != len(set(names)):
             raise ValueError("agent_spec_invalid: duplicate tool name")
         limits = dict(self.limits or {})
-        allowed = {"model_calls", "tool_calls", "turns", "seconds"}
+        allowed = {
+            "model_calls",
+            "tool_calls",
+            "turns",
+            "seconds",
+            "model_call_seconds",
+        }
         unknown = set(limits) - allowed
         if unknown:
             raise ValueError(f"agent_spec_invalid: unknown limit keys: {sorted(unknown)}")
@@ -187,6 +302,20 @@ class AgentSpec:
         if self.retry_missing_structured_output and self.output_schema is None:
             raise ValueError(
                 "agent_spec_invalid: retry_missing_structured_output needs output_schema"
+            )
+        retry_delays = self.transport_retry_delays_seconds
+        if retry_delays is not None:
+            if any(
+                not isinstance(value, (int, float)) or value < 0
+                for value in retry_delays
+            ):
+                raise ValueError(
+                    "agent_spec_invalid: transport retry delays must be non-negative numbers"
+                )
+            object.__setattr__(
+                self,
+                "transport_retry_delays_seconds",
+                tuple(float(value) for value in retry_delays),
             )
         object.__setattr__(self, "limits", limits)
 
@@ -384,9 +513,7 @@ def _default_stream_usage(config: LLMConfig) -> bool:
 
 
 def _prompt_cache_policy(config: LLMConfig) -> dict[str, Any]:
-    if config.adapter == "anthropic":
-        return {"mode": "anthropic-ephemeral", "enabled": True, "ttl": "5m"}
-    return {"mode": "provider-default", "enabled": None, "ttl": None}
+    return prompt_cache_policy(config)
 
 
 def _adapter_prompt_cache_middleware(config: LLMConfig) -> list[Any]:
@@ -400,9 +527,10 @@ def _adapter_prompt_cache_middleware(config: LLMConfig) -> list[Any]:
         raise AgentError(
             "config_error", "langchain-anthropic prompt caching middleware is required"
         ) from exc
+    policy = _prompt_cache_policy(config)
     return [
         AnthropicPromptCachingMiddleware(
-            ttl="5m",
+            ttl=policy["ttl"],
             min_messages_to_cache=0,
             unsupported_model_behavior="raise",
         )
@@ -1326,6 +1454,21 @@ def _retryable_transport_error(exc: BaseException) -> bool:
     return False
 
 
+def _immediate_connection_setup_error(exc: BaseException) -> bool:
+    """Identify a pre-response API connection failure eligible for a short retry.
+
+    This deliberately excludes rate limits and HTTP 5xx responses. Those have a
+    provider response and retain the configured backoff or Retry-After policy.
+    """
+
+    return any(
+        type(item).__name__.lower() == "apiconnectionerror"
+        and getattr(item, "status_code", None) is None
+        and getattr(item, "response", None) is None
+        for item in _exception_chain(exc)
+    )
+
+
 def _provider_retry_after_seconds(exc: BaseException) -> float | None:
     """Read a numeric Retry-After hint from a provider exception when present."""
 
@@ -1369,6 +1512,50 @@ def _atomic_write(path: Path, payload: Mapping[str, Any], *, run_id: str | None 
         raise
 
 
+def _recover_uncommitted_output_parts(
+    targets: Sequence[Path],
+    *,
+    recovery_id: str,
+) -> list[dict[str, Any]]:
+    """Archive interrupted output parts after their canonical targets are locked.
+
+    A process can die after it has opened an atomic ``.part`` file but before
+    publishing it. Retaining that file is useful provenance, but treating it
+    as a permanent configuration error makes a cell impossible to resume.
+    Callers must hold every target lock before invoking this helper so a live
+    writer can never be mistaken for an interrupted attempt.
+    """
+
+    recovered: list[dict[str, Any]] = []
+    for target in targets:
+        for part in sorted(target.parent.glob(f".{target.name}.*.part")):
+            if not part.is_file():
+                raise OSError(f"uncommitted output part is not a regular file: {part}")
+            digest = _file_sha256(part)
+            archive_root = target.parent / ".abandoned-output-parts"
+            archive_root.mkdir(parents=True, exist_ok=True)
+            archive_path = archive_root / f"{target.name}.{recovery_id}.{uuid.uuid4().hex}.part"
+            os.replace(part, archive_path)
+            _fsync_parent(archive_path)
+            entry = {
+                "schema": "utils.agent.abandoned_output_part.v1",
+                "target_path": str(target),
+                "original_part_path": str(part),
+                "archived_part_path": str(archive_path),
+                "part_sha256": digest,
+                "recovered_at_utc": _utc_now().isoformat(),
+                "reason": "The canonical output locks were acquired and this uncommitted part was therefore retained as an interrupted prior attempt before a new attempt began.",
+                "basis": "exclusive audit/result/receipt file locks and the atomic-output recovery protocol",
+            }
+            _atomic_write(
+                archive_path.with_name(archive_path.name + ".recovery.json"),
+                entry,
+                run_id=recovery_id,
+            )
+            recovered.append(entry)
+    return recovered
+
+
 def _fsync_parent(path: Path) -> None:
     try:
         fd = os.open(path.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
@@ -1388,6 +1575,7 @@ class _AuditWriter:
         self.temporary: Path | None = None
         self.trace_commit_id = uuid.uuid4().hex
         self.published = False
+        self.recovered_parts: list[dict[str, Any]] = []
         self.lock_paths: list[Path] = []
         self._lock_files: list[Any] = []
         self.sensitive_values: tuple[str, ...] = ()
@@ -1412,6 +1600,10 @@ class _AuditWriter:
                         lock_file.close()
                         raise OSError("audit/result output is already locked") from exc
                     self._lock_files.append(lock_file)
+                self.recovered_parts = _recover_uncommitted_output_parts(
+                    [target for target in (path, result_path) if target is not None],
+                    recovery_id=self.trace_commit_id,
+                )
                 if path is not None:
                     self.temporary = path.with_name(f".{path.name}.{run_id}.part")
                     if self.temporary.exists():
@@ -1549,13 +1741,6 @@ def _validate_output_paths(audit_path: Path | None, result_path: Path | None) ->
             continue
     derived = [path for path in (audit, result, receipt) if path is not None]
     derived.extend(path.with_name(path.name + ".lock") for path in (audit, result, receipt) if path is not None)
-    for target in (audit, result):
-        if target is None:
-            continue
-        stale_parts = list(target.parent.glob(f".{target.name}.*.part"))
-        if stale_parts:
-            raise AgentError("config_error", f"output part already exists: {stale_parts[0]}")
-        derived.extend(stale_parts)
     for index, left in enumerate(derived):
         for right in derived[index + 1 :]:
             if not left.exists() or not right.exists():
@@ -2831,11 +3016,28 @@ class _TransportRetryMiddleware(AgentMiddleware):
                         self.on_exhausted(payload)
                     raise
                 self.ledger.reserve(1)
-                delay = _provider_retry_after_seconds(exc) or self.delays[retry_index]
+                provider_delay = _provider_retry_after_seconds(exc)
+                short_connection_retry = bool(
+                    retry_index == 0
+                    and provider_delay is None
+                    and _immediate_connection_setup_error(exc)
+                )
+                delay = (
+                    0.1
+                    if short_connection_retry
+                    else provider_delay or self.delays[retry_index]
+                )
                 payload.update(
                     {
                         "next_attempt_no": attempt_no + 1,
                         "retry_after_seconds": delay,
+                        "retry_delay_policy": (
+                            "immediate_connection_setup_recovery"
+                            if short_connection_retry
+                            else "provider_retry_after"
+                            if provider_delay is not None
+                            else "configured_transport_backoff"
+                        ),
                     }
                 )
                 if self.on_retry is not None:
@@ -2900,6 +3102,35 @@ class _TransportRetryMiddleware(AgentMiddleware):
                     }
                 )
             return response
+
+
+class _ModelCallDeadlineMiddleware(AgentMiddleware):
+    """Bound each provider invocation inside a longer structured agent run.
+
+    ``AgentSpec.limits['seconds']`` remains the complete run budget. This
+    narrower limit applies to each asynchronous model invocation, including a
+    structured-output repair turn, and emits a typed provider-owned error that
+    the public transport retry middleware can handle in place.
+    """
+
+    def __init__(self, seconds: float) -> None:
+        if seconds <= 0:
+            raise ValueError("model_call_seconds must be positive")
+        self.seconds = float(seconds)
+
+    async def awrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
+        try:
+            return await asyncio.wait_for(handler(request), timeout=self.seconds)
+        except asyncio.TimeoutError as exc:
+            raise AgentError(
+                "provider_timeout",
+                f"provider model call exceeded {self.seconds:g} seconds",
+                details={
+                    "source": "provider",
+                    "type": "ProviderCallTimeout",
+                    "timeout_seconds": self.seconds,
+                },
+            ) from exc
 
 
 def _tool_completion_status(
@@ -3177,6 +3408,11 @@ class AgentApp:
             think_mode=think_mode,
             reasoning_effort=reasoning_effort,
         )
+        transport_retry_delays = (
+            _TRANSPORT_RETRY_DELAYS
+            if self.spec.transport_retry_delays_seconds is None
+            else self.spec.transport_retry_delays_seconds
+        )
         prompt_cache_policy = _prompt_cache_policy(self.config)
         inference_summary = {
             "streaming": getattr(self.model, "streaming", None),
@@ -3184,8 +3420,8 @@ class AgentApp:
             "reasoning_effort": inference_options.get("reasoning_effort"),
             "stream_usage": getattr(self.model, "stream_usage", None),
             "max_retries": getattr(self.model, "max_retries", None),
-            "transport_retries": len(_TRANSPORT_RETRY_DELAYS),
-            "transport_retry_delays_seconds": list(_TRANSPORT_RETRY_DELAYS),
+            "transport_retries": len(transport_retry_delays),
+            "transport_retry_delays_seconds": list(transport_retry_delays),
             "timeout": getattr(self.model, "request_timeout", None) or getattr(self.model, "timeout", None),
             "tool_choice_policy": tool_choice_policy_name,
             "prompt_cache": prompt_cache_policy,
@@ -3237,8 +3473,8 @@ class AgentApp:
                 "compact": {"ratio": compact_trigger_ratio, "threshold": compact_threshold},
                 "tool_choice_policy": tool_choice_policy_name,
                 "transport_retry": {
-                    "max_retries": len(_TRANSPORT_RETRY_DELAYS),
-                    "delays_seconds": list(_TRANSPORT_RETRY_DELAYS),
+                    "max_retries": len(transport_retry_delays),
+                    "delays_seconds": list(transport_retry_delays),
                     "profile": self.profile,
                 },
             }
@@ -4224,7 +4460,9 @@ class AgentApp:
             ):
                 stream_kwargs["config"] = {"recursion_limit": _graph_recursion_limit(self.spec)}
 
-            async for event in graph.astream_events(inputs, **stream_kwargs):
+            async for event in _iterate_and_close(
+                graph.astream_events(inputs, **stream_kwargs)
+            ):
                 name = str(event.get("name") or "")
                 kind = str(event.get("event") or "")
                 data = event.get("data") or {}
@@ -4638,6 +4876,7 @@ class AgentApp:
                     "retry_missing_structured_output": self.spec.retry_missing_structured_output,
                     "redaction_report": [],
                     "eligibility_scope": _ELIGIBILITY_SCOPE,
+                    "recovered_output_parts": audit.recovered_parts,
                 }
             )
             if context_error is not None:
@@ -4696,10 +4935,19 @@ class AgentApp:
                 *_adapter_prompt_cache_middleware(self.config),
                 _TransportRetryMiddleware(
                     ledger,
-                    delays=_TRANSPORT_RETRY_DELAYS,
+                    delays=transport_retry_delays,
                     on_retry=transport_retry_scheduled,
                     on_recovered=transport_retry_recovered,
                     on_exhausted=transport_retry_exhausted,
+                ),
+                *(
+                    [
+                        _ModelCallDeadlineMiddleware(
+                            float((self.spec.limits or {})["model_call_seconds"])
+                        )
+                    ]
+                    if (self.spec.limits or {}).get("model_call_seconds") is not None
+                    else []
                 ),
                 _RequestCaptureMiddleware(request_captures, capture_primary_request),
                 guard,
@@ -4734,7 +4982,10 @@ class AgentApp:
                 # provider profiles visible; pass ToolStrategy explicitly to
                 # preserve that established cross-provider behavior.
                 response_format=(
-                    ToolStrategy(self.spec.output_schema)
+                    ToolStrategy(
+                        self.spec.output_schema,
+                        handle_errors=_structured_output_repair_message,
+                    )
                     if self.spec.output_schema is not None
                     else None
                 ),

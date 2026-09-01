@@ -1,5 +1,20 @@
 # 命中判定方法学：三层判定与审计口径
 
+> **现行协议说明（2026-08-23）**：下文三层 A/B/C 与历史脚本只用于复核旧实验，已不再
+> 产生现行正式分数。当前由 [issue #195 同步入口](./semantic_judge_protocol.md) 定义：
+> 两次独立 validity-first reading 使用同一 Pydantic sparse-exact-closure schema；后端比较
+> relation/core truth/root-cause cluster，只对冲突 report 定向仲裁并在 merge 后重验完整
+> closure；最终没有 UNKNOWN。全部 reason/basis/source refs 与 usage/cost/retry 均落盘。
+
+> **评测侧边界**：本文判定的是冻结台账与发布结果的语义同一性。文中的旧谓词名和
+> 台账断言编码只用于历史复核，不定义当前四族 19 谓词；当前方法契约见
+> [`pipeline/evidence_discovery/METHOD_PRINCIPLES.md`](../../../pipeline/evidence_discovery/METHOD_PRINCIPLES.md)。
+
+> **当前人工发布层**：论文使用的 v60/current 与 X1v2 全量人工监督结果保存在
+> [`final_results/.../derived/manual_adjudication_v2`](../../../final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v2/README.md)。
+> 本文件中的旧 A/B/C 判定脚本和历史 v35 数字不参与该发布层；新层只接受 pane5 逐条
+> raw/source confirmation，后端确定性派生 validity、relation、K/N/I 和指标。
+
 本文件固定「一个运行结果是否命中某条 expected issue」这件事**由谁判、依据什么判、如何被复核**。它是判定的规范来源；工具实现在 [verdict_tiers.py](../../../archive/r10_ledger_v1_and_v46/scripts/verdict_tiers.py)，命中的语义标准在 [hit_criterion.md](./hit_criterion.md)。
 
 ## 一、为什么不是「全人工」也不是「全自动」

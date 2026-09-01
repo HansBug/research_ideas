@@ -1,5 +1,22 @@
 # expected issue 分母的已知缺口
 
+> **现行 Judge 解释**：冻结 D2+D1 ledger 仍是 hit/recall 的唯一分母，但不是现实缺陷全集。
+> 按 [issue #195 同步入口](./semantic_judge_protocol.md)，台账外发布报告必须先独立审计
+> 核心主张：成立且全部 relation 为 NO 时是 `VALID_NOVEL`，不算 hit 或 FP；不成立或达不到
+> 最低举证责任时才是 `INVALID`，且全部 relation 为 NO。不得从 ledger-unmatched 自动推出
+> novel，也不得从 ledger-unmatched 自动推出 invalid。
+
+> **2026-08-29 缺陷口径更正**：下文的 pair-universe 筛选和旧 `out_of_scope`
+> 计数是冻结 benchmark 的覆盖限制，只能用于复现历史分母；它们不再定义缺陷类别。
+> 对作者源制品提出的时钟、并发或其他当前 backend 不支持的缺陷主张仍须裁为
+> D2/D1/D0，无法执行只降低 W。D0 与 A0 都属于 `INVALID`；只有 D2/D1 才能进入
+> K 或 N。现行闭合见 [issue #189](https://github.com/HansBug/research_ideas/issues/189)
+> 与 [issue #195](https://github.com/HansBug/research_ideas/issues/195)。
+
+> **评测侧边界**：本文件只说明台账分母的已知缺口，不定义当前谓词。文中的历史断言
+> 名称和旧分层只用于解释台账形成过程；当前四族注册表、W1/W2 和变更门以
+> [`pipeline/evidence_discovery/`](../../../pipeline/evidence_discovery/) 为准。
+
 本文件记录 evaluator-side ground truth（Issue [#166](https://github.com/HansBug/research_ideas/issues/166) 的 47 条 E1）**系统性不覆盖**哪些问题类，以及每处缺口是"问题定义边界"还是"待补欠账"。它是论文 threats to validity 一节的直接材料。
 
 判定命中的原则见 [hit_criterion.md](./hit_criterion.md)。**评测语料本身的建模对象筛选见 [nl_scope_rule.md](./nl_scope_rule.md)** —— 10 份 NL 中 1 份（其 6 个 pair 末位均为 8）要求 fork/join 与秒级计时，而 $M = (S, E, V, Tr, A)$ 既无正交区也无时钟，故该规约族不进入评测分母；该文件同时给出全量 / 筛选后 / 被排除部分的三份数字。原论文逐 case 的问题记录见 [paper_reported_problems.json](../../../archive/r10_ledger_v1_and_v46/scripts/paper_reported_problems.json)（由 [extract_paper_problems.py](../../../archive/r10_ledger_v1_and_v46/scripts/extract_paper_problems.py) 从论文公开 workbook 提取，60/60 对齐）。
@@ -36,7 +53,11 @@
 
 ## 2. 缺口一：正交并发（问题定义边界，不补）
 
-**裁决：不补进 expected issue，作为 limitation 如实陈述。**
+**历史 benchmark 裁决：不补进冻结 expected issue，作为 coverage limitation 如实陈述。**
+
+这不表示相关报告“不算缺陷”或可以走 scope 出口。冻结台账不追加条目与逐报告的
+D/A 判定是两件事：作者源事实成立后仍要依据义务裁 D2/D1/D0；当前谓词/backend
+无法执行只影响 W。
 
 原论文的最大语义问题类是 `missing regions`（18 条 / 18 个 case，论文 Table 9 记 20 条）。台帐对其覆盖率仅 39%，其余 11 个 case 被排除，排除类型为 `E2a/pump_hierarchy_or_concurrency_ambiguity`、`E3/uav_concurrency_or_textual_effect_boundary`、`E2c/orthogonal_region_assertion_missing`。
 

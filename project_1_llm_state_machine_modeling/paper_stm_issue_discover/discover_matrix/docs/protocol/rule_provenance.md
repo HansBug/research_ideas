@@ -1,5 +1,9 @@
 # 规则来源纪律：让「若我没见过样本会不会写这条」从辩解变成构造事实
 
+> **迁移期说明**：本文审计的是旧运行链路的规则来源和结果邻接风险。文中要求阅读的
+> `assertions/predicate_api.py` 与 `discover/predicates.py` 是旧实现材料，不是当前公开
+> 谓词表；当前设计和变更审批只读 [`pipeline/evidence_discovery/`](../../../pipeline/evidence_discovery/)。
+
 ## 问题
 
 §3.5 的动机审计判据是：

@@ -36,7 +36,7 @@
 | 字段 | 内容 |
 | :-- | :-- |
 | Claim | 贡献是一套面向状态机问题发现的谓词逻辑元模型——19 个谓词的闭合词表（结构 10 / 仿真 6 / 有界模型检查 3），以及把需求义务转换为该词表上断言的方法。其三条性质：覆盖性来自构造、判据可机械求值、为真者构成回归防护。 |
-| 证据 | 词表与三族划分：报告 §4.3；词表由来与领域出处口径：报告 §4.4 与 [../discover_matrix/docs/protocol/method_provenance_policy.md](../../../discover_matrix/docs/protocol/method_provenance_policy.md)；实现：[../pipeline/feedback_loop/](../../../pipeline/feedback_loop/) |
+| 证据 | 词表与三族划分：报告 §4.3；词表由来与领域出处口径：报告 §4.4 与 [../discover_matrix/docs/protocol/method_provenance_policy.md](../../../discover_matrix/docs/protocol/method_provenance_policy.md)；实现：[../legacy/feedback_loop/](../../legacy/feedback_loop/) |
 | 强度 | `方法设计+实现` |
 | 可写 | 「贡献是谓词逻辑元模型与断言体系本身，而不是发现了多少问题」 |
 | 禁止 | 「贡献是 feedback loop + verification feedback」（旧定调，已取代）；「贡献是 `fcstm` / `pyfcstm`」；「贡献是 ledger / audit」 |

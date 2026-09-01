@@ -1,5 +1,19 @@
 # 意外发现裁定分类学：五类的定义、判定标准与典型例子
 
+> **现行协议说明（2026-08-23）**：本文五类是历史多报成分分析，不是现行 report validity
+> 枚举，也不得参与主计分。正式 Judge 仅使用 `VALID_KNOWN / VALID_NOVEL / INVALID`；
+> ledger-unmatched 可能包含 partial-only known、valid novel 或 invalid，不能由本历史桶名
+> 自动决定 FP。现行定义见 [issue #195 同步入口](./semantic_judge_protocol.md)。
+
+> **2026-08-29 supersession**：本页保留的 `OUT_OF_SCOPE`、`OOS-*` 与五类旧计数仅用于
+> 复现历史多报分析，不是现行 A0/D 分类。现行缺陷判定没有 scope 出口：作者源承重事实
+> 成立后裁 D2/D1/D0；事实不成立才是 A0。D0/A0 都映射 `INVALID`，只有 D2/D1 才可能
+> 映射 K/N。不得用本页旧决策树裁定新报告。
+
+> **评测侧边界**：本文是历史运行结果的多报侧裁定协议。示例中的旧谓词名只描述
+> 当时产物或台账，不属于当前四族公开词表；新实现必须遵守
+> [`pipeline/evidence_discovery/METHOD_PRINCIPLES.md`](../../../pipeline/evidence_discovery/METHOD_PRINCIPLES.md)。
+
 **进入意外发现桶的产出，必须落入且只落入下面五类之一。没有第六类，也不设「待定」。**
 
 ## ⛔ 先做零步：这条产出真的属于意外发现吗？

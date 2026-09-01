@@ -1,6 +1,19 @@
 # 命中判据：语义同一性优先于标签一致
 
+> **现行协议说明（2026-08-23）**：正式 Judge 唯一口径是
+> [issue #195 同步入口](./semantic_judge_protocol.md)。主 hit 仅由
+> `VALID_KNOWN + FULL_MATCH` 产生；`PARTIAL_MATCH` 只算 supported；W/D/L、谓词、
+> exact locus/property/scope/direction 均不是 match gate。下文记录台账早期形成过程与
+> legacy 人工判据，其中“四种形态闭集”“数引用次数硬判据”和机械 exact-field 层不再是
+> 现行 FULL 定义，不能用于覆盖 #195 的适度宽语义或替代公共制品审计。
+
 本文件是 Discover effectiveness 实验中「一条已发布 issue 是否命中某条 expected issue」的**裁决原则**。它是长期规则，不是某一轮的施工状态；施工进度与 review 状态在对应 GitHub PR / issue 中维护。
+
+⚠️ “已发布 issue”的唯一边界由 [final_output_metrics_policy.md](./final_output_metrics_policy.md) 定义：方法侧只允许 `D1/D2 report_issue_clusters` 进入命中判定，`D0`、`D_UNRESOLVED`、raw finding 和未聚类 facet 均不进入。本文只回答进入该边界后的语义同一性，不另设统计分母。
+
+> **谓词口径边界**：本文件还会引用台账建立期的 `eval_assert` 和旧底层原语。它们是
+> 评测侧历史编码，不是当前公开谓词表。当前运行实现迁移后，命中仍按语义同一性判定，
+> 但新断言只能引用 `four-family-19-core.v1`，没有适用谓词的义务仍按 W1 记录。
 
 相关：[README.md](../../README.md)、[ground_truth_limitations.md](./ground_truth_limitations.md)（分母的已知缺口）、Issue [#166](https://github.com/HansBug/research_ideas/issues/166)（expected issue 台帐）、Issue [#170](https://github.com/HansBug/research_ideas/issues/170)（谓词设计）、PR [#169](https://github.com/HansBug/research_ideas/pull/169)（Discover 验收）。
 

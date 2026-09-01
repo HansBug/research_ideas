@@ -13,18 +13,29 @@
 | :-- | :-- | :-- | :-- |
 | `D2` | 有一条可陈述的被违反义务，且拿不出站得住的反驳 | —— | IEEE 1044-2009 的 **defect** |
 | `D1` | 存在一种与结构事实相容的第二种称职读法，两种读法都站得住 | **推理**（undercutting） | Pollock 1987 定义 (2.5) |
-| `D0` | 作者可正当地说「这就是设计」；或根本没有可陈述的被违反义务 | **结论**（rebutting） | CMU/SEI-2015-TR-005；IEEE 1044 Table A.1 的 `Not found` |
-| `A0` | 三个出局口：`FALSE_POSITIVE` 误报 · `NOT_A_DEFECT_CLAIM` 非主张 · `OUT_OF_SCOPE` 越界 | **证据**（undermining） | 同上，undermining 一条 |
+| `D0` | 作者可正当地说「这就是设计」；或根本没有可陈述的被违反义务 | **结论**（rebutting） | CMU/SEI-2015-TR-005；Ganser et al. 2014；SDMetrics Style 类 |
+| `A0` | 两个出局口：`FALSE_POSITIVE` 误报 · `NOT_A_DEFECT_CLAIM` 非作者源缺陷主张 | **证据**（undermining） | 同上，undermining 一条 |
 
-`A0` 三出口的判据（`D_PROTOCOL.md` §3 的 A0 表）：
+`A0` 两出口的判据（`D_PROTOCOL.md` §3 的 A0 表）：
 
 | 判断 | 出口 |
 | :-- | :-- |
-| 结构事实指不出或在 `stm0.puml` 上不成立 | `FALSE_POSITIVE` |
-| 主张的对象不是作者源制品（例如主张参考模型 / 评测真值本身有问题） | `NOT_A_DEFECT_CLAIM` |
-| 落在界外范围（时钟变量 / 不变式 / 正交区并发语义） | `OUT_OF_SCOPE` |
+| 报告将承重事实归给作者源，但该事实在完整制品证据上不成立 | `FALSE_POSITIVE` |
+| 本方法生成的 unresolved/deferred 分析状态或派生 IR 现象被当成作者源缺陷，回溯后没有形成作者源事实 | `NOT_A_DEFECT_CLAIM` |
 
-⛔ `OUT_OF_SCOPE` 的后果按 `D_PROTOCOL.md` §P3 逐字为「既不算缺陷也不算误报」—— 它与 [nl_scope_rule.md](./nl_scope_rule.md) 的 `00x8` 永久排除是同一条边界，⛔ 不得记为「方法未能检出」。
+⛔ **缺陷分类不再有 scope 出口。** 时钟、不变式、正交区并发、hybrid 或无界时序语义的主张也必须在 `D2/D1/D0` 内裁定。当前谓词或 backend 不支持只影响 W：能精确定位则保留 W1，无精确定位才是 W0。[nl_scope_rule.md](./nl_scope_rule.md) 仅记录冻结评测语料当时的 pair-universe 筛选，不定义缺陷是否成立。
+
+⭐ **D0/A0 先看事实：** 作者源上的承重事实成立后才进入义务审查，并在 D2/D1/D0 中三选一。事实成立但义务不成立是 D0；事实不成立于作者源才是 A0。表示债务是 `NOT_A_DEFECT_CLAIM` 的方法特有子类：它包括把 unresolved/deferred analysis status 当成缺陷，或把只在派生 IR 上成立的现象归错 work product。X1v2 baseline 不经这条分析/表示链，因此没有该子类。学术对应见 issue #189 §1.3.3 的 A0 表：SEI undermining defeater、Porter/NIST 的 False Positive、模型转换 fault attribution 与 CEGAR spurious counterexample。`NOT_A_DEFECT_CLAIM` 和 `representation debt` 是本研究的操作术语，不是文献原词。
+
+## 1.1 与 K/N/I 的确定性闭合
+
+| D/A 结果 | 与本 pair 台账的 relation | 结果 |
+| :-- | :-- | :-- |
+| `D2` / `D1` | 至少一个 `FULL_MATCH` / `PARTIAL_MATCH` | `VALID_KNOWN` (K) |
+| `D2` / `D1` | 全部 `NO_MATCH` | `VALID_NOVEL` (N) |
+| `D0` / `FALSE_POSITIVE` / `NOT_A_DEFECT_CLAIM` | 只允许全 `NO_MATCH` | `INVALID` (I) |
+
+N 表示「有效缺陷且台账未收录」，不是「没匹配到台账的任意报告」。因此 D0/A0 不得归 N；W 也不参与 K/N/I 归属。
 
 ## 2 · D1 是内容属性，不是流程状态
 
@@ -88,8 +99,8 @@
    - ⛔ **`429` 这个数已作废**（旧口径 = 380 + `UM` 49）：`UM` 一族已于 2026-08-16 [整批撤出工作单](../findings/um_residue_ruling.md)，⛔ 不再有任何 `UM-` 块，也不再有 `UM-` 的 meta review。
    - ⚠️ 历史上还出现过 `269` / `220` / `319` / `324` / `281` 几个数，⛔ **一个都不是当前口径**。⭐ 完整账目、每个数的来历、以及 2026-08-16 因混淆 `380` 与 `323` 而两次改错的经过，见 [DEDUP_ACCOUNTING.md](../../ledger_v2/provenance/relabel/DEDUP_ACCOUNTING.md)。⛔⛔ **动任何与条目数有关的代码或统计前先读那一页。**
    - ⭐ 数据落点：范围内 323 条在 [dtier_rulings.json](../../ledger_v2/provenance/relabel/dtier_rulings.json)（meta review 在 [dtier_meta.json](../../ledger_v2/provenance/relabel/dtier_meta.json)）；被判重复移出的 57 条在 [dtier_rulings_deduped_out.json](../../ledger_v2/provenance/relabel/dtier_rulings_deduped_out.json)（含宿主与理由）。⛔ 守门测试 `test_the_dedup_is_not_undone` 双向钉住：既防丢条目，也防重复回潮。
-3. ⚠️ **本轮 schema 的 `grounding` 枚举不含空串**，故 `A0` 出口条目被迫填 `none`，造成 82 条违 G6。经核 **100% 是 A0 出口条目、无一条是判读者判错**；`D_PROTOCOL.md` §3 已据此补两条规则（枚举须含空串 · G6 加前置条件）。⛔ 这是 CLAUDE.md §13「多道门的审计单位是交集」的一个实例，记录在此以免后人误读那 82 条。
-4. ⚠️ **`dsh` 臂在 `D2` 上系统性偏高**（42% vs 另两臂 33–34%），差异**集中在 `D2` ↔ `D1` 一处**，而 `D0` 与三个 A0 出口三臂几乎完全一致。⭐ 但 `dsh` 当少数派的频次（31%）低于 `claude`（39%）—— ⛔ 故它是**方向性偏移**，不是随机离群。分桶规则对此的处置是：`D2+D2+D1` 与 `D2+D1+D1` 都进 `ambiguous` 由人裁，⛔ 不按多数径直判 `D2`。
+3. ⚠️ **本轮 schema 的 `grounding` 枚举不含空串**，故当时的 `A0` 出口条目被迫填 `none`，造成 82 条违 G6。该数字是旧协议历史审计，其中原 scope 出口必须按现行 D2/D1/D0 重判；不得将旧分布当作现行结论。
+4. ⚠️ **`dsh` 臂在 `D2` 上系统性偏高**（42% vs 另两臂 33–34%），差异**集中在 `D2` ↔ `D1` 一处**，而 `D0` 与旧协议三个 A0 出口三臂几乎完全一致。⭐ 但 `dsh` 当少数派的频次（31%）低于 `claude`（39%）—— ⛔ 故它是**方向性偏移**，不是随机离群。分桶规则对此的处置是：`D2+D2+D1` 与 `D2+D1+D1` 都进 `ambiguous` 由人裁，⛔ 不按多数径直判 `D2`。
 
 ## 6.5 · 初始迁移标签的判别器：看**谁产生它**
 

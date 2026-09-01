@@ -1,0 +1,288 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0001",
+  "ledger": [
+    {
+      "ledger_id": "INS-0001-02",
+      "pair": "0001",
+      "D": "D2",
+      "L": "L2",
+      "summary": "`ClampingLoseState`（:14 由 `OperationalState` 引入）没有任何出边，进入后系统永久停在松钳态，而 NL 第 2 句要求装置在信号反馈发出后回到初始态、可以再次工作。",
+      "detail": "制品在 `:14` 建了 `OperationalState --> ClampingLoseState : Transition to Clamping Lose State`，并在 `:15` 给它加了一行描述 `ClampingLoseState : Clamping Lose State`。这个状态此后再没有出现在任何迁移的源端。\n\n这是一个可达的死锁：从 `:2 [*] --> InitialState` 出发，经 `:6 InitialState --> OperationalState : Signal Transmission Fails`，再经 `:14` 即可到达 `ClampingLoseState`。这是一个平坦模型（没有复合态），因此该状态没有可继承的祖先出边；文件里也没有把它声明为终态（既没有 `ClampingLoseState --> [*]`，名字里也没有 final 之类的终止语义）。\n\n为什么这是缺陷而不是设计选择：NL 第 1 句把这台装置定位为「the final execution unit for train braking operations」，即一个反复使用的制动执行单元；NL 第 2 句描述了一个完整的循环——收到制动信号进入制动态、信号传输失败转入运行态、信号反馈发出后回到初始态。松钳（clamping lose）在物理上是「松开卡钳」这个动作的结果状态，按语义它应当是这个循环的收尾，回到初始态或运行态；把它做成吸收态意味着装置松开一次卡钳之后就再也不能参与制动。\n\n还有一个附带事实需要如实记下：`ClampingLoseState` 这个状态在 NL 里完全没有对应句子。NL 只点名了四个状态——initial、braking、operational、brake caliper clamping。所以除了「缺出边」之外，这个状态本身是否该存在也是可质疑的。但 NL 的沉默只说明具体修法未定（是补一条回边、还是整个删掉），不构成「它是合法终点」的声明。\n\n本条与同 pair 的 VU-0001-01 是同一类缺陷落在不同状态上：那一条的主体是 `ClampingState`。",
+      "D_basis": "判 D2。被违反的义务由 NL 第 1 句与第 2 句合起来给出：装置是反复使用的制动执行单元，且存在一个「制动—反馈—回到初始态」的循环。一个可达且无任何出路的状态使这个循环无法闭合。判读时考虑过的第二种读法是「松钳就是流程终点，停在那里是对的」，但它与 NL 第 1 句的反复使用定位直接冲突；且作者并未用任何方式（连到 `[*]`、命名为终态、或在 NL 里给出终止语义）声明这是合法终点。反驳不存活，故 D2。",
+      "L_basis": "判 L2。陈述这条错误需要两件事同时成立：`ClampingLoseState` 是可达的，以及从它出发不存在任何后继。前者要给出一条具体路径（`:2` → `:6` → `:14`），后者要对全部迁移做穷尽检查以确认「没有任何一条以它为源」。两者都超出了单个系统状态的范围，属于对行为的构造与排除。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unintended_terminal",
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "VU-0001-01",
+      "pair": "0001",
+      "D": "D2",
+      "L": "L2",
+      "summary": "`ClampingState`（:8 由 `BrakingState` 引入）没有任何出边，制动卡钳一旦夹紧就永久停住，而 NL 第 2 句要求装置在信号反馈发出后回到初始态。",
+      "detail": "制品在 `:8` 建了 `BrakingState --> ClampingState : Entering Clamping State`，在 `:9` 给它加了描述 `ClampingState : Brake Caliper Clamping State`。此后 `ClampingState` 再没有作为任何迁移的源端出现。\n\n这是一个可达的死锁：从 `:2 [*] --> InitialState` 出发，经 `:5 InitialState --> BrakingState : Brake Signal Received`，再经 `:8` 即可到达。模型是平坦的，没有可继承的祖先出边；作者也没有用任何方式声明它是终点。\n\n对照 NL 可以看出问题所在。NL 第 3 句「After entering the braking state, the system transitions to the brake caliper clamping state」只交代了怎么进去，没交代怎么出来；而 NL 第 2 句给出了完整循环——「Once the signal feedback is sent, it returns to the initial state」。制品把这条回边只挂在了 `BrakingState`（:12）和 `OperationalState`（:11）上，夹紧态被漏掉了。\n\n根因是逐句直译：模型的每一条迁移都能在 NL 里找到对应的一句，而 NL 里没有哪一句显式说「从夹紧态出来」，于是那条边就没有被建出来。NL 第 1 句「the final execution unit for train braking operations」所隐含的「这是个反复使用的装置」是跨句的整体约束，逐句直译看不到它。\n\n本条与同 pair 的 INS-0001-02 是同一类缺陷落在不同状态上：那一条的主体是 `ClampingLoseState`。本条属于第一版台账漏记、后从各实验臂未被认领的产出中提取回来的一类。",
+      "D_basis": "判 D2。被违反的义务来自 NL 第 1 句的装置定位（反复使用的制动执行单元）与 NL 第 2 句的反馈复位循环。永久停在夹紧态意味着这套制动装置只能工作一次。判读时考虑过的第二种读法是「夹紧即为流程终点」，但它与上述两句冲突，且作者未以任何方式（连到 `[*]`、终态命名、或 NL 中的终止语义）声明夹紧是合法终点。需要与另一类情形区分开：如果一个状态机的主反应环本身就不打算终止，那么「找不到终点」不构成缺陷；这里不是那种情形——问题是一条本该存在的回边缺失，而不是整机没有终点。",
+      "L_basis": "判 L2。陈述这条错误需要先给出一条到达 `ClampingState` 的具体路径（`:2` → `:5` → `:8`），再证明从它出发不存在任何后继——后者要对全部迁移做穷尽检查。两者都是对行为的构造与排除，不是单个系统状态上的静态判断。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unintended_terminal",
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:reachable_deadlock:ClampingState",
+          "claims": [
+            "Source state 'ClampingState' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0001.ClampingState"
+          ],
+          "obligations": [
+            "A reachable non-final behavior must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:reachable_deadlock:ClampingState:facet:503d89daad7a"
+          ]
+        },
+        {
+          "finding_id": "source:reachable_deadlock:ClampingLoseState",
+          "claims": [
+            "Source state 'ClampingLoseState' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0001.ClampingLoseState"
+          ],
+          "obligations": [
+            "A reachable non-final behavior must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:reachable_deadlock:ClampingLoseState:facet:503d89daad7a"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型增加了从 OperationalState 到 ClampingLoseState 的转移。",
+          "reason": "规格仅规定信号传输失败后进入 operational state，随后在发送信号反馈后返回 initial state；没有规定从 operational state 转入夹钳丢失状态，也没有定义 Clamping Lose State，因此该额外状态和转移超出规格。",
+          "where": "PlantUML 中 `OperationalState --> ClampingLoseState : Transition to Clamping Lose State` 及 `ClampingLoseState` 状态定义。"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型增加了从 BrakingState 直接返回 InitialState 的反馈转移。",
+          "reason": "规格明确说明进入 braking state 后转入 brake caliper clamping state；对反馈返回初始状态的描述位于信号传输失败后的 operational state 语境中。模型允许制动状态在未经过 ClampingState 的情况下因反馈直接返回初始状态，形成规格未规定的路径，并削弱了“进入制动状态后转入夹钳状态”的必经关系。",
+          "where": "PlantUML 中 `BrakingState --> InitialState : Signal Feedback Sent`。"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型额外增加了“运行态 → 夹紧丢失态”的迁移以及“夹紧丢失态”。",
+          "reason": "自然语言规范只规定信号传输失败后从初始态进入运行态，以及运行态在收到信号反馈后返回初始态；未定义运行态转入“夹紧丢失态”，也未定义该状态。该额外行为不属于规范描述，可能导致模型出现规范未允许的状态路径。",
+          "where": "OperationalState --> ClampingLoseState : Transition to Clamping Lose State；ClampingLoseState : Clamping Lose State"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型额外引入了“Clamping Lose State（夹紧丢失态）”及从运行态到该状态的转移。",
+          "reason": "自然语言规范只定义了初始态、制动状态、运行状态和制动钳夹紧状态，以及相应的转移；没有规定夹紧丢失态，也没有规定运行态可以转移到该状态，因此该额外行为不符合给定规范。",
+          "where": "OperationalState --> ClampingLoseState : Transition to Clamping Lose State，以及 ClampingLoseState 状态定义"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0001",
+    "ledger_assessments": [
+      {
+        "ledger_id": "INS-0001-02",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有 finding，未主张 ClampingLoseState 可达且缺少出边。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:ClampingLoseState"
+          ],
+          "reason": "输出明确指认同一状态 ClampingLoseState，并主张其可达、非终态且没有可继续行为；这与台账的可达且无出边、构成意外吸收态的性质一致。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有 finding，未覆盖该台账主张。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_1 虽指认 ClampingLoseState 及其入边，但主张的是该状态和迁移为规格外的多余元素，不是该状态缺少出边形成可达死锁；同处但不同性质。baseline_issue_2 位于 BrakingState 到 InitialState 的迁移，也不同处。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出主张 OperationalState 到 ClampingLoseState 的迁移及 ClampingLoseState 本身多余，未主张 ClampingLoseState 无出边或进入后无法继续；同处但性质不同。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出主张 ClampingLoseState 及其入边为规格外的额外行为，未主张该状态缺失出边导致意外终止；同处但性质不同。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "VU-0001-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有 finding，未主张 ClampingState 可达且缺少出边。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:ClampingState"
+          ],
+          "reason": "输出指认同一状态 ClampingState，并明确主张其可达、非终态且没有可继续行为，与台账所述可达且无任何出边的意外终止完全同性质。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有 finding，未覆盖该台账主张。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_2 指认的是 BrakingState 到 InitialState 的反馈迁移，并主张该迁移多余、绕过 ClampingState；它没有指认 ClampingState 本身缺少出边。baseline_issue_1 则针对 ClampingLoseState，位置不同。不能拼接输出来构成台账主张。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "唯一输出针对 ClampingLoseState 及其入边的多余性，与 ClampingState 缺出边不同处且不同性质。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "唯一输出针对 ClampingLoseState 及其入边的多余性，与 ClampingState 的可达无出路问题不同处且不同性质。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 主张 OperationalState 到 ClampingLoseState 的迁移以及 ClampingLoseState 状态是规格外的多余元素。冻结台账 INS-0001-02 主张的是 ClampingLoseState 缺少出边而成为可达意外终止；二者虽涉及同一状态，却不是同一种缺陷性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 主张 BrakingState 到 InitialState 的反馈迁移多余并绕过 ClampingState。冻结台账 VU-0001-01 的主体是 ClampingState 缺少出边；迁移位置和缺陷性质均不相同。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 主张 ClampingLoseState 及 OperationalState 到它的迁移属于规格外额外行为，不等同于 INS-0001-02 所主张的 ClampingLoseState 缺失出边、进入后无继续行为。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 指认 ClampingLoseState 和其入边为额外状态/行为，但未主张同一状态缺少出边形成死锁，因此不对应冻结台账。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:reachable_deadlock:ClampingLoseState",
+        "matched_ledger_ids": [
+          "INS-0001-02"
+        ],
+        "false_positive": false,
+        "reason": "明确主张 ClampingLoseState 可达、非终态且无继续行为，与 INS-0001-02 同处同性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:reachable_deadlock:ClampingState",
+        "matched_ledger_ids": [
+          "VU-0001-01"
+        ],
+        "false_positive": false,
+        "reason": "明确主张 ClampingState 可达、非终态且无继续行为，与 VU-0001-01 同处同性质。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "按“同一处且同一性质”逐项对齐。method_run2 的两条可达非终态无继续行为主张分别精确对应两个台账中的可达意外终止/死锁。baseline 三轮关于 ClampingLoseState 的输出主张该状态及入边属于规格外的多余行为，性质是多余状态/迁移，并非台账所主张的该状态缺少出边，因此不命中且相对冻结台账为 false positive。baseline_run1 的 BrakingState 直接回 InitialState 输出主张多余/错置迁移，也不等同于 ClampingState 缺出边。"
+  },
+  "status": "ok",
+  "attempts": 3
+}

@@ -1,6 +1,6 @@
 # R9 单 Agent discover 实现快照（cold archive）· 复活导引
 
-> **Cold archive / deprecated historical snapshot / 代码完整可跑。** 本目录保存 paper1 的**上一版 discover 实现**——一个顶层 Discover Agent 加 11 个工具的单 Agent 编排，包名 `paper_stm_repair_loop`。它已被 [../../pipeline/feedback_loop/](../../pipeline/feedback_loop/) 取代，不在运行路径上，论文的任何数字都不来自这里。
+> **Cold archive / deprecated historical snapshot / 代码完整可跑。** 本目录保存 paper1 的**上一版 discover 实现**——一个顶层 Discover Agent 加 11 个工具的单 Agent 编排，包名 `paper_stm_repair_loop`。它已被 [../legacy/feedback_loop/](../legacy/feedback_loop/) 取代，不在运行路径上，论文的任何数字都不来自这里。
 >
 > ⚠️ **不要把归档理由读成「这版是失败品」。** 当前实现的断言语义与求值环境（`assertions/`）就是从这里移植出去的，见 §2。归档是因为**编排范式换了**，不是因为代码不能用。
 >
@@ -20,7 +20,7 @@
 | 文件数 | **219 个被跟踪文件**（另有 5 个 `.pytest_cache/` 产物被 `.gitignore` 第 1004 行的通用 `.pytest_cache/` 规则忽略，合计 224）；其中 Python 92 个、约 29.4k 行 |
 | 内容变换 | 219 个文件**全部为 rename，blob 哈希逐一比对完全一致**；此外只做了归档允许的机械变换：4 处路径深度重算 ＋ 8 条相对链接深度重算（逐条列在 §6） |
 | 内容冻结点 | 最后一次实质改动见 `git log -- <原路径>`：`28c00131`（Markdown 不折行）、`df7ae9e5`（文档树化）、`35eba126`（`paper_stm_repair` 更名） |
-| 当前事实源替代入口 | [../../pipeline/feedback_loop/](../../pipeline/feedback_loop/)；实验数字回 [../../discover_matrix/](../../discover_matrix/) |
+| 当前事实源替代入口 | [../legacy/feedback_loop/](../legacy/feedback_loop/)；实验数字回 [../../discover_matrix/](../../discover_matrix/) |
 
 ### 0.1 ⛔ 与另外两个同名物的区分
 
@@ -30,7 +30,7 @@
 | :-- | :-- | :-- |
 | **本目录** `archive/r9_agent_loop_pipeline/` | paper1 的**单 Agent discover 实现**，包 `paper_stm_repair_loop`；输入 `<NL, STM_0>`，输出 issue 台账 | 本次归档 |
 | [../../../archive/agent_loop_method/](../../../archive/agent_loop_method/) | project_1 层的 **16-stage LangGraph 建模 loop**（`SC-0 -> ... -> SC-13`），做的是 NL **→ STM 生成**，服务 Path-1/Path-2 | 更早已归档 |
-| [../../pipeline/feedback_loop/](../../pipeline/feedback_loop/) | **当前活的** discover 实现，包 `paper_stm_feedback_loop` | active |
+| [../legacy/feedback_loop/](../legacy/feedback_loop/) | 本快照的后续历史 discover 实现，包 `paper_stm_feedback_loop` | historical |
 
 判据：**包名**。`paper_stm_repair_loop` = 本目录；`paper_stm_feedback_loop` = 当前实现；`archive.agent_loop_method.*` = project_1 层的旧建模 loop。
 
@@ -67,7 +67,7 @@
 
 **因为编排范式换了，不是因为它做得差。** 当前实现在五个维度上做了不同选择：
 
-| 维度 | 本目录（旧） | [../../pipeline/feedback_loop/](../../pipeline/feedback_loop/)（当前） |
+| 维度 | 本目录（旧） | [../legacy/feedback_loop/](../legacy/feedback_loop/)（后续历史实现） |
 | :-- | :-- | :-- |
 | 编排 | 一个顶层 Agent + 工具集，**Agent 自行决定调用顺序** | **确定性 LangGraph StateGraph**，阶段固定 |
 | 审查 | Agent 主动调 `review_discovery_coverage` | 每个生产阶段配一个审查者，**路由强制打回** |
@@ -145,7 +145,7 @@ make legacy-discover-demo DISCOVER_PROFILE=<profile>
 make legacy-discover-pair DISCOVER_PAIR=llms_emp_feedback_final_0000 DISCOVER_PROFILE=<profile>
 ```
 
-⛔ **无前缀的 `make discover-*` 已转发给 [../../pipeline/feedback_loop/](../../pipeline/feedback_loop/)**，跑不到本目录。必须带 `legacy-` 前缀。
+⛔ **无前缀的 `make discover-*` 已转发给 [../legacy/feedback_loop/](../legacy/feedback_loop/)**，跑不到本目录。必须带 `legacy-` 前缀。
 
 不用 `make` 时的等价调用（**在仓库根执行**——`tests/test_discover_cli.py` 里有仓库根相对路径常量，换目录会 `FileNotFoundError`）：
 

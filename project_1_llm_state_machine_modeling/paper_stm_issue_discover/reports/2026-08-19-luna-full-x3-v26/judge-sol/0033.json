@@ -1,0 +1,722 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0033",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0033-01",
+      "pair": "0033",
+      "D": "D2",
+      "L": "L1",
+      "summary": "NL 第 2 句要求 `PumpState`、`WaterState`、`MethaneState` 是 `PumpControl` 的子态，而制品在 `:3`-`:5` 把它们建成了 `PumpControl` 的兄弟——三者根本不在 PumpControl 内部的任何层级。",
+      "detail": "NL 第 2 句逐字为「Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState.」——Within 一词明确了包含关系。\n\n制品在根层写了三行：`:3 PumpControl -down-> PumpState : Activate Pump`、`:4 PumpControl -down-> WaterState : Monitor Water Flow`、`:5 PumpControl -down-> MethaneState : Monitor Methane Flow`。这三行都在任何 `state X { }` 块之外，所以三个目标状态是在根作用域被创建的，与 `PumpControl` 平级。\n\n后面 `:7`、`:12`、`:17` 三处虽然都写了 `state PumpControl {`，块内也提到了这三个名字，但那些名字此时已经在根作用域存在了，块内的引用不会把它们迁进来。\n\n这条与「直接子态还是后代状态」之争无关——三者不在 `PumpControl` 内部的任何层级上，无论按哪种口径数都不是它的子孙。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 2 句的 Within 一词。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——三个状态在根作用域被创建是 PlantUML 作用域规则的确定结果，不存在「其实它们在里面」的解释余地；也不能诉诸直接／后代口径之争来化解，因为它们根本不在 PumpControl 的任何层级下。反驳不存活。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态结构事实：按 PlantUML 的作用域规则，`:3`-`:5` 三行在根作用域创建了三个状态，因此它们的父是根而不是 `PumpControl`。这要把解析规则应用一遍并看清 `:7`/`:12`/`:17` 三个块并不会改变父；但它只涉及静态切面上的包含关系，不需要执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "state",
+        "defect_qualifier": "incorrect",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0033-02",
+      "pair": "0033",
+      "D": "D2",
+      "L": "L1",
+      "summary": "`PumpControl` 被重复打开了三次（`:7`、`:12`、`:17`），三个块内各写了一条默认入口边（`:8`、`:13`、`:18`），三条的目标都是在根作用域创建的状态——目标越出了子作用域，且默认进入点不唯一。",
+      "detail": "NL 第 3 句逐字为「The system first transitions to the PumpState substate, where the pump is activated or controlled.」，要求进入 PumpControl 后首先到达 PumpState。\n\n制品的写法有两个叠加的问题。第一，`state PumpControl {` 这一句写了三遍（`:7`、`:12`、`:17`），PlantUML 会把三次的内容合并到同一个状态里，于是 `PumpControl` 内部同时有三条默认入口边：`:8 [*] --> PumpState`、`:13 [*] --> WaterState`、`:18 [*] --> MethaneState`。一个区域只能有一个默认入口，三条并存使默认进入点不唯一。\n\n第二，三条边的目标 `PumpState`、`WaterState`、`MethaneState` 在 `:3`-`:5` 已经于根作用域被创建（见 EIS-0033-01），所以它们不是 `PumpControl` 的子态。默认入口边的目标必须落在同一区域内，三条都越界了。投影因此把三条都替换成了无效标记。\n\n合起来的后果是：`PumpControl` 没有任何有效的默认进入点，NL 第 3、4、5 句描述的三个进入动作在 PumpControl 的入口处一个都实现不了。\n\n本条与 EIS-0033-01 是两处不同的缺陷：那一条说三个状态的层次归属错了，本条说 PumpControl 的默认入口既越界又不唯一。修法不同——把三个状态挪进 PumpControl 能解决前者，但三条并存的默认入口仍然是问题。",
+      "D_basis": "判 D2。被违反的义务有两个来源，任一单独成立。其一来自 NL 第 3 句要求的首个落点。其二来自建模语言：区域的默认入口边其目标必须属于该区域，且一个区域只能有一个默认入口——两条都是二值的良构约束。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法。反驳不存活。",
+      "L_basis": "判 L1。陈述这条错误需要导出两个静态事实：三条初始边的目标按作用域规则不属于 `PumpControl`，以及三次重复打开同一个块使得该区域有三条默认入口。两者都要把 PlantUML 的作用域与合并规则应用一遍才能得出，比查名字在不在深一层；但只涉及静态切面，不需要执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "other",
+        "defect_logic_kind": null,
+        "defect_reference": "language"
+      }
+    },
+    {
+      "ledger_id": "INS-0033-01",
+      "pair": "0033",
+      "D": "D2",
+      "L": "L0",
+      "summary": "顶层唯一的初始边 `:2 [*] -down-> PumpControl : begin` 挂了触发事件 `begin`，而 UML 2.5.1 规定初始伪状态的出边不得带触发或守卫——整个模型没有无条件的默认入口。",
+      "detail": "`:2` 是全文唯一的根层初始边，冒号后带了 `begin`。UML 2.5.1 规定从初始伪状态出发的迁移不得带触发事件也不得带守卫。后果是这台机器没有确定的启动状态：在 `begin` 到达之前它不处在任何状态里。\n\n同文件内部提供了对照：`:8 [*] --> PumpState`、`:13 [*] --> WaterState`、`:18 [*] --> MethaneState` 三条内层初始边全部是裸的、不带任何标签。作者知道两种写法的区别，`:2` 上的标签是刻意放的。\n\n从语义看，`begin` 描述的是系统被激活这件事本身，而不是机器内部要执行的某个动作，所以它按触发读而不是按 effect 读。\n\n有两点排雷需要一并记下，以免判读被工具输出误导。其一，诊断对象名 `llms_emp_feedback_final_0033` 不在作者源里——那是任何模型都必有的图根包装名（来自文件名），不是被凭空造出来的状态；被指控的那条边完全落在作者源的 `:2` 上。其二，工具给出的修复建议里提到的 `InvalidFinaltr_0006` 是投影合成的状态，那条修复建议被污染了，但 finding 本身不受影响。\n\n正确的修法是把 `:2` 改成无条件的初始边（删掉 `begin`），不是再补第二条。",
+      "D_basis": "判 D2。被违反的义务来自建模语言：UML 2.5.1 规定初始伪状态的出边不得带触发或守卫，这是一条二值条款。同文件对照定案：`:8`/`:13`/`:18` 三条内层初始边都是裸边，只有顶层 `:2` 刻意带了 `begin`，说明作者区分得开两种写法；而 `begin` 描述的是系统激活、不是机器内部 effect，触发读法成立。需要如实记下：本条最初的 meta review 称「`begin` 已列入某份名词性事件名示例词表」，经核那份示例并不存在，不作为依据；改按上面的语言规定与同文件对照定案，结论不变。",
+      "L_basis": "判 L0。陈述这条错误只需就地读 `:2` 这一行，看 `[*] -->` 后面的冒号有没有跟内容——纯词法层面的模式匹配。配套的同文件对照同样只是读另外三行。不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "extraneous",
+        "defect_logic_kind": null,
+        "defect_reference": "language"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:containment:PumpControl",
+          "claims": [
+            "Source child 'PumpState' has actual parent None, not required parent 'PumpControl'.",
+            "Source child 'WaterState' has actual parent None, not required parent 'PumpControl'.",
+            "Source child 'MethaneState' has actual parent None, not required parent 'PumpControl'."
+          ],
+          "locations": [
+            "NL2",
+            "PUML:L7",
+            "F20",
+            "F21",
+            "F22"
+          ],
+          "obligations": [
+            "PumpState must be directly contained in PumpControl.",
+            "PumpState must be contained within PumpControl.",
+            "PumpState, WaterState, and MethaneState must each be contained within PumpControl.",
+            "WaterState must be directly contained in PumpControl.",
+            "WaterState must be contained within PumpControl.",
+            "MethaneState must be directly contained in PumpControl.",
+            "MethaneState must be contained within PumpControl."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 3,
+          "facet_keys": [
+            "source:containment:PumpControl:facet:8791dd894105",
+            "source:containment:PumpControl:facet:d2e3478bcbc2",
+            "source:containment:PumpControl:facet:53b86a87c7dd"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:14c8360500338979",
+          "claims": [
+            "PumpControl lacks a valid initial entry to its required PumpState substate."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L8",
+            "F13",
+            "F16"
+          ],
+          "obligations": [
+            "The PumpControl operating scope must initially enter PumpState."
+          ],
+          "basis": [
+            "unattributed"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:14c8360500338979:facet:b3b04d4cfd7b"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:containment:PumpControl",
+          "claims": [
+            "Source child 'PumpState' has actual parent None, not required parent 'PumpControl'.",
+            "Source child 'WaterState' has actual parent None, not required parent 'PumpControl'.",
+            "Source child 'MethaneState' has actual parent None, not required parent 'PumpControl'."
+          ],
+          "locations": [
+            "NL2",
+            "PumpControl",
+            "PumpState",
+            "WaterState",
+            "MethaneState",
+            "F12",
+            "F20",
+            "F21",
+            "F22"
+          ],
+          "obligations": [
+            "PumpState must be directly contained in PumpControl.",
+            "Each named operating state must be contained in PumpControl.",
+            "WaterState must be directly contained in PumpControl.",
+            "MethaneState must be directly contained in PumpControl."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 3,
+          "facet_keys": [
+            "source:containment:PumpControl:facet:8791dd894105",
+            "source:containment:PumpControl:facet:d2e3478bcbc2",
+            "source:containment:PumpControl:facet:53b86a87c7dd"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:42b6835853f838ae",
+          "claims": [
+            "The PumpState, WaterState, and MethaneState containment relationships required by NL2 are not realized in the authored source hierarchy."
+          ],
+          "locations": [
+            "NL2",
+            "PUML:L7",
+            "PUML:L3",
+            "PUML:L4",
+            "PUML:L5"
+          ],
+          "obligations": [
+            "PumpControl contains PumpState, WaterState, and MethaneState."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:42b6835853f838ae:facet:8791dd894105"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Formal diagnostic W_INITIAL_UNCONDITIONAL_MISSING is present at exact reference llms_emp_feedback_final_0033."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0033"
+          ],
+          "obligations": [
+            "Every entered composite must provide a valid unconditional initial entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:a1184dc6e6ab"
+          ]
+        },
+        {
+          "finding_id": "source:containment:PumpControl",
+          "claims": [
+            "Source child 'PumpState' has actual parent None, not required parent 'PumpControl'.",
+            "Source child 'WaterState' has actual parent None, not required parent 'PumpControl'.",
+            "Source child 'MethaneState' has actual parent None, not required parent 'PumpControl'."
+          ],
+          "locations": [
+            "NL2",
+            "F12",
+            "F19",
+            "F20",
+            "F21",
+            "F22"
+          ],
+          "obligations": [
+            "PumpState must be directly contained in PumpControl.",
+            "PumpState must be contained within PumpControl.",
+            "PumpState must be contained in PumpControl.",
+            "WaterState must be directly contained in PumpControl.",
+            "WaterState must be contained within PumpControl.",
+            "WaterState must be contained in PumpControl.",
+            "MethaneState must be directly contained in PumpControl.",
+            "MethaneState must be contained within PumpControl.",
+            "MethaneState must be contained in PumpControl."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 3,
+          "facet_keys": [
+            "source:containment:PumpControl:facet:8791dd894105",
+            "source:containment:PumpControl:facet:d2e3478bcbc2",
+            "source:containment:PumpControl:facet:53b86a87c7dd"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:7d610195c371cdc7",
+          "claims": [
+            "PumpControl's initial entry does not directly realize the required PumpState entry."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L8",
+            "F13",
+            "F16"
+          ],
+          "obligations": [
+            "Entering PumpControl must initially target PumpState."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:7d610195c371cdc7:facet:f84473b316de"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:6dc780afdc842074",
+          "claims": [
+            "The required initial route into PumpControl does not provide a valid unconditional entry to the required PumpState substate."
+          ],
+          "locations": [
+            "NL3",
+            "F16",
+            "F17",
+            "F18",
+            "inspect:W_INITIAL_UNCONDITIONAL_MISSING"
+          ],
+          "obligations": [
+            "After the system enters PumpControl, it must have a valid initial route to PumpState."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:6dc780afdc842074:facet:67b8be5196d9"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "PumpControl 被重复定义为三个独立的复合状态，而不是一个包含三个子状态的复合状态。",
+          "reason": "规范明确要求系统在一个 PumpControl 状态内具有 PumpState、WaterState 和 MethaneState 三个主要子状态。重复声明会使这三个子状态分散在三个同名容器中，无法表示同一个 PumpControl 内的完整层级结构。",
+          "where": "三个重复的 `state PumpControl { ... }` 块"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型将 PumpState、WaterState 和 MethaneState 建模为 PumpControl 的外部目标状态，同时又在 PumpControl 内部重复定义同名状态。",
+          "reason": "规范描述的是 PumpControl 内部的子状态以及在该复合状态内部的状态选择；这些转移应在同一个 PumpControl 的内部结构中表达，而不是从外部 PumpControl 指向同名顶层状态。",
+          "where": "`PumpControl -down-> PumpState`、`PumpControl -down-> WaterState`、`PumpControl -down-> MethaneState` 三条顶层转移"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型为三个重复的 PumpControl 分别设置初始进入 PumpState、WaterState 和 MethaneState，未表达系统首先进入 PumpState 的要求。",
+          "reason": "规范明确要求系统首先转入 PumpState。模型同时存在三个 PumpControl 初始伪状态，分别可能首先进入三个不同子状态，因此初始行为不唯一，也允许直接首先进入 WaterState 或 MethaneState。",
+          "where": "三个内部 `[*] --> ...` 初始转移"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "模型增加了三个子状态离开 PumpControl 并进入终止伪状态的行为。",
+          "reason": "规范只说明这些状态的功能和可达关系，没有规定停泵、流量稳定后结束 PumpControl 或退出复合状态。该模型行为超出给定规范，且会使 PumpControl 在进入任一子状态后可能终止，而规范未授予这种终止语义。",
+          "where": "`PumpState --> [*] : Pump Deactivated`、`WaterState --> [*] : Water Flow Stabilized`、`MethaneState --> [*] : Methane Flow Stabilized`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "PumpControl 被重复定义为三个独立的复合状态，而不是一个包含 PumpState、WaterState 和 MethaneState 的复合状态。",
+          "reason": "规格明确要求 PumpControl 内有三个主要子状态。PlantUML 中重复声明同名状态会造成结构重复/歧义，不能可靠表达一个统一的 PumpControl 复合状态及其三个子状态。",
+          "where": "三个 `state PumpControl { ... }` 块。"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "PumpControl 的初始转移被错误地建模为同时进入三个子状态。",
+          "reason": "规格要求系统首先转移到 PumpState；WaterState 和 MethaneState 是可选的后续转移目标。模型却为 PumpControl 的入口分别设置了三个初始伪状态转移，表示进入时可能/同时初始进入三个状态，违反“首先进入 PumpState”的要求。",
+          "where": "三个复合状态块中的 `[*] --> PumpState`、`[*] --> WaterState` 和 `[*] --> MethaneState`。"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "WaterState 和 MethaneState 被定义成独立 PumpControl 实例中的初始状态，而非同一 PumpControl 内可达的子状态。",
+          "reason": "规格要求系统在 PumpControl 内可以转移到 WaterState 或 MethaneState。将二者作为各自重复 PumpControl 定义的初始状态，改变了层级和可达性语义，未准确表示同一父状态内部的三个并列子状态。",
+          "where": "`[*] --> WaterState` 与 `[*] --> MethaneState` 所在的复合状态定义。"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "PumpState、WaterState 和 MethaneState 的退出转移没有对应的父状态内转移或返回控制逻辑。",
+          "reason": "规格只规定了三个子状态及其进入关系，并未规定这些状态在停泵、流量稳定等条件下退出 PumpControl。模型额外引入了未由规格支持的终止行为；尤其在复合状态语义下，`[*]` 表示退出父复合状态，可能使系统离开 PumpControl。",
+          "where": "`PumpState --> [*] : Pump Deactivated`、`WaterState --> [*] : Water Flow Stabilized`、`MethaneState --> [*] : Methane Flow Stabilized`。"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "`PumpControl` 被定义了三次，每次都作为独立复合状态并指定不同的初始子状态。",
+          "reason": "规格要求一个 PumpControl 状态，内部包含 PumpState、WaterState 和 MethaneState；重复声明同名复合状态会产生结构歧义，无法可靠表示一个统一的父状态及其三个子状态。",
+          "where": "三个重复的 `state PumpControl { ... }` 声明"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型同时使用父状态到子状态的外部转移和复合状态内部的初始转移来表达进入子状态，结构重复且语义不一致。",
+          "reason": "在复合状态中，子状态应作为同一个 PumpControl 的内部状态由内部初始伪状态选择；当前模型把这些名称既当作外部目标又分散到三个重复的 PumpControl 定义中，不能明确表达规格所述的层级关系和基于条件的选择。",
+          "where": "`PumpControl -down-> PumpState/WaterState/MethaneState` 三条外部转移，以及各复合状态内的初始转移"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "从初始 PumpState 没有到 WaterState 或 MethaneState 的转移。",
+          "reason": "规格要求系统先进入 PumpState，同时系统也能够转移到 WaterState 或 MethaneState。当前 PumpState、WaterState、MethaneState 分属不同的重复父状态，且没有三者之间或统一父状态内的可达转移，因此无法实现从首次 PumpState 进入另外两个子状态的行为。",
+          "where": "三个复合状态内部仅有 `[*] --> ...` 和子状态到 `[*]` 的转移"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0033",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0033-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:containment:PumpControl"
+          ],
+          "reason": "The finding directly states that all three named states have actual parent None instead of PumpControl, matching the ledger's incorrect containment/hierarchy claim.",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:containment:PumpControl",
+            "hypothesis:42b6835853f838ae"
+          ],
+          "reason": "Both findings identify the authored hierarchy as failing to place PumpState, WaterState, and MethaneState inside PumpControl; the source finding is an exact structural match and the hypothesis independently states the same containment defect.",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:containment:PumpControl"
+          ],
+          "reason": "The finding directly identifies the three states' actual parent as None rather than PumpControl, which is the ledger's stated hierarchy error.",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "Issue 2 explicitly identifies the three PumpState/WaterState/MethaneState targets as external to PumpControl rather than its internal substates, matching the same location and containment property.",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "Issue 3 describes WaterState and MethaneState as belonging to separate repeated PumpControl instances, but does not specifically assert the ledger's root-level external targets at :3-:5 or the resulting actual parent relationship.",
+          "confidence": "medium"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "Issue 2 explicitly refers to the three external PumpControl-to-state transitions and says they cannot express the required hierarchy, matching the ledger's external/root-level target defect.",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0033-02",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:14c8360500338979"
+          ],
+          "reason": "The finding identifies PumpControl's initial entry as lacking a valid entry to the required PumpState at the internal initial transition location. This covers the ledger's default-entry validity defect, although it does not enumerate every contributing invalid edge or the full non-uniqueness claim.",
+          "confidence": "medium"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "Both findings concern only containment hierarchy and do not make a claim about PumpControl's default initial-entry transitions.",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:6dc780afdc842074",
+            "hypothesis:7d610195c371cdc7"
+          ],
+          "reason": "Both findings specifically identify PumpControl's initial route/entry to PumpState as invalid or not directly realized at the internal initial-entry location, matching the ledger's default-entry defect.",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3"
+          ],
+          "reason": "Issue 3 explicitly states that three internal initial transitions select PumpState, WaterState, and MethaneState, making the initial behavior non-unique and violating the required first entry to PumpState.",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "Issue 2 directly identifies the three internal initial transitions and says they violate the requirement that entry first target PumpState; this is the same initial-entry slot and property as the ledger, though it emphasizes the wrong initial target rather than all three out-of-scope targets.",
+          "confidence": "medium"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "Issue 1 states that the three repeated PumpControl composites each specify a different initial substate, directly identifying the non-unique initial-entry structure.",
+          "confidence": "medium"
+        }
+      },
+      {
+        "ledger_id": "INS-0033-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "The PumpControl-internal initial-entry finding does not identify the unique root transition :2 or its extraneous begin trigger.",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "The findings concern only PumpControl containment and do not identify the root initial transition or an extraneous trigger on it.",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "The root-level diagnostic claim is generic and points to the wrapper reference llms_emp_feedback_final_0033; it does not claim that :2 has an extraneous begin trigger. The other findings concern PumpControl's internal entry, not the root transition.",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "None of the four issues identifies the root initial transition :2 or the invalid trigger begin on an initial pseudostate edge.",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "None of the four issues identifies the root initial transition :2 or the extraneous begin trigger.",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "The issues concern repeated PumpControl structure, internal initial transitions, and missing inter-state transitions; none identifies :2 or its begin trigger.",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:containment:PumpControl",
+        "matched_ledger_ids": [
+          "EIS-0033-01"
+        ],
+        "false_positive": false,
+        "reason": "Direct semantic match: all three named states are asserted to have parent None rather than PumpControl.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:14c8360500338979",
+        "matched_ledger_ids": [
+          "EIS-0033-02"
+        ],
+        "false_positive": false,
+        "reason": "It identifies the PumpControl initial-entry failure to the required PumpState at the internal initial-entry location.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:containment:PumpControl",
+        "matched_ledger_ids": [
+          "EIS-0033-01"
+        ],
+        "false_positive": false,
+        "reason": "Direct semantic match to the incorrect parent/containment relationship.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:42b6835853f838ae",
+        "matched_ledger_ids": [
+          "EIS-0033-01"
+        ],
+        "false_positive": false,
+        "reason": "It explicitly claims that the NL2 containment relationships are not realized in the authored hierarchy.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "This is a generic root diagnostic at the wrapper reference and does not claim the specific :2 initial edge has an extraneous begin trigger.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:containment:PumpControl",
+        "matched_ledger_ids": [
+          "EIS-0033-01"
+        ],
+        "false_positive": false,
+        "reason": "Directly matches the three states having parent None instead of PumpControl.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:7d610195c371cdc7",
+        "matched_ledger_ids": [
+          "EIS-0033-02"
+        ],
+        "false_positive": false,
+        "reason": "It specifically claims that PumpControl's initial entry does not directly realize the required PumpState entry.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:6dc780afdc842074",
+        "matched_ledger_ids": [
+          "EIS-0033-02"
+        ],
+        "false_positive": false,
+        "reason": "It specifically claims that the required route into PumpControl lacks a valid unconditional initial route to PumpState.",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It focuses on repeated PumpControl declarations as separate containers and does not specifically assert the ledger's root-level child-state containment defect, the default-entry defect, or the root trigger defect.",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0033-01"
+        ],
+        "false_positive": false,
+        "reason": "It directly identifies the three states as external targets rather than PumpControl substates.",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "EIS-0033-02"
+        ],
+        "false_positive": false,
+        "reason": "It directly identifies three competing internal initial transitions and the resulting failure to require PumpState first.",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It concerns extra exits to final pseudostates, which is not any frozen ledger claim.",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It concerns repeated PumpControl declarations generally, without directly claiming the ledger's external/root-level target hierarchy or the default-entry defect.",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0033-02"
+        ],
+        "false_positive": false,
+        "reason": "It directly identifies the three internal initial transitions and the violation of the required first entry to PumpState.",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It describes separate repeated containers and altered reachability, but does not make a sufficiently specific claim about the frozen ledger's root-level external targets or default-entry multiplicity/invalidity.",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It concerns unsupported exit transitions and termination behavior, absent from the frozen ledger.",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0033-02"
+        ],
+        "false_positive": false,
+        "reason": "It explicitly says the three repeated composites specify different initial substates, matching the ledger's non-unique default-entry problem.",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0033-01"
+        ],
+        "false_positive": false,
+        "reason": "It explicitly identifies the external PumpControl-to-state transitions and their conflict with the required hierarchy.",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It concerns missing transitions from PumpState to WaterState or MethaneState, a reachability/transition omission not asserted by any frozen ledger entry.",
+        "confidence": null
+      }
+    ],
+    "pair_reason": "EIS-0033-01 is covered when an issue specifically identifies PumpState/WaterState/MethaneState as being outside the PumpControl hierarchy or as external/root-level targets. EIS-0033-02 is covered when an issue identifies PumpControl's invalid, non-unique, or wrong initial-entry structure. INS-0033-01 requires the specific root initial transition at :2 and its extraneous trigger; generic unconditional-entry diagnostics or PumpControl-internal entry findings do not cover it. D0 findings are absent and are not counted."
+  },
+  "status": "ok",
+  "attempts": 1
+}

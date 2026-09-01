@@ -1,0 +1,681 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0001",
+  "ledger": [
+    {
+      "ledger_id": "INS-0001-02",
+      "pair": "0001",
+      "D": "D2",
+      "L": "L2",
+      "summary": "`ClampingLoseState`（:14 由 `OperationalState` 引入）没有任何出边，进入后系统永久停在松钳态，而 NL 第 2 句要求装置在信号反馈发出后回到初始态、可以再次工作。",
+      "detail": "制品在 `:14` 建了 `OperationalState --> ClampingLoseState : Transition to Clamping Lose State`，并在 `:15` 给它加了一行描述 `ClampingLoseState : Clamping Lose State`。这个状态此后再没有出现在任何迁移的源端。\n\n这是一个可达的死锁：从 `:2 [*] --> InitialState` 出发，经 `:6 InitialState --> OperationalState : Signal Transmission Fails`，再经 `:14` 即可到达 `ClampingLoseState`。这是一个平坦模型（没有复合态），因此该状态没有可继承的祖先出边；文件里也没有把它声明为终态（既没有 `ClampingLoseState --> [*]`，名字里也没有 final 之类的终止语义）。\n\n为什么这是缺陷而不是设计选择：NL 第 1 句把这台装置定位为「the final execution unit for train braking operations」，即一个反复使用的制动执行单元；NL 第 2 句描述了一个完整的循环——收到制动信号进入制动态、信号传输失败转入运行态、信号反馈发出后回到初始态。松钳（clamping lose）在物理上是「松开卡钳」这个动作的结果状态，按语义它应当是这个循环的收尾，回到初始态或运行态；把它做成吸收态意味着装置松开一次卡钳之后就再也不能参与制动。\n\n还有一个附带事实需要如实记下：`ClampingLoseState` 这个状态在 NL 里完全没有对应句子。NL 只点名了四个状态——initial、braking、operational、brake caliper clamping。所以除了「缺出边」之外，这个状态本身是否该存在也是可质疑的。但 NL 的沉默只说明具体修法未定（是补一条回边、还是整个删掉），不构成「它是合法终点」的声明。\n\n本条与同 pair 的 VU-0001-01 是同一类缺陷落在不同状态上：那一条的主体是 `ClampingState`。",
+      "D_basis": "判 D2。被违反的义务由 NL 第 1 句与第 2 句合起来给出：装置是反复使用的制动执行单元，且存在一个「制动—反馈—回到初始态」的循环。一个可达且无任何出路的状态使这个循环无法闭合。判读时考虑过的第二种读法是「松钳就是流程终点，停在那里是对的」，但它与 NL 第 1 句的反复使用定位直接冲突；且作者并未用任何方式（连到 `[*]`、命名为终态、或在 NL 里给出终止语义）声明这是合法终点。反驳不存活，故 D2。",
+      "L_basis": "判 L2。陈述这条错误需要两件事同时成立：`ClampingLoseState` 是可达的，以及从它出发不存在任何后继。前者要给出一条具体路径（`:2` → `:6` → `:14`），后者要对全部迁移做穷尽检查以确认「没有任何一条以它为源」。两者都超出了单个系统状态的范围，属于对行为的构造与排除。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unintended_terminal",
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "VU-0001-01",
+      "pair": "0001",
+      "D": "D2",
+      "L": "L2",
+      "summary": "`ClampingState`（:8 由 `BrakingState` 引入）没有任何出边，制动卡钳一旦夹紧就永久停住，而 NL 第 2 句要求装置在信号反馈发出后回到初始态。",
+      "detail": "制品在 `:8` 建了 `BrakingState --> ClampingState : Entering Clamping State`，在 `:9` 给它加了描述 `ClampingState : Brake Caliper Clamping State`。此后 `ClampingState` 再没有作为任何迁移的源端出现。\n\n这是一个可达的死锁：从 `:2 [*] --> InitialState` 出发，经 `:5 InitialState --> BrakingState : Brake Signal Received`，再经 `:8` 即可到达。模型是平坦的，没有可继承的祖先出边；作者也没有用任何方式声明它是终点。\n\n对照 NL 可以看出问题所在。NL 第 3 句「After entering the braking state, the system transitions to the brake caliper clamping state」只交代了怎么进去，没交代怎么出来；而 NL 第 2 句给出了完整循环——「Once the signal feedback is sent, it returns to the initial state」。制品把这条回边只挂在了 `BrakingState`（:12）和 `OperationalState`（:11）上，夹紧态被漏掉了。\n\n根因是逐句直译：模型的每一条迁移都能在 NL 里找到对应的一句，而 NL 里没有哪一句显式说「从夹紧态出来」，于是那条边就没有被建出来。NL 第 1 句「the final execution unit for train braking operations」所隐含的「这是个反复使用的装置」是跨句的整体约束，逐句直译看不到它。\n\n本条与同 pair 的 INS-0001-02 是同一类缺陷落在不同状态上：那一条的主体是 `ClampingLoseState`。本条属于第一版台账漏记、后从各实验臂未被认领的产出中提取回来的一类。",
+      "D_basis": "判 D2。被违反的义务来自 NL 第 1 句的装置定位（反复使用的制动执行单元）与 NL 第 2 句的反馈复位循环。永久停在夹紧态意味着这套制动装置只能工作一次。判读时考虑过的第二种读法是「夹紧即为流程终点」，但它与上述两句冲突，且作者未以任何方式（连到 `[*]`、终态命名、或 NL 中的终止语义）声明夹紧是合法终点。需要与另一类情形区分开：如果一个状态机的主反应环本身就不打算终止，那么「找不到终点」不构成缺陷；这里不是那种情形——问题是一条本该存在的回边缺失，而不是整机没有终点。",
+      "L_basis": "判 L2。陈述这条错误需要先给出一条到达 `ClampingState` 的具体路径（`:2` → `:5` → `:8`），再证明从它出发不存在任何后继——后者要对全部迁移做穷尽检查。两者都是对行为的构造与排除，不是单个系统状态上的静态判断。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unintended_terminal",
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:reachable_deadlock:ClampingLoseState",
+          "claims": [
+            "Source state 'ClampingLoseState' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0001.ClampingLoseState"
+          ],
+          "obligations": [
+            "A reachable non-final behavior must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:reachable_deadlock:ClampingLoseState:facet:503d89daad7a"
+          ]
+        },
+        {
+          "finding_id": "source:transition:InitialState:receives a brake signal:BrakingState",
+          "claims": [
+            "The required InitialState -> BrakingState transition under receives a brake signal is absent or loses its condition."
+          ],
+          "locations": [
+            "NL2"
+          ],
+          "obligations": [
+            "InitialState must transition directly to BrakingState under receives a brake signal."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:InitialState:receives a brake signal:BrakingState:facet:56230410f107"
+          ]
+        },
+        {
+          "finding_id": "source:transition:InitialState:signal transmission fails:OperationalState",
+          "claims": [
+            "The required InitialState -> OperationalState transition under signal transmission fails is absent or loses its condition."
+          ],
+          "locations": [
+            "NL2"
+          ],
+          "obligations": [
+            "InitialState must transition directly to OperationalState under signal transmission fails."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:InitialState:signal transmission fails:OperationalState:facet:5dfd5972e2d9"
+          ]
+        },
+        {
+          "finding_id": "source:transition:OperationalState:signal feedback is sent:InitialState",
+          "claims": [
+            "The required OperationalState -> InitialState transition under signal feedback is sent is absent or loses its condition."
+          ],
+          "locations": [
+            "NL2"
+          ],
+          "obligations": [
+            "OperationalState must transition directly to InitialState under signal feedback is sent."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:OperationalState:signal feedback is sent:InitialState:facet:fef44162b40f"
+          ]
+        },
+        {
+          "finding_id": "source:transition:BrakingState:signal feedback is sent:InitialState",
+          "claims": [
+            "The required BrakingState -> InitialState transition under signal feedback is sent is absent or loses its condition."
+          ],
+          "locations": [
+            "NL2"
+          ],
+          "obligations": [
+            "BrakingState must transition directly to InitialState under signal feedback is sent."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:BrakingState:signal feedback is sent:InitialState:facet:411ab819337e"
+          ]
+        },
+        {
+          "finding_id": "source:reachable_deadlock:ClampingState",
+          "claims": [
+            "Source state 'ClampingState' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0001.ClampingState",
+            "FCSTM:F10",
+            "inspect:deterministic_frontier[0]"
+          ],
+          "obligations": [
+            "A reachable non-final behavior must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:reachable_deadlock:ClampingState:facet:198b5ff72a44"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "hypothesis:a72892ce63d299af",
+          "claims": [
+            "The extra authored edge tr_0006 may realize an unauthorized feedback route from BrakingState to InitialState."
+          ],
+          "locations": [
+            "NL2",
+            "PUML:L12",
+            "tr_0006",
+            "FCSTM:F17"
+          ],
+          "obligations": [
+            "The authored model must not contain a feedback transition from BrakingState to InitialState when the requirement assigns the feedback return to the operational branch."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:a72892ce63d299af:facet:ba5f395fe606"
+          ]
+        },
+        {
+          "finding_id": "source:extraneous_transition:tr_0006",
+          "claims": [
+            "Exact source transition 'tr_0006' is present but forbidden."
+          ],
+          "locations": [
+            "tr_0006",
+            "NL2"
+          ],
+          "obligations": [
+            "Every authored transition must be semantically authorized by the NL contract that governs its source and behavior role."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:extraneous_transition:tr_0006:facet:ba5f395fe606"
+          ]
+        },
+        {
+          "finding_id": "source:reachable_deadlock:ClampingState",
+          "claims": [
+            "Source state 'ClampingState' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "NL3",
+            "ClampingState",
+            "F15",
+            "W_DEADLOCK_LEAF"
+          ],
+          "obligations": [
+            "A reachable clamping state must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:reachable_deadlock:ClampingState:facet:4342fb2f6ddf"
+          ]
+        },
+        {
+          "finding_id": "source:reachable_deadlock:ClampingLoseState",
+          "claims": [
+            "Source state 'ClampingLoseState' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "OperationalState",
+            "ClampingLoseState",
+            "tr_0007",
+            "F18",
+            "W_DEADLOCK_LEAF"
+          ],
+          "obligations": [
+            "A reachable clamping-loss state must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:reachable_deadlock:ClampingLoseState:facet:3c2937aac0f6"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:transition:BrakingState:After entering the braking state:ClampingState",
+          "claims": [
+            "The required BrakingState -> ClampingState transition under After entering the braking state is absent or loses its condition."
+          ],
+          "locations": [
+            "NL3"
+          ],
+          "obligations": [
+            "BrakingState must transition directly to ClampingState under After entering the braking state."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:BrakingState:After entering the braking state:ClampingState:facet:49a7da26f4ea"
+          ]
+        },
+        {
+          "finding_id": "source:guard_presence:BrakingState:ClampingState",
+          "claims": [
+            "The authored braking-to-clamping transition may lack the independent post-entry guard required by the NL qualifier."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L8",
+            "F15",
+            "tr_0004"
+          ],
+          "obligations": [
+            "After entering the braking state, the transition to the brake caliper clamping state must be conditioned by the stated post-entry qualifier."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D1",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:guard_presence:BrakingState:ClampingState:facet:c86747257926"
+          ]
+        },
+        {
+          "finding_id": "source:extraneous_transition:tr_0007",
+          "claims": [
+            "Exact source transition 'tr_0007' is present but forbidden."
+          ],
+          "locations": [
+            "tr_0007",
+            "NL2"
+          ],
+          "obligations": [
+            "Every authored transition must be semantically authorized by the NL contract that governs its source and behavior role."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:extraneous_transition:tr_0007:facet:0366d71d9201"
+          ]
+        },
+        {
+          "finding_id": "source:reachable_deadlock:ClampingState",
+          "claims": [
+            "Source state 'ClampingState' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "NL3",
+            "FCSTM:F15",
+            "inspect:deterministic_frontier[source:reachable_deadlock:ClampingState]"
+          ],
+          "obligations": [
+            "The brake caliper clamping state reached by the required braking transition must admit continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:reachable_deadlock:ClampingState:facet:8bd2e2129462"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型增加了从 OperationalState 到 ClampingLoseState 的转移。",
+          "reason": "规格仅规定信号传输失败后进入 operational state，随后在发送信号反馈后返回 initial state；没有规定从 operational state 转入夹钳丢失状态，也没有定义 Clamping Lose State，因此该额外状态和转移超出规格。",
+          "where": "PlantUML 中 `OperationalState --> ClampingLoseState : Transition to Clamping Lose State` 及 `ClampingLoseState` 状态定义。"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型增加了从 BrakingState 直接返回 InitialState 的反馈转移。",
+          "reason": "规格明确说明进入 braking state 后转入 brake caliper clamping state；对反馈返回初始状态的描述位于信号传输失败后的 operational state 语境中。模型允许制动状态在未经过 ClampingState 的情况下因反馈直接返回初始状态，形成规格未规定的路径，并削弱了“进入制动状态后转入夹钳状态”的必经关系。",
+          "where": "PlantUML 中 `BrakingState --> InitialState : Signal Feedback Sent`。"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型额外增加了“运行态 → 夹紧丢失态”的迁移以及“夹紧丢失态”。",
+          "reason": "自然语言规范只规定信号传输失败后从初始态进入运行态，以及运行态在收到信号反馈后返回初始态；未定义运行态转入“夹紧丢失态”，也未定义该状态。该额外行为不属于规范描述，可能导致模型出现规范未允许的状态路径。",
+          "where": "OperationalState --> ClampingLoseState : Transition to Clamping Lose State；ClampingLoseState : Clamping Lose State"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型额外引入了“Clamping Lose State（夹紧丢失态）”及从运行态到该状态的转移。",
+          "reason": "自然语言规范只定义了初始态、制动状态、运行状态和制动钳夹紧状态，以及相应的转移；没有规定夹紧丢失态，也没有规定运行态可以转移到该状态，因此该额外行为不符合给定规范。",
+          "where": "OperationalState --> ClampingLoseState : Transition to Clamping Lose State，以及 ClampingLoseState 状态定义"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0001",
+    "ledger_assessments": [
+      {
+        "ledger_id": "INS-0001-02",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:ClampingLoseState"
+          ],
+          "reason": "finding 直接断言 ClampingLoseState 可达、非终态且无 enabled continuation，与台账的可达无出边性质一致。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:ClampingLoseState"
+          ],
+          "reason": "finding 直接断言 ClampingLoseState 可达、非终态且无 enabled continuation，与台账的可达无出边性质一致。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有关于 ClampingLoseState 无出路的 finding；其迁移多余问题不等于状态无出边。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格仅报告新增 ClampingLoseState/进入迁移和多余反馈迁移，没有报告 ClampingLoseState 无出边或 ClampingState 无出边。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格只报告 ClampingLoseState 及其进入迁移是规格外新增，没有报告该状态进入后无任何出路。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格只报告新增 ClampingLoseState 及其进入迁移未被规格授权，没有报告意外终止。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "VU-0001-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:ClampingState"
+          ],
+          "reason": "finding 直接断言 ClampingState 可达、非终态且无 enabled continuation，与台账的可达无出边性质一致。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:ClampingState"
+          ],
+          "reason": "finding 直接断言 ClampingState 可达、非终态且无 enabled continuation，与台账的可达无出边性质一致。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:ClampingState"
+          ],
+          "reason": "finding 直接断言由要求中的 braking transition 到达的 ClampingState 无 continuation 或合法终止，覆盖台账的意外终止性质。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有报告 ClampingState 的可达死锁或无出边，仅报告其他迁移问题。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格只报告 ClampingLoseState 的新增，不涉及 ClampingState 的无出边。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格只报告 ClampingLoseState 的新增，不涉及 ClampingState 的可达死锁。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:reachable_deadlock:ClampingLoseState",
+        "matched_ledger_ids": [
+          "INS-0001-02"
+        ],
+        "false_positive": false,
+        "reason": "直接指认可达、非终态且无继续行为的 ClampingLoseState，地点与“无出边的意外终止”性质均一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:reachable_deadlock:ClampingState",
+        "matched_ledger_ids": [
+          "VU-0001-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认可达、非终态且无继续行为的 ClampingState，地点与“无出边的意外终止”性质均一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:transition:BrakingState:signal feedback is sent:InitialState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张缺失 BrakingState 到 InitialState 的反馈迁移，属于迁移缺失问题，不是任一夹钳状态无出边。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:transition:InitialState:receives a brake signal:BrakingState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 InitialState 到 BrakingState 的迁移缺失，与两个台账条目的夹钳状态死锁性质不同。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:transition:InitialState:signal transmission fails:OperationalState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 InitialState 到 OperationalState 的迁移缺失，与任一夹钳状态的无出边问题无关。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:transition:OperationalState:signal feedback is sent:InitialState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 OperationalState 到 InitialState 的迁移缺失，不是 ClampingState 或 ClampingLoseState 的无出边断言。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:a72892ce63d299af",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 BrakingState 到 InitialState 的多余反馈路径，性质是多余迁移而非夹钳状态无出路。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:extraneous_transition:tr_0006",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张具体迁移 tr_0006 被禁止，性质是多余迁移，不是台账所述状态无出边。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:reachable_deadlock:ClampingState",
+        "matched_ledger_ids": [
+          "VU-0001-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 ClampingState 可达、非终态且无继续行为，完整覆盖该台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:reachable_deadlock:ClampingLoseState",
+        "matched_ledger_ids": [
+          "INS-0001-02"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 ClampingLoseState 可达、非终态且无继续行为，完整覆盖该台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:transition:BrakingState:After entering the braking state:ClampingState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 BrakingState 到 ClampingState 的迁移缺失，与 ClampingState 已存在但无出边的性质不同。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:guard_presence:BrakingState:ClampingState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 BrakingState 到 ClampingState 迁移的条件槽位缺失，既非夹钳状态无出边也非夹钳丢失状态无出边。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:extraneous_transition:tr_0007",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张具体迁移 tr_0007 多余，性质是多余迁移；即使涉及相关状态，也未主张其无出边。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:reachable_deadlock:ClampingState",
+        "matched_ledger_ids": [
+          "VU-0001-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认可达 ClampingState 无继续行为且非合法终止，地点和缺陷性质均一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 OperationalState 到 ClampingLoseState 及该状态为规格外新增，性质是多余元素/迁移，不是 ClampingLoseState 无出边。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 BrakingState 到 InitialState 的多余反馈迁移，未主张 ClampingState 或 ClampingLoseState 无出路。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张新增 ClampingLoseState 及其进入迁移超出规格，性质是多余状态/迁移而非该状态的意外终止。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张新增 ClampingLoseState 及 OperationalState 到该状态的迁移不受规格授权，未主张无出边。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "两个台账条目都是针对不同夹钳状态的可达且非终态无出路缺陷。三轮方法输出中的对应 reachable_deadlock finding 分别覆盖它们；其余迁移缺失、迁移多余、状态/迁移规格外新增或 guard 槽位问题虽可能涉及相关元素，但性质不同，均判为 false positive。baseline 三轮均未报告任一夹钳状态的无出边死锁。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

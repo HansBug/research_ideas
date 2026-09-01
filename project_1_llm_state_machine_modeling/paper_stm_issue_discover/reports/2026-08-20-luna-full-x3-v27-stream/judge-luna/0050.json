@@ -1,0 +1,379 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0050",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0050-01",
+      "pair": "0050",
+      "D": "D1",
+      "L": "L1",
+      "summary": "NL 第 5 句的三个接管条件在 `:17` 被压成一条跨行的自由文本标签 `human steering cmd\\nor brake pressed\\nor in (auto final)`，投影为单一事件——任一单独条件都不能触发接管。",
+      "detail": "NL 第 5 句逐字为「transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)」。\n\n制品在 `:17` 写 `AutonomousMode --> HumanDrivingMode : human steering cmd\\nor brake pressed\\nor in (auto final)`。这里的 `\\n` 是 PlantUML 的换行记号，只影响标签在图上怎么排版，不改变它是一整串自由文本这件事。投影之后整个标签成为单一事件名。\n\n后果有两层。其一，机器只能对这个「三合一」事件整体作出反应，无法对单独的转向指令或单独的刹车作出反应。其二，`in (auto final)` 在范畴上是状态条件而非事件，把它塞进事件名意味着：处于自动驾驶终态边界时不会自动交还控制权，仍要等那个复合事件。\n\n值得注意的是这份制品的标签里写了两个显式的 `or`——这是同一份 NL 的六份制品里唯一把析取关系写出来的。",
+      "D_basis": "判 D1，两读并立。第一种读法把三样东西读成三个各自充分的接管条件：把它们压成一个复合事件使任一单独条件都无法触发接管，缺陷成立。第二种读法紧扣标签的逐字内容：这条标签里写了两个显式的 `or`，读作「三条并列条件任一成立即触发」与标签文字最贴合——也就是说作者的意图表达是清楚的，只是 PlantUML 不会按这个意图去解析。这个读法与逐字文本相容，能削弱「作者没有表达出析取」这条推理，故判 D1。注意两种读法都不改变「投影结果是单一事件」这个结构事实，D1 说的是这条缺陷主张的具体形态（作者是否表达了三选一）存在第二种站得住的读法。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态事实：`:17` 的跨行标签按 PlantUML 的解析规则投影之后得到的事件集合里只有一个事件名，而不是三个。这要把标签解析规则（含 `\\n` 只是排版记号这一点）应用一遍才能得出，比单纯的词项比对深一层；但只涉及静态切面，不需要执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "other",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "INS-0050-01",
+      "pair": "0050",
+      "D": "D2",
+      "L": "L0",
+      "summary": "根层唯一的初始边 `:3 [*] --> HumanDrivingMode : Power On` 带了标签，于是这台机器没有无条件的默认入口；而同文件 `:9 [*] --> SubState1` 是裸边，对照说明作者区分得开两种写法。",
+      "detail": "`:3` 是全文唯一的根层初始边，冒号后带了 `Power On`。UML 2.5.1 规定从初始伪状态出发的迁移不得带触发事件也不得带守卫。后果是这台状态机没有确定的启动状态：上电之后、`Power On` 到达之前，它不处在任何状态里。\n\n同文件对照：第 `:9` 行的 `[*] --> SubState1` 是裸的、不带任何标签，而且它没有被诊断报出（投影后它仍是一条裸初始边）。这说明诊断区分的是作者的两种写法，不是投影副作用。\n\n判定落点要按下面这个来裁，与 pair 0030 的 INS-0030-01 相同。正确的修法是把 `:3` 上那项多余的标签删掉或重构，而不是再补一条裸初始边——一个区域只能有一个默认入口。所以缺陷对象是那个多余的触发。同时，判定的落点是「已有的那条入口边带了触发」而不是「没有入口边」：后者在 UML 里是语义变异点、不能判为语言层缺陷，前者才是二值规定。\n\n`Power On` 是 NL 第 3 句「when power on, the system turn into human driving mode」点名的、由环境产生的外部刺激。NL 对上电意图的要求只能解释作者为什么这样写，不能使这条二值的语言违反合法化。\n\n同型形态在同一份 NL 下的其它制品上也出现（INS-0000-04、INS-0030-01、VU-0040-01）；pair 0020 的 `:2 [*] -> HumanDrivingMode` 是裸边、合规，构成同一条规则的正反两面。",
+      "D_basis": "判 D2。被违反的义务来自建模语言：UML 2.5.1 规定初始伪状态的出边不得带触发或守卫，这是一条二值条款。`Power On` 是 NL 点名的外部刺激，按触发读；源里没有任何 «create» 构造可支持例外读法。同文件对照定案：`:9` 的内层初始边是裸的，作者区分得开两种写法，`:3` 上的标签是刻意的。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需就地读 `:3` 这一行，看 `[*] -->` 后面的冒号有没有跟内容——纯词法层面的模式匹配。配套的同文件对照同样只是读另一行。不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "language"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Initial pseudostate scope '__root__' has 1 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0050.puml:line:3); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0050"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:eb2ae377d7d7"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Initial pseudostate scope '__root__' has 1 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0050.puml:line:3); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0050"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:eb2ae377d7d7"
+          ]
+        },
+        {
+          "finding_id": "source:guard_presence:HumanDrivingMode:AutonomousMode",
+          "claims": [
+            "The authored front-distance qualification may be encoded as an event label rather than a formal guard."
+          ],
+          "locations": [
+            "NL4",
+            "PUML:L15",
+            "tr_0006",
+            "F29"
+          ],
+          "obligations": [
+            "The front-distance condition on the HumanDrivingMode to AutonomousMode transition must be represented as a guard."
+          ],
+          "basis": [
+            "unattributed"
+          ],
+          "d_level": "D1",
+          "l_level": "L1",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:guard_presence:HumanDrivingMode:AutonomousMode:facet:38f39be99259"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Initial pseudostate scope '__root__' has 1 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0050.puml:line:3); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0050"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:eb2ae377d7d7"
+          ]
+        },
+        {
+          "finding_id": "source:transition:HumanDrivingMode:front_distance > 10:AutonomousMode",
+          "claims": [
+            "The required HumanDrivingMode -> AutonomousMode transition under front_distance > 10 is absent or loses its condition."
+          ],
+          "locations": [
+            "NL4"
+          ],
+          "obligations": [
+            "HumanDrivingMode must transition directly to AutonomousMode under front_distance > 10."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:HumanDrivingMode:front_distance > 10:AutonomousMode:facet:e6808b568468"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:69ed2e8b730bc62e",
+          "claims": [
+            "The initial transition may violate the unconditional-entry requirement."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L3",
+            "F28",
+            "llms_emp_feedback_final_0050"
+          ],
+          "obligations": [
+            "The initial pseudostate must enter HumanDrivingMode without a trigger or guard."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:69ed2e8b730bc62e:facet:ffb3bc2f0c46"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "“in (auto final)”没有被建模为自动子状态机最终状态相关的明确条件。",
+          "reason": "规范要求在“in (auto final)”时转入 HumanDrivingMode，语义上指进入自动模式的最终子状态或自动子状态机完成时触发。模型只在复合状态 AutonomousMode 外部写了一个未定义的字符串条件 `in (auto final)`，而子状态机实际的最终状态是匿名的 `[*]`，没有名为或可引用的 auto final 状态，因此该条件无法明确对应模型中的最终状态，自动完成返回人工模式的行为未被可靠表达。",
+          "where": "`AutonomousMode --> HumanDrivingMode : human steering cmd\\nor brake pressed\\nor in (auto final)`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0050",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0050-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出格唯一 issue 针对根层初始边的触发约束，与 :17 接管条件复合标签无关。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "两个 issue 分别针对根层初始边和 HumanDrivingMode 到 AutonomousMode 的 front-distance 守卫，均未主张 :17 的三个条件被压成单一事件。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "三个 issue 分别针对初始入口和 HumanDrivingMode 到 AutonomousMode 的迁移条件，没有一个主张 :17 的复合接管标签投影为单一事件。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出格没有 finding，未覆盖任何台账条目。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出格没有 finding，未覆盖任何台账条目。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "唯一 issue 针对 :17 中 in (auto final) 与匿名最终状态的明确对应问题，不是三个接管条件被压成单一事件这一性质。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "INS-0050-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:__root__"
+          ],
+          "reason": "source:initial_contract:__root__ 定位 :3 根层初始伪状态出边，明确主张该边携带触发或守卫违反初始迁移约束，覆盖台账所述 Power On 多余标签。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:__root__"
+          ],
+          "reason": "source:initial_contract:__root__ 与台账同样定位 :3 根层初始边，并主张初始边不应带触发或守卫；另一个守卫 issue 属于不同迁移，不影响该命中。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:__root__",
+            "hypothesis:69ed2e8b730bc62e"
+          ],
+          "reason": "source:initial_contract:__root__ 直接覆盖 :3 初始边的触发违规，hypothesis:69ed2e8b730bc62e 也定位同一初始入口并主张其非无条件进入；两者均语义对应台账。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出格没有 finding，未覆盖任何台账条目。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出格没有 finding，未覆盖任何台账条目。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出格的 issue 针对 :17 的 in (auto final) 最终状态对应问题，不是 :3 初始边携带多余触发。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [
+          "INS-0050-01"
+        ],
+        "false_positive": false,
+        "reason": "该 issue 明确定位根层初始伪状态在 :3 的出边，并主张其携带触发或守卫违反初始迁移约束，与台账 INS-0050-01 的同一入口边、同一多余触发性质完全对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [
+          "INS-0050-01"
+        ],
+        "false_positive": false,
+        "reason": "该 issue 明确定位根层初始伪状态在 :3 的出边，并主张其携带触发或守卫违反初始迁移约束，与台账 INS-0050-01 的同一入口边、同一多余触发性质完全对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:guard_presence:HumanDrivingMode:AutonomousMode",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 针对 HumanDrivingMode 到 AutonomousMode 的 front-distance 条件是否形式化为守卫；台账条目只涉及根层初始边和其多余触发，位置与性质均不相同。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [
+          "INS-0050-01"
+        ],
+        "false_positive": false,
+        "reason": "该 issue 明确定位根层初始伪状态在 :3 的出边，并主张其携带触发或守卫违反初始迁移约束，与台账 INS-0050-01 的同一入口边、同一多余触发性质完全对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:69ed2e8b730bc62e",
+        "matched_ledger_ids": [
+          "INS-0050-01"
+        ],
+        "false_positive": false,
+        "reason": "该 issue 定位 :3 的初始迁移，并主张它可能违反无条件进入 HumanDrivingMode 的要求；这正是台账所述初始边带有多余触发导致入口不再无条件的性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:transition:HumanDrivingMode:front_distance > 10:AutonomousMode",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 针对 HumanDrivingMode 到 AutonomousMode 的 front_distance > 10 迁移及其条件，台账条目未涉及该迁移，位置和性质均不对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 虽引用 :17 的整条标签，但其具体主张是 in (auto final) 未明确对应匿名最终状态，属于最终状态引用或条件建模不明确；台账 EIS-0050-01 主张的是三个接管条件被压成单一事件，性质不同，不能仅因同一标签而命中。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "唯一明确被六格输出覆盖的台账条目是 INS-0050-01：新方法三轮均识别了 :3 根层初始边上的多余触发。EIS-0050-01 关于 :17 复合接管标签的缺陷没有被任何输出以同一性质主张；baseline_run3 虽定位同一标签，但只主张 auto final 与匿名最终状态的对应不明确，因此是该台账条目的语义误报。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

@@ -860,6 +860,72 @@ def test_structured_output_keeps_official_tool_strategy_after_model_copy(monkeyp
     assert result.status == "success", result.error
     assert result.to_dict()["output"] == {"value": "ok"}
     assert len(captured) == 1 and isinstance(captured[0], ToolStrategy)
+    assert callable(captured[0].handle_errors)
+
+
+def test_structured_output_repair_feedback_localizes_exact_shape_errors() -> None:
+    from typing import Literal
+
+    from langchain.agents.structured_output import StructuredOutputValidationError
+    from pydantic import ValidationError
+
+    from utils.agent import runtime
+
+    class FirstDecision(BaseModel):
+        expected_id: Literal["E0001"]
+
+    class SecondDecision(BaseModel):
+        expected_id: Literal["E0002"]
+
+    class ExactBatch(BaseModel):
+        model_config = {"extra": "forbid"}
+
+        item0: tuple[FirstDecision, SecondDecision]
+
+    try:
+        ExactBatch.model_validate(
+            {
+                "item0": [{"expected_id": "E0001"}],
+                "item1": {"expected_id": "E0002"},
+            }
+        )
+    except ValidationError as source:
+        shape_error = StructuredOutputValidationError(
+            "ExactBatch",
+            source,
+            AIMessage(content=""),
+        )
+    else:  # pragma: no cover - the fixture must remain invalid
+        raise AssertionError("shape fixture unexpectedly validated")
+
+    shape_message = runtime._structured_output_repair_message(shape_error)
+    assert "ADD the required value at `item0[1]`" in shape_message
+    assert "inside its exact existing parent" in shape_message
+    assert "DELETE `item1` completely" in shape_message
+    assert "do not create another top-level item" in shape_message
+
+    try:
+        ExactBatch.model_validate(
+            {
+                "item0": [
+                    {"expected_id": "E0001"},
+                    {"expected_id": "E0001"},
+                ]
+            }
+        )
+    except ValidationError as source:
+        literal_error = StructuredOutputValidationError(
+            "ExactBatch",
+            source,
+            AIMessage(content=""),
+        )
+    else:  # pragma: no cover - the fixture must remain invalid
+        raise AssertionError("literal fixture unexpectedly validated")
+
+    literal_message = runtime._structured_output_repair_message(literal_error)
+    assert "REPLACE `item0[1].expected_id`" in literal_message
+    assert "'E0002'" in literal_message
+    assert "character-for-character" in literal_message
 
 
 def test_cancellation_closes_started_model_with_runtime_fallback() -> None:

@@ -12,7 +12,7 @@
 | :-- | :-- |
 | `id` | `_ours-v46` |
 | 名称 | paper1 · `discover` 反馈循环 v46 |
-| 实现 | [`pipeline/feedback_loop/src/paper_stm_feedback_loop/discover/`](../../../pipeline/feedback_loop/src/paper_stm_feedback_loop/discover/) |
+| 实现 | [`archive/legacy/feedback_loop/src/paper_stm_feedback_loop/discover/`](../../../archive/legacy/feedback_loop/src/paper_stm_feedback_loop/discover/) |
 | `artifact_type` | ⭐ pyfcstm DSL 状态机（FSM / HSM / EFSM） |
 | `task` | ⭐ **缺陷检测**（模型 vs 自然语言需求） |
 | `boundary` | ⭐ `界内`（$M = (S,E,V,Tr,A)$，⛔ 无时钟无并发） |

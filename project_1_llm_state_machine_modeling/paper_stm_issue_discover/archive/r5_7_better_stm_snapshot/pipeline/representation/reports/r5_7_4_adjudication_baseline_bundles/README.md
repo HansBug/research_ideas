@@ -45,7 +45,7 @@ r5_7_4_adjudication_baseline_bundles/
 2. `name_mapping.json`：raw label 与 emitted identifier 的映射。
 3. `lowering_inventory.json`：lowering / timing / hierarchy / source traceability 审计账。
 4. `parse_inspect_report.json`：pyfcstm parse / inspect 结构化诊断。
-5. `canonical_stm.json`、`bundle_meta.json`、`fcstm_export_loss_ledger.jsonl`：仅 R5.7.4 新物化的 `0001` / `0018` bundle 当前具备；R4.5 selected smoke 两例则回到 [../fcstm_export_report.json](../../../../../../pipeline/representation/reports/fcstm_export_report.json) 与 [../fcstm_export_loss_ledger.jsonl](../fcstm_export_loss_ledger.jsonl)。
+5. `canonical_stm.json`、`bundle_meta.json`、`fcstm_export_loss_ledger.jsonl`：仅 R5.7.4 新物化的 `0001` / `0018` bundle 当前具备；R4.5 selected smoke 两例则回到 [../fcstm_export_report.json](../../../../../../pipeline/representation/reports/fcstm_export_report.json) 与 [../fcstm_export_loss_ledger.jsonl](../../../../../../pipeline/representation/reports/fcstm_export_loss_ledger.jsonl)。
 
 ## 5. 使用纪律
 

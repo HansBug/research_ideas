@@ -1,0 +1,437 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0027",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0027-01",
+      "pair": "0027",
+      "D": "D2",
+      "L": "L2",
+      "summary": "进入 `ActiveState`（:6-:17）之后整机被永久困住：三个区的末端 `junction2`、`junction3`、`InitialState` 全是死端，`ActiveState` 没有任何外出迁移，`DetectingState` 再也不可达——子机既不能解除激活也不能重新武装。",
+      "detail": "先看结构。根层：`:2 [*] --> DetectingState`、`:4 DetectingState --> junction1`、`:5 junction1 --> ActiveState`。`ActiveState` 块内用 `:7`、`:10`、`:13` 的三个 `--` 划出三个区：区一 `:8 [*] --> BrakeControlState`、`:9 BrakeControlState --> junction2`；区二 `:11 [*] --> SteeringControlState`、`:12 SteeringControlState --> junction3`；区三 `:14 [*] --> SensorControlState`、`:15 SensorControlState --> junction4`、`:16 junction4 --> InitialState`。\n\n然后逐个查出口。`junction2` 与 `junction3` 各自只作为目标出现一次，没有任何以它们为源的迁移。`InitialState` 由 `:16` 引入，同样没有出边。`ActiveState` 本身在根层没有任何出边。全文也没有 `--> [*]`。\n\n所以进入 `ActiveState` 之后，三个区各自走到末端就停住，整机再也出不去；`DetectingState` 变得不可达，NL 第 2 句要求的「检测到碰撞时子机变为活动」此后不会再发生第二次——子机既不能解除激活回到常备状态，也不能为下一次碰撞重新武装。上游参考模型的做法是每个区都回到常备态，可作对照。\n\n还有一处附带的结构问题：`:9 BrakeControlState --> junction2` 不带任何触发也不带守卫，是完成迁移，进入 `BrakeControlState` 后立即可发；而 `BrakeControlState` 内部没有任何动作。也就是说这个控制状态形同虚设。这一层单独记在 INS-0027-04。\n\n根因可以从上游工作簿追到：Phase-I（列 I）与格式修复后（列 U）都有一条 `InitialState --> DetectingState : No Collision detected` 的返回边，是上游论文的语义修复阶段把 `InitialState` 挪进了 `ActiveState` 并删掉了这条边，才形成陷阱。这又是一处修复动作注入的缺陷。",
+      "D_basis": "判 D2。这是一个可达且无任何出路的非预期终止：`ActiveState` 可达（`:2` → `:4` → `:5`），三个区的末端全部无出边，复合态本身也无外出迁移，全文无终止声明。这一类判定不依赖领域知识也不依赖形式化规约。三个判读臂一致认定成立，且没有任何一臂能拿出「作者显式声明合法终止」的依据。此外它还直接违反 NL 第 2 句要求的激活语义（子机只能被激活一次，之后既不能解除也不能重新武装）。",
+      "L_basis": "判 L2。陈述这条错误需要给出到达 `ActiveState` 的路径，再对三个区的末端逐一穷尽检查出边、并确认复合态本身无外出迁移，最后说明 `DetectingState` 在此之后不可达。这些都是对行为集合的构造与排除，不是单个系统状态上的静态判断。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unintended_terminal",
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "INS-0027-04",
+      "pair": "0027",
+      "D": "D2",
+      "L": "L0",
+      "summary": "三条从控制态进入 junction 的迁移都不带事件也不带守卫（`:9 BrakeControlState --> junction2`、`:12 SteeringControlState --> junction3`、`:15 SensorControlState --> junction4`），而三个源控制态内部又都是空的——控制在进入的瞬间就被穿透，实际什么都没执行。",
+      "detail": "`ActiveState` 的三个区各自是「一个控制态加一条通往 junction 的边」的结构。三条边（`:9`、`:12`、`:15`）的箭头后面都没有冒号，即不带触发事件也不带守卫。在 UML 里这是完成迁移：进入源状态后立即可发，不需要等待任何事件。\n\n关键在于三个源控制态是空的。`BrakeControlState` 只在 `:8` 与 `:9` 出现，两行之间没有任何 `entry/`、`do/`、`exit/` 行；`SteeringControlState`（`:11`、`:12`）与 `SensorControlState`（`:14`、`:15`）同理。也就是说这三个状态不承载任何行为。\n\n完成迁移在什么时候发火，取决于源状态有没有 do 活动：有 do 活动时要等它跑完，没有时进入即发火。这里三个都没有，所以进入 `BrakeControlState` 的同一时刻就走掉了——制动控制、转向控制、传感控制三项在模型里实际都没有被执行。\n\nNL 第 3 句「The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls」要求的是三种避撞控制并发地被激活；制品建出了三个区和三个状态名，但控制行为一个都没落地。\n\n本条与 EIS-0027-01 分工不同：那一条说进入 `ActiveState` 之后整机困住（可达死端），本条说这三项控制根本没执行。即便补上出边解决了死锁，控制被瞬间穿透这件事仍然成立。",
+      "D_basis": "判 D2。被违反的义务来自碰撞规避这个安全域：制动、转向、传感三项控制不得由完全没有行为的空状态表示，并在进入时立即被穿透。判读中出现过一种反驳：把 `:9`/`:12`/`:15` 读作「等待控制的 do 活动完成之后才发火的完成迁移」，那样控制就确实执行过。这条反驳不存活——回源核查，三个控制态之间（`:8`-`:9`、`:11`-`:12`、`:14`-`:15`）没有任何 `do/` 行，也没有任何其它动作，没有活动可等，完成迁移入态即发火。该读法依赖源里不存在的活动，与结构事实不相容。",
+      "L_basis": "判 L0。陈述这条错误只需就地读 `:9`、`:12`、`:15` 三行看箭头后有没有冒号跟内容（没有），再读三个控制态所在的行区间看有没有动作行（没有）。两项都是纯词法层面的存在性检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:child_count:ActiveState",
+          "claims": [
+            "The authored composite may expose a different region cardinality from the three regions required by NL1."
+          ],
+          "locations": [
+            "NL1",
+            "ActiveState:region:0",
+            "ActiveState:region:1",
+            "ActiveState:region:2",
+            "ActiveState:region:3",
+            "PUML:L6-L17"
+          ],
+          "obligations": [
+            "The active collision-avoidance mode has three orthogonal regions."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:child_count:ActiveState:facet:5e31437ab49d"
+          ]
+        },
+        {
+          "finding_id": "source:transition:DetectingState:Frontend Collision or Rear-end Collision or Collision with Pedestrian detected:ActiveState",
+          "claims": [
+            "Source transition 'tr_0002' reaches observed target 'junction1', but the exact transition contract requires target 'ActiveState'."
+          ],
+          "locations": [
+            "NL2"
+          ],
+          "obligations": [
+            "DetectingState must transition directly to ActiveState under possible frontend collision.",
+            "DetectingState must transition directly to ActiveState under rear-end collision.",
+            "DetectingState must transition directly to ActiveState under collision with pedestrian."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 3,
+          "facet_keys": [
+            "source:transition:DetectingState:Frontend Collision or Rear-end Collision or Collision with Pedestrian detected:ActiveState:facet:c2cd8c1d340c",
+            "source:transition:DetectingState:Frontend Collision or Rear-end Collision or Collision with Pedestrian detected:ActiveState:facet:3b842664c0ca",
+            "source:transition:DetectingState:Frontend Collision or Rear-end Collision or Collision with Pedestrian detected:ActiveState:facet:c2c5aa313213"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:child_count:ActiveState",
+          "claims": [
+            "ActiveState may realize the wrong number of concurrent regions: the source inventory exposes four regions, while the requirement specifies three."
+          ],
+          "locations": [
+            "NL1",
+            "ActiveState:region:0",
+            "ActiveState:region:1",
+            "ActiveState:region:2",
+            "ActiveState:region:3"
+          ],
+          "obligations": [
+            "The active collision-avoidance mode has three orthogonal regions."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:child_count:ActiveState:facet:5e31437ab49d"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:transition:DetectingState:Frontend Collision or Rear-end Collision or Collision with Pedestrian detected:ActiveState",
+          "claims": [
+            "Source has no matching transition from 'DetectingState' to 'ActiveState' under 'Frontend Collision or Rear-end Collision or Collision with Pedestrian detected'."
+          ],
+          "locations": [
+            "NL2"
+          ],
+          "obligations": [
+            "DetectingState must transition directly to ActiveState under Frontend Collision or Rear-end Collision or Collision with Pedestrian detected."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DetectingState:Frontend Collision or Rear-end Collision or Collision with Pedestrian detected:ActiveState:facet:994a162a70f1"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "ActiveState 内三个区域没有完整、明确的并发控制状态生命周期，且各区域从控制状态直接转入未定义的 junction，无法确认三个控制是否能够保持并发激活。",
+          "reason": "规格要求激活模式的正交区域允许不同碰撞避免控制并发激活。虽然模型用“--”分隔出三个区域，但 BrakeControlState 和 SteeringControlState 到 junction2/junction3 没有后续转移，SensorControlState 到 junction4 后又转到未定义的 InitialState；这些转移既未表达控制状态的保持/完成条件，也未清楚表达各区域可独立并发运行，因此并发控制行为未被完整建模。",
+          "where": "ActiveState 内 BrakeControlState、SteeringControlState、SensorControlState 及 junction2/junction3/junction4 的转移"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型引用了未定义的 InitialState，导致传感器控制区域的转移目标不完整。",
+          "reason": "PlantUML 模型中没有声明或定义 InitialState。该转移无法表示一个有效的状态或明确的区域退出/完成语义，使传感器控制区域的状态机不完整，也不能可靠支持规格所要求的激活控制行为。",
+          "where": "ActiveState 内 `junction4 --> InitialState`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "碰撞检测触发后的进入连接未明确表达为三个区域同时激活的完整入口语义。",
+          "reason": "规格要求该子机器在检测到前向碰撞、追尾碰撞或行人碰撞的可能性时变为活动状态，并允许其正交区域中的控制并发激活。模型虽进入 ActiveState，但入口只连接到复合状态本身，未明确展示三个区域各自被同时激活；若依赖 PlantUML 的隐式复合状态入口，模型没有把这一关键并发行为明确建模出来。",
+          "where": "DetectingState --> junction1；junction1 --> ActiveState，以及 ActiveState 内三个以“--”分隔的区域"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "三个控制区域没有完成可执行的状态循环或终止语义，且后两个区域的连接不完整。",
+          "reason": "BrakeControlState 和 SteeringControlState 分别转移到未定义后继 junction2、junction3；SensorControlState 转移到 junction4，而 junction4 又转移到未定义的 InitialState。模型因此包含悬空/未定义节点，无法表示三个并发控制区域在激活后如何持续运行或退出。",
+          "where": "BrakeControlState --> junction2；SteeringControlState --> junction3；SensorControlState --> junction4；junction4 --> InitialState"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "碰撞触发条件使用了“detected”，没有准确建模规格中的“possible ... is detected”（可能碰撞被检测到）的语义。",
+          "reason": "规格描述的是检测到可能发生的前向碰撞、追尾碰撞或行人碰撞；模型的标签将 detected 只明确附着在最后一个 Collision with Pedestrian 上，且前两类碰撞写成直接发生的碰撞，可能导致前向碰撞和追尾碰撞不需要“可能性被检测到”即可触发，语义范围不一致。",
+          "where": "DetectingState --> junction1: Frontend Collision or Rear-end Collision or Collision with Pedestrian detected"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型将“检测到可能的碰撞”错误地表达为已检测到碰撞，且缺少“possible”的语义。",
+          "reason": "规格明确要求在检测到可能的前端碰撞、追尾碰撞或行人碰撞时激活子状态机；模型标签只写“Collision ... detected”，没有表达“possible collision”，会把触发条件收窄为已发生/已确认碰撞。",
+          "where": "`DetectingState --> junction1: Frontend Collision or Rear-end Collision or Collision with Pedestrian detected`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "ActiveState 内部的三个正交区域没有一致地完成初始进入和状态机激活建模。",
+          "reason": "规格要求有三个区域，并允许不同碰撞规避控制并发激活。模型虽然使用了三个分区，但每个分区只有一个控制状态直接连到各自的终止伪状态；没有定义从 ActiveState 激活时三个区域如何同时进入，也没有定义控制结束后的区域行为。若按 PlantUML 状态语义，分区内的初始伪状态应构成各区域的进入路径，当前写法不能清晰、可靠地表示三个控制的并发激活。",
+          "where": "`state ActiveState {` 内的三个 `--` 分区以及 `[*] --> BrakeControlState`、`[*] --> SteeringControlState`、`[*] --> SensorControlState`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "三个控制区域之间没有体现“不同控制可并发激活”的明确语义，且控制状态被建模为彼此独立的一次性流程。",
+          "reason": "规格强调正交区域允许碰撞规避控制并发激活。模型没有表示并发控制的持续激活、同步退出或相互独立的生命周期；尤其 `junction2` 和 `junction3` 没有后继转移，`junction4` 指向未定义的 `InitialState`，因此三个区域的行为不完整，无法确认并发控制按规格运行。",
+          "where": "`BrakeControlState --> junction2`、`SteeringControlState --> junction3`、`SensorControlState --> junction4`"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "模型引用了未定义的 `InitialState`，导致传感器控制区域的转移目标不完整。",
+          "reason": "PlantUML 中没有定义 `InitialState`，而该转移又是 SensorControlState 的唯一后继。该区域无法形成有效的完整状态转换，因而不符合一个可执行/可解释的三控制区域状态机模型。",
+          "where": "`junction4 --> InitialState`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0027",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0027-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "两个方法 issue 分别讨论 ActiveState 区域数量和 DetectingState 入口迁移契约，没有主张进入 ActiveState 后无出路或区域末端死端。",
+          "confidence": null
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "方法 issue 仅讨论 ActiveState 的区域数量，不涉及 ActiveState 或其区域的出边、死端或不可退出行为。",
+          "confidence": null
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "方法 issue 仅讨论 DetectingState 到 ActiveState 的入口迁移缺失，不涉及进入 ActiveState 后的永久困住或末端无出路。",
+          "confidence": null
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 指向 ActiveState 的三个控制区域及其 junction 后继，并主张没有完整生命周期和后续转移，语义上覆盖区域到达末端后无有效出路这一 EIS 缺陷。",
+          "confidence": "medium"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_2 指向三个控制态到 junction 的具体链路，并主张不存在可执行循环或退出语义，覆盖 ActiveState 内部到达末端后的无出路性质。",
+          "confidence": "medium"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3"
+          ],
+          "reason": "baseline_issue_3 指向三个控制区域的后继链路，并明确指出 junction2/junction3 无后继、junction4 后继不完整，覆盖区域运行后无法继续或退出的终止性问题。",
+          "confidence": "medium"
+        }
+      },
+      {
+        "ledger_id": "INS-0027-04",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "方法 run1 的区域计数 issue 和 DetectingState 入口迁移 issue 均未指向 :9、:12、:15 的事件/守卫槽位，也未主张控制态为空。",
+          "confidence": null
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "方法 run2 只主张 ActiveState 的区域数量，不涉及三条控制态到 junction 的迁移标签或控制态内部动作。",
+          "confidence": null
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "方法 run3 只主张 DetectingState 到 ActiveState 的入口迁移缺失，不涉及控制区域内的三条无事件/守卫迁移。",
+          "confidence": null
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_1 讨论区域生命周期和并发控制是否明确，但没有主张三条控制迁移缺少事件或守卫，也没有主张源控制态为空并被立即穿透。baseline_issue_2 只讨论 InitialState 未定义。",
+          "confidence": null
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_run2 的三个 issue 分别讨论入口并发表达、后继循环/终止不完整和 possible 触发语义；均未主张 :9、:12、:15 缺少事件/守卫或三个控制态没有动作。",
+          "confidence": null
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_run3 的 issue 讨论 possible 触发条件、区域入口/激活、区域后继不完整和 InitialState 未定义；没有一个 issue 就地主张三条迁移的事件/守卫槽位缺失及源状态为空。",
+          "confidence": null
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:child_count:ActiveState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 主张 ActiveState 的区域数量可能为四而非三，属于区域数量/结构计数问题；未主张 ActiveState 可达后无出路，也未主张控制态迁移缺少事件或守卫。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:transition:DetectingState:Frontend Collision or Rear-end Collision or Collision with Pedestrian detected:ActiveState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 主张 DetectingState 到 ActiveState 的入口目标或触发契约不匹配；台账主张的是进入 ActiveState 后的全局无出路，以及 ActiveState 内控制迁移的无触发器，二者处所和性质均不同。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:child_count:ActiveState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 仅主张 ActiveState 的并发区域数量错误，未覆盖可达后无出路或控制迁移缺失事件/守卫。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:transition:DetectingState:Frontend Collision or Rear-end Collision or Collision with Pedestrian detected:ActiveState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 主张缺少 DetectingState 到 ActiveState 的直接触发迁移；它没有主张 ActiveState 内部的陷阱或三条控制态到 junction 迁移缺少事件/守卫。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0027-01"
+        ],
+        "false_positive": false,
+        "reason": "该 issue 明确指向 ActiveState 内三个控制区域及其后继 junction，并主张这些迁移没有后续生命周期/退出语义；这覆盖了进入 ActiveState 后区域到达末端且无有效出路的终止性问题。它没有主张迁移缺少事件或守卫，因此不对应 INS-0027-04。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 主张 InitialState 未定义及传感器区域目标不完整，性质是未定义引用/目标不完整，不是台账所主张的整机进入 ActiveState 后永久困住，也不是三条完成迁移缺少触发与守卫。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 主张碰撞入口没有明确表达三个区域同时激活，属于入口并发建模不明确；未主张 ActiveState 的无出路或控制迁移的缺失事件/守卫。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0027-01"
+        ],
+        "false_positive": false,
+        "reason": "该 issue 精确指向三个控制态到 junction 的链路，并主张没有可执行循环或终止语义、无法表示持续运行或退出；这与 ActiveState 内部到达末端后没有有效出路的终止性缺陷相符。它未主张迁移标签缺少事件或守卫。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 主张碰撞触发标签中 possible 语义缺失，属于触发条件语义范围问题；不对应 ActiveState 陷阱或控制态到 junction 迁移的事件/守卫槽位缺失。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 主张入口触发条件缺少 possible 语义，定位在 DetectingState 到 junction1 的标签；台账条目不主张该入口标签问题。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 主张三个正交区域的初始进入和激活建模不一致，属于区域入口/激活表达问题；未主张进入 ActiveState 后无出路，也未主张控制迁移缺少事件或守卫。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "EIS-0027-01"
+        ],
+        "false_positive": false,
+        "reason": "该 issue 指向三个控制区域到 junction 的后继链路，并主张 junction2/junction3 无后继、junction4 指向未定义目标，导致区域行为不完整且无法确认退出；这语义覆盖了 ActiveState 内部到达末端后无有效出路的终止性缺陷。它没有主张三条迁移无事件/守卫。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 仅主张 junction4 到未定义 InitialState 的引用问题，属于未定义目标/不完整转移，不足以覆盖台账所要求的全局可达陷阱，也不涉及缺失事件或守卫。",
+        "confidence": null
+      }
+    ],
+    "pair_reason": "三轮 baseline 均以不同措辞覆盖了 ActiveState 内控制区域到达末端后无法继续或退出的 EIS-0027-01 终止性缺陷，但没有输出直接主张三条控制迁移缺少事件/守卫且源控制态为空的 INS-0027-04。新方法的区域计数和入口迁移 issue 均与两条台账在位置或性质上不对应。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

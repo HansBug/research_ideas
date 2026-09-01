@@ -7,7 +7,9 @@ import pytest
 from utils.llm import LLMConfig, LLMRegistry, load_llm_registry
 
 
-def test_load_registry_keeps_direct_values_and_redacts_public_data(tmp_path: Path) -> None:
+def test_load_registry_keeps_direct_values_and_redacts_public_data(
+    tmp_path: Path,
+) -> None:
     path = tmp_path / "llm.yml"
     path.write_text(
         """
@@ -48,6 +50,30 @@ def test_config_adapter_defaults_to_openai_and_is_public() -> None:
     assert config.public_dict()["adapter"] == "openai"
 
 
+def test_config_loads_auditable_token_pricing() -> None:
+    config = LLMConfig.model_validate(
+        {
+            "model": "claude-opus-4-7",
+            "pricing": {
+                "prices": {
+                    "input_usd_per_million_tokens": 5,
+                    "output_usd_per_million_tokens": 25,
+                    "cache_read_usd_per_million_tokens": 0.5,
+                    "cache_write_usd_per_million_tokens": 6.25,
+                },
+                "source_url": "https://docs.anthropic.com/en/docs/about-claude/pricing",
+                "verified_on": "2026-08-18",
+                "basis": "official_list_price",
+                "scope_note": "Standard-context list price.",
+            },
+        }
+    )
+
+    assert config.pricing is not None
+    assert config.pricing.prices.cache_write_usd_per_million_tokens == 6.25
+    assert config.public_dict()["pricing"]["verified_on"] == "2026-08-18"
+
+
 @pytest.mark.parametrize(
     "adapter", ["openai", "openai-responses", "anthropic", "deepseek"]
 )
@@ -77,15 +103,22 @@ def test_public_base_url_reference_preserves_ipv6_brackets() -> None:
     assert config.public_dict()["base_url_ref"] == "https://[::1]:8443"
 
 
-def test_registry_path_can_be_selected_by_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_registry_path_can_be_selected_by_environment(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     path = tmp_path / "selected.yml"
-    path.write_text("default: local\nprofiles:\n  local:\n    model: local-model\n", encoding="utf-8")
+    path.write_text(
+        "default: local\nprofiles:\n  local:\n    model: local-model\n",
+        encoding="utf-8",
+    )
     monkeypatch.setenv("LLM_CONFIG_FILE", str(path))
 
     assert load_llm_registry().default.model == "local-model"
 
 
-def test_missing_api_key_is_not_filled_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_missing_api_key_is_not_filled_from_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "must-not-be-read")
     config = LLMConfig(model="gpt-5.5")
     assert config.api_key is None

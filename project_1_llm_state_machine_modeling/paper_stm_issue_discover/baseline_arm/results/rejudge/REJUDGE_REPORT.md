@@ -1,5 +1,11 @@
 # 在 X1 判定条件下重判主臂：判定仪器不对称能解释多少 pp？
 
+> **Legacy analysis, incomparable with issue #195.** 本文保留历史实验问题、样本和原始
+> 数字，不改写、不删除；它使用旧单轴 hit 判定，未同时裁定 report validity、partial、
+> valid novel、Semantic FP 或 root-cause redundancy。现行 baseline/method 比较只能引用
+> [issue #195 人工 Judge](../../../discover_matrix/docs/protocol/semantic_judge_protocol.md) 在同一
+> protocol snapshot、代码、prompt/schema/model 与公共闭包下的完整重判结果。
+
 > **一句话结论：解释不了。** 点估计是 **−4.1pp**（负号 = 把判定仪器对齐后，两臂差距**变大**而不是变小），95% CI **[−11.1pp, +1.2pp]**。⛔ 即使取 CI 上界，判定仪器不对称最多只能解释 14.9pp 里的 **1.2pp**。⭐ 原因是双向翻转都存在，且**反向翻转（hit→miss）比正向翻转（miss→hit）更多**：11.1% vs 6.7%。
 
 ---
