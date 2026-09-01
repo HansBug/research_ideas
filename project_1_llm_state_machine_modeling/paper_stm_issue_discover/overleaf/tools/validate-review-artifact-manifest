@@ -1,0 +1,295 @@
+#!/usr/bin/env python3
+"""Validate a future Paper1 review-artifact manifest without building it."""
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+import sys
+from pathlib import Path, PurePosixPath
+
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT = ROOT / "tools" / "review-artifact-manifest.example.json"
+ROLES = {
+    "fcstm_runtime_code",
+    "method_release_code",
+    "provider_free_statistics_evaluator",
+    "minimum_input_closure",
+    "frozen_final_output_closure",
+}
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+FORBIDDEN_PATH_TOKENS = ("judge", "adjudicat", "reviewer", "unblinding", "credential")
+FORBIDDEN_COMMAND_TOKENS = (
+    "judge",
+    "adjudicat",
+    "reviewer",
+    "provider",
+    "api_key",
+    "curl",
+    "wget",
+    "http://",
+    "https://",
+)
+REQUIRED_GUIDE_TEXT = (
+    "minimal, frozen, review-time recomputation package",
+    "There is **no distributable Paper1 Judge**",
+    "every input in that universe",
+    "provider-free statistics evaluator",
+)
+
+
+def fail(errors: list[str]) -> None:
+    print("REVIEW ARTIFACT MANIFEST FAIL")
+    print("\n".join(f"- {item}" for item in errors))
+    raise SystemExit(1)
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def valid_relative_path(value: object) -> bool:
+    if not isinstance(value, str) or not value or "\\" in value or re.match(r"^[A-Za-z]:", value):
+        return False
+    path = PurePosixPath(value)
+    if path.is_absolute() or ".." in path.parts or value.endswith("/"):
+        return False
+    return not any(any(token in part.lower() for token in FORBIDDEN_PATH_TOKENS) or part == ".git" for part in path.parts)
+
+
+def nonempty_string(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def pass_record(name: str, value: object, errors: list[str]) -> None:
+    if not isinstance(value, dict):
+        errors.append(f"{name} must be an object")
+        return
+    if value.get("status") != "pass":
+        errors.append(f"{name} status must be pass")
+    for field in ("verified_at", "evidence"):
+        if not nonempty_string(value.get(field)):
+            errors.append(f"{name} must have non-empty {field}")
+
+
+def hash_field(name: str, value: object, errors: list[str]) -> None:
+    if not isinstance(value, str) or not SHA256_RE.fullmatch(value):
+        errors.append(f"{name} must be a lowercase SHA-256")
+
+
+def validate_not_prepared(document: dict[str, object], errors: list[str]) -> None:
+    blockers = document.get("current_blockers")
+    if not isinstance(blockers, list) or len(blockers) < 3 or not all(nonempty_string(item) for item in blockers):
+        errors.append("not_prepared manifest must state license, anonymous-package, and frozen-archive blockers")
+    text = "\n".join(value for value in strings(document)).lower()
+    for needle in ("method source", "license", "canonical final archive", "validation"):
+        if needle not in text:
+            errors.append(f"not_prepared manifest lacks required blocker context: {needle}")
+    claims = document.get("prohibited_claims_until_review_ready")
+    if not isinstance(claims, list) or not all(nonempty_string(item) for item in claims):
+        errors.append("not_prepared manifest must list non-empty prohibited claims")
+
+
+def strings(value: object):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from strings(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from strings(item)
+
+
+def validate_components(document: dict[str, object], errors: list[str]) -> dict[str, dict[str, object]]:
+    components = document.get("components")
+    if not isinstance(components, list):
+        errors.append("review_ready components must be a list")
+        return {}
+    mapped: dict[str, dict[str, object]] = {}
+    for component in components:
+        if not isinstance(component, dict):
+            errors.append("review_ready component is not an object")
+            continue
+        role = component.get("id")
+        if not isinstance(role, str) or role not in ROLES or role in mapped:
+            errors.append("review_ready components must have each required role exactly once")
+            continue
+        mapped[role] = component
+        for field in ("path", "sha256", "bytes", "source_ref", "license_or_approval", "inclusion_reason"):
+            if field not in component:
+                errors.append(f"component {role} misses {field}")
+        if not valid_relative_path(component.get("path")):
+            errors.append(f"component {role} has an unsafe path")
+        hash_field(f"component {role} sha256", component.get("sha256"), errors)
+        if not isinstance(component.get("bytes"), int) or component["bytes"] < 0:
+            errors.append(f"component {role} must have a non-negative byte count")
+        for field in ("source_ref", "license_or_approval", "inclusion_reason"):
+            if not nonempty_string(component.get(field)):
+                errors.append(f"component {role} must have non-empty {field}")
+    if set(mapped) != ROLES or len(components) != len(ROLES):
+        errors.append("review_ready components must contain exactly the five required roles")
+    evaluator = mapped.get("provider_free_statistics_evaluator")
+    if evaluator is not None and not valid_relative_path(evaluator.get("entrypoint")):
+        errors.append("provider_free_statistics_evaluator must declare a safe in-package entrypoint")
+    return mapped
+
+
+def validate_inventory(
+    manifest_path: Path, package_root: Path, document: dict[str, object], components: dict[str, dict[str, object]], errors: list[str]
+) -> None:
+    inventory = document.get("inventory")
+    if not isinstance(inventory, list) or not inventory:
+        errors.append("review_ready inventory must be a non-empty exhaustive file list")
+        return
+    records: dict[str, dict[str, object]] = {}
+    for record in inventory:
+        if not isinstance(record, dict):
+            errors.append("inventory entry is not an object")
+            continue
+        path = record.get("path")
+        if not valid_relative_path(path):
+            errors.append("inventory has an unsafe or prohibited path")
+            continue
+        if path in records:
+            errors.append(f"inventory repeats path: {path}")
+        records[path] = record
+        role = record.get("component_id")
+        if role not in ROLES:
+            errors.append(f"inventory {path} must name a required component_id")
+        if record.get("kind") != "regular-file":
+            errors.append(f"inventory {path} must be a regular file")
+        hash_field(f"inventory {path} sha256", record.get("sha256"), errors)
+        if not isinstance(record.get("bytes"), int) or record["bytes"] < 0:
+            errors.append(f"inventory {path} must have a non-negative byte count")
+    for role, component in components.items():
+        path = component.get("path")
+        record = records.get(path) if isinstance(path, str) else None
+        if record is None:
+            errors.append(f"component {role} path must appear in inventory")
+        elif record.get("component_id") != role or record.get("sha256") != component.get("sha256") or record.get("bytes") != component.get("bytes"):
+            errors.append(f"component {role} must exactly match its inventory record")
+    evaluator = components.get("provider_free_statistics_evaluator")
+    if evaluator is not None:
+        entrypoint = evaluator.get("entrypoint")
+        entry_record = records.get(entrypoint) if isinstance(entrypoint, str) else None
+        if entry_record is None or entry_record.get("component_id") != "provider_free_statistics_evaluator":
+            errors.append("provider-free evaluator entrypoint must appear in its inventory role")
+    missing_roles = sorted(ROLES - {record.get("component_id") for record in records.values()})
+    if missing_roles:
+        errors.append("inventory has no file for role(s): " + ", ".join(missing_roles))
+    try:
+        manifest_relative = manifest_path.resolve().relative_to(package_root).as_posix()
+    except ValueError:
+        errors.append("review_ready manifest must be stored inside package_root")
+        return
+    actual: dict[str, Path] = {}
+    for candidate in package_root.rglob("*"):
+        if candidate.is_symlink():
+            errors.append(f"package contains forbidden symlink: {candidate.relative_to(package_root).as_posix()}")
+        elif candidate.is_file():
+            relative = candidate.relative_to(package_root).as_posix()
+            if relative != manifest_relative:
+                actual[relative] = candidate
+    if set(actual) != set(records):
+        missing = sorted(set(actual) - set(records))
+        unexpected = sorted(set(records) - set(actual))
+        if missing:
+            errors.append("inventory omits package file(s): " + ", ".join(missing))
+        if unexpected:
+            errors.append("inventory lists absent file(s): " + ", ".join(unexpected))
+    for relative, candidate in actual.items():
+        record = records.get(relative)
+        if record is None:
+            continue
+        if candidate.stat().st_size != record.get("bytes") or sha256(candidate) != record.get("sha256"):
+            errors.append(f"inventory hash/byte mismatch: {relative}")
+
+
+def validate_review_ready(document: dict[str, object], manifest_path: Path, errors: list[str]) -> None:
+    required = {
+        "package_root", "package_manifest_sha256", "components", "inventory", "recompute_command", "expected_output_sha256",
+        "frozen_output_validation", "anonymity_review", "clean_extraction_test", "human_gate_record", "human_adjudication_boundary", "excluded_components",
+    }
+    missing = sorted(required - set(document))
+    if missing:
+        errors.append("review_ready manifest misses fields: " + ", ".join(missing))
+        return
+    package_path = document["package_root"]
+    if not valid_relative_path(package_path):
+        errors.append("package_root must be a relative POSIX path")
+        return
+    package_root = (manifest_path.parent / str(package_path)).resolve()
+    if not package_root.is_dir():
+        errors.append("package_root must exist as a directory beside the manifest")
+        return
+    hash_field("package_manifest_sha256", document["package_manifest_sha256"], errors)
+    command = document["recompute_command"]
+    if not nonempty_string(command):
+        errors.append("recompute_command must be non-empty")
+    elif any(token in command.lower() for token in FORBIDDEN_COMMAND_TOKENS):
+        errors.append("recompute_command contains a forbidden Judge/provider/network token")
+    hash_field("expected_output_sha256", document["expected_output_sha256"], errors)
+    for name in ("anonymity_review", "clean_extraction_test", "human_gate_record"):
+        pass_record(name, document[name], errors)
+    frozen = document["frozen_output_validation"]
+    pass_record("frozen_output_validation", frozen, errors)
+    if isinstance(frozen, dict):
+        for field in ("selected_snapshot_sha256", "expected_summary_sha256"):
+            hash_field(f"frozen_output_validation {field}", frozen.get(field), errors)
+        frozen_command = frozen.get("command")
+        if not nonempty_string(frozen_command):
+            errors.append("frozen_output_validation must have non-empty command")
+        elif any(token in frozen_command.lower() for token in FORBIDDEN_COMMAND_TOKENS):
+            errors.append("frozen_output_validation command contains a forbidden Judge/provider/network token")
+    boundary = str(document["human_adjudication_boundary"]).lower()
+    if "frozen" not in boundary or "not" not in boundary or "rerun" not in boundary:
+        errors.append("human_adjudication_boundary must state frozen data and no rerun")
+    exclusions = "\n".join(str(item).lower() for item in document["excluded_components"]) if isinstance(document["excluded_components"], list) else ""
+    for token in ("judge", "reviewer", "llm", "credential", "git history"):
+        if token not in exclusions:
+            errors.append(f"excluded_components must explicitly cover {token}")
+    components = validate_components(document, errors)
+    evaluator = components.get("provider_free_statistics_evaluator")
+    if evaluator is not None and nonempty_string(command) and str(evaluator.get("entrypoint")) not in command:
+        errors.append("recompute_command must invoke the declared provider-free evaluator entrypoint")
+    validate_inventory(manifest_path, package_root, document, components, errors)
+
+
+def main() -> None:
+    if len(sys.argv) > 2:
+        fail(["usage: validate-review-artifact-manifest [manifest.json]"])
+    path = Path(sys.argv[1]) if len(sys.argv) == 2 else DEFAULT
+    errors: list[str] = []
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        fail([f"cannot read JSON manifest {path}: {exc}"])
+    if not isinstance(document, dict):
+        fail(["manifest root must be an object"])
+    if document.get("schema_version") != "paper1.review-artifact-manifest.v1":
+        errors.append("unexpected schema_version")
+    if document.get("venue") != "SANER 2027 Research Track" or document.get("review_mode") != "double-anonymous":
+        errors.append("manifest must target SANER 2027 Research Track double-anonymous review")
+    status = document.get("status")
+    if status == "not_prepared":
+        validate_not_prepared(document, errors)
+    elif status == "review_ready":
+        validate_review_ready(document, path, errors)
+    else:
+        errors.append("status must be not_prepared or review_ready")
+    guide = (ROOT / "GUIDE.md").read_text(encoding="utf-8")
+    for text in REQUIRED_GUIDE_TEXT:
+        if text not in guide:
+            errors.append(f"GUIDE.md lacks review-package policy text: {text}")
+    if errors:
+        fail(errors)
+    print(f"REVIEW ARTIFACT MANIFEST PASS: {path.name} is a valid {status} record; no Judge distribution/rerun is permitted")
+
+
+if __name__ == "__main__":
+    main()
