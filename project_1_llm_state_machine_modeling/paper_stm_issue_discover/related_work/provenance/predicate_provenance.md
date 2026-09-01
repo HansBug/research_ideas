@@ -126,7 +126,7 @@
 
 **方法、实例与 W2。** `H=declared-state count`、`.fbmcq` query 和 receipt decoding 是方法语义；起点、目标和 graph completion 是实例 binding。由于没有 lasso/completeness 论证，W2 不能承载 registry 的无界全称命题，故 publication exclusion 是语义裁定，不是新实验问题。
 
-**执行、极性与发表。** `RESOLVED_CLAIM_EXCLUSION`。backend 检查 `must_reach <= H`，`H=declared-state count`，没有 lasso 或 completeness 论证。状态：`QUALIFIED_EXTERNAL; SPECIFIED_AND_TESTED; SOURCE_BOUND`。`true`、`false`均 `NOT_APPLICABLE/INELIGIBLE`，claim scope 是“历史 runtime receipt，不是无界 G2”；`unknown`、`failure`同样 INELIGIBLE。影响：排除 `0020:r3:i1:receipt` 1 条 W2 的论文级解释，原 W2 和 headline 不变。
+**执行、极性与发表。** `RESOLVED_CLAIM_EXCLUSION`。backend 检查 `must_reach <= H`，`H=declared-state count`，没有 lasso 或 completeness 论证。状态：`QUALIFIED_EXTERNAL; SPECIFIED_AND_TESTED; SOURCE_BOUND`。`true`、`false`均 `NOT_APPLICABLE/INELIGIBLE`，claim scope 是“历史 runtime receipt，不是无界 G2”；`unknown`、`failure`同样 INELIGIBLE。影响：排除 `0020:r3:i1:receipt`、`0020:r3:i5:receipt` 共 2 条 W2 的论文级解释，原 W2 和 headline 不变。
 
 ### G3 `route_avoids`
 
@@ -240,4 +240,4 @@
 
 ## 发表面结论
 
-19/19 均为 `QUALIFIED_EXTERNAL`、`SPECIFIED_AND_TESTED`、`SOURCE_BOUND`；没有把 private FCSTM semantics 洗成外部传统。G2 的 1 条和 V4 的 82 条历史 W2 保留为冻结 runtime evidence，但不再作为全称论文级 W2 证明。V3 的 milliseconds 合同已修复。其余 W2 只能按上文 fragment 和 polarity 书写。19 条不是完备 defect taxonomy，也不是 evaluation-independent preregistration。
+19/19 均为 `QUALIFIED_EXTERNAL`、`SPECIFIED_AND_TESTED`、`SOURCE_BOUND`；没有把 private FCSTM semantics 洗成外部传统。G2 的 2 条和 V4 的 82 条历史 W2 保留为冻结 runtime evidence，但不再作为全称论文级 W2 证明。V3 的 milliseconds 合同已修复。其余 W2 只能按上文 fragment 和 polarity 书写。19 条不是完备 defect taxonomy，也不是 evaluation-independent preregistration。

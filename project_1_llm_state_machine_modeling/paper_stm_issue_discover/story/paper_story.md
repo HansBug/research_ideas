@@ -8,7 +8,7 @@
 
 **C1。** C1 构造保留来源的 FCSTM 工作表示和确定性 inspect facts，使候选可以引用状态、迁移、守卫、动作、拓扑和运行事实。它不声称全部 source-language 语义保持，也不单独造成已测 coverage gain。
 
-**C2。** C2 将适用候选绑定到四族 19 条类型化义务，并保留 native execution/replay receipt 和 W0/W1/W2。它是 literature-informed, retrospectively consolidated evidence layer，不是由 54 pair 或台账调优的 taxonomy；机械 W 不替代人工 D/A、有效性、relation 或 K/N/I。
+**C2。** C2 将适用候选绑定到四族 19 条类型化义务，并保留 FCSTM 后端原生执行/回放回执和 W0/W1/W2。它是 literature-informed, retrospectively consolidated evidence layer，不是由 54 pair 或台账调优的 taxonomy；机械 W 不替代人工 D/A、有效性、relation 或 K/N/I。
 
 ## 主张
 
@@ -16,12 +16,12 @@
 
 ## 研究问题
 
-1. **RQ1：** 在冻结的 PlantUML 案例研究中，完整方法相对同模型 baseline 的 issue-discovery effectiveness 与 coverage--precision trade-off 是什么？单位为 435 round-level expected slots、145 expected issues 和报告级分母；结论是描述性比较。
+1. **RQ1：** 在冻结的 PlantUML 案例研究中，完整方法相对同模型 baseline 的问题发现效果、报告量与报告级有效性精确率呈现何种描述性差异？单位为 435 round-level expected slots、145 expected issues 和报告级分母；结论是描述性比较。
 2. **RQ2：** 在冻结结果中，类型化证据层的最高 W 分布、终止回执谓词标识使用、报告绑定谓词标识使用和绑定行诊断呈现何种情况？单位为 FULL-hit unit、predicate ID 和报告绑定行；这些指标不估计 candidate-level typed-plan closure、replay 成功率、极性比例或适用候选覆盖率，W 也不等于 validity。
 3. **RQ3：** current reports 的 attribution/failure boundary 和方法费用资格是什么？单位为报告和 invalid reports；NADC 仅为 current-side diagnostic，baseline 小计不得形成成本倍率。
 
 ## 已有证据与限制
 
-54 pair 来自 9 个 NL clusters，每个 cluster 有 6 个 artifacts；145 expected issues 在三轮中形成 435 个 round-level units。current/baseline 的 overall FULL `hit@1` 为 `310/435=71.26%` 对 `227/435=52.18%`，L2 FULL `hit@1` 为 `105/117=89.74%` 对 `50/117=42.74%`。current report precision 为 `980/1271=77.10%`，baseline 为 `417/512=81.45%`。current FULL hits 的最高 W0/W1/W2 为 `0/113/197`，但 G2 的 1 条和 V4 的 82 条历史 W2 不作无界/全称论文解释。完整数字、分母和限制以 canonical archive 为准。
+54 pair 来自 9 个 NL clusters，每个 cluster 有 6 个 artifacts；145 expected issues 在三轮中形成 435 个 round-level units。current/baseline 的 overall FULL `hit@1` 为 `310/435=71.26%` 对 `227/435=52.18%`，L2 FULL `hit@1` 为 `105/117=89.74%` 对 `50/117=42.74%`。current report precision 为 `980/1271=77.10%`，baseline 为 `417/512=81.45%`。current FULL hits 的最高 W0/W1/W2 为 `0/113/197`，但 G2 的 2 条和 V4 的 82 条历史 W2 不作无界/全称论文解释。完整数字、分母和限制以 canonical archive 为准。
 
 实际意义是 STM maintenance/review/audit workflow：工程师可先看高 D、高 W、source-attributed findings，并在需求、模型或工具版本变更后重放同一 evidence plan。本文没有 user study、reviewer-hour、safety certification 或 deployment outcome，因而不声称提高效率、认证或安全收益。

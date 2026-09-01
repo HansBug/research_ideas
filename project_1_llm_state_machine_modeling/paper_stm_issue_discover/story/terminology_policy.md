@@ -21,5 +21,7 @@
 | bookkeeping | 记账类别 | bookkeeping category | K/N/I | `outline-3` | 记账类别；`K/N/I` 在表、公式和字段中保留 | `VALID_KNOWN`、`VALID_NOVEL`、`INVALID` |
 | nadc | 非缺陷主张 | not-a-defect claim | NADC | `outline-9-3` | 非缺陷主张；`NADC` 在表、公式和字段中保留 | `NOT_A_DEFECT_CLAIM` |
 | current_baseline | 当前方法/基线 | current/baseline | 无 | `outline-0` | 当前方法、基线 | `current`、`baseline`、canonical artifact keys |
+| use_case_specification | 用例规约 | use-case specification | UCS | `outline-1` | 用例规约；`UCS` 在文献比较、表列或字段中保留 | `UCS`、论文题名和原文引述 |
+| llfsm | 轻量级有限状态机 | Lightweight Finite State Machine | LLFSM | `outline-2` | 轻量级有限状态机；`LLFSM` 在文献比较、表列或字段中保留 | `LLFSM`、论文题名和原文引述 |
 
 责任边界保持不变：人工完成 D/A、有效性、对应关系和最终确认；程序只在已完成的人工字段上确定性闭合 K/N/I 并复算汇总；C2 的回执不替代人工有效性或对应关系。PlantUML 是唯一已实现并评测的适配器，有限控制状态机是通用方法架构的工作表示，不是语言范围的限定。

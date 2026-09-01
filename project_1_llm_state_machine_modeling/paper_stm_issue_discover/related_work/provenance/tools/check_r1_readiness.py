@@ -136,6 +136,15 @@ PR_NUMBERS = {"r1": 197, "umbrella": 179}
 BUNDLE_SCHEMA_VERSION = "paper1.r1-final-review.v1"
 BLIND_PACKET_SCHEMA_VERSION = "paper1.r1-blind-packet.v1"
 BLIND_RECORD_SCHEMA_VERSION = "paper1.r1-blind-search-record.v1"
+CANONICAL_CURRENT_RAW = (
+    "final_results/v60_current_vs_x1v2_baseline/raw/v60_current/method/method"
+)
+# These filters describe audited claim exclusions. They do not reclassify the
+# frozen runtime data: G2 and V4 each exclude their completed W2 false receipts.
+IMPACT_RECEIPT_FILTERS = {
+    "G2": {"predicate_verdict": {"false"}},
+    "V4": {"predicate_verdict": {"false"}},
+}
 
 
 def sha256_bytes(value: bytes) -> str:
@@ -410,8 +419,80 @@ def check_catalog(paper_root: Path, errors: list[str]) -> None:
         impact = row["impact"]
         if not isinstance(impact, dict) or set(impact) != {"receipt_ids", "count"} or not isinstance(impact["count"], int) or impact["count"] < 0 or not isinstance(impact["receipt_ids"], list):
             add_error(errors, f"{pid}: impact object has invalid shape")
-        elif impact["count"] != len(impact["receipt_ids"]):
-            add_error(errors, f"{pid}: impact count does not equal exact identifier list length")
+        elif (
+            impact["count"] != len(impact["receipt_ids"])
+            or any(not is_nonempty_string(receipt_id) for receipt_id in impact["receipt_ids"])
+            or len(set(impact["receipt_ids"])) != len(impact["receipt_ids"])
+        ):
+            add_error(errors, f"{pid}: impact count or receipt identifier list is invalid")
+    check_canonical_receipt_impacts(paper_root, rows, errors)
+
+
+def check_canonical_receipt_impacts(
+    paper_root: Path, rows: list[Any], errors: list[str]
+) -> None:
+    """Bind claim-exclusion receipt IDs to the immutable current raw archive."""
+
+    raw_root = paper_root / CANONICAL_CURRENT_RAW
+    if not raw_root.is_dir():
+        add_error(errors, f"canonical current raw archive is missing: {CANONICAL_CURRENT_RAW}")
+        return
+    receipts: list[dict[str, Any]] = []
+    for raw_path in sorted(raw_root.glob("*/round-*.json")):
+        try:
+            payload = load_json(raw_path)
+        except (OSError, json.JSONDecodeError) as exc:
+            add_error(errors, f"cannot read canonical raw receipt file {raw_path}: {exc}")
+            continue
+        entries = payload.get("predicate_execution_receipts")
+        if not isinstance(entries, list):
+            add_error(errors, f"canonical raw receipt file has no receipt array: {raw_path}")
+            continue
+        for entry in entries:
+            if not isinstance(entry, dict):
+                add_error(errors, f"canonical raw receipt is not an object: {raw_path}")
+                continue
+            backend_result = entry.get("backend_result")
+            receipt_id = backend_result.get("receipt_id") if isinstance(backend_result, dict) else None
+            if not is_nonempty_string(receipt_id):
+                add_error(errors, f"canonical raw receipt has no receipt ID: {raw_path}")
+                continue
+            receipts.append({
+                "receipt_id": receipt_id,
+                "predicate_id": entry.get("predicate_id"),
+                "predicate_verdict": entry.get("predicate_verdict"),
+                "witness_level": entry.get("witness_level"),
+                "terminal_state": entry.get("terminal_state"),
+                "execution_status": entry.get("execution_status"),
+            })
+    receipt_ids = [receipt["receipt_id"] for receipt in receipts]
+    if len(receipt_ids) != len(set(receipt_ids)):
+        add_error(errors, "canonical raw archive contains duplicate receipt IDs")
+        return
+    for row in rows:
+        if not isinstance(row, dict) or row.get("implementation_relation") != "RESOLVED_CLAIM_EXCLUSION":
+            continue
+        predicate_id = row.get("predicate_id")
+        filters = IMPACT_RECEIPT_FILTERS.get(predicate_id)
+        if filters is None:
+            add_error(errors, f"{predicate_id}: claim exclusion has no audited canonical-receipt filter")
+            continue
+        expected = {
+            receipt["receipt_id"]
+            for receipt in receipts
+            if receipt["predicate_id"] == predicate_id
+            and receipt["witness_level"] == "W2"
+            and receipt["terminal_state"] == "completed"
+            and receipt["execution_status"] == "executed"
+            and all(receipt.get(field) in values for field, values in filters.items())
+        }
+        actual = set(row.get("impact", {}).get("receipt_ids", []))
+        if actual != expected:
+            add_error(
+                errors,
+                f"{predicate_id}: canonical claim-exclusion receipt IDs differ: "
+                f"missing={sorted(expected - actual)}, extra={sorted(actual - expected)}",
+            )
 
 
 def frozen_predicate_semantics(paper_root: Path, errors: list[str]) -> dict[str, str]:
@@ -943,6 +1024,33 @@ def self_test() -> int:
             "blocks_paper_submission": True,
         }
 
+    def write_impact_archive_fixture(paper: Path) -> None:
+        catalog = load_json(paper / "related_work/provenance/current_source_catalog.json")
+        entries: list[dict[str, Any]] = []
+        for audit in catalog["r1_citation_audit"]["predicate_audits"]:
+            predicate_id = audit["predicate_id"]
+            if predicate_id not in IMPACT_RECEIPT_FILTERS:
+                continue
+            for receipt_id in audit["impact"]["receipt_ids"]:
+                entries.append({
+                    "predicate_id": predicate_id,
+                    "predicate_verdict": "false",
+                    "witness_level": "W2",
+                    "terminal_state": "completed",
+                    "execution_status": "executed",
+                    "backend_result": {"receipt_id": receipt_id},
+                })
+        if {entry["backend_result"]["receipt_id"] for entry in entries if entry["predicate_id"] == "G2"} != {
+            "0020:r3:i1:receipt", "0020:r3:i5:receipt",
+        }:
+            raise AssertionError("fixture requires the complete G2 claim-exclusion receipt set")
+        raw_path = paper / CANONICAL_CURRENT_RAW / "fixture" / "round-3.json"
+        raw_path.parent.mkdir(parents=True, exist_ok=True)
+        raw_path.write_text(
+            json.dumps({"predicate_execution_receipts": entries}, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
     def prepare_fixture(with_experiment: bool = False) -> tuple[tempfile.TemporaryDirectory[str], Path, str]:
         temporary = tempfile.TemporaryDirectory(prefix="paper1-r1-readiness-")
         repository = Path(temporary.name) / "repository"
@@ -953,6 +1061,7 @@ def self_test() -> int:
             target = paper / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
+        write_impact_archive_fixture(paper)
         if with_experiment:
             gate = paper / "story/experiment_dependent_gates.json"
             gate.write_text(json.dumps({
@@ -1188,6 +1297,11 @@ def self_test() -> int:
     assert_static_rejected("technical_source_cannot_close_academic_qualification", lambda root: change_catalog(root, lambda catalog: catalog["r1_citation_audit"]["predicate_audits"][0]["status_evidence"]["academic"].update({"evidence_refs": ["ST8"]})))
     assert_static_rejected("broken_source_id", lambda root: change_catalog(root, lambda catalog: catalog["r1_citation_audit"]["predicate_audits"][0].update({"source_ids": ["NOT_A_SOURCE"]})))
     assert_static_rejected("impact_count_mismatch", lambda root: change_catalog(root, lambda catalog: catalog["r1_citation_audit"]["predicate_audits"][0]["impact"].update({"count": 1})))
+    def omit_g2_i5(catalog: dict[str, Any]) -> None:
+        g2 = next(row for row in catalog["r1_citation_audit"]["predicate_audits"] if row["predicate_id"] == "G2")
+        g2["impact"]["receipt_ids"] = ["0020:r3:i1:receipt"]
+        g2["impact"]["count"] = 1
+    assert_static_rejected("g2_impact_receipt_omission", lambda root: change_catalog(root, omit_g2_i5))
     assert_static_rejected("illegal_polarity", lambda root: change_catalog(root, lambda catalog: catalog["r1_citation_audit"]["predicate_audits"][14]["publication_eligibility_by_polarity"]["unknown"].update({"runtime_witness_ceiling": "W2", "publication_eligibility": "ELIGIBLE"})))
     assert_static_rejected("broken_footnote", lambda root: replace_text(root / "story/paper_outline.md", "[^fair]:", "[^fair-broken]:"))
     assert_static_rejected("predicate_broken_footnote", lambda root: replace_text(root / "related_work/provenance/predicate_provenance.md", "[^uml251]:", "[^uml251-broken]:"))
