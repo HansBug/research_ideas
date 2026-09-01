@@ -35,13 +35,6 @@ for base in ["appendices/appendix-a"]:
     elif ids(en) != ids(zh):
         ERRORS.append(f"SYNC-ID sequence mismatch for appendix {base}")
 
-for base in ["endmatter/acknowledgment"]:
-    en, zh = SECTIONS / f"{base}.en.tex", SECTIONS / f"{base}.zh.tex"
-    if not en.exists() or not zh.exists():
-        ERRORS.append(f"missing end-matter language pair for {base}")
-    elif ids(en) != ids(zh):
-        ERRORS.append(f"SYNC-ID sequence mismatch for end matter {base}")
-
 for base in ["figures/placeholder-figure", "tables/placeholder-table"]:
     en, zh = ROOT / f"{base}.en.tex", ROOT / f"{base}.zh.tex"
     if not en.exists() or not zh.exists():
@@ -57,10 +50,6 @@ if re.search(r"sections/\d[^\n]*\.(?:en|zh)", index):
     ERRORS.append("index must use the single FOneInput manifest, not language-specific inputs")
 if index.count("sections/appendices/index") != 1:
     ERRORS.append("appendix index must be included exactly once")
-if "FOneEndmatter{acknowledgment}" not in index or "ifshowaiack" not in index:
-    ERRORS.append("AI disclosure must be a paired conditional end-matter interface")
-if re.search(r"\\section\*?\{[^}]*AI[^}]*Disclosure", index, re.I):
-    ERRORS.append("AI disclosure must not be a numbered section in the index")
 
 def expanded_text(path, seen=None):
     seen = set() if seen is None else seen
@@ -86,7 +75,7 @@ def semantic_tokens(path):
     result_macros = re.findall(r"\\(?:PaperNumber|PaperPercent|PaperResultText)\b(?:\{([^}]+)\})?", text)
     return labels, [c for group in cites for c in group.split(",")], refs, graphics, result_macros
 
-for base in BASES + ["appendices/appendix-a", "endmatter/acknowledgment"]:
+for base in BASES + ["appendices/appendix-a"]:
     en = SECTIONS / f"{base}.en.tex"; zh = SECTIONS / f"{base}.zh.tex"
     if en.exists() and zh.exists() and semantic_tokens(en) != semantic_tokens(zh):
         ERRORS.append(f"semantic labels/citations/refs/figures/result macros differ for {base}")

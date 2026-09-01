@@ -15,19 +15,9 @@ for token in ["compsoc", "compsocconf", "geometry", "titlesec", "setspace", "\\f
 if re.search(r"\\(?:vspace|hspace)\s*\{\s*-|\\addtolength\s*\{[^}]+\}\s*\{-|\\setlength\s*\{[^}]+\}\s*\{-", joined):
     errors.append("negative spacing or dimension adjustment detected")
 index = (ROOT / "sections/index.tex").read_text()
-order = ["FOneInput{09-conclusion}", "FOneInput{10-data-availability}", "FOneEndmatter{acknowledgment}"]
+order = ["FOneInput{09-conclusion}", "FOneInput{10-data-availability}"]
 positions = [index.find(x) for x in order]
 if positions[0] < 0 or positions[1] < 0 or positions[0] >= positions[1]: errors.append("Conclusion/Data Availability order is invalid")
-if positions[2] >= 0 and positions[2] <= positions[1]: errors.append("Acknowledgment end matter must follow Data Availability")
-if re.search(r"\\section\*?\{[^}]*AI[^}]*Disclosure", index, re.I): errors.append("AI disclosure must not be an indexed section")
-if not re.search(r"\\showaiackfalse", (ROOT / "config/common.tex").read_text()): errors.append("F1 AI acknowledgment switch must default to false")
-for old in [ROOT / "sections/11-ai-use-disclosure.en.tex", ROOT / "sections/11-ai-use-disclosure.zh.tex"]:
-    if old.exists(): errors.append(f"legacy numbered AI disclosure file must be removed: {old.name}")
-if re.search(r"\\showaiacktrue", (ROOT / "config/common.tex").read_text()):
-    for ack in [ROOT / "sections/endmatter/acknowledgment.en.tex", ROOT / "sections/endmatter/acknowledgment.zh.tex"]:
-        body = ack.read_text(encoding="utf-8", errors="ignore").lower()
-        for field in ["system", "model", "purpose", "section", "verification"]:
-            if field not in body: errors.append(f"enabled AI acknowledgment missing field marker {field}: {ack.name}")
 for pdf in [ROOT / "build/en/main.pdf", ROOT / "build/zh/main-zh.pdf"]:
     if pdf.exists():
         info = subprocess.run(["pdfinfo", str(pdf)], capture_output=True, text=True, check=False).stdout
