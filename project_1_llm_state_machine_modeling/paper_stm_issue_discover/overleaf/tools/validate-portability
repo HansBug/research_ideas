@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+"""Check source-zip portability, paths, imports, symlinks, and generated-file hygiene."""
+from pathlib import Path
+import re, subprocess, sys
+
+ROOT = Path(__file__).resolve().parents[1]
+errors = []
+if any(p.is_symlink() for p in ROOT.rglob("*")): errors.append("symlink present in Overleaf project")
+scan = [p for p in ROOT.rglob("*") if p.is_file() and "template/official-original" not in p.as_posix() and "build/" not in p.as_posix()]
+for p in scan:
+    if p.suffix not in {".tex", ".bib", ".mk", ".md"} and p.name != "Makefile": continue
+    t = p.read_text(encoding="utf-8", errors="ignore")
+    if re.search(r"(?:^|[\s{])/(?:home|Users|tmp|mnt)/|file://", t): errors.append(f"absolute path in {p.relative_to(ROOT)}")
+    if p.suffix == ".tex" and re.search(r"(?:^|[,{])\s*\.\./|\\input\{[^}]*\.\./", t): errors.append(f"parent import in {p.relative_to(ROOT)}")
+    if "shell-escape" in t.lower(): errors.append(f"shell escape in {p.relative_to(ROOT)}")
+
+tex_files = [ROOT / "main.tex", ROOT / "main-zh.tex"] + list((ROOT / "sections").rglob("*.tex")) + list((ROOT / "config").glob("*.tex"))
+for tex in tex_files:
+    if not tex.exists(): continue
+    t = tex.read_text(encoding="utf-8", errors="ignore")
+    for target in re.findall(r"\\(?:input|include)\{([^}]+)\}", t):
+        if "#" in target: continue
+        candidates = []
+        for base in (ROOT, tex.parent):
+            candidate = base / target
+            candidates.append(candidate)
+            if candidate.suffix != ".tex": candidates.append(candidate.with_suffix(candidate.suffix + ".tex" if candidate.suffix else ".tex"))
+        if not any(c.exists() for c in candidates): errors.append(f"missing import {target} from {tex.relative_to(ROOT)}")
+    for target in re.findall(r"\\includegraphics(?:\[[^]]*\])?\{([^}]+)\}", t):
+        candidates = []
+        for base in (ROOT, tex.parent):
+            candidate = base / target
+            candidates.extend([candidate, candidate.with_suffix(".pdf"), candidate.with_suffix(".png")])
+        if not any(c.exists() for c in candidates): errors.append(f"missing figure {target} from {tex.relative_to(ROOT)}")
+    for target in re.findall(r"\\bibliography\{([^}]+)\}", t):
+        if not (ROOT / f"{target}.bib").exists(): errors.append(f"missing bibliography {target}.bib")
+
+git_root = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=False)
+if git_root.returncode == 0:
+    repo = Path(git_root.stdout.strip()).resolve()
+    tracked = subprocess.run(["git", "-C", str(repo), "ls-files", str(ROOT.relative_to(repo))], capture_output=True, text=True, check=False).stdout.splitlines()
+    if any(re.search(r"\.(pdf|aux|bbl|blg|fdb_latexmk|fls|log|out|synctex\.gz|toc)$", p) for p in tracked): errors.append("generated TeX/PDF artifact is tracked")
+else:
+    print("PORTABILITY NOTE: no Git metadata in extracted source; tracked-artifact check skipped")
+if errors:
+    print("PORTABILITY FAIL"); print("\n".join(f"- {e}" for e in errors)); sys.exit(1)
+print("PORTABILITY PASS: no symlink, escape, parent/absolute dependency, missing import, or tracked build artifact")

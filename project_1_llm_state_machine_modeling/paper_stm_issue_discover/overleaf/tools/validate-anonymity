@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+"""Check owned source and generated PDF metadata for double anonymity."""
+from pathlib import Path
+import re, subprocess, sys
+
+ROOT = Path(__file__).resolve().parents[1]
+owned = [p for p in ROOT.rglob("*") if p.is_file() and "template/" not in p.as_posix() and "build/" not in p.as_posix()]
+source_chunks = []
+for p in owned:
+    if p.suffix not in {".tex", ".bib"}: continue
+    # Disabled F1 end-matter is a future conditional interface, not manuscript output.
+    if "sections/endmatter/" in p.as_posix(): continue
+    chunk = p.read_text(encoding="utf-8", errors="ignore")
+    if p.name == "references.bib":
+        # Placeholder records are not author identity or real references.
+        chunk = re.sub(r"(?ms)^\s*@\w+\{placeholder-[^@]+", "", chunk)
+    source_chunks.append(chunk)
+text = "\n".join(source_chunks)
+patterns = {
+    "identifying author/affiliation": r"(?i)\\author\s*\{\s*[^}]|affiliation|orcid",
+    "contact or identity link": r"(?i)email|github\.com|gitlab\.com|https?://",
+    "funding/camera-ready": r"(?i)funding|camera[- ]?ready|copyright|doi",
+    "absolute or local path": r"(?:^|[\s{])/(?:home|Users|tmp|mnt)/|file://",
+}
+errors = [f"{name}: source hit" for name, pat in patterns.items() if re.search(pat, text)]
+
+for pdf in [ROOT / "build/en/main.pdf", ROOT / "build/zh/main-zh.pdf"]:
+    if not pdf.exists(): continue
+    info = subprocess.run(["pdfinfo", str(pdf)], capture_output=True, text=True, check=False).stdout
+    fields = dict(line.split(":", 1) for line in info.splitlines() if ":" in line)
+    if fields.get("Author", "").strip(): errors.append(f"{pdf.name}: non-empty PDF Author metadata")
+    body = subprocess.run(["pdftotext", str(pdf), "-"], capture_output=True, text=True, check=False).stdout
+    # Generic prose may say "authors"; flag identity-bearing fields/tokens instead.
+    if re.search(r"(?i)(\bauthor\s*(?:name|affiliation|:)|\baffiliation\b|\bemail\b|\borcid\b|\bfunding\b|\backnowledg(?:ment|ements)?\b|github\.com|\bdoi\b)", body):
+        errors.append(f"{pdf.name}: identifying token in extracted text")
+if errors:
+    print("ANONYMITY FAIL"); print("\n".join(f"- {e}" for e in errors)); sys.exit(1)
+print("ANONYMITY PASS: owned source and available PDF metadata/text contain no identifying information")

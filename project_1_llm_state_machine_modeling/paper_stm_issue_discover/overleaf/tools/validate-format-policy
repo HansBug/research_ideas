@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+"""Check SANER/IEEE format invariants without changing sources."""
+from pathlib import Path
+import re, subprocess, sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sources = [p for p in ROOT.rglob("*.tex") if "template" not in p.parts and "build" not in p.parts]
+joined = "\n".join(p.read_text(encoding="utf-8", errors="ignore") for p in sources)
+errors = []
+for entry in [ROOT / "main.tex", ROOT / "main-zh.tex"]:
+    if not re.search(r"\\documentclass\[\s*10pt\s*,\s*conference\s*\]\{IEEEtran\}", entry.read_text()):
+        errors.append(f"{entry.name} does not use exact 10pt conference IEEEtran class")
+for token in ["compsoc", "compsocconf", "geometry", "titlesec", "setspace", "\\fontsize", "\\linespread"]:
+    if token in joined: errors.append(f"forbidden format token: {token}")
+if re.search(r"\\(?:vspace|hspace)\s*\{\s*-|\\addtolength\s*\{[^}]+\}\s*\{-|\\setlength\s*\{[^}]+\}\s*\{-", joined):
+    errors.append("negative spacing or dimension adjustment detected")
+index = (ROOT / "sections/index.tex").read_text()
+order = ["FOneInput{09-conclusion}", "FOneInput{10-data-availability}", "FOneEndmatter{acknowledgment}"]
+positions = [index.find(x) for x in order]
+if positions[0] < 0 or positions[1] < 0 or positions[0] >= positions[1]: errors.append("Conclusion/Data Availability order is invalid")
+if positions[2] >= 0 and positions[2] <= positions[1]: errors.append("Acknowledgment end matter must follow Data Availability")
+if re.search(r"\\section\*?\{[^}]*AI[^}]*Disclosure", index, re.I): errors.append("AI disclosure must not be an indexed section")
+if not re.search(r"\\showaiackfalse", (ROOT / "config/common.tex").read_text()): errors.append("F1 AI acknowledgment switch must default to false")
+for old in [ROOT / "sections/11-ai-use-disclosure.en.tex", ROOT / "sections/11-ai-use-disclosure.zh.tex"]:
+    if old.exists(): errors.append(f"legacy numbered AI disclosure file must be removed: {old.name}")
+if re.search(r"\\showaiacktrue", (ROOT / "config/common.tex").read_text()):
+    for ack in [ROOT / "sections/endmatter/acknowledgment.en.tex", ROOT / "sections/endmatter/acknowledgment.zh.tex"]:
+        body = ack.read_text(encoding="utf-8", errors="ignore").lower()
+        for field in ["system", "model", "purpose", "section", "verification"]:
+            if field not in body: errors.append(f"enabled AI acknowledgment missing field marker {field}: {ack.name}")
+for pdf in [ROOT / "build/en/main.pdf", ROOT / "build/zh/main-zh.pdf"]:
+    if pdf.exists():
+        info = subprocess.run(["pdfinfo", str(pdf)], capture_output=True, text=True, check=False).stdout
+        m = re.search(r"^Pages:\s+(\d+)", info, re.M)
+        if m:
+            pages = int(m.group(1))
+            if pages > 12: errors.append(f"{pdf.name} exceeds 12-page total ceiling")
+            if pdf.name == "main.pdf" and pages > 10:
+                # Extra pages are permitted only for the bibliography. Numeric IEEE references
+                # must be present on every extra page, and body headings are forbidden there.
+                for page in range(11, pages + 1):
+                    text = subprocess.run(["pdftotext", "-f", str(page), "-l", str(page), str(pdf), "-"], capture_output=True, text=True, check=False).stdout
+                    if re.search(r"(?im)^\s*(abstract|introduction|background|related work|problem definition|approach|study design|results|discussion|threats|conclusion|data availability|appendix)\b", text):
+                        errors.append(f"{pdf.name} page {page} contains a body heading beyond the 10-page allowance")
+                    if not re.search(r"\[\s*\d+\s*\]", text):
+                        errors.append(f"{pdf.name} page {page} lacks IEEE-style reference entries")
+if errors:
+    print("FORMAT POLICY FAIL"); print("\n".join(f"- {e}" for e in errors)); sys.exit(1)
+print("FORMAT POLICY PASS: class/options, ordering, page-hack and page ceiling checks passed")
