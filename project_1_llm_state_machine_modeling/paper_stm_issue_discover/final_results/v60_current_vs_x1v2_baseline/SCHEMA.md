@@ -87,7 +87,7 @@ A0 只允许 `FALSE_POSITIVE` 与 current-only `NOT_A_DEFECT_CLAIM`。
 
 ## Method-cost audit v1
 
-`derived/final_talk_cost_section7_v1/` 是 provider-free 的 method-cost audit，不是新的实验层。它以两侧各 162 个 method cells 的保存 usage receipt 为成本对象，使用 `gpt-5.6-luna` 的 uncached input/cache read/cache creation/output 价格卡，并排除 evaluator、人工审核、CPU、存储和开发成本。ours 的完整 receipt cost 为 `$7.18277320`；baseline 的 `$0.22523328` 仅为 known recorded subtotal，因一条 billable schema-error attempt 缺 usage 而不具完整 cost eligibility。历史 `$6.77501040` 只保留为错绑到 baseline archive 的旧 current/evidence-discovery provenance。audit 的 JSON、TSV、source hashes、重建命令和自校验均在该目录内。
+`derived/final_talk_cost_section7_v1/` 是 provider-free 的 method-cost audit，不是新的实验层。它以两侧各 162 个 method cells 的保存 usage receipt 为成本对象，使用 `gpt-5.6-luna` 的 uncached input/cache read/cache creation/output 价格卡，并排除 evaluator、人工审核、CPU、存储和开发成本。ours 的完整 receipt cost 为 `$7.18277320`；baseline 的 `$0.22523328` 仅为 known recorded subtotal，因一条 billable schema-error attempt 缺 usage 而不具完整 cost eligibility。audit 的 JSON、TSV、source hashes、重建命令和自校验均在该目录内。
 
 ## Relation、hit 和 precision
 

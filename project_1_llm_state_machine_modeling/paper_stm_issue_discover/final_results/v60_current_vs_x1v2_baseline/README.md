@@ -48,7 +48,7 @@ predicate binding/receipt schema，因此 predicate usage 为 N/A，不是零。
 
 ### Method-cost provenance
 
-[final-talk cost audit v1](./derived/final_talk_cost_section7_v1/README.md) 是两侧 method generation provider cost 的当前入口。它只读取同一 `54 x 3 = 162` cell scope 中保存的 usage receipt，排除 evaluator、人工审核、CPU、存储和开发成本。ours 的完整 receipt closure 为 `$7.18277320`；baseline 只有 `$0.22523328` 的 known recorded subtotal，因为一条 billable schema-error attempt 没有保存 usage。故 baseline `method_cost_eligible=false`，完整成本和精确成本倍率均不发布。`raw/x1v2_baseline/method/corrected_cost_audit.json` 中的 `$6.77501040` 已标记为旧 current/evidence-discovery run 的 misbound historical provenance，不能作为 baseline 成本。
+[final-talk cost audit v1](./derived/final_talk_cost_section7_v1/README.md) 是两侧 method generation provider cost 的当前入口。它只读取同一 `54 x 3 = 162` cell scope 中保存的 usage receipt，排除 evaluator、人工审核、CPU、存储和开发成本。ours 的完整 receipt closure 为 `$7.18277320`；baseline 只有 `$0.22523328` 的 known recorded subtotal，因为一条 billable schema-error attempt 没有保存 usage。故 baseline `method_cost_eligible=false`，完整成本和精确成本倍率均不发布。
 
 结构化入口如下：
 
