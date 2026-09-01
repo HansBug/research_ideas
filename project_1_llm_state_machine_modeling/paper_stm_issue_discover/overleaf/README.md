@@ -13,4 +13,4 @@ make check    # deterministic gates and clean builds
 make clean
 ```
 
-Upload `build/overleaf-upload.zip` to Overleaf as-is for the minimal project. It contains only the two roots, byte-identical class/style work copies, CJK fallback, shared config/sections, and figure/table sources or assets; documentation, validators, protected template archives, and build caches are excluded. You may also upload the whole directory, select the appropriate root document, and download the source zip for the same clean-build round trip. Long-term rules and writing-phase entry criteria are in `GUIDE.md`.
+Upload `build/overleaf-upload.zip` to Overleaf as-is for the minimal project. It contains the `Makefile`, two roots, byte-identical class/style work copies, CJK fallback, shared config/sections, and figure/table sources or assets; documentation, validators, protected template archives, and build caches are excluded. You may also upload the whole directory, select the appropriate root document, and download the source zip for the same clean-build round trip. Long-term rules and writing-phase entry criteria are in `GUIDE.md`.

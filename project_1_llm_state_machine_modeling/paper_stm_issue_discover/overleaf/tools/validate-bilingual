@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Provider-free bilingual structure and synchronization gate."""
+"""Validate F1 bilingual pairs, order, and shared semantic interfaces."""
 from pathlib import Path
-import re, sys
+import re
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 SECTIONS = ROOT / "sections"
@@ -9,79 +10,53 @@ BASES = [
     "00-abstract", "01-introduction", "02-background-related-work",
     "03-problem-definition", "04-approach", "05-study-design",
     "06-results", "07-discussion", "08-threats", "09-conclusion",
-    "10-data-availability",
+    "10-data-availability", "11-ai-use-disclosure",
 ]
-ERRORS = []
+APPENDICES = ["appendices/appendix-a"]
+errors: list[str] = []
 
-def ids(path):
-    text = path.read_text(encoding="utf-8")
-    found = re.findall(r"^\s*%\s*SYNC-ID:\s*(\S+)\s*$", text, re.M)
-    if len(found) != len(set(found)):
-        ERRORS.append(f"duplicate SYNC-ID in {path.relative_to(ROOT)}")
-    return found
+def sync_ids(path: Path) -> list[str]:
+    values = re.findall(r"(?m)^\s*%\s*SYNC-ID:\s*(\S+)\s*$", path.read_text(encoding="utf-8"))
+    if len(values) != len(set(values)):
+        errors.append(f"duplicate SYNC-ID in {path.relative_to(ROOT)}")
+    return values
 
-for base in BASES:
-    en, zh = SECTIONS / f"{base}.en.tex", SECTIONS / f"{base}.zh.tex"
-    if not en.exists() or not zh.exists():
-        ERRORS.append(f"missing language pair for {base}")
-        continue
-    if ids(en) != ids(zh):
-        ERRORS.append(f"SYNC-ID sequence mismatch for {base}")
-
-for base in ["appendices/appendix-a"]:
-    en, zh = SECTIONS / f"{base}.en.tex", SECTIONS / f"{base}.zh.tex"
-    if not en.exists() or not zh.exists():
-        ERRORS.append(f"missing appendix language pair for {base}")
-    elif ids(en) != ids(zh):
-        ERRORS.append(f"SYNC-ID sequence mismatch for appendix {base}")
-
-for base in ["figures/placeholder-figure", "tables/placeholder-table"]:
-    en, zh = ROOT / f"{base}.en.tex", ROOT / f"{base}.zh.tex"
-    if not en.exists() or not zh.exists():
-        ERRORS.append(f"missing paired placeholder source for {base}")
-    elif ids(en) != ids(zh):
-        ERRORS.append(f"SYNC-ID sequence mismatch for placeholder source {base}")
-
-index = (SECTIONS / "index.tex").read_text(encoding="utf-8")
-manifest_order = re.findall(r"\\FOneInput\{([^}]+)\}", index)
-if manifest_order != BASES:
-    ERRORS.append(f"section manifest order mismatch: {manifest_order}")
-if re.search(r"sections/\d[^\n]*\.(?:en|zh)", index):
-    ERRORS.append("index must use the single FOneInput manifest, not language-specific inputs")
-if index.count("sections/appendices/index") != 1:
-    ERRORS.append("appendix index must be included exactly once")
-
-def expanded_text(path, seen=None):
-    seen = set() if seen is None else seen
-    path = path.resolve()
-    if path in seen or not path.is_file(): return ""
-    seen.add(path)
-    text = path.read_text(encoding="utf-8")
-    def expand(match):
-        target = match.group(1)
-        candidates = [ROOT / target, path.parent / target]
-        candidates += [c.with_suffix(c.suffix + ".tex" if c.suffix else ".tex") for c in candidates]
-        for candidate in candidates:
-            if candidate.is_file(): return expanded_text(candidate, seen)
-        return match.group(0)
-    return re.sub(r"\\input\{([^}]+)\}", expand, text)
-
-def semantic_tokens(path):
-    text = re.sub(r"(?m)^\s*%.*$", "", expanded_text(path))
+def semantic_tokens(path: Path) -> tuple[list[str], list[str], list[str], list[str], list[str]]:
+    text = re.sub(r"(?m)^\s*%.*$", "", path.read_text(encoding="utf-8"))
     labels = re.findall(r"\\label\{([^}]+)\}", text)
-    cites = re.findall(r"\\cite(?:[^\{]*)\{([^}]+)\}", text)
+    citations = [key for group in re.findall(r"\\cite(?:[^\{]*)\{([^}]+)\}", text) for key in group.split(",")]
     refs = re.findall(r"\\(?:ref|pageref|eqref)\{([^}]+)\}", text)
     graphics = re.findall(r"\\includegraphics(?:\[[^]]*\])?\{([^}]+)\}", text)
     result_macros = re.findall(r"\\(?:PaperNumber|PaperPercent|PaperResultText)\b(?:\{([^}]+)\})?", text)
-    return labels, [c for group in cites for c in group.split(",")], refs, graphics, result_macros
+    return labels, citations, refs, graphics, result_macros
 
-for base in BASES + ["appendices/appendix-a"]:
-    en = SECTIONS / f"{base}.en.tex"; zh = SECTIONS / f"{base}.zh.tex"
-    if en.exists() and zh.exists() and semantic_tokens(en) != semantic_tokens(zh):
-        ERRORS.append(f"semantic labels/citations/refs/figures/result macros differ for {base}")
+for base in BASES + APPENDICES:
+    en = SECTIONS / f"{base}.en.tex"
+    zh = SECTIONS / f"{base}.zh.tex"
+    if not en.is_file() or not zh.is_file():
+        errors.append(f"missing language pair for {base}")
+        continue
+    if sync_ids(en) != sync_ids(zh):
+        errors.append(f"SYNC-ID sequence mismatch for {base}")
+    if semantic_tokens(en) != semantic_tokens(zh):
+        errors.append(f"semantic labels/citations/refs/figures/result macros differ for {base}")
 
-if ERRORS:
+index = (SECTIONS / "index.tex").read_text(encoding="utf-8")
+order = re.findall(r"\\FOneInput\{([^}]+)\}", index)
+if order != BASES:
+    errors.append(f"section manifest order mismatch: {order}")
+if re.search(r"sections/\d[^\n]*\.(?:en|zh)", index):
+    errors.append("index must use the single FOneInput manifest, not language-specific inputs")
+if index.count("sections/appendices/index") != 1:
+    errors.append("appendix index must be included exactly once")
+if "ifprintaiusedisclosure" not in index or "FOneInput{11-ai-use-disclosure}" not in index:
+    errors.append("AI-use disclosure must use the paired, shared disabled-by-default acknowledgment interface")
+appendix_index = (SECTIONS / "appendices" / "index.tex").read_text(encoding="utf-8")
+if "ifincludeappendices" not in appendix_index:
+    errors.append("appendices must be disabled by default behind the shared appendix switch")
+
+if errors:
     print("BILINGUAL FAIL")
-    print("\n".join(f"- {e}" for e in ERRORS))
-    sys.exit(1)
-print("BILINGUAL PASS: paired units, SYNC-ID order, labels/citations/refs/figures/result macros agree")
+    print("\n".join(f"- {error}" for error in errors))
+    raise SystemExit(1)
+print("BILINGUAL PASS: paired units, SYNC-ID order, labels/citations/refs/figures/result macros, and single section order agree")

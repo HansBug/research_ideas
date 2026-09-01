@@ -20,7 +20,7 @@ all: en zh
 zip:
 	@mkdir -p "$(dir $(OVERLEAF_ZIP))"
 	@rm -f "$(OVERLEAF_ZIP)"
-	@find main.tex main-zh.tex IEEEtran.cls IEEEtran.bst c70gbsn.fd references.bib config sections figures tables -type f ! -name 'README.md' -print | zip -q -@ "$(OVERLEAF_ZIP)"
+	@find Makefile main.tex main-zh.tex IEEEtran.cls IEEEtran.bst c70gbsn.fd references.bib config sections figures tables -type f ! -name 'README.md' -print | zip -q -@ "$(OVERLEAF_ZIP)"
 	@printf 'Created %s\n' "$(OVERLEAF_ZIP)"
 
 check:
