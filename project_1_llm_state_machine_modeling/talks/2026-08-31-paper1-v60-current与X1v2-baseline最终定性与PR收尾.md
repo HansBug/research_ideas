@@ -157,6 +157,26 @@ receipt 保存输入、输出、artifact hash、backend/version、source refs �
 
 冻结实验为 `54 pair x 3 rounds`，每侧 `162 cells`。54 个 pair 由来源论文纳入研究范围的 `6` 个 LLM 条件与 `9` 个 NL 案例构成，即 `6 x 9 = 54`。来源结果表的 `STM Results` 第 18 个数据行（Excel row 20）是 `llms_emp_feedback_final_0018`，即 Digital camera state machine diagrams；其作者 PlantUML 明确使用 fork/join 并描述 parallel paths，现有 working contract 将这类并发执行语义标为 capability-excluded。它整体超出本文离散/层次/EFSM fragment，因而在建立 Paper1 矩阵前排除；它不进入 54 pair、145 条台账或任何 hit/precision 分母。原始输入与来源定位见 [0018 source record](../paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0018/source_meta.json) 和 [作者 PlantUML](../paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0018/stm0.puml)。输入闭包和纳入映射由 [final-results archive](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/README.md) 保存。
 
+#### 54 pair 的上游来源、生成方式与用途
+
+这 54 个输入来自 Wang, Ge, Liu, Cao, Chen 与 Hu 的 [*Generating SysML Behavior Models via Large Language Models: an Empirical Study*](https://doi.org/10.1145/3755881.3755926)（Internetware 2025）。该研究考察从自然语言需求生成 SysML 行为模型：Phase I 将 requirement description 和辅助上下文放入 prompt，要求模型输出 PlantUML 行为图；随后作者按格式、语法和需求一致性做 checking，并把反馈加入修订 prompt 产生后续输出。Paper1 不复现该 pipeline，也不使用其 reference PlantUML、checking 结论或原论文分数作为 oracle。它只从论文公开的 `Experiment Results.xlsx` / `STM Results` 一手 workbook 读取每行的 `Requirement Description` 和作者选择的 feedback-final PlantUML，作为已经冻结的 NL 与作者状态机输入；reference PlantUML 始终与方法和人工评测隔离。
+
+上游 STM 表有 60 行，即 10 份需求各由 6 个模型条件产生一份结果。条件及其论文表中的版本为 GPT-4（GPT-4-Turbo）、GPT-4o（GPT-4o-2024-11-20）、Kimi（Moonshot-v1）、Claude（Claude 3 Haiku）、Llama（Llama 3.1）和 DeepSeek（DeepSeek-v3）。Digital camera 是十份需求中的一项，含带时间约束的 fork/join 与 parallel paths，因本研究模型范围排除；其余 9 份需求均在六个条件下保留，构成 `9 x 6 = 54` 个 pair。九份 NL 分别描述下列控制/嵌入式系统行为，而不是九种抽象 benchmark 标签：
+
+| 纳入的 NL 系统 | NL 所描述的主要行为 |
+| --- | --- |
+| high-level driving module | 人工与自动驾驶模式、上电/断电及由前向距离和人工操控触发的切换。 |
+| base brake subsystem | 列车基础制动装置接收制动或传输失败信号后的制动、夹钳与回归初始状态。 |
+| Pump Control | 泵控制及水流、甲烷流监控子状态之间的切换。 |
+| Hybrid Sport Utility Vehicle | 车辆上电、熄火与 `Idle`、加速/巡航、制动之间的驾驶状态切换。 |
+| Train Control | 车门关闭、行驶、到站、紧急制动，以及加速/巡航/进站子状态。 |
+| Microwave Oven Control | 微波炉门、物品、烹饪时间、启动/取消和计时器的运行状态。 |
+| UAV swarm | 无人机群搜索、被拦截后的编队调整、任务分配与攻击完成后的群体规模变化。 |
+| collision avoidance sub-machine | 碰撞风险触发的碰撞规避控制；该需求中的并行区域作为作者制品事实处理，不扩张本文的并发语义 claim。 |
+| autonomous mode | 高速/城市自动驾驶模式、换道、退出、模式切换及碰撞规避条件。 |
+
+默认 input pool 的选择也需与上游研究分开表述：60 行中 58 行采用作者最后一个非空 checking 输出，另 2 行回退到 Phase-I generation。该选择固定了 Paper1 要检查的作者输出及其来源链，而不把上游反馈带来的改进算作 ours 的收益，也不把上游 checking 当作 Paper1 的裁定。对同一冻结 NL/PlantUML 输入，ours 和 baseline 都只进行本研究的 issue discovery；145 条 expected ledger、validity、relation、D/A、K/N/I 与成分分析均由 Paper1 的人工流程独立完成。完整的论文、workbook、行定位、hash、模型条件和两套 Phase-I/feedback-final 输入池的边界见 [seed description](../paper_stm_issue_discover/corpora/seed_library/llms-emp-stm-subset/seed_desc.md)、[asset README](../paper_stm_issue_discover/corpora/seed_library/llms-emp-stm-subset/assets/README.md) 与 [feedback-final JSONL](../paper_stm_issue_discover/corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl)。
+
 145 条台账由博士生研究者根据纳入 pair、对应 NL、作者状态机和来源证据逐条人工标注、整理与复核。台账保存 expected issue 内容、source locus、D/L、必要的性质/谓词预期及输入，但不是 method 运行后反向生成，也不是自动裁定产生。其形成、去重和边界见 [ledger README](../paper_stm_issue_discover/discover_matrix/ledger_v2/README.md)。
 
 `hit@1` 的分母为 `145 x 3 = 435` expected-round units；L2 `hit@1` 的分母为 `39 x 3 = 117`。`hit@3` 和 `hit@all` 的分母为 145 unique expected IDs；L2 对应分母为 39。ours 和 baseline 的人工审核构成并不完全对称：ours 是既有 source-first 结果的逐条闭合，baseline 是非 K 逐条复核加原 K 冻结快照。因此它们是同一语义边界下的冻结比较，不是新的、完全对称的人类 inter-rater 研究。
