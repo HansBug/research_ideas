@@ -2,7 +2,7 @@
 
 ## 问题与范围
 
-本文解决 `<free-form NL requirements, pre-existing source-attributed STM held fixed during analysis> -> localized requirement-relevant issue reports`。source STM 在分析前已存在、具有准确来源归属且不被本文生成或修改；它可以来自人或上游 LLM。方法是通用状态机问题发现架构，FCSTM 是可执行工作表示，不是研究对象限定。能够在声明子集上形成可追溯 FCSTM projection、提供 source attribution、capability contract 和 fail-closed boundary 的状态机语言可以实现为 adapter。本文只实现并评测 PlantUML adapter；54 个 PlantUML pair 是路线可行性的案例研究，不是跨语言效果证据。
+本文解决 `<free-form NL requirements, pre-existing source-attributed STM held fixed during analysis> -> localized requirement-relevant issue reports`。source STM 在分析前已存在、具有准确来源归属且不被本文生成或修改；它可以来自人或上游 LLM。方法是通用状态机问题发现架构，FCSTM 是可执行工作表示，不是研究对象限定。能够在声明子集上形成可追溯 FCSTM projection、提供 source attribution、capability contract 和 fail-closed boundary 的状态机语言可以实现为 adapter。本文只实现并评测 PlantUML adapter；54 个 PlantUML pair 是路线可行性的案例研究，不是跨语言效果证据。上游数据、阶段选择和 54-pair 范围分别以 [Wang 等论文与一手 workbook 入口](../corpora/seed_library/llms-emp-stm-subset/assets/README.md)、[feedback-final 验证摘要](../corpora/seed_library/llms-emp-stm-subset/assets/extracted/feedback_final_validation_summary.json)和[实验网格范围规则](../selected_seed_examples/README.md)为准。
 
 ## C1 与 C2
 
@@ -17,7 +17,7 @@
 ## 研究问题
 
 1. **RQ1：** 在冻结的 PlantUML 案例研究中，完整方法相对同模型 baseline 的 issue-discovery effectiveness 与 coverage--precision trade-off 是什么？单位为 435 round-level expected slots、145 expected issues 和报告级分母；结论是描述性比较。
-2. **RQ2：** 类型化证据层在适用 current candidates 上产生何种 typed-plan closure、terminal receipt、replay、polarity、W 分布和 source attribution？单位为 receipt、predicate ID 和 FULL-hit unit；W 不等于 validity。
+2. **RQ2：** 在冻结结果中，类型化证据层的最高 W 分布、终止回执谓词标识使用、报告绑定谓词标识使用和绑定行诊断呈现何种情况？单位为 FULL-hit unit、predicate ID 和报告绑定行；这些指标不估计 candidate-level typed-plan closure、replay 成功率、极性比例或适用候选覆盖率，W 也不等于 validity。
 3. **RQ3：** current reports 的 attribution/failure boundary 和方法费用资格是什么？单位为报告和 invalid reports；NADC 仅为 current-side diagnostic，baseline 小计不得形成成本倍率。
 
 ## 已有证据与限制

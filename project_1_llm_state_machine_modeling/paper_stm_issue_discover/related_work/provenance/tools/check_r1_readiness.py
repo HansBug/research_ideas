@@ -306,9 +306,17 @@ def check_catalog(paper_root: Path, errors: list[str]) -> None:
     ):
         add_error(errors, "catalog chronology/leakage metadata is incomplete")
 
-    source_ids = {
-        row.get("id") for row in catalog.get("sources", [])
+    source_types: dict[str, set[str]] = {
+        row["id"]: set(row.get("types", []))
+        for row in catalog.get("sources", [])
         if isinstance(row, dict) and is_nonempty_string(row.get("id"))
+        and isinstance(row.get("types"), list)
+        and all(is_nonempty_string(source_type) for source_type in row["types"])
+    }
+    source_ids = set(source_types)
+    academic_source_ids = {
+        source_id for source_id, types in source_types.items()
+        if types & {"domain", "formal"}
     }
     if "publication_eligibility_profiles" in audit:
         add_error(errors, "catalog must store publication eligibility directly on each predicate")
@@ -353,8 +361,11 @@ def check_catalog(paper_root: Path, errors: list[str]) -> None:
                     add_error(errors, f"{pid}: {responsibility} evidence is empty")
             academic = evidence.get("academic", {})
             academic_refs = academic.get("evidence_refs", []) if isinstance(academic, dict) else []
-            if row["academic_qualification_status"] == "QUALIFIED_EXTERNAL" and not set(academic_refs) & source_ids:
-                add_error(errors, f"{pid}: method-only references cannot close academic qualification")
+            if (
+                row["academic_qualification_status"] == "QUALIFIED_EXTERNAL"
+                and not set(academic_refs) & academic_source_ids
+            ):
+                add_error(errors, f"{pid}: academic qualification lacks a domain/formal external source")
         eligibility = row["publication_eligibility_by_polarity"]
         if not isinstance(eligibility, dict) or set(eligibility) != POLARITIES:
             add_error(errors, f"{pid}: publication eligibility lacks exact polarity keys")
@@ -595,7 +606,11 @@ def check_static_surface(
             add_error(errors, f"{rel}: blocked residual marker")
     check_catalog(paper_root, errors)
     check_crosswalk(paper_root, errors)
-    check_footnotes(paper_root / "story/paper_outline.md", errors)
+    for citation_path in (
+        paper_root / "story/paper_outline.md",
+        paper_root / "related_work/provenance/predicate_provenance.md",
+    ):
+        check_footnotes(citation_path, errors)
     check_terminology(paper_root, errors)
     experiment_ids = check_experiment_gate(paper_root, errors)
     check_experiment_mentions(paper_root, experiment_ids, errors)
@@ -1170,10 +1185,12 @@ def self_test() -> int:
     assert_static_rejected("unknown_enum", lambda root: change_catalog(root, lambda catalog: catalog["r1_citation_audit"]["predicate_audits"][0].update({"implementation_relation": "UNKNOWN_ENUM"})))
     assert_static_rejected("unresolved_status", lambda root: change_catalog(root, lambda catalog: catalog["r1_citation_audit"]["predicate_audits"][0].update({"implementation_relation": "UNRESOLVED"})))
     assert_static_rejected("method_only_academic_evidence", lambda root: change_catalog(root, lambda catalog: catalog["r1_citation_audit"]["predicate_audits"][0]["status_evidence"]["academic"].update({"evidence_refs": ["method/src/paper_stm_method/compiler/soundness.py"]})))
+    assert_static_rejected("technical_source_cannot_close_academic_qualification", lambda root: change_catalog(root, lambda catalog: catalog["r1_citation_audit"]["predicate_audits"][0]["status_evidence"]["academic"].update({"evidence_refs": ["ST8"]})))
     assert_static_rejected("broken_source_id", lambda root: change_catalog(root, lambda catalog: catalog["r1_citation_audit"]["predicate_audits"][0].update({"source_ids": ["NOT_A_SOURCE"]})))
     assert_static_rejected("impact_count_mismatch", lambda root: change_catalog(root, lambda catalog: catalog["r1_citation_audit"]["predicate_audits"][0]["impact"].update({"count": 1})))
     assert_static_rejected("illegal_polarity", lambda root: change_catalog(root, lambda catalog: catalog["r1_citation_audit"]["predicate_audits"][14]["publication_eligibility_by_polarity"]["unknown"].update({"runtime_witness_ceiling": "W2", "publication_eligibility": "ELIGIBLE"})))
     assert_static_rejected("broken_footnote", lambda root: replace_text(root / "story/paper_outline.md", "[^fair]:", "[^fair-broken]:"))
+    assert_static_rejected("predicate_broken_footnote", lambda root: replace_text(root / "related_work/provenance/predicate_provenance.md", "[^uml251]:", "[^uml251-broken]:"))
     assert_static_rejected("orphan_footnote", lambda root: (root / "story/paper_outline.md").write_text((root / "story/paper_outline.md").read_text(encoding="utf-8") + "\n[^orphan]: Orphan fixture reference.\n", encoding="utf-8"))
     assert_static_rejected("duplicate_footnote", lambda root: (root / "story/paper_outline.md").write_text((root / "story/paper_outline.md").read_text(encoding="utf-8") + "\n[^fair]: Duplicate fixture reference.\n", encoding="utf-8"))
     assert_static_rejected("terminology_repeat", lambda root: (root / "story/paper_outline.md").write_text((root / "story/paper_outline.md").read_text(encoding="utf-8") + "\nnatural language\n", encoding="utf-8"))
@@ -1212,7 +1229,7 @@ def self_test() -> int:
     print(json.dumps({
         "self_test": "passed",
         "golden": {"current": 19, "legacy": 19, "roles": 9, "nonempty_experiment": True},
-        "fail_closed_cases": 39,
+        "fail_closed_cases": 40,
     }))
     return 0
 

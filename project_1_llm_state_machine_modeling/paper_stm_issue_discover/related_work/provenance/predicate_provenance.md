@@ -24,7 +24,7 @@
 | `terminates` | G2、G4、V4 | `split` | 旧 termination 混合必达、coaccessibility 和 progress；当前显式分开。 | `TP2,TP3,TP4,TP6,G4-RP1,G4-RP2,BV7,BV8,BV9`; `056997691` 与 `method/src/paper_stm_method/compiler/soundness.py`。 |
 | `event_consumed` | R1 | `direct_reuse` | 事件响应义务承接；`macrostep` 是方法语义。 | `TR1,TR2,ST8`; `3e4e003e1` 与 `pipeline/evidence_discovery/METHOD_PRINCIPLES.md`。 |
 | `occupancy_after` | R2 | `direct_reuse` | 当前承接刺激后目标 active 的轨迹义务。 | `TR1,TR2,ST3`; `3e4e003e1` 与 `method/src/paper_stm_method/resources/predicate_registry.json`。 |
-| `stays_in` | R4 | `direct_reuse` | 当前承接有限 interval 的 active 保持。 | `TR4,TR5,TR6`; `3e4e003e1` 与 `method/src/paper_stm_method/resources/predicate_registry.json`。 |
+| `stays_in` | R4 | `direct_reuse` | 当前承接有限 interval 的 active 保持。 | `TP1,TR4,TR5,TR6`; `3e4e003e1` 与 `method/src/paper_stm_method/resources/predicate_registry.json`。 |
 | `persists_until`、`invariant` | V5 | `merge_derived` | 承接 occupancy safety 核心；当前 true 只表示有限通过。 | `TP3,TP3B,TP3C`; `056997691` 与 `method/src/paper_stm_method/compiler/soundness.py`。 |
 | `response_within` | V3 | `direct_reuse` | 承接有界响应；不把无界 response 文献转成步数界。 | `TP1,BV7,TR1`; `d1b4d71c7` 与 `method/src/paper_stm_method/compiler/soundness.py`。 |
 | `containment` | -- | `retired` | 父状态“正确性”需要外部需求参照；UML containment 规则不能导出它。 | `ST1`; `d1b4d71c7` 与 `related_work/provenance/archive/legacy_20260821/predicate_provenance.md`。 |
@@ -35,13 +35,14 @@
 
 ## 书目与逐字引文
 
-- [^uml251] Object Management Group. *Unified Modeling Language (UML), Version 2.5.1*. 2017, §14.5.11.8, p. 362; §14.5.8.6, p. 354. https://www.omg.org/spec/UML/2.5.1/PDF (accessed 2026-09-02). “The source and target Vertices of a Transition must be contained in the same StateMachine as the Transition.”
-- [^heimdahl1996] Mats P. E. Heimdahl and Nancy G. Leveson. “Completeness and Consistency in Hierarchical State-Based Requirements.” *IEEE TSE*, 22(6), 1996. https://doi.org/10.1109/32.508311. The recovered author PDF, p. 4: “The logical OR of the conditions on every transition out of any state must form a tautology.”
-- [^heitmeyer1996] Constance Heitmeyer, Robert Jeffords, and Bruce Labaw. “Automated Consistency Checking of Requirements Specifications.” *ACM TOSEM*, 5(3), 1996, pp. 231--261. https://doi.org/10.1145/234426.234431. The recovered NRL version, p. 18, reports the A-7E disjointness analysis and cautions that “a few probably are not” errors.
-- [^sims2001] Steve Sims, Rance Cleaveland, Ken Butts, and Scott Ranville. “Automated Validation of Software Models.” *ASE 2001*. https://doi.org/10.1109/ASE.2001.989794. p. 4: in the overlapping-condition example the successor “could be either B or C”; pp. 7--8 report Ford powertrain checks.
-- [^dwyer1999] Matthew B. Dwyer, George S. Avrunin, and James C. Corbett. “Patterns in Property Specifications for Finite-State Verification.” *ICSE 1999*, pp. 411--420. https://doi.org/10.1145/302405.302672. p. 416: “Of the 555 example specifications we collected, 511 (92%) matched one of our patterns.”
-- [^mohajerani2016] Pedram Mohajerani, et al. “A Framework for Model Checking Nonblockingness.” *Discrete Event Dynamic Systems*, 26, 2016. https://doi.org/10.1007/s10626-015-0217-y. The definition requires every reachable state to reach a marked state.
-- [^andrec2023] Etienne André, et al. “A Survey on Formal Methods for UML State Machines.” *ACM Computing Surveys*, 2023. https://doi.org/10.1145/3579821. The survey documents alternative state-machine semantics and model-checking translations.
+[^uml251]: Object Management Group. *Unified Modeling Language (UML), Version 2.5.1*. 2017, §14.5.11.8, p. 362; §14.5.8.6, p. 354. https://www.omg.org/spec/UML/2.5.1/PDF (accessed 2026-09-02). “The source and target Vertices of a Transition must be contained in the same StateMachine as the Transition.”
+[^heimdahl1996]: Mats P. E. Heimdahl and Nancy G. Leveson. “Completeness and Consistency in Hierarchical State-Based Requirements.” *IEEE TSE*, 22(6), 1996. https://doi.org/10.1109/32.508311. The recovered author PDF, p. 4: “The logical OR of the conditions on every transition out of any state must form a tautology.”
+[^heitmeyer1996]: Constance Heitmeyer, Robert Jeffords, and Bruce Labaw. “Automated Consistency Checking of Requirements Specifications.” *ACM TOSEM*, 5(3), 1996, pp. 231--261. https://doi.org/10.1145/234426.234431. The recovered NRL version, p. 18, reports the A-7E disjointness analysis and cautions that “a few probably are not” errors.
+[^sims2001]: Steve Sims, Rance Cleaveland, Ken Butts, and Scott Ranville. “Automated Validation of Software Models.” *ASE 2001*. https://doi.org/10.1109/ASE.2001.989794. p. 4: in the overlapping-condition example the successor “could be either B or C”; pp. 7--8 report Ford powertrain checks.
+[^dwyer1999]: Matthew B. Dwyer, George S. Avrunin, and James C. Corbett. “Patterns in Property Specifications for Finite-State Verification.” *Proceedings of ICSE 1999*, pp. 411--420. https://doi.org/10.1145/302405.302672. p. 413 defines a between scope as “any part of the execution from one given state/event to another”; p. 414 defines Absence as “A given state/event does not occur within a scope.”
+[^mirabadi2009]: Ahmad Mirabadi and Mohammad B. Yazdi. “Automatic Generation and Verification of Railway Interlocking Control Tables Using FSM and NuSMV.” *Transport Problems*, 4(1), 2009, pp. 103--110. http://transportproblems.polsl.pl/pl/Archiwum/2009/zeszyt1/2009t4z1_11.pdf (accessed 2026-09-02). p. 2: “the route should be isolated from all potential conflicting movements”; p. 6: “no two conflicting routes can be set at the same time.”
+[^mohajerani2016]: Sahar Mohajerani, Robi Malik, and Martin Fabian. “A Framework for Compositional Nonblocking Verification of Extended Finite-State Machines.” *Discrete Event Dynamic Systems*, 26(1), 2016, pp. 33--84. https://doi.org/10.1007/s10626-015-0217-y. The definition requires every reachable state to reach a marked state.
+[^andrec2023]: Étienne André, Shuang Liu, Yang Liu, Christine Choppy, Jun Sun, and Jin Song Dong. “Formalizing UML State Machines for Automated Verification – A Survey.” *ACM Computing Surveys*, 55(13s), 2023, pp. 1--47. https://doi.org/10.1145/3579821.
 
 ## 逐条审计
 
@@ -53,9 +54,9 @@
 
 **义务与出处。** legacy 的 `event_declared`、`variable_declared`、`state_declared` 在 S1 合并为 kind-parametric inventory；没有把未绑定的业务元素纳入。`ST1,ST2,ST4` 是冻结 source-unit mapping，外部 formal 依据为 UML 元模型。全文逐字引文与页码见 [^uml251]；它只支撑元模型位置，具体存在义务来自当前 pair 的 NL binding。chronology/leakage：来源池由 `3e4e003e1` 重映射、registry 由 `d1b4d71c7` 冻结，故只能称 literature-informed、retrospectively consolidated。
 
-**方法、实例与 W2。** method-owned inventory、token 和 source carrier 语义由 `pipeline/evidence_discovery/METHOD_PRINCIPLES.md` 与 native parser 定义；实例的 kind、名称和 `closed_fcstm` scope 必须来自精确 NL/source binding。W2 还要求这三项 binding、合法 typed inputs、终止 Boolean receipt 和 hash-bound replay，缺任一项不把运行结论升格为论文主张。
+**方法、实例与 W2。** registry 的 kind-parametric inventory 是义务层；native source-static backend 仅执行 `state`、`event`、`transition`/`edge` 的 `closed_fcstm` membership。variable、action、effect、composite 或 owner-local scope 不在 S1 的可执行片段，必须保持 W1/W0 或由其他谓词处理。实例的 kind、名称和 scope 仍须来自精确 NL/source binding。W2 还要求合法 typed inputs、终止 Boolean receipt 和 hash-bound replay，缺任一项不把运行结论升格为论文主张。
 
-**执行、极性与发表。** `EXACT`，`scope=closed_fcstm`。状态：`QUALIFIED_EXTERNAL; SPECIFIED_AND_TESTED; SOURCE_BOUND`。`true`、`false`均 `W2/ELIGIBLE`，claim scope 为闭合 inventory；`unknown`、`failure`均 `W1/INELIGIBLE`。不推出 containment、可达或运行活动。受影响 receipt 为 0。
+**执行、极性与发表。** `IMPLEMENTATION_SUBSET`，仅 `scope=closed_fcstm` 的 state/event/transition/edge membership。状态：`QUALIFIED_EXTERNAL; SPECIFIED_AND_TESTED; SOURCE_BOUND`。该 fragment 的 `true`、`false`均 `W2/ELIGIBLE`；`unknown`、`failure`均 `W1/INELIGIBLE`。`0000:r3:i4:receipt`（composite，W1）和 `0034:r3:i2:receipt`（composite，W0）本已不是 W2，故只收窄发表解释，不改变 W2、headline 或重跑资格。
 
 ### S2 `transition_exists`
 
@@ -129,9 +130,9 @@
 
 ### G3 `route_avoids`
 
-**现行精确命题。** “Every path from the source to the target avoids the forbidden node or edge set.” 禁止路径/冲突进路是铁路安全约束形状。[`TP3,TP3B,TP3C`; ^sims2001]
+**现行精确命题。** “Every path from the source to the target avoids the forbidden node or edge set.” source--target scope 内的 absence 是形式性质形状；禁止冲突进路是铁路安全约束形状。[`TP1,TP3,TP3B,TP3C`; ^dwyer1999,^mirabadi2009]
 
-**义务与出处。** G3 是新增的 source--target avoidance 命题，未把旧 `reaches` 或 `terminates` 伪装成禁止路径。`TP3,TP3B,TP3C` 连接铁路进路约束与该义务；Sims 等的全文逐字引文、页码和 Ford context 见 [^sims2001]。它说明 overlap/choice 风险的外部检查背景，不用本地摘录代替一手来源。chronology/leakage：`d1b4d71c7` 新增 registry row，`056997691` 固化 native execution。
+**义务与出处。** G3 是新增的 source--target avoidance 命题，未把旧 `reaches` 或 `terminates` 伪装成禁止路径。全文逐字引文与页码：Dwyer 等将“between”限定为两个状态/事件之间的执行片段，并将 absence 定义为该 scope 内不发生给定状态/事件（[^dwyer1999]，pp. 413--414）；这给出全称路径约束的形式形状。Mirabadi 与 Yazdi 的铁路联锁全文则把冲突 movement 的 route isolation 和“no two conflicting routes”列为安全要求（[^mirabadi2009]，pp. 2、6）。`TP3,TP3B,TP3C` 只记录这些外部来源到冻结 source pool 的映射，不替代一手引用。chronology/leakage：`d1b4d71c7` 新增 registry row，`056997691` 固化 native execution。
 
 **方法、实例与 W2。** native route enumeration 与 forbidden carrier normalization 是方法语义；source、target、forbidden set 必须逐项受 NL/source binding 授权。W2 只涵盖 exact leaf-node fragment 与 complete receipt/replay。没有 source-target path 的 `true` 是空真，不能改写为存在一条安全路线。
 
@@ -179,9 +180,9 @@
 
 ### R4 `state_retained`
 
-**现行精确命题。** “The target state remains active at every recorded point in the closed interval.” 这是有限 trace 内保持，而非无限 persistence。[`TR4,TR5,TR6`; ^dwyer1999]
+**现行精确命题。** “The target state remains active at every recorded point in the closed interval.” 这是有限 trace 内保持，而非无限 persistence。[`TP1,TR4,TR5,TR6`; ^dwyer1999]
 
-**义务与出处。** `stays_in` 直接承接为 R4；它保留有限 interval 内 active 的要求，不把 legacy 名称偷换成无限 persistence。`TR4,TR5,TR6` 与 trace/counterexample evidence 对应，Dwyer 等的 universality/persistence 边界和全文逐字引文定位见 [^dwyer1999]。实例 interval 而非外部文献给出具体时长。chronology/leakage：`3e4e003e1` remapping，`d1b4d71c7` registry freeze。
+**义务与出处。** `stays_in` 直接承接为 R4；它保留有限 interval 内 active 的要求，不把 legacy 名称偷换成无限 persistence。`TP1` 提供 universality/persistence 的外部形式义务；`TR4,TR5,TR6` 只与 trace/counterexample evidence 的技术形态对应。Dwyer 等的 universality/persistence 边界和全文逐字引文定位见 [^dwyer1999]。实例 interval 而非外部文献给出具体时长。chronology/leakage：`3e4e003e1` remapping，`d1b4d71c7` registry freeze。
 
 **方法、实例与 W2。** recorded points、closed interval 和 SimulationRuntime trace 是方法语义；state/interval 是精确 NL/source binding。W2 需要完整 trace、terminal receipt 和 replay，任何 unknown/failure 仅保留 W1；不推出连续时间、open until 或 global invariant。
 
@@ -219,9 +220,9 @@
 
 ### V4 `deadlock_free`
 
-**现行精确命题。** “Every reachable, stable, nonterminal configuration admits model progress.” deadlock freedom与 termination不同。[`BV8,BV7,BV9`; ^andrec2023]
+**现行精确命题。** “Every reachable, stable, nonterminal configuration admits model progress.” deadlock freedom与 termination不同。[`TP4,BV8,BV7,BV9`; ^andrec2023]
 
-**义务与出处。** `terminates` 的 progress 成分在 V4 单列，不与 G2/G4 混用。`BV8,BV7,BV9` 映射并发状态空间、deadlock audit 与 TLA+ sources；André 等对 UML state-machine semantics/model-checking translation 的全文逐字引文、版本和页码见 [^andrec2023]。这支撑 configuration-level formal obligation，不把 local leaf probe 写成外部 theorem。chronology/leakage：native receipt unified 于 `056997691`，R1 仅收窄其发表解释。
+**义务与出处。** `terminates` 的 progress 成分在 V4 单列，不与 G2/G4 混用。`TP4` 提供对所有路径或所有可达配置量化的外部形式依据；`BV8,BV7,BV9` 仅映射并发状态空间、deadlock audit 与 TLA+ 的技术术语和边界。André 等对 UML state-machine semantics/model-checking translation 的全文逐字引文、版本和页码见 [^andrec2023]。这支撑 configuration-level formal obligation，不把 local leaf probe 写成外部 theorem。chronology/leakage：native receipt unified 于 `056997691`，R1 仅收窄其发表解释。
 
 **方法、实例与 W2。** topology-reachable leaves、hot start、one-step probe、state-preserving effects 与 valuation coverage 的实现差异由 method audit 定义；initial scope 必须来自 source/NL binding。既有 probe 没有枚举 all reachable configurations，故所有极性均无 publication W2，82 个 exact terminal-false receipt IDs 被列入 impact exclusion，而非重新运行或修改 canonical data。
 

@@ -75,6 +75,82 @@ def _state_set(document: Any, value: object, *, allow_initial: bool = False) -> 
     return bool(values) and all(raw == "[*]" and allow_initial or resolve_state(document, raw) is not None for raw in values)
 
 
+def _native_values(value: object) -> tuple[object, ...]:
+    """Flatten one typed node-set with the topology backend's value rules."""
+
+    if value is None:
+        return ()
+    if isinstance(value, str):
+        return (value,)
+    if isinstance(value, Sequence):
+        return tuple(item for nested in value for item in _native_values(nested))
+    return ()
+
+
+def _native_leaf_paths(document: Any, value: object, *, role: str) -> tuple[str, ...] | None:
+    """Resolve exactly the leaf projection consumed by the topology backend.
+
+    Soundness must reject plans before they reach a backend shape that can only
+    return ``unknown``.  This mirrors the public pyfcstm topology projection;
+    it does not reconstruct a graph from ModelIR.
+    """
+
+    from pyfcstm.verify.topology import build_leaf_level_macro_graph, topological_reachable_set
+
+    values = _native_values(value)
+    if not values:
+        return None
+    graph = build_leaf_level_macro_graph(document.machine)
+    reachability = topological_reachable_set(document.machine)
+    root_path = state_path(document.machine.root_state)
+    resolved: list[str] = []
+    for raw_value in values:
+        if raw_value == "[*]":
+            if role != "source":
+                return None
+            resolved.extend(reachability.get(root_path, ()))
+            continue
+        state = resolve_state(document, raw_value)
+        if state is None:
+            return None
+        path = state_path(state)
+        if role == "source" and not state.is_leaf_state:
+            resolved.extend(reachability.get(path, ()))
+        elif role == "target" and not state.is_leaf_state:
+            prefix = path + "."
+            resolved.extend(node for node in graph.nodes if node.startswith(prefix))
+        else:
+            resolved.append(path)
+    return tuple(dict.fromkeys(resolved)) or None
+
+
+def _leaf_state_set(document: Any, value: object) -> bool:
+    """Accept G3 only for explicit native leaf-state carriers."""
+
+    values = _native_values(value)
+    return bool(values) and all(
+        (state := resolve_state(document, raw)) is not None and state.is_leaf_state
+        for raw in values
+    )
+
+
+def _v3_proposition(document: Any, value: object, *, response_trigger: bool) -> bool:
+    """Check V3's backend-supported state/event proposition fragment."""
+
+    if isinstance(value, Mapping):
+        if set(value) == {"state"}:
+            value = value["state"]
+        elif set(value) == {"event"}:
+            value = ("event", value["event"])
+        else:
+            return False
+    if isinstance(value, tuple) and len(value) == 2 and value[0] == "event":
+        return response_trigger and resolve_event(document, value[1]) is not None
+    if resolve_state(document, value) is not None:
+        return True
+    return response_trigger and resolve_event(document, value) is not None
+
+
 def _carrier(document: Any, value: object) -> bool:
     if not isinstance(value, str) or not value.strip():
         return False
@@ -115,7 +191,13 @@ def assess_soundness(
     scope = inputs.get("scope")
     closed_scope = scope == "closed_fcstm"
     if predicate_id == "S1":
-        ok = isinstance(inputs["kind"], str) and isinstance(inputs["element"], str) and closed_scope
+        # The frozen registry's declaration vocabulary is broader than the
+        # source-static backend.  Do not mark an unsupported kind executable.
+        ok = (
+            inputs["kind"] in {"state", "event", "transition", "edge"}
+            and isinstance(inputs["element"], str)
+            and closed_scope
+        )
     elif predicate_id == "S2":
         ok = _state_set(document, inputs["source"], allow_initial=True) and _state_set(document, inputs["target"]) and (closed_scope or resolve_state(document, scope) is not None)
     elif predicate_id in {"S3", "S5", "S6"}:
@@ -125,10 +207,25 @@ def assess_soundness(
         if predicate_id == "S6": ok = ok and isinstance(inputs["effect"], Sequence) and len(inputs["effect"]) == 1 and isinstance(inputs["effect"][0], str) and bool(inputs["effect"][0].strip())
     elif predicate_id == "S4":
         ok = resolve_state(document, inputs["state"]) is not None and inputs["phase"] in {"entry", "do", "exit"} and isinstance(inputs["action"], str) and bool(inputs["action"].strip())
-    elif predicate_id in {"G1", "G2"}:
+    elif predicate_id == "G1":
         ok = _state_set(document, inputs["source"], allow_initial=True) and _state_set(document, inputs["target"])
+    elif predicate_id == "G2":
+        sources = _native_leaf_paths(document, inputs["source"], role="source")
+        targets = _native_leaf_paths(document, inputs["target"], role="target")
+        ok = sources is not None and targets is not None and len(sources) == 1
     elif predicate_id == "G3":
-        ok = _state_set(document, inputs["source"]) and _state_set(document, inputs["target"]) and _state_set(document, inputs["forbidden"])
+        sources = _native_leaf_paths(document, inputs["source"], role="source")
+        targets = _native_leaf_paths(document, inputs["target"], role="target")
+        forbidden = _native_leaf_paths(document, inputs["forbidden"], role="target")
+        ok = (
+            _leaf_state_set(document, inputs["source"])
+            and _leaf_state_set(document, inputs["target"])
+            and _leaf_state_set(document, inputs["forbidden"])
+            and sources is not None
+            and targets is not None
+            and forbidden is not None
+            and len(sources) == 1
+        )
     elif predicate_id == "G4":
         ok = _state_set(document, inputs["roots"], allow_initial=True) and _state_set(document, inputs["marked"])
     elif predicate_id in {"R1", "R2", "R3", "R4"}:
@@ -144,12 +241,26 @@ def assess_soundness(
         # The native V3 backend only compiles a discrete FBMCQ step bound.
         # Treating milliseconds as executable here would promote a plan that
         # the backend must return as unknown.
-        ok = isinstance(inputs["bound"], int) and not isinstance(inputs["bound"], bool) and inputs["bound"] > 0 and inputs["unit"] == "steps" and (scope in {"closed_fcstm", "cold"} or resolve_state(document, scope) is not None)
+        ok = (
+            _v3_proposition(document, inputs["p"], response_trigger=True)
+            and _v3_proposition(document, inputs["q"], response_trigger=False)
+            and isinstance(inputs["bound"], int)
+            and not isinstance(inputs["bound"], bool)
+            and inputs["bound"] > 0
+            and inputs["unit"] == "steps"
+            and (scope in {"closed_fcstm", "cold"} or resolve_state(document, scope) is not None)
+        )
     elif predicate_id == "V4":
         initial_scope = inputs["initial_scope"]
         ok = initial_scope in {"closed_fcstm", "cold"} or resolve_state(document, initial_scope) is not None
     else:  # V5
         initial_scope = inputs["initial_scope"]
-        ok = resolve_state(document, inputs["state"]) is not None and isinstance(inputs["expected"], (bool, int)) and (initial_scope in {"closed_fcstm", "cold"} or resolve_state(document, initial_scope) is not None)
+        expected = inputs["expected"]
+        ok = (
+            resolve_state(document, inputs["state"]) is not None
+            and type(expected) in {bool, int}
+            and expected in {0, 1}
+            and (initial_scope in {"closed_fcstm", "cold"} or resolve_state(document, initial_scope) is not None)
+        )
     reason = "The typed plan satisfies this predicate's native executable fragment." if ok else "The typed plan is outside this predicate's native executable fragment."
     return _assessment(predicate_id, ok, reason, f"predicate={predicate_id}; native_source_hash={document.source_hash}; pyfcstm identity and finite backend boundary")
