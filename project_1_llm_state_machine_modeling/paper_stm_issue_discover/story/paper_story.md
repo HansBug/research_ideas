@@ -1,31 +1,63 @@
 # Paper1 叙事主线
 
-## 问题
+## 论文要解决的问题
 
-控制系统需求常以自然语言给出，状态机模型则以状态、迁移、guard、trigger 和 action 表达行为。由 LLM 生成的 PlantUML 模型可能在词面、结构或可执行行为上偏离需求。本文研究的不是生成新模型，也不是自动修复，而是给定 NL 与一份作者 PlantUML 状态机，发现其中可陈述且可审计的不一致，并说明发现依赖的证据形态。
+控制系统的需求通常以自然语言（natural language，NL）给出，状态机以状态、事件、变量、迁移和动作表达预期行为。大语言模型（large language model，LLM）生成的状态机可能在元素、局部结构或跨迁移行为上与需求不一致。Paper1 研究的是一个后验问题发现任务：给定一份 NL 和作者状态机制品，产生可定位、可复核并能回到作者源的发现。它不生成新模型，不自动修复，也不证明模型在所有行为上正确。
 
-研究对象是 `M = (S, E, V, Tr, A)` 片段。时钟、不变式、正交 region/并发、hybrid 和无界时序不在本研究可证明的范围内；被排除不意味着这些问题不存在。
+研究对象为 `M = (S, E, V, Tr, A)`，即状态、事件、变量、迁移与动作组成的离散有限状态机、层次状态机和带变量、guard、action 的扩展有限状态机子集。时钟、不变式、正交或并发 region、混成语义和无界时序不在 Paper1 的评测与结论范围内。
 
-## 方法
+方法是一条以 FCSTM 为分析工作表示的通用状态机问题发现架构。它通过语言适配器接收作者源状态机：原则上，能在明确声明的源语言子集上形成可追溯 FCSTM 投影的状态机建模语言，都可实现为一个方法实例。适配器须保留作者源属的位置和归因追踪，说明规则相关语义和能力如何映射到 FCSTM，隔离不能表示或不能可靠映射的语言特征，并以独立输入和评测材料检验该适配器。PlantUML 是本研究唯一已经实现并评测的源语言适配器；本文不报告其他语言适配器的语义正确性、成本或效果。
 
-方法从受 hash 约束的输入闭包开始：NL、作者 PlantUML、canonical source IR、FCSTM、native/inspection facts、working contract 与 source trace 各自承担不同角色。方法先抽取 NL contract；只在固定条件满足时进行一次有界 contract completion；随后使用两个互补的 discovery-grounding lens 提出并定位候选。确定性 frontier、predicate routing、typed binding、compiler 和 backend 对可执行候选给出可复核证据。方法再作 D adjudication 和受限定向 correction，最后计算 W，并只发布 D2/D1 的 exact typed-deduplicated reports。
+本文的案例研究使用 PlantUML 输入，来自 Wang 等的 *Generating SysML Behavior Models via Large Language Models: an Empirical Study*（Internetware 2025，DOI [`10.1145/3755881.3755926`](https://doi.org/10.1145/3755881.3755926)）。该研究将需求及辅助上下文交给六个 LLM 条件生成 PlantUML 行为图，并将检查反馈用于后续输出。Paper1 只使用其公开工作簿中冻结的需求和作者选择的反馈后最终 PlantUML，不使用其参考模型、检查结论或分数作为预言机。原表有 10 个需求、每个需求 6 个生成制品；Digital camera 需求含有 fork/join 和并行路径，超出本文片段，因此保留其余 9 个需求，形成 `9 x 6 = 54` 个配对。九个需求簇描述控制或嵌入式系统行为，不是 54 个独立需求。输入来源和行级边界见[种子说明](../corpora/seed_library/llms-emp-stm-subset/seed_desc.md)。这 54 个 PlantUML 制品构成对技术路线的案例研究可行性证据，不给出跨语言的经验比较。
 
-PlantUML -> FCSTM 是本方法为获得可执行分析能力而引入的内部 projection，不是领域任务天然提供的事实，也不默认与作者源行为等价。source-level finding 必须经过 source trace、ownership 和适用 capability contract。只存在于 lowered IR、compiler-owned element 或未闭合 runtime evidence 中的报告，不成立为作者模型缺陷；但它们仍是方法输出层面的 invalid cost，必须计入端到端 precision，并单独作为 method diagnostic 报告。当前 v60 的归因审计中，291 条 I 包括 D0=120、ordinary source-level FP=53 和 NADC=118；NADC 内有 compiler-owned artifact=38、projection/trace boundary=24、runtime/evidence closure=48、attribution-indeterminate=8。严格的 conversion-lowering-confirmed 数为 0，因此不能把 NADC 总量写成转换语义错误。
+145 条参考台账由博士生研究者依据 NL、作者 PlantUML 和来源证据逐条人工标注、整理和复核。它保存预期问题内容、来源位置、D/L、理由或依据以及来源信息。台账是有来源依据的预期问题清单，不是整个缺陷空间的绝对真值；方法不读取台账或任何人工裁定结果。
 
-谓词体系依据相关状态机、形式化验证和执行语义文献归纳为四族 19 个谓词：Structure (6)、Topology (4)、Trajectory simulation (4) 和 Bounded verification (5)。在 v60 中，12 个不同的 predicate ID 产生过 terminal receipt，8 个不同的 predicate ID 出现在至少一条 report-bound finding 中。前者是 distinct-ID 执行统计，后者是 distinct-ID 的 report-bound presence，不能与 finding 数、W2 数或 hit 数混用。
+## 总方法与两个技术侧面
 
-W 描述方法发现的证据强度，D 描述方法内对问题主张的裁定，L 仅是 ledger 的层级分类。W2 需要准确制品上的合法可执行对象、typed input、backend terminal true/false 与完整 receipt；缺少这些条件的具体发现仍可能是 W1，无法具体定位的主张是 W0。四族 19 谓词服务于可执行证据，不是问题发现或发布的准入门。方法的公开 finding surface 只发布 D2/D1；独立评测归档仍保留全部 report 和 decision。本文的目标是发现并证实缺陷，不是证明模型对所有行为都正确；因此，来源约束下的明确违规证据或一个具体反例已经足够时，不再强行升级到轨迹仿真或 BMC。只有静态证据不足以处理 guard、时序、RTC、变量效果或全局终止语义时，才使用这些更强的后端。
+本文的总命题是一条证据增强的状态机问题发现链路。它有两个耦合的技术侧面，而不是三项彼此独立的贡献。
 
-所有 validity、relation、D/A、K/N/I 和成分分析判断均由人工完成：按冻结 issue #195 协议先判 report validity，再在冻结 validity certificate 约束下判 report 与 expected issue 的 relation。evaluation 只读取人工完成的裁定，机械汇总 FULL/PARTIAL/NONE、VALID_KNOWN/VALID_NOVEL/INVALID、hit、precision、W-on-hits、K/N/I、predicate usage 与成本。方法本身不读取评测裁定、人工裁定输出或历史 report。
+### C1：确定性模型信息增强
 
-## 当前证据
+方法以受哈希约束的输入闭包为起点：NL、作者源状态机制品、规范化源中间表示、受约束的 FCSTM 投影、原生检查事实、规范身份和来源追踪。语言适配器必须明确作者源到规范化表示及 FCSTM 片段的映射，并对不能可靠映射的特征失败关闭。它们为发现步骤提供稳定、可定位的模型上下文，减少只从图文本恢复结构时的不确定性。
 
-当前实验证据来自 54 个 pair、3 个 round、145 条参考缺陷条目和 435 个 round-level evaluation units。按 v4 公平对照层，v60/current 的 overall FULL 为 310/435 = 71.26%，X1v2 baseline v3 为 227/435 = 52.18%；L2 FULL 分别为 105/117 = 89.74% 与 50/117 = 42.74%。current 输出 1271 条 report，baseline 输出 512 条，因此 I 的绝对条数不能当作独立缺陷数。report-level validity precision 为 current `980/1271 = 77.10%`、baseline `417/512 = 81.45%`，差异为 `-4.34 pp`。按 side-specific I rate 做描述性分解，D0 率差为 `-7.16 pp`，ordinary FP 率差为 `+2.22 pp`；NADC 在 current 侧为 `118/1271 = 9.28%`，但 baseline v3 未提供同构分类，不能把它写成可比的 `+9.28 pp` 成分。若为 bookkeeping 将缺失 baseline cell 机械记为 0，残差才是 `+9.28 pp`，这不构成跨臂因果或无 projection 反事实。净观察到的 I-rate 差为 `+4.34 pp`，全部 invalid report 都保留在 precision 分母中。完整指标、I 归因、D/A、K/N/I、W-on-hits、成本资格、raw/derived 制品与复算命令以 [最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md)、[v4 中文正式报告](../final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md) 和 [conversion attribution overlay](../final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/README.md) 为准。
+FCSTM 是分析工作表示，不是作者源的替代品，也没有在本文中获得任何具体建模语言与 FCSTM 的行为等价证明。来源追踪只服务定位和归因。任何作者层面的缺陷主张都必须回到相应作者源，在本案例研究中即作者 PlantUML，并由人工核对事实和义务。本文没有 `no-inspect` 消融，因此 C1 是设计侧面，不能被写成单独造成覆盖率提升的因果结论。`TODO-ABLATION`：若要估计 C1 的增量，需要预先定义配对的 no-inspect 条件、评测单元、分母和指标。
 
-这组结果描述的是冻结 ledger、输入闭包、issue #195 人工裁定、`gpt-5.6-luna` 和已声明 fragment 下的 coverage–precision operating point。它不能证明跨模型、跨台账或跨状态机语义片段的普遍效果，也不能把 X1v2 的历史人工裁定数字与 current baseline 混用。由于两侧 report 数量和 baseline v3 的审阅构成不同，`-4.34 pp` 是当前协议下的观察值，不应被写成完全不受输出粒度影响的语义精度估计。
+### C2：有来源映射的可执行证据升级
 
-## 贡献的可写范围
+冻结设计注册表包含四族 19 个谓词：结构 6 个、拓扑 4 个、轨迹仿真 4 个、有界验证 5 个。对适用候选，方法保存类型化绑定、原生后端的终止布尔结果、制品哈希和回执，使自由文本发现具有可重放的执行证据。W2 需要精确当前制品、合法类型化输入、声明的语义与可靠性片段、原生后端、终止 `true` 或 `false` 结果和完整回执。已经精确定位、仍在本文范围内但未完成合法执行的发现仍可为 W1；没有具体定位的主张至多为 W0。
 
-本文可以描述一条从 NL/作者状态机到带定位和可执行证据的发现链路，描述冻结谓词体系在该链路中提供的可执行证据，以及描述与人工裁定和离线评测分离的审计边界。新颖性措辞必须由相关工作核实后再确定；当前文档不使用“首个”“首次”或跨域泛化表述。
+19 个谓词不是闭合的缺陷词表、元模型、发现准入门，也不是 19 个独立的新逻辑。当前注册表已有冻结的来源标识映射；每条谓词的外部学术书目、全文引文和语义边界仍在[谓词来源审计](../related_work/provenance/predicate_provenance.md)中逐条核验。`TODO-CITATION` 条目不得作为论文承重引文。谓词执行、路由或回执不决定 D/A、关系或 K/N/I。
 
-历史 v46、v27-stream 与旧 X1v2 人工裁定网格用于解释演进，不用于证明当前改进幅度。它们的 ledger、人工裁定协议、执行模型、轮数、发布边界或指标定义与 v60 不同，具体依据见 [实验历史索引](../archive/experiment_history/README.md)。
+## 证据责任与评测闭合
+
+`L0/L1/L2` 是台账对问题所需信息范围的分类：L0 为点状或表面对齐，L1 为结构或局部状态关系，L2 为跨迁移、路径、可达性、终止、响应或全局交互。L 不规定算法、后端或证据等级。
+
+`W0/W1/W2` 表示报告的见证强度。`D0/D1/D2` 和 `A0` 由人工对事实与被违反义务作出裁定；D 不是模型自报，也不是后端自动真值。人工随后分别裁定报告有效性（validity）和报告与预期台账的关系（relation）。`FULL_MATCH` 包括同一缺陷、同一根因、同一被违反义务或可直接归因的表现；`PARTIAL_MATCH` 仅为真实但不足以确认同一缺陷身份的局部或间接关系；其余为 `NO_MATCH`。程序只对已经完成的人工裁定进行确定性闭合、校验和汇总：有效且有正关系的报告派生为 K，有效且全为 `NO_MATCH` 的报告派生为 N，其余为 I。K、N、I 是评测记账结果，不是三类独立缺陷。具体术语和派生顺序见[术语政策](./terminology_policy.md)。
+
+投影、编译器、运行时或证据边界造成的现象属于方法诊断，不能被记为作者模型缺陷。一个来源约束下的明确违反或作者模型上的具体反例，足以支持相应问题存在；Paper1 不把通过的谓词结果写成不存在缺陷的证明。
+
+## 当前可报告的证据
+
+PlantUML 案例研究有 54 个配对、3 个轮次、145 条预期问题和 435 个预期问题轮次单元。主臂与基线在同一协议下的 `FULL hit@1` 分别为 `310/435 = 71.26%` 和 `227/435 = 52.18%`；L2 的 `FULL hit@1` 分别为 `105/117 = 89.74%` 和 `50/117 = 42.74%`；`FULL hit@all` 分别为 `86/145 = 59.31%` 和 `46/145 = 31.72%`。报告级有效性精确率分别为 `980/1271 = 77.10%` 和 `417/512 = 81.45%`。这些是完整方法在这一 PlantUML 案例研究中的端到端观察，不识别 C1 或 C2 的单独因果作用，也不构成跨语言实证。
+
+在主臂的 310 个 FULL 单元中，最高 W 为 W2、W1、W0 的数量分别为 `197/310`、`113/310`、`0/310`；基线相应为 `0/227`、`227/227`、`0/227`。主臂有 `12/19` 个不同谓词标识产生过终止回执，`8/19` 个不同谓词标识绑定过至少一条报告。这两个数都是谓词标识使用情况，不是缺陷覆盖率、W2 比率、命中数或贡献率；基线没有同构绑定或回执模式，因此为 N/A。
+
+主臂的方法生成调用在 162 个方法格上的完整回执成本为 `$7.18277320`。基线的 `$0.22523328` 只是已记录小计，因为一条可计费的模式错误调用缺少用量回执，不能用于完整成本或跨臂倍率。成本口径见[最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md)。
+
+主臂 291 条 I 中，D0 为 120 条、普通作者源层面的误报为 53 条、仅主臂诊断的 NADC 为 118 条。NADC 是方法输出边界的诊断层，基线没有同构分类，不能构造跨臂因果成分。完整数字、分母、人工协议和限制以[最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md)及其[正式报告](../final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)为准。
+
+## 实际意义与研究问题
+
+该链路面向状态机维护、审查和回归中的证据复核。C1 提供可定位的确定性上下文；C2 为适用报告保留精确载体、类型化输入和可重放回执；D 与 W 区分不同确定程度和见证强度的报告；来源追踪把作者模型问题与方法内部诊断分开。当前没有用户研究或审查工时测量，不能声称专家工时下降、生产率提升、安全认证或部署就绪。`TODO-USER-STUDY`：若要回答工作流收益，需要独立测量审查者行为和时间。
+
+R1 冻结三个研究问题，均为描述性问题：
+
+1. **RQ1：** 在冻结的 PlantUML 案例研究中，54 个配对、145 条台账和 435 个轮次单元上的完整方法与基线的 `FULL hit@1` 和报告级有效性精确率分别为何？估计对象是预期问题轮次单元和方法报告；主要分母为 `145 x 3 = 435` 与每侧全部报告，L2、`hit@3` 和 `hit@all` 为分层或补充指标。不作组件因果归因或跨语言推广。
+2. **RQ2：** 在完整命中单元中，报告的最高 W 如何分布；在方法输出中，不同谓词标识的终止回执和报告绑定如何分布？前一估计对象是 FULL 单元，分母为每侧的 310 或 227 个命中；后一估计对象是注册表中的谓词标识，分母为 19。两者都不把 W2 或谓词使用写成有效性、覆盖或 C2 的因果贡献。
+3. **RQ3：** 在冻结的报告输出中，已定义的无效报告处置和归因边界如何分布？估计对象是每侧全部报告；D0、普通作者源层面误报和主臂 NADC 分别使用各自的报告级分母，NADC 只作主臂诊断。未冻结的其他失败分类不作为当前研究问题；不把 I cluster、N group 或报告行数当作独立领域缺陷数。
+
+`TODO-BASELINE-COST`：只有恢复或明确不可恢复缺失 usage 后，才能回答完整的跨臂成本问题。`TODO-FAILURE-TAXONOMY`：表达边界和其他失败模式尚未形成独立、冻结的研究问题。
+
+## 新颖性与写作边界
+
+相关工作分别讨论需求与模型的一致性、状态机分析、模型检查或测试、LLM 辅助建模以及回执或反例。Paper1 关注把 NL、作者源状态机、来源定位、可执行证据和人工可复核评测组织为一条链路；PlantUML 是本论文的案例研究语言，不是方法的唯一输入语言。该差异仍须服从截至 2026-09-01 的[最接近工作检索与对照](../related_work/closest_work_matrix.md)：只使用其中每条工作所允许的最低防守措辞，不使用“首个”“唯一”“所有已有工作均未”等表述。导师需要在 R2 决定最终贡献措辞、新颖性强度、RQ 是否维持三项、SANER 匹配度和是否补充特定证据。

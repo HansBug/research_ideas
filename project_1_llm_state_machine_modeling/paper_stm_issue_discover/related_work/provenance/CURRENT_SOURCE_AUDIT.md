@@ -1,40 +1,24 @@
-# 当前四族谓词来源审计
+# R1 当前谓词来源审计
 
-本文件记录冻结 registry 的学术 provenance 边界。当前可由证据支持的结论是：`four-family-19-core.v1` 的 S1--S6、G1--G4、R1--R4、V1--V5 均已完成 source-ID mapping、claim-support 和 boundary 对照；每个 ID 的来源与边界以 [current_source_catalog.json](current_source_catalog.json) 为机器真源。该结论不等于 19 个 predicate 的完整书目、DOI 或全文逐字核验。
+## 结论
 
-`current_source_catalog.json` 的 schema 没有 authors/year/venue/bibliography/DOI/access-date
-字段，且部分条目是仓库内技术或领域 artifact 而非外部论文。故本轮保留
-`bibliography_and_full_text_metadata_gap`：缺失字段显式写为 null，不能从标题、路径或来源类型
-推造书目。正式人工评测只使用 source mapping、具体 supports、boundary 和作者源证据；predicate
-academic provenance 的这一限制会在报告和 manifest 中披露。
+截至 2026-09-01，冻结注册表的 19 个谓词都能回链到来源标识映射、主张支持和边界，但该映射不能单独支撑“19 个谓词已完成学术资格审查”的论文表述。旧目录缺少作者、年份、发表载体、DOI、稳定 URL、检索日期、全文定位与逐句核验字段，并且包含本地领域摘录和技术记录。
 
-## 审计维度
+R1 的独立外部审阅将 8 个谓词标为“条件可写”，6 个标为 `TODO-CITATION`，5 个标为注册表语义与现有有界后端不完全同形。三种状态互相独立，逐条状态和禁止推论见[谓词来源审计](./predicate_provenance.md)。冻结来源标识目录尚未提供从其 `ST/TP/TR/BV` 标识到本审计 `D1--F7/T1--T2` 角色的完整可机读交叉映射，因此逐条角色仍是待复核的 citation audit，而非运行时元数据。这不改变已冻结的谓词标识、类型化约定、后端、W、D/A、关系、K/N/I 或结果数字。
 
-每个来源 ID 都保留以下可复核信息：
+## 来源与全文状态
 
-- 文件落点和标题；
-- `domain`、`formal`、`technical` 的来源类型；
-- 对冻结谓词定义的支持说明；
-- 不可越过的模型、语义和论文声明边界。
+| 标识 | 外部来源 | 核验状态与可用范围 |
+| --- | --- | --- |
+| D1 | Busard 等，[Verification of Railway Interlocking Systems](https://arxiv.org/pdf/1506.03554)，DOI [`10.4204/EPTCS.184.2`](https://doi.org/10.4204/EPTCS.184.2) | 全文核验；只作领域动机。 |
+| F1 | [OMG UML 2.5.1](https://www.omg.org/spec/UML/2.5.1/PDF) | 全文核验；状态、迁移、触发器、守卫、效果与生命周期槽位的元模型语义。 |
+| F2 | [W3C SCXML 1.0](https://www.w3.org/TR/scxml/) | 全文核验；事件、宏步和单条执行轨迹的邻近形式语义。不能替代 FCSTM 语义证据。 |
+| F3 | Heimdahl 与 Leveson，[Completeness and Consistency in Hierarchical State-Based Requirements](http://dslab.konkuk.ac.kr/Class/2012/12SIonSE/Key%20Papers/Completeness%20and%20consistency%20in%20hierarchical%20state-based%20requirements.pdf)，DOI [`10.1109/32.508311`](https://doi.org/10.1109/32.508311) | 全文核验；守卫完备性和一致性命题。UML 不将守卫互斥设为默认义务。 |
+| F4 | Dwyer、Avrunin、Corbett，[Patterns in Property Specifications for Finite-State Verification](https://www.cs.colostate.edu/~france/CS614/Readings/Readings2011/PropPatterns2p411-dwyer.pdf)，DOI [`10.1145/302405.302672`](https://doi.org/10.1145/302405.302672) | 全文核验；有限状态性质模式。不能把无界模式自动改写成本文的有限界。 |
+| F5 | [UPPAAL symbolic-query semantics](https://docs.uppaal.org/language-reference/query-semantics/symb_queries/) | 全文核验；区分 `E<>`、`A<>`、`A[]` 及完整状态中的位置和赋值。用于限制 G2、V4、V5。 |
+| F6 | Fabian，[On Object Oriented Nondeterministic Supervisory Control](https://research.chalmers.se/publication/1126/file/1126_Fulltext.pdf) | 全文核验；G4 的共可达和非阻塞读法。 |
+| F7 | Biere 等，[Linear Encodings of Bounded LTL Model Checking](https://lmcs.episciences.org/2236/pdf)，DOI [`10.2168/LMCS-2(5:5)2006`](https://doi.org/10.2168/LMCS-2%285%3A5%292006) | 全文核验；有界模型检查的界限与完整性条件。 |
+| T1 | [SMT-LIB standard](https://smt-lib.org/standard.shtml) | 全文核验；有限输入域的 SMT 技术边界。 |
+| T2 | [UPPAAL query semantics](https://docs.uppaal.org/language-reference/query-semantics/symb_queries/) | 全文核验；模型查询及状态空间回执的技术边界。 |
 
-catalog 的来源记录只允许 `id/types/title/paths/supports/boundary` 六类字段；本审计只核对每条
-冻结记录的 source-ID mapping、supports 和 boundary，不把这种核对扩展为书目、DOI、稳定链接
-或全文逐字核验，也不设置或推导可靠性等级。
-
-审计的作用是保持论文叙事、注册表定义和实现边界可追溯。它不产生 runtime status，不参与 W、D、publication、route、backend dispatch 或 predicate execution coverage。
-
-## 运行时分工
-
-| 维度 | 回答的问题 | 真源 |
-|---|---|---|
-| academic provenance | 为什么 19 个冻结谓词可用于论文方法 | registry + 本目录 |
-| typed binding | 当前需求/模型是否形成精确合法输入 | method compiler/binder |
-| execution | 当前 FCSTM 上是否真实终止得到 Boolean | native FCSTM backend / `.fbmcq` / runtime |
-| W | 当前证据是否为 W2/W1/W0 | execution receipt + deterministic W state machine |
-| Judge | report 与外置 expected 的独立关系 | 冻结 evaluation 路径 |
-
-特别地，`completed`/`true` 与 `completed`/`false` 在其余 W2 条件闭合时都属于 W2；区别只在 publication。timeout、provider error、backend error、invalid input、unsupported backend 和 attribution failure 都是独立 execution failure，绝不能被解释为 violation。
-
-## 维护纪律
-
-来源维护不得改变谓词 ID、语义、typed contract 或 backend 的运行时解释。任何真正涉及冻结谓词定义变化的研究决定必须走独立变更流程和完整回归；普通来源文本更新只同步 catalog、引用与论文叙事，并保持上述运行时隔离。
+本地 `STM.md` 摘录和方法或 FCSTM 技术制品仅标为“本地领域摘录”或“本地技术制品”。它们不能替代上表的外部学术引文。`TODO-CITATION` 的详细缺口是版本化 FCSTM 执行语义、G2/V3/V4/V5 的有界模型检查完备性、V1/V2 有限输入域的需求来源，以及 `called()` 的公开语义规范。

@@ -1,17 +1,25 @@
-# Claim 与证据映射
+# 主张、证据与风险映射
 
-| Claim | 可用证据 | 必须同时写出的边界 |
-| --- | --- | --- |
-| 方法能从 NL 与作者状态机产生可定位的发现及证据 | v60 method cell、stage receipt、source trace、publication artifact | 仅针对冻结输入闭包与当前方法合同；不等同于模型修复或完整需求覆盖 |
-| 方法使用四族 19 个文献归纳谓词；v60 执行过 12 个 distinct predicate IDs，其中 8 个至少绑定到一条 report-bound finding | [predicate registry](../method/src/paper_stm_method/resources/predicate_registry.json)、[v60 method summary](../final_results/v60_current_vs_x1v2_baseline/raw/v60_current/method/summary.json)、[current v4 decisions](../final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.json)、[fair summary](../final_results/v60_current_vs_x1v2_baseline/derived/fair_comparison_v4/combined_summary_v4.json) | 12/19 是 terminal-receipt 的 distinct-ID 执行指标；8/19 是 report-bound distinct-ID presence；二者不表示缺陷类型覆盖、finding/W2 数或 hit 数；X1v2 predicate usage 为 N/A |
-| 一部分发现具有可执行 W2 证据 | predicate registry、typed binding、compiler/backend terminal receipt、W audit | W2 只在精确制品、合法 typed input 和完整 receipt 都存在时成立；谓词不是发现准入门 |
-| v60/current 在当前冻结比较中有 310/435 overall FULL | [v4 combined summary](../final_results/v60_current_vs_x1v2_baseline/derived/fair_comparison_v4/combined_summary_v4.json)、current v4 canonical decisions 与正式报告 | 分母为 435 expected-round units；D/A、relation、K/N/I 经过统一 source-first closure；不得改写成跨模型或跨 ledger 成效 |
-| X1v2 baseline v3 在同一最终归档中为 227/435 overall FULL | [v4 combined summary](../final_results/v60_current_vs_x1v2_baseline/derived/fair_comparison_v4/combined_summary_v4.json)、baseline v3 canonical decisions 与正式报告 | baseline v3 冻结原有 K、重审原非 K；旧 Judge/网格数字只在 archive/history，不能进入本比较 |
-| current 的 291 条 I 是 invalid report dispositions，而不是 291 个独立缺陷；D0=120、ordinary FP=53、NADC=118，NADC 再分 compiler=38、projection/trace=24、runtime/evidence=48、indeterminate=8 | [current v4 summary](../final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/summary_v4.json)、[conversion attribution report](../final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/i_attribution_report_v1.md)、[attribution JSON](../final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/report_attribution_v1.json) | I cluster 只作诊断；只有 53 条是 ordinary source-level false positive；NADC 是方法输出层面的 non-source disposition，不能统称为 conversion error |
-| current report-level validity precision 为 77.10%，baseline 为 81.45%，差异为 -4.34 pp；差异可按 side-specific I rate 做 D0/FP/NADC 算术分解 | [正式报告](../final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)、[precision-gap summary](../final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/i_attribution_summary_v1.json#/precision_gap) | 这是冻结协议下的观察性 operating point；报告数量为 1271 vs 512，baseline v3 未提供同构 NADC 分类，故 NADC 只报 current-side rate，机械零值残差仅作 bookkeeping；分解不提供无 projection 反事实，也不证明 lowering 是主因；全部 invalid report 保留在 precision 分母 |
-| PlantUML -> FCSTM 是 method-internal projection；当前没有 confirmed lowering-only invalid report，confirmed method-owned mechanisms 为 110 条，另有 8 条 indeterminate | [attribution summary](../final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/i_attribution_summary_v1.json)、[rerun decision](../final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/rerun_decision.json) | compiler/projection/runtime 成本仍属于端到端方法成本；不能将其外部化为领域既成事实，也不能把 110 条写成 lowering 语义错误 |
-| 当前不重跑（NO_RERUN） | [rerun decision](../final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/rerun_decision.json)、[review tracks](../final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/review/) | 未发现 FCSTM-only/compiler-owned 现象进入 K/N 的 headline soundness leak；A/B/C gate 未同时满足；本次 attribution overlay 未执行 method、Judge 或 provider（只做 provider-free evaluation） |
-| 两臂的 W-on-hits 可公平并列 | current expected-witness audit 与 baseline 512 finding 的双审 W audit | W 与谓词体系不绑定；baseline predicate usage 不适用，但 baseline W 适用；Judge 核验不使 baseline finding 成为 W2 |
-| Judge、method 和 evaluation 的职责可审计 | 三个包的源码、资源、import boundary tests 与 release manifest | 这说明职责和输入输出隔离，不证明 Judge 没有测量误差 |
+本表只列 R1 可写的最小主张。术语见[术语政策](./terminology_policy.md)：NL 为自然语言需求，FCSTM 为分析工作表示，`FULL hit@1` 为完全命中主端点。数字的唯一事实源是[最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md)及其规范 JSON/TSV；相关工作的可写范围由[最接近工作矩阵](../related_work/closest_work_matrix.md)决定。
 
-不得写成 claim 的内容包括：方法对所有状态机语义有效；冻结 ledger 是缺陷全集；某个执行模型普遍更优；当前谓词族的单独必要性已经被消融证明；或当前结果可与 v46/v27 直接相减。历史比较条件见 [实验历史索引](../archive/experiment_history/README.md)。
+| 主张 | 证据与来源 | 最接近工作/新颖性风险 | 最低可防守措辞 | 限制与 RQ |
+| --- | --- | --- | --- | --- |
+| Paper1 研究给定 NL 和作者源状态机的可定位问题发现 | 输入闭包、来源追踪、方法制品；PlantUML 案例研究 | 需求-模型一致性、LLM 建模和状态机检查已有相邻工作 | “本文提出一条以 FCSTM 为工作表示的通用状态机问题发现架构，并在冻结 PlantUML 案例研究中实例化从 NL 与作者状态机到可审计发现的链路。” | 当前实现只含 PlantUML 适配器。其他语言只有在声明子集能形成可追溯 FCSTM 投影，并完成作者源属追踪、能力约定、失败关闭边界和独立实证后，才能另行报告。 |
+| C1 提供确定性、可定位的分析上下文 | 作者源、规范化表示、FCSTM、原生检查事实和来源追踪 | 工作表示可能被误读为语义保持转换 | “C1 为发现提供确定性工作表示和可定位上下文。” | `TODO-ABLATION`；不声称单独导致命中提升。 |
+| C2 可为适用候选留下类型化绑定、终止回执和 W2 条件 | 注册表、绑定、原生回执、W 政策 | 谓词、仿真和模型检查已有长期传统 | “C2 将适用候选的执行证据与作者源定位关联起来。” | `TODO-CITATION`；不把 19 谓词写成闭合集合或有效性门。 |
+| 主臂在本协议下整体与 L2 FULL hit 较高 | `combined_summary_v4.json`、正式报告 | 端到端比较，不识别组件作用 | “在冻结的 435 个预期问题轮次单元上，主臂 FULL hit@1 为 71.26%，基线为 52.18%。” | RQ1；不外推至其他模型、台账、片段或语言。 |
+| 主臂的报告级有效性精确率较低 | 正式报告、人工有效性结果 | 输出粒度和人工协议影响比例 | “报告级有效性精确率为 77.10% 对 81.45%。” | RQ1；不视作方法语义精度或因果差距。 |
+| 一部分主臂 FULL 命中有 W2 | W-on-hits 与回执制品 | 回执不是有效性或覆盖的替代品 | “310 个主臂 FULL 单元中有 197 个最高 W 为 W2。” | RQ2；不说所有发现由谓词贡献。 |
+| 谓词使用情况可审计 | 19 个注册谓词、`12/19` 终止回执、`8/19` 报告绑定 | 不同标识不是覆盖单位 | “使用统计描述不同谓词标识，不估计缺陷覆盖或边际贡献。” | RQ2；基线为 N/A。 |
+| 主臂 I 包含方法边界诊断 | [当前 v4 裁定制品](../final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.json)、转换归因覆盖层 | NADC 没有基线同构分类 | “NADC 仅描述主臂输出边界，不构成跨臂成分比较。” | RQ3；I 聚类和原始报告不是缺陷数。 |
+| 成本只能报告主臂完整工作点 | 成本审计 v1 | 基线有缺失的可计费用量 | “主臂 162 个方法格的完整回执成本为 `$7.18277320`。” | `TODO-BASELINE-COST`；无完整跨臂倍率。 |
+| 方法支持审查、回归和证据复核 | 来源锚点、回执、人工责任边界 | 没有用户研究 | “该制品形态支持后续审查与证据复核。” | `TODO-USER-STUDY`；不声称节省工时、认证或部署效果。 |
+
+## 明确不写的主张
+
+- C1、C2 或某一个后端单独造成覆盖率差距。
+- 19 个谓词构成全部缺陷类型，或其文献资格已经全部完成。
+- W2、回执或通过的谓词自动决定有效性、D/A、关系、K/N/I，或证明不存在问题。
+- 145 条台账是完整缺陷空间，报告数、N 实质问题组或 I 聚类是独立缺陷数。
+- 基线的已记录成本小计可构成完整成本或精确倍率。
+- 专家工时、安全认证、生产率或部署已得到测量。

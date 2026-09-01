@@ -1,15 +1,15 @@
-# 谓词学术来源档案
+# 谓词来源与边界审计
 
-本目录保存 `four-family-19-core.v1` 的来源 ID、原始落点、三类来源与适用边界。当前已完成 19 个冻结谓词的 source-ID mapping、claim-support 和 boundary 对照；这不是完整书目、DOI 或全文逐字核验。本目录提供可复核的 scholarly provenance，而不是运行时资格判定。
+本目录记录 `four-family-19-core.v1` 的来源、语义和论文写作边界。冻结注册表的来源标识映射是设计注册事实，不是每个谓词已经完成外部书目、DOI、全文原句和语义一致性核验的证明。当前逐条状态以[谓词来源审计](./predicate_provenance.md)为准。该目录尚未保存冻结 `ST/TP/TR/BV` 标识与 R1 审计 `D1--F7/T1--T2` 角色之间的完整交叉映射；在补齐前，表中的来源角色不能被写成已由运行时映射逐条验证的结论。
 
-机器目录是 [current_source_catalog.json](current_source_catalog.json)，人工入口是 [CURRENT_SOURCE_AUDIT.md](CURRENT_SOURCE_AUDIT.md)。每个来源记录 `id`、`types`、`title`、`paths`、`supports` 与 `boundary`，并可由 registry 的 `source_ids` 回链。
+三类来源承担不同责任：
 
-来源类型的职责互补：
+1. 领域来源（`domain`）说明控制或工程状态机中相关义务的实际动机，不能证明普遍正确性。
+2. 形式来源（`formal`）说明元模型、图性质或性质模式的精确定义，不能证明某条 NL 义务已经成立。
+3. 技术来源（`technical`）说明类型化绑定、后端、回执或重放的技术边界，不能单独赋予业务规则合法性。
 
-1. `domain` 说明控制系统和工程状态机中的命题背景；
-2. `formal` 说明状态机、性质模式或标准中的定义；
-3. `technical` 说明 FCSTM、backend、反例和回执的实现边界。
+审计状态分为“条件可写”“`TODO-CITATION`”和“语义不匹配”。条件可写仍受精确输入、已声明片段和来源边界约束。`TODO-CITATION` 表示缺少可引用外部全文、FCSTM 执行语义或需求域依据；语义不匹配表示冻结注册表的文字语义不能直接提升为现有有界后端的无界证明。两类未闭合项不影响已冻结的运行制品或 W 记录，但不能被论文写成更强结论。
 
-这些 metadata 不参与运行时 W、backend availability、D/publication、route 或 execution coverage。单次 W2 只由当前被检制品的精确 typed inputs、native backend、terminal Boolean result 和 artifact attribution 决定；学术来源继续保留在 registry 和 audit bundle 中供复核。
+W2 是一次报告的执行见证，不是文献资格：它需要精确制品、合法类型化输入、声明片段、编译对象、当前制品归因、原生后端终止布尔结果和完整回执。仍在全局范围内的失败、输入缺失或能力边界可保留为 W1/W0；全局范围外的语言或模型语义按失败关闭隔离。人工完成 D/A、有效性、关系和成分分析，程序据此确定性派生 K/N/I；本目录不改变运行路径、后端、W、分母或任何冻结结果。
 
-来源边界必须在论文叙事和实现说明中保留，特别是 timed、parallel、hybrid、无界时序或领域特殊假设。边界用于限制论文声明，不用于降低冻结谓词的运行时资格。
+机器目录 [`current_source_catalog.json`](./current_source_catalog.json) 仍只保存冻结的来源标识映射。它与方法包中的同名资源不同，不能反向修改运行时注册表；R1 的外部引文状态只在本目录的审计文档中维护。

@@ -4,9 +4,9 @@
 
 ## 0. 开场路线图
 
-Paper1 考察一条自然语言需求（natural-language requirement，NL）与同一任务的作者 PlantUML 状态机。在两份作者输入已经给定时，研究问题是能否发现可定位、可复核、带有理由和证据的不一致；它不涉及重新生成或自动修复模型。
+Paper1 考察一条自然语言需求（NL）与同一任务的作者源状态机。在两份作者输入已经给定时，研究问题是能否发现可定位、可复核、带有理由和证据的不一致；它不涉及重新生成或自动修复模型。本文提出以有限控制状态机（FCSTM）为分析工作表示的通用状态机问题发现架构，PlantUML 是当前唯一实现并评测的语言适配器，也是本研究的案例研究语言。
 
-冻结比较显示四点：本文方法的总体完全命中发现覆盖率（FULL discovery coverage）高于基线，优势在 L2 行为/全局性质上最明显；本文方法的报告精确率（report-based precision）低 `4.34` 个百分点（percentage points，pp），应结合无效报告的组成解释；19 个谓词后端（predicate backend）在适用时提供可执行证据，但不能表达所有问题，未执行的谓词或缺少回执的问题不能据此视为不存在。
+冻结比较显示四点：本文方法的总体完全命中覆盖率高于基线，优势在 L2 行为/全局性质上最明显；本文方法的报告精确率低 `4.34` 个百分点（pp），应结合无效报告的组成解释；19 个谓词执行后端在适用时提供可执行证据，但不能表达所有问题，未执行的谓词或缺少回执的问题不能据此视为不存在。
 
 下文按论文顺序给出问题、已有工作、统一框架、方法、人工评测、结果和边界。结果数字及其机器可读指针集中在第 6 节，避免让结果表替代前面的定义。
 
@@ -14,17 +14,19 @@ Paper1 考察一条自然语言需求（natural-language requirement，NL）与�
 
 控制系统需求通常以自然语言给出，而状态机用状态、事件、迁移、守卫条件（guard）、触发器（trigger）和动作（action）表达行为。即使模型表面上可解析，大语言模型（large language model，LLM）生成的模型仍可能与需求不对齐，或在结构和可执行行为上留下不一致。文本对照、结构检查和运行验证各自能观察到不同的部分；任何一种都不能单独覆盖这个问题。
 
-本文研究的是给定自然语言需求与作者状态机之后的问题发现（issue discovery）。模型对象写作
+本文研究的是给定自然语言需求与作者状态机之后的问题发现。模型对象写作
 
 `M = (S, E, V, Tr, A)`，
 
-其中 `S` 为状态，`E` 为事件，`V` 为变量，`Tr` 为迁移，`A` 为动作。当前证据片段覆盖离散有限状态机（finite-state machine，FSM）、层次状态机，以及带变量、守卫条件和动作的扩展有限状态机（extended finite-state machine，EFSM）子集。完整模型边界见[模型范围](../paper_stm_issue_discover/story/model_scope.md)。
+其中 `S` 为状态，`E` 为事件，`V` 为变量，`Tr` 为迁移，`A` 为动作。当前证据片段覆盖离散有限状态机（FSM）、层次状态机，以及带变量、守卫条件和动作的扩展有限状态机（EFSM）子集。有限控制状态机（FCSTM）是本文的分析工作表示。完整模型边界见[模型范围](../paper_stm_issue_discover/story/model_scope.md)。
+
+方法架构以 FCSTM 为分析工作表示，通过语言适配器接收作者源状态机。原则上，能在明确的源语言子集上形成可追溯 FCSTM 投影的状态机建模语言，都可实现为一个方法实例。适配器须保留作者源属的位置与归因追踪，说明规则相关语义和能力到 FCSTM 的映射，隔离不能表示或不能可靠映射的语言特征，并接受独立评测。当前实现和实证只覆盖 PlantUML 适配器。本文的 54 个 PlantUML 配对作为案例研究，只检验技术路线在这一适配边界内的可行性；不报告其他语言适配器的正确性、成本或效果，也不声称作者源语言与 FCSTM 已获行为等价证明。
 
 结论不外推到时钟、状态不变量、正交/并发区域、混合语义、无界时序性质或未声明的其他执行模型。本文也不证明模型在所有行为上完全正确，不把修复写成当前实验目标。145 条台账问题是研究者根据纳入的自然语言需求、作者 PlantUML 与来源证据人工维护的有来源支撑的预期问题清单；它提供固定的比较分母，不是整个缺陷空间的绝对真值。
 
 ## 2. 背景与相关工作
 
-相关工作按照问题链而不是结果表组织。详细来源及其适用边界见 [related-work README](../paper_stm_issue_discover/related_work/README.md) 和 [predicate provenance](../paper_stm_issue_discover/related_work/provenance/predicate_provenance.md)。
+相关工作按照问题链而不是结果表组织。详细来源及其适用边界见[相关工作入口](../paper_stm_issue_discover/related_work/README.md)和[谓词来源审计](../paper_stm_issue_discover/related_work/provenance/predicate_provenance.md)。
 
 ### 2.1 需求到模型的一致性
 
@@ -78,7 +80,7 @@ L 描述陈述一个预期问题需要理解到什么范围，不规定必须使
 | --- | --- |
 | W0 | 只有散文主张。 |
 | W1 | 有具体来源元素、路径或结构定位，但没有完整终态回执。 |
-| W2 | 在准确制品上使用合法可执行对象和类型化输入；制品哈希一致；后端返回明确终态 `true/false`；回执保存输入、结果、版本和来源。 |
+| W2 | 在准确制品和声明的可靠性片段内使用合法可执行对象和类型化输入；制品哈希一致；后端返回明确终态 `true/false`；回执保存输入、结果、版本和来源。 |
 
 只要谓词在准确制品上合法完成，回执完整且终态结果明确，就按 W2 记录，不能因为旧覆盖标记或保守标签降级。若当前谓词登记表、类型化输入或可靠性片段无法表达某个问题，方法不把问题当作不存在，也不自动判成误报：有具体来源/结构证据时保留 W1；连具体定位也没有时才是 W0；回退原因必须写入审计字段。
 
@@ -100,7 +102,7 @@ D/A 是事实与义务的人工裁定轴。关系裁定与 K/N/I 是实验中报
 方法不读取预期问题台账、人工裁定或历史问题报告来改变候选发现。冻结的流程把作者输入、工作表示、执行证据和人工评测职责分开：
 
 ```text
-自然语言需求 + 作者 PlantUML
+自然语言需求 + 作者源状态机（本案例为 PlantUML）
   -> 规范来源中间表示/来源追踪
   -> FCSTM 工作表示
   -> pyfcstm 原生事实/检查事实
@@ -113,7 +115,7 @@ D/A 是事实与义务的人工裁定轴。关系裁定与 K/N/I 是实验中报
 
 ### 4.1 输入闭包和来源固定
 
-每个格子固定配对标识、轮次、自然语言需求、作者 PlantUML、来源论文映射、制品哈希和运行清单。方法只读取声明范围内的作者输入；预期问题台账与人工裁定物理上属于评测层，不能回流到方法候选。
+每个格子固定配对标识、轮次、自然语言需求、作者源状态机、来源论文映射、制品哈希和运行清单。本案例的作者源状态机为 PlantUML。方法只读取声明范围内的作者输入；预期问题台账与人工裁定物理上属于评测层，不能回流到方法候选。
 
 ### 4.2 自然语言需求义务抽取
 
@@ -121,11 +123,11 @@ D/A 是事实与义务的人工裁定轴。关系裁定与 K/N/I 是实验中报
 
 ### 4.3 作者模型解析和来源中间表示
 
-作者 PlantUML 被解析为状态、迁移、触发器、守卫条件、动作、变量和来源位置的规范表示。来源中间表示/来源追踪的职责是保存作者文本与后续元素间的追溯关系；内部表示本身不是作者事实。
+在本案例研究中，作者 PlantUML 经语言适配器解析为状态、迁移、触发器、守卫条件、动作、变量和来源位置的规范表示。更一般地，任何被纳入的方法实例都须在声明的源语言子集上保存作者文本与后续元素间的追溯关系，说明规则相关能力的映射，并隔离不能可靠映射的语言特征；内部表示本身不是作者事实。
 
 ### 4.4 FCSTM 投影与 pyfcstm 原生事实
 
-PlantUML 到 FCSTM 的投影提供统一、可执行的工作表示；pyfcstm/FCSTM 的原生类、函数和检查事实提供状态机事实、类型信息、迁移和执行语义。投影、编译器拥有的元素或未闭合运行时证据不能单独归因于作者模型。只有能经来源追踪回到作者制品的内容，才可成为源级问题。
+本案例的 PlantUML 适配器将声明片段投影到 FCSTM，得到统一、可执行的工作表示；pyfcstm/FCSTM 的原生类、函数和检查事实提供状态机事实、类型信息、迁移和执行语义。其他建模语言需要各自定义并审计来源追踪、规则相关能力、投影和失败关闭边界。投影、编译器拥有的元素或未闭合运行时证据不能单独归因于作者模型。只有能经来源追踪回到作者制品的内容，才可成为源级问题。
 
 ### 4.5 候选发现和落地定位
 
@@ -139,27 +141,27 @@ PlantUML 到 FCSTM 的投影提供统一、可执行的工作表示；pyfcstm/FC
 
 ### 4.7 证据回执、证据闭合与 W 分配
 
-回执保存输入、输出、制品哈希、后端/版本、来源引用和终态状态。合法执行具有可执行对象、类型化输入、准确制品哈希、明确终态 `true/false` 与完整回执时为 W2；只存在结构定位、路径或非终态线索时为 W1；只有散文主张时为 W0。W2 只提高可重放证据强度，不代替人工的 D/A、关系裁定或 K/N/I 裁定。
+回执保存输入、输出、制品哈希、后端/版本、来源引用和终态状态。合法执行具有可执行对象、类型化输入、准确制品哈希、声明的可靠性片段、明确终态 `true/false` 与完整回执时为 W2；只存在结构定位、路径或非终态线索时为 W1；只有散文主张时为 W0。W2 只提高可重放证据强度，不代替人工的 D/A、有效性或关系裁定。
 
 ### 4.8 谓词覆盖与回退
 
-19 个谓词不保证覆盖所有可能的问题类型。当前登记表、类型化输入或可靠性片段无法表达一个有来源支撑的问题时，方法保留问题和具体来源/结构证据，记为 W1，并在审计记录写明谓词不支持、类型化输入不可用、能力边界或回执不完整；没有具体定位时才记为 W0。谓词不是缺陷发现准入门，不能为了让每个问题都有谓词而伪造执行对象。
+19 个谓词不保证覆盖所有可能的问题类型。仍在本文声明范围内而当前登记表、类型化输入或可靠性片段无法表达的有来源支撑问题，保留具体来源或结构证据并记为 W1；审计记录写明谓词不支持、类型化输入不可用、能力边界或回执不完整。全局范围外的语言或模型语义按失败关闭隔离，不成为 Paper1 finding；没有具体定位的范围内主张才记为 W0。谓词不是缺陷发现准入门，不能为了让每个问题都有谓词而伪造执行对象。
 
 ### 4.9 人工裁定和确定性评测
 
-所有有效性、关系、D/A、K/N/I 与成分分析均由人工完成，并保留理由、依据、来源引用与审计记录。人工以 [issue #189](https://github.com/HansBug/research_ideas/issues/189) 的来源优先/D-A 边界和 [issue #195](https://github.com/HansBug/research_ideas/issues/195) 的关系/K-N-I 合同完成判读与仲裁。评测程序只读取这些完成态人工记录，确定性地做闭合、去重、归并、指标计算、数据模式（schema）/哈希/链接校验和算术复算。内部审阅者或子代理意见是质量审阅材料，不被表述为新的人工一致性研究。
+人工完成事实、义务、D/A、有效性、关系及成分归因，并保留理由、依据、来源引用与审计记录。人工以 [issue #189](https://github.com/HansBug/research_ideas/issues/189) 的来源优先/D-A 边界和 [issue #195](https://github.com/HansBug/research_ideas/issues/195) 的关系合同完成判读与仲裁；程序再从这些完成态记录确定性派生 K/N/I，并完成去重、归并、指标计算、数据模式（schema）/哈希/链接校验和算术复算。内部审阅者或子代理意见是质量审阅材料，不被表述为新的人工一致性研究。
 
 ## 5. 实验设计与人工评测协议
 
 ### 5.1 冻结矩阵与预期问题台账
 
-冻结实验为 `54 个配对 x 3 轮`，每侧 `162 个格子`。54 个配对由来源论文纳入研究范围的 `6` 个大语言模型条件与 `9` 个自然语言需求案例构成，即 `6 x 9 = 54`。来源结果表的 `STM Results` 第 18 个数据行（Excel row 20）是 `llms_emp_feedback_final_0018`，即 Digital camera state machine diagrams；其作者 PlantUML 明确使用 fork/join 并描述 parallel paths，现有工作约定将这类并发执行语义标为能力范围外。它整体超出本文离散/层次/扩展有限状态机片段，因而在建立 Paper1 矩阵前排除；它不进入 54 个配对、145 条台账或任何命中/精确率分母。原始输入与来源定位见 [0018 来源记录](../paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0018/source_meta.json) 和[作者 PlantUML](../paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0018/stm0.puml)。输入闭包和纳入映射由[最终结果归档](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/README.md)保存。
+冻结实验为 `54 个配对 x 3 轮`，每侧 `162 个格子`。54 个配对由来源论文纳入研究范围的 `6` 个大语言模型条件与 `9` 个自然语言需求案例构成，即 `6 x 9 = 54`。来源结果表的 `STM Results` 第 18 个数据行（Excel 第 20 行）是 `llms_emp_feedback_final_0018`，即数码相机状态机图（Digital camera state machine diagrams）；其作者 PlantUML 明确使用分叉/汇合（fork/join）并描述并行路径，现有工作约定将这类并发执行语义标为能力范围外。它整体超出本文离散/层次/扩展有限状态机片段，因而在建立 Paper1 矩阵前排除；它不进入 54 个配对、145 条台账或任何命中/精确率分母。原始输入与来源定位见 [0018 来源记录](../paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0018/source_meta.json) 和[作者 PlantUML](../paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0018/stm0.puml)。输入闭包和纳入映射由[最终结果归档](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/README.md)保存。
 
 #### 54 个配对的上游来源、生成方式与用途
 
-这 54 个输入来自 Wang、Ge、Liu、Cao、Chen 与 Hu 的 [*Generating SysML Behavior Models via Large Language Models: an Empirical Study*](https://doi.org/10.1145/3755881.3755926)（Internetware 2025）。该研究考察从自然语言需求生成 SysML 行为模型：第一阶段将需求描述和辅助上下文放入提示词，要求模型输出 PlantUML 行为图；随后作者按格式、语法和需求一致性检查，并把反馈加入修订提示词产生后续输出。Paper1 不复现该流程，也不使用其参考 PlantUML、检查结论或原论文分数作为预言机。它只从论文公开的 `Experiment Results.xlsx` / `STM Results` 一手工作簿读取每行的 `Requirement Description` 和作者选择的反馈后最终 PlantUML，作为已经冻结的自然语言需求与作者状态机输入；参考 PlantUML 始终与方法和人工评测隔离。
+这 54 个输入来自 Wang、Ge、Liu、Cao、Chen 与 Hu 的 [*Generating SysML Behavior Models via Large Language Models: an Empirical Study*](https://doi.org/10.1145/3755881.3755926)（Internetware 2025）。该研究从自然语言需求和辅助上下文生成 SysML 行为模型：第一阶段输出 PlantUML 行为图，后续阶段把格式、语法和需求一致性检查的反馈加入修订提示词。Paper1 不复现该流程，也不使用参考 PlantUML、检查结论或原论文分数作为预言机。它只从公开工作簿 `Experiment Results.xlsx` 的 `STM Results` 工作表读取每行 `Requirement Description` 与作者选择的反馈后最终 PlantUML，作为冻结的自然语言需求和作者状态机输入；参考 PlantUML 始终与方法和人工评测隔离。
 
-上游 STM 表有 60 行，即 10 份需求各由 6 个模型条件产生一份结果。条件及其论文表中的版本为 GPT-4（GPT-4-Turbo）、GPT-4o（GPT-4o-2024-11-20）、Kimi（Moonshot-v1）、Claude（Claude 3 Haiku）、Llama（Llama 3.1）和 DeepSeek（DeepSeek-v3）。Digital camera 是十份需求中的一项，含带时间约束的 fork/join 与 parallel paths，因本研究模型范围排除；其余 9 份需求均在六个条件下保留，构成 `9 x 6 = 54` 个配对。九份自然语言需求分别描述下列控制/嵌入式系统行为，而不是九种抽象基准标签：
+上游 STM 表有 60 行，即 10 份需求各由 6 个模型条件产生一份结果。条件及其论文表中的版本为 GPT-4（GPT-4-Turbo）、GPT-4o（GPT-4o-2024-11-20）、Kimi（Moonshot-v1）、Claude（Claude 3 Haiku）、Llama（Llama 3.1）和 DeepSeek（DeepSeek-v3）。数码相机是十份需求中的一项，含带时间约束的分叉/汇合与并行路径，因本研究模型范围排除；其余 9 份需求均在六个条件下保留，构成 `9 x 6 = 54` 个配对。九份自然语言需求分别描述下列控制/嵌入式系统行为，而不是九种抽象基准标签：
 
 | 纳入的自然语言需求系统 | 所描述的主要行为 |
 | --- | --- |
@@ -173,7 +175,7 @@ PlantUML 到 FCSTM 的投影提供统一、可执行的工作表示；pyfcstm/FC
 | 碰撞规避子状态机（collision avoidance sub-machine） | 碰撞风险触发的碰撞规避控制；该需求中的并行区域作为作者制品事实处理，不扩张本文的并发语义主张。 |
 | 自动模式（autonomous mode） | 高速/城市自动驾驶模式、换道、退出、模式切换及碰撞规避条件。 |
 
-默认输入池的选择也需与上游研究分开表述：60 行中 58 行采用作者最后一个非空检查输出，另 2 行回退到第一阶段生成。该选择固定了 Paper1 要检查的作者输出及其来源链，不把上游反馈带来的改进算作本文方法的收益，也不把上游检查当作 Paper1 的裁定。对同一冻结自然语言需求/PlantUML 输入，本文方法和基线都只进行本研究的问题发现；145 条预期问题台账、有效性、关系、D/A、K/N/I 与成分分析均由 Paper1 的人工流程独立完成。完整的论文、工作簿、行定位、哈希、模型条件和两套第一阶段/反馈后最终输入池的边界见[种子说明](../paper_stm_issue_discover/corpora/seed_library/llms-emp-stm-subset/seed_desc.md)、[素材说明](../paper_stm_issue_discover/corpora/seed_library/llms-emp-stm-subset/assets/README.md)与[反馈后最终 JSONL](../paper_stm_issue_discover/corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl)。
+默认输入池的选择也需与上游研究分开表述：60 行中 58 行采用作者最后一个非空检查输出，另 2 行回退到第一阶段生成。该选择固定了 Paper1 要检查的作者输出及其来源链，不把上游反馈带来的改进算作本文方法的收益，也不把上游检查当作 Paper1 的裁定。对同一冻结自然语言需求/PlantUML 输入，本文方法和基线都只进行本研究的问题发现；145 条预期问题台账、有效性、关系、D/A 与成分分析由 Paper1 的人工流程独立完成，K/N/I 由程序从这些人工记录确定性派生。完整的论文、工作簿、行定位、哈希、模型条件和两套第一阶段/反馈后最终输入池的边界见[种子说明](../paper_stm_issue_discover/corpora/seed_library/llms-emp-stm-subset/seed_desc.md)、[素材说明](../paper_stm_issue_discover/corpora/seed_library/llms-emp-stm-subset/assets/README.md)与[反馈后最终 JSONL](../paper_stm_issue_discover/corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl)。
 
 145 条台账由博士生研究者根据纳入配对、对应自然语言需求、作者 PlantUML 和来源证据逐条人工标注、整理与复核。台账保存预期问题内容、来源位置、D/L、理由/依据与来源链；它不是方法运行后反向生成，也不是自动裁定产生。其形成、去重和边界见[台账说明](../paper_stm_issue_discover/discover_matrix/ledger_v2/README.md)。
 
@@ -181,7 +183,7 @@ PlantUML 到 FCSTM 的投影提供统一、可执行的工作表示；pyfcstm/FC
 
 ### 5.2 关系裁定与 K/N/I 的双维判读
 
-issue #195 把“报告与预期问题的关系”和“报告自身是否成立及如何归属”分开。人工先确认报告核心技术主张是否成立；无效报告的关系强制闭合为全 `NO_MATCH`。有效报告再对同一配对的全部预期问题逐项判断关系。
+issue #195 把“报告与预期问题的关系”和“报告自身是否成立及如何归属”分开。人工先确认报告核心技术主张是否成立；无效报告的关系强制闭合为全 `NO_MATCH`。有效报告再对冻结台账的全部 145 条预期问题逐项判断关系。
 
 | 关系 | 含义 | 指标去向 |
 | --- | --- | --- |
@@ -194,7 +196,7 @@ issue #195 把“报告与预期问题的关系”和“报告自身是否成立
 | 标签 | 概念定义 | 必要条件 | 评测角色 |
 | --- | --- | --- | --- |
 | `VALID_KNOWN`（K） | 报告核心主张成立，并可归属于至少一条冻结预期问题。 | 有效，且至少一条关系为 FULL 或 PARTIAL。 | 已知问题报告；只有 FULL 贡献主完全命中，PARTIAL 只贡献支持性覆盖。 |
-| `VALID_NOVEL`（N） | 报告核心主张成立，但不是任何冻结预期问题的同一问题。 | 有独立制品证据、来源锚点、理由/依据和可行动主张；对该配对的全部预期问题均为 NO。 | 有效但未认领台账的报告；不增加预期问题命中，也不算误报。 |
+| `VALID_NOVEL`（N） | 报告核心主张成立，但不是任何冻结预期问题的同一问题。 | 有独立制品证据、来源锚点、理由/依据和可行动主张；对冻结台账全部 145 条预期问题均为 NO。 | 有效但未认领台账的报告；不增加预期问题命中，也不算误报。 |
 | `INVALID`（I） | 核心主张不成立，或不能承担预先规定的最低举证责任。 | 作者制品、自然语言需求、执行/检查证据或人工复核反驳主张，或无法给出可核验事实与归因。 | 无效报告；进入报告精确率分母和无效报告诊断，不是缺陷实体。 |
 
 固定顺序如下。`D/A` 是事实与被违反义务的裁定；K/N/I 是关系完成后的报告-台账闭合。D2/D1 报告仍必须经过有效性和关系审核，W 与谓词不参与这一闭合。
@@ -203,12 +205,12 @@ issue #195 把“报告与预期问题的关系”和“报告自身是否成立
 来源事实/技术主张
   -> D/A（事实与被违反义务）
   -> 人工确认报告有效性；无效报告关系均为 NO_MATCH
-  -> 枚举同一配对的全部预期问题关系：FULL_MATCH / PARTIAL_MATCH / NO_MATCH
+  -> 枚举冻结台账全部 145 条预期问题关系：FULL_MATCH / PARTIAL_MATCH / NO_MATCH
   -> K/N/I
   -> 命中、支持性覆盖、精确率、归并与诊断指标
 ```
 
-在当前闭合中，D2/D1 是 K/N 的必要但非充分条件：人工确认有效的 D2/D1 报告在至少一个 FULL/PARTIAL 关系时为 K，在同一配对的全部关系为 NO 时为 N；D2/D1 仍可能因有效性复核不通过而进入 I。D0/A0 进入 I，且全部 I 的关系闭合为 `NO_MATCH`。程序不会从模型自报标签、W、谓词标识、报告数量或台账缺席猜测 K/N/I。发布结果不保留 `OUT_OF_SCOPE`、最终 `UNKNOWN` 或“暂未审完”：争议在出数前经制品复核、独立复核和仲裁完成。
+在当前闭合中，D2/D1 是 K/N 的必要但非充分条件：人工确认有效的 D2/D1 报告在至少一个 FULL/PARTIAL 关系时为 K，在冻结台账全部 145 条关系均为 NO 时为 N；D2/D1 仍可能因有效性复核不通过而进入 I。D0/A0 进入 I，且全部 I 的关系闭合为 `NO_MATCH`。程序不会从模型自报标签、W、谓词标识、报告数量或台账缺席猜测 K/N/I。发布结果不保留 `OUT_OF_SCOPE`、最终 `UNKNOWN` 或“暂未审完”：争议在出数前经制品复核、独立复核和仲裁完成。
 
 K 按预期问题台账标识去重；同一预期问题的重复命中不增加命中数。N 只在同一侧、同一配对内，依据共同义务/性质、相容来源位置/行为上下文、实质根因和最小修复意图做保守归并，允许跨轮；不能跨侧/配对，不能按文本相似度、状态名或预期问题标识自动合并。I 不建立实质缺陷组；I 簇只描述无效报告的重复诊断形态。
 
@@ -352,7 +354,7 @@ L 是预期问题台账的属性，规范 N 组模式不为 N 报告伪造 L0/L1
 
 ### 7.1 发现覆盖率：共同冻结协议下的差异
 
-来源：[公平比较综合汇总](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/fair_comparison_v4/combined_summary_v4.json) `#/metrics`。
+来源：[公平比较综合汇总](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/fair_comparison_v4/combined_summary_v4.json) 的 `#/sides/v60_current` 与 `#/sides/x1v2_baseline`。
 
 | 指标 | 本文方法 | 基线 | 差异 | 分母 |
 | --- | ---: | ---: | ---: | --- |
@@ -383,7 +385,7 @@ L 是预期问题台账的属性，规范 N 组模式不为 N 报告伪造 L0/L1
 
 ### 7.3 命中项 W 与谓词使用情况
 
-来源：[本文方法汇总](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/summary_v4.json) `#/metrics/w_on_hits,predicate_usage` 与[基线汇总](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/recomputed_summary_v3.json) `#/metrics/hit_max_witness,predicate_usage`。
+来源：[本文方法汇总](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/summary_v4.json) 的 `#/metrics/w_on_hits` 和 `#/metrics/predicate_usage`，以及[基线汇总](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/recomputed_summary_v3.json) 的 `#/metrics/hit_max_witness` 和 `#/metrics/predicate_usage`。
 
 | 指标 | 本文方法 | 基线 | 分母/含义 |
 | --- | ---: | ---: | --- |

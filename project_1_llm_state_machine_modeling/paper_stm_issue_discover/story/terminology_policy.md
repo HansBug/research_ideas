@@ -1,30 +1,25 @@
-# 术语政策
+# Paper1 术语政策
 
 | 术语 | 本文含义 | 不应混同为 |
 | --- | --- | --- |
-| 作者 PlantUML | 被评模型的作者源，用于问题定位 | compiler 生成的 FCSTM 或 inspection facts |
-| canonical source IR | 作者源的规范化表示与可追溯中间表示 | 新的规范义务来源 |
-| FCSTM / native facts | 可执行闭包和确定性检查所需的模型、投影与事实 | 作者模型本身或 ledger answer |
-| finding / report | 方法产生并发布的具体问题主张 | expected issue 或人工裁定 |
-| expected issue | ledger 中预先存在的被评测条目 | 方法输出的 L 标签 |
-| FULL / PARTIAL / NONE（canonical fields: `FULL_MATCH` / `PARTIAL_MATCH` / `NO_MATCH`） | 人工给出的 report-to-expected relation | report validity 或 W 等级 |
-| VALID_KNOWN / VALID_NOVEL / INVALID | 人工裁定的 report validity | expected relation；INVALID 进入 I/invalid-output 统计，ordinary FP 只是其中一类 |
-| invalid report disposition | 被 source-first 评为 INVALID 的用户可见 report 记录；v60/current 为 291/1271 | 291 个独立领域缺陷或 291 条 ordinary false positive |
-| report-level validity precision | `(K reports + N reports) / all reports`；current `980/1271 = 77.10%`，baseline `417/512 = 81.45%` | 无 projection 的反事实精度或跨输出粒度不变的语义精度 |
-| D0 non-violation | source fact 成立但没有 surviving violated obligation；current I 为 120 | ordinary source-level false positive 或 conversion error |
-| NADC (`NOT_A_DEFECT_CLAIM`) | A0 下报告未成立为作者模型缺陷的 disposition；current 为 118，其中 confirmed method-owned mechanisms 110、indeterminate 8 | 单一 lowering 根因或 baseline 中可直接比较的同构类别 |
-| confirmed method-owned invalid | compiler-owned artifact、projection/trace boundary、runtime/evidence closure 和 confirmed lowering 类别的合计；current 为 110/291 | 包含 attribution-indeterminate 的 NADC 总量 118 |
-| conversion-lowering confirmed | 同时有 source absence/semantic mismatch 与具体 lowering/loss/ownership 证据的 invalid attribution；v60 为 0 | 看到 FCSTM、loss code、identity-only trace 或 unsupported receipt |
-| NO_RERUN | deny-by-default gate 的唯一当前结论；A/B/C 未同时满足时保留 v60 headline | “建议重跑”“可能重跑”或 conversion cost 的豁免 |
-| W0 / W1 / W2 | 方法 finding 的见证强度 | predicate usage 或人工有效性裁定 |
-| D0 / D1 / D2 | 方法内问题裁定；D1/D2 才发布 | ledger 的 L0/L1/L2 |
-| L0 / L1 / L2 | ledger 对陈述问题所需分析层级的分类 | 方法输出或 W/D 等级 |
-| predicate execution usage | registry 中产生至少一条 terminal receipt 的 distinct predicate-ID 覆盖；v60 为 12/19 | candidate 数、W2 finding 数、report-bound binding rows 或 W2-on-hits |
-| report-bound predicate IDs | 至少绑定到一条最终 report-bound finding 的 distinct predicate-ID presence；v60 为 8/19 | terminal receipt 总数、W2 数、legacy `semantic_hit` marker 或缺陷类型覆盖 |
-| report-bound binding ratio | 绑定记录行数 / 全部 report；v60 为 825/1271 | distinct predicate-ID usage 或 8/19 |
-| legacy coverage marker ratio | 绑定记录中继承 `coverage_class` 的行数 / 绑定记录；v60 为 303/825 | terminal-false receipt、W2 或 8 个谓词的贡献数 |
-| 人工裁定 | 由人工执行 issue #195 两阶段协议的裁定角色 | 方法 discovery、predicate backend 或机械 evaluator |
+| 作者源状态机 | 被评测的状态机制品，是问题定位和作者层面归因的对象；本案例研究的作者源为 PlantUML | FCSTM、编译制品、原生检查事实或台账答案 |
+| 规范化源中间表示 | 作者源的规范化、可追溯表示 | 新的需求义务或作者语义等价证明 |
+| FCSTM 与原生检查事实 | 方法为图、仿真和有界分析建立的工作表示与确定性事实 | 作者模型本身或人工真值 |
+| C1 | 确定性模型信息增强，提供可定位的分析上下文。通用架构通过适配器接收能在声明子集上形成可追溯 FCSTM 投影的状态机建模语言；适配器须提供作者源属追踪、规则相关能力约定和失败关闭边界 | 已证实的跨语言效果或经过消融验证的覆盖率因果来源 |
+| C2 | 有来源映射的可执行证据升级，包含类型化绑定、原生后端和回执 | 闭合缺陷词表、自动有效性门或 19 个全新逻辑 |
+| 发现/报告 | 方法输出的具体问题主张 | 台账预期问题或人工裁定 |
+| 预期问题 | 台账中预先存在、有来源依据的评测条目 | 方法输出、谓词输入或 LLM 可见答案 |
+| L0/L1/L2 | 台账对问题所需信息范围的分类：点状或表面对齐、结构或局部状态、跨迁移或路径的全局行为 | 方法阶段、证据等级或缺陷位置 |
+| W0/W1/W2 | 报告见证强度。W2 需精确制品、合法类型化输入、原生后端、终止布尔结果和完整回执 | 有效性、D、关系、K/N/I 或谓词使用率 |
+| D0/D1/D2 与 A0 | 人工对事实、义务和归因确定程度的裁定。D0 为无存活的违反义务，A0 为报告事实或归因不成立 | 由模型自报、后端结果或 W 等级自动给出的真值 |
+| FULL/PARTIAL/NONE | 人工对报告与预期条目关系的裁定，对应规范值 `FULL_MATCH`、`PARTIAL_MATCH`、`NO_MATCH`。FULL 可为同一根因、同一义务或直接可归因表现；PARTIAL 只是实际但不足以确认同一缺陷身份的局部或间接关系 | 报告有效性或 W 等级 |
+| 有效性 | 人工裁定的 `VALID_KNOWN`、`VALID_NOVEL` 或 `INVALID` | 关系、W、D 或预期问题标签 |
+| K/N/I | 人工完成有效性和关系裁定后，由程序确定性派生的记账：有效且有正关系为 K；有效且全部 NONE 为 N；其余为 I | 三类独立领域缺陷或可互换的统计单位 |
+| 报告级有效性精确率 | `(K reports + N reports) / all reports` | 组级精确率、无投影反事实或跨粒度不变的语义精度 |
+| N 实质问题组 | 同一侧、同一配对、可跨轮次的保守同质问题归并 | 跨臂同一缺陷、原始 N 报告或 I 聚类 |
+| I 聚类 | 无效报告的诊断形态 | 实质缺陷数或报告级有效性精确率的替代分母 |
+| NADC | 主臂 `NOT_A_DEFECT_CLAIM` 的方法边界诊断，118 条，基线无同构分类 | 一种转换根因、基线的零值或跨臂因果成分 |
+| 谓词标识使用 | 至少一个终止回执的不同谓词标识为 `12/19`；至少一次报告绑定的不同标识为 `8/19` | 缺陷覆盖、W2 数、命中数或贡献率 |
+| 人工裁定 | 人工完成 D/A、有效性、关系、K/N/I 输入和成分分析；程序只校验、镜像与汇总 | 发现方法、谓词后端或内部质量审阅 |
 
-`v60/current` 是当前冻结方法臂，`X1v2 baseline` 是当前比较臂，不是方法迭代代次。`v46`、`v27-stream` 与 `v26` 是历史里程碑，只能在明确的 historical/provenance 语境中出现。
-
-逐条属性/输入审计与详细谓词能力审计属于内部 evaluation-only 材料，不是 paper1 主叙事。paper1 只描述谓词作为可复核证据后端，不把内部审计映射写成方法输入或完整覆盖承诺。
+当前冻结比较中的主臂与基线是同一结果宇宙的两个比较臂。历史版本只在明确的归档或来源语境中出现，不进入本文主结果。
