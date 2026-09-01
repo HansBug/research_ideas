@@ -1,12 +1,12 @@
 # Paper1 final talk：从自然语言与作者状态机发现可审计 issue
 
-> 本文档是 Paper1 的最终定性说明，服务于论文写作与稳定交接；它不替代正式的 [v4 中文结果报告](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)。所有当前数字只来自 [final-results v4 归档](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/README.md) 及其 canonical JSON/TSV。历史 v46、v27、v2、旧裁定和旧 witness audit 仅由历史/provenance 入口保留，不属于当前 headline。
+> 本文档是 Paper1 的最终定性说明，服务于论文写作与稳定交接。本文中 `ours` 指冻结的 v60/current v4 臂，`baseline` 指冻结的 X1v2 baseline v3 臂；下文不再用版本名指代比较臂。它不替代正式的 [结果报告](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)。所有当前数字只来自 [final-results 归档](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/README.md) 及其 canonical JSON/TSV。历史 v46、v27、v2、旧裁定和旧 witness audit 仅由历史/provenance 入口保留，不属于当前 headline。
 
 ## 0. 开场路线图
 
 Paper1 考察一条自然语言需求（NL）与同一任务的作者 PlantUML 状态机。在两份作者输入已经给定时，研究问题是能否发现可定位、可复核、带有理由和证据的不一致；它不涉及重新生成或自动修复模型。
 
-冻结比较显示四点：current v4 的 overall FULL discovery coverage 高于 X1v2 baseline v3，优势在 L2 行为/全局性质上最明显；current 的 report-based precision 低 `4.34 pp`，应结合无效报告的组成解释；19-predicate backend 在适用时提供可执行证据，但不能表达所有问题，未执行的谓词或缺少 receipt 的问题不能据此视为不存在。
+冻结比较显示四点：ours 的 overall FULL discovery coverage 高于 baseline，优势在 L2 行为/全局性质上最明显；ours 的 report-based precision 低 `4.34 pp`，应结合无效报告的组成解释；19-predicate backend 在适用时提供可执行证据，但不能表达所有问题，未执行的谓词或缺少 receipt 的问题不能据此视为不存在。
 
 下文按论文顺序给出问题、已有工作、统一框架、方法、人工评测、结果和边界。结果数字及其机器可读指针集中在第 6 节，避免让结果表替代前面的定义。
 
@@ -159,7 +159,7 @@ receipt 保存输入、输出、artifact hash、backend/version、source refs �
 
 145 条台账由博士生研究者根据纳入 pair、对应 NL、作者状态机和来源证据逐条人工标注、整理与复核。台账保存 expected issue 内容、source locus、D/L、必要的性质/谓词预期及输入，但不是 method 运行后反向生成，也不是自动裁定产生。其形成、去重和边界见 [ledger README](../paper_stm_issue_discover/discover_matrix/ledger_v2/README.md)。
 
-`hit@1` 的分母为 `145 x 3 = 435` expected-round units；L2 `hit@1` 的分母为 `39 x 3 = 117`。`hit@3` 和 `hit@all` 的分母为 145 unique expected IDs；L2 对应分母为 39。current v4 和 baseline v3 的人工审核构成并不完全对称：current 是既有 source-first 结果的逐条闭合，baseline v3 是非 K 逐条复核加原 K 冻结快照。因此它们是同一语义边界下的冻结比较，不是新的、完全对称的人类 inter-rater 研究。
+`hit@1` 的分母为 `145 x 3 = 435` expected-round units；L2 `hit@1` 的分母为 `39 x 3 = 117`。`hit@3` 和 `hit@all` 的分母为 145 unique expected IDs；L2 对应分母为 39。ours 和 baseline 的人工审核构成并不完全对称：ours 是既有 source-first 结果的逐条闭合，baseline 是非 K 逐条复核加原 K 冻结快照。因此它们是同一语义边界下的冻结比较，不是新的、完全对称的人类 inter-rater 研究。
 
 ### 5.2 Relation 与 K/N/I 的双维判读
 
@@ -202,11 +202,11 @@ W-on-hits 对每一个 FULL hit unit 取该 hit 内最高 W，并以本侧 FULL 
 
 ## 6. 冻结结果
 
-本节的唯一数字源是 [fair comparison v4 combined summary](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/fair_comparison_v4/combined_summary_v4.json)、[current v4 summary](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/summary_v4.json)、[baseline v3 summary](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/recomputed_summary_v3.json) 及正式 [v4 report](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)。
+本节的唯一数字源是 [fair comparison combined summary](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/fair_comparison_v4/combined_summary_v4.json)、[ours summary](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/summary_v4.json)、[baseline summary](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/recomputed_summary_v3.json) 及正式的[结果报告](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)。
 
 ### 6.1 Headline 与 coverage
 
-| 指标 | current v4 | X1v2 baseline v3 | 单位/分母 |
+| 指标 | ours | baseline | 单位/分母 |
 | --- | ---: | ---: | --- |
 | method cells / reports | 162 / 1271 | 162 / 512 | 每侧 54 pair x 3 rounds；report 是发布 finding 行。 |
 | K / N / I reports | 749 / 231 / 291 | 312 / 105 / 95 | report-level disposition。 |
@@ -221,28 +221,28 @@ W-on-hits 对每一个 FULL hit unit 取该 hit 内最高 W，并以本侧 FULL 
 
 ### 6.2 W、predicate 与 report-bound presence
 
-| 指标 | current v4 | X1v2 baseline v3 | 边界 |
+| 指标 | ours | baseline | 边界 |
 | --- | ---: | ---: | --- |
 | FULL-hit max W2 / W1 / W0 | 197/310 / 113/310 / 0/310 | 0/227 / 227/227 / 0/227 | 每侧以自己的 FULL-hit units 为分母。 |
-| terminal-receipt distinct predicate IDs | 12/19 | N/A | current 的 distinct-ID execution 指标。 |
-| report-bound distinct predicate IDs | 8/19 | N/A | current 的 distinct-ID binding 指标。 |
+| terminal-receipt distinct predicate IDs | 12/19 | N/A | ours 的 distinct-ID execution 指标。 |
+| report-bound distinct predicate IDs | 8/19 | N/A | ours 的 distinct-ID binding 指标。 |
 | report-bound binding rows / all reports | 825/1271 = 64.91% | N/A | 行级诊断，不是 distinct-ID 指标。 |
 | legacy coverage-class marker / binding rows | 303/825 = 36.73% | N/A | 行级历史 marker，不替代 W、hit 或 coverage。 |
 
-current 的 terminal IDs 是 `G1, G2, G4, R1, R2, R4, S1, S2, S3, S4, S5, V4`；report-bound IDs 是 `G1, G2, R2, S2, S3, S4, S5, V4`。`12/19` 与 `8/19` 都不是 defect coverage、FULL hit、W2 数或 predicate contribution。baseline 没有同构 predicate receipt/binding schema，因此写作 `N/A`，不是零。
+ours 的 terminal IDs 是 `G1, G2, G4, R1, R2, R4, S1, S2, S3, S4, S5, V4`；report-bound IDs 是 `G1, G2, R2, S2, S3, S4, S5, V4`。`12/19` 与 `8/19` 都不是 defect coverage、FULL hit、W2 数或 predicate contribution。baseline 没有同构 predicate receipt/binding schema，因此写作 `N/A`，不是零。
 
 ### 6.3 I 的组成与 precision
 
-| I 成分 | current v4 | baseline v3 |
+| I 成分 | ours | baseline |
 | --- | ---: | ---: |
 | D0 | 120 | 85 |
 | ordinary A0 / `FALSE_POSITIVE` | 53 | 10 |
-| current-only A0 / `NOT_A_DEFECT_CLAIM` (NADC) | 118 | N/A，baseline 无同构分类 |
+| ours-only A0 / `NOT_A_DEFECT_CLAIM` (NADC) | 118 | N/A，baseline 无同构分类 |
 | I reports | 291 | 95 |
 
-current 侧 `291 = 120 + 53 + 118`。NADC 是 evaluation-only overlay：compiler-owned artifact `38`、projection/trace boundary `24`、runtime/evidence closure `48`、attribution-indeterminate `8`；其中 confirmed method-owned mechanisms 为 `110`，strict conversion-lowering confirmed 为 `0`。其来源为 [conversion attribution v1](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/README.md) 及 [summary JSON](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/i_attribution_summary_v1.json)。
+ours 侧 `291 = 120 + 53 + 118`。NADC 是 evaluation-only overlay：compiler-owned artifact `38`、projection/trace boundary `24`、runtime/evidence closure `48`、attribution-indeterminate `8`；其中 confirmed method-owned mechanisms 为 `110`，strict conversion-lowering confirmed 为 `0`。其来源为 [conversion attribution v1](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/README.md) 及 [summary JSON](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/i_attribution_summary_v1.json)。
 
-precision 的差异为 `77.10% - 81.45% = -4.34 pp`；互补 I rate 为 current `291/1271 = 22.90%`、baseline `95/512 = 18.55%`，差异 `+4.34 pp`。描述性分解中，D0 rate 差为 `120/1271 - 85/512 = -7.16 pp`，ordinary A0 rate 差为 `53/1271 - 10/512 = +2.22 pp`；NADC 只能写 current-side `118/1271 = 9.28%`。baseline 没有同构 NADC 分类，不能把其缺失机械填为零，也不能用该 residual 做跨臂因果归因。
+precision 的差异为 `77.10% - 81.45% = -4.34 pp`；互补 I rate 为 ours `291/1271 = 22.90%`、baseline `95/512 = 18.55%`，差异 `+4.34 pp`。描述性分解中，D0 rate 差为 `120/1271 - 85/512 = -7.16 pp`，ordinary A0 rate 差为 `53/1271 - 10/512 = +2.22 pp`；NADC 只能写 ours-side `118/1271 = 9.28%`。baseline 没有同构 NADC 分类，不能把其缺失机械填为零，也不能用该 residual 做跨臂因果归因。
 
 ### 6.4 N：raw reports 与 substantive groups
 
@@ -250,22 +250,22 @@ N 的两个层次必须分开。raw N report 是人工裁定为 `VALID_NOVEL` �
 
 | side | raw N reports | N substantive groups | report-level D2 / D1 | group-level D2 / D1 | raw-to-group | pair coverage |
 | --- | ---: | ---: | ---: | ---: | --- | --- |
-| current v4 | 231 | 121 | 38/231 = 16.45% / 193/231 = 83.55% | 21/121 = 17.36% / 100/121 = 82.64% | 231/121 = 1.909 reports/group；`1 - 121/231 = 47.62%` 合并压缩 | 28/54 pair 有 N |
-| baseline v3 | 105 | 98 | 50/105 = 47.62% / 55/105 = 52.38% | 48/98 = 48.98% / 50/98 = 51.02% | 105/98 = 1.071 reports/group；`1 - 98/105 = 6.67%` 合并压缩 | 34/54 pair 有 N |
+| ours | 231 | 121 | 38/231 = 16.45% / 193/231 = 83.55% | 21/121 = 17.36% / 100/121 = 82.64% | 231/121 = 1.909 reports/group；`1 - 121/231 = 47.62%` 合并压缩 | 28/54 pair 有 N |
+| baseline | 105 | 98 | 50/105 = 47.62% / 55/105 = 52.38% | 48/98 = 48.98% / 50/98 = 51.02% | 105/98 = 1.071 reports/group；`1 - 98/105 = 6.67%` 合并压缩 | 34/54 pair 有 N |
 
-`group-level D2/D1` 是对 canonical group JSON 每组 `d_tiers` 的确定性聚合，不是另一个改写过的 headline。两侧无 mixed-tier group；current 的 121 个 group 为 21 D2、100 D1，baseline 的 98 个 group 为 48 D2、50 D1。每个 N report 恰好有一个 group membership：current `231/231`，baseline `105/105`。baseline 的 group TSV 同时携带 95 个 I diagnostic clusters，不能误读为 193 个 N groups。
+`group-level D2/D1` 是对 canonical group JSON 每组 `d_tiers` 的确定性聚合，不是另一个改写过的 headline。两侧无 mixed-tier group；ours 的 121 个 group 为 21 D2、100 D1，baseline 的 98 个 group 为 48 D2、50 D1。每个 N report 恰好有一个 group membership：ours `231/231`，baseline `105/105`。baseline 的 group TSV 同时携带 95 个 I diagnostic clusters，不能误读为 193 个 N groups。
 
-N group size 的组成进一步显示报告冗余形态不同：current 为 `1:52, 2:31, 3:36, 4:1, 5:1`，baseline 为 `1:92, 2:5, 3:1`。因此 current 的 N reports 更集中地重复落在少数 same-pair group 上，baseline 的 N groups 更常为保守 singleton。这个观察只描述报告-归并关系，不证明哪一侧发现了更多领域缺陷。
+N group size 的组成进一步显示报告冗余形态不同：ours 为 `1:52, 2:31, 3:36, 4:1, 5:1`，baseline 为 `1:92, 2:5, 3:1`。因此 ours 的 N reports 更集中地重复落在少数 same-pair group 上，baseline 的 N groups 更常为保守 singleton。这个观察只描述报告-归并关系，不证明哪一侧发现了更多领域缺陷。
 
-current 的代表组是 `v60_current:0006:0006:reachability:UAVSwarmStateMachine-root`：5 个成员 report，`d_tiers=[D2]`，其共同义务、source locus、根因和 repair intent 位于 [current N groups](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/current_n_groups_v4.json) `#/groups/4`。baseline 的代表组是 `N-G-0022-01`：3 个 round 的同一 `PoweredOn` detour，`d_tiers=[D1]`，见 [baseline N groups](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/baseline_n_groups_v3.json) `#/groups/n_groups/32`。这些审计记录保存共同义务、source locus、根因和 repair intent，而非仅保存文字相似度。
+ours 的代表组是 `v60_current:0006:0006:reachability:UAVSwarmStateMachine-root`：5 个成员 report，`d_tiers=[D2]`，其共同义务、source locus、根因和 repair intent 位于 [ours N groups](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/current_n_groups_v4.json) `#/groups/4`。baseline 的代表组是 `N-G-0022-01`：3 个 round 的同一 `PoweredOn` detour，`d_tiers=[D1]`，见 [baseline N groups](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/baseline_n_groups_v3.json) `#/groups/n_groups/32`。这些审计记录保存共同义务、source locus、根因和 repair intent，而非仅保存文字相似度。
 
 L 是 expected ledger 的属性，canonical N group schema 不给 N report 伪造 L0/L1/L2 分布。跨臂 N group 也没有 entity mapping：协议只允许 same-side、same-pair 归并，fair index 没有 cross-side `FULL_MATCH/PARTIAL_MATCH` 实体关系。因此跨臂“重合/独有 N group 数”是 `N/A`，不能从相似描述推断；这是一项可观察性边界，不是零值。
 
 #### 54-pair N 分布
 
-下表的格式为 `raw N reports / N substantive groups`，来自 [current report decisions](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.json)、[baseline combined decisions](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/baseline_combined_512_v3.json) 和两侧 group JSON 的确定性重算。`0/0` 表示该 side/pair 没有 final N。
+下表的格式为 `raw N reports / N substantive groups`，来自 [ours report decisions](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.json)、[baseline combined decisions](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/baseline_combined_512_v3.json) 和两侧 group JSON 的确定性重算。`0/0` 表示该 side/pair 没有 final N。
 
-| pair | current N reports / groups | baseline N reports / groups |
+| pair | ours N reports / groups | baseline N reports / groups |
 | --- | ---: | ---: |
 | `0000` | 0 / 0 | 1 / 1 |
 | `0001` | 2 / 1 | 0 / 0 |
@@ -324,17 +324,17 @@ L 是 expected ledger 的属性，canonical N group schema 不给 N report 伪�
 
 ### 6.5 NO_RERUN 决策
 
-当前冻结结论是 `NO_RERUN`。evaluation-only audit 没有发现 FCSTM-only 或 compiler-owned 现象进入 current K/N；已经识别的 invalid-output 成本留在 report precision 分母，归因只在 conversion-attribution overlay 中处理。因此没有重新运行 method、provider、15x1、54x3、162-cell 或 replay，也没有重新进行人工裁定或改变 hit、W、D/A、K/N/I 或 canonical relation。
+当前冻结结论是 `NO_RERUN`。evaluation-only audit 没有发现 FCSTM-only 或 compiler-owned 现象进入 ours K/N；已经识别的 invalid-output 成本留在 report precision 分母，归因只在 conversion-attribution overlay 中处理。因此没有重新运行 method、provider、15x1、54x3、162-cell 或 replay，也没有重新进行人工裁定或改变 hit、W、D/A、K/N/I 或 canonical relation。
 
 ## 7. 结果解释
 
 ### 7.1 Coverage 的差异
 
-current 的 FULL hit@1 比 baseline 高 `19.08 pp`（`71.26%` 对 `52.18%`）。差异在 L2 更大：hit@1 高 `47.01 pp`，hit@all 高 `64.10 pp`。在冻结输入和协议下，这与 source closure、source trace、FCSTM/pyfcstm inspection 以及适用时的可执行 predicate evidence 共同出现；它们为行为/全局问题提供了更多可定位和可复核的证据路径。该结果是覆盖比较，不是“ours 在所有指标、成本或模型范围上更好”的结论。
+ours 的 FULL hit@1 比 baseline 高 `19.08 pp`（`71.26%` 对 `52.18%`）。差异在 L2 更大：hit@1 高 `47.01 pp`，hit@all 高 `64.10 pp`。在冻结输入和协议下，这与 source closure、source trace、FCSTM/pyfcstm inspection 以及适用时的可执行 predicate evidence 共同出现；它们为行为/全局问题提供了更多可定位和可复核的证据路径。该结果是覆盖比较，不是“ours 在所有指标、成本或模型范围上更好”的结论。
 
 ### 7.2 Precision 的 trade-off
 
-current 的 report precision 是 `77.10%`，baseline 是 `81.45%`，差异为 `-4.34 pp`。current I 包含 D0、ordinary A0/`FALSE_POSITIVE` 和 current-only NADC；NADC 只是 current-side evaluation overlay，baseline 没有同构分类。在冻结协议下，current 以适度的 invalid-output burden 换取更高的 FULL discovery coverage。不能把 NADC 全部归因于 lowering/compiler，也不能据此断言 baseline 没有 representation/evidence cost。
+ours 的 report precision 是 `77.10%`，baseline 是 `81.45%`，差异为 `-4.34 pp`。ours I 包含 D0、ordinary A0/`FALSE_POSITIVE` 和 ours-only NADC；NADC 只是 ours-side evaluation overlay，baseline 没有同构分类。在冻结协议下，ours 以适度的 invalid-output burden 换取更高的 FULL discovery coverage。不能把 NADC 全部归因于 lowering/compiler，也不能据此断言 baseline 没有 representation/evidence cost。
 
 ### 7.3 Predicate 的实际使用
 
@@ -348,7 +348,7 @@ current 的 report precision 是 `77.10%`，baseline 是 `81.45%`，差异为 `-
 
 ### 7.5 N 的两侧构成
 
-N 的 raw-to-group 结果表明，current 的 231 条 N reports 被保守归并为 121 个 pair-local group，而 baseline 的 105 条 N reports 对应 98 个 group。current 的压缩率较高，说明相同 pair 中存在更多跨 round 重复地报告同一共同义务/根因的情况；baseline 的 92 个 singleton group 说明当前证据不足以把其报告合并。这个差异可能同时受到台账不完整、报告粒度、候选冗余、方法能力和人工审核构成的影响。
+N 的 raw-to-group 结果表明，ours 的 231 条 N reports 被保守归并为 121 个 pair-local group，而 baseline 的 105 条 N reports 对应 98 个 group。ours 的压缩率较高，说明相同 pair 中存在更多跨 round 重复地报告同一共同义务/根因的情况；baseline 的 92 个 singleton group 说明当前证据不足以把其报告合并。这个差异可能同时受到台账不完整、报告粒度、候选冗余、方法能力和人工审核构成的影响。
 
 由于不存在 cross-side entity mapping，不能把一侧 N 的相似表述称为另一侧的相同 defect，也不能据此声称某侧“发现更多真实缺陷”。同样，N 的多少不能直接推导 coverage 高低：必须先看 K 漏归、I 误归和 group 规则是否一致。N group 只用于保守地说明已记录的 novel-report 构成；其审计入口在第 6.4 节给出。
 
@@ -370,10 +370,10 @@ N 的 raw-to-group 结果表明，current 的 231 条 N reports 被保守归并�
 
 ### 8.2 可以写的 claim
 
-- 在冻结输入和协议下，current 的 FULL 与 L2 discovery coverage 高于 baseline。
-- current 以 `4.34 pp` 的 report-level precision 差异换取更高 discovery coverage。
-- current 的 FULL hits 中，`197/310` 的最高 W 为 W2。
-- current 的 19-predicate registry 中，12 个 distinct IDs 产生 terminal receipt，8 个进入 report-bound finding；这两个指标有明确边界。
+- 在冻结输入和协议下，ours 的 FULL 与 L2 discovery coverage 高于 baseline。
+- ours 以 `4.34 pp` 的 report-level precision 差异换取更高 discovery coverage。
+- ours 的 FULL hits 中，`197/310` 的最高 W 为 W2。
+- ours 的 19-predicate registry 中，12 个 distinct IDs 产生 terminal receipt，8 个进入 report-bound finding；这两个指标有明确边界。
 - source-first、人工裁定的 evaluation 保存 reason/basis、source refs、hash 与审计链，并由程序做确定性闭合。
 
 ### 8.3 不能写的 claim
@@ -388,16 +388,16 @@ N 的 raw-to-group 结果表明，current 的 231 条 N reports 被保守归并�
 
 ### 8.4 限制
 
-145 条台账不是完整 defect universe。current/baseline 的人工审核构成不完全对称；N grouping 是 pair-local、conservative operationalization；I cluster 不是 defect 数；baseline 没有 predicate/NADC 同构 schema；N 的跨臂 entity overlap 目前不可观察。结论只适用于声明的模型范围、ledger、冻结 method 和 FCSTM soundness fragment。历史 v46、v27 和旧 X1v2 只保留为 archive/provenance，不进入 current headline。
+145 条台账不是完整 defect universe。ours/baseline 的人工审核构成不完全对称；N grouping 是 pair-local、conservative operationalization；I cluster 不是 defect 数；baseline 没有 predicate/NADC 同构 schema；N 的跨臂 entity overlap 目前不可观察。结论只适用于声明的模型范围、ledger、冻结 method 和 FCSTM soundness fragment。历史 v46、v27 和旧 X1v2 只保留为 archive/provenance，不进入本文件 headline。
 
 ## 9. 结论
 
-Paper1 研究的是在给定自然语言需求和作者状态机后，发现并审计不一致的问题。冻结评测显示，current v4 在共同的 435 个 expected-round units 上取得更高 FULL discovery coverage，尤其在 117 个 L2 expected-round units 上更高；代价是 report-level precision 低 `4.34 pp`。predicate backend 在适用时把 source-grounded finding 提升为 W2，但不是所有 issue 的准入门。
+Paper1 研究的是在给定自然语言需求和作者状态机后，发现并审计不一致的问题。冻结评测显示，ours 在共同的 435 个 expected-round units 上取得更高 FULL discovery coverage，尤其在 117 个 L2 expected-round units 上更高；代价是 report-level precision 低 `4.34 pp`。predicate backend 在适用时把 source-grounded finding 提升为 W2，但不是所有 issue 的准入门。
 
 后续工作是扩展可执行片段、改善 typed input 和 runtime evidence closure、在不改变 source-first 归因边界的前提下减少 invalid-output burden，并对尚不可观察的跨臂 N entity 关系建立独立、人工可审计的比较材料。repair 仍是后续研究方向，不是本篇实验结论。
 
 ## Appendix A. 离线复算、发布面与交接入口
 
-本 talk 的实验事实回链到 [final-results archive README](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/README.md)。该归档入口链接 current v4、baseline v3、fair comparison v4、正式报告、canonical JSON/TSV、[archive manifest](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/archive_manifest.json) 和 [publication manifest](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/publication_manifest.json)。字段、hash、闭合规则和 provider-free 复算入口见 [SCHEMA](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/SCHEMA.md)。
+本 talk 的实验事实回链到 [final-results archive README](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/README.md)。该归档入口链接 ours、baseline、fair comparison、正式报告、canonical JSON/TSV、[archive manifest](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/archive_manifest.json) 和 [publication manifest](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/publication_manifest.json)。字段、hash、闭合规则和 provider-free 复算入口见 [SCHEMA](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/SCHEMA.md)。
 
 本次文档重构没有运行 provider、method、人工裁定、15x1、54x3、162-cell 或 replay；冻结结论保持 `provider_calls=0`、`billable_calls=0`、`method_reruns=0`、`judge_reruns=0` 和 `NO_RERUN`。动态 PR、branch、commit、required check 与 mergeability 状态以 GitHub PR 为事实源，不把它们复制为本文档中的第二份流程台账。
