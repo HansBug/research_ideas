@@ -39,7 +39,12 @@ git_root = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--show-toplevel
 if git_root.returncode == 0:
     repo = Path(git_root.stdout.strip()).resolve()
     tracked = subprocess.run(["git", "-C", str(repo), "ls-files", str(ROOT.relative_to(repo))], capture_output=True, text=True, check=False).stdout.splitlines()
-    if any(re.search(r"\.(pdf|aux|bbl|blg|fdb_latexmk|fls|log|out|synctex\.gz|toc)$", p) for p in tracked): errors.append("generated TeX/PDF artifact is tracked")
+    if any(
+        re.search(r"\.(pdf|aux|bbl|blg|fdb_latexmk|fls|log|out|synctex\.gz|toc)$", p)
+        and "template/official-original/" not in p
+        for p in tracked
+    ):
+        errors.append("generated TeX/PDF artifact is tracked")
 else:
     print("PORTABILITY NOTE: no Git metadata in extracted source; tracked-artifact check skipped")
 if errors:
