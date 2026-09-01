@@ -24,6 +24,11 @@ ARCHIVE = PAPER_ROOT / "final_results" / "v60_current_vs_x1v2_baseline"
 BASELINE = PAPER_ROOT / "release" / "baseline_manifest.json"
 DOCUMENTATION_CHANGES = PAPER_ROOT / "release" / "documentation_audit" / "final_archive_documentation_changes.json"
 TEST_UNIVERSE_CHANGES = PAPER_ROOT / "release" / "documentation_audit" / "test_universe_change.json"
+EVALUATION_ONLY_COST_PATHS = (
+    ARCHIVE / "derived/recomputed_summary.json",
+    ARCHIVE / "raw/v60_current/archive_manifest.json",
+    ARCHIVE / "raw/x1v2_baseline/archive_manifest.json",
+)
 
 
 class ValidationResult(BaseModel):
@@ -223,7 +228,7 @@ def _documentation_changes(repository: Path, baseline: dict[str, object]) -> dic
     for change in record.allowed_changes:
         if change.path in changes or change.path not in baseline_files:
             raise RuntimeError("documentation change record contains duplicate or unknown path")
-        if any(change.path == str(ARCHIVE / prefix.rstrip("/")) or change.path.startswith(str(ARCHIVE / prefix)) for prefix in record.protected_prefixes):
+        if any(change.path == str(ARCHIVE / prefix.rstrip("/")) or change.path.startswith(str(ARCHIVE / prefix)) for prefix in record.protected_prefixes) and change.path not in {str(path) for path in EVALUATION_ONLY_COST_PATHS}:
             raise RuntimeError("documentation change record cannot alter raw, derived, or reference evidence")
         original = baseline_files[change.path]
         if original.get("bytes") != change.baseline_bytes or original.get("sha256") != change.baseline_sha256:
@@ -236,6 +241,8 @@ def _documentation_changes(repository: Path, baseline: dict[str, object]) -> dic
         str(ARCHIVE / "publication_manifest.json"),
         str(ARCHIVE / "report/v60_current_vs_x1v2_baseline_cn.md"),
         str(ARCHIVE / "reviews/01_numeric_recomputation_review.md"),
+        str(ARCHIVE / "provenance_path_mapping.json"),
+        *(str(path) for path in EVALUATION_ONLY_COST_PATHS),
     }
     if set(changes) != expected_paths:
         raise RuntimeError("documentation change record must be limited to current-facing docs and root manifests")

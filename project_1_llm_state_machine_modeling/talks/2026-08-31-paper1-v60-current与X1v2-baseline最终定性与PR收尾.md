@@ -1,291 +1,299 @@
-# Paper1 final talk：从自然语言与作者状态机发现可审计 issue
+# Paper1 最终讨论稿：从自然语言与作者状态机发现可审计问题
 
-> 本文档是 Paper1 的最终定性说明，服务于论文写作与稳定交接。本文中 `ours` 指冻结的 v60/current v4 臂，`baseline` 指冻结的 X1v2 baseline v3 臂；下文不再用版本名指代比较臂。它不替代正式的 [结果报告](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)。所有当前数字只来自 [final-results 归档](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/README.md) 及其 canonical JSON/TSV。历史 v46、v27、v2、旧裁定和旧 witness audit 仅由历史/provenance 入口保留，不属于当前 headline。
+> 本文档是 Paper1 的最终定性说明，服务于论文写作与稳定交接。本文方法（`ours`）指冻结的 v60/current v4 比较臂，基线（`baseline`）指冻结的 X1v2 baseline v3 比较臂；下文不再以版本名指代两侧。它不替代正式的[结果报告](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)。所有当前数字均来自[最终结果归档](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/README.md)及其规范 JSON/TSV。历史 v46、v27、v2、旧裁定和旧证据审计仅由历史/来源入口保留，不构成本文结论。
 
 ## 0. 开场路线图
 
-Paper1 考察一条自然语言需求（NL）与同一任务的作者 PlantUML 状态机。在两份作者输入已经给定时，研究问题是能否发现可定位、可复核、带有理由和证据的不一致；它不涉及重新生成或自动修复模型。
+Paper1 考察一条自然语言需求（natural-language requirement，NL）与同一任务的作者 PlantUML 状态机。在两份作者输入已经给定时，研究问题是能否发现可定位、可复核、带有理由和证据的不一致；它不涉及重新生成或自动修复模型。
 
-冻结比较显示四点：ours 的 overall FULL discovery coverage 高于 baseline，优势在 L2 行为/全局性质上最明显；ours 的 report-based precision 低 `4.34 pp`，应结合无效报告的组成解释；19-predicate backend 在适用时提供可执行证据，但不能表达所有问题，未执行的谓词或缺少 receipt 的问题不能据此视为不存在。
+冻结比较显示四点：本文方法的总体完全命中发现覆盖率（FULL discovery coverage）高于基线，优势在 L2 行为/全局性质上最明显；本文方法的报告精确率（report-based precision）低 `4.34` 个百分点（percentage points，pp），应结合无效报告的组成解释；19 个谓词后端（predicate backend）在适用时提供可执行证据，但不能表达所有问题，未执行的谓词或缺少回执的问题不能据此视为不存在。
 
 下文按论文顺序给出问题、已有工作、统一框架、方法、人工评测、结果和边界。结果数字及其机器可读指针集中在第 6 节，避免让结果表替代前面的定义。
 
 ## 1. 问题、动机和范围
 
-控制系统需求通常以自然语言给出，而状态机用状态、事件、迁移、guard、trigger 和 action 表达行为。即使模型表面上可解析，LLM 生成的模型仍可能与需求不对齐，或在结构和可执行行为上留下不一致。文本对照、结构检查和运行验证各自能观察到不同的部分；任何一种都不能单独覆盖这个问题。
+控制系统需求通常以自然语言给出，而状态机用状态、事件、迁移、守卫条件（guard）、触发器（trigger）和动作（action）表达行为。即使模型表面上可解析，大语言模型（large language model，LLM）生成的模型仍可能与需求不对齐，或在结构和可执行行为上留下不一致。文本对照、结构检查和运行验证各自能观察到不同的部分；任何一种都不能单独覆盖这个问题。
 
-本文研究的是给定 NL 与作者状态机之后的 issue discovery。模型对象写作
+本文研究的是给定自然语言需求与作者状态机之后的问题发现（issue discovery）。模型对象写作
 
 `M = (S, E, V, Tr, A)`，
 
-其中 `S` 为状态，`E` 为事件，`V` 为变量，`Tr` 为迁移，`A` 为 action。当前证据片段覆盖离散 FSM、层次状态机，以及带变量、guard 和 action 的 EFSM 子集。完整模型边界见 [model scope](../paper_stm_issue_discover/story/model_scope.md)。
+其中 `S` 为状态，`E` 为事件，`V` 为变量，`Tr` 为迁移，`A` 为动作。当前证据片段覆盖离散有限状态机（finite-state machine，FSM）、层次状态机，以及带变量、守卫条件和动作的扩展有限状态机（extended finite-state machine，EFSM）子集。完整模型边界见[模型范围](../paper_stm_issue_discover/story/model_scope.md)。
 
-结论不外推到 clocks、invariants、orthogonal/concurrent regions、hybrid semantics、无界 temporal properties 或未声明的其他执行模型。本文也不证明模型在所有行为上完全正确，不把 repair 写成当前实验目标。145 条 ledger issue 是研究者根据纳入的 NL、作者 PlantUML 与来源证据人工维护的 source-backed expected inventory；它提供固定的比较分母，不是整个 defect universe 的绝对真值。
+结论不外推到时钟、状态不变量、正交/并发区域、混合语义、无界时序性质或未声明的其他执行模型。本文也不证明模型在所有行为上完全正确，不把修复写成当前实验目标。145 条台账问题是研究者根据纳入的自然语言需求、作者 PlantUML 与来源证据人工维护的有来源支撑的预期问题清单；它提供固定的比较分母，不是整个缺陷空间的绝对真值。
 
 ## 2. 背景与相关工作
 
 相关工作按照问题链而不是结果表组织。详细来源及其适用边界见 [related-work README](../paper_stm_issue_discover/related_work/README.md) 和 [predicate provenance](../paper_stm_issue_discover/related_work/provenance/predicate_provenance.md)。
 
-### 2.1 Requirements-to-model consistency
+### 2.1 需求到模型的一致性
 
-需求到模型的一致性研究说明，模型的有效性和完整性必须相对需求、规格或可陈述的义务讨论，而不是只看图是否良构。IEEE Std 1044-2009 的 defect 定义、Krogstie 等的模型质量工作以及 FRET 的 requirements formalization 都提供了这一边界。它们不逐字定义本文的 D、L、W 或 145 条台账，而是说明为何 source fact、义务和证据必须分开记录。
+需求到模型的一致性研究说明，模型的有效性和完整性必须相对需求、规格或可陈述的义务讨论，而不是只看图是否良构。IEEE Std 1044-2009 的缺陷定义、Krogstie 等的模型质量工作以及 FRET 的需求形式化工作提供了这一边界。它们不逐字定义本文的 D、L、W 或 145 条台账，而是说明为何来源事实、义务和证据必须分开记录。
 
 ### 2.2 状态机的结构与行为分析
 
-UML、Statecharts 和 FSM 文献区分结构/局部状态问题与依赖路径、状态序列或执行集合的问题。Hilken 等讨论 structural 与 behavioral verification task；Baier 与 Katoen 区分 invariant 和依赖有限路径片段或执行集合的性质；Engels 等以及 Knapp 与 Mossakowski 说明部分一致性条件可静态检查，另一些需要考虑 dynamics。这些来源支撑“问题性质和所需信息范围”的概念边界，不强制任何 L2 问题必须使用 simulation、BMC 或 trajectory receipt。
+UML、Statecharts 和有限状态机文献区分结构/局部状态问题与依赖路径、状态序列或执行集合的问题。Hilken 等讨论结构验证任务与行为验证任务；Baier 与 Katoen 区分状态不变量和依赖有限路径片段或执行集合的性质；Engels 等以及 Knapp 与 Mossakowski 说明部分一致性条件可静态检查，另一些需要考虑动态行为。这些来源支撑“问题性质和所需信息范围”的概念边界，不强制任何 L2 问题必须使用仿真、限界模型检查或轨迹回执。
 
-### 2.3 Testing、simulation 与 model checking
+### 2.3 测试、仿真与模型检查
 
-model-based testing、simulation 与 model checking 为状态机行为提供不同形式的可观察执行、反例和验证边界。Barr 等关于 oracle problem 的整理、Tretmans 的 conformance/testing 讨论，以及 counterexample 文献都说明：一个 sound violation 或可复核反例足以建立某些问题存在，但一次通过或某个 predicate 为真不等于模型没有其他问题。本文因此把执行证据写成 W 的来源，而不把任何 backend 当成规范义务的唯一来源。
+基于模型的测试、仿真与模型检查为状态机行为提供不同形式的可观察执行、反例和验证边界。Barr 等对测试预言机问题的整理、Tretmans 对一致性测试的讨论，以及反例文献都说明：一个可靠的违反证据或可复核反例足以建立某些问题存在，但一次通过或某个谓词为真不等于模型没有其他问题。本文因此把执行证据写成 W 的来源，而不把任何后端当成规范义务的唯一来源。
 
-### 2.4 LLM 辅助建模与模型审查
+### 2.4 大语言模型辅助建模与模型审查
 
-现有研究分别覆盖需求形式化、模型验证、测试和 LLM 辅助建模。本文的关注点更窄：把 NL、作者状态机、source-level 定位、适用时的可执行证据，以及可复核的离线评测串成一条 issue-discovery 链路。本文不声称“首次”“唯一”，也不把相关工作的概念边界误写成项目规则。
+现有研究分别覆盖需求形式化、模型验证、测试和大语言模型辅助建模。本文的关注点更窄：把自然语言需求、作者状态机、源级定位、适用时的可执行证据，以及可复核的离线评测串成一条问题发现链路。本文不声称“首次”“唯一”，也不把相关工作的概念边界误写成项目规则。
 
-### 2.5 Finding granularity、relatedness 与报告归并
+### 2.5 报告粒度、关联性与报告归并
 
-报告行不是天然的 defect 单位。Porter、Votta 与 Basili 区分 true fault 和 false positive；Okun、Delaitre 与 Black 的 NIST SATE IV 报告区分 directly related、indirectly related 与 unrelated finding；Klees 等强调 fuzzing 的最终单位应是 distinct bug 而非 crash/input；Pearson 等说明 fault-level 评价受报告粒度影响；Martinez 等讨论 repair/semantic equivalence 的边界；Ahmed 等则把同根因、细节层级不同的 issue 作为 equivalent，并将人工确认的台账外真实问题单列。
+报告行不是天然的缺陷单位。Porter、Votta 与 Basili 区分已知故障、真实故障与误报；Okun、Delaitre 与 Black 的 NIST SATE IV 报告区分直接相关、间接相关与不相关的问题；Klees 等强调模糊测试的最终单位应是独立缺陷而非崩溃/输入；Pearson 等说明故障级评价受报告粒度影响；Martinez 等讨论修复/语义等价的边界；Ahmed 等则把同根因、细节层级不同的问题视作等价，并将人工确认的台账外真实问题单列。
 
-这些来源支持 same-root-cause、relatedness、distinct issue 与报告粒度的概念。本文的 `FULL_MATCH/PARTIAL_MATCH/NO_MATCH`、K/N/I 和 N grouping 是基于这些概念形成的项目 operationalization，不是任一论文逐字给出的完整标准。
+这些来源支持同根因、关联性、独立问题与报告粒度的概念。本文的 `FULL_MATCH/PARTIAL_MATCH/NO_MATCH`、K/N/I 和 N 归并是基于这些概念形成的项目操作化定义，不是任一论文逐字给出的完整标准。
 
 ## 3. 统一问题框架：L、W 与 D
 
-一个 finding 至少要回答三件互不替代的事：它是什么性质的问题、报告拿到了多强的证据、以及主张是否足以作为 defect claim。本文先定义 `L/W/D`，再在第 5 节用 relation 将报告与 expected ledger 建立比较关系，并派生 K/N/I。
+一条问题报告至少要回答三件互不替代的事：它是什么性质的问题、报告拿到了多强的证据、以及主张是否足以作为缺陷主张。本文先定义 `L/W/D`，再在第 5 节用关系裁定将报告与预期问题台账建立比较关系，并派生 K/N/I。
 
 ```text
-issue property (L) + report evidence (W) + defect qualification (D)
-  -> relation to the expected ledger in the experiment
-  -> K/N/I evaluation disposition
+问题性质（L）+ 报告证据（W）+ 缺陷资格（D）
+  -> 实验中与预期问题台账的关系裁定
+  -> K/N/I 评测归属
 ```
 
-`L` 是 expected ledger 对问题性质的标注，`W` 是某条 report 的证据等级，`D` 是事实与被违反义务的裁定。L2 不自动要求 W2；W2 不自动使主张成为 defect；D2 也不说明问题属于哪个 L 层级。当前 L 的真源为 [l_tier.json](../paper_stm_issue_discover/discover_matrix/ledger_v2/l_tier.json)，其分布固定为 L0/L1/L2=`71/35/39`。
+`L` 是预期问题台账对问题性质的标注，`W` 是某条报告的证据等级，`D` 是事实与被违反义务的裁定。L2 不自动要求 W2；W2 不自动使主张成为缺陷；D2 也不说明问题属于哪个 L 层级。当前 L 的真源为 [l_tier.json](../paper_stm_issue_discover/discover_matrix/ledger_v2/l_tier.json)，其分布固定为 L0/L1/L2=`71/35/39`。
 
 ### 3.1 L：问题性质与所需信息范围
 
-L 描述陈述一个 expected issue 需要理解到什么范围，不规定必须使用何种算法、predicate、backend 或 witness。
+L 描述陈述一个预期问题需要理解到什么范围，不规定必须使用何种算法、谓词、后端或见证。
 
-| 层级 | 项目 operationalization |
+| 层级 | 项目操作化定义 |
 | --- | --- |
-| L0 | pointwise/surface property。可由 NL 名称、属性或模型中单个元素及直接对应关系陈述，例如缺失或多余状态、事件、trigger，或局部标签不一致。 |
-| L1 | structural/local-state property。涉及模型结构、单状态不变量或有限相邻元素关系；需要模型事实或局部结构，但问题本身不以多步执行、全局路径或执行集合量化，例如 guard 恒假、叶状态出度、局部层次或优先级。 |
-| L2 | behavioral/global property。涉及状态和迁移间的路径、可达性、终止/非终止、死锁、事件响应、跨迁移约束或全局交互。它是问题性质，不表示必须生成轨迹或运行 BMC。 |
+| L0 | 点状/表面性质。可由自然语言需求中的名称、属性或模型中单个元素及直接对应关系陈述，例如缺失或多余状态、事件、触发器，或局部标签不一致。 |
+| L1 | 结构/局部状态性质。涉及模型结构、单状态不变量或有限相邻元素关系；需要模型事实或局部结构，但问题本身不以多步执行、全局路径或执行集合量化，例如守卫条件恒假、叶状态出度、局部层次或优先级。 |
+| L2 | 行为/全局性质。涉及状态和迁移间的路径、可达性、终止/非终止、死锁、事件响应、跨迁移约束或全局交互。它是问题性质，不表示必须生成轨迹或运行限界模型检查。 |
 
-`defect_locus` 是 source anchor，不是 L 的替代字段。一条问题可锚定在单个 transition，却仍是 L2 的全局行为问题。L2 可由拓扑无路径、静态或符号充分条件、counterexample、trajectory、simulation 或 BMC 支持；没有 terminal execution receipt 时仍保留 L2，只把报告证据记为 W1。反过来，L1 也可以经合法 predicate execution 达到 W2。
+`defect_locus` 是来源锚点，不是 L 的替代字段。一条问题可锚定在单个迁移，却仍是 L2 的全局行为问题。L2 可由拓扑无路径、静态或符号充分条件、反例、轨迹、仿真或限界模型检查支持；没有终态执行回执时仍保留 L2，只把报告证据记为 W1。反过来，L1 也可以经合法谓词执行达到 W2。
 
-在 `P => Q` 的用法中，`P` 是足以证明 defect `Q` 存在的 violation predicate。对 L2，若一个拓扑或结构性 `P` 被 soundly 证伪，就已足够建立 `Q`；不要求 `P <=> Q`，也不要求为形式完整性强行升级为更高级的行为轨迹。#189 的当前 L 定义、概念锚点与边界见 [issue #189](https://github.com/HansBug/research_ideas/issues/189)。
+令 `V` 为已经成立的违反条件，`Q` 为缺陷主张。本文使用 `V => Q`：对义务性质 `P` 而言，终态 `P=false` 可以作为 `V` 成立的可靠证据，但 `P=true` 不推出 `not Q`，也不构成 `P <=> Q`。对 L2，拓扑或结构性证据只要可靠地建立 `V`，就足以支持 `Q`；不要求为形式完整性强行升级为更高级的行为轨迹。#189 的当前 L 定义、概念锚点与边界见 [issue #189](https://github.com/HansBug/research_ideas/issues/189)。
 
 ### 3.2 W：报告证据强度
 
 | 层级 | 定义 |
 | --- | --- |
 | W0 | 只有散文主张。 |
-| W1 | 有具体 source element、路径或结构定位，但没有完整 terminal receipt。 |
-| W2 | 在准确制品上使用合法 executable object 和 typed input；artifact hash 一致；backend 返回明确 terminal `true/false`；receipt 保存输入、结果、版本和来源。 |
+| W1 | 有具体来源元素、路径或结构定位，但没有完整终态回执。 |
+| W2 | 在准确制品上使用合法可执行对象和类型化输入；制品哈希一致；后端返回明确终态 `true/false`；回执保存输入、结果、版本和来源。 |
 
-只要 predicate 在准确制品上合法完成，receipt 完整且 terminal result 明确，就按 W2 记录，不能因为旧 coverage marker 或保守标签降级。若当前 predicate registry、typed input 或 soundness fragment 无法表达某个问题，方法不把问题当作不存在，也不自动判成 false positive：有具体 source/structure evidence 时保留 W1；连具体定位也没有时才是 W0；fallback 原因必须写入审计字段。
+只要谓词在准确制品上合法完成，回执完整且终态结果明确，就按 W2 记录，不能因为旧覆盖标记或保守标签降级。若当前谓词登记表、类型化输入或可靠性片段无法表达某个问题，方法不把问题当作不存在，也不自动判成误报：有具体来源/结构证据时保留 W1；连具体定位也没有时才是 W0；回退原因必须写入审计字段。
 
-### 3.3 D/A：什么主张足以称为 defect
+### 3.3 D/A：什么主张足以称为缺陷
 
-D 是问题资格/规范性轴，回答 source fact 是否成立，以及是否存在可以陈述并守住的 violated obligation。它不由 W 或 predicate execution 自动决定。
+D 是问题资格/规范性轴，回答来源事实是否成立，以及是否存在可以陈述并守住的被违反义务。它不由 W 或谓词执行自动决定。
 
 | 裁定 | 定义 |
 | --- | --- |
-| D2 | source fact 成立，有明确 violated obligation，且没有存活的称职反读法。 |
-| D1 | source fact 成立，但至少两种完整且与 source 相容的读法仍会改变义务或归因。 |
-| D0 | source fact 成立，但没有 surviving violated obligation，或作者的设计解释成立。 |
+| D2 | 来源事实成立，有明确被违反义务，且没有存活的称职反读法。 |
+| D1 | 来源事实成立，但至少两种完整且与来源相容的读法仍会改变义务或归因。 |
+| D0 | 来源事实成立，但没有仍然成立的被违反义务，或作者的设计解释成立。 |
 | A0 | 报告事实或归因在完整作者制品上不成立。 |
 
-D/A 是事实与义务的人工裁定轴。relation 与 K/N/I 是实验中报告和台账的比较及汇总，不能在此处互相替代。
+D/A 是事实与义务的人工裁定轴。关系裁定与 K/N/I 是实验中报告和台账的比较及汇总，不能在此处互相替代。
 
-## 4. 方法设计：从作者输入到可审计 evidence
+## 4. 方法设计：从作者输入到可审计证据
 
-方法不读取 expected ledger、人工裁定或历史 finding 来改变候选发现。冻结的流程把作者输入、工作表示、执行证据和人工评测职责分开：
+方法不读取预期问题台账、人工裁定或历史问题报告来改变候选发现。冻结的流程把作者输入、工作表示、执行证据和人工评测职责分开：
 
 ```text
-NL + 作者 PlantUML
-  -> canonical source IR / source trace
-  -> FCSTM working representation
-  -> pyfcstm native / inspection facts
-  -> candidate discovery and grounding
-  -> predicate routing and typed execution
-  -> evidence / receipt
-  -> 人工 validity/relation/D-A adjudication
-  -> deterministic evaluation summary
+自然语言需求 + 作者 PlantUML
+  -> 规范来源中间表示/来源追踪
+  -> FCSTM 工作表示
+  -> pyfcstm 原生事实/检查事实
+  -> 候选发现与落地定位
+  -> 谓词路由与类型化执行
+  -> 证据/回执
+  -> 人工有效性、关系与 D/A 裁定
+  -> 确定性评测汇总
 ```
 
-### 4.1 输入闭包和 provenance 固定
+### 4.1 输入闭包和来源固定
 
-每个 cell 固定 pair identity、round、NL、作者 PlantUML、来源论文映射、artifact hash 和运行 manifest。方法只读取声明范围内的作者输入；expected ledger 与人工裁定物理上属于 evaluation 层，不能回流到方法候选。
+每个格子固定配对标识、轮次、自然语言需求、作者 PlantUML、来源论文映射、制品哈希和运行清单。方法只读取声明范围内的作者输入；预期问题台账与人工裁定物理上属于评测层，不能回流到方法候选。
 
-### 4.2 NL contract extraction
+### 4.2 自然语言需求义务抽取
 
-从 NL 中抽取主体、状态、事件、条件、时序、响应、终止和其他可检查 obligation，并保留原文 source anchor。抽取结果用于提出候选和解释依据，不把候选自动升级为 defect 裁定。
+从自然语言需求中抽取主体、状态、事件、条件、时序、响应、终止和其他可检查义务，并保留原文来源锚点。抽取结果用于提出候选和解释依据，不把候选自动升级为缺陷裁定。
 
-### 4.3 作者模型解析和 source IR
+### 4.3 作者模型解析和来源中间表示
 
-作者 PlantUML 被解析为状态、迁移、trigger、guard、action、变量和 source location 的 canonical representation。source IR/source trace 的职责是保存作者文本与后续元素间的追溯关系；内部表示本身不是作者事实。
+作者 PlantUML 被解析为状态、迁移、触发器、守卫条件、动作、变量和来源位置的规范表示。来源中间表示/来源追踪的职责是保存作者文本与后续元素间的追溯关系；内部表示本身不是作者事实。
 
-### 4.4 FCSTM projection 与 pyfcstm 原生事实
+### 4.4 FCSTM 投影与 pyfcstm 原生事实
 
-PlantUML 到 FCSTM 的 projection 提供统一、可执行的 working representation；pyfcstm/FCSTM 的原生 class、function 和 inspection facts 提供状态机事实、类型信息、迁移和执行语义。projection、compiler-owned element 或未闭合 runtime evidence 不能单独归因于作者模型。只有能经 source trace 回到作者制品的内容，才可成为 source-level finding。
+PlantUML 到 FCSTM 的投影提供统一、可执行的工作表示；pyfcstm/FCSTM 的原生类、函数和检查事实提供状态机事实、类型信息、迁移和执行语义。投影、编译器拥有的元素或未闭合运行时证据不能单独归因于作者模型。只有能经来源追踪回到作者制品的内容，才可成为源级问题。
 
-### 4.5 候选发现和 grounding
+### 4.5 候选发现和落地定位
 
-discovery/grounding 把 NL obligation、作者模型事实和 source trace 汇合成候选 finding，并保存 source element、问题理由与证据基础。互补的 lens 只产生候选；它们在同一 finding schema 汇合后仍须经人工裁定，不能把散文主张直接写成已证实缺陷。
+发现/落地定位把自然语言义务、作者模型事实和来源追踪汇合成候选问题，并保存来源元素、问题理由与证据基础。互补的视角只产生候选；它们在同一问题模式中汇合后仍须经人工裁定，不能把散文主张直接写成已证实缺陷。
 
-### 4.6 Predicate registry、routing 与 typed execution
+### 4.6 谓词登记、路由与类型化执行
 
-谓词是可执行证据后端，不是方法主体外的临时脚本。冻结 registry `four-family-19-core.v1` 来自广泛、结构化的状态机、形式化验证、模型测试和执行语义领域调研，并经任务类型与常见性质的整体分析归纳为四族：Structure 6、Topology 4、Trajectory simulation 4、Bounded verification 5。provenance 为每个 ID 记录 domain/formal/technical 依据和能力边界；这是一套项目 predicate operationalization，不是已注册系统综述，也不声称单篇文献逐字规定 19 个具体 ID。
+谓词是可执行证据后端，不是方法主体外的临时脚本。冻结登记表 `four-family-19-core.v1` 来自广泛、结构化的状态机、形式化验证、模型测试和执行语义领域调研，并经任务类型与常见性质的整体分析归纳为四族：结构 6 个、拓扑 4 个、轨迹仿真 4 个、限界验证 5 个。来源记录为每个标识记录领域、形式和技术依据及能力边界；这是一套项目谓词操作化定义，不是已注册系统综述，也不声称单篇文献逐字规定 19 个具体标识。
 
-routing 根据候选 finding 的 obligation、元素类型、量词/时序需求和 backend capability 选择适用 predicate。binding 固定 typed input、source anchor、artifact hash 和 predicate ID；execution 才运行后端并保存 terminal result 与 receipt。仅有 predicate ID 或进入 routing 不等于已执行，更不等于 W2。
+路由根据候选问题的义务、元素类型、量词/时序需求和后端能力选择适用谓词。绑定固定类型化输入、来源锚点、制品哈希和谓词标识；只有执行环节才运行后端并保存终态结果与回执。仅有谓词标识或进入路由不等于已执行，更不等于 W2。
 
-### 4.7 Evidence receipt、证据闭合与 W 分配
+### 4.7 证据回执、证据闭合与 W 分配
 
-receipt 保存输入、输出、artifact hash、backend/version、source refs 和 terminal 状态。合法 execution 有 executable object、typed input、准确 artifact hash、明确 terminal `true/false` 与完整 receipt 时为 W2；只存在结构定位、路径或非终端线索时为 W1；只有散文主张时为 W0。W2 只提高可重放证据强度，不代替人工的 D/A、relation 或 K/N/I 裁定。
+回执保存输入、输出、制品哈希、后端/版本、来源引用和终态状态。合法执行具有可执行对象、类型化输入、准确制品哈希、明确终态 `true/false` 与完整回执时为 W2；只存在结构定位、路径或非终态线索时为 W1；只有散文主张时为 W0。W2 只提高可重放证据强度，不代替人工的 D/A、关系裁定或 K/N/I 裁定。
 
-### 4.8 Predicate coverage 与 fallback
+### 4.8 谓词覆盖与回退
 
-19 个谓词不保证覆盖所有可能的问题类型。当前 registry、typed input 或 soundness fragment 无法表达一个 source-grounded issue 时，方法保留 finding 和具体 source/structure evidence，记为 W1，并在 audit record 写明 predicate unsupported、typed input unavailable、capability boundary 或 receipt incomplete；没有具体定位时才记为 W0。谓词不是缺陷发现准入门，不能为了让每个 finding 都有 predicate 而伪造执行对象。
+19 个谓词不保证覆盖所有可能的问题类型。当前登记表、类型化输入或可靠性片段无法表达一个有来源支撑的问题时，方法保留问题和具体来源/结构证据，记为 W1，并在审计记录写明谓词不支持、类型化输入不可用、能力边界或回执不完整；没有具体定位时才记为 W0。谓词不是缺陷发现准入门，不能为了让每个问题都有谓词而伪造执行对象。
 
 ### 4.9 人工裁定和确定性评测
 
-所有 validity、relation、D/A、K/N/I 与成分分析均由人工完成，并保留 reason、basis、source refs 与审计记录。人工以 [issue #189](https://github.com/HansBug/research_ideas/issues/189) 的 source-first/D-A 边界和 [issue #195](https://github.com/HansBug/research_ideas/issues/195) 的 relation/K-N-I 合同完成判读与仲裁。evaluator 只读取这些完成态人工记录，确定性地做闭合、去重、归并、指标计算、schema/hash/link 校验和算术复算。内部 reviewer 或 subagent 意见是质量审阅材料，不被表述为新的 inter-rater study。
+所有有效性、关系、D/A、K/N/I 与成分分析均由人工完成，并保留理由、依据、来源引用与审计记录。人工以 [issue #189](https://github.com/HansBug/research_ideas/issues/189) 的来源优先/D-A 边界和 [issue #195](https://github.com/HansBug/research_ideas/issues/195) 的关系/K-N-I 合同完成判读与仲裁。评测程序只读取这些完成态人工记录，确定性地做闭合、去重、归并、指标计算、数据模式（schema）/哈希/链接校验和算术复算。内部审阅者或子代理意见是质量审阅材料，不被表述为新的人工一致性研究。
 
 ## 5. 实验设计与人工评测协议
 
-### 5.1 冻结矩阵与 expected inventory
+### 5.1 冻结矩阵与预期问题台账
 
-冻结实验为 `54 pair x 3 rounds`，每侧 `162 cells`。54 个 pair 由来源论文纳入研究范围的 `6` 个 LLM 条件与 `9` 个 NL 案例构成，即 `6 x 9 = 54`。来源结果表的 `STM Results` 第 18 个数据行（Excel row 20）是 `llms_emp_feedback_final_0018`，即 Digital camera state machine diagrams；其作者 PlantUML 明确使用 fork/join 并描述 parallel paths，现有 working contract 将这类并发执行语义标为 capability-excluded。它整体超出本文离散/层次/EFSM fragment，因而在建立 Paper1 矩阵前排除；它不进入 54 pair、145 条台账或任何 hit/precision 分母。原始输入与来源定位见 [0018 source record](../paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0018/source_meta.json) 和 [作者 PlantUML](../paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0018/stm0.puml)。输入闭包和纳入映射由 [final-results archive](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/README.md) 保存。
+冻结实验为 `54 个配对 x 3 轮`，每侧 `162 个格子`。54 个配对由来源论文纳入研究范围的 `6` 个大语言模型条件与 `9` 个自然语言需求案例构成，即 `6 x 9 = 54`。来源结果表的 `STM Results` 第 18 个数据行（Excel row 20）是 `llms_emp_feedback_final_0018`，即 Digital camera state machine diagrams；其作者 PlantUML 明确使用 fork/join 并描述 parallel paths，现有工作约定将这类并发执行语义标为能力范围外。它整体超出本文离散/层次/扩展有限状态机片段，因而在建立 Paper1 矩阵前排除；它不进入 54 个配对、145 条台账或任何命中/精确率分母。原始输入与来源定位见 [0018 来源记录](../paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0018/source_meta.json) 和[作者 PlantUML](../paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0018/stm0.puml)。输入闭包和纳入映射由[最终结果归档](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/README.md)保存。
 
-#### 54 pair 的上游来源、生成方式与用途
+#### 54 个配对的上游来源、生成方式与用途
 
-这 54 个输入来自 Wang, Ge, Liu, Cao, Chen 与 Hu 的 [*Generating SysML Behavior Models via Large Language Models: an Empirical Study*](https://doi.org/10.1145/3755881.3755926)（Internetware 2025）。该研究考察从自然语言需求生成 SysML 行为模型：Phase I 将 requirement description 和辅助上下文放入 prompt，要求模型输出 PlantUML 行为图；随后作者按格式、语法和需求一致性做 checking，并把反馈加入修订 prompt 产生后续输出。Paper1 不复现该 pipeline，也不使用其 reference PlantUML、checking 结论或原论文分数作为 oracle。它只从论文公开的 `Experiment Results.xlsx` / `STM Results` 一手 workbook 读取每行的 `Requirement Description` 和作者选择的 feedback-final PlantUML，作为已经冻结的 NL 与作者状态机输入；reference PlantUML 始终与方法和人工评测隔离。
+这 54 个输入来自 Wang、Ge、Liu、Cao、Chen 与 Hu 的 [*Generating SysML Behavior Models via Large Language Models: an Empirical Study*](https://doi.org/10.1145/3755881.3755926)（Internetware 2025）。该研究考察从自然语言需求生成 SysML 行为模型：第一阶段将需求描述和辅助上下文放入提示词，要求模型输出 PlantUML 行为图；随后作者按格式、语法和需求一致性检查，并把反馈加入修订提示词产生后续输出。Paper1 不复现该流程，也不使用其参考 PlantUML、检查结论或原论文分数作为预言机。它只从论文公开的 `Experiment Results.xlsx` / `STM Results` 一手工作簿读取每行的 `Requirement Description` 和作者选择的反馈后最终 PlantUML，作为已经冻结的自然语言需求与作者状态机输入；参考 PlantUML 始终与方法和人工评测隔离。
 
-上游 STM 表有 60 行，即 10 份需求各由 6 个模型条件产生一份结果。条件及其论文表中的版本为 GPT-4（GPT-4-Turbo）、GPT-4o（GPT-4o-2024-11-20）、Kimi（Moonshot-v1）、Claude（Claude 3 Haiku）、Llama（Llama 3.1）和 DeepSeek（DeepSeek-v3）。Digital camera 是十份需求中的一项，含带时间约束的 fork/join 与 parallel paths，因本研究模型范围排除；其余 9 份需求均在六个条件下保留，构成 `9 x 6 = 54` 个 pair。九份 NL 分别描述下列控制/嵌入式系统行为，而不是九种抽象 benchmark 标签：
+上游 STM 表有 60 行，即 10 份需求各由 6 个模型条件产生一份结果。条件及其论文表中的版本为 GPT-4（GPT-4-Turbo）、GPT-4o（GPT-4o-2024-11-20）、Kimi（Moonshot-v1）、Claude（Claude 3 Haiku）、Llama（Llama 3.1）和 DeepSeek（DeepSeek-v3）。Digital camera 是十份需求中的一项，含带时间约束的 fork/join 与 parallel paths，因本研究模型范围排除；其余 9 份需求均在六个条件下保留，构成 `9 x 6 = 54` 个配对。九份自然语言需求分别描述下列控制/嵌入式系统行为，而不是九种抽象基准标签：
 
-| 纳入的 NL 系统 | NL 所描述的主要行为 |
+| 纳入的自然语言需求系统 | 所描述的主要行为 |
 | --- | --- |
-| high-level driving module | 人工与自动驾驶模式、上电/断电及由前向距离和人工操控触发的切换。 |
-| base brake subsystem | 列车基础制动装置接收制动或传输失败信号后的制动、夹钳与回归初始状态。 |
-| Pump Control | 泵控制及水流、甲烷流监控子状态之间的切换。 |
-| Hybrid Sport Utility Vehicle | 车辆上电、熄火与 `Idle`、加速/巡航、制动之间的驾驶状态切换。 |
-| Train Control | 车门关闭、行驶、到站、紧急制动，以及加速/巡航/进站子状态。 |
-| Microwave Oven Control | 微波炉门、物品、烹饪时间、启动/取消和计时器的运行状态。 |
-| UAV swarm | 无人机群搜索、被拦截后的编队调整、任务分配与攻击完成后的群体规模变化。 |
-| collision avoidance sub-machine | 碰撞风险触发的碰撞规避控制；该需求中的并行区域作为作者制品事实处理，不扩张本文的并发语义 claim。 |
-| autonomous mode | 高速/城市自动驾驶模式、换道、退出、模式切换及碰撞规避条件。 |
+| 高层驾驶模块（high-level driving module） | 人工与自动驾驶模式、上电/断电及由前向距离和人工操控触发的切换。 |
+| 基础制动子系统（base brake subsystem） | 列车基础制动装置接收制动或传输失败信号后的制动、夹钳与回归初始状态。 |
+| 泵控制（Pump Control） | 泵控制及水流、甲烷流监控子状态之间的切换。 |
+| 混合动力运动型多用途车（Hybrid Sport Utility Vehicle） | 车辆上电、熄火与 `Idle`、加速/巡航、制动之间的驾驶状态切换。 |
+| 列车控制（Train Control） | 车门关闭、行驶、到站、紧急制动，以及加速/巡航/进站子状态。 |
+| 微波炉控制（Microwave Oven Control） | 微波炉门、物品、烹饪时间、启动/取消和计时器的运行状态。 |
+| 无人机群（UAV swarm） | 无人机群搜索、被拦截后的编队调整、任务分配与攻击完成后的群体规模变化。 |
+| 碰撞规避子状态机（collision avoidance sub-machine） | 碰撞风险触发的碰撞规避控制；该需求中的并行区域作为作者制品事实处理，不扩张本文的并发语义主张。 |
+| 自动模式（autonomous mode） | 高速/城市自动驾驶模式、换道、退出、模式切换及碰撞规避条件。 |
 
-默认 input pool 的选择也需与上游研究分开表述：60 行中 58 行采用作者最后一个非空 checking 输出，另 2 行回退到 Phase-I generation。该选择固定了 Paper1 要检查的作者输出及其来源链，而不把上游反馈带来的改进算作 ours 的收益，也不把上游 checking 当作 Paper1 的裁定。对同一冻结 NL/PlantUML 输入，ours 和 baseline 都只进行本研究的 issue discovery；145 条 expected ledger、validity、relation、D/A、K/N/I 与成分分析均由 Paper1 的人工流程独立完成。完整的论文、workbook、行定位、hash、模型条件和两套 Phase-I/feedback-final 输入池的边界见 [seed description](../paper_stm_issue_discover/corpora/seed_library/llms-emp-stm-subset/seed_desc.md)、[asset README](../paper_stm_issue_discover/corpora/seed_library/llms-emp-stm-subset/assets/README.md) 与 [feedback-final JSONL](../paper_stm_issue_discover/corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl)。
+默认输入池的选择也需与上游研究分开表述：60 行中 58 行采用作者最后一个非空检查输出，另 2 行回退到第一阶段生成。该选择固定了 Paper1 要检查的作者输出及其来源链，不把上游反馈带来的改进算作本文方法的收益，也不把上游检查当作 Paper1 的裁定。对同一冻结自然语言需求/PlantUML 输入，本文方法和基线都只进行本研究的问题发现；145 条预期问题台账、有效性、关系、D/A、K/N/I 与成分分析均由 Paper1 的人工流程独立完成。完整的论文、工作簿、行定位、哈希、模型条件和两套第一阶段/反馈后最终输入池的边界见[种子说明](../paper_stm_issue_discover/corpora/seed_library/llms-emp-stm-subset/seed_desc.md)、[素材说明](../paper_stm_issue_discover/corpora/seed_library/llms-emp-stm-subset/assets/README.md)与[反馈后最终 JSONL](../paper_stm_issue_discover/corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl)。
 
-145 条台账由博士生研究者根据纳入 pair、对应 NL、作者状态机和来源证据逐条人工标注、整理与复核。台账保存 expected issue 内容、source locus、D/L、必要的性质/谓词预期及输入，但不是 method 运行后反向生成，也不是自动裁定产生。其形成、去重和边界见 [ledger README](../paper_stm_issue_discover/discover_matrix/ledger_v2/README.md)。
+145 条台账由博士生研究者根据纳入配对、对应自然语言需求、作者状态机和来源证据逐条人工标注、整理与复核。台账保存预期问题内容、来源位置、D/L、必要的性质/谓词预期及输入，但不是方法运行后反向生成，也不是自动裁定产生。其形成、去重和边界见[台账说明](../paper_stm_issue_discover/discover_matrix/ledger_v2/README.md)。
 
-`hit@1` 的分母为 `145 x 3 = 435` expected-round units；L2 `hit@1` 的分母为 `39 x 3 = 117`。`hit@3` 和 `hit@all` 的分母为 145 unique expected IDs；L2 对应分母为 39。ours 和 baseline 的人工审核构成并不完全对称：ours 是既有 source-first 结果的逐条闭合，baseline 是非 K 逐条复核加原 K 冻结快照。因此它们是同一语义边界下的冻结比较，不是新的、完全对称的人类 inter-rater 研究。
+`hit@1` 的分母为 `145 x 3 = 435` 个预期问题轮次单元；L2 `hit@1` 的分母为 `39 x 3 = 117`。`hit@3` 和 `hit@all` 的分母为 145 个唯一预期问题标识；L2 对应分母为 39。本文方法和基线的人工审核构成并不完全对称：本文方法是既有来源优先结果的逐条闭合，基线是非 K 逐条复核加原 K 冻结快照。因此它们是同一语义边界下的冻结比较，不是新的、完全对称的人工一致性研究。
 
-### 5.2 Relation 与 K/N/I 的双维判读
+### 5.2 关系裁定与 K/N/I 的双维判读
 
-issue #195 把“报告与 expected 的关系”和“报告自身是否成立及如何归属”分开。人工先确认报告核心技术主张是否成立；无效报告的 relations 强制闭合为全 `NO_MATCH`。有效报告再对同一 pair 的全部 expected 逐项判断 relation。
+issue #195 把“报告与预期问题的关系”和“报告自身是否成立及如何归属”分开。人工先确认报告核心技术主张是否成立；无效报告的关系强制闭合为全 `NO_MATCH`。有效报告再对同一配对的全部预期问题逐项判断关系。
 
-| relation | 含义 | 指标去向 |
+| 关系 | 含义 | 指标去向 |
 | --- | --- | --- |
-| `FULL_MATCH` | 与 expected 是同一缺陷实例、同一根因、同一 violated obligation，或同一根因的直接可归因表现。 | 贡献主 FULL hit。 |
-| `PARTIAL_MATCH` | 有真实、可审计但不足以确认同一缺陷身份的局部或间接关系。 | 进入 supported coverage；不贡献主 FULL hit，也不是 false positive。 |
-| `NO_MATCH` | 没有可接受的 expected relation，或是台账外问题。 | 在有效报告全 NO 时可进入 N。 |
+| `FULL_MATCH` | 与预期问题是同一缺陷实例、同一根因、同一被违反义务，或同一根因的直接可归因表现。 | 贡献主完全命中。 |
+| `PARTIAL_MATCH` | 有真实、可审计但不足以确认同一缺陷身份的局部或间接关系。 | 进入支持性覆盖；不贡献主完全命中，也不是误报。 |
+| `NO_MATCH` | 没有可接受的预期问题关系，或是台账外问题。 | 在有效报告全为 NO 时可进入 N。 |
 
-relation 完成后，发布级 report disposition 为：
+关系完成后，发布级报告归属为：
 
 | 标签 | 概念定义 | 必要条件 | 评测角色 |
 | --- | --- | --- | --- |
-| `VALID_KNOWN`（K） | 报告核心主张成立，并可归属于至少一条冻结 expected。 | 有效，且至少一条 relation 为 FULL 或 PARTIAL。 | known report；只有 FULL 贡献主 hit，PARTIAL 只贡献 supported coverage。 |
-| `VALID_NOVEL`（N） | 报告核心主张成立，但不是任何 frozen expected 的同一问题。 | 有独立制品证据、source anchor、reason/basis 和可行动主张；对该 pair 的全部 expected 为 NO。 | 有效但未认领台账的 report；不增加 expected hit，也不算 false positive。 |
-| `INVALID`（I） | 核心主张不成立，或不能承担预先规定的最低举证责任。 | 作者制品、NL、执行/inspection evidence 或人工复核反驳主张，或无法给出可核验事实与归因。 | 无效 report；进入 report precision 分母和 invalid diagnostic，不是 defect entity。 |
+| `VALID_KNOWN`（K） | 报告核心主张成立，并可归属于至少一条冻结预期问题。 | 有效，且至少一条关系为 FULL 或 PARTIAL。 | 已知问题报告；只有 FULL 贡献主完全命中，PARTIAL 只贡献支持性覆盖。 |
+| `VALID_NOVEL`（N） | 报告核心主张成立，但不是任何冻结预期问题的同一问题。 | 有独立制品证据、来源锚点、理由/依据和可行动主张；对该配对的全部预期问题均为 NO。 | 有效但未认领台账的报告；不增加预期问题命中，也不算误报。 |
+| `INVALID`（I） | 核心主张不成立，或不能承担预先规定的最低举证责任。 | 作者制品、自然语言需求、执行/检查证据或人工复核反驳主张，或无法给出可核验事实与归因。 | 无效报告；进入报告精确率分母和无效报告诊断，不是缺陷实体。 |
 
-固定顺序如下。`D/A` 是事实与 violated obligation 的裁定；K/N/I 是 relation 完成后的报告-台账闭合。D2/D1 报告仍必须经过有效性和 relation 审核，W 与 predicate 不参与这一闭合。
+固定顺序如下。`D/A` 是事实与被违反义务的裁定；K/N/I 是关系完成后的报告-台账闭合。D2/D1 报告仍必须经过有效性和关系审核，W 与谓词不参与这一闭合。
 
 ```text
-source fact / technical claim
-  -> D/A（事实与 violated obligation）
-  -> 人工确认报告有效性；无效报告 relation 全为 NO_MATCH
-  -> 枚举同一 pair 的全部 expected relation：FULL_MATCH / PARTIAL_MATCH / NO_MATCH
+来源事实/技术主张
+  -> D/A（事实与被违反义务）
+  -> 人工确认报告有效性；无效报告关系均为 NO_MATCH
+  -> 枚举同一配对的全部预期问题关系：FULL_MATCH / PARTIAL_MATCH / NO_MATCH
   -> K/N/I
-  -> hit、supported coverage、precision、grouping 与诊断指标
+  -> 命中、支持性覆盖、精确率、归并与诊断指标
 ```
 
-在当前闭合中，D2/D1 加至少一个 FULL/PARTIAL 为 K；D2/D1 且同 pair 的全部 relations 为 NO 为 N；D0/A0 为 I。程序不会从模型自报标签、W、predicate ID、报告数量或台账缺席猜测 K/N/I。发布结果不保留 `OUT_OF_SCOPE`、最终 `UNKNOWN` 或“暂未审完”：争议在出数前经制品复核、独立复核和仲裁完成。
+在当前闭合中，D2/D1 是 K/N 的必要但非充分条件：人工确认有效的 D2/D1 报告在至少一个 FULL/PARTIAL 关系时为 K，在同一配对的全部关系为 NO 时为 N；D2/D1 仍可能因有效性复核不通过而进入 I。D0/A0 进入 I，且全部 I 的关系闭合为 `NO_MATCH`。程序不会从模型自报标签、W、谓词标识、报告数量或台账缺席猜测 K/N/I。发布结果不保留 `OUT_OF_SCOPE`、最终 `UNKNOWN` 或“暂未审完”：争议在出数前经制品复核、独立复核和仲裁完成。
 
-K 按 expected ledger ID 去重；同一 expected 的重复命中不增加 hit。N 只在同一 side、同一 pair 内，依据共同义务/property、相容 source locus/行为上下文、实质根因和最小 repair intent 做保守归并，允许跨 round；不能跨 side/pair，不能按文本相似度、状态名或 expected ID 自动合并。I 不建立 substantive defect group；I cluster 只描述无效报告的重复诊断形态。
+K 按预期问题台账标识去重；同一预期问题的重复命中不增加命中数。N 只在同一侧、同一配对内，依据共同义务/性质、相容来源位置/行为上下文、实质根因和最小修复意图做保守归并，允许跨轮；不能跨侧/配对，不能按文本相似度、状态名或预期问题标识自动合并。I 不建立实质缺陷组；I 簇只描述无效报告的重复诊断形态。
 
 ### 5.3 指标与单位
 
-指标按以下顺序报告：FULL `hit@1/@3/@all`、L2 FULL hit、report-based precision、W-on-hits、K/N/I、N substantive groups、I diagnostic clusters、predicate terminal usage 和 report-bound presence。
+指标按以下顺序报告：完全命中 `hit@1/@3/@all`、L2 完全命中、报告精确率、命中项 W、K/N/I、N 实质问题组、I 诊断簇、谓词终态使用和报告绑定情况。
 
-W-on-hits 对每一个 FULL hit unit 取该 hit 内最高 W，并以本侧 FULL hits 为分母。它不能由全部 finding 的 W 分布或全部 predicate execution 替代。主 precision 固定为 `(K reports + N reports) / all final reports`；任何 group/diagnostic 比率另行命名。
+命中项 W 对每一个完全命中单元取该单元内最高 W，并以本侧完全命中数为分母。它不能由全部报告的 W 分布或全部谓词执行替代。主精确率固定为 `(K 报告 + N 报告) / 全部最终报告`；任何组/诊断比率另行命名。
+
+### 5.4 方法成本核算
+
+成本比较固定在两侧相同的 `54 个配对 x 3 轮 = 162 个方法格子` 上，只统计方法生成阶段实际发生、并由保存的提供方用量回执支撑的推理/调用。它不按报告数量、平均令牌、墙钟时间或“每个格子一次调用”估算；人工裁定、评测程序、人工审核、CPU、磁盘、网络、开发时间和重试等待均不计入方法成本。
+
+两侧使用 `gpt-5.6-luna` 的冻结价格卡：未缓存输入 `$0.20/1M`、缓存读取 `$0.02/1M`、缓存创建 `$0.25/1M`、输出 `$1.20/1M`，核验日期为 `2026-08-18`。价格卡和实现入口为 [`.llmconfig.example.yml`](../../.llmconfig.example.yml)、[`utils/llm/pricing.py`](../../utils/llm/pricing.py) 与 [`cost_correction.py`](../paper_stm_issue_discover/evaluation/src/paper_stm_evaluation/cost_correction.py)。对每个计费调用，`uncached_input = input_tokens - cache_read - cache_creation`，随后以 `uncached_input*0.20/1M + cache_read*0.02/1M + cache_creation*0.25/1M + output*1.20/1M` 计费。`output_tokens` 已含推理令牌，不重复加价。
+
+冻结重试规则只豁免提供方错误后的同请求重试；已经实际调用提供方的数据模式/非提供方重试仍计费。回执复算显示本文方法的 162 格子成本闭合为 `$7.18277320`。基线的 162 个最终成功记录给出 `$0.22523328` 的**已记录小计**，但配对 `0057`、第 `3` 轮的首次数据模式错误调用按规则应计费而没有保存用量回执，因此完整基线成本为 `$0.22523328 + 缺失的数据模式错误调用成本`，`method_cost_eligible=false`。成本对象、范围、计算式和可复算命令见[成本审计 v1](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/final_talk_cost_section7_v1/README.md)。
 
 ## 6. 冻结结果
 
-本节的唯一数字源是 [fair comparison combined summary](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/fair_comparison_v4/combined_summary_v4.json)、[ours summary](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/summary_v4.json)、[baseline summary](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/recomputed_summary_v3.json) 及正式的[结果报告](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)。
+本节的唯一数字源是[公平比较汇总](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/fair_comparison_v4/combined_summary_v4.json)、[本文方法汇总](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/summary_v4.json)、[基线汇总](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/recomputed_summary_v3.json)及正式的[结果报告](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)。
 
-### 6.1 Headline 与 coverage
+### 6.1 总体结果与发现覆盖率
 
-| 指标 | ours | baseline | 单位/分母 |
+| 指标 | 本文方法 | 基线 | 单位/分母 |
 | --- | ---: | ---: | --- |
-| method cells / reports | 162 / 1271 | 162 / 512 | 每侧 54 pair x 3 rounds；report 是发布 finding 行。 |
-| K / N / I reports | 749 / 231 / 291 | 312 / 105 / 95 | report-level disposition。 |
-| D2 / D1 / D0 / A0 reports | 721 / 259 / 120 / 171 | 342 / 75 / 85 / 10 | report-level D/A。 |
-| report precision | 980/1271 = 77.10% | 417/512 = 81.45% | `(K+N)/all reports`。 |
-| FULL hit@1 | 310/435 = 71.26% | 227/435 = 52.18% | expected-round FULL units。 |
-| FULL hit@3 | 119/145 = 82.07% | 106/145 = 73.10% | 任一 round FULL 的 unique expected IDs。 |
-| FULL hit@all | 86/145 = 59.31% | 46/145 = 31.72% | 三轮均 FULL 的 unique expected IDs。 |
-| L2 FULL hit@1 | 105/117 = 89.74% | 50/117 = 42.74% | 39 个 L2 expected x 3 rounds。 |
-| L2 FULL hit@3 | 37/39 = 94.87% | 26/39 = 66.67% | unique L2 expected IDs。 |
-| L2 FULL hit@all | 33/39 = 84.62% | 8/39 = 20.51% | 三轮均 FULL 的 L2 IDs。 |
+| 方法格子/报告 | 162 / 1271 | 162 / 512 | 每侧 54 个配对 x 3 轮；报告是发布的问题行。 |
+| K / N / I 报告 | 749 / 231 / 291 | 312 / 105 / 95 | 报告级归属。 |
+| D2 / D1 / D0 / A0 报告 | 721 / 259 / 120 / 171 | 342 / 75 / 85 / 10 | 报告级 D/A。 |
+| 报告精确率 | 980/1271 = 77.10% | 417/512 = 81.45% | `(K 报告 + N 报告) / 全部报告`。 |
+| 完全命中 `hit@1` | 310/435 = 71.26% | 227/435 = 52.18% | 预期问题轮次完全命中单元。 |
+| 完全命中 `hit@3` | 119/145 = 82.07% | 106/145 = 73.10% | 任一轮完全命中的唯一预期问题标识。 |
+| 完全命中 `hit@all` | 86/145 = 59.31% | 46/145 = 31.72% | 三轮均完全命中的唯一预期问题标识。 |
+| L2 完全命中 `hit@1` | 105/117 = 89.74% | 50/117 = 42.74% | 39 个 L2 预期问题 x 3 轮。 |
+| L2 完全命中 `hit@3` | 37/39 = 94.87% | 26/39 = 66.67% | 唯一 L2 预期问题标识。 |
+| L2 完全命中 `hit@all` | 33/39 = 84.62% | 8/39 = 20.51% | 三轮均完全命中的 L2 标识。 |
 
-### 6.2 W、predicate 与 report-bound presence
+### 6.2 W、谓词与报告绑定情况
 
-| 指标 | ours | baseline | 边界 |
+| 指标 | 本文方法 | 基线 | 边界 |
 | --- | ---: | ---: | --- |
-| FULL-hit max W2 / W1 / W0 | 197/310 / 113/310 / 0/310 | 0/227 / 227/227 / 0/227 | 每侧以自己的 FULL-hit units 为分母。 |
-| terminal-receipt distinct predicate IDs | 12/19 | N/A | ours 的 distinct-ID execution 指标。 |
-| report-bound distinct predicate IDs | 8/19 | N/A | ours 的 distinct-ID binding 指标。 |
-| report-bound binding rows / all reports | 825/1271 = 64.91% | N/A | 行级诊断，不是 distinct-ID 指标。 |
-| legacy coverage-class marker / binding rows | 303/825 = 36.73% | N/A | 行级历史 marker，不替代 W、hit 或 coverage。 |
+| 完全命中项最高 W2 / W1 / W0 | 197/310 / 113/310 / 0/310 | 0/227 / 227/227 / 0/227 | 每侧以自身完全命中单元为分母。 |
+| 产生终态回执的不同谓词标识 | 12/19 | N/A | 本文方法的不同标识执行指标。 |
+| 绑定到报告的不同谓词标识 | 8/19 | N/A | 本文方法的不同标识绑定指标。 |
+| 报告绑定行/全部报告 | 825/1271 = 64.91% | N/A | 行级诊断，不是不同标识指标。 |
+| 历史覆盖类别标记/绑定行 | 303/825 = 36.73% | N/A | 行级历史标记，不替代 W、命中或覆盖率。 |
 
-ours 的 terminal IDs 是 `G1, G2, G4, R1, R2, R4, S1, S2, S3, S4, S5, V4`；report-bound IDs 是 `G1, G2, R2, S2, S3, S4, S5, V4`。`12/19` 与 `8/19` 都不是 defect coverage、FULL hit、W2 数或 predicate contribution。baseline 没有同构 predicate receipt/binding schema，因此写作 `N/A`，不是零。
+本文方法的终态标识是 `G1, G2, G4, R1, R2, R4, S1, S2, S3, S4, S5, V4`；报告绑定标识是 `G1, G2, R2, S2, S3, S4, S5, V4`。`12/19` 与 `8/19` 都不是缺陷覆盖率、完全命中数、W2 数或谓词贡献数。基线没有同构谓词回执/绑定模式，因此写作 `N/A`，不是零。
 
-### 6.3 I 的组成与 precision
+### 6.3 I 的组成与报告精确率
 
-| I 成分 | ours | baseline |
+| I 成分 | 本文方法 | 基线 |
 | --- | ---: | ---: |
 | D0 | 120 | 85 |
-| ordinary A0 / `FALSE_POSITIVE` | 53 | 10 |
-| ours-only A0 / `NOT_A_DEFECT_CLAIM` (NADC) | 118 | N/A，baseline 无同构分类 |
-| I reports | 291 | 95 |
+| 普通 A0 / `FALSE_POSITIVE` | 53 | 10 |
+| 本文方法独有 A0 / 不构成缺陷主张（`NOT_A_DEFECT_CLAIM`，NADC） | 118 | N/A，基线无同构分类 |
+| I 报告 | 291 | 95 |
 
-ours 侧 `291 = 120 + 53 + 118`。NADC 是 evaluation-only overlay：compiler-owned artifact `38`、projection/trace boundary `24`、runtime/evidence closure `48`、attribution-indeterminate `8`；其中 confirmed method-owned mechanisms 为 `110`，strict conversion-lowering confirmed 为 `0`。其来源为 [conversion attribution v1](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/README.md) 及 [summary JSON](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/i_attribution_summary_v1.json)。
+本文方法侧 `291 = 120 + 53 + 118`。NADC 是仅用于评测的附加层：编译器拥有的制品 `38`、投影/追踪边界 `24`、运行时/证据闭合 `48`、归因不确定 `8`；其中已确认的方法拥有机制为 `110`，严格确认的转换降级为 `0`。其来源为[转换归因 v1](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/README.md)及[汇总 JSON](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/i_attribution_summary_v1.json)。
 
-precision 的差异为 `77.10% - 81.45% = -4.34 pp`；互补 I rate 为 ours `291/1271 = 22.90%`、baseline `95/512 = 18.55%`，差异 `+4.34 pp`。描述性分解中，D0 rate 差为 `120/1271 - 85/512 = -7.16 pp`，ordinary A0 rate 差为 `53/1271 - 10/512 = +2.22 pp`；NADC 只能写 ours-side `118/1271 = 9.28%`。baseline 没有同构 NADC 分类，不能把其缺失机械填为零，也不能用该 residual 做跨臂因果归因。
+报告精确率的差异为 `77.10% - 81.45% = -4.34 pp`；互补的 I 比率为本文方法 `291/1271 = 22.90%`、基线 `95/512 = 18.55%`，差异 `+4.34 pp`。描述性分解中，D0 比率差为 `120/1271 - 85/512 = -7.16 pp`，普通 A0 比率差为 `53/1271 - 10/512 = +2.22 pp`；NADC 只能写本文方法侧 `118/1271 = 9.28%`。基线没有同构 NADC 分类，不能把其缺失机械填为零，也不能用该剩余项做跨侧因果归因。
 
-### 6.4 N：raw reports 与 substantive groups
+### 6.4 N：原始报告与实质问题组
 
-N 的两个层次必须分开。raw N report 是人工裁定为 `VALID_NOVEL` 的发布报告行，用于审计和 report-based precision。N substantive group 是 same-side、same-pair、跨 round 可合并的实质性同质问题，用于描述已记录 novel root-cause 单元；它不是本体论意义上唯一的 defect 数。
+N 的两个层次必须分开。原始 N 报告是人工裁定为 `VALID_NOVEL` 的发布报告行，用于审计和报告精确率。N 实质问题组是同侧、同配对内可跨轮合并的实质性同质问题，用于描述已记录的新根因单元；它不是本体论意义上唯一的缺陷数。
 
-| side | raw N reports | N substantive groups | report-level D2 / D1 | group-level D2 / D1 | raw-to-group | pair coverage |
+| 一侧 | 原始 N 报告 | N 实质问题组 | 报告级 D2 / D1 | 组级 D2 / D1 | 报告到组 | 配对覆盖 |
 | --- | ---: | ---: | ---: | ---: | --- | --- |
-| ours | 231 | 121 | 38/231 = 16.45% / 193/231 = 83.55% | 21/121 = 17.36% / 100/121 = 82.64% | 231/121 = 1.909 reports/group；`1 - 121/231 = 47.62%` 合并压缩 | 28/54 pair 有 N |
-| baseline | 105 | 98 | 50/105 = 47.62% / 55/105 = 52.38% | 48/98 = 48.98% / 50/98 = 51.02% | 105/98 = 1.071 reports/group；`1 - 98/105 = 6.67%` 合并压缩 | 34/54 pair 有 N |
+| 本文方法 | 231 | 121 | 38/231 = 16.45% / 193/231 = 83.55% | 21/121 = 17.36% / 100/121 = 82.64% | 231/121 = 1.909 报告/组；`1 - 121/231 = 47.62%` 合并压缩 | 28/54 个配对有 N |
+| 基线 | 105 | 98 | 50/105 = 47.62% / 55/105 = 52.38% | 48/98 = 48.98% / 50/98 = 51.02% | 105/98 = 1.071 报告/组；`1 - 98/105 = 6.67%` 合并压缩 | 34/54 个配对有 N |
 
-`group-level D2/D1` 是对 canonical group JSON 每组 `d_tiers` 的确定性聚合，不是另一个改写过的 headline。两侧无 mixed-tier group；ours 的 121 个 group 为 21 D2、100 D1，baseline 的 98 个 group 为 48 D2、50 D1。每个 N report 恰好有一个 group membership：ours `231/231`，baseline `105/105`。baseline 的 group TSV 同时携带 95 个 I diagnostic clusters，不能误读为 193 个 N groups。
+`组级 D2/D1` 是对规范问题组 JSON 每组 `d_tiers` 的确定性聚合，不是另一个改写过的结论。两侧无混合等级组；本文方法的 121 个组为 21 个 D2、100 个 D1，基线的 98 个组为 48 个 D2、50 个 D1。每个 N 报告恰好有一个组成员关系：本文方法 `231/231`，基线 `105/105`。基线的组 TSV 同时携带 95 个 I 诊断簇，不能误读为 193 个 N 组。
 
-N group size 的组成进一步显示报告冗余形态不同：ours 为 `1:52, 2:31, 3:36, 4:1, 5:1`，baseline 为 `1:92, 2:5, 3:1`。因此 ours 的 N reports 更集中地重复落在少数 same-pair group 上，baseline 的 N groups 更常为保守 singleton。这个观察只描述报告-归并关系，不证明哪一侧发现了更多领域缺陷。
+N 组大小的组成进一步显示报告冗余形态不同：本文方法为 `1:52, 2:31, 3:36, 4:1, 5:1`，基线为 `1:92, 2:5, 3:1`。因此本文方法的 N 报告更集中地重复落在少数同配对组上，基线的 N 组更常为保守单例。这个观察只描述报告-归并关系，不证明哪一侧发现了更多领域缺陷。
 
-ours 的代表组是 `v60_current:0006:0006:reachability:UAVSwarmStateMachine-root`：5 个成员 report，`d_tiers=[D2]`，其共同义务、source locus、根因和 repair intent 位于 [ours N groups](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/current_n_groups_v4.json) `#/groups/4`。baseline 的代表组是 `N-G-0022-01`：3 个 round 的同一 `PoweredOn` detour，`d_tiers=[D1]`，见 [baseline N groups](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/baseline_n_groups_v3.json) `#/groups/n_groups/32`。这些审计记录保存共同义务、source locus、根因和 repair intent，而非仅保存文字相似度。
+本文方法的代表组是 `v60_current:0006:0006:reachability:UAVSwarmStateMachine-root`：5 条成员报告，`d_tiers=[D2]`，其共同义务、来源位置、根因和修复意图位于[本文方法 N 组](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/current_n_groups_v4.json) `#/groups/4`。基线的代表组是 `N-G-0022-01`：3 轮的同一 `PoweredOn` 绕行，`d_tiers=[D1]`，见[基线 N 组](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/baseline_n_groups_v3.json) `#/groups/n_groups/32`。这些审计记录保存共同义务、来源位置、根因和修复意图，而非仅保存文字相似度。
 
-L 是 expected ledger 的属性，canonical N group schema 不给 N report 伪造 L0/L1/L2 分布。跨臂 N group 也没有 entity mapping：协议只允许 same-side、same-pair 归并，fair index 没有 cross-side `FULL_MATCH/PARTIAL_MATCH` 实体关系。因此跨臂“重合/独有 N group 数”是 `N/A`，不能从相似描述推断；这是一项可观察性边界，不是零值。
+L 是预期问题台账的属性，规范 N 组模式不为 N 报告伪造 L0/L1/L2 分布。跨侧 N 组也没有实体映射：协议只允许同侧、同配对归并，公平索引没有跨侧 `FULL_MATCH/PARTIAL_MATCH` 实体关系。因此跨侧“重合/独有 N 组数”是 `N/A`，不能从相似描述推断；这是一项可观察性边界，不是零值。
 
-#### 54-pair N 分布
+#### 54 个配对的 N 分布
 
-下表的格式为 `raw N reports / N substantive groups`，来自 [ours report decisions](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.json)、[baseline combined decisions](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/baseline_combined_512_v3.json) 和两侧 group JSON 的确定性重算。`0/0` 表示该 side/pair 没有 final N。
+下表的格式为 `原始 N 报告 / N 实质问题组`，来自[本文方法报告裁定](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.json)、[基线综合裁定](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/baseline_combined_512_v3.json)和两侧组 JSON 的确定性复算。`0/0` 表示该侧/配对没有最终 N。
 
-| pair | ours N reports / groups | baseline N reports / groups |
+| 配对 | 本文方法 N 报告/组 | 基线 N 报告/组 |
 | --- | ---: | ---: |
 | `0000` | 0 / 0 | 1 / 1 |
 | `0001` | 2 / 1 | 0 / 0 |
@@ -342,82 +350,116 @@ L 是 expected ledger 的属性，canonical N group schema 不给 N report 伪�
 | `0057` | 4 / 2 | 2 / 1 |
 | `0059` | 0 / 0 | 8 / 8 |
 
-### 6.5 NO_RERUN 决策
-
-当前冻结结论是 `NO_RERUN`。evaluation-only audit 没有发现 FCSTM-only 或 compiler-owned 现象进入 ours K/N；已经识别的 invalid-output 成本留在 report precision 分母，归因只在 conversion-attribution overlay 中处理。因此没有重新运行 method、provider、15x1、54x3、162-cell 或 replay，也没有重新进行人工裁定或改变 hit、W、D/A、K/N/I 或 canonical relation。
-
 ## 7. 结果解释
 
-### 7.1 Coverage 的差异
+### 7.1 发现覆盖率：共同冻结协议下的差异
 
-ours 的 FULL hit@1 比 baseline 高 `19.08 pp`（`71.26%` 对 `52.18%`）。差异在 L2 更大：hit@1 高 `47.01 pp`，hit@all 高 `64.10 pp`。在冻结输入和协议下，这与 source closure、source trace、FCSTM/pyfcstm inspection 以及适用时的可执行 predicate evidence 共同出现；它们为行为/全局问题提供了更多可定位和可复核的证据路径。该结果是覆盖比较，不是“ours 在所有指标、成本或模型范围上更好”的结论。
+来源：[公平比较综合汇总](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/fair_comparison_v4/combined_summary_v4.json) `#/metrics`。
 
-### 7.2 Precision 的 trade-off
+| 指标 | 本文方法 | 基线 | 差异 | 分母 |
+| --- | ---: | ---: | ---: | --- |
+| 完全命中 `hit@1` | 310/435 = 71.26% | 227/435 = 52.18% | +19.08 pp | 145 条预期问题 x 3 轮 |
+| L2 完全命中 `hit@1` | 105/117 = 89.74% | 50/117 = 42.74% | +47.01 pp | 39 条 L2 预期问题 x 3 轮 |
+| L2 完全命中 `hit@all` | 33/39 = 84.62% | 8/39 = 20.51% | +64.10 pp | 39 个唯一 L2 标识 |
 
-ours 的 report precision 是 `77.10%`，baseline 是 `81.45%`，差异为 `-4.34 pp`。ours I 包含 D0、ordinary A0/`FALSE_POSITIVE` 和 ours-only NADC；NADC 只是 ours-side evaluation overlay，baseline 没有同构分类。在冻结协议下，ours 以适度的 invalid-output burden 换取更高的 FULL discovery coverage。不能把 NADC 全部归因于 lowering/compiler，也不能据此断言 baseline 没有 representation/evidence cost。
+**数据直接支持的结论。** 在共同冻结输入、145 条台账和相同三轮分母下，本文方法的总体与 L2 完全命中发现覆盖率更高；L2 的差异比总体 `hit@1` 更大。
 
-### 7.3 Predicate 的实际使用
+**候选解释与限制。** 来源闭合、来源追踪、FCSTM/pyfcstm 检查与适用的谓词证据都与该结果共同出现。当前没有逐组件消融，不能把任何一个环节写成已证明的单独原因，也不能把覆盖率比较扩展为成本、精确率或模型范围上的全面优越。
 
-19 是设计规模；`12/19` 是产生 terminal receipt 的 distinct predicate IDs；`8/19` 是进入最终 report-bound finding 的 distinct IDs。设计来源、实际执行、最终绑定和对某个 finding 的证据作用是四件不同的事。前两项都不是 defect coverage、FULL hit、W2 数或贡献数；`825/1271` 与 `303/825` 也只是行级诊断。baseline 的对应字段为 N/A，因为不存在同构 receipt/binding schema。
+### 7.2 I 组成与报告精确率
 
-### 7.4 `P => Q` 与高级谓词较少的原因
+来源：[本文方法 I 组成](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/current_i_diagnostic_composition_v4.json)、[转换归因 v1](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/i_attribution_summary_v1.json)与第 6 节的规范汇总。
 
-令 `P` 为 violation predicate，`Q` 为某个 defect 存在。本文采用 `P => Q`：`P` 的 sound violation 足以支持 `Q`，但 `P` 为真并不证明 `Q` 不存在，更不等于 `P <=> Q`。因此，已有低层结构或拓扑事实能够 soundly 证伪问题时，方法不强行升级到 trajectory simulation 或 BMC。
+| 成分 | 本文方法 | 基线 | 边界 |
+| --- | ---: | ---: | --- |
+| I 报告 | 291/1271 | 95/512 | 报告级 |
+| D0 | 120 | 85 | 来源事实成立但无仍然成立的被违反义务 |
+| 普通 A0 / 误报 | 53 | 10 | 普通无效报告 |
+| 本文方法独有 NADC | 118 | N/A | 基线无同构分类 |
+| 本文方法 NADC 比率 | 118/1271 = 9.28% | N/A | 仅本文方法侧描述 |
+| 报告精确率 | 980/1271 = 77.10% | 417/512 = 81.45% | `(K 报告 + N 报告) / 全部报告` |
 
-高级谓词使用较少至少有三类原因：已有 sound violation 已闭合；当前用例没有对应义务；当前 capability、typed input 或 runtime observation 不支持该 execution。未使用或 unsupported predicate 不能被统一归因于 `P => Q`，也不表示问题不存在。对后者，正确行为是保留 source-grounded finding 并 fallback 到 W1，必要时 W0。
+**数据直接支持的结论。** 本文方法侧 `291 = 120 + 53 + 118`，两侧报告精确率的差异为 `-4.34 pp`。这两项是在同一冻结评测协议下同时观察到的结果位置。
 
-### 7.5 N 的两侧构成
+**候选解释与限制。** NADC 是本文方法侧附加层，其中 `110/118` 标记为方法拥有机制、`8/118` 为归因不确定；它不能补写为基线的零值，也不能完整解释跨侧差异，更不能把全部 NADC 称为转换/降级错误。没有消融时，覆盖率与无效输出负担之间也只能并列报告，不能写成组件因果或必然交换关系。
 
-N 的 raw-to-group 结果表明，ours 的 231 条 N reports 被保守归并为 121 个 pair-local group，而 baseline 的 105 条 N reports 对应 98 个 group。ours 的压缩率较高，说明相同 pair 中存在更多跨 round 重复地报告同一共同义务/根因的情况；baseline 的 92 个 singleton group 说明当前证据不足以把其报告合并。这个差异可能同时受到台账不完整、报告粒度、候选冗余、方法能力和人工审核构成的影响。
+### 7.3 命中项 W 与谓词使用情况
 
-由于不存在 cross-side entity mapping，不能把一侧 N 的相似表述称为另一侧的相同 defect，也不能据此声称某侧“发现更多真实缺陷”。同样，N 的多少不能直接推导 coverage 高低：必须先看 K 漏归、I 误归和 group 规则是否一致。N group 只用于保守地说明已记录的 novel-report 构成；其审计入口在第 6.4 节给出。
+来源：[本文方法汇总](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/summary_v4.json) `#/metrics/w_on_hits,predicate_usage` 与[基线汇总](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/recomputed_summary_v3.json) `#/metrics/hit_max_witness,predicate_usage`。
 
-## 8. 学术口径、可写 claim 与限制
+| 指标 | 本文方法 | 基线 | 分母/含义 |
+| --- | ---: | ---: | --- |
+| 完全命中项最高 W2 | 197/310 = 63.55% | 0/227 = 0% | 各自完全命中单元 |
+| 完全命中项最高 W1 | 113/310 = 36.45% | 227/227 = 100% | 各自完全命中单元 |
+| 完全命中项最高 W0 | 0/310 | 0/227 | 各自完全命中单元 |
+| 产生终态回执的不同谓词标识 | 12/19 | N/A | 本文方法不同终态标识 |
+| 绑定到报告的不同谓词标识 | 8/19 | N/A | 本文方法不同绑定标识 |
+
+**数据直接支持的结论。** `197/310` 本文方法完全命中单元的最高证据等级为 W2。`12/19` 与 `8/19` 分别是不同标识的终态回执与最终绑定观察；基线没有同构回执/绑定模式，故为 N/A。
+
+**候选解释与限制。** 这些不同标识数不是缺陷覆盖率、命中数、W2 数或贡献率。令 `V` 为已成立违反条件、`Q` 为缺陷主张，则 `V => Q`；义务性质 `P` 的终态 `false` 是支持 `V` 的证据，`P=true` 不推出 `not Q`。高级谓词使用较少的候选原因包括：已有较低层可靠违反证据已足以闭合、用例没有对应义务，以及类型化输入/能力/回执的边界。没有消融时，不能把其中任一解释写成已证实原因；不支持的谓词仍保留有来源支撑的问题并回退到 W1，必要时 W0。
+
+### 7.4 N：报告粒度与保守归并
+
+来源：[本文方法 N 组](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v4_current_reaudit/current_n_groups_v4.json)与[基线 N 组](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/manual_adjudication_v3_baseline_ni/baseline_n_groups_v3.json)；逐配对分布和代表组见第 6.4 节。
+
+| 一侧 | 原始 N 报告 | 实质问题组 | 报告 D2/D1 | 组 D2/D1 | 单例组 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 本文方法 | 231 | 121 | 38/231 / 193/231 | 21/121 / 100/121 | 52 |
+| 基线 | 105 | 98 | 50/105 / 55/105 | 48/98 / 50/98 | 92 |
+
+组大小分布为本文方法 `1:52, 2:31, 3:36, 4:1, 5:1`，基线 `1:92, 2:5, 3:1`。报告级与组级 D2/D1 的分母分别是原始 N 报告和 N 实质问题组，不能互换。
+
+**数据直接支持的结论。** 本文方法的报告到组压缩更明显，基线的 N 组更常为单例。两侧问题组都是同侧、同配对、允许跨轮的保守归并；N 报告数不等于独立缺陷数。
+
+**候选解释与限制。** 该形态反映已记录报告的粒度、重复和归并边界，可能受台账不完整、候选冗余、方法能力和人工审核构成影响。单例只表示现有证据不足以安全合并，不是已经证明的本体论独立缺陷；协议没有跨侧实体映射，跨侧 N 重合为 N/A，不能据相似文本主张任一侧发现了更多真实缺陷。
+
+## 8. 学术口径、可写结论与限制
 
 ### 8.1 引用如何支撑本文
 
 | 来源 | 本文采用的概念边界 |
 | --- | --- |
-| [IEEE Std 1044-2009](https://doi.org/10.1109/IEEESTD.2010.5399061) | defect/anomaly 的规格相对性；不逐字定义项目 D 档。 |
-| [Porter, Votta & Basili 1995](https://doi.org/10.1109/32.391380) | known fault、true fault 与 false positive 的报告级区分。 |
-| [Klees et al. 2018](https://doi.org/10.1145/3243734.3243804) | distinct bug 而非 raw crash/input 的最终单位。 |
-| [Okun, Delaitre & Black, NIST SP 500-297](https://doi.org/10.6028/NIST.SP.500-297) | relatedness 的 direct/indirect/unrelated 层次。 |
-| [Ahmed et al., MODELS 2025](https://doi.org/10.1109/MODELS67397.2025.00014) | same-root-cause equivalence 与人工确认的新真实 issue 的概念。 |
-| [Pearson et al., ICSE 2017](https://doi.org/10.1109/ICSE.2017.62) | fault-level evaluation 对报告粒度和定位粒度的依赖。 |
-| [Martinez et al., EMSE 2017](https://doi.org/10.1007/s10664-016-9470-4) | repair/semantic equivalence 只能作为归并的辅助边界。 |
+| [IEEE Std 1044-2009](https://doi.org/10.1109/IEEESTD.2010.5399061) | 缺陷/异常的规格相对性；不逐字定义项目 D 档。 |
+| [Porter, Votta & Basili 1995](https://doi.org/10.1109/32.391380) | 已知故障、真实故障与误报的报告级区分。 |
+| [Klees et al. 2018](https://doi.org/10.1145/3243734.3243804) | 独立缺陷而非原始崩溃/输入的最终单位。 |
+| [Okun, Delaitre & Black, NIST SP 500-297](https://doi.org/10.6028/NIST.SP.500-297) | 关联性的直接/间接/不相关层次。 |
+| [Ahmed et al., MODELS 2025](https://doi.org/10.1109/MODELS67397.2025.00014) | 同根因等价与人工确认的新真实问题的概念。 |
+| [Pearson et al., ICSE 2017](https://doi.org/10.1109/ICSE.2017.62) | 故障级评测对报告粒度和定位粒度的依赖。 |
+| [Martinez et al., EMSE 2017](https://doi.org/10.1007/s10664-016-9470-4) | 修复/语义等价只能作为归并的辅助边界。 |
 
-本文的 L/W/D、relation、K/N/I 和 N grouping 是以这些概念为依据的 operationalization。19 个谓词的来源由 [predicate provenance](../paper_stm_issue_discover/related_work/provenance/predicate_provenance.md) 逐项记录，但不把项目内部调研夸大为已注册系统综述，也不把文献当作每条 finding 的运行时裁定者。
+本文的 L/W/D、关系裁定、K/N/I 和 N 归并是以这些概念为依据的操作化定义。19 个谓词的来源由[谓词来源记录](../paper_stm_issue_discover/related_work/provenance/predicate_provenance.md)逐项记录，但不把项目内部调研夸大为已注册系统综述，也不把文献当作每条问题报告的运行时裁定者。
 
-### 8.2 可以写的 claim
+### 8.2 可以写的结论
 
-- 在冻结输入和协议下，ours 的 FULL 与 L2 discovery coverage 高于 baseline。
-- ours 以 `4.34 pp` 的 report-level precision 差异换取更高 discovery coverage。
-- ours 的 FULL hits 中，`197/310` 的最高 W 为 W2。
-- ours 的 19-predicate registry 中，12 个 distinct IDs 产生 terminal receipt，8 个进入 report-bound finding；这两个指标有明确边界。
-- source-first、人工裁定的 evaluation 保存 reason/basis、source refs、hash 与审计链，并由程序做确定性闭合。
+- 在冻结输入和协议下，本文方法的完全命中与 L2 发现覆盖率高于基线。
+- 在冻结协议下，本文方法更高的发现覆盖率与 `4.34 pp` 较低的报告级精确率同时出现；当前没有组件消融来证明二者之间的单独因果机制。
+- 本文方法的完全命中中，`197/310` 的最高 W 为 W2。
+- 本文方法的 19 个谓词登记表中，12 个不同标识产生终态回执，8 个进入报告绑定问题；这两个指标有明确边界。
+- 来源优先、人工裁定的评测保存理由/依据、来源引用、哈希与审计链，并由程序做确定性闭合。
 
-### 8.3 不能写的 claim
+### 8.3 不应写出的结论
 
-- ours 在 precision、coverage、成本和所有维度都更好；
-- NADC 的全部差异由 lowering/compiler 造成；
-- baseline 没有 representation/evidence cost；
-- `12/19` 或 `8/19` 等于缺陷覆盖率、W2 数或 hit 数；
-- I cluster 是独立缺陷数，或 145 条 ledger 是绝对真值；
-- 内部 reviewer/subagent 审阅构成新的 inter-rater 研究；
-- 当前结果证明不存在问题、repair 已完成，或可外推到未声明的模型语义。
+- 本文方法在精确率、覆盖率、成本和所有维度都更好；
+- NADC 的全部差异由降级/编译器造成；
+- 基线没有表示/证据成本；
+- `12/19` 或 `8/19` 等于缺陷覆盖率、W2 数或命中数；
+- I 簇是独立缺陷数，或 145 条台账是绝对真值；
+- 内部审阅者/子代理审阅构成新的人工一致性研究；
+- 当前结果证明不存在问题、修复已完成，或可外推到未声明的模型语义。
 
 ### 8.4 限制
 
-145 条台账不是完整 defect universe。ours/baseline 的人工审核构成不完全对称；N grouping 是 pair-local、conservative operationalization；I cluster 不是 defect 数；baseline 没有 predicate/NADC 同构 schema；N 的跨臂 entity overlap 目前不可观察。结论只适用于声明的模型范围、ledger、冻结 method 和 FCSTM soundness fragment。历史 v46、v27 和旧 X1v2 只保留为 archive/provenance，不进入本文件 headline。
+145 条台账不是完整缺陷空间。本文方法/基线的人工审核构成不完全对称；N 归并是配对内、保守的操作化定义；I 簇不是缺陷数；基线没有谓词/NADC 同构模式；N 的跨侧实体重合目前不可观察。结论只适用于声明的模型范围、台账、冻结方法和 FCSTM 可靠性片段。历史 v46、v27 和旧 X1v2 只保留为归档/来源，不进入本文件结论。
 
 ## 9. 结论
 
-Paper1 研究的是在给定自然语言需求和作者状态机后，发现并审计不一致的问题。冻结评测显示，ours 在共同的 435 个 expected-round units 上取得更高 FULL discovery coverage，尤其在 117 个 L2 expected-round units 上更高；代价是 report-level precision 低 `4.34 pp`。predicate backend 在适用时把 source-grounded finding 提升为 W2，但不是所有 issue 的准入门。
+Paper1 研究的是在给定自然语言需求和作者状态机后，发现并审计不一致的问题。冻结评测显示，本文方法在共同的 435 个预期问题轮次单元上取得更高的完全命中发现覆盖率，尤其在 117 个 L2 预期问题轮次单元上更高；报告级精确率低 `4.34 pp`。谓词后端在适用时把有来源支撑的问题提升为 W2，但不是所有问题的准入门。
 
-后续工作是扩展可执行片段、改善 typed input 和 runtime evidence closure、在不改变 source-first 归因边界的前提下减少 invalid-output burden，并对尚不可观察的跨臂 N entity 关系建立独立、人工可审计的比较材料。repair 仍是后续研究方向，不是本篇实验结论。
+后续工作是扩展可执行片段、改善类型化输入和运行时证据闭合、在不改变来源优先归因边界的前提下减少无效输出负担，并对尚不可观察的跨侧 N 实体关系建立独立、人工可审计的比较材料。修复仍是后续研究方向，不是本篇实验结论。
 
-## Appendix A. 离线复算、发布面与交接入口
+## 附录 A. 离线复算、发布面与交接入口
 
-本 talk 的实验事实回链到 [final-results archive README](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/README.md)。该归档入口链接 ours、baseline、fair comparison、正式报告、canonical JSON/TSV、[archive manifest](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/archive_manifest.json) 和 [publication manifest](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/publication_manifest.json)。字段、hash、闭合规则和 provider-free 复算入口见 [SCHEMA](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/SCHEMA.md)。
+本 talk 的实验事实回链到[最终结果归档说明](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/README.md)。该归档入口链接本文方法、基线、公平比较、正式报告、规范 JSON/TSV、[归档清单](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/archive_manifest.json)和[发布清单](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/publication_manifest.json)。字段、哈希、闭合规则和不调用提供方的复算入口见[模式说明](../paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/SCHEMA.md)。
 
-本次文档重构没有运行 provider、method、人工裁定、15x1、54x3、162-cell 或 replay；冻结结论保持 `provider_calls=0`、`billable_calls=0`、`method_reruns=0`、`judge_reruns=0` 和 `NO_RERUN`。动态 PR、branch、commit、required check 与 mergeability 状态以 GitHub PR 为事实源，不把它们复制为本文档中的第二份流程台账。
+动态 PR、分支、提交、必需检查与可合并状态以 GitHub PR 为事实源，不把它们复制为本文档中的第二份流程台账。

@@ -46,6 +46,10 @@ predicate binding/receipt schema，因此 predicate usage 为 N/A，不是零。
 
 本次 provider-free evaluation-only 归因见 [conversion attribution v1 overlay](./derived/conversion_attribution_v1/README.md)。它覆盖全部 291 条 current I（其中 118 条 NADC），确认 110 条方法内部机制、8 条 indeterminate，严格 confirmed lowering-only 为 0；不修改 canonical decisions、主 precision 或 headline。重跑 gate 的唯一结论为 `NO_RERUN`。
 
+### Method-cost provenance
+
+[final-talk cost audit v1](./derived/final_talk_cost_section7_v1/README.md) 是两侧 method generation provider cost 的当前入口。它只读取同一 `54 x 3 = 162` cell scope 中保存的 usage receipt，排除 evaluator、人工审核、CPU、存储和开发成本。ours 的完整 receipt closure 为 `$7.18277320`；baseline 只有 `$0.22523328` 的 known recorded subtotal，因为一条 billable schema-error attempt 没有保存 usage。故 baseline `method_cost_eligible=false`，完整成本和精确成本倍率均不发布。`raw/x1v2_baseline/method/corrected_cost_audit.json` 中的 `$6.77501040` 已标记为旧 current/evidence-discovery run 的 misbound historical provenance，不能作为 baseline 成本。
+
 结构化入口如下：
 
 - current/v60：[v4 decisions](./derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.json)、[v4 TSV](./derived/manual_adjudication_v4_current_reaudit/current_report_decisions_v4.tsv)、[v4 summary](./derived/manual_adjudication_v4_current_reaudit/summary_v4.json)。
@@ -64,8 +68,7 @@ provider-free recompute、校验 manifest hash，并使报告、README、schema 
 current/v60 评测协议为 `issue-189-195-manual-evidence-v2`；baseline 非 K v3 使用
 `issue-189-195-baseline-ni-v3`。两者都先核事实，再由人工判 D/A，再逐条人工判
 `FULL_MATCH/PARTIAL_MATCH/NO_MATCH`，并由人工确认 validity 与 K/N/I；机器只对已完成
-裁定做确定性闭合和复算。`D0/A0 -> I`；
-`D2/D1 + positive relation -> K`；`D2/D1 + all NO_MATCH -> N`。A0 只允许
+裁定做确定性闭合和复算。`D0/A0 -> I`；人工确认有效的 `D2/D1 + positive relation -> K`；人工确认有效的 `D2/D1 + all NO_MATCH -> N`。D2/D1 本身仍可能在有效性复核后进入 I。A0 只允许
 `FALSE_POSITIVE` 与 current-only `NOT_A_DEFECT_CLAIM`。W0/W1/W2 是独立证据轴，W2
 必须有原始 executable object、typed input、精确 artifact hash、terminal true/false 和
 receipt；baseline 没有同构 predicate receipt，predicate usage 显式为 `not_applicable`，

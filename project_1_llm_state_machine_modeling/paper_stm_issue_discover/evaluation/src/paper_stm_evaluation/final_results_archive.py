@@ -516,6 +516,7 @@ def _publication_file_manifest(root: Path) -> list[dict[str, Any]]:
         "derived/fair_comparison_v4/",
         "derived/manual_adjudication_v4_current_reaudit/",
         "derived/manual_adjudication_v3_baseline_ni/",
+        "derived/final_talk_cost_section7_v1/",
     )
     excluded_prefixes = (
         "derived/manual_adjudication_v3_baseline_ni/proposals/",
@@ -664,7 +665,13 @@ def _summary(paths: dict[str, Any]) -> dict[str, Any]:
     if len(baseline_records) != 162:
         raise ValueError(f"expected 162 archived X1v2 records, found {len(baseline_records)}")
     baseline_record = _load(baseline_records[0])
-    baseline_cost = _load(baseline / "method" / "corrected_cost_audit.json")
+    cost_audit_path = archive / "derived" / "final_talk_cost_section7_v1" / "cost_summary_v1.json"
+    if not cost_audit_path.is_file():
+        raise ValueError("final-talk cost audit v1 is required; the legacy baseline cost audit is misbound")
+    cost_audit = _load(cost_audit_path)
+    cost_sides = cost_audit.get("sides")
+    if not isinstance(cost_sides, dict) or not isinstance(cost_sides.get("ours"), dict) or not isinstance(cost_sides.get("baseline"), dict):
+        raise ValueError("final-talk cost audit v1 has no complete side payload")
     baseline_witness_path = archive / "derived" / "x1v2_witness_level_audit.json"
     baseline_hit_witness_path = archive / "derived" / "x1v2_full_hit_max_witness_audit.json"
     baseline_witness = (
@@ -695,7 +702,7 @@ def _summary(paths: dict[str, Any]) -> dict[str, Any]:
                     current_evaluation.get("predicate_feasibility", {}),
                     current_evaluation.get("planned_predicates", []),
                 ),
-                "cost": {"method_usd": current_summary.get("method_cost_usd"), "method_cost_eligible": current_summary.get("metrics", {}).get("cost", {}).get("eligible"), "judge_recorded_usd": current_cost.get("recorded_cost_usd"), "judge_cost_eligible": current_cost.get("cost_eligible"), "judge_unpriced_billable_call_count": current_cost.get("unpriced_billable_call_count"), "judge_logical_call_count": current_cost.get("logical_call_count")},
+                "cost": {"method_usd": cost_sides["ours"].get("complete_method_cost_usd"), "method_cost_eligible": cost_sides["ours"].get("method_cost_eligible"), "method_cost_audit": "derived/final_talk_cost_section7_v1/cost_summary_v1.json", "judge_recorded_usd": current_cost.get("recorded_cost_usd"), "judge_cost_eligible": current_cost.get("cost_eligible"), "judge_unpriced_billable_call_count": current_cost.get("unpriced_billable_call_count"), "judge_logical_call_count": current_cost.get("logical_call_count")},
             },
             "x1v2_baseline": {
                 "method": {"record_count": len(baseline_records), "profile": baseline_record.get("profile"), "configured_model": baseline_record.get("configured_model"), "source_commit": None, "reason": "The legacy X1v2 method record schema has 162 per-cell record.json files and no top-level source-commit summary."},
@@ -703,7 +710,7 @@ def _summary(paths: dict[str, Any]) -> dict[str, Any]:
                 "metrics": baseline_metrics,
                 "witness": baseline_witness,
                 "predicate_usage": {"status": "not_applicable", "reason": "X1v2 has no isomorphic 19-predicate registry or terminal PredicateExecutionReceipt schema."},
-                "cost": {"method_usd": baseline_cost.get("corrected_method_cost_usd"), "method_cost_eligible": baseline_cost.get("cost_eligible"), "judge_recorded_usd": baseline_composite.get("total_incurred_cost_usd"), "judge_cost_eligible": True},
+                "cost": {"method_usd": None, "method_cost_eligible": False, "known_recorded_subtotal_usd": cost_sides["baseline"].get("known_recorded_subtotal_usd"), "complete_cost_expression": cost_sides["baseline"].get("complete_cost_expression"), "missing_usage": cost_sides["baseline"].get("missing_usage"), "method_cost_audit": "derived/final_talk_cost_section7_v1/cost_summary_v1.json", "judge_recorded_usd": baseline_composite.get("total_incurred_cost_usd"), "judge_cost_eligible": True},
             },
         },
     }
@@ -715,7 +722,7 @@ def _write_manifests(paths: dict[str, Any], summary: dict[str, Any], source_args
     archive = paths["archive"]
     source_map = {
         "v60_current": {"method_root": str(source_args.current_method_root.resolve()), "judge_root": str(source_args.current_judge_root.resolve())},
-        "x1v2_baseline": {"method_root": str(source_args.baseline_method_root.resolve()), "judge_composite": str(source_args.baseline_judge_composite.resolve()), "cost_audit": str(source_args.baseline_cost_audit.resolve())},
+        "x1v2_baseline": {"method_root": str(source_args.baseline_method_root.resolve()), "judge_composite": str(source_args.baseline_judge_composite.resolve()), "historical_misbound_cost_audit": str(source_args.baseline_historical_misbound_cost_audit.resolve()), "provider_free_method_cost_audit": str(source_args.provider_free_method_cost_audit.resolve())},
     }
     for side, root in (("v60_current", paths["current"]), ("x1v2_baseline", paths["baseline"])):
         _write(root / "archive_manifest.json", {
@@ -761,7 +768,8 @@ def recompute(args: argparse.Namespace) -> int:
         current_judge_root=Path(str(_load(paths["current"] / "archive_manifest.json")["source"]["judge_root"])),
         baseline_method_root=Path(str(_load(paths["baseline"] / "archive_manifest.json")["source"]["method_root"])),
         baseline_judge_composite=Path(str(_load(paths["baseline"] / "archive_manifest.json")["source"]["judge_composite"])),
-        baseline_cost_audit=Path(str(_load(paths["baseline"] / "archive_manifest.json")["source"]["cost_audit"])),
+        baseline_historical_misbound_cost_audit=Path(str(_load(paths["baseline"] / "archive_manifest.json")["source"].get("historical_misbound_cost_audit") or _load(paths["baseline"] / "archive_manifest.json")["source"]["cost_audit"])),
+        provider_free_method_cost_audit=archive / "derived" / "final_talk_cost_section7_v1" / "method_cost_audit_v1.json",
     )
     _write_manifests(paths, summary, source_args)
     return 0
@@ -783,16 +791,22 @@ def finalize(args: argparse.Namespace) -> int:
                 target = f"raw/{side}/method"
             elif source_key in {"judge_root", "judge_composite"}:
                 target = f"raw/{side}/judge"
-            elif source_key == "cost_audit":
+            elif source_key in {"cost_audit", "historical_misbound_cost_audit"}:
                 target = f"raw/{side}/method/corrected_cost_audit.json"
+            elif source_key == "provider_free_method_cost_audit":
+                target = "derived/final_talk_cost_section7_v1/method_cost_audit_v1.json"
             else:
                 continue
-            mappings.append({
+            mapping = {
                 "side": side,
                 "source_key": source_key,
                 "source_original_path": source_path,
                 "archive_relative_path": target,
-            })
+            }
+            if source_key in {"cost_audit", "historical_misbound_cost_audit"}:
+                mapping["status"] = "historical_misbound_current_cost_audit_not_baseline_authority"
+                mapping["replacement"] = "derived/final_talk_cost_section7_v1/method_cost_audit_v1.json"
+            mappings.append(mapping)
     _write(archive / "provenance_path_mapping.json", {
         "schema": PROVENANCE_SCHEMA,
         "reason": "Raw evidence retains original absolute provenance paths; this map supplies stable archive-relative roots for offline review.",
