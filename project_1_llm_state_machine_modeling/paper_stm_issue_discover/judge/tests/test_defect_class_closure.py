@@ -142,3 +142,33 @@ def test_relation_certificate_hash_is_backend_owned_and_survives_a_truncated_ech
         payload = {"schema_version": "semantic-judge.relation-batch-response.v1", "batch_id": "RB-test", "item0": variant}
         rows = relation_batch_responses(relation_model.model_validate(payload), relation_batch)
         assert rows[0].validity_certificate_hash == certificate.certificate_hash
+
+
+def test_bare_singleton_relation_item_is_wrapped_into_item0(frozen_batch) -> None:
+    """A one-report batch answered in the atomic item shape is normalized instead of dead-ending."""
+
+    judge_input, batch_input, model = frozen_batch
+    response = model.model_validate(_payload(batch_input, "D2"))
+    certificate = materialize_validity_certificate(
+        validity_batch_responses(response, batch_input)[0], validity_item_input(batch_input, 0)
+    )
+    relation_batch = build_relation_batch_input(judge_input, (certificate,), batch_id="RB-bare")
+    relation_model = build_exact_relation_batch_model(relation_batch)
+    bare = _relation_envelope(relation_item_input(relation_batch, 0), all_positive=False)
+    rows = relation_batch_responses(relation_model.model_validate(bare), relation_batch)
+    assert rows[0].report_id == certificate.report_id
+    wrapped = {"schema_version": "semantic-judge.relation-batch-response.v1", "batch_id": "RB-bare", "item0": bare}
+    assert relation_batch_responses(relation_model.model_validate(wrapped), relation_batch)[0].report_id == certificate.report_id
+
+
+def test_bare_singleton_validity_item_is_wrapped_into_item0(frozen_batch) -> None:
+    judge_input, _two_report_batch, _model = frozen_batch
+    report_ids = (judge_input.reports[0].report_id,)
+    single = build_validity_batch_input(judge_input, report_ids, batch_id="VB-single")
+    single_model = build_exact_validity_batch_model(single)
+    bare = _validity_envelope(validity_item_input(single, 0))
+    rows = validity_batch_responses(single_model.model_validate(bare), single)
+    assert rows[0].report_id == report_ids[0]
+    two_model = build_exact_validity_batch_model(_two_report_batch)
+    with pytest.raises(ValueError):
+        two_model.model_validate(bare)

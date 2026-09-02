@@ -605,6 +605,35 @@ def build_exact_validity_model(
     return cast(type[ValidityResponse], model)
 
 
+def _wrap_bare_singleton_item(
+    payload: object,
+    *,
+    batch_id: str,
+    batch_schema_version: str,
+    report_count: int,
+) -> object:
+    """Wrap a bare single-item response into ``item0`` for a one-report batch.
+
+    Providers sometimes answer a one-report batch in the atomic item shape (the
+    item's fields at top level). The batch identity is fixed by the input, so
+    wrapping is a deterministic normalization, not a judgment; multi-report
+    batches and payloads that already carry ``item0`` are returned unchanged.
+    """
+
+    if report_count != 1 or not isinstance(payload, dict) or "item0" in payload:
+        return payload
+    item = {
+        key: value
+        for key, value in payload.items()
+        if key not in {"batch_id", "schema_version"}
+    }
+    if "report_id" not in item:
+        return payload
+    if "schema_version" in payload and isinstance(payload["schema_version"], str):
+        item["schema_version"] = payload["schema_version"]
+    return {"schema_version": batch_schema_version, "batch_id": batch_id, "item0": item}
+
+
 def build_exact_validity_batch_model(
     batch_input: ValidityBatchJudgeInput,
 ) -> type[ValidityBatchResponse]:
@@ -639,6 +668,16 @@ def build_exact_validity_batch_model(
 
     class ExactValidityBatchResponseBase(ValidityBatchResponse):
         """Exact expected-isolated response over one bounded report batch."""
+
+        @model_validator(mode="before")
+        @classmethod
+        def wrap_bare_singleton(cls, payload: object) -> object:
+            return _wrap_bare_singleton_item(
+                payload,
+                batch_id=batch_input.batch_id,
+                batch_schema_version="semantic-judge.validity-batch-response.v1",
+                report_count=len(batch_input.reports),
+            )
 
     model = create_model(
         f"ExactValidityBatchResponse_{suffix}",
@@ -1041,6 +1080,16 @@ def build_exact_relation_batch_model(
 
     class ExactRelationBatchResponseBase(RelationBatchResponse):
         """Exact response over one frozen-valid report-by-expected matrix."""
+
+        @model_validator(mode="before")
+        @classmethod
+        def wrap_bare_singleton(cls, payload: object) -> object:
+            return _wrap_bare_singleton_item(
+                payload,
+                batch_id=batch_input.batch_id,
+                batch_schema_version="semantic-judge.relation-batch-response.v1",
+                report_count=len(batch_input.reports),
+            )
 
     model = create_model(
         f"ExactRelationBatchResponse_{suffix}",

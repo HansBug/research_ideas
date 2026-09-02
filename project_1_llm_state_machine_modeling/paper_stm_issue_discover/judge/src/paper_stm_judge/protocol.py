@@ -8,9 +8,9 @@ from pathlib import Path
 
 PROTOCOL_URL = "https://github.com/HansBug/research_ideas/issues/195"
 PROTOCOL_SHA256 = "d774d9bd3e4c4fe04735ed1d4ec064be197cfadcd52e21c8226e37175b29b210"
-PROTOCOL_VERSION = "github-issue-195.d774d9bd3e4c.issue-189-clarification.v3.6"
-JUDGE_ALGORITHM_VERSION = "semantic-judge.two-stage.v3.6"
-PROMPT_VERSION = "semantic-judge.two-stage-prompt.v10"
+PROTOCOL_VERSION = "github-issue-195.d774d9bd3e4c.issue-189-clarification.v3.7"
+JUDGE_ALGORITHM_VERSION = "semantic-judge.two-stage.v3.7"
+PROMPT_VERSION = "semantic-judge.two-stage-prompt.v11"
 ARTIFACT_BUILDER_VERSION = "paper1.semantic-judge.artifact-closure.v4"
 ADAPTER_VERSION = "paper1.semantic-judge.arm-neutral-adapter.v2"
 METRICS_VERSION = "paper1.semantic-judge.metrics.v1"
@@ -45,11 +45,11 @@ VALIDITY_ARBITRATION_INSTRUCTION = """Resolve every listed validity-only disagre
 RELATION_SYSTEM_PROMPT = """You are an anonymous semantic-relation Judge for state-machine issue discovery. The report's artifact validity has already been frozen by an expected-isolated stage. You may not reopen, weaken, strengthen, or rewrite that validity certificate. Judge only the relation between this valid report and every supplied expected issue.
 
 For each exact expected position, output one relation:
-- FULL_MATCH for the same defect instance, root cause, violated obligation, direct attributable symptom, or independently actionable core facet whose repair eliminates or materially mitigates the expected core violation.
-- PARTIAL_MATCH for a real artifact-supported local or indirect relationship that is insufficient for unique attribution. PARTIAL contributes support only, never a hit or false positive.
-- NO_MATCH for a different issue, source, property, direction, repair obligation, or merely shared terminology or nearby model context.
+- FULL_MATCH for the same defect instance: the same author-source locus (element, transition, owner, or region) and the same violated obligation, allowing different wording, abstraction level, or evidence form; or one independently actionable core facet that the expected issue's own text states, at the locus the expected text names.
+- PARTIAL_MATCH for a real artifact-supported relationship to the same obligation family at the same locus where the expected instance is not identical (the same element with a narrower or broader condition, the same transition with a different attribute, one of several coequal facets the expected text states). PARTIAL contributes support only, never a hit or false positive.
+- NO_MATCH for a different element, transition, hierarchy level, carrier, direction, source, property, or repair obligation, even when repairing the report would incidentally mitigate the expected violation; shared terminology, a shared owner or nearby model context, or the same root-cause phrase applied at a different locus is NO_MATCH.
 
-Read each expected issue's summary and complete detail together. Decompose a composite expected issue into every explicitly stated independently actionable causal facet. A valid report FULL-matches when its own bounded claim identifies one such core facet and its repair materially mitigates the expected violation; it need not also identify every coequal facet in the same expected issue. Do not downgrade that exact actionable-facet relation to PARTIAL merely because another expected facet has a different carrier or representation. PARTIAL is reserved for genuine but non-unique local or indirect overlap.
+Read each expected issue's summary and complete detail together. Decompose a composite expected issue into every explicitly stated independently actionable causal facet. A valid report FULL-matches when its own bounded claim identifies one such core facet at the locus the expected text names; it need not also identify every coequal facet in the same expected issue. Mitigation alone is not a match: a report whose repair would help the expected violation while naming a different element, level, or obligation is NO_MATCH. Do not downgrade that exact actionable-facet relation to PARTIAL merely because another expected facet has a different carrier or representation. PARTIAL is reserved for genuine but non-unique local or indirect overlap.
 
 Conversely, never expand the report to a different defect merely because the common artifacts independently establish it. Relation scope is bounded by the report's claim and complete causal fields frozen in the validity certificate. An absence asserted for one carrier, owner, source scope, or repair obligation does not assert a different absent entry, transition, effect, region, or owner-level carrier. Statements that the observed model contains "only" some carriers remain bounded by the technical claim they support; unmentioned obligations at another hierarchy level are not report findings. A report may FULL-match multiple expected issues only when each mapping is independently stated by the report and has its own expected-specific reason and basis. A missing operational transition may be a direct actionable facet of a broader reachability, no-progress, or pure-stub issue when that same transition absence is explicit in the expected mechanism and the repair materially mitigates it; do not transfer it to a distinct entry, ownership, region, or narrow-edge obligation.
 
