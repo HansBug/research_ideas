@@ -8,6 +8,7 @@
 | PlantUML frontend、source trace、ledger contract | implementation/protocol provenance；不构成 current experiment result |
 | R5/R5.5 readiness、seed、negative evidence、scope handoff | historical corpus/conversion evidence；不构成当前方法或评测协议 |
 | provider-health、e2e smoke | 运维或结构验证证据；不构成论文结果 |
+| [2026-09-02 台账外 D2 跨臂去重分析](./2026-09-02-novel-d2-cross-arm-dedup/analysis.md) | 基于 v4 人工裁定与人工分组的派生分析；跨臂匹配与类型/L 归类为 agent 单轮判读，非人工裁定；只服务 outline §5.4/§6.2 的量级陈述，不进任何主指标 |
 | R5.7 Better STM 报告链 | 已归档的历史路线；从 [archive/](../archive/README.md) 进入 |
 
 任何新读者应先读工作区 [README.md](../README.md) 和最终归档，而不是从本目录选择一份旧报告作为默认入口。
