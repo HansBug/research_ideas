@@ -10,6 +10,18 @@
 
 检索使用 Crossref、OpenAlex、Semantic Scholar、arXiv、DBLP、出版方页、作者/机构库和已收全文，组合查询包括：`("natural language" OR requirements) AND (state machine OR statechart OR STM) AND (issue OR defect OR consistency OR correctness)`、`"behavioral model" requirements issue LLM`、`state machine completion Given When Then`、`state machine property synthesis natural language`。2026-09-02 的 Crossref/DOI 元数据和 2026-07--08 arXiv 查询用于发现候选；标题、摘要或聚合页只用于发现，未被当作细粒度事实来源。后向追引从 MCeT、GWT、Sultan、Estivill、FRET 和 LiSSA 开始，前向追引通过 DOI/OpenAlex locations 检查。去重键为 DOI、arXiv ID、标题和作者年份；纳入标准是与四字段或 C1/C2 组件有实质重叠，排除标准是纯生成、repair、通用代码/协议分析且不处理 STM 输入输出合同。全量 candidate disposition 见下表。
 
+为使解盲复核可以逐 candidate 重放，稳定 ID、发现阶段和 query family 另行列出。下列 query family 使用上段的逐字查询；引用追引项标为 `backward/forward snowballing`，并保留 DOI 或 arXiv ID。candidate 的规范题名只用于显示，不作为去重键。
+
+| 稳定 candidate ID | 发现阶段 | query/citation provenance | 全文与处置落点 |
+| --- | --- | --- | --- |
+| `arXiv:2604.00275` | `fresh_search` | `"behavioral model" requirements issue LLM`；arXiv ID 作为去重键 | `neighborhood/cards/structure-event-driven-stm-frameworks.md`；全文，预印本，生成任务，rejected as direct task。 |
+| `doi:10.1109/ETFA65518.2025` | `fresh_search` | `("natural language" OR requirements) AND (state machine OR statechart OR STM) AND (issue OR defect OR consistency OR correctness)`；DOI 作为去重键 | `neighborhood/cards/etfa2025-stpa-fsm-refinement.md`；accepted author manuscript 与 ETFA 记录，修复既有 FSM，rejected as direct task。 |
+| `arXiv:2607.16708` | `fresh_search` | `"behavioral model" requirements issue LLM`；arXiv ID 作为去重键 | RADIANT 的 arXiv 全文与当前矩阵第 26 行；预印本，生成/验证/修复链，rejected as direct task。 |
+| `arXiv:2608.14956` | `fresh_search` | `state machine property synthesis natural language`；arXiv ID 作为去重键 | PDEVS/statechart 的 arXiv 全文与当前矩阵第 27 行；预印本，生成 plausible facts 和 statechart，rejected as direct task。 |
+| `arXiv:2608.08038` | `fresh_search` | `"behavioral model" requirements issue LLM`；arXiv ID 作为去重键 | `neighborhood/cards/stateful-multiagent-crossview-drift.md`；全文，预印本，跨视图生成/对齐，rejected as direct task。 |
+| `arXiv:2607.14162` | `fresh_search` | `state machine completion Given When Then`；arXiv ID 作为去重键 | NL-to-SysMLv2 的 arXiv 全文与当前矩阵第 29 行；预印本，一致性/修复输出，rejected as direct task。 |
+| `arXiv:2608.24498` | `fresh_search` | `("natural language" OR requirements) AND (state machine OR statechart OR STM) AND (issue OR defect OR consistency OR correctness)`；arXiv ID 作为去重键 | SeriCrypt 的 arXiv 全文与当前矩阵第 30 行；预印本，协议规范/消息序列，rejected as direct task。 |
+
 | candidate ID | 发现阶段 | 版本与全文状态 | 四字段判定 | 层级与 disposition |
 | --- | --- | --- | --- | --- |
 | MCeT | existing/fulltext | MODELS 2025 + arXiv v1，全文 | 是 / 否（sequence diagram）/ 是 / 否（无 STM） | 直接问题邻项；不推翻 scoped STM claim，排除“首次行为图 NL evaluation”泛称。 |
