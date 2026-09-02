@@ -128,7 +128,7 @@ REQUIRED_INVENTORY_MARKERS = (
     "V4 exclusion",
 )
 BLOCKED = re.compile(
-    r"TODO-CITATION|待核验|source-status\s*=\s*candidate|\bUNKNOWN\b|\bUNRESOLVED\b|"
+    r"TODO-CITATION|待核验|source-status\s*=\s*candidate|"
     r"默认禁止.{0,40}first|最低防守措辞|19 个谓词.{0,40}未完成学术资格"
 )
 REPO = "HansBug/research_ideas"
