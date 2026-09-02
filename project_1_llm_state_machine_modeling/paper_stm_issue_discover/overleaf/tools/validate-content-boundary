@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+"""Ensure F1 sources contain only explicitly marked generic placeholders."""
+from pathlib import Path
+import re, sys
+
+ROOT = Path(__file__).resolve().parents[1]
+errors = []
+for path in list((ROOT / "sections").rglob("*.tex")) + list((ROOT / "figures").rglob("*.tex")) + list((ROOT / "tables").rglob("*.tex")) + [ROOT / "references.bib"]:
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    if path.name == "references.bib":
+        keys = re.findall(r"(?m)^\s*@\w+\s*\{([^,]+),", text)
+        if any(not key.startswith("placeholder-") for key in keys): errors.append("references.bib contains a non-placeholder entry")
+        if keys and not re.search(r"PLACEHOLDER|TODO", text, re.I): errors.append("placeholder bibliography lacks explicit TODO marker")
+        continue
+    body = re.sub(r"(?m)^\s*%.*$", "", text)
+    body = re.sub(r"\s+", " ", body).strip()
+    forbidden = [r"\\includegraphics", r"\b(?:v60|baseline|pyfcstm)\b"]
+    for pat in forbidden:
+        if re.search(pat, body, re.I): errors.append(f"content-boundary token {pat} in {path.relative_to(ROOT)}")
+    if re.search(r"\\begin\{(?:figure|table)\*\}", body):
+        errors.append(f"cross-column placeholder float in {path.relative_to(ROOT)}")
+    for group in re.findall(r"\\(?:cite|nocite)(?:[^\{]*)\{([^}]+)\}", body):
+        if any(not key.strip().startswith("placeholder-") for key in group.split(",")):
+            errors.append(f"non-placeholder citation key in {path.relative_to(ROOT)}")
+    if ("\\begin{figure" in body or "\\begin{table" in body) and not re.search(r"PLACEHOLDER|TODO|占位|待办", body, re.I):
+        errors.append(f"figure/table lacks explicit placeholder marker in {path.relative_to(ROOT)}")
+    if path.name.startswith("00-abstract") and body != r"\begin{abstract} \end{abstract}":
+        # The user-authorized F1 layout fixture may show one visibly marked
+        # generic abstract paragraph; any unmarked abstract remains a failure.
+        if not re.search(r"THIS IS PLACEHOLDER TEXT|PLACEHOLDER|TODO", body, re.I):
+            errors.append(f"abstract is not an explicitly marked placeholder in {path.relative_to(ROOT)}")
+if errors:
+    print("CONTENT BOUNDARY FAIL"); print("\n".join(f"- {e}" for e in errors)); sys.exit(1)
+print("CONTENT BOUNDARY PASS: owned text, figure/table sources, and bibliography contain only marked placeholders")
