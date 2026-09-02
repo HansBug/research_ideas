@@ -4,7 +4,7 @@
 
 `<free-form NL requirements, pre-existing source-attributed STM held fixed during analysis> -> localized requirement-relevant issue reports`
 
-直接任务候选的二值纳入字段只有四项：`free_form_nl_input`、`preexisting_fixed_stm_input`、`localized_requirement_relevant_issues_output`、`implemented_and_evaluated_on_stm_artifacts`。source attribution、native STM semantics 和 replay receipt 是比较字段，不能被用来把满足四字段的工作降到组件层。全文状态只指本轮可复核地取得并逐节阅读的版本；访问受阻不能被当作“无工作”的证据，也不能被本地摘录替代为外部全文证据。
+直接任务候选的二值纳入字段只有四项：`free_form_nl_input`、`pre_existing_fixed_stm_input`、`localized_requirement_relevant_issues`、`implemented_and_evaluated_on_stm`。这四个字段与 R1 盲搜 packet 的精确键名一致。source attribution、native STM semantics 和 replay receipt 是比较字段，不能被用来把满足四字段的工作降到组件层。全文状态只指本轮可复核地取得并逐节阅读的版本；访问受阻不能被当作“无工作”的证据，也不能被本地摘录替代为外部全文证据。
 
 ## 检索与处置记录
 
@@ -30,6 +30,21 @@
 | SeriCrypt | fresh_search/fulltext | arXiv:2608.24498，预印本，未同行评审 | protocol specification 到 CDSL/message sequence | 方法成分先例；对象不是 STM。 |
 
 IET 的 Crossref record 给出 VOR PDF 和 full XML text-mining URLs，DOAJ 标为 Gold OA CC-BY。常规出版社入口和先前的可见浏览器会话曾停在 Cloudflare 验证页；随后以出版方内容的 Google Translate 公共镜像取得约 454 KB 的 VOR HTML，并逐节复核 §3--§8、Algorithm 3 与 §6 实验。该镜像只解决本文阅读与核验，不改变 DOI 作为正式引用入口。取件过程和全文处置见 [recovery log](./provenance/recovery_log.md) 与 [IET card](./neighborhood/cards/iet-software-2025-consistency-traceability.md)。
+
+### 盲搜 candidate ID 的逐项处置
+
+下表保留盲搜 raw record 的六个原始 candidate ID，不用论文简称或规范化 DOI 替换它们。四项布尔判断来自盲搜；解盲后的全文核验只更新 disposition evidence，不回写盲搜判断。`doi:10.1049/sfw2.6714956` 与正文中的 `10.1049/sfw2/6714956` 是同一 DOI 的点号/斜杠显示差异，不能算两个 candidate。
+
+| 原始 candidate ID | 盲搜四字段（NL / fixed STM / localized issues / STM evaluation） | 解盲处置与证据 | 与当前矩阵条目的关系 |
+| --- | --- | --- | --- |
+| `doi:10.1145/1506216.1506224` | 否 / 否 / 否 / 否 | rejected：Jain 等的对象是自然语言需求文档审查，盲搜可核信息未显示状态机输入、定位的需求相关问题输出或状态机评测；不把全文未取得写成“内容不存在”。 | 组件先例，未另建同义条目。 |
+| `doi:10.1109/ASE.2009.48` | 是 / 否 / 否 / 否 | rejected：Deeptimahanti 与 Babar 的标题和题录支持自然语言到 UML 模型生成；其任务不是保持既有状态机不变并输出问题报告。 | 状态机生成邻项，未另建同义条目。 |
+| `doi:10.1109/SERA.2007.8` | 否 / 否 / 否 / 否 | rejected：Ng 的题录指向 UML 状态机需求验证，但盲搜可得材料不能确认自由文本需求、分析期间固定的输入状态机、定位问题输出和实证评测四项合同。 | 状态机验证邻项，未另建同义条目。 |
+| `doi:10.1007/s10270-024-01228-3` | 否 / 否 / 否 / 否 | rejected：GWT 工作处理受约束的 Given--When--Then 需求并补全状态机；它不是自由文本输入与固定状态机问题发现。当前矩阵的 `GWT` 行是同一 DOI 的规范化别名，全文证据已在该行处置。 | `GWT` 行的 exact-ID alias。 |
+| `doi:10.1049/sfw2.6714956` | 是 / 否 / 否 / 否 | accepted as direct challenge after unblind full-text review：IET VOR 全文确认原始 NL、既有状态机、定位的 `AbnStepPair` 和状态机实证评测四项均成立。因此它否定完整输入输出合同的优先权主张；盲搜阶段的摘要级布尔判断保持原样。 | 与 `10.1049/sfw2/6714956` 为同一 DOI 的 exact-ID alias。 |
+| `doi:10.1109/QUATIC.2016.021` | 否 / 是 / 否 / 否 | rejected：该工作分析状态机图中的非确定性，但盲搜可核信息未显示自由文本需求输入或需求相关定位输出。 | 状态机分析邻项，未另建同义条目。 |
+
+盲搜原始 record、packet、逐字 query 和候选字段保存在 R1 外部 review bundle；上表是 current-facing 的可读 identity/disposition crosswalk。后续 fresh search 候选均以 DOI 或 arXiv ID 作为稳定 ID，并在其发现行保留精确 query family、全文版本与逐项处置，避免把候选简称当作第二套 key。
 
 ## 第一层：直接问题邻项
 
