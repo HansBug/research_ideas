@@ -2560,14 +2560,8 @@ class JudgeCallReceipt(FrozenModel):
         min_length=1,
         description="Exact ordered report closure judged by this logical batch call.",
     )
-    phase: Literal[
-        "validity_primary_1",
-        "validity_primary_2",
-        "validity_arbitration",
-        "relation_primary_1",
-        "relation_primary_2",
-        "relation_arbitration",
-    ] = Field(
+    phase: str = Field(
+        pattern=r"^(validity_primary_[1-9][0-9]*|validity_arbitration|relation_primary_[12]|relation_arbitration)$",
         description="Exact validity or relation role of the call in the two-stage dual-reading flow."
     )
     status: Literal["success", "failed"] = Field(
