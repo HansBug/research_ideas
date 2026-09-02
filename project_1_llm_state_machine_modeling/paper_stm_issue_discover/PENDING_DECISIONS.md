@@ -1,6 +1,6 @@
 # 大纲审查后的待裁定项（2026-09-02）
 
-> 产出于 [story/paper_outline.md](./story/paper_outline.md) 重写后的四路审查（logic / technical / research-analyst / adversarial）。凡「可直接改」的项已落地并随 commit 说明记录；下表只留需要人拍板、或已由用户口头裁定但尚未在论文层兑现的事项。历史简报见下文「历史决策简报（2026-08-11）」。
+> 产出于 [story/paper_outline.md](./story/paper_outline.md) 重写后的四路审查（logic / technical / research-analyst / adversarial）。凡「可直接改」的项已落地并随 commit 说明记录；下表只留需要人拍板、或已由用户口头裁定但尚未在论文层兑现的事项。N1、N2、N3 三项的自包含讨论稿（事实、选项、代价、倾向）见 [PR #198](https://github.com/HansBug/research_ideas/pull/198)，供 2026-09-03 与导师讨论；讨论结论回写本表。历史简报见下文「历史决策简报（2026-08-11）」。
 
 | 状态 | # | 事项 | 一句话 | 落点 |
 | :-: | :-: | :-- | :-- | :-- |
