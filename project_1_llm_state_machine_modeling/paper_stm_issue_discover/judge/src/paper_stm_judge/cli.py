@@ -10,6 +10,7 @@ import os
 import re
 import subprocess
 import tempfile
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -198,6 +199,73 @@ def _source_root_hash(paths: tuple[Path, ...], source_root: Path) -> str:
     return "sha256:" + digest.hexdigest()
 
 
+_ROUND_IN_ORIGINAL_ID = re.compile(r"^\d{4}:r(\d+):")
+
+
+def load_report_filter(raw_bytes: bytes) -> dict[str, frozenset[str]]:
+    """Parse a local ``{pair_id: [original_report_id, ...]}`` allowlist.
+
+    The allowlist restricts which already-published reports are judged; it is
+    provenance-only and never enters the provider payload.
+    """
+
+    payload = json.loads(raw_bytes.decode("utf-8"))
+    if not isinstance(payload, Mapping):
+        raise ValueError("report filter must be a JSON object mapping pair_id to report IDs")
+    result: dict[str, frozenset[str]] = {}
+    for pair_id, values in payload.items():
+        if not isinstance(values, list) or not all(isinstance(v, str) for v in values):
+            raise ValueError(f"report filter[{pair_id}] must be a list of original report IDs")
+        for value in values:
+            match = _ROUND_IN_ORIGINAL_ID.match(value)
+            if match is None or value[:4] != pair_id:
+                raise ValueError(
+                    f"report filter[{pair_id}] contains an ID without a matching pair/round prefix: {value}"
+                )
+        result[str(pair_id)] = frozenset(values)
+    return result
+
+
+def round_filter_ids(
+    report_filter: Mapping[str, frozenset[str]], pair_id: str, round_no: int
+) -> frozenset[str]:
+    """Return the allowlisted original IDs of one pair that belong to ``round_no``."""
+
+    return frozenset(
+        value
+        for value in report_filter.get(pair_id, frozenset())
+        if int(_ROUND_IN_ORIGINAL_ID.match(value).group(1)) == round_no  # type: ignore[union-attr]
+    )
+
+
+def apply_report_filter(reports, adapter_audit, allowed: frozenset[str]):
+    """Keep only allowlisted reports while preserving anonymous IDs and the ID map."""
+
+    known = {row.original_id for row in adapter_audit.report_id_map}
+    missing = sorted(allowed - known)
+    if missing:
+        raise ValueError(
+            f"report filter names IDs absent from the adapted source: {missing}"
+        )
+    keep = frozenset(
+        row.anonymous_id for row in adapter_audit.report_id_map if row.original_id in allowed
+    )
+    filtered_reports = tuple(report for report in reports if report.report_id in keep)
+    filtered_audit = adapter_audit.model_copy(
+        update={
+            "report_id_map": tuple(
+                row for row in adapter_audit.report_id_map if row.anonymous_id in keep
+            ),
+            "reason": (
+                adapter_audit.reason
+                + f" A local report allowlist restricted judging to {len(keep)} of "
+                f"{len(adapter_audit.report_id_map)} adapted report(s); anonymous IDs are unchanged."
+            ),
+        }
+    )
+    return filtered_reports, filtered_audit
+
+
 def _ledger_l2_ids(ledger_path: Path) -> frozenset[str]:
     raw = json.loads(ledger_path.read_text(encoding="utf-8"))
     return frozenset(
@@ -233,6 +301,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Independent pair processes (default: 16).",
     )
     parser.add_argument("--transport-retries", type=int, default=8)
+    parser.add_argument(
+        "--report-filter",
+        type=Path,
+        default=None,
+        help=(
+            "Optional local JSON allowlist {pair_id: [original_report_id, ...]}. Only listed "
+            "reports of the selected round are judged; pairs without listed reports for the round are skipped."
+        ),
+    )
     parser.add_argument("--allow-live", action="store_true")
     return parser
 
@@ -250,6 +327,23 @@ def main(argv: list[str] | None = None) -> int:
     invalid_pairs = sorted(set(pair_ids) - set(FROZEN_PAIR_IDS))
     if invalid_pairs:
         raise ValueError(f"pair IDs outside frozen protocol: {invalid_pairs}")
+    report_filter: dict[str, frozenset[str]] | None = None
+    report_filter_path: Path | None = None
+    report_filter_hash: str | None = None
+    if args.report_filter is not None:
+        report_filter_path = args.report_filter.expanduser().resolve()
+        filter_bytes = report_filter_path.read_bytes()
+        report_filter = load_report_filter(filter_bytes)
+        report_filter_hash = _sha256_bytes(filter_bytes)
+        pair_ids = tuple(
+            pair_id
+            for pair_id in pair_ids
+            if round_filter_ids(report_filter, pair_id, args.round)
+        )
+        if not pair_ids:
+            raise ValueError(
+                f"report filter selects no report for round {args.round}: {report_filter_path}"
+            )
     source_paths = tuple(
         _source_path(args.source_format, source_root, pair_id, args.round)
         for pair_id in pair_ids
@@ -278,6 +372,10 @@ def main(argv: list[str] | None = None) -> int:
         workers=args.workers,
         max_reports_per_batch=MAX_REPORTS_PER_BATCH,
         transport_retries=args.transport_retries,
+        report_filter_path=(
+            str(report_filter_path) if report_filter_path is not None else None
+        ),
+        report_filter_hash=report_filter_hash,
         reason="Existing published reports are rejudged without regeneration through the single arm-neutral issue #195 entry point.",
         basis="Frozen CLI selection, source bytes, issue #195 snapshot, clean Judge commit, and one utils.llm profile.",
     )
@@ -309,6 +407,12 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError(
                 f"source identity mismatch for {source_path}: expected pair={pair_id},round={args.round}; "
                 f"actual pair={adapted_pair_id},round={round_no}"
+            )
+        if report_filter is not None:
+            reports, adapter_audit = apply_report_filter(
+                reports,
+                adapter_audit,
+                round_filter_ids(report_filter, pair_id, round_no),
             )
         preflight = build_artifact_consistency_preflight(report_root, pair_id)
         _write_model(

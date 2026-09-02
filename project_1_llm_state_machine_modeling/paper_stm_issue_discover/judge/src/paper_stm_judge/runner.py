@@ -225,6 +225,17 @@ def detect_validity_disagreements(
                 reading_2_value=certificate_2.core_truth.value,
             )
         )
+    first_class = certificate_1.defect_adjudication.defect_class
+    second_class = certificate_2.defect_adjudication.defect_class
+    if first_class != second_class:
+        disagreements.append(
+            ReadingDisagreement(
+                kind=ConflictKind.DEFECT_CLASS,
+                object_ref=f"report:{report_id}/defect_class",
+                reading_1_value=first_class.value,
+                reading_2_value=second_class.value,
+            )
+        )
     gates = (
         ("core_claim", certificate_1.core_claim_gate, certificate_2.core_claim_gate),
         (
@@ -491,6 +502,12 @@ def _conflict_records(
             reason = certificate.reason
             basis = certificate.basis
             source_refs = certificate.source_refs
+        elif disagreement.kind == ConflictKind.DEFECT_CLASS:
+            certificate = final_certificates[report_id]
+            final_value = certificate.defect_adjudication.defect_class.value
+            reason = certificate.defect_adjudication.reason
+            basis = certificate.defect_adjudication.basis
+            source_refs = certificate.defect_adjudication.source_refs
         elif disagreement.kind == ConflictKind.VALIDITY_GATE:
             gate_name = disagreement.object_ref.split("/gate:", 1)[1]
             certificate = final_certificates[report_id]

@@ -20,6 +20,7 @@ from .models import (
     CausalFieldVerdict,
     ClauseAuditJudgment,
     CoreClaimTruth,
+    DefectClass,
     ExpectedAssessment,
     FrozenFieldValidityAudit,
     FrozenValidityCertificate,
@@ -43,6 +44,7 @@ from .models import (
     ReportValidity,
     SupportedRelationJudgment,
     UnifiedJudgeInput,
+    VALID_DEFECT_CLASSES,
     ValidityAuditWarning,
     ValidityBatchJudgeInput,
     ValidityBatchResponse,
@@ -51,6 +53,7 @@ from .models import (
     ValidityGateStatus,
     ValidityJudgeInput,
     ValidityResponse,
+    minimum_evidence_status_of,
     derive_causal_field_verdict,
 )
 
@@ -560,6 +563,28 @@ def build_exact_validity_model(
                 raise ValueError(
                     "claim_audit must classify at least one complete clause as CORE_CLAIM"
                 )
+            defect_class = self.defect_adjudication.defect_class
+            hard_refuted = [
+                clause.clause_id
+                for _field, clause in clause_rows
+                if clause.validity_role
+                in (
+                    ValidityClauseRole.CORE_CLAIM,
+                    ValidityClauseRole.INDISPENSABLE_MECHANISM,
+                )
+                and clause.verdict == MaterialAssertionVerdict.REFUTED
+            ]
+            if defect_class in VALID_DEFECT_CLASSES and hard_refuted:
+                raise ValueError(
+                    f"defect_class {defect_class.value} asserts the load-bearing fact is true of the author source, "
+                    f"but CORE_CLAIM/INDISPENSABLE_MECHANISM clauses {hard_refuted} are REFUTED; either reclassify a "
+                    "non-load-bearing explanatory error as AUXILIARY_CONTEXT or choose A0_FALSE_POSITIVE"
+                )
+            if defect_class == DefectClass.A0_FALSE_POSITIVE and not hard_refuted:
+                raise ValueError(
+                    "defect_class A0_FALSE_POSITIVE requires the false load-bearing premise to be marked REFUTED "
+                    "on a CORE_CLAIM or INDISPENSABLE_MECHANISM clause"
+                )
             return self
 
     model = create_model(
@@ -762,6 +787,17 @@ def materialize_validity_certificate(
         label="indispensable mechanism",
         fallback_source_refs=response_source_refs,
     )
+    adjudication = response.defect_adjudication
+    minimum_evidence_status = minimum_evidence_status_of(adjudication.defect_class)
+    minimum_evidence_gate = ValidityGateJudgment(
+        status=minimum_evidence_status,
+        reason=(
+            f"Backend-derived minimum-evidence gate is {minimum_evidence_status.value} from defect class "
+            f"{adjudication.defect_class.value}: {adjudication.reason}"
+        ),
+        basis=adjudication.basis,
+        source_refs=adjudication.source_refs,
+    )
     core_truth = (
         CoreClaimTruth.VALID
         if all(
@@ -769,13 +805,13 @@ def materialize_validity_certificate(
             for gate in (
                 core_claim_gate,
                 indispensable_mechanism_gate,
-                response.minimum_evidence_gate,
+                minimum_evidence_gate,
             )
         )
         else CoreClaimTruth.INVALID
     )
     values = {
-        "schema_version": "semantic-judge.frozen-validity-certificate.v2",
+        "schema_version": "semantic-judge.frozen-validity-certificate.v3",
         "report_id": validity_input.report.report_id,
         "core_truth": core_truth,
         "validity_input_hash": stable_model_hash(validity_input),
@@ -783,7 +819,8 @@ def materialize_validity_certificate(
         "field_audits": frozen_audits,
         "core_claim_gate": core_claim_gate,
         "indispensable_mechanism_gate": indispensable_mechanism_gate,
-        "minimum_evidence_gate": response.minimum_evidence_gate,
+        "minimum_evidence_gate": minimum_evidence_gate,
+        "defect_adjudication": adjudication,
         "auxiliary_warnings": auxiliary_warnings,
         "root_cause_cluster_key": response.root_cause_cluster_key,
         "reason": response.validity_reason,
@@ -1574,6 +1611,7 @@ def materialize_two_stage_reading(
                 report_id=report_id,
                 core_truth=certificate.core_truth,
                 validity=validity,
+                defect_class=certificate.defect_adjudication.defect_class,
                 full_expected_ids=tuple(full_expected_ids),
                 partial_expected_ids=tuple(partial_expected_ids),
                 no_match_expected_ids=tuple(

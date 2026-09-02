@@ -2,12 +2,25 @@
 
 from __future__ import annotations
 
+import json
+import re
 import sys
 
 import pytest
 
 from paper_stm_judge import cli
-from paper_stm_judge.models import FrozenValidityCertificate, ValidityResponse
+from paper_stm_judge.models import (
+    A0Subtype,
+    DefectAdjudication,
+    DefectClass,
+    DefectTier,
+    FrozenValidityCertificate,
+    ValidityGateStatus,
+    ValidityResponse,
+    a0_subtype_of,
+    defect_tier_of,
+    minimum_evidence_status_of,
+)
 from paper_stm_judge.protocol import (
     JUDGE_ALGORITHM_VERSION,
     PROMPT_VERSION,
@@ -50,30 +63,121 @@ def test_release_code_provenance_accepts_verified_embedded_manifest(monkeypatch)
     assert cli._code_commit() == commit
 
 
-def test_v33_closes_d0_and_a0_to_invalid_without_a_scope_exit() -> None:
-    """The current prompt makes obligation and author-source truth explicit gates."""
+def test_v34_prompt_states_author_source_basis_and_closed_defect_classes() -> None:
+    """The current prompt makes author-source truth and the closed defect class explicit."""
 
-    assert PROTOCOL_VERSION.endswith("issue-189-clarification.v3.3")
-    assert JUDGE_ALGORITHM_VERSION == "semantic-judge.two-stage.v3.3"
-    assert PROMPT_VERSION == "semantic-judge.two-stage-prompt.v7"
-    assert "A true author-source observation without a surviving violated obligation is D0" in VALIDITY_SYSTEM_PROMPT
-    assert "Both D0 and A0 therefore become INVALID" in VALIDITY_SYSTEM_PROMPT
-    assert "The X1v2 baseline has no such representation-debt subtype" in VALIDITY_SYSTEM_PROMPT
-    assert "every other unsupported or false author-source attribution as FALSE_POSITIVE" in VALIDITY_SYSTEM_PROMPT
-    assert "cannot invalidate an otherwise author-source-supported D2/D1 defect claim" in VALIDITY_SYSTEM_PROMPT
+    assert PROTOCOL_VERSION.endswith("issue-189-clarification.v3.4")
+    assert JUDGE_ALGORITHM_VERSION == "semantic-judge.two-stage.v3.4"
+    assert PROMPT_VERSION == "semantic-judge.two-stage-prompt.v8"
+    for required in (
+        "The author-source work product is exactly two artifacts",
+        "A derived representation may corroborate a reading of the author source",
+        "A0_FALSE_POSITIVE",
+        "A0_NOT_A_DEFECT_CLAIM",
+        "D2 and D1 satisfy it and D0 and both A0 classes refute it",
+        "Classify a clause as INDISPENSABLE_MECHANISM only when the conclusion collapses without it",
+        "D1, never an A0 class",
+    ):
+        assert required in VALIDITY_SYSTEM_PROMPT, required
 
 
-def test_minimum_evidence_schema_carries_the_d_a_boundary() -> None:
-    """Pydantic descriptions enter the provider schema and preserve the D/A contract."""
+def test_prompts_carry_no_pair_ledger_or_arm_identifiers() -> None:
+    """Anonymity: no frozen pair ID, ledger ID prefix, or arm name may leak into any prompt."""
 
-    response_description = ValidityResponse.model_fields[
-        "minimum_evidence_gate"
-    ].description
-    frozen_description = FrozenValidityCertificate.model_fields[
-        "minimum_evidence_gate"
-    ].description
-    assert response_description is not None
-    assert "true of the author-source work product" in response_description
-    assert "D0" in response_description and "A0" in response_description
-    assert frozen_description is not None
-    assert "D0 and A0 are REFUTED" in frozen_description
+    from paper_stm_judge.protocol import (
+        RELATION_ARBITRATION_INSTRUCTION,
+        RELATION_PRIMARY_INSTRUCTION,
+        RELATION_SYSTEM_PROMPT,
+        VALIDITY_ARBITRATION_INSTRUCTION,
+        VALIDITY_PRIMARY_INSTRUCTION,
+    )
+
+    prompts = (
+        VALIDITY_SYSTEM_PROMPT,
+        VALIDITY_PRIMARY_INSTRUCTION,
+        VALIDITY_ARBITRATION_INSTRUCTION,
+        RELATION_SYSTEM_PROMPT,
+        RELATION_PRIMARY_INSTRUCTION,
+        RELATION_ARBITRATION_INSTRUCTION,
+    )
+    for text in prompts:
+        assert re.search(r"\b00[0-5][0-9]\b", text) is None, "frozen pair ID leaked into a prompt"
+        assert re.search(r"\b(EIS|INS|VU|DIFF)-\d", text) is None, "ledger ID leaked into a prompt"
+        for banned in ("X1v2", "our method", "baseline arm", "R45"):
+            assert banned not in text, banned
+
+
+def test_defect_class_helpers_close_the_d_a_boundary() -> None:
+    """D2/D1 satisfy the minimum-evidence gate; D0 and both A0 exits refute it."""
+
+    assert minimum_evidence_status_of(DefectClass.D2) == ValidityGateStatus.SATISFIED
+    assert minimum_evidence_status_of(DefectClass.D1) == ValidityGateStatus.SATISFIED
+    for invalid in (
+        DefectClass.D0,
+        DefectClass.A0_FALSE_POSITIVE,
+        DefectClass.A0_NOT_A_DEFECT_CLAIM,
+    ):
+        assert minimum_evidence_status_of(invalid) == ValidityGateStatus.REFUTED
+    assert defect_tier_of(DefectClass.D0) == DefectTier.D0
+    assert defect_tier_of(DefectClass.A0_FALSE_POSITIVE) is None
+    assert a0_subtype_of(DefectClass.A0_NOT_A_DEFECT_CLAIM) == A0Subtype.NOT_A_DEFECT_CLAIM
+    assert a0_subtype_of(DefectClass.D2) is None
+    assert ValidityResponse.model_fields["defect_adjudication"].annotation is DefectAdjudication
+    assert "minimum_evidence_gate" not in ValidityResponse.model_fields
+    assert "defect_adjudication" in FrozenValidityCertificate.model_fields
+
+
+def test_report_filter_restricts_reports_and_keeps_anonymous_ids() -> None:
+    """The local allowlist keeps anonymous IDs stable and rejects unknown IDs."""
+
+    from paper_stm_judge.models import AdapterAudit, AdapterIdMap, CandidateReport
+
+    raw = json.dumps(
+        {"0004": ["0004:r1:issue:5", "0004:r2:issue:1"], "0059": ["0059:r1:issue:10"]}
+    ).encode("utf-8")
+    report_filter = cli.load_report_filter(raw)
+    assert cli.round_filter_ids(report_filter, "0004", 1) == frozenset({"0004:r1:issue:5"})
+    assert cli.round_filter_ids(report_filter, "0004", 3) == frozenset()
+    assert cli.round_filter_ids(report_filter, "0059", 1) == frozenset({"0059:r1:issue:10"})
+    with pytest.raises(ValueError, match="matching pair/round prefix"):
+        cli.load_report_filter(json.dumps({"0004": ["0059:r1:issue:1"]}).encode("utf-8"))
+
+    def report(index: int) -> CandidateReport:
+        return CandidateReport(
+            report_id=f"R{index:04d}",
+            claim=f"claim {index}",
+            where=None,
+            property=None,
+            violated_obligation=None,
+            expected=None,
+            observed=None,
+            reason=f"reason {index}",
+            basis=None,
+            source_refs=(),
+            evidence=(),
+        )
+
+    reports = (report(1), report(2), report(3))
+    audit = AdapterAudit(
+        source_format="evidence_discovery_release",
+        source_path="/dev/null",
+        source_hash="sha256:" + "0" * 64,
+        report_id_map=(
+            AdapterIdMap(anonymous_id="R0001", original_id="0004:r1:issue:1"),
+            AdapterIdMap(anonymous_id="R0002", original_id="0004:r1:issue:5"),
+            AdapterIdMap(anonymous_id="R0003", original_id="0004:r1:issue:9"),
+        ),
+        expected_id_map=(),
+        projected_field_names=("claim", "reason"),
+        excluded_field_names=(),
+        reason="fixture",
+        basis="fixture",
+    )
+    kept, kept_audit = cli.apply_report_filter(
+        reports, audit, cli.round_filter_ids(report_filter, "0004", 1)
+    )
+    assert tuple(item.report_id for item in kept) == ("R0002",)
+    assert tuple(row.anonymous_id for row in kept_audit.report_id_map) == ("R0002",)
+    assert "restricted judging to 1 of 3" in kept_audit.reason
+    with pytest.raises(ValueError, match="absent from the adapted source"):
+        cli.apply_report_filter(reports, audit, frozenset({"0004:r1:issue:99"}))
