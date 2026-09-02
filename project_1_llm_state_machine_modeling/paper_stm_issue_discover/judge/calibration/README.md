@@ -52,6 +52,10 @@ python3 $P1/judge/calibration/scripts/compare_calibration_run.py --side current 
   --out $P1/judge/calibration/results/<tag>/current
 ```
 
+## 现状（2026-09-03，四轮之后）
+
+四轮迭代（v3.4 → v3.7，逐轮说明见 [results/](./results/)）把冻结 v3.2 的系统性偏差消除到接近 judge 自身的噪声底：同批行上 K/N/I 一致率 current 从 26.9% 到 64–74%、baseline 从 30.0% 到 56–59%；NADC 层判 I 稳定在 80–94%，baseline 的 I→K 层从 0% 到 75–90%；两处 schema 死路（relation 哈希回显、单报告批次形状）已改为后端持有 / 归一化。事前登记的 85% 门槛没有达到，原因是同一提示词两次采样的自洽度只有 79–83%（有效/无效），一致率区间已贴近这个上界，且 gold 在 D0↔D1 边界上自身不一致。判据本身未改；结论与机制层面的候选方向见 [results/iter4_v3.7_8d8452a6f/README.md](./results/iter4_v3.7_8d8452a6f/README.md)。四轮 provider 成本合计 $32.57。
+
 ## 边界
 
 不重跑 v60 / X1v2 的全量结果，不改 `final_results/`、`method/`、`evaluation/`、台账或协议快照；gold 只用于校验 Judge 的趋势，不反向写回任何冻结数据。baseline 的 279 条冻结 K 未经 v3 重审，比对时只当「K 不能丢」的下界。
