@@ -63,12 +63,12 @@ def test_release_code_provenance_accepts_verified_embedded_manifest(monkeypatch)
     assert cli._code_commit() == commit
 
 
-def test_v34_prompt_states_author_source_basis_and_closed_defect_classes() -> None:
+def test_v35_prompt_states_author_source_basis_and_closed_defect_classes() -> None:
     """The current prompt makes author-source truth and the closed defect class explicit."""
 
-    assert PROTOCOL_VERSION.endswith("issue-189-clarification.v3.4")
-    assert JUDGE_ALGORITHM_VERSION == "semantic-judge.two-stage.v3.4"
-    assert PROMPT_VERSION == "semantic-judge.two-stage-prompt.v8"
+    assert PROTOCOL_VERSION.endswith("issue-189-clarification.v3.5")
+    assert JUDGE_ALGORITHM_VERSION == "semantic-judge.two-stage.v3.5"
+    assert PROMPT_VERSION == "semantic-judge.two-stage-prompt.v9"
     for required in (
         "The author-source work product is exactly two artifacts",
         "A derived representation may corroborate a reading of the author source",
@@ -76,7 +76,10 @@ def test_v34_prompt_states_author_source_basis_and_closed_defect_classes() -> No
         "A0_NOT_A_DEFECT_CLAIM",
         "D2 and D1 satisfy it and D0 and both A0 classes refute it",
         "Classify a clause as INDISPENSABLE_MECHANISM only when the conclusion collapses without it",
-        "D1, never an A0 class",
+        "is never A0_FALSE_POSITIVE",
+        "Where obligations come from.",
+        "Read a free-text or compound claim for its load-bearing concern",
+        "it never creates structure",
     ):
         assert required in VALIDITY_SYSTEM_PROMPT, required
 

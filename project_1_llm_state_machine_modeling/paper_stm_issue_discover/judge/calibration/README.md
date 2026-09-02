@@ -1,4 +1,4 @@
-# Judge 校准工作区（v3.4 / prompt v8）
+# Judge 校准工作区（v3.4 起；当前 v3.5 / prompt v9）
 
 本目录服务于一个明确而有限的目标：让 issue #195 语义 Judge 的 K/N/I 划分（尤其是 N 与 I 的边界）在**趋势上**与 paper1 当前的人工终态一致，使它能作为后续消融或补充实验的**初筛**，再由人工逐条确认。论文对外口径不变：validity、relation、D/A、K/N/I 由人工完成；Judge 只是缩小人工改判量的工具，不是结果的事实源，也不改动任何已冻结数据。
 
@@ -23,7 +23,7 @@
 | [scripts/compare_calibration_run.py](./scripts/compare_calibration_run.py) | 把一次 Judge 运行与 gold 逐条对齐，输出矩阵、分层一致率、方向偏差与逐条分歧（含 Judge 的 reason / basis） |
 | [subset_v1/](./subset_v1/) | `report_filter_current.json`、`report_filter_baseline.json`、`gold_v1.tsv`、`summary.md` |
 | [preregistered.md](./preregistered.md) | 运行前登记的验收判据与迭代政策 |
-| `results/<iteration>/` | 每次迭代的 `summary.md`、`disagreements.md`、`all_rows.tsv`；原始 LLM 制品在被忽略的 `runs/` 下 |
+| [results/](./results/) | 每次迭代一个目录（`iterN_<版本>_<提交>`），含 README（判据对照、红旗、分歧模式、下一轮调整）与两侧的 `summary.md`、`disagreements.md`、`all_rows.tsv`；原始 LLM 制品在被忽略的 `runs/` 下 |
 
 ## 运行
 
