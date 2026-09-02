@@ -63,12 +63,12 @@ def test_release_code_provenance_accepts_verified_embedded_manifest(monkeypatch)
     assert cli._code_commit() == commit
 
 
-def test_v35_prompt_states_author_source_basis_and_closed_defect_classes() -> None:
+def test_v36_prompt_states_author_source_basis_and_closed_defect_classes() -> None:
     """The current prompt makes author-source truth and the closed defect class explicit."""
 
-    assert PROTOCOL_VERSION.endswith("issue-189-clarification.v3.5")
-    assert JUDGE_ALGORITHM_VERSION == "semantic-judge.two-stage.v3.5"
-    assert PROMPT_VERSION == "semantic-judge.two-stage-prompt.v9"
+    assert PROTOCOL_VERSION.endswith("issue-189-clarification.v3.6")
+    assert JUDGE_ALGORITHM_VERSION == "semantic-judge.two-stage.v3.6"
+    assert PROMPT_VERSION == "semantic-judge.two-stage-prompt.v10"
     for required in (
         "The author-source work product is exactly two artifacts",
         "A derived representation may corroborate a reading of the author source",
@@ -80,6 +80,8 @@ def test_v35_prompt_states_author_source_basis_and_closed_defect_classes() -> No
         "Where obligations come from.",
         "Read a free-text or compound claim for its load-bearing concern",
         "it never creates structure",
+        "Answer this question on the report's load-bearing concern, not on its literal wording",
+        "can never be entered from the root",
     ):
         assert required in VALIDITY_SYSTEM_PROMPT, required
 

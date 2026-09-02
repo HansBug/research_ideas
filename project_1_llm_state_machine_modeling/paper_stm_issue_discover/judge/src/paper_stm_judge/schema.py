@@ -7,7 +7,7 @@ import json
 from collections.abc import Iterable
 from typing import Annotated, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
+from pydantic import BaseModel, ConfigDict, Field, create_model, field_validator, model_validator
 
 from .artifacts import stable_model_hash
 from .causal_audit import build_causal_audit_plan, build_report_core_envelope
@@ -577,8 +577,13 @@ def build_exact_validity_model(
             if defect_class in VALID_DEFECT_CLASSES and hard_refuted:
                 raise ValueError(
                     f"defect_class {defect_class.value} asserts the load-bearing fact is true of the author source, "
-                    f"but CORE_CLAIM/INDISPENSABLE_MECHANISM clauses {hard_refuted} are REFUTED; either reclassify a "
-                    "non-load-bearing explanatory error as AUXILIARY_CONTEXT or choose A0_FALSE_POSITIVE"
+                    f"but CORE_CLAIM/INDISPENSABLE_MECHANISM clauses {hard_refuted} are REFUTED. Re-read each refuted "
+                    "clause under the report's competent reading: a clause saying a guard, condition, effect, action, "
+                    "initial edge, or unconditional entry is missing means that no separate carrier of that kind is "
+                    "authored, so it is SUPPORTED when the author wrote the content only as label text or as a labeled "
+                    "transition; an over-stated or mis-named conjunct about the same locus and repair is "
+                    "AUXILIARY_CONTEXT. Choose A0_FALSE_POSITIVE only when the author source contradicts the report's "
+                    "concern as a whole."
                 )
             if defect_class == DefectClass.A0_FALSE_POSITIVE and not hard_refuted:
                 raise ValueError(
@@ -940,9 +945,6 @@ def build_exact_relation_model(
         ).encode("utf-8")
     ).hexdigest()[:12]
     report_id_type = _literal((relation_input.report.report_id,))
-    certificate_hash_type = _literal(
-        (relation_input.validity_certificate.certificate_hash,)
-    )
     exact_relation_tuple = _exact_relation_tuple(
         expected_ids,
         suffix=f"{suffix}_relations",
@@ -955,12 +957,21 @@ def build_exact_relation_model(
         report_id: report_id_type = Field(  # type: ignore[valid-type]
             description="The one anonymous valid report ID fixed by this relation call."
         )
-        validity_certificate_hash: certificate_hash_type = Field(  # type: ignore[valid-type]
-            description="The immutable validity certificate hash; return it unchanged."
+        validity_certificate_hash: str = Field(
+            default=relation_input.validity_certificate.certificate_hash,
+            pattern=r"^sha256:[0-9a-f]{64}$",
+            description="Backend-owned immutable validity certificate hash; the provider does not need to return it, and any returned value is replaced by the frozen hash.",
         )
         relation_decisions: exact_relation_tuple = Field(  # type: ignore[valid-type]
             description="One discriminated FULL_MATCH, PARTIAL_MATCH, or explicit NO_MATCH decision at every exact expected position in input order."
         )
+
+        @field_validator("validity_certificate_hash", mode="before")
+        @classmethod
+        def pin_frozen_certificate_hash(cls, value: object) -> str:
+            """The certificate is fixed by the batch input; a provider echo cannot change or break it."""
+
+            return relation_input.validity_certificate.certificate_hash
 
         @model_validator(mode="after")
         def exact_relation_closure(self) -> ExactRelationResponse:

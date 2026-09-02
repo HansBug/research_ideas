@@ -23,10 +23,15 @@ from paper_stm_judge.models import (
 )
 from paper_stm_judge.runner import detect_validity_disagreements
 from paper_stm_judge.scale_audit import _validity_envelope
+from paper_stm_judge.scale_audit import _relation_envelope
 from paper_stm_judge.schema import (
+    build_exact_relation_batch_model,
     build_exact_validity_batch_model,
-    build_validity_batch_input,
+    build_relation_batch_input,
     materialize_validity_certificate,
+    build_validity_batch_input,
+    relation_batch_responses,
+    relation_item_input,
     validity_batch_responses,
     validity_item_input,
 )
@@ -71,7 +76,7 @@ def _payload(batch_input, defect_class: str, *, refute_core: bool = False) -> di
 
 def test_valid_class_with_refuted_core_clause_is_rejected_with_repair_direction(frozen_batch) -> None:
     _judge_input, batch_input, model = frozen_batch
-    with pytest.raises(ValueError, match="reclassify a non-load-bearing explanatory error as AUXILIARY_CONTEXT or choose A0_FALSE_POSITIVE"):
+    with pytest.raises(ValueError, match="Re-read each refuted clause under the report's competent reading"):
         model.model_validate(_payload(batch_input, "D2", refute_core=True))
 
 
@@ -118,3 +123,22 @@ def test_defect_class_disagreement_triggers_arbitration(frozen_batch) -> None:
     class_conflict = next(item for item in disagreements if item.kind == ConflictKind.DEFECT_CLASS)
     assert class_conflict.object_ref.endswith("/defect_class")
     assert (class_conflict.reading_1_value, class_conflict.reading_2_value) == ("D1", "D0")
+
+
+def test_relation_certificate_hash_is_backend_owned_and_survives_a_truncated_echo(frozen_batch) -> None:
+    """A provider that drops one hash character no longer dead-ends the relation call (CLAUDE.md section 10)."""
+
+    judge_input, batch_input, model = frozen_batch
+    response = model.model_validate(_payload(batch_input, "D2"))
+    certificate = materialize_validity_certificate(
+        validity_batch_responses(response, batch_input)[0], validity_item_input(batch_input, 0)
+    )
+    relation_batch = build_relation_batch_input(judge_input, (certificate,), batch_id="RB-test")
+    relation_model = build_exact_relation_batch_model(relation_batch)
+    item = _relation_envelope(relation_item_input(relation_batch, 0), all_positive=False)
+    truncated = dict(item, validity_certificate_hash=certificate.certificate_hash[:-1])
+    omitted = {k: v for k, v in item.items() if k != "validity_certificate_hash"}
+    for variant in (item, truncated, omitted):
+        payload = {"schema_version": "semantic-judge.relation-batch-response.v1", "batch_id": "RB-test", "item0": variant}
+        rows = relation_batch_responses(relation_model.model_validate(payload), relation_batch)
+        assert rows[0].validity_certificate_hash == certificate.certificate_hash
