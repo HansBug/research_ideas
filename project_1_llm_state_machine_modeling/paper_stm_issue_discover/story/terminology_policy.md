@@ -19,7 +19,7 @@
 | adjudication | 人工裁定 | human adjudication | D/A | `outline-3` | 人工裁定；`D0/D1/D2/A0` 在表、公式和字段中保留 | `D0`、`D1`、`D2`、`A0` |
 | relation | 对应关系 | relation | 无 | `outline-3` | 对应关系；`FULL/PARTIAL/NONE` 在表、公式和字段中保留 | `FULL_MATCH`、`PARTIAL_MATCH`、`NO_MATCH` |
 | bookkeeping | 记账类别 | bookkeeping category | K/N/I | `outline-3` | 记账类别；`K/N/I` 在表、公式和字段中保留 | `VALID_KNOWN`、`VALID_NOVEL`、`INVALID` |
-| nadc | 非缺陷主张 | not-a-defect claim | NADC | `outline-9-3` | 非缺陷主张；`NADC` 在表、公式和字段中保留 | `NOT_A_DEFECT_CLAIM` |
+| nadc | 非缺陷主张 | not-a-defect claim | NADC | `outline-6-3` | 非缺陷主张；`NADC` 在表、公式和字段中保留 | `NOT_A_DEFECT_CLAIM` |
 | current_baseline | 当前方法/基线 | current/baseline | 无 | `outline-0` | 当前方法、基线 | `current`、`baseline`、canonical artifact keys |
 | use_case_specification | 用例规约 | use-case specification | UCS | `outline-1` | 用例规约；`UCS` 在文献比较、表列或字段中保留 | `UCS`、论文题名和原文引述 |
 | llfsm | 轻量级有限状态机 | Lightweight Finite State Machine | LLFSM | `outline-2` | 轻量级有限状态机；`LLFSM` 在文献比较、表列或字段中保留 | `LLFSM`、论文题名和原文引述 |
