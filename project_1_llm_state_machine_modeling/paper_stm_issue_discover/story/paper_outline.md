@@ -342,7 +342,7 @@ RQ1 给出端到端发现、报告量与报告级有效性；RQ2 固定 C1 仍�
 <a id="outline-13"></a>
 ## 13. 数据与制品可得性
 
-**正文说明。** 数据与制品声明固定到论文提交时的 exact commit，并列出 `final_results/v60_current_vs_x1v2_baseline/archive_manifest.json`、`publication_manifest.json`、`derived/combined_summary_v4.json`、当前/基线决策文件、复算脚本、方法代码、`predicate_registry.json` 的版本与 SHA-256、输入/输出模式和来源归属。读者从该 commit 可执行归档 validator、`build_current_reaudit_v4.py --validate-only` 和 `recompute_fair_comparison_v4.py --validate-only`；正文的所有标题数值回指规范汇总，而不是手工转录表。[^fair]
+**正文说明。** 数据与制品声明固定到论文提交时的 exact commit，并列出 `final_results/v60_current_vs_x1v2_baseline/archive_manifest.json`、`publication_manifest.json`、`derived/fair_comparison_v4/combined_summary_v4.json`、当前/基线决策文件、复算脚本、方法代码、`predicate_registry.json` 的版本与 SHA-256、输入/输出模式和来源归属。读者从该 commit 可执行归档 validator、`build_current_reaudit_v4.py --validate-only` 和 `recompute_fair_comparison_v4.py --validate-only`；正文的所有标题数值回指规范汇总，而不是手工转录表。[^fair]
 
 **访问和复算边界。** 原始 54 个输入对、台账、人工裁定和结果的访问条件遵守仓库与数据的既有边界。公开材料不含服务提供方凭据、人工身份资料或未获许可的外部全文。读者可以复算无服务提供方调用的汇总、检查归档完整性，并按回执/哈希审查既有运行；该声明不承诺重放外部服务提供方或产生与冻结运行完全相同的新输出。
 
