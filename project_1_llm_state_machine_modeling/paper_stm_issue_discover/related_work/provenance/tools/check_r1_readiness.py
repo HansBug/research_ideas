@@ -133,6 +133,18 @@ BLOCKED = re.compile(
 )
 REPO = "HansBug/research_ideas"
 PR_NUMBERS = {"r1": 197, "umbrella": 179}
+# These are UTF-8 hashes of the bodies fetched at R1 task start and after the
+# only permitted contract edit. They make the permitted PR-body delta concrete:
+# the initial #197 body is anchored, #179 is byte-for-byte unchanged, and #197
+# may finish only at the reviewed replacement body.
+TASK_START_BODY_SHA256 = {
+    "r1": "311f3964e06b57f6ec0c60ed4cf279f3e7b5d776da8e2063d5b331a0e2ba356e",
+    "umbrella": "cdc946bd8f17f7fa9f0d5597f2f7ee25b6612833215b6e80d0de5f21e9a76652",
+}
+PERMITTED_FINAL_BODY_SHA256 = {
+    "r1": "ccdd700b9af21a3317661f253bc44b1fcdbc39f9c2be24c93ad2d335d15f4370",
+    "umbrella": "cdc946bd8f17f7fa9f0d5597f2f7ee25b6612833215b6e80d0de5f21e9a76652",
+}
 BUNDLE_SCHEMA_VERSION = "paper1.r1-final-review.v1"
 BLIND_PACKET_SCHEMA_VERSION = "paper1.r1-blind-packet.v1"
 BLIND_RECORD_SCHEMA_VERSION = "paper1.r1-blind-search-record.v1"
@@ -140,10 +152,12 @@ CANONICAL_CURRENT_RAW = (
     "final_results/v60_current_vs_x1v2_baseline/raw/v60_current/method/method"
 )
 # These filters describe audited claim exclusions. They do not reclassify the
-# frozen runtime data: G2 and V4 each exclude their completed W2 false receipts.
+# frozen runtime data. G2 excludes its completed W2 false receipts; V4 excludes
+# both terminal polarities because a topology leaf probe establishes neither a
+# universal progress proof nor a universal deadlock counterexample.
 IMPACT_RECEIPT_FILTERS = {
     "G2": {"predicate_verdict": {"false"}},
-    "V4": {"predicate_verdict": {"false"}},
+    "V4": {"predicate_verdict": {"true", "false"}},
 }
 
 
@@ -375,6 +389,28 @@ def check_catalog(paper_root: Path, errors: list[str]) -> None:
                 and not set(academic_refs) & academic_source_ids
             ):
                 add_error(errors, f"{pid}: academic qualification lacks a domain/formal external source")
+            if not any(
+                isinstance(ref, str)
+                and ref.startswith("related_work/provenance/predicate_provenance.md#quote-")
+                for ref in academic_refs
+            ):
+                add_error(errors, f"{pid}: academic qualification lacks a primary-text quote anchor")
+            instance = evidence.get("instance", {})
+            instance_refs = instance.get("evidence_refs", []) if isinstance(instance, dict) else []
+            required_instance_refs = {
+                "pipeline/evidence_discovery/METHOD_PRINCIPLES.md#source-bound-instance-authority",
+                "method/src/paper_stm_method/semantics/obligations.py",
+                "method/src/paper_stm_method/evidence/receipts.py",
+            }
+            if row["instance_authority_status"] == "SOURCE_BOUND" and not required_instance_refs <= set(instance_refs):
+                add_error(errors, f"{pid}: source-bound instance authority lacks binding/receipt contract refs")
+            if any(
+                isinstance(ref, str)
+                and ref.startswith("related_work/provenance/predicate_provenance.md#")
+                and "#quote-" not in ref
+                for ref in [*academic_refs, *instance_refs]
+            ):
+                add_error(errors, f"{pid}: status evidence self-references a predicate heading instead of its authority")
         eligibility = row["publication_eligibility_by_polarity"]
         if not isinstance(eligibility, dict) or set(eligibility) != POLARITIES:
             add_error(errors, f"{pid}: publication eligibility lacks exact polarity keys")
@@ -438,6 +474,7 @@ def check_canonical_receipt_impacts(
         add_error(errors, f"canonical current raw archive is missing: {CANONICAL_CURRENT_RAW}")
         return
     receipts: list[dict[str, Any]] = []
+    incomplete_authority: dict[str, set[str]] = {}
     for raw_path in sorted(raw_root.glob("*/round-*.json")):
         try:
             payload = load_json(raw_path)
@@ -445,9 +482,18 @@ def check_canonical_receipt_impacts(
             add_error(errors, f"cannot read canonical raw receipt file {raw_path}: {exc}")
             continue
         entries = payload.get("predicate_execution_receipts")
+        evidence_records = payload.get("evidence_records")
         if not isinstance(entries, list):
             add_error(errors, f"canonical raw receipt file has no receipt array: {raw_path}")
             continue
+        if not isinstance(evidence_records, list):
+            add_error(errors, f"canonical raw receipt file has no evidence-record array: {raw_path}")
+            continue
+        evidence_by_obligation = {
+            evidence.get("obligation_id"): evidence
+            for evidence in evidence_records
+            if isinstance(evidence, dict) and is_nonempty_string(evidence.get("obligation_id"))
+        }
         for entry in entries:
             if not isinstance(entry, dict):
                 add_error(errors, f"canonical raw receipt is not an object: {raw_path}")
@@ -464,11 +510,60 @@ def check_canonical_receipt_impacts(
                 "witness_level": entry.get("witness_level"),
                 "terminal_state": entry.get("terminal_state"),
                 "execution_status": entry.get("execution_status"),
+                "typed_inputs": entry.get("typed_inputs"),
+                "artifact_attribution_complete": entry.get("artifact_attribution_complete"),
+                "artifact_attribution": entry.get("artifact_attribution"),
             })
+            # Historical raw receipts predate the current instance-authority
+            # schema. Their publication-grade false findings must therefore
+            # close through the same-payload evidence record, never through a
+            # model hash alone.
+            if entry.get("witness_level") == "W2" and entry.get("predicate_verdict") == "false":
+                obligation_id = entry.get("obligation_id")
+                evidence = evidence_by_obligation.get(obligation_id)
+                execution_receipt = evidence.get("execution_receipt") if isinstance(evidence, dict) else None
+                evidence_backend = execution_receipt.get("backend_result") if isinstance(execution_receipt, dict) else None
+                matching_receipt = (
+                    isinstance(evidence_backend, dict)
+                    and evidence_backend.get("receipt_id") == receipt_id
+                )
+                binding = evidence.get("binding") if isinstance(evidence, dict) else None
+                quote = evidence.get("requirement_quote") if isinstance(evidence, dict) else None
+                source_refs = evidence.get("source_refs") if isinstance(evidence, dict) else None
+                element_refs = binding.get("element_refs") if isinstance(binding, dict) else None
+                authority_complete = (
+                    matching_receipt
+                    and is_nonempty_string(quote)
+                    and isinstance(source_refs, list)
+                    and bool(source_refs)
+                    and all(is_nonempty_string(ref) for ref in source_refs)
+                    and isinstance(binding, dict)
+                    and binding.get("precise") is True
+                    and isinstance(element_refs, list)
+                    and bool(element_refs)
+                    and all(is_nonempty_string(ref) for ref in element_refs)
+                )
+                if not authority_complete:
+                    predicate_id = entry.get("predicate_id")
+                    if not is_nonempty_string(predicate_id):
+                        add_error(errors, f"{receipt_id}: historical W2 false receipt has no predicate ID")
+                    else:
+                        incomplete_authority.setdefault(predicate_id, set()).add(receipt_id)
     receipt_ids = [receipt["receipt_id"] for receipt in receipts]
     if len(receipt_ids) != len(set(receipt_ids)):
         add_error(errors, "canonical raw archive contains duplicate receipt IDs")
         return
+    for receipt in receipts:
+        if receipt["witness_level"] != "W2":
+            continue
+        attribution = receipt["artifact_attribution"]
+        if (
+            not isinstance(receipt["typed_inputs"], dict)
+            or receipt["artifact_attribution_complete"] is not True
+            or not isinstance(attribution, dict)
+            or not {"requirement", "model", "plan", "receipt"} <= set(attribution)
+        ):
+            add_error(errors, f"{receipt['receipt_id']}: W2 receipt lacks typed binding or complete source attribution")
     for row in rows:
         if not isinstance(row, dict) or row.get("implementation_relation") != "RESOLVED_CLAIM_EXCLUSION":
             continue
@@ -493,6 +588,56 @@ def check_canonical_receipt_impacts(
                 f"{predicate_id}: canonical claim-exclusion receipt IDs differ: "
                 f"missing={sorted(expected - actual)}, extra={sorted(actual - expected)}",
             )
+    catalog = load_json(paper_root / "related_work/provenance/current_source_catalog.json")
+    audit = catalog.get("r1_citation_audit") if isinstance(catalog, dict) else None
+    authority_audit = audit.get("historical_source_authority_exclusion") if isinstance(audit, dict) else None
+    required_authority_keys = {
+        "audit_basis", "runtime_effect", "publication_rule", "eligible_false_w2_count",
+        "excluded_false_w2_count", "excluded_by_predicate",
+    }
+    if not isinstance(authority_audit, dict) or set(authority_audit) != required_authority_keys:
+        add_error(errors, "catalog lacks exact historical source-authority exclusion metadata")
+        return
+    groups = authority_audit.get("excluded_by_predicate")
+    expected_incomplete: dict[str, set[str]] = {}
+    if not isinstance(groups, list):
+        add_error(errors, "historical source-authority exclusions are not an array")
+    else:
+        for group in groups:
+            if not isinstance(group, dict) or set(group) != {"predicate_id", "receipt_ids", "count"}:
+                add_error(errors, "historical source-authority exclusion has invalid shape")
+                continue
+            predicate_id = group.get("predicate_id")
+            receipt_ids = group.get("receipt_ids")
+            if (
+                not is_nonempty_string(predicate_id)
+                or not isinstance(receipt_ids, list)
+                or group.get("count") != len(receipt_ids)
+                or not receipt_ids
+                or len(set(receipt_ids)) != len(receipt_ids)
+                or any(not is_nonempty_string(receipt_id) for receipt_id in receipt_ids)
+            ):
+                add_error(errors, "historical source-authority exclusion has invalid IDs/count")
+                continue
+            expected_incomplete[predicate_id] = set(receipt_ids)
+    if expected_incomplete != incomplete_authority:
+        add_error(
+            errors,
+            "historical source-authority exclusions differ from raw evidence records: "
+            f"expected={sorted((key, sorted(value)) for key, value in expected_incomplete.items())}, "
+            f"actual={sorted((key, sorted(value)) for key, value in incomplete_authority.items())}",
+        )
+    excluded_count = sum(len(receipt_ids) for receipt_ids in expected_incomplete.values())
+    false_w2_count = sum(
+        receipt["witness_level"] == "W2" and receipt["predicate_verdict"] == "false"
+        for receipt in receipts
+    )
+    if (
+        authority_audit.get("excluded_false_w2_count") != excluded_count
+        or not isinstance(authority_audit.get("eligible_false_w2_count"), int)
+        or authority_audit["eligible_false_w2_count"] + excluded_count != false_w2_count
+    ):
+        add_error(errors, "historical source-authority totals do not close over false W2 receipts")
 
 
 def frozen_predicate_semantics(paper_root: Path, errors: list[str]) -> dict[str, str]:
@@ -578,6 +723,8 @@ def check_crosswalk(paper_root: Path, errors: list[str]) -> None:
         proposition = semantics.get(pid)
         if proposition and proposition not in body:
             add_error(errors, f"{pid}: human audit does not reproduce the frozen registry proposition exactly")
+        if "一手全文定位。" not in body or "#quote-" not in body:
+            add_error(errors, f"{pid}: human audit lacks a predicate-level primary-text quote anchor")
         if "全文逐字" not in body or "chronology/leakage" not in body:
             add_error(errors, f"{pid}: human audit lacks full-text quotation or chronology/leakage field")
 
@@ -676,6 +823,15 @@ def check_static_surface(
         paths |= parse_git_changed_paths(paper_root, base_commit)
     except subprocess.CalledProcessError as exc:
         add_error(errors, f"unable to enumerate R1 changed paths: {exc}")
+    raw_root = paper_root / CANONICAL_CURRENT_RAW
+    if not raw_root.is_dir():
+        add_error(errors, f"canonical current raw archive is missing: {CANONICAL_CURRENT_RAW}")
+    else:
+        paths |= {
+            raw_path.relative_to(paper_root).as_posix()
+            for raw_path in raw_root.glob("*/round-*.json")
+            if raw_path.is_file()
+        }
     path_hashes: dict[str, str] = {}
     for rel in sorted(paths):
         path = paper_root / rel
@@ -802,6 +958,8 @@ def check_review_bundle(
     *,
     base_commit: str = BASE_COMMIT,
     live_bodies: dict[str, str] | None = None,
+    task_start_body_hashes: dict[str, str] = TASK_START_BODY_SHA256,
+    permitted_final_body_hashes: dict[str, str] = PERMITTED_FINAL_BODY_SHA256,
 ) -> None:
     if review_path is None or not review_path.is_file():
         add_error(errors, "missing external final review evidence")
@@ -865,6 +1023,15 @@ def check_review_bundle(
             required_paths = ROLE_REQUIRED_PATHS.get(role, set())
             if not required_paths <= reviewed_set:
                 add_error(errors, f"review role lacks required path coverage: {role}")
+            if role == "fact_link_test" and not set(static_hashes) <= reviewed_set:
+                add_error(errors, "fact/link/test reviewer must cover every static payload")
+            if role == "method_soundness":
+                raw_paths = {
+                    path for path in static_hashes
+                    if path.startswith(CANONICAL_CURRENT_RAW + "/")
+                }
+                if not raw_paths <= reviewed_set:
+                    add_error(errors, "method/soundness reviewer must cover every consumed raw receipt payload")
             if role == "predicate_evidence":
                 expected_finding = {"predicate_id", "status", "evidence"}
                 if any(
@@ -946,11 +1113,11 @@ def check_review_bundle(
         for name in PR_NUMBERS:
             check_pr_snapshot(name, initial[name], errors, None)
             check_pr_snapshot(name, snapshots[name], errors, live_bodies)
-        if initial["umbrella"].get("body_sha256") != snapshots["umbrella"].get("body_sha256"):
-            add_error(errors, "umbrella PR #179 body changed during R1")
-        r1_body = snapshots["r1"].get("body", "")
-        if "sole active R1 contract" not in r1_body or "superseded" not in r1_body or "V3" not in r1_body:
-            add_error(errors, "R1 PR body lacks supersession/V3 scope correction")
+        for name in PR_NUMBERS:
+            if initial[name].get("body_sha256") != task_start_body_hashes.get(name):
+                add_error(errors, f"{name} PR task-start body snapshot differs from the anchored body")
+            if snapshots[name].get("body_sha256") != permitted_final_body_hashes.get(name):
+                add_error(errors, f"{name} PR final body is outside the permitted R1 contract edit")
 
 
 def run(
@@ -959,6 +1126,8 @@ def run(
     *,
     base_commit: str = BASE_COMMIT,
     github_body_loader: Any = github_bodies,
+    task_start_body_hashes: dict[str, str] = TASK_START_BODY_SHA256,
+    permitted_final_body_hashes: dict[str, str] = PERMITTED_FINAL_BODY_SHA256,
 ) -> dict[str, Any]:
     errors: list[str] = []
     hashes = check_static_surface(paper_root, errors, base_commit=base_commit)
@@ -971,6 +1140,8 @@ def run(
     check_review_bundle(
         paper_root, review_evidence, hashes, errors,
         base_commit=base_commit, live_bodies=live_bodies,
+        task_start_body_hashes=task_start_body_hashes,
+        permitted_final_body_hashes=permitted_final_body_hashes,
     )
     return {
         "ready": not errors,
@@ -1027,19 +1198,73 @@ def self_test() -> int:
     def write_impact_archive_fixture(paper: Path) -> None:
         catalog = load_json(paper / "related_work/provenance/current_source_catalog.json")
         entries: list[dict[str, Any]] = []
+        evidence_records: list[dict[str, Any]] = []
+        v4_true_receipts = {
+            "0033:r2:i9:receipt", "0033:r2:i10:receipt", "0033:r2:i11:receipt",
+            "0033:r3:i9:receipt", "0033:r3:i10:receipt", "0033:r3:i11:receipt",
+        }
+
+        def append_false_w2(
+            predicate_id: str, receipt_id: str, *, authority_complete: bool
+        ) -> None:
+            obligation_id = receipt_id.removesuffix(":receipt")
+            entries.append({
+                "predicate_id": predicate_id,
+                "obligation_id": obligation_id,
+                "predicate_verdict": "false",
+                "witness_level": "W2",
+                "terminal_state": "completed",
+                "execution_status": "executed",
+                "backend_result": {"receipt_id": receipt_id},
+                "typed_inputs": {"predicate_id": predicate_id},
+                "artifact_attribution_complete": True,
+                "artifact_attribution": {
+                    "requirement": {}, "model": {}, "plan": {}, "receipt": {},
+                },
+            })
+            evidence_records.append({
+                "obligation_id": obligation_id,
+                "requirement_quote": "Fixture requirement.",
+                "source_refs": ["fixture:nl:1"] if authority_complete else [],
+                "binding": {
+                    "precise": authority_complete,
+                    "element_refs": ["fixture:state:1"] if authority_complete else [],
+                },
+                "execution_receipt": {"backend_result": {"receipt_id": receipt_id}},
+            })
+
         for audit in catalog["r1_citation_audit"]["predicate_audits"]:
             predicate_id = audit["predicate_id"]
             if predicate_id not in IMPACT_RECEIPT_FILTERS:
                 continue
             for receipt_id in audit["impact"]["receipt_ids"]:
-                entries.append({
-                    "predicate_id": predicate_id,
-                    "predicate_verdict": "false",
-                    "witness_level": "W2",
-                    "terminal_state": "completed",
-                    "execution_status": "executed",
-                    "backend_result": {"receipt_id": receipt_id},
-                })
+                if receipt_id in v4_true_receipts:
+                    entries.append({
+                        "predicate_id": predicate_id,
+                        "obligation_id": receipt_id.removesuffix(":receipt"),
+                        "predicate_verdict": "true",
+                        "witness_level": "W2",
+                        "terminal_state": "completed",
+                        "execution_status": "executed",
+                        "backend_result": {"receipt_id": receipt_id},
+                        "typed_inputs": {"predicate_id": predicate_id},
+                        "artifact_attribution_complete": True,
+                        "artifact_attribution": {
+                            "requirement": {}, "model": {}, "plan": {}, "receipt": {},
+                        },
+                    })
+                else:
+                    append_false_w2(predicate_id, receipt_id, authority_complete=True)
+        for group in catalog["r1_citation_audit"]["historical_source_authority_exclusion"]["excluded_by_predicate"]:
+            for receipt_id in group["receipt_ids"]:
+                append_false_w2(group["predicate_id"], receipt_id, authority_complete=False)
+        # The isolated fixture keeps the same 627-false-W2 arithmetic as the
+        # real archive: 125 excluded historical records and 502 complete ones.
+        # Eighty-four complete records are already present as G2/V4 impacts.
+        for index in range(418):
+            append_false_w2(
+                "S1", f"fixture:eligible:{index}:receipt", authority_complete=True
+            )
         if {entry["backend_result"]["receipt_id"] for entry in entries if entry["predicate_id"] == "G2"} != {
             "0020:r3:i1:receipt", "0020:r3:i5:receipt",
         }:
@@ -1047,7 +1272,10 @@ def self_test() -> int:
         raw_path = paper / CANONICAL_CURRENT_RAW / "fixture" / "round-3.json"
         raw_path.parent.mkdir(parents=True, exist_ok=True)
         raw_path.write_text(
-            json.dumps({"predicate_execution_receipts": entries}, ensure_ascii=False, indent=2) + "\n",
+            json.dumps({
+                "predicate_execution_receipts": entries,
+                "evidence_records": evidence_records,
+            }, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
 
@@ -1138,8 +1366,17 @@ def self_test() -> int:
             "raw_findings": ["Fixture candidate retained for unblind disposition."],
         }
         results: list[dict[str, Any]] = []
+        raw_paths = {
+            path for path in hashes
+            if path.startswith(CANONICAL_CURRENT_RAW + "/")
+        }
         for role in sorted(REQUIRED_ROLES):
-            reviewed_paths = sorted(ROLE_REQUIRED_PATHS[role])
+            reviewed_set = set(ROLE_REQUIRED_PATHS[role])
+            if role == "fact_link_test":
+                reviewed_set |= set(hashes)
+            if role == "method_soundness":
+                reviewed_set |= raw_paths
+            reviewed_paths = sorted(reviewed_set)
             if role == "predicate_evidence":
                 findings: list[dict[str, str]] = [{
                     "predicate_id": predicate_id,
@@ -1172,7 +1409,7 @@ def self_test() -> int:
             "results": results,
             "path_hashes": hashes,
             "pr_initial_snapshots": {
-                "r1": snapshot(197, "Initial R1 body."),
+                "r1": snapshot(197, final_r1),
                 "umbrella": snapshot(179, umbrella),
             },
             "pr_final_snapshots": {
@@ -1212,6 +1449,14 @@ def self_test() -> int:
         return run(
             paper, evidence, base_commit=base,
             github_body_loader=lambda: live_bodies,
+            task_start_body_hashes={
+                name: bundle["pr_initial_snapshots"][name]["body_sha256"]
+                for name in PR_NUMBERS
+            },
+            permitted_final_body_hashes={
+                name: bundle["pr_final_snapshots"][name]["body_sha256"]
+                for name in PR_NUMBERS
+            },
         )
 
     def clone(value: Any) -> Any:
@@ -1295,6 +1540,8 @@ def self_test() -> int:
     assert_static_rejected("unresolved_status", lambda root: change_catalog(root, lambda catalog: catalog["r1_citation_audit"]["predicate_audits"][0].update({"implementation_relation": "UNRESOLVED"})))
     assert_static_rejected("method_only_academic_evidence", lambda root: change_catalog(root, lambda catalog: catalog["r1_citation_audit"]["predicate_audits"][0]["status_evidence"]["academic"].update({"evidence_refs": ["method/src/paper_stm_method/compiler/soundness.py"]})))
     assert_static_rejected("technical_source_cannot_close_academic_qualification", lambda root: change_catalog(root, lambda catalog: catalog["r1_citation_audit"]["predicate_audits"][0]["status_evidence"]["academic"].update({"evidence_refs": ["ST8"]})))
+    assert_static_rejected("predicate_heading_cannot_close_academic_qualification", lambda root: change_catalog(root, lambda catalog: catalog["r1_citation_audit"]["predicate_audits"][0]["status_evidence"]["academic"].update({"evidence_refs": ["ST1", "related_work/provenance/predicate_provenance.md#s1-element_exists"]})))
+    assert_static_rejected("self_referential_instance_authority", lambda root: change_catalog(root, lambda catalog: catalog["r1_citation_audit"]["predicate_audits"][0]["status_evidence"]["instance"].update({"evidence_refs": ["related_work/provenance/predicate_provenance.md#s1-element_exists"]})))
     assert_static_rejected("broken_source_id", lambda root: change_catalog(root, lambda catalog: catalog["r1_citation_audit"]["predicate_audits"][0].update({"source_ids": ["NOT_A_SOURCE"]})))
     assert_static_rejected("impact_count_mismatch", lambda root: change_catalog(root, lambda catalog: catalog["r1_citation_audit"]["predicate_audits"][0]["impact"].update({"count": 1})))
     def omit_g2_i5(catalog: dict[str, Any]) -> None:
@@ -1317,7 +1564,11 @@ def self_test() -> int:
     assert_static_rejected("experiment_extra_record_field", lambda root: change_experiment_gate(root, lambda data: data["records"][0].update({"unexpected": True})), with_experiment=True)
     assert_static_rejected("experiment_extra_nested_field", lambda root: change_experiment_gate(root, lambda data: data["records"][0]["necessity_proof"].update({"unexpected": True})), with_experiment=True)
     assert_static_rejected("experiment_claim_not_closed", lambda root: change_experiment_gate(root, lambda data: data["records"][0].update({"affected_claims": ["CLM-MISSING"]})), with_experiment=True)
-    assert_static_rejected("experiment_outline_id_not_closed", lambda root: replace_text(root / "story/paper_outline.md", "TODO-EXPERIMENT-01", "TODO-EXPERIMENT-MISSING"), with_experiment=True)
+    assert_static_rejected("experiment_outline_id_not_closed", lambda root: (root / "story/paper_outline.md").write_text(
+        (root / "story/paper_outline.md").read_text(encoding="utf-8").replace(
+            "TODO-EXPERIMENT-01", "TODO-EXPERIMENT-MISSING"
+        ), encoding="utf-8"
+    ), with_experiment=True)
 
     temporary, paper, base = prepare_fixture()
     try:
@@ -1329,6 +1580,12 @@ def self_test() -> int:
     assert_bundle_rejected("missing_role", lambda bundle: bundle["results"].pop())
     assert_bundle_rejected("duplicate_role", lambda bundle: bundle["results"].__setitem__(0, {**bundle["results"][0], "role": bundle["results"][1]["role"]}))
     assert_bundle_rejected("missing_required_path", lambda bundle: bundle["results"].__setitem__(0, {**bundle["results"][0], "reviewed_paths": ["story/paper_outline.md"], "input_hash": review_input_hash(["story/paper_outline.md"], bundle["path_hashes"])}))
+    def omit_raw_soundness_path(bundle: dict[str, Any]) -> None:
+        result = next(item for item in bundle["results"] if item["role"] == "method_soundness")
+        raw_path = next(path for path in result["reviewed_paths"] if path.startswith(CANONICAL_CURRENT_RAW + "/"))
+        result["reviewed_paths"].remove(raw_path)
+        result["input_hash"] = review_input_hash(result["reviewed_paths"], bundle["path_hashes"])
+    assert_bundle_rejected("missing_raw_soundness_path", omit_raw_soundness_path)
     assert_bundle_rejected("forbidden_blind_field", lambda bundle: bundle["blind_packet"].update({"candidate_claim": "forbidden"}))
     assert_bundle_rejected("raw_keyset_mismatch", lambda bundle: bundle.update({"blind_candidate_keyset": []}))
     assert_bundle_rejected("blind_candidate_omission", lambda bundle: (bundle["final_dispositions"].pop(0), bundle.update({"final_disposition_keyset": ["LATER-01"]})))
@@ -1337,6 +1594,7 @@ def self_test() -> int:
     assert_bundle_rejected("stale_head", lambda bundle: bundle.update({"head": "0" * 40}))
     assert_bundle_rejected("stale_path_hash", lambda bundle: bundle["path_hashes"].update({"README.md": "0" * 64}))
     assert_bundle_rejected("pr_snapshot_live_body_drift", lambda bundle: bundle["pr_final_snapshots"]["r1"].update({"body": "changed", "body_sha256": sha256_bytes(b"changed")}))
+    assert_bundle_rejected("unallowed_r1_body_diff", lambda bundle: bundle["pr_final_snapshots"]["r1"].update({"body": "This is the sole active R1 contract; the old contract is superseded. V3 uses steps. Extra change.", "body_sha256": sha256_bytes(b"This is the sole active R1 contract; the old contract is superseded. V3 uses steps. Extra change.")}))
     assert_bundle_rejected("predicate_review_not_19", lambda bundle: next(result for result in bundle["results"] if result["role"] == "predicate_evidence")["findings"].pop())
     assert_bundle_rejected("experiment_record_jcs_tamper", lambda bundle: bundle["experiment_reviews"][0].update({"jcs_sha256": "0" * 64}), with_experiment=True)
 

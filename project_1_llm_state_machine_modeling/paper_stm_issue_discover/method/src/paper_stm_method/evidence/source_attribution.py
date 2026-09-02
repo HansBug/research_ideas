@@ -15,6 +15,10 @@ def build_source_attribution(
     model_hash: str,
     plan_id: str | None,
     receipt_id: str | None,
+    requirement_quote: str | None = None,
+    source_refs: list[str] | tuple[str, ...] | None = None,
+    binding_element_refs: list[str] | tuple[str, ...] | None = None,
+    binding_precise: bool | None = None,
 ) -> dict[str, Any]:
     attribution = source_chain(
         pair_id=pair_id,
@@ -33,6 +37,13 @@ def build_source_attribution(
         "inspection_facts": "deterministic_inventory_and_diagnostics_only",
         "verify_facts": "deterministic_verification_summary_only",
         "smt_facts": "normalized_formal_inputs_only",
+    }
+    attribution["instance_authority"] = {
+        "requirement_quote": requirement_quote,
+        "source_refs": list(source_refs or ()),
+        "binding_element_refs": list(binding_element_refs or ()),
+        "binding_precise": binding_precise,
+        "reason": "The requirement quote and source references authorize the concrete obligation; exact binding only resolves that authority on the closed current artifact.",
     }
     attribution["reason"] = "Attribution keeps author source, closed model, and deterministic facts as separate authorities."
     attribution["basis"] = "source_chain.v1 plus evidence_discovery source-role policy"

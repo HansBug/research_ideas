@@ -26,7 +26,6 @@ from ..evidence import (
 )
 from ..evidence.receipts import RawReceipt
 from ..evidence.source_attribution import build_source_attribution
-from ..evidence.witness_levels import calculate_witness_level
 from ..inputs import FROZEN_PAIR_IDS, load_pair
 from ..inputs.fcstm_native_projection import (
     load_native_document,
@@ -2599,6 +2598,10 @@ def _prepare_candidate(
         model_hash=pair.hashes["fcstm"],
         plan_id=plan.plan_id,
         receipt_id=receipt.receipt_id,
+        requirement_quote=candidate.requirement_quote,
+        source_refs=candidate.source_refs,
+        binding_element_refs=binding.element_refs,
+        binding_precise=binding.precise,
     )
     attribution["input_context"] = {
         "manifest_hash": pair.context_manifest.manifest_hash if pair.context_manifest else None,
@@ -4652,10 +4655,12 @@ def _method_cell(
         )
         for item in prepared_candidates
     ]
+    receipt_witness_levels = {
+        str(receipt["obligation_id"]): str(receipt["witness_level"])
+        for receipt in execution_receipts
+    }
     primary_route_witness_levels = {
-        str(item["obligation_id"]): calculate_witness_level(
-            item["binding"], item["plan"], item["receipt"]
-        )
+        str(item["obligation_id"]): receipt_witness_levels[str(item["obligation_id"])]
         for item in prepared_candidates
         if item["candidate"].predicate_id is not None
     }

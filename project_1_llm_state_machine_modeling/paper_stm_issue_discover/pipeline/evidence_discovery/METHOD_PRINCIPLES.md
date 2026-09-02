@@ -51,6 +51,12 @@ D dossier 按 `obligation_id` 稳定排序，并按实际序列化字符数在 p
 
 W2 的归因链至少包含当前 NL、PlantUML、canonical source IR、FCSTM、inspect-equivalent facts、model hash、编译后的 assertion/formal program、program hash 与真实 receipt。bibliography 只作为冻结谓词的 academic provenance metadata 留在 registry 和 audit bundle。
 
+### Source-bound instance authority
+
+外部文献只说明某一类状态机或形式义务为何可被提出，不能替当前 pair 选择事件、守卫、有限域、scope、bound、expected occupancy 或 lifecycle action。每个可发表的实例结论必须将这类具体值回指到 `CandidateIssue.requirement_quote` 和 `source_refs`，再经 exact typed binder 解析为当前 `element_refs` 与 predicate inputs。`requirement_quote` 是规范性要求，`source_refs` 定位 NL、PlantUML 或 canonical source IR；二者不由 SMT 输入、FCSTM parser、inspect facts、ledger 或 backend 结果反推。
+
+只有这一实例绑定、closed FCSTM identity、compiled plan/program hash 和 `artifact_attribution` 中 requirement/model/plan/receipt 四段链同时完整，终止 Boolean 才可成为 W2。有限 domain、step bound、cold scenario 或 owner scope 不完整时，后端能力不能补齐其 authority：该候选保持 W1/W0，并把缺口记录为输入或执行边界。这个规则定义方法的来源归属责任，不把 private FCSTM token、AST、`macrostep`、`called()` 或 replay API 伪装成外部领域语义。
+
 ## 3.1 主 route 的输入闭包与 A/B
 
 主链固定为 `typed contract -> compatible predicate set -> exact input binder -> compiler -> native backend`。route 只可读取当前 pair 的 NL、PlantUML、canonical source IR、FCSTM、inspect-equivalent facts、working contracts 与封闭 `ModelIR`；不得读取 ledger expected、Judge、答案、其他 pair 输出或 `pair_id` 特判。

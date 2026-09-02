@@ -253,14 +253,31 @@ def build_predicate_execution_receipt(
 def _artifact_attribution_complete(attribution: dict[str, Any], plan: Any) -> bool:
     """Require the current-artifact chain that a W2 result must expose.
 
-    A legacy direct unit caller may omit the source chain; production callers
-    always pass it. The plan still must carry the compiled program and closed
-    model identity, so a bare receipt cannot accidentally become W2 in runs.
+    A completed backend result is not source-bound merely because it has a
+    model hash.  W2 additionally requires the exact normative quote/source
+    references and the precise carrier binding that connect this concrete
+    execution to the current input pair.
     """
 
     if not getattr(plan, "artifact_attribution_complete", False):
         return False
-    if not attribution:
-        return True
     required = {"requirement", "model", "plan", "receipt"}
-    return required.issubset(attribution)
+    if not required.issubset(attribution):
+        return False
+    instance = attribution.get("instance_authority")
+    if not isinstance(instance, dict):
+        return False
+    quote = instance.get("requirement_quote")
+    source_refs = instance.get("source_refs")
+    element_refs = instance.get("binding_element_refs")
+    return (
+        isinstance(quote, str)
+        and bool(quote.strip())
+        and isinstance(source_refs, list)
+        and all(isinstance(ref, str) and ref.strip() for ref in source_refs)
+        and bool(source_refs)
+        and isinstance(element_refs, list)
+        and all(isinstance(ref, str) and ref.strip() for ref in element_refs)
+        and bool(element_refs)
+        and instance.get("binding_precise") is True
+    )

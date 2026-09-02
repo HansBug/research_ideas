@@ -95,7 +95,7 @@
 | :-- | :-- |
 | 2026-08-12 | 建立。10 个目标 9 个取到全文；两个伪缺口的错因查清；三处元数据被证伪并回写；三条可复用取件结论。 |
 
-## 2026-09-02：Li--Zheng 2025 直接工作取件记录
+## 2026-09-02：Li--Zheng 2025 直接工作全文取件记录
 
 此节只记录 R1 对直接任务风险候选的可复现取件，不改变上文历史来源回收的结论，也不把本地工作卡当成外部全文。目标是 Haibo Li 和 Lixiao Zheng，*Enhancing Requirements via Structured Formalization and Process-State Consistency Validation: An LLM-Assisted Test-Driven Framework*，*IET Software*，2025，DOI `10.1049/sfw2/6714956`。
 
@@ -112,4 +112,8 @@
 
 同日补查确认了这一结论。Crossref 仍将 PDF 与 XML 标为 VOR text-mining links，DOAJ 记录只将 `fulltext` 回指 DOI，OpenAIRE 的 Gold-OA record 只由 Crossref/DBLP 聚合，并未给出 repository instance。常规 `doi/am-pdf/`、`doi/epdf/` 和 `onlinelibrary.wiley.com/doi/am-pdf/` 也都返回 Cloudflare `403` HTML challenge，而非作者稿或 PDF。该轮没有采用代理、绕过挑战或把聚合元数据升级为全文。
 
-因此，截至本次记录，Li--Zheng 仍是直接问题风险候选。已核验的出版社摘要可以用于发现与范围提示；`free_form_nl_input`、`preexisting_fixed_stm_input`、`localized_requirement_relevant_issues_output` 和 `implemented_and_evaluated_on_stm_artifacts` 的最终四字段裁定仍必须等待可复核的一手全文。R1 不能在此之前写 scoped `first` 或“未发现先前工作”。
+### 后续全文取得与处置
+
+上述失败记录保留为取件过程。随后通过出版方内容的 Google Translate 公共镜像取得 VOR HTML：`https://ietresearch-onlinelibrary-wiley-com.translate.goog/doi/full/10.1049/sfw2/6714956?_x_tr_sl=auto&_x_tr_tl=en&_x_tr_hl=en`。该入口于 2026-09-02 返回 HTTP `200`、约 454 KB 的英文全文；R1 逐节阅读 §3--§8、Algorithm 3 和 §6 实验。它不是新的书目或版本，正式引用仍为 DOI `10.1049/sfw2/6714956`。
+
+全文处置为直接任务先例。其四字段均为真：原始 NL 是 phase 1 的显式输入；Algorithm 3 显式接收既有 state model `SM`；输出 `AbnStepPair`，并在 §6 将缺失 `create order`/`convert Shopping Cart to Order` action 定位为应插入 UCS 第 2 与第 3 步之间；实验在一个 Web Store 项目的 20 个有效 UCS 及其状态模型上实施。其任务是 `raw NL -> structured UCS -> activity/state consistency validation -> human refinement`，而不是 Paper1 的固定 source-attributed STM 到 FCSTM typed evidence/replay 任务。故它反证完整输入输出合同的优先权主张，但不等同于 Paper1 的具体 C1/C2 机制。
