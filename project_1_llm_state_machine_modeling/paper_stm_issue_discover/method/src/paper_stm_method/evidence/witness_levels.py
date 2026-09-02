@@ -11,26 +11,17 @@ from .receipts import RawReceipt, build_predicate_execution_receipt
 
 
 def calculate_witness_level(binding: BindingResult, plan: PredicatePlan, receipt: RawReceipt) -> str:
-    """Apply the frozen three-level W protocol without bibliography metadata."""
+    """Return the local preflight W ceiling when no receipt identity is available.
+
+    This legacy helper cannot inspect the exact pair/obligation/model/program/
+    receipt identity, normative quotation, source references, or polarity
+    publication rule.  It therefore never upgrades a record to W2.  Callers
+    that own the complete evidence chain must use
+    :func:`build_predicate_execution_receipt` instead.
+    """
 
     if not binding.precise:
         return "W0"
-    readiness = all(
-        (
-            bool(getattr(plan, "predicate_registered", plan.predicate_id is not None)),
-            bool(getattr(plan, "input_shape_valid", plan.executable)),
-            bool(getattr(plan, "binding_complete", plan.executable)),
-            bool(getattr(plan, "backend_available", plan.executable)),
-            bool(getattr(plan, "soundness_fragment_satisfied", plan.executable)),
-            bool(getattr(plan, "artifact_attribution_complete", plan.executable)),
-        )
-    )
-    if not readiness:
-        return "W1"
-    if receipt.terminal_state == "completed" and receipt.verdict in {"true", "false"}:
-        return "W2"
-    # Timeout, unsupported execution, and errors are represented in the
-    # execution audit. They are W1 with a precise binding, never a fourth W.
     return "W1"
 
 
@@ -65,6 +56,7 @@ def build_evidence_record(
         plan=plan,
         receipt=receipt,
         source_attribution=source_attribution,
+        model_hash=pair.hashes["fcstm"],
         retry_records=retry_records,
         independent_semantic_basis=independent_semantic_basis,
         binding_precise=binding.precise,

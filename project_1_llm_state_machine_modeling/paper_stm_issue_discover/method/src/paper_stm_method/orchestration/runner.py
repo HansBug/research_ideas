@@ -2598,6 +2598,7 @@ def _prepare_candidate(
         model_hash=pair.hashes["fcstm"],
         plan_id=plan.plan_id,
         receipt_id=receipt.receipt_id,
+        plan=plan,
         requirement_quote=candidate.requirement_quote,
         source_refs=candidate.source_refs,
         binding_element_refs=binding.element_refs,
@@ -4651,6 +4652,7 @@ def _method_cell(
             plan=item["plan"],
             receipt=item["receipt"],
             source_attribution=item["source_attribution"],
+            model_hash=pair.hashes["fcstm"],
             binding_precise=item["binding"].precise,
         )
         for item in prepared_candidates

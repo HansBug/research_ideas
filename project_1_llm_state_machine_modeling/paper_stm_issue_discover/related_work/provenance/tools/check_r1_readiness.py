@@ -151,11 +151,9 @@ BLIND_RECORD_SCHEMA_VERSION = "paper1.r1-blind-search-record.v1"
 CANONICAL_CURRENT_RAW = (
     "final_results/v60_current_vs_x1v2_baseline/raw/v60_current/method/method"
 )
-# These filters describe audited claim exclusions. They do not reclassify the
-# frozen runtime data. G2 excludes its completed W2 false receipts; V4 excludes
-# both terminal polarities because a topology leaf probe establishes neither a
-# universal progress proof nor a universal deadlock counterexample.
-IMPACT_RECEIPT_FILTERS = {
+# These filters retain the receipts whose execution scope is narrower than the
+# registry-level proposition. They do not change W eligibility or runtime data.
+SCOPE_RECEIPT_FILTERS = {
     "G2": {"predicate_verdict": {"false"}},
     "V4": {"predicate_verdict": {"true", "false"}},
 }
@@ -467,7 +465,7 @@ def check_catalog(paper_root: Path, errors: list[str]) -> None:
 def check_canonical_receipt_impacts(
     paper_root: Path, rows: list[Any], errors: list[str]
 ) -> None:
-    """Bind claim-exclusion receipt IDs to the immutable current raw archive."""
+    """Bind scope-limited receipt IDs to the immutable current raw archive."""
 
     raw_root = paper_root / CANONICAL_CURRENT_RAW
     if not raw_root.is_dir():
@@ -565,12 +563,11 @@ def check_canonical_receipt_impacts(
         ):
             add_error(errors, f"{receipt['receipt_id']}: W2 receipt lacks typed binding or complete source attribution")
     for row in rows:
-        if not isinstance(row, dict) or row.get("implementation_relation") != "RESOLVED_CLAIM_EXCLUSION":
+        if not isinstance(row, dict):
             continue
         predicate_id = row.get("predicate_id")
-        filters = IMPACT_RECEIPT_FILTERS.get(predicate_id)
+        filters = SCOPE_RECEIPT_FILTERS.get(predicate_id)
         if filters is None:
-            add_error(errors, f"{predicate_id}: claim exclusion has no audited canonical-receipt filter")
             continue
         expected = {
             receipt["receipt_id"]
@@ -585,7 +582,7 @@ def check_canonical_receipt_impacts(
         if actual != expected:
             add_error(
                 errors,
-                f"{predicate_id}: canonical claim-exclusion receipt IDs differ: "
+                f"{predicate_id}: canonical scope-audit receipt IDs differ: "
                 f"missing={sorted(expected - actual)}, extra={sorted(actual - expected)}",
             )
     catalog = load_json(paper_root / "related_work/provenance/current_source_catalog.json")
@@ -775,9 +772,30 @@ def check_experiment_mentions(paper_root: Path, valid_ids: set[str], errors: lis
         if unknown:
             add_error(errors, f"{path.name}: unknown TODO-EXPERIMENT IDs {sorted(unknown)}")
     outline_text = outline.read_text(encoding="utf-8")
+    gate = load_json(paper_root / "story/experiment_dependent_gates.json")
+    records = {
+        record["id"]: record
+        for record in gate.get("records", [])
+        if isinstance(record, dict) and isinstance(record.get("id"), str)
+    }
     for experiment_id in valid_ids:
-        if experiment_id not in outline_text:
-            add_error(errors, f"{experiment_id}: experiment record is not cited by the canonical outline")
+        record = records.get(experiment_id, {})
+        represented = False
+        for anchor in record.get("outline_locations", []):
+            match = re.search(
+                rf'<a id="{re.escape(anchor)}"></a>(.*?)(?=<a id="|\Z)',
+                outline_text,
+                flags=re.DOTALL,
+            )
+            if match and re.search(
+                r"独立(?:组件|作用|增量).*(?:不在|不估计|未估计|无法识别)|"
+                r"(?:不在|不估计|未估计|无法识别).*独立(?:组件|作用|增量)",
+                match.group(1),
+            ):
+                represented = True
+                break
+        if not represented:
+            add_error(errors, f"{experiment_id}: experiment boundary is not stated at its canonical outline location")
 
 
 def check_inventory(paper_root: Path, errors: list[str]) -> None:
@@ -1188,7 +1206,7 @@ def self_test() -> int:
             "metric": "FULL hit@1 and report validity precision.",
             "affected_claims": ["CLM-C1"],
             "affected_rqs": ["RQ1"],
-            "outline_locations": ["outline-9"],
+            "outline_locations": ["outline-self-test-experiment"],
             "forbidden_pre_experiment_claims": ["No cross-language empirical effect is claimed before the experiment."],
             "temporary_writable_conclusion": "The current PlantUML case study does not estimate another adapter's effect.",
             "blocks_r1_ready": False,
@@ -1235,7 +1253,7 @@ def self_test() -> int:
 
         for audit in catalog["r1_citation_audit"]["predicate_audits"]:
             predicate_id = audit["predicate_id"]
-            if predicate_id not in IMPACT_RECEIPT_FILTERS:
+            if predicate_id not in SCOPE_RECEIPT_FILTERS:
                 continue
             for receipt_id in audit["impact"]["receipt_ids"]:
                 if receipt_id in v4_true_receipts:
@@ -1300,7 +1318,7 @@ def self_test() -> int:
             outline.write_text(
                 outline.read_text(encoding="utf-8")
                 + "\n\n<a id=\"outline-self-test-experiment\"></a>\n"
-                + "本隔离 fixture 引用 `TODO-EXPERIMENT-01`，仅用于检查实验合同闭合。\n",
+                + "本隔离 fixture 说明确定性检查信息的独立组件效应不在本研究的估计范围内。\n",
                 encoding="utf-8",
             )
         run_git(repository, "init", "-q")
@@ -1564,9 +1582,9 @@ def self_test() -> int:
     assert_static_rejected("experiment_extra_record_field", lambda root: change_experiment_gate(root, lambda data: data["records"][0].update({"unexpected": True})), with_experiment=True)
     assert_static_rejected("experiment_extra_nested_field", lambda root: change_experiment_gate(root, lambda data: data["records"][0]["necessity_proof"].update({"unexpected": True})), with_experiment=True)
     assert_static_rejected("experiment_claim_not_closed", lambda root: change_experiment_gate(root, lambda data: data["records"][0].update({"affected_claims": ["CLM-MISSING"]})), with_experiment=True)
-    assert_static_rejected("experiment_outline_id_not_closed", lambda root: (root / "story/paper_outline.md").write_text(
+    assert_static_rejected("experiment_outline_boundary_not_closed", lambda root: (root / "story/paper_outline.md").write_text(
         (root / "story/paper_outline.md").read_text(encoding="utf-8").replace(
-            "TODO-EXPERIMENT-01", "TODO-EXPERIMENT-MISSING"
+            "确定性检查信息的独立组件效应不在本研究的估计范围内", "本案例报告端到端结果"
         ), encoding="utf-8"
     ), with_experiment=True)
 

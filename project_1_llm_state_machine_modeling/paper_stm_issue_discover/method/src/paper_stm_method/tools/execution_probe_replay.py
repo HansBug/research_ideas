@@ -210,7 +210,7 @@ class ExecutionProbeReplaySummary(BaseModel):
     basis: str = Field(min_length=1, description="Current deterministic-chain and real native-receipt basis.")
 
 
-def _source_attribution(pair: Any, obligation_id: str, plan_id: str, receipt_id: str) -> dict[str, Any]:
+def _source_attribution(pair: Any, obligation_id: str, plan: Any, receipt_id: str) -> dict[str, Any]:
     """Build complete current artifact attribution for one deterministic probe."""
 
     return build_source_attribution(
@@ -219,8 +219,9 @@ def _source_attribution(pair: Any, obligation_id: str, plan_id: str, receipt_id:
         nl_path=pair.pair_dir / "nl.txt",
         model_path=pair.pair_dir / "fcstm.fcstm",
         model_hash=pair.hashes["fcstm"],
-        plan_id=plan_id,
+        plan_id=plan.plan_id,
         receipt_id=receipt_id,
+        plan=plan,
     )
 
 
@@ -408,7 +409,7 @@ def _execute_probe(*, pair: Any, source_file: str, source_hash: str, replay_id: 
             reason="Current native backend raised before returning a receipt; no Boolean violation was created.",
             basis=f"backend_error={type(exc).__name__}; frozen native backend execution",
         )
-    attribution = _source_attribution(pair, obligation_id, plan.plan_id, receipt.receipt_id)
+    attribution = _source_attribution(pair, obligation_id, plan, receipt.receipt_id)
     execution_receipt = build_predicate_execution_receipt(
         pair_id=pair.pair_id,
         run_id=replay_id,
@@ -417,6 +418,7 @@ def _execute_probe(*, pair: Any, source_file: str, source_hash: str, replay_id: 
         plan=plan,
         receipt=receipt,
         source_attribution=attribution,
+        model_hash=pair.hashes["fcstm"],
         retry_records=[],
         independent_semantic_basis=False,
         binding_precise=binding.precise,

@@ -4,7 +4,7 @@
 
 | 指标组与冻结数值 | disposition | canonical source | 论文处理与限制 |
 | --- | --- | --- | --- |
-| 数据结构：9 个在用自然语言簇、每簇 6 个制品、54 pair、145 条 source-backed expected issues、3 rounds、435 round-level units | `included_in_main` | `derived/fair_comparison_v4/combined_summary_v4.json`；`derived/fair_comparison_v4/protocol_freeze_v4_fair_comparison.md` | Table 4 和第 8 节说明 54 不是独立需求数，435 是 145 条问题的三轮重复观测。 |
+| 数据结构：9 个在用自然语言簇、每簇 6 个制品、54 pair、145 条 source-backed expected issues、3 rounds、435 round-level units | `included_in_main` | `derived/fair_comparison_v4/combined_summary_v4.json`；`derived/fair_comparison_v4/protocol_freeze_v4_fair_comparison.md` | 表 4 和第 5 节说明 54 不是独立需求数，435 是 145 条问题的三轮重复观测。 |
 | overall FULL `hit@1`：current `310/435=71.26%`，baseline `227/435=52.18%` | `included_in_main` | `derived/fair_comparison_v4/combined_summary_v4.json` | Table 5 和 RQ1 主回答；只作本案例研究的描述性比较。 |
 | L2 FULL `hit@1`：current `105/117=89.74%`，baseline `50/117=42.74%` | `included_in_main` | `derived/fair_comparison_v4/combined_summary_v4.json` | Table 5 的分层结果；117 是 L2 round-level units，不和 435 混用。 |
 | overall FULL `hit@3`：current `119/145=82.07%`，baseline `106/145=73.10%` | `included_in_main` | `derived/fair_comparison_v4/combined_summary_v4.json` | Figure 3/Table 6 的 coverage 曲线端点；分母是 unique expected issues。 |
@@ -13,7 +13,7 @@
 | supported coverage：round units current `337/435=77.47%`、baseline `264/435=60.69%`；unique IDs `128/145=88.28%`、`119/145=82.07%` | `included_in_appendix` | `derived/fair_comparison_v4/combined_summary_v4.json` | 附录完整分层表；正文仅用于说明它不替代 PRIMARY FULL hit。 |
 | reports：current `1271`，baseline `512` | `included_in_main` | `derived/fair_comparison_v4/combined_summary_v4.json` | 与 precision 同列，显示 coverage 增加伴随更多报告。 |
 | report validity precision：current `980/1271=77.10%`，baseline `417/512=81.45%`，差 `-4.34 pp` | `included_in_main` | `derived/fair_comparison_v4/combined_summary_v4.json` | Figure 3/Table 6 报告 coverage--precision 权衡；这是 report-level validity，不是状态机语义真值率。 |
-| FULL hits 的最大 W：current W0/W1/W2=`0/113/197`（分母 310），baseline=`0/227/0`（分母 227） | `included_in_main` | `derived/fair_comparison_v4/combined_summary_v4.json`；`related_work/provenance/predicate_provenance.md` | Table 7 报告冻结 runtime witness 分布；baseline 没有同构 receipt schema。G2 的 2 条、V4 的 88 条和 source-authority 未闭合的 125 条历史 false W2 不得按更强的发表命题解释。 |
+| W：FULL hits 的历史最大 W 为 current `0/113/197`（分母 310），baseline=`0/227/0`；来源绑定投影和最终 FULL-hit W 均为 current `0/142/168`；报告级伴随分布为 `0/854/417`（分母 1271） | `included_in_main` | `derived/fair_comparison_v4/combined_summary_v4.json`；`related_work/provenance/predicate_provenance.md`；`related_work/provenance/publication_w_audit.json` | Table 7 分开报告历史、FULL-hit 主指标和报告级诊断。125 条 finding rows 汇聚为 105 报告和 45 个 FULL-hit cells，29 个最大 W cells 从 W2 降为 W1，16 个由其他合格 W2 保持，W1->W2 为 0。最终只读取既有报告和回执：105 份报告因来源授权降为 W1，417 份历史 W2 报告保留 W2。G2/V4/V5 的谓词或极性字段限制最强语义主张，不把合格执行降为 W1。FULL-hit 指标不改变 issue 集合、FULL 命中、报告有效性或精确率。 |
 | receipt/binding 使用：terminal-receipt predicate IDs `12/19`，report-bound predicate IDs `8/19` | `included_in_main` | `derived/fair_comparison_v4/combined_summary_v4.json` | Table 7；这是 distinct-ID usage，不是 defect coverage、边际贡献或 baseline 的等价零值。 |
 | K/N/I：current `749/231/291`，baseline `312/105/95` | `included_in_main` | `derived/fair_comparison_v4/combined_summary_v4.json` | RQ3 说明机器在既有人工字段上闭合的记账类别，不能把 K/N/I 当作缺陷类型。 |
 | D2/D1/D0/A0：current `721/259/120/171`，baseline `342/75/85/10` | `included_in_main` | `derived/fair_comparison_v4/combined_summary_v4.json` | RQ3 的人工裁定组成；不暗示独立双人标注或一致性统计。 |

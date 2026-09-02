@@ -8,7 +8,7 @@
 
 `W2` 还必须有精确 binding、受支持 fragment、终止 Boolean receipt 和 hash-bound replay。`true` 表示通过该 fragment，`false` 是该 fragment 内的反例；均不替代人工 D/A、有效性、relation 或 K/N/I。`unknown`、`failure` 一律不可作为机械证实。当前合同还要求非空 requirement quote、source refs 和精确 element refs；其回归测试阻止只有模型哈希的回执升级为 W2。方法语义的版本化依据是 `pipeline/evidence_discovery/METHOD_PRINCIPLES.md` §§2--3、`method/src/paper_stm_method/compiler/soundness.py`、`backends/{topology,bounded_verification}.py` 与 `method/tests/test_provider_free_fixture.py`。
 
-历史 raw 记录早于这一 instance-authority 字段。对其中 627 条 false W2，R1 在同一 method-cell payload 内按 `obligation_id` 连接 evidence record，并要求该 record 的内嵌 receipt ID 与 raw receipt ID 一致。502 条同时有非空 quote/source refs 和精确、非空 element binding；125 条不满足这项更强的发表条件，分别为 G1 `37`、S2 `84`、S3 `1`、S4 `3`。这 125 条的精确 receipt ID 在 `current_source_catalog.json` 的 `r1_citation_audit.historical_source_authority_exclusion` 中列出并由 readiness checker 从冻结 raw 复算。它们只从“source-bound mechanical counterexample”的论文解释中排除，绝不改变历史 W、报告、命中或任何 headline 数字；602 条 historical true W2 是 satisfaction audit，不当作 requirement-relative issue finding。
+历史 raw 记录早于这一 instance-authority 字段。对其中 627 条 false W2，R1 在同一 method-cell payload 内按 `obligation_id` 连接 evidence record，并要求该 record 的内嵌 receipt ID 与 raw receipt ID 一致。502 条同时有非空 quote/source refs 和精确、非空 element binding；125 条不满足这项发表条件，分别为 G1 `37`、S2 `84`、S3 `1`、S4 `3`。这 125 条的精确 receipt ID 在 `current_source_catalog.json` 的 `r1_citation_audit.historical_source_authority_exclusion` 中列出并由 readiness checker 从冻结 raw 核验。它们保留已完成的执行、历史 W、报告和命中事实，但其报告级发表 W 从 W2 降为 W1；602 条 historical true W2 是 satisfaction audit，不当作 requirement-relative issue finding。
 
 ## 双向 legacy/current crosswalk
 
@@ -33,7 +33,7 @@
 | `cardinality` | -- | `not_carried` | NL 指定任意 N 与 UML 固定 multiplicity 不同。 | `ST1`; `d1b4d71c7` 与 `related_work/provenance/archive/legacy_20260821/predicate_provenance.md`。 |
 | `variable_delta_after` | -- | `not_carried` | 后值义务未进入冻结四族最小 surface。 | `TR1,TR2`; `d1b4d71c7` 与 `related_work/provenance/archive/legacy_20260821/predicate_provenance.md`。 |
 
-上表覆盖 legacy 的 19 个唯一 key，current keyset 精确为 `S1--S6,G1--G4,R1--R4,V1--V5`。来源池重映射见 `3e4e003e1`，四族注册冻结见 `d1b4d71c7`，native execution 统一见 `056997691`，历史裁定见 `692783fe1`/`08a034ba8`。旧路线没有证据证明设计者从未接触 54-pair 台账，故本文只使用 **literature-informed, retrospectively consolidated evidence layer**，不用 preregistered 或 evaluation-independent taxonomy。
+上表覆盖 legacy 的 19 个唯一 key，current keyset 精确为 `S1--S6,G1--G4,R1--R4,V1--V5`。历史材料表明，状态机检查义务先由领域分析、真实文献、标准和形式/技术资料归纳，随后用于 54 个输入对的提示与类型化绑定；来源池重映射见 `3e4e003e1`，四族注册冻结见 `d1b4d71c7`，native execution 统一见 `056997691`，历史裁定见 `692783fe1`/`08a034ba8`。当前 ID 和表达的版本化重映射需要此 crosswalk 与逐条引文审计，但不改变该体系的学术普查来源，也不把它写成从台账或方法输出调优的分类学。
 
 ## 书目与逐字引文
 
@@ -105,7 +105,7 @@
 
 **现行精确命题。** “A named element of the specified kind belongs to the closed declaration inventory.” NL 明示 state/event/variable/action/effect 时才产生存在义务；外部 UML 文本只为已使用的 state-machine carrier 提供元模型位置，不声称用一条 transition 引文覆盖所有类别。[`ST1,ST2,ST4`; ^uml251]
 
-**义务与出处。** legacy 的 `event_declared`、`variable_declared`、`state_declared` 在 S1 合并为 kind-parametric inventory；没有把未绑定的业务元素纳入。`ST1,ST2,ST4` 是冻结 source-unit mapping。UML 的 transition/endpoint 全文逐字引文、版本与页码见 [^uml251] 和 [Q-UML-transition](#quote-uml-transition)，它只证明这些元素在状态机元模型中的相关载体位置；各类别的 required existence 由当前 pair 的 NL binding 产生，不能把 UML optionality 或一条 endpoint 引文误写成五类业务元素的无条件外部义务。chronology/leakage：来源池由 `3e4e003e1` 重映射、registry 由 `d1b4d71c7` 冻结，故只能称 literature-informed、retrospectively consolidated。
+**义务与出处。** legacy 的 `event_declared`、`variable_declared`、`state_declared` 在 S1 合并为 kind-parametric inventory；没有把未绑定的业务元素纳入。`ST1,ST2,ST4` 是冻结 source-unit mapping。UML 的 transition/endpoint 全文逐字引文、版本与页码见 [^uml251] 和 [Q-UML-transition](#quote-uml-transition)，它只证明这些元素在状态机元模型中的相关载体位置；各类别的 required existence 由当前 pair 的 NL binding 产生，不能把 UML optionality 或一条 endpoint 引文误写成五类业务元素的无条件外部义务。chronology/leakage：来源池在 `3e4e003e1` 进行版本化重映射，registry 在 `d1b4d71c7` 冻结；这两步维护 current surface 的可追溯性，不改变该义务来自领域学术普查的历史事实。
 
 **方法、实例与 W2。** registry 的 kind-parametric inventory 是义务层；native source-static backend 仅执行 `state`、`event`、`transition`/`edge` 的 `closed_fcstm` membership。variable、action、effect、composite 或 owner-local scope 不在 S1 的可执行片段，必须保持 W1/W0 或由其他谓词处理。实例的 kind、名称和 scope 仍须来自精确 NL/source binding。W2 还要求合法 typed inputs、终止 Boolean receipt 和 hash-bound replay，缺任一项不把运行结论升格为论文主张。
 
@@ -191,9 +191,9 @@
 
 **义务与出处。** `reaches` 的全称分支和 `terminates` 的必达成分在 G2 汇合，外部 property-pattern/路径语义 source units 为 `TP2,TP3,TP4`。UPPAAL 的 `A<> p` 全文逐字定义见 [Q-UPPAAL-state-space](#quote-uppaal-state-space) 与 [^uppaal]，它明确是“在所有路径上最终满足 p”，因此承载这里的全路径 eventuality；Dwyer 的 Absence/Universality 文字不被误用为 eventuality 定义。Biere 等只说明 bounded encoding 何时需要 completion/lasso 才能承载无界结论。它们均不为本项目设置 horizon。chronology/leakage：当前命题由 `d1b4d71c7` 冻结，native receipt 由 `056997691` 统一，均不能倒写为 preregistration。
 
-**方法、实例与 W2。** `H=declared-state count`、`.fbmcq` query 和 receipt decoding 是方法语义；起点、目标和 graph completion 是实例 binding。由于没有 lasso/completeness 论证，W2 不能承载 registry 的无界全称命题，故 publication exclusion 是语义裁定，不是新实验问题。
+**方法、实例与 W2。** `H=declared-state count`、`.fbmcq` query 和 receipt decoding 是方法语义；起点、目标和 graph completion 是实例 binding。完成的 Boolean 执行在受支持的有界片段上可形成 W2；没有 lasso/completeness 论证只限制其可写成的语义范围，不能把该执行改写为 W1，也不能将其表述为 registry 的无界全称命题。
 
-**执行、极性与发表。** `RESOLVED_CLAIM_EXCLUSION`。backend 检查 `must_reach <= H`，`H=declared-state count`，没有 lasso 或 completeness 论证。状态：`QUALIFIED_EXTERNAL; SPECIFIED_AND_TESTED; SOURCE_BOUND`。`true`、`false`均 `NOT_APPLICABLE/INELIGIBLE`，claim scope 是“历史 runtime receipt，不是无界 G2”；`unknown`、`failure`同样 INELIGIBLE。影响：排除 `0020:r3:i1:receipt`、`0020:r3:i5:receipt` 共 2 条 W2 的论文级解释，原 W2 和 headline 不变。
+**执行、极性与发表。** `IMPLEMENTATION_SUBSET`。backend 检查 `must_reach <= H`，`H=declared-state count`，没有 lasso 或 completeness 论证。状态：`QUALIFIED_EXTERNAL; SPECIFIED_AND_TESTED; SOURCE_BOUND`。在绑定、身份链和终止回执闭合时，`true`、`false`均为 `W2/ELIGIBLE`，其 claim scope 是声明界限内的 G2 查询结果；`unknown`、`failure`为非 W2。`0020:r3:i1:receipt` 与 `0020:r3:i5:receipt` 保留为 W2，但不得扩写成无界全路径最终可达性证明。
 
 ### G3 `route_avoids`
 
@@ -311,9 +311,9 @@
 
 **义务与出处。** `terminates` 的 progress 成分在 V4 单列，不与 G2/G4 混用。`TP4` 提供对所有路径或所有可达配置量化的外部形式依据；`BV8,BV7,BV9` 仅映射并发状态空间、deadlock audit 与 TLA+ 的技术术语和边界。André 等对 UML state-machine semantics/model-checking translation 的全文逐字引文、版本和页码见 [^andrec2023]。这支撑 configuration-level formal obligation，不把 local leaf probe 写成外部 theorem。chronology/leakage：native receipt unified 于 `056997691`，R1 仅收窄其发表解释。
 
-**方法、实例与 W2。** topology-reachable leaves、hot start、one-step probe、state-preserving effects 与 valuation coverage 的实现差异由 method audit 定义；initial scope 必须来自 source/NL binding。既有 probe 没有枚举 all reachable configurations，故所有极性均无 publication W2，82 个 terminal-false 与 6 个 terminal-true receipt IDs，共 88 条历史 W2，被列入 impact exclusion，而非重新运行或修改 canonical data。
+**方法、实例与 W2。** topology-reachable leaves、hot start、one-step probe、state-preserving effects 与 valuation coverage 的实现差异由 method audit 定义；initial scope 必须来自 source/NL binding。既有 probe 的完成 Boolean 执行可在其声明的叶状态探测片段上形成 W2；它没有枚举所有可达稳定配置，因此不能作为全局无死锁结论。
 
-**执行、极性与发表。** `RESOLVED_CLAIM_EXCLUSION`。backend 在 topology-reachable stable leaves 做 one-step probe，未枚举 all reachable configurations，且 hot start、state-preserving effect与 valuation覆盖未闭合。状态：`QUALIFIED_EXTERNAL; SPECIFIED_AND_TESTED; SOURCE_BOUND`。`true`、`false`均 `NOT_APPLICABLE/INELIGIBLE`，`unknown`、`failure`同样 INELIGIBLE。影响：排除 `current_source_catalog.json` 中精确列出的 88 条 V4 历史 W2 的全称论文级解释，其中 82 条为 terminal-false、6 条为 terminal-true；保留历史 receipt、W 和 headline。
+**执行、极性与发表。** `IMPLEMENTATION_SUBSET`。backend 在 topology-reachable stable leaves 做 one-step probe，未枚举 all reachable configurations，且 hot start、state-preserving effect 与 valuation 覆盖有明确边界。状态：`QUALIFIED_EXTERNAL; SPECIFIED_AND_TESTED; SOURCE_BOUND`。在绑定、身份链和终止回执闭合时，`true`、`false`均为 `W2/ELIGIBLE`，其 claim scope 限于该叶状态探测；`unknown`、`failure`为非 W2。82 条 terminal-false 与 6 条 terminal-true 的既有 W2 保留 W2，但均不能扩写为全局无死锁证明。
 
 ### V5 `state_invariant`
 
@@ -323,10 +323,10 @@
 
 **义务与出处。** legacy `persists_until`、`invariant` 合并为 V5 的 occupancy safety core；当前 true 的有限通过不再继承 legacy 的强名称。`TP3,TP3B,TP3C` 连接 safety/path sources，Dwyer 等的 universality property pattern 全文逐字引文、页码和样本边界见 [^dwyer1999]。它只支撑无界 invariant 的规范形状，expected occupancy 是 source/NL binding。chronology/leakage：`3e4e003e1` 重映射，`056997691` 固化 runtime path，均非 evaluation-independent registration。
 
-**方法、实例与 W2。** finite horizon、initial scope、solver program 和 replay are method-owned；state/expected occupancy/initial scope 是实例 authority。bounded `false` 加上 exact binding 和 complete replay 是对无界 invariant 的单向反例，bounded `true` 不是证明。因此 `false` 可 W2，其他极性维持 W1/INELIGIBLE。
+**方法、实例与 W2。** finite horizon、initial scope、solver program 和 replay 是方法语义；state、expected occupancy 与 initial scope 是实例 authority。完成的 Boolean 执行在声明的有限范围内可形成 W2；bounded `false` 还可作为无界不变式的单向反例，bounded `true` 只确认该有限范围，不能证明无界性质。
 
-**执行、极性与发表。** `SOUND_FALSE_PROXY`。有限 horizon 内的 `false` 是无界 invariant 的有效反例，bounded `true` 不证明无界性质。状态：`QUALIFIED_EXTERNAL; SPECIFIED_AND_TESTED; SOURCE_BOUND`。`false`为 `W2/ELIGIBLE`，scope 是完整 binding/replayed counterexample；`true`为 `W1/INELIGIBLE`；`unknown`、`failure`为 `W1/INELIGIBLE`。影响 0。
+**执行、极性与发表。** `IMPLEMENTATION_SUBSET`。有限 horizon 内的 `false` 是无界 invariant 的有效反例，bounded `true` 不证明无界性质。状态：`QUALIFIED_EXTERNAL; SPECIFIED_AND_TESTED; SOURCE_BOUND`。在绑定、身份链和终止回执闭合时，`true`、`false`均为 `W2/ELIGIBLE`；`true` 的 claim scope 是声明 horizon 内的通过，`false` 还构成无界不变式的单向反例；`unknown`、`failure`为非 W2。影响 0。
 
 ## 发表面结论
 
-19/19 均为 `QUALIFIED_EXTERNAL`、`SPECIFIED_AND_TESTED`、`SOURCE_BOUND`；没有把 private FCSTM semantics 洗成外部传统。G2 的 2 条和 V4 的 88 条历史 W2 保留为冻结 runtime evidence，但不再作为全称论文级 W2 证明；另有 125 条历史 false W2 缺少当前合同要求的 source-authority 闭合，不能写成来源绑定的机械反例。V3 的 milliseconds 合同已修复。其余 W2 只能按上文 fragment 和 polarity 书写。19 条不是完备 defect taxonomy，也不是 evaluation-independent preregistration。
+19/19 均为 `QUALIFIED_EXTERNAL`、`SPECIFIED_AND_TESTED`、`SOURCE_BOUND`；没有把 FCSTM 私有语义写成外部传统。G2 的 2 条、V4 的 88 条和 V5 的有限范围回执均保留其 W2 执行确认；它们的限制是论文不能把有界查询或叶状态探测扩写为无界全称定理。另有 125 条历史 false W2 缺少当前合同要求的 source-authority 闭合，报告级发表 W 因而降为 W1。V3 的 milliseconds 片段不在后端支持范围。19 条不是完备 defect taxonomy；当前四族 ID 是对既有学术普查义务的版本化重映射，不是由 54 个输入对、145 条台账或方法输出调优得到的体系。

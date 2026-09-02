@@ -17,7 +17,7 @@
 5. `d_adjudication` 及其受限 correction 执行候选筛选并保留审计和降级信息，不产生 Paper1 的 D/A 裁定。
 6. `publish` 输出方法发现，并按 exact typed identity 去重；Paper1 的发布级 D2/D1 处置来自独立人工评测。
 
-四族 19 个冻结谓词为可执行证据提供 route，不是发现或 publication 的准入门。W2 要求精确制品、合法 typed input、声明的语义与可靠性片段、真实 backend terminal `true`/`false` 和完整 receipt。输入缺失、谓词约定未闭合、timeout 或 backend failure 不会成为 W2；仍在 Paper1 声明范围内且具体但未闭合的发现仍可为 W1，无法具体定位的主张为 W0。全局范围外的语言或模型语义不进入 finding。D2/D1 的 Paper1 发布级处置来自人工评测；L 只属于 ledger，不由方法生成。
+四族 19 个冻结谓词为可执行验证提供 route，不是发现的准入门。W2 同时要求受支持片段、精确实例绑定、pair/obligation/plan/model/program/receipt 的精确身份链、非空且可核验的需求引文/来源引用/绑定引用，以及完成的原生 backend `true`/`false` 回执。输入缺失、资格未闭合、timeout 或 backend failure 不会成为 W2；仍在 Paper1 声明范围内且具体但未闭合的发现仍可为 W1，无法具体定位的主张为 W0。来源归属不完整只降低 W2 资格，不得把已经完成的执行改写为 `failed`、`blocked` 或空布尔值。谓词/极性元数据限制论文可对完成回执作出的最强语义主张，例如有界检查不能充当无界证明；它们不降低来源绑定且已完成 Boolean 执行的 W2。全局范围外的语言或模型语义不进入 finding。D2/D1 的 Paper1 发布级处置来自人工评测；L 只属于 ledger，不由方法生成。
 
 ## 安装与命令
 

@@ -43,6 +43,12 @@
 
 IET 的 Crossref record 给出 VOR PDF 和 full XML text-mining URLs，DOAJ 标为 Gold OA CC-BY。常规出版社入口和先前的可见浏览器会话曾停在 Cloudflare 验证页；随后以出版方内容的 Google Translate 公共镜像取得约 454 KB 的 VOR HTML，并逐节复核 §3--§8、Algorithm 3 与 §6 实验。该镜像只解决本文阅读与核验，不改变 DOI 作为正式引用入口。取件过程和全文处置见 [recovery log](./provenance/recovery_log.md) 与 [IET card](./neighborhood/cards/iet-software-2025-consistency-traceability.md)。
 
+### IET 的分析性 L 映射
+
+下列映射使用 Paper1 的 L 定义，不能理解为 Li 与 Zheng 的原始分类。IET §5.2 的 Semantic Consistency 询问活动图中的业务对象是否出现在 UCS 中，因此对应 L0 的存在/表面对齐；Process Consistency 要求输入业务对象先于输出业务对象出现，对应 L1 的局部顺序；State Consistency 检查触发迁移的 action 是否出现在 UCS 中以及 action 的相对顺序是否保持，对应 L1，至多处于 L1/L2 边界。`AbnStepPair` 是定位的步骤对，不因名称而成为 L2 行为分析。
+
+IET 的三条规则和 Web Store 实验没有展示跨多条迁移构造或排除执行路径、从初始状态到目标状态的可达性、进入状态后无后继的死端或终止、事件消费和状态保持的轨迹、守卫互斥/完备、有限步响应或有界不变式、全局交互约束。该空缺限定宽泛先例对 Paper1 的影响：它撤销完整输入输出合同的优先权，不覆盖 Paper1 以固定源状态机为对象的 L2 候选、来源保持 FCSTM、19 条类型化义务和来源绑定原生回放回执。
+
 ### 盲搜 candidate ID 的逐项处置
 
 下表保留盲搜 raw record 的六个原始 candidate ID，不用论文简称或规范化 DOI 替换它们。四项布尔判断来自盲搜；解盲后的全文核验只更新 disposition evidence，不回写盲搜判断。`doi:10.1049/sfw2.6714956` 与正文中的 `10.1049/sfw2/6714956` 是同一 DOI 的点号/斜杠显示差异，不能算两个 candidate。
@@ -65,7 +71,7 @@ IET 的 Crossref record 给出 VOR PDF 和 full XML text-mining URLs，DOAJ 标�
 | Ahmed et al., MCeT | free-style NL + existing PlantUML **sequence diagram**；输出 localized NL issues。 | 三路 holistic/diagram-atom/requirement-atom LLM check，最终报告是 requirements-to-diagram correctness issues。 | parser 只抽 atoms；correctness 和 same-root-cause equivalence 都有人评估。它并非“没有 relation”，本文的差异是 separately recorded validity/relation/ledger protocol，不是首次做 relation 或更高一致性。 | sequence diagram 没有 persistent state、hierarchy、transition/guard/action semantics、reachable configuration 或 state-space quantification。它没有 FCSTM-like executable representation、four-family typed lowering、hash-bound FCSTM-backend replay、W2/W1/W0 或 compiler/runtime/projection failure isolation。它称可适配其他语言，但 threats/conclusion 将其他 behavioral models 留为 future work，未实现和评测 STM task。[^mcet] |
 | Li and Zheng | 原始 NL 经结构化与 UCS 转换；Algorithm 3 以 UCS 和既有业务对象 UML 状态机为输入，输出定位的 `AbnStepPair`。 | Rule 1 的业务对象存在/对齐按本文 L 口径为 L0；Rule 2 的输入先于输出为 L1 局部顺序；Rule 3 的 action 存在和相对顺序为 L1，至多位于 L1/L2 边界。该映射是本文分析，不是 IET 原文术语。 | VOR 全文经出版方内容的 Google Translate 镜像逐节核验。流程在一个 Web Store 项目、20 个有效 UCS 和其状态机制品上实施；论文没有公开可执行实现、source-attributed fixed-artifact 协议或原生状态机回执。 | 直接任务先例，排除完整输入输出合同的优先权主张。其规则没有构造执行路径或分析可达性、死锁/终止、事件响应和全局交互；本文针对这类 L2 行为问题，以固定源 STM、可追溯 FCSTM、19 条类型化义务、原生回执和独立 D/A/relation/ledger 责任组织发现。[^li_zheng] |
 
-MCeT 表明不应把主张写成“第一个根据 NL 自动评价行为图”或“第一个输出细粒度问题”。Li--Zheng 已在 VOR 全文中实现并评测原始 NL、既有状态机和定位异常的组合，因此本文不主张完整输入输出合同的优先权。按本文的 L 分层，IET 的 Semantic/Process/State Consistency 分别覆盖 L0、L1 和至多 L1/L2 边界的静态关系。该文没有展示跨多条迁移的路径构造或排除、初始态到目标态的可达性/必达性、无退出死端或终止、运行轨迹中的事件消费/状态保持、守卫互斥或完备、有限步响应/不变式和全局交互检查。`EIS-0002-02` 的不可达状态、`INS-0002-02` 的可达死端、`EIS-0029-05` 的跨层路由和 `INS-0029-05` 的非终止行为正落在这一区间。该映射说明 IET 的真实覆盖边界，并不否定其作为宽泛任务先例的价值。本文的具体增量是将这些 L2 候选组织为固定 source STM 上的来源保存 FCSTM、类型化义务和可回放证据；IET 的确定性 Rule 3 仍是 UCS action 与状态迁移的比较，其流程会结构化和精化需求，也没有本文的 FCSTM 原生回执或分账人工协议。
+MCeT 表明不应把主张写成“第一个根据 NL 自动评价行为图”或“第一个输出细粒度问题”。Li--Zheng 已在 VOR 全文中实现并评测原始 NL、既有状态机和定位异常的组合，因此本文不主张完整输入输出合同的优先权。按本文的 L 分层，IET 的 Semantic/Process/State Consistency 分别覆盖 L0、L1 和至多 L1/L2 边界的静态关系。该文没有展示跨多条迁移的路径构造或排除、初始态到目标态的可达性/必达性、无退出死端或终止、运行轨迹中的事件消费/状态保持、守卫互斥或完备、有限步响应/不变式和全局交互检查。`EIS-0002-02` 的不可达状态、`INS-0002-02` 的可达死端、`EIS-0029-05` 的跨层路由和 `INS-0029-05` 的非终止行为正落在这一区间。该映射说明 IET 的真实覆盖边界，并不否定其作为宽泛任务先例的价值。本文的具体增量是以来源保存 FCSTM 和确定性 inspect 增强固定 source STM 上这些 L2 问题的发现，再以类型化义务和后端回放确认适用发现；IET 的确定性 Rule 3 仍是 UCS action 与状态迁移的比较，其流程会结构化和精化需求，也没有本文的 FCSTM 原生回执或分账人工协议。
 
 ## 承重工作的全文复核维度
 
@@ -78,7 +84,7 @@ MCeT 表明不应把主张写成“第一个根据 NL 自动评价行为图”�
 | de Biase 等（GWT） | Given--When--Then 需求和既有部分 SysML 状态机；输出新增 transition、trigger、guard/effect，问题单位是待补全模型元素。 | 需求驱动 state-machine completion，输入模型在流程中被修改。 | 生成/匹配保留需求到新增元素的对应；没有 requirement-relative issue report 的 native replay receipt。 | 两个案例研究验证补全；它是既有状态机制品上的建模邻项，但输出与分析语义都是 model adaptation。[^gwt] |
 | Liu 等 | requirements 与异构 models；输出 observable/ontology/SMT consistency judgment，而不是定位的 STM issue。 | 要求是可观测一致性关系，状态机图和多模态制品并非实证输入；全文将图表/多模态支持列为未来工作。 | observable 抽取、ontology harmonisation 与 SMT 求解；没有 source-attributed fixed STM 或人类 relation ledger。 | 评测使用合成需求集与汽车案例。它不是四字段意义上的状态机任务，也不构成 STM-native 回执的比较对象。[^liu] |
 | Estivill-Castro 与 Hexel | 自然语言与既有轻量级有限状态机（LLFSM）安排；输出 specification engineering grammar（SEG）与多个模型检查器可接受的性质语法。 | 任务是性质合成，不是让一个冻结 source STM 接受 requirement-relative issue discovery。 | 生成性质文本/语法；论文评估 SEG 与 property synthesis，不是已经运行五个 checker 并逐项报告 verdict/counterexample，也没有 Paper1 的 source-bound replay receipt。 | 22 个 SEG 示例及基准用于合成评测。它约束 NL-to-property 组件优先权，而非完整 issue-discovery 方法。[^estivill] |
-| Li 与 Zheng | 原始 NL 经结构化和 UCS 转换；Algorithm 3 输入 UCS 与既有业务对象 UML 状态机，输出定位的 `AbnStepPair`，包括异常 action 与插入位置。 | Rule 1 为 L0 存在/对齐，Rule 2 为 L1 局部顺序，Rule 3 为 L1、至多 L1/L2 边界的 action 存在与顺序。这是 Paper1 的分析性映射；IET 原文未使用 L 分层。其规则不涉及执行路径、可达性、死锁/终止、轨迹响应、守卫检查或全局交互。 | 三条确定性 business-object 规则；没有公开可执行实现、FCSTM projection、typed 19-predicate layer、hash-bound native receipt 或 source-attributed fixed-artifact protocol。人和 LLM 在前序阶段迭代精化 UCS/需求。 | 一个 Web Store 项目，26 个原始 UCS 去重后 20 个有效 UCS；论文报告 `create order`/`convert Shopping Cart to Order` 缺失并定位 UCS 第 2 与第 3 步之间。它满足四字段，是任务优先权的直接先例；Paper1 的可写差异是固定 source STM 上 L2 候选的 C1/C2 证据机制。[^li_zheng] |
+| Li 与 Zheng | 原始 NL 经结构化和 UCS 转换；Algorithm 3 输入 UCS 与既有业务对象 UML 状态机，输出定位的 `AbnStepPair`，包括异常 action 与插入位置。 | Rule 1 为 L0 存在/对齐，Rule 2 为 L1 局部顺序，Rule 3 为 L1、至多 L1/L2 边界的 action 存在与顺序。这是 Paper1 的分析性映射；IET 原文未使用 L 分层。其规则不涉及执行路径、可达性、死锁/终止、轨迹响应、守卫检查或全局交互。 | 三条确定性 business-object 规则；没有公开可执行实现、FCSTM projection、typed 19-predicate layer、hash-bound native receipt 或 source-attributed fixed-artifact protocol。人和 LLM 在前序阶段迭代精化 UCS/需求。 | 一个 Web Store 项目，26 个原始 UCS 去重后 20 个有效 UCS；论文报告 `create order`/`convert Shopping Cart to Order` 缺失并定位 UCS 第 2 与第 3 步之间。它满足四字段，是任务优先权的直接先例；Paper1 的可写差异是固定 source STM 上 L2 问题的 C1 发现增强与 C2 执行验证。[^li_zheng] |
 
 ## 第二层：状态机或行为模型邻项
 
@@ -101,15 +107,15 @@ MCeT 的 correctness 与 same-root-cause human evaluation、IET 的人工精化�
 
 ## 冻结的主张
 
-**领域问题。** 本文面向自由文本 NL 与分析期间保持不变、带来源归属的 STM，发现并定位 requirement-relevant issues。STM 是方法层面的语言族；PlantUML 是唯一实现和评测过的 adapter，其 54 个制品只构成技术路线的案例研究。
+**领域问题。** 本文面向自由文本 NL 与分析期间保持不变、带来源归属的 STM，发现并定位 requirement-relevant issues。方法范围由适配器契约界定，面向能够投影为 FCSTM 的状态机类模型；PlantUML 是唯一实现和评测过的 adapter，其 54 个制品只构成该适配器的案例研究。
 
 **当前可写的领域主张。** *We present and evaluate a state-machine-specific workflow that compares free-form natural-language requirements with a pre-existing, source-attributed STM held fixed during analysis and returns localized findings.* 这是具体的任务与方法表述，不是优先权主张。IET 已构成完整输入输出合同的直接先例；按本文的 L 口径，其已发表规则主要覆盖 L0/L1 的存在、局部顺序和 action 对齐，并未展示跨迁移路径、可达性、终止、响应或全局交互的 L2 问题发现。Paper1 的台账覆盖 L0、L1 和 L2；相对 IET 的可写增量是固定 source STM 上 L2 候选的来源保存 FCSTM 工作表示、确定性 inspect augmentation、19 条类型化义务、来源绑定的原生回执和 W 分层。
 
-**C1 wording。** *C1 provides a provenance-preserving executable working representation and deterministic inspect augmentation for the stated task.* 当前证据只支持其在声明的 PlantUML 适配器片段上的实现与案例研究，不识别跨语言语义保持或单独因果增益。
+**C1 wording。** *C1 uses a provenance-preserving FCSTM projection and deterministic inspect information to augment L2 issue discovery from fixed source STMs.* 冻结 PlantUML 案例研究显示完整方法相对同模型基线具有更高的整体及 L2 FULL 命中；当前没有 paired inspect on/off 结果，因而不识别 inspect 或 conversion 的单独因果增益，也不推广为跨建模记法效果。
 
-**C2 wording。** *C2 connects applicable candidates to a literature-informed, retrospectively consolidated typed-obligation layer and source-bound FCSTM-backend replay receipts, separating mechanical evidence strength from human validity and relation judgment.* 这套机制为 L2 候选提供可定位、可执行和可回放的证据组织方式，不把任一通用组成成分写成首创。
+**C2 wording。** *C2 operationalizes four families of 19 typed predicate obligations derived from a domain academic survey and executes applicable bindings with the FCSTM backend.* 合格执行使发现取得 W2，并由来源绑定、身份链和回放回执支持审计；人工有效性和 relation 判断保持独立。四族 19 条义务不是从 54 个输入对、145 条台账或方法输出事后归纳而来。
 
-**不能推出。** 上述主张不宣称完整输入输出任务、LLM、FCSTM conversion、state-machine verification、SMT/model checking、traceability、replay 或人工 adjudication 的 first/only；不宣称所有 STM language 都被实现，或 PlantUML case study 已验证跨语言效果。IET 的全文核验不把其 UCS/活动图/状态机多制品流程等同于本文的 FCSTM 回执方法。
+**不能推出。** 上述主张不宣称完整输入输出任务、LLM、FCSTM conversion、state-machine verification、SMT/model checking、traceability、replay 或人工 adjudication 的 first/only；不宣称所有状态机类建模语言或制品形式都已实现，或 PlantUML case study 已验证跨建模记法效果。IET 的全文核验不把其 UCS/活动图/状态机多制品流程等同于本文的 FCSTM 回执方法。
 
 ## 引用
 

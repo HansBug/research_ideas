@@ -1,10 +1,10 @@
-"""Provider-free W-state replay for immutable evidence-discovery method runs.
+"""Provider-free W publication-eligibility replay for immutable method runs.
 
 The replay layer intentionally reads only completed method artifacts.  It does
 not call a provider, re-run a backend, inspect a ledger, or invoke the external
 Judge.  Its job is limited to applying the current typed execution protocol to
 the original candidate, binding, plan inputs, compiled program, raw receipt,
-and semantic D facts.
+and semantic D facts. It preserves frozen D and issue-publication decisions.
 """
 
 from __future__ import annotations
@@ -29,11 +29,12 @@ from ..compiler.inputs import (
     validate_predicate_inputs,
 )
 from ..compiler.lowering import PredicatePlan, SUPPORTED_PREDICATES
+from ..compiler.publication_eligibility import load_publication_eligibility_audit
 from ..evidence.audit_bundle import validate_and_hash_w2_audit_bundle
 from ..evidence.receipts import RawReceipt, build_predicate_execution_receipt
 from ..registry import load_registry
 from utils.artifact_io import write_json
-from ..semantics.adjudication import SemanticAdjudication, adjudicate_disposition
+from ..semantics.adjudication import SemanticAdjudication
 from ..semantics.binding import BindingResult
 from ..semantics.obligations import CandidateIssue
 
@@ -94,10 +95,10 @@ class ReplayEvidenceRecord(BaseModel):
         description="Current three-level W result derived without bibliography runtime gating."
     )
     d_level: Literal["D0", "D1", "D2", "D_UNRESOLVED"] = Field(
-        description="Current deterministic D disposition derived from preserved semantic facts and execution state."
+        description="Frozen source D disposition carried through unchanged; W replay does not re-adjudicate semantics."
     )
     issue_emitted: bool = Field(
-        description="Whether the current W/D result remains a method publication candidate for the external Judge."
+        description="Frozen source issue-publication state carried through unchanged; W replay does not alter the issue set."
     )
     replay_change: Literal[
         "unchanged",
@@ -181,7 +182,8 @@ class ReplaySummary(BaseModel):
     completed_boolean_recoveries: int = Field(ge=0, description="Historical W1 completed Boolean records restored to legal W2.")
     invalid_typed_input_rejections: int = Field(ge=0, description="Historical Boolean records rejected because current strict typed validation is invalid.")
     bibliography_runtime_w1_count: Literal[0] = Field(description="Number of W1 results caused by bibliography runtime state; it is structurally zero.")
-    legal_completed_boolean_w1_count: int = Field(ge=0, description="Count of valid completed true/false results still W1; must be zero for acceptance.")
+    completed_boolean_w1_count: int = Field(ge=0, description="Completed Boolean receipts that remain W1 because a publication condition is incomplete or ineligible.")
+    unexplained_completed_boolean_w1_count: int = Field(ge=0, description="Completed Boolean W1 receipts whose attribution and polarity rule are both complete; must be zero for acceptance.")
     invalid_typed_w2_count: int = Field(ge=0, description="Count of W2 results with invalid current typed inputs; must be zero.")
     failure_as_violation_count: int = Field(ge=0, description="Count of failed/non-attempted execution records published as violations without independent semantics; must be zero.")
     w2_audit_bundle_count: int = Field(ge=0, description="Number of W2 records carrying complete replay audit bundles.")
@@ -259,7 +261,11 @@ def _missing_inputs(predicate_id: str, required_inputs: tuple[str, ...], values:
         empty_sequence_is_missing = not (
             predicate_id == "S3" and input_name == "triggers"
         )
-        if input_name not in values or (value in (None, "") and required_null):
+        empty_allowed = (
+            (predicate_id == "S5" and input_name == "guard" and input_name in values)
+            or (predicate_id in {"V1", "V2"} and input_name == "trigger" and input_name in values)
+        )
+        if input_name not in values or (value in (None, "") and required_null and not empty_allowed):
             missing.append(input_name)
         elif value == [] and empty_sequence_is_missing:
             missing.append(input_name)
@@ -270,6 +276,7 @@ def _replay_plan(record: dict[str, Any], registry: Any) -> PredicatePlan:
     """Rebuild a current typed plan without reading historical bibliography runtime fields."""
 
     binding = BindingResult.model_validate(record["binding"])
+    publication_audit = load_publication_eligibility_audit(registry)
     predicate_id = record.get("predicate_id")
     if not isinstance(predicate_id, str) or registry.get(predicate_id) is None:
         raw_values = record.get("predicate_inputs")
@@ -290,6 +297,7 @@ def _replay_plan(record: dict[str, Any], registry: Any) -> PredicatePlan:
             backend_available=False,
             soundness_fragment_satisfied=False,
             artifact_attribution_complete=False,
+            publication_audit_hash=publication_audit.catalog_hash,
             supported=False,
             executable=False,
             reason="The preserved candidate has no frozen predicate route; a precise semantic candidate remains W1.",
@@ -317,6 +325,9 @@ def _replay_plan(record: dict[str, Any], registry: Any) -> PredicatePlan:
         projected_values,
         model_hash=model_hash if isinstance(model_hash, str) else None,
     )
+    # Preserve the immutable executed program and its hash. The current
+    # predicate/polarity audit is carried in PredicatePlan metadata; appending
+    # it here would sever the historical source-attribution identity chain.
     formal_program = historical_plan.get("formal_program")
     formal_program_hash = historical_plan.get("formal_program_hash")
     source_attribution = record.get("source_attribution")
@@ -354,7 +365,14 @@ def _replay_plan(record: dict[str, Any], registry: Any) -> PredicatePlan:
         reason = "The frozen predicate, preserved exact binding, current typed schema, execution fragment, and stored artifact attribution are ready for W-state replay."
         basis = "frozen registry, current Pydantic input schema, executable-fragment check, native backend availability, and preserved artifact chain"
     return PredicatePlan(
-        plan_id=f"{record['obligation_id']}:replay:plan",
+        # The plan identity belongs to the immutable method artifact. A replay
+        # derives W metadata but must not replace the identity used by the
+        # stored source attribution chain.
+        plan_id=(
+            historical_plan["plan_id"]
+            if isinstance(historical_plan.get("plan_id"), str) and historical_plan["plan_id"]
+            else f"{record['obligation_id']}:replay:plan"
+        ),
         predicate_id=predicate_id,
         registry_version=registry.version,
         inputs=typed_inputs,
@@ -369,6 +387,11 @@ def _replay_plan(record: dict[str, Any], registry: Any) -> PredicatePlan:
         backend_available=backend_available,
         soundness_fragment_satisfied=fragment_ok,
         artifact_attribution_complete=attribution_complete,
+        publication_eligibility_by_polarity=publication_audit.by_predicate.get(
+            predicate_id,
+            {"true": False, "false": False},
+        ),
+        publication_audit_hash=publication_audit.catalog_hash,
         supported=executable,
         executable=executable,
         reason=reason,
@@ -379,6 +402,51 @@ def _replay_plan(record: dict[str, Any], registry: Any) -> PredicatePlan:
         source_ids=predicate.sources,
         missing_inputs=missing_inputs,
     )
+
+
+def _replay_attribution(
+    record: dict[str, Any],
+    plan: PredicatePlan,
+    binding: BindingResult,
+    *,
+    pair_id: str,
+) -> dict[str, Any]:
+    """Normalize split legacy attribution fields without changing the source record."""
+
+    raw = record.get("source_attribution")
+    attribution = dict(raw) if isinstance(raw, dict) else {}
+    requirement = dict(attribution.get("requirement") or {})
+    requirement.setdefault("pair_id", pair_id)
+    requirement.setdefault("obligation_id", record["obligation_id"])
+    attribution["requirement"] = requirement
+
+    model = dict(attribution.get("model") or {})
+    model.setdefault("hash", plan.inputs.model_hash)
+    attribution["model"] = model
+
+    attributed_plan = dict(attribution.get("plan") or {})
+    attributed_plan.setdefault("plan_id", plan.plan_id)
+    attributed_plan.setdefault("predicate_id", plan.predicate_id)
+    attributed_plan.setdefault("typed_inputs_hash", _canonical_hash(plan.inputs.model_dump(mode="json")))
+    attributed_plan.setdefault("compiled_program_hash", plan.formal_program_hash)
+    attribution["plan"] = attributed_plan
+
+    receipt = dict(attribution.get("receipt") or {})
+    receipt.setdefault("receipt_id", record["receipt"]["receipt_id"])
+    attribution["receipt"] = receipt
+
+    instance = dict(attribution.get("instance_authority") or {})
+    instance.setdefault("requirement_quote", record.get("requirement_quote"))
+    instance.setdefault("source_refs", record.get("source_refs", []))
+    instance.setdefault("binding_element_refs", record.get("element_refs", binding.element_refs))
+    instance.setdefault("binding_precise", binding.precise)
+    attribution["instance_authority"] = instance
+    attribution.setdefault(
+        "reason",
+        "Replay derives the current attribution view from immutable report and plan fields.",
+    )
+    attribution.setdefault("basis", "immutable source attribution plus split report-level authority fields")
+    return attribution
 
 
 def _replay_audit_bundle(
@@ -510,7 +578,7 @@ def _replay_record(
     clusters: list[dict[str, Any]],
     registry: Any,
 ) -> dict[str, Any]:
-    """Replay one source record with current typed W/D and no external reads beyond registry metadata."""
+    """Replay one source record's W eligibility without changing frozen semantics."""
 
     candidate = _candidate_from_record(record)
     binding = BindingResult.model_validate(record["binding"])
@@ -524,8 +592,7 @@ def _replay_record(
     )
     retry_records = _normalise_retry_records(record.get("retry_records"))
     source_attribution = record.get("source_attribution")
-    if not isinstance(source_attribution, dict):
-        source_attribution = {}
+    source_attribution = _replay_attribution(record, plan, binding, pair_id=pair_id)
     independent_semantic_basis = bool(
         semantic is not None and semantic.grounding == "established"
     )
@@ -537,27 +604,16 @@ def _replay_record(
         plan=plan,
         receipt=receipt,
         source_attribution=source_attribution,
+        model_hash=(
+            source_attribution.get("model", {}).get("hash")
+            if isinstance(source_attribution.get("model"), dict)
+            else None
+        ),
         retry_records=retry_records,
         independent_semantic_basis=independent_semantic_basis,
         binding_precise=binding.precise,
     )
-    disposition = adjudicate_disposition(candidate, binding, semantic, receipt=receipt)
-    if (
-        binding.precise
-        and execution_receipt["execution_state"] != "completed"
-        and not independent_semantic_basis
-    ):
-        disposition = {
-            **disposition,
-            "d_level": "D0",
-            "reason": str(disposition["reason"]) + " The execution audit is not independent violation evidence, so replay publication is D0.",
-            "basis": str(disposition["basis"]) + "; failed or unavailable execution requires independent established semantic basis for D1/D2",
-        }
     witness_level = execution_receipt["witness_level"]
-    issue_emitted = bool(
-        disposition["d_level"] in {"D1", "D2"}
-        and (witness_level == "W1" or (witness_level == "W2" and receipt.verdict == "false"))
-    )
     if (
         execution_receipt["failure_kind"] == "invalid_input"
         and receipt.terminal_state == "completed"
@@ -577,12 +633,12 @@ def _replay_record(
         replay_change = "unchanged"
     else:
         replay_change = "other_protocol_update"
-    reason = str(disposition["reason"])
-    basis = str(disposition["basis"])
+    reason = str(record["reason"])
+    basis = str(record["basis"])
     audit_bundle = (
         _replay_audit_bundle(
             pair_id=pair_id,
-            record=record,
+            record={**record, "source_attribution": source_attribution},
             plan=plan,
             receipt=receipt,
             execution_receipt=execution_receipt,
@@ -609,8 +665,8 @@ def _replay_record(
         historical_witness_level=record["witness_level"],
         historical_issue_emitted=bool(record.get("issue_emitted")),
         witness_level=witness_level,
-        d_level=disposition["d_level"],
-        issue_emitted=issue_emitted,
+        d_level=record["d_level"],
+        issue_emitted=bool(record["issue_emitted"]),
         replay_change=replay_change,
         candidate=candidate.model_dump(mode="json"),
         binding=binding.model_dump(mode="json"),
@@ -675,11 +731,17 @@ def _build_summary(replay_id: str, source_run_id: str, records: list[dict[str, A
     invalid_rejections = sum(
         row["replay_change"] == "invalid_typed_input_rejected" for row in records
     )
-    legal_completed_boolean_w1 = sum(
+    completed_boolean_w1 = sum(
         row["witness_level"] == "W1"
         and row["receipt"]["terminal_state"] == "completed"
         and row["receipt"]["verdict"] in {"true", "false"}
-        and row["execution_receipt"]["failure_kind"] is None
+        for row in records
+    )
+    unexplained_completed_boolean_w1 = sum(
+        row["witness_level"] == "W1"
+        and row["receipt"]["terminal_state"] == "completed"
+        and row["receipt"]["verdict"] in {"true", "false"}
+        and row["execution_receipt"]["artifact_attribution_complete"]
         for row in records
     )
     invalid_typed_w2 = sum(
@@ -704,10 +766,11 @@ def _build_summary(replay_id: str, source_run_id: str, records: list[dict[str, A
     )
     acceptance = {
         "bibliography_runtime_w1_zero": True,
-        "legal_completed_boolean_w1_zero": legal_completed_boolean_w1 == 0,
+        "unexplained_completed_boolean_w1_zero": unexplained_completed_boolean_w1 == 0,
         "invalid_typed_w2_zero": invalid_typed_w2 == 0,
         "failure_as_violation_zero": failure_as_violation == 0,
         "w2_audit_closure_complete": closure_complete,
+        "frozen_issue_emission_unchanged": not changed_report_ids,
     }
     summary = ReplaySummary(
         schema="evidence-discovery.provider_free_w_replay_summary.v1",
@@ -720,14 +783,15 @@ def _build_summary(replay_id: str, source_run_id: str, records: list[dict[str, A
         completed_boolean_recoveries=completed_boolean_recoveries,
         invalid_typed_input_rejections=invalid_rejections,
         bibliography_runtime_w1_count=0,
-        legal_completed_boolean_w1_count=legal_completed_boolean_w1,
+        completed_boolean_w1_count=completed_boolean_w1,
+        unexplained_completed_boolean_w1_count=unexplained_completed_boolean_w1,
         invalid_typed_w2_count=invalid_typed_w2,
         failure_as_violation_count=failure_as_violation,
         w2_audit_bundle_count=len(w2_records),
         w2_audit_closure_complete=closure_complete,
         semantic_identity_changed_report_ids=changed_report_ids,
         acceptance=acceptance,
-        reason="The replay applies the frozen W0/W1/W2 protocol solely to predicate registration, exact typed binding, executable-fragment legality, closed artifact attribution, and a stored terminal Boolean receipt. Bibliography provenance remains scholarly metadata and does not participate in runtime W.",
+        reason="The replay keeps stored backend completion separate from W2 publication eligibility. W2 requires predicate registration, exact typed binding, executable-fragment legality, an exact attribution chain, an explicit predicate/polarity publication rule, and a stored terminal Boolean receipt.",
         basis="immutable method evidence records, current strict predicate schemas, frozen registry, preserved raw backend receipts, and replay W2 bundles",
     )
     return summary.model_dump(mode="json")
@@ -780,16 +844,24 @@ def run_provider_free_replay(
             "implementation": implementation_hash,
         }
     ).removeprefix("sha256:")[:32]
-    default_parent = source_root.parent.parent / "evidence-discovery-15x1-w-state-replay-05699769"
+    default_parent = source_root.parent.parent / f"evidence-discovery-{source_run_id[:8]}-w-publication-replay"
     final_parent = Path(output_parent).expanduser().resolve() if output_parent else default_parent
     final_parent.mkdir(parents=True, exist_ok=True)
     final_root = final_parent / replay_identity
     if final_root.exists():
         raise FileExistsError(f"immutable replay output already exists: {final_root}")
     method_root = source_root / "method"
-    method_paths = sorted(method_root.glob("*/round-1.json"))
+    method_paths = sorted(method_root.glob("*/round-*.json"))
     if not method_paths:
-        raise FileNotFoundError(f"source run has no method/*/round-1.json files: {method_root}")
+        raise FileNotFoundError(f"source run has no method/*/round-*.json files: {method_root}")
+    expected_method_cells = source_summary.get("method_cell_count")
+    if not isinstance(expected_method_cells, int) or expected_method_cells < 0:
+        raise ValueError("source summary has no valid method_cell_count")
+    if len(method_paths) != expected_method_cells:
+        raise ValueError(
+            "provider-free replay must read every frozen method cell; "
+            f"summary declares {expected_method_cells}, found {len(method_paths)}"
+        )
     stage_root = Path(tempfile.mkdtemp(prefix=f".{replay_identity}.", dir=final_parent))
     try:
         manifest = ReplayManifest(
@@ -844,17 +916,6 @@ def run_provider_free_replay(
         summary = _build_summary(replay_identity, source_run_id, records)
         if not all(summary["acceptance"].values()):
             raise ValueError(f"provider-free replay acceptance failed: {summary['acceptance']}")
-        if source_run_id == "683f09b788374a73bd17f5efcfe23395":
-            if summary["completed_boolean_recoveries"] != 55:
-                raise ValueError(
-                    "78506646 replay must recover exactly 55 legally completed Boolean W1 records; "
-                    f"got {summary['completed_boolean_recoveries']}"
-                )
-            if summary["invalid_typed_input_rejections"] != 11:
-                raise ValueError(
-                    "78506646 replay must reject exactly 11 historical invalid S4 Boolean records; "
-                    f"got {summary['invalid_typed_input_rejections']}"
-                )
         audit_index: dict[str, dict[str, Any]] = {}
         for record in records:
             audit = record.get("audit_bundle")
