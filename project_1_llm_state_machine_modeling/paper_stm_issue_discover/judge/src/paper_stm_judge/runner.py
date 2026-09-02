@@ -700,6 +700,24 @@ def _execute_with_split(
     return tuple(completed)
 
 
+def select_majority_reading(classes) -> int | None:
+    """Return the 0-based index of the earliest reading whose defect class holds a strict majority.
+
+    Ties and three-way splits return None so the caller can fall back to a fresh
+    arbitration reading. This is a deterministic backend rule over provider outputs.
+    """
+
+    values = [getattr(item, "value", item) for item in classes]
+    counts: dict[str, int] = {}
+    for value in values:
+        counts[value] = counts.get(value, 0) + 1
+    best = max(counts.values())
+    if best * 2 <= len(values) or list(counts.values()).count(best) > 1:
+        return None
+    winner = next(value for value, count in counts.items() if count == best)
+    return values.index(winner)
+
+
 def judge_pair(
     *,
     run_id: str,
@@ -708,9 +726,17 @@ def judge_pair(
     adapter_audit: AdapterAudit,
     runtime: PublicStructuredRuntime,
     judge_code_commit: str,
+    validity_readings: int = 2,
+    validity_aggregation: str = "arbitration",
 ) -> PairJudgeResult:
-    """Run bounded dual-reading batches, freeze truth, then batch relations."""
+    """Run bounded multi-reading batches, freeze truth, then batch relations."""
 
+    if validity_readings < 2:
+        raise ValueError("validity_readings must be at least 2")
+    if validity_aggregation not in ("arbitration", "majority"):
+        raise ValueError(f"unknown validity_aggregation: {validity_aggregation}")
+    if validity_aggregation == "majority" and validity_readings < 3:
+        raise ValueError("majority aggregation requires at least three validity readings")
     pair_id = judge_input.pair_id
     receipts: list[JudgeCallReceipt] = []
     schema_hashes: dict[str, str] = {}
@@ -746,7 +772,7 @@ def judge_pair(
                 _stable_batch_id("VB", index, report_ids),
             )
             for index, report_ids in enumerate(validity_groups, start=1)
-            for reading_no in (1, 2)
+            for reading_no in range(1, validity_readings + 1)
         )
 
         def split_validity_primary(
@@ -770,8 +796,7 @@ def judge_pair(
             round_no=round_no,
         )
         validity_maps: dict[int, dict[str, FrozenValidityCertificate]] = {
-            1: {},
-            2: {},
+            reading_no: {} for reading_no in range(1, validity_readings + 1)
         }
         for plan, outcome in validity_completed:
             response = _require_response(outcome, f"{plan.phase}_{plan.batch_id}")
@@ -786,7 +811,8 @@ def judge_pair(
                 )
         report_order = tuple(item.report_id for item in judge_input.reports)
         if any(
-            set(validity_maps[reading_no]) != set(report_order) for reading_no in (1, 2)
+            set(validity_maps[reading_no]) != set(report_order)
+            for reading_no in validity_maps
         ):
             raise ValueError("validity batch materialization did not close all reports")
         validity_reading_1 = ValidityStageReading(
@@ -803,6 +829,15 @@ def judge_pair(
         )
         validity_1_by_id = validity_maps[1]
         validity_2_by_id = validity_maps[2]
+        validity_extra_readings = tuple(
+            ValidityStageReading(
+                certificates=tuple(validity_maps[reading_no][item] for item in report_order),
+                reason=f"Every report received complete independent expected-isolated batch reading {reading_no}.",
+                basis="The same immutable batch inputs, shared common artifacts, and exact source-clause closure.",
+                source_refs=_reading_source_refs(validity_maps[reading_no].values()),
+            )
+            for reading_no in range(3, validity_readings + 1)
+        )
         validity_disagreements = tuple(
             disagreement
             for report_id in report_order
@@ -811,14 +846,27 @@ def judge_pair(
             )
         )
         final_certificates = dict(validity_1_by_id)
-        conflicted_validity_ids = tuple(
-            report_id
-            for report_id in report_order
-            if any(
-                item.object_ref.startswith(f"report:{report_id}")
-                for item in validity_disagreements
+        if validity_aggregation == "majority":
+            conflicted: list[str] = []
+            for report_id in report_order:
+                ordered = [validity_maps[n][report_id] for n in sorted(validity_maps)]
+                chosen = select_majority_reading(
+                    [item.defect_adjudication.defect_class for item in ordered]
+                )
+                if chosen is None:
+                    conflicted.append(report_id)
+                else:
+                    final_certificates[report_id] = ordered[chosen]
+            conflicted_validity_ids = tuple(conflicted)
+        else:
+            conflicted_validity_ids = tuple(
+                report_id
+                for report_id in report_order
+                if any(
+                    item.object_ref.startswith(f"report:{report_id}")
+                    for item in validity_disagreements
+                )
             )
-        )
 
         def make_validity_arbitration(
             report_ids: tuple[str, ...], batch_id: str
@@ -1179,7 +1227,11 @@ def judge_pair(
         round=round_no,
         protocol_version=PROTOCOL_VERSION,
         protocol_sha256=PROTOCOL_SHA256,
-        judge_algorithm_version=JUDGE_ALGORITHM_VERSION,
+        judge_algorithm_version=(
+            JUDGE_ALGORITHM_VERSION
+            if validity_aggregation == "arbitration" and validity_readings == 2
+            else f"{JUDGE_ALGORITHM_VERSION}.readings{validity_readings}-{validity_aggregation}"
+        ),
         judge_code_commit=judge_code_commit,
         model_profile=runtime.profile,
         artifact_closure_hash=judge_input.artifact_closure.closure_hash,
@@ -1190,6 +1242,8 @@ def judge_pair(
         validity_reading_1=validity_reading_1,
         validity_reading_2=validity_reading_2,
         validity_arbitration_certificates=tuple(validity_arbitrations),
+        validity_extra_readings=validity_extra_readings,
+        validity_aggregation=validity_aggregation,  # type: ignore[arg-type]
         relation_reading_1=relation_reading_1,
         relation_reading_2=relation_reading_2,
         relation_arbitration_responses=tuple(relation_arbitrations),
@@ -1200,7 +1254,7 @@ def judge_pair(
         metrics=metrics,
         call_receipts=tuple(receipts),
         reason=(
-            "Two expected-isolated validity batch readings and two relation-only "
+            f"{validity_readings} expected-isolated validity batch readings ({validity_aggregation} aggregation) and two relation-only "
             f"batch readings completed; {len(validity_disagreements)} validity and "
             f"{len(relation_disagreements)} relation disagreements were fully arbitrated."
         ),

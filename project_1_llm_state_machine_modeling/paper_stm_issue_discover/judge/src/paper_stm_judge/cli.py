@@ -302,6 +302,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--transport-retries", type=int, default=8)
     parser.add_argument(
+        "--validity-readings",
+        type=int,
+        default=2,
+        help="Independent validity readings per report (frozen protocol: 2).",
+    )
+    parser.add_argument(
+        "--validity-aggregation",
+        choices=("arbitration", "majority"),
+        default="arbitration",
+        help="Final-certificate selection; 'majority' needs at least 3 readings and is a calibration experiment.",
+    )
+    parser.add_argument(
         "--report-filter",
         type=Path,
         default=None,
@@ -372,6 +384,8 @@ def main(argv: list[str] | None = None) -> int:
         workers=args.workers,
         max_reports_per_batch=MAX_REPORTS_PER_BATCH,
         transport_retries=args.transport_retries,
+        validity_readings=args.validity_readings,
+        validity_aggregation=args.validity_aggregation,
         report_filter_path=(
             str(report_filter_path) if report_filter_path is not None else None
         ),
@@ -440,6 +454,8 @@ def main(argv: list[str] | None = None) -> int:
             adapter_audit=adapter_audit,
             runtime=runtime,
             judge_code_commit=code_commit,
+            validity_readings=args.validity_readings,
+            validity_aggregation=args.validity_aggregation,
         )
         result_path = artifact_root / "pairs" / f"{pair_id}.json"
         result_hash = _write_model(result_path, result)

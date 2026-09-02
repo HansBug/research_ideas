@@ -186,3 +186,15 @@ def test_report_filter_restricts_reports_and_keeps_anonymous_ids() -> None:
     assert "restricted judging to 1 of 3" in kept_audit.reason
     with pytest.raises(ValueError, match="absent from the adapted source"):
         cli.apply_report_filter(reports, audit, frozenset({"0004:r1:issue:99"}))
+
+
+def test_majority_reading_selection_is_strict_and_earliest() -> None:
+    """Strict-majority defect class wins and the earliest such reading is kept; ties fall back to arbitration."""
+
+    from paper_stm_judge.runner import select_majority_reading
+
+    assert select_majority_reading([DefectClass.D1, DefectClass.D0, DefectClass.D1]) == 0
+    assert select_majority_reading([DefectClass.D0, DefectClass.D1, DefectClass.D1]) == 1
+    assert select_majority_reading([DefectClass.D0, DefectClass.D1, DefectClass.D2]) is None
+    assert select_majority_reading([DefectClass.D0, DefectClass.D1]) is None
+    assert select_majority_reading([DefectClass.D2, DefectClass.D2, DefectClass.D2]) == 0

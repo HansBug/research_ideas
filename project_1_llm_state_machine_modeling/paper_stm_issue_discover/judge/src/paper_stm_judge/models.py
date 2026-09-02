@@ -3220,6 +3220,14 @@ class PairJudgeResult(FrozenModel):
     validity_arbitration_certificates: tuple[FrozenValidityCertificate, ...] = Field(
         description="Final replacement certificates only for reports with substantive validity conflicts."
     )
+    validity_extra_readings: tuple[ValidityStageReading, ...] = Field(
+        default_factory=tuple,
+        description="Additional complete independent validity readings (reading 3 onward) when the run used more than two; empty under the frozen two-reading protocol.",
+    )
+    validity_aggregation: Literal["arbitration", "majority"] = Field(
+        default="arbitration",
+        description="How final certificates were chosen: 'arbitration' replays every conflicted report with one fresh reading (frozen protocol); 'majority' keeps the earliest reading carrying the strict-majority defect class and arbitrates only reports without a strict majority.",
+    )
     relation_reading_1: RelationStageReading = Field(
         description="First complete relation-only reading for all reports frozen as VALID."
     )
@@ -3409,6 +3417,15 @@ class RunManifest(FrozenModel):
     workers: int = Field(
         ge=1,
         description="Number of process-isolated provider workers shared by all pair and batch submissions in this run.",
+    )
+    validity_readings: int = Field(
+        default=2,
+        ge=2,
+        description="Number of independent expected-isolated validity readings per report (frozen protocol: 2).",
+    )
+    validity_aggregation: Literal["arbitration", "majority"] = Field(
+        default="arbitration",
+        description="Final-certificate selection rule; 'majority' requires at least three readings and is a calibration experiment, not the frozen protocol.",
     )
     execution_strategy: Literal["process-isolated-bounded-batch.v1"] = Field(
         default="process-isolated-bounded-batch.v1",
