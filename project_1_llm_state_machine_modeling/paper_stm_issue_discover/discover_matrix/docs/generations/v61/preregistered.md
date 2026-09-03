@@ -103,3 +103,7 @@ P1–P5 + C1 + C2 + C4.2/C4.3 全部生效时，人工口径预期：hit@1 从 3
 ## 10. 第三轮 15×1（2026-09-04，运行前）
 
 第二轮结果见 [results.md](./results.md)：报告数、锚定组、FULL 条目、L2 全部达标，收益组 precision 72.0% 仅及格。第三轮只改两处确定性规则，档位不变：模态聚合成员判据放宽为词元 Jaccard ≥ 0.5（5 字符轻词干）且比较运算符集合一致；含 route token 的闭合模型上撤回 R2 前沿。预期 I 减约 8、报告数 ≤ 120、子集 precision ≥ 82%、FULL 不低于 51/66。第三轮之后无论达标与否进入 54×3，剩余差距（全称事件义务、终止边无标签、LLM 候选的 D0）留给全量后的分析。
+
+## 11. 进入 54×3（2026-09-04 06:38，运行前）
+
+三轮 15×1 结果见 [results.md](./results.md)。全量使用迭代 3 的代码（method 提交 ea6141607，与 6e80ad78c 仅差评测脚本），`--rounds 3 --allow-full-live --workers 16`，profile gpt-5.6-luna；judge 沿用第六轮配置只判 ours，baseline 沿用 `runs/paper1/judge-full-3a1ba5cf1-iter6cfg/baseline-r*`。全量判读口径：judge 对 judge（v60 ours 292/435、71.2%、finding-level 63.4%；baseline 225/435、83.4%、81.1%）；达标：hit@1 ≥ 340/435、report precision ≥ 80%、hit@3 ≥ 125、报告数 ≤ 1000；回归红旗：hit@1 < 292 或 precision < 71.2%。
