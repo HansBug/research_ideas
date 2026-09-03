@@ -74,3 +74,19 @@ P1–P5 + C1 + C2 + C4.2/C4.3 全部生效时，人工口径预期：hit@1 从 3
 ## 7. 运行纪律
 
 每次运行前：提交并推送；`git status --porcelain` 为空；无上一轮孤儿进程（按 pid 杀，见 `kill-launcher-leaves-orphans`）；method 并发 ≤ 16 worker，judge 并发 ≤ 14 对。运行后：先在 v60 产出上离线回放确定性规则的拦截集合与 §六 一致，再看 15×1。任何口径变更就地写回本文件并注明日期。
+
+## 8. 实现落地与口径修正（2026-09-04，运行前）
+
+实现时对 §1 的几条做了收窄，全部在看到 v61 结果之前写死：
+
+- **P1 与 P3 合并为一条「载体归属门」**：S3/S5 与初始迁移不变量只在**作者拥有**的载体上判定（working contract 段角色 `source_direct_transition` / `source_initial_transition` / `composite_source_leaf_trigger`）；编译器生成的续接、入口、出口段一律不判。离线回放：v60 的 33 条「Initial transition has a guard」全部落在编译器段，22 条 S3「uses」全部落在 `composite_source_sibling_continuation` 段，60 条「has a trigger」全部落在作者段。
+- **P4 改为 method 侧前置条件**（不改 lowering）：S5「omits its required guard」在作者标签含方括号守卫时不发（回放命中 35 条）。lowering 本身按显式策略把整条标签当作一个不透明事件，v61 不动它。
+- **P2 改为 R2 源状态前置条件**：唯一冷启动前缀施加刺激时，若当前配置不含契约的源状态，则该 state_after_stimulus 候选不适用（回放：44 条中 41 条被撤回）。
+- **P5 按 UML 2.5.1 §14.2.3.9 做源侧祖先闭包**：从包围复合态出发到同一目标的迁移视为实现了子状态的该边。
+- **C1.4 拆成两条**：(a) 事件槽含逗号 / or / `[*]` / 多重斜杠 → 多条件压成单事件；(b) 只有事件部分是生命周期关键字（`exit/Send`）才报「生命周期语法误放到迁移上」；`Reach Speed/Cruise` 这类合法 UML `trigger/effect` 标签不报。
+- **C1.5 只在 NL 类型化关系为该边给出事件时触发**（作者写 `[cond]` 而需求是条件时不报）。
+- **C1.1 只算「外部状态进入隐式子状态」**；子状态退出到外部是正常 UML。
+- **C4.2 因果折叠按层**：结构类（initial_entry / containment / region_structure / cardinality / transition_endpoints）→ 可达性 → 行为类（event_consumer_coverage / deadlock_freedom / termination / state_action），高层只折进共享状态名的低层根因，子主张文本并入根报告的 observed。
+- 每条发布报告追加作者源锚点（PlantUML 行号与原文）。
+
+离线回放（v60 三轮契约，54 对 × 3）：源–语义分歧候选 84 条（每格约 0.5 条），命中点名条目所在 pair：0009/0029/0049（FinishState 首次提及嵌套）、0039（无标签条件边、两条根初始边）、0056（无标签闭环）、0016 与 0047（跨块同名状态）、0010（仅 stereotype 子机）、0024（`exit/Send`）、0000/0020/0030/0050（复合标签）、0034（无标签条件边）、0014（信号写成描述）。未能确定性命中：VU-0054-01（NL 关系把「obstacle detected」类型化为守卫而非事件）、INS-0044-03（终止边无标签，C1.6 不覆盖终止边）。

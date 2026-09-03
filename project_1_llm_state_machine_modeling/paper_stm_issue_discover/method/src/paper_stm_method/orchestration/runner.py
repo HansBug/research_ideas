@@ -34,6 +34,7 @@ from ..inputs.fcstm_native_projection import (
     transition_by_reference,
 )
 from ..inputs.models import PairInput
+from ..semantics.author_source import build_author_index, enclosing_endpoint_carriers
 from ..registry import load_registry
 from utils.artifact_io import write_json, write_markdown_summary
 from ..semantics import (
@@ -1938,14 +1939,7 @@ def _preflight_existing_endpoint_candidates(
         target_hints = [hint for hint in contract.binding_hints if hint.role == "target"]
         source_ref = resolve_state_ref(source_hints[0].value, pair.model) if len(source_hints) == 1 else None
         target_ref = resolve_state_ref(target_hints[0].value, pair.model) if len(target_hints) == 1 else None
-        carriers = [
-            transition
-            for transition in pair.model.transitions
-            if source_ref is not None
-            and target_ref is not None
-            and transition.source_ref == source_ref
-            and transition.target_ref == target_ref
-        ]
+        carriers = list(enclosing_endpoint_carriers(pair.model, source_ref, target_ref))
         if not carriers:
             retained.append(candidate)
             continue
@@ -2667,11 +2661,9 @@ def _materialize_exact_s2_inventory_candidates(
         )
         if source_state is None or target_state is None:
             continue
-        if any(
-            transition.source_ref == source_ref
-            and transition.target_ref == target_ref
-            for transition in pair.model.transitions
-        ):
+        if enclosing_endpoint_carriers(pair.model, source_ref, target_ref):
+            # v61: an edge from an enclosing composite realises the required
+            # source->target relation for the substate (UML 2.5.1 §14.2.3.9).
             continue
         already_exact = False
         for candidate in llm_candidates:
@@ -2856,6 +2848,7 @@ def _materialize_deterministic_execution_probes(
     frontier check may additionally project one supporting G4 topology execution
     when its typed root and marked refs are complete.
     """
+    author_index = build_author_index(pair)
 
     probes: list[CandidateIssue] = []
     probe_contracts: dict[str, NLContract] = {}
@@ -3075,6 +3068,21 @@ def _materialize_deterministic_execution_probes(
         )
         transition = pair.model.transition(binding.carrier_transition_ref)
         if event is None or transition is None:
+            continue
+        if author_index is not None and author_index.is_compiler_owned_carrier(transition):
+            # v61 carrier-attribution gate: a trigger-set equality on a
+            # lowering-synthesised continuation hop compares the requirement
+            # against a segment the author never wrote.
+            dispositions.append(
+                {
+                    "probe": "S3",
+                    "contract_id": contract.contract_id,
+                    "status": "skipped_compiler_owned_carrier",
+                    "carrier_transition_ref": transition.ref,
+                    "reason": "The exact carrier is a compiler-owned segment; S3 is evaluated only on author-owned carriers.",
+                    "basis": f"generated_role={author_index.segment_role_for_carrier(transition)!r}",
+                }
+            )
             continue
         if (contract.contract_id, "S3") in existing_predicates:
             continue
@@ -3758,6 +3766,18 @@ def _materialize_deterministic_execution_probes(
                 s3_key = (transition.ref, (event.name,))
                 if s3_key in existing_s3_keys:
                     continue
+                if author_index is not None and author_index.is_compiler_owned_carrier(transition):
+                    dispositions.append(
+                        {
+                            "probe": "S3",
+                            "contract_id": probe_id,
+                            "status": "skipped_compiler_owned_carrier",
+                            "carrier_transition_ref": transition.ref,
+                            "reason": "The exact carrier is a compiler-owned segment; S3 is evaluated only on author-owned carriers.",
+                            "basis": f"generated_role={author_index.segment_role_for_carrier(transition)!r}",
+                        }
+                    )
+                    continue
                 candidate = CandidateIssue(
                     contract_id=probe_id,
                     locus_kind="transition",
@@ -4081,6 +4101,158 @@ def _release_semantic_key(issue: Mapping[str, Any]) -> tuple[Any, ...]:
         issue.get("property"),
         issue.get("violation_direction"),
     )
+
+
+# --------------------------------------------------------------------------- v61
+# Publication folding (C4.2) and author-source anchors.
+# Causal tiers: a lower tier is a possible root cause of every higher tier that
+# shares a state with it (structure -> reachability -> behaviour on the
+# unreachable / misplaced part).
+_FOLD_TIERS: dict[tuple[str, str], int] = {
+    ("initial_entry", "missing"): 1, ("initial_entry", "wrong_target"): 1, ("initial_entry", "mismatched"): 1,
+    ("region_structure", "wrong_scope"): 1, ("cardinality", "missing"): 1,
+    ("containment", "wrong_scope"): 1, ("containment", "missing"): 1,
+    ("transition_endpoints", "wrong_target"): 1, ("transition_endpoints", "missing"): 1,
+    ("reachability", "unreachable"): 2,
+}
+_FOLD_DOWNSTREAM_PROPERTIES = frozenset(
+    {"event_consumer_coverage", "deadlock_freedom", "termination", "event_consumption", "state_action"}
+)
+
+
+def _fold_tier(issue: Mapping[str, Any]) -> int | None:
+    key = (str(issue.get("property")), str(issue.get("violation_direction")))
+    if key in _FOLD_TIERS:
+        return _FOLD_TIERS[key]
+    if issue.get("property") in _FOLD_DOWNSTREAM_PROPERTIES:
+        return 3
+    return None
+
+
+def _issue_element_names(issue: Mapping[str, Any]) -> set[str]:
+    """Lower-cased leaf names of the states an issue is about (typed fields only)."""
+
+    names: set[str] = set()
+    for value in issue.get("locus_names") or ():
+        for part in re.split(r"\s*->\s*|\s*to\s+|/", str(value)):
+            leaf = part.strip().rsplit(".", 1)[-1]
+            if leaf:
+                names.add(leaf.lower())
+    for ref in [*(issue.get("element_refs") or ()), *(issue.get("source_refs") or ())]:
+        match = re.match(r"^(?:state|source:state):([^:]+)", str(ref))
+        if match:
+            names.add(match.group(1).rsplit(".", 1)[-1].lower())
+    return names
+
+
+def _fold_consequence_issues(
+    release: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Fold downstream symptom issues into the root-cause issue of the same cell.
+
+    A missing default entry, an unreachable scope or a misplaced state makes
+    every descendant unreachable, its event consumers unreachable and its leaves
+    dead ends.  Publishing each symptom as its own report multiplies one defect
+    into many.  A downstream-property issue that shares a state with an earlier
+    root-property issue becomes a sub-claim of that root: the root report keeps
+    the sub-claim text (so an evaluator can still match every obligation it
+    settles) and the symptom is not published on its own.  Typed fields only; no
+    prose similarity.
+    """
+
+    tiers = [(issue, _fold_tier(issue), _issue_element_names(issue)) for issue in release]
+    if not any(tier == 1 or tier == 2 for _issue, tier, _names in tiers):
+        return release, []
+    folded_ids: set[str] = set()
+    folded: list[dict[str, Any]] = []
+    # Higher tiers first so a reachability issue collects its behavioural
+    # consequences before it is itself folded under a structural root.
+    for issue, tier, names in sorted(tiers, key=lambda row: -(row[1] or 0)):
+        if tier is None or tier == 1:
+            continue
+        candidates = [
+            (candidate_tier, index, candidate)
+            for index, (candidate, candidate_tier, candidate_names) in enumerate(tiers)
+            if candidate_tier is not None and candidate_tier < tier and candidate is not issue
+            and candidate["issue_id"] not in folded_ids and names & candidate_names
+        ]
+        if not candidates:
+            continue
+        root = min(candidates)[2]
+        folded_ids.add(issue["issue_id"])
+        for nested in issue.pop("folded_sub_claims", []) or []:
+            root.setdefault("folded_sub_claims", []).append(nested)
+            for row in folded:
+                if row["issue_id"] == nested["issue_id"]:
+                    row["folded_into"] = root["issue_id"]
+        root.setdefault("folded_sub_claims", []).append(
+            {
+                "issue_id": issue["issue_id"],
+                "title": issue.get("title"),
+                "property": issue.get("property"),
+                "violation_direction": issue.get("violation_direction"),
+                "observed": issue.get("observed"),
+                "expected": issue.get("expected"),
+                "element_refs": list(issue.get("element_refs") or []),
+                "source_refs": list(issue.get("source_refs") or []),
+                "contract_id": issue.get("contract_id"),
+                "shared_elements": sorted(names & _issue_element_names(root)),
+            }
+        )
+        folded.append({"issue_id": issue["issue_id"], "folded_into": root["issue_id"], "shared_elements": sorted(names & _issue_element_names(root))})
+    kept = [issue for issue in release if issue["issue_id"] not in folded_ids]
+    for root in kept:
+        subs = root.get("folded_sub_claims") or []
+        if not subs:
+            continue
+        lines = [f"({index}) {sub['title']}: {sub['observed']}" for index, sub in enumerate(subs, start=1)]
+        root["observed"] = f"{root.get('observed') or ''}\n\nConsequences observed in the same closed model (folded sub-claims, each an obligation settled by this root cause): " + " ".join(lines)
+        root["element_refs"] = list(dict.fromkeys([*(root.get("element_refs") or []), *(ref for sub in subs for ref in sub["element_refs"])]))
+        root["source_refs"] = list(dict.fromkeys([*(root.get("source_refs") or []), *(ref for sub in subs for ref in sub["source_refs"])]))
+        root["contract_ids"] = list(dict.fromkeys([*(root.get("contract_ids") or [root.get("contract_id")]), *(sub["contract_id"] for sub in subs)]))
+        root["folding"] = {
+            "algorithm_version": "root-consequence-fold.v1",
+            "reason": "Downstream-property issues sharing a state with this root-property issue are consequences of the same defect and were published as sub-claims.",
+            "basis": "typed property/direction classes and shared state names from typed fields; no prose similarity",
+        }
+    return kept, folded
+
+
+def _annotate_author_anchors(pair: PairInput, release: list[dict[str, Any]]) -> None:
+    """Append the author's PlantUML lines to each published issue.
+
+    Closed-model references (``transition:line:NN``) are lines of the lowered
+    FCSTM text.  The evaluator and the reader work on the author's PlantUML, so
+    every issue also names the author lines its elements came from.
+    """
+
+    index = build_author_index(pair)
+    if index is None:
+        return
+    for issue in release:
+        anchors: list[str] = []
+        raw_refs: list[str] = []
+        for ref in issue.get("element_refs") or ():
+            ref = str(ref)
+            if ref.startswith("transition:"):
+                author = index.author_transition_for_carrier(pair.model.transition(ref))
+                if author is not None:
+                    anchors.append(author.anchor())
+                    raw_refs.append(author.raw_ref)
+            else:
+                match = re.match(r"^state:([^:]+)", ref)
+                if match:
+                    author_state = index.state(match.group(1).rsplit(".", 1)[-1])
+                    if author_state is not None and author_state.first_line is not None:
+                        anchors.append(f"PlantUML line {author_state.first_line}: state `{author_state.short_name}` ({'explicit' if author_state.explicit_declaration else 'implicit'} declaration)")
+                        if author_state.raw_ref:
+                            raw_refs.append(author_state.raw_ref)
+        anchors = list(dict.fromkeys(anchors))
+        if anchors:
+            issue["author_source_anchor"] = anchors
+            issue["observed"] = f"{issue.get('observed') or ''} Author source: {'; '.join(anchors)}."
+            issue["source_refs"] = list(dict.fromkeys([*(issue.get("source_refs") or []), *raw_refs]))
+
 
 
 def _deduplicate_release_issues(
@@ -5225,11 +5397,15 @@ def _method_cell(
         except Exception as exc:  # noqa: BLE001 - preserve publication diagnostics
             errors.append({"candidate_index": index, "error_type": type(exc).__name__, "message": str(exc), "reason": "Candidate publication failed; the cell remains readable.", "basis": "Candidate-level diagnostic preservation."})
     release = _deduplicate_release_issues(release)
+    release, folded_issues = _fold_consequence_issues(release)
+    _annotate_author_anchors(pair, release)
     publish_output = {
         "evidence_record_count": len(records),
         "pre_dedup_release_count": sum(
             bool(record.get("issue_emitted")) for record in records
         ),
+        "folded_issue_count": len(folded_issues),
+        "folded_issues": folded_issues,
         "report_issue_count": len(release),
         "report_issue_ids": [item["issue_id"] for item in release],
         "w_distribution": dict(
