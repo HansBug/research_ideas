@@ -1,5 +1,28 @@
 # v61 结果台账（按迭代追加，最新在上）
 
+## 迭代 2（method 提交 a0ec141c7；method run `runs/paper1/method-v61-a0ec141c7/48cce1659b3f4712bd340f785246b527`，judge run `runs/paper1/judge-v61-a0ec141c7/current-r1`）
+
+新增改动：根可达与终止前沿去掉对 `state_role` 的依赖并加 NL 词元回退锚定；S5 缺守卫报告中作者标签为布尔表达式或与需求守卫同名者按格聚合为一条模态报告（子主张保留）。15 格全部 completed，0 失败；method 约 14 分钟，judge 约 31 分钟。
+
+| 指标 | v60 同轮 | 迭代 1 | **迭代 2** | 达标线 | 结果 |
+|:--|--:|--:|--:|--:|:--|
+| 锚定组 FULL 条目 | 17/19 | 17/19 | **19/19** | ≥ 16 | 达标 |
+| 锚定组 judge precision | 95.7% | 97.4% | **92.7%** | ≥ 88% | 达标 |
+| 收益组 FULL 条目 | 22/47 | 32/47 | **32/47** | ≥ 31 | 达标 |
+| 收益组 judge precision | 66.1% | 81.1% | **72.0%** | ≥ 74%（及格 ≥ 71%） | 及格 |
+| 收益组点名 16 条命中 | 2 | 13 | **13** | ≥ 10 | 达标 |
+| 子集 L2（18）/ 点名 L2 | 14 / 1 | 15 / 4 | **16 / 4** | 4 条全中 | 达标 |
+| 子集报告数（一轮） | 173 | 150 | **123（8.2 条/格）** | ≤ 125 | 达标 |
+| 子集 judge precision | 74.0% | 85.3% | **78.9%** | ≥ 78% | 达标 |
+| 子集 K/N/I | 82/46/45 | 91/37/22 | **82/15/26** | — | — |
+| 子集 FULL 条目 | 39/66 | 49/66 | **51/66** | — | — |
+
+聚合效果：34 条 S5 缺守卫报告收成 3 条根报告（0009、0039、0049），judge 分别判 N、K（FULL `EIS-0039-02`）、N，均 D1；根可达回退锚定让 0007 的两条 G1 报告回来，`EIS-0007-01` 收回，锚定组因此 19/19。
+
+precision 相对迭代 1 下降是算术效应：N 从 37 降到 15（聚合掉的都是 N），I 从 22 到 26。26 条 I 的构成：S5 缺守卫（未聚合的其他事件标签）11、LLM 候选 transition_endpoints/initial_entry wrong_target 5、cardinality 3、R2 2、其余 5。其中 S5 的 11 条里 8 条是「条件用同义事件名承载」（`road clear` 对 `road ahead is clear`、`Approached` 对 `approaches the destination`），R2 的 2 条都在含 route token 的模型上（v60 人工 44 条 R2 无一有效）。
+
+迭代 3 改动（运行前登记）：模态聚合成员判据放宽为标识符词元 Jaccard ≥ 0.5（含 5 字符轻词干），但要求比较运算符集合一致，`flag=true` 视为命名；含 route token 的模型上撤回 R2 前沿（轨迹经过编译器合成的跳转，不是作者层行为）。预期：I 减约 8，报告数再减约 6，precision 回到 ≥ 82%，hit 不变。
+
 判定装置：第六轮 judge（gpt-5.6-luna，`semantic-judge.two-stage.v3.11`，relation-first 闭合），judge 对 judge 比较同一 15 对、同一轮次的 v60 产出；人工数字仅作参照（见 [preregistered.md](./preregistered.md) §3）。评测脚本 [evaluate_run.py](./evaluate_run.py)。
 
 ## 迭代 1（method 提交 7be9261f9；method run `runs/paper1/method-v61-7be9261f9/0af895b0b3114674a2f2f1df0fce2d1c`，judge run `runs/paper1/judge-v61-7be9261f9/current-r1`）

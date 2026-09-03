@@ -4259,6 +4259,29 @@ def _fold_consequence_issues(
 _GUARD_MODALITY_BOOL = re.compile(r"[<>]=?|!=|==|=|&&|\|\||\band\b|\bor\b|\btrue\b|\bfalse\b", re.I)
 
 
+def _condition_tokens(text: str) -> set[str]:
+    """Identifier / literal tokens of a condition, ignoring connectives and operators."""
+
+    normalized = re.sub(r"\band\b|&&|&", " ", text or "", flags=re.I)
+    normalized = re.sub(r"\bor\b|\|\|", " ", normalized, flags=re.I)
+    normalized = re.sub(r"([a-z])([A-Z])", r"\1 \2", normalized).replace("_", " ")
+    tokens = {token.lower() for token in re.findall(r"[A-Za-z][A-Za-z0-9]*|[0-9]+(?:\.[0-9]+)?", normalized)}
+    tokens -= {"true", "false", "is", "are", "the", "a", "an", "of", "to", "in", "with", "it", "its", "system"}
+    # light stemming: `approached` / `approaches`, `completed` / `complete` compare equal
+    return {token[:5] if token.isalpha() and len(token) > 5 else token for token in tokens}
+
+
+def _comparison_operators(text: str) -> frozenset[str]:
+    """Relational operators of a condition; `=`/`==` and `is` read as equality."""
+
+    # `flag=true` / `flag == false` merely names a boolean flag; it is not a relation.
+    stripped = re.sub(r"\s*(==|=)\s*(true|false)", " ", text or "", flags=re.I)
+    ops = set(re.findall(r"<=|>=|!=|==|<|>|=", stripped))
+    if re.search(r"is|equals?", text or "", re.I):
+        ops.add("=")
+    return frozenset("=" if op == "==" else op for op in ops)
+
+
 def _aggregate_guard_modality_issues(
     pair: PairInput, release: list[dict[str, Any]]
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -4289,8 +4312,20 @@ def _aggregate_guard_modality_issues(
             continue
         required = str(inputs.get("guard") or inputs.get("expected_guard") or "")
         event_text = author.label.event
-        if _GUARD_MODALITY_BOOL.search(event_text) or (required and normalize_text(event_text) == normalize_text(required)):
-            members.append(issue)
+        same_words = False
+        if required and _condition_tokens(event_text) and _condition_tokens(required):
+            left, right = _condition_tokens(event_text), _condition_tokens(required)
+            same_words = len(left & right) / len(left | right) >= 0.5
+        if not (_GUARD_MODALITY_BOOL.search(event_text) or same_words or (required and normalize_text(event_text) == normalize_text(required))):
+            continue
+        # Only a label that states the *same* condition as the requirement is a pure
+        # modality choice.  A boolean label with a different condition is a
+        # possible wrong guard and stays its own report.
+        if required and _condition_tokens(event_text) and _condition_tokens(required):
+            left, right = _condition_tokens(event_text), _condition_tokens(required)
+            if len(left & right) / len(left | right) < 0.5 or _comparison_operators(event_text) != _comparison_operators(required):
+                continue
+        members.append(issue)
     if len(members) < 2:
         return release, []
     root = members[0]

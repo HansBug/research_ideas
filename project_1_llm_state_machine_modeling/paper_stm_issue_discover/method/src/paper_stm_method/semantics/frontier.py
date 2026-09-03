@@ -3329,6 +3329,18 @@ def _source_endpoint_name(value: str) -> str:
     return value.rsplit(".", 1)[-1]
 
 
+def _model_has_route_control(pair: PairInput) -> bool:
+    """True when the working contract declares a compiler route-control variable."""
+
+    artifact = pair.working_contract
+    if artifact is None:
+        return False
+    return any(
+        isinstance(item, Mapping) and item.get("kind") == "route_control_variable"
+        for item in artifact.payload.get("elements", [])
+    )
+
+
 def _materialize_group_post_states(
     builder: _Builder,
     groups: Sequence[NLTransitionGroup],
@@ -3346,6 +3358,13 @@ def _materialize_group_post_states(
     pair = builder.pair
     inventory = pair.exact_source_inventory
     if inventory is None:
+        return
+    if _model_has_route_control(pair):
+        # v61: the closed model of this pair contains lowering-synthesised
+        # routing hops (route-token guarded continuations).  A native runtime
+        # trace over such a model traverses transitions the author never wrote,
+        # so its post-stimulus configuration is not author-level evidence; the
+        # R2 frontier is withheld for the whole pair (coverage gap, not a verdict).
         return
     for group in groups:
         source = _state_for_value(pair, group.source_name)
