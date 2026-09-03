@@ -1567,6 +1567,22 @@ class ValidityBatchArbitrationInput(FrozenModel):
         return self
 
 
+def _relation_admissible(certificate, relation_scope: str) -> bool:
+    """A certificate may enter relation judging when VALID, or when relation-first closure admits it.
+
+    Under ``non_false_positive`` scope, D0 and NOT_A_DEFECT_CLAIM certificates are
+    compared with the ledger so that a positive relation can close them as KNOWN; a
+    FALSE_POSITIVE certificate (fact refuted on the author source) never is.
+    """
+
+    if certificate.core_truth == CoreClaimTruth.VALID:
+        return True
+    return (
+        relation_scope == "non_false_positive"
+        and certificate.defect_adjudication.defect_class != DefectClass.A0_FALSE_POSITIVE
+    )
+
+
 class RelationJudgeInput(FrozenModel):
     """Relation-only input for one report already frozen as artifact-valid."""
 
@@ -1600,12 +1616,19 @@ class RelationJudgeInput(FrozenModel):
         description="Frozen certificate hash, expected closure, protocol, and artifact-closure basis.",
     )
 
+    relation_scope: Literal["valid_only", "non_false_positive"] = Field(
+        default="valid_only",
+        description="'valid_only' is the frozen protocol; 'non_false_positive' also admits D0 / NOT_A_DEFECT_CLAIM certificates so that a positive ledger relation can close them as KNOWN (relation-first K closure).",
+    )
+
     @model_validator(mode="after")
     def valid_certificate_is_closed(self) -> RelationJudgeInput:
-        """Allow relation judging only for the same report with frozen VALID truth."""
+        """Allow relation judging only for the same report with an admissible frozen certificate."""
 
-        if self.validity_certificate.core_truth != CoreClaimTruth.VALID:
-            raise ValueError("relation input requires a VALID frozen certificate")
+        if not _relation_admissible(self.validity_certificate, self.relation_scope):
+            raise ValueError(
+                "relation input requires a VALID frozen certificate, or a non-false-positive certificate under relation-first closure"
+            )
         if self.report.report_id != self.validity_certificate.report_id:
             raise ValueError("report and validity_certificate report IDs must match")
         return self
@@ -1655,9 +1678,14 @@ class RelationBatchJudgeInput(FrozenModel):
         description="Certificate hashes, expected closure, protocol, batch identity, and common artifact basis.",
     )
 
+    relation_scope: Literal["valid_only", "non_false_positive"] = Field(
+        default="valid_only",
+        description="Certificate admission scope shared by every item in this batch; see RelationJudgeInput.relation_scope.",
+    )
+
     @model_validator(mode="after")
     def valid_certificate_set_is_exact(self) -> RelationBatchJudgeInput:
-        """Require unique reports and same-order VALID certificates."""
+        """Require unique reports and same-order admissible certificates."""
 
         report_ids = [item.report_id for item in self.reports]
         certificate_ids = [item.report_id for item in self.validity_certificates]
@@ -1668,10 +1696,12 @@ class RelationBatchJudgeInput(FrozenModel):
                 "relation batch reports and certificates must have identical IDs in order"
             )
         if any(
-            item.core_truth != CoreClaimTruth.VALID
+            not _relation_admissible(item, self.relation_scope)
             for item in self.validity_certificates
         ):
-            raise ValueError("relation batch accepts only frozen VALID certificates")
+            raise ValueError(
+                "relation batch accepts only frozen VALID certificates, or non-false-positive certificates under relation-first closure"
+            )
         expected_ids = [item.expected_id for item in self.expected_issues]
         if len(expected_ids) != len(set(expected_ids)):
             raise ValueError("relation batch expected IDs must be unique")
@@ -2064,6 +2094,10 @@ class ReportAssessment(FrozenModel):
         default=None,
         description="Frozen issue #189 defect class from the two-stage validity certificate; None only for legacy single-stage readings.",
     )
+    closure_rule: Literal["validity_first", "relation_first"] = Field(
+        default="validity_first",
+        description="'validity_first' is the frozen protocol (INVALID implies all NO). 'relation_first' lets a positive ledger relation close a D0 / NOT_A_DEFECT_CLAIM report as VALID_KNOWN, mirroring the human practice of leaving ledger-matched reports as K; FALSE_POSITIVE never closes as K.",
+    )
     full_expected_ids: tuple[str, ...] = Field(
         description="All expected IDs that FULL_MATCH this report, derived exactly from the relation matrix."
     )
@@ -2121,17 +2155,29 @@ class ReportAssessment(FrozenModel):
                 f"report_assessment[{self.report_id}] defect_class={self.defect_class.value} "
                 f"is inconsistent with core_truth={self.core_truth.value}"
             )
-        expected_validity = (
-            ReportValidity.INVALID
-            if self.core_truth == CoreClaimTruth.INVALID
-            else ReportValidity.VALID_KNOWN
-            if has_positive
-            else ReportValidity.VALID_NOVEL
+        admissible_invalid = (
+            self.closure_rule == "relation_first"
+            and self.defect_class is not None
+            and self.defect_class != DefectClass.A0_FALSE_POSITIVE
         )
-        if self.core_truth == CoreClaimTruth.INVALID and has_positive:
+        if (
+            self.core_truth == CoreClaimTruth.INVALID
+            and has_positive
+            and not admissible_invalid
+        ):
             raise ValueError(
                 f"report_assessment[{self.report_id}] core_truth=INVALID requires all relations NO_MATCH; "
                 f"full={self.full_expected_ids}, partial={self.partial_expected_ids}"
+            )
+        if has_positive and admissible_invalid:
+            expected_validity = ReportValidity.VALID_KNOWN
+        else:
+            expected_validity = (
+                ReportValidity.INVALID
+                if self.core_truth == CoreClaimTruth.INVALID
+                else ReportValidity.VALID_KNOWN
+                if has_positive
+                else ReportValidity.VALID_NOVEL
             )
         if self.validity != expected_validity:
             raise ValueError(
@@ -3222,6 +3268,10 @@ class PairJudgeResult(FrozenModel):
         default="arbitration",
         description="How final certificates were chosen: 'arbitration' replays every conflicted report with one fresh reading (frozen protocol); 'majority' keeps the earliest reading carrying the strict-majority defect class and arbitrates only reports without a strict majority.",
     )
+    k_closure: Literal["validity_first", "relation_first"] = Field(
+        default="validity_first",
+        description="K/N/I closure rule used for this pair; 'relation_first' admits D0 / NOT_A_DEFECT_CLAIM reports to relation judging and closes a positive ledger relation as VALID_KNOWN.",
+    )
     relation_reading_1: RelationStageReading = Field(
         description="First complete relation-only reading for all reports frozen as VALID."
     )
@@ -3420,6 +3470,10 @@ class RunManifest(FrozenModel):
     validity_aggregation: Literal["arbitration", "majority"] = Field(
         default="arbitration",
         description="Final-certificate selection rule; 'majority' requires at least three readings and is a calibration experiment, not the frozen protocol.",
+    )
+    k_closure: Literal["validity_first", "relation_first"] = Field(
+        default="validity_first",
+        description="K/N/I closure rule; 'relation_first' is a calibration experiment mirroring the human practice of leaving ledger-matched reports as K.",
     )
     execution_strategy: Literal["process-isolated-bounded-batch.v1"] = Field(
         default="process-isolated-bounded-batch.v1",

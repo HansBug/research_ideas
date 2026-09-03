@@ -172,3 +172,48 @@ def test_bare_singleton_validity_item_is_wrapped_into_item0(frozen_batch) -> Non
     two_model = build_exact_validity_batch_model(_two_report_batch)
     with pytest.raises(ValueError):
         two_model.model_validate(bare)
+
+
+def test_relation_first_closure_lets_a_ledger_match_close_d0_as_known(frozen_batch) -> None:
+    """Relation-first K closure: a D0 report with a positive ledger relation becomes VALID_KNOWN; FALSE_POSITIVE never does."""
+
+    from paper_stm_judge.models import ReportValidity
+    from paper_stm_judge.schema import materialize_two_stage_reading
+
+    judge_input, batch_input, model = frozen_batch
+    two_reports = judge_input.model_copy(update={"reports": judge_input.reports[:2]})
+    d0_certificate = materialize_validity_certificate(
+        validity_batch_responses(model.model_validate(_payload(batch_input, "D0")), batch_input)[0],
+        validity_item_input(batch_input, 0),
+    )
+    d2_certificate = materialize_validity_certificate(
+        validity_batch_responses(model.model_validate(_payload(batch_input, "D2")), batch_input)[1],
+        validity_item_input(batch_input, 1),
+    )
+    assert d0_certificate.core_truth == CoreClaimTruth.INVALID
+    with pytest.raises(ValueError, match="non-false-positive certificate"):
+        build_relation_batch_input(two_reports, (d0_certificate, d2_certificate), batch_id="RB-vo")
+    relation_batch = build_relation_batch_input(
+        two_reports, (d0_certificate, d2_certificate), batch_id="RB-rf", relation_scope="non_false_positive"
+    )
+    relation_model = build_exact_relation_batch_model(relation_batch)
+    payload = {"schema_version": "semantic-judge.relation-batch-response.v1", "batch_id": "RB-rf"}
+    for index in range(2):
+        payload[f"item{index}"] = _relation_envelope(relation_item_input(relation_batch, index), all_positive=True)
+    responses = relation_batch_responses(relation_model.model_validate(payload), relation_batch)
+    reading = materialize_two_stage_reading(
+        (d0_certificate, d2_certificate), responses, two_reports, closure_rule="relation_first"
+    )
+    by_id = {row.report_id: row for row in reading.report_assessments}
+    assert by_id[d0_certificate.report_id].validity == ReportValidity.VALID_KNOWN
+    assert by_id[d0_certificate.report_id].defect_class == DefectClass.D0
+    assert by_id[d2_certificate.report_id].validity == ReportValidity.VALID_KNOWN
+    assert all(row.hit for row in reading.expected_assessments)
+    with pytest.raises(ValueError):
+        materialize_two_stage_reading((d0_certificate, d2_certificate), responses, two_reports, closure_rule="validity_first")
+    fp_certificate = materialize_validity_certificate(
+        validity_batch_responses(model.model_validate(_payload(batch_input, "A0_FALSE_POSITIVE", refute_core=True)), batch_input)[0],
+        validity_item_input(batch_input, 0),
+    )
+    with pytest.raises(ValueError, match="non-false-positive certificate"):
+        build_relation_batch_input(two_reports, (fp_certificate,), batch_id="RB-fp", relation_scope="non_false_positive")

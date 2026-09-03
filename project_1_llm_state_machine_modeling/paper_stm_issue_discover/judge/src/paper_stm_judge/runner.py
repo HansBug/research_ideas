@@ -21,6 +21,7 @@ from .metrics import compute_semantic_metrics, decode_outcomes
 from .models import (
     AdapterAudit,
     ConflictKind,
+    DefectClass,
     ConflictRecord,
     CoreClaimTruth,
     FrozenValidityCertificate,
@@ -728,6 +729,7 @@ def judge_pair(
     judge_code_commit: str,
     validity_readings: int = 2,
     validity_aggregation: str = "arbitration",
+    k_closure: str = "validity_first",
 ) -> PairJudgeResult:
     """Run bounded multi-reading batches, freeze truth, then batch relations."""
 
@@ -737,6 +739,9 @@ def judge_pair(
         raise ValueError(f"unknown validity_aggregation: {validity_aggregation}")
     if validity_aggregation == "majority" and validity_readings < 3:
         raise ValueError("majority aggregation requires at least three validity readings")
+    if k_closure not in ("validity_first", "relation_first"):
+        raise ValueError(f"unknown k_closure: {k_closure}")
+    relation_scope = "non_false_positive" if k_closure == "relation_first" else "valid_only"
     pair_id = judge_input.pair_id
     receipts: list[JudgeCallReceipt] = []
     schema_hashes: dict[str, str] = {}
@@ -956,15 +961,19 @@ def judge_pair(
             final_certificates.update(arbitration_by_id)
 
         ordered_certificates = tuple(final_certificates[item] for item in report_order)
+        def _relation_candidate(item: FrozenValidityCertificate) -> bool:
+            if item.core_truth == CoreClaimTruth.VALID:
+                return True
+            return (
+                k_closure == "relation_first"
+                and item.defect_adjudication.defect_class != DefectClass.A0_FALSE_POSITIVE
+            )
+
         invalid_ids = tuple(
-            item.report_id
-            for item in ordered_certificates
-            if item.core_truth == CoreClaimTruth.INVALID
+            item.report_id for item in ordered_certificates if not _relation_candidate(item)
         )
         valid_certificates = tuple(
-            item
-            for item in ordered_certificates
-            if item.core_truth == CoreClaimTruth.VALID
+            item for item in ordered_certificates if _relation_candidate(item)
         )
 
         def make_relation_primary(
@@ -973,7 +982,7 @@ def judge_pair(
             batch_id: str,
         ) -> _BatchCallPlan:
             batch_input = build_relation_batch_input(
-                judge_input, certificates, batch_id=batch_id
+                judge_input, certificates, batch_id=batch_id, relation_scope=relation_scope
             )
             model = build_exact_relation_batch_model(batch_input)
             phase = f"relation_primary_{reading_no}"
@@ -1119,7 +1128,7 @@ def judge_pair(
             ) -> _BatchCallPlan:
                 certificates = tuple(certificate_by_id[item] for item in report_ids)
                 batch_input = build_relation_batch_input(
-                    judge_input, certificates, batch_id=batch_id
+                    judge_input, certificates, batch_id=batch_id, relation_scope=relation_scope
                 )
                 arbitration_input = RelationBatchArbitrationInput(
                     relation_input=batch_input,
@@ -1212,7 +1221,10 @@ def judge_pair(
             if item in final_relation_responses
         )
         final_reading = materialize_two_stage_reading(
-            ordered_certificates, ordered_relation_responses, judge_input
+            ordered_certificates,
+            ordered_relation_responses,
+            judge_input,
+            closure_rule=k_closure,
         )
     except Exception as exc:
         raise JudgeExecutionFailure(str(exc), tuple(receipts)) from exc
@@ -1229,8 +1241,12 @@ def judge_pair(
         protocol_sha256=PROTOCOL_SHA256,
         judge_algorithm_version=(
             JUDGE_ALGORITHM_VERSION
-            if validity_aggregation == "arbitration" and validity_readings == 2
-            else f"{JUDGE_ALGORITHM_VERSION}.readings{validity_readings}-{validity_aggregation}"
+            + (
+                ""
+                if validity_aggregation == "arbitration" and validity_readings == 2
+                else f".readings{validity_readings}-{validity_aggregation}"
+            )
+            + ("" if k_closure == "validity_first" else ".k-relation")
         ),
         judge_code_commit=judge_code_commit,
         model_profile=runtime.profile,
@@ -1244,6 +1260,7 @@ def judge_pair(
         validity_arbitration_certificates=tuple(validity_arbitrations),
         validity_extra_readings=validity_extra_readings,
         validity_aggregation=validity_aggregation,  # type: ignore[arg-type]
+        k_closure=k_closure,  # type: ignore[arg-type]
         relation_reading_1=relation_reading_1,
         relation_reading_2=relation_reading_2,
         relation_arbitration_responses=tuple(relation_arbitrations),

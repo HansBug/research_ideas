@@ -314,6 +314,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Final-certificate selection; 'majority' needs at least 3 readings and is a calibration experiment.",
     )
     parser.add_argument(
+        "--k-closure",
+        choices=("validity_first", "relation_first"),
+        default="validity_first",
+        help="K/N/I closure: 'relation_first' admits D0 / NOT_A_DEFECT_CLAIM reports to relation judging and closes a positive ledger relation as KNOWN (calibration experiment).",
+    )
+    parser.add_argument(
         "--report-filter",
         type=Path,
         default=None,
@@ -386,6 +392,7 @@ def main(argv: list[str] | None = None) -> int:
         transport_retries=args.transport_retries,
         validity_readings=args.validity_readings,
         validity_aggregation=args.validity_aggregation,
+        k_closure=args.k_closure,
         report_filter_path=(
             str(report_filter_path) if report_filter_path is not None else None
         ),
@@ -456,6 +463,7 @@ def main(argv: list[str] | None = None) -> int:
             judge_code_commit=code_commit,
             validity_readings=args.validity_readings,
             validity_aggregation=args.validity_aggregation,
+            k_closure=args.k_closure,
         )
         result_path = artifact_root / "pairs" / f"{pair_id}.json"
         result_hash = _write_model(result_path, result)

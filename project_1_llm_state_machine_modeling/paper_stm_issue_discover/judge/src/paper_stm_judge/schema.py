@@ -897,8 +897,10 @@ def materialize_validity_certificate(
 def build_relation_input(
     judge_input: UnifiedJudgeInput,
     certificate: FrozenValidityCertificate,
+    *,
+    relation_scope: str = "valid_only",
 ) -> RelationJudgeInput:
-    """Build one relation-only input from an immutable VALID certificate."""
+    """Build one relation-only input from an immutable admissible certificate."""
 
     report = next(
         item for item in judge_input.reports if item.report_id == certificate.report_id
@@ -907,6 +909,7 @@ def build_relation_input(
         protocol_version=judge_input.protocol_version,
         report=report,
         validity_certificate=certificate,
+        relation_scope=relation_scope,  # type: ignore[arg-type]
         expected_issues=judge_input.expected_issues,
         artifact_closure=judge_input.artifact_closure,
         reason="This input permits expected matching only after report validity has been frozen independently.",
@@ -922,18 +925,20 @@ def build_relation_batch_input(
     certificates: tuple[FrozenValidityCertificate, ...],
     *,
     batch_id: str,
+    relation_scope: str = "valid_only",
 ) -> RelationBatchJudgeInput:
     """Build one relation matrix input with shared expected and artifact closures."""
 
     reports_by_id = {item.report_id: item for item in judge_input.reports}
     if not certificates:
-        raise ValueError("relation batch requires at least one VALID certificate")
+        raise ValueError("relation batch requires at least one admissible certificate")
     reports = tuple(reports_by_id[item.report_id] for item in certificates)
     return RelationBatchJudgeInput(
         batch_id=batch_id,
         protocol_version=judge_input.protocol_version,
         reports=reports,
         validity_certificates=certificates,
+        relation_scope=relation_scope,  # type: ignore[arg-type]
         expected_issues=judge_input.expected_issues,
         artifact_closure=judge_input.artifact_closure,
         reason=(
@@ -957,6 +962,7 @@ def relation_item_input(
         protocol_version=batch_input.protocol_version,
         report=batch_input.reports[index],
         validity_certificate=batch_input.validity_certificates[index],
+        relation_scope=batch_input.relation_scope,
         expected_issues=batch_input.expected_issues,
         artifact_closure=batch_input.artifact_closure,
         reason=batch_input.reason,
@@ -1532,8 +1538,19 @@ def materialize_two_stage_reading(
     certificates: tuple[FrozenValidityCertificate, ...],
     relation_responses: tuple[RelationResponse, ...],
     judge_input: UnifiedJudgeInput,
+    *,
+    closure_rule: str = "validity_first",
 ) -> JudgeReading:
-    """Derive dense issue #195 ownership from frozen truth and relation closure."""
+    """Derive dense issue #195 ownership from frozen truth and relation closure.
+
+    ``validity_first`` is the frozen protocol: INVALID certificates close as all-NO.
+    ``relation_first`` also compares D0 / NOT_A_DEFECT_CLAIM certificates with the
+    ledger and closes a positive relation as VALID_KNOWN; FALSE_POSITIVE stays INVALID.
+    """
+
+    if closure_rule not in ("validity_first", "relation_first"):
+        raise ValueError(f"unknown closure_rule: {closure_rule}")
+    relation_first = closure_rule == "relation_first"
 
     report_ids = tuple(item.report_id for item in judge_input.reports)
     expected_ids = tuple(item.expected_id for item in judge_input.expected_issues)
@@ -1543,13 +1560,18 @@ def materialize_two_stage_reading(
         certificates
     ):
         raise ValueError("validity certificates must cover every report exactly once")
-    valid_ids = {
+    candidate_ids = {
         report_id
         for report_id, certificate in certificates_by_id.items()
         if certificate.core_truth == CoreClaimTruth.VALID
+        or (
+            relation_first
+            and certificate.defect_adjudication.defect_class
+            != DefectClass.A0_FALSE_POSITIVE
+        )
     }
     responses_by_id = {item.report_id: item for item in relation_responses}
-    expected_response_ids = valid_ids if expected_ids else set()
+    expected_response_ids = candidate_ids if expected_ids else set()
     if set(responses_by_id) != expected_response_ids or len(responses_by_id) != len(
         relation_responses
     ):
@@ -1578,7 +1600,7 @@ def materialize_two_stage_reading(
         for expected_id in expected_ids:
             positive = positive_by_expected.get(expected_id)
             if positive is None:
-                if certificate.core_truth == CoreClaimTruth.INVALID:
+                if report_id not in candidate_ids:
                     relation_reason = "The expected-isolated validity certificate is INVALID, so issue #195 requires this relation to be NO_MATCH."
                     relation_basis = f"{certificate.certificate_hash}; {certificate.reason}; all-NO invalid-report closure"
                     relation_source_refs = certificate.source_refs
@@ -1647,15 +1669,27 @@ def materialize_two_stage_reading(
                 )
             relations.append(relation)
 
-        validity = (
-            ReportValidity.INVALID
-            if certificate.core_truth == CoreClaimTruth.INVALID
-            else ReportValidity.VALID_KNOWN
-            if full_expected_ids or partial_expected_ids
-            else ReportValidity.VALID_NOVEL
+        has_positive = bool(full_expected_ids or partial_expected_ids)
+        relation_first_known = (
+            relation_first
+            and has_positive
+            and certificate.core_truth == CoreClaimTruth.INVALID
+            and report_id in candidate_ids
         )
+        if relation_first_known:
+            validity = ReportValidity.VALID_KNOWN
+        else:
+            validity = (
+                ReportValidity.INVALID
+                if certificate.core_truth == CoreClaimTruth.INVALID
+                else ReportValidity.VALID_KNOWN
+                if has_positive
+                else ReportValidity.VALID_NOVEL
+            )
         ownership_reason = (
-            "Backend ownership is INVALID because expected-isolated core truth is INVALID and every relation is mechanically NO_MATCH."
+            "Backend ownership is VALID_KNOWN under relation-first closure: the author-source fact is not refuted and at least one FULL_MATCH or PARTIAL_MATCH ledger relation settles the obligation question."
+            if relation_first_known
+            else "Backend ownership is INVALID because expected-isolated core truth is INVALID and every relation is mechanically NO_MATCH."
             if validity == ReportValidity.INVALID
             else "Backend ownership is VALID_KNOWN because frozen core truth is VALID and at least one FULL_MATCH or PARTIAL_MATCH relation exists."
             if validity == ReportValidity.VALID_KNOWN
@@ -1672,6 +1706,7 @@ def materialize_two_stage_reading(
                 core_truth=certificate.core_truth,
                 validity=validity,
                 defect_class=certificate.defect_adjudication.defect_class,
+                closure_rule=closure_rule,  # type: ignore[arg-type]
                 full_expected_ids=tuple(full_expected_ids),
                 partial_expected_ids=tuple(partial_expected_ids),
                 no_match_expected_ids=tuple(
