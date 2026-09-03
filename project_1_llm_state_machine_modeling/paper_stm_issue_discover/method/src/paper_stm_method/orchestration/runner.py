@@ -4108,15 +4108,19 @@ def _release_semantic_key(issue: Mapping[str, Any]) -> tuple[Any, ...]:
 # Causal tiers: a lower tier is a possible root cause of every higher tier that
 # shares a state with it (structure -> reachability -> behaviour on the
 # unreachable / misplaced part).
+# Only structural roots whose consequence relation is entailed by UML semantics:
+# a scope without a default entry, a misplaced state or a missing region makes
+# the affected scope and everything inside it unreachable; an unreachable scope
+# makes every consumer inside it unreachable and every leaf inside it a dead end
+# and a non-terminating scope.  A wrong or missing edge is not such a root.
 _FOLD_TIERS: dict[tuple[str, str], int] = {
     ("initial_entry", "missing"): 1, ("initial_entry", "wrong_target"): 1, ("initial_entry", "mismatched"): 1,
     ("region_structure", "wrong_scope"): 1, ("cardinality", "missing"): 1,
     ("containment", "wrong_scope"): 1, ("containment", "missing"): 1,
-    ("transition_endpoints", "wrong_target"): 1, ("transition_endpoints", "missing"): 1,
     ("reachability", "unreachable"): 2,
 }
 _FOLD_DOWNSTREAM_PROPERTIES = frozenset(
-    {"event_consumer_coverage", "deadlock_freedom", "termination", "event_consumption", "state_action"}
+    {"event_consumer_coverage", "deadlock_freedom", "termination", "event_consumption"}
 )
 
 
@@ -4145,8 +4149,37 @@ def _issue_element_names(issue: Mapping[str, Any]) -> set[str]:
     return names
 
 
+def _issue_subject_names(issue: Mapping[str, Any]) -> set[str]:
+    """Lower-cased leaf names of the issue's typed locus only (its subject)."""
+
+    names: set[str] = set()
+    for value in issue.get("locus_names") or ():
+        for part in re.split(r"\s*->\s*|/", str(value)):
+            leaf = part.strip().rsplit(".", 1)[-1]
+            if leaf:
+                names.add(leaf.lower())
+    return names
+
+
+def _state_closure_names(pair: PairInput | None, names: set[str]) -> set[str]:
+    """``names`` plus the leaf names of every state nested under them."""
+
+    if pair is None:
+        return set(names)
+    closure = set(names)
+    by_name = {state.name.lower(): state for state in pair.model.states}
+    for name in list(names):
+        root = by_name.get(name)
+        if root is None:
+            continue
+        prefix = root.canonical_path + "."
+        closure.update(state.name.lower() for state in pair.model.states if state.canonical_path.startswith(prefix))
+    return closure
+
+
 def _fold_consequence_issues(
     release: list[dict[str, Any]],
+    pair: PairInput | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Fold downstream symptom issues into the root-cause issue of the same cell.
 
@@ -4160,7 +4193,12 @@ def _fold_consequence_issues(
     prose similarity.
     """
 
-    tiers = [(issue, _fold_tier(issue), _issue_element_names(issue)) for issue in release]
+    # A root reaches every state it is about plus their descendants; a symptom
+    # folds only when its own subject lies in that closure.
+    tiers = [
+        (issue, _fold_tier(issue), _state_closure_names(pair, _issue_subject_names(issue)) if _fold_tier(issue) in (1, 2) else _issue_subject_names(issue))
+        for issue in release
+    ]
     if not any(tier == 1 or tier == 2 for _issue, tier, _names in tiers):
         return release, []
     folded_ids: set[str] = set()
@@ -4174,7 +4212,7 @@ def _fold_consequence_issues(
             (candidate_tier, index, candidate)
             for index, (candidate, candidate_tier, candidate_names) in enumerate(tiers)
             if candidate_tier is not None and candidate_tier < tier and candidate is not issue
-            and candidate["issue_id"] not in folded_ids and names & candidate_names
+            and candidate["issue_id"] not in folded_ids and names <= candidate_names
         ]
         if not candidates:
             continue
@@ -4196,10 +4234,10 @@ def _fold_consequence_issues(
                 "element_refs": list(issue.get("element_refs") or []),
                 "source_refs": list(issue.get("source_refs") or []),
                 "contract_id": issue.get("contract_id"),
-                "shared_elements": sorted(names & _issue_element_names(root)),
+                "shared_elements": sorted(names),
             }
         )
-        folded.append({"issue_id": issue["issue_id"], "folded_into": root["issue_id"], "shared_elements": sorted(names & _issue_element_names(root))})
+        folded.append({"issue_id": issue["issue_id"], "folded_into": root["issue_id"], "shared_elements": sorted(names)})
     kept = [issue for issue in release if issue["issue_id"] not in folded_ids]
     for root in kept:
         subs = root.get("folded_sub_claims") or []
@@ -4213,7 +4251,7 @@ def _fold_consequence_issues(
         root["folding"] = {
             "algorithm_version": "root-consequence-fold.v1",
             "reason": "Downstream-property issues sharing a state with this root-property issue are consequences of the same defect and were published as sub-claims.",
-            "basis": "typed property/direction classes and shared state names from typed fields; no prose similarity",
+            "basis": "typed property/direction causal tiers; the symptom's locus states lie in the root's locus states or their native descendants; no prose similarity",
         }
     return kept, folded
 
@@ -5397,7 +5435,7 @@ def _method_cell(
         except Exception as exc:  # noqa: BLE001 - preserve publication diagnostics
             errors.append({"candidate_index": index, "error_type": type(exc).__name__, "message": str(exc), "reason": "Candidate publication failed; the cell remains readable.", "basis": "Candidate-level diagnostic preservation."})
     release = _deduplicate_release_issues(release)
-    release, folded_issues = _fold_consequence_issues(release)
+    release, folded_issues = _fold_consequence_issues(release, pair)
     _annotate_author_anchors(pair, release)
     publish_output = {
         "evidence_record_count": len(records),

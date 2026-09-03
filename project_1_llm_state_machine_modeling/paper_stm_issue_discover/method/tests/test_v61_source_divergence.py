@@ -146,3 +146,21 @@ def test_fold_moves_downstream_symptoms_under_their_root() -> None:
     assert [i["issue_id"] for i in kept] == ["p:r1:issue:0", "p:r1:issue:2"]
     assert folded == [{"issue_id": "p:r1:issue:1", "folded_into": "p:r1:issue:0", "shared_elements": ["fcidle"]}]
     assert "FCIdle is unreachable" in root["observed"] and root["folded_sub_claims"][0]["issue_id"] == "p:r1:issue:1"
+
+
+def test_fold_never_uses_a_wrong_edge_as_root_nor_a_foreign_subject() -> None:
+    # pair 0011 shape: an S2 wrong-target report must not absorb dead ends of other states
+    edge = {"issue_id": "p:r1:issue:0", "property": "transition_endpoints", "violation_direction": "wrong_target", "locus_names": ["braking state", "operational state"], "element_refs": ["state:BrakingState:line:5", "state:ClampingState:line:8"], "source_refs": [], "observed": "", "contract_id": "NL-CONTRACT-NL1-X"}
+    dead = {"issue_id": "p:r1:issue:1", "property": "deadlock_freedom", "violation_direction": "dead_end", "locus_names": ["ClampingState"], "element_refs": ["state:ClampingState:line:8"], "source_refs": [], "observed": "", "expected": "", "title": "ClampingState is a dead end", "contract_id": "NL-CONTRACT-NL1-Y"}
+    kept, folded = _fold_consequence_issues([edge, dead])
+    assert len(kept) == 2 and folded == []
+    # a reachability root about scope X absorbs a dead end of a descendant of X only with the native hierarchy
+    pair = _pair("0057")
+    scope = next(s for s in pair.model.states if any(c.parent_ref == s.ref for c in pair.model.states) and s.parent_ref is not None)
+    leaf = next(c for c in pair.model.states if c.parent_ref == scope.ref)
+    root = {"issue_id": "p:r1:issue:2", "property": "reachability", "violation_direction": "unreachable", "locus_names": [scope.name], "element_refs": [scope.ref], "source_refs": [], "observed": "", "contract_id": "NL-CONTRACT-NL2-A"}
+    symptom = {"issue_id": "p:r1:issue:3", "property": "deadlock_freedom", "violation_direction": "dead_end", "locus_names": [leaf.name], "element_refs": [leaf.ref], "source_refs": [], "observed": "", "expected": "", "title": f"{leaf.name} dead end", "contract_id": "NL-CONTRACT-NL2-B"}
+    kept, folded = _fold_consequence_issues([root, symptom], pair)
+    assert [i["issue_id"] for i in kept] == ["p:r1:issue:2"] and folded[0]["folded_into"] == "p:r1:issue:2"
+    kept, folded = _fold_consequence_issues([root, symptom])  # without the hierarchy nothing is entailed
+    assert len(kept) == 2 and folded == []
