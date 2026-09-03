@@ -675,8 +675,23 @@ def _wrap_bare_singleton_item(
     batches and payloads that already carry ``item0`` are returned unchanged.
     """
 
-    if report_count != 1 or not isinstance(payload, dict) or "item0" in payload:
+    if report_count != 1 or not isinstance(payload, dict):
         return payload
+    if "item0" in payload:
+        # Mixed shape: item0 present but some item fields leaked to the top level.
+        # Fold them into item0 when item0 lacks them; drop them otherwise. The batch
+        # model only admits schema_version, batch_id and itemN, so this is deterministic.
+        item0 = payload["item0"]
+        stray = {
+            key: value
+            for key, value in payload.items()
+            if key not in {"schema_version", "batch_id"} and not re.fullmatch(r"item\d+", key)
+        }
+        if not stray or not isinstance(item0, dict):
+            return payload
+        merged = {**{k: v for k, v in stray.items() if k not in item0}, **item0}
+        rest = {key: value for key, value in payload.items() if key not in stray}
+        return {**rest, "schema_version": batch_schema_version, "batch_id": batch_id, "item0": merged}
     item = {
         key: value
         for key, value in payload.items()

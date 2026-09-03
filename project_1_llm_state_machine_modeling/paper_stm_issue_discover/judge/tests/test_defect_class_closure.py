@@ -301,3 +301,26 @@ def test_class_trigger_ignores_clause_only_disagreements() -> None:
     assert arbitration_report_ids(items, order, trigger="class") == ("R0002", "R0003")
     with pytest.raises(ValueError):
         arbitration_report_ids(items, order, trigger="never")
+
+
+def test_singleton_batch_with_stray_top_level_item_fields_is_folded_into_item0(frozen_batch) -> None:
+    """item0 present but report_id / source refs leaked to the top level: folded, not dead-ended."""
+
+    judge_input, batch_input, model = frozen_batch
+    response = model.model_validate(_payload(batch_input, "D2"))
+    certificate = materialize_validity_certificate(
+        validity_batch_responses(response, batch_input)[0], validity_item_input(batch_input, 0)
+    )
+    relation_batch = build_relation_batch_input(judge_input, (certificate,), batch_id="RB-fold")
+    relation_model = build_exact_relation_batch_model(relation_batch)
+    envelope = _relation_envelope(relation_item_input(relation_batch, 0), all_positive=False)
+    item0 = {k: v for k, v in envelope.items() if k not in {"report_id", "relation_source_refs"}}
+    mixed = {
+        "schema_version": "semantic-judge.relation-batch-response.v1",
+        "batch_id": "RB-fold",
+        "item0": item0,
+        "report_id": envelope["report_id"],
+        "relation_source_refs": envelope["relation_source_refs"],
+    }
+    rows = relation_batch_responses(relation_model.model_validate(mixed), relation_batch)
+    assert rows[0].report_id == certificate.report_id
