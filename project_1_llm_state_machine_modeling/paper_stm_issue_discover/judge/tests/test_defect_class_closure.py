@@ -324,3 +324,22 @@ def test_singleton_batch_with_stray_top_level_item_fields_is_folded_into_item0(f
     }
     rows = relation_batch_responses(relation_model.model_validate(mixed), relation_batch)
     assert rows[0].report_id == certificate.report_id
+
+
+def test_item_schema_version_is_backend_owned(frozen_batch) -> None:
+    """A batch version echoed inside an item (validity or relation) is pinned instead of dead-ending."""
+
+    judge_input, batch_input, model = frozen_batch
+    payload = _payload(batch_input, "D2")
+    payload["item0"]["schema_version"] = "semantic-judge.validity-batch-response.v1"
+    response = model.model_validate(payload)
+    certificate = materialize_validity_certificate(
+        validity_batch_responses(response, batch_input)[0], validity_item_input(batch_input, 0)
+    )
+    relation_batch = build_relation_batch_input(judge_input, (certificate,), batch_id="RB-ver")
+    relation_model = build_exact_relation_batch_model(relation_batch)
+    item = _relation_envelope(relation_item_input(relation_batch, 0), all_positive=False)
+    item["schema_version"] = "semantic-judge.relation-batch-response.v1"
+    wrapped = {"schema_version": "semantic-judge.relation-batch-response.v1", "batch_id": "RB-ver", "item0": item}
+    rows = relation_batch_responses(relation_model.model_validate(wrapped), relation_batch)
+    assert rows[0].schema_version == "semantic-judge.relation-response.v2"

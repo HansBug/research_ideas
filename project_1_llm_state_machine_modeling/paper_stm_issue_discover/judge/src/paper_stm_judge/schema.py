@@ -547,6 +547,12 @@ def build_exact_validity_model(
     class ExactValidityResponseBase(ValidityResponse):
         """Validity response with deterministic closure over this exact report."""
 
+        @field_validator("schema_version", mode="before")
+        @classmethod
+        def pin_item_schema_version(cls, value: object) -> str:
+            # Backend-owned constant: providers sometimes echo the batch version here.
+            return "semantic-judge.validity-response.v4"
+
         @model_validator(mode="after")
         def exact_gate_closure(self) -> ExactValidityResponseBase:
             clause_rows = [
@@ -1080,6 +1086,12 @@ def build_exact_relation_model(
         relation_decisions: exact_relation_tuple = Field(  # type: ignore[valid-type]
             description="One discriminated FULL_MATCH, PARTIAL_MATCH, or explicit NO_MATCH decision at every exact expected position in input order."
         )
+
+        @field_validator("schema_version", mode="before")
+        @classmethod
+        def pin_item_schema_version(cls, value: object) -> str:
+            # Backend-owned constant: providers sometimes echo the batch version here (iteration 9, pair 0016).
+            return "semantic-judge.relation-response.v2"
 
         @field_validator("validity_certificate_hash", mode="before")
         @classmethod
