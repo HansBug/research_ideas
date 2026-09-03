@@ -27,7 +27,7 @@
 
 ## 运行
 
-从仓库根执行，每一侧每一轮一次调用（六次）。运行前必须 commit：CLI 拒绝在有未提交改动的树上做真实调用。
+从仓库根执行，每一侧每一轮一次调用（六次）。运行前必须 commit：CLI 拒绝在有未提交改动的树上做真实调用。**并发纪律（第八轮事故后）**：同时处理的 pair 控制在 14 左右（每个 pair 的两次读数并行，在途请求约为 pair 数的两倍；current 8 个 worker + baseline 6 个，或四路各 4 / 3），多轮多臂串行或按通路补跑，不要同时启动十几条 CLI——42 个 pair 并发时单次调用从 60 s 涨到 120 s 以上、触发 300 s 超时耗尽预留而整格失败，降回 14 后出格速度反升三倍。CLI 拒绝写入已存在的 run 目录，补跑缺失格用 `--pair-id` 加新的 run-id（如 `current-r2-resume`），对比脚本接受多个 `--run-dir`。启动前用 `ps -eo pid,ppid,etime,args | grep spawn_main` 清理孤儿 worker；停进程按 pid 杀，`pkill -f` 的模式若含在自己的命令行里会把自己杀掉。最新 result.json 停滞超过 10 分钟而进程存活，多半是网关挂住了流式请求，用一条最小探针确认后重启。
 
 ```bash
 P1=project_1_llm_state_machine_modeling/paper_stm_issue_discover
