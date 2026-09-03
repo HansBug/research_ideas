@@ -1634,9 +1634,9 @@ def materialize_two_stage_reading(
     """Derive dense issue #195 ownership from frozen truth and relation closure.
 
     ``validity_first`` is the v3.2 protocol: INVALID certificates close as all-NO.
-    ``relation_first`` (default since v3.8) decides hit first: D0 / NOT_A_DEFECT_CLAIM
-    certificates are also compared with the ledger, a FULL_MATCH closes them as
-    VALID_KNOWN, a PARTIAL_MATCH only records support, and FALSE_POSITIVE stays INVALID.
+    ``relation_first`` (default; the iteration-6 configuration) also compares D0 /
+    NOT_A_DEFECT_CLAIM certificates with the ledger and closes a FULL_MATCH or
+    PARTIAL_MATCH as VALID_KNOWN; FALSE_POSITIVE stays INVALID.
     """
 
     if closure_rule not in ("validity_first", "relation_first"):
@@ -1763,14 +1763,7 @@ def materialize_two_stage_reading(
         has_positive = bool(full_expected_ids or partial_expected_ids)
         relation_first_known = (
             relation_first
-            and bool(full_expected_ids)
-            and certificate.core_truth == CoreClaimTruth.INVALID
-            and report_id in candidate_ids
-        )
-        relation_first_partial_only = (
-            relation_first
             and has_positive
-            and not full_expected_ids
             and certificate.core_truth == CoreClaimTruth.INVALID
             and report_id in candidate_ids
         )
@@ -1785,10 +1778,8 @@ def materialize_two_stage_reading(
                 else ReportValidity.VALID_NOVEL
             )
         ownership_reason = (
-            "Backend ownership is VALID_KNOWN under relation-first closure: the author-source fact is not refuted and a FULL_MATCH ledger relation settles the obligation question."
+            "Backend ownership is VALID_KNOWN under relation-first closure: the author-source fact is not refuted and at least one FULL_MATCH or PARTIAL_MATCH ledger relation settles the obligation question."
             if relation_first_known
-            else "Backend ownership is INVALID under relation-first closure: the defect class is D0 or NOT_A_DEFECT_CLAIM and the report has only PARTIAL_MATCH support, which is recorded but does not make it a hit."
-            if relation_first_partial_only
             else "Backend ownership is INVALID because expected-isolated core truth is INVALID and every relation is mechanically NO_MATCH."
             if validity == ReportValidity.INVALID
             else "Backend ownership is VALID_KNOWN because frozen core truth is VALID and at least one FULL_MATCH or PARTIAL_MATCH relation exists."

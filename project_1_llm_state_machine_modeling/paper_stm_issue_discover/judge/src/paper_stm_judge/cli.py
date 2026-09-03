@@ -328,7 +328,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--validity-arbitration-trigger",
         choices=("any", "class"),
-        default="class",
+        default="any",
         help="Arbitrate validity on 'any' reading disagreement (v3.2) or only on a 'class' difference (core truth, defect class, gate).",
     )
     parser.add_argument(

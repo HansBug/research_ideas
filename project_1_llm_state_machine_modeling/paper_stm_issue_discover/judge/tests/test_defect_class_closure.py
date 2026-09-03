@@ -209,7 +209,7 @@ def test_relation_first_closure_lets_a_ledger_match_close_d0_as_known(frozen_bat
     assert by_id[d0_certificate.report_id].defect_class == DefectClass.D0
     assert by_id[d2_certificate.report_id].validity == ReportValidity.VALID_KNOWN
     assert all(row.hit for row in reading.expected_assessments)
-    # PARTIAL-only support does not promote a D0 report: hit is decided by FULL_MATCH.
+    # Iteration-6 configuration: PARTIAL-only support also promotes a D0 report to K.
     partial_payload = {"schema_version": "semantic-judge.relation-batch-response.v1", "batch_id": "RB-rf"}
     for index in range(2):
         item = _relation_envelope(relation_item_input(relation_batch, index), all_positive=True)
@@ -221,7 +221,7 @@ def test_relation_first_closure_lets_a_ledger_match_close_d0_as_known(frozen_bat
         (d0_certificate, d2_certificate), partial_responses, two_reports, closure_rule="relation_first"
     )
     partial_by_id = {row.report_id: row for row in partial_reading.report_assessments}
-    assert partial_by_id[d0_certificate.report_id].validity == ReportValidity.INVALID
+    assert partial_by_id[d0_certificate.report_id].validity == ReportValidity.VALID_KNOWN
     assert partial_by_id[d2_certificate.report_id].validity == ReportValidity.VALID_KNOWN
     assert not any(row.hit for row in partial_reading.expected_assessments)
     with pytest.raises(ValueError):

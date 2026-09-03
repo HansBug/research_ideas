@@ -2096,7 +2096,7 @@ class ReportAssessment(FrozenModel):
     )
     closure_rule: Literal["validity_first", "relation_first"] = Field(
         default="validity_first",
-        description="'validity_first' is the v3.2 protocol (INVALID implies all NO). 'relation_first' (default since v3.8) decides hit first: a FULL_MATCH ledger relation closes a D0 / NOT_A_DEFECT_CLAIM report as VALID_KNOWN, a PARTIAL_MATCH only records support and leaves it INVALID, and FALSE_POSITIVE never closes as K; reports without a hit are then split into N / I by defect class.",
+        description="'validity_first' is the v3.2 protocol (INVALID implies all NO). 'relation_first' (default; the iteration-6 configuration) decides the ledger relation first: a FULL_MATCH or PARTIAL_MATCH relation closes a D0 / NOT_A_DEFECT_CLAIM report as VALID_KNOWN, mirroring the human practice of leaving ledger-matched reports as K; FALSE_POSITIVE never closes as K; reports without a match are then split into N / I by defect class.",
     )
     full_expected_ids: tuple[str, ...] = Field(
         description="All expected IDs that FULL_MATCH this report, derived exactly from the relation matrix."
@@ -2169,12 +2169,8 @@ class ReportAssessment(FrozenModel):
                 f"report_assessment[{self.report_id}] core_truth=INVALID requires all relations NO_MATCH; "
                 f"full={self.full_expected_ids}, partial={self.partial_expected_ids}"
             )
-        if admissible_invalid and self.core_truth == CoreClaimTruth.INVALID:
-            expected_validity = (
-                ReportValidity.VALID_KNOWN
-                if self.full_expected_ids
-                else ReportValidity.INVALID
-            )
+        if has_positive and admissible_invalid:
+            expected_validity = ReportValidity.VALID_KNOWN
         else:
             expected_validity = (
                 ReportValidity.INVALID
