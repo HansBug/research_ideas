@@ -20,6 +20,8 @@
 | iter8A / baseline | 306 | 83 | 123 | 76.0% | 51.2% |
 | iter8B / current | 626 | 115 | 530 | 58.3% | 59.6% |
 | iter8B / baseline | 295 | 108 | 108 | 78.8% | 49.4% |
+| iter9 / current | 664 | 216 | 391 | 69.2% | 63.2% |
+| iter9 / baseline | 349 | 92 | 71 | 86.2% | 58.4% |
 
 | run | Δ hit@1 (ours − baseline) | Δ precision (ours − baseline) |
 | :-- | --: | --: |
@@ -33,5 +35,6 @@
 | iter7 | +8.8 pp | -15.9 pp |
 | iter8A | +8.8 pp | -19.4 pp |
 | iter8B | +10.2 pp | -20.5 pp |
+| iter9 | +4.8 pp | -16.9 pp |
 
 hit@1 is scaled from the human hit@1 by projected K / human K; hit@3 and hit@all need the full-population run.
