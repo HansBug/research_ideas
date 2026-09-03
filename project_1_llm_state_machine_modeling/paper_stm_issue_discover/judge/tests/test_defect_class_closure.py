@@ -209,6 +209,21 @@ def test_relation_first_closure_lets_a_ledger_match_close_d0_as_known(frozen_bat
     assert by_id[d0_certificate.report_id].defect_class == DefectClass.D0
     assert by_id[d2_certificate.report_id].validity == ReportValidity.VALID_KNOWN
     assert all(row.hit for row in reading.expected_assessments)
+    # PARTIAL-only support does not promote a D0 report: hit is decided by FULL_MATCH.
+    partial_payload = {"schema_version": "semantic-judge.relation-batch-response.v1", "batch_id": "RB-rf"}
+    for index in range(2):
+        item = _relation_envelope(relation_item_input(relation_batch, index), all_positive=True)
+        for decision in item["relation_decisions"]:
+            decision["match"] = "PARTIAL_MATCH"
+        partial_payload[f"item{index}"] = item
+    partial_responses = relation_batch_responses(relation_model.model_validate(partial_payload), relation_batch)
+    partial_reading = materialize_two_stage_reading(
+        (d0_certificate, d2_certificate), partial_responses, two_reports, closure_rule="relation_first"
+    )
+    partial_by_id = {row.report_id: row for row in partial_reading.report_assessments}
+    assert partial_by_id[d0_certificate.report_id].validity == ReportValidity.INVALID
+    assert partial_by_id[d2_certificate.report_id].validity == ReportValidity.VALID_KNOWN
+    assert not any(row.hit for row in partial_reading.expected_assessments)
     with pytest.raises(ValueError):
         materialize_two_stage_reading((d0_certificate, d2_certificate), responses, two_reports, closure_rule="validity_first")
     fp_certificate = materialize_validity_certificate(
@@ -217,3 +232,29 @@ def test_relation_first_closure_lets_a_ledger_match_close_d0_as_known(frozen_bat
     )
     with pytest.raises(ValueError, match="non-false-positive certificate"):
         build_relation_batch_input(two_reports, (fp_certificate,), batch_id="RB-fp", relation_scope="non_false_positive")
+
+
+def test_singleton_relation_batch_split_per_expected_is_merged_into_item0(frozen_batch) -> None:
+    """A one-report batch answered as one item per expected issue is recombined; conflicting decisions are not."""
+
+    judge_input, batch_input, model = frozen_batch
+    response = model.model_validate(_payload(batch_input, "D2"))
+    certificate = materialize_validity_certificate(
+        validity_batch_responses(response, batch_input)[0], validity_item_input(batch_input, 0)
+    )
+    relation_batch = build_relation_batch_input(judge_input, (certificate,), batch_id="RB-split")
+    relation_model = build_exact_relation_batch_model(relation_batch)
+    envelope = _relation_envelope(relation_item_input(relation_batch, 0), all_positive=False)
+    decisions = envelope["relation_decisions"]
+    if len(decisions) < 2:
+        pytest.skip("frozen pair has fewer than two expected issues")
+    split = {"schema_version": "semantic-judge.relation-batch-response.v1", "batch_id": "RB-split"}
+    for index, decision in enumerate(decisions):
+        split[f"item{index}"] = {**envelope, "relation_decisions": [decision]}
+    rows = relation_batch_responses(relation_model.model_validate(split), relation_batch)
+    assert rows[0].report_id == certificate.report_id
+    assert [d.expected_id for d in rows[0].relation_decisions] == [d["expected_id"] for d in decisions]
+    conflicting = dict(split)
+    conflicting["item1"] = {**envelope, "relation_decisions": [dict(decisions[0], match="PARTIAL_MATCH", report_field_refs=["claim"])]}
+    with pytest.raises(ValueError):
+        relation_model.model_validate(conflicting)

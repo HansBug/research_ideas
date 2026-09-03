@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import json
 from collections.abc import Iterable
 from typing import Annotated, Literal, cast
@@ -605,6 +606,60 @@ def build_exact_validity_model(
     return cast(type[ValidityResponse], model)
 
 
+def _merge_split_singleton_items(
+    payload: object,
+    *,
+    batch_id: str,
+    batch_schema_version: str,
+    report_id: str,
+    expected_ids: tuple[str, ...],
+) -> object:
+    """Merge a one-report batch answered as one item per expected issue into ``item0``.
+
+    Providers sometimes partition a single-report relation batch by expected issue
+    and return ``item0..itemN`` that all name the same report, each carrying a subset
+    of the expected positions. The report identity and the expected order are fixed
+    by the input, so recombining the decisions is a deterministic normalization, not
+    a judgment. A foreign report ID, two different decisions for one expected ID, or
+    a missing expected position leaves the payload unchanged so the ordinary
+    validation error is reported instead.
+    """
+
+    if not isinstance(payload, dict):
+        return payload
+    items = {key: value for key, value in payload.items() if re.fullmatch(r"item\d+", key)}
+    if len(items) < 2:
+        return payload
+    for item in items.values():
+        if not isinstance(item, dict) or item.get("report_id", report_id) != report_id:
+            return payload
+    ordered_keys = sorted(items, key=lambda key: int(key[4:]))
+    by_expected: dict[str, dict] = {}
+    source_refs: list[str] = []
+    for key in ordered_keys:
+        for decision in items[key].get("relation_decisions") or ():
+            if not isinstance(decision, dict) or "expected_id" not in decision:
+                return payload
+            prior = by_expected.get(decision["expected_id"])
+            if prior is not None and prior.get("match") != decision.get("match"):
+                return payload
+            by_expected.setdefault(decision["expected_id"], decision)
+        for ref in items[key].get("relation_source_refs") or ():
+            if isinstance(ref, str) and ref not in source_refs:
+                source_refs.append(ref)
+    if set(by_expected) != set(expected_ids):
+        return payload
+    merged = {
+        **items[ordered_keys[0]],
+        "report_id": report_id,
+        "relation_decisions": [by_expected[expected_id] for expected_id in expected_ids],
+    }
+    if source_refs:
+        merged["relation_source_refs"] = source_refs
+    rest = {key: value for key, value in payload.items() if key not in items}
+    return {**rest, "schema_version": batch_schema_version, "batch_id": batch_id, "item0": merged}
+
+
 def _wrap_bare_singleton_item(
     payload: object,
     *,
@@ -1090,6 +1145,14 @@ def build_exact_relation_batch_model(
         @model_validator(mode="before")
         @classmethod
         def wrap_bare_singleton(cls, payload: object) -> object:
+            if len(batch_input.reports) == 1:
+                payload = _merge_split_singleton_items(
+                    payload,
+                    batch_id=batch_input.batch_id,
+                    batch_schema_version="semantic-judge.relation-batch-response.v1",
+                    report_id=batch_input.reports[0].report_id,
+                    expected_ids=tuple(item.expected_id for item in batch_input.expected_issues),
+                )
             return _wrap_bare_singleton_item(
                 payload,
                 batch_id=batch_input.batch_id,
@@ -1543,9 +1606,10 @@ def materialize_two_stage_reading(
 ) -> JudgeReading:
     """Derive dense issue #195 ownership from frozen truth and relation closure.
 
-    ``validity_first`` is the frozen protocol: INVALID certificates close as all-NO.
-    ``relation_first`` also compares D0 / NOT_A_DEFECT_CLAIM certificates with the
-    ledger and closes a positive relation as VALID_KNOWN; FALSE_POSITIVE stays INVALID.
+    ``validity_first`` is the v3.2 protocol: INVALID certificates close as all-NO.
+    ``relation_first`` (default since v3.8) decides hit first: D0 / NOT_A_DEFECT_CLAIM
+    certificates are also compared with the ledger, a FULL_MATCH closes them as
+    VALID_KNOWN, a PARTIAL_MATCH only records support, and FALSE_POSITIVE stays INVALID.
     """
 
     if closure_rule not in ("validity_first", "relation_first"):
@@ -1672,7 +1736,14 @@ def materialize_two_stage_reading(
         has_positive = bool(full_expected_ids or partial_expected_ids)
         relation_first_known = (
             relation_first
+            and bool(full_expected_ids)
+            and certificate.core_truth == CoreClaimTruth.INVALID
+            and report_id in candidate_ids
+        )
+        relation_first_partial_only = (
+            relation_first
             and has_positive
+            and not full_expected_ids
             and certificate.core_truth == CoreClaimTruth.INVALID
             and report_id in candidate_ids
         )
@@ -1687,8 +1758,10 @@ def materialize_two_stage_reading(
                 else ReportValidity.VALID_NOVEL
             )
         ownership_reason = (
-            "Backend ownership is VALID_KNOWN under relation-first closure: the author-source fact is not refuted and at least one FULL_MATCH or PARTIAL_MATCH ledger relation settles the obligation question."
+            "Backend ownership is VALID_KNOWN under relation-first closure: the author-source fact is not refuted and a FULL_MATCH ledger relation settles the obligation question."
             if relation_first_known
+            else "Backend ownership is INVALID under relation-first closure: the defect class is D0 or NOT_A_DEFECT_CLAIM and the report has only PARTIAL_MATCH support, which is recorded but does not make it a hit."
+            if relation_first_partial_only
             else "Backend ownership is INVALID because expected-isolated core truth is INVALID and every relation is mechanically NO_MATCH."
             if validity == ReportValidity.INVALID
             else "Backend ownership is VALID_KNOWN because frozen core truth is VALID and at least one FULL_MATCH or PARTIAL_MATCH relation exists."

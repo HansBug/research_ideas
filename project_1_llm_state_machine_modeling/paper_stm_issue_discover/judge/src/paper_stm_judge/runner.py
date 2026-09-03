@@ -729,7 +729,7 @@ def judge_pair(
     judge_code_commit: str,
     validity_readings: int = 2,
     validity_aggregation: str = "arbitration",
-    k_closure: str = "validity_first",
+    k_closure: str = "relation_first",
 ) -> PairJudgeResult:
     """Run bounded multi-reading batches, freeze truth, then batch relations."""
 
@@ -1246,7 +1246,7 @@ def judge_pair(
                 if validity_aggregation == "arbitration" and validity_readings == 2
                 else f".readings{validity_readings}-{validity_aggregation}"
             )
-            + ("" if k_closure == "validity_first" else ".k-relation")
+            + ("" if k_closure == "relation_first" else ".k-validity-first")
         ),
         judge_code_commit=judge_code_commit,
         model_profile=runtime.profile,

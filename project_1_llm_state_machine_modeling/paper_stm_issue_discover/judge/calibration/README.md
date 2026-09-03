@@ -1,4 +1,4 @@
-# Judge 校准工作区（v3.4 起；当前 v3.7 / prompt v11）
+# Judge 校准工作区（v3.4 起；当前 v3.8 / prompt v12）
 
 本目录服务于一个明确而有限的目标：让 issue #195 语义 Judge 的 K/N/I 划分（尤其是 N 与 I 的边界）在**趋势上**与 paper1 当前的人工终态一致，使它能作为后续消融或补充实验的**初筛**，再由人工逐条确认。论文对外口径不变：validity、relation、D/A、K/N/I 由人工完成；Judge 只是缩小人工改判量的工具，不是结果的事实源，也不改动任何已冻结数据。
 
@@ -52,9 +52,9 @@ python3 $P1/judge/calibration/scripts/compare_calibration_run.py --side current 
   --out $P1/judge/calibration/results/<tag>/current
 ```
 
-## 现状（2026-09-03，四轮之后）
+## 现状（2026-09-03，六轮之后）
 
-四轮迭代（v3.4 → v3.7，逐轮说明见 [results/](./results/)）把冻结 v3.2 的系统性偏差消除到接近 judge 自身的噪声底：同批行上 K/N/I 一致率 current 从 26.9% 到 64–74%、baseline 从 30.0% 到 56–59%；NADC 层判 I 稳定在 80–94%，baseline 的 I→K 层从 0% 到 75–90%；两处 schema 死路（relation 哈希回显、单报告批次形状）已改为后端持有 / 归一化。事前登记的 85% 门槛没有达到，原因是同一提示词两次采样的自洽度只有 79–83%（有效/无效），一致率区间已贴近这个上界，且 gold 在 D0↔D1 边界上自身不一致。判据本身未改。机制层面的两个候选（多读多数投票、置信度分流）先用第三、四轮的采样池离线模拟（上限 75–78%，见 [results/mechanism_simulation_iter3_iter4.md](./results/mechanism_simulation_iter3_iter4.md)），再以 `--validity-readings 3 --validity-aggregation majority` 在线跑了第五轮（current 69.0%、baseline 57.6%，见 [results/iter5_v3.7_majority3_bc8e60973/](./results/iter5_v3.7_majority3_bc8e60973/README.md)）：方差降了，与人工的一致率不变。剩余差异来自 gold 在 D0↔D1 与 relation 边界上的自身不一致。五轮 provider 成本合计 $38.18。
+六轮迭代（v3.4 → v3.7 + relation-first 实验，逐轮说明见 [results/](./results/)，跨轮表见 [results/iterations_summary.md](./results/iterations_summary.md)）把冻结 v3.2 的系统性偏差消除到接近 judge 自身的噪声底：同批行上 K/N/I 一致率 current 从 26.9% 到 64–74%、baseline 从 30.0% 到 56–59%；两处 schema 死路（relation 哈希回显、单报告批次形状）已改为后端持有 / 归一化，第三处（单报告批次按预期拆 item）在 v3.8 归一化合并。第六轮的 relation-first 闭合把两侧 K→K 层从 65–73% 抬到 86–88%，按冻结全量加权后新 judge 与 gold 的一致率 current 80.3%、baseline 72.6%，首次追平 / 超过冻结 judge 的 80.6% / 71.3%（[scripts/population_weighted.py](./scripts/population_weighted.py)）。事前登记的 85% 子集门槛没有达到：同一提示词两次采样的自洽度只有 79–83%，gold 在 D0↔D1 边界上自身不一致（两条人工轨道在 baseline 83 条重审行里 28 条分裂），一致率区间已贴近这个上界。判据本身未改。第六轮逐条读 reason / basis 归纳出三条可修的系统性偏差（judge 过度有效化、FALSE_POSITIVE 过度使用、v11 relation 收紧造成漏匹配），落为 v3.8 / prompt v12，第七轮实跑验证；剩余 D0↔D1 双向噪声作为人工确认阶段的预期负载。
 
 ## 边界
 

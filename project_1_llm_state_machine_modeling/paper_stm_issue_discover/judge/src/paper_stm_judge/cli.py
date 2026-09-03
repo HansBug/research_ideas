@@ -316,8 +316,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--k-closure",
         choices=("validity_first", "relation_first"),
-        default="validity_first",
-        help="K/N/I closure: 'relation_first' admits D0 / NOT_A_DEFECT_CLAIM reports to relation judging and closes a positive ledger relation as KNOWN (calibration experiment).",
+        default="relation_first",
+        help="K/N/I closure. Default 'relation_first' decides hit first: FULL_MATCH closes any non-false-positive report as KNOWN, then non-hits split into N / I by defect class. 'validity_first' is the v3.2 order kept for provenance.",
     )
     parser.add_argument(
         "--report-filter",
