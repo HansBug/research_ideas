@@ -4256,6 +4256,82 @@ def _fold_consequence_issues(
     return kept, folded
 
 
+_GUARD_MODALITY_BOOL = re.compile(r"[<>]=?|!=|==|=|&&|\|\||\band\b|\bor\b|\btrue\b|\bfalse\b", re.I)
+
+
+def _aggregate_guard_modality_issues(
+    pair: PairInput, release: list[dict[str, Any]]
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """One report per cell for "condition written as the trigger label" (v61 C4.3).
+
+    When the author labels a transition with the condition itself (``high_way=true``
+    or the same words the requirement uses for the guard), the closed model has an
+    event named after the condition and no guard.  That is one modelling decision
+    applied across the diagram, not one defect per transition, so the S5
+    missing-guard issues that share this shape are published as one report whose
+    sub-claims list every transition.  Issues whose label is some other event are
+    left alone: there the question is whether that event implies the condition.
+    """
+
+    from ..semantics.author_source import build_author_index, normalize_text
+
+    index = build_author_index(pair)
+    if index is None:
+        return release, []
+    members: list[dict[str, Any]] = []
+    for issue in release:
+        if not (issue.get("predicate_id") == "S5" and issue.get("property") == "guard" and issue.get("violation_direction") == "missing"):
+            continue
+        inputs = issue.get("predicate_inputs") or {}
+        ref = inputs.get("transition") or inputs.get("transition_ref")
+        author = index.author_transition_for_carrier(pair.model.transition(ref)) if ref else None
+        if author is None or not author.label.event:
+            continue
+        required = str(inputs.get("guard") or inputs.get("expected_guard") or "")
+        event_text = author.label.event
+        if _GUARD_MODALITY_BOOL.search(event_text) or (required and normalize_text(event_text) == normalize_text(required)):
+            members.append(issue)
+    if len(members) < 2:
+        return release, []
+    root = members[0]
+    others = members[1:]
+    lines = []
+    for index_no, issue in enumerate(members, start=1):
+        inputs = issue.get("predicate_inputs") or {}
+        ref = inputs.get("transition") or inputs.get("transition_ref")
+        author = index.author_transition_for_carrier(pair.model.transition(ref))
+        lines.append(f"({index_no}) {' -> '.join(issue.get('locus_names') or ())}: label `{author.label.raw}`, required guard {str(inputs.get('guard') or inputs.get('expected_guard') or '')!r} ({author.anchor()})")
+    root["folded_sub_claims"] = [*(root.get("folded_sub_claims") or []), *(
+        {
+            "issue_id": issue["issue_id"], "title": issue.get("title"), "property": issue.get("property"),
+            "violation_direction": issue.get("violation_direction"), "observed": issue.get("observed"), "expected": issue.get("expected"),
+            "element_refs": list(issue.get("element_refs") or []), "source_refs": list(issue.get("source_refs") or []),
+            "contract_id": issue.get("contract_id"), "shared_elements": [],
+        }
+        for issue in others
+    )]
+    root["title"] = f"{len(members)} transitions carry their required guard as the trigger label instead of a guard"
+    root["observed"] = (
+        f"The following transitions realise the condition the requirement states as a guard by writing it as the transition label, i.e. as the trigger event: {' '.join(lines)} "
+        "In PlantUML a label without brackets is the trigger; the closed model therefore declares one opaque event named after each condition and none of these transitions has a guard."
+    )
+    root["expected"] = "Each stated condition must be a guard `[condition]` on its transition, evaluated in addition to the transition's trigger, rather than an event named after the condition."
+    root["locus_names"] = list(dict.fromkeys(name for issue in members for name in (issue.get("locus_names") or ())))
+    root["element_refs"] = list(dict.fromkeys(ref for issue in members for ref in (issue.get("element_refs") or [])))
+    root["source_refs"] = list(dict.fromkeys(ref for issue in members for ref in (issue.get("source_refs") or [])))
+    root["contract_ids"] = list(dict.fromkeys([*(root.get("contract_ids") or [root.get("contract_id")]), *(issue.get("contract_id") for issue in others)]))
+    root["guard_modality_aggregation"] = {
+        "algorithm_version": "guard-modality-aggregate.v1",
+        "member_issue_ids": [issue["issue_id"] for issue in members],
+        "reason": "S5 missing-guard issues whose author label is the condition itself (boolean expression or the requirement's guard words) describe one modelling decision and are published as one report.",
+        "basis": "author label grammar from the canonical source IR; typed S5 inputs; no prose similarity",
+    }
+    dropped = {issue["issue_id"] for issue in others}
+    kept = [issue for issue in release if issue["issue_id"] not in dropped]
+    return kept, [{"issue_id": issue["issue_id"], "aggregated_into": root["issue_id"]} for issue in others]
+
+
+
 def _annotate_author_anchors(pair: PairInput, release: list[dict[str, Any]]) -> None:
     """Append the author's PlantUML lines to each published issue.
 
@@ -5436,6 +5512,7 @@ def _method_cell(
             errors.append({"candidate_index": index, "error_type": type(exc).__name__, "message": str(exc), "reason": "Candidate publication failed; the cell remains readable.", "basis": "Candidate-level diagnostic preservation."})
     release = _deduplicate_release_issues(release)
     release, folded_issues = _fold_consequence_issues(release, pair)
+    release, aggregated_issues = _aggregate_guard_modality_issues(pair, release)
     _annotate_author_anchors(pair, release)
     publish_output = {
         "evidence_record_count": len(records),
@@ -5444,6 +5521,8 @@ def _method_cell(
         ),
         "folded_issue_count": len(folded_issues),
         "folded_issues": folded_issues,
+        "guard_modality_aggregated_count": len(aggregated_issues),
+        "guard_modality_aggregated_issues": aggregated_issues,
         "report_issue_count": len(release),
         "report_issue_ids": [item["issue_id"] for item in release],
         "w_distribution": dict(

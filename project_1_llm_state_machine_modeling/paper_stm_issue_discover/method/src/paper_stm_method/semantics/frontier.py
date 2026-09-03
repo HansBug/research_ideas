@@ -2229,8 +2229,11 @@ def _materialize_root_reachability(
     contracts_by_id = {item.contract_id: item for item in contracts}
     for contract_id, states in relevant_by_contract.items():
         contract = contracts_by_id.get(contract_id)
-        if contract is None or contract.state_role not in {"operating_state", "initial_state"}:
+        if contract is None:
             continue
+        # v61: the LLM's state_role label is a soft classification that varies
+        # between rounds; root reachability is a structural fact about every
+        # state a typed contract binds, so the role no longer gates it.
         for state in states:
             fact = _inspection_state(pair, state.ref)
             if fact is None or fact.reachable_from_initial:
@@ -2238,6 +2241,30 @@ def _materialize_root_reachability(
             scope = _highest_unreachable_scope(pair, state)
             if scope:
                 groups[scope.ref].append((contract, state))
+
+    # v61 fallback anchor: a highest unreachable scope that no typed contract
+    # names directly, but whose name shares word tokens with a numbered NL
+    # segment, is still a required scope of the requirement.  Anchor it to that
+    # segment's most structural contract (same rule as the divergence audit).
+    if pair.inspection_facts is not None:
+        seen_scopes = set(groups)
+        for state in pair.model.states:
+            fact = _inspection_state(pair, state.ref)
+            if fact is None or fact.reachable_from_initial or state.is_pseudo:
+                continue
+            scope = _highest_unreachable_scope(pair, state)
+            if scope is None or scope.ref in seen_scopes:
+                continue
+            base = _anchor_contract(
+                contracts,
+                pair=pair,
+                names=[scope.name, scope.display_name],
+                preferred=("containment", "region_structure", "cardinality", "initial_entry", "reachability", "transition_endpoints", "state_action"),
+            )
+            if base is None:
+                continue
+            seen_scopes.add(scope.ref)
+            groups[scope.ref].append((base, scope))
 
     scopes: dict[str, tuple[StateNode, StateNode, NLContract]] = {}
     for scope_ref, rows in groups.items():
@@ -2676,7 +2703,10 @@ def _materialize_termination(builder: _Builder, contracts: Sequence[NLContract])
         ]
     ] = []
     for contract in contracts:
-        if contract.property != "termination" or contract.state_role != "termination_state":
+        if contract.property != "termination":
+            # v61: `property` already types the obligation; the soft state_role
+            # label is not required (it varied between rounds and silently
+            # dropped whole termination frontiers).
             continue
         explicit_target_hint = _hint(contract, "target")
         state_hint = _hint(contract, "state")

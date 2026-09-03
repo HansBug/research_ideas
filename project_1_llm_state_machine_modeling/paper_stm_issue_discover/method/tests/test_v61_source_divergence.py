@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from paper_stm_method.inputs import load_pair
-from paper_stm_method.orchestration.runner import _fold_consequence_issues
+from paper_stm_method.orchestration.runner import _aggregate_guard_modality_issues, _fold_consequence_issues
 from paper_stm_method.semantics.author_source import (
     build_author_index,
     enclosing_endpoint_carriers,
@@ -164,3 +164,37 @@ def test_fold_never_uses_a_wrong_edge_as_root_nor_a_foreign_subject() -> None:
     assert [i["issue_id"] for i in kept] == ["p:r1:issue:2"] and folded[0]["folded_into"] == "p:r1:issue:2"
     kept, folded = _fold_consequence_issues([root, symptom])  # without the hierarchy nothing is entailed
     assert len(kept) == 2 and folded == []
+
+
+def test_deterministic_frontiers_do_not_depend_on_soft_state_role() -> None:
+    pair = _pair("0039")
+    response = _v60_contracts("0039")
+    stripped = response.model_copy(update={"contracts": tuple(c.model_copy(update={"state_role": None}) for c in response.contracts)})
+    batch = materialize_typed_frontier(pair, stripped, {c.contract_id: c for c in stripped.contracts}, (), ())
+    kinds = {o.kind for o in batch.obligations}
+    assert "stable_termination" in kinds or "aggregate_stable_termination" in kinds, sorted(kinds)
+    # pair 0007: the extraction contracts name no model state ("this diagram"); the
+    # unreachable CollisionAvoidance / CollisionDetection scopes must still anchor
+    # through the NL segment that mentions them.
+    pair7 = _pair("0007")
+    response7 = _v60_contracts("0007")
+    batch7 = materialize_typed_frontier(pair7, response7, {c.contract_id: c for c in response7.contracts}, (), ())
+    scopes = {o.candidate.locus_names[0] for o in batch7.obligations if o.kind == "root_reachability"}
+    assert scopes & {"CollisionAvoidance", "CollisionDetection"}, scopes
+
+
+def test_guard_modality_issues_aggregate_into_one_report() -> None:
+    pair = _pair("0009")
+    index = build_author_index(pair)
+    carriers = [t for t in pair.model.transitions if index.is_compiler_owned_carrier(t) is False and (a := index.author_transition_for_carrier(t)) and a.label.event and "=" in a.label.event]
+    assert len(carriers) >= 2
+    release = []
+    for i, t in enumerate(carriers[:3]):
+        author = index.author_transition_for_carrier(t)
+        release.append({"issue_id": f"0009:r1:issue:{i}", "predicate_id": "S5", "property": "guard", "violation_direction": "missing", "locus_names": [t.source, t.target], "element_refs": [t.ref], "source_refs": [], "observed": "guard=null", "expected": "", "title": f"{t.source} to {t.target} omits its required guard", "contract_id": f"NL-CONTRACT-NL1-{i}", "predicate_inputs": {"transition": t.ref, "guard": author.label.event}})
+    other = {"issue_id": "0009:r1:issue:9", "predicate_id": "G1", "property": "reachability", "violation_direction": "unreachable", "locus_names": ["X"], "element_refs": [], "source_refs": [], "observed": "", "expected": "", "title": "X unreachable", "contract_id": "NL-CONTRACT-NL2-9", "predicate_inputs": {}}
+    kept, aggregated = _aggregate_guard_modality_issues(pair, [*release, other])
+    assert len(kept) == 2 and len(aggregated) == len(carriers[:3]) - 1
+    root = kept[0]
+    assert root["guard_modality_aggregation"]["member_issue_ids"] == [r["issue_id"] for r in release]
+    assert "trigger label" in root["title"] and len(root["folded_sub_claims"]) == len(carriers[:3]) - 1
