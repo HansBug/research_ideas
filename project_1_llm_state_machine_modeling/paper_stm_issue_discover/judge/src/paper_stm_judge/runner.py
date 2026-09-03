@@ -810,7 +810,7 @@ def judge_pair(
     validity_aggregation: str = "arbitration",
     k_closure: str = "relation_first",
     closure_profile: str = "full",
-    validity_arbitration_trigger: str = "any",
+    validity_arbitration_trigger: str = "class",
 ) -> PairJudgeResult:
     """Run bounded multi-reading batches, freeze truth, then batch relations."""
 
@@ -1324,7 +1324,7 @@ def judge_pair(
             )
             + ("" if k_closure == "relation_first" else ".k-validity-first")
             + ("" if closure_profile == "full" else f".closure-{closure_profile}")
-            + ("" if validity_arbitration_trigger == "any" else f".arb-{validity_arbitration_trigger}")
+            + ("" if validity_arbitration_trigger == "class" else f".arb-{validity_arbitration_trigger}")
         ),
         closure_profile=closure_profile,
         validity_arbitration_trigger=validity_arbitration_trigger,
