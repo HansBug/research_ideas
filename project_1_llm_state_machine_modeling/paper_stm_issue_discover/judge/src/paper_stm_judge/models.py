@@ -3272,6 +3272,14 @@ class PairJudgeResult(FrozenModel):
         default="arbitration",
         description="How final certificates were chosen: 'arbitration' replays every conflicted report with one fresh reading (frozen protocol); 'majority' keeps the earliest reading carrying the strict-majority defect class and arbitrates only reports without a strict majority.",
     )
+    closure_profile: Literal["full", "author_source"] = Field(
+        default="full",
+        description="Which closure artifacts the prompts showed the model: 'full' (v3.2 to v3.8) or 'author_source' (natural language, PlantUML, reference inspection, exact source inventory only; the audited input keeps every artifact).",
+    )
+    validity_arbitration_trigger: Literal["any", "class"] = Field(
+        default="any",
+        description="Which reading disagreements sent a report to validity arbitration: 'any' includes clause-only verdict differences; 'class' requires a core-truth, defect-class, or gate difference.",
+    )
     k_closure: Literal["validity_first", "relation_first"] = Field(
         default="validity_first",
         description="K/N/I closure rule used for this pair; 'relation_first' admits D0 / NOT_A_DEFECT_CLAIM reports to relation judging and closes a positive ledger relation as VALID_KNOWN.",
@@ -3474,6 +3482,14 @@ class RunManifest(FrozenModel):
     validity_aggregation: Literal["arbitration", "majority"] = Field(
         default="arbitration",
         description="Final-certificate selection rule; 'majority' requires at least three readings and is a calibration experiment, not the frozen protocol.",
+    )
+    closure_profile: Literal["full", "author_source"] = Field(
+        default="full",
+        description="Which closure artifacts the prompts showed the model: 'full' (v3.2 to v3.8) or 'author_source' (natural language, PlantUML, reference inspection, exact source inventory only; the audited input keeps every artifact).",
+    )
+    validity_arbitration_trigger: Literal["any", "class"] = Field(
+        default="any",
+        description="Which reading disagreements sent a report to validity arbitration: 'any' includes clause-only verdict differences; 'class' requires a core-truth, defect-class, or gate difference.",
     )
     k_closure: Literal["validity_first", "relation_first"] = Field(
         default="validity_first",

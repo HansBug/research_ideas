@@ -1,4 +1,4 @@
-# Judge 校准工作区（v3.4 起；当前 v3.8 / prompt v12）
+# Judge 校准工作区（v3.4 起；当前 v3.9 / prompt v13）
 
 本目录服务于一个明确而有限的目标：让 issue #195 语义 Judge 的 K/N/I 划分（尤其是 N 与 I 的边界）在**趋势上**与 paper1 当前的人工终态一致，使它能作为后续消融或补充实验的**初筛**，再由人工逐条确认。论文对外口径不变：validity、relation、D/A、K/N/I 由人工完成；Judge 只是缩小人工改判量的工具，不是结果的事实源，也不改动任何已冻结数据。
 
@@ -52,9 +52,9 @@ python3 $P1/judge/calibration/scripts/compare_calibration_run.py --side current 
   --out $P1/judge/calibration/results/<tag>/current
 ```
 
-## 现状（2026-09-03，六轮之后）
+## 现状（2026-09-03，七轮之后）
 
-六轮迭代（v3.4 → v3.7 + relation-first 实验，逐轮说明见 [results/](./results/)，跨轮表见 [results/iterations_summary.md](./results/iterations_summary.md)）把冻结 v3.2 的系统性偏差消除到接近 judge 自身的噪声底：同批行上 K/N/I 一致率 current 从 26.9% 到 64–74%、baseline 从 30.0% 到 56–59%；两处 schema 死路（relation 哈希回显、单报告批次形状）已改为后端持有 / 归一化，第三处（单报告批次按预期拆 item）在 v3.8 归一化合并。第六轮的 relation-first 闭合把两侧 K→K 层从 65–73% 抬到 86–88%，按冻结全量加权后新 judge 与 gold 的一致率 current 80.3%、baseline 72.6%，首次追平 / 超过冻结 judge 的 80.6% / 71.3%（[scripts/population_weighted.py](./scripts/population_weighted.py)）。事前登记的 85% 子集门槛没有达到：同一提示词两次采样的自洽度只有 79–83%，gold 在 D0↔D1 边界上自身不一致（两条人工轨道在 baseline 83 条重审行里 28 条分裂），一致率区间已贴近这个上界。判据本身未改。第六轮逐条读 reason / basis 归纳出三条可修的系统性偏差（judge 过度有效化、FALSE_POSITIVE 过度使用、v11 relation 收紧造成漏匹配），落为 v3.8 / prompt v12，第七轮实跑验证；剩余 D0↔D1 双向噪声作为人工确认阶段的预期负载。
+七轮迭代（逐轮说明见 [results/](./results/)，跨轮表见 [results/iterations_summary.md](./results/iterations_summary.md)）。第六轮的 relation-first 闭合把两侧 K→K 层抬到 86–88%，按冻结全量加权后新 judge 与 gold 的一致率 current 80.3%、baseline 72.6%，追平 / 超过冻结 judge 的 80.6% / 71.3%（[scripts/population_weighted.py](./scripts/population_weighted.py)）。第七轮的 prompt v12 把 current 的 +20 pp 过度有效化修成了 −5 pp 过度无效化，全量加权回退到 61.9% / 64.2%，K→K 层跌到 68–73%；逐条读 reason 归因到六个来源，落为 prompt v13。第八轮起同一提示词跑双臂：A 臂沿用全部闭包（质量参照），B 臂只展示作者源闭包并收窄仲裁触发（效率），效率合格线与采纳条件见 [preregistered.md](./preregistered.md)。事前登记的 85% 子集门槛仍未达到：同一提示词两次采样的自洽度 79–83%，gold 在 D0↔D1 边界上自身不一致且两侧宽严不同（同一类报告 current 判 D0、baseline 判 D1 / D2）。判据本身未改。
 
 ## 边界
 

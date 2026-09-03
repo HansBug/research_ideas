@@ -258,3 +258,46 @@ def test_singleton_relation_batch_split_per_expected_is_merged_into_item0(frozen
     conflicting["item1"] = {**envelope, "relation_decisions": [dict(decisions[0], match="PARTIAL_MATCH", report_field_refs=["claim"])]}
     with pytest.raises(ValueError):
         relation_model.model_validate(conflicting)
+
+
+def test_author_source_closure_profile_withholds_derived_artifacts_from_prompt(frozen_batch) -> None:
+    """The prompt view keeps only author-source roles while the input and its hash keep the full closure."""
+
+    import json as _json
+    from paper_stm_judge.runner import build_validity_batch_prompt, prompt_json
+
+    _judge_input, batch_input, _model = frozen_batch
+    full = _json.loads(prompt_json(batch_input, "full"))
+    slim = _json.loads(prompt_json(batch_input, "author_source"))
+    full_roles = {a["role"] for a in full["artifact_closure"]["artifacts"]}
+    slim_roles = {a["role"] for a in slim["artifact_closure"]["artifacts"]}
+    assert {"natural_language", "plantuml_source"} <= slim_roles <= {"natural_language", "plantuml_source", "reference_inspection", "exact_source_inventory"}
+    assert full_roles - slim_roles, "the frozen closure carries derived artifacts that the slim view must withhold"
+    assert slim["artifact_closure"]["closure_hash"] == full["artifact_closure"]["closure_hash"] == batch_input.artifact_closure.closure_hash
+    assert len(batch_input.artifact_closure.artifacts) == len(full["artifact_closure"]["artifacts"])
+    prompt = build_validity_batch_prompt(batch_input, closure_profile="author_source")
+    full_prompt = build_validity_batch_prompt(batch_input)
+    withheld = [a for a in batch_input.artifact_closure.artifacts if a.role.value not in {"natural_language", "plantuml_source", "reference_inspection", "exact_source_inventory"}]
+    assert withheld
+    for artifact in withheld:
+        assert artifact.sha256 in full_prompt and artifact.sha256 not in prompt
+    assert len(prompt) < len(full_prompt) / 2
+
+
+def test_class_trigger_ignores_clause_only_disagreements() -> None:
+    from paper_stm_judge.models import ConflictKind, ReadingDisagreement
+    from paper_stm_judge.runner import arbitration_report_ids
+
+    def dis(kind, ref):
+        return ReadingDisagreement.model_construct(kind=kind, object_ref=ref)
+
+    items = (
+        dis(ConflictKind.VALIDITY_CLAUSE, "report:R0001/clause:0"),
+        dis(ConflictKind.DEFECT_CLASS, "report:R0002/defect_class"),
+        dis(ConflictKind.VALIDITY_GATE, "report:R0003/gate:core_claim"),
+    )
+    order = ("R0001", "R0002", "R0003", "R0004")
+    assert arbitration_report_ids(items, order, trigger="any") == ("R0001", "R0002", "R0003")
+    assert arbitration_report_ids(items, order, trigger="class") == ("R0002", "R0003")
+    with pytest.raises(ValueError):
+        arbitration_report_ids(items, order, trigger="never")

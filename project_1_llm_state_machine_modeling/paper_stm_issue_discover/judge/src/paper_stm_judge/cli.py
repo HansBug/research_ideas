@@ -320,6 +320,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="K/N/I closure. Default 'relation_first' decides hit first: FULL_MATCH closes any non-false-positive report as KNOWN, then non-hits split into N / I by defect class. 'validity_first' is the v3.2 order kept for provenance.",
     )
     parser.add_argument(
+        "--closure-profile",
+        choices=("full", "author_source"),
+        default="full",
+        help="Closure artifacts shown in prompts: 'full' or 'author_source' (NL, PlantUML, reference inspection, exact source inventory). Arm-symmetric; the stored input keeps every artifact.",
+    )
+    parser.add_argument(
+        "--validity-arbitration-trigger",
+        choices=("any", "class"),
+        default="any",
+        help="Arbitrate validity on 'any' reading disagreement (v3.2) or only on a 'class' difference (core truth, defect class, gate).",
+    )
+    parser.add_argument(
         "--report-filter",
         type=Path,
         default=None,
@@ -393,6 +405,8 @@ def main(argv: list[str] | None = None) -> int:
         validity_readings=args.validity_readings,
         validity_aggregation=args.validity_aggregation,
         k_closure=args.k_closure,
+        closure_profile=args.closure_profile,
+        validity_arbitration_trigger=args.validity_arbitration_trigger,
         report_filter_path=(
             str(report_filter_path) if report_filter_path is not None else None
         ),
@@ -464,6 +478,8 @@ def main(argv: list[str] | None = None) -> int:
             validity_readings=args.validity_readings,
             validity_aggregation=args.validity_aggregation,
             k_closure=args.k_closure,
+            closure_profile=args.closure_profile,
+            validity_arbitration_trigger=args.validity_arbitration_trigger,
         )
         result_path = artifact_root / "pairs" / f"{pair_id}.json"
         result_hash = _write_model(result_path, result)

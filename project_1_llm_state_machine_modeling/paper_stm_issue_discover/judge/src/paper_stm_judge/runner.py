@@ -108,13 +108,61 @@ def build_validity_prompt(validity_input: ValidityJudgeInput) -> str:
     )
 
 
-def build_validity_batch_prompt(validity_input: ValidityBatchJudgeInput) -> str:
+PROMPT_CLOSURE_PROFILES: dict[str, tuple[str, ...] | None] = {
+    "full": None,
+    "author_source": (
+        "natural_language",
+        "plantuml_source",
+        "reference_inspection",
+        "exact_source_inventory",
+    ),
+}
+
+
+def _withhold_closure_artifacts(payload: object, roles: tuple[str, ...]) -> object:
+    """Drop closure artifacts outside ``roles`` from a JSON payload, recursively."""
+
+    if isinstance(payload, dict):
+        out = {key: _withhold_closure_artifacts(value, roles) for key, value in payload.items()}
+        artifacts = out.get("artifacts")
+        if "closure_hash" in out and isinstance(artifacts, list):
+            out["artifacts"] = [item for item in artifacts if isinstance(item, dict) and item.get("role") in roles]
+            out["prompt_view"] = (
+                "Only the author-source roles "
+                + ", ".join(roles)
+                + " are shown in this prompt; the other closure artifacts stay in the audited input and in closure_hash."
+            )
+        return out
+    if isinstance(payload, list):
+        return [_withhold_closure_artifacts(item, roles) for item in payload]
+    return payload
+
+
+def prompt_json(model_input: BaseModel, closure_profile: str = "full") -> str:
+    """Serialize a judge input for the prompt under a closure profile.
+
+    ``full`` sends every closure artifact. ``author_source`` withholds the derived
+    and provenance artifacts (lowered IR, inspection and verification facts, traces,
+    case reports) from the prompt text only: the stored input, its closure hash, and
+    both arms see exactly the same view, so the profile is arm-symmetric.
+    """
+
+    roles = PROMPT_CLOSURE_PROFILES[closure_profile]
+    if roles is None:
+        return model_input.model_dump_json(indent=2)
+    payload = _withhold_closure_artifacts(model_input.model_dump(mode="json"), roles)
+    return json.dumps(payload, indent=2, ensure_ascii=False)
+
+
+def build_validity_batch_prompt(
+    validity_input: ValidityBatchJudgeInput, *, closure_profile: str = "full"
+) -> str:
     """Serialize a bounded expected-isolated batch with one artifact closure."""
 
     return (
         f"{VALIDITY_PRIMARY_INSTRUCTION}\n\n"
         "<validity_batch_input>\n"
-        f"{validity_input.model_dump_json(indent=2)}\n"
+        f"{prompt_json(validity_input, closure_profile)}\n"
         "</validity_batch_input>"
     )
 
@@ -133,14 +181,14 @@ def build_validity_arbitration_prompt(
 
 
 def build_validity_batch_arbitration_prompt(
-    arbitration_input: ValidityBatchArbitrationInput,
+    arbitration_input: ValidityBatchArbitrationInput, *, closure_profile: str = "full"
 ) -> str:
     """Serialize all validity conflicts in one expected-isolated batch."""
 
     return (
         f"{VALIDITY_ARBITRATION_INSTRUCTION}\n\n"
         "<validity_batch_arbitration_input>\n"
-        f"{arbitration_input.model_dump_json(indent=2)}\n"
+        f"{prompt_json(arbitration_input, closure_profile)}\n"
         "</validity_batch_arbitration_input>"
     )
 
@@ -156,13 +204,15 @@ def build_relation_prompt(relation_input) -> str:
     )
 
 
-def build_relation_batch_prompt(relation_input: RelationBatchJudgeInput) -> str:
+def build_relation_batch_prompt(
+    relation_input: RelationBatchJudgeInput, *, closure_profile: str = "full"
+) -> str:
     """Serialize a bounded report-by-expected matrix with shared artifacts."""
 
     return (
         f"{RELATION_PRIMARY_INSTRUCTION}\n\n"
         "<relation_batch_input>\n"
-        f"{relation_input.model_dump_json(indent=2)}\n"
+        f"{prompt_json(relation_input, closure_profile)}\n"
         "</relation_batch_input>"
     )
 
@@ -181,14 +231,14 @@ def build_relation_arbitration_prompt(
 
 
 def build_relation_batch_arbitration_prompt(
-    arbitration_input: RelationBatchArbitrationInput,
+    arbitration_input: RelationBatchArbitrationInput, *, closure_profile: str = "full"
 ) -> str:
     """Serialize all relation conflicts in one immutable-validity batch."""
 
     return (
         f"{RELATION_ARBITRATION_INSTRUCTION}\n\n"
         "<relation_batch_arbitration_input>\n"
-        f"{arbitration_input.model_dump_json(indent=2)}\n"
+        f"{prompt_json(arbitration_input, closure_profile)}\n"
         "</relation_batch_arbitration_input>"
     )
 
@@ -205,6 +255,35 @@ def build_primary_prompt(
             )
         target_report_id = judge_input.reports[0].report_id
     return build_validity_prompt(build_validity_input(judge_input, target_report_id))
+
+
+def arbitration_report_ids(
+    disagreements: tuple[ReadingDisagreement, ...],
+    report_order: tuple[str, ...] | list[str],
+    *,
+    trigger: str = "any",
+) -> tuple[str, ...]:
+    """Select the reports whose reading disagreements send them to arbitration.
+
+    ``any`` (v3.2 behaviour) arbitrates on every disagreement kind, including a
+    clause verdict that leaves the defect class and every gate unchanged. ``class``
+    arbitrates only when the two readings disagree on core truth, defect class, or a
+    derived gate; clause-only disagreements are still recorded in the conflict log.
+    Iteration 7 measured 176 of 263 arbitrations with agreeing classes, of which the
+    arbitration changed the class twice (once toward gold, once away).
+    """
+
+    if trigger not in ("any", "class"):
+        raise ValueError(f"unknown validity arbitration trigger {trigger!r}")
+    return tuple(
+        report_id
+        for report_id in report_order
+        if any(
+            item.object_ref.startswith(f"report:{report_id}")
+            and (trigger == "any" or item.kind != ConflictKind.VALIDITY_CLAUSE)
+            for item in disagreements
+        )
+    )
 
 
 def detect_validity_disagreements(
@@ -730,6 +809,8 @@ def judge_pair(
     validity_readings: int = 2,
     validity_aggregation: str = "arbitration",
     k_closure: str = "relation_first",
+    closure_profile: str = "full",
+    validity_arbitration_trigger: str = "any",
 ) -> PairJudgeResult:
     """Run bounded multi-reading batches, freeze truth, then batch relations."""
 
@@ -753,7 +834,7 @@ def judge_pair(
             judge_input, report_ids, batch_id=batch_id
         )
         model = build_exact_validity_batch_model(batch_input)
-        prompt = build_validity_batch_prompt(batch_input)
+        prompt = build_validity_batch_prompt(batch_input, closure_profile=closure_profile)
         phase = f"validity_primary_{reading_no}"
         return _BatchCallPlan(
             batch_id=batch_id,
@@ -864,13 +945,8 @@ def judge_pair(
                     final_certificates[report_id] = ordered[chosen]
             conflicted_validity_ids = tuple(conflicted)
         else:
-            conflicted_validity_ids = tuple(
-                report_id
-                for report_id in report_order
-                if any(
-                    item.object_ref.startswith(f"report:{report_id}")
-                    for item in validity_disagreements
-                )
+            conflicted_validity_ids = arbitration_report_ids(
+                validity_disagreements, report_order, trigger=validity_arbitration_trigger
             )
 
         def make_validity_arbitration(
@@ -908,7 +984,7 @@ def judge_pair(
                 schema=model,
                 kind="semantic-judge-validity-arbitration-batch",
                 system_prompt=VALIDITY_SYSTEM_PROMPT,
-                prompt=build_validity_batch_arbitration_prompt(arbitration_input),
+                prompt=build_validity_batch_arbitration_prompt(arbitration_input, closure_profile=closure_profile),
                 artifact_id=(
                     f"{pair_id}/round-{round_no}/validity-arbitration-{batch_id}"
                 ),
@@ -995,7 +1071,7 @@ def judge_pair(
                 schema=model,
                 kind="semantic-judge-relation-batch",
                 system_prompt=RELATION_SYSTEM_PROMPT,
-                prompt=build_relation_batch_prompt(batch_input),
+                prompt=build_relation_batch_prompt(batch_input, closure_profile=closure_profile),
                 artifact_id=f"{pair_id}/round-{round_no}/{phase}-{batch_id}",
             )
 
@@ -1159,7 +1235,7 @@ def judge_pair(
                     schema=model,
                     kind="semantic-judge-relation-arbitration-batch",
                     system_prompt=RELATION_SYSTEM_PROMPT,
-                    prompt=build_relation_batch_arbitration_prompt(arbitration_input),
+                    prompt=build_relation_batch_arbitration_prompt(arbitration_input, closure_profile=closure_profile),
                     artifact_id=f"{pair_id}/round-{round_no}/relation-arbitration-{batch_id}",
                 )
 
@@ -1247,7 +1323,11 @@ def judge_pair(
                 else f".readings{validity_readings}-{validity_aggregation}"
             )
             + ("" if k_closure == "relation_first" else ".k-validity-first")
+            + ("" if closure_profile == "full" else f".closure-{closure_profile}")
+            + ("" if validity_arbitration_trigger == "any" else f".arb-{validity_arbitration_trigger}")
         ),
+        closure_profile=closure_profile,
+        validity_arbitration_trigger=validity_arbitration_trigger,
         judge_code_commit=judge_code_commit,
         model_profile=runtime.profile,
         artifact_closure_hash=judge_input.artifact_closure.closure_hash,
