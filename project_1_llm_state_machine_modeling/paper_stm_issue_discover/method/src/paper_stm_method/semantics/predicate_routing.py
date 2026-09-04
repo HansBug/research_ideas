@@ -722,6 +722,37 @@ def _cold_state_after_stimulus_scenario(
     )
 
 
+def cold_prefix_reaches_source(
+    pair: PairInput,
+    stimulus: EventNode,
+    source: StateNode,
+) -> tuple[bool | None, str]:
+    """Whether the unique cold R2 prefix leaves the machine in ``source`` before the stimulus.
+
+    v61 precondition for state-after-stimulus obligations: the requirement is
+    "from S, on E, reach T".  If the only target-independent cold prefix that
+    consumes E does so from a configuration that does not contain S, the R2
+    verdict would be about a different obligation, so the candidate is not
+    applicable.  Returns None when the prefix itself cannot be closed.
+    """
+
+    scenario, _window, reason = _cold_state_after_stimulus_scenario(pair, stimulus)
+    if scenario is None:
+        return None, reason
+    try:
+        native = load_native_fcstm(pair.model)
+    except Exception as exc:  # noqa: BLE001 - undecidable, never a verdict.
+        return None, f"native model load failed: {type(exc).__name__}"
+    prefix = tuple(str(item) for item in scenario["event_queue"][:-1])
+    active, failure = _run_native_event_prefix(native, prefix)
+    if active is None:
+        return None, failure or "cold prefix replay failed"
+    reached = source.canonical_path in active
+    return reached, (
+        f"active_after_prefix={list(active)}; source={source.canonical_path}; prefix={list(prefix)}"
+    )
+
+
 def _cold_entry_quiescence_scenario(
     pair: PairInput,
     state: StateNode,

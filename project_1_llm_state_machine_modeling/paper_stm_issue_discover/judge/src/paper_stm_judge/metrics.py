@@ -12,6 +12,8 @@ from .models import (
     ReportOutcome,
     ReportValidity,
     SemanticMetrics,
+    a0_subtype_of,
+    defect_tier_of,
 )
 
 
@@ -96,6 +98,13 @@ def decode_outcomes(
         ReportOutcome(
             original_report_id=report_map[row.report_id],
             validity=row.validity,
+            defect_class=row.defect_class,
+            d_tier=(
+                defect_tier_of(row.defect_class) if row.defect_class is not None else None
+            ),
+            a0_subtype=(
+                a0_subtype_of(row.defect_class) if row.defect_class is not None else None
+            ),
             full_ledger_ids=tuple(expected_map[value] for value in row.full_expected_ids),
             partial_ledger_ids=tuple(
                 expected_map[value] for value in row.partial_expected_ids

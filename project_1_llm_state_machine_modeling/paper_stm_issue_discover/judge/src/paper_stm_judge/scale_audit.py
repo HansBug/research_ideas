@@ -124,13 +124,13 @@ def _validity_envelope(validity_input) -> dict:
 
     artifact_ref = validity_input.artifact_closure.artifacts[0].artifact_id
     payload = {
-        "schema_version": "semantic-judge.validity-response.v3",
+        "schema_version": "semantic-judge.validity-response.v4",
         "report_id": validity_input.report.report_id,
         "root_cause_cluster_key": "one actionable technical root cause",
-        "minimum_evidence_gate": {
-            "status": "SATISFIED",
-            "reason": "The report supplies a clear artifact-auditable technical claim.",
-            "basis": "The report fields and common artifacts meet the minimum evidence burden.",
+        "defect_adjudication": {
+            "defect_class": "D2",
+            "reason": "The load-bearing fact is true of the author source and a stated obligation is violated without a surviving alternative reading.",
+            "basis": "The authored natural-language and PlantUML text establish the fact and the obligation.",
             "source_refs": [artifact_ref],
         },
         "validity_reason": "Every immutable report clause has one complete artifact truth judgment.",

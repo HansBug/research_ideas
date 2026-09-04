@@ -1,6 +1,6 @@
 # 历史报告索引
 
-本页不维护 active report 清单或当前实验结论。当前结果、复算和技术限制见 [最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md)；代次比较和旧报告的可比性见 [实验历史索引](../archive/experiment_history/README.md)。
+本页不维护 active report 清单或当前实验结论。当前结果、复算和技术限制见 [v61 归档](../final_results/v61_source_divergence_vs_x1v2_baseline/README.md)；代次比较和旧报告的可比性见 [实验历史索引](../archive/experiment_history/README.md)。
 
 | 报告类型 | 使用方式 |
 | --- | --- |
@@ -11,4 +11,4 @@
 | [2026-09-02 台账外 D2 跨臂去重分析](./2026-09-02-novel-d2-cross-arm-dedup/analysis.md) | 基于 v4 人工裁定与人工分组的派生分析；跨臂匹配与类型/L 归类为 agent 单轮判读，非人工裁定；只服务 outline §5.4/§6.2 的量级陈述，不进任何主指标 |
 | R5.7 Better STM 报告链 | 已归档的历史路线；从 [archive/](../archive/README.md) 进入 |
 
-任何新读者应先读工作区 [README.md](../README.md) 和最终归档，而不是从本目录选择一份旧报告作为默认入口。
+任何新读者应先读工作区 [README.md](../README.md) 和 v61 归档，而不是从本目录选择一份旧报告作为默认入口。
