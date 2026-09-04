@@ -124,7 +124,7 @@ REQUIRED_INVENTORY_MARKERS = (
     "谓词确认 W2 `137`",
     "`pass` 回执 `573`",
     "状态 5–20（中位 8）",
-    "两人独立裁定",
+    "边界情形讨论至共识",
     "current method cost",
 )
 BLOCKED = re.compile(

@@ -30,4 +30,4 @@
 | guard_modality_aggregation | 守卫模态聚合 | guard-modality aggregation | 无 | `outline-4` | 守卫模态聚合、聚合根 | 代码字段 |
 | lossy_normalization | 有损规范化 | lossy normalization | 无 | `outline-4` | 有损规范化 | — |
 
-责任边界（v61 口径，2026-09-04 导师裁定后）：D、有效性与对应关系的定义来自人工裁定协议，执行者是作者（两人独立裁定、分歧讨论至共识，不报一致性系数）；程序只在已完成的裁定字段上确定性闭合 K/N/I 并汇总；C2 的回执不替代有效性裁定；论文不提任何自动判定仪器。对外术语：L 写 problem level，D 写 defect status，字母不变。
+责任边界（v61 口径，2026-09-04 导师裁定后）：D、有效性与对应关系的定义来自人工裁定协议，执行者是作者（按协议逐条裁定、边界情形讨论至共识，不报一致性系数）；程序只在已完成的裁定字段上确定性闭合 K/N/I 并汇总；C2 的回执不替代有效性裁定；论文不提任何自动判定仪器。对外术语：L 写 problem level，D 写 defect status，字母不变。

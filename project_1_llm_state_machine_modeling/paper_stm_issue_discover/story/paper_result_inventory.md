@@ -4,8 +4,8 @@
 
 | 指标组与冻结数值 | disposition | canonical source | 论文处理与限制 |
 | --- | --- | --- | --- |
-| 数据结构：9 个在用自然语言簇、每簇 6 个制品、54 pair、145 条 source-backed expected issues、3 rounds、435 round-level units | `included_in_main` | `discover_matrix/ledger_v2/ledger.json`；`discover_matrix/docs/protocol/nl_scope_rule.md` | 表 4 和第 5 节说明 54 不是独立描述数，435 是 145 条问题的三轮重复观测。 |
-| 评测执行：两臂 903 / 512 条报告由作者按同一协议逐条人工裁定（两人独立裁定、分歧讨论至共识；relation-first 闭合；不报一致性系数） | `included_in_main` | 大纲 §5.2–§5.3；`discover_matrix/docs/protocol/`；v61 归档逐报告裁定记录 | §5.3 只写流程与闭合规则；§8 写非盲、同组作者的威胁。 |
+| 数据结构：9 个在用自然语言簇、每簇 6 个制品、54 pair、145 条 source-backed expected issues、3 rounds、435 round-level units | `included_in_main` | `discover_matrix/ledger_v2/ledger.json`；`discover_matrix/docs/protocol/nl_scope_rule.md` | 表 5 题注与 §5.1 说明 54 不是独立描述数，435 是 145 条问题的三轮重复观测。 |
+| 评测执行：两臂 903 / 512 条报告由作者按同一协议逐条人工裁定（边界情形讨论至共识；relation-first 闭合；不报一致性系数） | `included_in_main` | 大纲 §5.2–§5.3；`discover_matrix/docs/protocol/`；v61 归档逐报告裁定记录 | §5.3 只写流程与闭合规则；§8 写非盲、同组作者的威胁。 |
 | overall FULL `hit@1`：current `323/435=74.25%`，baseline `225/435=51.72%`；逐轮 113/98/112 对 75/71/79 | `included_in_main` | `derived/evaluate_rq3_output.txt` | 表 7 和 RQ1 主回答；只作本案例研究的描述性比较。 |
 | L0/L1/L2 FULL `hit@1`：current `153/213=71.83%`、`73/105=69.52%`、`97/117=82.91%`；baseline `108/213=50.70%`、`72/105=68.57%`、`45/117=38.46%` | `included_in_main` | `derived/evaluate_rq3_output.txt`；L 取 `discover_matrix/ledger_v2/l_tier.json` | 表 7 分层行；L1 持平（条目层 10 赢 / 9 输 / 16 平）。 |
 | overall FULL `hit@3` / `hit@all`：current `130/145=89.66%` / `82/145=56.55%`，baseline `105/145=72.41%` / `47/145=32.41%` | `included_in_main` | `derived/evaluate_rq3_output.txt` | 分母是 unique expected issues。 |
@@ -16,7 +16,7 @@
 | K/N/I：current `561/198/144`，baseline `293/134/85`；K 中 D0 `81`、`24` | `included_in_main` | `derived/evaluate_rq3_output.txt` | RQ2；K 由 relation-first 闭合派生，不能把 K/N/I 当作缺陷类型。 |
 | 命中来源分解（含子主张回执口径，分母 323）：分歧检查独占 `49`（L0/L1/L2 12/27/10）、谓词确认 W2 `137`（65/12/60）、谓词绑定未闭合 `36`（12/8/16）、纯语义 `101`（64/26/11） | `included_in_main` | `derived/evaluate_rq3_output.txt` | 表 7b、RQ1 第三问；回答「由谁承载」，不是因果归因。 |
 | `pass` 回执 `573` 的谓词分布：S3 152、S2 150、S1 120、R2 78、R1 33、G4 15、S4 12、V4 7、R4 5、G1 1 | `included_in_main` | `derived/evaluate_rq3_output.txt` | §6.2 谓词的过滤作用；其精确率后果由 RQ5（`TODO-EXPERIMENT-02`）回答。 |
-| 54 个制品规模：状态 5–20（中位 8）、迁移 5–70（中位 13.5）、守卫 0–14（中位 1）、复合态 1–7（中位 2）、深度 1–5（中位 2）；表 5b 按簇区间 | `included_in_main` | `discover_matrix/ledger_v2/provenance/corpus_structure.json`（排除 `00x8`） | §5.1 代表性段；与同类工作同量级、低于工业级。 |
+| 54 个制品规模：状态 5–20（中位 8）、迁移 5–70（中位 13.5）、守卫 0–14（中位 1）、复合态 1–7（中位 2）、深度 1–5（中位 2）；附录表 C.2 按簇区间 | `included_in_main` | `discover_matrix/ledger_v2/provenance/corpus_structure.json`（排除 `00x8`） | §5.1 代表性段；与同类工作同量级、低于工业级。 |
 | D2/D1/D0/A0：current `505/173/158/67`（FP 52、NADC 15），baseline `292/111/94/15`（FP 15、NADC 0） | `included_in_main` | `derived/evaluate_rq3_output.txt` | RQ2 的裁定组成。 |
 | current I 组成：D0 且无关联 `77`、`FALSE_POSITIVE` `52`、NADC `15`；baseline `70`、`15`、不适用 | `included_in_main` | `derived/evaluate_rq3_output.txt`；`derived/per_predicate_and_ledger_report.txt` | 表 8；NADC 只报方法侧比率，不做跨臂比较，不重算校正精确率。 |
 | D2/D1-only 敏感性：validity `678/903=75.08%` 对 `403/512=78.71%`；FULL `hit@1` `294/435` 对 `212/435`；`hit@3` `126` 对 `103`；`hit@all` `65` 对 `41` | `included_in_main` | `derived/evaluate_rq3_output.txt` | §6.2 保守口径；方向不变、精确率相对位置由持平变为低 3.6 pp。 |
