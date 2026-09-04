@@ -1,4 +1,6 @@
-# L1 对 story / contribution / outline 的建议
+# 历史故事候选：L1 对 story / contribution / outline 的建议
+
+> 本文件是早期检索回合的故事建议，不控制当前 Paper1 的贡献、RQ 或新颖性。R1 的唯一当前入口是 [`../closest_work_matrix.md`](../closest_work_matrix.md) 和 [`../../story/paper_story.md`](../../story/paper_story.md)。保留本页仅供追溯检索线索。
 
 ⭐ 本文件是伞 PR [#179](https://github.com/HansBug/research_ideas/pull/179) §4.3 要求的硬性交付物。⛔ 每条按五字段固定格式：**改哪一句**（§号 + 逐字片段，⛔ 不用行号）/ **改成什么** / **依据** / **强度** / **不做会怎样**。
 

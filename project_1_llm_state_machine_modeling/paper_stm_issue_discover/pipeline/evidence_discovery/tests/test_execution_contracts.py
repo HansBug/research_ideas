@@ -973,6 +973,62 @@ def test_w0_w1_w2_and_execution_failures_are_orthogonal() -> None:
     assert execution_with_imprecise_binding["witness_level"] == "W0"
 
 
+@pytest.mark.parametrize(
+    ("predicate_id", "inputs"),
+    (
+        ("G2", {"source": ["Idle", "Active"], "target": "Active"}),
+        ("G3", {"source": "Root", "target": "Active", "forbidden": "Idle"}),
+        ("V3", {"p": {"state": "Missing"}, "q": {"state": "Active"}, "bound": 1, "unit": "steps", "scope": "closed_fcstm"}),
+        ("V5", {"state": "Active", "expected": 2, "initial_scope": "closed_fcstm"}),
+    ),
+)
+def test_backend_unknown_preconditions_downgrade_precise_bindings_to_w1(
+    predicate_id: str, inputs: dict,
+) -> None:
+    """Plans outside a native backend fragment cannot be promoted to W2."""
+
+    source = """state Root {
+state Idle;
+state Active;
+event Start;
+[*] -> Idle;
+Idle -> Active : Start;
+}
+"""
+    model = parse_fcstm(source)
+    pair = SimpleNamespace(model=model)
+    registry = load_registry()
+    candidate = _candidate(pair, predicate_id=predicate_id, inputs=inputs)
+    binding = BindingResult(
+        precise=True,
+        element_refs=(model.transitions[0].ref,),
+        source_refs=("nl:line:1",),
+        reason="The fixture keeps the source binding precise while varying only backend support.",
+        basis="native executable-fragment regression fixture",
+    )
+    plan = compile_plan(
+        candidate,
+        binding,
+        registry,
+        obligation_id=f"soundness:{predicate_id}",
+        round_index=1,
+        model=model,
+    )
+    unknown = RawReceipt(
+        receipt_id=f"soundness:{predicate_id}:unknown",
+        backend="fixture",
+        terminal_state="unsupported",
+        verdict="unknown",
+        reason="The native backend shape is intentionally outside its executable fragment.",
+        basis="native backend contract regression fixture",
+    )
+
+    assert plan.soundness_fragment_satisfied is False
+    assert plan.executable is False
+    assert plan.formal_program is None
+    assert calculate_witness_level(binding, plan, unknown) == "W1"
+
+
 def test_binding_normalizes_display_refs_but_rejects_ambiguous_edges() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     candidate = _candidate(
@@ -1010,6 +1066,8 @@ def test_binding_normalizes_display_refs_but_rejects_ambiguous_edges() -> None:
         model=pair.model,
     )
     invalid_receipt = run_backend(invalid_plan, pair.model, "invalid-kind-receipt")
+    assert invalid_plan.soundness_fragment_satisfied is False
+    assert invalid_plan.executable is False
     assert invalid_receipt.verdict == "unknown"
     assert calculate_witness_level(invalid_binding, invalid_plan, invalid_receipt) == "W1"
 

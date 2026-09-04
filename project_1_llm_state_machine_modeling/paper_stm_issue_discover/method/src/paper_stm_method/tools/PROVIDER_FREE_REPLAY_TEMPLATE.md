@@ -11,7 +11,7 @@
 - completed Boolean W1 -> W2: `{completed_boolean_recoveries}`
 - invalid typed Boolean rejected: `{invalid_typed_input_rejections}`
 
-运行时 W 严格遵循冻结的三层 witness protocol，只由冻结 predicate、精确 binding、合法 typed input、backend/命题一致性、制品归因闭合和 terminal `true`/`false` 决定。`completed/true` 是 W2 satisfaction receipt，不能发布 issue；`completed/false` 才可能在 D1/D2 下发布。timeout、backend error、invalid input 和 unsupported backend 记录在 execution audit，按 binding 精度退化为 W1/W0，绝不成为 violation。
+W2 同时要求冻结 predicate 的受支持片段、精确 binding、合法 typed input、pair/obligation/plan/model/program/receipt 的精确身份链、制品归因闭合、显式谓词/极性发表资格和 terminal `true`/`false`。来源归因不完整只将 W2 降为 W1，已经完成的 `completed`、`executed` 和 `true`/`false` 保留为执行审计事实。`completed/true` 不能发布 issue；`completed/false` 才可能在 D1/D2 下发布。timeout、backend error、invalid input 和 unsupported backend 记录在 execution audit，按 binding 精度退化为 W1/W0，绝不成为 violation。
 
 全部 19 个冻结谓词均已完成学术资格审查，并具有 typed contract、compiled form 与 native backend。学术 provenance 继续留在 registry 和 source catalog，但不参与任何单次运行的 W 或 backend 准入。
 

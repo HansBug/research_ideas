@@ -38,7 +38,7 @@ reviewer 独立复算得到 `rg=176`、rows=`176`、missing/extra=`0`，并核�
 
 本次只读复核以当前工作树为输入，重新确认 SUMMARY -> final-results README -> v4 报告的
 唯一入口、历史 banner、相对链接和 publication/archive 边界。当前 manifests 的实际 surface
-为 publication `90` entries、archive `2982` entries；旧复核中的计数只保留为历史快照，
-不参与当前结论。Paper1 当前所有 Judge、validity、relation、D/A、K/N/I 与成分分析均按
-人工裁定表述，机器只做机械汇总、校验和复算。没有调用 provider，也没有重跑 method、Judge
+为 publication `96` entries、archive `2988` entries；旧复核中的计数只保留为历史快照，
+不参与当前结论。Paper1 当前的 Judge、validity、relation、D/A 与成分分析均按
+人工裁定表述，K/N/I 由机器确定性派生并做机械汇总、校验和复算。没有调用 provider，也没有重跑 method、Judge
 或实验。

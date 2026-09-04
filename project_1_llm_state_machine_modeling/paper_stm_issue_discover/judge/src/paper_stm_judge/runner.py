@@ -21,6 +21,7 @@ from .metrics import compute_semantic_metrics, decode_outcomes
 from .models import (
     AdapterAudit,
     ConflictKind,
+    DefectClass,
     ConflictRecord,
     CoreClaimTruth,
     FrozenValidityCertificate,
@@ -107,13 +108,61 @@ def build_validity_prompt(validity_input: ValidityJudgeInput) -> str:
     )
 
 
-def build_validity_batch_prompt(validity_input: ValidityBatchJudgeInput) -> str:
+PROMPT_CLOSURE_PROFILES: dict[str, tuple[str, ...] | None] = {
+    "full": None,
+    "author_source": (
+        "natural_language",
+        "plantuml_source",
+        "reference_inspection",
+        "exact_source_inventory",
+    ),
+}
+
+
+def _withhold_closure_artifacts(payload: object, roles: tuple[str, ...]) -> object:
+    """Drop closure artifacts outside ``roles`` from a JSON payload, recursively."""
+
+    if isinstance(payload, dict):
+        out = {key: _withhold_closure_artifacts(value, roles) for key, value in payload.items()}
+        artifacts = out.get("artifacts")
+        if "closure_hash" in out and isinstance(artifacts, list):
+            out["artifacts"] = [item for item in artifacts if isinstance(item, dict) and item.get("role") in roles]
+            out["prompt_view"] = (
+                "Only the author-source roles "
+                + ", ".join(roles)
+                + " are shown in this prompt; the other closure artifacts stay in the audited input and in closure_hash."
+            )
+        return out
+    if isinstance(payload, list):
+        return [_withhold_closure_artifacts(item, roles) for item in payload]
+    return payload
+
+
+def prompt_json(model_input: BaseModel, closure_profile: str = "full") -> str:
+    """Serialize a judge input for the prompt under a closure profile.
+
+    ``full`` sends every closure artifact. ``author_source`` withholds the derived
+    and provenance artifacts (lowered IR, inspection and verification facts, traces,
+    case reports) from the prompt text only: the stored input, its closure hash, and
+    both arms see exactly the same view, so the profile is arm-symmetric.
+    """
+
+    roles = PROMPT_CLOSURE_PROFILES[closure_profile]
+    if roles is None:
+        return model_input.model_dump_json(indent=2)
+    payload = _withhold_closure_artifacts(model_input.model_dump(mode="json"), roles)
+    return json.dumps(payload, indent=2, ensure_ascii=False)
+
+
+def build_validity_batch_prompt(
+    validity_input: ValidityBatchJudgeInput, *, closure_profile: str = "full"
+) -> str:
     """Serialize a bounded expected-isolated batch with one artifact closure."""
 
     return (
         f"{VALIDITY_PRIMARY_INSTRUCTION}\n\n"
         "<validity_batch_input>\n"
-        f"{validity_input.model_dump_json(indent=2)}\n"
+        f"{prompt_json(validity_input, closure_profile)}\n"
         "</validity_batch_input>"
     )
 
@@ -132,14 +181,14 @@ def build_validity_arbitration_prompt(
 
 
 def build_validity_batch_arbitration_prompt(
-    arbitration_input: ValidityBatchArbitrationInput,
+    arbitration_input: ValidityBatchArbitrationInput, *, closure_profile: str = "full"
 ) -> str:
     """Serialize all validity conflicts in one expected-isolated batch."""
 
     return (
         f"{VALIDITY_ARBITRATION_INSTRUCTION}\n\n"
         "<validity_batch_arbitration_input>\n"
-        f"{arbitration_input.model_dump_json(indent=2)}\n"
+        f"{prompt_json(arbitration_input, closure_profile)}\n"
         "</validity_batch_arbitration_input>"
     )
 
@@ -155,13 +204,15 @@ def build_relation_prompt(relation_input) -> str:
     )
 
 
-def build_relation_batch_prompt(relation_input: RelationBatchJudgeInput) -> str:
+def build_relation_batch_prompt(
+    relation_input: RelationBatchJudgeInput, *, closure_profile: str = "full"
+) -> str:
     """Serialize a bounded report-by-expected matrix with shared artifacts."""
 
     return (
         f"{RELATION_PRIMARY_INSTRUCTION}\n\n"
         "<relation_batch_input>\n"
-        f"{relation_input.model_dump_json(indent=2)}\n"
+        f"{prompt_json(relation_input, closure_profile)}\n"
         "</relation_batch_input>"
     )
 
@@ -180,14 +231,14 @@ def build_relation_arbitration_prompt(
 
 
 def build_relation_batch_arbitration_prompt(
-    arbitration_input: RelationBatchArbitrationInput,
+    arbitration_input: RelationBatchArbitrationInput, *, closure_profile: str = "full"
 ) -> str:
     """Serialize all relation conflicts in one immutable-validity batch."""
 
     return (
         f"{RELATION_ARBITRATION_INSTRUCTION}\n\n"
         "<relation_batch_arbitration_input>\n"
-        f"{arbitration_input.model_dump_json(indent=2)}\n"
+        f"{prompt_json(arbitration_input, closure_profile)}\n"
         "</relation_batch_arbitration_input>"
     )
 
@@ -204,6 +255,35 @@ def build_primary_prompt(
             )
         target_report_id = judge_input.reports[0].report_id
     return build_validity_prompt(build_validity_input(judge_input, target_report_id))
+
+
+def arbitration_report_ids(
+    disagreements: tuple[ReadingDisagreement, ...],
+    report_order: tuple[str, ...] | list[str],
+    *,
+    trigger: str = "any",
+) -> tuple[str, ...]:
+    """Select the reports whose reading disagreements send them to arbitration.
+
+    ``any`` (v3.2 behaviour) arbitrates on every disagreement kind, including a
+    clause verdict that leaves the defect class and every gate unchanged. ``class``
+    arbitrates only when the two readings disagree on core truth, defect class, or a
+    derived gate; clause-only disagreements are still recorded in the conflict log.
+    Iteration 7 measured 176 of 263 arbitrations with agreeing classes, of which the
+    arbitration changed the class twice (once toward gold, once away).
+    """
+
+    if trigger not in ("any", "class"):
+        raise ValueError(f"unknown validity arbitration trigger {trigger!r}")
+    return tuple(
+        report_id
+        for report_id in report_order
+        if any(
+            item.object_ref.startswith(f"report:{report_id}")
+            and (trigger == "any" or item.kind != ConflictKind.VALIDITY_CLAUSE)
+            for item in disagreements
+        )
+    )
 
 
 def detect_validity_disagreements(
@@ -223,6 +303,17 @@ def detect_validity_disagreements(
                 object_ref=f"report:{report_id}",
                 reading_1_value=certificate_1.core_truth.value,
                 reading_2_value=certificate_2.core_truth.value,
+            )
+        )
+    first_class = certificate_1.defect_adjudication.defect_class
+    second_class = certificate_2.defect_adjudication.defect_class
+    if first_class != second_class:
+        disagreements.append(
+            ReadingDisagreement(
+                kind=ConflictKind.DEFECT_CLASS,
+                object_ref=f"report:{report_id}/defect_class",
+                reading_1_value=first_class.value,
+                reading_2_value=second_class.value,
             )
         )
     gates = (
@@ -491,6 +582,12 @@ def _conflict_records(
             reason = certificate.reason
             basis = certificate.basis
             source_refs = certificate.source_refs
+        elif disagreement.kind == ConflictKind.DEFECT_CLASS:
+            certificate = final_certificates[report_id]
+            final_value = certificate.defect_adjudication.defect_class.value
+            reason = certificate.defect_adjudication.reason
+            basis = certificate.defect_adjudication.basis
+            source_refs = certificate.defect_adjudication.source_refs
         elif disagreement.kind == ConflictKind.VALIDITY_GATE:
             gate_name = disagreement.object_ref.split("/gate:", 1)[1]
             certificate = final_certificates[report_id]
@@ -683,6 +780,24 @@ def _execute_with_split(
     return tuple(completed)
 
 
+def select_majority_reading(classes) -> int | None:
+    """Return the 0-based index of the earliest reading whose defect class holds a strict majority.
+
+    Ties and three-way splits return None so the caller can fall back to a fresh
+    arbitration reading. This is a deterministic backend rule over provider outputs.
+    """
+
+    values = [getattr(item, "value", item) for item in classes]
+    counts: dict[str, int] = {}
+    for value in values:
+        counts[value] = counts.get(value, 0) + 1
+    best = max(counts.values())
+    if best * 2 <= len(values) or list(counts.values()).count(best) > 1:
+        return None
+    winner = next(value for value, count in counts.items() if count == best)
+    return values.index(winner)
+
+
 def judge_pair(
     *,
     run_id: str,
@@ -691,9 +806,23 @@ def judge_pair(
     adapter_audit: AdapterAudit,
     runtime: PublicStructuredRuntime,
     judge_code_commit: str,
+    validity_readings: int = 2,
+    validity_aggregation: str = "arbitration",
+    k_closure: str = "relation_first",
+    closure_profile: str = "full",
+    validity_arbitration_trigger: str = "any",
 ) -> PairJudgeResult:
-    """Run bounded dual-reading batches, freeze truth, then batch relations."""
+    """Run bounded multi-reading batches, freeze truth, then batch relations."""
 
+    if validity_readings < 2:
+        raise ValueError("validity_readings must be at least 2")
+    if validity_aggregation not in ("arbitration", "majority"):
+        raise ValueError(f"unknown validity_aggregation: {validity_aggregation}")
+    if validity_aggregation == "majority" and validity_readings < 3:
+        raise ValueError("majority aggregation requires at least three validity readings")
+    if k_closure not in ("validity_first", "relation_first"):
+        raise ValueError(f"unknown k_closure: {k_closure}")
+    relation_scope = "non_false_positive" if k_closure == "relation_first" else "valid_only"
     pair_id = judge_input.pair_id
     receipts: list[JudgeCallReceipt] = []
     schema_hashes: dict[str, str] = {}
@@ -705,7 +834,7 @@ def judge_pair(
             judge_input, report_ids, batch_id=batch_id
         )
         model = build_exact_validity_batch_model(batch_input)
-        prompt = build_validity_batch_prompt(batch_input)
+        prompt = build_validity_batch_prompt(batch_input, closure_profile=closure_profile)
         phase = f"validity_primary_{reading_no}"
         return _BatchCallPlan(
             batch_id=batch_id,
@@ -729,7 +858,7 @@ def judge_pair(
                 _stable_batch_id("VB", index, report_ids),
             )
             for index, report_ids in enumerate(validity_groups, start=1)
-            for reading_no in (1, 2)
+            for reading_no in range(1, validity_readings + 1)
         )
 
         def split_validity_primary(
@@ -753,8 +882,7 @@ def judge_pair(
             round_no=round_no,
         )
         validity_maps: dict[int, dict[str, FrozenValidityCertificate]] = {
-            1: {},
-            2: {},
+            reading_no: {} for reading_no in range(1, validity_readings + 1)
         }
         for plan, outcome in validity_completed:
             response = _require_response(outcome, f"{plan.phase}_{plan.batch_id}")
@@ -769,7 +897,8 @@ def judge_pair(
                 )
         report_order = tuple(item.report_id for item in judge_input.reports)
         if any(
-            set(validity_maps[reading_no]) != set(report_order) for reading_no in (1, 2)
+            set(validity_maps[reading_no]) != set(report_order)
+            for reading_no in validity_maps
         ):
             raise ValueError("validity batch materialization did not close all reports")
         validity_reading_1 = ValidityStageReading(
@@ -786,6 +915,15 @@ def judge_pair(
         )
         validity_1_by_id = validity_maps[1]
         validity_2_by_id = validity_maps[2]
+        validity_extra_readings = tuple(
+            ValidityStageReading(
+                certificates=tuple(validity_maps[reading_no][item] for item in report_order),
+                reason=f"Every report received complete independent expected-isolated batch reading {reading_no}.",
+                basis="The same immutable batch inputs, shared common artifacts, and exact source-clause closure.",
+                source_refs=_reading_source_refs(validity_maps[reading_no].values()),
+            )
+            for reading_no in range(3, validity_readings + 1)
+        )
         validity_disagreements = tuple(
             disagreement
             for report_id in report_order
@@ -794,14 +932,22 @@ def judge_pair(
             )
         )
         final_certificates = dict(validity_1_by_id)
-        conflicted_validity_ids = tuple(
-            report_id
-            for report_id in report_order
-            if any(
-                item.object_ref.startswith(f"report:{report_id}")
-                for item in validity_disagreements
+        if validity_aggregation == "majority":
+            conflicted: list[str] = []
+            for report_id in report_order:
+                ordered = [validity_maps[n][report_id] for n in sorted(validity_maps)]
+                chosen = select_majority_reading(
+                    [item.defect_adjudication.defect_class for item in ordered]
+                )
+                if chosen is None:
+                    conflicted.append(report_id)
+                else:
+                    final_certificates[report_id] = ordered[chosen]
+            conflicted_validity_ids = tuple(conflicted)
+        else:
+            conflicted_validity_ids = arbitration_report_ids(
+                validity_disagreements, report_order, trigger=validity_arbitration_trigger
             )
-        )
 
         def make_validity_arbitration(
             report_ids: tuple[str, ...], batch_id: str
@@ -838,7 +984,7 @@ def judge_pair(
                 schema=model,
                 kind="semantic-judge-validity-arbitration-batch",
                 system_prompt=VALIDITY_SYSTEM_PROMPT,
-                prompt=build_validity_batch_arbitration_prompt(arbitration_input),
+                prompt=build_validity_batch_arbitration_prompt(arbitration_input, closure_profile=closure_profile),
                 artifact_id=(
                     f"{pair_id}/round-{round_no}/validity-arbitration-{batch_id}"
                 ),
@@ -891,15 +1037,19 @@ def judge_pair(
             final_certificates.update(arbitration_by_id)
 
         ordered_certificates = tuple(final_certificates[item] for item in report_order)
+        def _relation_candidate(item: FrozenValidityCertificate) -> bool:
+            if item.core_truth == CoreClaimTruth.VALID:
+                return True
+            return (
+                k_closure == "relation_first"
+                and item.defect_adjudication.defect_class != DefectClass.A0_FALSE_POSITIVE
+            )
+
         invalid_ids = tuple(
-            item.report_id
-            for item in ordered_certificates
-            if item.core_truth == CoreClaimTruth.INVALID
+            item.report_id for item in ordered_certificates if not _relation_candidate(item)
         )
         valid_certificates = tuple(
-            item
-            for item in ordered_certificates
-            if item.core_truth == CoreClaimTruth.VALID
+            item for item in ordered_certificates if _relation_candidate(item)
         )
 
         def make_relation_primary(
@@ -908,7 +1058,7 @@ def judge_pair(
             batch_id: str,
         ) -> _BatchCallPlan:
             batch_input = build_relation_batch_input(
-                judge_input, certificates, batch_id=batch_id
+                judge_input, certificates, batch_id=batch_id, relation_scope=relation_scope
             )
             model = build_exact_relation_batch_model(batch_input)
             phase = f"relation_primary_{reading_no}"
@@ -921,7 +1071,7 @@ def judge_pair(
                 schema=model,
                 kind="semantic-judge-relation-batch",
                 system_prompt=RELATION_SYSTEM_PROMPT,
-                prompt=build_relation_batch_prompt(batch_input),
+                prompt=build_relation_batch_prompt(batch_input, closure_profile=closure_profile),
                 artifact_id=f"{pair_id}/round-{round_no}/{phase}-{batch_id}",
             )
 
@@ -1054,7 +1204,7 @@ def judge_pair(
             ) -> _BatchCallPlan:
                 certificates = tuple(certificate_by_id[item] for item in report_ids)
                 batch_input = build_relation_batch_input(
-                    judge_input, certificates, batch_id=batch_id
+                    judge_input, certificates, batch_id=batch_id, relation_scope=relation_scope
                 )
                 arbitration_input = RelationBatchArbitrationInput(
                     relation_input=batch_input,
@@ -1085,7 +1235,7 @@ def judge_pair(
                     schema=model,
                     kind="semantic-judge-relation-arbitration-batch",
                     system_prompt=RELATION_SYSTEM_PROMPT,
-                    prompt=build_relation_batch_arbitration_prompt(arbitration_input),
+                    prompt=build_relation_batch_arbitration_prompt(arbitration_input, closure_profile=closure_profile),
                     artifact_id=f"{pair_id}/round-{round_no}/relation-arbitration-{batch_id}",
                 )
 
@@ -1147,7 +1297,10 @@ def judge_pair(
             if item in final_relation_responses
         )
         final_reading = materialize_two_stage_reading(
-            ordered_certificates, ordered_relation_responses, judge_input
+            ordered_certificates,
+            ordered_relation_responses,
+            judge_input,
+            closure_rule=k_closure,
         )
     except Exception as exc:
         raise JudgeExecutionFailure(str(exc), tuple(receipts)) from exc
@@ -1162,7 +1315,19 @@ def judge_pair(
         round=round_no,
         protocol_version=PROTOCOL_VERSION,
         protocol_sha256=PROTOCOL_SHA256,
-        judge_algorithm_version=JUDGE_ALGORITHM_VERSION,
+        judge_algorithm_version=(
+            JUDGE_ALGORITHM_VERSION
+            + (
+                ""
+                if validity_aggregation == "arbitration" and validity_readings == 2
+                else f".readings{validity_readings}-{validity_aggregation}"
+            )
+            + ("" if k_closure == "relation_first" else ".k-validity-first")
+            + ("" if closure_profile == "full" else f".closure-{closure_profile}")
+            + ("" if validity_arbitration_trigger == "any" else f".arb-{validity_arbitration_trigger}")
+        ),
+        closure_profile=closure_profile,
+        validity_arbitration_trigger=validity_arbitration_trigger,
         judge_code_commit=judge_code_commit,
         model_profile=runtime.profile,
         artifact_closure_hash=judge_input.artifact_closure.closure_hash,
@@ -1173,6 +1338,9 @@ def judge_pair(
         validity_reading_1=validity_reading_1,
         validity_reading_2=validity_reading_2,
         validity_arbitration_certificates=tuple(validity_arbitrations),
+        validity_extra_readings=validity_extra_readings,
+        validity_aggregation=validity_aggregation,  # type: ignore[arg-type]
+        k_closure=k_closure,  # type: ignore[arg-type]
         relation_reading_1=relation_reading_1,
         relation_reading_2=relation_reading_2,
         relation_arbitration_responses=tuple(relation_arbitrations),
@@ -1183,7 +1351,7 @@ def judge_pair(
         metrics=metrics,
         call_receipts=tuple(receipts),
         reason=(
-            "Two expected-isolated validity batch readings and two relation-only "
+            f"{validity_readings} expected-isolated validity batch readings ({validity_aggregation} aggregation) and two relation-only "
             f"batch readings completed; {len(validity_disagreements)} validity and "
             f"{len(relation_disagreements)} relation disagreements were fully arbitrated."
         ),

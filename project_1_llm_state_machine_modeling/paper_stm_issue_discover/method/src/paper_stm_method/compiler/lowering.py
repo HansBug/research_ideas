@@ -11,6 +11,7 @@ from ..inputs.models import ModelIR
 from ..registry.model import PredicateRegistry
 from ..semantics.binding import BindingResult
 from ..semantics.obligations import CandidateIssue
+from .publication_eligibility import load_publication_eligibility_audit
 from .soundness import SoundnessAssessment, assess_soundness
 from .inputs import (
     PredicateInputs,
@@ -84,6 +85,14 @@ class PredicatePlan(BaseModel):
     soundness_fragment_satisfied: bool = Field(default=False, description="Whether the plan meets the predicate's local finite-model, scope, carrier, and input-fragment preconditions.")
     soundness_assessment: SoundnessAssessment | None = Field(default=None, description="Predicate-specific machine assessment of the executable soundness fragment, including native model and algorithm boundary.")
     artifact_attribution_complete: bool = Field(default=False, description="Whether the compiled plan carries the closed executed-model identity and program hash required for later artifact attribution.")
+    publication_eligibility_by_polarity: dict[str, bool] = Field(
+        default_factory=lambda: {"true": False, "false": False},
+        description="Strongest paper-claim eligibility for each Boolean polarity. It is recorded with the plan but does not change runtime W.",
+    )
+    publication_audit_hash: str | None = Field(
+        default=None,
+        description="Hash of the paper-side R1 predicate/polarity audit that supplied claim-scope decisions.",
+    )
     execution_state: str = Field(default="not_attempted", description="Compilation-time execution state. Runtime receipts independently record not_attempted, completed, or failed outcomes.")
     predicate_verdict: str | None = Field(default=None, description="Compilation-time predicate verdict, always null before a backend receipt is produced.")
     supported: bool = Field(default=False, description="Deprecated compatibility synonym for execution readiness. It is derived only from executable typed/backend conditions and never from bibliography provenance.")
@@ -120,6 +129,10 @@ class PredicatePlan(BaseModel):
             raise ValueError(
                 "PredicatePlan.inputs is unsupported/invalid but executable=true; "
                 "typed input failures must deterministically downgrade to W1"
+            )
+        if set(self.publication_eligibility_by_polarity) != {"true", "false"}:
+            raise ValueError(
+                "publication_eligibility_by_polarity must define exactly true and false"
             )
         return self
 
@@ -175,6 +188,8 @@ def compile_plan(
     model: ModelIR,
     model_hash: str | None = None,
 ) -> PredicatePlan:
+    publication_audit = load_publication_eligibility_audit(registry)
+
     def normalize_inputs(values: dict[str, Any]) -> dict[str, Any]:
         normalized = dict(values)
         for alias, canonical in _INPUT_ALIASES.items():
@@ -216,6 +231,7 @@ def compile_plan(
             backend_available=False,
             soundness_fragment_satisfied=False,
             artifact_attribution_complete=False,
+            publication_audit_hash=publication_audit.catalog_hash,
             supported=False,
             executable=False,
             reason="The candidate has no usable frozen predicate ID; preserve a precise binding as W1.",
@@ -251,8 +267,13 @@ def compile_plan(
         )
     )
     binding_complete = not missing_inputs
+    publication_eligibility = publication_audit.by_predicate.get(
+        predicate.id,
+        {"true": False, "false": False},
+    )
     formal_program = (
         f"registry={registry.version}\n"
+        f"publication_audit={publication_audit.catalog_hash or 'unavailable'}\n"
         f"ASSERT {predicate.id}:{predicate.name} family={predicate.family}\n"
         f"INPUTS {json.dumps(inputs, ensure_ascii=False, sort_keys=True)}\n"
         f"ASSUMPTION closed_fcstm=true algorithm={model.algorithm_version}"
@@ -312,6 +333,8 @@ def compile_plan(
         soundness_fragment_satisfied=soundness_fragment_satisfied,
         soundness_assessment=soundness_assessment,
         artifact_attribution_complete=artifact_attribution_complete and executable,
+        publication_eligibility_by_polarity=publication_eligibility,
+        publication_audit_hash=publication_audit.catalog_hash,
         supported=supported,
         executable=executable,
         reason=reason,

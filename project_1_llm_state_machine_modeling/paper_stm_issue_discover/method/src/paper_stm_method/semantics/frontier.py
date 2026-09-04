@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import Literal
+from typing import Any, Iterable, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -23,6 +24,7 @@ from ..inputs.context import (
     SourceInventoryTransition,
 )
 from ..inputs.models import PairInput, StateNode, Transition
+from .author_source import build_author_index, enclosing_endpoint_carriers
 from .binding import bind_candidate, resolve_state_ref
 from .obligations import (
     CandidateIssue,
@@ -63,6 +65,7 @@ FrontierKind = Literal[
     "state_after_stimulus",
     "initial_entry_trigger_set",
     "aggregate_data_semantics",
+    "source_divergence",
 ]
 
 
@@ -904,6 +907,7 @@ class _Builder:
         contracts_by_id: Mapping[str, NLContract],
     ) -> None:
         self.pair = pair
+        self.author_index = build_author_index(pair)
         self.obligations: list[FrontierObligation] = []
         self.checks: list[FrontierCheckReceipt] = []
         self.seen = {
@@ -2225,8 +2229,11 @@ def _materialize_root_reachability(
     contracts_by_id = {item.contract_id: item for item in contracts}
     for contract_id, states in relevant_by_contract.items():
         contract = contracts_by_id.get(contract_id)
-        if contract is None or contract.state_role not in {"operating_state", "initial_state"}:
+        if contract is None:
             continue
+        # v61: the LLM's state_role label is a soft classification that varies
+        # between rounds; root reachability is a structural fact about every
+        # state a typed contract binds, so the role no longer gates it.
         for state in states:
             fact = _inspection_state(pair, state.ref)
             if fact is None or fact.reachable_from_initial:
@@ -2234,6 +2241,30 @@ def _materialize_root_reachability(
             scope = _highest_unreachable_scope(pair, state)
             if scope:
                 groups[scope.ref].append((contract, state))
+
+    # v61 fallback anchor: a highest unreachable scope that no typed contract
+    # names directly, but whose name shares word tokens with a numbered NL
+    # segment, is still a required scope of the requirement.  Anchor it to that
+    # segment's most structural contract (same rule as the divergence audit).
+    if pair.inspection_facts is not None:
+        seen_scopes = set(groups)
+        for state in pair.model.states:
+            fact = _inspection_state(pair, state.ref)
+            if fact is None or fact.reachable_from_initial or state.is_pseudo:
+                continue
+            scope = _highest_unreachable_scope(pair, state)
+            if scope is None or scope.ref in seen_scopes:
+                continue
+            base = _anchor_contract(
+                contracts,
+                pair=pair,
+                names=[scope.name, scope.display_name],
+                preferred=("containment", "region_structure", "cardinality", "initial_entry", "reachability", "transition_endpoints", "state_action"),
+            )
+            if base is None:
+                continue
+            seen_scopes.add(scope.ref)
+            groups[scope.ref].append((base, scope))
 
     scopes: dict[str, tuple[StateNode, StateNode, NLContract]] = {}
     for scope_ref, rows in groups.items():
@@ -2672,7 +2703,10 @@ def _materialize_termination(builder: _Builder, contracts: Sequence[NLContract])
         ]
     ] = []
     for contract in contracts:
-        if contract.property != "termination" or contract.state_role != "termination_state":
+        if contract.property != "termination":
+            # v61: `property` already types the obligation; the soft state_role
+            # label is not required (it varied between rounds and silently
+            # dropped whole termination frontiers).
             continue
         explicit_target_hint = _hint(contract, "target")
         state_hint = _hint(contract, "state")
@@ -3159,6 +3193,30 @@ def _materialize_group_guards(
             base = _group_base_contract(group, source, contracts)
             if base is None:
                 continue
+            author_carrier = (
+                builder.author_index.author_transition_for_carrier(transition)
+                if builder.author_index is not None
+                else None
+            )
+            if author_carrier is not None and author_carrier.label.guard is not None:
+                # v61: the author wrote `event [guard]`; the lowering keeps the whole
+                # label as one opaque event (R45.DEBT.opaque_transition_label_semantics),
+                # so guard=null on the carrier is a representation fact, not an
+                # omission by the author.  Guard equivalence stays a source-level
+                # question outside this deterministic frontier.
+                builder.checks.append(
+                    builder.receipt(
+                        "transition_guard_presence",
+                        (base.contract_id,),
+                        status="not_applicable",
+                        contract=base,
+                        model_refs=(source.ref, target.ref, transition.ref),
+                        source_refs=(*group.source_refs, *alternative.source_refs, author_carrier.raw_ref),
+                        reason="The author carrier declares a bracketed guard that the closed model does not represent; the missing-guard frontier does not emit a candidate.",
+                        basis=f"{author_carrier.anchor()}; author_guard={author_carrier.label.guard!r}",
+                    )
+                )
+                continue
             if transition.guard is not None:
                 builder.checks.append(
                     builder.receipt(
@@ -3271,6 +3329,18 @@ def _source_endpoint_name(value: str) -> str:
     return value.rsplit(".", 1)[-1]
 
 
+def _model_has_route_control(pair: PairInput) -> bool:
+    """True when the working contract declares a compiler route-control variable."""
+
+    artifact = pair.working_contract
+    if artifact is None:
+        return False
+    return any(
+        isinstance(item, Mapping) and item.get("kind") == "route_control_variable"
+        for item in artifact.payload.get("elements", [])
+    )
+
+
 def _materialize_group_post_states(
     builder: _Builder,
     groups: Sequence[NLTransitionGroup],
@@ -3288,6 +3358,13 @@ def _materialize_group_post_states(
     pair = builder.pair
     inventory = pair.exact_source_inventory
     if inventory is None:
+        return
+    if _model_has_route_control(pair):
+        # v61: the closed model of this pair contains lowering-synthesised
+        # routing hops (route-token guarded continuations).  A native runtime
+        # trace over such a model traverses transitions the author never wrote,
+        # so its post-stimulus configuration is not author-level evidence; the
+        # R2 frontier is withheld for the whole pair (coverage gap, not a verdict).
         return
     for group in groups:
         source = _state_for_value(pair, group.source_name)
@@ -3341,6 +3418,27 @@ def _materialize_group_post_states(
                 ),
             )
             base = bases[0]
+            from .predicate_routing import cold_prefix_reaches_source
+
+            reached, reach_basis = cold_prefix_reaches_source(pair, event, source)
+            if reached is False:
+                # v61: the unique cold prefix applies the stimulus outside the
+                # normative source state, so the R2 trace would answer a
+                # different obligation.  Withhold the candidate as not
+                # applicable instead of publishing a foreign verdict.
+                builder.checks.append(
+                    builder.receipt(
+                        "state_after_stimulus",
+                        (base.contract_id,),
+                        status="not_applicable",
+                        contract=base,
+                        model_refs=(source.ref, event.ref, target.ref),
+                        source_refs=(*group.source_refs, *alternative.source_refs, source_row.raw_ref),
+                        reason="The unique target-independent cold prefix does not leave the machine in the normative source state before the stimulus, so no state-after-stimulus candidate is derived.",
+                        basis=reach_basis,
+                    )
+                )
+                continue
             derived = _derived_contract(
                 base,
                 locus_kind="scenario",
@@ -3846,10 +3944,9 @@ def _missing_endpoint_rows(
         target = _state_for_value(pair, target_hint.value if target_hint else None)
         if not source or not target:
             continue
-        if any(
-            item.source_ref == source.ref and item.target_ref == target.ref
-            for item in pair.model.transitions
-        ):
+        if enclosing_endpoint_carriers(pair.model, source.ref, target.ref):
+            # v61: a carrier from an enclosing composite realises the edge for
+            # every substate (UML 2.5.1 §14.2.3.9).
             continue
         rows.append((contract, source, target))
     return rows
@@ -4669,6 +4766,26 @@ def _materialize_inspection_diagnostics(
             )
             if fact is None:
                 continue
+            if builder.author_index is not None and builder.author_index.is_compiler_owned_carrier(
+                pair.model.transition(fact.transition_ref)
+            ):
+                # v61 carrier-attribution gate: a conditional initial hop that the
+                # lowering synthesised (route-token guarded entry segment) is not
+                # an author statement about the owner's default entry.
+                if contract is not None:
+                    builder.checks.append(
+                        builder.receipt(
+                            "owner_initial_entry",
+                            (contract.contract_id,),
+                            status="not_applicable",
+                            contract=contract,
+                            model_refs=(fact.transition_ref,),
+                            source_refs=contract.source_refs,
+                            reason="The conditional initial carrier is a lowering-synthesised entry segment, not the author's initial transition; no owner-entry candidate is derived from it.",
+                            basis=f"generated_role={builder.author_index.segment_role_for_carrier(pair.model.transition(fact.transition_ref))!r}",
+                        )
+                    )
+                continue
             owner = _inspection_scope_state(pair, fact)
             target = _inspection_target_state(pair, fact)
             if owner is None or target is None:
@@ -5154,6 +5271,445 @@ def _materialize_inspection_diagnostics(
         )
 
 
+# --------------------------------------------------------------------------- v61
+# Source-semantics divergence audit (C1).
+#
+# The closed FCSTM model is what PlantUML's own declaration semantics make of the
+# author's text.  Where the text and those semantics diverge, the closed model
+# already "repaired" the divergence before any predicate ran, so the defect is
+# invisible to every model-side frontier.  These checks read the author source
+# (canonical IR + working contract) and state the divergence as a candidate
+# bound to an existing typed contract that mentions the affected element.  All
+# rules are PlantUML / UML 2.5.1 semantics; none mentions a sample.
+_DIVERGENCE_EVIDENCE: tuple[EvidenceType, ...] = ("source_identity", "closed_model_inventory", "containment_fact")
+_LIFECYCLE_STATE_NAMES = frozenset({"entry", "enter", "exit", "do", "during"})
+_COMPOSITE_STEREOTYPES = frozenset({"submachine", "composite", "orthogonal", "concurrent", "region"})
+
+
+def _name_tokens(value: str | None) -> set[str]:
+    """Word tokens of an identifier or phrase: camelCase, digits and underscores split."""
+
+    text = re.sub(r"([a-z])([A-Z])", r"\1 \2", value or "")
+    return {token for token in re.split(r"[^A-Za-z]+", text.lower()) if len(token) >= 4}
+
+
+def _anchor_contract(
+    contracts: Sequence[NLContract],
+    names: Iterable[str | None],
+    preferred: Sequence[str],
+    pair: PairInput | None = None,
+) -> NLContract | None:
+    """Typed contract that names one of ``names`` in its locus or hints; when no
+    contract does, the contract of the NL segment whose text shares the most word
+    tokens with ``names`` (structural properties preferred)."""
+
+    from .author_source import normalize_text
+
+    name_list = [name for name in names if name]
+    keys = {normalize_text(name) for name in name_list}
+    keys.discard("")
+    ordered = sorted(contracts, key=lambda item: item.contract_id)
+
+    def rank_of(contract: NLContract) -> int:
+        return preferred.index(contract.property) if contract.property in preferred else len(preferred)
+
+    best: NLContract | None = None
+    best_rank = len(preferred) + 1
+    for contract in ordered:
+        haystack = {normalize_text(value) for value in contract.locus_names}
+        haystack |= {normalize_text(hint.value) for hint in contract.binding_hints}
+        if haystack & keys and rank_of(contract) < best_rank:
+            best, best_rank = contract, rank_of(contract)
+    if best is not None or pair is None:
+        return best
+    tokens: set[str] = set()
+    for name in name_list:
+        tokens |= _name_tokens(name)
+    if not tokens:
+        return None
+    scored: list[tuple[int, str]] = []
+    for segment in pair.nl_segments:
+        overlap = len(tokens & _name_tokens(segment.text))
+        if overlap:
+            scored.append((overlap, segment.segment_id))
+    if not scored:
+        return None
+    scored.sort(key=lambda item: (-item[0], item[1]))
+    for _overlap, segment_id in scored:
+        rows = [contract for contract in ordered if contract.segment_id == segment_id]
+        if rows:
+            return min(rows, key=rank_of)
+    return None
+
+
+def _divergence_candidate(
+    builder: _Builder,
+    base: NLContract,
+    *,
+    locus_kind: ObligationLocusKind,
+    locus_names: Sequence[str],
+    property_name: ObligationProperty,
+    expected_direction: ExpectedDirection,
+    violation_direction: ViolationDirection,
+    title: str,
+    normative: str,
+    observed: str,
+    element_refs: Sequence[str],
+    source_refs: Sequence[str],
+    reason: str,
+    basis: str,
+    evidence_types: Sequence[EvidenceType] = _DIVERGENCE_EVIDENCE,
+) -> None:
+    derived = _derived_contract(
+        base,
+        locus_kind=locus_kind,
+        locus_names=tuple(locus_names),
+        property_name=property_name,
+        state_role=base.state_role,
+        expected_direction=expected_direction,
+        violation_direction=violation_direction,
+        evidence_types=tuple(evidence_types),
+        normative_statement=normative,
+        scope=f"Source-semantics divergence at {' / '.join(locus_names)}",
+        source_refs=tuple(dict.fromkeys([*base.source_refs, *source_refs])),
+        reason=reason,
+        basis=basis,
+        binding_hints=(),
+    )
+    derived = derived.model_copy(update={"contract_id": canonical_contract_id(derived)})
+    candidate = _candidate(
+        derived,
+        title=title,
+        predicate_id=None,
+        predicate_inputs={},
+        element_refs=tuple(dict.fromkeys(element_refs)),
+        source_refs=derived.source_refs,
+        expected=normative,
+        observed=observed,
+        strongest_rebuttal="The closed model is consistent with itself; the divergence is between the author text and the declaration semantics that produced the model.",
+        reason=reason,
+        basis=basis,
+    )
+    builder.add("source_divergence", (base.contract_id,), derived, candidate, reason=reason, basis=basis)
+
+
+def _materialize_source_divergence(
+    builder: _Builder,
+    contracts: Sequence[NLContract],
+    groups: Sequence[NLTransitionGroup],
+) -> None:
+    """Audit author-source vs PlantUML declaration semantics (v61 C1.1–C1.9)."""
+
+    from .author_source import lifecycle_description, normalize_text
+
+    pair = builder.pair
+    idx = builder.author_index
+    if idx is None:
+        return
+
+    def state_ref(name: str | None) -> str | None:
+        state = _state_for_value(pair, name)
+        if state is not None:
+            return state.ref
+        author_state = idx.state(name)
+        if author_state is not None:
+            suffix = "." + author_state.qualified_id
+            matches = [item for item in pair.model.states if item.canonical_path.endswith(suffix)]
+            if len(matches) == 1:
+                return matches[0].ref
+        matches = [item for item in pair.model.states if item.name == name]
+        return matches[0].ref if len(matches) == 1 else None
+
+    def carrier_refs(transition_id: str) -> list[str]:
+        return [item.ref for item in idx.carriers_for_author_transition(pair.model, transition_id)]
+
+    def short(qid: str | None) -> str:
+        return (qid or "").rsplit(".", 1)[-1]
+
+    scope_of_line = {
+        item.line: item.lexical_scope for item in idx.transitions if item.line is not None
+    }
+    event_keys = {normalize_text(event.display_name): event for event in pair.model.events}
+
+    # C1.1 first-mention nesting / C1.2 one state declared in several blocks /
+    # C1.3 lifecycle keyword parsed as a state / C1.9 stereotype-only composite.
+    for author_state in sorted(idx.states.values(), key=lambda item: item.qualified_id):
+        name = author_state.short_name
+        parent = idx.states.get(author_state.parent_qid or "")
+        if author_state.kind == "state" and not author_state.explicit_declaration and parent is not None:
+            touching = idx.transitions_touching(name)
+            def _other_end(item: AuthorTransition) -> str:
+                return item.target_qid if short(item.source_qid) == name else item.source_qid
+
+            # Only an *entry* from outside the block is the divergence signal: a
+            # state outside ``parent`` transitions into a child that exists inside
+            # ``parent`` solely because the block mentioned it first.  A substate
+            # leaving its composite is ordinary UML and is not counted.
+            outside = [
+                item
+                for item in touching
+                if not item.is_initial
+                and not item.is_final
+                and short(item.target_qid) == name
+                and item.source_qid != parent.qualified_id
+                and not idx.is_within(item.source_qid, parent.qualified_id)
+            ]
+            inside_first = [item for item in touching if item.line == author_state.first_line]
+            if outside and inside_first:
+                base = _anchor_contract(contracts, pair=pair, names=[name, parent.short_name], preferred=("containment", "termination", "transition_endpoints", "initial_entry", "reachability"))
+                if base is not None:
+                    outside_anchor = "; ".join(item.anchor() for item in outside[:3])
+                    _divergence_candidate(
+                        builder, base,
+                        locus_kind="composite", locus_names=(parent.short_name, name),
+                        property_name="containment", expected_direction="must_be_contained", violation_direction="wrong_scope",
+                        title=f"{name} is nested in {parent.short_name} only by first mention",
+                        normative=f"The containment of {name} must follow the requirement's structure; a transition from another scope must reach the same {name}, not a copy routed through {parent.short_name}.",
+                        observed=(
+                            f"{name} has no explicit declaration. Its first mention is {inside_first[0].anchor()} inside the {parent.short_name} block, so PlantUML declares it as a child of {parent.short_name}. "
+                            f"It is also used from outside that block: {outside_anchor}. In the closed model those transitions enter {parent.short_name} and are routed to its child {name}."
+                        ),
+                        element_refs=[ref for ref in (state_ref(name), state_ref(parent.short_name)) if ref] + [ref for item in outside for ref in carrier_refs(item.transition_id)],
+                        source_refs=[author_state.raw_ref or "", *(item.raw_ref for item in outside)],
+                        reason="PlantUML assigns an undeclared state to the block that first mentions it; the author text uses the state from several scopes.",
+                        basis=f"canonical explicit_declaration=false; first_mention_line={author_state.first_line}; official_parent={parent.qualified_id}; outside_scopes={sorted({str(item.lexical_scope) for item in outside})}",
+                    )
+        if len(author_state.declaration_lines) >= 2:
+            scopes = {scope_of_line.get(line) for line in author_state.declaration_lines if line in scope_of_line}
+            if len(scopes) >= 2:
+                base = _anchor_contract(contracts, pair=pair, names=[name, short(author_state.parent_qid), *(short(s) for s in scopes)], preferred=("region_structure", "cardinality", "containment", "initial_entry"))
+                if base is not None:
+                    _divergence_candidate(
+                        builder, base,
+                        locus_kind="state", locus_names=(name,),
+                        property_name="region_structure", expected_direction="must_exist", violation_direction="wrong_scope",
+                        title=f"{name} is one state shared by {len(scopes)} blocks",
+                        normative=f"Each block that declares a state named {name} must obtain its own state; PlantUML state names are global identifiers, so the {len(scopes)} declarations collapse into one.",
+                        observed=f"PlantUML lines {list(author_state.declaration_lines)} declare or enter a state named {name} inside the blocks {sorted(str(s) for s in scopes)}. PlantUML state names are global identifiers, so these are one state: the closed model contains a single {author_state.qualified_id} and every default entry of those blocks targets it.",
+                        element_refs=[ref for ref in (state_ref(name),) if ref],
+                        source_refs=[f"{pair.pair_id}.puml:line:{line}" for line in author_state.declaration_lines],
+                        reason="PlantUML resolves same-named states to one global entity regardless of the enclosing block.",
+                        basis=f"declaration_lines={list(author_state.declaration_lines)}; scopes={sorted(str(s) for s in scopes)}",
+                    )
+        if name.lower() in _LIFECYCLE_STATE_NAMES and parent is not None:
+            body = "; ".join(text for _, text in author_state.body_lines) or "(no text)"
+            base = _anchor_contract(contracts, pair=pair, names=[parent.short_name, body], preferred=("state_action", "effect", "containment"))
+            if base is not None:
+                _divergence_candidate(
+                    builder, base,
+                    locus_kind="state", locus_names=(parent.short_name,),
+                    property_name="state_action", expected_direction="must_exist", violation_direction="missing",
+                    title=f"{parent.short_name} lifecycle action '{body}' is parsed as a substate named {name}",
+                    normative=f"The {name.lower()} behaviour '{body}' of {parent.short_name} must be a lifecycle action ({name.lower()}/ ...), executable when {parent.short_name} is entered.",
+                    observed=f"Line {author_state.first_line} reads `{name}: {body}` inside {parent.short_name}. PlantUML's action syntax is `{name.lower()}/ action`; with a colon the line declares a substate named {name} with description '{body}', so the closed model has a state {author_state.qualified_id} and no action.",
+                    element_refs=[ref for ref in (state_ref(parent.short_name), state_ref(name)) if ref],
+                    source_refs=[author_state.raw_ref or ""],
+                    reason="PlantUML lifecycle actions require `entry/`, `exit/`, `do/`; a colon form is a state description.",
+                    basis=f"state={author_state.qualified_id}; body={body!r}",
+                )
+        for line, text in author_state.body_lines:
+            if lifecycle_description(text) is not None:
+                phase, action = lifecycle_description(text)
+                base = _anchor_contract(contracts, pair=pair, names=[name, action], preferred=("state_action", "effect", "containment"))
+                if base is None:
+                    continue
+                _divergence_candidate(
+                    builder, base,
+                    locus_kind="state", locus_names=(name,),
+                    property_name="state_action", expected_direction="must_exist", violation_direction="missing",
+                    title=f"{name} {phase} action '{action}' is written as a description",
+                    normative=f"{name} must declare '{action}' as an executable {phase} action.",
+                    observed=f"Line {line} is `{name} : {text}`; PlantUML treats text after the colon as a description unless it is `{phase}/ ...`, so the closed model keeps '{text}' as display text and {name} has no {phase} action.",
+                    element_refs=[ref for ref in (state_ref(name),) if ref],
+                    source_refs=[f"{pair.pair_id}.puml:line:{line}"] if line else [],
+                    reason="PlantUML lifecycle action syntax requires a slash; a colon form is a description.",
+                    basis=f"state={author_state.qualified_id}; body_line={line}; text={text!r}",
+                )
+            elif normalize_text(text) in event_keys and normalize_text(text):
+                event = event_keys[normalize_text(text)]
+                base = _anchor_contract(contracts, pair=pair, names=[name, text], preferred=("state_action", "effect", "event_consumption", "containment"))
+                if base is None:
+                    continue
+                _divergence_candidate(
+                    builder, base,
+                    locus_kind="state", locus_names=(name,),
+                    property_name="state_action", expected_direction="must_exist", violation_direction="missing",
+                    title=f"{name} signal '{text}' appears only as a description",
+                    normative=f"If {name} must emit '{text}', it must be an action of {name}; if '{text}' triggers behaviour, it must label a transition.",
+                    observed=f"Line {line} is `{name} : {text}`, a PlantUML description; the same text is the trigger event {event.name} elsewhere in the model. The closed model has no action or transition for it on {name}.",
+                    element_refs=[ref for ref in (state_ref(name), event.ref) if ref],
+                    source_refs=[f"{pair.pair_id}.puml:line:{line}"] if line else [],
+                    reason="A description line has no executable semantics; an event name written there is neither emitted nor consumed.",
+                    basis=f"state={author_state.qualified_id}; body_line={line}; event={event.ref}",
+                )
+        stereotypes = [item for item in author_state.stereotypes() if item in _COMPOSITE_STEREOTYPES]
+        if stereotypes and not idx.children(author_state.qualified_id):
+            base = _anchor_contract(contracts, pair=pair, names=[name], preferred=("containment", "cardinality", "region_structure", "initial_entry"))
+            if base is not None:
+                _divergence_candidate(
+                    builder, base,
+                    locus_kind="composite", locus_names=(name,),
+                    property_name="containment", expected_direction="must_be_contained", violation_direction="missing",
+                    title=f"{name} is tagged <<{stereotypes[0]}>> but declares no substates",
+                    normative=f"{name} must be a composite with the substates the requirement assigns to it.",
+                    observed=f"{name} carries the stereotype <<{stereotypes[0]}>> (lines {list(author_state.declaration_lines)} / body {[l for l, _ in author_state.body_lines]}) but has no child state; PlantUML stereotypes are presentation only, so the closed model has a leaf state {author_state.qualified_id}.",
+                    element_refs=[ref for ref in (state_ref(name),) if ref],
+                    source_refs=[author_state.raw_ref or ""],
+                    reason="A stereotype does not create structure; only a block with substates does.",
+                    basis=f"stereotypes={stereotypes}; children=0",
+                )
+
+    # C1.4 compound / folded labels, C1.5 guard-only, C1.6 unlabeled with NL condition.
+    alternatives_by_edge: dict[tuple[str, str], list[tuple[NLTransitionGroup, Any]]] = {}
+    for group in groups:
+        for alternative in group.alternatives:
+            alternatives_by_edge.setdefault((normalize_text(group.source_name), normalize_text(alternative.target_name)), []).append((group, alternative))
+    for author in idx.transitions:
+        if author.is_initial:
+            continue
+        src, tgt = short(author.source_qid) or author.raw_source, short(author.target_qid) or author.raw_target
+        edge_alternatives = alternatives_by_edge.get((normalize_text(src), normalize_text(tgt)), [])
+        refs = carrier_refs(author.transition_id) + [ref for ref in (state_ref(src), state_ref(tgt)) if ref]
+        label = author.label
+        compound_effect = bool(label.effect) and (
+            "[*]" in label.effect or " / " in label.effect or re.search(r"\bor\b", label.effect, re.I) is not None
+        )
+        if label.compound_event or compound_effect:
+            base = _anchor_contract(contracts, pair=pair, names=[src, tgt], preferred=("trigger_set", "transition_endpoints", "guard", "containment"))
+            if base is not None:
+                _divergence_candidate(
+                    builder, base,
+                    locus_kind="transition", locus_names=(src, tgt),
+                    property_name="trigger_set", expected_direction="must_equal", violation_direction="mismatched",
+                    title=f"{src} -> {tgt} folds several conditions into one event label",
+                    normative=f"Each condition that may trigger {src} -> {tgt} must be a separately triggerable event or guard.",
+                    observed=f"{author.anchor()} lists several conditions in one label (label parts: event={label.event!r}, guard={label.guard!r}, effect={label.effect!r}); PlantUML has no list syntax, so the closed model declares the whole text as a single opaque event and none of the listed conditions can trigger the transition on its own.",
+                    element_refs=refs, source_refs=[author.raw_ref],
+                    reason="A PlantUML transition label is one trigger [guard] / effect; a comma or 'or' list is not several triggers.",
+                    basis=f"raw_label={label.raw!r}",
+                    evidence_types=("source_identity", "closed_model_inventory", "trigger_fact"),
+                )
+        if label.effect and label.event and label.event.strip().lower().rstrip(":") in _LIFECYCLE_STATE_NAMES:
+            # `exit/Send` on a transition: lifecycle syntax misplaced on an edge.
+            base = _anchor_contract(contracts, pair=pair, names=[src, tgt, label.effect], preferred=("effect", "state_action", "transition_endpoints", "trigger_set"))
+            if base is not None:
+                _divergence_candidate(
+                    builder, base,
+                    locus_kind="transition", locus_names=(src, tgt),
+                    property_name="effect", expected_direction="must_exist", violation_direction="missing",
+                    title=f"{src} -> {tgt} carries lifecycle syntax '{label.event}/{label.effect}' as its label",
+                    normative=f"'{label.effect}' must be a state action ({label.event.lower()}/ ...) of the state that owns it, not the trigger of {src} -> {tgt}.",
+                    observed=f"{author.anchor()} uses `{label.event}/{label.effect}` as a transition label. On a transition that text is read as trigger `{label.event}` with effect `{label.effect}`; the closed model keeps the whole label as one opaque event, so '{label.effect}' is never executed and the transition waits for an event literally named '{label.raw}'.",
+                    element_refs=refs, source_refs=[author.raw_ref],
+                    reason="The lowering keeps every PlantUML label as one opaque event (R45.DEBT.opaque_transition_label_semantics).",
+                    basis=f"raw_label={label.raw!r}; event={label.event!r}; effect={label.effect!r}",
+                    evidence_types=("source_identity", "closed_model_inventory", "effect_fact"),
+                )
+        named_event = next((alt.event for _g, alt in edge_alternatives if alt.event), None)
+        if label.guard_only and named_event:
+            base = _anchor_contract(contracts, pair=pair, names=[src, tgt, named_event], preferred=("trigger_set", "transition_endpoints", "guard", "reachability"))
+            if base is not None:
+                _divergence_candidate(
+                    builder, base,
+                    locus_kind="transition", locus_names=(src, tgt),
+                    property_name="trigger_set", expected_direction="must_exist", violation_direction="missing",
+                    title=f"{src} -> {tgt} has a guard but no trigger",
+                    normative=f"{src} -> {tgt} must be triggered by the event {named_event!r} that the requirement names; a guard alone does not fire a transition.",
+                    observed=f"{author.anchor()} has only a bracketed guard. In UML a transition without a trigger is a completion transition, taken only when {src} completes; {src} is a simple state without completion, so the transition never fires. The closed model declares the bracket text as an opaque event instead.",
+                    element_refs=refs, source_refs=[author.raw_ref],
+                    reason="UML 2.5.1 §14.2.3.8.3: a transition with no trigger is a completion transition.",
+                    basis=f"raw_label={label.raw!r}",
+                    evidence_types=("source_identity", "closed_model_inventory", "trigger_fact"),
+                )
+        if label.unlabeled and not author.is_final and edge_alternatives:
+            group, alternative = edge_alternatives[0]
+            if alternative.guard or alternative.event:
+                base = _group_base_contract(group, _state_for_value(pair, src) or _state_for_value(pair, group.source_name), contracts) if _state_for_value(pair, src) else None
+                base = base or _anchor_contract(contracts, pair=pair, names=[src, tgt], preferred=("guard", "trigger_set", "transition_endpoints"))
+                if base is not None:
+                    condition = alternative.guard or alternative.event
+                    prop: ObligationProperty = "guard" if alternative.guard else "trigger_set"
+                    _divergence_candidate(
+                        builder, base,
+                        locus_kind="transition", locus_names=(src, tgt),
+                        property_name=prop, expected_direction="must_exist", violation_direction="missing",
+                        title=f"{src} -> {tgt} is unlabeled although the requirement conditions it on '{condition}'",
+                        normative=f"{src} -> {tgt} must carry the condition '{condition}' that the requirement states for it.",
+                        observed=f"{author.anchor()} has no label, so it is an unconditional completion transition in both the author text and the closed model; the requirement's condition '{condition}' is not represented anywhere on this edge.",
+                        element_refs=refs, source_refs=[author.raw_ref, *alternative.source_refs],
+                        reason="An unlabeled PlantUML transition has neither trigger nor guard.",
+                        basis=f"group={group.group_id}; alternative={alternative.alternative_id}; event={alternative.event!r}; guard={alternative.guard!r}",
+                        evidence_types=("source_identity", "closed_model_inventory", "guard_fact" if alternative.guard else "trigger_fact"),
+                    )
+
+    # C1.7 several default entries in one region.
+    initials: dict[tuple[str | None, int | None], list[AuthorTransition]] = {}
+    for author in idx.transitions:
+        if author.is_initial:
+            initials.setdefault((author.lexical_scope, author.region_index), []).append(author)
+    for (scope, _region), rows in sorted(initials.items(), key=lambda item: str(item[0])):
+        if len(rows) < 2:
+            continue
+        owner = short(scope) if scope else pair.model.states[0].name if pair.model.states else "root"
+        targets = [short(item.target_qid) or item.raw_target for item in rows]
+        base = _anchor_contract(contracts, pair=pair, names=[owner, *targets, "system"], preferred=("initial_entry", "containment", "transition_endpoints"))
+        if base is None:
+            continue
+        _divergence_candidate(
+            builder, base,
+            locus_kind="composite", locus_names=(owner, *targets),
+            property_name="initial_entry", expected_direction="must_enter", violation_direction="mismatched",
+            title=f"{owner} declares {len(rows)} default entries",
+            normative=f"{owner} must have exactly one default entry; the requirement names the state entered first.",
+            observed=f"{'; '.join(item.anchor() for item in rows)} are all initial edges of the same region of {owner}. UML 2.5.1 §14.5.6.2 allows one outgoing transition from an initial pseudostate; the closed model keeps all of them and resolves the choice by declaration order.",
+            element_refs=[ref for ref in (state_ref(owner),) if ref] + [ref for target in targets for ref in (state_ref(target),) if ref] + [ref for item in rows for ref in carrier_refs(item.transition_id)],
+            source_refs=[item.raw_ref for item in rows],
+            reason="An initial pseudostate has at most one outgoing transition.",
+            basis=f"scope={scope!r}; initial_lines={[item.line for item in rows]}",
+            evidence_types=("source_identity", "closed_model_inventory", "initial_entry_fact"),
+        )
+
+    # C1.8 cycle of unlabeled transitions (zero-time run-to-completion livelock).
+    unlabeled_edges: dict[str, set[str]] = {}
+    for author in idx.transitions:
+        if author.is_initial or author.is_final or not author.label.unlabeled:
+            continue
+        if idx.states.get(author.source_qid, None) is None or idx.states[author.source_qid].kind != "state":
+            continue
+        unlabeled_edges.setdefault(author.source_qid, set()).add(author.target_qid)
+    seen_cycles: set[frozenset[str]] = set()
+    for start in sorted(unlabeled_edges):
+        stack = [(start, [start])]
+        while stack:
+            node, path = stack.pop()
+            for nxt in sorted(unlabeled_edges.get(node, ())):
+                if nxt == start and len(path) >= 1:
+                    cycle = frozenset(path)
+                    if cycle in seen_cycles:
+                        continue
+                    seen_cycles.add(cycle)
+                    names = [short(item) for item in path]
+                    base = _anchor_contract(contracts, pair=pair, names=[*names, short(idx.states[start].parent_qid)], preferred=("state_retention", "termination", "containment", "cardinality", "transition_endpoints"))
+                    if base is None:
+                        continue
+                    rows = [item for item in idx.transitions if item.source_qid in cycle and item.target_qid in cycle and item.label.unlabeled]
+                    _divergence_candidate(
+                        builder, base,
+                        locus_kind="path", locus_names=tuple(names),
+                        property_name="state_retention", expected_direction="must_remain", violation_direction="not_retained",
+                        title=f"{' -> '.join(names)} form a cycle of unlabeled transitions",
+                        normative=f"Each of {names} must be retained until the event or condition the requirement names occurs.",
+                        observed=f"{'; '.join(item.anchor() for item in rows)} have neither trigger nor guard. Unlabeled transitions are completion transitions taken immediately under run-to-completion, so once {names[0]} is entered the machine cycles through {names} in zero time and never rests in any of them.",
+                        element_refs=[ref for name in names for ref in (state_ref(name),) if ref] + [ref for item in rows for ref in carrier_refs(item.transition_id)],
+                        source_refs=[item.raw_ref for item in rows],
+                        reason="UML run-to-completion: a completion transition fires as soon as its source is entered.",
+                        basis=f"cycle={names}",
+                        evidence_types=("source_identity", "closed_model_inventory", "transition_fact"),
+                    )
+                elif nxt not in path and len(path) < 12:
+                    stack.append((nxt, [*path, nxt]))
+
+
 def materialize_typed_frontier(
     pair: PairInput,
     contracts: NLContractResponse,
@@ -5201,6 +5757,7 @@ def materialize_typed_frontier(
     _materialize_cross_wrapper(builder, all_contracts)
     _materialize_event_consumers(builder, all_contracts, scopes)
     _materialize_inspection_diagnostics(builder, all_contracts, grounding_responses)
+    _materialize_source_divergence(builder, all_contracts, all_groups)
     return FrontierBatch(
         obligations=tuple(builder.obligations),
         checks=tuple(builder.checks),

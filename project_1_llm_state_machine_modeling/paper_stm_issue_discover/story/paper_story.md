@@ -1,31 +1,34 @@
-# Paper1 叙事主线
+# Paper1 当前论文故事
 
-## 问题
+## 问题与范围
 
-控制系统需求常以自然语言给出，状态机模型则以状态、迁移、guard、trigger 和 action 表达行为。由 LLM 生成的 PlantUML 模型可能在词面、结构或可执行行为上偏离需求。本文研究的不是生成新模型，也不是自动修复，而是给定 NL 与一份作者 PlantUML 状态机，发现其中可陈述且可审计的不一致，并说明发现依赖的证据形态。
+本文解决 `<free-form NL description, pre-existing source-attributed STM held fixed during analysis> -> localized description-relevant issue reports`。源状态机制品在分析前已存在、具有准确来源归属且不被本文生成或修改；它可以来自人或上游大语言模型。方法面向满足适配器契约的状态机类模型，FCSTM 是可执行工作表示，不是研究对象限定。每个具体建模语言或制品形式只有在声明子集上形成可追溯 FCSTM 投影，并提供来源归属、能力合同和失败关闭边界，才可作为该方法的适配器实例。本文只实现并评测 PlantUML 适配器；54 个 PlantUML 输入对是该适配器的案例研究，不是方法的语言边界或跨语言效果证据。上游数据、阶段选择和 54 个输入对范围分别以 [Wang 等论文与一手工作簿入口](../corpora/seed_library/llms-emp-stm-subset/assets/README.md)、[`feedback-final` 验证摘要](../corpora/seed_library/llms-emp-stm-subset/assets/extracted/feedback_final_validation_summary.json)和[实验网格范围规则](../selected_seed_examples/README.md)为准。
 
-研究对象是 `M = (S, E, V, Tr, A)` 片段。时钟、不变式、正交 region/并发、hybrid 和无界时序不在本研究可证明的范围内；被排除不意味着这些问题不存在。
+## C1 与 C2
 
-## 方法
+**C1。** C1 通过状态机类模型的适配器，将源状态机制品转换为保留来源的有限控制状态机（finite control state machine，FCSTM）工作表示，并提供确定性检查事实。具体建模语言或制品形式只要在声明子集上给出来源映射、能力合同和失败处置，就可接入这一发现架构。状态、迁移、守卫、动作、拓扑和运行信息因此进入问题发现阶段，帮助模型定位源文本难以稳定暴露的 L2 路径、可达性、死端/终止、响应和全局交互问题。当前只有 PlantUML 适配器完成端到端实现与评测；PlantUML 案例研究显示，完整方法相对同模型基线的整体 FULL `hit@1` 为 `323/435=74.25%` 对 `225/435=51.72%`，L2 FULL `hit@1` 为 `97/117=82.91%` 对 `45/117=38.46%`（两臂由同一校准语义 judge 判定，见大纲 §5.3）。这些是完整方法在该案例中的端到端发现差异；没有保持转换和 C2 不变的 inspect 开/关对照，不能从中分离 conversion 或 inspect 的独立因果效应。
 
-方法从受 hash 约束的输入闭包开始：NL、作者 PlantUML、canonical source IR、FCSTM、native/inspection facts、working contract 与 source trace 各自承担不同角色。方法先抽取 NL contract；只在固定条件满足时进行一次有界 contract completion；随后使用两个互补的 discovery-grounding lens 提出并定位候选。确定性 frontier、predicate routing、typed binding、compiler 和 backend 对可执行候选给出可复核证据。方法再作 D adjudication 和受限定向 correction，最后计算 W，并只发布 D2/D1 的 exact typed-deduplicated reports。
+**C2。** C2 基于领域分析、真实文献、标准和技术资料的学术普查，将状态机检查义务归纳并映射为四族 19 条类型化谓词逻辑及其 FCSTM 后端语义。它们应用于 54 个输入对，指导提示与类型化绑定；它们并非从 54 个输入对、145 条台账或方法输出调参归纳。对适用发现，后端执行断言并记录程序、模型、查询、绑定、极性、结果和哈希，形成可回放回执。W2 表示受支持片段上的合格机械执行确认，要求精确实例绑定、完整身份链和可核验的描述/来源/绑定引用。谓词和极性资格限定论文能把回执写成有界、局部或全称的哪一种命题，不把已有合格执行降为 W1。机械确认不替代人工 D/A、报告有效性、对应关系或 K/N/I。
 
-PlantUML -> FCSTM 是本方法为获得可执行分析能力而引入的内部 projection，不是领域任务天然提供的事实，也不默认与作者源行为等价。source-level finding 必须经过 source trace、ownership 和适用 capability contract。只存在于 lowered IR、compiler-owned element 或未闭合 runtime evidence 中的报告，不成立为作者模型缺陷；但它们仍是方法输出层面的 invalid cost，必须计入端到端 precision，并单独作为 method diagnostic 报告。当前 v60 的归因审计中，291 条 I 包括 D0=120、ordinary source-level FP=53 和 NADC=118；NADC 内有 compiler-owned artifact=38、projection/trace boundary=24、runtime/evidence closure=48、attribution-indeterminate=8。严格的 conversion-lowering-confirmed 数为 0，因此不能把 NADC 总量写成转换语义错误。
+## 主张
 
-谓词体系依据相关状态机、形式化验证和执行语义文献归纳为四族 19 个谓词：Structure (6)、Topology (4)、Trajectory simulation (4) 和 Bounded verification (5)。在 v60 中，12 个不同的 predicate ID 产生过 terminal receipt，8 个不同的 predicate ID 出现在至少一条 report-bound finding 中。前者是 distinct-ID 执行统计，后者是 distinct-ID 的 report-bound presence，不能与 finding 数、W2 数或 hit 数混用。
+最接近工作由[矩阵](../related_work/closest_work_matrix.md)按四个二值字段和全文事实处置。Li 与 Zheng 的 IET Software 2025 工作已实现并评测原始 NL、既有 UML 状态机和定位异常的组合，是宽泛输入输出合同的直接先例；本文据此不主张该任务形态的优先权。
 
-W 描述方法发现的证据强度，D 描述方法内对问题主张的裁定，L 仅是 ledger 的层级分类。W2 需要准确制品上的合法可执行对象、typed input、backend terminal true/false 与完整 receipt；缺少这些条件的具体发现仍可能是 W1，无法具体定位的主张是 W0。四族 19 谓词服务于可执行证据，不是问题发现或发布的准入门。方法的公开 finding surface 只发布 D2/D1；独立评测归档仍保留全部 report 和 decision。本文的目标是发现并证实缺陷，不是证明模型对所有行为都正确；因此，来源约束下的明确违规证据或一个具体反例已经足够时，不再强行升级到轨迹仿真或 BMC。只有静态证据不足以处理 guard、时序、RTC、变量效果或全局终止语义时，才使用这些更强的后端。
+IET 的三条业务对象规则进一步界定了这项先例的覆盖面。按本文的 L 分层作分析性映射，Semantic Consistency 是业务对象在活动图和 UCS 中的存在/对齐关系，属于 L0；Process Consistency 要求活动输入对象先于输出对象出现，属于 L1 的局部顺序关系；State Consistency 检查触发迁移的动作是否出现以及动作相对顺序是否保持，属于 L1，至多位于 L1/L2 边界。这是本文的分析口径，并非 IET 原文的分类。三条已发表规则处理业务对象的出现与顺序关系，尚未构造或排除可执行路径，也未分析从初始状态到目标状态的可达性、无退出死端、终止、事件响应或全局交互。由此形成的是 L2 状态机问题发现的缺口：台账中的 `EIS-0002-02` 要排除从初始状态到三个目标状态的全部路径，`INS-0002-02` 检查可达 `InitialState` 是否无任何退出，`EIS-0029-05` 与 `INS-0029-05` 分别涉及跨层路由路径和可重复进入终态的非终止行为。[L 分层定义与实例](../discover_matrix/ledger_v2/l_tier.json)
 
-所有 validity、relation、D/A、K/N/I 和成分分析判断均由人工完成：按冻结 issue #195 协议先判 report validity，再在冻结 validity certificate 约束下判 report 与 expected issue 的 relation。evaluation 只读取人工完成的裁定，机械汇总 FULL/PARTIAL/NONE、VALID_KNOWN/VALID_NOVEL/INVALID、hit、precision、W-on-hits、K/N/I、predicate usage 与成本。方法本身不读取评测裁定、人工裁定输出或历史 report。
+Paper1 的台账覆盖 L0、L1 和 L2。IET 已发表规则尚未展示的 L2 问题需要路径、可达性、终止、响应或全局交互推理。C1 为发现阶段补充这些判断所需的结构、拓扑和运行信息；C2 再对适用发现执行由学术普查归纳的 19 条谓词断言，给出机械确认与回放回执。Sultan、GWT、Estivill、FRET、LiSSA 和状态机验证传统分别界定这些构件已有的基础；本文不把任何单一构件或宽泛任务合同写成首次提出。
 
-## 当前证据
+## 研究问题
 
-当前实验证据来自 54 个 pair、3 个 round、145 条参考缺陷条目和 435 个 round-level evaluation units。按 v4 公平对照层，v60/current 的 overall FULL 为 310/435 = 71.26%，X1v2 baseline v3 为 227/435 = 52.18%；L2 FULL 分别为 105/117 = 89.74% 与 50/117 = 42.74%。current 输出 1271 条 report，baseline 输出 512 条，因此 I 的绝对条数不能当作独立缺陷数。report-level validity precision 为 current `980/1271 = 77.10%`、baseline `417/512 = 81.45%`，差异为 `-4.34 pp`。按 side-specific I rate 做描述性分解，D0 率差为 `-7.16 pp`，ordinary FP 率差为 `+2.22 pp`；NADC 在 current 侧为 `118/1271 = 9.28%`，但 baseline v3 未提供同构分类，不能把它写成可比的 `+9.28 pp` 成分。若为 bookkeeping 将缺失 baseline cell 机械记为 0，残差才是 `+9.28 pp`，这不构成跨臂因果或无 projection 反事实。净观察到的 I-rate 差为 `+4.34 pp`，全部 invalid report 都保留在 precision 分母中。完整指标、I 归因、D/A、K/N/I、W-on-hits、成本资格、raw/derived 制品与复算命令以 [最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md)、[v4 中文正式报告](../final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md) 和 [conversion attribution overlay](../final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/README.md) 为准。
+1. **RQ1（发现覆盖）：** 相对同模型基线，方法在 145 条预期问题上的 FULL `hit@1/@3/@all` 如何？按 L0/L1/L2 分层后差异落在哪一层？单位为 435 个轮次级单元与 145 条条目，只作案例研究内的描述性比较。
+2. **RQ2（报告有效性）：** 方法的报告级精确率如何？无效报告由哪些成分构成（D0、`FALSE_POSITIVE`、NADC），其中多少落在方法内部的表示与证据边界？NADC 仅为方法侧诊断，不做跨臂比较，也不重算校正精确率。
+3. **RQ3（证据强度）：** C2 使多少 FULL 命中达到 W2（根报告口径与含子主张口径）？19 条谓词中哪些产生了回执、哪些绑定到了报告，为什么？
+4. **RQ4（条件性）：** 仅当 `TODO-EXPERIMENT-01` 完成时进入正文：保持转换、模型、提示词、输入对、轮次和 C2 不变，确定性检查事实的开/关带来多大的成对增益？成本只以一段话报告，基线小计为下界，不形成倍率。
 
-这组结果描述的是冻结 ledger、输入闭包、issue #195 人工裁定、`gpt-5.6-luna` 和已声明 fragment 下的 coverage–precision operating point。它不能证明跨模型、跨台账或跨状态机语义片段的普遍效果，也不能把 X1v2 的历史人工裁定数字与 current baseline 混用。由于两侧 report 数量和 baseline v3 的审阅构成不同，`-4.34 pp` 是当前协议下的观察值，不应被写成完全不受输出粒度影响的语义精度估计。
+## 已有证据与限制
 
-## 贡献的可写范围
+54 个输入对来自 9 个自然语言簇，每个簇有 6 个制品；145 条预期问题在三轮中形成 435 个轮次级单元。L2 是跨迁移、路径、可达性、终止、响应或全局交互的行为性质，而非算法名称、见证级别或论文质量。当前方法/基线的整体 FULL `hit@1` 为 `323/435=74.25%` 对 `225/435=51.72%`，L2 FULL `hit@1` 为 `97/117=82.91%` 对 `45/117=38.46%`。这是冻结 PlantUML 案例研究中的描述性比较，不构成跨语言或普遍优越性的证明。当前方法报告级精确率为 `759/903=84.05%`，基线为 `427/512=83.40%`；两臂由同一校准语义 judge 判定，v61 尚无人工裁定。
 
-本文可以描述一条从 NL/作者状态机到带定位和可执行证据的发现链路，描述冻结谓词体系在该链路中提供的可执行证据，以及描述与人工裁定和离线评测分离的审计边界。新颖性措辞必须由相关工作核实后再确定；当前文档不使用“首个”“首次”或跨域泛化表述。
+323 个 FULL-hit 单元的 W0/W1/W2 为 `0/196/127`（根报告口径）或 `0/186/137`（含折叠子主张回执），报告级伴随分布为 `0/636/267`（分母 903）。W2 表示适用报告取得合格机械确认；V4 的叶状态探测和 G2 的有界 `must_reach` 限定可表述命题的范围。该 W 结果不改变问题集合、FULL 命中、报告有效性、精确率或后端执行事实。
 
-历史 v46、v27-stream 与旧 X1v2 人工裁定网格用于解释演进，不用于证明当前改进幅度。它们的 ledger、人工裁定协议、执行模型、轮数、发布边界或指标定义与 v60 不同，具体依据见 [实验历史索引](../archive/experiment_history/README.md)。
+实际意义在于状态机维护、评审和审计流程。C1 使工程师能够围绕路径、可达性、终止和响应等 L2 问题审查定位报告；C2 使适用报告进一步具有可执行确认与回放依据。工程师可先查看高 D、高 W、带来源归属的发现，并在描述、模型或工具版本变化后重放同一执行计划。本文没有用户研究、审查者工时、安全认证或部署结果，因而不声称提高效率、认证或安全收益。

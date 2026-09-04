@@ -37,8 +37,8 @@ venv/bin/python -m paper_stm_evaluation.final_results_archive validate \
 
 上文保留的是旧 v2 审查的原始数字和处理时间线，不能作为 current headline。当前 HEAD
 重新运行 provider-free archive/release checks 后，live `publication_manifest.json` 为
-`90` entries，`archive_manifest.json` 为 `2982` entries；`raw/`、`derived/`、`reference/`
+`96` entries，`archive_manifest.json` 为 `2988` entries；`raw/`、`derived/`、`reference/`
 保护范围与 release baseline byte-identical。current v4、baseline v3、fair v4 的 numerator、
 denominator 和 JSON/TSV mirror 仍以 canonical 文件为准，未发现数值漂移。所有 validity、
-relation、D/A、K/N/I 与成分分析均是人工完成的裁定；本次没有重新运行 method、Judge、
+relation、D/A 与成分分析均是人工完成的裁定，K/N/I 由程序确定性派生；本次没有重新运行 method、Judge、
 provider、15x1 或 54x3。

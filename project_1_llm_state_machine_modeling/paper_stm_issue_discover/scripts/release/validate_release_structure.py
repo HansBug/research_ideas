@@ -264,22 +264,30 @@ def _test_universe_change(repository: Path, baseline: dict[str, object]) -> Test
     node_ids = tuple(item.node_id for item in record.approved_added_nodes)
     if len(set(node_ids)) != len(node_ids) or any(node_id in expected_nodes for node_id in node_ids):
         raise RuntimeError("test-universe exception contains duplicate or historical nodes")
-    source_paths = {item.source_path for item in record.approved_added_nodes}
-    commits = {item.introduced_by_commit for item in record.approved_added_nodes}
-    source_hashes = {item.source_sha256 for item in record.approved_added_nodes}
-    if source_paths != {
-        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/evidence_discovery/tests/test_manual_adjudication_v2.py"
-    } or commits != {"5f70a12b5797da19d1b5c963fcfd00683b477840"} or len(source_hashes) != 1:
+    approved_sources = {
+        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/evidence_discovery/tests/test_manual_adjudication_v2.py": (
+            "sha256:4e1b05bc04b0a90e61acc9784b74ff27861a14f23a1a70ae1a8142347dfa1900",
+            "5f70a12b5797da19d1b5c963fcfd00683b477840",
+        ),
+        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/evidence_discovery/tests/test_execution_contracts.py": (
+            "sha256:c0c1d0eaf231db85f416a94de9ebfa1d79776593ba66a86d440c274276e0b9d7",
+            "fe492d03833fb6ae8b717727226baab9a1e414c9",
+        ),
+    }
+    if {item.source_path for item in record.approved_added_nodes} != set(approved_sources) or any(
+        (item.source_sha256, item.introduced_by_commit) != approved_sources.get(item.source_path)
+        for item in record.approved_added_nodes
+    ):
         raise RuntimeError("test-universe exception has an unexpected source or introducing commit")
-    source_path = repository / next(iter(source_paths))
-    if _hash(source_path) != next(iter(source_hashes)):
-        raise RuntimeError("approved additive test source hash changed")
-    if subprocess.run(
-        ("git", "merge-base", "--is-ancestor", next(iter(commits)), "HEAD"),
-        cwd=repository,
-        check=False,
-    ).returncode != 0:
-        raise RuntimeError("approved additive test commit is not an ancestor of HEAD")
+    for source_path, (source_hash, commit) in approved_sources.items():
+        if _hash(repository / source_path) != source_hash:
+            raise RuntimeError("approved additive test source hash changed")
+        if subprocess.run(
+            ("git", "merge-base", "--is-ancestor", commit, "HEAD"),
+            cwd=repository,
+            check=False,
+        ).returncode != 0:
+            raise RuntimeError("approved additive test commit is not an ancestor of HEAD")
     return record
 
 

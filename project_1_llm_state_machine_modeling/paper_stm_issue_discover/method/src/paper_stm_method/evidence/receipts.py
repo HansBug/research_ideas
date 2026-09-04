@@ -31,8 +31,10 @@ class PredicateExecutionReceipt(BaseModel):
 
     This receipt is emitted for both finding and passing checks. Bibliography
     provenance remains attached as registry metadata, but never controls the
-    runtime W state. A completed true/false result is W2 when the typed plan
-    and artifact attribution are complete; failure information is orthogonal.
+    runtime W state. A completed true/false result becomes W2 when the typed
+    plan and artifact attribution are complete. Predicate/polarity metadata
+    limits the proposition that a paper may state about that execution; it
+    never rewrites an existing qualified execution as W1.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
@@ -74,6 +76,7 @@ class PredicateExecutionReceipt(BaseModel):
     independent_semantic_basis: bool = Field(description="Whether a closed semantic basis independent of a failed backend exists for D/publication review; failure alone is always false evidence.")
     artifact_attribution: dict[str, Any] = Field(default_factory=dict, description="Current-artifact NL, PlantUML, canonical source IR, FCSTM, inspect-equivalent fact, model/program, and receipt attribution chain.")
     artifact_attribution_complete: bool = Field(description="Whether the executed-artifact attribution chain is complete enough for W2.")
+    w2_publication_eligible: bool = Field(description="Whether the current predicate and Boolean polarity supports the strongest paper-level claim; it does not control witness_level.")
     backend_result: dict[str, Any] = Field(description="Complete immutable RawReceipt payload.")
     reason: str = Field(min_length=1, description="Non-empty explanation of the execution result and its boundary.")
     basis: str = Field(min_length=1, description="Non-empty typed-input, compiler, source, and backend basis.")
@@ -95,6 +98,7 @@ def build_predicate_execution_receipt(
     plan: Any,
     receipt: RawReceipt,
     source_attribution: dict[str, Any] | None = None,
+    model_hash: str | None = None,
     retry_records: list[dict[str, Any]] | None = None,
     independent_semantic_basis: bool = False,
     binding_precise: bool | None = None,
@@ -113,7 +117,16 @@ def build_predicate_execution_receipt(
     program_hash = plan.formal_program_hash
     retry_rows = tuple(retry_records or ())
     attribution = dict(source_attribution or {})
-    attribution_complete = _artifact_attribution_complete(attribution, plan)
+    attribution_complete = _artifact_attribution_complete(
+        attribution,
+        plan,
+        pair_id=pair_id,
+        obligation_id=obligation_id,
+        receipt_id=receipt.receipt_id,
+        model_hash=model_hash,
+        typed_inputs_hash=typed_inputs_hash,
+        compiled_program_hash=program_hash,
+    )
     input_shape_valid = bool(getattr(plan, "input_shape_valid", False))
     binding_complete = bool(getattr(plan, "binding_complete", False))
     backend_available = bool(getattr(plan, "backend_available", getattr(plan, "executable", False)))
@@ -183,23 +196,34 @@ def build_predicate_execution_receipt(
         execution_state = "failed"
         predicate_verdict = None
         failure_kind = "unsupported_backend"
-    if not attribution_complete and execution_state == "completed":
-        execution_state = "failed"
-        predicate_verdict = None
-        verdict = "blocked"
-        failure_kind = "attribution_failure"
+    # Claim-scope metadata is retained separately from W. A bounded or local
+    # execution can be W2 without licensing an unbounded/global claim.
+    w2_polarity_eligible = _w2_polarity_eligible(plan, predicate_verdict)
     witness_level: Literal["W0", "W1", "W2"]
     if not effective_binding_precise:
         witness_level = "W0"
-    elif legal_execution_plan and attribution_complete and execution_state == "completed":
+    elif (
+        legal_execution_plan
+        and attribution_complete
+        and execution_state == "completed"
+    ):
         witness_level = "W2"
     else:
         witness_level = "W1"
-    degraded_from = "W2" if effective_binding_precise and legal_execution_plan and execution_state != "completed" else None
+    w2_without_attribution = bool(
+        effective_binding_precise
+        and legal_execution_plan
+        and execution_state == "completed"
+    )
+    degraded_from = "W2" if w2_without_attribution and not attribution_complete else None
     degradation_reason = (
-        f"Execution did not reach a legal completed true/false result: {failure_kind}."
+        "The backend completed with a Boolean result, but the exact requirement/source/binding attribution chain required for W2 is incomplete."
         if degraded_from is not None
-        else None
+        else (
+            f"Execution did not reach a legal completed true/false result: {failure_kind}."
+            if effective_binding_precise and legal_execution_plan and execution_state != "completed"
+            else None
+        )
     )
     execution_status: Literal["executed", "unsupported", "blocked"] = (
         "executed" if execution_state == "completed"
@@ -234,13 +258,15 @@ def build_predicate_execution_receipt(
         "independent_semantic_basis": independent_semantic_basis,
         "artifact_attribution": attribution,
         "artifact_attribution_complete": attribution_complete,
+        "w2_publication_eligible": w2_polarity_eligible,
         "backend_result": receipt.to_dict(),
         "reason": receipt.reason,
         "basis": (
             f"plan={plan.plan_id}; registered={registered}; plan_precise={plan_binding_precise}; precise={effective_binding_precise}; "
             f"input_shape_valid={input_shape_valid}; binding_complete={binding_complete}; "
             f"backend_available={backend_available}; fragment={fragment_ok}; "
-            f"artifact_attribution_complete={attribution_complete}; {receipt.basis}"
+            f"artifact_attribution_complete={attribution_complete}; "
+            f"w2_publication_eligible={w2_polarity_eligible}; {receipt.basis}"
         ),
         "receipt_hash": "sha256:" + "0" * 64,
     }
@@ -250,17 +276,99 @@ def build_predicate_execution_receipt(
     return PredicateExecutionReceipt.model_validate(normalized).model_dump(mode="json")
 
 
-def _artifact_attribution_complete(attribution: dict[str, Any], plan: Any) -> bool:
+def _w2_polarity_eligible(
+    plan: Any,
+    predicate_verdict: Literal["true", "false"] | None,
+) -> bool:
+    """Read the publication rule carried by the compiled plan.
+
+    This metadata constrains the strongest proposition that the paper may make
+    about a predicate polarity. It is intentionally separate from W2, which
+    records a qualified execution of the actual compiled assertion.
+    """
+
+    if predicate_verdict not in {"true", "false"}:
+        return False
+    rules = getattr(plan, "publication_eligibility_by_polarity", None)
+    if not isinstance(rules, dict):
+        return False
+    rule = rules.get(predicate_verdict)
+    if isinstance(rule, bool):
+        return rule
+    if isinstance(rule, str):
+        return rule == "ELIGIBLE"
+    if isinstance(rule, dict):
+        return rule.get("publication_eligibility") == "ELIGIBLE"
+    return False
+
+
+def _artifact_attribution_complete(
+    attribution: dict[str, Any],
+    plan: Any,
+    *,
+    pair_id: str,
+    obligation_id: str,
+    receipt_id: str,
+    model_hash: str | None,
+    typed_inputs_hash: str,
+    compiled_program_hash: str | None,
+) -> bool:
     """Require the current-artifact chain that a W2 result must expose.
 
-    A legacy direct unit caller may omit the source chain; production callers
-    always pass it. The plan still must carry the compiled program and closed
-    model identity, so a bare receipt cannot accidentally become W2 in runs.
+    A completed backend result is not source-bound merely because it has a
+    model hash.  W2 additionally requires the exact normative quote/source
+    references and the precise carrier binding that connect this concrete
+    execution to the current input pair.
     """
 
     if not getattr(plan, "artifact_attribution_complete", False):
         return False
-    if not attribution:
-        return True
+    if not isinstance(model_hash, str) or not model_hash.startswith("sha256:"):
+        return False
     required = {"requirement", "model", "plan", "receipt"}
-    return required.issubset(attribution)
+    if not required.issubset(attribution):
+        return False
+    requirement = attribution.get("requirement")
+    model = attribution.get("model")
+    attributed_plan = attribution.get("plan")
+    attributed_receipt = attribution.get("receipt")
+    if not all(
+        isinstance(item, dict)
+        for item in (requirement, model, attributed_plan, attributed_receipt)
+    ):
+        return False
+    if (
+        requirement.get("pair_id") != pair_id
+        or requirement.get("obligation_id") != obligation_id
+        or model.get("hash") != model_hash
+        or attributed_plan.get("plan_id") != getattr(plan, "plan_id", None)
+        or attributed_plan.get("predicate_id") != getattr(plan, "predicate_id", None)
+        or attributed_plan.get("typed_inputs_hash") != typed_inputs_hash
+        or attributed_plan.get("compiled_program_hash") != compiled_program_hash
+        or attributed_receipt.get("receipt_id") != receipt_id
+    ):
+        return False
+    input_context = attribution.get("input_context")
+    if input_context is not None:
+        if not isinstance(input_context, dict):
+            return False
+        artifact_hashes = input_context.get("artifact_hashes")
+        if not isinstance(artifact_hashes, dict) or artifact_hashes.get("fcstm") != model_hash:
+            return False
+    instance = attribution.get("instance_authority")
+    if not isinstance(instance, dict):
+        return False
+    quote = instance.get("requirement_quote")
+    source_refs = instance.get("source_refs")
+    element_refs = instance.get("binding_element_refs")
+    return (
+        isinstance(quote, str)
+        and bool(quote.strip())
+        and isinstance(source_refs, list)
+        and all(isinstance(ref, str) and ref.strip() for ref in source_refs)
+        and bool(source_refs)
+        and isinstance(element_refs, list)
+        and all(isinstance(ref, str) and ref.strip() for ref in element_refs)
+        and bool(element_refs)
+        and instance.get("binding_precise") is True
+    )

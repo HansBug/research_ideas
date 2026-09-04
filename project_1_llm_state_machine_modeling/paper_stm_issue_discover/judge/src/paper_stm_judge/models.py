@@ -118,6 +118,60 @@ class ValidityGateStatus(str, Enum):
     REFUTED = "REFUTED"
 
 
+class DefectTier(str, Enum):
+    """Issue #189 defect tier for a claim whose load-bearing fact holds on the author source."""
+
+    D2 = "D2"
+    D1 = "D1"
+    D0 = "D0"
+
+
+class A0Subtype(str, Enum):
+    """Issue #189 exits for a claim whose load-bearing fact does not hold on the author source."""
+
+    FALSE_POSITIVE = "FALSE_POSITIVE"
+    NOT_A_DEFECT_CLAIM = "NOT_A_DEFECT_CLAIM"
+
+
+class DefectClass(str, Enum):
+    """Closed issue #189 defect class emitted exactly once per report by the validity reading."""
+
+    D2 = "D2"
+    D1 = "D1"
+    D0 = "D0"
+    A0_FALSE_POSITIVE = "A0_FALSE_POSITIVE"
+    A0_NOT_A_DEFECT_CLAIM = "A0_NOT_A_DEFECT_CLAIM"
+
+
+VALID_DEFECT_CLASSES = frozenset({DefectClass.D2, DefectClass.D1})
+
+
+def defect_tier_of(defect_class: DefectClass) -> DefectTier | None:
+    """Return the D tier for a fact-holds class and None for both A0 exits."""
+
+    if defect_class.value in DefectTier.__members__:
+        return DefectTier(defect_class.value)
+    return None
+
+
+def a0_subtype_of(defect_class: DefectClass) -> A0Subtype | None:
+    """Return the A0 subtype for a fact-fails class and None for D2/D1/D0."""
+
+    if defect_class == DefectClass.A0_FALSE_POSITIVE:
+        return A0Subtype.FALSE_POSITIVE
+    if defect_class == DefectClass.A0_NOT_A_DEFECT_CLAIM:
+        return A0Subtype.NOT_A_DEFECT_CLAIM
+    return None
+
+
+def minimum_evidence_status_of(defect_class: DefectClass) -> ValidityGateStatus:
+    """Derive the minimum-evidence gate: only D2 and D1 carry a surviving violated obligation."""
+
+    if defect_class in VALID_DEFECT_CLASSES:
+        return ValidityGateStatus.SATISFIED
+    return ValidityGateStatus.REFUTED
+
+
 class ArtifactConsistencyStatus(str, Enum):
     """Deterministic status of the common-artifact consistency preflight."""
 
@@ -1043,6 +1097,38 @@ class ClauseAuditJudgment(FrozenModel):
     )
 
 
+class DefectAdjudication(FrozenModel):
+    """Provider decision on author-source fact and surviving violated obligation for one report."""
+
+    defect_class: DefectClass = Field(
+        description=(
+            "Exactly one closed class. D2: the load-bearing fact is true of the author source and a stated, "
+            "implicit-oracle, or domain-essential obligation is violated with no surviving competent alternative reading. "
+            "D1: the fact is true and the violation holds under one competent reading while a second competent reading "
+            "compatible with the author source also survives. D0: the fact is true but no obligation is violated or the "
+            "author's design reading is justified. A0_FALSE_POSITIVE: the load-bearing fact is false of the authored "
+            "natural-language and PlantUML text. A0_NOT_A_DEFECT_CLAIM: the load-bearing fact holds only in a derived "
+            "representation or an analysis status, not in the author source."
+        )
+    )
+    reason: str = Field(
+        min_length=1,
+        description=(
+            "English answer to the two ordered questions: is the load-bearing fact true of the author source, and if so "
+            "does a violated obligation survive; name the competent alternative reading for D1 and the missing obligation "
+            "or justified design reading for D0."
+        ),
+    )
+    basis: str = Field(
+        min_length=1,
+        description="Direct author-source evidence (natural-language and authored PlantUML text) for the fact question; derived representations may only corroborate.",
+    )
+    source_refs: tuple[str, ...] = Field(
+        min_length=1,
+        description="Supplied report-field and common-artifact references actually used for this decision.",
+    )
+
+
 class ValidityGateJudgment(FrozenModel):
     """Provider explanation for one expected-isolated hard validity gate."""
 
@@ -1095,9 +1181,9 @@ class ValidityResponse(FrozenModel):
     aggregate validity; the backend derives it from the exact clause closure.
     """
 
-    schema_version: Literal["semantic-judge.validity-response.v3"] = Field(
-        default="semantic-judge.validity-response.v3",
-        description="Expected-isolated response version where clause rows determine core and mechanism gates and the provider judges only the non-redundant minimum-evidence gate.",
+    schema_version: Literal["semantic-judge.validity-response.v4"] = Field(
+        default="semantic-judge.validity-response.v4",
+        description="Expected-isolated response version where clause rows determine core and mechanism gates and the provider emits one closed defect class from which the backend derives the minimum-evidence gate.",
     )
     report_id: str = Field(
         pattern=r"^R\d{4}$",
@@ -1107,8 +1193,8 @@ class ValidityResponse(FrozenModel):
         min_length=1,
         description="English actionable technical root-cause phrase based only on this report and common artifacts.",
     )
-    minimum_evidence_gate: ValidityGateJudgment = Field(
-        description="Non-redundant hard gate. SATISFIED requires both a load-bearing fact true of the author-source work product and a surviving violated obligation (D2/D1). REFUTED covers a true fact without a violated obligation (D0) and a fact false of or wrongly attributed to the author source (A0). Predicate/backend support affects W, not this gate."
+    defect_adjudication: DefectAdjudication = Field(
+        description="One closed issue #189 defect class with author-source reason and basis; the backend derives the minimum-evidence gate from it (D2/D1 SATISFIED; D0 and both A0 classes REFUTED)."
     )
     validity_reason: str = Field(
         min_length=1,
@@ -1217,9 +1303,9 @@ class FrozenFieldValidityAudit(FrozenModel):
 class FrozenValidityCertificate(FrozenModel):
     """Immutable expected-isolated report-validity result used by relation judging."""
 
-    schema_version: Literal["semantic-judge.frozen-validity-certificate.v2"] = Field(
-        default="semantic-judge.frozen-validity-certificate.v2",
-        description="Frozen validity certificate version with three hard gates and complete auxiliary-warning closure.",
+    schema_version: Literal["semantic-judge.frozen-validity-certificate.v3"] = Field(
+        default="semantic-judge.frozen-validity-certificate.v3",
+        description="Frozen validity certificate version with three hard gates, one closed defect class, and complete auxiliary-warning closure.",
     )
     report_id: str = Field(
         pattern=r"^R\d{4}$",
@@ -1247,7 +1333,10 @@ class FrozenValidityCertificate(FrozenModel):
         description="Frozen hard gate for causal or semantic premises indispensable to sustaining the claim; SATISFIED is allowed when no separate mechanism is required."
     )
     minimum_evidence_gate: ValidityGateJudgment = Field(
-        description="Frozen hard gate requiring an author-source-supported load-bearing fact and a surviving violated obligation; D0 and A0 are REFUTED, while missing executable predicate/backend support alone is not."
+        description="Backend-derived hard gate: SATISFIED for defect class D2/D1, REFUTED for D0 and both A0 classes; missing executable predicate/backend support alone never refutes it."
+    )
+    defect_adjudication: DefectAdjudication = Field(
+        description="Provider defect class and author-source reasoning frozen with the certificate; the minimum-evidence gate is derived from its class."
     )
     auxiliary_warnings: tuple[ValidityAuditWarning, ...] = Field(
         default_factory=tuple,
@@ -1330,6 +1419,12 @@ class FrozenValidityCertificate(FrozenModel):
         ) != len(self.auxiliary_warnings):
             raise ValueError(
                 "auxiliary_warnings must exactly cover REFUTED AUXILIARY_CONTEXT clauses"
+            )
+        if self.minimum_evidence_gate.status != minimum_evidence_status_of(
+            self.defect_adjudication.defect_class
+        ):
+            raise ValueError(
+                "minimum_evidence_gate must be derived from defect_adjudication.defect_class"
             )
         expected_truth = (
             CoreClaimTruth.VALID
@@ -1472,6 +1567,22 @@ class ValidityBatchArbitrationInput(FrozenModel):
         return self
 
 
+def _relation_admissible(certificate, relation_scope: str) -> bool:
+    """A certificate may enter relation judging when VALID, or when relation-first closure admits it.
+
+    Under ``non_false_positive`` scope, D0 and NOT_A_DEFECT_CLAIM certificates are
+    compared with the ledger so that a positive relation can close them as KNOWN; a
+    FALSE_POSITIVE certificate (fact refuted on the author source) never is.
+    """
+
+    if certificate.core_truth == CoreClaimTruth.VALID:
+        return True
+    return (
+        relation_scope == "non_false_positive"
+        and certificate.defect_adjudication.defect_class != DefectClass.A0_FALSE_POSITIVE
+    )
+
+
 class RelationJudgeInput(FrozenModel):
     """Relation-only input for one report already frozen as artifact-valid."""
 
@@ -1505,12 +1616,19 @@ class RelationJudgeInput(FrozenModel):
         description="Frozen certificate hash, expected closure, protocol, and artifact-closure basis.",
     )
 
+    relation_scope: Literal["valid_only", "non_false_positive"] = Field(
+        default="valid_only",
+        description="'valid_only' is the frozen protocol; 'non_false_positive' also admits D0 / NOT_A_DEFECT_CLAIM certificates so that a positive ledger relation can close them as KNOWN (relation-first K closure).",
+    )
+
     @model_validator(mode="after")
     def valid_certificate_is_closed(self) -> RelationJudgeInput:
-        """Allow relation judging only for the same report with frozen VALID truth."""
+        """Allow relation judging only for the same report with an admissible frozen certificate."""
 
-        if self.validity_certificate.core_truth != CoreClaimTruth.VALID:
-            raise ValueError("relation input requires a VALID frozen certificate")
+        if not _relation_admissible(self.validity_certificate, self.relation_scope):
+            raise ValueError(
+                "relation input requires a VALID frozen certificate, or a non-false-positive certificate under relation-first closure"
+            )
         if self.report.report_id != self.validity_certificate.report_id:
             raise ValueError("report and validity_certificate report IDs must match")
         return self
@@ -1560,9 +1678,14 @@ class RelationBatchJudgeInput(FrozenModel):
         description="Certificate hashes, expected closure, protocol, batch identity, and common artifact basis.",
     )
 
+    relation_scope: Literal["valid_only", "non_false_positive"] = Field(
+        default="valid_only",
+        description="Certificate admission scope shared by every item in this batch; see RelationJudgeInput.relation_scope.",
+    )
+
     @model_validator(mode="after")
     def valid_certificate_set_is_exact(self) -> RelationBatchJudgeInput:
-        """Require unique reports and same-order VALID certificates."""
+        """Require unique reports and same-order admissible certificates."""
 
         report_ids = [item.report_id for item in self.reports]
         certificate_ids = [item.report_id for item in self.validity_certificates]
@@ -1573,10 +1696,12 @@ class RelationBatchJudgeInput(FrozenModel):
                 "relation batch reports and certificates must have identical IDs in order"
             )
         if any(
-            item.core_truth != CoreClaimTruth.VALID
+            not _relation_admissible(item, self.relation_scope)
             for item in self.validity_certificates
         ):
-            raise ValueError("relation batch accepts only frozen VALID certificates")
+            raise ValueError(
+                "relation batch accepts only frozen VALID certificates, or non-false-positive certificates under relation-first closure"
+            )
         expected_ids = [item.expected_id for item in self.expected_issues]
         if len(expected_ids) != len(set(expected_ids)):
             raise ValueError("relation batch expected IDs must be unique")
@@ -1965,6 +2090,14 @@ class ReportAssessment(FrozenModel):
     validity: ReportValidity = Field(
         description="Backend-derived issue #195 final report class; only INVALID is a semantic false positive."
     )
+    defect_class: DefectClass | None = Field(
+        default=None,
+        description="Frozen issue #189 defect class from the two-stage validity certificate; None only for legacy single-stage readings.",
+    )
+    closure_rule: Literal["validity_first", "relation_first"] = Field(
+        default="validity_first",
+        description="'validity_first' is the v3.2 protocol (INVALID implies all NO). 'relation_first' (default; the iteration-6 configuration) decides the ledger relation first: a FULL_MATCH or PARTIAL_MATCH relation closes a D0 / NOT_A_DEFECT_CLAIM report as VALID_KNOWN, mirroring the human practice of leaving ledger-matched reports as K; FALSE_POSITIVE never closes as K; reports without a match are then split into N / I by defect class.",
+    )
     full_expected_ids: tuple[str, ...] = Field(
         description="All expected IDs that FULL_MATCH this report, derived exactly from the relation matrix."
     )
@@ -2014,17 +2147,37 @@ class ReportAssessment(FrozenModel):
                 f"report_assessment[{self.report_id}] relation ID sets overlap or contain duplicates: {flattened}"
             )
         has_positive = bool(self.full_expected_ids or self.partial_expected_ids)
-        expected_validity = (
-            ReportValidity.INVALID
-            if self.core_truth == CoreClaimTruth.INVALID
-            else ReportValidity.VALID_KNOWN
-            if has_positive
-            else ReportValidity.VALID_NOVEL
+        if self.defect_class is not None and (
+            (self.defect_class in VALID_DEFECT_CLASSES)
+            != (self.core_truth == CoreClaimTruth.VALID)
+        ):
+            raise ValueError(
+                f"report_assessment[{self.report_id}] defect_class={self.defect_class.value} "
+                f"is inconsistent with core_truth={self.core_truth.value}"
+            )
+        admissible_invalid = (
+            self.closure_rule == "relation_first"
+            and self.defect_class is not None
+            and self.defect_class != DefectClass.A0_FALSE_POSITIVE
         )
-        if self.core_truth == CoreClaimTruth.INVALID and has_positive:
+        if (
+            self.core_truth == CoreClaimTruth.INVALID
+            and has_positive
+            and not admissible_invalid
+        ):
             raise ValueError(
                 f"report_assessment[{self.report_id}] core_truth=INVALID requires all relations NO_MATCH; "
                 f"full={self.full_expected_ids}, partial={self.partial_expected_ids}"
+            )
+        if has_positive and admissible_invalid:
+            expected_validity = ReportValidity.VALID_KNOWN
+        else:
+            expected_validity = (
+                ReportValidity.INVALID
+                if self.core_truth == CoreClaimTruth.INVALID
+                else ReportValidity.VALID_KNOWN
+                if has_positive
+                else ReportValidity.VALID_NOVEL
             )
         if self.validity != expected_validity:
             raise ValueError(
@@ -2191,6 +2344,7 @@ class ConflictKind(str, Enum):
 
     RELATION = "relation"
     CORE_TRUTH = "core_truth"
+    DEFECT_CLASS = "defect_class"
     VALIDITY_GATE = "validity_gate"
     VALIDITY_CLAUSE = "validity_clause"
     ROOT_CAUSE_CLUSTER = "root_cause_cluster"
@@ -2452,14 +2606,8 @@ class JudgeCallReceipt(FrozenModel):
         min_length=1,
         description="Exact ordered report closure judged by this logical batch call.",
     )
-    phase: Literal[
-        "validity_primary_1",
-        "validity_primary_2",
-        "validity_arbitration",
-        "relation_primary_1",
-        "relation_primary_2",
-        "relation_arbitration",
-    ] = Field(
+    phase: str = Field(
+        pattern=r"^(validity_primary_[1-9][0-9]*|validity_arbitration|relation_primary_[12]|relation_arbitration)$",
         description="Exact validity or relation role of the call in the two-stage dual-reading flow."
     )
     status: Literal["success", "failed"] = Field(
@@ -2561,6 +2709,18 @@ class ReportOutcome(FrozenModel):
     )
     validity: ReportValidity = Field(
         description="Final dimension-B classification; only INVALID counts as a semantic false positive."
+    )
+    defect_class: DefectClass | None = Field(
+        default=None,
+        description="Frozen issue #189 defect class from the validity certificate; None only for legacy readings.",
+    )
+    d_tier: DefectTier | None = Field(
+        default=None,
+        description="Backend-derived D tier (D2/D1/D0) when the load-bearing fact holds on the author source.",
+    )
+    a0_subtype: A0Subtype | None = Field(
+        default=None,
+        description="Backend-derived A0 exit (FALSE_POSITIVE or NOT_A_DEFECT_CLAIM) when the fact fails on the author source.",
     )
     full_ledger_ids: tuple[str, ...] = Field(
         description="Original ledger IDs with final FULL_MATCH."
@@ -3100,6 +3260,26 @@ class PairJudgeResult(FrozenModel):
     validity_arbitration_certificates: tuple[FrozenValidityCertificate, ...] = Field(
         description="Final replacement certificates only for reports with substantive validity conflicts."
     )
+    validity_extra_readings: tuple[ValidityStageReading, ...] = Field(
+        default_factory=tuple,
+        description="Additional complete independent validity readings (reading 3 onward) when the run used more than two; empty under the frozen two-reading protocol.",
+    )
+    validity_aggregation: Literal["arbitration", "majority"] = Field(
+        default="arbitration",
+        description="How final certificates were chosen: 'arbitration' replays every conflicted report with one fresh reading (frozen protocol); 'majority' keeps the earliest reading carrying the strict-majority defect class and arbitrates only reports without a strict majority.",
+    )
+    closure_profile: Literal["full", "author_source"] = Field(
+        default="full",
+        description="Which closure artifacts the prompts showed the model: 'full' (v3.2 to v3.8) or 'author_source' (natural language, PlantUML, reference inspection, exact source inventory only; the audited input keeps every artifact).",
+    )
+    validity_arbitration_trigger: Literal["any", "class"] = Field(
+        default="any",
+        description="Which reading disagreements sent a report to validity arbitration: 'any' includes clause-only verdict differences; 'class' requires a core-truth, defect-class, or gate difference.",
+    )
+    k_closure: Literal["validity_first", "relation_first"] = Field(
+        default="validity_first",
+        description="K/N/I closure rule used for this pair; 'relation_first' admits D0 / NOT_A_DEFECT_CLAIM reports to relation judging and closes a positive ledger relation as VALID_KNOWN.",
+    )
     relation_reading_1: RelationStageReading = Field(
         description="First complete relation-only reading for all reports frozen as VALID."
     )
@@ -3290,6 +3470,27 @@ class RunManifest(FrozenModel):
         ge=1,
         description="Number of process-isolated provider workers shared by all pair and batch submissions in this run.",
     )
+    validity_readings: int = Field(
+        default=2,
+        ge=2,
+        description="Number of independent expected-isolated validity readings per report (frozen protocol: 2).",
+    )
+    validity_aggregation: Literal["arbitration", "majority"] = Field(
+        default="arbitration",
+        description="Final-certificate selection rule; 'majority' requires at least three readings and is a calibration experiment, not the frozen protocol.",
+    )
+    closure_profile: Literal["full", "author_source"] = Field(
+        default="full",
+        description="Which closure artifacts the prompts showed the model: 'full' (v3.2 to v3.8) or 'author_source' (natural language, PlantUML, reference inspection, exact source inventory only; the audited input keeps every artifact).",
+    )
+    validity_arbitration_trigger: Literal["any", "class"] = Field(
+        default="any",
+        description="Which reading disagreements sent a report to validity arbitration: 'any' includes clause-only verdict differences; 'class' requires a core-truth, defect-class, or gate difference.",
+    )
+    k_closure: Literal["validity_first", "relation_first"] = Field(
+        default="validity_first",
+        description="K/N/I closure rule; 'relation_first' is a calibration experiment mirroring the human practice of leaving ledger-matched reports as K.",
+    )
     execution_strategy: Literal["process-isolated-bounded-batch.v1"] = Field(
         default="process-isolated-bounded-batch.v1",
         description="Frozen execution strategy using process-local runtimes, persistent transports, and exact batch schemas.",
@@ -3301,6 +3502,15 @@ class RunManifest(FrozenModel):
     transport_retries: int = Field(
         ge=0,
         description="In-place retry limit for provider errors; it must be identical for both arms.",
+    )
+    report_filter_path: str | None = Field(
+        default=None,
+        description="Optional local allowlist of original report IDs per pair that restricted the judged reports; never sent to the provider.",
+    )
+    report_filter_hash: str | None = Field(
+        default=None,
+        pattern=r"^sha256:[0-9a-f]{64}$",
+        description="SHA-256 of the report allowlist file when one was applied.",
     )
     reason: str = Field(
         min_length=1,

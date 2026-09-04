@@ -1,6 +1,6 @@
 # Paper1 实验历史索引
 
-本目录记录 Paper1 的重要实验代次及其可复核材料。它不提供当前结果，也不替代最终归档。当前论文实验只以 [v60/current 与 X1v2 baseline 最终归档](../../final_results/v60_current_vs_x1v2_baseline/README.md) 为准。
+本目录记录 Paper1 的重要实验代次及其可复核材料。它不提供当前结果，也不替代最终归档。当前论文实验只以 [v61 归档](../../final_results/v61_source_divergence_vs_x1v2_baseline/README.md) 为准（两臂同一校准语义 judge）；[v60 人工评测归档](../../final_results/v60_current_vs_x1v2_baseline/README.md)自 2026-09-04 起为被取代代次，只作仪器校准参照。
 
 ## 如何阅读
 

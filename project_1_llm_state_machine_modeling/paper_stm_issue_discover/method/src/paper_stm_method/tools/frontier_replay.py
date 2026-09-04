@@ -531,7 +531,7 @@ def _reconstruct_prefrontier_inputs(
 def _source_attribution(
     pair: Any,
     obligation_id: str,
-    plan_id: str,
+    plan: Any,
     receipt_id: str,
 ) -> dict[str, Any]:
     """Build current artifact attribution for one frontier replay execution."""
@@ -542,8 +542,9 @@ def _source_attribution(
         nl_path=pair.pair_dir / "nl.txt",
         model_path=pair.pair_dir / "fcstm.fcstm",
         model_hash=pair.hashes["fcstm"],
-        plan_id=plan_id,
+        plan_id=plan.plan_id,
         receipt_id=receipt_id,
+        plan=plan,
     )
 
 
@@ -613,7 +614,7 @@ def _execute_added(
         )
         receipt = run_backend(plan, pair.model, f"{obligation_id}:receipt")
         attribution = _source_attribution(
-            pair, obligation_id, plan.plan_id, receipt.receipt_id
+            pair, obligation_id, plan, receipt.receipt_id
         )
         execution_receipt = build_predicate_execution_receipt(
             pair_id=pair.pair_id,
@@ -623,6 +624,7 @@ def _execute_added(
             plan=plan,
             receipt=receipt,
             source_attribution=attribution,
+            model_hash=pair.hashes["fcstm"],
             retry_records=[],
             independent_semantic_basis=False,
             binding_precise=binding.precise,

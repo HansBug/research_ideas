@@ -116,7 +116,7 @@ def _record(
         },
         "witness_level": historical_witness_level,
         "d_level": "D2" if semantic is not None else "D_UNRESOLVED",
-        "issue_emitted": semantic is not None,
+        "issue_emitted": semantic is not None and verdict == "false",
     }
 
 
@@ -179,7 +179,7 @@ def _source_run(tmp_path: Path) -> Path:
         json.dumps({"run_id": "a" * 32}), encoding="utf-8"
     )
     (source / "summary.json").write_text(
-        json.dumps({"source_commit": "f" * 40}), encoding="utf-8"
+        json.dumps({"source_commit": "f" * 40, "method_cell_count": 1}), encoding="utf-8"
     )
     return source
 
@@ -200,7 +200,7 @@ def test_provider_free_replay_recovers_w2_and_rejects_illegal_s4(tmp_path: Path)
     assert summary["completed_boolean_recoveries"] == 1
     assert summary["invalid_typed_input_rejections"] == 1
     assert summary["bibliography_runtime_w1_count"] == 0
-    assert summary["legal_completed_boolean_w1_count"] == 0
+    assert summary["unexplained_completed_boolean_w1_count"] == 0
     assert summary["invalid_typed_w2_count"] == 0
     assert summary["failure_as_violation_count"] == 0
     assert summary["w2_audit_closure_complete"] is True
@@ -211,7 +211,7 @@ def test_provider_free_replay_recovers_w2_and_rejects_illegal_s4(tmp_path: Path)
     assert records["0001:r1:i2"]["witness_level"] == "W2"
     assert records["0001:r1:i2"]["issue_emitted"] is False
     assert records["0001:r1:i3"]["witness_level"] == "W1"
-    assert records["0001:r1:i3"]["d_level"] == "D0"
+    assert records["0001:r1:i3"]["d_level"] == "D_UNRESOLVED"
     assert records["0001:r1:i3"]["issue_emitted"] is False
     assert "source_gate_passed" not in (replay_root / "replay_evidence.json").read_text(encoding="utf-8")
     assert "source_audit_status" not in (replay_root / "replay_evidence.json").read_text(encoding="utf-8")

@@ -1,4 +1,6 @@
-# (iii) 单轴补检：⛔ 它推翻了「唯一空缺是 (iii)」，⭐ 换来的说法更强
+# 已弃用的第三贡献补充留档
+
+> 本文件属于旧三贡献路线的补充检索材料。它不构成当前 Paper1 的 C3、论文主张或引用闭合。当前来源审计在 [`predicate_provenance.md`](./predicate_provenance.md)。
 
 > ⭐ **这份文件是 C-③ 措辞的最终依据。** ⛔ 它推翻了 [c3_differentiation.md](./c3_differentiation.md) 的原结论，⛔ **也推翻了 C3 覆盖审计给的那个替代写法**（四处错，其中一处严重）。
 >

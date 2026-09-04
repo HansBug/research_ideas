@@ -530,7 +530,7 @@ def _record_routed(
         model=pair.model,
     )
     receipt = run_backend(plan, pair.model, f"{obligation_id}:receipt")
-    attribution = _source_attribution(pair, obligation_id, plan.plan_id, receipt.receipt_id)
+    attribution = _source_attribution(pair, obligation_id, plan, receipt.receipt_id)
     execution_receipt = build_predicate_execution_receipt(
         pair_id=pair.pair_id,
         run_id=replay_id,
@@ -539,6 +539,7 @@ def _record_routed(
         plan=plan,
         receipt=receipt,
         source_attribution=attribution,
+        model_hash=pair.hashes["fcstm"],
         retry_records=[],
         independent_semantic_basis=False,
         binding_precise=binding.precise,

@@ -23,5 +23,5 @@
 - 全项目 Markdown 相对链接检查为 `0` 条失效；历史关键词逐文件审计以最终工作树机械枚举，`176/176` 条目均带职责分类。
 - authoritative final archive validator、release structure validator 与 raw/derived/reference 基线对拍均在本轮文档改写后通过；provider 和 billable 调用均为 `0`。
 - 四类独立 reviewer 的首轮 finding 与 targeted rereview disposition 见 [review_disposition.md](./review_disposition.md) 和 [reviews/](./reviews/)。
-- 2026-09-01 对最终 Paper1 talk 做了最小 docs 回读：保护数字、单位、分母、路径、issue 链接、协议名、人工裁定责任主体、限制和“不重跑”边界；仅将旧 `semantic-hit` 行级标记改为中性的 `coverage_class` marker，并修正章节编号。talk 明确写出所有 Judge、validity、relation、D/A、K/N/I 与成分分析均由人工完成，未引入被禁止的 Judge 归因表述。
+- 2026-09-01 对最终 Paper1 talk 做了最小 docs 回读：保护数字、单位、分母、路径、issue 链接、协议名、人工裁定责任主体、限制和“不重跑”边界；仅将旧 `semantic-hit` 行级标记改为中性的 `coverage_class` marker，并修正章节编号。talk 明确写出人工完成 Judge、validity、relation、D/A 与成分分析，K/N/I 由程序确定性派生，未引入被禁止的 Judge 归因表述。
 - 2026-09-01 的最终 docs 最小复读覆盖 final-results README、唯一 v4 报告和最终 talk。受保护片段为版本、分子/分母、路径、issue #189/#195 链接、协议名、裁定责任主体、限制和 `NO_RERUN`。将“人工完成或人工确认”收紧为“均由人工完成”，并补充程序只做确定性闭合、校验和算术复算的边界；未改变任何数字、实验事实、canonical decision/relation 或文献主张。

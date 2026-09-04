@@ -1,8 +1,10 @@
-# Q2 · C-③ 差异化：LLM 之后的错误上下文与证据链
+# 已弃用的第三贡献检索留档：LLM 之后的错误上下文与证据链
+
+> 本文件记录旧三贡献路线中的 C3 差异化材料。R1 已将当前故事冻结为 C1/C2 两个技术侧面，本文件不再定义论文贡献、RQ 或新颖性。需要当前出处状态时，请读 [`predicate_provenance.md`](./predicate_provenance.md)。
 
 > **历史调研说明**：本文保留旧出处审计和差异化分析材料，不定义当前谓词或学术资格。
 > 当前四族注册表、三类来源和 W1/W2 规则以 [`pipeline/evidence_discovery/`](../../pipeline/evidence_discovery/)
-> 为准；19 个冻结谓词均已完成学术资格审查，本文中的旧谓词名只能按历史材料阅读。
+> 为准；冻结 registry 的 source-ID mapping 不等于 19 个谓词已完成外部学术引用闭合，当前状态见 [`predicate_provenance.md`](./predicate_provenance.md)。本文中的旧谓词名只能按历史材料阅读。
 
 > **回答的问题**：contribution ③ 的证据链体系，在 LLM 之后还站得住吗、站在什么形状上。
 >

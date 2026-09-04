@@ -26,7 +26,6 @@ from ..evidence import (
 )
 from ..evidence.receipts import RawReceipt
 from ..evidence.source_attribution import build_source_attribution
-from ..evidence.witness_levels import calculate_witness_level
 from ..inputs import FROZEN_PAIR_IDS, load_pair
 from ..inputs.fcstm_native_projection import (
     load_native_document,
@@ -35,6 +34,7 @@ from ..inputs.fcstm_native_projection import (
     transition_by_reference,
 )
 from ..inputs.models import PairInput
+from ..semantics.author_source import build_author_index, enclosing_endpoint_carriers
 from ..registry import load_registry
 from utils.artifact_io import write_json, write_markdown_summary
 from ..semantics import (
@@ -1939,14 +1939,7 @@ def _preflight_existing_endpoint_candidates(
         target_hints = [hint for hint in contract.binding_hints if hint.role == "target"]
         source_ref = resolve_state_ref(source_hints[0].value, pair.model) if len(source_hints) == 1 else None
         target_ref = resolve_state_ref(target_hints[0].value, pair.model) if len(target_hints) == 1 else None
-        carriers = [
-            transition
-            for transition in pair.model.transitions
-            if source_ref is not None
-            and target_ref is not None
-            and transition.source_ref == source_ref
-            and transition.target_ref == target_ref
-        ]
+        carriers = list(enclosing_endpoint_carriers(pair.model, source_ref, target_ref))
         if not carriers:
             retained.append(candidate)
             continue
@@ -2599,6 +2592,11 @@ def _prepare_candidate(
         model_hash=pair.hashes["fcstm"],
         plan_id=plan.plan_id,
         receipt_id=receipt.receipt_id,
+        plan=plan,
+        requirement_quote=candidate.requirement_quote,
+        source_refs=candidate.source_refs,
+        binding_element_refs=binding.element_refs,
+        binding_precise=binding.precise,
     )
     attribution["input_context"] = {
         "manifest_hash": pair.context_manifest.manifest_hash if pair.context_manifest else None,
@@ -2663,11 +2661,9 @@ def _materialize_exact_s2_inventory_candidates(
         )
         if source_state is None or target_state is None:
             continue
-        if any(
-            transition.source_ref == source_ref
-            and transition.target_ref == target_ref
-            for transition in pair.model.transitions
-        ):
+        if enclosing_endpoint_carriers(pair.model, source_ref, target_ref):
+            # v61: an edge from an enclosing composite realises the required
+            # source->target relation for the substate (UML 2.5.1 §14.2.3.9).
             continue
         already_exact = False
         for candidate in llm_candidates:
@@ -2852,6 +2848,7 @@ def _materialize_deterministic_execution_probes(
     frontier check may additionally project one supporting G4 topology execution
     when its typed root and marked refs are complete.
     """
+    author_index = build_author_index(pair)
 
     probes: list[CandidateIssue] = []
     probe_contracts: dict[str, NLContract] = {}
@@ -3071,6 +3068,21 @@ def _materialize_deterministic_execution_probes(
         )
         transition = pair.model.transition(binding.carrier_transition_ref)
         if event is None or transition is None:
+            continue
+        if author_index is not None and author_index.is_compiler_owned_carrier(transition):
+            # v61 carrier-attribution gate: a trigger-set equality on a
+            # lowering-synthesised continuation hop compares the requirement
+            # against a segment the author never wrote.
+            dispositions.append(
+                {
+                    "probe": "S3",
+                    "contract_id": contract.contract_id,
+                    "status": "skipped_compiler_owned_carrier",
+                    "carrier_transition_ref": transition.ref,
+                    "reason": "The exact carrier is a compiler-owned segment; S3 is evaluated only on author-owned carriers.",
+                    "basis": f"generated_role={author_index.segment_role_for_carrier(transition)!r}",
+                }
+            )
             continue
         if (contract.contract_id, "S3") in existing_predicates:
             continue
@@ -3754,6 +3766,18 @@ def _materialize_deterministic_execution_probes(
                 s3_key = (transition.ref, (event.name,))
                 if s3_key in existing_s3_keys:
                     continue
+                if author_index is not None and author_index.is_compiler_owned_carrier(transition):
+                    dispositions.append(
+                        {
+                            "probe": "S3",
+                            "contract_id": probe_id,
+                            "status": "skipped_compiler_owned_carrier",
+                            "carrier_transition_ref": transition.ref,
+                            "reason": "The exact carrier is a compiler-owned segment; S3 is evaluated only on author-owned carriers.",
+                            "basis": f"generated_role={author_index.segment_role_for_carrier(transition)!r}",
+                        }
+                    )
+                    continue
                 candidate = CandidateIssue(
                     contract_id=probe_id,
                     locus_kind="transition",
@@ -4077,6 +4101,307 @@ def _release_semantic_key(issue: Mapping[str, Any]) -> tuple[Any, ...]:
         issue.get("property"),
         issue.get("violation_direction"),
     )
+
+
+# --------------------------------------------------------------------------- v61
+# Publication folding (C4.2) and author-source anchors.
+# Causal tiers: a lower tier is a possible root cause of every higher tier that
+# shares a state with it (structure -> reachability -> behaviour on the
+# unreachable / misplaced part).
+# Only structural roots whose consequence relation is entailed by UML semantics:
+# a scope without a default entry, a misplaced state or a missing region makes
+# the affected scope and everything inside it unreachable; an unreachable scope
+# makes every consumer inside it unreachable and every leaf inside it a dead end
+# and a non-terminating scope.  A wrong or missing edge is not such a root.
+_FOLD_TIERS: dict[tuple[str, str], int] = {
+    ("initial_entry", "missing"): 1, ("initial_entry", "wrong_target"): 1, ("initial_entry", "mismatched"): 1,
+    ("region_structure", "wrong_scope"): 1, ("cardinality", "missing"): 1,
+    ("containment", "wrong_scope"): 1, ("containment", "missing"): 1,
+    ("reachability", "unreachable"): 2,
+}
+_FOLD_DOWNSTREAM_PROPERTIES = frozenset(
+    {"event_consumer_coverage", "deadlock_freedom", "termination", "event_consumption"}
+)
+
+
+def _fold_tier(issue: Mapping[str, Any]) -> int | None:
+    key = (str(issue.get("property")), str(issue.get("violation_direction")))
+    if key in _FOLD_TIERS:
+        return _FOLD_TIERS[key]
+    if issue.get("property") in _FOLD_DOWNSTREAM_PROPERTIES:
+        return 3
+    return None
+
+
+def _issue_element_names(issue: Mapping[str, Any]) -> set[str]:
+    """Lower-cased leaf names of the states an issue is about (typed fields only)."""
+
+    names: set[str] = set()
+    for value in issue.get("locus_names") or ():
+        for part in re.split(r"\s*->\s*|\s*to\s+|/", str(value)):
+            leaf = part.strip().rsplit(".", 1)[-1]
+            if leaf:
+                names.add(leaf.lower())
+    for ref in [*(issue.get("element_refs") or ()), *(issue.get("source_refs") or ())]:
+        match = re.match(r"^(?:state|source:state):([^:]+)", str(ref))
+        if match:
+            names.add(match.group(1).rsplit(".", 1)[-1].lower())
+    return names
+
+
+def _issue_subject_names(issue: Mapping[str, Any]) -> set[str]:
+    """Lower-cased leaf names of the issue's typed locus only (its subject)."""
+
+    names: set[str] = set()
+    for value in issue.get("locus_names") or ():
+        for part in re.split(r"\s*->\s*|/", str(value)):
+            leaf = part.strip().rsplit(".", 1)[-1]
+            if leaf:
+                names.add(leaf.lower())
+    return names
+
+
+def _state_closure_names(pair: PairInput | None, names: set[str]) -> set[str]:
+    """``names`` plus the leaf names of every state nested under them."""
+
+    if pair is None:
+        return set(names)
+    closure = set(names)
+    by_name = {state.name.lower(): state for state in pair.model.states}
+    for name in list(names):
+        root = by_name.get(name)
+        if root is None:
+            continue
+        prefix = root.canonical_path + "."
+        closure.update(state.name.lower() for state in pair.model.states if state.canonical_path.startswith(prefix))
+    return closure
+
+
+def _fold_consequence_issues(
+    release: list[dict[str, Any]],
+    pair: PairInput | None = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Fold downstream symptom issues into the root-cause issue of the same cell.
+
+    A missing default entry, an unreachable scope or a misplaced state makes
+    every descendant unreachable, its event consumers unreachable and its leaves
+    dead ends.  Publishing each symptom as its own report multiplies one defect
+    into many.  A downstream-property issue that shares a state with an earlier
+    root-property issue becomes a sub-claim of that root: the root report keeps
+    the sub-claim text (so an evaluator can still match every obligation it
+    settles) and the symptom is not published on its own.  Typed fields only; no
+    prose similarity.
+    """
+
+    # A root reaches every state it is about plus their descendants; a symptom
+    # folds only when its own subject lies in that closure.
+    tiers = [
+        (issue, _fold_tier(issue), _state_closure_names(pair, _issue_subject_names(issue)) if _fold_tier(issue) in (1, 2) else _issue_subject_names(issue))
+        for issue in release
+    ]
+    if not any(tier == 1 or tier == 2 for _issue, tier, _names in tiers):
+        return release, []
+    folded_ids: set[str] = set()
+    folded: list[dict[str, Any]] = []
+    # Higher tiers first so a reachability issue collects its behavioural
+    # consequences before it is itself folded under a structural root.
+    for issue, tier, names in sorted(tiers, key=lambda row: -(row[1] or 0)):
+        if tier is None or tier == 1:
+            continue
+        candidates = [
+            (candidate_tier, index, candidate)
+            for index, (candidate, candidate_tier, candidate_names) in enumerate(tiers)
+            if candidate_tier is not None and candidate_tier < tier and candidate is not issue
+            and candidate["issue_id"] not in folded_ids and names <= candidate_names
+        ]
+        if not candidates:
+            continue
+        root = min(candidates)[2]
+        folded_ids.add(issue["issue_id"])
+        for nested in issue.pop("folded_sub_claims", []) or []:
+            root.setdefault("folded_sub_claims", []).append(nested)
+            for row in folded:
+                if row["issue_id"] == nested["issue_id"]:
+                    row["folded_into"] = root["issue_id"]
+        root.setdefault("folded_sub_claims", []).append(
+            {
+                "issue_id": issue["issue_id"],
+                "title": issue.get("title"),
+                "property": issue.get("property"),
+                "violation_direction": issue.get("violation_direction"),
+                "observed": issue.get("observed"),
+                "expected": issue.get("expected"),
+                "element_refs": list(issue.get("element_refs") or []),
+                "source_refs": list(issue.get("source_refs") or []),
+                "contract_id": issue.get("contract_id"),
+                "shared_elements": sorted(names),
+            }
+        )
+        folded.append({"issue_id": issue["issue_id"], "folded_into": root["issue_id"], "shared_elements": sorted(names)})
+    kept = [issue for issue in release if issue["issue_id"] not in folded_ids]
+    for root in kept:
+        subs = root.get("folded_sub_claims") or []
+        if not subs:
+            continue
+        lines = [f"({index}) {sub['title']}: {sub['observed']}" for index, sub in enumerate(subs, start=1)]
+        root["observed"] = f"{root.get('observed') or ''}\n\nConsequences observed in the same closed model (folded sub-claims, each an obligation settled by this root cause): " + " ".join(lines)
+        root["element_refs"] = list(dict.fromkeys([*(root.get("element_refs") or []), *(ref for sub in subs for ref in sub["element_refs"])]))
+        root["source_refs"] = list(dict.fromkeys([*(root.get("source_refs") or []), *(ref for sub in subs for ref in sub["source_refs"])]))
+        root["contract_ids"] = list(dict.fromkeys([*(root.get("contract_ids") or [root.get("contract_id")]), *(sub["contract_id"] for sub in subs)]))
+        root["folding"] = {
+            "algorithm_version": "root-consequence-fold.v1",
+            "reason": "Downstream-property issues sharing a state with this root-property issue are consequences of the same defect and were published as sub-claims.",
+            "basis": "typed property/direction causal tiers; the symptom's locus states lie in the root's locus states or their native descendants; no prose similarity",
+        }
+    return kept, folded
+
+
+_GUARD_MODALITY_BOOL = re.compile(r"[<>]=?|!=|==|=|&&|\|\||\band\b|\bor\b|\btrue\b|\bfalse\b", re.I)
+
+
+def _condition_tokens(text: str) -> set[str]:
+    """Identifier / literal tokens of a condition, ignoring connectives and operators."""
+
+    normalized = re.sub(r"\band\b|&&|&", " ", text or "", flags=re.I)
+    normalized = re.sub(r"\bor\b|\|\|", " ", normalized, flags=re.I)
+    normalized = re.sub(r"([a-z])([A-Z])", r"\1 \2", normalized).replace("_", " ")
+    tokens = {token.lower() for token in re.findall(r"[A-Za-z][A-Za-z0-9]*|[0-9]+(?:\.[0-9]+)?", normalized)}
+    tokens -= {"true", "false", "is", "are", "the", "a", "an", "of", "to", "in", "with", "it", "its", "system"}
+    # light stemming: `approached` / `approaches`, `completed` / `complete` compare equal
+    return {token[:5] if token.isalpha() and len(token) > 5 else token for token in tokens}
+
+
+def _comparison_operators(text: str) -> frozenset[str]:
+    """Relational operators of a condition; `=`/`==` and `is` read as equality."""
+
+    # `flag=true` / `flag == false` merely names a boolean flag; it is not a relation.
+    stripped = re.sub(r"\s*(==|=)\s*(true|false)", " ", text or "", flags=re.I)
+    ops = set(re.findall(r"<=|>=|!=|==|<|>|=", stripped))
+    if re.search(r"is|equals?", text or "", re.I):
+        ops.add("=")
+    return frozenset("=" if op == "==" else op for op in ops)
+
+
+def _aggregate_guard_modality_issues(
+    pair: PairInput, release: list[dict[str, Any]]
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """One report per cell for "condition written as the trigger label" (v61 C4.3).
+
+    When the author labels a transition with the condition itself (``high_way=true``
+    or the same words the requirement uses for the guard), the closed model has an
+    event named after the condition and no guard.  That is one modelling decision
+    applied across the diagram, not one defect per transition, so the S5
+    missing-guard issues that share this shape are published as one report whose
+    sub-claims list every transition.  Issues whose label is some other event are
+    left alone: there the question is whether that event implies the condition.
+    """
+
+    from ..semantics.author_source import build_author_index, normalize_text
+
+    index = build_author_index(pair)
+    if index is None:
+        return release, []
+    members: list[dict[str, Any]] = []
+    for issue in release:
+        if not (issue.get("predicate_id") == "S5" and issue.get("property") == "guard" and issue.get("violation_direction") == "missing"):
+            continue
+        inputs = issue.get("predicate_inputs") or {}
+        ref = inputs.get("transition") or inputs.get("transition_ref")
+        author = index.author_transition_for_carrier(pair.model.transition(ref)) if ref else None
+        if author is None or not author.label.event:
+            continue
+        required = str(inputs.get("guard") or inputs.get("expected_guard") or "")
+        event_text = author.label.event
+        same_words = False
+        if required and _condition_tokens(event_text) and _condition_tokens(required):
+            left, right = _condition_tokens(event_text), _condition_tokens(required)
+            same_words = len(left & right) / len(left | right) >= 0.5
+        if not (_GUARD_MODALITY_BOOL.search(event_text) or same_words or (required and normalize_text(event_text) == normalize_text(required))):
+            continue
+        # Only a label that states the *same* condition as the requirement is a pure
+        # modality choice.  A boolean label with a different condition is a
+        # possible wrong guard and stays its own report.
+        if required and _condition_tokens(event_text) and _condition_tokens(required):
+            left, right = _condition_tokens(event_text), _condition_tokens(required)
+            if len(left & right) / len(left | right) < 0.5 or _comparison_operators(event_text) != _comparison_operators(required):
+                continue
+        members.append(issue)
+    if len(members) < 2:
+        return release, []
+    root = members[0]
+    others = members[1:]
+    lines = []
+    for index_no, issue in enumerate(members, start=1):
+        inputs = issue.get("predicate_inputs") or {}
+        ref = inputs.get("transition") or inputs.get("transition_ref")
+        author = index.author_transition_for_carrier(pair.model.transition(ref))
+        lines.append(f"({index_no}) {' -> '.join(issue.get('locus_names') or ())}: label `{author.label.raw}`, required guard {str(inputs.get('guard') or inputs.get('expected_guard') or '')!r} ({author.anchor()})")
+    root["folded_sub_claims"] = [*(root.get("folded_sub_claims") or []), *(
+        {
+            "issue_id": issue["issue_id"], "title": issue.get("title"), "property": issue.get("property"),
+            "violation_direction": issue.get("violation_direction"), "observed": issue.get("observed"), "expected": issue.get("expected"),
+            "element_refs": list(issue.get("element_refs") or []), "source_refs": list(issue.get("source_refs") or []),
+            "contract_id": issue.get("contract_id"), "shared_elements": [],
+        }
+        for issue in others
+    )]
+    root["title"] = f"{len(members)} transitions carry their required guard as the trigger label instead of a guard"
+    root["observed"] = (
+        f"The following transitions realise the condition the requirement states as a guard by writing it as the transition label, i.e. as the trigger event: {' '.join(lines)} "
+        "In PlantUML a label without brackets is the trigger; the closed model therefore declares one opaque event named after each condition and none of these transitions has a guard."
+    )
+    root["expected"] = "Each stated condition must be a guard `[condition]` on its transition, evaluated in addition to the transition's trigger, rather than an event named after the condition."
+    root["locus_names"] = list(dict.fromkeys(name for issue in members for name in (issue.get("locus_names") or ())))
+    root["element_refs"] = list(dict.fromkeys(ref for issue in members for ref in (issue.get("element_refs") or [])))
+    root["source_refs"] = list(dict.fromkeys(ref for issue in members for ref in (issue.get("source_refs") or [])))
+    root["contract_ids"] = list(dict.fromkeys([*(root.get("contract_ids") or [root.get("contract_id")]), *(issue.get("contract_id") for issue in others)]))
+    root["guard_modality_aggregation"] = {
+        "algorithm_version": "guard-modality-aggregate.v1",
+        "member_issue_ids": [issue["issue_id"] for issue in members],
+        "reason": "S5 missing-guard issues whose author label is the condition itself (boolean expression or the requirement's guard words) describe one modelling decision and are published as one report.",
+        "basis": "author label grammar from the canonical source IR; typed S5 inputs; no prose similarity",
+    }
+    dropped = {issue["issue_id"] for issue in others}
+    kept = [issue for issue in release if issue["issue_id"] not in dropped]
+    return kept, [{"issue_id": issue["issue_id"], "aggregated_into": root["issue_id"]} for issue in others]
+
+
+
+def _annotate_author_anchors(pair: PairInput, release: list[dict[str, Any]]) -> None:
+    """Append the author's PlantUML lines to each published issue.
+
+    Closed-model references (``transition:line:NN``) are lines of the lowered
+    FCSTM text.  The evaluator and the reader work on the author's PlantUML, so
+    every issue also names the author lines its elements came from.
+    """
+
+    index = build_author_index(pair)
+    if index is None:
+        return
+    for issue in release:
+        anchors: list[str] = []
+        raw_refs: list[str] = []
+        for ref in issue.get("element_refs") or ():
+            ref = str(ref)
+            if ref.startswith("transition:"):
+                author = index.author_transition_for_carrier(pair.model.transition(ref))
+                if author is not None:
+                    anchors.append(author.anchor())
+                    raw_refs.append(author.raw_ref)
+            else:
+                match = re.match(r"^state:([^:]+)", ref)
+                if match:
+                    author_state = index.state(match.group(1).rsplit(".", 1)[-1])
+                    if author_state is not None and author_state.first_line is not None:
+                        anchors.append(f"PlantUML line {author_state.first_line}: state `{author_state.short_name}` ({'explicit' if author_state.explicit_declaration else 'implicit'} declaration)")
+                        if author_state.raw_ref:
+                            raw_refs.append(author_state.raw_ref)
+        anchors = list(dict.fromkeys(anchors))
+        if anchors:
+            issue["author_source_anchor"] = anchors
+            issue["observed"] = f"{issue.get('observed') or ''} Author source: {'; '.join(anchors)}."
+            issue["source_refs"] = list(dict.fromkeys([*(issue.get("source_refs") or []), *raw_refs]))
+
 
 
 def _deduplicate_release_issues(
@@ -4648,14 +4973,17 @@ def _method_cell(
             plan=item["plan"],
             receipt=item["receipt"],
             source_attribution=item["source_attribution"],
+            model_hash=pair.hashes["fcstm"],
             binding_precise=item["binding"].precise,
         )
         for item in prepared_candidates
     ]
+    receipt_witness_levels = {
+        str(receipt["obligation_id"]): str(receipt["witness_level"])
+        for receipt in execution_receipts
+    }
     primary_route_witness_levels = {
-        str(item["obligation_id"]): calculate_witness_level(
-            item["binding"], item["plan"], item["receipt"]
-        )
+        str(item["obligation_id"]): receipt_witness_levels[str(item["obligation_id"])]
         for item in prepared_candidates
         if item["candidate"].predicate_id is not None
     }
@@ -5218,11 +5546,18 @@ def _method_cell(
         except Exception as exc:  # noqa: BLE001 - preserve publication diagnostics
             errors.append({"candidate_index": index, "error_type": type(exc).__name__, "message": str(exc), "reason": "Candidate publication failed; the cell remains readable.", "basis": "Candidate-level diagnostic preservation."})
     release = _deduplicate_release_issues(release)
+    release, folded_issues = _fold_consequence_issues(release, pair)
+    release, aggregated_issues = _aggregate_guard_modality_issues(pair, release)
+    _annotate_author_anchors(pair, release)
     publish_output = {
         "evidence_record_count": len(records),
         "pre_dedup_release_count": sum(
             bool(record.get("issue_emitted")) for record in records
         ),
+        "folded_issue_count": len(folded_issues),
+        "folded_issues": folded_issues,
+        "guard_modality_aggregated_count": len(aggregated_issues),
+        "guard_modality_aggregated_issues": aggregated_issues,
         "report_issue_count": len(release),
         "report_issue_ids": [item["issue_id"] for item in release],
         "w_distribution": dict(

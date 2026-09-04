@@ -21,9 +21,9 @@
 
 本段只记录当前 HEAD 的复核，不覆盖上面的历史处理时间线。重新读取当前
 `archive_manifest.json` 和 `publication_manifest.json` 后，publication surface 为
-`90` entries，archive surface 为 `2982` entries；受保护的 `raw/`、`reference/`、
+`96` entries，archive surface 为 `2988` entries；受保护的 `raw/`、`reference/`、
 current/baseline canonical decisions 与 relations 未发生字节变化。当前唯一纸面入口仍是
-v4 中文报告，所有 Judge、validity、relation、D/A、K/N/I 和成分分析均按人工裁定记录，
+v4 中文报告，Judge、validity、relation、D/A 和成分分析均按人工裁定记录，K/N/I 由程序确定性派生；
 机器只做 provider-free 校验和复算。
 
 ## Final pane5 arbitration (2026-09-01)
@@ -33,14 +33,14 @@ Three independent read-only tracks were reconciled after the last wording pass:
 | Track | Final disposition | Evidence boundary |
 | --- | --- | --- |
 | A numeric/provenance | PASS pending finalizer | Canonical JSON/TSV arithmetic, mirrors, current `1271`, baseline `512`, and `12/19` versus `8/19` predicate-ID distinctions; stale `12/15`, `1237`, and `2953/88` values remain historical snapshots only. |
-| B semantic/fairness | PASS | Issue #195 FULL accepts any one of the documented same-instance, same-root-cause, same-obligation, or directly attributable conditions; all validity/relation/D/A/K/N/I and component-analysis judgments are human adjudications. |
+| B semantic/fairness | PASS | Issue #195 FULL accepts any one of the documented same-instance, same-root-cause, same-obligation, or directly attributable conditions; validity/relation/D/A and component analysis are human adjudications, and K/N/I is their deterministic derivation. |
 | C documentation/navigation/academic | PASS pending finalizer | Final talk, issue #189/#195 links, current/history boundaries, citation limitations, and relative links are closed. |
 
 Pane5 arbitration: these findings affect publication wording and provenance
 hashes only. The current v4, baseline v3, fair v4, raw, reference ledger,
 canonical decisions and relations remain unchanged. The finalizer is the only
 authority allowed to update documentation-surface hashes; no hash string is
-manually edited. Current manifest counts are `90` publication entries and
-`2982` archive entries. The paper-facing account uses human adjudication for
+manually edited. Current manifest counts are `96` publication entries and
+`2988` archive entries. The paper-facing account uses human adjudication for
 all substantive review and component analysis; provider-free code only checks
 and recomputes saved records.

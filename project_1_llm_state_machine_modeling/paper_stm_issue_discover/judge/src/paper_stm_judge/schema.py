@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import json
 from collections.abc import Iterable
 from typing import Annotated, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
+from pydantic import BaseModel, ConfigDict, Field, create_model, field_validator, model_validator
 
 from .artifacts import stable_model_hash
 from .causal_audit import build_causal_audit_plan, build_report_core_envelope
@@ -20,6 +21,7 @@ from .models import (
     CausalFieldVerdict,
     ClauseAuditJudgment,
     CoreClaimTruth,
+    DefectClass,
     ExpectedAssessment,
     FrozenFieldValidityAudit,
     FrozenValidityCertificate,
@@ -43,6 +45,7 @@ from .models import (
     ReportValidity,
     SupportedRelationJudgment,
     UnifiedJudgeInput,
+    VALID_DEFECT_CLASSES,
     ValidityAuditWarning,
     ValidityBatchJudgeInput,
     ValidityBatchResponse,
@@ -51,6 +54,7 @@ from .models import (
     ValidityGateStatus,
     ValidityJudgeInput,
     ValidityResponse,
+    minimum_evidence_status_of,
     derive_causal_field_verdict,
 )
 
@@ -543,6 +547,12 @@ def build_exact_validity_model(
     class ExactValidityResponseBase(ValidityResponse):
         """Validity response with deterministic closure over this exact report."""
 
+        @field_validator("schema_version", mode="before")
+        @classmethod
+        def pin_item_schema_version(cls, value: object) -> str:
+            # Backend-owned constant: providers sometimes echo the batch version here.
+            return "semantic-judge.validity-response.v4"
+
         @model_validator(mode="after")
         def exact_gate_closure(self) -> ExactValidityResponseBase:
             clause_rows = [
@@ -560,6 +570,33 @@ def build_exact_validity_model(
                 raise ValueError(
                     "claim_audit must classify at least one complete clause as CORE_CLAIM"
                 )
+            defect_class = self.defect_adjudication.defect_class
+            hard_refuted = [
+                clause.clause_id
+                for _field, clause in clause_rows
+                if clause.validity_role
+                in (
+                    ValidityClauseRole.CORE_CLAIM,
+                    ValidityClauseRole.INDISPENSABLE_MECHANISM,
+                )
+                and clause.verdict == MaterialAssertionVerdict.REFUTED
+            ]
+            if defect_class in VALID_DEFECT_CLASSES and hard_refuted:
+                raise ValueError(
+                    f"defect_class {defect_class.value} asserts the load-bearing fact is true of the author source, "
+                    f"but CORE_CLAIM/INDISPENSABLE_MECHANISM clauses {hard_refuted} are REFUTED. Re-read each refuted "
+                    "clause under the report's competent reading: a clause saying a guard, condition, effect, action, "
+                    "initial edge, or unconditional entry is missing means that no separate carrier of that kind is "
+                    "authored, so it is SUPPORTED when the author wrote the content only as label text or as a labeled "
+                    "transition; an over-stated or mis-named conjunct about the same locus and repair is "
+                    "AUXILIARY_CONTEXT. Choose A0_FALSE_POSITIVE only when the author source contradicts the report's "
+                    "concern as a whole."
+                )
+            if defect_class == DefectClass.A0_FALSE_POSITIVE and not hard_refuted:
+                raise ValueError(
+                    "defect_class A0_FALSE_POSITIVE requires the false load-bearing premise to be marked REFUTED "
+                    "on a CORE_CLAIM or INDISPENSABLE_MECHANISM clause"
+                )
             return self
 
     model = create_model(
@@ -573,6 +610,104 @@ def build_exact_validity_model(
     )
 
     return cast(type[ValidityResponse], model)
+
+
+def _merge_split_singleton_items(
+    payload: object,
+    *,
+    batch_id: str,
+    batch_schema_version: str,
+    report_id: str,
+    expected_ids: tuple[str, ...],
+) -> object:
+    """Merge a one-report batch answered as one item per expected issue into ``item0``.
+
+    Providers sometimes partition a single-report relation batch by expected issue
+    and return ``item0..itemN`` that all name the same report, each carrying a subset
+    of the expected positions. The report identity and the expected order are fixed
+    by the input, so recombining the decisions is a deterministic normalization, not
+    a judgment. A foreign report ID, two different decisions for one expected ID, or
+    a missing expected position leaves the payload unchanged so the ordinary
+    validation error is reported instead.
+    """
+
+    if not isinstance(payload, dict):
+        return payload
+    items = {key: value for key, value in payload.items() if re.fullmatch(r"item\d+", key)}
+    if len(items) < 2:
+        return payload
+    for item in items.values():
+        if not isinstance(item, dict) or item.get("report_id", report_id) != report_id:
+            return payload
+    ordered_keys = sorted(items, key=lambda key: int(key[4:]))
+    by_expected: dict[str, dict] = {}
+    source_refs: list[str] = []
+    for key in ordered_keys:
+        for decision in items[key].get("relation_decisions") or ():
+            if not isinstance(decision, dict) or "expected_id" not in decision:
+                return payload
+            prior = by_expected.get(decision["expected_id"])
+            if prior is not None and prior.get("match") != decision.get("match"):
+                return payload
+            by_expected.setdefault(decision["expected_id"], decision)
+        for ref in items[key].get("relation_source_refs") or ():
+            if isinstance(ref, str) and ref not in source_refs:
+                source_refs.append(ref)
+    if set(by_expected) != set(expected_ids):
+        return payload
+    merged = {
+        **items[ordered_keys[0]],
+        "report_id": report_id,
+        "relation_decisions": [by_expected[expected_id] for expected_id in expected_ids],
+    }
+    if source_refs:
+        merged["relation_source_refs"] = source_refs
+    rest = {key: value for key, value in payload.items() if key not in items}
+    return {**rest, "schema_version": batch_schema_version, "batch_id": batch_id, "item0": merged}
+
+
+def _wrap_bare_singleton_item(
+    payload: object,
+    *,
+    batch_id: str,
+    batch_schema_version: str,
+    report_count: int,
+) -> object:
+    """Wrap a bare single-item response into ``item0`` for a one-report batch.
+
+    Providers sometimes answer a one-report batch in the atomic item shape (the
+    item's fields at top level). The batch identity is fixed by the input, so
+    wrapping is a deterministic normalization, not a judgment; multi-report
+    batches and payloads that already carry ``item0`` are returned unchanged.
+    """
+
+    if report_count != 1 or not isinstance(payload, dict):
+        return payload
+    if "item0" in payload:
+        # Mixed shape: item0 present but some item fields leaked to the top level.
+        # Fold them into item0 when item0 lacks them; drop them otherwise. The batch
+        # model only admits schema_version, batch_id and itemN, so this is deterministic.
+        item0 = payload["item0"]
+        stray = {
+            key: value
+            for key, value in payload.items()
+            if key not in {"schema_version", "batch_id"} and not re.fullmatch(r"item\d+", key)
+        }
+        if not stray or not isinstance(item0, dict):
+            return payload
+        merged = {**{k: v for k, v in stray.items() if k not in item0}, **item0}
+        rest = {key: value for key, value in payload.items() if key not in stray}
+        return {**rest, "schema_version": batch_schema_version, "batch_id": batch_id, "item0": merged}
+    item = {
+        key: value
+        for key, value in payload.items()
+        if key not in {"batch_id", "schema_version"}
+    }
+    if "report_id" not in item:
+        return payload
+    if "schema_version" in payload and isinstance(payload["schema_version"], str):
+        item["schema_version"] = payload["schema_version"]
+    return {"schema_version": batch_schema_version, "batch_id": batch_id, "item0": item}
 
 
 def build_exact_validity_batch_model(
@@ -609,6 +744,16 @@ def build_exact_validity_batch_model(
 
     class ExactValidityBatchResponseBase(ValidityBatchResponse):
         """Exact expected-isolated response over one bounded report batch."""
+
+        @model_validator(mode="before")
+        @classmethod
+        def wrap_bare_singleton(cls, payload: object) -> object:
+            return _wrap_bare_singleton_item(
+                payload,
+                batch_id=batch_input.batch_id,
+                batch_schema_version="semantic-judge.validity-batch-response.v1",
+                report_count=len(batch_input.reports),
+            )
 
     model = create_model(
         f"ExactValidityBatchResponse_{suffix}",
@@ -762,6 +907,17 @@ def materialize_validity_certificate(
         label="indispensable mechanism",
         fallback_source_refs=response_source_refs,
     )
+    adjudication = response.defect_adjudication
+    minimum_evidence_status = minimum_evidence_status_of(adjudication.defect_class)
+    minimum_evidence_gate = ValidityGateJudgment(
+        status=minimum_evidence_status,
+        reason=(
+            f"Backend-derived minimum-evidence gate is {minimum_evidence_status.value} from defect class "
+            f"{adjudication.defect_class.value}: {adjudication.reason}"
+        ),
+        basis=adjudication.basis,
+        source_refs=adjudication.source_refs,
+    )
     core_truth = (
         CoreClaimTruth.VALID
         if all(
@@ -769,13 +925,13 @@ def materialize_validity_certificate(
             for gate in (
                 core_claim_gate,
                 indispensable_mechanism_gate,
-                response.minimum_evidence_gate,
+                minimum_evidence_gate,
             )
         )
         else CoreClaimTruth.INVALID
     )
     values = {
-        "schema_version": "semantic-judge.frozen-validity-certificate.v2",
+        "schema_version": "semantic-judge.frozen-validity-certificate.v3",
         "report_id": validity_input.report.report_id,
         "core_truth": core_truth,
         "validity_input_hash": stable_model_hash(validity_input),
@@ -783,7 +939,8 @@ def materialize_validity_certificate(
         "field_audits": frozen_audits,
         "core_claim_gate": core_claim_gate,
         "indispensable_mechanism_gate": indispensable_mechanism_gate,
-        "minimum_evidence_gate": response.minimum_evidence_gate,
+        "minimum_evidence_gate": minimum_evidence_gate,
+        "defect_adjudication": adjudication,
         "auxiliary_warnings": auxiliary_warnings,
         "root_cause_cluster_key": response.root_cause_cluster_key,
         "reason": response.validity_reason,
@@ -816,8 +973,10 @@ def materialize_validity_certificate(
 def build_relation_input(
     judge_input: UnifiedJudgeInput,
     certificate: FrozenValidityCertificate,
+    *,
+    relation_scope: str = "valid_only",
 ) -> RelationJudgeInput:
-    """Build one relation-only input from an immutable VALID certificate."""
+    """Build one relation-only input from an immutable admissible certificate."""
 
     report = next(
         item for item in judge_input.reports if item.report_id == certificate.report_id
@@ -826,6 +985,7 @@ def build_relation_input(
         protocol_version=judge_input.protocol_version,
         report=report,
         validity_certificate=certificate,
+        relation_scope=relation_scope,  # type: ignore[arg-type]
         expected_issues=judge_input.expected_issues,
         artifact_closure=judge_input.artifact_closure,
         reason="This input permits expected matching only after report validity has been frozen independently.",
@@ -841,18 +1001,20 @@ def build_relation_batch_input(
     certificates: tuple[FrozenValidityCertificate, ...],
     *,
     batch_id: str,
+    relation_scope: str = "valid_only",
 ) -> RelationBatchJudgeInput:
     """Build one relation matrix input with shared expected and artifact closures."""
 
     reports_by_id = {item.report_id: item for item in judge_input.reports}
     if not certificates:
-        raise ValueError("relation batch requires at least one VALID certificate")
+        raise ValueError("relation batch requires at least one admissible certificate")
     reports = tuple(reports_by_id[item.report_id] for item in certificates)
     return RelationBatchJudgeInput(
         batch_id=batch_id,
         protocol_version=judge_input.protocol_version,
         reports=reports,
         validity_certificates=certificates,
+        relation_scope=relation_scope,  # type: ignore[arg-type]
         expected_issues=judge_input.expected_issues,
         artifact_closure=judge_input.artifact_closure,
         reason=(
@@ -876,6 +1038,7 @@ def relation_item_input(
         protocol_version=batch_input.protocol_version,
         report=batch_input.reports[index],
         validity_certificate=batch_input.validity_certificates[index],
+        relation_scope=batch_input.relation_scope,
         expected_issues=batch_input.expected_issues,
         artifact_closure=batch_input.artifact_closure,
         reason=batch_input.reason,
@@ -903,9 +1066,6 @@ def build_exact_relation_model(
         ).encode("utf-8")
     ).hexdigest()[:12]
     report_id_type = _literal((relation_input.report.report_id,))
-    certificate_hash_type = _literal(
-        (relation_input.validity_certificate.certificate_hash,)
-    )
     exact_relation_tuple = _exact_relation_tuple(
         expected_ids,
         suffix=f"{suffix}_relations",
@@ -918,12 +1078,27 @@ def build_exact_relation_model(
         report_id: report_id_type = Field(  # type: ignore[valid-type]
             description="The one anonymous valid report ID fixed by this relation call."
         )
-        validity_certificate_hash: certificate_hash_type = Field(  # type: ignore[valid-type]
-            description="The immutable validity certificate hash; return it unchanged."
+        validity_certificate_hash: str = Field(
+            default=relation_input.validity_certificate.certificate_hash,
+            pattern=r"^sha256:[0-9a-f]{64}$",
+            description="Backend-owned immutable validity certificate hash; the provider does not need to return it, and any returned value is replaced by the frozen hash.",
         )
         relation_decisions: exact_relation_tuple = Field(  # type: ignore[valid-type]
             description="One discriminated FULL_MATCH, PARTIAL_MATCH, or explicit NO_MATCH decision at every exact expected position in input order."
         )
+
+        @field_validator("schema_version", mode="before")
+        @classmethod
+        def pin_item_schema_version(cls, value: object) -> str:
+            # Backend-owned constant: providers sometimes echo the batch version here (iteration 9, pair 0016).
+            return "semantic-judge.relation-response.v2"
+
+        @field_validator("validity_certificate_hash", mode="before")
+        @classmethod
+        def pin_frozen_certificate_hash(cls, value: object) -> str:
+            """The certificate is fixed by the batch input; a provider echo cannot change or break it."""
+
+            return relation_input.validity_certificate.certificate_hash
 
         @model_validator(mode="after")
         def exact_relation_closure(self) -> ExactRelationResponse:
@@ -993,6 +1168,24 @@ def build_exact_relation_batch_model(
 
     class ExactRelationBatchResponseBase(RelationBatchResponse):
         """Exact response over one frozen-valid report-by-expected matrix."""
+
+        @model_validator(mode="before")
+        @classmethod
+        def wrap_bare_singleton(cls, payload: object) -> object:
+            if len(batch_input.reports) == 1:
+                payload = _merge_split_singleton_items(
+                    payload,
+                    batch_id=batch_input.batch_id,
+                    batch_schema_version="semantic-judge.relation-batch-response.v1",
+                    report_id=batch_input.reports[0].report_id,
+                    expected_ids=tuple(item.expected_id for item in batch_input.expected_issues),
+                )
+            return _wrap_bare_singleton_item(
+                payload,
+                batch_id=batch_input.batch_id,
+                batch_schema_version="semantic-judge.relation-batch-response.v1",
+                report_count=len(batch_input.reports),
+            )
 
     model = create_model(
         f"ExactRelationBatchResponse_{suffix}",
@@ -1435,8 +1628,20 @@ def materialize_two_stage_reading(
     certificates: tuple[FrozenValidityCertificate, ...],
     relation_responses: tuple[RelationResponse, ...],
     judge_input: UnifiedJudgeInput,
+    *,
+    closure_rule: str = "validity_first",
 ) -> JudgeReading:
-    """Derive dense issue #195 ownership from frozen truth and relation closure."""
+    """Derive dense issue #195 ownership from frozen truth and relation closure.
+
+    ``validity_first`` is the v3.2 protocol: INVALID certificates close as all-NO.
+    ``relation_first`` (default; the iteration-6 configuration) also compares D0 /
+    NOT_A_DEFECT_CLAIM certificates with the ledger and closes a FULL_MATCH or
+    PARTIAL_MATCH as VALID_KNOWN; FALSE_POSITIVE stays INVALID.
+    """
+
+    if closure_rule not in ("validity_first", "relation_first"):
+        raise ValueError(f"unknown closure_rule: {closure_rule}")
+    relation_first = closure_rule == "relation_first"
 
     report_ids = tuple(item.report_id for item in judge_input.reports)
     expected_ids = tuple(item.expected_id for item in judge_input.expected_issues)
@@ -1446,13 +1651,18 @@ def materialize_two_stage_reading(
         certificates
     ):
         raise ValueError("validity certificates must cover every report exactly once")
-    valid_ids = {
+    candidate_ids = {
         report_id
         for report_id, certificate in certificates_by_id.items()
         if certificate.core_truth == CoreClaimTruth.VALID
+        or (
+            relation_first
+            and certificate.defect_adjudication.defect_class
+            != DefectClass.A0_FALSE_POSITIVE
+        )
     }
     responses_by_id = {item.report_id: item for item in relation_responses}
-    expected_response_ids = valid_ids if expected_ids else set()
+    expected_response_ids = candidate_ids if expected_ids else set()
     if set(responses_by_id) != expected_response_ids or len(responses_by_id) != len(
         relation_responses
     ):
@@ -1481,7 +1691,7 @@ def materialize_two_stage_reading(
         for expected_id in expected_ids:
             positive = positive_by_expected.get(expected_id)
             if positive is None:
-                if certificate.core_truth == CoreClaimTruth.INVALID:
+                if report_id not in candidate_ids:
                     relation_reason = "The expected-isolated validity certificate is INVALID, so issue #195 requires this relation to be NO_MATCH."
                     relation_basis = f"{certificate.certificate_hash}; {certificate.reason}; all-NO invalid-report closure"
                     relation_source_refs = certificate.source_refs
@@ -1550,15 +1760,27 @@ def materialize_two_stage_reading(
                 )
             relations.append(relation)
 
-        validity = (
-            ReportValidity.INVALID
-            if certificate.core_truth == CoreClaimTruth.INVALID
-            else ReportValidity.VALID_KNOWN
-            if full_expected_ids or partial_expected_ids
-            else ReportValidity.VALID_NOVEL
+        has_positive = bool(full_expected_ids or partial_expected_ids)
+        relation_first_known = (
+            relation_first
+            and has_positive
+            and certificate.core_truth == CoreClaimTruth.INVALID
+            and report_id in candidate_ids
         )
+        if relation_first_known:
+            validity = ReportValidity.VALID_KNOWN
+        else:
+            validity = (
+                ReportValidity.INVALID
+                if certificate.core_truth == CoreClaimTruth.INVALID
+                else ReportValidity.VALID_KNOWN
+                if has_positive
+                else ReportValidity.VALID_NOVEL
+            )
         ownership_reason = (
-            "Backend ownership is INVALID because expected-isolated core truth is INVALID and every relation is mechanically NO_MATCH."
+            "Backend ownership is VALID_KNOWN under relation-first closure: the author-source fact is not refuted and at least one FULL_MATCH or PARTIAL_MATCH ledger relation settles the obligation question."
+            if relation_first_known
+            else "Backend ownership is INVALID because expected-isolated core truth is INVALID and every relation is mechanically NO_MATCH."
             if validity == ReportValidity.INVALID
             else "Backend ownership is VALID_KNOWN because frozen core truth is VALID and at least one FULL_MATCH or PARTIAL_MATCH relation exists."
             if validity == ReportValidity.VALID_KNOWN
@@ -1574,6 +1796,8 @@ def materialize_two_stage_reading(
                 report_id=report_id,
                 core_truth=certificate.core_truth,
                 validity=validity,
+                defect_class=certificate.defect_adjudication.defect_class,
+                closure_rule=closure_rule,  # type: ignore[arg-type]
                 full_expected_ids=tuple(full_expected_ids),
                 partial_expected_ids=tuple(partial_expected_ids),
                 no_match_expected_ids=tuple(

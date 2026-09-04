@@ -1,9 +1,7 @@
-# 建模对象与表达力边界
+# 模型与案例研究范围
 
-Paper1 研究的状态机对象为 `M = (S, E, V, Tr, A)`：状态、事件、变量、迁移和动作。它覆盖离散 FSM、层次状态机和带变量/guard/action 的 EFSM 子集；PlantUML 是作者制品的表达形式，FCSTM 是方法执行所用的闭合模型，不应混为同一个事实来源。
+Paper1 的方法对象是满足适配器契约的状态机类模型，而非只适用于 PlantUML 的方法。适配器把声明子集内的源状态机制品投影为 `M=(S,E,V,Tr,A)` 形式的有限控制状态机（FCSTM），并维护源载体到投影和原生事实的映射。另一种建模语言或制品形式只有在其适配器明确给出支持片段、来源归属、规则能力、失败处置和独立实证时，才能进入方法声称范围。
 
-当前 19 谓词与 FCSTM backend 的可执行片段主要覆盖 FSM/HSM/EFSM。时钟、不变式、正交 region/并发、hybrid 与无界时序可能无法形成 W2 级可执行见证，但这不是缺陷发现范围门：相关主张仍必须正常裁为 D2/D1/D0，能精确定位但不可执行时保留为 W1。[nl_scope_rule.md](../discover_matrix/docs/protocol/nl_scope_rule.md) 记录的是冻结历史实验的 pair-universe 筛选，不定义什么算缺陷。
+当前实现和冻结结果仅包含 PlantUML 适配器。上游数据来自 [Wang 等的 Internetware 2025 论文及其一手工作簿](../corpora/seed_library/llms-emp-stm-subset/assets/README.md)：60 行 `feedback-final` 池的阶段/回退选择由[验证摘要](../corpora/seed_library/llms-emp-stm-subset/assets/extracted/feedback_final_validation_summary.json)固定，当前实验网格再依[范围规则](../selected_seed_examples/README.md)排除 6 个并发/秒级时间约束制品，形成 9 个自然语言簇、每簇 6 个制品的 54 个输入对。源制品只表示本文分析的归因对象，绝不表示人类作者。方法在分析期不生成、不修改该制品。
 
-可执行谓词在 FCSTM/native facts 上求值，不能替代作者 PlantUML 的问题定位。任一编译或投影产生的表示差异必须通过 source trace 回到作者源后再归因，不能把编译制品的结构直接记为作者模型缺陷。当前的谓词、W 条件和 soundness fragment 以 [method/](../method/README.md) 与 [最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md) 为准。
-
-本页不从历史实验转抄数值，也不将片段范围外推为 arbitrary UML/SysML、时间自动机或混成自动机。旧范围讨论和历史试验材料仅由 [实验历史索引](../archive/experiment_history/README.md) 追溯。
+当前支持片段不覆盖时钟、不变式、正交区域/并发、混合语义或未声明的有限控制状态机片段。源文本、规范源中间表示、有限控制状态机、确定性检查事实、类型化绑定、编译程序和回放回执共同组成可追溯证据链。投影、编译器、运行时或证据边界的失败须与源制品问题分开记录。
