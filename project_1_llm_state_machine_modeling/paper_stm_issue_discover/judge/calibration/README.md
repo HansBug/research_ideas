@@ -2,6 +2,8 @@
 
 本目录服务于一个明确而有限的目标：让 issue #195 语义 Judge 的 K/N/I 划分（尤其是 N 与 I 的边界）在**趋势上**与 paper1 当前的人工终态一致，使它能作为后续消融或补充实验的**初筛**，再由人工逐条确认。论文对外口径不变：validity、relation、D/A、K/N/I 由人工完成；Judge 只是缩小人工改判量的工具，不是结果的事实源，也不改动任何已冻结数据。
 
+> **2026-09-04 更新**：v61 全量运行后，论文大纲改按 judge 口径报告两臂（[story/paper_outline.md](../../story/paper_outline.md) §5.3）：人工 D/A 协议仍是定义，第六轮配置（v3.11 / prompt v11）的 judge 是执行者，其在 v60 全量人工裁定上的偏移写进研究设计与威胁；v61 的人工复核列为投稿前必需项（[analysis_and_options.md](../../discover_matrix/docs/generations/v61/analysis_and_options.md) 出路 F）。上一段的「对外口径」自此日起以大纲为准。
+
 ## 为什么要校准
 
 实跑冻结结果的 Judge 版本是 v3.2（提交 `05cf0da6f`）。与人工终态逐条对齐后，current 的 1271 条里 246 条被人工改判（444 条 N 中 204 条改 I：110 条 D0、93 条 NOT_A_DEFECT_CLAIM），baseline 的 512 条里 147 条改判且双向都错（134 条 N 中 68 条改 I；102 条 I 中 75 条改回有效）。三条根因：v3.2 的最低举证门只测「可审计」而不测「有被违反义务」；事实校验以 typed / lowered 表示为准而不是作者源；把 reason 里的解释性错误当成 INDISPENSABLE_MECHANISM 一票否决。08-29 的 v3.3 只在 gate 描述里加了「D0/A0 → REFUTED」，从未实跑，且保留了「非执行载体不满足义务」的段落。

@@ -1,5 +1,7 @@
 # v61 结果台账（按迭代追加，最新在上）
 
+> 现状分析、L2 / RQ3 深挖、出路与 2026-09-04 的口径裁定见 [analysis_and_options.md](./analysis_and_options.md)；论文口径的复算脚本为 [evaluate_rq3.py](./evaluate_rq3.py)。
+
 ## 全量 54×3（method 提交 ea6141607；method run `runs/paper1/method-v61-full-ea6141607/a7b47d84c3cb4377a8009e5018d5b745`；0045 r1 补格 `runs/paper1/method-v61-fill0045-778212b03/0e450e5c6c9d4841820c7d1fd2a888ea`；judge run `runs/paper1/judge-v61-full-ea6141607/current-r*`）
 
 **判定装置**：第六轮 judge（gpt-5.6-luna，`semantic-judge.two-stage.v3.11`，relation-first 闭合，两读 + 分歧仲裁），只判 ours；baseline 沿用同配置的 v3.11 全量 judge 结果（`runs/paper1/judge-full-3a1ba5cf1-iter6cfg/baseline-r*`）；v60 参照也取同一 judge 对 v60 产出的判定，三列全部 judge 对 judge，无人工复核。人工冻结终稿的数字只作参照。

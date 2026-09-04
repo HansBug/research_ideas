@@ -2,7 +2,7 @@
 
 本工作区研究一条通用的状态机问题发现架构：给定自然语言需求和一个在分析前已存在、带来源归属且分析期间保持固定的源状态机制品，方法发现需求、模型结构或可执行状态机语义之间的不一致，并为每条发现保留可追溯的定位和证据。架构以有限控制状态机（finite control state machine，FCSTM）为分析工作表示，通过语言适配器接收源状态机制品。原则上，能在声明的源语言子集内形成可追溯 FCSTM 投影的状态机建模语言，都可实现为该架构的方法实例；每个适配器还须提供 source attribution、规则相关 capability contract、失败关闭边界和独立评测。当前实现和论文案例研究只含 PlantUML 适配器，因而只报告该适配器的结果。当前 54 个 PlantUML 制品来自 Wang 等上游 LLM generation/feedback pipeline 按冻结 stage/fallback 规则选择的输出；“已存在”不表示必须由人类创作。它面向需要复核状态机制品的研究者与维护者，不是状态机生成或自动修复工具。
 
-当前论文结果只来自 [v60/current 与 X1v2 baseline 最终归档](./final_results/v60_current_vs_x1v2_baseline/README.md)。当前比较覆盖同一 54 个 pair、3 个 round、145 条人工标注的参考缺陷条目和 435 个 round-level evaluation units；历史 v46、v27 等代次只在 [实验历史索引](./archive/experiment_history/README.md) 中保留考据，不能作为当前结果或方法说明。
+当前论文结果只来自 [v61 与 X1v2 baseline 全量归档](./final_results/v61_source_divergence_vs_x1v2_baseline/README.md)：两臂全部报告由同一台经人工裁定校准的语义 judge 判定（大纲 §5.3），复算脚本为 [evaluate_full.py](./discover_matrix/docs/generations/v61/evaluate_full.py) 与 [evaluate_rq3.py](./discover_matrix/docs/generations/v61/evaluate_rq3.py)。当前比较覆盖同一 54 个 pair、3 个 round、145 条人工标注的参考缺陷条目和 435 个 round-level evaluation units；[v60 人工裁定归档](./final_results/v60_current_vs_x1v2_baseline/README.md)保留为仪器校准参照与历史考据，历史 v46、v27 等代次只在 [实验历史索引](./archive/experiment_history/README.md) 中保留考据，不能作为当前结果或方法说明。
 
 ## 研究对象与输入
 
@@ -20,11 +20,11 @@
 
 [内部谓词后端审计](./discover_matrix/ledger_v2/predicate_gold_v1/README.md) 保存 evaluation-only 的后端能力、输入和 receipt 审计。它用于复核证据闭合，不属于 paper1 主叙事，不进入 method registry、prompt、routing 或 package data，也不改写 hit、W、K/N/I。旧 registry 的 planned mapping 与旧 126 条 provenance 都不是当前主结果。
 
-当前 headline 表格只保留在[正式 v4 公平对照报告](./final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)。该报告的 JSON、TSV、分母和限制由[最终归档 README](./final_results/v60_current_vs_x1v2_baseline/README.md)链接；本页不再复制第二套结果表。X1v2 没有同构的 19 谓词或 receipt schema，所以 predicate usage 不适用；W 轴仍适用，后续人工核验不会倒灌为 baseline method 的 W2。
+当前 headline 表格只保留在 [v61 归档 README](./final_results/v61_source_divergence_vs_x1v2_baseline/README.md) 与其 `derived/evaluate_rq3_output.txt`；论文口径的解释见 [story/paper_outline.md](./story/paper_outline.md)。X1v2 没有同构的 19 谓词或 receipt schema，所以 predicate usage 不适用；W 轴仍适用，评测不会倒灌为 baseline method 的 W2。
 
 ## 阅读与复现
 
-1. [最终归档](./final_results/v60_current_vs_x1v2_baseline/README.md) 是结果、分母、限制和复算的唯一入口；纸面 headline 只见[中文 v4 正式报告](./final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)。
+1. [v61 归档](./final_results/v61_source_divergence_vs_x1v2_baseline/README.md) 是结果、分母、限制和复算的唯一入口；[v60 归档](./final_results/v60_current_vs_x1v2_baseline/README.md)只作仪器校准参照。
 2. [method/](./method/)、[judge/](./judge/) 与 [evaluation/](./evaluation/) 分别说明运行时方法、人工裁定和离线评测的边界。
 3. [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/README.md) 是当前 145 条台账与其 provenance；它不是 current headline 的第二份结果表。
 4. [内部谓词后端审计](./discover_matrix/ledger_v2/predicate_gold_v1/README.md) 是后端能力、receipt、review 和离线成分分析入口，不是 paper1 的主结果入口。
