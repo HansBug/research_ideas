@@ -20,11 +20,13 @@
 | adjudication | 人工裁定 | human adjudication | D/A | `outline-5` | 人工裁定；`D0/D1/D2/A0` 在表、公式和字段中保留 | `D0`、`D1`、`D2`、`A0` |
 | relation | 对应关系 | relation | 无 | `outline-5` | 对应关系；`FULL/PARTIAL/NO` 在表、公式和字段中保留 | `FULL_MATCH`、`PARTIAL_MATCH`、`NO_MATCH` |
 | bookkeeping | 记账类别 | bookkeeping category | K/N/I | `outline-5` | 记账类别；`K/N/I` 在表、公式和字段中保留 | `VALID_KNOWN`、`VALID_NOVEL`、`INVALID` |
-| nadc | 非缺陷主张 | not-a-defect claim | NADC | `outline-6` | 非缺陷主张；`NADC` 在表、公式和字段中保留 | `NOT_A_DEFECT_CLAIM` |
+| nadc | 非缺陷主张 | not-a-defect claim | NADC | `outline-5` | 非缺陷主张；`NADC` 在表、公式和字段中保留 | `NOT_A_DEFECT_CLAIM` |
 | divergence_checks | 源–语义分歧检查 | source–semantics divergence checks | 无 | `outline-0` | 源–语义分歧检查、分歧检查、分歧审计 | 代码字段、`source_divergence` frontier kind |
 | author_source_index | 作者源索引 | author-source index | 无 | `outline-4` | 作者源索引；作者拥有 / 编译器拥有的载体 | 代码字段 |
 | carrier_attribution_gate | 载体归属门 | carrier-attribution gate | 无 | `outline-4` | 载体归属门 | `skipped_compiler_owned_carrier` |
 | causal_fold | 因果折叠 | causal fold | 无 | `outline-4` | 因果折叠、子主张 | 代码字段 |
-| semantic_judge | 语义 judge | semantic judge | 无 | `outline-5` | 语义 judge、judge、校准 judge | 配置名 `semantic-judge.two-stage.v3.11`、路径 |
+| guard_modality_aggregation | 守卫模态聚合 | guard-modality aggregation | 无 | `outline-4` | 守卫模态聚合、聚合根 | 代码字段 |
+| lossy_normalization | 有损规范化 | lossy normalization | 无 | `outline-4` | 有损规范化 | — |
+| semantic_judge | 语义 judge | semantic judge | 无 | `outline-0` | 语义 judge、judge、校准 judge | 配置名 `semantic-judge.two-stage.v3.11`、路径 |
 
-责任边界（v61 口径）：D/A、有效性与对应关系的定义来自人工裁定协议，执行者是校准的语义 judge（两臂同一仪器）；程序只在 judge 已完成的字段上确定性闭合 K/N/I 并汇总；C2 的回执不替代有效性或对应关系的裁定；v61 尚无人工复核，仪器偏移在大纲 §5.3 与 §8 交代。W2 同时要求受支持片段、精确实例绑定、pair/obligation/plan/model/program/receipt 身份一致、非空且可核验的描述引文/来源引用/绑定引用，以及完成的原生布尔回执。来源归属不完整只把 W2 降为 W1，不改变 `completed`、`executed` 或 `true`/`false` 的执行事实。谓词和极性字段规定论文可对回执作出的最强语义主张，例如有界结果不能写成无界性质证明；它们不降低来源绑定且完成执行的 W2。最终 FULL-hit W0/W1/W2=`0/142/168`（分母 310），报告级伴随 W0/W1/W2=`0/854/417`（分母 1271）。PlantUML 是唯一已实现并评测的适配器，有限控制状态机是通用方法架构的工作表示，不是语言范围的限定。
+责任边界（v61 口径）：D/A、有效性与对应关系的定义来自人工裁定协议，执行者是校准的语义 judge（两臂同一仪器）；程序只在 judge 已完成的字段上确定性闭合 K/N/I 并汇总；C2 的回执不替代有效性或对应关系的裁定；方法侧 903 条报告尚无人工复核，基线侧 512 条另有完整人工裁定，仪器偏移在大纲 §5.3 与 §8 交代。W2 同时要求受支持片段、精确实例绑定、pair/obligation/plan/model/program/receipt 的身份链、非空可核验引文与完成的原生布尔回执；323 个 FULL 命中单元的 W0/W1/W2 为 `0/196/127`（根报告口径）或 `0/186/137`（含折叠子主张回执），报告级为 `0/636/267`（分母 903）。

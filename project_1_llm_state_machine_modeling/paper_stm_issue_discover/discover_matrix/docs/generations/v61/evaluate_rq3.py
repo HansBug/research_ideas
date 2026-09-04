@@ -168,6 +168,36 @@ def main() -> None:
     say(f"divergence-only FULL-hit units (all K FULL reports for the unit are divergence-audit reports): "
         f"{sum(1 for v in unit_div_only.values() if v)}; divergence-audit reports published: {len([r for r in jd if r in divergence])}, "
         f"of which K/N/I = {Counter(jd[r]['v'] for r in jd if r in divergence)}")
+    # full decomposition of FULL-hit units by W category (incl.-sub-claim reading)
+    unit_reports: dict[tuple, list] = defaultdict(list)
+    for rid, o in jd.items():
+        if o["v"] == "VALID_KNOWN" and rid in clusters:
+            for e in o["full"]:
+                if e in tier:
+                    unit_reports[(e, o["round"])].append(rid)
+    wcat: Counter = Counter()
+    wcat_L: dict = defaultdict(Counter)
+    bound_w1_receipts: Counter = Counter()
+    for u, rids in unit_reports.items():
+        cs = [clusters[r] for r in rids]
+        if any(c["witness_level"] == "W2" for c in cs):
+            k = "W2 (root report)"
+        elif any(evidence.get(sc["issue_id"], {}).get("witness_level") == "W2" for c in cs for sc in c.get("folded_sub_claims") or []):
+            k = "W2 (via folded sub-claim receipt)"
+        elif all(r in divergence for r in rids):
+            k = "W1 divergence-only (no predicate by construction)"
+        elif any(c.get("predicate_id") for c in cs):
+            k = "W1 predicate bound, receipt not closed"
+            for c in cs:
+                if c.get("predicate_id"):
+                    rc = c.get("execution_receipt") or {}
+                    bound_w1_receipts[(c["predicate_id"], str(rc.get("terminal_state")))] += 1
+        else:
+            k = "W1 no predicate (semantic candidate)"
+        wcat[k] += 1
+        wcat_L[k][tier[u[0]]] += 1
+    say("FULL-hit units by W category (incl.-sub-claim reading): " + "; ".join(f"{k}: {v} (L0/L1/L2 {wcat_L[k]['L0']}/{wcat_L[k]['L1']}/{wcat_L[k]['L2']})" for k, v in wcat.most_common()))
+    say(f"receipts on predicate-bound W1 hitting reports (predicate, terminal_state): {dict(bound_w1_receipts.most_common())}")
     fam_units = Counter()
     for u, fams in unit_families.items():
         for f in fams:

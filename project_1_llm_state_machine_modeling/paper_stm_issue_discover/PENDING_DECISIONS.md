@@ -22,7 +22,7 @@
 
 # 历史决策简报（2026-08-11）
 
-> 本文件保留当时的决策背景、选项和措辞，不是当前方法、结果或工作指令。当前实验只以 [v60/current 与 X1v2 baseline 最终归档](./final_results/v60_current_vs_x1v2_baseline/README.md) 为准；历史可比性见 [实验历史索引](./archive/experiment_history/README.md)。下文的 v46、旧谓词和旧运行计划不应被执行或转写为 current claim。
+> 本文件保留当时的决策背景、选项和措辞，不是当前方法、结果或工作指令。当前实验只以 [v61 归档](./final_results/v61_source_divergence_vs_x1v2_baseline/README.md) 为准；历史可比性见 [实验历史索引](./archive/experiment_history/README.md)。下文的 v46、旧谓词和旧运行计划不应被执行或转写为 current claim。
 
 > **这份文件是给人读的决策简报，不是待办清单。** 待办的唯一入口仍是 [TODO.md](./TODO.md)（⛔ 不建第二真源）；本文件只承载**需要人拍板、AI 定不了**的那些，每条给出前因后果、全部可选方案、各方案的代价与工作量、以及我的建议与理由。
 >

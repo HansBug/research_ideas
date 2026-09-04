@@ -1,6 +1,6 @@
 # pipeline/evaluation — 历史 v0 schema
 
-本目录只保留 2026-07 的两份 v0 JSON Schema、fixture 与门禁测试，供历史 provenance 复核。它不参与 v60/current 或 X1v2 baseline 的评测，也不是论文的结果或复算入口。当前评测包为 [evaluation/](../../evaluation/README.md)，当前结果为 [最终归档](../../final_results/v60_current_vs_x1v2_baseline/README.md)，冻结判定定义见 [issue #195 snapshot](../../judge/src/paper_stm_judge/resources/semantic_judge_issue_195.snapshot.md)。
+本目录只保留 2026-07 的两份 v0 JSON Schema、fixture 与门禁测试，供历史 provenance 复核。它不参与 v60/current 或 X1v2 baseline 的评测，也不是论文的结果或复算入口。当前评测包为 [evaluation/](../../evaluation/README.md)，当前结果为 [v61 归档](../../final_results/v61_source_divergence_vs_x1v2_baseline/README.md)，冻结判定定义见 [issue #195 snapshot](../../judge/src/paper_stm_judge/resources/semantic_judge_issue_195.snapshot.md)。
 
 本目录原先的 Discover → Repair-Confirm → B-final → post-Confirm export → closure/regression 设计已经归档，不能被读作当前计划或待建 endpoint。
 
@@ -34,7 +34,7 @@ python -m pytest $P/evaluation/tests
 1. 不把 archived `EVALUATION_GATE.md` 当作 active gate。
 2. 不把 archived `better_stm_checklist.schema.json` 或 `can_claim_better_stm` 当作 active endpoint。
 3. 不把 archived dry-run examples 或 blind judge outputs 写成真实运行证据。
-4. 不把本目录的两份 v0 schema 当成当前论文评测口径；当前口径、指标与复算由 [evaluation/](../../evaluation/README.md) 和 [最终归档](../../final_results/v60_current_vs_x1v2_baseline/README.md) 固定。
+4. 不把本目录的两份 v0 schema 当成当前论文评测口径；当前口径、指标与复算由 [evaluation/](../../evaluation/README.md) 和 [v61 归档](../../final_results/v61_source_divergence_vs_x1v2_baseline/README.md) 固定。
 
 ## 更新日志
 

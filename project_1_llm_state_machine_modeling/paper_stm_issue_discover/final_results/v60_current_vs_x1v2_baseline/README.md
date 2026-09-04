@@ -2,7 +2,7 @@
 
 > **已被 v61 取代（2026-09-04）。** 论文正文的数字改按 [v61 归档](../v61_source_divergence_vs_x1v2_baseline/README.md)（两臂同一校准语义 judge）；本目录完整保留 v60 的人工裁定数据、报告与审计，用途只剩两项：作为语义 judge 的校准与验证参照（见 [judge/calibration/](../../judge/calibration/README.md)），以及历史考据。目录内容自 2026-09-04 起不再更新。
 
-本目录是 Paper1 当前 v60/current 与 X1v2 baseline v3 评测的稳定入口。当前 headline 来自 `derived/fair_comparison_v4/`：current 使用 `derived/manual_adjudication_v4_current_reaudit/`，baseline 使用冻结的 `derived/manual_adjudication_v3_baseline_ni/`。旧人工裁定记录、旧 witness audit 和 superseded reviews 只由 archive/provenance 入口保留，不混入当前人工真值。current/v60 v4 是对既有 pane5 source-first 确认的逐条 raw/source/hash/relation 再验证；baseline v3 只对原非 K 逐条读 raw/source/ledger 后确认，原 K 是冻结副本。两侧的 validity、relation、D/A、K/N/I 及成分分析均由人工完成；机器只读取这些已完成制品，执行确定性校验、闭合和算术复算。内部 reviewer/subagent 记录仅是质量审阅与 provenance，不构成独立的人类 inter-rater 研究，也不替代人工裁定。
+本目录是 Paper1 v60/current 与 X1v2 baseline v3 人工评测的稳定入口。v60 当时的 headline 来自 `derived/fair_comparison_v4/`：current 使用 `derived/manual_adjudication_v4_current_reaudit/`，baseline 使用冻结的 `derived/manual_adjudication_v3_baseline_ni/`。旧人工裁定记录、旧 witness audit 和 superseded reviews 只由 archive/provenance 入口保留，不混入当前人工真值。current/v60 v4 是对既有 pane5 source-first 确认的逐条 raw/source/hash/relation 再验证；baseline v3 只对原非 K 逐条读 raw/source/ledger 后确认，原 K 是冻结副本。两侧的 validity、relation、D/A、K/N/I 及成分分析均由人工完成；机器只读取这些已完成制品，执行确定性校验、闭合和算术复算。内部 reviewer/subagent 记录仅是质量审阅与 provenance，不构成独立的人类 inter-rater 研究，也不替代人工裁定。
 
 ## 数据闭合
 
@@ -19,9 +19,9 @@
 
 v60 使用冻结的 19 个谓词 registry，分为 Structure (6)、Topology (4)、Trajectory simulation (4) 和 Bounded verification (5) 四族。method summary 中有 12/19 个 distinct predicate IDs 产生过 terminal receipt；current v4 canonical decisions 中有 8/19 个 distinct predicate IDs 至少绑定到一条 report-bound finding。两者都是 ID 级指标，不是 finding、W2 或 hit 的覆盖率。X1v2 没有同构 predicate binding/receipt schema，因此 predicate usage 为 N/A，不是零。825/1271 和 303/825 仍保存在 fair-comparison summary 中，作为行级审计诊断，不替代 12/19 与 8/19。详细后端能力审计只属于内部 evaluation-only 目录。
 
-## 当前主结果
+## v60 当时的主结果
 
-完整的并列表格和论文口径只见[正式 v4 中文报告](./report/v60_current_vs_x1v2_baseline_v4_cn.md)。报告是当前唯一的纸面 headline 入口；current v4、baseline v3 和 fair comparison 的 JSON/TSV 是可审计事实源。旧 v2 summary、旧 report 和旧人工裁定记录只作为历史 provenance，不再构成当前并列结果。
+完整的并列表格和论文口径只见[正式 v4 中文报告](./report/v60_current_vs_x1v2_baseline_v4_cn.md)。报告是 v60 当时唯一的纸面 headline 入口（现已被 v61 归档取代）；current v4、baseline v3 和 fair comparison 的 JSON/TSV 是可审计事实源。旧 v2 summary、旧 report 和旧人工裁定记录只作为历史 provenance，不再构成当前并列结果。
 
 本次 provider-free evaluation-only 归因见 [conversion attribution v1 overlay](./derived/conversion_attribution_v1/README.md)。它覆盖全部 291 条 current I（其中 118 条 NADC），确认 110 条方法内部机制、8 条 indeterminate，严格 confirmed lowering-only 为 0；不修改 canonical decisions、主 precision 或 headline。重跑 gate 的唯一结论为 `NO_RERUN`。
 

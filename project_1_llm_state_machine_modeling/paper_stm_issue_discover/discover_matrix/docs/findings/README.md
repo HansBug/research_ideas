@@ -2,7 +2,6 @@
 
 > ⭐ 本目录是 2026-08-12 一整轮调查（**九路独立 subagent + 两路 codex 交叉验证**）的结论沉淀。⛔ 过程性状态（PR/issue 的 review 进度、agent 派发记录）**不在这里**——按 `CLAUDE.md` §9 那些留在 GitHub。
 
-
 ## ⭐⭐⭐ 零、定性（⛔ 读下文前先读这一节）
 
 > ⛔⛔ **这不是「C-① 死了」，⭐ 而是「这一版实现暂时没有做成」。**
@@ -25,6 +24,8 @@
 | 2 | [human_baseline_and_assertion_cot.md](./human_baseline_and_assertion_cot.md) | ⭐⭐ **我们该跟谁比**——人类基线 47–50%、脚手架类型决定符号 |
 | 3 | [route_selection_and_v47_plan.md](./route_selection_and_v47_plan.md) | ⭐ **接下来做什么**——路线裁定 + v47 最小改动集 |
 | 4 | [inspect_capability_boundary.md](./inspect_capability_boundary.md) | ⭐ **inspect 能看见什么**（2026-08-13 加）——73 码只 14 开火的三层原因 · 配置天花板 579 · FCSTM 父态出边不下传 · 可触及面 74/165 |
+| 5 | [representation_debt.md](./representation_debt.md) | v60 时期对「表示债务」的界定；v61 的载体归属门与分歧审计把该类 NADC 降到 15 条后，其量化结论已被 [../generations/v61/analysis_and_options.md](../generations/v61/analysis_and_options.md) §4.2 取代，界定与机制描述仍有效 |
+| 6 | [ref_flip_feasibility.md](./ref_flip_feasibility.md)、[um_residue_ruling.md](./um_residue_ruling.md) | 两份专项裁定（引用翻转可行性、UM 残余的处置），仅作历史参照 |
 
 ⚠️ 第 4 篇更正了两处此前被写成事实的错误断言（`W_DEADLOCK_LEAF` 的「系统性假阳性」、`inspect_findings.json` 关于归并算法的自述），⛔ 前者已污染过一个独立评审方。
 
@@ -44,7 +45,7 @@
 
 | # | 待办 | 为什么重要 |
 | :-- | :-- | :-- |
-| 1 | ⭐ **✅ 已于 2026-08-17 完成**：台账全量人工重标产出第二版台账 **145 条**（[ledger_v2/ledger.json](../../ledger_v2/ledger.json)），54 份工作单与全部人工裁决在 [ledger_v2/provenance/relabel/](../../ledger_v2/provenance/relabel/) | 历史 X1v2 六格网格仍见 ledger_v2；当前 gpt-5.6-luna 双臂三轮结果已见 [全量报告](../../../reports/2026-08-19-luna-full-x3-v26.md)，两种网格不能混合 |
+| 1 | ⭐ **✅ 已于 2026-08-17 完成**：台账全量人工重标产出第二版台账 **145 条**（[ledger_v2/ledger.json](../../ledger_v2/ledger.json)），54 份工作单与全部人工裁决在 [ledger_v2/provenance/relabel/](../../ledger_v2/provenance/relabel/) | 历史 X1v2 六格网格仍见 ledger_v2；当前 gpt-5.6-luna 双臂三轮结果见 [v61 结果](../generations/v61/results.md)（v26 时期的全量报告保留在 [reports/2026-08-19-luna-full-x3-v26.md](../../../reports/2026-08-19-luna-full-x3-v26.md)，仅作历史参照），两种网格不能混合 |
 | 4 | ⛔ **把三份不可复核的度量脚本落库**：逐轮覆盖代理量的重建、复杂度三分层、位点安慰剂分类 | ⛔ 它们各自支撑一条承重结论，⛔ 而现在**谁都无法重跑**（见各处 I 级标注） |
 | 2 | ⛔ **可重放 / 可回归防护 / 可追溯**三项**一个数都没有** | ⭐ 它们是 X1 **结构上给不出**的（100% vs 0%），⛔ 而我们没测 |
 | 3 | ⛔ 读透 **Stroebl 不可能性定理**原文 | ⭐ 它同时是 sound-oracle 路线的**杀手**与**出路** |
