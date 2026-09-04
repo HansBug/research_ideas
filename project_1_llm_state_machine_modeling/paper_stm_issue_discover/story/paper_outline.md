@@ -1,6 +1,6 @@
 # Paper1 唯一论文大纲
 
-本文件是 Paper1 唯一的规范论文大纲，按 [overleaf/sections/index.tex](../overleaf/sections/index.tex) 的十节顺序组织，给出可直接扩写的论文正文骨架、图表内容、证据落点与边界。数字来自 [v61 规范结果归档](../final_results/v61_source_divergence_vs_x1v2_baseline/README.md)：两臂全部报告由同一台经人工裁定校准的语义 judge 判定（§5.3），复算脚本为 [evaluate_full.py](../discover_matrix/docs/generations/v61/evaluate_full.py) 与 [evaluate_rq3.py](../discover_matrix/docs/generations/v61/evaluate_rq3.py)，输出在归档的 `derived/` 下；[v60 归档](../final_results/v60_current_vs_x1v2_baseline/README.md)保留全部人工裁定数据，只作仪器校准的参照与历史参照，其数字不再进入正文（现状分析与出路见 [analysis_and_options.md](../discover_matrix/docs/generations/v61/analysis_and_options.md)）；谓词资格来自[当前谓词审计](../related_work/provenance/predicate_provenance.md)；直接工作处置来自[最接近工作矩阵](../related_work/closest_work_matrix.md)；L/W/D 与对应关系的定义与学术锚点来自 issue [#189](https://github.com/HansBug/research_ideas/issues/189) 与 [#195](https://github.com/HansBug/research_ideas/issues/195)。上一版大纲保留在 [paper_outline.md.backup](./paper_outline.md.backup)，其数字已作废，只保留论述结构作历史参照；v60 人工口径的版本见本文件在提交 `1861969e7` 时的内容。
+本文件是 Paper1 唯一的规范论文大纲，按 [overleaf/sections/index.tex](../overleaf/sections/index.tex) 的十节顺序组织，给出可直接扩写的论文正文骨架、图表内容、证据落点与边界。数字来自 [v61 规范结果归档](../final_results/v61_source_divergence_vs_x1v2_baseline/README.md)：两臂全部报告由同一台经人工裁定校准的语义 judge 判定（§5.3），复算脚本与输出见脚注[^fair]；[v60 归档](../final_results/v60_current_vs_x1v2_baseline/README.md)只作仪器校准的参照，其数字不进入正文；现状分析、出路与代次间对照见 [analysis_and_options.md](../discover_matrix/docs/generations/v61/analysis_and_options.md)；谓词资格来自[当前谓词审计](../related_work/provenance/predicate_provenance.md)；直接工作处置来自[最接近工作矩阵](../related_work/closest_work_matrix.md)；L/W/D 与对应关系的定义与学术锚点来自 issue [#189](https://github.com/HansBug/research_ideas/issues/189) 与 [#195](https://github.com/HansBug/research_ideas/issues/195)。上一版大纲保留在 [paper_outline.md.backup](./paper_outline.md.backup)，其数字已作废，只保留论述结构作历史参照。
 
 投稿目标为 SANER 2027 Research Track：IEEE 双栏 10 页正文另加 2 页参考文献，全轨双盲，摘要截止 2026-09-21，正文截止 2026-09-25。英文为投稿语言，中文为内部伴生稿。
 
@@ -161,7 +161,7 @@ W1 的构件对应 Femmer 等对 requirements smell 的刻画：有具体定位�
 
 适配器对源特征有三种处置。支持片段：单区层次、初始/终止伪状态、事件触发、有限域守卫、变量赋值效果。失败关闭项：正交区、历史伪状态、时钟与时间事件、fork/join；不能投影的特征不会被静默丢弃，而是记为投影边界并进入 §6.2 的归因。**有损规范化**（lossy normalization）：能投影、但归一化会丢信息的记法层特征——例如把一条自由文本迁移标签解析为触发、守卫、效果三个槽位时，标签里并列的多个条件被折成一个事件 token，写错槽位的表达式被按槽位语义重解释；它不触发失败关闭（投影本身成功），因此不留边界记录。
 
-针对有损规范化，方法在投影之上建立**作者源索引**：每个 FCSTM 载体标注它由哪条作者行生成（作者拥有），或由编译器为闭合语义补出（编译器拥有，例如复合态的默认初始迁移、跨作用域路由的令牌变量）。作者源索引支撑两道机制：**载体归属门**（carrier-attribution gate）——谓词与领域不变式只在作者拥有的载体上执行，编译器载体上的候选记为 `skipped_compiler_owned_carrier`，不进入发现；**源–语义分歧审计**（§4.3）——投影语义与作者记法不一致之处不被静默归一，而是作为独立的确定性候选发布。
+针对有损规范化，方法在投影之上建立**作者源索引**：每个 FCSTM 载体标注它由哪条作者行生成（作者拥有），或由编译器为闭合语义补出（编译器拥有，例如复合态的默认初始迁移、跨作用域路由的令牌变量）。作者源索引支撑两道机制：**载体归属门**（carrier-attribution gate）——谓词与领域不变式只在作者拥有的载体上执行，编译器载体上的候选记为「编译器载体跳过」，不进入发现；**源–语义分歧审计**（§4.3）——投影语义与作者记法不一致之处不被静默归一，而是作为独立的确定性候选发布。
 
 **输入闭包。** 方法读取的全部输入是：描述原文；PlantUML 原文；规范化源中间表示（保留作者写的每个载体及其行号，不做语义归一）；FCSTM；确定性检查事实；来源追踪（源载体 → 中间表示元素 → FCSTM 元素的三层映射）；工作约定（声明的支持片段与失败关闭项）。所有输入由清单与哈希固定，方法不读取台账、评测裁定或历史报告。
 
@@ -169,7 +169,7 @@ W1 的构件对应 Femmer 等对 requirements smell 的刻画：有具体定位�
 
 ### 4.3 C1（下）：确定性检查事实
 
-在 FCSTM 上运行确定性检查，产出结构、拓扑与运行三类事实：结构事实（声明清单、槽位占用、叶态出度、守卫重叠）、拓扑事实（从初始配置的可达集、无退出叶态如 `W_LEAF_NO_OUTGOING_TRANSITION`、跨层路由）、运行事实（有界宏步前沿，即从初始配置起若干宏步内可达的配置集合；事件消费者集合）。这些事实不产生新的义务——义务只来自描述——它们只把源文本里不稳定呈现的信息变成可引用的对象。事实随来源映射一起进入发现阶段的上下文。
+在 FCSTM 上运行确定性检查，产出结构、拓扑与运行三类事实：结构事实（声明清单、槽位占用、叶态出度、守卫重叠）、拓扑事实（从初始配置的可达集、无退出叶态、跨层路由）、运行事实（有界宏步前沿，即从初始配置起若干宏步内可达的配置集合；事件消费者集合）。这些事实不产生新的义务——义务只来自描述——它们只把源文本里不稳定呈现的信息变成可引用的对象。事实随来源映射一起进入发现阶段的上下文。
 
 以图 1 为例，检查事实会给出：`temp` 的写者集合 $\{Running \to Cooldown\}$；`Cooldown` 出边守卫的自由变量 $\{temp\}$；从初始配置出发的可达叶态 $\{Idle, Running, Cooldown\}$；无退出叶态集合为空（`Cooldown` 有一条出边，静态上不是死端——这正是 L1 事实与 L2 问题的分界：出度非零，但守卫沿轨迹恒假）。事实以结构化 JSON 进入上下文，每条带 canonical code、涉及元素的来源行号与一句英文说明；prompt 明确告知模型这些是事实而非缺陷，缺陷判断必须回到描述。
 
@@ -225,7 +225,7 @@ prompt 纪律写进论文：所有阶段只使用提供的上下文清单；每�
 | V4 | `deadlock_free` | 每个可达、稳定、非终止配置都允许模型进展（以叶状态一步探测实现） | 初始范围、稳定配置 | 有界验证 | 只覆盖探测到的叶状态片段；不同于终止 |
 | V5 | `state_invariant` | 每个可达配置满足指定状态的期望占据值（有限界内） | 状态、期望占据值、初始范围、界 | 有界验证 | 有界 `false` 为无界不变式的单向反例；`true` 只说明界内通过 |
 
-四族的解释范围：S 族是声明片段上的静态检查，按 UML 2.5.1 的复合态进入语义，涉及复合态端点的 S2 在其祖先闭包上求值；G 族在忽略守卫与数据的拓扑投影上求值，该投影是迁移关系的过近似——全称方向的 `false`（如 G1 无路径）健全，存在方向的 `false`（G2、G4）依赖该路径在真实语义下可行，论文只在 §4.6 与 §8 各用一句说明这一点，不新增见证类别，不补实验；R 族是宏步与回放定义的运行片段，数据感知；V 族经 `.fbmcq` 编译，带变量，是有限域、界限与极性限定的查询。R2 另有两条前置：冷前缀（cold prefix，从初始配置开始、不带任何前置刺激的执行前缀）必须实际到达刺激序列的源状态，否则回执记为撤回（withhold）；模型含跨作用域路由令牌时 R2 前沿整体撤回，因为路由令牌是编译器载体而非作者写的守卫。
+四族的解释范围：S 族是声明片段上的静态检查，按 UML 2.5.1 的复合态进入语义，涉及复合态端点的 S2 在其祖先闭包上求值；G 族在忽略守卫与数据的拓扑投影上求值，该投影是迁移关系的过近似——全称方向的 `false`（如 G1 无路径）健全，存在方向的 `false`（G2、G4）依赖该路径在真实语义下可行，论文只在 §4.6 与 §8 各用一句说明这一点，不新增见证类别，不补实验；R 族是宏步与回放定义的运行片段，数据感知；V 族编译为带变量的有界模型检查查询，是有限域、界限与极性限定的查询。R2 另有两条前置：冷前缀（cold prefix，从初始配置开始、不带任何前置刺激的执行前缀）必须实际到达刺激序列的源状态，否则回执记为撤回（withhold）；模型含跨作用域路由令牌时 R2 前沿整体撤回，因为路由令牌是编译器载体而非作者写的守卫。
 
 ### 4.6 C2（下）：执行、回执与 W2 条件
 
@@ -235,9 +235,9 @@ $W2(f) \iff F(f) \land B(f) \land I(f) \land Q(f) \land E(f)$
 
 其中 $F$ 是受支持片段，$B$ 是精确实例绑定，$I$ 是 pair/obligation/plan/model/program/receipt 的精确身份链，$Q$ 是非空且可核验的描述引文、源引用与绑定引用，$E$ 是完成的原生布尔回执。任一条件缺失时，定位明确的候选保留为 W1。`unknown`（求值完成但未取得不合规证据）对应 Tretmans 的 `inconclusive`；`failure` 与超时是未完成求值，无 verdict。`unknown` 与未完成求值都不算机械证实。终止回执分 `violation`（`false` 极性）与 `pass`（义务被满足或前置探测通过，不产生发现）两种，条数与达 W2 的报告数在 §6.3 报告。因果折叠的子主张保留各自回执，但根报告的 W 只取根自身的回执，论文对命中单元同时报两种口径（§5.6）。前四个条件在 §4.4 阶段 3 之前拦下的候选数进附录 B。极性资格另限定可写的最强命题：G2 的有界 `must_reach` 只支持声明界内的必达；V4 只覆盖一步探测所触及的叶状态片段，不覆盖其余可达配置；V5 的有界 `false` 是不变式的单向反例，有界 `true` 只说明界内通过；G2、G4 与 V4 在忽略守卫的拓扑投影或叶探测片段上求值，其 `false` 是相对该抽象的反例。**证据充分性原则**：路由选最弱的健全见证——一个有来源依据的 `false` 或一条具体反例已足以建立缺陷证据；静态证据已闭合时，不为了形式上的完整性而升级到轨迹仿真或有界验证。§6.3 用这条原则解释谓词的使用分布。[^predicate][^tretmans]
 
-**回执字段。** 每份回执记录：pair 与 obligation 标识；谓词 ID 与极性；类型化输入（元素引用均为 FCSTM 元素 ID，可经来源映射回到源行）；编译程序哈希；被求值模型哈希；后端与版本；布尔结果或失败阶段（`unsupported_fragment` / `binding_incomplete` / `load_failure` / `timeout` / `replay_mismatch`）；轨迹或反例；回放命令。回放在同一模型哈希上重跑同一程序并比对结果，不一致即 `replay_mismatch`。
+**回执字段。** 每份回执记录：pair 与 obligation 标识；谓词 ID 与极性；类型化输入（元素引用均为 FCSTM 元素 ID，可经来源映射回到源行）；编译程序哈希；被求值模型哈希；后端与版本；布尔结果或失败阶段（不受支持片段、绑定不完整、加载失败、超时、回放不一致）；轨迹或反例；回放命令。回放在同一模型哈希上重跑同一程序并比对结果，不一致即记为回放不一致。
 
-**失败归因分层。** 方法把根源不在作者源上的问题分三类记录：编译器载体（谓词或不变式在编译器补出的载体上报出的现象，由载体归属门在执行前拦下并记为 `skipped_compiler_owned_carrier`）、投影/追踪边界（源载体到 FCSTM 元素映射不完整或不受支持片段）、运行时/证据闭合（执行完成但身份链、引用或回放未闭合）。这些记录随报告一起发布；评测阶段对已经发布、且把方法内部表示状态归给作者源的主张，判为非缺陷主张（§5.2 的 `NOT_A_DEFECT_CLAIM`，§6.2 报告条数）。
+**失败归因分层。** 方法把根源不在作者源上的问题分三类记录：编译器载体（谓词或不变式在编译器补出的载体上报出的现象，由载体归属门在执行前拦下并记为「编译器载体跳过」）、投影/追踪边界（源载体到 FCSTM 元素映射不完整或不受支持片段）、运行时/证据闭合（执行完成但身份链、引用或回放未闭合）。这些记录随报告一起发布；评测阶段对已经发布、且把方法内部表示状态归给作者源的主张，判为非缺陷主张（§5.2 的 `NOT_A_DEFECT_CLAIM`，§6.2 报告条数）。
 
 <a id="outline-5"></a>
 ## 5. 研究设计
@@ -275,9 +275,9 @@ $W2(f) \iff F(f) \land B(f) \land I(f) \land Q(f) \land E(f)$
 
 两维分开裁。维度 A 是对应关系（relation）：`FULL_MATCH` 表示候选与预期问题描述同一缺陷实例、根因或被违反义务，允许措辞、抽象层级与证据形式不同，复合台账中一个独立且有诊断性的核心 facet 即可；`PARTIAL_MATCH` 表示真实但局部或间接的关系，不足以确定同一缺陷身份；`NO_MATCH` 表示不属于同一缺陷。维度 B 是报告有效性：先裁核心主张成立与否，成立且至少有一个 FULL/PARTIAL 为 `VALID_KNOWN`，成立且全部 NO 为 `VALID_NOVEL`，不成立为 `INVALID`。执行顺序：先裁有效性；`INVALID` 的全部关系直接闭合为 NO；有效者再逐条预期问题裁 FULL/PARTIAL/NO；程序据此确定性派生记账类别（bookkeeping category，K/N/I）。W 不进入匹配函数：W1 自由文本只要有具体 `where` 与可审计 `reason/basis` 就可以 FULL，这是基线可以公平参评的必要条件。学术锚点：MCeT 的 same-root-cause equivalence 与 new true issue；NIST SATE 的 directly/indirectly related finding；Pearson 等的 best-case 故障定位；Martinez 等的语义/修复等价；Porter 等的 known-fault 与 false positive；Klees 等的 distinct bug。写明这套两维枚举是本文综合先例形成的操作化，不是某篇文献逐字给出的。[^mcet][^sate][^pearson][^martinez][^porter][^klees]
 
-**仪器：校准的语义 judge。** 两维裁定由一台语义 judge 执行，其模型与两臂所用模型相同，为 `gpt-5.6-luna`，配置 `semantic-judge.two-stage.v3.11`。输入为描述原文、作者 PlantUML 原文、被判报告与台账条目；作者源为承重事实的唯一依据，FCSTM、类型化载体与投影状态只能佐证。每条报告两次独立读数，任一维度分歧即进入第三次仲裁读数；先裁有效性与 D/A，再裁对应关系。闭合规则为 relation-first：核心事实在作者源上成立（即非 A0，既非 `FALSE_POSITIVE` 也非 `NOT_A_DEFECT_CLAIM`）且与任一台账条目 FULL 或 PARTIAL 关联的报告闭合为 `VALID_KNOWN`，即使其 D 档为 D0（方法的 561 条 K 里 81 条、基线 293 条里 24 条为 D0）；无关联者按 D2/D1 为 `VALID_NOVEL`、D0/A0 为 `INVALID`。提示词不含输入对编号、台账标识或臂名。
+**仪器：校准的语义 judge。** 两维裁定由一台语义 judge 执行，其模型与两臂所用模型相同，为 `gpt-5.6-luna`（配置标识见脚注[^judge_cal]）。输入为描述原文、作者 PlantUML 原文、被判报告与台账条目；作者源为承重事实的唯一依据，FCSTM、类型化载体与投影状态只能佐证。每条报告两次独立读数，任一维度分歧即进入第三次仲裁读数；先裁有效性与 D/A，再裁对应关系。闭合规则为 relation-first：核心事实在作者源上成立（即非 A0，既非 `FALSE_POSITIVE` 也非 `NOT_A_DEFECT_CLAIM`）且与任一台账条目 FULL 或 PARTIAL 关联的报告闭合为 `VALID_KNOWN`，即使其 D 档为 D0（方法的 561 条 K 里 81 条、基线 293 条里 24 条为 D0）；无关联者按 D2/D1 为 `VALID_NOVEL`、D0/A0 为 `INVALID`。提示词不含输入对编号、台账标识或臂名。
 
-**校准与验证。** 配置在一份 301 条的分层校准子集（方法侧 201、基线侧 100，按人工冻结裁定分层抽样；这 100 条取自本文评测的同一批 512 条基线报告，见 §8）上经九轮迭代比较，采用第六轮配置；子集偏向易翻转层，其上一致率为 68.2% 与 66.0%。验证集是 1783 条经人工逐条裁定的报告：基线侧 512 条即本文评测的同一批基线报告；方法侧 1271 条由本方法开发期一个较早配置在同一 54 对 × 3 轮上产生，报告构成与本文不同（不含分歧检查族与因果折叠）。这些人工裁定按 §5.2 的协议逐条作出，裁定者为一人、与台账标注者同为一人，裁定时可见描述、源制品、报告与台账并知晓臂别，配有独立盲提案与解盲仲裁记录；无第二裁定者与一致性统计。排除校准子集后的留出行上，逐报告 K/N/I 一致率为方法侧 76.6%（820/1070）、基线侧 78.2%（322/412），有效率偏移（judge 减人工）为方法侧 −9.5 pp、基线侧 +1.7 pp；全部行上为 75.3%（957/1271）与 75.8%（388/512），聚合偏移为方法侧报告级精确率 −5.9 pp、FULL `hit@1` −18 单元，基线侧分别为 +2.0 pp 与 −2 单元；按 L 分层的 `hit@1` 偏移为方法侧 L0/L1/L2 −8/−5/−5 单元、基线侧 +2/+1/−5 单元。
+**校准与验证。** 配置在一份 301 条的分层校准子集（方法侧 201、基线侧 100，按人工冻结裁定分层抽样；这 100 条取自本文评测的同一批 512 条基线报告，见 §8）上经九轮迭代比较后选定当前配置；子集偏向易翻转层，其上一致率为 68.2% 与 66.0%。验证集是 1783 条经人工逐条裁定的报告：基线侧 512 条即本文评测的同一批基线报告；方法侧 1271 条由本方法开发期一个较早配置在同一 54 对 × 3 轮上产生，报告构成与本文不同（不含分歧检查族与因果折叠）。这些人工裁定按 §5.2 的协议逐条作出，裁定者为一人、与台账标注者同为一人，裁定时可见描述、源制品、报告与台账并知晓臂别，配有独立盲提案与解盲仲裁记录；无第二裁定者与一致性统计。排除校准子集后的留出行上，逐报告 K/N/I 一致率为方法侧 76.6%（820/1070）、基线侧 78.2%（322/412），有效率偏移（judge 减人工）为方法侧 −9.5 pp、基线侧 +1.7 pp；全部行上为 75.3%（957/1271）与 75.8%（388/512），聚合偏移为方法侧报告级精确率 −5.9 pp、FULL `hit@1` −18 单元，基线侧分别为 +2.0 pp 与 −2 单元；按 L 分层的 `hit@1` 偏移为方法侧 L0/L1/L2 −8/−5/−5 单元、基线侧 +2/+1/−5 单元。
 
 **读法。** 留出行是较干净的估计：方法侧有效率偏移 −9.5 pp、基线侧 +1.7 pp。全部行上的方法侧偏移为 −5.9 pp，比留出行温和，差额来自偏向易翻转层的校准子集（该子集上方法侧偏移反号，为 +13.4 pp）；`hit@1` 的单元偏移只能在全部行上计算——去掉 201 条报告后轮次级单元不再可复算——因此下文引用的 −18 单元与 −8/−5/−5 均为全部行口径，是两个估计中对方法更温和的一个。在偏移方向于本次报告上仍成立的前提下，按 judge 报告的两臂差距是人工口径下的保守估计；但方法侧偏移测自一批报告构成不同的报告（不含分歧检查族与因果折叠，而这两族在本次运行中分别为 77 条报告与 108 条折叠根），方向可以参照，量级不能作为本次运行的定量校正，定量校正需要在本次报告上重做人工裁定（§8）。报告级精确率的 0.65 pp 差本身小于两侧偏移的量级，因此只能读作持平。§2.4 引用的 LLM-as-a-Judge 自评限制指的是让模型为自己的输出自报有效性；本文的 judge 与两臂共享模型但不共享上下文与任务，在独立的人工裁定集上校准并报告偏移；发布阶段的语义筛选与评测 judge 同属一个模型家族，这一耦合列入 §8。本次方法侧 903 条报告的判定没有人工复核，这是 §8 的首要威胁。[^judge_cal]
 
@@ -334,7 +334,7 @@ X1v2：同模型 `gpt-5.6-luna`、同 54 个输入对、同 3 轮、单 prompt�
 
 覆盖的提升集中在 L2，L0 次之，L1 持平；三个口径同向。
 
-**表 7：主结果（整体与按 L 分层）。** 全部数字由 [evaluate_rq3.py](../discover_matrix/docs/generations/v61/evaluate_rq3.py) 从归档的两臂 judge 判定与台账 L 分层复算，输出见 [evaluate_rq3_output.txt](../final_results/v61_source_divergence_vs_x1v2_baseline/derived/evaluate_rq3_output.txt)。
+**表 7：主结果（整体与按 L 分层）。** 全部数字从归档的两臂 judge 判定与台账 L 分层复算，来源见脚注[^fair]。
 
 | 层 | n | FULL `hit@1` 方法 / 基线 | FULL `hit@3` 方法 / 基线 | FULL `hit@all` 方法 / 基线 |
 | --- | ---: | --- | --- | --- |
@@ -401,7 +401,7 @@ W 的口径必须固定：W2 表示报告所附的可执行主张已在工作表
 
 ### 6.4 成本（独立于研究问题）
 
-方法侧 54 × 3 共 162 格的全量运行总计 `$7.49`（825 次阶段调用，含 `0045` 第 1 轮在契约提取阶段耗尽轮次上限而失败的一格），该格的重采样运行另计 `$0.06`（1 格），两次运行合计约 `$7.55`（§5.7 的口径只计方法侧推理调用，不含评测），每格约 `$0.047`，每输入对三轮约 `$0.14`；基线侧 `method_cost_eligible=false`（有一次计费 schema 重试没有留下 usage 回执），其记录小计 `$0.225` 是下界而非可比总额。成本由运行框架按 §5.7 的单价，从逐调用的 usage 回执累加得到；token 分项待从调用审计汇总后补进附录 C。基线小计是下界，因此任何据此算出的倍率只能读作上界；论文不给倍率。人工复核成本不在三个研究问题之内。W2 回执的设计目的是降低这项成本，但本研究没有测量，只能作为 §7 的假设。[^cost]
+方法侧 54 × 3 共 162 格的全量运行总计 `$7.49`（含 `0045` 第 1 轮失败的一格），该格的重采样运行另计 `$0.06`，两次运行合计约 `$7.55`（§5.7 的口径只计方法侧推理调用，不含评测），每格约 `$0.047`，每输入对三轮约 `$0.14`；基线侧的成本记录不完整（一次重试没有留下用量回执），其小计 `$0.225` 是下界而非可比总额。成本按 §5.7 的单价从逐调用的用量回执累加得到，token 分项进附录 C。基线小计是下界，因此任何据此算出的倍率只能读作上界；论文不给倍率。人工复核成本不在三个研究问题之内。W2 回执的设计目的是降低这项成本，但本研究没有测量，只能作为 §7 的假设。[^cost]
 
 ### 6.5 RQ4（条件性）
 
@@ -410,7 +410,7 @@ W 的口径必须固定：W2 表示报告所附的可执行主张已在工作表
 <a id="outline-7"></a>
 ## 7. 讨论
 
-**7.1 表示层的代价与对策（机制假设）。** §6.1 的 L2 收益与 §6.2 的 NADC 可以由同一机制的两个方向解释：可执行表示暴露了文本里看不出的结构与行为事实，也可能产生对作者源不成立的主张。方法用作者源索引把第二个方向变成可控的设计问题：谓词只在作者拥有的载体上执行，投影与作者记法的分歧作为独立检查发布而不是被静默归一，残余的非缺陷主张为 15 条（占无效报告的 10.4%、占全部报告的 1.7%）。两个方向都没有成对开关，这是与数据相容的解释而非已识别的因果。在 FCSTM 而非源文本上求值是这类方法的固有限制，与 §2.3 的 spurious counterexample 同源；两层都写在方法节，不留到讨论节事后解释。【内部】对前一代实现的同仪器对照（NADC 58 → 15）只写在 [analysis_and_options.md](../discover_matrix/docs/generations/v61/analysis_and_options.md)，不进论文。
+**7.1 表示层的代价与对策（机制假设）。** §6.1 的 L2 收益与 §6.2 的 NADC 可以由同一机制的两个方向解释：可执行表示暴露了文本里看不出的结构与行为事实，也可能产生对作者源不成立的主张。方法用作者源索引把第二个方向变成可控的设计问题：谓词只在作者拥有的载体上执行，投影与作者记法的分歧作为独立检查发布而不是被静默归一，残余的非缺陷主张为 15 条（占无效报告的 10.4%、占全部报告的 1.7%）。两个方向都没有成对开关，这是与数据相容的解释而非已识别的因果。在 FCSTM 而非源文本上求值是这类方法的固有限制，与 §2.3 的 spurious counterexample 同源；两层都写在方法节，不留到讨论节事后解释。
 
 **7.2 证据充分性、谓词词表与发布层的取舍。** 绑定到报告的 8/19 与证据充分性原则一致：未使用的谓词大多对应「精确但过强」的形态；R2 的零有效绑定是前置规则的结果（在带路由令牌的模型上撤回）；S1 只产生两条绑定且均无效，样本过小，不支撑语料层解释。图 1 的小例子刻意构造成拓扑族无解，以说明谓词词表为何必须覆盖轨迹族；在本语料的 54 个输入对上这一形态罕见，L2 的命中实际由检查事实、拓扑族与 V4 承载，R 族未绑定任何最终报告——这是语料性质，不是词表的可弃部分。分歧检查与因果折叠是本方法的两个发布层选择，各有可测的代价：前者把 50 个命中单元留在 W1，后者把带回执的症状并入 W1 根报告；两者都是可逆的记账选择，不改变发现本身，论文在此写明并把「为分歧检查注册回执」与「收窄折叠范围」列为后续工作。这也界定了 C2 的角色——它确认发现，不替代发现；没有适用谓词的发现仍以 W1 发布。
 
@@ -421,7 +421,7 @@ W 的口径必须固定：W2 表示报告所附的可执行主张已在工作表
 <a id="outline-8"></a>
 ## 8. 有效性威胁
 
-**构念与内部。** 报告级精确率、FULL 对应关系、W 与 K/N/I 对应不同对象。评测仪器是校准的语义 judge：方法侧 903 条报告没有人工复核，基线侧 512 条另有完整人工裁定但按 judge 口径报告。judge 在 1783 条人工裁定报告上的逐报告一致率为 75.3% 与 75.8%（排除校准子集后 76.6% 与 78.2%），有效率偏移（留出行 −9.5 pp 与 +1.7 pp，全部行 −5.9 pp 与 +2.0 pp，本文引用后者）对方法不利、对基线接近中性；`hit@1` 偏移为方法侧 −18 单元（按 L −8/−5/−5）、基线侧 −2 单元（+2/+1/−5）。因此两臂差距按人工口径更可能被低估而非高估；L2 差距在两臂的 L2 单元偏移同为 −5 的意义下稳健，但两个 −5 分别在不同报告构成上测得（方法侧为开发期配置的 1271 条），等值支持方向性判断，不支持逐单元的定量校正。judge 配置的选择集含 100 条基线报告，它们同时属于本文评测的 512 条基线报告，因此基线侧约五分之一的判定是仪器调参的样本内数据，方法侧 903 条不在任何调参集内；该不对称使仪器对基线报告分布的拟合优于对方法报告分布的拟合，方向上不利于方法，但仍是未消除的构念威胁。judge 的人工金标准与 145 条台账由同一人产出，台账口径与仪器校准口径不完全独立。未做同配置整轮重跑，整轮级复现噪声未测量（两读分歧率见附录 C）；方法侧偏移在报告构成不同的一批报告上估计，不能当作本次运行的定量校正。judge 可能偏好方法侧结构化报告的形态，人工对照上的偏移方向恰好相反（方法侧 −5.9 pp、基线侧 +2.0 pp），与偏好方法侧的假设不相容，但未单独设计文体对照实验；两臂报告数为 903 对 512，同一逐报告错误率会在方法侧产生更多绝对误判；发布阶段的语义筛选与评测 judge 同属一个模型家族。judge 的 relation-first 闭合把 D0 且有台账关联的报告计为 K，§6.2 给出只计 D2/D1 的敏感性。145 条台账由单人标注、无一致性统计，不是缺陷全集；台账外仍有真实问题（198 条 `VALID_NOVEL` 报告，未做跨轮与跨臂归并，因此该数不反映相异问题数）。`0045` 第 1 轮为契约提取阶段耗尽轮次上限失败后的重采样格，原失败回执随归档保留。发表层对回执引文完整性（条件 $Q$）的逐条审计未在本次运行上重做，报告级 W2 以程序判定为准。C1 的端到端差异包含转换、检查事实、分歧检查与 C2 的耦合，未做成对分离。基线为单 prompt 单次采样，方法侧多阶段、多次调用，本设计不能把发现差异与提示工程投入或推理预算差异分离；两者的绝对成本见 §6.4，基线记录为下界，本文不给倍率。【内部】是否补预算匹配或自一致基线，待与导师讨论。**统计。** 435 个单元嵌套于 54 个制品与 9 个描述簇，只作描述性比较。**语义。** W2 在 FCSTM 上求值，存在 spurious counterexample 的风险，残余以 NADC 计数；拓扑族与叶探测在忽略守卫的投影上求值，存在方向的 `false` 是相对该抽象的反例；G2、V4、V5 的有界解释不得写成无界证明；分歧检查陈述的是作者记法与工具语义的不一致，其义务仍需描述支撑。**外部。** 单适配器（PlantUML）、单上游数据源、单模型；语料是上游三道反馈后的输出，浅层缺陷已被前置清除，结论不外推到原始生成输出；不外推到其他建模语言或其他大语言模型。**相关工作。** 对 Li 与 Zheng 工作的 L 映射由本文作出，只界定问题深度，不评价其学术价值。[^fair][^judge_cal][^predicate][^li_zheng]
+**构念与内部。** 报告级精确率、FULL 对应关系、W 与 K/N/I 对应不同对象。评测仪器是校准的语义 judge：方法侧 903 条报告没有人工复核，基线侧 512 条另有完整人工裁定但按 judge 口径报告。judge 在 1783 条人工裁定报告上的逐报告一致率为 75.3% 与 75.8%（排除校准子集后 76.6% 与 78.2%），有效率偏移（留出行 −9.5 pp 与 +1.7 pp，全部行 −5.9 pp 与 +2.0 pp，本文引用后者）对方法不利、对基线接近中性；`hit@1` 偏移为方法侧 −18 单元（按 L −8/−5/−5）、基线侧 −2 单元（+2/+1/−5）。因此两臂差距按人工口径更可能被低估而非高估；L2 差距在两臂的 L2 单元偏移同为 −5 的意义下稳健，但两个 −5 分别在不同报告构成上测得（方法侧为开发期配置的 1271 条），等值支持方向性判断，不支持逐单元的定量校正。judge 配置的选择集含 100 条基线报告，它们同时属于本文评测的 512 条基线报告，因此基线侧约五分之一的判定是仪器调参的样本内数据，方法侧 903 条不在任何调参集内；该不对称使仪器对基线报告分布的拟合优于对方法报告分布的拟合，方向上不利于方法，但仍是未消除的构念威胁。judge 的人工金标准与 145 条台账由同一人产出，台账口径与仪器校准口径不完全独立。未做同配置整轮重跑，整轮级复现噪声未测量（两读分歧率见附录 C）；方法侧偏移在报告构成不同的一批报告上估计，不能当作本次运行的定量校正。judge 可能偏好方法侧结构化报告的形态，人工对照上的偏移方向恰好相反（方法侧 −5.9 pp、基线侧 +2.0 pp），与偏好方法侧的假设不相容，但未单独设计文体对照实验；两臂报告数为 903 对 512，同一逐报告错误率会在方法侧产生更多绝对误判；发布阶段的语义筛选与评测 judge 同属一个模型家族。judge 的 relation-first 闭合把 D0 且有台账关联的报告计为 K，§6.2 给出只计 D2/D1 的敏感性。145 条台账由单人标注、无一致性统计，不是缺陷全集；台账外仍有真实问题（198 条 `VALID_NOVEL` 报告，未做跨轮与跨臂归并，因此该数不反映相异问题数）。`0045` 第 1 轮为契约提取阶段耗尽轮次上限失败后的重采样格，原失败回执随归档保留。发表层对回执引文完整性（条件 $Q$）的逐条审计未在本次运行上重做，报告级 W2 以程序判定为准。C1 的端到端差异包含转换、检查事实、分歧检查与 C2 的耦合，未做成对分离。基线为单 prompt 单次采样，方法侧多阶段、多次调用，本设计不能把发现差异与提示工程投入或推理预算差异分离；两者的绝对成本见 §6.4，基线记录为下界，本文不给倍率。**统计。** 435 个单元嵌套于 54 个制品与 9 个描述簇，只作描述性比较。**语义。** W2 在 FCSTM 上求值，存在 spurious counterexample 的风险，残余以 NADC 计数；拓扑族与叶探测在忽略守卫的投影上求值，存在方向的 `false` 是相对该抽象的反例；G2、V4、V5 的有界解释不得写成无界证明；分歧检查陈述的是作者记法与工具语义的不一致，其义务仍需描述支撑。**外部。** 单适配器（PlantUML）、单上游数据源、单模型；语料是上游三道反馈后的输出，浅层缺陷已被前置清除，结论不外推到原始生成输出；不外推到其他建模语言或其他大语言模型。**相关工作。** 对 Li 与 Zheng 工作的 L 映射由本文作出，只界定问题深度，不评价其学术价值。[^fair][^judge_cal][^predicate][^li_zheng]
 
 <a id="outline-9"></a>
 ## 9. 结论
@@ -442,7 +442,7 @@ W 的口径必须固定：W2 表示报告所附的可执行主张已在工作表
 
 **附录 C：完整结果。** 按 L、轮次、预期问题与报告单位的完整分层表；逐轮 FULL 命中（方法 113/98/112、基线 75/71/79；按 L：L0 54/47/52 对 35/35/38，L1 26/21/26 对 25/22/25，L2 33/30/34 对 15/14/16）；有支撑覆盖（轮次级单元：方法 `355/435` 对基线 `257/435`；条目级：方法 `135/145` 对基线 `117/145`）；基线侧按其完整人工裁定的口径为报告级精确率 `417/512=81.45%`、FULL `hit@1` `227/435`、`hit@3` `106/145`、`hit@all` `46/145`（与 judge 口径的 83.40%、225、105、47 并列，说明按 judge 报告基线不吃亏）；N 报告组成；无效报告的 D0/`FALSE_POSITIVE`/NADC 构成与最大家族；谓词 × 极性 × 绑定的逐行表；judge 的两读分歧与仲裁比例；成本逐项。每张表含分子、分母、来源指针与解释范围。[^fair][^cost][^attribution]
 
-**表 C.1：L1 的 35 条逐条对照。** 命中轮数为 K 报告 FULL 匹配该条目的轮数（0–3）；「方法侧命中报告族」列出命中该条目的方法报告所绑定的谓词 ID，`DIV` 为分歧检查报告，`SEM` 为无谓词绑定的语义候选报告。方法赢 10、基线赢 9、平 16。表由 [evaluate_rq3.py](../discover_matrix/docs/generations/v61/evaluate_rq3.py) 生成（[appendix_c1_l1_table.md](../final_results/v61_source_divergence_vs_x1v2_baseline/derived/appendix_c1_l1_table.md)）。
+**表 C.1：L1 的 35 条逐条对照。** 命中轮数为 K 报告 FULL 匹配该条目的轮数（0–3）；「方法侧命中报告族」列出命中该条目的方法报告所绑定的谓词 ID，`DIV` 为分歧检查报告，`SEM` 为无谓词绑定的语义候选报告。方法赢 10、基线赢 9、平 16。表由归档的复算脚本生成[^fair]。
 
 | 条目 | 方法命中轮数 | 基线命中轮数 | L 依据（摘） | 方法侧命中报告族 |
 | --- | ---: | ---: | --- | --- |
@@ -485,7 +485,7 @@ W 的口径必须固定：W2 表示报告所附的可执行主张已在工作表
 <a id="outline-references"></a>
 ## 参考文献
 
-[^fair]: v61 versus X1v2 baseline canonical archive (judge-scored, both arms). `final_results/v61_source_divergence_vs_x1v2_baseline/README.md`, raw judge cells under `raw/judge_v3.11_iter6cfg/{current-*,baseline-*}/pairs/`, derived tables under `derived/` (`evaluate_full_output.txt`, `evaluate_rq3_output.txt`, `v61_all_reports.tsv`, `ledger_hits_v61_v60_baseline.tsv`), 2026-09-04. Stable repository artifacts.
+[^fair]: v61 versus X1v2 baseline canonical archive (judge-scored, both arms). `final_results/v61_source_divergence_vs_x1v2_baseline/README.md`, raw judge cells under `raw/judge_v3.11_iter6cfg/{current-*,baseline-*}/pairs/`, derived tables under `derived/` (`evaluate_full_output.txt`, `evaluate_rq3_output.txt`, `appendix_c1_l1_table.md`, `v61_all_reports.tsv`, `ledger_hits_v61_v60_baseline.tsv`), recomputed by `discover_matrix/docs/generations/v61/evaluate_full.py` and `evaluate_rq3.py`, 2026-09-04. Stable repository artifacts.
 [^cost]: v61 method cost from the run summaries. `final_results/v61_source_divergence_vs_x1v2_baseline/raw/v61_current/method/summary.json` (`metrics.cost.method_usd = 7.4903`, 162 cells, 825 stage calls) and `raw/v61_current_fill0045/summary.json` (`0.0616`, 1 cell), 2026-09-04. Baseline lower bound: `final_results/v60_current_vs_x1v2_baseline/derived/final_talk_cost_section7_v1/cost_summary_v1.json`.
 [^attribution]: v61 invalid-report composition (D0 / FALSE_POSITIVE / NOT_A_DEFECT_CLAIM by predicate and property). `final_results/v61_source_divergence_vs_x1v2_baseline/derived/evaluate_rq3_output.txt` and `derived/per_predicate_and_ledger_report.txt`, 2026-09-04. The v60 four-way NADC overlay (`final_results/v60_current_vs_x1v2_baseline/derived/conversion_attribution_v1/`) is retained as historical evidence only.
 [^predicate]: Paper1 predicate provenance audit. `related_work/provenance/predicate_provenance.md`, 2026-09-02. This points to the audited external primary sources, not to a local citation substitute.
@@ -496,7 +496,7 @@ W 的口径必须固定：W2 表示报告所附的可执行主张已在工作表
 [^li_zheng]: Haibo Li and Lixiao Zheng. “Enhancing Requirements via Structured Formalization and Process-State Consistency Validation: An LLM-Assisted Test-Driven Framework.” *IET Software*, 2025, 2025(1), Article 6714956. https://doi.org/10.1049/sfw2/6714956.
 [^mcet]: Khaled Ahmed, Jialing Song, Ou Wei, Bingzhou Zheng, and Boqi Chen. “MCeT: Behavioral Model Correctness Evaluation using Large Language Models.” *MODELS*, 2025, pp. 84--95. https://doi.org/10.1109/MODELS67397.2025.00014.
 [^pubw]: v61 W-on-hits and predicate usage. `final_results/v61_source_divergence_vs_x1v2_baseline/derived/evaluate_rq3_output.txt`, 2026-09-04: FULL-hit units `0/196/127` (root-report reading) and `0/186/137` (including folded sub-claim receipts) on 323 units; report-level `0/636/267` on 903 reports; 12/19 predicate IDs with terminal receipts, 8/19 bound to reports, 7/19 bound to valid reports. The v60 publication W audit (`related_work/provenance/publication_w_audit.json`) is retained as historical evidence only.
-[^judge_cal]: Paper1 semantic-judge calibration workspace. `judge/calibration/README.md` (protocol, 301-report stratified subset: 201 method-side / 100 baseline-side), `judge/calibration/results/iterations_summary.md` (nine calibration iterations against the human gold; the sixth configuration was adopted), and `judge/calibration/results/full_v3.11_3a1ba5cf1/README.md` (full-population validation against the v60 human adjudication: per-report K/N/I agreement 957/1271 and 388/512; aggregate offsets), 2026-09-04. Judge run manifests are archived with the v61 results.
+[^judge_cal]: Paper1 semantic-judge calibration workspace (adopted configuration `semantic-judge.two-stage.v3.11`, the sixth of nine calibration iterations). `judge/calibration/README.md` (protocol, 301-report stratified subset: 201 method-side / 100 baseline-side), `judge/calibration/results/iterations_summary.md` (nine calibration iterations against the human gold; the sixth configuration was adopted), and `judge/calibration/results/full_v3.11_3a1ba5cf1/README.md` (full-population validation against the v60 human adjudication: per-report K/N/I agreement 957/1271 and 388/512; aggregate offsets), 2026-09-04. Judge run manifests are archived with the v61 results.
 [^plantuml]: PlantUML Language Reference Guide, State Diagram chapter (composite state scoping, transition label syntax `trigger [guard] / effect`, `[*]` initial and final pseudostates). https://plantuml.com/state-diagram. Accessed 2026-09-04.
 [^sultan2024]: Bastien Sultan and Ludovic Apvrille. “AI-Driven Consistency of SysML Diagrams.” *MODELS*, 2024, pp. 149--159. https://doi.org/10.1145/3640310.3674079. MODELS 2024 Distinguished Paper; conference predecessor of the SoSyM 2026 article.
 [^sultan]: Bastien Sultan, Ludovic Apvrille, and Sophie Coudert. “On the Consistency of State Machines, Use Cases and Block Diagrams Using Dependency Graphs and Large Language Models.” *Software and Systems Modeling*, 2026, online first. https://doi.org/10.1007/s10270-026-01388-4.
