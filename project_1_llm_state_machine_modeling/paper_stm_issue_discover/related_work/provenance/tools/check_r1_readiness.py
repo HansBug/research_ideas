@@ -40,7 +40,7 @@ REQUIRED_ROLES = {
     "method_soundness", "paper_outline", "fact_link_test", "adversarial_claim",
     "language_shuorenhua", "experiment_gate",
 }
-BASE_COMMIT = "537971a3f"
+BASE_COMMIT = "e7c06831a"  # umbrella merge of R1 (#197); O1 and later sub-PRs diff against it
 REQUIRED_STATIC_PATHS = (
     "README.md", "story/README.md", "story/paper_story.md", "story/paper_outline.md",
     "story/claim_evidence_map.md", "story/model_scope.md", "story/terminology_policy.md",
@@ -107,25 +107,25 @@ REQUIRED_HUMAN_AUDIT_FIELDS = (
 )
 REQUIRED_INVENTORY_MARKERS = (
     "9 个在用自然语言簇",
-    "310/435=71.26%",
-    "105/117=89.74%",
-    "119/145=82.07%",
-    "86/145=59.31%",
-    "37/39=94.87%",
-    "337/435=77.47%",
-    "1271",
-    "980/1271=77.10%",
-    "0/113/197",
+    "323/435=74.25%",
+    "225/435=51.72%",
+    "97/117=82.91%",
+    "130/145=89.66%",
+    "82/145=56.55%",
+    "28/39=71.79%",
+    "759/903=84.05%",
+    "427/512=83.40%",
+    "561/198/144",
+    "505/173/158/67",
+    "678/903=75.08%",
+    "0/636/267",
     "12/19",
-    "749/231/291",
-    "721/259/120/171",
-    "D0 `120`",
-    "compiler-owned `38`",
-    "conservative substantive N groups",
-    "825/1271=64.91%",
-    "$7.18277320",
-    "G2 publication exclusion",
-    "V4 exclusion",
+    "分歧检查独占 `49`",
+    "谓词确认 W2 `137`",
+    "`pass` 回执 `573`",
+    "状态 5–20（中位 8）",
+    "两人独立裁定",
+    "current method cost",
 )
 BLOCKED = re.compile(
     r"TODO-CITATION|待核验|source-status\s*=\s*candidate|"
@@ -133,21 +133,25 @@ BLOCKED = re.compile(
 )
 REPO = "HansBug/research_ideas"
 PR_NUMBERS = {"r1": 197, "umbrella": 179}
-# These are UTF-8 hashes of the bodies fetched at R1 task start and after the
-# only permitted contract edit. They make the permitted PR-body delta concrete:
-# the initial #197 body is anchored, #179 is byte-for-byte unchanged, and #197
-# may finish only at the reviewed replacement body.
+# UTF-8 SHA-256 of the PR bodies. R1 (#197) merged on 2026-09-05 with the
+# v61 "合同第二版" body; the umbrella (#179) body was rewritten the same day
+# after the advisor discussion (O1 → P1 → A1/A2 → W1 → FREEZE). The final
+# review bundle must snapshot exactly these bodies; a later contract edit
+# must refresh both dicts in the same PR that edits the body.
 TASK_START_BODY_SHA256 = {
     "r1": "311f3964e06b57f6ec0c60ed4cf279f3e7b5d776da8e2063d5b331a0e2ba356e",
     "umbrella": "cdc946bd8f17f7fa9f0d5597f2f7ee25b6612833215b6e80d0de5f21e9a76652",
 }
 PERMITTED_FINAL_BODY_SHA256 = {
-    "r1": "ccdd700b9af21a3317661f253bc44b1fcdbc39f9c2be24c93ad2d335d15f4370",
-    "umbrella": "cdc946bd8f17f7fa9f0d5597f2f7ee25b6612833215b6e80d0de5f21e9a76652",
+    "r1": "21d2aea9df8940d350dcec05114a00dd3d70552275cbcd416653ce3153faa441",
+    "umbrella": "fc02bd42c3b8ab02ebfdcdd28255be7ad13db0f3730e83f5e1624d60c632faa7",
 }
 BUNDLE_SCHEMA_VERSION = "paper1.r1-final-review.v1"
 BLIND_PACKET_SCHEMA_VERSION = "paper1.r1-blind-packet.v1"
 BLIND_RECORD_SCHEMA_VERSION = "paper1.r1-blind-search-record.v1"
+# The predicate scope-audit tables in predicate_provenance.md were computed on the
+# v60 raw archive; the receipt-ID binding therefore stays on v60 until P1 regenerates
+# the audit on v61 (PENDING N17/N19). Paper numbers come from the v61 archive.
 CANONICAL_CURRENT_RAW = (
     "final_results/v60_current_vs_x1v2_baseline/raw/v60_current/method/method"
 )
@@ -1312,7 +1316,10 @@ def self_test() -> int:
             gate = paper / "story/experiment_dependent_gates.json"
             gate.write_text(json.dumps({
                 "schema_version": "paper1.experiment-dependent-gates.v1",
-                "records": [experiment_record()],
+                "records": [
+                    experiment_record(),
+                    {**experiment_record(), "id": "TODO-EXPERIMENT-02", "affected_claims": ["CLM-C2"], "affected_rqs": ["RQ5"]},
+                ],
             }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             outline = paper / "story/paper_outline.md"
             outline.write_text(

@@ -13,11 +13,13 @@
 | inspect_facts | 确定性检查事实 | deterministic inspect facts | 无 | `outline-0` | 确定性检查事实、检查事实 | `inspect facts`、代码、字段和图标签 |
 | typed_predicate | 类型化谓词 | typed predicate | 无 | `outline-0` | 类型化谓词、谓词 | predicate ID、代码字段 |
 | replay_receipt | 回放回执 | replay receipt | 无 | `outline-0` | 回放回执、回执 | 代码字段 |
-| problem_depth | 问题深度 | problem depth | L | `outline-2` | 问题深度；`L0/L1/L2` 在表、公式和字段中保留 | `L0`、`L1`、`L2` |
+| problem_level | 问题层级 | problem level | L | `outline-2` | 问题层级；`L0/L1/L2` 在表、公式和字段中保留 | `L0`、`L1`、`L2` |
 | witness_strength | 见证强度 | witness strength | W | `outline-2` | 见证强度、证据强度；`W0/W1/W2` 在表、公式和字段中保留 | `W0`、`W1`、`W2` |
 | use_case_specification | 用例规约 | use-case specification | UCS | `outline-2` | 用例规约；`UCS` 在文献比较、表列或字段中保留 | `UCS`、论文题名和原文引述 |
 | llfsm | 轻量级有限状态机 | Lightweight Finite State Machine | LLFSM | `outline-2` | 轻量级有限状态机；`LLFSM` 在文献比较、表列或字段中保留 | `LLFSM`、论文题名和原文引述 |
-| adjudication | 人工裁定 | human adjudication | D/A | `outline-5` | 人工裁定；`D0/D1/D2/A0` 在表、公式和字段中保留 | `D0`、`D1`、`D2`、`A0` |
+| defect_status | 缺陷状态 | defect status | D | `outline-5` | 缺陷状态；`D0/D1/D2/A0` 在表、公式和字段中保留 | `D0`、`D1`、`D2`、`A0` |
+| adjudication | 人工裁定 | human adjudication | 无 | `outline-5` | 人工裁定、裁定 | — |
+| hit_source_decomposition | 命中来源分解 | hit-source decomposition | 无 | `outline-5` | 命中来源分解、来源分解 | 表列 |
 | relation | 对应关系 | relation | 无 | `outline-5` | 对应关系；`FULL/PARTIAL/NO` 在表、公式和字段中保留 | `FULL_MATCH`、`PARTIAL_MATCH`、`NO_MATCH` |
 | bookkeeping | 记账类别 | bookkeeping category | K/N/I | `outline-5` | 记账类别；`K/N/I` 在表、公式和字段中保留 | `VALID_KNOWN`、`VALID_NOVEL`、`INVALID` |
 | nadc | 非缺陷主张 | not-a-defect claim | NADC | `outline-5` | 非缺陷主张；`NADC` 在表、公式和字段中保留 | `NOT_A_DEFECT_CLAIM` |
@@ -27,6 +29,5 @@
 | causal_fold | 因果折叠 | causal fold | 无 | `outline-4` | 因果折叠、子主张 | 代码字段 |
 | guard_modality_aggregation | 守卫模态聚合 | guard-modality aggregation | 无 | `outline-4` | 守卫模态聚合、聚合根 | 代码字段 |
 | lossy_normalization | 有损规范化 | lossy normalization | 无 | `outline-4` | 有损规范化 | — |
-| semantic_judge | 语义 judge | semantic judge | 无 | `outline-0` | 语义 judge、judge、校准 judge | 配置名 `semantic-judge.two-stage.v3.11`、路径 |
 
-责任边界（v61 口径）：D/A、有效性与对应关系的定义来自人工裁定协议，执行者是校准的语义 judge（两臂同一仪器）；程序只在 judge 已完成的字段上确定性闭合 K/N/I 并汇总；C2 的回执不替代有效性或对应关系的裁定；方法侧 903 条报告尚无人工复核，基线侧 512 条另有完整人工裁定，仪器偏移在大纲 §5.3 与 §8 交代。W2 同时要求受支持片段、精确实例绑定、pair/obligation/plan/model/program/receipt 的身份链、非空可核验引文与完成的原生布尔回执；323 个 FULL 命中单元的 W0/W1/W2 为 `0/196/127`（根报告口径）或 `0/186/137`（含折叠子主张回执），报告级为 `0/636/267`（分母 903）。
+责任边界（v61 口径，2026-09-04 导师裁定后）：D、有效性与对应关系的定义来自人工裁定协议，执行者是作者（两人独立裁定、分歧讨论至共识，不报一致性系数）；程序只在已完成的裁定字段上确定性闭合 K/N/I 并汇总；C2 的回执不替代有效性裁定；论文不提任何自动判定仪器。对外术语：L 写 problem level，D 写 defect status，字母不变。
