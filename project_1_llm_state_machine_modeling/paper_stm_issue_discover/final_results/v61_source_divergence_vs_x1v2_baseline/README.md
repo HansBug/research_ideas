@@ -12,7 +12,7 @@
 |:--|:--|
 | `raw/v61_current/method/` | method 全量运行根（提交 `ea6141607`，run id `a7b47d84c3cb4377a8009e5018d5b745`）去掉 `llm/` 调用审计后的完整拷贝：`method/<pair>/round-N.json` 162 格记录（含 stage_outputs、evidence_records、report_issue_clusters）、`audit_bundles/`、`pairs/`、`run_manifest.json`、`summary.json` |
 | `raw/v61_current_fill0045/` | `0045` 第 1 轮的重采样运行（提交 `778212b03`，与 ea6141607 仅差文档；run id `0e450e5c6c9d4841820c7d1fd2a888ea`）。原运行里该格在契约抽取阶段 `limit_exceeded: turns limit exceeded` 失败（`raw/v61_current/method/method/0045/round-1.json` 仍保留失败回执）。评测以本目录的重采样格替代 |
-| `raw/judge_v3.11_iter6cfg/current-r{1,2,3}/`、`current-r1-fill0045/` | judge 逐对判定（`pairs/<pair>.json`，含两读、仲裁、闭合、report_outcomes 与 expected_outcomes）、适配器审计与运行清单；不含 `llm/` 调用审计 |
+| `raw/judge_v3.11_iter6cfg/current-r{1,2,3}/`、`current-r1-resume080113/`、`current-r2-resume085454/`、`current-r1-fill0045/` | judge 逐对判定（滚动判定分多次 CLI 调用写入，`-resume*` 目录是同一轮的续跑批次，合计 162 格）（`pairs/<pair>.json`，含两读、仲裁、闭合、report_outcomes 与 expected_outcomes）、适配器审计与运行清单；不含 `llm/` 调用审计 |
 | `derived/v61_all_reports.tsv` | 903 条报告的逐条表：谓词、性质、方向、标题、judge K/N/I 与 D/A、FULL / PARTIAL 台账条目、折叠子主张数、模态聚合成员数、作者源引用 |
 | `derived/ledger_hits_v61_v60_baseline.tsv` | 145 条台账条目在三臂各轮的 FULL 命中 |
 | `derived/evaluate_full_output.txt` | `docs/generations/v61/evaluate_full.py` 的输出（三臂总表与分 L 层） |
