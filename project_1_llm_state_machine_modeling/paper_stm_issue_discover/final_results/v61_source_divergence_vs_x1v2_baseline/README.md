@@ -4,7 +4,7 @@
 
 ## 判定装置
 
-三臂比较全部为 **judge 对 judge**：第六轮配置的语义 judge（gpt-5.6-luna，`semantic-judge.two-stage.v3.11`，relation-first 闭合，两读 + 分歧仲裁），无人工复核。ours v61 由本目录的 judge 输出判定；v60 ours 与 X1v2 baseline 的判定沿用 `runs/paper1/judge-full-3a1ba5cf1-iter6cfg`（同配置全量 judge，其 TSV 摘要在 [judge/calibration/results/full_v3.11_3a1ba5cf1/](../../judge/calibration/results/full_v3.11_3a1ba5cf1/)）。人工冻结终稿的数字（v60 ours 77.1% / 310，baseline 81.4% / 227）只作参照，不与本目录数字混算。
+三臂比较全部为 **judge 对 judge**：第六轮配置的语义 judge（gpt-5.6-luna，`semantic-judge.two-stage.v3.11`，relation-first 闭合，两读 + 分歧仲裁），无人工复核。ours v61 由本目录的 judge 输出判定；X1v2 baseline 的逐对判定已拷入本目录 `raw/judge_v3.11_iter6cfg/baseline-r*`；v60 ours 的判定沿用 `runs/paper1/judge-full-3a1ba5cf1-iter6cfg`（同配置全量 judge，其 TSV 摘要在 [judge/calibration/results/full_v3.11_3a1ba5cf1/](../../judge/calibration/results/full_v3.11_3a1ba5cf1/)）。人工冻结终稿的数字（v60 ours 77.1% / 310，baseline 81.4% / 227）只作参照，不与本目录数字混算。
 
 ## 目录
 
@@ -12,15 +12,18 @@
 |:--|:--|
 | `raw/v61_current/method/` | method 全量运行根（提交 `ea6141607`，run id `a7b47d84c3cb4377a8009e5018d5b745`）去掉 `llm/` 调用审计后的完整拷贝：`method/<pair>/round-N.json` 162 格记录（含 stage_outputs、evidence_records、report_issue_clusters）、`audit_bundles/`、`pairs/`、`run_manifest.json`、`summary.json` |
 | `raw/v61_current_fill0045/` | `0045` 第 1 轮的重采样运行（提交 `778212b03`，与 ea6141607 仅差文档；run id `0e450e5c6c9d4841820c7d1fd2a888ea`）。原运行里该格在契约抽取阶段 `limit_exceeded: turns limit exceeded` 失败（`raw/v61_current/method/method/0045/round-1.json` 仍保留失败回执）。评测以本目录的重采样格替代 |
+| `raw/judge_v3.11_iter6cfg/baseline-r{1,2,3}/` | X1v2 baseline 512 条报告在同一 judge 配置下的逐对判定（`pairs/<pair>.json`）、适配器审计与运行清单，拷贝自 `runs/paper1/judge-full-3a1ba5cf1-iter6cfg/baseline-r*`（2026-09-04 补入，使两臂数字都能从本目录复算） |
 | `raw/judge_v3.11_iter6cfg/current-r{1,2,3}/`、`current-r1-resume080113/`、`current-r2-resume085454/`、`current-r1-fill0045/` | judge 逐对判定（滚动判定分多次 CLI 调用写入，`-resume*` 目录是同一轮的续跑批次，合计 162 格）（`pairs/<pair>.json`，含两读、仲裁、闭合、report_outcomes 与 expected_outcomes）、适配器审计与运行清单；不含 `llm/` 调用审计 |
 | `derived/v61_all_reports.tsv` | 903 条报告的逐条表：谓词、性质、方向、标题、judge K/N/I 与 D/A、FULL / PARTIAL 台账条目、折叠子主张数、模态聚合成员数、作者源引用 |
 | `derived/ledger_hits_v61_v60_baseline.tsv` | 145 条台账条目在三臂各轮的 FULL 命中 |
 | `derived/evaluate_full_output.txt` | `docs/generations/v61/evaluate_full.py` 的输出（三臂总表与分 L 层） |
+| `derived/evaluate_rq3_output.txt`、`derived/appendix_c1_l1_table.md` | [evaluate_rq3.py](../../discover_matrix/docs/generations/v61/evaluate_rq3.py) 的输出：两臂 D/A 与 K/N/I 构成、逐对有效率、D2/D1-only 敏感性、W-on-hits（根报告 / 含子主张两口径）、谓词回执与绑定、仅由分歧检查承载的命中单元、L1 逐条对照表；大纲 §6.2、§6.3 与附录 C 的数字来源 |
 | `derived/per_predicate_and_ledger_report.txt`、`derived/ledger_gain_loss_attribution.txt` | 谓词 × 性质表、条目级增减及其在 v60 / v61 各由哪类报告命中 |
 
 ## 复算
 
 ```bash
+venv/bin/python project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/generations/v61/evaluate_rq3.py
 venv/bin/python project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/generations/v61/evaluate_full.py \
   --judge-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v61_source_divergence_vs_x1v2_baseline/raw/judge_v3.11_iter6cfg
 ```
@@ -42,3 +45,7 @@ venv/bin/python project_1_llm_state_machine_modeling/paper_stm_issue_discover/di
 - 0045 第 1 轮为运行时限失败后的重采样，非原运行样本；两个记录都保留。
 - judge 自身的轮间噪声与人工的偏移（v60 上 precision −5.9 pp、hit 单位 −18）未在本目录内校正。
 - 折叠根报告的子主张命中依赖 judge 对多条目 FULL 的判定，相关损失分析见 `derived/ledger_gain_loss_attribution.txt` 与 results.md。
+
+## 论文口径（2026-09-04 裁定）
+
+本目录是论文正文数字的唯一来源，两臂都按 judge 口径报告；现状分析、L2 与 RQ3 的深挖以及后续出路见 [analysis_and_options.md](../../discover_matrix/docs/generations/v61/analysis_and_options.md)，大纲见 [story/paper_outline.md](../../story/paper_outline.md)。
