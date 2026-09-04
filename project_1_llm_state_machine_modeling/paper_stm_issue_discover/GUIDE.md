@@ -1,12 +1,12 @@
 # Paper1 工作指引
 
-本文件说明当前工作区的稳定入口和边界。研究问题、当前结果和适用范围先读 [README.md](./README.md)；精确指标、hash、复算和限制只读 [最终归档](./final_results/v60_current_vs_x1v2_baseline/README.md)。
+本文件说明当前工作区的稳定入口和边界。研究问题、当前结果和适用范围先读 [README.md](./README.md)；精确指标、hash、复算和限制只读 [v61 归档](./final_results/v61_source_divergence_vs_x1v2_baseline/README.md)。
 
 | 工作目标 | 权威入口 |
 | --- | --- |
 | 理解或修改当前方法实现 | [method/](./method/README.md)；prompt、schema、registry、backend 或输入闭包的变化需要独立实验授权 |
 | 理解人工裁定 | [judge/](./judge/README.md) 与冻结 issue #195 snapshot |
-| 复算结果或检查指标 | [evaluation/](./evaluation/README.md) 与最终归档；默认只运行 provider-free 命令 |
+| 复算结果或检查指标 | [evaluation/](./evaluation/README.md) 与 v61 归档的 `evaluate_rq3.py` / `evaluate_full.py`；默认只运行 provider-free 命令 |
 | 查询 current ledger/provenance | [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/README.md) |
 | 准备输入或查询兼容代码 | [pipeline/](./pipeline/README.md) |
 | 查询历史代次 | [archive/experiment_history/](./archive/experiment_history/README.md) |

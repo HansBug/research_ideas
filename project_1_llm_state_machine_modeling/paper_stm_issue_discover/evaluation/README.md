@@ -18,7 +18,7 @@
 
 W 不依赖 19 谓词体系。X1v2 的 predicate usage 不适用，但其 W 来自 512 条冻结 finding 的两轮独立逐条审计；evaluation 将此 finding-level 结果按冻结 `full_report_ids` 聚合为 hit-level max-W。
 
-## 最终归档复算
+## 归档复算
 
 权威入口是 `paper_stm_evaluation.final_results_archive`。该命令只读归档并核查 schema、映射、hash、链接和离线复算，不调用 provider，也不依赖未跟踪 `runs/`。
 
@@ -28,7 +28,7 @@ venv/bin/python -m paper_stm_evaluation.final_results_archive validate \
   --archive-root project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline
 ```
 
-当前结论和机器可读汇总在 [最终归档](../final_results/v60_current_vs_x1v2_baseline/README.md)。`pipeline.evidence_discovery.reporting.final_results_archive` 仅是兼容入口，不是新的 evaluation 所有权。
+当前结论和机器可读汇总在 [v61 归档](../final_results/v61_source_divergence_vs_x1v2_baseline/README.md)（复算脚本 `discover_matrix/docs/generations/v61/evaluate_rq3.py` 与 `evaluate_full.py`）；下列命令验证 v60 人工评测归档（仪器校准参照）的结构完整性。`pipeline.evidence_discovery.reporting.final_results_archive` 仅是兼容入口，不是新的 evaluation 所有权。
 
 ### Paper-facing predicate summary
 

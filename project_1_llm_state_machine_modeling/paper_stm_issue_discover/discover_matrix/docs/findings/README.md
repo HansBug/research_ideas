@@ -2,7 +2,6 @@
 
 > ⭐ 本目录是 2026-08-12 一整轮调查（**九路独立 subagent + 两路 codex 交叉验证**）的结论沉淀。⛔ 过程性状态（PR/issue 的 review 进度、agent 派发记录）**不在这里**——按 `CLAUDE.md` §9 那些留在 GitHub。
 
-
 ## ⭐⭐⭐ 零、定性（⛔ 读下文前先读这一节）
 
 > ⛔⛔ **这不是「C-① 死了」，⭐ 而是「这一版实现暂时没有做成」。**
@@ -25,6 +24,8 @@
 | 2 | [human_baseline_and_assertion_cot.md](./human_baseline_and_assertion_cot.md) | ⭐⭐ **我们该跟谁比**——人类基线 47–50%、脚手架类型决定符号 |
 | 3 | [route_selection_and_v47_plan.md](./route_selection_and_v47_plan.md) | ⭐ **接下来做什么**——路线裁定 + v47 最小改动集 |
 | 4 | [inspect_capability_boundary.md](./inspect_capability_boundary.md) | ⭐ **inspect 能看见什么**（2026-08-13 加）——73 码只 14 开火的三层原因 · 配置天花板 579 · FCSTM 父态出边不下传 · 可触及面 74/165 |
+| 5 | [representation_debt.md](./representation_debt.md) | v60 时期对「表示债务」的界定；v61 的载体归属门与分歧审计把该类 NADC 降到 15 条后，其量化结论已被 [../generations/v61/analysis_and_options.md](../generations/v61/analysis_and_options.md) §4.2 取代，界定与机制描述仍有效 |
+| 6 | [ref_flip_feasibility.md](./ref_flip_feasibility.md)、[um_residue_ruling.md](./um_residue_ruling.md) | 两份专项裁定（引用翻转可行性、UM 残余的处置），仅作历史参照 |
 
 ⚠️ 第 4 篇更正了两处此前被写成事实的错误断言（`W_DEADLOCK_LEAF` 的「系统性假阳性」、`inspect_findings.json` 关于归并算法的自述），⛔ 前者已污染过一个独立评审方。
 
@@ -44,7 +45,7 @@
 
 | # | 待办 | 为什么重要 |
 | :-- | :-- | :-- |
-| 1 | ⭐ **✅ 已于 2026-08-17 完成**：台账全量人工重标产出第二版台账 **145 条**（[ledger_v2/ledger.json](../../ledger_v2/ledger.json)），54 份工作单与全部人工裁决在 [ledger_v2/provenance/relabel/](../../ledger_v2/provenance/relabel/) | 历史 X1v2 六格网格仍见 ledger_v2；当前 gpt-5.6-luna 双臂三轮结果已见 [全量报告](../../../reports/2026-08-19-luna-full-x3-v26.md)，两种网格不能混合 |
+| 1 | ⭐ **✅ 已于 2026-08-17 完成**：台账全量人工重标产出第二版台账 **145 条**（[ledger_v2/ledger.json](../../ledger_v2/ledger.json)），54 份工作单与全部人工裁决在 [ledger_v2/provenance/relabel/](../../ledger_v2/provenance/relabel/) | 历史 X1v2 六格网格仍见 ledger_v2；当前 gpt-5.6-luna 双臂三轮结果见 [v61 结果](../generations/v61/results.md)（v26 时期的全量报告保留在 [reports/2026-08-19-luna-full-x3-v26.md](../../../reports/2026-08-19-luna-full-x3-v26.md)，仅作历史参照），两种网格不能混合 |
 | 4 | ⛔ **把三份不可复核的度量脚本落库**：逐轮覆盖代理量的重建、复杂度三分层、位点安慰剂分类 | ⛔ 它们各自支撑一条承重结论，⛔ 而现在**谁都无法重跑**（见各处 I 级标注） |
 | 2 | ⛔ **可重放 / 可回归防护 / 可追溯**三项**一个数都没有** | ⭐ 它们是 X1 **结构上给不出**的（100% vs 0%），⛔ 而我们没测 |
 | 3 | ⛔ 读透 **Stroebl 不可能性定理**原文 | ⭐ 它同时是 sound-oracle 路线的**杀手**与**出路** |
@@ -54,3 +55,7 @@
 ⛔ 「问对了就打平」· ⛔「真值层 0 证明验证机器健全」· ⛔「主臂用了盲判」· ⛔「复杂模型的台账记录更少」· ⛔「体量只解释 0.7pp」· ⛔「主臂读的是有损表示所以吃亏」· ⛔「臂身份泄漏抬高了 X1」· ⛔「`edge_declared` 被问 0% 是异常」
 
 ⛔ **独立数字复核（2026-08-12）又撤回七项**：⛔「判定表有三处纯计数错误（6→10 / 5→4 / 1→3）」——⛔ **三处全为假**，判定表说的 6 / 5 / 1 才对 · ⛔「工具在 355 口径上抛 `AssertionError`、须改判为 356、六段合计 232」——⛔ 合并口径下工具跑通、精确合计 233、未结清位是 **5** 而非 6 · ⛔「gpt 侧 X1 少报 36%」——⛔ 任何口径都算不出 · ⛔「台账 41/98（或 51/98）读着 fcstm 投影」——⭐ 可复核的是 **45/98**（不区分大小写）/ **30/98**（区分大小写） · ⛔「433 次调用无记录」——⛔ 实为 **173** 次 · ⛔ 逐轮覆盖代理量两行（111→126 / 175→177）——⛔ 脚本与判据均未落库 · ⛔ 复杂度三分层的六个命中率——⛔ 分层脚本不在仓库。
+
+⚠️ **2026-09-04 新增**：[../generations/v61/analysis_and_options.md](../generations/v61/analysis_and_options.md)——v61 全量之后的现状分析、L2 与 RQ3 深挖、出路与已做裁定（论文口径切到 v61，两臂同一 judge，v60 归档）；结果表在 [../generations/v61/results.md](../generations/v61/results.md)。
+
+⚠️ **2026-09-04 新增**：[precision_anatomy_v60.md](./precision_anatomy_v60.md)——v60 precision 缺口的方法侧解剖（按谓词模板的精度表、四条可从现有输出预判的确定性拦截规则 G/R/S/T、反事实 77.1% → 88.4%、judge 与人工的分歧倾向），数据来自 judge 第六轮配置的全量运行。

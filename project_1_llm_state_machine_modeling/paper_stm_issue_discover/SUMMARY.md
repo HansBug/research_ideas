@@ -1,11 +1,11 @@
 # Paper1 当前索引
 
-本页只提供当前阅读路径，不复制实验事实。Paper1 当前实验是 v60/current 与 X1v2 baseline 的同口径比较；数字、定义、制品清单与限制以 [最终归档](./final_results/v60_current_vs_x1v2_baseline/README.md) 为准。
+本页只提供当前阅读路径，不复制实验事实。Paper1 当前实验是 v61 与 X1v2 baseline 的同口径比较（两臂同一校准语义 judge）；数字、定义、制品清单与限制以 [v61 归档](./final_results/v61_source_divergence_vs_x1v2_baseline/README.md) 为准，v60 人工评测归档只作仪器校准参照。
 
 | 需要了解的内容 | 入口 |
 | --- | --- |
 | 研究问题、当前结果与适用范围 | [README.md](./README.md) |
-| 冻结结果、正式报告和离线复算 | [final_results/v60_current_vs_x1v2_baseline/](./final_results/v60_current_vs_x1v2_baseline/README.md) |
+| 冻结结果与离线复算 | [final_results/v61_source_divergence_vs_x1v2_baseline/](./final_results/v61_source_divergence_vs_x1v2_baseline/README.md)；v60 人工评测归档见 [final_results/v60_current_vs_x1v2_baseline/](./final_results/v60_current_vs_x1v2_baseline/README.md) |
 | 当前方法的输入、阶段、输出和安装 | [method/](./method/README.md) |
 | issue #195 人工裁定的两阶段判定 | [judge/](./judge/README.md) |
 | 离线 hit、precision、W、K/N/I、谓词使用和成本 | [evaluation/](./evaluation/README.md) |

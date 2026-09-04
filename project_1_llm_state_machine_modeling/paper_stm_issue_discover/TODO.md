@@ -1,6 +1,6 @@
 # 历史待办清单（2026-08-11）
 
-> 本文件是历史 planning snapshot，不是当前实验或发布状态的真源。请先读 [README.md](./README.md)、[STATUS.md](./STATUS.md) 和 [最终归档](./final_results/v60_current_vs_x1v2_baseline/README.md)。其中未完成项、旧版本名和旧路径不能被当作现行执行授权。
+> 本文件是历史 planning snapshot，不是当前实验或发布状态的真源。请先读 [README.md](./README.md)、[STATUS.md](./STATUS.md) 和 [v61 归档](./final_results/v61_source_divergence_vs_x1v2_baseline/README.md)。其中未完成项、旧版本名和旧路径不能被当作现行执行授权。
 
 > ⭐ **需要人拍板的事项另见 [PENDING_DECISIONS.md](./PENDING_DECISIONS.md)**（2026-08-11 整理，9 条，分 🔴 必须定 / 🟡 建议定 / 🟢 确认即可 三档，每条含前因后果、全部可选方案与代价、我的建议）。⛔ 那份是**给人读的决策简报**，本文件仍是待办的唯一入口。
 

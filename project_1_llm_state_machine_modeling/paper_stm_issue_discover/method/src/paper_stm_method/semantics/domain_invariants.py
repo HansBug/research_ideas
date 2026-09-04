@@ -14,6 +14,7 @@ from typing import Literal, Sequence
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..inputs import PairInput
+from .author_source import AUTHOR_OWNED_SEGMENT_ROLES, build_author_index
 from .obligations import CandidateIssue
 
 
@@ -233,6 +234,7 @@ def materialize_domain_invariant_contracts(
     facts = pair.inspection_facts
     if facts is None:
         return (), (), ()
+    author_index = build_author_index(pair)
 
     existing = {
         (
@@ -248,6 +250,25 @@ def materialize_domain_invariant_contracts(
     authority_ref = "UML-2.5.1-14.5.6.7-Pseudostate-outgoing-from-initial"
     for fact in sorted(facts.transitions, key=lambda item: item.transition_ref):
         if fact.source != "[*]":
+            continue
+        # v61 carrier-attribution gate: the UML initial-pseudostate invariant is a
+        # statement about the author's initial transition.  A lowering-synthesised
+        # entry hop (cross-scope / composite-source target entry segment guarded by
+        # the route token) is not an author transition, so the invariant does not
+        # apply to it; see author_source.AUTHOR_OWNED_SEGMENT_ROLES.
+        if author_index is not None and author_index.is_compiler_owned_carrier(
+            pair.model.transition(fact.transition_ref)
+        ):
+            dispositions.append(
+                {
+                    "contract_id": None,
+                    "status": "skipped_compiler_owned_carrier",
+                    "transition_ref": fact.transition_ref,
+                    "predicate_id": None,
+                    "reason": "The initial carrier is a lowering-synthesised entry segment, not the author's initial transition; the UML initial-pseudostate invariant is not evaluated on compiler-owned hops.",
+                    "basis": f"working-contract segment generated_role={author_index.segment_role_for_carrier(pair.model.transition(fact.transition_ref))!r}; author-owned roles={sorted(AUTHOR_OWNED_SEGMENT_ROLES)}",
+                }
+            )
             continue
         owner_scope = fact.scope or "closed_fcstm"
         common = {
