@@ -17,6 +17,9 @@ its normal pipeline. No v61 artifact was read as an input or rewritten.
 - Input: `pipeline/representation/reports/llms_emp_r45_java_60` under the paper workspace.
 - Registration: [P1 smoke contract](https://github.com/HansBug/research_ideas/pull/203#issuecomment-5549193195).
 
+Only this summary is versioned. Detailed records remain local under
+`30322c29f93a4e0588d2db27c9ec7d8d/`, covered by the repository's `/runs/` ignore
+rule; they are not included in the PR file diff or a fresh checkout.
 The manifest records source provenance, exact input hashes, registry identity,
 selection, and retry policy. The `llm/` tree retains prompts, raw responses,
 observed model, usage, schema errors, and audit receipts. Credentials are not
@@ -56,6 +59,15 @@ withheld. Its stage is `completed_with_diagnostics`; the cell is `completed`.
 
 This smoke supports continued functional experimentation on the new registry.
 It does not establish quality parity with v61 or behavior on every input.
+
+A read-only comparison with the corresponding three v61 rounds found the same
+input content and observed model. Of 26 current terminal receipts, 23 have a
+historical match after version-aware ID mapping and element-ref ordering; all
+23 verdicts agree. Published counts increased from 12/10/7 to 15 for 0002 and
+8/6/8 to 10 for 0024, mainly through additional W1 obligations and overlapping
+reports. This leaves report inflation unresolved, not a demonstrated backend
+regression or quality improvement. Detailed comparison notes remain local in
+the run directory; no additional provider call or evaluation was performed.
 
 ## Invocation
 
