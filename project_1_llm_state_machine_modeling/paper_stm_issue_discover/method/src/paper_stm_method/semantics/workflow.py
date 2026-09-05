@@ -9,7 +9,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from ..inputs.context import prompt_context_payload
+from .ablation import pair_system_prompt, prompt_context_payload
 from ..inputs.models import PairInput
 from .adjudication import DAdjudicationResponse, SemanticAdjudication
 from .obligations import (
@@ -1775,7 +1775,7 @@ def build_contract_completion_prompt(
     """
 
     context = prompt_context_payload(pair, stage="nl_contract_extraction")
-    return f"""{CONTRACT_SYSTEM_PROMPT}
+    return f"""{pair_system_prompt(pair, CONTRACT_SYSTEM_PROMPT)}
 
 Stage: contract-completion-correction
 Round: {round_index}
@@ -2046,7 +2046,7 @@ def build_d_correction_prompt(
         for dossier in dossiers
         if dossier["obligation_id"] in repair_ids
     ]
-    return f"""{D_SYSTEM_PROMPT}
+    return f"""{pair_system_prompt(pair, D_SYSTEM_PROMPT)}
 
 Stage: d_adjudication_correction
 The previous structured response violated the exact obligation coverage contract.

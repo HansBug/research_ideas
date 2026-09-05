@@ -29,7 +29,7 @@ def test_cli_default_and_explicit_none(monkeypatch, tmp_path):
     assert calls[0]["ablation"] == "none"
 
 
-@pytest.mark.parametrize("ablation", ["unknown", "no-predicate", "no-predicates", "no-inspect"])
+@pytest.mark.parametrize("ablation", ["unknown", "no-predicate", "no-predicates"])
 def test_unimplemented_modes_fail_before_loading_or_provider(ablation, monkeypatch, tmp_path):
     def forbidden(*args, **kwargs):
         pytest.fail("unimplemented condition reached input/provider setup")
