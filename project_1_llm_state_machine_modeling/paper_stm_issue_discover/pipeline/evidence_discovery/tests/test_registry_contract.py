@@ -21,15 +21,17 @@ def test_registry_has_frozen_four_family_shape() -> None:
     data = load_registry()
     predicates = [p for family in data["families"] for p in family["predicates"]]
 
-    assert data["registry_version"] == "four-family-19-core.v1"
-    assert data["public_predicate_count"] == 19
-    assert len(predicates) == 19
-    assert len({p["id"] for p in predicates}) == 19
+    assert data["registry_version"] == "four-family-12-core.v1"
+    assert data["public_predicate_count"] == 12
+    assert len(predicates) == 12
+    assert [p["id"] for p in predicates] == [
+        "S1", "S2", "S3", "S4", "S5", "G1", "G2", "G3", "R1", "R2", "R3", "V1"
+    ]
     assert {f["id"]: len(f["predicates"]) for f in data["families"]} == {
-        "structure": 6,
-        "topology": 4,
-        "trajectory": 4,
-        "bounded_verification": 5,
+        "structure": 5,
+        "topology": 3,
+        "trajectory": 3,
+        "bounded_verification": 1,
     }
 
 
@@ -40,7 +42,7 @@ def test_w_protocol_has_three_levels_and_failures_are_not_violations() -> None:
     assert data["execution_failure_is_violation"] is False
     assert "unknown_is_violation" not in data
     assert data["runtime_witness_policy"] == "bibliography_metadata_is_not_a_runtime_witness_gate"
-    assert data["academic_eligibility"] == "all_19_frozen_predicates_reviewed"
+    assert data["academic_eligibility"] == "all_12_selected_predicates_reviewed"
     assert set(data["evidence_levels"]) == {"W0", "W1", "W2"}
     assert "terminating true or false" in data["evidence_levels"]["W2"]
     assert "semantic finding" in data["evidence_levels"]["W1"]
@@ -56,6 +58,24 @@ def test_registry_uses_current_source_types() -> None:
     assert not any("provenance_class" in p for p in predicates)
     assert all(set(p["source_types"]) <= allowed for p in predicates)
     assert all(p["sources"] for p in predicates)
+
+
+def test_predicate_renumbering_preserves_other_schema_versions() -> None:
+    source = PROJECT_ROOT / "method/src/paper_stm_method"
+    expected = {
+        "orchestration/runner.py": (
+            "evidence-discovery.grounding-exact-identity-contract.v4",
+            "dossier-prompt-projection.v4-batched",
+        ),
+        "semantics/frontier.py": (
+            "evidence-discovery.identity-normalization.v4",
+            "typed-contract-identity.v4",
+        ),
+        "semantics/workflow.py": ("dossier-prompt-projection.v4",),
+    }
+    for relative, versions in expected.items():
+        content = (source / relative).read_text(encoding="utf-8")
+        assert all(version in content for version in versions), relative
 
 
 def test_every_source_id_resolves_to_current_catalog() -> None:
@@ -105,8 +125,14 @@ def test_catalog_remains_academic_provenance_not_runtime_admission_data() -> Non
     assert "candidate_admissions" not in catalog
 
 
-def test_coverage_snapshot_is_explicitly_a_design_mapping() -> None:
-    snapshot = load_registry()["coverage_snapshot"]
+def test_historical_design_mapping_is_outside_current_method() -> None:
+    data = load_registry()
+    assert "coverage_snapshot" not in data
+    assert all("ledger" not in p and "historical_reference_count" not in p
+               for family in data["families"] for p in family["predicates"])
+    historical = json.loads((PAPER_ROOT / "related_work/provenance/archive/pre_p1_20260905/predicate_registry.json").read_text())
+    assert historical["registry_version"] == "four-family-19-core.v1"
+    snapshot = historical["coverage_snapshot"]
 
     assert snapshot["ledger"] == {"expressible": 118, "denominator": 145, "percent": 81.4}
     assert snapshot["ledger_l2"] == {"expressible": 35, "denominator": 39, "percent": 89.7}
@@ -131,12 +157,12 @@ def test_current_method_entrypoints_repeat_the_frozen_policy() -> None:
     ]
     text = "\n".join(path.read_text(encoding="utf-8") for path in paths)
 
-    assert "four-family-19-core.v1" in text
+    assert "four-family-12-core.v1" in text
     assert "W1" in text and "semantic_hit" in text
     assert "W0" in text and "coverage gap" in text
     assert "W2/W1/W0" in text
     assert "bibliography" in text and "运行时" in text
-    assert "不得新增谓词或修改" in text or "禁止新增谓词或修改" in text
+    assert "修改谓词定义需要独立研究决策" in text
 
 
 def test_new_execution_boundaries_are_explicit() -> None:
@@ -153,9 +179,9 @@ def test_new_execution_boundaries_are_explicit() -> None:
 
     assert "谓词不支持不是发 issue 的资格门" in principles
     assert "不得调用 Python `inspect`" in principles
-    assert "D2/D1/D0" in principles and "只有 D2 与 D1" in principles
+    assert "D2/D1/D0" in principles and "仅 D2/D1 可发 issue" in principles
     assert "W2/W1/W0" in principles and "确定性逻辑" in principles
-    assert "方法不生成、不裁定" in principles and "台账侧属性" in principles
+    assert "方法不生成、不裁定台账侧属性" in principles
     assert "reason" in principles and "basis" in principles
     assert "utils.agent" in plan and "utils.llm" in plan
     assert "gpt-5.6-luna" in plan and "54 pair" in plan

@@ -4,7 +4,7 @@ from .lowering import PredicatePlan
 
 
 def validate_plan(plan: PredicatePlan) -> None:
-    if not plan.registry_version.startswith("four-family-19-core."):
+    if not plan.registry_version.startswith("four-family-12-core."):
         raise ValueError("plan uses a non-frozen registry")
     if plan.executable and (not plan.formal_program or not plan.formal_program_hash):
         raise ValueError("executable plan must carry formal program and hash")

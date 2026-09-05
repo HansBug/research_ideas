@@ -16,8 +16,10 @@ from typing import Any
 from paper_stm_method.compiler.inputs import predicate_input_schema
 from paper_stm_method.inputs import load_pair
 from paper_stm_method.registry import load_registry
+from .predicate_id_mapping import CURRENT_REGISTRY, PRE_P1_REGISTRY, current_predicate_id
 from utils.artifact_io import write_json
 
+# Historical protocol denominators, used only to interpret pre-P1 runs.
 DIAGNOSTIC_PLANNED_PREDICATES = (
     "S1", "S2", "S3", "S4", "S5", "S6",
     "G1", "G4",
@@ -135,15 +137,31 @@ def build_applicability_matrix(
     report_root: str | Path,
     pair_ids: tuple[str, ...] = DEFAULT_DIAGNOSTIC_PAIRS,
 ) -> dict[str, Any]:
-    """Build a machine-readable preflight without reading method/Judge outputs."""
+    """Project the historical selection baseline onto the current registry.
+
+    This does not claim new applicability coverage for predicates or pairs that
+    were not assigned by the original baseline.
+    """
 
     report_root_path = Path(report_root).expanduser().resolve()
     registry = load_registry()
+    if registry.version != CURRENT_REGISTRY:
+        raise ValueError("applicability builder requires the current registry")
+    planned_predicates = tuple(registry.predicates)
+    routes_by_pair = {
+        pair_id: tuple(mapped for old_id in routes
+                       if (mapped := current_predicate_id(PRE_P1_REGISTRY, old_id)) is not None)
+        for pair_id, routes in REGISTERED_ROUTE_BASELINE.items()
+    }
+    route_basis = {
+        mapped: basis for old_id, basis in PREDICATE_ROUTE_BASIS.items()
+        if (mapped := current_predicate_id(PRE_P1_REGISTRY, old_id)) is not None
+    }
     pairs: dict[str, Any] = {}
     rows: list[dict[str, Any]] = []
     for pair_id in pair_ids:
         pair = load_pair(report_root_path / "pairs" / pair_id)
-        routes = set(REGISTERED_ROUTE_BASELINE.get(pair_id, ()))
+        routes = set(routes_by_pair.get(pair_id, ()))
         anchors = _model_anchors(pair)
         pairs[pair_id] = {
             "pair_id": pair_id,
@@ -152,7 +170,7 @@ def build_applicability_matrix(
             "route_baseline": sorted(routes),
             "model_anchors": anchors,
         }
-        for predicate_id in DIAGNOSTIC_PLANNED_PREDICATES:
+        for predicate_id in planned_predicates:
             predicate = registry.require(predicate_id)
             applicable = predicate_id in routes
             if not applicable:
@@ -166,7 +184,7 @@ def build_applicability_matrix(
             else:
                 status = "applicable"
                 feasibility = "routable_now"
-                basis = f"{PREDICATE_ROUTE_BASIS[predicate_id]}; the frozen predicate and backend are available; exact contract inputs remain method-owned."
+                basis = f"{route_basis[predicate_id]}; the current predicate and backend are available; exact contract inputs remain method-owned."
             rows.append({
                 "pair_id": pair_id,
                 "predicate_id": predicate_id,
@@ -177,23 +195,25 @@ def build_applicability_matrix(
                 "typed_input_contract": _typed_input_contract(predicate_id, predicate),
                 "planned_backend": BACKENDS.get(predicate_id),
                 "source_ids": list(predicate.sources),
-                "route_basis": PREDICATE_ROUTE_BASIS[predicate_id],
+                "route_basis": route_basis[predicate_id],
                 "value_status": "not_materialized; method-owned typed values are required before execution",
                 "basis": basis,
                 "reason": "Applicability is preflight metadata only; it does not create a method candidate, supply typed values, or execute a predicate.",
             })
     applicable_predicates = sorted({row["predicate_id"] for row in rows if row["status"] == "applicable"})
     payload: dict[str, Any] = {
-        "schema": "evidence-discovery.pair_predicate_applicability.v2",
+        "schema": "evidence-discovery.pair_predicate_applicability.v3",
         "registry_version": registry.version,
         "registry_hash": registry.registry_hash,
         "selected_pair_ids": list(pair_ids),
         "pair_count": len(pair_ids),
-        "planned_predicate_scope": "diagnostic-12",
-        "planned_predicates": list(DIAGNOSTIC_PLANNED_PREDICATES),
+        "planned_predicate_scope": "current-12",
+        "planned_predicates": list(planned_predicates),
         "candidate_predicates_e15": applicable_predicates,
         "candidate_predicate_count_e15": len(applicable_predicates),
-        "registered_route_baseline": {key: list(value) for key, value in REGISTERED_ROUTE_BASELINE.items() if key in pair_ids},
+        "registered_route_baseline": {key: list(value) for key, value in routes_by_pair.items() if key in pair_ids},
+        "baseline_source_registry": PRE_P1_REGISTRY,
+        "original_route_baseline": {key: list(value) for key, value in REGISTERED_ROUTE_BASELINE.items() if key in pair_ids},
         "selection_policy": "The route table is fixed preflight provenance for semantic-shape set cover only. It is never imported by the method worker and cannot create a candidate or predicate input.",
         "method_boundary": "This artifact contains no ledger, expected-issue, Judge, answer, D, L, hit, precision, or evaluation field. It is recorded only as immutable run provenance and is not supplied to contract extraction, grounding, D adjudication, routing, or backend execution.",
         "pairs": pairs,

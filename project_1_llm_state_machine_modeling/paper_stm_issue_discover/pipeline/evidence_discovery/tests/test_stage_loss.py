@@ -292,7 +292,7 @@ def test_full_pair_universe_uses_the_fixed_fifteen_predicate_denominator() -> No
 
     assert scope == "full-scale-15"
     assert predicates == FULL_SCALE_PLANNED_PREDICATES
-    assert {"G2", "G3", "R2"}.issubset(predicates)
+    assert {"G2", "R2"}.issubset(predicates)
 
 
 def test_representative_subset_requires_an_explicit_predicate_denominator() -> None:

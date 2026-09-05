@@ -14,9 +14,8 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Iterable, Literal
 
-from paper_stm_method.compiler.lowering import SUPPORTED_PREDICATES
 from paper_stm_method.inputs import FROZEN_PAIR_IDS
-from paper_stm_method.registry import load_registry
+from .predicate_id_mapping import CURRENT_REGISTRY, PRE_P1_REGISTRY, PRE_P1_TO_CURRENT, current_predicate_id
 from .applicability import (
     DEFAULT_DIAGNOSTIC_PAIRS,
     DIAGNOSTIC_PLANNED_PREDICATES,
@@ -51,10 +50,12 @@ STAGE_OWNERS = {
     "judge_mapping": "external_judge",
 }
 WITNESS_RANK = {"W0": 0, "W1": 1, "W2": 2}
-PlannedPredicateScope = Literal["diagnostic-12", "full-scale-15"]
+CURRENT_PREDICATES = tuple(value for value in PRE_P1_TO_CURRENT.values() if value is not None)
+PlannedPredicateScope = Literal["diagnostic-12", "full-scale-15", "current-12"]
 PLANNED_PREDICATES_BY_SCOPE: dict[PlannedPredicateScope, tuple[str, ...]] = {
     "diagnostic-12": DIAGNOSTIC_PLANNED_PREDICATES,
     "full-scale-15": FULL_SCALE_PLANNED_PREDICATES,
+    "current-12": CURRENT_PREDICATES,
 }
 
 
@@ -101,9 +102,19 @@ def _resolve_planned_predicate_scope(
     pair_ids: tuple[str, ...],
     requested_scope: PlannedPredicateScope | None,
     applicability: dict[str, Any] | None,
+    registry_version: str = PRE_P1_REGISTRY,
 ) -> tuple[PlannedPredicateScope, tuple[str, ...]]:
     """Resolve one frozen denominator without shrinking it to observed execution."""
 
+    current_predicate_id(registry_version, None)
+    if registry_version == CURRENT_REGISTRY:
+        if requested_scope not in {None, "current-12"}:
+            raise ValueError("current registry cannot use a pre-P1 predicate denominator")
+        if applicability and applicability.get("registry_version") != registry_version:
+            raise ValueError("applicability registry version does not match the method run")
+        return "current-12", CURRENT_PREDICATES
+    if requested_scope == "current-12" or (applicability and applicability.get("planned_predicate_scope") == "current-12"):
+        raise ValueError("pre-P1 runs cannot use the current predicate denominator")
     if requested_scope is not None:
         return requested_scope, PLANNED_PREDICATES_BY_SCOPE[requested_scope]
     applicability_scope = applicability.get("planned_predicate_scope") if applicability else None
@@ -578,7 +589,10 @@ def _predicate_feasibility(
     method_indexes: dict[tuple[int, str], dict[str, Any]],
     applicability: dict[str, Any] | None,
     planned_predicates: tuple[str, ...],
+    registry_version: str = PRE_P1_REGISTRY,
 ) -> dict[str, Any]:
+    current_predicate_id(registry_version, None)
+    registry_predicates = CURRENT_PREDICATES if registry_version == CURRENT_REGISTRY else ALL_FROZEN_PREDICATES
     rows = _items(applicability.get("rows")) if applicability else []
     app_by_predicate: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
@@ -586,7 +600,7 @@ def _predicate_feasibility(
         if isinstance(predicate_id, str):
             app_by_predicate[predicate_id].append(row)
     output: dict[str, Any] = {}
-    for predicate_id in ALL_FROZEN_PREDICATES:
+    for predicate_id in registry_predicates:
         receipts = [receipt for index in method_indexes.values() for receipt in index["receipts"] if receipt.get("predicate_id") == predicate_id]
         terminal = [receipt for receipt in receipts if receipt.get("execution_status") == "executed" and receipt.get("terminal_state") == "completed" and receipt.get("verdict") in {"pass", "violation"}]
         pass_count = sum(receipt.get("verdict") == "pass" for receipt in terminal)
@@ -603,7 +617,9 @@ def _predicate_feasibility(
         )
         input_missing = failure_kinds["invalid_input"]
         unsupported_backend_failures = failure_kinds["unsupported_backend"]
-        backend_implemented = predicate_id in SUPPORTED_PREDICATES
+        # Both released registries implemented all registered predicates.
+        # Current source deletions do not rewrite historical backend availability.
+        backend_implemented = True
         backend_missing = len(unsupported) if not backend_implemented else 0
         out_of_fragment = unsupported_backend_failures if backend_implemented else 0
         if terminal:
@@ -702,6 +718,8 @@ def build_stage_loss_audit(
     method_root_path = Path(method_root).expanduser().resolve()
     judge_root_path = Path(judge_root).expanduser().resolve()
     manifest = _load(method_root_path / "run_manifest.json")
+    registry_version = manifest.get("registry_version", PRE_P1_REGISTRY)
+    current_predicate_id(registry_version, None)
     manifest_pair_ids = tuple(str(item) for item in manifest.get("selected_pair_ids", ()))
     if not manifest_pair_ids:
         raise ValueError("method manifest has no selected_pair_ids")
@@ -732,6 +750,8 @@ def build_stage_loss_audit(
         for pair_id in pair_ids:
             path = _method_path(method_root_path, pair_id, round_no)
             payload = _load(path)
+            for receipt in _items(payload.get("predicate_execution_receipts")):
+                current_predicate_id(registry_version, receipt.get("predicate_id"))
             if str(payload.get("pair_id", pair_id)) != pair_id or int(
                 payload.get("round", round_no)
             ) != round_no:
@@ -771,11 +791,13 @@ def build_stage_loss_audit(
         pair_ids=pair_ids,
         requested_scope=planned_predicate_scope,
         applicability=applicability,
+        registry_version=registry_version,
     )
     feasibility = _predicate_feasibility(
         method_indexes=method_indexes,
         applicability=applicability,
         planned_predicates=planned_predicates,
+        registry_version=registry_version,
     )
     receipt_rows = [receipt for index in method_indexes.values() for receipt in index["receipts"]]
     evidence_rows = [evidence for index in method_indexes.values() for evidence in index["evidence"]]
@@ -800,6 +822,7 @@ def build_stage_loss_audit(
             "method-composite.v1"
         ),
         "registry_hash": manifest.get("registry_hash"),
+        "registry_version": registry_version,
         "selected_pair_ids": list(pair_ids),
         "selected_rounds": list(rounds),
         "cell_count": len(method_indexes),

@@ -39,16 +39,18 @@ class SoundnessAssessment(BaseModel):
 
 
 _REQUIRED: dict[str, tuple[str, ...]] = {
-    "S1": ("kind", "element", "scope"), "S2": ("source", "target", "scope"),
-    "S3": ("transition", "triggers"), "S4": ("state", "phase", "action"),
-    "S5": ("transition", "guard"), "S6": ("transition", "effect"),
-    "G1": ("source", "target"), "G2": ("source", "target"),
-    "G3": ("source", "target", "forbidden"), "G4": ("roots", "marked"),
-    "R1": ("scenario", "event", "step"), "R2": ("scenario", "stimulus", "state", "window"),
-    "R3": ("scenario", "behavior", "window"), "R4": ("scenario", "state", "interval"),
-    "V1": ("source", "trigger", "domain"), "V2": ("source", "trigger", "domain"),
-    "V3": ("p", "q", "bound", "unit", "scope"), "V4": ("initial_scope",),
-    "V5": ("state", "expected", "initial_scope"),
+    "S1": ("kind", "element", "scope"),
+    "S2": ("source", "target", "scope"),
+    "S3": ("transition", "triggers"),
+    "S4": ("state", "phase", "action"),
+    "S5": ("transition", "guard"),
+    "G1": ("source", "target"),
+    "G2": ("source", "target"),
+    "G3": ("roots", "marked"),
+    "R1": ("scenario", "event", "step"),
+    "R2": ("scenario", "stimulus", "state", "window"),
+    "R3": ("scenario", "state", "interval"),
+    "V1": ("initial_scope",),
 }
 
 
@@ -124,33 +126,6 @@ def _native_leaf_paths(document: Any, value: object, *, role: str) -> tuple[str,
     return tuple(dict.fromkeys(resolved)) or None
 
 
-def _leaf_state_set(document: Any, value: object) -> bool:
-    """Accept G3 only for explicit native leaf-state carriers."""
-
-    values = _native_values(value)
-    return bool(values) and all(
-        (state := resolve_state(document, raw)) is not None and state.is_leaf_state
-        for raw in values
-    )
-
-
-def _v3_proposition(document: Any, value: object, *, response_trigger: bool) -> bool:
-    """Check V3's backend-supported state/event proposition fragment."""
-
-    if isinstance(value, Mapping):
-        if set(value) == {"state"}:
-            value = value["state"]
-        elif set(value) == {"event"}:
-            value = ("event", value["event"])
-        else:
-            return False
-    if isinstance(value, tuple) and len(value) == 2 and value[0] == "event":
-        return response_trigger and resolve_event(document, value[1]) is not None
-    if resolve_state(document, value) is not None:
-        return True
-    return response_trigger and resolve_event(document, value) is not None
-
-
 def _carrier(document: Any, value: object) -> bool:
     if not isinstance(value, str) or not value.strip():
         return False
@@ -164,7 +139,7 @@ def assess_soundness(
     model: ModelIR | None,
     model_hash: str | None,
 ) -> SoundnessAssessment:
-    """Assess all 19 frozen predicate fragments through native model identities.
+    """Assess all 12 selected predicate fragments through native model identities.
 
     Missing model identity, malformed typed values, ambiguous carriers, and
     unsupported finite domains are explicit fragment failures.  A missing
@@ -173,7 +148,7 @@ def assess_soundness(
     """
 
     if predicate_id not in _REQUIRED:
-        return SoundnessAssessment(predicate_id=predicate_id or "unknown", satisfied=False, boundary_id="unregistered-fragment.v1", model_boundary="no frozen backend boundary", required_inputs=(), reason="No frozen predicate-specific soundness validator is registered.", basis="explicit 19-predicate registry closure")
+        return SoundnessAssessment(predicate_id=predicate_id or "unknown", satisfied=False, boundary_id="unregistered-fragment.v1", model_boundary="no frozen backend boundary", required_inputs=(), reason="No frozen predicate-specific soundness validator is registered.", basis="explicit 12-predicate registry closure")
     if not model_hash or model is None:
         return _assessment(predicate_id, False, "The closed native model identity is missing.", "model hash and ModelIR are required before native fragment assessment")
     missing = tuple(name for name in _REQUIRED[predicate_id] if name not in inputs or inputs[name] is None)
@@ -200,11 +175,10 @@ def assess_soundness(
         )
     elif predicate_id == "S2":
         ok = _state_set(document, inputs["source"], allow_initial=True) and _state_set(document, inputs["target"]) and (closed_scope or resolve_state(document, scope) is not None)
-    elif predicate_id in {"S3", "S5", "S6"}:
+    elif predicate_id in {"S3", "S5"}:
         ok = _carrier(document, inputs["transition"])
         if predicate_id == "S3": ok = ok and isinstance(inputs["triggers"], Sequence) and not isinstance(inputs["triggers"], (str, bytes)) and all(isinstance(value, str) and value.strip() for value in inputs["triggers"])
         if predicate_id == "S5": ok = ok and isinstance(inputs["guard"], str)
-        if predicate_id == "S6": ok = ok and isinstance(inputs["effect"], Sequence) and len(inputs["effect"]) == 1 and isinstance(inputs["effect"][0], str) and bool(inputs["effect"][0].strip())
     elif predicate_id == "S4":
         ok = resolve_state(document, inputs["state"]) is not None and inputs["phase"] in {"entry", "do", "exit"} and isinstance(inputs["action"], str) and bool(inputs["action"].strip())
     elif predicate_id == "G1":
@@ -214,53 +188,14 @@ def assess_soundness(
         targets = _native_leaf_paths(document, inputs["target"], role="target")
         ok = sources is not None and targets is not None and len(sources) == 1
     elif predicate_id == "G3":
-        sources = _native_leaf_paths(document, inputs["source"], role="source")
-        targets = _native_leaf_paths(document, inputs["target"], role="target")
-        forbidden = _native_leaf_paths(document, inputs["forbidden"], role="target")
-        ok = (
-            _leaf_state_set(document, inputs["source"])
-            and _leaf_state_set(document, inputs["target"])
-            and _leaf_state_set(document, inputs["forbidden"])
-            and sources is not None
-            and targets is not None
-            and forbidden is not None
-            and len(sources) == 1
-        )
-    elif predicate_id == "G4":
         ok = _state_set(document, inputs["roots"], allow_initial=True) and _state_set(document, inputs["marked"])
-    elif predicate_id in {"R1", "R2", "R3", "R4"}:
+    elif predicate_id in {"R1", "R2", "R3"}:
         scenario = inputs["scenario"]
         ok = isinstance(scenario, Mapping) and _nonempty(scenario.get("schedule")) and scenario.get("initialization") == "cold" and scenario.get("root_state") == state_path(document.machine.root_state)
         if predicate_id == "R1": ok = ok and resolve_event(document, inputs["event"]) is not None
-        if predicate_id in {"R2", "R4"}: ok = ok and resolve_state(document, inputs["state"]) is not None
-    elif predicate_id in {"V1", "V2"}:
-        trigger = inputs["trigger"]
-        ok = resolve_state(document, inputs["source"]) is not None and (trigger is None or resolve_event(document, trigger) is not None) and isinstance(inputs["domain"], Mapping) and bool(inputs["domain"])
-        if predicate_id == "V1": ok = ok and isinstance(inputs.get("guards"), Sequence) and len(inputs["guards"]) >= 2
-    elif predicate_id == "V3":
-        # The native V3 backend only compiles a discrete FBMCQ step bound.
-        # Treating milliseconds as executable here would promote a plan that
-        # the backend must return as unknown.
-        ok = (
-            _v3_proposition(document, inputs["p"], response_trigger=True)
-            and _v3_proposition(document, inputs["q"], response_trigger=False)
-            and isinstance(inputs["bound"], int)
-            and not isinstance(inputs["bound"], bool)
-            and inputs["bound"] > 0
-            and inputs["unit"] == "steps"
-            and (scope in {"closed_fcstm", "cold"} or resolve_state(document, scope) is not None)
-        )
-    elif predicate_id == "V4":
+        if predicate_id in {"R2", "R3"}: ok = ok and resolve_state(document, inputs["state"]) is not None
+    elif predicate_id == "V1":
         initial_scope = inputs["initial_scope"]
         ok = initial_scope in {"closed_fcstm", "cold"} or resolve_state(document, initial_scope) is not None
-    else:  # V5
-        initial_scope = inputs["initial_scope"]
-        expected = inputs["expected"]
-        ok = (
-            resolve_state(document, inputs["state"]) is not None
-            and type(expected) in {bool, int}
-            and expected in {0, 1}
-            and (initial_scope in {"closed_fcstm", "cold"} or resolve_state(document, initial_scope) is not None)
-        )
     reason = "The typed plan satisfies this predicate's native executable fragment." if ok else "The typed plan is outside this predicate's native executable fragment."
     return _assessment(predicate_id, ok, reason, f"predicate={predicate_id}; native_source_hash={document.source_hash}; pyfcstm identity and finite backend boundary")

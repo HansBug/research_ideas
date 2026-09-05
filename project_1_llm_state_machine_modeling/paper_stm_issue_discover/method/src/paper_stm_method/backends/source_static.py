@@ -9,13 +9,11 @@ from ..compiler.lowering import PredicatePlan
 from ..inputs.models import ModelIR
 from .fcstm_native import (
     NativeFCSTM,
-    all_states,
     all_transition_carriers,
     load_native_fcstm,
     native_load_failure,
     native_receipt,
     native_transition_endpoints,
-    parse_effect_operation,
     resolve_event,
     resolve_state,
     state_path,
@@ -113,7 +111,7 @@ def _parse_required_guard(value: object) -> Any | None:
 
 
 def run_source_static(plan: PredicatePlan, model: ModelIR, receipt_id: str):
-    """Evaluate S1--S6 only through native FCSTM model classes."""
+    """Evaluate S1--S5 only through native FCSTM model classes."""
 
     predicate = plan.predicate_id or "unknown"
     try:
@@ -164,7 +162,7 @@ def run_source_static(plan: PredicatePlan, model: ModelIR, receipt_id: str):
         return native_receipt(receipt_id, predicate, native, "true" if found else "false", f"The native FCSTM model {'contains' if found else 'does not contain'} the exact {scope_kind} transition.", "pyfcstm Transition owner, canonical endpoint identity, and grammar-span carrier", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", counterexample=[] if found else [{"source": source, "target": target, "scope": scope}])
 
     transition = _native_transition(plan, native)
-    if predicate in {"S3", "S5", "S6"} and transition is None:
+    if predicate in {"S3", "S5"} and transition is None:
         return native_receipt(receipt_id, predicate, native, "unknown", f"{predicate} requires an exact transition:line:<n> carrier that resolves to exactly one native FCSTM transition.", "native transition grammar-span binding", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1")
 
     if predicate == "S3":
@@ -206,17 +204,6 @@ def run_source_static(plan: PredicatePlan, model: ModelIR, receipt_id: str):
         observed_ast = transition.guard.to_ast_node() if transition.guard is not None else None
         verdict = "true" if expected_ast == observed_ast else "false"
         return native_receipt(receipt_id, predicate, native, verdict, "The required guard AST was compared with the exact native FCSTM transition guard AST.", "pyfcstm.model.parse_expr_from_string and Transition.guard.to_ast_node", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", counterexample=[] if verdict == "true" else [{"expected": str(expected_ast), "observed": str(observed_ast) if observed_ast is not None else None}])
-
-    if predicate == "S6":
-        values = inputs.get("effect") or ()
-        if not isinstance(values, (list, tuple)) or len(values) != 1 or not isinstance(values[0], str):
-            return native_receipt(receipt_id, predicate, native, "unknown", "S6 requires exactly one exact effect expression on the exact transition carrier.", "S6 typed effect contract", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1")
-        expected_ast = parse_effect_operation(native, values[0])
-        if expected_ast is None:
-            return native_receipt(receipt_id, predicate, native, "unknown", "S6 requires one effect that parses as a single native FCSTM operation in the current declaration environment.", "S6 native FCSTM operation-model wrapper", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", failure_kind="invalid_input")
-        observed = [effect.to_ast_node() for effect in transition.effects]
-        verdict = "true" if any(expected_ast == effect for effect in observed) else "false"
-        return native_receipt(receipt_id, predicate, native, verdict, "The required native effect AST was checked against operation ASTs on the exact native transition carrier.", "pyfcstm StateMachine operation parsing and Transition.effects AST membership", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1", counterexample=[] if verdict == "true" else [{"expected": str(expected_ast), "observed": [str(effect) for effect in observed]}])
 
     return native_receipt(receipt_id, predicate, native, "unknown", "The native structural backend has no branch for this predicate.", "explicit native structural backend dispatch boundary", backend_family="fcstm_model", algorithm_version="pyfcstm.model.v1")
 

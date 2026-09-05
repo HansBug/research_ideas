@@ -843,7 +843,7 @@ def _prepare_run_manifest(
         predecessor_snapshot=predecessor_snapshot,
         selection_preflight=selection_preflight,
         reason="This manifest freezes the current method code, registry, pair grid, transport policy, and resume identity before provider execution.",
-        basis="four-family-19-core.v1 plus the explicit live/full review gate and current clean Git commit",
+        basis="four-family-12-core.v1 plus the explicit live/full review gate and current clean Git commit",
     )
     write_json(manifest_path, manifest.model_dump(mode="json"))
     return manifest
@@ -947,20 +947,13 @@ _PREDICATE_PROPERTY_COMPATIBILITY: dict[str, frozenset[str]] = {
     "S3": frozenset({"trigger_set"}),
     "S4": frozenset({"state_action"}),
     "S5": frozenset({"guard"}),
-    "S6": frozenset({"effect"}),
     "G1": frozenset({"reachability"}),
     "G2": frozenset({"universal_reachability", "termination"}),
-    "G3": frozenset({"route_avoidance"}),
-    "G4": frozenset({"coaccessibility", "termination"}),
+    "G3": frozenset({"coaccessibility", "termination"}),
     "R1": frozenset({"event_consumption"}),
     "R2": frozenset({"state_after_stimulus"}),
-    "R3": frozenset({"behavior_occurrence"}),
-    "R4": frozenset({"state_retention"}),
-    "V1": frozenset({"guard_disjointness"}),
-    "V2": frozenset({"guard_completeness"}),
-    "V3": frozenset({"bounded_response"}),
-    "V4": frozenset({"deadlock_freedom"}),
-    "V5": frozenset({"state_invariant"}),
+    "R3": frozenset({"state_retention"}),
+    "V1": frozenset({"deadlock_freedom"}),
 }
 
 
@@ -1043,7 +1036,7 @@ def _enrich_candidate(candidate: CandidateIssue, binding: Any, pair: PairInput) 
     if (
         transition_ref is None
         and not transition_hint
-        and candidate.predicate_id in {"S3", "S5", "S6"}
+        and candidate.predicate_id in {"S3", "S5"}
         and len(bound_transitions) == 1
     ):
         transition_ref = bound_transitions[0].ref
@@ -2841,11 +2834,11 @@ def _materialize_deterministic_execution_probes(
 
     Probes are audit executions, not extra obligations.  S1 checks declaration
     membership for an exact carrier named by an endpoint/trigger contract; the
-    primary contract remains unchanged.  G4 checks finite coaccessibility only
+    primary contract remains unchanged.  G3 checks finite coaccessibility only
     when a termination contract supplies exact owner and marked target states.
     Runtime predicates are intentionally absent here: static source/model facts
     cannot be promoted to a trajectory scenario. An aggregate stable-termination
-    frontier check may additionally project one supporting G4 topology execution
+    frontier check may additionally project one supporting G3 topology execution
     when its typed root and marked refs are complete.
     """
     author_index = build_author_index(pair)
@@ -2942,7 +2935,7 @@ def _materialize_deterministic_execution_probes(
             )
             break
 
-    # G4 is a termination/coaccessibility check, not a generic termination
+    # G3 is a termination/coaccessibility check, not a generic termination
     # alias.  Both owner and marked target must come from exact grounding and
     # the author-source model must be finite and non-concurrent.
     concurrent = bool(
@@ -2973,7 +2966,7 @@ def _materialize_deterministic_execution_probes(
             target = next((item for item in pair.model.states if item.ref == target_ref), None)
             if owner is None or target is None:
                 continue
-            if (contract.contract_id, "G4") in existing_predicates:
+            if (contract.contract_id, "G3") in existing_predicates:
                 continue
             candidate = CandidateIssue(
                 contract_id=contract.contract_id,
@@ -2986,7 +2979,7 @@ def _materialize_deterministic_execution_probes(
                 ),
                 title=f"Termination coaccessibility from {owner.name} to {target.name}",
                 requirement_quote=contract.quote,
-                predicate_id="G4",
+                predicate_id="G3",
                 predicate_inputs={
                     "roots": [owner.name],
                     "marked": [target.name],
@@ -2998,8 +2991,8 @@ def _materialize_deterministic_execution_probes(
                     f"Finite coaccessibility is checked from exact owner {owner.ref} "
                     f"to marked termination target {target.ref}."
                 ),
-                strongest_rebuttal="The G4 probe is admitted only for an exact owner/target termination contract and a non-concurrent finite source model.",
-                reason="The termination contract supplies explicit roots and marked target states for the registered G4 coaccessibility fragment.",
+                strongest_rebuttal="The G3 probe is admitted only for an exact owner/target termination contract and a non-concurrent finite source model.",
+                reason="The termination contract supplies explicit roots and marked target states for the registered G3 coaccessibility fragment.",
                 basis=(
                     f"contract={contract.contract_id}; owner_ref={owner_ref}; "
                     f"target_ref={target_ref}; finite_model=true; concurrent_regions=false"
@@ -3008,7 +3001,7 @@ def _materialize_deterministic_execution_probes(
             probes.append(candidate)
             dispositions.append(
                 {
-                    "probe": "G4",
+                    "probe": "G3",
                     "status": "admitted_exact_termination",
                     "contract_id": contract.contract_id,
                     "owner_ref": owner_ref,
@@ -3233,111 +3226,14 @@ def _materialize_deterministic_execution_probes(
         )
         break
 
-    # An effect contract can be executed by S6 only when grounding supplies
-    # one exact transition carrier.  The effect hint remains the normative
-    # input; event names, variable deltas, state scope, and display labels are
-    # not transition-effect evidence and must not be used to guess a carrier.
-    effect_bindings: dict[tuple[str, str], SemanticBinding] = {}
-    for response in grounding_responses:
-        for binding in response.semantic_bindings:
-            if binding.status != "exact" or binding.role != "transition":
-                continue
-            carrier_ref = binding.carrier_transition_ref
-            if not carrier_ref or carrier_ref not in pair.model.transition_refs:
-                continue
-            resolved_refs = _resolved_exact_binding_refs(pair, binding)
-            transition_refs = tuple(
-                ref for ref in resolved_refs if ref in pair.model.transition_refs
-            )
-            if len(transition_refs) != 1 or transition_refs[0] != carrier_ref:
-                continue
-            effect_bindings[(binding.contract_id, carrier_ref)] = binding
-    for contract in sorted(contracts_by_id.values(), key=lambda item: item.contract_id):
-        if contract.property != "effect":
-            continue
-        effect_hints = [hint for hint in contract.binding_hints if hint.role == "effect"]
-        carrier_rows = [
-            (carrier_ref, binding)
-            for (contract_id, carrier_ref), binding in effect_bindings.items()
-            if contract_id == contract.contract_id
-        ]
-        if len(effect_hints) != 1 or len(carrier_rows) != 1:
-            continue
-        effect_hint = effect_hints[0]
-        carrier_ref, binding = carrier_rows[0]
-        transition = pair.model.transition(carrier_ref)
-        if transition is None:
-            continue
-        if (contract.contract_id, "S6") in existing_predicates:
-            continue
-        source_refs = list(contract.source_refs)
-        for source_ref in (effect_hint.source_ref, binding.source_element_ref):
-            if source_ref and source_ref not in source_refs:
-                source_refs.append(source_ref)
-        candidate = CandidateIssue(
-            contract_id=contract.contract_id,
-            locus_kind=contract.locus_kind,
-            locus_names=contract.locus_names,
-            property=contract.property,
-            violation_direction=contract.violation_direction,
-            evidence_types=tuple(
-                dict.fromkeys([*contract.evidence_types, "transition_fact", "effect_fact"])
-            ),
-            title=(
-                f"Effect {effect_hint.value!r} on exact transition "
-                f"{transition.source} -> {transition.target}"
-            ),
-            requirement_quote=contract.quote,
-            predicate_id="S6",
-            predicate_inputs={
-                "transition": transition.ref,
-                "effect": [effect_hint.value],
-            },
-            element_refs=[transition.ref],
-            source_refs=source_refs,
-            expected=contract.normative_statement,
-            observed=(
-                f"The exact carrier {transition.ref} has parsed effects "
-                f"{list(transition.effects)!r}."
-            ),
-            strongest_rebuttal=(
-                "The S6 execution is limited to the one exact grounded carrier; "
-                "a state scope, event name, variable delta, or another transition "
-                "cannot satisfy this effect attachment check."
-            ),
-            reason=(
-                "One exact transition binding and one explicit effect hint are "
-                "available for a standalone transition-effect membership execution."
-            ),
-            basis=(
-                f"contract={contract.contract_id}; effect_hint={effect_hint.value!r}; "
-                f"carrier_transition_ref={transition.ref}; binding_id={binding.binding_id}; "
-                "grounding SemanticBinding.status=exact"
-            ),
-        )
-        probes.append(candidate)
-        dispositions.append(
-            {
-                "probe": "S6",
-                "status": "admitted_exact_effect_carrier",
-                "contract_id": contract.contract_id,
-                "carrier_transition_ref": transition.ref,
-                "effect": effect_hint.value,
-                "binding_id": binding.binding_id,
-                "reason": candidate.reason,
-                "basis": candidate.basis,
-            }
-        )
-        break
-
     # An aggregate stable-termination check already contains the exact
     # coaccessibility obligation, but it used to stop at the predicate-null
     # frontier candidate. Project only the frontier's typed root/marked refs:
     # no role is recovered from prose, a contract ID, or the basis string.
     if frontier_batch is not None and not any(
-        item.predicate_id == "G4" for item in probes
+        item.predicate_id == "G3" for item in probes
     ) and not any(
-        candidate.predicate_id == "G4" for candidate in existing_candidates
+        candidate.predicate_id == "G3" for candidate in existing_candidates
     ):
         concurrent = bool(
             pair.canonical_source_ir is not None
@@ -3357,11 +3253,11 @@ def _materialize_deterministic_execution_probes(
             if contract is None:
                 dispositions.append(
                     {
-                        "probe": "G4",
+                        "probe": "G3",
                         "status": "frontier_aggregate_missing_contract",
                         "check_id": check.check_id,
                         "canonical_contract_id": check.canonical_contract_id,
-                        "reason": "The aggregate termination check has no accepted typed contract, so a G4 probe would require inventing its semantic owner.",
+                        "reason": "The aggregate termination check has no accepted typed contract, so a G3 probe would require inventing its semantic owner.",
                         "basis": "exact FrontierCheckReceipt.canonical_contract_id lookup",
                     }
                 )
@@ -3369,10 +3265,10 @@ def _materialize_deterministic_execution_probes(
             if concurrent or pair.canonical_source_ir is None:
                 dispositions.append(
                     {
-                        "probe": "G4",
+                        "probe": "G3",
                         "status": "frontier_aggregate_blocked_non_sequential_model",
                         "check_id": check.check_id,
-                        "reason": "G4 coaccessibility projection requires the finite sequential author-source model; concurrent or unavailable source IR remains outside this fragment.",
+                        "reason": "G3 coaccessibility projection requires the finite sequential author-source model; concurrent or unavailable source IR remains outside this fragment.",
                         "basis": "canonical_source_ir.model.concurrent_regions and source-IR availability",
                     }
                 )
@@ -3390,7 +3286,7 @@ def _materialize_deterministic_execution_probes(
             ):
                 dispositions.append(
                     {
-                        "probe": "G4",
+                        "probe": "G3",
                         "status": "frontier_aggregate_incomplete_typed_refs",
                         "check_id": check.check_id,
                         "model_refs": list(check.model_refs),
@@ -3409,12 +3305,12 @@ def _materialize_deterministic_execution_probes(
             if any(state is None for state in (*roots, *marked)):
                 dispositions.append(
                     {
-                        "probe": "G4",
+                        "probe": "G3",
                         "status": "frontier_aggregate_non_state_refs",
                         "check_id": check.check_id,
                         "root_refs": list(root_refs),
                         "marked_refs": list(marked_refs),
-                        "reason": "G4 topology inputs must be exact state refs; event or transition refs cannot be promoted to roots or marked nodes.",
+                        "reason": "G3 topology inputs must be exact state refs; event or transition refs cannot be promoted to roots or marked nodes.",
                         "basis": "closed ModelIR state inventory membership",
                     }
                 )
@@ -3438,7 +3334,7 @@ def _materialize_deterministic_execution_probes(
                     f"{root_names!r} to {marked_names!r}"
                 ),
                 requirement_quote=contract.quote,
-                predicate_id="G4",
+                predicate_id="G3",
                 predicate_inputs={"roots": root_names, "marked": marked_names},
                 element_refs=[*root_refs, *marked_refs],
                 source_refs=source_refs,
@@ -3449,14 +3345,14 @@ def _materialize_deterministic_execution_probes(
                     "for finite coaccessibility execution."
                 ),
                 strongest_rebuttal=(
-                    "The G4 probe is supporting execution evidence only; it is "
+                    "The G3 probe is supporting execution evidence only; it is "
                     "admitted from the aggregate frontier's exact typed partition "
                     "and does not replace the termination obligation."
                 ),
                 reason=(
                     "The deterministic aggregate termination frontier supplied a "
                     "complete exact root/marked partition over the closed model, "
-                    "so the registered G4 coaccessibility fragment can execute "
+                    "so the registered G3 coaccessibility fragment can execute "
                     "without inferring identity from prose."
                 ),
                 basis=(
@@ -3469,7 +3365,7 @@ def _materialize_deterministic_execution_probes(
             probes.append(candidate)
             dispositions.append(
                 {
-                    "probe": "G4",
+                    "probe": "G3",
                     "status": "admitted_frontier_aggregate_termination",
                     "check_id": check.check_id,
                     "contract_id": contract.contract_id,
@@ -4008,7 +3904,7 @@ def _d_decision_consistency_errors(
                 errors.append(
                     "grounding=established contradicts the exact closed-model outgoing-transition inventory: "
                     f"every bound dead_end locus has outgoing transitions ({states_with_outgoing}); "
-                    "unreachability is not a local dead-end or V4 deadlock violation"
+                    "unreachability is not a local dead-end or V1 deadlock violation"
                 )
         if (
             isinstance(candidate, CandidateIssue)
@@ -4366,7 +4262,6 @@ def _aggregate_guard_modality_issues(
     return kept, [{"issue_id": issue["issue_id"], "aggregated_into": root["issue_id"]} for issue in others]
 
 
-
 def _annotate_author_anchors(pair: PairInput, release: list[dict[str, Any]]) -> None:
     """Append the author's PlantUML lines to each published issue.
 
@@ -4401,7 +4296,6 @@ def _annotate_author_anchors(pair: PairInput, release: list[dict[str, Any]]) -> 
             issue["author_source_anchor"] = anchors
             issue["observed"] = f"{issue.get('observed') or ''} Author source: {'; '.join(anchors)}."
             issue["source_refs"] = list(dict.fromkeys([*(issue.get("source_refs") or []), *raw_refs]))
-
 
 
 def _deduplicate_release_issues(
@@ -6681,7 +6575,7 @@ def run_experiment(
         ],
         predecessor_snapshot=predecessor_snapshot,
         reason="Every selected pair has terminal method receipts and method-owned W2 audits under one strict run identity.",
-        basis="four-family-19-core.v1, v3 method-only run manifest, and exact input closure hashes",
+        basis="four-family-12-core.v1, v3 method-only run manifest, and exact input closure hashes",
     ).model_dump(mode="json")
     write_json(output_root / "summary.json", summary)
     write_markdown_summary(output_root / "SUMMARY.md", summary)

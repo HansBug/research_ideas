@@ -203,7 +203,7 @@ def test_input_aliases_and_runtime_witness_readiness_are_deterministic() -> None
     assert "expected_guard" not in plan.inputs
     assert "transition_name" not in plan.inputs
 
-    for predicate_id in ("G4", "R3", "V1", "V3", "V4"):
+    for predicate_id in ("G3", "V1"):
         candidate = _candidate(pair, predicate_id=predicate_id, inputs={})
         plan = compile_plan(
             candidate,
@@ -749,13 +749,7 @@ def test_predicate_plan_projects_context_but_direct_strict_validation_rejects_ex
     schema = PredicatePlan.model_json_schema()
     discriminator = schema["properties"]["inputs"]["discriminator"]
     assert discriminator["propertyName"] == "predicate_id"
-    assert set(discriminator["mapping"]) == {
-        "S1", "S2", "S3", "S4", "S5", "S6",
-        "G1", "G2", "G3", "G4",
-        "R1", "R2", "R3", "R4",
-        "V1", "V2", "V3", "V4", "V5",
-        "unsupported",
-    }
+    assert set(discriminator["mapping"]) == {"S1", "S2", "S3", "S4", "S5", "G1", "G2", "G3", "R1", "R2", "R3", "V1", "unsupported"}
 
 
 def test_s3_s5_projection_keeps_typed_carrier_and_drops_redundant_endpoints() -> None:
@@ -975,12 +969,7 @@ def test_w0_w1_w2_and_execution_failures_are_orthogonal() -> None:
 
 @pytest.mark.parametrize(
     ("predicate_id", "inputs"),
-    (
-        ("G2", {"source": ["Idle", "Active"], "target": "Active"}),
-        ("G3", {"source": "Root", "target": "Active", "forbidden": "Idle"}),
-        ("V3", {"p": {"state": "Missing"}, "q": {"state": "Active"}, "bound": 1, "unit": "steps", "scope": "closed_fcstm"}),
-        ("V5", {"state": "Active", "expected": 2, "initial_scope": "closed_fcstm"}),
-    ),
+    (("G2", {"source": ["Idle", "Active"], "target": "Active"}),),
 )
 def test_backend_unknown_preconditions_downgrade_precise_bindings_to_w1(
     predicate_id: str, inputs: dict,
@@ -1760,29 +1749,29 @@ def test_execution_probe_preserves_non_operation_effect_binding_as_w1() -> None:
         (),
     )
 
-    s6_probe = next(item for item in probes if item.predicate_id == "S6")
-    assert s6_probe.contract_id == contract.contract_id
-    assert s6_probe.predicate_inputs == {
-        "transition": transition.ref,
-        "effect": ["Obstacle Detected"],
-    }
-    assert s6_probe.element_refs == [transition.ref]
-    assert any(
-        item["status"] == "admitted_exact_effect_carrier"
-        for item in dispositions
+    assert not probes
+    assert not probe_contracts
+    candidate = _candidate(
+        pair, predicate_id=None, inputs={}, refs=[transition.ref]
+    ).model_copy(
+        update={
+            "contract_id": contract.contract_id,
+            "property": "effect",
+            "locus_kind": contract.locus_kind,
+            "locus_names": contract.locus_names,
+        }
     )
-
     prepared = _prepare_candidate(
         pair,
-        s6_probe,
+        candidate,
         round_index=1,
         index=0,
-        contracts_by_id={contract.contract_id: contract, **probe_contracts},
+        contracts_by_id={contract.contract_id: contract},
     )
-    assert prepared["plan"].predicate_id == "S6"
-    assert prepared["plan"].inputs["transition"] == transition.ref
+    assert prepared["plan"].predicate_id is None
+    assert prepared["binding"].precise
+    assert prepared["candidate"].element_refs == [transition.ref]
     assert prepared["receipt"].terminal_state == "unsupported"
-    assert prepared["receipt"].run_metadata["failure_kind"] == "invalid_input"
     execution = build_predicate_execution_receipt(
         pair_id=pair.pair_id,
         run_id="1" * 32,
@@ -1793,7 +1782,7 @@ def test_execution_probe_preserves_non_operation_effect_binding_as_w1() -> None:
     )
     assert execution["witness_level"] == "W1"
     assert execution["execution_state"] == "not_attempted"
-    assert execution["failure_kind"] == "invalid_input"
+    assert execution["predicate_verdict"] is None
 
 
 def _effect_probe_contract(
@@ -2162,7 +2151,7 @@ def test_execution_probe_does_not_relabel_non_declaration_contracts_as_s1(
     assert probes == []
 
 
-def test_g4_execution_probe_requires_exact_owner_and_marked_target() -> None:
+def test_g3_execution_probe_requires_exact_owner_and_marked_target() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     owner, target = pair.model.states[1:3]
     contract = _probe_contract(
@@ -2197,7 +2186,7 @@ def test_g4_execution_probe_requires_exact_owner_and_marked_target() -> None:
     )
 
     assert len(probes) == 1
-    assert probes[0].predicate_id == "G4"
+    assert probes[0].predicate_id == "G3"
     assert probes[0].predicate_inputs == {
         "roots": [owner.name],
         "marked": [target.name],
@@ -2227,7 +2216,7 @@ def test_g4_execution_probe_requires_exact_owner_and_marked_target() -> None:
     assert probes == []
 
 
-def test_g4_execution_probe_projects_exact_aggregate_frontier_and_executes() -> None:
+def test_g3_execution_probe_projects_exact_aggregate_frontier_and_executes() -> None:
     pair = load_pair(REPORT_ROOT / "pairs" / "0000")
     owner, target = pair.model.states[1:3]
     contract = _probe_contract(
@@ -2263,10 +2252,10 @@ def test_g4_execution_probe_projects_exact_aggregate_frontier_and_executes() -> 
         frontier_batch=frontier,
     )
 
-    g4_probe = next(item for item in probes if item.predicate_id == "G4")
-    assert g4_probe.contract_id == contract.contract_id
-    assert g4_probe.element_refs == [owner.ref, target.ref]
-    assert g4_probe.predicate_inputs == {
+    g3_probe = next(item for item in probes if item.predicate_id == "G3")
+    assert g3_probe.contract_id == contract.contract_id
+    assert g3_probe.element_refs == [owner.ref, target.ref]
+    assert g3_probe.predicate_inputs == {
         "roots": [owner.name],
         "marked": [target.name],
     }
@@ -2275,19 +2264,19 @@ def test_g4_execution_probe_projects_exact_aggregate_frontier_and_executes() -> 
 
     prepared = _prepare_candidate(
         pair,
-        g4_probe,
+        g3_probe,
         round_index=1,
         index=0,
         contracts_by_id={contract.contract_id: contract},
     )
-    assert prepared["plan"].predicate_id == "G4"
+    assert prepared["plan"].predicate_id == "G3"
     assert prepared["plan"].inputs["roots"] == [owner.name]
     assert prepared["plan"].inputs["marked"] == [target.name]
     assert prepared["receipt"].terminal_state == "completed"
     assert prepared["receipt"].verdict in {"true", "false"}
 
 
-def test_g4_frontier_projection_rejects_concurrent_or_incomplete_typed_partition() -> None:
+def test_g3_frontier_projection_rejects_concurrent_or_incomplete_typed_partition() -> None:
     concurrent_pair = load_pair(REPORT_ROOT / "pairs" / "0002")
     owner, target = concurrent_pair.model.states[1:3]
     contract = _probe_contract(
@@ -2321,7 +2310,7 @@ def test_g4_frontier_projection_rejects_concurrent_or_incomplete_typed_partition
         (),
         frontier_batch=complete_frontier,
     )
-    assert not any(item.predicate_id == "G4" for item in probes)
+    assert not any(item.predicate_id == "G3" for item in probes)
     assert dispositions[0]["status"] == (
         "frontier_aggregate_blocked_non_sequential_model"
     )
@@ -2349,7 +2338,7 @@ def test_g4_frontier_projection_rejects_concurrent_or_incomplete_typed_partition
         (),
         frontier_batch=incomplete_frontier,
     )
-    assert not any(item.predicate_id == "G4" for item in probes)
+    assert not any(item.predicate_id == "G3" for item in probes)
     assert dispositions[0]["status"] == "frontier_aggregate_incomplete_typed_refs"
 
 
@@ -2358,7 +2347,7 @@ def test_trajectory_receipt_requires_closed_contract_and_checks_retention() -> N
     root_path = ".".join(str(part) for part in load_native_fcstm(pair.model).machine.root_state.path)
     candidate = _candidate(
         pair,
-        predicate_id="R4",
+        predicate_id="R3",
         inputs={
             "scenario": {
                 "schema": "evidence-discovery.fcstm-runtime-scenario.v2",
@@ -2381,11 +2370,11 @@ def test_trajectory_receipt_requires_closed_contract_and_checks_retention() -> N
         candidate,
         bind_candidate(candidate, pair.model),
         load_registry(),
-        obligation_id="0000:r4-trajectory",
+        obligation_id="0000:r3-trajectory",
         round_index=1,
         model=pair.model,
     )
-    receipt = run_trajectory(plan, pair.model, "0000:r4-trajectory:receipt")
+    receipt = run_trajectory(plan, pair.model, "0000:r3-trajectory:receipt")
 
     assert plan.executable is True
     assert receipt.terminal_state == "completed"
@@ -2655,7 +2644,7 @@ def test_native_topology_keeps_outer_initial_entry_separate_from_nested_entry() 
     assert "CollisionAvoidance" not in root_initial_targets
 
 
-def test_v4_uses_native_stable_leaves_and_rejects_unknown_scope() -> None:
+def test_v1_uses_native_stable_leaves_and_rejects_unknown_scope() -> None:
     registry = load_registry()
     pair = load_pair(REPORT_ROOT / "pairs" / "0023")
     leaf_refs = [
@@ -2665,7 +2654,7 @@ def test_v4_uses_native_stable_leaves_and_rejects_unknown_scope() -> None:
     ]
     candidate = _candidate(
         pair,
-        predicate_id="V4",
+        predicate_id="V1",
         inputs={"initial_scope": "closed_fcstm", "element_refs": leaf_refs},
         refs=leaf_refs,
     )
@@ -2674,23 +2663,23 @@ def test_v4_uses_native_stable_leaves_and_rejects_unknown_scope() -> None:
         candidate,
         binding,
         registry,
-        obligation_id="0023:v4-scope",
+        obligation_id="0023:v1-scope",
         round_index=1,
         model=pair.model,
         model_hash=pair.hashes["fcstm"],
     )
-    receipt = run_bounded_verification(plan, pair.model, "0023:v4-receipt")
+    receipt = run_bounded_verification(plan, pair.model, "0023:v1-receipt")
     assert receipt.verdict == "false"
     assert {
         probe["state"].rsplit(".", 1)[-1]
-        for probe in receipt.run_metadata["v4_native_progress_probes"]
+        for probe in receipt.run_metadata["v1_native_progress_probes"]
         if probe["verdict"] == "false"
     } == {"PumpState", "WaterState", "MethaneState"}
 
     pair_0029 = load_pair(REPORT_ROOT / "pairs" / "0029")
     invalid_candidate = _candidate(
         pair_0029,
-        predicate_id="V4",
+        predicate_id="V1",
         inputs={"initial_scope": "not_a_native_scope"},
     )
     invalid_binding = bind_candidate(invalid_candidate, pair_0029.model)
@@ -2698,52 +2687,14 @@ def test_v4_uses_native_stable_leaves_and_rejects_unknown_scope() -> None:
         invalid_candidate,
         invalid_binding,
         registry,
-        obligation_id="0029:v4-invalid-scope",
+        obligation_id="0029:v1-invalid-scope",
         round_index=1,
         model=pair_0029.model,
         model_hash=pair_0029.hashes["fcstm"],
     )
-    invalid_receipt = run_bounded_verification(invalid_plan, pair_0029.model, "0029:v4-invalid-receipt")
+    invalid_receipt = run_bounded_verification(invalid_plan, pair_0029.model, "0029:v1-invalid-receipt")
     assert invalid_receipt.verdict == "unknown"
     assert "does not resolve" in invalid_receipt.basis
-
-
-def test_v5_0029_counterexample_terminates_at_first_replayed_bound() -> None:
-    registry = load_registry()
-    pair = load_pair(REPORT_ROOT / "pairs" / "0029")
-    state = next(item for item in pair.inspection_facts.states if item.name == "CollisionAvoidance")
-    candidate = _candidate(
-        pair,
-        predicate_id="V5",
-        inputs={
-            "state": "CollisionAvoidance",
-            "expected": 1,
-            "initial_scope": "closed_fcstm",
-            "element_refs": [state.state_ref],
-        },
-        refs=[state.state_ref],
-    )
-    binding = bind_candidate(candidate, pair.model)
-    plan = compile_plan(
-        candidate,
-        binding,
-        registry,
-        obligation_id="0029:v5-incremental",
-        round_index=1,
-        model=pair.model,
-        model_hash=pair.hashes["fcstm"],
-    )
-
-    receipt = run_bounded_verification(plan, pair.model, "0029:v5-incremental-receipt")
-
-    assert receipt.terminal_state == "completed"
-    assert receipt.verdict == "false"
-    assert receipt.run_metadata["fbmcq_replay"]["ok"] is True
-    incremental = receipt.run_metadata["v5_incremental"]
-    assert incremental["requested_horizon"] == len(tuple(load_native_fcstm(pair.model).machine.walk_states()))
-    assert incremental["witness_horizon"] == 1
-    assert incremental["counterexample_early_termination"] is True
-    assert len(incremental["attempts"]) == 1
 
 
 def test_isolated_fbmcq_small_fixture_completes_with_replayed_witness() -> None:
@@ -3560,7 +3511,7 @@ def test_g1_expands_native_root_and_composite_state_inputs() -> None:
     plan = PredicatePlan(
         plan_id="provider-free:g1:list-inputs",
         predicate_id="G1",
-        registry_version="four-family-19-core.v1",
+        registry_version="four-family-12-core.v1",
         inputs={"source": [["[*]"]], "target": [[target]]},
         soundness_fragment="finite closed-graph reachability",
         assumptions=("closed FCSTM",),
@@ -3628,7 +3579,7 @@ def test_d_validation_rejects_unreachability_recast_as_bound_state_dead_end() ->
     assert outgoing_refs
     candidate = _candidate(
         pair,
-        predicate_id="V4",
+        predicate_id="V1",
         inputs={"initial_scope": "closed_fcstm_hierarchy"},
         refs=[state.ref, *outgoing_refs],
     ).model_copy(
@@ -3774,7 +3725,6 @@ def test_structured_models_require_non_empty_audit_rationale_and_descriptions() 
         assert model.__doc__ and model.__doc__.strip()
         for field_name, field in schema["properties"].items():
             assert field.get("description"), f"{model.__name__}.{field_name}"
-
 
 
 def test_all_evidence_discovery_pydantic_models_have_docs_and_field_descriptions() -> None:
@@ -4455,7 +4405,7 @@ def test_exact_outgoing_fact_rejects_false_dead_end_but_preserves_true_frontier(
             evidence_types=("deadlock_frontier_fact", "verify_fact"),
             title=f"{state_name} has no progress",
             requirement_quote=f"{state_name} must continue.",
-            predicate_id="V4",
+            predicate_id="V1",
             predicate_inputs={"initial_scope": pair.model.states[0].name},
             element_refs=[state.ref],
             source_refs=["NL1"],

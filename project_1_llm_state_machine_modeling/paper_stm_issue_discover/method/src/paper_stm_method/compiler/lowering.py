@@ -21,12 +21,7 @@ from .inputs import (
 )
 
 SUPPORTED_PREDICATES = frozenset(
-    {
-        "S1", "S2", "S3", "S4", "S5", "S6",
-        "G1", "G2", "G3", "G4",
-        "R1", "R2", "R3", "R4",
-        "V1", "V2", "V3", "V4", "V5",
-    }
+    {"S1", "S2", "S3", "S4", "S5", "G1", "G2", "G3", "R1", "R2", "R3", "V1"}
 )
 
 _INPUT_ALIASES: dict[str, str] = {
@@ -37,10 +32,6 @@ _INPUT_ALIASES: dict[str, str] = {
     "expected_triggers": "triggers",
     "required_triggers": "triggers",
     "trigger_set": "triggers",
-    "expected_guards": "guards",
-    "guard_set": "guards",
-    "expected_effect": "effect",
-    "expected_effects": "effect",
     "expected_element": "element",
     "expected_state": "state",
     "expected_action": "action",
@@ -51,7 +42,7 @@ _INPUT_ALIASES: dict[str, str] = {
 }
 
 _SEQUENCE_INPUTS = frozenset(
-    {"triggers", "effect", "effects", "forbidden", "guards", "roots", "marked", "sources", "targets"}
+    {"triggers", "roots", "marked", "sources", "targets"}
 )
 
 
@@ -77,7 +68,7 @@ class PredicatePlan(BaseModel):
     assumptions: tuple[str, ...] = Field(description="Closed-input and algorithm assumptions required by the plan.")
     formal_program: str | None = Field(default=None, description="Compiled assertion or formal-program source, present only for an executable supported plan.")
     formal_program_hash: str | None = Field(default=None, description="SHA-256 hash of formal_program, when compiled.")
-    predicate_registered: bool = Field(default=False, description="Whether predicate_id resolves to one of the frozen 19 registry predicates; bibliography review status never changes this field.")
+    predicate_registered: bool = Field(default=False, description="Whether predicate_id resolves to one of the selected 12 registry predicates; bibliography review status never changes this field.")
     binding_precise: bool = Field(default=False, description="Whether the candidate has an exact reliable semantic and element binding before execution.")
     input_shape_valid: bool = Field(default=False, description="Whether normalized typed inputs satisfy the predicate-specific Pydantic schema.")
     binding_complete: bool = Field(default=False, description="Whether every registry-minimal typed input is present after normalization.")
@@ -147,34 +138,9 @@ def assess_soundness_fragment(
     model_hash: str | None,
     model: ModelIR | None = None,
 ) -> tuple[bool, str]:
-    """Check local executable-fragment preconditions without bibliography state.
+    """Assess the current fragment; native model bytes are required."""
 
-    This function intentionally verifies only deterministic input shape and
-    ownership facts. It does not infer a requirement, a verdict, or any
-    academic eligibility from historical provenance metadata.
-    """
-
-    if model is None:
-        # Historical provider-free replay fixtures may retain a legal plan and
-        # model hash but not the immutable FCSTM bytes required for native
-        # rebinding.  This compatibility path is never used by live compile.
-        if not model_hash:
-            return False, "the closed ModelIR hash is missing"
-        if predicate_id == "S4" and inputs.get("phase") not in {"entry", "do", "exit"}:
-            return False, "S4 phase must be one of entry, do, or exit"
-        if predicate_id == "S2" and not isinstance(inputs.get("scope"), str):
-            return False, "S2 requires one declared scope"
-        if predicate_id in {"S3", "S5", "S6"} and not isinstance(inputs.get("transition"), str):
-            return False, f"{predicate_id} requires one exact transition carrier"
-        if predicate_id == "V1" and (not isinstance(inputs.get("source"), str) or inputs.get("domain") is None or not isinstance(inputs.get("guards"), (list, tuple)) or len(inputs["guards"]) < 2):
-            return False, "V1 requires an exact source, finite domain, and two guards"
-        return True, "historical replay has a closed model hash but no FCSTM bytes for current native rebinding"
-    assessment = assess_soundness(
-        predicate_id,
-        inputs,
-        model=model,
-        model_hash=model_hash,
-    )
+    assessment = assess_soundness(predicate_id, inputs, model=model, model_hash=model_hash)
     return assessment.satisfied, assessment.reason
 
 
@@ -251,11 +217,6 @@ def compile_plan(
                     (
                         predicate.id == "S5"
                         and input_name == "guard"
-                        and input_name in inputs
-                    )
-                    or (
-                        predicate.id in {"V1", "V2"}
-                        and input_name == "trigger"
                         and input_name in inputs
                     )
                 )

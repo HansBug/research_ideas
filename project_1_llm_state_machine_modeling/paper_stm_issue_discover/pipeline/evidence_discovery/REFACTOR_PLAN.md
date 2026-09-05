@@ -1,5 +1,7 @@
 # 实施与收敛计划
 
+> **历史记录（pre-P1，2026-09-05 归档口径）。** 下文保留 `four-family-19-core.v1` 时期的计划、验收清单、运行编号和统计，均按当时版本解释，不是当前执行指令。当前 12 条方法以 [method/README.md](../../method/README.md) 和 [METHOD_PRINCIPLES.md](./METHOD_PRINCIPLES.md) 为准；旧 replay 按[原 commit](../../related_work/provenance/archive/pre_p1_20260905/README.md)复现。v61 保持冻结。
+
 ## 固定协议
 
 实现维持 `four-family-19-core.v1`、冻结 Judge 与独立 evaluation。19/19 谓词 backend 必须真实可调用、可终止并返回 `true` 或 `false`；某次 pair 无法闭合输入只能形成 W1/W0 execution audit，不能改变谓词资格或缩小 planned 分母。`utils.agent`、`utils.llm`、既有 LangGraph、缓存和成本基础设施继续作为唯一调用路径。当前真实运行 profile 为 `gpt-5.6-luna`。

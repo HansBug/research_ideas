@@ -116,7 +116,7 @@ def _write_source(
             "source_branch": "fixture",
             "source_dirty": False,
         },
-        "registry_version": "four-family-19-core.v1",
+        "registry_version": "four-family-12-core.v1",
         "registry_hash": REGISTRY_HASH,
         "profile": "fixture",
         "rounds": rounds,

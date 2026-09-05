@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any
 
 from ..compiler.lowering import PredicatePlan
 from ..inputs.models import ModelIR
@@ -101,7 +100,7 @@ def _bound(native: NativeFCSTM) -> int:
 
 
 def run_topology(plan: PredicatePlan, model: ModelIR, receipt_id: str):
-    """Evaluate G1--G4 with native FCSTM topology or ``.fbmcq`` semantics."""
+    """Evaluate G1--G3 with native FCSTM topology or ``.fbmcq`` semantics."""
 
     predicate = plan.predicate_id or "unknown"
     try:
@@ -136,38 +135,10 @@ def run_topology(plan: PredicatePlan, model: ModelIR, receipt_id: str):
         return execute_fbmcq(receipt_id=receipt_id, predicate=predicate, native=native, query=query, reason="The native FCSTM bounded semantics checked whether every admissible execution from the exact source reaches one requested target within the declared finite horizon.", basis="typed G2 source/target binding and pyfcstm .fbmcq must_reach", timeout_ms=5_000)
 
     if predicate == "G3":
-        sources = _source_paths(native, inputs.get("source"))
-        targets = _target_paths(native, inputs.get("target"))
-        forbidden = _target_paths(native, inputs.get("forbidden"))
-        if not sources or not targets or not forbidden or len(sources) != 1:
-            return native_receipt(receipt_id, predicate, native, "unknown", "G3 requires one exact native source, one target set, and a non-empty state-only forbidden set; edge carriers remain outside this native topology fragment.", "G3 typed native route contract", backend_family="fcstm_topology", algorithm_version="pyfcstm.verify.topology.v1")
-        resolved = [
-            resolve_state(native, value)
-            for value in (*sources, *targets, *forbidden)
-        ]
-        if any(state is None or not state.is_leaf_state for state in resolved):
-            return native_receipt(receipt_id, predicate, native, "unknown", "G3 route avoidance is defined here only for exact native leaf-state carriers; composite and edge carriers need a different frozen input fragment.", "pyfcstm.verify.topology LeafLevelGraph carrier boundary", backend_family="fcstm_topology", algorithm_version="pyfcstm.verify.topology.v1")
-        source = sources[0]
-        reachability = _native_reachability(native)
-        routes_through_forbidden = [
-            {"forbidden": node, "target": target}
-            for node in forbidden
-            for target in targets
-            if (
-                node == source or node in reachability.get(source, ())
-            )
-            and (
-                target == node or target in reachability.get(node, ())
-            )
-        ]
-        verdict = "false" if routes_through_forbidden else "true"
-        return native_receipt(receipt_id, predicate, native, verdict, "The native FCSTM leaf-level topology projection checked whether any source-to-target route traverses an exact forbidden state.", "pyfcstm.verify.topology.topological_reachable_set composed over exact source, forbidden, and target leaf paths", backend_family="fcstm_topology", algorithm_version="pyfcstm.verify.topology.v1", counterexample=routes_through_forbidden)
-
-    if predicate == "G4":
         roots = _source_paths(native, inputs.get("roots"))
         marked = _target_paths(native, inputs.get("marked"))
         if not roots or not marked:
-            return native_receipt(receipt_id, predicate, native, "unknown", "G4 requires exact native root and marked-state sets.", "G4 typed node-set contract", backend_family="fcstm_topology", algorithm_version="pyfcstm.verify.topology.v1")
+            return native_receipt(receipt_id, predicate, native, "unknown", "G3 requires exact native root and marked-state sets.", "G3 typed node-set contract", backend_family="fcstm_topology", algorithm_version="pyfcstm.verify.topology.v1")
         reachability = _native_reachability(native)
         root_reachable = set(roots)
         for root in roots:

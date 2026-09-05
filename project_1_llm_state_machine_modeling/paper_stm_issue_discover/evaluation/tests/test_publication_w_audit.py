@@ -7,7 +7,7 @@ from paper_stm_evaluation.publication_w_audit import recompute_publication_w
 
 PAPER_ROOT = Path(__file__).resolve().parents[2]
 ARCHIVE = PAPER_ROOT / "final_results" / "v60_current_vs_x1v2_baseline"
-CATALOG = PAPER_ROOT / "related_work" / "provenance" / "current_source_catalog.json"
+CATALOG = PAPER_ROOT / "related_work/provenance/archive/pre_p1_20260905/current_source_catalog.json"
 
 
 def test_publication_w_is_report_level_and_preserves_frozen_hit_membership() -> None:

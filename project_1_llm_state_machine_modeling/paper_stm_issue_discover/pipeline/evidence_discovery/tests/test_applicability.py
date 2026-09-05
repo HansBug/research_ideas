@@ -19,20 +19,24 @@ PAPER_ROOT = Path(__file__).parents[3]
 REPORT_ROOT = PAPER_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
 REGISTRY = (
     PAPER_ROOT
-    / "method/src/paper_stm_method/resources/predicate_registry.json"
+    / "related_work/provenance/archive/pre_p1_20260905/predicate_registry.json"
 )
 
 
-def test_applicability_preflight_is_fixed_15_by_15_and_has_twelve_e15_predicates() -> None:
+def test_applicability_preflight_maps_historical_routes_to_current_twelve() -> None:
     payload = build_applicability_matrix(report_root=REPORT_ROOT)
 
     assert tuple(payload["selected_pair_ids"]) == DEFAULT_DIAGNOSTIC_PAIRS
     assert payload["pair_count"] == 15
     assert len(payload["rows"]) == 15 * len(DIAGNOSTIC_PLANNED_PREDICATES)
     assert payload["candidate_predicates_e15"] == [
-        "G1", "G4", "R1", "R4", "S1", "S2", "S3", "S4", "S5", "S6", "V1", "V4"
+        "G1", "G3", "R1", "R3", "S1", "S2", "S3", "S4", "S5", "V1"
     ]
-    assert payload["candidate_predicate_count_e15"] == 12
+    assert payload["candidate_predicate_count_e15"] == 10
+    assert payload["registry_version"] == "four-family-12-core.v1"
+    assert payload["baseline_source_registry"] == "four-family-19-core.v1"
+    assert payload["original_route_baseline"]["0029"] == ["G1", "S2", "V1"]
+    assert payload["registered_route_baseline"]["0029"] == ["G1", "S2"]
     assert all(item["input_manifest_hash"] for item in payload["pairs"].values())
     assert all(item["input_hashes"] for item in payload["pairs"].values())
 
@@ -49,9 +53,8 @@ def test_applicability_rows_expose_typed_schema_without_execution_or_evaluation_
     }
     assert "method candidate" in s1["reason"]
 
-    assert payload["planned_predicate_scope"] == "diagnostic-12"
-    assert tuple(payload["planned_predicates"]) == DIAGNOSTIC_PLANNED_PREDICATES
-    assert len(DIAGNOSTIC_PLANNED_PREDICATES) == 12
+    assert payload["planned_predicate_scope"] == "current-12"
+    assert payload["planned_predicates"] == ["S1", "S2", "S3", "S4", "S5", "G1", "G2", "G3", "R1", "R2", "R3", "V1"]
     forbidden = {"judge", "expected", "answer", "hit", "fp", "precision", "ledger"}
     assert not forbidden.intersection(payload.keys())
     assert not any(forbidden.intersection(item.keys()) for item in rows)

@@ -162,7 +162,7 @@ def _plan(predicate_id: str, values: dict[str, Any], *, executable: bool = True)
     return PredicatePlan(
         plan_id=f"fixture:{predicate_id}:plan",
         predicate_id=predicate_id,
-        registry_version="four-family-19-core.v1",
+        registry_version="four-family-12-core.v1",
         inputs=typed,
         soundness_fragment="fixture closed FCSTM fragment",
         assumptions=("closed_fcstm_input",),
@@ -219,31 +219,31 @@ def _fixture_cases() -> dict[str, dict[str, Any]]:
     unclosed_runtime = {**runtime, "root_state": "Not.Root"}
     finite_domain = {"x": {"values": [-1, 0, 1]}}
     return {
-        "S1": {
+    "S1": {
             "model": structural,
             "positive": {"kind": "state", "element": "A", "scope": "closed_fcstm"},
             "negative": {"kind": "state", "element": "Missing", "scope": "closed_fcstm"},
             "out": {"kind": "state", "element": "A", "scope": "Not.Root"},
         },
-        "S2": {
+    "S2": {
             "model": structural,
             "positive": {"source": "A", "target": "B", "scope": "Root", "transition": ab},
             "negative": {"source": "B", "target": "A", "scope": "Root"},
             "out": {"source": "A", "target": "B", "scope": "Not.Root"},
         },
-        "S3": {
+    "S3": {
             "model": structural,
             "positive": {"transition": ab, "triggers": ["Go"]},
             "negative": {"transition": ab, "triggers": []},
             "out": {"transition": "transition:line:999", "triggers": ["Go"]},
         },
-        "S4": {
+    "S4": {
             "model": structural,
             "positive": {"state": "A", "phase": "entry", "action": "Start"},
             "negative": {"state": "A", "phase": "entry", "action": "Missing"},
             "out": {"state": "Not.A", "phase": "entry", "action": "Start"},
         },
-        "S5": {
+    "S5": {
             "model": structural,
             "positive": {"transition": ab, "guard": "x >= 0"},
             "negative": {"transition": ab, "guard": "x > 3"},
@@ -251,91 +251,49 @@ def _fixture_cases() -> dict[str, dict[str, Any]]:
             "empty_positive": {"transition": bb, "guard": ""},
             "empty_negative": {"transition": ab, "guard": ""},
         },
-        "S6": {
-            "model": structural,
-            "positive": {"transition": ab, "effect": ["x = 1"]},
-            "negative": {"transition": ab, "effect": ["x = 2"]},
-            "out": {"transition": ab, "effect": ["x == 1"]},
-        },
-        "G1": {
+    "G1": {
             "model": topology,
             "positive": {"source": "A", "target": "B"},
             "negative": {"source": "B", "target": "A"},
             "out": {"source": "Not.A", "target": "B"},
         },
-        "G2": {
+    "G2": {
             "model": topology,
             "positive": {"source": "A", "target": "B"},
             "negative": {"source": "B", "target": "A"},
             "out": {"source": "Not.A", "target": "B"},
         },
-        "G3": {
-            "model": topology,
-            "positive": {"source": "A", "target": "B", "forbidden": ["C"]},
-            "negative": {"source": "A", "target": "B", "forbidden": ["B"]},
-            "out": {"source": "A", "target": "B", "forbidden": ["Not.C"]},
-        },
-        "G4": {
+    "G3": {
             "model": topology,
             "positive": {"roots": ["A"], "marked": ["B"]},
             "negative": {"roots": ["A"], "marked": ["C"]},
             "out": {"roots": ["Not.A"], "marked": ["B"]},
         },
-        "R1": {
+    "R1": {
             "model": structural,
             "positive": {"scenario": runtime, "event": "Go", "step": 1},
             "negative": {"scenario": {**runtime, "expected_active_after": "Root.C"}, "event": "Go", "step": 1},
             "out": {"scenario": unclosed_runtime, "event": "Go", "step": 1},
         },
-        "R2": {
+    "R2": {
             "model": structural,
             "positive": {"scenario": runtime, "stimulus": go, "state": "B", "window": [1, 2]},
             "negative": {"scenario": runtime, "stimulus": go, "state": "C", "window": [1, 2]},
             "out": {"scenario": unclosed_runtime, "stimulus": go, "state": "B", "window": [1, 2]},
         },
-        "R3": {
-            "model": structural,
-            "positive": {"scenario": runtime, "behavior": "Root.A.Tick", "window": [0, 2]},
-            "negative": {"scenario": runtime, "behavior": "Root.A.Start", "window": [1, 1]},
-            "out": {"scenario": unclosed_runtime, "behavior": "Root.A.Tick", "window": [0, 2]},
-        },
-        "R4": {
+    "R3": {
             "model": structural,
             "positive": {"scenario": runtime, "state": "B", "interval": [1, 2]},
             "negative": {"scenario": runtime, "state": "A", "interval": [1, 2]},
             "out": {"scenario": unclosed_runtime, "state": "B", "interval": [1, 2]},
         },
-        "V1": {
-            "model": choice,
-            "positive": {"source": "Disjoint", "trigger": choice_event, "domain": finite_domain, "guards": list(_guard_texts(choice, "Disjoint"))},
-            "negative": {"source": "Overlap", "trigger": overlap_event, "domain": finite_domain, "guards": list(_guard_texts(choice, "Overlap"))},
-            "out": {"source": "Disjoint", "trigger": choice_event, "domain": {"missing": {"values": [0]}}, "guards": list(_guard_texts(choice, "Disjoint"))},
-        },
-        "V2": {
-            "model": choice,
-            "positive": {"source": "Disjoint", "trigger": choice_event, "domain": finite_domain},
-            "negative": {"source": "Gap", "trigger": gap_event, "domain": finite_domain},
-            "out": {"source": "Disjoint", "trigger": choice_event, "domain": {"missing": {"values": [0]}}},
-        },
-        "V3": {
-            "model": topology,
-            "positive": {"p": {"state": "A"}, "q": {"state": "B"}, "bound": 1, "unit": "steps", "scope": "closed_fcstm"},
-            "negative": {"p": {"state": "A"}, "q": {"state": "A"}, "bound": 1, "unit": "steps", "scope": "closed_fcstm"},
-            "out": {"p": {"state": "Not.A"}, "q": {"state": "B"}, "bound": 1, "unit": "steps", "scope": "closed_fcstm"},
-        },
-        "V4": {
+    "V1": {
             "model": topology,
             "positive": {"initial_scope": "closed_fcstm"},
             "negative": {"initial_scope": "C"},
             "out": {"initial_scope": "Not.Root"},
         },
-        "V5": {
-            "model": invariant,
-            "positive": {"state": "A", "expected": 1, "initial_scope": "closed_fcstm"},
-            "negative": {"state": "B", "expected": 1, "initial_scope": "closed_fcstm"},
-            "out": {"state": "A", "expected": 1, "initial_scope": "Not.Root"},
-        },
-    }
+}
 
 
 @pytest.fixture(scope="module")
@@ -348,12 +306,7 @@ def native_cases() -> dict[str, dict[str, Any]]:
 def test_all_frozen_predicates_have_native_dispatch() -> None:
     """The public backend capability set must exactly match the frozen registry."""
 
-    assert SUPPORTED_PREDICATES == {
-        "S1", "S2", "S3", "S4", "S5", "S6",
-        "G1", "G2", "G3", "G4",
-        "R1", "R2", "R3", "R4",
-        "V1", "V2", "V3", "V4", "V5",
-    }
+    assert SUPPORTED_PREDICATES == {"S1", "S2", "S3", "S4", "S5", "G1", "G2", "G3", "R1", "R2", "R3", "V1"}
 
 
 @pytest.mark.parametrize("predicate_id", sorted(SUPPORTED_PREDICATES))

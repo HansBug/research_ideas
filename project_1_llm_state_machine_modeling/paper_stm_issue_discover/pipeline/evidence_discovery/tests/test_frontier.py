@@ -8,7 +8,6 @@ from pydantic import ValidationError
 from pipeline.evidence_discovery.backends import run_backend
 from pipeline.evidence_discovery.compiler import compile_plan
 from pipeline.evidence_discovery.evidence.witness_levels import calculate_witness_level
-from pipeline.evidence_discovery.frontier_replay import _execute_added, _saved_frontier
 from pipeline.evidence_discovery.inputs import (
     CanonicalConcurrentRegion,
     PairInput,
@@ -106,24 +105,6 @@ def _keys(batch: FrontierBatch) -> set[tuple[str, tuple[str, ...], str, str]]:
         )
         for item in batch.obligations
     }
-
-
-def test_frontier_replay_excludes_retired_historical_kind_before_schema_validation() -> None:
-    """A removed frontier kind remains auditable history, not current input."""
-
-    payload = FrontierBatch(
-        reason="The fixture starts with an empty current frontier.",
-        basis="historical frontier compatibility regression fixture",
-    ).model_dump(mode="json")
-    retired_row = {"kind": "wrong_scope_route"}
-    payload.update({"obligations": [retired_row], "checks": [retired_row]})
-    cell = {"stage_outputs": {"execute_batch": {"frontier_batch": payload}}}
-
-    baseline, exclusions = _saved_frontier(cell)
-
-    assert baseline.obligations == ()
-    assert baseline.checks == ()
-    assert exclusions == {"wrong_scope_route": 2}
 
 
 def test_0029_frontier_materializes_relational_domain_obligations() -> None:
@@ -2857,7 +2838,7 @@ def test_0004_source_certificate_restores_stopping_dead_end() -> None:
     )
     assert stopping.source_contract_ids == (contract.contract_id,)
     assert stopping.candidate.property == "deadlock_freedom"
-    assert stopping.candidate.predicate_id == "V4"
+    assert stopping.candidate.predicate_id == "V1"
     assert "explicit_final=false" in stopping.candidate.observed
     assert [hint.role for hint in stopping.contract.binding_hints] == ["state"]
 
@@ -3098,7 +3079,7 @@ def test_source_deadlock_certificate_uses_resolved_pair_context_for_terminate() 
         if item.kind == "reachable_dead_end"
         and item.candidate.locus_names == ("Terminate",)
     )
-    assert terminate.candidate.predicate_id == "V4"
+    assert terminate.candidate.predicate_id == "V1"
     assert terminate.candidate.element_refs == [pair.model.state("Terminate").ref]
     assert "explicit_final=false" in terminate.candidate.observed
 
@@ -3165,7 +3146,7 @@ def test_source_deadlock_certificate_uses_exact_grounding_target_binding() -> No
     assert dead_end.source_contract_ids == (contract.contract_id,)
     assert dead_end.candidate.locus_names == ("ClampingState",)
     assert dead_end.candidate.property == "deadlock_freedom"
-    assert dead_end.candidate.predicate_id == "V4"
+    assert dead_end.candidate.predicate_id == "V1"
     assert dead_end.candidate.element_refs == [
         pair.model.state("ClampingState").ref
     ]

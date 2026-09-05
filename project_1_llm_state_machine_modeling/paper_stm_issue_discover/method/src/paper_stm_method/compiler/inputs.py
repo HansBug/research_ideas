@@ -50,11 +50,6 @@ class PredicateInputsBase(BaseModel):
             exclude={"schema_version", "predicate_id"},
             exclude_none=True,
         )
-        # A missing trigger and an eventless choice group are not equivalent.
-        # V1/V2 require the field, but use an explicit JSON null to bind the
-        # latter to native ``Transition.event is None``.
-        if self.predicate_id in {"V1", "V2"} and "trigger" in type(self).model_fields:
-            values["trigger"] = self.model_dump(mode="json").get("trigger")
         return values
 
     def __getitem__(self, key: str) -> Any:
@@ -113,14 +108,6 @@ class S5Inputs(PredicateInputsBase):
     guard: str | None = Field(default=None, description="Required normalized guard expression. Empty string is the deliberate typed value for an absent guard; null means the required value was not bound.")
 
 
-class S6Inputs(PredicateInputsBase):
-    """S6 transition effect membership inputs consumed by source-static."""
-
-    predicate_id: Literal["S6"] = Field(description="Frozen S6 discriminator.")
-    transition: str | None = Field(default=None, description="Exact carrier transition ref; null makes deterministic comparison incomplete.")
-    effect: tuple[JsonValue, ...] = Field(default_factory=tuple, description="Required normalized effect set; empty means no effect value was supplied.")
-
-
 class G1Inputs(PredicateInputsBase):
     """G1 existential finite-path inputs consumed by the topology backend."""
 
@@ -138,18 +125,9 @@ class G2Inputs(PredicateInputsBase):
 
 
 class G3Inputs(PredicateInputsBase):
-    """G3 route-avoidance inputs consumed by the topology backend."""
+    """G3 finite coaccessibility inputs consumed by the topology backend."""
 
     predicate_id: Literal["G3"] = Field(description="Frozen G3 discriminator.")
-    source: str | None = Field(default=None, description="Exact route source node; null is incomplete.")
-    target: str | None = Field(default=None, description="Exact route target node; null is incomplete.")
-    forbidden: tuple[str, ...] = Field(default_factory=tuple, description="Exact forbidden node/edge refs; empty is a deliberate empty set.")
-
-
-class G4Inputs(PredicateInputsBase):
-    """G4 finite coaccessibility inputs consumed by the topology backend."""
-
-    predicate_id: Literal["G4"] = Field(description="Frozen G4 discriminator.")
     roots: JsonValue | None = Field(default=None, description="Exact root node/set; null is incomplete for registry accounting.")
     marked: JsonValue | None = Field(default=None, description="Exact marked target node/set; null is incomplete.")
 
@@ -174,67 +152,19 @@ class R2Inputs(PredicateInputsBase):
 
 
 class R3Inputs(PredicateInputsBase):
-    """R3 behavior-occurrence scenario inputs retained for trajectory backend audit."""
+    """R3 state-retention scenario inputs retained for trajectory backend audit."""
 
     predicate_id: Literal["R3"] = Field(description="Frozen R3 discriminator.")
-    scenario: JsonValue | None = Field(default=None, description="Exact supplied scenario/input/schedule object; null is incomplete.")
-    behavior: JsonValue | None = Field(default=None, description="Required owner/slot behavior identity; null is incomplete.")
-    window: JsonValue | None = Field(default=None, description="Declared observation window; null is incomplete.")
-
-
-class R4Inputs(PredicateInputsBase):
-    """R4 state-retention scenario inputs retained for trajectory backend audit."""
-
-    predicate_id: Literal["R4"] = Field(description="Frozen R4 discriminator.")
     scenario: JsonValue | None = Field(default=None, description="Exact supplied scenario/input/schedule object; null is incomplete.")
     state: str | None = Field(default=None, description="Exact state required to remain active; null is incomplete.")
     interval: JsonValue | None = Field(default=None, description="Closed observation interval; null is incomplete.")
 
 
 class V1Inputs(PredicateInputsBase):
-    """V1 bounded guard-disjointness inputs consumed by bounded verification."""
+    """V1 finite deadlock-freedom scope inputs consumed by bounded verification."""
 
     predicate_id: Literal["V1"] = Field(description="Frozen V1 discriminator.")
-    source: str | None = Field(default=None, description="Exact choice-group source state; null is incomplete.")
-    trigger: JsonValue | None = Field(description="Exact shared native trigger/event identity. This field is required; explicit null denotes an eventless choice group and is valid only when every selected native transition has no event.")
-    domain: JsonValue | None = Field(default=None, description="Declared finite guard variable domain; null is incomplete.")
-    guards: tuple[str, ...] = Field(default_factory=tuple, description="Exact group guard expressions compiled for execution; empty prevents a sound verdict.")
-
-
-class V2Inputs(PredicateInputsBase):
-    """V2 bounded guard-completeness inputs retained for backend capability audit."""
-
-    predicate_id: Literal["V2"] = Field(description="Frozen V2 discriminator.")
-    source: str | None = Field(default=None, description="Exact choice-group source state; null is incomplete.")
-    trigger: JsonValue | None = Field(description="Exact shared native trigger/event identity. This field is required; explicit null denotes an eventless choice group and is valid only when every selected native transition has no event.")
-    domain: JsonValue | None = Field(default=None, description="Declared finite guard variable domain; null is incomplete.")
-
-
-class V3Inputs(PredicateInputsBase):
-    """V3 bounded response inputs retained for backend capability audit."""
-
-    predicate_id: Literal["V3"] = Field(description="Frozen V3 discriminator.")
-    p: JsonValue | None = Field(default=None, description="Exact antecedent event/state proposition; null is incomplete.")
-    q: JsonValue | None = Field(default=None, description="Exact required response proposition; null is incomplete.")
-    bound: JsonValue | None = Field(default=None, description="Declared finite response bound; null is incomplete.")
-    unit: str | None = Field(default=None, description="Exact bound unit such as steps or milliseconds; null is incomplete.")
-    scope: JsonValue | None = Field(default=None, description="Exact finite verification scope; null is incomplete.")
-
-
-class V4Inputs(PredicateInputsBase):
-    """V4 finite deadlock-freedom scope inputs consumed by bounded verification."""
-
-    predicate_id: Literal["V4"] = Field(description="Frozen V4 discriminator.")
     initial_scope: JsonValue | None = Field(default=None, description="Exact state/scope whose reachable nonterminal configurations are checked; null is incomplete.")
-
-
-class V5Inputs(PredicateInputsBase):
-    """V5 finite state-invariant inputs retained for backend capability audit."""
-
-    predicate_id: Literal["V5"] = Field(description="Frozen V5 discriminator.")
-    state: str | None = Field(default=None, description="Exact state whose occupancy is checked; null is incomplete.")
-    expected: JsonValue | None = Field(default=None, description="Required finite occupancy value; null is incomplete.")
-    initial_scope: JsonValue | None = Field(default=None, description="Exact finite initial scope; null is incomplete.")
 
 
 class UnsupportedPredicateInputs(PredicateInputsBase):
@@ -262,20 +192,13 @@ _PREDICATE_INPUT_MODELS: dict[str, type[PredicateInputsBase]] = {
     "S3": S3Inputs,
     "S4": S4Inputs,
     "S5": S5Inputs,
-    "S6": S6Inputs,
     "G1": G1Inputs,
     "G2": G2Inputs,
     "G3": G3Inputs,
-    "G4": G4Inputs,
     "R1": R1Inputs,
     "R2": R2Inputs,
     "R3": R3Inputs,
-    "R4": R4Inputs,
     "V1": V1Inputs,
-    "V2": V2Inputs,
-    "V3": V3Inputs,
-    "V4": V4Inputs,
-    "V5": V5Inputs,
 }
 
 
@@ -313,20 +236,13 @@ PredicateInputs = Annotated[
     | S3Inputs
     | S4Inputs
     | S5Inputs
-    | S6Inputs
     | G1Inputs
     | G2Inputs
     | G3Inputs
-    | G4Inputs
     | R1Inputs
     | R2Inputs
     | R3Inputs
-    | R4Inputs
     | V1Inputs
-    | V2Inputs
-    | V3Inputs
-    | V4Inputs
-    | V5Inputs
     | UnsupportedPredicateInputs,
     Field(discriminator="predicate_id"),
 ]
