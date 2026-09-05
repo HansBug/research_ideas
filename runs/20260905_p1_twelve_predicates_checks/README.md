@@ -54,3 +54,29 @@ or source artifact is rewritten.
 Reproduce each view with `scripts/evaluation/predicate_id_view.py --run-root
 <source-run> --output <new-path>` from the paper workspace. The output must be
 outside the source run and `final_results`, and must not already exist.
+
+## Standalone release check
+
+The allowlisted release was built outside the repository from clean commit
+`5fc274b8c7a0beb3a379e0515f73562791bb012a`: 74 payload files, 1668563 bytes,
+zero provider calls. `p1-release-final-manifest.json` records every copied hash.
+All `src/` payload hashes equal the release built from smoke commit
+`71774498d65f3e3a7df5a30fbd7128236756fc1f`; only one test changed afterward.
+
+| Report | Result | Interpretation |
+| --- | --- | --- |
+| `p1-release-before-fixture-fix.xml` | 12 passed, 1 failed, 19 skipped | A source-only audit-file assumption in the shipped fixture failed outside the repository |
+| `p1-source-fixture-tests.xml` | 13 passed | The corrected fixture retains the source checkout's mandatory audit-file assertions |
+| `p1-release-final-tests.xml` | 13 passed, 19 skipped | The same fixture verifies the published package's explicit fail-closed audit fallback |
+
+The release branch of the fixture requires a verified embedded manifest, not
+merely a missing audit file. The runtime and release allowlist were unchanged.
+The nineteen skips belong to the existing v61 test module that requires frozen
+pair artifacts and v60 results; those inputs are intentionally not released.
+The original failed report and release manifest are retained, not overwritten.
+
+The final release tests ran from `/tmp`, using only the release's `src/` and
+this checkout's `pyfcstm` on `PYTHONPATH`, with the Python interpreter above.
+No package was installed into or altered in the sibling checkout. This checks
+source-tree release imports and tests, not a fresh dependency installation.
+Generated pytest XML retains its original traceback whitespace.
