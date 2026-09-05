@@ -5,7 +5,41 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+
+AblationMode = Literal["none", "no-inspect", "no-predicates"]
+ABLATION_MODES = ("none", "no-inspect", "no-predicates")
+IMPLEMENTED_ABLATIONS = ("none",)
+
+
+def validate_ablation(value: str) -> AblationMode:
+    if value not in ABLATION_MODES:
+        raise ValueError(f"unknown ablation: {value}")
+    if value not in IMPLEMENTED_ABLATIONS:
+        raise ValueError(f"ablation is not implemented: {value}")
+    return value
+
+
+class AblationIdentity(BaseModel):
+    """Old envelopes are readable as full, but cannot impersonate a new run."""
+
+    ablation: AblationMode = Field(default="none", description="Exact method condition; legacy records are full only.")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _require_explicit_current_condition(cls, value: Any) -> Any:
+        if isinstance(value, dict):
+            legacy = value.get("schema") in {
+                "evidence-discovery.run_manifest.v3", "evidence-discovery.pair_status.v3",
+                "evidence-discovery.run_summary.v3", "evidence-discovery.method_cell.v8",
+                "evidence-discovery.method_cell.v9",
+            }
+            if legacy and value.get("ablation", "none") != "none":
+                raise ValueError("legacy records describe full only")
+            if not legacy and "ablation" not in value:
+                raise ValueError("current run records require explicit ablation identity")
+        return value
 
 
 class SourceProvenance(BaseModel):
@@ -68,12 +102,12 @@ class SelectionPreflightReference(BaseModel):
     )
 
 
-class RunManifest(BaseModel):
+class RunManifest(AblationIdentity):
     """Immutable method-run identity plus mutable terminal status for one run root."""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["evidence-discovery.run_manifest.v3"] = Field(
+    schema: Literal["evidence-discovery.run_manifest.v3", "evidence-discovery.run_manifest.v4"] = Field(
         description="Versioned run-manifest schema identifier."
     )
     run_id: str = Field(
@@ -90,6 +124,10 @@ class RunManifest(BaseModel):
     profile: str = Field(
         min_length=1,
         description="Exact public utils.llm profile used for method calls.",
+    )
+    model_config_hash: str | None = Field(
+        default=None, pattern=r"^sha256:[0-9a-f]{64}$",
+        description="Credential-free effective model/endpoint/token configuration hash; absent on legacy records.",
     )
     source_provenance: SourceProvenance = Field(
         description="Repository commit, branch, and tracked-worktree state used by the run."
@@ -170,12 +208,12 @@ class RunManifest(BaseModel):
     )
 
 
-class PairRunStatus(BaseModel):
+class PairRunStatus(AblationIdentity):
     """Terminal or resumable status receipt for one frozen pair."""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["evidence-discovery.pair_status.v3"] = Field(
+    schema: Literal["evidence-discovery.pair_status.v3", "evidence-discovery.pair_status.v4"] = Field(
         description="Versioned pair-status schema identifier."
     )
     run_id: str = Field(
@@ -238,17 +276,18 @@ class PairRunStatus(BaseModel):
     )
 
 
-class MethodCellReceipt(BaseModel):
+class MethodCellReceipt(AblationIdentity):
     """Versioned terminal receipt for one method pair-round cell."""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     schema: Literal[
-        "evidence-discovery.method_cell.v8", "evidence-discovery.method_cell.v9"
+        "evidence-discovery.method_cell.v8", "evidence-discovery.method_cell.v9",
+        "evidence-discovery.method_cell.v10"
     ] = Field(
         description=(
             "Versioned method-cell schema identifier. v8 remains readable for "
-            "historical artifacts; new runs emit v9 with contract-completion audit."
+            "historical artifacts; new runs emit v10 with explicit ablation identity."
         )
     )
     run_id: str = Field(
@@ -340,12 +379,12 @@ class MethodCellReceipt(BaseModel):
     )
 
 
-class RunSummaryReceipt(BaseModel):
+class RunSummaryReceipt(AblationIdentity):
     """Validated final summary for one contract-compatible method run."""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    schema: Literal["evidence-discovery.run_summary.v3"] = Field(
+    schema: Literal["evidence-discovery.run_summary.v3", "evidence-discovery.run_summary.v4"] = Field(
         description="Versioned run-summary schema identifier."
     )
     run_id: str = Field(
@@ -464,6 +503,9 @@ class RunSummaryReceipt(BaseModel):
 
 
 __all__ = [
+    "ABLATION_MODES",
+    "AblationMode",
+    "validate_ablation",
     "MethodCellReceipt",
     "PairRunStatus",
     "RunManifest",
