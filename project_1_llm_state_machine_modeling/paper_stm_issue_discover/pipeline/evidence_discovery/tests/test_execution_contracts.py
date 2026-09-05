@@ -5951,7 +5951,7 @@ def test_provider_free_run_manifest_resume_and_concurrent_atomic_writes(tmp_path
     current = json.loads(stale_path.read_text(encoding="utf-8"))
     stale_receipts = list((run_root / "stale").rglob("round-1.json"))
     assert repaired["run_id"] == run_id
-    assert current["schema"] == "evidence-discovery.method_cell.v9"
+    assert current["schema"] == runner_module.METHOD_CELL_SCHEMA
     assert stale_receipts
     assert any(
         json.loads(path.read_text(encoding="utf-8"))["schema"]
@@ -6070,7 +6070,8 @@ def test_method_terminal_smoke_exports_w2_release_without_builtin_judge(
             "basis": "method-owned D/W publication receipt",
         }
         cell = MethodCellReceipt(
-            schema="evidence-discovery.method_cell.v8",
+            schema=runner_module.METHOD_CELL_SCHEMA,
+            ablation="none",
             run_id=str(run_identity["run_id"]),
             run_contract_hash=str(run_identity["run_contract_hash"]),
             source_provenance=run_identity["source_provenance"],

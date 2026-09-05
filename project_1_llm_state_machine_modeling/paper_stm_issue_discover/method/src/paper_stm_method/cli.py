@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
+from .orchestration.contracts import ABLATION_MODES
 from .orchestration.runner import run_experiment
 
 
@@ -12,6 +13,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--report-root", required=True)
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--profile", default="gpt-5.6-luna")
+    parser.add_argument("--ablation", choices=ABLATION_MODES, default="none", help="Method condition; unimplemented conditions fail before provider execution.")
     parser.add_argument("--rounds", type=int, default=3)
     parser.add_argument(
         "--pair-id",
@@ -64,6 +66,7 @@ def main(argv: list[str] | None = None) -> int:
         report_root=Path(args.report_root),
         output_dir=Path(args.output_dir),
         profile=args.profile,
+        ablation=args.ablation,
         rounds=args.rounds,
         resume=args.resume,
         allow_live=args.allow_live,

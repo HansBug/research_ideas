@@ -38,6 +38,8 @@ python -c "from paper_stm_method.inputs import parse_fcstm; print(parse_fcstm('s
 
 ## 实验引用与边界
 
+方法条件统一通过 `--ablation none|no-inspect|no-predicates` 传递，省略时为 `none`，保持完整方法行为。公共入口先建立身份接线，尚未完成专属实现的条件会在 provider 调用前拒绝，不会静默运行 full。具体关闭/保留边界遵守[消融公约](../discover_matrix/docs/protocol/ablation_design_and_parallel_contract.md)。条件进入 manifest、worker、cell、pair status、summary 与 resume 合同；新 envelope 使用 manifest/status/summary v4 和 cell v10。旧 v3、cell v8/v9 可作为历史 full 只读解析，不满足新运行的恢复条件。模型/endpoint/token 配置以无凭据 hash 参与运行身份，不把 profile 名称相同视作配置相同。
+
 本发布结构是可复用的 method package，不绑定任何单一实验运行或评测对照。具体运行的 input、resource、prompt/schema、run contract 和 source provenance 由调用方的 run manifest 与相应归档保存；这些外部评测材料不属于 method package 的输入读取路径。方法 source 的正式公开再分发仍需要权利人指定 LICENSE；[NOTICE.md](./NOTICE.md) 不构成此授权。
 
 ## 版本边界
