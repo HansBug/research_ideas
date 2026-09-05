@@ -17,8 +17,11 @@ from paper_stm_method.semantics.ablation import (
 
 PAPER = Path(__file__).resolve().parents[2]
 REPORT = PAPER / "pipeline/representation/reports/llms_emp_r45_java_60"
+SOURCE_FIXTURE = PAPER / "pipeline/evidence_discovery/tests/test_input_closure_and_staged_flow.py"
+if not SOURCE_FIXTURE.is_file() and runner._release_source_provenance() is not None:
+    pytest.skip("repository input closure and staged fixture are not shipped in the verified release", allow_module_level=True)
 spec = importlib.util.spec_from_file_location(
-    "staged_fixture", PAPER / "pipeline/evidence_discovery/tests/test_input_closure_and_staged_flow.py"
+    "staged_fixture", SOURCE_FIXTURE
 )
 fixture = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(fixture)
