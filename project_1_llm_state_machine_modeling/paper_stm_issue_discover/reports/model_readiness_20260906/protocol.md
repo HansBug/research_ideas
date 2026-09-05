@@ -20,6 +20,8 @@ Recent LLM4SE paper window: 2026-03-06 through 2026-09-06 inclusive. Search arXi
 
 Use only the allocated four H200 devices, indexed 0-3. Preserve devices 4-7, existing tmux work areas 0/1 and other remote sessions. Downloads, installation and serving execute visibly in newly allocated areas numbered 2 or higher of the designated tmux session. Weights, data, caches and environments reside on the designated shared storage. Servers bind to remote loopback and are accessed via local SSH forwarding. Inventory precedes mutation; existing processes are never stopped to free resources.
 
+The H200 node is the continuing inference environment for this work and E2. Model weights must never be downloaded to the local machine, and vLLM/SGLang must never be started locally. Local work is limited to client dependencies, public documentation, requests through the forwarded API, and result collection. Check remote shared-storage and local free space before downloads and during execution; remote model downloads may use official sources directly.
+
 All publishable commands use `REMOTE_NODE`, `SHARED_STORAGE`, `LOCAL_ENDPOINT` and credential placeholders. No supplied private URL, node address, credential, personal username or private absolute path is published. Private configuration remains permission-restricted and untracked. Original probe evidence is sanitized before tracked artifacts are produced. Official public-source URLs are retained.
 
 ## Measurements
