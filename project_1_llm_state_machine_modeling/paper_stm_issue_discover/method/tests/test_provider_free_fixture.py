@@ -57,13 +57,23 @@ def test_packaged_release_manifest_verifies_its_embedded_commit() -> None:
 
 
 def test_r1_publication_audit_supplies_exact_polarity_claim_scope() -> None:
-    """The paper-side audit records claim scope without rewriting runtime W."""
+    """Source audits supply claim scope; verified releases without one fail closed."""
 
-    audit = load_publication_eligibility_audit(load_registry())
+    registry = load_registry()
+    audit = load_publication_eligibility_audit(registry)
+
+    if runner._release_source_provenance() is not None:
+        assert not default_publication_audit_path().exists()
+        assert audit.catalog_hash is None
+        assert audit.by_predicate == {
+            predicate_id: {"true": False, "false": False}
+            for predicate_id in registry.predicates
+        }
+        return
 
     assert default_publication_audit_path().is_file()
     assert audit.catalog_hash is not None
-    assert set(audit.by_predicate) == set(load_registry().predicates)
+    assert set(audit.by_predicate) == set(registry.predicates)
     assert audit.by_predicate["G2"] == {"true": True, "false": True}
     assert audit.by_predicate["S1"] == {"true": True, "false": True}
 
