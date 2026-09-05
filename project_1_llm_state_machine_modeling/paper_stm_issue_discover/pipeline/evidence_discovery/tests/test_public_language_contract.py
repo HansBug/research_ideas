@@ -107,7 +107,7 @@ def test_production_source_and_registry_use_public_english_terminology() -> None
 
 def test_active_method_documents_do_not_expose_internal_aliases() -> None:
     violations: list[str] = []
-    for path in sorted(METHOD_ROOT.glob("*.md")):
+    for path in (METHOD_ROOT / "METHOD_PRINCIPLES.md", METHOD_ROOT / "README.md"):
         aliases = _internal_aliases(path.read_text(encoding="utf-8"))
         if aliases:
             violations.append(f"{path.name}: internal aliases {sorted(set(aliases))}")

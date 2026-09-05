@@ -17,7 +17,7 @@
 5. `d_adjudication` 及其受限 correction 执行候选筛选并保留审计和降级信息，不产生 Paper1 的 D/A 裁定。
 6. `publish` 输出方法发现，并按 exact typed identity 去重；Paper1 的发布级 D2/D1 处置来自独立人工评测。
 
-四族 19 个冻结谓词为可执行验证提供 route，不是发现的准入门。W2 同时要求受支持片段、精确实例绑定、pair/obligation/plan/model/program/receipt 的精确身份链、非空且可核验的需求引文/来源引用/绑定引用，以及完成的原生 backend `true`/`false` 回执。输入缺失、资格未闭合、timeout 或 backend failure 不会成为 W2；仍在 Paper1 声明范围内且具体但未闭合的发现仍可为 W1，无法具体定位的主张为 W0。来源归属不完整只降低 W2 资格，不得把已经完成的执行改写为 `failed`、`blocked` 或空布尔值。谓词/极性元数据限制论文可对完成回执作出的最强语义主张，例如有界检查不能充当无界证明；它们不降低来源绑定且已完成 Boolean 执行的 W2。全局范围外的语言或模型语义不进入 finding。D2/D1 的 Paper1 发布级处置来自人工评测；L 只属于 ledger，不由方法生成。
+当前注册表 `four-family-12-core.v1` 提供连续编号的四类 12 种谓词：`S1–S5 / G1–G3 / R1–R3 / V1`。这些谓词按工作流证据需求选择，为适用发现提供类型化绑定和执行入口。W2 同时要求受支持片段、精确实例绑定、pair/obligation/plan/model/program/receipt 的精确身份链、非空且可核验的需求引文/来源引用/绑定引用，以及完成的原生 backend `true`/`false` 回执。输入缺失、资格未闭合、timeout 或 backend failure 不会成为 W2；仍在 Paper1 声明范围内且具体但未闭合的发现仍可为 W1，无法具体定位的主张为 W0。来源归属不完整只降低 W2 资格，不得把已经完成的执行改写为 `failed`、`blocked` 或空布尔值。谓词/极性元数据限制论文可对完成回执作出的最强语义主张，例如有界检查不能充当无界证明；它们不降低来源绑定且已完成 Boolean 执行的 W2。全局范围外的语言或模型语义不进入 finding。D2/D1 的 Paper1 发布级处置来自人工评测；L 只属于 ledger，不由方法生成。
 
 ## 安装与命令
 
@@ -39,3 +39,7 @@ python -c "from paper_stm_method.inputs import parse_fcstm; print(parse_fcstm('s
 ## 实验引用与边界
 
 本发布结构是可复用的 method package，不绑定任何单一实验运行或评测对照。具体运行的 input、resource、prompt/schema、run contract 和 source provenance 由调用方的 run manifest 与相应归档保存；这些外部评测材料不属于 method package 的输入读取路径。方法 source 的正式公开再分发仍需要权利人指定 LICENSE；[NOTICE.md](./NOTICE.md) 不构成此授权。
+
+## 版本边界
+
+本包只包含当前 12 条定义与实现，不提供旧编号别名或历史后端。历史运行的编号映射由论文工作区的 `evaluation` 处理；旧执行语义按对应历史 commit 复现，说明见[版本记录](../related_work/provenance/archive/pre_p1_20260905/README.md)。

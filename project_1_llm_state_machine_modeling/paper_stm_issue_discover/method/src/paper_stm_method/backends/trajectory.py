@@ -11,8 +11,6 @@ from ..compiler.lowering import PredicatePlan
 from ..inputs.models import ModelIR
 from .fcstm_native import (
     NativeFCSTM,
-    all_states,
-    execute_fbmcq,
     load_native_fcstm,
     native_load_failure,
     native_receipt,
@@ -148,59 +146,8 @@ def _window(value: object, length: int) -> tuple[int, int] | None:
     return start, end
 
 
-def _event_assumptions(native: NativeFCSTM, scenario: FCSTMRuntimeScenario) -> str:
-    """Freeze every native event input for the ``.fbmcq`` execution schedule."""
-
-    all_events = tuple(event.path_name for state in all_states(native) for event in state.events.values())
-    lines: list[str] = []
-    for row in scenario.schedule:
-        selected = set(row.event_paths)
-        for event_path in all_events:
-            value = "true" if event_path in selected else "false"
-            lines.append(f'assume event("{event_path}", {row.step}) == {value};')
-    return "\n".join(lines)
-
-
-def _behavior_path(native: NativeFCSTM, behavior: object) -> str | None:
-    """Resolve one named abstract native lifecycle action for R3.
-
-    FBMCQ's public ``called()`` observation records named abstract lifecycle
-    calls. Concrete operation blocks are real FCSTM behavior, but they are not
-    a callable action record in that solver fragment and must be retained as an
-    out-of-fragment W1 rather than sent to FBMCQ as a backend error.
-    """
-
-    def abstract_actions(actions: Sequence[Any]) -> list[Any]:
-        return [action for action in actions if action.is_abstract and action.name]
-
-    if isinstance(behavior, str):
-        wanted = behavior
-        candidates = [
-            action.func_name
-            for state in all_states(native)
-            for actions in (state.on_enters, state.on_durings, state.on_exits)
-            for action in abstract_actions(actions)
-            if action.func_name == wanted
-        ]
-        return candidates[0] if len(candidates) == 1 else None
-    if not isinstance(behavior, Mapping):
-        return None
-    owner = resolve_state(native, behavior.get("owner"))
-    phase = behavior.get("phase")
-    action_name = behavior.get("action")
-    if owner is None or phase not in {"entry", "do", "exit"} or not isinstance(action_name, str):
-        return None
-    actions = {"entry": owner.on_enters, "do": owner.on_durings, "exit": owner.on_exits}[phase]
-    matches = [
-        action.func_name
-        for action in abstract_actions(actions)
-        if action.name == action_name or action.func_name == action_name
-    ]
-    return matches[0] if len(matches) == 1 else None
-
-
 def run_trajectory(plan: PredicatePlan, model: ModelIR, receipt_id: str):
-    """Evaluate R1--R4 through actual FCSTM execution, never supplied traces."""
+    """Evaluate R1--R3 through actual FCSTM execution, never supplied traces."""
 
     predicate = plan.predicate_id or "unknown"
     try:
@@ -212,17 +159,6 @@ def run_trajectory(plan: PredicatePlan, model: ModelIR, receipt_id: str):
         return native_receipt(receipt_id, predicate, native, "unknown", "The trajectory predicate requires a valid method-owned closed FCSTM runtime scenario; a source trace is not an executable scenario.", "FCSTMRuntimeScenario Pydantic validation", backend_family="fcstm_runtime", algorithm_version="pyfcstm.runtime.v1")
     if scenario.root_state != state_path(native.machine.root_state):
         return native_receipt(receipt_id, predicate, native, "unknown", "The trajectory scenario root does not match the loaded native FCSTM root, so the execution scope is not closed.", "FCSTMRuntimeScenario.root_state and pyfcstm StateMachine.root_state identity", backend_family="fcstm_runtime", algorithm_version="pyfcstm.runtime.v1", failure_kind="invalid_input")
-
-    if predicate == "R3":
-        behavior_path = _behavior_path(native, plan.inputs.get("behavior"))
-        window = _window(plan.inputs.get("window"), len(scenario.schedule))
-        if behavior_path is None or window is None:
-            return native_receipt(receipt_id, predicate, native, "unknown", "R3 requires one exact named abstract native lifecycle action and a closed macrostep observation window; concrete operation blocks are outside FBMCQ called()'s action-record fragment.", "R3 typed named-abstract behavior/window contract", backend_family="fbmcq", algorithm_version="pyfcstm.fbmcq.v1", failure_kind="invalid_input")
-        start, end = window
-        query = "\n".join(
-            ["init cold;", _event_assumptions(native, scenario), f'check reach <= {len(scenario.schedule)}: called("{behavior_path}", step={start}..{end});']
-        )
-        return execute_fbmcq(receipt_id=receipt_id, predicate=predicate, native=native, query=query, reason="The native .fbmcq execution checked the exact lifecycle behavior over the fully instantiated FCSTM event schedule.", basis="R3 typed scenario/behavior/window plus pyfcstm .fbmcq called()", timeout_ms=5_000)
 
     trace, error = _run_scenario(native, scenario)
     if error is not None:
@@ -258,11 +194,11 @@ def run_trajectory(plan: PredicatePlan, model: ModelIR, receipt_id: str):
         verdict = "true" if occurrences and holds else "false"
         return native_receipt(receipt_id, predicate, native, verdict, "The actual native FCSTM runtime trace was checked for the exact stimulus followed by target-state activity in every trailing observation.", "pyfcstm SimulationRuntime.cycle trace", backend_family="fcstm_runtime", algorithm_version="pyfcstm.runtime.v1", counterexample=[] if verdict == "true" else [{"stimulus_seen": bool(occurrences), "trailing_rows": len(trailing), "target_path": target_path, "holds": holds}], trace=trace)
 
-    if predicate == "R4":
+    if predicate == "R3":
         target = resolve_state(native, plan.inputs.get("state"))
         interval = _window(plan.inputs.get("interval"), len(trace))
         if target is None or interval is None:
-            return native_receipt(receipt_id, predicate, native, "unknown", "R4 requires one exact native state and a closed inclusive runtime interval.", "R4 typed runtime contract", backend_family="fcstm_runtime", algorithm_version="pyfcstm.runtime.v1", trace=trace)
+            return native_receipt(receipt_id, predicate, native, "unknown", "R3 requires one exact native state and a closed inclusive runtime interval.", "R3 typed runtime contract", backend_family="fcstm_runtime", algorithm_version="pyfcstm.runtime.v1", trace=trace)
         start, end = interval
         target_path = state_path(target)
         missing = [row for row in trace[start : end + 1] if target_path not in row["active_states"]]

@@ -24,28 +24,24 @@ def _module():
     return module
 
 
-def test_release_validator_preserves_frozen_archive_nodes_resources_and_boundaries() -> None:
-    """The committed release structure retains frozen bytes and the approved test universe."""
+def test_pre_p1_refactor_gate_rejects_the_changed_method() -> None:
+    """The historical refactor validator must not certify a new registry as identical."""
+    with pytest.raises(RuntimeError, match="approved additive test source hash changed"):
+        _module().validate(REPOSITORY, Path(sys.executable))
 
-    result = _module().validate(REPOSITORY, REPOSITORY / "venv/bin/python")
-    assert result.frozen_archive_files_checked == 2671
-    assert result.documented_archive_change_paths == (
-        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/README.md",
-        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/SCHEMA.md",
-        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/archive_manifest.json",
-        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/derived/recomputed_summary.json",
-        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/provenance_path_mapping.json",
-        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/publication_manifest.json",
-        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/raw/v60_current/archive_manifest.json",
-        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/raw/x1v2_baseline/archive_manifest.json",
-        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_cn.md",
-        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/v60_current_vs_x1v2_baseline/reviews/01_numeric_recomputation_review.md",
-    )
-    assert (result.baseline_node_count, result.current_node_count) == (465, 479)
-    assert result.resource_hashes["registry"] == "sha256:38fa2e8060ff822836a3e6437a271998690d36cf60822053316eb21cda2015ca"
-    assert result.resource_hashes["judge_protocol"] == "sha256:d774d9bd3e4c4fe04735ed1d4ec064be197cfadcd52e21c8226e37175b29b210"
-    assert result.boundary_violations == ()
-    assert result.provider_call_count == result.billable_call_count == 0
+
+def test_current_release_has_twelve_predicates_and_one_way_boundaries() -> None:
+    from paper_stm_method.registry import load_registry
+    from paper_stm_method.compiler.lowering import SUPPORTED_PREDICATES
+    registry = load_registry()
+    assert registry.version == "four-family-12-core.v1"
+    assert registry.registry_hash == "sha256:27e6bee263a37079cb86aa5dfdc904e3ba9711533b6cb1c91e9d911912d7d42d"
+    assert len(registry.predicates) == 12
+    assert set(registry.predicates) == set(SUPPORTED_PREDICATES)
+    root = SCRIPT.parents[2]
+    assert _module()._scan_boundary(root / "method/src/paper_stm_method", ("paper_stm_judge", "paper_stm_evaluation", "pipeline.semantic_judge", "discover_matrix")) == ()
+    assert _module()._scan_boundary(root / "judge/src/paper_stm_judge", ("paper_stm_method", "paper_stm_evaluation", "pipeline.evidence_discovery", "discover_matrix.ledger")) == ()
+    assert _module()._scan_boundary(REPOSITORY / "utils", ("paper_stm_method", "paper_stm_judge", "paper_stm_evaluation")) == ()
 
 
 def test_judge_scale_audit_hashes_packaged_neutral_dependencies() -> None:

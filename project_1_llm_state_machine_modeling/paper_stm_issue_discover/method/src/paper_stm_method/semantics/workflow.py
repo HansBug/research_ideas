@@ -1285,7 +1285,7 @@ def _context_text(pair: PairInput, *, stage: Literal["nl_contract_extraction", "
     )
 
 
-COMMON_RULES = """Use only the supplied input closure. Never read, infer, or reproduce evaluation ground truth, scores, reviewer examples, artifacts from other evaluation cases, or previously generated reports. PlantUML and canonical source IR locate author intent; FCSTM is the closed model evaluated by the deterministic backend; inspection-equivalent and verify/SMT summaries are deterministic facts only. Do not treat one source role as another. Do not emit W0/W1/W2, D0/D1/D2, L, or a release decision. Predicate IDs are closed to the frozen 19 IDs. A precise claim that is not expressible by a frozen predicate must remain a candidate with predicate_id=null, not disappear. Every object and every top-level response must contain non-empty reason and basis. Write every generated title, statement, summary, reason, basis, unresolved reading, and audit explanation in English. Preserve non-English text only inside exact quotations or identifiers copied from supplied artifacts, and explain each quotation in English. Free-text source content may be interpreted by the LLM, never by deterministic keyword, substring, regex, spelling, identifier-shape, or similarity rules."""
+COMMON_RULES = """Use only the supplied input closure. Never read, infer, or reproduce evaluation ground truth, scores, reviewer examples, artifacts from other evaluation cases, or previously generated reports. PlantUML and canonical source IR locate author intent; FCSTM is the closed model evaluated by the deterministic backend; inspection-equivalent and verify/SMT summaries are deterministic facts only. Do not treat one source role as another. Do not emit W0/W1/W2, D0/D1/D2, L, or a release decision. Predicate IDs are closed to the selected 12 IDs. A precise claim that is not expressible by a frozen predicate must remain a candidate with predicate_id=null, not disappear. Every object and every top-level response must contain non-empty reason and basis. Write every generated title, statement, summary, reason, basis, unresolved reading, and audit explanation in English. Preserve non-English text only inside exact quotations or identifiers copied from supplied artifacts, and explain each quotation in English. Free-text source content may be interpreted by the LLM, never by deterministic keyword, substring, regex, spelling, identifier-shape, or similarity rules."""
 
 
 # These are semantic routing rules for the frozen registry, not additional
@@ -1294,12 +1294,12 @@ COMMON_RULES = """Use only the supplied input closure. Never read, infer, or rep
 # candidate.
 PREDICATE_ROUTING_GUIDANCE = """Frozen predicate routing discipline:
 - Use S1 only for closed-model declaration membership (kind, element, scope). It does not prove containment, cardinality, initial-entry semantics, or a runtime state.
-- Use S2 for one exact transition endpoint pair, including an initial pseudo-state endpoint when the obligation is an initial edge. Use S3 for one exact transition trigger set, S4 for one state lifecycle action, S5 for one exact transition guard, and S6 for one exact transition effect. A `state_action` is executable as S4 only when the NL itself supplies all three separate hints: exact `state`, one lifecycle `phase` exactly equal to `entry`, `do`, or `exit`, and exact `action`. For example, `Entry/Accelerate` on entry to `Accelerating` produces phase=`entry` and action=`Accelerate`. A state name, operating/business phase, event name, or generic wording such as "includes actions" is not an S4 phase; keep the precise state_action contract but omit phase rather than inventing one.
-- Use G1 for a finite path-existence or unreachable-target claim, G2 for universal eventual target reachability, G3 only when the forbidden node/edge set is explicit, and G4 only for the registered coaccessibility form.
-- Use V4(initial_scope) for a supplied finite deadlock-frontier or reachable nonterminal-no-progress fact. Do not replace V4 with S1/S2 or call termination, liveness, fairness, or concurrency semantics deadlock evidence.
+- Use S2 for one exact transition endpoint pair, including an initial pseudo-state endpoint when the obligation is an initial edge. Use S3 for one exact transition trigger set, S4 for one state lifecycle action, and S5 for one exact transition guard. Preserve transition-effect claims as predicate-null W1 candidates. A `state_action` is executable as S4 only when the NL itself supplies all three separate hints: exact `state`, one lifecycle `phase` exactly equal to `entry`, `do`, or `exit`, and exact `action`. For example, `Entry/Accelerate` on entry to `Accelerating` produces phase=`entry` and action=`Accelerate`. A state name, operating/business phase, event name, or generic wording such as "includes actions" is not an S4 phase; keep the precise state_action contract but omit phase rather than inventing one.
+- Use G1 for a finite path-existence or unreachable-target claim, G2 for target reachability on every admissible execution within its declared bound, and G3 for the registered root-to-marked coaccessibility form. Preserve route-avoidance claims as predicate-null W1 candidates.
+- Use V1(initial_scope) for a supplied finite deadlock-frontier or reachable nonterminal-no-progress fact. Do not replace V1 with S1/S2 or call termination, liveness, fairness, or concurrency semantics deadlock evidence.
 - Extract `event_consumption` and `state_retention` contracts whenever the supplied NL states one exact event-consumer or state-retention obligation, even though the NL does not itself contain an executable trace. Do not invent a scenario, queue, schedule, macrostep, interval, guard valuation, or verdict: the downstream native binder alone may materialize such an input after exact current-pair closure. If that closure fails, retain the precise candidate as W1.
-- Use V1/V2 only for declared guard-domain formulas. A `guard_disjointness` contract may preserve an exact source-side exclusive-alternative obligation, but V1 execution additionally requires one complete native choice group and an independently declared finite domain; do not synthesize that domain from guards, observed values, fixtures, or evaluation data.
-- Route deterministic facts by property: LEAF_WITHOUT_OUTGOING/deadlock-frontier facts may yield one V4(initial_scope) candidate with exact leaf refs as supporting binding; failed finite reachability yields G1. A refuted initial-entry fact uses S2 only when the required exact pseudo-state edge is absent. If that endpoint edge exists but is conditional or fails broader default-owner semantics, S2 cannot decide the initial-entry property; preserve a predicate=null W1 candidate unless a separate explicit guard contract supports S5. Do not turn a leaf/deadlock fact into S1 or an arbitrary present S2 edge.
+- Preserve guard-disjointness, guard-completeness, behavior-occurrence, bounded-response, and state-invariant claims as predicate-null W1 candidates when they describe a precise possible violation. Do not substitute a related predicate that checks a different property.
+- Route deterministic facts by property: LEAF_WITHOUT_OUTGOING/deadlock-frontier facts may yield one V1(initial_scope) candidate with exact leaf refs as supporting binding; failed finite reachability yields G1. A refuted initial-entry fact uses S2 only when the required exact pseudo-state edge is absent. If that endpoint edge exists but is conditional or fails broader default-owner semantics, S2 cannot decide the initial-entry property; preserve a predicate=null W1 candidate unless a separate explicit guard contract supports S5. Do not turn a leaf/deadlock fact into S1 or an arbitrary present S2 edge.
 - Missing containment, region/consumer scope, initial-owner existence, or variable-delta semantics may remain a precise predicate=null W1 candidate. Preserve the exact owner/event/state refs and state the unsupported boundary; do not silently drop or rename it.
 - Every frozen predicate has scholarly eligibility. The downstream deterministic state machine decides W1/W2 from exact typed binding, executable fragment, artifact attribution, and the actual receipt; grounding must never use bibliography metadata as a routing condition.
 - For a missing fact, bind the expected exact model/source element and the observed absence or counterexample. For a present fact, preserve it as a non-violation observation unless the supplied dossier identifies a distinct violated obligation."""
@@ -1384,8 +1384,9 @@ candidate with the required source/target inputs and bind the exact endpoint
 state refs; a nonexistent transition cannot supply its own ref. Likewise, when
 one exact existing transition is bound and its parsed guard/effect/action field
 is empty while an atomic contract requires that field, emit the corresponding
-S4/S5/S6 candidate. Use predicate_id=null and preserve W1 only when the semantic
-value cannot be represented by the frozen predicate input. Use `unresolved`
+S4/S5 candidate for a lifecycle action/guard, or a predicate-null W1 candidate
+for an effect. Preserve W1 whenever the precise claim has no applicable
+predicate input. Use `unresolved`
 only when the required locus, endpoint identities, or source meaning itself is
 not exact; never use it merely because the required model fact is absent.
 
@@ -1493,8 +1494,8 @@ Cross-view frontier discipline:
 - For every transition group with multiple target alternatives, compare the exact
   selected trigger/guard relations as a group. If distinct alternatives are
   operationally indistinguishable under the same condition, emit the independent
-  `guard_disjointness` candidate (V1 only when its finite domain is supplied;
-  otherwise predicate=null/W1). Individual S3/S5 successes cannot rebut it.
+  `guard_disjointness` candidate with predicate=null/W1. Individual S3/S5
+  successes cannot rebut it.
 - When an NL endpoint denotes a semantic local exit or role rather than a literal
   state spelling, use the canonical author-source inventory to bind the exact
   intended target before comparing the closed FCSTM. A present edge to another
@@ -1504,7 +1505,7 @@ Cross-view frontier discipline:
 {PREDICATE_ROUTING_GUIDANCE}
 
 Inspection-equivalent routing: a deterministic `LEAF_WITHOUT_OUTGOING` or finite
-deadlock-frontier fact is a reason to consider one V4(initial_scope) candidate,
+deadlock-frontier fact is a reason to consider one V1(initial_scope) candidate,
 for the exact `deadlock_freedom` operating-state contract and exact state locus,
 with the exact leaf refs kept in element_refs/supporting facts; it is not an S1
 existence claim. A failed finite reachability fact routes to G1 with its exact
@@ -1592,8 +1593,7 @@ For a supplied transition group, compare all alternatives as one relation before
 checking each endpoint in isolation. When two semantically exclusive target
 alternatives from the same exact source carry the same effective condition, emit
 one `guard_disjointness` candidate whose locus names the shared source and target
-set. Use V1 only when its source/trigger/domain inputs and finite guard semantics
-are exact; otherwise preserve the precise relation as predicate-null W1. The
+set. Preserve the precise relation as predicate-null W1. The
 existence of each endpoint or each individual guard is a weaker property and does
 not satisfy group distinguishability.
 
@@ -1716,7 +1716,7 @@ edge does not rebut the owner-local malformed-edge claim. Apply this only when
 the supplied exact source inventory or deterministic diagnostic establishes the
 owner and target; never infer it from names or free-text syntax.
 
-V4 frontier protocol: when predicate_id=V4, inspect the exact bound state refs,
+V1 frontier protocol: when predicate_id=V1, inspect the exact bound state refs,
 the finite reachability facts, the outgoing-transition facts, and the formal
 terminal-edge facts supplied in the dossier. A precise reachable non-final leaf
 with zero outgoing transitions establishes a candidate progress/deadlock reading
@@ -1734,7 +1734,7 @@ alternative and no such exact support exists, mark the defeater `defeated`; do
 not output `rebutting+survives` while the reason admits that the contract excludes
 the rebuttal. Use grounding=unresolved only when the exact element,
 reachability, terminality, or obligation applicability genuinely cannot be
-decided from the supplied dossier. Never turn an unsupported V4 plan into W2,
+decided from the supplied dossier. Never turn an unsupported V1 plan into W2,
 and never discard a precise W1 frontier issue."""
 
 
@@ -1842,7 +1842,7 @@ def build_grounding_prompt(
 Round: {round_index}
 Complementary audit lens: {lens}
 Lens priority: {DISCOVERY_GROUNDING_AUDIT_LENSES[lens]}
-Frozen predicate input spellings: S1={{kind, element, scope}} S2={{source, target, scope}} S3={{transition, triggers}} S4={{state, phase, action}} S5={{transition, guard}} S6={{transition, effect}} G1={{source, target}} G2={{source, target}} G3={{source, target, forbidden}} G4={{roots, marked}} R1={{scenario, event, step}} R2={{scenario, stimulus, state, window}} R3={{scenario, behavior, window}} R4={{scenario, state, interval}} V1={{source, trigger, domain}} V2={{source, trigger, domain}} V3={{p, q, bound, unit, scope}} V4={{initial_scope}} V5={{state, expected, initial_scope}}.
+Frozen predicate input spellings: S1={{kind, element, scope}} S2={{source, target, scope}} S3={{transition, triggers}} S4={{state, phase, action}} S5={{transition, guard}} G1={{source, target}} G2={{source, target}} G3={{roots, marked}} R1={{scenario, event, step}} R2={{scenario, stimulus, state, window}} R3={{scenario, state, interval}} V1={{initial_scope}}.
 If a precise candidate cannot be expressed by the registry, set predicate_id to null. Do not silently drop it. Do not use W/D/L or L levels.
 Copy `contract_id`, `locus_kind`, `locus_names`, `property`, and
 `violation_direction` from the one atomic contract being evaluated. A candidate

@@ -870,7 +870,7 @@ def test_staged_method_receives_full_context_and_writes_stage_receipts(tmp_path:
         assert '"contract_id": "NL-CONTRACT-NL1"' in prompts[grounding_stage]
         assert "Fixture contract reason." not in prompts[grounding_stage]
         assert "Fixture contract response reason." not in prompts[grounding_stage]
-        assert "Use V4(initial_scope) for a supplied finite deadlock-frontier" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
+        assert "Use V1(initial_scope) for a supplied finite deadlock-frontier" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
         assert "Use G1 for a finite path-existence or unreachable-target claim" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
         assert "Use S1 only for closed-model declaration membership" in DISCOVERY_GROUNDING_SYSTEM_PROMPT
     assert '"dossier_input_policy": {' in prompts["d_adjudication"]

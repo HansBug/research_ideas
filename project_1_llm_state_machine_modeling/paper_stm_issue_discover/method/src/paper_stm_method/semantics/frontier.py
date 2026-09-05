@@ -292,7 +292,7 @@ class FrontierObligation(BaseModel):
     """Domain property awaiting adjudication, triggered by a normative obligation and exact facts.
 
     The runner produces this object in the execute batch and sends its candidate
-    to the compiler/backend for the frozen 19 predicates. It is not a new
+    to the compiler/backend for the selected 12 predicates. It is not a new
     predicate and has no authoritative D, W, or L level.
     """
 
@@ -307,7 +307,7 @@ class FrontierObligation(BaseModel):
         description="Stable frontier identity generated from frontier kind, canonical contract, and exact references.",
     )
     kind: FrontierKind = Field(
-        description="Domain candidate-frontier type; downstream stages may still choose only one of the frozen 19 predicates or null/W1.",
+        description="Domain candidate-frontier type; downstream stages may still choose only one of the selected 12 predicates or null/W1.",
     )
     source_contract_ids: tuple[str, ...] = Field(
         min_length=1,
@@ -358,7 +358,7 @@ class FrontierBatch(BaseModel):
     )
     reason: str = Field(
         min_length=1,
-        description="Explains how the batch expands the typed discovery frontier while keeping the 19 predicates responsible only for W evidence.",
+        description="Explains how the batch expands the typed discovery frontier while keeping the 12 predicates responsible only for W evidence.",
     )
     basis: str = Field(
         min_length=1,
@@ -2573,7 +2573,7 @@ def _materialize_source_dead_ends(
         candidate = _candidate(
             derived,
             title=f"{state.name} is a source-certified reachable dead end",
-            predicate_id="V4",
+            predicate_id="V1",
             predicate_inputs={"initial_scope": state.name},
             element_refs=(state.ref,),
             source_refs=derived.source_refs,
@@ -2629,7 +2629,7 @@ def _materialize_dead_ends(
         candidate = _candidate(
             contract,
             title=f"{state.name} has no operational continuation",
-            predicate_id="V4",
+            predicate_id="V1",
             predicate_inputs={"initial_scope": state.name},
             element_refs=(state.ref,),
             source_refs=contract.source_refs,
@@ -5093,7 +5093,7 @@ def _materialize_inspection_diagnostics(
 
     grouped: dict[tuple[str, tuple[str, ...], str | None], list[InspectionTransitionFact]] = defaultdict(list)
     for fact in facts.transitions:
-        # V1 and its guard-disjointness frontier are defined over one exact
+        # The guard-disjointness frontier are defined over one exact
         # native choice source.  A concurrent owner may contain multiple active
         # regions, but it is not itself the StateMachine source of every child
         # transition and cannot merge their event consumers into a synthetic

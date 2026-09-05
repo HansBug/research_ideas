@@ -244,6 +244,14 @@ def execute_request(
 ) -> PredicateGoldExecutionReceipt:
     """Execute one pre-hashed query through the frozen backend and seal all bytes."""
 
+    from paper_stm_method.registry import load_registry
+
+    if load_registry().version != "four-family-19-core.v1":
+        raise ValueError(
+            "pre-P1 gold requests require the original 19-predicate checkout; "
+            "current IDs may name different propositions"
+        )
+
     from paper_stm_method.backends import (
         bounded_verification,
         fcstm_native,

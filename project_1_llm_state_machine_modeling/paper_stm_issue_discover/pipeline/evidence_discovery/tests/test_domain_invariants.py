@@ -9,7 +9,6 @@ from pipeline.evidence_discovery.backends import run_backend
 from pipeline.evidence_discovery.compiler import compile_plan
 from pipeline.evidence_discovery.compiler.plans import validate_plan
 from pipeline.evidence_discovery.evidence.witness_levels import calculate_witness_level
-from pipeline.evidence_discovery.execution_probe_replay import _execute_probe
 from pipeline.evidence_discovery.inputs import PairInput, parse_fcstm
 from pipeline.evidence_discovery.inputs.context import build_inspection_equivalent_facts
 from pipeline.evidence_discovery.registry import load_registry
@@ -109,34 +108,3 @@ def test_domain_invariant_deduplicates_an_exact_existing_candidate(tmp_path: Pat
     assert len(duplicate_contracts) == 1
     assert [item.predicate_id for item in duplicate_candidates] == ["S5"]
     assert any(item["status"] == "duplicate_exact_candidate" for item in dispositions)
-
-
-def test_execution_probe_replay_keeps_native_false_as_audit_only_record(
-    tmp_path: Path,
-) -> None:
-    """A replayed frozen invariant uses the full native chain without publication."""
-
-    pair = _pair(tmp_path)
-    contracts, _candidates, _dispositions = materialize_domain_invariant_contracts(pair)
-    contract = next(item for item in contracts if item.predicate_id == "S3")
-    record = _execute_probe(
-        pair=pair,
-        source_file="method/0000/round-1.json",
-        source_hash="sha256:" + "a" * 64,
-        replay_id="b" * 32,
-        origin="domain_invariant",
-        candidate=contract.candidate(),
-        historical_ids=set(),
-        registry=load_registry(),
-        ordinal=0,
-    )
-
-    assert record.candidate_previously_materialized is False
-    assert record.witness_level == "W2"
-    assert record.receipt is not None
-    assert record.receipt["terminal_state"] == "completed"
-    assert record.receipt["verdict"] == "false"
-    assert record.execution_receipt is not None
-    assert record.execution_receipt["execution_state"] == "completed"
-    assert record.audit_bundle is not None
-    assert "issue_emitted" not in record.model_dump(mode="json")

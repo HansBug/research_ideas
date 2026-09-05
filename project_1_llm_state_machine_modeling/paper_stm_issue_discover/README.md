@@ -12,15 +12,15 @@
 
 ## 当前方法与评测
 
-现行实现依次准备输入闭包、提取 NL 约定、在固定条件下进行一次有界补全、用两个互补视角提出并定位候选，再进行确定性筛选、谓词路由、类型化输入绑定和后端执行。方法为候选保留来源追踪、绑定、回执和 W 级证据；事实、义务与 D/A 由评测仪器另行裁定（人工裁定协议定义，校准语义 judge 执行）。独立评测中，D/A、有效性与对应关系的定义来自 issue #195 的人工裁定协议，执行者是同模型的校准语义 judge（两臂同一仪器，配置与偏移见 [story/paper_outline.md](./story/paper_outline.md) §5.3）；离线程序只在 judge 已完成的字段上校验、汇总并确定性派生 K/N/I。v61 方法侧 903 条报告尚无人工复核，基线侧 512 条另有 v60 时期的完整人工裁定。
+现行实现依次准备输入闭包、提取 NL 约定、在固定条件下进行一次有界补全、用两个互补视角提出并定位候选，再进行确定性筛选、谓词路由、类型化输入绑定和后端执行。方法为候选保留来源追踪、绑定、回执和 W 级证据；事实、义务与 D/A 由评测仪器另行裁定（人工裁定协议定义，校准语义 judge 执行）。独立评测中，D/A、有效性与对应关系的定义来自 issue #195 的人工裁定协议，执行者是同模型的校准语义 judge（两臂同一仪器，配置与偏移见 [story/paper_outline.md](./story/paper_outline.md) §5.3）；离线程序只在 judge 已完成的字段上校验、汇总并确定性派生 K/N/I。用户已于 2026-09-05 确认 v61 方法侧 903 条报告已人工复核；论文按大纲 §5.3 的人工裁定口径记录两臂结果。
 
-冻结设计注册表将 19 个谓词分为结构（6 个）、拓扑（4 个）、轨迹仿真（4 个）和有界验证（5 个）四族。它的来源标识映射已经冻结，但外部书目、全文引文和逐条语义边界仍以[谓词来源审计](./related_work/provenance/predicate_provenance.md)为准。当前结果中，12 个不同谓词标识有终止回执，8 个不同谓词标识至少绑定一条报告。这是两个不同的标识使用统计，不是发现数、W2 数或命中数。谓词不是问题发现的准入门；没有适用谓词但已有精确来源定位的发现仍可为 W1，不能具体定位的主张才是 W0。D2/D1 报告会发布，D0 不发布；L 是台账分类字段，方法不输出 L。方法不读取台账、评测裁定或历史报告。
+当前方法按工作流证据需求选择四类共 12 种可执行谓词：结构 S1–S5、拓扑 G1–G3、轨迹 R1–R3、有界验证 V1，族规模为 `5/3/3/1`。逐条用途、来源与执行边界见[谓词来源审计](./related_work/provenance/predicate_provenance.md)。谓词用于结构化绑定与执行适用检查；没有适用谓词但已有精确来源定位的发现仍可为 W1，不能具体定位的主张为 W0。D2/D1 报告会发布，D0 不发布；L 是台账分类字段，方法不输出 L。方法不读取台账、评测裁定或历史报告。
 
 这里的“发布”只指方法的 finding publication surface；独立评测和归档仍保留全部 report、validity、relation 与 D/A decision，供复核和复算使用。
 
 [内部谓词后端审计](./discover_matrix/ledger_v2/predicate_gold_v1/README.md) 保存 evaluation-only 的后端能力、输入和 receipt 审计。它用于复核证据闭合，不属于 paper1 主叙事，不进入 method registry、prompt、routing 或 package data，也不改写 hit、W、K/N/I。旧 registry 的 planned mapping 与旧 126 条 provenance 都不是当前主结果。
 
-当前 headline 表格只保留在 [v61 归档 README](./final_results/v61_source_divergence_vs_x1v2_baseline/README.md) 与其 `derived/evaluate_rq3_output.txt`；论文口径的解释见 [story/paper_outline.md](./story/paper_outline.md)。X1v2 没有同构的 19 谓词或 receipt schema，所以 predicate usage 不适用；W 轴仍适用，评测不会倒灌为 baseline method 的 W2。
+当前 headline 表格只保留在 [v61 归档 README](./final_results/v61_source_divergence_vs_x1v2_baseline/README.md) 与其 `derived/evaluate_rq3_output.txt`；论文口径的解释与冻结运行的版本说明见 [story/paper_outline.md](./story/paper_outline.md) §5.1。X1v2 没有同构的谓词或 receipt schema，所以 predicate usage 不适用；W 轴仍适用，评测不会倒灌为 baseline method 的 W2。
 
 ## 阅读与复现
 

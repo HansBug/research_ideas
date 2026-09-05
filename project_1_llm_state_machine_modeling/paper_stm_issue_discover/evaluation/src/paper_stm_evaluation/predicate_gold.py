@@ -620,7 +620,7 @@ def build_inventory(*, repo_root: Path, paper_root: Path, generated_at: str, sou
     """Read frozen ledger, registry, and pair artifacts into a hash-closed inventory."""
 
     ledger_path = paper_root / "discover_matrix" / "ledger_v2" / "ledger.json"
-    registry_path = paper_root / "method" / "src" / "paper_stm_method" / "resources" / "predicate_registry.json"
+    registry_path = paper_root / "related_work/provenance/archive/pre_p1_20260905/predicate_registry.json"
     ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
     registry = json.loads(registry_path.read_text(encoding="utf-8"))
     items = ledger["items"]

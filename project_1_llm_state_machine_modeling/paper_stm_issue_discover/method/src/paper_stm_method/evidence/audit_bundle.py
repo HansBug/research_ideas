@@ -117,7 +117,7 @@ def build_audit_bundle(
             "soundness_fragment": plan.soundness_fragment,
             "assumptions": list(plan.assumptions),
             "source_ids": list(plan.source_ids),
-            "academic_provenance": "All 19 frozen predicates have completed scholarly eligibility review. Bibliography provenance is not a runtime W or execution condition.",
+            "academic_provenance": "All 12 selected predicates have completed scholarly eligibility review. Bibliography provenance is not a runtime W or execution condition.",
             "binding_complete": plan.binding_complete,
             "missing_inputs": list(plan.missing_inputs),
         },

@@ -1,12 +1,8 @@
 # 界内语料穷尽扫描：三条发现
 
-> **历史来源扫描说明：** 本文件保留旧来源扫描的原始审计和数字，不是当前 19 行注册表
-> 或学术资格结论。当前来源类型、命题边界和运行时隔离规则以 [`pipeline/evidence_discovery/`](../../pipeline/evidence_discovery/)
-> 为准：19 个冻结谓词均已完成 source-ID mapping 与 claim-boundary 对照；bibliography/full-text
-> metadata 的缺口必须显式保留，不能把 mapping 写成完整学术资格审查。bibliography metadata 不参与
-> W、backend、D 或 publication；旧分类和旧统计只能作为历史材料引用。
+> **历史来源扫描说明（2026-09-05）。** 本文件保留旧来源扫描的原始审计和数字，旧分类与旧分母均按当时版本解释。当前 12 条的用途、来源与执行边界见[当前审计](./predicate_provenance.md)。
 
-> **这份文件记的是「扫了 313 个界内案例之后知道了什么」**，⛔ 不是 19 行分级表本身（那在 [predicate_provenance.md](./predicate_provenance.md)）。
+> **这份文件记的是「扫了 313 个界内案例之后知道了什么」**，⛔ 不是 历史 19 行分级表本身（见 [legacy 审计](./archive/legacy_20260821/predicate_provenance.md)）。
 >
 > **档位标记**：全文除标注为【实测】者外，均为【AI 建议·待确认】。
 

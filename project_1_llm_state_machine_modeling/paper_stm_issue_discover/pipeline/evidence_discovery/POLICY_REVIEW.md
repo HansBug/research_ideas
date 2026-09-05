@@ -1,5 +1,7 @@
 # 协议自审清单
 
+> **历史记录（pre-P1，2026-09-05 归档口径）。** 下文保留 `four-family-19-core.v1` 时期的计划、验收清单、运行编号和统计，均按当时版本解释，不是当前执行指令。当前 12 条方法以 [method/README.md](../../method/README.md) 和 [METHOD_PRINCIPLES.md](./METHOD_PRINCIPLES.md) 为准；旧 replay 按[原 commit](../../related_work/provenance/archive/pre_p1_20260905/README.md)复现。v61 保持冻结。
+
 每次代码冻结、provider-free replay、15x1 与 54x3 前后均按本清单自审。
 
 `execution_probe_replay` 是独立第四 cohort：它只从保存 extraction/grounding 重建当前 deterministic chain，检查新物化的 domain-invariant/transition-group probes。每条记录必须标明是否已存在于 source `execute_batch.candidates`；新增 receipt 只证明当前 native execution/audit 闭合，不可倒写历史 candidate、publication、hit 或 precision，也不可与其他 replay 的 W/receipt 合并。
