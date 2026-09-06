@@ -1,0 +1,1722 @@
+{
+ "schema": "paper1.relabel.inspect_overlap.v1",
+ "what_this_is": "每条归一化 issue 与**既有条目**（台账 / 候选）的判重结论，逐条带引双方原文的依据。⛔ 判重是判断不是脚本：判「这条与 `EIS-0007-02` 是不是同一个问题」要比较两段描述的语义。代价不对称的口径：**拿不准就判 `suspect` 新建块并在 note 里点名疑似目标**，⛔ 不许判成重合 —— 错判重合会把一条真发现藏进既有条目里。",
+ "overlap_kinds": {
+  "ledger": "与某条台账 expected issue 是同一个问题 → **并入那一条**作补充证据，⛔ 不新建块。",
+  "candidate": "与某条既有候选（`VU-` / `DIFF-` / `UM-`）是同一个问题 → 并入那一条。",
+  "suspect": "疑似与某条既有条目重合但拿不准 → **新建块**，并在块里点名请判读者确认。",
+  "none": "与既有条目都不是同一个问题 → 新建块。"
+ },
+ "totals": {
+  "decisions": 189,
+  "ledger": 45,
+  "candidate": 16,
+  "suspect": 24,
+  "none": 104,
+  "merged_into_existing": 61,
+  "new_blocks": 128
+ },
+ "decisions": [
+  {
+   "issue_id": "INS-0000-01",
+   "pair": "0000",
+   "group": "nl_0000",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0000-01",
+   "overlap": "ledger:EIS-0000-01",
+   "basis": "同 pair 0000、同主体（stm0.puml:14 那条 Power Off 边与它的目标态 FinalState）、同性质（FinalState 是普通态、无出边、机器不 terminate）。台账逐字：EIS-0000-01 statement「顶层同时存在 `[*] --> HumanDrivingMode : Power On` 和 `[*] --> FinalState : Power Off` 两条初始边……而 FinalState 只是普通命名状态、无出边，模型永远不会真正 terminate」；generated_side 逐字「[*] --> FinalState : Power Off（唯一的 Power Off 边，源端是伪初始；FinalState 是普通状态而非终态伪状态）」。INS 侧逐字：「stm0.puml:14 逐字 `[*] --> FinalState : Power Off`（全文件 `FinalState` 仅此一处，位于箭头右侧）」。已核对 §1.2 全文 15 行，:14 确为 `[*] --> FinalState : Power Off`。充分性检验：把 EIS-0000-01 那一处改对（Power Off 源端改到运行态、目标改成 `[*]`），INS-0000-01 的死端事实随之消失 → 同一缺陷。"
+  },
+  {
+   "issue_id": "INS-0000-02",
+   "pair": "0000",
+   "group": "nl_0000",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0000-01",
+   "overlap": "ledger:EIS-0000-01",
+   "basis": "同 pair、同主体（仍是 stm0.puml:14 那条 Power Off 边的挂载位置）、同性质（断电终止义务在拓扑上不可满足）。INS 逐字「断电这条边（:14）被挂在了初始伪态上而不是挂在运行态上，环内根本触发不到它，所以「断电终止」这项需求在拓扑上不可满足」；台账 EIS-0000-01 逐字「Power Off 的源端是顶层伪初始，任何运行态（HumanDrivingMode / AutonomousMode）都没有断电出边」+「模型永远不会真正 terminate」，direction 字段逐字 `reachability`。两句说的是同一件事的同一因同一果，仅表述层面一个从边、一个从环。充分性检验：修 EIS-0000-01 即消。⚠️ 它与 INS-0000-01 并入同一条台账条目，是同一处作者编辑的两个后果，不是两条缺陷。"
+  },
+  {
+   "issue_id": "INS-0000-03",
+   "pair": "0000",
+   "group": "nl_0000",
+   "overlap_kind": "suspect",
+   "overlap_target": "EIS-0000-01",
+   "overlap": "suspect:EIS-0000-01",
+   "basis": "⚠️ 拿不准，按新建处理并请判读者确认。承重的两半性质不同：「不强制终止」这一半与 EIS-0000-01 同源（台账逐字「模型永远不会真正 terminate」），修那一处即消；但「叶层存在非平凡 SCC {HumanDrivingMode, AutoNavigating, AutoFinal}」这一半在修好断电边之后**依然成立**（:12 `HumanDrivingMode --> AutonomousMode : front_distance > 10` 与 :13 `AutonomousMode --> HumanDrivingMode : Human Steering Cmd, Brake Pressed, in (AutoFinal)` 都还在），充分性检验不通过。台账 99 条里没有任何一条以「模式切换环存在」为主体。分拣者自陈倾向是「本语境下环不算缺陷」（INS 逐字「在本语料通常是应有性质而非缺陷」），故不宜直接并入而把这半藏掉。"
+  },
+  {
+   "issue_id": "INS-0010-01",
+   "pair": "0010",
+   "group": "nl_0000",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0010-03",
+   "overlap": "ledger:EIS-0010-03",
+   "basis": "同 pair 0010、同主体（stm0.puml:19 `HumanDriving --> AutonomousFinal : Power Off` 及其目标态 AutonomousFinal）、同性质（名为 Final 的普通态、无出边、不 terminate）。台账逐字：EIS-0010-03 statement「生成制品把 Power Off 指向一个名字里带 Final 的**普通状态**，模型里根本没有终态伪状态，投影中 AutonomousFinal 也无任何出边——断电后系统进入一个永远出不来的活状态，机器永不 terminate」；generated_side 逐字「HumanDriving --> AutonomousFinal : Power Off，且 AutonomousFinal 是普通状态（AutonomousFinal : Auto Final State）」。INS 逐字「stm0.puml:19 逐字 `HumanDriving --> AutonomousFinal : Power Off`；stm0.puml:21 逐字 `AutonomousFinal : Auto Final State`」。已核对 §1.2：:19 与 :21 与两侧逐字一致。⛔ 不并入 EIS-0010-04（那条讲的是「缺 in(auto final) 接管边」，主体是缺失的接管迁移，性质不同）。"
+  },
+  {
+   "issue_id": "INS-0010-02",
+   "pair": "0010",
+   "group": "nl_0000",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0010-03",
+   "overlap": "ledger:EIS-0010-03",
+   "basis": "同 pair、同主体（仍是 :19 这条 Power Off 边的目标）、同性质。INS 逐字「离开该 SCC 的边**只有一条** —— :19 `HumanDriving --> AutonomousFinal : Power Off`，其目标又是个死端（见 INS-0010-01），且文件里没有任何 `--> [*]`」；台账 EIS-0010-03 逐字「模型里根本没有终态伪状态……断电后系统进入一个永远出不来的活状态，机器永不 terminate」。充分性检验：把 :19 的目标改成 `[*]`，运行环即获得通往根出口的路径，INS-0010-02 的「拓扑上不存在路径」立即不成立 → 同一缺陷。⛔ 不并入 EIS-0010-05（那条主体是「自动驾驶三态不消费 Power Off」，改对它并不能让 :19 的死端消失）。"
+  },
+  {
+   "issue_id": "INS-0010-03",
+   "pair": "0010",
+   "group": "nl_0000",
+   "overlap_kind": "suspect",
+   "overlap_target": "EIS-0010-03",
+   "overlap": "suspect:EIS-0010-03",
+   "basis": "⚠️ 与 INS-0000-03 同处置、同理由。「不强制终止」半边与 EIS-0010-03 同源（台账逐字「机器永不 terminate」）；「存在非平凡 SCC {HumanDriving, Autonomous, AutonomousIdle, AutonomousActive}」半边在把 :19 目标改成 `[*]` 之后仍成立（:5 `HumanDriving --> Autonomous : Power On`、:9、:12、:15 四条边一条不少），充分性检验不通过。台账无以「模式环存在」为主体的条目；分拣者自陈「在本语境下通常不算缺陷」。故标 suspect 而不并入。"
+  },
+  {
+   "issue_id": "INS-0020-01",
+   "pair": "0020",
+   "group": "nl_0000",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "pair 0020 台账只有两条，主体都不是环：EIS-0020-01 generated_side 逐字「[*] -> HumanDrivingMode（无触发；模型里根本没有 Power On 事件）」，EIS-0020-02 逐字「AutoFinalState -> HumanDrivingMode: human steering cmd, brake pressed」。候选侧：DIFF-0020-06 是 `mappable: false` 的捆绑记录（note 逐字「ref 字段一口气列了四件异质的事——守卫方向反……漏掉 NL 第 4 句……未把 autonomous_mode 建成复合状态」），UM-0020 桶内 12 组逐条看过，最接近的 `0020-4` 逐字是「自动模式的 final 状态没有建模为 UML final/终止伪状态」——主体是 AutoFinalState 这个态的种类，不是 SCC。⭐ 且本条与 0000/0010 有实质差别：0020 根出口真实存在（stm0.puml:16 `HumanDrivingMode -> [*]: Power Off`、:17 `AutonomousMode -> [*]: Power Off`），所以连「无法终止」这一半都没有，无从并入任何终止类条目。"
+  },
+  {
+   "issue_id": "INS-0030-01",
+   "pair": "0030",
+   "group": "nl_0000",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "pair 0030 台账三条，主体逐字为：EIS-0030-01「制品内部只有 Navigating↔Parking 死循环……导致 in (auto final) 无指代对象」、EIS-0030-02「自动驾驶激活期间无法断电」、EIS-0030-03 generated_side「Autonomous --> HumanDriving : Human Steering Cmd / Brake Pressed / [*]」——没有一条的主体是 stm0.puml:2 这条初始边。候选侧：0030 无 VU 记录；DIFF-0030-06 的 blocker 逐字是 `not_a_defect_claim`、note 逐字「通篇是一则不确定性说明，没有断言任何一处制品缺陷」；UM-0030 桶内 7 组我逐组读过（X1 三组 `0030-1`/`0030-2`/`0030-3` 分别是 submachine 记法、HumanDriving 空 body、Park Request 边无依据；v46 四组全是 human_steering_cmd / front_distance 未独立声明），无一组提初始迁移带触发。⭐ 值得判读者注意：同型缺陷台账在 0040 记了内层那处（EIS-0040-03 逐字「UML 初始迁移不允许带触发」），候选在 0040/0050 各点了顶层那处，唯独 0030 两侧皆空。已核对 §1.2：:2 逐字 `[*] --> HumanDriving : Power On`，:10 逐字 `[*] --> Navigating`（裸边）。"
+  },
+  {
+   "issue_id": "INS-0030-02",
+   "pair": "0030",
+   "group": "nl_0000",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "同 INS-0020-01 的理由结构。0030 根出口真实存在（§1.2 :18 逐字 `HumanDriving --> [*] : Power Off`），故不存在可并入的「无法终止」条目；台账 EIS-0030-02 主体逐字是「自动驾驶激活期间无法断电，NL 第5句的断电义务只覆盖了一半作用域」——它讲的是 Autonomous 侧缺一条 power_off 出边，而 INS-0030-02 讲的是环的存在与非强制终止，改对 EIS-0030-02（给 Autonomous 补一条到 `[*]` 的边）之后 SCC {HumanDriving, Navigating, Parking} 依然存在（:11 `Navigating --> Parking : Park Request`、:12 `Parking --> Navigating : Parking Complete`、:15、:16 全在），充分性检验不通过。候选侧同 INS-0030-01 所述，无对应组。"
+  },
+  {
+   "issue_id": "INS-0040-01",
+   "pair": "0040",
+   "group": "nl_0000",
+   "overlap_kind": "candidate",
+   "overlap_target": "VU-0040-01",
+   "overlap": "candidate:VU-0040-01",
+   "basis": "⭐ 逐字同题。候选 VU-0040-01 的 evidence 字段逐字：「顶层初始迁移 `[*] --> HumanDriving : Power On` 带触发事件，不符合 UML 对初始迁移的约束」；INS-0040-01 statement 逐字：「唯一的根层初始边 stm0.puml:2 `[*] --> HumanDriving : Power On` 带标签」。同 pair、同一行、同一条 UML 条款（VU note 逐字引 `Pseudostate::outgoing_from_initial`）。⚠️ 两侧只在修复方向上不同（VU 取 trigger+extraneous「删掉该触发」，INS 取 transition+missing「新增一条无条件入口边」），那是同一缺陷的两种改法，不构成两条缺陷。⛔ 明确**不**并入 EIS-0040-03：工作单 0040.md:198 已做过零步同根核验，逐字「台账已用同一条规则记录了 stm0.puml:7 的同型违反（EIS-0040-03……），但未记录 :2 这一处……两处是不同的作者编辑，改掉 :7 不会消除 :2 的触发，故不同根」。"
+  },
+  {
+   "issue_id": "INS-0040-02",
+   "pair": "0040",
+   "group": "nl_0000",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0040-03",
+   "overlap": "ledger:EIS-0040-03",
+   "basis": "⭐ 逐字同题。台账 EIS-0040-03 statement 逐字：「复合状态的初始迁移带触发事件：front_distance>10 把系统送进 Autonomous 后，必须再等一个模型里无人产生的 `Enter Autonomous Mode` 事件才会激活子状态……UML 初始迁移不允许带触发」；generated_side 逐字「state Autonomous { [*] --> AutoInitial : Enter Autonomous Mode }」。INS-0040-02 statement 逐字：「块内（stm0.puml:6 `state Autonomous {` 至 :10 `}`）唯一的初始边是第 7 行 `[*] --> AutoInitial : Enter Autonomous Mode`，带标签」。已核对 §1.2：:6/:7/:10 与两侧逐字一致。同 pair、同一行、同一 UML 条款、同一后果（进入 Autonomous 后无子态激活）→ 同一缺陷。"
+  },
+  {
+   "issue_id": "INS-0040-03",
+   "pair": "0040",
+   "group": "nl_0000",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "同 INS-0020-01 / INS-0030-02 的理由结构：0040 根出口真实存在（§1.2 :13 逐字 `HumanDriving --> [*] : Power Off`）。台账三条主体分别是「自动驾驶侧无 power_off」（EIS-0040-01 reference_side 逐字 `autonomous_mode --> [*] : power_off`）、三条件压一标签（EIS-0040-02 generated_side 逐字「Autonomous --> HumanDriving : human_steering_cmd || brake_pressed || in (AutoFinal)」）、内层初始边带触发（EIS-0040-03），改对其中任何一条，SCC {HumanDriving, AutoInitial, AutoFinal} 都仍在（:5 与 :12 两条模式切换边不动）。候选侧 UM-0040 桶内 7 组逐组读过（`0040-1`~`0040-5` 与 v46 两组），无一组主体是环或终止拓扑。"
+  },
+  {
+   "issue_id": "INS-0050-01",
+   "pair": "0050",
+   "group": "nl_0000",
+   "overlap_kind": "candidate",
+   "overlap_target": "UM-0050",
+   "overlap": "candidate:UM-0050",
+   "basis": "⭐ 逐字同题，落在 UM-0050 桶内的 `0050-6` 组（⚠️ UM 一条 = 工作单 §3.3 整张表，故只能指到桶+组，不能指到独立候选 id）。工作单 0050.md §3.3a 表内 `0050-6` 逐字：「初始伪状态到 HumanDrivingMode 的迁移标注为 \"Power On\" 事件<br>初始迁移标注为 \"Power On\"，但 UML 中 [*] → HumanDrivingMode 是默认的初始迁移，不应带触发事件」；同文件 §3.4 该簇裁定行逐字：「顶层初始迁移 [*] --> HumanDrivingMode : Power On 带了触发事件，UML 中初始迁移不允许带触发。 ‖ 事实成立。stm0.puml:3 逐字为 [*] --> HumanDrivingMode : Power On」。INS-0050-01 指的正是 :3 这一行（已核对 §1.2，第 2 行为空行、初始边在 :3）。⚠️ 台账侧为空：pair 0050 只有 EIS-0050-01 一条，主体逐字是「三个接管条件压成一个跨行自由文本标签」，与本条无关。⚠️ 另注：该簇被上一轮多报侧裁为 `NO_NL_BASIS`/`N-FORM`（「不构成 M 内的合式性问题」），但那是裁定不是重合与否，判读者可推翻。"
+  },
+  {
+   "issue_id": "INS-0050-02",
+   "pair": "0050",
+   "group": "nl_0000",
+   "overlap_kind": "candidate",
+   "overlap_target": "UM-0050",
+   "overlap": "candidate:UM-0050",
+   "basis": "⭐ 落在 UM-0050 桶内的 `0050-3` 组。工作单 0050.md §3.3a 表内 `0050-3` 逐字：「自主模式内部子状态之间的迁移缺少触发条件<br>AutonomousMode 内部子状态语义不完整/命名不具体」；同文件 §3.4 该簇裁定行逐字：「AutonomousMode 内部子态用 SubState1/2/3 占位命名，相邻迁移无任何触发或守卫，缺乏可执行语义。 ‖ 事实成立。stm0.puml:9-12 为 [*] --> SubState1、SubState1 --> SubState2、SubState2 --> SubState3、SubState3 --> [*]，四条边均无触发与守卫（UML 中即完成迁移，合法），三个子…」。INS-0050-02 statement 逐字：「`SubState1 --> SubState2 --> SubState3`（stm0.puml:10、:11），三个态没有任何 entry/do/描述行、三条边没有任何事件与守卫……子态划分不承载任何行为语义 —— 它是为「要有子态」这句话而摆的占位符」。同 pair、同三个态、同两条边、同性质（无触发完成迁移 + 空壳占位）→ 重合。⚠️ 台账侧为空（EIS-0050-01 主体是接管标签融合）。"
+  },
+  {
+   "issue_id": "INS-0050-03",
+   "pair": "0050",
+   "group": "nl_0000",
+   "overlap_kind": "candidate",
+   "overlap_target": "UM-0050",
+   "overlap": "candidate:UM-0050",
+   "basis": "同样落在 UM-0050 桶内的 `0050-3` 组，且是**同一组的同一句**覆盖到的第四条边。§3.4 该簇逐字点名「stm0.puml:9-12 为 [*] --> SubState1、SubState1 --> SubState2、SubState2 --> SubState3、SubState3 --> [*]，四条边均无触发与守卫」——其中 `SubState3 --> [*]` 就是 INS-0050-03 的作者源锚点（INS 证据逐字「stm0.puml:12 逐字 `SubState3 --> [*]`（无标签）」，已核对 §1.2 一致）。⚠️ 我仍标为与候选重合而非 none：INS-0050-03 自陈的独特点是「标的目标态 `FinalWaittr_0005` 是投影合成物」，但那是**投影侧命名**问题，作者源那一处的事实（:12 无触发）与 `0050-3` 组逐字重合，改对同一处即同时消解。台账侧为空。"
+  },
+  {
+   "issue_id": "INS-0050-04",
+   "pair": "0050",
+   "group": "nl_0000",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "同 INS-0020-01 / 0030-02 / 0040-03 的理由结构：0050 根出口真实存在（§1.2 :19 逐字 `HumanDrivingMode --> [*] : Power Off`、:20 逐字 `AutonomousMode --> [*] : Power Off`）。台账 pair 0050 仅 EIS-0050-01 一条，主体逐字「三个接管条件压成一个跨行自由文本标签」，与环无关。候选侧 UM-0050 桶内 16 组逐组读过：`0050-5` 逐字「Power Off 迁移在两个顶层状态各写了一次，未使用整机级别的统一表达」讲的是 Power Off 的写法与子态覆盖，不是 SCC；`0050-3` 讲子态无触发；其余为 submachine 记法、空 body、守卫无事件、front_distance / brake_pressed 未声明。⚠️ 本条另含一个候选/台账两侧都没有的点：SCC 成员含投影合成态 `FinalWaittr_0005`（INS 证据逐字「`FinalWait` 在全部六份 stm0.puml 中零命中，确认为合成名」），更不应并入。"
+  },
+  {
+   "issue_id": "INS-0001-01",
+   "pair": "0001",
+   "group": "nl_0001",
+   "overlap_kind": "candidate",
+   "overlap_target": "VU-0001-01",
+   "overlap": "candidate:VU-0001-01",
+   "basis": "三项全同。① 同 pair 0001。② 同主体元素 ClampingState：INS 侧逐字「作者给 ClampingState（制动钳夹紧态）只写了入边、没写任何出边，它因此是吸收态」，证据 `stm0.puml:8 BrakingState --> ClampingState : Entering Clamping State`；VU-0001-01 复核事实逐字「ClampingState 在 stm0.puml 全文只出现两次：:8 作为迁移目标、:9 为描述行 `ClampingState : Brake Caliper Clamping State`，无任何出边」。③ 同缺陷性质：VU 侧逐字「因此 ClampingState 是一个非终态的吸收态：正常制动流程一旦走到夹紧就永远停在那里」，与 INS 侧「一旦夹紧就永远无法离开」同义；candidate_mapping.json 给 VU-0001-01 的座标是 global + unintended_terminal + requirement，与本条待判座标逐字相同。④ 连排除假阳性的论证都同源：VU 侧「本模型是平铺结构（无复合态、`--` 计数为 0）」对应 INS 侧「作者源里唯一的复合态是投影合成的 root，root 出边为 0，祖先救不了它」。判并入。"
+  },
+  {
+   "issue_id": "INS-0001-02",
+   "pair": "0001",
+   "group": "nl_0001",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "同 pair 有候选提到同一主体 ClampingLoseState，但**缺陷性质相反**，不并。① VU-0001-01 的主体是 ClampingState 不是 ClampingLoseState（其事实段逐字只谈「:8 作为迁移目标、:9 为描述行」），元素不同。② DIFF-0001-03 的生成侧逐字是「OperationalState --> ClampingLoseState : Transition to Clamping Lose State / ClampingLoseState : Clamping Lose State」，主体确同，但它主张的性质是多余：判定者理由逐字「参考模型引入了 NL 无依据的状态与迁移」，映射座标为 element+state+extraneous；而 INS-0001-02 主张的是「ClampingLoseState（松夹态）在第 14 行被 OperationalState 引入后没有任何出边」即吸收态。两者修法方向相反（删掉该状态 vs 补一条出边），并入会把「出不来」藏进「多余」里。③ 台账侧无可并对象（pair 0001 台账 0 条）。⚠️ 请判读者注意二者的交互：若采纳 DIFF-0001-03 判该状态整体多余而删除，本条自然消解——但那是裁决顺序问题，不是同一条 issue。"
+  },
+  {
+   "issue_id": "INS-0001-03",
+   "pair": "0001",
+   "group": "nl_0001",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "① 台账侧：pair 0001 台账 0 条，工作单 §2 逐字「本 pair 台账 0 条。」。② 候选侧无同性质条目：pair 0001 仅 VU-0001-01（unintended_terminal / ClampingState）、DIFF-0001-03（state extraneous）、DIFF-0001-04（不可映射，逐字「0001-author.puml 与 0011-author.puml 逐字节相同」，属语料元数据）。③ 与最接近的 VU-0001-01 性质不同：VU 说的是**某个态出不去**（逐字「无任何出边」），INS-0001-03 说的是**整图不终止**——其证据逐字「全文唯一的 `[*]` 出现在 :2 `[*] --> InitialState`（左端，初始伪状态），无任何 `--> [*]`」，主体是 {BrakingState, InitialState, OperationalState} 这个环，与 ClampingState 不交。座标亦异（nontermination vs unintended_terminal）。判不重合。"
+  },
+  {
+   "issue_id": "INS-0001-04",
+   "pair": "0001",
+   "group": "nl_0001",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "① 台账 0 条。② pair 0001 三条候选（VU-0001-01 / DIFF-0001-03 / DIFF-0001-04）无一主张拓扑环的存在：VU 逐字「无任何出边」、DIFF-0001-03 逐字「参考模型引入了 NL 无依据的状态与迁移」、DIFF-0001-04 逐字「0001-author.puml 与 0011-author.puml 逐字节相同」。③ 本条主张的是非平凡强连通分量 {BrakingState, InitialState, OperationalState} 的存在本身，且自陈「NL 第 2 句 `Once the signal feedback is sent, it returns to the initial state.` 恰恰**要求**有这个环」，与任何既有候选都不同主体、不同性质。判不重合（本条大概率会被判读者裁为非缺陷，但那是裁决不是重合）。"
+  },
+  {
+   "issue_id": "INS-0011-01",
+   "pair": "0011",
+   "group": "nl_0001",
+   "overlap_kind": "candidate",
+   "overlap_target": "VU-0011-01",
+   "overlap": "candidate:VU-0011-01",
+   "basis": "三项全同。① 同 pair 0011。② 同主体 ClampingState：VU-0011-01 复核事实逐字「stm0.puml 全文只有 :8 的入边与 :9 的描述行提到 ClampingState，没有任何以它为源的迁移，它是一个死端」；INS 侧逐字「ClampingState（制动钳夹紧态）只有入边、无任何出边，构成吸收态」，双方引的都是 `stm0.puml:8 BrakingState --> ClampingState : Entering Clamping State`。③ 同性质：VU 主张逐字「进入 ClampingState 后没有任何返回路径，Signal Feedback Sent 回到 InitialState 的复位行为无法发生」，与 INS「与 NL 第 2 句描述的『反馈发出后回到初始态』这一循环式控制器相矛盾」同指；candidate_mapping.json 给 VU-0011-01 的座标 global+unintended_terminal+requirement 与本条待判座标逐字相同。④ 祖先排除论证亦同源（VU 侧逐字「作者源 :8 的 ClampingState 是顶层状态，没有任何复合态包住它」）。⭐ 与 INS-0001-01 虽同一份字节相同的制品，但按本组规则不跨 pair 合并，各自并入本 pair 的 VU。"
+  },
+  {
+   "issue_id": "INS-0011-02",
+   "pair": "0011",
+   "group": "nl_0001",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "同 INS-0001-02 的判法。① VU-0011-01 主体是 ClampingState（逐字「没有任何以它为源的迁移，它是一个死端」），非 ClampingLoseState。② DIFF-0011-03 主体虽为松夹态（生成侧逐字「OperationalState --> ClampingLoseState : Transition to Clamping Lose State」），但性质是多余：判定者理由逐字「松钳状态在 NL 三句话中从未出现，但存在于参考模型」，座标 element+state+extraneous；INS-0011-02 主张的是「ClampingLoseState（松夹态）由 OperationalState 在第 14 行引入后没有任何出边，成为吸收态」。删 vs 补，方向相反，不并。③ UM-0011 主张的是缺具名事件 Entering_Braking_State（逐字「event_declared 对 Entering_Braking_State 返回 False」），无关。④ 台账 0 条。"
+  },
+  {
+   "issue_id": "INS-0011-03",
+   "pair": "0011",
+   "group": "nl_0001",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "① 台账 0 条（0011.md:92 逐字「本 pair 台账 0 条。」）。② pair 0011 四条候选无一涉终止边：VU-0011-01（ClampingState 死端）、DIFF-0011-03（松钳态多余）、DIFF-0011-04（逐字「两个不同 LLM 的 Phase-II 制品逐字节相同」，不可映射）、UM-0011（trigger missing）。③ 本条主张整图无终止边——证据逐字「全文唯一 `[*]` 在 :2 `[*] --> InitialState`」，主体是 {BrakingState, InitialState, OperationalState} 环，与 VU-0011-01 的 ClampingState 不交，性质亦异（nontermination vs unintended_terminal）。判不重合。"
+  },
+  {
+   "issue_id": "INS-0011-04",
+   "pair": "0011",
+   "group": "nl_0001",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "① 台账 0 条。② 四条候选（VU-0011-01 / DIFF-0011-03 / DIFF-0011-04 / UM-0011）无一主张存在环；最接近的 VU-0011-01 恰恰主张的是**出不去**（逐字「没有任何以它为源的迁移」）而非**绕回来**。③ 本条主张非平凡强连通分量 {BrakingState, InitialState, OperationalState} 的存在，并自陈「NL 第 2 句 `Once the signal feedback is sent, it returns to the initial state.` 显式要求这个回路」。无同主体同性质对象，判不重合。"
+  },
+  {
+   "issue_id": "INS-0021-01",
+   "pair": "0021",
+   "group": "nl_0001",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "① 台账 0 条（0021.md:91 逐字「本 pair 台账 0 条。」）。② pair 0021 仅两条候选，性质均不同：DIFF-0021-00 主张多余边，理由逐字「作者凭空新增了 Clamping Released 事件与一条回到 BrakingState 的边，属无 NL 依据的过度指定」，座标 element+transition+extraneous；DIFF-0021-01 不可映射，理由逐字「这不是相对 NL 的缺失，而是参考模型自身越出 NL」，指认处所全在参考侧。③ 本条主张整图缺终止边（证据逐字「全文唯一 `[*]` 在 :2 `[*] --> InitialState`」），且自陈「本 pair **没有吸收态**——ClampingState 有出边（第 14 行 `Clamping Released` 回 BrakingState）」——它引的正是 DIFF-0021-00 说的那一行，但一个说这条边多余、一个说全图仍不终止，性质不同且承重方向相反。④ 旁证：§3.4 簇 `0021-5` 已逐字裁过「但它不是死端——经 :14 离开后可由 :12 回到 InitialState」，说明本 pair 的终止问题在既有材料里从未被主张过。判不重合。"
+  },
+  {
+   "issue_id": "INS-0021-02",
+   "pair": "0021",
+   "group": "nl_0001",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "① 台账 0 条。② 两条候选主体与性质均不同：DIFF-0021-00 指的是单条边多余（逐字「一条回到 BrakingState 的边」），DIFF-0021-01 指的是参考侧的 Brake_Caliper_Relaxed_State。③ 本条主张的是四态强连通分量 {BrakingState, ClampingState, InitialState, OperationalState} 的**存在本身**，并自陈「第 14 行的 `Clamping Released` 又把夹紧态送回制动态，这个环正是反应式控制器应有的形态」。注意：DIFF-0021-00 若被采纳（删掉 :14），这个环会缩小——但那是后果，不是同一条主张。判不重合。"
+  },
+  {
+   "issue_id": "INS-0031-01",
+   "pair": "0031",
+   "group": "nl_0001",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "① 台账 0 条（0031.md:91）。② pair 0031 三条候选性质均不同：DIFF-0031-00 逐字「作者新增了一条从 ClampingState 回到 InitialState 的边，属无 NL 依据的过度指定」（transition extraneous）；DIFF-0031-01 主张制品来源，逐字「该标签文本 'Transition Missing Feedback' 读起来不像事件名，而像一句评审批注」（不可映射）；DIFF-0031-02 主张参考侧多余，逐字「这两个只存在于参考、NL 从未提及的元素」。③ 本条主张整图缺终止边（证据逐字「全文唯一 `[*]` 在 :2 `[*] --> InitialState`」），无任何候选与之同性质。判不重合。"
+  },
+  {
+   "issue_id": "INS-0031-02",
+   "pair": "0031",
+   "group": "nl_0001",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "① 台账 0 条。② 三条候选无一主张环的存在。③ 本条主张四态强连通分量 {BrakingState, ClampingState, InitialState, OperationalState}，主体是整个环。④ ⚠️ 唯一需要排除的近邻：INS 自己在陈述里提了「第 14 行的事件名 `Transition Missing Feedback` 本身可疑」，这一处确与 DIFF-0031-01（逐字「像一句评审批注」）撞主体；但 INS 同句已逐字声明「那是另一类问题、不在本条诊断的主张范围内」，本条断言的性质是 SCC 存在性，与 DIFF-0031-01 的 provenance 主张不同。判不重合。"
+  },
+  {
+   "issue_id": "INS-0041-01",
+   "pair": "0041",
+   "group": "nl_0001",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "① 台账 0 条（0041.md:92）。② pair 0041 三条候选性质均不同：DIFF-0041-00 逐字「这是无 NL 依据的新增事件与新增边」（指 :11 `ClampingState --> BrakingState : Brake Signal Maintained`，transition extraneous）；DIFF-0041-01 逐字「NL 同样没有 'brake signal released' 事件，也没有钳夹态返回初态的描述」（指 :12，transition extraneous）；DIFF-0041-02 不可映射，指认参考侧两个元素。③ 本条主张整图缺终止边（证据逐字「全文唯一 `[*]` 在 :2 `[*] --> InitialState`」），且自陈「本 pair 无吸收态（ClampingState 有两条出边，第 11、12 行）」——它引的正是那两条被候选判为多余的边，但性质相反（候选说这两条边不该有，本条说即便有了整图仍不终止）。判不重合。"
+  },
+  {
+   "issue_id": "INS-0041-02",
+   "pair": "0041",
+   "group": "nl_0001",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "① 台账 0 条。② 三条候选无一主张环的存在；DIFF-0041-00 的判定说明里虽逐字提到「reason 提到它与 `BrakingState --> ClampingState` 构成二元循环」，但同句立刻声明「那是后果不是第二处缺陷，未据此改 locus」——即候选侧明确**没有**把环立为一条主张，不构成可并对象。③ 本条主张的是四态强连通分量 {BrakingState, ClampingState, InitialState, OperationalState} 的存在，主体范围也大于那个二元循环。判不重合。"
+  },
+  {
+   "issue_id": "INS-0051-01",
+   "pair": "0051",
+   "group": "nl_0001",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "① 台账 0 条（0051.md:93）。② pair 0051 两条候选性质均不同：DIFF-0051-00 逐字「这是无 NL 依据的新增事件与新增边，属过度指定。」（指 :15 `ClampingState --> InitialState : Braking Complete`，transition extraneous）；DIFF-0051-01 逐字「指向这两个只存在于参考、NL 从未提及的元素」（state missing，reference=other）。③ 本条主张整图缺终止边（证据逐字「全文唯一 `[*]` 在 :3 `[*] --> InitialState`」，并已声明本 pair 行号 +1 位移），且自陈「本 pair 无吸收态（ClampingState 有出边，第 15 行 `Braking Complete` 回 InitialState）」——与 DIFF-0051-00 引同一行但主张相反。判不重合。"
+  },
+  {
+   "issue_id": "INS-0051-02",
+   "pair": "0051",
+   "group": "nl_0001",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "① 台账 0 条。② 两条候选（DIFF-0051-00 transition extraneous、DIFF-0051-01 state missing）无一主张环的存在。③ 本条主张四态强连通分量 {BrakingState, ClampingState, InitialState, OperationalState}，并自陈「第 15 行 `ClampingState --> InitialState : Braking Complete` 把夹紧态送回初始态，与 NL 第 2 句『反馈发出后回到初始态』的循环语义一致」。无同主体同性质对象，判不重合。"
+  },
+  {
+   "issue_id": "INS-0002-01",
+   "pair": "0002",
+   "group": "nl_0002",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0002-02",
+   "overlap": "ledger:EIS-0002-02",
+   "basis": "同 pair + 同主体（PumpState 不可达）+ 同性质（unreachable）。INS 逐字：「复合态 `PumpState` 整枝进不去。PumpControl 的并发区 0 …… 唯一的默认入口边指向 `InitialState`；而全文 8 条迁移的目标里没有任何一条是 `PumpState`」，证据首条 stm0.puml:5 `    [*] --> InitialState`。EIS-0002-02 statement 逐字：「FCSTM 投影确认 PumpControl 体内只有一条 [*] -> InitialState，而 InitialState 没有任何出边。结果是 NL 2 点名的三个子态 PumpState、WaterState、MethaneState 全部不可达」，其 primary 断言逐字为 `reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0002.PumpControl.PumpState\", within_cycles=3)`，measured=False。工作单给 EIS-0002-02 的三轴映射逐字为 `defect_locus`=`global`、`defect_logic_kind`=`unreachable`、`defect_reference`=`language`，与 INS-0002-01 的座标（global + unreachable / language）逐格相同。INS 多出的下游后果（RunningState 不可达、两个事件无消费源）是同一缺失入边的推论，非新主体。"
+  },
+  {
+   "issue_id": "INS-0002-02",
+   "pair": "0002",
+   "group": "nl_0002",
+   "overlap_kind": "suspect",
+   "overlap_target": "EIS-0002-02",
+   "overlap": "suspect:EIS-0002-02",
+   "basis": "⚠️ 台账正文已含该事实句、但明确未以它为主张，故拿不准。INS 逐字：「`InitialState` 是死端：它由 stm0.puml:5 的默认入口边隐式声明，全文再无以它为源的迁移」，性质 unintended_terminal。EIS-0002-02 statement 逐字含「PumpControl 唯一能到达的状态是一个死端」——同一元素、同一事实逐字出现在台账里；但该条的 primary 断言是 `reaches(...PumpControl.PumpState...)`，且工作单对它的判定说明逐字写「另可拆出第二条 unintended_terminal（InitialState 无出边），本记录未以此为主张。」另一候选归属 EIS-0002-03 主体虽同为 InitialState（逐字「InitialState 既不在 NL 中也不在参考中，属过度规定」），但性质是 extraneous，不是 unintended_terminal。按「同性质」判据不成立、按「台账文内已写」又疑似，故按新建处理并请判读者确认是否并入 EIS-0002-02。"
+  },
+  {
+   "issue_id": "INS-0002-03",
+   "pair": "0002",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "性质在台账与候选中均无对应。INS 逐字：「复合态 `PumpState` 的唯一默认入口边挂了触发事件 `Activate Pump`，因此它没有无条件默认入口」，锚在 stm0.puml:8 `        [*] --> RunningState : Activate Pump`，参照物 language（UML 2.5.1 初始伪状态出边不得带 trigger/guard）。台账三条无一涉此：EIS-0002-01 逐字「生成侧把 PumpControl 的初始边指向了一个 NL 中不存在的 InitialState」——那是 :5 那条 PumpControl 层的边、性质是目标错（工作单映射逐字 `defect_qualifier`=`incorrect`）；EIS-0002-02 是可达性；EIS-0002-03 是「属过度规定」。⚠️ 近似对象：候选 DIFF-0002-03 逐字「自造四个事件 Activate Pump / Deactivate Pump / Start Monitoring / Stop Monitoring，并各带一条到区域终态的边」覆盖同一批行（含 :8），但它主张这些边与事件「全属发明」应删（映射逐字「轴 C = requirement」），而本条主张的是「必须补一条无条件 `[*] -->`」，修法方向相反、参照物不同，非同一缺陷性质。"
+  },
+  {
+   "issue_id": "INS-0002-04",
+   "pair": "0002",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "同 INS-0002-03 的判据，主体换成 WaterState。INS 逐字：「复合态 `WaterState` 的唯一默认入口边挂了触发事件 `Start Monitoring`」，锚 stm0.puml:15 `        [*] --> MonitoringWaterFlow : Start Monitoring`。台账三条（EIS-0002-01「初始边指向了一个 NL 中不存在的 InitialState」、EIS-0002-02「全部不可达」、EIS-0002-03「属过度规定」）无一主张「初始伪状态出边带触发」。候选侧 DIFF-0002-03 的逐字主张是「自造四个事件 …… 并各带一条到区域终态的边」（extraneous / requirement），DIFF-0002-05 自陈「究竟是并发区还是顺序子态在 NL 中是欠定的」（非缺陷主张），UM-0002 映射逐字为「element/state/extraneous/requirement」与「element/effect/missing/requirement」两格，均非本性质。"
+  },
+  {
+   "issue_id": "INS-0002-05",
+   "pair": "0002",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "同上，主体换成 MethaneState。INS 逐字：「复合态 `MethaneState` 的唯一默认入口边挂了触发事件 `Start Monitoring`」，锚 stm0.puml:22 `        [*] --> MonitoringMethaneFlow : Start Monitoring`。台账 EIS-0002-01/02/03 逐字分别为「初始边指向了一个 NL 中不存在的 InitialState」「三个子态 …… 全部不可达」「属过度规定，并直接违反这条枚举式基数断言」，无一为「初始边带触发」；候选 DIFF-0002-03 / DIFF-0002-05 / UM-0002 亦无。"
+  },
+  {
+   "issue_id": "INS-0002-06",
+   "pair": "0002",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "本 pair 台账与候选均无任何终止义务类主张。INS 逐字：「拓扑不强制所有从根可达的执行最终到达根终止态，反例路径就是 `PumpControl.InitialState` 这一个状态」，座标 global + nontermination / requirement。台账 EIS-0002-02 的 `direction` 字段逐字为 `reachability`、primary 为 `reaches(...)`，是「到不到得了」而非「会不会终止」；EIS-0002-01 `direction`=`entry`、EIS-0002-03 `direction`=`cardinality`。候选 DIFF-0002-03（extraneous）、DIFF-0002-05（自陈「此处无法判定，故标 uncertain」）、UM-0002（两格分别为 state/extraneous 与 effect/missing）均不涉终止。与 INS-0002-02 虽同以 InitialState 为反例元素，但那是 INS 集合内部关系，不属本步比对对象。"
+  },
+  {
+   "issue_id": "INS-0013-01",
+   "pair": "0013",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "⚠️ 与候选共用同一批物理行但性质不同。INS 逐字：「`PumpState`/`WaterState`/`MethaneState` 三态在守卫无关的叶层拓扑图上构成一个非平凡强连通分量 …… 且该区内没有任何 `--> [*]`」，证据 stm0.puml:12/13/15/16/18/19。本 pair 台账仅 EIS-0013-01 一条，逐字为「NL 2 是显式枚举式数量断言 …… FCSTM 投影确认 PumpControl 体内共七个具名状态。无论按「直接子态」还是「后代状态」读法，七个 ≠ 三个」，primary 为 `cardinality(scope=\"llms_emp_feedback_final_0013.PumpControl\", count=3)` —— 基数/层次，与环无关。候选 DIFF-0013-02 的判定说明逐字列出「（:12 :13 :15 :16 :18 :19 :26 :28 :35 :37）」，正是本条与 INS-0013-02/03 引用的全部边，但其主张逐字为「NL06 全文没有命名任何触发事件，也没有描述 PumpState / WaterState / MethaneState 之间的任何迁移」，映射为 element/transition/extraneous/requirement——「这些边不该存在」；本条主张「这些边构成无出口的环」，性质不同。DIFF-0013-01 逐字「PumpControl 的默认进入点不唯一」= pair/nondeterminism，亦不同。"
+  },
+  {
+   "issue_id": "INS-0013-02",
+   "pair": "0013",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "同上判据，主体是第三个并发区的 PumpStateB ⇄ MethaneStateB。INS 逐字：「`PumpStateB` 与 `MethaneStateB` 两态在第三个并发区内构成一个非平凡强连通分量：两条迁移把它们连成一个双态环，区内没有 `--> [*]`」，证据 stm0.puml:35 与 :37。台账 EIS-0013-01 主张的是「七个 ≠ 三个」这一基数断言，`element_of_M` 逐字为 `S`；候选 DIFF-0013-02 覆盖 :35 :37 但主张其为凭空发明（extraneous / requirement），DIFF-0013-01 主张默认进入点不唯一（nondeterminism），UM-0013 三格逐字为 transition/extraneous、trigger/extraneous、effect/missing。无一为「环无出口」。"
+  },
+  {
+   "issue_id": "INS-0013-03",
+   "pair": "0013",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "同上判据，主体是第二个并发区的 PumpStateA ⇄ WaterStateA。INS 逐字：「`PumpStateA` 与 `WaterStateA` 两态在第二个并发区内构成一个非平凡强连通分量」，证据 stm0.puml:26 `PumpStateA --> WaterStateA : Water Flow Detected` 与 :28 `WaterStateA --> PumpStateA : Water Flow Controlled`。台账 EIS-0013-01 是基数断言；候选 DIFF-0013-02 的行清单含 :26 :28 但主张 extraneous。性质不同，判 none。"
+  },
+  {
+   "issue_id": "INS-0013-04",
+   "pair": "0013",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "本 pair 台账与候选均无终止义务类主张。INS 逐字：「拓扑不强制所有从根可达的执行最终到达根终止态；给出的反例路径是 `{MethaneState, PumpState, WaterState}`。作者源全文确实没有任何 `--> [*]`」。台账仅 EIS-0013-01（`direction` 逐字 `hierarchy`、primary `cardinality(...)`）。候选 DIFF-0013-01（nondeterminism）、DIFF-0013-02（transition/extraneous）、DIFF-0013-04（自陈「三个主子态是并发还是顺序在 NL 中欠定」，blocker=not_a_defect_claim）、UM-0013（transition/extraneous、trigger/extraneous、effect/missing 三格）均不涉终止。"
+  },
+  {
+   "issue_id": "INS-0023-01",
+   "pair": "0023",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "本 pair 台账 0 条（expected_issue_set.json 中 pair==\"0023\" 的记录数为 0），故不可能与台账重合。INS 逐字：「`PumpState` 是死端：它由 stm0.puml:4 的默认入口边引入，全文没有任何以它为源的迁移」。候选侧：DIFF-0023-03 自陈「因此零事件不可归因于 LLM，而是 NL/参考共同的性质」（blocker=not_a_defect_claim）；DIFF-0023-04 映射逐字为 element/`region`/missing/other；UM-0023 的映射说明逐字举「v46 第 7 组『无法从 PumpState 到达 MethaneState』（指不出单独一处、要看整张图的可达性）= global + logic_kind=unreachable + requirement」与「v46 第 3 组『PumpState 缺少 during 阶段动作声明』= element/effect/missing/requirement」——前者是「到不了某子态」（unreachable），本条是「出不去」（unintended_terminal），性质不同。⚠️ 提示判读者：工作单 §3.4 备查簇 v46 `0023-2` 的事实行逐字含「制品中 PumpState 没有任何出边（PumpControl 内只有三条 [*] -> 子态 的初始迁移）」，与本条事实同源，但 §3.4 明写「它们**不是**候选」，且该簇裁定为 `OUT_OF_SCOPE` / `OOS-FLATTEN`。"
+  },
+  {
+   "issue_id": "INS-0023-02",
+   "pair": "0023",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "同上，主体 WaterState，且本 pair 台账 0 条。INS 逐字：「`WaterState` 是死端：由 stm0.puml:6 的默认入口边引入，全文没有任何以它为源的迁移（:10 的 `WaterState: Water Flow Monitored` 是状态体文字）」。候选两条 DIFF 分别为 not_a_defect_claim（「零事件不可归因于 LLM」）与 region/missing（「参考把三个主子态写成三个正交并发区，三者同时活跃」），UM-0023 登记的是可达性与 during 动作两类。均非 unintended_terminal。"
+  },
+  {
+   "issue_id": "INS-0023-03",
+   "pair": "0023",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "同上，主体 MethaneState，本 pair 台账 0 条。INS 逐字：「`MethaneState` 是死端：由 stm0.puml:8 的默认入口边引入，全文没有任何以它为源的迁移」。⚠️ 需与 UM-0023 桶内「PumpControl 无法在限定步数内到达 MethaneState」区分：那一组逐字讲的是「检查未找到系统在 3 个周期内从 PumpControl 到达 MethaneState 的运行见证」，即进不去；本条讲的是进去后没有出边，方向相反，非同一性质。"
+  },
+  {
+   "issue_id": "INS-0023-04",
+   "pair": "0023",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "本 pair 台账 0 条，候选无终止类主张。INS 逐字：「拓扑不强制所有从根可达的执行最终到达根终止态，反例路径为 `[...PumpControl.MethaneState]`」。DIFF-0023-03 主张「零事件不可归因于 LLM」，DIFF-0023-04 主张「参考把三个主子态写成三个正交并发区」，UM-0023 十组均落 unreachable 或 effect/missing 两类。无一为 nontermination。"
+  },
+  {
+   "issue_id": "INS-0033-01",
+   "pair": "0033",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "⚠️ 与候选共用同一物理标签、修法也都落在删 `begin`，但判定依据与性质不同，且台账两条都指别处。INS 逐字：「整个模型没有无条件默认入口：顶层唯一的初始边 `[*] -down-> PumpControl : begin` 挂了触发事件 `begin`」，并逐字排除了块内三条（「:8 `[*] --> PumpState`、:13 `[*] --> WaterState`、:18 `[*] --> MethaneState` 三条都在 `state PumpControl {}` 块内，不是顶层」），参照物 language。台账 EIS-0033-02 逐字：「生成侧的三条初始边目标全部越出了 PumpControl 的子作用域，投影因此把它们替换成三个 Invalid 标记 …… 同时三条初始边并存本身也使默认进入点不唯一」——主体是 :8/:13/:18 那三条块内边、性质是目标越界与入口不唯一，不是 :2 那条顶层边；EIS-0033-01 逐字「生成侧把三者声明成了 PumpControl 的兄弟而非子态」，primary 为 `containment(...)`。候选侧近似对象：UM-0033 映射说明逐字「X1 第 1 组『顶层初始转移的标签 “begin” 在规范中未出现』= element/trigger/extraneous/requirement（删掉这个 NL 没要求的事件名，事件条数变少）」——同一处 :2 的 `begin`，但判定依据是「NL 里没有」（requirement），本条是「初始伪状态出边不得带 trigger」（language），且该簇已被另一轮判定者判 `NO_NL_BASIS`；UM 又是整张表的登记单位，不构成可并入的单条。请判读者交叉核对。"
+  },
+  {
+   "issue_id": "INS-0043-01",
+   "pair": "0043",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "⚠️ 与候选共用同一四条边但性质不同。INS 逐字：「`Region1` 内的 `PumpState`/`WaterState`/`MethaneState` 三态在守卫无关的叶层拓扑图上构成非平凡强连通分量，四条迁移把它们连成互达环」，证据 stm0.puml:7/8/9/10。台账 EIS-0043-01 逐字「生成侧的顶层分解只有两个成员，且其中一个（Region2）承载的是 NL 里根本不存在的 Idle/Active」，primary `containment(parent=\"llms_emp_feedback_final_0043.PumpControl\", child=\"...PumpState\")`；EIS-0043-02 逐字「生成侧在 PumpControl 层级没有任何默认进入点 …… PumpState 不可达」，primary `initial_target(...)`（另注：该条 `boundary_ruling` 逐字为 `out_of_scope`，已剔出能力分母）。二者均非 SCC。候选 DIFF-0043-03 判定说明逐字「element=transition：多余的是整条边（作者源 :7-:10 Region1 内 PumpState <-> WaterState / MethaneState 四条）」——同四条边，但主张「这四个事件与四条边全属发明」= extraneous / requirement，与「环无出口」不同性质。UM-0043 逐字为 element/`guard`/extraneous/requirement，亦不同。"
+  },
+  {
+   "issue_id": "INS-0043-02",
+   "pair": "0043",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "⚠️ 与候选共用同一块文本但性质不同。INS 逐字：「`Region2` 内的 `Idle` 与 `Active` 两态构成非平凡强连通分量：两条迁移把激活与去激活连成一个双态环，区内没有 `--> [*]`」，证据 stm0.puml:13-:16。候选 DIFF-0043-02 生成侧描述逐字「整个 Region2 区域，含 Idle、Active 两个状态与事件 [Activation Signal] / [Deactivation Signal] 及两条互切边」，判定者理由逐字「这是一整个凭空发明的并发区，属最典型的过度规定」，映射 element/other/extraneous/requirement——主张的是整块该删，非「这两态构成无出口的环」。台账 EIS-0043-01 逐字提及 Idle/Active（「其中一个（Region2）承载的是 NL 里根本不存在的 Idle/Active」）但其 primary 是 `containment(...)`、性质为分解成员被替换，同样不是环。性质不同，判 none。"
+  },
+  {
+   "issue_id": "INS-0053-01",
+   "pair": "0053",
+   "group": "nl_0002",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0053-01",
+   "overlap": "ledger:EIS-0053-01",
+   "basis": "同 pair + 同主体（PumpControl 本层缺进入路径 → 三个 wrapper 及其子态不可达）+ 同性质（unreachable）。INS 逐字：「`PumpControl` 声明了三个子区 `PumpRegion`/`WaterRegion`/`MethaneRegion`，却**没有给出任何进入它们的路径**：该复合态体内没有 `--` 分隔符 …… 本层没有 `[*] -->` 默认入口边，全文也没有任何迁移以这三个子区为目标 …… 于是三个子区全部进不去，其内部各自的 `PumpState`/`WaterState`/`MethaneState` 三态同为不可达」。EIS-0053-01 statement 逐字：「生成侧的三条初始边都写在各自的 wrapper 内部，PumpControl 这一层没有默认进入点，投影因此注入 UnspecifiedInitial——进入 PumpControl 后三个 wrapper 一个都不会被进入，PumpState 不可达」，primary 断言逐字 `initial_target(composite=\"llms_emp_feedback_final_0053.PumpControl\", child=\"llms_emp_feedback_final_0053.PumpControl.PumpRegion\")`，measured=False，`direction` 字段逐字 `reachability`。两侧对 `UnspecifiedInitial` 的处理也一致（INS 逐字「它是这处缺失的产物而不是成因」）。另：候选 DIFF-0053-01 的界内残余被映射为同一格（判定说明逐字「界内残余是三个具名子态互不可达 …… 落 global + unreachable」），故本条同时与该候选重合，按台账优先并入 EIS-0053-01。"
+  },
+  {
+   "issue_id": "INS-0053-02",
+   "pair": "0053",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "性质与台账唯一那条不同。INS 逐字：「`PumpState` 没有任何出边，且其各级祖先（`PumpRegion` :6-:9、`PumpControl` :5-:20、根层）也都没有出边或成组迁移」，座标 unintended_terminal。台账本 pair 仅 EIS-0053-01，逐字主张「PumpControl 这一层没有默认进入点 …… PumpState 不可达」，primary `initial_target(...)`，`direction`=`reachability`——讲的是进不去，全文未出现「无出边 / 死端」字样。候选 DIFF-0053-01 判定说明逐字「界内残余是三个具名子态互不可达：作者源 :6-19 三个 wrapper 之间零迁移」，登记性质同样是 unreachable。⚠️ 提示判读者：本条与 INS-0053-01 同源于「零迁移」这一片结构空缺，INS 自陈「两条并存不矛盾（死端判定不要求可达），但也**不宜当作两个彼此独立的设计缺陷计数**」；若判读者决定按「同一片空缺只记一条」处理，则本条应并入 EIS-0053-01，但按性质判据现判不重合。"
+  },
+  {
+   "issue_id": "INS-0053-03",
+   "pair": "0053",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "同上，主体 WaterState。INS 逐字：「`WaterState` 没有任何出边，其祖先 `WaterRegion`(:11-:14)、`PumpControl`、根层也都没有出边或成组迁移，故进入后永远离不开」。台账 EIS-0053-01 逐字只主张「三个 wrapper 一个都不会被进入，PumpState 不可达」（unreachable），候选 DIFF-0053-01 同为 unreachable，DIFF-0053-04 自陈「因此不可归因于 LLM」（not_a_defect_claim），DIFF-0053-05 自陈「三个主子态是并发还是顺序在 NL 中欠定」（not_a_defect_claim），UM-0053 两格逐字为「global/—/—/unreachable/requirement」与「element/effect/missing/requirement」。无一为 unintended_terminal。"
+  },
+  {
+   "issue_id": "INS-0053-04",
+   "pair": "0053",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "同上，主体 MethaneState。INS 逐字：「`MethaneState` 没有任何出边，其祖先 `MethaneRegion`(:16-:19)、`PumpControl`、根层也都没有出边或成组迁移」。台账 EIS-0053-01 的 primary 是 `initial_target(composite=\"...PumpControl\", child=\"...PumpControl.PumpRegion\")`，主体是 PumpRegion 的进入、性质是 unreachable；UM-0053 映射说明逐字「第 1、2 组『无法在有限步内从 PumpControl 到达 MethaneState』= global/—/—/unreachable/requirement」——同样是进不去而非出不来。性质不同，判 none。"
+  },
+  {
+   "issue_id": "INS-0003-01",
+   "pair": "0003",
+   "group": "nl_0003",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "台账侧：工作单 0003.md §2 逐字「**本 pair 台账 0 条。**」，`expected_issue_set.json` 中亦无任何 pair=\"0003\" 记录。候选侧仅两条：DIFF-0003-07 逐字「参考侧：Off --> [*]: keyOff 与 Operate --> Off: shutOff」「生成侧：—」，其承重主张逐字为「另造一个 NL 中不存在的 shutOff 承担 Operate 关机」——对象是参考模型、主体是事件名；UM-0003 桶四组逐字为「模型未声明 NL 命名的 power_on 事件，也未提供由其触发进入 Operate 的入口边」「缺少泛称 user_actions 事件声明」「模型未声明与 NL-L001 \"powered on\" 对应的事件」「模型未声明表示 powered on 的事件（power_on）」。本条主体是 :6–:8 内环与 :11/:12 外环构成的 SCC 及「全文唯一的终止边 L13 `PoweredOff --> [*] : end` 只是可选分支」，主体元素与缺陷性质与上述任何一条都不同。⚠️ 唯一形状相邻的是备查（非候选）§3.4 簇 `0003-3` 逐字「`PoweredOff --> [*] : end` 引入了 NL 从未提及的 end 信号与终止行为」——方向相反（它嫌终止边多余，本条说终止不被强制），不构成重合。"
+  },
+  {
+   "issue_id": "INS-0012-01",
+   "pair": "0012",
+   "group": "nl_0003",
+   "overlap_kind": "suspect",
+   "overlap_target": "EIS-0012-01",
+   "overlap": "suspect:EIS-0012-01",
+   "basis": "台账 EIS-0012-01 statement 逐字已含 Terminate 的汇态事实：「任何没有 start 事件的周期都会不可逆地落入 Terminate 汇态」；但其登记主体与缺陷性质是迁移触发器——生成侧逐字「Off --> Terminate（无触发）」、参考侧逐字「Off --> [*]: keyOff（有触发的终止边）」，工作单我方映射逐字为「`defect_element` | `trigger`（触发事件）」「`defect_qualifier` | `missing`（缺失）」，判定说明逐字「最终主张收敛为『Off 不可驻留』」。本条主体是**状态 Terminate 本身**，逐字主张「PlantUML 的 `X : text` 是描述行，不会把 X 变成 final」「进入 Terminate 即真死锁」，性质是 unintended_terminal。主体元素（状态 vs 迁移触发器）与缺陷性质（假终态/死锁 vs 缺触发导致不可驻留）均不同，但事实面高度交叠（同一个 Terminate、同一条 :11）。另：0012.md §3.2b 备查 diff #2 逐字「Terminate 是普通状态加一行描述文字 final，不是 PlantUML 终态；作为汇态与终态语义近似，NL 也未要求终止，故不单独计问题」——前轮曾就本条主体做过「不单独计问题」的裁定，但该项是备查、不在候选集（candidate_mapping.json 无对应 id）。按代价不对称，按新建处理并请判读者确认是否并入 EIS-0012-01。"
+  },
+  {
+   "issue_id": "INS-0012-02",
+   "pair": "0012",
+   "group": "nl_0003",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0012-01",
+   "overlap": "ledger:EIS-0012-01",
+   "basis": "逐字对拍完全同一处：台账 EIS-0012-01 statement 首句「Off 出边中存在一条无触发迁移，使 Off 不再是稳定等待态」，生成侧「Off --> Terminate（无触发）」；本条「L11 `Off --> Terminate` 是全文件唯一一条既无事件也无守卫的**普通**迁移」。缺陷性质亦同：台账「NL 第 1、2 句要求的 start→Operate 只有在上电后第一个周期立刻给出 start 才成立」，本条收敛版「上电后 start 与坠向 Terminate 构成竞态」。座标同格：工作单给 EIS-0012-01 的映射逐字为 trigger + missing + requirement，本条座标 element / trigger + missing / requirement。同 pair、同一行 :11、同一缺陷性质，判重合。"
+  },
+  {
+   "issue_id": "INS-0012-03",
+   "pair": "0012",
+   "group": "nl_0003",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "本 pair 台账只有 EIS-0012-01 一条，其 statement 全文（已逐字读完）只主张 :11 缺触发导致「Off 不可驻留」，没有任何一句主张「全模型无根终止点」或「Off↔Operate 构成陷阱环」；参考侧「Off --> [*]: keyOff（有触发的终止边）」只是对照物，不是它登记的缺陷。本条主体是 :3 `Off --> Operate : start` 与 :10 `Operate --> Off : keyOff` 组成的外环加 :6–:8 内环，承重事实是「全文 `grep -c -- '--> [*]'` = 0」，性质是 global/nontermination。候选侧 UM-0012 三组逐字为「根状态上电初始入口不是 Operate」「缺少聚合 user actions 事件声明」「缺少规范中隐含的其它切换」，无一涉及终止。⚠️ 相邻但不构成重合的是备查项 §3.2b diff #2 末句逐字「这意味着论文『missing final state / resolved=1.0』的修补实际并未产生终态」——它不在候选集内，且其登记结论是「不单独计问题」。"
+  },
+  {
+   "issue_id": "INS-0012-04",
+   "pair": "0012",
+   "group": "nl_0003",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "台账 EIS-0012-01 逐字只谈 :11 的无触发迁移与 Off 不可驻留，未提「非平凡 SCC」或「拓扑不强制终止」；候选 UM-0012 三组逐字（「根状态上电初始入口不是 Operate」「缺少聚合 user actions 事件声明」「缺少规范中隐含的其它切换」）亦无一条涉及环结构或终止强制性。本条主体是 :3/:10 外环与 :6–:8 内环构成的 SCC，性质 global/nontermination（SCC 侧落 other）。台账与候选两侧对该族零覆盖。"
+  },
+  {
+   "issue_id": "INS-0022-01",
+   "pair": "0022",
+   "group": "nl_0003",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "台账侧：工作单 0022.md §2 逐字「**本 pair 台账 0 条。**」。候选侧只有 VU-0022-01，其主张逐字为「keyOff 被建模为迁到顶层终态，关机后再也无法用 start 重新开启，start/keyOff 不再是可复用的开关」，复核事实逐字「stm0.puml:13 逐字 `Operate --> [*] : keyOff`——目标是顶层终态」，座标 element/transition/incorrect——主体是 :13 的**目标态写错**。本条主体是 {Operate.Idle, Operate.AcceleratingOrCruising, Operate.Braking} 三子态由 :6–:11 构成的非平凡 SCC，主张逐字「三子态之间可以无限往复而永不走它」。两者虽都引到 :13，但读法方向相反：VU 嫌 keyOff 终止得太死（该改成回 PoweredOn），本条嫌终止不被强制（环可绕过 :13）。主体元素与缺陷性质均不同，判不重合。"
+  },
+  {
+   "issue_id": "INS-0032-01",
+   "pair": "0032",
+   "group": "nl_0003",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0032-01",
+   "overlap": "ledger:EIS-0032-01",
+   "basis": "台账 EIS-0032-01 statement 逐字「三个 Region 都是复合态却没有初始伪态，进入任一 Region 的默认子态未定义」，生成侧逐字列出「state IdleRegion { IdleState }、state AccelerateRegion { AcceleratingState CruisingState }、state BrakeRegion { BrakingState } —— 三个复合态均无 [*] 初始伪态」。IdleRegion 内唯一子态即 IdleState，故「进入任一 Region 的默认子态未定义」在 IdleRegion 上就等于本条逐字所说「进入 IdleRegion 之后没有任何已定义路径落到 IdleState」；本条的承重事实「三个内层 region 里一条 `[*]` 都没有」与台账首句同义。同 pair、同主体（IdleRegion 的默认入口 / IdleState 的可达性）、同缺陷性质，判重合。⚠️ 请判读者注意登记粒度：台账把三个 Region 合记为一条，本组 INS-0032-01/-02/-03 三条都指向它。"
+  },
+  {
+   "issue_id": "INS-0032-02",
+   "pair": "0032",
+   "group": "nl_0003",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0032-01",
+   "overlap": "ledger:EIS-0032-01",
+   "basis": "台账 EIS-0032-01 statement 第二句逐字点名本条主体：「AcceleratingState 更是全模型无任何入边，NL 第 1 句点名的 Accelerating(or Cruising) 配置根本不可占据」；本条逐字「`grep -n AcceleratingState` 全文只命中 :14 它自己的声明行，没有任何边以它为目标」。同 pair、同一状态 AcceleratingState、同一缺陷性质（无入边→不可达），且双方都用同一阳性对照（台账未把 CruisingState 列入，本条逐字「同 region 内的兄弟 CruisingState 因为被 :24 直接点名而可达」）。判重合。⚠️ 本条附带的引文更正（原材料把 :25 误说成入边，实为出边 `AccelerateRegion --> BrakeRegion : Brake`）应随并入一并带给判读者。"
+  },
+  {
+   "issue_id": "INS-0032-03",
+   "pair": "0032",
+   "group": "nl_0003",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0032-01",
+   "overlap": "ledger:EIS-0032-01",
+   "basis": "台账 EIS-0032-01 生成侧逐字含「state BrakeRegion { BrakingState } —— 三个复合态均无 [*] 初始伪态」，statement 逐字「进入任一 Region 的默认子态未定义」涵盖 BrakeRegion；本条逐字「:18 `state BrakeRegion {` / :19 `BrakingState : Braking` / :20 `}` —— region 内无初始边」「三条全部打在复合态 BrakeRegion 上，没有一条点名 BrakingState」。同 pair、同主体（BrakeRegion 缺默认入口 / BrakingState 不可达）、同缺陷性质，判重合。本条相对台账多出的只是证据密度（点名 :23/:25/:26 三条入 region 的边），不构成新缺陷。"
+  },
+  {
+   "issue_id": "INS-0032-04",
+   "pair": "0032",
+   "group": "nl_0003",
+   "overlap_kind": "candidate",
+   "overlap_target": "UM-0032",
+   "overlap": "candidate:UM-0032",
+   "basis": "候选桶 UM-0032 内 X1 臂第 2 组（簇 `0032-1`）逐字：「从 AccelerateRegion 出发的 `Reach Speed` 迁移目标为 CruisingState，但 CruisingState 位于 AccelerateRegion 内部，这在语义上属于跨越复合状态…」；同簇在 §3.4 的事实栏逐字「AccelerateRegion --> CruisingState : Reach Speed 的源是复合态、目标是其内部子态，属跨层迁移、形式不一致」。本条主张逐字「:24 `AccelerateRegion --> CruisingState : Reach Speed` 是一条从复合态指向**它自己的子态**的迁移」。同 pair、同一行 :24、同一缺陷性质，判与候选重合。另 DIFF-0032-03 的判定者理由末句亦逐字含「该边还是复合态指向自身子态的边」，但其登记主体逐字是「NL 第 1 句把『Accelerating or Cruising』作为一个被点名的状态列出，生成侧拆成两个态」（映射 element/state/other），主体元素不同，故不并到 DIFF-0032-03。⚠️ 两点请判读者确认：(1) UM-0032 的登记单位是整张 16 组表，这一行极易被淹没；(2) X1 侧对该簇的既有裁定是 `NO_NL_BASIS`、理由逐字「这在 UML 中是一条合法迁移（退出复合态后重新进入并直指 CruisingState），并非语[法错误]」，与本条 uncertain 的落点一致但可被推翻。"
+  },
+  {
+   "issue_id": "INS-0032-05",
+   "pair": "0032",
+   "group": "nl_0003",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "本 pair 台账两条，逐字读过：EIS-0032-01 主张「三个 Region 都是复合态却没有初始伪态」，EIS-0032-02 主张「多出的 Region 包装层是 NL 与参考都没有的元素，属过度规约」——都不涉终止。候选侧 DIFF-0032-03 是状态拆分（「一个被点名的状态被拆成两个」）；UM-0032 十六组逐字均为事件声明类（「模型未声明 stopping 动作事件」「缺少通用 `user_actions` 事件声明」等）、根初始目标类（「根初始进入目标不是 Operate」）、层级类（「AcceleratingState 与 CruisingState 未直接位于 OperateState 之下」），无一条主张「全模型无根终止点」或「:4/:30 构成陷阱环」。本条主体（:4 `OffState --> OperateState : start` 与 :30 `OperateState --> OffState : keyOff` 的陷阱环，承重事实「全文 `--> [*]` 命中 0 次」）在两侧均无对应，判不重合。"
+  },
+  {
+   "issue_id": "INS-0032-06",
+   "pair": "0032",
+   "group": "nl_0003",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "同 INS-0032-05 的检索结果：台账两条（区域缺初始伪态 / 多出 Region 包装层）与候选（DIFF-0032-03 状态拆分、UM-0032 十六组事件与层级类）逐字均无「非平凡 SCC」或「拓扑不强制终止」的主张。本条主体是 :4/:30 外环加 :22/:23/:25/:26/:27 的 region 级环，性质 global/nontermination（SCC 侧落 other），两侧零覆盖，判不重合。"
+  },
+  {
+   "issue_id": "INS-0042-01",
+   "pair": "0042",
+   "group": "nl_0003",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0042-01",
+   "overlap": "ledger:EIS-0042-01",
+   "basis": "逐字同一处、同一性质：台账 EIS-0042-01 statement 首句「初始伪态出边带触发。UML 禁止初始伪态出边带事件」，生成侧逐字「[*] --> Off : keyOff」，参考侧「[*] --> Off（无触发）」，工作单映射依据逐字「UML 禁止初始伪态出边带事件」、reference 取 `language`。本条主张「作者给根的初始迁移挂了事件触发：:2 `[*] --> Off : keyOff`」并引「UML 2.5.1 `Pseudostate::outgoing_from_initial` 逐字规定初始伪状态的出边『may have a behavior, but not a trigger or a guard』」，座标 element / transition + missing / language。同 pair、同一行 :2、同一缺陷性质，判重合。⚠️ 本条新增的锐化「:2 的目标是 `Off` 而不是 `Operate`，这相对 NL-L001 是**另一处**偏离」在台账 statement 中无对应文字（台账只说「把 NL 明确赋给关机的 keyOff 误挂到上电边上」），并入时应作为补充证据带上。"
+  },
+  {
+   "issue_id": "INS-0042-02",
+   "pair": "0042",
+   "group": "nl_0003",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "本 pair 台账仅 EIS-0042-01 一条，statement 逐字通篇是初始伪态出边带触发与冷启动路径不可达，未主张「无根终止点」或陷阱环。候选侧 UM-0042 仅两组，逐字为 X1 第 1 组「模型未定义 Idle --> Braking（brake）的迁移」与 v46 第 2 组「根状态首次进入未直接落到 Operate／上电入口未进入 Operate」，均不涉终止。本条主体是 :3 `Off --> Operate : start` 与 :4 `Operate --> Off : keyOff` 的陷阱环、承重事实「全文 `--> [*]` 命中 0 次」，两侧无对应，判不重合。"
+  },
+  {
+   "issue_id": "INS-0042-03",
+   "pair": "0042",
+   "group": "nl_0003",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "同 INS-0042-02 的检索结果：台账 EIS-0042-01（初始边带触发）与 UM-0042 两组（缺 Idle→Braking 边、上电入口未进 Operate）逐字均不含「非平凡 SCC」或「不强制终止」的主张。本条主体是 :3/:4 外环与 :8–:12 内环构成的四态 SCC，两侧零覆盖，判不重合。"
+  },
+  {
+   "issue_id": "INS-0052-01",
+   "pair": "0052",
+   "group": "nl_0003",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "台账侧：工作单 0052.md §2 逐字「**本 pair 台账 0 条。**」，`expected_issue_set.json` 中无 pair=\"0052\" 记录。候选侧仅 UM-0052 一桶三组，逐字为「Operate 入口未指向 Accelerating or Cruising 或 Braking」「NL-L001 中命名的刺激 power_on 未在模型中声明」「模型未声明与 NL『powered on』对应的 power_on 事件」，无一涉及环或终止强制性。本条主体是 :4/:14 外环与 :8–:11 子态环构成的 SCC 及「:15 `Off --> [*] : shutdown` 只是 Off 上的可选分支」。⚠️ 方向相反的相邻材料是备查（非候选）§3.4 簇 `0052-1` 逐字「模型引入了规范未提及的 shutdown 事件与 Off --> [*] 终止迁移」——它嫌这条终止边多余，本条嫌它不被强制走，非同一缺陷，且该项不在候选集内。判不重合。"
+  },
+  {
+   "issue_id": "INS-0004-01",
+   "pair": "0004",
+   "group": "nl_0004",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "pair 0004 台账只有 EIS-0004-01 一条，其主体是 DoorsClosing：statement 逐字『作者把 DoorsClosing 写成复合状态，且其内部初始伪状态指向的正是它自己（PlantUML 名字全局解析），构成初始目标越出子域的畸形结构』，generated_side 逐字『state DoorsClosing {\\n  [*] --> DoorsClosing\\n}』。INS 侧主体是 EmergencyStopping：逐字『作者源里 EmergencyStopping 只有入边（line 30）没有任何出边』。主体元素不同、缺陷性质不同（畸形初始目标 vs 吸收态）。候选侧 DIFF-0004-06 主体是参考模型的拼写，逐字『迁移目标写 EmergencyStopping，动作行写 EmergencyStoping』，与作者源上的出边缺失无关；UM-0004 桶内与 EmergencyStopping 相关的三组（X1 0004-3 逐字『EmergencyStopping 中把「Obstacle Detected」作为 do-activity 发送……应为 entry 动作』、0004-5、0004-6）争的都是动作相位与命名，均不涉及出边。"
+  },
+  {
+   "issue_id": "INS-0004-02",
+   "pair": "0004",
+   "group": "nl_0004",
+   "overlap_kind": "suspect",
+   "overlap_target": "UM-0004",
+   "overlap": "suspect:UM-0004",
+   "basis": "UM-0004 桶（工作单 §3.3a X1 未认领 6 组之一）第 4 组逐字『缺少从 Stopping 状态出发的任何行为定义（无出口迁移或动作），Stopping 只是一个空状态。』，其 §3.4 复核事实逐字『Stopping 是空状态，既无出口迁移也无进入动作，NL 的 Stop/Send Arrived 被放在迁移标签上而非 Stopping 的 entry 上 ‖ 事实成立：stm0.puml:37 逐字为 `state Stopping`，体内为空，全文无以 Stopping 为源的迁移』。INS 侧逐字『Stopping 只被声明为一个空状态（line 37）并只有一条入边（line 29），没有任何出边』。同 pair、同主体元素（Stopping）、「无出口迁移」这一半事实完全同构 → 有重合风险。⚠️ 但不判明确重合的两点：(a) X1 那条的承重点是「Stop, Send Arrived 该挂 Stopping 的 entry 而非迁移标签」，已被裁 `NO_NL_BASIS`，与 INS 的 unintended_terminal 读法不是同一缺陷性质；(b) UM-0004 是整张表一个登记单位（映射文件逐字『UM 一条 = 工作单 §3.3 整张表』、`mappable: false` / `blocker: unit_of_record`），把 INS 并进桶会让这条读法随整桶被一次性处置。故按新建处理，请判读者确认是否与 X1 组 0004-4 合并。"
+  },
+  {
+   "issue_id": "INS-0004-03",
+   "pair": "0004",
+   "group": "nl_0004",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "pair 0004 台账唯一条目 EIS-0004-01 的 direction 为 reachability、主体为 DoorsClosing 的伪初始（generated_side 逐字『state DoorsClosing {\\n  [*] --> DoorsClosing\\n}』），未主张任何终止义务。候选侧：DIFF-0004-06 逐字『迁移目标写 EmergencyStopping，动作行写 EmergencyStoping』、DIFF-0004-07 逐字『它不承载语义，因此作者模型没有它不算丢失』（且已被我方判 `not_a_defect_claim`），UM-0004 桶内 11 组全为动作相位、事件声明或释放条件缺失（如 v46 第 9 组逐字『模型未声明 ready to stop 条件状态』），无一条主张「模型不终止」。INS 侧逐字『整份模型没有任何终止符（全文无 `--> [*]`）』，无对应方。"
+  },
+  {
+   "issue_id": "INS-0014-01",
+   "pair": "0014",
+   "group": "nl_0004",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0014-01",
+   "overlap": "ledger:EIS-0014-01",
+   "basis": "EIS-0014-01 statement 逐字『作者模型顶层完全没有初始伪状态，冷启动时初始配置未定义；FCSTM 投影出 state UnspecifiedInitial 与 [*] -> UnspecifiedInitial 即为此』，generated_side 逐字『state DoorsClosing（全模型没有任何 [*] --> ... 顶层初始边）』，reference_side 逐字『[*]-->DoorsClosing』。INS 侧逐字『作者源的根层没有初始伪状态出边——全文唯一的 `[*] -->` 写在 InMotion 块内（line 7），根区缺一条 `[*] --> DoorsClosing`』。同 pair、同主体（根区缺失的那条 `[*] --> DoorsClosing`）、同性质（缺失默认入口边）三项全中。INS 多出的「11 条诊断级联」（DoorsClosing / InMotion 三子态 / Stopping 不可达 + 六事件无可达消费源）是同一根因的下游后果，属补充证据，应并入 EIS-0014-01 而不新建。"
+  },
+  {
+   "issue_id": "INS-0014-02",
+   "pair": "0014",
+   "group": "nl_0004",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0014-03",
+   "overlap": "ledger:EIS-0014-03",
+   "basis": "EIS-0014-03 statement 逐字『\\'Entry: Emergency Stop\\' 在 PlantUML 里不是动作语法，而是给一个名为 Entry 的状态加描述，于是 NL 第 3 句要求的 \\'Emergency Stop\\' 动作被降级成 EmergencyStopping 内部一个虚假子状态』，generated_side 逐字『state EmergencyStopping {\\n  Entry: Emergency Stop\\n  EmergencyStopping: Obstacle Detected\\n}』。INS 侧逐字『line 25 写成 `Entry: Emergency Stop`，用的是 PlantUML 的「状态描述」语法 `X : desc`，于是在 EmergencyStopping 内凭空隐式声明出一个名为 `Entry` 的子态』。同 pair、同主体（:25 这一行造出的 `Entry` 伪子态）、同性质（动作被降级成状态）。INS 多出的「该子态既不可达又是死端、且 EmergencyStopping 自身也无出边故不属 `W_DEADLOCK_LEAF` 系统性假阳性」是补充证据。⚠️ 顺带区分：同 pair 的候选 VU-0014-01 主体是同一块内的 **另一行** :26 `EmergencyStopping: Obstacle Detected`（逐字『NL 要求发出的信号被吞进状态名描述串』），与本条不是同一处。"
+  },
+  {
+   "issue_id": "INS-0014-03",
+   "pair": "0014",
+   "group": "nl_0004",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "pair 0014 台账 4 条的主体分别是：EIS-0014-01 顶层初始边（『全模型没有任何 [*] --> ... 顶层初始边』）、EIS-0014-02 初始迁移标签（『[*] --> Accelerating : Entry/Accelerate』）、EIS-0014-03 伪子态 Entry、EIS-0014-04 Approaching 的 Send 动作（『Send 动作在全模型任何相位、任何迁移上都不存在』），无一条涉及 Stopping。候选侧 VU-0014-01 主体是 EmergencyStopping 的信号描述串；UM-0014 桶内 17 组逐条查过，全为事件声明缺失（如 v46『缺少 Send 信号事件声明』）、运行期占用未达成（『DoorsClosing 收到 Closed/SendDeparted 后未占据 InMotion』）与释放条件状态缺失（『缺少 Ready_to_stop 释放条件或状态』），无一条主张 Stopping 无出边。INS 侧逐字『Stopping 只有一条入边（line 20）没有任何出边』，无对应方。"
+  },
+  {
+   "issue_id": "INS-0014-04",
+   "pair": "0014",
+   "group": "nl_0004",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0014-02",
+   "overlap": "ledger:EIS-0014-02",
+   "basis": "EIS-0014-02 statement 逐字『作者把整串文本搬到了初始迁移的标签位置，PlantUML trigger/effect 约定下它被读成触发器 Entry 加效果 Accelerate……后果有两个：Accelerating 不再声明任何 entry 动作，且初始伪状态迁移被挂上了本不该存在的触发器（初始迁移应无触发）』，generated_side 逐字『[*] --> Accelerating : Entry/Accelerate（挂在 InMotion 内部初始边上的标签）』。INS 侧逐字『line 7 的初始伪状态出边带了标签 `Entry/Accelerate`，投影按常规读法把标签当成事件，于是 InMotion 没有一条无条件的默认入口边』。同 pair、同主体（:7 这一条初始边的标签）、同性质（初始迁移被挂上不该有的触发器）。台账已逐字写出「初始迁移应无触发」这后半个后果，INS 只是把它换成 UML 2.5.1 / itemis `region.MustNotHaveMultipleDefaultEntries` 的成文依据 + 同组 0024:6 / 0054:5 的对照，属补充证据。"
+  },
+  {
+   "issue_id": "INS-0024-01",
+   "pair": "0024",
+   "group": "nl_0004",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "pair 0024 台账 4 条主体依次为 Accelerating 的 Accelerate 动作、Approaching 的 exit/Send 标签、Approaching→InMotion 这条边、EmergencyStopping 的 exit/Send Obstacle Detected 标签，无一条涉及 Stopping。候选侧唯一与 Stopping 同主体的是 UM-0024 桶内 X1 第 2 组，逐字『Stopping 状态未在模型中定义/描述』，其 §3.4 复核逐字『事实不成立。逐行核 stm0.puml 全文 20 行……但**在 Plant[UML 中被迁移引用即声明]**』，裁定 `FALSE_POSITIVE` —— 它主张的是「声明缺失」并已被否掉，与 INS 的『只有这一条入边、没有任何出边』不是同一缺陷性质。故 none。"
+  },
+  {
+   "issue_id": "INS-0024-02",
+   "pair": "0024",
+   "group": "nl_0004",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0024-03",
+   "overlap": "ledger:EIS-0024-03",
+   "basis": "EIS-0024-03 statement 逐字『Approaching 多出一条指向自身外层复合状态 InMotion 的迁移。UML 下这等价于 InMotion 的自迁移，退出并重入复合状态、重跑内部初始，把运动阶段重置回 Accelerating』，generated_side 逐字『Approaching --> InMotion:exit/Send』。INS 侧逐字『line 14 `Approaching --> InMotion:exit/Send` 把一个子态直接指回它自己的父复合态。由于 InMotion 有默认入口（line 6 `[*] --> Accelerating`），这条边每触发一次就会重跑内部初始、把行驶阶段重置回 Accelerating』。同 pair、同主体（:14 这条子→父边）、同性质（重入复合态导致阶段重置）三项全中。⚠️ 需与同一行上的另两条台账区分：EIS-0024-02 管的是同一行的 effect 反转（逐字『整串 \\'exit/Send\\' 成为触发器；FCSTM 确认 event exit_Send named \\'exit/Send\\'』），不是本条。INS 补充的『:exit/Send 这个写法透露作者想写的是 exit 动作而非迁移，同组 0044:10 逐字 `state Approaching : do/Send`』属补充证据。"
+  },
+  {
+   "issue_id": "INS-0024-03",
+   "pair": "0024",
+   "group": "nl_0004",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 侧承重的是拓扑事实：逐字『guard-agnostic 叶级拓扑里存在一个非平凡强连通分量，成员是 {EmergencyStopping, InMotion.Accelerating, InMotion.Approaching, InMotion.Cruising}』，成环同时依赖 :14、:17、:19 三条边。台账 4 条中最接近的 EIS-0024-03 只管 :14 一条边的重入语义（逐字『Approaching 多出一条指向自身外层复合状态 InMotion 的迁移』），不主张环的存在。候选 DIFF-0024-04 主体是 :19 一条边、性质是「多余」：逐字『这行还凭空造出一条从 EmergencyStopping 回到 InMotion 的恢复边』『NL 全文没有任何 EmergencyStopping 的出边』，我方映射为 `element/transition/extraneous`。两者主体不同（单边 vs 四态环）、性质不同（多余边 vs 存在 SCC），判 none。⚠️ 提示判读者：若他裁定删除 :19，本条的环随之消失，两条的处置结果会耦合。"
+  },
+  {
+   "issue_id": "INS-0024-04",
+   "pair": "0024",
+   "group": "nl_0004",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 侧逐字『作者根本没给这台电梯设终态——全文没有任何 `--> [*]`……环唯一的离环去处是 line 16 指向的 Stopping，而 Stopping 自己是吸收态』。pair 0024 台账 4 条全部落在动作/事件/单条边层（EIS-0024-01 Accelerate 动作缺失、EIS-0024-02 与 -04 的输出动作被反转成输入事件、EIS-0024-03 子→父重入边），无一条主张终止义务。候选侧 DIFF-0024-04 逐字『NL 全文没有任何 EmergencyStopping 的出边，也没有 obstacle 清除后恢复运行的描述』——它论的是那条边多余，不是模型不终止；UM-0024 桶内 10 组全为事件/释放条件声明缺失。无对应方。"
+  },
+  {
+   "issue_id": "INS-0034-01",
+   "pair": "0034",
+   "group": "nl_0004",
+   "overlap_kind": "suspect",
+   "overlap_target": "UM-0034",
+   "overlap": "suspect:UM-0034",
+   "basis": "UM-0034 桶（§3.3a X1 未认领 3 组之一）第 3 组逐字『缺少 Stopping 状态的定义或后续行为，但仍作为迁移目标』『缺少 Stopping 状态的定义与后续行为』。INS 侧逐字『Stopping 有两条入边（line 7 与 line 24）却没有任何出边』。同 pair、同主体（Stopping），X1 那条的「后续行为」一半与 INS 的「无出边」重叠 → 有重合风险。⚠️ 不判明确重合的三点：(a) X1 那条已被裁 `FALSE_POSITIVE`，§3.4 复核逐字『事实不成立。逐行核 stm0.puml 全文 26 行：`Stopping` 出现在 :7……与 :24……』——被否掉的是「无声明」那一半，「后续行为」那一半复核文本里没有单独认定；(b) 缺陷性质不同：X1 主张状态定义缺失，INS 主张 unintended_terminal；(c) UM-0034 是整表一个登记单位（`mappable: false` / `blocker: unit_of_record`）。⭐ INS 还带了一项 UM 侧没有的强证据：本 pair 作者明确会写终止符（:11 逐字 `EmergencyStopping --> [*] : Obstacle Cleared`、:25 逐字 `Approaching --> [*] : Destination Missed`），唯独没给到站路径接终点——这一点若被并入桶内会丢失。故按新建处理。"
+  },
+  {
+   "issue_id": "INS-0034-02",
+   "pair": "0034",
+   "group": "nl_0004",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0034-02",
+   "overlap": "ledger:EIS-0034-02",
+   "basis": "EIS-0034-02 statement 逐字『作者用三条无事件完成迁移取代嵌套初始边，导致进入 InMotion 后可以不确定地落到三个阶段中任意一个。更严重的是 InMotion --> Cruising 与 InMotion --> Approaching 让 Cruising / Approaching 可以绕过 NL 第 5、6、7 句要求的 \\'Reached Cruising/Cruise\\' 与 \\'Approached/Decelerate\\' 触发直接进入』，generated_side 逐字『InMotion --> Accelerating / InMotion --> Cruising / InMotion --> Approaching（三条无触发边）』。INS 侧逐字『再用三条**既无事件也无守卫**的边把 InMotion 连到它们（line 13、18、22）。三条都是完成迁移，进入 InMotion 后同时使能……行驶阶段的推进顺序（加速→巡航→接近）因此完全无法确定』。同 pair、同主体（:13/:18/:22 这三条无标签边）、同性质（无触发完成迁移导致进入阶段不确定）三项全中。⚠️ INS statement 的前半句『作者把 InMotion 的三个行驶阶段写成了与 InMotion 平级的顶层态』对应的是**另一条**台账 EIS-0034-01（逐字『三个运动阶段被声明为顶层兄弟状态，用无事件边 InMotion --> Accelerating/Cruising/Approaching 连接』），并入时应说明这两条台账共用同一根因。"
+  },
+  {
+   "issue_id": "INS-0034-03",
+   "pair": "0034",
+   "group": "nl_0004",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 侧逐字『拓扑上不强制所有从根可达的执行最终到达根终点，工具给出的反例路径是 Stopping』。pair 0034 台账 6 条中与终态有关的只有 EIS-0034-06，但它主体是 Approaching 的那条边、性质是违反 remain-until：逐字『\\'Destination Missed\\' 既不是 ready to stop 也不是 decelerate，这条边让系统在义务未解除时离开 Approaching 并直接完成』，generated_side 逐字『Approaching --> [*] : Destination Missed』——它论的是「多了一条不该走的终止路径」，与 INS 的「不强制终止」方向相反。候选 DIFF-0034-06 逐字『这是无 NL 依据的新增事件与新增完成路径』，同样是「多」不是「不强制」。无对应方。⚠️ 提示：本条与 INS-0034-01 共用同一反例元素 Stopping，判读者宜一并看。"
+  },
+  {
+   "issue_id": "INS-0044-01",
+   "pair": "0044",
+   "group": "nl_0004",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0044-01",
+   "overlap": "ledger:EIS-0044-01",
+   "basis": "EIS-0044-01 statement 逐字『作者正确建了复合状态与三个子状态，却漏了内部初始伪状态，导致 InMotion 被进入后活动子状态未定义。FCSTM 确认投影出 state UnspecifiedInitial 与 [*] -> UnspecifiedInitial』，generated_side 逐字『state InMotion { state Accelerating : entry/Accelerate; state Cruising; state Approaching : do/Send; ...（无 [*] --> Accelerating）}』，reference_side 逐字『state InMotion{ [*]-->Accelerating ... }』。INS 侧逐字『`state InMotion { … }`（line 7-15）块内没有任何 `[*] -->` 默认入口，而块内第一个子态 Accelerating 也没有任何入边』。同 pair、同主体（InMotion 区缺失的内部初始边）、同性质三项全中。INS 多出的下游后果（三子态不可达、:8 `Accelerate` 与 :10 `Send` 成死代码、两事件消费源全在不可达区、共 7 条诊断一次编辑消掉）与那条提醒（『本 pair 没有报 `W_INITIAL_UNCONDITIONAL_MISSING`——投影给 InMotion 合成了 `UnspecifiedInitial` 顶了那个槽位』）都是补充证据，且后者与台账逐字提到的 `UnspecifiedInitial` 是同一现象。"
+  },
+  {
+   "issue_id": "INS-0044-02",
+   "pair": "0044",
+   "group": "nl_0004",
+   "overlap_kind": "suspect",
+   "overlap_target": "DIFF-0044-01",
+   "overlap": "suspect:DIFF-0044-01",
+   "basis": "DIFF-0044-01 生成侧逐字『Stopping --> [*] / EmergencyStopping --> [*]』，判定者理由逐字『NL 全文没有任何完成、断电或收尾语义，参考模型也没有终态。作者给两个吸收状态各补一条无触发完成边。这是无 NL 依据的新增元素，属过度指定』，我方映射为 `element/transition/extraneous`。INS 侧逐字『line 22 `Stopping --> [*]` 既无事件也无守卫』。同 pair、**同一行**（:22）→ 主体元素完全一致，判读者会在同一处作裁决。⚠️ 不判明确重合的理由是缺陷性质相反：DIFF 主张整条边多余、删掉即修（`extraneous`），INS 主张边可以留但缺触发（`trigger + missing`），两者修法互斥。故按新建处理，请判读者在裁 DIFF-0044-01 时一并处置本条；若他裁定删边，本条自动消解。⭐ 另注意 DIFF-0044-01 自陈『两条边出自同一个建模决策……合并记为一条 extra』，即它一条覆盖 :22 与 :23 两行，而 INS 侧把两行拆成了 INS-0044-02 / -03 两条，粒度不同。"
+  },
+  {
+   "issue_id": "INS-0044-03",
+   "pair": "0044",
+   "group": "nl_0004",
+   "overlap_kind": "suspect",
+   "overlap_target": "DIFF-0044-01",
+   "overlap": "suspect:DIFF-0044-01",
+   "basis": "同上一条：DIFF-0044-01 生成侧逐字含『EmergencyStopping --> [*]』，理由逐字『作者给两个吸收状态各补一条无触发完成边。这是无 NL 依据的新增元素』。INS 侧逐字『line 23 `EmergencyStopping --> [*]` 既无事件也无守卫，即紧急停车之后**无条件**就结束』。同 pair、同一行（:23）→ 主体一致。⚠️ 性质仍相反（多余边 vs 缺触发），故 suspect 不 merge。⭐ 本条与 INS-0044-02 的区别值得判读者单独看：INS-0044-03 给出了 DIFF 侧没有的同组对照证据——逐字『同组 0034 line 11 在同一位置逐字写的是 `EmergencyStopping --> [*] : Obstacle Cleared`』，指向「退出紧急停车应以障碍解除为前提」；而 DIFF-0044-01 恰恰认为 0034 那条边本身也是多余的（DIFF-0034-06 逐字『NL 全文没有 obstacle 清除事件』）。两条候选对同一形状给的是相反判断，并入时会掩盖这个冲突。"
+  },
+  {
+   "issue_id": "INS-0054-01",
+   "pair": "0054",
+   "group": "nl_0004",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "pair 0054 台账 0 条（`expected_issue_set.json` 中 pair == \"0054\" 的 EIS 记录为空），故不可能与台账重合。候选侧本 pair 只有两条：VU-0054-01 主体是入边 :15 的触发槽（逐字『只写了守卫 [obstacle detected]、没有触发事件』），DIFF-0054-05 已被判 `not_a_defect_claim`（逐字『都只依赖 Approaching 无多余出边这一事实被动满足』），UM-0054 桶内 10 组全为事件声明缺失与 Approaching 持留性质，均不涉及 Stopping 出边。⚠️ 提示判读者：工作单 §3.4（**备查、明写「它们不是候选」**，且本 pair X1 臂 0 条未认领故不在 UM-0054 桶内）的 X1 簇 `0054-6` 记过同一事实，逐字『Stopping 只是被引用的目标态，既无声明与动作、也无后续迁移，是悬空目标 ‖ ……「无动作、无后续迁移」成立』，裁定 `NO_NL_BASIS` —— 那不是可并入的既有条目，但说明这一处已被另一轮判定者看过并判为非缺陷。"
+  },
+  {
+   "issue_id": "INS-0054-02",
+   "pair": "0054",
+   "group": "nl_0004",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "pair 0054 台账 0 条。候选 VU-0054-01 与本条主体相邻但不同：VU 指的是 :15 这条**入边**的记法槽位，逐字『stm0.puml:15 逐字 `InMotion --> EmergencyStopping : [obstacle detected]`——方括号是 UML 的守卫槽位，该边无 trigger』，我方映射 `element/trigger/missing`；INS-0054-02 指的是 EmergencyStopping **没有任何出边**，逐字『EmergencyStopping 只有入边（line 15），line 17、18 两行只是 do 动作描述而不是出边』。主体元素不同（入边的触发槽 vs 缺失的出边）、性质不同。⚠️ 两者的后果甚至相反：VU-0054-01 的推论逐字『该边永不触发、EmergencyStopping 不可达』，而 INS-0054-02 的成立前提是系统**能**进入该态后出不来；判读者若采纳 VU 的不可达读法，需说明本条是否随之改判。DIFF-0054-05 与 UM-0054 桶内 10 组均与 EmergencyStopping 出边无关。"
+  },
+  {
+   "issue_id": "INS-0054-03",
+   "pair": "0054",
+   "group": "nl_0004",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "pair 0054 台账 0 条。候选侧：VU-0054-01 逐字『只写了守卫 [obstacle detected]、没有触发事件』（主体是一条边的触发槽），DIFF-0054-05 逐字『都只依赖 Approaching 无多余出边这一事实被动满足』且我方判 `not_a_defect_claim`，UM-0054 桶内 10 组为事件声明缺失（如逐字『缺少 Obstacle_Detected 发送信号事件』）与 Approaching 持留（逐字『Approaching 未在未表达释放条件前持续保持』）。无一条主张模型不终止。INS 侧逐字『整份模型没有任何终止符（全文无 `--> [*]`），因此拓扑上不强制任何执行最终到达根终点』，无对应方。"
+  },
+  {
+   "issue_id": "INS-0005-01",
+   "pair": "0005",
+   "group": "nl_0005",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0005-02",
+   "overlap": "ledger:EIS-0005-02",
+   "basis": "同 pair + 同主体元素 + 同缺陷性质，且机制描述逐字同源。inspect 侧：「作者在 `state DoorOpenWithItem {` 块体内**前向引用**了尚未声明的 `DoorShutWithItem`（L14）与 `ReadytoCook`（L15）。PlantUML 的作用域规则据此把这两个态判为 `DoorOpenWithItem` 的**后代**而非兄弟」。台账 EIS-0005-02 statement 逐字：「这三个 ID 首次出现在外层 state 块体内，PlantUML 前向引用规则把它们钉成子态（R4.5 投影确认：DoorOpenWithItem { DoorShutWithItem {...} ReadytoCook { Cooking {...} WaitingToStart } DoorIdleWithItem }）」，generated_side 逐字「DoorShutWithItem / ReadytoCook / Cooking 成为 DoorOpenWithItem 的后代，形成四层嵌套」，primary 断言 `all([containment(parent='llms_emp_feedback_final_0005', child='...DoorShutWithItem'), containment(..., child='...ReadytoCook'), containment(..., child='...Cooking')])` = False。主体元素集合（DoorShutWithItem / ReadytoCook / Cooking 的父子关系）与缺陷性质（前向引用导致的错误包含）完全一致，修复动作是同一处（把三个态提回顶层）。inspect 多出的「L21 / L29 / L36 三条边成为后代→祖先边、每次触发重跑 L11 `[*] --> DoorIdleWithItem`」是该包含关系的运行后果，属可并入的补充证据，不构成第二处缺陷。"
+  },
+  {
+   "issue_id": "INS-0005-02",
+   "pair": "0005",
+   "group": "nl_0005",
+   "overlap_kind": "suspect",
+   "overlap_target": "EIS-0005-02",
+   "overlap": "suspect:EIS-0005-02",
+   "basis": "⚠️ 拿不准，按新建处理并请判读者确认。判重合的理由：EIS-0005-02 的 R4.5 投影逐字写着 `ReadytoCook { Cooking {...} WaitingToStart }` —— 即台账已经记录了 Cooking 坐在 ReadytoCook 内部这一事实；其 reference_side 逐字「六个状态全部平级（扁平）」，按此参照 `Cooking ⊂ ReadytoCook` 同样是偏离；其 primary 断言中 `containment(parent='llms_emp_feedback_final_0005', child='llms_emp_feedback_final_0005.Cooking')` 也把 Cooking 列为承重元素之一。判不重合的理由（故取 suspect 而非 ledger）：inspect 自述「承重的包含关系与主体复合态都不同」，其承重行是 L30 `    WaitingToStart --> Cooking : Start` 与 L38 `    ActiveCooking --> ReadytoCook : Cancel`，与 INS-0005-01 承重的 L14/L15 无交集；且它给出了与台账相反的裁决倾向 —— 逐字「语义上这一次重置未必是错的（取消后回到「等待启动」看起来符合 NL），所以判读者要单独裁这一条」，而 EIS-0005-02 的 verdict 已定为 `problem`。若直接并入，「Cooking 该不该是 ReadytoCook 的子态」这一独立裁点会被 EIS-0005-02 的既有 problem 裁决吸收掉。"
+  },
+  {
+   "issue_id": "INS-0005-03",
+   "pair": "0005",
+   "group": "nl_0005",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "pair 0005 台账仅 3 条：EIS-0005-01（缺 DoorShut Cancel 自环，reference_side 逐字「DoorShut --> DoorShut: Cancel/CancelTimer」）、EIS-0005-02（层次嵌套）、EIS-0005-03（缺 5 处 timer/display effect，reference_side 逐字「Cancel/CancelTimer、Start/Start Timer、Door Opened/Stop Timer、Cooking Time Entered/Display Cooking Time, Update Cooking Time 共 5 处 effect」）。三条无一以可达性环路为主体。inspect 侧主体是「非平凡强连通分量，成员为 DoorShut / DoorOpenWithItem.DoorIdleWithItem / …，最短见证是 L5 与 L7 构成的二元往返环」，承重行 L5 `DoorShut --> DoorOpen : Door Opened`、L7 `DoorOpen --> DoorShut : Close Door` 在台账三条记录的 reference_side / generated_side 中均未出现。候选侧亦无：DIFF-0005-02 谈的是「四个态纯粹为了给四个不必要的复合块提供默认子态而发明」，主体是自造叶子态而非环路。"
+  },
+  {
+   "issue_id": "INS-0005-04",
+   "pair": "0005",
+   "group": "nl_0005",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "承重事实是「作者源 39 行内 `[*]` 共出现 5 次（L2、L11、L19、L26、L34），**全部在箭头左侧**，没有任何形如 `X --> [*]` 的行——模型没有终态」。pair 0005 台账三条的 direction 分别为 `guard` / `hierarchy` / `effect_action`，element_of_M 分别为 `Tr` / `S` / `A`，无一条主体是终态或终止义务；EIS-0005-01 虽同为 Tr 但其 reference_side 逐字是「DoorShut --> DoorShut: Cancel/CancelTimer」这条自环，与「缺终态边」不是同一元素。候选侧 DIFF-0005-02（自造叶子态多余）、UM-0005（桶内 11 组，note 举出的三格为 element/variable/missing、element/trigger/incorrect、element/state/missing）均无终止类主张。"
+  },
+  {
+   "issue_id": "INS-0015-01",
+   "pair": "0015",
+   "group": "nl_0005",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "pair 0015 台账仅 EIS-0015-01 一条，statement 逐字「同 0005：NL 第 5/6/7/8 句显式要求 timer 启停与 cooking time 显示更新，参考以迁移 effect 承载，生成侧完全缺失」，direction=`effect_action`、element_of_M=`A`，主体是 5 处 effect。inspect 侧主体是「非平凡强连通分量，成员为全部六个态……最短见证是 L11 与 L14 构成的二元往返环」，承重行 L11 `DoorShut -> DoorOpen : Door Opened`、L14 `DoorOpen -> DoorShut : Door Closed`。主体元素与缺陷性质均无交集。候选侧：0015 的 §3.2 全部 5 条均为 correct/similar 备查（不设裁决区），§3.2a 无条目；UM-0015 note 举出的三格为 transition/extraneous（DoorShut Cancel 自环）、variable/missing（timer）、effect/missing（Cooking entry），无环路主张。"
+  },
+  {
+   "issue_id": "INS-0015-02",
+   "pair": "0015",
+   "group": "nl_0005",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "承重事实「作者源 31 行内 `[*]` 只出现一次且在箭头左侧（L9 `[*] -> DoorShut`），没有任何形如 `X -> [*]` 的行——模型没有终态」。pair 0015 台账唯一记录 EIS-0015-01 的 reference_side 逐字为「5 处 timer / display effect」、generated_side 逐字「（无任何 effect、变量或状态动作）」，与终止义务无关。⚠️ 反向核对：0015 的 §3.2b diff #0 判为 `correct`，逐字「扁平六态 + [*] -> DoorShut + 同样 15 条 source-target 对……全部齐备」——审阅 agent 当年把该模型的入口结构判为无问题，说明台账侧从未就终态提出过任何主张，不存在被吸收的可能。"
+  },
+  {
+   "issue_id": "INS-0025-01",
+   "pair": "0025",
+   "group": "nl_0005",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "pair 0025 台账两条：EIS-0025-01（reference_side 逐字「DoorOpenWithItem --> DoorShutWithItem: Door Closed[Zero Time]」，direction=`guard`、element_of_M=`V`）、EIS-0025-02（statement 逐字「同 0005/0015：NL 第 5/6/7/8 句显式要求的 timer 启停与 cooking time 显示更新完全缺失」，element_of_M=`A`）。inspect 侧主体是「非平凡强连通分量，成员为全部六个态……最短见证是 L4 与 L5 构成的二元往返环」，承重行 L4 `DoorShut --> DoorOpen: Door Opened`、L5 `DoorOpen --> DoorShut: Door Closed`。两条台账记录的主体（一条守卫、一处 effect 族）与环路无任何元素交集。候选侧 0025 无 §3.2a 条目，UM-0025 note 举出的三格为 effect/missing、variable/missing、transition/missing，均非环路。"
+  },
+  {
+   "issue_id": "INS-0025-02",
+   "pair": "0025",
+   "group": "nl_0005",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "承重事实「作者源 18 行内 `[*]` 只出现一次且在箭头左侧（L2 `[*] --> DoorShut`），无任何形如 `X --> [*]` 的行」。pair 0025 台账两条分别谈缺守卫（reference_side 逐字「DoorOpenWithItem --> DoorShutWithItem: Door Closed[Zero Time]」）与缺 effect（generated_side 逐字「（无任何 effect、变量或状态动作）」），无一涉及终态或终止义务。0025 §3.2b diff #0 逐字「六态平级、初始伪态指向 DoorShut……15 条 source-target 对与参考逐一对应」判为 `correct`，佐证入口/出口结构从未被登记为问题。"
+  },
+  {
+   "issue_id": "INS-0035-01",
+   "pair": "0035",
+   "group": "nl_0005",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0035-01",
+   "overlap": "ledger:EIS-0035-01",
+   "basis": "同 pair + 同主体元素 + 同缺陷性质，且两侧引的是同一行源码。inspect 侧：「作者源全文 `[*]` 计数为 **0**——没有任何初始伪态边。作者改用 L2 `state DoorShut as \"Door Shut\" <<initial>>` 的**构造型**来表达「这是初始态」，但 `<<initial>>` 在 PlantUML 里只是视觉标注，不构成默认入口」。台账 EIS-0035-01 statement 逐字：「NL 第 1 句明写『The microwave starts in the DoorShut state.』。生成侧用一个 <<initial>> 构造型代替初始伪态边，全模型没有 [*] --> 边；R4.5 因此在根状态合成 UnspecifiedInitial（attribution_exclusions 含 compiler:state:...UnspecifiedInitial 与一条 synthetic_transition），DoorShut 从上电起不可达」；generated_side 逐字「state DoorShut as \"Door Shut\" <<initial>>（无任何初始伪态边）」，reference_side 逐字「[*] --> DoorShut」，direction=`reachability`，primary 断言 `initial_target(composite='llms_emp_feedback_final_0035', child='llms_emp_feedback_final_0035.DoorShut')` = False。inspect 提出的修法「补一行 `[*] --> DoorShut`」与台账 reference_side 逐字一致。inspect 多出的「六个状态全部从根入口路径不可达」与「删掉占位符后 pyfcstm 会改报 `E_INITIAL_TRANSITION_INVALID`」属同一缺陷的补充证据。"
+  },
+  {
+   "issue_id": "INS-0035-02",
+   "pair": "0035",
+   "group": "nl_0005",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0035-01",
+   "overlap": "ledger:EIS-0035-01",
+   "basis": "inspect 自述根因与主体同源，且逐条核对后不存在独立缺陷。inspect 侧逐字：「根因与 INS-0035-01 完全相同：作者源无任何 `[*]` 入口边，图上没有起点，于是每个态不可达、每个事件的消费者也就都不可达」，并逐字确认「这 8 个事件对应的 15 条迁移在作者源上**全部存在且写法正确**（Cancel 三条 L3/L12/L17、Door_Opened 四条 L4/L10/L13/L15……），缺的只有入口」；其证据清单最后一行直接标注 L2 `state DoorShut as \"Door Shut\" <<initial>>`（根因行）。台账 EIS-0035-01 的 statement 逐字已含「DoorShut 从上电起不可达」，direction=`reachability`，element_of_M=`Tr`。唯一修复动作与 EIS-0035-01 相同（补 `[*] --> DoorShut`），修完后 15 条迁移全部复活，不存在第二处需要单独修的地方，故并入不会藏起任何新发现。⚠️ inspect 自己也把这问题摆上桌：「判读者要裁的是：这一族要不要作为独立条目呈现，还是被 INS-0035-01 完全吸收」——并入 EIS-0035-01 后，判读者仍会在同一块里看到这 8 事件 / 15 迁移的全量清单。"
+  },
+  {
+   "issue_id": "INS-0035-03",
+   "pair": "0035",
+   "group": "nl_0005",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "pair 0035 台账四条：EIS-0035-01（初始伪态缺失，direction=`reachability`）、EIS-0035-02（reference_side 逐字「DoorOpen --> DoorShut: Door Closed」缺失）、EIS-0035-03（reference_side 逐字「DoorOpenWithItem --> DoorShutWithItem: Door Closed[Zero Time]」守卫缺失）、EIS-0035-04（5 处 timer/display effect 缺失）。inspect 侧主体是「五成员非平凡强连通分量（Cooking / DoorOpen / DoorOpenWithItem / DoorShutWithItem / ReadytoCook），最短见证是 L6 与 L7 构成的二元往返环」，承重行 L6 `DoorOpen --> DoorOpenWithItem : Item Placed`、L7 `DoorOpenWithItem --> DoorOpen : Item Removed` —— 这两行在四条台账记录的 reference_side / generated_side 中均未出现（L7 反而是 DIFF-0035-02 note 逐字认定为「NL 第 3 句真正要求的那条，保留」的正确边）。缺陷性质（存在环路本身）在台账与候选中都无对应主张。"
+  },
+  {
+   "issue_id": "INS-0035-04",
+   "pair": "0035",
+   "group": "nl_0005",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0035-02",
+   "overlap": "ledger:EIS-0035-02",
+   "basis": "诊断本体（DoorShut 单成员 SCC）inspect 自述不是缺陷 ——「诊断本体不是缺陷——NL 第 1 句要求的正是这个自环」；其唯一具缺陷内容的部分与 EIS-0035-02 是同一处。inspect 侧逐字：「`0035` 缺了本该存在的 `DoorOpen --> DoorShut : Door Closed`，L5 的位置被 `DoorOpen --> DoorOpen : Item Removed` 这个自环占据……于是全图没有任何边回到 DoorShut。这条缺失边已由台账 EIS-0035-02 承载」。台账 EIS-0035-02 statement 逐字：「NL 第 2 句明写『The door can be closed to return to the DoorShut state.』，是显式关系义务，生成侧完全没有这条边（第 5 行的位置被一条 DoorOpen 自环占据）」，reference_side 逐字「DoorOpen --> DoorShut: Door Closed」，generated_side 逐字「（无此边）」。两侧连「第 5 行被自环占据」这一描述都逐字一致。inspect 给出的跨 pair 对照（`0025` L5、`0045` L15、`0055` L8 均有该边）与「DoorShut 因此自成一环」属可并入的补充证据。⚠️ 另注：inspect 证据行 L5 `DoorOpen --> DoorOpen : Item Removed` 同时也是候选 DIFF-0035-02 的主体（note 逐字「作者源 :5 `DoorOpen --> DoorOpen : Item Removed` 自环。删掉这一行即修好」），但 DIFF-0035-02 的性质是 transition/extraneous（多余），而 INS-0035-04 承载的是 missing（缺边），性质相反，故不判与候选重合。"
+  },
+  {
+   "issue_id": "INS-0045-01",
+   "pair": "0045",
+   "group": "nl_0005",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "pair 0045 台账仅 EIS-0045-01 一条，statement 逐字「同组其余 case：NL 第 5/6/7/8 句显式要求的 timer 启停与 cooking time 显示更新完全缺失，参考以迁移 effect 承载」，direction=`effect_action`、element_of_M=`A`。inspect 侧主体是「非平凡强连通分量，成员为全部六个态……最短见证是 L12 与 L15 构成的二元往返环」，承重行 L12 `DoorShut --> DoorOpen : Door Opened`、L15 `DoorOpen --> DoorShut : Door Closed`。台账唯一记录的 generated_side 逐字「（无任何 effect、变量或状态动作）」与环路无交集。候选侧 0045 无 §3.2a 条目，§3.3a 三组与 §3.4 两簇全部围绕 DoorShut 的 Cancel 自环（如 `0045-3` 逐字「DoorShut 的 Cancel 自环在规范中未明确要求，疑为多余」），无环路可达性主张。"
+  },
+  {
+   "issue_id": "INS-0045-02",
+   "pair": "0045",
+   "group": "nl_0005",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "承重事实「作者源 33 行内 `[*]` 只出现一次且在箭头左侧（L10 `[*] --> DoorShut`），无任何形如 `X --> [*]` 的行」。pair 0045 台账唯一记录 EIS-0045-01 的 reference_side 逐字「5 处 timer / display effect」，与终止义务无任何主体交集。0045 §3.2b diff #0 逐字「六态平级声明、初始伪态指向 DoorShut、NL 第 1 句 Cancel 自环与第 2 句 DoorOpen→DoorShut 齐备」判为 `correct`，说明入口/出口结构从未被登记为问题。"
+  },
+  {
+   "issue_id": "INS-0055-01",
+   "pair": "0055",
+   "group": "nl_0005",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "pair 0055 台账仅 EIS-0055-01 一条，statement 逐字「同组其余 case：NL 第 5/6/7/8 句显式要求的 timer 启停与 cooking time 显示更新完全缺失，参考以迁移 effect 承载。这是本 case 唯一的实质缺口」，element_of_M=`A`。inspect 侧主体是「非平凡强连通分量，成员为全部六个态……最短见证是 L6 与 L8 构成的二元往返环」，承重行 L6 `DoorShut --> DoorOpen : Door Opened`、L8 `DoorOpen --> DoorShut : Door Closed`。⚠️ 台账 statement 自称「本 case 唯一的实质缺口」，正说明环路一事从未入账；且 0055 §3.2b diff #0 逐字「六态平级、初始伪态指向 DoorShut……无自造层次、无非法边、无多余元素」判为 `correct`。候选 UM-0055 note 举出的三格为 variable/missing、effect/missing、transition/extraneous，无环路主张。"
+  },
+  {
+   "issue_id": "INS-0055-02",
+   "pair": "0055",
+   "group": "nl_0005",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "承重事实「作者源 26 行内 `[*]` 只出现一次且在箭头左侧（L3 `[*] --> DoorShut`），无任何形如 `X --> [*]` 的行——模型没有终态」。pair 0055 台账唯一记录 EIS-0055-01 的 reference_side 逐字「5 处 timer / display effect」、generated_side 逐字「（无任何 effect、变量或状态动作）」，direction=`effect_action`，与终止义务无主体交集，且其 statement 自述「这是本 case 唯一的实质缺口」。候选侧 0055 §3.2a 无条目，§3.4 唯一簇 `0055-2` 逐字谈的是「DoorShut 的 Cancel 自转移在规范中并非明确必需」，与终态无关。"
+  },
+  {
+   "issue_id": "INS-0006-01",
+   "pair": "0006",
+   "group": "nl_0006",
+   "overlap_kind": "suspect",
+   "overlap_target": "DIFF-0006-04",
+   "overlap": "suspect:DIFF-0006-04",
+   "basis": "同一 pair、同一处（stm0.puml:22-23 的 Intercepted 及其无触发出边），但命题方向相反，故只判 suspect 不判重合。INS-0006-01 逐字：『作者在 line 23 把 `Intercepted --> FormationAdjustment` 写成一条既无事件也无守卫的完成迁移』『判读者要判的是：作者是否本意让无人机群在「被拦截」后驻留』——主张的是「缺触发/是否应可驻留」。DIFF-0006-04 生成侧逐字：『Searching --> Intercepted : Interception Detected; Intercepted --> FormationAdjustment (无触发)』，判定者理由逐字：『NL 第 3 句是一跳（被拦截即进入编队调整），生成方插入了 NL 未要求的中间状态 Intercepted。completion 迁移会立即触发，不破坏语义，故记为 over-specification』——它把同一条无触发边明确判为无害，主张的是「该状态多余、应删」（我方映射 element/state/extraneous）。同一处、同一批事实，两条给出的缺陷性质与修复方向相反（删状态 vs 补触发）。旁证：§3.4 备查簇 `0006-1`（X1，`NO_NL_BASIS`）逐字『Intercepted 是 NL 未描述的多余中间状态——NL 3 要求被拦截时直接转入 FormationAdjustment，模型却先进 Intercepted 再无触发地转入』，同样只以 extraneous 立论。台账三条（EIS-0006-01 三区域数量、EIS-0006-02 递减效应、EIS-0006-03 无终态/无完成事件）均不涉此处。"
+  },
+  {
+   "issue_id": "INS-0006-02",
+   "pair": "0006",
+   "group": "nl_0006",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "本条命题逐字只是『叶级拓扑里存在一个非平凡强连通分量』且自陈『有环是预期行为而不是缺陷』『本条不携带任何指向后者的证据』。台账 0006 三条无一以「环」为主体：EIS-0006-01 逐字『NL 第 2 句 \"operates within three different state areas\" 是数量断言，本模型一个区域都没有』（主体=区域数量）；EIS-0006-02 逐字『该迁移只有 trigger，既无 / effect 也无 [guard]』（主体=递减效应）；EIS-0006-03 逐字『本模型没有终态、没有完成事件，永远无法结束』（主体=缺终态/缺完成事件，命题是不可终止而非有环）。候选侧 DIFF-0006-04 / DIFF-0006-09 / UM-0006 亦无「环」主张（UM-0006 桶内三例逐字为多余 Intercepted 状态、缺 uav_count 变量、缺 Mission_Completed 事件）。故不重合。"
+  },
+  {
+   "issue_id": "INS-0016-01",
+   "pair": "0016",
+   "group": "nl_0006",
+   "overlap_kind": "candidate",
+   "overlap_target": "DIFF-0016-05",
+   "overlap": "candidate:DIFF-0016-05",
+   "basis": "同一 pair、同一行、同一 UML 条款。INS-0016-01 逐字：『顶层唯一的初始迁移（line 2）带了触发事件 `Start Mission`。UML 2.5.1 规定 initial pseudostate 的出迁移不得带 trigger』，证据逐字 `[*] --> SearchMission : Start Mission`。DIFF-0016-05 生成侧逐字 `[*] --> SearchMission : Start Mission`，evidence 逐字『初始迁移带 trigger，UML 不允许初始迁移携带触发事件』，映射说明逐字『作者源 :2 逐字 `[*] --> SearchMission : Start Mission` …§3.6 明确把 UML 2.5.1 `Pseudostate::outgoing_from_initial`（\"The outgoing Transition from an initial vertex may have a behavior, but not a trigger or a guard.\"）列为可直接引的成文条款』。两者主体元素与缺陷性质完全同一；唯一分歧在 qualifier（INS 取 missing『缺的是一条无条件 `[*] -->` 边』，候选取 extraneous『删掉这个事件名即修好』），那是同一缺陷的修复口径之争，不是两个问题。⚠️ 注意与台账 EIS-0016-02 不同：那条主体是 Region2/Region3 内部初始迁移的重名越界（逐字『Region2 / Region3 内的 [*] --> Search 解析到 SearchMission.Region1.Search（越界）』），不是根层这条。"
+  },
+  {
+   "issue_id": "INS-0016-02",
+   "pair": "0016",
+   "group": "nl_0006",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "本条命题是『叶级拓扑里存在非平凡强连通分量』，且自陈成员集被投影污染（『诊断给出的 scc 六个成员里三个是投影合成名』）。台账 EIS-0016-01 虽同样谈层次，但主体与命题都不同，其逐字为『Search --> Region2 写在 state Region1 {} 体内，PlantUML 按首次出现作用域把 Region2 建成 Region1 的子状态…区域归属语义错误』——主体=区域归属层次，命题=三区域被写成三层包含。INS-0016-02 里关于层次的部分只是对 scc 成员集的降权注记（逐字『投影改写了层次——作者源里 Region1/Region2/Region3 是 SearchMission 内的**兄弟**』），且它与 EIS-0016-01 对「谁造成了嵌套」的事实判断相反（台账归因 PlantUML 作用域，本条归因 fcstm 投影），更不宜合并。故按本条实际登记的命题判不重合。⚠️ 两处对嵌套成因的事实分歧建议由判读者一并核。"
+  },
+  {
+   "issue_id": "INS-0016-03",
+   "pair": "0016",
+   "group": "nl_0006",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0016-03",
+   "overlap": "ledger:EIS-0016-03",
+   "basis": "同一 pair、同一主体（line 19 那条唯一 final 边 + 顶层无终态）、同一性质（NL 第 2 句完成语义未落地→任务不会完成）。INS-0016-03 逐字：『唯一的 `--> [*]`（line 19）只终止 Region3，而 Region3 之上的 SearchMission、乃至根区域都没有出口。于是整个任务在拓扑上永远不会「完成」』，证据逐字 `Search --> [*] : Finished Region3 Search`。EIS-0016-03 statement 逐字：『NL 第 2 句要求搜索「持续到任务完成」；本模型把「第三区域搜索完成」当作结束条件，既无 mission-complete 事件也无顶层终态，属提前完成 + 完成条件错置』，generated_side 逐字：『Search --> [*] : Finished Region3 Search（唯一指向 final 的边，且在最内层区域内）』。两侧引的是同一行、同一事实、同一 NL 依据（EIS 的 nl_evidence 逐字 'Before the mission is completed'，INS 逐字『判读者要判的是 NL 是否给出终止义务』）。旁证：本 pair 工作单 §3.5 已登记『实为台账 EIS-0016-03 [terminates]「既无 mission-complete 事件也无顶层终态」的同一缺陷侧面』。"
+  },
+  {
+   "issue_id": "INS-0026-01",
+   "pair": "0026",
+   "group": "nl_0006",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0026-03",
+   "overlap": "ledger:EIS-0026-03",
+   "basis": "逐字同一。INS-0026-01：『`FormationAdjustmentState` 只有入边和一个标签，没有任何出边…无人机群一旦被拦截进入编队调整就永久卡死，回不到搜索、也完不成任务。判读者要判的是 NL 有没有要求「调整完成后返回搜索」』。EIS-0026-03 statement 逐字：『FormationAdjustmentState 是一个吸收态：一旦被拦截，swarm 永远无法回到搜索，也无法再攻击或完成任务，直接违反 NL 第 2 句「持续执行搜索任务直到任务完成」』，generated_side 逐字：『无任何从 FormationAdjustmentState 出发的边』，reference_side 逐字：『Formation_Adjustment --> Fly_Along_the_Path（编队调整后回到飞行/搜索）』。同 pair、同主体状态、同缺陷性质（意外终态/吸收态），且连「NL 是否要求返回搜索」这一裁决点都一致。"
+  },
+  {
+   "issue_id": "INS-0026-02",
+   "pair": "0026",
+   "group": "nl_0006",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "命题为『叶级拓扑里存在非平凡强连通分量 {AttackState, TargetSearchingState}』，且自陈『反应式控制器存在非平凡 SCC 是预期而非缺陷』。台账 0026 三条主体各异且均非「环」：EIS-0026-01 逐字『本模型只有一个区域，三个兄弟状态是「搜索/编队/攻击」三种模式而非三个搜索区域』；EIS-0026-02 逐字『该迁移只有 trigger，无 / effect、无 [guard]、无任何计数文本』（主体是 `AttackState --> TargetSearchingState : Attack Completed` 上缺失的递减效应，虽与本条共用同一条边，但缺陷性质是 effect 缺失而非拓扑有环）；EIS-0026-03 主体是 FormationAdjustmentState 死端。候选侧 DIFF-0026-07 逐字『NL 未给出完成条件的形式，参考的写法是推断而非事实』（参考侧真值主张），UM-0026 三例逐字为缺 Flight 状态、persists_until 反例、缺数量变量，均无环主张。故不重合。"
+  },
+  {
+   "issue_id": "INS-0026-03",
+   "pair": "0026",
+   "group": "nl_0006",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "命题是『拓扑不强制所有可达执行到达根终止态』，且本条自陈作者源已给出终止路径（逐字：『作者源 line 14 其实**给了**终止路径 `TargetSearchingState --> [*] : Mission Completed`』），故它剩下的问题是「NL 是否要求任务被**强制**完成」。台账 0026 无任何 nontermination 条目：EIS-0026-03 讲的是单点吸收态（逐字『无任何从 FormationAdjustmentState 出发的边』），与「整体不被强制终止」不同主体也不同命题；EIS-0026-01 / EIS-0026-02 分别是区域数量与递减效应。候选侧最接近的是 §3.3a 簇 `0026-1`（在 UM-0026 桶内），其逐字为『Mission Completed 的终止边只从 TargetSearchingState 出发，任务完成不能发生在其它状态』——主体是终止边的覆盖面（少了别的源态），不是「不被强制终止」；UM-0026 另举『TargetSearchingState 无法在任务完成边界前持续保持』属 property_violation。均非同一命题，故不重合。"
+  },
+  {
+   "issue_id": "INS-0036-01",
+   "pair": "0036",
+   "group": "nl_0006",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0036-01",
+   "overlap": "ledger:EIS-0036-01",
+   "basis": "同一 pair、同一主体（无出边的 InitialState）、同一性质，连两种读法的论证都一致。INS-0036-01 逐字：『起始态 `InitialState`（line 2 进入、line 3 挂标签）没有任何出边，全文无 `InitialState -->`…作者用 line 5 与 line 17 的 `--` 把图分成三个并发区，若严格按并发读，region0 单独停驻在 UML 下是合法的…此时缺陷改写为「作者把顺序阶段误写成了并发区」』。EIS-0036-01 statement 逐字：『三个区域槽位里第一个只放了一个无出边的 InitialState…在并发读法下 region0 是恒定无用区域，在顺序读法下（顶层 -- 并非标准 PlantUML 并发写法）机器起于 InitialState 且永不离开，两种读法下都有缺陷』，generated_side 逐字：『region0 = { InitialState }（无出边）、region1 = Region1、region2 = Region2』。"
+  },
+  {
+   "issue_id": "INS-0036-02",
+   "pair": "0036",
+   "group": "nl_0006",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "命题为『Region1 内存在非平凡强连通分量 {TargetSearch, FormationAdjustment}』并自陈『反应式控制器有此回路属预期而非缺陷』。台账 0036 只有两条，主体均不同：EIS-0036-01 逐字『三个区域槽位里第一个只放了一个无出边的 InitialState』（主体=InitialState 死端 + 区域数量）；EIS-0036-02 逐字『本模型两个区域各自内部无限循环，永不结束』——注意它虽提到「内部无限循环」，但其承重命题与 generated_side 是『模型内无任何 final 状态，也无 mission-complete 事件』，即缺终态而非「存在 SCC」，且它已被 INS-0036-04 认领。候选侧 DIFF-0036-00（缺搜索复合态）、DIFF-0036-08（参考侧真值主张）、UM-0036（多余 AttackReady / 缺 uav_count / persists 反例）均无环主张。故不重合。"
+  },
+  {
+   "issue_id": "INS-0036-03",
+   "pair": "0036",
+   "group": "nl_0006",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "命题为『Region2 内存在非平凡强连通分量 {AttackReady, Attack}』，理由同 INS-0036-02：台账 0036 两条（EIS-0036-01 主体为无出边的 InitialState；EIS-0036-02 主体为『模型内无任何 final 状态，也无 mission-complete 事件』）与候选三条（DIFF-0036-00 evidence 逐字『没有任何代表「搜索态」的 composite』；DIFF-0036-08 evidence 逐字『除「存在第三个区域」外 NL 没有给出任何可推内容』；UM-0036 evidence 逐字『模型引入了规范中未提及的 AttackReady 状态。』）无一以「Region2 内回路」为主体。⚠️ UM-0036 虽点名 AttackReady，但其性质是「该状态多余」，与本条「该状态参与一个回路」不同。故不重合。"
+  },
+  {
+   "issue_id": "INS-0036-04",
+   "pair": "0036",
+   "group": "nl_0006",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0036-02",
+   "overlap": "ledger:EIS-0036-02",
+   "basis": "同一 pair、同一主体（全模型无根级终态/无完成事件）、同一性质（NL 第 2 句完成语义未落地→永不结束）。INS-0036-04 逐字：『本条说「不被强制终止」…作者源全文 `[*]` 只出现在 line 2、line 8、line 20 三处，压根没有根级终止态…三处全是入口，无一处形如 `X --> [*]`』。EIS-0036-02 statement 逐字：『NL 第 2 句「Before the mission is completed」预设完成条件；本模型两个区域各自内部无限循环，永不结束』，generated_side 逐字：『模型内无任何 final 状态，也无 mission-complete 事件』，nl_evidence 逐字 'Before the mission is completed'。两者的裁决点同为「NL 的终止义务」。⚠️ 本条的见证态虽是 InitialState（EIS-0036-01 的主体），但其登记命题是不终止，故归 EIS-0036-02 而非 EIS-0036-01。旁证：工作单 §3.5 簇 `0036-8` 逐字『制品事件表…无任何 mission-complete 事件，也无 final 伪态』同属此根。"
+  },
+  {
+   "issue_id": "INS-0046-01",
+   "pair": "0046",
+   "group": "nl_0006",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0046-01",
+   "overlap": "ledger:EIS-0046-01",
+   "basis": "逐字同一处。INS-0046-01：『作者源在 `state UAVSwarmStateMachine {`（line 2）到其闭合 `}`（line 25）之间**一条 `[*] -->` 都没有写**，图顶层（line 26-30）也没有…作者既没指定机器入口，也没指定 UAVSwarmStateMachine 该先进哪个子复合态』。EIS-0046-01 statement 逐字：『包壳 composite 有两个顺序子状态却没有初始子状态，进入哪个区域完全未定义（投影在根与包壳内各插入一个 UnspecifiedInitial）』，generated_side 逐字：『state UAVSwarmStateMachine { state SearchRegion {...} state MissionRegion {...} } —— 顶层与包壳都没有 [*]』。同 pair、同主体（缺失的初始迁移）、同性质（入口未定义）。INS 侧额外给出的「6 个作者态全部不可达」与判别实验只是同一缺陷的后果与排他论证，不构成第二个问题。"
+  },
+  {
+   "issue_id": "INS-0046-02",
+   "pair": "0046",
+   "group": "nl_0006",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "本条命题是『叶级拓扑里存在非平凡强连通分量』且自陈『按反应式无人机群控制器口径，有非平凡 SCC 是预期而非缺陷』。最接近的候选 DIFF-0046-02 共用 line 27/28 两条边，但命题不同——其 evidence 逐字为『两个区域可在同一对事件上无限来回，模型永不终止』，判定者理由逐字『NL 第 2 句预设的「任务完成」终结语义丢失』，映射为 global/nontermination，是一条不终止的**缺陷**主张；本条明确不作缺陷主张，且其 SCC 还含 line 9/13/10/16 的搜索内环。本组 INS 自身也一贯把 SCC 与 nontermination 分列（0026-02 vs 0026-03、0036-02/03 vs 0036-04、0056-02 vs 0056-03），故按同一约定判不重合。台账 0046 三条（EIS-0046-01 缺初始、EIS-0046-02 逐字『只有两个所谓 region，且都不是 -- 并发区域』、EIS-0046-03 逐字『额外增加了一个 Idle 态与 Start Mission 事件』）均无环主张。⚠️ 若判读者认为「两区无限来回」即本条承重内容，应与 DIFF-0046-02 一并裁。"
+  },
+  {
+   "issue_id": "INS-0046-03",
+   "pair": "0046",
+   "group": "nl_0006",
+   "overlap_kind": "suspect",
+   "overlap_target": "EIS-0046-01",
+   "overlap": "suspect:EIS-0046-01",
+   "basis": "主体不同但根因由本条自陈同一，故判 suspect 而非重合。INS-0046-03 逐字：『六个事件…各自被报「没有可达的 consumer 源」。根因与 INS-0046-01 同一处：消费这些事件的迁移全部位于两个进不去的 Region 内』『真正该被裁决的缺陷是 INS-0046-01』，且自陈字面主张会误导（『⛔ 本族的字面主张会把判读者引向错误方向…接线本身是健全的』）。而 INS-0046-01 已判为 ledger:EIS-0046-01（statement 逐字『包壳 composite 有两个顺序子状态却没有初始子状态』）。台账 EIS-0046-01 的主体是缺失的初始迁移，本条的主体是六个事件的 consumer 可达性——按「同一主体元素」判据两者不同，但按根因是同一缺陷的另一谓词表述（本 pair 之外，0006 工作单 §3.5 有同型先例：『另一谓词表述，匹配器未归并…计入统计前必须去重』）。⚠️ 请判读者确认是并入 EIS-0046-01 去重，还是作为独立的事件侧观察另记。台账 EIS-0046-03 虽点名 Start Mission 事件，但性质是 over-specification（逐字『NL 未提到待机态或启动事件』），非同一问题。"
+  },
+  {
+   "issue_id": "INS-0056-01",
+   "pair": "0056",
+   "group": "nl_0006",
+   "overlap_kind": "candidate",
+   "overlap_target": "UM-0056",
+   "overlap": "candidate:UM-0056",
+   "basis": "与 UM-0056 桶内 §3.3a X1 簇 `0056-1` 同 pair、同主体（stm0.puml:7-9 三条 Area 迁移）、同性质（无触发→自发立即发生）。INS-0056-01 逐字：『三区轮转的三条迁移（line 7 / line 8 / line 9）**全部既无事件也无守卫，且首尾相接闭合成环**…进入 Area1 即刻完成并迁出，机器在 Area1→Area2→Area3→Area1 之间无限空转』。工作单 §3.3a 簇 `0056-1`（格数 3，裁定 `NO_NL_BASIS`，子类 `N-CLOSED`）组内说法逐字：『Area1/Area2/Area3 之间的迁移没有触发条件』『Area 之间的迁移没有触发事件/条件』『三个区域之间只有单向循环 Area1→Area2→Area3→Area1』；§3.4 同簇事实栏逐字：『Area1→Area2→Area3→Area1 被建成无触发的固定单向环，NL 未规定切换顺序，也未说明切换依据；无触发意味着会自发立即发生 ‖ 事实成立。stm0.puml:7-9 逐字 `Area1 --> Area2`、`Area2 --> Area3`、`Area3 --> Area1`，三条均无标签』。另 §3.2b 备查 diff #6 对同一处已判 `similar`（逐字『Area1 --> Area2 --> Area3 --> Area1（均无触发，completion 迁移）…区域间轮转用无触发 completion 迁移』）。台账 0056 两条（EIS-0056-01 主体为 Intercepted 事件的冲突目标、EIS-0056-02 主体为递减写进 guard 槽位）均不涉此处，故这是**候选侧**已有、**台账侧**未有。⚠️ UM 一条 = 整张 §3.3 表，重合的是桶内那一簇而非整桶。"
+  },
+  {
+   "issue_id": "INS-0056-02",
+   "pair": "0056",
+   "group": "nl_0006",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "命题为『叶级拓扑里存在非平凡强连通分量』，并自陈成员集被投影拍平污染（逐字『诊断把 `SearchState` 的**两个并发区**…的成员混进同一张叶级图，成员集不对应作者源的正交结构』）。台账 0056 两条主体均不同：EIS-0056-01 逐字『同一 Intercepted 事件在同一活动配置下有两个可达目标…构成不可区分的冲突目标』（主体=Intercepted 事件的目标冲突）；EIS-0056-02 逐字『递减被写在 UML 的 guard 槽位 [...] 而不是 effect 槽位 /』。候选侧 DIFF-0056-03 逐字『NL 未要求为拦截状态单独建区域，也没有「拦截解除」事件；属额外元素』（多余元素），DIFF-0056-08 逐字『参考在打击态把拦截处理成自环』（参考侧缺陷），UM-0056 三例为缺数量变量/缺完成条件状态/缺 Attack_Complete 事件——均无环主张。⚠️ 本条与 INS-0056-01 共用 line 7-9 那段闭环，但 INS-0056-01 的命题是「缺触发」，本条是「存在 SCC」，故也不与之合并。"
+  },
+  {
+   "issue_id": "INS-0056-03",
+   "pair": "0056",
+   "group": "nl_0006",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "命题是『拓扑不强制所有可达执行到达根终止态』，且本条自陈作者源已有根级终止路径（逐字：『作者源 line 22 **已经给出**根级终止路径 `SearchState --> [*] : Mission Complete`，所以本 pair 根本没有 `W_TOPOLOGICAL_NOEXIT`——能终止，只是不被强制』）。台账 0056 两条（EIS-0056-01 拦截目标冲突、EIS-0056-02 递减落错槽位）无终止类条目。候选侧最接近的是 UM-0056 桶内 §3.4 簇 `0056-4`，其逐字为『Mission Complete 的终止边只挂在 SearchState 上，处于 AttackState 或 FormationAdjustment 时任务完成无法结束 ‖ 事实成立。stm0.puml:22 `SearchState --> [*] : Mission Complete` 是全…』——主体是终止边的**覆盖面不足**（别的状态下无法结束），本条主张的是**存在不终止的执行**（可终止但不强制），命题不同；UM-0056 另一例『缺少表示任务完成条件的状态』是缺元素，亦不同。故不重合。"
+  },
+  {
+   "issue_id": "INS-0007-01",
+   "pair": "0007",
+   "group": "nl_0007",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0007-01",
+   "overlap": "ledger:EIS-0007-01",
+   "basis": "同 pair、同主体（root 唯一初始迁移 + InitialState）、同性质（进得去出不来的死端）。台账 EIS-0007-01 statement 逐字：「顶层唯一初始迁移落在 InitialState，而 InitialState 只有入边没有出边，整机永久停在该状态」，并逐字写了回边「`CollisionAvoidance --> InitialState : Collision Resolved` 回来后也再也出不去（无法重新武装）」；generated_side 逐字：「[*] --> InitialState（InitialState 为无出边叶状态；…）」。inspect 侧逐字：「root 的唯一初始迁移指向 `InitialState`，而 `InitialState` … 从不作为任何迁移的源」「L32 让它在「碰撞解除」后被再次进入，同样出不去」。两处指的是同一行 L2 与同一行 L32，性质同为 unintended_terminal。inspect 侧新增的只是「父就是 root，不存在更外层复合态可提供成组出边」这一假阳性排除，属补充证据。"
+  },
+  {
+   "issue_id": "INS-0007-02",
+   "pair": "0007",
+   "group": "nl_0007",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0007-01",
+   "overlap": "ledger:EIS-0007-01",
+   "basis": "同 pair、同主体（CollisionDetection 无入边）、同性质（不可达）。台账 EIS-0007-01 generated_side 逐字含「CollisionDetection / CollisionAvoidance / OperationalControls 均无入边」，statement 逐字含「检测流程与避撞控制都不可达」。inspect 侧逐字：「复合态 `CollisionDetection` 一条入边都没有」「`CollisionAvoidance` 的**唯一**入边是 L31，其源正是 `CollisionDetection`，故它的六个子态 … 也一并不可达」。主体与性质均在台账正文逐字可见，判读者读台账时看得见，故不构成藏匿。⚠️ 需提示判读者的一点（不改判定）：台账 EIS-0007-01 一条同时承载 unintended_terminal（InitialState 死端）与 unreachable（三个复合态无入边）两个不同座标，若重标时一条记录只能落一格，这两面需拆开；inspect 侧的级联清单（10 个不可达态、11 个事件）与「`Collision_Mode_Active` / `Collision_Resolved` 的 consumer_count 4 与 6 是投影展平抬高的，作者源各只有 1 个消费者」是台账没有的补充证据。"
+  },
+  {
+   "issue_id": "INS-0007-03",
+   "pair": "0007",
+   "group": "nl_0007",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0007-03",
+   "overlap": "ledger:EIS-0007-03",
+   "basis": "同 pair、同主体（OperationalControls 整棵子树）、同性质（无入边 / 死代码 / 不可达）。台账 EIS-0007-03 statement 逐字：「整棵子树是 NL 完全未提及的臆造内容（信号反馈、健康检查、通信控制），且无任何入边（死代码）」，generated_side 逐字列出 `state OperationalControls { [*] --> FeedbackControl : Signal Feedback ; [*] --> SystemCheck : Health Check ; [*] --> CommunicationControl : Communicate Control }`。inspect 侧逐字：「`OperationalControls` 从没有被接进这台机器：它在作者源全文只出现一次 —— L25 的声明行，既无入边也无出边。于是它的三个子态 `FeedbackControl` / `SystemCheck` / `CommunicationControl` 一律不可达」。「无任何入边（死代码）」与「既无入边…一律不可达」是同一事实同一性质。⚠️ 台账该条 verdict 记 `extra`/over_specification，把不可达作为叠加事实（「属 over-specification 叠加结构缺陷」），重标时同样存在一条记录跨两格的问题。"
+  },
+  {
+   "issue_id": "INS-0007-04",
+   "pair": "0007",
+   "group": "nl_0007",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "主体与 EIS-0007-03 相同（OperationalControls 的三个子态），但**性质不同且台账正文里查无此说**。台账 EIS-0007-03 全文逐字只有三项断言：「NL 完全未提及的臆造内容」「且无任何入边（死代码）」「内部还在同一个非正交区里放了三条初始迁移（非确定初始）」——通篇没有任何一处提到这三个叶态**没有出边**或**出不去**。inspect 侧的落点恰恰是出边侧：「三个子态 … 在全文都只作迁移目标、从不作源；祖先 `OperationalControls` 本身也没有任何出边（全文仅 L25 声明），root 层的三条边 L2 / L31 / L32 也都不从它出发。故这三个叶态都是无出路的终态」。入边缺失（不可达）与出边缺失（死端）是两个独立可判的性质：即便补上一条指向 OperationalControls 的入边使 INS-0007-03 消失，本条仍成立。按「宁可判不重合」记 none。"
+  },
+  {
+   "issue_id": "INS-0007-05",
+   "pair": "0007",
+   "group": "nl_0007",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0007-02",
+   "overlap": "ledger:EIS-0007-02",
+   "basis": "同 pair、同主体（CollisionAvoidance 三个并发区的初始迁移 L13/L17/L21）、同性质（初始迁移带触发）。台账 EIS-0007-02 statement 逐字：「三个区的初始迁移各自带一个模型中无人产生的触发事件 …（UML 亦不允许初始迁移带触发）」，generated_side 逐字：「[*] --> AutomaticBraking : Start Braking（三个区的初始迁移都带触发：Start Braking / Steering Engaged / Alerts Activated）」。inspect 侧逐字：「复合态 `CollisionAvoidance` 的三个并发区，各自的默认入口都带着标签：L13 / L17 / L21。UML 2.5.1 规定初始伪状态的出边不得带 trigger」，并逐字列出同样三条边。三条边逐行同一、性质同一。inspect 侧新增的两点保留（`existing_conditional_count: 3` 系区展平产物；「Start Braking」的 trigger/effect 角色仅看第 1 区可争）是台账没有的补充说明。"
+  },
+  {
+   "issue_id": "INS-0007-06",
+   "pair": "0007",
+   "group": "nl_0007",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0007-03",
+   "overlap": "ledger:EIS-0007-03",
+   "basis": "同 pair、同主体（OperationalControls 块内 L26/L27/L28 三条 `[*] -->`）、同性质（同一区内多条默认入口 / 非确定初始）。台账 EIS-0007-03 statement 逐字：「内部还在同一个非正交区里放了三条初始迁移（非确定初始）」，generated_side 逐字把这三行原样列出。inspect 侧逐字：「`OperationalControls` 的 L25 与 L29 之间**没有** `--` 分隔符，三条 `[*] -->` 因此处在同一个区里（L26 / L27 / L28）。也就是说这一个区有三条默认入口，进入时选哪一条不确定」。「同一非正交区 + 三条初始迁移 + 非确定」与「同一个区有三条默认入口 + 选哪一条不确定」逐字对应。inspect 侧补充的是不依赖标签角色的成文依据（itemis CREATE `region.MustNotHaveMultipleDefaultEntries`）与「refs 的 existing_conditional_count: 3 与作者源一字不差」的洁净性核对。"
+  },
+  {
+   "issue_id": "INS-0007-07",
+   "pair": "0007",
+   "group": "nl_0007",
+   "overlap_kind": "suspect",
+   "overlap_target": "EIS-0007-01",
+   "overlap": "suspect:EIS-0007-01",
+   "basis": "拿不准，按新建处理并请判读者确认。相同处：本条的反例路径逐字是「`[InitialState]`」，而 InitialState 出不去正是 EIS-0007-01 逐字所记的「整机永久停在该状态」；inspect 自己也写明「该反例真正指向的死锁已由 INS-0007-01 单列」，故其**承重事实**与台账同一。不同处：台账 EIS-0007-01 全文没有任何一句谈根终止态或终止义务，而本条的独有主张是「拓扑上不强制所有 root 可达的执行最终到达根终止态」，证据是「作者源全文没有任何 `--> [*]`（根终止态从未被写出）」——这一事实台账未记。同时本条自陈为 uncertain 且给出否定理由：「碰撞规避控制器是反应式系统，本就不该被要求终止」「`nontermination` 没有与标注无关的形式定义，只能挂在 NL 的终止义务上，而本 NL 三句里没有任何终止要求可挂」。是并入 EIS-0007-01 只当作同一死锁的另一种谓词视角，还是作为独立的「无根终止态」条目，需判读者裁定。"
+  },
+  {
+   "issue_id": "INS-0017-01",
+   "pair": "0017",
+   "group": "nl_0007",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "本 pair 台账 0 条 —— 工作单 0017.md §2 逐字「**本 pair 台账 0 条。**」，无任何 EIS 记录可重合。候选侧也不重合：VU-0017-01 的主张逐字是「没有任何进入或激活 Collision_Avoidance_Active_Mode 的入口迁移」，事实逐字「源内不存在任何顶层 [*] --> 边，也没有任何指向它的入边；三处 [*]（:4 :9 :14）全在区内」——它讲的是**顶层缺一条边（missing）**；而 INS-0017-01 讲的是**那三处区内 `[*]` 各自带了触发（extraneous trigger）**，逐字「三个并发区，默认入口**全部**带触发事件：L4 / L9 / L14 三行都是 `[*] --> X : collision detected`」。主体不同（root 层的边 vs 区内三条边），性质相反（缺一条 vs 多一个触发），补上 VU-0017-01 那条顶层边也不会消除本条。DIFF-0017-06（参考侧量化守卫）与 UM-0017（14 组、全是事件分型/region 类）均无关。⚠️ 另需判读者注意一处正面冲突：§3.2b 备查 diff #1 把同一处判为 `correct`（「[*] --> F : collision detected（三个区都以 collision detected 进入）… NL 第2句『检测到可能碰撞时子机becomes active』被显式表达」），备查条目不是候选、无 DIFF- id，故不记为重合，但本条等于推翻了那条既有裁定。"
+  },
+  {
+   "issue_id": "INS-0027-01",
+   "pair": "0027",
+   "group": "nl_0007",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0027-01",
+   "overlap": "ledger:EIS-0027-01",
+   "basis": "同 pair、同主体（junction2 / junction3）、同性质（死端）。台账 EIS-0027-01 statement 逐字：「进入 ActiveState 后整机被永久困住：三个区的末端 junction2 / junction3 / InitialState 全是死端，ActiveState 没有任何外出迁移」，generated_side 逐字：「BrakeControlState --> junction2（junction2 无出边）；SteeringControlState --> junction3（无出边）」。inspect 侧逐字：「L9 `BrakeControlState --> junction2` 与 L12 `SteeringControlState --> junction3` 之后，`junction2` / `junction3` 在全文再不作为任何迁移的源」「祖先 `ActiveState` 本身也没有出边」。逐行同一、性质同一。inspect 侧补充的是「作者虽命名为 junction 却没有写 `<<junction>>` stereotype，即便真当 junction 伪状态看，一个没有出向分支的 junction 同样是缺陷」这一台账未写的加固论证。"
+  },
+  {
+   "issue_id": "INS-0027-02",
+   "pair": "0027",
+   "group": "nl_0007",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0027-01",
+   "overlap": "ledger:EIS-0027-01",
+   "basis": "同 pair、同主体（L16 `junction4 --> InitialState` 与 ActiveState 内的 InitialState）、同性质（root 可达的死端）。台账 EIS-0027-01 statement 逐字把 InitialState 与另两个 junction 并列为死端（「junction2 / junction3 / InitialState 全是死端」），generated_side 逐字：「SensorControlState --> junction4 --> InitialState（InitialState 在 ActiveState 内且无出边）」；台账还逐字给了同一处的成因「列 I / 列 U 都有 `InitialState --> DetectingState : No Collision detected` 这条返回边，是论文语义修复阶段把 InitialState 挪进 ActiveState 并删掉该边，才形成陷阱」。inspect 侧逐字：「作者写了 L16 `junction4 --> InitialState`，看上去是想在传感控制走完后回到起点；但这台机器的起点叫 `DetectingState`（L2 `[*] --> DetectingState`），而 `InitialState` 这个名字在全文只出现 L16 这一次」——与台账的「删掉了回 DetectingState 的返回边」是同一处、同一性质（本该回起点却成死端），只是 inspect 从名字错配这一侧描述。root 可达路径的枚举是补充证据。"
+  },
+  {
+   "issue_id": "INS-0027-03",
+   "pair": "0027",
+   "group": "nl_0007",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "主体在台账里查无此说。台账 EIS-0027-01 全文只逐字提到一条无触发迁移：「而且 BrakeControlState --> junction2 是无触发完成迁移，控制状态形同虚设」——那是**进入** junction 的边（即 INS-0027-04 的对象）；本条的两条边是**离开** junction 的边，逐字为「L5 `junction1 --> ActiveState` 与 L16 `junction4 --> InitialState`」，台账正文与 generated_side 里对这两行只记了拓扑（`junction4 --> InitialState` 记为死端链的一段），从未主张它们缺触发。判读者读台账看不到这条。⚠️ 需提示：§3.2b 备查 diff #4 对 junction1 那条边有相反裁定，逐字「junction1 是无触发透传，语义等价于直连；且它是论文 format 修复阶段引入的（Phase-I 是直连边），不计生成方的 over-specification」；备查 diff 不是候选（无 DIFF- id、不设裁决区），故不记为候选重合，但本条与它正面冲突，且 inspect 自陈 uncertain（「需要判读者裁定「这些 junction 命名的顶点是不是伪状态」」）。"
+  },
+  {
+   "issue_id": "INS-0027-04",
+   "pair": "0027",
+   "group": "nl_0007",
+   "overlap_kind": "suspect",
+   "overlap_target": "EIS-0027-01",
+   "overlap": "suspect:EIS-0027-01",
+   "basis": "拿不准，按新建处理并请判读者确认。台账 EIS-0027-01 逐字覆盖了本条**三个同型实例中的一个**：「而且 BrakeControlState --> junction2 是无触发完成迁移，控制状态形同虚设」，与 inspect 侧的「L9 `BrakeControlState --> junction2`」是同一行、同一性质（无触发无守卫）。但另外两行 —— inspect 逐字「L12 `SteeringControlState --> junction3`、L15 `SensorControlState --> junction4`」—— 在台账 EIS-0027-01 的 statement 与 generated_side 里只作为死端拓扑出现（「SteeringControlState --> junction3（无出边）」「SensorControlState --> junction4」），**没有**被主张缺触发。若整条并入，判读者只会看到 Brake 那一条，另两条会被藏起来；若按新建，则与台账那半句重复。另需判读者裁定 inspect 自陈的不确定性：「这三条既可读作『控制的 do-activity 完成后的完成迁移』（正常），也可读作『漏写了完成条件』（欠规约）」——而台账那半句已单方面判成「控制状态形同虚设」。"
+  },
+  {
+   "issue_id": "INS-0027-05",
+   "pair": "0027",
+   "group": "nl_0007",
+   "overlap_kind": "suspect",
+   "overlap_target": "EIS-0027-01",
+   "overlap": "suspect:EIS-0027-01",
+   "basis": "拿不准，按新建处理并请判读者确认，理由与 INS-0007-07 同型。相同处：反例路径逐字是「`[ActiveState.InitialState]`」，而该状态正是台账 EIS-0027-01 逐字所记的死端之一（「junction2 / junction3 / InitialState 全是死端」），inspect 也自陈「该反例真正指向的死锁已由 INS-0027-02 单列」。不同处：台账全文未提根终止态，本条的独有事实是「作者源全文没有任何 `--> [*]`（根终止态从未被写出）」。且本条自陈 uncertain：「反应式碰撞规避控制器不终止本身不构成缺陷」「`nontermination` 只能挂在 NL 的终止义务上，而本 NL 没有写任何终止要求」。"
+  },
+  {
+   "issue_id": "INS-0037-01",
+   "pair": "0037",
+   "group": "nl_0007",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0037-01",
+   "overlap": "ledger:EIS-0037-01",
+   "basis": "同 pair、同主体（三个 `...CollisionRegion` 复合态及其子态）、同性质（无入边导致不可达）。台账 EIS-0037-01 statement 逐字：「真正含控制逻辑的 FrontendCollisionRegion / RearEndCollisionRegion / PedestrianCollisionRegion 没有任何入边，因此 BrakingControl / SteeringControl / EmergencyStop 全部不可达」，generated_side 逐字：「三个 *CollisionRegion 复合状态无任何入边」。inspect 侧逐字：「三个 `...Region` 复合态在全文各只出现在自己的声明行，一条入边都没有，故其子态 `BrakingControl`（L11）/ `SteeringControl`（L18）/ `EmergencyStop`（L25）全不可达」。三个复合态名、三个子态名、性质三者全同。inspect 侧新增的是名字错配的逐行对照（L9 `FrontendCollision` 对 L10 `FrontendCollisionRegion` 等）与事件 `Collision Avoided` 三个消费者亦不可达，属补充证据。"
+  },
+  {
+   "issue_id": "INS-0037-02",
+   "pair": "0037",
+   "group": "nl_0007",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0037-01",
+   "overlap": "ledger:EIS-0037-01",
+   "basis": "同 pair、同主体（隐式创建的三个裸叶态 FrontendCollision / RearEndCollision / PedestrianCollision）、同性质（root 可达的死端）。台账 EIS-0037-01 statement 逐字：「三条检测边指向的是死端叶状态 FrontendCollision / RearEndCollision / PedestrianCollision」「检测一次后整机卡在死端叶状态，ActiveState 也无外出边」，generated_side 逐字：「Inactive --> FrontendCollision : Frontend Collision Detected（FrontendCollision 为隐式声明的无出边叶状态）」。inspect 侧逐字：「PlantUML 于是把 `FrontendCollision` / `RearEndCollision` / `PedestrianCollision` 隐式创建成 `ActiveState` 的三个裸叶态，而这三个名字在全文各只出现这一次、只作目标从不作源」「这台机器一旦检测到任何一种碰撞就永久卡死」。工作单 0037.md §3.5 亦逐字确认同根：「四个多余子中的 FrontendCollision/RearEndCollision/PedestrianCollision 正是台账 EIS-0037-01[reaches] 所指的死端叶」。⚠️ 与 INS-0037-01 一样提示判读者：EIS-0037-01 一条同时承载 unreachable 与 unintended_terminal 两个座标，重标时需拆。"
+  },
+  {
+   "issue_id": "INS-0037-03",
+   "pair": "0037",
+   "group": "nl_0007",
+   "overlap_kind": "suspect",
+   "overlap_target": "EIS-0037-01",
+   "overlap": "suspect:EIS-0037-01",
+   "basis": "拿不准，按新建处理并请判读者确认，与 INS-0007-07 / INS-0027-05 同型。相同处：反例路径逐字「`[ActiveState.FrontendCollision]`」正是台账 EIS-0037-01 逐字所记的「死端叶状态 FrontendCollision」，inspect 自陈「该反例真正指向的死锁已由 INS-0037-02 单列」。不同处：台账全文未提根终止态，本条独有事实为「作者源全文没有任何 `--> [*]`」。本条自陈 uncertain：「反应式碰撞规避控制器不终止本身不构成缺陷 … 且 NL 没有写任何终止义务可供挂靠」。"
+  },
+  {
+   "issue_id": "INS-0047-01",
+   "pair": "0047",
+   "group": "nl_0007",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0047-01",
+   "overlap": "ledger:EIS-0047-01",
+   "basis": "同 pair、同主体（跨 Frontend / RearEnd / Pedestrian 三个兄弟复合态复用的 Idle / Braking / Clamping）、同性质（PlantUML 状态名全局导致三段塌缩为一组、迁移被重复声明）。台账 EIS-0047-01 statement 逐字：「PlantUML 状态名是全局标识：Idle / Braking / Clamping 在 Frontend 里首次声明后，RearEnd 与 Pedestrian 中的同名引用指向的是 Frontend 内的同一批状态，于是后两个复合状态实际为空、其初始迁移越界指向 Frontend.Idle … 三个避撞控制塌缩为一个 … 也是同一批迁移被重复声明三次的根因」，generated_side 逐字：「Frontend / RearEnd / Pedestrian 三个复合状态里重复使用同名 Idle / Braking / Clamping」。inspect 侧逐字：「PlantUML 的状态名是全局的 … 故这三段解析成同一组状态之间的三份同构迁移」「更准的落点措辞是「跨兄弟复合态复用同名状态」，三条重复边只是它的后果」「三处 `[*] --> Idle` 也都落到同一个 `Frontend.Idle` 上」。承重点与后果两侧都逐字对应。"
+  },
+  {
+   "issue_id": "INS-0047-02",
+   "pair": "0047",
+   "group": "nl_0007",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "台账三条 0047 记录逐一核对，无一处提到环或强连通分量：EIS-0047-01 讲同名状态全局碰撞、EIS-0047-02 逐字「CollisionAvoidanceSystem 有三个子状态却没有初始子状态，进入它时落到合成的 UnspecifiedInitial」、EIS-0047-03 逐字「生成方在上电时无条件激活整个避撞子机」。候选侧 DIFF-0047-03 逐字是「丢失 NL 第1、3句的正交并发语义，同一时刻只能有一个控制处于激活」（region/missing），DIFF-0047-05 逐字「参考含输入外信息，F1 ground truth 不可达」，均与环无关。inspect 侧主体逐字为「叶层拓扑里存在一个非平凡强连通分量 `{Idle, Braking, Clamping}`」，且自陈非缺陷（「该环正是作者刻意写的工作回路（L5 → L6 → L7）… 故未判 intrinsic」「本 code 在全语料的内生率为 0/54，座标系里也没有对应取值（只能记 `other`）」）。无重合，记 none。"
+  },
+  {
+   "issue_id": "INS-0057-01",
+   "pair": "0057",
+   "group": "nl_0007",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "主体与性质均与台账唯一的 0057 条目不同。台账 EIS-0057-01 的落点逐字是 CA **内部**缺默认子状态：「CA 有三个子状态却无初始子状态，`Possible collision detected` 把系统送进 CA 后落到合成的 UnspecifiedInitial（FCSTM 确认 `state UnspecifiedInitial` + `[*] -> UnspecifiedInitial`）」，generated_side 逐字「state CA { state Frontend {...} state RearEnd {...} state Pedestrian {...} }（CA 自身没有 [*] 默认子状态）」——L22 那条边在台账里只是把系统送进 CA 的**载体**，台账从未主张它自身有问题。inspect 侧的落点逐字在 root：「整台机器唯一的根初始迁移带着触发事件：L22 `[*] --> CA : Possible collision detected`。UML 规定初始伪状态的出边不得带 trigger，故这台机器没有无条件起点」，并自陈「本条落点在 **root**，与那个合成元素无关」。补上 CA 的默认入口（修 EIS-0057-01）不会消除本条。候选侧 DIFF-0057-03（region/missing）、DIFF-0057-04（参考侧守卫）、UM-0057（13 组，其中最近的一组逐字为「CA 的默认入口指向 UnspecifiedInitial 占位子状态而非三个正交区域之一」，仍是 CA 内部）均不重合。⚠️ 需提示判读者：§3.2b 备查 diff #1 对同一行有相反裁定，逐字「[*] --> CA : Possible collision detected … NL 第2句的激活条件被显式建模，优于参考模型」；备查条目不是候选，故仍记 none。"
+  },
+  {
+   "issue_id": "INS-0057-02",
+   "pair": "0057",
+   "group": "nl_0007",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "与 INS-0047-02 同型。台账 EIS-0057-01 全文只讲 CA 缺默认子状态与三路控制不可达（逐字「FCIdle / RCIdle / PCIdle 三路控制全部不可达」），未提任何环；候选 DIFF-0057-03 逐字「丢失 NL 第1、3句的正交并发语义，三路控制无法并发激活」、DIFF-0057-04 逐字「参考带入 dist_to_front / dist_to_rear / vel / urban / highway 等 NL 未提及的量化守卫」，均无关。inspect 侧主体逐字为「三个区各有一个非平凡强连通分量：`{FCIdle, FCActive}`（L5 / L6）、`{RCIdle, RCActive}`（L11 / L12）、`{PCIdle, PCActive}`（L17 / L18）」，且自陈非缺陷（「三个环都是作者刻意写的『检测到碰撞 → 进入响应 → 碰撞解除 → 回到空闲』反应回路 … 故未判 intrinsic」）。无重合，记 none。"
+  },
+  {
+   "issue_id": "INS-0009-01",
+   "pair": "0009",
+   "group": "nl_0009",
+   "overlap_kind": "candidate",
+   "overlap_target": "VU-0009-01",
+   "overlap": "candidate:VU-0009-01",
+   "basis": "INS 逐字「根因是顶层块 `CollisionAvoidanceSystem` 一条入边都没有……于是该块仅有的两个态 `collision_avoidance_deactive`(:54) 与 `collision_avoidance_active`(:57) 全部不可达」；VU-0009-01 主张逐字「CollisionAvoidanceSystem 没有任何初始入口或入边，永远不会被激活」，其复核事实逐字「stm0.puml:2 唯一的顶层初始边是 [*] --> AutonomousMode；全文再无任何指向 CollisionAvoidanceSystem 的边（:51 只是它的声明），故该顶层状态在 M 中不可达」。同 pair、同主体（顶层块 CollisionAvoidanceSystem）、同性质（无入边→不可达），连引的行号（:2 / :51）都相同。判据：主体元素 + 缺陷性质 + 引用行三重一致。"
+  },
+  {
+   "issue_id": "INS-0009-02",
+   "pair": "0009",
+   "group": "nl_0009",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0009-03",
+   "overlap": "ledger:EIS-0009-03",
+   "basis": "INS 逐字「`FinishState` 的隐式作用域被写进了 `HighwayMode` 内部：它在作者源首次出现于 HighwayMode 块（:12–:26）内的 :21 `cruise --> FinishState : dist_to_exit<2`，按 PlantUML「首次出现定作用域」即成为 HighwayMode 的子态」；EIS-0009-03 的 generated_side 逐字「FinishState 首次出现在 state HighwayMode { ... } 块内（cruise --> FinishState），按 PlantUML 首次提及身份归属 HighwayMode；UrbanMode --> FinishState 于是成为跨层边」。同 pair、同主体（FinishState 的作用域归属）、同性质（层次归属错放）。⚠️ 唯一差别是举的后果不同：INS 举 :45 复合态→自己后代的退出重入，台账举 UrbanMode 完成路径经 R45RouteToken 回到 HighwayMode——同一根因的两个后果，按「并入作补充证据」处理。"
+  },
+  {
+   "issue_id": "INS-0009-03",
+   "pair": "0009",
+   "group": "nl_0009",
+   "overlap_kind": "suspect",
+   "overlap_target": "EIS-0009-03",
+   "overlap": "suspect:EIS-0009-03",
+   "basis": "INS 的承重句是「模型没有任何根级终止汇点：全文 `--> [*]` 计数为 0」——台账 EIS-0009-01/02/03 三条通篇没有 `--> [*]` 或终止义务的字样（三条的主体逐字分别是「cruise --> FinishState : dist_to_exit<2」「lane_change_urban --> FinishState : dist_to_exit<0.7（模型完全没有 exit_urban 状态）」「FinishState 首次出现在 state HighwayMode { ... } 块内」）。但 INS 的第二半「该态又被 :21 限定在 HighwayMode 内部」与 EIS-0009-03 逐字同一。主体（全图终止 vs FinishState 归属）与性质（nontermination vs hierarchy）都不同，故按新建；根因有一半重合，请判读者确认是否并入。"
+  },
+  {
+   "issue_id": "INS-0009-04",
+   "pair": "0009",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「驾驶模态的叶态构成一个非平凡强连通分量……:20/:24 的 cruise↔lane_change 换道往返，与 :47/:48 的 HighwayMode↔UrbanMode 模式切换」。台账三条主体（见上条逐字引）无一以环 / 拓扑为对象；候选侧 VU-0009-01 逐字讲的是「没有任何初始入口或入边」、DIFF-0009-08 逐字讲的是参考侧「标签 Collision_Avoidance_Module: 前缀不是合法的 trigger/guard 分隔写法」，均不涉环。§3.4 里形状最近的 `0009-7` 逐字为「HighwayMode 与 UrbanMode 互切会重置目标模式的内部子状态，未用历史伪状态保留进度」——讲的是历史伪状态缺失，不是强连通分量，且它是备查簇不是候选。"
+  },
+  {
+   "issue_id": "INS-0009-05",
+   "pair": "0009",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「碰撞监视器内部构成一个 2 元环：:55 的 deactive→active 与 :58 的 active→deactive 往返」。台账三条与候选 VU-0009-01 / DIFF-0009-08 中，唯一同样点到这两个状态的是 VU-0009-01，但它的主张逐字是「没有任何初始入口或入边，永远不会被激活」（可达性），不是环；§3.2b 备查 diff #7 逐字「一条迁移，守卫为四个析取项」讲的是守卫合并，判为 `similar`。主体虽同（碰撞监视器），性质完全不同，故不重合。"
+  },
+  {
+   "issue_id": "INS-0009-06",
+   "pair": "0009",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「拓扑不强制所有根可达执行最终到达根终止态。根因与 INS-0009-03 同源——全文 `--> [*]` 计数为 0、模型没有根级 final」。台账 0009 三条无一提「终止」「final」「`--> [*]`」；候选 VU-0009-01 / DIFF-0009-08 亦无。⚠️ 它与同批的 INS-0009-03 同根，但本次比对对象只有台账与候选，二者都没有对应条目。"
+  },
+  {
+   "issue_id": "INS-0019-01",
+   "pair": "0019",
+   "group": "nl_0009",
+   "overlap_kind": "suspect",
+   "overlap_target": "EIS-0019-02",
+   "overlap": "suspect:EIS-0019-02",
+   "basis": "INS 有两层。第一层逐字「顶层块 `CollisionAvoidanceSystem`(:41) 一条入边都没有：根区唯一初始边是 :2 `[*] --> AutonomousMode: Autonomous mode start`，全文无任何指向该块的迁移」——台账 0019 三条（EIS-0019-01 enter_hwy 两条同守卫出边、-02 碰撞块缺初始边、-03 auto_finished 源被收窄）无一主张整块不可达。第二层逐字「作者在 :41–:44 块内连区域内 `[*] -->` 都没写……投影为此注入了 `UnspecifiedInitial`」与 EIS-0019-02 的 generated_side 逐字「无任何初始边」及 statement 逐字「FCSTM 投影因此注入 CollisionAvoidanceSystem.UnspecifiedInitial」完全同一。同主体、性质不同（不可达 vs 缺区域初始边）；直接并入会把「整块不可达」这一层藏掉，故按新建并请判读者确认。"
+  },
+  {
+   "issue_id": "INS-0019-02",
+   "pair": "0019",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「`AutonomousMode.FinishState` 是一个真死端……自身出边 0 条；祖先也救不了它——父态 AutonomousMode 出边 0 条（:37/:38 的群迁移源是 HighwayMode / UrbanMode，覆盖不到 FinishState）」。台账 0019 三条主体逐字为「enter_hwy --> cruise: dist_to_front<25 & extra_lane=true; enter_hwy --> lane_change: 同」「state CollisionAvoidanceSystem { … } —— 无任何初始边」「ExitHighway --> FinishState: auto_finished=true; exit_urban --> FinishState: auto_finished=true —— 只有出口子态可完成」——第三条虽提到 FinishState，但主体是完成边的源被收窄，不是 FinishState 的出边/终态性。候选侧 0019 只有 DIFF-0019-05（初始边上的自造事件）与 UM-0019；UM-0019 桶内形状最近的 X1 `0019-6` 逐字「到 FinishState 之后没有再初始化 / 重新选择模式的机制，模式选择只发生一次」已被裁 `NO_NL_BASIS`，且承重点是模式重选而非终态真伪。⚠️ 同形状在 0059 上有候选 VU-0059-01，0019 上确实没有。"
+  },
+  {
+   "issue_id": "INS-0019-03",
+   "pair": "0019",
+   "group": "nl_0009",
+   "overlap_kind": "candidate",
+   "overlap_target": "DIFF-0019-05",
+   "overlap": "candidate:DIFF-0019-05",
+   "basis": "INS 逐字「作者给根初始边挂了一句描述性文字——:2 `[*] --> AutonomousMode: Autonomous mode start`——而投影把 PlantUML 标签一律读成事件，于是那条边变成有触发的入口」；DIFF-0019-05 evidence 逐字「生成侧在两条初始边上凭空造了 Autonomous_mode_start 与 Start_of_autonomous_driving_mode 两个事件」，其映射说明逐字引「:2 `[*] --> AutonomousMode: Autonomous mode start`、:5 `[*] --> InitialState: Start of autonomous driving mode`」并引 UML 2.5.1 `Pseudostate::outgoing_from_initial`「The outgoing Transition from an initial vertex may have a behavior, but not a trigger or a guard.」。同 pair、同一行（:2）、同性质（初始伪状态出边被挂了触发）。⚠️ 表述方向相反（候选说「多了事件」，INS 说「因此失去无条件入口」），但指的是同一处、改法同一（去掉该标签），判为同一问题。"
+  },
+  {
+   "issue_id": "INS-0019-04",
+   "pair": "0019",
+   "group": "nl_0009",
+   "overlap_kind": "candidate",
+   "overlap_target": "DIFF-0019-05",
+   "overlap": "candidate:DIFF-0019-05",
+   "basis": "INS 逐字「复合态 `AutonomousMode` 没有无条件 `[*]` 入口边……:5 `[*] --> InitialState: Start of autonomous driving mode`」；DIFF-0019-05 覆盖的第二条边正是它——映射说明逐字「:5 `[*] --> InitialState: Start of autonomous driving mode`」，并自注「⚠️ 另：两条边两个事件，多实例同型」。同 pair、同一行（:5）、同性质，与 INS-0019-03 一并归入该候选（候选本身即按两条边同型合记）。"
+  },
+  {
+   "issue_id": "INS-0019-05",
+   "pair": "0019",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「驾驶模态叶态构成非平凡强连通分量……:15/:18 的 cruise↔lane_change、:29/:33 的 lane_change_urban↔straight、:37/:38 的 HighwayMode↔UrbanMode 模式切换」。台账 0019 三条与候选 DIFF-0019-05 / UM-0019 中无任何以环或全图拓扑为主体的条目：UM-0019 §3.3a 六组逐字分别讲动态切换写在顶层、intersection 缺出边、InitialState 与两模式缺互斥条件、进入点落在复合态、exit_urban 在 UrbanMode 之外、模式选择只发生一次——都不是强连通分量主张。"
+  },
+  {
+   "issue_id": "INS-0019-06",
+   "pair": "0019",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「碰撞监视器的 deactive↔active 2 元环，由 :42/:43 往返边构成」。0019 唯一同样点到这两条边的是台账 EIS-0019-02，其 generated_side 逐字「state CollisionAvoidanceSystem { collision_avoidance_deactive --> collision_avoidance_active: ...; collision_avoidance_active --> collision_avoidance_deactive: ... } —— 无任何初始边」——主张的是缺初始边，不是环。主体同、性质不同，不重合。"
+  },
+  {
+   "issue_id": "INS-0019-07",
+   "pair": "0019",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「模型没有根级终止汇点：全文 `--> [*]` 计数为 0」。台账 0019 三条与候选 DIFF-0019-05 / UM-0019 中无「`--> [*]`」「根级 final」「终止」类主张；UM-0019 内最近的 X1 `0019-6` 逐字「到 FinishState 之后没有再初始化 / 重新选择模式的机制」讲的是重选模式，且其复核逐字反驳了它（「『模式选择只发生一次』不成立」）。不重合。"
+  },
+  {
+   "issue_id": "INS-0029-01",
+   "pair": "0029",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「顶层块 `CollisionAvoidance`(:31) 一条入边都没有：根区唯一初始边是 :2 `[*] --> AutonomousMode`……于是 deactive 与 active 双双不可达」。台账 0029 五条主体逐字为 AutonomousMode 未开复合括号、enter_hwy 两条同守卫、cruise/lane_change 对 dist_to_exit<2 目标不一致、`HighwayMode --> enter_hwy : enter` 顶替初始伪状态、FinishState 绑进 HighwayMode——无一提及 CollisionAvoidance。候选 DIFF-0029-05（自造事件 initial/enter）、DIFF-0029-06（多余的 `AutonomousMode --> FinishState`）亦无；UM-0029 桶内形状最近的 X1 `0029-3` 逐字为「CollisionAvoidance 未声明为与 AutonomousMode 并行的正交区域」，裁定 `OUT_OF_SCOPE`——那是并发语义主张（界外），与可达性主张分属两事，VU-0049-01 自己也逐字划过这条界：「与 0049-5 的分界：那一簇索要的是并发语义（在 M 外），本簇断言的是可达性（在 M 内）」。故 0029 上这条可达性主张确无对应。"
+  },
+  {
+   "issue_id": "INS-0029-02",
+   "pair": "0029",
+   "group": "nl_0009",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0029-04",
+   "overlap": "ledger:EIS-0029-04",
+   "basis": "INS 逐字「作者用复合态自迁移顶替了初始伪状态：:11 `HighwayMode --> enter_hwy : enter` 写在 HighwayMode 块（:10–:18）内部，源是复合态本身、目标是它自己的子态……该块内没有 `[*] -->`」；EIS-0029-04 的 generated_side 逐字「state HighwayMode { HighwayMode --> enter_hwy : enter; ... }; state UrbanMode { UrbanMode --> enter_urban : enter; ... } —— 两个复合态都没有 [*] 初始边」，statement 逐字「生成侧改用「父态 --> 子态 + 自造 enter 事件」，FCSTM 投影在 HighwayMode 与 UrbanMode 内各注入了一个 UnspecifiedInitial」。同 pair、同一行（:11）、同性质。"
+  },
+  {
+   "issue_id": "INS-0029-03",
+   "pair": "0029",
+   "group": "nl_0009",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0029-04",
+   "overlap": "ledger:EIS-0029-04",
+   "basis": "INS 逐字「:21 `UrbanMode --> enter_urban : enter` 写在 UrbanMode 块（:20–:29）内部，复合态指向自己的子态……该块内同样没有 `[*] -->`」；EIS-0029-04 的 generated_side 同一条逐字「state UrbanMode { UrbanMode --> enter_urban : enter; ... }」，且该台账条目本就把两个复合态合记为一条。同 pair、同一行（:21）、同性质，归入同一台账条目。"
+  },
+  {
+   "issue_id": "INS-0029-04",
+   "pair": "0029",
+   "group": "nl_0009",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0029-05",
+   "overlap": "ledger:EIS-0029-05",
+   "basis": "INS 逐字「它在作者源首次出现于 HighwayMode 块内的 :15 `cruise --> FinishState : dist_to_exit<2`，按 PlantUML 首次出现定作用域即成为 HighwayMode 的子态……于是 :44 `HighwayMode --> FinishState : auto_finished=true` 是复合态指向自己的后代」；EIS-0029-05 的 generated_side 逐字「FinishState 首次出现在 state HighwayMode { cruise --> FinishState } 内，归属 HighwayMode；UrbanMode --> FinishState 与 AutonomousMode --> FinishState 都成为跨层边」。同 pair、同主体（FinishState 作用域）、同性质、同引用行（:15）。"
+  },
+  {
+   "issue_id": "INS-0029-05",
+   "pair": "0029",
+   "group": "nl_0009",
+   "overlap_kind": "suspect",
+   "overlap_target": "EIS-0029-05",
+   "overlap": "suspect:EIS-0029-05",
+   "basis": "INS 承重句逐字「模型没有根级终止汇点：全文 `--> [*]` 计数为 0」——台账 0029 五条无一处出现 `--> [*]` 或终止义务。但 INS 的第二半「NL 指定的终点 FinishState 又因 :15 被限定在 HighwayMode 内部」与 EIS-0029-05 逐字「FinishState 首次出现在 state HighwayMode { cruise --> FinishState } 内，归属 HighwayMode」同一。主体与性质不同（全图 nontermination vs FinishState 层次归属），按新建；根因一半重合，请判读者确认。⚠️ 另注：INS 引的 :40 `AutonomousMode --> FinishState : auto_finished=true` 正是候选 DIFF-0029-06 的主体（evidence 逐字「生成侧多写了一条以平级叶态 AutonomousMode 为源的完成边」），但那条主张的是「多了一条冗余边」，与本条的不终止主张不同性质。"
+  },
+  {
+   "issue_id": "INS-0029-06",
+   "pair": "0029",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「碰撞监视器的 deactive↔active 2 元环，由 :33/:34 往返边构成」。0029 台账五条不涉碰撞子系统；候选侧唯一点到 :33 的是 UM-0029 桶内 X1 `0029-4`，逐字「collision_avoidance_deactive --> collision_avoidance_active 的守卫表达式运算符优先级/分组含糊」——主张的是守卫括号缺失，不是环。主体部分重叠、性质不同，不重合。"
+  },
+  {
+   "issue_id": "INS-0029-07",
+   "pair": "0029",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「驾驶模态叶态构成非平凡强连通分量……:14/:16 的 cruise↔lane_change、:25/:28 的 lane_change_urban↔straight、:37/:38 的 HighwayMode↔UrbanMode 模式切换」。台账五条与候选 DIFF-0029-05 / -06 / UM-0029 中无任何以环或全图拓扑为主体者（UM-0029 §3.3a 八组逐字分别讲 exit_urban 悬挂、正交区域、road_clear 命名、守卫优先级、straight 缺出边、intersection 缺出边、highway_mode 无来源、互切换来源不完整）。不重合。"
+  },
+  {
+   "issue_id": "INS-0029-08",
+   "pair": "0029",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「拓扑不强制所有根可达执行最终到达根终止态；根因同为全文 `--> [*]` 计数为 0、模型没有根级 final」。台账 0029 五条与候选均无「根级 final」「`--> [*]`」类主张。不重合。"
+  },
+  {
+   "issue_id": "INS-0039-01",
+   "pair": "0039",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「同一条迁移被声明了两次：:14 与 :19 逐字完全相同（`cruise --> lane_change : dist_to_front<25 && extra_lane=true`）」（我已回作者源核对：:14 与 :19 确为同一串）。台账 0039 只有两条——EIS-0039-01 逐字「只有 enter_hwy --> cruise（无守卫）；没有 enter_hwy --> lane_change」、EIS-0039-02 逐字「在 AutonomousMode 闭合括号之外写 AutonomousMode --> HighwayMode : high_way=true; AutonomousMode --> UrbanMode : urban_way=true」——都不涉重复边。候选 VU-0039-01（FinishState 非终态）、DIFF-0039-02（无标签边抢占）、DIFF-0039-04（根有两条初始边）、UM-0039（§3.3a 九组 + §3.3b 十九组，我逐组读过）中无一主张同一条迁移被写了两遍。"
+  },
+  {
+   "issue_id": "INS-0039-02",
+   "pair": "0039",
+   "group": "nl_0009",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0039-02",
+   "overlap": "ledger:EIS-0039-02",
+   "basis": "INS 逐字「:41 `AutonomousMode --> HighwayMode : high_way=true` 与 :42 `AutonomousMode --> UrbanMode : urban_way=true` 写在 AutonomousMode 块闭合括号 :39 `}` 之后，而 HighwayMode(:10–:20) 与 UrbanMode(:24–:36) 都是 AutonomousMode 的显式子态」；EIS-0039-02 的 generated_side 逐字「在 AutonomousMode 闭合括号之外写 AutonomousMode --> HighwayMode : high_way=true; AutonomousMode --> UrbanMode : urban_way=true（父复合态指向自身后代）」，statement 逐字「身处 HighwayMode 时收到 high_way=true 会退出并重入 HighwayMode，把已推进的子态进度复位」。同 pair、同两行、同性质，完全一致。"
+  },
+  {
+   "issue_id": "INS-0039-03",
+   "pair": "0039",
+   "group": "nl_0009",
+   "overlap_kind": "suspect",
+   "overlap_target": "UM-0039",
+   "overlap": "suspect:UM-0039",
+   "basis": "INS 逐字「:13 `enter_hwy --> cruise` 这条边既无事件也无守卫（逐字无冒号、无标签）。NL 第 3 段明确要求该转移基于 `dist_to_front<25` 与 `extra_lane=true`」；UM-0039 桶内 §3.3b 有一组（1 格，需求 `REQ-003E`）逐字「enter_hwy 未声明由 dist_to_front<25 && extra_lane=true 触发到 lane_change/cruise 的转移」，rationale 逐字「模型在 enter_hwy 上没有以该事件触发的任何转移（既无到 lane_change，也无到 cru…」——同 pair、同源态、同性质（NL 点名的触发没挂上）。⚠️ 三点不齐故只判 suspect：(a) 该组同时含「到 lane_change 缺边」，那半边已是台账 EIS-0039-01；(b) UM 的登记单位是整张表（映射自陈 `blocker: unit_of_record`），一格代表不了；(c) 候选 DIFF-0039-02 也以这条无标签边为对象，但它判的是参考侧「这条无标签边会立即触发，使参考自己声明的 enter_hwy --> lane_change 实际上不可达」，主张对象是参考模型、性质是抢占致死边，与 INS 判生成侧缺守卫不同。"
+  },
+  {
+   "issue_id": "INS-0039-04",
+   "pair": "0039",
+   "group": "nl_0009",
+   "overlap_kind": "suspect",
+   "overlap_target": "VU-0039-01",
+   "overlap": "suspect:VU-0039-01",
+   "basis": "INS 逐字「模型没有根级终止汇点，且 NL 的终点 FinishState 可被带回模式内部……:41 `AutonomousMode --> HighwayMode : high_way=true` 这条从其父态出发的群迁移对它同样生效，于是「结束」后又被带回 HighwayMode」；VU-0039-01 主张逐字「FinishState 只作为迁移目标出现，未被声明为状态、也不是终态伪状态，NL 所称的自主驾驶「终止」在模型上未兑现」，承重点逐字「没有将其定义为终止状态（[*]）／未以 [*] 终态表达／语义不完整」——两者同指「终止意图未兑现」。⚠️ 两处不齐故只判 suspect：(a) VU-0039-01 的复核事实逐字「全模型不存在任何终态伪状态（唯二的 `[*] -->` 是 :2 与 :44 两条初始边）」，而作者源 :16 `lane_change --> [*] : dist_to_exit<2`、:18 `cruise --> [*] : dist_to_exit<2` 确是 HighwayMode 区域内的终态边（我已回源核对），与 INS 的计数（`--> [*]` = 2）说法不一致；(b) INS 的陷阱环机制已被台账 EIS-0039-02 逐字记过——「InitialState、FinishState 也各多出一条 high_way/urban_way 的组出边」。请判读者裁定并入 VU-0039-01 还是 EIS-0039-02。"
+  },
+  {
+   "issue_id": "INS-0039-05",
+   "pair": "0039",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「驾驶模态叶态构成非平凡强连通分量。根因是作者写出的环：:14/:15 的 cruise↔lane_change，以及 :41/:42 造成的 AutonomousMode 自重入把 InitialState 也卷进环里」。台账 EIS-0039-02 虽同样引 :41/:42，但其主张逐字是「属过度规定」（over_specification，多了两条 NL 未授权的边），不是「存在强连通分量」；候选 VU-0039-01 / DIFF-0039-02 / DIFF-0039-04 / UM-0039 中亦无环主张。主体（全图环）与性质均不同，不重合。"
+  },
+  {
+   "issue_id": "INS-0039-06",
+   "pair": "0039",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「碰撞监视器的 deactive↔active 2 元环，由 :46/:48 往返边构成」，并把 :44 `[*] --> collision_avoidance_deactive` 只作背景交代。候选 DIFF-0039-04 虽以 :44 为主体，但 evidence 逐字是「根状态同时存在 [*] -> AutonomousMode 与 [*] -> collision_avoidance_deactive 两条初始边，处于同一顺序区域内——根的默认进入点不唯一」，主张的是初始伪状态过多 / 默认进入点不唯一，与 2 元环不同性质。台账 0039 两条不涉碰撞子系统。不重合。"
+  },
+  {
+   "issue_id": "INS-0039-07",
+   "pair": "0039",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「碰撞监视器那个 2 元环没有到根 exit sink 的路。根因是根级终止汇点不存在（作者源仅有的两条 `--> [*]` 在 HighwayMode 块内）」。碰撞监视器与 FinishState 在图上互不相连，故 VU-0039-01（FinishState 该是终态）即便成立也不覆盖本条；台账两条与 DIFF-0039-02 / -04 / UM-0039 中亦无以碰撞子系统终止性为主体者。不重合。"
+  },
+  {
+   "issue_id": "INS-0039-08",
+   "pair": "0039",
+   "group": "nl_0009",
+   "overlap_kind": "suspect",
+   "overlap_target": "VU-0039-01",
+   "overlap": "suspect:VU-0039-01",
+   "basis": "INS 逐字「拓扑不强制所有根可达执行最终到达根终止态，反例路径是驾驶模态那批叶态。根因同为根级 final 不存在」；VU-0039-01 承重点逐字「没有将其定义为终止状态（[*]）／未以 [*] 终态表达」、主张逐字「NL 所称的自主驾驶「终止」在模型上未兑现」——若 FinishState 被改成终态，本条的驾驶模态反例即被消解，两者同指「模型没有根级 final」这一件事。⚠️ 主体表述不同（INS 说全图拓扑，候选说 FinishState 这一个状态），故只判 suspect 不判重合；且本条与同批 INS-0039-04 同根。"
+  },
+  {
+   "issue_id": "INS-0049-01",
+   "pair": "0049",
+   "group": "nl_0009",
+   "overlap_kind": "candidate",
+   "overlap_target": "VU-0049-01",
+   "overlap": "candidate:VU-0049-01",
+   "basis": "INS 逐字「顶层块 `CollisionAvoidance`(:37) 一条入边都没有：根区唯一初始边是 :2 `[*] --> AutonomousMode`，全文无任何指向该块的迁移；:38 `[*] --> collision_avoidance_deactive` 只是区域内初始边」；VU-0049-01 主张逐字「CollisionAvoidance 永远不会被激活：顶层初始迁移只进入 AutonomousMode，该子机没有任何入边。」，复核事实逐字「stm0.puml:2 `[*] --> AutonomousMode` 是全文唯一的顶层初始边；`CollisionAvoidance` 全文只出现一次，即 :37 的 `state CollisionAvoidance {` 声明，无任何以它为目标的迁移」。同 pair、同主体、同性质、同引用行（:2 / :37）。"
+  },
+  {
+   "issue_id": "INS-0049-02",
+   "pair": "0049",
+   "group": "nl_0009",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0049-02",
+   "overlap": "ledger:EIS-0049-02",
+   "basis": "INS 逐字「它在作者源首次出现于 HighwayMode 块（:8–:17）内的 :13 `lane_change --> FinishState : dist_to_exit<2`，故是 AutonomousMode 的后代。于是写在 AutonomousMode 块闭合 :35 `}` 之后的 :43 `AutonomousMode --> FinishState : auto_finished=true` 是复合态指向自己的后代」；EIS-0049-02 的 generated_side 逐字「FinishState 首次出现在 state HighwayMode { lane_change --> FinishState } 内，归属 HighwayMode；末行 AutonomousMode --> FinishState : auto_finished=true 于是把所有完成路径都导向 HighwayMode 内部」。同 pair、同主体、同性质，连举证用的两行（:13 / :43）都相同。"
+  },
+  {
+   "issue_id": "INS-0049-03",
+   "pair": "0049",
+   "group": "nl_0009",
+   "overlap_kind": "suspect",
+   "overlap_target": "EIS-0049-02",
+   "overlap": "suspect:EIS-0049-02",
+   "basis": "INS 承重句逐字「模型没有根级终止汇点：全文 `--> [*]` 计数为 0（:38 是方向相反的 `[*] -->` 初始边）」——台账 0049 三条（EIS-0049-01 dist_to_exit 合并、-02 FinishState 层次归属、-03 四条完成边过度规定）无一提及 `--> [*]` 或终止义务。但 INS 的第二半「NL 的终点 FinishState 又因 :13 被限定在 HighwayMode 内」与 EIS-0049-02 逐字同一。主体与性质不同（全图 nontermination vs FinishState 归属），按新建；根因一半重合，请判读者确认。"
+  },
+  {
+   "issue_id": "INS-0049-04",
+   "pair": "0049",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「驾驶模态叶态构成非平凡强连通分量……:12/:14 的 lane_change↔cruise、:24/:27 的 lane_change_urban↔straight、:26/:29 的 straight↔intersection、:33/:34 的模式切换」。台账三条主体分别是 dist_to_exit<2 接到 FinishState、FinishState 的层次归属、四条冗余完成边；候选 VU-0049-01 是可达性、UM-0049 桶内九组逐字讲 exit_urban 死状态、dist_to_front>=25 无 NL 依据、intersection-->straight 无 NL 依据、并发区域、road_clear 命名、切换未指定子状态、阈值不一致、碰撞系统未初始化、in(HighwayMode) 守卫写法——无一以环为主体。不重合。"
+  },
+  {
+   "issue_id": "INS-0049-05",
+   "pair": "0049",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「碰撞监视器的 deactive↔active 2 元环，由 :39/:40 往返边构成」。0049 唯一同样点到碰撞子系统的候选 VU-0049-01 主张逐字为「CollisionAvoidance 永远不会被激活……该子机没有任何入边」（可达性），UM-0049 内 `0049-5` 逐字为并发区域主张、`0049-8` 逐字为「CollisionAvoidance 中『in(HighwayMode)』『in(UrbanMode)』作为守卫」——都不是环主张。主体同、性质不同，不重合。"
+  },
+  {
+   "issue_id": "INS-0049-06",
+   "pair": "0049",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「拓扑不强制所有根可达执行最终到达根终止态；根因同为全文 `--> [*]` 计数为 0、模型没有根级 final」。台账 0049 三条与候选 VU-0049-01 / UM-0049 中无「根级 final」「`--> [*]`」「终止」类主张（0049 没有 0039/0059 那样的 FinishState-非终态候选）。不重合。"
+  },
+  {
+   "issue_id": "INS-0059-01",
+   "pair": "0059",
+   "group": "nl_0009",
+   "overlap_kind": "candidate",
+   "overlap_target": "VU-0059-03",
+   "overlap": "candidate:VU-0059-03",
+   "basis": "INS 逐字「顶层块 `CollisionAvoidanceSystem`(:37) 一条入边都没有：根区唯一初始边是 :3 `[*] --> AutonomousMode`，全文无任何指向该块的迁移；:38 `[*] --> collision_avoidance_deactive` 只是区域内初始边」；VU-0059-03 主张逐字「CollisionAvoidanceSystem 不会随系统启动被激活：顶层初始只进入 AutonomousMode，它与顶层初始没有任何连接。」，复核逐字「stm0.puml:3 `[*] --> AutonomousMode` 是全文唯一的顶层初始边；`CollisionAvoidanceSystem` 全文只出现于 :37 的 `state CollisionAvoidanceSystem {` 声明，无任何以它为目标的迁移」。同 pair、同主体、同性质、同引用行（:3 / :37）。"
+  },
+  {
+   "issue_id": "INS-0059-02",
+   "pair": "0059",
+   "group": "nl_0009",
+   "overlap_kind": "candidate",
+   "overlap_target": "VU-0059-01",
+   "overlap": "candidate:VU-0059-01",
+   "basis": "INS 逐字「`AutonomousMode.FinishState` 是一个真死端：它由 :33 `HighwayMode --> FinishState : [auto_finished=true]` 与 :34 `UrbanMode --> FinishState : [auto_finished=true]` 指向……自身出边 0 条」；VU-0059-01 主张逐字「FinishState 只作为迁移目标出现，既没有 state 声明、也没有终态标记 [*] 与出边，语义上不成其为结束状态」，复核逐字「:33 `HighwayMode --> FinishState : [auto_finished=true]`、:34 `UrbanMode --> FinishState : [auto_finished=true]`；无任何以它为源的边」，承重点逐字「成立并承重的是『没有 [*] 终态标记 / 没有出边』这一半」。同 pair、同主体、同性质、同两行。⚠️ 座标判读不同（候选取 element/state/incorrect 并明写「⛔ 不落 global+unintended_terminal」，INS 取 global/unintended_terminal），但那是同一缺陷的分类分歧，不是两条缺陷。"
+  },
+  {
+   "issue_id": "INS-0059-03",
+   "pair": "0059",
+   "group": "nl_0009",
+   "overlap_kind": "suspect",
+   "overlap_target": "DIFF-0059-02",
+   "overlap": "suspect:DIFF-0059-02",
+   "basis": "INS 逐字「:12 `enter_hwy --> cruise` 这条边既无事件也无守卫（逐字无冒号、无标签）。NL 第 3 段明确要求该转移基于 `dist_to_front<25` 与 `extra_lane=true`」；DIFF-0059-02 evidence 逐字「无标签边立即触发会使参考自己声明的 enter_hwy --> lane_change 不可达」，判定者理由逐字「0059 照抄了这条无标签边并删掉 lane_change 分支，实际行为与参考一致」。同 pair、同一条边（enter_hwy --> cruise 的无标签写法），但主张对象与性质都不同：候选判的是参考侧的完成迁移抢占（`locus=pair` / `other`，且结论是「无法判定谁对」），INS 判的是生成侧这条边缺 NL 要求的守卫；且候选的理由恰好为生成侧的写法开脱，与 INS 结论相反。⚠️ 台账 EIS-0059-01 的 generated_side 也逐字写了「只有 enter_hwy --> cruise（无守卫）」，但其主张主体是缺失的 enter_hwy --> lane_change 那条边，不是这条边的守卫。故按新建并请判读者确认。"
+  },
+  {
+   "issue_id": "INS-0059-04",
+   "pair": "0059",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「驾驶模态叶态构成非平凡强连通分量……:13/:14 的 cruise↔lane_change、:24/:27 的 lane_change_urban↔straight、:30/:31 的 HighwayMode↔UrbanMode 模式切换」。0059 台账仅 EIS-0059-01 一条（逐字「只有 enter_hwy --> cruise（无守卫）；没有 enter_hwy --> lane_change」）；候选 VU-0059-01（FinishState 非终态）、VU-0059-02（逐字「任一对同时为真时，从 enter_urban 出发的后继不唯一，即非确定」）、VU-0059-03（不可达）、DIFF-0059-02（抢占）、UM-0059（十一组 + §3.3b 各组，逐组读过）中均无环主张。不重合。"
+  },
+  {
+   "issue_id": "INS-0059-05",
+   "pair": "0059",
+   "group": "nl_0009",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "INS 逐字「碰撞监视器的 deactive↔active 2 元环，由 :39/:40 往返边构成」。0059 候选中同样点到碰撞子系统的是 VU-0059-03（主张逐字「不会随系统启动被激活……与顶层初始没有任何连接」，可达性）与 UM-0059 内 `0059-3`（逐字「碰撞避免触发条件使用了未定义的守卫 in_highway 与 in_urban」）、`0059-4`（并发区域）、`0059-6`（守卫写法不规范）——无一以 2 元环为主体。不重合。"
+  },
+  {
+   "issue_id": "INS-0059-06",
+   "pair": "0059",
+   "group": "nl_0009",
+   "overlap_kind": "suspect",
+   "overlap_target": "VU-0059-01",
+   "overlap": "suspect:VU-0059-01",
+   "basis": "INS 逐字「模型没有根级终止汇点：全文 `--> [*]` 计数为 0……所以两条实质都只在说「模型没有 UML final 状态」」；VU-0059-01 承重点逐字「成立并承重的是『没有 [*] 终态标记 / 没有出边』这一半」，其复核逐字「机器一旦完成自动驾驶就永远停在那里，不会真正 terminate」——同指「模型没有真正的终态、机器不终止」。⚠️ 主体表述不同（INS 说全图拓扑与根 exit sink，候选说 FinishState 这一个状态），且本条与同批 INS-0059-02 同根（后者已判与 VU-0059-01 重合），故此处只判 suspect，请判读者确认是并入 VU-0059-01 还是与 INS-0059-02 合并。"
+  },
+  {
+   "issue_id": "INS-0000-04",
+   "pair": "0000",
+   "group": "nl_0000",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "0000 的两条台账都不是这件事：EIS-0000-01 主张的是 Power Off 的源端是伪初始、FinalState 无出边（statement 逐字「FinalState 只是普通命名状态、无出边，模型永远不会真正 terminate」），EIS-0000-02 主张三个接管条件被压成单一事件标签；两条都没有主张「初始边不得带触发」。候选侧本 pair 无 `VU-`；⚠️ 唯一碰到同一行的是 §3.2b 里判为 `correct` 的 diff #1（逐字「NL 第3句（power on 进入 human driving mode）被完整表达，触发事件未丢失，与参考一致」）—— 它判的是**对 NL 的忠实度**，本条判的是**UML 良构性**，两个不同主张，而 §3.2b 那族按设计不设裁决区、也没有映射键，故不构成 `candidate:` 重合。⭐ 可横向对比的是同组 0040：那一份的同型诊断判重结果是 `candidate:VU-0040-01`。"
+  },
+  {
+   "issue_id": "INS-0013-05",
+   "pair": "0013",
+   "group": "nl_0002",
+   "overlap_kind": "none",
+   "overlap_target": null,
+   "overlap": "none",
+   "basis": "0013 唯一的台账条目 EIS-0013-01 主张的是**基数**（statement 逐字「七个 ≠ 三个，这条基数断言都被违反」），与「环没有通往终止的路径」无关。候选侧 DIFF-0013-01 主张的是「三条区初始边使默认进入点不唯一」+ 空区 0（逐字「行首多余的 -- 造出一个既无状态也无初始边的空区域 0」），也不是本条。充分性检验：把 EIS-0013-01 那一处改对（删掉 A / B 两套克隆），剩下的三态环照旧没有出口 → 不重合。"
+  },
+  {
+   "issue_id": "INS-0017-02",
+   "pair": "0017",
+   "group": "nl_0007",
+   "overlap_kind": "candidate",
+   "overlap_target": "VU-0017-01",
+   "overlap": "candidate:VU-0017-01",
+   "basis": "并入候选 `VU-0017-01`。该候选的复核认定事实逐字为「没有任何进入或激活 Collision_Avoidance_Active_Mode 的入口迁移，激活语义被下放到各区域的初始伪状态」，与本条主张（整份作者源没有顶层初始迁移）是同一件事、同一处、同一性质。其映射逐字给的也是 `element` / `transition` / `missing` / `requirement`，与本条恢复后的座标一致。充分性检验：补上那一行顶层初始边，两侧的事实同时消失。"
+  },
+  {
+   "issue_id": "INS-0047-03",
+   "pair": "0047",
+   "group": "nl_0007",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0047-02",
+   "overlap": "ledger:EIS-0047-02",
+   "basis": "并入台账 `EIS-0047-02`。台账 statement 逐字「CollisionAvoidanceSystem 有三个子状态却没有初始子状态，进入它时落到合成的 UnspecifiedInitial，连唯一存活的 Frontend 控制也不可达；UML 要求区必须有默认入口或显式进入点，这是结构缺陷」；本条 puml_evidence 逐字「:2 与 :23 之间没有任何一行是 `[*] --> <子复合态>`」。同 pair、同主体（CollisionAvoidanceSystem 这一层）、同性质（缺默认入口）。充分性检验：把台账那一处改对（补本层默认入口），本条的五条诊断全部消失 → 同一缺陷。"
+  },
+  {
+   "issue_id": "INS-0057-03",
+   "pair": "0057",
+   "group": "nl_0007",
+   "overlap_kind": "ledger",
+   "overlap_target": "EIS-0057-01",
+   "overlap": "ledger:EIS-0057-01",
+   "basis": "并入台账 `EIS-0057-01`。台账 statement 逐字「CA 有三个子状态却无初始子状态，`Possible collision detected` 把系统送进 CA 后落到合成的 UnspecifiedInitial（FCSTM 确认 `state UnspecifiedInitial` + `[*] -> UnspecifiedInitial`），FCIdle / RCIdle / PCIdle 三路控制全部不可达」；本条 puml_evidence 逐字「:2 与 :20 之间没有任何一行是 `[*] --> <子复合态>`」。同 pair、同主体（CA 这一层）、同性质。充分性检验：补上 CA 的默认入口，本条十条诊断全部消失 → 同一缺陷。"
+  }
+ ]
+}

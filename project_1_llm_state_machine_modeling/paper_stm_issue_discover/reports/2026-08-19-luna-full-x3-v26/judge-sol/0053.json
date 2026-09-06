@@ -1,0 +1,593 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0053",
+  "ledger": [
+    {
+      "ledger_id": "DIFF-0053-01",
+      "pair": "0053",
+      "D": "D2",
+      "L": "L2",
+      "summary": "制品里没有任何 `--` 区域分隔符，`PumpRegion`、`WaterRegion`、`MethaneRegion` 三个 wrapper 在顺序语义下互斥、彼此之间也没有任何迁移——三个主子态从「可同时活跃」退化成「互斥且互不可达」。",
+      "detail": "上游论文对本 case 记录的语义幻觉是「1. missing regions」，并声称语义修复完成度为 1.0。但这份 Phase-II 制品（即经过全部修复阶段之后的产物）里检索不到任何 `--` 分隔符：`:5 state PumpControl {` 与 `:20 }` 之间只有三个并列的 `state XRegion { }` 块，没有区域划分。区域缺失依然存在。\n\n后果是实质的。在顺序语义下，同一个区域里的三个子状态互斥——同一时刻最多只有一个能活跃。而三个 wrapper 之间没有任何迁移（全文只有四条迁移 `:3`、`:7`、`:12`、`:17`，源全部是 `[*]`），所以即便进入了其中一个，也到不了另外两个。\n\n这里要把两件事分开。「本该是并发区却做成了顺序子态」这一层涉及正交区并发语义，超出本研究的建模对象 $M = (S, E, V, Tr, A)$，那一层不计入；但「三个主子态互斥且互不可达」是在 $M$ 内部就能陈述和判定的语义损失——NL 第 1 句要求「from which it can transition to different substates based on specific conditions」，第 3、4、5 句分别要求能进入三种工况，这些在制品上一个都实现不了。\n\n结合 EIS-0053-01（PumpControl 这一层没有默认入口）看，实际上三个 wrapper 一个都进不去。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 1 句要求在子态之间按条件切换，以及第 3 句「The system first transitions to the PumpState substate」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——全文没有 `--`，三个 wrapper 在顺序语义下互斥是确定的解析结果；它们之间零迁移也是可检索的事实。反驳不存活。",
+      "L_basis": "判 L2。陈述这条错误的核心是一个可达性论证：要说明从任一 wrapper 出发都到不了另外两个（进而三种工况无法切换），必须对全部迁移做穷尽考察。这是对行为集合的排除，不是单个系统状态上的静态判断。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unreachable",
+        "defect_reference": "language"
+      }
+    },
+    {
+      "ledger_id": "EIS-0053-01",
+      "pair": "0053",
+      "D": "D2",
+      "L": "L0",
+      "summary": "三条默认入口边（`:7`、`:12`、`:17`）都写在各自的 wrapper 内部，`PumpControl` 这一层没有任何默认进入点——进入 PumpControl 后三个 wrapper 一个都不会被进入，`PumpState` 不可达。",
+      "detail": "NL 第 3 句逐字为「The system first transitions to the PumpState substate, where the pump is activated or controlled.」。\n\n制品在 `:5` 开 `state PumpControl {`，块内直接放了三个具名复合态：`:6 state PumpRegion {`、`:11 state WaterRegion {`、`:16 state MethaneRegion {`。三条 `[*] -->`（`:7`、`:12`、`:17`）分别写在这三个块的内部，是各自的内部入口，比 `PumpControl` 这一层低一层。\n\n于是 `PumpControl` 自己这一层没有 `[*] -->`。`:3 [*] --> PumpControl` 把系统送进来之后，不知道该落到三个 wrapper 中的哪一个，投影为此注入了占位的未指定初始状态。`PumpState` 因此不可达，NL 第 3 句要求的首个落点无法实现。\n\n第一版台账没有记录这一条。它与台账已接受为有效条目的 EXP-0019-IT-001（碰撞规避缺初始边）是完全同型的证据：同样是作者源没写这一层的初始边、同样由投影注入占位、同样用结构族的初始目标谓词断言。而且本 pair 的排除理由比 pair 0029 更弱——0029 至少写了一条意图性的替代边（`HighwayMode --> enter_hwy : enter`），0053 连这个都没有。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 3 句「The system first transitions to the PumpState substate」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——三条 `[*]` 的层级由花括号配对唯一确定，它们确实比 `PumpControl` 低一层；而 `PumpControl` 这一层也没有任何替代性的进入边可以充当默认入口。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需数花括号，确认三条 `[*]` 各自落在哪一层，再看 `PumpControl` 自己那一层有没有 `[*] -->`（没有）。这是纯词法层面的检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "INS-0053-02",
+      "pair": "0053",
+      "D": "D2",
+      "L": "L2",
+      "summary": "`PumpState`、`WaterState`、`MethaneState` 三个状态都没有任何出边，它们的各级祖先与根层也都没有出边——全文 4 条迁移的源全部是 `[*]`，以具名状态为源的迁移是零条，这份制品是个零行为的纯桩。",
+      "detail": "先给一个能一眼看清全局的事实：全文只有四条迁移（`:3`、`:7`、`:12`、`:17`），它们的源**全部**是 `[*]`。以任何具名状态为源的迁移一条都没有。\n\n落到三个状态上：`PumpState`（由 `:7` 引入，`:8` 是描述文字）、`WaterState`（`:12` 引入，`:13` 描述）、`MethaneState`（`:17` 引入，`:18` 描述）都没有出边；它们各自的父态 `PumpRegion`（:6-:9）、`WaterRegion`（:11-:14）、`MethaneRegion`（:16-:19）没有出边；共同祖先 `PumpControl`（:5-:20）没有出边；根层除 `:3` 外也没有其它迁移。所以无论进到哪一个，都再也离不开。\n\n因此这不是三个互不相关的局部出口缺失，而是一个整体性的「零行为纯桩」问题：三个子区各声明一个状态，除三条区内默认入口边之外没有任何行为。NL 第 1 句要求的「按条件在子态间切换」与第 3、4、5 句要求的三种工况一个都实现不了。\n\n**关于合并**：最终人工裁决把原 `INS-0053-03`（主体是 `WaterState`）与原 `INS-0053-04`（主体是 `MethaneState`）并入本条，只保留一个裁决区，理由是三处事实同根于上面那个全局事实、只应计一个问题。两条原始的三方判读与 meta review 完整保存在 D 档重复区的 JSON 里。为便于追溯，这里保留它们的状态级事实：原 `INS-0053-03` —— `WaterState` 没有任何出边，其祖先 `WaterRegion`、`PumpControl` 与根层也都没有出边或成组迁移，故进入后永远离不开；原 `INS-0053-04` —— `MethaneState` 同理，祖先是 `MethaneRegion`。\n\n**关于不合并**：本条不与 `INS-0053-01` 或 `EIS-0053-01`（缺入口导致不可达）合并——修好入口不会补出任何具名状态的出边，两者是不同的编辑。另需注意本条与不可达是同一片结构空缺的两面（这些状态既进不去、进去了也出不来），不宜当作两个彼此独立的设计缺陷计数。",
+      "D_basis": "判 D2，并作为三条死端诊断的合并宿主。承重事实是全局性的：全文四条迁移的源全是 `[*]`、具名状态源迁移为零，因此 `:3` 可进入的 `PumpControl` 没有任何可启用的出边，也没有终止声明——既命中可达复合态死锁，也使 NL 第 1、3、4、5 句要求的条件驱动子态迁移全部不可实现。判读中出现过一种反驳（「只是缺了出口、不碍事」），它没有回应上面这个全局事实，不存活。",
+      "L_basis": "判 L2。陈述这条错误需要两件事同时成立：这些状态可达（给出路径），以及从它们出发不存在任何后继——后者要穷尽检查全部迁移，还要逐级确认各级祖先与根层都没有可继承的成组出边。两者都是对行为的构造与排除。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unintended_terminal",
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:entry_deadlock:PumpControl",
+          "claims": [
+            "Source composite 'PumpControl' is reachable but has no default child entry or inherited continuation; its exact compiler fail-closed state is deadlocked."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0053.PumpControl.UnspecifiedInitial"
+          ],
+          "obligations": [
+            "A reachable non-final behavior must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:entry_deadlock:PumpControl:facet:503d89daad7a"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:PumpControl",
+          "claims": [
+            "Source composite 'PumpControl' has no initial transition to required child 'PumpControl.PumpRegion.PumpState'.",
+            "PumpState is unreachable from the system root despite being the required first operating substate.",
+            "PumpState is not reachable from the system root as required by the stated PumpControl behavior.",
+            "WaterState is unreachable from the system root, so the required water-flow operating behavior cannot be entered.",
+            "WaterState is not reachable from the system root as required by the PumpControl behavior.",
+            "MethaneState is unreachable from the system root, so the required methane-flow operating behavior cannot be entered.",
+            "MethaneState is not reachable from the system root as required by the PumpControl behavior."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L3",
+            "PumpControl",
+            "llms_emp_feedback_final_0053.PumpControl.PumpRegion.PumpState",
+            "NL4",
+            "llms_emp_feedback_final_0053.PumpControl.WaterRegion.WaterState",
+            "NL5",
+            "llms_emp_feedback_final_0053.PumpControl.MethaneRegion.MethaneState"
+          ],
+          "obligations": [
+            "PumpControl must initially enter PumpControl.PumpRegion.PumpState.",
+            "PumpControl initially enters PumpState.",
+            "The required first operating state is reachable from the system root.",
+            "The first operating substate must be reachable from the system root.",
+            "WaterState is reachable from the system root.",
+            "WaterState must be reachable from the system root.",
+            "MethaneState is reachable from the system root.",
+            "MethaneState must be reachable from the system root."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 4,
+          "facet_keys": [
+            "source:initial_contract:PumpControl:facet:1ea365f09900",
+            "source:initial_contract:PumpControl:facet:2c46ed356b40",
+            "source:initial_contract:PumpControl:facet:d9279a6608ca",
+            "source:initial_contract:PumpControl:facet:07c5656bb206"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:entry_deadlock:PumpControl",
+          "claims": [
+            "Source composite 'PumpControl' is reachable but has no default child entry or inherited continuation; its exact compiler fail-closed state is deadlocked."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0053.PumpControl.UnspecifiedInitial"
+          ],
+          "obligations": [
+            "A reachable non-final behavior must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:entry_deadlock:PumpControl:facet:503d89daad7a"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:PumpControl",
+          "claims": [
+            "Source composite 'PumpControl' has no initial transition to required child 'PumpControl.PumpRegion.PumpState'."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L3",
+            "PUML:L7",
+            "F16",
+            "F18"
+          ],
+          "obligations": [
+            "PumpControl must initially enter PumpControl.PumpRegion.PumpState.",
+            "PumpControl first transitions to PumpState."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:initial_contract:PumpControl:facet:1ea365f09900",
+            "source:initial_contract:PumpControl:facet:c5ce082aff7a"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:entry_deadlock:PumpControl",
+          "claims": [
+            "Source composite 'PumpControl' is reachable but has no default child entry or inherited continuation; its exact compiler fail-closed state is deadlocked."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0053.PumpControl.UnspecifiedInitial"
+          ],
+          "obligations": [
+            "A reachable non-final behavior must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:entry_deadlock:PumpControl:facet:503d89daad7a"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:PumpControl",
+          "claims": [
+            "Source composite 'PumpControl' has no initial transition to required child 'PumpControl.PumpRegion.PumpState'.",
+            "Source composite 'PumpControl' has no initial transition to required child 'PumpControl'."
+          ],
+          "locations": [
+            "NL3",
+            "NL1",
+            "PUML:L3",
+            "FCSTM:F15",
+            "FCSTM:F16",
+            "PumpControl"
+          ],
+          "obligations": [
+            "PumpControl must initially enter PumpControl.PumpRegion.PumpState.",
+            "The system begins in PumpControl without an additional unspecified initial target within that state."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:initial_contract:PumpControl:facet:1ea365f09900",
+            "source:initial_contract:PumpControl:facet:c88c623e1244"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "PumpControl 内部被建模为三个并行区域（PumpRegion、WaterRegion、MethaneRegion），而不是一个包含三个可选择子状态的状态结构。",
+          "reason": "规范描述 PumpControl 下有三个主要子状态 PumpState、WaterState 和 MethaneState，系统从 PumpControl 可根据条件转移到不同子状态。这通常要求三者处于同一互斥状态层级；当前模型的三个区域各自拥有初始伪状态，PlantUML 语义上会同时激活三个区域，因此不能表示在三个子状态之间选择性转移。",
+          "where": "PumpControl 内的 state PumpRegion、state WaterRegion、state MethaneRegion 定义"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型没有表示从 PumpState 转移到 WaterState 或 MethaneState 的任何条件转移。",
+          "reason": "规范明确说明系统从 PumpControl 可基于特定条件转移到 WaterState 和 MethaneState。模型只有各区域内部的默认初始进入关系，没有区域之间或三个子状态之间的事件/条件转移，因此无法表达这些转换。",
+          "where": "PumpControl 内部，仅存在各区域的 [*] --> PumpState、[*] --> WaterState、[*] --> MethaneState"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型没有确保系统首先进入 PumpState。",
+          "reason": "规范要求系统首先转换到 PumpState。由于三个并行区域会各自同时从初始伪状态进入 PumpState、WaterState 和 MethaneState，模型并非先进入 PumpState，而是同时进入三个状态。",
+          "where": "PumpControl 内三个区域分别从 [*] 直接进入各自状态"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "PumpControl 内的三个主要子状态被建模为三个独立区域，而不是 PumpState、WaterState 和 MethaneState 这三个直接子状态。",
+          "reason": "规格明确说明 PumpControl 包含三个 main substates：PumpState、WaterState、MethaneState。模型实际包含的是三个 Region 容器，三个状态分别嵌套在不同 Region 中，因而层级结构与规格不一致；若这些 Region 是并行区域，还会使三个状态可同时处于活动状态，而规格描述的是系统在这些子状态之间进行转移。",
+          "where": "PumpControl 内的 `state PumpRegion`、`state WaterRegion`、`state MethaneRegion` 结构。"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型没有表示从 PumpControl 根据特定条件转移到 WaterState 或 MethaneState 的状态转移。",
+          "reason": "规格要求系统从 PumpControl 基于特定条件可以转移到不同子状态，并明确提到可转入 WaterState 和 MethaneState。模型没有任何条件、事件或转移箭头连接这些状态，只能通过区域初始伪状态进入各状态，未表达所要求的运行时状态切换。",
+          "where": "PumpControl 的内部转移定义；模型中只有各 Region 的初始转移 `[*] --> ...State`。"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "“首先转移到 PumpState”未被建模为 PumpControl 下的单一初始路径。",
+          "reason": "规格要求系统首先进入 PumpState，之后才可根据条件进入其他状态。模型同时为三个区域分别定义初始转移，进入 PumpControl 时 WaterState 和 MethaneState 也会各自被初始化，不能保证 PumpState 是唯一首先激活的子状态。",
+          "where": "PumpControl 内的三个初始转移：`PumpRegion: [*] --> PumpState`、`WaterRegion: [*] --> WaterState`、`MethaneRegion: [*] --> MethaneState`。"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "PumpControl 内的三个子状态被建模为三个并行区域，而不是可相互选择/转移的三个主要子状态。",
+          "reason": "PlantUML 中三个区域各自拥有初始转移，因此进入 PumpControl 后会同时激活 PumpState、WaterState 和 MethaneState。规格描述的是系统首先进入 PumpState，并可基于条件转移到 WaterState 或 MethaneState，未要求三者并行激活；该模型无法表达从 PumpState 选择性转移到另外两个状态的行为。",
+          "where": "PumpControl 内的 `PumpRegion`、`WaterRegion`、`MethaneRegion` 定义。"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型没有表示从 PumpState 到 WaterState 或 MethaneState 的转移。",
+          "reason": "规格明确要求系统从 PumpControl 可根据特定条件转移到三个子状态，并特别说明首先进入 PumpState、同时也可以转移到 WaterState 和 MethaneState。模型仅定义各区域内部的初始转移，没有任何条件或事件驱动的跨状态转移，因此未建模所需的选择性状态变化。",
+          "where": "`PumpState`、`WaterState`、`MethaneState` 之间缺少状态转移箭头。"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0053",
+    "ledger_assessments": [
+      {
+        "ledger_id": "DIFF-0053-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "method_run1的两个finding分别主张PumpControl层缺少默认入口和由此导致各状态从根不可达；没有主张缺少--区域分隔，或顺序语义下三个wrapper互斥且wrapper之间无迁移。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出集中于PumpControl默认入口/初始契约缺失，未指认DIFF条目的区域分隔符缺失及wrapper之间无迁移。根不可达与该条的wrapper间不可达原因不同。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出主张PumpControl入口契约缺失和PumpState不可达，未主张三个wrapper因缺少--而在顺序语义下互斥且彼此无迁移。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_2明确主张三个wrapper/具名状态之间没有条件或事件迁移，直接覆盖DIFF条目的wrapper之间零迁移这一同处同性质主张。baseline_issue_1虽讨论并行区域，但不能作为支持该命中。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_2明确指认PumpControl内部没有连接三个目标状态的条件、事件或跨状态迁移，直接对应DIFF条目的wrapper间无迁移。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_2明确指认PumpState、WaterState、MethaneState之间缺少状态转移箭头，直接覆盖DIFF条目的wrapper间没有任何迁移。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0053-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:entry_deadlock:PumpControl",
+            "source:initial_contract:PumpControl"
+          ],
+          "reason": "source:entry_deadlock:PumpControl明确主张PumpControl没有默认子状态入口并在未指定状态死锁；source:initial_contract:PumpControl明确主张没有到PumpState的初始迁移且PumpState从根不可达，均直接覆盖台账。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:entry_deadlock:PumpControl",
+            "source:initial_contract:PumpControl"
+          ],
+          "reason": "两个finding都指认PumpControl层的默认/初始子状态入口缺失；initial_contract还明确指向PumpState初始迁移和不可达，直接覆盖EIS。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:entry_deadlock:PumpControl",
+            "source:initial_contract:PumpControl"
+          ],
+          "reason": "entry_deadlock指认PumpControl无默认子状态入口，initial_contract指认无到PumpState的初始迁移；均与EIS的入口缺失和PumpState不可达同处同性质。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_3描述三个并行区域各自初始化导致同时激活，未主张PumpControl这一层没有默认入口；其余finding也不提出该层入口缺失。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_3批评三个区域同时有初始转移，但没有指认PumpControl层缺少默认进入点；层次结构和运行时同时激活不能替代该具体入口缺失断言。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline输出讨论并行区域和缺少跨状态迁移，没有主张PumpControl层无默认入口或PumpState因该层入口缺失而不可达。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "INS-0053-02",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "method_run1没有主张进入具名状态后没有任何出边；entry_deadlock讨论的是PumpControl缺少子状态入口，initial_contract讨论的是从根不可达，二者与INS的无出路性质不同。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出仅覆盖PumpControl入口缺失和初始可达性，没有关于PumpState、WaterState、MethaneState或其祖先无出边的断言。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出主张初始入口缺失/根不可达，未主张具名状态及祖先没有出边或形成可达后的终止桩。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_2明确主张PumpState到WaterState或MethaneState的条件转移缺失，直接是具名状态出边缺失的一部分，覆盖INS条目的无出边性质。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_2明确主张内部没有条件/事件转移，且只能通过初始伪状态进入各状态；这直接指认具名运行状态没有所需的出边。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_2明确主张三个具名状态之间缺少状态转移箭头，直接覆盖INS所记录的具名状态无出边这一缺失迁移性质。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:entry_deadlock:PumpControl",
+        "matched_ledger_ids": [
+          "EIS-0053-01"
+        ],
+        "false_positive": false,
+        "reason": "输出明确指向PumpControl，并主张该复合态没有默认子状态入口，导致编译器进入未指定状态并死锁；这与台账中PumpControl层没有默认进入点、三个wrapper无法被进入是同一位置和同一缺少入口性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:PumpControl",
+        "matched_ledger_ids": [
+          "EIS-0053-01"
+        ],
+        "false_positive": false,
+        "reason": "输出明确主张PumpControl没有到PumpState的初始迁移，并进一步主张PumpState、WaterState、MethaneState从根不可达；其中PumpControl层缺少初始入口、PumpState不可达直接覆盖该台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:entry_deadlock:PumpControl",
+        "matched_ledger_ids": [
+          "EIS-0053-01"
+        ],
+        "false_positive": false,
+        "reason": "输出指认PumpControl缺少默认子状态入口并进入死锁的未指定状态，正是台账所记录的PumpControl层入口缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_contract:PumpControl",
+        "matched_ledger_ids": [
+          "EIS-0053-01"
+        ],
+        "false_positive": false,
+        "reason": "输出指认PumpControl没有到所要求PumpState的初始迁移，位置和缺失初始入口性质均与EIS条目一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:entry_deadlock:PumpControl",
+        "matched_ledger_ids": [
+          "EIS-0053-01"
+        ],
+        "false_positive": false,
+        "reason": "PumpControl无默认子状态入口且其未指定初始状态被判定为死锁；核心可执行断言仍是该层缺少默认入口，与EIS条目同处同性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:PumpControl",
+        "matched_ledger_ids": [
+          "EIS-0053-01"
+        ],
+        "false_positive": false,
+        "reason": "输出明确主张PumpControl没有进入PumpState的初始迁移；这直接对应台账的PumpControl层无默认进入点及PumpState不可达。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "输出主张三个区域是并行区域并会同时激活，性质是并行/层次建模错误；DIFF条目主张制品缺少--而导致顺序语义下wrapper互斥且互不可达，二者在区域语义方向上相反，不能据此命中。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "DIFF-0053-01",
+          "INS-0053-02"
+        ],
+        "false_positive": false,
+        "reason": "输出明确指认PumpState到WaterState或MethaneState的条件迁移缺失，且位置在三个wrapper/具名状态之间。这覆盖DIFF条目的wrapper间无迁移，也覆盖INS条目的具名状态没有出边；虽然未穷尽全部零出边事实，但其直接缺失迁移主张已命中两条。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "输出主张无法保证PumpState是唯一首先激活的状态，依据是三个并行区域同时初始化；它没有指认PumpControl层缺少默认入口，也没有主张具名状态无出边，不能覆盖冻结条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "输出主张三个直接子状态被错误放入独立区域，性质是层次归属/并行建模错误；它没有主张缺少--造成的顺序互斥，也没有主张具名状态无出边。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "DIFF-0053-01",
+          "INS-0053-02"
+        ],
+        "false_positive": false,
+        "reason": "输出明确指认PumpControl内部缺少连接PumpState、WaterState、MethaneState的条件或事件迁移，只有各区域初始迁移；这与DIFF条目的wrapper间零迁移同处同性质，也直接体现INS条目的具名状态无所需出边。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "输出只主张三个区域同时定义初始迁移，因而不能保证PumpState唯一首先激活；这是并行初始化/首入口语义的描述，不是EIS条目所需的PumpControl层缺少默认入口，也不是INS条目的无出路。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "输出将问题表述为三个并行区域及无法选择性转移，未主张制品缺少--导致顺序互斥，也未主张具名状态没有出边；并行与台账的顺序互斥语义不一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "DIFF-0053-01",
+          "INS-0053-02"
+        ],
+        "false_positive": false,
+        "reason": "输出明确主张PumpState到WaterState或MethaneState的状态迁移箭头缺失，位置和缺失迁移性质分别覆盖DIFF的wrapper间无迁移及INS的具名状态无出边。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "按同一位置与同一缺陷性质逐条对齐。EIS-0053-01覆盖PumpControl层缺少默认子状态入口；INS-0053-02覆盖具名状态及其祖先没有出边、形成无出路。DIFF-0053-01仅由明确指出缺少区域分隔所导致的顺序互斥且wrapper间无迁移的输出覆盖；仅指出并行/层次结构错误或PumpState首入口约束的输出不自动覆盖该条。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

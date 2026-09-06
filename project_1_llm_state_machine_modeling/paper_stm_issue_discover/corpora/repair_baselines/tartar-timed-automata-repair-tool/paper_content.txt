@@ -1,0 +1,460 @@
+--- Page 1 ---
+TARTAR: A Timed Automata Repair Tool
+Martin K¨ olbl1(B), Stefan Leue1(B),
+and Thomas Wies2(B)
+1University of Konstanz, Konstanz, Germany
+Martin.Koelbl@uni-konstanz.de ,Stefan.Leue@uni-konstanz.de
+2New York University, New York, USA
+wies@cs.nyu.edu
+Abstract. We present TarTar , an automatic repair analysis tool that,
+given a timed diagnostic trace (TDT) obtained during the model check-
+ing of a timed automaton model, suggests possible syntactic repairs of theanalyzed model. The suggested repairs include modiﬁed values for clock
+bounds in location invariants and transition guards, adding or removing
+clock resets, etc. The proposed repairs guarantee that the given TDTis no longer feasible in the repaired model, while preserving the overall
+functional behavior of the system. We give insights into the design and
+architecture of TarTar , and show that it can successfully repair 69%
+of the seeded errors in system models taken from a diverse suite of case
+studies.
+1 Introduction
+A reactive system with requirements pertaining to its timing behavior is often
+modeled as a network of timed automata (NTA) [ BY03]. Whether a timing
+requirement holds in an NTA can be analyzed by timed model checkers such
+as Uppaal [ BLL+95 ]o ro p a a l[ DHJ+11 ]. In case of a requirement violation, a
+model checker returns a timed counterexample, also called a timed diagnostictrace (TDT). Until now, developers must manually identify and correct such
+violations by analyzing the generated TDTs. It is therefore desirable to support
+this process by an automated tool set that not only determines whether timingrequirements are met, but also proposes syntactic repairs of the NTA in case
+they are not.
+In [KLW19 ] we presented an automated repair analysis that analyzes a TDT
+obtained from the violation of a timed safety property and returns syntactic
+repair suggestions that avoid the concrete executions of the TDT violating theproperty. The analysis performs an additional admissibility check ensuring that
+the repaired model is functionally equivalent with the original NTA, which means
+that no action traces are added or omitted by the repair.
+To illustrate the repair analysis consider the NTA in Figs. 1(a) and (b). It
+describes a client that sends a request reqto a database dband expects to receive
+a response serwithin 4 time units after sending the request. The client contains a
+c/circlecopyrtThe Author(s) 2020
+S. K. Lahiri and C. Wang (Eds.): CAV 2020, LNCS 12224, pp. 529–540, 2020.https://doi.org/10.1007/978-3-030-53288-8
+_25
+
+--- Page 2 ---
+530 M. K¨ olbl et al.
+(a) Timed Automata client (b) Timed Automata db (c) TDT tdt
+Fig. 1. Network of timed automata - running example
+clockxthat measures the time delay between the request creation and the receiv-
+ing of a response in location serReceiving . The NTA allows to execute a TDT
+that violates the property, illustrated as a sequence diagram with time intervalsin Fig. 1(c). A time interval in the sequence diagram denotes the minimal and
+maximal time delay for the message transmission and processing times in db,
+respectively. The repair computation analyzes the TDT and produces severalsyntactic repairs to the NTA that avoid the property violation. In [ KLW19 ], the
+computed repairs aim at the modiﬁcation of clock bounds in location invariants
+and transition guards. An example of such a repair is to reduce the bound in thetime constraint w≤2 from 2 to 1. The modiﬁed bound constrains the maximal
+transmit time of the reqmessage so that the resulting NTA receives all responses
+within the expected time. This repair eliminates the problematic executions of
+the TDT in the original NTA without changing the functional behavior of the
+system, which is conﬁrmed by an admissibility test deﬁned in [ KLW19 ]. How-
+ever, in general, it may not be possible to repair the model using only clock
+bound alterations.
+Contributions. We present TarTar [tar20], which extends the initial prototype
+implementation of the clock bound repair analysis presented in [ KLW19 ]t oa
+more comprehensive NTA repair tool. Speciﬁcally, the extended tool implementsnew analyses that can suggest a whole range of repairs in addition to clock
+bound variation, such as modifying comparison operators in constraints, clock
+references, clock resets, and location urgency. Examples of new repairs computedfor the model in Fig. 1are:
+– Exchanging the comparison operator in the constraint w≥1t ow<1 ensures
+that the time to send a request is below 1 time unit.
+– An exchange of clock zinz≤2 with clock yrestricts the time of processing
+and receiving the response to at most 2 time units.
+– To reset the clock yon the previous transition instead ensures that the time
+for sending and processing the request is below 1 time unit.
+
+--- Page 3 ---
+TarTar : A Timed Automata Repair Tool 531
+– Making the location serReceiving urgent reduces the time to receive a response
+to 0.
+We call a repair admissible if the repaired system is functionally equivalent to
+the unrepaired system. The repair analysis implemented in TarTar returns the
+complete set of admissible repairs.
+The repair analysis combines concepts and algorithms from model checking,
+constraint solving, and automata theory. A real-time model checker is used to
+generate TDTs for a given NTA that violate a given timed safety property. Tar-
+Tartranslates the TDT into a linear real arithmetic constraint system. An SMT
+solver is used to compute a repair for the generated constraint system by solv-
+ing a MaxSMT problem. An automata-based language equivalence test checks
+whether the repair is admissible in the NTA model. The collaboration betweenthese subcomponents yields a complex tool architecture. We provide insights into
+the design and implementation of this architecture and the underlying infras-
+tructure of supporting tools. We evaluate the new repair analyses by applyingTarTar to a number of NTA models. We systematically inject diﬀerent mod-
+iﬁcations in these correct models and compute repairs for the obtained faulty
+models, which results in at least one admissible repair for 69% of the TDTs.
+Related Work. Other tools exist that compute repairs. The tool BugAs-
+sist [JM11] analyzes C-code by solving a MaxSMT problem. The tool
+ReAssert [ DDG+11 ] checks a set of possible modiﬁcation to repair broken unit
+tests. Angelix [ MYR16 ], S3 [ LCL+17 ] and SemFix [ NQRC13 ] compute repairs
+by symbolic execution and constraint solving. SketchFix [ HZWK18 ] is based on
+lazy candidate generation. All tools are not repairing broken time constraints.
+We are not aware of related work on tools for the repair of timed automatamodels. A more comprehensive overview of related work on automated repair is
+given in [ LPR19 ]. A discussion of work related to the foundations of our repair
+analysis can be found in [ KLW19 ].
+2 New Types of Repair Analyses
+The repair analysis presented in [ KLW19 ] and implemented in the prototype
+version of TarTar encodes a TDT as a constraint system in linear real arith-
+metic. It computes syntactic correct modiﬁcations of the underlying NTA by
+introducing bound variation variables v. For example, possible bound modiﬁca-
+tions for a clock bound x≤2 are expressed by a modiﬁed clock bound x≤2+v.
+The repairs are computed by solving a partial SMT problem on the TDT con-
+straint system, involving soft-assert constraints on the bound variation variables.No repair is computed whenever the soft assertion v= 0 holds, otherwise the
+computed value of vcharacterizes the repair. In the following we sketch the new
+types of repairs implemented in TarTar . For a more comprehensive description,
+which space limitations do not allow us to provide here, we refer to [ KLW20 ].
+
+--- Page 4 ---
+532 M. K¨ olbl et al.
+Operator Variation Repair Analysis. This analysis is motivated by the assump-
+tion that a wrong comparison operator in a location invariant or transition guardmay cause a property violation. We assume for the repair encoding that the oper-
+ators ∼are indexed according to their order in the sequence /angbracketleft<,≤,=,≥,>/angbracketright.
+The possible repairs are encoded by a fresh variation variable v
+ov
+iwhere the
+value of vov
+iis the index of the corresponding comparison operator. If x<4i s
+computed as a repair, then vov
+i= 1. Using this repair analysis, TarTar ﬁnds
+two admissible repairs for the example in Figs. 1(a) and (b) that replace the
+comparison operator in the clock constraint w>=1b y <or<=, respectively.
+Clock Reference Repair Analysis. This analysis aims to repair property violations
+resulting from errors that stem from the unintended use of a wrong clock variable.
+We enumerate all the positions of clock variables in clock bound constraintsusing index iand all clock variables using index k. We then introduce for every
+position i, a fresh variation variable v
+cv
+iwhose value kindicates the clock ckto
+be used at that position in the repaired model. For example, if y≤2 is a repaired
+constraint, where the position of yin the constraint has index 3 and clock yhas
+index 1, then vcv
+3= 1. Applying this repair analysis to the examples in Figs. 1(a)
+and (b), TarTar ﬁnds 13 admissible clock reference modiﬁcation repairs, each
+involving two modiﬁcations. Nine repairs exchange yin the constraints y≤1
+andy≥1 by a selection from the set of clocks z,xandw. Four repairs exchange
+yin the constraint y≤1b yworx,a n d win the constraint w≥1b yyorz.
+Reset Clock Repair Analysis. This analysis aims to repair a property violation
+by adding or removing clock resets. We introduce a variation variable vrv
+i,jfor
+each clock ciand the transition leaving location λjin the TDT. The reset status
+in the extended constraint system is inverted when vrv
+i,j/negationslash=0 :i f ciwas not reset
+before, it will now be reset, and vice versa. Applying the reset repair analysis to
+the examples in Figs. 1(a) and (b), TarTar ﬁnds four admissible repairs. One
+repair removes the reset of clock y, another removes the reset of clock zand
+two repairs add a reset of clock xeither on the transitions towards the state
+reqProcessing or the transition towards the state serReceiving .
+Urgent Location Repair Analysis. This analysis aims to repair cases where a
+faulty usage of urgent locations, which are always left with zero delay afterentering, causes a property violation. Urgency of a location is modeled in the
+TDT constraint system by setting the location delay δ
+jto 0. We deﬁne a fresh
+variation variable vuv
+ifor a location λj.F o r vuv
+i/negationslash= 0, the urgency for a location λj
+is inverted. Applying the urgency location repair analysis to the examples in
+Figs.1(a) and (b), TarTar ﬁnds two inadmissible repairs. The ﬁrst one makes
+the state reqAwaiting urgent, and another repair makes the state serReceiving
+urgent.
+3 Usage of TarTar
+We have implemented all repair analyses described in [ KLW19 ] and in this paper
+in a tool named TarTar . It provides a graphical user interface, a command-
+
+--- Page 5 ---
+TarTar : A Timed Automata Repair Tool 533
+line interface and a web-interface which enables the execution of this resource
+intensive software on compute servers. A user selects one of these interfaces viaarguments provided when invoking the Java library implementing TarTar .F o r
+real-time model checking, TarTar relies on Uppaal.
+– The argument –weblaunches the web server and corresponding interface.
+– Any other arguments launches the command-line mode. When using the argu-
+ment –help, the command-line console prints some help information.
+– When no arguments are given, the graphical user interface depicted in
+Fig.2(a) is launched. The interface oﬀers three tabs. New Analysis starts a
+repair analysis, New Experiment starts fault seeding which is described later
+in Sect. 5,a n d Version shows the current version number of TarTar .
+All tool interfaces expect the same types of inputs in order to start a TarTar
+analysis run. The user speciﬁes a ﬁle containing the Uppaal model as input
+and selects the kind of repair to compute. Optionally, a ﬁle with a TDT ofthe given Uppaal model can be speciﬁed. When no TDT is provided, TarTar
+automatically calls Uppaal to compute a TDT. The result of an analysis is
+one repaired model ﬁle for every computed repair, as well as a text ﬁle thatsummarizes which repairs are admissible.
+(a) TarTar GUI (b) TarTar Architecture
+Fig. 2. TarTar tool
+4 Software Architecture and Implementation of TarTar
+The software architecture of TarTar is depicted in Fig. 2(b). The orange rect-
+angles in the ﬁgure represent external tools that TarTar calls in the course of
+the repair analysis. Uppaal is a state-of-the-art and closed-source model checking
+tool, which TarTar uses to compute a TDT for a given model and property.
+The SMT solver Z3 [ dMB08 ] is used to solve the generated partial MaxSMT
+problems. To check the admissibility of a repair, TarTar uses opaal and the
+AutomataLib component of LearnLib [ IHS15 ] since they conveniently provide
+functionality used during admissibility checking.
+
+--- Page 6 ---
+534 M. K¨ olbl et al.
+Data Flow Architecture. TarTar consists of many computation steps. For exam-
+ple, a TDT is parsed internally and stored as a Trace. This Trace is then modi-ﬁed and exported as SMT-LIB2 [ BFT17 ] code. We deﬁne a computation step of
+TarTar as the computation transforming input into result artifacts. This focus
+on artifacts ensures a highly cohesive architecture and clear interfaces betweenany two computation steps. Computation steps with identical objectives are
+grouped into a project. This results in four projects depicted by blue rectangles
+in Fig. 2(b).
+–HMIdenotes the user interfaces of TarTar . The user inputs a timed model.
+TarTar then calls the project Repair Computation using a faulty timed
+model as a parameter. In case that the model is correct, TarTar calls the
+project Fault Seeding .
+–Fault Seeding seeds faults into a correct model and then repairs the faulty
+model by computing repairs using Repair Computation . We use this analysis
+in Sect. 5in order to benchmark the Repair Computation analyses.
+–Repair Computation computes candidate repairs for a faulty timed model,
+applies these repairs to the model and ﬁnally automatically calls the Admis-
+sibility Test .
+–Admissibility Test checks for every repaired model whether the computed
+repair is also admissible.
+Control Flow Architecture. TarTar computes iteratively a set of repairs for a
+given faulty Uppaal model and a given property Πusing the following steps:
+0.Counterexample Creation .TarTar calls Uppaal to verify the model against
+Π.I nc a s e Πis violated, it stores a shortest symbolic TDT witnessing the
+violation in XML format.
+1.Diagnostic Trace Creation .TarTar parses the model and the TDT into a
+data structure Trace. To add potential repairs, TarTar copies the trace and
+replaces the constraints that will potentially be subject to a repair by their
+modiﬁed variants. The modiﬁed trace is then translated to a logic constraint
+system, represented in SMT-LIB2 code.
+2.Repair Computation .Z 3[ dMB08 ] then solves a MaxSMT problem on the
+modiﬁed trace constraint system, computing a repair in which the number
+of unmodiﬁed constraints on the variation variables of type v= 0 is maxi-
+mized. Since Z3 can solve a MaxSMT problem only for quantiﬁer-free linear
+real arithmetic, TarTar ﬁrst runs a quantiﬁer elimination on the constraint
+system. It then solves the MaxSMT problem with soft constraints requir-ingv= 0 for all variation variables. For a more comprehensive presentation
+of this construction we refer the reader to [ KLW20 ]. In case no solution is
+found, TarTar terminates. Otherwise,
+TarTar applies the repair to the
+faulty model and returns a repaired model.
+3.Admissibility Check .TarTar checks the admissibility of a repair and com-
+pares the untimed languages of the faulty and repaired models. TarTar
+calls the model checker opaal in order to compute the timed transition sys-
+tems (TTS) of the original and the repaired Uppaal model. We modiﬁed the
+
+--- Page 7 ---
+TarTar : A Timed Automata Repair Tool 535
+opaal model checker in such a way that it returns the TTS for a model. Tar-
+Tarthen checks whether the two TTS have equivalent untimed languages,
+in which case the repair is admissible. This check is implemented using the
+library AutomataLib. In case the two TTS are not equivalent, the admissi-
+bility test returns a trace as a witness for the diﬀerence.
+4.Iteration .TarTar enumerates all repairs, i.e., all combinations of constraint
+modiﬁcations that correct the TDT. The repairs are iteratively enumeratedstarting with the ones that require the smallest number of modiﬁcations to
+the model. After a repair is computed, the combination of modiﬁed variables
+that has been found is prevented from being reconsidered for future repairs by
+setting these modiﬁcation variables to 0 using hard asserts. TarTar then pro-
+ceeds with attempting to compute further, previously unconsidered repairs.
+Fig. 3. TarTar component architectureComponent Architecture. We imple-
+mented TarTar with the general
+infrastructure depicted in Fig. 3.T h e
+interface Jobprovides a general
+abstraction for an algorithm and spec-
+iﬁes the necessary input and resultvalues of the algorithm by the class
+Description .TarTar contains a Job
+for the projects Fault Seeding ,Repair
+Computations and Admissibility Test .
+The class Session executes a Joband derivations of Session provide the diﬀerent
+interfaces to the user. With this infrastructure, the analysis implementation inTarTar is independent from the implementation of the user interfaces, thus
+reducing coupling and improving modiﬁability of the code.
+Implementation Details. We implemented the diﬀerent projects that constitute
+TarTar in Java and use the build-management tool maven [ Mav19 ] to manage
+the dependencies between the projects. TarTar interacts diﬀerently with the
+external tools that are needed for diﬀerent purposes. It calls Uppaal via thecommand-line interface in order to generate a TDT and calls Z3 via its API to
+compute a repair. For the admissibility check, it calls opaal using a command-line
+script and the AutomataLib as an included Java library. For the implementation
+of the TarTar analyses the following two details are essential.
+We modify constraints in an Uppaal model in order to apply a repair or
+to seed a fault. Since neither clock constraints nor transitions possess explicit
+unique identiﬁers in an Uppaal model, it is not obvious which constraint to
+change. We therefore uniquely identify a constraint by traversing the constraintsin the sequence stored in the Uppaal model ﬁle and use the constraint index in
+this sequence as its identiﬁer.
+The complexity of the algorithms for solving quantiﬁer elimination and the
+MaxSMT problem increase exponentially with the number of variables in the
+SMT model [ KLW19 ]. We therefore reduce the number of variables by exploit-
+ing implied equality constraints. For example, a variable c
+jis created for every
+
+--- Page 8 ---
+536 M. K¨ olbl et al.
+clock cin every step jof the TDT. We eliminate cjexplicitly before quantiﬁer
+elimination by replacing it with the term/summationtext
+i∈r..jdi, where diis the time delay
+at step iin the trace and ris the last step before jwhere cwas reset.
+5 Evaluation
+Evaluation Strategy. In order to evaluate the repair analyses both qualitatively
+and quantitatively, we need to synthesize a set of faulty timed automata. To thebest of our knowledge, no benchmark suite for faulty timed automata exists. We
+therefore create faulty models by using the fault seeding strategy from [ KLW19 ]
+which is motivated by ideas from mutation testing [ JH11]. Mutation testing eval-
+uates the quality of a test suite for a given program by systematically corrupting
+program code and determining the ratio of corruptions that the test suite is able
+to detect. We apply the same principle to evaluate the quality of our repairtechnique. As proposed in [ KLW19 ], fault seeding modiﬁes a single clock con-
+straint so that the result is a set of models that violate a given property. During
+the seeding, the bound of a single clock constraint is modiﬁed by an amountof{−10,−1,+1,+0.1M,+M}, where M is the maximal clock bound occurring
+in a given model. Our observation was that making either small modiﬁcations
+that are close to the bound value or modiﬁcations in the order of the maximalbound value M often introduce actual errors in the model. We have extended
+fault seeding to the new types of repairs. In particular, fault seeding addition-
+ally exchanges the comparison operator in a clock constraint by {<,≤,=,≥,>},
+swap a referenced clock with all other clocks occurring in the given model, mod-
+ify the reset clocks of any transition, and switch for any location whether it isurgent. TarTar checks automatically whether a modiﬁed TA violates a given
+property. If this is the case, it performs all of the above deﬁned repair analyses.
+Results. We applied fault seeding to the models in [ KLW19 ] and analyzed
+the obtained TDTs using the above described repair analyses implemented in
+TarTar . All analyses were performed on a computer with an i7-6700K CPU
+(4.00 GHz), 60 GB of RAM and a 64 bit Linux operating system. We summarizethe results of the experiment per considered model (Table 1) and per type of
+considered repair (Table 2). Column Sdcontains the count of seeded faults that
+result in a number #Tof faulty models. T
+UPis the maximal time that Uppaal
+needs to create a TDT for the faulty models, and the longest TDT has a length of
+Ln.TarTar computed for the TDTs overall a number # Rrepairs of which # A
+are admissible. An admissible repair is found for # Sof the TDTs. The computa-
+tion eﬀort for a repair analysis is given by the time TQEfor successful quantiﬁer
+elimination, the number of timeouts # Oof quantiﬁer eliminations after 10 min,
+the average time TRto compute a repair and the memory consumption M R.T h e
+constraint system that Z3 solves has the count # Vrof variables and # Cnof con-
+straints. The eﬀort for the admissibility check is given in time TAdmand memory
+M A. All times are given in seconds and memory consumption in MB. Notice that
+we omit the columns pertaining to the fault seeding and TDT computation in
+Table 2as they are irrelevant here.
+
+--- Page 9 ---
+TarTar : A Timed Automata Repair Tool 537
+Table 1. Experimental results according to model.
+Repair #Sd #T TUP Ln #R #A #S TQE #O TR M R #Vr #Cn TAdm M A
+db rep. 110 13 0.016 4 229 138 989.346 2 0.911 14.53 30 91 2.080 45
+csma 191 10 0.012 2 70 26 80.049 0 0.023 0.58 16 72 1.825 75
+elevator 88 5 0.011 1 7 5 40.049 0 0.020 0.53 6 28 1.665 17
+viking 310 9 0.015 18 9 7 586.539 21 1.436 20.07 120 180 1.952 543
+bando 1,955 40 0.111 279 4,061 209 21 31.555 46 4.922 20.86 1,156 8,144 19.57 1251
+Pacemaker 1,187 12 0.022 9 62 19 10 0.663 20 0.325 2.59 116 988 1.994 206
+SBR 353 50 0.027 84 751 660 31 117.057 86 2.686 37.16 765 1,211 138 .004 211
+FDDI 314 36 0.014 11 166 105 34 29.859 51 3.074 9.70 116 272 2.241 128
+Overall, TarTar seeded 4.508 faults. This resulted in 175 TDTs in total
+(60 TDTs due to bound modiﬁcation, 72 due to operator variation, 27 due to
+changing the clock reference, 8 due to complementing the reset of clocks and8 due to the switching of urgent locations). TarTar found 5,355 repairs, out
+of which 1,169 were admissible. It found at least one admissible repair for 122
+of the TDTs. The maximal number of modiﬁed constraints in the admissible
+repairs computed for a single TDT using all types of analysis was 25.
+Table 2. Experimental results according to type of repair.
+Repair #R #A #S TQE #O TR M R #Vr #Cn TAdm M A
+Bound Modiﬁcation 533 364 85 15.209 84.922 20.861,156 2,498 138 .004 525
+Operator Variation 3,929 9651 117 .057 442.686 37.16 996 8,144 59.117 543
+Clock Reference 693 625 35 33.282 613.074 14.131,120 5,355 116 .944 206
+Reset Clock 45 3713 89.346 113 0.911 14.53 996 2,836 2.051 45
+Urgent Location 155 4737 0.107 00.135 3.161,120 2,502 58.551 1,251
+Interpretation. Few of the seeded faults resulted in a property violation. TarTar
+seeded 4.508 faults which led to 175 TDTs, thus only 3.9% of these faults result ina TDT. This supports the hypothesis that, in practice, often times only few time
+constraints have an impact on a property violation. TarTar computes at least
+one admissible repair by bound modiﬁcation for 85 (48%) of the 175 TDTs, by
+operator variation for 51 (29%), by clock reference for 35 (20%), by clock reset for
+13 (7%) and by urgent location for 37 (21%). Every analysis on its own computesless admissible repairs than the combination of all repair analyses, which solves
+122 (69%) of the 175 TDTs. The largest number of modiﬁed constraints in all
+the admissible repairs for a single TDT was 25, which is less than anticipated.This low number of modiﬁed constraints infer that, for the examples that we
+considered, only a few constraints of each TDT combined to admissible repairs.
+The number of modiﬁed constraints determines the number of possible repairsthat have an impact on whether a property is violated or not. Since it was
+observed in [ KLW19 ] that the computational eﬀort for the repair computation is
+largely determined by the quantiﬁer elimination step, we expect that in light of
+
+--- Page 10 ---
+538 M. K¨ olbl et al.
+the observed 226 timeouts a more eﬃcient quantiﬁer elimination would lead to
+a signiﬁcantly higher number of repairs. Furthermore, the number of timeouts,and thus the computation time needed for the repair, rises with the length of
+the analyzed TDT. The model SBRhas the most timeouts with 86 and the
+third longest trace with a length of 84 steps. The model bando has the third
+most timeouts with 46 and the longest trace. Obviously, the longer the TDT,
+the larger the resulting constraint system, leading to increased computational
+eﬀort. The bando model has the largest constraint system with 1 ,156 variables
+and 8,144 constraints. The SBRmodel has the second largest constraint system
+with 765 variables and 1 ,211 constraints. The model FDDI has a shorter trace
+of length of 11 and a much smaller constraint system with 116 variables and272 constraints. From this we conclude that the complexity of a repair depends
+not only on the trace length, but also on the intrinsic complexity of the model.
+Modifying states from urgent to non-urgent during fault seeding resulted in
+only 8 TDTs. This low number is due to the observation that the considered
+models contain only few urgent states. Modifying non-urgent states to urgentones, however, did not lead to a single property violation resulting in a TDT.
+The rationale is that urgency ensures to leave a state immediately without a
+delay which leads to a restriction rather than a relaxation regarding the timebudget spent along an execution trace. As a consequence, making a state urgent
+does not cause a property violation in many models since the type of the checked
+properties is typically time bounded reachability, and a restricted time budgetdoes not make it more likely that the property is violated. We ﬁnally observe
+that the admissibility check requires more computation resources than the repair
+computation. The maximal memory used for the admissibility test was 1 ,251MB
+in contrast to 37 .16MB for the repair computation. This is in line with our
+expectation since the admissibility test searches the state space of the full NTA,
+while the repair analyses only considers a single TDT.
+6 Conclusion
+We have presented the TarTar tool, its architecture and implementation, and
+illustrated its application to a number of signiﬁcant case studies. In the course
+of our work we have extended the repair analysis that is implemented in Tar-
+Tarfor bound modiﬁcation to modiﬁcations of comparison operators, clock
+references, reset of clocks and missing urgencies. The evaluation of the repair
+analyses showed that an admissible repair is computed for at least 69% of theanalyzed TDTs. The integration of various tools with heterogeneous interfaces
+posed a particular challenge to the architecture of TarTar which we addressed
+by the deﬁnition of intermediate artifacts.
+In future work we plan to explore the interplay between diﬀerent repairs that
+are computed for a repaired system that still violates a property, and develop
+reﬁned strategies to select promising repairs from a repair set. A further gener-alization of the analysis is to not only compute clock constraint modiﬁcations
+for faulty models but also to compute possible relaxations of clock constraints
+for correct models in order to support design space exploration.
+
+--- Page 11 ---
+TarTar : A Timed Automata Repair Tool 539
+References
+[BFT17] Barrett, C., Fontaine, P., Tinelli, C.: SMT-lib (2017). http://smtlib.cs.
+uiowa.edu/language.shtml
+[BLL+95] Bengtsson, J., Larsen, K., Larsson, F., Pettersson, P., Yi, W.: UPPAAL—
+a tool suite for automatic veriﬁcation of real-time systems. In: Alur, R.,
+Henzinger, T.A., Sontag, E.D. (eds.) HS 1995. LNCS, vol. 1066, pp. 232–
+243. Springer, Heidelberg (1996). https://doi.org/10.1007/BFb0020949
+[BY03] Bengtsson, J., Yi, W.: Timed automata: semantics, algorithms and tools.
+In: Desel, J., Reisig, W., Rozenberg, G. (eds.) ACPN 2003. LNCS, vol.
+3098, pp. 87–124. Springer, Heidelberg (2004). https://doi.org/10.1007/
+978-3-540-27755-2 3
+[DDG+11] Daniel, B.: Reassert: a tool for repairing broken unit tests. In: ICSE, pp.
+1010–1012. ACM (2011)
+[DHJ+11] Dalsgaard, A.E., et al.: opaal: a lattice model checker. In: Bobaru, M.,
+Havelund, K., Holzmann, G.J., Joshi, R. (eds.) NFM 2011. LNCS, vol.6617, pp. 487–493. Springer, Heidelberg (2011). https://doi.org/10.1007/
+978-3-642-20398-5
+37
+[dMB08] de Moura, L., Bjørner, N.: Z3: an eﬃcient SMT solver. In: Ramakrishnan,
+C.R., Rehof, J. (eds.) TACAS 2008. LNCS, vol. 4963, pp. 337–340. Springer,Heidelberg (2008). https://doi.org/10.1007/978-3-540-78800-3
+24
+[HZWK18] Hua, J., Zhang, M., Wang, K., Khurshid, S.: SketchFix: a tool for
+automated program repair approach using lazy candidate generation. In:
+ESEC/SIGSOFT FSE, pp. 888–891. ACM (2018)
+[IHS15] Isberner, M., Howar, F., Steﬀen, B.: The open-source LearnLib. In: Kroen-
+ing, D., P˘ as˘areanu, C.S. (eds.) CAV 2015. LNCS, vol. 9206, pp. 487–495.
+Springer, Cham (2015). https://doi.org/10.1007/978-3-319-21690-4 32
+[JH11] Jia, Y., Harman, M.: An analysis and survey of the development of mutation
+testing. IEEE Trans. Software Eng. 37(5), 649–678 (2011)
+[JM11] Jose, M., Majumdar, R.: Bug-assist: assisting fault localization in ANSI-C
+programs. In: Gopalakrishnan, G., Qadeer, S. (eds.) CAV 2011. LNCS, vol.
+6806, pp. 504–509. Springer, Heidelberg (2011). https://doi.org/10.1007/
+978-3-642-22110-1 40
+[KLW19] K¨ olbl, M., Leue, S., Wies, T.: Clock bound repair for timed systems. In: Dil-
+lig, I., Tasiran, S. (eds.) CAV 2019. LNCS, vol. 11561, pp. 79–96. Springer,Cham (2019). https://doi.org/10.1007/978-3-030-25540-4
+5
+[KLW20] K¨ olbl, M., Leue, S., Wies, T.: Tartar: a timed automata repair tool. CoRR,
+abs/2002.02760 (2020). https://www.sen.uni-konstanz.de/publications
+[ L C L + 1 7 ]L e ,X . - B . D . ,C h u ,D . - H . ,L o ,D . ,G o u e s ,C . L . ,V i s s e r ,W . :S 3 :s y n t a x -
+and semantic-guided repair synthesis via programming by examples. In:
+ESEC/SIGSOFT FSE, pp. 593–604. ACM (2017)
+[LPR19] Le Goues, C., Pradel, M., Roychoudhury, A.: Automated program repair.
+Commun. ACM 62(12), 56–65 (2019)
+[Mav19] Apache Software Foundation. Maven (2019). https://maven.apache.org/
+[MYR16] Mechtaev, S., Yi, J., Roychoudhury, A.: Angelix: scalable multiline program
+patch synthesis via symbolic analysis. In ICSE, pp. 691–701. ACM (2016)
+[NQRC13] Nguyen, H.D.T., Qi, D., Roychoudhury, A., Chandra, S.: Semﬁx: program
+repair via semantic analysis. In: ICSE, pp. 772–781. IEEE Computer Soci-ety (2013)
+[tar20] Tartar 2019–2020. https://github.com/sen-uni-kn/tartar
+
+--- Page 12 ---
+540 M. K¨ olbl et al.
+Open Access This chapter is licensed under the terms of the Creative Commons
+Attribution 4.0 International License ( http://creativecommons.org/licenses/by/4.0/ ),
+which permits use, sharing, adaptation, distribution and reproduction in any mediumor format, as long as you give appropriate credit to the original author(s) and the
+source, provide a link to the Creative Commons license and indicate if changes were
+made.
+The images or other third party material in this chapter are included in the
+chapter’s Creative Commons license, unless indicated otherwise in a credit line to the
+material. If material is not included in the chapter’s Creative Commons license and
+your intended use is not permitted by statutory regulation or exceeds the permitted
+use, you will need to obtain permission directly from the copyright holder.

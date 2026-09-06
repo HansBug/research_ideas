@@ -1,0 +1,263 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0003",
+  "ledger": [],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": []
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": []
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "hypothesis:75e0d05b118e03d8",
+          "claims": [
+            "The source realizes Idle and Braking under Operate but does not realize the separately named Accelerating state."
+          ],
+          "locations": [
+            "NL1",
+            "NL3",
+            "Operate.Idle",
+            "Operate.Braking",
+            "Operate"
+          ],
+          "obligations": [
+            "The named operating states must be realized under Operate."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:75e0d05b118e03d8:facet:d45e64134874"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:d7ae3ee9081b5294",
+          "claims": [
+            "The source does not realize the separately named Cruising state."
+          ],
+          "locations": [
+            "NL1",
+            "NL3",
+            "Operate.Cruising",
+            "Operate"
+          ],
+          "obligations": [
+            "The named operating states must be realized under Operate."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:d7ae3ee9081b5294:facet:d45e64134874"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:4c66a11b53c8855c",
+          "claims": [
+            "The source model may lack the distinct `Operate.Accelerating` state required by the NL."
+          ],
+          "locations": [
+            "NL1",
+            "states:Operate.AcceleratingOrCruising"
+          ],
+          "obligations": [
+            "The separately named `Accelerating` operating state must exist within `Operate`."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:4c66a11b53c8855c:facet:68f29ecc7e67"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:a6ec7797d6a8ce82",
+          "claims": [
+            "The source model may lack the distinct `Operate.Cruising` state required by the NL."
+          ],
+          "locations": [
+            "NL1",
+            "states:Operate.AcceleratingOrCruising"
+          ],
+          "obligations": [
+            "The separately named `Cruising` operating state must exist within `Operate`."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:a6ec7797d6a8ce82:facet:68f29ecc7e67"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型将规格中的“Accelerating or Cruising”合并命名为单一状态“AcceleratingOrCruising”，未明确区分加速与巡航两个状态或行为。",
+          "reason": "规格第1条明确列出 `Idle`、`Accelerating or Cruising` 和 `Braking` 三类状态；若“Accelerating or Cruising”表示两个可区分的状态/模式，则模型没有分别建模加速与巡航。仅在规格把该短语明确视为一个联合状态名称时，此项才不构成问题。",
+          "where": "Operate 内的状态声明 `AcceleratingOrCruising` 及其相关转移。"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型把 `Stop Signal` 仅建模为从 `Braking` 到 `Idle` 的转移，未覆盖在 Operate 内由停止动作从其他相关状态进入 Idle 的可能性。",
+          "reason": "规格第3条要求根据加速、制动或停止等动作在 Operate 子状态间转换，但没有限定停止只能发生在 Braking 状态。当前模型只有 Braking 状态能响应停止信号，因此若系统处于 AcceleratingOrCruising（或其他允许停止的运行状态）收到停止动作，模型没有对应转移。",
+          "where": "`Braking --> Idle : Stop Signal`。"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "未建模从 AcceleratingOrCruising 直接因停止动作返回 Idle 的转换。",
+          "reason": "规格第3条将“停止”列为触发 Operate 内部子状态转换的动作；模型只定义了 Braking → Idle : Stop Signal，没有定义 AcceleratingOrCruising 在停止动作下的处理。若停止动作不要求先经过 Braking，该状态转换就缺失。",
+          "where": "Operate 内部的 AcceleratingOrCruising 状态及其出边"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "开机进入 Operate 后未明确保证系统进入 Idle",
+          "reason": "规格明确指出设备 powered on 后系统进入 Operate 状态；在 Operate 内根据用户动作在 Idle、Accelerating or Cruising、Braking 间转换。模型虽然声明了 Operate 的初始子状态为 Idle，但外部 start 转移只标注到复合状态 Operate，未明确该次启动是否触发 Operate 的内部初始转移。在严格状态机语义下，这一行为可能被理解为仅进入复合状态而未定义启动后的具体子状态。",
+          "where": "state Operate 内的初始转移：[*] --> Idle；以及 PoweredOff --> Operate : start"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "状态名称未按规格准确表达“Accelerating or Cruising”",
+          "reason": "规格将该状态定义为“Accelerating or Cruising”，模型使用无空格的 AcceleratingOrCruising 作为标识符。若名称需要与规格中的状态精确对应，模型没有显式区分或保留该规范名称；这属于表示层面的不一致，但不改变其大致状态语义。",
+          "where": "复合状态 Operate 内的状态 AcceleratingOrCruising"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "缺少由停止动作导致的通用停止/回到怠速行为覆盖",
+          "reason": "规格说系统根据加速、制动或停止等动作在 Operate 的不同子状态之间转换，但模型只定义 Braking 接收 Stop Signal 后回到 Idle。没有定义从 Idle 或 AcceleratingOrCruising 收到停止信号时的行为；若“stopping”是适用于系统当前运行状态的动作，模型覆盖不完整。",
+          "where": "Braking --> Idle : Stop Signal"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0003",
+    "ledger_assessments": [],
+    "emission_assessments": [
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，因此没有任何可对应的预期条目；该输出虽主张状态命名/区分问题，但不能覆盖不存在的台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，因此没有任何可对应的预期条目；该输出主张停止转移缺失，但不能覆盖不存在的台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，因此没有任何可对应的预期条目；该输出主张从 AcceleratingOrCruising 到 Idle 的停止转换缺失，但不能覆盖不存在的台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，因此没有任何可对应的预期条目；该输出主张开机后进入 Idle 的行为保证不足，但不能覆盖不存在的台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，因此没有任何可对应的预期条目；该输出主张状态名称表示不一致，但不能覆盖不存在的台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，因此没有任何可对应的预期条目；该输出主张停止动作覆盖不足，但不能覆盖不存在的台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:4c66a11b53c8855c",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，因此没有任何可对应的预期条目；该输出主张 Operate 内缺少独立 Accelerating 状态，但不能覆盖不存在的台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:75e0d05b118e03d8",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，因此没有任何可对应的预期条目；该输出主张 Operate 下缺少独立 Accelerating 状态，不能覆盖不存在的台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:a6ec7797d6a8ce82",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，因此没有任何可对应的预期条目；该输出主张 Operate 内缺少独立 Cruising 状态，但不能覆盖不存在的台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:d7ae3ee9081b5294",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，因此没有任何可对应的预期条目；该输出主张 Operate 下缺少独立 Cruising 状态，不能覆盖不存在的台账条目。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "冻结台账条目集合为空，故不存在可被六个输出格命中的台账项；所有列出的输出 issue 均判定为相对于本冻结台账的 false positive。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

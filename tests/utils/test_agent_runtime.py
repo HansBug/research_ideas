@@ -7,14 +7,101 @@ from io import StringIO
 from pathlib import Path
 
 import pytest
-from pydantic import Field
+from pydantic import BaseModel, Field
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessageChunk, ToolMessage
+from langchain_core.messages import AIMessageChunk, HumanMessage, ToolMessage
 from langchain_core.messages import AIMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 
 from utils.agent import AgentApp, AgentError, AgentEvent, AgentSpec
+from utils.agent.runtime import (
+    _ModelCallDeadlineMiddleware,
+    _ModelOptionsMiddleware,
+    _iterate_and_close,
+    _message_ref,
+    _prepare_recovery_history,
+    _provider_retry_after_seconds,
+    _retryable_transport_error,
+    _normalize_transport_exception,
+    _tool_completion_status,
+)
 from utils.llm import LLMConfig
+
+
+def test_cancelled_agent_stream_is_closed_before_loop_teardown() -> None:
+    class HangingStream:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def __aiter__(self) -> "HangingStream":
+            return self
+
+        async def __anext__(self) -> Any:
+            await asyncio.Event().wait()
+            raise StopAsyncIteration
+
+        async def aclose(self) -> None:
+            self.closed = True
+
+    async def scenario() -> HangingStream:
+        stream = HangingStream()
+
+        async def consume() -> None:
+            async for _ in _iterate_and_close(stream):
+                pass
+
+        task = asyncio.create_task(consume())
+        await asyncio.sleep(0)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        return stream
+
+    stream = asyncio.run(scenario())
+    assert stream.closed is True
+
+
+def test_model_call_deadline_is_typed_and_transport_retryable() -> None:
+    middleware = _ModelCallDeadlineMiddleware(0.01)
+
+    async def scenario() -> AgentError:
+        async def handler(_request: object) -> object:
+            await asyncio.sleep(0.05)
+            return object()
+
+        with pytest.raises(AgentError) as caught:
+            await middleware.awrap_model_call(object(), handler)
+        return caught.value
+
+    error = asyncio.run(scenario())
+    assert error.code == "provider_timeout"
+    assert error.details == {
+        "source": "provider",
+        "type": "ProviderCallTimeout",
+        "timeout_seconds": 0.01,
+    }
+    assert _retryable_transport_error(error) is True
+
+
+def test_empty_responses_stream_is_transport_retryable_but_schema_errors_are_not() -> None:
+    empty = _normalize_transport_exception(ValueError("No generations found in stream."))
+    assert isinstance(empty, AgentError)
+    assert empty.code == "transport_error"
+    assert empty.details["source"] == "provider"
+    assert empty.details["retryable"] is True
+    assert _retryable_transport_error(empty) is True
+    ordinary = ValueError("structured output validation failed")
+    assert _normalize_transport_exception(ordinary) is ordinary
+    assert _retryable_transport_error(ordinary) is False
+
+
+def test_agent_spec_accepts_separate_model_and_run_deadlines() -> None:
+    spec = AgentSpec(
+        name="separate-deadlines",
+        system_prompt="Answer with the requested schema.",
+        limits={"model_call_seconds": 300, "seconds": 900},
+    )
+    assert spec.limits == {"model_call_seconds": 300, "seconds": 900}
 
 
 def test_unknown_tool_request_has_one_rejected_terminal_action(tmp_path: Path) -> None:
@@ -76,6 +163,304 @@ class FakeStreamingModel:
             yield AIMessageChunk(content="工具结果已读取")
 
 
+class _MiddlewareRequest:
+    def __init__(self, **values: object) -> None:
+        self.model_settings = values.pop("model_settings", {})
+        self.tool_choice = values.pop("tool_choice", None)
+        self.response_format = values.pop("response_format", "structured")
+        self.tools = values.pop("tools", ())
+        for key, value in values.items():
+            setattr(self, key, value)
+
+    def override(self, **values: object) -> "_MiddlewareRequest":
+        return _MiddlewareRequest(
+            model_settings=values.get("model_settings", self.model_settings),
+            tool_choice=values.get("tool_choice", self.tool_choice),
+            response_format=values.get("response_format", self.response_format),
+            tools=values.get("tools", self.tools),
+        )
+
+
+def test_dynamic_tool_choice_resolver_is_evaluated_for_each_model_request() -> None:
+    choices = iter(("read_fcstm_guide", "read_task", None))
+    middleware = _ModelOptionsMiddleware(
+        {"temperature": 0}, tool_choice_resolver=lambda: next(choices)
+    )
+    request = _MiddlewareRequest(
+        tools=(
+            {"name": "read_fcstm_guide"},
+            {"name": "read_task"},
+            {"name": "evaluate_checks"},
+        )
+    )
+
+    first = middleware.wrap_model_call(request, lambda value: value)
+    second = middleware.wrap_model_call(request, lambda value: value)
+    third = middleware.wrap_model_call(request, lambda value: value)
+
+    assert first.tool_choice == "read_fcstm_guide"
+    assert second.tool_choice == "read_task"
+    assert third.tool_choice is None
+    assert first.response_format is None
+    assert second.response_format is None
+    assert third.response_format == "structured"
+    assert first.tools == [{"name": "read_fcstm_guide"}]
+    assert second.tools == [{"name": "read_task"}]
+    assert third.tools == request.tools
+    assert first.model_settings == {"temperature": 0}
+
+
+def test_dynamic_structured_choice_preserves_response_format() -> None:
+    middleware = _ModelOptionsMiddleware(
+        {},
+        tool_choice_resolver=lambda: "submit_discovery",
+        structured_output_name="submit_discovery",
+    )
+    request = _MiddlewareRequest(
+        tools=(
+            {"name": "query_model"},
+            {"name": "submit_discovery"},
+        )
+    )
+
+    projected = middleware.wrap_model_call(request, lambda value: value)
+
+    assert projected.tool_choice == "submit_discovery"
+    assert projected.response_format == "structured"
+    assert projected.tools == request.tools
+
+
+def test_explicit_forced_tool_choice_overrides_dynamic_resolver() -> None:
+    middleware = _ModelOptionsMiddleware(
+        {},
+        forced_tool_choice="required",
+        tool_choice_resolver=lambda: "read_task",
+    )
+    request = middleware.wrap_model_call(_MiddlewareRequest(), lambda value: value)
+    assert request.tool_choice == "required"
+    assert request.response_format == "structured"
+
+
+def test_mandatory_tool_rejection_is_audited_as_not_executed() -> None:
+    status, error, executed = _tool_completion_status(
+        {
+            "execution_status": "mandatory_tool_rejected",
+            "tool_executed": False,
+            "error": {
+                "code": "mandatory_tool_mismatch",
+                "message": "query_model was not executed.",
+            },
+        }
+    )
+
+    assert status == "rejected"
+    assert executed is False
+    assert error == {
+        "code": "mandatory_tool_mismatch",
+        "message": "query_model was not executed.",
+    }
+
+
+class _RetryAnswer(BaseModel):
+    answer: str
+
+
+class _MissingThenStructuredModel(BaseChatModel):
+    calls: int = Field(default=0)
+    structured_tool_name: str = Field(default="_RetryAnswer")
+    business_tool_name: str = Field(default="lookup")
+
+    @property
+    def _llm_type(self) -> str:
+        return "missing-then-structured"
+
+    def bind_tools(self, tools, **kwargs):
+        names = [
+            item.get("function", {}).get("name")
+            if isinstance(item, dict)
+            else getattr(item, "name", None)
+            for item in tools
+        ]
+        self.structured_tool_name = next(
+            (
+                name
+                for name in names
+                if isinstance(name, str) and "RetryAnswer" in name
+            ),
+            self.structured_tool_name,
+        )
+        self.business_tool_name = next(
+            (
+                name
+                for name in names
+                if isinstance(name, str) and name != self.structured_tool_name
+            ),
+            self.business_tool_name,
+        )
+        return self
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+        self.calls += 1
+        if self.calls == 1:
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": self.business_tool_name,
+                        "args": {},
+                        "id": "business-1",
+                        "type": "tool_call",
+                    }
+                ],
+            )
+        elif self.calls == 2:
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": self.structured_tool_name,
+                        "args": {},
+                        "id": "structured-invalid-1",
+                        "type": "tool_call",
+                    }
+                ],
+            )
+        elif self.calls == 3:
+            message = AIMessage(content="done without structured output")
+        else:
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": self.structured_tool_name,
+                        "args": {"answer": "ok"},
+                        "id": "structured-retry-1",
+                        "type": "tool_call",
+                    }
+                ],
+            )
+        return ChatResult(generations=[ChatGeneration(message=message)])
+
+
+class _InvalidThenValidStructuredModel(_MissingThenStructuredModel):
+    @property
+    def _llm_type(self) -> str:
+        return "invalid-then-valid-structured"
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+        self.calls += 1
+        args = {} if self.calls == 1 else {"answer": "ok"}
+        message = AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "name": self.structured_tool_name,
+                    "args": args,
+                    "id": f"structured-{self.calls}",
+                    "type": "tool_call",
+                }
+            ],
+        )
+        return ChatResult(generations=[ChatGeneration(message=message)])
+
+
+class _MalformedThenValidStructuredModel(_MissingThenStructuredModel):
+    observed_requests: list[list[object]] = Field(default_factory=list)
+
+    @property
+    def _llm_type(self) -> str:
+        return "malformed-then-valid-structured"
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+        self.calls += 1
+        self.observed_requests.append(list(messages))
+        if self.calls == 1:
+            message = AIMessage(
+                content="",
+                additional_kwargs={
+                    "tool_calls": [
+                        {
+                            "id": "structured-malformed-1",
+                            "type": "function",
+                            "function": {
+                                "name": self.structured_tool_name,
+                                "arguments": "{",
+                            },
+                        }
+                    ]
+                },
+                invalid_tool_calls=[
+                    {
+                        "name": self.structured_tool_name,
+                        "args": "{",
+                        "id": "structured-malformed-1",
+                        "error": "invalid JSON arguments",
+                        "type": "invalid_tool_call",
+                    }
+                ],
+            )
+        else:
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": self.structured_tool_name,
+                        "args": {"answer": "ok"},
+                        "id": "structured-valid-1",
+                        "type": "tool_call",
+                    }
+                ],
+            )
+        return ChatResult(generations=[ChatGeneration(message=message)])
+
+
+class _MalformedBusinessThenStructuredModel(_MissingThenStructuredModel):
+    @property
+    def _llm_type(self) -> str:
+        return "malformed-business-then-structured"
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+        self.calls += 1
+        if self.calls == 1:
+            message = AIMessage(
+                content="",
+                invalid_tool_calls=[
+                    {
+                        "name": self.business_tool_name,
+                        "args": "{",
+                        "id": "business-malformed-1",
+                        "error": "invalid JSON arguments",
+                        "type": "invalid_tool_call",
+                    }
+                ],
+            )
+        elif self.calls == 2:
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": self.business_tool_name,
+                        "args": {},
+                        "id": "business-retry-1",
+                        "type": "tool_call",
+                    }
+                ],
+            )
+        else:
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": self.structured_tool_name,
+                        "args": {"answer": "ok"},
+                        "id": "structured-after-business-retry-1",
+                        "type": "tool_call",
+                    }
+                ],
+            )
+        return ChatResult(generations=[ChatGeneration(message=message)])
+
+
 def test_tool_call_and_academic_audit_are_exported(tmp_path: Path) -> None:
     def lookup(value: str) -> dict[str, str]:
         return {"value": value}
@@ -124,6 +509,356 @@ def test_tool_call_and_academic_audit_are_exported(tmp_path: Path) -> None:
     assert all(item["model_call_id"] for item in finish["usage"])
     assert json.loads(result_path.read_text(encoding="utf-8"))["status"] == "success"
     assert {"tool_call_id", "status"}.issubset(result.tool_calls[0])
+
+
+def test_missing_structured_output_retry_continues_same_audited_run(tmp_path: Path) -> None:
+    def lookup() -> str:
+        """Return one fact."""
+        return "ok"
+
+    model = _MissingThenStructuredModel()
+    app = AgentApp._for_test(
+        AgentSpec(
+            name="structured-retry",
+            system_prompt="Return the structured answer.",
+            tools=(lookup,),
+            output_schema=_RetryAnswer,
+            require_tool_call=True,
+            retry_missing_structured_output=True,
+        ),
+        LLMConfig(model="gpt-5.5"),
+        model,
+    )
+    audit = tmp_path / "structured-retry.jsonl"
+    result = app.run("answer", renderer="quiet", audit_out=audit)
+
+    assert result.status == "success"
+    assert result.require_output().answer == "ok"
+    assert result.model_calls_used == 4
+    records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
+    retry_records = [
+        item
+        for item in records
+        if item.get("operation") == "missing_structured_output_retry"
+    ]
+    assert len(retry_records) == 1
+    assert retry_records[0]["status"] == "started"
+    assert retry_records[0]["instruction_hash"].startswith("sha256:")
+    decisions_after_retry = [
+        item
+        for item in records
+        if item.get("record") == "decision"
+        and item.get("order", 0) > retry_records[0]["order"]
+    ]
+    assert decisions_after_retry
+    retry_roles = [
+        ref["role"] for ref in decisions_after_retry[-1]["input_message_refs"]
+    ]
+    assert retry_roles.count("tool") >= 2
+
+
+def test_missing_output_retry_recovers_malformed_mandatory_business_call(
+    tmp_path: Path,
+) -> None:
+    state = {"lookup_completed": False}
+
+    def lookup() -> str:
+        """Return one fact and satisfy the mandatory step."""
+        state["lookup_completed"] = True
+        return "ok"
+
+    model = _MalformedBusinessThenStructuredModel()
+    app = AgentApp._for_test(
+        AgentSpec(
+            name="malformed-business-retry",
+            system_prompt="Call lookup, then return the structured answer.",
+            tools=(lookup,),
+            output_schema=_RetryAnswer,
+            require_tool_call=True,
+            retry_missing_structured_output=True,
+        ),
+        LLMConfig(model="gpt-5.5"),
+        model,
+    )
+    audit = tmp_path / "malformed-business-retry.jsonl"
+    result = app.run(
+        "answer",
+        renderer="quiet",
+        audit_out=audit,
+        tool_choice_resolver=(
+            lambda: None if state["lookup_completed"] else "lookup"
+        ),
+        tool_choice_policy_name="test-mandatory-v1",
+    )
+
+    assert result.status == "success"
+    assert result.require_output().answer == "ok"
+    assert result.model_calls_used == 3
+    malformed = [
+        item
+        for item in result.tool_calls
+        if item.get("error", {}).get("code") == "tool_arguments_invalid"
+    ]
+    assert len(malformed) == 1
+    assert malformed[0]["kind"] == "business"
+    assert malformed[0]["name"] == "lookup"
+    completed = [
+        item
+        for item in result.tool_calls
+        if item.get("kind") == "business" and item.get("status") == "completed"
+    ]
+    assert [item["name"] for item in completed] == ["lookup"]
+    records = [
+        json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()
+    ]
+    decisions = [item for item in records if item.get("record") == "decision"]
+    assert decisions
+    mandatory_projection = decisions[0]["rendered_input_projection"]
+    assert mandatory_projection["tool_choice"] == "lookup"
+    assert [item["name"] for item in mandatory_projection["tools"]] == ["lookup"]
+    assert mandatory_projection["response_format"] is None
+
+
+def test_dynamic_resolver_can_force_structured_submission_only(
+    tmp_path: Path,
+) -> None:
+    state = {"lookup_completed": False}
+
+    def lookup() -> str:
+        """Return the mandatory fact before the terminal phase."""
+
+        state["lookup_completed"] = True
+        return "ok"
+
+    model = _MissingThenStructuredModel()
+    app = AgentApp._for_test(
+        AgentSpec(
+            name="structured-only-terminal",
+            system_prompt="Return the structured answer.",
+            tools=(lookup,),
+            output_schema=_RetryAnswer,
+            require_tool_call=True,
+            retry_missing_structured_output=True,
+        ),
+        LLMConfig(model="gpt-5.5"),
+        model,
+    )
+    audit = tmp_path / "structured-only-terminal.jsonl"
+
+    result = app.run(
+        "answer",
+        renderer="quiet",
+        audit_out=audit,
+        tool_choice_resolver=(
+            lambda: "_RetryAnswer" if state["lookup_completed"] else "lookup"
+        ),
+        tool_choice_policy_name="test-structured-only-v1",
+    )
+
+    assert result.status == "success"
+    assert result.require_output().answer == "ok"
+    assert result.model_calls_used == 4
+    assert [
+        item
+        for item in result.tool_calls
+        if item.get("kind") == "business" and item.get("status") == "completed"
+    ][0]["name"] == "lookup"
+
+
+def test_schema_retry_does_not_leave_an_incomplete_structured_tool(tmp_path: Path) -> None:
+    model = _InvalidThenValidStructuredModel()
+    app = AgentApp._for_test(
+        AgentSpec(
+            name="schema-retry",
+            system_prompt="Return the structured answer.",
+            output_schema=_RetryAnswer,
+        ),
+        LLMConfig(model="gpt-5.5"),
+        model,
+    )
+    result = app.run(
+        "answer",
+        renderer="quiet",
+        audit_out=tmp_path / "schema-retry.jsonl",
+    )
+
+    assert result.status == "success"
+    assert result.require_output().answer == "ok"
+    structured = [item for item in result.tool_calls if item.get("kind") == "structured"]
+    assert [item["status"] for item in structured] == ["rejected", "completed"]
+    assert structured[0]["error"]["code"] == "structured_output_invalid"
+    assert structured[1]["result"] == {"answer": "ok"}
+
+
+def test_malformed_structured_retry_balances_tool_call_before_next_request(
+    tmp_path: Path,
+) -> None:
+    model = _MalformedThenValidStructuredModel()
+    app = AgentApp._for_test(
+        AgentSpec(
+            name="malformed-structured-retry",
+            system_prompt="Return the structured answer.",
+            output_schema=_RetryAnswer,
+        ),
+        LLMConfig(model="gpt-5.5"),
+        model,
+    )
+
+    result = app.run(
+        "answer",
+        renderer="quiet",
+        audit_out=tmp_path / "malformed-structured-retry.jsonl",
+    )
+
+    assert result.status == "success"
+    assert result.require_output().answer == "ok"
+    retry_messages = model.observed_requests[1]
+    malformed_index = next(
+        index
+        for index, message in enumerate(retry_messages)
+        if isinstance(message, AIMessage)
+        and any(
+            call.get("id") == "structured-malformed-1"
+            for call in message.invalid_tool_calls
+        )
+    )
+    protocol_reply = retry_messages[malformed_index + 1]
+    assert isinstance(protocol_reply, ToolMessage)
+    assert protocol_reply.tool_call_id == "structured-malformed-1"
+    assert protocol_reply.name == "_RetryAnswer"
+    assert "valid JSON arguments" in str(protocol_reply.content)
+
+
+def test_recovery_history_excludes_only_malformed_terminal_structured_call() -> None:
+    malformed = AIMessage(
+        content="",
+        additional_kwargs={
+            "tool_calls": [
+                {
+                    "id": "structured-malformed-1",
+                    "type": "function",
+                    "function": {"name": "_RetryAnswer", "arguments": "{"},
+                }
+            ]
+        },
+        invalid_tool_calls=[
+            {
+                "name": "_RetryAnswer",
+                "args": "{",
+                "id": "structured-malformed-1",
+                "error": "invalid JSON arguments",
+                "type": "invalid_tool_call",
+            }
+        ],
+    )
+    initial = HumanMessage(content="answer")
+
+    replay, rejected = _prepare_recovery_history(
+        [initial, malformed], structured_name="_RetryAnswer"
+    )
+
+    assert replay == [initial]
+    assert rejected == [
+        {
+            "name": "_RetryAnswer",
+            "source": "invalid_tool_calls",
+            "tool_call_id": "structured-malformed-1",
+            "valid": False,
+        }
+    ]
+    assert _message_ref(malformed)["tool_calls"] == rejected
+
+
+def test_recovery_history_refuses_dangling_business_tool_call() -> None:
+    dangling = AIMessage(
+        content="",
+        tool_calls=[
+            {
+                "name": "lookup",
+                "args": {},
+                "id": "business-dangling-1",
+                "type": "tool_call",
+            }
+        ],
+    )
+
+    with pytest.raises(AgentError, match="cannot be safely replayed"):
+        _prepare_recovery_history([dangling], structured_name="_RetryAnswer")
+
+
+def test_recovery_history_excludes_terminal_invalid_registered_business_call() -> None:
+    malformed = AIMessage(
+        content="",
+        invalid_tool_calls=[
+            {
+                "name": "lookup",
+                "args": "{",
+                "id": "business-malformed-1",
+                "error": "invalid JSON arguments",
+                "type": "invalid_tool_call",
+            }
+        ],
+    )
+
+    replay, rejected = _prepare_recovery_history(
+        [HumanMessage(content="answer"), malformed],
+        structured_name="_RetryAnswer",
+        business_names=("lookup",),
+    )
+
+    assert len(replay) == 1
+    assert rejected == [
+        {
+            "name": "lookup",
+            "source": "invalid_tool_calls",
+            "tool_call_id": "business-malformed-1",
+            "valid": False,
+        }
+    ]
+
+
+def test_recovery_history_refuses_terminal_invalid_unknown_tool_call() -> None:
+    malformed = AIMessage(
+        content="",
+        invalid_tool_calls=[
+            {
+                "name": "unknown_tool",
+                "args": "{",
+                "id": "unknown-malformed-1",
+                "error": "invalid JSON arguments",
+                "type": "invalid_tool_call",
+            }
+        ],
+    )
+
+    with pytest.raises(AgentError, match="cannot be safely replayed"):
+        _prepare_recovery_history(
+            [malformed],
+            structured_name="_RetryAnswer",
+            business_names=("lookup",),
+        )
+
+
+def test_recovery_history_excludes_terminal_invalid_structured_call_without_id() -> None:
+    malformed = AIMessage(
+        content="",
+        invalid_tool_calls=[
+            {
+                "name": "_RetryAnswer",
+                "args": "{",
+                "id": None,
+                "error": "invalid JSON arguments",
+                "type": "invalid_tool_call",
+            }
+        ],
+    )
+
+    replay, rejected = _prepare_recovery_history(
+        [HumanMessage(content="answer"), malformed], structured_name="_RetryAnswer"
+    )
+
+    assert len(replay) == 1
+    assert rejected[0]["tool_call_id"] is None
 
 
 def test_tool_events_keep_standard_call_metadata() -> None:
@@ -704,6 +1439,58 @@ def test_usage_conflict_includes_cache_and_reasoning_details() -> None:
     assert conflict is True
 
 
+def test_anthropic_usage_preserves_cache_creation_ttl_details() -> None:
+    from utils.agent.runtime import _normalize_usage
+
+    normalized = _normalize_usage(
+        {
+            "input_tokens": 140,
+            "output_tokens": 12,
+            "total_tokens": 152,
+            "input_token_details": {
+                "cache_read": 40,
+                "cache_creation": 0,
+                "ephemeral_5m_input_tokens": 60,
+                "ephemeral_1h_input_tokens": 20,
+            },
+        },
+        model="claude-opus-4-7",
+        call_kind="primary",
+        turn=1,
+    )
+
+    assert normalized["input_tokens"] == 140
+    assert normalized["total_tokens"] == 152
+    assert normalized["input_token_details"] == {
+        "cache_read": 40,
+        "cache_creation": 80,
+        "ephemeral_5m_input_tokens": 60,
+        "ephemeral_1h_input_tokens": 20,
+    }
+
+
+def test_raw_anthropic_usage_adds_cached_tokens_to_true_input_total() -> None:
+    from utils.agent.runtime import _normalize_usage
+
+    normalized = _normalize_usage(
+        {
+            "input_tokens": 10,
+            "output_tokens": 2,
+            "cache_read_input_tokens": 20,
+            "cache_creation": {"ephemeral_5m_input_tokens": 30},
+        },
+        model="claude-opus-4-7",
+        call_kind="primary",
+        turn=1,
+    )
+
+    assert normalized["input_tokens"] == 60
+    assert normalized["output_tokens"] == 2
+    assert normalized["total_tokens"] == 62
+    assert normalized["input_token_details"]["cache_read"] == 20
+    assert normalized["input_token_details"]["cache_creation"] == 30
+
+
 def test_model_usage_and_observed_model_are_read_from_chat_model_end() -> None:
     class _UsageModel(BaseChatModel):
         @property
@@ -886,6 +1673,22 @@ def test_provider_timeout_is_not_reported_as_agent_budget() -> None:
     assert result.status == "failed"
     assert result.error is not None
     assert result.error["code"] == "provider_error"
+
+
+@pytest.mark.parametrize("status_code", [502, 520, 521, 524, 529, 599])
+def test_transport_retry_classifier_separates_transient_and_auth_errors(status_code: int) -> None:
+    class RetryableProviderError(Exception):
+        body = {"retry_after": 60}
+
+    class AuthenticationError(Exception):
+        status_code = 401
+
+    transient = RetryableProviderError("origin unavailable")
+    transient.status_code = status_code
+    assert _retryable_transport_error(transient) is True
+    assert _retryable_transport_error(AgentError("provider_error", "origin unavailable", details={"status_code": status_code})) is True
+    assert _provider_retry_after_seconds(transient) == 60
+    assert _retryable_transport_error(AuthenticationError("unauthorized")) is False
 
 
 def test_cancelled_run_has_structured_status_and_audit_finish(tmp_path: Path) -> None:
@@ -1609,6 +2412,55 @@ def test_output_target_cannot_use_audit_sidecar_path(tmp_path: Path) -> None:
     audit = tmp_path / "trace.jsonl"
     with pytest.raises(AgentError, match="derived sidecar"):
         _validate_output_paths(audit, audit.with_name(audit.name + ".lock"))
+
+
+def test_interrupted_output_part_is_archived_after_locks_and_audited(tmp_path: Path) -> None:
+    def lookup() -> str:
+        """Return a deterministic test observation."""
+        return "ok"
+
+    audit = tmp_path / "trace.jsonl"
+    stale_part = tmp_path / ".trace.jsonl.interrupted.part"
+    stale_part.write_text('{"record":"partial"}\n', encoding="utf-8")
+
+    result = AgentApp._for_test(
+        AgentSpec(name="recover-output-part", system_prompt="answer", tools=(lookup,)),
+        LLMConfig(model="gpt-5.5"),
+        FakeStreamingModel(),
+    ).run("run", renderer="quiet", audit_out=audit)
+
+    assert result.status == "success", result.error
+    assert not stale_part.exists()
+    archives = list((tmp_path / ".abandoned-output-parts").glob("*.part"))
+    assert len(archives) == 1
+    recovery = json.loads(
+        archives[0].with_name(archives[0].name + ".recovery.json").read_text(encoding="utf-8")
+    )
+    assert recovery["target_path"] == str(audit.resolve())
+    assert recovery["original_part_path"] == str(stale_part.resolve())
+    records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
+    assert records[0]["recovered_output_parts"] == [recovery]
+
+
+def test_active_output_lock_is_never_recovered(tmp_path: Path) -> None:
+    import fcntl
+
+    audit = tmp_path / "trace.jsonl"
+    stale_part = tmp_path / ".trace.jsonl.interrupted.part"
+    stale_part.write_text('{"record":"partial"}\n', encoding="utf-8")
+    lock_path = audit.with_name(audit.name + ".lock")
+    with lock_path.open("a+", encoding="utf-8") as lock_file:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        app = AgentApp._for_test(
+            AgentSpec(name="locked-output-part", system_prompt="answer"),
+            LLMConfig(model="gpt-5.5"),
+            FakeStreamingModel(),
+        )
+        with pytest.raises(AgentError, match="audit_write_failed"):
+            app.run("run", renderer="quiet", audit_out=audit)
+
+    assert stale_part.exists()
+    assert not (tmp_path / ".abandoned-output-parts").exists()
 
 
 def test_result_and_audit_redact_configured_key_across_boundaries(tmp_path: Path) -> None:

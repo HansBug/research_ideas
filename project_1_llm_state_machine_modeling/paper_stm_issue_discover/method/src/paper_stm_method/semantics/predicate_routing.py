@@ -1,0 +1,1284 @@
+"""Deterministic primary routing from typed contracts to frozen predicates.
+
+This module is deliberately downstream of LLM grounding and upstream of
+predicate compilation.  It may use one current pair's typed contracts, exact
+grounding bindings, closed ``ModelIR`` references, and method-visible facts.
+It never consumes ledger expectations, Judge output, another pair's result, or
+candidate prose as an identity resolver.
+"""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Mapping, Sequence
+from itertools import product
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from ..backends.fcstm_native import (
+    all_events,
+    all_states,
+    all_transition_carriers,
+    load_native_fcstm,
+    resolve_event,
+    resolve_state,
+    state_path,
+    transition_by_ref,
+)
+from ..inputs.models import EventNode, PairInput, StateNode, Transition
+from .binding import resolve_state_ref, resolve_transition_ref
+from .obligations import CandidateIssue, PredicateId
+from .workflow import GroundingResponse, NLContract
+
+_PROPERTY_PREDICATES: dict[str, tuple[PredicateId, ...]] = {
+    "initial_entry": ("S2",),
+    "transition_endpoints": ("S2",),
+    "trigger_set": ("S3",),
+    "state_action": ("S4",),
+    "guard": ("S5",),
+    "reachability": ("G1",),
+    "universal_reachability": ("G2",),
+    "coaccessibility": ("G3",),
+    "event_consumption": ("R1",),
+    "state_after_stimulus": ("R2",),
+    "state_retention": ("R3",),
+    "deadlock_freedom": ("V1",),
+    "termination": ("G2", "G3"),
+}
+
+# S2 establishes only the owner-local initial pseudo-state endpoint.  A
+# source-side event, trigger, or guard is an independent qualifier which S2
+# cannot decide from its three endpoint inputs.
+_INITIAL_ENTRY_S2_UNDECIDED_ROLES = frozenset({"event", "trigger", "guard"})
+
+_PREDICATE_BACKENDS: dict[PredicateId, str] = {
+    "S1": "fcstm_model",
+    "S2": "fcstm_model",
+    "S3": "fcstm_model",
+    "S4": "fcstm_model",
+    "S5": "fcstm_model",
+    "G1": "fcstm_topology",
+    "G2": "fcstm_topology",
+    "G3": "fcstm_topology",
+    "R1": "fcstm_runtime",
+    "R2": "fcstm_runtime",
+    "R3": "fcstm_runtime",
+    "V1": "fbmcq",
+}
+
+_COLD_MACROSTEP_WINDOW = re.compile(r"^cold_macrosteps=(?P<count>[1-9][0-9]*)$")
+_MAX_COLD_MACROSTEPS = 32
+_MAX_R3_ENTRY_EVENTS = 3
+_MAX_R3_EVENT_VOCABULARY = 12
+_MAX_R2_PREFIX_EVENTS = 3
+_MAX_R2_EVENT_VOCABULARY = 12
+# Every structural predicate needs the same native identity closure, regardless
+# of whether an upstream candidate already carried a predicate label.  In
+# particular, historical ModelIR refs such as ``state:X:line:N`` are audit
+# identities, not native StateMachine argument values.
+_STRICT_REBIND_PREDICATES = frozenset({"S2", "S3", "S4", "S5"})
+
+
+class PredicateRouteTelemetry(BaseModel):
+    """Per-contract route state retained independently from evidence levels.
+
+    The row exposes whether a frozen predicate could be selected and later
+    receives compilation/execution outcomes in the runner.  A null selection
+    is a precise input-closure result, not a claim that a frozen predicate lacks
+    academic standing or a backend.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    contract_id: str = Field(min_length=1, description="Exact NLContract identifier assessed by this deterministic route stage.")
+    applicable_predicates: tuple[PredicateId, ...] = Field(default_factory=tuple, description="Frozen predicates compatible with the contract's typed property before input closure.")
+    route_attempted: bool = Field(description="Whether the deterministic binder evaluated this contract without consulting evaluation answers.")
+    selected_predicate: PredicateId | None = Field(default=None, description="Frozen predicate selected after exact input closure, or null when no legal route closed.")
+    binding_complete: bool = Field(default=False, description="Whether selected predicate inputs have exact current-pair identities before compilation.")
+    backend: str | None = Field(default=None, description="Native backend family for the selected predicate, or null when no route is selected.")
+    execution_state: Literal["not_attempted", "completed", "failed"] = Field(default="not_attempted", description="Execution state updated by the runner after predicate compilation and backend invocation.")
+    final_W: Literal["W0", "W1", "W2"] | None = Field(default=None, description="Final deterministic witness level for the selected route after execution, or null before no evidence record exists.")
+    reason: str = Field(min_length=1, description="Non-empty explanation of the route decision or the exact missing closure.")
+    basis: str = Field(min_length=1, description="Closed contract, binding, ModelIR, and method-visible-fact basis for the route decision.")
+
+
+class CandidateRouteTelemetry(BaseModel):
+    """One deterministic route decision for one input candidate.
+
+    Contract-level telemetry is intentionally an aggregate coverage view: more
+    than one candidate may express the same contract and one may close while
+    another remains unclosed.  This row preserves the exact decision for the
+    candidate at ``candidate_index`` so replay, evidence, and audit code never
+    attribute a sibling candidate's route to the current semantic claim.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    candidate_index: int = Field(ge=0, description="Zero-based index of this candidate in the exact input sequence supplied to route_primary_candidates.")
+    contract_id: str = Field(min_length=1, description="Atomic NLContract identifier carried by this exact candidate, including IDs no longer present in the current contract mapping.")
+    applicable_predicates: tuple[PredicateId, ...] = Field(default_factory=tuple, description="Frozen predicates compatible with this candidate's typed contract property before exact input closure.")
+    route_attempted: bool = Field(description="Whether the deterministic primary binder evaluated this exact candidate against a current typed contract.")
+    selected_predicate: PredicateId | None = Field(default=None, description="Frozen predicate actually retained on this routed candidate after strict native input closure, or null when this candidate remains unclosed.")
+    binding_complete: bool = Field(default=False, description="Whether this exact candidate retains a fully closed typed input set for its selected predicate.")
+    backend: str | None = Field(default=None, description="Native backend family for this exact candidate's retained selected predicate, or null when it remains unclosed.")
+    reason: str = Field(min_length=1, description="Non-empty candidate-specific explanation of the route outcome or the exact missing closure.")
+    basis: str = Field(min_length=1, description="Current-pair contract, binding, native inventory, and deterministic route basis for this candidate-specific outcome.")
+
+
+class PrimaryRouteProjection(BaseModel):
+    """Candidate replacement and telemetry output of the primary route stage."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    candidates: tuple[CandidateIssue, ...] = Field(description="Candidates retaining their original semantic identity, with predicate inputs filled only where an exact route closes.")
+    telemetry: tuple[PredicateRouteTelemetry, ...] = Field(description="One route row for every current typed contract.")
+    candidate_telemetry: tuple[CandidateRouteTelemetry, ...] = Field(description="One index-aligned route decision for every input candidate; unlike contract telemetry it cannot aggregate a sibling candidate's result.")
+    reason: str = Field(min_length=1, description="Non-empty summary of the deterministic primary routing stage.")
+    basis: str = Field(min_length=1, description="Allowed input authorities and frozen predicate compatibility basis.")
+
+
+def _unique_strings(values: Sequence[object]) -> tuple[str, ...]:
+    """Return non-empty strings in deterministic insertion order."""
+
+    result: list[str] = []
+    for value in values:
+        if isinstance(value, str) and value.strip() and value not in result:
+            result.append(value)
+    return tuple(result)
+
+
+def _state_for_ref(pair: PairInput, reference: str | None) -> StateNode | None:
+    """Resolve one already exact owned-model state reference."""
+
+    return next((item for item in pair.model.states if item.ref == reference), None)
+
+
+def _state_for_roles(
+    pair: PairInput,
+    contract: NLContract,
+    grounding: Sequence[GroundingResponse],
+    roles: set[str],
+) -> tuple[StateNode | None, str]:
+    """Close one state argument through exact binding or unambiguous hint lookup."""
+
+    relevant = [
+        binding
+        for response in grounding
+        for binding in response.semantic_bindings
+        if binding.contract_id == contract.contract_id and binding.role in roles
+    ]
+    exact_refs = {
+        binding.model_element_ref
+        for binding in relevant
+        if binding.status == "exact" and binding.model_element_ref is not None
+    }
+    if exact_refs:
+        if len(exact_refs) != 1:
+            return None, "conflicting exact grounding state bindings"
+        state = _state_for_ref(pair, next(iter(exact_refs)))
+        return state, "exact grounding semantic binding" if state else "exact binding does not name a closed ModelIR state"
+    if relevant:
+        return None, "grounding explicitly left the required state role ambiguous or unbound"
+    refs = {
+        resolve_state_ref(hint.value, pair.model)
+        for hint in contract.binding_hints
+        if hint.role in roles
+    }
+    refs.discard(None)
+    if len(refs) != 1:
+        return None, "typed contract hints do not resolve to one exact closed ModelIR state"
+    return _state_for_ref(pair, next(iter(refs))), "unique typed-contract hint and closed ModelIR resolution"
+
+
+def _event_for_roles(
+    pair: PairInput,
+    contract: NLContract,
+    grounding: Sequence[GroundingResponse],
+    roles: set[str],
+) -> tuple[EventNode | None, str]:
+    """Close one event through exact native-derived identity, never prose similarity."""
+
+    relevant = [
+        binding
+        for response in grounding
+        for binding in response.semantic_bindings
+        if binding.contract_id == contract.contract_id and binding.role in roles
+    ]
+    exact_refs = {
+        binding.model_element_ref
+        for binding in relevant
+        if binding.status == "exact" and binding.model_element_ref is not None
+    }
+    if exact_refs:
+        if len(exact_refs) != 1:
+            return None, "conflicting exact grounding event bindings"
+        event = pair.model.event(next(iter(exact_refs)))
+        return event, "exact grounding semantic binding" if event else "exact binding does not name one native-derived event"
+    if relevant:
+        return None, "grounding explicitly left the required event role ambiguous or unbound"
+    events = {
+        event.ref: event
+        for hint in contract.binding_hints
+        if hint.role in roles
+        for event in (pair.model.event(hint.value),)
+        if event is not None
+    }
+    if len(events) != 1:
+        return None, "typed contract hints do not resolve to one exact native-derived event"
+    return next(iter(events.values())), "unique typed-contract hint and native-derived event resolution"
+
+
+def _native_state_fragment(
+    pair: PairInput,
+    states: Sequence[StateNode],
+    *,
+    require_leaf: bool,
+) -> tuple[bool, str]:
+    """Validate exact state carriers against pyfcstm model classes."""
+
+    try:
+        native = load_native_fcstm(pair.model)
+    except Exception as exc:  # noqa: BLE001 - route failure remains W1.
+        return False, f"native FCSTM load failed: {type(exc).__name__}"
+    resolved = [resolve_state(native, state.canonical_path) for state in states]
+    if any(state is None for state in resolved):
+        return False, "one exact projected state does not resolve to a pyfcstm native State"
+    if require_leaf and any(not state.is_leaf_state for state in resolved if state is not None):
+        return False, "the current native fragment requires exact pyfcstm leaf-state carriers"
+    return True, "pyfcstm native State identity and leaf-state fragment" if require_leaf else "pyfcstm native State identity"
+
+
+def _native_initial_leaf_source(
+    pair: PairInput,
+    source: StateNode,
+) -> tuple[str | None, str]:
+    """Resolve one source to its unique executable native initial leaf.
+
+    FCSTM composite entry follows ``State.init_transitions`` recursively. The
+    route accepts a composite only when every level has exactly one initial
+    transition to one native substate. It never chooses from multiple leaves or
+    substitutes graph reachability for initial-descent semantics.
+    """
+
+    try:
+        native = load_native_fcstm(pair.model)
+    except Exception as exc:  # noqa: BLE001 - route failure remains W1.
+        return None, f"native FCSTM load failed: {type(exc).__name__}"
+    current = resolve_state(native, source.canonical_path)
+    if current is None:
+        return None, "the exact projected source does not resolve to a pyfcstm native State"
+    visited: set[str] = set()
+    descent: list[str] = [state_path(current)]
+    while not current.is_leaf_state:
+        current_path = state_path(current)
+        if current_path in visited:
+            return None, "native initial descent contains a cycle"
+        visited.add(current_path)
+        initial = tuple(current.init_transitions)
+        if len(initial) != 1:
+            return None, (
+                f"native composite {current_path} has {len(initial)} initial "
+                "transitions; one executable source leaf is not unique"
+            )
+        target_name = initial[0].to_state
+        if not isinstance(target_name, str):
+            return None, "native initial transition does not target one named substate"
+        target = current.substates.get(target_name)
+        if target is None:
+            return None, "native initial transition target is absent from its owner State"
+        current = target
+        descent.append(state_path(current))
+    return state_path(current), f"unique pyfcstm State.init_transitions descent={descent}"
+
+
+def _transition_for_candidate(
+    pair: PairInput,
+    contract: NLContract,
+    candidate: CandidateIssue,
+    grounding: Sequence[GroundingResponse],
+) -> tuple[Transition | None, str]:
+    """Close one carrier only through exact binding, typed hints, or one ref."""
+
+    values: list[str] = []
+    supplied = candidate.predicate_inputs.get("transition") or candidate.predicate_inputs.get("transition_ref")
+    if isinstance(supplied, str):
+        values.append(supplied)
+    values.extend(
+        binding.carrier_transition_ref
+        for response in grounding
+        for binding in response.semantic_bindings
+        if binding.contract_id == contract.contract_id
+        and binding.status == "exact"
+        and binding.carrier_transition_ref is not None
+    )
+    values.extend(
+        hint.value for hint in contract.binding_hints if hint.role == "transition"
+    )
+    values.extend(
+        ref for ref in candidate.element_refs if ref in pair.model.transition_refs
+    )
+    refs = {
+        resolve_transition_ref(value, pair.model)
+        for value in _unique_strings(values)
+    }
+    refs.discard(None)
+    if len(refs) != 1:
+        return None, "the route requires one exact transition carrier but available bindings are absent or non-unique"
+    transition = pair.model.transition(next(iter(refs)))
+    return transition, "exact transition carrier closure" if transition else "resolved transition reference is absent from closed ModelIR"
+
+
+def _contract_values(contract: NLContract, roles: set[str]) -> tuple[str, ...]:
+    """Return source-side typed values without treating prose as a model ref."""
+
+    return _unique_strings(
+        [hint.value for hint in contract.binding_hints if hint.role in roles]
+    )
+
+
+def _scope_for_endpoint(pair: PairInput, contract: NLContract, source: StateNode) -> tuple[str | None, str]:
+    """Close S2 owner scope from explicit typed owner or source ancestry."""
+
+    explicit = _unique_strings(
+        [
+            hint.value
+            for hint in contract.binding_hints
+            if hint.role in {"owner", "scope"}
+        ]
+    )
+    if explicit:
+        refs = {resolve_state_ref(value, pair.model) for value in explicit}
+        refs.discard(None)
+        if len(refs) != 1:
+            return None, "explicit owner/scope hints are not one exact state"
+        scope = _state_for_ref(pair, next(iter(refs)))
+        return (scope.canonical_path if scope else None), "explicit exact owner/scope binding"
+    if source.parent_ref is None:
+        return "closed_fcstm", "top-level source has closed-model owner scope"
+    owner = _state_for_ref(pair, source.parent_ref)
+    if owner is None:
+        return None, "source state parent does not resolve to one closed owner state"
+    return owner.canonical_path, "source state has one exact enclosing ModelIR owner"
+
+
+def _carrier_endpoint_paths(carrier: object, endpoint: Literal["source", "target"]) -> frozenset[str]:
+    """Return native carrier endpoint paths without resolving a local name globally."""
+
+    value = getattr(carrier, endpoint, None)
+    owner_path = getattr(carrier, "owner_path", None)
+    if not isinstance(value, str) or value == "[*]":
+        return frozenset()
+    paths = {value}
+    if isinstance(owner_path, str) and owner_path:
+        paths.add(f"{owner_path}.{value}")
+    return frozenset(paths)
+
+
+def _carrier_starts_at(carrier: object, state: object) -> bool:
+    """Check native carrier origin against one native canonical state path."""
+
+    return state_path(state) in _carrier_endpoint_paths(carrier, "source")
+
+
+def _carrier_ends_at(carrier: object, state: object) -> bool:
+    """Check native carrier target against one native canonical state path."""
+
+    return state_path(state) in _carrier_endpoint_paths(carrier, "target")
+
+
+def _native_transition_refs_for_contract(
+    pair: PairInput,
+    contract: NLContract,
+    candidate: CandidateIssue,
+    grounding: Sequence[GroundingResponse],
+) -> tuple[str, ...]:
+    """Collect only exact current-pair transition carriers for native route closure."""
+
+    values: list[str] = [
+        reference
+        for reference in candidate.element_refs
+        if reference in pair.model.transition_refs
+    ]
+    supplied = candidate.predicate_inputs.get("transition") or candidate.predicate_inputs.get("transition_ref")
+    if isinstance(supplied, str):
+        values.append(supplied)
+    values.extend(
+        binding.carrier_transition_ref
+        for response in grounding
+        for binding in response.semantic_bindings
+        if binding.contract_id == contract.contract_id
+        and binding.status == "exact"
+        and binding.carrier_transition_ref in pair.model.transition_refs
+    )
+    resolved = {
+        resolve_transition_ref(value, pair.model)
+        for value in _unique_strings(values)
+    }
+    resolved.discard(None)
+    return tuple(sorted(resolved))
+
+
+def build_r1_cold_runtime_scenario(
+    pair: PairInput,
+    transition: Transition,
+    event_name: str,
+) -> dict[str, object] | None:
+    """Construct one method-owned R1 scenario only for a unique native cold path.
+
+    The returned schedule is not a copied source trace.  It is a fresh input to
+    ``SimulationRuntime`` whose root, event path, transition carrier, and
+    before/after state paths all come from the loaded FCSTM model classes.
+    """
+
+    if pair.canonical_source_ir is None or pair.canonical_source_ir.model.concurrent_regions:
+        return None
+    try:
+        native = load_native_fcstm(pair.model)
+    except Exception:  # noqa: BLE001 - native load failure leaves R1 unmaterialized.
+        return None
+    root = native.machine.root_state
+    root_path = state_path(root)
+    source_node = _state_for_ref(pair, transition.source_ref)
+    target_node = _state_for_ref(pair, transition.target_ref)
+    source = resolve_state(native, source_node.canonical_path) if source_node else None
+    target = resolve_state(native, target_node.canonical_path) if target_node else None
+    event_path = next(
+        (
+            item.canonical_path
+            for item in pair.model.events
+            if item.ref in transition.trigger_refs
+        ),
+        event_name,
+    )
+    event = resolve_event(native, event_path)
+    carrier = transition_by_ref(native, transition.ref)
+    if (
+        source is None
+        or target is None
+        or event is None
+        or carrier is None
+        or getattr(source, "parent", None) is not root
+        or getattr(target, "parent", None) is not root
+        or carrier.event is not event
+        or carrier.guard is not None
+        or not _carrier_starts_at(carrier, source)
+        or not _carrier_ends_at(carrier, target)
+        or getattr(carrier, "owner_path", None) != root_path
+    ):
+        return None
+    if any(getattr(state, "parent", None) is source for state in all_states(native)):
+        return None
+    initial_rows = [
+        row
+        for row in all_transition_carriers(native)
+        if row.source == "[*]"
+        and _carrier_ends_at(row, source)
+        and row.event is None
+        and row.guard is None
+        and row.owner_path == root_path
+    ]
+    same_event_rows = [
+        row
+        for row in all_transition_carriers(native)
+        if _carrier_starts_at(row, source)
+        and row.event is event
+        and row.guard is None
+        and row.owner_path == root_path
+    ]
+    if len(initial_rows) != 1 or len(same_event_rows) != 1:
+        return None
+    event_path = event.path_name
+    return {
+        "schema": "evidence-discovery.fcstm-runtime-scenario.v2",
+        "initialization": "cold",
+        "root_state": root_path,
+        "expected_active_before": state_path(source),
+        "expected_active_after": state_path(target),
+        "event_queue": [event_path],
+        "schedule": [
+            {"step": 0, "event_paths": []},
+            {"step": 1, "event_paths": [event_path]},
+        ],
+        "selected_step": 1,
+        "selected_event_path": event_path,
+        "selected_transition_ref": transition.ref,
+        "reason": "A unique native FCSTM cold entry and one exact unguarded event carrier determine the complete R1 macrostep schedule.",
+        "basis": (
+            f"native_root={root_path}; initial_transition_line={initial_rows[0].source_line}; "
+            f"source={state_path(source)}; target={state_path(target)}; "
+            f"event={event_path}; transition_ref={transition.ref}; "
+            "pyfcstm.model.StateMachine native carrier identity"
+        ),
+    }
+
+
+def _cold_retention_scenario(
+    pair: PairInput,
+    contract: NLContract,
+    state: StateNode,
+) -> tuple[dict[str, object] | None, list[int] | None, str]:
+    """Build R3 from a typed cold window or one native cold-entry fragment.
+
+    A ``window`` binding hint normally preserves the natural-language temporal
+    qualification (for example, ``while nearing the destination``).  It is not
+    itself a runtime input.  Only the method's exact ``cold`` /
+    ``cold_macrosteps=N`` vocabulary opts into the source-declared runtime
+    fragment.  Generic prose therefore cannot manufacture an interval, but it
+    also cannot prevent the separate, conservative native cold-entry closure.
+    """
+
+    scenarios = _contract_values(contract, {"scenario"})
+    windows = _contract_values(contract, {"window"})
+    has_typed_cold_window = (
+        "cold" in scenarios
+        or any(value.startswith("cold_macrosteps=") for value in windows)
+    )
+    if has_typed_cold_window:
+        if scenarios != ("cold",) or len(windows) != 1:
+            return None, None, "R3 source-declared runtime execution requires exactly scenario=cold and window=cold_macrosteps=N; incomplete typed control hints cannot select a runtime interval."
+        match = _COLD_MACROSTEP_WINDOW.fullmatch(windows[0])
+        if match is None:
+            return None, None, "R3 accepts only the explicit finite window spelling cold_macrosteps=N; malformed typed control hints cannot select a runtime interval."
+        count = int(match.group("count"))
+        if count > _MAX_COLD_MACROSTEPS:
+            return None, None, f"R3 cold window exceeds the method-owned bounded scenario fragment of {_MAX_COLD_MACROSTEPS} macrosteps."
+        try:
+            native = load_native_fcstm(pair.model)
+        except Exception as exc:  # noqa: BLE001 - native load failure degrades R3.
+            return None, None, f"R3 could not load the current FCSTM native model for scenario closure: {type(exc).__name__}."
+        native_state = resolve_state(native, state.canonical_path)
+        if native_state is None:
+            return None, None, "R3 exact state binding does not resolve to one native FCSTM state."
+        root_path = state_path(native.machine.root_state)
+        return (
+            {
+                "schema": "evidence-discovery.fcstm-runtime-scenario.v2",
+                "initialization": "cold",
+                "root_state": root_path,
+                "event_queue": [],
+                "schedule": [
+                    {"step": step, "event_paths": []}
+                    for step in range(count)
+                ],
+                "reason": "The requirement explicitly declares a finite cold-start observation window, so the method owns a no-injected-event native runtime scenario rather than reusing a source trace.",
+                "basis": (
+                    f"state_ref={state.ref}; native_state={state_path(native_state)}; "
+                    f"native_root={root_path}; source_window={windows[0]!r}; "
+                    "pyfcstm.model.StateMachine cold initialization"
+                ),
+            },
+            [0, count - 1],
+            "R3 closed cold-start scenario and inclusive interval are fully materialized from the declared finite source window.",
+        )
+
+    return _cold_entry_quiescence_scenario(pair, state)
+
+
+def _native_active_paths(runtime: object) -> tuple[str, ...]:
+    """Read canonical active paths from one native runtime configuration."""
+
+    if bool(getattr(runtime, "is_ended", False)):
+        return ()
+    current_state = getattr(runtime, "current_state", None)
+    path = getattr(current_state, "path", ())
+    parts = tuple(str(item) for item in path)
+    return tuple(".".join(parts[:index]) for index in range(1, len(parts) + 1))
+
+
+def _run_native_event_prefix(native: object, event_paths: tuple[str, ...]) -> tuple[tuple[str, ...] | None, str | None]:
+    """Run a cold native event prefix, rejecting unconsumed or failed inputs."""
+
+    try:
+        from pyfcstm.simulate import SimulationRuntime
+
+        runtime = SimulationRuntime(native.machine, abstract_error_mode="log")
+        runtime.cycle([])
+        for event_path in event_paths:
+            result = runtime.cycle([event_path])
+            if tuple(result.consumed_events) != (event_path,) or result.unconsumed_events:
+                return None, "an entry-prefix event was not uniquely consumed by native SimulationRuntime"
+        if runtime.is_ended:
+            return None, "the native cold entry prefix reached a terminal configuration"
+        return _native_active_paths(runtime), None
+    except Exception as exc:  # noqa: BLE001 - no runtime failure becomes a verdict.
+        return None, f"native SimulationRuntime failed while replaying the cold entry prefix: {type(exc).__name__}"
+
+
+def _run_native_stimulus_prefix(
+    native: object,
+    event_paths: tuple[str, ...],
+    stimulus_path: str,
+) -> tuple[bool, str | None]:
+    """Check whether one cold prefix permits exact native stimulus consumption."""
+
+    try:
+        from pyfcstm.simulate import SimulationRuntime
+
+        runtime = SimulationRuntime(native.machine, abstract_error_mode="log")
+        runtime.cycle([])
+        for event_path in event_paths:
+            result = runtime.cycle([event_path])
+            if tuple(result.consumed_events) != (event_path,) or result.unconsumed_events:
+                return False, "an entry-prefix event was not uniquely consumed by native SimulationRuntime"
+        result = runtime.cycle([stimulus_path])
+        consumed = tuple(result.consumed_events) == (stimulus_path,)
+        if not consumed or result.unconsumed_events:
+            return False, "the exact stimulus was not uniquely consumed after this native prefix"
+        return True, None
+    except Exception as exc:  # noqa: BLE001 - no runtime failure becomes a route verdict.
+        return False, f"native SimulationRuntime failed while checking stimulus consumption: {type(exc).__name__}"
+
+
+def _cold_state_after_stimulus_scenario(
+    pair: PairInput,
+    stimulus: EventNode,
+) -> tuple[dict[str, object] | None, list[int] | None, str]:
+    """Build an R2 schedule from a unique target-independent stimulus prefix.
+
+    Prefix selection uses only native event consumption.  It deliberately does
+    not receive the target state, whose truth is evaluated later by the R2
+    backend over the resulting runtime trace.
+    """
+
+    if pair.canonical_source_ir is not None and pair.canonical_source_ir.model.concurrent_regions:
+        return None, None, "R2 does not select one sequential prefix for a model with declared concurrent regions."
+    try:
+        native = load_native_fcstm(pair.model)
+    except Exception as exc:  # noqa: BLE001 - route failure remains W1.
+        return None, None, f"R2 could not load the current FCSTM native model: {type(exc).__name__}."
+    native_stimulus = resolve_event(native, stimulus.canonical_path)
+    if native_stimulus is None:
+        return None, None, "R2 exact stimulus binding does not resolve to one native FCSTM event."
+    event_paths = tuple(sorted(event.path_name for event in all_events(native)))
+    if len(event_paths) > _MAX_R2_EVENT_VOCABULARY:
+        return None, None, f"R2 refuses an event vocabulary larger than {_MAX_R2_EVENT_VOCABULARY}; no arbitrary schedule is selected."
+    stimulus_path = native_stimulus.path_name
+    selected: tuple[str, ...] | None = None
+    failures: list[str] = []
+    for length in range(_MAX_R2_PREFIX_EVENTS + 1):
+        matches: list[tuple[str, ...]] = []
+        for prefix in product(event_paths, repeat=length):
+            consumed, failure = _run_native_stimulus_prefix(native, prefix, stimulus_path)
+            if consumed:
+                matches.append(prefix)
+            elif failure:
+                failures.append(failure)
+        if len(matches) == 1:
+            selected = matches[0]
+            break
+        if len(matches) > 1:
+            return None, None, "R2 found multiple shortest native prefixes that consume the exact stimulus, so it cannot choose a scenario."
+    if selected is None:
+        detail = failures[0] if failures else "no consumable prefix"
+        return None, None, f"R2 found no unique native stimulus-consuming prefix of at most {_MAX_R2_PREFIX_EVENTS} events: {detail}."
+    stimulus_step = len(selected) + 1
+    schedule = [
+        {"step": 0, "event_paths": []},
+        *(
+            {"step": index, "event_paths": [event_path]}
+            for index, event_path in enumerate(selected, start=1)
+        ),
+        {"step": stimulus_step, "event_paths": [stimulus_path]},
+        {"step": stimulus_step + 1, "event_paths": []},
+    ]
+    return (
+        {
+            "schema": "evidence-discovery.fcstm-runtime-scenario.v2",
+            "initialization": "cold",
+            "root_state": state_path(native.machine.root_state),
+            "event_queue": [*selected, stimulus_path],
+            "schedule": schedule,
+            "reason": "One unique shortest native cold prefix permits the exact stimulus to be consumed, followed by one empty observation macrostep; prefix selection is target-independent and does not inspect target-state truth.",
+            "basis": (
+                f"stimulus_ref={stimulus.ref}; native_stimulus={stimulus_path}; "
+                f"entry_event_prefix={list(selected)}; prefix_bound={_MAX_R2_PREFIX_EVENTS}; "
+                "pyfcstm SimulationRuntime consumption replay independent of the R2 target state"
+            ),
+        },
+        [0, stimulus_step + 1],
+        "R2 closed one unique native stimulus-consuming schedule and a trailing observation step without consulting target-state truth.",
+    )
+
+
+def cold_prefix_reaches_source(
+    pair: PairInput,
+    stimulus: EventNode,
+    source: StateNode,
+) -> tuple[bool | None, str]:
+    """Whether the unique cold R2 prefix leaves the machine in ``source`` before the stimulus.
+
+    v61 precondition for state-after-stimulus obligations: the requirement is
+    "from S, on E, reach T".  If the only target-independent cold prefix that
+    consumes E does so from a configuration that does not contain S, the R2
+    verdict would be about a different obligation, so the candidate is not
+    applicable.  Returns None when the prefix itself cannot be closed.
+    """
+
+    scenario, _window, reason = _cold_state_after_stimulus_scenario(pair, stimulus)
+    if scenario is None:
+        return None, reason
+    try:
+        native = load_native_fcstm(pair.model)
+    except Exception as exc:  # noqa: BLE001 - undecidable, never a verdict.
+        return None, f"native model load failed: {type(exc).__name__}"
+    prefix = tuple(str(item) for item in scenario["event_queue"][:-1])
+    active, failure = _run_native_event_prefix(native, prefix)
+    if active is None:
+        return None, failure or "cold prefix replay failed"
+    reached = source.canonical_path in active
+    return reached, (
+        f"active_after_prefix={list(active)}; source={source.canonical_path}; prefix={list(prefix)}"
+    )
+
+
+def _cold_entry_quiescence_scenario(
+    pair: PairInput,
+    state: StateNode,
+) -> tuple[dict[str, object] | None, list[int] | None, str]:
+    """Close one bounded R3 trace from a unique native cold entry path.
+
+    A retention contract supplies the target state.  This fragment searches only
+    short, single-event native runtime prefixes, accepts exactly one shortest
+    path that enters that state, and appends one empty macrostep.  The route
+    never derives events from source text, a fixture, or an evaluation artifact.
+    Multiple paths leave the scenario open instead of selecting a convenient
+    counterexample.
+    """
+
+    try:
+        native = load_native_fcstm(pair.model)
+    except Exception as exc:  # noqa: BLE001 - native load failure degrades R3.
+        return None, None, f"R3 could not load the current FCSTM native model for cold-entry closure: {type(exc).__name__}."
+    native_state = resolve_state(native, state.canonical_path)
+    if native_state is None:
+        return None, None, "R3 exact state binding does not resolve to one native FCSTM state."
+    event_paths = tuple(sorted(event.path_name for event in all_events(native)))
+    if len(event_paths) > _MAX_R3_EVENT_VOCABULARY:
+        return None, None, f"R3 cold-entry fragment refuses an event vocabulary larger than {_MAX_R3_EVENT_VOCABULARY}; no arbitrary schedule is selected."
+    target_path = state_path(native_state)
+    selected: tuple[str, ...] | None = None
+    for length in range(_MAX_R3_ENTRY_EVENTS + 1):
+        matches: list[tuple[str, ...]] = []
+        for prefix in product(event_paths, repeat=length):
+            active_paths, failure = _run_native_event_prefix(native, prefix)
+            if failure is None and active_paths is not None and target_path in active_paths:
+                matches.append(prefix)
+        if len(matches) == 1:
+            selected = matches[0]
+            break
+        if len(matches) > 1:
+            return None, None, "R3 cold-entry fragment found multiple shortest native event prefixes for the retained state, so it cannot choose a schedule."
+    if selected is None:
+        return None, None, f"R3 cold-entry fragment found no unique native event prefix of at most {_MAX_R3_ENTRY_EVENTS} macrosteps for the exact retained state."
+    active_after_entry, failure = _run_native_event_prefix(native, selected)
+    if failure is not None or active_after_entry is None or target_path not in active_after_entry:
+        return None, None, f"R3 native entry-prefix replay did not close the exact retained state: {failure or 'target absent'}"
+    schedule = [
+        {"step": 0, "event_paths": []},
+        *(
+            {"step": index, "event_paths": [event_path]}
+            for index, event_path in enumerate(selected, start=1)
+        ),
+        {"step": len(selected) + 1, "event_paths": []},
+    ]
+    return (
+        {
+            "schema": "evidence-discovery.fcstm-runtime-scenario.v2",
+            "initialization": "cold",
+            "root_state": state_path(native.machine.root_state),
+            "event_queue": list(selected),
+            "schedule": schedule,
+            "reason": "The exact retained state has one shortest native cold-entry event prefix, followed by one no-injected-event macrostep. This is a method-owned runtime input, not a source trace.",
+            "basis": (
+                f"state_ref={state.ref}; native_state={target_path}; native_root={state_path(native.machine.root_state)}; "
+                f"entry_event_prefix={list(selected)}; prefix_bound={_MAX_R3_ENTRY_EVENTS}; "
+                "pyfcstm SimulationRuntime cold replay and unique shortest-prefix enumeration"
+            ),
+        },
+        [len(selected), len(selected) + 1],
+        "R3 closed a unique native cold-entry prefix and one subsequent zero-event macrostep for the exact retained state.",
+    )
+
+
+def _native_event_misbound_as_guard(
+    pair: PairInput,
+    values: Sequence[str],
+) -> tuple[bool, str]:
+    """Reject guard routing when a source-side value is a native FCSTM event.
+
+    A condition phrase can be a requirement-side selector without itself being
+    a guard.  When pyfcstm resolves that phrase to a declared Event, sending it
+    to S5 would compare the wrong native proposition.  The caller keeps
+    the precise candidate at W1 and records the role-closure boundary instead.
+    """
+
+    if not values:
+        return False, "no guard values require native event-role closure"
+    try:
+        native = load_native_fcstm(pair.model)
+    except Exception as exc:  # noqa: BLE001 - exact routing remains open on native load failure.
+        return False, f"native FCSTM load unavailable for guard-role closure: {type(exc).__name__}"
+    event_paths = tuple(
+        event.path_name
+        for value in values
+        for event in (resolve_event(native, value),)
+        if event is not None
+    )
+    if not event_paths:
+        return False, "guard values do not resolve to declared native FCSTM Event identities"
+    return (
+        True,
+        "guard-role values resolve to declared native FCSTM Event identities "
+        f"{list(event_paths)}; event/trigger and guard propositions are not interchangeable",
+    )
+
+
+def _routed_candidate(
+    candidate: CandidateIssue,
+    predicate_id: PredicateId,
+    inputs: Mapping[str, object],
+    required_refs: Sequence[str],
+    *,
+    reason: str,
+    basis: str,
+) -> CandidateIssue:
+    """Fill one candidate's executable fields without changing semantic identity."""
+
+    refs = list(candidate.element_refs)
+    for reference in required_refs:
+        if reference not in refs:
+            refs.append(reference)
+    return candidate.model_copy(
+        update={
+            "predicate_id": predicate_id,
+            "predicate_inputs": dict(inputs),
+            "element_refs": refs,
+            "reason": candidate.reason + " " + reason,
+            "basis": candidate.basis + "; " + basis,
+        }
+    )
+
+
+def _route_candidate(
+    pair: PairInput,
+    contract: NLContract,
+    candidate: CandidateIssue,
+    grounding: Sequence[GroundingResponse],
+) -> tuple[CandidateIssue, PredicateId | None, str, str]:
+    """Route one predicate-null primary candidate only when inputs close exactly."""
+
+    if candidate.predicate_id is not None:
+        return candidate, candidate.predicate_id, "The candidate already selected a frozen predicate before primary routing.", "existing typed candidate route"
+    if candidate.property != contract.property:
+        return candidate, None, "Candidate property differs from its typed contract, so routing cannot repair the mismatch.", "exact contract property equality"
+
+    property_name = contract.property
+    if property_name == "initial_entry":
+        undecided_roles = tuple(
+            sorted(
+                {
+                    hint.role
+                    for hint in contract.binding_hints
+                    if hint.role in _INITIAL_ENTRY_S2_UNDECIDED_ROLES
+                }
+            )
+        )
+        if undecided_roles:
+            return (
+                candidate,
+                None,
+                "The exact initial-entry obligation retains its event/trigger/guard qualifier because S2 decides only the owner-local endpoint.",
+                "predicate=S2; undecided_initial_entry_roles="
+                f"{list(undecided_roles)}; S2_inputs=[source,target,scope]",
+            )
+        owner, owner_basis = _state_for_roles(pair, contract, grounding, {"owner", "scope"})
+        target, target_basis = _state_for_roles(pair, contract, grounding, {"target", "state"})
+        if owner is None or target is None:
+            return candidate, None, "S2 initial-entry routing requires one exact owner and one exact target state.", f"owner={owner_basis}; target={target_basis}"
+        return (
+            _routed_candidate(candidate, "S2", {"source": "[*]", "target": target.canonical_path, "scope": owner.canonical_path}, (owner.ref, target.ref), reason="The primary route bound the required owner-local initial pseudo-state endpoint without inferring a carrier from prose.", basis=f"predicate=S2; owner_ref={owner.ref}; target_ref={target.ref}; owner={owner_basis}; target={target_basis}"),
+            "S2",
+            "S2 initial-entry inputs close through exact owner and target bindings.",
+            f"owner_ref={owner.ref}; target_ref={target.ref}",
+        )
+
+    if property_name == "transition_endpoints":
+        source, source_basis = _state_for_roles(pair, contract, grounding, {"source"})
+        target, target_basis = _state_for_roles(pair, contract, grounding, {"target"})
+        if source is None or target is None:
+            return candidate, None, "S2 endpoint routing requires one exact source and one exact target state.", f"source={source_basis}; target={target_basis}"
+        scope, scope_basis = _scope_for_endpoint(pair, contract, source)
+        if scope is None:
+            return candidate, None, "S2 endpoint routing requires one exact transition owner scope.", scope_basis
+        return (
+            _routed_candidate(candidate, "S2", {"source": source.canonical_path, "target": target.canonical_path, "scope": scope}, (source.ref, target.ref), reason="The primary route bound an exact source, target, and owner scope for the frozen transition-existence predicate.", basis=f"predicate=S2; source_ref={source.ref}; target_ref={target.ref}; scope={scope}; source={source_basis}; target={target_basis}; scope={scope_basis}"),
+            "S2",
+            "S2 endpoint inputs close through exact source, target, and owner scope bindings.",
+            f"source_ref={source.ref}; target_ref={target.ref}; scope={scope}",
+        )
+
+    if property_name == "trigger_set":
+        transition, transition_basis = _transition_for_candidate(pair, contract, candidate, grounding)
+        triggers = _contract_values(contract, {"trigger", "event"})
+        if transition is None or not triggers:
+            return candidate, None, "S3 routing requires one exact carrier and an explicit required trigger set.", f"carrier={transition_basis}; trigger_values={list(triggers)}"
+        return (
+            _routed_candidate(candidate, "S3", {"transition": transition.ref, "triggers": list(triggers)}, (transition.ref,), reason="The primary route bound the exact transition carrier and requirement-side trigger set for native S3 equality.", basis=f"predicate=S3; transition_ref={transition.ref}; triggers={list(triggers)}; carrier={transition_basis}"),
+            "S3",
+            "S3 trigger-set inputs close through one carrier and explicit typed trigger values.",
+            f"transition_ref={transition.ref}; triggers={list(triggers)}",
+        )
+
+    if property_name == "state_action":
+        state, state_basis = _state_for_roles(pair, contract, grounding, {"state"})
+        phases = _contract_values(contract, {"phase"})
+        actions = _contract_values(contract, {"action"})
+        if state is None or len(phases) != 1 or phases[0] not in {"entry", "do", "exit"} or len(actions) != 1:
+            return candidate, None, "S4 routing requires one exact state, phase in entry/do/exit, and one exact action.", f"state={state_basis}; phases={list(phases)}; actions={list(actions)}"
+        return (
+            _routed_candidate(candidate, "S4", {"state": state.canonical_path, "phase": phases[0], "action": actions[0]}, (state.ref,), reason="The primary route admitted S4 only after state, lifecycle slot, and action each closed as separate typed inputs.", basis=f"predicate=S4; state_ref={state.ref}; phase={phases[0]}; action={actions[0]}; state={state_basis}"),
+            "S4",
+            "S4 lifecycle inputs close through separate exact state, phase, and action values.",
+            f"state_ref={state.ref}; phase={phases[0]}; action={actions[0]}",
+        )
+
+    if property_name == "guard":
+        transition, transition_basis = _transition_for_candidate(pair, contract, candidate, grounding)
+        values = _contract_values(contract, {property_name})
+        if transition is None or len(values) != 1:
+            predicate = "S5"
+            return candidate, None, f"{predicate} routing requires one exact transition carrier and one exact required {property_name} value.", f"carrier={transition_basis}; values={list(values)}"
+        predicate = "S5"
+        input_key = "guard"
+        value: object = values[0]
+        if predicate == "S5":
+            event_role_conflict, role_basis = _native_event_misbound_as_guard(pair, values)
+            if event_role_conflict:
+                return candidate, None, "S5 routing preserves the precise candidate because the claimed guard is a native FCSTM Event; an event/trigger must not be compared as a guard AST.", f"transition_ref={transition.ref}; input_contract_missing/out_of_fragment: {role_basis}"
+        return (
+            _routed_candidate(candidate, predicate, {"transition": transition.ref, input_key: value}, (transition.ref,), reason=f"The primary route bound one exact transition carrier and one requirement-side {property_name} value for native AST comparison.", basis=f"predicate={predicate}; transition_ref={transition.ref}; {property_name}={values[0]!r}; carrier={transition_basis}"),
+            predicate,
+            f"{predicate} inputs close through one exact carrier and one typed {property_name} value.",
+            f"transition_ref={transition.ref}; {property_name}={values[0]!r}",
+        )
+
+    if property_name == "reachability":
+        source_values = _contract_values(contract, {"source", "root"})
+        target, target_basis = _state_for_roles(pair, contract, grounding, {"target", "state"})
+        source: str | None = "[*]" if source_values == ("[*]",) else None
+        if source is None and len(source_values) == 1:
+            source_state, source_basis = _state_for_roles(pair, contract, grounding, {"source", "root"})
+            source = source_state.canonical_path if source_state is not None else None
+        else:
+            source_basis = "explicit root pseudostate" if source is not None else "missing source"
+        if source is None or target is None:
+            return candidate, None, "G1 routing requires one exact source/root and one exact target state.", f"source={source_basis}; target={target_basis}"
+        refs = [target.ref]
+        if source != "[*]":
+            source_ref = resolve_state_ref(source, pair.model)
+            if source_ref is not None:
+                refs.append(source_ref)
+        return (
+            _routed_candidate(candidate, "G1", {"source": source, "target": target.canonical_path}, refs, reason="The primary route bound exact finite reachability endpoints without converting labels or names into graph facts.", basis=f"predicate=G1; source={source}; target_ref={target.ref}; source={source_basis}; target={target_basis}"),
+            "G1",
+            "G1 finite reachability inputs close through exact endpoint bindings.",
+            f"source={source}; target_ref={target.ref}",
+        )
+
+    if property_name in {"universal_reachability", "termination"}:
+        source, source_binding_basis = _state_for_roles(pair, contract, grounding, {"source", "root"})
+        target, target_basis = _state_for_roles(pair, contract, grounding, {"target", "marked", "state"})
+        if source is None or target is None:
+            return candidate, None, "G2 routing requires one exact source and one exact target state.", f"source={source_binding_basis}; target={target_basis}"
+        fragment_ok, fragment_basis = _native_state_fragment(
+            pair, (source, target), require_leaf=False
+        )
+        if not fragment_ok:
+            return candidate, None, "G2 routing retains the precise universal-reachability candidate because its native source fragment is not closed.", f"source_ref={source.ref}; target_ref={target.ref}; input_contract_missing/out_of_fragment: {fragment_basis}"
+        executable_source, descent_basis = _native_initial_leaf_source(pair, source)
+        if executable_source is None:
+            return candidate, None, "G2 routing retains the precise universal-reachability candidate because its native initial source descent is not unique.", f"source_ref={source.ref}; target_ref={target.ref}; input_contract_missing/out_of_fragment: {descent_basis}"
+        return (
+            _routed_candidate(candidate, "G2", {"source": executable_source, "target": target.canonical_path}, (source.ref, target.ref), reason="The primary route bound one exact native source, its unique executable initial-descent leaf, and one exact target for the frozen bounded universal-reachability predicate.", basis=f"predicate=G2; source_ref={source.ref}; executable_source={executable_source}; target_ref={target.ref}; source={source_binding_basis}; target={target_basis}; fragment={fragment_basis}; descent={descent_basis}"),
+            "G2",
+            "G2 universal-reachability inputs close through exact current-pair identities and one unique native initial descent.",
+            f"source_ref={source.ref}; executable_source={executable_source}; target_ref={target.ref}; {descent_basis}",
+        )
+
+    if property_name == "coaccessibility":
+        root, root_basis = _state_for_roles(pair, contract, grounding, {"root", "source"})
+        marked, marked_basis = _state_for_roles(pair, contract, grounding, {"marked", "target", "state"})
+        if root is None or marked is None:
+            return candidate, None, "G3 routing requires one exact root and one exact marked state.", f"root={root_basis}; marked={marked_basis}"
+        fragment_ok, fragment_basis = _native_state_fragment(
+            pair, (root, marked), require_leaf=False
+        )
+        if not fragment_ok:
+            return candidate, None, "G3 routing retains the precise coaccessibility candidate because native state identity did not close.", f"root_ref={root.ref}; marked_ref={marked.ref}; input_contract_missing/out_of_fragment: {fragment_basis}"
+        return (
+            _routed_candidate(candidate, "G3", {"roots": root.canonical_path, "marked": marked.canonical_path}, (root.ref, marked.ref), reason="The primary route bound exact native root and marked-state identities for frozen coaccessibility.", basis=f"predicate=G3; root_ref={root.ref}; marked_ref={marked.ref}; fragment={fragment_basis}"),
+            "G3",
+            "G3 coaccessibility inputs close through exact current-pair root and marked identities.",
+            f"root_ref={root.ref}; marked_ref={marked.ref}",
+        )
+
+    if property_name == "event_consumption":
+        transition, transition_basis = _transition_for_candidate(
+            pair, contract, candidate, grounding
+        )
+        events = _contract_values(contract, {"event", "trigger"})
+        event_rows = [
+            event
+            for event in pair.model.events
+            if len(events) == 1 and events[0] in {event.name, event.display_name}
+        ]
+        if transition is None or len(event_rows) != 1:
+            return candidate, None, "R1 routing requires one exact event requirement and one exact transition carrier.", f"carrier={transition_basis}; event_values={list(events)}; resolved_events={[event.ref for event in event_rows]}"
+        scenario = build_r1_cold_runtime_scenario(pair, transition, event_rows[0].canonical_path)
+        if scenario is None:
+            return candidate, None, "R1 routing could not close a unique native cold-start macrostep without inventing a schedule, guard valuation, or event identity.", f"carrier={transition.ref}; event_ref={event_rows[0].ref}; pyfcstm native cold-runtime scenario fragment"
+        return (
+            _routed_candidate(candidate, "R1", {"scenario": scenario, "event": event_rows[0].canonical_path, "step": 1}, (transition.ref, event_rows[0].ref), reason="The primary route materialized a method-owned native FCSTM cold-start macrostep from the exact event and carrier.", basis=f"predicate=R1; transition_ref={transition.ref}; event_ref={event_rows[0].ref}; scenario_basis={scenario['basis']}"),
+            "R1",
+            "R1 event-consumption inputs close through one exact native event carrier and a unique cold-start runtime scenario.",
+            f"transition_ref={transition.ref}; event_ref={event_rows[0].ref}",
+        )
+
+    if property_name == "state_after_stimulus":
+        stimulus, stimulus_basis = _event_for_roles(
+            pair, contract, grounding, {"stimulus", "event", "trigger"}
+        )
+        target, target_basis = _state_for_roles(
+            pair, contract, grounding, {"target", "state"}
+        )
+        if stimulus is None or target is None:
+            return candidate, None, "R2 routing requires one exact native stimulus event and one exact target state.", f"stimulus={stimulus_basis}; target={target_basis}"
+        scenario, window, scenario_reason = _cold_state_after_stimulus_scenario(
+            pair, stimulus
+        )
+        if scenario is None or window is None:
+            return candidate, None, "R2 routing retains the precise state-after-stimulus candidate because a unique target-independent native scenario did not close.", f"stimulus_ref={stimulus.ref}; target_ref={target.ref}; input_contract_missing/out_of_fragment: {scenario_reason}"
+        return (
+            _routed_candidate(candidate, "R2", {"scenario": scenario, "stimulus": stimulus.canonical_path, "state": target.canonical_path, "window": window}, (stimulus.ref, target.ref), reason="The primary route materialized a method-owned native FCSTM stimulus schedule whose prefix selection is independent of the asserted target state.", basis=f"predicate=R2; stimulus_ref={stimulus.ref}; target_ref={target.ref}; stimulus={stimulus_basis}; target={target_basis}; scenario_basis={scenario['basis']}"),
+            "R2",
+            "R2 state-after-stimulus inputs close through an exact native event, target state, and target-independent runtime scenario.",
+            f"stimulus_ref={stimulus.ref}; target_ref={target.ref}; window={window}",
+        )
+
+    if property_name == "state_retention":
+        state, state_basis = _state_for_roles(pair, contract, grounding, {"state"})
+        if state is None:
+            return candidate, None, "R3 routing requires one exact state binding before constructing a finite runtime interval.", f"state={state_basis}"
+        scenario, interval, scenario_reason = _cold_retention_scenario(pair, contract, state)
+        if scenario is None or interval is None:
+            return candidate, None, "R3 routing retains the precise temporal candidate because its method-owned scenario/interval input contract is not closed.", f"state_ref={state.ref}; input_contract_missing/out_of_fragment: {scenario_reason}"
+        return (
+            _routed_candidate(candidate, "R3", {"scenario": scenario, "state": state.canonical_path, "interval": interval}, (state.ref,), reason="The primary route materialized an explicit finite cold-start retention interval and delegates every trace point to native SimulationRuntime.", basis=f"predicate=R3; state_ref={state.ref}; interval={interval}; scenario_basis={scenario['basis']}"),
+            "R3",
+            "R3 state-retention inputs close through an explicit finite cold-start source window and native runtime scenario.",
+            f"state_ref={state.ref}; interval={interval}",
+        )
+
+    if property_name == "deadlock_freedom":
+        state_refs = [ref for ref in candidate.element_refs if _state_for_ref(pair, ref) is not None]
+        if len(set(state_refs)) != 1:
+            return candidate, None, "V1 routing requires one exact reachable nonterminal state scope; the candidate binds zero or multiple state loci.", f"state_refs={state_refs}"
+        state = _state_for_ref(pair, state_refs[0])
+        fact = next((item for item in (pair.inspection_facts.states if pair.inspection_facts else ()) if item.state_ref == state.ref), None)
+        if state is None or fact is None or not fact.reachable_from_initial:
+            return candidate, None, "V1 routing requires an exact state confirmed reachable in current closed-model facts.", f"state_ref={state_refs[0]}; inspection_reachable={fact.reachable_from_initial if fact else None}"
+        return (
+            _routed_candidate(candidate, "V1", {"initial_scope": state.canonical_path}, (state.ref,), reason="The primary route selected V1 only for one exact closed-model state that the method-visible finite inspection marks reachable.", basis=f"predicate=V1; initial_scope_ref={state.ref}; inspection_reachable=true"),
+            "V1",
+            "V1 deadlock-freedom inputs close through one exact reachable state scope.",
+            f"initial_scope_ref={state.ref}",
+        )
+
+    return candidate, None, "No primary binder closes every typed input for this property in the current pair.", f"property={property_name}; applicable={list(_PROPERTY_PREDICATES.get(property_name, ()))}"
+
+
+def route_primary_candidates(
+    pair: PairInput,
+    contracts_by_id: Mapping[str, NLContract],
+    grounding: Sequence[GroundingResponse],
+    candidates: Sequence[CandidateIssue],
+) -> PrimaryRouteProjection:
+    """Route current primary candidates without changing contract semantic keys.
+
+    Predicate-null candidates are augmented only by a route whose full typed
+    input set closes deterministically. Existing selected structural
+    predicates (S2--S5) are rebuilt through that route as well: an LLM label,
+    a historical projection ref, or a legacy input spelling never bypasses
+    native state/carrier/lifecycle/AST closure. Unsupported properties retain
+    their precise W1 path and a machine-readable reason.
+    """
+
+    updated: list[CandidateIssue] = []
+    candidate_telemetry: list[CandidateRouteTelemetry] = []
+    for candidate_index, candidate in enumerate(candidates):
+        contract = contracts_by_id.get(candidate.contract_id)
+        if contract is None:
+            updated.append(candidate)
+            candidate_telemetry.append(
+                CandidateRouteTelemetry(
+                    candidate_index=candidate_index,
+                    contract_id=candidate.contract_id,
+                    applicable_predicates=(),
+                    route_attempted=False,
+                    reason="The candidate has no current typed contract row, so the primary binder did not infer a predicate or typed inputs from a sibling candidate.",
+                    basis="candidate.contract_id absent from current contract extraction and grounding contract mapping",
+                )
+            )
+            continue
+        strict_rebind = candidate.predicate_id in _STRICT_REBIND_PREDICATES
+        route_input = (
+            candidate.model_copy(update={"predicate_id": None})
+            if strict_rebind
+            else candidate
+        )
+        routed, selected, reason, basis = _route_candidate(
+            pair, contract, route_input, grounding
+        )
+        if strict_rebind and selected != candidate.predicate_id:
+            selected_predicate = str(candidate.predicate_id)
+            routed = candidate.model_copy(
+                update={
+                    "predicate_id": None,
+                    "predicate_inputs": {},
+                    "reason": (
+                        candidate.reason
+                        + " The preselected "
+                        + selected_predicate
+                        + " label was removed because strict primary rebinding did not close legal native inputs."
+                    ),
+                    "basis": (
+                        candidate.basis
+                        + "; strict-primary-rebinding="
+                        + selected_predicate
+                        + "; "
+                        + basis
+                    ),
+                }
+            )
+            reason = (
+                f"The preselected {selected_predicate} candidate remains a precise semantic candidate, "
+                "but strict primary rebinding did not close executable native inputs: "
+                + reason
+            )
+            basis = basis + "; raw selected predicate inputs were not admitted as an execution plan"
+        updated.append(routed)
+        effective_selected = routed.predicate_id
+        candidate_telemetry.append(
+            CandidateRouteTelemetry(
+                candidate_index=candidate_index,
+                contract_id=candidate.contract_id,
+                applicable_predicates=_PROPERTY_PREDICATES.get(contract.property, ()),
+                route_attempted=True,
+                selected_predicate=effective_selected,
+                binding_complete=effective_selected is not None,
+                backend=_PREDICATE_BACKENDS.get(effective_selected) if effective_selected is not None else None,
+                reason=reason,
+                basis=basis,
+            )
+        )
+
+    outcomes: dict[str, tuple[PredicateId | None, str, str]] = {}
+    for row in candidate_telemetry:
+        if row.contract_id not in contracts_by_id:
+            continue
+        if row.contract_id not in outcomes or row.selected_predicate is not None:
+            outcomes[row.contract_id] = (
+                row.selected_predicate,
+                row.reason,
+                row.basis,
+            )
+
+    telemetry: list[PredicateRouteTelemetry] = []
+    for contract_id, contract in sorted(contracts_by_id.items()):
+        applicable = _PROPERTY_PREDICATES.get(contract.property, ())
+        selected, reason, basis = outcomes.get(
+            contract_id,
+            (
+                None,
+                "No candidate for this typed contract reached the primary route stage.",
+                "contract candidate set after grounding/frontier admission",
+            ),
+        )
+        telemetry.append(
+            PredicateRouteTelemetry(
+                contract_id=contract_id,
+                applicable_predicates=applicable,
+                route_attempted=True,
+                selected_predicate=selected,
+                binding_complete=selected is not None,
+                backend=_PREDICATE_BACKENDS.get(selected) if selected is not None else None,
+                reason=reason,
+                basis=basis,
+            )
+        )
+    return PrimaryRouteProjection(
+        candidates=tuple(updated),
+        telemetry=tuple(telemetry),
+        candidate_telemetry=tuple(candidate_telemetry),
+        reason="The deterministic primary route evaluated each typed contract and filled a predicate only after its current-pair typed inputs closed exactly.",
+        basis="typed NL contracts, exact grounding bindings, closed ModelIR, and method-visible deterministic facts; no ledger, Judge, answer, or cross-pair input",
+    )
+
+
+def finalize_route_telemetry(
+    telemetry: Sequence[PredicateRouteTelemetry],
+    prepared_candidates: Sequence[Mapping[str, object]],
+    witness_levels: Mapping[str, str],
+) -> tuple[PredicateRouteTelemetry, ...]:
+    """Attach compiled execution state and W result to primary-route telemetry.
+
+    The runner supplies only local prepared candidate objects and deterministic
+    witness levels.  This function never changes a route decision or derives a
+    semantic D/publication outcome.
+    """
+
+    prepared_by_contract: dict[str, Mapping[str, object]] = {}
+    for item in prepared_candidates:
+        candidate = item.get("candidate")
+        if not isinstance(candidate, CandidateIssue):
+            continue
+        if candidate.predicate_id is None:
+            continue
+        prepared_by_contract.setdefault(candidate.contract_id, item)
+    result: list[PredicateRouteTelemetry] = []
+    for row in telemetry:
+        prepared = prepared_by_contract.get(row.contract_id)
+        if prepared is None or row.selected_predicate is None:
+            result.append(row)
+            continue
+        plan = prepared.get("plan")
+        receipt = prepared.get("receipt")
+        execution_state = getattr(receipt, "execution_state", None)
+        if execution_state is None:
+            terminal_state = getattr(receipt, "terminal_state", "unsupported")
+            execution_state = "completed" if terminal_state == "completed" else "failed" if terminal_state in {"error", "timeout"} else "not_attempted"
+        witness = witness_levels.get(str(prepared.get("obligation_id")))
+        result.append(
+            row.model_copy(
+                update={
+                    "binding_complete": bool(getattr(plan, "binding_complete", False)),
+                    "backend": str(getattr(receipt, "backend", row.backend)) if getattr(receipt, "backend", None) else row.backend,
+                    "execution_state": execution_state,
+                    "final_W": witness if witness in {"W0", "W1", "W2"} else None,
+                    "reason": row.reason + " Execution telemetry was attached from the local compiled plan and terminal receipt.",
+                    "basis": row.basis + "; PredicatePlan, RawReceipt, and deterministic witness-level calculation",
+                }
+            )
+        )
+    return tuple(result)
+
+
+__all__ = [
+    "CandidateRouteTelemetry",
+    "PredicateRouteTelemetry",
+    "PrimaryRouteProjection",
+    "build_r1_cold_runtime_scenario",
+    "finalize_route_telemetry",
+    "route_primary_candidates",
+]

@@ -1,0 +1,50 @@
+{
+  "case": "0017",
+  "diffs": [
+    {
+      "verdict": "problem",
+      "ref": "state Collision_Avoidance {\\n [*] --> front_inactive\\n ...（第一个区域直接以 [*] 开始，无前导 --）",
+      "gen": "state Collision_Avoidance_Active_Mode {\\n--\\n[*] --> F : collision detected\\n...",
+      "reason": "良构性 + 数量：gen 在第一个区域内容之前就写了一个 `--`，PlantUML 因此多切出一个空区域。FCSTM 投影明确记录 `[PlantUML concurrent region 0] states=-; transitions=-`，并列出 region 0 -> 1 的分隔符位置在 line:3。结果是复合态有 4 个区域，而 NL 第 1 句显式点名「There are three region in this diagram」；且该空区域既无状态也无默认入口。区域数量属口径 4 的范围内问题，不是并发语义问题。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "[*] --> front_inactive\\n[*] --> rear_inactive\\n[*] --> pedestrian_inactive（三条初始边均无触发）",
+      "gen": "[*] --> F : collision detected\\n[*] --> R : collision detected\\n[*] --> P : collision detected",
+      "reason": "良构性：三个区域的初始边都带触发 `collision detected`（FCSTM 投影为 `[*] -> F : /collision_detected` 等），属「带触发的初始边」。参考三条初始边均无触发。NL 第 2 句说的是「This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected」——这是子机被激活的条件，应挂在父层进入子机的迁移上，而不是区域内部的默认入口边上；把它挂到初始边会使区域在被进入后仍需等待事件才有默认子态。三处同一成因合并为一条。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "front_inactive --> avoid_frontend_collision: dist_to_front<10 & urban=true\\navoid_frontend_collision --> front_inactive: dist_to_front>15",
+      "gen": "[*] --> F : collision detected\\nF --> [*] : Collision avoided",
+      "reason": "参考每个区域是 inactive ⇄ active 的可重复循环；gen 每个区域是 初始 → 活动态 → final 的一次性通路（FCSTM 投影为 `F -> FinalWaittr_0002`），区域一旦完成便无法重新武装。NL 只说子机在检测到碰撞时激活、三个正交区允许并发激活不同的避碰控制，并未规定可重复触发，属 NL 欠定下的另一种说得通的拆分，参考在这一点上比 NL 更具体。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "avoid_frontend_collision / avoid_rearend_collision / avoid_pedestrian_collision（三个正交区各一个避碰控制）",
+      "gen": "state \"Frontend collision\" as F / state \"Rear-end collision\" as R / state \"Collision with pedestrian\" as P（三段 -- 分隔的区域）",
+      "reason": "NL 第 1 句的三区域意图与 NL 第 3 句「The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls」在 gen 中以三段 `--` 分隔、各自带默认入口与状态的区域表达（FCSTM 投影 region 1/2/3 分别含 F、R、P）。F 与 avoid_frontend_collision、R 与 avoid_rearend_collision、P 与 avoid_pedestrian_collision 是同一对象的不同命名，按口径 1 不计问题。区域的并发执行语义本身在本研究问题定义之外。",
+      "out_of_scope": "concurrency"
+    },
+    {
+      "verdict": "similar",
+      "ref": "front_inactive --> avoid_frontend_collision: dist_to_front<10 & urban=true\\nrear_inactive --> avoid_rearend_collision: dist_to_rear<5 & vel>30\\navoid_rearend_collision --> rear_inactive: dist_to_rear>12",
+      "gen": "collision detected / Collision avoided（三个区域统一使用同一对泛化触发）",
+      "reason": "参考给出了具体数值守卫（dist_to_front<10 & urban=true、dist_to_front<15 & highway=true、dist_to_rear<5 & vel>30、dist_to_rear<15 & vel>60、dist_to_front>15、dist_to_rear>12）。NL 第 2 句只说「a possible frontend collision, rear-end collision or collision with pedestrian is detected」，没有任何阈值或 urban/highway 区分。按口径 2，参考比 NL 更具体的这部分不算 gen 的问题。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "state Collision_Avoidance { ... }（参考同样没有顶层 [*] --> Collision_Avoidance）",
+      "gen": "state Collision_Avoidance_Active_Mode { ... }（同样没有顶层 [*]）",
+      "reason": "gen 的 FCSTM 投影出现 `[*] -> UnspecifiedInitial`，即根区域没有有效初始目标。但参考行 48 同样只有一个孤立的 `state Collision_Avoidance { }` 而没有顶层 [*]，且 NL 第 2 句明确称之为「This sub-machine」——子机片段的入口由父图（自动驾驶模式图）提供是合理的。因此本条不判 gen 有问题，显式记录为 correct 以说明我没有因这一点扣分。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 2,
+  "extra_count": 0,
+  "notes": "拆分粒度原则：以「一个可独立修复的缺陷成因」为一条 diff。三个区域的初始边都带触发是同一成因（作者把子机激活条件误挂到区域默认入口），合并为一条；前导 `--` 造成的空区域是另一独立成因（一处语法位置错误），单独立条；三处 F/R/P 的命名差异按口径 1 归并为一条 correct；参考侧的数值守卫缺失按对象归并为一条 similar。\n\n逐句核对 NL（3 句）：\nNL1「There are three region in this diagram」——未满足：因前导 `--`，实际切出 4 个区域，其中 region 0 为空（FCSTM 投影 `states=-; transitions=-`）。三个有内容的区域本身是对的。\nNL2「This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected」——部分满足：三类碰撞被建成三个区域的活动态（F/R/P），激活条件以 `collision detected` 表达，但被错误地挂在区域初始边上而非父层进入边上（带触发初始边）。子机没有顶层初始这一点与参考一致，不计问题。\nNL3「The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls」——满足：三段 `--` 正交区各含一个独立的避碰控制。正交区并发执行语义在范围外，已标 out_of_scope: concurrency。\n\n参考模型自身问题：\n(1) 参考也没有顶层初始伪状态（`state Collision_Avoidance { }` 孤立存在）。但因 NL 第 2 句自称 sub-machine，这在片段图语境下可接受，我未据此判 gen 有问题。\n(2) 参考的 `avoid_pedestrian_collision --> pedestrian_inactive` 无标签，是即发 completion 边，意味着行人避碰活动态一被进入就立刻返回 inactive；这属于参考侧的良构性可疑点，但它不影响本 case 对 gen 的任何判定（gen 在此处用了 `Collision avoided` 触发），故未单独立条。\n(3) 参考的 rear 区域含 `dist_to_rear<15 & vel>60`，NL 未提及；属参考比 NL 更具体，非错误。"
+}

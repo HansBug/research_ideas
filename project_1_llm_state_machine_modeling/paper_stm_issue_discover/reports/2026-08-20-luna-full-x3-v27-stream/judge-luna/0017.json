@@ -1,0 +1,393 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0017",
+  "ledger": [
+    {
+      "ledger_id": "INS-0017-01",
+      "pair": "0017",
+      "D": "D2",
+      "L": "L0",
+      "summary": "复合态 `Collision_Avoidance_Active_Mode` 的三个并发区，默认入口全部带触发事件（`:4`、`:9`、`:14` 三行都是 `[*] --> X : collision detected`），而 UML 规定初始伪状态的出边不得带触发。",
+      "detail": "`:2` 开 `state Collision_Avoidance_Active_Mode {`，块内用 `:3`、`:8`、`:13` 的三个 `--` 划出三个区。三个区的第一行都是带标签的默认入口边：`:4 [*] --> F : collision detected`、`:9 [*] --> R : collision detected`、`:14 [*] --> P : collision detected`。\n\nUML 2.5.1 规定从初始伪状态出发的迁移不得带触发事件也不得带守卫。三条都违反了。后果是这个复合态被进入之后没有确定的起始子态——三个区都要等 `collision detected` 到达才会落到某个状态里。\n\n这里标签的角色没有争议的余地：`collision detected`（检测到碰撞）是一个明确的发生态措辞，描述的是「某件事发生了」，不可能读成一个要执行的动作。这一点与同批的 pair 0007 不同——那份制品的初始边标签是 `Start Braking`、`Steering Engaged`、`Alerts Activated`，都是动词短语，存在 effect 读法的空间，所以那一条判了 D1；本条没有这个空间。\n\n还需要排除一处可能的误读。结构分析的诊断把「带条件的初始边」计为 3 条，这个数字来自把三个区展平成一个区之后的统计（`:3`/`:8`/`:13` 的 `--` 被并掉了）。但「每个区的默认入口带触发」这一事实每个区单独看都成立，与展平无关。",
+      "D_basis": "判 D2。被违反的义务来自建模语言：UML 2.5.1 规定初始伪状态的出边不得带触发或守卫，这是可引的成文规定，判定不依赖对 NL 的解释。三个判读臂一致认定成立。唯一可能的第二种读法是把标签读成 effect，但 `collision detected` 是发生态措辞、不是动作，没有这个空间。需要如实记下：三臂在给理由时都没有主动引出上面这条语言规定，出处是本次重写时补齐的。",
+      "L_basis": "判 L0。陈述这条错误只需就地读 `:4`、`:9`、`:14` 三行，看 `[*] -->` 后面的冒号有没有跟内容——纯词法层面的模式匹配，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "extraneous",
+        "defect_logic_kind": null,
+        "defect_reference": "language"
+      }
+    },
+    {
+      "ledger_id": "VU-0017-01",
+      "pair": "0017",
+      "D": "D1",
+      "L": "L0",
+      "summary": "全文没有任何根层初始边、也没有任何指向 `Collision_Avoidance_Active_Mode` 的入边，这个复合态的激活语义被下放给了三个区各自的初始伪状态。",
+      "detail": "制品全文只有 18 行，唯一的顶层元素就是 `:2`-`:17` 的 `state Collision_Avoidance_Active_Mode { }`。块外没有任何 `[*] -->`，也没有任何迁移以它为目标。块内 `:4`/`:9`/`:14` 的三条初始边只能在已经进入这个块之后决定各区落在哪个子态，它们不能把系统带进这个块。\n\n若把这份文件当成一台自包含的状态机来读，那么这个复合态永远不会被激活，NL 第 2 句「This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected」要求的激活就无法实现。\n\n本条属于第一版台账漏记、后从各实验臂未被认领的产出中提取回来的一类；判读时与 `INS-0017-02` 记录的是同一个事实（子机没有顶层入边），两条必须同判。",
+      "D_basis": "判 D1，两读并立。第一种读法把这份文件当成自包含的状态机：没有根初始边、没有入边，复合态不可激活，NL 第 2 句的激活义务落空。第二种读法注意到 NL 自己的措辞——第 2 句逐字称它为 `This sub-machine`，第 1 句用 `in this diagram` 限定那三个区。也就是说 NL 把这份图定位成一个子机的展开，入口由图外的父机提供，因此图内没有入边是正常的；上游参考模型也是同样的形状，可作旁证。但源文本又没有使用任何显式的 submachine 或 entry point 记号来声明这一点，所以「缺入口」的读法也没有被推翻。两读并立，判 D1。",
+      "L_basis": "判 L0。陈述这条错误只需检索全文有没有根层 `[*] -->`、有没有以 `Collision_Avoidance_Active_Mode` 为目标的迁移，两项都是零。这是纯词法层面的存在性检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:Collision_Avoidance_Active_Mode",
+          "claims": [
+            "Initial pseudostate scope 'Collision_Avoidance_Active_Mode' has 3 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0017.puml:line:4, llms_emp_feedback_final_0017.puml:line:9, llms_emp_feedback_final_0017.puml:line:14); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0017.Collision_Avoidance_Active_Mode"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:Collision_Avoidance_Active_Mode:facet:61c60ddfb0a9"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:db9f27378e4abc3e",
+          "claims": [
+            "The qualifying collision activation route may be absent at the root, leaving the active mode outside the reachable behavior graph."
+          ],
+          "locations": [
+            "NL2",
+            "llms_emp_feedback_final_0017",
+            "Collision_Avoidance_Active_Mode"
+          ],
+          "obligations": [
+            "A qualifying collision event must be able to reach the active collision-avoidance mode."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:db9f27378e4abc3e:facet:c7b2d97d8c9d"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:Collision_Avoidance_Active_Mode",
+          "claims": [
+            "Initial pseudostate scope 'Collision_Avoidance_Active_Mode' has 3 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0017.puml:line:4, llms_emp_feedback_final_0017.puml:line:9, llms_emp_feedback_final_0017.puml:line:14); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0017.Collision_Avoidance_Active_Mode"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:Collision_Avoidance_Active_Mode:facet:41e3e6378754"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:Collision_Avoidance_Active_Mode",
+          "claims": [
+            "Initial pseudostate scope 'Collision_Avoidance_Active_Mode' has 3 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0017.puml:line:4, llms_emp_feedback_final_0017.puml:line:9, llms_emp_feedback_final_0017.puml:line:14); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0017.Collision_Avoidance_Active_Mode"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:Collision_Avoidance_Active_Mode:facet:61c60ddfb0a9"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:llms_emp_feedback_final_0017",
+          "claims": [
+            "Source composite 'llms_emp_feedback_final_0017' has no initial transition to required child 'Collision_Avoidance_Active_Mode'.",
+            "The collision-detected routes may be structurally unreachable from the root activation path."
+          ],
+          "locations": [
+            "NL2",
+            "F19",
+            "Collision_Avoidance_Active_Mode",
+            "Collision_Avoidance_Active_Mode.F",
+            "Collision_Avoidance_Active_Mode.R",
+            "Collision_Avoidance_Active_Mode.P",
+            "tr_0001",
+            "tr_0003",
+            "tr_0005",
+            "llms_emp_feedback_final_0017.Collision_Avoidance_Active_Mode.F",
+            "llms_emp_feedback_final_0017.Collision_Avoidance_Active_Mode.R",
+            "llms_emp_feedback_final_0017.Collision_Avoidance_Active_Mode.P"
+          ],
+          "obligations": [
+            "The collision-avoidance sub-machine becomes active on a detected frontend, rear-end, or pedestrian collision.",
+            "A detected collision should activate the corresponding collision-avoidance control from the active mode."
+          ],
+          "basis": [
+            "causal_dual_certificate",
+            "unattributed"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:initial_contract:llms_emp_feedback_final_0017:facet:1e4b84528218",
+            "source:initial_contract:llms_emp_feedback_final_0017:facet:e0e1193a97ed"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "三个区域都使用同一个“collision detected”作为进入条件，未分别表达可能的前端碰撞、追尾碰撞和行人碰撞检测条件。",
+          "reason": "规范要求子机器在检测到可能的前端碰撞、后端（追尾）碰撞或与行人碰撞时变为活动状态；模型使用未区分类型的通用条件，无法准确表示这三种不同的触发条件。",
+          "where": "三个分隔区域中的[*] --> F、[*] --> R、[*] --> P 转移"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "区域中的状态被建模为碰撞类型，而规范要求正交区域允许并发激活不同的碰撞避免控制。",
+          "reason": "模型没有表示碰撞避免控制（例如相应控制动作）的激活，只表示三类碰撞状态；因此不能体现正交区域中不同碰撞避免控制可并发激活这一要求。",
+          "where": "Frontend collision、Rear-end collision、Collision with pedestrian 三个状态及其进入转移"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型的状态名称和语义表示已检测到的碰撞，而规范描述的是“possible”碰撞检测。",
+          "reason": "“Frontend collision”“Rear-end collision”“Collision with pedestrian”没有体现可能碰撞/碰撞风险这一条件，容易将状态含义错误建模为碰撞已经发生。",
+          "where": "F、R、P 三个状态"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": []
+    }
+  ],
+  "judgement": {
+    "pair": "0017",
+    "ledger_assessments": [
+      {
+        "ledger_id": "INS-0017-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:Collision_Avoidance_Active_Mode"
+          ],
+          "reason": "source:initial_contract:Collision_Avoidance_Active_Mode 直接指认该复合态三个初始伪状态出边均携带触发或守卫，并明确该 UML 约束被违反。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:Collision_Avoidance_Active_Mode"
+          ],
+          "reason": "该 issue 直接覆盖同一复合态、同一组三条初始出边以及初始迁移不得携带触发或守卫的性质。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:Collision_Avoidance_Active_Mode"
+          ],
+          "reason": "该 issue 以同一复合态为位置，明确报告三个初始伪状态出边带触发或守卫，正是台账记录的多余触发问题。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_1 至 issue_3 分别讨论入口条件区分、区域控制语义和 F/R/P 状态命名，均未覆盖三个初始伪状态出边携带多余触发事件这一性质。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出格没有 finding，未覆盖三个并发区默认入口带触发事件的问题。",
+          "confidence": null
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出格没有 finding，未覆盖三个并发区默认入口带触发事件的问题。",
+          "confidence": null
+        }
+      },
+      {
+        "ledger_id": "VU-0017-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:db9f27378e4abc3e"
+          ],
+          "reason": "hypothesis:db9f27378e4abc3e 指向 Collision_Avoidance_Active_Mode 的根激活路径，主张合格碰撞激活路由可能缺失并使活动模式不在可达行为图中，对应台账的根层无初始边和无入边导致复合态无法激活。",
+          "confidence": "medium"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "唯一 finding 只覆盖复合态内部初始伪状态出边带触发或守卫，没有主张根层缺少指向 Collision_Avoidance_Active_Mode 的入边。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:llms_emp_feedback_final_0017"
+          ],
+          "reason": "source:initial_contract:llms_emp_feedback_final_0017 明确主张源复合结构没有通往 required child Collision_Avoidance_Active_Mode 的初始迁移，并将碰撞路线归为根激活路径不可达，覆盖台账的缺少根层激活入口。",
+          "confidence": "medium"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "三个 baseline issue 没有主张默认初始边的触发事件是多余的；它们主张的是条件未区分、并发控制语义缺失或状态命名错位。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出格没有 finding。",
+          "confidence": null
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出格没有 finding。",
+          "confidence": null
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:Collision_Avoidance_Active_Mode",
+        "matched_ledger_ids": [
+          "INS-0017-01"
+        ],
+        "false_positive": false,
+        "reason": "该 issue 直接指认 Collision_Avoidance_Active_Mode 内三个初始伪状态出边携带触发或守卫，并明确主张该槽位违反 UML 初始迁移约束，与 INS-0017-01 同处同性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:db9f27378e4abc3e",
+        "matched_ledger_ids": [
+          "VU-0017-01"
+        ],
+        "false_positive": false,
+        "reason": "该 issue 指向 Collision_Avoidance_Active_Mode 的根激活路径，主张合格的碰撞激活路由可能缺失并导致该活动模式处于不可达图外，对应 VU-0017-01 的根层无入边、复合态无法激活；措辞带有 may，因此置信度为中。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_contract:Collision_Avoidance_Active_Mode",
+        "matched_ledger_ids": [
+          "INS-0017-01"
+        ],
+        "false_positive": false,
+        "reason": "该 issue 直接指认同一复合态三个初始伪状态出边的触发或守卫，并提出同一 UML 禁止义务，覆盖 INS-0017-01。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:Collision_Avoidance_Active_Mode",
+        "matched_ledger_ids": [
+          "INS-0017-01"
+        ],
+        "false_positive": false,
+        "reason": "该 issue 的位置、三条出边的数量和初始出边不得带触发或守卫的性质均与 INS-0017-01 完全对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:llms_emp_feedback_final_0017",
+        "matched_ledger_ids": [
+          "VU-0017-01"
+        ],
+        "false_positive": false,
+        "reason": "该 issue 明确主张源复合结构没有通往 Collision_Avoidance_Active_Mode 的初始迁移，并将碰撞路线称为从根激活路径不可达，覆盖 VU-0017-01；其地点表达包含更广的源结构和子状态，因此置信度为中。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 讨论三个入口条件未区分前端、追尾和行人碰撞，是事件条件表达不精确；它没有主张初始伪状态出边不应携带触发，因此不对应 INS-0017-01，也没有主张根层缺少复合态入边。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 讨论区域状态与并发碰撞避免控制的语义错位，未指认初始边触发槽位的多余问题，也未指认 Collision_Avoidance_Active_Mode 缺少根层入边。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 讨论 F、R、P 状态名称把 possible collision 表达为已发生碰撞，性质是状态语义或命名错位，不是初始出边携带触发或复合态缺少根层入边。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "新方法三轮稳定覆盖 INS-0017-01；VU-0017-01 由 method_run1 的根激活路径假设和 method_run3 的缺少 required child 初始迁移覆盖，method_run2 未覆盖。baseline_run1 的三个 issue 均为不同的条件、并发语义或状态命名问题，不能拼接或泛化为两条台账；baseline_run2 和 run3 无 finding。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

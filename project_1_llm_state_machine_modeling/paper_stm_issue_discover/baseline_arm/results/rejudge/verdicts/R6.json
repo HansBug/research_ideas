@@ -1,0 +1,64 @@
+{
+  "judged_by": "R6",
+  "positions": {
+    "EIS-0005-01|run1/0005-gpt": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "assertion",
+      "argument": "本格 4 条 issue 均与 DoorShut/Cancel 无关，但已发布断言表中 `AST-REQ-002-1`（coverage key `stays_in:...DoorShut:...Cancel`）结果为 False，失败信息为「在 DoorShut 执行 Cancel action 后系统未保持在 DoorShut」。它表达的命题与台账 EIS-0005-01 指向作者源同一条编辑——`DoorShut : Cancel` 这一行（全源里唯一同时涉及 DoorShut 与 Cancel 的语句）被写成状态体说明文字而非自环迁移，NL 第 1 句『can either remain in DoorShut if a Cancel action is performed』这条义务因此未被模型实现；台账从结构侧（自环不存在）陈述，本断言从行为侧（未保持占据）陈述同一处失误，方向一致（都判该义务未满足），非相反结论。"
+    },
+    "EIS-0005-01|run2/0005-claude": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "assertion",
+      "argument": "本格 2 条 issue 分别关于 cooking_time 变量与嵌套层级，均不涉及本条；但已发布断言表中 `AST-REQ-002-1`（`stays_in:DoorShut:Cancel`）为 False，失败信息「DoorShut 上的 Cancel 未维持自身占据」。该命题与台账 EIS-0005-01 同指作者源 `DoorShut : Cancel` 那一行：NL 第 1 句要求的 Cancel 自环义务未被模型实现，台账记其为缺失迁移，本断言记其为行为未满足，属同一处建模失误的两面。"
+    },
+    "EIS-0005-02|run1/0005-gpt": {
+      "hit": false,
+      "argument": "本格 4 条 issue 分别是 cooking_time 变量缺失（ISSUE-REQ014）、ReadytoCook 缺 during（ISSUE-REQ015）、timer 变量缺失（ISSUE-REQ020）、Cooking 缺 entry（ISSUE-REQ021），无一涉及 DoorShutWithItem / ReadytoCook / Cooking 被前向引用钉成 DoorOpenWithItem 子态这一层级错误。断言表中 4 条 False（AST-REQ-014-1、015-1、020-1、021-1）也全是变量/动作缺失；相反，本格把嵌套路径当作正确基线使用——`AST-REQ-011-1` (`state_declared:...DoorOpenWithItem.DoorShutWithItem:any`)、`AST-REQ-009-1`、`AST-REQ-010-1` 均为 True，`AST-REQ-008-1` 还以自造的 DoorIdleWithItem 为源判 True，即本格接受了台账所指的错误层级。"
+    },
+    "EIS-0005-03|run2/0005-claude": {
+      "hit": true,
+      "equivalence_form": "蕴含更根本的原因",
+      "carrier": "issue",
+      "argument": "已发布 issue [1]（`ISSUE-REQ-011-cooking-time-variable`，AST-REQ-011-1 为 False）指出模型未声明任何作者变量来承载烹饪时间。台账 EIS-0005-03 记的是 NL S5/S6/S7/S8 显式要求的 timer 启停与 cooking time 显示/更新在生成侧完全没有表达；『模型根本没声明 cooking_time 变量』蕴含『cooking time 的显示与更新不可能被表达』，且定位到更上游，正对应 §2.1 所给的同一形态（台账要求变量上的变化，我们证明变量根本不存在）。作者源全文确无任何变量与动作声明，两者指向同一处遗漏。"
+    },
+    "EIS-0005-03|run3/0005-gpt": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "issue",
+      "argument": "已发布 issue [4]（cooking_time 作者变量未声明）、[5]（ReadytoCook 未声明 during 行为承载 cooking time 的显示与更新）、[7]（timer 作者变量未声明）、[8]（Cooking 未声明 entry 行为承载启动 timer）逐项覆盖台账 EIS-0005-03 点名的 NL S5/S6/S7/S8 两个对象（timer、cooking time）及其动作，对应断言 AST-REQ-025-1、AST-REQ-026-1、AST-REQ-034-1、AST-REQ-033-1 均为 False，与台账所述『生成侧完全没有表达这些义务』是同一处遗漏，仅措辞不同。"
+    },
+    "EIS-0024-01|run3/0024-gpt": {
+      "hit": false,
+      "argument": "台账 EIS-0024-01 是 NL 第 8 句逐字要求的 Accelerating 上 'Entry/Accelerate' 动作在模型中不存在。本格 7 条 issue 分别关于 obstacle_is_detected 触发事件（[1]）、EmergencyStopping 的 entry（[2]）与 exit（[3]）动作、Approaching 的 exit（[4]）与 during（[6]）动作、独立 Send 事件（[5]）、Approaching 的 persists_until（[7]），无一指向 Accelerating 的进入动作。断言表内也没有任何 `action_declared:...InMotion.Accelerating:*` 断言（REQ-022 位缺失，本格自报 3 条覆盖缺口，而覆盖缺口按规则不承载命中）；涉及 Accelerating 的 AST-REQ-012-1、015-1、016-1、018-1、021-1 全为 True。"
+    },
+    "EIS-0024-03|run1/0024-gpt": {
+      "hit": false,
+      "argument": "台账 EIS-0024-03 指的是作者源多出的 `Approaching --> InMotion:exit/Send` 这条指向自身外层复合状态的迁移（等价于 InMotion 自迁移、重置回 Accelerating），违反 NL 第 10 句的 remain-until 义务。本格 7 条 issue 中最接近的 [6]（ready_to_stop 未声明为状态或条件）与 [7]（decelerate 未声明为状态或条件）主张的是释放条件词汇缺失，[5] 主张 Approaching 缺 during 动作、[4] 主张独立 Send 事件未声明——这些都是『缺少声明』类命题，与『多出一条错误迁移』不是同一处编辑，删掉那条边不会使 ready_to_stop/decelerate 被声明，反之亦然。断言表中也没有任何 persists_until 或针对该边的断言（AST-REQ-035-1 `state_declared:...Approaching` 反而为 True），对比之下 run3 才有 `AST-REQ-026-1` 的 persists_until，本格没有。"
+    },
+    "EIS-0016-01|run1/0016-gpt": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "issue",
+      "argument": "已发布 issue [1]（`ISSUE-REQ003-cardinality`，AST-REQ-003-1 `cardinality:...SearchMission:3` 为 False，失败信息「SearchMission 未声明恰好三个非伪直接状态区域」，rationale 明说证据绑定到 SearchMission 及其子状态 Region1）与台账 EIS-0016-01 指向同一处作者源编辑：`Search --> Region2` 写在 `state Region1 {}` 体内导致 Region2 成为 Region1 的子、Region3 成为 Region2 的子。SearchMission 的直接非伪子只剩 Region1 正是该三层嵌套的直接表述，台账从『区域归属被写成包含关系』一面陈述、本格从『直接子区域数不为三』一面陈述同一失误。"
+    },
+    "EIS-0016-02|run1/0016-claude": {
+      "hit": false,
+      "argument": "台账 EIS-0016-02 是三个区域的内部状态同名 Search、名字碰撞使 Region2/Region3 的初始迁移目标落到 Region1.Search，进入 Region2/Region3 后无定义初始子状态。本格 3 条 issue 是 Region2/Region3 错位嵌套（[1]，对应的是 EIS-0016-01 那处失误，仅共用 Region2/Region3 名字，属 §2.2 禁止的『不同缺陷共用状态名』）、Mission_Completed 事件缺失（[2]）、uav_swarm_count 变量缺失（[3]）。断言表中的 False 项 AST-REQ-002-1、004-1、005-1（containment/cardinality）、006-1、010-1、011-0 无一涉及 Search 命名碰撞或 Region2/Region3 的初始子状态；唯一相关的 `AST-REQ-002E-1`（`initial_target:SearchMission:any-declared-child`）还是 True。"
+    },
+    "EIS-0002-02|run2/0002-claude": {
+      "hit": true,
+      "equivalence_form": "合取项之一",
+      "carrier": "assertion",
+      "argument": "台账 EIS-0002-02 的命题是『PumpState、WaterState、MethaneState 三个子态全部不可达，PumpControl 唯一能到达的是死端 InitialState』，是一个合取。本格已发布断言表中 `AST-REQ-009-1`（`reaches:PumpControl:WaterState:3`）与 `AST-REQ-010-1`（`reaches:PumpControl:MethaneState:3`）均为 False，失败信息即「从 PumpControl 在 3 个周期内无法到达 WaterState/MethaneState」，证明了其中两个合取项，指向的正是同一处失误：PumpControl 体内只有 `[*] --> InitialState` 且 InitialState 无出边。⭐ 这里用的是 reaches 可达性谓词本身，不是以边存在性冒充可达性，故不触 §2.2 的禁止项；两条已发布 issue（cardinality、initial_target）对应的是另一处（初始落点/过度规定），台账已声明本条与之独立。"
+    },
+    "EIS-0002-03|run3/0002-gpt": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "issue",
+      "argument": "已发布 issue [1]（`ISSUE-PumpControlInitialState`，AST-REQ-003-1 `cardinality:...PumpControl:3` 为 False）逐字指出 PumpControl 除 PumpState、WaterState、MethaneState 外还声明了直接子状态 InitialState，导致『恰好三个主要子状态』的计数失败。这与台账 EIS-0002-03『InitialState 既不在 NL 中也不在参考中，属过度规定，直接违反 NL 第 2 句的枚举式基数断言』是同一命题，锚在作者源同一条 `[*] --> InitialState` / InitialState 声明上，只是措辞不同。"
+    }
+  },
+  "note": "判据歧义一处，已按逐字文本处理并在此登记：§3.1 允许『已发布断言表里结果为 False 的断言』承载命中，而同一 False 断言往往又出现在标了『不计入命中』的『被归因策略排除的发现』区块里（EIS-0005-01 两位、EIS-0002-02 一位均属此形）。我采用的读法是：⭐ 断言表是被点名的承载体，承载的只是该断言逐字表达的裸命题；⛔ 排除区块里附加的叙述与推论不承载。若不这样切分，『被排除的发现』一律派生自某条 False 断言，§3.1 第三条对该类区块就会成为空文。另注：EIS-0005-01 的两位里，本格自身把该 False 归因为 representation_debt（证据触及编译器 R45RouteToken），若判定口径要求『只有被本格发布为作者模型缺陷的主张才算报出』，这两位应改判 false；我按 §3.1 第二条的字面授权判为 true，特此标出以便复核。"
+}

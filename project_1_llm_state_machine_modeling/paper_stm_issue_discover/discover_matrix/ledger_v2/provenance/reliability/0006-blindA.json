@@ -1,0 +1,64 @@
+{
+  "case": "0006",
+  "diffs": [
+    {
+      "verdict": "problem",
+      "ref": "[*] --> Raster_Scanning",
+      "gen": "state \"UAV Swarm State Machine\" as UAVSwarmStateMachine {\\n[*] --> Searching\\n...\\n}  （顶层没有任何 [*] --> UAVSwarmStateMachine）",
+      "reason": "良构性：gen 把唯一的 [*] 放在复合态 UAVSwarmStateMachine 内部，根区域没有初始伪状态，整个复合态没有任何入边，因此不可达。FCSTM 投影确认为 `[*] -> UnspecifiedInitial`。参考侧明确有 `[*] --> Raster_Scanning`，且 NL 第 1 句「This state machine model describes the state transitions of a UAV swarm」说明这是一台完整状态机而非子机片段，不能靠父图提供入口。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "state Raster_Scanning { [*] -> Fly_Along_the_Path ... -- ... [*] -> Fly_Along_the_Path_2 ... -- ... [*] -> Search_for_the_Target ... }",
+      "gen": "state UAVSwarmStateMachine { [*] --> Searching ... }  （全文无 -- 分隔符，仅 1 个区域）",
+      "reason": "NL 第 2 句显式点名「it operates within three different state areas」，即三个状态区域。gen 的 UAVSwarmStateMachine 只有一个区域，Searching / Intercepted / FormationAdjustment / Attack 全在同一区域内。这是 NL 点名的数量/结构缺失（三个 → 一个），按口径 4 属范围内；参考侧用三个正交区实现，正交区的并发执行语义本身在范围外，本条判定只依据 NL 点名的区域数量。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "Strike_the_Target: exit/ NumberofCru--",
+      "gen": "state Attack { [*] --> AttackingTarget\\nAttackingTarget : Performing Attack\\nAttackingTarget --> Searching : Attack Complete }  （无任何变量或递减动作）",
+      "reason": "NL 第 4 句后半「After completing the attack, the number of UAVs in the swarm decreases accordingly」显式点名了打击完成后集群数量递减这一动作。gen 全模型没有任何变量、计数器或 exit/effect 动作（FCSTM 投影中 Attack 只有 AttackingTarget 与 /Attack_Complete，无 effect 子句），NL 点名的元素完全缺失。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "Raster_Scanning --> [*]: when (NumberofCru == 0)",
+      "gen": "（UAVSwarmStateMachine 无任何出边，模型中不存在 final 伪状态）",
+      "reason": "NL 第 2 句以「Before the mission is completed, the UAV swarm continuously performs target search tasks」为前提，蕴含存在「任务完成」这一终止条件；参考侧用 `Raster_Scanning --> [*]: when (NumberofCru == 0)` 承载它。gen 的顶层复合态既无 final，也无任何离开 UAVSwarmStateMachine 的迁移，Searching/Attack/FormationAdjustment 构成封闭回路，任务永远无法完成 —— 属良构性中的吸收态问题，同时丢失了参考承载的终止语义。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "Fly_Along_the_Path --> Formation_Adjustment : Intercepted_by_UAV_interception",
+      "gen": "Searching --> Intercepted : Interception Detected\\nIntercepted : UAV Swarm Intercepted\\nIntercepted --> FormationAdjustment",
+      "reason": "gen 多插了一个中转态 Intercepted，其唯一出边 `Intercepted --> FormationAdjustment` 无触发，是即发的 completion 边，因此 Intercepted 是瞬时穿越态。它没有让任何已声明的分支不可达（Intercepted 只有这一条出边），可达稳定构型与参考的 `Fly_Along_the_Path --> Formation_Adjustment : Intercepted` 一致，属拆分方式差异而非语义损失（NL 第 3 句只要求「被拦截时转入编队调整状态」）。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "Fly_Along_the_Path_2 --> Strike_the_Target : Mission_assignment_information_of_loitering_munition",
+      "gen": "Searching --> Attack : Task Assignment Received",
+      "reason": "NL 第 4 句前半「During flight, if task assignment information is received, it enters the attack state」被满足。Attack 与 Strike_the_Target、Searching 与 Fly_Along_the_Path/Search_for_the_Target、FormationAdjustment 与 Formation_Adjustment 只是同一对象的不同命名；gen 还把 Attack/FormationAdjustment 各自展开为带默认子态的复合态（`[*] --> AttackingTarget` / `[*] --> AdjustingFormation`），属结构拆分差异，语义等价。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "Raster_Scanning: do / Target_search\\nSearch_for_the_Target: do/Determine_a_new_target",
+      "gen": "Searching : Target Search Task",
+      "reason": "NL 第 2 句点名「continuously performs target search tasks」。参考用复合态上的 do 活动承载；gen 用状态体标注 `Searching : Target Search Task` 承载（FCSTM 投影为 `[PlantUML body] Target Search Task`）。目标搜索这件事在 gen 中有对应元素，只是写法从 do 活动降级为状态描述，说得通、不违反 NL；参考另有的 `do/Determine_a_new_target` 是 NL 未点名的更具体内容。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "Strike_the_Target --> Strike_the_Target : Intercepted_by_UAV_interception",
+      "gen": "（Attack / AttackingTarget 无拦截相关迁移，拦截只在 Searching 处处理）",
+      "reason": "NL 第 3 句只说「When the UAV swarm is intercepted, it transitions to the formation adjustment state」，未规定打击过程中被拦截如何处理。参考侧的打击态自环比 NL 更具体，按口径 2 不计为 gen 的问题。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 4,
+  "extra_count": 0,
+  "notes": "拆分粒度原则：以「一个可独立修复的缺陷成因」为一条 diff。同一成因在模型中重复出现多次则合并为一条并在 reason 中列出全部出现位置；成因不同即使后果相邻则拆为两条；纯命名/写法差异不单独立条，按对象归并为一条 correct。\n\n逐句核对 NL（4 句）：\nNL1「This state machine model describes the state transitions of a UAV swarm」——满足：搜索、拦截、编队调整、打击四个环节都有对应状态。但 gen 缺根初始，作为一台完整状态机整体不可达（见 diff 1）。\nNL2「Before the mission is completed, the UAV swarm continuously performs target search tasks, during which it operates within three different state areas」——部分满足：目标搜索任务有对应元素（`Searching : Target Search Task`）；「三个状态区域」未满足（gen 只有 1 个区域，见 diff 2）；「任务完成前」蕴含的完成/终止未满足（无 final、复合态无出口，见 diff 4）。\nNL3「When the UAV swarm is intercepted, it transitions to the formation adjustment state」——满足：Searching --> Intercepted --> FormationAdjustment（多一个瞬时中转态，见 diff 5）。仅从 Searching 处理拦截，NL 未规定其他来源，不计问题。\nNL4「During flight, if task assignment information is received, it enters the attack state. After completing the attack, the number of UAVs in the swarm decreases accordingly」——前半满足（Searching --> Attack : Task Assignment Received）；后半未满足，无任何计数变量或递减动作（见 diff 3）。\n\n参考侧存疑：本 case 未发现参考与 NL 冲突。参考的 `exit/ NumberofCru--` 与 `when (NumberofCru == 0)` 都能对应 NL 第 2/4 句，`Strike_the_Target` 自环与 `do/Determine_a_new_target` 属参考比 NL 更具体的部分。\n\n范围外说明：diff 2 涉及区域，但判定依据是 NL 点名的「三个状态区域」数量而非正交区的并发执行语义，按口径 4 属范围内，故未标 out_of_scope。"
+}

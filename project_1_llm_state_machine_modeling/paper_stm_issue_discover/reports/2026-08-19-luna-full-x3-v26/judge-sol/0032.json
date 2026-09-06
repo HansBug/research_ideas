@@ -1,0 +1,383 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0032",
+  "ledger": [
+    {
+      "ledger_id": "DIFF-0032-03",
+      "pair": "0032",
+      "D": "D1",
+      "L": "L0",
+      "summary": "NL 第 1 句把 `Accelerating or Cruising` 作为一个被反引号点名的状态列出，而制品把它拆成了 `AcceleratingState`（:14）与 `CruisingState`（:15）两个状态，并自造了一个 NL 里没有的 `Reach Speed` 触发（:24）。",
+      "detail": "NL 第 1 句逐字为「Once the device is powered on, the system enters the `Operate` state, and based on user actions, it transitions between `Idle`, `Accelerating or Cruising`, and `Braking` states.」。注意反引号的划分方式：`Idle`、`Accelerating or Cruising`、`Braking` 三组各自被反引号包起来，也就是说中间那一组作为一个整体被点名。\n\n制品在 `:13` 开 `state AccelerateRegion {`，块内放了两个状态：`:14 AcceleratingState : Accelerating` 与 `:15 CruisingState : Cruising`，并在 `:24 AccelerateRegion --> CruisingState : Reach Speed` 建了一条从加速到巡航的边。`Reach Speed` 这个触发在 NL 全文没有出现。\n\n另外 `:24` 这条边的源是复合态 `AccelerateRegion`、目标是它自己的子态 `CruisingState`，这个构造本身也不常规。\n\n按第一种读法，这属于过度规约：NL 点名的一个状态被拆成两个，还补了一个 NL 没有的触发。",
+      "D_basis": "判 D1，两读并立。第一种读法按反引号的字面划分：`Accelerating or Cruising` 是被作为一个整体点名的状态名，拆成两个就是过度规约，`Reach Speed` 也是自造的。第二种读法把反引号内的 or 读作「两个可选阶段」而不是一个单一的析取式命名——那么 `:14`/`:15` 的拆分是对 NL 的忠实细化，`:24` 的 `Reach Speed` 则是两个阶段之间必需的过渡触发。第二种读法与结构相容，也符合领域常识（加速与巡航在车辆控制里确实是两个阶段），无法被推翻，故判 D1。",
+      "L_basis": "判 L0。陈述这条错误只需把 NL 第 1 句反引号内的名字与模型里的状态名做比对，看一个名字是否对应了两个状态。这是纯粹的词项对比，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "state",
+        "defect_qualifier": "other",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0032-01",
+      "pair": "0032",
+      "D": "D1",
+      "L": "L0",
+      "summary": "`IdleRegion`（:9）、`AccelerateRegion`（:13）、`BrakeRegion`（:18）三个都是复合态却都没有默认入口边，进入任一个之后的子态未定义；`AcceleratingState` 更是全模型没有任何入边。",
+      "detail": "NL 第 1 句要求系统在 `Idle`、`Accelerating or Cruising`、`Braking` 三个状态之间按用户动作切换。\n\n制品把这三样各包了一层：`:9 state IdleRegion {` 内含 `:10 IdleState : Idle`；`:13 state AccelerateRegion {` 内含 `:14 AcceleratingState` 与 `:15 CruisingState`；`:18 state BrakeRegion {` 内含 `:19 BrakingState`。三个块内都没有写 `[*] -->`。\n\n后果分两层。其一，三个复合态的默认进入点都未定义：`:22 IdleRegion --> AccelerateRegion : Accelerate` 把系统送进 `AccelerateRegion` 之后，落在 `AcceleratingState` 还是 `CruisingState` 没有规定。投影为此在三个块内各合成了一个 `UnspecifiedInitial` 占位状态。其二，`AcceleratingState` 在全模型没有任何入边——检索全文，以它为目标的迁移一条都没有（`:24` 的目标是 `CruisingState`），所以 NL 第 1 句点名的加速配置根本占据不到。",
+      "D_basis": "判 D1，两读并立。第一种读法把 NL 点名的状态映射到最内层的叶态：`IdleState`、`AcceleratingState`、`BrakingState` 都缺默认入口（`AcceleratingState` 更是零入边），NL 第 1 句点名的状态无法可靠占据，缺陷成立。第二种读法把三个 wrapper 直接读作 NL 说的那三个状态：`:8`、`:22`、`:23`、`:25`、`:27` 这些边明确进入 `IdleRegion`、`AccelerateRegion`、`BrakeRegion`，而 NL 并没有规定它点名的状态必须映射到最内层叶态，把 wrapper 读作 NL 状态与源结构相容。这里不能用语言层的二值违规去消灭第二种读法——UML 2.5.1 对区域缺 initial 留作语义未定，不是二值良构性违规。故判 D1。另需说明本条与 pair 0002 的 EIS-0002-02 结构不同（那一份的 wrapper 本身就没有入边），不机械同判。",
+      "L_basis": "判 L0。陈述这条错误只需读三个 `state XRegion {` 块看块内有没有 `[*] -->`（都没有），再检索有没有以 `AcceleratingState` 为目标的迁移（没有）。两项都是纯词法层面的存在性检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "failed",
+      "findings": []
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "hypothesis:51282eb6997248db",
+          "claims": [
+            "The Operate state is not reachable from the root entry as required by the start behavior."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0032.OperateState",
+            "tr_0002"
+          ],
+          "obligations": [
+            "After the system is turned on, Operate must be reachable from the root entry."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:51282eb6997248db:facet:d3b406f721c8"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:OperateState.AccelerateRegion",
+          "claims": [
+            "The accelerating/cruising mode does not provide a reachable initial operating path to its declared accelerating behavior."
+          ],
+          "locations": [
+            "OperateState.AccelerateRegion.AcceleratingState",
+            "PUML:L13",
+            "PUML:L14"
+          ],
+          "obligations": [
+            "The accelerating substate must be reachable within Operate."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:OperateState.AccelerateRegion:facet:b80e98240e83"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型将“Accelerating or Cruising”拆成 AcceleratingState 和 CruisingState，但没有建模从 AcceleratingState 到 CruisingState 的实际连续状态关系所需的明确语义之外，区域层级定义使转换目标不一致。",
+          "reason": "规格将该阶段描述为一个“Accelerating or Cruising”状态，模型虽拆分为两个状态，但转换从区域 `AccelerateRegion` 指向其内部子状态 `CruisingState`，而不是明确从 AcceleratingState 出发；这会使“加速达到速度后进入巡航”的状态机语义不清，且 AcceleratingState 没有任何进入或离开转换。",
+          "where": "OperateState 内的 AccelerateRegion，以及 `AccelerateRegion --> CruisingState : Reach Speed`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "缺少从 Braking 返回或转入加速/巡航的动作转换。",
+          "reason": "规格要求在 Operate 内根据用户动作在 Idle、Accelerating or Cruising、Braking 之间转换。模型只允许制动后因 Stop 回到 Idle，没有表达制动过程中取消制动、重新加速或进入巡航等从 Braking 到其他运动状态的转换；若“之间转换”按完整行为理解，该模型覆盖不全。",
+          "where": "`BrakeRegion --> IdleRegion : Stop` 及 OperateState 内各区域之间的转换"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "未显式建模“停止”从 Idle 或其他非制动状态的处理。",
+          "reason": "规格明确提到根据包括 stopping 在内的动作进行子状态转换。模型仅定义 `BrakeRegion --> IdleRegion : Stop`，没有定义 Idle 状态收到 Stop 的行为，也没有定义加速/巡航状态收到 Stop 后直接进入 Idle 的行为，因此 stopping 的适用范围和状态响应不完整。",
+          "where": "OperateState 内 IdleRegion、AccelerateRegion、CruisingState 的转换定义"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型没有明确表示“上电后”自动进入 Operate，而是仅用 start 信号从 OffState 转入 OperateState。",
+          "reason": "规格第1条说设备一旦 powered on 即进入 Operate；第2条另说可由 start 信号开启。若 start 就是上电动作，则语义可视为满足；但模型没有单独表达上电事件，只有 start 转换，因此无法表示“上电即进入 Operate”这一条件。",
+          "where": "OffState --> OperateState : start"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "加速状态到巡航状态的建模不完整/语义不一致。",
+          "reason": "规格将“Accelerating or Cruising”作为一个动作相关的阶段，并要求在 Operate 内根据用户动作转换。模型把二者放进复合区域，但没有从 AcceleratingState 到 CruisingState 的明确转换；从 AccelerateRegion 到 CruisingState 的转换也可能是区域级转换，未清晰表达当前处于 Accelerating 后因 Reach Speed 进入 Cruising。",
+          "where": "state AccelerateRegion { AcceleratingState : Accelerating; CruisingState : Cruising } 以及 AccelerateRegion --> CruisingState : Reach Speed"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型缺少从 Cruising 状态回到 Accelerating 状态的加速路径。",
+          "reason": "规格要求根据用户动作在 Idle、Accelerating or Cruising 和 Braking 之间转换。若系统处于 Cruising 后再次执行加速动作，应能回到加速阶段；模型没有该转换。不过规格未明确要求巡航时再次加速，因此这是对动作驱动转换的潜在缺失。",
+          "where": "AccelerateRegion 内仅声明 AcceleratingState、CruisingState；仅有 AccelerateRegion --> CruisingState : Reach Speed"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "模型把 BrakeRegion 到 IdleRegion 的 Stop 转换建模为区域级转换，未明确由 BrakingState 执行停止后回到 IdleState。",
+          "reason": "规格明确要求 Operate 内在 Braking 与停止后的 Idle 之间转换。模型虽然表达了区域间路径，但没有明确 BrakingState --> IdleState，导致具体状态转换关系不清晰；若按 PlantUML 复合状态语义解释，目标区域初始伪状态可能使行为成立，但模型表达不够直接。",
+          "where": "BrakeRegion --> IdleRegion : Stop"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型将 Idle、Accelerating/Cruising、Braking 建模为 OperateState 的并行区域，而不是单一的互斥子状态转换链；同时 IdleRegion、AccelerateRegion、BrakeRegion 没有显式初始伪状态指向各自的实际状态。",
+          "reason": "规格明确要求在 Operate 内根据用户动作在 Idle、Accelerating or Cruising、Braking 之间转换。当前模型使用三个 region（PlantUML 中未声明为并发 composite region，但以嵌套 state 形式表达），并且这些 region 的初始状态未定义，导致进入区域后无法确定实际活动状态，也不能明确保证三类运行状态按互斥方式工作。",
+          "where": "OperateState 内的 IdleRegion、AccelerateRegion、BrakeRegion，以及 IdleState、AcceleratingState、CruisingState、BrakingState 的组织方式"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "缺少从 Idle 到 AcceleratingState 的直接转换，且 AccelerateRegion 的动作语义不完整。",
+          "reason": "规格要求系统根据加速动作在 Idle 与“Accelerating or Cruising”状态之间转换。模型从 IdleRegion 进入 AccelerateRegion 后没有指向 AcceleratingState 的初始或动作转换，只有从整个区域到 CruisingState 的 Reach Speed 转换，因此无法表示实际的 Accelerating 状态。",
+          "where": "IdleRegion --> AccelerateRegion : Accelerate，以及 AccelerateRegion --> CruisingState : Reach Speed"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "停止动作只建模为 BrakeRegion 到 IdleRegion 的转换，未覆盖规格所说的基于 stopping 在 Operate 子状态间转换的完整语义。",
+          "reason": "该路径可以表示刹车后停止并回到 Idle，但模型没有定义其他状态收到 Stop 时的行为；若规格中的 stopping 是通用用户动作，则从 Accelerating/Cruising 停止时应有相应转换。至少当前模型不能完整表达“根据加速、刹车或停止”在 Operate 子状态间转换。",
+          "where": "BrakeRegion --> IdleRegion : Stop"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0032",
+    "ledger_assessments": [
+      {
+        "ledger_id": "DIFF-0032-03",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格无输出。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "唯一输出只主张根入口到OperateState不可达，未指称Accelerating or Cruising被拆成两个状态，也未指称Reach Speed是未规定的额外触发。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出只主张AcceleratingState没有可达初始路径，性质是不可达/缺少入口，不是状态数量拆分或额外触发问题。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "issue_1提到状态被拆成AcceleratingState和CruisingState及Reach Speed边，但实际缺陷主张是区域级转换目标和连续状态关系不清，并以AcceleratingState无进出转换为后果；没有把NL单一状态被拆分或Reach Speed为额外触发作为该输出的明确缺陷性质。",
+          "confidence": "medium"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "issue_2主张AcceleratingState到CruisingState的转换不完整，属于阶段间迁移缺失/语义不一致，不是把一个NL点名状态拆成两个或额外引入Reach Speed的数量/记法问题。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "issue_1主张三个区域的组织方式和初始状态缺失，issue_2主张Idle到加速子态的进入缺失；没有主张Accelerating or Cruising这一NL名称被错误拆分或Reach Speed为未规定触发。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0032-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格无输出。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出指称OperateState本身从根入口不可达，台账指称Operate内部三个复合态的默认入口及AcceleratingState的入边，位置不同。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:OperateState.AccelerateRegion"
+          ],
+          "reason": "输出定位AccelerateRegion/AcceleratingState，并主张加速子态没有可达的初始运行路径；这直接对应AcceleratingState无入边、无法占据的台账主张。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "issue_1明确说AcceleratingState没有任何进入转换，并定位在AccelerateRegion；这覆盖台账中该状态全模型无入边的部分。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "issue_2只说AcceleratingState到CruisingState的转换不明确，未说AcceleratingState自身没有入口；issue_1、3、4也分别涉及上电、回转加速或Brake到Idle的其他问题。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1",
+            "baseline_issue_2"
+          ],
+          "reason": "issue_1明确指出三个复合区域没有显式初始伪状态，覆盖IdleRegion、AccelerateRegion、BrakeRegion的默认入口缺失；issue_2进一步指出进入AccelerateRegion后没有指向AcceleratingState的初始或动作转换，覆盖AcceleratingState不可进入的部分。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:51282eb6997248db",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出指称根入口到OperateState不可达，位置是OperateState及根到Operate的启动迁移；两个台账条目都指向Operate内部的AccelerateRegion/AcceleratingState或三个复合态的默认入口，不是同一处。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:OperateState.AccelerateRegion",
+        "matched_ledger_ids": [
+          "EIS-0032-01"
+        ],
+        "false_positive": false,
+        "reason": "输出明确指向OperateState内的AccelerateRegion及其AcceleratingState，并主张该加速子态没有可达的初始运行路径；这与台账中AcceleratingState全模型无入边、无法占据的缺失可达入口性质相同。它没有主张将一个NL状态拆成两个或额外触发，因此不命中DIFF条目。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0032-01"
+        ],
+        "false_positive": false,
+        "reason": "输出明确主张AcceleratingState没有任何进入转换，并定位到AccelerateRegion及其Reach Speed边；这直接覆盖台账中AcceleratingState没有任何入边的部分。虽然同时提到拆分和区域级目标不一致，但其主张并未明确把状态拆分本身作为数量/记法缺陷，故不覆盖DIFF条目。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出指称Braking到其他运动状态的转换缺失，位置和性质是Braking相关迁移覆盖不足；台账只涉及复合态默认入口和AcceleratingState入边，以及Accelerating or Cruising的拆分，非同一迁移。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出指称Stop事件在Idle及加速/巡航状态上的处理缺失，属于Stop迁移覆盖不足；不对应两个台账条目的位置或缺陷性质。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出指称上电事件未被单独建模，位置是OffState到OperateState的start迁移；台账问题发生在Operate内部状态组织和默认入口，不是上电事件记法或启动迁移。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出指称AcceleratingState到CruisingState的明确转换缺失或语义不一致，性质是阶段间迁移定义不足；台账EIS条目要求AcceleratingState的进入/默认入口，DIFF条目要求状态拆分和未规定触发本身作为问题，均未被该单一主张完整覆盖。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出指称Cruising到Accelerating的回转迁移缺失，位置是区域内部阶段转换，性质是额外动作路径缺失；不对应台账的默认入口、AcceleratingState零入边或状态拆分数量问题。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出指称BrakeRegion到IdleRegion的Stop边是区域级而非具体状态级，属于迁移层级/表达明确性问题；不是三个复合态缺少默认入口，也不是AcceleratingState无入边。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0032-01"
+        ],
+        "false_positive": false,
+        "reason": "输出明确定位IdleRegion、AccelerateRegion、BrakeRegion及其子状态，并主张这些区域没有显式初始伪状态，进入后实际活动状态未定义；这与台账关于三个复合态均缺默认入口的主张同处同性质。输出还提到区域组织方式，但该附带主张不改变对EIS条目的覆盖。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0032-01"
+        ],
+        "false_positive": false,
+        "reason": "输出定位IdleRegion进入AccelerateRegion后没有指向AcceleratingState的初始或动作转换，并主张实际Accelerating状态无法表示；这覆盖台账中AcceleratingState没有任何入边、无法占据的缺失可达性主张。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "输出指称Stop从加速/巡航等状态的通用处理缺失，属于Stop迁移覆盖范围问题；不对应台账的默认入口或状态拆分主张。",
+        "confidence": null
+      }
+    ],
+    "pair_reason": "仅将输出主张与冻结条目的指认位置和缺陷性质分别对齐；没有把关于不同性质的状态拆分、转换语义不清或其他缺失拼接成同一命中。DIFF-0032-03要求的是把一个被点名状态拆成两个并额外引入未规定触发；没有输出完整而明确地以该数量/记法问题为缺陷主张，因此六格均不命中。EIS-0032-01要求复合态缺少默认入口，或AcceleratingState没有入边；method_run3、baseline_run1、baseline_run3的相关输出分别明确指向AcceleratingState无可达入口或三个区域无初始状态，构成命中。baseline_run3的issue_2也明确指出进入AccelerateRegion后没有指向AcceleratingState的初始或动作转换，覆盖该条关于加速子态不可进入的主张。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

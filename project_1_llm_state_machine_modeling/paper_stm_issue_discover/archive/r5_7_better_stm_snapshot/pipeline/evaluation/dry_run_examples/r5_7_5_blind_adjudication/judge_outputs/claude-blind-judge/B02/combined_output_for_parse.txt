@@ -1,0 +1,75 @@
+
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B02",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "claude-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "unknown",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes discrete event-triggered transitions (doors closed, arrival, obstacle detection, cruising/approaching thresholds) with no continuous-time/timed-automata semantics and no periodic tick/timer cue requiring counter abstraction. This is a T0 protocol case, not T0.5 or T1.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "candidate_parse_status is parse_ok per mechanical_checks; candidate STM_k is structurally well-formed fcstm with declared states, events, and effect blocks, so it clears the minimal auditability bar. Parse success alone is not treated as semantic evidence.",
+      "evidence_references": ["candidate STM_k"]
+    },
+    "G2": {
+      "status": "partial",
+      "reason": "Provenance facts (change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, candidate_same_as_canonical_stm0=false) allow attribution of the diff to canonical->candidate. However, the actual changes are: (a) renaming event identifiers (e.g. Closed_SendDeparted -> Closed) while preserving the same 'named' NL display strings, and (b) adding five new int variables (effect_token_1..5) set to 1 inside effect blocks on every transition. Neither change is clearly attributable to a repair of any NL-supported semantic gap; it reads as opaque instrumentation layered on top of the same topology.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "All states (DoorsClosing, InMotion with Accelerating/Cruising/Approaching, Stopping, EmergencyStopping), the pseudo-states, the hierarchy, and every transition present in canonical STM_0 are preserved in candidate STM_k. No state, transition, or hierarchy level is deleted. Event 'named' display labels matching the NL signal text are retained.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "unknown",
+      "reason": "Candidate adds effect blocks (effect_token_1=1 ... effect_token_5=1) on each of the five transitions that had an associated NL action/signal (SendDeparted, Stop/Send Arrived, Obstacle Detected send, Cruise, Decelerate). This could represent an attempt to formalize the 'action/effect' half of composite event/action labels that raw/canonical STM_0 folds into event names. However, effect_token_* are opaque counters with no semantic name, comment, or trace map linking them to the specific NL actions (e.g. 'SendDeparted', 'Stop, Send Arrived', 'Cruise', 'Decelerate', 'Obstacle Detected'). Per convention this cannot be counted as a strict or partial action/effect improvement, nor can it be ruled out as a legitimate (if immature) instrumentation step, since no NL-supported behavior is deleted and the transition topology is unchanged.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "unknown",
+      "reason": "Comparing NL to canonical and candidate: the state/entry/do actions explicitly called out in NL (e.g. entry/Accelerate for Accelerating, do/Send for Approaching, entry/Emergency Stop and do/Send Obstacle Detected for EmergencyStopping) are absent in both canonical and candidate equally, so this is a pre-existing gap, not a candidate-introduced regression. The only candidate-specific delta (opaque effect_token_* variables plus internal event-id renaming, with NL-facing 'named' labels unchanged) does not demonstrably improve or degrade NL-traceable semantics; it is uninterpretable instrumentation rather than a clear gain or a clear regression.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "No hidden answer key, expected verdict, source case id, or case-specific semantic/target-closure summary was observed in the packet; only mechanical/provenance facts and the raw artifacts were provided, consistent with blind protocol. Confidence is low given the ambiguous nature of the opaque effect_token additions, so unknown is reported rather than a forced better/not_better call, and human escalation is recommended to inspect whether effect_token_* mapping intent exists outside this blind packet.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": [
+    "NL items 1-10",
+    "raw_stm0.plantuml entry/do action annotations",
+    "canonical_stm0.fcstm transition and event declarations",
+    "candidate_stmk.fcstm effect_token_1..5 declarations and effect blocks",
+    "provenance_checks block in input_packet.json"
+  ],
+  "rationale": "Candidate STM_k preserves the full state/transition/hierarchy topology of canonical STM_0 and keeps NL-facing 'named' display labels intact, so there is no G3 regression. The only substantive change is renaming internal event identifiers and attaching effect blocks that set five newly declared opaque int variables (effect_token_1..5) to 1 on each transition. These variables have no semantic naming, comments, or trace map connecting them to the specific NL-described actions/signals (SendDeparted, Stop/SendArrived, Obstacle Detected, Cruise, Decelerate), so per the anti-gaming convention for unnamed instrumentation this cannot be scored as a strict or partial action/effect improvement, but it also does not delete any NL-supported behavior, state, or transition. Given the lack of state/hierarchy deletion but also the lack of a clearly attributable, NL-traceable semantic gain, the case falls into genuine evidentiary uncertainty rather than a clean better/not_better call, so 'unknown' is the appropriate fail-closed verdict.",
+  "observed_anti_gaming_risk_flags": [
+    "opaque_instrumentation_variables_effect_token_no_trace_map",
+    "event_identifier_renaming_without_semantic_gain"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "This output does not certify headline Better STM status.",
+    "This output is not a real_repair_run result."
+  ],
+  "confidence": "low",
+  "human_escalation_required": true,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "No hidden answer key, expected verdict, source case id/slug, semantic_evidence_status, target_closure_expected, or construction-intent labels were present in the packet; only mechanical/provenance facts (parse status, hash/ledger completeness, byte-identity flag) and the raw NL/STM artifacts were supplied, consistent with blind protocol."
+  }
+}
+```

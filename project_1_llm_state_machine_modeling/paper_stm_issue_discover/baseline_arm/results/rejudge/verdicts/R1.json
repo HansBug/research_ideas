@@ -1,0 +1,34 @@
+{
+  "judged_by": "R1",
+  "positions": {
+    "EIS-0049-01|run1/0049-gpt": {
+      "hit": false,
+      "argument": "台账说的是作者源把 dist_to_exit<2 接到了 FinishState（lane_change --> FinishState : dist_to_exit<2 与 cruise --> FinishState : dist_to_exit<2），与 NL 第 6 句「只有 auto_finished=true 才进 FinishState」冲突。本格 10 条已发布 issue（ISSUE-REQ-028/030/034/036/037/038/039/058/059/063）全部是「某某条件未作为独立事件声明」，对象是 pedestrian_detected、dist_to_rear<5&vel>30、front_inactive、rear_inactive、pedestrian_inactive、dist_to_front<25/<15/<10、extra_lane=true，无一触及 dist_to_exit<2 与 FinishState 的触发指派。断言表里为 False 的 AST-REQ-028-1/029-0/030-1/031-0/032-0/033-0/034-1/036-1/037-1/038-1/039-1/058-1/059-1/063-1 也全是 event_declared 族的事件缺失，同样不触及。反向证据更明确：AST-REQ-011-1 `occupancy_after:lane_change:dist_to_exit_2:FinishState:1` 与 AST-REQ-013-1 `occupancy_after:cruise:dist_to_exit_2:FinishState:1` 结果均为 True，即本格把这条被台账认定为错误的边当作正确行为验证通过；按 §3.1 结果为 True 的断言不承载命中。"
+    },
+    "EIS-0049-02|run3/0049-claude": {
+      "hit": false,
+      "argument": "台账说的是 FinishState 被绑进 HighwayMode 造成的层次归属缺陷——UrbanMode 的 auto_finished 反而路由进 HighwayMode.FinishState。本格 10 条已发布 issue（ISSUE-EVT-DIST-FRONT-25 / EXTRA-LANE / DIST-FRONT-15 / PEDESTRIAN / REAR-VEL / FRONT-15-HWY / FRONT-10-URB / FRONT-INACTIVE / REAR-INACTIVE / PED-INACTIVE）全部是融合事件未拆成独立事件声明，无一涉及 FinishState 的归属层级。断言表里为 False 的十条（AST-REQ-DIST-FRONT-15-1、AST-REQ-DIST-FRONT-25-1、AST-REQ-EVT-FRONT-10-URB-1、AST-REQ-EVT-FRONT-15-HWY-1、AST-REQ-EVT-FRONT-INACTIVE-1、AST-REQ-EVT-PED-INACTIVE-1、AST-REQ-EVT-PEDESTRIAN-1、AST-REQ-EVT-REAR-INACTIVE-1、AST-REQ-EVT-REAR-VEL-1、AST-REQ-EXTRA-LANE-1）清一色是 event_declared 族，同样与 FinishState 无关。唯一沾到 UrbanMode 完成语义的 AST-REQ-010-1 `event_consumed:straight:auto_finished_true` 结果为 True，按 §3.1 不承载命中。"
+    },
+    "EIS-0049-03|run3/0049-gpt": {
+      "hit": false,
+      "argument": "台账 EIS-0049-03 的命题是「过度规定」：模型多写了三条子态级完成边（NL/参考只授权模式级两条），且 cruise 上出现同源同目标的重复关系。本格 issue [1] ISSUE-UrbanMode-FinishState-missing 及其 AST-REQ-058-1（`state_declared:UrbanFinish:any` = False）说的是相反方向的命题——UrbanMode 下**缺**一个 FinishState 状态；断言表里其余为 False 的 AST-REQ-060-0/060-1、061-0/061-1、062-0/062-1、063-0/063-1、064-0/064-1 也全是「未声明 UrbanMode.FinishState」「auto_finished=true 后未到达 UrbanMode.FinishState」这一类缺失/不可达命题。缺一个状态与多三条冗余边既非同一处编辑，也不互相蕴含：补上 UrbanMode.FinishState 之后三条子态级冗余边依然存在。其余 10 条 issue（ISSUE-pedestrian_detected-missing 等）均为独立事件声明缺失，与本条无关。"
+    },
+    "EIS-0007-01|run1/0007-gpt": {
+      "hit": false,
+      "argument": "台账 EIS-0007-01 的命题是可达性缺陷：顶层唯一初始迁移 `[*] --> InitialState` 落在一个只有入边、没有出边的空叶状态上，整机永久停在该状态，CollisionDetection 与 CollisionAvoidance 均不可达。本格唯一已发布 issue ISSUE-REQ001-root-region-count 及其 AST-REQ-001-1（`cardinality:llms_emp_feedback_final_0007:3` = False）说的只是「根层级有四个非伪子状态而不是恰好三个」，是一个纯计数命题，全文未提默认入口落点、未提 InitialState 缺出边、未提任何不可达。它严格弱于台账命题：给 InitialState 补一条出边后台账缺陷消失而计数仍为四，故不构成蕴含，属 §2.2「更弱的命题」与「不同缺陷共用状态名」。同格 AST-REQ-001A-1 `initial_target:any_direct_child` 结果为 True，反而没把入口落点当成问题；AST-REQ-005-1/005-2、006-1/006-2、007-1/007-2 虽为 False，但其命题是「从 FrontendCollision/RearendCollision/PedestrianCollision 发出 Collision_Mode_Active 后未进入 CollisionAvoidance」，起点已假定处在 CollisionDetection 内部，与「卡在 InitialState 进不去检测流程」不是同一命题，且该格自述其失败证据触及 route_control:R45RouteToken 的编译 lowering，按纪律 1 不得当作作者源缺陷。"
+    },
+    "EIS-0007-02|run2/0007-claude": {
+      "hit": false,
+      "argument": "台账 EIS-0007-02 的命题锚在 CollisionAvoidance 内部三条初始迁移语句（`[*] --> AutomaticBraking : Start Braking`、`[*] --> SteeringControl : Steering Engaged`、`[*] --> AlertSystem : Alerts Activated`）各自带了模型中无人产生的触发事件，导致进入 CollisionAvoidance 后三个区的控制都不被激活。本格 issue [2] ISSUE-ACTIVATION-TRIGGERS 及其 AST-REQ-006-1/007-1/008-1（`event_consumed:CollisionAvoidance:Frontend_Detected|Rear_end_Detected|Pedestrian_Detected` 均为 False）说的是**进入** CollisionAvoidance 的外部转移未以三个检测事件为条件，锚点是另一条语句 `CollisionDetection -down-> CollisionAvoidance : Collision Mode Active`；issue [1] ISSUE-ROOT-REGIONS 及 AST-REQ-001-1、AST-REQ-002-1 则是根层多出 InitialState 的问题。两者与「区内初始迁移带触发」既非同一条作者编辑，也不互相蕴含：把入口边绑上检测事件之后，三条带触发的初始迁移仍原样存在、控制仍不被激活。"
+    },
+    "EIS-0007-02|run3/0007-gpt": {
+      "hit": false,
+      "argument": "台账 EIS-0007-02 说的是 CollisionAvoidance 内三条初始迁移各带无人产生的触发事件。本格 issue [1] ISSUE-REQ-001-CollisionAvoidance-region-count 及 AST-REQ-001-1（`cardinality:...CollisionAvoidance:3` = False）说的是该作用域下的直接非伪子状态是 AutomaticBraking/BrakingComplete/SteeringControl/SteeringComplete/AlertSystem/AlertComplete 六个而非三个区，即区结构的计数/表示问题，与初始迁移是否带触发互不蕴含（区数改成三个后初始迁移仍可带触发，反之亦然）。issue [2][3][4]（ISSUE-REQ-005/006/007-*-activation-missing，对应 AST-REQ-005-1/006-1/007-1 为 False）说的是从 CollisionDetection 收到检测事件后未在 3 周期内占用 CollisionAvoidance，是「进不去」，而台账说的是「进去了内部也不激活」，方向不同且不构成蕴含。三条 supporting 断言 AST-REQ-005-2/006-2/007-2 均为 True，按 §3.1 不承载命中。"
+    },
+    "EIS-0030-02|run1/0030-gpt": {
+      "hit": false,
+      "argument": "台账 EIS-0030-02 的命题是断电义务只覆盖一半作用域：作者源只有 `HumanDriving --> [*] : Power Off`，缺 Autonomous 侧的 power off 终止边，故自动驾驶激活期间无法断电。本格 6 条已发布 issue（ISSUE-front_distance_missing、ISSUE-auto_final_joint_edge_missing、ISSUE-human_steering_cmd_missing、ISSUE-brake_pressed_missing、ISSUE-auto_final_state_missing、ISSUE-auto_final_containment_missing）分别关于 front_distance 变量、auto final 状态与其包含关系、human steering cmd / brake pressed 的独立与联合事件声明，无一涉及 Power Off 的作用域。断言表里为 False 的 AST-REQ-007-1、010-1、010-2、010-4、011-1、012-1、013-1、013B-1、013B-2 同样全部落在上述对象上。唯一与断电有关的 AST-REQ-014-1 `terminates:HumanDriving:Power_Off` 结果为 True——它只检查了 HumanDriving 一侧且判为通过，按 §3.1 不承载命中，且恰恰说明本格没有去问 Autonomous 侧是否也能断电。"
+    }
+  },
+  "note": "本组 7 位全部判 false。三份材料的共同现象是：被审格的产出高度集中在「独立事件/变量/状态未声明」这一类结构性声明义务上，而三条台账记录分别属于触发指派错误（0049-01）、层次归属错误（0049-02）、冗余过度规定（0049-03）、初始入口不可达（0007-01）、区内初始迁移带触发（0007-02）与义务作用域缺一半（0030-02），均不在该类命题覆盖面内。多处出现「触及同一元素但结论方向相反或严格更弱」的情形（如 0049-01 把错误边验证为 True、0049-03 报缺失而台账记冗余、0007-01 报计数而台账记不可达），按 §2.2 与 §四反自利纪律一律不计命中。"
+}

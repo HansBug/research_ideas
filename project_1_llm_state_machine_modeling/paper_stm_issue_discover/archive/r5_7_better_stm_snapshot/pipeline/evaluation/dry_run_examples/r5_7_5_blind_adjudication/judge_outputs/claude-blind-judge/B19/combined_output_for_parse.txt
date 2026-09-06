@@ -1,0 +1,41 @@
+
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B19",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "claude-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {"status": "pass", "reason": "NL describes discrete event-driven transitions (brake signal received, signal transmission fails, clamping, feedback sent) with no timing/duration or timer-cue semantics. This is a plain T0 protocol case.", "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]},
+    "G1": {"status": "pass", "reason": "candidate_stmk.fcstm is present and mechanical_checks report parse_ok; structure is readable and auditable, though parse success alone is not semantic evidence.", "evidence_references": ["candidate STM_k"]},
+    "G2": {"status": "pass", "reason": "The difference between canonical and candidate is directly attributable: candidate removed the event declaration 'Signal_Transmission_Fails' and the transition 'InitialState -> OperationalState : Signal_Transmission_Fails' that existed in canonical STM_0. This is not a normalization/formatting change but a structural deletion.", "evidence_references": ["canonical STM_0", "candidate STM_k"]},
+    "G3": {"status": "fail", "reason": "NL line 2 explicitly states: 'If the signal transmission fails, it proceeds to the operational state.' Canonical STM_0 encodes this via InitialState -> OperationalState : Signal_Transmission_Fails, matching raw STM_0's 'InitialState --> OperationalState : Signal Transmission Fails'. Candidate STM_k deletes both the Signal_Transmission_Fails event declaration and this transition entirely, removing an NL-supported guard/transition. As a consequence OperationalState becomes unreachable in the candidate (no incoming transition remains), even though OperationalState -> InitialState : Signal_Feedback_Sent is retained as an orphaned, unreachable transition. This is a clear regression against NL-supported behavior and structural connectivity.", "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]},
+    "G4": {"status": "fail", "reason": "No target-relevant improvement is observed. The candidate does not add, refine, or clarify any guard/action/effect beyond canonical; it only removes an existing NL-supported transition/event, which is a net loss rather than an improvement.", "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]},
+    "G5": {"status": "fail", "reason": "Comparing NL, raw STM_0, canonical STM_0, and candidate STM_k together: the candidate breaks semantic fidelity by omitting the 'signal transmission fails -> operational state' branch that is explicitly required by the NL and present in both raw and canonical STM_0. This also leaves OperationalState unreachable, which is a structural/hierarchical regression, not merely a stylistic difference.", "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]},
+    "G6": {"status": "pass", "reason": "No leakage detected in the input packet; all fields are consistent with observable mechanical/provenance facts. Eligibility flags fixed per protocol (headline_eligible=false, repair_effectiveness_eligible=false, real_repair_run_id=null). Verdict is not_better due to G3/G4/G5 regression from deleting an NL-supported transition and event, rendering OperationalState unreachable.", "evidence_references": ["this JSON output"]}
+  },
+  "evidence_references": [
+    "NL line 2: 'If the signal transmission fails, it proceeds to the operational state.'",
+    "raw STM_0: 'InitialState --> OperationalState : Signal Transmission Fails'",
+    "canonical STM_0: event Signal_Transmission_Fails and transition 'InitialState -> OperationalState : Signal_Transmission_Fails;'",
+    "candidate STM_k: absence of Signal_Transmission_Fails event and absence of InitialState -> OperationalState transition",
+    "candidate STM_k: retained but now unreachable 'OperationalState -> InitialState : Signal_Feedback_Sent;'"
+  ],
+  "rationale": "The only substantive difference between canonical STM_0 and candidate STM_k is the removal of the Signal_Transmission_Fails event and the corresponding InitialState -> OperationalState transition. This transition is explicitly required by NL line 2 and is present in both the raw PlantUML STM_0 and the canonical fcstm. Its removal in candidate STM_k deletes NL-supported behavior and renders OperationalState structurally unreachable (only an outgoing, now-orphaned transition from OperationalState remains). No other part of the STM was changed to compensate for or justify this deletion, and no new target-relevant improvement is introduced. Per the fail-closed no-regression rule (G3), deletion of an NL-supported transition/state connectivity path must be treated as a regression regardless of any superficial cleanliness of the remaining diagram. Therefore candidate STM_k is not_better than canonical STM_0.",
+  "observed_anti_gaming_risk_flags": [
+    "semantic_deletion: NL-supported transition and its triggering event were removed without any compensating repair",
+    "trace_loss: OperationalState becomes unreachable, losing the branch trace for the 'signal transmission fails' scenario",
+    "under_repair: candidate reduces model coverage rather than fixing or refining any defect"
+  ],
+  "forbidden_claims": ["This blind dry-run is not repair effectiveness evidence."],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {"detected": false, "notes": "Packet contains only NL, raw/canonical/candidate STM content, and low-level mechanical/provenance facts (parse status, hash presence, sameness flag). No source case id, expected verdict, target closure summary, or construction intent label is present."}
+}
+```

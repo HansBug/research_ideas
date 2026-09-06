@@ -11,6 +11,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import httpx
+import pytest
 from langchain_core.callbacks import BaseCallbackHandler, CallbackManager
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, SystemMessage
@@ -859,6 +861,72 @@ def test_structured_output_keeps_official_tool_strategy_after_model_copy(monkeyp
     assert result.status == "success", result.error
     assert result.to_dict()["output"] == {"value": "ok"}
     assert len(captured) == 1 and isinstance(captured[0], ToolStrategy)
+    assert callable(captured[0].handle_errors)
+
+
+def test_structured_output_repair_feedback_localizes_exact_shape_errors() -> None:
+    from typing import Literal
+
+    from langchain.agents.structured_output import StructuredOutputValidationError
+    from pydantic import ValidationError
+
+    from utils.agent import runtime
+
+    class FirstDecision(BaseModel):
+        expected_id: Literal["E0001"]
+
+    class SecondDecision(BaseModel):
+        expected_id: Literal["E0002"]
+
+    class ExactBatch(BaseModel):
+        model_config = {"extra": "forbid"}
+
+        item0: tuple[FirstDecision, SecondDecision]
+
+    try:
+        ExactBatch.model_validate(
+            {
+                "item0": [{"expected_id": "E0001"}],
+                "item1": {"expected_id": "E0002"},
+            }
+        )
+    except ValidationError as source:
+        shape_error = StructuredOutputValidationError(
+            "ExactBatch",
+            source,
+            AIMessage(content=""),
+        )
+    else:  # pragma: no cover - the fixture must remain invalid
+        raise AssertionError("shape fixture unexpectedly validated")
+
+    shape_message = runtime._structured_output_repair_message(shape_error)
+    assert "ADD the required value at `item0[1]`" in shape_message
+    assert "inside its exact existing parent" in shape_message
+    assert "DELETE `item1` completely" in shape_message
+    assert "do not create another top-level item" in shape_message
+
+    try:
+        ExactBatch.model_validate(
+            {
+                "item0": [
+                    {"expected_id": "E0001"},
+                    {"expected_id": "E0001"},
+                ]
+            }
+        )
+    except ValidationError as source:
+        literal_error = StructuredOutputValidationError(
+            "ExactBatch",
+            source,
+            AIMessage(content=""),
+        )
+    else:  # pragma: no cover - the fixture must remain invalid
+        raise AssertionError("literal fixture unexpectedly validated")
+
+    literal_message = runtime._structured_output_repair_message(literal_error)
+    assert "REPLACE `item0[1].expected_id`" in literal_message
+    assert "'E0002'" in literal_message
+    assert "character-for-character" in literal_message
 
 
 def test_cancellation_closes_started_model_with_runtime_fallback() -> None:
@@ -944,6 +1012,250 @@ def test_provider_error_is_rendered_immediately_after_input(monkeypatch: Any) ->
     assert failed.data["timing_source"] == "provider_callback"
     assert "MODEL OUTPUT | FAILED" in writer.snapshot()
     assert result.status == "failed"
+    assert not any(event.kind == "transport_retry_scheduled" for event in events)
+
+
+@pytest.mark.parametrize("http_status", [None, 520])
+def test_retryable_stream_failure_replays_request_without_repeating_tool(
+    monkeypatch: Any,
+    tmp_path: Path,
+    http_status: int | None,
+) -> None:
+    import utils.agent.runtime as runtime
+
+    monkeypatch.setattr(runtime, "_TRANSPORT_RETRY_DELAYS", (0.0, 0.0))
+    writer = _ProbeWriter()
+    _patch_terminal_console(monkeypatch, writer)
+    tool_calls: list[str] = []
+    model_calls = {"count": 0}
+
+    def observe(value: str) -> dict[str, str]:
+        """Return one deterministic observation."""
+
+        tool_calls.append(value)
+        return {"value": value}
+
+    class RetryOnceModel(ChatOpenAI):
+        def __init__(self) -> None:
+            super().__init__(
+                model="gpt-4o-mini",
+                api_key="sk-test-not-real",
+                streaming=True,
+            )
+
+        async def _astream(
+            self,
+            messages: list[Any],
+            stop: list[str] | None = None,
+            **kwargs: Any,
+        ):
+            model_calls["count"] += 1
+            if model_calls["count"] == 1:
+                if http_status is not None:
+                    from openai import InternalServerError
+
+                    raise InternalServerError("origin returned an invalid response",
+                        response=httpx.Response(http_status, request=httpx.Request("POST", "https://provider.invalid")),
+                        body={"retry_after": 0})
+                yield ChatGenerationChunk(
+                    message=AIMessageChunk(content="discarded partial response")
+                )
+                raise httpx.RemoteProtocolError("incomplete chunked read")
+            if model_calls["count"] == 2:
+                yield ChatGenerationChunk(
+                    message=AIMessageChunk(
+                        content="",
+                        tool_call_chunks=[
+                            {
+                                "name": "observe",
+                                "args": '{"value":"evidence"}',
+                                "id": "observe-once",
+                                "index": 0,
+                            }
+                        ],
+                    )
+                )
+                return
+            yield ChatGenerationChunk(
+                message=AIMessageChunk(content="completed after transport recovery")
+            )
+
+    model = RetryOnceModel()
+    audit = tmp_path / "transport-retry.jsonl"
+    events: list[AgentEvent] = []
+    result = AgentApp._for_test(
+        AgentSpec(
+            name="transport-retry",
+            system_prompt="Use observe once, then answer.",
+            tools=(observe,),
+        ),
+        LLMConfig(model="gpt-4o-mini"),
+        model,
+    ).run(
+        "run",
+        renderer="rich",
+        on_event=events.append,
+        audit_out=audit,
+    )
+
+    assert result.status == "success", result.error
+    assert model_calls["count"] == 3
+    assert tool_calls == ["evidence"]
+    assert result.final_text == "completed after transport recovery"
+    assert "discarded partial response" not in result.final_text
+    assert result.model_calls_used == 3
+    assert [item["status"] for item in result.usage] == [
+        "failed",
+        "completed",
+        "completed",
+    ]
+    retries = [
+        event for event in events if event.kind == "transport_retry_scheduled"
+    ]
+    recovered = [
+        event for event in events if event.kind == "transport_retry_recovered"
+    ]
+    assert len(retries) == len(recovered) == 1
+    assert retries[0].data["attempt_no"] == 1
+    assert retries[0].data["next_attempt_no"] == 2
+    assert retries[0].data["partial_response_observed"] is (http_status is None)
+    assert recovered[0].data["attempt_no"] == 2
+    assert retries[0].data["turn"] == recovered[0].data["turn"] == 1
+    assert (
+        retries[0].data["request_fingerprint"]
+        == recovered[0].data["request_fingerprint"]
+    )
+    records = [
+        json.loads(line)
+        for line in audit.read_text(encoding="utf-8").splitlines()
+    ]
+    retry_records = [
+        item for item in records if item.get("record") == "transport_retry"
+    ]
+    assert [item["operation"] for item in retry_records] == [
+        "scheduled",
+        "recovered",
+    ]
+    completed_tools = [
+        item
+        for item in records
+        if item.get("record") == "action"
+        and item.get("name") == "observe"
+        and item.get("status") == "completed"
+    ]
+    assert len(completed_tools) == 1
+    rendered = writer.snapshot()
+    assert "MODEL TRANSPORT | RETRY SCHEDULED" in rendered
+    assert "MODEL TRANSPORT | RECOVERED" in rendered
+
+
+def test_empty_responses_stream_is_replayed_as_transport_failure(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    import utils.agent.runtime as runtime
+
+    monkeypatch.setattr(runtime, "_TRANSPORT_RETRY_DELAYS", (0.0,))
+    calls = {"count": 0}
+
+    class EmptyThenGoodModel(ChatOpenAI):
+        def __init__(self) -> None:
+            super().__init__(
+                model="gpt-4o-mini",
+                api_key="sk-test-not-real",
+                streaming=True,
+            )
+
+        async def _astream(self, messages: list[Any], stop=None, **kwargs: Any):
+            calls["count"] += 1
+            if calls["count"] == 1:
+                if False:
+                    yield ChatGenerationChunk(message=AIMessageChunk(content=""))
+                return
+            yield ChatGenerationChunk(message=AIMessageChunk(content="recovered"))
+
+    audit = tmp_path / "empty-stream-retry.jsonl"
+    result = AgentApp._for_test(
+        AgentSpec(name="empty-stream-retry", system_prompt="Answer."),
+        LLMConfig(model="gpt-4o-mini"),
+        EmptyThenGoodModel(),
+    ).run("run", renderer="quiet", audit_out=audit)
+
+    assert result.status == "success", result.error
+    assert calls["count"] == 2
+    assert result.final_text == "recovered"
+    assert any(
+        event.get("record") == "transport_retry"
+        and event.get("operation") == "scheduled"
+        for event in (json.loads(line) for line in audit.read_text().splitlines())
+    )
+
+
+def test_retryable_stream_failure_stops_after_two_replays(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    import utils.agent.runtime as runtime
+
+    monkeypatch.setattr(runtime, "_TRANSPORT_RETRY_DELAYS", (0.0, 0.0))
+    model_calls = {"count": 0}
+
+    class AlwaysFailingModel(ChatOpenAI):
+        def __init__(self) -> None:
+            super().__init__(
+                model="gpt-4o-mini",
+                api_key="sk-test-not-real",
+                streaming=True,
+            )
+
+        async def _astream(
+            self,
+            messages: list[Any],
+            stop: list[str] | None = None,
+            **kwargs: Any,
+        ):
+            model_calls["count"] += 1
+            yield ChatGenerationChunk(message=AIMessageChunk(content="partial"))
+            raise httpx.RemoteProtocolError("incomplete chunked read")
+
+    model = AlwaysFailingModel()
+    events: list[AgentEvent] = []
+    audit = tmp_path / "transport-retry-exhausted.jsonl"
+    result = AgentApp._for_test(
+        AgentSpec(name="transport-retry-exhausted", system_prompt="Answer."),
+        LLMConfig(model="gpt-4o-mini"),
+        model,
+    ).run(
+        "run",
+        renderer="quiet",
+        on_event=events.append,
+        audit_out=audit,
+    )
+
+    assert result.status == "failed"
+    assert result.error and result.error["code"] == "provider_error"
+    assert model_calls["count"] == 3
+    assert result.model_calls_used == 3
+    assert len(
+        [event for event in events if event.kind == "transport_retry_scheduled"]
+    ) == 2
+    exhausted = [
+        event for event in events if event.kind == "transport_retry_exhausted"
+    ]
+    assert len(exhausted) == 1
+    assert exhausted[0].data["attempt_no"] == 3
+    records = [
+        json.loads(line)
+        for line in audit.read_text(encoding="utf-8").splitlines()
+    ]
+    retry_records = [
+        item for item in records if item.get("record") == "transport_retry"
+    ]
+    assert [item["operation"] for item in retry_records] == [
+        "scheduled",
+        "scheduled",
+        "exhausted",
+    ]
 
 
 def test_tool_error_is_rendered_after_request_without_fake_result(monkeypatch: Any, tmp_path: Path) -> None:

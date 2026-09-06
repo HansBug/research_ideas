@@ -1,0 +1,96 @@
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B01",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "claude-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "partial",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes discrete event-driven transitions (door closing, motion phases, obstacle detection) with no seconds/ms duration semantics and no periodic timer/tick cues; this is an ordinary T0 discrete-event case, not T0.5 or T1.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "candidate_parse_status=parse_ok, candidate file present and structurally well-formed with states, events, transitions, and effect blocks; minimally auditable.",
+      "evidence_references": [
+        "candidate STM_k",
+        "mechanical_checks"
+      ]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "Provenance facts show change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, and candidate_same_as_canonical_stm0=false, so the delta is attributable to a canonical->candidate change rather than pure format conversion.",
+      "evidence_references": [
+        "provenance_checks",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "All states (DoorsClosing, InMotion with Accelerating/Cruising/Approaching, Stopping, EmergencyStopping), transitions, and hierarchy present in canonical STM_0 are preserved unchanged in candidate STM_k; no states, transitions, or hierarchy levels were deleted.",
+      "evidence_references": [
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G4": {
+      "status": "partial",
+      "reason": "Candidate splits compound event/action labels on the six top-level and InMotion-internal transitions (e.g. 'Closed/SendDeparted' -> event 'Closed' + effect send_departed=1; 'Reached Cruising/Cruise' -> event + cruise_command=1) into explicit event+effect syntax, which is an NL-supported extraction of embedded action semantics that canonical had folded into event display labels alone. This is a genuine local improvement for the transition-label action family. However, NL points 3, 8, and 9 explicitly describe state-entry/state-do actions (entry/Accelerate on Accelerating, do/Send on Approaching, entry/Emergency Stop and do/Send Obstacle Detected on EmergencyStopping) that were already absent from canonical STM_0 and remain absent from candidate STM_k -- the same broader 'action semantics folded/lost' family is only partially closed.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G5": {
+      "status": "partial",
+      "reason": "Semantically, the transition-side action extraction (event Closed + effect send_departed=1, etc.) preserves NL-traceable meaning since the flag names (send_departed, stopped, send_arrived, emergency_stop, obstacle_signal_sent, cruise_command, decelerate_command) are readably derived from the NL/canonical event labels themselves, so this is not opaque effect_token_*-style instrumentation. No transitions, states, or hierarchy were dropped, so there is no structural regression. But the candidate does not restore or represent the NL-mandated state-entry/state-do actions (Accelerate entry action, Send do-action in Approaching, Emergency Stop entry action, Send Obstacle Detected do-action) that canonical had already lost relative to raw STM_0 -- so overall fidelity is improved on one sub-target but still incomplete relative to full NL coverage.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "No answer key, expected verdict, source case id, or case-specific semantic cue was present in the packet; eligibility flags fixed per protocol dry-run requirements; confidence and escalation stated below.",
+      "evidence_references": [
+        "this JSON output"
+      ]
+    }
+  },
+  "evidence_references": [
+    "NL points 1-10",
+    "raw STM_0 entry/do action blocks",
+    "canonical STM_0 event/transition definitions",
+    "candidate STM_k event+effect blocks",
+    "provenance_checks"
+  ],
+  "rationale": "Candidate STM_k preserves the full state/transition/hierarchy topology of canonical STM_0 without deletion or regression, and it makes a genuine, NL-traceable local improvement by extracting compound event/action semantics (e.g. 'Closed/SendDeparted', 'Reached Cruising/Cruise', 'Arrived/Stop, Send Arrived', 'Obstacle Detected' actions) from folded event display labels into explicit event + effect syntax with readably-named int flags. This matches the allowed pattern of splitting compound event labels into event plus effect while preserving NL-supported behavior. However, this improvement only closes part of the same underlying 'action semantics lost from raw to canonical' family: NL explicitly specifies state-entry and state-do actions (Accelerate on entering Accelerating, Send while in Approaching, Emergency Stop entry and Send Obstacle Detected do-action in EmergencyStopping) that canonical STM_0 had already dropped relative to raw STM_0, and candidate STM_k does not restore or represent any of these state-level actions either. Because the candidate demonstrably improves one sub-target (transition-label action extraction) without fully closing the broader NL-supported action-semantics family (state entry/do actions), and there is no evidence of regression elsewhere, the appropriate verdict is partial rather than strict better or not_better.",
+  "observed_anti_gaming_risk_flags": [
+    "partial_target_closure_same_family: transition-label actions extracted but NL-mandated state-entry/state-do actions (Accelerate entry, Approaching do/Send, EmergencyStopping entry/do actions) remain unaddressed",
+    "int_flag_effect_representation_is_proxy_not_true_signal_send: effect assignments (e.g., send_departed=1) are readable but represent abstract flags rather than literal message-send semantics"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence."
+  ],
+  "confidence": "medium",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "No answer key, expected verdict, source case slug, target closure summary, or construction-intent label was present in the input packet; only observable mechanical/provenance facts (parse status, hash/ledger completeness, byte-identity flag) were supplied."
+  }
+}

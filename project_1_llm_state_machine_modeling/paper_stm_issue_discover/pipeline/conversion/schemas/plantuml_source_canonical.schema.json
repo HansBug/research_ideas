@@ -1,0 +1,883 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://research-ideas.local/project_1/paper_stm_issue_discover/plantuml_source_canonical.schema.json",
+  "title": "R4.5 PlantUML source canonical v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "example_id",
+    "seed_id",
+    "source_format",
+    "adapter",
+    "status",
+    "status_reason_code",
+    "model",
+    "diagnostics",
+    "metadata"
+  ],
+  "properties": {
+    "schema_version": {"const": "r4_5.plantuml_source_canonical.v1"},
+    "example_id": {"type": "string", "minLength": 1},
+    "seed_id": {"type": "string", "minLength": 1},
+    "source_format": {"const": "plantuml"},
+    "adapter": {"const": "plantuml_java_scope_aware_source"},
+    "status": {"enum": ["converted", "partial"]},
+    "status_reason_code": {
+      "enum": [
+        "R45.SOURCE.converted",
+        "R45.SOURCE.partial_unparsed_lines"
+      ]
+    },
+    "model": {"$ref": "#/$defs/model"},
+    "diagnostics": {"type": "array", "maxItems": 0},
+    "metadata": {"$ref": "#/$defs/metadata"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"status": {"const": "converted"}},
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "status_reason_code": {"const": "R45.SOURCE.converted"},
+          "metadata": {
+            "properties": {
+              "unparsed_semantic_lines": {"maxItems": 0}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"status": {"const": "partial"}},
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "status_reason_code": {"const": "R45.SOURCE.partial_unparsed_lines"},
+          "metadata": {
+            "properties": {
+              "unparsed_semantic_lines": {"minItems": 1},
+              "official_identity_reconciliation": {
+                "$ref": "#/$defs/official_identity_not_applied_source_incomplete"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "metadata": {
+            "properties": {
+              "official_identity_reconciliation": {
+                "properties": {"status": {"const": "aligned"}},
+                "required": ["status"]
+              }
+            },
+            "required": ["official_identity_reconciliation"]
+          }
+        },
+        "required": ["metadata"]
+      },
+      "then": {
+        "properties": {
+          "model": {
+            "properties": {
+              "states": {
+                "items": {
+                  "properties": {
+                    "attributes": {
+                      "required": ["official_identity_aligned", "official_parent"]
+                    }
+                  }
+                }
+              },
+              "transitions": {
+                "items": {
+                  "properties": {
+                    "attributes": {
+                      "required": [
+                        "official_link_index",
+                        "official_link_reversed_for_layout_arrow",
+                        "official_source_identity",
+                        "official_target_identity"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "metadata": {
+            "properties": {
+              "official_validation": {
+                "properties": {
+                  "model": {"$ref": "#/$defs/official_state_diagram"}
+                }
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "model": {
+            "properties": {
+              "states": {
+                "items": {
+                  "properties": {
+                    "attributes": {
+                      "not": {
+                        "anyOf": [
+                          {"required": ["official_identity_aligned"]},
+                          {"required": ["official_parent"]}
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              "transitions": {
+                "items": {
+                  "properties": {
+                    "attributes": {
+                      "not": {
+                        "anyOf": [
+                          {"required": ["official_link_index"]},
+                          {"required": ["official_link_reversed_for_layout_arrow"]},
+                          {"required": ["official_source_identity"]},
+                          {"required": ["official_target_identity"]}
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "nullable_string": {"type": ["string", "null"]},
+    "nonempty_string": {"type": "string", "minLength": 1},
+    "source_ref": {
+      "type": "string",
+      "pattern": "^.+:line:[1-9][0-9]*$"
+    },
+    "string_array": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "states",
+        "transitions",
+        "variables",
+        "initial_states",
+        "final_states",
+        "timing_level",
+        "hierarchy_level",
+        "concurrent_regions"
+      ],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "states": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/state"}
+        },
+        "transitions": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/transition"}
+        },
+        "variables": {"type": "array", "maxItems": 0},
+        "initial_states": {"$ref": "#/$defs/string_array"},
+        "final_states": {"$ref": "#/$defs/string_array"},
+        "timing_level": {"const": "unknown"},
+        "hierarchy_level": {"enum": ["flat", "hierarchical", "concurrent"]},
+        "concurrent_regions": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/concurrent_region"}
+        }
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "kind", "parent", "raw_ref", "attributes"],
+      "properties": {
+        "id": {"$ref": "#/$defs/nonempty_string"},
+        "label": {"type": "string"},
+        "kind": {"enum": ["state", "composite", "fork", "join", "choice", "junction"]},
+        "parent": {"$ref": "#/$defs/nullable_string"},
+        "raw_ref": {"$ref": "#/$defs/source_ref"},
+        "attributes": {"$ref": "#/$defs/state_attributes"}
+      }
+    },
+    "state_attributes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_node",
+        "qualified_id",
+        "short_name",
+        "alias",
+        "explicit_declaration",
+        "declared_with_block",
+        "declarations",
+        "body_lines",
+        "lifecycle_actions",
+        "parent_region_indices"
+      ],
+      "properties": {
+        "source_node": {"const": "plantuml_state"},
+        "qualified_id": {"$ref": "#/$defs/nonempty_string"},
+        "short_name": {"$ref": "#/$defs/nonempty_string"},
+        "alias": {"$ref": "#/$defs/nullable_string"},
+        "explicit_declaration": {"type": "boolean"},
+        "declared_with_block": {"type": "boolean"},
+        "declarations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/state_declaration"}
+        },
+        "body_lines": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/body_line"}
+        },
+        "lifecycle_actions": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/lifecycle_action"}
+        },
+        "parent_region_indices": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 0}
+        },
+        "official_identity_aligned": {"const": true},
+        "official_parent": {"$ref": "#/$defs/nullable_string"}
+      }
+    },
+    "state_declaration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line", "raw", "raw_ref", "parent_region_index"],
+      "properties": {
+        "line": {"type": "integer", "minimum": 1},
+        "raw": {"$ref": "#/$defs/nonempty_string"},
+        "raw_ref": {"$ref": "#/$defs/source_ref"},
+        "parent_region_index": {"type": "integer", "minimum": 0}
+      }
+    },
+    "body_line": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line", "text", "raw", "raw_ref"],
+      "properties": {
+        "line": {"type": "integer", "minimum": 1},
+        "text": {"type": "string"},
+        "raw": {"$ref": "#/$defs/nonempty_string"},
+        "raw_ref": {"$ref": "#/$defs/source_ref"},
+        "region_index": {"type": "integer", "minimum": 0}
+      }
+    },
+    "lifecycle_action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "text", "line", "raw", "raw_ref", "region_index"],
+      "properties": {
+        "kind": {"enum": ["entry", "do", "exit"]},
+        "text": {"$ref": "#/$defs/nonempty_string"},
+        "line": {"type": "integer", "minimum": 1},
+        "raw": {"$ref": "#/$defs/nonempty_string"},
+        "raw_ref": {"$ref": "#/$defs/source_ref"},
+        "region_index": {"type": "integer", "minimum": 0}
+      }
+    },
+    "transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source",
+        "target",
+        "event",
+        "guard",
+        "action",
+        "label",
+        "scope",
+        "raw_ref",
+        "attributes"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^tr_[0-9]{4,}$"},
+        "source": {"$ref": "#/$defs/nonempty_string"},
+        "target": {"$ref": "#/$defs/nonempty_string"},
+        "event": {"$ref": "#/$defs/nullable_string"},
+        "guard": {"type": "null"},
+        "action": {"type": "null"},
+        "label": {"$ref": "#/$defs/nullable_string"},
+        "scope": {"$ref": "#/$defs/nullable_string"},
+        "raw_ref": {"$ref": "#/$defs/source_ref"},
+        "attributes": {"$ref": "#/$defs/transition_attributes"}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "attributes": {
+                "properties": {"transition_kind": {"const": "initial"}},
+                "required": ["transition_kind"]
+              }
+            }
+          },
+          "then": {"properties": {"source": {"pattern": "^@initial:"}}}
+        },
+        {
+          "if": {
+            "properties": {
+              "attributes": {
+                "properties": {"transition_kind": {"const": "final"}},
+                "required": ["transition_kind"]
+              }
+            }
+          },
+          "then": {"properties": {"target": {"pattern": "^@final:"}}}
+        },
+        {
+          "if": {
+            "properties": {
+              "attributes": {
+                "properties": {"label_semantics": {"const": "unlabeled"}},
+                "required": ["label_semantics"]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "event": {"type": "null"},
+              "label": {"type": "null"},
+              "attributes": {
+                "properties": {
+                  "raw_label": {"type": "null"},
+                  "raw_label_present": {"const": false}
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "event": {"type": "string", "minLength": 1},
+              "label": {"type": "string", "minLength": 1},
+              "attributes": {
+                "properties": {
+                  "raw_label": {"type": "string", "minLength": 1},
+                  "raw_label_present": {"const": true}
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "transition_attributes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_node",
+        "transition_kind",
+        "raw_line",
+        "raw_line_number",
+        "raw_source",
+        "raw_target",
+        "raw_arrow",
+        "raw_label_present",
+        "raw_label",
+        "label_semantics",
+        "region_index",
+        "source_parent",
+        "target_parent"
+      ],
+      "properties": {
+        "source_node": {"const": "plantuml_transition"},
+        "transition_kind": {"enum": ["initial", "normal", "final"]},
+        "raw_line": {"$ref": "#/$defs/nonempty_string"},
+        "raw_line_number": {"type": "integer", "minimum": 1},
+        "raw_source": {"$ref": "#/$defs/nonempty_string"},
+        "raw_target": {"$ref": "#/$defs/nonempty_string"},
+        "raw_arrow": {"enum": ["-->", "->", "-left->", "-right->", "-up->", "-down->"]},
+        "raw_label_present": {"type": "boolean"},
+        "raw_label": {"$ref": "#/$defs/nullable_string"},
+        "label_semantics": {"enum": ["unlabeled", "opaque_plantuml_display_label"]},
+        "region_index": {"type": "integer", "minimum": 0},
+        "source_parent": {"$ref": "#/$defs/nullable_string"},
+        "target_parent": {"$ref": "#/$defs/nullable_string"},
+        "official_link_index": {"type": "integer", "minimum": 0},
+        "official_link_reversed_for_layout_arrow": {"type": "boolean"},
+        "official_source_identity": {"$ref": "#/$defs/nonempty_string"},
+        "official_target_identity": {"$ref": "#/$defs/nonempty_string"},
+        "raw_lexical_scope": {"$ref": "#/$defs/nullable_string"}
+      }
+    },
+    "concurrent_region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "owner_scope",
+        "region_index",
+        "state_ids",
+        "transition_ids",
+        "separator_before_raw_refs",
+        "separator_after_raw_refs"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/nonempty_string"},
+        "owner_scope": {"$ref": "#/$defs/nullable_string"},
+        "region_index": {"type": "integer", "minimum": 0},
+        "state_ids": {"$ref": "#/$defs/string_array"},
+        "transition_ids": {"$ref": "#/$defs/string_array"},
+        "separator_before_raw_refs": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/source_ref"}
+        },
+        "separator_after_raw_refs": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/source_ref"}
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_frontend",
+        "source_name",
+        "source_sha256",
+        "normalized_source_sha256",
+        "source_transition_count",
+        "model_headings",
+        "ignored_presentation_lines",
+        "orphan_lifecycle_actions",
+        "concurrent_region_separators",
+        "unparsed_semantic_lines",
+        "label_policy",
+        "source_normalizations",
+        "official_identity_reconciliation",
+        "official_model",
+        "official_validation",
+        "frontend_tool"
+      ],
+      "properties": {
+        "source_frontend": {"const": "java_two_pass_scope_aware_plantuml_statechart_subset"},
+        "source_name": {"$ref": "#/$defs/nonempty_string"},
+        "source_sha256": {"$ref": "#/$defs/sha256"},
+        "normalized_source_sha256": {"$ref": "#/$defs/sha256"},
+        "source_transition_count": {"type": "integer", "minimum": 0},
+        "model_headings": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/model_heading"}
+        },
+        "ignored_presentation_lines": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/ignored_presentation"}
+        },
+        "orphan_lifecycle_actions": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/orphan_lifecycle_action"}
+        },
+        "concurrent_region_separators": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/concurrent_region_separator"}
+        },
+        "unparsed_semantic_lines": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/unparsed_semantic_line"}
+        },
+        "label_policy": {"const": "preserve_as_opaque_event; do not infer guard/effect/timing"},
+        "source_normalizations": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/source_normalization"}
+        },
+        "official_identity_reconciliation": {
+          "oneOf": [
+            {"$ref": "#/$defs/official_identity_reconciliation"},
+            {"$ref": "#/$defs/official_identity_not_applied_source_incomplete"},
+            {"$ref": "#/$defs/official_identity_not_applied_official_unavailable"}
+          ]
+        },
+        "official_model": {"$ref": "#/$defs/official_raw_model"},
+        "official_validation": {"$ref": "#/$defs/official_validation"},
+        "frontend_tool": {"$ref": "#/$defs/frontend_tool"}
+      }
+    },
+    "orphan_lifecycle_action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line", "raw", "kind", "text", "raw_ref", "mapping_status"],
+      "properties": {
+        "line": {"type": "integer", "minimum": 1},
+        "raw": {"$ref": "#/$defs/nonempty_string"},
+        "kind": {"enum": ["entry", "do", "exit"]},
+        "text": {"$ref": "#/$defs/nonempty_string"},
+        "raw_ref": {"$ref": "#/$defs/source_ref"},
+        "mapping_status": {"const": "blocked_ambiguous_owner"}
+      }
+    },
+    "unparsed_semantic_line": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line", "raw", "reason"],
+      "properties": {
+        "line": {"type": "integer", "minimum": 1},
+        "raw": {"$ref": "#/$defs/nonempty_string"},
+        "reason": {
+          "enum": ["unmatched_closing_brace", "unrecognized_semantic_line"]
+        }
+      }
+    },
+    "model_heading": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line", "text", "block"],
+      "properties": {
+        "line": {"type": "integer", "minimum": 1},
+        "text": {"$ref": "#/$defs/nonempty_string"},
+        "block": {"type": "boolean"}
+      }
+    },
+    "ignored_presentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line", "raw", "raw_ref", "reason"],
+      "properties": {
+        "line": {"type": "integer", "minimum": 1},
+        "raw": {"$ref": "#/$defs/nonempty_string"},
+        "raw_ref": {"$ref": "#/$defs/source_ref"},
+        "reason": {"enum": ["plantuml_start_marker", "plantuml_end_marker", "plantuml_presentation"]},
+        "diagram_name": {"$ref": "#/$defs/nullable_string"}
+      }
+    },
+    "concurrent_region_separator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "owner_scope",
+        "line",
+        "raw",
+        "raw_ref",
+        "preceding_region_index",
+        "following_region_index"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^region_separator_[0-9]{4,}$"},
+        "owner_scope": {"$ref": "#/$defs/nullable_string"},
+        "line": {"type": "integer", "minimum": 1},
+        "raw": {"const": "--"},
+        "raw_ref": {"$ref": "#/$defs/source_ref"},
+        "preceding_region_index": {"type": "integer", "minimum": 0},
+        "following_region_index": {"type": "integer", "minimum": 1}
+      }
+    },
+    "source_normalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line", "raw_ref", "rule_id", "before", "after"],
+      "properties": {
+        "line": {"type": "integer", "minimum": 1},
+        "raw_ref": {"$ref": "#/$defs/source_ref"},
+        "rule_id": {
+          "enum": [
+            "source_input.workbook_doubled_state_quotes",
+            "source_input.workbook_trailing_end_quote"
+          ]
+        },
+        "before": {"$ref": "#/$defs/nonempty_string"},
+        "after": {"$ref": "#/$defs/nonempty_string"}
+      }
+    },
+    "validation_normalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line", "rule_id", "before", "after"],
+      "properties": {
+        "line": {"type": "integer", "minimum": 1},
+        "rule_id": {"type": "string", "pattern": "^official_validation\\."},
+        "before": {"$ref": "#/$defs/nonempty_string"},
+        "after": {"$ref": "#/$defs/nonempty_string"}
+      }
+    },
+    "official_identity_reconciliation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "policy",
+        "synthetic_scope_elision",
+        "source_state_count_before",
+        "canonical_state_count_after",
+        "official_state_count",
+        "transition_count",
+        "transition_identity_alignment_count",
+        "state_identity_remaps",
+        "transition_endpoint_remaps"
+      ],
+      "properties": {
+        "status": {"const": "aligned"},
+        "policy": {"const": "pinned_plantuml_qualified_entity_and_link_identity.v1"},
+        "synthetic_scope_elision": {"const": ["CONC[0-9]+", "__stm_wrapper_[0-9]+"]},
+        "source_state_count_before": {"type": "integer", "minimum": 1},
+        "canonical_state_count_after": {"type": "integer", "minimum": 1},
+        "official_state_count": {"type": "integer", "minimum": 1},
+        "transition_count": {"type": "integer", "minimum": 0},
+        "transition_identity_alignment_count": {"type": "integer", "minimum": 0},
+        "state_identity_remaps": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/state_identity_remap"}
+        },
+        "transition_endpoint_remaps": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/transition_endpoint_remap"}
+        }
+      }
+    },
+    "official_identity_not_applied_source_incomplete": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reason"],
+      "properties": {
+        "status": {"const": "not_applied"},
+        "reason": {"const": "source_canonical_not_complete"}
+      }
+    },
+    "official_identity_not_applied_official_unavailable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reason", "official_status"],
+      "properties": {
+        "status": {"const": "not_applied"},
+        "reason": {"const": "official_model_not_state_diagram"},
+        "official_status": {
+          "enum": [
+            "not_state_diagram",
+            "not_single_block",
+            "official_parser_exception"
+          ]
+        }
+      }
+    },
+    "state_identity_remap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["before", "after", "raw_ref", "reason"],
+      "properties": {
+        "before": {"$ref": "#/$defs/nonempty_string"},
+        "after": {"$ref": "#/$defs/nonempty_string"},
+        "raw_ref": {"$ref": "#/$defs/source_ref"},
+        "reason": {"enum": ["official_link_endpoint_identity", "unique_official_entity_identity"]}
+      }
+    },
+    "transition_endpoint_remap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transition_id",
+        "raw_ref",
+        "source_before",
+        "source_after",
+        "target_before",
+        "target_after",
+        "official_link_index"
+      ],
+      "properties": {
+        "transition_id": {"type": "string", "pattern": "^tr_[0-9]{4,}$"},
+        "raw_ref": {"$ref": "#/$defs/source_ref"},
+        "source_before": {"$ref": "#/$defs/nonempty_string"},
+        "source_after": {"$ref": "#/$defs/nonempty_string"},
+        "target_before": {"$ref": "#/$defs/nonempty_string"},
+        "target_after": {"$ref": "#/$defs/nonempty_string"},
+        "official_link_index": {"type": "integer", "minimum": 0}
+      }
+    },
+    "frontend_tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["implementation", "plantuml_version", "java_version"],
+      "properties": {
+        "implementation": {"const": "researchideas.plantuml.PlantUmlStateFrontend"},
+        "plantuml_version": {"const": "1.2024.7"},
+        "java_version": {"$ref": "#/$defs/nonempty_string"}
+      }
+    },
+    "official_validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_input_normalizations", "normalizations", "model"],
+      "properties": {
+        "source_input_normalizations": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/source_normalization"}
+        },
+        "normalizations": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/validation_normalization"}
+        },
+        "model": {"$ref": "#/$defs/official_raw_model"}
+      }
+    },
+    "official_raw_model": {
+      "oneOf": [
+        {"$ref": "#/$defs/official_state_diagram"},
+        {"$ref": "#/$defs/official_not_state_diagram"},
+        {"$ref": "#/$defs/official_not_single_block"},
+        {"$ref": "#/$defs/official_parser_exception"}
+      ]
+    },
+    "official_state_diagram": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_name",
+        "block_count",
+        "diagram_class",
+        "description",
+        "status",
+        "final_error",
+        "warning_or_error",
+        "entities",
+        "links",
+        "counts"
+      ],
+      "properties": {
+        "source_name": {"$ref": "#/$defs/nonempty_string"},
+        "block_count": {"const": 1},
+        "diagram_class": {"const": "net.sourceforge.plantuml.statediagram.StateDiagram"},
+        "description": {"type": "string"},
+        "status": {"const": "state_diagram"},
+        "final_error": {"$ref": "#/$defs/nullable_string"},
+        "warning_or_error": {"type": "string"},
+        "entities": {"type": "array", "items": {"$ref": "#/$defs/official_entity"}},
+        "links": {"type": "array", "items": {"$ref": "#/$defs/official_link"}},
+        "counts": {"$ref": "#/$defs/official_counts"}
+      }
+    },
+    "official_not_state_diagram": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_name",
+        "block_count",
+        "diagram_class",
+        "description",
+        "status",
+        "warning_or_error",
+        "entities",
+        "links"
+      ],
+      "properties": {
+        "source_name": {"$ref": "#/$defs/nonempty_string"},
+        "block_count": {"const": 1},
+        "diagram_class": {"$ref": "#/$defs/nonempty_string"},
+        "description": {"type": "string"},
+        "status": {"const": "not_state_diagram"},
+        "warning_or_error": {"type": "string"},
+        "entities": {"const": []},
+        "links": {"const": []}
+      }
+    },
+    "official_not_single_block": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_name", "block_count", "status", "entities", "links"],
+      "properties": {
+        "source_name": {"$ref": "#/$defs/nonempty_string"},
+        "block_count": {"type": "integer", "not": {"const": 1}, "minimum": 0},
+        "status": {"const": "not_single_block"},
+        "entities": {"const": []},
+        "links": {"const": []}
+      }
+    },
+    "official_parser_exception": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_name",
+        "status",
+        "exception_class",
+        "exception_message",
+        "entities",
+        "links"
+      ],
+      "properties": {
+        "source_name": {"$ref": "#/$defs/nonempty_string"},
+        "status": {"const": "official_parser_exception"},
+        "exception_class": {"$ref": "#/$defs/nonempty_string"},
+        "exception_message": {"type": "string"},
+        "entities": {"const": []},
+        "links": {"const": []}
+      }
+    },
+    "official_entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "collection",
+        "qualified_name",
+        "name",
+        "display",
+        "kind",
+        "parent",
+        "concurrent_separator",
+        "raw_body"
+      ],
+      "properties": {
+        "collection": {"enum": ["group", "leaf"]},
+        "qualified_name": {"type": "string"},
+        "name": {"type": "string"},
+        "display": {"type": "string"},
+        "kind": {"$ref": "#/$defs/nonempty_string"},
+        "parent": {"$ref": "#/$defs/nullable_string"},
+        "concurrent_separator": {"type": "string"},
+        "raw_body": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "official_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index", "source", "source_kind", "target", "target_kind", "label", "type", "length"],
+      "properties": {
+        "index": {"type": "integer", "minimum": 0},
+        "source": {"type": "string"},
+        "source_kind": {"$ref": "#/$defs/nonempty_string"},
+        "target": {"type": "string"},
+        "target_kind": {"$ref": "#/$defs/nonempty_string"},
+        "label": {"type": "string"},
+        "type": {"$ref": "#/$defs/nonempty_string"},
+        "length": {"type": "integer", "minimum": 1}
+      }
+    },
+    "official_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["groups", "leaves", "links"],
+      "properties": {
+        "groups": {"type": "integer", "minimum": 0},
+        "leaves": {"type": "integer", "minimum": 0},
+        "links": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

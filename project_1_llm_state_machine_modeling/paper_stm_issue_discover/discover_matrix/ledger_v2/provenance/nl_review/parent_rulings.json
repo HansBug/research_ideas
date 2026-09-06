@@ -1,0 +1,158 @@
+{
+ "what_this_is": "主 session 对复核结论的裁定。仅在两个 agent 结论冲突、或复核描述与实测不符时介入，每条附实测证据。",
+ "rulings": [
+  {
+   "case": "0013",
+   "diff_index": 1,
+   "was": {
+    "verdict": "problem",
+    "out_of_scope": null,
+    "stratum": "wellformedness"
+   },
+   "ruling": {
+    "out_of_scope": "concurrency"
+   },
+   "affects_in_scope_count": -1,
+   "why": [
+    "与参考共有、不可归因：参考模型（Dataset.xlsx 行 57）同样是三个 `--` 正交区各一条 `[*] -->`，所以「三条初始边导致默认进入点不唯一」这个事实参考侧也成立。",
+    "只在展平后成立：该缺陷是 FCSTM 把正交区展平成单一状态体后才出现的表象，属正交并发语义，按 project_1 的问题定义边界（T0 + FSM/HSM/EFSM，不含正交区）落在范围外。",
+    "断言不可评估：实测 initial_target(PumpControl, PumpState) 返回 None（不是 False），该行拿不出可评估的正面断言，而它标了 predicate_exists=True，是偏乐观的标注。",
+    "唯一 gen-only 的残留是行首多余 `--` 造出的空区域 0——无状态、无迁移、无后果。",
+    "克隆件（PumpStateA / PumpStateB）造成的七个具名状态问题由同 case 的 0013#0 单独承载，不因本条降级而丢失。"
+   ],
+   "conflict_note": "RESCOPE 那轮的反向检查（163 条未标 tag 的 problem/extra）报「0 条需补 tag」，漏了这一条；批 5 的抽验抓到了。以本裁定为准：「计入问题」从 157 降为 156。"
+  },
+  {
+   "case": "0056",
+   "diff_index": 3,
+   "was": {
+    "verdict": "extra",
+    "stratum": "over_specification",
+    "decided_by": "batch5_reclassify",
+    "duplicate_of": "0056#3 (dup of 0056#1 guard_distinguishable, identical binding)"
+   },
+   "ruling": {
+    "stratum": "uncertain_stratum"
+   },
+   "affects_admissible_count": -1,
+   "why": [
+    "该行自己的 review_note 明写「是否最终入 E1 需过有害性 + scope 两道判定，本任务不裁」——它是一条被记录为未决的行，却被默认计入了可入集，这是把未裁定当成了已裁定。",
+    "行内状态自相矛盾：harm test 的 dedup 按 harm_assertion 判它与 0056#1 是 identical binding （同一 guard_distinguishable(NoIntercept, Intercepted)），因此写入了 duplicate_of；而 batch5 又把 stratum 移回 over_specification。同一行同时带「我是重复」与「我可入」两个标记。",
+    "两种口径都指向不可入：按 harm_assertion 口径它与 #1 同绑定，计入即双算；按 assertable 口径（state_declared(NoIntercept, kind='leaf')）它只是存在性断言，按 EXTRA_POLICY 的有害性判据「只能证明生成方造了它，不能证明因此坏了什么」，同样不该入。",
+    "被发明的对象是正交区成员，虽然按断言形式仍落在 S 内（范畴审计判 in_scope），但这使它同时受 GROUND_TRUTH_LIMITATIONS.md §2「正交并发不补进 expected issue」的按对象排除口径影响，两套口径不一致本身就需要人来裁，不能由脚本默认。",
+    "降为 uncertain_stratum（已审阅但搁置）而非直接删除：有害性信号是真的（它确是 #1 冲突目标的根因），只是当前谓词面与分层政策给不出可独立计数的形态。"
+   ],
+   "conflict_note": "本裁定使可入 E1 从 130 降为 129，uncertain_stratum 从 1 增为 2。同 case 的 0056#1 仍单独承载该缺陷的后果，不因本条搁置而丢失。新增的 check_duplicate_markers 会在任何带 duplicate_of 的行落在可入层时报错，防止同类冲突再次静默通过。"
+  },
+  {
+   "case": "0000",
+   "diff_index": 5,
+   "was": {
+    "verdict": "problem",
+    "stratum": "nl_named",
+    "assertable": "event_declared(event='...0000.Human_Steering_Cmd')",
+    "reason_basis": "三个接管条件被压成单一事件，模型缺少可单独触发的 Human_Steering_Cmd"
+   },
+   "ruling": {
+    "stratum": "wellformedness",
+    "assertable": "stays_in(source=\"llms_emp_feedback_final_0000.AutonomousMode.AutoNavigating\", trigger=\"llms_emp_feedback_final_0000.Human_Steering_Cmd_Brake_Pressed_in_AutoFinal\")",
+    "negative_control": "occupancy_after(source=\"llms_emp_feedback_final_0000.AutonomousMode.AutoFinal\", trigger=\"llms_emp_feedback_final_0000.Human_Steering_Cmd_Brake_Pressed_in_AutoFinal\", target=\"llms_emp_feedback_final_0000.HumanDrivingMode\")",
+    "negative_control_rationale": "从 AutoFinal 接管本应成立。若该式亦为 False，则主断言（从 AutoNavigating 也能接管）是恒假、不构成缺陷证据。实测为 True，故主断言判别有效。"
+   },
+   "affects_admissible_count": 0,
+   "why": [
+    "原判据放弃：它依赖把 NL08 第 4 句读作析取。NL 原文是 'transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)'——逗号列举，既无 any of 也无 and。NL 未授权析取解释，故『缺少可单独触发的事件』不能作为归因依据（这一点由用户在 2026-07-30 的讨论中指出，经复核成立）。",
+    "换用不依赖该解释的判据：in (AutoFinal) 是状态测试表达式，其真值由系统当前状态决定；模型把它放在 trigger 位置而非 guard 位置，因此它对迁移不构成任何约束。原始 PlantUML 那条边是组迁移（源为复合态 AutonomousMode），UML 语义下从任何活跃子态均可触发。",
+    "后果实测：stays_in(source='...AutonomousMode.AutoNavigating', trigger='...Human_Steering_Cmd_Brake_Pressed_in_AutoFinal') = False，即模型在尚未进入 AutoFinal 时就交还控制权；not occupancy_after(AutoNavigating, 该事件, HumanDrivingMode) = False。",
+    "负控有效：occupancy_after(AutoFinal, 该事件, HumanDrivingMode) = True，说明断言不是恒 False——从 AutoFinal 走得通，从 AutoNavigating 也走得通才是缺陷。",
+    "层从 nl_named 改为 wellformedness：新判据不以任何 NL 句为前提，只依赖模型自身结构与状态机的形式化语义（状态条件不得充当事件）。对照 0050#4：该 pair 的 AutoFinal 根本不存在，是另一类缺陷，两者不同型。"
+   ],
+   "conflict_note": "不改变可入计数（仍计入）。缺陷方向应由 hierarchy 改为 guard，因新判据的对象是被错置的条件而非层次。若认定『UML 标准语义』也属 oracle、不应计入 wellformedness，则本条应降为 uncertain_stratum，可入数由当时基线 129 降为 128（当前基线 126，对应 126 → 125）；本裁定采前者，理由是形式化语义是公共基础，与 case-specific 的参考模型不同质。"
+  },
+  {
+   "case": "0050",
+   "diff_index": 4,
+   "was": {
+    "verdict": "problem",
+    "stratum": "nl_named",
+    "assertable": "event_declared(event='...0050.human_steering_cmd')",
+    "reason_basis": "与 0000#5 同型：三条件压成跨行自由文本标签"
+   },
+   "ruling": {
+    "stratum": "nl_named",
+    "assertable": "state_declared(state=\"llms_emp_feedback_final_0050.AutonomousMode.auto_final\", kind=\"leaf\")",
+    "negative_control": "state_declared(state=\"llms_emp_feedback_final_0050.AutonomousMode.SubState1\", kind=\"leaf\")",
+    "negative_control_rationale": "模型确实声明过的子态应为 True。若连它也 False，则 state_declared 在该 scope 上恒假、主断言（auto final 不存在）不构成证据。实测为 True，故判别有效。"
+   },
+   "affects_admissible_count": 0,
+   "why": [
+    "原判据放弃，理由同 0000#5：NL 未授权析取解释。并纠正一处事实——此前称本条与 0000#5『同型』是错的，两个模型对同一句 NL 的处理不同：0000 逐字照抄逗号列举且其 AutonomousMode 内确有 AutoFinal 状态；0050 自行写成 'human steering cmd\\nor brake pressed\\nor in (auto final)'，且其 AutonomousMode 内只有 SubState1/2/3。",
+    "换用的判据：NL 点名的 auto final 子状态在模型中根本不存在。NL08 第 2 句要求 autonomous mode 有子状态，第 4 句以 in (auto final) 点名其中之一；模型给出的是三个无语义占位名。",
+    "实测：state_declared('...0050.AutonomousMode.auto_final', kind='leaf') = False，换名 AutoFinal / AutoFinalState 同为 False。负控有效：state_declared('...SubState1', kind='leaf') = True、SubState3 = True，说明谓词工作正常、不是恒 False。",
+    "该判据与析取/合取解释无关，也与建模粒度无关：无论选何粒度，被标签引用的状态都必须存在。",
+    "附带记录（不作为本条判据）：0050 在 trigger 位置写了 or 连接的析取式，而 UML 不允许一条迁移有析取 trigger；R4.5 投影把 \\n 与 or 拼成了 nor，事件名成为 human_steering_cmd_nor_brake_pressed_nor_in_auto_final——该 nor 是字符串拼接产物，不含语义。"
+   ],
+   "conflict_note": "层不变（仍 nl_named）、可入计数不变。断言由 event_declared 改为 state_declared(auto_final, kind='leaf')。8 格漏检的成因归属需相应调整：本条仍属 split_requirements 该拆出的需求（NL 点名了元素），而 0000#5 不再归因于 prompts.py:46 的合并事件豁免。"
+  },
+  {
+   "case": "0016",
+   "diff_index": 5,
+   "was": {
+    "verdict": "extra",
+    "stratum": "over_specification",
+    "assertion": "event_consumed(source='[*]', trigger='...0016.Finished_Region1_Search')  # 实测 False"
+   },
+   "ruling": {
+    "stratum": "uncertain_stratum"
+   },
+   "affects_admissible_count": -1,
+   "why": [
+    "主断言绑错了元素，其 False 是空洞真值。该条指控『初始迁移带 trigger』，但断言绑的 Finished_Region1_Search 并不是根初始边的 trigger——实测该模型的根初始边是 `[*] -> SearchMission : /Start_Mission`。",
+    "正确绑定后 event_consumed(source='[*]', trigger='Start_Mission') 实测为 **True**，即它只能证明『生成方造了这条初始边』——对 extra 档那是前提，不是缺陷。按 EXTRA_POLICY 的有害性判据，存在性证明不构成后果。",
+    "发布的 False 之所以出现，仅仅因为 Finished_Region1_Search 不是根初始边的 trigger；这个 False 与该条的事实主张无关，甚至与之矛盾。",
+    "降为 uncertain_stratum 而非删除：该 extra 元素确实是生成方凭空多出的，指控本身可能成立，但当前没有一条能证明其后果的可求值断言。要重新入集，需补一条正确绑定且实测为 False 的后果断言。"
+   ],
+   "conflict_note": "本裁定由对抗性复核发现（试图推翻『115 条可自动验收』时逐条重绑元素）。可入 E1 与可自动验收数各减 1。"
+  },
+  {
+   "case": "0033",
+   "diff_index": 3,
+   "was": {
+    "verdict": "extra",
+    "stratum": "over_specification",
+    "assertion": "event_consumed(source='[*]', trigger='...0033.Activate_Pump')  # 实测 False"
+   },
+   "ruling": {
+    "stratum": "uncertain_stratum"
+   },
+   "affects_admissible_count": -1,
+   "why": [
+    "主断言绑错了元素，其 False 是空洞真值。该条指控『初始迁移带 trigger』，但断言绑的 Activate_Pump 并不是根初始边的 trigger——实测该模型的根初始边是 `[*] -> PumpControl : /begin`。",
+    "正确绑定后 event_consumed(source='[*]', trigger='begin') 实测为 **True**，即它只能证明『生成方造了这条初始边』——对 extra 档那是前提，不是缺陷。按 EXTRA_POLICY 的有害性判据，存在性证明不构成后果。",
+    "发布的 False 之所以出现，仅仅因为 Activate_Pump 不是根初始边的 trigger；这个 False 与该条的事实主张无关，甚至与之矛盾。",
+    "降为 uncertain_stratum 而非删除：该 extra 元素确实是生成方凭空多出的，指控本身可能成立，但当前没有一条能证明其后果的可求值断言。要重新入集，需补一条正确绑定且实测为 False 的后果断言。"
+   ],
+   "conflict_note": "本裁定由对抗性复核发现（试图推翻『115 条可自动验收』时逐条重绑元素）。可入 E1 与可自动验收数各减 1。"
+  },
+  {
+   "case": "0019",
+   "diff_index": 5,
+   "was": {
+    "verdict": "extra",
+    "stratum": "over_specification",
+    "assertion": "event_consumed(source='[*]', trigger='...0019.high_way_true')  # 实测 False"
+   },
+   "ruling": {
+    "stratum": "uncertain_stratum"
+   },
+   "affects_admissible_count": -1,
+   "why": [
+    "主断言绑的 high_way_true 是一个 NL 派生的条件事件，不属于该条指控的任何一个 extra 元素（Autonomous_mode_start / Start_of_autonomous_driving_mode）。",
+    "被指控的那两个 extra 实测 event_declared 均为 **True**，即只能证明『生成方声明了它们』——对 extra 档是前提不是缺陷。且 Start_of_autonomous_driving_mode 恰是该模型根初始边的 trigger（实测 `[*] -> InitialState : /Start_of_autonomous_driving_mode`）。",
+    "因此发布的 False 与指控对象无关，不构成有害性证据。",
+    "降为 uncertain_stratum：需补一条绑定到被指控 extra 且实测 False 的后果断言才能重新入集。"
+   ],
+   "conflict_note": "同 0016#5 / 0033#3，由对抗性复核发现。"
+  }
+ ]
+}

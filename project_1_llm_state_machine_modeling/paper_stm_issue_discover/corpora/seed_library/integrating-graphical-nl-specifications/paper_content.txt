@@ -1,0 +1,785 @@
+--- Page 1 ---
+Integrating graphical and natural language
+speciﬁcations to support analysis and testing
+Christopher L. Robinson-Mallett
+Mobility Division, Siemens AG, Berlin
+c.robinson-mallett@siemens.comRobert M. Hierons
+Brunel University London,
+Uxbridge, United Kingdom
+rob.hierons@brunel.ac.uk
+Abstract —The ongoing trend towards distributed develop-
+ment activities causes a growing need for speciﬁcation activities
+and techniques. Each component leads to a large number
+of speciﬁcation documents being exchanged, change managed
+and committed. The quality of the speciﬁcations inﬂuences the
+timing, costs and success of the development task. However,
+the quality of such speciﬁcations is often far from optimal,
+exhibiting gaps, inconsistencies, redundancies, and unbalanced
+structures. At every release or delivery milestone, acceptance
+and integration testing take place. Therefore, test-cases have
+to be created from the requirements exchanged. This paper
+presents a model-based approach for improving the quality of
+comprehensive requirements sets. The presented solution is based
+on a combination of a graphical notation and natural language
+and can be used to drive model-based testing. The approach
+has been implemented using state-of-the-art tools. We present
+experience from ﬁeld application in the automotive industry.
+I. I NTRODUCTION
+The ongoing trend towards distributed development activ-
+ities amongst world-wide teams and the integration of the
+respective results causes a growing need for speciﬁcation
+activities and techniques. Each component leads to a large
+number of speciﬁcations being exchanged, change managed as
+well as integration and tests committed between the leading
+and the supplying development teams.
+While distributed development projects are not the topic
+of this paper, our experience with them motivated the work
+described. The quality of speciﬁcations has a signiﬁcant im-
+pact on the efﬁciency and risks of distributed development
+activities [1] such as the quality of development results, change
+management, coordination activities, and testing. Furthermore,
+the development of dependable software demands traceable
+processes and provably complete and correct results.
+This paper aims at reducing risks of distributed development
+activities, presenting a method to create and maintain product
+speciﬁcations that are precise, formally structured, and that
+product engineers ﬁnd equally easy to understand and to use.
+Despite their potential beneﬁts, formal languages (FL) are
+not widely used because the required expertise is often not
+present. Instead, natural language (NL) in combination with
+graphical notations (GN) is a familiar choice for the engineer,
+with the use of GN helping reduce the size of the NL
+speciﬁcation and providing the potential to automate analysis,
+transformation and testing. An additional beneﬁt is that often
+there is domain speciﬁc technical NL and GN that is common
+to all groups. Thus a combination of NL and GN is practicallythe de facto standard speciﬁcation language in distributed
+development scenarios, although signiﬁcant drawbacks exist:
+1) NL can leave much room for interpretation;
+2) NL is local, e.g. a speciﬁcation written in German is
+only useful for German speaking groups (this can also
+affect models);
+3) It is difﬁcult to maintain NL and keep it precise, con-
+sistent and free of redundancies;
+4) Automated processing of NL is difﬁcult;
+5) Over time and changes, NL and embedded or referred
+GN tend to diverge in meaning;
+6) GN alone may contribute precise, but only partial in-
+formation, which demand NL requirements to tell the
+reader how to interpret it.
+Our experience in industrial projects indicates that structure
+has a signiﬁcant impact on requirements quality. An unclear
+structure may contribute to redundancy and so to overly long
+speciﬁcations. Additionally, inconsistencies may be created, if
+additional requirements deviate from those already in the set.
+In the context of this paper a speciﬁcation is a set of state-
+ments (requirements) describing aspects of the product under
+development. Such statements may possess a type, for instance
+to denote priority or use of certain information, e.g. differen-
+tiate requirements from heading or secondary information. A
+speciﬁcation targets a stage of the development process, e.g.
+product deﬁnition, analysis, design, implementation, testing,
+integration, delivery. Furthermore, speciﬁcations may have a
+certain scope, describing the product as a whole or only parts.
+The proposed approach aims to create a model-integrated
+speciﬁcation that closes the gap between NL and GN through
+formalising the structure of the GN speciﬁcation, while pre-
+serving the beneﬁts of NL. We have found that a major beneﬁt
+is that the resulting speciﬁcations provide almost optimal
+cohesion. In addition, it is possible to apply formal analysis
+and test generation techniques to the resultant speciﬁcations.
+This paper extends previous work [6] by providing additional
+information about the formalisation used and by describing a
+semi-automatic approach to test generation along with associ-
+ated coverage criteria.
+This paper is structured as follows. Section II gives the run-
+ning example and Section III describes the proposed approach.
+Section IV explains how the resultant combination of GN and
+NL can drive testing. Section V describes our experiences of
+using the proposed approach and associated tool. Section VI
+
+--- Page 2 ---
+Fig. 1. Block diagram belt-warner example
+then describes related work and Section VII summarises the
+work.
+II. B ELT-WARNER EXAMPLE
+The belt-warner example is a simpliﬁed extract of the
+speciﬁcation of a real driver assistance function that warns the
+driver at critical speeds that the safety belt is not tightened.
+The architecture of the system is described using a subset of
+Block Diagrams [2] [3]. The system behaviour is speciﬁed
+using a sub-set of statecharts [4].
+A. Architecture of the belt-warner example
+In the belt-warner example a block diagram speciﬁes the
+system architecture. Block diagrams are graphical structures
+consisting of hierarchical blocks, signal ﬂows, signal entry
+points and signal exit points. A block, represented as a rectan-
+gle, may contain a behaviour. Hierarchical blocks may possess
+architecture and behaviour. Signal ﬂows, represented as edges
+in the block diagram, specify message routing between blocks.
+Signal sources and sinks, represented as wedged rectangles,
+are special blocks used to deﬁne system interfaces.
+The example architecture of a simple belt-warner in Figure
+1 contains a single block, 4 signal sources and 4 signal
+sinks. The sources deﬁne the input interface, which consists of
+signals Belt Status, Ignition Status, Vehicle Speed, and System
+Time. The sinks deﬁne the output interface, which consists of
+signals Start Warning, Stop Warning, Activity, and Stand-by.
+B. Behaviour of the belt-warner example
+Statecharts is a graphical notation for extended, hierarchical
+ﬁnite state-machines that is applicable to the speciﬁcation of
+state-based system behaviour. In the context of the presented
+approach, a sub-set of statecharts has proved to be useful and
+will be explained in this section. A complete and detailed
+description of statecharts is provided in [4].
+The nodes of a statechart represent a ﬁnite set of system
+states, while the edges represent transitions between these
+states. A statechart may process a ﬁnite set of inputs and
+produces a ﬁnite set of outputs. A statechart may be extended
+with data of arbitrary number and types.
+A state may contain a ﬁnite set of sub-states, one being the
+initial state, i.e. when changing into the state the initial sub-
+state is entered. A transition into a hierarchical state (a state
+containing sub-states) ends either implicitly in the initial or
+Fig. 2. Statechart for the belt-warner
+explicitly in one of the sub-states. An atomic state does not
+contain sub-states. A state-invariant speciﬁes conditions that
+must hold when the system is in the corresponding state.
+A state transition has an initial and a ﬁnal state. A group
+transition starts from a hierarchical state Sh; it can be triggered
+from any sub-state of Sh. The trigger of transition tspeciﬁes
+conditions on inputs and data under which texecutes. Further-
+more, in a transition it is possible to specify data operations
+and outputs. We use predicate logic to specify the above.
+The statechart in Figure 2 contains 4 atomic states, 2
+hierarchical states and 9 transitions, of which 3 are initial
+transitions and 4 are group transitions. It describes the system
+behaviour in use, when turning it on/of, activating, deactivating
+the function and situations in which the belt warning is started
+or stopped.
+III. M ODEL -INTEGRATED REQUIREMENTS SPECIFICATION
+As previously discussed, the proposed approach is based
+on integrating GN and NL, which is achieved by mapping
+each ‘basic model element’ of the graphical model to a
+corresponding textual section (called a chapter ).
+This process is applicable to a variety of modeling notations,
+if these can be mapped into ﬁnite structures, such as graphs.
+Given an NL speciﬁcation of a system (for the ease of
+explanation initially without GN parts), we create a model-
+integrated speciﬁcation as follows.
+1) Break down the speciﬁcation into atomic statements.
+2) Give each atomic statement a type of either information
+or requirement.
+3) Create a GN of the system’s high-level architecture.
+4) Create a NL chapter structure based on the architecture:
+each node in the GN relates to a chapter,
+each edge in the GN relates to a chapter.
+5) Relocate atomic statements into the chapter structure.
+6) Analyse residual atomic statements and either discard or
+redesign GN and go back to 3.
+
+--- Page 3 ---
+Fig. 3. Example model-integrated ﬁnite state machine
+7) Review each chapter and eliminate incompleteness, in-
+consistencies and redundancies.
+8) Optionally, complement NL speciﬁcation with condi-
+tional statements deﬁning feasible paths and further
+system properties, e.g. state invariants.
+This results in a semi-formal speciﬁcation in the form of a
+chapter structure; speciﬁcation statements remain in NL. For
+instance, if the GN is a ﬁnite state machine, then the model
+elements are states and transitions, and a chapter is created for
+each of these. Figure 3 presents the example of an FSM and
+the NL structure generated.
+In this paper we outline how GN in the form of labelled
+directed graphs (LDGs) can be used. The GN part may have
+a speciﬁc (separate) semantics associated with the language
+originally used. We need to retain this information to cor-
+rectly interpret different languages such as statecharts and
+block diagrams. We have developed a set of semantics for
+automotive controller functions but anticipate that different
+semantics might be used in other domains. In practice, we have
+found LDGs to cover a large and useful variety of modelling
+notations. However, there might be notations, e.g. sequence
+diagrams and use-case diagrams, where there is no natural
+mapping to LDGs. In such cases we suggest that different
+GN-notations are used, e.g. multi-graphs.
+In practical software and systems development, the variety
+of GN used often depends on the domain (e.g. statecharts,
+activity diagrams, Petri nets, block diagrams, or fault trees). To
+make the model-integration approach applicable to a maximum
+number of GNs, it splits a GN into an abstract graphical
+structure, whose elements will be given semantics via NL, and
+a semantics that comes from the original graphical modelling
+language used. For the example in Figure 3, the semantics
+includes the information that the graph represents a ﬁnite state
+machine: nodes represent states; edges represent transitions.
+The graph of a GN thus represents the topology. Mapping a
+GN to abstract graphs provides the beneﬁt that we can have a
+common approach and toolset for a range of GNs.
+Conditional statements form an important part of many
+modelling notations. For example, statecharts has state in-
+variants and trigger conditions on edges. In the presented
+approach, predicate logic may be used to specify conditional
+structures in the NL part of the model-integrated speciﬁcation;we will see that this facilitates semi-automated test generation.
+It is possible to structure this NL to form logical trees, where
+leaves are atomic logical statements in NL and the other nodes
+represent the logical operators OR, AND and XOR.
+A. An abstract model
+A labelled directed graph Gis deﬁned by a tuple
+(L; V; V 0; E; f V)in which Lis the set of labels; Vis the ﬁnite
+set of nodes; V0Vis the set of initial nodes; EVLV
+is the ﬁnite set of edges (edge (v; l; v0)has source node v,
+destination node v0and label l); and fV:V!Lis the node
+label function that maps each node to a corresponding label.
+The nodes and edges of graph Gprovide the structure of
+the model. The labels allow us to add semantics to these.
+Lcan be any suitably large set since the individual labels
+can be separately mapped to the required information (such
+as invariants). In practice, we have found it simplest to use
+strings, with a label denoting, for example, the name of a state
+or a function. Information regarding the semantics associated
+with a label is supplied in a separate table. Tables I and II
+give such information for the belt-warner system.
+TABLE I
+LDG OFBELT-WARNER BLOCK DIAGRAM
+Gbd= (
+V=f(n0; Belt Status; source );
+(n1; Ignition Status; source );
+(n2; V ehicle Speed; source );
+(n3; System Time; source );
+(n4; Simple Belt Warner; node );
+(n5; Start Warning; sink );
+(n6; Stop Warning; sink );
+(n7; Belt Warner Activity; sink );
+(n8; Belt Warner Stand By; sink )g;
+E=f((n0; n4); comfort );
+((n1; n4); engine );
+((n2; n4); chassis );
+((n3; n4); combi );
+((n4; n5); sbwout 1);
+((n4; n6); sbwout 2);
+((n4; n7); sbwout 3);
+((n4;n8); sbwout 4)g)
+TABLE II
+LDG OFBELT-WARNER STATECHART
+Gsc= (
+V=f(n0; IGNITION OFF; node );
+(n1; IGNITION ON; hierarchical node ),
+(n2; STAND BY; node ),
+(n3; ACTIV E; hierarchical node );
+(n4; WARNING OFF; node );
+(n5; WARNING ON; node )g;
+E=f((; n0); Initial SBW );
+((n0; n1); turning on);
+((n1; n0); turning off);
+((; n2); Initial IGNITION ON);
+((n2; n3); activating );
+((; n4); Initial ACTIV E );
+((n4; n5); start warning );
+((n5; n4); stop warning )g)
+
+--- Page 4 ---
+B. Semantics
+The process of mapping a graphical model into LDGs
+can lead to some loss of information that corresponds to
+elements of the semantics of the GN used. For example, if
+we map a statechart into an LDG then the resultant graph
+does not contain information such as the fact that a node
+represents a state and an edge represents a transition from
+one state to another. This additional semantic information
+must be retained; in the proposed approach the identity of the
+original GN is retained so that it is possible to apply analysis
+techniques that depend on this semantics. Furthermore, it is
+possible to attach speciﬁc properties p0; :::; p nfor each model
+element type. For instance, properties may be used to deﬁne a
+speciﬁc chapter structure for each model element type, e.g.
+a state chapter must contain an invariant deﬁnition and a
+transition chapter must contain a trigger deﬁnition.
+Tuples are used to deﬁne the semantics associated with
+elements of the LDG; a tuple relates a graph element to a GN
+element type and additional information, e.g. a template for
+the chapter title. Chapter title templates are string expression,
+possibly with placeholders, e.g. for a system name or a model
+element name. An example of a modeling notation semantics
+for block diagrams is presented in Table III. The graph of the
+modeling notation consists of the modeling elements hierarchi-
+cal node, node, edge, source, and sink. Each modeling element
+is mapped to the appropriate element of block diagrams, e.g.
+a node is a block, an edge is a signal ﬂow.
+TABLE III
+SEMANTICS OF BLOCK DIAGRAM
+Sbd=f(hierarchical node; "Requirements [sys name ]");
+(node; "Requirements [sys name ]":
+"Functional Requirements [sys name ]");
+(edge; "Requirements [sys name ]":
+"Signal Flows ":"Signal Flow [name ]");
+(source; "Requirements [sys name ]":
+"Interface ":"Inputs ":"Input [name ]");
+(sink; "Requirements [sys name ]":
+"Interface ":"Outputs ":"Output [name ]")g
+An example of a modeling notation semantics for state
+charts is presented in Table IV. The graph of the modeling
+notation consists of the modeling elements hierarchical node,
+node, and edge. Compared to block diagrams there is no
+need to consider sinks and sources. Each of these modeling
+elements is mapped to the appropriate element of statecharts,
+e.g. a node is a state, an edge is an transition.
+TABLE IV
+SEMANTICS OF STATECHART
+Ssc=f(node; "Requirements [sys name ]":
+"Functional Requirements ":
+"States ":"State [name ]");
+(hierarchical node; "Requirements [sys name ]":
+"Functional Requirements ":
+"States ":"Hierarchical State [name ]");
+(edge; "Requirements [sys name ]":
+"Functional Requirements ":
+"Transitions ":"Transition [name ]")gC. Generating Speciﬁcation Structures
+A speciﬁcation structure consists of hierarchically struc-
+tured chapters, where each chapter provides semantics for
+an element of the GN. The title of a chapter is created
+from information regarding a graph element and its semantics
+properties. Identiﬁers label graph elements; these provide a
+one-to-one mapping between chapters and graph elements. For
+example, it is possible to create a speciﬁcation structure for
+the belt-warner through two steps: generate chapters from the
+Block Diagram (bold chapters); generate chapters from the
+Statechart. Figure 4 gives the resulting structure.
+Fig. 4. Model-integrated structure of belt-warner speciﬁcation
+D. Speciﬁcation Chapters
+A speciﬁcation chapter has a title and a set of speciﬁcation
+entries. Each speciﬁcation entry can have a speciﬁc type, e.g.
+requirement, information, data type, physical constraint.
+Each GN element type can have a speciﬁc speciﬁcation
+chapter structure, e.g. a state chapter may contain an invariant
+while a transition chapter may contain initial state, ﬁnal state,
+and trigger. As a result, for each modelling notation we
+use speciﬁcation chapter templates that deﬁne a hierarchical
+structure of speciﬁcation entries for each model element type.
+Common attributes for speciﬁcation entries are types, owner,
+date of creation and last edit, or a history record. For model-
+integration a speciﬁcation type attribute is deﬁned (Table V).
+Logical expressions may be used to deﬁne conditions that
+complement GN, e.g. triggers and invariants. These conditions
+
+--- Page 5 ---
+TABLE V
+SPECIFICATION OBJECT TYPES
+Type Description
+heading a structure element
+information explanations and comments
+requirement the speciﬁcation of a single required product property
+may be speciﬁed using NL. Naturally, complex conditions can
+be split into atomic expressions, these being structured into a
+tree. An example from the belt-warner is given in Table VI.
+TABLE VI
+CONDITION SPECIFICATION TYPES
+Type description
+condition atomic condition
+XOR exclusive disjunctive composition of conditions
+OR disjunctive composition of conditions
+AND conjunctive composition of conditions
+Since the atomic conditional expressions remain in NL, the
+graph traversal produces concatenated NL expressions, which
+only a human reader may check for validity. However, the
+ability to automatically generate traces from conditional GN
+was found to be very beneﬁcial.
+Returning to the running example, Table VII presents a
+speciﬁcation chapter template for states (‘tbd’ denotes infor-
+mation to be added by the user). Likewise, a chapter template
+for transitions is presented in Table VIII.
+TABLE VII
+SPECIFICATION CHAPTER TEMPLATE BELT-WARNER STATE
+Type Short Text
+heading - Chapter X.2.1.3 State IGNITION OFF
+information Context tbd
+AND Invariant tbd
+TABLE VIII
+SPECIFICATION CHAPTER TEMPLATE BELT-WARNER TRANSITION
+Type Short Text
+heading - Chapter X.2.2.4 Transition turning on
+information Context tbd
+requirement Initial State tbd
+requirement Final State tbd
+AND Trigger tbd
+Finally, the speciﬁcation chapters are complemented man-
+ually with details in NL. As an example for the use of
+speciﬁcation types, Table IX presents requirements for the
+activation hysteresis of the simple belt-warner.
+Logical conditions like the activation hysteresis are often
+found in speciﬁcation documents. The model-integrated spec-
+iﬁcation can be extended with formalised conditional speciﬁ-
+cations resulting in an extended model-integrated speciﬁcation;
+graph operations are still applicable. Again, the formalisation
+applies only to the structure of the conditional speciﬁcations,
+the conditional statements remain NL.TABLE IX
+BELT-WARNER HYSTERESIS SPECIFICATION
+Type Text
+information The driver must not be distracted through
+unnecessary belt-warnings at low speeds.
+requirement The belt-warner shall be activated,
+if vehicle speed exceeds 15 mph.
+requirement The belt-warner shall be deactivated,
+if vehicle speed drops below 12 mph.
+requirement The belt-warner shall be deactivated,
+if a relevant malfunction occurs.
+TABLE X
+BELT-WARNER IGNITION OFFINVARIANT SPECIFICATION
+Type Text ( level 1; level 2; ?level 3)
+AND System resides in IGNITION OFF , if
+conditionBelt-warner ECU not powered.
+TABLE XI
+BELT-WARNER WARNING OFFINVARIANT SPECIFICATION
+Type Text ( level 1; level 2; ?level 3)
+AND System resides in WARNING OFF , if
+conditionNo warning sound emitted.
+conditionSeat-belts fastened.
+Examples of speciﬁcations of state invariants of the belt-
+warner are presented in Tables X and XI; others are similar.
+Examples of speciﬁcations of the triggering conditions of
+the belt-warner example are presented in Tables XII and XIII.
+TABLE XII
+BELT-WARNER INITIAL CONDITION SPECIFICATION
+Type Text ( level 1; level 2; ?level 3)
+AND Seat-belt warner turns on, if
+conditionSystem precondition is TRUE.
+TABLE XIII
+BELT-WARNER START WARNING CONDITION SPECIFICATION
+Type Text ( level 1; level 2; ?level 3)
+XOR Seat-belt warning must start, if
+conditionThe driver seat-belt is unfastened.
+ANDpassenger seat
+conditionPassenger seat is occupied.
+condition ?Passenger seat-belt is unfastened.
+The conditional speciﬁcations complement the belt-warner
+model in Figure 2, resulting in a non-deterministic model-
+integrated speciﬁcation. This model-integrated speciﬁcation
+can be input to further automate analysis and testing steps.
+IV. M ODEL -BASED TEST-CASE SPECIFICATION
+In this section, we present an approach to apply model-
+based test-case generation to model-integrated speciﬁcations.
+A. Creating Test-Cases
+The presented test-case creation approach combines auto-
+mated test-case generation with experienced based testing. We
+
+--- Page 6 ---
+Fig. 5. Model-based testing process
+outline this for statecharts. Initially, the statechart is ﬂattened
+and some modeling elements are substituted. Conditional
+trigger speciﬁcations are transformed into disjunctive normal-
+form; for each conjunct a corresponding transition is added to
+the model. The resulting model is a graph to which one can
+apply common traversal and coverage analysis algorithms.
+We have found that it is not always sensible to directly apply
+graph-traversal algorithms since the GN might not capture all
+of the relevant information. For example, a speciﬁcation might
+contain a cycle that must be repeated a given number of times
+before it can be left; we could encode this information in the
+graph by unfolding the cycle but this might lead to a signiﬁcant
+increase in the size of the graph. In addition, the GN might
+not capture important domain knowledge and may contain
+non-determinism that results from abstraction. Nevertheless,
+automation remains a key technology to efﬁciently handle
+large speciﬁcations and reduce the potential for error in
+carrying out routine tasks. As a result, we have developed an
+interactive test case generation process that allows the user’s
+domain knowledge to be utilised. After each step, the tool
+reports the coverage achieved to allow the user to reason
+about test-case quality. Based on this, the user either decides
+to terminate or chooses the next transition to take.
+The testing process presented in Figure 5 is divided in
+two phases: automated test-model construction, i.e. ﬂattening
+and substitution, and semi-automatic test-case generation. A
+software tool uses ﬂattening and substitution operations to gen-
+erate a testing model from the model-integrated speciﬁcation.
+Fig. 6. Test-Model Belt-Warner
+The resulting testing model for the belt-warner example isTABLE XIV
+TEST-CASE EXAMPLE
+No. Input Output
+0 [Initial SBW] [Invariant IGNITION OFF]
+System precondition is TRUE. Belt-warner ECU not powered.
+1 [Trigger turning on] [Invariant IGNITION ON]
+Ignition key turned ON. Belt-warner ECU powered.
+Error memory is empty. [Invariant STAND BY]
+[Trigger Initial IGNITION ON] Belt-warner signals stand-by.
+Set power status bit =1.
+2 [Trigger activating] [Invariant IGNITION ON]
+Vehicle speed25 km/h. Belt-warner ECU powered.
+[Trigger Initial ACTIVE] Error memory is void.
+Set activity bit =1. [Invariant ACTIVE]
+Belt warner signals activity.
+Vehicle speed >25 km/h.
+[Invariant WARNING OFF]
+No warning sound emitted.
+Seat belts fastened.
+3 [Trigger start warning] [Invariant IGNITION ON]
+Passenger seat occupied. Belt-warner ECU powered.
+Passenger seat-belt unfastened. Error memory is void.
+[Invariant ACTIVE]
+Belt warner signals activity.
+Vehicle speed >25 km/h.
+[Invariant WARNING ON]
+A warning sound emitted.
+Passenger seat-belt unfastened.
+4 [Trigger stop warning] [Invariant IGNITION ON]
+Warning emitted. Belt-warner ECU powered.
+Driver seat-belt fastened. Error memory is void.
+Passenger seat occupied. [Invariant ACTIVE]
+Passenger seat-belt fastened. Belt warner signals activity.
+Vehicle speed >25 km/h.
+[Invariant WARNING OFF]
+No warning sound emitted.
+Seat-belts fastened.
+presented in Figure 6. The testing model is used by another
+software tool to support the test-case speciﬁcation process by
+advising the test engineer. Test-case creation starts with an
+empty sequence in the initial state (the initial transition may
+add text to the test-case too, but for now we will ignore this).
+The software tool supports the test-engineer by offering the
+current state’s outgoing transitions and its textual contents,
+which may be chosen to extend the test-case. When the test-
+engineer selects a transition its textual content is appended to
+the test-case and the current state is changed.
+Once a test-case is ﬁnished, it is added to a test-set (a
+collection of test-cases). The tool applies coverage metrics to
+a test-set so that the test engineer can decide whether further
+test-cases should be added. Table XIV gives a test-case created
+using the tool from the belt-warner model. The test-case covers
+the edges marked bold in the model presented in Figure 6.
+B. Test coverage criteria
+Let us suppose that Sis a model-integrated speciﬁcation,
+GSis an LDG generated from S, and GTis a test-model
+derived from S. Further, suppose that tSis a test suite. We
+have several possible coverage metrics.
+Edge coverage CGis the fraction of edges of GSthat are
+covered when executing tS. Condition coverage CSis the
+fraction of conditional statements (within structured logical
+
+--- Page 7 ---
+expressions) of Scovered when executing tS. Trigger cover-
+ageCT, is the fraction of edges of the test-model Tthat are
+covered when executing tS. For effort estimation, an upper
+bound on the number of edges in Tis provided by taking the
+sum, over the edges of GS, of the number of conditions in the
+DNF form of the triggers. The test-case presented in Table
+XIV results in the coverage rates presented in Table XV.
+TABLE XV
+BELT-WARNER TEST COVERAGE EXAMPLE
+Transition CG CS CT
+Initial ACTIVE 100% 100% 100%
+Initial IGNITION ON 100% 100% 100%
+Initial SBW 100% 100% 100%
+activating 100% 100% 100%
+deactivating 0% 0% 0%
+start warning 100% 50% 50%
+stop warning 100% 50% 100%
+turning off 0% 0% 0%
+turning on 100% 100% 100%
+V. C ASE STUDIES
+The model-integration approach and tool have been used
+in a number of development projects in industry: system
+speciﬁcation of various parking assistance systems using block
+diagrams and statecharts; functional speciﬁcation of emer-
+gency braking systems using statecharts; system speciﬁcation
+of camera-based surround view systems; system, function and
+test-case speciﬁcations of the control of an automated manual
+gearbox; architecture, function and user interface speciﬁca-
+tions of a database management tool; and architecture and
+function of a software-controlled medical device.
+Among the speciﬁed driver assistance systems are 4 park-
+ing systems, 2 brake-assistance systems, and a camera-based
+trafﬁc information system, for which it was found that a
+major beneﬁt lies in the clear structure and transparency of
+the model-integrated speciﬁcation. The largest speciﬁcation
+included 5 functional variants of a parking system containing
+more than 2000 requirements, which were structured using 8
+statechart models, of which the largest contained 40 states and
+69 transitions. Frequently it was seen that the speciﬁcations
+would increase in size. Even though redundancies can be
+eliminated completely, the model-based approach enforces
+completeness and the additional, missing, requirements caused
+the speciﬁcation to grow.
+Functional speciﬁcations of an automated gear-box were
+created using the model-integration tool; experience data is
+presented in Table XVI. Two requirements engineers took four
+months to create model-integrated speciﬁcations from high-
+level functional speciﬁcation. Since the functional speciﬁca-
+tions were found to be incomplete and inconsistent, workshops
+were held with the system developers to elicit missing require-
+ments and to remove speciﬁcation faults. The model-integrated
+speciﬁcations were complemented with testing information, so
+that the same speciﬁcations could be used to generate test-
+cases for manual and automatic execution.TABLE XVI
+AUTOMATIC GEARBOX APPLICATION STATISTICS
+Component Requirements Nodes Edges
+Coasting 315 18 36
+Creeping 275 15 34
+Garage Shift 268 12 34
+Launch 262 16 32
+Shift Quality 293 14 21
+Stalling 144 11 20
+Startup&Shutdown 117 17 26
+The model-integration has also been used to specify a
+medical system consisting of 7 major components. Experience
+data is presented in Table XVII.
+TABLE XVII
+MEDICAL DEVICE APPLICATION STATISTICS
+Component Requirements Nodes Edges
+ECU 91 6 8
+Sensors 98 8 15
+Actuators 92 8 14
+Radio Arch. 17 2 2
+Radio Func. 83 5 15
+Radio Master 92 11 15
+Radio Client 71 8 13
+The model-integrated speciﬁcation approach is in use. To
+specify graphical user interfaces, a speciﬁc graphical notation
+and semantics have been developed that represents the graph-
+ical widgets and their placement on the screen. Functional
+behaviour, in the form of a statechart, can be attached to
+widgets. The project, including the speciﬁcation approach, has
+been assessed and certiﬁed for SPICE level 1 [5].
+TABLE XVIII
+COMPARISON OF APPLICATION STATISTICS IN DEVELOPMENT PROJECTS
+System Comp. Models Nodes Edges Effort[h]
+Parking 1 4 8 40 69 500
+Parking 2 4 5 19 38 650
+Brake 1 1 2 6 8 700
+Brake 2 1 2 15 18 800
+Gearbox 7 7 103 203 1100
+SW Tool 3 26 133 235 900
+Medical Device 4 7 48 82 400
+Table XVIII presents statistics regarding speciﬁcations cre-
+ated using the approach presented. The rows refer to the
+speciﬁed systems. The columns contain counts of components,
+models, states and transitions included in the speciﬁcations.
+Table XVIII shows very different efﬁciencies (efforts per
+node, edge, model, or component), where effort is a rough ap-
+proximation of the number of person hours required to create
+and maintain the speciﬁcation during the project. The parking
+and brake assist system projects were the ﬁrst applications
+of the approach and were involved in the development of the
+method and tool. Thus the comparably low efﬁciency is caused
+by less automation and a less mature approach. Furthermore,
+we found that the number of components and models are
+individual decisions made during the early phases of each
+
+--- Page 8 ---
+project. The inﬂuence of such decisions on the efﬁciency of
+development activities is hard to determine. However, as a rule
+of thumb, we found during the further projects that specifying
+and maintaining a chapter takes approximately up to two days.
+VI. R ELATED WORK
+The basic approach described in this paper has previously
+been presented [6]. This paper provides additional details and
+formalisation as well as an extended example and experience
+data. An additional extension is the inclusion of a semi-
+automatic model-based testing approach and associated cover-
+age criteria. The model-integration approach contributes to the
+RE reference model presented in [7] as it provides a method
+to systematically integrate and relate artefacts (as domain
+knowledge) into artefacts of requirements and speciﬁcations.
+The presented approach contributes to the concept of view-
+points resolution presented in [8] through abstraction and
+uniﬁcation of document structures that signiﬁcantly eases the
+comparison and gap analysis of different viewpoints. The
+extension of the presented approach to methods for the identiﬁ-
+cation of missing and wrong facts over a set of comprehensive
+model-integrated speciﬁcations is a topic of ongoing work and
+inspired by the viewpoints analysis presented in [8].
+In [6] we noted that structure has a signiﬁcant impact on the
+quality of requirements sets. Previous work has used clustering
+to automatically restructure comprehensive requirements sets
+[9]. In contrast, model-integration takes advantage of the
+knowledge and experience of the human reader, who is sup-
+ported by an improved document structure. Similar approaches
+have been presented on the integration of textual and graphical
+modeling languages, e.g. [10], [11], although these do not
+consider natural language as a textual language.
+There are many approaches to model-based testing. How-
+ever, they typically require the existence of a model in a
+formal language such as a ﬁnite state machine [12] or labelled
+transition system [13], possibly enriched by aspects such as
+time [14] or probabilities [15], [16]. While NL explanations
+can complement a model in such a language, the NL is not
+normally integrated with the model.
+VII. C ONCLUSIONS
+The model-integrated approach has been presented, with this
+making it possible to seemlessly integrate textual speciﬁcations
+and models, resulting in a semi-formal speciﬁcation. The
+level of formalisation of the resulting speciﬁcations makes it
+possible to use formal analyses and graph operations, e.g. test-
+case generation. The beneﬁts include the following:
+1) formal deﬁnition of requirements completeness;
+2) efﬁciency through automation;
+3) fewer manual faults through automation;
+4) improved clarity through use of the model as a document
+structure;
+5) fewer redundancies and inconsistencies through formal
+soundness criteria and checking capabilities;
+6) no divergence of the GN and NL parts of a speciﬁcation;
+7) eased and accelerated maintenance and change.The approach has been implemented in a tool. It has been
+applied in several projects in industry over a period of 6 years.
+Future work will aim at the reimplementation of the tool
+independent of speciﬁc commercial requirements management
+systems and that utilises the model-integration approach. Fur-
+thermore, an extended approach is under development that
+allows for bidirectional changing of models, i.e. to transfer
+changes of the model from NL into GN and vice versa.
+Currently, it is only possible to change the model through
+manually changing the GN-part and transferring these changes
+automatically to the NL-part. There may also be scope to
+automatically derive some structure from NL.
+REFERENCES
+[1] T. Gilb, “No cure no pay: How to contract for software services,”
+Comput. Sci. Inf. Syst. , vol. 4, no. 1, pp. 29–41, 2007.
+[2] J. W. Nilsson, Electric circuits (4. ed.) , ser. Addison-Wesley series in
+electrical and computer engineering. Addison-Wesley, 1993.
+[3] M. K. Stojcev, “John p. hayes, computer architecture and organization,
+third ed., mcgraw-hill book company, inc., boston, 1988, softcover,
+pp 604, plus xiv, ISBN 0-07-115997-5,” Microelectronics Reliability ,
+vol. 46, no. 1, pp. 196–197, 2006.
+[4] D. Harel, “Statecharts in the making: a personal account,” Commun.
+ACM , vol. 52, no. 3, pp. 67–75, 2009.
+[5] I. O. for Standardization, “Software process improvement and capability
+determination (spice),” Tech. Rep., 2012.
+[6] C. Robinson-Mallett, “An approach on integrating models and textual
+speciﬁcations,” in Second IEEE International Workshop on Model-
+Driven Requirements Engineering, MoDRE 2012, Chicago, IL, USA,
+September 24, 2012 , 2012, pp. 92–96.
+[7] C. A. Gunter, E. L. Gunter, M. Jackson, and P. Zave, “A reference model
+for requirements and speciﬁcations,” IEEE Software , vol. 17, no. 3, pp.
+37–43, 2000. [Online]. Available: http://dx.doi.org/10.1109/52.896248
+[8] J. C. S. do Prado Leite and P. Freeman, “Requirements validation
+through viewpoint resolution,” IEEE Trans. Software Eng. , vol. 17,
+no. 12, pp. 1253–1269, 1991.
+[9] A. Ferrari, S. Gnesi, and G. Tolomei, “Using clustering to improve the
+structure of natural language requirements documents,” in Requirements
+Engineering: Foundation for Software Quality - 19th International
+Working Conference, REFSQ 2013, Essen, Germany, April 8-11, 2013.
+Proceedings , 2013, pp. 34–49.
+[10] L. Engelen and M. van den Brand, “Integrating textual and graphical
+modelling languages,” Electr. Notes Theor. Comput. Sci. , vol. 253, no. 7,
+pp. 105–120, 2010.
+[11] M. Scheidgen, “Textual modelling embedded into graphical modelling,”
+inModel Driven Architecture - Foundations and Applications, 4th
+European Conference, ECMDA-FA 2008, Berlin, Germany, June 9-13,
+2008. Proceedings , 2008, pp. 153–168.
+[12] R. M. Hierons and U. C. T ¨urker, “Parallel algorithms for testing ﬁnite
+state machines: Generating UIO sequences,” IEEE Transactions on
+Software Engineering , vol. 42, no. 11, pp. 1077–1091, 2016.
+[13] J. Tretmans, “Model based testing with labelled transition systems,” in
+Formal Methods and Testing , ser. Lecture Notes in Computer Science,
+vol. 4949. Springer, 2008, pp. 1–38.
+[14] C. Gaston, R. M. Hierons, and P. L. Gall, “An implementation relation
+and test framework for timed distributed systems,” in 25th IFIP WG
+6.1 International Conference on Testing Software and Systems (ICTSS
+2013) , ser. Lecture Notes in Computer Science, vol. 8254. Springer,
+2013, pp. 82–97.
+[15] M. Gerhold and M. Stoelinga, “Model-based testing of probabilistic
+systems,” in Fundamental Approaches to Software Engineering - 19th
+International Conference, FASE 2016 , ser. Lecture Notes in Computer
+Science, vol. 9633. Springer, 2016, pp. 251–268.
+[16] G. H. Walton, J. H. Poore, and C. J. Trammell, “Statistical testing of
+software based on a usage model,” Softw., Pract. Exper. , vol. 25, no. 1,
+pp. 97–108, 1995.

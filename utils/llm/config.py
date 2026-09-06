@@ -2,10 +2,49 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any
+from datetime import date
+from typing import Any, Literal
 from urllib.parse import urlsplit
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    field_validator,
+    model_validator,
+)
+
+
+class LLMTokenPrices(BaseModel):
+    """A small four-class USD-per-million token rate card."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    input_usd_per_million_tokens: float = Field(ge=0)
+    output_usd_per_million_tokens: float = Field(ge=0)
+    cache_read_usd_per_million_tokens: float | None = Field(default=None, ge=0)
+    cache_write_usd_per_million_tokens: float | None = Field(default=None, ge=0)
+
+
+class LLMPricing(BaseModel):
+    """Auditable model list prices in USD per one million tokens."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    prices: LLMTokenPrices
+    source_url: str = Field(min_length=1)
+    verified_on: date
+    basis: Literal["official_list_price", "account_effective_price"]
+    scope_note: str = Field(min_length=1)
+
+    @field_validator("source_url")
+    @classmethod
+    def _require_https_source(cls, value: str) -> str:
+        parsed = urlsplit(value)
+        if parsed.scheme != "https" or not parsed.netloc:
+            raise ValueError("source_url must be an absolute https URL")
+        return value
 
 
 class LLMConfig(BaseModel):
@@ -17,11 +56,13 @@ class LLMConfig(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
+    adapter: Literal["openai", "openai-responses", "anthropic", "deepseek"] = "openai"
     base_url: str | None = None
     api_key: SecretStr | None = None
     model: str = Field(min_length=1)
     context_window_tokens: int | None = Field(default=None, gt=0)
     max_output_tokens: int | None = Field(default=None, gt=0)
+    pricing: LLMPricing | None = None
 
     @field_validator("model", mode="before")
     @classmethod
@@ -46,9 +87,10 @@ class LLMConfig(BaseModel):
         if parsed.username is not None or parsed.password is not None:
             raise ValueError("base_url must not contain userinfo")
         try:
-            parsed.port
+            port = parsed.port
         except ValueError as exc:
             raise ValueError("base_url must contain a valid port") from exc
+        del port
         return value.rstrip("/")
 
     @field_validator("api_key", mode="before")
@@ -63,7 +105,7 @@ class LLMConfig(BaseModel):
         return value
 
     @model_validator(mode="after")
-    def _check_token_bounds(self) -> "LLMConfig":
+    def _check_token_bounds(self) -> LLMConfig:
         if (
             self.context_window_tokens is not None
             and self.max_output_tokens is not None
@@ -95,11 +137,15 @@ class LLMConfig(BaseModel):
                 display_host = f"[{host}]" if ":" in host else host
                 endpoint_ref = f"{parsed.scheme}://{display_host}{f':{port}' if port is not None else ''}"
         return {
+            "adapter": self.adapter,
             "model": self.model,
             "base_url_ref": endpoint_ref,
             "api_key_configured": self.api_key is not None,
             "context_window_tokens": self.context_window_tokens,
             "max_output_tokens": self.max_output_tokens,
+            "pricing": self.pricing.model_dump(mode="json")
+            if self.pricing is not None
+            else None,
         }
 
     def fingerprint(self) -> str:

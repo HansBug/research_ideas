@@ -1,0 +1,455 @@
+{
+ "schema": "paper1.manual_review.rescope.v1",
+ "generated_for": "按 MANUAL_REVIEW_SPEC.md 写死的范围外硬规则重判 29 条 out_of_scope diff，使 problems_in_scope 从区间 [148,165] 收敛为确定值",
+ "spec": "project_1_llm_state_machine_modeling/eval/discover_matrix/MANUAL_REVIEW_SPEC.md",
+ "do_not_edit_note": "本文件是重判建议，主档 manual_review/*-review.json 未被修改",
+ "reclassified": [
+  {
+   "case": "0033",
+   "diff_index": 2,
+   "group": "NL06",
+   "llm": "Kimi",
+   "was": {
+    "verdict": "problem",
+    "out_of_scope": "concurrency"
+   },
+   "should_be": [
+    {
+     "verdict": "problem",
+     "out_of_scope": null,
+     "aspect": "范围内的那一面：PumpControl 的「三路分解」在生成侧不存在。NL06 第 2 句逐字给出数量断言 'there are three main substates: PumpState, WaterState, and MethaneState'；生成侧 PumpControl 体内 0 个有效具名子态（FCSTM 投影里只有 InvalidInitialtr_0005/0007/0009 三个非法标记）。cardinality(scope=PumpControl, count=3) 为假，这是 S 上的数量断言，与是否并发无关",
+     "assertable": "cardinality(scope=\"llms_emp_feedback_final_0033.PumpControl\", count=3)",
+     "predicate_exists": true
+    },
+    {
+     "verdict": "problem",
+     "out_of_scope": "concurrency",
+     "aspect": "范围外的那一面：参考用两个 -- 让三个具名子态可同时活跃；生成侧三个重名 state PumpControl 块被 PlantUML 合并为单一区域，三者不可能同时活跃。正交区执行语义不在 M 内",
+     "assertable": null,
+     "predicate_exists": false
+    }
+   ],
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 1 行：NL 或参考说「有 N 个 X」而模型只有 M 个 → 范围内（数量/结构断言，落在 S 内） + MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency + MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 末段硬约束：一条 diff 不得同时承载范围内与范围外两个方面，必须拆成两条",
+   "evidence": "原 reason 自己写明两面：「并发结构本身超出本研究 FSM/HSM/EFSM 范围，故标 out_of_scope；但『参考用区域承载的三主子态分解在生成侧不存在』是真实的结构语义损失」。数量断言是 NL 直接给出的（pairs/0033/nl.txt 第 2 句 'there are three main substates'），不依赖参考的并发读法——这正是 0006#1 判为范围内 problem 的同一依据，两者必须统一。原 assertable 已是 cardinality(count=3)，与 d0 的 containment、d1 的 initial_target 是三个不同谓词，不构成重复计数",
+   "not_double_counted_with": [
+    "0033#0 containment（三个具名态是 PumpControl 的兄弟）",
+    "0033#1 initial_target（三条初始边越界、默认进入点不唯一）"
+   ],
+   "severity": "I",
+   "count_delta": 1
+  },
+  {
+   "case": "0039",
+   "diff_index": 4,
+   "group": "NL05",
+   "llm": "Kimi",
+   "was": {
+    "verdict": "problem",
+    "out_of_scope": "concurrency"
+   },
+   "should_be": [
+    {
+     "verdict": "problem",
+     "out_of_scope": null,
+     "aspect": "范围内的那一面：根状态的同一顺序区域内并存 [*] -> AutonomousMode 与 [*] -> collision_avoidance_deactive 两条竞争初始边，默认进入点不唯一。这是 Tr/初始伪态上的确定性缺陷，在不含正交并发的 M 里就已经成立",
+     "assertable": "initial_target(composite=\"llms_emp_feedback_final_0039\", child=\"llms_emp_feedback_final_0039.AutonomousMode\")",
+     "predicate_exists": true
+    },
+    {
+     "verdict": "problem",
+     "out_of_scope": "concurrency",
+     "aspect": "范围外的那一面：参考在 AutonomousMode 内用 -- 让碰撞规避与驾驶模式同时活跃，生成侧降级为顺序。与 0009#6 / 0019#7 / 0029#9 / 0049#6 / 0059#6 同型",
+     "assertable": null,
+     "predicate_exists": false
+    }
+   ],
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency + MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 末段硬约束：一条 diff 不得同时承载范围内与范围外两个方面，必须拆成两条",
+   "evidence": "原 reason 逐字写明「这是独立于并发议题的确定性缺陷」，并给出可断言形式 initial_target(...)。整条打 tag 会把这条 FSM 级缺陷静默扣掉。0039 其余 diff（d0 correct / d1 enter_hwy→lane_change / d5 父级 dispatch extra）都未记录根初始不唯一，属未被任何 diff 承载的真实缺陷",
+   "consistency_note": "范围外那半的档位若为与本组其余五例一致，可降为 similar（0009/0019/0029/0049/0059 对同一「并发→顺序」降级都判 similar）。因该半带 tag，无论 problem 还是 similar 都不进入计数，problems_in_scope 恒为 +1，故此处按最小改动保留 problem",
+   "not_double_counted_with": [
+    "0039#1 edge_declared（enter_hwy → lane_change 分支缺失）",
+    "0039#5 extra（父复合态指向自身后代的模式切换边）"
+   ],
+   "severity": "I",
+   "count_delta": 1
+  },
+  {
+   "case": "0053",
+   "diff_index": 1,
+   "group": "NL06",
+   "llm": "Claude",
+   "was": {
+    "verdict": "problem",
+    "out_of_scope": "concurrency"
+   },
+   "should_be": [
+    {
+     "verdict": "problem",
+     "out_of_scope": null,
+     "aspect": "范围内的那一面：PumpRegion / WaterRegion / MethaneRegion 三者之间零迁移。NL06 第 4/5 句逐字用 'can also transition to the WaterState substate' / 'can transition to the MethaneState substate' 要求迁移存在；在不含正交并发的顺序语义下，三个 wrapper 互斥，缺了这些迁移后最多只有一个具名子态可达。这是 Tr 上的缺失，与是否并发无关",
+     "assertable": "reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0053.PumpControl.WaterRegion.WaterState\", within_cycles=3)",
+     "predicate_exists": true
+    },
+    {
+     "verdict": "problem",
+     "out_of_scope": "concurrency",
+     "aspect": "范围外的那一面：参考的两个 -- 让三个具名子态可同时活跃；生成侧无任何 -- 分隔符，三者退化为互斥。同时活跃语义不在 M 内",
+     "assertable": null,
+     "predicate_exists": false
+    }
+   ],
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency + MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 末段硬约束：一条 diff 不得同时承载范围内与范围外两个方面，必须拆成两条",
+   "evidence": "原 reason 逐字写明「三主子态从可同时活跃退化为互斥且互不可达」是真实的语义损失。核实 pairs/0053/plantuml.puml 与 fcstm/llms_emp_feedback_final_0053.fcstm：PumpControl 内只有三个 wrapper + 合成 UnspecifiedInitial，wrapper 之间一条边都没有。d0 只承载「PumpControl 层缺初始边」，NL 4/5 要求的迁移缺失未被任何 diff 记录",
+   "not_double_counted_with": [
+    "0053#0 initial_target（PumpControl 层无初始边 → UnspecifiedInitial）",
+    "0053#2 similar（wrapper 一一对应，cardinality(PumpControl,3) 仍成立）"
+   ],
+   "severity": "I",
+   "count_delta": 1
+  }
+ ],
+ "unchanged": [
+  "0002#4",
+  "0002#5",
+  "0008#1",
+  "0008#7",
+  "0009#6",
+  "0013#3",
+  "0013#4",
+  "0016#3",
+  "0018#3",
+  "0019#7",
+  "0023#2",
+  "0023#4",
+  "0029#9",
+  "0033#4",
+  "0036#3",
+  "0037#1",
+  "0038#7",
+  "0043#6",
+  "0047#3",
+  "0048#5",
+  "0049#6",
+  "0053#5",
+  "0056#0",
+  "0057#3",
+  "0058#5",
+  "0059#6"
+ ],
+ "unchanged_detail": [
+  {
+   "id": "0002#4",
+   "verdict": "similar",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "整条只记录「区域划分方式与参考一致（一区一具名子态）」，纯并发结构陈述，无范围内残留；0002 的范围内缺陷由 d0/d1/d3 承载",
+   "severity": "M"
+  },
+  {
+   "id": "0002#5",
+   "verdict": "uncertain",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "质疑参考的三区域并发读法与 NL 3 'first transitions' 顺序措辞冲突，对象正是「是否同时活跃」；uncertain 本就不计数",
+   "severity": "M"
+  },
+  {
+   "id": "0008#1",
+   "verdict": "problem",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "看似第 4 条待拆（reason 写了「三条无守卫出边造成的不确定性也在同一处记录」），但核实 Dataset.xlsx 行 55 参考：fork1 的三条出边 fork1-->AutoFocus、fork1-->DetLight、fork1-->choice3 全部无守卫，与生成侧完全一致。「三条无守卫出边」不是相对参考的偏离，唯一偏离是 fork 伪态的「同时进入」退化为「三选一」，即纯并发执行语义；伪态声明缺失这一范围内事实已由 0008#0（state_declared kind=pseudo）单独承载。故不拆",
+   "severity": "M",
+   "note": "该 diff 的 ref 字段只列了两条出边，漏了参考实有的 fork1 --> choice3，字面读会诱导误拆 → 建议修 ref 字段文本（不改 verdict/tag/计数）"
+  },
+  {
+   "id": "0008#7",
+   "verdict": "problem",
+   "tag": "timing",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 6 行：真正的时长约束（execTime=[(2,s,max)]）→ 范围外 timing",
+   "why": "对象是参考的 5 处 execTime=[(n,s,max),(n,s,min)]，被规范表第 6 行点名为范围外。注意「丢掉 2 处」不触发表第 1 行：第 1 行的数量断言限于落在 S 内的元素，execTime 属时间自动机的 C，M 里没有该载体，计数它不会把它搬进 S。「After (2 s) 挂在内部初始迁移」引发的层次改写已由 0008#2（AutoFocus 内部初始迁移吞掉 memFull 守卫边）范围内承载",
+   "severity": "M"
+  },
+  {
+   "id": "0009#6",
+   "verdict": "similar",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "并发区 → 顶层顺序兄弟复合态，且生成侧两态双向 + 初始边齐全，无范围内残留",
+   "severity": "M"
+  },
+  {
+   "id": "0013#3",
+   "verdict": "similar",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "reason 已明写「区域用途错位这一点已由上面第 1、2 条 problem 覆盖，不重复计数」；0013#0 正是以 cardinality（七个 ≠ 三个）范围内记账，与表第 1 行一致",
+   "severity": "M"
+  },
+  {
+   "id": "0013#4",
+   "verdict": "uncertain",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "参考并发读法可疑，对象为同时活跃；uncertain 不计数",
+   "severity": "M"
+  },
+  {
+   "id": "0016#3",
+   "verdict": "similar",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "只记录「区域被写成顺序推进而非同时活动」；reason 已明写数量问题在 d0 单列（三层嵌套 → 区域归属错误）",
+   "severity": "M"
+  },
+  {
+   "id": "0018#3",
+   "verdict": "problem",
+   "tag": "timing",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 6 行：真正的时长约束（execTime=[(2,s,max)]）→ 范围外 timing",
+   "why": "5 处 execTime 全部消失，对象即表第 6 行点名的时长约束。与 0008#7 同理，「5 处→0 处」的计数不把 C 搬进 S",
+   "severity": "M"
+  },
+  {
+   "id": "0019#7",
+   "verdict": "similar",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "纯并发→顺序降级；该 case 的范围内缺陷（CollisionAvoidanceSystem 无初始边）由 0019#2 单独承载",
+   "severity": "M"
+  },
+  {
+   "id": "0023#2",
+   "verdict": "similar",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "生成侧并发结构与参考完全一致，无任何损失",
+   "severity": "M",
+   "note": "严格说与参考等价，档位可为 correct 而非 similar；不影响计数"
+  },
+  {
+   "id": "0023#4",
+   "verdict": "uncertain",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "参考并发读法可疑；uncertain 不计数",
+   "severity": "M"
+  },
+  {
+   "id": "0029#9",
+   "verdict": "similar",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "纯并发→顺序降级，生成侧初始边齐全",
+   "severity": "M"
+  },
+  {
+   "id": "0033#4",
+   "verdict": "uncertain",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "质疑参考「三者同时活跃」读法本身；该 uncertain 与本次 0033#2 的拆分互不冲突——拆出的范围内那半只依赖 NL 第 2 句的数量断言，不依赖并发读法",
+   "severity": "M"
+  },
+  {
+   "id": "0036#3",
+   "verdict": "similar",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "只记录并发建模本身；区域挂载位置（d0）与实质区域数只有两个（d1）已在范围内单列",
+   "severity": "M"
+  },
+  {
+   "id": "0037#1",
+   "verdict": "problem",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "核实 pairs/0037/plantuml.puml：FrontendCollisionRegion / RearEndCollisionRegion / PedestrianCollisionRegion 三个具名复合态齐全，NL07 第 1 句 'There are three region' 的数量断言在声明层满足，故表第 1 行不触发；残留的唯一偏离是「同一时刻只能激活一个」。该 case 的范围内结构缺陷（三条检测边指向死端叶态、三个 Region 无入边）已由 0037#0 承载",
+   "severity": "M"
+  },
+  {
+   "id": "0038#7",
+   "verdict": "similar",
+   "tag": "timing",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 6 行：真正的时长约束（execTime=[(2,s,max)]）→ 范围外 timing",
+   "why": "对象为 execTime 的保真度，档位 similar，本就不计数",
+   "severity": "M"
+  },
+  {
+   "id": "0043#6",
+   "verdict": "uncertain",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "参考并发读法可疑；0043 的数量断言违反已由 0043#0 范围内承载（顶层分解只有两个成员）",
+   "severity": "M"
+  },
+  {
+   "id": "0047#3",
+   "verdict": "problem",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "核实 pairs/0047/plantuml.puml：Frontend / RearEnd / Pedestrian 三个具名复合态齐全，声明层数量满足；三路控制因同名 Idle/Braking/Clamping 塌缩为一路这一范围内事实已由 0047#0 承载（FCSTM 里 RearEnd / Pedestrian 只剩 InvalidInitialtr_0005/0009），CAS 缺初始由 0047#1 承载。残留仅同时活跃",
+   "severity": "M"
+  },
+  {
+   "id": "0048#5",
+   "verdict": "similar",
+   "tag": "timing",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 6 行：真正的时长约束（execTime=[(2,s,max)]）→ 范围外 timing",
+   "why": "5 处 execTime max+min 全保留且载体为状态自身，纯时间类且档位 similar",
+   "severity": "M"
+  },
+  {
+   "id": "0049#6",
+   "verdict": "similar",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "纯并发→顺序降级",
+   "severity": "M"
+  },
+  {
+   "id": "0053#5",
+   "verdict": "uncertain",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "质疑参考并发读法；与 0053#1 的拆分互不冲突——拆出的范围内那半依赖 NL 4/5 的 'can (also) transition to' 措辞，在顺序读法下反而更强",
+   "severity": "M"
+  },
+  {
+   "id": "0056#0",
+   "verdict": "similar",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "Area1/Area2/Area3 三个区域态齐全并循环，「三个区域」的数量断言在轮转读法下满足，故不触发表第 1 行；残留仅正交与否",
+   "severity": "M"
+  },
+  {
+   "id": "0057#3",
+   "verdict": "problem",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "核实 pairs/0057/plantuml.puml：Frontend / RearEnd / Pedestrian 三个具名复合态齐全，声明层数量满足；范围内的「CA 无初始子态 → 三路控制全不可达」已由 0057#2 单独承载。残留仅无法并发激活",
+   "severity": "M"
+  },
+  {
+   "id": "0058#5",
+   "verdict": "similar",
+   "tag": "timing",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 6 行：真正的时长约束（execTime=[(2,s,max)]）→ 范围外 timing",
+   "why": "5 处 execTime max+min 全保留，纯时间类且档位 similar；reason 已注明该写法引发的入口缺陷由 d2/d3/d4 范围内承载",
+   "severity": "M"
+  },
+  {
+   "id": "0059#6",
+   "verdict": "similar",
+   "tag": "concurrency",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 2 行：区域之间是否同时活跃（并发执行语义）→ 范围外 concurrency",
+   "why": "纯并发→顺序降级 + 守卫风格差异，语义说得通",
+   "severity": "M"
+  }
+ ],
+ "reverse_check": {
+  "method": "对全部 60 份主档的 163 条 verdict∈{problem,extra} 且 out_of_scope=null 的 diff 做关键词全扫（区域/region/Region/并发/并行/concurren/parallel/正交/同时/execTime/时间/时长/定时/timer/Timer/after/After/秒/min=/max=），命中 59 条；再按并发语义词与时长约束词分层复核 22 条，剩余 37 条逐条肉眼过。",
+  "result": "0 条需要补 out_of_scope 标记。",
+  "anchor_0006": {
+   "id": "0006#1",
+   "verdict": "problem",
+   "tag": null,
+   "decision": "保持不变（范围内、不打 tag）",
+   "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 1 行：NL 或参考说「有 N 个 X」而模型只有 M 个 → 范围内（数量/结构断言，落在 S 内）",
+   "why": "reason 逐字写「NL 第 2 句 'operates within three different state areas' 是数量断言，本模型一个区域都没有……这是数量/结构问题，不是并发风格问题」，正是规范表第 1 行的判法。反向裁定的错在 0033#2 整条打 tag，不在 0006#1；本轮把 0033#2 拆出范围内那半后，两者用同一谓词 cardinality(count=3) 得到同一归属，反向裁定消除",
+   "severity": "M",
+   "note": "0006 与 0046 都未附一条范围外的并发伴随记录（对比 0016#3 / 0036#3 / 0056#0 都有）。属「照实记录」的完整性欠账，不影响计数"
+  },
+  "row1_vs_row6_boundary": "表第 1 行（数量断言→范围内）只适用于被数的对象本身落在 S/E/V/Tr/A 里的情形。0008#7 与 0018#3 数的是 execTime 条数，其载体属时间自动机的 C，被表第 6 行点名为范围外，因此「丢了 N 处 execTime」不因带了数量而回到范围内。",
+  "row3_row4_row5_confirmations": [
+   {
+    "ids": [
+     "0005#0",
+     "0005#3",
+     "0015#3",
+     "0025#2",
+     "0035#4",
+     "0045#2",
+     "0055#3"
+    ],
+    "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 3 行：定时器动作（Start Timer）→ 范围内（属 A）",
+    "why": "NL10 微波炉的 Start Timer / Stop Timer / CancelTimer 是迁移 effect（属 A），全部已按范围内 problem 记账，未打 tag，与表第 3 行一致"
+   },
+   {
+    "ids": [
+     "0028#0"
+    ],
+    "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 4 行：定时器事件（Timer Expired）→ 范围内（属 E）",
+    "why": "Timer Expired 作为 declared event 出现（属 E），范围内，未打 tag"
+   },
+   {
+    "ids": [
+     "0025#1",
+     "0035#3"
+    ],
+    "rule": "MANUAL_REVIEW_SPEC.md §范围外（out_of_scope）的边界 —— 硬规则 表格第 5 行：零时/剩余时间守卫（[Zero Time]）→ 范围内（over V 的普通守卫）",
+    "why": "Door Closed[Zero Time] 守卫丢失按 over V 的普通守卫记为范围内 problem，未打 tag，与表第 5 行一致"
+   }
+  ],
+  "no_full_reclassification": "9 条带 tag 的 problem 中没有任何一条是「整条其实都在范围内」而被误标的；只有 3 条兼具两面需拆。"
+ },
+ "totals": {
+  "problem": 135,
+  "extra": 31,
+  "out_of_scope_deducted": 9,
+  "problems_in_scope": 157
+ },
+ "totals_derivation": "problems_in_scope = problem(135) + extra(31) − 其中带 out_of_scope 的条数(9) = 157。三处拆分各使 problem 总数 +1 而带 tag 的 problem/extra 条数不变，故净 +3。",
+ "out_of_scope_after": {
+  "total": 29,
+  "concurrency": 24,
+  "timing": 5,
+  "by_verdict": {
+   "problem": 9,
+   "similar": 14,
+   "uncertain": 6
+  },
+  "note": "带 tag 的条数与分类均不变：三处拆分把范围外那半留在原 tag 上，新增的是不带 tag 的范围内那半。problem 9 = concurrency 7 + timing 2；similar 14 = concurrency 11 + timing 3；uncertain 6 全为 concurrency"
+ },
+ "delta_from_current": {
+  "problem": "132 → 135（+3）：0033#2 / 0039#4 / 0053#1 各拆出一条不带 tag 的范围内 problem",
+  "extra": "31 → 31（0）：无 extra 涉及范围外边界",
+  "out_of_scope_deducted": "9 → 9（0）：7 concurrency + 2 timing 不变，三条被拆的 diff 其范围外那半继续带原 tag 并继续被扣除",
+  "problems_in_scope": "154 → 157（+3）",
+  "per_case": [
+   {
+    "case": "0033",
+    "problem": "3 → 4",
+    "in_scope": "3 → 4",
+    "from": "0033#2 拆出 cardinality(PumpControl,3) 这一范围内断言"
+   },
+   {
+    "case": "0039",
+    "problem": "2 → 3",
+    "in_scope": "2 → 3",
+    "from": "0039#4 拆出根状态两条竞争初始边这一范围内断言"
+   },
+   {
+    "case": "0053",
+    "problem": "2 → 3",
+    "in_scope": "1 → 2",
+    "from": "0053#1 拆出三 wrapper 间零迁移（NL 4/5 要求的迁移缺失）这一范围内断言"
+   }
+  ],
+  "unchanged_items": "其余 26 条 out_of_scope 全部维持原判（含 6 条 problem：0008#1、0008#7、0018#3、0037#1、0047#3、0057#3）",
+  "interval_collapse": "区间 [148,165] 收敛为单点 157。下界 148 对应「把 0006#1 等 6 条区域数量类 problem 也当范围外扣掉」的读法，规范表第 1 行已排除；上界 165 对应「29 条全部计入」的读法，规范表第 2/6 行已排除",
+  "reverse_check_delta": "0 条：无未标 tag 的 problem/extra 需要改为范围外，故无向下修正"
+ },
+ "severity_summary": {
+  "C": 0,
+  "I": 3,
+  "I_items": [
+   "0033#2 拆分",
+   "0039#4 拆分",
+   "0053#1 拆分"
+  ],
+  "M": 27,
+  "M_note": "26 条维持原判 + 1 条 0006#1 反向核对确认；其中两条值得动手但不改计数：0008#1 的 ref 字段漏了参考实有的 fork1 --> choice3（字面读会诱导误拆），0006/0046 缺范围外并发伴随记录"
+ }
+}

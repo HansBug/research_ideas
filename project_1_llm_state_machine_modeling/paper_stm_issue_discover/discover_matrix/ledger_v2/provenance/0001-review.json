@@ -1,0 +1,86 @@
+{
+ "case": "0001",
+ "group": "NL02",
+ "llm": "GPT-4o",
+ "diffs": [
+  {
+   "verdict": "correct",
+   "ref": "[*] --> Initial_State / Initial_State --> Braking_State : Signal_sent_successfully / Initial_State --> Running_State : Signal_sending_failed / Running_State --> Initial_State : Send_signal_feedback / Braking_State --> Initial_State : Send_signal_feedback / Braking_State --> Brake_Caliper_Closed_State",
+   "gen": "[*] --> InitialState / InitialState --> BrakingState : Brake Signal Received / InitialState --> OperationalState : Signal Transmission Fails / OperationalState --> InitialState : Signal Feedback Sent / BrakingState --> InitialState : Signal Feedback Sent / BrakingState --> ClampingState : Entering Clamping State",
+   "reason": "五个状态与七条迁移与参考构成完整的一一对应：InitialState=Initial_State、BrakingState=Braking_State、OperationalState=Running_State（operational 与 running 是 NL 第 2 句同一概念的两种译法）、ClampingState=Brake_Caliper_Closed_State、ClampingLoseState=Brake_Caliper_Relaxed_State。触发器命名差异（Brake Signal Received vs Signal_sent_successfully）属命名风格，见下一条 similar 单列。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Initial_State --> Braking_State : Signal_sent_successfully",
+   "gen": "InitialState --> BrakingState : Brake Signal Received",
+   "reason": "NL 第 2 句原文是 'When the basic braking device receives a brake signal, it transitions from the initial state to the braking state. If the signal transmission fails, it proceeds to the operational state.' 作者的 Brake Signal Received 是字面读法；参考的 Signal_sent_successfully 是把它改写成与 Signal_sending_failed 互补的成对事件，反而是更远离原文的一侧。两种读法都说得通，判 similar。要记录的语义差异是：参考的成对命名把 Braking 与 Operational 表达成同一次信号传输的互斥结果，作者的两个独立事件名丢失了这层互斥性——但 NL 本身也没有明说互斥，故不升级为 problem。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Braking_State --> Brake_Caliper_Closed_State（无标签，即无事件完成迁移）",
+   "gen": "BrakingState --> ClampingState : Entering Clamping State",
+   "reason": "这正是台帐 E2a/eventless_label_ambiguity 卡住的那条边。我独立判定该标签是描述文本而非触发器，依据有三：一是 'Entering Clamping State' 只是把目标状态名重述一遍，是自指的、语义空洞的注解，不是 NL 里出现过的任何信号；二是 NL 第 3 句 'After entering the braking state, the system transitions to the brake caliper clamping state' 根本没有给这条迁移任何触发器；三是同组语料里存在无争议的散文标签实例——0001/0011 的 'Transition to Clamping Lose State' 与 0031 的 'Transition Missing Feedback' 都不可能是事件名，证明这批模型确实在用 label 位写描述。按描述文本读，作者意图的边就是无事件完成迁移，与参考完全一致，故判 similar 而非 problem。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "Running_State --> Brake_Caliper_Relaxed_State（参考有该状态与该边）",
+   "gen": "OperationalState --> ClampingLoseState : Transition to Clamping Lose State / ClampingLoseState : Clamping Lose State",
+   "reason": "核实结论：ClampingLoseState（clamping loose，即制动钳松开）在 NL 三句话里确实从未出现——NL 只讲了初态、制动态、运行/操作态、以及制动后进入钳夹态，完全没有松钳状态。但它并不是相对参考的过度指定：参考模型自己就有 Brake_Caliper_Relaxed_State 与 Running_State --> Brake_Caliper_Relaxed_State，两者语义对应。因此按 REVIEW_SPEC 的 extra 定义（参考没有且 NL 未要求）它不成立，真正的问题在参考侧：参考模型引入了 NL 无依据的状态与迁移，而论文 §4.2(4) 只是 assume 参考语义正确。更值得记录的是来源：论文对 0001 记的 semantic 幻觉是 'missing one state and transition' 且 semantic_resolved = 1.0、f1_phase2 = 1，而这份 Phase-II 制品恰好与参考七条边一一对齐——即这个状态与边极可能是作者在 Phase-II 阶段按参考补进去的，而不是 GPT-4o 的原始输出。把它当作 LLM 过度指定的实例会同时错在两处。故按规范记 uncertain。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "（不适用：语料完整性问题）",
+   "gen": "0001-author.puml 与 0011-author.puml 逐字节相同（md5 均为 bfa2e36843f3aee8fdcf4eee39d2fb9e）",
+   "reason": "GPT-4o 与 GPT-4 两个不同模型的 Phase-II 制品完全逐字节相同，包括 'Transition to Clamping Lose State' 这种非常规的自造标签与 'InitialState: Initial State' 这类冗余描述行。独立生成撞出完全相同字节的概率极低，更可能是作者在 Phase-II 修正时把同一份文本复制到了两个 case。这意味着 pairs/0001 与 pairs/0011 不能被当作两个独立的 LLM 输出样本使用，会影响任何以 case 为独立单位的统计。记为 uncertain 供后续核查。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 0,
+ "extra_count": 0,
+ "vs_paper": "论文记 semantic 栏 'missing one state and transition'，semantic_resolved = 1.0，f1 从 0.88 升到 1；format / grammar 栏均为 None。我判 0 个 problem、0 个 extra，与论文的 Phase-II 结论（f1 = 1）方向一致。但要指出论文那条 semantic 幻觉的性质：它指的是缺 Brake_Caliper_Relaxed_State 及其入边，而该元素只存在于参考模型、NL 从未提及。也就是说论文这一栏度量的是 '对人工重建参考的符合度'，不是 '对 NL 的忠实度'，把它记作 hallucination 在术语上是可疑的。",
+ "vs_ledger": "台帐 0001 状态 candidate_only、expected_issue_count = 0，唯一观察是 E2a/eventless_label_ambiguity（'Entering Clamping State' 既可能是触发器也可能是描述文本，无法安全归因为 D10）。我同意 E1 = 0 的结论，但认为记录的理由应当更强、也更准确：该标签可以被判定为描述文本（依据见上），因此作者源在这条边上是正确的，FCSTM 里的 event Entering_Clamping_State 是表示层把散文提升成事件的产物——属 representation 侧观察，本就不该记到作者账上。E2a 作为 '归因不可判定' 是成立的（不确定的是归因方，不是事实），但把它写成 '无法判定标签性质' 略过强。我判的 problem 里没有一条是论文或台帐两者都没记的，因为我判 0 个 problem。",
+ "notes": "0001 在语义上与参考七条边一一对齐，是 NL02 组唯一与参考完全对齐的模型（0011 因逐字节相同而并列）。本 pair 的主要发现不在模型侧而在参考侧与语料侧：参考模型含 NL 无依据的松钳状态，且该状态极可能由作者 Phase-II 反向补入制品。",
+ "_source_file": "NL01-NL02.json",
+ "cross_reference": {
+  "case": "0001",
+  "group": "NL02",
+  "llm": "GPT-4o",
+  "counts": {
+   "correct": 1,
+   "similar": 2,
+   "problem": 0,
+   "extra": 0,
+   "uncertain": 2
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 0,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": "missing one state and transition",
+   "semantic_resolved": 1.0,
+   "f1_phase1": 0.88,
+   "f1_phase2": 1
+  },
+  "ledger": {
+   "status": "candidate_only",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 0
+ }
+}

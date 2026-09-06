@@ -1,0 +1,415 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0040",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0040-01",
+      "pair": "0040",
+      "D": "D2",
+      "L": "L0",
+      "summary": "Power Off 只在 `:13 HumanDriving --> [*]` 一处被消费，`Autonomous`（:6-:10）及其子态 `AutoInitial`、`AutoFinal` 都不响应它——自动驾驶激活期间无法断电。",
+      "detail": "NL 第 5 句逐字为「when power off, it will transit to final state」。这句话的响应主体是系统整体（NL 第 3 句已以 the system 立主语），没有限定处于哪个模式。上游参考模型从人工与自动两个模式各给了一条断电边，可作佐证。\n\n制品只在 `:13` 一处消费这个事件。`Autonomous` 这个复合态以及它内部的两个子态都没有任何带 Power Off 的出边。\n\n判读中出现过一种辩护：`:12 Autonomous --> HumanDriving : human_steering_cmd || brake_pressed || in (AutoFinal)` 挂在复合态上，所以系统可以先经这条边回到 `HumanDriving`，再在那里断电。这不成立——「终态经另一个事件序列可达」不等于「当前的 Power Off 事件被响应」。NL 第 5 句要求的是对断电事件的响应，而断电是随时可能到达的环境事件，不能把它的可用性建立在「必须先完成一次模式交接」这个前提上。\n\n同一份 NL 的 pair 0010（EIS-0010-05）与 pair 0030（EIS-0030-02）上有同族条目，三条同判 D2。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 5 句，其响应主体是系统整体、未限定作用域。判读中的反驳（复合态可先返回 HumanDriving 再断电）不存活：那是另一个事件序列，不构成对当前 Power Off 的响应。需要如实记下一处分歧：本条的自动 meta review 建议判 D1，理由是这一条卡在判定协议尚未覆盖的空白处；人工终裁改判 D2，理由是同族的 EIS-0010-05 与 EIS-0030-02 已按同一判据判 D2，三条应当一致。",
+      "L_basis": "判 L0。陈述这条错误只需把 NL 第 5 句点名的 Power Off 拿去模型里检索，看有哪些状态消费它——只有 `HumanDriving`，自动驾驶侧一个都没有。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0040-03",
+      "pair": "0040",
+      "D": "D2",
+      "L": "L0",
+      "summary": "复合态 `Autonomous` 的唯一默认入口边 `:7 [*] --> AutoInitial : Enter Autonomous Mode` 带了触发事件，于是 `:5` 把系统送进 `Autonomous` 之后，还要再等一个模型里无人产生的事件才会激活子状态。",
+      "detail": "`:5 HumanDriving --> Autonomous : front_distance > 10` 完成了对父状态的进入。`:7` 是 `Autonomous` 内唯一的默认入口边，冒号后带了 `Enter Autonomous Mode`。\n\nUML 2.5.1 规定从初始伪状态出发的迁移不得带触发事件也不得带守卫——该迁移在进入所属区域时隐式立即执行。制品这条边违反了它。\n\n后果是父状态入口与下一环节之间留了一个缺口：进入 `Autonomous` 之后，在 `Enter Autonomous Mode` 到达之前没有任何子状态处于激活。而这个事件名在全文（`:1`-`:14`）的其它任何位置都没有出现过，模型里没有任何迁移的 effect 会产生它。所以按触发读，这个缺口永远不会被填上。\n\n从语义看也讲不通：如果这个标签只是想描述「进入自动模式」这个动作，那件事已经由 `:5` 表达过了，不应该再编码成一个事件。\n\n正确的修法是删掉或重构这个标签，不是再补一条无标签的初始边（一个区域只能有一个默认入口）。因此缺陷对象是这个多余的触发。\n\n这一条在上游论文与第一版台账里都没有记录。",
+      "D_basis": "判 D2。被违反的义务来自建模语言：UML 2.5.1 规定初始伪状态的出边不得带触发或守卫。判读中考虑过把标签读成 effect，但 `Enter Autonomous Mode` 是一个外部命令式的事件名（对比本语料里泵控那类内部动作短语），按触发读的证据强；而且若真按 effect 读，它所描述的动作已由 `:5` 表达，重复编码同样说不通。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需就地读 `:7` 这一行，看 `[*] -->` 后面的冒号有没有跟内容——纯词法层面的模式匹配。配套的「该事件名在全文别处没出现」也只是一次名字检索。不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "extraneous",
+        "defect_logic_kind": null,
+        "defect_reference": "language"
+      }
+    },
+    {
+      "ledger_id": "VU-0040-01",
+      "pair": "0040",
+      "D": "D2",
+      "L": "L0",
+      "summary": "根层唯一的初始边 `:2 [*] --> HumanDriving : Power On` 带了触发事件，而 UML 2.5.1 规定初始伪状态的出边不得带触发或守卫。",
+      "detail": "`:2` 是全文唯一的根层初始边，冒号后带了 `Power On`。\n\nUML 2.5.1 规定从初始伪状态出发的迁移不得带触发事件也不得带守卫。后果是这台机器没有确定的启动状态：上电之后、`Power On` 到达之前，它不处在任何状态里。\n\n`Power On` 是 NL 第 3 句「when power on, the system turn into human driving mode」点名的、由环境产生的外部刺激，按触发读；文件里也没有任何 «create» 一类的构造可以形成例外。\n\n根因是把「上电」当成了一个需要显式建模的事件。在状态机的建模惯例里，机器开始运行本身就是上电，对应的是无标签的默认入口边。\n\n同型形态在同一份 NL 的其它制品上也出现（INS-0000-04、INS-0030-01、INS-0050-01）；同一份 NL 的 pair 0020 则写了裸初始边（`:2 [*] -> HumanDrivingMode`），构成同一条规则的正反两面。\n\n本条属于第一版台账漏记、后从各实验臂未被认领的产出中提取回来的一类。它与 `INS-0040-01` 指向同一行、同一缺陷，计数时只算一次。",
+      "D_basis": "判 D2。被违反的义务来自建模语言：UML 2.5.1 规定初始伪状态的出边不得带触发或守卫，这是一条可引的成文规定。`Power On` 是 NL 点名的外部刺激，按触发读；源里没有任何 «create» 构造可支持例外读法。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需就地读 `:2` 这一行，看 `[*] -->` 后面的冒号有没有跟内容——纯词法层面的模式匹配，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "extraneous",
+        "defect_logic_kind": null,
+        "defect_reference": "language"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Formal diagnostic W_INITIAL_UNCONDITIONAL_MISSING is present at exact reference llms_emp_feedback_final_0040."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0040"
+          ],
+          "obligations": [
+            "Every entered composite must provide a valid unconditional initial entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:a1184dc6e6ab"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:Autonomous",
+          "claims": [
+            "Formal diagnostic W_INITIAL_UNCONDITIONAL_MISSING is present at exact reference llms_emp_feedback_final_0040.Autonomous."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0040.Autonomous"
+          ],
+          "obligations": [
+            "Every entered composite must provide a valid unconditional initial entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:Autonomous:facet:a1184dc6e6ab"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Formal diagnostic W_INITIAL_UNCONDITIONAL_MISSING is present at exact reference llms_emp_feedback_final_0040."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0040"
+          ],
+          "obligations": [
+            "Every entered composite must provide a valid unconditional initial entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:a1184dc6e6ab"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "断电迁移只从 HumanDriving 状态定义，缺少 Autonomous 状态（及其子状态）下的断电到 final state 迁移。",
+          "reason": "规格第5条是系统在 power off 时转入 final state，未限定必须处于人驾模式。模型在 Autonomous/AutoInitial/AutoFinal 时收到 Power Off 无对应迁移，因此不能保证该规格在所有运行状态下成立。",
+          "where": "`HumanDriving --> [*] : Power Off`；`state Autonomous { ... }` 及其内部状态没有 `Power Off` 迁移。"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "自动驾驶模式的子状态结构与规范不一致：模型在复合状态内额外引入了 `AutoInitial`，并将 `AutoFinal` 建模为普通状态而非复合状态的最终伪状态。",
+          "reason": "规范只要求 autonomous mode 具有子状态并由子状态机表示，且明确引用 `auto final` 作为返回人驾模式的条件。PlantUML 中真正的最终伪状态应使用 `AutoFinal` 到 `[*]` 的终止连接；当前写法只是进入名为 AutoFinal 的普通状态，不能表达子状态机完成/最终状态语义。",
+          "where": "`state Autonomous { ... }` 内的 `[*] --> AutoInitial`、`AutoInitial --> AutoFinal` 以及 `AutoFinal : Auto Final State`。"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "从自动驾驶模式返回人驾模式的条件没有完整、明确地表达为规范中的条件。",
+          "reason": "规范要求收到 human steering command、踩下 brake，或处于 auto final 时转入人驾模式。模型使用 `in (AutoFinal)`，但 `AutoFinal` 是普通状态而非可识别的最终状态，且条件语法未明确表示“当前处于自动最终状态”；因此自动流程完成后返回人驾的行为依赖一个错误建模的状态，不能可靠实现该要求。",
+          "where": "`Autonomous --> HumanDriving : human_steering_cmd || brake_pressed || in (AutoFinal)`。"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "断电转最终状态只从人驾模式定义，未覆盖自动驾驶模式。",
+          "reason": "规范表述为“when power off, it will transit to final state”，是系统级断电行为，并未限定仅在人驾模式下有效。当前模型在 `Autonomous` 及其子状态中没有 `Power Off` 到最终状态的迁移，因此系统处于自动驾驶时断电不会按规范转入最终状态。",
+          "where": "`HumanDriving --> [*] : Power Off`。"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "Autonomous 的内部完成迁移使用 `AutoInitial --> AutoFinal : Auto Process Complete`，但规范只规定在 `in (Auto final)` 时转回 HumanDriving，没有规定自动过程完成后必然进入 AutoFinal。",
+          "reason": "该迁移额外引入了规范未定义的完成事件和行为；如果 AutoFinal 仅表示自动驾驶子状态机的最终状态，模型没有说明或保证该事件来自规范。",
+          "where": "复合状态 `Autonomous` 内部的 `AutoInitial --> AutoFinal : Auto Process Complete`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "`in (AutoFinal)` 被作为 Autonomous 到 HumanDriving 的迁移条件，但 PlantUML 中 `AutoFinal` 是普通状态而非复合状态的终止伪状态。",
+          "reason": "规范中的“in (auto final)”通常表示处于自动子状态机的最终状态。模型将其建模为普通命名状态，虽然可表达状态条件，但没有使用或明确建模复合状态的完成状态语义，可能导致最终状态条件与子状态机完成语义不一致。",
+          "where": "`Autonomous --> HumanDriving : human_steering_cmd || brake_pressed || in (AutoFinal)` 以及 `AutoFinal : Auto Final State`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0040",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0040-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "两条输出分别诊断根区域和 Autonomous 区域缺少合法无条件初始入口，未主张 Autonomous 侧缺失 Power Off 响应。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出只涉及根区域的无条件初始入口，不涉及自动驾驶期间的断电迁移。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有 finding。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "输出明确定位 HumanDriving 独有的 Power Off 终止迁移，并主张 Autonomous 及其子状态缺少同一断电到最终状态的迁移；位置和缺失性质均与台账一致。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3"
+          ],
+          "reason": "该输出明确主张系统级 Power Off 行为只在人驾模式定义、未覆盖 Autonomous 及其子状态，正是台账所述自动驾驶侧缺失断电响应。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "两条输出讨论自动完成事件与 AutoFinal 的普通状态/终止语义，没有主张缺失 Power Off 迁移。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0040-03",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:Autonomous"
+          ],
+          "reason": "诊断定位 Autonomous 区域并断言其缺少有效的无条件初始入口；该区域唯一初始边正因带 Enter Autonomous Mode 触发而失去合法无条件入口资格，是台账中同一初始边、同一多余触发缺陷的等价后果表述。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该轮仅报告根区域 initial_contract，没有报告 Autonomous 区域。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有 finding。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出只讨论 Autonomous 侧缺失 Power Off 迁移，不涉及其初始边上的 Enter Autonomous Mode 触发。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "虽然 baseline_issue_1 提到 Autonomous 内部初始边和 AutoInitial，但主张的是额外子状态及 AutoFinal 未建模为最终伪状态，并未指认初始边上的触发多余或无条件初始入口失效。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出分别针对 AutoInitial 到 AutoFinal 的完成事件和 AutoFinal 的状态种类，位置与性质均不同于默认入口边上的多余触发。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "VU-0040-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:__root__"
+          ],
+          "reason": "诊断定位根区域并断言缺少有效无条件初始入口；根层唯一初始边因带 Power On 触发而不合法，故这是对台账同一根初始边、同一多余触发缺陷的等价后果表述。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:__root__"
+          ],
+          "reason": "输出同样定位根区域的 initial_contract 失败，即唯一根初始边带 Power On 后不构成合法无条件入口，与台账同处同性质。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有 finding。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出只涉及自动驾驶状态缺失断电迁移，没有评价根初始边的 Power On 触发。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "三条输出均围绕 Autonomous 内部状态、返回条件或断电覆盖，未指认根层初始边上的多余 Power On 触发。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "两条输出均位于 Autonomous 内部或其返回边，不涉及根层初始边。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0040-01"
+        ],
+        "false_positive": false,
+        "reason": "明确覆盖 Autonomous 及其子状态缺失 Power Off 到最终状态迁移。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张额外 AutoInitial 以及 AutoFinal 未建模为最终伪状态；冻结台账没有这两类缺陷，且它没有指出 Autonomous 初始边标签中的多余触发。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张返回 HumanDriving 的 in(AutoFinal) 条件依赖错误的最终状态建模，与三条冻结台账的位置和性质均不同。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "EIS-0040-01"
+        ],
+        "false_positive": false,
+        "reason": "明确覆盖自动驾驶模式下缺失系统级 Power Off 终止迁移。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 AutoInitial 到 AutoFinal 的完成事件和行为没有规格依据；台账不含该迁移的多余事件条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 AutoFinal 是普通状态而非终止伪状态，未对应冻结台账中的断电缺失或两条初始边多余触发。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:Autonomous",
+        "matched_ledger_ids": [
+          "EIS-0040-03"
+        ],
+        "false_positive": false,
+        "reason": "Autonomous 区域缺少有效无条件初始入口，语义上对应其唯一初始边因 Enter Autonomous Mode 触发而不合法。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [
+          "VU-0040-01"
+        ],
+        "false_positive": false,
+        "reason": "根区域缺少有效无条件初始入口，语义上对应唯一根初始边因 Power On 触发而不合法。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [
+          "VU-0040-01"
+        ],
+        "false_positive": false,
+        "reason": "同样覆盖根层唯一初始边带触发、从而不存在合法无条件入口的缺陷。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "按“同一处且同一性质”逐项对齐：方法侧的 initial_contract 诊断虽以“缺少有效的无条件初始入口”表述，但分别定位根区域与 Autonomous 区域，实质指向各自唯一初始边因带触发而不再是合法无条件入口，覆盖对应的多余触发台账；baseline 中只有两条明确指出 Autonomous 侧缺失 Power Off 响应的输出覆盖断电台账，其余关于 AutoInitial、AutoFinal、完成事件及返回条件的主张均不对应冻结台账。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

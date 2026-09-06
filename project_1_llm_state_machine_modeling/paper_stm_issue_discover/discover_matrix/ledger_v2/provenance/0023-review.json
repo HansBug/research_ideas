@@ -1,0 +1,88 @@
+{
+ "case": "0023",
+ "group": "NL06",
+ "llm": "Llama",
+ "diffs": [
+  {
+   "verdict": "correct",
+   "ref": "state PumpControl { [*] --> PumpState; -- ; [*] --> WaterState; -- ; [*] --> MethaneState }",
+   "gen": "state PumpControl { [*] --> PumpState; -- ; [*] --> WaterState; -- ; [*] --> MethaneState; PumpState: Pump Activated; WaterState: Water Flow Monitored; MethaneState: Methane Flow Monitored }",
+   "reason": "除了三行状态描述文字外，与参考模型逐字同构。FCSTM 投影确认 PumpState、WaterState、MethaneState 都是 PumpControl 的直接子态，三个区域各带一条初始边。NL 1/2/3/4/5 的全部内容（进入 PumpControl、三个主子态、能进入三者）都被满足，NL 2 的基数断言也恰好成立（三个直接非伪子态）。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "三个子态无描述文字",
+   "gen": "PumpState: Pump Activated、WaterState: Water Flow Monitored、MethaneState: Methane Flow Monitored（FCSTM 投影为 [PlantUML body] 注释）",
+   "reason": "这三行分别对应 NL 3「pump is activated or controlled」、NL 4「controlling or monitoring the water flow」、NL 5「controlling or monitoring the methane flow」，是对 NL 语义的忠实注解，不引入任何新状态、事件或迁移。属无害增强。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "用两个 -- 把 PumpControl 分成三个并发区",
+   "gen": "同样两个 --、三个并发区",
+   "reason": "与参考完全一致的并发结构。论文记的 semantic hallucination \"1.missing regions 2 missing composite states\" 在这份 Phase-II 制品里确已落实。并发本身超出本研究 FSM/HSM/EFSM 范围，故标 out_of_scope 而不计问题。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": "concurrency"
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "参考模型零 declared event、零行为迁移，只有三条区域初始边",
+   "gen": "同样零 declared event、零行为迁移（FCSTM 中没有任何 event 声明，只有 tr_0001..tr_0004 四条初始/进入边）",
+   "reason": "0023 确实是零声明事件——我核实了 FCSTM 投影，整个模型没有一行 event 声明。但参考模型同样零事件零迁移，根源是 NL06 五句话通篇没有命名任何触发条件。因此零事件不可归因于 LLM，而是 NL/参考共同的性质。对模型可用性的后果是实质的：B 族谓词（occupancy_after、event_consumed、stays_in、variable_delta_after、terminates）与 P 族谓词（response_within、persists_until）在这份制品上全部空转或直接 raise，只有 S 族的十个结构谓词可用。也就是说 NL06 全组只可能产出结构族 E1（台帐实际也只在 0002 用了 initial_child、在 0033 用了 states，均为结构族），而 0023 拿到 f1_phase2 = 1.0 是在一个完全没有行为的制品上取得的满分。故标 uncertain 以记录这一范围性事实。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "参考把三个主子态写成三个正交并发区，三者同时活跃",
+   "gen": "沿用同一读法",
+   "reason": "参考模型自身可疑：NL 3 的 \"first transitions to PumpState\" 与 NL 4/5 的 \"can also transition to\" 是顺序性措辞，在并发区读法下无意义；NL 通篇无 region/concurrent/parallel/simultaneously 字样。三个主子态是并发还是顺序在 NL 中欠定，而论文对本组 6 例普遍记录的 \"missing regions\" 语义幻觉完全建立在这个未经独立验证的读法上。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": "concurrency"
+  }
+ ],
+ "problem_count": 0,
+ "extra_count": 0,
+ "vs_paper": "论文记了 semantic hallucination \"1.missing regions 2 missing composite states\"，semantic_resolved = 1.0，以及一条 format hallucination（syntax error: stm PumpControlSystem，已 resolved=YES）；plantuml_accuracy 10/11、grammar 10/10；f1_phase1 = 0.3571，f1_phase2 = 1。论文的 f1_phase2 = 1 与我的判定一致——这份制品与参考同构。但需注意这个满分是在零事件零行为的制品上取得的。",
+ "vs_ledger": "台帐 0023 状态为 candidate_only，一条 E2a 观察 pump_hierarchy_or_concurrency_ambiguity，摘要为「Pump 状态被区域或中间容器包裹」。我认为这条观察被误挂在 0023 上：FCSTM 投影明确显示 PumpState/WaterState/MethaneState 都是 PumpControl 的直接子态，没有任何中间容器（0043 的 Region1、0053 的 PumpRegion 才是「中间容器」的实例）。0023 唯一的「包裹」就是并发区本身，而参考模型用的是同一个并发区。因此 0023 应记为无发现的干净 case，而不是 candidate_only。我判 0 个 problem、0 个 extra，与台帐零 E1 的结论一致，但排除理由需要修正。",
+ "notes": "关于台帐把 0023/0043/0053 排除为 E2a「NL 只说位于 PumpControl 内部，没有唯一要求直接子状态」这个解读，我的独立判断是：该理由在 0053 上成立、在 0043 上只覆盖了一半、在 0023 上根本不适用。NL 2 的 \"three **main** substates\" 加逐个点名，最强可断言内容不是「直接子态」而是「PumpControl 的顶层分解恰由这三者构成」——因此 containment 确实不唯一要求（同意台帐），但 cardinality 是 NL 明确支持的（台帐未用）。0023 在两种读法下都合规。",
+ "_source_file": "NL06-a.json",
+ "cross_reference": {
+  "case": "0023",
+  "group": "NL06",
+  "llm": "Llama",
+  "counts": {
+   "correct": 1,
+   "similar": 2,
+   "problem": 0,
+   "extra": 0,
+   "uncertain": 2
+  },
+  "out_of_scope": {
+   "concurrency": 2
+  },
+  "problems_in_scope": 0,
+  "paper": {
+   "format": "syntax error: stm PumpControlSystem",
+   "grammar": null,
+   "semantic": "1.missing regions 2 missing composite states",
+   "semantic_resolved": 1.0,
+   "f1_phase1": 0.3571428571,
+   "f1_phase2": 1
+  },
+  "ledger": {
+   "status": "candidate_only",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 0
+ }
+}

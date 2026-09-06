@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+"""Validate F1 bilingual pairs, order, and shared semantic interfaces."""
+from pathlib import Path
+import re
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+SECTIONS = ROOT / "sections"
+BASES = [
+    "00-abstract", "01-introduction", "02-background-related-work",
+    "03-problem-definition", "04-approach", "05-study-design",
+    "06-results", "07-discussion", "08-threats", "09-conclusion",
+    "10-data-availability",
+]
+APPENDICES = ["appendices/appendix-a"]
+ENDMATTER = ["endmatter/acknowledgment"]
+errors: list[str] = []
+
+def sync_ids(path: Path) -> list[str]:
+    values = re.findall(r"(?m)^\s*%\s*SYNC-ID:\s*(\S+)\s*$", path.read_text(encoding="utf-8"))
+    if len(values) != len(set(values)):
+        errors.append(f"duplicate SYNC-ID in {path.relative_to(ROOT)}")
+    return values
+
+def semantic_tokens(path: Path) -> tuple[list[str], list[str], list[str], list[str], list[str]]:
+    text = re.sub(r"(?m)^\s*%.*$", "", path.read_text(encoding="utf-8"))
+    labels = re.findall(r"\\label\{([^}]+)\}", text)
+    citations = [key for group in re.findall(r"\\cite(?:[^\{]*)\{([^}]+)\}", text) for key in group.split(",")]
+    refs = re.findall(r"\\(?:ref|pageref|eqref)\{([^}]+)\}", text)
+    graphics = re.findall(r"\\includegraphics(?:\[[^]]*\])?\{([^}]+)\}", text)
+    result_macros = re.findall(r"\\(?:PaperNumber|PaperPercent|PaperResultText)\b(?:\{([^}]+)\})?", text)
+    return labels, citations, refs, graphics, result_macros
+
+for base in BASES + APPENDICES + ENDMATTER:
+    en = SECTIONS / f"{base}.en.tex"
+    zh = SECTIONS / f"{base}.zh.tex"
+    if not en.is_file() or not zh.is_file():
+        errors.append(f"missing language pair for {base}")
+        continue
+    if sync_ids(en) != sync_ids(zh):
+        errors.append(f"SYNC-ID sequence mismatch for {base}")
+    if semantic_tokens(en) != semantic_tokens(zh):
+        errors.append(f"semantic labels/citations/refs/figures/result macros differ for {base}")
+
+for directory_name in ("figures", "tables"):
+    directory = ROOT / directory_name
+    bases = {
+        path.name.removesuffix(".en.tex")
+        for path in directory.glob("*.en.tex")
+    } | {
+        path.name.removesuffix(".zh.tex")
+        for path in directory.glob("*.zh.tex")
+    }
+    for base in sorted(bases):
+        en = directory / f"{base}.en.tex"
+        zh = directory / f"{base}.zh.tex"
+        if not en.is_file() or not zh.is_file():
+            errors.append(f"missing language pair for {directory_name}/{base}")
+            continue
+        if sync_ids(en) != sync_ids(zh):
+            errors.append(f"SYNC-ID sequence mismatch for {directory_name}/{base}")
+        if semantic_tokens(en) != semantic_tokens(zh):
+            errors.append(f"semantic labels/citations/refs/figures/result macros differ for {directory_name}/{base}")
+
+index = (SECTIONS / "index.tex").read_text(encoding="utf-8")
+order = re.findall(r"\\FOneInput\{([^}]+)\}", index)
+if order != BASES:
+    errors.append(f"section manifest order mismatch: {order}")
+if re.search(r"sections/\d[^\n]*\.(?:en|zh)", index):
+    errors.append("index must use the single FOneInput manifest, not language-specific inputs")
+if index.count("sections/appendices/index") != 1:
+    errors.append("appendix index must be included exactly once")
+if "ifprintacknowledgment" not in index or "FOneEndmatter{acknowledgment}" not in index:
+    errors.append("Acknowledgment must use the paired, shared disabled-by-default end-matter interface")
+if "11-ai-use-disclosure" in index or re.search(r"\\section\s*\{\s*AI(?:[- ]Use| Disclosure)", index, re.I):
+    errors.append("AI disclosure must not be a numbered section")
+appendix_index = (SECTIONS / "appendices" / "index.tex").read_text(encoding="utf-8")
+if "ifincludeappendices" not in appendix_index:
+    errors.append("appendices must be disabled by default behind the shared appendix switch")
+
+if errors:
+    print("BILINGUAL FAIL")
+    print("\n".join(f"- {error}" for error in errors))
+    raise SystemExit(1)
+print("BILINGUAL PASS: paired units, SYNC-ID order, labels/citations/refs/figures/result macros, and single section order agree")

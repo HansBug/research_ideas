@@ -1,0 +1,398 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0057",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0057-01",
+      "pair": "0057",
+      "D": "D2",
+      "L": "L0",
+      "summary": "`CA`（:2-:20）有三个子状态却没有任何默认入口边——`:22` 把系统送进 CA 之后落到合成的占位状态，`FCIdle`/`RCIdle`/`PCIdle` 三路控制全部不可达。",
+      "detail": "`:2` 开 `state \"Collision Avoidance\" as CA {`，块内直接放了三个具名复合态：`:3 state Frontend {`、`:9 state RearEnd {`、`:15 state Pedestrian {`。三者之间没有 `--` 分隔符，因此它们是同一个区域里的三个顺序子状态。\n\n这一层没有默认入口：`:3`-`:19` 之间除了三个块本身，没有任何 `[*] -->`。三条 `[*]`（`:4`、`:10`、`:16`）都写在各自块的内部，比这一层低一层。\n\n后果是 `:22 [*] --> CA : Possible collision detected` 把系统送进 `CA` 之后不知道该落到哪一个子状态；投影为此合成了一个占位的未指定初始状态。三个控制的待机态 `FCIdle`、`RCIdle`、`PCIdle` 因此全部不可达——用一句话说就是「子机被激活了，但没有任何避撞控制被激活」。\n\n这与 NL 第 2 句「This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected」和第 3 句「The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls」都冲突。\n\n需要说明这条与并发议题可分开判定：本条主张的是「进入 CA 之后落点未定义、三路控制不可达」，这在顺序语义下就成立，不依赖它们本该是不是并发区。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 2、3 句要求避撞控制能被激活。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——`CA` 这一层确实没有 `[*] -->`，三条 `[*]` 的层级由花括号配对唯一确定；而三个子状态之间也没有任何迁移可以充当替代入口。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需读 `state \"Collision Avoidance\" as CA { }` 这一层，数它直接包含几个子状态（三个）、这一层有没有 `[*] -->`（没有）。这是纯词法层面的检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "INS-0057-01",
+      "pair": "0057",
+      "D": "D2",
+      "L": "L0",
+      "summary": "整台机器唯一的根初始迁移 `:22 [*] --> CA : Possible collision detected` 带了触发事件，而 UML 规定初始伪状态的出边不得带触发——事件不来就不进入任何状态。",
+      "detail": "`:22` 是全文唯一的根层初始边，冒号后带了 `Possible collision detected`。\n\nUML 2.5.1 规定从初始伪状态出发的迁移不得带触发事件也不得带守卫。后果是这台机器没有无条件的起点。\n\n此处标签的角色没有争议余地：`Possible collision detected`（检测到可能的碰撞）是明确的发生态措辞，描述的是「某件事发生了」，不可能读成一个要执行的动作。诊断统计的「带条件的初始边」计数为 1，与作者源一字不差，没有区域展平参与。\n\n因果链上还需说明一点洁净性：投影确实在 `CA` 内部合成了一个未指定初始状态（那是 EIS-0057-01 记录的另一条缺陷），但本条的落点在**根层**，与那个合成元素无关。\n\n本条与 pair 0017 的 VU-0017-01 情形不同：那一份制品完全没有根初始边、也没有任何入边，因此存在「本图是子机摘录、入口由图外父机提供」这个称职读法，判了 D1；本条的作者已经在图内用这条边承载了激活条件，外部入口读法推翻不了它的语言违规。",
+      "D_basis": "判 D2。被违反的义务来自建模语言：UML 2.5.1 规定初始伪状态的出边不得带触发或守卫，这条规定对任何层级的初始伪状态都适用，「本图是子机摘录」不提供豁免。`Possible collision detected` 是环境产生的检测触发，发生态措辞没有称职的 effect 读法。判读中出现过的「子机摘录加 «create» 例外」读法在检测类事件上不成立——作者已经在图内用这条边承载了激活条件。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需就地读 `:22` 这一行，看 `[*] -->` 后面的冒号有没有跟内容——纯词法层面的模式匹配，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "extraneous",
+        "defect_logic_kind": null,
+        "defect_reference": "language"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:entry_deadlock:CA",
+          "claims": [
+            "Source composite 'CA' is reachable but has no default child entry or inherited continuation; its exact compiler fail-closed state is deadlocked."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0057.CA.UnspecifiedInitial"
+          ],
+          "obligations": [
+            "A reachable non-final behavior must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:entry_deadlock:CA:facet:503d89daad7a"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Formal diagnostic W_INITIAL_UNCONDITIONAL_MISSING is present at exact reference llms_emp_feedback_final_0057."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0057"
+          ],
+          "obligations": [
+            "Every entered composite must provide a valid unconditional initial entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:a1184dc6e6ab"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:CA",
+          "claims": [
+            "Source composite 'CA' has no initial transition to required child 'CA'.",
+            "Source composite 'CA' has no initial transition to required child 'CA.Frontend.FCIdle'.",
+            "The frontend collision-avoidance behavior required by the active sub-machine is unreachable from the system entry.",
+            "The frontend collision-avoidance control path is unreachable from the root activation path."
+          ],
+          "locations": [
+            "NL2",
+            "F29",
+            "F30",
+            "CA.Frontend.FCIdle",
+            "W_UNREACHABLE_STATE",
+            "CA.Frontend.FCActive"
+          ],
+          "obligations": [
+            "CA must initially enter CA.",
+            "The active collision-avoidance mode must enter its operating regions rather than an unspecified dead-end state.",
+            "Activation of the collision-avoidance sub-machine must make its frontend control behavior reachable.",
+            "A collision-avoidance control state must be reachable from root entry when the sub-machine activates."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 4,
+          "facet_keys": [
+            "source:initial_contract:CA:facet:8db91114c643",
+            "source:initial_contract:CA:facet:1d8315077a6c",
+            "source:initial_contract:CA:facet:b5bb0cec5650",
+            "source:initial_contract:CA:facet:eb6cbb159cc1"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "failed",
+      "findings": []
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:entry_deadlock:CA",
+          "claims": [
+            "Source composite 'CA' is reachable but has no default child entry or inherited continuation; its exact compiler fail-closed state is deadlocked."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0057.CA.UnspecifiedInitial"
+          ],
+          "obligations": [
+            "A reachable non-final behavior must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:entry_deadlock:CA:facet:503d89daad7a"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "未将Collision Avoidance内部的三个区域声明为正交区域，无法明确表示三个碰撞避免控制可并发激活。",
+          "reason": "规范第3条明确要求活动模式的正交区域允许不同碰撞避免控制并发激活。PlantUML中虽然列出了三个嵌套state，但没有使用明确的正交区域建模结构（例如并行分隔符/并行区域），因此模型语义上不能保证它们是可并发执行的正交区域。",
+          "where": "Collision Avoidance复合状态内的 Frontend、RearEnd、Pedestrian 三个state声明及其区域结构"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "Collision Avoidance的激活触发条件没有分别覆盖三类碰撞检测事件。",
+          "reason": "规范第2条要求在检测到可能的前端碰撞、追尾碰撞或行人碰撞时激活子机器。模型只提供一个笼统的“Possible collision detected”触发，没有明确表示这三个具体条件，因而未能准确表达规范所列的三种激活来源。",
+          "where": "[*] --> CA : Possible collision detected"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "外层碰撞避免子机器的激活触发条件过于笼统，未区分并覆盖规格列出的三类可能碰撞。",
+          "reason": "规格明确要求在检测到可能的前端碰撞、追尾碰撞或行人碰撞时激活该子机器。模型只有一个未分类的 `Possible collision detected` 触发，无法表达这三类具体检测事件，也没有明确保证每一类事件都能激活 `CA`。",
+          "where": "`[*] --> CA : Possible collision detected`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "三个区域没有被明确建模为正交（并发）区域。",
+          "reason": "规格要求活动模式的正交区域允许不同碰撞避免控制并发激活。模型虽然在 `CA` 内声明了三个嵌套状态，但未使用 PlantUML 的正交区域分隔符（例如 `--`）或其他明确语法表示它们是并发区域；按普通复合状态语义，它们可能被解释为同一区域内的互斥子状态，因此不能保证并发激活。",
+          "where": "`state \"Collision Avoidance\" as CA { ... state Frontend { ... } state RearEnd { ... } state Pedestrian { ... } }`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "进入碰撞规避子机的触发条件过于笼统，未区分三类碰撞检测事件。",
+          "reason": "规格明确要求在检测到可能的前端碰撞、追尾碰撞或行人碰撞时激活该子机。模型只定义了一个泛化的“可能碰撞检测”触发标签，没有明确表达这三类条件，因而无法保证三类检测事件均按规格触发。",
+          "where": "顶层初始状态到 Collision Avoidance 的转移：`[*] --> CA : Possible collision detected`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "三类碰撞规避控制未建模为可并发激活的正交区域。",
+          "reason": "规格要求活动模式中的正交区域允许不同碰撞规避控制并发激活。模型虽然包含三个内部状态块，但没有使用PlantUML正交区域所需的明确并发区域建模方式（例如区域分隔符），因此不能表示或保证 `FCActive`、`RCActive` 和 `PCActive` 可同时处于活动状态。",
+          "where": "`Collision Avoidance` 内部的 `Frontend`、`RearEnd`、`Pedestrian` 三个状态块及其组合方式"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0057",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0057-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:entry_deadlock:CA",
+            "source:initial_contract:CA"
+          ],
+          "reason": "Both findings identify CA's missing child/default entry and the resulting unspecified or unreachable child behavior, matching the ledger's location and missing-entry property.",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "This cell has no findings, so it makes no executable claim covering CA's missing default entry.",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:entry_deadlock:CA"
+          ],
+          "reason": "The finding states that reachable CA has no default child entry and deadlocks in the unspecified initial state, matching the frozen CA entry defect.",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "Neither baseline finding claims that CA lacks a default child entry. One addresses orthogonality and the other addresses collision-category specificity.",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "Neither finding asserts a missing CA-level initial/default child entry; the findings concern trigger categorization and orthogonal regions.",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "The two findings address trigger categorization and concurrency notation, not the missing default entry into one of CA's child states.",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "INS-0057-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:__root__"
+          ],
+          "reason": "The root finding reports the unconditional-initial-entry contract violation at the exact root reference. Given the supplied root transition is `[*] --> CA : Possible collision detected`, this is the same root initial transition and the same failure to provide an unconditional initial entry caused by its trigger.",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "This cell has no findings and therefore does not assert a violation on the root initial transition.",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "The only finding concerns CA's internal default-child entry and does not address the root initial transition or its trigger.",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "The baseline trigger finding claims insufficient differentiation among collision categories, not that a root initial pseudo-state transition may not carry a trigger. The orthogonality finding is unrelated.",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "The trigger finding addresses event-category coverage rather than the language rule forbidding a trigger on the root initial transition; the other finding is about orthogonality.",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "Although one finding points to the same root transition, it asserts under-specification of collision types, not the extraneous-trigger/unconditional-initial-entry defect in the ledger.",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:entry_deadlock:CA",
+        "matched_ledger_ids": [
+          "EIS-0057-01"
+        ],
+        "false_positive": false,
+        "reason": "This finding identifies CA itself as reachable but lacking a default child entry and identifies the resulting unspecified initial state/deadlock. That is the same CA-level location and the same missing-entry defect asserted by EIS-0057-01.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [
+          "INS-0057-01"
+        ],
+        "false_positive": false,
+        "reason": "The finding is a formal unconditional-initial-entry violation at the root reference. In the supplied model the root initial transition is the unique `[*] --> CA` transition carrying `Possible collision detected`; absence of an unconditional root entry is therefore the same root-initial-transition contract defect recorded by INS-0057-01.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:CA",
+        "matched_ledger_ids": [
+          "EIS-0057-01"
+        ],
+        "false_positive": false,
+        "reason": "This finding directly claims that CA lacks an initial transition to its required child and that the frontend control path is unreachable from CA activation. That is the same CA region and same missing default-entry/unreachable-child property as EIS-0057-01.",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:entry_deadlock:CA",
+        "matched_ledger_ids": [
+          "EIS-0057-01"
+        ],
+        "false_positive": false,
+        "reason": "It locates the defect at CA's unspecified initial state and claims that reachable CA has no default child entry. This matches EIS-0057-01's missing CA-level default entry and its unspecified landing state.",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It claims that CA's three internal states are not declared as orthogonal/concurrent regions. EIS-0057-01 is about the absence of a default entry at the CA level, and INS-0057-01 is about a trigger on the root initial transition; neither is an orthogonality-notation defect.",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It claims that one activation trigger fails to distinguish three collision categories. Although it points to the root initial transition, this is not the ledger's property that an initial pseudo-state outgoing transition has an extraneous trigger.",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "The issue is insufficiently specific collision-event coverage on the activation trigger, not the forbidden presence of any trigger on a root initial transition and not CA's missing child default entry.",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "The issue concerns absent orthogonal-region modeling inside CA. Neither frozen entry asserts missing concurrency notation; EIS-0057-01 asserts missing default entry, while INS-0057-01 asserts an extraneous root-initial trigger.",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It asserts that the root trigger does not enumerate three collision types. The frozen root defect is that the initial pseudo-state transition must not carry a trigger at all, so the asserted property is different despite the shared transition location.",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It asserts that the three CA controls are not modeled as concurrently active orthogonal regions. That does not assert the missing CA default entry or the extraneous trigger on the root initial transition.",
+        "confidence": null
+      }
+    ],
+    "pair_reason": "EIS-0057-01 concerns the missing default entry inside CA and the resulting unspecified child entry; INS-0057-01 concerns the trigger attached to the root initial transition. Method findings semantically cover these two frozen claims. The baseline findings concern missing orthogonal-region notation and insufficiently specific collision categories, which are different properties from both frozen ledger entries."
+  },
+  "status": "ok",
+  "attempts": 1
+}

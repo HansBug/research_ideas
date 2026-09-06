@@ -1,0 +1,750 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0046",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0046-01",
+      "pair": "0046",
+      "D": "D2",
+      "L": "L0",
+      "summary": "外层包壳 `UAVSwarmStateMachine`（:2-:25）有两个顺序子状态 `SearchRegion` 与 `MissionRegion`，却没有任何默认入口边——进入哪一个完全未定义。",
+      "detail": "`:2` 开 `state UAVSwarmStateMachine {`，块内直接放了两个具名复合态：`:3 state SearchRegion {` … `:17 }` 与 `:19 state MissionRegion {` … `:24 }`。两者之间没有 `--` 分隔符，所以它们是同一个区域里的两个顺序（互斥）子状态。\n\n这个区域没有默认入口：`:3`-`:24` 之间除了两个块本身，没有任何 `[*] -->`。两个 `[*]`（`:4`、`:20`）分别写在两个块内部，是各自的内部入口，比包壳低一层。\n\n后果是进入 `UAVSwarmStateMachine` 时不知道该落到 `SearchRegion` 还是 `MissionRegion`。投影为此在根与包壳内各插入了一个占位的未指定初始状态。\n\n这与只有单个子女的包壳情形不同（例如 pair 0006 的外层包壳）：那种情形下即使没写默认入口，候选也只有一个；本 pair 有两个候选，入口是真歧义。\n\n被违反的义务有两层。语言层：一个区域必须有确定的默认入口，否则进入时的初始配置未定义。需求层：NL 第 1 句「This state machine model describes the state transitions of a UAV swarm」与第 2 句要求蜂群在任务完成前持续执行搜索，隐含了起点应当落在搜索侧，而制品连落在哪一侧都没定。",
+      "D_basis": "判 D2。被违反的义务来自建模语言：一个区域必须有确定的默认入口，否则进入该区域时的初始配置未定义；有两个候选子状态时这一点是二值可判的。三个判读臂一致认定成立。需要如实记下：三臂在给理由时都没有主动引出上面这条依据，出处是本次重写时补齐的；同时 NL 第 1、2 句要求蜂群在任务完成前持续执行搜索，这也隐含了「起点应当是搜索侧」，可作旁证。",
+      "L_basis": "判 L0。陈述这条错误只需读 `state UAVSwarmStateMachine { }` 这一层，数它直接包含几个子状态（两个）、这一层有没有 `[*] -->`（没有）。这是纯词法层面的检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "other"
+      }
+    },
+    {
+      "ledger_id": "EIS-0046-02",
+      "pair": "0046",
+      "D": "D1",
+      "L": "L1",
+      "summary": "NL 第 2 句要求搜索期间存在三个不同的状态区域，而制品只有 `SearchRegion` 与 `MissionRegion` 两个所谓 region，且两者都不是 `--` 并发区域——`MissionRegion` 装的是任务完成流程，与「搜索期间所处的区域」无关，实质的搜索区域只有一个。",
+      "detail": "NL 第 2 句逐字为「Before the mission is completed, the UAV swarm continuously performs target search tasks, during which it operates within three different state areas.」——during which 把这三个区域限定在搜索期间。\n\n制品有两个名字带 Region 的复合态。`SearchRegion`（:3-:17）里装的是 `Idle`、`Searching`、`FormationAdjustment`、`Attacking` 四个状态；`MissionRegion`（:19-:24）里装的是 `MissionActive` 与 `MissionComplete`，讲的是任务完成流程。两者之间没有 `--`，所以它们不是 UML 意义上的并发区域，只是两个顺序的兄弟复合态。\n\n按第一种读法，搜索期间真正涉及的区域只有 `SearchRegion` 一个，NL 第 2 句的三区域数量断言不满足。\n\n这里有一处值得单独记下的方法学观察，与 pair 0026 的 EIS-0026-01 相同：用现有谓词检查这条义务会得到误导性结果——以 `SearchRegion` 为范围数子状态会数出 4 个叶态，而 NL 说的是区域数不是状态数。19 个谓词里没有「区域数」这个谓词，这是一处词表缺口。",
+      "D_basis": "判 D1，两读并立。第一种读法把 NL 第 2 句的 state areas 读作并发区域：制品没有任何 `--` 分区，`MissionRegion` 也不在搜索期间的范围内，三区域断言不满足。第二种读法把它读作三个自命名带 State 的运行态——`Searching`、`FormationAdjustment`、`Attacking` 恰好是三个，与 NL 第 2、3、4 句描述的三种作业相位一一对应；而 `MissionRegion` 承载的是同一句里提到的「任务完成」这个条件，不是无关元素。第二种读法与结构相容，故判 D1。本条与 pair 0026 的 EIS-0026-01 同型同判。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态结构事实：数清模型里有几个区域（检查有没有 `--`，结果是零个并发区域、两个顺序兄弟复合态），并判断兄弟叶态算不算区域。这要把 PlantUML 的区域记法与 UML 的区域概念对上；但只涉及静态切面，不需要执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "region",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "INS-0046-03",
+      "pair": "0046",
+      "D": "D2",
+      "L": "L2",
+      "summary": "六个事件（`Intercepted`、`Formation Adjusted`、`Task Assignment Received`、`Attack Completed / UAV Count Decreased`、`Mission Completed`、`Start Mission`）都没有可达的消费者——消费它们的迁移全部位于两个进不去的 Region 内，因此永远不会触发。",
+      "detail": "本条的字面形态是「六个事件没有可达的 consumer」，但要理解它必须先排除一个误导方向：接线本身是健全的。四条计数为 1 的事件与作者源逐字一一对应——`Intercepted` 对 `:9`、`Formation Adjusted` 对 `:13`、`Task Assignment Received` 对 `:10`、`Attack Completed / UAV Count Decreased` 对 `:16`。事件被声明了、也被某条迁移消费了，没有悬空。\n\n真正的问题是那些消费者所在的位置。`SearchRegion` 与 `MissionRegion` 都是外层包壳 `UAVSwarmStateMachine` 的子状态，而那一层没有默认入口边（见 EIS-0046-01），两个 Region 都进不去。于是它们内部的全部迁移永远不可能触发，NL 第 3 句「When the UAV swarm is intercepted, it transitions to the formation adjustment state」与第 4 句描述的行为一次都不会发生。\n\n还有两条计数需要判读者知道，否则会被工具输出误导：`Mission Completed` 被报了 5 个消费者，而作者源全文只有 `:22` 与 `:27` 两处；`Start Mission` 被报了 3 个，作者源只有 `:7` 与 `:28` 两处。多出来的是投影为改写跨复合态迁移而合成的成组退出边（它们带一个合成的路由变量，该变量名在 `stm0.puml` 里检索不到）。这些是投影产物，不是作者源的事实。\n\n所以本条与 EIS-0046-01 是同一个根因的两种表现：那一条说包壳没有默认入口，本条说由此导致的全部事件消费者不可达。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 3 句「When the UAV swarm is intercepted, it transitions to the formation adjustment state」——这条行为必须能够发生，而它所依赖的迁移位于一个进不去的区域内。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法：包壳那一层确实没有 `[*] -->`，两个 Region 的不可达是结构事实。反驳不存活。",
+      "L_basis": "判 L2。陈述这条错误的核心是一个可达性论证：要说明从模型的入口出发，全部执行路径都到不了 `SearchRegion` 与 `MissionRegion` 内部，因而那些消费者永远不会被激活。这需要对行为集合做穷尽排除，不是在某个系统状态上读出来的静态事实。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unreachable",
+        "defect_reference": "language"
+      }
+    },
+    {
+      "ledger_id": "VU-0046-01",
+      "pair": "0046",
+      "D": "D1",
+      "L": "L0",
+      "summary": "`Intercepted` 只在 `:9 Searching --> FormationAdjustment : Intercepted` 一处被消费，`Idle`、`FormationAdjustment`、`Attacking` 三个状态都不响应它——从这三处被拦截的情形没有被覆盖。",
+      "detail": "NL 第 3 句逐字为「When the UAV swarm is intercepted, it transitions to the formation adjustment state.」，句中没有限定蜂群此时处于哪个状态。\n\n制品只在 `:9` 一处消费这个事件。`SearchRegion` 里的另外三个状态——`Idle`（:4-:7）、`FormationAdjustment`（:12-:13）、`Attacking`（:15-:16）——都没有以 `Intercepted` 为触发的出边；`SearchRegion` 这个复合态本身在外层也没有带该事件的成组出边（`:27` 的触发是 `Mission Completed`）。\n\n所以按第一种读法，拦截反应的作用域过窄：在待机、正在调整编队、或正在攻击时被拦截，模型不会有任何反应。\n\n本条属于第一版台账漏记、后从各实验臂未被认领的产出中提取回来的一类。",
+      "D_basis": "判 D1，两读并立。第一种读法把 NL 第 3 句读作无状态限定的反应规则：任何时候被拦截都应当转入编队调整，而制品只覆盖了一个状态。第二种读法把它限定在 NL 第 2 句框定的搜索作业相位内——第 2 句说的是「搜索期间」，第 3 句紧接其后，可以读作只作用于正在执行搜索这个相位（即 `Searching` 态）；而 `Idle` 是任务前待机、`FormationAdjustment` 与 `Attacking` 本身就是搜索被打断之后的子阶段，这三处缺该事件出边并不构成对 NL 的违反。第二种读法与结构相容，故判 D1。",
+      "L_basis": "判 L0。陈述这条错误只需检索模型里有哪些状态消费 `Intercepted`（只有 `Searching`），再与搜索区域内的状态清单比对。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:unreachable_event_consumers:UAVSwarmStateMachine",
+          "claims": [
+            "Exact event 'Intercepted' has authored consumers ['tr_0003'], but none is reachable in required scope(s) ['UAVSwarmStateMachine']; the selected event identity came from transition 'tr_0003'.",
+            "Exact event 'Task Assignment Received' has authored consumers ['tr_0004'], but none is reachable in required scope(s) ['UAVSwarmStateMachine.SearchRegion']; the selected event identity came from transition 'tr_0004'."
+          ],
+          "locations": [
+            "tr_0003",
+            "tr_0004"
+          ],
+          "obligations": [
+            "Event concept 'UAV swarm is intercepted' must be consumed while required scope 'UAVSwarmStateMachine' is active.",
+            "Event concept 'task assignment information is received' must be consumed while required scope 'UAVSwarmStateMachine.SearchRegion' is active."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:unreachable_event_consumers:UAVSwarmStateMachine:facet:79cb657d37ca",
+            "source:unreachable_event_consumers:UAVSwarmStateMachine:facet:e82e5a6669b2"
+          ]
+        },
+        {
+          "finding_id": "source:child_count:UAVSwarmStateMachine",
+          "claims": [
+            "The realized composite-area inventory may not provide the required three distinct state areas."
+          ],
+          "locations": [
+            "NL2",
+            "UAVSwarmStateMachine.SearchRegion",
+            "UAVSwarmStateMachine.MissionRegion"
+          ],
+          "obligations": [
+            "The UAV swarm operates within three different state areas."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:child_count:UAVSwarmStateMachine:facet:e3a13088d44b"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:UAVSwarmStateMachine.SearchRegion.Searching:during:continuously performs target search tasks",
+          "claims": [
+            "The required state-owned target-search action may be absent from the realized action inventory.",
+            "State 'UAVSwarmStateMachine.SearchRegion.Searching' lacks required state_action 'continuously performs target search tasks' in the during phase."
+          ],
+          "locations": [
+            "NL2",
+            "UAVSwarmStateMachine.SearchRegion.Searching",
+            "abstract_action_inventory=[]"
+          ],
+          "obligations": [
+            "The operating/search state continuously performs target search tasks before mission completion.",
+            "State 'UAVSwarmStateMachine.SearchRegion.Searching' must own required state_action 'continuously performs target search tasks' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:UAVSwarmStateMachine.SearchRegion.Searching:during:continuously performs target search tasks:facet:3cf37426c1a7",
+            "source:lifecycle_action:UAVSwarmStateMachine.SearchRegion.Searching:during:continuously performs target search tasks:facet:c461db9055c3"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:unreachable_event_consumers:UAVSwarmStateMachine",
+          "claims": [
+            "Exact event 'Intercepted' has authored consumers ['tr_0003'], but none is reachable in required scope(s) ['UAVSwarmStateMachine']; the selected event identity came from transition 'tr_0003'.",
+            "Exact event 'Task Assignment Received' has authored consumers ['tr_0004'], but none is reachable in required scope(s) ['UAVSwarmStateMachine']; the selected event identity came from transition 'tr_0004'."
+          ],
+          "locations": [
+            "tr_0003",
+            "tr_0004"
+          ],
+          "obligations": [
+            "Event concept 'UAV swarm is intercepted' must be consumed while required scope 'UAVSwarmStateMachine' is active.",
+            "Event concept 'task assignment information is received' must be consumed while required scope 'UAVSwarmStateMachine' is active."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:unreachable_event_consumers:UAVSwarmStateMachine:facet:79cb657d37ca",
+            "source:unreachable_event_consumers:UAVSwarmStateMachine:facet:996e1f44e729"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:5d75bb70f0f88e8e",
+          "claims": [
+            "The system entry may fail to reach the searching behavior because the authored root entry targets an unspecified initial state."
+          ],
+          "locations": [
+            "NL2",
+            "llms_emp_feedback_final_0046.UAVSwarmStateMachine.UnspecifiedInitial",
+            "UAVSwarmStateMachine.SearchRegion.Searching"
+          ],
+          "obligations": [
+            "Before mission completion, the UAV swarm must be able to perform target search from system entry."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:5d75bb70f0f88e8e:facet:0255ef6a470d"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:UAVSwarmStateMachine",
+          "claims": [
+            "Formal diagnostic W_UNREACHABLE_STATE is present at exact reference llms_emp_feedback_final_0046.UAVSwarmStateMachine.SearchRegion.Idle."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0046.UAVSwarmStateMachine.SearchRegion.Idle",
+            "llms_emp_feedback_final_0046.UAVSwarmStateMachine.SearchRegion.Searching",
+            "llms_emp_feedback_final_0046.UAVSwarmStateMachine.SearchRegion.FormationAdjustment",
+            "llms_emp_feedback_final_0046.UAVSwarmStateMachine.SearchRegion.Attacking",
+            "llms_emp_feedback_final_0046.UAVSwarmStateMachine.MissionRegion.MissionActive",
+            "llms_emp_feedback_final_0046.UAVSwarmStateMachine.MissionRegion.MissionComplete"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:UAVSwarmStateMachine:facet:c96af8e953b0"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_event_consumers:UAVSwarmStateMachine",
+          "claims": [
+            "Exact event 'Intercepted' has authored consumers ['tr_0003'], but none is reachable in required scope(s) ['UAVSwarmStateMachine']; the selected event identity came from transition 'tr_0003'.",
+            "Exact event 'Task Assignment Received' has authored consumers ['tr_0004'], but none is reachable in required scope(s) ['UAVSwarmStateMachine']; the selected event identity came from transition 'tr_0004'."
+          ],
+          "locations": [
+            "tr_0003",
+            "tr_0004"
+          ],
+          "obligations": [
+            "Event concept 'the UAV swarm is intercepted' must be consumed while required scope 'UAVSwarmStateMachine' is active.",
+            "Event concept 'task assignment information is received' must be consumed while required scope 'UAVSwarmStateMachine' is active."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:unreachable_event_consumers:UAVSwarmStateMachine:facet:5867ff5cceb2",
+            "source:unreachable_event_consumers:UAVSwarmStateMachine:facet:543af2a1a714"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:UAVSwarmStateMachine:during:continuously performs target search tasks",
+          "claims": [
+            "State 'UAVSwarmStateMachine' lacks required state_action 'continuously performs target search tasks' in the during phase."
+          ],
+          "locations": [
+            "UAVSwarmStateMachine"
+          ],
+          "obligations": [
+            "State 'UAVSwarmStateMachine' must own required state_action 'continuously performs target search tasks' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:UAVSwarmStateMachine:during:continuously performs target search tasks:facet:def272b0ef02"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型将“任务完成”建模为从 SearchRegion 转入 MissionRegion 的跨区域转换，但规格要求在任务完成前持续进行目标搜索，未规定任务完成后进入独立的 MissionRegion，也未规定任务完成后重新开始任务时返回搜索区域。",
+          "reason": "规格只描述任务完成之前的持续搜索行为和搜索相关状态转换，没有定义 MissionRegion、MissionActive、MissionComplete 或“重新开始任务”的状态区域。因此这些额外状态和转换没有规范依据，并改变了模型的任务生命周期。",
+          "where": "SearchRegion --> MissionRegion : Mission Completed；MissionRegion 及其 MissionActive/MissionComplete 状态；MissionRegion --> SearchRegion : Start Mission"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型的初始状态实际上同时存在于两个并行的复合状态区域：SearchRegion 初始进入 Idle，MissionRegion 初始进入 MissionActive；这使系统一开始同时处于搜索区域和任务活动区域，而规格描述的是任务期间持续执行搜索任务的单一行为范围。",
+          "reason": "两个顶层子状态都定义了初始伪状态，且未通过明确的互斥/顺序转换连接起来。PlantUML语义下它们会形成并行激活的区域，导致初始状态组合为 Idle + MissionActive，不能清晰表示规格所述的任务状态流程。",
+          "where": "state UAVSwarmStateMachine { ... } 内的两个复合状态及各自的 [*] 初始转换"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "任务开始后模型先进入 Idle，再等待 Start Mission 才进入 Searching，但规格强调在任务完成前持续执行目标搜索；模型没有说明 Idle 是任务开始前状态，且 Start Mission 转换没有从顶层任务状态或 MissionRegion 的 MissionActive 状态统一触发。",
+          "reason": "模型同时把 Start Mission 用作 Idle 到 Searching 和 MissionRegion 到 SearchRegion 的触发条件，造成“开始任务”的含义和适用状态不一致。若任务已处于 MissionActive，按规格应处于持续搜索流程，而模型仍可能停留在 Idle/独立 MissionActive 组合中。",
+          "where": "SearchRegion 内的 [*] --> Idle、Idle --> Searching : Start Mission，以及 MissionRegion --> SearchRegion : Start Mission"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "攻击完成时模型只在转换标签中写出“UAV Count Decreased”，没有明确表示按攻击结果减少无人机数量，也没有建模数量更新或减少条件。",
+          "reason": "规格明确要求攻击完成后无人机群数量相应减少。单纯的文字标签可以作为动作注释，但模型没有状态变量、动作语义或数量变化规则来表达“相应减少”，因此该要求只被部分、非形式化地覆盖。",
+          "where": "Attacking --> Searching : Attack Completed / UAV Count Decreased"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "搜索阶段没有明确建模“任务完成前持续执行目标搜索任务”的约束，且搜索区域可由“任务完成”直接离开。",
+          "reason": "规格要求在任务完成前持续进行目标搜索；模型允许从 SearchRegion 通过 Mission Completed 转入 MissionRegion，但没有任务完成条件、守卫或完成前不得离开的约束，也没有说明任务完成由哪个状态或事件产生，因此无法保证该持续性语义。",
+          "where": "SearchRegion、Searching，以及 SearchRegion --> MissionRegion : Mission Completed"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "“三个不同的状态区域”未被建模为三个状态区域。",
+          "reason": "规格明确指出任务搜索期间运行于三个不同的状态区域，而模型只定义了两个复合状态区域：SearchRegion 和 MissionRegion。FormationAdjustment、Attacking 等只是 SearchRegion 内的状态，不是第三个状态区域；因此区域数量与规格不符。",
+          "where": "SearchRegion、MissionRegion 的区域定义"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "任务完成后的状态流程与规格不一致或至少缺少规格依据。",
+          "reason": "规格仅描述任务完成前的搜索行为，没有规定任务完成后进入 MissionRegion，也没有规定 MissionComplete 接收 Start Mission 后返回 SearchRegion。模型增加了这些未由规格支持的跨区域转移，并可能使已完成任务重新开始搜索。",
+          "where": "MissionRegion 内的 MissionActive --> MissionComplete，以及 MissionRegion --> SearchRegion : Start Mission"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "攻击完成时无人机数量减少的动作表达不完整，未明确按攻击结果更新数量。",
+          "reason": "规格要求攻击完成后无人机数量相应减少。模型仅用文字注释“UAV Count Decreased”表示该动作，没有数量变量、减少操作或“相应”的计算关系，因而没有真正建模该状态变化。",
+          "where": "Attacking --> Searching : Attack Completed / UAV Count Decreased"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "任务未完成期间并未保证无人机群持续执行目标搜索，且任务生命周期区域与搜索区域是并行独立的状态区域。",
+          "reason": "规范要求在任务完成前持续执行目标搜索。模型中 `MissionRegion` 可从初始伪状态进入 `MissionActive`，但没有规定任务激活后必须进入或保持 `Searching`；同时 `MissionActive` 可独立运行，搜索区域也可停留在 `Idle` 或其他状态。因此模型允许任务未完成但无人机群不执行目标搜索。",
+          "where": "顶层 `UAVSwarmStateMachine` 内的 `SearchRegion`、`MissionRegion`，以及 `SearchRegion --> MissionRegion : Mission Completed`。"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型包含规范未定义的“任务完成后重新开始任务并返回搜索区域”路径。",
+          "reason": "规范只描述任务完成前的搜索、拦截后的编队调整、接收任务分配后的攻击以及攻击完成后的无人机数量减少，没有规定任务完成后由 `Start Mission` 从 `MissionRegion` 返回 `SearchRegion`。该转移改变了任务完成后的生命周期，并引入了额外行为。",
+          "where": "`MissionRegion --> SearchRegion : Start Mission`。"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "任务完成转移的语义不一致且存在重复建模，无法明确保证搜索在任务完成前结束。",
+          "reason": "同一个 `Mission Completed` 事件既在 `MissionRegion` 内推进 `MissionActive` 到 `MissionComplete`，又在顶层把整个 `SearchRegion` 转移到 `MissionRegion`。规范只要求任务完成前持续搜索，并未定义两个独立区域如何同步完成；当前模型可能出现一个区域已进入 `MissionComplete`、另一个区域仍处于搜索/攻击/编队调整状态的不一致，不能准确表达任务完成时的整体状态切换。",
+          "where": "`MissionActive --> MissionComplete : Mission Completed` 与 `SearchRegion --> MissionRegion : Mission Completed`。"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "未明确建模“飞行期间”这一前置条件，导致处于非飞行或任务初始状态也可能进入攻击。",
+          "reason": "规范限定为“During flight, if task assignment information is received”。模型没有飞行状态、飞行条件或守卫条件，仅以 `Searching` 状态接收任务分配作为攻击触发条件。若 `Searching` 不等价于飞行，模型缺少必要的飞行前置约束；即使将 `Searching` 视为飞行，模型也未显式表达该语义。",
+          "where": "`Searching --> Attacking : Task Assignment Received`。"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "未建模攻击完成后无人机数量减少的状态数据或约束。",
+          "reason": "规范要求攻击完成后无人机群中的 UAV 数量相应减少。模型仅把“UAV Count Decreased”写成转移动作文本，没有数量变量、减少操作、边界条件或可观察状态，因而不能表示或验证数量确实按攻击结果减少。",
+          "where": "`Attacking --> Searching : Attack Completed / UAV Count Decreased`。"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0046",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0046-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "不可达消费者是缺少外层默认入口的后果，不是同一记法槽位的缺失主张。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:5d75bb70f0f88e8e"
+          ],
+          "reason": "该 hypothesis 指向系统入口的未指定初始状态，并将其与搜索侧无法从入口到达联系起来，语义上覆盖外层没有确定默认入口的缺陷。",
+          "confidence": "medium"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "它只报告具体状态从根入口不可达，没有主张外层默认入口边缺失。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出没有准确覆盖外层 UAVSwarmStateMachine 缺少默认入口边；其并行初始解释依赖相反的结构判断。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出讨论 MissionRegion 生命周期和持续搜索，不主张外层默认入口边缺失。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出讨论任务区域并行及持续搜索后果，没有指认外层默认入口记法槽位缺失。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0046-02",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:child_count:UAVSwarmStateMachine"
+          ],
+          "reason": "外层区域库存 issue 直接主张不能提供所需三个 distinct state areas。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该轮没有区域数量 issue；入口 hypothesis 和消费者不可达 issue 性质不同。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该轮没有区域数量主张，状态不可达和动作缺失不是区域计数。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出没有讨论三个 state areas 的数量不足。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "明确指出模型定义两个复合区域而规格要求三个，并排除内部状态充当第三区域。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出讨论并行生命周期和完成流程，没有明确主张区域数量为二而非三。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "INS-0046-03",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:unreachable_event_consumers:UAVSwarmStateMachine"
+          ],
+          "reason": "直接报告 Intercepted 和 Task Assignment Received 的 authored consumers 在所需范围内均不可达，地点和性质与台账一致。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:unreachable_event_consumers:UAVSwarmStateMachine"
+          ],
+          "reason": "直接报告 Intercepted 和 Task Assignment Received 的消费者迁移不可达，覆盖台账事件消费者不可达问题的明确子集。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:unreachable_event_consumers:UAVSwarmStateMachine"
+          ],
+          "reason": "直接报告 Intercepted 和 Task Assignment Received 的消费者在 UAVSwarmStateMachine 范围内不可达。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "四个输出 issue 未主张六个事件消费者因区域不可达而永远不能触发。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出涉及持续搜索、区域数量、额外流程和数量动作，没有事件消费者不可达主张。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出没有指认六个事件的消费迁移不可达。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "VU-0046-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "它主张 Intercepted 的既有消费者不可达，而不是三个具体状态缺少该事件出边；不可达与覆盖缺失性质不同。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "同样只主张 Intercepted 消费者不可达，没有指认 Idle、FormationAdjustment、Attacking 的缺失响应。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "消费者不可达不能替代对三个具体状态缺少 Intercepted 出边的覆盖主张。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出没有主张 Idle、FormationAdjustment、Attacking 三个状态缺少 Intercepted 出边。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出没有讨论 Intercepted 在三个具体 SearchRegion 状态中的覆盖范围。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出没有主张 Intercepted 反应只存在于 Searching 而其他三个状态未覆盖。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_event_consumers:UAVSwarmStateMachine",
+        "matched_ledger_ids": [
+          "INS-0046-03"
+        ],
+        "false_positive": false,
+        "reason": "该 issue 直接主张 Intercepted 与 Task Assignment Received 的消费者位于 UAVSwarmStateMachine 范围内但不可达，属于台账所述事件消费者不可达性质；它只覆盖台账六个事件中的两个，但未拼接其他 issue。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:child_count:UAVSwarmStateMachine",
+        "matched_ledger_ids": [
+          "EIS-0046-02"
+        ],
+        "false_positive": false,
+        "reason": "该 issue 直接指向外层 UAVSwarmStateMachine 的区域库存，并主张不能满足三个不同 state areas，和台账的区域数量不足是同处同性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:UAVSwarmStateMachine.SearchRegion.Searching:during:continuously performs target search tasks",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张 Searching 状态缺少持续目标搜索的 state_action；冻结台账没有该动作建模条目，不能与区域数量、入口、不可达消费者或 Intercepted 覆盖缺失对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:unreachable_event_consumers:UAVSwarmStateMachine",
+        "matched_ledger_ids": [
+          "INS-0046-03"
+        ],
+        "false_positive": false,
+        "reason": "该 issue 直接主张 Intercepted 与 Task Assignment Received 的迁移消费者在指定范围内不可达，和六事件消费者不可达台账的地点与性质一致，虽仅明确列出其中两个事件。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:5d75bb70f0f88e8e",
+        "matched_ledger_ids": [
+          "EIS-0046-01"
+        ],
+        "false_positive": false,
+        "reason": "它把系统入口指向未指定初始状态，并主张因此不能到达搜索行为；这是外层缺少确定默认入口所造成的入口未定义问题，位置和性质有语义对应。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:UAVSwarmStateMachine",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张若干具体状态从根入口不可达，性质是状态不可达；没有主张外层默认入口边缺失，也没有指认事件消费者不可达，不能仅按共同后果对应台账。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:unreachable_event_consumers:UAVSwarmStateMachine",
+        "matched_ledger_ids": [
+          "INS-0046-03"
+        ],
+        "false_positive": false,
+        "reason": "它直接主张 Intercepted 与 Task Assignment Received 的消费者迁移不可达，属于台账所述消费者不可达问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:UAVSwarmStateMachine:during:continuously performs target search tasks",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张外层状态缺少持续目标搜索动作；台账未记录该 state_action 缺失，且不能由台账的入口或区域问题推导为同一输出主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张任务完成后的额外跨区域流程缺少规格依据，属于多余生命周期建模，不是台账中的入口缺失、区域数量、事件消费者不可达或 Intercepted 覆盖缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它把两个内部初始转换解释为顶层并行初始配置，主张的是并行/初始语义问题；没有准确主张外层默认入口边缺失，且其结构解释与冻结台账相反。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张 Idle、Start Mission 及任务开始语义不一致，属于生命周期与触发适用范围问题，不对应冻结台账的四项缺陷。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张攻击完成后的 UAV 数量更新未形式化，冻结台账没有数量动作缺失条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张持续搜索约束及离开 SearchRegion 的完成条件不足，未指认三个区域数量、外层默认入口、事件消费者不可达或 Intercepted 在三个状态缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0046-02"
+        ],
+        "false_positive": false,
+        "reason": "它明确主张模型只有两个复合状态区域而规格要求三个，且明确区分内部状态不是第三个区域，直接覆盖台账的区域数量缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张 MissionRegion 及任务完成后返回路径没有规格依据，属于多余状态流程，不是台账四项缺陷中的同处同性质问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张攻击完成的数量减少仅为不完整文字表达，冻结台账没有该数量建模缺陷。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张持续搜索保证不足以及任务区域并行独立，未直接主张外层默认入口缺失或六事件消费者不可达。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张任务完成后重新开始并返回搜索区域是规格未定义的额外路径，属于多余行为，不对应冻结台账。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张两个 Mission Completed 转移造成生命周期同步和完成语义不一致，性质是流程语义冲突，不是台账登记的入口、区域数量或消费者不可达。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张缺少飞行前置条件，属于守卫/前置约束缺失；冻结台账没有该条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张攻击完成后的 UAV 数量状态数据未建模，冻结台账没有数量更新条目。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "严格按同一位置与同一缺陷性质对齐：方法三轮均覆盖事件消费者不可达，方法第一轮和 baseline 第二轮覆盖区域数量不足，方法第二轮的入口未指定 hypothesis 覆盖外层默认入口问题；其余输出均为台账外主张或仅描述后果、额外流程、数量动作等不同性质。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

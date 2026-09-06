@@ -1,0 +1,101 @@
+{
+ "case": "0005",
+ "group": "NL10",
+ "llm": "GPT-4o",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "DoorShut --> DoorShut: Cancel/CancelTimer",
+   "gen": "DoorShut : Cancel（状态体描述文本，非迁移）",
+   "reason": "NL 第 1 句明写『can either remain in DoorShut if a Cancel action is performed』，是显式自环义务。生成侧把它写成状态体一行说明文字，模型中不存在该迁移（R4.5 投影里 DoorShut 被命名为 'DoorShut\\n[PlantUML body] Cancel'，无自环）。",
+   "assertable": "stays_in(source='llms_emp_feedback_final_0005.DoorShut', trigger='llms_emp_feedback_final_0005.Cancel')  # False；台帐用的是 S 族等价形 edge_declared",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "六个状态全部平级（扁平）",
+   "gen": "DoorShutWithItem / ReadytoCook / Cooking 成为 DoorOpenWithItem 的后代，形成四层嵌套",
+   "reason": "这三个 ID 首次出现在外层 state 块体内，PlantUML 前向引用规则把它们钉成子态（R4.5 投影确认：DoorOpenWithItem { DoorShutWithItem {...} ReadytoCook { Cooking {...} WaitingToStart } DoorIdleWithItem }）。后果是 active(DoorShutWithItem) 蕴含 active(DoorOpenWithItem)——门开有物与门关有物同时成立，直接违反 NL 第 4/5/6/8 句把二者当互斥替代配置（由相反的开/关门事件到达）的处理；且 DoorOpen --Place Item--> DoorOpenWithItem 现在总落在自造的 DoorIdleWithItem 上。",
+   "assertable": "invariant(scope='[*]', condition='!(active(\"llms_emp_feedback_final_0005.DoorOpenWithItem\") && active(\"llms_emp_feedback_final_0005.DoorOpenWithItem.DoorShutWithItem\"))', bound=5)  # False；台帐用的是 state_declared(...DoorShutWithItem, kind='any') 判 False 的路径存在性形式",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "extra",
+   "ref": "（参考无任何子态）",
+   "gen": "DoorIdleWithItem / ItemInside / WaitingToStart / ActiveCooking 四个自造叶子态",
+   "reason": "四个态纯粹为了给四个不必要的复合块提供默认子态而发明，NL 与参考都没有对应元素，属过度规约。",
+   "assertable": "cardinality(scope='llms_emp_feedback_final_0005', count=6)  # False（顶层只剩 3 个）；或对每个自造态用 state_declared(..., kind='any') 判 False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "Cancel/CancelTimer、Start/Start Timer、Door Opened/Stop Timer、Cooking Time Entered/Display Cooking Time, Update Cooking Time 共 5 处 effect",
+   "gen": "（全模型无任何 effect、无变量、无状态局部动作）",
+   "reason": "NL 第 5/6/7/8 句显式要求 timer 启停与 cooking time 的显示/更新（『where the timer starts』『stops the timer』『the cooking time is displayed and updated』『canceling or updating the cooking time』），参考模型全部以迁移 effect 承载，生成侧完全没有表达。这是 NL 显式义务的丢失，不是参考独有细化。",
+   "assertable": "variable_declared(variable='timer')  # False；或 effect_declared(source='llms_emp_feedback_final_0005.ReadytoCook.WaitingToStart', trigger='llms_emp_feedback_final_0005.Start', variable='timer', sign='positive')  # False（effect_declared 的 field_spec 明确允许使用 Requirement 提议的变量名）",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "DoorOpenWithItem --> DoorShutWithItem: Door Closed[Zero Time]",
+   "gen": "DoorIdleWithItem --> DoorShutWithItem : Close Door with Zero Time",
+   "reason": "把守卫条件编进事件名。零时条件被显式点名，NL 第 4 句的区分义务在可追溯层面已表达；损失的是守卫作为一等构件、以及『同一物理刺激按内部状态分流』这一能力（决策被推给环境）。按本规范的宽容口径判 similar 并记录。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "ReadytoCook --> ReadytoCook: Coooking Time Entered/...",
+   "gen": "（无此自环）",
+   "reason": "NL 未明确要求 ReadytoCook 自环；六个生成模型无一产出，是参考侧的自由细化（且原文含拼写错误 Coooking）。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 3,
+ "extra_count": 1,
+ "vs_paper": "论文 grammar 栏『transition must connect two state』resolved=YES；semantic 栏『1. Incorrect composite state usage. 2. interaction error』resolved=1.0。但本份最终制品仍然带着 4 个多余复合块、4 个自造子态和那套四层嵌套——resolved=1.0 与制品事实矛盾。F1 0.3846 → 0.7843。我判的 3 个 problem 中，Cancel 自环与嵌套两条可对应论文的 grammar / semantic 记录（论文表述含糊），timer/display effect 全缺这条论文完全没记。",
+ "vs_ledger": "台帐 status=mixed，两条 E1：EXP-0005-TR-001 = 我的第 1 条 problem（完全成立）；EXP-0005-SH-001 = 我的第 2 条 problem（结论成立，但理由需重写，见 notes）。我的第 3 条 problem（effect 全缺）台帐只记为 E2c observation『microwave_output_action_adapter_missing』并以缺少 state-local action/output facade 为由排除——但 variable_declared / effect_declared 足以正向断言 timer 部分，该排除偏保守。extra 那条两者都没记。",
+ "notes": "关于 EXP-0005-SH-001 的复核结论：判定成立，但台帐给出的 positive_proposition（『必须是 peer，而不是被早先嵌套引用创建的后代』）是循环论证——它从『嵌套是意外产生的』推出 peer 义务，而 NL 4-8 确实从未提任何层次义务，用户的质疑在这一点上是对的。可用的正当理由有三条：(a) NL 第 4/5/6/8 句把 DoorOpenWithItem 与 DoorShutWithItem 当由相反门事件到达的互斥配置，包含关系使二者同时成立；(b) 参考模型把六态组织为完全扁平的平级集合；(c) 嵌套还改变了进入行为（落到自造 DoorIdleWithItem）。另需指出：根因是 PlantUML 前向引用解析规则（作者块均写在第 0 列，意图明显是扁平六态），所以这更像记号/格式层缺陷被计入了结构语义类——这对论文 format/grammar/semantic 三分类的口径有影响（论文把它归进 semantic）。",
+ "_source_file": "NL10-a.json",
+ "cross_reference": {
+  "case": "0005",
+  "group": "NL10",
+  "llm": "GPT-4o",
+  "counts": {
+   "correct": 0,
+   "similar": 2,
+   "problem": 3,
+   "extra": 1,
+   "uncertain": 0
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 4,
+  "paper": {
+   "format": null,
+   "grammar": "transition must connect two state",
+   "semantic": "1. Incorrect composite state usage. 2. interaction error",
+   "semantic_resolved": 1.0,
+   "f1_phase1": 0.3846153846,
+   "f1_phase2": 0.7843137255
+  },
+  "ledger": {
+   "status": "mixed",
+   "e1_ids": [
+    "EXP-0005-SH-001",
+    "EXP-0005-TR-001"
+   ],
+   "e1_categories": [
+    "SH",
+    "TR"
+   ]
+  },
+  "assertable_problems": 3
+ }
+}

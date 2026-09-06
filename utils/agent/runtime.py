@@ -22,7 +22,7 @@ from urllib.parse import quote, urlsplit
 
 from pydantic import BaseModel
 
-from utils.llm import LLMConfig, LLMRegistry
+from utils.llm import LLMConfig, LLMRegistry, prompt_cache_policy
 
 try:
     from langchain.agents import create_agent
@@ -30,7 +30,7 @@ try:
     from langchain.agents.middleware.summarization import DEFAULT_SUMMARY_PROMPT
     from langchain.agents.structured_output import ToolStrategy
     from langchain_core.language_models import BaseChatModel
-    from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, SystemMessage, ToolMessage
+    from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, HumanMessage, SystemMessage, ToolMessage
     from langchain_core.messages.utils import count_tokens_approximately
     from langchain_core.callbacks import BaseCallbackHandler, BaseCallbackManager
     from langchain_core.outputs import ChatGeneration, ChatResult
@@ -39,7 +39,7 @@ try:
 except Exception:  # pragma: no cover - import errors are reported at construction time
     create_agent = None  # type: ignore[assignment]
     AgentMiddleware = object  # type: ignore[assignment,misc]
-    BaseChatModel = AIMessage = AIMessageChunk = BaseMessage = SystemMessage = ToolMessage = object  # type: ignore[assignment,misc]
+    BaseChatModel = AIMessage = AIMessageChunk = BaseMessage = HumanMessage = SystemMessage = ToolMessage = object  # type: ignore[assignment,misc]
     ChatGeneration = ChatResult = object  # type: ignore[assignment,misc]
     StructuredTool = object  # type: ignore[assignment,misc]
     ToolStrategy = object  # type: ignore[assignment,misc]
@@ -48,6 +48,7 @@ except Exception:  # pragma: no cover - import errors are reported at constructi
     count_tokens_approximately = None  # type: ignore[assignment]
     BaseCallbackHandler = object  # type: ignore[assignment,misc]
     BaseCallbackManager = type("_MissingCallbackManager", (), {})  # type: ignore[assignment,misc]
+
     def PrivateAttr(*args: Any, **kwargs: Any) -> Any:  # type: ignore[no-redef]
         return None
 
@@ -55,6 +56,178 @@ except Exception:  # pragma: no cover - import errors are reported at constructi
 T = TypeVar("T")
 _MODEL_OPTIONS = frozenset({"streaming", "stream_usage", "timeout", "max_retries"})
 _MODEL_CALL_OPTIONS = frozenset({"temperature", "top_p", "max_tokens", "stop", "seed", "verbosity"})
+_TRANSPORT_RETRY_DELAYS = (5.0, 20.0)
+# Match the provider SDK's server-error class, including proxy 52x responses.
+_RETRYABLE_TRANSPORT_STATUS_CODES = frozenset({408, 409, 429, *range(500, 600)})
+_RETRYABLE_TRANSPORT_EXCEPTION_NAMES = frozenset(
+    {
+        "apiconnectionerror",
+        "apitimeouterror",
+        "connectionabortederror",
+        "connectionerror",
+        "connectionreseterror",
+        "connecterror",
+        "connecttimeout",
+        "networkerror",
+        "pooltimeout",
+        "providercalltimeout",
+        "readerror",
+        "readtimeout",
+        "remoteprotocolerror",
+        "transporterror",
+        "writeerror",
+        "writetimeout",
+    }
+)
+_RETRYABLE_TRANSPORT_MESSAGE_MARKERS = (
+    "incomplete chunked read",
+    "peer closed connection",
+    "server disconnected",
+    "connection reset",
+    "connection aborted",
+    "connection refused",
+    "connection error",
+    "read timed out",
+    "connect timed out",
+    "temporarily unavailable",
+    "service unavailable",
+)
+
+
+def _normalize_transport_exception(exc: BaseException) -> BaseException:
+    """Promote an empty Responses stream to a replay-safe provider error.
+
+    ``langchain-core`` raises a bare ``ValueError`` when the Responses adapter
+    yields no generation (including an upstream ``response.failed`` event that
+    the installed adapter currently drops).  It is transport-owned, not a
+    schema verdict, so preserve the original details while routing it through
+    the existing bounded retry middleware.
+    """
+
+    message = str(exc).strip()
+    if isinstance(exc, ValueError) and message == "No generations found in stream.":
+        error = AgentError(
+            "transport_error",
+            "Responses stream ended without a usable generation",
+            details={
+                "source": "provider",
+                "type": "ResponsesStreamEmpty",
+                "retryable": True,
+                "original_type": type(exc).__name__,
+                "original_message": message,
+                "failure_event_observed": False,
+            },
+        )
+        error.__cause__ = exc
+        return error
+    return exc
+
+
+def _structured_output_error_path(location: Any) -> str:
+    """Render one Pydantic error location as an unambiguous schema path."""
+
+    if not isinstance(location, (list, tuple)):
+        return "<root>"
+    path = ""
+    for part in location:
+        if isinstance(part, int):
+            path += f"[{part}]"
+        else:
+            path += ("." if path else "") + str(part)
+    return path or "<root>"
+
+
+def _structured_output_repair_message(exception: Exception) -> str:
+    """Turn structured validation failures into exact, local repair directions.
+
+    LangChain's default feedback repeats a complete Pydantic traceback followed
+    by a generic request to fix it. Exact batch schemas need a stronger shape
+    invariant: tuple slots stay under their declared parent, forbidden paths are
+    removed, and literals are copied exactly. This formatter changes only the
+    repair feedback after validation has already failed; it does not alter the
+    output schema or accept an otherwise invalid value.
+    """
+
+    source = getattr(exception, "source", exception)
+    errors_method = getattr(source, "errors", None)
+    errors: list[Mapping[str, Any]] = []
+    if callable(errors_method):
+        try:
+            raw_errors = errors_method(include_url=False, include_input=False)
+        except TypeError:
+            raw_errors = errors_method()
+        except Exception:  # noqa: BLE001  # pragma: no cover - defensive provider fallback
+            raw_errors = []
+        if isinstance(raw_errors, list):
+            errors = [item for item in raw_errors if isinstance(item, Mapping)]
+
+    header = (
+        "The structured output failed exact schema validation. Return exactly one "
+        + "corrected structured-output tool call, preserve already-valid values, and "
+        + "apply every repair below in the same response:"
+    )
+    lines = [header]
+    for error in errors:
+        error_type = str(error.get("type") or "validation_error")
+        path = _structured_output_error_path(error.get("loc"))
+        if error_type == "extra_forbidden":
+            instruction = (
+                f"DELETE `{path}` completely. Do not keep it, rename it, or set it "
+                "to null."
+            )
+        elif error_type == "missing":
+            instruction = (
+                f"ADD the required value at `{path}` inside its exact existing "
+                "parent. If this is a fixed tuple/list slot, fill that slot there; "
+                "do not create another top-level item."
+            )
+        elif error_type == "literal_error":
+            context = error.get("ctx")
+            expected = context.get("expected") if isinstance(context, Mapping) else None
+            required = (
+                str(expected)
+                if expected is not None
+                else str(error.get("msg") or "the schema literal")
+            )
+            instruction = (
+                f"REPLACE `{path}` with the exact required literal {required}; copy "
+                "it character-for-character from this instruction/schema."
+            )
+        else:
+            instruction = (
+                f"FIX `{path}` ({error_type}): "
+                f"{(error.get('msg') or 'value does not satisfy the schema')!s}."
+            )
+        lines.append(f"- {instruction}")
+
+    if not errors:
+        lines.append(f"- Fix the reported structured-output error: {exception!s}")
+    lines.append(
+        "Do not move nested tuple/list entries into sibling top-level fields, and "
+        "do not return prose or multiple structured responses."
+    )
+    return "\n".join(lines)
+
+
+async def _iterate_and_close(stream: Any):
+    """Consume a LangGraph async stream and close it on cancellation.
+
+    ``asyncio.wait_for`` cancels the consumer coroutine when the agent's
+    explicit wall-clock budget expires.  Some provider-backed LangGraph
+    streams otherwise leave an ``async_generator_asend`` pending; the next
+    public call then observes ``Event loop is closed`` while that orphan is
+    finalized.  Keeping closure inside the still-running loop makes provider
+    retry a local operation and leaves the audit/runtime boundary intact.
+    """
+
+    try:
+        async for item in stream:
+            yield item
+    finally:
+        close = getattr(stream, "aclose", None)
+        if close is not None:
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await close()
 _IDENTITY_KEYS = frozenset(
     {"model", "base_url", "api_key", "headers", "authorization", "openai_api_key", "default_headers"}
 )
@@ -134,6 +307,8 @@ class AgentSpec:
     output_schema: type[BaseModel] | None = None
     limits: Mapping[str, int | float | None] | None = None
     require_tool_call: bool = False
+    retry_missing_structured_output: bool = False
+    transport_retry_delays_seconds: tuple[float, ...] | None = None
 
     def __post_init__(self) -> None:
         if not self.name.strip() or not self.system_prompt.strip():
@@ -142,12 +317,36 @@ class AgentSpec:
         if len(names) != len(set(names)):
             raise ValueError("agent_spec_invalid: duplicate tool name")
         limits = dict(self.limits or {})
-        allowed = {"model_calls", "tool_calls", "turns", "seconds"}
+        allowed = {
+            "model_calls",
+            "tool_calls",
+            "turns",
+            "seconds",
+            "model_call_seconds",
+        }
         unknown = set(limits) - allowed
         if unknown:
             raise ValueError(f"agent_spec_invalid: unknown limit keys: {sorted(unknown)}")
         if any(value is not None and (not isinstance(value, (int, float)) or value <= 0) for value in limits.values()):
             raise ValueError("agent_spec_invalid: limits must be positive")
+        if self.retry_missing_structured_output and self.output_schema is None:
+            raise ValueError(
+                "agent_spec_invalid: retry_missing_structured_output needs output_schema"
+            )
+        retry_delays = self.transport_retry_delays_seconds
+        if retry_delays is not None:
+            if any(
+                not isinstance(value, (int, float)) or value < 0
+                for value in retry_delays
+            ):
+                raise ValueError(
+                    "agent_spec_invalid: transport retry delays must be non-negative numbers"
+                )
+            object.__setattr__(
+                self,
+                "transport_retry_delays_seconds",
+                tuple(float(value) for value in retry_delays),
+            )
         object.__setattr__(self, "limits", limits)
 
     @property
@@ -318,16 +517,61 @@ def _validate_model_call_options(options: Mapping[str, Any] | None) -> None:
             raise ValueError(f"model_call_options_invalid: {key} must be a positive integer")
 
 
+def _validate_adapter_call_options(config: LLMConfig, options: Mapping[str, Any] | None) -> None:
+    if config.adapter != "anthropic":
+        return
+    unsupported = set(options or {}) & {"seed", "verbosity"}
+    if unsupported:
+        raise ValueError(
+            f"model_call_options_not_supported: adapter=anthropic options={sorted(unsupported)}"
+        )
+
+
 def _is_deepseek_config(config: LLMConfig) -> bool:
-    host = (urlsplit(config.base_url or "").hostname or "").lower()
-    return host.endswith("deepseek.com") or config.model.lower().startswith("deepseek-")
+    return config.adapter == "deepseek"
+
+
+def _default_stream_usage(config: LLMConfig) -> bool:
+    """Return the adapter transport's safe default for streamed usage metadata."""
+
+    if config.adapter == "anthropic":
+        return True
+    if config.adapter == "deepseek":
+        return False
+    host = (urlsplit(config.base_url or "https://api.openai.com").hostname or "").lower()
+    return host == "api.openai.com"
+
+
+def _prompt_cache_policy(config: LLMConfig) -> dict[str, Any]:
+    return prompt_cache_policy(config)
+
+
+def _adapter_prompt_cache_middleware(config: LLMConfig) -> list[Any]:
+    """Return adapter-owned prompt caching without exposing it to business code."""
+
+    if config.adapter != "anthropic":
+        return []
+    try:
+        from langchain_anthropic.middleware import AnthropicPromptCachingMiddleware
+    except ImportError as exc:  # pragma: no cover - adapter construction checks the dependency
+        raise AgentError(
+            "config_error", "langchain-anthropic prompt caching middleware is required"
+        ) from exc
+    policy = _prompt_cache_policy(config)
+    return [
+        AnthropicPromptCachingMiddleware(
+            ttl=policy["ttl"],
+            min_messages_to_cache=0,
+            unsupported_model_behavior="raise",
+        )
+    ]
 
 
 def _is_openai_reasoning_model(config: LLMConfig) -> bool:
     """Identify OpenAI reasoning model IDs whose official API accepts ``none``."""
 
     model = config.model.lower()
-    return not _is_deepseek_config(config) and model.startswith(("gpt-5", "o1", "o3", "o4"))
+    return config.adapter == "openai" and model.startswith(("gpt-5", "o1", "o3", "o4"))
 
 
 def _resolve_inference_options(
@@ -352,11 +596,17 @@ def _resolve_inference_options(
             raise ValueError("reasoning_effort was supplied twice with different values")
         options["reasoning_effort"] = reasoning_effort
 
+    if config.adapter == "anthropic" and think_mode:
+        raise ValueError(
+            "anthropic_thinking_not_supported: provider-neutral forced-tool semantics require think_mode=False"
+        )
+
     deepseek = _is_deepseek_config(config)
     effective_think_mode = think_mode
-    if not think_mode and _is_openai_reasoning_model(config):
-        # OpenAI documents gpt-5.5's default as medium.  Pin ``none`` for the
-        # framework's explicit think-off default instead of relying on a
+    if not think_mode and (
+        _is_openai_reasoning_model(config) or config.adapter == "openai-responses"
+    ):
+        # Pin the adapter's explicit think-off value instead of relying on a
         # provider default that would change the experiment semantics.
         options["reasoning_effort"] = "none"
     if deepseek and effective_think_mode is not None:
@@ -373,7 +623,16 @@ def _hash_text(text: str) -> str:
 
 
 def _dependency_versions() -> dict[str, str | None]:
-    names = ("python", "langchain", "langgraph", "langchain-openai", "langchain-deepseek", "openai")
+    names = (
+        "python",
+        "langchain",
+        "langgraph",
+        "langchain-openai",
+        "langchain-anthropic",
+        "langchain-deepseek",
+        "openai",
+        "anthropic",
+    )
     result: dict[str, str | None] = {"python": f"{os.sys.version_info.major}.{os.sys.version_info.minor}.{os.sys.version_info.micro}"}
     for name in names[1:]:
         try:
@@ -545,27 +804,19 @@ def _model_usage_info(value: Any) -> tuple[dict[str, Any] | None, list[dict[str,
     # Cache and reasoning details are part of provider usage too.  Comparing
     # only input/output/total lets two contradictory observations look equal.
     def usage_signature(item_usage: Mapping[str, Any]) -> tuple[int | None, ...]:
-        input_details = item_usage.get("input_token_details")
+        cache_details = _usage_input_token_details(item_usage)
         output_details = item_usage.get("output_token_details")
-        input_details = input_details if isinstance(input_details, Mapping) else {}
         output_details = output_details if isinstance(output_details, Mapping) else {}
-
-        def first_number(*values: int | None) -> int | None:
-            return next((value for value in values if value is not None), None)
 
         return (
             _usage_number(item_usage, "input_tokens", "prompt_tokens"),
             _usage_number(item_usage, "output_tokens", "completion_tokens"),
             _usage_number(item_usage, "total_tokens"),
-            first_number(
-                _usage_number(input_details, "cache_read", "cached_tokens", "cache_read_input_tokens"),
-                _usage_number(item_usage, "cache_read", "cached_tokens", "cache_read_input_tokens"),
-            ),
-            first_number(
-                _usage_number(input_details, "cache_creation", "cache_creation_input_tokens", "cache_write_tokens"),
-                _usage_number(item_usage, "cache_creation", "cache_creation_input_tokens", "cache_write_tokens"),
-            ),
-            first_number(
+            cache_details["cache_read"],
+            cache_details["cache_creation"],
+            cache_details["ephemeral_5m_input_tokens"],
+            cache_details["ephemeral_1h_input_tokens"],
+            _first_usage_number(
                 _usage_number(output_details, "reasoning", "reasoning_tokens"),
                 _usage_number(item_usage, "reasoning", "reasoning_tokens"),
             ),
@@ -608,6 +859,58 @@ def _usage_number(usage: Mapping[str, Any] | None, *keys: str) -> int | None:
     return None
 
 
+def _first_usage_number(*values: int | None) -> int | None:
+    return next((value for value in values if value is not None), None)
+
+
+def _usage_input_token_details(usage: Mapping[str, Any] | None) -> dict[str, int | None]:
+    """Normalize OpenAI and Anthropic cache usage without losing TTL details."""
+
+    if not isinstance(usage, Mapping):
+        return {
+            "cache_read": None,
+            "cache_creation": None,
+            "ephemeral_5m_input_tokens": None,
+            "ephemeral_1h_input_tokens": None,
+        }
+    details = usage.get("input_token_details")
+    details = details if isinstance(details, Mapping) else {}
+    raw_creation = usage.get("cache_creation")
+    raw_creation = raw_creation if isinstance(raw_creation, Mapping) else {}
+    cache_read = _first_usage_number(
+        _usage_number(details, "cache_read", "cached_tokens", "cache_read_input_tokens"),
+        _usage_number(usage, "cache_read", "cached_tokens", "cache_read_input_tokens", "prompt_cache_hit_tokens"),
+    )
+    creation_5m = _first_usage_number(
+        _usage_number(details, "ephemeral_5m_input_tokens"),
+        _usage_number(raw_creation, "ephemeral_5m_input_tokens"),
+        _usage_number(usage, "ephemeral_5m_input_tokens"),
+    )
+    creation_1h = _first_usage_number(
+        _usage_number(details, "ephemeral_1h_input_tokens"),
+        _usage_number(raw_creation, "ephemeral_1h_input_tokens"),
+        _usage_number(usage, "ephemeral_1h_input_tokens"),
+    )
+    generic_creation = _first_usage_number(
+        _usage_number(details, "cache_creation", "cache_creation_input_tokens", "cache_write_tokens"),
+        _usage_number(usage, "cache_creation_input_tokens", "cache_write_tokens", "prompt_cache_miss_tokens"),
+        _usage_number(usage, "cache_creation") if not raw_creation else None,
+    )
+    specific_values = [value for value in (creation_5m, creation_1h) if value is not None]
+    specific_total = sum(specific_values) if specific_values else None
+    cache_creation = (
+        specific_total
+        if specific_total is not None and (generic_creation is None or generic_creation == 0)
+        else generic_creation
+    )
+    return {
+        "cache_read": cache_read,
+        "cache_creation": cache_creation,
+        "ephemeral_5m_input_tokens": creation_5m,
+        "ephemeral_1h_input_tokens": creation_1h,
+    }
+
+
 def _normalize_usage(
     usage: Mapping[str, Any] | None,
     *,
@@ -623,18 +926,24 @@ def _normalize_usage(
 
     input_tokens = _usage_number(usage, "input_tokens", "prompt_tokens")
     output_tokens = _usage_number(usage, "output_tokens", "completion_tokens")
+    cache_details = _usage_input_token_details(usage)
+    raw_anthropic_usage = isinstance(usage, Mapping) and any(
+        key in usage
+        for key in (
+            "cache_read_input_tokens",
+            "cache_creation_input_tokens",
+            "cache_creation",
+        )
+    ) and not isinstance(usage.get("input_token_details"), Mapping)
+    if raw_anthropic_usage and input_tokens is not None:
+        input_tokens += (cache_details["cache_read"] or 0) + (
+            cache_details["cache_creation"] or 0
+        )
     total_tokens = _usage_number(usage, "total_tokens")
     if total_tokens is None and input_tokens is not None and output_tokens is not None:
         total_tokens = input_tokens + output_tokens
-    input_details = dict(usage.get("input_token_details") or {}) if isinstance(usage, Mapping) and isinstance(usage.get("input_token_details"), Mapping) else {}
     output_details = dict(usage.get("output_token_details") or {}) if isinstance(usage, Mapping) and isinstance(usage.get("output_token_details"), Mapping) else {}
-    cache_read = _usage_number(input_details, "cache_read", "cached_tokens", "cache_read_input_tokens")
-    cache_creation = _usage_number(input_details, "cache_creation", "cache_creation_input_tokens", "cache_write_tokens")
     reasoning = _usage_number(output_details, "reasoning", "reasoning_tokens")
-    if cache_read is None:
-        cache_read = _usage_number(usage, "cache_read", "cached_tokens", "prompt_cache_hit_tokens")
-    if cache_creation is None:
-        cache_creation = _usage_number(usage, "cache_creation", "cache_creation_input_tokens", "cache_write_tokens", "prompt_cache_miss_tokens")
     if reasoning is None:
         reasoning = _usage_number(usage, "reasoning", "reasoning_tokens")
     return {
@@ -649,7 +958,7 @@ def _normalize_usage(
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
         "total_tokens": total_tokens,
-        "input_token_details": {"cache_read": cache_read, "cache_creation": cache_creation},
+        "input_token_details": cache_details,
         "output_token_details": {"reasoning": reasoning},
         "source": "provider" if usage else "unavailable",
         "unavailable_reason": None if usage else "adapter_did_not_expose_provider_usage",
@@ -810,6 +1119,7 @@ def _effective_model_base_url(model: Any, config: LLMConfig | None = None) -> An
     root_client = getattr(model, "root_client", None)
     return (
         getattr(model, "openai_api_base", None)
+        or getattr(model, "anthropic_api_url", None)
         or getattr(model, "base_url", None)
         or getattr(root_client, "base_url", None)
         or (config.base_url if config is not None else None)
@@ -1108,8 +1418,17 @@ def _redact_exception_text(value: str) -> str:
 
 
 def _exception_details(exc: BaseException) -> dict[str, Any]:
+    if isinstance(exc, AgentError):
+        return _redact({"type": type(exc).__name__, "code": exc.code, "message": exc.message, **exc.details})
     module = type(exc).__module__.lower()
-    source = "provider" if getattr(exc, "status_code", None) is not None or "openai" in module or "httpx" in module else "runtime"
+    source = (
+        "provider"
+        if getattr(exc, "status_code", None) is not None
+        or "openai" in module
+        or "anthropic" in module
+        or "httpx" in module
+        else "runtime"
+    )
     details: dict[str, Any] = {"source": source, "type": type(exc).__name__}
     if message := str(exc):
         details["message"] = _redact_exception_text(message)
@@ -1129,6 +1448,86 @@ def _exception_details(exc: BaseException) -> dict[str, Any]:
     return details
 
 
+def _exception_chain(exc: BaseException) -> tuple[BaseException, ...]:
+    """Return one finite provider exception chain without duplicate objects."""
+
+    chain: list[BaseException] = []
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        chain.append(current)
+        current = current.__cause__ or current.__context__
+    return tuple(chain)
+
+
+def _retryable_transport_error(exc: BaseException) -> bool:
+    """Classify only transient provider transport failures as replay-safe."""
+
+    for item in _exception_chain(exc):
+        if isinstance(item, AgentError) and item.details.get("source") == "provider" and "retryable" in item.details:
+            return item.details["retryable"] is True
+        status_code = getattr(item, "status_code", None)
+        if status_code in _RETRYABLE_TRANSPORT_STATUS_CODES:
+            return True
+        if isinstance(item, AgentError):
+            status_code = item.details.get("status_code")
+            if status_code in _RETRYABLE_TRANSPORT_STATUS_CODES:
+                return True
+            detail_type = str(item.details.get("type") or "").lower()
+            detail_message = str(item.details.get("message") or "").lower()
+            if detail_type in _RETRYABLE_TRANSPORT_EXCEPTION_NAMES:
+                return True
+            if any(marker in detail_message for marker in _RETRYABLE_TRANSPORT_MESSAGE_MARKERS):
+                return True
+        if type(item).__name__.lower() in _RETRYABLE_TRANSPORT_EXCEPTION_NAMES:
+            return True
+        message = str(item).lower()
+        if any(marker in message for marker in _RETRYABLE_TRANSPORT_MESSAGE_MARKERS):
+            return True
+    return False
+
+
+def _immediate_connection_setup_error(exc: BaseException) -> bool:
+    """Identify a pre-response API connection failure eligible for a short retry.
+
+    This deliberately excludes rate limits and HTTP 5xx responses. Those have a
+    provider response and retain the configured backoff or Retry-After policy.
+    """
+
+    return any(
+        type(item).__name__.lower() == "apiconnectionerror"
+        and getattr(item, "status_code", None) is None
+        and getattr(item, "response", None) is None
+        for item in _exception_chain(exc)
+    )
+
+
+def _provider_retry_after_seconds(exc: BaseException) -> float | None:
+    """Read a numeric Retry-After hint from a provider exception when present."""
+
+    for item in _exception_chain(exc):
+        response = getattr(item, "response", None)
+        headers = getattr(response, "headers", None) or getattr(item, "headers", None)
+        if isinstance(headers, Mapping):
+            value = headers.get("retry-after") or headers.get("Retry-After")
+            try:
+                seconds = float(value)
+            except (TypeError, ValueError):
+                seconds = 0.0
+            if seconds > 0:
+                return seconds
+        body = getattr(item, "body", None)
+        if isinstance(body, Mapping):
+            try:
+                seconds = float(body.get("retry_after"))
+            except (TypeError, ValueError):
+                seconds = 0.0
+            if seconds > 0:
+                return seconds
+    return None
+
+
 def _atomic_write(path: Path, payload: Mapping[str, Any], *, run_id: str | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     suffix = f".{run_id}" if run_id else ""
@@ -1145,6 +1544,50 @@ def _atomic_write(path: Path, payload: Mapping[str, Any], *, run_id: str | None 
         with contextlib.suppress(FileNotFoundError):
             os.unlink(temporary)
         raise
+
+
+def _recover_uncommitted_output_parts(
+    targets: Sequence[Path],
+    *,
+    recovery_id: str,
+) -> list[dict[str, Any]]:
+    """Archive interrupted output parts after their canonical targets are locked.
+
+    A process can die after it has opened an atomic ``.part`` file but before
+    publishing it. Retaining that file is useful provenance, but treating it
+    as a permanent configuration error makes a cell impossible to resume.
+    Callers must hold every target lock before invoking this helper so a live
+    writer can never be mistaken for an interrupted attempt.
+    """
+
+    recovered: list[dict[str, Any]] = []
+    for target in targets:
+        for part in sorted(target.parent.glob(f".{target.name}.*.part")):
+            if not part.is_file():
+                raise OSError(f"uncommitted output part is not a regular file: {part}")
+            digest = _file_sha256(part)
+            archive_root = target.parent / ".abandoned-output-parts"
+            archive_root.mkdir(parents=True, exist_ok=True)
+            archive_path = archive_root / f"{target.name}.{recovery_id}.{uuid.uuid4().hex}.part"
+            os.replace(part, archive_path)
+            _fsync_parent(archive_path)
+            entry = {
+                "schema": "utils.agent.abandoned_output_part.v1",
+                "target_path": str(target),
+                "original_part_path": str(part),
+                "archived_part_path": str(archive_path),
+                "part_sha256": digest,
+                "recovered_at_utc": _utc_now().isoformat(),
+                "reason": "The canonical output locks were acquired and this uncommitted part was therefore retained as an interrupted prior attempt before a new attempt began.",
+                "basis": "exclusive audit/result/receipt file locks and the atomic-output recovery protocol",
+            }
+            _atomic_write(
+                archive_path.with_name(archive_path.name + ".recovery.json"),
+                entry,
+                run_id=recovery_id,
+            )
+            recovered.append(entry)
+    return recovered
 
 
 def _fsync_parent(path: Path) -> None:
@@ -1166,6 +1609,7 @@ class _AuditWriter:
         self.temporary: Path | None = None
         self.trace_commit_id = uuid.uuid4().hex
         self.published = False
+        self.recovered_parts: list[dict[str, Any]] = []
         self.lock_paths: list[Path] = []
         self._lock_files: list[Any] = []
         self.sensitive_values: tuple[str, ...] = ()
@@ -1190,6 +1634,10 @@ class _AuditWriter:
                         lock_file.close()
                         raise OSError("audit/result output is already locked") from exc
                     self._lock_files.append(lock_file)
+                self.recovered_parts = _recover_uncommitted_output_parts(
+                    [target for target in (path, result_path) if target is not None],
+                    recovery_id=self.trace_commit_id,
+                )
                 if path is not None:
                     self.temporary = path.with_name(f".{path.name}.{run_id}.part")
                     if self.temporary.exists():
@@ -1327,13 +1775,6 @@ def _validate_output_paths(audit_path: Path | None, result_path: Path | None) ->
             continue
     derived = [path for path in (audit, result, receipt) if path is not None]
     derived.extend(path.with_name(path.name + ".lock") for path in (audit, result, receipt) if path is not None)
-    for target in (audit, result):
-        if target is None:
-            continue
-        stale_parts = list(target.parent.glob(f".{target.name}.*.part"))
-        if stale_parts:
-            raise AgentError("config_error", f"output part already exists: {stale_parts[0]}")
-        derived.extend(stale_parts)
     for index, left in enumerate(derived):
         for right in derived[index + 1 :]:
             if not left.exists() or not right.exists():
@@ -1349,7 +1790,14 @@ def _validate_output_paths(audit_path: Path | None, result_path: Path | None) ->
 def _level_for_event(kind: str) -> int:
     if kind in {"heartbeat", "tool_started"}:
         return logging.DEBUG
-    if kind in {"context_failed", "tool_failed", "model_failed", "compaction_failed"}:
+    if kind in {
+        "context_failed",
+        "tool_failed",
+        "model_failed",
+        "compaction_failed",
+        "transport_retry_scheduled",
+        "transport_retry_exhausted",
+    }:
         return logging.WARNING
     if kind == "failed":
         return logging.ERROR
@@ -1439,6 +1887,19 @@ class _Renderer:
             "model_started": f"\n================ TURN {data.get('turn')} | MODEL INPUT ================\n" + (f"input messages:\n{_preview(str(data.get('prompt', '')), 12000)}" if data.get("prompt") else ""),
             "model_text": "MODEL OUTPUT | ASSISTANT",
             "model_completed": f"TURN {data.get('turn')} | MODEL OUTPUT | tool_count={data.get('tool_count')}",
+            "transport_retry_scheduled": (
+                "MODEL TRANSPORT RETRY | "
+                f"attempt={data.get('attempt_no')} -> {data.get('next_attempt_no')} "
+                f"wait={data.get('retry_after_seconds')}s"
+            ),
+            "transport_retry_recovered": (
+                "MODEL TRANSPORT RECOVERED | "
+                f"attempt={data.get('attempt_no')}"
+            ),
+            "transport_retry_exhausted": (
+                "MODEL TRANSPORT RETRY EXHAUSTED | "
+                f"attempts={data.get('max_attempts')}"
+            ),
             "tool_started": f"MODEL OUTPUT | TOOL CALL name={data.get('name')} id={data.get('tool_call_id')}",
             "tool_completed": f"TOOL RESULT -> NEXT MODEL INPUT name={data.get('name')} id={data.get('tool_call_id')}",
             "tool_failed": f"TOOL ERROR name={data.get('name')}",
@@ -1514,6 +1975,7 @@ class _Renderer:
             tool_names = "none"
 
         sampling = cls._mapping(option("sampling", default={}))
+        prompt_cache = cls._mapping(option("prompt_cache", default={}))
 
         def sampling_value(key: str, value: Any) -> Any:
             if key != "stop":
@@ -1587,7 +2049,7 @@ class _Renderer:
         lines = (
             f"run       id={event.run_id} · agent={cls._setting(cls._first(data.get('agent'), data.get('agent_name'), data.get('name')))} · profile={cls._setting(data.get('profile'), default='direct')} · model={cls._setting(data.get('model'))} · real={cls._setting(data.get('real_llm'))}",
             f"model     adapter={cls._setting(data.get('adapter'), default='unknown')} · config={config_fingerprint} · endpoint={endpoint_fingerprint} · stream={cls._setting(option('streaming'))} · usage={cls._setting(option('stream_usage'))}",
-            f"inference think={cls._setting(option('think_mode'), default='false')} · effort={cls._setting(option('reasoning_effort'), default='none')} · sampling={sampling_text} · retries={cls._setting(option('max_retries'), default='unknown')} · timeout={cls._setting(option('timeout'), default='default')}",
+            f"inference think={cls._setting(option('think_mode'), default='false')} · effort={cls._setting(option('reasoning_effort'), default='none')} · sampling={sampling_text} · sdk_retries={cls._setting(option('max_retries'), default='unknown')} · transport_retries={cls._setting(option('transport_retries'), default='unknown')} · timeout={cls._setting(option('timeout'), default='default')} · cache_policy={cls._setting(prompt_cache.get('mode'), default='provider-default')} · cache_ttl={cls._setting(prompt_cache.get('ttl'), default='provider-default')}",
             f"behavior  system={cls._fingerprint(data.get('system_prompt_hash'))} · tools={cls._fingerprint(data.get('tools_hash'))} · input={cls._fingerprint(data.get('input_hash'))} · context={cls._fingerprint(data.get('context_manifest_hash'))}",
             f"inputs    system_chars={cls._number(data.get('system_chars'))} · task_chars={cls._number(data.get('input_chars'))} · context_pages={cls._number(data.get('context_pages'))}",
             f"tools     count={cls._number(data.get('tool_count', len(tool_names.split(', ')) if tool_names != 'none' else 0))} · allowlist={tool_names} · required={cls._setting(cls._first(data.get('require_tool_call'), data.get('required_tool')), default='false')} · multiple=allowed",
@@ -1613,6 +2075,11 @@ class _Renderer:
         cache_read = cls._first(
             input_details.get("cache_read"), input_details.get("cached_tokens"), usage.get("cached_tokens")
         )
+        cache_creation = cls._first(
+            input_details.get("cache_creation"),
+            input_details.get("cache_creation_input_tokens"),
+            usage.get("cache_creation_input_tokens"),
+        )
         reasoning = cls._first(output_details.get("reasoning"), output_details.get("reasoning_tokens"))
         if total_tokens is None and isinstance(input_tokens, (int, float)) and isinstance(output_tokens, (int, float)):
             total_tokens = input_tokens + output_tokens
@@ -1626,7 +2093,9 @@ class _Renderer:
         else:
             first_line = f"turn {turn} · {cls._number(input_tokens)} in + {cls._number(output_tokens)} out = {cls._number(total_tokens)}"
             if cache_read is not None:
-                first_line += f" · cache={cls._number(cache_read)}"
+                first_line += f" · cache_read={cls._number(cache_read)}"
+            if cache_creation is not None:
+                first_line += f" · cache_creation={cls._number(cache_creation)}"
             if reasoning is not None:
                 first_line += f" · reasoning={cls._number(reasoning)}"
 
@@ -1732,6 +2201,66 @@ class _Renderer:
             elif isinstance(model_seconds, (int, float)):
                 suffix += " | first_chunk=unavailable"
             self.console.print(Panel(body, title=f"MODEL OUTPUT | FAILED{suffix}", border_style="red", padding=(0, 1), expand=True))
+            return
+        if event.kind in {
+            "transport_retry_scheduled",
+            "transport_retry_recovered",
+            "transport_retry_exhausted",
+        } and Panel is not None:
+            body = Text()
+            body.append(
+                f"logical_model_call_id: {data.get('logical_model_call_id')}\n",
+                style="dim",
+            )
+            body.append(f"turn: {data.get('turn')}\n", style="dim")
+            body.append(
+                f"attempt: {data.get('attempt_no')}/{data.get('max_attempts')}\n",
+                style="bold",
+            )
+            if event.kind == "transport_retry_scheduled":
+                body.append(
+                    f"next attempt after: {data.get('retry_after_seconds')}s\n",
+                    style="yellow",
+                )
+                body.append("partial response: discarded\n", style="yellow")
+                body.append(
+                    _preview(
+                        json.dumps(
+                            _safe_json(data.get("error")),
+                            ensure_ascii=False,
+                            sort_keys=True,
+                        ),
+                        4000,
+                    ),
+                    style="yellow",
+                )
+                title, border = "MODEL TRANSPORT | RETRY SCHEDULED", "yellow"
+            elif event.kind == "transport_retry_recovered":
+                body.append("status: recovered with the unchanged request", style="green")
+                title, border = "MODEL TRANSPORT | RECOVERED", "green"
+            else:
+                body.append("status: retry attempts exhausted\n", style="red")
+                body.append(
+                    _preview(
+                        json.dumps(
+                            _safe_json(data.get("error")),
+                            ensure_ascii=False,
+                            sort_keys=True,
+                        ),
+                        4000,
+                    ),
+                    style="red",
+                )
+                title, border = "MODEL TRANSPORT | RETRIES EXHAUSTED", "red"
+            self.console.print(
+                Panel(
+                    body,
+                    title=title,
+                    border_style=border,
+                    padding=(0, 1),
+                    expand=True,
+                )
+            )
             return
         if event.kind == "model_completed" and self._assistant_turn == data.get("turn"):
             model_seconds = data.get("duration_seconds")
@@ -2282,19 +2811,137 @@ class _CompactPostGuardMiddleware(AgentMiddleware):
         self._check(state)
 
 
+def _balance_invalid_structured_tool_calls(
+    messages: Sequence[Any], structured_output_name: str | None
+) -> tuple[list[Any], bool]:
+    """Add protocol replies for malformed synthetic structured-output calls."""
+
+    if not structured_output_name:
+        return list(messages), False
+    balanced: list[Any] = []
+    changed = False
+    for index, message in enumerate(messages):
+        balanced.append(message)
+        if not isinstance(message, AIMessage):
+            continue
+        invalid_calls = [
+            call
+            for call in _message_protocol_tool_calls(message)
+            if not call.get("valid")
+            and call.get("name") == structured_output_name
+            and call.get("tool_call_id")
+        ]
+        if not invalid_calls:
+            continue
+        response_ids: set[str] = set()
+        following_index = index + 1
+        while following_index < len(messages) and isinstance(
+            messages[following_index], ToolMessage
+        ):
+            response_id = getattr(messages[following_index], "tool_call_id", None)
+            if response_id:
+                response_ids.add(str(response_id))
+            following_index += 1
+        for call in invalid_calls:
+            call_id = str(call["tool_call_id"])
+            if call_id in response_ids:
+                continue
+            balanced.append(
+                ToolMessage(
+                    content=(
+                        f"Error: The {structured_output_name} structured-output call "
+                        "could not be parsed as valid JSON. Return exactly one complete "
+                        f"{structured_output_name} object with valid JSON arguments that "
+                        "match the schema."
+                    ),
+                    tool_call_id=call_id,
+                    name=structured_output_name,
+                )
+            )
+            changed = True
+    return balanced, changed
+
+
 class _ModelOptionsMiddleware(AgentMiddleware):
     """Apply per-inference model settings without changing profile identity."""
 
-    def __init__(self, options: Mapping[str, Any] | None):
+    def __init__(
+        self,
+        options: Mapping[str, Any] | None,
+        *,
+        forced_tool_choice: Any | None = None,
+        tool_choice_resolver: Callable[[], Any | None] | None = None,
+        structured_output_name: str | None = None,
+    ):
         self.options = dict(options or {})
+        self.forced_tool_choice = forced_tool_choice
+        self.tool_choice_resolver = tool_choice_resolver
+        self.structured_output_name = structured_output_name
+
+    def _tool_choice(self) -> Any | None:
+        if self.forced_tool_choice is not None:
+            return self.forced_tool_choice
+        if self.tool_choice_resolver is None:
+            return None
+        return self.tool_choice_resolver()
+
+    @staticmethod
+    def _request_tool_name(tool: Any) -> str:
+        if isinstance(tool, Mapping):
+            function = tool.get("function")
+            function = function if isinstance(function, Mapping) else {}
+            name = tool.get("name") or function.get("name")
+            return str(name or "")
+        return _tool_name(tool)
 
     def wrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
         settings = {**(request.model_settings or {}), **self.options}
-        return handler(request.override(model_settings=settings))
+        overrides: dict[str, Any] = {"model_settings": settings}
+        balanced_messages, messages_changed = _balance_invalid_structured_tool_calls(
+            list(getattr(request, "messages", None) or []),
+            self.structured_output_name,
+        )
+        if messages_changed:
+            overrides["messages"] = balanced_messages
+        tool_choice = self._tool_choice()
+        if tool_choice is not None:
+            overrides["tool_choice"] = tool_choice
+            if self.forced_tool_choice is None and self.tool_choice_resolver is not None:
+                structured_terminal = tool_choice == self.structured_output_name
+                # Suppress ToolStrategy only for a mandatory business step. A
+                # caller may also force the structured terminal itself; that path
+                # must retain response_format so LangGraph validates the payload.
+                if not structured_terminal:
+                    overrides["response_format"] = None
+                    overrides["tools"] = [
+                        tool
+                        for tool in list(getattr(request, "tools", None) or [])
+                        if self._request_tool_name(tool) == tool_choice
+                    ]
+        return handler(request.override(**overrides))
 
     async def awrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
         settings = {**(request.model_settings or {}), **self.options}
-        return await handler(request.override(model_settings=settings))
+        overrides: dict[str, Any] = {"model_settings": settings}
+        balanced_messages, messages_changed = _balance_invalid_structured_tool_calls(
+            list(getattr(request, "messages", None) or []),
+            self.structured_output_name,
+        )
+        if messages_changed:
+            overrides["messages"] = balanced_messages
+        tool_choice = self._tool_choice()
+        if tool_choice is not None:
+            overrides["tool_choice"] = tool_choice
+            if self.forced_tool_choice is None and self.tool_choice_resolver is not None:
+                structured_terminal = tool_choice == self.structured_output_name
+                if not structured_terminal:
+                    overrides["response_format"] = None
+                    overrides["tools"] = [
+                        tool
+                        for tool in list(getattr(request, "tools", None) or [])
+                        if self._request_tool_name(tool) == tool_choice
+                    ]
+        return await handler(request.override(**overrides))
 
 
 def _request_projection(request: Any) -> dict[str, Any]:
@@ -2308,7 +2955,19 @@ def _request_projection(request: Any) -> dict[str, Any]:
     tools = []
     for tool in list(getattr(request, "tools", None) or []):
         if isinstance(tool, Mapping):
-            tools.append(_safe_json(tool))
+            function = tool.get("function")
+            function = function if isinstance(function, Mapping) else {}
+            tools.append(
+                {
+                    "name": str(tool.get("name") or function.get("name") or ""),
+                    "description": str(
+                        tool.get("description") or function.get("description") or ""
+                    ),
+                    "schema": _safe_json(
+                        tool.get("parameters") or function.get("parameters") or {}
+                    ),
+                }
+            )
         else:
             tools.append({"name": _tool_name(tool), "description": _tool_description(tool), "schema": _tool_schema(tool)})
     system_message = getattr(request, "system_message", None)
@@ -2316,9 +2975,229 @@ def _request_projection(request: Any) -> dict[str, Any]:
         "system": _message_text(system_message) if system_message is not None else None,
         "messages": [_message_text(message) for message in list(getattr(request, "messages", None) or [])],
         "tools": tools,
+        "tool_choice": _safe_json(getattr(request, "tool_choice", None)),
         "response_format": _safe_json(response_format),
         "model_settings": _safe_json(dict(getattr(request, "model_settings", None) or {})),
     }
+
+
+class _TransportRetryMiddleware(AgentMiddleware):
+    """Replay one unchanged model request after a transient transport failure."""
+
+    def __init__(
+        self,
+        ledger: _CallLedger,
+        *,
+        delays: Sequence[float] = _TRANSPORT_RETRY_DELAYS,
+        on_retry: Callable[[Mapping[str, Any]], None] | None = None,
+        on_recovered: Callable[[Mapping[str, Any]], None] | None = None,
+        on_exhausted: Callable[[Mapping[str, Any]], None] | None = None,
+    ) -> None:
+        self.ledger = ledger
+        self.delays = tuple(float(value) for value in delays)
+        self.on_retry = on_retry
+        self.on_recovered = on_recovered
+        self.on_exhausted = on_exhausted
+
+    @staticmethod
+    def _request_fingerprint(request: Any) -> str:
+        projection = _request_projection(request)
+        return _hash_text(
+            json.dumps(
+                projection,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+        )
+
+    def _failure_payload(
+        self,
+        *,
+        logical_call_id: str,
+        request_fingerprint: str,
+        attempt_no: int,
+        exc: BaseException,
+    ) -> dict[str, Any]:
+        return {
+            "logical_model_call_id": logical_call_id,
+            "request_fingerprint": request_fingerprint,
+            "attempt_no": attempt_no,
+            "max_attempts": len(self.delays) + 1,
+            "error": _exception_details(exc),
+            "partial_response_discarded": True,
+        }
+
+    def wrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
+        logical_call_id = f"transport-{uuid.uuid4().hex}"
+        request_fingerprint = self._request_fingerprint(request)
+        attempt_no = 1
+        while True:
+            try:
+                response = handler(request)
+            except Exception as raw_exc:
+                exc = _normalize_transport_exception(raw_exc)
+                payload = self._failure_payload(
+                    logical_call_id=logical_call_id,
+                    request_fingerprint=request_fingerprint,
+                    attempt_no=attempt_no,
+                    exc=exc,
+                )
+                retry_index = attempt_no - 1
+                if not _retryable_transport_error(exc):
+                    raise exc
+                if retry_index >= len(self.delays):
+                    if self.on_exhausted is not None:
+                        self.on_exhausted(payload)
+                    raise exc
+                self.ledger.reserve(1)
+                provider_delay = _provider_retry_after_seconds(exc)
+                short_connection_retry = bool(
+                    retry_index == 0
+                    and provider_delay is None
+                    and _immediate_connection_setup_error(exc)
+                )
+                delay = (
+                    0.1
+                    if short_connection_retry
+                    else provider_delay or self.delays[retry_index]
+                )
+                payload.update(
+                    {
+                        "next_attempt_no": attempt_no + 1,
+                        "retry_after_seconds": delay,
+                        "retry_delay_policy": (
+                            "immediate_connection_setup_recovery"
+                            if short_connection_retry
+                            else "provider_retry_after"
+                            if provider_delay is not None
+                            else "configured_transport_backoff"
+                        ),
+                    }
+                )
+                if self.on_retry is not None:
+                    self.on_retry(payload)
+                time.sleep(delay)
+                attempt_no += 1
+                continue
+            if attempt_no > 1 and self.on_recovered is not None:
+                self.on_recovered(
+                    {
+                        "logical_model_call_id": logical_call_id,
+                        "request_fingerprint": request_fingerprint,
+                        "attempt_no": attempt_no,
+                        "max_attempts": len(self.delays) + 1,
+                        "recovered": True,
+                    }
+                )
+            return response
+
+    async def awrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
+        logical_call_id = f"transport-{uuid.uuid4().hex}"
+        request_fingerprint = self._request_fingerprint(request)
+        attempt_no = 1
+        while True:
+            try:
+                response = await handler(request)
+            except Exception as raw_exc:
+                exc = _normalize_transport_exception(raw_exc)
+                payload = self._failure_payload(
+                    logical_call_id=logical_call_id,
+                    request_fingerprint=request_fingerprint,
+                    attempt_no=attempt_no,
+                    exc=exc,
+                )
+                retry_index = attempt_no - 1
+                if not _retryable_transport_error(exc):
+                    raise exc
+                if retry_index >= len(self.delays):
+                    if self.on_exhausted is not None:
+                        self.on_exhausted(payload)
+                    raise exc
+                self.ledger.reserve(1)
+                delay = _provider_retry_after_seconds(exc) or self.delays[retry_index]
+                payload.update(
+                    {
+                        "next_attempt_no": attempt_no + 1,
+                        "retry_after_seconds": delay,
+                    }
+                )
+                if self.on_retry is not None:
+                    self.on_retry(payload)
+                await asyncio.sleep(delay)
+                attempt_no += 1
+                continue
+            if attempt_no > 1 and self.on_recovered is not None:
+                self.on_recovered(
+                    {
+                        "logical_model_call_id": logical_call_id,
+                        "request_fingerprint": request_fingerprint,
+                        "attempt_no": attempt_no,
+                        "max_attempts": len(self.delays) + 1,
+                        "recovered": True,
+                    }
+                )
+            return response
+
+
+class _ModelCallDeadlineMiddleware(AgentMiddleware):
+    """Bound each provider invocation inside a longer structured agent run.
+
+    ``AgentSpec.limits['seconds']`` remains the complete run budget. This
+    narrower limit applies to each asynchronous model invocation, including a
+    structured-output repair turn, and emits a typed provider-owned error that
+    the public transport retry middleware can handle in place.
+    """
+
+    def __init__(self, seconds: float) -> None:
+        if seconds <= 0:
+            raise ValueError("model_call_seconds must be positive")
+        self.seconds = float(seconds)
+
+    async def awrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
+        try:
+            return await asyncio.wait_for(handler(request), timeout=self.seconds)
+        except asyncio.TimeoutError as exc:
+            raise AgentError(
+                "provider_timeout",
+                f"provider model call exceeded {self.seconds:g} seconds",
+                details={
+                    "source": "provider",
+                    "type": "ProviderCallTimeout",
+                    "timeout_seconds": self.seconds,
+                },
+            ) from exc
+
+
+def _tool_completion_status(
+    result: Any,
+) -> tuple[str, dict[str, Any] | None, bool]:
+    """Translate an explicit no-execution tool result into audit semantics."""
+
+    if not isinstance(result, Mapping):
+        return "completed", None, True
+    execution_status = result.get("execution_status")
+    if execution_status not in {
+        "mandatory_tool_rejected",
+        "prerequisite_required",
+    }:
+        return "completed", None, True
+    raw_error = result.get("error")
+    if isinstance(raw_error, Mapping):
+        error = {
+            "code": str(raw_error.get("code") or execution_status),
+            "message": str(
+                raw_error.get("message") or "registered tool was not executed"
+            ),
+        }
+    else:
+        error = {
+            "code": str(execution_status),
+            "message": str(
+                result.get("message") or "registered tool was not executed"
+            ),
+        }
+    return "rejected", error, False
 
 
 class _RequestCaptureMiddleware(AgentMiddleware):
@@ -2463,9 +3342,14 @@ class AgentApp:
         self.real_llm = real_llm
         self.profile = profile
         self.adapter_name = (
-            "langchain-deepseek/chat-completions"
-            if type(model).__module__.split(".", 1)[0] == "langchain_deepseek"
-            else ("test/model" if not real_llm else "langchain-openai/chat-completions")
+            "test/model"
+            if not real_llm
+            else {
+                "openai": "langchain-openai/chat-completions",
+                "openai-responses": "langchain-openai/responses",
+                "anthropic": "langchain-anthropic/messages",
+                "deepseek": "langchain-deepseek/chat-completions",
+            }[config.adapter]
         )
 
     @classmethod
@@ -2478,23 +3362,45 @@ class AgentApp:
         _validate_model_options(model_options)
         if config.api_key is None:
             raise AgentError("config_error", "api_key is required for a real model run")
-        deepseek = _is_deepseek_config(config)
+        adapter = config.adapter
         try:
-            if deepseek:
+            if adapter == "deepseek":
                 from langchain_deepseek import ChatDeepSeek as ChatModel
+            elif adapter == "anthropic":
+                from langchain_anthropic import ChatAnthropic as ChatModel
             else:
                 from langchain_openai import ChatOpenAI as ChatModel
         except ImportError as exc:  # pragma: no cover
-            package = "langchain-deepseek" if deepseek else "langchain-openai"
+            package = {
+                "openai": "langchain-openai",
+                "openai-responses": "langchain-openai",
+                "anthropic": "langchain-anthropic",
+                "deepseek": "langchain-deepseek",
+            }[adapter]
             raise AgentError("config_error", f"{package} is required") from exc
         kwargs = config.connection_kwargs()
         if config.max_output_tokens is not None:
-            kwargs["max_tokens" if deepseek else "max_completion_tokens"] = config.max_output_tokens
-        kwargs["use_responses_api"] = False
-        kwargs.update({"streaming": True, "stream_usage": True, "max_retries": 0})
+            kwargs[
+                "max_completion_tokens"
+                if adapter in {"openai", "openai-responses"}
+                else "max_tokens"
+            ] = config.max_output_tokens
+        if adapter in {"openai", "openai-responses"}:
+            kwargs["use_responses_api"] = adapter == "openai-responses"
+        kwargs.update(
+            {
+                "streaming": True,
+                "stream_usage": _default_stream_usage(config),
+                "max_retries": 0,
+            }
+        )
         kwargs.update(dict(model_options or {}))
         try:
             model = ChatModel(**kwargs)
+            if adapter == "openai-responses":
+                from .responses_stream import guard_responses_streams
+
+                guard_responses_streams(model)
         except Exception as exc:
             raise AgentError("config_error", "model construction failed", details=_exception_details(exc)) from exc
         return cls(spec, config, model, profile=profile)
@@ -2522,8 +3428,19 @@ class AgentApp:
         audit_out: Path | None = None,
         result_out: Path | None = None,
         model_call_options: Mapping[str, Any] | None = None,
+        tool_choice_resolver: Callable[[], Any | None] | None = None,
+        tool_choice_policy_name: str | None = None,
     ) -> AgentRunResult:
+        if (tool_choice_resolver is None) != (tool_choice_policy_name is None):
+            raise ValueError(
+                "tool_choice_resolver and tool_choice_policy_name must be supplied together"
+            )
+        if tool_choice_resolver is not None and not callable(tool_choice_resolver):
+            raise ValueError("tool_choice_resolver must be callable")
+        if tool_choice_policy_name is not None and not tool_choice_policy_name.strip():
+            raise ValueError("tool_choice_policy_name must be non-empty")
         _validate_model_call_options(model_call_options)
+        _validate_adapter_call_options(self.config, model_call_options)
         compact_trigger_ratio = _validate_compact_trigger_ratio(compact_trigger_ratio)
         inference_options, effective_think_mode = _resolve_inference_options(
             self.config,
@@ -2531,13 +3448,23 @@ class AgentApp:
             think_mode=think_mode,
             reasoning_effort=reasoning_effort,
         )
+        transport_retry_delays = (
+            _TRANSPORT_RETRY_DELAYS
+            if self.spec.transport_retry_delays_seconds is None
+            else self.spec.transport_retry_delays_seconds
+        )
+        prompt_cache_policy = _prompt_cache_policy(self.config)
         inference_summary = {
             "streaming": getattr(self.model, "streaming", None),
             "think_mode": effective_think_mode,
             "reasoning_effort": inference_options.get("reasoning_effort"),
             "stream_usage": getattr(self.model, "stream_usage", None),
             "max_retries": getattr(self.model, "max_retries", None),
+            "transport_retries": len(transport_retry_delays),
+            "transport_retry_delays_seconds": list(transport_retry_delays),
             "timeout": getattr(self.model, "request_timeout", None) or getattr(self.model, "timeout", None),
+            "tool_choice_policy": tool_choice_policy_name,
+            "prompt_cache": prompt_cache_policy,
         }
         max_output_override = None
         if model_call_options:
@@ -2576,6 +3503,7 @@ class AgentApp:
                 "endpoint_fingerprint": endpoint_fingerprint,
                 "capacity": {"context_window_tokens": context_window_tokens, "max_output_tokens": max_output_tokens, "safe_input_tokens": safe_input_tokens, "capacity_source": capacity_source},
                 "inference": inference_options,
+                "prompt_cache": prompt_cache_policy,
                 "limits": dict(self.spec.limits or {}),
                 "tools_hash": _behavior_fingerprint({"tools": [_tool_schema(tool) for tool in self.spec.tools]}),
                 "output_schema_hash": _behavior_fingerprint(self.spec.output_schema.model_json_schema()) if self.spec.output_schema else None,
@@ -2583,6 +3511,12 @@ class AgentApp:
                 "input_hash": _hash_text(input_text),
                 "context_manifest_hash": manifest,
                 "compact": {"ratio": compact_trigger_ratio, "threshold": compact_threshold},
+                "tool_choice_policy": tool_choice_policy_name,
+                "transport_retry": {
+                    "max_retries": len(transport_retry_delays),
+                    "delays_seconds": list(transport_retry_delays),
+                    "profile": self.profile,
+                },
             }
         )
         canonical_audit_out, canonical_result_out = _validate_output_paths(Path(audit_out) if audit_out is not None else None, Path(result_out) if result_out is not None else None)
@@ -2634,6 +3568,7 @@ class AgentApp:
         context_events_seen: set[int] = set()
         context_emitted_turns: set[int] = set()
         current_model_call_id: str | None = None
+        pending_transport_retry_turn: int | None = None
         current_rendered_input_hash: str | None = None
         current_input_messages_snapshot: list[Any] = []
         last_state_messages_snapshot: list[Any] = []
@@ -2740,18 +3675,26 @@ class AgentApp:
             }
 
         def capture_primary_request(request: Any, capture: dict[str, Any]) -> None:
-            nonlocal turn, system_shown, current_rendered_input_hash, current_input_messages_snapshot, last_state_messages_snapshot
-            turn += 1
-            call_turn = turn
+            nonlocal turn, system_shown, current_rendered_input_hash, current_input_messages_snapshot, last_state_messages_snapshot, pending_transport_retry_turn
+            retrying = pending_transport_retry_turn is not None
+            if retrying:
+                call_turn = int(pending_transport_retry_turn)
+                pending_transport_retry_turn = None
+            else:
+                turn += 1
+                call_turn = turn
             input_messages = list(getattr(request, "messages", None) or [])
-            if call_turn > 1:
+            if not retrying and call_turn > 1:
                 emit_context_usage(call_turn - 1, input_messages)
-            prompt, system_shown = _prompt_from_messages(
-                input_messages,
-                self.spec.system_prompt,
-                shown_message_keys,
-                system_shown,
-            )
+            if retrying:
+                prompt = pending_model_inputs.get(call_turn, ("", [], None))[0]
+            else:
+                prompt, system_shown = _prompt_from_messages(
+                    input_messages,
+                    self.spec.system_prompt,
+                    shown_message_keys,
+                    system_shown,
+                )
             capture.update(
                 {
                     "turn": call_turn,
@@ -2828,13 +3771,16 @@ class AgentApp:
             output_tokens = latest.get("output_tokens") if latest else None
             total_tokens = latest.get("total_tokens") if latest else None
             cache_read = (latest or {}).get("input_token_details", {}).get("cache_read")
+            cache_creation = (latest or {}).get("input_token_details", {}).get("cache_creation")
             reasoning = (latest or {}).get("output_token_details", {}).get("reasoning")
             if total_tokens is None:
                 first = f"turn {context_turn} · tokens unavailable (provider usage unavailable)"
             else:
                 first = f"turn {context_turn} · {input_tokens:,} in" if isinstance(input_tokens, (int, float)) else f"turn {context_turn} · ? in"
                 if cache_read is not None:
-                    first += f" · cache={cache_read:,}" if isinstance(cache_read, (int, float)) else f" · cache={cache_read}"
+                    first += f" · cache_read={cache_read:,}" if isinstance(cache_read, (int, float)) else f" · cache_read={cache_read}"
+                if cache_creation is not None:
+                    first += f" · cache_creation={cache_creation:,}" if isinstance(cache_creation, (int, float)) else f" · cache_creation={cache_creation}"
                 first += f" + {output_tokens:,} out" if isinstance(output_tokens, (int, float)) else " + ? out"
                 if reasoning is not None:
                     first += f" · reasoning={reasoning:,}" if isinstance(reasoning, (int, float)) else f" · reasoning={reasoning}"
@@ -3214,6 +4160,17 @@ class AgentApp:
                 current_model_call_id = call_id
                 ensure_primary_started(call_id)
 
+        def consume_request_capture(call_id: str | None) -> dict[str, Any]:
+            """Bind a middleware capture even when provider callbacks start first."""
+
+            key = call_id or ""
+            capture = request_capture_by_call.get(key)
+            if capture is None and request_captures:
+                capture = request_captures.pop(0)
+                capture["model_call_id"] = call_id
+                request_capture_by_call[key] = capture
+            return capture or {}
+
         def ensure_primary_started(call_id: str) -> None:
             nonlocal current_model_call_id, current_rendered_input_hash
             call_turn = model_call_turns.get(call_id, turn)
@@ -3342,7 +4299,11 @@ class AgentApp:
             call_kind = model_call_kinds.get(call_id, "primary")
             call_turn = model_call_turns.get(call_id, turn)
             if not any(item.get("model_call_id") == call_id for item in usage):
-                record_transport_usage(None, call_id, call_kind, call_turn, status="failed")
+                error_details = transport_errors[call_id]
+                record_transport_usage(
+                    error_details.get("usage"), call_id, call_kind, call_turn,
+                    status="failed", response_id=error_details.get("response_id"),
+                )
             if call_kind == "compact":
                 compaction_id = compaction_by_model_call.get(call_id)
                 info = compaction_summary_info.setdefault(compaction_id or "", {})
@@ -3371,6 +4332,96 @@ class AgentApp:
 
         observer = _RunModelObserver(callback_start, callback_token, callback_end, callback_error)
 
+        def transport_retry_scheduled(payload: Mapping[str, Any]) -> None:
+            nonlocal pending_transport_retry_turn
+            failed_call_id = current_model_call_id
+            call_turn = model_call_turns.get(failed_call_id or "", turn)
+            pending_transport_retry_turn = call_turn
+            data = {
+                **dict(payload),
+                "profile": self.profile,
+                "model": self.config.model,
+                "failed_model_call_id": failed_call_id,
+                "turn": call_turn,
+                "partial_response_observed": bool(
+                    failed_call_id
+                    and (
+                        partial_texts.get(failed_call_id)
+                        or model_call_timings.get(failed_call_id, {}).get(
+                            "first_chunk_at_utc"
+                        )
+                    )
+                ),
+                "usage": next(
+                    (
+                        item
+                        for item in reversed(usage)
+                        if item.get("model_call_id") == failed_call_id
+                    ),
+                    None,
+                ),
+            }
+            audit_write(
+                {
+                    "record": "transport_retry",
+                    "record_type": "transport_retry",
+                    "operation": "scheduled",
+                    **data,
+                },
+                turn_value=call_turn,
+            )
+            emit("transport_retry_scheduled", data)
+
+        def transport_retry_recovered(payload: Mapping[str, Any]) -> None:
+            successful_call_id = current_model_call_id
+            call_turn = model_call_turns.get(successful_call_id or "", turn)
+            data = {
+                **dict(payload),
+                "profile": self.profile,
+                "model": self.config.model,
+                "successful_model_call_id": successful_call_id,
+                "turn": call_turn,
+                "usage": next(
+                    (
+                        item
+                        for item in reversed(usage)
+                        if item.get("model_call_id") == successful_call_id
+                    ),
+                    None,
+                ),
+            }
+            audit_write(
+                {
+                    "record": "transport_retry",
+                    "record_type": "transport_retry",
+                    "operation": "recovered",
+                    **data,
+                },
+                turn_value=call_turn,
+            )
+            emit("transport_retry_recovered", data)
+
+        def transport_retry_exhausted(payload: Mapping[str, Any]) -> None:
+            failed_call_id = current_model_call_id
+            call_turn = model_call_turns.get(failed_call_id or "", turn)
+            data = {
+                **dict(payload),
+                "profile": self.profile,
+                "model": self.config.model,
+                "failed_model_call_id": failed_call_id,
+                "turn": call_turn,
+            }
+            audit_write(
+                {
+                    "record": "transport_retry",
+                    "record_type": "transport_retry",
+                    "operation": "exhausted",
+                    **data,
+                },
+                turn_value=call_turn,
+            )
+            emit("transport_retry_exhausted", data)
+
         def pending_tool_candidates(name: str, arguments: Any) -> list[dict[str, Any]]:
             normalized = _safe_json(arguments)
             candidates = [
@@ -3389,9 +4440,16 @@ class AgentApp:
             candidates = pending_tool_candidates(name, arguments)
             return candidates[0] if len(candidates) == 1 else None
 
-        async def consume(graph: Any) -> dict[str, Any] | None:
-            nonlocal turn, final_text, output, observed_model, business_tool_called, system_shown, tool_error_seen, current_model_call_id, current_rendered_input_hash, current_input_messages_snapshot, last_state_messages_snapshot, failure_context_emitter, active_summary_graph_run
-            messages: list[Any] = [{"role": "user", "content": _input_with_context(input_text, pages)}]
+        async def consume(
+            graph: Any,
+            initial_messages: Sequence[Any] | None = None,
+        ) -> dict[str, Any] | None:
+            nonlocal turn, final_text, output, observed_model, business_tool_called, system_shown, tool_error_seen, compact_count, current_model_call_id, current_rendered_input_hash, current_input_messages_snapshot, last_state_messages_snapshot, failure_context_emitter, active_summary_graph_run
+            messages: list[Any] = (
+                list(initial_messages)
+                if initial_messages is not None
+                else [{"role": "user", "content": _input_with_context(input_text, pages)}]
+            )
             last_state_messages: list[Any] = list(messages)
             current_input_messages: list[Any] = list(messages)
             last_state_messages_snapshot = list(last_state_messages)
@@ -3446,7 +4504,9 @@ class AgentApp:
             ):
                 stream_kwargs["config"] = {"recursion_limit": _graph_recursion_limit(self.spec)}
 
-            async for event in graph.astream_events(inputs, **stream_kwargs):
+            async for event in _iterate_and_close(
+                graph.astream_events(inputs, **stream_kwargs)
+            ):
                 name = str(event.get("name") or "")
                 kind = str(event.get("event") or "")
                 data = event.get("data") or {}
@@ -3590,6 +4650,9 @@ class AgentApp:
                     emit("tool_started", {"name": name_value, "tool_call_id": call_id, "arguments": _safe_json(args), "status": "started", "started_at": started_at, "queue_duration_seconds": queue_duration, "attempt_id": attempt_id, "turn": turn})
                 elif kind == "on_tool_end":
                     result_value = _tool_result_value(data.get("output"))
+                    completion_status, completion_error, tool_executed = (
+                        _tool_completion_status(result_value)
+                    )
                     execution_id = str(event.get("run_id") or "")
                     execution = active_tool_records.pop(execution_id, None) or {}
                     output_message = data.get("output")
@@ -3630,8 +4693,23 @@ class AgentApp:
                             if isinstance(started_monotonic, (int, float))
                             else None
                         )
-                        record.update({"status": "completed", "result": _safe_json(result_value), "started_at": execution.get("started_at", record.get("started_at")), "finished_at": finished_at, "queue_duration_seconds": queue_duration, "duration_seconds": duration})
-                        business_tool_called = True
+                        record.update(
+                            {
+                                "status": completion_status,
+                                "result": _safe_json(result_value),
+                                "tool_executed": tool_executed,
+                                "started_at": execution.get(
+                                    "started_at", record.get("started_at")
+                                ),
+                                "finished_at": finished_at,
+                                "queue_duration_seconds": queue_duration,
+                                "duration_seconds": duration,
+                            }
+                        )
+                        if completion_error is not None:
+                            record["error"] = completion_error
+                        if tool_executed:
+                            business_tool_called = True
                         action_seq = audit_tool_action(record)
                         if action_seq is not None and isinstance(data.get("output"), BaseMessage):
                             message_source_refs[_message_key(data["output"])] = (action_seq, "action")
@@ -3640,7 +4718,28 @@ class AgentApp:
                             message_source_by_id[str(record.get("tool_call_id"))] = (action_seq, "action")
                     if isinstance(data.get("output"), BaseMessage):
                         last_state_messages = [*last_state_messages, data["output"]]
-                    emit("tool_completed", {"name": name, "tool_call_id": record.get("tool_call_id") if record else None, "arguments": record.get("arguments") if record else data.get("input"), "result": _safe_json(result_value), "status": "completed", "started_at": record.get("started_at") if record else None, "finished_at": record.get("finished_at") if record else None, "queue_duration_seconds": record.get("queue_duration_seconds") if record else None, "duration_seconds": record.get("duration_seconds") if record else None, "attempt_id": attempt_id, "turn": turn})
+                    emit(
+                        "tool_completed" if tool_executed else "tool_rejected",
+                        {
+                            "name": name,
+                            "tool_call_id": record.get("tool_call_id") if record else None,
+                            "arguments": record.get("arguments") if record else data.get("input"),
+                            "result": _safe_json(result_value),
+                            "status": completion_status,
+                            "tool_executed": tool_executed,
+                            "error": completion_error,
+                            "started_at": record.get("started_at") if record else None,
+                            "finished_at": record.get("finished_at") if record else None,
+                            "queue_duration_seconds": (
+                                record.get("queue_duration_seconds") if record else None
+                            ),
+                            "duration_seconds": (
+                                record.get("duration_seconds") if record else None
+                            ),
+                            "attempt_id": attempt_id,
+                            "turn": turn,
+                        },
+                    )
                     if not active_tool_records:
                         tool_context_tokens, _tool_sources = context_meter.count(last_state_messages)
                         if compact_threshold is not None and tool_context_tokens is not None and tool_context_tokens >= compact_threshold:
@@ -3723,8 +4822,29 @@ class AgentApp:
                     final = next((message for message in reversed(messages) if isinstance(message, AIMessage)), None)
                     if final is not None:
                         final_text = _message_text(final)
-                    structured_record = next((item for item in reversed(tool_calls) if item.get("kind") == "structured" and item.get("status") == "requested"), None)
+                    pending_structured = [
+                        item
+                        for item in tool_calls
+                        if item.get("kind") == "structured"
+                        and item.get("status") == "requested"
+                    ]
+                    structured_record = pending_structured[-1] if pending_structured else None
                     if output is not None:
+                        for rejected in pending_structured[:-1]:
+                            rejected.update(
+                                {
+                                    "status": "rejected",
+                                    "error": {
+                                        "code": "structured_output_invalid",
+                                        "message": (
+                                            "structured output call was rejected by schema "
+                                            "validation and retried"
+                                        ),
+                                    },
+                                    "finished_at": datetime.now(timezone.utc).isoformat(),
+                                }
+                            )
+                            audit_write({"record": "action", **rejected})
                         if structured_record is not None:
                             structured_record.update({"status": "completed", "result": _safe_json(output), "finished_at": _utc_now().isoformat()})
                             audit_write({"record": "action", **structured_record})
@@ -3765,6 +4885,7 @@ class AgentApp:
                 "limits": dict(self.spec.limits or {}),
                 "tools": list(self.spec.tool_names),
                 "required_tool": self.spec.require_tool_call,
+                "retry_missing_structured_output": self.spec.retry_missing_structured_output,
                 "structured_output": self.spec.output_schema.__name__ if self.spec.output_schema is not None else None,
                 **inference_summary,
             })
@@ -3796,8 +4917,10 @@ class AgentApp:
                     "summary_template": "langgraph_default" if compact_threshold is not None else None,
                     "summary_template_hash": _hash_text(DEFAULT_SUMMARY_PROMPT) if compact_threshold is not None else None,
                     "limits": dict(self.spec.limits or {}),
+                    "retry_missing_structured_output": self.spec.retry_missing_structured_output,
                     "redaction_report": [],
                     "eligibility_scope": _ELIGIBILITY_SCOPE,
+                    "recovered_output_parts": audit.recovered_parts,
                 }
             )
             if context_error is not None:
@@ -3827,7 +4950,9 @@ class AgentApp:
             )
             existing_callbacks = getattr(self.model, "callbacks", None)
             if not hasattr(self.model, "model_copy"):
-                raise AgentError("config_error", "chat model does not support run-scoped callback copies")
+                raise AgentError(
+                    "config_error", "chat model does not support run-scoped callback copies"
+                )
             try:
                 callback_value = _callbacks_with_observer(existing_callbacks, observer)
                 primary_model = self.model.model_copy(
@@ -3835,9 +4960,39 @@ class AgentApp:
                     update={"callbacks": callback_value},
                 )
             except Exception as exc:
-                raise AgentError("config_error", "run-scoped callback setup failed", details=_exception_details(exc)) from exc
+                raise AgentError(
+                    "config_error",
+                    "run-scoped callback setup failed",
+                    details=_exception_details(exc),
+                ) from exc
+            model_options_middleware = _ModelOptionsMiddleware(
+                inference_options,
+                tool_choice_resolver=tool_choice_resolver,
+                structured_output_name=(
+                    self.spec.output_schema.__name__
+                    if self.spec.output_schema is not None
+                    else None
+                ),
+            )
             middleware: list[Any] = [
-                _ModelOptionsMiddleware(inference_options),
+                model_options_middleware,
+                *_adapter_prompt_cache_middleware(self.config),
+                _TransportRetryMiddleware(
+                    ledger,
+                    delays=transport_retry_delays,
+                    on_retry=transport_retry_scheduled,
+                    on_recovered=transport_retry_recovered,
+                    on_exhausted=transport_retry_exhausted,
+                ),
+                *(
+                    [
+                        _ModelCallDeadlineMiddleware(
+                            float((self.spec.limits or {})["model_call_seconds"])
+                        )
+                    ]
+                    if (self.spec.limits or {}).get("model_call_seconds") is not None
+                    else []
+                ),
                 _RequestCaptureMiddleware(request_captures, capture_primary_request),
                 guard,
             ]
@@ -3871,20 +5026,121 @@ class AgentApp:
                 # provider profiles visible; pass ToolStrategy explicitly to
                 # preserve that established cross-provider behavior.
                 response_format=(
-                    ToolStrategy(self.spec.output_schema)
+                    ToolStrategy(
+                        self.spec.output_schema,
+                        handle_errors=_structured_output_repair_message,
+                    )
                     if self.spec.output_schema is not None
                     else None
                 ),
                 middleware=middleware,
                 name=self.spec.name,
             )
+            terminal_state: dict[str, Any] | None
             if seconds is None:
-                await consume(graph)
+                terminal_state = await consume(graph)
             else:
                 remaining = float(seconds) - (_monotonic() - started)
                 if remaining <= 0:
                     raise AgentError("limit_exceeded", "seconds limit exceeded")
-                await asyncio.wait_for(consume(graph), timeout=remaining)
+                terminal_state = await asyncio.wait_for(
+                    consume(graph), timeout=remaining
+                )
+            if (
+                output is None
+                and self.spec.output_schema is not None
+                and self.spec.retry_missing_structured_output
+            ):
+                retry_message = HumanMessage(
+                    content=(
+                        "The previous path ended without the required structured output. "
+                        "Continue the same task from the complete visible history. Complete "
+                        "any still-missing mandatory business-tool step, then return exactly "
+                        "one structured output. Do not end with prose or an empty response."
+                    )
+                )
+                audit_write(
+                    {
+                        "record": "context",
+                        "record_type": "context",
+                        "operation": "missing_structured_output_retry",
+                        "status": "started",
+                        "previous_turn": turn,
+                        "instruction_hash": _hash_text(_message_text(retry_message)),
+                    }
+                )
+                current_mandatory_choice = (
+                    tool_choice_resolver() if tool_choice_resolver is not None else None
+                )
+                model_options_middleware.forced_tool_choice = (
+                    None if current_mandatory_choice is not None else "required"
+                )
+                terminal_messages = (
+                    list(terminal_state.get("messages") or [])
+                    if isinstance(terminal_state, Mapping)
+                    else []
+                )
+                replay_messages, rejected_calls = _prepare_recovery_history(
+                    terminal_messages or last_state_messages_snapshot,
+                    structured_name=self.spec.output_schema.__name__,
+                    business_names=self.spec.tool_names,
+                )
+                for rejected_call in rejected_calls:
+                    is_structured = (
+                        rejected_call.get("name") == self.spec.output_schema.__name__
+                    )
+                    rejected_record = {
+                        "kind": "structured" if is_structured else "business",
+                        "name": rejected_call.get("name"),
+                        "tool_call_id": rejected_call.get("tool_call_id"),
+                        "arguments": None,
+                        "attempt_id": attempt_id,
+                        "turn": turn,
+                        "status": "rejected",
+                        "started_at": datetime.now(timezone.utc).isoformat(),
+                        "finished_at": datetime.now(timezone.utc).isoformat(),
+                        "error": {
+                            "code": (
+                                "structured_output_invalid"
+                                if is_structured
+                                else "tool_arguments_invalid"
+                            ),
+                            "message": (
+                                "provider returned a malformed structured-output tool call; "
+                                "the invalid terminal assistant message was excluded from replay"
+                                if is_structured
+                                else "provider returned malformed arguments for a registered "
+                                "business tool that was not executed; the invalid terminal "
+                                "assistant message was excluded from replay"
+                            ),
+                        },
+                    }
+                    tool_calls.append(rejected_record)
+                    audit_write({"record": "action", **rejected_record})
+                if rejected_calls:
+                    audit_write(
+                        {
+                            "record": "context",
+                            "record_type": "context",
+                            "operation": "recovery_history_sanitized",
+                            "status": "completed",
+                            "rejected_calls": rejected_calls,
+                            "retained_message_count": len(replay_messages),
+                        }
+                    )
+                retry_messages = [
+                    *replay_messages,
+                    retry_message,
+                ]
+                if seconds is None:
+                    await consume(graph, retry_messages)
+                else:
+                    remaining = float(seconds) - (_monotonic() - started)
+                    if remaining <= 0:
+                        raise AgentError("limit_exceeded", "seconds limit exceeded")
+                    await asyncio.wait_for(
+                        consume(graph, retry_messages), timeout=remaining
+                    )
             if self.spec.require_tool_call and not business_tool_called:
                 raise AgentError("tool_required", "a business tool call was required")
             if self.spec.output_schema is not None and output is None:
@@ -3978,7 +5234,7 @@ class AgentApp:
                         )
 
                 if error is not None and current_model_call_id is not None and turn not in decision_written_turns:
-                    capture = request_capture_by_call.get(current_model_call_id, {})
+                    capture = consume_request_capture(current_model_call_id)
                     audit_write(
                         {
                             "record": "decision",
@@ -4247,7 +5503,7 @@ def _message_ref(
     role = getattr(message, "type", None) or message.__class__.__name__
     identity = getattr(message, "id", None)
     text = _message_text(message)
-    return {
+    ref = {
         "id": str(identity) if identity else None,
         "role": str(role),
         "content_hash": _hash_text(text),
@@ -4255,6 +5511,129 @@ def _message_ref(
         "source_seq": source_seq,
         "source_record": source_record,
     }
+    protocol_calls = _message_protocol_tool_calls(message)
+    if protocol_calls:
+        ref["tool_calls"] = protocol_calls
+    tool_call_id = getattr(message, "tool_call_id", None)
+    if tool_call_id:
+        ref["tool_call_id"] = str(tool_call_id)
+    return ref
+
+
+def _message_protocol_tool_calls(message: Any) -> list[dict[str, Any]]:
+    """Return visible tool-call identities, including provider-invalid calls."""
+
+    descriptors: dict[str, dict[str, Any]] = {}
+
+    def add(call: Mapping[str, Any], *, valid: bool, source: str) -> None:
+        function = call.get("function")
+        function = function if isinstance(function, Mapping) else {}
+        call_id = call.get("id") or call.get("tool_call_id")
+        name = call.get("name") or function.get("name")
+        if call_id is None and name is None:
+            return
+        key = str(call_id) if call_id is not None else f"name:{name}:{len(descriptors)}"
+        current = descriptors.get(key)
+        item = {
+            "tool_call_id": str(call_id) if call_id is not None else None,
+            "name": str(name) if name is not None else None,
+            "valid": bool(valid),
+            "source": source,
+        }
+        if current is None or (valid and not current["valid"]):
+            descriptors[key] = item
+
+    for call in list(getattr(message, "tool_calls", None) or []):
+        if isinstance(call, Mapping):
+            add(call, valid=True, source="tool_calls")
+    for call in list(getattr(message, "invalid_tool_calls", None) or []):
+        if isinstance(call, Mapping):
+            add(call, valid=False, source="invalid_tool_calls")
+    additional = getattr(message, "additional_kwargs", None)
+    raw_calls = additional.get("tool_calls") if isinstance(additional, Mapping) else None
+    for call in list(raw_calls or []):
+        if isinstance(call, Mapping):
+            add(call, valid=False, source="provider_raw_tool_calls")
+    return list(descriptors.values())
+
+
+def _prepare_recovery_history(
+    messages: Sequence[Any],
+    *,
+    structured_name: str,
+    business_names: Sequence[str] = (),
+) -> tuple[list[Any], list[dict[str, Any]]]:
+    """Validate provider tool-message ordering before replaying terminal state.
+
+    A malformed provider response may survive as ``invalid_tool_calls`` or raw
+    ``additional_kwargs.tool_calls`` even though LangGraph cannot execute it.
+    Replaying that terminal assistant message violates the OpenAI-compatible
+    message protocol. Only a final, invalid call to the configured structured
+    output tool, or to a registered business tool that was never executable, may
+    be excluded and retried. Missing responses for valid calls, unknown tools,
+    or corruption in the middle of history fail closed.
+    """
+
+    history = list(messages)
+    recoverable_names = {structured_name, *business_names}
+    pending: dict[str, dict[str, Any]] = {}
+    pending_index: int | None = None
+    for index, message in enumerate(history):
+        if pending:
+            if isinstance(message, ToolMessage):
+                response_id = str(getattr(message, "tool_call_id", "") or "")
+                if response_id not in pending:
+                    raise AgentError(
+                        "message_protocol_invalid",
+                        "tool response does not match the preceding assistant tool calls",
+                        details={"tool_call_id": response_id, "pending_tool_call_ids": sorted(pending)},
+                    )
+                pending.pop(response_id)
+                continue
+            raise AgentError(
+                "message_protocol_invalid",
+                "assistant tool calls are not immediately followed by all required tool responses",
+                details={"pending_tool_call_ids": sorted(pending), "message_index": index},
+            )
+
+        calls = _message_protocol_tool_calls(message)
+        calls_without_ids = [item for item in calls if not item.get("tool_call_id")]
+        if calls_without_ids:
+            if (
+                index == len(history) - 1
+                and all(not item["valid"] for item in calls_without_ids)
+                and all(item.get("name") in recoverable_names for item in calls_without_ids)
+            ):
+                return history[:index], calls_without_ids
+            raise AgentError(
+                "message_protocol_invalid",
+                "tool call without an ID cannot be safely replayed",
+                details={"tool_calls": calls_without_ids, "message_index": index},
+            )
+        calls_with_ids = [item for item in calls if item.get("tool_call_id")]
+        if calls_with_ids:
+            pending = {str(item["tool_call_id"]): item for item in calls_with_ids}
+            pending_index = index
+
+    if not pending:
+        return history, []
+    assert pending_index is not None
+    dangling = list(pending.values())
+    if (
+        pending_index == len(history) - 1
+        and all(not item["valid"] for item in dangling)
+        and all(item.get("name") in recoverable_names for item in dangling)
+    ):
+        return history[:pending_index], dangling
+    raise AgentError(
+        "message_protocol_invalid",
+        "terminal history contains incomplete tool calls that cannot be safely replayed",
+        details={
+            "pending_tool_calls": dangling,
+            "message_index": pending_index,
+            "structured_output_tool": structured_name,
+        },
+    )
 
 
 def _compact_replacement_projection(messages: Sequence[Any]) -> dict[str, Any]:

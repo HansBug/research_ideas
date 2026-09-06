@@ -1,0 +1,375 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0043",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0043-01",
+      "pair": "0043",
+      "D": "D1",
+      "L": "L1",
+      "summary": "NL 第 2 句枚举了 `PumpState`、`WaterState`、`MethaneState` 三个子态，而 `PumpControl` 的顶层分解只有两个成员（`Region1`、`Region2`），且 `Region2` 装的是 NL 里根本不存在的 `Idle` 与 `Active`。",
+      "detail": "NL 第 2 句逐字为「Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState.」。\n\n制品在 `:4` 开 `state PumpControl {`，块内用 `:12` 的 `--` 分成两个区，各装一个具名复合态：`:5 state \"Region1\" as Region1 {` 内含 `PumpState`、`WaterState`、`MethaneState`（`:6`-`:10`）；`:13 state \"Region2\" as Region2 {` 内含 `Idle` 与 `Active`（`:14`-`:16`）。\n\n按第一种读法，问题不在包了几层，而在分解的成员被替换了：`PumpControl` 的顶层分解由两个 Region 构成，而 `Idle`/`Active`/`Activation Signal`/`Deactivation Signal` 这些名字在 NL 五句话里一个都没出现。",
+      "D_basis": "判 D1，两读并立。第一种读法把 NL 第 2 句读作对 `PumpControl` 顶层分解的封闭规定：恰由那三个具名子态构成，而制品的顶层分解是两个 Region、其中一个装着 NL 没有的 Idle/Active，规定被违反。第二种读法注意到 `three main substates` 里的 main 是限定词：它只枚举主要子态，并没有封闭全部后代，也没有要求三者必须直接挂在 `PumpControl` 下面。而 `PumpState`、`WaterState`、`MethaneState` 三个在制品里都真实存在（`:6`-`:10`），`Region1`/`Region2` 可以读作包裹层、`Idle`/`Active` 可以读作辅助态。第二种读法与结构事实相容，故判 D1。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态结构事实：`PumpControl` 的顶层分解有几个成员、分别是谁。这要把 PlantUML 的块与 `--` 分区解析一遍才能得出，比单纯的名字比对深一层；但它只涉及静态切面上的包含关系，不需要执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "state",
+        "defect_qualifier": "other",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0043-02",
+      "pair": "0043",
+      "D": "D2",
+      "L": "L0",
+      "summary": "`PumpControl` 的两个正交区都没有区级的默认入口——两条 `[*]`（`:6`、`:14`）分别嵌在 `Region1`、`Region2` **内部**，比区低一层——所以进入 `PumpControl` 时哪个子态都不会被激活，NL 第 3 句要求的「首先进入 PumpState」不可实现。",
+      "detail": "关键在于数括号，确认那两条 `[*]` 到底在哪一层。\n\n`:4 state PumpControl {` 开了复合态，`:12` 的 `--` 把它分成两个区。第一个区里唯一的元素是 `:5 state \"Region1\" as Region1 {` … `:11 }` 这个具名复合态；`:6 [*] --> PumpState` 写在 `Region1` 的花括号**内**，所以它是 `Region1` 的内部默认入口，只在已经进入 `Region1` 之后才起作用。第二个区同理：`:14 [*] --> Idle` 在 `Region2` 内部。\n\n于是 `PumpControl` 的两个区在自己那一层都没有 `[*] -->`。进入 `PumpControl` 时，两个区都不知道该落到哪个子态上（`Region1` 与 `Region2` 都不会被进入），`PumpState` 因此不可达。投影为此注入了占位的未指定初始状态。\n\n第一版台账没有记录这一条。它与台账已接受为有效条目的 EXP-0019-IT-001（碰撞规避缺初始边）是完全同型的证据：同样是作者源没写区级初始边、同样由投影注入占位、同样用结构族的初始目标谓词断言，两处标准应当一致。\n\n被违反的是 NL 第 3 句「The system first transitions to the PumpState substate, where the pump is activated or controlled」：它指定了进入 PumpControl 之后的第一个落点，而制品在那一层根本没有落点可言。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 3 句「The system first transitions to the PumpState substate」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——两条 `[*]` 的层级由花括号配对唯一确定，它们确实比区低一层，不存在「其实它们就是区级入口」的解释余地。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需数花括号，确认 `:6` 与 `:14` 两条 `[*]` 各自落在哪一层，再看两个区自己那一层有没有 `[*] -->`（没有）。这是纯词法层面的检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:PumpControl",
+          "claims": [
+            "The required first operating state PumpState is unreachable from the system root.",
+            "PumpState is not reachable from the system root despite being the required first operating substate.",
+            "WaterState cannot be reached from the system root under the authored entry structure.",
+            "MethaneState cannot be reached from the system root under the authored entry structure."
+          ],
+          "locations": [
+            "NL1",
+            "NL3",
+            "llms_emp_feedback_final_0043.PumpControl.Region1.PumpState",
+            "llms_emp_feedback_final_0043.PumpControl.UnspecifiedInitial",
+            "F13",
+            "F27",
+            "NL4",
+            "llms_emp_feedback_final_0043.PumpControl.Region1.WaterState",
+            "F14",
+            "NL5",
+            "llms_emp_feedback_final_0043.PumpControl.Region1.MethaneState",
+            "F15"
+          ],
+          "obligations": [
+            "PumpState must be reachable as the first operating substate after system entry.",
+            "The first operating substate PumpState must be reachable from the system root.",
+            "WaterState must be reachable as a system operating destination.",
+            "MethaneState must be reachable as a system operating destination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 4,
+          "facet_keys": [
+            "source:initial_contract:PumpControl:facet:115feaf4ba6e",
+            "source:initial_contract:PumpControl:facet:bf57aebdaa7c",
+            "source:initial_contract:PumpControl:facet:dbf9ce7c6611",
+            "source:initial_contract:PumpControl:facet:1177ca2a250d"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:PumpControl",
+          "claims": [
+            "Source composite 'PumpControl' has no initial transition to required child 'PumpControl.Region1.PumpState'.",
+            "PumpControl.Region1.PumpState is unreachable from the root entry, violating the required operating path."
+          ],
+          "locations": [
+            "NL3",
+            "NL1",
+            "llms_emp_feedback_final_0043.PumpControl.Region1.PumpState",
+            "FCSTM:F26-F29"
+          ],
+          "obligations": [
+            "PumpControl must initially enter PumpControl.Region1.PumpState.",
+            "The required PumpControl operating substates must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:initial_contract:PumpControl:facet:643fa7f8fb55",
+            "source:initial_contract:PumpControl:facet:115feaf4ba6e"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "PumpControl 内增加了规格未定义的 Region2 区域及 Idle、Active 状态。",
+          "reason": "规格仅规定 PumpControl 包含 PumpState、WaterState 和 MethaneState 三个主要子状态，没有规定第二个并行区域、Idle/Active 状态或激活/停用信号相关转换，因此该部分超出并偏离规格。",
+          "where": "PumpControl 内的 `state \"Region2\" as Region2`，以及 `[*] --> Idle`、`Idle --> Active`、`Active --> Idle`。"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "三个规定的主子状态被嵌套在额外的 Region1 中，而不是直接作为 PumpControl 的三个主要子状态。",
+          "reason": "规格明确指出 PumpControl 内有三个 main substates：PumpState、WaterState 和 MethaneState。模型将它们归入名为 Region1 的额外复合区域，改变了规定的层级结构；同时 PumpControl 实际上还包含 Region2。",
+          "where": "PumpControl 内的 `state \"Region1\" as Region1 { ... }` 及其中的 PumpState、WaterState、MethaneState。"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型没有体现从 PumpControl 按条件直接转入 WaterState 或 MethaneState 的入口转换。",
+          "reason": "规格第1条说明系统从 PumpControl 可以基于特定条件转换到不同子状态，第4、5条分别说明可转换到 WaterState 和 MethaneState。模型只有先进入 Region1 的初始 PumpState 后，才能通过流量检测转换，未建模 PumpControl 到这两个规定子状态的直接条件入口；若将第1条理解为顶层复合状态的入口行为，这一行为缺失。",
+          "where": "PumpControl 的内部结构，仅有 Region1 内的 `PumpState --> WaterState` 和 `PumpState --> MethaneState`。"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "PumpControl中额外建模了Region2及其Idle/Active状态和转移。",
+          "reason": "规格只定义PumpState、WaterState、MethaneState三个主要子状态及其相关行为，没有定义Idle、Active、Activation Signal或Deactivation Signal。该并行区域引入了未由规格要求的状态和行为，模型因此超出规格。",
+          "where": "`PumpControl` 内的 `state \"Region2\" as Region2`，以及 `[*] --> Idle`、`Idle --> Active`、`Active --> Idle`。"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "PumpState、WaterState、MethaneState并非PumpControl的直接子状态，而是被额外嵌套在Region1中。",
+          "reason": "规格明确说明PumpControl内部有三个主要子状态：PumpState、WaterState和MethaneState。模型在PumpControl下实际定义的是Region1和Region2，三个规定状态位于Region1的下一层，层级结构与规格不一致。",
+          "where": "`PumpControl` 内的 `state \"Region1\" as Region1 { ... }` 及其中三个状态定义。"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "PumpControl 内额外建模了 Region2 区域及 Idle/Active 状态",
+          "reason": "规格明确指出 PumpControl 内有三个主要子状态：PumpState、WaterState 和 MethaneState，并未定义第二个并行区域、Idle 或 Active 状态。该额外区域使 PumpControl 同时包含未规定的状态与行为，模型结构超出规格。",
+          "where": "PumpControl 下的 `Region2`：`[*] --> Idle`、`Idle --> Active`、`Active --> Idle`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "PumpControl 的“首先进入 PumpState”在整体模型中不再唯一成立",
+          "reason": "规格要求系统进入 PumpControl 后首先转入 PumpState。模型进入 PumpControl 时，Region1 进入 PumpState 的同时 Region2 进入 Idle，因此整体初始子状态组合包含 Idle，而不是仅由规定的 PumpState 作为首先进入的子状态。",
+          "where": "PumpControl 内两个并行区域的初始转换：Region1 的 `[*] --> PumpState` 与 Region2 的 `[*] --> Idle`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0043",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0043-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出 finding，未覆盖 PumpControl 顶层分解成员被 Region1/Region2 替代及引入未规定状态的结构问题。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出只主张 PumpState、WaterState、MethaneState 在入口结构下不可达，未主张 PumpControl 的顶层成员、Region1 嵌套或额外 Region2/Idle/Active 所构成的分解成员与层级偏差。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出聚焦 PumpControl 缺少通往所需 PumpState 的初始转换及其不可达后果，没有指认顶层分解由 Region1/Region2 构成或 Region2 含未规定状态这一结构性质。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1",
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_1 指认同一 PumpControl 顶层的额外 Region2 及其中未由规格定义的 Idle/Active；baseline_issue_2 指认三个规定状态被错置到 Region1 下一层、PumpControl 实际还包含 Region2。两条各自都直接落在该台账缺陷的结构组成上，合计也完整呈现其成员替换与层级错置主张。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1",
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_1 直接主张 PumpControl 多出 Region2、Idle/Active 及相关行为；baseline_issue_2 直接主张三个规定状态不是 PumpControl 的直接成员而被嵌套在 Region1，且其实际顶层成员为 Region1/Region2。位置和结构性质均与台账一致。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "该 issue 在 PumpControl 下指认额外的 Region2 与 Idle/Active，属于台账所述同一顶层分解偏差及未规定成员问题；虽未同时展开 Region1 的嵌套错位，仍对台账缺陷的明确结构主张形成直接覆盖。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0043-02",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出 finding，未覆盖正交区层级缺少默认入口及 PumpState 因而不可达的问题。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:PumpControl"
+          ],
+          "reason": "该 finding 明确主张规格要求首先进入的 PumpState 在作者入口结构下从系统根不可达，并定位 PumpControl 的未指定初始入口；这是台账所述缺少正确层级初始入口的直接后果，位置与缺失性质一致。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:PumpControl"
+          ],
+          "reason": "该 finding 直接主张 PumpControl 没有到所需子态 PumpState 的初始转换，并进一步主张其从根入口不可达；与台账在 PumpControl 区级入口处的初始转换缺失及 NL3 不可实现是同处同性质。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "三个 issue 分别讨论额外 Region2、Region1 层级嵌套以及缺少从 PumpControl 直接到 WaterState/MethaneState 的条件入口；均未主张两个正交区自身缺少默认入口，也未主张由此导致首个 PumpState 不可达。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "两个 issue 都针对额外 Region2 或三个规定状态被嵌套在 Region1 的静态层级偏差，没有指认区级默认入口缺失及 PumpState 的入口不可达。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_1 只讨论额外 Region2；baseline_issue_2 反而把 Region1 内的 [*] 到 PumpState 和 Region2 内的 [*] 到 Idle 当作进入 PumpControl 时同时生效，主张首态不唯一。该性质与台账认定两条初始边低一层、区级入口缺失而均不会生效的主张相反。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0043-01"
+        ],
+        "false_positive": false,
+        "reason": "指认 PumpControl 中额外的 Region2、Idle/Active 及相关转换，语义对应台账 EIS-0043-01 的未规定顶层结构和成员。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0043-01"
+        ],
+        "false_positive": false,
+        "reason": "指认三个规定主子态被错置在 Region1 下一层且 PumpControl 实际还含 Region2，语义对应 EIS-0043-01 的顶层分解与层级偏差。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "其主张是缺少 PumpControl 直接到 WaterState/MethaneState 的条件入口转换；冻结台账没有这项缺陷，且它不同于 EIS-0043-02 的区级默认入口缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0043-01"
+        ],
+        "false_positive": false,
+        "reason": "额外 Region2、Idle/Active 与转移正是 EIS-0043-01 所含的未规定结构主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0043-01"
+        ],
+        "false_positive": false,
+        "reason": "三个规定状态被置于 Region1 下一层、PumpControl 顶层实际为 Region1/Region2，与 EIS-0043-01 同处同为层级和分解成员偏差。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0043-01"
+        ],
+        "false_positive": false,
+        "reason": "指认 PumpControl 下多出的 Region2 及 Idle/Active，覆盖 EIS-0043-01 的额外顶层区域和未规定状态部分。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张两个内部初始转换在进入 PumpControl 时同时生效，造成 PumpState 不是唯一首态；EIS-0043-02 则认定这些转换位于更低层而不能充当区级入口，导致 PumpState 不可达，二者性质和方向相反。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_contract:PumpControl",
+        "matched_ledger_ids": [
+          "EIS-0043-02"
+        ],
+        "false_positive": false,
+        "reason": "主张所需首个 PumpState 在作者入口结构下从根不可达，直接对应 EIS-0043-02 的初始入口缺失后果；同 cluster 对 WaterState/MethaneState 的扩展不可达主张不改变其对该台账条目的覆盖。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:PumpControl",
+        "matched_ledger_ids": [
+          "EIS-0043-02"
+        ],
+        "false_positive": false,
+        "reason": "明确主张 PumpControl 缺少到所需 PumpState 的初始转换并导致根入口不可达，与 EIS-0043-02 同一入口位置、同一缺失性质。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "冻结台账包含两个彼此不同的结构缺陷：EIS-0043-01 是 PumpControl 顶层分解成员及层级与规格不符（并引入未规定的 Region2/Idle/Active）；EIS-0043-02 是正交区层级缺少默认入口，导致规格要求的首个 PumpState 从根入口不可达。逐条输出按同一位置与同一性质独立对齐；仅提到额外结构可覆盖前者，而主张缺少初始入口或其直接不可达后果可覆盖后者。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

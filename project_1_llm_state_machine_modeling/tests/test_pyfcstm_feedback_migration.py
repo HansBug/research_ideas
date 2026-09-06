@@ -5,11 +5,11 @@ from pathlib import Path
 
 import pandas as pd
 
-from eval.extract.pyfcstm import extract_pyfcstm
-from method.agents.scenariogen.generate import _extract_model_elements
-from method.feedback.parse import check_parse
-from method.feedback.semantic import check_semantic
-from paper_v1.selection.ref_stms.verify_pyfcstm_static import _EXTERNAL_RE, _severity, analyze
+from archive.path1_evaluation.extract.pyfcstm import extract_pyfcstm
+from archive.agent_loop_method.agents.scenariogen.generate import _extract_model_elements
+from archive.agent_loop_method.feedback.parse import check_parse
+from archive.agent_loop_method.feedback.semantic import check_semantic
+from archive.path1_path2_guides.selection.ref_stms.verify_pyfcstm_static import _EXTERNAL_RE, _severity, analyze
 from pyfcstm.utils.validate import ModelDiagnostic
 
 
@@ -327,8 +327,8 @@ def test_static_verifier_unknown_warning_defaults_to_error() -> None:
 def test_locally_available_core_dataset_artifacts_remain_readable() -> None:
     """Smoke whichever core/path artifacts are available in this checkout."""
     candidates = [
-        Path("project_1_llm_state_machine_modeling/eval/data/sources_path1.parquet"),
-        Path("project_1_llm_state_machine_modeling/eval/data/sources_path2.parquet"),
+        Path("project_1_llm_state_machine_modeling/archive/path1_evaluation/data/sources_path1.parquet"),
+        Path("project_1_llm_state_machine_modeling/archive/path1_evaluation/data/sources_path2.parquet"),
         Path("project_1_llm_state_machine_modeling/reproduction/data/derived/structure_event_driven_cases.parquet"),
         Path("project_1_llm_state_machine_modeling/reproduction/data/derived/structure_event_driven_reference_solutions.parquet"),
     ]
@@ -347,7 +347,7 @@ def test_locally_available_core_dataset_artifacts_remain_readable() -> None:
 
 def test_existing_eval_demo_json_fixtures_are_unchanged() -> None:
     """Guard downstream manual-eval fixtures used as a tiny path smoke test."""
-    root = Path("project_1_llm_state_machine_modeling/eval/data")
+    root = Path("project_1_llm_state_machine_modeling/archive/path1_evaluation/data")
     for rel in [
         "refs/abs-fsm-brake-control/ref_components.json",
         "refs/automatic-elevator-controller/ref_components.json",

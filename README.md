@@ -27,8 +27,8 @@
 │   └── phd_proposal_literature_review/         # 文献综述（LaTeX）
 │
 ├── project_1_llm_state_machine_modeling/       # 研究内容一：LLM 状态机结构化建模
-│   ├── method/                                 # agent-loop / pyfcstm / run-record 等方法基础设施
-│   └── eval/                                   # project_1 评测与人工审计入口
+│   ├── paper_stm_issue_discover/               # 第一篇论文（STM issue discover）完整工作区
+│   └── archive/agent_loop_method/              # 已停用但完整保留的旧 agent-loop 方法基础设施
 ├── project_2_verification_scenario_generation/ # 研究内容二：验证场景与性质生成
 ├── project_3_profile_based_verification/       # 研究内容三：基于验证剖面的状态机验证
 ├── project_4_iterative_model_repair/           # 研究内容四：迭代式模型修复
@@ -85,9 +85,9 @@
 
 `AGENTS.md` 是 [CLAUDE.md](./CLAUDE.md) 的软链接，更新仓库级 AI 指南时只改 [CLAUDE.md](./CLAUDE.md)。
 
-### [project_1_llm_state_machine_modeling/method/README.md](./project_1_llm_state_machine_modeling/method/README.md)
+### [project_1_llm_state_machine_modeling/archive/agent_loop_method/README.md](./project_1_llm_state_machine_modeling/archive/agent_loop_method/README.md)
 
-`project_1` agent-loop 方法基础设施入口，用于接手 NL → pyfcstm DSL 的阶段化建模、反馈、修复、run record 和 smoke / handoff 工作。涉及真实 LLM、pyfcstm、fake / replay、run record 或 Path 1 / Path 2 共享基础设施时，优先从这里进入。
+`project_1` 旧 agent-loop 方法基础设施入口（**已停用，完整保留可复活**），覆盖 NL → pyfcstm DSL 的阶段化建模、反馈、修复、run record 和 smoke / handoff 工作。它不参与第一篇论文（STM issue discover）的任何结论；需要回溯旧 agent loop、Path 1 / Path 2 共享基础设施或历史 run record 时才从这里进入。
 
 ### [llm_model_landscape/README.md](./llm_model_landscape/README.md)、[llm_model_landscape/GUIDE.md](./llm_model_landscape/GUIDE.md) 与 [llm_model_landscape/SUMMARY.md](./llm_model_landscape/SUMMARY.md)
 
@@ -188,13 +188,19 @@ git submodule update --init --recursive
 pip install -e ./pyfcstm
 ```
 
-涉及真实 LLM 调用时，先在 shell 中加载仓库根 `.env`：
+涉及真实 LLM 调用时，配置真源是仓库根的 **`.llmconfig.yml`**（`600` 权限，不入库）。它是一份 profile 表，每个 profile 直接写 `adapter` / `base_url` / `api_key` / `model` 等字段；样例见 [.llmconfig.example.yml](./.llmconfig.example.yml)。
+
+**切换模型靠 `--profile <名字>`，不靠环境变量。** 运行时刻意拒绝从环境变量静默取凭据，所以**不需要 `source .env`**（仓库也没有 `.env`）。自检：
 
 ```bash
-source .env
+python -m utils.llm list              # 有哪些 profile
+python -m utils.llm validate          # 校验配置
+python -m utils.llm show <profile>    # 看单个 profile
 ```
 
-代码应读取 `os.environ` 中的配置，而不是直接解析 `.env` 文件；模型、endpoint 和 key 的切换通过重新 `source .env` 完成。
+⚠️ `.llmconfig.yml` 内含明文凭据，不要 `cat` 它、不要把内容贴进任何输出。
+
+⛔ **已归档的旧 agent loop（`project_1_llm_state_machine_modeling/archive/agent_loop_method/`）走的是另一套**：它直接读 `os.environ` 的 `LLM_ENDPOINT` / `LLM_API_KEY` / `LLM_MODEL`。两套机制并存，判据是——代码走 `utils/llm/` 就用 `.llmconfig.yml`，直接 `os.environ[...]` 取三件套的才是旧 loop。
 
 ## 关键技术栈
 

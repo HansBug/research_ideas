@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://research-ideas.local/project_1/paper_stm_issue_discover/manual_pair_review.schema.json",
+  "title": "Paper1 manual LLMS-EMP triple review v4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "pair_id",
+    "review_subject_sha256",
+    "working_contract_sha256",
+    "reviewer_id",
+    "review_method",
+    "review_context",
+    "reviewed_inputs",
+    "observations",
+    "semantic_correspondences",
+    "ownership_verdict",
+    "macro_verdict",
+    "capability_verdict",
+    "second_pass",
+    "findings",
+    "verdict",
+    "notes"
+  ],
+  "properties": {
+    "schema_version": {"const": "paper1.manual_pair_review.v4"},
+    "case_id": {"type": "string", "pattern": "^[0-9]{4}$"},
+    "pair_id": {"type": "string", "pattern": "^llms_emp_feedback_final_[0-9]{4}$"},
+    "review_subject_sha256": {"$ref": "#/$defs/sha256"},
+    "working_contract_sha256": {"$ref": "#/$defs/sha256"},
+    "reviewer_id": {"const": "main_session_llm"},
+    "review_method": {"const": "full_nl_plantuml_fcstm_contract_read"},
+    "review_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewed_at", "session_id", "model_id"],
+      "properties": {
+        "reviewed_at": {"type": ["string", "null"], "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T.*Z$"},
+        "session_id": {"type": ["string", "null"], "minLength": 1},
+        "model_id": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "reviewed_inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nl", "plantuml", "fcstm", "working_contract", "source_trace"],
+      "properties": {
+        "nl": {"type": "boolean"},
+        "plantuml": {"type": "boolean"},
+        "fcstm": {"type": "boolean"},
+        "working_contract": {"type": "boolean"},
+        "source_trace": {"type": "boolean"}
+      }
+    },
+    "observations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nl_intent",
+        "plantuml_semantics",
+        "fcstm_projection",
+        "attribution_rationale",
+        "capability_rationale",
+        "nl_anchors",
+        "plantuml_anchors",
+        "fcstm_anchors"
+      ],
+      "properties": {
+        "nl_intent": {"type": "string", "minLength": 1},
+        "plantuml_semantics": {"type": "string", "minLength": 1},
+        "fcstm_projection": {"type": "string", "minLength": 1},
+        "attribution_rationale": {"type": "string", "minLength": 1},
+        "capability_rationale": {"type": "string", "minLength": 1},
+        "nl_anchors": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "plantuml_anchors": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/source_anchor"}},
+        "fcstm_anchors": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/fcstm_anchor"}}
+      }
+    },
+    "semantic_correspondences": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "nl_anchor",
+          "plantuml_anchor",
+          "fcstm_anchor",
+          "source_element_ids",
+          "compiler_element_ids",
+          "projection_kind",
+          "assessment",
+          "rationale"
+        ],
+        "properties": {
+          "nl_anchor": {"type": "string", "minLength": 4},
+          "plantuml_anchor": {"$ref": "#/$defs/source_anchor"},
+          "fcstm_anchor": {"$ref": "#/$defs/fcstm_anchor"},
+          "source_element_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^source:"}
+          },
+          "compiler_element_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^compiler:"}
+          },
+          "projection_kind": {"enum": ["direct", "macro", "metadata", "capability_excluded"]},
+          "assessment": {"enum": ["preserved", "preserved_with_exclusions", "source_issue_visible", "blocked"]},
+          "rationale": {"type": "string", "minLength": 40}
+        }
+      }
+    },
+    "ownership_verdict": {"enum": ["pending", "pass", "fail"]},
+    "macro_verdict": {"enum": ["pending", "pass", "fail"]},
+    "capability_verdict": {"enum": ["pending", "pass", "fail"]},
+    "second_pass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required",
+        "completed",
+        "review_subject_sha256",
+        "reviewer_id",
+        "review_method",
+        "risk_tags_reviewed",
+        "risk_assessments",
+        "observations",
+        "notes"
+      ],
+      "properties": {
+        "required": {"type": "boolean"},
+        "completed": {"type": "boolean"},
+        "review_subject_sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "reviewer_id": {"type": ["string", "null"], "minLength": 1},
+        "review_method": {"type": ["string", "null"], "minLength": 1},
+        "risk_tags_reviewed": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "risk_assessments": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["obligation_id", "risk_tag", "plantuml_anchors", "fcstm_anchors", "element_ids", "assessment", "rationale"],
+            "properties": {
+              "obligation_id": {"type": "string", "pattern": "^review:"},
+              "risk_tag": {"type": "string", "minLength": 1},
+              "plantuml_anchors": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/source_anchor"}},
+              "fcstm_anchors": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/fcstm_anchor"}},
+              "element_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+              "assessment": {"enum": ["source_fact_preserved", "compiler_artifact_excluded", "capability_excluded", "requires_source_confirmation"]},
+              "rationale": {"type": "string", "minLength": 40}
+            }
+          }
+        },
+        "observations": {"type": ["string", "null"], "minLength": 1},
+        "notes": {"type": "string", "minLength": 1}
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "code", "summary"],
+        "properties": {
+          "severity": {"enum": ["C", "I", "M"]},
+          "code": {"type": "string", "minLength": 1},
+          "summary": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "verdict": {"enum": ["pending", "pass", "fail"]},
+    "notes": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"verdict": {"const": "pass"}},
+        "required": ["verdict"]
+      },
+      "then": {
+        "properties": {
+          "semantic_correspondences": {"minItems": 2}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "source_anchor": {
+      "type": "string",
+      "pattern": "^source-ref:[^|\\r\\n]+\\|[^\\r\\n]+$"
+    },
+    "fcstm_anchor": {
+      "type": "string",
+      "pattern": "^element-ref:(source|compiler|agent):[^|\\r\\n]+@line:[1-9][0-9]*\\|[^\\r\\n]+$"
+    }
+  }
+}

@@ -1,0 +1,226 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0052",
+  "ledger": [],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:stable_termination:Off",
+          "claims": [
+            "Required termination target 'Off' admits a source-level nonterminating continuation."
+          ],
+          "locations": [
+            "Off"
+          ],
+          "obligations": [
+            "The NL-designated termination state 'the powered-off state' must be a stable ending target for its declared behavior."
+          ],
+          "basis": [
+            "unattributed"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:stable_termination:Off:facet:3d32ba44f88f"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_target:None:Operate",
+          "claims": [
+            "Source composite 'llms_emp_feedback_final_0052' has no initial transition to required child 'Operate'."
+          ],
+          "locations": [
+            "NL1"
+          ],
+          "obligations": [
+            "llms_emp_feedback_final_0052 must initially enter Operate."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_target:None:Operate:facet:3c5cae2b2d0f"
+          ]
+        },
+        {
+          "finding_id": "source:transition:Operate.Idle:based on user actions:Operate.Braking",
+          "claims": [
+            "Source has no matching transition from 'Operate.Idle' to 'Operate.Braking' under 'based on user actions'."
+          ],
+          "locations": [
+            "NL1"
+          ],
+          "obligations": [
+            "Operate.Idle must transition directly to Operate.Braking under based on user actions."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:Operate.Idle:based on user actions:Operate.Braking:facet:fda8024ec301"
+          ]
+        },
+        {
+          "finding_id": "source:transition:Operate.Braking:based on user actions:Operate.Accelerating_or_Cruising",
+          "claims": [
+            "Source has no matching transition from 'Operate.Braking' to 'Operate.Accelerating_or_Cruising' under 'based on user actions'."
+          ],
+          "locations": [
+            "NL1"
+          ],
+          "obligations": [
+            "Operate.Braking must transition directly to Operate.Accelerating_or_Cruising under based on user actions."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:Operate.Braking:based on user actions:Operate.Accelerating_or_Cruising:facet:c834001cfc5a"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型上电后的初始状态是 `Off`，只有收到 `start` 才进入 `Operate`，没有表达上电即进入 `Operate`。",
+          "reason": "规格第1条明确说设备 powered on 后系统 enters `Operate`；第2条又说可通过 `start` signal turned on。若 `start` 就是上电动作，则模型可解释为先处于关机等待、收到启动信号后进入 Operate；但按“上电后进入 Operate”的字面要求，模型没有直接的上电到 Operate语义，且把初始状态建成 Off 可能与该要求不一致。",
+          "where": "模型顶层初始转移：`[*] --> Off`，以及 `Off --> Operate : start`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "没有从 `Idle` 到 `Braking` 的 `brake` 转移。",
+          "reason": "规格第1、3条要求在 Operate 内根据用户的加速、制动或停止等动作在子状态间切换。模型只允许 `Accelerating_or_Cruising --> Braking : brake`，因此若用户在 `Idle` 状态执行制动，模型无法表示该动作；规格未明确限制制动只能从加速/巡航状态发生，因此这是一个可能的行为覆盖缺口。",
+          "where": "Operate 内部转移"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型增加了规格未定义的 `Off -> [*] : shutdown` 终止转换。",
+          "reason": "规格只说明系统可通过 `start` 开机、通过 `keyOff` 关机，没有定义 `shutdown` 信号，也没有要求关机后进入终止伪状态。该额外转换改变了模型可观察行为，并使 `Off` 不再只是可由 `start` 重新启动的关机状态。",
+          "where": "顶层状态 `Off` 的转换：`Off --> [*] : shutdown`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "子状态名称与规格中的状态名称不完全一致。",
+          "reason": "规格明确使用状态名 `Accelerating or Cruising`。PlantUML 中用下划线替代空格和 `or` 两侧的文字形式，若状态标识符需要与规格状态逐字对应，则这不是同名状态。若仅视为 PlantUML 标识符的合法化，则不构成行为差异，但模型未显式标注其对应关系。",
+          "where": "`Operate` 内的状态声明/转换：`Accelerating_or_Cruising`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0052",
+    "ledger_assessments": [],
+    "emission_assessments": [
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出主张顶层初始进入 Off、需 start 才进入 Operate，与“上电即进入 Operate”的要求可能不一致；但冻结台账为空，没有同处同性质的 ledger 条目可对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出主张 Operate.Idle 缺少到 Operate.Braking 的制动迁移；但冻结台账为空，没有相应迁移缺失条目可对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出主张 Off 到终止伪状态的 shutdown 迁移是规格未定义的额外迁移；但冻结台账为空，没有该处多余迁移或终止行为条目可对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出主张 Accelerating_or_Cruising 的状态命名与规格名称不完全一致；但冻结台账为空，没有该状态命名或对应关系问题的条目可对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:stable_termination:Off",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出主张终止目标 Off 存在可继续执行的路径，因而不是稳定终点；但冻结台账为空，没有 Off 稳定终止性质的条目可对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_target:None:Operate",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出主张顶层复合状态缺少初始进入 Operate 的迁移；但冻结台账为空，没有初始目标缺失条目可对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:transition:Operate.Braking:based on user actions:Operate.Accelerating_or_Cruising",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出主张 Operate.Braking 缺少在用户动作下直接到 Operate.Accelerating_or_Cruising 的迁移；但冻结台账为空，没有该迁移缺失条目可对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:transition:Operate.Idle:based on user actions:Operate.Braking",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出主张 Operate.Idle 缺少在用户动作下直接到 Operate.Braking 的迁移；但冻结台账为空，没有该迁移缺失条目可对应。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "冻结台账为空，因此不存在任何可被六个输出格覆盖的预期缺陷。六格中的所有八条输出，无论其主张本身是否可能描述模型问题，都无法与任何冻结 ledger id 满足“同一处且同一性质”的对应关系，故均判为 false positive；无台账条目可生成逐格命中评估。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

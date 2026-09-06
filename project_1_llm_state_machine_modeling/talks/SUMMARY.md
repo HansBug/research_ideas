@@ -1,48 +1,46 @@
-# project_1 正式导师讨论总账
+# project_1 Paper1 talks 总账
 
-## 1. 总体状态
+> 本页只做导航和状态索引，不复制 headline 数字。当前实验事实唯一入口是 [v61 归档 README](../paper_stm_issue_discover/final_results/v61_source_divergence_vs_x1v2_baseline/README.md)，现状分析见 [analysis_and_options.md](../paper_stm_issue_discover/discover_matrix/docs/generations/v61/analysis_and_options.md)；v60 归档只作仪器校准参照。历史记录中的旧数字、旧人工裁定记录、v46/v27/v2 路线仅用于 provenance，不能作为当前结论。
 
-| 字段 | 当前状态 |
-|---|---|
-| 正式导师讨论记录数 | 2 |
-| 最近更新时间 | 2026-06-12 16:41:15 |
-| 当前第一篇论文主倾向 | `<NL, STM_0> -> STM_k / Better STM` 的无人化反馈驱动状态机修正 |
-| `NL -> STM` 定位 | seed construction / baseline source / related work，不再作为第一篇主贡献 |
-| Path-2 定位 | 可作为后续控制系统差异化论文继续展开；不压进第一篇主线 |
-| E1/E2 定位 | 同一方法底座或工具链在不同 agent 编排形态下的实验条件，不主打 Hybrid story |
-| 当前核心贡献口径 | 以 `<NL, STM_0> -> STM_k` 的无人化反馈驱动修正协议为核心；语义增强、可机检、可执行状态机表示仅作为承载 diagnostics / simulation / repair feedback 的必要实验载体 |
-| 第二篇当前倾向 | 从 `sources` 文库综述 / corpus paper 转向带 human audit gates 的 agent-based SLR 方法学与 benchmark / evidence-package 评价框架 |
+## 1. 默认阅读路径
 
-## 2. 记录列表
+1. [2026-09-04 导师讨论：大纲收口、消融与基线、对外口径](./2026-09-04-导师-paper1大纲收口与消融基线口径.md)
+2. [v61 归档 README](../paper_stm_issue_discover/final_results/v61_source_divergence_vs_x1v2_baseline/README.md)
+3. [v61 现状分析与出路](../paper_stm_issue_discover/discover_matrix/docs/generations/v61/analysis_and_options.md)
+4. [145 条 ledger](../paper_stm_issue_discover/discover_matrix/ledger_v2/README.md)；它是 expected inventory，不是实验 headline
 
-状态口径：🟢 = 当前有效；🟡 = 部分被后续记录覆盖但仍有可复用背景；⚪ = 历史背景。
+## 2. 文件状态
 
-| 日期 | 记录 | 核心结论 | 状态 |
-|---|---|---|---|
-| 2026-06-12 | [2026-06-12-导师-两篇论文转向与模型修正定调.md](./2026-06-12-导师-两篇论文转向与模型修正定调.md) | 第一篇从 `NL -> STM` 生成转为 `<NL, STM_0> -> STM_k / Better STM` 的无人化反馈驱动修正；`fcstm` / DSL 继续弱化为内部载体；baseline 转为 seed/source/converter/comparison；第二篇转向 agent-based SLR 方法学。 | 🟢 |
-| 2026-06-04 | [2026-06-04-导师-第一篇论文路线与E1E2定位.md](./2026-06-04-导师-第一篇论文路线与E1E2定位.md) | 第一篇更倾向 Path-1；Path-2 可拆成另一篇；E1/E2 是同一底座在自建 agent-loop 与成熟 agent 框架下的实验对照；弱化 `fcstm` 名称仍有效，但第一篇主任务边界已被 2026-06-12 记录更新。 | 🟡 |
+| 文件 | 类型 | 状态 | 替代入口 |
+| --- | --- | --- | --- |
+| [2026-09-04 大纲收口、消融与基线、对外口径](./2026-09-04-导师-paper1大纲收口与消融基线口径.md) | 导师路线决策 | current route（v61 口径） | 大纲、待裁定表、v61 归档 |
+| [2026-08-31 最终 talk](./2026-08-31-paper1-v60-current与X1v2-baseline最终定性与PR收尾.md) | 实验结论/交班 | historical/superseded（v60 口径） | v61 归档 |
+| [2026-08-08 路线收窄](./2026-08-08-导师-paper1收窄为issue-discover.md) | 导师路线决策 | current route | 2026-09-04 talk、v61 归档 |
+| 2026-08-12 谓词出处、2026-08-12 相关工作、2026-08-13 两篇调研 | provenance | provenance | 最终 talk 的学术口径和 `related_work/` |
+| 2026-06-04、2026-06-12、2026-07-07 | 导师路线历史 | historical/partially superseded | 当前主线以 issue-discover 为准 |
+| 2026-08-10、2026-08-12 三篇实验记录 | 旧实验结论 | historical/superseded | v61 归档 |
 
-## 3. 当前高优先级约束
+## 3. 日期化文件清单
 
-| 约束 / 建议 | 来源等级 | 后续落点 |
-|---|---|---|
-| 第一篇论文主任务改为 `<NL, STM_0> -> STM_k / Better STM` 的自动反馈驱动修正，不再主打 `NL -> STM` 生成。 | 正式定调 / 用户会后确认 | 第一篇 story、abstract、outline、RQ。 |
-| `NL -> STM_0` 只作为 seed construction / baseline source / related work。 | 正式定调 / 用户会后确认 | task definition 与 experiment protocol。 |
-| “无人化”限定为单次 repair run 内 no human-in-the-loop；人类可参与 benchmark、seed 构造、reference / adjudication 和最终审计。 | 正式定调 / 用户会后确认 | method boundary 与 threats。 |
-| 继续弱化 `fcstm` / `pyfcstm` / DSL 名称；语义增强、可机检、可执行表示只是 feedback loop 的必要载体。 | 正式定调 / 延续早期导师意见 | terminology policy 与 contribution。 |
-| prior baseline 不作废，应重排为 seed artifact、输入来源、转换目标、错误类型来源、related work 和必要 comparison / ablation。 | 正式定调 + AI 执行展开 | baseline matrix / related work。 |
-| 规划面向 benchmark seed 的最小多格式转换层，不声称通用多格式状态机转换器。 | 正式定调 + AI 执行展开 | converter planning；具体范围后续 PR 冻结。 |
-| repair-loop evaluation 覆盖 `STM_0` vs `STM_k`、structured feedback ablation、repair acceptance / rollback、rejected repair、oscillation / non-convergence。 | AI 衍生执行建议 | experiment design；可按 pilot 结果调整。 |
-| 第二篇转向带 human audit gates 的 agent-based SLR；需要调研 ASReview / RobotReviewer / SLR automation 等既有工作。 | 正式定调 + AI 方法学补证建议 | 第二篇 planning issue / PR。 |
-| 正式导师讨论记录必须区分【正式定调】和【AI 衍生建议】，不得把 AI 补全写成导师原话。 | 维护纪律 | 后续 talks 文库更新。 |
+| 日期 | 文件 | 状态 |
+| --- | --- | --- |
+| 2026-09-04 | [导师：Paper1 大纲收口、消融与基线、对外口径](./2026-09-04-导师-paper1大纲收口与消融基线口径.md) | current route decision（v61 口径） |
+| 2026-08-31 | [Paper1 v60/current 与 X1v2 baseline 最终定性与 PR 收尾](./2026-08-31-paper1-v60-current与X1v2-baseline最终定性与PR收尾.md) | historical/superseded（v60 口径） |
+| 2026-08-08 | [导师：paper1 收窄为 issue-discover](./2026-08-08-导师-paper1收窄为issue-discover.md) | current route decision |
+| 2026-08-12 | [导师：谓词词表的出处根基与 C3 差异化](./2026-08-12-导师-谓词词表的出处根基与C3差异化.md) | provenance |
+| 2026-08-12 | [调研：Paper1 相关工作版图与竞争定位](./2026-08-12-调研-paper1相关工作版图与竞争定位.md) | provenance |
+| 2026-08-13 | [调研：工业应用场景叙事与算力可行域](./2026-08-13-调研-工业应用场景叙事与算力可行域.md) | provenance |
+| 2026-08-13 | [调研：方法类文献的模型代次时效性](./2026-08-13-调研-方法类文献的模型代次时效性.md) | provenance |
+| 2026-08-10 | [实验：v46 全量矩阵双侧结论](./2026-08-10-实验-v46全量矩阵双侧结论.md) | historical/superseded |
+| 2026-08-12 | [实验：X1 朴素基线对照臂与八轮口径尝试](./2026-08-12-实验-X1朴素基线对照臂与八轮口径尝试.md) | historical/superseded |
+| 2026-08-12 | [实验：为什么主臂比朴素基线低 15 个点](./2026-08-12-实验-为什么主臂比朴素基线低15个点.md) | historical/superseded |
+| 2026-07-07 | [导师：paper1 发现修正与 BetterSTM 归档](./2026-07-07-导师-paper1发现修正与BetterSTM归档.md) | historical/partially superseded |
+| 2026-06-12 | [导师：两篇论文转向与模型修正定调](./2026-06-12-导师-两篇论文转向与模型修正定调.md) | historical/partially superseded |
+| 2026-06-04 | [导师：第一篇论文路线与 E1E2 定位](./2026-06-04-导师-第一篇论文路线与E1E2定位.md) | historical/superseded |
 
-## 4. 更新日志
+## 4. 维护边界
 
-| 时间 | 更新内容 |
-|---|---|
-| 2026-06-12 16:41:15 | 按三路 reviewer 的 I 级意见补充条目级来源等级、`Better STM` 最小操作化判定框架，并把 SUMMARY 当前约束改为带来源等级表格。 |
-| 2026-06-12 16:20:42 | 新增 2026-06-12 导师讨论记录，更新第一篇为 `<NL, STM_0> -> STM_k / Better STM` 修正任务，并记录第二篇 agent-based SLR 转向；同步新增“正式定调 vs AI 衍生建议”维护纪律。 |
-| 2026-06-04 15:04:00 | 根据三路 reviewer 的 M 级建议，补充单篇记录的 PR 状态说明、contribution 草案归属说明、关键上游 comment 深链与总账回填提示。 |
-| 2026-06-04 14:45:00 | 初始化 project_1 正式导师讨论文库，新增 2026-06-04 讨论记录。 |
-
-后续任何正式导师讨论的新增、更新或覆盖，均应在本更新日志首行插入新记录，并同步更新 §1 总体状态与 §2 记录列表。
+- 本目录不是 raw、ledger、人工裁定或 canonical decision 的事实源；实验数字必须回到 v61 归档。
+- 导师记录只代表当时讨论，不自动代表当前实验口径；实验和调研记录分别标明来源性质。
+- 旧记录保留原文和原路径，不删除历史失败、不覆盖旧数字。需要复活时从本目录的 Git 历史恢复，并重新核对其输入、协议和版本。
+- 当前 Paper1 主线是 issue discovery；repair、Better STM、Path-1/Path-2 和早期 v46/v27/v2 headline 不进入默认当前结果叙事。
