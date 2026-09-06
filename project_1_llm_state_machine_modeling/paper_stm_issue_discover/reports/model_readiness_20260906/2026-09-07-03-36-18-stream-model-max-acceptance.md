@@ -1,5 +1,7 @@
 # E1：模型最大输出、stream 大输入与独立环境验收
 
+后续配置证据见[四模型交接报告](./2026-09-07-06-12-00-four-model-handoff.md)：Muse serving 结构/嵌套顺序修复后的新三格、最终 baseline 与 Luna 渠道复核另行归档。本报告原 15 格和旧 ZIP 保持原样。
+
 冻结时间：2026-09-07 03:36:18 CST。正文的 `[src-*]`、`[clm-*]`、`[cmd-*]` 引用文末审计附录。本报告是接入诊断快照，不是缺陷发现效果实验；不计算 hit、precision，也不进入 E2 主结果。15 格均为预先指定的 `0029 / 0019 / 0049`、round 1、stream、3 workers、0 transport retries，无候选 judge。[src-protocol] [clm-cells]
 
 ## 结论与选型建议
@@ -61,7 +63,7 @@ Gemini 0029/0049 分别在 grounding 和 D 阶段保留 provider 504 errors；�
 | Qwen | 26/26 | 78,465 | 34,919 | 26 tool_calls | 65.95s |
 | Muse | 21/21 | 68,412 | 15,212 | 21 tool_calls | 67.14s |
 
-新预算正常响应没有 `length`/`MAX_TOKENS`；这是本轮观察结果，不新增“中途零截断”eligibility 门槛。每调用保留原始请求体、响应体/SSE、chunk 时间、请求 SHA-256、provider finish/incomplete、normalized 和 raw usage。Qwen/Muse 的原始 `usage.reasoning_tokens` 是 `completion_tokens` 的组成部分，LangChain 未放进 normalized details 时仍可从 raw 回执读取；不能把缺字段当作零，更不能重复相加。Gemini 保留 `candidatesTokenCount`、`thoughtsTokenCount` 与归一化值，网关 token 计量和身份限制没有因这次成功消失。Claude 未返回独立 reasoning token 数，记为不可得。[clm-calls]
+新预算正常响应没有 `length`/`MAX_TOKENS`；这是本轮观察结果，不新增“中途零截断”eligibility 门槛。每调用保留原始请求体、响应体/SSE、chunk 时间、请求 SHA-256、provider finish/incomplete、normalized 和 raw usage。Qwen/Muse 的原始 `usage.reasoning_tokens` 是 `completion_tokens` 的组成部分，LangChain 未放进 normalized details 时仍可从 raw 回执读取；不能把缺字段当作零，更不能重复相加。Gemini 保留 `candidatesTokenCount`、`thoughtsTokenCount` 与归一化值，网关 token 计量和身份限制没有因这次成功消失。勘误：此前把 Claude 独立 reasoning 分项统称为不可得；后续逐字节复核发现 Sonnet 24 个 raw usage 均明确 `output_tokens_details.thinking_tokens=0`。归一化字段缺失与网关 raw 回报不同，详见[交接报告](./2026-09-07-06-12-00-four-model-handoff.md)的更正证据；不据此独立认证上游推理状态。[clm-calls]
 
 Sonnet/Haiku 原始 SSE 为 gzip。初始旁路观察器错误地按 UTF-8 解码，但 SDK 正常完成；已从原始字节和时间戳离线重建 24/28 个响应，gzip EOF 均完整。原始压缩响应、初始观察错误、解码后的事件均保留，未为观测器问题重跑模型。观察器只记录传输，不修改请求或方法。[clm-calls]
 
