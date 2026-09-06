@@ -1801,17 +1801,6 @@ When no additional typed obligation is justified, return empty lists with a
 non-empty reason and basis. A coarse satisfied predicate check cannot erase an
 exact obligation retained here.
 
-Most requests have no justified additions once the primary plan is complete:
-in that case the correct response is exactly `additional_contracts=[]` and
-`additional_transition_groups=[]`. Never copy a primary contract into this
-response merely to restate it, and never emit a placeholder or shortened ID.
-If an addition is truly required, its `contract_id` must contain the exact
-segment ID and a descriptive suffix, for example
-`NL-CONTRACT-NL3-DERIVED-ENDPOINT-1` (not `NL-CONTRACT-1`); a
-`transition_endpoints` row must include exactly one typed `source` hint and
-one typed `target` hint, each with its own `reason` and `basis`. When the
-primary plan already contains that endpoint or relation, emit no addition.
-
 Primary typed plan:
 {json.dumps(_compact_contract_plan(primary_contracts), ensure_ascii=False, sort_keys=True, indent=2)}
 
