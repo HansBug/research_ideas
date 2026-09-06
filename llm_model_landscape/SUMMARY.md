@@ -1,6 +1,6 @@
 # LLM 模型现状总账
 
-> 核验日期：2026-06-04。价格默认是 **USD / 1M tokens**，除非单元格明确说明。完整模型表已拆到独立 Markdown；本文件只保留统计结论、当前重点模型摘要、风险记录和跳转入口，不替代各分册中的完整事实表。模型可用性、上下文窗口、最大输出、官方价格、preview/stable/retired 状态、折扣和区域可用性会变化；正式实验必须记录精确 `model_id`、provider、region、调用日期和官方链接。
+> 核验日期：2026-09-06（本轮只更新 E1 涉及条目；其余分册仍按原核验日）。价格默认是 **USD / 1M tokens**，除非单元格明确说明。完整模型表已拆到独立 Markdown；本文件只保留统计结论、当前重点模型摘要、风险记录和跳转入口，不替代各分册中的完整事实表。模型可用性、上下文窗口、最大输出、官方价格、preview/stable/retired 状态、折扣和区域可用性会变化；正式实验必须记录精确 `model_id`、provider、region、调用日期和官方链接。
 
 ## 1. 文库整体概况
 
@@ -10,15 +10,15 @@
 | 总览文件数 | 3 |
 | 完整表文件数 | 9 |
 | `project_1/baselines` LLM 相关条目数 | 34 |
-| OpenAI 完整表条目数 | 12 |
-| Claude 完整表条目数 | 11 |
-| Gemini 完整表条目数 | 8 |
+| OpenAI 完整表条目数 | 13 |
+| Claude 完整表条目数 | 12 |
+| Gemini 完整表条目数 | 9 |
 | DeepSeek 完整表条目数 | 11 |
-| Qwen 完整表条目数 | 8 |
+| Qwen 完整表条目数 | 9 |
 | Llama 完整表条目数 | 6 |
 | Grok 完整表条目数 | 7 |
-| 其他开源/开放权重完整表条目数 | 15 |
-| 本轮新增数量 | 新增 1 个 LLM 模型现状文库；当前包含 3 个入口文件与 9 个完整表分册 |
+| 其他开源/开放权重完整表条目数 | 18 |
+| 本轮新增数量 | 7 个模型条目（Luna、Sonnet 5、Gemini 3.8、Qwen3.8、Nemotron 3.5、Muse、Gemma4）；目录结构未变 |
 | 尚待复查项 | Gemini 3.x/3.5 精确 ID、Kimi K2.x、部分云厂商价格、Qwen3.7 国内/国际价差 |
 
 ## 2. 文件索引
@@ -68,9 +68,9 @@
 
 | 优先级 | 模型 | 为什么当前值得关注 | 风险/注意 |
 |---:|---|---|---|
-| 1 | `gpt-5.5` | GPT 强能力上界，1.05M context / 128K output | 长上下文价与标准价不同 |
-| 2 | `gpt-5.4-mini` | 较新的低价 GPT-5.4 线，适合成本敏感实验 | 晚于 GPT-5.4，不能按型号数字误排 |
-| 3 | `gpt-5.3-codex` | Codex 专项，适合 agentic/coding 对照 | 与通用 GPT baseline 分开记录 |
+| 1 | `gpt-5.6-luna` | E1 固定商用锚点；低延迟定位，1.05M context / 128K output | profile 与有限 workflow 已验证；官方 benchmark 缺测不补值 |
+| 2 | `gpt-5.5` | 原有强能力候选，1.05M context / 128K output | 本轮未重新调查全部 OpenAI 新系列，不宣称全系列上界 |
+| 3 | `gpt-5.4-mini` / `gpt-5.3-codex` | 原有低价线与 Codex 专项对照 | 与 E1 通用模型选型分开记录 |
 
 ## 5. Claude 当前重点模型
 
@@ -79,7 +79,7 @@
 | 优先级 | 模型 | 为什么当前值得关注 | 风险/注意 |
 |---:|---|---|---|
 | 1 | Claude Opus 4.8 | 当前 Claude 强能力上界，1M context | 成本高，输出上限需按调用配置核验 |
-| 2 | Claude Sonnet 4.6 | 当前 Sonnet 平衡线，适合主力 baseline | 与 Opus 价格/能力差异需写明 |
+| 2 | Claude Sonnet 5 | 当前 Sonnet 平衡线；规格见分册 | E1 的 method smoke 暴露 native adapter timeout 类型不兼容；API 单调用通过不等于 method 通过 |
 | 3 | Claude Haiku 4.5 | 低价 Claude 对照 | 适合作成本组，不宜代表 Claude 上界 |
 
 ## 6. Gemini 当前重点模型
@@ -88,7 +88,7 @@
 
 | 优先级 | 模型 | 为什么当前值得关注 | 风险/注意 |
 |---:|---|---|---|
-| 1 | Gemini 3.5 Flash | Google models 页 current 新线，适合多模态/长上下文对照 | 精确 ID、preview/stable、pricing 需实验前重查 |
+| 1 | Gemini 3.5 Flash / 3.8 Flash | 3.5 为本轮工程主候选；3.8 已有官方卡 | 3.5 现有网关探针失败；3.8 用户暂时无法获取，均不能写成接入完成 |
 | 2 | Gemini 3 Pro / 3 Flash | Gemini 3 系列 frontier/低价组合 | preview/lifecycle 变化快 |
 | 3 | Gemini 2.5 Pro / Flash / Flash-Lite | baseline 文献常见，GA/长上下文对照 | 低于 Gemini 3.x，适合作历史/稳定对照 |
 
@@ -110,7 +110,7 @@
 |---:|---|---|---|---|
 | 1 | `qwen3.7-plus` | hosted API | 2026-06 可见，1M context，成本较低，多模态/agent 能力强 | 不是开放权重；需要记录 Qwen Cloud / region / 折扣状态 |
 | 2 | `qwen3.7-max` | hosted API | Qwen3.7 系列强能力 hosted 上界，1M context | 价格高于 Plus，public interface 以 text 为主 |
-| 3 | Qwen3.6-35B-A3B / 27B | 开放权重 | HF 官方 org 可见，262K 原生、可扩 1.01M | 自托管需记录量化、推理框架、rope/Yarn 设置 |
+| 3 | Qwen3.8-27B / Qwen3.6-35B-A3B | 开放权重 | 262K 原生，可扩 1M / 1.01M；E1 已实测约 0.9 扩展窗口 | 自托管需记录 revision、推理框架、YaRN 和 reasoning 设置 |
 | 4 | Qwen3-Coder-480B-A35B / 30B-A3B | 开放权重/代码 | repository-scale coding 与 agentic coding 候选 | 推理成本高，需明确硬件与部署方式 |
 
 ## 9. Llama 当前重点模型
@@ -123,7 +123,7 @@
 | 2 | Llama 3.3-70B-Instruct | 70B 开放权重强基线，生态成熟 | 只是 3.x 更新线，不是 Llama 4 后继 |
 | 3 | Llama 3.1 8B/70B/405B | 128K context，baseline 文献高频 | 旧于 Llama 3.3/4，但适合历史可比 |
 
-截至本轮官方核验，未找到 Llama 4 之后的新主系列。
+截至 2026-06-04 那轮官方核验，未找到 Llama 4 之后的新主系列；2026-09-06 未重查整条 Llama 系列，Muse 单独归档在其他开放模型分册。
 
 ## 10. Grok 当前重点模型
 
@@ -145,9 +145,9 @@
 | 2 | Kimi/Moonshot | Kimi-K2-Instruct / Kimi-K2-Thinking | 进入待复查项，适合作中文/agentic 开放权重补充 | hosted 与开放权重需分开记录 |
 | 3 | DeepSeek open weights | V4 / V3.2 / R1 updates | hosted 与 open-weight 双线，价格/能力比高 | checkpoint 与 hosted ID 不能混写 |
 | 4 | Mistral/Mixtral/Codestral | Large/Small/Magistral/Codestral | 欧洲/开放生态常见替代 baseline，代码模型可补强 | 具体 context/price 按模型页变化 |
-| 5 | Gemma | Gemma3 | Google 开放模型线，适合轻量/可复现对照 | 与 Gemini hosted 不是同一口径 |
+| 5 | Gemma / Muse | Gemma4-31B / Muse-Glimmer-30B | E1 覆盖的两条独立开放模型线 | 负载通过不等于所有 method stage 均无诊断；与 Gemini hosted 分开 |
 | 6 | GLM/ChatGLM | GLM-4.7 / GLM-5 | 中文 hosted/API 线候选 | 价格和可用区域需实验前核验 |
-| 7 | Phi / Granite / Nemotron | Phi-4、Granite 3.x、Nemotron-3 | 小模型、企业开源、NIM 部署等补充线 | 多数不是 project_1 主 baseline，只作补充组 |
+| 7 | Phi / Granite / Nemotron | Phi-4、Granite 3.x、Nemotron-3.5-Lightning | Nemotron 3.5 为本轮 <100B 候选，其他仍为旧核验条目 | Nemotron 只完成资料调研，未部署 |
 
 ## 12. 风险项、待复查与失败记录
 
@@ -174,15 +174,18 @@
 ## 13. 对 `proj1` Path-1 / Path-2 的直接影响
 
 1. baseline 不能只选旧 GPT-4o / Claude 3.5：baseline 文献已经出现 GPT-5、Claude 4.x、Gemini 3.x、DeepSeek V4、Qwen3.x、Llama4、Grok4.x 这类新线；新实验至少应覆盖“强闭源 + 成本平衡 + 开权重/自托管”三层。
-2. Qwen 要双轨记录：开放权重最新可核验到 Qwen3.6/3.5 与 Qwen3-Coder；Qwen3.7 当前是 hosted API 线。
-3. Llama 4 是当前 Meta 主系列上界：Llama 3.3 存在但只是 70B Instruct 更新；未核验到 Llama 5 或 Llama 4 后继主系列。
+2. Qwen 要双轨记录：本轮新增 Qwen3.8-27B 开放权重，原有 Qwen3.6/3.5 与 Qwen3-Coder 继续保留；Qwen3.7 当前是 hosted API 线。
+3. 原有 Llama 分册仍保留 2026-06 的核验边界；本轮 Meta 新候选 Muse 在其他开放模型分册，不依据旧核验断言当前没有后继模型。
 4. 价格敏感实验优先 DeepSeek V4-Flash / Gemini Flash / Qwen3.7-Plus / GPT-5.4-mini；强能力上界优先 GPT-5.5 / Claude Opus 4.8 / Gemini 3.x / DeepSeek V4-Pro / Grok-4.3。
 5. 所有 run record 必须保存 model ID：不要只写“Claude”“Gemini”“Qwen”“Grok”，否则后续无法解释上下文长度、输出上限、价格和退役差异。
+
+本轮 E1 的 benchmark、负载和论文样本见 [模型接入报告](../project_1_llm_state_machine_modeling/paper_stm_issue_discover/reports/model_readiness_20260906/README.md)。容量通过不代表正式实验效果；只有官方来源与实测证据支持的路径才能写为可用。
 
 ## 14. 更新日志
 
 | 时间 | 更新内容 | 备注 |
 |---|---|---|
+| 2026-09-06 11:00:00 | 更新 E1 的 7 个模型条目、精确发布时间/输出限制、官方价格和调用风险 | 只覆盖 E1 范围；Gemma4 公告日为 2026-04-02，Qwen3.8-27B 官方开放日为 2026-08-14；两个 Qwen3.6 型号日期分开 |
 | 2026-06-04 16:05:00 | 将 SUMMARY 中完整大表拆分为 [01-baseline-models.md](./01-baseline-models.md)、[02-openai-models.md](./02-openai-models.md)、[03-claude-models.md](./03-claude-models.md)、[04-gemini-models.md](./04-gemini-models.md)、[05-deepseek-models.md](./05-deepseek-models.md)、[06-qwen-models.md](./06-qwen-models.md)、[07-llama-models.md](./07-llama-models.md)、[08-grok-models.md](./08-grok-models.md)、[09-other-open-models.md](./09-other-open-models.md) | SUMMARY 改为统计结论、重点模型与链接索引 |
 | 2026-06-04 15:31:19 | 初始化根目录 LLM 模型现状微型文库，建立 README/GUIDE/SUMMARY 三件套，并把 issue #32 调研内容整理为长期总账 | 各模型表按发布时间降序；后续仍需持续核验价格与生命周期 |
 

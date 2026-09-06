@@ -6,7 +6,8 @@
 
 | 发布时间/排序键 | 模型/系列 | 状态 | context / max output | 价格口径 | 来源 |
 |---:|---|---|---:|---|---|
-| 2026-05-19 | Gemini 3.5 Flash / Gemini 3.5 Nano Banana | 官方 models 页 current 新线 | 按精确 ID 查；多为 1M 级 | 按 Gemini pricing 当前页 | [models](https://ai.google.dev/gemini-api/docs/models) / [pricing](https://ai.google.dev/gemini-api/docs/pricing) |
+| 2026-09-02 | Gemini 3.8 Flash | 当前可见；本轮账户暂时无法获取 | 1M / 64K | 2026-12-31 前 $0.75/$3.75；2027-01-01 起 $1.50/$7.50 | [model card](https://deepmind.google/models/model-cards/gemini-3-8-flash) / [pricing](https://ai.google.dev/gemini-api/docs/pricing) |
+| 2026-05-19 | Gemini 3.5 Flash / Gemini 3.5 Nano Banana | Flash `gemini-3.5-flash` 本轮核验；现有网关接入未通 | Flash：1M / 64K；Nano Banana 另核，不共用规格 | Flash 标准输入 $1.50 / 输出 $9，cache $0.15，存储 $1/1M tokens/hour；2026-09-06 | [Flash card](https://deepmind.google/models/model-cards/gemini-3-5-flash/) / [models](https://ai.google.dev/gemini-api/docs/models) / [pricing](https://ai.google.dev/gemini-api/docs/pricing) |
 | 2025-12-17 | Gemini 3 Flash | preview/较新线 | 1,048K / 65K 级 | 按 Gemini 3 pricing | [Gemini 3](https://ai.google.dev/gemini-api/docs/gemini-3) / [pricing](https://ai.google.dev/gemini-api/docs/pricing) |
 | 2025-11-18 | Gemini 3 Pro | preview/较新线 | 1,048K / 65K 级 | 按 Gemini 3 pricing | [Gemini 3](https://ai.google.dev/gemini-api/docs/gemini-3) / [pricing](https://ai.google.dev/gemini-api/docs/pricing) |
 | 2025-07-22 | Gemini 2.5 Flash-Lite | GA/低价长上下文 | 1,048K / 65K 级 | 按 current pricing | [models](https://ai.google.dev/gemini-api/docs/models) / [pricing](https://cloud.google.com/vertex-ai/generative-ai/pricing) |
