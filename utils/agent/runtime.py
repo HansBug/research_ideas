@@ -565,6 +565,18 @@ def _resolve_inference_options(
 ) -> tuple[dict[str, Any], bool | None]:
     if not isinstance(think_mode, bool):
         raise ValueError("think_mode must be a boolean")
+    # Harmony exposes only low/medium/high.  Leaving the option omitted makes
+    # the remote runtime choose an opaque default, which is unsuitable for a
+    # reproducible structured-output run.  Pin the adapter-owned default while
+    # preserving explicit caller controls and all other providers' behavior.
+    if (
+        _is_gpt_oss_harmony(config)
+        and not think_mode
+        and reasoning_effort is None
+        and not (model_call_options or {}).get("reasoning_effort")
+    ):
+        think_mode = True
+        reasoning_effort = "low"
     if reasoning_effort is not None and not isinstance(reasoning_effort, str):
         raise ValueError("reasoning_effort must be a string or None")
     if reasoning_effort is not None and not think_mode:

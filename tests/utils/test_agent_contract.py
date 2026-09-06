@@ -185,7 +185,7 @@ def test_think_off_pins_official_reasoning_defaults() -> None:
         )
 
 
-def test_gpt_oss_harmony_uses_provider_default_when_thinking_is_off() -> None:
+def test_gpt_oss_harmony_pins_low_effort_when_unspecified() -> None:
     from utils.agent.runtime import _resolve_inference_options
 
     config = LLMConfig(
@@ -197,8 +197,8 @@ def test_gpt_oss_harmony_uses_provider_default_when_thinking_is_off() -> None:
     options, enabled = _resolve_inference_options(
         config, model_call_options=None, think_mode=False, reasoning_effort=None
     )
-    assert enabled is False
-    assert options == {}
+    assert enabled is True
+    assert options == {"reasoning_effort": "low"}
 
 
 def test_deepseek_profiles_use_the_official_langchain_adapter() -> None:
