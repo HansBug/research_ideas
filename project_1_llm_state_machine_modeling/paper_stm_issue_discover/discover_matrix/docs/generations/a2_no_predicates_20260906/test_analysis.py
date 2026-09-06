@@ -209,12 +209,13 @@ def test_archive_retains_partial_transport_evidence_and_detects_inventory_drift(
     trace = source / "llm/.audit.jsonl.interrupted.part"
     trace.write_text(json.dumps(dict(seq=1, record_type="model", status="completed",
                                     usage={"input_tokens": 12}, system_prompt="private prompt")) + "\n" +
-                     json.dumps(dict(seq=2, error={"code": "provider_timeout"}, attempt_no=1)) + "\n{" )
+                     json.dumps(dict(seq=2, error={"code": "provider_timeout"}, attempt_no=1, operation="scheduled")) + "\n{" )
     index = archive.transport_index(source)
     row = index["traces"][0]
     assert row["records"] == 2 and row["unreadable_lines"] == [3]
     assert row["events"][0]["usage"] == {"input_tokens": 12}
     assert row["events"][1]["error"] == {"code": "provider_timeout"}
+    assert row["events"][1]["operation"] == "scheduled"
     assert "private prompt" not in json.dumps(index)
     destination = tmp_path / "archive"
     coverage = dict(terminal_cells=162, eligible_cells=162, judged_cells=162,

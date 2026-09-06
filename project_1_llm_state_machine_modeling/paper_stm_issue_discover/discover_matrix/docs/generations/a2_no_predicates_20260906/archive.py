@@ -80,7 +80,7 @@ def transport_index(root):
         for event in events:
             if event.get("usage") or event.get("error") or event.get("status"):
                 retained.append({key: event[key] for key in (
-                    "seq", "record", "record_type", "recorded_at_utc", "turn", "status",
+                    "seq", "record", "record_type", "operation", "recorded_at_utc", "turn", "status",
                     "model", "profile", "model_call_id", "failed_model_call_id",
                     "logical_model_call_id", "response_id", "usage", "error",
                     "attempt_no", "next_attempt_no", "max_attempts", "retry_after_seconds",
