@@ -45,6 +45,32 @@ def test_packaged_protocol_and_neutral_dependencies_load_without_method() -> Non
     assert method_modules_after == method_modules_before
 
 
+def test_release_adapter_preserves_eligible_diagnostic_reports(tmp_path) -> None:
+    from paper_stm_judge.artifacts import adapt_evidence_discovery_release
+
+    path = tmp_path / "round-1.json"
+    record = dict(
+        pair_id="0004", round=1, eligible=True, status="completed",
+        errors=[], report_issue_clusters=[dict(
+            issue_id="0004:r1:issue:0", title="Required action is absent",
+            property="state_action", locus_kind="state", locus_names=["A"],
+            expected="A performs the required action", observed="A declares no action",
+            reason="Exact source obligation and action inventory", basis="NL1 and source state A",
+            source_refs=["NL1"],
+        )],
+    )
+    path.write_text(json.dumps(record))
+    original = adapt_evidence_discovery_release(path, ())[0]
+    record.update(status="completed_with_diagnostics", errors=[{"stage": "discovery_grounding", "error": "fixture transport failure"}])
+    path.write_text(json.dumps(record))
+    assert adapt_evidence_discovery_release(path, ())[0] == original
+    for status, eligible in (("completed_with_diagnostics", False), ("completed", False),
+                             ("failed_with_receipt", True), ("running", True)):
+        path.write_text(json.dumps({**record, "status": status, "eligible": eligible}))
+        with pytest.raises(ValueError, match="not eligible"):
+            adapt_evidence_discovery_release(path, ())
+
+
 def test_release_code_provenance_fails_closed_without_git_or_manifest(monkeypatch) -> None:
     """A source-less Judge cannot begin a live run without verified package provenance."""
 
