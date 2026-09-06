@@ -57,7 +57,8 @@ T = TypeVar("T")
 _MODEL_OPTIONS = frozenset({"streaming", "stream_usage", "timeout", "max_retries"})
 _MODEL_CALL_OPTIONS = frozenset({"temperature", "top_p", "max_tokens", "stop", "seed", "verbosity"})
 _TRANSPORT_RETRY_DELAYS = (5.0, 20.0)
-_RETRYABLE_TRANSPORT_STATUS_CODES = frozenset({408, 409, 429, 500, 502, 503, 504})
+# Match the provider SDK's server-error class, including proxy 52x responses.
+_RETRYABLE_TRANSPORT_STATUS_CODES = frozenset({408, 409, 429, *range(500, 600)})
 _RETRYABLE_TRANSPORT_EXCEPTION_NAMES = frozenset(
     {
         "apiconnectionerror",

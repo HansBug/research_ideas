@@ -12,6 +12,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import httpx
+import pytest
 from langchain_core.callbacks import BaseCallbackHandler, CallbackManager
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, SystemMessage
@@ -1014,9 +1015,11 @@ def test_provider_error_is_rendered_immediately_after_input(monkeypatch: Any) ->
     assert not any(event.kind == "transport_retry_scheduled" for event in events)
 
 
+@pytest.mark.parametrize("http_status", [None, 520])
 def test_retryable_stream_failure_replays_request_without_repeating_tool(
     monkeypatch: Any,
     tmp_path: Path,
+    http_status: int | None,
 ) -> None:
     import utils.agent.runtime as runtime
 
@@ -1048,6 +1051,12 @@ def test_retryable_stream_failure_replays_request_without_repeating_tool(
         ):
             model_calls["count"] += 1
             if model_calls["count"] == 1:
+                if http_status is not None:
+                    from openai import InternalServerError
+
+                    raise InternalServerError("origin returned an invalid response",
+                        response=httpx.Response(http_status, request=httpx.Request("POST", "https://provider.invalid")),
+                        body={"retry_after": 0})
                 yield ChatGenerationChunk(
                     message=AIMessageChunk(content="discarded partial response")
                 )
@@ -1109,7 +1118,7 @@ def test_retryable_stream_failure_replays_request_without_repeating_tool(
     assert len(retries) == len(recovered) == 1
     assert retries[0].data["attempt_no"] == 1
     assert retries[0].data["next_attempt_no"] == 2
-    assert retries[0].data["partial_response_observed"] is True
+    assert retries[0].data["partial_response_observed"] is (http_status is None)
     assert recovered[0].data["attempt_no"] == 2
     assert retries[0].data["turn"] == recovered[0].data["turn"] == 1
     assert (
