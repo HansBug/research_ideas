@@ -13,3 +13,5 @@ R5/R5.7、Better STM、repair、旧 lifecycle 与 provider-health 材料同样�
 [全候选 benchmark 与任务选型](./model_readiness_20260906/2026-09-07-04-30-00-candidate-benchmarks.md) 保留未入选模型、公开推理档位、同版本 AA 矩阵、作者自报与严格结构化缺测；数字可由归档快照离线重建。
 
 [四模型配置与交接证据](./model_readiness_20260906/2026-09-07-06-12-00-four-model-handoff.md) 补充 Muse 最终 serving 修复、Sonnet 正常 D 证据降级、九格 stream 与 baseline 覆盖、Luna 09-07 渠道失败、环境锁及复现步骤；旧失败和历史实验不覆盖。
+
+[Luna 路由复核](./model_readiness_20260906/2026-09-07-06-55-00-luna-route-recheck.md) 单列最终 baseline 一次成功与随后普通生成/structured runtime 的四个 503，避免将单次成功写成全部路径恢复。

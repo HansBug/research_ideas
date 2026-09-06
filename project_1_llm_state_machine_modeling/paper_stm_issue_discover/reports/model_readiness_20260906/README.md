@@ -4,12 +4,13 @@
 
 ## 结论
 
-用户优先组合为 **Luna + Sonnet 5 + Qwen3.8-27B + Muse Glimmer-30B**。Sonnet、Qwen 和修复后的 Muse 各有最终 profile 的 stream baseline 与 0019/0029/0049 method 证据；Sonnet 0029 保留正常证据降级，Muse 原结构耗尽已在 serving adapter 修复，最终三格 errors/audit errors 全 0。Luna 的历史成功保留，09-07 六次最终 baseline 补查均返回上游 503，不能据旧成功声称当前渠道健康。精确配置、逐格解释、失败和复现见[四模型交接证据](./2026-09-07-06-12-00-four-model-handoff.md)。
+用户优先组合为 **Luna + Sonnet 5 + Qwen3.8-27B + Muse Glimmer-30B**。Sonnet、Qwen 和修复后的 Muse 各有最终 profile 的 stream baseline 与 0019/0029/0049 method 证据；Sonnet 0029 保留正常证据降级，Muse 原结构耗尽已在 serving adapter 修复，最终三格 errors/audit errors 全 0。Luna 在此前六次 503 后，06:39 的最终 baseline 成功，但随后普通生成、原生同请求和共用 structured runtime 的四个请求仍返回 503，详见[Luna 路由复核](./2026-09-07-06-55-00-luna-route-recheck.md)。精确四款配置、逐格解释、失败和复现见[四模型交接证据](./2026-09-07-06-12-00-four-model-handoff.md)，不据单次成功声称渠道全面恢复。
 
 两开放模型各自独立 conda、GPU 4-7，使用最大允许输出的剩余窗口模式，迁移后约 0.9 窗口和 16K/16-worker 均有证据；Muse 最新 serving 修复后再次通过 32/32 并发请求和 118375-token 输入 2/2。原生与扩展容量、高并发和完整 method 分开验收，不宣称 16 个最大窗口同时驻留。09-06 的五款近期 <100B 主候选、三款生态对照及旧环境实测仍见[开放模型报告](./2026-09-06-11-53-00-open-models.md)与[部署报告](./2026-09-06-11-53-00-serving-evidence.md)，其余候选后置。E2 正式协议与各模型实验档位仍需独立冻结。
 
 ## 证据入口
 
+- [Luna 路由复核](./2026-09-07-06-55-00-luna-route-recheck.md)：最终 baseline 单次成功及后续四个 503；新旧包独立，[离线核验](./verify_luna_route_evidence.py)检查同 payload、wire 上限、provider 错误与终态。
 - [四模型配置与交接证据](./2026-09-07-06-12-00-four-model-handoff.md)：最终 Muse 原生参数/字段顺序修复、九格逐阶段核对、四款 baseline 覆盖、Luna 渠道失败、Sonnet usage 更正、环境锁与启动/tunnel 步骤。
 - [handoff manifest](./evidence/handoff_20260907/manifest.json) 与 [verify_handoff_evidence.py](./verify_handoff_evidence.py)：补充归档及离线复算；旧 stream 包保持冻结。
 - [全候选公开 benchmark 与任务选型](./2026-09-07-04-30-00-candidate-benchmarks.md)：17 个已调查模型身份、20 个公开档位，AA v4.2 / LCR v1.1 与作者自报分表、结构化缺测、当前 low/default 与公开 max/xhigh 的差异。

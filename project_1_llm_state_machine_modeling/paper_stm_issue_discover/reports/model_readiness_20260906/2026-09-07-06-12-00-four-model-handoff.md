@@ -1,5 +1,7 @@
 # E1 四模型配置、结构修复与实验交接证据
 
+后续 Luna 路由证据见[06:55 复核报告](./2026-09-07-06-55-00-luna-route-recheck.md)：最终 baseline 出现一次成功，但之后普通生成和共用 runtime 仍有 503。本报告的六次失败快照及原证据包保持原样。
+
 核验日期：2026-09-07。正文的 `[src-*]`、`[clm-*]` 引用文末审计附录。本报告补充 [03:36 stream 快照](./2026-09-07-03-36-18-stream-model-max-acceptance.md)，保存最终 Muse serving 修复、四款 profile 的 baseline/ours 覆盖与 Luna 渠道失败；旧 run 和旧归档均保留。这里只判断接入，不计算效果排名；所有 smoke 的 `formal_result_eligible=false`。[clm-scope]
 
 ## 1. 组合与验收结论
