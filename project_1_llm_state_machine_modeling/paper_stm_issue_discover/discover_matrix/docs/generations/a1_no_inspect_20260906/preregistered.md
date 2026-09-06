@@ -107,3 +107,13 @@ Smoke prompt/raw output、逐格审计、测试 XML 和对拍数据仅留本地 
 恢复不继续把 workers=2 作为最终措施：使用 8 个独立格 worker 起步（旧 full 的 2 个 pair worker 另计），记录实际在途请求数、首块延迟、重试/限流和成功吞吐；不以 30 分钟硬时限改变方法或盲目增加并发。原子审计数据和恢复脚本留 ignored runs，稳定结果及限制进入中文报告。
 
 首次带 SSE 保护的稀疏恢复实际捕获到 `response.failed`，错误为 `upstream_error / Upstream service temporarily unavailable`，并保留 request/response ID。这证明这些新请求收到的是提供方显式失败事件；不倒推旧空流的全部原因。请求层仅将这一精确 code/message 组合补入有界瞬态重试，其他未知 `upstream_error` 仍不盲目重试。后续切换沿上述边界执行，恢复清单按来源链保留最新已完成格及精确成功阶段，只接续提供方失败或缺失部分；不因 hit/precision、报告数或普通方法诊断选择来源。A1 的既有完成格可先进入独立 judge，不等待 method 尾批或附加 full。
+
+### 7.1 Luna judge 站点切换与合法诊断格接入（事后追加）
+
+用户随后指定未完成 judge 切至 `https://api.aizzz.xyz/v1`，使用独立配置的 `aizzz-luna-eval` profile，模型仍为 `gpt-5.6-luna`。这是 endpoint/config 身份变化，不冒称原站点同一配置；逐请求保留原始 profile、model、endpoint/config fingerprint、source commit、usage 和错误。共享 `.llmconfig.yml` 不改，凭据不入库。候选站点的压测和八个 method 诊断样本只提供运行接入依据，不导入 A1 正式数据，也不再增加准入探针。
+
+正式 A1 method 的冻结来源为本地 `transport_recovery/2ec6e2045f5d414080508df7272a3da7/source_selection.json`，相对于 `runs/paper1/a1_no_inspect_20260906/`：162 格 eligible，其中 160 格 `completed`，`0057/r3`、`0059/r1` 为 `completed_with_diagnostics`。全部原件复用，不在新站点重跑 method。旧 judge 已完成的 18 格保留；新站点此前独立运行且完成的 `0047/r1` 也保留，主批排除它。旧未完成调用和接入失败原件封存，不覆盖、不以结果优劣选择来源；最终按 pair/round、method source hash 和全部 report ID 核销。
+
+后续 judge 使用原生 `paper_stm_judge.cli`，显式 `--workers 16 --profile aizzz-luna-eval`；A1 主批总并发上限为 16，轮次依次运行，不是三轮各 16。不再将低并发补救、单探针门或 PrefixRetry/RecordedModel/ContinuingRuntime 接入后续 judge。保留通用空流/失败事件/异常 EOF 与不可重试错误分类修复，以及正常 schema 原地修订；方法 prompt、12 条谓词、筛选发布和 §4 judge 协议不变。
+
+Judge adapter 原先只接受 `completed`，会在调用 provider 前拒绝已有 `eligible=true` 的合法诊断格。A1 复用共享提交 [507f1bac2](https://github.com/HansBug/research_ideas/commit/507f1bac2cce74a89608079cc759e32f230624eb) 的 `artifacts.py` 单行修复和 `test_release_adapter_preserves_eligible_diagnostic_reports`，落地为 [546e7055db9a](https://github.com/HansBug/research_ideas/commit/546e7055db9a18f898de3b8429154113bc8008b5)；未搬入 A2 专属登记。此修复只恢复既有最终报告的裁定入口，不改变 eligibility 或有效性标准。被旧适配器拒绝、尚无完整裁定的格使用修复后原生入口补齐；其诊断和失败记录仍保存。
