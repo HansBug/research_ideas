@@ -185,6 +185,22 @@ def test_think_off_pins_official_reasoning_defaults() -> None:
         )
 
 
+def test_gpt_oss_harmony_pins_low_effort_when_unspecified() -> None:
+    from utils.agent.runtime import _resolve_inference_options
+
+    config = LLMConfig(
+        model="gpt-oss-20b",
+        adapter="openai-responses",
+        base_url="http://127.0.0.1:8100/v1",
+        api_key="local-not-used",
+    )
+    options, enabled = _resolve_inference_options(
+        config, model_call_options=None, think_mode=False, reasoning_effort=None
+    )
+    assert enabled is True
+    assert options == {"reasoning_effort": "low"}
+
+
 def test_deepseek_profiles_use_the_official_langchain_adapter() -> None:
     from utils.agent import AgentApp
 
@@ -208,6 +224,31 @@ def test_deepseek_profiles_use_the_official_langchain_adapter() -> None:
     assert max_output == 384_000
     assert safe_input == 1_000_000
     assert sources == {"context_window": "official_profile", "max_output": "official_profile"}
+
+
+def test_google_adapter_preserves_public_output_budget_and_inference_semantics() -> None:
+    from utils.agent import AgentApp
+    from utils.agent.runtime import _resolve_inference_options
+
+    config = LLMConfig(adapter="google-genai", model="gemini-3.7-flash",
+                       api_key="test-key", base_url="https://example.invalid", max_output_tokens=321)
+    app = AgentApp.from_config(AgentSpec(name="gemini", system_prompt="answer"), config)
+    try:
+        assert type(app.model).__name__ == "ChatGoogleGenerativeAI"
+        assert app.adapter_name == "langchain-google-genai/generate-content"
+        assert app.model.max_output_tokens == 321
+        options, enabled = _resolve_inference_options(
+            config, model_call_options={"max_tokens": 123}, think_mode=False, reasoning_effort=None)
+        assert options == {"max_output_tokens": 123}
+        assert enabled is None
+        options, enabled = _resolve_inference_options(
+            config, model_call_options=None, think_mode=True, reasoning_effort="low")
+        assert options == {"reasoning_effort": "low"}
+        assert enabled is True
+        with pytest.raises(ValueError, match="unsupported effort"):
+            _resolve_inference_options(config, model_call_options=None, think_mode=True, reasoning_effort="max")
+    finally:
+        app.model.client.close()
 
 
 def test_openai_responses_profiles_use_the_responses_transport() -> None:

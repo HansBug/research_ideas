@@ -70,12 +70,13 @@ from utils.llm import (
 
 ```python
 class LLMConfig(BaseModel):
-    adapter: Literal["openai", "openai-responses", "anthropic", "deepseek"] = "openai"
+    adapter: Literal["openai", "openai-responses", "anthropic", "deepseek", "google-genai"] = "openai"
     base_url: str | None = None
     api_key: SecretStr | None = None
     model: str
     context_window_tokens: int | None = None
     max_output_tokens: int | None = None
+    stream_usage: bool | None = None
 ```
 
 只有 `model` 必填；`adapter` 可省略且严格默认为 `openai`。`adapter` 显式选择 LangChain client 与传输协议，不表示实际 provider 或 endpoint：`openai` 与 `openai-responses` 都使用 `ChatOpenAI`，但分别固定走 Chat Completions 与 Responses；`anthropic`、`deepseek` 分别对应 `ChatAnthropic`、`ChatDeepSeek`。运行时不根据 model 名或 host 猜测传输协议。其他字段为 `None` 时，Agent 构造模型时不传对应参数。`LLMRegistry` 是只读 `Mapping[str, LLMConfig]`：
@@ -88,7 +89,19 @@ registry.default_name
 registry.names()
 ```
 
+`stream_usage` 可在 profile 中显式设置，适合已经验证支持 usage 的自托管兼容端点。缺省时保留 provider 安全默认；调用方显式参数优先于 profile。该字段仅在显式配置时加入公开配置与 fingerprint，因此不改变旧 profile 的身份。`PublicStructuredRuntime` 给 Anthropic 传浮点 timeout，OpenAI/DeepSeek 保留 `httpx.Timeout` 以隔离 async client 生命周期。
+
 路径优先级为显式参数、`LLM_CONFIG_FILE`、根 `.llmconfig.yml`。加载器不访问网络、不创建 client、不维护全局可变单例。公开摘要必须脱敏；`api_key` 不能打印。
+`adapter: google-genai` 使用官方 `langchain-google-genai` 的 `ChatGoogleGenerativeAI`，固定连接 Gemini Developer API。`base_url` 填 API 根地址，由 SDK 追加 `/v1beta/models/...`，不要填 OpenAI 兼容路径 `/v1`。凭据仍来自 profile；不从环境变量选择 Vertex AI。原生流自带 usage，不发送 OpenAI 的 `stream_usage` 参数。
+
+当前 pin 的 LangChain 版本没有把 `vertexai=False` 继续传给 Google SDK。因此若环境设置 `GOOGLE_GENAI_USE_VERTEXAI=true`，构造时会明确报错，防止 SDK 静默改走 Vertex AI；清除该环境设置后按 profile 连接。
+
+直接调用 `create_chat_model(config).with_structured_output(Schema, method="json_schema", include_raw=True)` 会通过官方 adapter 发送 `responseMimeType` 与 `responseJsonSchema`。`AgentApp` 继续使用原有 `ToolStrategy`，不会因为模型族而切换方法或解析规则。网关是否兑现 schema 和 forced-tool 约束需要真实验证，添加 adapter 本身不代表某个网关已健康。
+
+Google 的单次调用输出上限会从公共 `max_tokens` 映射到 `max_output_tokens`。显式 `reasoning_effort` 支持 `minimal`、`low`、`medium`、`high`，具体型号仍需支持该档位；不把 `none` 映射成关闭思考。未指定思考控制时记录 provider default（`effective_think_mode=None`），避免把 Gemini 3 的默认思考误报成关闭。原生 timeout 使用秒数，持久 runtime 负责关闭 Google SDK 的同步与异步连接。
+
+接入依据：[LangChain Google 集成](https://docs.langchain.com/oss/python/integrations/chat/google_generative_ai)、[Gemini 结构化输出](https://ai.google.dev/gemini-api/docs/structured-output)、[generateContent 参数](https://ai.google.dev/api/generate-content)。
+
 ### 2.2 `utils.agent`
 
 稳定导出只有：

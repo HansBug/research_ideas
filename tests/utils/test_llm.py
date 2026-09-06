@@ -50,6 +50,14 @@ def test_config_adapter_defaults_to_openai_and_is_public() -> None:
     assert config.public_dict()["adapter"] == "openai"
 
 
+def test_stream_usage_profile_override_is_recorded_without_changing_legacy_identity() -> None:
+    legacy = LLMConfig(model="local-model")
+    explicit = LLMConfig(model="local-model", stream_usage=True)
+    assert "stream_usage" not in legacy.public_dict()
+    assert explicit.public_dict()["stream_usage"] is True
+    assert legacy.fingerprint() != explicit.fingerprint()
+
+
 def test_config_loads_auditable_token_pricing() -> None:
     config = LLMConfig.model_validate(
         {
@@ -75,7 +83,7 @@ def test_config_loads_auditable_token_pricing() -> None:
 
 
 @pytest.mark.parametrize(
-    "adapter", ["openai", "openai-responses", "anthropic", "deepseek"]
+    "adapter", ["openai", "openai-responses", "anthropic", "deepseek", "google-genai"]
 )
 def test_config_accepts_supported_adapters(adapter: str) -> None:
     config = LLMConfig.model_validate({"model": "test-model", "adapter": adapter})

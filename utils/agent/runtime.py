@@ -23,6 +23,7 @@ from urllib.parse import quote, urlsplit
 from pydantic import BaseModel
 
 from utils.llm import LLMConfig, LLMRegistry, prompt_cache_policy
+from utils.llm.model_factory import GOOGLE_THINKING_LEVELS, default_stream_usage, model_kwargs
 
 try:
     from langchain.agents import create_agent
@@ -430,6 +431,14 @@ def _tool_name(tool: Any) -> str:
     return str(name)
 
 
+def _structured_tool_names(name: str | None) -> frozenset[str]:
+    """Accept the lower-camel spelling emitted by Harmony Responses."""
+
+    if not name:
+        return frozenset()
+    return frozenset({name, name[:1].lower() + name[1:]})
+
+
 def _tool_description(tool: Any) -> str:
     description = str(getattr(tool, "description", None) or inspect.getdoc(tool) or "").strip()
     return description or f"Invoke the registered tool '{_tool_name(tool)}'."
@@ -488,6 +497,8 @@ def _validate_model_call_options(options: Mapping[str, Any] | None) -> None:
 
 
 def _validate_adapter_call_options(config: LLMConfig, options: Mapping[str, Any] | None) -> None:
+    if config.adapter == "google-genai" and "verbosity" in (options or {}):
+        raise ValueError("model_call_options_not_supported: adapter=google-genai options=['verbosity']")
     if config.adapter != "anthropic":
         return
     unsupported = set(options or {}) & {"seed", "verbosity"}
@@ -504,12 +515,7 @@ def _is_deepseek_config(config: LLMConfig) -> bool:
 def _default_stream_usage(config: LLMConfig) -> bool:
     """Return the adapter transport's safe default for streamed usage metadata."""
 
-    if config.adapter == "anthropic":
-        return True
-    if config.adapter == "deepseek":
-        return False
-    host = (urlsplit(config.base_url or "https://api.openai.com").hostname or "").lower()
-    return host == "api.openai.com"
+    return default_stream_usage(config)
 
 
 def _prompt_cache_policy(config: LLMConfig) -> dict[str, Any]:
@@ -544,6 +550,12 @@ def _is_openai_reasoning_model(config: LLMConfig) -> bool:
     return config.adapter == "openai" and model.startswith(("gpt-5", "o1", "o3", "o4"))
 
 
+def _is_gpt_oss_harmony(config: LLMConfig) -> bool:
+    """gpt-oss/Harmony rejects the OpenAI ``none`` reasoning value."""
+
+    return config.adapter == "openai-responses" and config.model.lower().startswith("gpt-oss")
+
+
 def _resolve_inference_options(
     config: LLMConfig,
     *,
@@ -553,6 +565,18 @@ def _resolve_inference_options(
 ) -> tuple[dict[str, Any], bool | None]:
     if not isinstance(think_mode, bool):
         raise ValueError("think_mode must be a boolean")
+    # Harmony exposes only low/medium/high.  Leaving the option omitted makes
+    # the remote runtime choose an opaque default, which is unsuitable for a
+    # reproducible structured-output run.  Pin the adapter-owned default while
+    # preserving explicit caller controls and all other providers' behavior.
+    if (
+        _is_gpt_oss_harmony(config)
+        and not think_mode
+        and reasoning_effort is None
+        and not (model_call_options or {}).get("reasoning_effort")
+    ):
+        think_mode = True
+        reasoning_effort = "low"
     if reasoning_effort is not None and not isinstance(reasoning_effort, str):
         raise ValueError("reasoning_effort must be a string or None")
     if reasoning_effort is not None and not think_mode:
@@ -571,10 +595,19 @@ def _resolve_inference_options(
             "anthropic_thinking_not_supported: provider-neutral forced-tool semantics require think_mode=False"
         )
 
+    if config.adapter == "google-genai":
+        if "max_tokens" in options:
+            options["max_output_tokens"] = options.pop("max_tokens")
+        if reasoning_effort is not None and reasoning_effort not in GOOGLE_THINKING_LEVELS:
+            raise ValueError(f"unsupported effort {reasoning_effort!r} for google-genai")
+        # Gemini 3 cannot disable thinking. An omitted control is provider-default.
+        return options, True if think_mode else None
+
     deepseek = _is_deepseek_config(config)
     effective_think_mode = think_mode
     if not think_mode and (
-        _is_openai_reasoning_model(config) or config.adapter == "openai-responses"
+        _is_openai_reasoning_model(config)
+        or (config.adapter == "openai-responses" and not _is_gpt_oss_harmony(config))
     ):
         # Pin the adapter's explicit think-off value instead of relying on a
         # provider default that would change the experiment semantics.
@@ -600,6 +633,8 @@ def _dependency_versions() -> dict[str, str | None]:
         "langchain-openai",
         "langchain-anthropic",
         "langchain-deepseek",
+        "langchain-google-genai",
+        "google-genai",
         "openai",
         "anthropic",
     )
@@ -2665,9 +2700,11 @@ class _AgentGuardMiddleware(AgentMiddleware):
             return
         calls = list(getattr(last, "tool_calls", None) or [])
         registered = set(self.spec.tool_names)
-        structured_names = set()
-        if self.spec.output_schema is not None:
-            structured_names.add(self.spec.output_schema.__name__)
+        structured_names = (
+            _structured_tool_names(self.spec.output_schema.__name__)
+            if self.spec.output_schema is not None
+            else frozenset()
+        )
         unknown = [call.get("name") for call in calls if call.get("name") not in registered | structured_names]
         if unknown:
             raise AgentError("tool_not_allowed", f"tool is not registered: {unknown[0]}")
@@ -2782,7 +2819,8 @@ def _balance_invalid_structured_tool_calls(
 ) -> tuple[list[Any], bool]:
     """Add protocol replies for malformed synthetic structured-output calls."""
 
-    if not structured_output_name:
+    structured_names = _structured_tool_names(structured_output_name)
+    if not structured_names:
         return list(messages), False
     balanced: list[Any] = []
     changed = False
@@ -2794,7 +2832,7 @@ def _balance_invalid_structured_tool_calls(
             call
             for call in _message_protocol_tool_calls(message)
             if not call.get("valid")
-            and call.get("name") == structured_output_name
+            and call.get("name") in structured_names
             and call.get("tool_call_id")
         ]
         if not invalid_calls:
@@ -3313,6 +3351,7 @@ class AgentApp:
                 "openai-responses": "langchain-openai/responses",
                 "anthropic": "langchain-anthropic/messages",
                 "deepseek": "langchain-deepseek/chat-completions",
+                "google-genai": "langchain-google-genai/generate-content",
             }[config.adapter]
         )
 
@@ -3332,6 +3371,8 @@ class AgentApp:
                 from langchain_deepseek import ChatDeepSeek as ChatModel
             elif adapter == "anthropic":
                 from langchain_anthropic import ChatAnthropic as ChatModel
+            elif adapter == "google-genai":
+                from langchain_google_genai import ChatGoogleGenerativeAI as ChatModel
             else:
                 from langchain_openai import ChatOpenAI as ChatModel
         except ImportError as exc:  # pragma: no cover
@@ -3340,6 +3381,7 @@ class AgentApp:
                 "openai-responses": "langchain-openai",
                 "anthropic": "langchain-anthropic",
                 "deepseek": "langchain-deepseek",
+                "google-genai": "langchain-google-genai",
             }[adapter]
             raise AgentError("config_error", f"{package} is required") from exc
         kwargs = config.connection_kwargs()
@@ -3359,6 +3401,8 @@ class AgentApp:
             }
         )
         kwargs.update(dict(model_options or {}))
+        if adapter == "google-genai":
+            kwargs = model_kwargs(config, model_options=model_options)
         try:
             model = ChatModel(**kwargs)
         except Exception as exc:
@@ -3970,12 +4014,13 @@ class AgentApp:
                 )
             _mark_message_shown(ai, shown_message_keys)
             structured_name = self.spec.output_schema.__name__ if self.spec.output_schema is not None else None
+            structured_names = _structured_tool_names(structured_name)
             requests = [
                 _tool_request(
                     call,
                     attempt_id,
                     call_turn,
-                    kind="structured" if call.get("name") == structured_name else "business",
+                    kind="structured" if call.get("name") in structured_names else "business",
                 )
                 for call in calls
             ]
@@ -4041,7 +4086,7 @@ class AgentApp:
             unknown_requests = [
                 item
                 for item in requests
-                if item["name"] not in self.spec.tool_names and item["name"] != structured_name
+                if item["name"] not in self.spec.tool_names and item["name"] not in structured_names
             ]
             business_requests = [item for item in requests if item["name"] in self.spec.tool_names]
             for request in unknown_requests:
@@ -4050,7 +4095,7 @@ class AgentApp:
                 with contextlib.suppress(ValueError):
                     ids.remove(str(request["tool_call_id"]))
                 audit_tool_action(request, turn_value=call_turn)
-            if structured_name and business_requests and any(item["name"] == structured_name for item in requests):
+            if structured_name and business_requests and any(item["name"] in structured_names for item in requests):
                 for request in business_requests:
                     request.update({
                         "status": "rejected",
@@ -5042,8 +5087,8 @@ class AgentApp:
                     business_names=self.spec.tool_names,
                 )
                 for rejected_call in rejected_calls:
-                    is_structured = (
-                        rejected_call.get("name") == self.spec.output_schema.__name__
+                    is_structured = rejected_call.get("name") in _structured_tool_names(
+                        self.spec.output_schema.__name__
                     )
                     rejected_record = {
                         "kind": "structured" if is_structured else "business",
@@ -5531,7 +5576,8 @@ def _prepare_recovery_history(
     """
 
     history = list(messages)
-    recoverable_names = {structured_name, *business_names}
+    structured_names = _structured_tool_names(structured_name)
+    recoverable_names = {*structured_names, *business_names}
     pending: dict[str, dict[str, Any]] = {}
     pending_index: int | None = None
     for index, message in enumerate(history):
