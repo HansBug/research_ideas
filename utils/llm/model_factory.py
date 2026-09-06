@@ -96,6 +96,23 @@ def default_stream_usage(config: LLMConfig) -> bool:
     return host == "api.openai.com"
 
 
+def output_token_options(config: LLMConfig, options: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Map the public output budget before the SDK merges constructor defaults."""
+
+    kwargs = dict(options or {})
+    parameter = {
+        "openai": "max_completion_tokens",
+        "openai-responses": "max_completion_tokens",
+        "google-genai": "max_output_tokens",
+    }.get(config.adapter, "max_tokens")
+    if "max_tokens" in kwargs:
+        value = kwargs.pop("max_tokens")
+        if parameter in kwargs and kwargs[parameter] != value:
+            raise LLMModelFactoryError("conflicting output token budgets")
+        kwargs[parameter] = value
+    return kwargs
+
+
 def model_kwargs(
     config: LLMConfig,
     *,
@@ -109,11 +126,7 @@ def model_kwargs(
 
     kwargs = config.connection_kwargs()
     if config.max_output_tokens is not None:
-        kwargs[
-            "max_completion_tokens"
-            if config.adapter in {"openai", "openai-responses"}
-            else "max_tokens"
-        ] = config.max_output_tokens
+        kwargs.update(output_token_options(config, {"max_tokens": config.max_output_tokens}))
     if config.adapter in {"openai", "openai-responses"}:
         kwargs["use_responses_api"] = config.adapter == "openai-responses"
     kwargs["streaming"] = streaming
@@ -122,7 +135,7 @@ def model_kwargs(
     )
     if max_retries is not None:
         kwargs["max_retries"] = max_retries
-    kwargs.update(dict(model_options or {}))
+    kwargs.update(output_token_options(config, model_options))
     if config.adapter == "google-genai":
         # Native Gemini includes usage without OpenAI's stream_usage switch.
         kwargs.pop("stream_usage", None)
@@ -130,8 +143,6 @@ def model_kwargs(
         # The pinned LangChain version does not forward False to the Google SDK.
         if os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "").lower() in {"true", "1", "yes"}:
             raise LLMModelFactoryError("google-genai requires GOOGLE_GENAI_USE_VERTEXAI to be unset or false")
-        if "max_tokens" in kwargs:
-            kwargs["max_output_tokens"] = kwargs.pop("max_tokens")
     _apply_effort(kwargs, config, effort)
     return kwargs
 

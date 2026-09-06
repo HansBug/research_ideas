@@ -22,6 +22,7 @@ T = TypeVar("T", bound=BaseModel)
 # set to the complete-call deadline.
 PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS = 300
 PROVIDER_CALL_DEADLINE_SECONDS = 600
+# Legacy fixture budget only; live requests use the selected model profile.
 MAX_STRUCTURED_OUTPUT_TOKENS = 10_000
 DEFAULT_TRANSPORT_RETRIES = 8
 TRANSPORT_RETRY_DELAY_SCHEDULE_SECONDS = (5.0, 20.0, 60.0, 120.0, 240.0)
@@ -703,6 +704,14 @@ class PublicStructuredRuntime:
                 "timeout": timeout,
             },
         )
+        if self.config.adapter == "anthropic":
+            import anthropic
+
+            # ChatAnthropic caches HTTP clients across loops, including closed ones.
+            transport_app.model._async_client = anthropic.AsyncAnthropic(
+                **transport_app.model._client_params,
+                http_client=anthropic.DefaultAsyncHttpxClient(timeout=timeout),
+            )
         self._async_call_lock = asyncio.Lock()
         return transport_app.model
 
@@ -851,12 +860,12 @@ class PublicStructuredRuntime:
     ) -> StructuredCallOutcome[T]:
         use_streaming = self.streaming if streaming is None else streaming
         selected_max_output_tokens = (
-            MAX_STRUCTURED_OUTPUT_TOKENS
+            self.config.max_output_tokens
             if max_output_tokens is None
             else max_output_tokens
         )
-        if selected_max_output_tokens <= 0:
-            raise ValueError("max_output_tokens must be positive")
+        if selected_max_output_tokens is None or selected_max_output_tokens <= 0:
+            raise ValueError("configure the model's verified positive max_output_tokens in its profile")
         attempts: list[dict[str, Any]] = []
         all_usage: list[dict[str, Any]] = []
         all_schema_validation_failures: list[StructuredSchemaValidationFailure] = []
@@ -885,7 +894,10 @@ class PublicStructuredRuntime:
                         prompt,
                         renderer="quiet",
                         log_level="ERROR",
-                        model_call_options={"max_tokens": selected_max_output_tokens},
+                        model_call_options=(
+                            {"max_tokens": max_output_tokens}
+                            if max_output_tokens is not None else None
+                        ),
                         audit_out=audit_path,
                         result_out=result_path,
                     )

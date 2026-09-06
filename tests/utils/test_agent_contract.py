@@ -195,13 +195,13 @@ def test_compatible_model_omitted_thinking_is_provider_default(model: str) -> No
         config, model_call_options={"max_tokens": 10_000},
         think_mode=False, reasoning_effort=None,
     )
-    assert options == {"max_tokens": 10_000}
+    assert options == {"max_completion_tokens": 10_000}
     assert enabled is None
     options, enabled = _resolve_inference_options(
         config, model_call_options={"max_tokens": 10_000},
         think_mode=True, reasoning_effort="low",
     )
-    assert options == {"max_tokens": 10_000, "reasoning_effort": "low"}
+    assert options == {"max_completion_tokens": 10_000, "reasoning_effort": "low"}
     assert enabled is True
 
 

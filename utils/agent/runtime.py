@@ -23,7 +23,7 @@ from urllib.parse import quote, urlsplit
 from pydantic import BaseModel
 
 from utils.llm import LLMConfig, LLMRegistry, prompt_cache_policy
-from utils.llm.model_factory import GOOGLE_THINKING_LEVELS, default_stream_usage, model_kwargs
+from utils.llm.model_factory import GOOGLE_THINKING_LEVELS, default_stream_usage, model_kwargs, output_token_options
 
 try:
     from langchain.agents import create_agent
@@ -208,7 +208,7 @@ _USAGE_KEY = re.compile(
     re.I,
 )
 _NON_SECRET_FLAG_KEY = re.compile(r"(?:configured|present|enabled|set|available)$", re.I)
-_NON_SECRET_NUMERIC_KEY = re.compile(r"(?:^|_)(?:context|context_window|context_basis|max_output|safe_input|compact_threshold|threshold|window|max_input|input|output|total|prompt|completion|cached|reasoning)(?:_tokens)?$", re.I)
+_NON_SECRET_NUMERIC_KEY = re.compile(r"(?:^|_)(?:context|context_window|context_basis|max|max_completion|max_output|safe_input|compact_threshold|threshold|window|max_input|input|output|total|prompt|completion|cached|reasoning)(?:_tokens)?$", re.I)
 _ENDPOINT_KEY = re.compile(r"(?:base[_-]?url|api[_-]?url|endpoint)", re.I)
 _SECRET_MAPPING_CONTAINERS = frozenset({"headers", "default_headers"})
 _BEARER_VALUE = re.compile(
@@ -581,7 +581,7 @@ def _resolve_inference_options(
         raise ValueError("reasoning_effort must be a string or None")
     if reasoning_effort is not None and not think_mode:
         raise ValueError("reasoning_effort requires think_mode=True")
-    options = dict(model_call_options or {})
+    options = output_token_options(config, model_call_options)
     if not think_mode and options.get("reasoning_effort") is not None:
         raise ValueError("reasoning_effort requires think_mode=True")
     if reasoning_effort is not None:
@@ -596,8 +596,6 @@ def _resolve_inference_options(
         )
 
     if config.adapter == "google-genai":
-        if "max_tokens" in options:
-            options["max_output_tokens"] = options.pop("max_tokens")
         if reasoning_effort is not None and reasoning_effort not in GOOGLE_THINKING_LEVELS:
             raise ValueError(f"unsupported effort {reasoning_effort!r} for google-genai")
         # Gemini 3 cannot disable thinking. An omitted control is provider-default.
@@ -3401,25 +3399,7 @@ class AgentApp:
                 "google-genai": "langchain-google-genai",
             }[adapter]
             raise AgentError("config_error", f"{package} is required") from exc
-        kwargs = config.connection_kwargs()
-        if config.max_output_tokens is not None:
-            kwargs[
-                "max_completion_tokens"
-                if adapter in {"openai", "openai-responses"}
-                else "max_tokens"
-            ] = config.max_output_tokens
-        if adapter in {"openai", "openai-responses"}:
-            kwargs["use_responses_api"] = adapter == "openai-responses"
-        kwargs.update(
-            {
-                "streaming": True,
-                "stream_usage": _default_stream_usage(config),
-                "max_retries": 0,
-            }
-        )
-        kwargs.update(dict(model_options or {}))
-        if adapter == "google-genai":
-            kwargs = model_kwargs(config, model_options=model_options)
+        kwargs = model_kwargs(config, model_options=model_options)
         try:
             model = ChatModel(**kwargs)
         except Exception as exc:
@@ -3499,6 +3479,14 @@ class AgentApp:
             self.config,
             max_output_override=max_output_override if isinstance(max_output_override, int) else None,
         )
+        inference_summary["output_budget"] = {
+            "profile_max_output_tokens": self.config.max_output_tokens,
+            "call_max_output_tokens": max_output_override,
+            "request_max_output_tokens": max_output_override if max_output_override is not None else getattr(
+                self.model, "max_output_tokens", getattr(self.model, "max_tokens", None)
+            ),
+            "source": "run_override" if max_output_override is not None else "profile",
+        }
         compact_threshold = (
             math.floor(context_window_tokens * compact_trigger_ratio)
             if context_window_tokens is not None and compact_trigger_ratio is not None
@@ -3984,6 +3972,7 @@ class AgentApp:
             observed_usages: Sequence[Mapping[str, Any]] | None = None,
             usage_conflict: bool = False,
             response_id: str | None = None,
+            provider_response: Mapping[str, Any] | None = None,
         ) -> None:
             item = _normalize_usage(
                 raw_usage,
@@ -3996,6 +3985,8 @@ class AgentApp:
                 response_id=response_id,
             )
             item["model_call_id"] = call_id
+            item["output_budget"] = dict(inference_summary["output_budget"])
+            item["provider_response"] = dict(provider_response or {})
             if call_id:
                 item.update(public_model_timing(call_id))
             usage.append(item)
@@ -4257,6 +4248,12 @@ class AgentApp:
                 ),
                 None,
             )
+            provider_response = {}
+            for message in _model_output_messages(response):
+                response_metadata = getattr(message, "response_metadata", {}) or {}
+                for key in ("finish_reason", "stop_reason", "status", "incomplete_details"):
+                    if key in response_metadata:
+                        provider_response[key] = response_metadata[key]
             record_transport_usage(
                 raw_usage,
                 call_id,
@@ -4265,6 +4262,7 @@ class AgentApp:
                 observed_usages=observed_usages,
                 usage_conflict=usage_conflict,
                 response_id=response_id if isinstance(response_id, str) else None,
+                provider_response=provider_response,
             )
             if call_kind == "primary" and compact_tracker is not None:
                 compact_tracker.primary_completed()

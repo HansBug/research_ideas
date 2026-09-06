@@ -50,7 +50,7 @@ def test_native_google_504_records_provider_failure_without_extra_retry(tmp_path
     finally:
         runtime.close()
     assert len(requests) == 1
-    assert requests[0]["generationConfig"]["maxOutputTokens"] == 10000
+    assert requests[0]["generationConfig"]["maxOutputTokens"] == config.max_output_tokens
     assert not result.succeeded
     assert result.result["error"]["code"] == "provider_error"
     assert result.result["error"]["details"]["status_code"] == 504

@@ -102,6 +102,8 @@ registry.names()
 
 Google 的单次调用输出上限会从公共 `max_tokens` 映射到 `max_output_tokens`。显式 `reasoning_effort` 支持 `minimal`、`low`、`medium`、`high`，具体型号仍需支持该档位；不把 `none` 映射成关闭思考。未指定思考控制时记录 provider default（`effective_think_mode=None`），避免把 Gemini 3 的默认思考误报成关闭。原生 timeout 使用秒数，持久 runtime 负责关闭 Google SDK 的同步与异步连接。
 
+`PublicStructuredRuntime` 的真实调用默认沿用 profile 中经核验的 `max_output_tokens`，不再添加统一 10K 覆盖值；缺少该配置时明确报错。显式调用覆盖值在共用适配层先映射为 OpenAI 的 `max_completion_tokens`、Google 的 `max_output_tokens` 或其他适配器的 `max_tokens`，避免 Responses SDK 合并别名时让构造值覆盖调用值。审计逐调用保存 profile、显式覆盖值、请求输出上限及 provider 的 finish/stop/incomplete 信息；请求上限不等于实际生成量，也不等于服务端结合输入和剩余 context 后的最终容量。Anthropic 持久 runtime 使用由自身创建和关闭的异步 HTTP 客户端，避免跨事件循环复用已关闭的连接。
+
 接入依据：[LangChain Google 集成](https://docs.langchain.com/oss/python/integrations/chat/google_generative_ai)、[Gemini 结构化输出](https://ai.google.dev/gemini-api/docs/structured-output)、[generateContent 参数](https://ai.google.dev/api/generate-content)。
 
 ### 2.2 `utils.agent`
