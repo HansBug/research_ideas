@@ -123,3 +123,7 @@ A1 的 recovery 书面登记晚于它自身启动，A1 已明确披露；A2 引�
 固定主比较为 A2 新结果与 v61 的 903 reports、K/N/I=561/198/144、FULL hit@1=323/435、hit@3=130/145、hit@all=82/145。计算继续从逐报告裁定和固定 145 台账复算，不只抄总数。v61 原 19 谓词、当前 A2 源码基线、运行日期、prompt/schema、manifest 绝对路径 hash 以及历史补格政策的差异须明确披露；不声称同版本、同时间的单因素因果识别。九簇配对 bootstrap/留簇分析仍可描述这两批记录的差值，但不能消除版本、服务状态或 judge 时序混杂。
 
 该补充是在 smoke 后、正式实验前按用户指令作出，不能回写成初始预登记选择。先前使用 sibling full manifest 作输入身份工程核验的事实保留，该只读核验不等于新增 full 调用或效果对照。模型、A2 schema/prompt、54×3、低并发、重试配置、分母、独立裁定与证据留存规则均不改变。
+
+## 10. 首次 A2 judge 前追加：按完成格滚动裁定
+
+A2 正式方法已开始、尚无 A2 judge 调用时，明确执行顺序：judge 可对已原子落盘且 eligible 的完整格滚动启动，同一轮内按固定 pair 顺序选择当前已完成且从未提交 judge 的格。每条 CLI 运行都冻结完整 pair 列表、来源 hash 和独立 run ID；只跑 A2，workers=2，各 judge 批次串行，合计最多 2 个活跃 judge pair workers。选择不读取报告质量或命中，不使用 report-filter，零报告的 eligible 格仍裁定其空报告集合；失败格产物单列隔离。等待 method 全量结束后统一核销 162 格、全部 eligible 报告与 judge 失败，不能把先完成的子集称为全量结果。滚动处理不把裁定反馈给 method，不更改 §5 的 judge 配置与统计口径。
