@@ -153,6 +153,7 @@ def test_think_off_pins_official_reasoning_defaults() -> None:
     assert enabled is False
     assert options["extra_body"] == {"thinking": {"type": "disabled"}}
 
+
     responses_config = LLMConfig(
         model="relay-model",
         adapter="openai-responses",
@@ -183,6 +184,25 @@ def test_think_off_pins_official_reasoning_defaults() -> None:
             think_mode=False,
             reasoning_effort=None,
         )
+
+
+@pytest.mark.parametrize("model", ["qwen3.8-27b", "muse-glimmer-30b"])
+def test_compatible_model_omitted_thinking_is_provider_default(model: str) -> None:
+    from utils.agent.runtime import _resolve_inference_options
+
+    config = LLMConfig(adapter="openai", model=model)
+    options, enabled = _resolve_inference_options(
+        config, model_call_options={"max_tokens": 10_000},
+        think_mode=False, reasoning_effort=None,
+    )
+    assert options == {"max_tokens": 10_000}
+    assert enabled is None
+    options, enabled = _resolve_inference_options(
+        config, model_call_options={"max_tokens": 10_000},
+        think_mode=True, reasoning_effort="low",
+    )
+    assert options == {"max_tokens": 10_000, "reasoning_effort": "low"}
+    assert enabled is True
 
 
 def test_gpt_oss_harmony_pins_low_effort_when_unspecified() -> None:

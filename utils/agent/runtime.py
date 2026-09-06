@@ -605,6 +605,9 @@ def _resolve_inference_options(
 
     deepseek = _is_deepseek_config(config)
     effective_think_mode = think_mode
+    if config.adapter == "openai" and not _is_openai_reasoning_model(config) and not think_mode:
+        # No control is sent for other compatible models; serving owns the default.
+        effective_think_mode = None
     if not think_mode and (
         _is_openai_reasoning_model(config)
         or (config.adapter == "openai-responses" and not _is_gpt_oss_harmony(config))
@@ -2064,7 +2067,7 @@ class _Renderer:
         lines = (
             f"run       id={event.run_id} · agent={cls._setting(cls._first(data.get('agent'), data.get('agent_name'), data.get('name')))} · profile={cls._setting(data.get('profile'), default='direct')} · model={cls._setting(data.get('model'))} · real={cls._setting(data.get('real_llm'))}",
             f"model     adapter={cls._setting(data.get('adapter'), default='unknown')} · config={config_fingerprint} · endpoint={endpoint_fingerprint} · stream={cls._setting(option('streaming'))} · usage={cls._setting(option('stream_usage'))}",
-            f"inference think={cls._setting(option('think_mode'), default='false')} · effort={cls._setting(option('reasoning_effort'), default='none')} · sampling={sampling_text} · sdk_retries={cls._setting(option('max_retries'), default='unknown')} · transport_retries={cls._setting(option('transport_retries'), default='unknown')} · timeout={cls._setting(option('timeout'), default='default')} · cache_policy={cls._setting(prompt_cache.get('mode'), default='provider-default')} · cache_ttl={cls._setting(prompt_cache.get('ttl'), default='provider-default')}",
+            f"inference think={cls._setting(option('think_mode'), default='provider-default')} · effort={cls._setting(option('reasoning_effort'), default='none')} · sampling={sampling_text} · sdk_retries={cls._setting(option('max_retries'), default='unknown')} · transport_retries={cls._setting(option('transport_retries'), default='unknown')} · timeout={cls._setting(option('timeout'), default='default')} · cache_policy={cls._setting(prompt_cache.get('mode'), default='provider-default')} · cache_ttl={cls._setting(prompt_cache.get('ttl'), default='provider-default')}",
             f"behavior  system={cls._fingerprint(data.get('system_prompt_hash'))} · tools={cls._fingerprint(data.get('tools_hash'))} · input={cls._fingerprint(data.get('input_hash'))} · context={cls._fingerprint(data.get('context_manifest_hash'))}",
             f"inputs    system_chars={cls._number(data.get('system_chars'))} · task_chars={cls._number(data.get('input_chars'))} · context_pages={cls._number(data.get('context_pages'))}",
             f"tools     count={cls._number(data.get('tool_count', len(tool_names.split(', ')) if tool_names != 'none' else 0))} · allowlist={tool_names} · required={cls._setting(cls._first(data.get('require_tool_call'), data.get('required_tool')), default='false')} · multiple=allowed",
