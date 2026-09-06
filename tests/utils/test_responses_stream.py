@@ -76,6 +76,10 @@ def test_normal_stream_unchanged(asynchronous, headers):
     ([{"type": "error", "code": "rate_limit_exceeded", "message": "busy", "sequence_number": 0}], "error", True),
     ([{"type": "error", "code": "invalid_api_key", "message": "unauthorized", "sequence_number": 0}], "error", False),
     ([{"type": "error", "code": "invalid_request_error", "message": "bad schema", "sequence_number": 0}], "error", False),
+    ([{"type": "response.failed", "sequence_number": 0, "response": response("failed",
+       error={"code": "upstream_error", "message": "Upstream service temporarily unavailable"})}], "response.failed", True),
+    ([{"type": "response.failed", "sequence_number": 0, "response": response("failed",
+       error={"code": "upstream_error", "message": "upstream rejected request"})}], "response.failed", False),
     ([{"type": "response.incomplete", "sequence_number": 0, "response": response("incomplete",
        incomplete_details={"reason": "max_output_tokens"})}], "response.incomplete", False),
 ])
@@ -91,15 +95,19 @@ def test_stream_failure_has_structured_reason(events, reason, retryable, asynchr
     if reason == "response.failed":
         assert error.details["response_id"] == "resp-test"
         assert error.details["usage"]["total_tokens"] == 4
-        assert error.details["raw_error"]["code"] == "server_error"
+        assert error.details["raw_error"] == events[0]["response"]["error"]
 
 
-def test_raw_failed_event_retries_exact_request_and_preserves_receipts(tmp_path):
+@pytest.mark.parametrize("error", [
+    {"code": "server_error", "message": "temporary"},
+    {"code": "upstream_error", "message": "Upstream service temporarily unavailable"},
+])
+def test_raw_failed_event_retries_exact_request_and_preserves_receipts(tmp_path, error):
     calls = []
     def handle(request):
         calls.append(json.loads(request.content))
         events = GOOD if len(calls) > 1 else [{"type": "response.failed", "sequence_number": 0,
-            "response": response("failed", error={"code": "server_error", "message": "temporary"})}]
+            "response": response("failed", error=error)}]
         return httpx.Response(200, content=sse(events), headers={
             "content-type": "text/event-stream", "x-request-id": f"req-{len(calls)}"})
     model = model_for([])
@@ -114,7 +122,7 @@ def test_raw_failed_event_retries_exact_request_and_preserves_receipts(tmp_path)
     retries = [r for r in map(json.loads, audit.read_text().splitlines()) if r.get("record") == "transport_retry"]
     assert [r["operation"] for r in retries] == ["scheduled", "recovered"]
     assert retries[0]["request_fingerprint"] == retries[1]["request_fingerprint"]
-    assert retries[0]["error"]["raw_error"]["code"] == "server_error"
+    assert retries[0]["error"]["raw_error"] == error
     assert retries[0]["error"]["request_id"] == "req-1"
     assert result.usage[0]["total_tokens"] == 4
 

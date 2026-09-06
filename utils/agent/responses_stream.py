@@ -63,6 +63,8 @@ class _StreamState:
                 "rate_limit_exceeded", "rate_limit_error", "overloaded",
                 "service_unavailable", "timeout", "request_timeout",
             }
+            if code == "upstream_error" and error.get("message") == "Upstream service temporarily unavailable":
+                retryable = True
             self.fail(kind or "error", event=payload, error=error, retryable=retryable)
         if kind == "response.incomplete":
             self.fail(kind, event=payload, error=response.get("incomplete_details"), retryable=False)
