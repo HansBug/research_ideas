@@ -119,15 +119,7 @@ def _structured_output_repair_message(exception: Exception) -> str:
     output schema or accept an otherwise invalid value.
     """
 
-    source = exception
-    seen: set[int] = set()
-    # LangChain wraps Pydantic errors in ValueError before its tool error.
-    while not callable(getattr(source, "errors", None)) and id(source) not in seen:
-        seen.add(id(source))
-        nested = getattr(source, "source", None) or source.__cause__ or source.__context__
-        if not isinstance(nested, BaseException):
-            break
-        source = nested
+    source = getattr(exception, "source", exception)
     errors_method = getattr(source, "errors", None)
     errors: list[Mapping[str, Any]] = []
     if callable(errors_method):
