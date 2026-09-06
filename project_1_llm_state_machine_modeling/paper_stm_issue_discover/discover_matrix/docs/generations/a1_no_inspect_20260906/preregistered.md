@@ -117,3 +117,9 @@ Smoke prompt/raw output、逐格审计、测试 XML 和对拍数据仅留本地 
 后续 judge 使用原生 `paper_stm_judge.cli`，显式 `--workers 16 --profile aizzz-luna-eval`；A1 主批总并发上限为 16，轮次依次运行，不是三轮各 16。不再将低并发补救、单探针门或 PrefixRetry/RecordedModel/ContinuingRuntime 接入后续 judge。保留通用空流/失败事件/异常 EOF 与不可重试错误分类修复，以及正常 schema 原地修订；方法 prompt、12 条谓词、筛选发布和 §4 judge 协议不变。
 
 Judge adapter 原先只接受 `completed`，会在调用 provider 前拒绝已有 `eligible=true` 的合法诊断格。A1 复用共享提交 [507f1bac2](https://github.com/HansBug/research_ideas/commit/507f1bac2cce74a89608079cc759e32f230624eb) 的 `artifacts.py` 单行修复和 `test_release_adapter_preserves_eligible_diagnostic_reports`，落地为 [546e7055db9a](https://github.com/HansBug/research_ideas/commit/546e7055db9a18f898de3b8429154113bc8008b5)；未搬入 A2 专属登记。此修复只恢复既有最终报告的裁定入口，不改变 eligibility 或有效性标准。被旧适配器拒绝、尚无完整裁定的格使用修复后原生入口补齐；其诊断和失败记录仍保存。
+
+### 7.2 全量裁定硬门槛与共享 5xx 修复（事后追加）
+
+用户进一步要求：只有 **162 个唯一 `(pair_id, round)` 均有完整 judge 结果，且每格的裁定报告 ID 集合与冻结 method 的发布报告 ID 集合完全相等**，才汇总 hit、precision、K/N/I 及 v61 对照。当前冻结 method 共 814 份报告；method 完成、子批 success 或仲裁未结束均不代替整格 judged。先完成既定批次，再逐格补齐所有失败或缺失裁定，包括 `0059/r1`；不剔除困难格、不缩小分母、不重跑 method 或已完成裁定。补齐采用独立原生 run ID，保留原始失败、既有成功决定与逐格来源映射，不以裁定质量决定是否重跑。
+
+第三轮及后续原生 judge 使用 [cff08a09a](https://github.com/HansBug/research_ideas/commit/cff08a09a47121bcbede82cc1861eb5775266748) 中的共享请求修复，原提交为 [f7e5712df](https://github.com/HansBug/research_ideas/commit/f7e5712df10cf34fe7a299c9c95fecaa3eb7e2fa)。该修复按 SDK server-error 分类覆盖全部 HTTP 500-599，并保留原 408/409/429；没有扩大为所有异常可重试，也不改变正常请求、schema 修订或裁定标准。此前在途第二轮不热更新、不重启，精确源码身份分别保留；A2 专属 fixture/schema 改动不随此修复带入 A1。
