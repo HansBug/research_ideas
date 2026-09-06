@@ -128,13 +128,13 @@ class DomainInvariantContract(BaseModel):
         predicate_inputs: dict[str, object]
         observed: str
         if self.property == "trigger_set":
-            predicate_inputs = {"transition": self.transition_ref, "triggers": []}
+            predicate_inputs = {"transition": self.transition_ref, "triggers": []} if self.predicate_id else {}
             observed = (
                 f"The exact initial transition {self.transition_ref} has native "
                 f"triggers={list(self.observed_triggers)!r}."
             )
         else:
-            predicate_inputs = {"transition": self.transition_ref, "guard": ""}
+            predicate_inputs = {"transition": self.transition_ref, "guard": ""} if self.predicate_id else {}
             observed = (
                 f"The exact initial transition {self.transition_ref} has native "
                 f"guard={self.observed_guard!r}."
@@ -193,6 +193,12 @@ class DomainInvariantContract(BaseModel):
             mismatches.append("violation_direction")
         if candidate.predicate_id != self.predicate_id:
             mismatches.append("predicate_id")
+        if self.predicate_id is None:
+            if self.transition_ref not in candidate.element_refs:
+                mismatches.append("transition")
+            if candidate.predicate_inputs:
+                mismatches.append("predicate_inputs")
+            return tuple(mismatches)
         if candidate.predicate_inputs.get("transition") != self.transition_ref:
             mismatches.append("transition")
         if self.property == "trigger_set":
@@ -201,6 +207,35 @@ class DomainInvariantContract(BaseModel):
         elif candidate.predicate_inputs.get("guard") != "":
             mismatches.append("guard")
         return tuple(mismatches)
+
+
+class SemanticDomainInvariantContract(DomainInvariantContract):
+    """The same native language-rule facts without an execution assertion."""
+
+    schema_version: Literal["evidence-discovery.semantic-domain-invariant-contract.v1"] = Field(
+        default="evidence-discovery.semantic-domain-invariant-contract.v1",
+        description="Persistence version for the semantic language invariant without an execution assertion.",
+    )
+    predicate_id: None = Field(default=None, description="Predicate mechanism disabled by A2.")
+
+    @model_validator(mode="after")
+    def validate_predicate_shape(self) -> "SemanticDomainInvariantContract":
+        if self.property == "trigger_set":
+            if (
+                self.violation_direction != "mismatched"
+                or self.expected_trigger_set != ()
+                or not self.observed_triggers
+                or self.expected_guard is not None
+            ):
+                raise ValueError("trigger-set invariant requires an empty required set and observed native triggers")
+        elif (
+            self.violation_direction != "wrong_guard"
+            or self.expected_guard != ""
+            or not self.observed_guard
+            or self.expected_trigger_set is not None
+        ):
+            raise ValueError("guard invariant requires an empty required guard and an observed native guard")
+        return self
 
 
 def _contract_id(*, transition_ref: str, property_name: str) -> str:
@@ -235,6 +270,7 @@ def materialize_domain_invariant_contracts(
     if facts is None:
         return (), (), ()
     author_index = build_author_index(pair)
+    predicates_enabled = getattr(pair, "ablation_mode", "none") != "no-predicates"
 
     existing = {
         (
@@ -244,6 +280,13 @@ def materialize_domain_invariant_contracts(
         )
         for candidate in existing_candidates
     }
+    if not predicates_enabled:
+        existing = {
+            (None, candidate.property, ref)
+            for candidate in existing_candidates
+            for ref in candidate.element_refs
+            if ref.startswith("transition:")
+        }
     contracts: list[DomainInvariantContract] = []
     candidates: list[CandidateIssue] = []
     dispositions: list[dict[str, object]] = []
@@ -297,7 +340,7 @@ def materialize_domain_invariant_contracts(
                     ),
                     "property": "trigger_set",
                     "violation_direction": "mismatched",
-                    "predicate_id": "S3",
+                    "predicate_id": "S3" if predicates_enabled else None,
                     "expected_trigger_set": (),
                     "observed_triggers": tuple(fact.triggers),
                 }
@@ -310,15 +353,16 @@ def materialize_domain_invariant_contracts(
                     ),
                     "property": "guard",
                     "violation_direction": "wrong_guard",
-                    "predicate_id": "S5",
+                    "predicate_id": "S5" if predicates_enabled else None,
                     "expected_guard": "",
                     "observed_guard": str(fact.guard),
                 }
             )
         for definition in definitions:
-            contract = DomainInvariantContract.model_validate({**common, **definition})
+            schema = DomainInvariantContract if predicates_enabled else SemanticDomainInvariantContract
+            contract = schema.model_validate({**common, **definition})
             candidate = contract.candidate()
-            key = (candidate.predicate_id, candidate.property, candidate.predicate_inputs["transition"])
+            key = (candidate.predicate_id, candidate.property, contract.transition_ref)
             if key in existing:
                 dispositions.append(
                     {
@@ -326,8 +370,8 @@ def materialize_domain_invariant_contracts(
                         "status": "duplicate_exact_candidate",
                         "transition_ref": fact.transition_ref,
                         "predicate_id": contract.predicate_id,
-                        "reason": "An existing candidate already binds the same predicate property and exact native transition carrier.",
-                        "basis": "predicate ID, property, and exact transition-ref equality",
+                        "reason": "An existing candidate already binds the same predicate property and exact native transition carrier." if predicates_enabled else "An existing candidate already binds the same property and exact native transition carrier.",
+                        "basis": "predicate ID, property, and exact transition-ref equality" if predicates_enabled else "property and exact transition-ref equality",
                     }
                 )
                 continue

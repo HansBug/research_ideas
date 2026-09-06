@@ -1775,6 +1775,8 @@ def build_contract_completion_prompt(
     """
 
     context = prompt_context_payload(pair, stage="nl_contract_extraction")
+    completion_boundary = pair_system_prompt(pair, """non-empty reason and basis. A coarse satisfied predicate check cannot erase an
+exact obligation retained here.""")
     return f"""{pair_system_prompt(pair, CONTRACT_SYSTEM_PROMPT)}
 
 Stage: contract-completion-correction
@@ -1798,8 +1800,7 @@ termination obligations not already represented by the primary typed identity.
 One retained property never substitutes for another merely because the carrier
 or domain vocabulary is similar.
 When no additional typed obligation is justified, return empty lists with a
-non-empty reason and basis. A coarse satisfied predicate check cannot erase an
-exact obligation retained here.
+{completion_boundary}
 
 Primary typed plan:
 {json.dumps(_compact_contract_plan(primary_contracts), ensure_ascii=False, sort_keys=True, indent=2)}
@@ -1838,12 +1839,15 @@ def build_grounding_prompt(
         )
     )
 
+    predicate_guidance = pair_system_prompt(pair, """Frozen predicate input spellings: S1={kind, element, scope} S2={source, target, scope} S3={transition, triggers} S4={state, phase, action} S5={transition, guard} G1={source, target} G2={source, target} G3={roots, marked} R1={scenario, event, step} R2={scenario, stimulus, state, window} R3={scenario, state, interval} V1={initial_scope}.
+If a precise candidate cannot be expressed by the registry, set predicate_id to null. Do not silently drop it. Do not use W/D/L or L levels.""")
+    carrier_guidance = pair_system_prompt(pair, """missing guard/effect -> exact carrier transition ref. Predicate support controls
+W2 versus W1 later and never licenses silent omission.""")
     return f"""Stage: discovery-grounding
 Round: {round_index}
 Complementary audit lens: {lens}
-Lens priority: {DISCOVERY_GROUNDING_AUDIT_LENSES[lens]}
-Frozen predicate input spellings: S1={{kind, element, scope}} S2={{source, target, scope}} S3={{transition, triggers}} S4={{state, phase, action}} S5={{transition, guard}} G1={{source, target}} G2={{source, target}} G3={{roots, marked}} R1={{scenario, event, step}} R2={{scenario, stimulus, state, window}} R3={{scenario, state, interval}} V1={{initial_scope}}.
-If a precise candidate cannot be expressed by the registry, set predicate_id to null. Do not silently drop it. Do not use W/D/L or L levels.
+Lens priority: {pair_system_prompt(pair, DISCOVERY_GROUNDING_AUDIT_LENSES[lens])}
+{predicate_guidance}
 Copy `contract_id`, `locus_kind`, `locus_names`, `property`, and
 `violation_direction` from the one atomic contract being evaluated. A candidate
 may narrow source names to exact model identities through element_refs, but it
@@ -1866,8 +1870,7 @@ transition inventory is a candidate, while an ambiguous source or target is
 unresolved.
 For negative facts, bind the existing carrier rather than the absent content:
 missing edge -> exact endpoint state refs; missing action -> exact state ref;
-missing guard/effect -> exact carrier transition ref. Predicate support controls
-W2 versus W1 later and never licenses silent omission.
+{carrier_guidance}
 
 NL contracts:
 {json.dumps(_compact_contract_plan(contracts), ensure_ascii=False, sort_keys=True)}
@@ -1880,14 +1883,18 @@ Stage-scoped context projection and complete artifact manifest:
 def build_d_adjudication_prompt(pair: PairInput, dossiers: list[dict[str, Any]]) -> str:
     """Build the whole-cell semantic D prompt without exposing evaluation answers."""
 
-    compact_dossiers = [_compact_dossier(item) for item in dossiers]
+    compact_dossiers = [_compact_dossier(item, pair=pair) for item in dossiers]
+    dossier_description = pair_system_prompt(pair, "Obligation dossiers. These contain exact method outputs and backend facts, but no")
+    execution_protocol = pair_system_prompt(pair, """- do not turn execution uncertainty or an absent predicate into a semantic violation;
+- backend or predicate unsupported status alone is not a competent undercutting
+  reading; when exact facts satisfy expected behavior, use not_established/D0;""")
 
     return f"""Stage: d_adjudication
 Pair identity: {pair.pair_id}
 Stage-scoped context projection and complete artifact manifest:
 {_context_text(pair, stage="d_adjudication")}
 
-Obligation dossiers. These contain exact method outputs and backend facts, but no
+{dossier_description}
 W/D/L labels. Assess every obligation exactly once and preserve its obligation_id:
 {json.dumps(compact_dossiers, ensure_ascii=False, sort_keys=True)}
 
@@ -1901,9 +1908,7 @@ Decision protocol:
 - use defeater_kind=none and defeater_disposition=defeated only when no competent defeater applies;
 - use undercutting with survives only when two competent readings remain compatible with the supplied facts (the method maps this to D1); an unresolved undercutting reading remains D_UNRESOLVED;
 - use rebutting with survives when the alternative defeats the alleged violation or leaves a reasonable design choice (the method maps this to D0); unresolved rebutting evidence remains D_UNRESOLVED;
-- do not turn execution uncertainty or an absent predicate into a semantic violation;
-- backend or predicate unsupported status alone is not a competent undercutting
-  reading; when exact facts satisfy expected behavior, use not_established/D0;
+{execution_protocol}
 - a proposed intentional-terminal rebuttal survives only with an exact supplied
   terminal clause, formal terminal edge, or explicit terminal fact. If a supplied
   continuation/progress contract excludes it, use `defeated`; bare design
@@ -1947,9 +1952,13 @@ def _compact_d_receipt_run_metadata(value: Any) -> Any:
     return projected
 
 
-def _compact_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
+def _compact_dossier(dossier: dict[str, Any], *, pair: PairInput | None = None) -> dict[str, Any]:
     """Project one D dossier to semantic facts without duplicating audit bytes."""
 
+    if getattr(pair, "ablation_mode", "none") == "no-predicates":
+        from .no_predicates import compact_semantic_dossier
+
+        return compact_semantic_dossier(dossier)
     candidate = dossier.get("candidate", {})
     binding = dossier.get("binding", {})
     plan = dossier.get("plan", {})
@@ -2067,7 +2076,7 @@ extra_ids_to_ignore:
 {json.dumps(extra_ids, ensure_ascii=False)}
 
 Correction dossiers:
-{json.dumps([_compact_dossier(item) for item in selected], ensure_ascii=False, sort_keys=True, indent=2)}
+{json.dumps([_compact_dossier(item, pair=pair) for item in selected], ensure_ascii=False, sort_keys=True, indent=2)}
 
 Return exactly one decision for every ID in repair_ids and no decision for any
 other ID. Do not repeat any frozen valid decision or any extra ID. If the

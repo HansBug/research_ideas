@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from functools import lru_cache
 from typing import Any, ClassVar
 
 from pydantic import BaseModel, create_model
 
+from ..inputs.context import (
+    CanonicalSourceIR, ContextManifest, ExactSourceInventory, InspectionEquivalentFacts,
+    NumberedNLSegment, StructuredArtifact,
+)
 from ..inputs.models import PairInput
 from .adjudication import DAdjudicationResponse, SemanticAdjudication, adjudicate_disposition
 from .binding import BindingResult
@@ -23,6 +28,7 @@ DISABLED_PREDICATE_STEPS = (
     "route_primary_candidates",
     "predicate_parameter_binding",
     "_materialize_deterministic_execution_probes",
+    "_materialize_group_post_states",
     "compile_plan",
     "validate_plan",
     "run_backend",
@@ -37,8 +43,26 @@ class NoPredicatesInput(PairInput):
     ablation_mode: ClassVar[str] = "no-predicates"
 
 
+NoPredicatesInput.model_rebuild()
+
+
 def without_predicates(pair: PairInput) -> NoPredicatesInput:
     return NoPredicatesInput(**{name: getattr(pair, name) for name in PairInput.model_fields})
+
+
+def project_context(payload: dict[str, Any]) -> dict[str, Any]:
+    """Change fixed role instructions while preserving every supplied fact."""
+
+    payload["source_roles"]["fcstm_model"] = "closed_model_semantic_binding"
+    for section in payload["context_manifest"]["sections"]:
+        if section["section_id"] == "model-grounding":
+            section["purpose"] = "Bind exact closed-model elements and assess the supplied semantic obligations."
+            section["basis"] = "closed-model semantic binding contract"
+    if payload.get("fcstm_model"):
+        payload["fcstm_model"]["reason"] = "FCSTM is the closed model under evaluation."
+    if payload.get("verify_facts"):
+        payload["verify_facts"]["reason"] = "The method receives finite verification facts as structured context; they are not copied into W/D levels."
+    return payload
 
 
 def _field(model: type[BaseModel], name: str, *, description: str | None = None) -> Any:
@@ -57,10 +81,14 @@ _hint_description = _hint_role.description.replace(
 
 
 class SemanticBindingHint(ContractBindingHint):
+    __doc__ = ContractBindingHint.__doc__
+
     role: _hint_role.annotation = _field(ContractBindingHint, "role", description=_hint_description)
 
 
 class SemanticContract(NLContract):
+    __doc__ = NLContract.__doc__
+
     property: ObligationProperty = _field(
         NLContract,
         "property",
@@ -75,6 +103,7 @@ class SemanticContract(NLContract):
 # execution arguments to the provider. Full contracts retain their own schema.
 SemanticCandidate = create_model(
     "SemanticCandidate",
+    __doc__=CandidateIssue.__doc__,
     __config__=CandidateIssue.model_config,
     **{
         name: (
@@ -94,19 +123,27 @@ SemanticCandidate = create_model(
 
 
 class SemanticContractResponse(NLContractResponse):
+    __doc__ = NLContractResponse.__doc__
+
     contracts: list[SemanticContract] = _field(NLContractResponse, "contracts")
 
 
 class SemanticContractCompletionResponse(ContractCompletionResponse):
+    __doc__ = ContractCompletionResponse.__doc__
+
     additional_contracts: list[SemanticContract] = _field(ContractCompletionResponse, "additional_contracts")
 
 
 class SemanticGroundingResponse(GroundingResponse):
+    __doc__ = GroundingResponse.__doc__
+
     additional_contracts: list[SemanticContract] = _field(GroundingResponse, "additional_contracts")
     candidates: list[SemanticCandidate] = _field(GroundingResponse, "candidates")
 
 
 class SemanticDecision(SemanticAdjudication):
+    __doc__ = SemanticAdjudication.__doc__
+
     grounding: SemanticAdjudication.model_fields["grounding"].annotation = _field(
         SemanticAdjudication,
         "grounding",
@@ -124,16 +161,42 @@ class SemanticDecision(SemanticAdjudication):
 
 
 class SemanticDecisionResponse(DAdjudicationResponse):
+    __doc__ = DAdjudicationResponse.__doc__
+
     decisions: list[SemanticDecision] = _field(DAdjudicationResponse, "decisions")
 
 
+@lru_cache(maxsize=None)
 def response_schema(model: type[BaseModel]) -> type[BaseModel]:
-    return {
+    schemas = {
         NLContractResponse: SemanticContractResponse,
         ContractCompletionResponse: SemanticContractCompletionResponse,
         GroundingResponse: SemanticGroundingResponse,
         DAdjudicationResponse: SemanticDecisionResponse,
-    }[model]
+    }
+    if model in schemas:
+        return schemas[model]
+    if issubclass(model, GroundingResponse):
+        return create_model(
+            f"Semantic{model.__name__}",
+            __doc__=model.__doc__,
+            __base__=model,
+            additional_contracts=(list[SemanticContract], _field(model, "additional_contracts")),
+            candidates=(list[SemanticCandidate], _field(model, "candidates")),
+        )
+    raise ValueError(f"No A2 response contract for {model.__name__}")
+
+
+def compact_semantic_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
+    candidate = dossier["candidate"]
+    return {
+        "obligation_id": dossier["obligation_id"],
+        "defeater_evidence_reference_catalog": dossier.get("defeater_evidence_reference_catalog", []),
+        "candidate": {name: candidate[name] for name in SemanticCandidate.model_fields if name in candidate},
+        "binding": dossier["binding"],
+        "reason": "D receives the exact candidate, ordinary binding, and supplied source/model facts.",
+        "basis": NO_PREDICATES_VERSION,
+    }
 
 
 # Apply these exact edits only to fixed method instructions before adding any
@@ -254,7 +317,7 @@ def build_semantic_evidence_record(
     disposition = adjudicate_disposition(candidate, binding, semantic_adjudication, receipt=None)
     witness_level = "W1" if binding.precise else "W0"
     return {
-        "schema": "evidence-discovery.evidence_record.v1",
+        "schema": "evidence-discovery.semantic_evidence_record.v1",
         "obligation_id": obligation_id,
         "predicate_id": None,
         "binding": binding.model_dump(mode="json"),
