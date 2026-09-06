@@ -2,7 +2,7 @@
 
 登记日期：2026-09-06，A2 真实调用之前。依据：[消融公约](../../protocol/ablation_design_and_parallel_contract.md)、[A2 #206](https://github.com/HansBug/research_ideas/pull/206)、[伞 PR #179](https://github.com/HansBug/research_ideas/pull/179)。用户已授权实现、验证、推送后运行 Luna 54×3、独立 Luna judge、复算与原因审计、归档和中文报告。本登记不以效果方向为完成门槛；施工进度和 review 写在 PR，事后结果另存，不回改事前假设。
 
-> 当前适用补充：§7 的低并发、§8 的合法降级读取仍有效；**主比较对象由 §9 的用户明确指令覆盖为冻结 v61 ours，只运行 A2 及 A2 judge**。§1/§7 的 recovery full 对照安排已被覆盖，保留原文仅用于追溯登记历史。
+> 当前适用补充：§8 的合法降级读取仍有效；**§9 固定 full 为 v61 ours，只运行 A2 及 A2 judge；§13 覆盖旧站点、低并发及在线前缀恢复安排，使用新 Luna-only 站点与各 16 worker 的普通运行路径**。§1/§7 的 recovery full 对照及后续被覆盖的运行安排保留原文，仅用于追溯登记历史。
 
 ## 1. 问题与条件
 

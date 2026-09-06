@@ -4,6 +4,7 @@ import importlib.util
 import json
 from pathlib import Path
 import shutil
+import sys
 
 import pytest
 
@@ -112,6 +113,18 @@ def test_provider_sensitivity_pairs_the_same_cells_and_keeps_unknowns():
     assert not analysis.provider_paired_sensitivity(current, reference)["segments"]["old"]["complete"]
 
 
+def test_shared_text_audit_requires_exact_text_and_does_not_relabel():
+    common = dict(pair_id="0000", round=1, title="shared", expected="one", observed="two",
+                  a0_subtype=None, partial_ledger_ids=[], judge_source="source")
+    old = dict(common, original_report_id="old", validity="INVALID", d_tier="D0", full_ledger_ids=[])
+    new = dict(common, original_report_id="new", validity="VALID_KNOWN", d_tier="D2", full_ledger_ids=["a"])
+    result = analysis.shared_report_text_audit(dict(reports=[new]), dict(reports=[old]))
+    assert result["matched_text_groups"] == result["classification_changed_groups"] == result["full_targets_changed_groups"] == 1
+    assert old["validity"] == "INVALID" and new["validity"] == "VALID_KNOWN"
+    new["observed"] = "two "
+    assert analysis.shared_report_text_audit(dict(reports=[new]), dict(reports=[old]))["matched_text_groups"] == 0
+
+
 def test_cell_selection_preserves_attempts_and_rejects_changed_reused_bytes(tmp_path):
     old, new = tmp_path / "old", tmp_path / "new"
     paths = []
@@ -184,3 +197,33 @@ def test_frozen_selection_relocates_without_rewriting_original_identity(tmp_path
     analysis.load_selection(archive / "new/continuation_plan.json", sources_dir=archive)
     with pytest.raises(AssertionError, match="frozen predecessor changed"):
         analysis.load_selection(path)
+
+
+def test_archive_retains_partial_transport_evidence_and_detects_inventory_drift(tmp_path, monkeypatch):
+    monkeypatch.setitem(sys.modules, "analyze", analysis)
+    spec = importlib.util.spec_from_file_location("a2_archive", Path(__file__).with_name("archive.py"))
+    archive = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(archive)
+    source = tmp_path / "source"
+    (source / "llm").mkdir(parents=True)
+    trace = source / "llm/.audit.jsonl.interrupted.part"
+    trace.write_text(json.dumps(dict(seq=1, record_type="model", status="completed",
+                                    usage={"input_tokens": 12}, system_prompt="private prompt")) + "\n" +
+                     json.dumps(dict(seq=2, error={"code": "provider_timeout"}, attempt_no=1)) + "\n{" )
+    index = archive.transport_index(source)
+    row = index["traces"][0]
+    assert row["records"] == 2 and row["unreadable_lines"] == [3]
+    assert row["events"][0]["usage"] == {"input_tokens": 12}
+    assert row["events"][1]["error"] == {"code": "provider_timeout"}
+    assert "private prompt" not in json.dumps(index)
+    destination = tmp_path / "archive"
+    coverage = dict(terminal_cells=162, eligible_cells=162, judged_cells=162,
+                    planned_expected_rounds=435, observed_expected_rounds=435,
+                    eligible_reports=1, judged_reports=1)
+    archive._write(destination / "derived/analysis.json", dict(a2=dict(precision_complete=True, coverage=coverage), changes=[]))
+    archive._write(destination / "derived/change_audit.json", dict(rows=[]))
+    archive.finalize(destination)
+    archive.validate(destination)
+    (destination / "unexpected.json").write_text("{}")
+    with pytest.raises(AssertionError):
+        archive.validate(destination)

@@ -285,6 +285,33 @@ def summarize(label, cells, method_reports, reports, expected, judged, items, cl
                                      {e: i for e, i in items.items() if i["pair"] == p}) for p in sorted(clusters)})
 
 
+def shared_report_text_audit(current, reference):
+    groups = []
+    for arm in (current, reference):
+        grouped = defaultdict(list)
+        for report in arm["reports"]:
+            key = (report["pair_id"], report["round"], report["title"], report["expected"], report["observed"])
+            grouped[key].append(report)
+        groups.append(grouped)
+    rows = []
+    for key in sorted(groups[0].keys() & groups[1].keys(), key=lambda k: json.dumps(k)):
+        outcomes = {}
+        for label, group in zip(("a2", "v61"), groups):
+            outcomes[label] = [{k: report[k] for k in ("original_report_id", "validity", "d_tier", "a0_subtype",
+                                                       "full_ledger_ids", "partial_ledger_ids", "judge_source")}
+                               for report in group[key]]
+        classifications = [{(r["validity"], r["d_tier"], r["a0_subtype"]) for r in outcomes[label]} for label in outcomes]
+        full_targets = [{e for r in outcomes[label] for e in r["full_ledger_ids"]} for label in outcomes]
+        rows.append(dict(pair_id=key[0], round=key[1], title=key[2],
+                         text_sha256="sha256:" + hashlib.sha256(json.dumps(key[2:], ensure_ascii=False).encode()).hexdigest(),
+                         classification_changed=classifications[0] != classifications[1],
+                         full_targets_changed=full_targets[0] != full_targets[1], **outcomes))
+    return dict(matched_text_groups=len(rows),
+                classification_changed_groups=sum(r["classification_changed"] for r in rows),
+                full_targets_changed_groups=sum(r["full_targets_changed"] for r in rows), groups=rows,
+                interpretation="Exact equality of title, expected and observed text within the same pair-round. Other report fields, batch context, provider and time can differ. This audit does not establish identical judge requests, isolate judge randomness, or alter frozen labels.")
+
+
 def paired_uncertainty(current, reference):
     names = sorted(current["per_cluster"])
     assert len(names) == 9 and names == sorted(reference["per_cluster"])
@@ -379,6 +406,7 @@ def main():
         result["source_hashes"].update({**ah, **ajh, **selection_hashes})
         result["paired_uncertainty"] = paired_uncertainty(result["a2"], result["v61"]) if aj else None
         result["provider_paired_sensitivity"] = provider_paired_sensitivity(result["a2"], result["v61"])
+        result["shared_report_text_audit"] = shared_report_text_audit(result["a2"], result["v61"])
         full = {(r["ledger_id"], r["round"]): r for r in result["v61"]["expected"]}
         result["changes"] = [dict(**r, v61_hit=full[r["ledger_id"], r["round"]]["hit"],
                                   v61_full_report_ids=full[r["ledger_id"], r["round"]]["full_report_ids"],
