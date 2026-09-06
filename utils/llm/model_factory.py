@@ -99,20 +99,6 @@ def model_kwargs(
     """Build provider constructor kwargs from ``LLMConfig`` without side imports."""
 
     kwargs = config.connection_kwargs()
-    if config.inference is not None:
-        inference = config.inference
-        for key in ("temperature", "top_p"):
-            if (value := getattr(inference, key)) is not None:
-                kwargs[key] = value
-        extra_body = {}
-        if inference.top_k is not None:
-            extra_body["top_k"] = inference.top_k
-        if inference.chat_template_kwargs is not None:
-            extra_body["chat_template_kwargs"] = inference.chat_template_kwargs.model_dump(exclude_none=True)
-        if extra_body:
-            kwargs["extra_body"] = extra_body
-        if effort is None and inference.reasoning_effort is not None:
-            effort = inference.reasoning_effort
     if config.max_output_tokens is not None:
         kwargs[
             "max_completion_tokens"

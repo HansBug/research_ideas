@@ -3,7 +3,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import httpx
 import pytest
 from pydantic import BaseModel
 
@@ -131,9 +130,9 @@ def test_factory_requires_explicit_api_key_by_default() -> None:
         create_chat_model(LLMConfig(adapter="openai", model="gpt-test"))
 
 
-def test_model_options_override_defaults_without_reading_agent_runtime(monkeypatch) -> None:
+def test_model_options_override_defaults_without_reading_agent_runtime() -> None:
     for forbidden in ("utils.agent", "utils.agent.runtime", "paper_stm_repair_loop"):
-        monkeypatch.delitem(sys.modules, forbidden, raising=False)
+        sys.modules.pop(forbidden, None)
     config = LLMConfig(adapter="deepseek", model="deepseek-test", api_key="x")
 
     kwargs = model_kwargs(config, model_options={"streaming": False, "timeout": 30})
@@ -170,43 +169,3 @@ def test_profile_stream_usage_is_shared_by_factory_and_agent() -> None:
     app = AgentApp.from_config(AgentSpec(name="usage", system_prompt="answer"), config,
                               model_options={"stream_usage": False})
     assert app.model.stream_usage is False
-
-
-def test_profile_inference_options_reach_the_openai_wire() -> None:
-    import json
-    from utils.agent import AgentApp, AgentSpec
-    from utils.agent.runtime import _resolve_inference_options
-
-    captured = []
-
-    def respond(request):
-        captured.append(json.loads(request.content))
-        return httpx.Response(200, json={
-            "id": "offline", "object": "chat.completion", "created": 0,
-            "model": "local-model", "choices": [{"index": 0, "finish_reason": "stop",
-                "message": {"role": "assistant", "content": "ok"}}],
-            "usage": {"prompt_tokens": 2, "completion_tokens": 1, "total_tokens": 3},
-        })
-
-    config = LLMConfig(model="local-model", api_key="test-key",
-                       base_url="http://127.0.0.1:1/v1", stream_usage=True,
-                       max_output_tokens=32768, inference={
-                           "think_mode": True, "reasoning_effort": "low", "temperature": 1.0,
-                           "top_p": 0.95, "top_k": 20, "structured_output_tokens": 32768,
-                           "chat_template_kwargs": {"enable_thinking": True, "reasoning_effort": "low"},
-                       })
-    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
-        model = create_chat_model(config, streaming=False, model_options={"http_client": client})
-        assert model.invoke("test").content == "ok"
-    request = captured[0]
-    assert request["reasoning_effort"] == "low"
-    assert request["chat_template_kwargs"] == {"enable_thinking": True, "reasoning_effort": "low"}
-    assert (request["temperature"], request["top_p"], request["top_k"]) == (1.0, 0.95, 20)
-    assert request["max_completion_tokens"] == 32768
-    app = AgentApp.from_config(AgentSpec(name="inference", system_prompt="answer"), config)
-    assert app.model.extra_body == model.extra_body
-    options, effective = _resolve_inference_options(config, model_call_options=None,
-                                                   think_mode=None, reasoning_effort=None)
-    assert effective is True and options["reasoning_effort"] == "low"
-    with pytest.raises(ValueError, match="conflicts with the profile"):
-        _resolve_inference_options(config, model_call_options=None, think_mode=False, reasoning_effort=None)
