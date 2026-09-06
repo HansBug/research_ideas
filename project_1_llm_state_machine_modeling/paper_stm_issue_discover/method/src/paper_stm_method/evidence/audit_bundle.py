@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..compiler.lowering import PredicatePlan
 from ..inputs.models import PairInput
+from ..semantics.ablation import NoInspectInput
 from ..semantics.adjudication import SemanticAdjudication
 from ..semantics.binding import BindingResult
 from .receipts import RawReceipt
@@ -180,4 +181,8 @@ def build_audit_bundle(
         "reason": reason,
         "basis": basis,
     }
+    if isinstance(pair, NoInspectInput):
+        payload["input_context"]["ablation"] = "no-inspect"
+        for role in ("inspection_facts", "verify_facts", "smt_facts"):
+            payload["input_context"]["source_roles"][role] = "disabled_by_ablation"
     return validate_and_hash_w2_audit_bundle(payload)

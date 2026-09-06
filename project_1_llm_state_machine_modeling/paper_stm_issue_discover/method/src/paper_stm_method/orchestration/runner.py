@@ -34,6 +34,11 @@ from ..inputs.fcstm_native_projection import (
     transition_by_reference,
 )
 from ..inputs.models import PairInput
+from ..inputs.context import context_payload
+from ..semantics.ablation import (
+    DISABLED_INSPECTION_STEPS, INSPECTION_ROLES, NO_INSPECT_VERSION,
+    NoInspectInput, pair_system_prompt, system_prompt_for, without_inspection,
+)
 from ..semantics.author_source import build_author_index, enclosing_endpoint_carriers
 from ..registry import load_registry
 from utils.artifact_io import write_json, write_markdown_summary
@@ -341,19 +346,19 @@ class ExactGroundingResponse(GroundingResponse):
 
 METHOD_SYSTEM_PROMPT = """The method is staged. Its public generation surface is the NL contract-extraction stage followed by two complementary discovery-grounding lenses that share one response schema and compact cross-view context. Use only the complete context manifest supplied to each stage. Never read evaluation ground truth, scores, reviewer examples, or previously generated reports. Do not emit W, D, or L levels. Every structured object must contain non-empty reason and basis. Write every generated title, statement, summary, reason, basis, and audit explanation in English; preserve non-English text only inside exact quotations or identifiers copied from supplied artifacts."""
 
-def _prompt_schema_hash() -> str:
+def _prompt_schema_hash(ablation: AblationMode = "none") -> str:
     """Hash every method prompt contract and response schema used by a run."""
 
     return _hash_json(
         {
             "version": PROMPT_SCHEMA_VERSION,
             "system_prompts": {
-                "method_boundary": METHOD_SYSTEM_PROMPT,
-                "contract": CONTRACT_SYSTEM_PROMPT,
-                "contract_completion": CONTRACT_SYSTEM_PROMPT,
-                "discovery_grounding": DISCOVERY_GROUNDING_SYSTEM_PROMPT,
+                "method_boundary": system_prompt_for(METHOD_SYSTEM_PROMPT, ablation=ablation),
+                "contract": system_prompt_for(CONTRACT_SYSTEM_PROMPT, ablation=ablation),
+                "contract_completion": system_prompt_for(CONTRACT_SYSTEM_PROMPT, ablation=ablation),
+                "discovery_grounding": system_prompt_for(DISCOVERY_GROUNDING_SYSTEM_PROMPT, ablation=ablation),
                 "discovery_lenses": DISCOVERY_GROUNDING_AUDIT_LENSES,
-                "d_adjudication": D_SYSTEM_PROMPT,
+                "d_adjudication": system_prompt_for(D_SYSTEM_PROMPT, ablation=ablation),
             },
             "schemas": {
                 "nl_contract": NLContractResponse.model_json_schema(),
@@ -882,6 +887,8 @@ def _stage_receipt(
 
     if pair.context_manifest is None:
         raise ValueError("stage receipt requires a complete context manifest")
+    if isinstance(pair, NoInspectInput):
+        artifact_roles = tuple(role for role in artifact_roles if role not in INSPECTION_ROLES)
     context_budget = (
         ContextBudgetReceipt.model_validate(
             outcome.context_budget.model_dump(mode="json")
@@ -2618,6 +2625,10 @@ def _prepare_candidate(
         "reason": "The candidate receipt carries the same input closure identity used by method and grounding.",
         "basis": "pair context manifest and deterministic fact model versions",
     }
+    if isinstance(pair, NoInspectInput):
+        for role in ("inspection_facts", "verify_facts", "smt_facts"):
+            attribution["roles"][role] = "disabled_by_ablation"
+        attribution["input_context"]["ablation"] = "no-inspect"
     return {
         "obligation_id": obligation_id,
         "candidate": candidate,
@@ -3902,6 +3913,7 @@ def _d_decision_consistency_errors(
         if (
             isinstance(candidate, CandidateIssue)
             and candidate.property == "deadlock_freedom"
+            and not isinstance(pair, NoInspectInput)
             and candidate.violation_direction == "dead_end"
             and binding is not None
         ):
@@ -4375,6 +4387,11 @@ def _method_cell(
         raise RuntimeError(
             f"pair {pair.pair_id} input manifest changed after run identity was frozen"
         )
+    if ablation == "no-inspect":
+        audit = context_payload(pair)
+        audit["reason"] = "Original input closure is audit-only; method consumers receive the no-inspect projection."
+        write_json(output_root / "input_audits" / f"{pair.pair_id}.json", audit)
+        pair = without_inspection(pair)
     stage_receipts: list[dict[str, Any]] = []
     stage_outputs: dict[str, Any] = {}
     all_outcomes: list[StructuredCallOutcome[Any]] = []
@@ -4396,6 +4413,16 @@ def _method_cell(
         "reason": "The complete method input closure was prepared before contract extraction.",
         "basis": "context manifest, artifact hashes, and explicit source-role separation",
     }
+    if ablation == "no-inspect":
+        stage_outputs["ablation"] = {
+            "mode": ablation, "projection_version": NO_INSPECT_VERSION,
+            "disabled_roles": sorted(INSPECTION_ROLES),
+            "disabled_steps": [{"function": name, "status": "disabled_by_ablation"} for name in DISABLED_INSPECTION_STEPS],
+            "original_input_audit": f"input_audits/{pair.pair_id}.json",
+            "predicate_execution": "enabled",
+        }
+        for role in ("inspection_facts", "verify_facts", "smt_facts"):
+            prepare_output["source_roles"][role] = "disabled_by_ablation"
     stage_receipts.append(
         _stage_receipt(
             pair=pair,
@@ -4413,7 +4440,7 @@ def _method_cell(
     contract_outcome: StructuredCallOutcome[NLContractResponse] = runtime.call(
         kind="contract_extraction",
         schema=NLContractResponse,
-        system_prompt=CONTRACT_SYSTEM_PROMPT,
+        system_prompt=pair_system_prompt(pair, CONTRACT_SYSTEM_PROMPT),
         prompt=contract_prompt,
         artifact_id=f"method/{pair.pair_id}/round-{round_index}/contract-extraction",
     )
@@ -4487,7 +4514,7 @@ def _method_cell(
         contract_completion_outcome = runtime.call(
             kind="contract_completion",
             schema=ContractCompletionResponse,
-            system_prompt=CONTRACT_SYSTEM_PROMPT,
+            system_prompt=pair_system_prompt(pair, CONTRACT_SYSTEM_PROMPT),
             prompt=contract_completion_prompt,
             artifact_id=(
                 f"method/{pair.pair_id}/round-{round_index}/contract-completion"
@@ -4613,7 +4640,7 @@ def _method_cell(
         outcome: StructuredCallOutcome[GroundingResponse] = runtime.call(
             kind="discovery_grounding",
             schema=grounding_schema,
-            system_prompt=DISCOVERY_GROUNDING_SYSTEM_PROMPT,
+            system_prompt=pair_system_prompt(pair, DISCOVERY_GROUNDING_SYSTEM_PROMPT),
             prompt=prompt,
             artifact_id=(
                 f"method/{pair.pair_id}/round-{round_index}/"
@@ -4723,7 +4750,7 @@ def _method_cell(
         )
     )
     initial_candidates, root_wrapper_preflight_dispositions = (
-        _preflight_synthetic_root_wrapper_reachability(
+        (initial_candidates, []) if isinstance(pair, NoInspectInput) else _preflight_synthetic_root_wrapper_reachability(
             pair,
             initial_candidates,
         )
@@ -4777,7 +4804,7 @@ def _method_cell(
     )
     frontier_candidates.extend(frontier_unresolved_candidates)
     domain_invariant_contracts, domain_invariant_candidates, domain_invariant_dispositions = (
-        materialize_domain_invariant_contracts(
+        ([], [], []) if isinstance(pair, NoInspectInput) else materialize_domain_invariant_contracts(
             pair,
             existing_candidates=[*initial_candidates, *frontier_candidates],
         )
@@ -5080,7 +5107,7 @@ def _method_cell(
             d_outcome: StructuredCallOutcome[DAdjudicationResponse] = runtime.call(
                 kind="d_adjudication",
                 schema=DAdjudicationResponse,
-                system_prompt=D_SYSTEM_PROMPT,
+                system_prompt=pair_system_prompt(pair, D_SYSTEM_PROMPT),
                 prompt=batch.prompt,
                 artifact_id=batch_artifact,
             )
@@ -5238,7 +5265,7 @@ def _method_cell(
                 correction_outcome: StructuredCallOutcome[DAdjudicationResponse] = runtime.call(
                     kind="d_adjudication_correction",
                     schema=DAdjudicationResponse,
-                    system_prompt=D_SYSTEM_PROMPT,
+                    system_prompt=pair_system_prompt(pair, D_SYSTEM_PROMPT),
                     prompt=batch.prompt,
                     artifact_id=batch_artifact,
                 )
@@ -6415,7 +6442,7 @@ def run_experiment(
         selected_pair_ids,
     )
     input_data_hash = _hash_json({"pair_input_hashes": pair_input_hashes})
-    prompt_schema_hash = _prompt_schema_hash()
+    prompt_schema_hash = _prompt_schema_hash(ablation)
     model_config_hash = _model_config_hash(profile)
     selection_preflight_reference = _load_selection_preflight(
         selection_preflight,

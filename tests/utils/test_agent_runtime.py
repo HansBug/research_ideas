@@ -22,6 +22,7 @@ from utils.agent.runtime import (
     _prepare_recovery_history,
     _provider_retry_after_seconds,
     _retryable_transport_error,
+    _normalize_transport_exception,
     _tool_completion_status,
 )
 from utils.llm import LLMConfig
@@ -80,6 +81,18 @@ def test_model_call_deadline_is_typed_and_transport_retryable() -> None:
         "timeout_seconds": 0.01,
     }
     assert _retryable_transport_error(error) is True
+
+
+def test_empty_responses_stream_is_transport_retryable_but_schema_errors_are_not() -> None:
+    empty = _normalize_transport_exception(ValueError("No generations found in stream."))
+    assert isinstance(empty, AgentError)
+    assert empty.code == "transport_error"
+    assert empty.details["source"] == "provider"
+    assert empty.details["retryable"] is True
+    assert _retryable_transport_error(empty) is True
+    ordinary = ValueError("structured output validation failed")
+    assert _normalize_transport_exception(ordinary) is ordinary
+    assert _retryable_transport_error(ordinary) is False
 
 
 def test_agent_spec_accepts_separate_model_and_run_deadlines() -> None:
@@ -1662,16 +1675,18 @@ def test_provider_timeout_is_not_reported_as_agent_budget() -> None:
     assert result.error["code"] == "provider_error"
 
 
-def test_transport_retry_classifier_separates_transient_and_auth_errors() -> None:
+@pytest.mark.parametrize("status_code", [502, 520, 521, 524, 529, 599])
+def test_transport_retry_classifier_separates_transient_and_auth_errors(status_code: int) -> None:
     class RetryableProviderError(Exception):
-        status_code = 502
         body = {"retry_after": 60}
 
     class AuthenticationError(Exception):
         status_code = 401
 
     transient = RetryableProviderError("origin unavailable")
+    transient.status_code = status_code
     assert _retryable_transport_error(transient) is True
+    assert _retryable_transport_error(AgentError("provider_error", "origin unavailable", details={"status_code": status_code})) is True
     assert _provider_retry_after_seconds(transient) == 60
     assert _retryable_transport_error(AuthenticationError("unauthorized")) is False
 

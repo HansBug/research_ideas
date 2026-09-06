@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 AblationMode = Literal["none", "no-inspect", "no-predicates"]
 ABLATION_MODES = ("none", "no-inspect", "no-predicates")
-IMPLEMENTED_ABLATIONS = ("none",)
+IMPLEMENTED_ABLATIONS = ("none", "no-inspect")
 
 
 def validate_ablation(value: str) -> AblationMode:
@@ -287,7 +287,7 @@ class MethodCellReceipt(AblationIdentity):
     ] = Field(
         description=(
             "Versioned method-cell schema identifier. v8 remains readable for "
-            "historical artifacts; new runs emit v10 with explicit ablation identity."
+            "historical artifacts; new runs emit the current schema with explicit ablation identity."
         )
     )
     run_id: str = Field(

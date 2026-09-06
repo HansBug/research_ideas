@@ -29,7 +29,7 @@ def test_cli_default_and_explicit_none(monkeypatch, tmp_path):
     assert calls[0]["ablation"] == "none"
 
 
-@pytest.mark.parametrize("ablation", ["unknown", "no-predicate", "no-predicates", "no-inspect"])
+@pytest.mark.parametrize("ablation", ["unknown", "no-predicate", "no-predicates"])
 def test_unimplemented_modes_fail_before_loading_or_provider(ablation, monkeypatch, tmp_path):
     def forbidden(*args, **kwargs):
         pytest.fail("unimplemented condition reached input/provider setup")
@@ -42,6 +42,8 @@ def test_unimplemented_modes_fail_before_loading_or_provider(ablation, monkeypat
 
 
 def test_condition_identity_worker_resume_and_legacy_reading(tmp_path, monkeypatch):
+    if not REPORT.is_dir() and runner._release_source_provenance() is not None:
+        pytest.skip("frozen repository pairs are not shipped in the verified release")
     args = dict(report_root=REPORT, output_dir=tmp_path, profile="fixture", rounds=1,
                 workers=2, pair_ids=["0004", "0023"], run_id="a" * 32)
     summary = runner.run_experiment(**args)
@@ -84,3 +86,13 @@ def test_failure_receipt_keeps_disabled_condition(tmp_path):
                                        error=RuntimeError("fixture"), run_identity=identity)
     assert cell["ablation"] == "no-inspect"
     assert not cell["eligible"]
+
+
+def test_packaged_no_inspect_prompt_and_input_contract():
+    from paper_stm_method.semantics.ablation import NoInspectInput, system_prompt_for
+    from paper_stm_method.semantics.workflow import DISCOVERY_GROUNDING_SYSTEM_PROMPT
+
+    assert "inspection" not in system_prompt_for(DISCOVERY_GROUNDING_SYSTEM_PROMPT, ablation="no-inspect").lower()
+    assert system_prompt_for(DISCOVERY_GROUNDING_SYSTEM_PROMPT) is DISCOVERY_GROUNDING_SYSTEM_PROMPT
+    for field in ("reference_inspection", "inspection_facts", "verify_facts", "smt_facts"):
+        assert NoInspectInput.model_json_schema()["properties"][field]["type"] == "null"
