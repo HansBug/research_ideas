@@ -13,6 +13,7 @@ def test_muse_native_xml_schema_and_stream_parser():
     pytest.importorskip("sglang", reason="Requires the remote Muse serving environment")
     from sglang.srt.entrypoints.openai.protocol import Tool
     from sglang.srt.function_call.muse_glimmer_detector import MuseGlimmerDetector
+    from jsonschema import Draft202012Validator
     from transformers import AutoTokenizer
 
     module_path = Path(os.environ.get("E1_MUSE_ADAPTER", Path(__file__).parents[2] / "utils/llm/serving_muse.py"))
@@ -21,7 +22,8 @@ def test_muse_native_xml_schema_and_stream_parser():
     spec.loader.exec_module(adapter)
     schema = {"type": "object", "additionalProperties": False, "properties": {
         "decisions": {"type": "array", "items": {"type": "object", "additionalProperties": False,
-            "properties": {"kind": {"type": "string", "enum": ["unresolved"]}}, "required": ["kind"]}},
+            "properties": {"kind": {"type": "string", "enum": ["unresolved"]},
+                           "optional_hint": {"type": "string"}}, "required": ["kind"]}},
         "reason": {"type": "string", "minLength": 1}, "basis": {"type": "string", "minLength": 1}},
         "required": ["reason", "basis"]}
     tools = [{"type": "function", "function": {"name": "Assessment", "description": "Assessment", "parameters": schema}}]
@@ -34,13 +36,18 @@ def test_muse_native_xml_schema_and_stream_parser():
     suffix = '</atem:invoke>\n</atem:function_calls>'
     params = '<atem:parameter name="decisions">[{"kind":"unresolved"}]</atem:parameter>\n<atem:parameter name="reason">Undecidable</atem:parameter>\n<atem:parameter name="basis">Dossier</atem:parameter>\n'
     valid = prefix + params + suffix
-    cases = [(valid, True), (valid.replace('"unresolved"', '"invented"'), False),
+    cases = [(valid, True),
+             (valid.replace('{"kind":"unresolved"}', '{"optional_hint":"late repair","kind":"unresolved"}'), True),
+             (valid.replace('{"kind":"unresolved"}', '{"kind":"unresolved","optional_hint":"late repair"}'), True),
              (valid.replace('<atem:parameter name="basis">Dossier</atem:parameter>\n', ''), False),
              (valid.replace('Dossier</atem:parameter>', '</atem:parameter>'), False)]
     for text, expected in cases:
         matcher = xgrammar.GrammarMatcher(compiled)
         accepted = matcher.accept_string(text) and matcher.accept_token(tokenizer.eos_token_id)
         assert accepted is expected
+    # The serving frame does not replace the unchanged caller schema validator.
+    assert not Draft202012Validator(schema).is_valid({
+        "decisions": [{"kind": "invented"}], "reason": "Undecidable", "basis": "Dossier"})
     matcher = xgrammar.GrammarMatcher(compiled)
     assert all(matcher.accept_token(token) for token in tokenizer.encode(valid, add_special_tokens=False))
     for chunk_size in (1, 7, len(valid)):

@@ -1,9 +1,10 @@
-"""SGLang 0.5.19 launcher with schema-constrained native Muse ATEM tool calls.
+"""SGLang 0.5.19 launcher with required native Muse ATEM tool parameters.
 
 Run only inside the model's remote conda environment. The upstream detector
 parses required calls natively but supplies no decoding grammar. This adapter
 uses XGrammar's existing XML parameter compiler, with Muse's ATEM namespace.
 It leaves the model template, reasoning parser and caller schemas unchanged.
+Nested JSON remains order-independent; the caller's validator owns its schema.
 """
 import json
 import runpy
@@ -21,8 +22,20 @@ def muse_structural_tag(tools, tool_choice):
         serialized = json.dumps(schema)
         if "<parameter" in serialized or "</parameter>" in serialized:
             raise ValueError("Schema literals conflict with XML grammar namespace conversion")
+        # XGrammar's nested schema compiler fixes object key order, preventing
+        # otherwise valid repairs that append optional fields. Constrain the
+        # XML parameter envelope; keep nested JSON validation with the caller.
+        parameters = {}
+        for key, value in schema.get("properties", {}).items():
+            if value.get("type") == "array":
+                parameters[key] = {"type": "array", "items": {}}
+            elif value.get("type") == "object":
+                parameters[key] = {"type": "object", "additionalProperties": True}
+            else:
+                parameters[key] = value
+        decoding_schema = {**schema, "properties": parameters}
         grammar = str(Grammar.from_structural_tag(json.dumps({"type": "structural_tag", "format": {
-            "type": "json_schema", "json_schema": schema, "style": "minimax_xml"}})))
+            "type": "json_schema", "json_schema": decoding_schema, "style": "minimax_xml"}})))
         # The native compiler has no XML namespace option; convert only its tag literals.
         grammar = grammar.replace("<parameter name=", "<atem:parameter name=").replace("</parameter>", "</atem:parameter>")
         name = function["name"]
@@ -49,8 +62,8 @@ def install():
     from sglang.srt.function_call.muse_glimmer_detector import MuseGlimmerDetector
     from xgrammar import StructuralTag
 
-    if version("sglang") != "0.5.19":
-        raise RuntimeError("Revalidate the Muse serving adapter before changing SGLang 0.5.19")
+    if version("sglang") != "0.5.19" or version("xgrammar") != "0.2.1":
+        raise RuntimeError("Revalidate the Muse adapter before changing SGLang 0.5.19 / XGrammar 0.2.1")
 
     def get_structural_tag(self, tools=None, tool_choice="auto", thinking_mode=False, parallel_tool_calls=True):
         if not tools or tool_choice in ("auto", "none"):
