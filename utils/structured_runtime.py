@@ -685,7 +685,7 @@ class PublicStructuredRuntime:
         """Construct the model and unshared async transport inside its owner loop."""
 
         timeout = float(_provider_timeout_seconds(self.streaming))
-        if self.config.adapter != "anthropic":
+        if self.config.adapter not in {"anthropic", "google-genai"}:
             # OpenAI's unhashable timeout keeps its async client local to this loop.
             timeout = httpx.Timeout(timeout)
         transport_spec = AgentSpec(
@@ -709,6 +709,10 @@ class PublicStructuredRuntime:
     async def _aclose_transport_model(self) -> None:
         """Close process-local async and sync clients before stopping the loop."""
 
+        if self.config.adapter == "google-genai":
+            await self._transport_model.client.aio.aclose()
+            self._transport_model.client.close()
+            return
         async_client = getattr(self._transport_model, "root_async_client", None)
         if async_client is None:
             async_client = getattr(self._transport_model, "_async_client", None)

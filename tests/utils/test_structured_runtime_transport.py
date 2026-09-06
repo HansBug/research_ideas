@@ -9,7 +9,7 @@ from utils.llm import LLMConfig, LLMRegistry
 from utils.structured_runtime import PublicStructuredRuntime
 
 
-@pytest.mark.parametrize("adapter", ["openai", "openai-responses", "anthropic", "deepseek"])
+@pytest.mark.parametrize("adapter", ["openai", "openai-responses", "anthropic", "deepseek", "google-genai"])
 def test_structured_runtime_constructs_provider_transport_without_network(tmp_path, monkeypatch, adapter):
     config = LLMConfig(adapter=adapter, model="test-model", api_key="test-key",
                        base_url="http://127.0.0.1:1", stream_usage=True)
@@ -19,9 +19,13 @@ def test_structured_runtime_constructs_provider_transport_without_network(tmp_pa
         runtime = PublicStructuredRuntime("fixture", tmp_path, transport_retries=0)
         try:
             model = runtime._transport_model
-            assert model.stream_usage is True
-            timeout = model.default_request_timeout if adapter == "anthropic" else model.request_timeout
-            if adapter == "anthropic":
+            if adapter == "google-genai":
+                timeout = model.timeout
+                assert "stream_usage" not in model.model_kwargs
+            else:
+                assert model.stream_usage is True
+                timeout = model.default_request_timeout if adapter == "anthropic" else model.request_timeout
+            if adapter in {"anthropic", "google-genai"}:
                 assert timeout == 30.0
             else:
                 assert isinstance(timeout, httpx.Timeout)

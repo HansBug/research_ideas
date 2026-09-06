@@ -83,7 +83,7 @@ def test_config_loads_auditable_token_pricing() -> None:
 
 
 @pytest.mark.parametrize(
-    "adapter", ["openai", "openai-responses", "anthropic", "deepseek"]
+    "adapter", ["openai", "openai-responses", "anthropic", "deepseek", "google-genai"]
 )
 def test_config_accepts_supported_adapters(adapter: str) -> None:
     config = LLMConfig.model_validate({"model": "test-model", "adapter": adapter})

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
+import httpx
 import pytest
 from pydantic import BaseModel
 
@@ -27,6 +29,7 @@ class StructuredAnswer(BaseModel):
         ("openai-responses", "ChatOpenAI", "langchain-openai/responses"),
         ("anthropic", "ChatAnthropic", "langchain-anthropic/messages"),
         ("deepseek", "ChatDeepSeek", "langchain-deepseek/chat-completions"),
+        ("google-genai", "ChatGoogleGenerativeAI", "langchain-google-genai/generate-content"),
     ],
 )
 def test_create_chat_model_selects_adapter_and_supports_include_raw_structured_output(
@@ -58,6 +61,7 @@ def test_openai_responses_adapter_enables_responses_api() -> None:
         ("openai", "low", {"reasoning_effort": "low"}),
         ("openai-responses", "xhigh", {"reasoning": {"effort": "xhigh"}}),
         ("anthropic", "medium", {"effort": "medium"}),
+        ("google-genai", "low", {"thinking_level": "low"}),
     ],
 )
 def test_explicit_effort_uses_adapter_specific_constructor_shape(
@@ -103,6 +107,7 @@ def test_responses_effort_merges_with_other_reasoning_options() -> None:
         ("anthropic", "none", "unsupported effort"),
         ("deepseek", "low", "does not support explicit effort"),
         ("openai-responses", "minimal", "unsupported effort"),
+        ("google-genai", "none", "unsupported effort"),
     ],
 )
 def test_unsupported_effort_is_rejected(
@@ -128,6 +133,46 @@ def test_max_output_tokens_use_provider_specific_constructor_names() -> None:
 def test_factory_requires_explicit_api_key_by_default() -> None:
     with pytest.raises(LLMModelFactoryError, match="api_key"):
         create_chat_model(LLMConfig(adapter="openai", model="gpt-test"))
+
+
+def test_google_native_schema_reaches_the_wire_and_uses_explicit_credentials(monkeypatch) -> None:
+    monkeypatch.setenv("GOOGLE_API_KEY", "environment-key-must-not-be-used")
+    monkeypatch.delenv("GOOGLE_GENAI_USE_VERTEXAI", raising=False)
+    requests = []
+
+    def respond(request):
+        requests.append(request)
+        assert request.headers["x-goog-api-key"] == "profile-key"
+        assert request.url.path == "/v1beta/models/gemini-test:generateContent"
+        generation = json.loads(request.content)["generationConfig"]
+        assert generation["maxOutputTokens"] == 123
+        assert generation["responseMimeType"] == "application/json"
+        assert generation["responseJsonSchema"]["properties"]["answer"]["type"] == "string"
+        return httpx.Response(200, json={
+            "candidates": [{"content": {"role": "model", "parts": [{"text": '{"answer":"ok"}'}]},
+                            "finishReason": "STOP"}],
+            "usageMetadata": {"promptTokenCount": 9, "candidatesTokenCount": 3, "totalTokenCount": 12},
+            "modelVersion": "gemini-test",
+        })
+
+    model = create_chat_model(
+        LLMConfig(adapter="google-genai", model="gemini-test", api_key="profile-key",
+                  base_url="https://example.invalid", max_output_tokens=123),
+        streaming=False, model_options={"client_args": {"transport": httpx.MockTransport(respond)}},
+    )
+    try:
+        result = model.with_structured_output(StructuredAnswer, method="json_schema", include_raw=True).invoke("answer")
+        assert result["parsed"] == StructuredAnswer(answer="ok")
+        assert result["raw"].usage_metadata["total_tokens"] == 12
+        assert len(requests) == 1
+    finally:
+        model.client.close()
+
+
+def test_google_adapter_rejects_ambient_backend_override(monkeypatch) -> None:
+    monkeypatch.setenv("GOOGLE_GENAI_USE_VERTEXAI", "true")
+    with pytest.raises(LLMModelFactoryError, match="GOOGLE_GENAI_USE_VERTEXAI"):
+        create_chat_model(LLMConfig(adapter="google-genai", model="gemini-test", api_key="test-key"))
 
 
 def test_model_options_override_defaults_without_reading_agent_runtime() -> None:

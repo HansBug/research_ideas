@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlsplit
@@ -11,6 +12,7 @@ _ADAPTER_PACKAGES = {
     "openai-responses": "langchain-openai",
     "anthropic": "langchain-anthropic",
     "deepseek": "langchain-deepseek",
+    "google-genai": "langchain-google-genai",
 }
 
 _ADAPTER_NAMES = {
@@ -18,11 +20,13 @@ _ADAPTER_NAMES = {
     "openai-responses": "langchain-openai/responses",
     "anthropic": "langchain-anthropic/messages",
     "deepseek": "langchain-deepseek/chat-completions",
+    "google-genai": "langchain-google-genai/generate-content",
 }
 
 EFFORT_LEVELS = ("none", "low", "medium", "high", "xhigh", "max")
 _OPENAI_EFFORT_LEVELS = frozenset(EFFORT_LEVELS)
 _ANTHROPIC_EFFORT_LEVELS = frozenset(EFFORT_LEVELS[1:])
+GOOGLE_THINKING_LEVELS = frozenset({"minimal", "low", "medium", "high"})
 
 
 class LLMModelFactoryError(ValueError):
@@ -35,6 +39,11 @@ def _apply_effort(
     """Apply an explicit runtime effort using the selected adapter's wire shape."""
 
     if effort is None:
+        return
+    if config.adapter == "google-genai":
+        if effort not in GOOGLE_THINKING_LEVELS:
+            raise LLMModelFactoryError(f"unsupported effort {effort!r} for google-genai")
+        kwargs["thinking_level"] = effort
         return
     if config.adapter in {"openai", "openai-responses"}:
         if effort not in _OPENAI_EFFORT_LEVELS:
@@ -77,7 +86,7 @@ def default_stream_usage(config: LLMConfig) -> bool:
 
     if config.stream_usage is not None:
         return config.stream_usage
-    if config.adapter == "anthropic":
+    if config.adapter in {"anthropic", "google-genai"}:
         return True
     if config.adapter == "deepseek":
         return False
@@ -114,6 +123,15 @@ def model_kwargs(
     if max_retries is not None:
         kwargs["max_retries"] = max_retries
     kwargs.update(dict(model_options or {}))
+    if config.adapter == "google-genai":
+        # Native Gemini includes usage without OpenAI's stream_usage switch.
+        kwargs.pop("stream_usage", None)
+        kwargs["vertexai"] = False
+        # The pinned LangChain version does not forward False to the Google SDK.
+        if os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "").lower() in {"true", "1", "yes"}:
+            raise LLMModelFactoryError("google-genai requires GOOGLE_GENAI_USE_VERTEXAI to be unset or false")
+        if "max_tokens" in kwargs:
+            kwargs["max_output_tokens"] = kwargs.pop("max_tokens")
     _apply_effort(kwargs, config, effort)
     return kwargs
 
@@ -145,6 +163,8 @@ def create_chat_model(
             from langchain_deepseek import ChatDeepSeek as ChatModel
         elif adapter == "anthropic":
             from langchain_anthropic import ChatAnthropic as ChatModel
+        elif adapter == "google-genai":
+            from langchain_google_genai import ChatGoogleGenerativeAI as ChatModel
         elif adapter in {"openai", "openai-responses"}:
             from langchain_openai import ChatOpenAI as ChatModel
         else:  # pragma: no cover - LLMConfig validates this today.

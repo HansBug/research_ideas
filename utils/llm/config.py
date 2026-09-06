@@ -56,7 +56,7 @@ class LLMConfig(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    adapter: Literal["openai", "openai-responses", "anthropic", "deepseek"] = "openai"
+    adapter: Literal["openai", "openai-responses", "anthropic", "deepseek", "google-genai"] = "openai"
     base_url: str | None = None
     api_key: SecretStr | None = None
     model: str = Field(min_length=1)

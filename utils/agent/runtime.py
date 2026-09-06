@@ -23,7 +23,7 @@ from urllib.parse import quote, urlsplit
 from pydantic import BaseModel
 
 from utils.llm import LLMConfig, LLMRegistry, prompt_cache_policy
-from utils.llm.model_factory import default_stream_usage
+from utils.llm.model_factory import GOOGLE_THINKING_LEVELS, default_stream_usage, model_kwargs
 
 try:
     from langchain.agents import create_agent
@@ -497,6 +497,8 @@ def _validate_model_call_options(options: Mapping[str, Any] | None) -> None:
 
 
 def _validate_adapter_call_options(config: LLMConfig, options: Mapping[str, Any] | None) -> None:
+    if config.adapter == "google-genai" and "verbosity" in (options or {}):
+        raise ValueError("model_call_options_not_supported: adapter=google-genai options=['verbosity']")
     if config.adapter != "anthropic":
         return
     unsupported = set(options or {}) & {"seed", "verbosity"}
@@ -575,6 +577,14 @@ def _resolve_inference_options(
             "anthropic_thinking_not_supported: provider-neutral forced-tool semantics require think_mode=False"
         )
 
+    if config.adapter == "google-genai":
+        if "max_tokens" in options:
+            options["max_output_tokens"] = options.pop("max_tokens")
+        if reasoning_effort is not None and reasoning_effort not in GOOGLE_THINKING_LEVELS:
+            raise ValueError(f"unsupported effort {reasoning_effort!r} for google-genai")
+        # Gemini 3 cannot disable thinking. An omitted control is provider-default.
+        return options, True if think_mode else None
+
     deepseek = _is_deepseek_config(config)
     effective_think_mode = think_mode
     if not think_mode and (
@@ -604,6 +614,8 @@ def _dependency_versions() -> dict[str, str | None]:
         "langchain-openai",
         "langchain-anthropic",
         "langchain-deepseek",
+        "langchain-google-genai",
+        "google-genai",
         "openai",
         "anthropic",
     )
@@ -3317,6 +3329,7 @@ class AgentApp:
                 "openai-responses": "langchain-openai/responses",
                 "anthropic": "langchain-anthropic/messages",
                 "deepseek": "langchain-deepseek/chat-completions",
+                "google-genai": "langchain-google-genai/generate-content",
             }[config.adapter]
         )
 
@@ -3336,6 +3349,8 @@ class AgentApp:
                 from langchain_deepseek import ChatDeepSeek as ChatModel
             elif adapter == "anthropic":
                 from langchain_anthropic import ChatAnthropic as ChatModel
+            elif adapter == "google-genai":
+                from langchain_google_genai import ChatGoogleGenerativeAI as ChatModel
             else:
                 from langchain_openai import ChatOpenAI as ChatModel
         except ImportError as exc:  # pragma: no cover
@@ -3344,6 +3359,7 @@ class AgentApp:
                 "openai-responses": "langchain-openai",
                 "anthropic": "langchain-anthropic",
                 "deepseek": "langchain-deepseek",
+                "google-genai": "langchain-google-genai",
             }[adapter]
             raise AgentError("config_error", f"{package} is required") from exc
         kwargs = config.connection_kwargs()
@@ -3363,6 +3379,8 @@ class AgentApp:
             }
         )
         kwargs.update(dict(model_options or {}))
+        if adapter == "google-genai":
+            kwargs = model_kwargs(config, model_options=model_options)
         try:
             model = ChatModel(**kwargs)
         except Exception as exc:
