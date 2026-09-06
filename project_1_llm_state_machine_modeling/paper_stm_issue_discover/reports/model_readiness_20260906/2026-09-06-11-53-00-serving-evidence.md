@@ -25,12 +25,30 @@ Muse 的旧 `muse-context90` 两条响应都有占位符，旧 `muse-long16k-thi
 
 通过 `LLM_CONFIG_FILE` 指向权限 600 的隔离 `.llmconfig.yml`，调用未修改的 `utils.llm.create_chat_model`。四款开放模型均完成普通生成、JSON schema、tool call、streaming usage 四类探针。现有 Luna/Sonnet/Haiku 同样完成四类；Gemini 3.5 的兼容路径、原生 Google 路径均未成功。所有 workflow 仅用事前选定 pair `0001`、一轮、一 worker、零额外 transport retry，不读取 ledger、不评分。[clm-workflow-status]
 
+## 配置字段迁移审计
+
+本地主 registry 只接受 `LLMConfig` 的显式字段。旧的七个开放模型 profile 曾在本地配置中携带临时 `inference` 扩展字段；这些字段已从 `.llmconfig.yml` 清理，因此 registry 可正常加载。原设置保留在本报告和远程服务证据中，未被当作当前 profile schema 或新的运行参数：
+
+| profile | 原记录的 thinking / effort | 原记录的 sampling | 原记录的结构化输出预算 |
+|---|---|---|---:|
+| `e1-qwen38-27b` | thinking=true；effort=low | temperature=1.0；top_p=0.95；top_k=20 | 65,536 |
+| `e1-qwen36-35b` | thinking=true | temperature=1.0；top_p=0.95；top_k=20 | 32,768 |
+| `e1-gemma4-31b` | thinking=true | temperature=1.0；top_p=0.95；top_k=64 | 32,768 |
+| `e1-muse30b` | thinking=true；reasoning_strength=high | temperature=1.0；top_p=0.95；top_k=64 | 32,768 |
+| `e1-nemotron35-30b` | thinking=true | temperature=1.0；top_p=0.95；top_k 未记录 | 32,768 |
+| `e1-glm47-flash` | thinking=true | temperature=1.0；top_p=0.95；top_k 未记录 | 32,768 |
+| `e1-gptoss20b` | thinking=true；effort=medium | temperature=1.0；top_p/top_k 未记录 | 32,768 |
+
+这张表是历史服务/实验设置审计，不是当前 `utils.llm` profile 合同；正式 E2 若需要这些 provider-specific controls，应通过已验证的 adapter 接口和独立 run record 明确登记。
+
 | profile | baseline | 当前 method | 解释 |
 |---|---|---|---|
 | `gpt-5.6-luna` | 完成 | `completed`，eligible cell 1 | 最小工作流通过 |
 | `claude-sonnet-5` | 完成 | `failed_with_receipt`，eligible cell 0 | `ChatAnthropic` timeout 类型不兼容 |
 | `claude-haiku-4-5` | 未运行 | 未运行 | 仅四类 API 探针，不推断 method |
 | `e1-gemini-3.5-flash` | provider 失败 | `failed_with_receipt`，eligible cell 0 | 现有网关路由/模型访问缺口；不代表模型一般不可用 |
+| `gateway-b-gemini-3.7-native` | 未纳入旧四类表 | `completed`，eligible cell 1，约 90.40s | 5/5 stage success，9 calls，4 次节点内 schema 修正，3 条 W2，method/audit error 0；严格 native JSON Schema/canary 仍有限制 |
+| `gateway-b-gemini-3.8-native` | 未纳入旧四类表 | `completed`，eligible cell 1，约 83.25s | 5/5 stage success，8 calls，3 次节点内 schema 修正，2 条 W2，method/audit error 0；严格 native JSON Schema/canary 仍有限制 |
 | `e1-qwen38-27b` | 完成 | `completed`，eligible cell 1，约 236s | 首次因 detached worktree provenance 被拒；同 commit 的命名干净分支重跑后完成 |
 | `e1-qwen36-35b` | 完成 | `completed`，eligible cell 1，约 95s | 最小工作流通过 |
 | `e1-gemma4-31b` | 完成 | `completed_with_diagnostics`，eligible cell 1，约 934s | contract-completion 六轮后 `turns limit exceeded`，保留 coverage gap 后落盘 |
@@ -48,7 +66,7 @@ Gemma 的 provider 持续返回，不能把长延迟归为网络故障。其 con
 4. 初始 Muse tunnel/服务连接失败记录保留；修正 CUDA link/parser 配置后通过。
 5. 初始 vLLM 0.28.0 尝试留下 architecture/import/kernel 初始化失败，后续采用 SGLang 0.5.19。本轮没有完成 vLLM 的同等级性能验证，不主张两种框架等价通过。
 6. method 初次启动缺失 `genai_prices` / pyfcstm 依赖；在隔离客户端环境补齐后保留新旧记录。Qwen3.8 的 detached worktree 失败在 provider 调用前发生，改用同 commit 的命名干净分支后复跑。
-7. Gemini 路由探针有 404、500、read timeout 和“HTTP 200 但内容为网站 HTML”；它们都不算推理成功。Sonnet method 退出码为 0 但 pair 状态失败，必须按终态解释。
+7. Gemini 旧路由探针有 404、500、read timeout 和“HTTP 200 但内容为网站 HTML”；它们都不算推理成功。Gateway B 的 3.7/3.8 native profile 后续 method 已完成，但严格 native JSON Schema、最小 enum schema 与复杂 forced-tool canary 仍有失败或不稳定记录。Sonnet method 退出码为 0 但 pair 状态失败，必须按终态解释。
 8. SGLang 日志含 torchcodec 多媒体组件 warning、CUDA header/compiler mismatch 引起的 allreduce fusion fallback；文本请求可运行不等于启动过程没有 warning。
 9. Muse 的 JSON response-format 存在占位符内容缺陷；非流式和增加 schema description 的小探针也未消除。function/tool 路径完成后续负载验证；不把原 schema sweep 改写为成功，也不宣称已确定其底层模型/grammar 根因。[clm-muse-routing]
 
