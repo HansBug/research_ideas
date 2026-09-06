@@ -141,3 +141,13 @@ A2 method 和 judge 各保持 2 个 worker。A1 已独立提高并发，因此 �
 前两批完整 judge `441ffdfffd4f5aaab90870395cb35618` / `62388b064f2255daa02439dcd045dbb0` 原样保留。退出旧调度器后，第三批 `82023a87854e5198b71a3ca48832a548` 的进程消失且没有 terminal receipt；该批标为切换中断，不解释成正常零报告或 provider 质量失败。其已有响应、未完成请求及来源 hash 保留，使用相同请求前缀核验恢复缺失裁定，不重裁定已完整格。新滚动调度只读取冻结选择表指定的 method 来源，跨目录核销重复提交、失败和未裁定项。所有实际调用仍只属于 A2，主比较继续使用 §9 的 v61 原件。
 
 合流验收包括共享 runtime、A1/A2 schema/flow/resume 回归；完整 full 的 default/显式 `none` 与 `87e969b29` 的既有 provider-free 实际请求和决策对拍；真实 A2 已成功格、失败 smoke 及中断请求的离线回放边界检查。具体命令和原件随实验归档，动态执行状态留在 PR。
+
+## 12. 续接期间追加：HTTP 5xx 重试遗漏与诊断格核销
+
+2026-09-06，续接 `55f3799341d046888d8b2e61261913c6` 的 `0009:r2` 在 D 阶段收到 Cloudflare HTTP 520，原始结构化错误带 `retryable=true` / `retry_after=60`，但本地状态码白名单只包含 500/502/503/504，没有形成任何 transport retry。该格保留为 eligible `completed_with_diagnostics`、零发布报告；此前契约与两路 grounding 成功。这是请求恢复遗漏，不能解释为 A2 正常零发现。
+
+共享修复按已安装 OpenAI SDK 的 server-error 类别覆盖 HTTP 5xx；已有请求重试次数、Retry-After、单调用 deadline 和显式 Responses `retryable=false` 优先级不变。补充原始/包装状态码分类以及真实 SDK HTTP 520 异常的离线请求重试检查。成功路径语义不改。已启动的长驻进程仍记录并使用 §11 的源码，后续新启动的进程记录修复后的源码，不假称在途运行已热更新。
+
+本补充在 `0009:r2` 的任何独立 judge 调用前固定：后续遇到明确 provider 失败的格先保留诊断原件，暂缓提交其报告集合；当前 method 批次结束后，仅对有 provider 失败证据的格按 §11 的精确成功前缀做稀疏恢复。非 provider 的内部诊断格仍按原 eligibility 门裁定，效果差、零报告或命中低本身不触发恢复。所有原始失败、恢复来源、缺失和最终选择逐项核销；若恢复仍失败，保留其诊断并在固定分母及缺失敏感性中披露，不无限冷启动。已有正常 method/judge 结果不重采样。
+
+滚动 judge 调度器在已完成批次边界暂停并更新来源选择，保留在途子进程直到其终态，以免再次依赖孤儿进程存活。pane8 新评估的另一 endpoint 尚未用于 A2；本批次保持已登记 model/config hash，任何服务迁移必须另记配置身份与时间边界。
