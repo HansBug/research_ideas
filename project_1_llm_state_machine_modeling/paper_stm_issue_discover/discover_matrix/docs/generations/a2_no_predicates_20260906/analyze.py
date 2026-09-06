@@ -52,16 +52,20 @@ def quality(reports, items):
     )
 
 
-def load_selection(path):
+def load_selection(path, *, sources_dir=None):
     plan = read(path)
     assert plan["schema"] == "a2.transport-continuation.v1"
-    root = Path(plan["root"])
+
+    def locate(root):
+        return Path(root) if sources_dir is None else sources_dir / Path(root).name
+
+    root = locate(plan["root"])
     manifest = read(root / "run_manifest.json")
     assert plan["run_id"] == manifest["run_id"] == root.name
     assert plan["identity"]["source_provenance"] == manifest["source_provenance"]
     assert plan["identity"]["run_contract_hash"] == manifest["run_contract_hash"]
     assert manifest["ablation"] == "no-predicates" and manifest["rounds"] == 3
-    roots = [Path(p) for p in plan["source_roots"]] + [root]
+    roots = [locate(p) for p in plan["source_roots"]] + [root]
     assert len(set(p.resolve() for p in roots)) == len(roots)
     frozen = ("ablation", "selected_pair_ids", "rounds", "model_config_hash", "prompt_schema_hash",
               "input_data_hash", "pair_input_hashes", "registry_hash")
@@ -76,11 +80,13 @@ def load_selection(path):
         assert row["action"] in {"reuse", "recover"}
         if row["old_path"]:
             old = Path(row["old_path"])
+            assert old.parent.name == key[0] and old.name == f"round-{key[1]}.json" and old.parents[1].name == "method"
+            old = locate(old.parents[2]) / "method" / key[0] / f"round-{key[1]}.json"
             assert old.parents[2].resolve() in {p.resolve() for p in roots[:-1]}
             assert digest(old) == row["old_hash"], ("frozen predecessor changed", old)
         if row["action"] == "reuse":
             assert row["old_path"] and row["old_hash"]
-            selected, expected_hash = Path(row["old_path"]), row["old_hash"]
+            selected, expected_hash = old, row["old_hash"]
         else:
             selected, expected_hash = root / "method" / key[0] / f"round-{key[1]}.json", None
         assert selected.parent.name == key[0] and selected.name == f"round-{key[1]}.json"
@@ -283,9 +289,11 @@ def main():
     parser.add_argument("--report-root", type=Path, required=True)
     parser.add_argument("--a2-root", type=Path)
     parser.add_argument("--a2-selection", type=Path)
+    parser.add_argument("--a2-sources-dir", type=Path, help="Relocate frozen source roots by run ID for archive-only recomputation")
     parser.add_argument("--a2-judge-root", type=Path, action="append", default=[])
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    assert not args.a2_sources_dir or args.a2_selection, "source relocation requires a frozen A2 selection"
     items = read(args.ledger)["items"]
     assert len(items) == 145 and Counter(i["L"] for i in items.values()) == {"L0": 71, "L1": 35, "L2": 39}
     vr = args.v61_archive / "raw"
@@ -305,7 +313,7 @@ def main():
     assert len(vseen) == 162 and len(vj) == 903
     assert not (args.a2_root and args.a2_selection), "choose one A2 source mode"
     if args.a2_root or args.a2_selection:
-        roots, selection, selection_hashes = load_selection(args.a2_selection) if args.a2_selection else ([args.a2_root], None, {})
+        roots, selection, selection_hashes = load_selection(args.a2_selection, sources_dir=args.a2_sources_dir) if args.a2_selection else ([args.a2_root], None, {})
         ac, am, aq, ah, aa = load_cells(roots, selection=selection)
         aj, ae, aseen, ajh, af = load_judges(args.a2_judge_root, ac, am, items)
         result["a2"] = summarize("a2_no_predicates", ac, am, aj, ae, aseen, items, clusters)
@@ -313,6 +321,7 @@ def main():
         result["a2_judge_failures"] = af
         result["a2_predecessor_attempts"] = aa
         result["a2_source_selection"] = {"plan": str(args.a2_selection) if args.a2_selection else None,
+                                         "sources_dir": str(args.a2_sources_dir) if args.a2_sources_dir else None,
                                          "roots": [str(p) for p in roots]}
         result["input_comparison"] = [dict(pair_id=p, round=r, differences={name: dict(a2=value, v61=vc[p, r]["input_hashes"].get(name))
                                       for name, value in cell["input_hashes"].items() if value != vc[p, r]["input_hashes"].get(name)})

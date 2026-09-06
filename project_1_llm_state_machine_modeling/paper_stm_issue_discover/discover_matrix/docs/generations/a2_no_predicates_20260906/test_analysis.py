@@ -3,6 +3,7 @@
 import importlib.util
 import json
 from pathlib import Path
+import shutil
 
 import pytest
 
@@ -99,3 +100,37 @@ def test_cell_selection_preserves_attempts_and_rejects_changed_reused_bytes(tmp_
     paths[1].write_text(paths[1].read_text() + "\n")
     with pytest.raises(AssertionError):
         analysis.load_cells([old, new], selection=selected)
+
+
+def test_frozen_selection_relocates_without_rewriting_original_identity(tmp_path):
+    old, new = tmp_path / "old", tmp_path / "new"
+    pairs = [f"{p:04d}" for p in range(60) if p % 10 != 8]
+    common = dict(ablation="no-predicates", selected_pair_ids=pairs, rounds=3,
+                  model_config_hash="model", prompt_schema_hash="prompt", input_data_hash="data",
+                  pair_input_hashes={p: "input" for p in pairs}, registry_hash="registry")
+    for root in (old, new):
+        root.mkdir()
+        manifest = dict(**common, run_id=root.name, source_provenance={"source_commit": root.name}, run_contract_hash=root.name)
+        (root / "run_manifest.json").write_text(json.dumps(manifest))
+    cell = old / "method/0000/round-1.json"
+    cell.parent.mkdir(parents=True)
+    cell.write_text("{}\n")
+    rows = [dict(pair_id=p, round=r, action="recover", old_path=None, old_hash=None) for p in pairs for r in (1, 2, 3)]
+    rows[0].update(action="reuse", old_path=str(cell), old_hash=analysis.digest(cell))
+    plan = dict(schema="a2.transport-continuation.v1", root=str(new), run_id=new.name, source_roots=[str(old)],
+                identity={k: manifest[k] for k in ("source_provenance", "run_contract_hash")}, selection=rows, planned_cells=162)
+    path = new / "continuation_plan.json"
+    path.write_text(json.dumps(plan))
+    archive = tmp_path / "archive"
+    for root in (old, new):
+        shutil.copytree(root, archive / root.name)
+    _, original, _ = analysis.load_selection(path)
+    _, relocated, hashes = analysis.load_selection(archive / "new/continuation_plan.json", sources_dir=archive)
+    assert set(original) == set(relocated) and len(relocated) == 162
+    assert relocated["0000", 1]["path"] == archive / "old/method/0000/round-1.json"
+    assert relocated["0000", 2]["path"] == archive / "new/method/0000/round-2.json"
+    assert set(hashes.values()) == {analysis.digest(path)}
+    cell.write_text("changed original\n")
+    analysis.load_selection(archive / "new/continuation_plan.json", sources_dir=archive)
+    with pytest.raises(AssertionError, match="frozen predecessor changed"):
+        analysis.load_selection(path)
