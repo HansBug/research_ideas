@@ -11,6 +11,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 import httpx
 from langchain_core.callbacks import BaseCallbackHandler, CallbackManager
 from langchain_core.language_models import BaseChatModel
@@ -863,11 +865,11 @@ def test_structured_output_keeps_official_tool_strategy_after_model_copy(monkeyp
     assert callable(captured[0].handle_errors)
 
 
-def test_structured_output_repair_feedback_localizes_exact_shape_errors() -> None:
+@pytest.mark.parametrize("through_langchain_binding", [False, True])
+def test_structured_output_repair_feedback_localizes_exact_shape_errors(through_langchain_binding) -> None:
     from typing import Literal
 
-    from langchain.agents.structured_output import StructuredOutputValidationError
-    from pydantic import ValidationError
+    from langchain.agents.structured_output import OutputToolBinding, StructuredOutputValidationError, ToolStrategy
 
     from utils.agent import runtime
 
@@ -882,14 +884,17 @@ def test_structured_output_repair_feedback_localizes_exact_shape_errors() -> Non
 
         item0: tuple[FirstDecision, SecondDecision]
 
+    parse = ExactBatch.model_validate
+    if through_langchain_binding:
+        parse = OutputToolBinding.from_schema_spec(ToolStrategy(ExactBatch).schema_specs[0]).parse
     try:
-        ExactBatch.model_validate(
+        parse(
             {
                 "item0": [{"expected_id": "E0001"}],
                 "item1": {"expected_id": "E0002"},
             }
         )
-    except ValidationError as source:
+    except ValueError as source:
         shape_error = StructuredOutputValidationError(
             "ExactBatch",
             source,
@@ -903,9 +908,10 @@ def test_structured_output_repair_feedback_localizes_exact_shape_errors() -> Non
     assert "inside its exact existing parent" in shape_message
     assert "DELETE `item1` completely" in shape_message
     assert "do not create another top-level item" in shape_message
+    assert "input_value=" not in shape_message
 
     try:
-        ExactBatch.model_validate(
+        parse(
             {
                 "item0": [
                     {"expected_id": "E0001"},
@@ -913,7 +919,7 @@ def test_structured_output_repair_feedback_localizes_exact_shape_errors() -> Non
                 ]
             }
         )
-    except ValidationError as source:
+    except ValueError as source:
         literal_error = StructuredOutputValidationError(
             "ExactBatch",
             source,

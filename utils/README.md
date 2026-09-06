@@ -76,6 +76,7 @@ class LLMConfig(BaseModel):
     model: str
     context_window_tokens: int | None = None
     max_output_tokens: int | None = None
+    stream_usage: bool | None = None
 ```
 
 只有 `model` 必填；`adapter` 可省略且严格默认为 `openai`。`adapter` 显式选择 LangChain client 与传输协议，不表示实际 provider 或 endpoint：`openai` 与 `openai-responses` 都使用 `ChatOpenAI`，但分别固定走 Chat Completions 与 Responses；`anthropic`、`deepseek` 分别对应 `ChatAnthropic`、`ChatDeepSeek`。运行时不根据 model 名或 host 猜测传输协议。其他字段为 `None` 时，Agent 构造模型时不传对应参数。`LLMRegistry` 是只读 `Mapping[str, LLMConfig]`：
@@ -87,6 +88,8 @@ config = registry.default
 registry.default_name
 registry.names()
 ```
+
+`stream_usage` 可在 profile 中显式设置，适合已经验证支持 usage 的自托管兼容端点。缺省时保留 provider 安全默认；调用方显式参数优先于 profile。该字段仅在显式配置时加入公开配置与 fingerprint，因此不改变旧 profile 的身份。`PublicStructuredRuntime` 给 Anthropic 传浮点 timeout，OpenAI/DeepSeek 保留 `httpx.Timeout` 以隔离 async client 生命周期。
 
 路径优先级为显式参数、`LLM_CONFIG_FILE`、根 `.llmconfig.yml`。加载器不访问网络、不创建 client、不维护全局可变单例。公开摘要必须脱敏；`api_key` 不能打印。
 ### 2.2 `utils.agent`

@@ -155,3 +155,17 @@ def test_default_stream_usage_is_adapter_specific() -> None:
         )
         is False
     )
+
+
+def test_profile_stream_usage_is_shared_by_factory_and_agent() -> None:
+    from utils.agent import AgentApp, AgentSpec
+
+    config = LLMConfig(model="local-model", base_url="http://127.0.0.1:8100/v1",
+                       api_key="test-key", stream_usage=True)
+    assert create_chat_model(config).stream_usage is True
+    app = AgentApp.from_config(AgentSpec(name="usage", system_prompt="answer"), config)
+    assert app.model.stream_usage is True
+    assert create_chat_model(config, stream_usage=False).stream_usage is False
+    app = AgentApp.from_config(AgentSpec(name="usage", system_prompt="answer"), config,
+                              model_options={"stream_usage": False})
+    assert app.model.stream_usage is False

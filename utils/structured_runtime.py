@@ -684,6 +684,10 @@ class PublicStructuredRuntime:
     async def _initialize_async_runtime(self):
         """Construct the model and unshared async transport inside its owner loop."""
 
+        timeout = float(_provider_timeout_seconds(self.streaming))
+        if self.config.adapter != "anthropic":
+            # OpenAI's unhashable timeout keeps its async client local to this loop.
+            timeout = httpx.Timeout(timeout)
         transport_spec = AgentSpec(
             name="evidence-discovery-persistent-transport",
             system_prompt="Persistent process-local transport holder; never invoked directly.",
@@ -696,11 +700,7 @@ class PublicStructuredRuntime:
             model_options={
                 "streaming": self.streaming,
                 "max_retries": 0,
-                # An unhashable timeout makes langchain-openai allocate an
-                # instance-owned async httpx client instead of its global cache.
-                "timeout": httpx.Timeout(
-                    float(_provider_timeout_seconds(self.streaming))
-                ),
+                "timeout": timeout,
             },
         )
         self._async_call_lock = asyncio.Lock()

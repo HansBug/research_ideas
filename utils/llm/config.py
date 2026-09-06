@@ -62,6 +62,7 @@ class LLMConfig(BaseModel):
     model: str = Field(min_length=1)
     context_window_tokens: int | None = Field(default=None, gt=0)
     max_output_tokens: int | None = Field(default=None, gt=0)
+    stream_usage: bool | None = None
     pricing: LLMPricing | None = None
 
     @field_validator("model", mode="before")
@@ -136,7 +137,7 @@ class LLMConfig(BaseModel):
                 port = parsed.port
                 display_host = f"[{host}]" if ":" in host else host
                 endpoint_ref = f"{parsed.scheme}://{display_host}{f':{port}' if port is not None else ''}"
-        return {
+        result = {
             "adapter": self.adapter,
             "model": self.model,
             "base_url_ref": endpoint_ref,
@@ -147,6 +148,9 @@ class LLMConfig(BaseModel):
             if self.pricing is not None
             else None,
         }
+        if self.stream_usage is not None:
+            result["stream_usage"] = self.stream_usage
+        return result
 
     def fingerprint(self) -> str:
         payload = json.dumps(self.public_dict(), sort_keys=True, separators=(",", ":"))

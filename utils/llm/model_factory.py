@@ -75,6 +75,8 @@ def adapter_name(adapter: str) -> str:
 def default_stream_usage(config: LLMConfig) -> bool:
     """Return a conservative stream-usage default for the configured adapter."""
 
+    if config.stream_usage is not None:
+        return config.stream_usage
     if config.adapter == "anthropic":
         return True
     if config.adapter == "deepseek":

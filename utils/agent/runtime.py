@@ -23,6 +23,7 @@ from urllib.parse import quote, urlsplit
 from pydantic import BaseModel
 
 from utils.llm import LLMConfig, LLMRegistry, prompt_cache_policy
+from utils.llm.model_factory import default_stream_usage
 
 try:
     from langchain.agents import create_agent
@@ -118,7 +119,15 @@ def _structured_output_repair_message(exception: Exception) -> str:
     output schema or accept an otherwise invalid value.
     """
 
-    source = getattr(exception, "source", exception)
+    source = exception
+    seen: set[int] = set()
+    # LangChain wraps Pydantic errors in ValueError before its tool error.
+    while not callable(getattr(source, "errors", None)) and id(source) not in seen:
+        seen.add(id(source))
+        nested = getattr(source, "source", None) or source.__cause__ or source.__context__
+        if not isinstance(nested, BaseException):
+            break
+        source = nested
     errors_method = getattr(source, "errors", None)
     errors: list[Mapping[str, Any]] = []
     if callable(errors_method):
@@ -504,12 +513,7 @@ def _is_deepseek_config(config: LLMConfig) -> bool:
 def _default_stream_usage(config: LLMConfig) -> bool:
     """Return the adapter transport's safe default for streamed usage metadata."""
 
-    if config.adapter == "anthropic":
-        return True
-    if config.adapter == "deepseek":
-        return False
-    host = (urlsplit(config.base_url or "https://api.openai.com").hostname or "").lower()
-    return host == "api.openai.com"
+    return default_stream_usage(config)
 
 
 def _prompt_cache_policy(config: LLMConfig) -> dict[str, Any]:
