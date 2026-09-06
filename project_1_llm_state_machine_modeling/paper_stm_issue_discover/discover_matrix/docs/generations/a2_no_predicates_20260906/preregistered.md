@@ -91,3 +91,13 @@ Judge 固定 `semantic-judge.two-stage.v3.11`，协议 hash=`d774d9bd3e4c4fe0473
 ## 6. 复现与归档
 
 保留原始 prompt/output、调用配置/usage/重试、错误、各阶段产物、模型/依赖/input/registry/prompt/source 身份、eligibility 和逐报告裁定。Smoke 细粒度原件与测试/对拍证据只在 ignored runs；正式事实和可复算结果按 `final_results/<batch>/` 现有规范归档，中文报告进论文 `reports/`。共享 full 只读引用原 ID/hash，不伪造新的来源身份。敏感凭据和私有 judge 执行材料不进入公开制品；提交前核验脱敏、ignore、跟踪集合、逐文件 hash 和数值复算。运行前自审与事后结果审查分开，不冒称独立 reviewer 或人工裁定。
+
+## 7. A2 调用前追加：对照 recovery 与并发调整
+
+2026-09-06，A2 仍为零真实调用时，核对 [A1 事故记录](https://github.com/HansBug/research_ideas/pull/205#issuecomment-5556333437)及四份真实 manifest：原始 A1/full 全部 terminal，但 eligible 仅 23/28 格；大量 `No generations found in stream` 使它们不能充当完整效果实验。原件不删除、不拼入新批次。A1 已以同一 `9c7c99504` 源码、streaming、input/registry/model/prompt hash，分别降低到 workers=2，完整重跑 54×3 并记录 predecessor。
+
+本补充在 A2 的新数据与任何 hit/precision 结果出现前固定：**共享主对照改为 full recovery `8f89338546a14096b8e3f11413555859`**，run contract hash=`sha256:a070d5b285e5aa061d30c1debaa6587ecba679b86e9a85c9cafd6b4075cf0d80`，来源为 `runs/paper1/a1_no_inspect_20260906/recovery_method/`，其 predecessor 为原 `2893db20b2d846018f189233703bf098`。输入、registry、模型和 full prompt/schema hash 与 §3 相同。恢复批次未完成或裁定未闭合前，不宣称主比较完成；主表使用其整个批次，绝不逐格挑选原始/recovery 中较好的结果。原始对照只保留事故及降级敏感性，不隐去其失败率。
+
+并发对 §4 作如下事前覆盖：A2 smoke workers=1，正式 workers=2，A2 judge workers=2；总活跃 method workers 不超过 6，judge 总数仍不超过 14。模型、prompt、输入、重试次数、输出预算和轮次不变。较低并发是根据已经发生的传输事故作出的保守安排，不声称已证明并发是唯一根因；若再次发生空流，保留同调用链尝试与诊断，不以增加重试或整格重采样替代调查。
+
+A1 的 recovery 书面登记晚于它自身启动，A1 已明确披露；A2 引用这份对照时同步披露该流程偏离。A2 本次补充在任何本臂真实调用之前提交推送，不能将两者的登记时序混写。
