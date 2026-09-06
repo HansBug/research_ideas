@@ -18,6 +18,10 @@ spec = importlib.util.spec_from_file_location("v61_metrics", HERE.parent / "v61/
 v61 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(v61)
 KNI = {"VALID_KNOWN": "K", "VALID_NOVEL": "N", "INVALID": "I"}
+LUNA_CONFIGS = {
+    "gpt-5.6-luna": "sha256:a5bb978af02936e60784ad37bb85cb047c89f95eee971a9975c6f3ffc0b292c8",
+    "aizzz-luna-eval": "sha256:1b249a55de2f0b825c436305111743000d11077cd4fc3b8ac4ba215cc45305c6",
+}
 
 
 def read(path):
@@ -54,7 +58,8 @@ def quality(reports, items):
 
 def load_selection(path, *, sources_dir=None):
     plan = read(path)
-    assert plan["schema"] == "a2.transport-continuation.v1"
+    assert plan["schema"] in {"a2.transport-continuation.v1", "a2.provider-cutover.v1"}
+    provider_cutover = plan["schema"] == "a2.provider-cutover.v1"
 
     def locate(root):
         return Path(root) if sources_dir is None else sources_dir / Path(root).name
@@ -67,11 +72,16 @@ def load_selection(path, *, sources_dir=None):
     assert manifest["ablation"] == "no-predicates" and manifest["rounds"] == 3
     roots = [locate(p) for p in plan["source_roots"]] + [root]
     assert len(set(p.resolve() for p in roots)) == len(roots)
-    frozen = ("ablation", "selected_pair_ids", "rounds", "model_config_hash", "prompt_schema_hash",
+    frozen = ("ablation", "selected_pair_ids", "rounds", "prompt_schema_hash",
               "input_data_hash", "pair_input_hashes", "registry_hash")
     for source in roots:
         other = read(source / "run_manifest.json")
         assert all(other[name] == manifest[name] for name in frozen), ("continuation identity drift", source)
+        if provider_cutover:
+            assert other["profile"] in LUNA_CONFIGS
+            assert other["model_config_hash"] == LUNA_CONFIGS[other["profile"]], ("unregistered model configuration", source)
+        else:
+            assert other["model_config_hash"] == manifest["model_config_hash"], ("continuation identity drift", source)
     expected = {(p, r) for p in manifest["selected_pair_ids"] for r in (1, 2, 3)}
     selection = {}
     for row in plan["selection"]:
@@ -130,6 +140,8 @@ def load_cells(roots, *, historical=False, selection=None):
             divergence = {c["canonical_contract_id"] for c in execute.get("frontier_batch", {}).get("checks", []) if c.get("kind") == "source_divergence"}
             cells[key] = dict(pair_id=key[0], round=key[1], status=raw["status"], eligible=raw["eligible"],
                               source=str(path), reports=len(raw["report_issue_clusters"]), errors=raw.get("errors", []),
+                              run_id=manifest["run_id"], model_profile=manifest.get("profile"),
+                              model_config_hash=manifest.get("model_config_hash"),
                               input_hashes=raw.get("input_hashes", {}),
                               degraded=raw["status"] != "completed" or bool(raw.get("errors")),
                               publish=stage.get("publish"),
@@ -159,7 +171,14 @@ def load_judges(roots, cells, method_reports, items):
         assert manifest["protocol_sha256"] == "d774d9bd3e4c4fe04735ed1d4ec064be197cfadcd52e21c8226e37175b29b210"
         assert manifest["k_closure"] == "relation_first" and manifest["closure_profile"] == "full"
         assert manifest["validity_readings"] == 2 and manifest["validity_aggregation"] == "arbitration"
-        assert manifest["validity_arbitration_trigger"] == "any" and manifest["model_profile"] == "gpt-5.6-luna"
+        assert manifest["validity_arbitration_trigger"] == "any" and manifest["model_profile"] in LUNA_CONFIGS
+        if manifest["model_profile"] == "aizzz-luna-eval":
+            provider_path = root / "provider_identity.json"
+            provider = read(provider_path)
+            assert provider["run_id"] == manifest["run_id"] and provider["profile"] == manifest["model_profile"]
+            assert provider["model_config_hash"] == LUNA_CONFIGS[provider["profile"]]
+            assert provider["model"] == "gpt-5.6-luna" and provider["endpoint"] == "https://api.aizzz.xyz/v1"
+            hashes[str(provider_path)] = digest(provider_path)
         assert manifest.get("report_filter_path") is None
         selected_cells = {(p, r) for p in manifest["selected_pair_ids"] for r in manifest["selected_rounds"]}
         assert selected_cells <= set(cells)
@@ -187,7 +206,8 @@ def load_judges(roots, cells, method_reports, items):
                 assert set(outcome["full_ledger_ids"]).isdisjoint(outcome["partial_ledger_ids"])
                 assert outcome["validity"] == "VALID_KNOWN" or not (outcome["full_ledger_ids"] or outcome["partial_ledger_ids"])
                 assert all(items[e]["pair"] == key[0] for e in outcome["full_ledger_ids"] + outcome["partial_ledger_ids"])
-                reports[rid] = {**method_reports[rid], **outcome, "judge_source": str(path)}
+                reports[rid] = {**method_reports[rid], **outcome, "judge_source": str(path),
+                                "judge_profile": manifest["model_profile"]}
                 local[rid] = outcome
             assert {e["ledger_id"] for e in raw["expected_outcomes"]} == {e for e, item in items.items() if item["pair"] == key[0]}
             for e in raw["expected_outcomes"]:
@@ -253,6 +273,12 @@ def summarize(label, cells, method_reports, reports, expected, judged, items, cl
                 precision_complete=not unjudged and eligible <= judged,
                 metric_interpretation="Observed outcomes on the fixed planned denominator; missing cells are not normal zero-report cells. Degradation bounds include all diagnostics and do not attribute them to transport.",
                 per_round=per_round,
+                per_provider_segment={profile: dict(
+                    cells=len(keys), reports=sum(cells[k]["reports"] for k in keys),
+                    metrics=quality([r for r in reports.values() if (r["pair_id"], r["round"]) in keys], items),
+                    interpretation="Descriptive subset on the fixed ledger denominator; provider assignment follows completion order, not randomization.")
+                    for profile in sorted({c["model_profile"] or "legacy" for c in cells.values()})
+                    for keys in [{k for k, c in cells.items() if (c["model_profile"] or "legacy") == profile}]},
                 per_cluster={c: quality([r for r in reports.values() if clusters[r["pair_id"]] == c],
                                         {e: i for e, i in items.items() if clusters[i["pair"]] == c}) for c in sorted(set(clusters.values()))},
                 per_pair={p: quality([r for r in reports.values() if r["pair_id"] == p],

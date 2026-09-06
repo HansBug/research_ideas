@@ -72,6 +72,19 @@ def test_judge_loader_preserves_failures_and_rejects_protocol_drift(tmp_path):
     assert reports == expected == {} and judged == {("0000", 1)}
     assert set(cells) - judged == {("0001", 1)}
     assert failures[0]["pair_id"] == "0001" and hashes[str(failure_path)] == analysis.digest(failure_path)
+    manifest["model_profile"] = "aizzz-luna-eval"
+    manifest_path.write_text(json.dumps(manifest))
+    with pytest.raises(FileNotFoundError):
+        analysis.load_judges([root], cells, {}, {})
+    provider = dict(run_id="test", profile="aizzz-luna-eval", model="gpt-5.6-luna",
+                    model_config_hash=analysis.LUNA_CONFIGS["aizzz-luna-eval"], endpoint="https://api.aizzz.xyz/v1")
+    (root / "provider_identity.json").write_text(json.dumps(provider))
+    assert analysis.load_judges([root], cells, {}, {})[2] == judged
+    provider["model_config_hash"] = "unregistered endpoint"
+    (root / "provider_identity.json").write_text(json.dumps(provider))
+    with pytest.raises(AssertionError):
+        analysis.load_judges([root], cells, {}, {})
+    manifest["model_profile"] = "gpt-5.6-luna"
     manifest["protocol_sha256"] = "different protocol"
     manifest_path.write_text(json.dumps(manifest))
     with pytest.raises(AssertionError):
@@ -130,6 +143,22 @@ def test_frozen_selection_relocates_without_rewriting_original_identity(tmp_path
     assert relocated["0000", 1]["path"] == archive / "old/method/0000/round-1.json"
     assert relocated["0000", 2]["path"] == archive / "new/method/0000/round-2.json"
     assert set(hashes.values()) == {analysis.digest(path)}
+    plan["schema"] = "a2.provider-cutover.v1"
+    for source, profile in ((old, "gpt-5.6-luna"), (new, "aizzz-luna-eval")):
+        mp = archive / source.name / "run_manifest.json"
+        value = json.loads(mp.read_text())
+        value.update(profile=profile, model_config_hash=analysis.LUNA_CONFIGS[profile])
+        mp.write_text(json.dumps(value))
+    migrated = archive / "new/continuation_plan.json"
+    migrated.write_text(json.dumps(plan))
+    analysis.load_selection(migrated, sources_dir=archive)
+    mp = archive / "new/run_manifest.json"
+    value["model_config_hash"] = "unregistered endpoint"
+    mp.write_text(json.dumps(value))
+    with pytest.raises(AssertionError, match="unregistered model configuration"):
+        analysis.load_selection(migrated, sources_dir=archive)
+    value["model_config_hash"] = analysis.LUNA_CONFIGS["aizzz-luna-eval"]
+    mp.write_text(json.dumps(value))
     cell.write_text("changed original\n")
     analysis.load_selection(archive / "new/continuation_plan.json", sources_dir=archive)
     with pytest.raises(AssertionError, match="frozen predecessor changed"):
