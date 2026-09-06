@@ -756,6 +756,30 @@ def test_recovery_history_excludes_only_malformed_terminal_structured_call() -> 
     assert _message_ref(malformed)["tool_calls"] == rejected
 
 
+def test_recovery_history_accepts_harmony_lower_camel_structured_tool() -> None:
+    malformed = AIMessage(
+        content="",
+        invalid_tool_calls=[
+            {
+                "name": "dAdjudicationResponse",
+                "args": "{",
+                "id": "structured-lower-camel-1",
+                "error": "invalid JSON arguments",
+                "type": "invalid_tool_call",
+            }
+        ],
+    )
+
+    replay, rejected = _prepare_recovery_history(
+        [HumanMessage(content="answer"), malformed],
+        structured_name="DAdjudicationResponse",
+    )
+
+    assert len(replay) == 1
+    assert rejected[0]["name"] == "dAdjudicationResponse"
+    assert rejected[0]["tool_call_id"] == "structured-lower-camel-1"
+
+
 def test_recovery_history_refuses_dangling_business_tool_call() -> None:
     dangling = AIMessage(
         content="",

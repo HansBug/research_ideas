@@ -431,6 +431,14 @@ def _tool_name(tool: Any) -> str:
     return str(name)
 
 
+def _structured_tool_names(name: str | None) -> frozenset[str]:
+    """Accept the lower-camel spelling emitted by Harmony Responses."""
+
+    if not name:
+        return frozenset()
+    return frozenset({name, name[:1].lower() + name[1:]})
+
+
 def _tool_description(tool: Any) -> str:
     description = str(getattr(tool, "description", None) or inspect.getdoc(tool) or "").strip()
     return description or f"Invoke the registered tool '{_tool_name(tool)}'."
@@ -2680,9 +2688,11 @@ class _AgentGuardMiddleware(AgentMiddleware):
             return
         calls = list(getattr(last, "tool_calls", None) or [])
         registered = set(self.spec.tool_names)
-        structured_names = set()
-        if self.spec.output_schema is not None:
-            structured_names.add(self.spec.output_schema.__name__)
+        structured_names = (
+            _structured_tool_names(self.spec.output_schema.__name__)
+            if self.spec.output_schema is not None
+            else frozenset()
+        )
         unknown = [call.get("name") for call in calls if call.get("name") not in registered | structured_names]
         if unknown:
             raise AgentError("tool_not_allowed", f"tool is not registered: {unknown[0]}")
@@ -2797,7 +2807,8 @@ def _balance_invalid_structured_tool_calls(
 ) -> tuple[list[Any], bool]:
     """Add protocol replies for malformed synthetic structured-output calls."""
 
-    if not structured_output_name:
+    structured_names = _structured_tool_names(structured_output_name)
+    if not structured_names:
         return list(messages), False
     balanced: list[Any] = []
     changed = False
@@ -2809,7 +2820,7 @@ def _balance_invalid_structured_tool_calls(
             call
             for call in _message_protocol_tool_calls(message)
             if not call.get("valid")
-            and call.get("name") == structured_output_name
+            and call.get("name") in structured_names
             and call.get("tool_call_id")
         ]
         if not invalid_calls:
@@ -3991,12 +4002,13 @@ class AgentApp:
                 )
             _mark_message_shown(ai, shown_message_keys)
             structured_name = self.spec.output_schema.__name__ if self.spec.output_schema is not None else None
+            structured_names = _structured_tool_names(structured_name)
             requests = [
                 _tool_request(
                     call,
                     attempt_id,
                     call_turn,
-                    kind="structured" if call.get("name") == structured_name else "business",
+                    kind="structured" if call.get("name") in structured_names else "business",
                 )
                 for call in calls
             ]
@@ -4062,7 +4074,7 @@ class AgentApp:
             unknown_requests = [
                 item
                 for item in requests
-                if item["name"] not in self.spec.tool_names and item["name"] != structured_name
+                if item["name"] not in self.spec.tool_names and item["name"] not in structured_names
             ]
             business_requests = [item for item in requests if item["name"] in self.spec.tool_names]
             for request in unknown_requests:
@@ -4071,7 +4083,7 @@ class AgentApp:
                 with contextlib.suppress(ValueError):
                     ids.remove(str(request["tool_call_id"]))
                 audit_tool_action(request, turn_value=call_turn)
-            if structured_name and business_requests and any(item["name"] == structured_name for item in requests):
+            if structured_name and business_requests and any(item["name"] in structured_names for item in requests):
                 for request in business_requests:
                     request.update({
                         "status": "rejected",
@@ -5063,8 +5075,8 @@ class AgentApp:
                     business_names=self.spec.tool_names,
                 )
                 for rejected_call in rejected_calls:
-                    is_structured = (
-                        rejected_call.get("name") == self.spec.output_schema.__name__
+                    is_structured = rejected_call.get("name") in _structured_tool_names(
+                        self.spec.output_schema.__name__
                     )
                     rejected_record = {
                         "kind": "structured" if is_structured else "business",
@@ -5552,7 +5564,8 @@ def _prepare_recovery_history(
     """
 
     history = list(messages)
-    recoverable_names = {structured_name, *business_names}
+    structured_names = _structured_tool_names(structured_name)
+    recoverable_names = {*structured_names, *business_names}
     pending: dict[str, dict[str, Any]] = {}
     pending_index: int | None = None
     for index, message in enumerate(history):
