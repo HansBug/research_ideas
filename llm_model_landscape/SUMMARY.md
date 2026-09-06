@@ -18,7 +18,7 @@
 | Llama 完整表条目数 | 6 |
 | Grok 完整表条目数 | 7 |
 | 其他开源/开放权重完整表条目数 | 18 |
-| 本轮新增数量 | 7 个模型条目（Luna、Sonnet 5、Gemini 3.8、Qwen3.8、Nemotron 3.5、Muse、Gemma4）；目录结构未变 |
+| 本轮新增数量 | 8 个模型条目（Luna、Sonnet 5、Gemini 3.7/3.8、Qwen3.8、Nemotron 3.5、Muse、Gemma4）；目录结构未变 |
 | 尚待复查项 | Gemini 3.x/3.5 精确 ID、Kimi K2.x、部分云厂商价格、Qwen3.7 国内/国际价差 |
 
 ## 2. 文件索引
