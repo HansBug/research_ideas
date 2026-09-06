@@ -10,7 +10,7 @@
 
 ## 证据入口
 
-- [Luna 路由复核](./2026-09-07-06-55-00-luna-route-recheck.md)：最终 baseline 单次成功及后续四个 503；新旧包独立，[离线核验](./verify_luna_route_evidence.py)检查同 payload、wire 上限、provider 错误与终态。
+- [Luna 路由复核](./2026-09-07-06-55-00-luna-route-recheck.md)：最终 baseline 单次成功及后续四个 503，07:07 同配置追加复查仍 503；新旧包独立，[离线核验](./verify_luna_route_evidence.py)检查同 payload、wire 上限、provider 错误与终态。
 - [四模型配置与交接证据](./2026-09-07-06-12-00-four-model-handoff.md)：最终 Muse 原生参数/字段顺序修复、九格逐阶段核对、四款 baseline 覆盖、Luna 渠道失败、Sonnet usage 更正、环境锁与启动/tunnel 步骤。
 - [handoff manifest](./evidence/handoff_20260907/manifest.json) 与 [verify_handoff_evidence.py](./verify_handoff_evidence.py)：补充归档及离线复算；旧 stream 包保持冻结。
 - [全候选公开 benchmark 与任务选型](./2026-09-07-04-30-00-candidate-benchmarks.md)：17 个已调查模型身份、20 个公开档位，AA v4.2 / LCR v1.1 与作者自报分表、结构化缺测、当前 low/default 与公开 max/xhigh 的差异。

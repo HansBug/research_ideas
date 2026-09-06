@@ -43,6 +43,7 @@ def verify(root):
                 status = metadata["status_code"]
                 if name.startswith("checks/plain-api/wire/"):
                     hashes["adapter"] = digest
+                    original_request_hash = manifest["members"][name]["original_sha256"]
             if name.startswith("baseline/"):
                 assert status == 200
                 events = [json.loads(line[6:]) for line in archive.read(prefix + "response.body").splitlines()
@@ -67,10 +68,27 @@ def verify(root):
         assert not runtime["outcome"]["schema_validation_failures"]
         assert len(runtime["outcome"]["attempts"]) == 1
         assert runtime["outcome"]["attempts"][0]["provider_error"] is True
+        final_gate = json.loads((root / "final-gate-recheck.json").read_text())
+        request = json.loads(final_gate["request_body_utf8"])
+        assert request["stream"] is True and request["max_output_tokens"] == 128000
+        assert request["model"] == "gpt-5.6-luna"
+        for field in ("request", "response"):
+            assert hashlib.sha256(final_gate[field + "_body_utf8"].encode()).hexdigest() == final_gate["source_sha256"][field]
+        assert final_gate["source_sha256"]["request"] == original_request_hash
+        assert final_gate["wire"]["status_code"] == 503
+        assert final_gate["probe"]["profile_fingerprint"] == probe["config_fingerprint"]
+        assert final_gate["probe"]["transport_retries"] == 0
+        assert final_gate["probe"]["status"] == "failed"
+        assert not final_gate["formal_result_eligible"]
+        assert json.loads(final_gate["response_body_utf8"])["error"]["message"] == "Service temporarily unavailable"
+        assert final_gate["privacy"]["known_private_matches"] == final_gate["privacy"]["credential_pattern_matches"] == 0
     return {"verified_members": len(manifest["members"]), "source_commit": probe["source_commit"],
             "baseline_status": baseline["status"], "baseline_seconds": probe["seconds"],
             "http_200": 1, "http_503": 4, "same_plain_payload_sha256": hashes["adapter"],
-            "runtime_closed": True, "requests": rows}
+            "runtime_closed": True, "requests": rows,
+            "final_gate_recheck_http_status": final_gate["wire"]["status_code"],
+            "final_gate_original_request_sha256": original_request_hash,
+            "final_gate_recheck_seconds": final_gate["probe"]["seconds"]}
 
 
 if __name__ == "__main__":
