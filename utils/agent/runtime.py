@@ -93,6 +93,35 @@ _RETRYABLE_TRANSPORT_MESSAGE_MARKERS = (
 )
 
 
+def _normalize_transport_exception(exc: BaseException) -> BaseException:
+    """Promote an empty Responses stream to a replay-safe provider error.
+
+    ``langchain-core`` raises a bare ``ValueError`` when the Responses adapter
+    yields no generation (including an upstream ``response.failed`` event that
+    the installed adapter currently drops).  It is transport-owned, not a
+    schema verdict, so preserve the original details while routing it through
+    the existing bounded retry middleware.
+    """
+
+    message = str(exc).strip()
+    if isinstance(exc, ValueError) and message == "No generations found in stream.":
+        error = AgentError(
+            "transport_error",
+            "Responses stream ended without a usable generation",
+            details={
+                "source": "provider",
+                "type": "ResponsesStreamEmpty",
+                "retryable": True,
+                "original_type": type(exc).__name__,
+                "original_message": message,
+                "failure_event_observed": False,
+            },
+        )
+        error.__cause__ = exc
+        return error
+    return exc
+
+
 def _structured_output_error_path(location: Any) -> str:
     """Render one Pydantic error location as an unambiguous schema path."""
 
@@ -1388,6 +1417,8 @@ def _redact_exception_text(value: str) -> str:
 
 
 def _exception_details(exc: BaseException) -> dict[str, Any]:
+    if isinstance(exc, AgentError):
+        return _redact({"type": type(exc).__name__, "code": exc.code, "message": exc.message, **exc.details})
     module = type(exc).__module__.lower()
     source = (
         "provider"
@@ -1433,6 +1464,8 @@ def _retryable_transport_error(exc: BaseException) -> bool:
     """Classify only transient provider transport failures as replay-safe."""
 
     for item in _exception_chain(exc):
+        if isinstance(item, AgentError) and item.details.get("source") == "provider" and "retryable" in item.details:
+            return item.details["retryable"] is True
         status_code = getattr(item, "status_code", None)
         if status_code in _RETRYABLE_TRANSPORT_STATUS_CODES:
             return True
@@ -3001,7 +3034,8 @@ class _TransportRetryMiddleware(AgentMiddleware):
         while True:
             try:
                 response = handler(request)
-            except Exception as exc:
+            except Exception as raw_exc:
+                exc = _normalize_transport_exception(raw_exc)
                 payload = self._failure_payload(
                     logical_call_id=logical_call_id,
                     request_fingerprint=request_fingerprint,
@@ -3010,11 +3044,11 @@ class _TransportRetryMiddleware(AgentMiddleware):
                 )
                 retry_index = attempt_no - 1
                 if not _retryable_transport_error(exc):
-                    raise
+                    raise exc
                 if retry_index >= len(self.delays):
                     if self.on_exhausted is not None:
                         self.on_exhausted(payload)
-                    raise
+                    raise exc
                 self.ledger.reserve(1)
                 provider_delay = _provider_retry_after_seconds(exc)
                 short_connection_retry = bool(
@@ -3064,7 +3098,8 @@ class _TransportRetryMiddleware(AgentMiddleware):
         while True:
             try:
                 response = await handler(request)
-            except Exception as exc:
+            except Exception as raw_exc:
+                exc = _normalize_transport_exception(raw_exc)
                 payload = self._failure_payload(
                     logical_call_id=logical_call_id,
                     request_fingerprint=request_fingerprint,
@@ -3073,11 +3108,11 @@ class _TransportRetryMiddleware(AgentMiddleware):
                 )
                 retry_index = attempt_no - 1
                 if not _retryable_transport_error(exc):
-                    raise
+                    raise exc
                 if retry_index >= len(self.delays):
                     if self.on_exhausted is not None:
                         self.on_exhausted(payload)
-                    raise
+                    raise exc
                 self.ledger.reserve(1)
                 delay = _provider_retry_after_seconds(exc) or self.delays[retry_index]
                 payload.update(
@@ -3361,6 +3396,10 @@ class AgentApp:
         kwargs.update(dict(model_options or {}))
         try:
             model = ChatModel(**kwargs)
+            if adapter == "openai-responses":
+                from .responses_stream import guard_responses_streams
+
+                guard_responses_streams(model)
         except Exception as exc:
             raise AgentError("config_error", "model construction failed", details=_exception_details(exc)) from exc
         return cls(spec, config, model, profile=profile)
@@ -4259,7 +4298,11 @@ class AgentApp:
             call_kind = model_call_kinds.get(call_id, "primary")
             call_turn = model_call_turns.get(call_id, turn)
             if not any(item.get("model_call_id") == call_id for item in usage):
-                record_transport_usage(None, call_id, call_kind, call_turn, status="failed")
+                error_details = transport_errors[call_id]
+                record_transport_usage(
+                    error_details.get("usage"), call_id, call_kind, call_turn,
+                    status="failed", response_id=error_details.get("response_id"),
+                )
             if call_kind == "compact":
                 compaction_id = compaction_by_model_call.get(call_id)
                 info = compaction_summary_info.setdefault(compaction_id or "", {})

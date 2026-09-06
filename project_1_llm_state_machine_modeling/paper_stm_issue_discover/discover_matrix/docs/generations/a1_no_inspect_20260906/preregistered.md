@@ -95,3 +95,13 @@ Judge 固定 `semantic-judge.two-stage.v3.11`（当前第六轮），协议 hash
 运行前必须完成实际 prompt/schema、全消费者隔离、候选谓词可执行、默认 full 对拍、worker/resume 与 judge 读取检查；代码和本登记先推送，再启动 smoke。smoke 通过仅表示工程开关和完整性可用，不证明质量等价。
 
 Smoke prompt/raw output、逐格审计、测试 XML 和对拍数据仅留本地 gitignored `runs/paper1/a1_no_inspect_20260906/`；中文分析放论文 `reports/`。正式原件、配置身份、全阶段记录、错误和可复算结果按 generations/final_results 现有规范归档，保存逐文件 hash 和复算命令；私有 judge 执行材料与密钥不进入公开制品。正式批次可以离线核销全部报告与指标，不能只有一张手填结果表。
+
+## 7. 用户澄清与请求层恢复补充（2026-09-06，事后追加）
+
+以上原登记保留，不倒改为事前共识。用户进一步明确：**A1 的研究预期是 hit 大幅下降，尤其 L2；A1 precision 方向未知；precision 大幅下降属于 A2 的理论预期。** 这不是实测结论，也不是取得该方向才结束的门。交付主线是 A1 54×3、Luna judge 与既有 frozen v61 的系统比较；额外 full 仅作附加参考，不是 A1/judge 的前置门，也不启动第三批 full。与 v61 的历史版本差异及解释限制仍逐项保留。
+
+初批与低并发 recovery 暴露了请求控制缺陷：LangChain 对空流的普通 ValueError 未进入已有 transport retry，安装的 Responses 转换器还会丢弃 `response.failed`。因旧日志没有原始 SSE，不能倒推每次事故一定是哪种服务端失败，也不能宣称已证明并发过高。修复只涉及共享请求控制：SDK 解码后的事件在进入 LangChain 前核验失败终态/异常 EOF，保存错误、request/response ID、usage 与事件原因；明确瞬态故障进入原有同请求有界恢复，鉴权/非法请求/真实 schema 错误不得被泛化为可重试网络问题。正常请求、方法 prompt/schema、12 条谓词、发布门及 judge 协议不变。
+
+运行切换先核对确切 PID/子进程与当前格，停止旧 A1 派发并给在途格至多 300 秒排空。旧完整产物、失败回执与未完成审计片段均保留；不能向旧 run 写入新源码身份。新恢复目录另记 source commit、旧来源 hash 和逐格选择清单：成功格原件复用；明确 provider 失败及缺失格才恢复；纯方法诊断不作为重抽样理由。可复用的成功阶段仅在 prompt、schema 和输入一致时重放；失败阶段内已有成功响应也须按同请求验证后重放，不能丢掉已获得的反馈。无法精确复用时必须显式记录，不能伪称同请求恢复或选择更有利输出。统计固定 54×3、145×3 分母，原始与恢复来源、失败和未裁定覆盖单列。
+
+恢复不继续把 workers=2 作为最终措施：使用 8 个独立格 worker 起步（旧 full 的 2 个 pair worker 另计），记录实际在途请求数、首块延迟、重试/限流和成功吞吐；不以 30 分钟硬时限改变方法或盲目增加并发。原子审计数据和恢复脚本留 ignored runs，稳定结果及限制进入中文报告。
