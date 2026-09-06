@@ -2,6 +2,8 @@
 
 登记日期：2026-09-06，A2 真实调用之前。依据：[消融公约](../../protocol/ablation_design_and_parallel_contract.md)、[A2 #206](https://github.com/HansBug/research_ideas/pull/206)、[伞 PR #179](https://github.com/HansBug/research_ideas/pull/179)。用户已授权实现、验证、推送后运行 Luna 54×3、独立 Luna judge、复算与原因审计、归档和中文报告。本登记不以效果方向为完成门槛；施工进度和 review 写在 PR，事后结果另存，不回改事前假设。
 
+> 当前适用补充：§7 的低并发、§8 的合法降级读取仍有效；**主比较对象由 §9 的用户明确指令覆盖为冻结 v61 ours，只运行 A2 及 A2 judge**。§1/§7 的 recovery full 对照安排已被覆盖，保留原文仅用于追溯登记历史。
+
 ## 1. 问题与条件
 
 在完整 NL、作者源、FCSTM、转换追踪和前置检查事实保留时，整个谓词机制对 hit、precision、报告量和跨轮稳定性有什么净作用？机制同时包含定义引导和执行约束；本实验不估计这两部分各自的贡献，不是纯 LLM baseline，也不是谓词 subset 消融。
@@ -107,3 +109,17 @@ A1 的 recovery 书面登记晚于它自身启动，A1 已明确披露；A2 引�
 以共享 recovery 的真实 A1 `0033:r3` 复核发现，judge release adapter 原先只接收 `status=completed`，会错误拒绝 `eligible=true` 的 `completed_with_diagnostics`。该格保留 11 条最终报告，应按 §5 进入全量裁定。统一读取门修正为接收这两种完成状态且仍要求 eligible；failed、running 或 eligible=false 仍拒绝。两臂适用同一读取门，不改变报告字段、judge prompt、validity/closure 协议、内部发布门或方法运行产物。
 
 这项修正发生在 A2 零真实调用时。此前 provider-free adapter 检查只覆盖普通 completed，不能证明合法降级格可读取；补充回归验证两种完成状态的 CandidateReport 完全一致，且真实 `0033:r3` 的 11 条报告均能读取。原始诊断和状态照常保留，统计须分别核销 clean、diagnostic、failed，不把 diagnostic 改写为 clean。
+
+## 9. 正式 A2 前追加：用户指定 v61 ours 为 full
+
+2026-09-06，在五格工程 smoke 已产生、A2 正式 162 格尚未启动且没有 A2 独立 judge 结果时，用户明确指示：“不要跑 full 的部分，只跑 A2，full 那边以 v61 ours 为准”。本条按仓库规则优先级覆盖本登记 §1/§7 及消融公约 §5.2 中本批次的匹配对照安排。A2 只新增本臂方法和 judge 调用，full 采用 [v61 冻结归档](../../../../final_results/v61_source_divergence_vs_x1v2_baseline/README.md)及其既有裁定；不新增 full 方法运行、不重裁定 full，也不将 sibling recovery 升为本批次主比较。
+
+主对照原 method run ID=`a7b47d84c3cb4377a8009e5018d5b745`，源码 `ea6141607037d6daabe7df6826fc7c90dab7a12b`，原 19 谓词 registry。沿用 v61 已冻结的 `0045:r1` 补格 run `0e450e5c6c9d4841820c7d1fd2a888ea` 和 `current-r*` 裁定合流政策，不增删历史格、不重挑结果。核验锚点：
+
+- `raw/v61_current/method/run_manifest.json` SHA-256=`5ada697db9a66d3dfdb42d1e3722f2bb97e27cf9586b81ed88a1b9b80ef35df9`。
+- `raw/v61_current_fill0045/run_manifest.json` SHA-256=`4f462365ba311b1e28f2559fd95c740d0dbc16265108a46a90d5e832ed8a7e4a`。
+- `derived/v61_all_reports.tsv` SHA-256=`b4586298687f6501afe45d50c5d3014808642f24f77b44708196b411e768d38b`。
+
+固定主比较为 A2 新结果与 v61 的 903 reports、K/N/I=561/198/144、FULL hit@1=323/435、hit@3=130/145、hit@all=82/145。计算继续从逐报告裁定和固定 145 台账复算，不只抄总数。v61 原 19 谓词、当前 A2 源码基线、运行日期、prompt/schema、manifest 绝对路径 hash 以及历史补格政策的差异须明确披露；不声称同版本、同时间的单因素因果识别。九簇配对 bootstrap/留簇分析仍可描述这两批记录的差值，但不能消除版本、服务状态或 judge 时序混杂。
+
+该补充是在 smoke 后、正式实验前按用户指令作出，不能回写成初始预登记选择。先前使用 sibling full manifest 作输入身份工程核验的事实保留，该只读核验不等于新增 full 调用或效果对照。模型、A2 schema/prompt、54×3、低并发、重试配置、分母、独立裁定与证据留存规则均不改变。
